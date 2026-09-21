@@ -13,4 +13,5 @@
 ## 版本管理
 
 - v0.1：三件套初稿（草稿）
-- v0.2：技术选型更新（引入 RAGFlow 引擎 + openGauss DataVec + 解析器多选）
+- v0.2：技术选型更新（RAGFlow 引擎 + openGauss DataVec + 解析器多选）
+- v0.2.1：措辞修订（确定性工作流编排，非自主 Agent）
