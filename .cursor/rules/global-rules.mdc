@@ -1,0 +1,15 @@
+---
+description: 项目全局通用规则，对所有会话始终生效
+alwaysApply: true
+---
+
+# 全局 Agent 约束
+
+- 优先复用项目已有模块与成熟类库，避免重复造轮子。
+- 只改当前任务相关文件，不顺手重构无关代码。
+- 注释使用中文，源文件使用 UTF-8；生成中文后检查乱码并修正。
+- Git 提交信息使用英文；不提交 debug、build 临时文件。
+- 开发前先读 `docs/DOCUMENT_INDEX.md`；治理细则见 `project-governance.mdc`。
+- 需求变更 / 功能 / 迭代 / Bug（需跟踪）须走 Issue
+- 功能变更须按 `testing-rules.mdc` 测试并落盘报告到 `docs/testing/`。
+- 规则按路径叠加：编辑匹配 `globs` 的文件时，同时生效对应规则文件与本全局规则。

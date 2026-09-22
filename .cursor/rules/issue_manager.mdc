@@ -1,0 +1,49 @@
+---
+description: 本地 Issue 看板与闭环规则；收到反馈、开工、验收或发布前必读
+globs: ["issues/**"]
+alwaysApply: true
+---
+
+# Issue 管理
+
+当收到用户反馈、bug、体验问题、验收阻塞或发布问题时，优先检查 `issues/index.md`。
+
+## 核心规则
+
+1. `index.md` 只做轻量看板，不写完整正文。
+2. 新问题复制 `issues/template.md` 为 `ISSUE-XXX.md`，并在 `index.md` 增加一行。
+3. 详情文件必须包含现象、证据、影响范围、初步判断、分流结果、下一步和验收方式。
+4. Issue 只记录问题事实和闭环状态，不替代 SPEC、开发计划或路线图。
+5. 已转 SPEC、GitHub Issue、PR 或开发任务的问题，要在详情文件中保留互链。
+6. 关闭 issue 前必须写明验证方式，并同步 `index.md`。
+7. 如果本地 issue 关联了 GitHub Issue，关闭前先回填本地验收记录，再到 GitHub 评论验证结果并关闭。
+8. 开工、验收或发布前先读 `issues/index.md`，避免遗漏已知阻塞。
+9. **需求变更 / 功能添加 / 功能迭代 / Bug 修复**（需跟踪、排期或验收）关闭前，必须按 `baseline-docs-sync.mdc` 同步 PRD 与 `ARCHITECTURE` / `PROJECT_PLAN` / `TECH_DESIGN` / `DEVELOPMENT_PLAN` / `TASK_BOARD`（无影响须在 Issue 写明「无」）。
+
+## 编号与登记
+
+- 新编号取 `index.md` 中最大编号的下一个（如当前最大为 `ISSUE-001`，则新建 `ISSUE-002`）。
+- 马上能改完的小错可直接修复并在工作记录说明；需要跨会话跟踪、用户复验、开发排期或发布判断时再登记 issue。
+
+## 状态（少而明确）
+
+| 状态 | 含义 |
+| --- | --- |
+| `new` | 已登记，尚未分析或分配 |
+| `triaged` | 已判断影响和分流方向 |
+| `ready-for-development` | 方案或验收标准足够清楚，可以开发 |
+| `in-progress` | 正在处理 |
+| `failed-review` | 实现或处理结果复验未通过 |
+| `blocked` | 缺少信息、权限、依赖或外部状态 |
+| `closed` | 已验收关闭 |
+
+## 类型与优先级（摘要）
+
+- 类型：`bug` / `docs` / `product` / `workflow` / `release` / `test`
+- 优先级：`P0` 阻断主链路 → `P1` 影响核心体验 → `P2` 近期可修 → `P3` 低风险优化
+
+## GitHub 互链（需要时）
+
+- 本地详情「基本信息」填写关联 GitHub Issue URL；GitHub 正文/评论写本地反链，例如：`本地跟踪：issues/ISSUE-XXX.md`。
+- 关闭顺序：先完成本地验收记录，再关闭 GitHub Issue。
+- PR merge 不等于本地关闭；本地须写明验收方式并通过后再关。

@@ -1,0 +1,72 @@
+---
+description: 需求变更/功能/迭代/Bug 必须走 Issue，并同步 PRD 与六份工程基线文档
+alwaysApply: true
+---
+
+# 基线文档同步（Issue + 六文档）
+
+需求变更、功能添加、功能迭代、Bug 修复（需跟踪/排期/验收者）**必须先走 Issue**，并在闭环前保证下列文档口径一致。
+
+## 强制触发
+
+收到或处理以下任一类型时启用本规则：
+
+- 需求变更 / 新功能 / 功能迭代 / Bug 修复（跨会话跟踪、排期、验收）
+- 技术冻结变更（栈、部署、模块边界）
+- 产品范围变更（菜单、P-xx、验收口径）
+
+马上能改完的纯笔误可不建 Issue，但仍须改到相关基线句，避免文档打架。
+
+## Issue 门禁
+
+1. 先读 `issues/index.md`，按 `issue_manager` 登记或更新 `ISSUE-XXX`。
+2. 详情写清：现象、影响、分流、验收；关联 SPEC / 任务号。
+3. **禁止**在未登记 Issue 的情况下直接改产品范围或技术冻结并宣称完成。
+4. 关闭 Issue 前：验证方式写清，且本规则「同步检查表」已勾完（或注明「无影响」）。
+
+## 必须对齐的文档集
+
+| 文档 | 路径 | 主要职责 |
+| --- | --- | --- |
+| PRD（权威） | `docs/产品部/PRD-采购及合同智能审核-v1.0.md` | 业务范围、P-xx、验收；文件名可含历史后缀，**以文内版本为准** |
+| PRD 入口 | `docs/PRD.md` | 别名；指向权威 PRD，版本说明勿过期 |
+| 架构 | `docs/ARCHITECTURE.md` | 分层、模块、数据流、扩展点 |
+| 实施方案 | `docs/PROJECT_PLAN.md` | 技术冻结、Stage 日程、模块方案 |
+| 技术设计 | `docs/TECH_DESIGN.md` | 模块职责、接口、状态、数据结构 |
+| 开发计划 | `docs/DEVELOPMENT_PLAN.md` | Stage 目标/任务/验收、模块矩阵 |
+| 任务看板 | `docs/TASK_BOARD.md` | 可执行 Task（0.5～4h）、涉及文件、验收 |
+
+另：`docs/DOCUMENT_INDEX.md` 必须回填版本与描述；有 SPEC 则链到 Issue。
+
+## 同步检查表（每次变更收尾必做）
+
+按影响勾选；**无影响写「无」并简述原因，禁止默默跳过整表**。
+
+1. **PRD**：范围 / P-xx / 导航 / § 章节是否要改？→ 改则升文内版本并写修订记录；同步 `docs/PRD.md` 指称。
+2. **ARCHITECTURE**：模块、进程、扩展点、管理端能力是否变？
+3. **PROJECT_PLAN**：技术冻结、Stage 表、角色/模块职责是否变？docx 是否需重导？
+4. **TECH_DESIGN**：接口、表结构、端口、管理 API 是否变？
+5. **DEVELOPMENT_PLAN**：Stage 输入/输出/任务/验收/矩阵是否变？
+6. **TASK_BOARD**：是否增删改 Task、路径、验收？`依据` 中的 DEVELOPMENT_PLAN / PLAN 版本是否一致？
+7. **互链版本**：六文档 + PRD 文首/关联表中的对方版本号是否同一日口径？
+8. **DOCUMENT_INDEX**：登记/更新日期与版本描述。
+9. **Issue**：处理记录 + `index.md` 下一步；交付说明按需写入 `docs/delivery/`。
+
+## 版本约定
+
+- PRD 与工程文档版本号**可以不同**（产品 vs 实现），但**口径必须一致**。
+- 同一次变更：凡改动的基线文档在修订记录写同一日期与同一 Issue 号。
+- 技术栈类变更以 PROJECT_PLAN / ARCHITECTURE 为准回写；业务范围以 PRD 为准回写其它文档。
+
+## 反例
+
+```text
+❌ 只改代码或只改 DEVELOPMENT_PLAN，PRD 仍写「系统管理三页」
+❌ 只开 Issue 不改 TASK_BOARD / DEVELOPMENT_PLAN，排期无法执行
+❌ 改 TECH_DESIGN 接口却不改 PROJECT_PLAN Stage 出口与 PRD 验收
+❌ 关闭 Issue 时文档版本互链仍指向旧 v1.0 技术栈（Vue/FastAPI）
+```
+
+```text
+✅ Issue-007 → 改 PRD P-06 → ARCH/PLAN/TECH/DEV_PLAN/TASK_BOARD 同日写清 Stage04 写库 / Stage07 看板 → 索引更新 → Issue 注明延后排期
+```
