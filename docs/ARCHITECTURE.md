@@ -1,0 +1,496 @@
+# 智能投标系统前端架构说明
+
+## 1. 架构目标
+
+前端架构需要满足：
+
+- 长文编辑稳定
+- AI 任务可追踪
+- 多角色权限清晰
+- 页面间状态一致
+- 编辑与检查闭环可追溯
+- 私有化部署环境可运行
+- 后续可扩展更多行业模板与标书类型
+
+## 2. 前端模块拆分
+
+建议按业务域拆分：
+
+```text
+app-shell
+dashboard
+project
+tender-document
+response-matrix
+project-fact
+chapter
+editor
+assistant
+checking
+knowledge-base
+writing-profile
+export
+admin
+```
+
+其中 `editor` 与 `assistant` 独立模块化。
+
+原因：
+
+- 正文编辑
+- 段落定位
+- 引用来源
+- 问题定位
+- AI 选区
+- Diff
+- 自动保存
+- 编辑锁
+- 版本管理
+
+这些能力复杂且高频，不宜散落在普通页面组件内。
+
+## 3. 路由结构
+
+建议：
+
+```text
+/dashboard
+
+/projects
+/projects/:projectId
+
+/projects/:projectId/documents
+/projects/:projectId/matrix
+/projects/:projectId/facts
+/projects/:projectId/chapters
+/projects/:projectId/chapters/:chapterId/plan
+/projects/:projectId/chapters/:chapterId/progress
+/projects/:projectId/editor/:chapterId
+/projects/:projectId/check
+/projects/:projectId/export
+/projects/:projectId/settings
+
+/kb
+/kb/company
+/kb/people
+/kb/qualifications
+/kb/cases
+/kb/snippets
+/kb/history
+
+/writing
+/writing/profile
+/writing/templates
+/writing/samples
+/writing/terms
+/writing/task-cards
+
+/admin
+/admin/users
+/admin/roles
+/admin/company-settings
+/admin/models
+/admin/audit
+```
+
+## 4. 页面 Shell
+
+### 4.1 全局 Shell
+
+组成：
+
+- 左侧一级导航
+- 顶部全局搜索
+- 项目快速切换
+- 消息 / 待办
+- 用户菜单
+
+### 4.2 项目 Shell
+
+进入项目后顶部保留：
+
+- 项目名称
+- 项目状态
+- 投标截止时间
+- 项目负责人
+
+二级导航：
+
+- 概览
+- 招标文件
+- 响应矩阵
+- 项目事实
+- 章节编写
+- 检查
+- 导出
+
+## 5. 状态管理
+
+状态应分三层：
+
+### 5.1 服务端业务状态
+
+例如：
+
+- 章节状态
+- 分册状态
+- 项目状态
+- 检查任务状态
+- 导出任务状态
+
+服务端为唯一事实源。
+
+### 5.2 页面会话状态
+
+例如：
+
+- 当前选中章节
+- 当前筛选
+- Drawer 是否打开
+- 当前版本对比选择
+
+可保存在前端 store。
+
+### 5.3 编辑器临时状态
+
+例如：
+
+- 未提交草稿
+- 当前选区
+- 光标位置
+- 本地 Undo / Redo 栈
+
+编辑器状态要与后端草稿自动保存解耦。
+
+## 6. 编辑器架构
+
+建议编辑器拆成：
+
+```text
+EditorShell
+├─ ChapterHeader
+├─ DocumentEditor
+├─ ParagraphMetaLayer
+├─ SourceDrawer
+├─ IssueDrawer
+├─ AssistantPanel
+├─ DiffModal
+├─ SaveIndicator
+└─ EditLockBanner
+```
+
+### 6.1 段落级元数据
+
+正文和段落元数据不要混成纯 HTML。
+
+建议逻辑结构：
+
+```text
+paragraph_id
+content
+source_refs
+edit_mode
+version_id
+issue_refs
+lock_state
+```
+
+这样才能稳定支持：
+
+- 来源追踪
+- 段落问题
+- 增量复查
+- AI 局部修改
+- 版本对比
+
+## 7. AI 助手交互架构
+
+### 7.1 问答模式
+
+输入：
+
+- 当前项目
+- 当前章节
+- 对话历史
+- 可选知识库上下文
+
+输出：
+
+- 文本回答
+- 来源引用
+
+不写正文。
+
+### 7.2 修改模式
+
+输入：
+
+- 选区原文
+- 前后文
+- 用户指令
+- 招标条款
+- 项目事实
+- 知识库检索结果
+- 写作档案
+- 对话历史
+
+输出：
+
+- 3～5 个修改建议
+- 每个建议的来源
+- 每个建议的修改类型
+
+用户确认后才写入正文。
+
+## 8. 任务状态模型
+
+长任务统一：
+
+```text
+queued
+running
+succeeded
+failed
+```
+
+适用于：
+
+- 文件解析
+- 章节生成
+- 合规检查
+- 全文检查
+- Word 导出
+
+前端要允许用户离开页面后继续任务，重新进入时从服务端恢复状态。
+
+## 9. 编辑锁
+
+采用章节级独占编辑锁。
+
+前端状态：
+
+```text
+editable
+readonly_locked_by_other
+lock_expired
+taking_over
+```
+
+需要：
+
+- 心跳
+- 超时
+- 强制接管
+- 接管原因
+- 锁失效后的草稿保护
+
+## 10. 自动保存
+
+建议：
+
+- 编辑后延迟自动保存
+- 页面离开前强制刷新草稿
+- 保存失败有明确状态
+- 网络恢复后可重试
+- 不使用频繁 Toast
+
+自动保存的是“草稿”，正式提交才创建章节版本。
+
+## 11. 版本机制
+
+每次正式写入创建新版本。
+
+来源：
+
+- chapter_generate
+- manual_edit
+- assistant_edit
+- rollback
+
+回退不覆盖历史版本，而是生成新版本。
+
+## 12. 权限
+
+前端权限分两层：
+
+### 12.1 路由权限
+
+控制用户能否进入：
+
+- 系统管理
+- 企业资料库
+- 模型配置等
+
+### 12.2 操作权限
+
+即使能进入页面，也要控制：
+
+- 编辑
+- 定稿
+- 解锁
+- 强制接管
+- 导出
+- 查看敏感资料
+
+前端只负责展示与交互控制，最终权限必须由服务端再次验证。
+
+## 13. 搜索架构
+
+全局搜索至少支持：
+
+- 项目
+- 章节
+- 招标条款
+- 评分项
+- 人员
+- 项目案例
+- 资质
+- 方案片段
+
+结果按类型分组展示。
+
+## 14. 错误处理
+
+统一优先级：
+
+```text
+系统错误
+  ↓
+权限限制
+  ↓
+编辑锁
+  ↓
+业务阻断
+  ↓
+普通警告
+  ↓
+正常状态
+```
+
+错误展示建议分：
+
+- 页面级 Error State
+- 区域级 Error State
+- Inline Error
+- Toast
+
+避免所有问题都使用 Toast。
+
+## 15. 组件体系
+
+### 通用组件
+
+- Table
+- Tree
+- Tabs
+- Drawer
+- Modal
+- Tooltip
+- Timeline
+- EmptyState
+- ErrorState
+- LoadingState
+
+### 业务组件
+
+- ProjectRiskCard
+- ChapterTree
+- GenerationTimeline
+- AIEditor
+- SourceCard
+- IssuePanel
+- VersionCompare
+- CitationTrace
+- EditLockBanner
+- SaveIndicator
+- ResponseCoverage
+- FactConflictCard
+
+## 16. 响应式策略
+
+一期以桌面 Web 为主。
+
+建议：
+
+- ≥ 1440px：完整三栏编辑台
+- 1200～1439px：左侧章节树可折叠
+- < 1200px：右侧助手改成 Drawer
+- 移动端：只支持查看、审批、待办，不支持完整长文编辑
+
+## 17. 性能重点
+
+优先关注：
+
+- 大章节长文渲染
+- 大型响应矩阵
+- 章节树
+- Diff
+- 大量检查问题
+- 长对话历史
+
+建议：
+
+- 表格虚拟滚动
+- 长文分块渲染
+- Drawer 延迟加载
+- Diff 按需计算
+- 对话历史分页
+- 来源详情按需加载
+
+## 18. 审计与可追溯
+
+所有关键交互应携带：
+
+- operator_id
+- project_id
+- chapter_id
+- version_id
+- operation_type
+- timestamp
+
+包括：
+
+- 章节编辑
+- AI 建议采纳
+- 回退
+- 强制接管
+- 分册解锁
+- 导出
+- 查看敏感资料
+
+## 19. 建议目录结构
+
+```text
+src/
+├─ app/
+├─ components/
+├─ features/
+│  ├─ dashboard/
+│  ├─ project/
+│  ├─ tender-document/
+│  ├─ response-matrix/
+│  ├─ project-fact/
+│  ├─ chapter/
+│  ├─ editor/
+│  ├─ assistant/
+│  ├─ checking/
+│  ├─ knowledge-base/
+│  ├─ writing-profile/
+│  ├─ export/
+│  └─ admin/
+├─ hooks/
+├─ services/
+├─ stores/
+├─ types/
+└─ utils/
+```
+
+## 20. 架构原则总结
+
+1. 业务状态以服务端为准。
+2. 编辑器独立模块化。
+3. AI 不静默修改正文。
+4. 草稿与正式版本分离。
+5. 长任务可离开页面继续。
+6. 所有重要修改可追溯。
+7. 错误、权限、锁、业务状态按优先级展示。
