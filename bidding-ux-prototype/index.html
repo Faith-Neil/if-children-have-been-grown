@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>智能投标系统 · UX Prototype</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">投</div>
+        <div>
+          <div class="brand-title">智能投标</div>
+          <div class="brand-sub">技术响应文件生成</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active" data-view="dashboard">
+          <span>⌂</span><span>我的工作台</span>
+        </button>
+        <button class="nav-item" data-view="project">
+          <span>▣</span><span>项目概览</span>
+        </button>
+        <button class="nav-item" data-view="matrix">
+          <span>▦</span><span>响应矩阵</span>
+        </button>
+        <button class="nav-item" data-view="editor">
+          <span>✎</span><span>章节编辑</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-section-title">项目</div>
+      <div class="project-mini">
+        <div class="project-mini-title">XX银行数据库运维服务</div>
+        <div class="project-mini-meta">编制中 · 截止 10月12日</div>
+        <div class="mini-progress"><span style="width:78%"></span></div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="avatar">张</div>
+        <div>
+          <div class="user-name">张三</div>
+          <div class="user-role">项目负责人</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="search">
+          <span>⌕</span>
+          <input id="global-search" placeholder="搜索项目、章节、评分项、人员、案例…" />
+          <kbd>Ctrl K</kbd>
+        </div>
+        <div class="top-actions">
+          <button class="btn ghost">待办 <span class="count-badge">12</span></button>
+          <button class="btn primary">+ 新建项目</button>
+        </div>
+      </header>
+
+      <section id="dashboard" class="view active-view">
+        <div class="page-heading">
+          <div>
+            <h1>下午好，张三</h1>
+            <p>优先处理临近截止、阻断问题和待人工章节。</p>
+          </div>
+          <span class="date-pill">项目周期 · 第 6 天</span>
+        </div>
+
+        <div class="section-title-row">
+          <h2>我的待办</h2>
+          <button class="link-btn">查看全部</button>
+        </div>
+
+        <div class="todo-grid">
+          <button class="todo-card danger" data-jump="editor">
+            <span class="todo-label">阻断问题</span>
+            <strong>3</strong>
+            <span>影响导出的高风险问题</span>
+          </button>
+          <button class="todo-card warning" data-jump="editor">
+            <span class="todo-label">待人工处理</span>
+            <strong>8</strong>
+            <span>章节需要人工确认</span>
+          </button>
+          <button class="todo-card info" data-jump="matrix">
+            <span class="todo-label">缺证明材料</span>
+            <strong>5</strong>
+            <span>评分项尚未完整绑定</span>
+          </button>
+          <button class="todo-card neutral" data-jump="project">
+            <span class="todo-label">临近截止</span>
+            <strong>2</strong>
+            <span>未来 3 天内截止</span>
+          </button>
+        </div>
+
+        <div class="dashboard-columns">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h3>进行中的项目</h3>
+                <span>按风险与截止时间排序</span>
+              </div>
+              <button class="link-btn">全部项目</button>
+            </div>
+
+            <div class="project-row">
+              <div class="project-state risk">高</div>
+              <div class="project-row-main">
+                <div class="project-row-title">XX银行数据库运维服务项目</div>
+                <div class="project-row-meta">截止 10月12日 09:00 · 张三负责</div>
+                <div class="project-progress-line">
+                  <span>技术标 78%</span>
+                  <div class="progress"><span style="width:78%"></span></div>
+                  <span>商务标 90%</span>
+                </div>
+              </div>
+              <button class="btn small" data-jump="project">进入项目</button>
+            </div>
+
+            <div class="project-row">
+              <div class="project-state warn">中</div>
+              <div class="project-row-main">
+                <div class="project-row-title">市政数据平台运维项目</div>
+                <div class="project-row-meta">截止 10月18日 14:00 · 李四负责</div>
+                <div class="project-progress-line">
+                  <span>技术标 52%</span>
+                  <div class="progress"><span style="width:52%"></span></div>
+                  <span>商务标 63%</span>
+                </div>
+              </div>
+              <button class="btn small">进入项目</button>
+            </div>
+          </section>
+
+          <section class="panel activity-panel">
+            <div class="panel-head">
+              <div>
+                <h3>最近活动</h3>
+                <span>关键操作与系统任务</span>
+              </div>
+            </div>
+            <div class="timeline">
+              <div class="timeline-item">
+                <span class="dot green"></span>
+                <div><strong>14:32</strong> 李四修改“实施方案”</div>
+              </div>
+              <div class="timeline-item">
+                <span class="dot blue"></span>
+                <div><strong>14:25</strong> 系统完成“数据库巡检方案”第二轮检查</div>
+              </div>
+              <div class="timeline-item">
+                <span class="dot orange"></span>
+                <div><strong>13:50</strong> 发现评分项 5.2 缺证明材料</div>
+              </div>
+              <div class="timeline-item">
+                <span class="dot gray"></span>
+                <div><strong>11:18</strong> 王五确认人员证明材料</div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="project" class="view">
+        <div class="project-header-card">
+          <div>
+            <div class="eyebrow">当前项目</div>
+            <h1>XX银行数据库运维服务项目</h1>
+            <div class="meta-line">
+              <span class="status-tag blue">编制中</span>
+              <span>截止：2026-10-12 09:00</span>
+              <span>负责人：张三</span>
+            </div>
+          </div>
+          <button class="btn primary" data-jump="editor">进入编辑台</button>
+        </div>
+
+        <div class="metric-grid">
+          <div class="metric-card">
+            <span>整体完成度</span>
+            <strong>78%</strong>
+            <div class="progress"><span style="width:78%"></span></div>
+          </div>
+          <div class="metric-card">
+            <span>阻断问题</span>
+            <strong class="text-danger">3</strong>
+            <small>导出前必须处理</small>
+          </div>
+          <div class="metric-card">
+            <span>待人工章节</span>
+            <strong class="text-warning">8</strong>
+            <small>建议今日完成 5 个</small>
+          </div>
+          <div class="metric-card">
+            <span>缺失材料</span>
+            <strong>5</strong>
+            <small>主要集中在业绩证明</small>
+          </div>
+        </div>
+
+        <div class="dashboard-columns project-columns">
+          <section class="panel">
+            <div class="panel-head">
+              <div><h3>分册进度</h3><span>技术标、商务标独立管理</span></div>
+            </div>
+
+            <div class="volume-row">
+              <div>
+                <strong>技术标</strong>
+                <div class="subtle">23 / 28 章节完成</div>
+              </div>
+              <div class="volume-status">
+                <span>待人工 3</span><span>异常 2</span>
+              </div>
+              <div class="progress wide"><span style="width:78%"></span></div>
+              <strong>78%</strong>
+            </div>
+
+            <div class="volume-row">
+              <div>
+                <strong>商务标</strong>
+                <div class="subtle">18 / 20 项资料完整</div>
+              </div>
+              <div class="volume-status">
+                <span>缺失 2</span>
+              </div>
+              <div class="progress wide"><span style="width:90%"></span></div>
+              <strong>90%</strong>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div><h3>优先风险</h3><span>只显示影响交付的风险</span></div>
+            </div>
+            <div class="risk-list">
+              <button class="risk-item" data-jump="editor">
+                <span class="risk-icon">!</span>
+                <div><strong>章节 3.5 存在额外数值承诺</strong><span>应急响应 · 阻断</span></div>
+              </button>
+              <button class="risk-item" data-jump="matrix">
+                <span class="risk-icon warning">△</span>
+                <div><strong>评分项 5.2 缺证明材料</strong><span>数据库运维经验 · 警告</span></div>
+              </button>
+              <button class="risk-item">
+                <span class="risk-icon warning">△</span>
+                <div><strong>1 份人员证明将在 15 天内到期</strong><span>资料风险 · 警告</span></div>
+              </button>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section id="matrix" class="view">
+        <div class="page-heading compact">
+          <div>
+            <h1>响应矩阵</h1>
+            <p>从招标要求追踪到评分点、响应章节和证明材料。</p>
+          </div>
+        </div>
+
+        <div class="filter-bar">
+          <div class="segmented" id="matrix-segments">
+            <button class="segment active" data-filter="all">全部</button>
+            <button class="segment" data-filter="risk">只看风险</button>
+            <button class="segment" data-filter="uncovered">未覆盖</button>
+            <button class="segment" data-filter="high">高分项</button>
+          </div>
+          <div class="mini-search"><span>⌕</span><input id="matrix-search" placeholder="搜索条款、评分项…" /></div>
+        </div>
+
+        <div class="table-panel">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th>编号</th>
+                <th>评分项 / 要求</th>
+                <th>分值</th>
+                <th>响应章节</th>
+                <th>证明材料</th>
+                <th>状态</th>
+                <th>风险</th>
+              </tr>
+            </thead>
+            <tbody id="matrix-body">
+              <tr data-state="risk high">
+                <td>5.2</td>
+                <td><strong>数据库维保项目经验</strong><span class="cell-sub">近三年类似项目案例</span></td>
+                <td>8</td>
+                <td>3.2.4 项目经验</td>
+                <td><span class="tag warning">2 / 3</span></td>
+                <td><span class="status-tag orange">部分响应</span></td>
+                <td><button class="text-btn row-detail">缺证明</button></td>
+              </tr>
+              <tr data-state="ok high">
+                <td>4.1</td>
+                <td><strong>服务响应能力</strong><span class="cell-sub">7×24 服务、30 分钟响应</span></td>
+                <td>10</td>
+                <td>2.3 应急响应</td>
+                <td><span class="tag success">完整</span></td>
+                <td><span class="status-tag green">完整响应</span></td>
+                <td>—</td>
+              </tr>
+              <tr data-state="uncovered risk">
+                <td>6.4</td>
+                <td><strong>原厂技术支持</strong><span class="cell-sub">需提供授权或服务证明</span></td>
+                <td>5</td>
+                <td><span class="muted">未绑定</span></td>
+                <td><span class="tag danger">0 / 1</span></td>
+                <td><span class="status-tag red">未响应</span></td>
+                <td><button class="text-btn row-detail">需处理</button></td>
+              </tr>
+              <tr data-state="ok">
+                <td>3.3</td>
+                <td><strong>巡检方案完整性</strong><span class="cell-sub">日巡检、周巡检、月度报告</span></td>
+                <td>4</td>
+                <td>2.2 数据库巡检</td>
+                <td><span class="tag success">完整</span></td>
+                <td><span class="status-tag green">完整响应</span></td>
+                <td>—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="coverage-strip">
+          <div><span>完整响应</span><strong>85%</strong></div>
+          <div><span>部分响应</span><strong>10%</strong></div>
+          <div><span>未覆盖</span><strong>5%</strong></div>
+          <div class="coverage-bar"><span class="cover-ok" style="width:85%"></span><span class="cover-part" style="width:10%"></span><span class="cover-no" style="width:5%"></span></div>
+        </div>
+      </section>
+
+      <section id="editor" class="view editor-view">
+        <div class="editor-top">
+          <div>
+            <div class="eyebrow">章节编辑</div>
+            <h1>2.2 数据库巡检服务方案</h1>
+          </div>
+          <div class="editor-status">
+            <span class="status-tag orange">人工已处理</span>
+            <span>V8</span>
+            <span id="save-indicator" class="save-state">已保存 14:35</span>
+          </div>
+        </div>
+
+        <div id="lock-banner" class="lock-banner hidden">
+          <div>
+            <strong>李四正在编辑</strong>
+            <span>最后活动 14:35 · 当前为只读模式</span>
+          </div>
+          <div>
+            <button class="btn small ghost" id="refresh-lock">刷新状态</button>
+            <button class="btn small danger-btn" id="takeover-btn">强制接管</button>
+          </div>
+        </div>
+
+        <div class="editor-shell">
+          <aside class="chapter-pane">
+            <div class="pane-title">章节目录</div>
+            <div class="chapter-tree">
+              <button class="chapter-node done">
+                <span>1 项目理解</span><small>已完成 · 0 问题</small>
+              </button>
+              <div class="chapter-group">
+                <div class="chapter-group-title">2 技术方案</div>
+                <button class="chapter-node done">
+                  <span>2.1 总体架构</span><small>已完成 · 0 问题</small>
+                </button>
+                <button class="chapter-node active warn">
+                  <span>2.2 数据库巡检</span><small>待人工 · 3 问题</small><em>李四</em>
+                </button>
+                <button class="chapter-node processing">
+                  <span>2.3 应急响应</span><small>检查中 · 1 问题</small>
+                </button>
+                <button class="chapter-node idle">
+                  <span>2.4 服务管理</span><small>未开始</small>
+                </button>
+              </div>
+            </div>
+            <button class="btn ghost full" id="demo-lock">演示编辑锁</button>
+          </aside>
+
+          <section class="document-pane">
+            <div class="editor-toolbar">
+              <div class="toolbar-group">
+                <button>B</button><button>I</button><button>H2</button><button>•</button>
+              </div>
+              <div class="toolbar-group">
+                <button id="undo-btn">↶</button><button id="redo-btn">↷</button>
+              </div>
+              <div class="toolbar-info">正文保持干净；来源和问题按需显示</div>
+            </div>
+
+            <article id="document-editor" class="document-editor" contenteditable="true">
+              <h2>2.2 数据库巡检服务方案</h2>
+
+              <div class="paragraph-wrap" data-source="项目事实 · 数据库环境" data-issue="">
+                <button class="para-menu" title="段落操作">⋮</button>
+                <p>本项目数据库巡检围绕运行状态、性能指标、备份有效性和高可用组件开展，形成日常检查、周期分析和问题闭环三层机制。</p>
+              </div>
+
+              <div class="paragraph-wrap selected-demo" data-source="招标文件 · 第28页；项目事实 · 故障响应时间" data-issue="R44 · 事实来源需要补充">
+                <button class="para-menu" title="段落操作">⋮</button>
+                <p>我司拥有丰富的数据库运维经验，可为本项目提供及时、专业、稳定的巡检服务。</p>
+                <span class="issue-marker">!</span>
+              </div>
+
+              <h3>日常巡检</h3>
+
+              <div class="paragraph-wrap" data-source="XX银行数据库维保项目；项目事实 · Oracle 19c" data-issue="">
+                <button class="para-menu" title="段落操作">⋮</button>
+                <p>每日巡检重点检查数据库实例状态、监听状态、表空间使用率、归档日志增长、关键告警、备份任务及主备同步状态，并形成可追踪的巡检记录。</p>
+              </div>
+
+              <div class="locked-block" contenteditable="false">
+                <div><strong>🔒 该内容由项目事实生成</strong><span>服务响应：7×24小时；故障响应时间：30分钟</span></div>
+                <button class="btn small ghost">前往项目事实表修改</button>
+              </div>
+
+              <h3>月度分析</h3>
+
+              <div class="paragraph-wrap" data-source="企业方案片段 · 数据库健康检查模板" data-issue="">
+                <button class="para-menu" title="段落操作">⋮</button>
+                <p>月度报告汇总容量趋势、性能变化、告警分布和问题处理情况，对潜在风险给出后续优化建议，并由项目负责人确认需要持续跟踪的事项。</p>
+              </div>
+            </article>
+
+            <div id="selection-toolbar" class="selection-toolbar hidden">
+              <button data-ai-action="优化表达">优化表达</button>
+              <button data-ai-action="补充细节">补充细节</button>
+              <button data-ai-action="增加事实">增加事实</button>
+              <button data-ai-action="压缩内容">压缩内容</button>
+            </div>
+          </section>
+
+          <aside class="right-pane">
+            <div class="right-tabs">
+              <button class="right-tab active" data-tab="assistant">AI 助手</button>
+              <button class="right-tab" data-tab="issues">问题 <span class="tiny-count">3</span></button>
+              <button class="right-tab" data-tab="sources">来源</button>
+            </div>
+
+            <div id="assistant-tab" class="right-content active">
+              <div class="kb-row">
+                <div>
+                  <strong>知识库</strong>
+                  <span id="kb-label">开启 · 本公司已发布资料</span>
+                </div>
+                <label class="switch">
+                  <input id="kb-switch" type="checkbox" checked />
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div class="quick-actions">
+                <button>解释本章</button>
+                <button>还有什么遗漏？</button>
+                <button>查找相关案例</button>
+                <button data-tab-jump="issues">查看检查问题</button>
+              </div>
+
+              <div class="assistant-message system">
+                <span class="assistant-avatar">AI</span>
+                <div>
+                  <strong>当前章节助手</strong>
+                  <p>可以直接问当前章节，也可以在正文中选中文字后让我给出修改方案。</p>
+                </div>
+              </div>
+
+              <div id="selection-context" class="selection-context">
+                <span class="context-label">当前选区</span>
+                <p>“我司拥有丰富的数据库运维经验，可为本项目提供及时、专业、稳定的巡检服务。”</p>
+                <div class="selection-actions">
+                  <button class="btn small primary" id="generate-suggestions">生成修改建议</button>
+                </div>
+              </div>
+
+              <div id="suggestions" class="suggestions hidden">
+                <div class="suggestion-card expanded">
+                  <div class="suggestion-head"><strong>方案 1</strong><span>增加事实</span></div>
+                  <p>结合近三年数据库维保项目经验，本项目巡检将按日常检查、周期分析和问题闭环执行，并重点覆盖实例状态、备份有效性及高可用运行情况。</p>
+                  <div class="suggestion-meta">来源 2 · XX银行项目 / 当前项目事实</div>
+                  <div class="suggestion-actions">
+                    <button class="btn small ghost show-diff">查看差异</button>
+                    <button class="btn small primary show-diff">替换</button>
+                  </div>
+                </div>
+                <div class="suggestion-card">
+                  <div class="suggestion-head"><strong>方案 2</strong><span>更简洁</span></div>
+                  <p>本项目将以可执行的巡检清单和问题闭环机制保障数据库稳定运行。</p>
+                  <button class="text-btn show-diff">展开并比较</button>
+                </div>
+                <div class="suggestion-card">
+                  <div class="suggestion-head"><strong>方案 3</strong><span>偏技术表达</span></div>
+                  <p>巡检范围覆盖实例、存储、备份、告警和高可用组件，并形成结构化巡检记录。</p>
+                  <button class="text-btn show-diff">展开并比较</button>
+                </div>
+              </div>
+
+              <div class="assistant-input">
+                <textarea id="assistant-input" placeholder="问一下当前章节…"></textarea>
+                <button id="send-ai" class="send-btn">发送</button>
+              </div>
+            </div>
+
+            <div id="issues-tab" class="right-content">
+              <div class="issue-card severe">
+                <div class="issue-top"><span>R44</span><strong>事实来源不足</strong></div>
+                <p>“丰富的数据库运维经验”缺少可核验事实支撑。</p>
+                <div class="issue-meta">第 2 段 · 负责人：李四</div>
+                <button class="btn small primary">定位正文</button>
+              </div>
+              <div class="issue-card warning">
+                <div class="issue-top"><span>R30</span><strong>额外承诺待确认</strong></div>
+                <p>应急响应章节存在招标未要求的额外数值承诺。</p>
+                <div class="issue-meta">2.3 应急响应 · 负责人：张三</div>
+                <button class="btn small ghost">转人工</button>
+              </div>
+              <div class="issue-card info">
+                <div class="issue-top"><span>R43</span><strong>表达偏空泛</strong></div>
+                <p>建议减少“专业、稳定”等泛化表述，补充具体措施。</p>
+                <div class="issue-meta">第 2 段</div>
+                <button class="btn small ghost">重新检查</button>
+              </div>
+            </div>
+
+            <div id="sources-tab" class="right-content">
+              <div class="source-card">
+                <div class="source-type">招标文件 · 第28页</div>
+                <strong>数据库服务要求</strong>
+                <p>要求提供 7×24 小时服务，并建立数据库日常巡检机制……</p>
+                <button class="text-btn">查看原文</button>
+              </div>
+              <div class="source-card">
+                <div class="source-type">企业案例</div>
+                <strong>XX银行数据库维保项目</strong>
+                <p>2025 年，Oracle / MySQL 混合环境，已发布。</p>
+                <button class="text-btn">查看资料详情</button>
+              </div>
+              <div class="source-card">
+                <div class="source-type">项目事实</div>
+                <strong>故障响应时间</strong>
+                <p>响应值：30 分钟 · 已确认</p>
+                <button class="text-btn">查看事实来源</button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="matrix-drawer" class="drawer hidden">
+    <div class="drawer-backdrop"></div>
+    <div class="drawer-panel">
+      <div class="drawer-head">
+        <div><div class="eyebrow">评分项详情</div><h2>5.2 数据库维保项目经验</h2></div>
+        <button class="icon-btn drawer-close">×</button>
+      </div>
+      <div class="drawer-body">
+        <div class="detail-block">
+          <span>分值</span><strong>8 分</strong>
+        </div>
+        <div class="detail-block">
+          <span>得分要点</span>
+          <ul><li>三个类似项目</li><li>金融行业案例</li><li>完整证明材料</li></ul>
+        </div>
+        <div class="detail-block">
+          <span>响应章节</span><strong>3.2.4 项目经验</strong>
+        </div>
+        <div class="detail-block">
+          <span>当前缺口</span><strong class="text-warning">缺 1 份项目证明材料</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="diff-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card diff-card">
+      <div class="modal-head">
+        <div><div class="eyebrow">AI 修改确认</div><h2>查看修改差异</h2></div>
+        <button class="icon-btn modal-close">×</button>
+      </div>
+
+      <div class="diff-grid">
+        <div class="diff-column">
+          <div class="diff-label">原文</div>
+          <p class="removed">我司拥有丰富的数据库运维经验，可为本项目提供及时、专业、稳定的巡检服务。</p>
+        </div>
+        <div class="diff-column">
+          <div class="diff-label">修改后</div>
+          <p class="added">结合近三年数据库维保项目经验，本项目巡检将按日常检查、周期分析和问题闭环执行，并重点覆盖实例状态、备份有效性及高可用运行情况。</p>
+        </div>
+      </div>
+
+      <div class="diff-source">
+        <strong>来源</strong>
+        <span>XX银行数据库维保项目</span>
+        <span>项目事实 · Oracle 19c</span>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn ghost modal-close">取消</button>
+        <button class="btn primary" id="confirm-diff">确认写入</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="takeover-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card small-modal">
+      <div class="modal-head">
+        <div><div class="eyebrow">编辑锁</div><h2>强制接管章节</h2></div>
+        <button class="icon-btn takeover-close">×</button>
+      </div>
+      <p>当前编辑人：<strong>李四</strong></p>
+      <label class="field-label">接管原因</label>
+      <textarea id="takeover-reason" class="modal-textarea" placeholder="请填写接管原因…"></textarea>
+      <div class="modal-actions">
+        <button class="btn ghost takeover-close">取消</button>
+        <button class="btn danger-btn" id="confirm-takeover">确认接管</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden">操作成功</div>
+
+  <script src="app.js"></script>
+</body>
+</html>
