@@ -26,7 +26,6 @@
 - 企业资料库与写作能力中心
 - 全局搜索、任务分派、评论批注、知识引用地图等补充建议
 
-> 本次仅更新 README；`docs/PRD.md`、`docs/ARCHITECTURE.md`、`docs/ROADMAP.md`、`ui/ux.md` 保持上一版输出内容不变。
 
 ## 版本管理
 
