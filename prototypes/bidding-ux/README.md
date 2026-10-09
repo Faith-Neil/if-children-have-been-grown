@@ -1,6 +1,6 @@
 # 智能投标系统 UX 原型
 
-这是按照 `ui/ux.md` 做的一版静态可交互原型，重点验证 UX，而不是最终视觉设计或生产代码。
+这是按照 [UI / UX 规范](../../docs/design/ux.md) 做的一版静态可交互原型，重点验证 UX，而不是最终视觉设计或生产代码。
 
 ## 已实现
 
@@ -21,23 +21,35 @@
 
 ## 运行
 
-直接双击 `index.html` 即可。
+直接双击本目录的 `index.html` 即可，无需安装依赖。
 
-也可以本地启动静态服务器：
+也可以从仓库根目录启动静态服务器（需要已安装 Python）：
 
 ```bash
-python -m http.server 8080
+python -m http.server 8080 --directory prototypes/bidding-ux
 ```
 
 然后访问：
 
 ```text
-http://localhost:8080
+http://localhost:8080/index.html
 ```
 
 ## 说明
 
 - 当前数据全部为模拟数据。
+- 自动保存仅模拟状态提示，正文修改只保存在当前页面内存中，刷新页面会恢复初始内容。
 - 当前主要用于确认信息架构、页面密度、编辑器布局和关键交互。
 - 没有接真实 API、权限、AI 模型、文档解析或知识库。
 - 下一步适合根据这版原型确定框架（React/Vue）后拆成真实页面和组件。
+
+## 回归检查
+
+从仓库根目录运行，使用 Node.js 内置测试工具，无需安装依赖：
+
+```bash
+node --check prototypes/bidding-ux/app.js
+node --test tests/prototype/editor-lock.test.cjs
+```
+
+回归检查执行原型的实际脚本，覆盖只读时的 AI 写入拦截、先打开 Diff 再上锁、接管理由校验与接管后恢复编辑。页面布局仍需在浏览器中检查。

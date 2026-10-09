@@ -1,0 +1,25 @@
+# 本地配置和凭据
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# 依赖与构建输出
+node_modules/
+.venv/
+__pycache__/
+dist/
+build/
+target/
+coverage/
+
+# 运行数据与临时输出
+runtime/
+data/local/
+.cache/
+*.log
+
+# 操作系统文件
+.DS_Store
+Thumbs.db

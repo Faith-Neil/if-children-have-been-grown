@@ -63,23 +63,44 @@ kbSwitch.addEventListener('change', () => {
 
 const suggestions = document.getElementById('suggestions');
 document.getElementById('generate-suggestions').addEventListener('click', () => {
+  if (!ensureEditable()) return;
   suggestions.classList.remove('hidden');
   toast('已生成 3 条修改建议');
 });
 
 document.querySelectorAll('[data-ai-action]').forEach(btn => btn.addEventListener('click', () => {
+  if (!ensureEditable()) return;
   setRightTab('assistant');
   suggestions.classList.remove('hidden');
   toast(`已按“${btn.dataset.aiAction}”生成建议`);
 }));
 
 const diffModal = document.getElementById('diff-modal');
-document.querySelectorAll('.show-diff').forEach(b => b.addEventListener('click', () => diffModal.classList.remove('hidden')));
+document.querySelectorAll('.show-diff').forEach(b => b.addEventListener('click', () => {
+  if (!ensureEditable()) return;
+  diffModal.classList.remove('hidden');
+}));
 document.querySelectorAll('.modal-close').forEach(b => b.addEventListener('click', () => diffModal.classList.add('hidden')));
 
 const editor = document.getElementById('document-editor');
 const saveIndicator = document.getElementById('save-indicator');
+const editControls = [
+  ...document.querySelectorAll('[data-ai-action], .show-diff'),
+  ...['generate-suggestions', 'confirm-diff', 'undo-btn', 'redo-btn'].map(id => document.getElementById(id))
+];
 let saveTimer;
+
+function ensureEditable(){
+  if (editor.contentEditable === 'true') return true;
+  toast('当前为只读模式，请接管章节后再修改');
+  return false;
+}
+
+function setEditorEditable(editable){
+  editor.contentEditable = editable ? 'true' : 'false';
+  editControls.forEach(control => control.disabled = !editable);
+  if (!editable) selectionToolbar.classList.add('hidden');
+}
 
 editor.addEventListener('input', () => {
   saveIndicator.textContent = '保存中…';
@@ -93,6 +114,8 @@ editor.addEventListener('input', () => {
 });
 
 document.getElementById('confirm-diff').addEventListener('click', () => {
+  // 确认前再次检查：打开差异预览后，章节可能已变为只读。
+  if (!ensureEditable()) return;
   const target = document.querySelector('.paragraph-wrap.selected-demo p');
   target.textContent = '结合近三年数据库维保项目经验，本项目巡检将按日常检查、周期分析和问题闭环执行，并重点覆盖实例状态、备份有效性及高可用运行情况。';
   target.parentElement.dataset.source = 'XX银行数据库维保项目；项目事实 · Oracle 19c';
@@ -108,7 +131,7 @@ document.getElementById('confirm-diff').addEventListener('click', () => {
 const selectionToolbar = document.getElementById('selection-toolbar');
 document.addEventListener('selectionchange', () => {
   const sel = window.getSelection();
-  if (!sel || sel.isCollapsed || !editor.contains(sel.anchorNode)){
+  if (editor.contentEditable !== 'true' || !sel || sel.isCollapsed || !editor.contains(sel.anchorNode)){
     selectionToolbar.classList.add('hidden');
     return;
   }
@@ -117,9 +140,10 @@ document.addEventListener('selectionchange', () => {
 
 const lockBanner = document.getElementById('lock-banner');
 const takeoverModal = document.getElementById('takeover-modal');
+setEditorEditable(lockBanner.classList.contains('hidden'));
 document.getElementById('demo-lock').addEventListener('click', () => {
   lockBanner.classList.toggle('hidden');
-  editor.contentEditable = lockBanner.classList.contains('hidden') ? 'true' : 'false';
+  setEditorEditable(lockBanner.classList.contains('hidden'));
 });
 document.getElementById('takeover-btn').addEventListener('click', () => takeoverModal.classList.remove('hidden'));
 document.querySelectorAll('.takeover-close').forEach(x => x.addEventListener('click', () => takeoverModal.classList.add('hidden')));
@@ -128,7 +152,7 @@ document.getElementById('confirm-takeover').addEventListener('click', () => {
   if (!reason){ toast('请填写接管原因'); return; }
   takeoverModal.classList.add('hidden');
   lockBanner.classList.add('hidden');
-  editor.contentEditable = 'true';
+  setEditorEditable(true);
   toast('已强制接管章节，操作已记录');
 });
 document.getElementById('refresh-lock').addEventListener('click', () => toast('锁状态已刷新'));
@@ -158,5 +182,9 @@ document.querySelectorAll('.para-menu').forEach(btn => btn.addEventListener('cli
 }));
 
 // Undo / redo demo using browser editing commands where available.
-document.getElementById('undo-btn').addEventListener('click', () => document.execCommand('undo'));
-document.getElementById('redo-btn').addEventListener('click', () => document.execCommand('redo'));
+document.getElementById('undo-btn').addEventListener('click', () => {
+  if (ensureEditable()) document.execCommand('undo');
+});
+document.getElementById('redo-btn').addEventListener('click', () => {
+  if (ensureEditable()) document.execCommand('redo');
+});
