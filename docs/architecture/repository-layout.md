@@ -6,9 +6,11 @@
 
 本轮保留 `docs/PRD.md`、`docs/ARCHITECTURE.md`、`docs/ROADMAP.md` 的路径与正文，便于协作方继续评审 PR #1。`main` 上的三件套是前端实施视图，`xqr` 上的同名文件是全系统技术标方案草稿；同名不代表同一文档层级。新增的全系统 PRD v1.8、数据字典 v1.9 作为供评审的参考输入，当前未声明两套方案已经对齐或冻结。差异见 [文档基线与待评审差异](../decisions/baseline-gaps.md)。
 
-## 本轮整理后的实际结构
+## 首轮整理后的结构（FE-M0-T01快照）
 
 以下为本轮资产归位后的结构。文件名和目录代表当前已有资产；正式应用目录在启动开发时创建。
+
+后续FE-M0-T02增加任务看板、任务卡、Issue管理、治理流程、逐任务交付/代码解释、模板和检查程序。当前维护入口以 [DOCUMENT_INDEX](../DOCUMENT_INDEX.md) 为准，执行规则见 [WORKFLOW](../governance/WORKFLOW.md)，实际进度见 [TASK_BOARD](../TASK_BOARD.md)。下树保留首轮快照，避免把计划中的代码目录当作已经实现。
 
 ```text
 if-children-have-been-grown/

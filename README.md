@@ -2,7 +2,7 @@
 
 投标技术标智能撰写系统的前端合作仓库。当前交付包含前端实施文档和可交互静态原型；正式应用、后端接口、真实 AI、文档解析与知识库尚未实现。
 
-从 [文档索引](docs/DOCUMENT_INDEX.md) 和 [项目状态](docs/PROJECT_STATUS.md) 开始阅读。[目录重构方案](docs/architecture/repository-layout.md) 说明当前骨架、目标骨架与迁移顺序。
+从 [文档索引](docs/DOCUMENT_INDEX.md)、[任务看板](docs/TASK_BOARD.md) 和 [项目状态](docs/PROJECT_STATUS.md) 开始阅读。[协作流程](docs/governance/WORKFLOW.md)规定 Issue、任务验收、逐任务交付、代码解释和文档同步。[目录重构方案](docs/architecture/repository-layout.md)说明当前骨架、目标骨架与迁移顺序。
 
 ## 当前目录
 
@@ -32,7 +32,16 @@ python -m http.server 8080 --directory prototypes/bidding-ux
 
 ## 协作与验证
 
+需求变更、版本更新、Bug 修复先登记 Issue，再关联任务推进。每个任务完成后提交 `docs/delivery/<TASK_ID>.md`，写验收、代码解释和进度；有代码修改时维护 `docs/code/<TASK_ID>.md`。PRD、ROADMAP、ARCHITECTURE、Issue看板、项目进度及DOCUMENT_INDEX同步检查，规则见 [工作流](docs/governance/WORKFLOW.md)。
+
 修改前阅读 [AGENTS.md](AGENTS.md)，按实际实现更新文档索引、问题和交付记录。当前三个 `docs/*.md` 入口暂时保留，以降低与合作分支的整合冲突。正式前端与后端目录在技术基线核对后按需创建。
+
+协作记录一致性检查：
+
+```bash
+node scripts/check-project-governance.cjs
+node --test tests/governance/*.test.cjs
+```
 
 编辑锁回归检查使用 Node.js，无第三方依赖：
 

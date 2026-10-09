@@ -1,5 +1,35 @@
 # 智能投标系统前端 ROADMAP
 
+<!-- governance-baseline:start -->
+| 项目 | 当前值 |
+|---|---|
+| 治理版本 | g1.0 |
+| 更新日期 | 2026-10-09 |
+| 关联 Issue | ISSUE-003 |
+<!-- governance-baseline:end -->
+
+治理修订：为既有阶段建立任务拆分与验收门禁，不改变一期业务范围。[同步记录](governance/ISSUE-003-sync.md)。
+
+## 执行里程碑与任务入口（ISSUE-003）
+
+以下 FE 编号用于本合作仓库任务管理，不等同于产品参考的全系统 M0～M8；既有 Phase和发布 Milestone 内容继续保留。
+
+| 执行里程碑 | 既有路线图对应 | 任务入口 | 出口 |
+|---|---|---|---|
+| FE-M0 基线与基础 | Phase 0 前置及基础框架 | [任务卡](tasks/FE-M0.md) | 基线、契约和前端基础具备可验收输入 |
+| FE-M1 项目主流程 | Phase 1 / 发布 Milestone 1 | [任务卡](tasks/FE-M1.md) | 项目→招标文件→响应矩阵→事实可确认 |
+| FE-M2 章节生成 | Phase 2 / 发布 Milestone 2 | [任务卡](tasks/FE-M2.md) | 写作方案确认、任务进度和转人工可追踪 |
+| FE-M3 编辑台 | Phase 3 / 发布 Milestone 3 | [任务卡](tasks/FE-M3.md) | 编辑、来源、Diff、锁与版本通过验收 |
+| FE-M4 检查导出 | Phase 4 / 发布 Milestone 4 | [任务卡](tasks/FE-M4.md) | 检查→定稿→分别导出可追踪 |
+| FE-M5 资料写作管理 | Phase 5～6 / 发布 Milestone 5 | [任务卡](tasks/FE-M5.md) | 一期资料、写作默认资产与必要管理页面可用 |
+| FE-M6 协作 | Phase 7（可后置） | [任务卡](tasks/FE-M6.md) | 已评审的协作能力独立验收 |
+| FE-M7 效率 | Phase 8（可后置） | [任务卡](tasks/FE-M7.md) | 已评审的效率增强独立验收 |
+| FE-M8 发布门禁 | 原 Gate A/B/C 的执行任务 | [任务卡](tasks/FE-M8.md) | 已评审一期范围的功能、追溯和交付通过门禁 |
+
+推进单位是 [任务看板](TASK_BOARD.md) 中的单个任务；按任务依赖并行，不把序号当唯一实施顺序。每次完成任务更新 [项目进度](PROJECT_STATUS.md)，提交对应交付和代码解释，登记 [文档索引](DOCUMENT_INDEX.md)。
+
+里程碑只有必需任务全部验收、阻塞已解决且达到原有 Gate 后才完成。可选增强不作为一期发布的必需前置；未取得基线、接口的任务保持 planned/blocked。验收、PR合入和发布分别记录，流程见 [WORKFLOW](governance/WORKFLOW.md)。
+
 ## 1. Roadmap 目标
 
 以“先跑通投标主流程，再增强协作和效率”为原则。

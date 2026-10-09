@@ -1,0 +1,18 @@
+---
+description: 本投标系统合作仓库的任务、Issue、逐任务交付与文档同步规则
+alwaysApply: true
+---
+
+# 任务推进与协作记录
+
+开工前读取 `AGENTS.md`、`docs/DOCUMENT_INDEX.md`、`docs/governance/WORKFLOW.md`、`docs/TASK_BOARD.md`、`docs/PROJECT_STATUS.md`、`issues/index.md`。工作流是详细规则的统一来源，不引用其他产品模板。
+
+1. 每次需求变更、版本更新和Bug修复先登记或更新Issue，再关联具体任务。工程治理、选型和接口变化也登记。
+2. 按任务卡的范围、依赖和验收推进；输入不齐不能标ready。每次开工、阻塞、完成同步看板与项目进度。
+3. 每任务完成必须交付 `docs/delivery/<TASK_ID>.md`，包括实际修改、验收证据、项目进度和代码解释。有代码变化同步 `docs/code/<TASK_ID>.md`；无代码变化写明原因。
+4. 每个变更检查并对齐PRD、ROADMAP、ARCHITECTURE和Issue看板/详情，连同TASK_BOARD、PROJECT_STATUS、DOCUMENT_INDEX更新。无影响写具体理由，不默默跳过。
+5. 治理块版本、日期、关联Issue与WORKFLOW一致；业务文档版本各自独立。新增/修改/移动/归档文档登记DOCUMENT_INDEX。
+6. 收尾执行 `node scripts/check-project-governance.cjs`；检查程序变化执行 `node --test tests/governance/*.test.cjs`，行为变化另外执行任务验收。
+7. 验收与记录完整后才能done/closed；PR合入和发布分别记录。不得把静态演示、文档计划或本地通过写成真实服务已经实现或上线。
+
+已有 `main` 前端方案、`xqr` 系统方案和产品参考先按层级保全，再通过任务核对差异，不覆盖他人工作或默认采纳未验证技术栈。

@@ -1,5 +1,32 @@
 # 智能投标系统前端架构说明
 
+<!-- governance-baseline:start -->
+| 项目 | 当前值 |
+|---|---|
+| 治理版本 | g1.0 |
+| 更新日期 | 2026-10-09 |
+| 关联 Issue | ISSUE-003 |
+<!-- governance-baseline:end -->
+
+治理修订：增加任务和文档记录结构与收尾校验；业务技术栈、状态及接口无变化。[同步记录](governance/ISSUE-003-sync.md)。
+
+## 工程治理结构（ISSUE-003）
+
+| 路径 | 职责 |
+|---|---|
+| [docs/TASK_BOARD.md](TASK_BOARD.md) / [docs/tasks/](tasks/) | 里程碑总览与任务卡，记录依赖、范围、验收 |
+| [issues/](../issues/) | 需求、版本、Bug及决策的来源和闭环状态 |
+| [docs/governance/WORKFLOW.md](governance/WORKFLOW.md) | Issue → 任务 → 实现 → 验收 → 交付 → 文档同步流程 |
+| [docs/templates/](templates/) | 任务、交付、代码解释模板 |
+| [docs/delivery/](delivery/) / [docs/code/](code/) | 每任务验收、进度和实际代码解释 |
+| [docs/PROJECT_STATUS.md](PROJECT_STATUS.md) | 基于任务事实的项目进度 |
+| [docs/DOCUMENT_INDEX.md](DOCUMENT_INDEX.md) | 文档版本、状态、日期和来源登记 |
+| [scripts/check-project-governance.cjs](../scripts/check-project-governance.cjs) | 结构一致性检查，无第三方依赖 |
+
+检查程序读取实际维护文档，校验共享治理块、本地链接、已完成任务交付字段、Issue验收证据与索引登记。它不创建业务接口或假设后端存在，不能代替功能验收和架构评审。真实业务代码与模拟原型继续按原架构边界区分。
+
+本次变化的代码解释见 [FE-M0-T02](code/FE-M0-T02.md)，规则依据见 [工作流](governance/WORKFLOW.md)。
+
 ## 1. 架构目标
 
 前端架构需要满足：
