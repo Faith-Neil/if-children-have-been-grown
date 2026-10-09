@@ -151,3 +151,16 @@ test('关键文档缺失时报告 missingdocument', t => {
   const result = checkProjectGovernance(project.root);
   assert.ok(result.errors.some(error => error.code === 'missingdocument' && error.file === 'docs/PROJECT_STATUS.md'));
 });
+
+test('工作区历史来源与排除的客户目录不套用活动文档规则，活动链接仍检查', t => {
+  const project = fixture(t);
+  project.write('ICG/product doc/old.md', '[历史环境路径](/workspace/old/spec.md)');
+  project.write('C2024-SAL0024-fixture/private.md', '[客户材料路径](missing-private.md)');
+  project.write('C2025-TCH0053-fixture/private.md', '[客户材料路径](missing-private.md)');
+  project.write('README.md', '[来源](ICG/product%20doc/old.md)');
+  assert.deepEqual(checkProjectGovernance(project.root).errors, []);
+  project.write('README.md', '[失效的活动入口](docs/missing.md)');
+  const result = checkProjectGovernance(project.root);
+  assert.ok(result.errors.some(error => error.code === 'brokenlink' && error.file === 'README.md'));
+  assert.ok(result.errors.every(error => !error.file.startsWith('ICG/') && !error.file.startsWith('C202')));
+});

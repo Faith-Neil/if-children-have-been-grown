@@ -2,7 +2,7 @@
 
 日期：2026-10-09。状态：本轮目录整理方案；后续代码布局供评审。
 
-本仓库承接前端合作开发。目前已有前端需求、架构、路线图、UX 规范和静态交互原型，尚无正式应用、依赖清单或后端实现。本轮增加维护约定、问题跟踪和原型回归验证。目录整理先让这些资产的用途和来源清楚，再随实际开发建立代码目录。
+本仓库承接投标系统合作工作区。当前业务资产仍是前端需求、架构、路线图、UX规范和静态交互原型，尚无正式应用、依赖清单或后端实现。目录整理先让资产用途与来源清楚，再随实际开发建立代码目录。首轮快照与本轮工作区扩展分别保留记录。
 
 本轮保留 `docs/PRD.md`、`docs/ARCHITECTURE.md`、`docs/ROADMAP.md` 的路径与正文，便于协作方继续评审 PR #1。`main` 上的三件套是前端实施视图，`xqr` 上的同名文件是全系统技术标方案草稿；同名不代表同一文档层级。新增的全系统 PRD v1.8、数据字典 v1.9 作为供评审的参考输入，当前未声明两套方案已经对齐或冻结。差异见 [文档基线与待评审差异](../decisions/baseline-gaps.md)。
 
@@ -176,3 +176,23 @@ if-children-have-been-grown/
 - 参考 [数据字典 v1.9](../reference/product/kb-data-dictionary-v1.9.md) 第 1.1、1.7、3.7.6、4 章：资料与检索分层、公司隔离、版本任务卡、代码表来源。
 
 这些材料为目录划分提供依据。具体范围及技术冲突仍按 [基线差异记录](../decisions/baseline-gaps.md) 评审。
+
+## 用户图片已检查：适用骨架与调整
+
+2026-10-09，关联ISSUE-004 / REV-M0-T01。图片是候选目标树，不能据此认定已有正式前端、业务核心、AI/doc服务或集群部署。详细逐路径对照见 [技术审查](../reviews/2026-10-09-technical-readiness.md) §3。
+
+| 图片分组 | 结论与方案 |
+|---|---|
+| frontend/web + backend/bid-core | 前后端职责分组合理。正式代码先实现一个模块化业务核心与worker；上述目标树的api/jobs/modules/adapters/platform/migrations可承载它。实际命名在选型后统一，不并行维护两套后端骨架 |
+| ai/ai-service + doc-service | 作为潜在进程边界保留，先用适配器隔离模型、检索、解析和Word处理。若资源/依赖/发布需要拆进程，先确认任务、产物、超时、重试、取消和授权合同；不先拆编辑锁、版本与导出许可的事实源 |
+| deploy/dev/helm/k3s-installer/offline-bundle | 先随最小链路产生可复现开发环境；集群安装待目标机房/运维条件明确。离线包是经过安装验证的发布产物，源库保存构建清单和脚本，模型/客户数据/密钥不直接入库 |
+| docs/adr、runbooks、source、specs/cards | 决策沿用docs/decisions，运行说明沿用docs/operations；docs/source管理来源清单。工程任务沿用docs/tasks，模型业务task_card/defaults单独管理，不建第二套M0排期 |
+| spec/data-dictionary/openapi/schemas | 逻辑字典、物理迁移、网络DTO职责不同。HTTP DTO优先OpenAPI components；独立schema仅在复用时抽取并引用，避免一字段多处手改 |
+| eval、tests/hooks/repo、tools | 评测统一evals；保留prototype/governance测试，随真实实现增加契约、并发、集成与Word样本。hook只做调用入口。当前tools/workspace-sync已实际建立；其他CI/format目录有实际工具再创建 |
+| 图片缺少的协作入口 | 保留issues、TASK_BOARD、PROJECT_STATUS、DOCUMENT_INDEX、逐任务delivery/code与静态prototypes，不用目标目录替代完成证据 |
+
+## 整个本地工作区纳入同一历史
+
+Git根从原 `X:\ICG CO\if-children-have-been-grown` 提升到 `X:\ICG CO`，原有根文件与docs/prototypes等相对路径不变；Git提交历史与分支不变。`ICG/`的34份来源材料保持原目录及内容，登记 [来源清单](../source/WORKSPACE_MATERIALS.md)。两个合同原件根由用户明确排除，原子资料留本地；令牌和运行状态在工作区外。
+
+本轮实际增加tools/workspace-sync、业务/技术审查、brief、OPS/REV任务与运行说明。后续目标树仍是方案，不创建空应用/服务目录。持续同步与人工任务验收关系见 [工作流](../governance/WORKFLOW.md) §7。

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>智能投标系统 · 高保真原型索引（v1.2）</title>
+<link rel="stylesheet" href="vendor/reset.css" />
+<link rel="stylesheet" href="assets/tokens.css" />
+<style>
+  body { background: var(--c-bg-layout); font-family: var(--font-sans); color: var(--n-10); }
+  .idx { max-width: 1240px; margin: 0 auto; padding: 32px 32px 64px; }
+  .idx-head { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 8px; }
+  .idx-head h1 { font-size: 24px; margin: 0; }
+  .idx-sub { color: var(--n-8); font-size: 13px; margin-bottom: 24px; line-height: 22px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .card { background: #fff; border: 1px solid var(--n-4); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; text-decoration: none; color: inherit; transition: box-shadow .15s, border-color .15s; }
+  .card:hover { border-color: var(--c-primary-border); box-shadow: var(--shadow-2); }
+  .thumb { aspect-ratio: 1440 / 900; background: var(--n-3) center top / cover no-repeat; border-bottom: 1px solid var(--n-4); }
+  .card-b { padding: 12px 14px 14px; }
+  .card-t { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .card-t .no { font-family: var(--font-mono); font-size: 12px; color: var(--c-primary); background: var(--c-primary-bg); border-radius: 4px; padding: 0 6px; }
+  .card-d { font-size: 13px; color: var(--n-9); line-height: 21px; margin-top: 6px; }
+  .states { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .states a { font-size: 12px; color: var(--c-primary); border: 1px solid var(--c-primary-border); border-radius: 10px; padding: 0 8px; text-decoration: none; }
+  h2 { font-size: 18px; margin: 36px 0 12px; }
+  table.ub { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid var(--n-4); border-radius: 8px; overflow: hidden; font-size: 13px; }
+  table.ub th, table.ub td { padding: 9px 12px; border-bottom: 1px solid var(--n-3); text-align: left; vertical-align: top; }
+  table.ub th { background: var(--n-2); color: var(--n-9); font-weight: 500; }
+  .tag { display: inline-block; font-size: 12px; padding: 0 6px; border-radius: 4px; background: var(--n-3); color: var(--n-9); }
+  .tag.warn { background: #FFF4E5; color: #9A5300; }
+  #unbuilt:target { outline: 2px solid var(--c-primary-border); outline-offset: 8px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div class="idx">
+  <div class="idx-head"><h1>智能投标系统 · 高保真原型（v1.2）</h1><span class="sample-flag">合成数据 · 全部虚构</span></div>
+  <div class="idx-sub">
+    依据：PRD v1.8、数据字典 v1.9、技术方案 v1.4.2。设计规范见 <code>../design-spec-v1.2.md</code>，前端交接见 <code>../frontend-handoff-v1.md</code>；截图（1440×900，编辑台另有 1280 / 1680）见 <code>../screenshots/</code>。<br />
+    视觉基准（neil 指定，风格不大改）：<b>04a 编辑台、02d 解析结果、03 响应矩阵、05 合规检查</b>。<br />
+    技术：React 18 UMD + antd 5.29 UMD（本地 vendor，可离线打开，无需构建；正式 antd 主版本按 ADR-0021 在 M0 定）；ProLayout 风格外壳为手写。所有页面共用 <code>assets/tokens.css</code>、<code>assets/theme.js</code>、<code>assets/shell.js</code>（含状态代码 → 颜色注册表 <code>UI.STATUS</code>）。<br />
+    主示例项目：青禾示例金融 2026—2028 年数据库及中间件维保服务采购项目（敏感项目，强制本地模型）。
+  </div>
+
+  <div class="grid">
+    <a class="card" href="01-workbench.html"><div class="thumb" style="background-image:url(../screenshots/01-workbench.png)"></div><div class="card-b">
+      <div class="card-t"><span class="no">01</span>工作台 + 顶栏</div>
+      <div class="card-d">投标截止时间 3 天内置顶标红；顶栏站内提醒下拉、后台任务抽屉、全局搜索下拉（只搜名称、不跨公司）。</div></div></a>
+    <a class="card" href="02-new-project-parse.html#result"><div class="thumb" style="background-image:url(../screenshots/02d-parse-result.png)"></div><div class="card-b">
+      <div class="card-t"><span class="no">02</span>新建项目 + 招标文件解析</div>
+      <div class="card-d">原文 · 分类树 · 条目卡片；抽取后处理三个入口（冲突待选定 / 疑似遗漏 / 引用未解析）与“确认解析结果”前提。</div></div></a>
+    <a class="card" href="03-response-matrix.html"><div class="thumb" style="background-image:url(../screenshots/03-response-matrix.png)"></div><div class="card-b">
+      <div class="card-t"><span class="no">03</span>响应矩阵（含 SLA 矩阵、挂证据）</div>
+      <div class="card-d">要求矩阵 / SLA 矩阵二级切换；行状态与风险提示按字典 4.16；“挂证据”抽屉取代原资料匹配页签。</div></div></a>
+    <a class="card" href="04-editor-assistant.html"><div class="thumb" style="background-image:url(../screenshots/04a-editor-assistant.png)"></div><div class="card-b">
+      <div class="card-t"><span class="no">04</span>编辑台与对话助手</div>
+      <div class="card-d">来源标记、变量、【待补】、R43；答案卡（系统直查 · 未经模型）与“插入为引用”差异视图；1280 / 1440 / 1680 三档布局。</div></div></a>
+    <a class="card" href="05-compliance.html"><div class="thumb" style="background-image:url(../screenshots/05-compliance.png)"></div><div class="card-b">
+      <div class="card-t"><span class="no">05</span>合规检查</div>
+      <div class="card-d">分册 / 全文检查；R18 只显示段落相似度；R24 页数写“估算”；定位、放行、只重跑本规则。</div></div></a>
+    <a class="card" href="06-export.html"><div class="thumb" style="background-image:url(../screenshots/06-export.png)"></div><div class="card-b">
+      <div class="card-t"><span class="no">06</span>Word 导出</div>
+      <div class="card-d">递交版只由项目负责人导出；内部稿高敏信息一律掩码（前 3 后 4）；导出状态含“排队”。</div></div></a>
+    <a class="card" href="07-library-kb.html#library"><div class="thumb" style="background-image:url(../screenshots/07a-library-certs.png)"></div><div class="card-b">
+      <div class="card-t"><span class="no">07</span>企业资料库 / 知识库</div>
+      <div class="card-d">资质与人员（掩码前 3 后 4）；方案片段；历史标书入库状态按 archive_parse_status / kb_sync_status 英文代码绑定（PRD 5.5.3）。</div></div></a>
+    <a class="card" href="08-admin-models.html#models"><div class="thumb" style="background-image:url(../screenshots/08a-admin-models.png)"></div><div class="card-b">
+      <div class="card-t"><span class="no">08</span>管理后台与平台管理</div>
+      <div class="card-d">模型登记（本地只备用本地）、对应表 21 类、心跳与两条校验、规则配置与兜底词表、部署与服务状态、界面品牌（带预览）。</div></div></a>
+    <a class="card" href="09-login.html#error"><div class="thumb" style="background-image:url(../screenshots/09a-login-error.png)"></div><div class="card-b">
+      <div class="card-t"><span class="no">09</span>登录（Keycloak 主题）</div>
+      <div class="card-d">统一错误提示、账号锁定、首次登录强制改密三种状态；品牌区读取界面品牌设置。</div></div></a>
+    <a class="card" href="10-admin-dict.html#platform"><div class="thumb" style="background-image:url(../screenshots/10a-admin-dict-platform.png)"></div><div class="card-b">
+      <div class="card-t"><span class="no">10</span>字典配置（A-03）</div>
+      <div class="card-d">平台级字典（厂商与产品、证书类别、行业、附件槽位、划型标准）只有平台管理员可改；公司级可扩展字典追加本公司项；已使用代码只能停用。</div></div></a>
+    <a class="card" href="11-notifications.html"><div class="thumb" style="background-image:url(../screenshots/11a-notifications.png)"></div><div class="card-b">
+      <div class="card-t"><span class="no">11</span>站内提醒列表（G-02）</div>
+      <div class="card-d">17 类提醒按 notification_type 绑定；类型 / 已读 / 项目 / 时间筛选；点击跳转并标已读；第一期无站外渠道。</div></div></a>
+    <a class="card" href="12-jobs.html"><div class="thumb" style="background-image:url(../screenshots/12a-jobs-running.png)"></div><div class="card-b">
+      <div class="card-t"><span class="no">12</span>后台任务中心（G-03）</div>
+      <div class="card-d">运行中 / 排队 / 失败 / 已完成；详情抽屉（步骤、服务、重试记录）；平台管理员脱敏视图（无项目名、文件名，不能重试或取消）。</div></div></a>
+    <a class="card" href="../editor-poc/README.md"><div class="thumb" style="background-image:url(../editor-poc/02-locked-block.png);background-position:top left"></div><div class="card-b">
+      <div class="card-t"><span class="no">PoC</span>编辑器 PoC 交互设计稿（M0-W06-01）</div>
+      <div class="card-d">段落键稳定、锁定块、变量原子性、差异视图四个演示点；画板在 ../editor-poc/（01～04 .html / .png），合成文本。交付说明见 ../delivery/M0-W06-01.md。</div></div></a>
+  </div>
+
+  <h2>页面状态直达</h2>
+  <div class="states" style="gap:8px">
+    <a href="01-workbench.html#notify">01 站内提醒下拉</a><a href="01-workbench.html#tasks">01 后台任务抽屉</a><a href="01-workbench.html#search">01 全局搜索下拉</a>
+    <a href="02-new-project-parse.html#create">02 新建项目</a><a href="02-new-project-parse.html#r19">02 R19 冲突提示</a><a href="02-new-project-parse.html#upload">02 上传与解析进度</a><a href="02-new-project-parse.html#result">02 解析结果</a><a href="02-new-project-parse.html#conflict">02 抽取后处理抽屉</a>
+    <a href="03-response-matrix.html">03 要求矩阵</a><a href="03-response-matrix.html#sla">03 SLA 矩阵</a><a href="03-response-matrix.html#evidence">03 挂证据抽屉</a>
+    <a href="04-editor-assistant.html">04 编辑台</a><a href="04-editor-assistant.html#diff">04 写入差异确认</a><a href="04-editor-assistant.html#answer">04 答案卡</a><a href="04-editor-assistant.html#insert">04 答案卡插入为引用</a><a href="04-editor-assistant.html#answer-project">04 本项目数据答案卡（知识库关闭）</a><a href="04-editor-assistant.html#answer-kboff">04 知识库关闭时问本公司资料</a>
+    <a href="07-library-kb.html#library">07 资质证书</a><a href="07-library-kb.html#people">07 人员</a><a href="07-library-kb.html#snippets">07 方案片段库</a><a href="07-library-kb.html#archive">07 历史标书</a>
+    <a href="08-admin-models.html#models">08 模型登记</a><a href="08-admin-models.html#routes">08 任务与模型对应表</a><a href="08-admin-models.html#grant">08 模型开放与生成设置</a><a href="08-admin-models.html#grant-err">08 心跳校验报错</a><a href="08-admin-models.html#users">08 用户与角色</a><a href="08-admin-models.html#rules">08 规则配置</a><a href="08-admin-models.html#rules-scan">08 兜底扫描词表</a><a href="08-admin-models.html#deploy">08 部署与服务状态</a><a href="08-admin-models.html#brand">08 界面品牌</a>
+    <a href="09-login.html#error">09 登录错误</a><a href="09-login.html#locked">09 账号锁定</a><a href="09-login.html#first">09 首次登录改密</a><a href="09-login.html#timeout">09 会话超时</a><a href="09-login.html#disabled">09 公司已停用</a>
+    <a href="08-admin-models.html#users-pwd-low">08 密码策略低于默认值</a><a href="08-admin-models.html#brand-err">08 方形 Logo 比例错误</a>
+    <a href="10-admin-dict.html#platform">10 平台字典</a><a href="10-admin-dict.html#vendor">10 厂商与产品</a><a href="10-admin-dict.html#company">10 公司级字典</a><a href="10-admin-dict.html#empty">10 空</a><a href="10-admin-dict.html#loading">10 加载</a><a href="10-admin-dict.html#error">10 错误</a><a href="10-admin-dict.html#forbidden">10 无权限</a>
+    <a href="11-notifications.html">11 提醒列表</a><a href="11-notifications.html#empty">11 筛选无结果</a><a href="11-notifications.html#loading">11 加载</a><a href="11-notifications.html#error">11 错误</a><a href="11-notifications.html#forbidden">11 跳转无权限</a>
+    <a href="12-jobs.html">12 运行中</a><a href="12-jobs.html#queued">12 排队</a><a href="12-jobs.html#failed">12 失败</a><a href="12-jobs.html#detail">12 任务详情</a><a href="12-jobs.html#platform">12 平台脱敏视图</a><a href="12-jobs.html#reconnect">12 断线重连</a><a href="12-jobs.html#empty">12 空</a><a href="12-jobs.html#loading">12 加载</a><a href="12-jobs.html#error">12 错误</a><a href="12-jobs.html#forbidden">12 无权限</a>
+  </div>
+
+  <h2 id="unbuilt">未出原型的页面（灰色菜单 / 页签指向这里）</h2>
+  <table class="ub">
+    <tr><th style="width:150px">页面 ID</th><th style="width:260px">页面</th><th style="width:170px">PRD 章节</th><th>说明</th></tr>
+    <tr><td>P-03（含 P-17）</td><td>项目概览（底部折叠区：项目级写作观察统计）</td><td>5.1.3、5.7.13</td><td>版式见设计规范 v1.2 第 6.2 节</td></tr>
+    <tr><td>P-09</td><td>项目事实表</td><td>5.7.8</td><td>版式见 6.2 节</td></tr>
+    <tr><td>P-10 / P-12</td><td>写作方案与大纲确认 / 章节循环进度</td><td>5.7.2 / 5.7.6</td><td>编辑台页签内的视图，版式见 6.2 节</td></tr>
+    <tr><td>P-13</td><td>人工处理队列</td><td>5.7.7</td><td>版式见 6.2 节</td></tr>
+    <tr><td>P-16</td><td>项目设置（含递交版“需填完整值”的类别）</td><td>5.1.4、5.9.1</td><td>版式见 6.2 节</td></tr>
+    <tr><td>P-18</td><td>分册分流确认</td><td>5.3.1 规则 8</td><td>03 页有入口横幅</td></tr>
+    <tr><td>K-03～K-14</td><td>资料详情、人员详情、授权链及其他分类</td><td>5.4.4～5.4.7</td><td>列表页沿用 07 模板；人员证件号掩码前 3 后 4</td></tr>
+    <tr><td>W-01～W-03</td><td>写作档案、风格样例库、写作观察统计（公司）</td><td>5.6.2、5.6.5、5.7.13</td><td>版式见 6.2 节</td></tr>
+    <tr><td>A-01</td><td>公司管理</td><td>5.10.1</td><td>版式见 6.2 节</td></tr>
+    <tr><td>A-04 / A-06</td><td>资料库设置 / 审计日志</td><td>5.10.4、5.10.6</td><td>版式见 6.2 节（A-03 字典配置 v1.2 已出原型 10）</td></tr>
+    <tr><td>A-09</td><td>文档解析服务</td><td>6.6.2</td><td>版式见 6.2 节</td></tr>
+    <tr><td>全局搜索（完整结果页）</td><td>“查看更多”结果页</td><td>5.12.3</td><td>下拉已画（01#search）；结果页版式见 6.2 节</td></tr>
+  </table>
+  <div class="idx-sub" style="margin-top:12px">完整页面清单（页面 ID、PRD 章节、字典表名、原型文件）见设计规范 v1.2 第 5 章。v1.5 起取消 P-08 资料匹配页签（并入 03 挂证据抽屉），SLA 矩阵（P-07）为响应矩阵内二级切换。</div>
+</div>
+</body>
+</html>

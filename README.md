@@ -1,8 +1,10 @@
 # if-children-have-been-grown
 
-投标技术标智能撰写系统的前端合作仓库。当前交付包含前端实施文档和可交互静态原型；正式应用、后端接口、真实 AI、文档解析与知识库尚未实现。
+投标文档智能撰写项目的合作工作区。当前业务交付包含前端实施文档和可交互静态原型；正式应用、后端接口、真实 AI、文档解析与知识库尚未实现。Git根已提升到本地 `X:\ICG CO`，GitHub私有仓库保存协作分支的云端版本。
 
 从 [文档索引](docs/DOCUMENT_INDEX.md)、[任务看板](docs/TASK_BOARD.md) 和 [项目状态](docs/PROJECT_STATUS.md) 开始阅读。[协作流程](docs/governance/WORKFLOW.md)规定 Issue、任务验收、逐任务交付、代码解释和文档同步。[目录重构方案](docs/architecture/repository-layout.md)说明当前骨架、目标骨架与迁移顺序。
+
+中途接手先读 [PROJECT_BRIEF](docs/PROJECT_BRIEF.md)。本轮审查见 [业务报告](docs/reviews/2026-10-09-business-readiness.md) 和 [技术报告](docs/reviews/2026-10-09-technical-readiness.md)，待决事项见 [ISSUE-005](issues/ISSUE-005.md)。
 
 ## 当前目录
 
@@ -18,7 +20,9 @@
 | [prototypes/bidding-ux/](prototypes/bidding-ux/) | 工作台、项目概览、响应矩阵、章节编辑静态原型 |
 | [issues/index.md](issues/index.md) | 本地问题跟踪 |
 
-产品参考文档、前端实施文档、原型和系统选型提案属于不同层级。当前实施文档尚未与新参考版本完整对齐，详见差异清单。真实合同、招标原件与客户资料继续存放在本仓库之外。
+产品参考文档、前端实施文档、原型和系统选型提案属于不同层级。当前实施文档尚未与新参考版本完整对齐，详见差异清单。`ICG/`的34份历史项目资料原样纳入并登记到 [来源清单](docs/source/WORKSPACE_MATERIALS.md)；用户明确排除的两个银行合同目录仅留本地，不进入Git版本管理。
+
+工作区同步工具见 [运行说明](docs/operations/workspace-sync.md)：稳定10秒后的本地变化自动保存到协作分支，远端更新在可快进时获取，分叉或人工暂存时暂停。自动WIP提交不表示任务验收、PR合入或产品发布。
 
 ## 打开原型
 

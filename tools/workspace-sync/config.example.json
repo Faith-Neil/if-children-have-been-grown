@@ -1,0 +1,12 @@
+{
+  "repoPath": "X:\\ICG CO",
+  "remote": "origin",
+  "remoteUrl": "https://github.com/Faith-Neil/if-children-have-been-grown.git",
+  "branch": "codex/repository-foundation",
+  "nodePath": "C:\\path\\to\\node.exe",
+  "tokenFile": "%LOCALAPPDATA%\\CodexWorkspaceSync\\Faith-Neil-if-children-have-been-grown\\credential.dpapi",
+  "runtimeDir": "%LOCALAPPDATA%\\CodexWorkspaceSync\\Faith-Neil-if-children-have-been-grown\\runtime",
+  "pollMs": 3000,
+  "settleMs": 10000,
+  "fetchMs": 30000
+}

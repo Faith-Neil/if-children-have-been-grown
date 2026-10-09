@@ -3,12 +3,12 @@
 <!-- governance-baseline:start -->
 | 项目 | 当前值 |
 |---|---|
-| 治理版本 | g1.0 |
+| 治理版本 | g1.1 |
 | 更新日期 | 2026-10-09 |
-| 关联 Issue | ISSUE-003 |
+| 关联 Issue | ISSUE-004 |
 <!-- governance-baseline:end -->
 
-治理修订：新增工程协作验收附录；业务正文与产品版本不变。同步依据见 [ISSUE-003记录](governance/ISSUE-003-sync.md)。
+治理修订：增加工作区云端同步与接手审查；业务正文与产品版本不变。历史记录见 [ISSUE-003](governance/ISSUE-003-sync.md)，本轮见 [ISSUE-004](governance/ISSUE-004-sync.md)。
 
 > 本文档为前端产品需求说明，基于《智能投标系统 第一期（MVP）PRD v1.4》与《企业投标资料库数据字典 v1.5》整理，并补充前端信息架构、交互和页面级要求。
 
@@ -23,6 +23,8 @@
 - 任务完成、Issue本地验收、PR合入和发布分别记录。存在文档或模拟页面不代表真实功能已经完成。
 
 当前业务实施视图与最新产品参考的差异仍按 [基线差异](decisions/baseline-gaps.md) 处理，本治理修订不代表这些差异已经关闭。
+
+本轮审查入口：[接手brief](PROJECT_BRIEF.md)、[业务场景审查](reviews/2026-10-09-business-readiness.md)、[技术契约审查](reviews/2026-10-09-technical-readiness.md)。发现进入待决事项，必须经决定、实施与验收后才标记已解决；自动文件快照不代表业务验收通过。
 
 ## 1. 产品定位
 

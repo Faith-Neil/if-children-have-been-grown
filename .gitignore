@@ -4,6 +4,18 @@
 !.env.example
 *.pem
 *.key
+*.pfx
+*.p12
+*.dpapi
+*.secret
+secrets/
+
+# 用户明确排除的真实银行合同原件（保持本地）
+/C2024-SAL0024-*/
+/C2025-TCH0053-*/
+
+# 原仓库提升到工作区根后的旧空目录，不建立嵌套Git
+/if-children-have-been-grown/
 
 # 依赖与构建输出
 node_modules/
@@ -19,6 +31,7 @@ runtime/
 data/local/
 .cache/
 *.log
+*.pid
 
 # 操作系统文件
 .DS_Store

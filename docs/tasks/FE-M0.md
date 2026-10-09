@@ -90,7 +90,7 @@
 |---|---|
 | 状态 | `planned` |
 | 估算 | 2 小时（估算，不等同实际耗时或承诺日期） |
-| 关联 Issue | —（未登记；开工前在统一 Issue 中登记或关联现有变更） |
+| 关联 Issue | [ISSUE-005](../../issues/ISSUE-005.md) |
 | 依赖 | [FE-M0-T02](FE-M0.md#fe-m0-t02) |
 | PRD / 架构出处 | [前端 PRD](../PRD.md) §1～4；[前端架构](../ARCHITECTURE.md) §1～3；[参考 PRD](../reference/product/prd-mvp-v1.8.md) §3、§4、§10 |
 | 完成时交付 | `docs/delivery/FE-M0-T03.md`（待产出） |
@@ -100,7 +100,7 @@
 
 候选文件：`docs/reviews/pr-1-integration.md`；`docs/decisions/baseline-gaps.md`；`现有三件套的适用范围说明`。
 
-当前条件：待关联正式变更 Issue 与共同评审；现有来源可先作评审材料，评审结论尚未冻结。
+当前条件：已关联ISSUE-005，等待共同评审；现有来源可先作评审材料，评审结论尚未冻结。
 
 实施步骤：
 
@@ -124,7 +124,7 @@
 |---|---|
 | 状态 | `blocked` |
 | 估算 | 3 小时（估算，不等同实际耗时或承诺日期） |
-| 关联 Issue | —（未登记；开工前在统一 Issue 中登记或关联现有变更） |
+| 关联 Issue | [ISSUE-005](../../issues/ISSUE-005.md) |
 | 依赖 | [FE-M0-T03](FE-M0.md#fe-m0-t03) |
 | PRD / 架构出处 | [前端 PRD](../PRD.md) §4、§11～20；[前端架构](../ARCHITECTURE.md) §5～12、§19；[参考 PRD](../reference/product/prd-mvp-v1.8.md) §6.1、§7.1 |
 | 完成时交付 | `docs/delivery/FE-M0-T04.md`（待产出） |

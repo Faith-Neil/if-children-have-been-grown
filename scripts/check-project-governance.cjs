@@ -15,6 +15,8 @@ const taskStates = ['planned', 'ready', 'in-progress', 'in-review', 'done', 'blo
 const issueStates = ['new', 'triaged', 'ready', 'in-progress', 'in-review', 'closed', 'blocked'];
 const issueTypes = new Set(['change', 'version', 'bug', 'workflow', 'decision']);
 const ignoredDirectories = new Set(['.git', 'node_modules', 'dist', 'build', '.cache']);
+// Source snapshots retain historical references; private customer roots are outside the project scope.
+const excludedSourceRoots = new Set(['ICG']);
 
 function portable(value){ return value.split(path.sep).join('/'); }
 function parseState(value, states){
@@ -30,7 +32,9 @@ function markdownFiles(root){
     for (const entry of fs.readdirSync(directory, {withFileTypes: true})){
       if (entry.isSymbolicLink()) continue;
       const absolute = path.join(directory, entry.name);
-      if (entry.isDirectory() && !ignoredDirectories.has(entry.name)) visit(absolute);
+      const excludedRoot = directory === root && (excludedSourceRoots.has(entry.name)
+        || /^C202(?:4-SAL0024|5-TCH0053)-/.test(entry.name));
+      if (entry.isDirectory() && !ignoredDirectories.has(entry.name) && !excludedRoot) visit(absolute);
       else if (entry.isFile() && entry.name.endsWith('.md')) files.push(portable(path.relative(root, absolute)));
     }
   }
