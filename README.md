@@ -1,6 +1,10 @@
+为什么有这个文件：说明项目入口、已有成果和本地运行方式。
+
+它解决什么问题：帮助接手者快速找到实际代码、文档与验证方法。
+
 # if-children-have-been-grown
 
-投标文档智能撰写项目的合作工作区。当前业务交付包含前端实施文档和可交互静态原型；正式应用、后端接口、真实 AI、文档解析与知识库尚未实现。Git根已提升到本地 `X:\ICG CO`，GitHub私有仓库保存协作分支的云端版本。
+投标文档智能撰写项目的合作工作区。已有前端实施文档、可交互静态原型，以及能保存草稿、提交版本、检查和下载Word的本地后端demo。模型与数据库预留替换接口，当前使用演示实现；真实模型、持久数据库、招标文档解析与完整一期交付仍待实施。Git根为本地 `X:\ICG CO`，GitHub私有仓库保存协作分支的云端版本。
 
 从 [文档索引](docs/DOCUMENT_INDEX.md)、[任务看板](docs/TASK_BOARD.md) 和 [项目状态](docs/PROJECT_STATUS.md) 开始阅读。[协作流程](docs/governance/WORKFLOW.md)规定 Issue、任务验收、逐任务交付、代码解释和文档同步。[目录重构方案](docs/architecture/repository-layout.md)说明当前骨架、目标骨架与迁移顺序。
 
@@ -18,13 +22,27 @@
 | [docs/decisions/baseline-gaps.md](docs/decisions/baseline-gaps.md) | 版本差异、缺件与技术决策状态 |
 | [docs/reviews/pr-1-integration.md](docs/reviews/pr-1-integration.md) | `main` 与 `xqr` 的文档整合评审 |
 | [prototypes/bidding-ux/](prototypes/bidding-ux/) | 工作台、项目概览、响应矩阵、章节编辑静态原型 |
+| [backend/bid-core/](backend/bid-core/README.md) | 可运行业务后台与简单页面；合成账号、内存数据、模型演示实现 |
+| [spec/openapi/](spec/openapi/README.md) | 从实际代码生成的前后端接口约定 |
 | [issues/index.md](issues/index.md) | 本地问题跟踪 |
 
 产品参考文档、前端实施文档、原型和系统选型提案属于不同层级。当前实施文档尚未与新参考版本完整对齐，详见差异清单。`ICG/`的34份历史项目资料原样纳入并登记到 [来源清单](docs/source/WORKSPACE_MATERIALS.md)；用户明确排除的两个银行合同目录仅留本地，不进入Git版本管理。
 
 工作区同步工具见 [运行说明](docs/operations/workspace-sync.md)：稳定10秒后的本地变化自动保存到协作分支，远端更新在可快进时获取，分叉或人工暂存时暂停。自动WIP提交不表示任务验收、PR合入或产品发布。
 
-## 打开原型
+## 启动后端demo
+
+在仓库根目录使用PowerShell运行：
+
+```powershell
+& .\backend\bid-core\Start-Demo.ps1 -Install
+```
+
+安装后再次启动可省略`-Install`。打开`http://127.0.0.1:8710`，选择演示账号登录，进入技术或商务章节，取得编辑权后编辑、保存草稿、提交版本，再检查并下载Word。
+
+演示的后台处理真实请求；数据只保存在当前进程，重启清空，Word为单章内部演示稿。完整能力、接口和替换方法见 [运行说明](backend/bid-core/README.md)，实际交付见 [BE-M0-T01](docs/delivery/BE-M0-T01.md)。
+
+## 打开静态原型
 
 直接打开 [prototypes/bidding-ux/index.html](prototypes/bidding-ux/index.html)，无需安装依赖或构建。也可以在仓库根目录运行：
 
@@ -38,13 +56,19 @@ python -m http.server 8080 --directory prototypes/bidding-ux
 
 需求变更、版本更新、Bug 修复先登记 Issue，再关联任务推进。每个任务完成后提交 `docs/delivery/<TASK_ID>.md`，写验收、代码解释和进度；有代码修改时维护 `docs/code/<TASK_ID>.md`。PRD、ROADMAP、ARCHITECTURE、Issue看板、项目进度及DOCUMENT_INDEX同步检查，规则见 [工作流](docs/governance/WORKFLOW.md)。
 
-修改前阅读 [AGENTS.md](AGENTS.md)，按实际实现更新文档索引、问题和交付记录。当前三个 `docs/*.md` 入口暂时保留，以降低与合作分支的整合冲突。正式前端与后端目录在技术基线核对后按需创建。
+修改前阅读 [AGENTS.md](AGENTS.md)，按实际实现更新文档索引、问题和交付记录。当前三个 `docs/*.md` 入口暂时保留，以降低与合作分支的整合冲突。后端已从一个业务核心开始；正式前端与其他服务按实际需要建立。
 
 协作记录一致性检查：
 
 ```bash
 node scripts/check-project-governance.cjs
 node --test tests/governance/*.test.cjs
+```
+
+后台验证（先安装demo依赖）：
+
+```powershell
+& .\.venv\Scripts\python.exe -m pytest tests/backend -q
 ```
 
 编辑锁回归检查使用 Node.js，无第三方依赖：

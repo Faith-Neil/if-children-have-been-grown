@@ -1,3 +1,6 @@
+# 为什么有这个文件：指定哪些本地文件不进入项目版本管理。
+# 它解决什么问题：避免上传凭据、客户原件、运行数据和可重建的依赖。
+
 # 本地配置和凭据
 .env
 .env.*
@@ -30,6 +33,7 @@ coverage/
 runtime/
 data/local/
 .cache/
+.pytest_cache/
 *.log
 *.pid
 

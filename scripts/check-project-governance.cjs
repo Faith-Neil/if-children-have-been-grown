@@ -1,3 +1,5 @@
+// 本文件检查需求、任务、问题和交付记录是否一致，避免项目记录各说各话。
+// 它只检查项目内容，跳过依赖包、缓存、历史资料及客户合同原件。
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -14,7 +16,7 @@ const deliveryFields = ['任务ID', '代码解释', '验收', '项目进度'];
 const taskStates = ['planned', 'ready', 'in-progress', 'in-review', 'done', 'blocked', 'cancelled'];
 const issueStates = ['new', 'triaged', 'ready', 'in-progress', 'in-review', 'closed', 'blocked'];
 const issueTypes = new Set(['change', 'version', 'bug', 'workflow', 'decision']);
-const ignoredDirectories = new Set(['.git', 'node_modules', 'dist', 'build', '.cache']);
+const ignoredDirectories = new Set(['.git', 'node_modules', 'dist', 'build', '.cache', '.venv', '.pytest_cache', '__pycache__']);
 // Source snapshots retain historical references; private customer roots are outside the project scope.
 const excludedSourceRoots = new Set(['ICG']);
 

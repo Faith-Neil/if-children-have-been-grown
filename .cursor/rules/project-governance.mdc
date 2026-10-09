@@ -3,6 +3,10 @@ description: 本投标系统合作仓库的任务、Issue、逐任务交付与�
 alwaysApply: true
 ---
 
+为什么有这个文件：让合作开发工具自动读取现有项目协作流程。
+
+它解决什么问题：避免开发时漏掉任务记录、验证或文档同步。
+
 # 任务推进与协作记录
 
 开工前读取 `AGENTS.md`、`docs/DOCUMENT_INDEX.md`、`docs/governance/WORKFLOW.md`、`docs/TASK_BOARD.md`、`docs/PROJECT_STATUS.md`、`issues/index.md`。工作流是详细规则的统一来源，不引用其他产品模板。

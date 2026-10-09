@@ -1,0 +1,37 @@
+<!doctype html>
+<!-- 为什么有这个文件：提供可以直接操作首个后端demo的页面。
+     它解决什么问题：让用户通过真实后台操作了解编辑、检查和输出流程。 -->
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>投标工作台 · 后端演示</title><link rel="stylesheet" href="/static/styles.css"><script src="/static/app.js" defer></script></head>
+<body>
+<header><div><span class="brand">ICG</span><strong>投标工作台</strong><span class="badge">本地演示</span></div><span id="connection">正在连接后台…</span></header>
+<div class="notice">使用合成账号与资料。模型由演示程序代替，数据保存在内存，重启后清空。</div>
+<main>
+<aside>
+<p class="eyebrow">进入工作区</p><label for="account">演示账号</label><select id="account"></select><button id="login" class="primary">进入工作区</button><p id="identity" class="muted">选择账号后登录</p>
+<hr><label for="project">项目</label><select id="project" disabled></select><div class="create"><input id="project-name" aria-label="新项目名称" placeholder="新项目名称" maxlength="120"><button id="create-project">新建</button></div>
+<label for="chapter">分册与章节</label><select id="chapter" disabled></select>
+<div class="help"><strong>演示顺序</strong><ol><li>选择账号和章节</li><li>取得编辑权</li><li>修改并提交版本</li><li>检查已提交正文</li><li>下载Word</li></ol><p>换成另一家公司，可以验证资料隔离；换成只读账号，可以验证修改限制。</p></div>
+</aside>
+<section class="workspace">
+<div class="heading"><div><p class="eyebrow">章节编辑</p><h1 id="chapter-title">请先进入工作区</h1><p id="chapter-meta" class="muted">页面的每次保存都会请求真实后台。</p></div><span id="lock-state" class="pill">尚未选择章节</span></div>
+<div class="lock-bar"><button id="acquire">取得编辑权</button><input id="takeover-reason" placeholder="负责人接管时填写理由" aria-label="接管理由" maxlength="300"><button id="takeover">接管</button><button id="release">释放编辑权</button></div>
+<label for="content" class="sr-only">章节正文</label><textarea id="content" placeholder="选择章节后显示正文" spellcheck="false" readonly></textarea>
+<div class="editor-footer"><span id="content-state" class="muted">尚无正文</span><div><button id="save-draft">保存草稿</button><button id="commit" class="primary">提交新版本</button></div></div>
+<section id="saved-draft-panel" class="card" hidden>
+<h2>已保存的草稿</h2><p id="saved-draft-status" role="status"></p>
+<label for="saved-draft-content">原草稿文本（只读，可选中复制）</label><textarea id="saved-draft-content" readonly spellcheck="false"></textarea>
+<p class="muted">上方编辑框先显示最新已提交正文。恢复会按该版本重新保存草稿；原文本在本页面保留供复制，切换章节或重新登录后以后台草稿为准。</p>
+<label><input id="review-latest" type="checkbox"> 我已查看上方最新已提交正文，并核对它与草稿的区别。</label>
+<button id="use-latest">保留原草稿，继续使用已提交正文</button>
+<button id="restore-draft">核对后恢复为当前版本的草稿</button>
+</section>
+<div id="message" role="status" aria-live="polite">操作结果会显示在这里。</div>
+<div class="panels">
+<section class="card"><p class="eyebrow">写作建议</p><h2>模型接口演示</h2><p class="muted">演示程序给出建议，采用后还需提交新版本。</p><input id="instruction" aria-label="修改建议要求" value="把本段写得更清楚，不增加承诺" maxlength="1000"><button id="suggest">生成演示建议</button><p id="suggestion" class="suggestion">尚无建议</p><button id="apply-suggestion">放入编辑框</button></section>
+<section class="card"><p class="eyebrow">输出文件</p><h2>检查与Word</h2><p class="muted">此处只检查空正文和待补内容，完整业务检查后续接入。</p><button id="check">检查已提交版本</button><p id="check-result">尚未检查</p><button id="export" class="primary">下载Word</button><p class="muted">正文改动后，需要先提交，再重新检查。</p></section>
+</div>
+<section class="card history"><div class="history-title"><h2>版本与操作记录</h2><button id="refresh">刷新记录</button></div><div class="history-columns"><div><h3>已提交版本</h3><ul id="versions"><li>尚无记录</li></ul></div><div><h3>后台操作记录</h3><ul id="audit"><li>尚无记录</li></ul></div></div></section>
+</section>
+</main>
+</body></html>

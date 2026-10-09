@@ -1,3 +1,5 @@
+// 本文件验证项目记录检查器能发现记录冲突，同时不会误检查依赖包和缓存。
+// 它使用临时样本仓库，避免测试改动实际的项目记录。
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
@@ -150,6 +152,17 @@ test('关键文档缺失时报告 missingdocument', t => {
   fs.unlinkSync(absolute);
   const result = checkProjectGovernance(project.root);
   assert.ok(result.errors.some(error => error.code === 'missingdocument' && error.file === 'docs/PROJECT_STATUS.md'));
+});
+
+test('Python依赖与缓存不进入项目文档检查', t => {
+  const project = fixture(t);
+  const before = checkProjectGovernance(project.root);
+  for (const directory of ['.venv/Lib/site-packages/vendor', '.pytest_cache', '__pycache__']) {
+    project.write(`${directory}/README.md`, '[依赖包自己的链接](missing-vendor.md)');
+  }
+  const after = checkProjectGovernance(project.root);
+  assert.equal(after.checkedFiles, before.checkedFiles);
+  assert.deepEqual(after.errors, []);
 });
 
 test('工作区历史来源与排除的客户目录不套用活动文档规则，活动链接仍检查', t => {

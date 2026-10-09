@@ -1,3 +1,7 @@
+为什么有这个文件：解释仓库目录怎样安排，以及何时新增实际工程目录。
+
+它解决什么问题：避免同一种内容散落多处，或建立没有实现的空服务。
+
 # 仓库目录与渐进迁移方案
 
 日期：2026-10-09。状态：本轮目录整理方案；后续代码布局供评审。
@@ -193,6 +197,31 @@ if-children-have-been-grown/
 
 ## 整个本地工作区纳入同一历史
 
-Git根从原 `X:\ICG CO\if-children-have-been-grown` 提升到 `X:\ICG CO`，原有根文件与docs/prototypes等相对路径不变；Git提交历史与分支不变。`ICG/`的34份来源材料保持原目录及内容，登记 [来源清单](../source/WORKSPACE_MATERIALS.md)。两个合同原件根由用户明确排除，原子资料留本地；令牌和运行状态在工作区外。
+Git根从原 `X:\ICG CO\if-children-have-been-grown` 提升到 `X:\ICG CO`，原有根文件与docs/prototypes等相对路径不变；Git提交历史与分支不变。`ICG/`的34份来源材料保持原目录及内容，登记 [来源清单](../source/WORKSPACE_MATERIALS.md)。两个合同原件根由用户明确排除，原件资料留本地；令牌和运行状态在工作区外。
 
 本轮实际增加tools/workspace-sync、业务/技术审查、brief、OPS/REV任务与运行说明。后续目标树仍是方案，不创建空应用/服务目录。持续同步与人工任务验收关系见 [工作流](../governance/WORKFLOW.md) §7。
+
+## 2026-10-10实际后端骨架
+
+以下目录已包含可运行代码；上面的目标方案和10月9日快照继续保留为当时记录。
+
+```text
+backend/bid-core/
+  Start-Demo.ps1             Windows安装与启动
+  requirements.txt           已验证的依赖版本
+  export_openapi.py          从实际接口生成约定
+  smoke_demo.py              真实HTTP流程验收
+  icg_demo/
+    main.py                 请求、权限入口和统一错误
+    schemas.py              请求及响应的数据字段
+    domain.py               编辑权、草稿、版本、检查和输出规则
+    ports.py                数据库和模型的替换接口
+    adapters.py             内存仓库、演示模型及Word生成
+    static/                 连接实际后台的简单操作页面
+spec/openapi/               已生成的前后端接口约定
+tests/backend/              后台成功及失败场景验证
+```
+
+先使用一个模块化业务核心。模型接口负责返回建议；数据库接口负责读取和一次性完成整组写入，后续接真实服务时保留业务规则。简单页面与后台由同一个本地服务提供，减少demo的安装步骤。
+
+当前仅限单进程演示：编辑权和数据在内存中，重启清空；接生产数据库、多实例、真实模型和解析器前继续核对接口与部署要求。具体结论见[后端准备核对](backend-demo-readiness.md)，交付见[BE-M0-T01](../delivery/BE-M0-T01.md)。

@@ -1,14 +1,18 @@
+为什么有这个文件：说明前端各部分怎样配合、怎样读取和保存数据。
+
+它解决什么问题：避免模块连接后出现数据不一致或互相覆盖。
+
 # 智能投标系统前端架构说明
 
 <!-- governance-baseline:start -->
 | 项目 | 当前值 |
 |---|---|
 | 治理版本 | g1.1 |
-| 更新日期 | 2026-10-09 |
-| 关联 Issue | ISSUE-004 |
+| 更新日期 | 2026-10-10 |
+| 关联 Issue | ISSUE-006 |
 <!-- governance-baseline:end -->
 
-治理修订：增加单一工作区的云端快照与接手审查；业务技术栈、状态及接口尚未冻结，本轮未新增运行时业务服务。[同步记录](governance/ISSUE-004-sync.md)。
+当前实现：本地demo采用Python/FastAPI业务核心、独立数据库与模型接口，详情见 [开发准备核对](architecture/backend-demo-readiness.md) 和 [运行说明](../backend/bid-core/README.md)。生产数据库、模型与部署仍待评审；此处演示实现不替代正式一期设计。
 
 ## 工程治理结构（ISSUE-003）
 

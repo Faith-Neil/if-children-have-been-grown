@@ -1,14 +1,18 @@
+为什么有这个文件：说明投标系统前端需要帮助用户完成哪些事情。
+
+它解决什么问题：避免页面各自设计，做出的功能与实际投标流程不一致。
+
 # 智能投标系统前端 PRD
 
 <!-- governance-baseline:start -->
 | 项目 | 当前值 |
 |---|---|
 | 治理版本 | g1.1 |
-| 更新日期 | 2026-10-09 |
-| 关联 Issue | ISSUE-004 |
+| 更新日期 | 2026-10-10 |
+| 关联 Issue | ISSUE-006 |
 <!-- governance-baseline:end -->
 
-治理修订：增加工作区云端同步与接手审查；业务正文与产品版本不变。历史记录见 [ISSUE-003](governance/ISSUE-003-sync.md)，本轮见 [ISSUE-004](governance/ISSUE-004-sync.md)。
+当前实现：[ISSUE-006](../issues/ISSUE-006.md)推进本地后端demo，模型和数据库采用可替换演示实现。用户已确认一期技术、商务两册；其他完整一期要求按 [ISSUE-005](../issues/ISSUE-005.md)继续评审。历史维护记录见 [ISSUE-003](governance/ISSUE-003-sync.md)、[ISSUE-004](governance/ISSUE-004-sync.md)。
 
 > 本文档为前端产品需求说明，基于《智能投标系统 第一期（MVP）PRD v1.4》与《企业投标资料库数据字典 v1.5》整理，并补充前端信息架构、交互和页面级要求。
 

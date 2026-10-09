@@ -1,12 +1,16 @@
+为什么有这个文件：集中显示每个任务的状态、依赖和交付入口。
+
+它解决什么问题：帮助判断现在能做什么、卡在哪里、完成后有什么证据。
+
 # 项目任务看板
 
-任务版本：0.2；治理版本：g1.1；更新日期：2026-10-09；本轮治理 Issue：[ISSUE-004](../issues/ISSUE-004.md)。
+任务版本：0.2；治理版本：g1.1；更新日期：2026-10-10；当前实现 Issue：[ISSUE-006](../issues/ISSUE-006.md)；范围评审：[ISSUE-005](../issues/ISSUE-005.md)。
 
 将 [前端 ROADMAP](ROADMAP.md) 的 Phase 0～8 与发布 Milestone 1～5 拆为 **59 张任务卡**，由 FE-M0～FE-M8 管理。前缀 FE 表示前端合作交付；这些编号与参考全系统 M0～M8 的门禁、周期和范围独立。
 
-项目61项中 **done 4、in-progress 0、planned 9、blocked 48、ready 0**。其中FE59项仍为2done；OPS工作区同步和REV接手审查各1done，已通过本地验收，PR #3待合入。正式前端、真实 API 与生产功能尚未实现，治理/运维/审查完成不代表产品完成率。
+项目62项中 **done 5、in-progress 1、planned 8、blocked 48、ready 0**。在原61项基础上新增1项真实后端demo任务BE-M0-T01并已本地验收；FE-M0-T03正在范围评审准备。FE59项仍为2done，OPS/REV/BE各1done；PR #3待合入。正式一期与生产功能尚未验收，任务数不代表产品完成率。
 
-全部卡片估算合计 209 小时，单卡 2～4 小时，处于 0.5～4 小时的任务粒度目标内。该总和是已有基线/接口条件下的前端增量估算，不是项目排期，不含后端、模型、取得输入、评审或等待时间。开工若预计超 4 小时，先继续拆卡并登记 Issue/版本变更，保留原任务 ID 的历史。
+59张前端卡片估算合计 209 小时，单卡 2～4 小时，处于 0.5～4 小时的任务粒度目标内。该总和是已有基线/接口条件下的前端增量估算，不是项目排期，不含后端、模型、取得输入、评审或等待时间。开工若预计超 4 小时，先继续拆卡并登记 Issue/版本变更，保留原任务 ID 的历史。
 
 ## 状态与完成条件
 
@@ -41,6 +45,7 @@
 | [FE-M8 发布门禁](tasks/FE-M8.md) | ROADMAP §11 MVP Cut Line、§13 Gate A/B/C；贯穿发布 Milestone 1～5 | 3 | 0/3 | 发布验证覆盖一期必需任务；无需等待可选 FE-M6/FE-M7。 |
 | [OPS-M0 工作区运维](tasks/OPS-M0.md) | ISSUE-004工作区同步；独立于业务MVP | 1 | 1/1 | 真实双向同步与持续运行验收完成。 |
 | [REV-M0 接手审查](tasks/REV-M0.md) | ISSUE-004目录与业务/技术审查 | 1 | 1/1 | 审查/brief交付完成，设计决定留ISSUE-005。 |
+| [BE-M0 后端链路](tasks/BE-M0.md) | ISSUE-006本地后端demo | 1 | 1/1 | 核心后台流程已本地验收，模型/数据库保留接口。 |
 
 发布 Milestone 1～5 分别映射 FE-M1～FE-M5；FE-M0 为共用基础，FE-M6/FE-M7 为原 Phase 7/8 的可选增强，FE-M8 为贯穿原 Gate A/B/C 的发布验收。
 
@@ -53,7 +58,7 @@
 |---|---|---|---|---|---|
 | [FE-M0-T01](tasks/FE-M0.md#fe-m0-t01) | 仓库整理与原型编辑锁修复 | done | — | [ISSUE-002](../issues/ISSUE-002.md) | [交付](delivery/FE-M0-T01.md) |
 | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | 任务治理与交付闭环 | done | [FE-M0-T01](tasks/FE-M0.md#fe-m0-t01) | [ISSUE-003](../issues/ISSUE-003.md) | [交付](delivery/FE-M0-T02.md) |
-| [FE-M0-T03](tasks/FE-M0.md#fe-m0-t03) | 评审系统与前端来源边界 | planned | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | [ISSUE-005](../issues/ISSUE-005.md) | `docs/delivery/FE-M0-T03.md` |
+| [FE-M0-T03](tasks/FE-M0.md#fe-m0-t03) | 评审系统与前端来源边界 | in-progress | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | [ISSUE-005](../issues/ISSUE-005.md) | `docs/delivery/FE-M0-T03.md` |
 | [FE-M0-T04](tasks/FE-M0.md#fe-m0-t04) | 确认选型与首批接口边界 | blocked | [FE-M0-T03](tasks/FE-M0.md#fe-m0-t03) | [ISSUE-005](../issues/ISSUE-005.md) | `docs/delivery/FE-M0-T04.md` |
 | [FE-M0-T05](tasks/FE-M0.md#fe-m0-t05) | 建立正式前端最小运行工程 | blocked | [FE-M0-T04](tasks/FE-M0.md#fe-m0-t04) | — | `docs/delivery/FE-M0-T05.md` |
 | [FE-M0-T06](tasks/FE-M0.md#fe-m0-t06) | 登录与权限导航最小接入 | blocked | [FE-M0-T05](tasks/FE-M0.md#fe-m0-t05)、[FE-M0-T04](tasks/FE-M0.md#fe-m0-t04) | — | `docs/delivery/FE-M0-T06.md` |
@@ -112,6 +117,7 @@
 | [FE-M8-T03](tasks/FE-M8.md#fe-m8-t03) | 版本发布与交付资料封版 | blocked | [FE-M8-T01](tasks/FE-M8.md#fe-m8-t01)、[FE-M8-T02](tasks/FE-M8.md#fe-m8-t02)、[FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | — | `docs/delivery/FE-M8-T03.md` |
 | [OPS-M0-T01](tasks/OPS-M0.md#ops-m0-t01) | 全工作区云端同步 | done | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | [ISSUE-004](../issues/ISSUE-004.md) | [交付](delivery/OPS-M0-T01.md) |
 | [REV-M0-T01](tasks/REV-M0.md#rev-m0-t01) | 目录、业务与技术审查及brief | done | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | [ISSUE-004](../issues/ISSUE-004.md) | [交付](delivery/REV-M0-T01.md) |
+| [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | 后端开发准备与本地demo | done | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | [ISSUE-006](../issues/ISSUE-006.md) | [交付](delivery/BE-M0-T01.md) |
 <!-- task-board:end -->
 
 ## 每次推进的同步顺序
