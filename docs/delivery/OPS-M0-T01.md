@@ -5,11 +5,11 @@
 |---|---|
 | 任务ID | OPS-M0-T01 |
 | 代码解释 | [同步入口、状态与边界](../code/OPS-M0-T01.md) |
-| 验收 | 单一Git根与合同排除已验证；同步工具回归和真实运行收尾验证中 |
-| 项目进度 | FE59项中2done；新增OPS/REV两项，项目61项，本任务当前in-progress |
+| 验收 | 单一Git根、34/34来源指纹、合同排除、10项同步及11项治理回归、真实GitHub双向/删除/停启通过 |
+| 项目进度 | 项目61项中4done、9planned、48blocked；FE59项仍2done，本任务本地done |
 <!-- task-delivery:end -->
 
-日期：2026-10-09。关联：[ISSUE-004](../../issues/ISSUE-004.md)、[任务](../tasks/OPS-M0.md#ops-m0-t01)、[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)。本地验收尚待真实服务运行验证，未合入/未发布。
+日期：2026-10-09。关联：[ISSUE-004](../../issues/ISSUE-004.md)、[任务](../tasks/OPS-M0.md#ops-m0-t01)、[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)。本地验收通过；隐藏同步进程与登录自动启动配置完成，未合入/未发布。
 
 ## 已落实内容
 
@@ -21,7 +21,7 @@
 
 ## 实际验证与未完成项
 
-运行结果在 [验证记录](../testing/2026-10-09-workspace-sync.md)持续收尾。真实GitHub推送、远端更新获取与隐藏持续进程尚待最终验证；验证通过后才标done。
+运行结果见 [验证记录](../testing/2026-10-09-workspace-sync.md)：67cb162由工具真实推送；9bd036a为本地保存后的自动快照；云端92b4813自动快进到本地；ce6e6d7自动同步删除验证探针。探针已清理，源码和状态分支一致。stop请求已验证进程有序退出、单实例锁释放，手工交付后恢复运行；登录启动项CodexICGWorkspaceSync已设置。
 
 ## 解释与后续
 

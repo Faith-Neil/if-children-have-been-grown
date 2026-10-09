@@ -46,11 +46,11 @@
 | D-038 | 2026-10-09 | [ISSUE-002](../issues/ISSUE-002.md) | Bug | 首轮修复 | 本地验收关闭 | FE-M0-T01 | 锁定后的AI写入保护 |
 | D-039 | 2026-10-09 | [ISSUE-003](../issues/ISSUE-003.md) | 工作流 | g1.0 | 本地验收关闭 | FE-M0-T02 | 用户本轮四项治理要求 |
 | D-040 | 2026-10-09 | [维护约定](../AGENTS.md) | 协作规则 | g1.1 | 当前 | ISSUE-004 | 合作开发每次开工与收尾的入口 |
-| D-041 | 2026-10-09 | [检查程序](../scripts/check-project-governance.cjs) | 工程代码 | g1.1 | 当前 | FE-M0-T02 | 无依赖结构一致性检查 |
-| D-042 | 2026-10-09 | [检查程序回归](../tests/governance/check-project-governance.test.cjs) | 验证代码 | g1.1 | 当前 | FE-M0-T02 | 缺交付、错版本、坏链接等失败覆盖 |
+| D-041 | 2026-10-09 | [检查程序](../scripts/check-project-governance.cjs) | 工程代码 | g1.1 | 当前 | FE-M0-T02 / OPS-M0-T01 | 活动记录及历史来源边界检查 |
+| D-042 | 2026-10-09 | [检查程序回归](../tests/governance/check-project-governance.test.cjs) | 验证代码 | g1.1 | 当前 | FE-M0-T02 / OPS-M0-T01 | 11项失败/工作区边界回归 |
 | D-043 | 2026-10-09 | [Cursor协作规则](../.cursor/rules/project-governance.mdc) | 合作执行 | g1.1 | 当前 | ISSUE-004 / OPS / REV | 对合作开发端始终启用同一流程，不复制异项目模板 |
 
-| D-044 | 2026-10-09 | [ISSUE-004](../issues/ISSUE-004.md) | 工作流 | g1.1 | 收尾中 | OPS-M0-T01 / REV-M0-T01 | 用户全工作区范围、合同排除、接手审查 |
+| D-044 | 2026-10-09 | [ISSUE-004](../issues/ISSUE-004.md) | 工作流 | g1.1 | 已本地验收 | OPS-M0-T01 / REV-M0-T01 | 用户全工作区范围、合同排除、接手审查 |
 | D-045 | 2026-10-09 | [OPS任务](tasks/OPS-M0.md) | 运维 | g1.1 | 当前 | ISSUE-004 | 工作区同步与实际运行验收 |
 | D-046 | 2026-10-09 | [REV任务](tasks/REV-M0.md) | 审查 | g1.1 | 当前 | ISSUE-004 | 目录/业务/技术与brief交付 |
 | D-047 | 2026-10-09 | [业务审查](reviews/2026-10-09-business-readiness.md) | 业务 | review-1 | 待决定 | REV-M0-T01 / ISSUE-005 | 场景矩阵与12项设计/验收发现 |
@@ -62,10 +62,10 @@
 | D-053 | 2026-10-09 | [加密凭据启动器](../tools/workspace-sync/Start-WorkspaceSync.ps1) | 工程代码 | sync-1 | 语法通过 | OPS-M0-T01 | Windows用户DPAPI与子进程临时令牌 |
 | D-054 | 2026-10-09 | [配置示例](../tools/workspace-sync/config.example.json) | 配置 | sync-1 | 示例 | OPS-M0-T01 | 无凭据；实际配置在工作区外 |
 | D-055 | 2026-10-09 | [同步回归](../tests/workspace-sync/sync.test.cjs) | 验证代码 | sync-1 | 10项通过 | OPS-M0-T01 | 真实bare remote与保护边界 |
-| D-056 | 2026-10-09 | [OPS交付](delivery/OPS-M0-T01.md) | 交付 | g1.1 | 收尾中 | ISSUE-004 / OPS-M0-T01 | 工作区迁移、工具与实际启用 |
+| D-056 | 2026-10-09 | [OPS交付](delivery/OPS-M0-T01.md) | 交付 | g1.1 | 已本地验收 | ISSUE-004 / OPS-M0-T01 | 工作区迁移、工具与实际启用 |
 | D-057 | 2026-10-09 | [OPS代码解释](code/OPS-M0-T01.md) | 代码 | sync-1 | 当前 | OPS-M0-T01 | 入口、状态、认证及限制 |
-| D-058 | 2026-10-09 | [REV交付](delivery/REV-M0-T01.md) | 交付 | review-1 | 收尾中 | ISSUE-004 / REV-M0-T01 | 审查证据与文档逻辑 |
-| D-059 | 2026-10-09 | [本轮验证](testing/2026-10-09-workspace-sync.md) | 验证 | g1.1 | 收尾中 | OPS-M0-T01 / REV-M0-T01 | 回归、迁移与真实云端运行 |
+| D-058 | 2026-10-09 | [REV交付](delivery/REV-M0-T01.md) | 交付 | review-1 | 已本地验收 | ISSUE-004 / REV-M0-T01 | 审查证据与文档逻辑 |
+| D-059 | 2026-10-09 | [本轮验证](testing/2026-10-09-workspace-sync.md) | 验证 | g1.1 | 已本地验收 | OPS-M0-T01 / REV-M0-T01 | 回归、迁移与真实云端运行 |
 | D-060 | 2026-10-09 | [004同步表](governance/ISSUE-004-sync.md) | 治理 | g1.1 | 本轮记录 | ISSUE-004 | 六份基线及其他影响/不影响依据 |
 | D-061 | 2026-10-09 | [待决门禁](../issues/ISSUE-005.md) | 决策 | review-1 | blocked | FE-M0-T03 / FE-M0-T04 | DG-01～06不因审查完成自动解决 |
 | D-062 | 2026-10-09 | [工作区运行](operations/workspace-sync.md) | 运维 | sync-1 | 当前 | OPS-M0-T01 | 状态、启动、停止、登录与冲突 |

@@ -5,11 +5,11 @@
 |---|---|
 | 任务ID | REV-M0-T01 |
 | 代码解释 | 无运行时代码改动；本任务交付方案/证据/验收文档，解释见下文 |
-| 验收 | 业务12项发现、技术6类契约缺口与图片逐路径核对完成；链接与索引收尾复核中 |
-| 项目进度 | 新增独立审查任务；FE59项仍2done，当前审查完成材料待收尾，不等于发现已解决 |
+| 验收 | 业务12项发现、技术6类契约缺口、图片逐路径核对与brief完成；57份活动文档链接/索引/状态通过 |
+| 项目进度 | 本任务本地done；项目61项4done，FE59项仍2done；审查发现进入ISSUE-005，尚未解决 |
 <!-- task-delivery:end -->
 
-日期：2026-10-09。关联：[ISSUE-004](../../issues/ISSUE-004.md)、[任务](../tasks/REV-M0.md#rev-m0-t01)、[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)。未合入/未发布。
+日期：2026-10-09。关联：[ISSUE-004](../../issues/ISSUE-004.md)、[任务](../tasks/REV-M0.md#rev-m0-t01)、[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)。本地验收通过，未合入/未发布。
 
 ## 交付文件
 
