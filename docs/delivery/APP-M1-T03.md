@@ -45,5 +45,5 @@
 | ROADMAP | APP主流程先验证，T09～T11推进数值服务承诺，再按完整覆盖清单补齐；本卡不提前关闭 |
 | ARCHITECTURE | 同源页面、统一仓储与输入摘要保留；公司模板/项目值分开、派生事实及实际SLA接口对齐 |
 | Issue看板/详情 | ISSUE-007持续in-progress，本次数值链路和边界修复关联T09～T11 |
-| TASK_BOARD / PROJECT_STATUS | 原70项为历史阶段快照；本次73项、5done/10in-progress/10planned/48blocked，阶段产物与剩余能力分列 |
+| TASK_BOARD / PROJECT_STATUS | 原70项为历史阶段快照；本次73项、8done/7in-progress/10planned/48blocked，阶段产物与剩余能力分列 |
 | DOCUMENT_INDEX | 本次追加的交付、代码说明和验证由主交付同步登记；此前验收记录保留历史事实 |
