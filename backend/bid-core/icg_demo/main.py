@@ -14,7 +14,9 @@ from starlette.exceptions import HTTPException
 
 from .adapters import DemoModelProvider, MemoryRepository, build_docx
 from .domain import DemoService, DomainError, Principal
-from .ports import ModelProvider, Repository
+from .ports import ModelProvider, Repository, ParserProvider
+from .parsing import LocalTextParser
+from .workflow_routes import include_workflow_routes
 from .schemas import (AccountListResponse, AuditListResponse, ChapterListResponse,
                       ChapterResponse, CheckResponse, DraftRequest, DraftResponse,
                       EmptyRequest, ErrorResponse, ExportRequest, ExportResponse,
@@ -39,15 +41,18 @@ def error_responses(*statuses: int) -> dict:
 
 
 def create_app(repository: Repository | None = None, model_provider: ModelProvider | None = None,
-               clock: Callable[[], float | datetime] | None = None) -> FastAPI:
+               clock: Callable[[], float | datetime] | None = None,
+               parser_provider: ParserProvider | None = None) -> FastAPI:
     service = DemoService(repository if repository is not None else MemoryRepository(),
                           model_provider if model_provider is not None else DemoModelProvider(), clock)
-    application = FastAPI(title="ICG 本地后端演示", version="demo-1",
+    application = FastAPI(title="ICG 投标产品本地实现", version="reference-1",
                           docs_url=None, redoc_url=None,
                           responses=error_responses(422, 500))
     application.state.service = service
     static_directory = Path(__file__).resolve().parent / "static"
     application.mount("/static", StaticFiles(directory=static_directory, check_dir=False), name="static")
+    product_directory = Path(__file__).resolve().parents[3] / "frontend" / "web" / "dist"
+    application.mount("/assets", StaticFiles(directory=product_directory / "assets", check_dir=False), name="product-assets")
 
     @application.middleware("http")
     async def request_identity(request: Request, call_next):
@@ -58,16 +63,20 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
         return response
 
     def error_response(request: Request, status: int, code: str, message: str,
-                       headers: dict | None = None):
+                       headers: dict | None = None, details: dict | None = None):
         request_id = getattr(request.state, "request_id", uuid4().hex)
+        content = ({"code": code, "message": message, "details": details or {}, "traceId": request_id}
+                   if request.url.path.startswith("/api/v1/")
+                   else {"error": {"code": code, "message": message}, "request_id": request_id})
         return JSONResponse(status_code=status,
-                            content={"error": {"code": code, "message": message}, "request_id": request_id},
+                            content=content,
                             headers={"X-Request-ID": request_id, "Cache-Control": "no-store", **(headers or {})})
 
     @application.exception_handler(DomainError)
     async def business_error(request: Request, error: DomainError):
         return error_response(request, error.status, error.code, error.message,
-                              {"WWW-Authenticate": "Bearer"} if error.status == 401 else None)
+                              {"WWW-Authenticate": "Bearer"} if error.status == 401 else None,
+                              error.details)
 
     @application.exception_handler(RequestValidationError)
     async def invalid_request(request: Request, error: RequestValidationError):
@@ -103,10 +112,15 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
                      responses={**error_responses(404), 200: {"description": "本地操作页面",
                                 "content": {"text/html": {"schema": {"type": "string"}}}}})
     def index():
-        path = static_directory / "index.html"
+        path = product_directory / "index.html"
         if not path.is_file():
-            raise DomainError(404, "UI_NOT_READY", "本地操作页面尚未准备完成。")
+            raise DomainError(503, "UI_NOT_READY", "产品页面尚未构建，请按前端运行说明先构建页面。")
         return FileResponse(path)
+
+    @application.get("/demo", response_class=FileResponse, include_in_schema=False)
+    def developer_demo():
+        # 原后台验证页保留作开发工具，产品主入口使用同一后台的 ICG 页面。
+        return FileResponse(static_directory / "index.html")
 
     @application.get("/api/demo/accounts", response_model=AccountListResponse)
     def accounts():
@@ -199,6 +213,8 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
                         media_type=DOCX_MEDIA_TYPE,
                         headers={"Content-Disposition": f'attachment; filename="{record.filename}"'})
 
+    include_workflow_routes(application, service, current_user,
+                            parser_provider if parser_provider is not None else LocalTextParser())
     return application
 
 

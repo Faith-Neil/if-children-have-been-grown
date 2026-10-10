@@ -4,11 +4,11 @@
 
 # 项目任务看板
 
-任务版本：0.2；治理版本：g1.1；更新日期：2026-10-10；当前实现 Issue：[ISSUE-006](../issues/ISSUE-006.md)；范围评审：[ISSUE-005](../issues/ISSUE-005.md)。
+任务版本：0.3；治理版本：g1.1；更新日期：2026-10-10；当前实现 Issue：[ISSUE-007](../issues/ISSUE-007.md)；生产门禁：[ISSUE-005](../issues/ISSUE-005.md)。
 
 将 [前端 ROADMAP](ROADMAP.md) 的 Phase 0～8 与发布 Milestone 1～5 拆为 **59 张任务卡**，由 FE-M0～FE-M8 管理。前缀 FE 表示前端合作交付；这些编号与参考全系统 M0～M8 的门禁、周期和范围独立。
 
-项目62项中 **done 5、in-progress 1、planned 8、blocked 48、ready 0**。在原61项基础上新增1项真实后端demo任务BE-M0-T01并已本地验收；FE-M0-T03正在范围评审准备。FE59项仍为2done，OPS/REV/BE各1done；PR #3待合入。正式一期与生产功能尚未验收，任务数不代表产品完成率。
+项目70项中 **done 5、in-progress 7、planned 10、blocked 48、ready 0**。新增APP-M1的8项产品联调任务，前5项正在实现，第6项正在验收，后2项分别后续拆分和完整审计；FE-M0-T03继续来源评审。旧FE59项保留为历史计划，OPS/REV/BE各1项已本地验收；PR #3待合入。以ICG页面/业务为实际目标，旧任务数量和小demo不代表产品完成率。
 
 59张前端卡片估算合计 209 小时，单卡 2～4 小时，处于 0.5～4 小时的任务粒度目标内。该总和是已有基线/接口条件下的前端增量估算，不是项目排期，不含后端、模型、取得输入、评审或等待时间。开工若预计超 4 小时，先继续拆卡并登记 Issue/版本变更，保留原任务 ID 的历史。
 
@@ -46,6 +46,7 @@
 | [OPS-M0 工作区运维](tasks/OPS-M0.md) | ISSUE-004工作区同步；独立于业务MVP | 1 | 1/1 | 真实双向同步与持续运行验收完成。 |
 | [REV-M0 接手审查](tasks/REV-M0.md) | ISSUE-004目录与业务/技术审查 | 1 | 1/1 | 审查/brief交付完成，设计决定留ISSUE-005。 |
 | [BE-M0 后端链路](tasks/BE-M0.md) | ISSUE-006本地后端demo | 1 | 1/1 | 核心后台流程已本地验收，模型/数据库保留接口。 |
+| [APP-M1 示例实现](tasks/APP-M1.md) | ISSUE-007示例与后台联调 | 8 | 0/8 | 核心页面/接口并行，真实流程验证后再逐项验收；完整目标继续推进。 |
 
 发布 Milestone 1～5 分别映射 FE-M1～FE-M5；FE-M0 为共用基础，FE-M6/FE-M7 为原 Phase 7/8 的可选增强，FE-M8 为贯穿原 Gate A/B/C 的发布验收。
 
@@ -118,6 +119,14 @@
 | [OPS-M0-T01](tasks/OPS-M0.md#ops-m0-t01) | 全工作区云端同步 | done | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | [ISSUE-004](../issues/ISSUE-004.md) | [交付](delivery/OPS-M0-T01.md) |
 | [REV-M0-T01](tasks/REV-M0.md#rev-m0-t01) | 目录、业务与技术审查及brief | done | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | [ISSUE-004](../issues/ISSUE-004.md) | [交付](delivery/REV-M0-T01.md) |
 | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | 后端开发准备与本地demo | done | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | [ISSUE-006](../issues/ISSUE-006.md) | [交付](delivery/BE-M0-T01.md) |
+| [APP-M1-T01](tasks/APP-M1.md#app-m1-t01) | 示例外壳与项目工作台 | in-progress | BE-M0-T01 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T01.md` |
+| [APP-M1-T02](tasks/APP-M1.md#app-m1-t02) | 上传解析与确认 | in-progress | APP-M1-T01工作区接口 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T02.md` |
+| [APP-M1-T03](tasks/APP-M1.md#app-m1-t03) | 矩阵事实与证据 | in-progress | APP-M1-T02条款结构 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T03.md` |
+| [APP-M1-T04](tasks/APP-M1.md#app-m1-t04) | 大纲章节与示例编辑台 | in-progress | APP-M1-T03映射接口 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T04.md` |
+| [APP-M1-T05](tasks/APP-M1.md#app-m1-t05) | 检查与两册输出 | in-progress | APP-M1-T03/04数据结构 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T05.md` |
+| [APP-M1-T06](tasks/APP-M1.md#app-m1-t06) | 核心流程端到端验收 | in-progress | APP-M1-T01～05 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T06.md` |
+| [APP-M1-T07](tasks/APP-M1.md#app-m1-t07) | 其他页面和完整规则拆分 | planned | 核心结构验证 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T07.md` |
+| [APP-M1-T08](tasks/APP-M1.md#app-m1-t08) | 完整示例交付审计 | planned | 核心与后续任务完成 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T08.md` |
 <!-- task-board:end -->
 
 ## 每次推进的同步顺序
@@ -129,4 +138,4 @@
 5. 更新 Issue、任务卡和本看板状态、PROJECT_STATUS 进度，最后登记 DOCUMENT_INDEX；检查链接/状态一致后转 done。
 6. 把本地验收、合入、发布分别记录；功能只有真实接口联调通过才计生产完成。
 
-下一步：FE-M0-T02 完成治理验收后，先推进 FE-M0-T03 来源边界评审。FE-M0-T04 取得技术/设计输入与首批接口后，才解除正式工程和生产任务的基线阻塞。
+当前优先：APP-M1按ICG示例实施和联调，来源差异同步核对；模型/数据库保留接口不阻止本地产品流程开发。生产门禁继续验证，不能用主链路内部稿替代完整交付。

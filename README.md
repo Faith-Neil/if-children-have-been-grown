@@ -4,7 +4,9 @@
 
 # if-children-have-been-grown
 
-投标文档智能撰写项目的合作工作区。已有前端实施文档、可交互静态原型，以及能保存草稿、提交版本、检查和下载Word的本地后端demo。模型与数据库预留替换接口，当前使用演示实现；真实模型、持久数据库、招标文档解析与完整一期交付仍待实施。Git根为本地 `X:\ICG CO`，GitHub私有仓库保存协作分支的云端版本。
+投标文档智能撰写项目的合作工作区。当前目标是先按 `ICG/` 给出的布局和操作流程实现完整产品，再逐项修改不合理的设计。浏览器页面与后端是同一产品的两个部分：页面让人操作，后端负责保存业务状态、核对权限和编辑权、执行检查并生成文件。
+
+目前已经接通“项目 → 上传招标文件 → 解析并人工确认 → 响应矩阵与证据 → 技术/商务章节编辑 → 流程检查 → 两册 Word 内部稿”。这条流程已完成一轮真实页面操作，仍有大量示例功能待补齐，不能视为完整一期已交付。数据库和模型保留替换接口，当前使用内存存储和模型替身。Git根为本地 `X:\ICG CO`，GitHub私有仓库保存协作分支的云端版本。
 
 从 [文档索引](docs/DOCUMENT_INDEX.md)、[任务看板](docs/TASK_BOARD.md) 和 [项目状态](docs/PROJECT_STATUS.md) 开始阅读。[协作流程](docs/governance/WORKFLOW.md)规定 Issue、任务验收、逐任务交付、代码解释和文档同步。[目录重构方案](docs/architecture/repository-layout.md)说明当前骨架、目标骨架与迁移顺序。
 
@@ -14,23 +16,25 @@
 
 | 路径 | 用途 |
 |---|---|
-| [docs/PRD.md](docs/PRD.md) | 现有前端产品需求，依据旧产品版本，保留为实施视图 |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 现有前端模块、状态、编辑器与权限设计 |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | 前端分阶段路线图；不等同于全系统排期 |
+| [docs/PRD.md](docs/PRD.md) | 当前实施入口；ICG完整目标与旧需求视图保留来源 |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 当前页面与后台边界、共用状态及旧架构视图 |
+| [docs/ROADMAP.md](docs/ROADMAP.md) | 先贯通主流程，再逐页补齐ICG目标的执行入口 |
 | [docs/design/ux.md](docs/design/ux.md) | UX 规范；原路径为 `ui/ux.md` |
 | [docs/reference/product/](docs/reference/product/) | 已脱敏 PRD v1.8、字典 v1.9，供评审与差异核对 |
 | [docs/decisions/baseline-gaps.md](docs/decisions/baseline-gaps.md) | 版本差异、缺件与技术决策状态 |
 | [docs/reviews/pr-1-integration.md](docs/reviews/pr-1-integration.md) | `main` 与 `xqr` 的文档整合评审 |
 | [prototypes/bidding-ux/](prototypes/bidding-ux/) | 工作台、项目概览、响应矩阵、章节编辑静态原型 |
-| [backend/bid-core/](backend/bid-core/README.md) | 可运行业务后台与简单页面；合成账号、内存数据、模型演示实现 |
+| [frontend/web/](frontend/web/README.md) | 按ICG资料重建的产品页面；React负责页面显示和操作 |
+| [backend/bid-core/](backend/bid-core/README.md) | 同一产品的Python业务后台；提供页面、接口、真实文字提取和内部稿输出 |
 | [spec/openapi/](spec/openapi/README.md) | 从实际代码生成的前后端接口约定 |
+| [docs/testing/icg-coverage.md](docs/testing/icg-coverage.md) | 完整示例的页面、能力和规则覆盖情况，保留未完成项 |
 | [issues/index.md](issues/index.md) | 本地问题跟踪 |
 
-产品参考文档、前端实施文档、原型和系统选型提案属于不同层级。当前实施文档尚未与新参考版本完整对齐，详见差异清单。`ICG/`的34份历史项目资料原样纳入并登记到 [来源清单](docs/source/WORKSPACE_MATERIALS.md)；用户明确排除的两个银行合同目录仅留本地，不进入Git版本管理。
+产品参考文档、前端实施文档、原型和系统选型提案属于不同层级。实施目标以ICG产品资料和设计交接为依据，具体版本与缺件见 [差异记录](docs/decisions/icg-reference-deviations.md)。现有ICG入口引用的一部分HTML、资源和设计版本尚缺，不能把目录页当成完整前端源码包。`ICG/`的34份历史项目资料原样纳入并登记到 [来源清单](docs/source/WORKSPACE_MATERIALS.md)；用户明确排除的两个银行合同目录仅留本地，不进入Git版本管理。
 
-工作区同步工具见 [运行说明](docs/operations/workspace-sync.md)：稳定10秒后的本地变化自动保存到协作分支，远端更新在可快进时获取，分叉或人工暂存时暂停。自动WIP提交不表示任务验收、PR合入或产品发布。
+工作区同步工具见 [运行说明](docs/operations/workspace-sync.md)：启用时，稳定10秒后的本地项目变化自动保存到协作分支，远端更新在可快进时获取，分叉或人工暂存时暂停。人工提交和整合前先停止同步，实际运行状态以工作区外的状态记录为准。自动WIP提交不表示任务验收、PR合入或产品发布。
 
-## 启动后端demo
+## 启动当前产品
 
 在仓库根目录使用PowerShell运行：
 
@@ -38,9 +42,13 @@
 & .\backend\bid-core\Start-Demo.ps1 -Install
 ```
 
-安装后再次启动可省略`-Install`。打开`http://127.0.0.1:8710`，选择演示账号登录，进入技术或商务章节，取得编辑权后编辑、保存草稿、提交版本，再检查并下载Word。
+首次安装需要Python、Node.js和pnpm。启动器安装后台依赖、构建 `frontend/web` 页面，再启动本机服务。安装后再次启动可省略`-Install`。打开 [本机产品页面](http://127.0.0.1:8710/)，选择合成演示账号登录，新建项目并按页面流程操作。
 
-演示的后台处理真实请求；数据只保存在当前进程，重启清空，Word为单章内部演示稿。完整能力、接口和替换方法见 [运行说明](backend/bid-core/README.md)，实际交付见 [BE-M0-T01](docs/delivery/BE-M0-T01.md)。
+后台提供根页面 `/` 和构建资源 `/assets`，产品页面调用同一个服务的接口。`/api/v1` 处理上传、解析确认、矩阵、项目事实、检查和两册输出；既有 `/api` 处理登录、项目和章节编辑权、草稿、版本。它们共用一份业务存储。旧的简单后台验证页保留在 `/demo`，原静态原型仍可离线打开。
+
+当前可读取UTF-8文本、DOCX和含文字的PDF，扫描PDF需要后续接入文字识别。提取结果必须由人核对，DOCX位置按明确分页符记录，并非最终印刷页码。数据只保存在当前进程，重启清空。
+
+技术、商务两个Word内部稿已经通过真实页面下载并核对文件包及各册正文。Word页面渲染尚未成功，排版、目录、附件和正式定稿尚未验收；完整规则尚未实现，正式递交版会被后台拒绝。其余页面、结构化编辑、完整业务检查和生产登录均未完成。实际边界见 [运行说明](backend/bid-core/README.md)、[ISSUE-007](issues/ISSUE-007.md) 与 [覆盖清单](docs/testing/icg-coverage.md)。
 
 ## 打开静态原型
 
@@ -56,7 +64,7 @@ python -m http.server 8080 --directory prototypes/bidding-ux
 
 需求变更、版本更新、Bug 修复先登记 Issue，再关联任务推进。每个任务完成后提交 `docs/delivery/<TASK_ID>.md`，写验收、代码解释和进度；有代码修改时维护 `docs/code/<TASK_ID>.md`。PRD、ROADMAP、ARCHITECTURE、Issue看板、项目进度及DOCUMENT_INDEX同步检查，规则见 [工作流](docs/governance/WORKFLOW.md)。
 
-修改前阅读 [AGENTS.md](AGENTS.md)，按实际实现更新文档索引、问题和交付记录。当前三个 `docs/*.md` 入口暂时保留，以降低与合作分支的整合冲突。后端已从一个业务核心开始；正式前端与其他服务按实际需要建立。
+修改前阅读 [AGENTS.md](AGENTS.md)，按实际实现更新文档索引、问题和交付记录。当前三个 `docs/*.md` 入口暂时保留，以降低与合作分支的整合冲突。前端和业务后台已经建立，后续继续在同一产品内实现示例，不先建立没有实现的独立服务。
 
 协作记录一致性检查：
 
@@ -65,11 +73,15 @@ node scripts/check-project-governance.cjs
 node --test tests/governance/*.test.cjs
 ```
 
-后台验证（先安装demo依赖）：
+后台、旧验证页及前端日期处理验证（先安装依赖）：
 
 ```powershell
 & .\.venv\Scripts\python.exe -m pytest tests/backend -q
+node --test tests/backend/demo-page.test.cjs
+node --test tests/frontend/project-form.test.mjs
 ```
+
+前端构建检查：`pnpm --dir frontend/web build`。最新结果和局限以对应测试与交付记录为准，测试数量不代表完整产品覆盖率。
 
 编辑锁回归检查使用 Node.js，无第三方依赖：
 

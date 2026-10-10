@@ -9,14 +9,16 @@
 |---|---|
 | 治理版本 | g1.1 |
 | 更新日期 | 2026-10-10 |
-| 关联 Issue | ISSUE-006 |
+| 关联 Issue | ISSUE-007 |
 <!-- governance-baseline:end -->
 
-当前实现：[ISSUE-006](../issues/ISSUE-006.md)推进本地后端demo，模型和数据库采用可替换演示实现。用户已确认一期技术、商务两册；其他完整一期要求按 [ISSUE-005](../issues/ISSUE-005.md)继续评审。历史维护记录见 [ISSUE-003](governance/ISSUE-003-sync.md)、[ISSUE-004](governance/ISSUE-004-sync.md)。
+当前目标：以ICG示例布局、操作流程和交接清单为依据，按PRD v1.8/字典v1.9贯通项目→解析确认→矩阵→编辑→检查→技术/商务两册输出，再补其余页面。模型和数据库保留替换接口。旧正文是较早前端视图，不优先于ICG目标；实际范围见[实施约定](architecture/icg-reference-contract.md)，差异见[独立记录](decisions/icg-reference-deviations.md)。ISSUE-007推进产品，ISSUE-005继续生产门禁；不以小demo替代完整示例。
 
 > 本文档为前端产品需求说明，基于《智能投标系统 第一期（MVP）PRD v1.4》与《企业投标资料库数据字典 v1.5》整理，并补充前端信息架构、交互和页面级要求。
 
 ## 工程协作验收附录（ISSUE-003）
+
+本轮必要行为：失败/误传且无来源的上传可填写理由移除，已解析来源不得断开；旧草稿/历史正文需并排核对后恢复为个人草稿；资料实质变化重新核对；项目输入变化后候选必须重新生成。截止显示和有效期按北京时间核对。当前内部稿与正式递交版区分，未齐的完整规则及Word版式不冒称交付，验证见[阶段记录](testing/2026-10-10-icg-reference.md)。
 
 本附录面向项目协作和研发验收，不增加产品用户页面。按 [工作流](governance/WORKFLOW.md) 执行：
 

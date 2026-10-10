@@ -191,6 +191,7 @@ class SuggestionResponse(ResponseBody):
     base_revision: int = Field(ge=1)
     provider: str
     is_real_model: bool
+    input_fingerprint: str = Field(description="包含正文、项目事实、矩阵和证据的输入指纹")
 
 
 class CheckIssueResponse(ResponseBody):

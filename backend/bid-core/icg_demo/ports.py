@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Callable, Protocol, TypeVar
 
 if TYPE_CHECKING:
     from .domain import DemoState
+    from .parsing import ParsedDocument
 
 T = TypeVar("T")
 
@@ -22,6 +23,16 @@ class Repository(Protocol):
 
 
 class ModelProvider(Protocol):
+    name: str
+    is_real_model: bool
+    is_local: bool
+
     def suggest(self, instruction: str, content: str) -> str:
-        """只返回建议文本，不保存正文，也不能直接访问资料存储。"""
+        """只返回建议文本；适配器明确声明是否为真实模型、是否本地运行。"""
+        ...
+
+
+class ParserProvider(Protocol):
+    def parse(self, filename: str, content: bytes) -> ParsedDocument:
+        """返回原文页块和能力说明；不修改数据库，也不假冒 OCR 成功。"""
         ...

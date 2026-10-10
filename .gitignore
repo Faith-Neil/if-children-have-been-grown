@@ -28,6 +28,7 @@ dist/
 build/
 target/
 coverage/
+*.tsbuildinfo
 
 # 运行数据与临时输出
 runtime/

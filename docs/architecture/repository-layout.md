@@ -4,11 +4,13 @@
 
 # 仓库目录与渐进迁移方案
 
-日期：2026-10-09。状态：本轮目录整理方案；后续代码布局供评审。
+维护日期：2026-10-10。状态：已有前端和业务后台；历史整理快照与后续目录方案分别保留。当前实现关联ISSUE-007 / APP-M1。
 
-本仓库承接投标系统合作工作区。当前业务资产仍是前端需求、架构、路线图、UX规范和静态交互原型，尚无正式应用、依赖清单或后端实现。目录整理先让资产用途与来源清楚，再随实际开发建立代码目录。首轮快照与本轮工作区扩展分别保留记录。
+本仓库承接投标系统合作工作区。当前已经有`frontend/web`产品页面、`backend/bid-core`业务后台及依赖清单，按ICG示例接通主流程。页面与后台是同一产品的两部分，共用一份业务状态。完整示例仍未完成，现有目录不能作为完成证明。
 
-本轮保留 `docs/PRD.md`、`docs/ARCHITECTURE.md`、`docs/ROADMAP.md` 的路径与正文，便于协作方继续评审 PR #1。`main` 上的三件套是前端实施视图，`xqr` 上的同名文件是全系统技术标方案草稿；同名不代表同一文档层级。新增的全系统 PRD v1.8、数据字典 v1.9 作为供评审的参考输入，当前未声明两套方案已经对齐或冻结。差异见 [文档基线与待评审差异](../decisions/baseline-gaps.md)。
+目录整理的原则是先让资产用途与来源清楚，再随实际开发建立目录。2026-10-09首轮整理时只有前端文档和静态原型，以下历史快照保留当时事实；当前代码树见文末“当前ICG产品骨架”。
+
+保留 `docs/PRD.md`、`docs/ARCHITECTURE.md`、`docs/ROADMAP.md` 的入口路径，当前增加ICG实施说明，旧视图保留来源。`main`上的三件套是前端实施视图，`xqr`上的同名文件是全系统技术标方案草稿；同名不代表同一文档层级。PRD v1.8、字典v1.9及ICG设计交接作为本轮实现目标，但不据此声明所有历史方案已经全面对齐或技术选型已经冻结。差异见[基线差异](../decisions/baseline-gaps.md)和[示例差异记录](../decisions/icg-reference-deviations.md)。
 
 ## 首轮整理后的结构（FE-M0-T01快照）
 
@@ -60,7 +62,7 @@ if-children-have-been-grown/
 
 ## 后续目标结构
 
-以下目录随对应功能开始实现再建立；本轮仅记录布局约定。前端框架、编辑器、业务数据库、任务队列和工作流组件仍需结合 PR #1、技术验证及参考需求共同确认。
+以下是组织方式的目标方案，不是当前文件清单。`frontend/web`已采用React页面，`backend/bid-core`已采用Python/FastAPI业务核心；下树的`features/shared`等细分、公共包、数据库迁移、任务进程和部署目录仍需随实际功能建立。编辑器、业务数据库和任务队列等后续选型继续核对，不为符合树形图先建空目录。
 
 ```text
 if-children-have-been-grown/
@@ -134,7 +136,9 @@ if-children-have-been-grown/
 | 本地 `ICG/product doc/prd-mvp-v1.8.md` | `docs/reference/product/prd-mvp-v1.8.md` | 原文复制；标明供评审参考 |
 | 本地 `ICG/product doc/kb-data-dictionary-v1.9.md` | `docs/reference/product/kb-data-dictionary-v1.9.md` | 原文复制；与 PRD v1.8 配套 |
 | `xqr` 同名三件套及技术决策 | PR #1 评审后决定 | 按文档层级整合，保留差异与来源 |
-| 后续正式前端、后端及契约 | 目标树的对应目录 | 确认技术与首个任务后创建 |
+| 已建立的产品页面 | `frontend/web` | 在同一应用中继续按业务域整理，不另建一套前端 |
+| 已建立的业务后台 | `backend/bid-core` | 保持公司权限、编辑权、版本、检查和导出许可使用同一事实源 |
+| 当前实际接口约定 | `spec/openapi` | 从后台代码生成，字段变更同步页面和测试 |
 
 本地 `ICG` 目录名与合作仓库名 `if-children-have-been-grown` 不同。本轮将前者作为参考资料来源，使用后者作为仓库标识；产品显示名和协作边界在 README 及评审记录中明确。
 
@@ -199,9 +203,9 @@ if-children-have-been-grown/
 
 Git根从原 `X:\ICG CO\if-children-have-been-grown` 提升到 `X:\ICG CO`，原有根文件与docs/prototypes等相对路径不变；Git提交历史与分支不变。`ICG/`的34份来源材料保持原目录及内容，登记 [来源清单](../source/WORKSPACE_MATERIALS.md)。两个合同原件根由用户明确排除，原件资料留本地；令牌和运行状态在工作区外。
 
-本轮实际增加tools/workspace-sync、业务/技术审查、brief、OPS/REV任务与运行说明。后续目标树仍是方案，不创建空应用/服务目录。持续同步与人工任务验收关系见 [工作流](../governance/WORKFLOW.md) §7。
+工作区扩展增加了tools/workspace-sync、业务/技术审查、brief、OPS/REV任务与运行说明；后续实现再建立了页面和后台。未出现真实实现的目标目录仍是方案，不创建空服务。持续同步与人工任务验收关系见 [工作流](../governance/WORKFLOW.md) §7。
 
-## 2026-10-10实际后端骨架
+## 2026-10-10首个后台骨架（BE-M0-T01快照）
 
 以下目录已包含可运行代码；上面的目标方案和10月9日快照继续保留为当时记录。
 
@@ -224,4 +228,49 @@ tests/backend/              后台成功及失败场景验证
 
 先使用一个模块化业务核心。模型接口负责返回建议；数据库接口负责读取和一次性完成整组写入，后续接真实服务时保留业务规则。简单页面与后台由同一个本地服务提供，减少demo的安装步骤。
 
-当前仅限单进程演示：编辑权和数据在内存中，重启清空；接生产数据库、多实例、真实模型和解析器前继续核对接口与部署要求。具体结论见[后端准备核对](backend-demo-readiness.md)，交付见[BE-M0-T01](../delivery/BE-M0-T01.md)。
+该次交付限单进程演示：编辑权和数据在内存中，重启清空；当时尚未接通产品解析和两册流程。具体结论见[后端准备核对](backend-demo-readiness.md)，历史交付见[BE-M0-T01](../delivery/BE-M0-T01.md)。
+
+## 当前ICG产品骨架（ISSUE-007 / APP-M1）
+
+以下目录包含实际实现。目标是先保留ICG示例布局和操作流程，完成主流程后继续补齐其他页面；不把旧简单验证页扩大为最终产品。
+
+```text
+X:/ICG CO/
+├─ ICG/                             原版本参考与设计交接资料，保留来源
+├─ frontend/web/
+│  ├─ README.md                      运行方式、配置用途和未完成范围
+│  ├─ package.json、pnpm-lock.yaml   页面依赖与固定版本
+│  ├─ tsconfig.json、vite.config.ts  字段检查、构建与开发请求转发
+│  └─ src/
+│     ├─ App.tsx                     登录、导航、工作台和项目外壳
+│     ├─ ProjectPages.tsx            上传、解析、矩阵、事实、检查和导出
+│     ├─ EditorPage.tsx              章节、大纲、候选差异、编辑权和提交
+│     ├─ SupportPages.tsx            基础公司资料与同步任务记录
+│     ├─ api.ts、types.ts            真实请求和页面字段；尚非生成SDK
+│     ├─ context.tsx、project-form.ts 共用状态、显示和日期转换
+│     └─ main.tsx、styles.css        页面启动、中文界面与样式
+├─ backend/bid-core/
+│  ├─ Start-Demo.ps1                 安装、构建页面并启动同一服务
+│  ├─ requirements.txt              后台固定依赖，含PDF文字读取
+│  ├─ export_openapi.py              从实际代码生成接口约定
+│  └─ icg_demo/
+│     ├─ main.py                     提供产品根页面、登录、章节及错误入口
+│     ├─ domain.py                   共享状态、公司权限、编辑权与版本
+│     ├─ workflow.py                 项目主流程、确认、检查与两册内部稿
+│     ├─ workflow_routes.py          产品/api/v1请求入口
+│     ├─ schemas.py、workflow_schemas.py 请求和响应字段
+│     ├─ parsing.py                  文本、DOCX和含文字PDF的真实提取
+│     ├─ ports.py、adapters.py        替换接口及当前实现
+│     └─ static/                     旧/demo开发验证页
+├─ spec/openapi/demo-v1.json          当前reference-1接口约定，名称沿用旧版
+├─ tests/backend/                    章节与项目主流程的成功、失败边界
+├─ tests/frontend/                   页面日期和空值处理验证
+├─ docs/tasks、delivery、code、testing/ 任务、交付、代码解释与验收证据
+└─ issues/                           当前实施关联ISSUE-007
+```
+
+构建产物`frontend/web/dist`由后台的`/`和`/assets`提供，不提交到仓库。产品页面使用`/api/v1`处理项目主流程，同时使用既有`/api`处理登录和章节编辑；两个服务对象共用一份仓库，没有第二套产品数据。`/demo`继续作为旧开发验证工具，`prototypes/bidding-ux`继续作为离线静态原型，两者用途与产品入口分开说明。
+
+解析接口已经读取上传原件；扫描件识别仍未接通。公司资料目前只有基础文本记录和确认信息，知识库、写作档案、统计、管理、结构化段落和可恢复长任务未完整实现。两册Word可下载内部稿，但完整规则、正式模板和页面排版未验收。当前仍是单进程内存环境，模型使用替身；模型、数据库与解析器经接口替换，不先拆独立AI/doc服务。
+
+下一步按[完整覆盖清单](../testing/icg-coverage.md)补齐功能，并随实际需求把较大的页面文件拆到业务域目录；有复用证据后再提取公共包。目录变化同时核对引用、构建和任务交付，不移动`ICG/`原版本输入或覆盖合作分支的不同层级资料。

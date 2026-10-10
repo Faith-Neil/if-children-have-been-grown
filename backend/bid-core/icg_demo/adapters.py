@@ -63,6 +63,7 @@ class MemoryRepository:
 class DemoModelProvider:
     name = "demo"
     is_real_model = False
+    is_local = True
 
     def suggest(self, instruction: str, content: str) -> str:
         return (f"{content}\n\n[模拟建议，未调用真实模型]\n"

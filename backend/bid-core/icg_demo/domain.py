@@ -13,6 +13,7 @@ from typing import Callable
 from uuid import uuid4
 
 from .ports import ModelProvider, Repository
+from .input_snapshot import project_input_fingerprint
 
 
 def new_id(prefix: str) -> str:
@@ -28,10 +29,11 @@ def iso_time(timestamp: float) -> str:
 
 
 class DomainError(Exception):
-    def __init__(self, status: int, code: str, message: str):
+    def __init__(self, status: int, code: str, message: str, details: dict | None = None):
         self.status = status
         self.code = code
         self.message = message
+        self.details = details or {}
         super().__init__(message)
 
 
@@ -54,6 +56,10 @@ class Project:
     id: str
     name: str
     company_id: str
+    revision: int = 1
+    tender_number: str = ""
+    deadline: str = ""
+    sensitive: bool = False
 
 
 @dataclass
@@ -116,6 +122,12 @@ class DemoState:
     checks: dict[str, Check] = field(default_factory=dict)
     exports: dict[str, Export] = field(default_factory=dict)
     audit: list[dict] = field(default_factory=list)
+    # 工作流数据与旧章节共用一个事务边界，不使用独立的全局字典。
+    workflows: dict[str, dict] = field(default_factory=dict)
+    library: dict[str, dict] = field(default_factory=dict)
+    library_revisions: dict[str, int] = field(default_factory=dict)
+    jobs: dict[str, dict] = field(default_factory=dict)
+    workflow_receipts: dict[tuple[str, str, str], dict] = field(default_factory=dict)
 
 
 class DemoService:
@@ -174,6 +186,11 @@ class DemoService:
             raise DomainError(404, "NOT_FOUND", "未找到有权访问的章节。")
         self._project(state, principal, chapter.project_id)
         return chapter
+
+    def require_allowed_model(self, project: Project) -> None:
+        if (project.sensitive and getattr(self.model_provider, "is_real_model", None) is not False
+                and not getattr(self.model_provider, "is_local", False)):
+            raise DomainError(409, "LOCAL_MODEL_REQUIRED", "敏感项目只能使用本地模型适配器。")
 
     def _audit(self, state: DemoState, principal: Principal, chapter: Chapter,
                action: str, details: dict | None = None) -> None:
@@ -324,6 +341,7 @@ class DemoService:
             self._revision(chapter, base_revision)
             chapter.content = content
             chapter.revision += 1
+            state.projects[chapter.project_id].revision += 1
             result = {"revision": chapter.revision, "content": chapter.content}
             chapter.versions.append({**result, "actor_id": principal.user.id,
                                      "created_at": iso_time(self._now())})
@@ -347,6 +365,8 @@ class DemoService:
         state = self.repository.read()
         chapter = self._chapter(state, principal, chapter_id)
         self._writer(principal)
+        self.require_allowed_model(self._project(state, principal, chapter.project_id))
+        fingerprint = project_input_fingerprint(state, chapter.project_id)
         # 模型调用在事务外执行，只取得当前有权章节的正文，不持有全局写锁。
         try:
             suggestion = self.model_provider.suggest(instruction, chapter.content)
@@ -358,11 +378,15 @@ class DemoService:
         def operation(current: DemoState):
             actual = self._chapter(current, principal, chapter_id)
             self._writer(principal)
+            self.require_allowed_model(self._project(current, principal, actual.project_id))
+            if project_input_fingerprint(current, chapter.project_id) != fingerprint:
+                raise DomainError(409, "VERSION_CONFLICT", "正文或项目资料在建议生成期间更新，请重新请求建议。")
             self._audit(current, principal, actual, "suggestion.generate",
                         {"base_revision": chapter.revision})
             return {"content": suggestion, "base_revision": chapter.revision,
                     "provider": getattr(self.model_provider, "name", "demo"),
-                    "is_real_model": bool(getattr(self.model_provider, "is_real_model", False))}
+                    "is_real_model": bool(getattr(self.model_provider, "is_real_model", False)),
+                    "input_fingerprint": fingerprint}
         return self.repository.transaction(operation)
 
     def check(self, principal: Principal, chapter_id: str) -> dict:

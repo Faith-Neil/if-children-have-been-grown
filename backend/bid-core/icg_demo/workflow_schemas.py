@@ -1,0 +1,325 @@
+# 为什么有这个文件：给示例主流程提供可生成接口契约的业务字段。
+# 它解决什么问题：前后端使用真实且明确的数据结构，不靠猜字段或空响应接通页面。
+
+from typing import Any, Literal
+
+from pydantic import Field, field_validator
+
+from .schemas import ChapterSummaryResponse, RequestBody, ResponseBody, LockSummaryResponse
+
+Volume = Literal["technical", "business"]
+ReviewStatus = Literal["pending", "confirmed", "rejected"]
+LibraryType = Literal["qualification", "personnel", "performance", "sla", "snippet", "history"]
+
+
+class ProjectPatch(RequestBody):
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    tender_number: str | None = Field(default=None, max_length=100)
+    deadline: str | None = Field(default=None, max_length=50)
+    sensitive: bool | None = None
+
+
+class FileUpload(RequestBody):
+    filename: str = Field(min_length=1, max_length=180)
+    content_base64: str = Field(min_length=1, max_length=7_000_000)
+
+
+class FileDelete(RequestBody):
+    reason: str = Field(min_length=1, max_length=2000, description="说明误传或解析失败的原因；只允许无来源引用的未解析/失败文件")
+
+
+class ParseRequest(RequestBody):
+    file_ids: list[str] | None = None
+
+
+class RequirementPatch(RequestBody):
+    text: str | None = Field(default=None, min_length=1, max_length=20_000)
+    category: str | None = Field(default=None, min_length=1, max_length=60)
+    volume: Volume | None = None
+    chapter_id: str | None = None
+    status: ReviewStatus | None = None
+    response: str | None = Field(default=None, max_length=20_000)
+    reason: str | None = Field(default=None, max_length=2000)
+    evidence_ids: list[str] | None = None
+
+
+class FactPatch(RequestBody):
+    value: str | None = Field(default=None, min_length=1, max_length=2000)
+    status: ReviewStatus | None = None
+    reason: str | None = Field(default=None, max_length=2000)
+
+
+class ConflictPatch(RequestBody):
+    selected_fact_id: str = Field(min_length=1, max_length=100)
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class PlannedChapter(RequestBody):
+    id: str | None = None
+    title: str = Field(min_length=1, max_length=200)
+    volume: Volume
+
+
+class PlanRequest(RequestBody):
+    chapters: list[PlannedChapter] = Field(min_length=2, max_length=100)
+
+
+class GenerateRequest(RequestBody):
+    chapter_ids: list[str] | None = None
+
+
+class ProjectCheckRequest(RequestBody):
+    volume: Literal["technical", "business", "all"] = "all"
+
+
+class ProjectExportRequest(RequestBody):
+    check_id: str = Field(min_length=1, max_length=100)
+    kind: Literal["internal", "submission"] = "internal"
+
+
+class LibraryCreate(RequestBody):
+    name: str = Field(min_length=1, max_length=200)
+    type: LibraryType
+    content: str = Field(min_length=1, max_length=100_000)
+    valid_until: str | None = Field(default=None, max_length=10)
+    status: Literal["pending", "confirmed"] = "pending"
+    reason: str = Field(default="", max_length=2000)
+
+
+class LibraryPatch(RequestBody):
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    type: LibraryType | None = None
+    content: str | None = Field(default=None, min_length=1, max_length=100_000)
+    valid_until: str | None = Field(default=None, max_length=10)
+    status: Literal["pending", "confirmed", "rejected"] | None = None
+    reason: str | None = Field(default=None, max_length=2000,
+                               description="实质内容修改后同次重新确认必须填写本次核对依据")
+
+
+class ProjectDetail(ResponseBody):
+    id: str
+    name: str
+    company_id: str
+    revision: int
+    tender_number: str
+    deadline: str
+    sensitive: bool
+
+
+class Source(ResponseBody):
+    file_id: str
+    page: int
+    quote: str
+
+
+class TenderFile(ResponseBody):
+    id: str
+    filename: str
+    size: int
+    sha256: str
+    media_type: str
+    status: Literal["uploaded", "parsed", "failed"]
+    page_count: int
+    pagination: str
+    warnings: list[str]
+    download_url: str
+
+
+class SourcePage(ResponseBody):
+    page: int
+    text: str
+
+
+class FilePreview(ResponseBody):
+    file_id: str
+    filename: str
+    pagination: str
+    warnings: list[str]
+    pages: list[SourcePage]
+
+
+class Requirement(ResponseBody):
+    id: str
+    text: str
+    category: str
+    volume: Volume
+    chapter_id: str | None
+    status: ReviewStatus
+    response: str
+    reason: str
+    evidence_ids: list[str]
+    source: Source
+    references: list[str]
+    reference_status: Literal["none", "unresolved", "resolved"]
+
+
+class Fact(ResponseBody):
+    id: str
+    key: str
+    value: str
+    status: ReviewStatus
+    reason: str
+    source: Source
+
+
+class Conflict(ResponseBody):
+    id: str
+    key: str
+    fact_ids: list[str]
+    selected_fact_id: str | None
+    status: Literal["pending", "resolved"]
+    reason: str
+
+
+class Candidate(ResponseBody):
+    id: str
+    content: str
+    base_revision: int
+    input_fingerprint: str
+    provider: str
+    is_real_model: bool
+    created_at: str
+
+
+class WorkflowChapter(ChapterSummaryResponse):
+    content: str
+    lock: LockSummaryResponse | None
+    candidate: Candidate | None
+    requirement_ids: list[str]
+
+
+class JobError(ResponseBody):
+    code: str
+    message: str
+
+
+class Job(ResponseBody):
+    id: str
+    project_id: str
+    type: str
+    status: Literal["completed", "failed"]
+    progress: int
+    message: str
+    created_at: str
+    completed_at: str
+    error: JobError | None
+    recoverable: Literal[False]
+
+
+class CheckIssue(ResponseBody):
+    id: str
+    code: str
+    severity: Literal["blocking", "warning"]
+    message: str
+    requirement_id: str | None = None
+    chapter_id: str | None = None
+    evidence_id: str | None = None
+
+
+class Coverage(ResponseBody):
+    implemented_rules: list[str]
+    unimplemented_rules: list[str]
+    complete: Literal[False]
+
+
+class ProjectCheck(ResponseBody):
+    id: str
+    volume: Literal["technical", "business", "all"]
+    passed: bool
+    status: Literal["passed", "failed", "stale"]
+    issues: list[CheckIssue]
+    coverage: Coverage
+    fingerprint: str
+    created_at: str
+
+
+class ExportVolume(ResponseBody):
+    volume: Volume
+    filename: str
+    download_url: str
+
+
+class ProjectExport(ResponseBody):
+    id: str
+    kind: Literal["internal", "submission"]
+    check_id: str
+    fingerprint: str
+    created_at: str
+    excludes_drafts: Literal[True]
+    volumes: list[ExportVolume]
+    status: Literal["valid", "stale"]
+
+
+class LibraryItem(ResponseBody):
+    id: str
+    company_id: str
+    name: str
+    type: LibraryType
+    content: str
+    valid_until: str | None
+    status: ReviewStatus
+    revision: int
+    usable_as_evidence: bool
+    reason: str
+
+
+class Workspace(ResponseBody):
+    revision: int
+    input_fingerprint: str
+    project: ProjectDetail
+    stage: str
+    files: list[TenderFile]
+    requirements: list[Requirement]
+    facts: list[Fact]
+    conflicts: list[Conflict]
+    chapters: list[WorkflowChapter]
+    checks: list[ProjectCheck]
+    exports: list[ProjectExport]
+    jobs: list[Job]
+    parse_confirmed: bool
+    plan_confirmed: bool
+
+
+class MutationResult(ResponseBody):
+    revision: int
+    deleted_file_id: str | None = None
+    project: ProjectDetail | None = None
+    file: TenderFile | None = None
+    job: Job | None = None
+    requirement: Requirement | None = None
+    fact: Fact | None = None
+    conflict: Conflict | None = None
+    requirements: list[Requirement] | None = None
+    facts: list[Fact] | None = None
+    conflicts: list[Conflict] | None = None
+    chapters: list[WorkflowChapter] | None = None
+    check: ProjectCheck | None = None
+    export: ProjectExport | None = None
+    parse_confirmed: bool | None = None
+    plan_confirmed: bool | None = None
+
+
+class CheckList(ResponseBody):
+    revision: int
+    checks: list[ProjectCheck]
+
+
+class JobsList(ResponseBody):
+    jobs: list[Job]
+
+
+class LibraryList(ResponseBody):
+    revision: int
+    items: list[LibraryItem]
+
+
+class LibraryResult(ResponseBody):
+    revision: int
+    item: LibraryItem
+
+
+class V1Error(ResponseBody):
+    code: str
+    message: str
+    details: dict[str, Any]
+    traceId: str
