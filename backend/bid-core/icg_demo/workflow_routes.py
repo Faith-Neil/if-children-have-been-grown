@@ -8,6 +8,8 @@ from fastapi import APIRouter, Depends, Header, Response
 from .adapters import build_docx
 from .domain import Export, Principal
 from .schemas import EmptyRequest
+from .sla_schemas import (SlaMutationResult, SlaReviewRequest, SlaSelection, SlaTemplateCreate,
+                          SlaTemplateList, SlaTemplatePatch, SlaTemplateResult, SlaValuePatch)
 from .workflow import DOCX_MEDIA_TYPE, WorkflowService
 from .workflow_schemas import (CheckList, ConflictPatch, FactPatch, FileDelete, FilePreview, FileUpload,
                                GenerateRequest, JobsList, LibraryCreate, LibraryList,
@@ -127,6 +129,56 @@ def include_workflow_routes(application, service, current_user, parser):
     @router.get("/jobs", response_model=JobsList)
     def jobs(user: Principal = Depends(current_user)):
         return workflow.jobs(user)
+
+    @router.get("/sla/templates", response_model=SlaTemplateList)
+    def sla_templates(response: Response, user: Principal = Depends(current_user)):
+        result = workflow.sla.templates(user)
+        response.headers["ETag"] = f'"{result["revision"]}"'
+        return result
+
+    @router.post("/sla/templates", response_model=SlaTemplateResult)
+    def create_sla_template(body: SlaTemplateCreate, user: Principal = Depends(current_user),
+                            if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None)):
+        return workflow.sla.write_template(user, body.model_dump(), if_match, idempotency_key)
+
+    @router.patch("/sla/templates/{template_id}", response_model=SlaTemplateResult)
+    def patch_sla_template(template_id: str, body: SlaTemplatePatch, user: Principal = Depends(current_user),
+                           if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None)):
+        return workflow.sla.write_template(user, body.model_dump(exclude_unset=True), if_match, idempotency_key, template_id)
+
+    @router.post("/projects/{project_id}/sla/template", response_model=SlaMutationResult, response_model_exclude_none=True)
+    def select_sla_template(project_id: str, body: SlaSelection, user: Principal = Depends(current_user),
+                            if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None)):
+        return workflow.sla.select(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.patch("/projects/{project_id}/sla/values/{var_key}", response_model=SlaMutationResult, response_model_exclude_none=True)
+    def patch_sla_value(project_id: str, var_key: str, body: SlaValuePatch, user: Principal = Depends(current_user),
+                        if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None)):
+        return workflow.sla.patch_value(user, project_id, var_key, body.model_dump(exclude_unset=True), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/sla/apply-tender", response_model=SlaMutationResult, response_model_exclude_none=True)
+    def apply_sla_tender(project_id: str, body: EmptyRequest, user: Principal = Depends(current_user),
+                         if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None)):
+        return workflow.sla.apply_tender(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/sla/values/{var_key}/review", response_model=SlaMutationResult, response_model_exclude_none=True)
+    def review_sla_value(project_id: str, var_key: str, body: SlaReviewRequest, user: Principal = Depends(current_user),
+                         if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None)):
+        return workflow.sla.review(user, project_id, var_key, body.model_dump(), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/sla/commitment", response_model=SlaMutationResult, response_model_exclude_none=True)
+    def export_sla_commitment(project_id: str, body: EmptyRequest, user: Principal = Depends(current_user),
+                              if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None)):
+        return workflow.sla.commitment(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.get("/projects/{project_id}/sla/commitment/{export_id}", response_class=Response,
+                responses={200: {"description": "服务承诺函实际Word表格，仅内部稿；过期数据拒绝下载",
+                                 "content": {DOCX_MEDIA_TYPE: {"schema": {"type": "string", "format": "binary"}}}}})
+    def download_sla_commitment(project_id: str, export_id: str, user: Principal = Depends(current_user)):
+        document = workflow.sla.download(user, project_id, export_id)
+        record = Export(export_id, "", 1, "", "", document["filename"], document["title"], document["content"])
+        return Response(content=build_docx(record, document["table"]), media_type=DOCX_MEDIA_TYPE,
+                        headers={"Content-Disposition": f'attachment; filename="{document["filename"]}"'})
 
     @router.get("/library", response_model=LibraryList)
     def library(response: Response, user: Principal = Depends(current_user)):

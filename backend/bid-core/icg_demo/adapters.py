@@ -70,7 +70,7 @@ class DemoModelProvider:
                 f"修改要求：{instruction}\n请由编写人核对内容；确认提交前不会写入正式正文。")
 
 
-def build_docx(record: Export) -> bytes:
+def build_docx(record: Export, table_rows: list[list[str]] | None = None) -> bytes:
     # 每行写成独立段落，XML 转义保证 &、< 等文字不会变成文件结构。
     def paragraph(text: str, *, title: bool = False) -> str:
         style = '<w:pPr><w:pStyle w:val="Title"/></w:pPr>' if title else ""
@@ -80,6 +80,16 @@ def build_docx(record: Export) -> bytes:
     document_body = paragraph("本地演示内部稿，不可正式递交")
     document_body += paragraph(record.title, title=True)
     document_body += "".join(paragraph(line) for line in record.content.splitlines())
+    if table_rows:
+        borders = ''.join(f'<w:{edge} w:val="single" w:sz="4" w:color="777777"/>'
+                          for edge in ("top", "left", "bottom", "right", "insideH", "insideV"))
+        document_body += '<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblBorders>' + borders + '</w:tblBorders></w:tblPr>'
+        for index, row in enumerate(table_rows):
+            document_body += '<w:tr>' + ('<w:trPr><w:tblHeader/></w:trPr>' if index == 0 else '')
+            for cell in row:
+                document_body += '<w:tc><w:tcPr><w:tcW w:w="1800" w:type="dxa"/></w:tcPr>' + paragraph(cell) + '</w:tc>'
+            document_body += '</w:tr>'
+        document_body += '</w:tbl>'
     document_body += ("<w:sectPr><w:pgSz w:w=\"11906\" w:h=\"16838\"/>"
                       "<w:pgMar w:top=\"1440\" w:right=\"1440\" w:bottom=\"1440\" w:left=\"1440\"/></w:sectPr>")
     document = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'

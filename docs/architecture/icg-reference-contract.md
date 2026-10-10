@@ -49,8 +49,38 @@ v1错误为 `{code,message,details,traceId}`，旧接口仍用 `{error:{code,mes
 
 旧草稿和历史正文先并排核对，取得编辑权后重新核对后台版本及草稿顺序，再保存为当前版本的个人草稿。只有提交本节才产生新的正式正文；结构化差异合并和正式回滚事件尚未完成。
 
+## 服务承诺矩阵本次接口（reference-sla-1）
+
+对应PRD 5.3.2、5.7.8与字典3.2.13～15、3.10.1.5。服务承诺（SLA）是响应、到场、恢复等承诺指标。公司模板与项目取值分开保存；改项目承诺不能改公司能力。模板实质更新后重新确认，引用它的项目须重新核对，不能靠旧快照继续通过。
+
+| 接口 | 输入与输出 |
+|---|---|
+| GET `/api/v1/sla/templates` | 当前公司 `revision`、`items`；版本使用公司资料版本，与资料库写入共用 |
+| POST `/api/v1/sla/templates` | 负责人新增模板：`name`、`edition`、`service_hours`、`body_text`、`status`、`reason`、`variables`；返回 `revision`、`item` |
+| PATCH `/api/v1/sla/templates/{id}` | 负责人修改；实质变化回待确认，同次重新确认须说明理由；返回 `revision`、`item` |
+| POST `/api/v1/projects/{id}/sla/template` | `template_id`、`reason`；选用已确认的本公司模板；同模板刷新保留项目承诺/招标绑定并重新核对，更换不同模板前明确提示重置项目值，返回项目 `revision` 与 `sla` |
+| PATCH `/api/v1/projects/{id}/sla/values/{var_key}` | `project_value`、`project_unit`、`requirement_id`、`tender_required_value`、`tender_unit`、`reason`；人工核对原条款后登记数值或未量化要求，不能伪造来源或改公司能力 |
+| POST `/api/v1/projects/{id}/sla/apply-tender` | 无；逐项按招标值取值，遇到超出公司能力时取公司能力极限并显示不满足；不自动批准风险或确认事实 |
+| POST `/api/v1/projects/{id}/sla/values/{var_key}/review` | 负责人填写非空 `reason`；确认当前数值的能力风险/需人工判断，确认绑当前全部输入，修改后失效；不满足招标的条目不能批准为满足 |
+| POST `/api/v1/projects/{id}/sla/commitment` | 无；返回 `revision`、`commitment`（`id`、`filename`、`download_url`、`created_at`、`fingerprint`、`status`）；失败/未核对项禁止生成 |
+| GET `/api/v1/projects/{id}/sla/commitment/{export_id}` | 当前数据仍一致才下载实际Word表格；不是正式递交文件 |
+
+模板变量：`var_key`（本模板唯一）、`label`、`group`、`value_type`（integer/decimal/text）、`default_value`、`unit`、`compare_direction`（lower_better/higher_better/exact）、`best_committable_value`（可空）。模板另含可编辑的业务版本 `version_no`（如1.0），并返回 `id`、`company_id`、`revision`、`status`；业务版本与用于防覆盖的整数记录版本分开。不预设或伪造真实公司能力。完整故障等级定义及服务类别治理仍另验收。
+
+工作区新增 `sla`：未选用时为null；已选用包含 `template_id`、`template_name`、`template_revision`、`template_stale`、`rows`。每行包含上述变量字段、项目取值/单位、招标要求值/单位、`requirement_id`、`source`（可空）、`source_stale`、`judgment`、`judgment_label`、`message`、`exceeds_capability`、`review`（确认人/时间/理由，或null）、`fact_status`（pending/confirmed/needs_review）、`variable_token`（`{{sla:P1.response}}`）。判定由后台即时计算，不由页面伪造。
+
+判定码为 `satisfied`、`not_satisfied`、`exceeds_capability`、`missing`、`manual`、`not_required`、`unquantified`。最后两种保留PRD明确的边界，不冒充满足。分钟/小时/自然日可换算；工作日和自然日、月和自然日不能强换算；相同频次单位可比较，其余按字典与可证明的换算判定。纯文本按exact核对。输入必须为有限、非负且符合类型的值。
+
+SLA事实以 `sla:<var_key>` 为稳定ID，工作区事实表只引用当前项目值：`source_type=sla`、`sla_var_key`、`unit`、`required`，来源可空，值不可在事实页另改。有招标来源的事实必须负责人逐条确认；数值、来源、模板发生实质变化后为需复核，阻止新写作方案与导出。SLA来源条款不能通过改类别躲过未绑定指标检查。
+
+检查新增能力/取值/引用检查（只声明R09/R10的已实现子集）：不满足、未填写、过期模板/来源和未核对事实阻断；未批准的能力风险/人工判断须处理后才可导出。正文中的变量由当前已确认值替换，未知/未确认变量阻断；可明确匹配指标名称的手写数值不一致时定位到章节，不能声称覆盖所有自然语言写法。项目输入摘要纳入SLA项目值、审阅和当前模板。两册导出与承诺函都用同一变量解析，并保留内部稿标记。
+
+所有写入保持现有If-Match、Idempotency-Key、公司隔离和事务回滚；按设计P-07服务承诺值和模板维护均限负责人，其他成员只读。SLA必备事实逐条确认也限负责人。审计记录变更理由、旧/新取值与批准依据。模型、数据库仍通过原接口替换。
+
 ## 后续必须补齐
 
 完整分册定稿、正文来源和变量节点、事实/SLA冲突、所有一期检查规则、文件解析覆盖、资料治理、任务恢复、答案卡与引用、完整角色管理、搜索/提醒、规则/模型/服务/品牌配置，以及设计规定的登录和安全状态。
 
 缺少的示例源包由截图和文档重建；设计差异单独登记，不趁实现主流程改写产品。产品完成以每页真实操作和业务验收为准，不能按文件数、测试数或旧任务完成比率推断。
+
+首次或主动重新确认模板必须填写本次非空reason，页面打开修改时清空旧理由供本次填写。`sla.commitments`可读取当前有效/过期的承诺函记录；模板/来源/数值与已提交正文变动使下载失效。正文变量统一换算为模板单位，后缀冲突或不可证明的单位转换拒绝输出；无后缀自动附模板单位。矩阵未绑定招标要求的额外承诺需负责人核对（R30子集）；承诺函每行都须事实已确认。候选生成器尚未自动注入完整服务事实，本次手动变量链路不能冒充这一能力。

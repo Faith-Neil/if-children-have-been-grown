@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import re
+
 import hashlib
 import json
 import secrets
@@ -125,6 +127,7 @@ class DemoState:
     # 工作流数据与旧章节共用一个事务边界，不使用独立的全局字典。
     workflows: dict[str, dict] = field(default_factory=dict)
     library: dict[str, dict] = field(default_factory=dict)
+    sla_templates: dict[str, dict] = field(default_factory=dict)
     library_revisions: dict[str, int] = field(default_factory=dict)
     jobs: dict[str, dict] = field(default_factory=dict)
     workflow_receipts: dict[tuple[str, str, str], dict] = field(default_factory=dict)
@@ -179,6 +182,15 @@ class DemoService:
         if project is None or project.company_id != principal.user.company_id:
             raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
         return project
+
+    @staticmethod
+    def _legacy_flow_guard(state: DemoState, chapter: Chapter) -> None:
+        workflow = state.workflows.get(chapter.project_id, {})
+        # 接入原文/矩阵的项目一律走主流程；没有选模板也不能绕过尚未绑定的承诺。
+        if (workflow.get("requirements") or workflow.get("sla")
+                or any(re.search(r"\{\{\s*sla\s*:", c.content)
+                       for c in state.chapters.values() if c.project_id == chapter.project_id)):
+            raise DomainError(409, "SLA_PROJECT_EXPORT_REQUIRED", "本项目已有招标要求或服务变量，请从主流程检查并导出两册。旧单章入口仅验证独立演示。")
 
     def _chapter(self, state: DemoState, principal: Principal, chapter_id: str) -> Chapter:
         chapter = state.chapters.get(chapter_id)
@@ -392,6 +404,7 @@ class DemoService:
     def check(self, principal: Principal, chapter_id: str) -> dict:
         def operation(state: DemoState):
             chapter = self._chapter(state, principal, chapter_id)
+            self._legacy_flow_guard(state, chapter)
             self._writer(principal)
             issues = []
             if not chapter.content.strip():
@@ -409,6 +422,7 @@ class DemoService:
         def operation(state: DemoState):
             chapter = self._chapter(state, principal, chapter_id)
             self._writer(principal)
+            self._legacy_flow_guard(state, chapter)
             check = state.checks.get(check_id)
             if check is None or check.chapter_id != chapter.id:
                 raise DomainError(404, "NOT_FOUND", "未找到本章节的检查记录。")
@@ -431,6 +445,7 @@ class DemoService:
             if record is None:
                 raise DomainError(404, "NOT_FOUND", "未找到有权访问的导出文件。")
             chapter = self._chapter(state, principal, record.chapter_id)
+            self._legacy_flow_guard(state, chapter)
             if record.revision != chapter.revision or record.content_hash != content_hash(chapter.content):
                 raise DomainError(409, "EXPORT_STALE", "正文已修改，旧导出文件已过期。")
             self._audit(state, principal, chapter, "export.download", {"export_id": record.id})

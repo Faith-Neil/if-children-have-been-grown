@@ -6,6 +6,7 @@ from typing import Any, Literal
 from pydantic import Field, field_validator
 
 from .schemas import ChapterSummaryResponse, RequestBody, ResponseBody, LockSummaryResponse
+from .sla_schemas import ProjectSla
 
 Volume = Literal["technical", "business"]
 ReviewStatus = Literal["pending", "confirmed", "rejected"]
@@ -157,9 +158,13 @@ class Fact(ResponseBody):
     id: str
     key: str
     value: str
-    status: ReviewStatus
+    status: Literal["pending", "confirmed", "rejected", "needs_review"]
     reason: str
-    source: Source
+    source: Source | None
+    source_type: str = "parsed"
+    sla_var_key: str | None = None
+    unit: str = ""
+    required: bool = False
 
 
 class Conflict(ResponseBody):
@@ -278,6 +283,7 @@ class Workspace(ResponseBody):
     jobs: list[Job]
     parse_confirmed: bool
     plan_confirmed: bool
+    sla: ProjectSla | None = None
 
 
 class MutationResult(ResponseBody):

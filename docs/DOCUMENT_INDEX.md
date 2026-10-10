@@ -59,7 +59,7 @@
 | D-046 | 2026-10-09 | [REV任务](tasks/REV-M0.md) | 审查 | g1.1 | 当前 | ISSUE-004 | 目录/业务/技术与brief交付 |
 | D-047 | 2026-10-09 | [业务审查](reviews/2026-10-09-business-readiness.md) | 业务 | review-1 | 待决定 | REV-M0-T01 / ISSUE-005 | 场景矩阵与12项设计/验收发现 |
 | D-048 | 2026-10-09 | [技术审查](reviews/2026-10-09-technical-readiness.md) | 技术 | review-1 | 待决定 | REV-M0-T01 / ISSUE-005 | 6类契约缺口与图片目录对照 |
-| D-049 | 2026-10-10 | [接手brief](PROJECT_BRIEF.md) | 接手 | brief-3 | 当前 | ISSUE-007 / APP-M1 | 项目范围、现状、分支、风险与下一步 |
+| D-049 | 2026-10-10 | [接手brief](PROJECT_BRIEF.md) | 接手 | brief-4 | 当前 | ISSUE-007 / APP-M1 | 项目范围、现状、分支、风险与下一步 |
 | D-050 | 2026-10-09 | [工作区来源](source/WORKSPACE_MATERIALS.md) | 历史资料 | snapshot-1 | 已登记 | OPS-M0-T01 | 34份ICG资料、原路径与初次指纹 |
 | D-051 | 2026-10-09 | [同步工具说明](../tools/workspace-sync/README.md) | 运维 | sync-1 | 当前 | OPS-M0-T01 | 自动WIP、分叉、凭据、外部状态 |
 | D-052 | 2026-10-09 | [同步执行器](../tools/workspace-sync/sync.cjs) | 工程代码 | sync-1 | 回归通过 | OPS-M0-T01 | 单实例、双向Git、稳定期与出站检查 |
@@ -91,33 +91,48 @@
 | D-077 | 2026-10-10 | [HTTP验收入口](../backend/bid-core/smoke_demo.py) | 验证工具 | demo-1 | 通过 | BE-M0-T01 | 连接实际监听端口执行完整链路 |
 | D-078 | 2026-10-10 | [接口生成器](../backend/bid-core/export_openapi.py) | 工具 | demo-1 | 通过 | BE-M0-T01 | 保持约定与实际代码同源 |
 | D-079 | 2026-10-10 | [页面事件回归](../tests/backend/demo-page.test.cjs) | 验证代码 | demo-1 | 7项通过 | BE-M0-T01 | 直接执行页面代码，验证旧草稿、确认、恢复失败与会话锁 |
-| D-080 | 2026-10-10 | [示例联调Issue](../issues/ISSUE-007.md) | 变更 | reference-1 | in-progress | ISSUE-007 / APP-M1 | 同一产品逐页接通，完整目标不以小demo代替 |
-| D-081 | 2026-10-10 | [示例任务卡](tasks/APP-M1.md) | 实施 | reference-1 | 当前 | ISSUE-007 / APP-M1 | 核心流程、独立验收、后续拆分和完整审计 |
-| D-082 | 2026-10-10 | [示例接口约定](architecture/icg-reference-contract.md) | 接口 | reference-1 | 联调中 | ISSUE-007 / APP-M1 | 页面与真实v1接口共同字段和版本规则 |
+| D-080 | 2026-10-10 | [示例联调Issue](../issues/ISSUE-007.md) | 变更 | reference-sla-1 | in-progress | ISSUE-007 / APP-M1 | 同一产品逐页接通，完整目标不以小demo代替 |
+| D-081 | 2026-10-10 | [示例任务卡](tasks/APP-M1.md) | 实施 | reference-sla-1 | 当前 | ISSUE-007 / APP-M1 | 核心流程、独立验收、后续拆分和完整审计 |
+| D-082 | 2026-10-10 | [示例接口约定](architecture/icg-reference-contract.md) | 接口 | reference-sla-1 | 联调中 | ISSUE-007 / APP-M1 | 新增结构化SLA、事实只读、变量/承诺函与版本规则 |
 | D-083 | 2026-10-10 | [示例差异记录](decisions/icg-reference-deviations.md) | 评审 | reference-1 | 持续维护 | ISSUE-007 / APP-M1 | 版本缺件、已取消页签和高级功能差异 |
-| D-084 | 2026-10-10 | [产品页面说明](../frontend/web/README.md) | 工程 | reference-1 | 构建通过 | ISSUE-007 / APP-M1 | JSON配置用途、启动与当前能力边界 |
+| D-084 | 2026-10-10 | [产品页面说明](../frontend/web/README.md) | 工程 | reference-sla-1 | 构建通过 | ISSUE-007 / APP-M1 | JSON配置用途、启动与当前能力边界 |
 | D-085 | 2026-10-10 | [独立主流程测试](../tests/backend/test_reference_flow.py) | 验证代码 | reference-1 | 21项通过 | ISSUE-007 / APP-M1-T06 | 两册真实内容、源页码、输入失效与权限，页面主流程另有阶段记录 |
-| D-086 | 2026-10-10 | [完整示例覆盖清单](testing/icg-coverage.md) | 验收范围 | reference-1 | 未完整交付 | ISSUE-007 / APP-M1-T07/T08 | 47个页面/能力分组、44规则范围逐项保留，不以主流程替代全产品 |
+| D-086 | 2026-10-10 | [完整示例覆盖清单](testing/icg-coverage.md) | 验收范围 | reference-sla-1 | 未完整交付 | ISSUE-007 / APP-M1-T07/T08 | 47组页面/44规则保留；数值SLA部分实现，完整规则未交付 |
 
 | D-087 | 2026-10-10 | [截图来源](testing/assets/README.md) | 证据 | reference-1 | 来源已登记 | ISSUE-007 / APP-M1 | 图片来自实际合成项目，不能代替完整验收 |
 | D-088 | 2026-10-10 | [示例阶段验证](testing/2026-10-10-icg-reference.md) | 验证 | reference-1 | 阶段通过 | ISSUE-007 / APP-M1 | 后台77、前端9、旧页7、治理12、实际HTTP和GUI；Word视觉待验收 |
-| D-089 | 2026-10-10 | [007同步记录](governance/ISSUE-007-sync.md) | 治理 | reference-1 | 已核对 | ISSUE-007 / APP-M1 | 三件套、看板、逐卡阶段交付与实际接口对齐 |
+| D-089 | 2026-10-10 | [007同步记录](governance/ISSUE-007-sync.md) | 治理 | reference-sla-1 | 已核对 | ISSUE-007 / APP-M1 | 三件套、73项看板与三项SLA数值子任务交付对齐 |
 | D-090 | 2026-10-10 | [独立边界回归](../tests/backend/test_reference_boundaries.py) | 验证代码 | reference-1 | 25项通过 | ISSUE-007 / APP-M1 | 模型路由、坏上传恢复、时区、候选失效与证据重新确认 |
 | D-091 | 2026-10-10 | [主流程HTTP工具](../backend/bid-core/smoke_reference.py) | 验证工具 | reference-1 | 实际端口通过 | ISSUE-007 / APP-M1 | 仅本机合成项目，两册内容与草稿准备 |
 | D-092 | 2026-10-10 | [前端日期回归](../tests/frontend/project-form.test.mjs) | 验证代码 | reference-1 | 3项通过 | ISSUE-007 / APP-M1 | 北京时间、日边界、无效日期和空字段 |
 | D-093 | 2026-10-10 | [前端恢复回归](../tests/frontend/editor-recovery.test.mjs) | 验证代码 | reference-1 | 3项通过 | ISSUE-007 / APP-M1 | 核对期间版本/草稿变化拒绝，新草稿顺序 |
 | D-094 | 2026-10-10 | [前端接口回归](../tests/frontend/api.test.mjs) | 验证代码 | reference-1 | 3项通过 | ISSUE-007 / APP-M1 | 两代错误、失败任务版本详情和移除请求保护 |
-| D-095 | 2026-10-10 | [输入摘要](../backend/bid-core/icg_demo/input_snapshot.py) | 代码 | reference-1 | 边界通过 | ISSUE-007 / APP-M1 | 旧建议、新候选和检查使用同一已提交输入摘要 |
+| D-095 | 2026-10-10 | [输入摘要](../backend/bid-core/icg_demo/input_snapshot.py) | 代码 | reference-sla-1 | 边界通过 | ISSUE-007 / APP-M1 | 旧建议、新候选和检查使用同一已提交输入摘要 |
 | D-096 | 2026-10-10 | [APP-M1-T01阶段交付](delivery/APP-M1-T01.md) | 交付 | reference-1 | 部分交付 / 进行中 | ISSUE-007 / APP-M1 | 实际结果与未完成范围，不关闭完整任务 |
 | D-097 | 2026-10-10 | [APP-M1-T01代码解释](code/APP-M1-T01.md) | 代码说明 | reference-1 | 当前 | ISSUE-007 / APP-M1 | 页面、后台和失败保护的实际调用关系 |
 | D-098 | 2026-10-10 | [APP-M1-T02阶段交付](delivery/APP-M1-T02.md) | 交付 | reference-1 | 部分交付 / 进行中 | ISSUE-007 / APP-M1 | 实际结果与未完成范围，不关闭完整任务 |
 | D-099 | 2026-10-10 | [APP-M1-T02代码解释](code/APP-M1-T02.md) | 代码说明 | reference-1 | 当前 | ISSUE-007 / APP-M1 | 页面、后台和失败保护的实际调用关系 |
-| D-100 | 2026-10-10 | [APP-M1-T03阶段交付](delivery/APP-M1-T03.md) | 交付 | reference-1 | 部分交付 / 进行中 | ISSUE-007 / APP-M1 | 实际结果与未完成范围，不关闭完整任务 |
-| D-101 | 2026-10-10 | [APP-M1-T03代码解释](code/APP-M1-T03.md) | 代码说明 | reference-1 | 当前 | ISSUE-007 / APP-M1 | 页面、后台和失败保护的实际调用关系 |
-| D-102 | 2026-10-10 | [APP-M1-T04阶段交付](delivery/APP-M1-T04.md) | 交付 | reference-1 | 部分交付 / 进行中 | ISSUE-007 / APP-M1 | 实际结果与未完成范围，不关闭完整任务 |
-| D-103 | 2026-10-10 | [APP-M1-T04代码解释](code/APP-M1-T04.md) | 代码说明 | reference-1 | 当前 | ISSUE-007 / APP-M1 | 页面、后台和失败保护的实际调用关系 |
+| D-100 | 2026-10-10 | [APP-M1-T03阶段交付](delivery/APP-M1-T03.md) | 交付 | reference-sla-1 | 部分交付 / 进行中 | ISSUE-007 / APP-M1 | 实际结果与未完成范围，不关闭完整任务 |
+| D-101 | 2026-10-10 | [APP-M1-T03代码解释](code/APP-M1-T03.md) | 代码说明 | reference-sla-1 | 当前 | ISSUE-007 / APP-M1 | 页面、后台和失败保护的实际调用关系 |
+| D-102 | 2026-10-10 | [APP-M1-T04阶段交付](delivery/APP-M1-T04.md) | 交付 | reference-sla-1 | 部分交付 / 进行中 | ISSUE-007 / APP-M1 | 实际结果与未完成范围，不关闭完整任务 |
+| D-103 | 2026-10-10 | [APP-M1-T04代码解释](code/APP-M1-T04.md) | 代码说明 | reference-sla-1 | 当前 | ISSUE-007 / APP-M1 | 页面、后台和失败保护的实际调用关系 |
 | D-104 | 2026-10-10 | [APP-M1-T05阶段交付](delivery/APP-M1-T05.md) | 交付 | reference-1 | 部分交付 / 进行中 | ISSUE-007 / APP-M1 | 实际结果与未完成范围，不关闭完整任务 |
 | D-105 | 2026-10-10 | [APP-M1-T05代码解释](code/APP-M1-T05.md) | 代码说明 | reference-1 | 当前 | ISSUE-007 / APP-M1 | 页面、后台和失败保护的实际调用关系 |
+
+| D-106 | 2026-10-10 | [服务承诺验收](testing/2026-10-10-sla.md) | 验证 | reference-sla-1 | 本地通过 | ISSUE-007 / APP-M1-T09～T11 | 后台119/前端13、真实HTTP与页面、Word内容；视觉版式未验收 |
+| D-107 | 2026-10-10 | [T09交付](delivery/APP-M1-T09.md) | 交付 | reference-sla-1 | 本地done / 待合入 | ISSUE-007 / APP-M1-T09～T11 | 结构化模板与能力；完整故障等级治理另验收 |
+| D-108 | 2026-10-10 | [T09代码解释](code/APP-M1-T09.md) | 代码说明 | reference-sla-1 | 当前 | ISSUE-007 / APP-M1-T09～T11 | 模板确认依据、公司隔离、项目失效 |
+| D-109 | 2026-10-10 | [T10交付](delivery/APP-M1-T10.md) | 交付 | reference-sla-1 | 本地done / 待合入 | ISSUE-007 / APP-M1-T09～T11 | 三方数值对照、七类判定与只读事实 |
+| D-110 | 2026-10-10 | [T10代码解释](code/APP-M1-T10.md) | 代码说明 | reference-sla-1 | 当前 | ISSUE-007 / APP-M1-T09～T11 | 按招标取值保护、当前风险核对及事实复核 |
+| D-111 | 2026-10-10 | [T11交付](delivery/APP-M1-T11.md) | 交付 | reference-sla-1 | 本地done / 待合入 | ISSUE-007 / APP-M1-T09～T11 | 变量与明确检查子集、内部承诺函；正式Word版式未验收 |
+| D-112 | 2026-10-10 | [T11代码解释](code/APP-M1-T11.md) | 代码说明 | reference-sla-1 | 当前 | ISSUE-007 / APP-M1-T09～T11 | 单位换算、同一取值、旧出口保护及下载失效 |
+| D-113 | 2026-10-10 | [服务承诺核心](../backend/bid-core/icg_demo/sla.py) | 代码 | reference-sla-1 | 定向验收通过 | ISSUE-007 / APP-M1-T09～T11 | 模板、判定、批准、派生事实、变量与实际表格 |
+| D-114 | 2026-10-10 | [服务承诺字段](../backend/bid-core/icg_demo/sla_schemas.py) | 接口代码 | reference-sla-1 | 字段核对通过 | ISSUE-007 / APP-M1-T09～T11 | 严格数值与公司模板/项目值结构 |
+| D-115 | 2026-10-10 | [服务承诺页面](../frontend/web/src/SlaPages.tsx) | 页面代码 | reference-sla-1 | 真实操作通过 | ISSUE-007 / APP-M1-T09～T11 | 模板维护、数值矩阵和承诺函下载 |
+| D-116 | 2026-10-10 | [服务承诺表单](../frontend/web/src/sla-form.ts) | 代码 | reference-sla-1 | 行为通过 | ISSUE-007 / APP-M1-T09～T11 | 空值/零、数值、完整变量和单位插入 |
+| D-117 | 2026-10-10 | [服务承诺HTTP工具](../backend/bid-core/smoke_sla.py) | 验证工具 | reference-sla-1 | 最终服务通过 | ISSUE-007 / APP-M1-T09～T11 | 仅本机合成项目、能力/事实门禁和真实下载 |
+| D-118 | 2026-10-10 | [服务承诺独立测试](../tests/backend/test_sla.py) | 验证代码 | reference-sla-1 | 42项通过 | ISSUE-007 / APP-M1-T09～T11 | 单位、权限、来源/模板、出口、实际Word及本次确认依据 |
+| D-119 | 2026-10-10 | [服务承诺前端测试](../tests/frontend/sla-form.test.mjs) | 验证代码 | reference-sla-1 | 4项通过 | ISSUE-007 / APP-M1-T09～T11 | 输入与选区/冲突单位，前端合计13项 |
 
 ## 更新记录
 
@@ -130,6 +145,8 @@
 | 2026-10-10 | ISSUE-005 / ISSUE-006 | 技术/商务范围确认、后端准备、真实demo、接口约定与验收；既有规则版本保持 |
 
 | 2026-10-10 | ISSUE-007 / APP-M1 | 同源产品、五类边界修复、逐卡阶段交付、主流程验证和真实未完成范围 |
+
+| 2026-10-10 | ISSUE-007 / APP-M1-T09～T11 | 数值SLA、模板/事实/变量/承诺函、独立验收及真实未完成范围；治理版本保持g1.1 |
 
 ## 缺失输入
 

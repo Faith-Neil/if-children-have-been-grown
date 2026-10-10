@@ -31,5 +31,8 @@ def project_input_fingerprint(state: DemoState, project_id: str) -> str:
         "chapters": [{"id": c.id, "title": c.title, "volume": c.volume,
                       "revision": c.revision, "content": c.content} for c in chapters],
         "library": [item for item in state.library.values() if item["company_id"] == project["company_id"]],
+        "sla": workflow.get("sla"),
+        "sla_templates": [item for item in state.sla_templates.values()
+                          if item["company_id"] == project["company_id"]],
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()

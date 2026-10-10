@@ -16,6 +16,7 @@ from typing import Callable
 from .domain import Chapter, DemoService, DemoState, DomainError, Principal, content_hash, iso_time, new_id
 from .ports import ParserProvider
 from .input_snapshot import project_input_fingerprint
+from .sla import SlaService, public_sla, resolve_variables, sla_facts, sla_issues
 
 
 DOCX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -35,14 +36,15 @@ SAMPLE_TENDER = """合成招标文件：星河数据库维保服务项目
 def _blank_workflow() -> dict:
     return {"files": {}, "requirements": {}, "facts": {}, "conflicts": {},
             "candidates": {}, "checks": {}, "exports": {}, "parse_confirmed": False,
-            "plan_confirmed": False, "chapter_order": []}
+            "plan_confirmed": False, "chapter_order": [], "sla": None, "sla_commitments": {}}
 
 
 class WorkflowService:
     MAX_UPLOAD = 5 * 1024 * 1024
     IMPLEMENTED_RULES = ["parse-confirmation", "fact-conflicts", "matrix-completeness",
                          "evidence-company-and-review", "evidence-validity", "committed-content",
-                         "pending-markers", "two-volumes", "input-fingerprint", "export-permission"]
+                         "pending-markers", "two-volumes", "input-fingerprint", "export-permission",
+                         "sla-values-and-capability-subset", "sla-variables-and-labelled-numbers-subset"]
     UNIMPLEMENTED_RULES = ["参考合规规则尚未逐条完成（按一期完整/一期简化/二期分组）", "语义事实与承诺核对",
                            "公司全文查重", "结构化敏感变量", "交叉复核和完整分册定稿"]
 
@@ -50,6 +52,7 @@ class WorkflowService:
         self.demo = demo
         self.repository = demo.repository
         self.parser = parser
+        self.sla = SlaService(self)
 
     @staticmethod
     def _workflow(state: DemoState, project_id: str, *, create=False) -> dict:
@@ -163,12 +166,13 @@ class WorkflowService:
         return {"revision": project.revision, "input_fingerprint": self._fingerprint(state, project_id),
                 "project": asdict(project), "stage": stage,
                 "files": [self._public_file(f) for f in workflow["files"].values()],
-                "requirements": list(workflow["requirements"].values()), "facts": list(workflow["facts"].values()),
+                "requirements": list(workflow["requirements"].values()), "facts": list(workflow["facts"].values()) + sla_facts(state, project_id),
                 "conflicts": list(workflow["conflicts"].values()), "chapters": chapters,
                 "checks": [self._public_check(state, project_id, c) for c in workflow["checks"].values()],
                 "exports": [self._public_export(state, project_id, e) for e in workflow["exports"].values()],
                 "jobs": [j for j in state.jobs.values() if j["project_id"] == project_id],
-                "parse_confirmed": workflow["parse_confirmed"], "plan_confirmed": workflow["plan_confirmed"]}
+                "parse_confirmed": workflow["parse_confirmed"], "plan_confirmed": workflow["plan_confirmed"],
+                "sla": public_sla(state, project_id)}
 
     def patch_project(self, principal, project_id, payload, expected, key):
         def operation(state, project, workflow):
@@ -377,6 +381,8 @@ class WorkflowService:
             if "evidence_ids" in payload and len(payload["evidence_ids"]) != len(set(payload["evidence_ids"])):
                 raise DomainError(422, "DUPLICATE_EVIDENCE", "同一证据不能重复挂接。")
             updated = {**requirement, **payload}
+            if requirement["category"] == "sla" or payload.get("category") == "sla":
+                updated["sla_required"] = True
             text_changed = "text" in payload and payload["text"] != requirement["text"]
             if text_changed:
                 # 新原文不能继承旧引用的人工确认，也不能同一次改字时顺便假确认。
@@ -398,6 +404,8 @@ class WorkflowService:
 
     def patch_fact(self, principal, project_id, fact_id, payload, expected, key):
         def operation(state, project, workflow):
+            if fact_id.startswith("sla:"):
+                return self.sla.confirm_fact(state, principal, project_id, workflow, fact_id[4:], payload)
             fact = workflow["facts"].get(fact_id)
             if fact is None:
                 raise DomainError(404, "NOT_FOUND", "未找到本项目事实。")
@@ -462,6 +470,9 @@ class WorkflowService:
         def operation(state, project, workflow):
             if not workflow["parse_confirmed"]:
                 raise DomainError(409, "PARSE_NOT_CONFIRMED", "请先确认解析结果，再确认写作大纲。")
+            issues = sla_issues(state, project_id)
+            if issues:
+                raise DomainError(409, "SLA_NOT_READY", "服务承诺或必备事实仍待处理，请先逐条核对。", {"issues": issues})
             requested = payload["chapters"]
             if {c["volume"] for c in requested} != {"technical", "business"}:
                 raise DomainError(422, "TWO_VOLUMES_REQUIRED", "本期大纲必须同时包含技术和商务两册。")
@@ -654,6 +665,7 @@ class WorkflowService:
                     add("EMPTY_CONTENT", "已提交正文为空：" + chapter.title, chapter_id=chapter.id)
                 if "待补" in chapter.content:
                     add("PENDING_CONTENT", "已提交正文仍有待补：" + chapter.title, chapter_id=chapter.id)
+            issues.extend(sla_issues(state, project_id, chapters))
             check = {"id": new_id("project-check"), "volume": volume, "passed": not issues,
                      "status": "failed" if issues else "passed", "issues": issues,
                      "coverage": {"implemented_rules": self.IMPLEMENTED_RULES,
@@ -699,7 +711,7 @@ class WorkflowService:
                 selected = [c for c in chapters if c.volume == volume]
                 filename = f"icg-{volume}-{identity}.docx"
                 documents[volume] = {"title": self._mask(project.name) + " — " + name,
-                                     "content": "\n\n".join(self._mask(c.title) + "\n" + self._mask(c.content) for c in selected)}
+                                     "content": "\n\n".join(self._mask(c.title) + "\n" + self._mask(resolve_variables(state, project_id, c.content)) for c in selected)}
                 volumes.append({"volume": volume, "filename": filename,
                                 "download_url": f"/api/v1/projects/{project_id}/exports/{identity}/{volume}"})
             record = {"id": identity, "kind": payload["kind"], "check_id": check["id"],

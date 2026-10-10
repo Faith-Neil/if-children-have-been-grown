@@ -1,10 +1,10 @@
 // 为什么有这个文件：共享当前项目和经过权限校验的操作入口。
 // 它解决什么问题：每个项目页签更新后读取同一后台状态，避免各页假数据。
 import { createContext, useContext } from 'react';
-import type { Account, Evidence, Workspace } from './types';
+import type { Account, Evidence, SlaTemplate, Workspace } from './types';
 
 export type ProjectContextValue = {
-  workspace: Workspace; token: string; user: Account; busy: boolean; library: Evidence[];
+  workspace: Workspace; token: string; user: Account; busy: boolean; library: Evidence[]; slaTemplates: SlaTemplate[];
   mutate: (path: string, method: string, body?: unknown) => Promise<unknown>;
   reload: () => Promise<void>;
   report: (error: unknown) => void;
