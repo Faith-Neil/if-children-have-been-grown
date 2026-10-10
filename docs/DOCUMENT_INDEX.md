@@ -59,7 +59,7 @@
 | D-046 | 2026-10-09 | [REV任务](tasks/REV-M0.md) | 审查 | g1.1 | 当前 | ISSUE-004 | 目录/业务/技术与brief交付 |
 | D-047 | 2026-10-09 | [业务审查](reviews/2026-10-09-business-readiness.md) | 业务 | review-1 | 待决定 | REV-M0-T01 / ISSUE-005 | 场景矩阵与12项设计/验收发现 |
 | D-048 | 2026-10-09 | [技术审查](reviews/2026-10-09-technical-readiness.md) | 技术 | review-1 | 待决定 | REV-M0-T01 / ISSUE-005 | 6类契约缺口与图片目录对照 |
-| D-049 | 2026-10-10 | [接手brief](PROJECT_BRIEF.md) | 接手 | brief-4 | 当前 | ISSUE-007 / APP-M1 | 项目范围、现状、分支、风险与下一步 |
+| D-049 | 2026-10-10 | [接手brief](PROJECT_BRIEF.md) | 接手 | brief-5 | 当前 | ISSUE-007 / APP-M1 | 项目范围、现状、分支、风险与下一步 |
 | D-050 | 2026-10-09 | [工作区来源](source/WORKSPACE_MATERIALS.md) | 历史资料 | snapshot-1 | 已登记 | OPS-M0-T01 | 34份ICG资料、原路径与初次指纹 |
 | D-051 | 2026-10-09 | [同步工具说明](../tools/workspace-sync/README.md) | 运维 | sync-1 | 当前 | OPS-M0-T01 | 自动WIP、分叉、凭据、外部状态 |
 | D-052 | 2026-10-09 | [同步执行器](../tools/workspace-sync/sync.cjs) | 工程代码 | sync-1 | 回归通过 | OPS-M0-T01 | 单实例、双向Git、稳定期与出站检查 |
@@ -91,7 +91,7 @@
 | D-077 | 2026-10-10 | [HTTP验收入口](../backend/bid-core/smoke_demo.py) | 验证工具 | demo-1 | 通过 | BE-M0-T01 | 连接实际监听端口执行完整链路 |
 | D-078 | 2026-10-10 | [接口生成器](../backend/bid-core/export_openapi.py) | 工具 | demo-1 | 通过 | BE-M0-T01 | 保持约定与实际代码同源 |
 | D-079 | 2026-10-10 | [页面事件回归](../tests/backend/demo-page.test.cjs) | 验证代码 | demo-1 | 7项通过 | BE-M0-T01 | 直接执行页面代码，验证旧草稿、确认、恢复失败与会话锁 |
-| D-080 | 2026-10-10 | [示例联调Issue](../issues/ISSUE-007.md) | 变更 | reference-sla-1 | in-progress | ISSUE-007 / APP-M1 | 同一产品逐页接通，完整目标不以小demo代替 |
+| D-080 | 2026-10-10 | [示例联调Issue](../issues/ISSUE-007.md) | 变更 | reference-writing-1 | in-progress | ISSUE-007 / APP-M1 | 同一产品逐页接通，完整目标不以小demo代替 |
 | D-081 | 2026-10-10 | [示例任务卡](tasks/APP-M1.md) | 实施 | reference-sla-1 | 当前 | ISSUE-007 / APP-M1 | 核心流程、独立验收、后续拆分和完整审计 |
 | D-082 | 2026-10-10 | [示例接口约定](architecture/icg-reference-contract.md) | 接口 | reference-sla-1 | 联调中 | ISSUE-007 / APP-M1 | 新增结构化SLA、事实只读、变量/承诺函与版本规则 |
 | D-083 | 2026-10-10 | [示例差异记录](decisions/icg-reference-deviations.md) | 评审 | reference-1 | 持续维护 | ISSUE-007 / APP-M1 | 版本缺件、已取消页签和高级功能差异 |
@@ -134,6 +134,22 @@
 | D-118 | 2026-10-10 | [服务承诺独立测试](../tests/backend/test_sla.py) | 验证代码 | reference-sla-1 | 42项通过 | ISSUE-007 / APP-M1-T09～T11 | 单位、权限、来源/模板、出口、实际Word及本次确认依据 |
 | D-119 | 2026-10-10 | [服务承诺前端测试](../tests/frontend/sla-form.test.mjs) | 验证代码 | reference-sla-1 | 4项通过 | ISSUE-007 / APP-M1-T09～T11 | 输入与选区/冲突单位，前端合计13项 |
 
+| D-120 | 2026-10-10 | [写作输入验收](testing/2026-10-10-writing-input.md) | 验证 | reference-writing-1 | 本地通过 | ISSUE-007 / APP-M1-T12、T13 | 真实HTTP、页面、变量Word、当前限制 |
+| D-121 | 2026-10-10 | [T12交付](delivery/APP-M1-T12.md) | 交付 | reference-writing-1 | 已本地验收 | ISSUE-007 / APP-M1-T12、T13 | 本章事实输入与保护限定子集 |
+| D-122 | 2026-10-10 | [T13交付](delivery/APP-M1-T13.md) | 交付 | reference-writing-1 | 已本地验收 | ISSUE-007 / APP-M1-T12、T13 | 本章方案与候选来源页面子集 |
+| D-123 | 2026-10-10 | [T12代码解释](code/APP-M1-T12.md) | 代码 | reference-writing-1 | 当前 | ISSUE-007 / APP-M1-T12、T13 | 共享组装器、快照与变量 |
+| D-124 | 2026-10-10 | [T13代码解释](code/APP-M1-T13.md) | 代码 | reference-writing-1 | 当前 | ISSUE-007 / APP-M1-T12、T13 | 方案/当前输入/历史快照与事实插入 |
+| D-125 | 2026-10-10 | [实际写作输入](../backend/bid-core/icg_demo/generation_context.py) | 后端 | reference-writing-1 | 当前 | ISSUE-007 / APP-M1-T12、T13 | 来源当前性、选定事实、输出变量保护 |
+| D-126 | 2026-10-10 | [写作HTTP验收](../backend/bid-core/smoke_writing.py) | 验证 | reference-writing-1 | 已执行 | ISSUE-007 / APP-M1-T12、T13 | 本机合成端口、快照/变量/两册/失效 |
+| D-127 | 2026-10-10 | [独立写作回归](../tests/backend/test_generation_context.py) | 验证 | reference-writing-1 | 已执行 | ISSUE-007 / APP-M1-T12、T13 | 捕获入参、权限/来源/变量/并发反例 |
+| D-128 | 2026-10-10 | [本章方案页面](../frontend/web/src/WritingPlanReview.tsx) | 前端 | reference-writing-1 | 当前 | ISSUE-007 / APP-M1-T12、T13 | 负责人事实选择、要点与字数确认 |
+| D-129 | 2026-10-10 | [输入快照页面](../frontend/web/src/WritingInputPreview.tsx) | 前端 | reference-writing-1 | 当前 | ISSUE-007 / APP-M1-T12、T13 | 当前准备输入与历史来源分别显示 |
+| D-130 | 2026-10-10 | [写作页面函数](../frontend/web/src/writing-input.ts) | 前端 | reference-writing-1 | 当前 | ISSUE-007 / APP-M1-T12、T13 | 方案恢复、失效与事实变量插入 |
+| D-131 | 2026-10-10 | [写作函数回归](../frontend/web/tests/writing-input.test.mjs) | 验证 | reference-writing-1 | 已执行 | ISSUE-007 / APP-M1-T12、T13 | 4项实际函数回归 |
+| D-132 | 2026-10-10 | [写入来源独立回归](../tests/backend/test_candidate_write_guard.py) | 验证 | reference-writing-1 | 已执行 | ISSUE-007 / APP-M1-T12、T13 | 候选采纳后/草稿源改、事务拒绝、幂等与旧demo兼容 |
+| D-133 | 2026-10-10 | [编辑来源保护函数](../frontend/web/src/editing-source.ts) | 前端 | reference-writing-1 | 当前 | ISSUE-007 / APP-M1-T13 | 草稿/候选原基准、显式重新核对及恢复 |
+| D-134 | 2026-10-10 | [编辑来源回归](../frontend/web/tests/editing-source.test.mjs) | 验证 | reference-writing-1 | 已执行 | ISSUE-007 / APP-M1-T13 | 5项加载、恢复、写入与期间变动保护 |
+
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
@@ -147,6 +163,8 @@
 | 2026-10-10 | ISSUE-007 / APP-M1 | 同源产品、五类边界修复、逐卡阶段交付、主流程验证和真实未完成范围 |
 
 | 2026-10-10 | ISSUE-007 / APP-M1-T09～T11 | 数值SLA、模板/事实/变量/承诺函、独立验收及真实未完成范围；治理版本保持g1.1 |
+
+| 2026-10-10 | ISSUE-007 / APP-M1-T12、T13 | 本章方案、真实事实输入、候选快照与变量保护；独立回归、实际HTTP/GUI/两册内容证据 |
 
 ## 缺失输入
 

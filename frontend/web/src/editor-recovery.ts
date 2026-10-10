@@ -2,7 +2,7 @@
 // 它解决什么问题：防止核对期间的新正文或新草稿被恢复操作悄悄覆盖。
 type Snapshot = {
   id: string; revision: number;
-  draft?: { base_revision: number; sequence: number; content: string } | null;
+  draft?: { base_revision: number; sequence: number; content: string; input_fingerprint?: string | null } | null;
 };
 
 export function recoveryWrite(snapshot: Snapshot, latest: Snapshot, content: string) {
@@ -11,7 +11,8 @@ export function recoveryWrite(snapshot: Snapshot, latest: Snapshot, content: str
   }
   const sameDraft = snapshot.draft?.base_revision === latest.draft?.base_revision
     && snapshot.draft?.sequence === latest.draft?.sequence
-    && snapshot.draft?.content === latest.draft?.content;
+    && snapshot.draft?.content === latest.draft?.content
+    && snapshot.draft?.input_fingerprint === latest.draft?.input_fingerprint;
   if (!sameDraft) throw new Error('个人草稿已变化，恢复尚未保存。请重新读取草稿后核对。');
   return { base_revision: latest.revision, sequence: (latest.draft?.sequence ?? 0) + 1, content };
 }

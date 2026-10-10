@@ -75,7 +75,7 @@ def run(base_url, output_dir=None):
         lease = request(client, 'POST', chapter_path + '/lock', headers=manager, payload={}).json()
         content = '技术服务方案（合成验收）\n每月完成数据库巡检并提交报告。\n一级故障响应时限：{{sla:P1.response}}。\n全部内容仅用于测试。'
         request(client, 'POST', chapter_path + '/versions', headers=manager, payload={
-            'lease_token': lease['lease_token'], 'base_revision': technical['revision'],
+            'lease_token': lease['lease_token'], 'input_fingerprint': state()['input_fingerprint'], 'base_revision': technical['revision'],
             'content': content, 'idempotency_key': str(uuid4())})
         request(client, 'POST', chapter_path + '/lock/release', headers=manager,
                 payload={'lease_token': lease['lease_token']})

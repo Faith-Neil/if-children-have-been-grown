@@ -28,6 +28,7 @@ def project_input_fingerprint(state: DemoState, project_id: str) -> str:
         "conflicts": list(workflow.get("conflicts", {}).values()),
         "parse_confirmed": workflow.get("parse_confirmed", False),
         "plan_confirmed": workflow.get("plan_confirmed", False),
+        "writing_plan": workflow.get("writing_plan", {}),
         "chapters": [{"id": c.id, "title": c.title, "volume": c.volume,
                       "revision": c.revision, "content": c.content} for c in chapters],
         "library": [item for item in state.library.values() if item["company_id"] == project["company_id"]],

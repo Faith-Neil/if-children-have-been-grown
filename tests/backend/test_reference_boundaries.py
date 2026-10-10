@@ -33,6 +33,7 @@ def test_sensitive_model_gate_covers_both_generation_routes(local, expected):
     with TestClient(create_app(model_provider=model)) as client:
         flow = ProjectFlow(client).ready()
         flow.write("", {"sensitive": True}, "PATCH")
+        flow.confirm_plan()
         chapter = flow.state()["chapters"][0]
         response = client.post(f"/api/chapters/{chapter['id']}/suggestions", headers=flow.headers,
                                json={"instruction": "依据合成正文提出建议"})
@@ -89,7 +90,7 @@ def test_failed_file_can_be_removed_and_project_recovered(client):
     assert next(c for c in state["checks"] if c["id"] == check["id"])["status"] == "stale"
     assert client.get(exported["volumes"][0]["download_url"], headers=flow.headers).status_code == 409
     flow.write("/parse/confirm", {})
-    flow.write("/plan", {"chapters": [{"id": c["id"], "title": c["title"], "volume": c["volume"]}
+    flow.confirm_plan({"chapters": [{"id": c["id"], "title": c["title"], "volume": c["volume"]}
                                      for c in flow.state()["chapters"]]})
     flow.checked_export()
     state = client.app.state.service.repository.read()
@@ -167,7 +168,7 @@ def set_deadline(flow, project_value, fact_value):
     fact = next(f for f in flow.state()["facts"] if f["key"] == "投标截止时间")
     flow.write("/facts/" + fact["id"], {"value": fact_value, "status": "confirmed"}, "PATCH")
     flow.write("/parse/confirm", {})
-    flow.write("/plan", {"chapters": [{"id": c["id"], "title": c["title"], "volume": c["volume"]}
+    flow.confirm_plan({"chapters": [{"id": c["id"], "title": c["title"], "volume": c["volume"]}
                                      for c in flow.state()["chapters"]]})
 
 
@@ -202,11 +203,13 @@ def test_evidence_date_covers_local_deadline_not_previous_utc_day(client):
     assert any(issue["code"] == "EVIDENCE_EXPIRED" for issue in check["issues"])
     updated = library_patch(client, flow, evidence["id"], {"valid_until": "2026-12-31", "status": "confirmed", "reason": "有效至北京时间当天。"})
     assert updated.status_code == 200, updated.text
+    # 来源改变后确认方案，再单独验证有效期恢复；旧方案不能沿用。
+    flow.confirm_plan()
     assert flow.write("/checks", {})["check"]["passed"] is True
 
 
 @pytest.mark.parametrize("change", ["response", "fact", "evidence", "project", "content"])
-def test_candidate_input_changes_hide_previous_candidate(client, change):
+def test_candidate_input_changes_mark_history_stale(client, change):
     flow = ProjectFlow(client).ready()
     chapter = next(c for c in flow.state()["chapters"] if c["volume"] == "technical")
     flow.write("/generate", {"chapter_ids": [chapter["id"]]})
@@ -228,7 +231,8 @@ def test_candidate_input_changes_hide_previous_candidate(client, change):
         flow.commit(chapter["id"], "不同的合成已提交正文。")
     after = flow.state()
     assert after["input_fingerprint"] != candidate["input_fingerprint"]
-    assert next(c for c in after["chapters"] if c["id"] == chapter["id"])["candidate"] is None
+    stale = next(c for c in after["chapters"] if c["id"] == chapter["id"])["candidate"]
+    assert stale["status"] == "stale" and stale["input_snapshot"] == candidate["input_snapshot"]
 
 
 def test_old_suggestion_rejects_project_change_during_model_call():

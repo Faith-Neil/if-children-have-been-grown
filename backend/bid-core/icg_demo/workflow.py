@@ -17,6 +17,9 @@ from .domain import Chapter, DemoService, DemoState, DomainError, Principal, con
 from .ports import ParserProvider
 from .input_snapshot import project_input_fingerprint
 from .sla import SlaService, public_sla, resolve_variables, sla_facts, sla_issues
+from .generation_context import (build_generation_context, chapter_plan, plan_is_current, project_facts,
+                                 public_plan, refuse_source_change, render_model_input, require_ready,
+                                 resolve_fact_variables, validate_model_output, writing_source_fingerprint)
 
 
 DOCX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -36,7 +39,7 @@ SAMPLE_TENDER = """合成招标文件：星河数据库维保服务项目
 def _blank_workflow() -> dict:
     return {"files": {}, "requirements": {}, "facts": {}, "conflicts": {},
             "candidates": {}, "checks": {}, "exports": {}, "parse_confirmed": False,
-            "plan_confirmed": False, "chapter_order": [], "sla": None, "sla_commitments": {}}
+            "plan_confirmed": False, "chapter_order": [], "sla": None, "sla_commitments": {}, "writing_plan": {}}
 
 
 class WorkflowService:
@@ -132,11 +135,11 @@ class WorkflowService:
     def _chapter_summary(self, state: DemoState, workflow: dict, chapter: Chapter) -> dict:
         active = chapter.lock and chapter.lock.expires_at > self.demo._now()
         candidate = workflow["candidates"].get(chapter.id)
-        if candidate and candidate.get("input_fingerprint") != self._fingerprint(state, chapter.project_id):
-            candidate = None
+        if candidate:
+            candidate = {**candidate, "status": "valid" if candidate.get("input_fingerprint") == self._fingerprint(state, chapter.project_id) else "stale"}
         return {**self.demo._summary(chapter), "content": chapter.content,
                 "lock": {"owner_id": chapter.lock.owner_id, "expires_at": iso_time(chapter.lock.expires_at)} if active else None,
-                "candidate": candidate,
+                "candidate": candidate, "writing_input": chapter_plan(workflow, chapter.id),
                 "requirement_ids": [r["id"] for r in workflow["requirements"].values() if r["chapter_id"] == chapter.id]}
 
     def _fingerprint(self, state: DemoState, project_id: str) -> str:
@@ -161,18 +164,27 @@ class WorkflowService:
         project = self.demo._project(state, principal, project_id)
         workflow = self._workflow(state, project_id)
         chapters = [self._chapter_summary(state, workflow, c) for c in self._ordered_chapters(state, project_id, workflow)]
-        stage = ("exported" if any(e["fingerprint"] == self._fingerprint(state, project_id) for e in workflow["exports"].values()) else "writing" if workflow["plan_confirmed"] else
+        stage = ("exported" if any(e["fingerprint"] == self._fingerprint(state, project_id) for e in workflow["exports"].values()) else "writing" if plan_is_current(state, project_id) else
                  "matrix" if workflow["parse_confirmed"] else "review" if workflow["requirements"] else "upload")
         return {"revision": project.revision, "input_fingerprint": self._fingerprint(state, project_id),
                 "project": asdict(project), "stage": stage,
                 "files": [self._public_file(f) for f in workflow["files"].values()],
-                "requirements": list(workflow["requirements"].values()), "facts": list(workflow["facts"].values()) + sla_facts(state, project_id),
+                "requirements": list(workflow["requirements"].values()), "facts": project_facts(state, project_id),
                 "conflicts": list(workflow["conflicts"].values()), "chapters": chapters,
                 "checks": [self._public_check(state, project_id, c) for c in workflow["checks"].values()],
                 "exports": [self._public_export(state, project_id, e) for e in workflow["exports"].values()],
                 "jobs": [j for j in state.jobs.values() if j["project_id"] == project_id],
-                "parse_confirmed": workflow["parse_confirmed"], "plan_confirmed": workflow["plan_confirmed"],
+                "parse_confirmed": workflow["parse_confirmed"], "plan_confirmed": plan_is_current(state, project_id),
+                "writing_plan": public_plan(workflow),
                 "sla": public_sla(state, project_id)}
+
+    def writing_input(self, principal, project_id, chapter_id):
+        state = self.repository.read()
+        self.demo._project(state, principal, project_id)
+        chapter = self.demo._chapter(state, principal, chapter_id)
+        if chapter.project_id != project_id:
+            raise DomainError(404, "NOT_FOUND", "章节不属于当前项目。")
+        return build_generation_context(state, project_id, chapter, self.demo._now())
 
     def patch_project(self, principal, project_id, payload, expected, key):
         def operation(state, project, workflow):
@@ -398,6 +410,8 @@ class WorkflowService:
             if text_changed or any(k in payload and payload[k] != requirement[k] for k in ("category", "volume", "status")):
                 workflow["parse_confirmed"] = False
                 workflow["plan_confirmed"] = False
+            if any(k in payload and payload[k] != requirement[k] for k in ("chapter_id", "response", "evidence_ids")):
+                workflow["plan_confirmed"] = False
             requirement.update(updated)
             return {"requirement": requirement}
         return self._write(principal, project_id, "requirement.update:" + requirement_id, payload, expected, key, operation)
@@ -409,6 +423,8 @@ class WorkflowService:
             fact = workflow["facts"].get(fact_id)
             if fact is None:
                 raise DomainError(404, "NOT_FOUND", "未找到本项目事实。")
+            if fact.get("required") and principal.user.role != "manager":
+                raise DomainError(403, "FACT_MANAGER_REQUIRED", "必备事实的维护和确认仅限本公司项目负责人。")
             if any(v is None for v in payload.values()):
                 raise DomainError(422, "INVALID_FACT", "事实字段不能设为空值。")
             updated = {**fact, **payload}
@@ -467,6 +483,8 @@ class WorkflowService:
         return self._write(principal, project_id, "parse.confirm", payload, expected, key, operation)
 
     def plan(self, principal, project_id, payload, expected, key):
+        if principal.user.role != "manager":
+            raise DomainError(403, "PLAN_MANAGER_REQUIRED", "写作方案须由本公司项目负责人确认。")
         def operation(state, project, workflow):
             if not workflow["parse_confirmed"]:
                 raise DomainError(409, "PARSE_NOT_CONFIRMED", "请先确认解析结果，再确认写作大纲。")
@@ -477,8 +495,20 @@ class WorkflowService:
             if {c["volume"] for c in requested} != {"technical", "business"}:
                 raise DomainError(422, "TWO_VOLUMES_REQUIRED", "本期大纲必须同时包含技术和商务两册。")
             old = {c.id: c for c in state.chapters.values() if c.project_id == project_id}
-            seen, retained = set(), []
+            seen, retained, planned = set(), [], {}
+            facts = {fact["id"]: fact for fact in project_facts(state, project_id)}
+            if any(fact["required"] and fact["status"] != "confirmed" for fact in facts.values()):
+                raise DomainError(409, "FACT_NOT_READY", "全部必备事实确认后才能确认写作方案。")
             for item in requested:
+                ids = item.get("fact_ids", [])
+                if len(ids) != len(set(ids)):
+                    raise DomainError(422, "DUPLICATE_FACT", "本章同一事实不能重复选择。")
+                if any(identity not in facts for identity in ids):
+                    raise DomainError(409, "FACT_NOT_FOUND", "所选事实不属于本项目或已经删除。")
+                if any(facts[identity]["status"] != "confirmed" for identity in ids):
+                    raise DomainError(409, "FACT_NOT_READY", "本章所选事实须先确认取值。")
+                from .parsing import LocalTextParser
+                LocalTextParser._validate_text(item.get("writing_points", ""))
                 if not item["title"].strip():
                     raise DomainError(422, "EMPTY_CHAPTER_TITLE", "章节标题不能为空。")
                 identity = item.get("id")
@@ -505,6 +535,8 @@ class WorkflowService:
                     chapter.title, chapter.volume = item["title"], item["volume"]
                 seen.add(chapter.id)
                 retained.append(chapter)
+                planned[chapter.id] = {"id": chapter.id, "fact_ids": list(ids),
+                                       "writing_points": item.get("writing_points", ""), "target_length": item.get("target_length")}
             removed = set(old) - seen
             for identity in removed:
                 chapter = old[identity]
@@ -516,7 +548,14 @@ class WorkflowService:
                 workflow["candidates"].pop(identity, None)
             workflow["plan_confirmed"] = True
             workflow["chapter_order"] = [c.id for c in retained]
-            return {"plan_confirmed": True, "chapters": [self._chapter_summary(state, workflow, c) for c in retained]}
+            workflow["writing_plan"] = {"confirmed_by": principal.user.id, "confirmed_by_name": principal.user.name,
+                                        "confirmed_at": iso_time(self.demo._now()), "chapters": planned}
+            workflow["writing_plan"]["confirmed_input_fingerprint"] = writing_source_fingerprint(state, project_id)
+            # 方案确认检查实际来源资格；不把证据过期等缺项留到模型输出以后。
+            for chapter in retained:
+                require_ready(build_generation_context(state, project_id, chapter, self.demo._now()))
+            return {"plan_confirmed": True, "writing_plan": public_plan(workflow),
+                    "chapters": [self._chapter_summary(state, workflow, c) for c in retained]}
         return self._write(principal, project_id, "plan.confirm", payload, expected, key, operation)
 
     def generate(self, principal, project_id, payload, expected, key):
@@ -536,32 +575,25 @@ class WorkflowService:
             chapters = [c for c in chapters if c.id in selected]
         candidates = {}
         for chapter in chapters:
-            rows = [r for r in workflow["requirements"].values() if r["chapter_id"] == chapter.id and r["status"] == "confirmed"]
-            lines = [chapter.title, "本内容为待人工核对的候选，不构成已确认的服务承诺。"]
-            for row in rows:
-                lines += ["招标要求：" + row["text"], "响应：" + (row["response"].strip() or "【待补】请填写经核对的响应")]
-                for evidence_id in row["evidence_ids"]:
-                    evidence = snapshot.library.get(evidence_id)
-                    if evidence:
-                        lines.append("证据引用：" + evidence["name"] + "\n" + evidence["content"])
-            if not rows:
-                lines.append("【待补】请先在响应矩阵关联本章节条款。")
-            context = "\n".join(lines)
+            assembled = build_generation_context(snapshot, project_id, chapter, self.demo._now())
+            require_ready(assembled)
+            input_snapshot = assembled["input_snapshot"]
+            context = render_model_input(input_snapshot)
+            instruction = "按本章已确认条款、响应、证据和事实组织候选；不能编造证据与承诺。引用事实保留变量，不能改取值。"
+            refuse_source_change(input_snapshot["plan"]["writing_points"], input_snapshot)
             try:
-                content = self.demo.model_provider.suggest("按本章已确认条款和响应组织候选；不能编造证据与承诺。", context)
-                if not isinstance(content, str) or len(content) > 100_000:
-                    raise ValueError("invalid model output")
-                # 模型适配器也不能绕过 Word 文本约束。
-                from .parsing import LocalTextParser
-                LocalTextParser._validate_text(content)
+                content = self.demo.model_provider.suggest(instruction, context)
             except Exception as error:
                 raise DomainError(502, "MODEL_UNAVAILABLE", "候选生成失败，正式正文没有修改。") from error
+            validate_model_output(snapshot, project_id, content, input_snapshot)
+            input_snapshot.update(model_input=context, model_instruction=instruction)
             candidates[chapter.id] = {"id": new_id("candidate"), "content": content,
                                       "base_revision": chapter.revision,
                                       "input_fingerprint": self._fingerprint(snapshot, project_id),
                                       "provider": getattr(self.demo.model_provider, "name", "injected"),
                                       "is_real_model": bool(getattr(self.demo.model_provider, "is_real_model", False)),
-                                      "created_at": iso_time(self.demo._now())}
+                                      "created_at": iso_time(self.demo._now()), "source_scope": "whole_chapter",
+                                      "input_snapshot": input_snapshot}
         def operation(state, project, current):
             if self._fingerprint(state, project_id) != self._fingerprint(snapshot, project_id):
                 raise DomainError(409, "VERSION_CONFLICT", "项目资料在生成期间更新，请重新生成候选。")
@@ -601,7 +633,7 @@ class WorkflowService:
             add = lambda code, message, **links: issues.append(self._issue(code, message, **links))
             if not workflow["parse_confirmed"]:
                 add("PARSE_NOT_CONFIRMED", "解析结果尚未确认。")
-            if not workflow["plan_confirmed"]:
+            if not plan_is_current(state, project_id):
                 add("PLAN_NOT_CONFIRMED", "写作大纲尚未确认。")
             if not project.tender_number.strip() or not project.deadline:
                 add("PROJECT_DETAILS_MISSING", "项目招标编号或投标截止时间未填写。")
@@ -665,6 +697,10 @@ class WorkflowService:
                     add("EMPTY_CONTENT", "已提交正文为空：" + chapter.title, chapter_id=chapter.id)
                 if "待补" in chapter.content:
                     add("PENDING_CONTENT", "已提交正文仍有待补：" + chapter.title, chapter_id=chapter.id)
+                try:
+                    resolve_fact_variables(state, project_id, chapter.content)
+                except DomainError as error:
+                    add(error.code, error.message, chapter_id=chapter.id)
             issues.extend(sla_issues(state, project_id, chapters))
             check = {"id": new_id("project-check"), "volume": volume, "passed": not issues,
                      "status": "failed" if issues else "passed", "issues": issues,
@@ -711,7 +747,7 @@ class WorkflowService:
                 selected = [c for c in chapters if c.volume == volume]
                 filename = f"icg-{volume}-{identity}.docx"
                 documents[volume] = {"title": self._mask(project.name) + " — " + name,
-                                     "content": "\n\n".join(self._mask(c.title) + "\n" + self._mask(resolve_variables(state, project_id, c.content)) for c in selected)}
+                                     "content": "\n\n".join(self._mask(c.title) + "\n" + self._mask(resolve_fact_variables(state, project_id, c.content)) for c in selected)}
                 volumes.append({"volume": volume, "filename": filename,
                                 "download_url": f"/api/v1/projects/{project_id}/exports/{identity}/{volume}"})
             record = {"id": identity, "kind": payload["kind"], "check_id": check["id"],

@@ -15,7 +15,7 @@ from .workflow_schemas import (CheckList, ConflictPatch, FactPatch, FileDelete, 
                                GenerateRequest, JobsList, LibraryCreate, LibraryList,
                                LibraryPatch, LibraryResult, MutationResult, ParseRequest,
                                PlanRequest, ProjectCheckRequest, ProjectExportRequest,
-                               ProjectPatch, RequirementPatch, V1Error, Workspace)
+                               ProjectPatch, RequirementPatch, V1Error, Workspace, WritingInputPreview)
 
 
 def include_workflow_routes(application, service, current_user, parser):
@@ -30,6 +30,10 @@ def include_workflow_routes(application, service, current_user, parser):
         result = workflow.workspace(user, project_id)
         response.headers["ETag"] = f'"{result["revision"]}"'
         return result
+
+    @router.get("/projects/{project_id}/chapters/{chapter_id}/writing-input", response_model=WritingInputPreview)
+    def writing_input(project_id: str, chapter_id: str, user: Principal = Depends(current_user)):
+        return workflow.writing_input(user, project_id, chapter_id)
 
     @router.patch("/projects/{project_id}", response_model=MutationResult, response_model_exclude_none=True)
     def patch_project(project_id: str, body: ProjectPatch, user: Principal = Depends(current_user),
@@ -95,8 +99,7 @@ def include_workflow_routes(application, service, current_user, parser):
              if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None)):
         return workflow.plan(user, project_id, body.model_dump(), if_match, idempotency_key)
 
-    @router.post("/projects/{project_id}/generate", response_model=MutationResult,
-                 response_model_exclude_none=True)
+    @router.post("/projects/{project_id}/generate", response_model=MutationResult)
     def generate(project_id: str, body: GenerateRequest, user: Principal = Depends(current_user),
                  if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None)):
         return workflow.generate(user, project_id, body.model_dump(), if_match, idempotency_key)

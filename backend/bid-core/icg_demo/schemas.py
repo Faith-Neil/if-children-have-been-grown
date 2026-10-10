@@ -50,12 +50,16 @@ class DraftRequest(LeaseRequest):
     base_revision: int = Field(ge=1)
     sequence: int = Field(ge=1)
     content: str = Field(max_length=100_000)
+    input_fingerprint: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$",
+                                          description="编辑内容所依据的项目输入指纹；有条款、事实或服务承诺的项目必须提供，来源变化后不能静默刷新")
 
 
 class VersionRequest(LeaseRequest):
     base_revision: int = Field(ge=1)
     content: str = Field(max_length=100_000)
     idempotency_key: str = Field(min_length=1, max_length=120)
+    input_fingerprint: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$",
+                                          description="本次提交实际核对的项目输入指纹；在同一写事务内验证，旧候选或旧草稿不能绕过")
 
     @field_validator("idempotency_key")
     @classmethod
@@ -143,6 +147,7 @@ class DraftResponse(ResponseBody):
     sequence: int = Field(ge=1)
     content: str
     base_revision: int = Field(ge=1)
+    input_fingerprint: str | None = Field(default=None, description="草稿最初保存时核对的输入指纹，读取或恢复草稿不会自动改为当前来源")
 
 
 class ChapterResponse(ChapterSummaryResponse):
@@ -192,6 +197,8 @@ class SuggestionResponse(ResponseBody):
     provider: str
     is_real_model: bool
     input_fingerprint: str = Field(description="包含正文、项目事实、矩阵和证据的输入指纹")
+    source_scope: Literal["whole_chapter"] | None = Field(default=None, description="整章输入范围，不能代表逐段溯源")
+    input_snapshot: dict[str, Any] | None = Field(default=None, description="实际送入模型的整章来源与文字快照；独立旧demo为空")
 
 
 class CheckIssueResponse(ResponseBody):

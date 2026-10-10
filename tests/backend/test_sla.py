@@ -152,7 +152,7 @@ def test_unknown_or_incomplete_variable_blocks_check(client):
     for text in ("未知变量{{sla:NoSuchValue}}。", "响应时限{{ sla:P1.response 分钟。"):
         chapter = client.get("/api/chapters/alpha-tech", headers=flow.headers).json()
         result = client.post("/api/chapters/alpha-tech/versions", headers=flow.headers, json={
-            "lease_token": lease["lease_token"], "base_revision": chapter["revision"],
+            "lease_token": lease["lease_token"], "input_fingerprint": flow.state()["input_fingerprint"], "base_revision": chapter["revision"],
             "content": text, "idempotency_key": str(uuid4())})
         assert result.status_code == 200, result.text
         check = flow.write("/checks", {"volume": "all"})["check"]
@@ -410,7 +410,7 @@ def test_same_unit_variable_is_resolved_in_actual_two_volume_word(client):
     chapter = client.get("/api/chapters/alpha-tech", headers=flow.headers).json()
     lease = client.post("/api/chapters/alpha-tech/lock", headers=flow.headers, json={}).json()
     result = client.post("/api/chapters/alpha-tech/versions", headers=flow.headers, json={
-        "lease_token": lease["lease_token"], "base_revision": chapter["revision"],
+        "lease_token": lease["lease_token"], "input_fingerprint": flow.state()["input_fingerprint"], "base_revision": chapter["revision"],
         "content": "一级故障响应时限为{{sla:P1.response}}分钟。", "idempotency_key": str(uuid4())})
     assert result.status_code == 200, result.text
     check = flow.write("/checks", {"volume": "all"})["check"]

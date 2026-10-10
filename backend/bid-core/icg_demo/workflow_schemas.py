@@ -56,9 +56,19 @@ class ConflictPatch(RequestBody):
 
 
 class PlannedChapter(RequestBody):
-    id: str | None = None
+    id: str | None = Field(default=None, max_length=100)
     title: str = Field(min_length=1, max_length=200)
     volume: Volume
+    fact_ids: list[str] = Field(default_factory=list, max_length=500)
+    writing_points: str = Field(default="", max_length=5000)
+    target_length: int | None = Field(default=None, ge=1, le=100_000)
+
+    @field_validator("fact_ids")
+    @classmethod
+    def fact_identifiers(cls, values):
+        if any(not value.strip() or len(value) > 100 for value in values):
+            raise ValueError("事实标识必须完整且不超过100字")
+        return values
 
 
 class PlanRequest(RequestBody):
@@ -165,6 +175,73 @@ class Fact(ResponseBody):
     sla_var_key: str | None = None
     unit: str = ""
     required: bool = False
+    label: str = ""
+    variable_token: str | None = None
+
+
+class ChapterWritingInput(ResponseBody):
+    id: str
+    fact_ids: list[str]
+    writing_points: str
+    target_length: int | None
+
+
+class WritingPlan(ResponseBody):
+    confirmed_by: str | None
+    confirmed_by_name: str | None = None
+    confirmed_at: str | None
+    chapters: list[ChapterWritingInput]
+
+
+class ConfirmedWritingInput(ChapterWritingInput):
+    confirmed_by: str | None
+    confirmed_by_name: str | None
+    confirmed_at: str | None
+
+
+class WritingFact(Fact):
+    variable: str
+
+
+class WritingEvidence(ResponseBody):
+    id: str
+    name: str
+    revision: int
+    type: LibraryType
+    valid_until: str | None
+    status: ReviewStatus
+    content: str
+    requirement_ids: list[str]
+
+
+class OmittedInput(ResponseBody):
+    kind: str
+    id: str
+    label: str
+    reason: str
+
+
+class WritingInputSnapshot(ResponseBody):
+    scope: Literal["whole_chapter"]
+    created_at: str
+    input_fingerprint: str
+    project: dict[str, Any]
+    chapter: dict[str, Any]
+    plan: ConfirmedWritingInput
+    requirements: list[dict[str, Any]]
+    evidence: list[WritingEvidence]
+    facts: list[WritingFact]
+    omitted_inputs: list[OmittedInput]
+    official_content: str
+    model_input: str | None = None
+    model_instruction: str | None = None
+
+
+class WritingInputPreview(ResponseBody):
+    source_scope: Literal["whole_chapter"]
+    input_snapshot: WritingInputSnapshot
+    ready: bool
+    issues: list[dict[str, Any]]
 
 
 class Conflict(ResponseBody):
@@ -184,6 +261,9 @@ class Candidate(ResponseBody):
     provider: str
     is_real_model: bool
     created_at: str
+    source_scope: Literal["whole_chapter"]
+    input_snapshot: WritingInputSnapshot
+    status: Literal["valid", "stale"] = "valid"
 
 
 class WorkflowChapter(ChapterSummaryResponse):
@@ -191,6 +271,7 @@ class WorkflowChapter(ChapterSummaryResponse):
     lock: LockSummaryResponse | None
     candidate: Candidate | None
     requirement_ids: list[str]
+    writing_input: ChapterWritingInput
 
 
 class JobError(ResponseBody):
@@ -284,6 +365,7 @@ class Workspace(ResponseBody):
     parse_confirmed: bool
     plan_confirmed: bool
     sla: ProjectSla | None = None
+    writing_plan: WritingPlan
 
 
 class MutationResult(ResponseBody):

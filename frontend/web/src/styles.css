@@ -16,3 +16,22 @@
 .sla-template-heading h3 { margin: 0 0 6px; }
 .sla-token-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 18px; border-bottom: 1px solid #e9edf4; background: #f8faff; }
 .sla-token-tools .ant-select { min-width: 220px; max-width: 360px; }
+
+/* 写作方案与来源沿用原编辑台三栏；较长的历史输入只在各自面板滚动。 */
+.writing-required-facts, .writing-chapter-plan { margin: 14px 0; }
+.writing-required-fact { padding: 9px 0; border-bottom: 1px solid #edf0f5; }
+.writing-required-fact:last-child { border-bottom: 0; }
+.writing-required-fact small { display: block; margin-top: 6px; line-height: 1.7; }
+.writing-plan-form { margin: 18px 0; }
+.writing-chapter-plan .ant-form-item { margin-bottom: 14px; }
+.writing-input-preview { font-size: 12px; overflow-wrap: anywhere; }
+.writing-input-preview > .ant-alert { margin-bottom: 12px; }
+.writing-input-preview .ant-collapse-content-box { padding: 10px; }
+.writing-input-preview .source-card .ant-card-head-title { white-space: normal; }
+.writing-input-preview .source-card .ant-card-head { padding: 0 12px; }
+.writing-input-preview code { white-space: normal; color: #6241aa; }
+.writing-captured-source .muted { font-size: 11px; }
+.writing-evidence-content { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: 1.8; max-height: 260px; overflow: auto; }
+.writing-omitted-item { padding: 9px 0; border-bottom: 1px solid #edf0f5; }
+.writing-omitted-item p { color: var(--muted); margin: 6px 0; }
+.writing-source-controls { margin-bottom: 14px; }

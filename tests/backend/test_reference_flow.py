@@ -65,7 +65,12 @@ class ProjectFlow:
         for row in self.state()["requirements"]:
             self.write("/requirements/" + row["id"], {"status": "confirmed"}, "PATCH")
         for fact in self.state()["facts"]:
-            self.write("/facts/" + fact["id"], {"status": "confirmed"}, "PATCH")
+            manager_headers = None
+            if fact.get("required"):
+                manager_headers = {**login(self.client, "alpha-manager"),
+                                   "If-Match": str(self.state()["revision"]),
+                                   "Idempotency-Key": str(uuid4())}
+            self.write("/facts/" + fact["id"], {"status": "confirmed"}, "PATCH", headers=manager_headers)
         return self
 
     def library(self, **overrides):
@@ -77,16 +82,27 @@ class ProjectFlow:
         assert result.status_code == 200, result.text
         return result.json()["item"]
 
+    def confirm_plan(self, data=None, expected=200):
+        if data is None:
+            data = {"chapters": [{**{key: chapter[key] for key in ("id", "title", "volume")},
+                                  **{key: chapter["writing_input"][key] for key in ("fact_ids", "writing_points", "target_length")}}
+                                 for chapter in self.state()["chapters"]]}
+        # 日常编写仍用原编写人；当前演示尚无章节人员分配，方案由经理确认。
+        manager = login(self.client, "alpha-manager")
+        headers = {**manager, "If-Match": str(self.state()["revision"]),
+                   "Idempotency-Key": str(uuid4())}
+        return self.write("/plan", data, expected=expected, headers=headers)
+
     def ready(self):
         self.reviewed()
         self.write("/parse/confirm", {})
         chapters = self.state()["chapters"]
-        self.write("/plan", {"chapters": [{"id": c["id"], "title": c["title"], "volume": c["volume"]} for c in chapters]})
         evidence = self.library()
         for row in self.state()["requirements"]:
             chapter = next(c for c in chapters if c["volume"] == row["volume"])
             self.write("/requirements/" + row["id"], {"chapter_id": chapter["id"], "response": "经核对满足要求。",
                        "evidence_ids": [evidence["id"]] if row["volume"] == "business" else []}, "PATCH")
+        self.confirm_plan({"chapters": [{"id": c["id"], "title": c["title"], "volume": c["volume"]} for c in chapters]})
         for chapter in self.state()["chapters"]:
             self.commit(chapter["id"], COMMITTED[chapter["volume"]])
         return self
@@ -100,7 +116,7 @@ class ProjectFlow:
         lease = lock.json()["lease_token"]
         result = self.client.post(f"/api/chapters/{chapter_id}/versions", headers=self.headers,
                                  json={"lease_token": lease, "base_revision": chapter["revision"],
-                                       "content": content, "idempotency_key": str(uuid4())})
+                                       "content": content, "input_fingerprint": self.state()["input_fingerprint"], "idempotency_key": str(uuid4())})
         assert result.status_code == 200, result.text
         released = self.client.post(f"/api/chapters/{chapter_id}/lock/release", headers=self.headers, json={"lease_token": lease})
         assert released.status_code == 200
@@ -237,7 +253,7 @@ def test_unsubmitted_draft_and_generated_candidate_never_replace_committed_text(
     chapter = flow.state()["chapters"][0]
     lease = client.post(f"/api/chapters/{chapter['id']}/lock", headers=flow.headers, json={}).json()["lease_token"]
     draft = client.put(f"/api/chapters/{chapter['id']}/draft", headers=flow.headers, json={"lease_token": lease,
-                       "base_revision": chapter["revision"], "sequence": 1, "content": "仅草稿秘密验收标记"})
+                       "base_revision": chapter["revision"], "sequence": 1, "content": "仅草稿秘密验收标记", "input_fingerprint": flow.state()["input_fingerprint"]})
     assert draft.status_code == 200, draft.text
     _, exported = flow.checked_export()
     for volume in exported["volumes"]:

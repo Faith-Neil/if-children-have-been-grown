@@ -4,11 +4,11 @@
 
 # 项目任务看板
 
-任务版本：0.3；治理版本：g1.1；更新日期：2026-10-10；当前实现 Issue：[ISSUE-007](../issues/ISSUE-007.md)；生产门禁：[ISSUE-005](../issues/ISSUE-005.md)。
+任务版本：0.4；治理版本：g1.1；更新日期：2026-10-10；当前实现 Issue：[ISSUE-007](../issues/ISSUE-007.md)；生产门禁：[ISSUE-005](../issues/ISSUE-005.md)。
 
 将 [前端 ROADMAP](ROADMAP.md) 的 Phase 0～8 与发布 Milestone 1～5 拆为 **59 张任务卡**，由 FE-M0～FE-M8 管理。前缀 FE 表示前端合作交付；这些编号与参考全系统 M0～M8 的门禁、周期和范围独立。
 
-项目73项中 **done 8、in-progress 7、planned 10、blocked 48、ready 0**。APP-M1的11项产品联调任务中，前5项正在实现，第6项正在验收，第7/8项分别后续拆分和完整审计；T09～11的数值服务承诺子任务已本地验收，完整故障等级/服务时段、规则与Word版式仍待补齐。FE-M0-T03继续来源评审。旧FE59项保留为历史计划，OPS/REV/BE各1项已本地验收；PR #3待合入。以ICG页面/业务为实际目标，旧任务数量和小demo不代表产品完成率。
+项目75项中 **done 10、in-progress 7、planned 10、blocked 48、ready 0**。APP-M1的13项产品联调任务中，前5项正在实现，第6项正在验收，第7/8项分别后续拆分和完整审计；T09～11数值服务承诺、T12/T13本章事实输入和页面预览子任务已本地验收；完整故障等级/服务时段、片段/段落来源、规则与Word版式仍待补齐。FE-M0-T03继续来源评审。旧FE59项保留为历史计划，OPS/REV/BE各1项已本地验收；PR #3待合入。以ICG页面/业务为实际目标，旧任务数量和小demo不代表产品完成率。
 
 59张前端卡片估算合计 209 小时，单卡 2～4 小时，处于 0.5～4 小时的任务粒度目标内。该总和是已有基线/接口条件下的前端增量估算，不是项目排期，不含后端、模型、取得输入、评审或等待时间。开工若预计超 4 小时，先继续拆卡并登记 Issue/版本变更，保留原任务 ID 的历史。
 
@@ -46,7 +46,7 @@
 | [OPS-M0 工作区运维](tasks/OPS-M0.md) | ISSUE-004工作区同步；独立于业务MVP | 1 | 1/1 | 真实双向同步与持续运行验收完成。 |
 | [REV-M0 接手审查](tasks/REV-M0.md) | ISSUE-004目录与业务/技术审查 | 1 | 1/1 | 审查/brief交付完成，设计决定留ISSUE-005。 |
 | [BE-M0 后端链路](tasks/BE-M0.md) | ISSUE-006本地后端demo | 1 | 1/1 | 核心后台流程已本地验收，模型/数据库保留接口。 |
-| [APP-M1 示例实现](tasks/APP-M1.md) | ISSUE-007示例与后台联调 | 11 | 3/11 | T09～11数值服务承诺已本地验收；核心完整卡与其他页面继续推进。 |
+| [APP-M1 示例实现](tasks/APP-M1.md) | ISSUE-007示例与后台联调 | 13 | 5/13 | T09～13数值服务承诺、本章输入与页面预览已本地验收；完整父任务与其他页面继续推进。 |
 
 发布 Milestone 1～5 分别映射 FE-M1～FE-M5；FE-M0 为共用基础，FE-M6/FE-M7 为原 Phase 7/8 的可选增强，FE-M8 为贯穿原 Gate A/B/C 的发布验收。
 
@@ -130,6 +130,8 @@
 | [APP-M1-T09](tasks/APP-M1.md#app-m1-t09) | 服务承诺模板与公司能力 | done | 公司资料接口已接通 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M1-T09.md) |
 | [APP-M1-T10](tasks/APP-M1.md#app-m1-t10) | 三方对照、判断与事实引用 | done | T09模板、T03原文要求 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M1-T10.md) |
 | [APP-M1-T11](tasks/APP-M1.md#app-m1-t11) | 承诺变量、检查与承诺函 | done | T10取值、T04/05正文输出 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M1-T11.md) |
+| [APP-M1-T12](tasks/APP-M1.md#app-m1-t12) | 本章事实写作输入与保护 | done | T03/10事实、T04方案接口 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M1-T12.md) |
+| [APP-M1-T13](tasks/APP-M1.md#app-m1-t13) | 本章方案与候选来源预览 | done | T12共同字段、现有编辑台 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M1-T13.md) |
 <!-- task-board:end -->
 
 ## 每次推进的同步顺序

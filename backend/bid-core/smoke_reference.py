@@ -65,7 +65,6 @@ def run(base_url, output_dir=None):
             write('/facts/' + item['id'], {'status': 'confirmed', 'reason': '人工核对合成原文'}, 'PATCH')
         write('/parse/confirm', {})
         chapters = state()['chapters']
-        write('/plan', {'chapters': [{'id': c['id'], 'title': c['title'], 'volume': c['volume']} for c in chapters]})
         evidence = []
         for kind, name in [('qualification', '合成企业资质证明'), ('performance', '合成维保项目业绩')]:
             library = request(client, 'GET', '/api/v1/library', headers=editor).json()
@@ -79,12 +78,16 @@ def run(base_url, output_dir=None):
             proof = [evidence[1 if '业绩' in item['text'] else 0]['id']] if item['volume'] == 'business' else []
             write('/requirements/' + item['id'], {'chapter_id': chapter['id'], 'response': '依据合成资料核对并按原文要求响应。',
                                                   'evidence_ids': proof}, 'PATCH')
+        # 本章来源、矩阵与证据先整理好，再由当前负责账号确认方案。
+        request(client, 'POST', path + '/plan', headers={**manager,
+                'If-Match': str(state()['revision']), 'Idempotency-Key': str(uuid4())},
+                payload={'chapters': [{'id': c['id'], 'title': c['title'], 'volume': c['volume']} for c in chapters]})
         for chapter in chapters:
             chapter_path = '/api/chapters/' + chapter['id']
             current = request(client, 'GET', chapter_path, headers=editor).json()
             lease = request(client, 'POST', chapter_path + '/lock', headers=editor, payload={}).json()
             request(client, 'POST', chapter_path + '/versions', headers=editor,
-                    payload={'lease_token': lease['lease_token'], 'base_revision': current['revision'],
+                    payload={'lease_token': lease['lease_token'], 'input_fingerprint': state()['input_fingerprint'], 'base_revision': current['revision'],
                              'content': BODY[chapter['volume']], 'idempotency_key': str(uuid4())})
             request(client, 'POST', chapter_path + '/lock/release', headers=editor, payload={'lease_token': lease['lease_token']})
         request(client, 'GET', path + '/workspace', headers=beta, expected=404)
@@ -96,12 +99,12 @@ def run(base_url, output_dir=None):
         current = request(client, 'GET', chapter_path, headers=manager).json()
         lease = request(client, 'POST', chapter_path + '/lock', headers=manager, payload={}).json()
         request(client, 'PUT', chapter_path + '/draft', headers=manager,
-                payload={'lease_token': lease['lease_token'], 'base_revision': current['revision'], 'sequence': 1,
+                payload={'lease_token': lease['lease_token'], 'input_fingerprint': state()['input_fingerprint'], 'base_revision': current['revision'], 'sequence': 1,
                          'content': BODY['technical'] + '\n旧草稿独立核对记录（合成）。'})
         request(client, 'POST', chapter_path + '/lock/release', headers=manager, payload={'lease_token': lease['lease_token']})
         lease = request(client, 'POST', chapter_path + '/lock', headers=editor, payload={}).json()
         request(client, 'POST', chapter_path + '/versions', headers=editor,
-                payload={'lease_token': lease['lease_token'], 'base_revision': current['revision'],
+                payload={'lease_token': lease['lease_token'], 'input_fingerprint': state()['input_fingerprint'], 'base_revision': current['revision'],
                          'content': BODY['technical'], 'idempotency_key': str(uuid4())})
         request(client, 'POST', chapter_path + '/lock/release', headers=editor, payload={'lease_token': lease['lease_token']})
         assert request(client, 'GET', chapter_path, headers=manager).json()['draft']['base_revision'] < state()['chapters'][0]['revision']

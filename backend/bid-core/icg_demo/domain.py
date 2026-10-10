@@ -77,6 +77,7 @@ class Draft:
     sequence: int
     content: str
     base_revision: int
+    input_fingerprint: str | None = None
 
 
 @dataclass
@@ -188,7 +189,7 @@ class DemoService:
         workflow = state.workflows.get(chapter.project_id, {})
         # 接入原文/矩阵的项目一律走主流程；没有选模板也不能绕过尚未绑定的承诺。
         if (workflow.get("requirements") or workflow.get("sla")
-                or any(re.search(r"\{\{\s*sla\s*:", c.content)
+                or any(re.search(r"\{\{\s*(?:sla|fact)\s*:", c.content)
                        for c in state.chapters.values() if c.project_id == chapter.project_id)):
             raise DomainError(409, "SLA_PROJECT_EXPORT_REQUIRED", "本项目已有招标要求或服务变量，请从主流程检查并导出两册。旧单章入口仅验证独立演示。")
 
@@ -320,24 +321,27 @@ class DemoService:
         return self.repository.transaction(operation)
 
     def save_draft(self, principal: Principal, chapter_id: str, lease_token: str,
-                   base_revision: int, sequence: int, content: str) -> dict:
+                   base_revision: int, sequence: int, content: str, input_fingerprint: str | None = None) -> dict:
         def operation(state: DemoState):
             chapter = self._chapter(state, principal, chapter_id)
             self._writer(principal)
             self._lease(chapter, principal, lease_token)
             self._revision(chapter, base_revision)
+            self._writing_input(state, chapter, input_fingerprint)
             old = chapter.drafts.get(principal.user.id)
             if old and old.base_revision == base_revision and sequence <= old.sequence:
                 raise DomainError(409, "DRAFT_SEQUENCE_CONFLICT", "较旧的草稿请求不能覆盖较新的草稿。")
-            draft = Draft(sequence, content, base_revision)
+            draft = Draft(sequence, content, base_revision, input_fingerprint)
             chapter.drafts[principal.user.id] = draft
             self._audit(state, principal, chapter, "draft.save", {"sequence": sequence})
             return asdict(draft)
         return self.repository.transaction(operation)
 
     def commit_version(self, principal: Principal, chapter_id: str, lease_token: str,
-                       base_revision: int, content: str, idempotency_key: str) -> dict:
-        payload = {"lease_token": lease_token, "base_revision": base_revision, "content": content}
+                       base_revision: int, content: str, idempotency_key: str,
+                       input_fingerprint: str | None = None) -> dict:
+        payload = {"lease_token": lease_token, "base_revision": base_revision, "content": content,
+                   "input_fingerprint": input_fingerprint}
         fingerprint = content_hash(json.dumps(payload, sort_keys=True, ensure_ascii=False))
 
         def operation(state: DemoState):
@@ -351,6 +355,7 @@ class DemoService:
                     raise DomainError(409, "IDEMPOTENCY_CONFLICT", "相同重复请求标记不能用于不同内容。")
                 return previous["result"]
             self._revision(chapter, base_revision)
+            self._writing_input(state, chapter, input_fingerprint)
             chapter.content = content
             chapter.revision += 1
             state.projects[chapter.project_id].revision += 1
@@ -362,6 +367,16 @@ class DemoService:
             chapter.committed_requests[key] = {"fingerprint": fingerprint, "result": result}
             return result
         return self.repository.transaction(operation)
+
+    @staticmethod
+    def _writing_input(state: DemoState, chapter: Chapter, input_fingerprint: str | None):
+        # 检查和正文写入共用事务快照，不能用浏览器先前的一次读取替代原子校验。
+        workflow = state.workflows.get(chapter.project_id, {})
+        has_sources = bool(workflow.get("requirements") or workflow.get("facts") or workflow.get("sla"))
+        if has_sources and input_fingerprint is None:
+            raise DomainError(409, "INPUT_FINGERPRINT_REQUIRED", "请先核对项目来源，再保存草稿或提交正文；本次内容缺少来源基准。")
+        if input_fingerprint is not None and input_fingerprint != project_input_fingerprint(state, chapter.project_id):
+            raise DomainError(409, "INPUT_FINGERPRINT_STALE", "项目条款、事实、证据或正文已变化，不能保存或提交旧来源内容；请重新核对来源。")
 
     def versions(self, principal: Principal, chapter_id: str) -> dict:
         state = self.repository.read()
@@ -379,13 +394,30 @@ class DemoService:
         self._writer(principal)
         self.require_allowed_model(self._project(state, principal, chapter.project_id))
         fingerprint = project_input_fingerprint(state, chapter.project_id)
+        # 独立旧demo保持正文建议；接入项目资料后必须与主流程使用同一输入和门禁。
+        workflow = state.workflows.get(chapter.project_id, {})
+        input_snapshot = None
+        model_input = chapter.content
+        if workflow.get("requirements") or workflow.get("facts") or workflow.get("sla"):
+            from .generation_context import (build_generation_context, refuse_source_change,
+                                             render_model_input, require_ready)
+            context = build_generation_context(state, chapter.project_id, chapter, self._now())
+            require_ready(context)
+            input_snapshot = context["input_snapshot"]
+            refuse_source_change(instruction, input_snapshot)
+            refuse_source_change(input_snapshot["plan"]["writing_points"], input_snapshot)
+            model_input = render_model_input(input_snapshot)
         # 模型调用在事务外执行，只取得当前有权章节的正文，不持有全局写锁。
         try:
-            suggestion = self.model_provider.suggest(instruction, chapter.content)
+            suggestion = self.model_provider.suggest(instruction, model_input)
             if not isinstance(suggestion, str):
                 raise TypeError("模型接口必须返回字符串")
         except Exception as error:
             raise DomainError(502, "MODEL_UNAVAILABLE", "演示建议服务失败，正文没有修改。") from error
+        if input_snapshot is not None:
+            from .generation_context import validate_model_output
+            validate_model_output(state, chapter.project_id, suggestion, input_snapshot)
+            input_snapshot.update(model_input=model_input, model_instruction=instruction)
 
         def operation(current: DemoState):
             actual = self._chapter(current, principal, chapter_id)
@@ -398,7 +430,8 @@ class DemoService:
             return {"content": suggestion, "base_revision": chapter.revision,
                     "provider": getattr(self.model_provider, "name", "demo"),
                     "is_real_model": bool(getattr(self.model_provider, "is_real_model", False)),
-                    "input_fingerprint": fingerprint}
+                    "input_fingerprint": fingerprint, "source_scope": "whole_chapter" if input_snapshot else None,
+                    "input_snapshot": input_snapshot}
         return self.repository.transaction(operation)
 
     def check(self, principal: Principal, chapter_id: str) -> dict:

@@ -83,4 +83,23 @@ SLA事实以 `sla:<var_key>` 为稳定ID，工作区事实表只引用当前项�
 
 缺少的示例源包由截图和文档重建；设计差异单独登记，不趁实现主流程改写产品。产品完成以每页真实操作和业务验收为准，不能按文件数、测试数或旧任务完成比率推断。
 
-首次或主动重新确认模板必须填写本次非空reason，页面打开修改时清空旧理由供本次填写。`sla.commitments`可读取当前有效/过期的承诺函记录；模板/来源/数值与已提交正文变动使下载失效。正文变量统一换算为模板单位，后缀冲突或不可证明的单位转换拒绝输出；无后缀自动附模板单位。矩阵未绑定招标要求的额外承诺需负责人核对（R30子集）；承诺函每行都须事实已确认。候选生成器尚未自动注入完整服务事实，本次手动变量链路不能冒充这一能力。
+首次或主动重新确认模板必须填写本次非空reason，页面打开修改时清空旧理由供本次填写。`sla.commitments`可读取当前有效/过期的承诺函记录；模板/来源/数值与已提交正文变动使下载失效。正文变量统一换算为模板单位，后缀冲突或不可证明的单位转换拒绝输出；无后缀自动附模板单位。矩阵未绑定招标要求的额外承诺需负责人核对（R30子集）；承诺函每行都须事实已确认。该阶段手动变量链路的历史限制已由下述reference-writing-1补上选定事实与必备服务事实输入；完整事实类别与语义规则仍未完成。
+
+
+## 本章写作输入（reference-writing-1）
+
+对应PRD §5.7.2/5.7.8/5.11。当前44路径50操作；软件应用版本仍reference-1，交付阶段版本独立。
+
+POST plan的每章新增`fact_ids`（选中的本项目可选事实，默认空）、`writing_points`（最多5000字，默认空）、`target_length`（1～100000整数或null）。必备事实自动加入，不能通过不选择绕过。当前manager批量确认整份，保存`confirmed_by/confirmed_by_name/confirmed_at`；未实现原文完整章节/分册负责人分配。
+
+工作区新增`writing_plan`（确认信息与chapters配置），各chapter新增`writing_input`；`plan_confirmed`按来源摘要即时计算，不继续沿用已变更的来源。条款映射、响应、证据和事实/方案变化需重新确认；提交正文只使候选/检查/输出失效，不让来源相同的方案自动失效。
+
+GET `/api/v1/projects/{project_id}/chapters/{chapter_id}/writing-input`只读返回`source_scope=whole_chapter`、`input_snapshot`、`ready`、`issues`。这是当前准备输入，尚未发送模型；不ready仍可查看具体阻断，但不能生成。
+
+生成候选及旧整章建议返回当次`source_scope/input_snapshot`。快照包含project标识/名称、chapter标识/分册/正文版本、plan配置与确认、requirements原文/响应/来源、evidence名称/记录版本/有效期/内容/关联要求、facts取值/单位/必备/变量/来源、omitted_inputs理由、official_content和生成时间；实际发送时另保存`model_input/model_instruction`。没有检索知识库或片段，不能冒称检索快照或逐段来源。SLA读项目当前值，不读模板默认值。
+
+候选新增`status=valid/stale`，旧候选保留历史快照供人核对，但不可采纳。快照自身不参与项目输入指纹。普通事实使用`{{fact:事实ID}}`，SLA使用原专用token；输出先检查未知、未确认、未纳入本章、错误单位及丢失原变量。源值修改返回FACT_SOURCE_CHANGE_REQUIRED与data_source_value理由；页面给事实表/矩阵入口。后台、来源当前性及输出仍必须核对，不能只依赖页面按钮。
+
+只实现明确可验证的变量和来源子项；完整R27/R44、敏感事实治理、勾选片段、字数动态预算、逐段矩阵绑定、拒绝事件完整审计和选区助手继续后续任务。两册内部稿用同一解析器，正式递交门禁不改变。
+
+写入来源保护（reference-writing-1收尾）：有requirements/facts/sla的工作流章节，PUT draft与POST versions请求必须包含当前input_fingerprint；服务器在同一事务校验来源摘要、编辑凭据及正文revision。缺失返回409 INPUT_FINGERPRINT_REQUIRED，过期返回409 INPUT_FINGERPRINT_STALE。Draft返回保存时的input_fingerprint，源改后不自动升级；真正重复提交可返回已完成结果，不重复写入。独立无来源旧demo仍可省略。事实取值已包含明确数字单位时，正文不能追加不同或重复单位，否则检查阻断；未知普通文本不推测单位。
