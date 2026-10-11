@@ -985,6 +985,109 @@
             }
           }
         }
+      },
+      "delete": {
+        "summary": "Discard Draft",
+        "operationId": "discard_draft_api_chapters__chapter_id__draft_delete",
+        "parameters": [
+          {
+            "name": "chapter_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Chapter Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftDiscardRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftDiscardResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求字段验证失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "后端演示服务异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示登录已失效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "版本、草稿或检查结果冲突",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/chapters/{chapter_id}/versions": {
@@ -1757,6 +1860,924 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Workspace"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/team": {
+      "get": {
+        "summary": "Team",
+        "operationId": "team_api_v1_projects__project_id__team_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update Team",
+        "operationId": "update_team_api_v1_projects__project_id__team_put",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "if-match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-Match"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TeamUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/chapters/{chapter_id}/assignment": {
+      "patch": {
+        "summary": "Assignment",
+        "operationId": "assignment_api_v1_projects__project_id__chapters__chapter_id__assignment_patch",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "chapter_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Chapter Id"
+            }
+          },
+          {
+            "name": "if-match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-Match"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChapterAssignment"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/chapters/{chapter_id}/plan": {
+      "patch": {
+        "summary": "Save Chapter Plan",
+        "operationId": "save_chapter_plan_api_v1_projects__project_id__chapters__chapter_id__plan_patch",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "chapter_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Chapter Id"
+            }
+          },
+          {
+            "name": "if-match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-Match"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChapterPlanPatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "428": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "业务错误与请求追踪编号",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/chapters/{chapter_id}/plan/confirm": {
+      "post": {
+        "summary": "Confirm Chapter Plan",
+        "operationId": "confirm_chapter_plan_api_v1_projects__project_id__chapters__chapter_id__plan_confirm_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "chapter_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Chapter Id"
+            }
+          },
+          {
+            "name": "if-match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-Match"
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmptyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
                 }
               }
             }
@@ -7338,6 +8359,33 @@
         ],
         "title": "Candidate"
       },
+      "ChapterAssignment": {
+        "properties": {
+          "assignee_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Id"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Reason",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "assignee_id"
+        ],
+        "title": "ChapterAssignment"
+      },
       "ChapterListResponse": {
         "properties": {
           "chapters": {
@@ -7354,6 +8402,40 @@
           "chapters"
         ],
         "title": "ChapterListResponse"
+      },
+      "ChapterPlanPatch": {
+        "properties": {
+          "fact_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "title": "Fact Ids"
+          },
+          "writing_points": {
+            "type": "string",
+            "maxLength": 5000,
+            "title": "Writing Points",
+            "default": ""
+          },
+          "target_length": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100000.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Length"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ChapterPlanPatch"
       },
       "ChapterResponse": {
         "properties": {
@@ -7408,6 +8490,25 @@
               }
             ],
             "description": "当前登录人自己的草稿；没有则为 null"
+          },
+          "assignee_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Id"
+          },
+          "permissions": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object",
+            "title": "Permissions",
+            "description": "按当前公司角色、项目成员与本册/本节分工实时核对的操作权限"
           }
         },
         "additionalProperties": true,
@@ -7420,7 +8521,9 @@
           "project_id",
           "content",
           "lock",
-          "draft"
+          "draft",
+          "assignee_id",
+          "permissions"
         ],
         "title": "ChapterResponse"
       },
@@ -7485,6 +8588,55 @@
               }
             ],
             "title": "Target Length"
+          },
+          "confirmed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed By"
+          },
+          "confirmed_by_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed By Name"
+          },
+          "confirmed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed At"
+          },
+          "confirmed_input_fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed Input Fingerprint"
+          },
+          "is_current": {
+            "type": "boolean",
+            "title": "Is Current",
+            "default": false
           }
         },
         "additionalProperties": true,
@@ -7697,6 +8849,22 @@
               }
             ],
             "title": "Confirmed At"
+          },
+          "confirmed_input_fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmed Input Fingerprint"
+          },
+          "is_current": {
+            "type": "boolean",
+            "title": "Is Current",
+            "default": false
           }
         },
         "additionalProperties": true,
@@ -7818,6 +8986,35 @@
           "complete"
         ],
         "title": "Coverage"
+      },
+      "DraftDiscardRequest": {
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Sequence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sequence"
+        ],
+        "title": "DraftDiscardRequest"
+      },
+      "DraftDiscardResponse": {
+        "properties": {
+          "discarded": {
+            "type": "boolean",
+            "title": "Discarded"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "discarded"
+        ],
+        "title": "DraftDiscardResponse"
       },
       "DraftRequest": {
         "properties": {
@@ -8265,6 +9462,61 @@
         "additionalProperties": false,
         "type": "object",
         "title": "GenerateRequest"
+      },
+      "Handoff": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "actor_id": {
+            "type": "string",
+            "title": "Actor Id"
+          },
+          "at": {
+            "type": "string",
+            "title": "At"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "chapter_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Chapter Ids"
+          },
+          "previous_user_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Previous User Ids"
+          },
+          "preserved_draft_count": {
+            "type": "integer",
+            "title": "Preserved Draft Count"
+          },
+          "revoked_lock_count": {
+            "type": "integer",
+            "title": "Revoked Lock Count"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "actor_id",
+          "at",
+          "reason",
+          "chapter_ids",
+          "previous_user_ids",
+          "preserved_draft_count",
+          "revoked_lock_count"
+        ],
+        "title": "Handoff"
       },
       "HealthResponse": {
         "properties": {
@@ -8983,6 +10235,36 @@
               }
             ],
             "title": "Plan Confirmed"
+          },
+          "writing_plan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WritingPlan"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "team": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Team"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "chapter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WorkflowChapter"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": true,
@@ -9050,8 +10332,24 @@
             },
             "type": "array",
             "maxItems": 100,
-            "minItems": 2,
+            "minItems": 1,
             "title": "Chapters"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "all",
+              "technical",
+              "business"
+            ],
+            "title": "Scope",
+            "default": "all"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Reason",
+            "default": ""
           }
         },
         "additionalProperties": false,
@@ -9115,6 +10413,18 @@
               }
             ],
             "title": "Target Length"
+          },
+          "assignee_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Id"
           }
         },
         "additionalProperties": false,
@@ -9324,6 +10634,16 @@
             ],
             "title": "Kind",
             "default": "internal"
+          },
+          "volume": {
+            "type": "string",
+            "enum": [
+              "all",
+              "technical",
+              "business"
+            ],
+            "title": "Volume",
+            "default": "all"
           }
         },
         "additionalProperties": false,
@@ -9404,6 +10724,84 @@
         "additionalProperties": false,
         "type": "object",
         "title": "ProjectPatch"
+      },
+      "ProjectPermissions": {
+        "properties": {
+          "manage_team": {
+            "type": "boolean",
+            "title": "Manage Team"
+          },
+          "manage_project": {
+            "type": "boolean",
+            "title": "Manage Project"
+          },
+          "manage_structure": {
+            "type": "boolean",
+            "title": "Manage Structure"
+          },
+          "prepare_sources": {
+            "type": "boolean",
+            "title": "Prepare Sources"
+          },
+          "manage_sla": {
+            "type": "boolean",
+            "title": "Manage Sla"
+          },
+          "edit_facts": {
+            "type": "boolean",
+            "title": "Edit Facts"
+          },
+          "confirm_facts": {
+            "type": "boolean",
+            "title": "Confirm Facts"
+          },
+          "check_all": {
+            "type": "boolean",
+            "title": "Check All"
+          },
+          "export_internal": {
+            "type": "boolean",
+            "title": "Export Internal"
+          },
+          "check_volumes": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "technical",
+                "business"
+              ]
+            },
+            "type": "array",
+            "title": "Check Volumes"
+          },
+          "export_volumes": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "technical",
+                "business"
+              ]
+            },
+            "type": "array",
+            "title": "Export Volumes"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "manage_team",
+          "manage_project",
+          "manage_structure",
+          "prepare_sources",
+          "manage_sla",
+          "edit_facts",
+          "confirm_facts",
+          "check_all",
+          "export_internal",
+          "check_volumes",
+          "export_volumes"
+        ],
+        "title": "ProjectPermissions"
       },
       "ProjectRequest": {
         "properties": {
@@ -10700,6 +12098,255 @@
         ],
         "title": "SuggestionResponse"
       },
+      "Team": {
+        "properties": {
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/TeamMember"
+            },
+            "type": "array",
+            "title": "Members"
+          },
+          "volumes": {
+            "items": {
+              "$ref": "#/components/schemas/VolumeOwner"
+            },
+            "type": "array",
+            "title": "Volumes"
+          },
+          "assembly_owner_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assembly Owner Id"
+          },
+          "available_accounts": {
+            "items": {
+              "$ref": "#/components/schemas/AccountResponse"
+            },
+            "type": "array",
+            "title": "Available Accounts"
+          },
+          "handoffs": {
+            "items": {
+              "$ref": "#/components/schemas/Handoff"
+            },
+            "type": "array",
+            "title": "Handoffs"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "members",
+          "volumes",
+          "assembly_owner_id",
+          "available_accounts",
+          "handoffs"
+        ],
+        "title": "Team"
+      },
+      "TeamMember": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "User Id"
+          },
+          "project_role": {
+            "type": "string",
+            "enum": [
+              "lead",
+              "writer",
+              "readonly"
+            ],
+            "title": "Project Role"
+          },
+          "volumes": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "technical",
+                "business"
+              ]
+            },
+            "type": "array",
+            "maxItems": 2,
+            "title": "Volumes"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "company_role": {
+            "type": "string",
+            "enum": [
+              "editor",
+              "manager",
+              "viewer"
+            ],
+            "title": "Company Role"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "user_id",
+          "project_role",
+          "name",
+          "company_role"
+        ],
+        "title": "TeamMember"
+      },
+      "TeamMemberInput": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "User Id"
+          },
+          "project_role": {
+            "type": "string",
+            "enum": [
+              "lead",
+              "writer",
+              "readonly"
+            ],
+            "title": "Project Role"
+          },
+          "volumes": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "technical",
+                "business"
+              ]
+            },
+            "type": "array",
+            "maxItems": 2,
+            "title": "Volumes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "user_id",
+          "project_role"
+        ],
+        "title": "TeamMemberInput"
+      },
+      "TeamResult": {
+        "properties": {
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/TeamMember"
+            },
+            "type": "array",
+            "title": "Members"
+          },
+          "volumes": {
+            "items": {
+              "$ref": "#/components/schemas/VolumeOwner"
+            },
+            "type": "array",
+            "title": "Volumes"
+          },
+          "assembly_owner_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assembly Owner Id"
+          },
+          "available_accounts": {
+            "items": {
+              "$ref": "#/components/schemas/AccountResponse"
+            },
+            "type": "array",
+            "title": "Available Accounts"
+          },
+          "handoffs": {
+            "items": {
+              "$ref": "#/components/schemas/Handoff"
+            },
+            "type": "array",
+            "title": "Handoffs"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "members",
+          "volumes",
+          "assembly_owner_id",
+          "available_accounts",
+          "handoffs",
+          "revision"
+        ],
+        "title": "TeamResult"
+      },
+      "TeamUpdate": {
+        "properties": {
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/TeamMemberInput"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Members"
+          },
+          "volumes": {
+            "items": {
+              "$ref": "#/components/schemas/VolumeOwnerInput"
+            },
+            "type": "array",
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Volumes"
+          },
+          "assembly_owner_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assembly Owner Id"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Reason",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "members",
+          "volumes",
+          "assembly_owner_id"
+        ],
+        "title": "TeamUpdate"
+      },
       "TenderFile": {
         "properties": {
           "id": {
@@ -10914,6 +12561,78 @@
         ],
         "title": "VersionResponse"
       },
+      "VolumeOwner": {
+        "properties": {
+          "volume": {
+            "type": "string",
+            "enum": [
+              "technical",
+              "business"
+            ],
+            "title": "Volume"
+          },
+          "owner_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Id"
+          },
+          "owner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Name"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "volume",
+          "owner_id",
+          "owner_name"
+        ],
+        "title": "VolumeOwner"
+      },
+      "VolumeOwnerInput": {
+        "properties": {
+          "volume": {
+            "type": "string",
+            "enum": [
+              "technical",
+              "business"
+            ],
+            "title": "Volume"
+          },
+          "owner_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "volume",
+          "owner_id"
+        ],
+        "title": "VolumeOwnerInput"
+      },
       "WorkflowChapter": {
         "properties": {
           "id": {
@@ -10970,6 +12689,35 @@
           },
           "writing_input": {
             "$ref": "#/components/schemas/ChapterWritingInput"
+          },
+          "assignee_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Id"
+          },
+          "assignee_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Name"
+          },
+          "permissions": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object",
+            "title": "Permissions"
           }
         },
         "additionalProperties": true,
@@ -10983,7 +12731,10 @@
           "lock",
           "candidate",
           "requirement_ids",
-          "writing_input"
+          "writing_input",
+          "assignee_id",
+          "assignee_name",
+          "permissions"
         ],
         "title": "WorkflowChapter"
       },
@@ -11080,6 +12831,12 @@
           },
           "writing_plan": {
             "$ref": "#/components/schemas/WritingPlan"
+          },
+          "team": {
+            "$ref": "#/components/schemas/Team"
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/ProjectPermissions"
           }
         },
         "additionalProperties": true,
@@ -11099,7 +12856,9 @@
           "jobs",
           "parse_confirmed",
           "plan_confirmed",
-          "writing_plan"
+          "writing_plan",
+          "team",
+          "permissions"
         ],
         "title": "Workspace"
       },

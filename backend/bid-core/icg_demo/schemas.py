@@ -54,6 +54,10 @@ class DraftRequest(LeaseRequest):
                                           description="编辑内容所依据的项目输入指纹；有条款、事实或服务承诺的项目必须提供，来源变化后不能静默刷新")
 
 
+class DraftDiscardRequest(RequestBody):
+    sequence: int = Field(ge=1)
+
+
 class VersionRequest(LeaseRequest):
     base_revision: int = Field(ge=1)
     content: str = Field(max_length=100_000)
@@ -155,6 +159,12 @@ class ChapterResponse(ChapterSummaryResponse):
     content: str = Field(description="已提交的当前正式正文，不包含草稿")
     lock: LockSummaryResponse | None = Field(description="有效编辑权的摘要，不含租约凭据")
     draft: DraftResponse | None = Field(description="当前登录人自己的草稿；没有则为 null")
+    assignee_id: str | None
+    permissions: dict[str, bool] = Field(description="按当前公司角色、项目成员与本册/本节分工实时核对的操作权限")
+
+
+class DraftDiscardResponse(ResponseBody):
+    discarded: bool
 
 
 class ReleasedResponse(ResponseBody):

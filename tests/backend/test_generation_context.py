@@ -180,7 +180,7 @@ def test_editor_cannot_confirm_plan_and_readonly_preview_is_nonmutating(context_
     assert provider.calls == []
 
 
-@pytest.mark.parametrize("account", ["alpha-manager", "beta-editor"])
+@pytest.mark.parametrize("account", ["alpha-manager", "beta-manager"])
 def test_other_projects_fact_cannot_be_selected(context_client, account):
     client, provider, repository = context_client
     setup = prepare_context(client, repository)
@@ -504,5 +504,5 @@ def test_required_non_sla_fact_confirmation_is_manager_only(context_client):
         json={"status": "confirmed", "reason": "普通成员不得代确认必备事实"}, headers={
             **login(client, 'alpha-editor'), 'If-Match': str(before['revision']),
             'Idempotency-Key': str(uuid4())})
-    assert response.status_code == 403 and response.json()['code'] == 'FACT_MANAGER_REQUIRED'
+    assert response.status_code == 403 and response.json()['code'] == 'PROJECT_LEAD_REQUIRED'
     assert flow.state() == before and provider.calls == []

@@ -4,13 +4,13 @@
 
 # ICG 示例主链路接口约定
 
-日期：2026-10-10。关联 ISSUE-007。实施目标是 ICG 原始设计和交接清单，先贯通主链路，再补齐其他页面。模型与数据库保持可替换；原始资料不改。
+日期：2026-10-11。关联 ISSUE-007。实施目标是 ICG 原始设计和交接清单，先贯通主链路，再补齐其他页面。模型与数据库保持可替换；原始资料不改。
 
 ## 当前实施边界
 
 正式页面放在 `frontend/web`，保留深色窄侧栏、白色顶栏、项目摘要、分册状态条、项目页签、解析三栏、矩阵表格、编辑三栏与检查问题列表。新页面最终由同一后台地址提供；原后台验证页仅作为开发验收入口。
 
-新业务接口使用 `/api/v1`。演示账号登录与章节租约等现有接口先复用 `/api`；正式接口迁移单独验证，不以旧字段假冒交接契约已完全满足。登录凭证只留当前页面，所有新接口核对公司与权限。
+新业务接口使用 `/api/v1`。演示账号登录与章节租约等现有接口先复用 `/api`；正式接口迁移单独验证，不以旧字段假冒交接契约已完全满足。登录凭证只留当前页面；新旧项目接口都核对当前公司角色、项目成员和具体操作范围。
 
 ## 主链路首批约定
 
@@ -33,9 +33,9 @@
 | POST `/api/v1/projects/{id}/generate` | 无或选定章节 | 生成任务及章节候选；模型演示实现明确标识，不自动提交正式正文 |
 | GET `/api/v1/projects/{id}/checks` | 无 | 检查批次及问题列表，标示已实现规则与未实现规则 |
 | POST `/api/v1/projects/{id}/checks` | `volume`: `technical`/`business`/`all` | 检查绑定当前条款、证据和已提交正文指纹；不读取未提交草稿 |
-| POST `/api/v1/projects/{id}/exports` | `check_id`, `kind`: `internal`/`submission` | 导出记录与两个独立 Word 地址；提交版仅经理，有效检查与完整分册前提需后台校验 |
+| POST `/api/v1/projects/{id}/exports` | `check_id`, `kind`: `internal`/`submission`, `volume`: `all`/`technical`/`business` | 当前范围的内部Word；检查范围必须一致，项目负责人可两册、本册负责人仅本册；递交版仍因完整规则/定稿未齐而拒绝 |
 | GET `/api/v1/projects/{id}/exports/{export_id}/{volume}` | 登录凭证 | 技术或商务Word实际文件；检查失效或公司不符时拒绝 |
-| GET `/api/v1/jobs` | 登录凭证 | 当前公司任务，明确同步/可恢复能力边界 |
+| GET `/api/v1/jobs` | 登录凭证 | 当前账号参与项目的任务，明确同步/可恢复能力边界 |
 | GET/POST `/api/v1/library` | 公司合成证据、类型、名称、正文、有效期 | 企业资料和可引用状态，证据变动使旧检查过期 |
 | PATCH `/api/v1/library/{id}` | 名称、类型、正文、有效期、状态、核对理由 | 实质变化默认回待确认；同次重新确认需非空理由；使用公司资料版本 |
 
@@ -48,6 +48,26 @@ v1错误为 `{code,message,details,traceId}`，旧接口仍用 `{error:{code,mes
 工作区、生成候选和旧章节建议均返回 `input_fingerprint`，即参与本次生成的资料摘要。条款、事实、证据或已提交正文改变后，旧候选失效；页面采纳前重新读取工作区核对，不只看章节版本。未声明运行位置的模型也不能处理敏感项目；两条生成入口使用同一门禁。截止时刻以UTC保存、北京时间显示；证据有效期按北京时间截止日核对，含时分的原文事实比较同一时刻。
 
 旧草稿和历史正文先并排核对，取得编辑权后重新核对后台版本及草稿顺序，再保存为当前版本的个人草稿。只有提交本节才产生新的正式正文；结构化差异合并和正式回滚事件尚未完成。
+
+## 项目成员与逐章确认（reference-members-1）
+
+来源PRD v1.8 §2.3/§5.1.4/§5.7.2，字典项目成员、分册负责人和大纲编写人；T14/T15。公司角色不是项目角色，未加入项目的同公司经理也返回404。
+
+| 接口 | 实际字段与约束 |
+|---|---|
+| GET `/api/v1/projects/{id}/team` | `revision`、`members`、`volumes`、`assembly_owner_id`、`handoffs`；候选公司账号只对项目负责人返回 |
+| PUT `/api/v1/projects/{id}/team` | 完整 `members:[user_id,project_role,volumes]`、两册 `volumes:[volume,owner_id]`、`assembly_owner_id`、`reason`；须保留一名公司经理角色的项目负责人；负责人/编写人须本公司可写成员 |
+| PATCH `/api/v1/projects/{id}/chapters/{chapter_id}/assignment` | `assignee_id`、`reason`；项目负责人或本册负责人办理，接手人须参与本册且可写 |
+| PATCH `/api/v1/projects/{id}/chapters/{chapter_id}/plan` | `fact_ids`、`writing_points`、`target_length`；只保存本章写作输入并进入待确认，不能借此改变结构/人员 |
+| POST `/api/v1/projects/{id}/chapters/{chapter_id}/plan/confirm` | 空对象；本节编写人、本册或项目负责人确认，保存当前确认人/时间/来源摘要 |
+| POST `/api/v1/projects/{id}/plan` | `scope`、范围内 `chapters`、`reason`；全项目限项目负责人，本册限对应负责人；其他册保留 |
+| DELETE `/api/chapters/{chapter_id}/draft` | 本人草稿 `sequence`；删除本人已核对的草稿，不删正文与版本，序号冲突409 |
+
+工作区 `team` 表示分工，`permissions` 表示当前项目操作权；章节 `assignee_id`、`assignee_name`、`permissions` 和 `writing_input.is_current` 表示本章当前权力与确认状态。参与册不自动获得整册管理权；合标身份不获得检查/创建输出权限。
+
+本章确认检查解析已确认、本册负责人、有效条款映射、事实与证据；任何失败都不留下部分确认。生成按所选章节逐一检查，不要求另一册同步确认。人员/相关输入变化使对应确认失效并保留历史，正文提交不撤销相同方案确认。候选、检查与输出仍按全项目摘要保守失效；完整分册定稿另实现。
+
+人员交接若涉及有效编辑权或存储草稿，必须写理由，解除旧编辑权但保留正文、历史及私人草稿。回放旧请求和模型结果保存前再校权限。页面访问权撤回时关闭操作、保留本地未提交文字；私人草稿不返回给接手人。
 
 ## 服务承诺矩阵本次接口（reference-sla-1）
 

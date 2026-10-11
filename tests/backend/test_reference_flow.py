@@ -27,19 +27,28 @@ def client():
         yield actual
 
 
-def login(client, account="alpha-editor"):
+def login(client, account="alpha-manager"):
     result = client.post("/api/demo/login", json={"account_id": account})
     assert result.status_code == 200, result.text
     return {"Authorization": "Bearer " + result.json()["access_token"]}
 
 
 class ProjectFlow:
-    def __init__(self, client, account="alpha-editor"):
+    def __init__(self, client, account="alpha-manager"):
         self.client, self.headers = client, login(client, account)
         result = client.post("/api/projects", headers=self.headers, json={"name": "合成双册验收项目"})
         assert result.status_code == 200, result.text
         self.id = result.json()["id"]
         self.path = "/api/v1/projects/" + self.id
+        if account == "alpha-manager":
+            # 权限反例需要明确加入writer/readonly；同公司账号从来不会自动成为新项目成员。
+            initial = self.state()
+            self.write("/team", {"members": [
+                {"user_id": "alpha-manager", "project_role": "lead", "volumes": ["technical", "business"]},
+                {"user_id": "alpha-editor", "project_role": "writer", "volumes": ["technical", "business"]},
+                {"user_id": "alpha-viewer", "project_role": "readonly", "volumes": ["technical", "business"]}],
+                "volumes": [{"volume": volume, "owner_id": "alpha-manager"} for volume in ("technical", "business")],
+                "assembly_owner_id": "alpha-manager"}, "PUT")
 
     def state(self):
         result = self.client.get(self.path + "/workspace", headers=self.headers)
@@ -278,7 +287,9 @@ def test_expired_or_unreviewed_evidence_blocks_use_or_check(client):
 def test_submission_cannot_be_claimed_when_rule_coverage_is_incomplete(client):
     flow = ProjectFlow(client).ready()
     check, _ = flow.checked_export()
-    assert flow.write("/exports", {"check_id": check["id"], "kind": "submission"}, expected=403)["code"] == "SUBMISSION_FORBIDDEN"
+    forbidden = client.post(flow.path + "/exports", json={"check_id": check["id"], "kind": "submission"}, headers={
+        **login(client, "alpha-editor"), "If-Match": str(flow.state()["revision"]), "Idempotency-Key": str(uuid4())})
+    assert forbidden.status_code == 403 and forbidden.json()["code"] == "PROJECT_LEAD_REQUIRED"
     manager = login(client, "alpha-manager")
     result = client.post(flow.path + "/exports", json={"check_id": check["id"], "kind": "submission"}, headers={**manager, "If-Match": str(flow.state()["revision"]), "Idempotency-Key": str(uuid4())})
     assert result.status_code == 409 and result.json()["code"] == "RULES_INCOMPLETE"

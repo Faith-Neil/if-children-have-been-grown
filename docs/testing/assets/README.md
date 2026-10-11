@@ -17,3 +17,7 @@
 写作输入新增`icg-writing-plan.jpg`、`icg-writing-candidate-input.jpg`、`icg-writing-candidate-facts.jpg`、`icg-writing-stale.jpg`、`icg-writing-fact-variable.jpg`、`icg-writing-source-advice.jpg`、`icg-writing-export.jpg`，均为2026-10-10实际同源页面与合成项目。用途、不同操作阶段及未验收范围见[写作验收](../2026-10-10-writing-input.md)；图片为JPEG，不能代替真实模型、逐段来源、全文规则或Word视觉验收。
 
 写作收尾3张JPEG：icg-writing-atomic-guard.jpg显示来源变化后提交被拒绝且文字保留；icg-writing-source-review.jpg显示人工来源复核入口（截图是确认前状态）；icg-writing-final-export.jpg显示最终v8合成正文的有效两册与旧文件过期。来自最终服务project-f7cd99f538074c04ab78d5668b2464a5，详细顺序见[写作验收](../2026-10-10-writing-input.md)。图片不证明Word页面版式已验收。
+
+成员分工新增4张JPEG，均为2026-10-11真实同源页面、合成账号和项目`project-66087800c6924b3698b14925483881dd`：`icg-members-settings.jpg`记录项目设置的成员与两册分工；`icg-members-conflict.jpg`记录后台人员变化后的明确核对入口；`icg-members-volume-export.jpg`记录技术负责人只生成本册输出；`icg-members-withdraw.jpg`记录商务编写人失去编辑权后，未提交文字仍保留、保存入口停止写入。具体操作顺序与文件内容证据见[成员验收](../2026-10-10-project-assignments.md)。截图来自对应操作阶段，不代表最终人员分工或整个产品均已完成；Word页面版式仍须单独验收。
+
+成员收尾另有2张2026-10-11真实JPEG：icg-members-plan-conflict.jpg并列旧650字与新900字方案、要点和原文要求，证明明确核对入口；icg-members-final-export.jpg为合标账号最终下载两册，生成入口禁用。两份实际下载内容已读取核对，但截图不证明Word页面版式。详见[成员验收](../2026-10-10-project-assignments.md)。

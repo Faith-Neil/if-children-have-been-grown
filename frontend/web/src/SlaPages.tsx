@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Alert, App as AntApp, Button, Card, Col, Descriptions, Empty, Form, Input, Modal, Row, Select, Space, Table, Tag } from 'antd';
 import { DownloadOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { download } from './api';
+import { projectCan } from './project-team';
 import { formatTime, useProject } from './context';
 import { displaySlaValue, slaScalar, slaVariablePayload, slaUnits, slaGroups } from './sla-form';
 import type { Account, SlaRow, SlaTemplate, SlaVariable, Source } from './types';
@@ -43,7 +44,7 @@ export function SlaTemplatesPage({ items, user, busy, mutate, report }: Template
   }
   return <>
     <div className="sla-template-heading"><div><h3>服务承诺模板</h3><p className="muted">服务承诺（SLA）说明多快响应、多久恢复等标准；公司能力与项目承诺分别保存。</p></div><Button type="primary" icon={<PlusOutlined />} disabled={busy || !canWrite} onClick={() => editing(null)}>新增合成模板</Button></div>
-    <Alert className="page-notice" type="info" showIcon message={canWrite ? '由项目负责人维护并确认公司可承诺的标准' : '当前角色可查看，模板维护需要项目负责人'} description="这里没有预置真实公司能力。能力极限留空表示未提供依据；项目不能把它当作已验证能力。修改模板后，引用它的项目需要刷新并重新核对。" />
+    <Alert className="page-notice" type="info" showIcon message={canWrite ? '由公司模板维护账号确认可承诺的标准' : '当前账号可查看，模板维护需要公司经理账号'} description="这里没有预置真实公司能力。能力极限留空表示未提供依据；项目不能把它当作已验证能力。修改模板后，引用它的项目需要刷新并重新核对。" />
     <Table rowKey="id" size="small" dataSource={items} pagination={false} columns={[
       { title: '模板名称', dataIndex: 'name', render: (value, item) => <a onClick={() => editing(item)}>{value}</a> },
       { title: '业务版本', dataIndex: 'version_no' },
@@ -76,7 +77,7 @@ export function SlaMatrixPage({ onLocate }: { onLocate: (source: Source) => void
   const { workspace, user, token, slaTemplates, busy, mutate, report, navigate } = useProject();
   const { modal, message } = AntApp.useApp();
   const sla = workspace.sla ?? null;
-  const canWrite = user.role === 'manager';
+  const canWrite = projectCan(workspace, 'manage_sla');
   const [templateId, setTemplateId] = useState(sla?.template_id || '');
   const [templateOpen, setTemplateOpen] = useState(false);
   const [templateForm] = Form.useForm();

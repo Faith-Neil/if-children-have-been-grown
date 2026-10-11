@@ -21,6 +21,10 @@ def project_input_fingerprint(state: DemoState, project_id: str) -> str:
                       key=lambda chapter: positions.get(chapter.id, len(positions)))
     payload = {
         "project": project,
+        "team": state.project_teams.get(project_id, {}),
+        "member_company_roles": {identity: state.accounts[identity].role
+                                 for identity in state.project_teams.get(project_id, {}).get("members", {})
+                                 if identity in state.accounts},
         "files": [{k: v for k, v in item.items() if k not in ("content", "pages")}
                   for item in workflow.get("files", {}).values()],
         "requirements": list(workflow.get("requirements", {}).values()),

@@ -20,6 +20,8 @@ from .sla import SlaService, public_sla, resolve_variables, sla_facts, sla_issue
 from .generation_context import (build_generation_context, chapter_plan, plan_is_current, project_facts,
                                  public_plan, refuse_source_change, render_model_input, require_ready,
                                  resolve_fact_variables, validate_model_output, writing_source_fingerprint)
+from .project_access import (VOLUMES, writable, lead, volume_owner, require_lead, require_chapter,
+                             chapter_structure, chapter_edit, chapter_permissions, project_permissions, public_team)
 
 
 DOCX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -56,6 +58,8 @@ class WorkflowService:
         self.repository = demo.repository
         self.parser = parser
         self.sla = SlaService(self)
+        from .project_team import ProjectTeamService
+        self.team = ProjectTeamService(self)
 
     @staticmethod
     def _workflow(state: DemoState, project_id: str, *, create=False) -> dict:
@@ -83,10 +87,10 @@ class WorkflowService:
                                        sort_keys=True, ensure_ascii=False))
 
     def _preflight(self, principal, project_id, action, payload, expected, key):
-        self.demo._writer(principal)
         self._idempotency(key)
         state = self.repository.read()
         project = self.demo._project(state, principal, project_id)
+        self._authorize(state, principal, project_id, action, payload)
         receipt = state.workflow_receipts.get((project_id, principal.user.id, key))
         if receipt:
             if receipt["fingerprint"] != self._request_hash(action, payload, expected):
@@ -108,12 +112,12 @@ class WorkflowService:
 
     def _write(self, principal: Principal, project_id: str, action: str, payload: dict,
                expected: str | None, key: str | None, operation: Callable, audit_details: dict | None = None) -> dict:
-        self.demo._writer(principal)
         self._idempotency(key)
         fingerprint = self._request_hash(action, payload, expected)
 
         def transaction(state: DemoState):
             project = self.demo._project(state, principal, project_id)
+            self._authorize(state, principal, project_id, action, payload)
             receipt_key = (project_id, principal.user.id, key)
             receipt = state.workflow_receipts.get(receipt_key)
             if receipt:
@@ -132,14 +136,71 @@ class WorkflowService:
             return result
         return self.repository.transaction(transaction)
 
-    def _chapter_summary(self, state: DemoState, workflow: dict, chapter: Chapter) -> dict:
+    def _authorize(self, state, principal, project_id, action, payload):
+        identity = principal.user.id
+        if not writable(state, project_id, identity):
+            raise DomainError(403, "PROJECT_WRITER_REQUIRED", "当前公司角色和项目角色只允许查看，不能办理此操作。")
+        name, _, resource_id = action.partition(":")
+        if name in ("team.update", "project.update", "file.upload", "file.delete", "parse.run", "parse.confirm", "conflict.resolve") or name.startswith("sla."):
+            require_lead(state, principal, project_id)
+        elif name in ("chapter.plan.save", "chapter.plan.confirm", "chapter.assignment"):
+            chapter = self.demo._chapter(state, principal, resource_id)
+            if chapter.project_id != project_id:
+                raise DomainError(404, "NOT_FOUND", "章节不属于当前项目。")
+            if name == "chapter.assignment":
+                if not chapter_structure(state, chapter, identity):
+                    raise DomainError(403, "CHAPTER_STRUCTURE_REQUIRED", "只有项目负责人或本册负责人可以分配本节。")
+            else:
+                require_chapter(state, principal, chapter)
+        elif name == "chapter.generate":
+            chapters = [c for c in state.chapters.values() if c.project_id == project_id]
+            selected = payload.get("chapter_ids")
+            if selected is not None:
+                known = {c.id for c in chapters}
+                if not selected or len(selected) != len(set(selected)) or set(selected) - known:
+                    raise DomainError(404, "NOT_FOUND", "所选章节不存在或不属于本项目。")
+                chapters = [c for c in chapters if c.id in selected]
+            for chapter in chapters:
+                require_chapter(state, principal, chapter)
+        elif name == "plan.confirm":
+            scope = payload.get("scope", "all")
+            if scope == "all":
+                require_lead(state, principal, project_id)
+            elif not (lead(state, project_id, identity) or volume_owner(state, project_id, scope, identity)):
+                raise DomainError(403, "VOLUME_OWNER_REQUIRED", "只能调整和批量确认自己负责的分册。")
+        elif name in ("project.check", "project.export"):
+            volume = payload.get("volume", "all")
+            if volume == "all" or payload.get("kind") == "submission":
+                require_lead(state, principal, project_id)
+            elif not (lead(state, project_id, identity) or volume_owner(state, project_id, volume, identity)):
+                raise DomainError(403, "VOLUME_OWNER_REQUIRED", "只能检查或导出自己负责的分册。")
+        elif name == "fact.update":
+            fact = self._workflow(state, project_id)["facts"].get(resource_id, {})
+            if resource_id.startswith("sla:") or fact.get("required") or "status" in payload:
+                require_lead(state, principal, project_id)
+        elif name == "requirement.update":
+            row = self._workflow(state, project_id)["requirements"].get(resource_id)
+            if row is None:
+                raise DomainError(404, "NOT_FOUND", "未找到本项目条款。")
+            if set(payload) - {"response", "evidence_ids", "reason"}:
+                require_lead(state, principal, project_id)
+            elif not lead(state, project_id, identity):
+                chapter = state.chapters.get(row["chapter_id"] or "")
+                if not (volume_owner(state, project_id, row["volume"], identity)
+                        or chapter and chapter_edit(state, chapter, identity)):
+                    raise DomainError(403, "MATRIX_RESPONSE_FORBIDDEN", "只能填写本人负责分册或章节的响应和证据。")
+
+    def _chapter_summary(self, state: DemoState, workflow: dict, chapter: Chapter, user_id=None) -> dict:
         active = chapter.lock and chapter.lock.expires_at > self.demo._now()
         candidate = workflow["candidates"].get(chapter.id)
         if candidate:
             candidate = {**candidate, "status": "valid" if candidate.get("input_fingerprint") == self._fingerprint(state, chapter.project_id) else "stale"}
         return {**self.demo._summary(chapter), "content": chapter.content,
                 "lock": {"owner_id": chapter.lock.owner_id, "expires_at": iso_time(chapter.lock.expires_at)} if active else None,
-                "candidate": candidate, "writing_input": chapter_plan(workflow, chapter.id),
+                "candidate": candidate, "writing_input": {**chapter_plan(workflow, chapter.id), "is_current": plan_is_current(state, chapter.project_id, chapter.id)},
+                "assignee_id": chapter.assignee_id,
+                "assignee_name": state.accounts[chapter.assignee_id].name if chapter.assignee_id in state.accounts else None,
+                "permissions": chapter_permissions(state, chapter, user_id) if user_id else {},
                 "requirement_ids": [r["id"] for r in workflow["requirements"].values() if r["chapter_id"] == chapter.id]}
 
     def _fingerprint(self, state: DemoState, project_id: str) -> str:
@@ -163,19 +224,24 @@ class WorkflowService:
         state = self.repository.read()
         project = self.demo._project(state, principal, project_id)
         workflow = self._workflow(state, project_id)
-        chapters = [self._chapter_summary(state, workflow, c) for c in self._ordered_chapters(state, project_id, workflow)]
+        chapters = [self._chapter_summary(state, workflow, c, principal.user.id) for c in self._ordered_chapters(state, project_id, workflow)]
         stage = ("exported" if any(e["fingerprint"] == self._fingerprint(state, project_id) for e in workflow["exports"].values()) else "writing" if plan_is_current(state, project_id) else
                  "matrix" if workflow["parse_confirmed"] else "review" if workflow["requirements"] else "upload")
         return {"revision": project.revision, "input_fingerprint": self._fingerprint(state, project_id),
                 "project": asdict(project), "stage": stage,
                 "files": [self._public_file(f) for f in workflow["files"].values()],
-                "requirements": list(workflow["requirements"].values()), "facts": project_facts(state, project_id),
+                "requirements": [{**row, "permissions": {"edit": lead(state, project_id, principal.user.id),
+                                   "route": lead(state, project_id, principal.user.id),
+                                   "response": lead(state, project_id, principal.user.id) or volume_owner(state, project_id, row["volume"], principal.user.id)
+                                   or bool(row["chapter_id"] in state.chapters and chapter_edit(state, state.chapters[row["chapter_id"]], principal.user.id))}}
+                                 for row in workflow["requirements"].values()], "facts": project_facts(state, project_id),
                 "conflicts": list(workflow["conflicts"].values()), "chapters": chapters,
                 "checks": [self._public_check(state, project_id, c) for c in workflow["checks"].values()],
                 "exports": [self._public_export(state, project_id, e) for e in workflow["exports"].values()],
                 "jobs": [j for j in state.jobs.values() if j["project_id"] == project_id],
-                "parse_confirmed": workflow["parse_confirmed"], "plan_confirmed": plan_is_current(state, project_id),
-                "writing_plan": public_plan(workflow),
+                "parse_confirmed": workflow["parse_confirmed"], "plan_confirmed": workflow["parse_confirmed"] and plan_is_current(state, project_id),
+                "writing_plan": public_plan(workflow, state, project_id),
+                "team": public_team(state, project_id, principal.user.id), "permissions": project_permissions(state, project_id, principal.user.id),
                 "sla": public_sla(state, project_id)}
 
     def writing_input(self, principal, project_id, chapter_id):
@@ -428,6 +494,8 @@ class WorkflowService:
             if any(v is None for v in payload.values()):
                 raise DomainError(422, "INVALID_FACT", "事实字段不能设为空值。")
             updated = {**fact, **payload}
+            if not lead(state, project_id, principal.user.id) and "value" in payload and payload["value"] != fact["value"]:
+                updated["status"] = "pending"
             if not updated["value"].strip():
                 raise DomainError(422, "EMPTY_FACT", "事实取值不能为空。")
             if updated["status"] == "rejected" and not updated["reason"].strip():
@@ -436,7 +504,6 @@ class WorkflowService:
                 if fact_id in conflict["fact_ids"] and any(k in payload and payload[k] != fact[k] for k in ("value", "status")):
                     conflict.update(status="pending", selected_fact_id=None, reason="")
             fact.update(updated)
-            workflow["parse_confirmed"] = False
             workflow["plan_confirmed"] = False
             return {"fact": fact}
         return self._write(principal, project_id, "fact.update:" + fact_id, payload, expected, key, operation)
@@ -483,8 +550,6 @@ class WorkflowService:
         return self._write(principal, project_id, "parse.confirm", payload, expected, key, operation)
 
     def plan(self, principal, project_id, payload, expected, key):
-        if principal.user.role != "manager":
-            raise DomainError(403, "PLAN_MANAGER_REQUIRED", "写作方案须由本公司项目负责人确认。")
         def operation(state, project, workflow):
             if not workflow["parse_confirmed"]:
                 raise DomainError(409, "PARSE_NOT_CONFIRMED", "请先确认解析结果，再确认写作大纲。")
@@ -492,9 +557,12 @@ class WorkflowService:
             if issues:
                 raise DomainError(409, "SLA_NOT_READY", "服务承诺或必备事实仍待处理，请先逐条核对。", {"issues": issues})
             requested = payload["chapters"]
-            if {c["volume"] for c in requested} != {"technical", "business"}:
+            scope = payload.get("scope", "all")
+            expected_volumes = set(VOLUMES) if scope == "all" else {scope}
+            if {c["volume"] for c in requested} != expected_volumes:
                 raise DomainError(422, "TWO_VOLUMES_REQUIRED", "本期大纲必须同时包含技术和商务两册。")
-            old = {c.id: c for c in state.chapters.values() if c.project_id == project_id}
+            all_old = {c.id: c for c in state.chapters.values() if c.project_id == project_id}
+            old = {identity: c for identity, c in all_old.items() if c.volume in expected_volumes}
             seen, retained, planned = set(), [], {}
             facts = {fact["id"]: fact for fact in project_facts(state, project_id)}
             if any(fact["required"] and fact["status"] != "confirmed" for fact in facts.values()):
@@ -533,6 +601,12 @@ class WorkflowService:
                     if chapter.volume != item["volume"] and chapter.content.strip():
                         raise DomainError(409, "CHAPTER_HAS_CONTENT", "有正文的章节不能直接改分册。")
                     chapter.title, chapter.volume = item["title"], item["volume"]
+                if "assignee_id" in item:
+                    self.team.eligible(state, project_id, item["assignee_id"], chapter.volume)
+                    if chapter.assignee_id != item["assignee_id"]:
+                        self.team.handoff(state, principal, project_id, [chapter], payload.get("reason", ""), [chapter.assignee_id])
+                        chapter.assignee_id = item["assignee_id"]
+                self.team.eligible(state, project_id, chapter.assignee_id, chapter.volume)
                 seen.add(chapter.id)
                 retained.append(chapter)
                 planned[chapter.id] = {"id": chapter.id, "fact_ids": list(ids),
@@ -540,23 +614,68 @@ class WorkflowService:
             removed = set(old) - seen
             for identity in removed:
                 chapter = old[identity]
-                if chapter.content.strip() or chapter.drafts or (chapter.lock and chapter.lock.expires_at > self.demo._now()):
+                if (chapter.content.strip() or any(version["content"].strip() for version in chapter.versions)
+                        or chapter.drafts or (chapter.lock and chapter.lock.expires_at > self.demo._now())):
                     raise DomainError(409, "CHAPTER_HAS_CONTENT", "不能删除有正文、草稿或有效编辑权的章节。")
                 if any(r["chapter_id"] == identity for r in workflow["requirements"].values()):
                     raise DomainError(409, "CHAPTER_MAPPED", "章节已关联矩阵条款，先解除映射。")
                 del state.chapters[identity]
                 workflow["candidates"].pop(identity, None)
             workflow["plan_confirmed"] = True
-            workflow["chapter_order"] = [c.id for c in retained]
+            old_order = workflow.get("chapter_order", [])
+            unaffected = [identity for identity in old_order if identity in all_old and all_old[identity].volume not in expected_volumes]
+            unaffected += [identity for identity, c in all_old.items() if c.volume not in expected_volumes and identity not in unaffected]
+            workflow["chapter_order"] = [c.id for c in retained] + unaffected
+            previous_plan = workflow.get("writing_plan", {}).get("chapters", {})
+            preserved = {identity: item for identity, item in previous_plan.items() if identity not in old}
             workflow["writing_plan"] = {"confirmed_by": principal.user.id, "confirmed_by_name": principal.user.name,
-                                        "confirmed_at": iso_time(self.demo._now()), "chapters": planned}
-            workflow["writing_plan"]["confirmed_input_fingerprint"] = writing_source_fingerprint(state, project_id)
+                                        "confirmed_at": iso_time(self.demo._now()), "chapters": {**preserved, **planned}}
+            for chapter in retained:
+                self._confirm_chapter_plan(state, principal, project_id, chapter, workflow)
             # 方案确认检查实际来源资格；不把证据过期等缺项留到模型输出以后。
             for chapter in retained:
                 require_ready(build_generation_context(state, project_id, chapter, self.demo._now()))
-            return {"plan_confirmed": True, "writing_plan": public_plan(workflow),
-                    "chapters": [self._chapter_summary(state, workflow, c) for c in retained]}
+            return {"plan_confirmed": plan_is_current(state, project_id), "writing_plan": public_plan(workflow, state, project_id),
+                    "chapters": [self._chapter_summary(state, workflow, c, principal.user.id) for c in retained]}
         return self._write(principal, project_id, "plan.confirm", payload, expected, key, operation)
+
+    def _confirm_chapter_plan(self, state, principal, project_id, chapter, workflow):
+        if not writable(state, project_id, state.project_teams[project_id]["owners"].get(chapter.volume)):
+            raise DomainError(409, "VOLUME_OWNER_REQUIRED", "本册尚未指定负责人，不能确认写作方案。")
+        unmapped = [r["id"] for r in workflow["requirements"].values()
+                    if r["volume"] == chapter.volume and r["status"] != "rejected" and
+                    (r["chapter_id"] not in state.chapters or state.chapters[r["chapter_id"]].project_id != project_id
+                     or state.chapters[r["chapter_id"]].volume != chapter.volume)]
+        if unmapped:
+            raise DomainError(409, "MATRIX_MAPPING_MISSING", "本册还有未分配章节的招标条款，请先完成响应矩阵映射。", {"requirement_ids": unmapped})
+        saved = workflow.setdefault("writing_plan", {}).setdefault("chapters", {}).setdefault(chapter.id, chapter_plan(workflow, chapter.id))
+        saved.update(confirmed_by=principal.user.id, confirmed_by_name=principal.user.name,
+                     confirmed_at=iso_time(self.demo._now()), confirmation_pending=False)
+        saved["confirmed_input_fingerprint"] = writing_source_fingerprint(state, project_id, chapter.id)
+        require_ready(build_generation_context(state, project_id, chapter, self.demo._now()))
+        self._audit(state, principal, project_id, "chapter-plan.confirmed", {"chapter_id": chapter.id,
+                    "confirmed_input_fingerprint": saved["confirmed_input_fingerprint"], "confirmed_by": principal.user.id})
+
+    def chapter_plan_save(self, principal, project_id, chapter_id, payload, expected, key):
+        def operation(state, project, workflow):
+            chapter = self.demo._chapter(state, principal, chapter_id)
+            facts = {fact["id"] for fact in project_facts(state, project_id)}
+            ids = payload["fact_ids"]
+            if len(ids) != len(set(ids)):
+                raise DomainError(422, "DUPLICATE_FACT", "本章同一事实不能重复选择。")
+            if set(ids) - facts:
+                raise DomainError(409, "FACT_NOT_FOUND", "所选事实不属于本项目或已经删除。")
+            old = chapter_plan(workflow, chapter_id)
+            workflow.setdefault("writing_plan", {}).setdefault("chapters", {})[chapter_id] = {**old, **payload, "confirmation_pending": True}
+            return {"chapter": self._chapter_summary(state, workflow, chapter, principal.user.id), "writing_plan": public_plan(workflow, state, project_id)}
+        return self._write(principal, project_id, "chapter.plan.save:" + chapter_id, payload, expected, key, operation)
+
+    def chapter_plan_confirm(self, principal, project_id, chapter_id, payload, expected, key):
+        def operation(state, project, workflow):
+            chapter = self.demo._chapter(state, principal, chapter_id)
+            self._confirm_chapter_plan(state, principal, project_id, chapter, workflow)
+            return {"chapter": self._chapter_summary(state, workflow, chapter, principal.user.id), "writing_plan": public_plan(workflow, state, project_id)}
+        return self._write(principal, project_id, "chapter.plan.confirm:" + chapter_id, payload, expected, key, operation)
 
     def generate(self, principal, project_id, payload, expected, key):
         snapshot, previous = self._preflight(principal, project_id, "chapter.generate", payload, expected, key)
@@ -565,8 +684,8 @@ class WorkflowService:
         project = self.demo._project(snapshot, principal, project_id)
         self.demo.require_allowed_model(project)
         workflow = self._workflow(snapshot, project_id)
-        if not workflow["parse_confirmed"] or not workflow["plan_confirmed"]:
-            raise DomainError(409, "PLAN_NOT_CONFIRMED", "解析和大纲确认后才能生成章节候选。")
+        if not workflow["parse_confirmed"]:
+            raise DomainError(409, "PARSE_NOT_CONFIRMED", "解析确认后才能生成章节候选。")
         chapters = self._ordered_chapters(snapshot, project_id, workflow)
         selected = payload.get("chapter_ids")
         if selected is not None:
@@ -574,6 +693,13 @@ class WorkflowService:
                 raise DomainError(404, "NOT_FOUND", "所选章节不存在或不属于本项目。")
             chapters = [c for c in chapters if c.id in selected]
         candidates = {}
+        def check_model_access():
+            current = self.repository.read()
+            actual_project = self.demo._project(current, principal, project_id)
+            self._authorize(current, principal, project_id, "chapter.generate", payload)
+            self.demo.require_allowed_model(actual_project)
+            if self._fingerprint(current, project_id) != self._fingerprint(snapshot, project_id):
+                raise DomainError(409, "VERSION_CONFLICT", "项目输入在生成期间发生变化，不能继续把旧资料交给模型或保存候选。")
         for chapter in chapters:
             assembled = build_generation_context(snapshot, project_id, chapter, self.demo._now())
             require_ready(assembled)
@@ -581,10 +707,12 @@ class WorkflowService:
             context = render_model_input(input_snapshot)
             instruction = "按本章已确认条款、响应、证据和事实组织候选；不能编造证据与承诺。引用事实保留变量，不能改取值。"
             refuse_source_change(input_snapshot["plan"]["writing_points"], input_snapshot)
+            check_model_access()
             try:
                 content = self.demo.model_provider.suggest(instruction, context)
             except Exception as error:
                 raise DomainError(502, "MODEL_UNAVAILABLE", "候选生成失败，正式正文没有修改。") from error
+            check_model_access()
             validate_model_output(snapshot, project_id, content, input_snapshot)
             input_snapshot.update(model_input=context, model_instruction=instruction)
             candidates[chapter.id] = {"id": new_id("candidate"), "content": content,
@@ -595,6 +723,7 @@ class WorkflowService:
                                       "created_at": iso_time(self.demo._now()), "source_scope": "whole_chapter",
                                       "input_snapshot": input_snapshot}
         def operation(state, project, current):
+            self.demo.require_allowed_model(project)
             if self._fingerprint(state, project_id) != self._fingerprint(snapshot, project_id):
                 raise DomainError(409, "VERSION_CONFLICT", "项目资料在生成期间更新，请重新生成候选。")
             # 旧编辑接口也可能在模型调用期间提交版本，必须重新核对。
@@ -602,9 +731,10 @@ class WorkflowService:
                 actual = state.chapters.get(chapter.id)
                 if actual is None or actual.revision != chapter.revision:
                     raise DomainError(409, "VERSION_CONFLICT", "正文在生成期间更新，请重新生成候选。")
+                require_ready(build_generation_context(state, project_id, actual, self.demo._now()))
             current["candidates"].update(candidates)
             job = self._job(state, project_id, "generate", "章节候选已生成；需在编辑台人工核对、取得编辑权后提交。")
-            return {"job": job, "chapters": [self._chapter_summary(state, current, state.chapters[c.id]) for c in chapters]}
+            return {"job": job, "chapters": [self._chapter_summary(state, current, state.chapters[c.id], principal.user.id) for c in chapters]}
         return self._write(principal, project_id, "chapter.generate", payload, expected, key, operation)
 
     @staticmethod
@@ -633,7 +763,9 @@ class WorkflowService:
             add = lambda code, message, **links: issues.append(self._issue(code, message, **links))
             if not workflow["parse_confirmed"]:
                 add("PARSE_NOT_CONFIRMED", "解析结果尚未确认。")
-            if not plan_is_current(state, project_id):
+            checked_chapters = [c for c in state.chapters.values() if c.project_id == project_id
+                                and (volume == "all" or c.volume == volume)]
+            if not checked_chapters or not all(plan_is_current(state, project_id, c.id) for c in checked_chapters):
                 add("PLAN_NOT_CONFIRMED", "写作大纲尚未确认。")
             if not project.tender_number.strip() or not project.deadline:
                 add("PROJECT_DETAILS_MISSING", "项目招标编号或投标截止时间未填写。")
@@ -724,8 +856,6 @@ class WorkflowService:
         return re.sub(r"(?<![0-9])[0-9]{12,}([0-9]{4})(?![0-9])", r"************\1", text)
 
     def export(self, principal, project_id, payload, expected, key):
-        if payload["kind"] == "submission" and principal.user.role != "manager":
-            raise DomainError(403, "SUBMISSION_FORBIDDEN", "只有本公司项目经理可以请求递交版。")
         def operation(state, project, workflow):
             check = workflow["checks"].get(payload["check_id"])
             if check is None:
@@ -734,16 +864,21 @@ class WorkflowService:
                 raise DomainError(409, "CHECK_STALE", "正文、项目资料或证据已更新，请重新检查。")
             if not check["passed"]:
                 raise DomainError(409, "CHECK_FAILED", "当前已实现的流程检查仍有阻断项。")
-            if check["volume"] != "all":
-                raise DomainError(409, "ALL_VOLUMES_CHECK_REQUIRED", "两册导出需要检查全部分册。")
+            scope = payload.get("volume", "all")
+            if check["volume"] != scope:
+                raise DomainError(409, "ALL_VOLUMES_CHECK_REQUIRED", "导出范围必须和已完成的检查一致；两册导出需要检查全部分册。")
             if payload["kind"] == "submission":
                 raise DomainError(409, "RULES_INCOMPLETE", "完整合规规则与分册定稿未实现，不能把本地内部稿冒充递交版。")
             chapters = self._ordered_chapters(state, project_id, workflow)
-            if {c.volume for c in chapters} != {"technical", "business"}:
+            chapters = [c for c in chapters if scope == "all" or c.volume == scope]
+            required_volumes = set(VOLUMES) if scope == "all" else {scope}
+            if {c.volume for c in chapters} != required_volumes:
                 raise DomainError(409, "TWO_VOLUMES_REQUIRED", "导出必须包含技术和商务两册。")
             identity = new_id("project-export")
             documents, volumes = {}, []
             for volume, name in (("technical", "技术分册"), ("business", "商务分册")):
+                if volume not in required_volumes:
+                    continue
                 selected = [c for c in chapters if c.volume == volume]
                 filename = f"icg-{volume}-{identity}.docx"
                 documents[volume] = {"title": self._mask(project.name) + " — " + name,
@@ -754,7 +889,7 @@ class WorkflowService:
                       "fingerprint": check["fingerprint"], "created_at": iso_time(self.demo._now()),
                       "excludes_drafts": True, "volumes": volumes, "documents": documents}
             workflow["exports"][identity] = record
-            self._job(state, project_id, "export", "两个独立 Word 内部稿已生成；只含已提交正文。")
+            self._job(state, project_id, "export", ("两个独立 Word 内部稿已生成" if scope == "all" else "本册 Word 内部稿已生成") + "；只含已提交正文。")
             return {"export": self._public_export(state, project_id, record)}
         return self._write(principal, project_id, "project.export", payload, expected, key, operation)
 
@@ -764,18 +899,21 @@ class WorkflowService:
             record = self._workflow(state, project_id)["exports"].get(export_id)
             if record is None or volume not in ("technical", "business"):
                 raise DomainError(404, "NOT_FOUND", "未找到有权访问的分册文件。")
-            if record["kind"] == "submission" and principal.user.role != "manager":
+            if record["kind"] == "submission" and not lead(state, project_id, principal.user.id):
                 raise DomainError(403, "SUBMISSION_FORBIDDEN", "递交版下载仅限项目经理。")
             if record["fingerprint"] != self._fingerprint(state, project_id):
                 raise DomainError(409, "EXPORT_STALE", "项目输入已更新，旧导出文件已过期。")
             self._audit(state, principal, project_id, "project-export.download", {"export_id": export_id, "volume": volume})
-            entry = next(v for v in record["volumes"] if v["volume"] == volume)
+            entry = next((v for v in record["volumes"] if v["volume"] == volume), None)
+            if entry is None:
+                raise DomainError(404, "NOT_FOUND", "本次导出不包含该分册。")
             return {**record["documents"][volume], "filename": entry["filename"]}
         return self.repository.transaction(operation)
 
     def jobs(self, principal):
         state = self.repository.read()
-        allowed = {p.id for p in state.projects.values() if p.company_id == principal.user.company_id}
+        allowed = {p.id for p in state.projects.values() if p.company_id == principal.user.company_id
+                   and principal.user.id in state.project_teams.get(p.id, {}).get("members", {})}
         return {"jobs": [j for j in state.jobs.values() if j["project_id"] in allowed]}
 
     @staticmethod

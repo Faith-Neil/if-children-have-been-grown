@@ -18,7 +18,7 @@ from .ports import ModelProvider, Repository, ParserProvider
 from .parsing import LocalTextParser
 from .workflow_routes import include_workflow_routes
 from .schemas import (AccountListResponse, AuditListResponse, ChapterListResponse,
-                      ChapterResponse, CheckResponse, DraftRequest, DraftResponse,
+                      ChapterResponse, CheckResponse, DraftRequest, DraftResponse, DraftDiscardRequest, DraftDiscardResponse,
                       EmptyRequest, ErrorResponse, ExportRequest, ExportResponse,
                       HealthResponse, LeaseRequest, LeaseResponse, LockRequest,
                       LoginRequest, LoginResponse, ProjectListResponse, ProjectRequest,
@@ -170,6 +170,10 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
                      responses=error_responses(401, 403, 404, 409, 423))
     def save_draft(chapter_id: str, body: DraftRequest, user: User):
         return service.save_draft(user, chapter_id, **body.model_dump())
+
+    @application.delete("/api/chapters/{chapter_id}/draft", response_model=DraftDiscardResponse, responses=error_responses(401, 404, 409))
+    def discard_draft(chapter_id: str, body: DraftDiscardRequest, user: User):
+        return service.discard_draft(user, chapter_id, body.sequence)
 
     @application.post("/api/chapters/{chapter_id}/versions", response_model=VersionResponse,
                       responses=error_responses(401, 403, 404, 409, 423))

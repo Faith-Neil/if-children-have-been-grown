@@ -36,12 +36,24 @@ def run(base_url):
             client, "GET", "/api/projects/alpha-project/chapters", headers=editor
         ).json()["chapters"]} >= {"alpha-tech", "alpha-business"}
         # 每次在合成新项目中验收，避免改变页面正在演示的种子项目或继承上次失败的锁。
-        project = request(client, "POST", "/api/projects", headers=editor,
+        project = request(client, "POST", "/api/projects", headers=manager,
                           payload={"name": "HTTP合成验收-" + uuid4().hex[:8]}).json()
+        workspace_path = '/api/v1/projects/' + project['id']
+        revision = request(client, 'GET', workspace_path + '/workspace', headers=manager).json()['revision']
+        request(client, 'PUT', workspace_path + '/team', headers={**manager, 'If-Match': str(revision),
+                'Idempotency-Key': str(uuid4())}, payload={'members': [
+            {'user_id': 'alpha-manager', 'project_role': 'lead', 'volumes': ['technical', 'business']},
+            {'user_id': 'alpha-editor', 'project_role': 'writer', 'volumes': ['technical', 'business']},
+            {'user_id': 'alpha-viewer', 'project_role': 'readonly', 'volumes': ['technical', 'business']}],
+            'volumes': [{'volume': volume, 'owner_id': 'alpha-manager'} for volume in ('technical', 'business')],
+            'assembly_owner_id': 'alpha-manager'})
         chapters = request(client, "GET", f"/api/projects/{project['id']}/chapters",
                            headers=editor).json()["chapters"]
         assert {item["volume"] for item in chapters} == {"technical", "business"}
         chapter_id = next(item["id"] for item in chapters if item["volume"] == "technical")
+        revision = request(client, 'GET', workspace_path + '/workspace', headers=manager).json()['revision']
+        request(client, 'PATCH', workspace_path + '/chapters/' + chapter_id + '/assignment', headers={**manager,
+                'If-Match': str(revision), 'Idempotency-Key': str(uuid4())}, payload={'assignee_id': 'alpha-editor'})
         chapter_url = "/api/chapters/" + chapter_id
         chapter = request(client, "GET", chapter_url, headers=editor).json()
         editor_lease = request(client, "POST", chapter_url + "/lock", headers=editor,

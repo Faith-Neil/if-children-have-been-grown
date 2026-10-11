@@ -92,6 +92,7 @@ class Chapter:
     drafts: dict[str, Draft] = field(default_factory=dict)
     versions: list[dict] = field(default_factory=list)
     committed_requests: dict[tuple[str, str], dict] = field(default_factory=dict)
+    assignee_id: str | None = None
 
 
 @dataclass
@@ -132,6 +133,7 @@ class DemoState:
     library_revisions: dict[str, int] = field(default_factory=dict)
     jobs: dict[str, dict] = field(default_factory=dict)
     workflow_receipts: dict[tuple[str, str, str], dict] = field(default_factory=dict)
+    project_teams: dict[str, dict] = field(default_factory=dict)
 
 
 class DemoService:
@@ -179,8 +181,12 @@ class DemoService:
 
     @staticmethod
     def _project(state: DemoState, principal: Principal, project_id: str) -> Project:
+        from .project_access import member
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        account = state.accounts.get(principal.user.id)
+        if (project is None or account is None or project.company_id != account.company_id
+                or state.sessions.get(principal.session_token) != account.id
+                or member(state, project_id, account.id) is None):
             raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
         return project
 
@@ -219,15 +225,20 @@ class DemoService:
 
     def projects(self, principal: Principal) -> dict:
         state = self.repository.read()
+        from .project_access import member
         return {"projects": [asdict(project) for project in state.projects.values()
-                             if project.company_id == principal.user.company_id]}
+                             if project.company_id == principal.user.company_id
+                             and member(state, project.id, principal.user.id)]}
 
     def create_project(self, principal: Principal, name: str) -> dict:
-        self._writer(principal)
-
         def operation(state: DemoState):
-            project = Project(new_id("project"), name, principal.user.company_id)
+            from .project_access import initial_team
+            actual = state.accounts.get(principal.user.id)
+            if actual is None or actual.role != "manager" or state.sessions.get(principal.session_token) != actual.id:
+                raise DomainError(403, "PROJECT_CREATE_FORBIDDEN", "普通编写人不能新建项目，请由公司项目经理建立并邀请成员。")
+            project = Project(new_id("project"), name, actual.company_id)
             state.projects[project.id] = project
+            state.project_teams[project.id] = initial_team(principal.user.id)
             for volume, title in (("technical", "技术方案"), ("business", "商务响应")):
                 chapter = Chapter(new_id("chapter"), project.id, title, volume, "")
                 chapter.versions.append({"revision": 1, "content": "",
@@ -251,9 +262,16 @@ class DemoService:
         lock = ({"owner_id": chapter.lock.owner_id,
                  "expires_at": iso_time(chapter.lock.expires_at)} if active_lock else None)
         draft = chapter.drafts.get(principal.user.id)
+        from .project_access import chapter_permissions
         return {**self._summary(chapter), "project_id": chapter.project_id,
                 "content": chapter.content, "lock": lock,
-                "draft": asdict(draft) if draft else None}
+                "draft": asdict(draft) if draft else None, "assignee_id": chapter.assignee_id,
+                "permissions": chapter_permissions(state, chapter, principal.user.id)}
+
+    @staticmethod
+    def _chapter_writer(state, principal, chapter):
+        from .project_access import require_chapter
+        require_chapter(state, principal, chapter)
 
     def _lease(self, chapter: Chapter, principal: Principal, token: str) -> Lease:
         lease = chapter.lock
@@ -277,17 +295,18 @@ class DemoService:
                      takeover_reason: str | None) -> dict:
         def operation(state: DemoState):
             chapter = self._chapter(state, principal, chapter_id)
-            self._writer(principal)
+            self._chapter_writer(state, principal, chapter)
             old_lease = chapter.lock
             active = old_lease is not None and old_lease.expires_at > self._now()
             if active and old_lease.owner_id == principal.user.id \
                     and old_lease.session_token == principal.session_token:
                 return self._lease_response(old_lease)
             if active:
-                if principal.user.role != "manager":
+                from .project_access import chapter_structure
+                if not chapter_structure(state, chapter, principal.user.id):
                     if takeover_reason is not None:
                         raise DomainError(403, "FORBIDDEN", "普通编写人没有接管其他会话的权限。")
-                    raise DomainError(423, "LOCK_HELD", "其他会话正在编辑；只有经理可填写理由接管。")
+                    raise DomainError(423, "LOCK_HELD", "其他会话正在编辑；项目负责人或本册负责人可以填写理由接管。")
                 if not takeover_reason or not takeover_reason.strip():
                     raise DomainError(409, "TAKEOVER_REASON_REQUIRED", "接管前必须填写理由。")
             lease = Lease(secrets.token_urlsafe(32), principal.user.id,
@@ -303,7 +322,7 @@ class DemoService:
     def renew_lock(self, principal: Principal, chapter_id: str, lease_token: str) -> dict:
         def operation(state: DemoState):
             chapter = self._chapter(state, principal, chapter_id)
-            self._writer(principal)
+            self._chapter_writer(state, principal, chapter)
             lease = self._lease(chapter, principal, lease_token)
             lease.expires_at = self._now() + self.LEASE_SECONDS
             self._audit(state, principal, chapter, "lock.renew")
@@ -313,7 +332,7 @@ class DemoService:
     def release_lock(self, principal: Principal, chapter_id: str, lease_token: str) -> dict:
         def operation(state: DemoState):
             chapter = self._chapter(state, principal, chapter_id)
-            self._writer(principal)
+            self._chapter_writer(state, principal, chapter)
             self._lease(chapter, principal, lease_token)
             chapter.lock = None
             self._audit(state, principal, chapter, "lock.release")
@@ -324,7 +343,7 @@ class DemoService:
                    base_revision: int, sequence: int, content: str, input_fingerprint: str | None = None) -> dict:
         def operation(state: DemoState):
             chapter = self._chapter(state, principal, chapter_id)
-            self._writer(principal)
+            self._chapter_writer(state, principal, chapter)
             self._lease(chapter, principal, lease_token)
             self._revision(chapter, base_revision)
             self._writing_input(state, chapter, input_fingerprint)
@@ -346,7 +365,7 @@ class DemoService:
 
         def operation(state: DemoState):
             chapter = self._chapter(state, principal, chapter_id)
-            self._writer(principal)
+            self._chapter_writer(state, principal, chapter)
             self._lease(chapter, principal, lease_token)
             key = (principal.user.id, idempotency_key)
             previous = chapter.committed_requests.get(key)
@@ -383,6 +402,19 @@ class DemoService:
         chapter = self._chapter(state, principal, chapter_id)
         return {"versions": chapter.versions}
 
+    def discard_draft(self, principal, chapter_id, sequence):
+        def operation(state):
+            chapter = self._chapter(state, principal, chapter_id)
+            draft = chapter.drafts.get(principal.user.id)
+            if draft is None:
+                return {"discarded": False}
+            if draft.sequence != sequence:
+                raise DomainError(409, "DRAFT_SEQUENCE_CONFLICT", "草稿已更新，请先查看最新草稿再明确丢弃。")
+            del chapter.drafts[principal.user.id]
+            self._audit(state, principal, chapter, "draft.discard", {"sequence": sequence})
+            return {"discarded": True}
+        return self.repository.transaction(operation)
+
     def audit(self, principal: Principal, chapter_id: str) -> dict:
         state = self.repository.read()
         self._chapter(state, principal, chapter_id)
@@ -391,7 +423,7 @@ class DemoService:
     def suggest(self, principal: Principal, chapter_id: str, instruction: str) -> dict:
         state = self.repository.read()
         chapter = self._chapter(state, principal, chapter_id)
-        self._writer(principal)
+        self._chapter_writer(state, principal, chapter)
         self.require_allowed_model(self._project(state, principal, chapter.project_id))
         fingerprint = project_input_fingerprint(state, chapter.project_id)
         # 独立旧demo保持正文建议；接入项目资料后必须与主流程使用同一输入和门禁。
@@ -408,6 +440,12 @@ class DemoService:
             refuse_source_change(input_snapshot["plan"]["writing_points"], input_snapshot)
             model_input = render_model_input(input_snapshot)
         # 模型调用在事务外执行，只取得当前有权章节的正文，不持有全局写锁。
+        current = self.repository.read()
+        actual = self._chapter(current, principal, chapter_id)
+        self._chapter_writer(current, principal, actual)
+        self.require_allowed_model(self._project(current, principal, actual.project_id))
+        if project_input_fingerprint(current, chapter.project_id) != fingerprint:
+            raise DomainError(409, "VERSION_CONFLICT", "项目资料在准备建议期间更新，请核对来源后重新请求。")
         try:
             suggestion = self.model_provider.suggest(instruction, model_input)
             if not isinstance(suggestion, str):
@@ -421,7 +459,7 @@ class DemoService:
 
         def operation(current: DemoState):
             actual = self._chapter(current, principal, chapter_id)
-            self._writer(principal)
+            self._chapter_writer(current, principal, actual)
             self.require_allowed_model(self._project(current, principal, actual.project_id))
             if project_input_fingerprint(current, chapter.project_id) != fingerprint:
                 raise DomainError(409, "VERSION_CONFLICT", "正文或项目资料在建议生成期间更新，请重新请求建议。")
@@ -438,7 +476,9 @@ class DemoService:
         def operation(state: DemoState):
             chapter = self._chapter(state, principal, chapter_id)
             self._legacy_flow_guard(state, chapter)
-            self._writer(principal)
+            from .project_access import chapter_structure
+            if not chapter_structure(state, chapter, principal.user.id):
+                raise DomainError(403, "VOLUME_OWNER_REQUIRED", "章节检查须由本项目负责人或本册负责人办理。")
             issues = []
             if not chapter.content.strip():
                 issues.append({"code": "EMPTY_CONTENT", "message": "已提交正文为空。"})
@@ -454,7 +494,9 @@ class DemoService:
     def export(self, principal: Principal, chapter_id: str, check_id: str) -> dict:
         def operation(state: DemoState):
             chapter = self._chapter(state, principal, chapter_id)
-            self._writer(principal)
+            from .project_access import chapter_structure
+            if not chapter_structure(state, chapter, principal.user.id):
+                raise DomainError(403, "VOLUME_OWNER_REQUIRED", "内部稿导出须由本项目负责人或本册负责人办理。")
             self._legacy_flow_guard(state, chapter)
             check = state.checks.get(check_id)
             if check is None or check.chapter_id != chapter.id:

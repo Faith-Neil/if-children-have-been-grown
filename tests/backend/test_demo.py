@@ -389,7 +389,7 @@ def test_replacement_repository_and_failure_after_operation_roll_back(clock):
 @pytest.mark.parametrize("content", ["", "   ", "设备参数待补，验收指标待补充。",
                                     "参数[待补]。", "商务条款【待补】。"])
 def test_empty_or_placeholder_content_cannot_pass_check_or_export(client, content):
-    headers = login(client)
+    headers = login(client, "alpha-manager")
     lease = acquire(client, headers)
     saved = submit(client, headers, lease, content=content)
     assert saved.status_code == 200, saved.text
@@ -403,7 +403,7 @@ def test_empty_or_placeholder_content_cannot_pass_check_or_export(client, conten
 
 
 def test_export_is_real_docx_and_cannot_cross_company_or_skip_authentication(client):
-    headers = login(client)
+    headers = login(client, "alpha-manager")
     lease = acquire(client, headers)
     checked, exported = checked_export(client, headers, lease)
     download = client.get(exported["download_url"], headers=headers)
@@ -425,7 +425,7 @@ def test_export_is_real_docx_and_cannot_cross_company_or_skip_authentication(cli
 
 
 def test_new_committed_version_invalidates_previous_check_and_export_download(client):
-    headers = login(client)
+    headers = login(client, "alpha-manager")
     lease = acquire(client, headers)
     checked, exported = checked_export(client, headers, lease)
     revision = get_chapter(client, headers)["revision"]
@@ -439,7 +439,7 @@ def test_new_committed_version_invalidates_previous_check_and_export_download(cl
 
 
 def test_uncommitted_draft_never_enters_exported_docx(client):
-    headers = login(client)
+    headers = login(client, "alpha-manager")
     lease = acquire(client, headers)
     checked, exported = checked_export(client, headers, lease)
     committed = get_chapter(client, headers)
@@ -464,7 +464,7 @@ def test_uncommitted_draft_never_enters_exported_docx(client):
 
 
 def test_docx_preserves_special_characters_and_rejects_invalid_xml_input(client):
-    headers = login(client)
+    headers = login(client, "alpha-manager")
     lease = acquire(client, headers)
     content = "技术说明：A&B < C > D，中文与引号\"保留\"。\n第二行正文。"
     assert submit(client, headers, lease, content=content).status_code == 200

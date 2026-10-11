@@ -22,16 +22,29 @@ def seed_state() -> DemoState:
         Account("alpha-manager", "甲公司项目经理（合成）", "alpha", "manager"),
         Account("alpha-viewer", "甲公司查看人（合成）", "alpha", "viewer"),
         Account("beta-editor", "乙公司编写人（合成）", "beta", "editor"),
+        Account("alpha-tech", "甲公司技术编写人（合成）", "alpha", "editor"),
+        Account("alpha-business", "甲公司商务编写人（合成）", "alpha", "editor"),
+        Account("alpha-outsider-manager", "甲公司其他项目经理（合成）", "alpha", "manager"),
+        Account("beta-manager", "乙公司项目经理（合成）", "beta", "manager"),
     ):
         state.accounts[user.id] = user
     for company in ("alpha", "beta"):
         project = Project(f"{company}-project", f"{'甲' if company == 'alpha' else '乙'}公司合成投标项目", company)
         state.projects[project.id] = project
+        from .project_access import initial_team
+        state.project_teams[project.id] = initial_team("alpha-manager" if company == "alpha" else "beta-manager")
+        if company == "alpha":
+            state.project_teams[project.id]["members"].update({
+                "alpha-editor": {"user_id": "alpha-editor", "project_role": "writer", "volumes": ["technical", "business"]},
+                "alpha-viewer": {"user_id": "alpha-viewer", "project_role": "readonly", "volumes": ["technical", "business"]}})
+        else:
+            state.project_teams[project.id]["members"]["beta-editor"] = {"user_id": "beta-editor", "project_role": "writer", "volumes": ["technical", "business"]}
         for suffix, volume, title in (("tech", "technical", "技术方案"),
                                       ("business", "business", "商务响应")):
             content = (f"{'甲' if company == 'alpha' else '乙'}公司合成项目的{title}。\n"
                        "本内容仅用于本地演示，不可作为真实承诺或正式递交文件。")
             chapter = Chapter(f"{company}-{suffix}", project.id, title, volume, content)
+            chapter.assignee_id = "alpha-editor" if company == "alpha" else "beta-editor"
             chapter.versions.append({"revision": 1, "content": content,
                                      "actor_id": "demo-seed", "created_at": "2026-10-10T00:00:00+00:00"})
             state.chapters[chapter.id] = chapter

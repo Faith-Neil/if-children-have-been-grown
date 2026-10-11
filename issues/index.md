@@ -8,7 +8,7 @@
 | 项目 | 内容 |
 |---|---|
 | 治理版本 | g1.1 |
-| 更新日期 | 2026-10-10 |
+| 更新日期 | 2026-10-11 |
 | 关联 Issue | ISSUE-007 |
 <!-- governance-baseline:end -->
 
@@ -23,7 +23,7 @@
 | [ISSUE-004](ISSUE-004.md) | workflow | P1 | closed | [双向同步与审查验收](../docs/testing/2026-10-09-workspace-sync.md) | PR #3 待合入 | 未发布 | 全工作区同步、目录/业务/技术审查与brief | 持续运行；按ISSUE-005推进基线与契约决定 |
 | [ISSUE-005](ISSUE-005.md) | decision | P0 | blocked | 两册范围已确认，其他门禁未完成；[一期建议](../docs/decisions/phase-one-scope.md) | 评审准备在PR #3待合入 | 未发布 | 业务完整性与生产契约尚未冻结 | T03准备中；本地demo独立推进，生产外部服务与环境仍待明确 |
 | [ISSUE-006](ISSUE-006.md) | change | P1 | closed | [后台、记录、HTTP与页面验收](../docs/testing/2026-10-10-backend-demo.md) | PR #3 待合入 | 未发布 | 后端开发准备与本地demo | 本地验收完成；继续生产身份、持久数据库与完整业务规则 |
-| [ISSUE-007](ISSUE-007.md) | change | P0 | in-progress | 未完成；[实际范围与接口](../docs/architecture/icg-reference-contract.md) | PR #3 待合入 | 未发布 | 保留ICG布局与流程，逐页接通后台 | T09～13数值闭环、本章输入与来源页面已本地验收；完整页面、片段/段落、规则及Word版式继续推进 |
+| [ISSUE-007](ISSUE-007.md) | change | P0 | in-progress | T07范围及T09～15限定任务本地验收；[成员记录](../docs/testing/2026-10-10-project-assignments.md) | PR #3 待合入 | 未发布 | 保留ICG布局与流程，逐页接通后台 | 259后续卡均planned；继续完整资料、片段/段落、规则、生成闭环及正式Word |
 <!-- issue-board:end -->
 
 ISSUE-001 编号沿用合作分支。其原记录在 xqr 内标为 closed，仅表示该分支当时的文档同步验收；本地整合保持 blocked，不据此采纳或发布技术决策。ISSUE-002 的 closed 仅表示本地验收完成。

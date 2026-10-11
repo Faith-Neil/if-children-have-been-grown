@@ -13,6 +13,7 @@ import WritingPlanReview from './WritingPlanReview';
 import WritingInputPreviewContent, { WritingSources } from './WritingInputPreview';
 import { candidateProblem, insertFactToken } from './writing-input';
 import { acquiredEditingFingerprint, editingContentWrite, loadedEditingFingerprint, recoveryEditingFingerprint, reviewedEditingFingerprint } from './editing-source';
+import { chapterCan } from './project-team';
 
 type Lease = { lease_token: string; expires_at: string; owner_id: string };
 type Version = { revision: number; content: string; actor_id: string; created_at: string };
@@ -55,7 +56,11 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
   const dirty = chapter ? content !== (chapter.draft?.base_revision === chapter.revision ? chapter.draft.content : chapter.content) : false;
   const modified = chapter ? content !== chapter.content : false;
   const combinedBusy = busy || projectBusy || loading;
-  const held = !!lease && Date.parse(lease.expires_at) > Date.now();
+  const activeChapter = workspace.chapters.find(item => item.id === chapterId);
+  const canEdit = chapterCan(activeChapter, 'edit');
+  const canGenerate = chapterCan(activeChapter, 'generate');
+  const planCurrent = activeChapter?.writing_input?.is_current === true;
+  const held = canEdit && !!lease && Date.parse(lease.expires_at) > Date.now();
   const proposed = suggestion ?? workspace.chapters.find(item => item.id === chapterId)?.candidate ?? null;
   const candidate = proposed;
   const candidateIssue = candidate ? candidateProblem(candidate, workspace.input_fingerprint, chapter?.revision) : null;
@@ -63,6 +68,12 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
   const sourceStale = !!chapter && editFingerprint !== workspace.input_fingerprint;
 
   useEffect(() => { onDirtyChange(dirty); }, [dirty]);
+  useEffect(() => {
+    if (!canEdit && currentLease.current) {
+      currentLease.current = null; setLease(null);
+      setNotice('本节分工或项目权限已经变化，写入口已关闭。当前文字仍保留，可先保留一份本地文字，再核对最新分工。');
+    }
+  }, [canEdit]);
   useEffect(() => {
     function leaving(event: BeforeUnloadEvent) { if (dirty) { event.preventDefault(); event.returnValue = ''; } }
     window.addEventListener('beforeunload', leaving); return () => window.removeEventListener('beforeunload', leaving);
@@ -92,7 +103,7 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
       const activeLease = currentLease.current;
       if (!activeLease || start !== epoch.current) return;
       try { const renewed = await request<Lease>(`/api/chapters/${chapterId}/lock/renew`, token, 'POST', { lease_token: activeLease.lease_token }); if (start === epoch.current && activeLease.lease_token === currentLease.current?.lease_token) { currentLease.current = renewed; setLease(renewed); } }
-      catch (error) { if (start === epoch.current && activeLease.lease_token === currentLease.current?.lease_token) { currentLease.current = null; setLease(null); setNotice('编辑权续期失败，文字已保留在当前页面。请重新取得编辑权后核对版本再保存。'); report(error); } }
+      catch (error) { if (start === epoch.current && activeLease.lease_token === currentLease.current?.lease_token) { currentLease.current = null; setLease(null); setNotice('编辑权续期失败，文字已保留在当前页面。请重新取得编辑权后核对版本再保存。'); report(error); if (error instanceof ApiError && [403, 404].includes(error.status)) void reload().catch(report); } }
     }, 30_000);
     return () => window.clearInterval(timer);
   }, [lease?.lease_token, chapterId, token]);
@@ -101,14 +112,20 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
     report(error);
     if (error instanceof ApiError && ['INPUT_FINGERPRINT_REQUIRED', 'INPUT_FINGERPRINT_STALE'].includes(error.code)) {
       setNotice(error.code === 'INPUT_FINGERPRINT_REQUIRED' ? '这份文字尚未记录来源依据，文字仍保留。请核对最新来源，再保存或提交。' : '条款、事实、证据或写作方案已经变化，本次保存或提交未成功，文字和原依据仍保留。请核对最新来源后再写入。');
-      void reload(); return;
+      void reload().catch(report); return;
     }
     if (error instanceof ApiError && error.code === 'FACT_SOURCE_CHANGE_REQUIRED') { setSourceAdvice(true); setNotice(error.message); return; }
+    if (error instanceof ApiError && [403, 404].includes(error.status)) {
+      currentLease.current = null; setLease(null);
+      setNotice('本次操作没有权限，当前文字保留在页面。请核对最新项目成员和章节分工；个人草稿不会转送给其他人。');
+      void reload().catch(report); return;
+    }
     if (error instanceof ApiError && error.status === 423) { currentLease.current = null; setLease(null); setNotice('编辑权已失效，当前文字仍在页面。请重新取得编辑权，避免覆盖其他人。'); }
     if (error instanceof ApiError && error.status === 409) setNotice('后台正文或草稿已变化，本次写入没有成功。当前文字保留；请查看最新版本后核对，不能继续覆盖。');
   }
   async function run(action: () => Promise<void>) { setBusy(true); try { await action(); } catch (error) { localError(error); } finally { setBusy(false); } }
   async function acquire(reason: string | null = null) {
+    if (!canEdit || combinedBusy) return;
     await run(async () => {
       const start = epoch.current;
       const result = await request<Lease>(`/api/chapters/${chapterId}/lock`, token, 'POST', { takeover_reason: reason });
@@ -126,7 +143,7 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
   function takeover() { let reason = ''; modal.confirm({ title: '说明接管编辑的理由', content: <Input.TextArea aria-label="接管理由" placeholder="接管会使原编辑人的凭据失效，原因将留在操作记录中" onChange={e => { reason = e.target.value; }} />, okText: '填写理由并接管', onOk: async () => { if (!reason.trim()) throw new Error('请填写接管理由'); await acquire(reason); } }); }
   async function release() { await run(async () => { if (!lease) return; await request(`/api/chapters/${chapterId}/lock/release`, token, 'POST', { lease_token: lease.lease_token }); currentLease.current = null; setLease(null); setChapter(await request<Chapter>(`/api/chapters/${chapterId}`, token)); }); }
   async function saveDraft() { await run(async () => {
-    if (!chapter || !lease) return;
+    if (!chapter || !lease || !canEdit) return;
     const start = epoch.current;
     const value = await request<NonNullable<Chapter['draft']>>(`/api/chapters/${chapterId}/draft`, token, 'PUT', { lease_token: lease.lease_token, base_revision: chapter.revision, sequence: ++sequence.current, ...editingContentWrite(content, editFingerprint) });
     if (start !== epoch.current) return;
@@ -134,7 +151,7 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
     setSavedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false })); setNotice('个人草稿及对应来源依据已保存；尚未进入正式正文和导出。');
   }); }
   async function commit() { await run(async () => {
-    if (!chapter || !lease) return;
+    if (!chapter || !lease || !canEdit) return;
     const start = epoch.current;
     await request(`/api/chapters/${chapterId}/versions`, token, 'POST', { lease_token: lease.lease_token, base_revision: chapter.revision, ...editingContentWrite(content, editFingerprint), idempotency_key: crypto.randomUUID() });
     const updated = await request<Chapter>(`/api/chapters/${chapterId}`, token);
@@ -143,8 +160,8 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
     setChapter(updated); setContent(updated.content); setEditFingerprint(current.input_fingerprint); setSuggestion(null); sequence.current = updated.draft?.sequence ?? sequence.current;
     setSavedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false })); setNotice(`已提交正文 v${updated.revision}；之前的检查和导出会失效，需要重新运行。`); await reload();
   }); }
-  async function suggest() { await run(async () => { const start = epoch.current; const value = await request<Candidate>(`/api/chapters/${chapterId}/suggestions`, token, 'POST', { instruction }); if (start === epoch.current) setSuggestion(value); }); }
-  async function generate() { try { await mutate(`/api/v1/projects/${workspace.project.id}/generate`, 'POST', { chapter_ids: [chapterId] }); setSuggestion(null); setNotice('已生成候选，尚未改动正式正文。请在右侧比较并确认。'); } catch { /* 统一入口已经显示错误 */ } }
+  async function suggest() { if (!canGenerate || !planCurrent || combinedBusy) return; await run(async () => { const start = epoch.current; const value = await request<Candidate>(`/api/chapters/${chapterId}/suggestions`, token, 'POST', { instruction }); if (start === epoch.current) setSuggestion(value); }); }
+  async function generate() { if (!canGenerate || !planCurrent || combinedBusy) return; try { await mutate(`/api/v1/projects/${workspace.project.id}/generate`, 'POST', { chapter_ids: [chapterId] }); setSuggestion(null); setNotice('已生成候选，尚未改动正式正文。请在右侧比较并确认。'); } catch { /* 统一入口已经显示错误 */ } }
   async function viewVersions() { await run(async () => { const value = await request<{ versions: Version[] }>(`/api/chapters/${chapterId}/versions`, token); setVersions(value.versions.slice().reverse()); setVersionsOpen(true); }); }
   function selectChapter(id: string, nextVolume?: Volume) {
     const action = () => { if (nextVolume) setVolume(nextVolume); setChapterId(id); };
@@ -191,7 +208,7 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
     });
   }
   async function confirmCurrentSources() {
-    if (!sourceReview || !sourceReviewed || !chapter || !held || user.role === 'viewer') return;
+    if (!sourceReview || !sourceReviewed || !chapter || !held || !canEdit) return;
     await run(async () => {
       const start = epoch.current;
       const current = await request<Workspace>(`/api/v1/projects/${workspace.project.id}/workspace`, token);
@@ -226,6 +243,23 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
       setNotice('已插入项目事实变量，导出读取当前已确认取值；本次修改仍须保存或提交。');
     } catch (error) { report(error); }
   }
+  function keepLocalText() {
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
+    link.href = url; link.download = `${chapter?.title ?? '本节'}-未提交文字.txt`; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function deleteOwnDraft() {
+    if (!chapter?.draft || combinedBusy) return;
+    modal.confirm({ title: '明确删除本人已保存草稿', content: '只删除这个账号在本节已保存的个人草稿，不删除其他人草稿、正式正文或历史。当前编辑框的文字仍保留；需要的话请先保留一份本地文字。', okText: '删除本人草稿', cancelText: '保留草稿', onOk: async () => { await run(async () => {
+      const start = epoch.current;
+      await request(`/api/chapters/${chapterId}/draft`, token, 'DELETE', { sequence: chapter.draft!.sequence });
+      const latest = await request<Chapter>(`/api/chapters/${chapterId}`, token);
+      if (start !== epoch.current) return;
+      setChapter(latest); sequence.current = latest.draft?.sequence ?? 0;
+      setNotice('本人已保存草稿已删除，当前编辑框文字、正式正文和历史仍保留。'); await reload();
+    }); } });
+  }
 
   return <>
     <div className="editor-layout">
@@ -238,10 +272,10 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
         {workspace.chapters.filter(item => item.volume === volume && item.title.includes(search)).map(item =>
           <button className={`chapter-entry ${chapterId === item.id ? 'active' : ''}`} onClick={() => selectChapter(item.id)} key={item.id}>
             <span className={`chapter-dot ${item.content.trim() ? 'green-dot' : ''}`} /><span><b>{item.title}</b>
-              <small>{item.content.trim() ? `已提交 v${item.revision}` : '待编制'}{item.candidate ? item.candidate.status === 'stale' ? ' · 候选需重新生成' : ' · 有候选待确认' : ''}</small></span>
+              <small>编写人：{item.assignee_name || '未分配'} · {item.writing_input?.is_current ? '方案已确认' : '方案待确认'}</small><small>{item.content.trim() ? `已提交 v${item.revision}` : '待编制'}{item.candidate ? item.candidate.status === 'stale' ? ' · 候选需重新生成' : ' · 有候选待确认' : ''}</small></span>
           </button>)}
         <div className="directory-bottom"><Button block size="small" onClick={() => setPlanOpen(true)} disabled={combinedBusy || !workspace.parse_confirmed}>写作方案与大纲确认</Button>
-          <p className="muted">{workspace.plan_confirmed ? '写作方案已确认' : '先确认解析，再核对写作方案'}</p><Tag color="orange">结构化段落编辑仍在后续任务中</Tag></div>
+          <p className="muted">已确认方案 {workspace.chapters.filter(item => item.writing_input?.is_current).length} / {workspace.chapters.length} 节；每节独立办理</p><Tag color="orange">结构化段落编辑仍在后续任务中</Tag></div>
       </aside>
       <section className="editor-center">
         <div className="sla-token-tools">
@@ -259,9 +293,9 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
         <div className="editor-toolbar"><Space size={6}>
           <Tooltip title="正文格式与选区工具将在结构化编辑器中实现"><Button size="small" disabled>格式</Button></Tooltip>
           <Button size="small" icon={<HistoryOutlined />} onClick={viewVersions} disabled={combinedBusy || !chapter}>版本</Button>
-          <Tooltip title="生成整章候选，不会直接改动正文"><Button size="small" onClick={generate} disabled={combinedBusy || !workspace.plan_confirmed || user.role === 'viewer' || !chapter}>生成候选</Button></Tooltip>
+          <Tooltip title="生成整章候选，不会直接改动正文"><Button size="small" onClick={generate} disabled={combinedBusy || !planCurrent || !canGenerate || !chapter}>生成候选</Button></Tooltip>
         </Space><Space size={6}>
-          <Tag color={held ? 'green' : chapter?.lock ? 'orange' : 'default'} icon={held ? <LockOutlined /> : <UnlockOutlined />}>{held ? '本人锁定' : chapter?.lock ? '他人 / 其他会话编辑中' : '未取得编辑权'}</Tag>
+          <Tag color={held ? 'green' : canEdit && chapter?.lock ? 'orange' : 'default'} icon={held ? <LockOutlined /> : <UnlockOutlined />}>{!canEdit ? '当前无本节编辑权限' : held ? '本人锁定' : chapter?.lock ? '他人 / 其他会话编辑中' : '未取得编辑权'}</Tag>
           {savedAt && <span className="saved-at">{savedAt} 已保存</span>}<Button type="primary" size="small" onClick={commit} disabled={combinedBusy || !held || !chapter} loading={busy}>提交本节</Button>
         </Space></div>
         <Spin spinning={loading}><div className="editor-scroll">
@@ -270,17 +304,18 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
         {notice && <Alert className="editor-notice" showIcon type={notice.includes('变化') || notice.includes('失败') || notice.includes('失效') ? 'warning' : 'info'} message={notice} closable onClose={() => setNotice('')} />}
           {chapter ? <article className="document-paper">
             <div className="document-heading"><h2>{chapter.title}</h2><Tag>{volumeName(chapter.volume)}</Tag></div>
-            <p className="document-subline">正文版本 v{chapter.revision} · {sources.length} 条关联要求 · {held ? '已取得编辑权' : '只读，请先取得编辑权'}</p>
+            <p className="document-subline">本节编写人 {activeChapter?.assignee_name || '未指定'} · 正文版本 v{chapter.revision} · {sources.length} 条关联要求 · {!canEdit ? '只读，请核对本节分工' : held ? '已取得编辑权' : '只读，请先取得编辑权'}</p>
             {sources.length > 0 && <div className="chapter-source-summary"><span className="source-label">招标原文</span><div>{sources.map(item => <p key={item.id}>{item.text} <Tag>P.{item.source.page}</Tag></p>)}</div></div>}
             <Input.TextArea className="chapter-editor" aria-label="章节正文" placeholder="根据招标原文、项目事实和可引用证据编制正文。不要把未经核实的承诺直接写入。"
               autoSize={{ minRows: 18, maxRows: 35 }} value={content}
               onSelect={e => { const target = e.currentTarget; selection.current = { start: target.selectionStart, end: target.selectionEnd }; }}
               onChange={e => { selection.current = { start: e.target.selectionStart, end: e.target.selectionEnd }; setContent(e.target.value); }} readOnly={!held || combinedBusy} />
             <div className="document-footer"><span className="muted">{content.length} 字 · {modified ? '当前内容未全部提交' : '与已提交正文一致'}</span><Space>
-              <Button size="small" icon={<SaveOutlined />} onClick={saveDraft} disabled={combinedBusy || !held}>保存草稿</Button>
-              {held ? <Button size="small" onClick={release} disabled={combinedBusy}>释放编辑权</Button> : <Button size="small" type="primary" icon={<LockOutlined />} onClick={() => acquire()} disabled={combinedBusy || user.role === 'viewer'}>取得编辑权</Button>}
-              {!held && chapter.lock && user.role === 'manager' && <Button size="small" danger onClick={takeover} disabled={combinedBusy}>填写理由接管</Button>}
+              <Button size="small" onClick={keepLocalText} disabled={!content}>保留当前文字到本地</Button><Button size="small" icon={<SaveOutlined />} onClick={saveDraft} disabled={combinedBusy || !held}>保存草稿</Button>
+              {held ? <Button size="small" onClick={release} disabled={combinedBusy}>释放编辑权</Button> : <Button size="small" type="primary" icon={<LockOutlined />} onClick={() => acquire()} disabled={combinedBusy || !canEdit}>取得编辑权</Button>}
+              {!held && chapter.lock && chapterCan(activeChapter, 'takeover') && <Button size="small" danger onClick={takeover} disabled={combinedBusy}>填写理由接管</Button>}
             </Space></div>
+            {chapter.draft && <Button size="small" danger disabled={combinedBusy} onClick={deleteOwnDraft}>明确删除本人已保存草稿</Button>}
             {chapter.draft && chapter.draft.base_revision !== chapter.revision && <Card size="small" title={`旧草稿（基于 v${chapter.draft.base_revision}，未自动覆盖）`}
               extra={<Button size="small" disabled={combinedBusy || !held} onClick={() => reviewRecovery({ title: `旧草稿 v${chapter.draft!.base_revision}`, content: chapter.draft!.content, source_kind: 'draft', input_fingerprint: chapter.draft!.input_fingerprint ?? null })}>核对并恢复</Button>} className="old-draft"><pre>{chapter.draft.content}</pre></Card>}
           </article> : <Empty description="当前分册没有可编辑章节" />}
@@ -310,11 +345,11 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
         </div>
         {rightTab === 'assistant' && <div className="assistant-input">
           <div className="prompt-chips">{['改写', '扩写', '缩写', '按指令修改', '换一种说法'].map(text => <button key={text} onClick={() => setInstruction(`${text}当前章节，依据已核对原文与事实，不新增未经证实的承诺。`)}>{text}</button>)}</div>
-          <Input.TextArea aria-label="给助手的修改要求" placeholder="针对已提交正文输入整章修改要求" rows={3} maxLength={2000} value={instruction} onChange={e => setInstruction(e.target.value)} disabled={combinedBusy || user.role === 'viewer'} />
+          <Input.TextArea aria-label="给助手的修改要求" placeholder="针对已提交正文输入整章修改要求" rows={3} maxLength={2000} value={instruction} onChange={e => setInstruction(e.target.value)} disabled={combinedBusy || !canEdit} />
           <div className="assistant-send"><span className="muted">整章建议 · 选区助手待实现</span><Button size="small" type="primary" icon={<SendOutlined />}
-            disabled={combinedBusy || user.role === 'viewer' || !chapter || !workspace.plan_confirmed || !instruction.trim() || modified} onClick={suggest}>发送</Button></div>
+            disabled={combinedBusy || !canGenerate || !chapter || !planCurrent || !instruction.trim() || modified} onClick={suggest}>发送</Button></div>
           {modified && <span className="muted">先提交本节，再基于已提交正文请求建议</span>}
-          {!workspace.plan_confirmed && <span className="muted">负责人确认写作方案后，才能请求整章建议</span>}
+          {!planCurrent && <span className="muted">先由本节编写人或负责人确认本节方案，再请求整章建议</span>}
         </div>}
       </aside>
     </div>
@@ -333,10 +368,10 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
         <p className="muted">提交账号：{item.actor_id}</p><pre>{item.content}</pre><Button size="small" disabled={combinedBusy || !held || item.revision === chapter?.revision} onClick={() => reviewRecovery({ title: `历史正文 v${item.revision}`, content: item.content, source_kind: 'history', input_fingerprint: workspace.input_fingerprint })}>核对并恢复为草稿</Button>
       </Card>) : <Empty description="暂无已提交版本" />}<Alert type="info" message="历史版本保留不变。恢复先保存个人草稿，人工修订并提交后才产生新正文版本。" />
     </Drawer>
-    <RecoveryReview choice={recovery} current={content} reviewed={recoveryReviewed} busy={busy} writable={held && !combinedBusy && user.role !== 'viewer'} onReview={setRecoveryReviewed} onCancel={() => setRecovery(null)} onSave={saveRecovery} onReviewSources={() => reviewCurrentSources('recovery')} />
-    <WritingPlanReview open={planOpen} onClose={() => setPlanOpen(false)} />
+    <RecoveryReview choice={recovery} current={content} reviewed={recoveryReviewed} busy={busy} writable={held && !combinedBusy && canEdit} onReview={setRecoveryReviewed} onCancel={() => setRecovery(null)} onSave={saveRecovery} onReviewSources={() => reviewCurrentSources('recovery')} />
+    <WritingPlanReview chapterId={chapterId} open={planOpen} onClose={() => setPlanOpen(false)} />
     <Drawer title="核对最新来源 · 更新这次文字的写作依据" open={!!sourceReview} onClose={() => setSourceReview(null)} width={760} zIndex={1200}
-      footer={<Space wrap><Checkbox checked={sourceReviewed} onChange={event => setSourceReviewed(event.target.checked)}>我已核对当前来源，并确认待保存文字仍然适用</Checkbox><Button size="small" disabled={combinedBusy} onClick={() => sourceReview && reviewCurrentSources(sourceReview.target)}>重新读取来源</Button><Button type="primary" loading={busy} disabled={!sourceReviewed || combinedBusy || !held || user.role === 'viewer'} onClick={confirmCurrentSources}>按已核对来源更新依据</Button></Space>}>
+      footer={<Space wrap><Checkbox checked={sourceReviewed} onChange={event => setSourceReviewed(event.target.checked)}>我已核对当前来源，并确认待保存文字仍然适用</Checkbox><Button size="small" disabled={combinedBusy} onClick={() => sourceReview && reviewCurrentSources(sourceReview.target)}>重新读取来源</Button><Button type="primary" loading={busy} disabled={!sourceReviewed || combinedBusy || !held || !canEdit} onClick={confirmCurrentSources}>按已核对来源更新依据</Button></Space>}>
       <Alert className="page-notice" showIcon type="warning" message="这一步只更新本次文字的写作依据，不会修改原文、事实、服务承诺或正式正文" description="先取得编辑权再确认。确认期间如果来源或正文又有变化，仍会拒绝更新；确认后也须人工修订，再保存草稿或提交。" />
       {sourceReview && <WritingInputPreviewContent snapshot={sourceReview.preview.input_snapshot} historical={false} />}
     </Drawer>

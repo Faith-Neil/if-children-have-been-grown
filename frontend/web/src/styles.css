@@ -35,3 +35,15 @@
 .writing-omitted-item { padding: 9px 0; border-bottom: 1px solid #edf0f5; }
 .writing-omitted-item p { color: var(--muted); margin: 6px 0; }
 .writing-source-controls { margin-bottom: 14px; }
+
+/* 项目设置保留左锚点和右侧分组表单，人员表与底部保存条同属当前项目。 */
+.settings-members-layout { align-items: start; padding-bottom: 70px; }
+.settings-members-layout .settings-anchor { position: sticky; top: 78px; }
+.settings-groups { min-width: 0; }
+.settings-groups > .ant-card, .settings-groups > .ant-form > .ant-card { scroll-margin-top: 92px; }
+.project-member-row { display: grid; grid-template-columns: minmax(170px, 1fr) 160px 180px 90px; align-items: center; gap: 12px; padding-top: 18px; border-bottom: 1px solid #edf0f5; }
+.project-member-row .ant-form-item { margin-bottom: 14px; min-width: 0; }
+.settings-save-bar { position: sticky; bottom: 0; background: white; border-top: 1px solid #e8ebf0; box-shadow: 0 -2px 8px #00000008; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 18px; z-index: 5; }
+.plan-scope-toolbar { margin-bottom: 16px; }
+@media(max-width: 1100px) { .project-member-row { grid-template-columns: minmax(170px, 1fr) 150px; } .settings-save-bar { flex-wrap: wrap; } }
+@media(max-width: 900px) { .settings-members-layout .settings-anchor { position: static; } .project-member-row { grid-template-columns: minmax(150px, 1fr) 140px; } }

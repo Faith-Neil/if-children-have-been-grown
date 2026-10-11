@@ -1,5 +1,9 @@
 // 为什么有这个文件：统一新建和设置页面的项目输入、北京时间显示与接口时间格式。
 // 它解决什么问题：空日期不发送非法null，换时区也不会改变截止时间，两个页面不会各用一套规则。
+export function projectBasis(project: { name: string; tender_number?: string; deadline?: string | null; sensitive?: boolean }): string {
+  return JSON.stringify({ name: project.name, tender_number: project.tender_number ?? '', deadline: project.deadline ?? '', sensitive: !!project.sensitive });
+}
+
 export function deadlineForApi(value?: string | null): string {
   if (!value?.trim()) return '';
   const normalized = value.trim().replace(' ', 'T');

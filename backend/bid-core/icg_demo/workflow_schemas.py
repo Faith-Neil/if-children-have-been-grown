@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 from pydantic import Field, field_validator
 
-from .schemas import ChapterSummaryResponse, RequestBody, ResponseBody, LockSummaryResponse
+from .schemas import ChapterSummaryResponse, RequestBody, ResponseBody, LockSummaryResponse, AccountResponse
 from .sla_schemas import ProjectSla
 
 Volume = Literal["technical", "business"]
@@ -62,6 +62,7 @@ class PlannedChapter(RequestBody):
     fact_ids: list[str] = Field(default_factory=list, max_length=500)
     writing_points: str = Field(default="", max_length=5000)
     target_length: int | None = Field(default=None, ge=1, le=100_000)
+    assignee_id: str | None = Field(default=None, max_length=100)
 
     @field_validator("fact_ids")
     @classmethod
@@ -72,7 +73,38 @@ class PlannedChapter(RequestBody):
 
 
 class PlanRequest(RequestBody):
-    chapters: list[PlannedChapter] = Field(min_length=2, max_length=100)
+    chapters: list[PlannedChapter] = Field(min_length=1, max_length=100)
+    scope: Literal["all", "technical", "business"] = "all"
+    reason: str = Field(default="", max_length=2000)
+
+
+class ChapterPlanPatch(RequestBody):
+    fact_ids: list[str] = Field(default_factory=list, max_length=500)
+    writing_points: str = Field(default="", max_length=5000)
+    target_length: int | None = Field(default=None, ge=1, le=100_000)
+
+
+class TeamMemberInput(RequestBody):
+    user_id: str = Field(min_length=1, max_length=100)
+    project_role: Literal["lead", "writer", "readonly"]
+    volumes: list[Volume] = Field(default_factory=list, max_length=2)
+
+
+class VolumeOwnerInput(RequestBody):
+    volume: Volume
+    owner_id: str | None
+
+
+class TeamUpdate(RequestBody):
+    members: list[TeamMemberInput] = Field(min_length=1, max_length=500)
+    volumes: list[VolumeOwnerInput] = Field(min_length=2, max_length=2)
+    assembly_owner_id: str | None
+    reason: str = Field(default="", max_length=2000)
+
+
+class ChapterAssignment(RequestBody):
+    assignee_id: str | None
+    reason: str = Field(default="", max_length=2000)
 
 
 class GenerateRequest(RequestBody):
@@ -86,6 +118,7 @@ class ProjectCheckRequest(RequestBody):
 class ProjectExportRequest(RequestBody):
     check_id: str = Field(min_length=1, max_length=100)
     kind: Literal["internal", "submission"] = "internal"
+    volume: Literal["all", "technical", "business"] = "all"
 
 
 class LibraryCreate(RequestBody):
@@ -184,6 +217,11 @@ class ChapterWritingInput(ResponseBody):
     fact_ids: list[str]
     writing_points: str
     target_length: int | None
+    confirmed_by: str | None = None
+    confirmed_by_name: str | None = None
+    confirmed_at: str | None = None
+    confirmed_input_fingerprint: str | None = None
+    is_current: bool = False
 
 
 class WritingPlan(ResponseBody):
@@ -272,6 +310,55 @@ class WorkflowChapter(ChapterSummaryResponse):
     candidate: Candidate | None
     requirement_ids: list[str]
     writing_input: ChapterWritingInput
+    assignee_id: str | None
+    assignee_name: str | None
+    permissions: dict[str, bool]
+
+
+class TeamMember(TeamMemberInput):
+    name: str
+    company_role: Literal["editor", "manager", "viewer"]
+
+
+class VolumeOwner(VolumeOwnerInput):
+    owner_name: str | None
+
+
+class Handoff(ResponseBody):
+    id: str
+    actor_id: str
+    at: str
+    reason: str
+    chapter_ids: list[str]
+    previous_user_ids: list[str]
+    preserved_draft_count: int
+    revoked_lock_count: int
+
+
+class Team(ResponseBody):
+    members: list[TeamMember]
+    volumes: list[VolumeOwner]
+    assembly_owner_id: str | None
+    available_accounts: list[AccountResponse]
+    handoffs: list[Handoff]
+
+
+class TeamResult(Team):
+    revision: int
+
+
+class ProjectPermissions(ResponseBody):
+    manage_team: bool
+    manage_project: bool
+    manage_structure: bool
+    prepare_sources: bool
+    manage_sla: bool
+    edit_facts: bool
+    confirm_facts: bool
+    check_all: bool
+    export_internal: bool
+    check_volumes: list[Volume]
+    export_volumes: list[Volume]
 
 
 class JobError(ResponseBody):
@@ -366,6 +453,8 @@ class Workspace(ResponseBody):
     plan_confirmed: bool
     sla: ProjectSla | None = None
     writing_plan: WritingPlan
+    team: Team
+    permissions: ProjectPermissions
 
 
 class MutationResult(ResponseBody):
@@ -385,6 +474,9 @@ class MutationResult(ResponseBody):
     export: ProjectExport | None = None
     parse_confirmed: bool | None = None
     plan_confirmed: bool | None = None
+    writing_plan: WritingPlan | None = None
+    team: Team | None = None
+    chapter: WorkflowChapter | None = None
 
 
 class CheckList(ResponseBody):

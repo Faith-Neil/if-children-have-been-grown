@@ -35,44 +35,68 @@ def project_facts(state, project_id):
 def chapter_plan(workflow, chapter_id):
     saved = workflow.get("writing_plan", {}).get("chapters", {}).get(chapter_id, {})
     return {"id": chapter_id, "fact_ids": list(saved.get("fact_ids", [])),
-            "writing_points": saved.get("writing_points", ""), "target_length": saved.get("target_length")}
+            "writing_points": saved.get("writing_points", ""), "target_length": saved.get("target_length"),
+            "confirmed_by": saved.get("confirmed_by"), "confirmed_by_name": saved.get("confirmed_by_name"),
+            "confirmed_at": saved.get("confirmed_at"), "confirmed_input_fingerprint": saved.get("confirmed_input_fingerprint")}
 
 
-def writing_source_fingerprint(state, project_id):
+def writing_source_fingerprint(state, project_id, chapter_id=None):
     """方案只绑定来源和写作配置；提交正文不会要求再次确认相同方案。"""
     workflow = state.workflows.get(project_id, {})
     project = state.projects[project_id]
-    plan = workflow.get("writing_plan", {})
+    if chapter_id is None:
+        chapters = [c.id for c in state.chapters.values() if c.project_id == project_id]
+        return hashlib.sha256(json.dumps([writing_source_fingerprint(state, project_id, identity)
+                                         for identity in sorted(chapters)]).encode()).hexdigest()
+    chapter = state.chapters[chapter_id]
+    plan = chapter_plan(workflow, chapter_id)
+    facts = [f for f in project_facts(state, project_id) if f["required"] or f["id"] in plan["fact_ids"]]
+    requirements = [r for r in workflow.get("requirements", {}).values() if r["chapter_id"] == chapter_id]
+    evidence_ids = {identity for r in requirements for identity in r["evidence_ids"]}
+    file_ids = {r["source"]["file_id"] for r in requirements if r.get("source")}
+    file_ids.update(f["source"]["file_id"] for f in facts if f.get("source") and f["source"].get("file_id"))
+    from .project_access import chapter_edit, writable
+    team = state.project_teams.get(project_id, {})
     payload = {
         "project": {"name": project.name, "tender_number": project.tender_number,
                     "deadline": project.deadline, "sensitive": project.sensitive},
         "files": [{k: v for k, v in item.items() if k not in ("content", "pages")}
-                  for item in workflow.get("files", {}).values()],
-        "requirements": list(workflow.get("requirements", {}).values()),
-        "facts": list(workflow.get("facts", {}).values()), "conflicts": list(workflow.get("conflicts", {}).values()),
+                  for identity, item in workflow.get("files", {}).items() if identity in file_ids],
+        "requirements": requirements,
+        "facts": facts,
+        "conflicts": [item for item in workflow.get("conflicts", {}).values()
+                      if set(item["fact_ids"]) & {f["id"] for f in facts}],
         "sla": workflow.get("sla"),
-        "library": [item for item in state.library.values() if item["company_id"] == project.company_id],
-        "sla_templates": [item for item in state.sla_templates.values() if item["company_id"] == project.company_id],
-        "chapters": [{"id": identity, "title": state.chapters[identity].title,
-                      "volume": state.chapters[identity].volume, **chapter_plan(workflow, identity)}
-                     for identity in workflow.get("chapter_order", []) if identity in state.chapters],
-        "plan_chapters": plan.get("chapters", {}),
+        "library": [item for identity, item in state.library.items() if identity in evidence_ids],
+        "sla_templates": [item for item in state.sla_templates.values()
+                          if item["company_id"] == project.company_id and workflow.get("sla")
+                          and item["id"] == workflow["sla"]["template_id"]],
+        "chapter": {"id": chapter_id, "title": chapter.title, "volume": chapter.volume,
+                    "assignee_id": chapter.assignee_id, "owner_id": team.get("owners", {}).get(chapter.volume),
+                    "owner_is_writable": writable(state, project_id, team.get("owners", {}).get(chapter.volume))},
+        "plan": {k: plan[k] for k in ("fact_ids", "writing_points", "target_length")},
+        "confirmer_can_edit": chapter_edit(state, chapter, plan["confirmed_by"]) if plan["confirmed_by"] else False,
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
 
 
-def plan_is_current(state, project_id):
+def plan_is_current(state, project_id, chapter_id=None):
     workflow = state.workflows.get(project_id, {})
-    plan = workflow.get("writing_plan", {})
-    return bool(workflow.get("plan_confirmed") and plan.get("confirmed_input_fingerprint")
-                == writing_source_fingerprint(state, project_id))
+    if chapter_id is None:
+        chapters = [c for c in state.chapters.values() if c.project_id == project_id]
+        return bool(chapters and all(plan_is_current(state, project_id, c.id) for c in chapters))
+    plan = chapter_plan(workflow, chapter_id)
+    return bool(plan["confirmed_at"] and not workflow.get("writing_plan", {}).get("chapters", {}).get(chapter_id, {}).get("confirmation_pending")
+                and plan["confirmed_input_fingerprint"]
+                == writing_source_fingerprint(state, project_id, chapter_id))
 
 
-def public_plan(workflow):
+def public_plan(workflow, state=None, project_id=None):
     plan = workflow.get("writing_plan", {})
     return {"confirmed_by": plan.get("confirmed_by"), "confirmed_at": plan.get("confirmed_at"),
             "confirmed_by_name": plan.get("confirmed_by_name"),
-            "chapters": [deepcopy(value) for value in plan.get("chapters", {}).values()]}
+            "chapters": [{**deepcopy(value), "is_current": plan_is_current(state, project_id, identity) if state else False}
+                         for identity, value in plan.get("chapters", {}).items()]}
 
 
 def _source(workflow, source):
@@ -108,15 +132,18 @@ def build_generation_context(state, project_id, chapter, now):
     workflow = state.workflows.get(project_id, {})
     project = state.projects[project_id]
     plan = chapter_plan(workflow, chapter.id)
-    confirmed = workflow.get("writing_plan", {})
+    confirmed = plan
     issues = []
     def add(code, message, **details):
         issues.append({"code": code, "message": message, **details})
     if not workflow.get("parse_confirmed"):
         add("PARSE_NOT_CONFIRMED", "请先确认解析结果。")
-    if not plan_is_current(state, project_id):
+    if not plan_is_current(state, project_id, chapter.id):
         add("PLAN_STALE" if confirmed.get("confirmed_at") else "PLAN_NOT_CONFIRMED",
-            "本章方案尚未确认或来源已经变化，请由项目负责人重新确认方案。")
+            "本章方案尚未确认或来源已经变化，请由有本章权限的编写人或负责人重新确认方案。")
+    from .project_access import writable
+    if not writable(state, project_id, state.project_teams.get(project_id, {}).get("owners", {}).get(chapter.volume)):
+        add("VOLUME_OWNER_REQUIRED", "本册尚未指定负责人，不能确认或生成写作方案。")
     for issue in sla_issues(state, project_id):
         add(issue["code"], issue["message"])
     selected = set(plan["fact_ids"])
@@ -169,7 +196,7 @@ def build_generation_context(state, project_id, chapter, now):
                 "project": {"id": project.id, "name": project.name},
                 "chapter": {"id": chapter.id, "title": chapter.title, "volume": chapter.volume,
                             "base_revision": chapter.revision},
-                "plan": {**plan, "confirmed_by": confirmed.get("confirmed_by"), "confirmed_at": confirmed.get("confirmed_at"),
+                "plan": {**plan, "is_current": plan_is_current(state, project_id, chapter.id), "confirmed_by": confirmed.get("confirmed_by"), "confirmed_at": confirmed.get("confirmed_at"),
                          "confirmed_by_name": confirmed.get("confirmed_by_name")},
                 "requirements": requirements, "evidence": list(evidence_by_id.values()), "facts": facts,
                 "omitted_inputs": omitted, "official_content": chapter.content}

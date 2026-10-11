@@ -15,7 +15,8 @@ from .workflow_schemas import (CheckList, ConflictPatch, FactPatch, FileDelete, 
                                GenerateRequest, JobsList, LibraryCreate, LibraryList,
                                LibraryPatch, LibraryResult, MutationResult, ParseRequest,
                                PlanRequest, ProjectCheckRequest, ProjectExportRequest,
-                               ProjectPatch, RequirementPatch, V1Error, Workspace, WritingInputPreview)
+                               ProjectPatch, RequirementPatch, V1Error, Workspace, WritingInputPreview,
+                               TeamUpdate, TeamResult, ChapterAssignment, ChapterPlanPatch)
 
 
 def include_workflow_routes(application, service, current_user, parser):
@@ -30,6 +31,35 @@ def include_workflow_routes(application, service, current_user, parser):
         result = workflow.workspace(user, project_id)
         response.headers["ETag"] = f'"{result["revision"]}"'
         return result
+
+    @router.get("/projects/{project_id}/team", response_model=TeamResult)
+    def team(project_id: str, response: Response, user: Principal = Depends(current_user)):
+        result = workflow.team.get(user, project_id)
+        response.headers["ETag"] = f'"{result["revision"]}"'
+        return result
+
+    @router.put("/projects/{project_id}/team", response_model=MutationResult, response_model_exclude_none=True)
+    def update_team(project_id: str, body: TeamUpdate, user: Principal = Depends(current_user),
+                    if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None)):
+        return workflow.team.update(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.patch("/projects/{project_id}/chapters/{chapter_id}/assignment", response_model=MutationResult,
+                  response_model_exclude_none=True)
+    def assignment(project_id: str, chapter_id: str, body: ChapterAssignment, user: Principal = Depends(current_user),
+                   if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None)):
+        return workflow.team.assignment(user, project_id, chapter_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.patch("/projects/{project_id}/chapters/{chapter_id}/plan", response_model=MutationResult,
+                  response_model_exclude_none=True)
+    def save_chapter_plan(project_id: str, chapter_id: str, body: ChapterPlanPatch, user: Principal = Depends(current_user),
+                          if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None)):
+        return workflow.chapter_plan_save(user, project_id, chapter_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/chapters/{chapter_id}/plan/confirm", response_model=MutationResult,
+                 response_model_exclude_none=True)
+    def confirm_chapter_plan(project_id: str, chapter_id: str, body: EmptyRequest, user: Principal = Depends(current_user),
+                            if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None)):
+        return workflow.chapter_plan_confirm(user, project_id, chapter_id, body.model_dump(), if_match, idempotency_key)
 
     @router.get("/projects/{project_id}/chapters/{chapter_id}/writing-input", response_model=WritingInputPreview)
     def writing_input(project_id: str, chapter_id: str, user: Principal = Depends(current_user)):
@@ -97,7 +127,7 @@ def include_workflow_routes(application, service, current_user, parser):
                  response_model_exclude_none=True)
     def plan(project_id: str, body: PlanRequest, user: Principal = Depends(current_user),
              if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None)):
-        return workflow.plan(user, project_id, body.model_dump(), if_match, idempotency_key)
+        return workflow.plan(user, project_id, body.model_dump(exclude_unset=True), if_match, idempotency_key)
 
     @router.post("/projects/{project_id}/generate", response_model=MutationResult)
     def generate(project_id: str, body: GenerateRequest, user: Principal = Depends(current_user),

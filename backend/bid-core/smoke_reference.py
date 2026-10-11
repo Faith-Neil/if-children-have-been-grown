@@ -42,19 +42,28 @@ def run(base_url, output_dir=None):
     with httpx.Client(base_url=base_url, timeout=30, trust_env=False) as client:
         editor, manager, viewer, beta = [authenticate(client, account) for account in
                                          ('alpha-editor', 'alpha-manager', 'alpha-viewer', 'beta-editor')]
-        project = request(client, 'POST', '/api/projects', headers=editor,
+        project = request(client, 'POST', '/api/projects', headers=manager,
                           payload={'name': 'ICG主流程HTTP验收（合成）-' + uuid4().hex[:6]}).json()
         path = '/api/v1/projects/' + project['id']
 
         def state():
-            response = request(client, 'GET', path + '/workspace', headers=editor)
+            response = request(client, 'GET', path + '/workspace', headers=manager)
             assert response.headers['etag'] == '"' + str(response.json()['revision']) + '"'
             return response.json()
 
         def write(route, payload, method='POST', expected=200):
-            return request(client, method, path + route, headers={**editor,
+            return request(client, method, path + route, headers={**manager,
                            'If-Match': str(state()['revision']), 'Idempotency-Key': str(uuid4())},
                            payload=payload, expected=expected).json()
+
+        write('/team', {'members': [
+            {'user_id': 'alpha-manager', 'project_role': 'lead', 'volumes': ['technical', 'business']},
+            {'user_id': 'alpha-editor', 'project_role': 'writer', 'volumes': ['technical', 'business']},
+            {'user_id': 'alpha-viewer', 'project_role': 'readonly', 'volumes': ['technical', 'business']}],
+            'volumes': [{'volume': volume, 'owner_id': 'alpha-manager'} for volume in ('technical', 'business')],
+            'assembly_owner_id': 'alpha-manager'}, 'PUT')
+        for chapter in state()['chapters']:
+            write('/chapters/' + chapter['id'] + '/assignment', {'assignee_id': 'alpha-editor'}, 'PATCH')
 
         write('', {'tender_number': 'DEMO-2026-001', 'deadline': '2026-12-31T09:00:00Z'}, 'PATCH')
         write('/files', {'filename': '合成招标.txt', 'content_base64': base64.b64encode(TENDER.encode()).decode()})
