@@ -58,7 +58,7 @@
 | D-046 | 2026-10-09 | [REV任务](tasks/REV-M0.md) | 审查 | g1.1 | 当前 | ISSUE-004 | 目录/业务/技术与brief交付 |
 | D-047 | 2026-10-09 | [业务审查](reviews/2026-10-09-business-readiness.md) | 业务 | review-1 | 待决定 | REV-M0-T01 / ISSUE-005 | 场景矩阵与12项设计/验收发现 |
 | D-048 | 2026-10-09 | [技术审查](reviews/2026-10-09-technical-readiness.md) | 技术 | review-1 | 待决定 | REV-M0-T01 / ISSUE-005 | 6类契约缺口与图片目录对照 |
-| D-049 | 2026-10-11 | [接手brief](PROJECT_BRIEF.md) | 接手 | brief-5 | 当前 | ISSUE-007 / APP-M1 | 项目范围、现状、分支、风险与下一步 |
+| D-049 | 2026-10-11 | [接手brief](PROJECT_BRIEF.md) | 接手 | brief-7 | 当前 | ISSUE-007 / APP-M1；ISSUE-008 / T16 | 同一产品前后端协同、示例资源与真实缺口 |
 | D-050 | 2026-10-09 | [工作区来源](source/WORKSPACE_MATERIALS.md) | 历史资料 | snapshot-1 | 已登记 | OPS-M0-T01 | 34份ICG资料、原路径与初次指纹 |
 | D-051 | 2026-10-09 | [同步工具说明](../tools/workspace-sync/README.md) | 运维 | sync-1 | 当前 | OPS-M0-T01 | 自动WIP、分叉、凭据、外部状态 |
 | D-052 | 2026-10-09 | [同步执行器](../tools/workspace-sync/sync.cjs) | 工程代码 | sync-1 | 回归通过 | OPS-M0-T01 | 单实例、双向Git、稳定期与出站检查 |
@@ -90,15 +90,15 @@
 | D-078 | 2026-10-10 | [接口生成器](../backend/bid-core/export_openapi.py) | 工具 | demo-1 | 通过 | BE-M0-T01 | 保持约定与实际代码同源 |
 | D-079 | 2026-10-10 | [页面事件回归](../tests/backend/demo-page.test.cjs) | 验证代码 | demo-1 | 7项通过 | BE-M0-T01 | 直接执行页面代码，验证旧草稿、确认、恢复失败与会话锁 |
 | D-080 | 2026-10-11 | [示例联调Issue](../issues/ISSUE-007.md) | 变更 | reference-members-1 | in-progress | ISSUE-007 / APP-M1 | 同一产品逐页接通，T07/T14/T15本地验收，完整目标继续 |
-| D-081 | 2026-10-11 | [示例任务卡](tasks/APP-M1.md) | 实施 | reference-members-1 | 当前 | ISSUE-007 / APP-M1 | 15项主流程任务，T07/T09～15限定范围本地done，完整父任务继续 |
+| D-081 | 2026-10-11 | [示例任务卡](tasks/APP-M1.md) | 实施 | reference-members-1 / library-basis-1 | 当前 | ISSUE-007 / APP-M1；ISSUE-008 / T16 | 16项，T07/T09～16本地done；资料及模板保护验收，完整父任务继续 |
 | D-082 | 2026-10-11 | [示例接口约定](architecture/icg-reference-contract.md) | 接口 | reference-members-1 | 实际契约 | ISSUE-007 / APP-M1 | 项目成员、分册/本节分工、逐章确认、已读依据和交接保护 |
 | D-083 | 2026-10-11 | [示例差异记录](decisions/icg-reference-deviations.md) | 评审 | reference-1 | 持续维护 | ISSUE-007 / APP-M1 | 版本缺件、已取消页签和高级功能差异 |
-| D-084 | 2026-10-11 | [产品页面说明](../frontend/web/README.md) | 工程 | reference-members-1 | 构建通过 | ISSUE-007 / APP-M1 | 成员/方案页面与已读依据，36前端回归、真实多账号操作 |
+| D-084 | 2026-10-11 | [产品页面说明](../frontend/web/README.md) | 工程 | reference-members-1 / library-basis-1 | 构建通过 | ISSUE-007 / APP-M1；ISSUE-008 / T16 | 同源页面与已读依据，当前58前端回归、真实多人操作 |
 | D-085 | 2026-10-11 | [独立主流程测试](../tests/backend/test_reference_flow.py) | 验证代码 | reference-1 | 21项通过 | ISSUE-007 / APP-M1-T06 | 两册真实内容、源页码、输入失效与权限，页面主流程另有阶段记录 |
-| D-086 | 2026-10-10 | [完整示例覆盖清单](testing/icg-coverage.md) | 验收范围 | reference-sla-1 | 未完整交付 | ISSUE-007 / APP-M1-T07/T08 | 47组页面/44规则保留；数值SLA部分实现，完整规则未交付 |
-| D-087 | 2026-10-11 | [截图来源](testing/assets/README.md) | 证据 | reference-1 | 来源已登记 | ISSUE-007 / APP-M1 | 图片来自实际合成项目，不能代替完整验收 |
+| D-086 | 2026-10-11 | [完整示例覆盖清单](testing/icg-coverage.md) | 验收范围 | reference-members-1 / library-basis-1 | 未完整交付 | ISSUE-007 / APP-M1；ISSUE-008 / T16 | 成员及逐章确认更新，完整资料治理和业务规则仍缺 |
+| D-087 | 2026-10-11 | [截图来源](testing/assets/README.md) | 证据 | reference-1 / library-basis-1 | 来源已登记 | ISSUE-007 / APP-M1；ISSUE-008 / T16 | 合成项目截图；新增资料/模板6张，不能代替完整验收 |
 | D-088 | 2026-10-10 | [示例阶段验证](testing/2026-10-10-icg-reference.md) | 验证 | reference-1 | 阶段通过 | ISSUE-007 / APP-M1 | 后台77、前端9、旧页7、治理12、实际HTTP和GUI；Word视觉待验收 |
-| D-089 | 2026-10-11 | [007同步记录](governance/ISSUE-007-sync.md) | 治理 | reference-members-1 | 已核对 | ISSUE-007 / APP-M1 | 三件套、336项看板、T07/T14/T15和真实未完成范围对齐 |
+| D-089 | 2026-10-11 | [007同步记录](governance/ISSUE-007-sync.md) | 治理 | reference-members-1 | 已核对 | ISSUE-007 / APP-M1 | 三件套、337项看板、T07/T14～16和真实未完成范围对齐 |
 | D-090 | 2026-10-10 | [独立边界回归](../tests/backend/test_reference_boundaries.py) | 验证代码 | reference-1 | 25项通过 | ISSUE-007 / APP-M1 | 模型路由、坏上传恢复、时区、候选失效与证据重新确认 |
 | D-091 | 2026-10-11 | [主流程HTTP工具](../backend/bid-core/smoke_reference.py) | 验证工具 | reference-1 | 实际端口通过 | ISSUE-007 / APP-M1 | 仅本机合成项目，两册内容与草稿准备 |
 | D-092 | 2026-10-11 | [前端日期回归](../tests/frontend/project-form.test.mjs) | 验证代码 | reference-members-1 | 4项通过 | ISSUE-007 / APP-M1 | 北京时间边界、空字段与旧基本表单已读依据 |
@@ -160,6 +160,16 @@
 | D-147 | 2026-10-11 | [项目设置页面](../frontend/web/src/ProjectSettingsPage.tsx) | 前端 | reference-members-1 | 实际页面通过 | ISSUE-007 / APP-M1-T14 | 示例左锚点、分工和基本/团队旧表单分别保护 |
 | D-148 | 2026-10-11 | [页面分工函数](../frontend/web/src/project-team.ts) | 前端 | reference-members-1 | 当前 | ISSUE-007 / APP-M1-T14、T15 | 明确后台权限、分工资格、范围与团队已读依据 |
 | D-149 | 2026-10-11 | [分工页面回归](../tests/frontend/project-team.test.mjs) | 验证 | reference-members-1 | 8项通过 | ISSUE-007 / APP-M1-T14、T15 | 角色范围、可空参与、旧团队表单和撤权保留 |
+| D-150 | 2026-10-11 | [资料旧表单缺陷](../issues/ISSUE-008.md) | Bug | library-basis-1 | closed（本地验收） | ISSUE-008 / APP-M1-T16 | 绑定已读依据、冲突保留、明确核对载入 |
+| D-151 | 2026-10-11 | [资料及模板保护交付](delivery/APP-M1-T16.md) | 交付 | library-basis-1 | 本地done | ISSUE-008 / APP-M1-T16 | 限定保护通过，完整C01/C06仍待实现 |
+| D-152 | 2026-10-11 | [资料及模板代码解释](code/APP-M1-T16.md) | 说明 | library-basis-1 | 当前 | ISSUE-008 / APP-M1-T16 | 原依据、对应集合版本、真实重读及公司身份 |
+| D-153 | 2026-10-11 | [资料及模板验证](testing/2026-10-11-library-basis.md) | 验证 | library-basis-1 | 本地通过 | ISSUE-008 / APP-M1-T16 | 后台229、前端58、构建、实际GUI与6截图；局限分列 |
+| D-154 | 2026-10-11 | [资料依据函数](../frontend/web/src/library-review.ts) | 前端 | library-basis-1 | 回归通过 | ISSUE-008 / APP-M1-T16 | 真正已读依据、成对读取及公司/账号会话 |
+| D-155 | 2026-10-11 | [模板依据函数](../frontend/web/src/template-review.ts) | 前端 | library-basis-1 | 回归通过 | ISSUE-008 / APP-M1-T16 | 完整指标数组与核对提案真实再读 |
+| D-156 | 2026-10-11 | [资料页面函数回归](../frontend/web/tests/library-review.test.mjs) | 验证 | library-basis-1 | 12项通过 | ISSUE-008 / APP-M1-T16 | 旧依据、搜索、删除、读取失败与迟到旧公司响应 |
+| D-157 | 2026-10-11 | [模板页面函数回归](../frontend/web/tests/template-review.test.mjs) | 验证 | library-basis-1 | 10项通过 | ISSUE-008 / APP-M1-T16 | 指标变化、二次读取、版本配对与切公司 |
+| D-158 | 2026-10-11 | [资料真实HTTP回归](../tests/backend/test_library_basis.py) | 验证 | library-basis-1 | 13项通过 | ISSUE-008 / APP-M1-T16 | 原版本/重试/幂等/权限及完整仓储无副作用 |
+| D-159 | 2026-10-11 | [模板真实HTTP回归](../tests/backend/test_sla_template_basis.py) | 验证 | library-basis-1 | 6项通过 | ISSUE-008 / APP-M1-T16 | 旧指标数组不能覆盖，明确核对后的请求成功 |
 
 ## 更新记录
 
@@ -175,6 +185,8 @@
 | 2026-10-10 | ISSUE-007 / APP-M1-T14、T15 | 登记成员/分册/章节分工、独立确认实施与待执行验收，未计完成 |
 
 | 2026-10-11 | ISSUE-007 / APP-M1-T07、T14、T15 | 259后续卡、成员与逐章确认本地交付、210/36真实验证和6截图、旧表单保护；336项状态对齐 |
+
+| 2026-10-11 | ISSUE-008 / APP-M1-T16 | 资料及公司模板旧表单保护本地交付，后台229/前端58、实际页面和6截图；337项14done/7in-progress；完整示例继续 |
 
 ## 缺失输入
 

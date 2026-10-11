@@ -33,7 +33,8 @@ T12/T13已完成限定子集验收：按PRD §5.7.2/5.7.8/5.11补方案事实选
 | ROADMAP | T07范围、T14/T15限定功能本地done；先完整资料通用确认/版本，再各类别、片段、结构化编辑、闭环与正式Word |
 | ARCHITECTURE | 集中权限、私有草稿保留、逐章依据、每次模型调用权限重核及团队/基本信息/方案已读表单保护 |
 | Issue看板/详情 | ISSUE-007继续in-progress；旧表单覆盖反例及650→900真实修复证据、原年度企业划型漏卡均登记 |
-| TASK_BOARD / PROJECT_STATUS / BRIEF | 336项，13done、7in-progress、268planned、48blocked、0ready；新259卡全部planned，不算产品百分比 |
+| TASK_BOARD / PROJECT_STATUS / BRIEF | 337项，14done、7in-progress、268planned、48blocked、0ready；新259卡全部planned，不算产品百分比 |
+| 后续ISSUE-008 / T16 | 资料及公司模板旧表单保护本地done；后台229、前端58和6张实际截图，完整C01/C06仍planned，成员/逐章确认覆盖状态同步，治理规则g1.1不变 |
 | DOCUMENT_INDEX | T07/T14/T15交付、T14/T15代码、210/36验收、6截图来源、47组/44规则映射及新增代码/测试/工具登记 |
 | OpenAPI | 从实际代码生成48路径56操作，新增团队/章节分工及单节保存/确认；未手改生成JSON或SDK |
 

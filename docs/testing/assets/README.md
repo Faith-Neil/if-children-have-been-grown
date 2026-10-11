@@ -21,3 +21,7 @@
 成员分工新增4张JPEG，均为2026-10-11真实同源页面、合成账号和项目`project-66087800c6924b3698b14925483881dd`：`icg-members-settings.jpg`记录项目设置的成员与两册分工；`icg-members-conflict.jpg`记录后台人员变化后的明确核对入口；`icg-members-volume-export.jpg`记录技术负责人只生成本册输出；`icg-members-withdraw.jpg`记录商务编写人失去编辑权后，未提交文字仍保留、保存入口停止写入。具体操作顺序与文件内容证据见[成员验收](../2026-10-10-project-assignments.md)。截图来自对应操作阶段，不代表最终人员分工或整个产品均已完成；Word页面版式仍须单独验收。
 
 成员收尾另有2张2026-10-11真实JPEG：icg-members-plan-conflict.jpg并列旧650字与新900字方案、要点和原文要求，证明明确核对入口；icg-members-final-export.jpg为合标账号最终下载两册，生成入口禁用。两份实际下载内容已读取核对，但截图不证明Word页面版式。详见[成员验收](../2026-10-10-project-assignments.md)。
+
+资料表单新增3张2026-10-11真实JPEG：`icg-library-basis-conflict.jpg`为旧表单保存冲突但文字保留；`icg-library-basis-review.jpg`为原资料、未保存填写和后台新资料三栏；`icg-library-basis-reread.jpg`为窗口打开后协作者再次修改，实际重读拒绝载入旧提案。均为合成记录`evidence-ddae85041f3a43ad9b1142b9ec0b04c1`，见[资料验证](../2026-10-11-library-basis.md)。它们不证明完整审核、受限授权或附件功能已实现。
+
+同任务的服务模板3张真实JPEG：`icg-template-basis-conflict.jpg`证明旧30分钟表单不能覆盖新90；`icg-template-basis-reread.jpg`证明核对时又改120，拒绝载入旧90且本地文字保留；`icg-template-basis-review.jpg`为最终中文构建中旧120/本地填写/新150三栏。均为合成模板`sla-template-e28bea969d4248399cfe3016543ec5cd`，不代表真实公司标准或完整C06已交付。

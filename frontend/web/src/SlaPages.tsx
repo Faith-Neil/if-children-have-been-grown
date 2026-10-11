@@ -1,6 +1,6 @@
 // 为什么有这个文件：把公司实际可承诺的服务标准与每个项目的招标要求放在一起核对。
 // 它解决什么问题：负责人能维护模板、比较承诺、说明风险，并下载真实内部承诺函。
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, App as AntApp, Button, Card, Col, Descriptions, Empty, Form, Input, Modal, Row, Select, Space, Table, Tag } from 'antd';
 import { DownloadOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { download } from './api';
@@ -8,6 +8,8 @@ import { projectCan } from './project-team';
 import { formatTime, useProject } from './context';
 import { displaySlaValue, slaScalar, slaVariablePayload, slaUnits, slaGroups } from './sla-form';
 import type { Account, SlaRow, SlaTemplate, SlaVariable, Source } from './types';
+import type { LibraryMutation } from './library-review';
+import { captureTemplateReview, copyTemplate, loadReviewedTemplate, templateReviewProblem, templateWriteVersion, type TemplateReader, type TemplateReviewBasis } from './template-review';
 
 const directions = [{ value: 'lower_better', label: '越小越好（例如响应时间）' }, { value: 'higher_better', label: '越大越好（例如培训次数）' }, { value: 'exact', label: '须完全相同（例如服务范围）' }];
 const editions = [{ value: 'standard', label: '通用版' }, { value: 'finance', label: '金融行业版' }, { value: 'government', label: '政企版' }];
@@ -17,35 +19,88 @@ const blankVariable = (): SlaVariable => ({ var_key: '', label: '', group: 'resp
 const judgmentColors: Record<SlaRow['judgment'], string> = { satisfied: 'green', not_satisfied: 'red', exceeds_capability: 'orange', missing: 'default', manual: 'purple', not_required: 'blue', unquantified: 'gold' };
 const factLabel = (status: string) => status === 'confirmed' ? '已逐项确认' : status === 'needs_review' ? '需重新核对' : '尚未确认';
 
-type TemplateProps = { items: SlaTemplate[]; user: Account; busy: boolean; mutate: (path: string, method: string, body: unknown) => Promise<unknown>; report: (error: unknown) => void };
+type TemplateProps = { items: SlaTemplate[]; revision: number; read: TemplateReader; globalSearch?: string; user: Account; busy: boolean; mutate: LibraryMutation; report: (error: unknown) => void };
 
-export function SlaTemplatesPage({ items, user, busy, mutate, report }: TemplateProps) {
+export function SlaTemplatesPage({ items, revision, read, globalSearch = '', user, busy, mutate, report }: TemplateProps) {
+  const { modal, message } = AntApp.useApp();
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<SlaTemplate | null>(null);
+  const [reviewBasis, setReviewBasis] = useState<TemplateReviewBasis | null>(null);
+  const [reviewing, setReviewing] = useState(false);
   const [form] = Form.useForm();
   const canWrite = user.role === 'manager';
+  const editorSession = useRef(0);
+  const latest = useRef({ company_id: user.company_id, revision, items, user, busy: busy || reviewing });
+  latest.current = { company_id: user.company_id, revision, items, user, busy: busy || reviewing };
+  const reviewProblem = open ? templateReviewProblem(reviewBasis, latest.current) : null;
+  const canSave = () => latest.current.user.role === 'manager' && !latest.current.busy;
+  function loadForm(item: SlaTemplate | null) {
+    form.resetFields();
+    form.setFieldsValue(item ? { ...copyTemplate(item), reason: '' } : { name: '', version_no: '1.0', edition: 'standard', service_hours: 'h5x8', status: 'pending', body_text: '', reason: '', variables: [blankVariable()] });
+  }
   function editing(item: SlaTemplate | null) {
-    setEdit(item); form.resetFields();
-    form.setFieldsValue(item ? { ...item, reason: '', variables: item.variables.map(value => ({ ...value })) } : { name: '', version_no: '1.0', edition: 'standard', service_hours: 'h5x8', status: 'pending', body_text: '', reason: '', variables: [blankVariable()] });
-    setOpen(true);
+    if (latest.current.busy || !item && !canSave()) return;
+    try {
+      const basis = captureTemplateReview(latest.current, item?.id ?? null);
+      editorSession.current++; setEdit(basis.template); setReviewBasis(basis); loadForm(basis.template); setOpen(true);
+    } catch (error) { report(error); }
   }
   async function save() {
-    if (!canWrite || busy) return;
+    if (!canSave() || !open) return;
+    const session = editorSession.current;
     let values;
     try { values = await form.validateFields(); } catch { return; }
+    if (session !== editorSession.current || !canSave()) return;
     let variables;
+    let expected;
     try {
+      expected = templateWriteVersion(reviewBasis, latest.current);
       variables = values.variables.map(slaVariablePayload);
       if (new Set(variables.map((item: SlaVariable) => item.var_key)).size !== variables.length) throw new Error('同一模板的指标标识不能重复，请逐行核对。');
       if (values.status === 'confirmed' && !values.reason?.trim()) throw new Error('确认模板前，请填写本次核对依据。');
     } catch (error) { report(error); return; }
-    try { await mutate(edit ? `/api/v1/sla/templates/${edit.id}` : '/api/v1/sla/templates', edit ? 'PATCH' : 'POST', { name: values.name, version_no: values.version_no, edition: values.edition, service_hours: values.service_hours, body_text: values.body_text || '', status: values.status, reason: values.reason || '', variables }); setOpen(false); }
+    try { await mutate(edit ? `/api/v1/sla/templates/${edit.id}` : '/api/v1/sla/templates', edit ? 'PATCH' : 'POST', { name: values.name, version_no: values.version_no, edition: values.edition, service_hours: values.service_hours, body_text: values.body_text || '', status: values.status, reason: values.reason || '', variables }, expected); if (session === editorSession.current) setOpen(false); }
     catch { /* 统一入口报告错误，当前模板填写内容保留。 */ }
   }
+  function describe(item: Partial<SlaTemplate> | null) {
+    if (!item) return '新模板，尚未保存。';
+    const variables = (item.variables ?? []).map(variable => `${variable.var_key || '未填标识'} · ${variable.label || '未填名称'}\n组：${slaGroups.find(value => value.value === variable.group)?.label || variable.group || '未填写'}；类型：${variableTypes.find(value => value.value === variable.value_type)?.label || variable.value_type || '未填写'}；通常承诺：${displaySlaValue(variable.default_value, variable.unit)}；能力极限：${displaySlaValue(variable.best_committable_value, variable.unit)}；比较方向：${directions.find(value => value.value === variable.compare_direction)?.label || variable.compare_direction || '未填写'}`).join('\n\n');
+    return [`模板：${item.name || '未填写'}`, `记录版本：${item.revision ?? '尚未保存'}；业务版本：${item.version_no || '未填写'}`, `行业：${editions.find(value => value.value === item.edition)?.label || item.edition || '未填写'}；服务时段：${serviceHours.find(value => value.value === item.service_hours)?.label || item.service_hours || '未填写'}`, `核对状态：${item.status === 'confirmed' ? '已确认' : item.status === 'rejected' ? '已退回' : '待确认'}`, `正文：\n${item.body_text || '未填写'}`, `指标：\n${variables || '尚未添加'}`, `核对依据：${item.reason || '未填写'}`].join('\n');
+  }
+  async function reviewLatest() {
+    if (latest.current.busy || !reviewBasis || !open) return;
+    const session = editorSession.current;
+    const original = reviewBasis;
+    const local = form.getFieldsValue() as Partial<SlaTemplate>;
+    let proposal;
+    setReviewing(true);
+    try {
+      const fresh = await read();
+      if (session !== editorSession.current) return;
+      if (fresh.company_id !== original.company_id) throw new Error('读取期间公司已变化，原模板填写未替换。');
+      proposal = captureTemplateReview(fresh, original.template_id);
+    } catch (error) { report(error); return; } finally { setReviewing(false); }
+    const replaceForm = original.template_basis !== proposal.template_basis;
+    modal.confirm({ title: '核对服务模板与最新版本', width: 1120,
+      content: <><Row gutter={12}>{[{ title: '最初读取的模板', value: describe(original.template) }, { title: '当前未保存的填写（可先复制保留）', value: describe(local) }, { title: '后台当前已保存模板', value: describe(proposal.template) }].map(column => <Col span={8} key={column.title}><Card size="small" title={column.title}><pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', maxHeight: 360, overflowY: 'auto' }}>{column.value}</pre></Card></Col>)}</Row><p>最初模板读取版本：{original.revision}；本次核对版本：{proposal.revision}。</p><Alert showIcon type={replaceForm ? 'warning' : 'info'} message={replaceForm ? '这份模板或指标已变化：载入将替换当前未保存的填写，请先复制需要保留的内容。' : '这份模板未变化：确认后只更新已核对版本，当前填写完整保留。'} description="载入前会再次读取后台。核对期间再次变化或读取失败时，原填写不会替换；此操作不写入后台。" /></>,
+      okText: replaceForm ? '已核对，替换表单并载入最新模板' : '已核对新版本，保留模板填写', cancelText: '保留当前填写，不载入',
+      onOk: async () => {
+        if (editorSession.current !== session) throw new Error('当前编辑模板已切换，请重新核对。');
+        setReviewing(true);
+        try {
+          const accepted = await loadReviewedTemplate(original, proposal, read);
+          if (editorSession.current !== session) throw new Error('读取期间当前编辑模板已切换，原填写未替换。');
+          if (accepted.replace_form) { loadForm(accepted.basis.template); setEdit(accepted.basis.template); }
+          setReviewBasis(accepted.basis);
+          message.success(accepted.replace_form ? '已载入最新模板，请重新填写本次修改和核对依据。' : '已核对模板版本，你的填写已保留。');
+        } catch (error) { report(error); throw error; } finally { setReviewing(false); }
+      },
+    });
+  }
   return <>
-    <div className="sla-template-heading"><div><h3>服务承诺模板</h3><p className="muted">服务承诺（SLA）说明多快响应、多久恢复等标准；公司能力与项目承诺分别保存。</p></div><Button type="primary" icon={<PlusOutlined />} disabled={busy || !canWrite} onClick={() => editing(null)}>新增合成模板</Button></div>
+    <div className="sla-template-heading"><div><h3>服务承诺模板</h3><p className="muted">服务承诺（SLA）说明多快响应、多久恢复等标准；公司能力与项目承诺分别保存。</p></div><Button type="primary" icon={<PlusOutlined />} disabled={busy || reviewing || !canWrite} onClick={() => editing(null)}>新增合成模板</Button></div>
     <Alert className="page-notice" type="info" showIcon message={canWrite ? '由公司模板维护账号确认可承诺的标准' : '当前账号可查看，模板维护需要公司经理账号'} description="这里没有预置真实公司能力。能力极限留空表示未提供依据；项目不能把它当作已验证能力。修改模板后，引用它的项目需要刷新并重新核对。" />
-    <Table rowKey="id" size="small" dataSource={items} pagination={false} columns={[
+    <Table rowKey="id" size="small" dataSource={items.filter(item => item.name.includes(globalSearch))} pagination={false} columns={[
       { title: '模板名称', dataIndex: 'name', render: (value, item) => <a onClick={() => editing(item)}>{value}</a> },
       { title: '业务版本', dataIndex: 'version_no' },
       { title: '行业 / 服务时段', render: (_, item) => <>{editions.find(value => value.value === item.edition)?.label || item.edition}<p className="muted">{serviceHours.find(value => value.value === item.service_hours)?.label || item.service_hours}</p></> },
@@ -53,17 +108,18 @@ export function SlaTemplatesPage({ items, user, busy, mutate, report }: Template
       { title: '核对状态', dataIndex: 'status', render: value => <Tag color={value === 'confirmed' ? 'green' : 'orange'}>{value === 'confirmed' ? '已确认' : value === 'rejected' ? '已退回' : '待确认'}</Tag> },
       { title: '操作', render: (_, item) => <Button type="link" disabled={busy} onClick={() => editing(item)}>{canWrite ? '查看 / 修改' : '查看详情'}</Button> },
     ]} />
-    <Modal title={edit ? '服务承诺模板详情' : '新增合成服务承诺模板'} width={1040} open={open} onCancel={() => { if (!busy) setOpen(false); }} onOk={save} confirmLoading={busy} okText="保存模板" cancelText="关闭" okButtonProps={{ disabled: !canWrite || busy }}>
-      <Form form={form} layout="vertical" disabled={busy || !canWrite}>
+    <Modal title={edit ? '服务承诺模板详情' : '新增合成服务承诺模板'} width={1040} open={open} onCancel={() => { if (!latest.current.busy) { editorSession.current++; setOpen(false); } }} onOk={save} confirmLoading={busy} okText="保存模板" cancelText="关闭" okButtonProps={{ disabled: !canWrite || busy || reviewing || !!reviewProblem }}>
+      {reviewProblem && <Alert className="page-notice" showIcon type="warning" message="模板库发生变化，当前填写仍保留" description={reviewProblem} action={<Button disabled={busy || reviewing} loading={reviewing} onClick={reviewLatest}>核对模板与最新版本</Button>} />}
+      <Form form={form} layout="vertical" disabled={busy || reviewing || !canWrite}>
         <Row gutter={16}><Col span={16}><Form.Item name="name" label="模板名称" rules={[{ required: true, whitespace: true, message: '请填写模板名称' }]}><Input placeholder="例如：合成测试响应标准" /></Form.Item></Col><Col span={8}><Form.Item name="version_no" label="业务版本（便于人工识别）" rules={[{ required: true, whitespace: true }]}><Input placeholder="例如1.0" /></Form.Item></Col></Row>
         <Row gutter={16}><Col span={12}><Form.Item name="edition" label="适用行业"><Select options={editions} /></Form.Item></Col><Col span={12}><Form.Item name="service_hours" label="服务时段"><Select options={serviceHours} /></Form.Item></Col></Row>
         <Alert type="info" showIcon message="指标标识用来连接矩阵与正文。例如P1.response是一级故障响应时限的内部名称。" description="数值填写时不带单位；响应时限越小越好，培训次数越大越好。工作日、自然日和月不能随意互换。" />
         <Form.List name="variables" rules={[{ validator: async (_, values) => { if (!values?.length) throw new Error('至少添加一个服务指标'); } }]}>{(fields, { add, remove }, { errors }) => <>
-          {fields.map(field => <Card size="small" key={field.key} className="sla-variable-card" title={`指标 ${field.name + 1}`} extra={<Button size="small" danger disabled={!canWrite || busy || fields.length <= 1} onClick={() => remove(field.name)}>移除指标</Button>}>
+          {fields.map(field => <Card size="small" key={field.key} className="sla-variable-card" title={`指标 ${field.name + 1}`} extra={<Button size="small" danger disabled={!canWrite || busy || reviewing || fields.length <= 1} onClick={() => remove(field.name)}>移除指标</Button>}>
             <Row gutter={12}><Col span={8}><Form.Item name={[field.name, 'var_key']} label="指标标识" rules={[{ required: true, whitespace: true }]}><Input placeholder="P1.response" /></Form.Item></Col><Col span={10}><Form.Item name={[field.name, 'label']} label="指标名称" rules={[{ required: true, whitespace: true }]}><Input placeholder="一级故障响应时限" /></Form.Item></Col><Col span={6}><Form.Item name={[field.name, 'group']} label="所属组" rules={[{ required: true }]}><Select options={slaGroups} /></Form.Item></Col></Row>
             <Row gutter={12}><Col span={6}><Form.Item name={[field.name, 'value_type']} label="取值类型" rules={[{ required: true }]}><Select options={variableTypes} /></Form.Item></Col><Col span={6}><Form.Item name={[field.name, 'default_value']} label="通常承诺值" rules={[{ required: true, message: '请登记模板默认值' }]}><Input placeholder="模板默认值；项目可另外核对修改" /></Form.Item></Col><Col span={5}><Form.Item name={[field.name, 'unit']} label="单位"><Select options={slaUnits} /></Form.Item></Col><Col span={7}><Form.Item name={[field.name, 'best_committable_value']} label="公司能力极限"><Input placeholder="留空表示未提供依据" /></Form.Item></Col></Row>
             <Form.Item name={[field.name, 'compare_direction']} label="怎样算更严格" rules={[{ required: true }]}><Select options={directions} /></Form.Item>
-          </Card>)}<Form.ErrorList errors={errors} /><Button icon={<PlusOutlined />} disabled={!canWrite || busy} onClick={() => add(blankVariable())}>新增服务指标</Button>
+          </Card>)}<Form.ErrorList errors={errors} /><Button icon={<PlusOutlined />} disabled={!canWrite || busy || reviewing} onClick={() => add(blankVariable())}>新增服务指标</Button>
         </>}</Form.List>
         <Form.Item name="body_text" label="承诺函正文" rules={[{ required: true, whitespace: true, message: '请填写承诺函正文' }]} style={{ marginTop: 20 }}><Input.TextArea rows={4} placeholder="可使用模板变量，例如：一级故障响应时限为{{P1.response}}分钟。只使用已定义的指标标识。" /></Form.Item>
         <Row gutter={16}><Col span={8}><Form.Item name="status" label="核对状态"><Select options={[{ value: 'pending', label: '待确认' }, { value: 'confirmed', label: '已逐项核对并确认' }]} /></Form.Item></Col><Col span={16}><Form.Item name="reason" label="本次修改 / 核对依据"><Input.TextArea rows={2} placeholder="确认模板时必填，说明这些承诺及能力值的依据" /></Form.Item></Col></Row>
