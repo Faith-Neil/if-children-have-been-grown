@@ -187,6 +187,110 @@
         }
       }
     },
+    "/api/v1/session": {
+      "get": {
+        "summary": "Get Session",
+        "operationId": "getSession",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationSessionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "请求字段验证失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "后端演示服务异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示登录已失效",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "当前账号无操作权限",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/projects": {
       "get": {
         "summary": "Projects",
@@ -8229,6 +8333,70 @@
         ],
         "title": "AccountResponse"
       },
+      "ApplicationSessionResponse": {
+        "properties": {
+          "auth_mode": {
+            "type": "string",
+            "const": "synthetic-demo",
+            "title": "Auth Mode"
+          },
+          "role_mode": {
+            "type": "string",
+            "const": "legacy-demo-compat",
+            "title": "Role Mode"
+          },
+          "user": {
+            "$ref": "#/components/schemas/SessionUserResponse"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/SessionScopeResponse"
+          },
+          "navigation": {
+            "items": {
+              "$ref": "#/components/schemas/SessionNavigationResponse"
+            },
+            "type": "array",
+            "title": "Navigation"
+          },
+          "allowedActions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowedactions"
+          },
+          "home_path": {
+            "type": "string",
+            "title": "Home Path"
+          },
+          "session": {
+            "$ref": "#/components/schemas/SessionStateResponse"
+          },
+          "project_access": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SessionProjectAccess"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "auth_mode",
+          "role_mode",
+          "user",
+          "scope",
+          "navigation",
+          "allowedActions",
+          "home_path",
+          "session"
+        ],
+        "title": "ApplicationSessionResponse"
+      },
       "AuditEventResponse": {
         "properties": {
           "id": {
@@ -11110,6 +11278,339 @@
         "additionalProperties": false,
         "type": "object",
         "title": "RequirementPatch"
+      },
+      "SessionChapterAccess": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "volume": {
+            "type": "string",
+            "enum": [
+              "technical",
+              "business"
+            ],
+            "title": "Volume"
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/SessionChapterPermissions"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "volume",
+          "permissions"
+        ],
+        "title": "SessionChapterAccess"
+      },
+      "SessionChapterPermissions": {
+        "properties": {
+          "edit": {
+            "type": "boolean",
+            "title": "Edit"
+          },
+          "confirm_plan": {
+            "type": "boolean",
+            "title": "Confirm Plan"
+          },
+          "generate": {
+            "type": "boolean",
+            "title": "Generate"
+          },
+          "manage_structure": {
+            "type": "boolean",
+            "title": "Manage Structure"
+          },
+          "assign": {
+            "type": "boolean",
+            "title": "Assign"
+          },
+          "takeover": {
+            "type": "boolean",
+            "title": "Takeover"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "edit",
+          "confirm_plan",
+          "generate",
+          "manage_structure",
+          "assign",
+          "takeover"
+        ],
+        "title": "SessionChapterPermissions"
+      },
+      "SessionNavigationResponse": {
+        "properties": {
+          "route_id": {
+            "type": "string",
+            "title": "Route Id"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "access": {
+            "type": "string",
+            "enum": [
+              "read",
+              "write"
+            ],
+            "title": "Access"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "route_id",
+          "path",
+          "access"
+        ],
+        "title": "SessionNavigationResponse"
+      },
+      "SessionProjectAccess": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "route_permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Route Permissions"
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/SessionProjectPermissions"
+          },
+          "chapters": {
+            "items": {
+              "$ref": "#/components/schemas/SessionChapterAccess"
+            },
+            "type": "array",
+            "title": "Chapters"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "revision",
+          "route_permissions",
+          "permissions",
+          "chapters"
+        ],
+        "title": "SessionProjectAccess"
+      },
+      "SessionProjectPermissions": {
+        "properties": {
+          "manage_team": {
+            "type": "boolean",
+            "title": "Manage Team"
+          },
+          "manage_project": {
+            "type": "boolean",
+            "title": "Manage Project"
+          },
+          "manage_structure": {
+            "type": "boolean",
+            "title": "Manage Structure"
+          },
+          "prepare_sources": {
+            "type": "boolean",
+            "title": "Prepare Sources"
+          },
+          "manage_sla": {
+            "type": "boolean",
+            "title": "Manage Sla"
+          },
+          "edit_facts": {
+            "type": "boolean",
+            "title": "Edit Facts"
+          },
+          "confirm_facts": {
+            "type": "boolean",
+            "title": "Confirm Facts"
+          },
+          "check_all": {
+            "type": "boolean",
+            "title": "Check All"
+          },
+          "export_internal": {
+            "type": "boolean",
+            "title": "Export Internal"
+          },
+          "check_volumes": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "technical",
+                "business"
+              ]
+            },
+            "type": "array",
+            "title": "Check Volumes"
+          },
+          "export_volumes": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "technical",
+                "business"
+              ]
+            },
+            "type": "array",
+            "title": "Export Volumes"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "manage_team",
+          "manage_project",
+          "manage_structure",
+          "prepare_sources",
+          "manage_sla",
+          "edit_facts",
+          "confirm_facts",
+          "check_all",
+          "export_internal",
+          "check_volumes",
+          "export_volumes"
+        ],
+        "title": "SessionProjectPermissions"
+      },
+      "SessionScopeResponse": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "company",
+            "title": "Kind"
+          },
+          "active_company_id": {
+            "type": "string",
+            "title": "Active Company Id"
+          },
+          "allowed_company_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Company Ids"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "kind",
+          "active_company_id",
+          "allowed_company_ids"
+        ],
+        "title": "SessionScopeResponse"
+      },
+      "SessionStateResponse": {
+        "properties": {
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "renew_supported": {
+            "type": "boolean",
+            "const": false,
+            "title": "Renew Supported"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "expires_at",
+          "renew_supported"
+        ],
+        "title": "SessionStateResponse"
+      },
+      "SessionUserResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "company_id": {
+            "type": "string",
+            "title": "Company Id"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "editor",
+              "manager",
+              "viewer"
+            ],
+            "title": "Role"
+          },
+          "roles": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "platform_admin",
+                "group_admin",
+                "company_admin",
+                "data_admin",
+                "project_lead",
+                "bid_writer",
+                "reviewer",
+                "readonly"
+              ]
+            },
+            "type": "array",
+            "title": "Roles"
+          },
+          "primary_role": {
+            "type": "string",
+            "enum": [
+              "platform_admin",
+              "group_admin",
+              "company_admin",
+              "data_admin",
+              "project_lead",
+              "bid_writer",
+              "reviewer",
+              "readonly"
+            ],
+            "title": "Primary Role"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "company_id",
+          "role",
+          "roles",
+          "primary_role"
+        ],
+        "title": "SessionUserResponse"
       },
       "SlaCommitment": {
         "properties": {

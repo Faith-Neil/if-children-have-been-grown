@@ -6,7 +6,7 @@ from typing import Annotated, Callable
 from datetime import datetime
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, Header, Request
+from fastapi import Depends, FastAPI, Header, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -17,7 +17,8 @@ from .domain import DemoService, DomainError, Principal
 from .ports import ModelProvider, Repository, ParserProvider
 from .parsing import LocalTextParser
 from .workflow_routes import include_workflow_routes
-from .schemas import (AccountListResponse, AuditListResponse, ChapterListResponse,
+from .session_navigation import get_application_session
+from .schemas import (AccountListResponse, ApplicationSessionResponse, AuditListResponse, ChapterListResponse,
                       ChapterResponse, CheckResponse, DraftRequest, DraftResponse, DraftDiscardRequest, DraftDiscardResponse,
                       EmptyRequest, ErrorResponse, ExportRequest, ExportResponse,
                       HealthResponse, LeaseRequest, LeaseResponse, LockRequest,
@@ -130,6 +131,16 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
                       responses=error_responses(401))
     def login(body: LoginRequest):
         return service.login(body.account_id)
+
+    @application.get("/api/v1/session", response_model=ApplicationSessionResponse,
+                     response_model_exclude_unset=True, operation_id="getSession",
+                     responses=error_responses(401, 403, 404, 422))
+    async def get_session(request: Request, user: User,
+                          project_id: Annotated[str | None, Query(min_length=1, max_length=100)] = None):
+        if (set(request.query_params) - {"project_id"}
+                or len(request.query_params.getlist("project_id")) > 1 or await request.body()):
+            raise DomainError(422, "INVALID_SESSION_INPUT", "会话只接受可选的项目ID，公司与角色范围由后台身份决定。")
+        return get_application_session(service, user, project_id)
 
     @application.get("/api/projects", response_model=ProjectListResponse,
                      responses=error_responses(401))

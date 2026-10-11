@@ -115,6 +115,81 @@ class LoginResponse(ResponseBody):
     user: AccountResponse
 
 
+ApplicationRole = Literal["platform_admin", "group_admin", "company_admin", "data_admin",
+                          "project_lead", "bid_writer", "reviewer", "readonly"]
+
+
+class SessionUserResponse(AccountResponse):
+    roles: list[ApplicationRole]
+    primary_role: ApplicationRole
+
+
+class SessionScopeResponse(ResponseBody):
+    kind: Literal["company"]
+    active_company_id: str
+    allowed_company_ids: list[str]
+
+
+class SessionNavigationResponse(ResponseBody):
+    route_id: str
+    path: str
+    access: Literal["read", "write"]
+
+
+class SessionStateResponse(ResponseBody):
+    expires_at: str | None
+    renew_supported: Literal[False]
+
+
+class SessionProjectPermissions(ResponseBody):
+    manage_team: bool
+    manage_project: bool
+    manage_structure: bool
+    prepare_sources: bool
+    manage_sla: bool
+    edit_facts: bool
+    confirm_facts: bool
+    check_all: bool
+    export_internal: bool
+    check_volumes: list[Literal["technical", "business"]]
+    export_volumes: list[Literal["technical", "business"]]
+
+
+class SessionChapterPermissions(ResponseBody):
+    edit: bool
+    confirm_plan: bool
+    generate: bool
+    manage_structure: bool
+    assign: bool
+    takeover: bool
+
+
+class SessionChapterAccess(ResponseBody):
+    id: str
+    volume: Literal["technical", "business"]
+    permissions: SessionChapterPermissions
+
+
+class SessionProjectAccess(ResponseBody):
+    id: str
+    revision: int
+    route_permissions: list[str]
+    permissions: SessionProjectPermissions
+    chapters: list[SessionChapterAccess]
+
+
+class ApplicationSessionResponse(ResponseBody):
+    auth_mode: Literal["synthetic-demo"]
+    role_mode: Literal["legacy-demo-compat"]
+    user: SessionUserResponse
+    scope: SessionScopeResponse
+    navigation: list[SessionNavigationResponse]
+    allowedActions: list[str]
+    home_path: str
+    session: SessionStateResponse
+    project_access: SessionProjectAccess | None = None
+
+
 class ProjectResponse(ResponseBody):
     id: str
     name: str

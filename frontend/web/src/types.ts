@@ -2,6 +2,16 @@
 // 它解决什么问题：页面之间传递同一项目、条款、章节和检查状态。
 export type Volume = 'technical' | 'business';
 export type Account = { id: string; name: string; company_id: string; role: 'editor' | 'manager' | 'viewer' };
+// 当前会话只提供三种兼容演示身份；导航与动作采用后台返回值，业务页暂保留原 role。
+export type ApplicationSession = {
+  auth_mode: 'synthetic-demo'; role_mode: 'legacy-demo-compat';
+  user: Account & { roles: string[]; primary_role: string };
+  scope: { kind: 'company'; active_company_id: string; allowed_company_ids: string[] };
+  navigation: { route_id: string; path: string; access: 'read' | 'write' }[];
+  allowedActions: string[]; home_path: string;
+  session: { expires_at: string | null; renew_supported: boolean };
+  project_access?: { id: string; revision: number; route_permissions: string[]; permissions: ProjectPermissions; chapters: { id: string; volume: Volume; permissions: ChapterPermissions }[] };
+};
 export type Project = { id: string; name: string; company_id: string; revision?: number; tender_number?: string; deadline?: string | null; sensitive?: boolean };
 export type ProjectRole = 'lead' | 'writer' | 'readonly';
 export type ProjectMember = { user_id: string; name: string; company_role: Account['role']; project_role: ProjectRole; volumes: Volume[] };

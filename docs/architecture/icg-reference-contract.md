@@ -18,6 +18,7 @@
 
 | 请求 | 主要输入 | 主要返回及规则 |
 |---|---|---|
+| GET `/api/v1/session` | Bearer；可选唯一`project_id` | 当前演示身份、服务端导航/动作、公司范围和最小项目/章节权限；不含正文或草稿；具体兼容边界见[会话契约](application-session-contract.md) |
 | GET `/api/v1/projects/{id}/workspace` | 登录凭证 | `project`, `stage`, `files`, `requirements`, `facts`, `chapters`, `checks`, `exports`, `jobs`, `parse_confirmed`；全部来自同一后台状态 |
 | GET `/api/v1/projects/{id}/files/{file_id}/preview` | 登录凭证 | 实际原文分块、定位页码方式及限制；未成功解析返回409 |
 | DELETE `/api/v1/projects/{id}/files/{file_id}` | 非空 `reason` | `deleted_file_id`；仅无来源引用的未解析/失败上传可移除，已解析或仍有来源返回409；须重新确认解析与大纲 |
