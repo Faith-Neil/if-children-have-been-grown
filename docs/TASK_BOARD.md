@@ -4,11 +4,11 @@
 
 # 项目任务看板
 
-任务版本：0.6；治理版本：g1.1；更新日期：2026-10-12；当前实现 Issue：[ISSUE-007](../issues/ISSUE-007.md)；生产门禁：[ISSUE-005](../issues/ISSUE-005.md)。
+任务版本：0.6；治理版本：g1.1；更新日期：2026-10-12；当前实现 Issue：[ISSUE-007](../issues/ISSUE-007.md)；离线检查：[ISSUE-012](../issues/ISSUE-012.md)；生产门禁：[ISSUE-005](../issues/ISSUE-005.md)。
 
 将 [前端 ROADMAP](ROADMAP.md) 的 Phase 0～8 与发布 Milestone 1～5 拆为 **59 张任务卡**，由 FE-M0～FE-M8 管理。前缀 FE 表示前端合作交付；这些编号与参考全系统 M0～M8 的门禁、周期和范围独立。
 
-项目340项中 **done 17、in-progress 8、planned 267、blocked 48、ready 0**。APP-M1的16项中，T01～05继续实现，T06继续完整联调验收，T07已完成范围拆分，T08等待最终审计；T09～16限定子任务已本地验收，T16完成资料及公司模板旧表单保护。APP-M2的259卡中T001底座开工，其余258卡planned，47组页面、190原WBS细项及44规则已逐项映射，见[完整后续卡](tasks/APP-M2.md)与[来源核对](testing/icg-task-mapping.md)。旧FE59项保留来源，OPS/BE各1项、REV 2项已本地验收（REV-M0-T02为ISSUE-013 QA复跑）；PR #3待合入。这些数量不是产品完成率。
+项目340项中 **done 17、in-progress 8、in-review 1、planned 266、blocked 48、ready 0**。APP-M1的16项中，T01～05继续实现，T06继续完整联调验收，T07已完成范围拆分，T08等待最终审计；T09～16限定子任务已本地验收，T16完成资料及公司模板旧表单保护。APP-M2的259卡中T001底座开工，T008离线CI为in-review，其余257卡planned，47组页面、190原WBS细项及44规则已逐项映射，见[完整后续卡](tasks/APP-M2.md)与[来源核对](testing/icg-task-mapping.md)。旧FE59项保留来源，OPS/BE各1项、REV 4项已本地验收（REV-M0-T02为ISSUE-013 QA复跑，REV-M0-T03/T04为ISSUE-015）；PR #3待合入。这些数量不是产品完成率。
 
 59张前端卡片估算合计 209 小时，单卡 2～4 小时，处于 0.5～4 小时的任务粒度目标内。该总和是已有基线/接口条件下的前端增量估算，不是项目排期，不含后端、模型、取得输入、评审或等待时间。开工若预计超 4 小时，先继续拆卡并登记 Issue/版本变更，保留原任务 ID 的历史。
 
@@ -145,7 +145,7 @@
 | [APP-M2-T005](tasks/APP-M2.md#app-m2-t005) | 元数据驱动表格（ProTable 封装、列合并、无横滚优先） | planned | BE-M0-T01、APP-M2-T003 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T005.md` |
 | [APP-M2-T006](tasks/APP-M2.md#app-m2-t006) | 元数据驱动表单（★ 字段、系统键两行标签、不支持字段置灰） | planned | BE-M0-T01、APP-M2-T003 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T006.md` |
 | [APP-M2-T007](tasks/APP-M2.md#app-m2-t007) | 表单通用：底部保存条、离开未保存提示、就近报错 | planned | BE-M0-T01、APP-M2-T006 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T007.md` |
-| [APP-M2-T008](tasks/APP-M2.md#app-m2-t008) | 主题运行时接口位与离线检查纳入 CI（应用级） | planned | BE-M0-T01、APP-M2-T001 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T008.md` |
+| [APP-M2-T008](tasks/APP-M2.md#app-m2-t008) | 主题运行时接口位与离线检查纳入 CI（应用级） | in-review | BE-M0-T01、APP-M2-T001 | [ISSUE-012](../issues/ISSUE-012.md) | [交付](delivery/APP-M2-T008.md) |
 | [APP-M2-T009](tasks/APP-M2.md#app-m2-t009) | 断点与侧栏记忆（1280 / 1440 / 1680）、面包屑 | planned | BE-M0-T01、APP-M2-T001 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T009.md` |
 | [APP-M2-T010](tasks/APP-M2.md#app-m2-t010) | OIDC 登录跳转、会话续期、401 回登录并返回原页 | planned | APP-M2-T001 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T010.md` |
 | [APP-M2-T011](tasks/APP-M2.md#app-m2-t011) | 会话超时处理、用户菜单与退出登录 | planned | APP-M2-T001、APP-M2-T010 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T011.md` |

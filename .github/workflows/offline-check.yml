@@ -1,0 +1,77 @@
+# 为什么有这个文件：在合作分支的推送和拉取请求上重复离线检查。
+# 它解决什么问题：后台测试、页面构建与函数测试、治理检查不再只依赖某一台开发机。
+name: offline-check
+
+on:
+  push:
+    branches:
+      - codex/repository-foundation
+  pull_request:
+    branches:
+      - codex/repository-foundation
+
+permissions:
+  contents: read
+
+concurrency:
+  group: offline-check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  backend:
+    name: backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13.5"
+          cache: pip
+          cache-dependency-path: backend/bid-core/requirements.txt
+      - name: Install backend dependencies
+        run: python -m pip install -r backend/bid-core/requirements.txt
+      - name: Pytest
+        run: python -m pytest tests/backend -q
+      - name: Live session HTTP
+        run: python tests/backend/session_live_http.py
+      - name: T06 end-to-end smoke
+        working-directory: backend/bid-core
+        run: python smoke_t06.py
+
+  frontend:
+    name: frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.9.0"
+          cache: pnpm
+          cache-dependency-path: frontend/web/pnpm-lock.yaml
+      - name: Install frontend dependencies
+        working-directory: frontend/web
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck and build
+        working-directory: frontend/web
+        run: pnpm build
+      - name: Frontend tests
+        run: node --test tests/frontend/*.test.mjs frontend/web/tests/*.test.mjs
+
+  governance:
+    name: governance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.9.0"
+      - name: CommonJS suites
+        run: node --test tests/governance/*.test.cjs tests/prototype/*.test.cjs tests/workspace-sync/*.test.cjs tests/backend/demo-page.test.cjs
+      - name: Governance check
+        run: node scripts/check-project-governance.cjs

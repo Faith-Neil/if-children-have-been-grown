@@ -128,7 +128,7 @@ T07上段为范围拆分阶段记录；当前ISSUE-009 / APP-M2-T001共同底座
 | [APP-M2-T005](../tasks/APP-M2.md#app-m2-t005) | 元数据驱动表格（ProTable 封装、列合并、无横滚优先） | planned | BE-M0-T01、APP-M2-T003 | M1-P08-F5 |
 | [APP-M2-T006](../tasks/APP-M2.md#app-m2-t006) | 元数据驱动表单（★ 字段、系统键两行标签、不支持字段置灰） | planned | BE-M0-T01、APP-M2-T003 | M1-P08-F6 |
 | [APP-M2-T007](../tasks/APP-M2.md#app-m2-t007) | 表单通用：底部保存条、离开未保存提示、就近报错 | planned | BE-M0-T01、APP-M2-T006 | M1-P08-F7 |
-| [APP-M2-T008](../tasks/APP-M2.md#app-m2-t008) | 主题运行时接口位与离线检查纳入 CI（应用级） | planned | BE-M0-T01、APP-M2-T001 | M1-P08-F8 |
+| [APP-M2-T008](../tasks/APP-M2.md#app-m2-t008) | 主题运行时接口位与离线检查纳入 CI（应用级） | in-review | BE-M0-T01、APP-M2-T001 | M1-P08-F8 |
 | [APP-M2-T009](../tasks/APP-M2.md#app-m2-t009) | 断点与侧栏记忆（1280 / 1440 / 1680）、面包屑 | planned | BE-M0-T01、APP-M2-T001 | M1-P08-F9 |
 | [APP-M2-T010](../tasks/APP-M2.md#app-m2-t010) | OIDC 登录跳转、会话续期、401 回登录并返回原页 | planned | APP-M2-T001 | M1-P02-F1 |
 | [APP-M2-T011](../tasks/APP-M2.md#app-m2-t011) | 会话超时处理、用户菜单与退出登录 | planned | APP-M2-T001、APP-M2-T010 | M1-P02-F2 |
