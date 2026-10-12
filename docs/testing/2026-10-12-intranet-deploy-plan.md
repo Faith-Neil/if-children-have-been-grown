@@ -19,10 +19,11 @@
 | 内存检索骨架不连接数据库 | `backend/bid-core/icg_demo/retrieval.py` |
 | 现有 CI 无密钥、无内网、无数据库服务 | `.github/workflows/offline-check.yml` |
 | 依赖清单没有 MySQL 驱动 | `backend/bid-core/requirements.txt` |
+| 登录会话在 `DemoState.sessions`，幂等回执在 `DemoState.workflow_receipts`，都随内存仓库 | `backend/bid-core/icg_demo/domain.py`、`idempotency.py` |
 
 ## 执行过的检查
 
-提交前运行 `node scripts/check-project-governance.cjs`，输出为：治理检查通过：164 份 Markdown、351 项任务、18 项 Issue。该检查只核对记录是否互相链接，不连接 MySQL，也不启动 uvicorn。该数字含同分支上已并入的错误体、幂等和路由分包记录。
+提交前运行 `node scripts/check-project-governance.cjs`，输出为：治理检查通过：171 份 Markdown、354 项任务、19 项 Issue。该检查只核对记录是否互相链接，不连接 MySQL，也不启动 uvicorn。该数字含同分支上已并入的错误体、幂等、路由分包、QA 签署和浏览器检查记录。
 
 ## 未执行
 

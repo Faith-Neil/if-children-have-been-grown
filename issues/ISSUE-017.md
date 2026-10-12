@@ -43,7 +43,7 @@
 
 | 编号 | 可检查的完成条件 | 结果与证据 |
 |---|---|---|
-| AC-01 | 草案按现有 uvicorn、静态 `dist` 和 Vite 构建说明放置方式，并写反向代理、环回端口、健康检查和单进程限制 | 已写入草案第 1～2 节。未实际拉起服务 |
+| AC-01 | 草案按现有 uvicorn、静态 `dist` 和 Vite 构建说明放置方式，并写反向代理、环回端口、健康检查和单进程限制。会话与幂等回执为进程内内存；在 ISSUE-018 落地前只能一个 worker、一个副本，重启即丢失，多 worker 和多副本 blocked 在 ISSUE-018 | 已写入草案第 1～2 节。未实际拉起服务 |
 | AC-02 | 配置与密钥只来自环境，仓库不保存密钥；自建 runner 的方向、隔离和作业划分已写明，且没有新工作流 | 已写入第 3～4 节。未安装 runner |
 | AC-03 | 备份、回滚和 MySQL 8（utf8mb4、内网、mysqldump 或 XtraBackup 加 binlog 时间点恢复、迁移与回滚的关系）已写明；ORM/驱动/迁移工具指向尚未建档的 ISSUE-018 | 已写入第 5～6 节。没有迁移文件 |
 | AC-04 | 向量库只列 Milvus、Qdrant 或公司现有 Elasticsearch；对话模型、嵌入、重排与向量库仍 blocked 在 ISSUE-010。不新增 MySQL service container | 已写入第 6～7 节。`offline-check.yml` 未改 |
@@ -69,6 +69,7 @@
 | 日期 | revision / 状态 | 完成事实、问题与下一步 | 证据 / 复核人 |
 |---|---|---|---|
 | 2026-10-12 | intranet-plan-1 / in-review | 草案写完。没有环境。数据库节跟随 ISSUE-010 已登记的 MySQL 8。向量、模型、嵌入和重排仍待决。done 待项目经理 | [草案](../docs/operations/intranet-deployment-plan.md) |
+| 2026-10-12 | intranet-plan-1 / in-review | 按 QA 补上约束：会话和幂等回执是进程内内存。ISSUE-018 的 MySQL 持久化落地前，只能一个 uvicorn worker、一个副本。重启丢失这两类状态。多 worker 和多副本 blocked 在尚未建档的 ISSUE-018 | [草案](../docs/operations/intranet-deployment-plan.md) 第 1～2 节 |
 
 ## 本地验收与后续合入发布
 

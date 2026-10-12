@@ -20,7 +20,7 @@ ISSUE-009 / APP-M2-T001已接可信会话和页面守卫：后台当前身份、
 
 ## 内网部署草案
 
-ISSUE-017 / OPS-M0-T02 写了内网部署草案：现有单进程 uvicorn 提供接口和 `frontend/web/dist`，深链接由同一进程回到 `index.html`。业务库按 ISSUE-010 已登记的 MySQL 8、`utf8mb4` 书写备份与迁移回滚。向量库、对话模型、嵌入和重排仍 blocked 在 ISSUE-010。AI-03 的内存检索不改变这项待决。没有环境、容器或新的 CI 步骤。卡片为 in-review，不是已部署。见[草案](operations/intranet-deployment-plan.md)。
+ISSUE-017 / OPS-M0-T02 写了内网部署草案：现有单进程 uvicorn 提供接口和 `frontend/web/dist`，深链接由同一进程回到 `index.html`。业务库按 ISSUE-010 已登记的 MySQL 8、`utf8mb4` 书写备份与迁移回滚。向量库、对话模型、嵌入和重排仍 blocked 在 ISSUE-010。AI-03 的内存检索不改变这项待决。没有环境、容器或新的 CI 步骤。QA 约束：会话和幂等回执是进程内内存，ISSUE-018 落地前只能一个 uvicorn worker、一个副本，重启即丢失；多 worker 和多副本 blocked 在尚未建档的 ISSUE-018。卡片为 in-review，不是已部署。见[草案](operations/intranet-deployment-plan.md)。
 
 ## 离线 CI 门禁
 

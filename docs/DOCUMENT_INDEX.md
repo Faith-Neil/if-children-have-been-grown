@@ -248,7 +248,7 @@
 | D-235 | 2026-10-12 | [路由加载器](../frontend/web/src/route-loaders.ts) | 前端 | route-chunks-1 | in-review | ISSUE-020 / APP-M2-T001 | 动态 import 并缓存进行中的请求 |
 | D-236 | 2026-10-12 | [懒加载页面](../frontend/web/src/lazy-routes.tsx) | 前端 | route-chunks-1 | in-review | ISSUE-020 / APP-M2-T001 | React.lazy 外壳和各页 |
 | D-237 | 2026-10-12 | [分包约束测试](../frontend/web/tests/route-chunks.test.mjs) | 验证 | route-chunks-1 | 1项通过 | ISSUE-020 / APP-M2-T001 | 入口不再静态引入外壳和页面 |
-| D-238 | 2026-10-12 | [内网部署草案](operations/intranet-deployment-plan.md) | 运维 | intranet-plan-1 | in-review | ISSUE-017 / OPS-M0-T02 | MySQL 8 与仍待决的向量、模型；未部署 |
+| D-238 | 2026-10-12 | [内网部署草案](operations/intranet-deployment-plan.md) | 运维 | intranet-plan-1 | in-review | ISSUE-017 / OPS-M0-T02 | MySQL 8；单 worker 单副本，多副本 blocked 在 ISSUE-018 |
 | D-239 | 2026-10-12 | [内网部署 Issue](../issues/ISSUE-017.md) | 决策 | intranet-plan-1 | in-review | ISSUE-017 / OPS-M0-T02 | 草案复核中；done 待项目经理 |
 | D-240 | 2026-10-12 | [内网部署交付](delivery/OPS-M0-T02.md) | 交付 | intranet-plan-1 | in-review | ISSUE-017 / OPS-M0-T02 | 无代码；未创建环境 |
 | D-241 | 2026-10-12 | [内网部署核对](testing/2026-10-12-intranet-deploy-plan.md) | 验证 | intranet-plan-1 | 文档核对 | ISSUE-017 / OPS-M0-T02 | 对照现有入口；未连接 MySQL 或内网 |
@@ -297,6 +297,7 @@
 | 2026-10-12 | ISSUE-005 / BE-M0-T02、T03 | 错误体与24小时幂等提交为in-review。350项20done、4in-review、7in-progress、4ready。业务库决定为MySQL 8，本轮无驱动或迁移。PRD、ROADMAP、ARCHITECTURE未改 |
 | 2026-10-12 | ISSUE-020 / APP-M2-T001 | 路由级分包提交 in-review。首屏主块 1564.53 kB 降至 315.94 kB。不新增任务，350项20done、4in-review、7in-progress、266planned、49blocked、4ready保持不变。未改基线正文，未改后台，未标 done |
 | 2026-10-12 | ISSUE-017 / OPS-M0-T02 | 内网部署草案 in-review；业务库按已登记的 MySQL 8 书写，向量与模型仍待决；351项20done、5in-review、4ready。未部署。未改 PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF |
+| 2026-10-12 | ISSUE-017 / OPS-M0-T02 | 按 QA 补约束：会话和幂等回执为进程内内存。ISSUE-018 落地前只能一个 uvicorn worker、一个副本；重启丢失这两类状态。多 worker 和多副本 blocked 在尚未建档的 ISSUE-018。任务仍为 in-review |
 | 2026-10-12 | ISSUE-013 / REV-M0-T07 | QA签署BE-M0-T02与BE-M0-T03（两卡仍in-review待项目经理标done）；352项21done |
 | 2026-10-12 | ISSUE-016 / AI-03 | 旁路核对：适配器在 /api/v1 生成失败已是冻结错误体，只加一条测试。不新增错误码，不改码表，状态仍 in-review。不改 PRD、ROADMAP、ARCHITECTURE、TASK_BOARD、PROJECT_STATUS、PROJECT_BRIEF |
 | 2026-10-12 | ISSUE-019 / REV-M0-T06；ISSUE-013 / REV-M0-T08 | Playwright E2E与T001签署（不通过）；354项7in-review |

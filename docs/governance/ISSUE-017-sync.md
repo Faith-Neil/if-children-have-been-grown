@@ -13,10 +13,10 @@
 | ARCHITECTURE | 无影响。草案不改变已实现的内存仓库和单进程入口 |
 | PROJECT_BRIEF | 无影响。不改接手快照 |
 | Issue 看板/详情 | 新增 ISSUE-017，in-review。不创建 ISSUE-018。不改 ISSUE-007、ISSUE-010、ISSUE-011 |
-| TASK_BOARD | 新增 OPS-M0-T02，in-review。351 项：20 done、5 in-review、7 in-progress、266 planned、49 blocked、4 ready |
+| TASK_BOARD | OPS-M0-T02 仍为 in-review。354 项：21 done、7 in-review、7 in-progress、266 planned、49 blocked、4 ready |
 | PROJECT_STATUS | 记录草案未部署，完成数与看板一致 |
 | DOCUMENT_INDEX | 新增草案、Issue、交付、核对记录和本同步表。既有条目里的 T008 用词不改 |
 | icg-task-mapping | 不改 |
 | 参考原文 | 不改 `docs/reference/` |
 
-PR 未创建。未合入，未发布。数据库节跟随 ISSUE-010 已登记的 MySQL 8。向量库、对话模型、嵌入和重排仍待决，ISSUE-010 不关闭。PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF、icg-task-mapping 与 ISSUE-007 里仍可能有过时的 T008 用词，留给项目经理下一次基线同步。
+PR 未创建。未合入，未发布。数据库节跟随 ISSUE-010 已登记的 MySQL 8。向量库、对话模型、嵌入和重排仍待决，ISSUE-010 不关闭。2026-10-12 按 QA 补约束：会话和幂等回执为进程内内存，多 worker 和多副本 blocked 在尚未建档的 ISSUE-018。PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF、icg-task-mapping 与 ISSUE-007 里仍可能有过时的 T008 用词，留给项目经理下一次基线同步。
