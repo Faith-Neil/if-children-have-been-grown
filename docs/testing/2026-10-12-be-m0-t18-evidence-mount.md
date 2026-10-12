@@ -26,4 +26,4 @@ env -u ICG_DATABASE_URL -u ICG_REQUIRE_MYSQL python3 -m pytest tests/backend -q
 node scripts/check-project-governance.cjs
 ```
 
-结果：`治理检查通过：305 份 Markdown、386 项任务、35 项 Issue。` ISSUE-033 为 in-review。BE-M0-T18 为 in-review。ISSUE-035 为 new。BE-M0-T19 为 planned。ISSUE-036 保持上游 in-review。T11 仍 in-review。
+结果：`治理检查通过：305 份 Markdown、386 项任务、35 项 Issue。` ISSUE-033 为 in-review。BE-M0-T18 为 in-review。ISSUE-035 为 new。BE-M0-T19 为 planned。ISSUE-036 保持上游 in-review。T11 仍 in-review。BE-M0-T13 与 REV-M0-T23 已依据 QA ae38ec3，PM 17:16 确认 done。ISSUE-018 仍为 in-progress。

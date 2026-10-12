@@ -18,4 +18,4 @@
 | 持久化方案 | 已改 | 第 5 节对照表下补一句：偏差已获 PM 有条件批准，待 ISSUE-032 对齐 |
 | 依赖与 CI | 未改 | 不改工作流。`bid_outline_node`、`sys_user`、`company` 尚未作为开工条件满足 |
 
-BE-M0-T12 与 BE-M0-T13 仍为 in-review。ISSUE-018 仍为 in-progress。本卡不标 done，本 Issue 不标 closed。迁移必须保留历史锁行，禁止删除旧租约。`token` 与 `session_token` 要么删除，要么另写保留理由并请项目经理批准。
+BE-M0-T12 已依据 QA ae6fd10，PM 15:32 确认 done。BE-M0-T13 已依据 QA ae38ec3，PM 17:16 确认 done。ISSUE-018 仍为 in-progress。本卡不标 done，本 Issue 不标 closed。迁移必须保留历史锁行，禁止删除旧租约。`token` 与 `session_token` 要么删除，要么另写保留理由并请项目经理批准。

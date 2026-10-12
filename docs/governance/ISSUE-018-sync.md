@@ -38,3 +38,7 @@ BE-M0-T11 提交回执表和会话表，状态 in-review。ISSUE-018 仍为 in-p
 ## QA 签署（REV-M0-T28）
 
 2026-10-12 QA 对 BE-M0-T11（631d4c9）正式签署通过，见 [签署记录](../testing/2026-10-12-be-m0-t11-qa-signoff.md)。ISSUE-018 仍 in-progress；T11 仍 in-review，不标 done。T27 预留给 Codex PR #4 / ISSUE-034。
+
+## PM 确认（BE-M0-T13 / REV-M0-T23）
+
+2026-10-12 项目经理确认 BE-M0-T13 与 REV-M0-T23 为 done，依据是 QA ae38ec3，PM 17:16 确认。ISSUE-018 仍为 in-progress。ISSUE-035 仍为 new，BE-M0-T19 仍为 planned。ISSUE-033 与 BE-M0-T18 仍为 in-review。看板为 386 项：50 done、11 in-review、7 in-progress、265 planned、48 blocked、5 ready。BE-M0 为 8/19 done。不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照。

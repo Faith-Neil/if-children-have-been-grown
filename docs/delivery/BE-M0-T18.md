@@ -10,7 +10,7 @@
 | 任务ID | BE-M0-T18 |
 | 代码解释 | [BE-M0-T18](../code/BE-M0-T18.md) |
 | 验收 | 2026-10-12：未设连接串时后台测试见验证记录。过期挂接返回 409 `EVIDENCE_EXPIRED`；仅供参考和缺协议都返回 409 `EVIDENCE_NOT_USABLE` 且说明不同；无权受限资料返回 403 `FORBIDDEN`。长期有效和已授权资料可以挂接。错误码名单仍是 143 个名字。治理检查见验证记录 |
-| 项目进度 | 任务看板是准绳。并入上游 QA 卡后，本卡从 planned 改为 in-review，并新增 planned 的 BE-M0-T19，看板为 386 项：49 done、12 in-review、7 in-progress、265 planned、48 blocked、5 ready。BE-M0 为 19 项，7 项 done。本卡 in-review。ISSUE-033 为 in-review，不关闭。ISSUE-035 为 new |
+| 项目进度 | 任务看板是准绳。并入上游 QA 卡后，本卡从 planned 改为 in-review，并新增 planned 的 BE-M0-T19。BE-M0-T13 随后依据 QA ae38ec3，PM 17:16 确认 done。看板为 386 项：50 done、11 in-review、7 in-progress、265 planned、48 blocked、5 ready。BE-M0 为 19 项，8 项 done。本卡 in-review。ISSUE-033 为 in-review，不关闭。ISSUE-035 为 new |
 <!-- task-delivery:end -->
 
 ## 关联与状态
@@ -42,7 +42,7 @@ OpenAPI 只替换了发生变化的组件模式，并补上 `ProjectPartnerInput
 
 ## 项目进度
 
-任务看板是准绳。BE-M0-T18 改为 in-review，并加上 planned 的 BE-M0-T19 后，看板为 386 项：49 done、12 in-review、7 in-progress、265 planned、48 blocked、5 ready。BE-M0 19 项，7 项 done。ISSUE-033 仍为 in-review。ISSUE-018 仍为 in-progress。T13 仍为 in-review。T078 与 T114 保持上游 done。T124 保持 ready。
+任务看板是准绳。BE-M0-T18 改为 in-review，并加上 planned 的 BE-M0-T19 后，看板为 386 项：50 done、11 in-review、7 in-progress、265 planned、48 blocked、5 ready。BE-M0 19 项，8 项 done。ISSUE-033 仍为 in-review。ISSUE-018 仍为 in-progress。T13 已依据 QA ae38ec3，PM 17:16 确认 done。T078 与 T114 保持上游 done。T124 保持 ready。
 
 ## 限制与未完成
 

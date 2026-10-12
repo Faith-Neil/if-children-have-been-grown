@@ -113,6 +113,7 @@ WORKFLOW无规则变化，治理块保持g1.1。
 | 2026-10-12 | qa-rerun-22 / done | ISSUE-033规格增量契约复签（REV-M0-T26）：is_restricted/agreement_present/bid_deadline_at/三错误码/143冻结通过；契约相关10 passed；CI 38228282444全绿；运行时待后端；ISSUE-033不标 closed | 成长测试QA |
 | 2026-10-12 | qa-rerun-23 / in-review | BE-M0-T11签署（REV-M0-T28）：真实MySQL 8.4 复跑通过；355/13、mysql 12、Q2~1s、双worker+重启；CI 38212536927；T11/ISSUE-018/本卡不标 done；T27 预留 | 成长测试QA |
 | 2026-10-12 | qa-rerun-24 / in-review | ISSUE-028 AC-02假端点夹具签署（REV-M0-T29）：假服务/fixture 过线；真模型默认 skip；CI 不设旗；无生产改动；create_app 仍 DemoModelProvider；34/1 + 355/13；CI 38231417634；ISSUE-028/AI-01/本卡不标 done；路径规范化 hold | 成长测试QA |
+| 2026-10-12 | qa-rerun-19 / done | 项目经理确认 REV-M0-T23 与 BE-M0-T13 为 done，依据是 QA ae38ec3，PM 17:16 确认。ISSUE-018 仍为 in-progress。ISSUE-035 仍为 new。ISSUE-013 保持 closed | 项目经理 |
 
 ## 本地验收与后续合入发布
 

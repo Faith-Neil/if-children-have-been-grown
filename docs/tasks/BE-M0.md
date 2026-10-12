@@ -264,7 +264,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done（QA ae38ec3，PM 17:16 确认；未合入/未发布） |
 | 估算 | 4小时以内；超出则再拆卡 |
 | 关联 Issue | [ISSUE-018](../../issues/ISSUE-018.md) |
 | 依赖 | [BE-M0-T12](BE-M0.md#be-m0-t12) |
@@ -272,11 +272,12 @@
 | 完成时交付 | [实际交付](../delivery/BE-M0-T13.md) |
 | 代码解释 | [实际代码解释](../code/BE-M0-T13.md) |
 
-范围：先迁项目聚合。`demo_project` 与 `demo_project_team` 在事务内提交，失败回滚。章节、检查与导出、资料与承诺、工作流与任务、审计仍在内存。字段与字典 v1.9 的对照写在方案第 6 节。偏差已获 PM 有条件批准，待 [ISSUE-035](../../issues/ISSUE-035.md) 对齐。卡片为 in-review，不标 done。
+范围：先迁项目聚合。`demo_project` 与 `demo_project_team` 在事务内提交，失败回滚。章节、检查与导出、资料与承诺、工作流与任务、审计仍在内存。字段与字典 v1.9 的对照写在方案第 6 节。偏差已获 PM 有条件批准，待 [ISSUE-035](../../issues/ISSUE-035.md) 对齐。卡片已依据 QA ae38ec3，PM 17:16 确认 done。
 
 - [x] 已迁移的聚合在事务内提交，失败回滚。
 - [x] 未迁移的聚合仍有明确边界，不把整份状态当一条记录写入。
 - [x] 单元测试默认仍不连接 MySQL。
+- [x] QA ae38ec3，PM 17:16 确认。本卡标为 done。ISSUE-018 仍为 in-progress。对齐仍见 ISSUE-035。
 
 <a id="be-m0-t14"></a>
 

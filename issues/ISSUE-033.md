@@ -50,7 +50,7 @@
 - 过期返回 409 `EVIDENCE_EXPIRED`。仅供参考，以及合作方缺协议，都返回 409 `EVIDENCE_NOT_USABLE`，两句说明不同。受限且调用者不是公司管理员、资料管理员，也不在该资料的 `resource_acl` 上，返回 403 `FORBIDDEN`。
 - 不新增错误码，不改冻结名单，不改 `docs/reference/`、PRD、ROADMAP、PROJECT_BRIEF、工作流。
 - 合作方和授权先留在内存。项目表对齐另见 [ISSUE-035](ISSUE-035.md)，本项不建那两张正式表。
-- ISSUE-018 仍为 in-progress。BE-M0-T13 仍为 in-review。APP-M2-T114 已 done（QA f521950，PM 17:13 确认）。APP-M2-T078 已 done（QA 19c4862，PM 17:20 确认）。本卡不标 done。
+- ISSUE-018 仍为 in-progress。BE-M0-T13 已依据 QA ae38ec3，PM 17:16 确认 done。APP-M2-T114 已 done（QA f521950，PM 17:13 确认）。APP-M2-T078 已 done（QA 19c4862，PM 17:20 确认）。本卡不标 done。
 
 ## 实施任务与互链
 

@@ -35,7 +35,7 @@ BE-M0-T13 把当前项目和分工写入 `demo_project`、`demo_project_team`。
 - 对齐范围：GUID 主键、`project_status`、投标主体、一成员一行、A 组审计列、时间型 `bid_deadline_at`。索引为 `(company_id, status)`、`(company_id, bid_deadline_at)`、`(tender_no, lot_no)`。成员唯一 `(project_id, user_id)`。
 - 迁移必须保留历史项目和成员，禁止用删除清空旧行。
 - 不改 `docs/reference/`。不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照。不改工作流文件。
-- ISSUE-018 仍为 in-progress。BE-M0-T13 仍为 in-review，不标 done。
+- ISSUE-018 仍为 in-progress。BE-M0-T13 已依据 QA ae38ec3，PM 17:16 确认 done。本 Issue 仍为 new，不标 closed。
 
 ## 实施任务与互链
 
@@ -73,6 +73,7 @@ BE-M0-T13 把当前项目和分工写入 `demo_project`、`demo_project_team`。
 | 日期 | revision / 状态 | 完成事实、问题与下一步 | 证据 / 复核人 |
 |---|---|---|---|
 | 2026-10-12 | bid-project-align-1 / new | 项目经理有条件批准第 6 节偏差。本项只登记，等正式项目表和成员表存在再迁移。不删历史行 | 方案第 6 节 |
+| 2026-10-12 | bid-project-align-1 / new | BE-M0-T13 已依据 QA ae38ec3，PM 17:16 确认 done。本 Issue 仍为 new。BE-M0-T19 仍为 planned。不改表 | 方案第 6 节 |
 
 ## 本地验收与后续合入发布
 
