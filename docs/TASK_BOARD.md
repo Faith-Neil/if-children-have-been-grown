@@ -143,7 +143,7 @@
 | [REV-M0-T24](tasks/REV-M0.md#rev-m0-t24) | APP-M2-T078 内存片段发布 QA签署 | done | APP-M2-T078、ISSUE-022 | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T24.md) |
 | [REV-M0-T25](tasks/REV-M0.md#rev-m0-t25) | ISSUE-036 橙色标签对比 QA签署 | in-review | ISSUE-036 | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T25.md) |
 | [REV-M0-T26](tasks/REV-M0.md#rev-m0-t26) | ISSUE-033 规格增量契约复签 | in-review | ISSUE-033 | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T26.md) |
-| [REV-M0-T27](tasks/REV-M0.md#rev-m0-t27) | 最新分支复核与限定修复 | in-review | 9e3fcdd 含 9c178782 复核快照 | [ISSUE-034](../issues/ISSUE-034.md) | [交付](delivery/REV-M0-T27.md) |
+| [REV-M0-T27](tasks/REV-M0.md#rev-m0-t27) | 最新分支复核与限定修复 | in-review | tip `5eced4f`；QA R1～R9 已签（含真实 MySQL） | [ISSUE-034](../issues/ISSUE-034.md) | [交付](delivery/REV-M0-T27.md) |
 | [REV-M0-T06](tasks/REV-M0.md#rev-m0-t06) | Playwright浏览器端到端检查 | in-review | [APP-M2-T001](tasks/APP-M2.md#app-m2-t001) | [ISSUE-019](../issues/ISSUE-019.md) | [交付](delivery/REV-M0-T06.md) |
 | [REV-M0-T08](tasks/REV-M0.md#rev-m0-t08) | APP-M2-T001 QA签署复核 | in-review | [REV-M0-T06](tasks/REV-M0.md#rev-m0-t06) | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T08.md) |
 | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | 后端开发准备与本地demo | done | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | [ISSUE-006](../issues/ISSUE-006.md) | [交付](delivery/BE-M0-T01.md) |

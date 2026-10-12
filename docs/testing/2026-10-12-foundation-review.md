@@ -49,3 +49,7 @@ pnpm --dir frontend/web exec playwright test --config e2e/playwright.config.ts
 | 后台全量 | 本轮没有重跑 pytest。R4、R6、R7 仍要真实 MySQL，不能用这次浏览器里的内存 uvicorn 代替 |
 
 没有把任务或 Issue 标成 done 或 closed。没有声称 GitHub Actions 全绿。
+
+## QA 正式签署（2026-10-12，tip `5eced4f`）
+
+成长测试QA 在隔离工作树 `/workspace/qa-wt-pr4` 复跑并补真实 MySQL。结论：**R1～R9 通过**。详细对照见[QA签署](2026-10-12-issue-034-qa-signoff.md)。摘要：前端单测 113、构建入口 318.42kB/gzip 101.83kB、Playwright 16/16、治理 301/384/35、无库后台 371 passed / 13 skipped、`-m mysql` 12 passed、snippet/receipt/lease 回归 16 passed；真实 MySQL 上 R4 同键双 200 同 id 且有重放头，R6 条件 DELETE，R7 旧续期/释放 `423 LOCK_LOST`。本 tip 无 Actions 记录（workflow 只挂 foundation）。**不标 done，不合入。**

@@ -549,5 +549,6 @@
 - [x] 回归先证明原缺陷，再证明修复结果。
 - [x] 运行相关实际函数/HTTP、构建及治理；真实MySQL未连接须明确。
 - [x] 保存复核、代码、交付和基线影响；提交PR等待审核，不自行done/closed。
+- [x] QA 正式签署（2026-10-12，tip `5eced4f`）：R1～R9 通过，含真实 MySQL R4/R6/R7；见[签署记录](../testing/2026-10-12-issue-034-qa-signoff.md)。**状态仍 in-review，不标 done。**
 
 修复PR：[#4](https://github.com/Faith-Neil/if-children-have-been-grown/pull/4)，等待审核。

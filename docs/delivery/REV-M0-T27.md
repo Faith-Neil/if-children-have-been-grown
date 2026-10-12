@@ -9,7 +9,7 @@
 |---|---|
 | 任务ID | REV-M0-T27 |
 | 代码解释 | [限定修复](../code/REV-M0-T27.md) |
-| 验收 | [复核与实际回归](../reviews/2026-10-12-foundation-review.md)；[实际验证命令和结果](../testing/2026-10-12-foundation-review.md) |
+| 验收 | QA 正式签署 **通过**（tip `5eced4f`，R1～R9 全过，含真实 MySQL R4/R6/R7）；见[QA签署](../testing/2026-10-12-issue-034-qa-signoff.md)。卡与 ISSUE-034 仍 **in-review，不标 done**。原[复核](../reviews/2026-10-12-foundation-review.md)/[验证](../testing/2026-10-12-foundation-review.md)仍有效 |
 | 项目进度 | 新复核卡in-review；并入 foundation 9e3fcdd 后看板 384项49done、10in-review、7in-progress、265planned、48blocked、5ready；本轮不推进新功能 |
 <!-- task-delivery:end -->
 
@@ -35,6 +35,6 @@
 | PROJECT_STATUS / DOCUMENT_INDEX | 复核结论及当前计数，新增交付/代码/回归入口 |
 | WORKFLOW | 治理规则及共同治理块不变；本轮以PR待审交付 |
 
-当前环境未连接真实MySQL；SQLite执行生产SQL不是MySQL实机验收。R4、R6、R7 仍需真实 MySQL。正文等仍在内存，完整数据库业务写入和锁核验未原子化，多副本仍未开放；原任务的局部签署不改写。代码与测试用合成数据，临时输出/凭据留仓库外；原工作区、合作分支和运行中的他人环境不改。验收命令与实际结果见[验证记录](../testing/2026-10-12-foundation-review.md)。
+QA 已在真实 MySQL 8.4（127.0.0.1:33061）完成 R4/R6/R7 签署；见[QA签署](../testing/2026-10-12-issue-034-qa-signoff.md)。SQLite 探针仍不能单独冒充实机。正文等仍在内存，完整数据库业务写入和锁核验未原子化，多副本仍未开放；原任务的局部签署不改写。代码与测试用合成数据，临时输出/凭据留仓库外；原工作区、合作分支和运行中的他人环境不改。验收命令与实际结果见[验证记录](../testing/2026-10-12-foundation-review.md)。
 
 PR：[#4](https://github.com/Faith-Neil/if-children-have-been-grown/pull/4)，等待审核，未合入/发布。
