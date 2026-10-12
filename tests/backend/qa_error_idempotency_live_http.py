@@ -101,7 +101,7 @@ def main():
         check("spec 状态表 == 代码 ERROR_STATUS", flat == ERROR_STATUS,
               {k: (flat.get(k), ERROR_STATUS.get(k)) for k in set(flat) | set(ERROR_STATUS) if flat.get(k) != ERROR_STATUS.get(k)})
         check("spec V1Error.code enum == 代码表", sorted(spec["components"]["schemas"]["V1Error"]["properties"]["code"]["enum"]) == sorted(ERROR_STATUS))
-        check("code 总数 141", len(ERROR_STATUS) == 141, len(ERROR_STATUS))
+        check("code 总数 143", len(ERROR_STATUS) == 143, len(ERROR_STATUS))  # SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL and SECRET_KEY_UNAVAILABLE, added by ISSUE-024 in 23dae10
         check("VOLUME_OWNER_REQUIRED=403 / TWO_VOLUMES_REQUIRED=422 / MODEL_UNAVAILABLE=502 / IDEMPOTENCY_KEY_REQUIRED=428",
               (ERROR_STATUS["VOLUME_OWNER_REQUIRED"], ERROR_STATUS["TWO_VOLUMES_REQUIRED"], ERROR_STATUS["MODEL_UNAVAILABLE"],
                ERROR_STATUS["IDEMPOTENCY_KEY_REQUIRED"]) == (403, 422, 502, 428))
