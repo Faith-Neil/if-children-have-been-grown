@@ -383,6 +383,9 @@
 | D-369 | 2026-10-12 | [REV-M0-T22签署交付](delivery/REV-M0-T22.md) | 交付 | qa-rerun-18 | 已本地验收 | ISSUE-013 / REV-M0-T22 | 无代码；结论与观察项 |
 | D-370 | 2026-10-12 | [BE-M0-T13项目聚合签署](testing/2026-10-12-be-m0-t13-signoff.md) | 验证 | qa-rerun-19 | 本地通过 | ISSUE-013 / REV-M0-T23 | 通过；O-1 P3 待 ISSUE-035 批准句 |
 | D-371 | 2026-10-12 | [REV-M0-T23签署交付](delivery/REV-M0-T23.md) | 交付 | qa-rerun-19 | 已本地验收 | ISSUE-013 / REV-M0-T23 | 无代码；演示表待 ISSUE-035，不标 done |
+| 2026-10-12 | ISSUE-013 / REV-M0-T24 | QA签署：APP-M2-T078内存片段发布，通过（页面未做；被验卡/本卡不标 done） |
+| D-372 | 2026-10-12 | [T078内存片段发布签署](testing/2026-10-12-t078-snippet-signoff.md) | 验证 | qa-rerun-20 | 本地通过 | ISSUE-013 / REV-M0-T24 | 通过；页面未做不标 done；CI 38212117391 |
+| D-373 | 2026-10-12 | [REV-M0-T24签署交付](delivery/REV-M0-T24.md) | 交付 | qa-rerun-20 | 已本地验收 | ISSUE-013 / REV-M0-T24 | 无代码；页面未做，不标 done |
 
 ## 更新记录
 
