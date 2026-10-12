@@ -303,12 +303,12 @@
 | D-290 | 2026-10-12 | [MySQL CI 说明](code/BE-M0-T14.md) | 说明 | mysql-ci-1 | 当前 | ISSUE-025 / BE-M0-T14 | 运行时密码；docker run；junit 守卫 |
 | D-291 | 2026-10-12 | [MySQL CI 核对](testing/2026-10-12-backend-mysql-ci.md) | 验证 | mysql-ci-1 | 已核对 | ISSUE-025 / BE-M0-T14 | run 38207508936：2 passed、320 deselected；密码不进仓库 |
 | D-292 | 2026-10-12 | [025同步表](governance/ISSUE-025-sync.md) | 治理 | mysql-ci-1 | 已核对 | ISSUE-025 / BE-M0-T14 | 计数字句改为 362 项；ARCHITECTURE 正文未改 |
-| D-293 | 2026-10-12 | [配置驱动的对话模型](architecture/model-config-provider.md) | 架构 | model-config-design-1 | in-review | ISSUE-028 / AI-01 | 字段与错误码提案。不改 OpenAPI |
+| D-293 | 2026-10-12 | [配置驱动的对话模型](architecture/model-config-provider.md) | 架构 | model-config-design-2 | in-review | ISSUE-028 / AI-01 | 只写 Provider 切换。字段与 API 以 ISSUE-024 为准。不改 OpenAPI |
 | D-294 | 2026-10-12 | [RAGFlow 检索适配器](architecture/ragflow-retrieval-adapter.md) | 架构 | ragflow-adapter-design-1 | in-review | ISSUE-029 / AI-03 | 官方路径与状态映射。无客户端 |
 | D-295 | 2026-10-12 | [ISSUE-010 决定核对](testing/2026-10-12-issue-010-decisions.md) | 验证 | model-choice-3 | 文档核对 | ISSUE-010 / AI-01 | 无内网调用 |
-| D-296 | 2026-10-12 | [ISSUE-028](../issues/ISSUE-028.md) | 变更 | model-config-design-1 | in-review | ISSUE-028 / AI-01 | 配置设计。不标 closed |
+| D-296 | 2026-10-12 | [ISSUE-028](../issues/ISSUE-028.md) | 变更 | model-config-design-2 | in-review | ISSUE-028 / AI-01 | 仅 Provider 侧。不建 ISSUE-024。不标 closed |
 | D-297 | 2026-10-12 | [ISSUE-029](../issues/ISSUE-029.md) | 变更 | ragflow-adapter-design-1 | in-review | ISSUE-029 / AI-03 | 检索设计。不标 closed |
-| D-298 | 2026-10-12 | [028同步记录](governance/ISSUE-028-sync.md) | 治理 | model-config-design-1 | 已核对 | ISSUE-028 / AI-01 | 不改码表，不加依赖 |
+| D-298 | 2026-10-12 | [028同步记录](governance/ISSUE-028-sync.md) | 治理 | model-config-design-2 | 已核对 | ISSUE-028 / AI-01 | 存储与 API 划给 ISSUE-024。不改任务计数 |
 | D-299 | 2026-10-12 | [029同步记录](governance/ISSUE-029-sync.md) | 治理 | ragflow-adapter-design-1 | 已核对 | ISSUE-029 / AI-03 | 不改检索代码 |
 | D-300 | 2026-10-12 | [T001重签与T002探测](testing/2026-10-12-qa-t001-t002-t020-recheck.md) | 验证 | qa-rerun-4 | 本地执行 | ISSUE-013 / REV-M0-T08 | T001因E2E-D7不通过；T002待修复提交；ISSUE-020通过 |
 | D-301 | 2026-10-12 | [ISSUE-027](../issues/ISSUE-027.md) | 变更 | style-1 | in-review | ISSUE-027 / BE-M0-T15 | Word 默认版式；T14 仍是 MySQL 作业；不标 closed |
@@ -369,6 +369,7 @@
 | 2026-10-12 | ISSUE-009 / APP-M2-T002 | 带 MODEL_UNAVAILABLE 的 502 不自动重试，立刻显示追踪号。裸网关 502、503 和网络错误仍复用同一把 Idempotency-Key。前端 90 项通过。看板仍为 362项26done、8in-review、7in-progress、268planned、49blocked、4ready。三份基线仍是 7in-review、50blocked。未改 OpenAPI、后台和三份基线正文。仍为 in-review |
 | 2026-10-12 | ISSUE-026 | AI-01 进入 in-review 后，PRD、ROADMAP、PROJECT_BRIEF 改为 362项26done、8in-review、7in-progress、268planned、49blocked、4ready。不新增任务，不改 api.ts，不改后台。Issue 仍为 in-review |
 | 2026-10-12 | ISSUE-027 / BE-M0-T15；ISSUE-023 | Word 默认版式提交 in-review。BE-M0-T14 仍是托管 MySQL 作业。任务计数改为 363项26done、9in-review、7in-progress、268planned、49blocked、4ready。ISSUE-023 由项目经理在 QA 签署 16cf971 后确认，状态为 closed。未改 ARCHITECTURE，未改 docs/reference |
+| 2026-10-12 | ISSUE-028 | Provider 侧保留读取配置、启动快照、local/cloud 路由、敏感约束、流式/JSON、错误映射和 `job.model_call`。存储、字段定义、API、加密、If-Match/幂等改引 ISSUE-024，字段提案以 ISSUE-024 为准。不创建 ISSUE-024 文件。不改任务计数，仍为 363项26done、9in-review、7in-progress、268planned、49blocked、4ready |
 
 ## 缺失输入
 

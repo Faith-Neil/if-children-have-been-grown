@@ -58,7 +58,7 @@
 - [配置驱动的对话模型](../docs/architecture/model-config-provider.md)，[ISSUE-028](ISSUE-028.md)
 - [RAGFlow 检索适配器](../docs/architecture/ragflow-retrieval-adapter.md)，[ISSUE-029](ISSUE-029.md)
 
-敏感项目拒绝云端配置时，设计采用 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`。主密钥缺失时采用 503 `SECRET_KEY_UNAVAILABLE`。今天的 `require_allowed_model` 仍是 409 `LOCAL_MODEL_REQUIRED`。OpenAPI 草案归后台，本轮不改 `spec/openapi/demo-v1.json`。ISSUE-024 留给模型配置契约，ISSUE-027 留给 Word 样式卡，本仓库不建这两份详情。
+敏感项目拒绝云端配置时，Provider 侧采用 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`。今天的 `require_allowed_model` 仍是 409 `LOCAL_MODEL_REQUIRED`。配置的存储、字段定义、API、加密、If-Match 和幂等归 ISSUE-024，字段提案已交后台，以 ISSUE-024 为准。本仓库不建 ISSUE-024 详情。ISSUE-027 已另有 Word 版式详情，本段不改它。OpenAPI 草案归后台，本轮不改 `spec/openapi/demo-v1.json`。
 
 ## 影响与分流
 

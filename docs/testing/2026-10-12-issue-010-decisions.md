@@ -22,8 +22,10 @@
 | 嵌入与向量库用 RAGFlow 自带，检索层去连 RAGFlow | [适配器设计](../architecture/ragflow-retrieval-adapter.md) |
 | 生产生成只在内网，开发与测试可以出网 | 同上，并与 [内网草案](../operations/intranet-deployment-plan.md) 第 7 节一致 |
 
-敏感项目拒绝云端模型使用后台草案码 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`。主密钥缺失使用 503 `SECRET_KEY_UNAVAILABLE`。当前 `require_allowed_model` 仍是 409 `LOCAL_MODEL_REQUIRED`，本轮不改。
+敏感项目拒绝云端模型使用 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`，留在 Provider 侧。当前 `require_allowed_model` 仍是 409 `LOCAL_MODEL_REQUIRED`，本轮不改。
 
 ## 局限
 
-没有假服务器，也没有真实连接测试。依赖没有变化：`httpx==0.28.1` 已在仓库；Fernet 使用 ISSUE-023 已批准的 `cryptography`，本轮不调用。ISSUE-024 留给后台模型配置契约，本仓库不建详情。ISSUE-025 与 ISSUE-026 已有详情，分别为 MySQL CI 与基线计数，均为 in-review。ISSUE-027 留给后端 Word 样式卡，本仓库不建详情。本轮新建 ISSUE-028 与 ISSUE-029。PRD、ROADMAP、PROJECT_BRIEF 里的任务计数没有改。
+没有假服务器，也没有真实连接测试。依赖没有变化：`httpx==0.28.1` 已在仓库。ISSUE-024 留给后台模型配置契约，本仓库不建详情。ISSUE-025 与 ISSUE-026 已有详情。ISSUE-027 随后已由后端建档，是 Word 版式，本记录不改它。本轮新建 ISSUE-028 与 ISSUE-029。关闭 ISSUE-010 时 PRD、ROADMAP、PROJECT_BRIEF 的任务计数没有改。
+
+PM 随后把范围拆开：ISSUE-028 只保留 Provider 读取配置、启动快照、local/cloud 路由、敏感项目约束、流式与 JSON 模式、错误映射和 `job.model_call`。存储、字段定义、API、加密、If-Match 和幂等归 ISSUE-024。字段提案已交后台，以 ISSUE-024 为准。ISSUE-024 文件仍不存在，所以只在 028 侧引用。这次拆分不改任务计数。
