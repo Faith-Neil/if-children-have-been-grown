@@ -20,3 +20,22 @@
 | DOCUMENT_INDEX.md 追加 | 有。要能找到这条旁路测试 | D-203 改为 31 项并写明 v1 冻结错误体；D-216 写上复跑次数。变更日志追加一行。不重开 ISSUE-011 | 2026-10-12 |
 
 开发者提交的契约不能当作任务 done、Issue closed、PR 已合入或服务已发布。向量库、嵌入和重排仍等 ISSUE-010。只有项目经理在 QA 签字后把 AI-03 标为 done。
+
+## QA 签署后关闭
+
+日期：2026-10-12。依据 QA 签署 2fe6198（REV-M0-T16）。ISSUE-016 改为 closed，AI-03 改为 done。未合入，未发布。不改检索代码。路径 C 不按查询词过滤仍留到 RAGFlow 适配器实现。
+
+| 文档 | 本次影响 | 实际处理 | 版本与状态 |
+|---|---|---|---|
+| PRD.md | 无 | 不改正文，不改里程碑计数 | 2026-10-12 |
+| ROADMAP.md | 无 | 不改正文，不改里程碑计数 | 2026-10-12 |
+| PROJECT_BRIEF.md | 无 | 不改正文，不改里程碑计数 | 2026-10-12 |
+| ARCHITECTURE.md | 有 | 检索口仍只在内存。状态改为 closed / done | 2026-10-12 |
+| TASK_BOARD.md | 有 | AI-03 改为 done。看板 371项39done、6in-review、7in-progress、266planned、49blocked、4ready | 2026-10-12 |
+| PROJECT_STATUS.md | 有 | 同上计数，并写明 ISSUE-016 已 closed | 2026-10-12 |
+| DOCUMENT_INDEX.md | 有 | 更新当前行并追加变更记录。不改历史行 | 2026-10-12 |
+| issues/index.md | 有 | ISSUE-016 改为 closed，验收证据链接签署记录 | closed |
+| issues/ISSUE-017.md | 无 | 不改。DevOps 拥有 ISSUE-017 与 OPS-M0-T02 | closed |
+| backend/bid-core | 无 | 不改 retrieval.py | done |
+
+未合入，未发布。没有重跑 pytest：本轮不改后台代码。`node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：247 份 Markdown、371 项任务、29 项 Issue。」检查程序未修改。看板手写摘要与任务表一致：371项39done、6in-review、7in-progress、266planned、49blocked、4ready。

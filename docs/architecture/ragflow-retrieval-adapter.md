@@ -4,7 +4,7 @@
 
 # RAGFlow 检索适配器
 
-日期：2026-10-12。关联 [ISSUE-010](../../issues/ISSUE-010.md)（closed）、[ISSUE-029](../../issues/ISSUE-029.md)（in-review）、[ISSUE-016](../../issues/ISSUE-016.md) / [AI-03](../tasks/AI-M0.md#ai-03)。依据是公开发布的 HTTP API：<https://ragflow.io/docs/http_api_reference>。按该页正文及其 “Migrate to 1.0” 说明书写，不钉某次 Git 提交。1.0 正在迁到 Go 后端；下表用迁移说明之后仍然列出的路径。
+日期：2026-10-12。关联 [ISSUE-010](../../issues/ISSUE-010.md)（closed）、[ISSUE-029](../../issues/ISSUE-029.md)（closed）、[ISSUE-016](../../issues/ISSUE-016.md)（closed）/ [AI-03](../tasks/AI-M0.md#ai-03)（done）。依据是公开发布的 HTTP API：<https://ragflow.io/docs/http_api_reference>。按该页正文及其 “Migrate to 1.0” 说明书写，不钉某次 Git 提交。1.0 正在迁到 Go 后端；下表用迁移说明之后仍然列出的路径。
 
 本文件只设计。不新增依赖。HTTP 使用仓库里已有的 `httpx==0.28.1`。不改 `EvidenceCandidateService` 的代码。内网放置已写在 [部署草案](../operations/intranet-deployment-plan.md)：基址 `ICG_RAGFLOW_BASE_URL`，密钥 `ICG_RAGFLOW_API_KEY`，只从环境注入。浏览器不直连 RAGFlow。
 
@@ -12,9 +12,9 @@
 
 嵌入模型和向量库存放、切块都在 RAGFlow 内部配置。本仓库不选 Milvus、Qdrant、Elasticsearch 或 pgvector，也不保存切块向量。检索层以后实现一个适配器，放在 ISSUE-016 已有的 `EvidenceCandidateService` 后面。
 
-`EmbeddingProvider`、`RerankProvider`、`VectorStore` 仍是进程内替换口。适配器实现之前，AI-03 的内存实现保持 in-review，不进入 `create_app`。
+`EmbeddingProvider`、`RerankProvider`、`VectorStore` 仍是进程内替换口。AI-03 的内存实现已为 done，仍不进入 `create_app`。适配器尚未实现。
 
-[ISSUE-017](../../issues/ISSUE-017.md) 的草案写明：这次用户决定没有单独选定重排产品。本设计不把重排写成另一项已关闭的选型。提案是：若检索要重排，使用 RAGFlow `POST /api/v1/retrieval` 上的 `rerank_id`，模型在 RAGFlow 里配置。本仓库不增加重排依赖。该提案随 ISSUE-029 处于 in-review。
+重排已决定：使用 RAGFlow 自带的重排器，重排模型在 RAGFlow 内配置（用户 10-12 14:34 确认）。检索调用 `POST /api/v1/retrieval` 上的 `rerank_id`。本仓库不增加重排依赖。ISSUE-029 已 closed。适配器仍未实现。
 
 ## 认证与错误
 

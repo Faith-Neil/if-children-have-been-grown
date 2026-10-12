@@ -9,18 +9,18 @@
 | Issue ID | ISSUE-029 |
 | 类型 | change |
 | 优先级 | P1 |
-| 状态 | in-review |
+| 状态 | closed |
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
 | revision | ragflow-adapter-design-1 |
 | 关联 Task | [AI-01](../docs/tasks/AI-M0.md#ai-01)；现有内存口是 [AI-03](../docs/tasks/AI-M0.md#ai-03) / [ISSUE-016](ISSUE-016.md) |
 | 关联 PR | 未创建 |
-| 本地验收 | 设计已写。没有客户端。见 [核对](../docs/testing/2026-10-12-issue-010-decisions.md) |
+| 本地验收 | 用户 10-12 14:34 确认。重排定为 RAGFlow 自带。见 [适配器设计](../docs/architecture/ragflow-retrieval-adapter.md)。没有客户端。未合入，未发布 |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | [AI-01 交付](../docs/delivery/AI-01.md) |
 | 代码 / 流程解释 | 无运行代码。设计见 [适配器设计](../docs/architecture/ragflow-retrieval-adapter.md) |
-| 验证记录 | [2026-10-12 决定核对](../docs/testing/2026-10-12-issue-010-decisions.md) |
+| 验证记录 | 用户 10-12 14:34 确认；[适配器设计](../docs/architecture/ragflow-retrieval-adapter.md) |
 
 ## 现象与证据
 
@@ -28,7 +28,7 @@
 
 路径依据 <https://ragflow.io/docs/http_api_reference>，含 “Migrate to 1.0” 说明，不钉 Git 提交。HTTP 使用已有的 `httpx==0.28.1`。不加依赖。
 
-重排产品未在用户决定里选定。本设计提议使用检索接口的 `rerank_id`，模型在 RAGFlow 内配置。这不是第二项已关闭的选型。
+重排已决定：使用 RAGFlow 自带的重排器，重排模型在 RAGFlow 内配置（用户 10-12 14:34 确认）。调用时使用检索接口的 `rerank_id`。本仓库不增加重排依赖。适配器仍未实现。
 
 ## 影响与分流
 
@@ -41,10 +41,10 @@
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| AI-03 | 内存口保持不变 | `backend/bid-core/icg_demo/retrieval.py` | 本轮不改代码 | in-review |
+| AI-03 | 内存口保持不变 | `backend/bid-core/icg_demo/retrieval.py` | 本轮不改代码 | done |
 | AI-01 | 设计可复核 | `docs/architecture/ragflow-retrieval-adapter.md` | 路径表和状态映射已写明 | in-review |
 
-开发者不把本 Issue 标 closed。
+本 Issue 已由用户 10-12 14:34 确认并 closed。AI-01 仍为 in-review。未合入，未发布。
 
 ## 验收条目
 
@@ -52,7 +52,7 @@
 |---|---|---|
 | AC-01 | 官方路径、检索字段和健康检查已列出 | 已写入设计。未调用 |
 | AC-02 | 不新增依赖，不改检索代码 | 本轮不改 `requirements.txt` 与 `retrieval.py` |
-| AC-03 | 重排仍标明为提案，不是已关闭的用户决定 | 设计与 ISSUE-017 草案一致 |
+| AC-03 | 重排定为 RAGFlow 自带的重排器，重排模型在 RAGFlow 内配置 | 用户 10-12 14:34 确认。适配器未实现 |
 
 ## 六份基线 impact 与同步表
 
@@ -70,8 +70,9 @@
 | 日期 | revision / 状态 | 完成事实、问题与下一步 | 证据 / 复核人 |
 |---|---|---|---|
 | 2026-10-12 | ragflow-adapter-design-1 / in-review | 设计已提交。等待复核。不标 closed | [设计](../docs/architecture/ragflow-retrieval-adapter.md) |
+| 2026-10-12 | ragflow-adapter-design-1 / closed | 用户 10-12 14:34 确认。本 Issue 标为 closed。重排定为 RAGFlow 自带的重排器，重排模型在 RAGFlow 内配置。适配器未实现。不改 ISSUE-017 与 OPS-M0-T02 | [设计](../docs/architecture/ragflow-retrieval-adapter.md) |
 
 ## 本地验收与后续合入发布
 
-- 本地验收：设计核对完成。没有连接 RAGFlow。
+- 本地验收：用户 10-12 14:34 确认。Issue 为 closed。没有连接 RAGFlow。
 - PR：未创建。合入：未合入。发布：未发布。

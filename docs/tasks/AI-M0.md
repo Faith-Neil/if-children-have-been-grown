@@ -64,7 +64,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 在现有协议旁增加内存检索口，不接外部服务 |
 | 关联 Issue | [ISSUE-016](../../issues/ISSUE-016.md) |
 | 依赖 | [BE-M0-T01](BE-M0.md#be-m0-t01) 的替换口。向量库已定为 RAGFlow 自带，本卡仍不连接它 |
@@ -83,4 +83,4 @@
 - [x] `tests/backend/test_reference_boundaries.py` 包含在全后台回归中。
 - [x] 交付、代码解释、验证记录和基线同步已登记。真实库不在本卡。
 
-开发者不把本卡标为 done。状态保持 in-review，待项目经理在 QA 签字后决定。
+项目经理依据 QA 签署 2fe6198（REV-M0-T16）确认。状态为 done。ISSUE-016 为 closed。合入和发布仍未发生。真实库不在本卡。
