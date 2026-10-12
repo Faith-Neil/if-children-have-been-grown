@@ -13,7 +13,7 @@
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
 | revision | qa-rerun-3 |
-| 关联 Task | [REV-M0-T02](../docs/tasks/REV-M0.md#rev-m0-t02)、[REV-M0-T05](../docs/tasks/REV-M0.md#rev-m0-t05)（QA签署复核）、[REV-M0-T07](../docs/tasks/REV-M0.md#rev-m0-t07)（BE-M0-T02/T03签署）、[REV-M0-T09](../docs/tasks/REV-M0.md#rev-m0-t09)（BE-M0-T08/T10签署）、[REV-M0-T10](../docs/tasks/REV-M0.md#rev-m0-t10)（BE-M0-T15 Word版式签署）、[REV-M0-T11](../docs/tasks/REV-M0.md#rev-m0-t11)（T001/T002复验签署）、[REV-M0-T12](../docs/tasks/REV-M0.md#rev-m0-t12)（BE-M0-T14 MySQL CI签署）、[REV-M0-T13](../docs/tasks/REV-M0.md#rev-m0-t13)（ISSUE-026快照规则签署）、[REV-M0-T14](../docs/tasks/REV-M0.md#rev-m0-t14)（ISSUE-014 ProLayout签署）、[REV-M0-T08](../docs/tasks/REV-M0.md#rev-m0-t08)（T001签署）；[任务看板](../docs/TASK_BOARD.md) |
+| 关联 Task | [REV-M0-T02](../docs/tasks/REV-M0.md#rev-m0-t02)、[REV-M0-T05](../docs/tasks/REV-M0.md#rev-m0-t05)（QA签署复核）、[REV-M0-T07](../docs/tasks/REV-M0.md#rev-m0-t07)（BE-M0-T02/T03签署）、[REV-M0-T09](../docs/tasks/REV-M0.md#rev-m0-t09)（BE-M0-T08/T10签署）、[REV-M0-T10](../docs/tasks/REV-M0.md#rev-m0-t10)（BE-M0-T15 Word版式签署）、[REV-M0-T11](../docs/tasks/REV-M0.md#rev-m0-t11)（T001/T002复验签署）、[REV-M0-T12](../docs/tasks/REV-M0.md#rev-m0-t12)（BE-M0-T14 MySQL CI签署）、[REV-M0-T13](../docs/tasks/REV-M0.md#rev-m0-t13)（ISSUE-026快照规则签署）、[REV-M0-T14](../docs/tasks/REV-M0.md#rev-m0-t14)（ISSUE-014 ProLayout签署）、[REV-M0-T15](../docs/tasks/REV-M0.md#rev-m0-t15)（ISSUE-020路由分包签署）、[REV-M0-T08](../docs/tasks/REV-M0.md#rev-m0-t08)（T001签署）；[任务看板](../docs/TASK_BOARD.md) |
 | 关联 PR | [PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)，待合入 |
 | 本地验收 | 通过；2026-10-12，成长测试QA |
 | 合入 | 未合入 |
@@ -44,6 +44,7 @@
 | REV-M0-T12 | BE-M0-T14托管MySQL CI验收：Actions日志、本地迁移往返与守卫负例 | `docs/testing/2026-10-12-be-m0-t14-mysql-ci-signoff.md` | AC-04 | done |
 | REV-M0-T13 | ISSUE-026快照规则签署 | `docs/testing/2026-10-12-issue-026-snapshot-signoff.md` | AC-04 | done |
 | REV-M0-T14 | ISSUE-014 ProLayout签署 | `docs/testing/2026-10-12-issue-014-prolayout-signoff.md` | AC-04 | done |
+| REV-M0-T15 | ISSUE-020路由分包签署 | `docs/testing/2026-10-12-issue-020-route-split-signoff.md` | AC-04 | done |
 | REV-M0-T02 | 会话实时HTTP复核入库、全套复跑记录 | `tests/backend/session_live_http.py`、`docs/testing/2026-10-12-qa-rerun.md` | AC-01～03 | done |
 
 ## 验收条目
@@ -82,6 +83,7 @@ WORKFLOW无规则变化，治理块保持g1.1。
 | 2026-10-12 | qa-rerun-7 / done | BE-M0-T15 Q1～Q3复核（REV-M0-T10 复核二，034b184/f989af7）：检查器补Q1缩进、Q2无标题无目录、Q3规格中文；样张69/69、h1左64/64、技术册与商务册50/50、承诺函45/45；样张已覆盖；无新缺陷；T15仍in-review待用户Word/WPS确认 | 成长测试QA |
 | 2026-10-12 | qa-rerun-8 / done | ISSUE-026快照规则签署（REV-M0-T13）：AC通过；看板独立重数366项（32/6/7/268/49/4）与快照一致；规则在ISSUE-026、同步表、WORKFLOW第4节；检查程序不比对快照；模拟签收AI-03仍通过；CI 38212117391全绿；ISSUE-026保持in-review，待项目经理设置done | 成长测试QA |
 | 2026-10-12 | qa-rerun-9 / done | ISSUE-014 ProLayout签署（REV-M0-T14）：AC-01、AC-02通过；直接依赖仅新增pro-layout 7.22.7；引入前后1334.42→1564.53 kB逐字复现；ISSUE-014保持in-review，待项目经理设置done | 成长测试QA |
+| 2026-10-12 | qa-rerun-10 / done | ISSUE-020路由分包签署（REV-M0-T15）：AC-01～03通过；入口317.71 kB/gzip 101.64 kB，预加载合计1081.97 kB低于1334.42 kB；node --test 92/92、tsc、E2E 13 passed；ISSUE-020保持in-review，待项目经理设置done | 成长测试QA |
 
 ## 本地验收与后续合入发布
 
