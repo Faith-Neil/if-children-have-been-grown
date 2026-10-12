@@ -13,7 +13,7 @@
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
 | revision | qa-rerun-2 |
-| 关联 Task | [REV-M0-T02](../docs/tasks/REV-M0.md#rev-m0-t02)、[REV-M0-T05](../docs/tasks/REV-M0.md#rev-m0-t05)（QA签署复核）；[任务看板](../docs/TASK_BOARD.md) |
+| 关联 Task | [REV-M0-T02](../docs/tasks/REV-M0.md#rev-m0-t02)、[REV-M0-T05](../docs/tasks/REV-M0.md#rev-m0-t05)（QA签署复核）、[REV-M0-T07](../docs/tasks/REV-M0.md#rev-m0-t07)（BE-M0-T02/T03签署）；[任务看板](../docs/TASK_BOARD.md) |
 | 关联 PR | [PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)，待合入 |
 | 本地验收 | 通过；2026-10-12，成长测试QA |
 | 合入 | 未合入 |
@@ -37,6 +37,7 @@
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
 | REV-M0-T05 | APP-M2-T008与AI-02签署复跑及基线核对 | `docs/testing/2026-10-12-qa-signoff.md` | AC-04 | done |
+| REV-M0-T07 | BE-M0-T02与BE-M0-T03签署复跑、真实HTTP探针及基线核对 | `docs/testing/2026-10-12-be-m0-t02-t03-signoff.md` | AC-04 | done |
 | REV-M0-T02 | 会话实时HTTP复核入库、全套复跑记录 | `tests/backend/session_live_http.py`、`docs/testing/2026-10-12-qa-rerun.md` | AC-01～03 | done |
 
 ## 验收条目

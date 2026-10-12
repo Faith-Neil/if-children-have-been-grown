@@ -38,7 +38,7 @@ ISSUE-005的DG-05拆成六张后端卡。错误体与单一状态码表[BE-M0-T0
 
 ## 任务进度口径
 
-治理版本g1.1，当前实际开发关联ISSUE-007及资料保护ISSUE-008；契约门禁关联ISSUE-005；模型与向量库待决关联ISSUE-010，业务库已决定为 MySQL 8。项目351项中20done、5in-review、7in-progress、266planned、49blocked、4ready。APP-M1的16项中9项本地done：T07范围拆分及T09～16限定子任务；T01～06完整父任务继续，T08最终审计planned，T16资料及模板旧表单保护本地done。[APP-M2的259项](tasks/APP-M2.md)中T001布局、路由和离开保护为 in-review，T008离线CI为 done，其余257项planned，覆盖47组页面和44规则，不代表软件已实现。BE-M0现为7项，其中T01为done，T02/T03为in-review，4项ready。AI-01仍blocked，AI-02为done，AI-03为in-review且不连接 MySQL，OPS-M0-T02内网部署草案为in-review且不是已部署。REV-M0-T05已记录QA签署；项目经理于 10-12 12:10 在 QA 签署后确认 AI-02 与 T008。PR待合入、未发布；BE-M0-T01只证明局部后台基础，FE-M0-T03继续来源评审，生产一期尚未验收。344项、20done、2in-review、7in-progress 是加入契约六张卡之前的计数。
+治理版本g1.1，当前实际开发关联ISSUE-007及资料保护ISSUE-008；契约门禁关联ISSUE-005；模型与向量库待决关联ISSUE-010，业务库已决定为 MySQL 8。项目352项中21done、5in-review、7in-progress、266planned、49blocked、4ready。APP-M1的16项中9项本地done：T07范围拆分及T09～16限定子任务；T01～06完整父任务继续，T08最终审计planned，T16资料及模板旧表单保护本地done。[APP-M2的259项](tasks/APP-M2.md)中T001布局、路由和离开保护为 in-review，T008离线CI为 done，其余257项planned，覆盖47组页面和44规则，不代表软件已实现。BE-M0现为7项，其中T01为done，T02/T03为in-review，4项ready。AI-01仍blocked，AI-02为done，AI-03为in-review且不连接 MySQL，OPS-M0-T02内网部署草案为in-review且不是已部署。REV-M0-T05已记录QA签署；项目经理于 10-12 12:10 在 QA 签署后确认 AI-02 与 T008。REV-M0-T07已记录QA对BE-M0-T02/T03的签署，两卡仍in-review待项目经理标done。PR待合入、未发布；BE-M0-T01只证明局部后台基础，FE-M0-T03继续来源评审，生产一期尚未验收。344项、20done、2in-review、7in-progress 是加入契约六张卡之前的计数。
 
 资料库专项审查确认：当前只支持基础文字资料，确认声明、审核、受限名单、真实附件槽位、历史和引用版本仍缺。T16已修复资料及公司模板旧表单借刷新版本覆盖新内容的问题；完整C01/C06各卡继续planned，不能以修复代替其验收。
 
