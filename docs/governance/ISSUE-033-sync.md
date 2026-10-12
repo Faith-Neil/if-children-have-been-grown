@@ -18,7 +18,7 @@
 | 错误码与 OpenAPI | 未改 | 规格增量由 AI bot 另交。本轮不定错误码 |
 | 依赖与 CI | 未改 | 不改工作流。排在 BE-M0-T13 之后 |
 
-BE-M0-T13 仍为 in-review。ISSUE-018 仍为 in-progress。APP-M2-T114 仍为 in-review。本卡不标 done，本 Issue 不标 closed。实现后由 QA 重签。
+BE-M0-T13 仍为 in-review。ISSUE-018 仍为 in-progress。APP-M2-T114 已 done（QA f521950，PM 17:13 确认）。本卡不标 done，本 Issue 不标 closed。实现后由 QA 重签。
 
 ## 规格增量
 

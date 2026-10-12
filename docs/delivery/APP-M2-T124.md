@@ -9,8 +9,8 @@
 |---|---|
 | 任务ID | APP-M2-T124 |
 | 代码解释 | 只改 OpenAPI 草案和契约测试。运行时说明见 [代码说明](../code/APP-M2-T124.md) |
-| 验收 | 契约形状已核对，见 [记录](../testing/2026-10-12-t124-dependencies.md)。模型输入验收未执行。T078 与 T114 仍 planned |
-| 项目进度 | T124 仍为 blocked。ISSUE-022 已依据 QA 0254102，PM 15:36 确认 closed。T078 与 T114 仍为 in-review。本轮不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数 |
+| 验收 | 契约形状已核对，见 [记录](../testing/2026-10-12-t124-dependencies.md)。模型输入验收未执行。T078 仍 in-review 未 done。T114 已 done（QA f521950，PM 17:13 确认） |
+| 项目进度 | T124 仍为 blocked。ISSUE-022 已依据 QA 0254102，PM 15:36 确认 closed。T078 仍为 in-review 未 done。T114 已 done（QA f521950，PM 17:13 确认）。本轮不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数 |
 <!-- task-delivery:end -->
 
 ## 关联与状态
@@ -43,7 +43,7 @@ T078 的实现计划写在 [内存方案](../governance/ISSUE-022-t078-plan.md)�
 
 ## 验收结果
 
-契约测试核对独立 `JobStatus`、按操作列出的错误码、ETag、202 与 `deprecated: true`。实现验收未执行，因为 T078 和 T114 仍不存在，草案也还没有运行时。
+契约测试核对独立 `JobStatus`、按操作列出的错误码、ETag、202 与 `deprecated: true`。实现验收未执行，草案也还没有运行时。T114 现已 done（QA f521950，PM 17:13 确认）。T078 仍 in-review 未 done，所以本卡仍 blocked。
 
 ## 项目进度
 

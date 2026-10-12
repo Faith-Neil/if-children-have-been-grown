@@ -10,7 +10,7 @@
 | 任务ID | REV-M0-T22 |
 | 代码解释 | 无代码变更；仅验收记录 |
 | 验收 | Node 24.9.0 抽屉单测5/5、前端98/98；build 通过；Playwright 14/14（含他人先保存→刷新→再保存）；CI run 38227446697 五个 job 全绿；见[签署记录](../testing/2026-10-12-app-m2-t114-e691405-signoff.md)。**缺协议、受限依赖 ISSUE-033** |
-| 项目进度 | 被验卡 APP-M2-T114 仍 in-review；本卡 in-review，等项目经理设置 done |
+| 项目进度 | 被验卡 APP-M2-T114 与本卡均为 done（QA f521950，PM 17:13 确认）。缺协议、受限、智能匹配和规则 2 端到端仍挂 ISSUE-033，不关闭。未合入，未发布 |
 <!-- task-delivery:end -->
 
 ## 关联与状态
@@ -19,10 +19,10 @@
 
 ## 完成内容与变更文件
 
-`docs/testing/2026-10-12-app-m2-t114-e691405-signoff.md`；同步 ISSUE-013、REV-M0任务卡、TASK_BOARD、PROJECT_STATUS、DOCUMENT_INDEX。未改被验代码；不把 APP-M2-T114 标为 done。
+`docs/testing/2026-10-12-app-m2-t114-e691405-signoff.md`；同步 ISSUE-013、REV-M0任务卡、TASK_BOARD、PROJECT_STATUS、DOCUMENT_INDEX。签署当时未改被验代码。项目经理随后确认本卡与 APP-M2-T114 为 done（QA f521950，PM 17:13 确认）。
 
 ## 同步与剩余
 
 PRD/ROADMAP/ARCHITECTURE/PROJECT_BRIEF无影响（只读复核；计数为里程碑快照，以任务看板为准）。
 
-观察项：缺协议、受限依赖 ISSUE-033；智能匹配与规则 2 端到端挂在 ISSUE-033 下。本卡与被验卡均等项目经理设置 done。未合入，未发布。
+观察项：缺协议、受限依赖 ISSUE-033；智能匹配与规则 2 端到端挂在 ISSUE-033 下。ISSUE-033 不关闭。本卡与被验卡已由项目经理标为 done（QA f521950，PM 17:13 确认）。未合入，未发布。

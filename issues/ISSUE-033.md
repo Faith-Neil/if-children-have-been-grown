@@ -47,7 +47,7 @@
 - 开工条件：排在 BE-M0-T13 之后。规格增量已写入冻结契约，运行时由后台另实现。
 - 本轮不改应用代码、错误表、冻结名单、`docs/reference/`、PRD、ROADMAP、PROJECT_BRIEF、工作流。
 - 实现后由 QA 重签。不重开 ISSUE-031。不标 closed。
-- ISSUE-018 仍为 in-progress。BE-M0-T13 仍为 in-review。APP-M2-T114 仍为 in-review。BE-M0-T18 仍为 planned。不标 done。
+- ISSUE-018 仍为 in-progress。BE-M0-T13 仍为 in-review。APP-M2-T114 已 done（QA f521950，PM 17:13 确认）。BE-M0-T18 仍为 planned。本 Issue 不标 closed。缺协议、受限、智能匹配和规则 2 端到端仍在本 Issue。
 
 ## 实施任务与互链
 
