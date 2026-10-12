@@ -2,17 +2,17 @@
 
 它解决什么问题：避免把复核变成新功能推进，或直接改动合作分支而没有可审查的PR。
 
-# ISSUE-032：最新分支复核及限定修复
+# ISSUE-033：最新分支复核及限定修复
 
 | 项目 | 内容 |
 |---|---|
-| Issue ID | ISSUE-032 |
+| Issue ID | ISSUE-033 |
 | 类型 | bug |
 | 优先级 | P1 |
 | 状态 | in-review |
 | 登记 / 更新日期 | 2026-10-12 |
 | revision | foundation-review-fix-1 |
-| 关联 Task | REV-M0-T21 |
+| 关联 Task | REV-M0-T22 |
 | 审查基线 | 初次73fde1e03c0b6fce0f8c0a9f2e20551e63d811b3；最终保留并整合9c178782d2e01e47e0d46748ceac230d749fea64，包含租约、项目及证据抽屉新提交 |
 | 修复分支 | codex/review-foundation-fixes |
 | 关联 PR | 修复及验收后创建，目标为上述合作分支 |
@@ -48,7 +48,7 @@
 | PRD | 无新需求；修复已有身份隔离、未保存保护和失败处理，不改既定产品范围 |
 | ROADMAP | 无新功能或里程碑推进；增加本次审查/修复任务，不改原快照口径 |
 | ARCHITECTURE / OpenAPI | 现有会话/幂等约束恢复一致；冻结契约与未来x-implemented:false保持，不新建接口 |
-| Issue / TASK_BOARD | 登记ISSUE-032和REV-M0-T21，保留旧验收状态并关联回归 |
+| Issue / TASK_BOARD | 登记ISSUE-033和REV-M0-T22，保留旧验收状态并关联回归 |
 | PROJECT_STATUS | 记录审查结论、实际验证和当前任务数，不写成已合入或发布 |
 | DOCUMENT_INDEX | 登记本Issue、审查/代码/交付及新增回归 |
 | WORKFLOW | 无治理规则变更，g1.1治理块保持原一致版本 |

@@ -2,18 +2,18 @@
 
 它解决什么问题：让修改通过单独PR审查，保留协作分支和原验收历史。
 
-# REV-M0-T21交付
+# REV-M0-T22交付
 
 <!-- task-delivery:start -->
 | 项目 | 记录 |
 |---|---|
-| 任务ID | REV-M0-T21 |
-| 代码解释 | [限定修复](../code/REV-M0-T21.md) |
+| 任务ID | REV-M0-T22 |
+| 代码解释 | [限定修复](../code/REV-M0-T22.md) |
 | 验收 | [复核与实际回归](../reviews/2026-10-12-foundation-review.md)；[实际验证命令和结果](../testing/2026-10-12-foundation-review.md) |
 | 项目进度 | 新复核卡in-review；376项42done、11in-review、7in-progress、263planned、49blocked、4ready；本轮不推进新功能 |
 <!-- task-delivery:end -->
 
-日期2026-10-12；ISSUE-032 / foundation-review-fix-1。初次审查云端73fde1e，最终复核快照9c178782，保留新增项目、租约、证据抽屉和QA交付；修复分支codex/review-foundation-fixes，目标PR为codex/repository-foundation。尚未合入或发布。用户要求仅复核，需修改则提PR。
+日期2026-10-12；ISSUE-033 / foundation-review-fix-1。初次审查云端73fde1e，最终复核快照9c178782，保留新增项目、租约、证据抽屉和QA交付；修复分支codex/review-foundation-fixes，目标PR为codex/repository-foundation。尚未合入或发布。用户要求仅复核，需修改则提PR。
 
 ## 完成内容
 
@@ -29,7 +29,7 @@
 | ROADMAP | 不新增功能或改变排期；只登记本次复核卡 |
 | ARCHITECTURE | 已有会话/幂等约束的实现纠错，补当前修复说明；不新建服务或接口 |
 | OpenAPI | 现有接口、冻结错误码及未来x-implemented:false未改变，无重新生成影响 |
-| Issue / TASK_BOARD | ISSUE-032与REV-M0-T21、实际验证、PR和发布分列 |
+| Issue / TASK_BOARD | ISSUE-033与REV-M0-T22、实际验证、PR和发布分列 |
 | PROJECT_STATUS / DOCUMENT_INDEX | 复核结论及当前计数，新增交付/代码/回归入口 |
 | WORKFLOW | 治理规则及共同治理块不变；本轮以PR待审交付 |
 

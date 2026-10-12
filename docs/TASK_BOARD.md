@@ -44,7 +44,7 @@
 | [FE-M7 效率](tasks/FE-M7.md) | ROADMAP Phase 8；一期可延后范围 | 4 | 0/4 | 可选效率增强按相关模块依赖推进，不是一期发布前置。 |
 | [FE-M8 发布门禁](tasks/FE-M8.md) | ROADMAP §11 MVP Cut Line、§13 Gate A/B/C；贯穿发布 Milestone 1～5 | 3 | 0/3 | 发布验证覆盖一期必需任务；无需等待可选 FE-M6/FE-M7。 |
 | [OPS-M0 工作区运维](tasks/OPS-M0.md) | ISSUE-004工作区同步；ISSUE-017内网部署草案 | 2 | 2/2 | T01同步已验收。T02 已由用户 10-12 14:34 确认，标为 done，未部署。多副本仍 blocked 在 ISSUE-018。 |
-| [REV-M0 接手审查](tasks/REV-M0.md) | ISSUE-004目录与业务/技术审查；ISSUE-013 QA复跑；ISSUE-015 T06计划；ISSUE-013 签署；ISSUE-019 E2E、T001签署 | 21 | 18/21 | 审查/brief交付完成，设计决定留ISSUE-005；QA复跑、T06计划及贯通冒烟/Word渲染完成。T06、T08与本次T21为in-review。 |
+| [REV-M0 接手审查](tasks/REV-M0.md) | ISSUE-004目录与业务/技术审查；ISSUE-013 QA复跑；ISSUE-015 T06计划；ISSUE-013 签署；ISSUE-019 E2E、T001签署 | 21 | 18/21 | 审查/brief交付完成，设计决定留ISSUE-005；QA复跑、T06计划及贯通冒烟/Word渲染完成。T06、T08与本次T22为in-review。 |
 | [BE-M0 后端链路](tasks/BE-M0.md) | ISSUE-006本地后端demo；ISSUE-005契约卡；ISSUE-018实施中；ISSUE-023已关闭；ISSUE-025托管MySQL作业；ISSUE-027版式；ISSUE-031错误码名字；ISSUE-021排队 | 16 | 6/16 | T01～T03已验收。T02与T03由项目经理于 10-12 12:28 在 QA 签署后确认。T08与T10由项目经理在 QA 签署 98c5129 后确认，标为 done；T04～T07 ready；T09 planned。T11 回执与会话为 in-review。T12 编辑租约为 in-review。T13 项目聚合为 in-review。T14 已依据 QA 签署 b20b844 标为 done。T15 Word 默认版式为 in-review。T16 错误码名字为 in-review。ISSUE-005 仍 in-progress。ISSUE-023 已 closed。 |
 | [APP-M1 示例实现](tasks/APP-M1.md) | ISSUE-007示例与后台联调；ISSUE-008资料保护 | 16 | 9/16 | T07及T09～16已本地验收；完整父任务继续。 |
 | [AI-M0 模型接入准备](tasks/AI-M0.md) | ISSUE-010已关闭；ISSUE-011兼容适配器；ISSUE-016内存检索 | 3 | 2/3 | AI-01为in-review；AI-02为done，项目经理于 10-12 12:10 在 QA 签署后确认；AI-03为done，依据 QA 签署 2fe6198（REV-M0-T16）。对话模型、RAGFlow 与内网范围已登记，真实端点未验收。 |
@@ -137,7 +137,7 @@
 | [REV-M0-T18](tasks/REV-M0.md#rev-m0-t18) | ISSUE-031错误码名单冻结 QA签署 | done | ISSUE-031 | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T18.md) |
 | [REV-M0-T19](tasks/REV-M0.md#rev-m0-t19) | BE-M0-T12编辑租约入库 QA签署 | done | BE-M0-T12、ISSUE-018 | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T19.md) |
 | [REV-M0-T20](tasks/REV-M0.md#rev-m0-t20) | ISSUE-022契约冻结 QA复签 | done | ISSUE-022 | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T20.md) |
-| [REV-M0-T21](tasks/REV-M0.md#rev-m0-t21) | 最新分支复核与限定修复 | in-review | 9c178782复核快照 | [ISSUE-032](../issues/ISSUE-032.md) | [交付](delivery/REV-M0-T21.md) |
+| [REV-M0-T22](tasks/REV-M0.md#rev-m0-t22) | 最新分支复核与限定修复 | in-review | 9c178782复核快照 | [ISSUE-033](../issues/ISSUE-033.md) | [交付](delivery/REV-M0-T22.md) |
 | [REV-M0-T06](tasks/REV-M0.md#rev-m0-t06) | Playwright浏览器端到端检查 | in-review | [APP-M2-T001](tasks/APP-M2.md#app-m2-t001) | [ISSUE-019](../issues/ISSUE-019.md) | [交付](delivery/REV-M0-T06.md) |
 | [REV-M0-T08](tasks/REV-M0.md#rev-m0-t08) | APP-M2-T001 QA签署复核 | in-review | [REV-M0-T06](tasks/REV-M0.md#rev-m0-t06) | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T08.md) |
 | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | 后端开发准备与本地demo | done | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | [ISSUE-006](../issues/ISSUE-006.md) | [交付](delivery/BE-M0-T01.md) |

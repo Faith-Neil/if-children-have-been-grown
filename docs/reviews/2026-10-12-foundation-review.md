@@ -4,7 +4,7 @@
 
 # 最新合作分支复核
 
-日期2026-10-12。初次基线`73fde1e03c0b6fce0f8c0a9f2e20551e63d811b3`，最终复核快照`9c178782d2e01e47e0d46748ceac230d749fea64`；期间新增租约、项目和证据抽屉完整保留。目标分支`codex/repository-foundation`，独立修复分支`codex/review-foundation-fixes`。关联ISSUE-032 / REV-M0-T21。初次云端比原本地副本多79提交，实际审查使用隔离工作树，未覆盖原工作区。后续再提交的代码需另行复核，不把动态分支名称当成无限范围。
+日期2026-10-12。初次基线`73fde1e03c0b6fce0f8c0a9f2e20551e63d811b3`，最终复核快照`9c178782d2e01e47e0d46748ceac230d749fea64`；期间新增租约、项目和证据抽屉完整保留。目标分支`codex/repository-foundation`，独立修复分支`codex/review-foundation-fixes`。关联ISSUE-033 / REV-M0-T22。初次云端比原本地副本多79提交，实际审查使用隔离工作树，未覆盖原工作区。后续再提交的代码需另行复核，不把动态分支名称当成无限范围。
 
 ## 确认的九项问题
 

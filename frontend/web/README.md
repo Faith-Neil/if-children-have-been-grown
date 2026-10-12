@@ -14,7 +14,7 @@ ISSUE-009 / APP-M2-T001先接可信会话和页面守卫：登录后从后台读
 
 ISSUE-020 把外壳和项目页改成打开时再加载。分包后入口 `index-BXy7CunM.js` 为 315.94 kB / gzip 101.00 kB，低于 1334.42 kB。ISSUE-020 为 in-review，见[分包记录](../../docs/testing/2026-10-12-route-chunks.md)。
 
-请求层（APP-M2-T002，原签署为done；本次回归修复另见ISSUE-032）解析 `/api/v1` 的 `{code, message, details, traceId}` 和旧 `/api` 的 `{error, request_id}`，页面提示带上追踪号。同一次写入只使用一把 `Idempotency-Key`。只有 GET 和已经带键的写入，才会在网络错误、没有统一错误体的 502 和 503 上用同一把键再试，最多 3 次（含首次）。没有键的旧写入不自动重试；ISSUE-021 给这些接口补键后这条限制解除。带 `MODEL_UNAVAILABLE` 的502与 `SECRET_KEY_UNAVAILABLE` 的503不重试，立刻提示追踪号。失败响应也核对请求来源，旧账号错误不退出新会话。409、422、423、428 不自动重试。提交章节版本时，请求头和正文 `idempotency_key` 是同一把键。见[请求层记录](../../docs/testing/2026-10-12-request-layer.md)。
+请求层（APP-M2-T002，原签署为done；本次回归修复另见ISSUE-033）解析 `/api/v1` 的 `{code, message, details, traceId}` 和旧 `/api` 的 `{error, request_id}`，页面提示带上追踪号。同一次写入只使用一把 `Idempotency-Key`。只有 GET 和已经带键的写入，才会在网络错误、没有统一错误体的 502 和 503 上用同一把键再试，最多 3 次（含首次）。没有键的旧写入不自动重试；ISSUE-021 给这些接口补键后这条限制解除。带 `MODEL_UNAVAILABLE` 的502与 `SECRET_KEY_UNAVAILABLE` 的503不重试，立刻提示追踪号。失败响应也核对请求来源，旧账号错误不退出新会话。409、422、423、428 不自动重试。提交章节版本时，请求头和正文 `idempotency_key` 是同一把键。见[请求层记录](../../docs/testing/2026-10-12-request-layer.md)。
 
 ## 运行
 

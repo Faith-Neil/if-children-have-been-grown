@@ -2,9 +2,9 @@
 
 它解决什么问题：让复核者知道为何能防止串账号、丢文字或重复办理，而不是只看到测试数量。
 
-# REV-M0-T21代码解释
+# REV-M0-T22代码解释
 
-2026-10-12；ISSUE-032 / foundation-review-fix-1；[复核记录](../reviews/2026-10-12-foundation-review.md)，[交付](../delivery/REV-M0-T21.md)。不新增业务功能或接口。
+2026-10-12；ISSUE-033 / foundation-review-fix-1；[复核记录](../reviews/2026-10-12-foundation-review.md)，[交付](../delivery/REV-M0-T22.md)。不新增业务功能或接口。
 
 `frontend/web/src/api.ts`在请求或下载最终失败时，将错误与发起时的会话放入私有WeakMap（只在内存里关联两个对象的表）。`isRequestFailureCurrent`只回答是否仍属于当前会话，不能把令牌序列化到日志或页面。App的report、重新读取和失败后补救入口均先核验；当前401仍显示追踪号并清身份，旧401不会登出新账号。503缺密钥停止重试由上游0a5b655修复，本PR保留并验证。
 
