@@ -18,7 +18,7 @@
 1. 页面调用 `request(path, token, method, body, revision)`。编辑台提交正文走 `EditorPage.commit()`，正文里已经有本次点击的 `idempotency_key`。
 2. 路径去掉查询串后，若方法不是 GET 且匹配 `/api/chapters/{id}/versions`，从正文取出非空 `idempotency_key`；没有则生成一把 UUID，写回即将发送的正文副本。
 3. 其他非 GET 且以 `/api/v1/` 开头的路径，在这次调用开始时生成一把请求头键，不改正文。GET 和其他旧 `/api` 路径不加该头。
-4. `runAttempts` 最多执行 3 次。`ApiError` 交给 `canRetryStatus(status, code)`：503 始终可再试；502 仅在没有应用 `code`，或解析兜底为 `REQUEST_FAILED` 时可再试。`TypeError` 也可再试。可再试时先等 200ms、再等 400ms，然后用同一组头和正文再发。`MODEL_UNAVAILABLE` 和其他带 `code` 的 502 立刻抛出。
+4. 只有方法是 GET，或这次调用已经有 `Idempotency-Key`，才把 `allowRetry` 设为真。没有键的写入（例如 `POST /api/chapters/{id}/lock`）第一次失败就抛出，不再等、不再发。允许再试时 `runAttempts` 最多执行 3 次。`ApiError` 交给 `canRetryStatus(status, code)`：503 始终可再试；502 仅在没有应用 `code`，或解析兜底为 `REQUEST_FAILED` 时可再试。`TypeError` 也可再试。可再试时先等 200ms、再等 400ms，然后用同一组头和正文再发。`MODEL_UNAVAILABLE` 和其他带 `code` 的 502 立刻抛出。ISSUE-021 给旧接口补上键之后，这些写入会带上键，从而回到有键才重试的同一条规则；本文件不改后台。
 5. 失败响应经 `apiFailure`：优先 `X-Request-ID`，其次正文 `traceId`，再次旧体 `request_id`。缺 `code` 时用 `REQUEST_FAILED`，所以网关 HTML 会重试，带 `code` 的统一错误体不会。`App.report` 用 `userFacingMessage` 显示「追踪号 …」，401 仍退出。`MODEL_UNAVAILABLE` 因此第一次就弹出追踪号。
 
 `download()` 使用同一套尝试次数，下载是 GET，不带重复请求标记。
@@ -29,10 +29,10 @@
 
 ## 关键判断与异常
 
-- 可自动重试的是网络错误、没有统一错误体的 502，以及 503。带 `MODEL_UNAVAILABLE` 的 502 不重试。409、422、423、428 交给用户。401 不重试，页面退出。500 不重试。
+- 可自动重试的请求只有 GET，以及已经带 `Idempotency-Key` 的写入。可再试的失败是网络错误、没有统一错误体的 502，以及 503。没有键的写入不重试。带 `MODEL_UNAVAILABLE` 的 502 不重试。409、422、423、428 交给用户。401 不重试，页面退出。500 不重试。
 - 「最多 3 次」含第一次请求，所以自动重试最多两次。
 - 章节版本的请求头和正文键在发送前就定下来。重试不会再调用 `crypto.randomUUID()`。
-- 锁定释放、草稿和章节建议仍是旧路径，不注入 `/api/v1` 的请求头。
+- 锁定释放、草稿和章节建议仍是旧路径，不注入 `/api/v1` 的请求头，因此失败时也不自动重试。ISSUE-021 补键后这条限制解除。
 - 追踪号以响应头为准。头和正文不一致时，用户看到的是头里的值。
 
 ## 验证与限制

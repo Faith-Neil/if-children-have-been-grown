@@ -24,3 +24,22 @@
 | 后台 | 不改 `backend/` 与 `tests/backend/` |
 
 PR #3 仍待合入。本轮不新建 PR，不合并，不发布。
+
+## T002-F1
+
+日期仍是 2026-10-12。没有幂等键的写入不再自动重试。GET 和已经带 `Idempotency-Key` 的写入仍按原停表重试。`MODEL_UNAVAILABLE` 的 502 仍只发一次。ISSUE-021 给旧接口补键之后，这条「没键不重试」的限制解除。本轮不实施 ISSUE-021，不改任务计数。看板与三份基线均为 363 项：26 done、9 in-review、7 in-progress、268 planned、49 blocked、4 ready。APP-M2-T002、ISSUE-009 与 ISSUE-014 保持 in-review。
+
+| 对象 | 实际处理 |
+|---|---|
+| PRD | 无正文修改。第19行已是「项目共363项：26done、9in-review、7in-progress、268planned、49blocked、4ready」。第21行仍写「整个T001、OIDC和完整资料库仍未完成」 |
+| ROADMAP | 无正文修改。第17行已是「当前共363项任务，26done、9in-review、7in-progress、268planned、49blocked、4ready」。第19行仍写「整卡继续in-progress。接下来补实际ProLayout、浏览器路由/返回和全页未保存保护」 |
+| ARCHITECTURE | 无正文修改。第21行仍写「布局、浏览器路由和全页离开保护继续本卡」 |
+| PROJECT_BRIEF | 无正文修改。第30行已是「当前共363项：26done、9in-review、7in-progress、268planned、49blocked、4ready」。第68行仍写「整卡仍进行中：接下来补实际布局组件、浏览器地址/返回与全页离开保护」 |
+| Issue 看板/详情 | ISSUE-009 的请求层段落改为：没有键的写入不重试。状态仍 in-review |
+| TASK_BOARD | 不改。T002 仍为 in-review。开篇是 363 项、9 in-review、49 blocked |
+| PROJECT_STATUS | 请求层句子改为只对 GET 和有键写入重试。计数不改 |
+| DOCUMENT_INDEX | 更新 D-084、D-141、D-277～D-280 与 D-001 的说明，并加一条变更记录 |
+| WORKFLOW | 无规则变化，治理块不升版 |
+| OpenAPI | 不改。`x-idempotency.retry` 仍写重试全部 502 |
+| 参考原文 | 不改 `docs/reference/` |
+| 后台 | 不改 `backend/` 与 `tests/backend/`。ISSUE-021 仍 planned |

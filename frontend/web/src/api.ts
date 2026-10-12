@@ -41,15 +41,15 @@ function defaultWait(ms: number) {
   return new Promise<void>(resolve => { setTimeout(resolve, ms); });
 }
 
-async function runAttempts<T>(action: () => Promise<T>, wait: (ms: number) => Promise<void>) {
+async function runAttempts<T>(action: () => Promise<T>, wait: (ms: number) => Promise<void>, allowRetry = true) {
   let last: unknown;
   for (let attempt = 0; attempt < retryLimit; attempt += 1) {
     try {
       return await action();
     } catch (error) {
       last = error;
-      const retry = error instanceof ApiError ? canRetryStatus(error.status, error.code) : error instanceof TypeError;
-      if (!retry || attempt === retryLimit - 1) throw error;
+      const eligible = error instanceof ApiError ? canRetryStatus(error.status, error.code) : error instanceof TypeError;
+      if (!allowRetry || !eligible || attempt === retryLimit - 1) throw error;
       await wait(200 * 2 ** attempt);
     }
   }
@@ -78,6 +78,7 @@ export async function request<T>(path: string, token: string | null, method = 'G
   const version = isChapterVersionWrite(path, method) ? chapterVersionPayload(body) : undefined;
   const outbound = version ? version.body : body;
   const idempotencyKey = version?.key ?? (method !== 'GET' && path.startsWith('/api/v1/') ? crypto.randomUUID() : undefined);
+  const allowRetry = method === 'GET' || idempotencyKey !== undefined;
   return runAttempts(async () => {
     const headers: Record<string, string> = {};
     if (token) headers.Authorization = `Bearer ${token}`;
@@ -88,7 +89,7 @@ export async function request<T>(path: string, token: string | null, method = 'G
     const data = await readJson(response);
     if (!response.ok) throw apiFailure(response.status, data, response.headers.get('X-Request-ID') ?? undefined);
     return data as T;
-  }, wait);
+  }, wait, allowRetry);
 }
 
 export async function download(path: string, token: string, filename: string, wait: (ms: number) => Promise<void> = defaultWait) {

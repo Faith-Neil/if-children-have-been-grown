@@ -10,7 +10,7 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
-| D-001 | 2026-10-12 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 / AI-01；ISSUE-009 / APP-M2-T001 | 363项26done、9in-review、49blocked。T14 与 T15 仍 in-review。E2E-D7 展开按钮可点，T001 仍 in-review。MODEL_UNAVAILABLE 的 502 不自动重试 |
+| D-001 | 2026-10-12 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 / AI-01；ISSUE-009 / APP-M2-T002 | 363项26done、9in-review、49blocked。T14 与 T15 仍 in-review。没有幂等键的写入不重试。T001 与 T002 仍 in-review |
 | D-002 | 2026-10-12 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025；ISSUE-027 / BE-M0-T15 | 第19行为363项26done、9in-review、268planned、49blocked、其余255卡planned |
 | D-003 | 2026-10-12 | [前端架构](ARCHITECTURE.md) | 前端架构 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-011 / AI-02；ISSUE-016 / AI-03 | 同源存储和替换接口；业务库为 MySQL 8，嵌入与向量库定为 RAGFlow，适配器未实现 |
 | D-004 | 2026-10-12 | [前端路线图](ROADMAP.md) | 计划 | 参考实施入口 / g1.1 | 执行入口 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15 | 363项26done、9in-review、268planned、49blocked。本卡更新了计数。T124仍blocked |
@@ -93,7 +93,7 @@
 | D-081 | 2026-10-11 | [示例任务卡](tasks/APP-M1.md) | 实施 | reference-members-1 / library-basis-1 | 当前 | ISSUE-007 / APP-M1；ISSUE-008 / T16 | 16项，T07/T09～16本地done；资料及模板保护验收，完整父任务继续 |
 | D-082 | 2026-10-11 | [示例接口约定](architecture/icg-reference-contract.md) | 接口 | reference-members-1 | 实际契约 | ISSUE-007 / APP-M1 | 项目成员、分册/本节分工、逐章确认、已读依据和交接保护 |
 | D-083 | 2026-10-11 | [示例差异记录](decisions/icg-reference-deviations.md) | 评审 | reference-1 | 持续维护 | ISSUE-007 / APP-M1 | 版本缺件、已取消页签和高级功能差异 |
-| D-084 | 2026-10-12 | [产品页面说明](../frontend/web/README.md) | 工程 | request-layer-2 | 构建通过 | ISSUE-009 / APP-M2-T001；APP-M2-T002 | 请求层 in-review：MODEL_UNAVAILABLE 的 502 不重试；裸 502 与 503 复用同一把键 |
+| D-084 | 2026-10-12 | [产品页面说明](../frontend/web/README.md) | 工程 | request-layer-2 | 构建通过 | ISSUE-009 / APP-M2-T001；APP-M2-T002 | 没有幂等键的写入不重试；GET 与有键写入仍复用同一把键 |
 | D-085 | 2026-10-11 | [独立主流程测试](../tests/backend/test_reference_flow.py) | 验证代码 | reference-1 | 21项通过 | ISSUE-007 / APP-M1-T06 | 两册真实内容、源页码、输入失效与权限，页面主流程另有阶段记录 |
 | D-086 | 2026-10-11 | [完整示例覆盖清单](testing/icg-coverage.md) | 验收范围 | reference-members-1 / library-basis-1 | 未完整交付 | ISSUE-007 / APP-M1；ISSUE-008 / T16 | 成员及逐章确认更新，完整资料治理和业务规则仍缺 |
 | D-087 | 2026-10-11 | [截图来源](testing/assets/README.md) | 证据 | reference-1 / library-basis-1 | 来源已登记 | ISSUE-007 / APP-M1；ISSUE-008 / T16 | 合成项目截图；新增资料/模板6张，不能代替完整验收 |
@@ -151,7 +151,7 @@
 | D-138 | 2026-10-11 | [成员代码解释](code/APP-M1-T14.md) | 说明 | reference-members-1 | 当前 | ISSUE-007 / APP-M1-T14 | 设置页面、角色范围、事务保存、草稿私有 |
 | D-139 | 2026-10-11 | [逐章确认交付](delivery/APP-M1-T15.md) | 交付 | reference-members-1 | 本地done | ISSUE-007 / APP-M1-T15 | 独立方案/权限、真实旧表单核对和两册 |
 | D-140 | 2026-10-11 | [逐章代码解释](code/APP-M1-T15.md) | 说明 | reference-members-1 | 当前 | ISSUE-007 / APP-M1-T15 | 单章确认依赖、逐次生成权限和旧行保护 |
-| D-141 | 2026-10-12 | [完整后续任务](tasks/APP-M2.md) | 实施计划 | icg-task-plan-1 | T008 done，T001/T002 in-review | ISSUE-007 / APP-M1-T07 / APP-M2；ISSUE-009 / APP-M2-T002 | T002：MODEL_UNAVAILABLE 的 502 只发一次；裸网关 502 与 503 复用同一把键 |
+| D-141 | 2026-10-12 | [完整后续任务](tasks/APP-M2.md) | 实施计划 | icg-task-plan-1 | T008 done，T001/T002 in-review | ISSUE-007 / APP-M1-T07 / APP-M2；ISSUE-009 / APP-M2-T002 | T002-F1：没有键的旧写入不重试；ISSUE-021 补键后解除 |
 | D-142 | 2026-10-12 | [逐页逐规则映射](testing/icg-task-mapping.md) | 范围核对 | icg-task-map-1 | 已核对范围，功能未完成 | ISSUE-007 / APP-M1-T07；ISSUE-009 / APP-M2-T002 | 190原M1～M6 WBS、47组/44规则；T002 改为 in-review |
 | D-143 | 2026-10-11 | [项目范围核对](../backend/bid-core/icg_demo/project_access.py) | 代码 | reference-members-1 | 回归通过 | ISSUE-007 / APP-M1-T14 | 公司操作角色与项目成员/分册/本节共同判定 |
 | D-144 | 2026-10-11 | [团队交接](../backend/bid-core/icg_demo/project_team.py) | 代码 | reference-members-1 | 回归通过 | ISSUE-007 / APP-M1-T14、T15 | 分工资格、交接理由、旧锁撤销和每人草稿保留 |
@@ -287,10 +287,10 @@
 | D-272 | 2026-10-12 | [连接代码说明](code/BE-M0-T10.md) | 说明 | deps-1 | 当前 | ISSUE-023 / BE-M0-T10 | 环境变量决定仓库；业务读写仍在内存 |
 | D-273 | 2026-10-12 | [连接与迁移验证](testing/2026-10-12-mysql-connection.md) | 验证 | deps-1 | 已执行 | ISSUE-023 / BE-M0-T10 | mysql:8.4；含运维命令和 uvicorn 结果 |
 | D-274 | 2026-10-12 | [023同步表](governance/ISSUE-023-sync.md) | 治理 | deps-1 | 已核对 | ISSUE-023 / BE-M0-T10 | PRD、ROADMAP、ARCHITECTURE 未改 |
-| D-277 | 2026-10-12 | [请求层交付](delivery/APP-M2-T002.md) | 交付 | request-layer-2 | in-review | ISSUE-009 / APP-M2-T002 | MODEL_UNAVAILABLE 的 502 不重试并立刻显示追踪号；不标 done |
-| D-278 | 2026-10-12 | [请求层代码说明](code/APP-M2-T002.md) | 说明 | request-layer-2 | 当前 | ISSUE-009 / APP-M2-T002 | 502 仅在没有统一错误体时重试；503 与网络错误仍复用同一把键 |
-| D-279 | 2026-10-12 | [请求层验证](testing/2026-10-12-request-layer.md) | 验证 | request-layer-2 | 已执行 | ISSUE-009 / APP-M2-T002 | 前端 90 项通过；MODEL_UNAVAILABLE 只发一次 |
-| D-280 | 2026-10-12 | [请求层同步](governance/APP-M2-T002-sync.md) | 治理 | request-layer-2 | 已核对 | ISSUE-009 / APP-M2-T002 | 本轮不改计数和 OpenAPI；PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF 未改 |
+| D-277 | 2026-10-12 | [请求层交付](delivery/APP-M2-T002.md) | 交付 | request-layer-2 | in-review | ISSUE-009 / APP-M2-T002 | T002-F1：没有幂等键的写入不重试；不标 done |
+| D-278 | 2026-10-12 | [请求层代码说明](code/APP-M2-T002.md) | 说明 | request-layer-2 | 当前 | ISSUE-009 / APP-M2-T002 | 只对 GET 和有键写入重试；MODEL_UNAVAILABLE 仍只发一次 |
+| D-279 | 2026-10-12 | [请求层验证](testing/2026-10-12-request-layer.md) | 验证 | request-layer-2 | 已执行 | ISSUE-009 / APP-M2-T002 | 前端 92 项通过；旧 lock 的 503 只发一次 |
+| D-280 | 2026-10-12 | [请求层同步](governance/APP-M2-T002-sync.md) | 治理 | request-layer-2 | 已核对 | ISSUE-009 / APP-M2-T002 | 不改计数和 OpenAPI；ISSUE-021 补键后解除没键不重试 |
 | D-281 | 2026-10-12 | [BE-M0-T08/T10 MySQL签署复核](testing/2026-10-12-be-m0-t10-mysql-signoff.md) | 验证 | qa-signoff-mysql | 本地通过 | ISSUE-013 / REV-M0-T09 | 真实MySQL 8.4.6迁移往返、mysql 2/2、320+2skip |
 | D-282 | 2026-10-12 | [MySQL签署复核交付](delivery/REV-M0-T09.md) | 交付 | qa-signoff-mysql | 已本地验收 | ISSUE-013 / REV-M0-T09 | 无代码；结论与Q1～Q3 |
 | D-283 | 2026-10-12 | [ISSUE-026](../issues/ISSUE-026.md) | 变更 | count-sync-1 | in-review | ISSUE-026 | 三份基线任务计数对齐当时看板；不标 closed |
@@ -371,6 +371,7 @@
 | 2026-10-12 | ISSUE-027 / BE-M0-T15；ISSUE-023 | Word 默认版式提交 in-review。BE-M0-T14 仍是托管 MySQL 作业。任务计数改为 363项26done、9in-review、7in-progress、268planned、49blocked、4ready。ISSUE-023 由项目经理在 QA 签署 16cf971 后确认，状态为 closed。未改 ARCHITECTURE，未改 docs/reference |
 | 2026-10-12 | ISSUE-028 | Provider 侧保留读取配置、启动快照、local/cloud 路由、敏感约束、流式/JSON、错误映射和 `job.model_call`。存储、字段定义、API、加密、If-Match/幂等改引 ISSUE-024，字段提案以 ISSUE-024 为准。不创建 ISSUE-024 文件。不改任务计数，仍为 363项26done、9in-review、7in-progress、268planned、49blocked、4ready |
 | 2026-10-12 | ISSUE-009 / APP-M2-T001 | E2E-D7：收起侧栏时展开按钮移到 logo 右侧。1280/1440/1680、浅色和深色点击后菜单可见。Playwright 12 passed。仍 in-review，不改后台，不改任务计数 |
+| 2026-10-12 | ISSUE-009 / APP-M2-T002 | T002-F1：没有 Idempotency-Key 的写入不自动重试。GET 和有键写入仍重试；MODEL_UNAVAILABLE 仍只发一次。ISSUE-021 给旧接口补键后这条限制解除。前端 92 项通过。仍 in-review，不改后台，不改任务计数 |
 
 ## 缺失输入
 

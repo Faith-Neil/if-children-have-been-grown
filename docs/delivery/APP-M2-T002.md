@@ -9,8 +9,8 @@
 |---|---|
 | 任务ID | APP-M2-T002 |
 | 代码解释 | [请求层](../code/APP-M2-T002.md) |
-| 验收 | 前端 90 项通过、类型检查通过。证据见 [请求层验证](../testing/2026-10-12-request-layer.md)。本卡 in-review，项目经理尚未标 done |
-| 项目进度 | 本卡 in-review。看板与三份基线均为 362 项：26 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready。APP-M2：T001 与 T002 为 in-review，T008 done，T124 blocked，其余 255 planned |
+| 验收 | 前端 92 项通过、类型检查通过。T002-F1：没有幂等键的写入不自动重试。证据见 [请求层验证](../testing/2026-10-12-request-layer.md)。本卡 in-review，项目经理尚未标 done |
+| 项目进度 | 本卡 in-review。看板与三份基线均为 363 项：26 done、9 in-review、7 in-progress、268 planned、49 blocked、4 ready。APP-M2：T001 与 T002 为 in-review，T008 done，T124 blocked，其余 255 planned。本轮不改计数 |
 <!-- task-delivery:end -->
 
 日期 2026-10-12。关联 [ISSUE-009](../../issues/ISSUE-009.md)，产品父项仍是 [ISSUE-007](../../issues/ISSUE-007.md)。分支 `codex/repository-foundation`。[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3) 仍待合入，未发布。此文提交复核，不把任务或 Issue 标成 done/closed。
@@ -19,9 +19,11 @@
 
 `frontend/web/src/api.ts` 现在按冻结契约解析两类错误体。`/api/v1` 读取 `{code, message, details, traceId}`，旧 `/api` 读取 `{error, request_id}`。响应头 `X-Request-ID` 优先于正文里的追踪号。页面提示在有追踪号时附上「追踪号 …」。
 
-非 GET 的 `/api/v1/` 写入在一次 `request()` 里只生成一把 `Idempotency-Key`。自动重试只发生在网络错误（`TypeError`）、没有统一错误体的 502，以及 503。没有统一错误体，是指正文解析后没有 `code`（顶层或旧体 `error.code`）；网关 HTML 或空对象会落到 `REQUEST_FAILED`，这时才重试 502。带统一错误体且 `code` 为 `MODEL_UNAVAILABLE` 的 502 不重试，第一次响应就抛出。`App.report` 调用 `userFacingMessage`，有追踪号时提示为「消息（追踪号 id）」。其他带 `code` 的 502 同样不重试。503 即使带统一错误体仍重试。最多 3 次含首次，等待 200ms 再 400ms。409、422、423、428、401 和 500 不自动重试。GET 的裸 502 可以重试，且不带重复请求标记。
+非 GET 的 `/api/v1/` 写入在一次 `request()` 里只生成一把 `Idempotency-Key`。自动重试只给两类请求：GET，以及这次调用已经带上 `Idempotency-Key` 的写入。可再试的失败仍是网络错误（`TypeError`）、没有统一错误体的 502，以及 503。没有统一错误体，是指正文解析后没有 `code`（顶层或旧体 `error.code`）；网关 HTML 或空对象会落到 `REQUEST_FAILED`，这时才重试 502。带统一错误体且 `code` 为 `MODEL_UNAVAILABLE` 的 502 不重试，第一次响应就抛出。`App.report` 调用 `userFacingMessage`，有追踪号时提示为「消息（追踪号 id）」。其他带 `code` 的 502 同样不重试。503 即使带统一错误体仍重试。最多 3 次含首次，等待 200ms 再 400ms。409、422、423、428、401 和 500 不自动重试。GET 的裸 502 和 503 可以重试，且不带重复请求标记。
 
-`POST /api/chapters/{id}/versions` 继续接受正文 `idempotency_key`。这次同时发送 `Idempotency-Key`，两处使用同一字符串。调用方已经放入正文的键会被原样复制到请求头；正文没有该字段时，生成一把 UUID 并同时写入正文和请求头。同一次 `request()` 里允许重试的失败不再换键。章节版本若返回 `MODEL_UNAVAILABLE`，只发一次，提示带上追踪号。编辑台每次点击仍自己生成正文键，请求层不另造一把。其他旧 `/api` 写入不添加该请求头。
+没有幂等键的写入第一次失败就停止。例如旧的 `POST /api/chapters/{id}/lock`，503、网关 502 和网络错误都只发一次，请求头里也没有 `Idempotency-Key`。这条限制在 [ISSUE-021](../../issues/ISSUE-021.md) 给这些旧接口补上幂等键之后解除：补键之后它们按「有键的写入」重试，本轮不改后台。
+
+`POST /api/chapters/{id}/versions` 继续接受正文 `idempotency_key`。这次同时发送 `Idempotency-Key`，两处使用同一字符串。调用方已经放入正文的键会被原样复制到请求头；正文没有该字段时，生成一把 UUID 并同时写入正文和请求头。同一次 `request()` 里允许重试的失败不再换键。章节版本若返回 `MODEL_UNAVAILABLE`，只发一次，提示带上追踪号。编辑台每次点击仍自己生成正文键，请求层不另造一把。其他旧 `/api` 写入不添加该请求头，因此也不自动重试。
 
 未改 `backend/` 与 `tests/backend/`。未新增依赖。
 
@@ -35,7 +37,7 @@
 
 ## 项目进度
 
-看板为 362 项：26 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready。APP-M2 的 259 张卡里 T001 与 T002 为 in-review，T008 为 done，T124 为 blocked，其余 255 张 planned。ISSUE-009 与 ISSUE-014 仍为 in-review。ISSUE-005 仍为 in-progress。ISSUE-010 已 closed，AI-01 为 in-review。下一张未开工的页面卡仍是 APP-M2-T003。本轮不改任务计数。提交时三份基线仍写 7 in-review、50 blocked；ISSUE-026 随后把这三句改成 8 in-review、49 blocked。
+看板现为 363 项：26 done、9 in-review、7 in-progress、268 planned、49 blocked、4 ready。APP-M2 的 259 张卡里 T001 与 T002 为 in-review，T008 为 done，T124 为 blocked，其余 255 张 planned。ISSUE-009 与 ISSUE-014 仍为 in-review。ISSUE-005 仍为 in-progress。ISSUE-010 已 closed，AI-01 为 in-review。下一张未开工的页面卡仍是 APP-M2-T003。本轮不改任务计数。三份基线已是同一组 363 项数字。上文表格里的 362 项是 T002 初交时的记录。
 
 ## 文档与 Issue 同步
 
@@ -57,3 +59,9 @@
 ## 风险与后续
 
 服务端在请求头和正文同时出现且不一致时返回 409。本轮客户端保证两处相同，没有改服务端比较逻辑。401 仍由页面退出，不自动重试。500 不自动重试，任务卡里写过的 MSW 500 以冻结契约为准。`MODEL_UNAVAILABLE` 立刻提示，不再自动打三次。冻结契约仍写「重试 502」；本轮只收窄客户端，不改 `spec/openapi/`。演示会话仍在内存，刷新后需要重新登录。PR #3 未合入，产品未发布。APP-M2-T002、ISSUE-009 与 ISSUE-014 保持 in-review。
+
+## T002-F1：没有键的写入不重试（仍 in-review）
+
+QA 重签把旧写请求在没有幂等键时自动重试记为 T002-F1。`POST /api/chapters/c-one/lock` 遇到 503、网关 502 或网络错误时现在只发一次，且没有 `Idempotency-Key`。GET 的 503 仍会重试，有键的 `/api/v1` 写入和章节版本写入仍按原停表重试。`MODEL_UNAVAILABLE` 仍只发一次。
+
+仓库根 `node --test tests/frontend/*.test.mjs frontend/web/tests/*.test.mjs`：92 通过，0 失败。`pnpm --dir frontend/web exec tsc -b --pretty false` 退出码 0。没有改 `backend/`、`tests/backend/`、`spec/openapi/` 和 `docs/reference/`。任务计数不改，仍是 363 项：26 done、9 in-review、7 in-progress、268 planned、49 blocked、4 ready。ISSUE-021 仍 planned，本轮不给旧接口补键。T002 仍 in-review，不标 done。

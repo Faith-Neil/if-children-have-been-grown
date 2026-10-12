@@ -198,6 +198,47 @@ test('a chapter version write without a body key fills one generated key into bo
   assert.notEqual(next[0], seen[0].header);
 });
 
+test('a legacy write without an idempotency key is not retried', async context => {
+  const cases = [
+    { name: '503', fail: () => jsonResponse(503, { error: { code: 'UI_NOT_READY', message: '暂不可用。' }, request_id: 'lock-503' }) },
+    { name: 'gateway', fail: () => gateway502() },
+    { name: 'network', fail: () => { throw new TypeError('Failed to fetch'); } },
+  ];
+  for (const item of cases) {
+    let calls = 0;
+    let header;
+    context.mock.method(globalThis, 'fetch', async (_path, init) => {
+      calls += 1;
+      header = init.headers['Idempotency-Key'];
+      return item.fail();
+    });
+    const error = await request('/api/chapters/c-one/lock', 'token', 'POST', { lease_token: 'lease' }, undefined, noWait).catch(error => error);
+    assert.equal(calls, 1, item.name);
+    assert.equal(header, undefined, item.name);
+    if (item.name === '503') {
+      assert.equal(error.status, 503);
+      assert.equal(error.requestId, 'lock-503');
+    }
+    if (item.name === 'gateway') assert.equal(error.status, 502);
+    if (item.name === 'network') assert.ok(error instanceof TypeError);
+  }
+});
+
+test('a GET 503 retries without an idempotency key', async context => {
+  const keys = [];
+  let calls = 0;
+  context.mock.method(globalThis, 'fetch', async (_path, init) => {
+    keys.push(init.headers['Idempotency-Key']);
+    calls += 1;
+    if (calls < 2) return jsonResponse(503, { code: 'UI_NOT_READY', message: '暂不可用。', traceId: 'get-503' });
+    return jsonResponse(200, { items: [] });
+  });
+  const result = await request('/api/v1/projects', 'token', 'GET', undefined, undefined, noWait);
+  assert.deepEqual(result, { items: [] });
+  assert.equal(calls, 2);
+  assert.deepEqual(keys, [undefined, undefined]);
+});
+
 test('other legacy writes do not receive an idempotency header', async context => {
   let header;
   let body;
