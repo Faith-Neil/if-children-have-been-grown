@@ -291,6 +291,8 @@
 | D-278 | 2026-10-12 | [请求层代码说明](code/APP-M2-T002.md) | 说明 | request-layer-1 | 当前 | ISSUE-009 / APP-M2-T002 | 一次调用一把键；旧章节头与正文相同 |
 | D-279 | 2026-10-12 | [请求层验证](testing/2026-10-12-request-layer.md) | 验证 | request-layer-1 | 已执行 | ISSUE-009 / APP-M2-T002 | 前端 89 项通过；未打真实后台 |
 | D-280 | 2026-10-12 | [请求层同步](governance/APP-M2-T002-sync.md) | 治理 | request-layer-1 | 已核对 | ISSUE-009 / APP-M2-T002 | PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF 未改 |
+| D-281 | 2026-10-12 | [BE-M0-T08/T10 MySQL签署复核](testing/2026-10-12-be-m0-t10-mysql-signoff.md) | 验证 | qa-signoff-mysql | 本地通过 | ISSUE-013 / REV-M0-T09 | 真实MySQL 8.4.6迁移往返、mysql 2/2、320+2skip |
+| D-282 | 2026-10-12 | [MySQL签署复核交付](delivery/REV-M0-T09.md) | 交付 | qa-signoff-mysql | 已本地验收 | ISSUE-013 / REV-M0-T09 | 无代码；结论与Q1～Q3 |
 
 ## 更新记录
 
@@ -335,6 +337,7 @@
 | 2026-10-12 | ISSUE-009 / APP-M2-T001 | QA退回后的浅色内容、顶栏和前进/后退修复，重新提交 in-review。356项计数不变。未改基线正文，未改后台，未标 done |
 | 2026-10-12 | ISSUE-023 / BE-M0-T10；ISSUE-018 | 项目经理批准四项依赖。连接与空基线为 in-review，T11～T13 planned。360项23done、7in-review、7in-progress、269planned、50blocked、4ready。未改 PRD、ROADMAP、ARCHITECTURE，未改公网 CI |
 | 2026-10-12 | ISSUE-009 / APP-M2-T002 | 请求层提交 in-review。章节版本的 Idempotency-Key 与正文 idempotency_key 相同。360项23done、8in-review、7in-progress、268planned、50blocked、4ready。未改 PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF，未改后台，未标 done |
+| 2026-10-12 | ISSUE-013 / REV-M0-T09 | QA签署BE-M0-T08与BE-M0-T10（两卡仍in-review待项目经理标done）；361项24done |
 
 ## 缺失输入
 
