@@ -63,3 +63,25 @@
 | issues/ISSUE-010-sync.md | 无 | 该段是当时的同步段落，不回写 | 2026-10-12 |
 
 未合入，未发布。没有重跑 pytest：本轮不改后台代码。`node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：247 份 Markdown、371 项任务、29 项 Issue。」检查程序未修改。
+
+## D-1 字段引用
+
+日期：2026-10-12。`issues/ISSUE-024.md` 已在分支上，故 ISSUE-028 文档链接该文件。ISSUE-028 与 AI-01 仍为 in-review。不标 closed，不标 done。不改 ISSUE-024 正文。
+
+| 文档 | 本次影响 | 实际处理 | 版本与状态 |
+|---|---|---|---|
+| PRD.md | 无 | 不改正文，不改任务计数 | 2026-10-12 |
+| ROADMAP.md | 无 | 不改正文，不改任务计数 | 2026-10-12 |
+| PROJECT_BRIEF.md | 无 | 不改正文，不改任务计数 | 2026-10-12 |
+| ARCHITECTURE.md | 无 | 不改正文 | 2026-10-12 |
+| TASK_BOARD.md | 无 | 不改任务计数，不改 AI-01 状态 | 2026-10-12 |
+| PROJECT_STATUS.md | 无 | 不改任务计数 | 2026-10-12 |
+| DOCUMENT_INDEX.md | 有 | 更新 D-295、D-296、D-298 说明，并追加变更记录。不改历史行，不改计数行 | 2026-10-12 |
+| 决定记录 | 有 | 引用 ISSUE-024 的 `stream_enabled`（布尔，默认 true）和 `json_mode_enabled`（布尔，默认 false）。二者纳入 `revision` 乐观锁，并在任务开始时随配置快照。028 不重定义 | 2026-10-12 |
+| issues/ISSUE-028.md | 有 | 正文与新历史只引用这两个名字。定义留在 ISSUE-024。状态仍 in-review | model-config-design-2 |
+| model-config-provider.md | 有 | 同上，只引用，不重定义 | in-review |
+| issues/ISSUE-024.md | 无 | 文件已存在。本轮不改 | new |
+| spec/openapi/demo-v1.json | 无 | 不改 | 2026-10-12 |
+| backend/bid-core | 无 | 不改 | 2026-10-12 |
+
+未合入，未发布。没有重跑 pytest：本轮不改后台代码。`node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：247 份 Markdown、371 项任务、29 项 Issue。」检查程序未修改。

@@ -38,7 +38,7 @@
 
 ## 流式与 JSON 模式
 
-流式是默认：发往兼容接口的请求使用 `stream: true`。配置关闭流式时改为非流式。JSON 模式打开时，适配器打开兼容接口的 JSON 输出开关。开关的字段名是 ISSUE-024 的 `stream_enabled` 与 `json_mode_enabled`。本文件引用这两个名字，不另写默认值或含义，也不另造请求体。
+流式是默认：发往兼容接口的请求使用 `stream: true`。配置关闭流式时改为非流式。JSON 模式打开时，适配器打开兼容接口的 JSON 输出开关。开关的字段名是 ISSUE-024 的 `stream_enabled` 与 `json_mode_enabled`。类型、默认值、纳入 `revision` 乐观锁，以及任务开始时随配置快照，均以 ISSUE-024 的 D-1 定义为准。本文件引用这两个名字，不重定义，也不另造请求体。
 
 ## 错误映射
 
