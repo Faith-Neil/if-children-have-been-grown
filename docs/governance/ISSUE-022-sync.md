@@ -112,3 +112,21 @@
 | DOCUMENT_INDEX.md | 有 | 更新说明并追加变更记录。不改计数行 | 2026-10-12 |
 
 未合入，未发布。不标 done，不标 closed。`python3 -m pytest tests/backend/test_outline_contract_draft.py tests/backend/test_error_idempotency.py::test_openapi_declares_v1_error_body_status_table_and_retry -q` 为 7 passed、1 warning。`python3 -m pytest tests/backend -q` 为 351 passed、8 skipped、1 warning。8 项跳过都是 `ICG_DATABASE_URL is unset`。`node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：260 份 Markdown、372 项任务、31 项 Issue。」检查程序未修改。
+
+## 关闭
+
+日期：2026-10-12。依据 QA 0254102（REV-M0-T20），PM 15:36 确认。ISSUE-022 改为 closed。T124 仍 blocked。T078 与 T114 仍为 in-review，未标 done。不改其他卡片状态。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数，也不改这三份正文。未合入，未发布。
+
+| 文档 | 本次影响 | 实际处理 | 版本与状态 |
+|---|---|---|---|
+| issues/ISSUE-022.md | 有 | 状态改为 closed。依据写明 QA 0254102，PM 15:36 确认 | closed |
+| issues/index.md | 有 | 同一状态，验收证据链接 REV-M0-T20 签署 | closed；未合入 |
+| TASK_BOARD.md | 有说明 | 开篇改为 ISSUE-022 已 closed。卡片状态不改。T124 仍 blocked。T114 仍 in-review | 2026-10-12 |
+| PROJECT_STATUS.md | 有说明 | 同一句。不改任务计数 | 2026-10-12 |
+| docs/tasks/APP-M2.md | 有说明 | T124 卡仍 blocked。只改 Issue 状态句 | blocked |
+| docs/architecture/icg-reference-contract.md | 有 | 第 45 行 502/503 自动重试补上 N7 两码例外。同文件没有第二处无例外重试句 | 2026-10-12 |
+| PRD.md / ROADMAP.md / PROJECT_BRIEF.md | 无 | 不改正文，不改任务计数。里程碑快照里的旧 in-review 句保留 | 2026-10-12 |
+| ARCHITECTURE.md | 无 | 不改正文。N7 写在示例接口约定 | 2026-10-12 |
+| DOCUMENT_INDEX.md | 有 | 更新当前行并追加变更记录。不改历史行，不改计数行 | 2026-10-12 |
+
+未合入，未发布。T124 不标 done。`python3 -m pytest tests/backend/test_outline_contract_draft.py tests/backend/test_error_idempotency.py::test_openapi_declares_v1_error_body_status_table_and_retry -q` 为 7 passed、1 warning。`python3 -m pytest tests/backend -q` 为 351 passed、8 skipped、1 warning。8 项跳过都是 `ICG_DATABASE_URL is unset`。`node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：270 份 Markdown、375 项任务、31 项 Issue。」检查程序未修改。

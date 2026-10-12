@@ -8,7 +8,7 @@
 
 ## 结论
 
-T15 满足。T078 与 T114 仍不满足。三个 operationId 已写入契约，状态为 frozen，运行时没有这些路由。T124 不能标 ready，仍是 blocked。ISSUE-022 为 in-review，QA 核对冻结文本。剩余范围对应 REF-08，不对应 REF-07。
+T15 满足。T078 与 T114 仍不满足 T124 开工。三个 operationId 已写入契约，状态为 frozen，运行时没有这些路由。T124 不能标 ready，仍是 blocked。ISSUE-022 已依据 QA 0254102（REV-M0-T20），PM 15:36 确认 closed。剩余范围对应 REF-08，不对应 REF-07。
 
 ## 证据
 

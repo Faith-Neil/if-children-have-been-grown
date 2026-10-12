@@ -2,25 +2,25 @@
 
 它解决什么问题：避免在片段发布和证据抽屉还不存在时改模型输入，也避免把尚未实现的大纲接口写成已经接通。
 
-# ISSUE-022：T124 依赖未满足，大纲契约已冻结待 QA
+# ISSUE-022：大纲契约已冻结，T124 仍 blocked
 
 | 项目 | 内容 |
 |---|---|
 | Issue ID | ISSUE-022 |
 | 类型 | change |
 | 优先级 | P1 |
-| 状态 | in-review |
+| 状态 | closed |
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
 | revision | outline-contract-frozen-1 |
 | 关联 Task | [APP-M2-T124](../docs/tasks/APP-M2.md#app-m2-t124) |
 | 关联 PR | 未创建 |
-| 本地验收 | 契约文本已冻结。运行时未实现，模型输入未改。见 [记录](../docs/testing/2026-10-12-t124-dependencies.md) |
+| 本地验收 | QA 0254102（REV-M0-T20），PM 15:36 确认。契约文本已冻结。运行时未实现，模型输入未改。T124 仍 blocked。见 [签署](../docs/testing/2026-10-12-issue-022-freeze-signoff.md) |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | [APP-M2-T124 交付](../docs/delivery/APP-M2-T124.md) |
 | 代码 / 流程解释 | [契约草案说明](../docs/code/APP-M2-T124.md) |
-| 验证记录 | [2026-10-12 依赖核对](../docs/testing/2026-10-12-t124-dependencies.md) |
+| 验证记录 | [QA 签署 0254102](../docs/testing/2026-10-12-issue-022-freeze-signoff.md)；[2026-10-12 依赖核对](../docs/testing/2026-10-12-t124-dependencies.md) |
 
 ## 现象与证据
 
@@ -36,7 +36,7 @@
 |---|---|---|
 | APP-M1-T15 | 满足。逐章确认已在代码里 | 看板 `docs/TASK_BOARD.md` 第 151 行状态 done。确认函数 `backend/bid-core/icg_demo/workflow.py` 第 637–672 行。当前性判断 `backend/bid-core/icg_demo/generation_context.py` 第 83–91 行 |
 | APP-M2-T078 | 仍不满足 T124 开工。内存发布已提交 in-review，未标 done，页面未做 | 任务卡 `docs/tasks/APP-M2.md` 的 T078 为 in-review。看板同一行。`kb_sync_status` 在片段接口上。`generation_context.py` 仍不读已发布片段 |
-| APP-M2-T114 | 不满足。EvidenceDrawer 仍是 planned | 任务卡 `docs/tasks/APP-M2.md` 第 1736 行。看板 `docs/TASK_BOARD.md` 第 266 行。`frontend/web` 没有 `EvidenceDrawer`。矩阵只在 `frontend/web/src/ProjectPages.tsx` 第 129 行把 `evidence_ids` 写回条款 |
+| APP-M2-T114 | 仍不满足 T124 开工。抽屉已提交 in-review，未标 done | 任务卡与看板均为 in-review。[交付](../docs/delivery/APP-M2-T114.md)。`frontend/web/src/EvidenceDrawer.tsx` 已挂到矩阵。冻结契约没有 `listEvidenceCandidates` / `attachEvidence`，保存仍是条款 PATCH |
 | 契约入口 | 文本已冻结，运行时仍没有 | `spec/openapi/demo-v1.json` 的 `getOutlinePlan`、`confirmOutlinePlan`、`startGeneration` 带 `x-contract-status: frozen`，`x-implemented` 仍为 false。已实现的生成入口仍是 `generate_api_v1_projects__project_id__generate_post` |
 
 模型输入仍是整章。`generation_context.py` 第 194 行 `scope` 为 `whole_chapter`，第 203 行 `source_scope` 同值，第 213–217 行只拼章节标题、写作要点和字数目标。`workflow_schemas.py` 第 279 行和第 302 行把 `source_scope` 固定为 `whole_chapter`。这里没有评分行、片段计划或逐要点小标题。
@@ -45,7 +45,7 @@
 
 ## 契约冻结
 
-operationId 已写入 `spec/openapi/demo-v1.json`，契约状态为 **frozen**。仓库里没有另一套 frozen/stable 枚举，已实现路径不带 `x-contract-status`，因此冻结值用 `frozen`。`x-implemented` 仍是 false，对比运行中的接口时仍滤掉这些路径。本 Issue 为 in-review，由 QA 核对，项目经理关闭。第三轮复审记录见 [后台复审](../docs/governance/ISSUE-022-backend-rereview.md)，本轮按该轮批准冻结文本。APP-M2-T124 仍是 blocked：T078 的内存发布为 in-review 但未标 done，T114 仍 planned，模型输入仍是整章。
+operationId 已写入 `spec/openapi/demo-v1.json`，契约状态为 **frozen**。仓库里没有另一套 frozen/stable 枚举，已实现路径不带 `x-contract-status`，因此冻结值用 `frozen`。`x-implemented` 仍是 false，对比运行中的接口时仍滤掉这些路径。本 Issue 已依据 QA 0254102（REV-M0-T20），PM 15:36 确认 closed。第三轮复审记录见 [后台复审](../docs/governance/ISSUE-022-backend-rereview.md)，冻结文本按该轮批准。APP-M2-T124 仍是 blocked：T078 的内存发布为 in-review 但未标 done，T114 为 in-review 但未标 done，模型输入仍是整章。
 
 | 操作 | 路径 | 约定 |
 |---|---|---|
@@ -66,9 +66,9 @@ operationId 已写入 `spec/openapi/demo-v1.json`，契约状态为 **frozen**�
 
 ## 影响与分流
 
-- 影响范围：ISSUE-022 为 in-review，复核对象是已冻结的契约文本。T124 保持 blocked，不进入 ready 或 in-progress。不改模型输入、检索服务、页面或仓库读写。重试说明增加上述例外，不新增错误码。
+- 影响范围：ISSUE-022 已 closed。复核对象是已冻结的契约文本。T124 保持 blocked，不进入 ready 或 in-progress。T078 与 T114 仍为 in-review，未标 done。不改模型输入、检索服务、页面或仓库读写。不新增错误码。
 - 不涉及：REF-07 的确认权限、ISSUE-010 的选型。ISSUE-018 的 MySQL 8 方案已批准，Issue 为 in-progress；T078 计划不改 `Repository.read` 与 `Repository.transaction`，以免挡在第 7 节的按聚合拆分前面。
-- 解除条件：运行时导出这三个 operationId，T078 提供可引用的已发布片段版本，T114 提供评分行上的当前证据版本。契约文本已冻结，仍不能据此把 T124 标 ready。开发者不把本 Issue 标 closed，也不把 T124 标 done。
+- 解除条件：运行时导出这三个 operationId，T078 提供可引用的已发布片段版本，T114 提供评分行上的当前证据版本。契约文本已冻结，仍不能据此把 T124 标 ready。本 Issue 已 closed。T124 不标 done。
 
 ## 实施任务与互链
 
@@ -80,7 +80,7 @@ operationId 已写入 `spec/openapi/demo-v1.json`，契约状态为 **frozen**�
 
 | 编号 | 可检查的完成条件 | 结果与证据 |
 |---|---|---|
-| AC-01 | 依赖满足后，得分要点小标题、证据版本/片段计划和字数事实要点进入实际模型输入 | 未执行。T078 未标 done，T114 仍 planned。契约文本已冻结，运行时未接通 |
+| AC-01 | 依赖满足后，得分要点小标题、证据版本/片段计划和字数事实要点进入实际模型输入 | 未执行。T078 未标 done，T114 为 in-review 未标 done。契约文本已冻结，运行时未接通 |
 | AC-02 | 确认继续复用 T15，不把 REF-07 当成剩余缺口 | 已核对。T15 的按章确认在 `workflow.py` 第 637–672 行。剩余缺口对应 REF-08 |
 
 ## 六份基线 impact 与同步表
@@ -110,10 +110,12 @@ operationId 已写入 `spec/openapi/demo-v1.json`，契约状态为 **frozen**�
 | 2026-10-12 | outline-contract-draft-3 / in-review | 403 与 503 两码改由 ISSUE-024 的冻结表登记。项目经理决定见复审记录：B2 保持 423 `LOCK_HELD` / `LOCK_LOST`；B3 的状态、进度和终态事件类型已在契约中，实现仍在 BE-M0-T06。不改 OpenAPI | [复审记录](../docs/governance/ISSUE-022-backend-rereview.md) |
 | 2026-10-12 | outline-contract-frozen-1 / in-review | 第三轮复审批准后把契约状态改为 frozen。重试说明排除 502 `MODEL_UNAVAILABLE` 与 503 `SECRET_KEY_UNAVAILABLE`。新增 423 与 503 不列 `Idempotent-Replayed`。N8 按事件类型必填留到 BE-M0-T06。Issue 仍 in-review，QA 核对，项目经理关闭。不改任务计数 | [契约核对](../docs/testing/2026-10-12-t124-dependencies.md) |
 | 2026-10-12 | outline-contract-frozen-1 / in-review | QA P2：`spec/openapi/README.md` 的重试说明补上 502 `MODEL_UNAVAILABLE` 与 503 `SECRET_KEY_UNAVAILABLE` 不自动重试。QA P3：`x-idempotency.retry` 追加没有 `Idempotency-Key` 的写入不自动重试。不改错误码计数，不改 `errors.py`。状态仍 in-review | [契约核对](../docs/testing/2026-10-12-t124-dependencies.md) |
+| 2026-10-12 | t114-in-review / in-review | T114 挂证据抽屉改为 in-review，未标 done。T124 仍 blocked。不改模型输入，不改冻结 JSON，不改任务里程碑快照 | [交付](../docs/delivery/APP-M2-T114.md) |
+| 2026-10-12 | outline-contract-frozen-1 / closed | 依据 QA 0254102（REV-M0-T20），PM 15:36 确认，本 Issue 标为 closed。T124 仍 blocked。T078 与 T114 仍为 in-review，未标 done。不改其他卡片状态，不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数 | [签署](../docs/testing/2026-10-12-issue-022-freeze-signoff.md) |
 
 ## 本地验收与后续合入发布
 
-- 本地验收结论与日期：2026-10-12 只接受契约形状。实现验收未执行。
+- 本地验收结论与日期：2026-10-12。QA 0254102（REV-M0-T20）通过，PM 15:36 确认后 closed。实现验收未执行。T124 仍 blocked。
 - 未覆盖：评分行、片段计划和逐要点小标题都没有进入模型输入。新路由没有运行时。
 - PR 状态：未创建。
 - 合入提交与日期：未合入。

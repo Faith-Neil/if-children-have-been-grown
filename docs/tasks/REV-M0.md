@@ -385,6 +385,26 @@
 - [x] 真实MySQL跨进程续期、过期接管、释放都通过；pytest -m mysql 8个通过；CI backend-mysql 8个通过，跳过0。
 - [x] 被验卡和Issue的状态不变，等项目经理设置
 
+<a id="rev-m0-t20"></a>
+
+## REV-M0-T20 · ISSUE-022契约冻结 QA复签
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done（本地验收；PR待合入） |
+| 估算 | 1小时 |
+| 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
+| 依赖 | ISSUE-022 |
+| 来源 | 项目经理签署要求 |
+| 完成交付 | [专属交付](../delivery/REV-M0-T20.md) |
+| 代码解释 | 无产品代码 |
+
+范围：复签ISSUE-022契约冻结（73fde1e + ae91024）。不改他人代码或卡片状态。
+
+- [x] 验收条目逐条核对并独立复跑。
+- [x] README补上N7两码例外，P3句子已加入x-idempotency.retry；契约测试15个、后端351个通过，live HTTP 49/49；CI五个job全绿。
+- [x] 被验卡和Issue的状态不变，等项目经理设置
+
 <a id="rev-m0-t21"></a>
 
 ## REV-M0-T21 · 最新合作分支复核与限定缺陷修复

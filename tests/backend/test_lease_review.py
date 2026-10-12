@@ -38,7 +38,7 @@ def repository(monkeypatch):
     repository = MysqlConnectionRepository("unused-synthetic-url")
     repository._engine = engine
 
-    def load_snapshot(state):
+    def load_snapshot(state, _loaded_project_ids):
         # 模拟进程已读到旧租约，另一个进程在保存之前提交了接管。
         state.sessions = {"editor-session": "alpha-editor", "manager-session": "alpha-manager"}
         state.workflow_receipts = {}
@@ -117,7 +117,7 @@ def test_first_acquire_race_returns_existing_lock_error(repository):
     before = stored_lease(repository)
 
     with pytest.raises(DomainError) as failed:
-        repository._save_shared({}, {}, {}, {}, {CHAPTER: None}, {CHAPTER: OLD_LEASE})
+        repository._save_shared({}, {}, {}, {}, {CHAPTER: None}, {CHAPTER: OLD_LEASE}, {}, {}, {}, {}, set())
 
     assert failed.value.status == 423 and failed.value.code == "LOCK_HELD"
     assert stored_lease(repository) == before
@@ -136,7 +136,7 @@ def test_lease_conflict_rolls_back_preceding_receipt_deletion(repository):
                               "fingerprint": "a" * 64, "result": {"revision": 1}}}
 
     with pytest.raises(DomainError):
-        repository._save_shared({}, {}, before_receipts, {}, {CHAPTER: OLD_LEASE}, {CHAPTER: None})
+        repository._save_shared({}, {}, before_receipts, {}, {CHAPTER: OLD_LEASE}, {CHAPTER: None}, {}, {}, {}, {}, set())
 
     with repository.engine.connect() as connection:
         assert connection.execute(text("SELECT COUNT(*) FROM idempotency_receipt")).scalar() == 1

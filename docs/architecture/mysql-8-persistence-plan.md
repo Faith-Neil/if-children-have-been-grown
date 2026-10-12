@@ -91,7 +91,7 @@ CREATE TABLE chapter_lease (
 - 接管：租约已过期，或调用方提供接管原因时，在同一事务替换该行，审计记录原因和上一所有者。未过期且无原因时保持现有拒绝行为。
 - 释放：匹配的未过期租约删除该行并写审计。保存草稿和提交版本继续要求持有未过期租约。
 
-BE-M0-T12 的迁移建立上表，但不加 `chapter` 外键：`chapter` 表属于 BE-M0-T13，现在还没有。
+BE-M0-T12 的迁移建立上表，但不加 `chapter` 外键。BE-M0-T13 只迁了项目聚合，仍然没有 `chapter` 表，所以外键继续不加。
 
 ### 字典 v1.9 字段对照表
 
@@ -118,12 +118,12 @@ BE-M0-T12 的迁移建立上表，但不加 `chapter` 外键：`chapter` 表属�
 
 ## 6. 其他聚合
 
-这些表在实现轮次再写迁移。本方案只定边界，避免一次事务继续拷贝全部状态。
+登录会话、幂等回执和编辑租约已有迁移。BE-M0-T13 只迁项目聚合。下表其余聚合仍在进程内存。一次事务不把整份 `DemoState` 写成一条记录，也不插入未改过的种子项目。
 
 | 聚合 | 来源字段 | 写入范围 |
 |---|---|---|
 | 身份 | `accounts`、`sessions` | 登录会话写入 MySQL。任一 worker 都能用同一 token 认证；进程重启后 token 仍有效，直到被显式删除。现有演示登录没有过期时间，本方案不另加 |
-| 项目 | `projects`、`project_teams` | 项目与成员 |
+| 项目 | `projects`、`project_teams` | BE-M0-T13 已提交复查。见下方两表。章节不在本聚合 |
 | 章节 | `chapters`、草稿、版本、`chapter_lease` | 正文、版本和租约 |
 | 检查与导出 | `checks`、`exports` | 检查结果和导出快照 |
 | 资料与承诺 | `library`、`sla_templates`、`library_revisions` | 公司资料和模板 |
@@ -144,6 +144,60 @@ CREATE TABLE user_session (
 ```
 
 章节和项目保留 `revision`。更新使用 `UPDATE ... WHERE id = ? AND revision = ?`，受影响行数为 0 时返回现有版本冲突，不覆盖。
+
+### 项目聚合（BE-M0-T13）
+
+对应 `Project` 和 `project_teams`。一个已提交项目一行，分工用 JSON 一行。没有 `chapter` 外键，也不写入章节。
+
+```sql
+CREATE TABLE demo_project (
+  id VARCHAR(120) NOT NULL,
+  name VARCHAR(300) NOT NULL,
+  company_id VARCHAR(120) NOT NULL,
+  revision INT NOT NULL,
+  tender_number VARCHAR(100) NOT NULL,
+  deadline VARCHAR(50) NOT NULL,
+  is_sensitive TINYINT(1) NOT NULL,
+  PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE demo_project_team (
+  project_id VARCHAR(120) NOT NULL,
+  team_json JSON NOT NULL,
+  PRIMARY KEY (project_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+```
+
+- 装载时把库里的项目和分工叠到内存种子上。库里有的 id 以库为准。种子里有、库里没有的项目留在本进程。
+- 保存时只写有变化的项目。本次没从库里装载过的新项目做插入。装载过且有变化的项目执行 `UPDATE ... WHERE id = ? AND revision = ?`。受影响行数不是 1 时返回 409 `REVISION_CONFLICT`，事务回滚，内存也不提交。
+- 未改过的种子项目不插入。失败的回调在写入之前抛出时，不留下项目行。
+
+#### 字典 v1.9 字段对照表
+
+对照 [字典 v1.9](../reference/product/kb-data-dictionary-v1.9.md) 3.10.1.1 `bid_project`、3.10.1.2 `bid_project_member`，以及 3.0 节 A 组、C 组。本卡只保存演示里的项目和分工，不是字典全表。下表每一行偏差都需要项目经理批准；未批准前不改表、不补列。
+
+| 表 | 字段 | 类型 | 必填 | 枚举 | 字典条目 | 对照 |
+|---|---|---|---|---|---|---|
+| `demo_project` | `id` | VARCHAR(120) | 是 | 无 | A 组 `id`，标识，GUID | 偏差。演示字符串主键，不是 GUID。需要项目经理批准 |
+| `demo_project` | `name` | VARCHAR(300) | 是 | 无 | `bid_project.project_name`，文本(300)，必填 | 偏差。列名是 `name`。长度和必填与字典一致。需要项目经理批准 |
+| `demo_project` | `company_id` | VARCHAR(120) | 是 | 无 | C 组 `company_id`，引用→`company`，公司级表必填 | 偏差。存演示公司短名，不是 `company` 外键。需要项目经理批准 |
+| `demo_project` | `revision` | INT | 是 | 无 | A 组 `record_version`，整数，系统 | 偏差。列名是 `revision`。新建为 1，保存加 1，并用旧值挡住覆盖。需要项目经理批准 |
+| `demo_project` | `tender_number` | VARCHAR(100) | 是 | 无 | `bid_project.tender_no`，文本(100)，否 | 偏差。列名是 `tender_number`。字典可空。本列不可空，空字符串表示没有编号。需要项目经理批准 |
+| `demo_project` | `deadline` | VARCHAR(50) | 是 | 无 | `bid_project.bid_deadline_at`，时间，否 | 偏差。演示里是字符串，不是时间。不可空，空字符串表示没有截止时间。需要项目经理批准 |
+| `demo_project` | `is_sensitive` | TINYINT(1) | 是 | 无 | `bid_project.is_sensitive`，布尔，必填 | 偏差。列名一致。MySQL 用 TINYINT(1)。演示默认否，不读公司设置 `default_sensitive_project`。需要项目经理批准 |
+| `demo_project` | （未建） | — | — | `project_status`：`draft` 草稿、`parsing` 解析中、`pending_confirm` 待确认、`drafting` 编制中、`checking` 检查中、`exportable` 可导出、`exported` 已导出、`submitted` 已递交、`opened` 已开标、`closed` 已结束、`cancelled` 已取消 | `bid_project.status`，代码〈`project_status`〉，系统 | 偏差。项目状态未入库。需要项目经理批准 |
+| `demo_project` | （未建） | — | — | `project_category`：`services` 服务、`goods` 货物、`works` 工程 | `bid_project.project_category_code`，代码〈`project_category`〉，必填。MVP 默认服务 | 偏差。未建。需要项目经理批准 |
+| `demo_project` | （未建） | — | — | 无 | `bid_project.bid_entity_id`，引用→`org_entity`，必填 | 偏差。没有投标主体。需要项目经理批准 |
+| `demo_project` | （未建） | — | — | 无 | `bid_project.is_consortium`、`has_subcontract`、`check_service_period`、`model_review_disabled`，均为必填布尔 | 偏差。未建。需要项目经理批准 |
+| `demo_project` | （未建） | — | — | 无 | `lot_no`、`lot_name`、`tenderee_name`、`agency_name`、`industry_template_id`、`budget_amount`、`ceiling_amount`、`open_at`、`service_start_date`、`service_end_date`、`project_region_code`、`product_ids`、`bid_result_code`、`watermark_text`、`chapter_generation_order`、`client_address`、`merge_owner_id`、`internal_naming_template`、`submit_naming_rule`、`submit_full_value_fields`、`submit_full_value_basis_ids`、`submit_full_value_confirmed_by`、`submit_full_value_confirmed_at` | 偏差。这些字典列都未建。需要项目经理批准 |
+| `demo_project` | （未建） | — | — | 无 | 索引 `(company_id, status)`、`(company_id, bid_deadline_at)`、`(tender_no, lot_no)` | 偏差。只有主键。需要项目经理批准 |
+| `demo_project_team` | `project_id` | VARCHAR(120) | 是 | 无 | `bid_project_member.project_id`，引用→`bid_project`，必填 | 偏差。没有外键。一项目一行，不是一成员一行。需要项目经理批准 |
+| `demo_project_team` | `team_json` | JSON | 是 | 无 | 无对应列 | 偏差。`members`、`owners`、`assembly_owner_id`、`handoffs` 合成一列。需要项目经理批准 |
+| `demo_project_team` | （未建） | — | — | `project_member_role`：`lead` 负责人、`writer` 编写人、`readonly` 只读 | `bid_project_member.user_id`、`project_role`、`volume_ids` | 偏差。成员写在 `team_json.members`。角色取值与字典相同，但不是独立列。分册用 `technical` / `business`，不是 `bid_volume` 的 id。需要项目经理批准 |
+| `demo_project_team` | （未建） | — | — | 无 | 唯一 `(project_id, user_id)`；索引 `(company_id, user_id)` | 偏差。没有成员行，也没有 `company_id`。需要项目经理批准 |
+| `demo_project`、`demo_project_team` | （未建） | — | — | 无 | A 组 `created_by`、`created_at`、`updated_by`、`updated_at`、`is_deleted` | 偏差。没有审计列，也没有逻辑删除。`id` 和 `record_version` 的偏差见上表。需要项目经理批准 |
+
+原因：本卡只让已提交的项目和分工在另一个进程里仍能看见。章节、检查与导出、资料与承诺、工作流与任务、审计仍在内存。字典里的状态、主体、成员行和审计列留给后续聚合，不在本卡补列。
 
 ## 7. 从整份仓库拆到按聚合仓库
 
@@ -196,4 +250,4 @@ ICG_REQUIRE_MYSQL=1 python -m pytest tests/backend -m mysql
 
 ## 11. 仍未做
 
-BE-M0-T11 为 in-review：幂等回执和登录会话已写入 MySQL，多个进程可见，重启后未过期数据仍在。BE-M0-T12 为 in-review：`chapter_lease` 已写入 MySQL，续期后占用者不变，过期后其他会话可以接管。迁移能 `downgrade base` 再 `upgrade head`。没有章节外键，字段与字典 v1.9 `edit_lock` 的偏差列在第 5 节，都需要项目经理批准。按聚合迁移（BE-M0-T13）仍未做。`MemoryRepository` 仍是未设置连接串时的仓库，也仍是已连接时的业务读写委托。旧 `/api` 错误体见 [ISSUE-021](../../issues/ISSUE-021.md)，本轮不实施。
+BE-M0-T11 为 in-review：幂等回执和登录会话已写入 MySQL，多个进程可见，重启后未过期数据仍在。BE-M0-T12 为 in-review：`chapter_lease` 已写入 MySQL，续期后占用者不变，过期后其他会话可以接管。迁移能 `downgrade base` 再 `upgrade head`。没有章节外键，字段与字典 v1.9 `edit_lock` 的偏差列在第 5 节，都需要项目经理批准。BE-M0-T13 为 in-review：项目和分工写入 `demo_project`、`demo_project_team`。另一个进程能看见已提交的项目，看不见该项目在写入进程内存里新建的章节。字段与字典 v1.9 `bid_project`、`bid_project_member` 的偏差列在第 6 节，都需要项目经理批准。章节、检查与导出、资料与承诺、工作流与任务、审计仍在内存。`MemoryRepository` 仍是未设置连接串时的仓库，也仍是已连接时未迁移聚合的读写委托。旧 `/api` 错误体见 [ISSUE-021](../../issues/ISSUE-021.md)，本轮不实施。

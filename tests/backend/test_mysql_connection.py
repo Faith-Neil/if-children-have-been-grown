@@ -48,7 +48,10 @@ def test_alembic_upgrade_creates_session_and_receipt_tables():
         tables = _table_names(connection)
     assert charset[0] == "utf8mb4"
     assert charset[1] == "utf8mb4_0900_ai_ci"
-    assert tables == ["alembic_version", "chapter_lease", "idempotency_receipt", "user_session"]
+    assert tables == [
+        "alembic_version", "chapter_lease", "demo_project", "demo_project_team",
+        "idempotency_receipt", "user_session",
+    ]
 
 
 def test_alembic_downgrade_to_base_then_upgrade_restores_tables():
@@ -61,11 +64,17 @@ def test_alembic_downgrade_to_base_then_upgrade_restores_tables():
             remaining = _table_names(connection)
         assert "idempotency_receipt" not in remaining
         assert "user_session" not in remaining
+        assert "demo_project" not in remaining
+        assert "demo_project_team" not in remaining
+        assert "chapter_lease" not in remaining
     finally:
         _alembic("upgrade", "head")
     repository = create_app().state.service.repository
     with repository.engine.connect() as connection:
-        assert _table_names(connection) == ["alembic_version", "chapter_lease", "idempotency_receipt", "user_session"]
+        assert _table_names(connection) == [
+            "alembic_version", "chapter_lease", "demo_project", "demo_project_team",
+            "idempotency_receipt", "user_session",
+        ]
 
 
 def test_health_uses_mysql_connection_without_code_change():

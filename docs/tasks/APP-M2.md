@@ -8,7 +8,7 @@
 
 APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每个单位一起实现页面、后台数据/状态/权限及实际产物；模型和数据库按授权用可替换接口，不把未接真实服务当全部业务阻塞。旧59张FE历史卡原样保留。
 
-共259张新卡：190原M1～M6 WBS子项、13独立章节/文件/资料产物、56规则实施/验收子单位。原44规则仍为36项一期完整、3项一期简化、5项二期；某规则拆多卡不能重复算多条规则。本轮T001布局、路由和离开保护为 done，T002请求层为 done，T008离线CI为 done，T078 内存发布为 in-review，T124因 T078 未 done 且 T114 仍 planned 而仍为 blocked，其余254张planned，产品尚未完整实现。T14/T15仍在APP-M1按原范围推进，不重拆成员、分册负责人和逐章确认；本拆分时两卡in-progress，最终状态以其任务卡/看板和实际交付为准。T09～13已done的限定子集保留历史，不能把父功能因此判done。
+共259张新卡：190原M1～M6 WBS子项、13独立章节/文件/资料产物、56规则实施/验收子单位。原44规则仍为36项一期完整、3项一期简化、5项二期；某规则拆多卡不能重复算多条规则。本轮T001布局、路由和离开保护为 done，T002请求层为 done，T008离线CI为 done，T078 内存发布为 in-review，T114 挂证据抽屉为 in-review，T124因 T078 未 done 且 T114 未 done 而仍为 blocked，其余253张planned，产品尚未完整实现。T14/T15仍在APP-M1按原范围推进，不重拆成员、分册负责人和逐章确认；本拆分时两卡in-progress，最终状态以其任务卡/看板和实际交付为准。T09～13已done的限定子集保留历史，不能把父功能因此判done。
 
 ## 开工及完成门禁
 
@@ -1734,7 +1734,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T114 · EvidenceDrawer
 <a id="app-m2-t114"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T03](APP-M1.md#app-m1-t03)、[APP-M2-T048](APP-M2.md#app-m2-t048)、[APP-M2-T204](APP-M2.md#app-m2-t204)、[APP-M2-T205](APP-M2.md#app-m2-t205)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T03](APP-M1.md#app-m1-t03)、[APP-M2-T048](APP-M2.md#app-m2-t048)、[APP-M2-T204](APP-M2.md#app-m2-t204)、[APP-M2-T205](APP-M2.md#app-m2-t205)。抽屉已提交复查。冻结契约没有 `listEvidenceCandidates` 与 `attachEvidence`，保存仍是条款 `evidence_ids`。不标 done。
 
 原始来源：原交接 §6.4 M3-E05-F3；PRD v1.8 §5.3.1。交付单位：EvidenceDrawer，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -1745,6 +1745,8 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 验收：当前合格证据版本来源可见，未确认/过期/缺协议/受限无权不可挂；移除与变动可追溯。原交接验收约束（取与本子项对应的条件）：状态与风险分开显示（证据失效行）；与 03 并排截图。分别保存正例、权限反例、失败/并发及旧来源失效证据；涉及输出直接检查文件，原级别/放行/递交门禁不能被页面绕过。输出证据：03紧凑矩阵、确认/证据/分流记录及真实Excel。
 
 交付：`docs/delivery/APP-M2-T114.md`；代码解释：`docs/code/APP-M2-T114.md`；测试放docs/testing并逐项关联本卡，未执行写未执行。
+
+本轮见[交付](../delivery/APP-M2-T114.md)。只读账号不能挂接。未确认、过期、缺协议、受限和历史标书不能勾选。状态列仍是条款状态，证据失效单独显示。Excel、并排设计稿和批量匹配不在本轮。T124 仍 blocked。
 
 ### APP-M2-T115 · 批量智能匹配与逐行确认
 <a id="app-m2-t115"></a>
@@ -1886,7 +1888,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T124 · 完整证据、片段及评分写作计划（确认复用T15）
 <a id="app-m2-t124"></a>
 
-状态：blocked。关联Issue：[ISSUE-022](../../issues/ISSUE-022.md)（父范围仍为 ISSUE-007；Issue 为 in-review，契约文本已冻结，待 QA 核对）。原范围：一期业务页面/支撑。依赖：[APP-M1-T15](APP-M1.md#app-m1-t15) 已在代码中按章确认；[APP-M2-T078](APP-M2.md#app-m2-t078) 为 in-review 且未 done，[APP-M2-T114](APP-M2.md#app-m2-t114) 仍为 planned。`getOutlinePlan`、`confirmOutlinePlan`、`startGeneration` 已写入 OpenAPI，契约状态为 frozen，运行时未实现。2026-10-12 不改模型输入。
+状态：blocked。关联Issue：[ISSUE-022](../../issues/ISSUE-022.md)（父范围仍为 ISSUE-007；Issue 已依据 QA 0254102，PM 15:36 确认 closed，契约文本已冻结）。原范围：一期业务页面/支撑。依赖：[APP-M1-T15](APP-M1.md#app-m1-t15) 已在代码中按章确认；[APP-M2-T078](APP-M2.md#app-m2-t078) 为 in-review 且未 done，[APP-M2-T114](APP-M2.md#app-m2-t114) 为 in-review 且未 done。`getOutlinePlan`、`confirmOutlinePlan`、`startGeneration` 已写入 OpenAPI，契约状态为 frozen，运行时未实现。2026-10-12 不改模型输入。
 
 原始来源：原交接 §6.5 M4-F01-F2；PRD v1.8 §5.7.2、5.7.8。交付单位：完整证据、片段及评分写作计划（确认复用T15），同一产品的页面/后台/数据/权限/输出协作一起验收。
 
