@@ -29,12 +29,13 @@
 | [ISSUE-010](ISSUE-010.md) | decision | P0 | blocked | 业务库已决定为 MySQL 8；其余项未决定；[待决记录](../docs/delivery/AI-01.md) | 未创建 PR，未合入 | 未发布 | 向量库、对话模型、嵌入、重排和内网验证仍待用户决定 | 2026-10-12 user decision, relayed by PM；pgvector 不再作为同库选项；Issue 不关闭 |
 | [ISSUE-011](ISSUE-011.md) | change | P1 | closed | [契约与后台回归](../docs/testing/2026-10-12-openai-compatible-model.md) | 未创建 PR，未合入 | 未发布 | OpenAI 兼容对话适配器，默认仍为演示替身 | 项目经理于 10-12 12:10 在 QA 签署后确认。未合入、未发布。真实端点仍随 ISSUE-010 |
 | [ISSUE-012](ISSUE-012.md) | workflow | P1 | closed | 三作业通过；[验证](../docs/testing/2026-10-12-offline-ci.md)；QA签署见 [记录](../docs/testing/2026-10-12-qa-signoff.md) | PR #3 待合入 | 未发布 | 离线检查纳入 GitHub Actions | 项目经理于 10-12 12:10 在 QA 签署后确认。未合入，未发布。`buildTheme` 未实现 |
-| [ISSUE-013](ISSUE-013.md) | change | P1 | closed | 会话实时HTTP15/15、后台262、前端72复跑通过；T008/AI-02签署[记录](../docs/testing/2026-10-12-qa-signoff.md)；[复跑](../docs/testing/2026-10-12-qa-rerun.md) | PR #3 待合入 | 未发布 | 会话真实HTTP复核入库与QA复跑记录 | REV-M0-T02本地done；CI显式运行会话脚本，固定Node 24 |
+| [ISSUE-013](ISSUE-013.md) | change | P1 | in-review | 会话实时HTTP15/15、后台262、前端72复跑通过；T008/AI-02签署[记录](../docs/testing/2026-10-12-qa-signoff.md)；[复跑](../docs/testing/2026-10-12-qa-rerun.md)；T001签署不通过[记录](../docs/testing/2026-10-12-e2e-t001-signoff.md) | PR #3 待合入 | 未发布 | 会话真实HTTP复核入库与QA复跑记录 | REV-M0-T02本地done；CI显式运行会话脚本，固定Node 24 |
 | [ISSUE-014](ISSUE-014.md) | version | P1 | in-review | 引入前后构建体积已记录；[记录](../docs/testing/2026-10-12-prolayout-routes.md) | PR #3 待合入 | 未发布 | 批准引入 @ant-design/pro-layout，记录打包体积 | 等待项目经理 QA 签收；不得另加依赖 |
 | [ISSUE-015](ISSUE-015.md) | change | P1 | in-progress | 计划评审通过；smoke_t06 12/12、Word渲染留证；[记录](../docs/testing/2026-10-12-t06-smoke-word-render.md) | PR #3 待合入 | 未发布 | APP-M1-T06端到端验收计划与缺口执行 | 后端处理W1～W4；继续缺口2、4～7 |
 | [ISSUE-016](ISSUE-016.md) | change | P1 | in-review | [契约与后台回归](../docs/testing/2026-10-12-evidence-candidates.md) | 未创建 PR，未合入 | 未发布 | 检索口与三条证据候选，仅内存实现 | 开发者已提交复核；不标 closed。不连接 MySQL，向量库仍随 ISSUE-010 |
 | [ISSUE-017](ISSUE-017.md) | decision | P1 | in-review | [草案核对](../docs/testing/2026-10-12-intranet-deploy-plan.md) | 未创建 PR，未合入 | 未发布 | 内网部署草案；业务库按已登记的 MySQL 8 书写 | 等待项目经理标 done。向量、模型、嵌入、重排仍看 ISSUE-010 |
 | [ISSUE-020](ISSUE-020.md) | change | P1 | in-review | 首屏主块 315.94 kB，低于 1334.42 kB；[记录](../docs/testing/2026-10-12-route-chunks.md) | PR #3 待合入 | 未发布 | 路由级懒加载，记录全部分包体积 | 等待项目经理 QA 签收；未改后台 |
+| [ISSUE-019](ISSUE-019.md) | version | P1 | in-review | E2E 11项按预期（7通过、4已知缺陷）；[记录](../docs/testing/2026-10-12-e2e-t001-signoff.md) | PR #3 待合入 | 未发布 | Playwright浏览器端到端检查（仅测试依赖） | 项目经理确认；DevOps接入CI |
 <!-- issue-board:end -->
 
 ISSUE-001 编号沿用合作分支。其原记录在 xqr 内标为 closed，仅表示该分支当时的文档同步验收；本地整合保持 blocked，不据此采纳或发布技术决策。ISSUE-002 的 closed 仅表示本地验收完成。ISSUE-005、ISSUE-009、ISSUE-014、ISSUE-016、ISSUE-017 与 ISSUE-020 均为 in-review：QA 可以签署，done 由项目经理设置。开发者不把任务标 done，也不把 Issue 标 closed。ISSUE-011 与 ISSUE-012 均已由项目经理于 10-12 12:10 在 QA 签署后确认并 closed。

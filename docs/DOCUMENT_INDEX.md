@@ -254,6 +254,16 @@
 | D-241 | 2026-10-12 | [内网部署核对](testing/2026-10-12-intranet-deploy-plan.md) | 验证 | intranet-plan-1 | 文档核对 | ISSUE-017 / OPS-M0-T02 | 对照现有入口；未连接 MySQL 或内网 |
 | D-243 | 2026-10-12 | [BE-M0-T02/T03签署复核](testing/2026-10-12-be-m0-t02-t03-signoff.md) | 验证 | qa-signoff-be | 本地通过 | ISSUE-013 / REV-M0-T07 | 308/15/12/77/35、探针47/47、Actions 38203448527成功 |
 | D-244 | 2026-10-12 | [BE签署复核交付](delivery/REV-M0-T07.md) | 交付 | qa-signoff-be | 已本地验收 | ISSUE-013 / REV-M0-T07 | 仅QA探针脚本；结论与Q1缺口 |
+| D-245 | 2026-10-12 | [E2E Issue](../issues/ISSUE-019.md) | 审查 | e2e-1 | in-review | ISSUE-019 / REV-M0-T06 | Playwright仅测试依赖 |
+| D-246 | 2026-10-12 | [E2E与T001签署](testing/2026-10-12-e2e-t001-signoff.md) | 验证 | e2e-1 | 本地执行 | ISSUE-019 / REV-M0-T06；ISSUE-013 / REV-M0-T08 | 11项E2E、T001签署不通过与D1～D6、CI建议 |
+| D-247 | 2026-10-12 | [E2E交付](delivery/REV-M0-T06.md) | 交付 | e2e-1 | in-review | ISSUE-019 / REV-M0-T06 | 命令、覆盖与剩余 |
+| D-248 | 2026-10-12 | [E2E代码解释](code/REV-M0-T06.md) | 说明 | e2e-1 | in-review | ISSUE-019 / REV-M0-T06 | 启动顺序与用例思路 |
+| D-249 | 2026-10-12 | [T001签署交付](delivery/REV-M0-T08.md) | 交付 | qa-rerun-3 | in-review | ISSUE-013 / REV-M0-T08 | 签署结论与缺陷 |
+| D-250 | 2026-10-12 | [E2E配置](../frontend/web/e2e/playwright.config.ts) | 验证 | e2e-1 | in-review | ISSUE-019 / REV-M0-T06 | Chromium、自启内存后台 |
+| D-251 | 2026-10-12 | [E2E用例](../frontend/web/e2e/app-shell.spec.ts) | 验证 | e2e-1 | 11项按预期 | ISSUE-019 / REV-M0-T06 | 断点截图、离开确认、前进后退、已知缺陷 |
+| D-252 | 2026-10-12 | [工作台1680截图](testing/assets/e2e-workbench-1680.png) | 证据 | e2e-1 | E2E截图 | ISSUE-019 / REV-M0-T06 | D3卡片不可读、D4顶栏落入侧栏 |
+| D-253 | 2026-10-12 | [编辑台1280截图](testing/assets/e2e-editor-1280.png) | 证据 | e2e-1 | E2E截图 | ISSUE-019 / REV-M0-T06 | 编辑台三栏与暗色控件 |
+| D-254 | 2026-10-12 | [概览1440截图](testing/assets/e2e-overview-1440.png) | 证据 | e2e-1 | E2E截图 | ISSUE-019 / REV-M0-T06 | 项目概览布局 |
 | D-242 | 2026-10-12 | [017同步记录](governance/ISSUE-017-sync.md) | 治理 | intranet-plan-1 | 已核对 | ISSUE-017 / OPS-M0-T02 | 三件套与 brief 不改正文；过时的 T008 用词留给项目经理下一次基线同步 |
 
 ## 更新记录
@@ -289,6 +299,7 @@
 | 2026-10-12 | ISSUE-017 / OPS-M0-T02 | 内网部署草案 in-review；业务库按已登记的 MySQL 8 书写，向量与模型仍待决；351项20done、5in-review、4ready。未部署。未改 PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF |
 | 2026-10-12 | ISSUE-013 / REV-M0-T07 | QA签署BE-M0-T02与BE-M0-T03（两卡仍in-review待项目经理标done）；352项21done |
 | 2026-10-12 | ISSUE-016 / AI-03 | 旁路核对：适配器在 /api/v1 生成失败已是冻结错误体，只加一条测试。不新增错误码，不改码表，状态仍 in-review。不改 PRD、ROADMAP、ARCHITECTURE、TASK_BOARD、PROJECT_STATUS、PROJECT_BRIEF |
+| 2026-10-12 | ISSUE-019 / REV-M0-T06；ISSUE-013 / REV-M0-T08 | Playwright E2E与T001签署（不通过）；354项7in-review |
 
 ## 缺失输入
 
