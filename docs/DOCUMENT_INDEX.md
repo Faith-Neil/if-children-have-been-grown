@@ -338,7 +338,7 @@
 | 2026-10-12 | ISSUE-023 / BE-M0-T10；ISSUE-018 | 项目经理批准四项依赖。连接与空基线为 in-review，T11～T13 planned。360项23done、7in-review、7in-progress、269planned、50blocked、4ready。未改 PRD、ROADMAP、ARCHITECTURE，未改公网 CI |
 | 2026-10-12 | ISSUE-009 / APP-M2-T002 | 请求层提交 in-review。章节版本的 Idempotency-Key 与正文 idempotency_key 相同。360项23done、8in-review、7in-progress、268planned、50blocked、4ready。未改 PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF，未改后台，未标 done |
 | 2026-10-12 | ISSUE-013 / REV-M0-T09 | QA签署BE-M0-T08与BE-M0-T10（两卡仍in-review待项目经理标done）；361项24done |
-| 2026-10-12 | ISSUE-022 / APP-M2-T124 | 按后台复核改草案：独立 JobStatus、SSE 与 cancelJob、按操作列错误、ETag。三个旧 POST 在说明里标 deprecated。T078 路径改为 snippet-publications。仍无运行时。并入 98c5129 后任务计数仍为 361项24done、8in-review、7in-progress、268planned、50blocked、4ready |
+| 2026-10-12 | ISSUE-022 / APP-M2-T124 | 按后台复核改草案：独立 JobStatus、SSE 与 cancelJob、按操作列错误、ETag。三个旧 POST 在说明里标 deprecated。T078 路径改为 snippet-publications。仍无运行时。并入 b364cd1 后任务计数仍为 361项24done、8in-review、7in-progress、268planned、50blocked、4ready。未改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数 |
 
 ## 缺失输入
 

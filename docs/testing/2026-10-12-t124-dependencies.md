@@ -33,7 +33,9 @@ T15 满足。T078 与 T114 仍不满足。三个 operationId 已写入草案，�
 
 这些测试不向新路径发请求。应用里没有对应路由。
 
-并入远程之前 `python3 -m pytest tests/backend -q` 为 313 项通过。该结果只说明当时的后台和契约形状，不说明新路由已经可调用。当时 `node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：183 份 Markdown、356 项任务、22 项 Issue。」检查程序未修改。并入 `98c5129` 之后的 pytest 与治理数字在冲突解开后补记。
+并入远程之前 `python3 -m pytest tests/backend -q` 为 313 项通过。该结果只说明当时的后台和契约形状，不说明新路由已经可调用。当时 `node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：183 份 Markdown、356 项任务、22 项 Issue。」检查程序未修改。
+
+并入 `b364cd1`（含 `a844a17` 与 `98c5129`）之后，同一命令为 320 项通过、2 项跳过。跳过的是未设置 `ICG_DATABASE_URL` 的 MySQL 门禁。随后的文档提交不改后台代码。治理检查通过，输出为「治理检查通过：196 份 Markdown、361 项任务、23 项 Issue。」检查程序未修改。这些数字不说明新路由已经可调用。
 
 ## 局限
 

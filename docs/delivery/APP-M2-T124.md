@@ -47,7 +47,7 @@ T078 的实现计划写在 [内存方案](../governance/ISSUE-022-t078-plan.md)�
 
 ## 项目进度
 
-T124 为 blocked。ISSUE-022 为 in-review，复核对象是契约草案。并入 `98c5129` 后看板为 361 项：24 done、8 in-review、7 in-progress、268 planned、50 blocked、4 ready。本草案不增减任务。开发者不把本卡标 done。
+T124 为 blocked。ISSUE-022 为 in-review，复核对象是契约草案。并入 `b364cd1` 后看板为 361 项：24 done、8 in-review、7 in-progress、268 planned、50 blocked、4 ready。本草案不增减任务。开发者不把本卡标 done。PRD、ROADMAP、PROJECT_BRIEF 的任务计数未改。
 
 ## 文档与 Issue 同步
 
