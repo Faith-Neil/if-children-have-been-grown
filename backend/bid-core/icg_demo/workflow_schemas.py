@@ -499,7 +499,15 @@ class LibraryResult(ResponseBody):
 
 
 class V1Error(ResponseBody):
-    code: str
-    message: str
-    details: dict[str, Any]
-    traceId: str
+    code: str = Field(description="已冻结错误码；每个 code 只对应一个 HTTP 状态，见 OpenAPI components.x-error-status")
+    message: str = Field(description="给用户阅读的中文说明")
+    details: dict[str, Any] = Field(description="补充数据。current_revision 表示版本冲突时的当前版本；job_id 与 revision 表示失败任务；fields 是校验失败的字段位置；issues 是成组阻断项")
+    traceId: str = Field(description="32 位十六进制请求编号，与响应头 X-Request-ID 相同；由服务端生成，不接受客户端传入")
+
+
+def v1_error_responses(*statuses: int) -> dict:
+    from .errors import STATUS_MEANING
+    return {status: {"model": V1Error, "description": (
+        f"{STATUS_MEANING[status]}。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。"
+        "code 与 HTTP 状态的唯一对应见 components.x-error-status。")}
+        for status in statuses}

@@ -289,18 +289,17 @@ class SlaService:
                 raise DomainError(409, "SLA_TEMPLATE_VARIABLE_UNKNOWN", "模板正文引用了不存在或格式错误的变量，不能确认。")
 
     def write_template(self, principal, payload, expected, key, item_id=None):
+        from .idempotency import lookup, remember
         self.manager(principal)
-        self.workflow._idempotency(key)
+        key = self.workflow._idempotency(key)
         company = principal.user.company_id
+        scope_id = "library:" + company
         action = "sla-template.update:" + item_id if item_id else "sla-template.create"
-        fingerprint = self.workflow._request_hash(action, payload, expected)
+        request_fingerprint = self.workflow._request_hash(action, payload, expected)
         def operation(state):
-            receipt_key = ("library:" + company, principal.user.id, key)
-            receipt = state.workflow_receipts.get(receipt_key)
-            if receipt:
-                if receipt["fingerprint"] != fingerprint:
-                    raise DomainError(409, "IDEMPOTENCY_CONFLICT", "重复请求标记已用于其他公司资料操作。")
-                return receipt["result"]
+            replay = lookup(state, scope_id, principal.user.id, key, request_fingerprint, self.demo._now())
+            if replay is not None:
+                return replay
             revision = state.library_revisions.get(company, 1)
             self.workflow._version(revision, expected)
             previous = state.sla_templates.get(item_id) if item_id else None
@@ -339,7 +338,7 @@ class SlaService:
                                 "at": iso_time(self.demo._now()), "details": {"reason": payload.get("reason", ""),
                                 "old": deepcopy(previous), "new": deepcopy(item)}})
             result = {"revision": revision + 1, "item": item}
-            state.workflow_receipts[receipt_key] = {"fingerprint": fingerprint, "result": result}
+            remember(state, scope_id, principal.user.id, key, request_fingerprint, result, self.demo._now())
             return result
         return self.repository.transaction(operation)
 

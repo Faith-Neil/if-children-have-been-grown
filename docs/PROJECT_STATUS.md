@@ -28,9 +28,13 @@ ISSUE-013 / REV-M0-T02于2026-10-12在独立Linux环境复跑：后台262、前�
 
 ISSUE-015 / REV-M0-T03已编制[APP-M1-T06验收计划](testing/2026-10-12-app-m1-t06-acceptance-plan.md)并评审通过；REV-M0-T04新增自启服务的`smoke_t06.py`（12/12）并首次在Linux渲染Word留证，发现无标题/编号/目录/页眉页脚等W1～W4，见[记录](testing/2026-10-12-t06-smoke-word-render.md)；T06本身仍in-progress，Word标题/编号/目录、贯通脚本及视觉渲染为已知缺口。
 
+## 当前契约阶段（2026-10-12）
+
+ISSUE-005的DG-05拆成六张后端卡。错误体与单一状态码表[BE-M0-T02](delivery/BE-M0-T02.md)、24小时幂等回执[BE-M0-T03](delivery/BE-M0-T03.md)为in-review，等待项目经理QA签收后才能标done。`MODEL_UNAVAILABLE`固定502；`/api/v1`返回`{code, message, details, traceId}`，旧`/api`章节建议仍用`error`加`request_id`。编辑租约迁到`/api/v1`、导出快照、202与SSE、operationId检查四张卡为ready，本轮没有实现。业务库已决定为MySQL 8，本轮没有加驱动、迁移或表结构。向量库仍未决定。PR #3未合入。
+
 ## 任务进度口径
 
-治理版本g1.1，当前实际开发关联ISSUE-007及资料保护ISSUE-008；范围评审关联ISSUE-005；模型与向量库待决关联ISSUE-010，业务库已决定为 MySQL 8。项目344项中20done、2in-review、7in-progress、266planned、49blocked、0ready。APP-M1的16项中9项本地done：T07范围拆分及T09～16限定子任务；T01～06完整父任务继续，T08最终审计planned，T16资料及模板旧表单保护本地done。[APP-M2的259项](tasks/APP-M2.md)中T001布局、路由和离开保护为 in-review，T008离线CI为 done，其余257项planned，覆盖47组页面和44规则，不代表软件已实现。AI-01仍blocked，AI-02为done，AI-03为in-review且不连接 MySQL。REV-M0-T05已记录QA签署；项目经理于 10-12 12:10 在 QA 签署后确认 AI-02 与 T008。PR待合入、未发布；BE-M0-T01只证明局部后台基础，FE-M0-T03继续来源评审，生产一期尚未验收。
+治理版本g1.1，当前实际开发关联ISSUE-007及资料保护ISSUE-008；契约门禁关联ISSUE-005；模型与向量库待决关联ISSUE-010，业务库已决定为 MySQL 8。项目350项中20done、4in-review、7in-progress、266planned、49blocked、4ready。APP-M1的16项中9项本地done：T07范围拆分及T09～16限定子任务；T01～06完整父任务继续，T08最终审计planned，T16资料及模板旧表单保护本地done。[APP-M2的259项](tasks/APP-M2.md)中T001布局、路由和离开保护为 in-review，T008离线CI为 done，其余257项planned，覆盖47组页面和44规则，不代表软件已实现。BE-M0现为7项，其中T01为done，T02/T03为in-review，4项ready。AI-01仍blocked，AI-02为done，AI-03为in-review且不连接 MySQL。REV-M0-T05已记录QA签署；项目经理于 10-12 12:10 在 QA 签署后确认 AI-02 与 T008。PR待合入、未发布；BE-M0-T01只证明局部后台基础，FE-M0-T03继续来源评审，生产一期尚未验收。344项、20done、2in-review、7in-progress 是加入本轮六张卡之前的计数。
 
 资料库专项审查确认：当前只支持基础文字资料，确认声明、审核、受限名单、真实附件槽位、历史和引用版本仍缺。T16已修复资料及公司模板旧表单借刷新版本覆盖新内容的问题；完整C01/C06各卡继续planned，不能以修复代替其验收。
 

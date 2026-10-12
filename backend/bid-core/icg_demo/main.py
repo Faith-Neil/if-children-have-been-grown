@@ -8,16 +8,20 @@ from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Header, Query, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.openapi.utils import get_openapi
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException
 
 from .adapters import DemoModelProvider, MemoryRepository, build_docx
 from .domain import DemoService, DomainError, Principal
+from .errors import RETRY_GUIDANCE, enrich_openapi
+from .idempotency import IDEMPOTENCY_HEADER_DESCRIPTION, bind_request, replayed_for, reset_request
 from .openai_model import openai_provider_from_environment
 from .ports import ModelProvider, Repository, ParserProvider
 from .parsing import LocalTextParser
 from .workflow_routes import include_workflow_routes
+from .workflow_schemas import v1_error_responses
 from .session_navigation import get_application_session
 from .schemas import (AccountListResponse, ApplicationSessionResponse, AuditListResponse, ChapterListResponse,
                       ChapterResponse, CheckResponse, DraftRequest, DraftResponse, DraftDiscardRequest, DraftDiscardResponse,
@@ -37,6 +41,7 @@ def error_responses(*statuses: int) -> dict:
     descriptions = {401: "未登录或演示登录已失效", 403: "当前账号无操作权限",
                     404: "资源不存在或当前公司无权访问", 409: "版本、草稿或检查结果冲突",
                     422: "请求字段验证失败", 423: "编辑权被占用或已失效",
+                    428: "缺少重复请求标记或标记无效",
                     500: "后端演示服务异常", 502: "建议服务调用失败"}
     return {status: {"model": ErrorResponse, "description": descriptions[status]}
             for status in statuses}
@@ -52,6 +57,7 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     service = DemoService(repository if repository is not None else MemoryRepository(),
                           model_provider if model_provider is not None else DemoModelProvider(), clock)
     application = FastAPI(title="ICG 投标产品本地实现", version="reference-1",
+                          description="本地演示接口。/api/v1 使用统一错误体；" + RETRY_GUIDANCE,
                           docs_url=None, redoc_url=None,
                           responses=error_responses(422, 500))
     application.state.service = service
@@ -63,9 +69,15 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     @application.middleware("http")
     async def request_identity(request: Request, call_next):
         request.state.request_id = uuid4().hex
-        response = await call_next(request)
+        token = bind_request(request)
+        try:
+            response = await call_next(request)
+        finally:
+            reset_request(token)
         response.headers["X-Request-ID"] = request.state.request_id
         response.headers["Cache-Control"] = "no-store"
+        if replayed_for(request):
+            response.headers["Idempotent-Replayed"] = "true"
         return response
 
     def error_response(request: Request, status: int, code: str, message: str,
@@ -88,7 +100,7 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     async def invalid_request(request: Request, error: RequestValidationError):
         fields = sorted({".".join(str(part) for part in item["loc"]) for item in error.errors()})
         message = "请求字段不符合演示接口要求：" + "、".join(fields)
-        return error_response(request, 422, "VALIDATION_ERROR", message)
+        return error_response(request, 422, "VALIDATION_ERROR", message, details={"fields": fields})
 
     @application.exception_handler(HTTPException)
     async def http_error(request: Request, error: HTTPException):
@@ -139,7 +151,7 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
 
     @application.get("/api/v1/session", response_model=ApplicationSessionResponse,
                      response_model_exclude_unset=True, operation_id="getSession",
-                     responses=error_responses(401, 403, 404, 422))
+                     responses=v1_error_responses(401, 403, 404, 422, 500))
     async def get_session(request: Request, user: User,
                           project_id: Annotated[str | None, Query(min_length=1, max_length=100)] = None):
         if (set(request.query_params) - {"project_id"}
@@ -192,9 +204,11 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
         return service.discard_draft(user, chapter_id, body.sequence)
 
     @application.post("/api/chapters/{chapter_id}/versions", response_model=VersionResponse,
-                      responses=error_responses(401, 403, 404, 409, 423))
-    def commit_version(chapter_id: str, body: VersionRequest, user: User):
-        return service.commit_version(user, chapter_id, **body.model_dump())
+                      responses=error_responses(401, 403, 404, 409, 423, 428))
+    def commit_version(chapter_id: str, body: VersionRequest, user: User,
+                       idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)] = None):
+        # 正文 idempotency_key 保留给旧演示页和既有测试；请求头与正文同时出现时必须相同。
+        return service.commit_version(user, chapter_id, **body.model_dump(), header_key=idempotency_key)
 
     @application.get("/api/chapters/{chapter_id}/versions", response_model=VersionListResponse,
                      responses=error_responses(401, 404))
@@ -239,13 +253,25 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     @application.get("/{full_path:path}", include_in_schema=False)
     def product_page(full_path: str):
         # 深链接和刷新必须回到同一张页面；接口、静态资源和构建产物仍按原路径返回。
-        if full_path == "api" or full_path.startswith(("api/", "static/", "assets/")):
+        # 只返回固定的 index.html，不按请求路径打开文件，因此 .. 不能读出页面目录之外的内容。
+        if ".." in full_path.split("/") or full_path == "api" or full_path.startswith(("api/", "static/", "assets/")):
             raise HTTPException(status_code=404)
-        path = product_directory / "index.html"
-        if not path.is_file():
+        index = (product_directory / "index.html").resolve()
+        if index.parent != product_directory.resolve():
+            raise HTTPException(status_code=404)
+        if not index.is_file():
             raise DomainError(503, "UI_NOT_READY", "产品页面尚未构建，请按前端运行说明先构建页面。")
-        return FileResponse(path)
+        return FileResponse(index)
 
+    def custom_openapi():
+        if application.openapi_schema:
+            return application.openapi_schema
+        schema = get_openapi(title=application.title, version=application.version,
+                             description=application.description, routes=application.routes)
+        application.openapi_schema = enrich_openapi(schema)
+        return application.openapi_schema
+
+    application.openapi = custom_openapi
     return application
 
 

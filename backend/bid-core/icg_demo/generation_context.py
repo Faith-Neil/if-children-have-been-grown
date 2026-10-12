@@ -205,8 +205,9 @@ def build_generation_context(state, project_id, chapter, now):
 
 def require_ready(context):
     if not context["ready"]:
+        from .errors import status_for
         first = context["issues"][0]
-        raise DomainError(409, first["code"], first["message"], {"issues": context["issues"]})
+        raise DomainError(status_for(first["code"]), first["code"], first["message"], {"issues": context["issues"]})
 
 
 def render_model_input(snapshot):
@@ -290,7 +291,8 @@ def validate_model_output(state, project_id, content, snapshot):
     resolve_fact_variables(state, project_id, content, allowed_ids={fact["id"] for fact in snapshot["facts"]})
     for issue in sla_issues(state, project_id, [SimpleNamespace(id=snapshot["chapter"]["id"], content=content)]):
         if issue["code"] == "SLA_TEXT_MISMATCH":
-            raise DomainError(409, issue["code"], issue["message"])
+            from .errors import status_for
+            raise DomainError(status_for(issue["code"]), issue["code"], issue["message"])
     allowed_sla = {fact["sla_var_key"] for fact in snapshot["facts"] if fact.get("sla_var_key")}
     if any(match.group(1) not in allowed_sla for match in SLA_TOKEN.finditer(content)):
         raise DomainError(409, "FACT_VARIABLE_INVALID", "模型引用了未纳入本章方案的服务承诺事实。")

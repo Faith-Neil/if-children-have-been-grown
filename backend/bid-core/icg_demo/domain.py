@@ -32,6 +32,13 @@ def iso_time(timestamp: float) -> str:
 
 class DomainError(Exception):
     def __init__(self, status: int, code: str, message: str, details: dict | None = None):
+        from .errors import status_for
+        try:
+            expected = status_for(code)
+        except KeyError as error:
+            raise ValueError(str(error)) from error
+        if status != expected:
+            raise ValueError(f"{code} 已冻结为 HTTP {expected}，不能返回 {status}")
         self.status = status
         self.code = code
         self.message = message
@@ -91,6 +98,7 @@ class Chapter:
     lock: Lease | None = None
     drafts: dict[str, Draft] = field(default_factory=dict)
     versions: list[dict] = field(default_factory=list)
+    # 旧章节提交的回执已并入 DemoState.workflow_receipts。字段保留，避免已有内存对象缺属性。
     committed_requests: dict[tuple[str, str], dict] = field(default_factory=dict)
     assignee_id: str | None = None
 
@@ -358,21 +366,22 @@ class DemoService:
 
     def commit_version(self, principal: Principal, chapter_id: str, lease_token: str,
                        base_revision: int, content: str, idempotency_key: str,
-                       input_fingerprint: str | None = None) -> dict:
+                       input_fingerprint: str | None = None, *, header_key: str | None = None) -> dict:
+        # 旧接口保留正文 idempotency_key。存储规则与 /api/v1 相同：项目+用户+标记、24 小时、失败不登记。
+        from .idempotency import fingerprint, lookup, remember, resolve_legacy_key
+        key = resolve_legacy_key(idempotency_key, header_key)
         payload = {"lease_token": lease_token, "base_revision": base_revision, "content": content,
                    "input_fingerprint": input_fingerprint}
-        fingerprint = content_hash(json.dumps(payload, sort_keys=True, ensure_ascii=False))
+        action = "chapter.version.commit:" + chapter_id
+        request_fingerprint = fingerprint(action, payload, None)
 
         def operation(state: DemoState):
             chapter = self._chapter(state, principal, chapter_id)
             self._chapter_writer(state, principal, chapter)
             self._lease(chapter, principal, lease_token)
-            key = (principal.user.id, idempotency_key)
-            previous = chapter.committed_requests.get(key)
-            if previous:
-                if previous["fingerprint"] != fingerprint:
-                    raise DomainError(409, "IDEMPOTENCY_CONFLICT", "相同重复请求标记不能用于不同内容。")
-                return previous["result"]
+            previous = lookup(state, chapter.project_id, principal.user.id, key, request_fingerprint, self._now())
+            if previous is not None:
+                return previous
             self._revision(chapter, base_revision)
             self._writing_input(state, chapter, input_fingerprint)
             chapter.content = content
@@ -383,7 +392,7 @@ class DemoService:
                                      "created_at": iso_time(self._now())})
             chapter.drafts.pop(principal.user.id, None)
             self._audit(state, principal, chapter, "version.commit")
-            chapter.committed_requests[key] = {"fingerprint": fingerprint, "result": result}
+            remember(state, chapter.project_id, principal.user.id, key, request_fingerprint, result, self._now())
             return result
         return self.repository.transaction(operation)
 

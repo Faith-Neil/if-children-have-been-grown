@@ -203,7 +203,7 @@ def test_no_volume_owner_prevents_confirmation_but_preserves_history(setup):
     flow.write("/team", team, "PUT")
     historic = chapter_state(flow, chapters["technical"])["writing_input"]
     assert historic["confirmed_at"] and not historic["is_current"]
-    result = acting(client, flow, "alpha-manager", f"/chapters/{chapters['technical']}/plan/confirm", {}, expected=409)
+    result = acting(client, flow, "alpha-manager", f"/chapters/{chapters['technical']}/plan/confirm", {}, expected=403)
     assert result["code"] == "VOLUME_OWNER_REQUIRED"
     assert chapter_state(flow, chapters["business"])["writing_input"]["is_current"]
 

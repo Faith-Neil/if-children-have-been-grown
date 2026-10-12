@@ -131,7 +131,7 @@ def test_file_with_existing_sources_cannot_be_removed_after_reparse_failure():
     with TestClient(create_app(parser_provider=FailAgainParser())) as client:
         flow = ProjectFlow(client).ready()
         file_id = flow.state()["files"][0]["id"]
-        flow.write("/parse", {}, expected=422)
+        flow.write("/parse", {}, expected=502)
         assert flow.state()["files"][0]["status"] == "failed"
         assert flow.write("/files/" + file_id, {"reason": "有来源不能删"}, "DELETE", 409)["code"] == "FILE_IN_USE"
 

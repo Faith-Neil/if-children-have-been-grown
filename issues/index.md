@@ -21,7 +21,7 @@
 | [ISSUE-002](ISSUE-002.md) | bug | P1 | closed | [6 项回归通过](../docs/testing/2026-10-09-repository-foundation.md) | PR #3 待合入 | 未发布 | 原型编辑锁未阻止 AI Diff 确认写入 | FE-M0-T01 本地验收完成；浏览器、合入与发布分别记录 |
 | [ISSUE-003](ISSUE-003.md) | workflow | P1 | closed | 四项验收及独立复核通过；[交付记录](../docs/delivery/FE-M0-T02.md) | PR #3 本轮变更待合入 | 未发布 | Issue 前置、六份基线同步与任务交付治理 | 合入后记录实际提交；后续按新规则逐任务推进 |
 | [ISSUE-004](ISSUE-004.md) | workflow | P1 | closed | [双向同步与审查验收](../docs/testing/2026-10-09-workspace-sync.md) | PR #3 待合入 | 未发布 | 全工作区同步、目录/业务/技术审查与brief | 持续运行；按ISSUE-005推进基线与契约决定 |
-| [ISSUE-005](ISSUE-005.md) | decision | P0 | blocked | 两册范围已确认，其他门禁未完成；[一期建议](../docs/decisions/phase-one-scope.md) | 评审准备在PR #3待合入 | 未发布 | 业务完整性与生产契约尚未冻结 | T03准备中；本地demo独立推进，生产外部服务与环境仍待明确 |
+| [ISSUE-005](ISSUE-005.md) | decision | P0 | in-review | 两册范围已确认；DG-05错误体与24小时幂等待QA签收，见[验证](../docs/testing/2026-10-12-error-idempotency.md) | 本轮提交在codex/repository-foundation；PR #3未合入 | 未发布 | DG-05前两张卡in-review；业务库决定为MySQL 8但未接入 | T04～T07 ready；DG-01～04、DG-06未决；向量库仍未决定 |
 | [ISSUE-006](ISSUE-006.md) | change | P1 | closed | [后台、记录、HTTP与页面验收](../docs/testing/2026-10-10-backend-demo.md) | PR #3 待合入 | 未发布 | 后端开发准备与本地demo | 本地验收完成；继续生产身份、持久数据库与完整业务规则 |
 | [ISSUE-007](ISSUE-007.md) | change | P0 | in-progress | T07范围及T09～15限定任务本地验收；[成员记录](../docs/testing/2026-10-10-project-assignments.md) | PR #3 待合入 | 未发布 | 保留ICG布局与流程，逐页接通后台 | T001与ISSUE-009为 in-review，T008离线CI为 done、ISSUE-012 已 closed，其余257卡planned；完整资料、片段/段落、规则、生成闭环及正式Word继续 |
 | [ISSUE-008](ISSUE-008.md) | bug | P0 | closed | 后台229、前端58及实际资料/模板页面通过；[验证](../docs/testing/2026-10-11-library-basis.md) | PR #3 待合入 | 未发布 | 资料库旧表单刷新版本后覆盖新内容 | T16限定保护本地done；完整资料/模板继续ISSUE-007 |

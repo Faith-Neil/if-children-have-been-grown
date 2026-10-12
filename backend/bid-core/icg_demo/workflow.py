@@ -6,14 +6,13 @@ from __future__ import annotations
 import base64
 import binascii
 import hashlib
-import json
 import re
 from dataclasses import asdict
 from datetime import date, datetime, timedelta, timezone
 from pathlib import PurePosixPath
 from typing import Callable
 
-from .domain import Chapter, DemoService, DemoState, DomainError, Principal, content_hash, iso_time, new_id
+from .domain import Chapter, DemoService, DemoState, DomainError, Principal, iso_time, new_id
 from .ports import ParserProvider
 from .input_snapshot import project_input_fingerprint
 from .sla import SlaService, public_sla, resolve_variables, sla_facts, sla_issues
@@ -76,26 +75,25 @@ class WorkflowService:
             raise DomainError(409, "VERSION_CONFLICT", "数据已被更新，请刷新核对后再保存。", {"current_revision": actual})
 
     @staticmethod
-    def _idempotency(key: str | None):
-        if key is None or not key.strip() or len(key) > 120:
-            raise DomainError(428, "IDEMPOTENCY_KEY_REQUIRED", "此操作需要有效的重复请求标记。")
+    def _idempotency(key: str | None) -> str:
+        from .idempotency import validate_key
+        return validate_key(key)
 
     @staticmethod
     def _request_hash(action: str, payload: dict, expected: str | None) -> str:
-        normalized = expected.strip().strip('"') if expected is not None else None
-        return content_hash(json.dumps({"action": action, "payload": payload, "if_match": normalized},
-                                       sort_keys=True, ensure_ascii=False))
+        from .idempotency import fingerprint
+        return fingerprint(action, payload, expected)
 
     def _preflight(self, principal, project_id, action, payload, expected, key):
-        self._idempotency(key)
+        from .idempotency import lookup
+        key = self._idempotency(key)
         state = self.repository.read()
         project = self.demo._project(state, principal, project_id)
         self._authorize(state, principal, project_id, action, payload)
-        receipt = state.workflow_receipts.get((project_id, principal.user.id, key))
-        if receipt:
-            if receipt["fingerprint"] != self._request_hash(action, payload, expected):
-                raise DomainError(409, "IDEMPOTENCY_CONFLICT", "重复请求标记已用于其他操作或内容。")
-            return state, receipt["result"]
+        replay = lookup(state, project_id, principal.user.id, key,
+                        self._request_hash(action, payload, expected), self.demo._now())
+        if replay is not None:
+            return state, replay
         self._version(project.revision, expected)
         return state, None
 
@@ -112,18 +110,16 @@ class WorkflowService:
 
     def _write(self, principal: Principal, project_id: str, action: str, payload: dict,
                expected: str | None, key: str | None, operation: Callable, audit_details: dict | None = None) -> dict:
-        self._idempotency(key)
-        fingerprint = self._request_hash(action, payload, expected)
+        from .idempotency import lookup, remember
+        key = self._idempotency(key)
+        request_fingerprint = self._request_hash(action, payload, expected)
 
         def transaction(state: DemoState):
             project = self.demo._project(state, principal, project_id)
             self._authorize(state, principal, project_id, action, payload)
-            receipt_key = (project_id, principal.user.id, key)
-            receipt = state.workflow_receipts.get(receipt_key)
-            if receipt:
-                if receipt["fingerprint"] != fingerprint:
-                    raise DomainError(409, "IDEMPOTENCY_CONFLICT", "重复请求标记已用于其他操作或内容。")
-                return receipt["result"]
+            replay = lookup(state, project_id, principal.user.id, key, request_fingerprint, self.demo._now())
+            if replay is not None:
+                return replay
             self._version(project.revision, expected)
             workflow = self._workflow(state, project_id, create=True)
             result = operation(state, project, workflow)
@@ -132,7 +128,7 @@ class WorkflowService:
             result = {"revision": project.revision, **result}
             if "project" in result:
                 result["project"] = asdict(project)
-            state.workflow_receipts[receipt_key] = {"fingerprint": fingerprint, "result": result}
+            remember(state, project_id, principal.user.id, key, request_fingerprint, result, self.demo._now())
             return result
         return self.repository.transaction(transaction)
 
@@ -341,9 +337,6 @@ class WorkflowService:
     def parse(self, principal, project_id, payload, expected, key):
         initial, previous = self._preflight(principal, project_id, "parse.run", payload, expected, key)
         if previous:
-            if previous["job"]["status"] == "failed":
-                error = previous["job"]["error"]
-                raise DomainError(422, error["code"], error["message"], {"job_id": previous["job"]["id"], "revision": previous["revision"]})
             return previous
         workflow = self._workflow(initial, project_id)
         selected = payload.get("file_ids")
@@ -431,8 +424,10 @@ class WorkflowService:
                     "facts": list(actual["facts"].values()), "conflicts": list(actual["conflicts"].values())}
         result = self._write(principal, project_id, "parse.run", payload, expected, key, operation)
         if result["job"]["status"] == "failed":
+            from .errors import status_for
             error = result["job"]["error"]
-            raise DomainError(422, error["code"], error["message"], {"job_id": result["job"]["id"], "revision": result["revision"]})
+            raise DomainError(status_for(error["code"]), error["code"], error["message"],
+                              {"job_id": result["job"]["id"], "revision": result["revision"]})
         return result
 
     def patch_requirement(self, principal, project_id, requirement_id, payload, expected, key):
@@ -641,7 +636,7 @@ class WorkflowService:
 
     def _confirm_chapter_plan(self, state, principal, project_id, chapter, workflow):
         if not writable(state, project_id, state.project_teams[project_id]["owners"].get(chapter.volume)):
-            raise DomainError(409, "VOLUME_OWNER_REQUIRED", "本册尚未指定负责人，不能确认写作方案。")
+            raise DomainError(403, "VOLUME_OWNER_REQUIRED", "本册尚未指定负责人，不能确认写作方案。")
         unmapped = [r["id"] for r in workflow["requirements"].values()
                     if r["volume"] == chapter.volume and r["status"] != "rejected" and
                     (r["chapter_id"] not in state.chapters or state.chapters[r["chapter_id"]].project_id != project_id
@@ -873,7 +868,7 @@ class WorkflowService:
             chapters = [c for c in chapters if scope == "all" or c.volume == scope]
             required_volumes = set(VOLUMES) if scope == "all" else {scope}
             if {c.volume for c in chapters} != required_volumes:
-                raise DomainError(409, "TWO_VOLUMES_REQUIRED", "导出必须包含技术和商务两册。")
+                raise DomainError(422, "TWO_VOLUMES_REQUIRED", "导出必须包含技术和商务两册。")
             identity = new_id("project-export")
             documents, volumes = {}, []
             for volume, name in (("technical", "技术分册"), ("business", "商务分册")):
@@ -926,19 +921,18 @@ class WorkflowService:
                 "items": [self._public_library(item) for item in state.library.values() if item["company_id"] == principal.user.company_id]}
 
     def write_library(self, principal, payload, expected, key, item_id=None):
+        from .idempotency import lookup, remember
         self.demo._writer(principal)
-        self._idempotency(key)
+        key = self._idempotency(key)
         company = principal.user.company_id
+        scope_id = "library:" + company
         action = "library.update:" + item_id if item_id else "library.create"
-        fingerprint = self._request_hash(action, payload, expected)
+        request_fingerprint = self._request_hash(action, payload, expected)
         def operation(state):
             revision = state.library_revisions.get(company, 1)
-            receipt_key = ("library:" + company, principal.user.id, key)
-            receipt = state.workflow_receipts.get(receipt_key)
-            if receipt:
-                if receipt["fingerprint"] != fingerprint:
-                    raise DomainError(409, "IDEMPOTENCY_CONFLICT", "重复请求标记已用于其他资料内容。")
-                return receipt["result"]
+            replay = lookup(state, scope_id, principal.user.id, key, request_fingerprint, self.demo._now())
+            if replay is not None:
+                return replay
             self._version(revision, expected)
             if payload.get("valid_until"):
                 if len(payload["valid_until"]) != 10:
@@ -967,7 +961,7 @@ class WorkflowService:
                 state.library[item["id"]] = item
             state.library_revisions[company] = revision + 1
             result = {"revision": revision + 1, "item": self._public_library(item)}
-            state.workflow_receipts[receipt_key] = {"fingerprint": fingerprint, "result": result}
+            remember(state, scope_id, principal.user.id, key, request_fingerprint, result, self.demo._now())
             # 资料变更使用同一仓储，旧检查通过内容指纹自动过期。
             return result
         return self.repository.transaction(operation)

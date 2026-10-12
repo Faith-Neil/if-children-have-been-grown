@@ -231,6 +231,15 @@
 | D-218 | 2026-10-12 | [检索实现](../backend/bid-core/icg_demo/retrieval.py) | 后台 | retrieval-skeleton-1 | 契约通过 | ISSUE-016 / AI-03 | 内存嵌入、重排、向量表和证据候选 |
 | D-219 | 2026-10-12 | [证据候选测试](../tests/backend/test_evidence_candidates.py) | 验证 | retrieval-skeleton-1 | 7项通过 | ISSUE-016 / AI-03 | 合成数据覆盖公司隔离和历史不可附着 |
 | D-220 | 2026-10-12 | [检索协议](../backend/bid-core/icg_demo/ports.py) | 后台 | retrieval-skeleton-1 | 当前 | ISSUE-016 / AI-03 | 增加嵌入、重排和向量检索协议 |
+| D-221 | 2026-10-12 | [错误体交付](delivery/BE-M0-T02.md) | 交付 | contract-1 | in-review | ISSUE-005 / BE-M0-T02 | v1错误体、一对一状态和两处收口；done待QA签收 |
+| D-222 | 2026-10-12 | [错误体代码解释](code/BE-M0-T02.md) | 说明 | contract-1 | 当前 | ISSUE-005 / BE-M0-T02 | 状态表、追踪头和解析失败的原状态 |
+| D-223 | 2026-10-12 | [幂等交付](delivery/BE-M0-T03.md) | 交付 | contract-1 | in-review | ISSUE-005 / BE-M0-T03 | 24小时回执、失败不保存和旧正文字段 |
+| D-224 | 2026-10-12 | [幂等代码解释](code/BE-M0-T03.md) | 说明 | contract-1 | 当前 | ISSUE-005 / BE-M0-T03 | 范围、指纹、过期和2048条上限 |
+| D-225 | 2026-10-12 | [错误体与幂等验证](testing/2026-10-12-error-idempotency.md) | 验证 | contract-1 | 已执行 | ISSUE-005 / BE-M0-T02、T03 | 后台回归和141个code的冻结表；含MODEL_UNAVAILABLE=502 |
+| D-226 | 2026-10-12 | [005同步表](governance/ISSUE-005-sync.md) | 治理 | g1.1 | 本轮记录 | ISSUE-005 | 基线逐行记录；PRD、ROADMAP、ARCHITECTURE未改 |
+| D-227 | 2026-10-12 | [错误状态表](../backend/bid-core/icg_demo/errors.py) | 后台 | contract-1 | 当前 | ISSUE-005 / BE-M0-T02 | 141个code的唯一HTTP状态及OpenAPI补充 |
+| D-228 | 2026-10-12 | [幂等回执](../backend/bid-core/icg_demo/idempotency.py) | 后台 | contract-1 | 当前 | ISSUE-005 / BE-M0-T03 | 24小时、上限和失败不登记 |
+| D-229 | 2026-10-12 | [错误与幂等回归](../tests/backend/test_error_idempotency.py) | 验证 | contract-1 | 当前 | ISSUE-005 / BE-M0-T02、T03 | 错误体、重放、冲突、过期、导出一致和v1模型失败 |
 
 ## 更新记录
 
@@ -260,6 +269,7 @@
 | 2026-10-12 | ISSUE-009 / ISSUE-014 / APP-M2-T001 | ProLayout、浏览器地址和编辑台离开保护提交 in-review。343项18done、3in-review、7in-progress、266planned、49blocked。未改 PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF。未标 done，未合入 |
 | 2026-10-12 | ISSUE-011 / AI-02 | 项目经理于 10-12 12:10 在 QA 签署后确认。AI-02 为 done，ISSUE-011 为 closed。当时 343 项 19 done、2 in-review、7 in-progress |
 | 2026-10-12 | ISSUE-016 / AI-03 | 内存检索口与三条证据候选，状态 in-review。与 T008 的 done 合并后为 344 项 20 done、2 in-review、7 in-progress。不连接 MySQL，不选定向量库。ISSUE-010 未改 |
+| 2026-10-12 | ISSUE-005 / BE-M0-T02、T03 | 错误体与24小时幂等提交为in-review。350项20done、4in-review、7in-progress、4ready。业务库决定为MySQL 8，本轮无驱动或迁移。PRD、ROADMAP、ARCHITECTURE未改 |
 
 ## 缺失输入
 
