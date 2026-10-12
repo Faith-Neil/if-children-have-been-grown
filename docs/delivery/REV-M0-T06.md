@@ -23,4 +23,4 @@
 
 ## 同步与剩余
 
-PRD/ROADMAP/ARCHITECTURE/BRIEF无影响（只加测试依赖）。导出过期与版本冲突页面提示未覆盖；CI接入待DevOps。
+PRD/ROADMAP/ARCHITECTURE/BRIEF无影响（只加测试依赖）。导出过期与版本冲突页面提示未覆盖。用户与项目经理确认 D3/D4 修复后，offline-check 的 `e2e` 作业改为必需，失败会阻断工作流。本卡仍为 in-review，不标 done。

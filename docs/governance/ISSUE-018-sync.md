@@ -37,7 +37,7 @@ BE-M0-T11 提交回执表和会话表，状态 in-review。ISSUE-018 仍为 in-p
 
 ## QA 签署（REV-M0-T28）
 
-2026-10-12 QA 对 BE-M0-T11（631d4c9）正式签署通过，见 [签署记录](../testing/2026-10-12-be-m0-t11-qa-signoff.md)。ISSUE-018 仍 in-progress；T11 仍 in-review，不标 done。T27 预留给 Codex PR #4 / ISSUE-034。
+2026-10-12 QA 对 BE-M0-T11（631d4c9）正式签署通过，见 [签署记录](../testing/2026-10-12-be-m0-t11-qa-signoff.md)。ISSUE-018 仍 in-progress；T11 仍 in-review，不标 done。REV-M0-T27 已用于 ISSUE-034 / PR #4，状态 in-review，不标 done。
 
 ## PM 确认（BE-M0-T13 / REV-M0-T23）
 

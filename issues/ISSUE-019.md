@@ -30,7 +30,7 @@
 
 - 新增`frontend/web/e2e/`与`pnpm e2e`脚本；不改应用代码。
 - Chromium浏览器需`pnpm --dir frontend/web exec playwright install chromium`单独下载，不入库。
-- 依赖：无。CI接入由DevOps另行执行，本Issue只给建议。
+- 依赖：无。`e2e` 作业已接入 offline-check。用户与项目经理确认 D3/D4 修复并核对通过后，该作业改为必需，失败会阻断工作流。本 Issue 与 REV-M0-T06 仍为 in-review，不标 done。
 
 ## 实施任务与互链
 
@@ -66,3 +66,4 @@
 | 2026-10-12 | e2e-1 / in-review | 依赖与11项用例提交；待项目经理确认done | 成长测试QA |
 | 2026-10-12 | e2e-1 / in-review | 后台 CI 增加必跑步骤 `python tests/backend/qa_error_idempotency_live_http.py`。脚本自启 uvicorn，只用合成数据，不新增依赖。页面回退检查需要已有的 `frontend/web/dist`，该作业先放一张占位页和空的 `assets` 目录，不运行前端构建；47 项全部通过时退出码为 0。状态未改 | `.github/workflows/offline-check.yml` |
 | 2026-10-12 | e2e-1 / in-review | 增加并行 `e2e` 作业，`continue-on-error: true`，不阻断其他作业。计划 2026-10-19 再评估改为必需。未改用例和 `test.fail()`，状态未改 | `.github/workflows/offline-check.yml` |
+| 2026-10-12 | e2e-1 / in-review | 用户与项目经理确认后，把 `e2e` 改为必需：去掉 `continue-on-error: true`。依据是 D3/D4 已修复，`frontend/web/e2e` 已无 `test.fail()`，运行 38205346950 的 Browser end-to-end 为 11 passed，20f2b925 上运行 38233198071 的同一步骤也成功。超时、权限和产物上传不变。状态未改，不标 done | `.github/workflows/offline-check.yml` |

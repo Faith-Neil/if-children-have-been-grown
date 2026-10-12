@@ -31,6 +31,6 @@ PR 未创建。未合入，未发布。数据库节跟随 ISSUE-010 已登记的
 - `issues/ISSUE-010.md` 不在本卡修改。它已 closed，并写明重排不在已关闭的三项决定里，检索设计的提议留在 ISSUE-029。本确认记在草案第 7 节。
 - 手工内网联调还是内网自建 runner，草案第 4 节仍列为未选定。本确认不代替那个选择。
 - RAGFlow 的版本、资源规格和 API 路径仍待 AI/RAG 计划确认。本草案不发明这些值。
-- `docs/governance/WORKFLOW.md` 的 CI 说明未包含现有的错误/幂等探针、非阻塞 e2e 作业，也没有「CI 不连接真实 RAGFlow」这句。
+- `docs/governance/WORKFLOW.md` 的 CI 说明未包含现有的错误/幂等探针和已改为必需的 e2e 作业，也没有「CI 不连接真实 RAGFlow」这句。
 - `docs/PRD.md` 本轮无页面或规则变化；若产品基线要承认 RAGFlow 适配器和配置页，需另开同步。
 - PRD、ROADMAP、PROJECT_BRIEF、icg-task-mapping 与 ISSUE-007 里仍可能有过时的 T008 用词。本轮不改这些文件。
