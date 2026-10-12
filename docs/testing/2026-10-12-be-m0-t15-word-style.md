@@ -19,6 +19,9 @@
 | V3 | 目录域没有可见占位 | 宋体非标题“目录”，占位文字“右键更新域以生成目录” |
 | M1 | 封面标题的 ascii、hAnsi 写成黑体 | 三种字体属性都是方正小标宋。黑体只在未安装时替换，不是拉丁回退 |
 | M2 | 承诺函封面没有项目名称 | 下载路由传入 `project_name`，CoverProject 为黑体 16 磅、居中 |
+| Q1 | 首行缩进只写了 `firstLineChars` | 正文 `w:ind` 同时写 `w:firstLineChars="200"` 和 `w:firstLine="560"` |
+| Q2 | 没有标题时仍写出“目录”和 TOC 域 | 正文没有 `# `、`## `、`### ` 时不写目录标题，也不写 TOC 域 |
+| Q3 | 规格文件用英文说明黑体替代 | `docs/standards/word-default-style.md` 改为中文：黑体只在未安装方正小标宋时使用，不是拉丁或西文回退 |
 
 ## 命令
 
@@ -28,14 +31,14 @@
 env -u ICG_DATABASE_URL -u ICG_REQUIRE_MYSQL python3 -m pytest tests/backend -q
 ```
 
-结果：335 passed，2 skipped。用例在 `tests/backend/test_docx_default_style.py` 和 `tests/backend/test_sla.py`，打开生成的 docx，检查标题级别、三种字体属性、字号间距与首行缩进、加粗表头、TOC 域和占位文字、封面下一页分节、无标题正文不重复封面标题、一级标题可改左对齐、承诺函封面项目名称、`word/settings.xml` 的 `w:updateFields w:val="true"`、页码与分节、页边距，以及一份左边距改为 3.0 cm 的覆盖版式。
+结果：335 passed，2 skipped。用例在 `tests/backend/test_docx_default_style.py` 和 `tests/backend/test_sla.py`，打开生成的 docx，检查标题级别、三种字体属性、字号间距、首行缩进 `firstLineChars="200"` 与 `firstLine="560"`、加粗表头、有标题时的 TOC 域和占位文字、无标题时不写“目录”和 TOC 域、封面下一页分节、无标题正文不重复封面标题、一级标题可改左对齐、承诺函封面项目名称、`word/settings.xml` 的 `w:updateFields w:val="true"`、页码与分节、页边距，以及一份左边距改为 3.0 cm 的覆盖版式。
 
 改生成代码之前，这些用例对旧导出失败：没有 Heading1，默认字体没有 hAnsi，表头没有加粗，没有 TOC，只有一节，四边仍是 1440 缇。
 
 治理检查在同一工作区执行 `node scripts/check-project-governance.cjs`。输出：
 
 ```text
-治理检查通过：220 份 Markdown、363 项任务、28 项 Issue。
+治理检查通过：225 份 Markdown、365 项任务、28 项 Issue。
 ```
 
 ## 局限

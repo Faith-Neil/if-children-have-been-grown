@@ -136,7 +136,9 @@ def test_cover_heading_body_and_toc_sizes_spacing_and_indent():
     assert attr(spacing, "after") == "0"
     assert attr(spacing, "line") == "560"
     assert attr(spacing, "lineRule") == "exact"
-    assert attr(body.find(f".//{W}ind"), "firstLineChars") == "200"
+    indent = body.find(f".//{W}ind")
+    assert attr(indent, "firstLineChars") == "200"
+    assert attr(indent, "firstLine") == "560"
     assert attr(body.find(f".//{W}jc"), "val") == "both"
     toc = style(styles, "TOC")
     assert rfonts(toc) == {"ascii": "宋体", "hAnsi": "宋体", "eastAsia": "宋体"}
@@ -190,6 +192,10 @@ def test_body_without_headings_does_not_repeat_the_cover_title():
     exported = [paragraph_text(item) for item in paragraphs]
     assert "合成正文没有标题标记。" in exported
     assert "第二行仍在。" in exported
+    assert not any(paragraph_style(item) == "TocTitle" for item in paragraphs)
+    assert "目录" not in exported
+    instructions = [node.text or "" for node in parts["word/document.xml"].iter(W + "instrText")]
+    assert not any("TOC" in item for item in instructions)
 
 
 def test_toc_has_non_heading_title_and_placeholder():

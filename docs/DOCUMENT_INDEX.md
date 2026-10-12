@@ -385,6 +385,7 @@
 | 2026-10-12 | ISSUE-022 / APP-M2-T124 | 复审补充草案：startGeneration 引用 403 与 503，503 不自动重试；确认与启动列 423；JobEvent 增加状态、进度、终态；JobStatus 增加 recoverable；cancelJob 不强制 Location；getJob 与 SSE 去掉 403。状态仍是 draft, pending backend review。ISSUE-022 仍 in-review，T124 仍 blocked。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数，不改运行代码 |
 | 2026-10-12 | ISSUE-013 / REV-M0-T11 | QA复验签署APP-M2-T001与APP-M2-T002通过（两卡仍in-review待项目经理标done）；365项28done |
 | 2026-10-12 | ISSUE-022 / APP-M2-T078 | 方案补两句：GET 返回 ETag，供 If-Match 使用；被拦截的发布仍算成功，必须记下幂等回执。仍不写代码。T078 仍 planned，T124 仍 blocked。不改任务计数 |
+| 2026-10-12 | ISSUE-027 / BE-M0-T15 | Q1 正文首行缩进补 firstLine=560；Q2 无标题时不写目录和 TOC 域；Q3 规格中的黑体说明改为中文。不新增任务，不改变卡片状态。PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF 未改 |
 
 ## 缺失输入
 

@@ -11,4 +11,4 @@
 - 纸张 A4，页边距上 2.5cm、下 2.5cm、左 2.8cm、右 2.6cm。封面不显示页码，正文从第 1 页开始编号，页码在底部居中。
 - 招标文件另有要求时，可以单独覆盖以上设置。
 
-黑体 is a user-approved substitute font used only when 方正小标宋 is not installed, and is NOT a Latin/Western fallback. 封面标题的 eastAsia、ascii 和 hAnsi 都写方正小标宋。
+黑体是用户批准的替代字体，只在未安装方正小标宋时使用，不是拉丁或西文回退。封面标题的 eastAsia、ascii 和 hAnsi 都写方正小标宋。

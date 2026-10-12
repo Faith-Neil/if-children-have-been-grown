@@ -43,6 +43,7 @@ class DocxStyle:
     body_pt: float = 14
     body_line_pt: float = 28
     body_first_line_chars: int = 200
+    body_first_line_twips: int = 560
     table_font: FontFace = field(default_factory=lambda: face("宋体"))
     table_pt: float = 10.5
     header_font: FontFace = field(default_factory=lambda: face("宋体"))
@@ -118,7 +119,8 @@ def _style_xml(style: DocxStyle) -> str:
         return paragraph_style(style_id, name, paragraph, run)
 
     body_paragraph = (f'<w:pPr><w:spacing w:before="0" w:after="0" w:line="{int(round(style.body_line_pt * 20))}" '
-                      f'w:lineRule="exact"/><w:ind w:firstLineChars="{style.body_first_line_chars}"/>'
+                      f'w:lineRule="exact"/><w:ind w:firstLineChars="{style.body_first_line_chars}" '
+                      f'w:firstLine="{style.body_first_line_twips}"/>'
                       '<w:jc w:val="both"/></w:pPr>')
     cover = paragraph_style(
         "CoverTitle", "Cover Title",
@@ -239,8 +241,9 @@ def build_docx(record: Export, table_rows: list[list[str]] | None = None, *,
     if project_name:
         cover += _paragraph("CoverProject", project_name, chosen.cover_project_font, chosen.cover_project_pt)
     cover += f'<w:p><w:pPr>{_section(chosen, "rId5", start=None, next_page=True)}</w:pPr></w:p>'
-    body = _toc(chosen)
-    for style_id, text, bold in _blocks(record):
+    blocks = _blocks(record)
+    body = _toc(chosen) if any(style_id.startswith("Heading") for style_id, _, _ in blocks) else ""
+    for style_id, text, bold in blocks:
         face, pt, heading_bold = _faces(chosen, style_id)
         body += _paragraph(style_id, text, face, pt, bold=bold or heading_bold)
     if table_rows:
