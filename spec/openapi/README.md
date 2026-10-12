@@ -27,7 +27,7 @@
 
 ## 修改与验收
 
-接口变更先关联Issue与任务，修改实际服务及请求/响应模型，再重新导出本文件，并核对页面和测试。主流程字段与人工确认规则详见 [示例接口约定](../../docs/architecture/icg-reference-contract.md)。目前页面客户端`frontend/web/src/api.ts`是手写请求层，尚未从OpenAPI生成SDK；后续生成代码需要独立目录与更新流程，不能把手写文件当成自动生成成果。
+接口变更先关联Issue与任务，修改实际服务及请求/响应模型，再重新导出本文件，并核对页面和测试。新增或删除一个错误码时，必须在同一提交里更新 `backend/bid-core/icg_demo/frozen_error_codes.py` 的 `FROZEN_NAMES`。只改 `errors.py` 再运行 `export_openapi.py`，导出的枚举会跟着新表走，总数也可以仍是 143；冻结名单仍是旧名字，`set(ERROR_STATUS) == FROZEN_NAMES` 和 spec 枚举对照会失败。主流程字段与人工确认规则详见 [示例接口约定](../../docs/architecture/icg-reference-contract.md)。目前页面客户端`frontend/web/src/api.ts`是手写请求层，尚未从OpenAPI生成SDK；后续生成代码需要独立目录与更新流程，不能把手写文件当成自动生成成果。
 
 当前约定只代表已经运行的本地实现。异步202任务、持续事件通知、恢复/取消、完整结构化编辑、分册定稿和正式递交能力尚未实现。演示账号、内存存储、模型替身及已接通的内部稿输出不代表生产身份、数据库或完整合规服务。ICG完整目标由 [ISSUE-007](../../issues/ISSUE-007.md)推进，生产边界继续按 [ISSUE-005](../../issues/ISSUE-005.md)完善。
 

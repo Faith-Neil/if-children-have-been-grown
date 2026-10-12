@@ -15,6 +15,7 @@ import httpx
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "backend" / "bid-core"))
 from icg_demo.errors import ERROR_STATUS  # noqa: E402
+from icg_demo.frozen_error_codes import FROZEN_NAMES  # noqa: E402
 
 RESULTS = []
 FROZEN_STATUS = "frozen"
@@ -100,7 +101,10 @@ def main():
         check("spec: 每个 code 只出现一次", not dup, dup)
         check("spec 状态表 == 代码 ERROR_STATUS", flat == ERROR_STATUS,
               {k: (flat.get(k), ERROR_STATUS.get(k)) for k in set(flat) | set(ERROR_STATUS) if flat.get(k) != ERROR_STATUS.get(k)})
-        check("spec V1Error.code enum == 代码表", sorted(spec["components"]["schemas"]["V1Error"]["properties"]["code"]["enum"]) == sorted(ERROR_STATUS))
+        enum = spec["components"]["schemas"]["V1Error"]["properties"]["code"]["enum"]
+        check("spec V1Error.code enum == 代码表", sorted(enum) == sorted(ERROR_STATUS))
+        check("代码名 == 冻结名单", set(ERROR_STATUS) == FROZEN_NAMES, sorted(set(ERROR_STATUS) ^ FROZEN_NAMES))
+        check("spec V1Error.code enum == 冻结名单", set(enum) == FROZEN_NAMES, sorted(set(enum) ^ FROZEN_NAMES))
         check("code 总数 143", len(ERROR_STATUS) == 143, len(ERROR_STATUS))  # SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL and SECRET_KEY_UNAVAILABLE, added by ISSUE-024 in 23dae10
         check("VOLUME_OWNER_REQUIRED=403 / TWO_VOLUMES_REQUIRED=422 / MODEL_UNAVAILABLE=502 / IDEMPOTENCY_KEY_REQUIRED=428",
               (ERROR_STATUS["VOLUME_OWNER_REQUIRED"], ERROR_STATUS["TWO_VOLUMES_REQUIRED"], ERROR_STATUS["MODEL_UNAVAILABLE"],

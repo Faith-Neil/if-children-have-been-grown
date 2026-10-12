@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from icg_demo.domain import DemoState, DomainError
 from icg_demo.errors import ERROR_STATUS, RETRY_GUIDANCE, status_for
+from icg_demo.frozen_error_codes import FROZEN_NAMES
 from icg_demo.idempotency import (
     IDEMPOTENCY_TTL_SECONDS, fingerprint, lookup, remember, validate_key)
 from icg_demo.main import create_app
@@ -67,6 +68,7 @@ def test_literal_domain_errors_use_the_single_frozen_status():
     assert ERROR_STATUS["TWO_VOLUMES_REQUIRED"] == 422
     assert ERROR_STATUS["MODEL_UNAVAILABLE"] == 502
     assert len(ERROR_STATUS) == len(set(ERROR_STATUS))
+    assert set(ERROR_STATUS) == FROZEN_NAMES
 
 
 def test_openapi_declares_v1_error_body_status_table_and_retry():
@@ -79,6 +81,9 @@ def test_openapi_declares_v1_error_body_status_table_and_retry():
     assert "TWO_VOLUMES_REQUIRED" not in table["409"]
     assert table["502"] and "MODEL_UNAVAILABLE" in table["502"]
     assert schema["components"]["schemas"]["V1Error"]["properties"]["code"]["enum"] == sorted(ERROR_STATUS)
+    assert set(schema["components"]["schemas"]["V1Error"]["properties"]["code"]["enum"]) == FROZEN_NAMES
+    stored = json.loads(SPEC.read_text(encoding="utf-8"))
+    assert set(stored["components"]["schemas"]["V1Error"]["properties"]["code"]["enum"]) == FROZEN_NAMES
     idempotency = schema["components"]["x-idempotency"]
     assert idempotency["ttl_seconds"] == IDEMPOTENCY_TTL_SECONDS
     assert idempotency["max_receipts"] == 2048
