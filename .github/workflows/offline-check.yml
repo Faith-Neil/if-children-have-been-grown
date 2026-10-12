@@ -97,17 +97,18 @@ jobs:
             --character-set-server=utf8mb4 \
             --collation-server=utf8mb4_unicode_ci
           ready=0
-          status=missing
           for _ in $(seq 1 40); do
-            status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' icg-mysql)"
-            if [ "${status}" = "healthy" ]; then
+            # The image answers a health probe from its temporary init server, then
+            # restarts. Wait until that init has finished and a real ping succeeds.
+            if docker logs icg-mysql 2>&1 | grep -q "MySQL init process done" \
+              && docker exec icg-mysql mysqladmin --defaults-extra-file=/run/secrets/client.cnf ping --silent; then
               ready=1
               break
             fi
             sleep 3
           done
           if [ "${ready}" != "1" ]; then
-            echo "MySQL did not become healthy"
+            echo "MySQL did not become ready"
             exit 1
           fi
           docker exec icg-mysql mysql --defaults-extra-file=/run/secrets/client.cnf \
@@ -118,9 +119,10 @@ jobs:
       - name: Alembic upgrade
         run: alembic -c backend/bid-core/alembic.ini upgrade head
       - name: MySQL pytest
+        id: mysql-pytest
         run: python -m pytest tests/backend -m mysql --junitxml=mysql-junit.xml -q
       - name: Require collected MySQL tests
-        if: always()
+        if: always() && steps.mysql-pytest.conclusion != 'skipped'
         run: |
           python - <<'PY'
           import sys
