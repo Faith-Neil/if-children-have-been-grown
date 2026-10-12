@@ -224,3 +224,23 @@
 - [x] 复跑92/35、tsc、构建、E2E 13/13、治理与Actions核对。
 - [x] 探针27/27（含F1逐场景请求计数）、对比度独立计算与页面扫描。
 - [x] T001、T002签署通过；开发卡保持in-review待项目经理设置done。
+
+<a id="rev-m0-t12"></a>
+
+## REV-M0-T12 · BE-M0-T14 托管 MySQL CI QA签署
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done（本地验收；PR待合入） |
+| 估算 | 1.5小时 |
+| 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
+| 依赖 | BE-M0-T14 `ac6ea02` 已提交 in-review |
+| 来源 | 项目经理签署要求 |
+| 完成交付 | [专属交付](../delivery/REV-M0-T12.md) |
+| 代码解释 | 无产品代码 |
+
+范围：核对工作流与真实Actions日志，在本地MySQL 8.4独立复跑迁移往返与mysql测试，抽出守卫脚本做负例；签署结论。不改他人代码或卡片状态。
+
+- [x] AC-01～04逐条核对，Actions成功与失败样例均查日志。
+- [x] 本地upgrade/downgrade往返、mysql 2 passed、全套337 passed、守卫负例。
+- [x] 签署通过；BE-M0-T14保持in-review待项目经理设置done。

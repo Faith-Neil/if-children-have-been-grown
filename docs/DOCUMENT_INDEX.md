@@ -322,6 +322,8 @@
 | D-309 | 2026-10-12 | [026基线复核](testing/2026-10-12-issue-026-baseline-count-check.md) | 验证 | count-sync-3 | 已执行 | ISSUE-026 | 84a3fca 看板 364项27done；三份正文已改成同一组 |
 | D-310 | 2026-10-12 | [T001/T002复验签署](testing/2026-10-12-qa-t001-t002-signoff.md) | 验证 | qa-rerun-5 | 本地通过 | ISSUE-013 / REV-M0-T11 | 92/35、E2E 13/13、探针27/27、对比度≥5.66 |
 | D-311 | 2026-10-12 | [T001/T002签署交付](delivery/REV-M0-T11.md) | 交付 | qa-rerun-5 | 已本地验收 | ISSUE-013 / REV-M0-T11 | 无代码；结论与O1 |
+| D-312 | 2026-10-12 | [T14 MySQL CI签署](testing/2026-10-12-be-m0-t14-mysql-ci-signoff.md) | 验证 | qa-signoff-mysql-ci | 本地通过 | ISSUE-013 / REV-M0-T12 | AC-01～04通过；本地往返、337 passed；M1～M3 P3 |
+| D-313 | 2026-10-12 | [T14签署交付](delivery/REV-M0-T12.md) | 交付 | qa-signoff-mysql-ci | 已本地验收 | ISSUE-013 / REV-M0-T12 | 无代码；结论与观察项 |
 
 ## 更新记录
 
@@ -384,6 +386,7 @@
 | 2026-10-12 | ISSUE-026 | 在 84a3fca 重数：看板 364项27done、9in-review、7in-progress、268planned、49blocked、4ready。PRD、ROADMAP、PROJECT_BRIEF 从 363项26done 改成同一组。不新增任务，不改 api.ts，不改后台，不改 docs/reference。Issue 仍为 in-review |
 | 2026-10-12 | ISSUE-022 / APP-M2-T124 | 复审补充草案：startGeneration 引用 403 与 503，503 不自动重试；确认与启动列 423；JobEvent 增加状态、进度、终态；JobStatus 增加 recoverable；cancelJob 不强制 Location；getJob 与 SSE 去掉 403。状态仍是 draft, pending backend review。ISSUE-022 仍 in-review，T124 仍 blocked。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数，不改运行代码 |
 | 2026-10-12 | ISSUE-013 / REV-M0-T11 | QA复验签署APP-M2-T001与APP-M2-T002通过（两卡仍in-review待项目经理标done）；365项28done |
+| 2026-10-12 | ISSUE-013 / REV-M0-T12 | QA签署BE-M0-T14托管MySQL CI通过（T14与ISSUE-025仍in-review待项目经理标done）；366项29done |
 | 2026-10-12 | ISSUE-022 / APP-M2-T078 | 方案补两句：GET 返回 ETag，供 If-Match 使用；被拦截的发布仍算成功，必须记下幂等回执。仍不写代码。T078 仍 planned，T124 仍 blocked。不改任务计数 |
 | 2026-10-12 | ISSUE-027 / BE-M0-T15 | Q1 正文首行缩进补 firstLine=560；Q2 无标题时不写目录和 TOC 域；Q3 规格中的黑体说明改为中文。不新增任务，不改变卡片状态。PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF 未改 |
 
