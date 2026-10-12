@@ -13,7 +13,7 @@
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
 | revision | qa-rerun-3 |
-| 关联 Task | [REV-M0-T02](../docs/tasks/REV-M0.md#rev-m0-t02)、[REV-M0-T05](../docs/tasks/REV-M0.md#rev-m0-t05)（QA签署复核）、[REV-M0-T07](../docs/tasks/REV-M0.md#rev-m0-t07)（BE-M0-T02/T03签署）、[REV-M0-T09](../docs/tasks/REV-M0.md#rev-m0-t09)（BE-M0-T08/T10签署）、[REV-M0-T10](../docs/tasks/REV-M0.md#rev-m0-t10)（BE-M0-T15 Word版式签署）、[REV-M0-T08](../docs/tasks/REV-M0.md#rev-m0-t08)（T001签署）；[任务看板](../docs/TASK_BOARD.md) |
+| 关联 Task | [REV-M0-T02](../docs/tasks/REV-M0.md#rev-m0-t02)、[REV-M0-T05](../docs/tasks/REV-M0.md#rev-m0-t05)（QA签署复核）、[REV-M0-T07](../docs/tasks/REV-M0.md#rev-m0-t07)（BE-M0-T02/T03签署）、[REV-M0-T09](../docs/tasks/REV-M0.md#rev-m0-t09)（BE-M0-T08/T10签署）、[REV-M0-T10](../docs/tasks/REV-M0.md#rev-m0-t10)（BE-M0-T15 Word版式签署）、[REV-M0-T11](../docs/tasks/REV-M0.md#rev-m0-t11)（T001/T002复验签署）、[REV-M0-T08](../docs/tasks/REV-M0.md#rev-m0-t08)（T001签署）；[任务看板](../docs/TASK_BOARD.md) |
 | 关联 PR | [PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)，待合入 |
 | 本地验收 | 通过；2026-10-12，成长测试QA |
 | 合入 | 未合入 |
@@ -40,6 +40,7 @@
 | REV-M0-T07 | BE-M0-T02与BE-M0-T03签署复跑、真实HTTP探针及基线核对 | `docs/testing/2026-10-12-be-m0-t02-t03-signoff.md` | AC-04 | done |
 | REV-M0-T09 | BE-M0-T08与BE-M0-T10签署复跑、真实MySQL 8.4迁移与门禁核对 | `docs/testing/2026-10-12-be-m0-t10-mysql-signoff.md` | AC-04 | done |
 | REV-M0-T10 | BE-M0-T15 Word 默认版式按原文独立核对、样张与 LibreOffice 渲染 | `docs/testing/2026-10-12-be-m0-t15-word-style-signoff.md` | AC-04 | done |
+| REV-M0-T11 | APP-M2-T001与APP-M2-T002修复复验、请求计数探针与对比度独立计算 | `docs/testing/2026-10-12-qa-t001-t002-signoff.md` | AC-04 | done |
 | REV-M0-T02 | 会话实时HTTP复核入库、全套复跑记录 | `tests/backend/session_live_http.py`、`docs/testing/2026-10-12-qa-rerun.md` | AC-01～03 | done |
 
 ## 验收条目
@@ -73,6 +74,7 @@ WORKFLOW无规则变化，治理块保持g1.1。
 | 2026-10-12 | qa-rerun-2 / closed | 签署T008、AI-02：Actions三次成功，本地292/30/72/35通过；BRIEF未登记等S1～S5 | 成长测试QA |
 | 2026-10-12 | qa-rerun-3 / in-review | APP-M2-T001签署（REV-M0-T08）：复跑一致，E2E发现D1～D4，结论不通过；待项目经理确认 | 成长测试QA |
 | 2026-10-12 | qa-rerun-4 / in-review | T001重签：D1～D4已修复，新发现E2E-D7（P1，导航无法展开），仍不通过；T002探测19项，502+MODEL_UNAVAILABLE在a844a17会重试，e73523f已改为不重试（探测确认），T002-F1（P2）待定，暂不签；ISSUE-020分包通过；见[记录](../docs/testing/2026-10-12-qa-t001-t002-t020-recheck.md) | 成长测试QA |
+| 2026-10-12 | qa-rerun-5 / done | T001/T002复验（REV-M0-T11）：E2E-D7、E2E-D8、T002-F1已修复；92/35、tsc、E2E 13/13、探针27/27、对比度≥5.66:1；两卡签署通过，仍in-review待项目经理确认；O1 P3观察 | 成长测试QA |
 
 ## 本地验收与后续合入发布
 
