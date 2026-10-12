@@ -14,7 +14,7 @@ ISSUE-009 / APP-M2-T001先接可信会话和页面守卫：登录后从后台读
 
 ISSUE-020 把外壳和项目页改成打开时再加载。分包后入口 `index-BXy7CunM.js` 为 315.94 kB / gzip 101.00 kB，低于 1334.42 kB。ISSUE-020 为 in-review，见[分包记录](../../docs/testing/2026-10-12-route-chunks.md)。
 
-请求层（APP-M2-T002，in-review）解析 `/api/v1` 的 `{code, message, details, traceId}` 和旧 `/api` 的 `{error, request_id}`，页面提示带上追踪号。同一次写入只使用一把 `Idempotency-Key`；网络错误、502 和 503 会用同一把键再试，最多 3 次（含首次）。409、422、423、428 不自动重试。提交章节版本时，请求头和正文 `idempotency_key` 是同一把键。见[请求层记录](../../docs/testing/2026-10-12-request-layer.md)。
+请求层（APP-M2-T002，in-review）解析 `/api/v1` 的 `{code, message, details, traceId}` 和旧 `/api` 的 `{error, request_id}`，页面提示带上追踪号。同一次写入只使用一把 `Idempotency-Key`。网络错误、没有统一错误体的 502 和 503 会用同一把键再试，最多 3 次（含首次）。带 `MODEL_UNAVAILABLE` 的 502 不重试，立刻提示追踪号。409、422、423、428 不自动重试。提交章节版本时，请求头和正文 `idempotency_key` 是同一把键。见[请求层记录](../../docs/testing/2026-10-12-request-layer.md)。
 
 ## 运行
 

@@ -9,8 +9,10 @@ export class ApiError extends Error {
 
 export const retryLimit = 3;
 
-export function canRetryStatus(status: number) {
-  return status === 502 || status === 503;
+export function canRetryStatus(status: number, code?: string) {
+  if (status === 503) return true;
+  if (status !== 502) return false;
+  return !code || code === 'REQUEST_FAILED';
 }
 
 export function userFacingMessage(error: unknown) {
@@ -46,7 +48,7 @@ async function runAttempts<T>(action: () => Promise<T>, wait: (ms: number) => Pr
       return await action();
     } catch (error) {
       last = error;
-      const retry = error instanceof ApiError ? canRetryStatus(error.status) : error instanceof TypeError;
+      const retry = error instanceof ApiError ? canRetryStatus(error.status, error.code) : error instanceof TypeError;
       if (!retry || attempt === retryLimit - 1) throw error;
       await wait(200 * 2 ** attempt);
     }

@@ -13,6 +13,10 @@ function jsonResponse(status, body, headerId) {
   return new Response(JSON.stringify(body), { status, headers });
 }
 
+function gateway502() {
+  return new Response('Bad Gateway', { status: 502, headers: { 'Content-Type': 'text/html' } });
+}
+
 test('v1 and legacy error bodies both keep the trace id shown to the user', async context => {
   context.mock.method(globalThis, 'fetch', async () => jsonResponse(422, {
     code: 'FIELD_INVALID', message: '名称不能为空。', details: { fields: ['body.name'] }, traceId: 'abc123',
@@ -42,14 +46,14 @@ test('the response header is the trace id when it is present', async context => 
   assert.equal(error.requestId, 'header-id');
 });
 
-test('one write action reuses the same idempotency key on every retry', async context => {
+test('a bare gateway 502 retries with the same idempotency key', async context => {
   const keys = [];
   const waits = [];
   let calls = 0;
   context.mock.method(globalThis, 'fetch', async (_path, init) => {
     keys.push(init.headers['Idempotency-Key']);
     calls += 1;
-    if (calls < 3) return jsonResponse(502, { code: 'MODEL_UNAVAILABLE', message: '模型暂不可用。', traceId: 'trace-502' }, 'trace-502');
+    if (calls < 3) return gateway502();
     return jsonResponse(200, { ok: true });
   });
   const result = await request(v1, 'token', 'POST', { name: '合成项目' }, 9, async ms => { waits.push(ms); });
@@ -59,6 +63,23 @@ test('one write action reuses the same idempotency key on every retry', async co
   assert.equal(keys[0], keys[2]);
   assert.match(keys[0], /^[A-Za-z0-9_-]{8,120}$/);
   assert.deepEqual(waits, [200, 400]);
+});
+
+test('a 502 MODEL_UNAVAILABLE sends one request and shows the trace id', async context => {
+  let calls = 0;
+  context.mock.method(globalThis, 'fetch', async () => {
+    calls += 1;
+    return jsonResponse(502, {
+      code: 'MODEL_UNAVAILABLE', message: '模型暂不可用。', details: { model: 'demo' }, traceId: 'trace-model',
+    }, 'trace-model');
+  });
+  const error = await request(v1, 'token', 'POST', { name: '合成项目' }, 9, noWait).catch(error => error);
+  assert.equal(calls, 1);
+  assert.ok(error instanceof ApiError);
+  assert.equal(error.status, 502);
+  assert.equal(error.code, 'MODEL_UNAVAILABLE');
+  assert.equal(error.requestId, 'trace-model');
+  assert.equal(userFacingMessage(error), '模型暂不可用。（追踪号 trace-model）');
 });
 
 test('a later user action receives a new idempotency key', async context => {
@@ -122,7 +143,7 @@ test('a retried read does not send an idempotency key', async context => {
   context.mock.method(globalThis, 'fetch', async (_path, init) => {
     keys.push(init.headers['Idempotency-Key']);
     calls += 1;
-    if (calls === 1) return jsonResponse(502, { code: 'PARSER_UNAVAILABLE', message: '解析暂不可用。', traceId: 'read-502' });
+    if (calls === 1) return gateway502();
     return jsonResponse(200, { items: [] });
   });
   const result = await request('/api/v1/projects', 'token', 'GET', undefined, undefined, noWait);
@@ -160,13 +181,12 @@ test('a chapter version write without a body key fills one generated key into bo
     return jsonResponse(502, { error: { code: 'MODEL_UNAVAILABLE', message: '模型暂不可用。' }, request_id: 'legacy-502' });
   });
   const error = await request(legacy, 'token', 'POST', { lease_token: 'lease' }, undefined, noWait).catch(error => error);
-  assert.equal(seen.length, 3);
+  assert.equal(seen.length, 1);
+  assert.equal(seen[0].header, seen[0].body.idempotency_key);
   assert.match(seen[0].header, /^[A-Za-z0-9_-]{8,120}$/);
-  for (const item of seen) {
-    assert.equal(item.header, seen[0].header);
-    assert.equal(item.body.idempotency_key, seen[0].header);
-  }
   assert.equal(error.status, 502);
+  assert.equal(error.code, 'MODEL_UNAVAILABLE');
+  assert.equal(userFacingMessage(error), '模型暂不可用。（追踪号 legacy-502）');
 
   const next = [];
   context.mock.method(globalThis, 'fetch', async (_path, init) => {

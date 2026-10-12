@@ -14,7 +14,7 @@
 | revision | application-foundation-1；本轮 layout-review-1 |
 | 关联 Task | APP-M2-T001；APP-M2-T002；后续T003、T005、T006、T014～018、T046～050 |
 | 关联 PR | [PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)，待合入 |
-| 本地验收 | QA 于 200a105 签署不通过。D1–D4 与 D6 修复后重新提交 in-review。T002 请求层前端 89 项通过，同样等待项目经理签收。阶段一262后台、72前端、16真实HTTP及GUI仍为历史证据 |
+| 本地验收 | QA 于 200a105 签署不通过。D1–D4 与 D6 修复后重新提交 in-review。T002 请求层前端 90 项通过，同样等待项目经理签收。阶段一262后台、72前端、16真实HTTP及GUI仍为历史证据 |
 | 合入 / 发布 | 未合入 / 未发布 |
 
 ## 当前缺口与完整范围
@@ -93,7 +93,7 @@ getSession已真实实现并由页面消费；实际OpenAPI49路径57操作。�
 
 ## 请求层（仍不标 done）
 
-APP-M2-T002 按 `cba6282` 冻结的错误体和幂等约定提交 in-review。`/api/v1` 读取 `{code, message, details, traceId}`，旧 `/api` 读取 `{error, request_id}`，响应头 `X-Request-ID` 优先。同一次写入只使用一把 `Idempotency-Key`；网络错误、502 和 503 复用该键，最多 3 次（含首次）。409、422、423、428、401 和 500 不自动重试。`POST /api/chapters/{id}/versions` 的请求头与正文 `idempotency_key` 相同，避免服务端因两处不一致返回 409。证据见 [请求层验证](../docs/testing/2026-10-12-request-layer.md) 与 [交付](../docs/delivery/APP-M2-T002.md)。上文「未纳入本轮」里的请求层细化指布局那一轮；本段起 T002 单独提交复核。Issue 与 T001、T002 仍为 in-review。更早几节引用的 258 卡和 356 项是当时留下的旧句；任务计数现由 ISSUE-026 写成看板的 361 项。
+APP-M2-T002 按 `cba6282` 冻结的错误体和幂等约定提交 in-review。`/api/v1` 读取 `{code, message, details, traceId}`，旧 `/api` 读取 `{error, request_id}`，响应头 `X-Request-ID` 优先。同一次写入只使用一把 `Idempotency-Key`。自动重试只覆盖网络错误、没有统一错误体的 502（网关）和 503，并复用该键，最多 3 次（含首次）。带 `code: MODEL_UNAVAILABLE` 的 502 不重试，页面立刻显示追踪号。409、422、423、428、401 和 500 也不自动重试。`POST /api/chapters/{id}/versions` 的请求头与正文 `idempotency_key` 相同，避免服务端因两处不一致返回 409。证据见 [请求层验证](../docs/testing/2026-10-12-request-layer.md) 与 [交付](../docs/delivery/APP-M2-T002.md)。上文「未纳入本轮」里的请求层细化指布局那一轮；本段起 T002 单独提交复核。Issue 与 T001、T002 仍为 in-review。更早几节引用的 258 卡和 356 项是当时留下的旧句；任务计数现由 ISSUE-026 写成看板的 361 项。
 
 | 文件 | 句子 | 处理 |
 |---|---|---|
