@@ -21,6 +21,7 @@ from .idempotency import IDEMPOTENCY_HEADER_DESCRIPTION, bind_request, replayed_
 from .openai_model import openai_provider_from_environment
 from .ports import ModelProvider, Repository, ParserProvider
 from .parsing import LocalTextParser
+from .snippet_publication import include_snippet_routes
 from .workflow_routes import include_workflow_routes
 from .workflow_schemas import v1_error_responses
 from .session_navigation import get_application_session
@@ -251,6 +252,7 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
 
     include_workflow_routes(application, service, current_user,
                             parser_provider if parser_provider is not None else LocalTextParser())
+    include_snippet_routes(application, service, current_user)
 
     @application.get("/{full_path:path}", include_in_schema=False)
     def product_page(full_path: str):

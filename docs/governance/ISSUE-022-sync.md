@@ -55,3 +55,23 @@
 | 运行代码 | 无 | 不改 `backend/bid-core`，不新增测试 | 2026-10-12 |
 
 未合入，未发布。不标 done，不标 closed。并入 `d55d507` 后 `node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：225 份 Markdown、365 项任务、28 项 Issue。」检查程序未修改。
+
+## t078-memory-1
+
+日期：2026-10-12。范围：按方案实现进程内片段发布。T078 改为 in-review，未标 done。ISSUE-022 仍为 in-review。T124 仍 blocked。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。
+
+| 文档 | 本次影响 | 实际处理 | 版本与状态 |
+|---|---|---|---|
+| PRD.md | 无 | 不改正文，不改计数。没有新的页面验收口径 | 2026-10-12 |
+| ROADMAP.md | 无 | 不改正文，不改计数。没有新增或取消任务 | 2026-10-12 |
+| PROJECT_BRIEF.md | 无 | 不改正文，不改计数 | 2026-10-12 |
+| ARCHITECTURE.md | 无 | 片段仍是进程内内存，不写入架构正文，也不进入 `Repository` | 2026-10-12 |
+| TASK_BOARD.md | 有 | T078 改为 in-review。并入 `c9a3cd5` 后看板为 366 项：32 done、7 in-review、7 in-progress、267 planned、49 blocked、4 ready | in-review |
+| PROJECT_STATUS.md | 有 | 写明内存发布已提交复查，未标 done。计数与看板相同 | 2026-10-12 |
+| issues/ISSUE-022.md | 有 | 状态仍 in-review。T078 节改为已实现待复查。T124 仍 blocked | in-review |
+| issues/index.md | 有 | 状态不变。证据改为片段发布核对 | in-review |
+| spec/openapi/demo-v1.json | 有 | 从运行中的接口导出片段路径和模型。大纲草案状态不变 | 已实现路径 |
+| 运行代码 | 有 | `snippet_publication.py`、Protocol、路由和模型。不改 `Repository.read`、`transaction`、`DemoState`、`generation_context.py` | in-review |
+| DOCUMENT_INDEX.md | 有 | 登记交付、代码解释和核对 | 2026-10-12 |
+
+未合入，未发布。不标 done，不标 closed。并入 `c9a3cd5` 后 `python3 -m pytest tests/backend -q` 为 346 passed、2 skipped，跳过原因是 `ICG_DATABASE_URL is unset`。`node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：231 份 Markdown、366 项任务、28 项 Issue。」检查程序未修改。

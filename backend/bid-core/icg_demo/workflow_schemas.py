@@ -498,6 +498,80 @@ class LibraryResult(ResponseBody):
     item: LibraryItem
 
 
+SnippetSyncStatus = Literal["unsynced", "synced", "failed", "blocked"]
+SnippetBlockCode = Literal[
+    "real_report", "hardcoded_promise", "unknown_variable", "unpublished_body", "cross_company_reference"]
+
+
+class SnippetPublicationCreate(RequestBody):
+    product: str = Field(min_length=1, max_length=200)
+    snippet_type: str = Field(min_length=1, max_length=200)
+    variables: list[str] = Field(default_factory=list, max_length=100)
+    source_group: str = Field(default="", max_length=200)
+    boilerplate_group: str = Field(default="", max_length=200)
+    draft_body: str = Field(default="", max_length=100_000)
+
+    @field_validator("variables")
+    @classmethod
+    def variable_names(cls, values):
+        if any(not value.strip() or len(value) > 80 or "{{" in value or "}}" in value for value in values):
+            raise ValueError("变量名必须完整、不超过80字，且不能再包含变量括号")
+        return values
+
+
+class SnippetPublicationDraft(RequestBody):
+    product: str | None = Field(default=None, min_length=1, max_length=200)
+    snippet_type: str | None = Field(default=None, min_length=1, max_length=200)
+    variables: list[str] | None = Field(default=None, max_length=100)
+    source_group: str | None = Field(default=None, max_length=200)
+    boilerplate_group: str | None = Field(default=None, max_length=200)
+    draft_body: str | None = Field(default=None, max_length=100_000)
+
+    @field_validator("variables")
+    @classmethod
+    def variable_names(cls, values):
+        if values is not None and any(
+                not value.strip() or len(value) > 80 or "{{" in value or "}}" in value for value in values):
+            raise ValueError("变量名必须完整、不超过80字，且不能再包含变量括号")
+        return values
+
+
+class SnippetPublication(ResponseBody):
+    id: str
+    company_id: str
+    product: str
+    snippet_type: str
+    variables: list[str]
+    source_group: str
+    boilerplate_group: str
+    draft_body: str
+    published_body: str
+    draft_revision: int
+    published_revision: int
+    kb_sync_status: SnippetSyncStatus
+    updated_at: str
+
+
+class SnippetPublicationList(ResponseBody):
+    items: list[SnippetPublication]
+
+
+class SnippetBlockReason(ResponseBody):
+    code: SnippetBlockCode
+    message: str
+
+
+class SnippetPublishResult(ResponseBody):
+    item: SnippetPublication
+    blocked: bool
+    reasons: list[SnippetBlockReason]
+
+
+class SnippetSyncResult(ResponseBody):
+    item: SnippetPublication
+    synced: bool
+
+
 class V1Error(ResponseBody):
     code: str = Field(description="已冻结错误码；每个 code 只对应一个 HTTP 状态，见 OpenAPI components.x-error-status")
     message: str = Field(description="给用户阅读的中文说明")

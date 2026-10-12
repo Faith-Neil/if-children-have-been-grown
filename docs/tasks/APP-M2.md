@@ -8,7 +8,7 @@
 
 APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每个单位一起实现页面、后台数据/状态/权限及实际产物；模型和数据库按授权用可替换接口，不把未接真实服务当全部业务阻塞。旧59张FE历史卡原样保留。
 
-共259张新卡：190原M1～M6 WBS子项、13独立章节/文件/资料产物、56规则实施/验收子单位。原44规则仍为36项一期完整、3项一期简化、5项二期；某规则拆多卡不能重复算多条规则。本轮T001布局、路由和离开保护为 in-review，T002请求层为 in-review，T008离线CI为 done，T124因依赖未满足为 blocked，其余255张planned，产品尚未完整实现。T14/T15仍在APP-M1按原范围推进，不重拆成员、分册负责人和逐章确认；本拆分时两卡in-progress，最终状态以其任务卡/看板和实际交付为准。T09～13已done的限定子集保留历史，不能把父功能因此判done。
+共259张新卡：190原M1～M6 WBS子项、13独立章节/文件/资料产物、56规则实施/验收子单位。原44规则仍为36项一期完整、3项一期简化、5项二期；某规则拆多卡不能重复算多条规则。本轮T001布局、路由和离开保护为 done，T002请求层为 done，T008离线CI为 done，T078 内存发布为 in-review，T124因 T078 未 done 且 T114 仍 planned 而仍为 blocked，其余254张planned，产品尚未完整实现。T14/T15仍在APP-M1按原范围推进，不重拆成员、分册负责人和逐章确认；本拆分时两卡in-progress，最终状态以其任务卡/看板和实际交付为准。T09～13已done的限定子集保留历史，不能把父功能因此判done。
 
 ## 开工及完成门禁
 
@@ -1190,7 +1190,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T078 · 版本对比与发布（R31 拦截原因）
 <a id="app-m2-t078"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T047](APP-M2.md#app-m2-t047)、[APP-M2-T077](APP-M2.md#app-m2-t077)、[APP-M2-T238](APP-M2.md#app-m2-t238)。
+状态：in-review。关联Issue：[ISSUE-022](../../issues/ISSUE-022.md)（父范围仍为 ISSUE-007）。原范围：一期业务页面/支撑。依赖：[APP-M2-T047](APP-M2.md#app-m2-t047)、[APP-M2-T077](APP-M2.md#app-m2-t077)、[APP-M2-T238](APP-M2.md#app-m2-t238)。内存接口已提交复查，页面未做，不标 done。
 
 原始来源：原交接 §6.3 M2-D01-F3；PRD v1.8 §5.5.1、5.5.2。交付单位：版本对比与发布（R31 拦截原因），同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -1886,7 +1886,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T124 · 完整证据、片段及评分写作计划（确认复用T15）
 <a id="app-m2-t124"></a>
 
-状态：blocked。关联Issue：[ISSUE-022](../../issues/ISSUE-022.md)（父范围仍为 ISSUE-007；Issue 为 in-review，只复核契约草案）。原范围：一期业务页面/支撑。依赖：[APP-M1-T15](APP-M1.md#app-m1-t15) 已在代码中按章确认；[APP-M2-T078](APP-M2.md#app-m2-t078)、[APP-M2-T114](APP-M2.md#app-m2-t114) 仍为 planned。`getOutlinePlan`、`confirmOutlinePlan`、`startGeneration` 已写入 OpenAPI，契约状态为 draft, pending backend review，运行时未实现。2026-10-12 不改模型输入。
+状态：blocked。关联Issue：[ISSUE-022](../../issues/ISSUE-022.md)（父范围仍为 ISSUE-007；Issue 为 in-review，只复核契约草案）。原范围：一期业务页面/支撑。依赖：[APP-M1-T15](APP-M1.md#app-m1-t15) 已在代码中按章确认；[APP-M2-T078](APP-M2.md#app-m2-t078) 为 in-review 且未 done，[APP-M2-T114](APP-M2.md#app-m2-t114) 仍为 planned。`getOutlinePlan`、`confirmOutlinePlan`、`startGeneration` 已写入 OpenAPI，契约状态为 draft, pending backend review，运行时未实现。2026-10-12 不改模型输入。
 
 原始来源：原交接 §6.5 M4-F01-F2；PRD v1.8 §5.7.2、5.7.8。交付单位：完整证据、片段及评分写作计划（确认复用T15），同一产品的页面/后台/数据/权限/输出协作一起验收。
 

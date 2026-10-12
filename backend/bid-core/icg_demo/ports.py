@@ -69,3 +69,29 @@ class VectorStore(Protocol):
     def search(self, vector: list[float], *, company_id: str, status: str, type: str, limit: int = 8) -> list["VectorRecord"]:
         """只返回公司、状态和类型都匹配的记录。"""
         ...
+
+
+class SnippetPublicationStore(Protocol):
+    def list(self, company_id: str) -> list:
+        """只返回该公司的片段。"""
+        ...
+
+    def get(self, company_id: str, snippet_id: str) -> dict:
+        """读取一条。其他公司的 id 按不存在处理。"""
+        ...
+
+    def create(self, company_id: str, payload: dict) -> dict:
+        """服务端分配 id，写入草稿。"""
+        ...
+
+    def save_draft(self, company_id: str, snippet_id: str, payload: dict, draft_revision: int) -> dict:
+        """保存草稿，不替换已发布正文。"""
+        ...
+
+    def publish(self, company_id: str, snippet_id: str, draft_revision: int) -> dict:
+        """发布。被拦截时不改记录和审计。"""
+        ...
+
+    def sync(self, company_id: str, snippet_id: str, published_revision: int) -> dict:
+        """重新同步。失败不把状态写成已同步。"""
+        ...

@@ -35,7 +35,7 @@
 | 依赖 | 是否满足 ready | 证据 |
 |---|---|---|
 | APP-M1-T15 | 满足。逐章确认已在代码里 | 看板 `docs/TASK_BOARD.md` 第 151 行状态 done。确认函数 `backend/bid-core/icg_demo/workflow.py` 第 637–672 行。当前性判断 `backend/bid-core/icg_demo/generation_context.py` 第 83–91 行 |
-| APP-M2-T078 | 不满足。片段版本对比与发布仍是 planned | 任务卡 `docs/tasks/APP-M2.md` 第 1193 行。看板 `docs/TASK_BOARD.md` 第 230 行。`backend/bid-core` 与 `frontend/web` 没有 `kb_sync_status`。`workflow_schemas.py` 第 13 行的 `snippet` 只是资料类型，不是已发布片段版本 |
+| APP-M2-T078 | 仍不满足 T124 开工。内存发布已提交 in-review，未标 done，页面未做 | 任务卡 `docs/tasks/APP-M2.md` 的 T078 为 in-review。看板同一行。`kb_sync_status` 在片段接口上。`generation_context.py` 仍不读已发布片段 |
 | APP-M2-T114 | 不满足。EvidenceDrawer 仍是 planned | 任务卡 `docs/tasks/APP-M2.md` 第 1736 行。看板 `docs/TASK_BOARD.md` 第 266 行。`frontend/web` 没有 `EvidenceDrawer`。矩阵只在 `frontend/web/src/ProjectPages.tsx` 第 129 行把 `evidence_ids` 写回条款 |
 | 契约入口 | 草案已写入，待后台复核，运行时仍没有 | `spec/openapi/demo-v1.json` 第 11203、11408、11690 行是 `getOutlinePlan`、`confirmOutlinePlan`、`startGeneration`，状态为 draft, pending backend review。第 6679 行的 `generate_api_v1_projects__project_id__generate_post` 仍是唯一已实现的生成入口 |
 
@@ -45,7 +45,7 @@
 
 ## 契约草案
 
-operationId 已写入 `spec/openapi/demo-v1.json`，契约状态为 **draft, pending backend review**。本 Issue 为 in-review。后台已复核 `16e0b9e` 并接受，本轮按复核意见改了草案，仍无运行时。APP-M2-T124 仍是 blocked：T078 和 T114 仍 planned，模型输入仍是整章。
+operationId 已写入 `spec/openapi/demo-v1.json`，契约状态为 **draft, pending backend review**。本 Issue 为 in-review。后台已复核 `16e0b9e` 并接受，草案仍无运行时。APP-M2-T124 仍是 blocked：T078 的内存发布为 in-review 但未标 done，T114 仍 planned，模型输入仍是整章。
 
 | 操作 | 路径 | 约定 |
 |---|---|---|
@@ -62,7 +62,7 @@ operationId 已写入 `spec/openapi/demo-v1.json`，契约状态为 **draft, pen
 
 ## T078 计划
 
-只规划，不写代码。新状态放在独立内存存储，不改 `Repository.read` 与 `Repository.transaction`。文件、路径和字段见 [T078 内存方案](../docs/governance/ISSUE-022-t078-plan.md)。两条 GET 返回 ETag，供随后的 If-Match 使用。被拦截的发布仍算成功，必须记下幂等回执。
+内存实现已提交复查，任务为 in-review，未标 done。新状态在独立内存存储，不改 `Repository.read` 与 `Repository.transaction`。文件、路径和字段见 [T078 内存方案](../docs/governance/ISSUE-022-t078-plan.md)。两条 GET 返回 ETag，供随后的 If-Match 使用。被拦截的发布仍算成功，必须记下幂等回执。页面未做。T124 仍 blocked。
 
 ## 影响与分流
 
@@ -80,7 +80,7 @@ operationId 已写入 `spec/openapi/demo-v1.json`，契约状态为 **draft, pen
 
 | 编号 | 可检查的完成条件 | 结果与证据 |
 |---|---|---|
-| AC-01 | 依赖满足后，得分要点小标题、证据版本/片段计划和字数事实要点进入实际模型输入 | 未执行。T078 与 T114 仍 planned。契约只是草案 |
+| AC-01 | 依赖满足后，得分要点小标题、证据版本/片段计划和字数事实要点进入实际模型输入 | 未执行。T078 未标 done，T114 仍 planned。契约只是草案 |
 | AC-02 | 确认继续复用 T15，不把 REF-07 当成剩余缺口 | 已核对。T15 的按章确认在 `workflow.py` 第 637–672 行。剩余缺口对应 REF-08 |
 
 ## 六份基线 impact 与同步表
@@ -106,6 +106,7 @@ operationId 已写入 `spec/openapi/demo-v1.json`，契约状态为 **draft, pen
 | 2026-10-12 | outline-contract-draft-2 / in-review | 按后台对 `16e0b9e` 的复核改草案：独立 `JobStatus`、SSE 与 `cancelJob`、按操作列出错误、ETag 与整份计划版本。T078 计划改为独立前缀。仍无运行时 | [契约核对](../docs/testing/2026-10-12-t124-dependencies.md) |
 | 2026-10-12 | outline-contract-draft-3 / in-review | 按对 `046f8e5` / `fe9582c` 的复审补草案：快照与两个引用码、423、事件 type 与 payload、`recoverable`、取消响应不强制 Location、查询与 SSE 去掉 403。503 `SECRET_KEY_UNAVAILABLE` 不自动重试。仍无运行时。不改任务计数 | [契约核对](../docs/testing/2026-10-12-t124-dependencies.md) |
 | 2026-10-12 | t078-plan-etag-receipt / in-review | 只补方案两句：GET 返回 ETag；被拦截的发布仍算成功并记下幂等回执。不写代码。T078 仍 planned | [T078 内存方案](../docs/governance/ISSUE-022-t078-plan.md) |
+| 2026-10-12 | t078-memory-1 / in-review | 按方案实现进程内片段发布。T078 改为 in-review，未标 done。T124 仍 blocked。不改三份基线的任务计数 | [交付](../docs/delivery/APP-M2-T078.md) |
 
 ## 本地验收与后续合入发布
 
