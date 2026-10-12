@@ -220,7 +220,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review（QA REV-M0-T28 签署通过；等项目经理设置 done） |
+| 状态 | done（QA 5e4a627，PM 确认 REV-M0-T28；未合入/未发布） |
 | 估算 | 4小时以内 |
 | 关联 Issue | [ISSUE-018](../../issues/ISSUE-018.md) |
 | 依赖 | [BE-M0-T10](BE-M0.md#be-m0-t10) |
@@ -228,13 +228,14 @@
 | 完成时交付 | [实际交付](../delivery/BE-M0-T11.md) |
 | 代码解释 | [实际代码解释](../code/BE-M0-T11.md) |
 
-范围：把 24 小时幂等回执和登录会话写入 MySQL，多个进程可见，重启后未过期数据仍在。未设置 `ICG_DATABASE_URL` 时仍用内存仓库。租约和业务聚合不在本卡。卡片为 in-review，不标 done。
+范围：把 24 小时幂等回执和登录会话写入 MySQL，多个进程可见，重启后未过期数据仍在。未设置 `ICG_DATABASE_URL` 时仍用内存仓库。租约和业务聚合不在本卡。卡片已依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done。ISSUE-018 仍为 in-progress。
 
 - [x] Q2：数据库连接必须移出模块导入，以及导入时对 `create_app()` 的调用。连接串已设置但不可达时，测试要在几秒内给出明确失败，不能是收集错误。连接使用较短的 `connect_timeout`。
 - [x] 一个进程写入的回执能被另一个进程重放。
 - [x] 重启后未过期回执和登录 token 仍有效。
 - [x] 失败不保存回执。内存 2048 条上限不套到 MySQL。
 - [x] QA M1（ISSUE-025，签署 `b20b844`）：真实表落地后要能 `alembic downgrade base` 再 `upgrade head`。mysql 标记测试做了这次往返。现有 `backend-mysql` 的 `pytest -m mysql` 会执行它。本卡不改工作流。DevOps 若要单独一步，可以自己加进该作业。
+- [x] QA 5e4a627，PM 确认 REV-M0-T28。本卡标为 done。ISSUE-018 仍为 in-progress。REV-M0-T28 仍为 in-review。
 
 <a id="be-m0-t12"></a>
 

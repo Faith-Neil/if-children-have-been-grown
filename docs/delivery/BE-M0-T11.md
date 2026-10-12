@@ -17,9 +17,9 @@
 
 - 2026-10-12，BE-M0，[ISSUE-018](../../issues/ISSUE-018.md)。
 - 分支 `codex/repository-foundation`。未新开 PR，未合入，未发布。
-- 本地验收已做。QA REV-M0-T28 已正式签署通过。等待项目经理确认后才能标 done。
+- 本地验收已做。QA 5e4a627，PM 确认 REV-M0-T28，本卡为 done。ISSUE-018 仍为 in-progress。REV-M0-T28 仍为 in-review。未合入，未发布。
 - QA 已复验 BE-M0-T15 的 Q1～Q3（159b96c，核对 f989af7）。该卡当时仍为 in-review。
-- 随后项目经理于 18:01 确认 BE-M0-T15 为 done。用户已在 Word/WPS 目视 OK。ISSUE-027 已 closed。本卡 T11 仍为 in-review。
+- 随后项目经理于 18:01 确认 BE-M0-T15 为 done。用户已在 Word/WPS 目视 OK。ISSUE-027 已 closed。本卡已依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done。ISSUE-018 仍为 in-progress。
 
 ## 完成内容与变更文件
 
