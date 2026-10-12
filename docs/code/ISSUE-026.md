@@ -30,3 +30,5 @@
 ## 跟进
 
 AI-01 进入 in-review 后，三份基线改成 8 in-review、49 blocked。这次仍然没有应用代码。请求层里带 `MODEL_UNAVAILABLE` 的 502 不自动重试，那是另一次提交，本文件不改那套规则。上文「仍再试全部 502」只描述第一次对齐时没有动过的代码。
+
+`84a3fca` 之后三份基线改成 364 项、27 done。仍然没有应用代码，不改 `api.ts` 和 `backend/`。核对见 [基线复核](../testing/2026-10-12-issue-026-baseline-count-check.md)。

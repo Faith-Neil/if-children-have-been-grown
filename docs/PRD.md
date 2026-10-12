@@ -16,7 +16,7 @@
 
 T14/T15已按原PRD §2.3、§5.1.4、§5.7.2本地验收多人分工：项目成员限定可见范围；项目负责人、分册负责人、本节编写人分别操作全项目、本册、本节；只读成员不写入。设置页维护成员和分册负责人，参与分册可暂时留空；编辑台分配章节并逐节保存/确认方案，系统编制册缺负责人不能确认。人员交接保留正文/历史及私有草稿，旧编辑权失效。团队、基本信息和方案旧表单须明确核对，不能拿刷新后的版本号覆盖新内容。实际验证见[成员验收](testing/2026-10-10-project-assignments.md)；完整公司角色管理和分册定稿继续实施。
 
-后续完整范围已映射[259张APP-M2任务卡](tasks/APP-M2.md)与[47组页面/44规则](testing/icg-task-mapping.md)。原一期完整、一期简化和二期范围不变。项目共363项：26done、9in-review、7in-progress、268planned、49blocked、4ready。APP-M2中T001与T002为 in-review，T008为 done，T124为 blocked，其余255卡planned。拆分文档不等于实现完成。
+后续完整范围已映射[259张APP-M2任务卡](tasks/APP-M2.md)与[47组页面/44规则](testing/icg-task-mapping.md)。原一期完整、一期简化和二期范围不变。项目共364项：27done、9in-review、7in-progress、268planned、49blocked、4ready。APP-M2中T001与T002为 in-review，T008为 done，T124为 blocked，其余255卡planned。拆分文档不等于实现完成。
 
 ISSUE-009 / APP-M2-T001按原角色矩阵补可信会话与导航、原布局及页面地址/守卫；原8角色叠加和资源权限保持目标，当前三种演示身份明确兼容映射。会话/页面守卫阶段262后台、72前端、真实HTTP16及GUI通过，撤权后收紧旧权限、迟到响应不回填。整个T001、OIDC和完整资料库仍未完成，具体见[阶段交付](delivery/APP-M2-T001.md)。
 

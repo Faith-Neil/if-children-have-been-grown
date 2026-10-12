@@ -27,3 +27,7 @@
 看板现为 362 项：26 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready。AI-01 为 in-review。三份基线的计数字句改成同一组。ARCHITECTURE 第21行、ROADMAP 第19行、PROJECT_BRIEF 第68行仍不改。不改 `api.ts`、后台和 `docs/reference/`。Issue 仍为 in-review。
 
 PR #3 仍待合入。本轮不新建 PR，不合并，不发布。
+
+## 跟进：364 项、27 done
+
+核对提交 `84a3fca4c5e8f59410d2e0a100bc358100d0b0b6`。看板表格为 364 项：27 done、9 in-review、7 in-progress、268 planned、49 blocked、4 ready。当时 PRD 第19行、ROADMAP 第17行、PROJECT_BRIEF 排期行仍是 363 项、26 done。结论不是 no change needed。三句已改成与看板相同的 364 项、27 done。新增的 done 卡是 REV-M0-T10。in-review 仍是九张，BE-M0-T15 仍 in-review。ARCHITECTURE 第21行、ROADMAP 第19行、PROJECT_BRIEF 第68行仍不改。不改 `api.ts`、后台和 `docs/reference/`。Issue 仍为 in-review。记录见 [基线复核](../testing/2026-10-12-issue-026-baseline-count-check.md)。

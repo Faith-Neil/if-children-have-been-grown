@@ -10,10 +10,10 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
-| D-001 | 2026-10-12 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 / AI-01；ISSUE-009 / APP-M2-T001 | 363项26done、9in-review、49blocked。T14 与 T15 仍 in-review。没有幂等键的写入不重试。E2E-D8 次要文字至少 4.5:1。T001 与 T002 仍 in-review |
-| D-002 | 2026-10-12 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025；ISSUE-027 / BE-M0-T15 | 第19行为363项26done、9in-review、268planned、49blocked、其余255卡planned |
+| D-001 | 2026-10-12 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 / AI-01；ISSUE-009 / APP-M2-T001 | 364项27done、9in-review、49blocked。T14 与 T15 仍 in-review。T001 与 T002 仍 in-review |
+| D-002 | 2026-10-12 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025；ISSUE-027 / BE-M0-T15 | 第19行为364项27done、9in-review、268planned、49blocked、其余255卡planned |
 | D-003 | 2026-10-12 | [前端架构](ARCHITECTURE.md) | 前端架构 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-011 / AI-02；ISSUE-016 / AI-03 | 同源存储和替换接口；业务库为 MySQL 8，嵌入与向量库定为 RAGFlow，适配器未实现 |
-| D-004 | 2026-10-12 | [前端路线图](ROADMAP.md) | 计划 | 参考实施入口 / g1.1 | 执行入口 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15 | 363项26done、9in-review、268planned、49blocked。本卡更新了计数。T124仍blocked |
+| D-004 | 2026-10-12 | [前端路线图](ROADMAP.md) | 计划 | 参考实施入口 / g1.1 | 执行入口 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15 | 364项27done、9in-review、268planned、49blocked。本卡更新了计数。T124仍blocked |
 | D-005 | 2026-10-09 | [UX 规范](design/ux.md) | 设计 | 原文 | 参考 | FE-M0-T01 | 从ui/ux.md迁移，无业务内容改写 |
 | D-006 | 2026-10-09 | [产品 PRD v1.8](reference/product/prd-mvp-v1.8.md) | 产品参考 | v1.8 | 供评审 | FE-M0-T01 | 已脱敏原文，不受治理修订覆盖 |
 | D-007 | 2026-10-09 | [资料库字典 v1.9](reference/product/kb-data-dictionary-v1.9.md) | 数据参考 | v1.9 | 供评审 | FE-M0-T01 | 逻辑字典，不是数据库迁移 |
@@ -26,7 +26,7 @@
 | D-014 | 2026-10-09 | [首轮交付](delivery/2026-10-09-repository-foundation.md) | 交付 | 首轮快照 | 历史证据 | FE-M0-T01 | 保留原交付事实；逐任务归档见D-030 |
 | D-015 | 2026-10-12 | [协作流程](governance/WORKFLOW.md) | 治理 | g1.1 | 当前规则 | ISSUE-007 / APP-M1；ISSUE-012 | 同一任务核对页面、后台与业务证据；开发者只标 in-review，治理块不升版 |
 | D-016 | 2026-10-09 | [本次同步表](governance/ISSUE-003-sync.md) | 治理 | g1.0 | 本次记录 | ISSUE-003 / FE-M0-T02 | 四份基线及看板、进度、索引的影响评估 |
-| D-017 | 2026-10-12 | [任务看板](TASK_BOARD.md) | 执行 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-022 / T124 | 363项26done、9in-review、7in-progress、268planned、49blocked、4ready。AI-01为in-review，T14与T15 in-review，T124仍blocked |
+| D-017 | 2026-10-12 | [任务看板](TASK_BOARD.md) | 执行 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-022 / T124 | 364项27done、9in-review、7in-progress、268planned、49blocked、4ready。REV-M0-T10为done，T124仍blocked |
 | D-018 | 2026-10-12 | [FE-M0 任务卡](tasks/FE-M0.md) | 基线与基础 | g1.1 | 当前计划 | ISSUE-006 / BE-M0-T01；ISSUE-010 | 前置基线、治理、契约与基础；T04仍待ISSUE-010 |
 | D-019 | 2026-10-09 | [FE-M1 任务卡](tasks/FE-M1.md) | 项目主流程 | g1.0 | 当前计划 | FE-M1 | 项目、招标解析、矩阵、事实 |
 | D-020 | 2026-10-09 | [FE-M2 任务卡](tasks/FE-M2.md) | 章节生成 | g1.0 | 当前计划 | FE-M2 | 方案确认、任务进度、修正与转人工 |
@@ -58,7 +58,7 @@
 | D-046 | 2026-10-09 | [REV任务](tasks/REV-M0.md) | 审查 | g1.1 | 当前 | ISSUE-004 | 目录/业务/技术与brief交付 |
 | D-047 | 2026-10-09 | [业务审查](reviews/2026-10-09-business-readiness.md) | 业务 | review-1 | 待决定 | REV-M0-T01 / ISSUE-005 | 场景矩阵与12项设计/验收发现 |
 | D-048 | 2026-10-09 | [技术审查](reviews/2026-10-09-technical-readiness.md) | 技术 | review-1 | 待决定 | REV-M0-T01 / ISSUE-005 | 6类契约缺口与图片目录对照 |
-| D-049 | 2026-10-12 | [接手brief](PROJECT_BRIEF.md) | 接手 | brief-9 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-009 / T001；ISSUE-022 | 排期为363项26done、9in-review、49blocked。AI-01为in-review。ISSUE-023已closed。T124仍blocked |
+| D-049 | 2026-10-12 | [接手brief](PROJECT_BRIEF.md) | 接手 | brief-9 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-009 / T001；ISSUE-022 | 排期为364项27done、9in-review、49blocked。AI-01为in-review。ISSUE-023已closed。T124仍blocked |
 | D-050 | 2026-10-09 | [工作区来源](source/WORKSPACE_MATERIALS.md) | 历史资料 | snapshot-1 | 已登记 | OPS-M0-T01 | 34份ICG资料、原路径与初次指纹 |
 | D-051 | 2026-10-09 | [同步工具说明](../tools/workspace-sync/README.md) | 运维 | sync-1 | 当前 | OPS-M0-T01 | 自动WIP、分叉、凭据、外部状态 |
 | D-052 | 2026-10-09 | [同步执行器](../tools/workspace-sync/sync.cjs) | 工程代码 | sync-1 | 回归通过 | OPS-M0-T01 | 单实例、双向Git、稳定期与出站检查 |
@@ -293,7 +293,7 @@
 | D-280 | 2026-10-12 | [请求层同步](governance/APP-M2-T002-sync.md) | 治理 | request-layer-2 | 已核对 | ISSUE-009 / APP-M2-T002 | 不改计数和 OpenAPI；ISSUE-021 补键后解除没键不重试 |
 | D-281 | 2026-10-12 | [BE-M0-T08/T10 MySQL签署复核](testing/2026-10-12-be-m0-t10-mysql-signoff.md) | 验证 | qa-signoff-mysql | 本地通过 | ISSUE-013 / REV-M0-T09 | 真实MySQL 8.4.6迁移往返、mysql 2/2、320+2skip |
 | D-282 | 2026-10-12 | [MySQL签署复核交付](delivery/REV-M0-T09.md) | 交付 | qa-signoff-mysql | 已本地验收 | ISSUE-013 / REV-M0-T09 | 无代码；结论与Q1～Q3 |
-| D-283 | 2026-10-12 | [ISSUE-026](../issues/ISSUE-026.md) | 变更 | count-sync-1 | in-review | ISSUE-026 | 三份基线任务计数对齐当时看板；不标 closed |
+| D-283 | 2026-10-12 | [ISSUE-026](../issues/ISSUE-026.md) | 变更 | count-sync-3 | in-review | ISSUE-026 | 三份基线改为 364项27done；不标 closed |
 | D-284 | 2026-10-12 | [计数对齐交付](delivery/ISSUE-026.md) | 交付 | count-sync-1 | in-review | ISSUE-026 | 无新任务卡；不标 done |
 | D-285 | 2026-10-12 | [计数对齐说明](code/ISSUE-026.md) | 说明 | count-sync-1 | 当前 | ISSUE-026 | 无应用代码；请求层重试未改 |
 | D-286 | 2026-10-12 | [计数核对](testing/2026-10-12-issue-026-counts.md) | 验证 | count-sync-1 | 已执行 | ISSUE-026 | 当时看板 361 项与三份正文一致 |
@@ -319,6 +319,7 @@
 | D-306 | 2026-10-12 | [Word 默认版式](standards/word-default-style.md) | 标准 | style-1 | 当前 | ISSUE-027 / BE-M0-T15 | 用户确认原文。封面标题不把黑体当作拉丁回退 |
 | D-307 | 2026-10-12 | [BE-M0-T15 Word版式签署复核](testing/2026-10-12-be-m0-t15-word-style-signoff.md) | 验证 | qa-signoff-word | XML核对通过 | ISSUE-013 / REV-M0-T10 | 四份导出全过；仅LibreOffice渲染，Word/WPS待用户确认 |
 | D-308 | 2026-10-12 | [Word版式签署交付](delivery/REV-M0-T10.md) | 交付 | qa-signoff-word | 已本地验收 | ISSUE-013 / REV-M0-T10 | 检查器与样张；Q1～Q3 |
+| D-309 | 2026-10-12 | [026基线复核](testing/2026-10-12-issue-026-baseline-count-check.md) | 验证 | count-sync-3 | 已执行 | ISSUE-026 | 84a3fca 看板 364项27done；三份正文已改成同一组 |
 
 ## 更新记录
 
@@ -378,6 +379,7 @@
 | 2026-10-12 | ISSUE-027 / BE-M0-T15 | 封面下一页分节、无标题正文不重复封面标题、目录标题与占位文字、承诺函封面项目名称、封面标题三种属性都是方正小标宋。规格记入 standards/word-default-style.md。不改任务计数 |
 | 2026-10-12 | ISSUE-009 / APP-M2-T001 | E2E-D8：次要文字改为 #4e5969，待办圆圈改为 #9a5608，对比度至少 4.5:1。Playwright 13 passed。仍 in-review，不改后台，不改任务计数 |
 | 2026-10-12 | ISSUE-013 / REV-M0-T10 | QA签署BE-M0-T15 Word默认版式XML核对（T15仍in-review待用户确认）；364项27done |
+| 2026-10-12 | ISSUE-026 | 在 84a3fca 重数：看板 364项27done、9in-review、7in-progress、268planned、49blocked、4ready。PRD、ROADMAP、PROJECT_BRIEF 从 363项26done 改成同一组。不新增任务，不改 api.ts，不改后台，不改 docs/reference。Issue 仍为 in-review |
 
 ## 缺失输入
 
