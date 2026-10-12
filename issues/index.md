@@ -23,10 +23,10 @@
 | [ISSUE-004](ISSUE-004.md) | workflow | P1 | closed | [双向同步与审查验收](../docs/testing/2026-10-09-workspace-sync.md) | PR #3 待合入 | 未发布 | 全工作区同步、目录/业务/技术审查与brief | 持续运行；按ISSUE-005推进基线与契约决定 |
 | [ISSUE-005](ISSUE-005.md) | decision | P0 | blocked | 两册范围已确认，其他门禁未完成；[一期建议](../docs/decisions/phase-one-scope.md) | 评审准备在PR #3待合入 | 未发布 | 业务完整性与生产契约尚未冻结 | T03准备中；本地demo独立推进，生产外部服务与环境仍待明确 |
 | [ISSUE-006](ISSUE-006.md) | change | P1 | closed | [后台、记录、HTTP与页面验收](../docs/testing/2026-10-10-backend-demo.md) | PR #3 待合入 | 未发布 | 后端开发准备与本地demo | 本地验收完成；继续生产身份、持久数据库与完整业务规则 |
-| [ISSUE-007](ISSUE-007.md) | change | P0 | in-progress | T07范围及T09～15限定任务本地验收；[成员记录](../docs/testing/2026-10-10-project-assignments.md) | PR #3 待合入 | 未发布 | 保留ICG布局与流程，逐页接通后台 | T001共同底座开工，T008离线CI在ISSUE-012复核，其余257卡planned；完整资料、片段/段落、规则、生成闭环及正式Word继续 |
+| [ISSUE-007](ISSUE-007.md) | change | P0 | in-progress | T07范围及T09～15限定任务本地验收；[成员记录](../docs/testing/2026-10-10-project-assignments.md) | PR #3 待合入 | 未发布 | 保留ICG布局与流程，逐页接通后台 | T001共同底座开工，T008离线CI已本地验收（ISSUE-012），其余257卡planned；完整资料、片段/段落、规则、生成闭环及正式Word继续 |
 | [ISSUE-008](ISSUE-008.md) | bug | P0 | closed | 后台229、前端58及实际资料/模板页面通过；[验证](../docs/testing/2026-10-11-library-basis.md) | PR #3 待合入 | 未发布 | 资料库旧表单刷新版本后覆盖新内容 | T16限定保护本地done；完整资料/模板继续ISSUE-007 |
 | [ISSUE-009](ISSUE-009.md) | change | P0 | in-progress | 会话阶段262后台、72前端、16真实HTTP及GUI通过；完整T001未验收 | PR #3 待合入 | 未发布 | 共同页面底座与完整资料库前置 | 继续实际布局/浏览器路由/离开保护，再元数据/敏感展示和完整资料库 |
-| [ISSUE-012](ISSUE-012.md) | workflow | P1 | in-review | 工作流已写入，Actions 结果待回填；[验证](../docs/testing/2026-10-12-offline-ci.md) | PR #3 待合入 | 未发布 | 离线检查纳入 GitHub Actions | 推送后记录三个作业的实际结果，再决定本地关闭 |
+| [ISSUE-012](ISSUE-012.md) | workflow | P1 | closed | 三作业通过；[验证](../docs/testing/2026-10-12-offline-ci.md) | PR #3 待合入 | 未发布 | 离线检查纳入 GitHub Actions | 本地验收完成；合入与发布另记。`buildTheme` 未实现 |
 | [ISSUE-013](ISSUE-013.md) | change | P1 | closed | 会话实时HTTP15/15、后台262、前端72复跑通过；[复跑](../docs/testing/2026-10-12-qa-rerun.md) | PR #3 待合入 | 未发布 | 会话真实HTTP复核入库与QA复跑记录 | REV-M0-T02本地done；CI显式运行会话脚本，固定Node 24 |
 | [ISSUE-015](ISSUE-015.md) | change | P1 | in-progress | 计划评审通过；smoke_t06 12/12、Word渲染留证；[记录](../docs/testing/2026-10-12-t06-smoke-word-render.md) | PR #3 待合入 | 未发布 | APP-M1-T06端到端验收计划与缺口执行 | 后端处理W1～W4；继续缺口2、4～7 |
 <!-- issue-board:end -->

@@ -21,12 +21,12 @@
 | D-009 | 2026-10-09 | [基线差异](decisions/baseline-gaps.md) | 决策 | 初版 | 待评审 | FE-M0-T01 | 16项版本、范围与选型差异 |
 | D-010 | 2026-10-09 | [PR #1 评审](reviews/pr-1-integration.md) | 协作 | 初版 / g1.0后续记录 | 待整合 | ISSUE-001 / ISSUE-003 | 系统/前端分层及后续规则、索引整合提醒 |
 | D-011 | 2026-10-09 | [原型说明](../prototypes/bidding-ux/README.md) | 原型 | 静态演示 | 当前 | ISSUE-002 / FE-M0-T01 | 离线打开、启动方法与模拟范围 |
-| D-012 | 2026-10-12 | [Issue 看板](../issues/index.md) | 问题 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-012；ISSUE-013 | 变更、版本、Bug、验收及合入分列；012离线CI复核中 |
+| D-012 | 2026-10-12 | [Issue 看板](../issues/index.md) | 问题 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-012；ISSUE-013 | 变更、版本、Bug、验收及合入分列；012离线CI已本地验收 |
 | D-013 | 2026-10-09 | [首轮测试](testing/2026-10-09-repository-foundation.md) | 验证 | 首轮快照 | 已验收 | ISSUE-002 / FE-M0-T01 | 编辑锁6项回归及当时链接校验 |
 | D-014 | 2026-10-09 | [首轮交付](delivery/2026-10-09-repository-foundation.md) | 交付 | 首轮快照 | 历史证据 | FE-M0-T01 | 保留原交付事实；逐任务归档见D-030 |
 | D-015 | 2026-10-12 | [协作流程](governance/WORKFLOW.md) | 治理 | g1.1 | 当前规则 | ISSUE-007 / APP-M1；ISSUE-012 | 同一任务核对页面、后台与业务证据；补离线CI命令，治理块不升版 |
 | D-016 | 2026-10-09 | [本次同步表](governance/ISSUE-003-sync.md) | 治理 | g1.0 | 本次记录 | ISSUE-003 / FE-M0-T02 | 四份基线及看板、进度、索引的影响评估 |
-| D-017 | 2026-10-12 | [任务看板](TASK_BOARD.md) | 执行 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-012 / T008 | APP产品联调、QA复跑与离线CI复核分列 |
+| D-017 | 2026-10-12 | [任务看板](TASK_BOARD.md) | 执行 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-012 / T008 | APP产品联调、QA复跑与离线CI本地验收分列 |
 | D-018 | 2026-10-10 | [FE-M0 任务卡](tasks/FE-M0.md) | 基线与基础 | g1.1 | 当前计划 | ISSUE-006 / BE-M0-T01 | 前置基线、治理、契约与基础 |
 | D-019 | 2026-10-09 | [FE-M1 任务卡](tasks/FE-M1.md) | 项目主流程 | g1.0 | 当前计划 | FE-M1 | 项目、招标解析、矩阵、事实 |
 | D-020 | 2026-10-09 | [FE-M2 任务卡](tasks/FE-M2.md) | 章节生成 | g1.0 | 当前计划 | FE-M2 | 方案确认、任务进度、修正与转人工 |
@@ -58,7 +58,7 @@
 | D-046 | 2026-10-09 | [REV任务](tasks/REV-M0.md) | 审查 | g1.1 | 当前 | ISSUE-004 | 目录/业务/技术与brief交付 |
 | D-047 | 2026-10-09 | [业务审查](reviews/2026-10-09-business-readiness.md) | 业务 | review-1 | 待决定 | REV-M0-T01 / ISSUE-005 | 场景矩阵与12项设计/验收发现 |
 | D-048 | 2026-10-09 | [技术审查](reviews/2026-10-09-technical-readiness.md) | 技术 | review-1 | 待决定 | REV-M0-T01 / ISSUE-005 | 6类契约缺口与图片目录对照 |
-| D-049 | 2026-10-12 | [接手brief](PROJECT_BRIEF.md) | 接手 | brief-8 | 当前 | ISSUE-007 / APP-M1；ISSUE-008 / T16；ISSUE-009 / T001；ISSUE-012 | 同一产品协同、示例资源、会话阶段、QA复跑计数与离线CI复核 |
+| D-049 | 2026-10-12 | [接手brief](PROJECT_BRIEF.md) | 接手 | brief-8 | 当前 | ISSUE-007 / APP-M1；ISSUE-008 / T16；ISSUE-009 / T001；ISSUE-012 | 同一产品协同、示例资源、会话阶段、QA复跑计数与离线CI本地验收 |
 | D-050 | 2026-10-09 | [工作区来源](source/WORKSPACE_MATERIALS.md) | 历史资料 | snapshot-1 | 已登记 | OPS-M0-T01 | 34份ICG资料、原路径与初次指纹 |
 | D-051 | 2026-10-09 | [同步工具说明](../tools/workspace-sync/README.md) | 运维 | sync-1 | 当前 | OPS-M0-T01 | 自动WIP、分叉、凭据、外部状态 |
 | D-052 | 2026-10-09 | [同步执行器](../tools/workspace-sync/sync.cjs) | 工程代码 | sync-1 | 回归通过 | OPS-M0-T01 | 单实例、双向Git、稳定期与出站检查 |
@@ -151,8 +151,8 @@
 | D-138 | 2026-10-11 | [成员代码解释](code/APP-M1-T14.md) | 说明 | reference-members-1 | 当前 | ISSUE-007 / APP-M1-T14 | 设置页面、角色范围、事务保存、草稿私有 |
 | D-139 | 2026-10-11 | [逐章确认交付](delivery/APP-M1-T15.md) | 交付 | reference-members-1 | 本地done | ISSUE-007 / APP-M1-T15 | 独立方案/权限、真实旧表单核对和两册 |
 | D-140 | 2026-10-11 | [逐章代码解释](code/APP-M1-T15.md) | 说明 | reference-members-1 | 当前 | ISSUE-007 / APP-M1-T15 | 单章确认依赖、逐次生成权限和旧行保护 |
-| D-141 | 2026-10-12 | [完整后续任务](tasks/APP-M2.md) | 实施计划 | icg-task-plan-1 | T008 in-review，其余按卡 | ISSUE-007 / APP-M1-T07 / APP-M2；ISSUE-012 | 每卡来源/接口核对/权限失败/依赖验收与交付；T008本轮只记离线CI |
-| D-142 | 2026-10-12 | [逐页逐规则映射](testing/icg-task-mapping.md) | 范围核对 | icg-task-map-1 | 已核对范围，功能未完成 | ISSUE-007 / APP-M1-T07；ISSUE-012 | 190原M1～M6 WBS、47组/44规则；T008状态改为in-review |
+| D-141 | 2026-10-12 | [完整后续任务](tasks/APP-M2.md) | 实施计划 | icg-task-plan-1 | T008 done，其余按卡 | ISSUE-007 / APP-M1-T07 / APP-M2；ISSUE-012 | 每卡来源/接口核对/权限失败/依赖验收与交付；T008本轮只记离线CI |
+| D-142 | 2026-10-12 | [逐页逐规则映射](testing/icg-task-mapping.md) | 范围核对 | icg-task-map-1 | 已核对范围，功能未完成 | ISSUE-007 / APP-M1-T07；ISSUE-012 | 190原M1～M6 WBS、47组/44规则；T008状态改为done |
 | D-143 | 2026-10-11 | [项目范围核对](../backend/bid-core/icg_demo/project_access.py) | 代码 | reference-members-1 | 回归通过 | ISSUE-007 / APP-M1-T14 | 公司操作角色与项目成员/分册/本节共同判定 |
 | D-144 | 2026-10-11 | [团队交接](../backend/bid-core/icg_demo/project_team.py) | 代码 | reference-members-1 | 回归通过 | ISSUE-007 / APP-M1-T14、T15 | 分工资格、交接理由、旧锁撤销和每人草稿保留 |
 | D-145 | 2026-10-11 | [真实成员HTTP](../backend/bid-core/smoke_members.py) | 验证工具 | reference-members-1 | 实际端口通过 | ISSUE-007 / APP-M1-T14、T15 | 合成多账号独立确认/交接/私有稿与两册真实下载 |
@@ -197,12 +197,12 @@
 | D-184 | 2026-10-12 | [T06贯通冒烟脚本](../backend/bid-core/smoke_t06.py) | 验证 | t06-plan-2 | 12项通过 | ISSUE-015 / REV-M0-T04 | 自启空闲端口，合成数据，退出0/1 |
 | D-185 | 2026-10-12 | [技术册渲染截图](testing/assets/t06-word-technical-render.png) | 证据 | t06-plan-2 | LibreOffice渲染 | ISSUE-015 / REV-M0-T04 | 内部稿首页，无标题样式 |
 | D-186 | 2026-10-12 | [SLA表格渲染截图](testing/assets/t06-word-sla-table-render.png) | 证据 | t06-plan-2 | LibreOffice渲染 | ISSUE-015 / REV-M0-T04 | 表格不越界，表头无区分 |
-| D-187 | 2026-10-12 | [离线CI Issue](../issues/ISSUE-012.md) | 工作流 | offline-ci-1 | in-review | ISSUE-012 / APP-M2-T008 | 三个并行作业；Actions结果回填前不关闭 |
-| D-188 | 2026-10-12 | [离线CI交付](delivery/APP-M2-T008.md) | 交付 | offline-ci-1 | in-review | ISSUE-012 / APP-M2-T008 | 实际作业、偏差和未标done的原因 |
+| D-187 | 2026-10-12 | [离线CI Issue](../issues/ISSUE-012.md) | 工作流 | offline-ci-1 | closed（本地验收） | ISSUE-012 / APP-M2-T008 | 三个并行作业在 cf2c2a1 通过；未合入、未发布 |
+| D-188 | 2026-10-12 | [离线CI交付](delivery/APP-M2-T008.md) | 交付 | offline-ci-1 | 已本地验收 | ISSUE-012 / APP-M2-T008 | 实际作业、计数和 buildTheme 未执行 |
 | D-189 | 2026-10-12 | [离线CI代码解释](code/APP-M2-T008.md) | 说明 | offline-ci-1 | 当前 | ISSUE-012 / APP-M2-T008 | 作业顺序、缓存、会话脚本与smoke_t06分步 |
-| D-190 | 2026-10-12 | [离线CI验证](testing/2026-10-12-offline-ci.md) | 验证 | offline-ci-1 | 待Actions回填 | ISSUE-012 / APP-M2-T008 | 命令与QA基线；buildTheme未执行；不含soffice |
+| D-190 | 2026-10-12 | [离线CI验证](testing/2026-10-12-offline-ci.md) | 验证 | offline-ci-1 | 本地通过 | ISSUE-012 / APP-M2-T008 | 运行 38200746746：262/15/12/72/35；不含soffice |
 | D-191 | 2026-10-12 | [离线CI同步](governance/ISSUE-012-sync.md) | 治理 | offline-ci-1 | 已核对 | ISSUE-012 / APP-M2-T008 | 三件套无正文影响的理由 |
-| D-192 | 2026-10-12 | [离线CI工作流](../.github/workflows/offline-check.yml) | 工程 | offline-ci-1 | in-review | ISSUE-012 / APP-M2-T008 | Python 3.13.5、Node 24.9.0、pnpm 11.25.0；无密钥 |
+| D-192 | 2026-10-12 | [离线CI工作流](../.github/workflows/offline-check.yml) | 工程 | offline-ci-1 | 本地通过 | ISSUE-012 / APP-M2-T008 | Python 3.13.5、Node 24.9.0、pnpm 11.25.0；无密钥 |
 
 ## 更新记录
 
@@ -224,7 +224,7 @@
 | 2026-10-12 | ISSUE-013 / REV-M0-T02 | QA独立复跑、会话实时HTTP脚本入库及交付/说明；338项15done |
 | 2026-10-12 | ISSUE-015 / REV-M0-T03 | APP-M1-T06验收计划in-review；339项15done/1in-review |
 | 2026-10-12 | ISSUE-015 / REV-M0-T03、T04 | 计划评审通过；smoke_t06、Word渲染记录、2截图；340项17done |
-| 2026-10-12 | ISSUE-012 / APP-M2-T008 | 登记离线CI工作流并纳入smoke_t06；T008为in-review，340项17done、1in-review、266planned |
+| 2026-10-12 | ISSUE-012 / APP-M2-T008 | 离线CI在 cf2c2a1 三作业通过；T008本地done，340项18done、8in-progress、266planned；未合入、未发布 |
 
 ## 缺失输入
 

@@ -1,6 +1,6 @@
-为什么有这个文件：记录离线 CI 的命令、版本和尚未回填的 Actions 结果。
+为什么有这个文件：记录离线 CI 的命令、版本和 Actions 运行结果。
 
-它解决什么问题：把本机或运行器上的通过与未执行的主题检查分开，避免用跳过掩盖失败。
+它解决什么问题：把运行器上的通过与未执行的主题检查分开，避免用跳过掩盖失败。
 
 # APP-M2-T008 离线 CI 验证
 
@@ -12,9 +12,11 @@
 
 | 作业 | 命令 | 本轮 Actions 结果 |
 |---|---|---|
-| backend | `python -m pip install -r backend/bid-core/requirements.txt`；`python -m pytest tests/backend -q`；`python tests/backend/session_live_http.py`；`cd backend/bid-core && python smoke_t06.py` | 待推送后回填 |
-| frontend | `pnpm install --frozen-lockfile`；`pnpm build`；`node --test tests/frontend/*.test.mjs frontend/web/tests/*.test.mjs` | 待推送后回填 |
-| governance | `node --test tests/governance/*.test.cjs tests/prototype/*.test.cjs tests/workspace-sync/*.test.cjs tests/backend/demo-page.test.cjs`；`node scripts/check-project-governance.cjs` | 待推送后回填 |
+| backend | `python -m pip install -r backend/bid-core/requirements.txt`；`python -m pytest tests/backend -q`；`python tests/backend/session_live_http.py`；`cd backend/bid-core && python smoke_t06.py` | success。262 passed，1 条既有警告，0 失败；TOTAL 15 PASS 15；smoke_t06 `passed: true`，12 项检查 |
+| frontend | `pnpm install --frozen-lockfile`；`pnpm build`；`node --test tests/frontend/*.test.mjs frontend/web/tests/*.test.mjs` | success。构建通过，`index-BqghTeOl.js` 1334.42 kB / gzip 409.62 kB；72 pass，0 fail |
+| governance | `node --test tests/governance/*.test.cjs tests/prototype/*.test.cjs tests/workspace-sync/*.test.cjs tests/backend/demo-page.test.cjs`；`node scripts/check-project-governance.cjs` | success。35 pass，0 fail；治理检查通过：129 份 Markdown、340 项任务、12 项 Issue |
+
+运行：[38200746746](https://github.com/Faith-Neil/if-children-have-been-grown/actions/runs/38200746746)。提交 `cf2c2a1`。三个作业 conclusion 均为 success。没有 skip。
 
 QA 在同一命令上的已记录结果，作为推送前基线，不是本次 Actions 运行：pytest 262 passed；前端函数 72/72；构建通过；治理 12/12；原型 6/6；工作区同步 10/10；旧页 7/7；会话脚本 TOTAL 15 PASS 15；治理检查通过。见 [QA复跑](2026-10-12-qa-rerun.md)。
 
@@ -28,4 +30,4 @@ QA 在同一命令上的已记录结果，作为推送前基线，不是本次 A
 
 Node v20.19.2 运行 `frontend/web/tests/*.test.mjs` 会因直接导入 `.ts` 而全部失败（`ERR_UNKNOWN_FILE_EXTENSION`）。这是运行器版本问题，不是套件跳过。CI 固定 Node 24.9.0。
 
-本文件在 Actions 运行完成前不填写通过计数。若运行失败且与上述基线不一致，在此记录失败命令和日志，不用 `if: false` 或 skip 隐藏。
+运行器还提示 `actions/checkout`、`actions/setup-node`、`pnpm/action-setup` 仍声明 Node 20，并被强制改到 Node 24。这是动作运行时提示，测试进程固定为 Node 24.9.0。没有套件失败。
