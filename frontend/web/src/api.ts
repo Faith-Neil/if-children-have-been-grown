@@ -9,8 +9,21 @@ export class ApiError extends Error {
 
 export const retryLimit = 3;
 
+// 错误来源只留在私有映射，不把令牌放进可序列化错误或用户提示。
+const failureSession = new WeakMap<object, string | null>();
+
+export function isRequestFailureCurrent(error: unknown, currentToken: string | null): boolean {
+  return !error || typeof error !== 'object' || !failureSession.has(error)
+    || failureSession.get(error) === currentToken;
+}
+
+function rememberFailureSession(error: unknown, token: string | null): never {
+  if (error && typeof error === 'object') failureSession.set(error, token);
+  throw error;
+}
+
 export function canRetryStatus(status: number, code?: string) {
-  if (status === 503) return true;
+  if (status === 503) return code !== 'SECRET_KEY_UNAVAILABLE';
   if (status !== 502) return false;
   return !code || code === 'REQUEST_FAILED';
 }
@@ -89,7 +102,7 @@ export async function request<T>(path: string, token: string | null, method = 'G
     const data = await readJson(response);
     if (!response.ok) throw apiFailure(response.status, data, response.headers.get('X-Request-ID') ?? undefined);
     return data as T;
-  }, wait, allowRetry);
+  }, wait, allowRetry).catch(error => rememberFailureSession(error, token));
 }
 
 export async function download(path: string, token: string, filename: string, wait: (ms: number) => Promise<void> = defaultWait) {
@@ -97,7 +110,7 @@ export async function download(path: string, token: string, filename: string, wa
     const result = await fetch(path, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
     if (!result.ok) throw apiFailure(result.status, await readJson(result), result.headers.get('X-Request-ID') ?? undefined);
     return result;
-  }, wait);
+  }, wait).catch(error => rememberFailureSession(error, token));
   const objectUrl = URL.createObjectURL(await response.blob());
   const link = document.createElement('a'); link.href = objectUrl; link.download = filename; document.body.append(link); link.click(); link.remove();
   setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);

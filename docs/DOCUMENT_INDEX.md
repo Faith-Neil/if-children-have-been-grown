@@ -10,7 +10,7 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
-| D-001 | 2026-10-12 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 / AI-01；ISSUE-009 / APP-M2-T001 | 371项37done、8in-review、7in-progress、266planned、49blocked、4ready。T001、T002 与 T14 为 done。ISSUE-009、014、020、026 已 closed。T11 与 T15 仍 in-review |
+| D-001 | 2026-10-12 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 / AI-01；ISSUE-009 / APP-M2-T001 | 372项37done、8in-review、8in-progress、266planned、49blocked、4ready。T001、T002 与 T14 为 done。ISSUE-009、014、020、026 已 closed。T11 与 T15 仍 in-review |
 | D-002 | 2026-10-12 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025；ISSUE-027 / BE-M0-T15 | 第19行为里程碑快照 as of 3bb311a：366项32done、6in-review、其余255卡planned |
 | D-003 | 2026-10-12 | [前端架构](ARCHITECTURE.md) | 前端架构 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-011 / AI-02；ISSUE-016 / AI-03 | 同源存储和替换接口；业务库为 MySQL 8，嵌入与向量库定为 RAGFlow，适配器未实现 |
 | D-004 | 2026-10-12 | [前端路线图](ROADMAP.md) | 计划 | 参考实施入口 / g1.1 | 执行入口 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15 | 里程碑快照 as of 3bb311a：366项32done、6in-review。任务看板是准绳。T124仍blocked |
@@ -26,7 +26,7 @@
 | D-014 | 2026-10-09 | [首轮交付](delivery/2026-10-09-repository-foundation.md) | 交付 | 首轮快照 | 历史证据 | FE-M0-T01 | 保留原交付事实；逐任务归档见D-030 |
 | D-015 | 2026-10-12 | [协作流程](governance/WORKFLOW.md) | 治理 | g1.1 | 当前规则 | ISSUE-007 / APP-M1；ISSUE-026 | 第4节：三份基线计数是里程碑快照。治理块仍为 g1.1，不升版 |
 | D-016 | 2026-10-09 | [本次同步表](governance/ISSUE-003-sync.md) | 治理 | g1.0 | 本次记录 | ISSUE-003 / FE-M0-T02 | 四份基线及看板、进度、索引的影响评估 |
-| D-017 | 2026-10-12 | [任务看板](TASK_BOARD.md) | 执行 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-022 / T124 | 371项37done、8in-review、7in-progress、266planned、49blocked、4ready。T11为in-review，T001、T002 与 T14 为 done，T078为in-review，T124仍blocked |
+| D-017 | 2026-10-12 | [任务看板](TASK_BOARD.md) | 执行 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-022 / T124 | 372项37done、8in-review、8in-progress、266planned、49blocked、4ready。T11为in-review，T001、T002 与 T14 为 done，T078为in-review，T124仍blocked |
 | D-018 | 2026-10-12 | [FE-M0 任务卡](tasks/FE-M0.md) | 基线与基础 | g1.1 | 当前计划 | ISSUE-006 / BE-M0-T01；ISSUE-010 | 前置基线、治理、契约与基础；T04仍待ISSUE-010 |
 | D-019 | 2026-10-09 | [FE-M1 任务卡](tasks/FE-M1.md) | 项目主流程 | g1.0 | 当前计划 | FE-M1 | 项目、招标解析、矩阵、事实 |
 | D-020 | 2026-10-09 | [FE-M2 任务卡](tasks/FE-M2.md) | 章节生成 | g1.0 | 当前计划 | FE-M2 | 方案确认、任务进度、修正与转人工 |
@@ -344,6 +344,16 @@
 | D-331 | 2026-10-12 | [REV-M0-T16签署交付](delivery/REV-M0-T16.md) | 交付 | qa-rerun-11 | 已本地验收 | ISSUE-013 / REV-M0-T16 | 无代码；结论与观察项 |
 | D-332 | 2026-10-12 | [ISSUE-028模型配置设计签署](testing/2026-10-12-issue-028-model-config-signoff.md) | 验证 | qa-rerun-12 | 本地通过 | ISSUE-013 / REV-M0-T17 | AC通过；D-1 P2；O-1/O-2 P3 |
 | D-333 | 2026-10-12 | [REV-M0-T17签署交付](delivery/REV-M0-T17.md) | 交付 | qa-rerun-12 | 已本地验收 | ISSUE-013 / REV-M0-T17 | 无代码；结论与观察项 |
+
+| D-352 | 2026-10-12 | [最新分支复核问题](../issues/ISSUE-032.md) | Bug | foundation-review-fix-1 | in-progress | ISSUE-032 / REV-M0-T20 | 仅复核与限定修复，独立PR不推进功能 |
+
+| D-353 | 2026-10-12 | [最新分支复核](reviews/2026-10-12-foundation-review.md) | 审查 | foundation-review-fix-1 | 验证中 | ISSUE-032 / REV-M0-T20 | 六项真实缺陷、基线与验证限度 |
+| D-354 | 2026-10-12 | [审查修复代码解释](code/REV-M0-T20.md) | 说明 | foundation-review-fix-1 | 当前 | ISSUE-032 / REV-M0-T20 | 来源身份、成功显示页与回执一致性 |
+| D-355 | 2026-10-12 | [审查修复交付](delivery/REV-M0-T20.md) | 交付 | foundation-review-fix-1 | 验证中 | ISSUE-032 / REV-M0-T20 | 独立PR，不推进功能或自行done |
+| D-356 | 2026-10-12 | [实际App闭包回归](../frontend/web/tests/app-orchestration.test.mjs) | 验证 | foundation-review-fix-1 | 9项通过 | ISSUE-032 / REV-M0-T20 | 迟到失败、未保存重试、浏览器历史 |
+| D-357 | 2026-10-12 | [片段并发回归](../tests/backend/test_snippet_review.py) | 验证 | foundation-review-fix-1 | 3项通过 | ISSUE-032 / REV-M0-T20 | 同键一次修改、冲突及提交失败回滚 |
+| D-358 | 2026-10-12 | [回执数据库探针](../tests/backend/test_receipt_review.py) | 验证 | foundation-review-fix-1 | 5项通过 | ISSUE-032 / REV-M0-T20 | 容量边界及生产DELETE SQL，非MySQL实机 |
+| D-359 | 2026-10-12 | [浏览器复核反例](../frontend/web/e2e/review-regressions.spec.ts) | 验证 | foundation-review-fix-1 | 待执行 | ISSUE-032 / REV-M0-T20 | 实际500后重试与切账号后迟到401 |
 
 ## 更新记录
 

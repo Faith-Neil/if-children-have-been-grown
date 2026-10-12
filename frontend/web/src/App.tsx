@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Alert, App as AntApp, Badge, Breadcrumb, Button, Card, Col, Drawer, Empty, Form, Input, Modal, Progress, Result, Row, Select, Space, Spin, Statistic, Table, Tabs, Tag, Tooltip } from 'antd';
 import { AppstoreOutlined, ApartmentOutlined, BellOutlined, BookOutlined, CheckSquareOutlined, ClockCircleOutlined, DatabaseOutlined, DownOutlined, FileTextOutlined, PlusOutlined, SearchOutlined, SettingOutlined, TeamOutlined } from '@ant-design/icons';
-import { ApiError, download, request, userFacingMessage } from './api';
+import { ApiError, download, isRequestFailureCurrent, request, userFacingMessage } from './api';
 import { deadlineForApi, projectFields } from './project-form';
 import { ProjectContext, companyName, formatTime, roleName, volumeName } from './context';
 import type { Account, ApplicationSession, Evidence, Job, Project, SlaTemplate, Workspace } from './types';
@@ -48,6 +48,8 @@ export default function App() {
   const dirtyRef = useRef(false);
   const armedLeave = useRef(false);
   const addressRef = useRef(normalizePath(window.location.pathname));
+  // 地址先反映导航目标；离开判断只采用已成功显示的页，失败重试仍须确认。
+  const displayedPathRef = useRef(normalizePath(window.location.pathname));
   const indexRef = useRef(readHistoryIndex(window.history.state) ?? 0);
   const ignorePop = useRef(false);
   const pendingLeave = useRef<{ path: string; step: number; fromIndex: number } | null>(null);
@@ -73,11 +75,13 @@ export default function App() {
   }
   function logout() {
     epoch.current++; currentSession.current = { company_id: '', account_id: '' }; clearCompanyData();
+    dirtyRef.current = false; armedLeave.current = false; displayedPathRef.current = normalizePath(window.location.pathname);
     activeToken.current = null; currentAuthorization.current = null; setApplicationSession(null); setDenied(null);
     setToken(null); setUser(null); setWorkspace(null); setEditorDirty(false); projectId.current = null; setCreateOpen(false); setTaskDrawer(false);
   }
 
   function report(error: unknown) {
+    if (!isRequestFailureCurrent(error, activeToken.current)) return;
     message.error(userFacingMessage(error));
     if (error instanceof ApiError && error.status === 401) logout();
   }
@@ -110,7 +114,7 @@ export default function App() {
       const incoming = window.location.pathname;
       const toIndex = readHistoryIndex(window.history.state);
       const fromIndex = indexRef.current;
-      if (!dirtyRef.current) {
+      if (decideNavigation({ dirty: dirtyRef.current, currentPath: displayedPathRef.current, nextPath: incoming, confirmed: false }).proceed) {
         if (toIndex !== null) indexRef.current = toIndex;
         followRef.current(incoming, 'none');
         return;
@@ -135,7 +139,7 @@ export default function App() {
         () => start === epoch.current && generation === sessionRequest.current && currentToken === activeToken.current);
     } catch (error) {
       if (start === epoch.current && generation === sessionRequest.current && currentToken === activeToken.current) {
-        if (error instanceof ApiError && error.status === 401) logout();
+        if (error instanceof ApiError && error.status === 401) report(error);
         else if (projectAccessLost(error)) {
           currentAuthorization.current = null;
           setWorkspace(previous => previous ? freezeWorkspace(previous) : previous);
@@ -184,14 +188,15 @@ export default function App() {
       setToken(data.access_token); setDenied(null); setMissing(null);
       await refreshGlobal(data.access_token, approved);
       followPath(routeAfterLogin(window.location.pathname, home).path, 'replace');
-    } catch (error) { logout(); report(error); } finally { setBusy(false); }
+    } catch (error) { if (isRequestFailureCurrent(error, activeToken.current)) { report(error); logout(); } } finally { setBusy(false); }
   }
   function reportDirty(value: boolean) {
     if (armedLeave.current) return;
     dirtyRef.current = value; setEditorDirty(value);
   }
-  function arrived(keepEditor: boolean) {
+  function arrived(keepEditor: boolean, path: string) {
     armedLeave.current = false;
+    displayedPathRef.current = normalizePath(path);
     if (!keepEditor) { dirtyRef.current = false; setEditorDirty(false); }
   }
   function writeAddress(path: string, mode: HistoryMode) {
@@ -206,7 +211,7 @@ export default function App() {
     modal.confirm({ title: leaveCopy.title, content: leaveCopy.content, okText: leaveCopy.okText, cancelText: leaveCopy.cancelText, onOk: () => { armedLeave.current = true; action(); } });
   }
   function requestPath(path: string) {
-    const decision = decideNavigation({ dirty: dirtyRef.current, currentPath: addressRef.current, nextPath: path, confirmed: false });
+    const decision = decideNavigation({ dirty: dirtyRef.current, currentPath: displayedPathRef.current, nextPath: path, confirmed: false });
     if (decision.proceed) { followPath(path, 'push'); return; }
     askLeave(() => followPath(path, 'push'));
   }
@@ -215,7 +220,7 @@ export default function App() {
     askLeave(() => { dirtyRef.current = false; setEditorDirty(false); action(); });
   }
   function showMissing(pathname: string, mode: HistoryMode) {
-    writeAddress(pathname, mode); epoch.current += 1; setMissing(pathname); setDenied(null); setWorkspace(null); setAccessLost(false); projectId.current = null; setLoading(false); arrived(false);
+    writeAddress(pathname, mode); epoch.current += 1; setMissing(pathname); setDenied(null); setWorkspace(null); setAccessLost(false); projectId.current = null; setLoading(false); arrived(false, pathname);
   }
   function followPath(pathname: string, mode: HistoryMode) {
     const route = parseAppPath(pathname);
@@ -239,8 +244,8 @@ export default function App() {
         workspace: selected => { if (start !== epoch.current) throw new Error('读取期间页面已变化，旧项目未载入。'); return request<Workspace>(`/api/v1/projects/${encodeURIComponent(selected)}/workspace`, activeToken.current); },
         isCurrent: approved => start === epoch.current && id === projectId.current && currentAuthorization.current === approved,
       });
-      if (start === epoch.current) { setWorkspace(workspaceWithSessionPermissions(data.workspace, data.session, true)); arrived(false); }
-    } catch (error) { if (start === epoch.current) { armedLeave.current = false; setWorkspace(null); if (projectAccessLost(error)) setDenied(error instanceof Error ? error.message : '对象已不存在或你没有查看权限。'); report(error); } } finally { if (start === epoch.current || !activeToken.current) setLoading(false); }
+      if (start === epoch.current) { setWorkspace(workspaceWithSessionPermissions(data.workspace, data.session, true)); arrived(false, projectPath(id, nextTab)); }
+    } catch (error) { if (start === epoch.current && isRequestFailureCurrent(error, activeToken.current)) { armedLeave.current = false; setWorkspace(null); if (projectAccessLost(error)) setDenied(error instanceof Error ? error.message : '对象已不存在或你没有查看权限。'); report(error); } } finally { if (start === epoch.current || !activeToken.current) setLoading(false); }
   }
   async function reload() {
     const id = projectId.current; const start = epoch.current;
@@ -254,7 +259,7 @@ export default function App() {
       if (start !== epoch.current || id !== projectId.current) return;
       setWorkspace(workspaceWithSessionPermissions(result.workspace, result.session, true)); setAccessLost(false); await refreshGlobal(activeToken.current, result.session);
     } catch (error) {
-      if (start === epoch.current && id === projectId.current && projectAccessLost(error)) {
+      if (start === epoch.current && id === projectId.current && isRequestFailureCurrent(error, activeToken.current) && projectAccessLost(error)) {
         setWorkspace(previous => previous ? freezeWorkspace(previous) : previous); setAccessLost(true);
         await refreshGlobal().catch(report);
       }
@@ -264,7 +269,7 @@ export default function App() {
   async function mutate(path: string, method: string, body?: unknown) {
     setBusy(true);
     try { const result = await request(path, token, method, body, workspace?.revision); try { await reload(); } catch (error) { if (!projectAccessLost(error)) throw error; } return result; }
-    catch (error) { report(error); if (error instanceof ApiError && ([403, 404, 409].includes(error.status) || typeof error.details?.revision === 'number')) await reload().catch(report); throw error; }
+    catch (error) { if (!isRequestFailureCurrent(error, activeToken.current)) throw error; report(error); if (error instanceof ApiError && ([403, 404, 409].includes(error.status) || typeof error.details?.revision === 'number')) await reload().catch(report); throw error; }
     finally { setBusy(false); }
   }
   async function libraryMutate(path: string, method: string, body: unknown, expectedRevision?: LibraryWriteVersion) {
@@ -278,7 +283,7 @@ export default function App() {
       const value = await request(path, activeToken.current, method, body, revision);
       await refreshGlobal(activeToken.current, approved); if (workspace) await reload(); return value;
     }
-    catch (error) { report(error); if (error instanceof ApiError && error.status === 409) await refreshGlobal().catch(report); throw error; }
+    catch (error) { if (!isRequestFailureCurrent(error, activeToken.current)) throw error; report(error); if (error instanceof ApiError && error.status === 409) await refreshGlobal().catch(report); throw error; }
     finally { setBusy(false); }
   }
   async function readLibrary(): Promise<LibraryReadState> {
@@ -318,7 +323,7 @@ export default function App() {
       });
       await request(`/api/v1/projects/${created.id}`, activeToken.current, 'PATCH', projectFields({ tender_number: values.tender_number, sensitive: values.sensitive, deadline: values.deadline }), result.workspace.revision);
       setCreateOpen(false); createForm.resetFields(); await refreshGlobal(); await openProject(created.id, 'tender'); message.success('项目已建立，请上传招标文件。');
-    } catch (error) { report(error); if (createdId) { setCreateOpen(false); await refreshGlobal(); await openProject(createdId, 'settings'); message.warning('项目已经建立，基本信息未全部保存，请在项目设置补齐。'); } } finally { setBusy(false); }
+    } catch (error) { if (!isRequestFailureCurrent(error, activeToken.current)) return; report(error); if (createdId) { setCreateOpen(false); await refreshGlobal(); await openProject(createdId, 'settings'); message.warning('项目已经建立，基本信息未全部保存，请在项目设置补齐。'); } } finally { setBusy(false); }
   }
   function loadNav(value: string, mode: HistoryMode = 'push') {
     writeAddress(globalPath(value), mode);
@@ -326,9 +331,9 @@ export default function App() {
     void (async () => {
       const approved = await loadSession(); requireSessionRoute(approved, value);
       if (start !== epoch.current) return;
-      setNav(value); setWorkspace(null); setAccessLost(false); projectId.current = null; setDenied(null); arrived(false);
+      setNav(value); setWorkspace(null); setAccessLost(false); projectId.current = null; setDenied(null); arrived(false, globalPath(value));
       await refreshGlobal(activeToken.current, approved);
-    })().catch(error => { if (start === epoch.current) { armedLeave.current = false; if (projectAccessLost(error)) { setWorkspace(previous => previous ? freezeWorkspace(previous) : previous); setDenied(error instanceof Error ? error.message : '你没有该页面的权限。'); } report(error); } })
+    })().catch(error => { if (start === epoch.current && isRequestFailureCurrent(error, activeToken.current)) { armedLeave.current = false; if (projectAccessLost(error)) { setWorkspace(previous => previous ? freezeWorkspace(previous) : previous); setDenied(error instanceof Error ? error.message : '你没有该页面的权限。'); } report(error); } })
       .finally(() => { if (start === epoch.current || !activeToken.current) setLoading(false); });
   }
   function loadTab(value: string, mode: HistoryMode = 'push') {
@@ -342,8 +347,8 @@ export default function App() {
         workspace: selected => request<Workspace>(`/api/v1/projects/${encodeURIComponent(selected)}/workspace`, activeToken.current),
         isCurrent: approved => start === epoch.current && id === projectId.current && currentAuthorization.current === approved,
       });
-      if (start === epoch.current && id === projectId.current) { setWorkspace(workspaceWithSessionPermissions(result.workspace, result.session, true)); setTab(value); setNav('workbench'); setDenied(null); setAccessLost(false); arrived(value === 'editor'); }
-    })().catch(error => { if (start === epoch.current) { armedLeave.current = false; if (projectAccessLost(error)) { setWorkspace(previous => previous ? freezeWorkspace(previous) : previous); setAccessLost(true); setDenied(error instanceof Error ? error.message : '对象已不存在或你没有查看该页面的权限。'); } report(error); } })
+      if (start === epoch.current && id === projectId.current) { setWorkspace(workspaceWithSessionPermissions(result.workspace, result.session, true)); setTab(value); setNav('workbench'); setDenied(null); setAccessLost(false); arrived(value === 'editor', projectPath(id, value)); }
+    })().catch(error => { if (start === epoch.current && isRequestFailureCurrent(error, activeToken.current)) { armedLeave.current = false; if (projectAccessLost(error)) { setWorkspace(previous => previous ? freezeWorkspace(previous) : previous); setAccessLost(true); setDenied(error instanceof Error ? error.message : '对象已不存在或你没有查看该页面的权限。'); } report(error); } })
       .finally(() => { if (start === epoch.current || !activeToken.current) setLoading(false); });
   }
   function navigate(value: string) {

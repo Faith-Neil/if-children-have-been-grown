@@ -136,6 +136,7 @@ class MysqlConnectionRepository:
     def read(self):
         state = self._memory.read()
         self._load_shared(state)
+        state.cap_receipts = False
         return state
 
     def transaction(self, operation: Callable[..., T]) -> T:
@@ -201,12 +202,15 @@ class MysqlConnectionRepository:
             for key in before_receipts:
                 if key not in after_receipts:
                     scope_id, user_id, idempotency_key = key
+                    previous = before_receipts[key]
                     connection.execute(
                         text(
                             "DELETE FROM idempotency_receipt WHERE scope_id = :scope_id "
                             "AND user_id = :user_id AND idempotency_key = :idempotency_key"
+                            " AND created_at = :created_at AND fingerprint = :fingerprint"
                         ),
-                        {"scope_id": scope_id, "user_id": user_id, "idempotency_key": idempotency_key},
+                        {"scope_id": scope_id, "user_id": user_id, "idempotency_key": idempotency_key,
+                         "created_at": _utc_naive(previous["created_at"]), "fingerprint": previous["fingerprint"]},
                     )
             for key, receipt in after_receipts.items():
                 previous = before_receipts.get(key)
