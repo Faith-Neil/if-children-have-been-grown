@@ -79,6 +79,7 @@ PROJECT_BRIEF 排期行随任务数改为 352 项，记在下方同步表。
 | 2026-10-12 | impl-1 / in-progress | 项目经理在 QA 签署 98c5129 后确认 BE-M0-T08 与 BE-M0-T10 为 done。本 Issue 仍 in-progress。ISSUE-023 仍 in-review，等待 QA 复核 Q1 | [QA签署](../docs/testing/2026-10-12-be-m0-t10-mysql-signoff.md) |
 | 2026-10-12 | impl-1 / in-progress | 托管 MySQL 作业登记为 [ISSUE-025](ISSUE-025.md)，不改变本 Issue 状态。回执、会话、租约和聚合表仍未做 | [BE-M0-T14](../docs/delivery/BE-M0-T14.md) |
 | 2026-10-12 | impl-1 / in-progress | 项目经理在 QA 签署 16cf971 后确认 ISSUE-023 为 closed。本 Issue 仍 in-progress，T11～T13 未做 | [QA签署](../docs/testing/2026-10-12-be-m0-t10-mysql-signoff.md) |
+| 2026-10-12 | impl-1 / in-progress | BE-M0-T11 增加验收：真实业务表进入仓库后，CI 必须做 downgrade base 再 upgrade head。本 Issue 仍 in-progress，这一步尚未加进作业 | [QA签署](../docs/testing/2026-10-12-be-m0-t14-mysql-ci-signoff.md) |
 
 ## 本地验收与后续合入发布
 

@@ -10,7 +10,7 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
-| D-001 | 2026-10-12 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 / AI-01；ISSUE-009 / APP-M2-T001 | 364项27done、9in-review、49blocked。T14 与 T15 仍 in-review。T001 与 T002 仍 in-review |
+| D-001 | 2026-10-12 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 / AI-01；ISSUE-009 / APP-M2-T001 | 366项30done、8in-review、49blocked。T14 已 done。T15、T001、T002 仍 in-review |
 | D-002 | 2026-10-12 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025；ISSUE-027 / BE-M0-T15 | 第19行为364项27done、9in-review、268planned、49blocked、其余255卡planned |
 | D-003 | 2026-10-12 | [前端架构](ARCHITECTURE.md) | 前端架构 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-011 / AI-02；ISSUE-016 / AI-03 | 同源存储和替换接口；业务库为 MySQL 8，嵌入与向量库定为 RAGFlow，适配器未实现 |
 | D-004 | 2026-10-12 | [前端路线图](ROADMAP.md) | 计划 | 参考实施入口 / g1.1 | 执行入口 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15 | 364项27done、9in-review、268planned、49blocked。本卡更新了计数。T124仍blocked |
@@ -21,12 +21,12 @@
 | D-009 | 2026-10-09 | [基线差异](decisions/baseline-gaps.md) | 决策 | 初版 | 待评审 | FE-M0-T01 | 16项版本、范围与选型差异 |
 | D-010 | 2026-10-09 | [PR #1 评审](reviews/pr-1-integration.md) | 协作 | 初版 / g1.0后续记录 | 待整合 | ISSUE-001 / ISSUE-003 | 系统/前端分层及后续规则、索引整合提醒 |
 | D-011 | 2026-10-09 | [原型说明](../prototypes/bidding-ux/README.md) | 原型 | 静态演示 | 当前 | ISSUE-002 / FE-M0-T01 | 离线打开、启动方法与模拟范围 |
-| D-012 | 2026-10-12 | [Issue 看板](../issues/index.md) | 问题 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 | 025、026、027、028、029为in-review；010与023已closed。024未建档 |
+| D-012 | 2026-10-12 | [Issue 看板](../issues/index.md) | 问题 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 | 025已closed；026、027、028、029为in-review；010与023已closed。024未建档 |
 | D-013 | 2026-10-09 | [首轮测试](testing/2026-10-09-repository-foundation.md) | 验证 | 首轮快照 | 已验收 | ISSUE-002 / FE-M0-T01 | 编辑锁6项回归及当时链接校验 |
 | D-014 | 2026-10-09 | [首轮交付](delivery/2026-10-09-repository-foundation.md) | 交付 | 首轮快照 | 历史证据 | FE-M0-T01 | 保留原交付事实；逐任务归档见D-030 |
 | D-015 | 2026-10-12 | [协作流程](governance/WORKFLOW.md) | 治理 | g1.1 | 当前规则 | ISSUE-007 / APP-M1；ISSUE-012 | 同一任务核对页面、后台与业务证据；开发者只标 in-review，治理块不升版 |
 | D-016 | 2026-10-09 | [本次同步表](governance/ISSUE-003-sync.md) | 治理 | g1.0 | 本次记录 | ISSUE-003 / FE-M0-T02 | 四份基线及看板、进度、索引的影响评估 |
-| D-017 | 2026-10-12 | [任务看板](TASK_BOARD.md) | 执行 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-022 / T124 | 364项27done、9in-review、7in-progress、268planned、49blocked、4ready。REV-M0-T10为done，T124仍blocked |
+| D-017 | 2026-10-12 | [任务看板](TASK_BOARD.md) | 执行 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-022 / T124 | 366项30done、8in-review、7in-progress、268planned、49blocked、4ready。T14为done，T124仍blocked |
 | D-018 | 2026-10-12 | [FE-M0 任务卡](tasks/FE-M0.md) | 基线与基础 | g1.1 | 当前计划 | ISSUE-006 / BE-M0-T01；ISSUE-010 | 前置基线、治理、契约与基础；T04仍待ISSUE-010 |
 | D-019 | 2026-10-09 | [FE-M1 任务卡](tasks/FE-M1.md) | 项目主流程 | g1.0 | 当前计划 | FE-M1 | 项目、招标解析、矩阵、事实 |
 | D-020 | 2026-10-09 | [FE-M2 任务卡](tasks/FE-M2.md) | 章节生成 | g1.0 | 当前计划 | FE-M2 | 方案确认、任务进度、修正与转人工 |
@@ -58,7 +58,7 @@
 | D-046 | 2026-10-09 | [REV任务](tasks/REV-M0.md) | 审查 | g1.1 | 当前 | ISSUE-004 | 目录/业务/技术与brief交付 |
 | D-047 | 2026-10-09 | [业务审查](reviews/2026-10-09-business-readiness.md) | 业务 | review-1 | 待决定 | REV-M0-T01 / ISSUE-005 | 场景矩阵与12项设计/验收发现 |
 | D-048 | 2026-10-09 | [技术审查](reviews/2026-10-09-technical-readiness.md) | 技术 | review-1 | 待决定 | REV-M0-T01 / ISSUE-005 | 6类契约缺口与图片目录对照 |
-| D-049 | 2026-10-12 | [接手brief](PROJECT_BRIEF.md) | 接手 | brief-9 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-009 / T001；ISSUE-022 | 排期为364项27done、9in-review、49blocked。AI-01为in-review。ISSUE-023已closed。T124仍blocked |
+| D-049 | 2026-10-12 | [接手brief](PROJECT_BRIEF.md) | 接手 | brief-9 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-009 / T001；ISSUE-022 | 计数字句仍是364项27done、9in-review。T14已改为done。T124仍blocked |
 | D-050 | 2026-10-09 | [工作区来源](source/WORKSPACE_MATERIALS.md) | 历史资料 | snapshot-1 | 已登记 | OPS-M0-T01 | 34份ICG资料、原路径与初次指纹 |
 | D-051 | 2026-10-09 | [同步工具说明](../tools/workspace-sync/README.md) | 运维 | sync-1 | 当前 | OPS-M0-T01 | 自动WIP、分叉、凭据、外部状态 |
 | D-052 | 2026-10-09 | [同步执行器](../tools/workspace-sync/sync.cjs) | 工程代码 | sync-1 | 回归通过 | OPS-M0-T01 | 单实例、双向Git、稳定期与出站检查 |
@@ -202,7 +202,7 @@
 | D-189 | 2026-10-12 | [离线CI代码解释](code/APP-M2-T008.md) | 说明 | offline-ci-1 | 当前 | ISSUE-012 / APP-M2-T008 | 作业顺序、缓存、会话脚本与smoke_t06分步 |
 | D-190 | 2026-10-12 | [离线CI验证](testing/2026-10-12-offline-ci.md) | 验证 | offline-ci-1 | 本地通过 | ISSUE-012 / APP-M2-T008 | 运行 38200746746：262/15/12/72/35；不含soffice |
 | D-191 | 2026-10-12 | [离线CI同步](governance/ISSUE-012-sync.md) | 治理 | offline-ci-1 | 已核对 | ISSUE-012 / APP-M2-T008 | 补 PROJECT_BRIEF 的日期与计数；T008 改回 in-review |
-| D-192 | 2026-10-12 | [离线CI工作流](../.github/workflows/offline-check.yml) | 工程 | mysql-ci-1 | in-review | ISSUE-012 / APP-M2-T008；ISSUE-025 / BE-M0-T14 | ubuntu-24.04；另有 backend-mysql，运行时密码，无仓库密钥 |
+| D-192 | 2026-10-12 | [离线CI工作流](../.github/workflows/offline-check.yml) | 工程 | mysql-ci-1 | 当前 | ISSUE-012 / APP-M2-T008；ISSUE-025 / BE-M0-T14 | ubuntu-24.04；backend-mysql 任一跳过即失败；不导出 ICG_MYSQL_PASSWORD |
 | D-193 | 2026-10-12 | [模型与数据库决定](../issues/ISSUE-010.md) | 决策 | model-choice-3 | closed | ISSUE-010 / AI-01 | 配置页、RAGFlow、生产仅内网；真实端点未验收 |
 | D-194 | 2026-10-12 | [兼容适配器事项](../issues/ISSUE-011.md) | 变更 | openai-adapter-3 | closed | ISSUE-011 / AI-02 | 项目经理于 10-12 12:10 在 QA 签署后确认；未合入 |
 | D-195 | 2026-10-12 | [模型准备任务](tasks/AI-M0.md) | 实施 | model-choice-3 | 当前 | ISSUE-010 / AI-01；ISSUE-011 / AI-02；ISSUE-016 / AI-03 | AI-01为in-review，AI-02为done，AI-03为in-review |
@@ -298,11 +298,11 @@
 | D-285 | 2026-10-12 | [计数对齐说明](code/ISSUE-026.md) | 说明 | count-sync-1 | 当前 | ISSUE-026 | 无应用代码；请求层重试未改 |
 | D-286 | 2026-10-12 | [计数核对](testing/2026-10-12-issue-026-counts.md) | 验证 | count-sync-1 | 已执行 | ISSUE-026 | 当时看板 361 项与三份正文一致 |
 | D-287 | 2026-10-12 | [026同步表](governance/ISSUE-026-sync.md) | 治理 | count-sync-1 | 已核对 | ISSUE-026 | ARCHITECTURE 未改；第19行与第68行保留 |
-| D-288 | 2026-10-12 | [ISSUE-025](../issues/ISSUE-025.md) | 流程 | mysql-ci-1 | in-review | ISSUE-025 / BE-M0-T14 | 托管 MySQL 作业；ISSUE-024 不建档 |
-| D-289 | 2026-10-12 | [MySQL CI 交付](delivery/BE-M0-T14.md) | 交付 | mysql-ci-1 | in-review | ISSUE-025 / BE-M0-T14 | 不标 done；不建业务表 |
-| D-290 | 2026-10-12 | [MySQL CI 说明](code/BE-M0-T14.md) | 说明 | mysql-ci-1 | 当前 | ISSUE-025 / BE-M0-T14 | 运行时密码；docker run；junit 守卫 |
+| D-288 | 2026-10-12 | [ISSUE-025](../issues/ISSUE-025.md) | 流程 | mysql-ci-1 | closed | ISSUE-025 / BE-M0-T14 | 依据 b20b844 关闭；ISSUE-024 不建档 |
+| D-289 | 2026-10-12 | [MySQL CI 交付](delivery/BE-M0-T14.md) | 交付 | mysql-ci-1 | done | ISSUE-025 / BE-M0-T14 | 看板 366项30done、8in-review；不建业务表 |
+| D-290 | 2026-10-12 | [MySQL CI 说明](code/BE-M0-T14.md) | 说明 | mysql-ci-1 | 当前 | ISSUE-025 / BE-M0-T14 | 不导出 ICG_MYSQL_PASSWORD；任一跳过即失败 |
 | D-291 | 2026-10-12 | [MySQL CI 核对](testing/2026-10-12-backend-mysql-ci.md) | 验证 | mysql-ci-1 | 已核对 | ISSUE-025 / BE-M0-T14 | run 38207508936：2 passed、320 deselected；密码不进仓库 |
-| D-292 | 2026-10-12 | [025同步表](governance/ISSUE-025-sync.md) | 治理 | mysql-ci-1 | 已核对 | ISSUE-025 / BE-M0-T14 | 计数字句改为 362 项；ARCHITECTURE 正文未改 |
+| D-292 | 2026-10-12 | [025同步表](governance/ISSUE-025-sync.md) | 治理 | mysql-ci-1 | 已核对 | ISSUE-025 / BE-M0-T14 | T14 done、Issue closed；PRD/ROADMAP 计数字句未改 |
 | D-293 | 2026-10-12 | [配置驱动的对话模型](architecture/model-config-provider.md) | 架构 | model-config-design-2 | in-review | ISSUE-028 / AI-01 | 只写 Provider 切换。字段与 API 以 ISSUE-024 为准。不改 OpenAPI |
 | D-294 | 2026-10-12 | [RAGFlow 检索适配器](architecture/ragflow-retrieval-adapter.md) | 架构 | ragflow-adapter-design-1 | in-review | ISSUE-029 / AI-03 | 官方路径与状态映射。无客户端 |
 | D-295 | 2026-10-12 | [ISSUE-010 决定核对](testing/2026-10-12-issue-010-decisions.md) | 验证 | model-choice-3 | 文档核对 | ISSUE-010 / AI-01 | 无内网调用 |
@@ -324,6 +324,7 @@
 | D-311 | 2026-10-12 | [T001/T002签署交付](delivery/REV-M0-T11.md) | 交付 | qa-rerun-5 | 已本地验收 | ISSUE-013 / REV-M0-T11 | 无代码；结论与O1 |
 | D-312 | 2026-10-12 | [T14 MySQL CI签署](testing/2026-10-12-be-m0-t14-mysql-ci-signoff.md) | 验证 | qa-signoff-mysql-ci | 本地通过 | ISSUE-013 / REV-M0-T12 | AC-01～04通过；本地往返、337 passed；M1～M3 P3 |
 | D-313 | 2026-10-12 | [T14签署交付](delivery/REV-M0-T12.md) | 交付 | qa-signoff-mysql-ci | 已本地验收 | ISSUE-013 / REV-M0-T12 | 无代码；结论与观察项 |
+| D-314 | 2026-10-12 | [MySQL 守卫核对](testing/2026-10-12-backend-mysql-guard.md) | 验证 | mysql-ci-1 | 已执行 | ISSUE-025 / BE-M0-T14 | 任一跳过、0 条、缺失均失败；不启动 MySQL |
 
 ## 更新记录
 
@@ -390,6 +391,7 @@
 | 2026-10-12 | ISSUE-022 / APP-M2-T078 | 方案补两句：GET 返回 ETag，供 If-Match 使用；被拦截的发布仍算成功，必须记下幂等回执。仍不写代码。T078 仍 planned，T124 仍 blocked。不改任务计数 |
 | 2026-10-12 | ISSUE-027 / BE-M0-T15 | Q1 正文首行缩进补 firstLine=560；Q2 无标题时不写目录和 TOC 域；Q3 规格改为中文：docx 不能指定缺失字体的替换字体，由 Word 或 WPS 决定，要保证效果需安装方正小标宋。不新增任务，不改变卡片状态。PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF 未改 |
 | 2026-10-12 | ISSUE-013 / REV-M0-T10 | QA复核BE-M0-T15 Q1～Q3（034b184/f989af7）通过，检查器补三项，样张覆盖；不新增任务、不改卡片状态 |
+| 2026-10-12 | ISSUE-025 / BE-M0-T14 | 依据 QA 签署 b20b844 将 BE-M0-T14 标为 done、ISSUE-025 标为 closed。守卫改为任一跳过即失败。不再导出 ICG_MYSQL_PASSWORD。BE-M0-T11 记下业务表出现后的 downgrade 再 upgrade。看板改为 366项30done、8in-review、7in-progress、268planned、49blocked、4ready。PRD、ROADMAP 计数字句不改 |
 
 ## 缺失输入
 

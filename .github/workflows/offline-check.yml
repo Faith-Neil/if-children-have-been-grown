@@ -74,7 +74,6 @@ jobs:
           {
             echo "ICG_REQUIRE_MYSQL=1"
             echo "MYSQL_SECRET_DIR=${secret_dir}"
-            echo "ICG_MYSQL_PASSWORD=${password}"
             echo "ICG_DATABASE_URL<<END_URL"
             printf 'mysql+pymysql://root:%s@127.0.0.1:3306/icg_demo?charset=utf8mb4\n' "${password}"
             echo "END_URL"
@@ -141,7 +140,7 @@ jobs:
               failures += int(suite.attrib.get("failures", "0"))
               errors += int(suite.attrib.get("errors", "0"))
           print(f"mysql junit tests={tests} skipped={skipped} failures={failures} errors={errors}")
-          if tests == 0 or skipped == tests or failures or errors:
+          if tests == 0 or skipped > 0 or failures or errors:
               sys.exit(1)
           PY
 

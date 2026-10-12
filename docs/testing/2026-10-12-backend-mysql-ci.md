@@ -17,10 +17,10 @@
 | 服务器字符集 | `utf8mb4` / `utf8mb4_unicode_ci` |
 | 库 | `icg_demo` |
 | 连接 | `ICG_DATABASE_URL=mysql+pymysql://root:<runtime>@127.0.0.1:3306/icg_demo?charset=utf8mb4`，另设 `ICG_REQUIRE_MYSQL=1` |
-| 密码 | `openssl rand -hex 24`，`::add-mask::`，经 `$GITHUB_ENV` 传给后续步骤。仓库和工作流里没有固定密码 |
+| 密码 | `openssl rand -hex 24`，`::add-mask::`。密码文件只给启动步骤。后续步骤只收到 `ICG_DATABASE_URL`。仓库和工作流里没有固定密码，也不导出 `ICG_MYSQL_PASSWORD` |
 | 迁移 | 仓库根 `alembic -c backend/bid-core/alembic.ini upgrade head` |
 | 测试 | `python -m pytest tests/backend -m mysql --junitxml=mysql-junit.xml -q` |
-| 守卫 | junit 缺失、0 条、全部跳过，或有失败/错误时失败 |
+| 守卫 | junit 缺失、0 条、任一跳过，或有失败/错误时失败 |
 
 当前标记 `mysql` 的测试在 `tests/backend/test_mysql_connection.py`，共 2 条。它们检查空迁移后的 `alembic_version`，以及 `GET /health` 的 `repository` 为 `mysql`。连接排序规则仍是代码里的 `utf8mb4_0900_ai_ci`。
 

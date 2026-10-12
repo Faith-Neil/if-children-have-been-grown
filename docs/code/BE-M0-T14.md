@@ -13,11 +13,11 @@
 
 ## 入口和调用顺序
 
-1. `Generate runtime database password` 用 `openssl rand -hex 24` 生成 48 位十六进制密码，立刻 `::add-mask::`。密码写入 `$RUNNER_TEMP/mysql-secret/`，并把 `ICG_DATABASE_URL`、`ICG_REQUIRE_MYSQL=1`、`ICG_MYSQL_PASSWORD` 写入 `$GITHUB_ENV`。这些值不打印到步骤日志。
+1. `Generate runtime database password` 用 `openssl rand -hex 24` 生成 48 位十六进制密码，立刻 `::add-mask::`。密码写入 `$RUNNER_TEMP/mysql-secret/`。`$GITHUB_ENV` 只追加 `ICG_DATABASE_URL`、`ICG_REQUIRE_MYSQL=1` 和 `MYSQL_SECRET_DIR`。单独的 `ICG_MYSQL_PASSWORD` 不传给后续步骤。这些值不打印到步骤日志。
 2. `Start MySQL 8.4` 用 `MYSQL_ROOT_PASSWORD_FILE` 读取密码文件，不把密码放在 `docker run` 的 `-e` 参数里。服务器参数是 `--character-set-server=utf8mb4` 和 `--collation-server=utf8mb4_unicode_ci`。镜像在初始化时会先起一个临时服务器，Docker 健康状态可能过早变成 healthy。步骤改为等到日志出现 `MySQL init process done` 并且 `mysqladmin ping` 成功，再执行 `CREATE DATABASE IF NOT EXISTS icg_demo`。日志正文不打印到作业输出。
 3. 在仓库根执行 `alembic -c backend/bid-core/alembic.ini upgrade head`。
 4. `python -m pytest tests/backend -m mysql --junitxml=mysql-junit.xml -q`。
-5. 守卫读取 junit。文件不存在、`tests` 为 0、跳过数等于测试数，或存在失败/错误时，步骤退出 1。
+5. 守卫读取 junit。文件不存在、`tests` 为 0、`skipped` 大于 0，或存在失败/错误时，步骤退出 1。部分跳过不再放过。
 
 连接串形如 `mysql+pymysql://root:<runtime>@127.0.0.1:3306/icg_demo?charset=utf8mb4`。用户名是容器的 root。应用连接仍按 `database.py` 使用 `utf8mb4_0900_ai_ci`，与服务器默认排序规则不是同一项。
 
