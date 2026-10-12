@@ -13,7 +13,7 @@
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
 | revision | qa-rerun-3 |
-| 关联 Task | [REV-M0-T02](../docs/tasks/REV-M0.md#rev-m0-t02)、[REV-M0-T05](../docs/tasks/REV-M0.md#rev-m0-t05)（QA签署复核）、[REV-M0-T07](../docs/tasks/REV-M0.md#rev-m0-t07)（BE-M0-T02/T03签署）、[REV-M0-T09](../docs/tasks/REV-M0.md#rev-m0-t09)（BE-M0-T08/T10签署）、[REV-M0-T10](../docs/tasks/REV-M0.md#rev-m0-t10)（BE-M0-T15 Word版式签署）、[REV-M0-T11](../docs/tasks/REV-M0.md#rev-m0-t11)（T001/T002复验签署）、[REV-M0-T12](../docs/tasks/REV-M0.md#rev-m0-t12)（BE-M0-T14 MySQL CI签署）、[REV-M0-T08](../docs/tasks/REV-M0.md#rev-m0-t08)（T001签署）；[任务看板](../docs/TASK_BOARD.md) |
+| 关联 Task | [REV-M0-T02](../docs/tasks/REV-M0.md#rev-m0-t02)、[REV-M0-T05](../docs/tasks/REV-M0.md#rev-m0-t05)（QA签署复核）、[REV-M0-T07](../docs/tasks/REV-M0.md#rev-m0-t07)（BE-M0-T02/T03签署）、[REV-M0-T09](../docs/tasks/REV-M0.md#rev-m0-t09)（BE-M0-T08/T10签署）、[REV-M0-T10](../docs/tasks/REV-M0.md#rev-m0-t10)（BE-M0-T15 Word版式签署）、[REV-M0-T11](../docs/tasks/REV-M0.md#rev-m0-t11)（T001/T002复验签署）、[REV-M0-T12](../docs/tasks/REV-M0.md#rev-m0-t12)（BE-M0-T14 MySQL CI签署）、[REV-M0-T13](../docs/tasks/REV-M0.md#rev-m0-t13)（ISSUE-026快照规则签署）、[REV-M0-T08](../docs/tasks/REV-M0.md#rev-m0-t08)（T001签署）；[任务看板](../docs/TASK_BOARD.md) |
 | 关联 PR | [PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)，待合入 |
 | 本地验收 | 通过；2026-10-12，成长测试QA |
 | 合入 | 未合入 |
@@ -42,6 +42,7 @@
 | REV-M0-T10 | BE-M0-T15 Word 默认版式按原文独立核对、样张与 LibreOffice 渲染 | `docs/testing/2026-10-12-be-m0-t15-word-style-signoff.md` | AC-04 | done |
 | REV-M0-T11 | APP-M2-T001与APP-M2-T002修复复验、请求计数探针与对比度独立计算 | `docs/testing/2026-10-12-qa-t001-t002-signoff.md` | AC-04 | done |
 | REV-M0-T12 | BE-M0-T14托管MySQL CI验收：Actions日志、本地迁移往返与守卫负例 | `docs/testing/2026-10-12-be-m0-t14-mysql-ci-signoff.md` | AC-04 | done |
+| REV-M0-T13 | ISSUE-026快照规则签署 | `docs/testing/2026-10-12-issue-026-snapshot-signoff.md` | AC-04 | done |
 | REV-M0-T02 | 会话实时HTTP复核入库、全套复跑记录 | `tests/backend/session_live_http.py`、`docs/testing/2026-10-12-qa-rerun.md` | AC-01～03 | done |
 
 ## 验收条目
@@ -78,6 +79,7 @@ WORKFLOW无规则变化，治理块保持g1.1。
 | 2026-10-12 | qa-rerun-5 / done | T001/T002复验（REV-M0-T11）：E2E-D7、E2E-D8、T002-F1已修复；92/35、tsc、E2E 13/13、探针27/27、对比度≥5.66:1；两卡签署通过，仍in-review待项目经理确认；O1 P3观察 | 成长测试QA |
 | 2026-10-12 | qa-rerun-6 / done | BE-M0-T14签署（REV-M0-T12）：AC-01～04通过，Actions真实连库2 passed、失败样例变红；本地8.4.6往返、337 passed、守卫负例全判失败；M1～M3 P3；T14仍in-review待项目经理确认 | 成长测试QA |
 | 2026-10-12 | qa-rerun-7 / done | BE-M0-T15 Q1～Q3复核（REV-M0-T10 复核二，034b184/f989af7）：检查器补Q1缩进、Q2无标题无目录、Q3规格中文；样张69/69、h1左64/64、技术册与商务册50/50、承诺函45/45；样张已覆盖；无新缺陷；T15仍in-review待用户Word/WPS确认 | 成长测试QA |
+| 2026-10-12 | qa-rerun-8 / done | ISSUE-026快照规则签署（REV-M0-T13）：AC通过；看板独立重数366项（32/6/7/268/49/4）与快照一致；规则在ISSUE-026、同步表、WORKFLOW第4节；检查程序不比对快照；模拟签收AI-03仍通过；CI 38212117391全绿；ISSUE-026保持in-review，待项目经理设置done | 成长测试QA |
 
 ## 本地验收与后续合入发布
 

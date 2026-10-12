@@ -129,6 +129,7 @@
 | [REV-M0-T10](tasks/REV-M0.md#rev-m0-t10) | BE-M0-T15 Word 默认版式 QA 签署复核 | done | BE-M0-T15 | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T10.md) |
 | [REV-M0-T11](tasks/REV-M0.md#rev-m0-t11) | APP-M2-T001与APP-M2-T002 QA复验签署 | done | APP-M2-T001、APP-M2-T002 | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T11.md) |
 | [REV-M0-T12](tasks/REV-M0.md#rev-m0-t12) | BE-M0-T14 托管 MySQL CI QA签署 | done | BE-M0-T14 | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T12.md) |
+| [REV-M0-T13](tasks/REV-M0.md#rev-m0-t13) | ISSUE-026 基线快照规则 QA签署 | done | ISSUE-026 | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T13.md) |
 | [REV-M0-T06](tasks/REV-M0.md#rev-m0-t06) | Playwright浏览器端到端检查 | in-review | [APP-M2-T001](tasks/APP-M2.md#app-m2-t001) | [ISSUE-019](../issues/ISSUE-019.md) | [交付](delivery/REV-M0-T06.md) |
 | [REV-M0-T08](tasks/REV-M0.md#rev-m0-t08) | APP-M2-T001 QA签署复核 | in-review | [REV-M0-T06](tasks/REV-M0.md#rev-m0-t06) | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T08.md) |
 | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | 后端开发准备与本地demo | done | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | [ISSUE-006](../issues/ISSUE-006.md) | [交付](delivery/BE-M0-T01.md) |
