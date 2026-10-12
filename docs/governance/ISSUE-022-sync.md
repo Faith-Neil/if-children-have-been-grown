@@ -35,3 +35,23 @@
 | 运行代码 | 无 | 不改 `backend/bid-core`，不把两个新码写入 `errors.py` | 2026-10-12 |
 
 未合入，未发布。不标 done，不标 closed。并入 `bde8e9e` 后 `node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：223 份 Markdown、364 项任务、28 项 Issue。」检查程序未修改。
+
+## t078-plan-etag-receipt
+
+日期：2026-10-12。范围：只补 T078 计划的两句。不写代码。ISSUE-022 仍为 in-review。T124 仍 blocked。T078 仍 planned。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。
+
+| 文档 | 本次影响 | 实际处理 | 版本与状态 |
+|---|---|---|---|
+| PRD.md | 无 | 不改正文，不改计数。计划没有新的用户验收口径 | 2026-10-12 |
+| ROADMAP.md | 无 | 不改正文，不改计数。没有新任务或依赖变化 | 2026-10-12 |
+| PROJECT_BRIEF.md | 无 | 不改正文，不改计数 | 2026-10-12 |
+| ARCHITECTURE.md | 无 | 计划仍未进入运行结构 | 2026-10-12 |
+| TASK_BOARD.md | 无状态变化 | T078 仍 planned，T124 仍 blocked | 2026-10-12 |
+| PROJECT_STATUS.md | 无 | 不把计划写成已实现 | 2026-10-12 |
+| issues/ISSUE-022.md | 有记录 | 状态仍 in-review。T078 节指向已补两句的方案，并加一条复核记录 | in-review |
+| issues/index.md | 有记录 | 状态不变。证据格写明方案补了 ETag 与拦截发布的幂等回执 | in-review |
+| docs/governance/ISSUE-022-t078-plan.md | 有 | GET 返回 ETag。被拦截的发布仍算成功，必须记下幂等回执。`records` 与 `audits` 仍不改 | 未实现 |
+| DOCUMENT_INDEX.md | 有 | D-266 改为 t078-plan-etag-receipt | 2026-10-12 |
+| 运行代码 | 无 | 不改 `backend/bid-core`，不新增测试 | 2026-10-12 |
+
+未合入，未发布。不标 done，不标 closed。并入 `d55d507` 后 `node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：225 份 Markdown、365 项任务、28 项 Issue。」检查程序未修改。

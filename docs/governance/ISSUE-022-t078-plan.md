@@ -71,6 +71,8 @@ class SnippetPublicationStore(Protocol):
 
 缺少 `If-Match` 的保存、发布和同步返回 428 `IF_MATCH_REQUIRED`。版本不符返回 409 `VERSION_CONFLICT`。
 
+`GET /api/v1/snippet-publications` 与 `GET /api/v1/snippet-publications/{snippet_id}` 返回 ETag，供随后的 If-Match 使用。被拦截的发布仍算成功，必须记下幂等回执。
+
 ## 字段
 
 `id`、`company_id`、`product`、`snippet_type`、`variables`、`source_group`、`boilerplate_group`、`draft_body`、`published_body`、`draft_revision`、`published_revision`、`kb_sync_status`、`updated_at`。

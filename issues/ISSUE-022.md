@@ -62,7 +62,7 @@ operationId 已写入 `spec/openapi/demo-v1.json`，契约状态为 **draft, pen
 
 ## T078 计划
 
-只规划，不写代码。新状态放在独立内存存储，不改 `Repository.read` 与 `Repository.transaction`。文件、路径和字段见 [T078 内存方案](../docs/governance/ISSUE-022-t078-plan.md)。
+只规划，不写代码。新状态放在独立内存存储，不改 `Repository.read` 与 `Repository.transaction`。文件、路径和字段见 [T078 内存方案](../docs/governance/ISSUE-022-t078-plan.md)。两条 GET 返回 ETag，供随后的 If-Match 使用。被拦截的发布仍算成功，必须记下幂等回执。
 
 ## 影响与分流
 
@@ -105,6 +105,7 @@ operationId 已写入 `spec/openapi/demo-v1.json`，契约状态为 **draft, pen
 | 2026-10-12 | outline-contract-draft-1 / in-review | 写入三个 operationId 与 `getJob` 的草案。`startGeneration` 为 202，对齐尚未实现的 BE-M0-T06。T078 只留下独立存储计划。未改运行时 | [契约核对](../docs/testing/2026-10-12-t124-dependencies.md) |
 | 2026-10-12 | outline-contract-draft-2 / in-review | 按后台对 `16e0b9e` 的复核改草案：独立 `JobStatus`、SSE 与 `cancelJob`、按操作列出错误、ETag 与整份计划版本。T078 计划改为独立前缀。仍无运行时 | [契约核对](../docs/testing/2026-10-12-t124-dependencies.md) |
 | 2026-10-12 | outline-contract-draft-3 / in-review | 按对 `046f8e5` / `fe9582c` 的复审补草案：快照与两个引用码、423、事件 type 与 payload、`recoverable`、取消响应不强制 Location、查询与 SSE 去掉 403。503 `SECRET_KEY_UNAVAILABLE` 不自动重试。仍无运行时。不改任务计数 | [契约核对](../docs/testing/2026-10-12-t124-dependencies.md) |
+| 2026-10-12 | t078-plan-etag-receipt / in-review | 只补方案两句：GET 返回 ETag；被拦截的发布仍算成功并记下幂等回执。不写代码。T078 仍 planned | [T078 内存方案](../docs/governance/ISSUE-022-t078-plan.md) |
 
 ## 本地验收与后续合入发布
 

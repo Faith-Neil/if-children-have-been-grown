@@ -265,18 +265,18 @@
 | D-253 | 2026-10-12 | [编辑台1280截图](testing/assets/e2e-editor-1280.png) | 证据 | e2e-1 | E2E截图 | ISSUE-019 / REV-M0-T06 | 编辑台三栏与暗色控件 |
 | D-254 | 2026-10-12 | [概览1440截图](testing/assets/e2e-overview-1440.png) | 证据 | e2e-1 | E2E截图 | ISSUE-019 / REV-M0-T06 | 项目概览布局 |
 | D-242 | 2026-10-12 | [017同步记录](governance/ISSUE-017-sync.md) | 治理 | intranet-plan-1 | 已核对 | ISSUE-017 / OPS-M0-T02 | 三件套与 brief 不改正文；过时的 T008 用词留给项目经理下一次基线同步 |
-| D-255 | 2026-10-12 | [T124契约事项](../issues/ISSUE-022.md) | 变更 | outline-contract-draft-3 | in-review | ISSUE-022 / APP-M2-T124 | 复审补充已写入草案；T124 仍 blocked |
+| D-255 | 2026-10-12 | [T124契约事项](../issues/ISSUE-022.md) | 变更 | outline-contract-draft-3 | in-review | ISSUE-022 / APP-M2-T124 | 复审补充已写入草案；方案补了 ETag 与回执；T124 仍 blocked |
 | D-256 | 2026-10-12 | [T124草案交付](delivery/APP-M2-T124.md) | 交付 | outline-contract-draft-3 | in-review | ISSUE-022 / APP-M2-T124 | 无运行时；不标 done |
 | D-257 | 2026-10-12 | [T124契约说明](code/APP-M2-T124.md) | 说明 | outline-contract-draft-3 | 当前 | ISSUE-022 / APP-M2-T124 | 独立 JobStatus 含 recoverable；整章输入保持 |
 | D-258 | 2026-10-12 | [T124契约核对](testing/2026-10-12-t124-dependencies.md) | 验证 | outline-contract-draft-3 | 契约测试 | ISSUE-022 / APP-M2-T124 | 快照、423、事件 payload、503 不重试；不调用新路由 |
-| D-259 | 2026-10-12 | [022同步记录](governance/ISSUE-022-sync.md) | 治理 | outline-contract-draft-3 | 已核对 | ISSUE-022 / APP-M2-T124 | 本草案不改任务计数；PRD 与 ARCHITECTURE 未改 |
+| D-259 | 2026-10-12 | [022同步记录](governance/ISSUE-022-sync.md) | 治理 | t078-plan-etag-receipt | 已核对 | ISSUE-022 / APP-M2-T124 | 方案补两句；不改计数，不写代码 |
 | D-260 | 2026-10-12 | [MySQL 8 持久化方案](architecture/mysql-8-persistence-plan.md) | 架构 | impl-1 | in-review | ISSUE-018 / BE-M0-T08；ISSUE-023 / BE-M0-T10 | 选型仍有效。四项依赖已批准并写入；业务表未建 |
 | D-261 | 2026-10-12 | [ISSUE-018](../issues/ISSUE-018.md) | 变更 | impl-1 | in-progress | ISSUE-018 / BE-M0-T08；BE-M0-T10 | 连接已实施；T11～T13 planned；不关闭 |
 | D-262 | 2026-10-12 | [方案交付](delivery/BE-M0-T08.md) | 交付 | plan-1 | in-review | ISSUE-018 / BE-M0-T08 | 无运行时代码 |
 | D-263 | 2026-10-12 | [方案无代码说明](code/BE-M0-T08.md) | 说明 | plan-1 | 当前 | ISSUE-018 / BE-M0-T08 | 未改仓库和依赖 |
 | D-264 | 2026-10-12 | [018同步表](governance/ISSUE-018-sync.md) | 治理 | impl-1 | 已核对 | ISSUE-018 / BE-M0-T10 | 方案轮次未改基线；实施轮次仍不改 PRD、ROADMAP、ARCHITECTURE |
 | D-265 | 2026-10-12 | [ISSUE-021](../issues/ISSUE-021.md) | 变更 | queue-1 | blocked | ISSUE-021 / BE-M0-T09 | 旧接口、幂等和 E2E-D5；任务 planned；本轮不实施 |
-| D-266 | 2026-10-12 | [T078内存方案](governance/ISSUE-022-t078-plan.md) | 计划 | outline-contract-draft-2 | 未实现 | ISSUE-022 / APP-M2-T078 | 独立存储；路径为 snippet-publications |
+| D-266 | 2026-10-12 | [T078内存方案](governance/ISSUE-022-t078-plan.md) | 计划 | t078-plan-etag-receipt | 未实现 | ISSUE-022 / APP-M2-T078 | GET 返回 ETag；拦截发布仍记幂等回执 |
 | D-267 | 2026-10-12 | [T001布局历史修复](testing/2026-10-12-t001-layout-history.md) | 验证 | layout-fix-1 | in-review | ISSUE-009 / APP-M2-T001 | E2E-D8：次要文字至少 4.5:1；Playwright 13 passed |
 | D-268 | 2026-10-12 | [T001布局修复同步](governance/APP-M2-T001-layout-sync.md) | 治理 | layout-fix-1 | 已核对 | ISSUE-009 / APP-M2-T001 | 基线未改；QA 不通过记录保留 |
 | D-269 | 2026-10-12 | [修复后工作台1680](testing/assets/t001-fixed-workbench-1680.png) | 证据 | layout-fix-1 | 修复截图 | ISSUE-009 / APP-M2-T001 | 深色侧栏、白顶栏、浅色卡片 |
@@ -384,6 +384,7 @@
 | 2026-10-12 | ISSUE-026 | 在 84a3fca 重数：看板 364项27done、9in-review、7in-progress、268planned、49blocked、4ready。PRD、ROADMAP、PROJECT_BRIEF 从 363项26done 改成同一组。不新增任务，不改 api.ts，不改后台，不改 docs/reference。Issue 仍为 in-review |
 | 2026-10-12 | ISSUE-022 / APP-M2-T124 | 复审补充草案：startGeneration 引用 403 与 503，503 不自动重试；确认与启动列 423；JobEvent 增加状态、进度、终态；JobStatus 增加 recoverable；cancelJob 不强制 Location；getJob 与 SSE 去掉 403。状态仍是 draft, pending backend review。ISSUE-022 仍 in-review，T124 仍 blocked。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数，不改运行代码 |
 | 2026-10-12 | ISSUE-013 / REV-M0-T11 | QA复验签署APP-M2-T001与APP-M2-T002通过（两卡仍in-review待项目经理标done）；365项28done |
+| 2026-10-12 | ISSUE-022 / APP-M2-T078 | 方案补两句：GET 返回 ETag，供 If-Match 使用；被拦截的发布仍算成功，必须记下幂等回执。仍不写代码。T078 仍 planned，T124 仍 blocked。不改任务计数 |
 
 ## 缺失输入
 
