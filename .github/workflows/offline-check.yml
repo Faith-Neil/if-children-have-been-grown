@@ -35,6 +35,8 @@ jobs:
         run: python -m pytest tests/backend -q
       - name: Live session HTTP
         run: python tests/backend/session_live_http.py
+      - name: Error and idempotency live HTTP
+        run: python tests/backend/qa_error_idempotency_live_http.py
       - name: T06 end-to-end smoke
         working-directory: backend/bid-core
         run: python smoke_t06.py
