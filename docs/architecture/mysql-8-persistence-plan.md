@@ -171,4 +171,4 @@ ICG_REQUIRE_MYSQL=1 python -m pytest tests/backend -m mysql
 
 ## 11. 仍未做
 
-BE-M0-T10 已加入四项依赖、`ICG_DATABASE_URL` 和空基线 `alembic.ini`。业务表仍未建。回执、会话、租约和按聚合迁移分别是 BE-M0-T11、T12、T13，状态 planned。`MemoryRepository` 仍是未设置连接串时的仓库，也仍是已连接时的业务读写委托。旧 `/api` 错误体见 [ISSUE-021](../../issues/ISSUE-021.md)，本轮不实施。
+BE-M0-T11 为 in-review：幂等回执和登录会话已写入 MySQL，多个进程可见，重启后未过期数据仍在。`alembic downgrade base` 后再 `upgrade head` 能把这两张表建回来。租约（BE-M0-T12）和按聚合迁移（BE-M0-T13）仍未做，也没有章节外键。`MemoryRepository` 仍是未设置连接串时的仓库，也仍是已连接时的业务读写委托。旧 `/api` 错误体见 [ISSUE-021](../../issues/ISSUE-021.md)，本轮不实施。

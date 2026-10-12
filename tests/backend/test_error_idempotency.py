@@ -244,3 +244,11 @@ def test_receipt_expires_after_24_hours_and_memory_is_bounded(monkeypatch):
         validate_key("bad key")
     assert missing.value.status == status_for("IDEMPOTENCY_KEY_REQUIRED") == 428
     assert fingerprint("library.create", {"name": "甲"}, "1") != fingerprint("library.create", {"name": "乙"}, "1")
+
+
+def test_uncapped_receipts_keep_more_than_2048():
+    state = DemoState(cap_receipts=False)
+    now = 1_700_000_000.0
+    for index in range(2049):
+        remember(state, "library:alpha", "alpha-editor", f"capkey{index:05d}", "f" * 64, {"n": index}, now)
+    assert len(state.workflow_receipts) == 2049

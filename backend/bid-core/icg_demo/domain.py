@@ -142,6 +142,8 @@ class DemoState:
     jobs: dict[str, dict] = field(default_factory=dict)
     workflow_receipts: dict[tuple[str, str, str], dict] = field(default_factory=dict)
     project_teams: dict[str, dict] = field(default_factory=dict)
+    # 内存仓库仍按 2048 条裁剪回执。MySQL 路径在事务里把它设为 False，避免未过期回执被提前删掉。
+    cap_receipts: bool = True
 
 
 class DemoService:

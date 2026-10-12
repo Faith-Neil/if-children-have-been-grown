@@ -1,5 +1,5 @@
-# 为什么有这个文件：用真实 MySQL 8 核对连接和空基线迁移。
-# 它解决什么问题：确认只设置 ICG_DATABASE_URL 就能连上库，且本卡还不建业务表。
+# 为什么有这个文件：用真实 MySQL 8 核对连接、迁移和回退。
+# 它解决什么问题：确认只设置 ICG_DATABASE_URL 就能连上库，回执表和会话表可以建出来，也可以降回基线后再建回来。
 
 import os
 import subprocess
@@ -18,7 +18,20 @@ pytestmark = pytest.mark.mysql
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_alembic_baseline_upgrade_creates_only_version_table():
+def _alembic(*args: str) -> subprocess.CompletedProcess[str]:
+    result = subprocess.run(
+        [sys.executable, "-m", "alembic", "-c", "backend/bid-core/alembic.ini", *args],
+        cwd=ROOT, env=os.environ.copy(), capture_output=True, text=True, check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    return result
+
+
+def _table_names(connection) -> list[str]:
+    return sorted(connection.execute(text("SHOW TABLES")).scalars().all())
+
+
+def test_alembic_upgrade_creates_session_and_receipt_tables():
     env = os.environ.copy()
     result = subprocess.run(
         [sys.executable, "-m", "alembic", "-c", "backend/bid-core/alembic.ini", "upgrade", "head"],
@@ -32,10 +45,27 @@ def test_alembic_baseline_upgrade_creates_only_version_table():
         charset = connection.execute(text(
             "SELECT @@character_set_connection, @@collation_connection"
         )).one()
-        tables = connection.execute(text("SHOW TABLES")).scalars().all()
+        tables = _table_names(connection)
     assert charset[0] == "utf8mb4"
     assert charset[1] == "utf8mb4_0900_ai_ci"
-    assert tables == ["alembic_version"]
+    assert tables == ["alembic_version", "idempotency_receipt", "user_session"]
+
+
+def test_alembic_downgrade_to_base_then_upgrade_restores_tables():
+    # QA M1：第一批真实表必须能降回基线再升回来。DevOps 可以把同样两条 alembic 命令加进 backend-mysql，本测试不改工作流。
+    _alembic("upgrade", "head")
+    try:
+        _alembic("downgrade", "base")
+        repository = create_app().state.service.repository
+        with repository.engine.connect() as connection:
+            remaining = _table_names(connection)
+        assert "idempotency_receipt" not in remaining
+        assert "user_session" not in remaining
+    finally:
+        _alembic("upgrade", "head")
+    repository = create_app().state.service.repository
+    with repository.engine.connect() as connection:
+        assert _table_names(connection) == ["alembic_version", "idempotency_receipt", "user_session"]
 
 
 def test_health_uses_mysql_connection_without_code_change():

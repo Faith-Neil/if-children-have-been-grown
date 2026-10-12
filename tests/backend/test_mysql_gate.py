@@ -4,6 +4,7 @@
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from icg_demo.adapters import MemoryRepository
@@ -60,6 +61,35 @@ def test_gate_fails_when_url_is_set_but_database_unreachable(monkeypatch):
     gate = mysql_gate()
     assert gate.action == "fail"
     assert "secret" not in gate.reason
+
+
+def test_create_app_does_not_connect_when_the_url_is_set(monkeypatch):
+    monkeypatch.setenv("ICG_DATABASE_URL", "mysql+pymysql://user:secret@127.0.0.1:1/icg_demo")
+    application = create_app()
+    repository = application.state.service.repository
+    assert repository.mode == "mysql"
+    assert repository._engine is None
+
+
+def test_required_unreachable_database_fails_fast_without_a_collection_error():
+    env = os.environ.copy()
+    env["ICG_DATABASE_URL"] = "mysql+pymysql://user:secret@127.0.0.1:1/icg_demo"
+    env["ICG_REQUIRE_MYSQL"] = "1"
+    started = time.monotonic()
+    result = subprocess.run(
+        [sys.executable, "-m", "pytest",
+         "tests/backend/test_mysql_connection.py::test_health_uses_mysql_connection_without_code_change",
+         "-m", "mysql", "-q", "--tb=line"],
+        cwd=ROOT, env=env, capture_output=True, text=True, check=False,
+    )
+    elapsed = time.monotonic() - started
+    combined = result.stdout + result.stderr
+    summary = combined.strip().splitlines()[-1]
+    assert result.returncode != 0, combined
+    assert "failed" in summary
+    assert "error" not in summary
+    assert "secret" not in combined
+    assert elapsed < 8
 
 
 def test_mysql_marker_fails_instead_of_skipping_when_required():

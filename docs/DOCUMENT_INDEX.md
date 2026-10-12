@@ -10,7 +10,7 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
-| D-001 | 2026-10-12 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 / AI-01；ISSUE-009 / APP-M2-T001 | 366项32done、6in-review、49blocked。T001、T002 与 T14 为 done。T15 仍 in-review |
+| D-001 | 2026-10-12 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 / AI-01；ISSUE-009 / APP-M2-T001 | 366项32done、8in-review、266planned、49blocked。T11 回执与会话为 in-review。T001、T002 与 T14 为 done。T15 仍 in-review |
 | D-002 | 2026-10-12 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025；ISSUE-027 / BE-M0-T15 | 第19行为里程碑快照 as of 3bb311a：366项32done、6in-review、其余255卡planned |
 | D-003 | 2026-10-12 | [前端架构](ARCHITECTURE.md) | 前端架构 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-011 / AI-02；ISSUE-016 / AI-03 | 同源存储和替换接口；业务库为 MySQL 8，嵌入与向量库定为 RAGFlow，适配器未实现 |
 | D-004 | 2026-10-12 | [前端路线图](ROADMAP.md) | 计划 | 参考实施入口 / g1.1 | 执行入口 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15 | 里程碑快照 as of 3bb311a：366项32done、6in-review。任务看板是准绳。T124仍blocked |
@@ -26,7 +26,7 @@
 | D-014 | 2026-10-09 | [首轮交付](delivery/2026-10-09-repository-foundation.md) | 交付 | 首轮快照 | 历史证据 | FE-M0-T01 | 保留原交付事实；逐任务归档见D-030 |
 | D-015 | 2026-10-12 | [协作流程](governance/WORKFLOW.md) | 治理 | g1.1 | 当前规则 | ISSUE-007 / APP-M1；ISSUE-026 | 第4节：三份基线计数是里程碑快照。治理块仍为 g1.1，不升版 |
 | D-016 | 2026-10-09 | [本次同步表](governance/ISSUE-003-sync.md) | 治理 | g1.0 | 本次记录 | ISSUE-003 / FE-M0-T02 | 四份基线及看板、进度、索引的影响评估 |
-| D-017 | 2026-10-12 | [任务看板](TASK_BOARD.md) | 执行 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-022 / T124 | 366项32done、6in-review、7in-progress、268planned、49blocked、4ready。T001、T002 与 T14 为 done，T124仍blocked |
+| D-017 | 2026-10-12 | [任务看板](TASK_BOARD.md) | 执行 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-022 / T124 | 366项32done、8in-review、7in-progress、266planned、49blocked、4ready。T11为in-review，T001、T002 与 T14 为 done，T078为in-review，T124仍blocked |
 | D-018 | 2026-10-12 | [FE-M0 任务卡](tasks/FE-M0.md) | 基线与基础 | g1.1 | 当前计划 | ISSUE-006 / BE-M0-T01；ISSUE-010 | 前置基线、治理、契约与基础；T04仍待ISSUE-010 |
 | D-019 | 2026-10-09 | [FE-M1 任务卡](tasks/FE-M1.md) | 项目主流程 | g1.0 | 当前计划 | FE-M1 | 项目、招标解析、矩阵、事实 |
 | D-020 | 2026-10-09 | [FE-M2 任务卡](tasks/FE-M2.md) | 章节生成 | g1.0 | 当前计划 | FE-M2 | 方案确认、任务进度、修正与转人工 |
@@ -270,8 +270,8 @@
 | D-257 | 2026-10-12 | [T124契约说明](code/APP-M2-T124.md) | 说明 | outline-contract-draft-3 | 当前 | ISSUE-022 / APP-M2-T124 | 独立 JobStatus 含 recoverable；整章输入保持 |
 | D-258 | 2026-10-12 | [T124契约核对](testing/2026-10-12-t124-dependencies.md) | 验证 | outline-contract-draft-3 | 契约测试 | ISSUE-022 / APP-M2-T124 | 快照、423、事件 payload、503 不重试；不调用新路由 |
 | D-259 | 2026-10-12 | [022同步记录](governance/ISSUE-022-sync.md) | 治理 | t078-memory-1 | 已核对 | ISSUE-022 / APP-M2-T078 | 内存发布 in-review；不改三份基线计数 |
-| D-260 | 2026-10-12 | [MySQL 8 持久化方案](architecture/mysql-8-persistence-plan.md) | 架构 | impl-1 | in-review | ISSUE-018 / BE-M0-T08；ISSUE-023 / BE-M0-T10 | 选型仍有效。四项依赖已批准并写入；业务表未建 |
-| D-261 | 2026-10-12 | [ISSUE-018](../issues/ISSUE-018.md) | 变更 | impl-1 | in-progress | ISSUE-018 / BE-M0-T08；BE-M0-T10 | 连接已实施；T11～T13 planned；不关闭 |
+| D-260 | 2026-10-12 | [MySQL 8 持久化方案](architecture/mysql-8-persistence-plan.md) | 架构 | impl-2 | in-review | ISSUE-018 / BE-M0-T11 | 回执和会话表已提交复查。租约和聚合表未建 |
+| D-261 | 2026-10-12 | [ISSUE-018](../issues/ISSUE-018.md) | 变更 | impl-2 | in-progress | ISSUE-018 / BE-M0-T11 | 回执和登录会话为 in-review；T12、T13 仍 planned；不关闭 |
 | D-262 | 2026-10-12 | [方案交付](delivery/BE-M0-T08.md) | 交付 | plan-1 | in-review | ISSUE-018 / BE-M0-T08 | 无运行时代码 |
 | D-263 | 2026-10-12 | [方案无代码说明](code/BE-M0-T08.md) | 说明 | plan-1 | 当前 | ISSUE-018 / BE-M0-T08 | 未改仓库和依赖 |
 | D-264 | 2026-10-12 | [018同步表](governance/ISSUE-018-sync.md) | 治理 | impl-1 | 已核对 | ISSUE-018 / BE-M0-T10 | 方案轮次未改基线；实施轮次仍不改 PRD、ROADMAP、ARCHITECTURE |
@@ -328,6 +328,9 @@
 | D-315 | 2026-10-12 | [T078片段发布交付](delivery/APP-M2-T078.md) | 交付 | t078-memory-1 | in-review | ISSUE-022 / APP-M2-T078 | 内存接口；页面未做；不标 done |
 | D-316 | 2026-10-12 | [T078片段发布说明](code/APP-M2-T078.md) | 说明 | t078-memory-1 | 当前 | ISSUE-022 / APP-M2-T078 | 独立字典；回执仍用 library 作用域 |
 | D-317 | 2026-10-12 | [T078片段发布核对](testing/2026-10-12-t078-snippet-publications.md) | 验证 | t078-memory-1 | 已执行 | ISSUE-022 / APP-M2-T078 | 后台 346 passed、2 skipped |
+| D-318 | 2026-10-12 | [回执与会话交付](delivery/BE-M0-T11.md) | 交付 | sessions-1 | in-review | ISSUE-018 / BE-M0-T11 | 回执和登录会话入库；不标 done |
+| D-319 | 2026-10-12 | [回执与会话代码说明](code/BE-M0-T11.md) | 说明 | sessions-1 | 当前 | ISSUE-018 / BE-M0-T11 | 导入时不连接；差量保存会话和回执 |
+| D-320 | 2026-10-12 | [回执与会话核对](testing/2026-10-12-be-m0-t11-sessions-receipts.md) | 验证 | sessions-1 | 已执行 | ISSUE-018 / BE-M0-T11 | 无库、mysql:8.4、不可达地址；含 downgrade base |
 
 ## 更新记录
 
@@ -398,6 +401,7 @@
 | 2026-10-12 | ISSUE-025 / BE-M0-T14 | 交付里的任务计数改为截至提交 3bb311a 的快照，并写明之后以任务看板为准。不改看板，不改卡片状态 |
 | 2026-10-12 | ISSUE-026 | 在 3bb311a 重数：看板 366项30done、8in-review。项目经理在群里确认后，APP-M2-T001 与 APP-M2-T002 标为 done，成为 366项32done、6in-review、7in-progress、268planned、49blocked、4ready。PRD、ROADMAP、PROJECT_BRIEF 改为 as of commit 3bb311a 的里程碑快照，并写明任务看板是准绳、只在里程碑更新。规则写入 WORKFLOW 第4节。检查程序不比较快照与活看板，未改脚本。Issue 仍为 in-review。不改 docs/reference |
 | 2026-10-12 | ISSUE-022 / APP-M2-T078 | 按方案实现进程内片段发布。T078 改为 in-review，未标 done。并入 c9a3cd5 后看板改为 366项32done、7in-review、7in-progress、267planned、49blocked、4ready。不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照。T124 仍 blocked。pytest 346 passed、2 skipped |
+| 2026-10-12 | ISSUE-018 / BE-M0-T11 | 回执和登录会话入库，状态 in-review。含 downgrade base 再 upgrade head。看板在 e6215d4 的 32 done、7 in-review、267 planned 上改为 366项32done、8in-review、7in-progress、266planned、49blocked、4ready。不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照，不改 .github。ISSUE-018 仍 in-progress。BE-M0-T15 仍 in-review |
 
 ## 缺失输入
 

@@ -76,6 +76,8 @@ def enforce_bounds(state: DemoState, now: float) -> None:
     expired = [key for key, receipt in receipts.items() if _expired(receipt, now)]
     for key in expired:
         del receipts[key]
+    if not state.cap_receipts:
+        return
     overflow = len(receipts) - MAX_IDEMPOTENCY_RECEIPTS
     if overflow <= 0:
         return

@@ -19,6 +19,10 @@
 
 ISSUE-021 的任务是 planned，Issue 状态是 blocked，因为看板没有 planned 这一档。它排在本方案之后，本轮不实施。范围另含 QA `200a105` 的 E2E-D5：`/API/...` 目前返回页面壳，将来要把 `/api` 前缀按大小写不敏感处理。本轮不改兜底路由。方案要求回执和登录会话跨进程共享，并在重启后仍在；这是验收条件，不是本轮实现。
 
+## impl-2（2026-10-12）
+
+BE-M0-T11 提交回执表和会话表，状态 in-review。ISSUE-018 仍为 in-progress。T12、T13 仍 planned。as of commit e6215d4, task board is source of truth。该提交看板为 366 项：32 done、7 in-review、7 in-progress、267 planned、49 blocked、4 ready。本提交后为 366 项：32 done、8 in-review、7 in-progress、266 planned、49 blocked、4 ready。PRD、ROADMAP、PROJECT_BRIEF 已是里程碑快照，本提交不改这三份。ARCHITECTURE 未改：ISSUE-005 那句 “本轮不引入驱动、迁移或表结构” 是该轮的历史记录，持久化步骤仍在方案正文。`docs/reference` 未改。工作流文件未改。QA M1 的降级再升级由 mysql 标记测试覆盖；现有 `backend-mysql` 的 `pytest -m mysql` 会执行它。DevOps 可以另加显式的 `downgrade base` 与 `upgrade head`，本卡不代改 `.github`。
+
 ## impl-1（2026-10-12）
 
 项目经理批准方案和四项依赖后，本 Issue 改为 in-progress。BE-M0-T10 实施连接和空基线。T11～T13 登记为 planned，未写代码。依赖引入另见 [ISSUE-023 同步](ISSUE-023-sync.md)。PRD、ROADMAP、ARCHITECTURE 仍未改。进度改为 360 项：23 done、7 in-review、7 in-progress、269 planned、50 blocked、4 ready。

@@ -1,19 +1,24 @@
 # 为什么有这个文件：按环境变量决定进程使用内存仓库还是连上 MySQL。
-# 它解决什么问题：未设置连接串时，现有测试和公网 CI 仍走内存；设置后无需改代码即可连库。
+# 它解决什么问题：未设置连接串时，现有测试和公网 CI 仍走内存；设置后回执和登录会话对多个进程可见，并且进程重启后还在。
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from threading import Lock
 from typing import Callable, TypeVar
 
 from .adapters import MemoryRepository
+from .domain import DemoState
 
 DATABASE_URL_ENV = "ICG_DATABASE_URL"
 REQUIRE_MYSQL_ENV = "ICG_REQUIRE_MYSQL"
 CHARSET = "utf8mb4"
 COLLATION = "utf8mb4_0900_ai_ci"
 CONNECT_TIMEOUT_SECONDS = 3
+RECEIPT_TTL = timedelta(hours=24)
 
 T = TypeVar("T")
 
@@ -32,11 +37,19 @@ class MysqlGate:
     reason: str
 
 
+def _use_utc(dbapi_connection, _connection_record) -> None:
+    cursor = dbapi_connection.cursor()
+    try:
+        cursor.execute("SET time_zone = '+00:00'")
+    finally:
+        cursor.close()
+
+
 def create_mysql_engine(url: str):
     # 连接参数强制字符集。密码只来自调用方传入的环境变量，这里不记录连接串。
-    from sqlalchemy import create_engine
+    from sqlalchemy import create_engine, event
 
-    return create_engine(
+    engine = create_engine(
         url,
         pool_pre_ping=True,
         connect_args={
@@ -45,6 +58,8 @@ def create_mysql_engine(url: str):
             "connect_timeout": CONNECT_TIMEOUT_SECONDS,
         },
     )
+    event.listen(engine, "connect", _use_utc)
+    return engine
 
 
 def _probe(url: str) -> None:
@@ -74,21 +89,165 @@ def mysql_gate() -> MysqlGate:
     return MysqlGate("run", "")
 
 
+def _utc_naive(timestamp: float) -> datetime:
+    return datetime.fromtimestamp(float(timestamp), timezone.utc).replace(tzinfo=None)
+
+
+def _as_timestamp(value: datetime) -> float:
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.timestamp()
+
+
+def _json_value(value):
+    if isinstance(value, (bytes, bytearray)):
+        value = value.decode("utf-8")
+    if isinstance(value, str):
+        return json.loads(value)
+    return value
+
+
 class MysqlConnectionRepository:
-    # 本卡只验证连接。业务读写仍委托内存仓库，回执、会话、租约和聚合表留给后续卡。
+    # 业务数据仍在内存。登录会话和幂等回执写入 MySQL，导入和 create_app 都不连接。
     mode = "mysql"
 
     def __init__(self, url: str):
-        self.engine = create_mysql_engine(url)
-        with self.engine.connect() as connection:
-            connection.exec_driver_sql("SELECT 1")
+        self._url = url
+        self._engine = None
+        self._engine_lock = Lock()
         self._memory = MemoryRepository()
 
+    @property
+    def engine(self):
+        if self._engine is not None:
+            return self._engine
+        with self._engine_lock:
+            if self._engine is None:
+                engine = create_mysql_engine(self._url)
+                try:
+                    with engine.connect() as connection:
+                        connection.exec_driver_sql("SELECT 1")
+                except Exception:
+                    engine.dispose()
+                    raise
+                self._engine = engine
+            return self._engine
+
     def read(self):
-        return self._memory.read()
+        state = self._memory.read()
+        self._load_shared(state)
+        return state
 
     def transaction(self, operation: Callable[..., T]) -> T:
-        return self._memory.transaction(operation)
+        def wrapped(state: DemoState) -> T:
+            self._load_shared(state)
+            state.cap_receipts = False
+            before_sessions = dict(state.sessions)
+            before_receipts = {key: dict(receipt) for key, receipt in state.workflow_receipts.items()}
+            result = operation(state)
+            self._save_shared(before_sessions, dict(state.sessions), before_receipts, state.workflow_receipts)
+            state.sessions.clear()
+            state.workflow_receipts.clear()
+            state.cap_receipts = True
+            return result
+
+        return self._memory.transaction(wrapped)
+
+    def _load_shared(self, state: DemoState) -> None:
+        from sqlalchemy import text
+
+        with self.engine.begin() as connection:
+            connection.execute(text("DELETE FROM idempotency_receipt WHERE expires_at <= NOW(6)"))
+            sessions = connection.execute(text("SELECT token, user_id FROM user_session")).all()
+            receipts = connection.execute(text(
+                "SELECT scope_id, user_id, idempotency_key, fingerprint, result_json, created_at "
+                "FROM idempotency_receipt"
+            )).all()
+        state.sessions = {token: user_id for token, user_id in sessions}
+        state.workflow_receipts = {
+            (scope_id, user_id, key): {
+                "fingerprint": fingerprint,
+                "result": _json_value(result_json),
+                "created_at": _as_timestamp(created_at),
+            }
+            for scope_id, user_id, key, fingerprint, result_json, created_at in receipts
+        }
+
+    def _save_shared(self, before_sessions: dict, after_sessions: dict,
+                     before_receipts: dict, after_receipts: dict) -> None:
+        from sqlalchemy import text
+
+        with self.engine.begin() as connection:
+            connection.execute(text("DELETE FROM idempotency_receipt WHERE expires_at <= NOW(6)"))
+            for token in before_sessions:
+                if token not in after_sessions:
+                    connection.execute(text("DELETE FROM user_session WHERE token = :token"), {"token": token})
+            for token, user_id in after_sessions.items():
+                if before_sessions.get(token) == user_id:
+                    continue
+                if token in before_sessions:
+                    connection.execute(
+                        text("UPDATE user_session SET user_id = :user_id WHERE token = :token"),
+                        {"token": token, "user_id": user_id},
+                    )
+                else:
+                    connection.execute(
+                        text(
+                            "INSERT INTO user_session (token, user_id, created_at) "
+                            "VALUES (:token, :user_id, UTC_TIMESTAMP(6))"
+                        ),
+                        {"token": token, "user_id": user_id},
+                    )
+            for key in before_receipts:
+                if key not in after_receipts:
+                    scope_id, user_id, idempotency_key = key
+                    connection.execute(
+                        text(
+                            "DELETE FROM idempotency_receipt WHERE scope_id = :scope_id "
+                            "AND user_id = :user_id AND idempotency_key = :idempotency_key"
+                        ),
+                        {"scope_id": scope_id, "user_id": user_id, "idempotency_key": idempotency_key},
+                    )
+            for key, receipt in after_receipts.items():
+                previous = before_receipts.get(key)
+                if previous is not None and _same_receipt(previous, receipt):
+                    continue
+                scope_id, user_id, idempotency_key = key
+                created_at = _utc_naive(receipt["created_at"])
+                payload = {
+                    "scope_id": scope_id,
+                    "user_id": user_id,
+                    "idempotency_key": idempotency_key,
+                    "fingerprint": receipt["fingerprint"],
+                    "result_json": json.dumps(receipt["result"], ensure_ascii=False, sort_keys=True),
+                    "created_at": created_at,
+                    "expires_at": created_at + RECEIPT_TTL,
+                }
+                if previous is None:
+                    connection.execute(
+                        text(
+                            "INSERT INTO idempotency_receipt "
+                            "(scope_id, user_id, idempotency_key, fingerprint, result_json, created_at, expires_at) "
+                            "VALUES (:scope_id, :user_id, :idempotency_key, :fingerprint, "
+                            "CAST(:result_json AS JSON), :created_at, :expires_at)"
+                        ),
+                        payload,
+                    )
+                else:
+                    connection.execute(
+                        text(
+                            "UPDATE idempotency_receipt SET fingerprint = :fingerprint, "
+                            "result_json = CAST(:result_json AS JSON), created_at = :created_at, "
+                            "expires_at = :expires_at WHERE scope_id = :scope_id AND user_id = :user_id "
+                            "AND idempotency_key = :idempotency_key"
+                        ),
+                        payload,
+                    )
+
+
+def _same_receipt(previous: dict, receipt: dict) -> bool:
+    return (previous.get("fingerprint") == receipt.get("fingerprint")
+            and previous.get("result") == receipt.get("result"))
 
 
 def repository_from_environment():
