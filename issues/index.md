@@ -26,11 +26,13 @@
 | [ISSUE-007](ISSUE-007.md) | change | P0 | in-progress | T07范围及T09～15限定任务本地验收；[成员记录](../docs/testing/2026-10-10-project-assignments.md) | PR #3 待合入 | 未发布 | 保留ICG布局与流程，逐页接通后台 | T001共同底座开工，T008离线CI已本地验收（ISSUE-012），其余257卡planned；完整资料、片段/段落、规则、生成闭环及正式Word继续 |
 | [ISSUE-008](ISSUE-008.md) | bug | P0 | closed | 后台229、前端58及实际资料/模板页面通过；[验证](../docs/testing/2026-10-11-library-basis.md) | PR #3 待合入 | 未发布 | 资料库旧表单刷新版本后覆盖新内容 | T16限定保护本地done；完整资料/模板继续ISSUE-007 |
 | [ISSUE-009](ISSUE-009.md) | change | P0 | in-progress | 会话阶段262后台、72前端、16真实HTTP及GUI通过；完整T001未验收 | PR #3 待合入 | 未发布 | 共同页面底座与完整资料库前置 | 继续实际布局/浏览器路由/离开保护，再元数据/敏感展示和完整资料库 |
+| [ISSUE-010](ISSUE-010.md) | decision | P0 | blocked | 选项已登记，用户尚未决定；[待决记录](../docs/delivery/AI-01.md) | 未创建 PR，未合入 | 未发布 | 模型、向量库、业务库和内网验证方式待用户决定 | 等待用户逐项确认；项目经理的 PostgreSQL 16 建议不是决定 |
+| [ISSUE-011](ISSUE-011.md) | change | P1 | closed | [契约与后台回归](../docs/testing/2026-10-12-openai-compatible-model.md) | 未创建 PR，未合入 | 未发布 | OpenAI 兼容对话适配器，默认仍为演示替身 | 本地契约已验收；真实端点随 ISSUE-010，不表示已上线 |
 | [ISSUE-012](ISSUE-012.md) | workflow | P1 | closed | 三作业通过；[验证](../docs/testing/2026-10-12-offline-ci.md) | PR #3 待合入 | 未发布 | 离线检查纳入 GitHub Actions | 本地验收完成；合入与发布另记。`buildTheme` 未实现 |
 | [ISSUE-013](ISSUE-013.md) | change | P1 | closed | 会话实时HTTP15/15、后台262、前端72复跑通过；[复跑](../docs/testing/2026-10-12-qa-rerun.md) | PR #3 待合入 | 未发布 | 会话真实HTTP复核入库与QA复跑记录 | REV-M0-T02本地done；CI显式运行会话脚本，固定Node 24 |
 | [ISSUE-015](ISSUE-015.md) | change | P1 | in-progress | 计划评审通过；smoke_t06 12/12、Word渲染留证；[记录](../docs/testing/2026-10-12-t06-smoke-word-render.md) | PR #3 待合入 | 未发布 | APP-M1-T06端到端验收计划与缺口执行 | 后端处理W1～W4；继续缺口2、4～7 |
 <!-- issue-board:end -->
 
-ISSUE-001 编号沿用合作分支。其原记录在 xqr 内标为 closed，仅表示该分支当时的文档同步验收；本地整合保持 blocked，不据此采纳或发布技术决策。ISSUE-002 的 closed 仅表示本地验收完成。
+ISSUE-001 编号沿用合作分支。其原记录在 xqr 内标为 closed，仅表示该分支当时的文档同步验收；本地整合保持 blocked，不据此采纳或发布技术决策。ISSUE-002 的 closed 仅表示本地验收完成。ISSUE-011 的 closed 只表示适配器契约已本地验收。ISSUE-012 的 closed 只表示离线 CI 已本地验收。
 
-下一编号为 `ISSUE-016`。ISSUE-012 用于离线 CI，ISSUE-013 用于 QA 复跑，ISSUE-014 预留给并行的前端 ProComponents 变更，ISSUE-015 用于 T06 验收计划与贯通冒烟。ISSUE-010 与 ISSUE-011 仍未建档。只更新此表不能代替详情、任务或验收记录。
+下一编号为 `ISSUE-016`。ISSUE-010 登记模型与数据库待决，ISSUE-011 为兼容适配器的本地验收。ISSUE-012 用于离线 CI 且已本地验收，ISSUE-013 用于 QA 复跑，ISSUE-014 预留给并行的前端 ProComponents 变更，ISSUE-015 用于 T06 验收计划与贯通冒烟。只更新此表不能代替详情、任务或验收记录。

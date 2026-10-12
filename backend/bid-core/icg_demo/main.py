@@ -14,6 +14,7 @@ from starlette.exceptions import HTTPException
 
 from .adapters import DemoModelProvider, MemoryRepository, build_docx
 from .domain import DemoService, DomainError, Principal
+from .openai_model import openai_provider_from_environment
 from .ports import ModelProvider, Repository, ParserProvider
 from .parsing import LocalTextParser
 from .workflow_routes import include_workflow_routes
@@ -43,7 +44,11 @@ def error_responses(*statuses: int) -> dict:
 
 def create_app(repository: Repository | None = None, model_provider: ModelProvider | None = None,
                clock: Callable[[], float | datetime] | None = None,
-               parser_provider: ParserProvider | None = None) -> FastAPI:
+               parser_provider: ParserProvider | None = None, *,
+               use_configured_model: bool = False) -> FastAPI:
+    # 未传入适配器且未打开开关时保持演示替身。只有进程入口显式打开开关，才读取环境变量。
+    if model_provider is None and use_configured_model:
+        model_provider = openai_provider_from_environment()
     service = DemoService(repository if repository is not None else MemoryRepository(),
                           model_provider if model_provider is not None else DemoModelProvider(), clock)
     application = FastAPI(title="ICG 投标产品本地实现", version="reference-1",
@@ -233,4 +238,4 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     return application
 
 
-app = create_app()
+app = create_app(use_configured_model=True)

@@ -1,0 +1,216 @@
+# 为什么有这个文件：把公司内网的 OpenAI 兼容对话接口接到现有模型替换口。
+# 它解决什么问题：需要真实建议时才显式启用；失败必须暴露，不能改回演示成功文本。
+
+from __future__ import annotations
+
+import os
+import re
+from dataclasses import dataclass
+from typing import Mapping
+from urllib.parse import urlsplit
+
+import httpx
+
+
+class ModelCallError(Exception):
+    """真实模型调用失败。业务层把它映射为 502 MODEL_UNAVAILABLE，不生成替代正文。"""
+
+
+class RetryableModelError(ModelCallError):
+    """超时、连接失败或暂时性 HTTP 状态。耗尽重试后仍按失败处理。"""
+
+
+_ENV_NAMES = {
+    "provider": "ICG_MODEL_PROVIDER",
+    "base_url": "ICG_MODEL_BASE_URL",
+    "model": "ICG_MODEL_NAME",
+    "api_key_env": "ICG_MODEL_API_KEY_ENV",
+    "timeout": "ICG_MODEL_TIMEOUT_SECONDS",
+    "max_tokens": "ICG_MODEL_MAX_TOKENS",
+    "retries": "ICG_MODEL_RETRIES",
+    "is_local": "ICG_MODEL_IS_LOCAL",
+}
+_DEFAULT_API_KEY_ENV = "ICG_MODEL_API_KEY"
+_RETRYABLE_STATUS = {408, 429, 500, 502, 503, 504}
+_ENV_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+
+def _required(environ: Mapping[str, str], key: str) -> str:
+    value = environ.get(_ENV_NAMES[key], "").strip()
+    if not value:
+        raise ValueError(f"{_ENV_NAMES[key]} is required when ICG_MODEL_PROVIDER=openai-compatible")
+    return value
+
+
+def _bounded_int(raw: str, name: str, low: int, high: int) -> int:
+    try:
+        value = int(raw, 10)
+    except ValueError:
+        raise ValueError(f"{name} must be an integer") from None
+    if value < low or value > high:
+        raise ValueError(f"{name} must be between {low} and {high}")
+    return value
+
+
+def _bounded_float(raw: str, name: str, low: float, high: float) -> float:
+    try:
+        value = float(raw)
+    except ValueError:
+        raise ValueError(f"{name} must be a number") from None
+    if value <= low or value > high:
+        raise ValueError(f"{name} must be greater than {low} and at most {high}")
+    return value
+
+
+def _parse_local(raw: str) -> bool:
+    lowered = raw.strip().lower()
+    if lowered == "true":
+        return True
+    if lowered == "false":
+        return False
+    raise ValueError(f"{_ENV_NAMES['is_local']} must be true or false")
+
+
+def _validate_base_url(base_url: str) -> str:
+    parsed = urlsplit(base_url.strip())
+    if (parsed.scheme not in {"http", "https"} or not parsed.netloc
+            or parsed.username or parsed.password or parsed.query or parsed.fragment):
+        raise ValueError(f"{_ENV_NAMES['base_url']} must be an absolute http(s) origin without credentials, query, or fragment")
+    return base_url.strip().rstrip("/")
+
+
+@dataclass(frozen=True)
+class OpenAICompatibleConfig:
+    base_url: str
+    model: str
+    api_key_env: str
+    timeout_seconds: float
+    max_tokens: int
+    retries: int
+    is_local: bool
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "base_url", _validate_base_url(self.base_url))
+        if not self.model.strip():
+            raise ValueError(f"{_ENV_NAMES['model']} is required")
+        object.__setattr__(self, "model", self.model.strip())
+        if not _ENV_NAME.fullmatch(self.api_key_env):
+            raise ValueError(f"{_ENV_NAMES['api_key_env']} must name an environment variable")
+        if self.timeout_seconds <= 0 or self.timeout_seconds > 600:
+            raise ValueError(f"{_ENV_NAMES['timeout']} must be greater than 0 and at most 600")
+        if self.max_tokens < 1 or self.max_tokens > 1_000_000:
+            raise ValueError(f"{_ENV_NAMES['max_tokens']} must be between 1 and 1000000")
+        if self.retries < 0 or self.retries > 5:
+            raise ValueError(f"{_ENV_NAMES['retries']} must be between 0 and 5")
+        if not isinstance(self.is_local, bool):
+            raise ValueError(f"{_ENV_NAMES['is_local']} must be true or false")
+
+    @classmethod
+    def from_env(cls, environ: Mapping[str, str] | None = None) -> OpenAICompatibleConfig:
+        source = os.environ if environ is None else environ
+        timeout = source.get(_ENV_NAMES["timeout"], "").strip() or "60"
+        max_tokens = source.get(_ENV_NAMES["max_tokens"], "").strip() or "1024"
+        retries = source.get(_ENV_NAMES["retries"], "").strip() or "1"
+        api_key_env = source.get(_ENV_NAMES["api_key_env"], "").strip() or _DEFAULT_API_KEY_ENV
+        return cls(
+            base_url=_required(source, "base_url"),
+            model=_required(source, "model"),
+            api_key_env=api_key_env,
+            timeout_seconds=_bounded_float(timeout, _ENV_NAMES["timeout"], 0, 600),
+            max_tokens=_bounded_int(max_tokens, _ENV_NAMES["max_tokens"], 1, 1_000_000),
+            retries=_bounded_int(retries, _ENV_NAMES["retries"], 0, 5),
+            is_local=_parse_local(_required(source, "is_local")),
+        )
+
+    @property
+    def chat_completions_url(self) -> str:
+        return self.base_url + "/v1/chat/completions"
+
+
+class OpenAICompatibleModelProvider:
+    """OpenAI 兼容 chat completions。密钥只在调用时从指定环境变量读取，不写入仓库或异常文本。"""
+
+    name = "openai-compatible"
+    is_real_model = True
+
+    def __init__(self, config: OpenAICompatibleConfig, *, transport: httpx.BaseTransport | None = None,
+                 environ: Mapping[str, str] | None = None):
+        self._config = config
+        self.is_local = config.is_local
+        self._transport = transport
+        self._environ = environ
+
+    def suggest(self, instruction: str, content: str) -> str:
+        if not isinstance(instruction, str) or not isinstance(content, str):
+            raise ModelCallError("instruction and content must be strings")
+        attempts = self._config.retries + 1
+        last_error: ModelCallError | None = None
+        for _ in range(attempts):
+            try:
+                return self._once(instruction, content)
+            except RetryableModelError as error:
+                last_error = error
+        raise ModelCallError("openai-compatible model call failed") from last_error
+
+    def _api_key(self) -> str:
+        source = os.environ if self._environ is None else self._environ
+        return source.get(self._config.api_key_env, "").strip()
+
+    def _once(self, instruction: str, content: str) -> str:
+        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        api_key = self._api_key()
+        if api_key:
+            headers["Authorization"] = "Bearer " + api_key
+        payload = {
+            "model": self._config.model,
+            "messages": [
+                {"role": "system", "content": instruction},
+                {"role": "user", "content": content},
+            ],
+            "max_tokens": self._config.max_tokens,
+            "stream": False,
+        }
+        try:
+            with httpx.Client(transport=self._transport, timeout=self._config.timeout_seconds,
+                              follow_redirects=False) as client:
+                response = client.post(self._config.chat_completions_url, headers=headers, json=payload)
+        except httpx.TimeoutException:
+            raise RetryableModelError("timeout") from None
+        except httpx.TransportError:
+            raise RetryableModelError("transport") from None
+        if response.status_code in _RETRYABLE_STATUS:
+            raise RetryableModelError(f"HTTP {response.status_code}")
+        if response.status_code != 200:
+            raise ModelCallError(f"HTTP {response.status_code}")
+        return _assistant_text(response)
+
+
+def _assistant_text(response: httpx.Response) -> str:
+    try:
+        body = response.json()
+    except ValueError:
+        raise ModelCallError("malformed JSON") from None
+    if not isinstance(body, dict):
+        raise ModelCallError("malformed JSON")
+    choices = body.get("choices")
+    if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+        raise ModelCallError("missing assistant content")
+    message = choices[0].get("message")
+    if not isinstance(message, dict):
+        raise ModelCallError("missing assistant content")
+    text = message.get("content")
+    if not isinstance(text, str) or not text.strip():
+        raise ModelCallError("missing assistant content")
+    return text
+
+
+def openai_provider_from_environment(environ: Mapping[str, str] | None = None,
+                                     transport: httpx.BaseTransport | None = None) -> OpenAICompatibleModelProvider | None:
+    """仅在 ICG_MODEL_PROVIDER=openai-compatible 时构造真实适配器。未设置或 demo 返回 None，由调用方保留演示实现。"""
+    source = os.environ if environ is None else environ
+    selector = source.get(_ENV_NAMES["provider"], "").strip().lower()
+    if selector in {"", "demo"}:
+        return None
+    if selector != "openai-compatible":
+        raise ValueError(f"{_ENV_NAMES['provider']} must be demo or openai-compatible")
+    return OpenAICompatibleModelProvider(OpenAICompatibleConfig.from_env(source), transport=transport, environ=source)

@@ -34,6 +34,8 @@ pnpm --dir frontend/web build
 
 查看 `/health` 可确认 `repository: memory`、`model: mock`。`/openapi.json` 提供实际接口说明；默认 Swagger 和 ReDoc 页面关闭，以免离线运行依赖外部网页脚本。
 
+进程入口会读取模型开关，但默认不访问外部模型。只有同时把 `ICG_MODEL_PROVIDER` 设为 `openai-compatible`，并提供 `ICG_MODEL_BASE_URL`、`ICG_MODEL_NAME` 和 `ICG_MODEL_IS_LOCAL`（`true` 或 `false`），才会使用 OpenAI 兼容适配器。可选变量：`ICG_MODEL_API_KEY_ENV`（默认 `ICG_MODEL_API_KEY`，这里写的是密钥所在变量的名字）、`ICG_MODEL_TIMEOUT_SECONDS`（默认 60）、`ICG_MODEL_MAX_TOKENS`（默认 1024）、`ICG_MODEL_RETRIES`（默认 1）。密钥、内网地址和客户正文都不要写入仓库。配置缺失时进程拒绝启动，不会改用演示文本假装调用成功。测试里的 `create_app()` 不读取这些变量。真实端点仍待 ISSUE-010，当前验收没有连接内网。数据库也还没选定，运行数据仍在内存中。
+
 ## 当前产品主流程
 
 1. 用合成项目经理账号新建项目，填写招标编号和投标截止时间，到项目设置登记成员、两册负责人及合标人。账号同时需要公司角色和项目分工；同公司未加入项目也不可见。页面按北京时间输入和显示，接口时间按UTC保存。

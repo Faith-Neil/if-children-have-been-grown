@@ -34,6 +34,8 @@
 
 2026-10-10：FE-M0-T03进入评审准备，形成 [一期交付建议](../docs/decisions/phase-one-scope.md)，用户确认技术、商务两册。其他生产边界仍待决定；本地后端demo按 [ISSUE-006](ISSUE-006.md) 独立实施，模型和数据库先用可替换演示实现，不以demo验收代替本Issue全部门禁。
 
+2026-10-12：对话模型、嵌入、重排、向量库、业务库和内网验证方式另记 [ISSUE-010](ISSUE-010.md)，状态仍是等待用户决定。其中 PostgreSQL 16 与 pgvector 只是项目经理建议。本聚合门禁不因该登记而关闭，也不采纳其中任何一项。
+
 需要产品负责人、前后端责任方共同确认；技术方案v1.4.2/有效设计版本未取得，或需留下经评审替代依据。当前不擅自选择MySQL/其他关系库、React/Vue、LangGraph/Dify或集群部署。
 
 PRD、ROADMAP、ARCHITECTURE将按每项最终决定同步业务正文及版本。本次仅新增发现/门禁和关联入口，没有把建议标为已采纳。Task/Issue/PROJECT_STATUS/DOCUMENT_INDEX登记未决状态；旧BG项及FE-M0-T03/04继续待评审/blocked，不因审查文档完成而关闭。
