@@ -540,7 +540,7 @@
 | 状态 | in-review |
 | 估算 | 按实际复核记录，不作新功能交期 |
 | 关联Issue | [ISSUE-034](../../issues/ISSUE-034.md) |
-| 依赖 | 初次73fde1e，复核快照9c178782；本卡并入 foundation 9e3fcdd。ISSUE-033 与 REV-M0-T22 已由同伴占用 |
+| 依赖 | 初次73fde1e，复核快照9c178782；本卡并入 foundation 9e3fcdd。ISSUE-033 与 REV-M0-T22 已由同伴占用。`ee5aaa6` 占用 REV-M0-T25（ISSUE-036）与 REV-M0-T26（ISSUE-033 规格复签），本卡保持 T27 |
 | 来源 | 用户要求复核最新分支，修改仅提PR，暂停功能推进 |
 | 完成交付 | [专属交付](../delivery/REV-M0-T27.md) |
 | 代码解释 | [修复解释](../code/REV-M0-T27.md) |

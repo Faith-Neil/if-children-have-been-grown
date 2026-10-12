@@ -15,7 +15,7 @@
 
 日期2026-10-12；ISSUE-034 / foundation-review-fix-1。初次审查云端73fde1e，复核快照9c178782，随后并入 foundation 9e3fcdd。保留新增项目、租约、证据抽屉、T114 冲突刷新、ISSUE-036 对比修正和 QA 交付。修复分支 codex/review-foundation-fixes，目标 PR 为 codex/repository-foundation。尚未合入或发布。用户要求仅复核，需修改则提 PR。
 
-本卡原先误用 ISSUE-033 / REV-M0-T22。那两个编号已分别属于挂证据规则和 APP-M2-T114 QA。本交付改为 ISSUE-034 / REV-M0-T27，不覆盖同伴记录，也不自行 done/closed。
+本卡原先误用 ISSUE-033 / REV-M0-T22。那两个编号已分别属于挂证据规则和 APP-M2-T114 QA。`ee5aaa6` 已占用 REV-M0-T25（ISSUE-036）与 REV-M0-T26（ISSUE-033 规格复签）。本交付保持 ISSUE-034 / REV-M0-T27，不覆盖同伴记录，也不自行 done/closed。
 
 ## 完成内容
 

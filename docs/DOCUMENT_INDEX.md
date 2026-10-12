@@ -550,6 +550,7 @@
 | 2026-10-12 | ISSUE-034 / REV-M0-T27 | QA 正式签署通过（tip `5eced4f`）：R1～R9 全过，含真实 MySQL；前端 113、Playwright 16/16、无库 371/13 skipped、mysql 12 passed。状态仍 in-review，不标 done |
 
 | 2026-10-12 | ISSUE-034 / REV-M0-T27 | 并入 foundation be3ce98。保留 T114 刷新、ISSUE-036、BE-M0-T18 挂证据与 REV-M0-T28/T29。本卡条目改为 D-397～D-408。看板 387项50done、12in-review、7in-progress、265planned、48blocked、5ready。不标 done |
+| 2026-10-12 | ISSUE-034 / REV-M0-T27 | `ee5aaa6` 已把 REV-M0-T25 用于 ISSUE-036，把 REV-M0-T26 用于 ISSUE-033 规格复签。PR #4 保持 ISSUE-034 / REV-M0-T27，不用 T25 或 T26。不改任务计数，不标 done |
 
 ## 缺失输入
 

@@ -19,7 +19,7 @@
 | 本地验收 | QA 正式签署通过（`5eced4f` / REV-M0-T27）：R1～R9 全过，含真实 MySQL R4/R6/R7；见 docs/testing/2026-10-12-issue-034-qa-signoff.md。状态仍 in-review，不标 closed |
 | 合入 / 发布 | 未合入 / 未发布 |
 
-本卡原在 PR #4 里自登记为 ISSUE-033 / REV-M0-T22。同伴已用 ISSUE-033 登记挂证据规则，并用 REV-M0-T22 完成 APP-M2-T114 冲突刷新 QA。按约定改记 ISSUE-034 / REV-M0-T27。不改写那两张已有记录，也不把本卡标为 done 或 closed。
+本卡原在 PR #4 里自登记为 ISSUE-033 / REV-M0-T22。同伴已用 ISSUE-033 登记挂证据规则，并用 REV-M0-T22 完成 APP-M2-T114 冲突刷新 QA。`ee5aaa6` 已把 REV-M0-T25 用于 ISSUE-036 橙色标签对比，把 REV-M0-T26 用于 ISSUE-033 规格复签。本卡保持 ISSUE-034 / REV-M0-T27，不用 T25 或 T26。不改写那些已有记录，也不把本卡标为 done 或 closed。
 
 ## 已复现的问题
 
