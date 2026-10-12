@@ -83,7 +83,7 @@
 | D-071 | 2026-10-12 | [API约定说明](../spec/openapi/README.md) | 接口 | frozen-names-1 | 当前 | ISSUE-031 / BE-M0-T16；ISSUE-022 | 增删错误码必须在同一提交更新 FROZEN_NAMES。重新导出前须保住草案操作和 deprecated 标注，脚本以后再改。502/503 自动重试说明含 N7：MODEL_UNAVAILABLE 与 SECRET_KEY_UNAVAILABLE 不自动重试 |
 | D-072 | 2026-10-10 | [启动器](../backend/bid-core/Start-Demo.ps1) | 工具 | reference-1 | 已执行构建 | ISSUE-007 / APP-M1 | 安装前后端依赖、构建页面及单进程启动 |
 | D-073 | 2026-10-10 | [依赖锁定](../backend/bid-core/requirements.txt) | 环境 | reference-1 | 安装通过 | ISSUE-007 / APP-M1 | 加数字PDF解析，pip check通过 |
-| D-074 | 2026-10-12 | [实际接口约定](../spec/openapi/demo-v1.json) | 接口 | reference-1 / outline-contract-frozen-1 | 生成加冻结文本 | ISSUE-007 / APP-M1；ISSUE-022 / T124 | 已实现路径仍从代码导出。x-idempotency.retry 另写没有 Idempotency-Key 的写入不自动重试。大纲路径仍 frozen |
+| D-074 | 2026-10-12 | [实际接口约定](../spec/openapi/demo-v1.json) | 接口 | reference-1 / outline-contract-frozen-1 | 生成加冻结文本 | ISSUE-007 / APP-M1；ISSUE-022 / T124；ISSUE-033 / BE-M0-T18 | 已实现路径仍从代码导出。x-idempotency.retry 另写没有 Idempotency-Key 的写入不自动重试。大纲路径仍 frozen。EvidenceMountFields 记录挂证据字段 |
 | D-075 | 2026-10-12 | [后台入口](../backend/bid-core/icg_demo/main.py) | 代码 | reference-1 | 联调通过 | ISSUE-007 / APP-M1；ISSUE-011 / AI-02 | 同源页面、两代错误字段；显式配置才启用兼容模型 |
 | D-076 | 2026-10-11 | [后台测试](../tests/backend/test_demo.py) | 验证代码 | demo-1 | 31项通过 | BE-M0-T01 | 实际失败边界、并发与输出 |
 | D-077 | 2026-10-11 | [HTTP验收入口](../backend/bid-core/smoke_demo.py) | 验证工具 | demo-1 | 通过 | BE-M0-T01 | 连接实际监听端口执行完整链路 |
@@ -376,8 +376,8 @@
 | D-363 | 2026-10-12 | [ISSUE-032同步](governance/ISSUE-032-sync.md) | 治理 | edit-lock-align-1 | 已核对 | ISSUE-032 / BE-M0-T17 | 新增 planned 卡。不改表 |
 | D-364 | 2026-10-12 | [0a5b655重试修复签署](testing/2026-10-12-0a5b655-retry-signoff.md) | 验证 | qa-rerun-17 | 本地通过 | ISSUE-013 / REV-M0-T21 | 通过；无观察项 |
 | D-365 | 2026-10-12 | [REV-M0-T21签署交付](delivery/REV-M0-T21.md) | 交付 | qa-rerun-17 | 已本地验收 | ISSUE-013 / REV-M0-T21 | 无代码；结论与观察项 |
-| D-366 | 2026-10-12 | [挂证据规则](../issues/ISSUE-033.md) | 变更 | evidence-mount-1 | new | ISSUE-033 / BE-M0-T18 | 只登记。不写字典对照，不定错误码。负责人 backend |
-| D-367 | 2026-10-12 | [ISSUE-033同步](governance/ISSUE-033-sync.md) | 治理 | evidence-mount-1 | 已核对 | ISSUE-033 / BE-M0-T18 | 新增 planned 卡。规格增量由 AI bot 另交 |
+| D-366 | 2026-10-12 | [挂证据规则](../issues/ISSUE-033.md) | 变更 | evidence-mount-spec-1 | in-progress | ISSUE-033 / BE-M0-T18 | 冻结契约已写 is_restricted 与挂接拒绝。不新增错误码。不标 closed |
+| D-367 | 2026-10-12 | [ISSUE-033同步](governance/ISSUE-033-sync.md) | 治理 | evidence-mount-spec-1 | 已核对 | ISSUE-033 / BE-M0-T18 | 规格已写入冻结契约。BE-M0-T18 仍 planned。不改三份基线计数 |
 
 ## 更新记录
 
@@ -483,6 +483,7 @@
 | 2026-10-12 | ISSUE-033 / BE-M0-T18 | 登记挂证据规则。负责人 backend，状态 new。新增 BE-M0-T18，状态 planned，排在 T13 之后。项目经理暂停后撤下字典对照和错误码建议，不改接口。规格增量由 AI bot 另交，实现后 QA 重签。看板为 378 项：44 done、9 in-review、7 in-progress、265 planned、49 blocked、4 ready。不改 PRD、ROADMAP、PROJECT_BRIEF，不改 docs/reference，不改 .github。T13 仍 in-review。T114 仍 in-review |
 | 2026-10-12 | ISSUE-013 / REV-M0-T21 | 依据 QA 3e91aee，PM 恢复确认，REV-M0-T21 标为 done。看板计数不变：该卡已是 done。ISSUE-030 仍 in-review。APP-M2-T002 仍 done。不改 PRD、ROADMAP、PROJECT_BRIEF，不改接口 |
 | 2026-10-12 | ISSUE-007 / APP-M2-T114 | QA 验收②：冲突提示“本行已被他人修改，请刷新后再保存”旁边补刷新。刷新重读本行后可以再保存。浏览器覆盖另一会话先保存、出现冲突、刷新、再保存成功。不新开 Issue。不改 ISSUE-033。T114 仍 in-review。看板计数不改，仍是 378 项、44 done、9 in-review、265 planned |
+| 2026-10-12 | ISSUE-033 / BE-M0-T18 | 按字典 v1.9 把挂证据字段写入冻结契约：`source_tier`、`is_restricted`、派生的 `agreement_present`，以及对照 `bid_deadline_at` 的 `valid_to` / `is_long_term`。挂接拒绝复用 409 `EVIDENCE_EXPIRED`、409 `EVIDENCE_NOT_USABLE`、403 `FORBIDDEN`。不新增错误码，错误码仍是 143。ISSUE-033 改为 in-progress。BE-M0-T18 仍 planned。不改后台应用代码，不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。不标 closed |
 
 ## 缺失输入
 
