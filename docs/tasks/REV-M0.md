@@ -432,7 +432,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | done（本地验收；PR待合入） |
+| 状态 | done（QA ae38ec3，PM 17:16 确认；未合入/未发布） |
 | 估算 | 1.5小时 |
 | 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
 | 依赖 | BE-M0-T13、ISSUE-018 |
@@ -445,6 +445,7 @@
 - [x] 验收条目逐条核对并独立复跑。
 - [x] 行为三项与 mysql/无库套件、CI 38219738690 通过；方案第 6 节有对照表；批准句待 ISSUE-035。
 - [x] 被验卡和Issue的状态不变，等项目经理设置
+- [x] 项目经理确认本卡与 BE-M0-T13 为 done，依据是 QA ae38ec3，PM 17:16 确认。ISSUE-018 仍为 in-progress。ISSUE-035 仍为 new。
 
 
 <a id="rev-m0-t22"></a>
@@ -552,3 +553,44 @@
 - [x] QA 正式签署（2026-10-12，tip `5eced4f`）：R1～R9 通过，含真实 MySQL R4/R6/R7；见[签署记录](../testing/2026-10-12-issue-034-qa-signoff.md)。**状态仍 in-review，不标 done。**
 
 修复PR：[#4](https://github.com/Faith-Neil/if-children-have-been-grown/pull/4)，等待审核。
+
+
+<a id="rev-m0-t28"></a>
+
+## REV-M0-T28 · BE-M0-T11 回执与会话入库 QA签署
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review（本地验收；等项目经理设置 done） |
+| 估算 | 1小时 |
+| 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
+| 依赖 | BE-M0-T11（631d4c9） |
+| 来源 | 项目经理签署要求。REV-M0-T27 已用于 ISSUE-034，状态 in-review，不标 done |
+| 完成交付 | [专属交付](../delivery/REV-M0-T28.md) |
+| 代码解释 | 无产品代码 |
+
+范围：正式签署 BE-M0-T11 幂等回执与登录会话入库。真实 MySQL 上复跑 downgrade/upgrade、Q2 快速失败、双 worker 与重启存活。不改他人代码；不把 BE-M0-T11 / ISSUE-018 标为 done。
+
+- [x] 验收条目逐条核对并独立复跑。
+- [x] 无库 355 passed / 13 skipped；`-m mysql` 12 passed；Q2 ~1s failed；双 worker + 重启通过；CI 38212536927 全绿。
+- [x] BE-M0-T11 / ISSUE-018 / 本卡均不标 done，等项目经理设置
+
+<a id="rev-m0-t29"></a>
+
+## REV-M0-T29 · ISSUE-028 AC-02 假端点夹具 QA签署
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review（本地验收；等项目经理设置 done） |
+| 估算 | 1小时 |
+| 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
+| 依赖 | ISSUE-028（9e3fcdd） |
+| 来源 | 项目经理签署要求。REV-M0-T27 已用于 ISSUE-034。T28 已用于 BE-M0-T11 |
+| 完成交付 | [专属交付](../delivery/REV-M0-T29.md) |
+| 代码解释 | 无产品代码 |
+
+范围：签署 ISSUE-028 AC-02 假 OpenAI 兼容端点夹具（9e3fcdd）。核对 fixture、默认 skip、CI 不设旗、无生产改动。路径规范化 hold，不要求改适配器。不改他人代码；不把 ISSUE-028 / AI-01 标为 done。
+
+- [x] 验收条目逐条核对并独立复跑。
+- [x] 聚焦 34 passed / 1 skipped；全后台 355 passed / 13 skipped；治理通过；CI 38231417634 绿。
+- [x] ISSUE-028 / AI-01 / 本卡均不标 done，等项目经理设置

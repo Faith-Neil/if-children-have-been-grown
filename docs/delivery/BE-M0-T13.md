@@ -17,7 +17,7 @@
 
 - 2026-10-12，BE-M0，[ISSUE-018](../../issues/ISSUE-018.md)。
 - 分支 `codex/repository-foundation`。未新开 PR，未合入，未发布。
-- 本地验收已做。等待项目经理在 QA 后才能标 done。
+- 本地验收已做。QA ae38ec3，PM 17:16 确认，本卡为 done。ISSUE-018 仍为 in-progress。未合入，未发布。
 
 ## 完成内容与变更文件
 
@@ -25,7 +25,7 @@ Alembic `0004_demo_project` 建立 `demo_project` 和 `demo_project_team`。项�
 
 `MysqlConnectionRepository` 把库里的项目叠到内存种子上。只有发生变化的项目才插入或更新。未改过的种子项目不插入。`UPDATE` 带上装载时的 `revision`，对不上就回滚并返回 409 `REVISION_CONFLICT`。导入和 `create_app()` 仍不连接。未设置 `ICG_DATABASE_URL` 时仍是 `MemoryRepository`。
 
-字典 v1.9 的 `bid_project` 与 `bid_project_member` 对照写在 [方案第 6 节](../architecture/mysql-8-persistence-plan.md)。每一处偏差都需要项目经理批准。未批准前不补列。
+字典 v1.9 的 `bid_project` 与 `bid_project_member` 对照写在 [方案第 6 节](../architecture/mysql-8-persistence-plan.md)。偏差已获 PM 有条件批准，待 [ISSUE-035](../../issues/ISSUE-035.md) 对齐。未对齐前不补列。
 
 ## 代码解释
 
@@ -37,7 +37,7 @@ Alembic `0004_demo_project` 建立 `demo_project` 和 `demo_project_team`。项�
 
 ## 项目进度
 
-任务看板是准绳。BE-M0-T13 改为 in-review 后，看板为 375 项：42 done、10 in-review、7 in-progress、263 planned、49 blocked、4 ready。BE-M0 16 项，6 项 done。ISSUE-018 仍为 in-progress。
+任务看板是准绳。BE-M0-T13 改为 in-review 后，看板为 375 项：42 done、10 in-review、7 in-progress、263 planned、49 blocked、4 ready。BE-M0 16 项，6 项 done。项目经理随后依据 QA ae38ec3，PM 17:16 确认本卡为 done。ISSUE-018 仍为 in-progress。看板现为 386 项：50 done、11 in-review、7 in-progress、265 planned、48 blocked、5 ready。BE-M0 为 19 项，8 项 done。
 
 ## 限制与未完成
 
