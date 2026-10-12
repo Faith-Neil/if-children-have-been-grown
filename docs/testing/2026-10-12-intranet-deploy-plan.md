@@ -39,7 +39,7 @@
 
 ## 执行过的检查
 
-提交前运行 `node scripts/check-project-governance.cjs`，输出为：治理检查通过：190 份 Markdown、360 项任务、23 项 Issue。该检查只核对记录是否互相链接，不连接 MySQL，不连接 RAGFlow，也不启动 uvicorn。
+提交前运行 `node scripts/check-project-governance.cjs`，输出为：治理检查通过：196 份 Markdown、361 项任务、23 项 Issue。该检查只核对记录是否互相链接，不连接 MySQL，不连接 RAGFlow，也不启动 uvicorn。rebase 到 `98c5129` 之后复跑，数字随之更新。
 
 ## 未执行
 
