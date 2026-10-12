@@ -26,7 +26,7 @@
 
 [ISSUE-010](ISSUE-010.md) 已关闭：对话模型由配置页提供。今天的 `OpenAICompatibleModelProvider` 仍从环境变量读取，默认提供者仍是演示替身。
 
-本 Issue 只写 Provider 侧如何按配置切换：读取配置、任务启动时快照、local/cloud 路由、敏感项目约束、流式与 JSON 模式、错误映射、`job.model_call` 字段。配置的存储、API、加密和 If-Match 归后端 [ISSUE-024](ISSUE-024.md)。字段以该 Issue 列出的 `id`、`revision`、`allow_sensitive` 和密钥掩码规则为准。本文件不重复那些存储字段。
+本 Issue 只写 Provider 侧如何按配置切换：读取配置、任务启动时快照、local/cloud 路由、敏感项目约束、流式与 JSON 模式、错误映射、`job.model_call` 字段。配置的存储、API、加密和 If-Match 归后端 [ISSUE-024](ISSUE-024.md)。字段以该 Issue 列出的 `id`、`revision`、`allow_sensitive`、`stream_enabled`、`json_mode_enabled` 和密钥掩码规则为准。本文件引用 `stream_enabled` 与 `json_mode_enabled` 这两个名字，不另写默认值或含义，也不重复那些存储字段。
 
 ## 影响与分流
 
@@ -69,6 +69,7 @@
 | 2026-10-12 | model-config-design-1 / in-review | 设计已提交。等待复核。不标 closed | [设计](../docs/architecture/model-config-provider.md) |
 | 2026-10-12 | model-config-design-2 / in-review | 按 PM 分工删去字段定义和 API。存储、字段、接口、加密、If-Match/幂等改引 ISSUE-024。不创建 ISSUE-024 文件。不改任务计数 | [设计](../docs/architecture/model-config-provider.md) |
 | 2026-10-12 | model-config-design-2 / in-review | ISSUE-024 详情已登记，状态 new。本 Issue 仍只保留 Provider 侧，不把存储字段抄回来 | [ISSUE-024](ISSUE-024.md) |
+| 2026-10-12 | model-config-design-2 / in-review | PM 批准 D-1 后，本文件只引用 ISSUE-024 的 `stream_enabled` 与 `json_mode_enabled`，不写默认值或含义。状态仍 in-review | [ISSUE-024](ISSUE-024.md) |
 
 ## 本地验收与后续合入发布
 

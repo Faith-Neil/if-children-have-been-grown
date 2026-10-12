@@ -27,7 +27,7 @@
 
 ## 现象与证据
 
-[ISSUE-028](ISSUE-028.md) 只保留 Provider 侧：读取配置、启动快照的使用方式、local/cloud 路由、敏感约束、流式与 JSON、错误映射、`job.model_call`。那些字段不在本文件重复。设计原文在 [配置驱动的对话模型](../docs/architecture/model-config-provider.md)。
+[ISSUE-028](ISSUE-028.md) 只保留 Provider 侧：读取配置、启动快照的使用方式、local/cloud 路由、敏感约束、流式与 JSON 的调用方式、错误映射、`job.model_call`。那些行为不在本文件重复。`stream_enabled` 与 `json_mode_enabled` 的名字由本 Issue 定义。ISSUE-028 只引用这两个名字，不另写默认值或含义。设计原文在 [配置驱动的对话模型](../docs/architecture/model-config-provider.md)。
 
 本 Issue 拥有存储、密钥、本文件列出的字段、配置 API，以及下面这张供 ISSUE-022 引用的错误码表。
 
@@ -36,13 +36,16 @@
 - API 密钥用 Fernet 加密。主密钥只来自环境变量 `ICG_SECRET_KEY`，不进仓库。
 - 响应不返回明文密钥。返回 `api_key_masked` 和 `has_api_key`。
 - 更新时：请求省略密钥字段表示保留原值；空字符串表示清除；把刚才返回的掩码再送回来表示不修改。
-- 本契约写明的字段是 `id`、`revision`、`allow_sensitive`。`revision` 给 If-Match 用。Provider 侧的基址、模型名、本地或云端、流式和 JSON 开关仍以 ISSUE-028 为准，这里不列成第二张字段表。
+- 本契约写明的字段是 `id`、`revision`、`allow_sensitive`、`stream_enabled`、`json_mode_enabled`。`revision` 做乐观锁，经 If-Match 覆盖包括这两个开关在内的全部配置字段。
+- `stream_enabled` 是布尔值，默认 true，表示该配置是否使用流式输出。
+- `json_mode_enabled` 是布尔值，默认 false，表示是否要求模型输出 JSON。
+- Provider 侧的基址、模型名、本地或云端仍不在本文件列成第二张字段表。ISSUE-028 引用 `stream_enabled` 与 `json_mode_enabled`，不重定义它们。
 
 ## 配置 API
 
 `POST /api/v1/model-configs/{id}/test` 的成功结果包含 `ok`、`provider`、`model`、`duration_ms`。
 
-任务开始时对当时读到的配置做快照。快照之后默认配置再变，不改已经开始的任务。Provider 如何使用这份快照见 ISSUE-028，不在这里展开。
+任务开始时对当时读到的配置做快照，包含 `stream_enabled` 和 `json_mode_enabled`，与其余配置字段相同。快照之后默认配置再变，不改已经开始的任务。Provider 如何使用这份快照见 ISSUE-028，不在这里展开。
 
 ## 冻结错误码
 
@@ -56,7 +59,7 @@
 ## 影响与分流
 
 - 影响范围：将来的模型配置存储和 API。本轮只把两枚错误码写入冻结表和 OpenAPI 枚举。不改适配器、页面，也不改 ISSUE-022 的操作说明。
-- 不涉及：ISSUE-028 已经写下的 Provider 字段和行为。不新增依赖。`cryptography` 已在仓库中，Fernet 实现留到开工时。
+- 不涉及：ISSUE-028 已经写下的 Provider 行为。两个开关的字段名在本文件，ISSUE-028 只引用、不重定义。不新增依赖。`cryptography` 已在仓库中，Fernet 实现留到开工时。
 - 不新增任务卡，不改任务计数。PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照不改。
 
 ## 实施任务与互链
@@ -70,7 +73,7 @@
 | 编号 | 可检查的完成条件 | 结果与证据 |
 |---|---|---|
 | AC-01 | 密钥以 Fernet 加密，主密钥只来自 `ICG_SECRET_KEY`。响应只有 `api_key_masked` 与 `has_api_key`。省略为保留，空字符串为清除，送回掩码为不修改 | 未执行 |
-| AC-02 | `POST /api/v1/model-configs/{id}/test` 返回 `ok`、`provider`、`model`、`duration_ms`。任务开始时保存配置快照 | 未执行 |
+| AC-02 | `POST /api/v1/model-configs/{id}/test` 返回 `ok`、`provider`、`model`、`duration_ms`。任务开始时保存配置快照，含 `stream_enabled` 与 `json_mode_enabled`。二者随 `revision` 做乐观锁 | 未执行 |
 | AC-03 | 403 与 503 两码进入运行时冻结表。503 的响应没有 `Retry-After`，客户端不自动重试 | 两码已进入枚举和冻结表。无 `Retry-After` 的测试未执行，因为运行时还不返回该码 |
 
 ## 六份基线 impact 与同步表
@@ -90,6 +93,7 @@
 | 日期 | revision / 状态 | 完成事实、问题与下一步 | 证据 / 复核人 |
 |---|---|---|---|
 | 2026-10-12 | model-config-storage-1 / new | 登记存储、掩码、测试连接、快照和两枚错误码。状态按看板词汇记为 new。不改运行代码 | 本文件 |
+| 2026-10-12 | model-config-storage-1 / new | PM 批准 D-1。本 Issue 拥有 `stream_enabled`（布尔，默认 true，是否使用流式输出）和 `json_mode_enabled`（布尔，默认 false，是否要求模型输出 JSON）。二者纳入 `revision` 乐观锁，并在任务开始时随配置快照。ISSUE-028 只引用这两个名字，不重定义。不再把这两个开关的字段名交给 ISSUE-028。不改运行代码 | 本文件 |
 
 ## 本地验收与后续合入发布
 

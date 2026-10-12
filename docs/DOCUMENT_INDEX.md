@@ -423,6 +423,7 @@
 | 2026-10-12 | ISSUE-024；ISSUE-022 | 登记 ISSUE-024，状态 new，负责人 backend。冻结表增加 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL` 与 503 `SECRET_KEY_UNAVAILABLE`（非瞬时，无 Retry-After）。不写入 errors.py 与 OpenAPI。复审附件原文未随队列送达，B2 与 B3 记在复审记录末尾。不改任务计数。ISSUE-028 仍 in-review |
 | 2026-10-12 | ISSUE-022 | 把 046f8e5/fe9582c 的后台复审原文写入 ISSUE-022-backend-rereview.md，文末附上项目经理对 B2、B3 的决定。403 与 503 仍只在 ISSUE-024 的冻结表里。不改 OpenAPI，不改任务计数 |
 | 2026-10-12 | ISSUE-022；ISSUE-024 | 复审原文换成含 c6948c0 第三轮的版本。两码写入 V1Error.code 枚举和 x-error-status，使 403/503 响应体可通过校验。不改 ISSUE-022 的操作说明，不改任务计数 |
+| 2026-10-12 | ISSUE-024 | PM 批准 D-1。ISSUE-024 拥有 `stream_enabled`（布尔，默认 true）和 `json_mode_enabled`（布尔，默认 false）。二者纳入 `revision` 乐观锁，并在任务开始时随配置快照。ISSUE-028 只引用这两个名字，不重定义。不再把这两个开关的字段名交给 ISSUE-028。不改运行代码，不改任务计数 |
 
 ## 缺失输入
 
