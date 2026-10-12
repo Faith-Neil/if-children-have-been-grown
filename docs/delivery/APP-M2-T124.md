@@ -9,13 +9,13 @@
 |---|---|
 | 任务ID | APP-M2-T124 |
 | 代码解释 | 只改 OpenAPI 草案和契约测试。运行时说明见 [代码说明](../code/APP-M2-T124.md) |
-| 验收 | 契约形状已核对，见 [记录](../testing/2026-10-12-t124-dependencies.md)。模型输入验收未执行。T078 仍 in-review 未 done。T114 已 done（QA f521950，PM 17:13 确认） |
-| 项目进度 | T124 仍为 blocked。ISSUE-022 已依据 QA 0254102，PM 15:36 确认 closed。T078 仍为 in-review 未 done。T114 已 done（QA f521950，PM 17:13 确认）。本轮不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数 |
+| 验收 | 契约形状已核对，见 [记录](../testing/2026-10-12-t124-dependencies.md)。模型输入验收未执行。依赖已由 PM 17:20 解除；本卡 ready，不标 done |
+| 项目进度 | T124 已按 PM 17:20 改为 ready。ISSUE-022 已 closed。T114 已 done；T078 看板状态行由前端按 PM 17:20 提交。看板 381 项：47 done、9 in-review、7 in-progress、265 planned、48 blocked、5 ready。不改 PRD、ROADMAP、PROJECT_BRIEF 里程碑快照 |
 <!-- task-delivery:end -->
 
 ## 关联与状态
 
-- 日期：2026-10-12。里程碑 APP-M2。Issue：[ISSUE-022](../../issues/ISSUE-022.md)，已依据 QA 0254102，PM 15:36 确认 closed。父范围仍是 [ISSUE-007](../../issues/ISSUE-007.md)。任务卡：[APP-M2-T124](../tasks/APP-M2.md#app-m2-t124)，状态仍是 blocked。
+- 日期：2026-10-12。里程碑 APP-M2。Issue：[ISSUE-022](../../issues/ISSUE-022.md)，已依据 QA 0254102，PM 15:36 确认 closed。父范围仍是 [ISSUE-007](../../issues/ISSUE-007.md)。任务卡：[APP-M2-T124](../tasks/APP-M2.md#app-m2-t124)，状态为 ready（PM 17:20 解除 blocked）。
 - 分支：`codex/repository-foundation`。PR：未创建。
 - 本地验收状态：契约测试已执行。任务不标 done。
 - 合入 / 发布状态：未合入，未发布。
@@ -68,3 +68,7 @@ T124 为 blocked。ISSUE-022 为 in-review，复核对象是契约草案。并�
 ## 契约冻结（outline-contract-frozen-1）
 
 2026-10-12 按第三轮复审把 `x-contract-status` 改为 frozen。运行时仍未实现，T124 仍 blocked，ISSUE-022 仍 in-review。重试说明排除 502 `MODEL_UNAVAILABLE` 与 503 `SECRET_KEY_UNAVAILABLE`。新增 423 与 503 不列 `Idempotent-Replayed`。`job.model_call` 的按事件类型必填字段留到 BE-M0-T06。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。不标 done。
+
+## 解除 blocked（PM 17:20）
+
+项目经理 17:20 确认 APP-M2-T078 与 REV-M0-T24 为 done，并宣布 T114 与 T078 均 done 后 **APP-M2-T124 解除 blocked，改为 ready**。本提交只改 T124 状态与相关看板叙述；T078 / REV-M0-T24 状态行仍由前端提交（T114 / REV-M0-T22 已由前端标 done）。运行时仍未接通，模型输入未改，不标 done，不标 in-progress。三份基线里程碑快照不改。
