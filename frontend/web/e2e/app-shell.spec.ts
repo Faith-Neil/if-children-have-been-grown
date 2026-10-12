@@ -190,3 +190,31 @@ test('logout stays in the top header', async ({ page }) => {
   const box = await page.getByRole('button', { name: '退出' }).boundingBox();
   expect(box && box.y).toBeLessThan(80);
 });
+
+test('collapsed sidebar expand control opens the menu at 1280/1440/1680 in light and dark', async ({ page }) => {
+  const label = () => page.locator('.ant-pro-sider .ant-menu-title-content', { hasText: '工作台' });
+  for (const scheme of ['light', 'dark'] as const) {
+    await page.emulateMedia({ colorScheme: scheme });
+    for (const width of [1280, 1440, 1680]) {
+      await page.setViewportSize({ width, height: 900 });
+      await login(page, '/workbench');
+      const sider = page.locator('.ant-pro-sider');
+      const siderWidth = () => sider.evaluateAll(elements => Math.max(...elements.map(element => element.getBoundingClientRect().width)));
+      await expect(sider.first()).toHaveClass(/ant-layout-sider-collapsed/);
+      expect(await siderWidth()).toBeLessThan(80);
+      const toggle = page.getByRole('button', { name: '收起或展开导航' });
+      const hit = await toggle.evaluate(element => {
+        const box = element.getBoundingClientRect();
+        const top = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+        return element === top || element.contains(top);
+      });
+      expect(hit, `${scheme}@${width} expand control is covered`).toBe(true);
+      await toggle.click();
+      await expect(sider.first()).not.toHaveClass(/ant-layout-sider-collapsed/);
+      await expect.poll(siderWidth).toBeGreaterThan(200);
+      await expect(label()).toBeVisible();
+      await expect(page.getByRole('menuitem', { name: '企业资料库' })).toBeVisible();
+      await page.getByRole('button', { name: '退出' }).click();
+    }
+  }
+});

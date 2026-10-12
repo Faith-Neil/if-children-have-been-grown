@@ -59,5 +59,8 @@
 .icg-shell .ant-pro-sider .ant-menu-item .anticon, .icg-shell .ant-layout-sider .ant-menu-item .anticon { color: rgba(255,255,255,0.72); }
 .icg-shell .ant-pro-sider .ant-menu-item-selected, .icg-shell .ant-layout-sider .ant-menu-item-selected { background: #1e4db7 !important; color: #fff !important; }
 .icg-shell .ant-pro-sider .ant-pro-sider-logo, .icg-shell .ant-pro-sider-logo h1, .icg-shell .ant-pro-sider-logo a { color: #fff; }
+/* 侧栏从视口顶部盖住顶栏左缘。展开按钮从侧栏右缘开始，避免 logo 挡住点击。顶栏自身还有 16px 外边距。 */
+.icg-shell .ant-pro-global-header { padding-inline-start: 200px; }
+.icg-shell.icg-shell-collapsed .ant-pro-global-header { padding-inline-start: 48px; }
 .topbar-leading { display: flex; align-items: center; gap: 8px; min-width: 0; width: 100%; }
 .topbar-breadcrumb { white-space: nowrap; overflow: hidden; }

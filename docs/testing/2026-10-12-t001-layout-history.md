@@ -40,3 +40,11 @@
 ## 未做
 
 D5（`/API/...` 返回页面壳）留给后台。没有把本卡标 done，没有合入 PR #3，没有发布。导出过期和版本冲突页面仍未进入这 11 项。
+
+## E2E-D7：展开导航可点（仍 in-review）
+
+QA 重签见 [T001 重签](2026-10-12-qa-t001-t002-t020-recheck.md)。侧栏默认仍收起。mix 侧栏从视口顶部盖住顶栏左缘，收起时 64px 的 logo 挡住「收起或展开导航」。顶栏按侧栏宽度留出起始空白：收起 64px（顶栏原有 16px 外边距再加 48px），展开 216px。按钮落在 logo 右侧，点击不再被 `ant-pro-sider-logo` 拦截。
+
+新用例在 1280、1440、1680，以及浅色和深色 `colorScheme` 下：先确认侧栏收起且按钮中心点到的是按钮本身，再点击，侧栏宽于 200px，菜单文字「工作台」「企业资料库」可见。默认收起不改。
+
+`E2E_PYTHON=python3 pnpm --dir frontend/web exec playwright test --config e2e/playwright.config.ts`：**12 passed**。Node v24.21.0。没有改后台。本卡仍 in-review，不标 done。
