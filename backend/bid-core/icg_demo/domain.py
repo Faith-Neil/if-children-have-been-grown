@@ -142,6 +142,9 @@ class DemoState:
     jobs: dict[str, dict] = field(default_factory=dict)
     workflow_receipts: dict[tuple[str, str, str], dict] = field(default_factory=dict)
     project_teams: dict[str, dict] = field(default_factory=dict)
+    # 合作方协议和资料授权先留在内存。正式表对齐不在本次挂接规则里做。
+    project_partners: dict[str, list] = field(default_factory=dict)
+    resource_acl: list[dict] = field(default_factory=list)
     # 内存仓库仍按 2048 条裁剪回执。MySQL 路径在事务里把它设为 False，避免未过期回执被提前删掉。
     cap_receipts: bool = True
 
@@ -186,7 +189,7 @@ class DemoService:
 
     @staticmethod
     def _writer(principal: Principal) -> None:
-        if principal.user.role not in ("editor", "manager"):
+        if principal.user.role not in ("editor", "manager", "company_admin", "data_admin"):
             raise DomainError(403, "FORBIDDEN", "当前演示账号只能查看，不能执行此操作。")
 
     @staticmethod

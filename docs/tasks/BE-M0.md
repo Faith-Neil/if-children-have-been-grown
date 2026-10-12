@@ -272,7 +272,7 @@
 | 完成时交付 | [实际交付](../delivery/BE-M0-T13.md) |
 | 代码解释 | [实际代码解释](../code/BE-M0-T13.md) |
 
-范围：先迁项目聚合。`demo_project` 与 `demo_project_team` 在事务内提交，失败回滚。章节、检查与导出、资料与承诺、工作流与任务、审计仍在内存。字段与字典 v1.9 的对照写在方案第 6 节，偏差需要项目经理批准。卡片为 in-review，不标 done。
+范围：先迁项目聚合。`demo_project` 与 `demo_project_team` 在事务内提交，失败回滚。章节、检查与导出、资料与承诺、工作流与任务、审计仍在内存。字段与字典 v1.9 的对照写在方案第 6 节。偏差已获 PM 有条件批准，待 [ISSUE-035](../../issues/ISSUE-035.md) 对齐。卡片为 in-review，不标 done。
 
 - [x] 已迁移的聚合在事务内提交，失败回滚。
 - [x] 未迁移的聚合仍有明确边界，不把整份状态当一条记录写入。
@@ -369,15 +369,36 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | planned |
-| 估算 | 未开工。排在 BE-M0-T13 之后。规格增量已写入冻结契约，本卡仍不改运行时代码 |
+| 状态 | in-review |
+| 估算 | 已提交复查。不新增错误码 |
 | 关联 Issue | [ISSUE-033](../../issues/ISSUE-033.md) |
-| 依赖 | [BE-M0-T13](BE-M0.md#be-m0-t13)；AI bot 的规格增量 |
-| 来源 | 挂证据规则。字段按字典 v1.9。拒绝复用已有错误码 |
-| 完成时交付 | `docs/delivery/BE-M0-T18.md` |
-| 代码解释 | `docs/code/BE-M0-T18.md` |
+| 依赖 | [BE-M0-T13](BE-M0.md#be-m0-t13) |
+| 来源 | 条款 PATCH 挂证据。沿用已有 `EVIDENCE_EXPIRED`、`EVIDENCE_NOT_USABLE`、`FORBIDDEN` |
+| 完成时交付 | [实际交付](../delivery/BE-M0-T18.md) |
+| 代码解释 | [实际代码解释](../code/BE-M0-T18.md) |
 
-范围：过期、缺协议和受限资料的挂接规则。规格增量已写入 `spec/openapi/demo-v1.json` 的 `EvidenceMountFields` 与 `x-issue-033`。运行时尚未拒绝挂接。实现后由 QA 重签。本卡尚未开工，不标 done。
+范围：条款 PATCH 挂证据时拒绝过期、仅供参考、缺协议和无权的受限资料。字段名是 `is_restricted`，与冻结模型 `EvidenceMountFields` 一致。协议是否存在从本项目 `project_partner.agreement_attachment_id` 推导，不写成资料列。不新增错误码。卡片为 in-review，不标 done。
 
-- [ ] 规格增量已写入冻结契约。运行时挂接拒绝仍未做。
-- [ ] 实现后由 QA 重签。卡片完成后为 in-review，不由开发者标 done。
+- [x] 规格增量已在冻结契约。运行时已按同一套字段和已有错误码拒绝挂接。
+- [x] `is_restricted` 可写入资料；旧字段名 `restricted` 被拒绝。
+- [ ] QA 重签后才由项目经理标 done。
+
+<a id="be-m0-t19"></a>
+
+## BE-M0-T19 · demo_project 对齐字典 bid_project
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | planned |
+| 估算 | 未开工。等正式 `bid_project`、`bid_project_member` 以及相关主体表存在 |
+| 关联 Issue | [ISSUE-035](../../issues/ISSUE-035.md) |
+| 依赖 | [BE-M0-T13](BE-M0.md#be-m0-t13)；正式项目表、成员表和投标主体 |
+| 来源 | 方案第 6 节。项目经理有条件批准 `demo_project` 与 `bid_project` 的偏差 |
+| 完成时交付 | `docs/delivery/BE-M0-T19.md` |
+| 代码解释 | `docs/code/BE-M0-T19.md` |
+
+范围：正式项目表和成员表存在之后，把 `demo_project`、`demo_project_team` 迁到字典 v1.9 的 `bid_project`、`bid_project_member`。包括 GUID、状态、投标主体、一成员一行、A 组审计列、时间型 `bid_deadline_at`，以及 `(company_id, status)`、`(company_id, bid_deadline_at)`、`(tender_no, lot_no)` 和成员唯一 `(project_id, user_id)`。迁移必须保留历史项目和成员，禁止删除旧行。本卡尚未开工，不标 done。
+
+- [ ] 正式表存在后，项目主键、状态、主体、截止时间和正式索引与字典一致。
+- [ ] 成员是独立行，不是 `team_json` 一整块，并有 A 组审计列。
+- [ ] 迁移不删除历史项目和成员。

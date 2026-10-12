@@ -5549,9 +5549,9 @@
         },
         "x-issue-033": {
           "x-contract-status": "frozen",
-          "x-implemented": false,
+          "x-implemented": true,
           "x-aligned-with": "BE-M0-T18",
-          "description": "PATCH 正文仍是 RequirementPatch 的 evidence_ids，用来挂接资料。下列拒绝复用已有错误码，不新增 code。运行时尚未执行这些拒绝。有效期对照本项目 bid_deadline_at，不对照日历上的今天。",
+          "description": "PATCH 正文仍是 RequirementPatch 的 evidence_ids，用来挂接资料。下列拒绝复用已有错误码，不新增 code。运行时按这些规则拒绝。有效期对照本项目 bid_deadline_at，不对照日历上的今天。",
           "evidence_fields": "#/components/schemas/EvidenceMountFields",
           "compare_deadline": "bid_deadline_at",
           "rules": [
@@ -10671,9 +10671,9 @@
         },
         "x-issue-033": {
           "x-contract-status": "frozen",
-          "x-implemented": false,
+          "x-implemented": true,
           "x-aligned-with": "BE-M0-T18",
-          "description": "资料列表实现后，每条资料包含 EvidenceMountFields。当前运行时的 LibraryItem 不返回这些字段。字段名用 is_restricted，不用 restricted。",
+          "description": "资料列表每条资料返回已入库的 source_tier、is_restricted、valid_to、is_long_term 和 partner_entity_id。agreement_present 按项目派生，不出现在资料列表。字段名用 is_restricted，不用 restricted。",
           "schema": "#/components/schemas/EvidenceMountFields"
         }
       },
@@ -13573,7 +13573,9 @@
             "enum": [
               "editor",
               "manager",
-              "viewer"
+              "viewer",
+              "company_admin",
+              "data_admin"
             ],
             "title": "Role"
           }
@@ -15181,6 +15183,58 @@
             "maxLength": 2000,
             "title": "Reason",
             "default": ""
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 10
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          },
+          "is_long_term": {
+            "type": "boolean",
+            "title": "Is Long Term",
+            "default": false
+          },
+          "source_tier": {
+            "type": "string",
+            "enum": [
+              "own",
+              "partner",
+              "reference"
+            ],
+            "title": "Source Tier",
+            "default": "own"
+          },
+          "partner_entity_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Entity Id"
+          },
+          "is_restricted": {
+            "type": "boolean",
+            "title": "Is Restricted",
+            "default": false
+          },
+          "acl_user_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "title": "Acl User Ids"
           }
         },
         "additionalProperties": false,
@@ -15253,6 +15307,48 @@
           "reason": {
             "type": "string",
             "title": "Reason"
+          },
+          "source_tier": {
+            "type": "string",
+            "enum": [
+              "own",
+              "partner",
+              "reference"
+            ],
+            "title": "Source Tier",
+            "default": "own"
+          },
+          "is_restricted": {
+            "type": "boolean",
+            "title": "Is Restricted",
+            "default": false
+          },
+          "is_long_term": {
+            "type": "boolean",
+            "title": "Is Long Term",
+            "default": false
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          },
+          "partner_entity_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Entity Id"
           }
         },
         "additionalProperties": true,
@@ -15380,6 +15476,58 @@
             ],
             "title": "Reason",
             "description": "实质内容修改后同次重新确认必须填写本次核对依据"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 10
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To"
+          },
+          "is_long_term": {
+            "type": "boolean",
+            "title": "Is Long Term",
+            "default": false
+          },
+          "source_tier": {
+            "type": "string",
+            "enum": [
+              "own",
+              "partner",
+              "reference"
+            ],
+            "title": "Source Tier",
+            "default": "own"
+          },
+          "partner_entity_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Entity Id"
+          },
+          "is_restricted": {
+            "type": "boolean",
+            "title": "Is Restricted",
+            "default": false
+          },
+          "acl_user_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "title": "Acl User Ids"
           }
         },
         "additionalProperties": false,
@@ -16093,6 +16241,34 @@
         ],
         "title": "ProjectListResponse"
       },
+      "ProjectPartnerInput": {
+        "properties": {
+          "partner_entity_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Partner Entity Id"
+          },
+          "agreement_attachment_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agreement Attachment Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "partner_entity_id"
+        ],
+        "title": "ProjectPartnerInput"
+      },
       "ProjectPatch": {
         "properties": {
           "name": {
@@ -16142,6 +16318,20 @@
               }
             ],
             "title": "Sensitive"
+          },
+          "project_partners": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ProjectPartnerInput"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Partners"
           }
         },
         "additionalProperties": false,
@@ -16819,7 +17009,9 @@
             "enum": [
               "editor",
               "manager",
-              "viewer"
+              "viewer",
+              "company_admin",
+              "data_admin"
             ],
             "title": "Role"
           },
@@ -17945,7 +18137,9 @@
             "enum": [
               "editor",
               "manager",
-              "viewer"
+              "viewer",
+              "company_admin",
+              "data_admin"
             ],
             "title": "Company Role"
           }
@@ -19887,7 +20081,7 @@
         "x-contract-status": "frozen",
         "x-implemented": false,
         "x-aligned-with": "BE-M0-T18",
-        "description": "挂证据时资料侧字段，命名按字典 v1.9。契约已冻结，运行时尚未返回。不新增错误码。",
+        "description": "挂证据时资料侧字段，命名按字典 v1.9。本模型保持冻结，用来固定字段名。运行时资料行返回已入库字段；agreement_present 只按项目派生，不入库。不新增错误码。",
         "type": "object",
         "additionalProperties": false,
         "properties": {

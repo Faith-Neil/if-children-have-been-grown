@@ -1,5 +1,5 @@
-# 为什么有这个文件：核对 ISSUE-033 挂证据字段和拒绝规则只写在冻结契约里。
-# 它解决什么问题：避免新增错误码，或把尚未实现的字段写进运行中的资料模型。
+# 为什么有这个文件：核对 ISSUE-033 挂证据字段和拒绝规则。
+# 它解决什么问题：避免新增错误码，并确认运行时已按冻结字段名执行。
 
 import json
 
@@ -41,7 +41,7 @@ def test_evidence_mount_fields_follow_dictionary_v19_and_reuse_codes():
     assert props["is_long_term"]["default"] is False
 
     mount = spec["paths"][REQUIREMENT]["patch"]["x-issue-033"]
-    assert mount["x-implemented"] is False
+    assert mount["x-implemented"] is True
     rules = "\n".join(mount["rules"])
     assert "409 EVIDENCE_EXPIRED" in rules
     assert "409 EVIDENCE_NOT_USABLE" in rules
@@ -51,7 +51,7 @@ def test_evidence_mount_fields_follow_dictionary_v19_and_reuse_codes():
     assert mount["compare_deadline"] == "bid_deadline_at"
     library = spec["paths"][LIBRARY]["get"]["x-issue-033"]
     assert library["schema"].endswith("/EvidenceMountFields")
-    assert library["x-implemented"] is False
+    assert library["x-implemented"] is True
 
     enum = spec["components"]["schemas"]["V1Error"]["properties"]["code"]["enum"]
     assert len(enum) == 143

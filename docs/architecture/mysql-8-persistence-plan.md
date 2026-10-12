@@ -199,6 +199,8 @@ CREATE TABLE demo_project_team (
 | `demo_project_team` | （未建） | — | — | 无 | 唯一 `(project_id, user_id)`；索引 `(company_id, user_id)` | 偏差。没有成员行，也没有 `company_id`。需要项目经理批准 |
 | `demo_project`、`demo_project_team` | （未建） | — | — | 无 | A 组 `created_by`、`created_at`、`updated_by`、`updated_at`、`is_deleted` | 偏差。没有审计列，也没有逻辑删除。`id` 和 `record_version` 的偏差见上表。需要项目经理批准 |
 
+偏差已获 PM 有条件批准，待 [ISSUE-035](../../issues/ISSUE-035.md) 对齐。
+
 原因：本卡只让已提交的项目和分工在另一个进程里仍能看见。章节、检查与导出、资料与承诺、工作流与任务、审计仍在内存。字典里的状态、主体、成员行和审计列留给后续聚合，不在本卡补列。
 
 ## 7. 从整份仓库拆到按聚合仓库
@@ -252,4 +254,4 @@ ICG_REQUIRE_MYSQL=1 python -m pytest tests/backend -m mysql
 
 ## 11. 仍未做
 
-BE-M0-T11 为 in-review：幂等回执和登录会话已写入 MySQL，多个进程可见，重启后未过期数据仍在。BE-M0-T12 已依据 QA ae6fd10，PM 15:32 确认 done：`chapter_lease` 已写入 MySQL，续期后占用者不变，过期后其他会话可以接管。迁移能 `downgrade base` 再 `upgrade head`。没有章节外键，字段与字典 v1.9 `edit_lock` 的偏差列在第 5 节。偏差已获 PM 有条件批准，待 [ISSUE-032](../../issues/ISSUE-032.md) 对齐。BE-M0-T13 为 in-review：项目和分工写入 `demo_project`、`demo_project_team`。另一个进程能看见已提交的项目，看不见该项目在写入进程内存里新建的章节。字段与字典 v1.9 `bid_project`、`bid_project_member` 的偏差列在第 6 节，都需要项目经理批准。章节、检查与导出、资料与承诺、工作流与任务、审计仍在内存。`MemoryRepository` 仍是未设置连接串时的仓库，也仍是已连接时未迁移聚合的读写委托。旧 `/api` 错误体见 [ISSUE-021](../../issues/ISSUE-021.md)，本轮不实施。
+BE-M0-T11 为 in-review：幂等回执和登录会话已写入 MySQL，多个进程可见，重启后未过期数据仍在。BE-M0-T12 已依据 QA ae6fd10，PM 15:32 确认 done：`chapter_lease` 已写入 MySQL，续期后占用者不变，过期后其他会话可以接管。迁移能 `downgrade base` 再 `upgrade head`。没有章节外键，字段与字典 v1.9 `edit_lock` 的偏差列在第 5 节。偏差已获 PM 有条件批准，待 [ISSUE-032](../../issues/ISSUE-032.md) 对齐。BE-M0-T13 为 in-review：项目和分工写入 `demo_project`、`demo_project_team`。另一个进程能看见已提交的项目，看不见该项目在写入进程内存里新建的章节。字段与字典 v1.9 `bid_project`、`bid_project_member` 的偏差列在第 6 节。偏差已获 PM 有条件批准，待 [ISSUE-035](../../issues/ISSUE-035.md) 对齐。章节、检查与导出、资料与承诺、工作流与任务、审计仍在内存。`MemoryRepository` 仍是未设置连接串时的仓库，也仍是已连接时未迁移聚合的读写委托。旧 `/api` 错误体见 [ISSUE-021](../../issues/ISSUE-021.md)，本轮不实施。

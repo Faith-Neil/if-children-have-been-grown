@@ -278,7 +278,15 @@ def test_expired_or_unreviewed_evidence_blocks_use_or_check(client):
     error = flow.write("/requirements/" + row["id"], {"evidence_ids": [pending["id"]]}, "PATCH", 409)
     assert error["code"] == "EVIDENCE_NOT_USABLE"
     expired = flow.library(valid_until="2026-01-01")
-    flow.write("/requirements/" + row["id"], {"evidence_ids": [expired["id"]]}, "PATCH")
+    mount = flow.write("/requirements/" + row["id"], {"evidence_ids": [expired["id"]]}, "PATCH", 409)
+    assert mount["code"] == "EVIDENCE_EXPIRED"
+    current = flow.library(valid_until="2027-12-31", status="confirmed")
+    flow.write("/requirements/" + row["id"], {"evidence_ids": [current["id"]]}, "PATCH")
+    library = client.get("/api/v1/library", headers=flow.headers).json()
+    patched = client.patch("/api/v1/library/" + current["id"], json={
+        "valid_until": "2026-01-01", "status": "confirmed", "reason": "合成过期证据，仅用于检查。",
+    }, headers={**flow.headers, "If-Match": str(library["revision"]), "Idempotency-Key": str(uuid4())})
+    assert patched.status_code == 200, patched.text
     check = flow.write("/checks", {})["check"]
     assert check["passed"] is False
     assert "EVIDENCE_EXPIRED" in {i["code"] for i in check["issues"]}
