@@ -310,6 +310,7 @@
 | D-297 | 2026-10-12 | [ISSUE-029](../issues/ISSUE-029.md) | 变更 | ragflow-adapter-design-1 | in-review | ISSUE-029 / AI-03 | 检索设计。不标 closed |
 | D-298 | 2026-10-12 | [028同步记录](governance/ISSUE-028-sync.md) | 治理 | model-config-design-1 | 已核对 | ISSUE-028 / AI-01 | 不改码表，不加依赖 |
 | D-299 | 2026-10-12 | [029同步记录](governance/ISSUE-029-sync.md) | 治理 | ragflow-adapter-design-1 | 已核对 | ISSUE-029 / AI-03 | 不改检索代码 |
+| D-300 | 2026-10-12 | [T001重签与T002探测](testing/2026-10-12-qa-t001-t002-t020-recheck.md) | 验证 | qa-rerun-4 | 本地执行 | ISSUE-013 / REV-M0-T08 | T001因E2E-D7不通过；T002待修复提交；ISSUE-020通过 |
 
 ## 更新记录
 
