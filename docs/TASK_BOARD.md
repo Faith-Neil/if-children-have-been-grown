@@ -8,7 +8,7 @@
 
 将 [前端 ROADMAP](ROADMAP.md) 的 Phase 0～8 与发布 Milestone 1～5 拆为 **59 张任务卡**，由 FE-M0～FE-M8 管理。前缀 FE 表示前端合作交付；这些编号与参考全系统 M0～M8 的门禁、周期和范围独立。
 
-项目343项中 **done 19、in-review 1、in-progress 8、planned 266、blocked 49、ready 0**。APP-M1的16项中，T01～05继续实现，T06继续完整联调验收，T07已完成范围拆分，T08等待最终审计；T09～16限定子任务已本地验收，T16完成资料及公司模板旧表单保护。APP-M2的259卡中T001底座开工，T008离线CI为 in-review，其余257卡planned，47组页面、190原WBS细项及44规则已逐项映射，见[完整后续卡](tasks/APP-M2.md)与[来源核对](testing/icg-task-mapping.md)。旧FE59项保留来源，OPS/BE各1项、REV 5项已本地验收（REV-M0-T02为ISSUE-013 QA复跑，REV-M0-T03/T04为ISSUE-015，REV-M0-T05为签署复核）。AI-01等待用户决定模型和数据库，AI-02的兼容适配器已本地验收。PR #3待合入。这些数量不是产品完成率。开发者只能把卡片标到 in-review，done 由项目经理在 QA 签署后设置。
+项目343项中 **done 18、in-review 2、in-progress 8、planned 266、blocked 49、ready 0**。APP-M1的16项中，T01～05继续实现，T06继续完整联调验收，T07已完成范围拆分，T08等待最终审计；T09～16限定子任务已本地验收，T16完成资料及公司模板旧表单保护。APP-M2的259卡中T001底座开工，T008离线CI为 in-review，其余257卡planned，47组页面、190原WBS细项及44规则已逐项映射，见[完整后续卡](tasks/APP-M2.md)与[来源核对](testing/icg-task-mapping.md)。旧FE59项保留来源，OPS/BE各1项、REV 5项已本地验收（REV-M0-T02为ISSUE-013 QA复跑，REV-M0-T03/T04为ISSUE-015，REV-M0-T05为T008与AI-02的QA签署）。AI-01仍等待向量库和模型决定，业务库已定为 MySQL 8；AI-02 为 in-review。开发者只能把卡片标到 in-review，done 由项目经理在 QA 签署后设置。PR #3待合入。这些数量不是产品完成率。
 
 59张前端卡片估算合计 209 小时，单卡 2～4 小时，处于 0.5～4 小时的任务粒度目标内。该总和是已有基线/接口条件下的前端增量估算，不是项目排期，不含后端、模型、取得输入、评审或等待时间。开工若预计超 4 小时，先继续拆卡并登记 Issue/版本变更，保留原任务 ID 的历史。
 
@@ -47,7 +47,7 @@
 | [REV-M0 接手审查](tasks/REV-M0.md) | ISSUE-004目录与业务/技术审查；ISSUE-013 QA复跑；ISSUE-015 T06计划；ISSUE-013 签署 | 5 | 5/5 | 审查/brief交付完成，设计决定留ISSUE-005；QA复跑、T06计划及贯通冒烟/Word渲染完成。 |
 | [BE-M0 后端链路](tasks/BE-M0.md) | ISSUE-006本地后端demo | 1 | 1/1 | 核心后台流程已本地验收，模型/数据库保留接口。 |
 | [APP-M1 示例实现](tasks/APP-M1.md) | ISSUE-007示例与后台联调；ISSUE-008资料保护 | 16 | 9/16 | T07及T09～16已本地验收；完整父任务继续。 |
-| [AI-M0 模型接入准备](tasks/AI-M0.md) | ISSUE-010选型待决；ISSUE-011兼容适配器 | 2 | 1/2 | 适配器可本地验证；真实端点、向量库和业务库等待用户决定。 |
+| [AI-M0 模型接入准备](tasks/AI-M0.md) | ISSUE-010选型待决；ISSUE-011兼容适配器 | 2 | 0/2 | AI-01仍blocked；AI-02为in-review。业务库已定为MySQL 8，向量库和模型仍待决定。 |
 
 发布 Milestone 1～5 分别映射 FE-M1～FE-M5；FE-M0 为共用基础，FE-M6/FE-M7 为原 Phase 7/8 的可选增强，FE-M8 为贯穿原 Gate A/B/C 的发布验收。
 
@@ -400,7 +400,7 @@
 | [APP-M2-T258](tasks/APP-M2.md#app-m2-t258) | R42 暗标输出全部位置 | planned | APP-M2-T197、APP-M2-T198、APP-M2-T199、APP-M2-T100 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T258.md` |
 | [APP-M2-T259](tasks/APP-M2.md#app-m2-t259) | 公司年度中小企业划型记录及声明取值 | planned | APP-M2-T053、APP-M2-T054、APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T259.md` |
 | [AI-01](tasks/AI-M0.md#ai-01) | 登记模型、向量、业务库和内网访问待决项 | blocked | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02)；等待用户决定 | [ISSUE-010](../issues/ISSUE-010.md) | [登记交付](delivery/AI-01.md) |
-| [AI-02](tasks/AI-M0.md#ai-02) | OpenAI 兼容对话适配器 | done | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | [ISSUE-011](../issues/ISSUE-011.md) | [交付](delivery/AI-02.md) |
+| [AI-02](tasks/AI-M0.md#ai-02) | OpenAI 兼容对话适配器 | in-review | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | [ISSUE-011](../issues/ISSUE-011.md) | [交付](delivery/AI-02.md) |
 <!-- task-board:end -->
 
 ## 每次推进的同步顺序
@@ -412,4 +412,4 @@
 5. 更新 Issue、任务卡和本看板状态、PROJECT_STATUS 进度，最后登记 DOCUMENT_INDEX；检查链接/状态一致后转 done。
 6. 把本地验收、合入、发布分别记录；功能只有真实接口联调通过才计生产完成。
 
-当前优先：APP-M1按ICG示例实施和联调，来源差异同步核对；模型/数据库保留接口不阻止本地产品流程开发。ISSUE-010继续等待用户决定模型和业务库，AI-02只增加可显式启用的兼容适配器。生产门禁继续验证，不能用主链路内部稿替代完整交付。
+当前优先：APP-M1按ICG示例实施和联调，来源差异同步核对；模型与向量库保留接口不阻止本地产品流程开发。ISSUE-010的业务库已决定为 MySQL 8，向量库、对话模型、嵌入和重排仍待决定。AI-02为 in-review。生产门禁继续验证，不能用主链路内部稿替代完整交付。
