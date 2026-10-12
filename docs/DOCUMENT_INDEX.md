@@ -10,10 +10,10 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
-| D-001 | 2026-10-12 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-010 / AI-01；ISSUE-009 / APP-M2-T002 | 362项26done、8in-review、49blocked。三份基线仍是 7in-review、50blocked。MODEL_UNAVAILABLE 的 502 不自动重试 |
-| D-002 | 2026-10-12 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 | 第19行为362项26done、7in-review、268planned、其余255卡planned |
+| D-001 | 2026-10-12 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-010 / AI-01；ISSUE-009 / APP-M2-T002 | 362项26done、8in-review、49blocked。三份基线已改成同一组。MODEL_UNAVAILABLE 的 502 不自动重试 |
+| D-002 | 2026-10-12 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 | 第19行为362项26done、8in-review、268planned、49blocked、其余255卡planned |
 | D-003 | 2026-10-12 | [前端架构](ARCHITECTURE.md) | 前端架构 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-011 / AI-02；ISSUE-016 / AI-03 | 同源存储和替换接口；业务库为 MySQL 8，嵌入与向量库定为 RAGFlow，适配器未实现 |
-| D-004 | 2026-10-12 | [前端路线图](ROADMAP.md) | 计划 | 参考实施入口 / g1.1 | 执行入口 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14 | 362项26done、7in-review、268planned、50blocked。决定用词已更新，数字不改。T124仍blocked |
+| D-004 | 2026-10-12 | [前端路线图](ROADMAP.md) | 计划 | 参考实施入口 / g1.1 | 执行入口 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14 | 362项26done、8in-review、268planned、49blocked。T124仍blocked |
 | D-005 | 2026-10-09 | [UX 规范](design/ux.md) | 设计 | 原文 | 参考 | FE-M0-T01 | 从ui/ux.md迁移，无业务内容改写 |
 | D-006 | 2026-10-09 | [产品 PRD v1.8](reference/product/prd-mvp-v1.8.md) | 产品参考 | v1.8 | 供评审 | FE-M0-T01 | 已脱敏原文，不受治理修订覆盖 |
 | D-007 | 2026-10-09 | [资料库字典 v1.9](reference/product/kb-data-dictionary-v1.9.md) | 数据参考 | v1.9 | 供评审 | FE-M0-T01 | 逻辑字典，不是数据库迁移 |
@@ -58,7 +58,7 @@
 | D-046 | 2026-10-09 | [REV任务](tasks/REV-M0.md) | 审查 | g1.1 | 当前 | ISSUE-004 | 目录/业务/技术与brief交付 |
 | D-047 | 2026-10-09 | [业务审查](reviews/2026-10-09-business-readiness.md) | 业务 | review-1 | 待决定 | REV-M0-T01 / ISSUE-005 | 场景矩阵与12项设计/验收发现 |
 | D-048 | 2026-10-09 | [技术审查](reviews/2026-10-09-technical-readiness.md) | 技术 | review-1 | 待决定 | REV-M0-T01 / ISSUE-005 | 6类契约缺口与图片目录对照 |
-| D-049 | 2026-10-12 | [接手brief](PROJECT_BRIEF.md) | 接手 | brief-9 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-009 / T001；ISSUE-022 | 排期保持362项26done、7in-review、50blocked。决定用词已更新。T124仍blocked |
+| D-049 | 2026-10-12 | [接手brief](PROJECT_BRIEF.md) | 接手 | brief-9 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-009 / T001；ISSUE-022 | 排期为362项26done、8in-review、49blocked。AI-01为in-review。T124仍blocked |
 | D-050 | 2026-10-09 | [工作区来源](source/WORKSPACE_MATERIALS.md) | 历史资料 | snapshot-1 | 已登记 | OPS-M0-T01 | 34份ICG资料、原路径与初次指纹 |
 | D-051 | 2026-10-09 | [同步工具说明](../tools/workspace-sync/README.md) | 运维 | sync-1 | 当前 | OPS-M0-T01 | 自动WIP、分叉、凭据、外部状态 |
 | D-052 | 2026-10-09 | [同步执行器](../tools/workspace-sync/sync.cjs) | 工程代码 | sync-1 | 回归通过 | OPS-M0-T01 | 单实例、双向Git、稳定期与出站检查 |
@@ -361,6 +361,7 @@
 | 2026-10-12 | ISSUE-010 / AI-01；ISSUE-028；ISSUE-029 | 用户决定配置页对话模型、RAGFlow 自带嵌入与向量库、生产生成仅内网。ISSUE-010 改为 closed，AI-01 改为 in-review。看板改为 362项26done、8in-review、7in-progress、268planned、49blocked、4ready。不改 PRD、ROADMAP、PROJECT_BRIEF 里 ISSUE-025 写下的 362 项、7 in-review、50 blocked。不改运行代码，不加依赖，不改 OpenAPI |
 | 2026-10-12 | ISSUE-025 / BE-M0-T14 | 核对记录补记 `b91d331` 的作业 https://github.com/Faith-Neil/if-children-have-been-grown/actions/runs/38207508936 ：backend-mysql 成功，pytest 2 passed、320 deselected，junit tests=2 skipped=0 failures=0 errors=0。状态仍 in-review。不改任务计数 |
 | 2026-10-12 | ISSUE-009 / APP-M2-T002 | 带 MODEL_UNAVAILABLE 的 502 不自动重试，立刻显示追踪号。裸网关 502、503 和网络错误仍复用同一把 Idempotency-Key。前端 90 项通过。看板仍为 362项26done、8in-review、7in-progress、268planned、49blocked、4ready。三份基线仍是 7in-review、50blocked。未改 OpenAPI、后台和三份基线正文。仍为 in-review |
+| 2026-10-12 | ISSUE-026 | AI-01 进入 in-review 后，PRD、ROADMAP、PROJECT_BRIEF 改为 362项26done、8in-review、7in-progress、268planned、49blocked、4ready。不新增任务，不改 api.ts，不改后台。Issue 仍为 in-review |
 
 ## 缺失输入
 

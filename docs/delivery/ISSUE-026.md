@@ -9,8 +9,8 @@
 |---|---|
 | 任务ID | ISSUE-026 |
 | 代码解释 | 无应用代码。[说明](../code/ISSUE-026.md) |
-| 验收 | 看板 recount 为 361 项：26 done、6 in-review、7 in-progress、268 planned、50 blocked、4 ready。三份基线已写成同一组数字。[核对](../testing/2026-10-12-issue-026-counts.md)。本 Issue 为 in-review |
-| 项目进度 | 不新增任务。361 项计数不变。APP-M2：T001 与 T002 in-review，T008 done，T124 blocked，其余 255 planned |
+| 验收 | 看板 recount 为 362 项：26 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready。三份基线已写成同一组数字。[核对](../testing/2026-10-12-issue-026-counts.md)。本 Issue 为 in-review |
+| 项目进度 | 不新增任务。362 项。APP-M2：T001 与 T002 in-review，T008 done，T124 blocked，其余 255 planned。AI-01 为 in-review |
 <!-- task-delivery:end -->
 
 日期 2026-10-12。关联 [ISSUE-026](../../issues/ISSUE-026.md)。分支 `codex/repository-foundation`。[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3) 待合入，未发布。不标 done，不标 closed。
@@ -50,6 +50,12 @@
 
 同步表见 [ISSUE-026 同步](../governance/ISSUE-026-sync.md)。
 
+## 跟进：8 in-review、49 blocked
+
+AI-01 从 blocked 改为 in-review 之后，看板变为 26 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready，合计仍是 362。ISSUE-010 那次提交故意把三份基线留在 7 in-review、50 blocked。本跟进只改这组数字：PRD 第19行、ROADMAP 第17行、PROJECT_BRIEF 排期行。in-review 八张是 OPS-M0-T02、REV-M0-T06、REV-M0-T08、BE-M0-T14、APP-M2-T001、APP-M2-T002、AI-01、AI-03。
+
+没有修改 `frontend/web/src/api.ts`。带 `MODEL_UNAVAILABLE` 的 502 不重试，已在单独提交里完成。本跟进不改重试。
+
 ## 风险与后续
 
-ROADMAP 第19行和 PROJECT_BRIEF 第68行仍把布局写成尚未动手。活的状态是 T001 已提交 in-review。项目经理签收前不把那两句改成完成。请求层重试策略另等项目经理决定，本轮没有改。
+ROADMAP 第19行和 PROJECT_BRIEF 第68行仍把布局写成尚未动手。活的状态是 T001 已提交 in-review。项目经理签收前不把那两句改成完成。请求层对 `MODEL_UNAVAILABLE` 的例外已另提交，本跟进不改 `api.ts`。上文「361 项、6 in-review」是第一次对齐时的记录，留在验证文件前半。

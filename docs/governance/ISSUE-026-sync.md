@@ -22,4 +22,8 @@
 | 参考原文 | 不改 `docs/reference/` |
 | 后台与请求层 | 不改 `backend/`、`tests/backend/`、`frontend/web/src/api.ts`。重试仍是网络错误、502 和 503，最多 3 次含首次 |
 
+## 跟进
+
+看板现为 362 项：26 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready。AI-01 为 in-review。三份基线的计数字句改成同一组。ARCHITECTURE 第21行、ROADMAP 第19行、PROJECT_BRIEF 第68行仍不改。不改 `api.ts`、后台和 `docs/reference/`。Issue 仍为 in-review。
+
 PR #3 仍待合入。本轮不新建 PR，不合并，不发布。

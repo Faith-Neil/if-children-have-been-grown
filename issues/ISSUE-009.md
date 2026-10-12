@@ -93,16 +93,16 @@ getSession已真实实现并由页面消费；实际OpenAPI49路径57操作。�
 
 ## 请求层（仍不标 done）
 
-APP-M2-T002 按 `cba6282` 冻结的错误体和幂等约定提交 in-review。`/api/v1` 读取 `{code, message, details, traceId}`，旧 `/api` 读取 `{error, request_id}`，响应头 `X-Request-ID` 优先。同一次写入只使用一把 `Idempotency-Key`。自动重试只覆盖网络错误、没有统一错误体的 502（网关）和 503，并复用该键，最多 3 次（含首次）。带 `code: MODEL_UNAVAILABLE` 的 502 不重试，页面立刻显示追踪号。409、422、423、428、401 和 500 也不自动重试。`POST /api/chapters/{id}/versions` 的请求头与正文 `idempotency_key` 相同，避免服务端因两处不一致返回 409。证据见 [请求层验证](../docs/testing/2026-10-12-request-layer.md) 与 [交付](../docs/delivery/APP-M2-T002.md)。上文「未纳入本轮」里的请求层细化指布局那一轮；本段起 T002 单独提交复核。Issue 与 T001、T002 仍为 in-review。更早几节引用的 258 卡和 356 项是当时留下的旧句；任务计数现由 ISSUE-026 写成看板的 361 项。
+APP-M2-T002 按 `cba6282` 冻结的错误体和幂等约定提交 in-review。`/api/v1` 读取 `{code, message, details, traceId}`，旧 `/api` 读取 `{error, request_id}`，响应头 `X-Request-ID` 优先。同一次写入只使用一把 `Idempotency-Key`。自动重试只覆盖网络错误、没有统一错误体的 502（网关）和 503，并复用该键，最多 3 次（含首次）。带 `code: MODEL_UNAVAILABLE` 的 502 不重试，页面立刻显示追踪号。409、422、423、428、401 和 500 也不自动重试。`POST /api/chapters/{id}/versions` 的请求头与正文 `idempotency_key` 相同，避免服务端因两处不一致返回 409。证据见 [请求层验证](../docs/testing/2026-10-12-request-layer.md) 与 [交付](../docs/delivery/APP-M2-T002.md)。上文「未纳入本轮」里的请求层细化指布局那一轮；本段起 T002 单独提交复核。Issue 与 T001、T002 仍为 in-review。更早几节引用的 258 卡和 356 项是当时留下的旧句；任务计数现由 ISSUE-026 写成看板的 362 项：26 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready。
 
 | 文件 | 句子 | 处理 |
 |---|---|---|
-| `docs/PRD.md` 第19行 | 项目共361项：26done、6in-review、7in-progress、268planned、50blocked、4ready。其余255卡planned | 计数已由 ISSUE-026 改成看板数字。T001 与 T002 仍未 done |
+| `docs/PRD.md` 第19行 | 项目共362项：26done、8in-review、7in-progress、268planned、49blocked、4ready。其余255卡planned | 计数已由 ISSUE-026 改成看板数字。T001 与 T002 仍未 done |
 | `docs/PRD.md` 第21行 | 整个T001、OIDC和完整资料库仍未完成 | T001 未 done，这句话仍然成立 |
-| `docs/ROADMAP.md` 第17行 | 当前共361项任务，26done、6in-review、7in-progress、268planned、50blocked、4ready | 计数已由 ISSUE-026 改成看板数字 |
+| `docs/ROADMAP.md` 第17行 | 当前共362项任务，26done、8in-review、7in-progress、268planned、49blocked、4ready | 计数已由 ISSUE-026 改成看板数字 |
 | `docs/ROADMAP.md` 第19行 | 整卡继续in-progress。接下来补实际ProLayout、浏览器路由/返回和全页未保存保护 | 这句不是任务总数。布局已提交复核，项目经理尚未签收，所以保留 |
 | `docs/ARCHITECTURE.md` 第21行 | 布局、浏览器路由和全页离开保护继续本卡 | 架构正文不改 |
-| `docs/PROJECT_BRIEF.md` 第30行 | 当前共361项：26done、6in-review、7in-progress、268planned、50blocked、4ready | 计数已由 ISSUE-026 改成看板数字 |
+| `docs/PROJECT_BRIEF.md` 第30行 | 当前共362项：26done、8in-review、7in-progress、268planned、49blocked、4ready | 计数已由 ISSUE-026 改成看板数字 |
 | `docs/PROJECT_BRIEF.md` 第68行 | 整卡仍进行中：接下来补实际布局组件、浏览器地址/返回与全页离开保护 | 这句不是任务总数。接手说明仍把底座当作未签收 |
 
 同步表见 [请求层同步](../docs/governance/APP-M2-T002-sync.md)。

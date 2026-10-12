@@ -10,7 +10,7 @@
 | 任务ID | APP-M2-T002 |
 | 代码解释 | [请求层](../code/APP-M2-T002.md) |
 | 验收 | 前端 90 项通过、类型检查通过。证据见 [请求层验证](../testing/2026-10-12-request-layer.md)。本卡 in-review，项目经理尚未标 done |
-| 项目进度 | 本卡 in-review。看板 362 项：26 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready。三份基线仍是 7 in-review、50 blocked。APP-M2：T001 与 T002 为 in-review，T008 done，T124 blocked，其余 255 planned |
+| 项目进度 | 本卡 in-review。看板与三份基线均为 362 项：26 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready。APP-M2：T001 与 T002 为 in-review，T008 done，T124 blocked，其余 255 planned |
 <!-- task-delivery:end -->
 
 日期 2026-10-12。关联 [ISSUE-009](../../issues/ISSUE-009.md)，产品父项仍是 [ISSUE-007](../../issues/ISSUE-007.md)。分支 `codex/repository-foundation`。[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3) 仍待合入，未发布。此文提交复核，不把任务或 Issue 标成 done/closed。
@@ -35,16 +35,16 @@
 
 ## 项目进度
 
-看板为 362 项：26 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready。APP-M2 的 259 张卡里 T001 与 T002 为 in-review，T008 为 done，T124 为 blocked，其余 255 张 planned。ISSUE-009 与 ISSUE-014 仍为 in-review。ISSUE-005 仍为 in-progress。ISSUE-010 已 closed，AI-01 为 in-review。下一张未开工的页面卡仍是 APP-M2-T003。本轮不改任务计数，也不改三份基线里仍写着的 7 in-review、50 blocked。
+看板为 362 项：26 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready。APP-M2 的 259 张卡里 T001 与 T002 为 in-review，T008 为 done，T124 为 blocked，其余 255 张 planned。ISSUE-009 与 ISSUE-014 仍为 in-review。ISSUE-005 仍为 in-progress。ISSUE-010 已 closed，AI-01 为 in-review。下一张未开工的页面卡仍是 APP-M2-T003。本轮不改任务计数。提交时三份基线仍写 7 in-review、50 blocked；ISSUE-026 随后把这三句改成 8 in-review、49 blocked。
 
 ## 文档与 Issue 同步
 
 | 对象 | 更新或无影响的理由 |
 |---|---|
-| PRD | 本轮未改。第19行已是「项目共362项：26done、7in-review、7in-progress、268planned、50blocked、4ready」。第21行仍写「整个T001、OIDC和完整资料库仍未完成」 |
-| ROADMAP | 本轮未改。第17行已是「当前共362项任务，26done、7in-review、7in-progress、268planned、50blocked、4ready」。第19行仍写「整卡继续in-progress。接下来补实际ProLayout、浏览器路由/返回和全页未保存保护」 |
+| PRD | T002 提交未改。ISSUE-026 跟进后第19行是「项目共362项：26done、8in-review、7in-progress、268planned、49blocked、4ready」。第21行仍写「整个T001、OIDC和完整资料库仍未完成」 |
+| ROADMAP | T002 提交未改。ISSUE-026 跟进后第17行是「当前共362项任务，26done、8in-review、7in-progress、268planned、49blocked、4ready」。第19行仍写「整卡继续in-progress。接下来补实际ProLayout、浏览器路由/返回和全页未保存保护」 |
 | ARCHITECTURE | 未改。第21行仍写「布局、浏览器路由和全页离开保护继续本卡」。本轮不改架构 |
-| PROJECT_BRIEF | 本轮未改。第30行已是「当前共362项：26done、7in-review、7in-progress、268planned、50blocked、4ready」。第68行仍写「整卡仍进行中：接下来补实际布局组件、浏览器地址/返回与全页离开保护」 |
+| PROJECT_BRIEF | T002 提交未改。ISSUE-026 跟进后第30行是「当前共362项：26done、8in-review、7in-progress、268planned、49blocked、4ready」。第68行仍写「整卡仍进行中：接下来补实际布局组件、浏览器地址/返回与全页离开保护」 |
 | Issue 看板/详情 | ISSUE-009 的请求层段落改为：`MODEL_UNAVAILABLE` 不重试。状态仍 in-review。ISSUE-005、ISSUE-007、ISSUE-014 状态不改 |
 | TASK_BOARD | 未改。T002 保持 in-review。开篇已是 26 done、8 in-review、49 blocked |
 | PROJECT_STATUS | 补一句：带 `MODEL_UNAVAILABLE` 的 502 不自动重试。保留向量库已定为 RAGFlow。计数不改 |
