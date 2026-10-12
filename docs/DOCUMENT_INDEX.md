@@ -366,6 +366,8 @@
 | D-353 | 2026-10-12 | [挂证据抽屉说明](code/APP-M2-T114.md) | 说明 | t114-drawer-1 | 当前 | ISSUE-007 / APP-M2-T114 | 保存仍是条款 evidence_ids |
 | D-354 | 2026-10-12 | [挂证据抽屉核对](testing/2026-10-12-app-m2-t114-evidence-drawer.md) | 验证 | t114-drawer-1 | 已执行 | ISSUE-007 / APP-M2-T114 | 单测 97；浏览器 14。缺协议只在单测 |
 | D-355 | 2026-10-12 | [T114同步表](governance/APP-M2-T114-sync.md) | 治理 | t114-drawer-1 | 已核对 | ISSUE-007 / APP-M2-T114 | 9 in-review、264 planned。并入两张 QA 卡后共 374 项、41 done |
+| D-356 | 2026-10-12 | [ISSUE-022契约冻结复签](testing/2026-10-12-issue-022-freeze-signoff.md) | 验证 | qa-rerun-16 | 本地通过 | ISSUE-013 / REV-M0-T20 | 通过；O-1 P3 |
+| D-357 | 2026-10-12 | [REV-M0-T20签署交付](delivery/REV-M0-T20.md) | 交付 | qa-rerun-16 | 已本地验收 | ISSUE-013 / REV-M0-T20 | 无代码；结论与观察项 |
 
 ## 更新记录
 
@@ -439,6 +441,7 @@
 | 2026-10-12 | ISSUE-013 / REV-M0-T17 | QA签署：ISSUE-028模型配置设计签署，通过（附P2）（被验卡/Issue状态不变，待项目经理设置） |
 | 2026-10-12 | ISSUE-013 / REV-M0-T18 | QA签署：ISSUE-031错误码名单冻结签署，通过（被验卡/Issue状态不变，待项目经理设置） |
 | 2026-10-12 | ISSUE-013 / REV-M0-T19 | QA签署：BE-M0-T12编辑租约入库签署，通过（被验卡/Issue状态不变，待项目经理设置） |
+| 2026-10-12 | ISSUE-013 / REV-M0-T20 | QA签署：ISSUE-022契约冻结复签，通过（被验卡/Issue状态不变，待项目经理设置） |
 | 2026-10-12 | ISSUE-025 / BE-M0-T14 | 依据 QA 签署 b20b844 将 BE-M0-T14 标为 done、ISSUE-025 标为 closed。守卫改为任一跳过即失败。不再导出 ICG_MYSQL_PASSWORD。BE-M0-T11 记下业务表出现后的 downgrade 再 upgrade。看板改为 366项30done、8in-review、7in-progress、268planned、49blocked、4ready。PRD、ROADMAP 计数字句不改 |
 | 2026-10-12 | ISSUE-025 / BE-M0-T14 | 交付里的任务计数改为截至提交 3bb311a 的快照，并写明之后以任务看板为准。不改看板，不改卡片状态 |
 | 2026-10-12 | ISSUE-026 | 在 3bb311a 重数：看板 366项30done、8in-review。项目经理在群里确认后，APP-M2-T001 与 APP-M2-T002 标为 done，成为 366项32done、6in-review、7in-progress、268planned、49blocked、4ready。PRD、ROADMAP、PROJECT_BRIEF 改为 as of commit 3bb311a 的里程碑快照，并写明任务看板是准绳、只在里程碑更新。规则写入 WORKFLOW 第4节。检查程序不比较快照与活看板，未改脚本。Issue 仍为 in-review。不改 docs/reference |
