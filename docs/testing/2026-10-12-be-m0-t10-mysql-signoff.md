@@ -75,3 +75,17 @@ QA机无docker。下载官方 `mysql-8.4.6-linux-glibc2.28-x86_64-minimal` 压�
 | Q3 | ISSUE-018 同步表“依赖与CI”一行仍写“均未加入”，已被本次提交改变，未更新 | `docs/governance/ISSUE-018-sync.md` | 轻微（文档） | 成长后端开发 |
 
 未验证：业务数据入库（本卡仍委托内存仓库，`persistent:false`）、多进程、TLS 连接。
+
+## 复核：b465316（Q1、Q3 修复）
+
+2026-10-12 13:10 后复核，执行人成长测试QA。
+
+- Q1 已修复：`requirements.txt` 在 Mako 后加入 `MarkupSafe==3.0.4`。新建空 venv 执行 `pip install -r backend/bid-core/requirements.txt` 后，`pip freeze` 中每个包（含传递依赖）都在 requirements 中且版本一致；四个 `~=` 包装到 alembic 1.14.1、cryptography 50.0.2、PyMySQL 1.1.3、SQLAlchemy 2.0.54。
+- Q3 已修复：ISSUE-018 同步表“依赖与CI”一行改为依赖已在 ISSUE-023 下加入并锁定、传递依赖含 MarkupSafe 精确锁定、MySQL CI 由 ISSUE-025 承接。
+- Q2 按后台说明转记到 BE-M0-T11，不阻断。
+- b465316 只改 requirements.txt、PROJECT_STATUS、TASK_BOARD、ISSUE-018-sync、tasks/BE-M0.md、ISSUE-018，范围符合预期。
+- BE-M0-T08、BE-M0-T10 在任务卡、TASK_BOARD、PROJECT_STATUS、ISSUE-018 中一致为 done，均注明项目经理在 QA 签署 98c5129 后确认。
+- 残留轻微不一致：`issues/ISSUE-023.md` 任务表中 BE-M0-T10 仍写 in-review（第41行），影响表也仍写 in-review，建议成长后端开发随 ISSUE-023 收尾时更新。
+- 复跑：后台 pytest 320 passed、2 skipped；真实 MySQL 8.4.6 上 `ICG_REQUIRE_MYSQL=1 … -m mysql` 2 passed；治理检查通过。
+
+结论：**ISSUE-023 依赖登记 QA 签署通过**。ISSUE-023 状态不由 QA 设置，等待项目经理确认。
