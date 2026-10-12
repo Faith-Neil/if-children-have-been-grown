@@ -2,7 +2,7 @@
 // 它解决什么问题：避免未确认、过期、缺协议、受限或历史标书被勾成证据。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { attachmentDiff, attachmentStale, evidenceDecision, groupEvidence, toggleSelection } from '../src/evidence-drawer.ts';
+import { applyRefreshedAttachment, attachedEvidenceLabel, attachmentDiff, attachmentStale, evidenceDecision, groupEvidence, toggleSelection } from '../src/evidence-drawer.ts';
 
 const deadline = '2026-12-31T17:00:00+08:00';
 
@@ -60,6 +60,21 @@ test('a partner record with an agreement stays selectable, and history has no se
   assert.deepEqual(toggleSelection([], partner.id, true, true), [partner.id]);
   assert.deepEqual(toggleSelection([partner.id], partner.id, false, true), []);
   assert.deepEqual(toggleSelection([partner.id], 'other', true, false), [partner.id]);
+});
+
+test('an expired attachment is labeled 证据失效, and refresh copies the reloaded row', () => {
+  const expired = item({ id: 'expired', valid_until: '2020-01-01' });
+  const current = item({ id: 'current' });
+  assert.equal(evidenceDecision(expired, deadline).reason, '过期');
+  assert.equal(attachedEvidenceLabel(expired, deadline), '证据失效');
+  assert.equal(attachedEvidenceLabel(current, deadline), '当前合格');
+  assert.equal(attachedEvidenceLabel(item({ status: 'pending', usable_as_evidence: false }), deadline), '未确认');
+  assert.equal(attachedEvidenceLabel(undefined, deadline), '资料已不可见');
+  const fresh = applyRefreshedAttachment({ evidence_ids: ['expired', 'current'] }, 9);
+  assert.deepEqual(fresh.ids, ['expired', 'current']);
+  assert.deepEqual(fresh.opened, { revision: 9, ids: ['expired', 'current'] });
+  fresh.ids.push('local');
+  assert.deepEqual(fresh.opened.ids, ['expired', 'current']);
 });
 
 test('removal is listed against the opened selection, and a newer row blocks save', () => {

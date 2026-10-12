@@ -9,8 +9,8 @@
 |---|---|
 | 任务ID | APP-M2-T114 |
 | 代码解释 | [挂证据抽屉](../code/APP-M2-T114.md) |
-| 验收 | 前端单测 97 项通过，其中挂证据 4 项。`pnpm --dir frontend/web build` 通过。浏览器端到端 14 项通过，含本卡 1 项。见 [核对](../testing/2026-10-12-app-m2-t114-evidence-drawer.md)。缺协议和受限只在单测。Excel 与并排设计稿未做 |
-| 项目进度 | 并入 BE-M0-T16 与 REV-M0-T18、T19 后看板 374 项：41 done、9 in-review、7 in-progress、264 planned、49 blocked、4 ready。本卡 in-review，未标 done。T124 仍 blocked。未合入，未发布 |
+| 验收 | 前端单测 98 项通过，其中挂证据 5 项。`pnpm --dir frontend/web build` 通过。浏览器端到端 14 项通过，含本卡 1 项。见 [核对](../testing/2026-10-12-app-m2-t114-evidence-drawer.md)。缺协议和受限只在单测。Excel 与并排设计稿未做 |
+| 项目进度 | 看板 375 项：42 done、10 in-review、7 in-progress、263 planned、49 blocked、4 ready。本卡 in-review，未标 done。T124 仍 blocked。ISSUE-022 已 closed。T13 为 in-review。未合入，未发布 |
 <!-- task-delivery:end -->
 
 ## 关联与状态
@@ -22,8 +22,8 @@
 
 ## 完成内容与变更文件
 
-- `frontend/web/src/evidence-drawer.ts`：分组、可勾选判断、打开时的增减和版本过期。
-- `frontend/web/src/EvidenceDrawer.tsx`：要求原文、结构化资料、方案片段、历史标书参考、已挂列表。
+- `frontend/web/src/evidence-drawer.ts`：分组、可勾选判断、已挂过期文案、刷新后的编号副本、打开时的增减和版本过期。
+- `frontend/web/src/EvidenceDrawer.tsx`：要求原文、结构化资料、方案片段、历史标书参考、已挂列表。过期挂接显示“证据失效”，并给出刷新。
 - `frontend/web/src/ProjectPages.tsx`：矩阵打开抽屉，保存 `PATCH` 的 `evidence_ids`。状态列仍是条款状态。证据失效单独成标签。
 - `frontend/web/src/types.ts`：资料上的可选版本、相关度、来源层级、协议、受限和原文位置。
 - `frontend/web/src/styles.css`：证据失效行左侧色条。
@@ -43,7 +43,7 @@
 
 ## 项目进度
 
-T114 从 planned 改为 in-review。rebase 时上游已加入 BE-M0-T16，以及已本地验收的 REV-M0-T18、REV-M0-T19。看板为 374 项：41 done、9 in-review、7 in-progress、264 planned、49 blocked、4 ready。APP-M2 其余 253 张卡仍 planned。T124 仍 blocked，因为 T078 未标 done，T114 也未标 done。ISSUE-007 仍 in-progress。ISSUE-022 仍 in-review。ISSUE-031 与 BE-M0-T16 仍 in-review。PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照不改。
+T114 保持 in-review，未标 done。QA 复查补上抽屉内刷新和已挂列表的“证据失效”。并入 BE-M0-T13 后看板为 375 项：42 done、10 in-review、7 in-progress、263 planned、49 blocked、4 ready。REV 20 项中 18 项已本地验收。ISSUE-022 已 closed。APP-M2 其余 253 张卡仍 planned。T124 仍 blocked，因为 T078 未标 done，T114 也未标 done。ISSUE-007 仍 in-progress。ISSUE-031 与 BE-M0-T16 仍 in-review。T13 仍 in-review。PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照不改。
 
 ## 文档与 Issue 同步
 
@@ -52,10 +52,14 @@ T114 从 planned 改为 in-review。rebase 时上游已加入 BE-M0-T16，以及
 | PRD | 无影响。开发仍按已登记的 v1.8。本轮不改任务计数，也不改里程碑快照 |
 | ROADMAP | 无影响。没有新增或取消任务。本轮不改任务计数 |
 | ARCHITECTURE | 无影响。没有新模块或新接口。挂接仍是现有条款更新 |
-| Issue 看板/详情 | ISSUE-007 仍 in-progress。ISSUE-022 仍 in-review，并写明 T114 已 in-review 但未 done，T124 仍 blocked |
-| TASK_BOARD / PROJECT_STATUS | T114 改为 in-review。并入 BE-M0-T16 与两张 QA 卡后为 374 项、41 done、9 in-review、264 planned。三份基线计数不改 |
+| Issue 看板/详情 | ISSUE-007 仍 in-progress，并记下这次复查。ISSUE-022 已由上游标为 closed，本轮不改它。T124 仍 blocked。缺协议字段引用后台 ISSUE-033，本轮不新建该 Issue |
+| TASK_BOARD / PROJECT_STATUS | T114 仍 in-review。表内重数为 375 项、42 done、10 in-review、263 planned、49 blocked、4 ready。REV 为 20 项，其中 18 项已本地验收。T13 仍 in-review。三份基线计数不改 |
 | DOCUMENT_INDEX | 登记交付、代码解释、核对和同步表 |
 
 ## 风险与后续
 
-演示登录不能造出缺协议或受限资料，这两条只由单测挡住。过期、未确认和历史标书在浏览器里核对过。他人先保存时，第一次保存被后台版本拒绝，抽屉留在原地；再次保存才显示“本行已被他人修改”。本地通过不是合入，也不是发布。
+- 缺协议和受限拦截依赖后台与契约字段 `source_tier`、`agreement_present`、`restricted`。这些字段由后台 ISSUE-033 跟踪。该 Issue 归后台，本轮不新建。演示登录仍造不出这两类资料，页面只在字段出现时拦截。
+- 智能匹配按钮尚未接通。
+- 规则 2「证据过期后该行回到待确认」还没有端到端。当前浏览器只核对矩阵上的“证据失效”标签和抽屉文案，没有单独证明条款状态被改回待确认。
+
+上面后两项先挂在 ISSUE-033 下，等后台字段落地后再测。过期、未确认和历史标书在浏览器里核对过。已挂过期时，抽屉里的“证据失效”提示带有刷新，会重新读取资料候选和本行已挂编号。他人先保存时，第一次保存被后台版本拒绝，抽屉留在原地；再次保存才显示“本行已被他人修改”。本地通过不是合入，也不是发布。

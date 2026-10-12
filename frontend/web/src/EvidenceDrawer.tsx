@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Alert, Button, Card, Checkbox, Drawer, Empty, Space, Tag } from 'antd';
 import type { Evidence, Requirement } from './types';
-import { attachmentDiff, evidenceDecision, groupEvidence, toggleSelection } from './evidence-drawer';
+import { attachedEvidenceLabel, attachmentDiff, evidenceDecision, groupEvidence, toggleSelection } from './evidence-drawer';
 
 const groupTitle = { structured: '结构化资料', snippet: '方案片段', history: '历史标书（参考）' };
 
@@ -26,7 +26,7 @@ function CandidateCard({ item, deadline, checked, canWrite, onToggle, onView }: 
   </Card>;
 }
 
-export function EvidenceDrawer({ open, requirement, library, deadline, selectedIds, openedIds, canWrite, busy, stale, onClose, onSelected, onSave, onSupplement }: {
+export function EvidenceDrawer({ open, requirement, library, deadline, selectedIds, openedIds, canWrite, busy, stale, onClose, onSelected, onSave, onSupplement, onRefresh }: {
   open: boolean;
   requirement: Requirement | null;
   library: Evidence[];
@@ -40,11 +40,16 @@ export function EvidenceDrawer({ open, requirement, library, deadline, selectedI
   onSelected: (ids: string[]) => void;
   onSave: () => void;
   onSupplement: () => void;
+  onRefresh: () => void;
 }) {
   const [reading, setReading] = useState<Evidence | null>(null);
   const groups = groupEvidence(library, deadline);
   const diff = attachmentDiff(openedIds, selectedIds);
-  const attached = selectedIds.map(id => library.find(item => item.id === id) ?? null);
+  const attached = selectedIds.map(id => {
+    const item = library.find(value => value.id === id) ?? null;
+    return { id, item, label: attachedEvidenceLabel(item, deadline) };
+  });
+  const expiredAttached = attached.some(row => row.label === '证据失效');
   function toggle(id: string, selected: boolean, allowed: boolean) {
     onSelected(toggleSelection(selectedIds, id, selected, allowed));
   }
@@ -58,10 +63,6 @@ export function EvidenceDrawer({ open, requirement, library, deadline, selectedI
     {groups.citableEmpty && <Alert type="info" showIcon message="资料库没有可引用的记录" action={<Button size="small" onClick={onSupplement}>去补录</Button>} />}
     <section className="evidence-group"><h4>{groupTitle.history}</h4>{groups.history.length ? groups.history.map(row => <CandidateCard key={row.item.id} item={row.item} deadline={deadline} checked={false} canWrite={false} onToggle={toggle} onView={setReading} />) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="没有历史标书参考" />}</section>
     {reading && <Alert className="page-notice" type="info" showIcon message={`历史标书原文 · ${reading.name}`} description={<><p>{reading.source?.quote || reading.content}</p><p className="muted">只能查看，不能勾选，也不能由智能匹配挂为证据。</p></>} />}
-    <section className="evidence-group"><h4>本行已挂证据</h4>{attached.length ? attached.map((item, index) => {
-      const id = selectedIds[index];
-      const decision = item ? evidenceDecision(item, deadline) : { selectable: false, reason: '资料已不可见' };
-      return <Card size="small" key={id}><b>{item?.name ?? '资料已不可见'}</b><p className="muted">资料版本 v{item?.revision ?? '—'}</p><Tag color={decision.selectable ? 'green' : 'red'}>{decision.selectable ? '当前合格' : decision.reason}</Tag><Button type="link" danger disabled={!canWrite || busy || stale} onClick={() => toggle(id, false, canWrite && !busy && !stale)}>移除</Button></Card>;
-    }) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="本行还没有挂接证据" />}{(diff.added.length > 0 || diff.removed.length > 0) && <Alert className="page-notice" type="info" message="相对打开时的变动" description={`新增 ${diff.added.length} 条，移除 ${diff.removed.length} 条。保存后本行只保留当前列表。`} />}</section>
+    <section className="evidence-group"><h4>本行已挂证据</h4>{expiredAttached && <Alert className="page-notice" type="error" showIcon message="证据失效" description="有效期已早于投标截止日。刷新会重新读取资料候选和本行已挂证据。" action={<Button size="small" autoInsertSpace={false} disabled={busy} onClick={onRefresh}>刷新</Button>} />}{attached.length ? attached.map(row => <Card size="small" key={row.id}><b>{row.item?.name ?? '资料已不可见'}</b><p className="muted">资料版本 v{row.item?.revision ?? '—'}</p><Tag color={row.label === '当前合格' ? 'green' : 'red'}>{row.label}</Tag><Button type="link" danger disabled={!canWrite || busy || stale} onClick={() => toggle(row.id, false, canWrite && !busy && !stale)}>移除</Button></Card>) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="本行还没有挂接证据" />}{(diff.added.length > 0 || diff.removed.length > 0) && <Alert className="page-notice" type="info" message="相对打开时的变动" description={`新增 ${diff.added.length} 条，移除 ${diff.removed.length} 条。保存后本行只保留当前列表。`} />}</section>
   </Drawer>;
 }

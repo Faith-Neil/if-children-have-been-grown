@@ -131,6 +131,11 @@ test('evidence drawer groups records, blocks invalid ones, and keeps status sepa
   await expect(requirement.getByText('待确认', { exact: true })).toBeVisible();
   await expect(requirement).toHaveClass(/evidence-invalid-row/);
   await requirement.getByRole('button', { name: '挂证据' }).click();
+  const attached = drawer.locator('section').filter({ has: page.getByRole('heading', { name: '本行已挂证据' }) });
+  await expect(attached.getByText('证据失效', { exact: true })).toHaveCount(2);
+  await attached.getByRole('button', { name: '刷新', exact: true }).click();
+  await expect(attached.getByText('合成可挂资质')).toBeVisible();
+  await expect(attached.getByText('证据失效', { exact: true })).toHaveCount(2);
   await drawer.getByRole('button', { name: '移除' }).click();
   await expect(drawer.getByText('相对打开时的变动')).toBeVisible();
 

@@ -30,3 +30,22 @@
 ## 未做
 
 与设计稿并排截图、真实 Excel、批量智能匹配、`matrix_evidence` 的挂接人和挂接时间。这些不是本轮抽屉能单独完成的。不把本地通过写成已合入或已发布。
+
+## QA 复查
+
+过期挂接出现“证据失效”时，抽屉内有“刷新”。它重新读取资料候选和本行已挂编号，不发送保存。已挂列表对过期资料显示“证据失效”；候选卡片仍显示“过期”。
+
+| 命令 | 结果 |
+|---|---|
+| `node --test frontend/web/tests/evidence-drawer.test.mjs` | 5 passed |
+| `node --test frontend/web/tests/*.test.mjs tests/frontend/*.test.mjs` | 98 passed，0 failed |
+| `pnpm --dir frontend/web build` | `tsc -b` 与 vite 8.3.4 通过。主块 `index-D3T5fjlc.js` 317.76 kB。`ProjectPages-Be_yLdBL.js` 116.03 kB |
+| `E2E_PYTHON=python3 pnpm --dir frontend/web exec playwright test --config e2e/playwright.config.ts` | 14 passed。本机没有 `python` 命令，所以指定 `python3`。CI 仍用作业里的 `E2E_PYTHON=python` |
+
+仍未覆盖，并记在交付的后续里：
+
+- 缺协议和受限依赖 `source_tier`、`agreement_present`、`restricted`。这些字段由后台 ISSUE-033 跟踪。本轮不新建该 Issue。
+- 智能匹配按钮尚未接通。
+- 规则 2「证据过期后该行回到待确认」没有端到端。
+
+后两项先挂在 ISSUE-033 下，等后台字段落地后再测。`frontend/web` 仍没有 lint 脚本。

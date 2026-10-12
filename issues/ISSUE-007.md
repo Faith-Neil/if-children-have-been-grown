@@ -96,3 +96,5 @@ T07已完成范围拆分：[259新卡](../docs/tasks/APP-M2.md)全部planned，4
 ## 挂证据抽屉提交复查
 
 2026-10-12，APP-M2-T114 从 planned 改为 in-review，未标 done。抽屉按冻结契约 `73fde1e` 的条款 `evidence_ids` 保存，没有新增操作。ISSUE-007 仍 in-progress。T124 仍 blocked。见[交付](../docs/delivery/APP-M2-T114.md)。
+
+2026-10-12，QA 复查仍留在 in-review。过期挂接在抽屉已挂列表显示“证据失效”，并可以刷新资料候选和本行已挂编号。缺协议、受限、智能匹配和“过期后回到待确认”的端到端记在交付后续，字段由后台 ISSUE-033 跟踪，本轮不新建该 Issue。
