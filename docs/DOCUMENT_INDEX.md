@@ -183,6 +183,11 @@
 | D-170 | 2026-10-11 | [两册导出页截图](testing/assets/icg-session-two-volume-export.jpg) | 证据 | application-foundation-1 | 实际GUI | ISSUE-009 / APP-M2-T001 | 有效/过期记录，实际内部Word尚未正式版式验收 |
 | D-171 | 2026-10-11 | [只读导航截图](testing/assets/icg-session-readonly-navigation.jpg) | 证据 | application-foundation-1 | 实际GUI | ISSUE-009 / APP-M2-T001 | 同项目只读，无写作/管理/导出入口 |
 | D-172 | 2026-10-11 | [无权快捷入口截图](testing/assets/icg-session-readonly-denied.jpg) | 证据 | application-foundation-1 | 实际GUI | ISSUE-009 / APP-M2-T001 | 403保留原内容并暂停写入，不误称整个项目不可见 |
+| D-173 | 2026-10-12 | [QA复跑Issue](../issues/ISSUE-013.md) | 审查 | qa-rerun-1 | closed | ISSUE-013 / REV-M0-T02 | 会话实时HTTP入库与独立复跑 |
+| D-174 | 2026-10-12 | [QA独立复跑记录](testing/2026-10-12-qa-rerun.md) | 验证 | qa-rerun-1 | 本地通过 | ISSUE-013 / REV-M0-T02 | 262/72/构建/冒烟/会话15，Node 24要求与局限 |
+| D-175 | 2026-10-12 | [QA复跑交付](delivery/REV-M0-T02.md) | 交付 | qa-rerun-1 | 已本地验收 | ISSUE-013 / REV-M0-T02 | 实际文件、验证与剩余 |
+| D-176 | 2026-10-12 | [会话脚本代码解释](code/REV-M0-T02.md) | 说明 | qa-rerun-1 | 已本地验收 | ISSUE-013 / REV-M0-T02 | 启动顺序、检查项与限制 |
+| D-177 | 2026-10-12 | [会话实时HTTP脚本](../tests/backend/session_live_http.py) | 验证 | qa-rerun-1 | 15项通过 | ISSUE-013 / REV-M0-T02 | 自启空闲端口，合成数据，默认pytest不收集 |
 
 ## 更新记录
 
@@ -201,6 +206,7 @@
 
 | 2026-10-11 | ISSUE-008 / APP-M1-T16 | 资料及公司模板旧表单保护本地交付，后台229/前端58、实际页面和6截图；337项14done/7in-progress；完整示例继续 |
 | 2026-10-11 | ISSUE-009 / APP-M2-T001 | 开始共同底座可信会话与页面守卫阶段；原完整布局/路由卡进行中，337项14done/8in-progress，后续258卡planned |
+| 2026-10-12 | ISSUE-013 / REV-M0-T02 | QA独立复跑、会话实时HTTP脚本入库及交付/说明；338项15done |
 
 ## 缺失输入
 
