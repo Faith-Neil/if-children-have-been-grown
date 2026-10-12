@@ -13,7 +13,7 @@
 | 项目进度 | 本卡 done。看板 366 项：32 done、6 in-review、7 in-progress、268 planned、49 blocked、4 ready。APP-M2：T001、T002 与 T008 done，T124 blocked，其余 255 planned |
 <!-- task-delivery:end -->
 
-日期2026-10-11，布局补充2026-10-12；ISSUE-009 / ISSUE-014；分支codex/repository-foundation；[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)为草稿待合入，未发布。QA 于 REV-M0-T11 签署通过后，项目经理在群里确认，本卡标为 done。ISSUE-009 与 ISSUE-014 仍为 in-review，不标 closed。
+日期2026-10-11，布局补充2026-10-12；ISSUE-009 / ISSUE-014；分支codex/repository-foundation；[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)为草稿待合入，未发布。QA 于 REV-M0-T11 签署通过后，项目经理在群里确认，本卡标为 done。ISSUE-009 已由项目经理在 QA 签署 d55d507（REV-M0-T11）后确认 closed。ISSUE-014 已由项目经理在 QA 签署 173c39f（REV-M0-T14）后确认 closed。
 
 ## 已实现的阶段内容
 

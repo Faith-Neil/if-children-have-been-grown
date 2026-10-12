@@ -21,3 +21,7 @@
 | 后台 | 不改 `backend/` 与 `tests/backend/` |
 
 PR #3 仍待合入。本轮不新建 PR，不合并，不发布。
+
+## 项目经理关闭
+
+QA 签署提交 `dcca509`，记录为 REV-M0-T15。项目经理授权后，ISSUE-020 标为 closed。关联卡 APP-M2-T001 已为 done。不新增任务卡。不改后台，不改 `docs/reference/`，不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照。

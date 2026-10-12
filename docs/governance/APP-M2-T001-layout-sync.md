@@ -21,3 +21,7 @@
 | 后台 | 不改 `backend/` 与 `tests/backend/`。D5 未处理 |
 
 PR #3 仍待合入。本轮不新建 PR，不合并，不发布。
+
+## 项目经理关闭
+
+QA 签署 d55d507（REV-M0-T11）后，项目经理确认 ISSUE-009 closed，APP-M2-T001 已为 done。QA 签署 173c39f（REV-M0-T14）后，项目经理确认 ISSUE-014 closed。不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照。

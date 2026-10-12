@@ -9,13 +9,13 @@
 | Issue ID | ISSUE-020 |
 | 类型 | change |
 | 优先级 | P1 |
-| 状态 | in-review |
+| 状态 | closed |
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
 | revision | route-chunks-1 |
 | 关联 Task | APP-M2-T001；[任务看板](../docs/TASK_BOARD.md) |
 | 关联 PR | [PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)，待合入。本轮不新建 PR |
-| 本地验收 | 已提交 in-review。首屏入口块低于引入 ProLayout 前的 1334.42 kB。见 [复核记录](../docs/testing/2026-10-12-route-chunks.md)。项目经理尚未标 done |
+| 本地验收 | QA 签署 dcca509（REV-M0-T15）。项目经理授权后本 Issue 标为 closed。关联卡 APP-M2-T001 已为 done。见 [签署](../docs/testing/2026-10-12-issue-020-route-split-signoff.md) |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | [ISSUE-020 交付](../docs/delivery/ISSUE-020.md) |
@@ -31,13 +31,13 @@ ISSUE-014 引入 `@ant-design/pro-layout@7.22.7` 后，`pnpm build` 只有一个
 - 影响范围：`frontend/web` 的入口和页面加载。离开保护和 History 路由仍在 `App.tsx`。
 - 本次不改 `backend/` 与 `tests/backend/`。页面回退仍由后台现有 catch-all 提供，不需要新接口。
 - 不新增依赖。使用 React 18 的 `lazy` / `Suspense` 和 Vite 对 `import()` 的分包。
-- 不把 APP-M2-T001、ISSUE-009、ISSUE-014 或本 Issue 标成 done / closed。
+- 提交当时不把卡片或本 Issue 标成 done / closed。QA 签署 dcca509（REV-M0-T15）后，项目经理确认本 Issue 为 closed。关联卡 APP-M2-T001 已为 done。
 
 ## 实施任务与互链
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| APP-M2-T001 | 按路由延迟加载外壳和页面，使首屏主块低于 1334.42 kB | `frontend/web/src` | AC-01～AC-03 | in-review |
+| APP-M2-T001 | 按路由延迟加载外壳和页面，使首屏主块低于 1334.42 kB | `frontend/web/src` | AC-01～AC-03 | done |
 
 ## 验收条目
 
@@ -46,7 +46,7 @@ ISSUE-014 引入 `@ant-design/pro-layout@7.22.7` 后，`pnpm build` 只有一个
 | AC-01 | 首屏主块原始体积低于引入 ProLayout 前的 1334.42 kB | 已提交复核。入口 `index-BXy7CunM.js` 为 315.94 kB / gzip 101.00 kB。`index.html` 预加载的 JS 合计 1080.17 kB / gzip 345.08 kB |
 | AC-02 | 记录分包前后每一个产物的原始体积和 gzip | 已提交复核。见验证记录中的两张表 |
 | AC-03 | 离开保护、历史路由和既有前端测试仍通过 | 已提交复核。`node --test` 为 78 pass、0 fail。未改后台文件 |
-| AC-04 | 项目经理 QA 签收后才能 done | 未执行。本 Issue 保持 in-review |
+| AC-04 | 项目经理 QA 签收后才能 done | 已执行。QA 签署 dcca509（REV-M0-T15）。项目经理确认后本 Issue 为 closed，关联卡 APP-M2-T001 已为 done |
 
 ## 六份基线 impact 与同步表
 
@@ -67,6 +67,7 @@ ISSUE-014 引入 `@ant-design/pro-layout@7.22.7` 后，`pnpm build` 只有一个
 | 日期 | revision / 状态 | 完成事实、问题与下一步 | 证据 / 复核人 |
 |---|---|---|---|
 | 2026-10-12 | route-chunks-1 / in-review | 外壳和项目页改为动态 import。等待项目经理 QA 签收，不标 done | [验证](../docs/testing/2026-10-12-route-chunks.md) |
+| 2026-10-12 | route-chunks-1 / closed | 项目经理在 QA 签署 dcca509（REV-M0-T15）后确认 closed。关联卡 APP-M2-T001 已为 done。未合入、未发布 | [签署](../docs/testing/2026-10-12-issue-020-route-split-signoff.md) |
 
 ## 本地验收与后续合入发布
 

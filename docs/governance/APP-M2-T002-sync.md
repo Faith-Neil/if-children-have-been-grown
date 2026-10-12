@@ -43,3 +43,7 @@ PR #3 仍待合入。本轮不新建 PR，不合并，不发布。
 | OpenAPI | 不改。`x-idempotency.retry` 仍写重试全部 502 |
 | 参考原文 | 不改 `docs/reference/` |
 | 后台 | 不改 `backend/` 与 `tests/backend/`。ISSUE-021 仍 planned |
+
+## 项目经理关闭
+
+QA 签署 d55d507（REV-M0-T11）后，项目经理确认 ISSUE-009 closed。APP-M2-T002 已为 done。不改请求层，不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照。

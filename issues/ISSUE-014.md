@@ -9,13 +9,13 @@
 | Issue ID | ISSUE-014 |
 | 类型 | version |
 | 优先级 | P1 |
-| 状态 | in-review |
+| 状态 | closed |
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
 | revision | pro-layout-7.22.7 |
 | 关联 Task | APP-M2-T001；[任务看板](../docs/TASK_BOARD.md) |
 | 关联 PR | [PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)，待合入。本轮不新建 PR |
-| 本地验收 | 已提交 in-review。体积和命令见 [复核记录](../docs/testing/2026-10-12-prolayout-routes.md)。项目经理尚未标 done |
+| 本地验收 | QA 签署 173c39f（REV-M0-T14）。项目经理授权后本 Issue 标为 closed。关联卡 APP-M2-T001 已为 done。见 [签署](../docs/testing/2026-10-12-issue-014-prolayout-signoff.md) |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | [APP-M2-T001 交付](../docs/delivery/APP-M2-T001.md) |
@@ -46,13 +46,13 @@
 
 - 影响 `frontend/web/package.json`、`pnpm-lock.yaml` 和产品外壳。ISSUE-009 / APP-M2-T001 使用这个包。
 - 不改请求层、元数据表、OIDC、通用表单离开或断点记忆。
-- 没有其他新依赖。状态保持 in-review，done 由项目经理在 QA 签收后标记。
+- 没有其他新依赖。QA 签署 173c39f（REV-M0-T14）后，项目经理确认本 Issue 为 closed。关联卡 APP-M2-T001 已为 done。
 
 ## 实施任务与互链
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| APP-M2-T001 | 用批准的 ProLayout 做外壳，并记录体积 | `frontend/web` | 引入前后 `pnpm build` 体积 | in-review |
+| APP-M2-T001 | 用批准的 ProLayout 做外壳，并记录体积 | `frontend/web` | 引入前后 `pnpm build` 体积 | done |
 
 ## 验收条目
 
@@ -60,7 +60,7 @@
 |---|---|---|
 | AC-01 | 直接依赖只增加批准的包之一 | 已提交复核。`package.json` 仅新增 `@ant-design/pro-layout` 7.22.7 |
 | AC-02 | 记录引入前后 `pnpm build` 体积 | 已提交复核。1334.42 kB → 1564.53 kB，见验证记录 |
-| AC-03 | 项目经理 QA 签收后才能 done | 未执行。本 Issue 保持 in-review |
+| AC-03 | 项目经理 QA 签收后才能 done | 已执行。QA 签署 173c39f（REV-M0-T14）。项目经理确认后本 Issue 为 closed，关联卡 APP-M2-T001 已为 done |
 
 ## 六份基线 impact 与同步表
 
@@ -81,6 +81,7 @@
 | 日期 | revision / 状态 | 完成事实、问题与下一步 | 证据 / 复核人 |
 |---|---|---|---|
 | 2026-10-12 | pro-layout-7.22.7 / in-review | 已加入依赖并记录体积。等待项目经理 QA 签收，不标 done | [验证](../docs/testing/2026-10-12-prolayout-routes.md) |
+| 2026-10-12 | pro-layout-7.22.7 / closed | 项目经理在 QA 签署 173c39f（REV-M0-T14）后确认 closed。关联卡 APP-M2-T001 已为 done。未合入、未发布 | [签署](../docs/testing/2026-10-12-issue-014-prolayout-signoff.md) |
 
 ## 本地验收与后续合入发布
 

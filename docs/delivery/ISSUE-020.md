@@ -9,11 +9,11 @@
 |---|---|
 | 任务ID | APP-M2-T001 |
 | 代码解释 | [路由分包](../code/ISSUE-020.md) |
-| 验收 | 首屏主块 315.94 kB，低于 1334.42 kB。[复核记录](../testing/2026-10-12-route-chunks.md)。状态为 in-review，项目经理尚未标 done |
-| 项目进度 | 不新增任务。350项中20 done、4 in-review、7 in-progress、266 planned、49 blocked、4 ready。APP-M2-T001、ISSUE-009、ISSUE-014、ISSUE-016、ISSUE-020 为 in-review。AI-02 与 T008 已由项目经理标 done。BE-M0-T02、BE-M0-T03 与 ISSUE-005 的 in-review 属于另一张卡 |
+| 验收 | 首屏主块 315.94 kB，低于 1334.42 kB。[复核记录](../testing/2026-10-12-route-chunks.md)。QA 签署 dcca509（REV-M0-T15）后，项目经理确认本 Issue closed。关联卡 APP-M2-T001 已为 done |
+| 项目进度 | 不新增任务。关联卡 APP-M2-T001 已为 done。ISSUE-020 已由项目经理在 QA 签署 dcca509（REV-M0-T15）后确认 closed。ISSUE-009 与 ISSUE-014 同样已 closed |
 <!-- task-delivery:end -->
 
-日期 2026-10-12；ISSUE-020；分支 codex/repository-foundation；[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3) 为草稿待合入，未发布。此文提交复核，不把任务或 Issue 标成 done/closed。
+日期 2026-10-12；ISSUE-020；分支 codex/repository-foundation；[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3) 为草稿待合入，未发布。QA 签署 dcca509（REV-M0-T15）后，项目经理确认本 Issue closed。关联卡 APP-M2-T001 已为 done。无新的应用代码。
 
 ## 完成内容与变更文件
 

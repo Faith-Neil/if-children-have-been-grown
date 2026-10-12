@@ -9,17 +9,17 @@
 | Issue ID | ISSUE-009 |
 | 类型 | change |
 | 优先级 | P0 |
-| 状态 | in-review |
+| 状态 | closed |
 | 登记 / 更新日期 | 2026-10-11 / 2026-10-12 |
 | revision | application-foundation-1；本轮 layout-review-1 |
 | 关联 Task | APP-M2-T001；APP-M2-T002；后续T003、T005、T006、T014～018、T046～050 |
 | 关联 PR | [PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)，待合入 |
-| 本地验收 | QA 于 200a105 签署不通过。D1–D4 与 D6 修复后重新提交 in-review。T002 请求层前端 90 项通过，同样等待项目经理签收。阶段一262后台、72前端、16真实HTTP及GUI仍为历史证据 |
+| 本地验收 | QA 于 REV-M0-T11 签署通过，提交 d55d507。项目经理授权后本 Issue 标为 closed。APP-M2-T001 与 APP-M2-T002 已为 done。后续资料库卡仍 planned。见 [签署](../docs/testing/2026-10-12-qa-t001-t002-signoff.md) |
 | 合入 / 发布 | 未合入 / 未发布 |
 
 ## 当前缺口与完整范围
 
-开工前页面缺少`getSession`可信会话入口；会话与页面守卫已经接入。ProLayout、浏览器地址和编辑台未保存离开已提交复核，仍缺元数据表格/表单、完整敏感查看和资料治理。APP-M2-T046/047依赖T005、T006、T017，这些前置尚未验收，不能标ready。根前置T001依赖BE-M0-T01已本地验收。本 Issue 保持 in-review，不标 closed。
+开工前页面缺少`getSession`可信会话入口；会话与页面守卫已经接入。ProLayout、浏览器地址和编辑台未保存离开已提交复核，仍缺元数据表格/表单、完整敏感查看和资料治理。APP-M2-T046/047依赖T005、T006、T017，这些前置尚未验收，不能标ready。根前置T001依赖BE-M0-T01已本地验收。本 Issue 已由项目经理在 QA 签署 d55d507（REV-M0-T11）后确认 closed。后续资料库卡仍 planned。
 
 T001完整范围保留原交接M1-P08-01：实际ProLayout并保留ICG布局、浏览器地址及返回导航、可信会话与菜单/页面守卫、公司与项目资源权限、统一请求失败和未保存离开保护。先实现会话契约及服务端导航，再接路由和布局；任何阶段结果不能把整个T001或OIDC、细粒度权限、完整资料库提前标done。
 
@@ -114,3 +114,7 @@ QA 重签指出侧栏默认收起时，顶栏展开按钮被 logo 挡住。按�
 ## E2E-D8（仍不标 done）
 
 概览步骤号、「○」和编辑台元信息已提高到至少 4.5:1。次要文字为 `#4e5969`，待办圆圈为 `#9a5608`。端到端 13 项通过。T001 与本 Issue 仍为 in-review。
+
+## 项目经理关闭
+
+QA 签署提交 `d55d507`，记录为 REV-M0-T11，见 [签署](../docs/testing/2026-10-12-qa-t001-t002-signoff.md)。项目经理授权后，本 Issue 标为 closed。对应任务卡 APP-M2-T001 与 APP-M2-T002 在此之前已为 done，本轮不改卡片状态。T003 及以后的资料库卡仍为 planned。PR #3 未合入，产品未发布。上文各节里的 in-review 是当时的记录。

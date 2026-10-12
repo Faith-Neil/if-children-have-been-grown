@@ -9,11 +9,11 @@
 |---|---|
 | 任务ID | ISSUE-026 |
 | 代码解释 | 无应用代码。[说明](../code/ISSUE-026.md) |
-| 验收 | 在 `3bb311a` 上看板为 366 项：30 done、8 in-review。项目经理在群里确认后，T001 与 T002 标为 done。三份基线改为里程碑快照：366 项、32 done、6 in-review，as of commit `3bb311ad3ab86c0de2f871876a50c7d50f9bb985`。[复核](../testing/2026-10-12-issue-026-baseline-count-check.md)。本 Issue 为 in-review |
+| 验收 | 在 `3bb311a` 上看板为 366 项：30 done、8 in-review。项目经理在群里确认后，T001 与 T002 标为 done。三份基线改为里程碑快照：366 项、32 done、6 in-review，as of commit `3bb311ad3ab86c0de2f871876a50c7d50f9bb985`。[复核](../testing/2026-10-12-issue-026-baseline-count-check.md)。QA 签署 9bcde17（REV-M0-T13）后，项目经理确认本 Issue closed |
 | 项目进度 | 不新增任务。366 项：32 done、6 in-review、7 in-progress、268 planned、49 blocked、4 ready。APP-M2：T001、T002 与 T008 done，T124 blocked，其余 255 planned。任务看板是准绳 |
 <!-- task-delivery:end -->
 
-日期 2026-10-12。关联 [ISSUE-026](../../issues/ISSUE-026.md)。分支 `codex/repository-foundation`。[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3) 待合入，未发布。不标 done，不标 closed。
+日期 2026-10-12。关联 [ISSUE-026](../../issues/ISSUE-026.md)。分支 `codex/repository-foundation`。[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3) 待合入，未发布。QA 签署 9bcde17（REV-M0-T13）后，项目经理确认 closed。不新增任务卡，无应用代码变化。
 
 ## 完成内容与变更文件
 

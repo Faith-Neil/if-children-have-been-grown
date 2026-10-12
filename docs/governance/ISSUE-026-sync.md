@@ -39,3 +39,7 @@ PR #3 仍待合入。本轮不新建 PR，不合并，不发布。
 本里程碑核对提交 `3bb311ad3ab86c0de2f871876a50c7d50f9bb985`。当时表格为 366 项：30 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready。REV-M0-T12 与 BE-M0-T14 已是 done，ISSUE-025 已 closed。APP-M2-T001 与 APP-M2-T002 仍是 in-review。QA 已在 REV-M0-T11 签署通过，项目经理在群里确认这两张卡标为 done。标完后仍是 366 项：32 done、6 in-review、7 in-progress、268 planned、49 blocked、4 ready。三份正文使用这组数字，并注明 as of commit `3bb311ad3ab86c0de2f871876a50c7d50f9bb985` 加上本次 done。
 
 `scripts/check-project-governance.cjs` 不比较这三份的任务计数和活看板。它核对治理块、链接、索引和 done 卡的交付块。因此没有改检查程序。模拟再把一张已有交付的 in-review 卡标为 done 后，检查仍通过；该模拟不入库。ISSUE-026 仍为 in-review。不改 `docs/reference/`。
+
+## 项目经理关闭
+
+QA 签署提交 `9bcde17`，记录为 REV-M0-T13。项目经理授权后，ISSUE-026 标为 closed。不新增任务卡。PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照不改。活看板手写摘要另按表格重数。不改 `docs/reference/`。
