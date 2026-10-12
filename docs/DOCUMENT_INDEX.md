@@ -299,7 +299,7 @@
 | D-286 | 2026-10-12 | [计数核对](testing/2026-10-12-issue-026-counts.md) | 验证 | count-sync-1 | 已执行 | ISSUE-026 | 当时看板 361 项与三份正文一致 |
 | D-287 | 2026-10-12 | [026同步表](governance/ISSUE-026-sync.md) | 治理 | count-sync-1 | 已核对 | ISSUE-026 | ARCHITECTURE 未改；第19行与第68行保留 |
 | D-288 | 2026-10-12 | [ISSUE-025](../issues/ISSUE-025.md) | 流程 | mysql-ci-1 | closed | ISSUE-025 / BE-M0-T14 | 依据 b20b844 关闭；ISSUE-024 不建档 |
-| D-289 | 2026-10-12 | [MySQL CI 交付](delivery/BE-M0-T14.md) | 交付 | mysql-ci-1 | done | ISSUE-025 / BE-M0-T14 | 看板 366项30done、8in-review；不建业务表 |
+| D-289 | 2026-10-12 | [MySQL CI 交付](delivery/BE-M0-T14.md) | 交付 | mysql-ci-1 | done | ISSUE-025 / BE-M0-T14 | 计数是截至 3bb311a 的快照；任务看板为准；不建业务表 |
 | D-290 | 2026-10-12 | [MySQL CI 说明](code/BE-M0-T14.md) | 说明 | mysql-ci-1 | 当前 | ISSUE-025 / BE-M0-T14 | 不导出 ICG_MYSQL_PASSWORD；任一跳过即失败 |
 | D-291 | 2026-10-12 | [MySQL CI 核对](testing/2026-10-12-backend-mysql-ci.md) | 验证 | mysql-ci-1 | 已核对 | ISSUE-025 / BE-M0-T14 | run 38207508936：2 passed、320 deselected；密码不进仓库 |
 | D-292 | 2026-10-12 | [025同步表](governance/ISSUE-025-sync.md) | 治理 | mysql-ci-1 | 已核对 | ISSUE-025 / BE-M0-T14 | T14 done、Issue closed；PRD/ROADMAP 计数字句未改 |
@@ -392,6 +392,7 @@
 | 2026-10-12 | ISSUE-027 / BE-M0-T15 | Q1 正文首行缩进补 firstLine=560；Q2 无标题时不写目录和 TOC 域；Q3 规格改为中文：docx 不能指定缺失字体的替换字体，由 Word 或 WPS 决定，要保证效果需安装方正小标宋。不新增任务，不改变卡片状态。PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF 未改 |
 | 2026-10-12 | ISSUE-013 / REV-M0-T10 | QA复核BE-M0-T15 Q1～Q3（034b184/f989af7）通过，检查器补三项，样张覆盖；不新增任务、不改卡片状态 |
 | 2026-10-12 | ISSUE-025 / BE-M0-T14 | 依据 QA 签署 b20b844 将 BE-M0-T14 标为 done、ISSUE-025 标为 closed。守卫改为任一跳过即失败。不再导出 ICG_MYSQL_PASSWORD。BE-M0-T11 记下业务表出现后的 downgrade 再 upgrade。看板改为 366项30done、8in-review、7in-progress、268planned、49blocked、4ready。PRD、ROADMAP 计数字句不改 |
+| 2026-10-12 | ISSUE-025 / BE-M0-T14 | 交付里的任务计数改为截至提交 3bb311a 的快照，并写明之后以任务看板为准。不改看板，不改卡片状态 |
 
 ## 缺失输入
 

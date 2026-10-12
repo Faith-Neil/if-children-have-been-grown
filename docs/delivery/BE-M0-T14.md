@@ -10,7 +10,7 @@
 | 任务ID | BE-M0-T14 |
 | 代码解释 | [工作流说明](../code/BE-M0-T14.md)。只改 `.github/workflows/offline-check.yml` 及相关记录 |
 | 验收 | [核对](../testing/2026-10-12-backend-mysql-ci.md)；[QA 签署](../testing/2026-10-12-be-m0-t14-mysql-ci-signoff.md) `b20b844`。本卡 done |
-| 项目进度 | 本卡 done。看板 366 项：30 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready。未合入 |
+| 项目进度 | 本卡 done。截至提交 3bb311a 的快照（as of commit 3bb311a）：366 项，30 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready。之后以任务看板为准。未合入 |
 <!-- task-delivery:end -->
 
 ## 关联与状态
@@ -36,7 +36,7 @@
 
 ## 项目进度
 
-本卡为 done。看板为 366 项：30 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready。ISSUE-018 仍 in-progress。PR 未合入，未发布。
+本卡为 done。计数是截至提交 `3bb311a` 的快照（as of commit 3bb311a）：366 项，30 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready。之后的汇总以任务看板为准。ISSUE-018 仍 in-progress。PR 未合入，未发布。
 
 ## 文档与 Issue 同步
 
@@ -47,7 +47,7 @@
 | ARCHITECTURE | 无影响。未改 `docs/ARCHITECTURE.md` |
 | PROJECT_BRIEF | 排期句去掉 BE-M0-T14 的 in-review，改为依据 `b20b844` 已 done。计数字句仍是 364 项，不在本提交重开对齐 |
 | Issue 看板/详情 | ISSUE-025 为 closed。ISSUE-024 不建档。ISSUE-018 不关闭。BE-M0-T11 增加往返验收 |
-| TASK_BOARD / PROJECT_STATUS | BE-M0-T14 为 done。看板 366 项：30 done、8 in-review |
+| TASK_BOARD / PROJECT_STATUS | BE-M0-T14 为 done。交付里的 366 项、30 done、8 in-review 只是截至提交 3bb311a 的快照。任务看板是计数依据 |
 | DOCUMENT_INDEX | 本卡与 Issue 改为 done / closed，并登记守卫核对 |
 
 同步表见 [ISSUE-025-sync](../governance/ISSUE-025-sync.md)。
