@@ -60,3 +60,15 @@
 | `node --test frontend/web/tests/*.test.mjs tests/frontend/*.test.mjs` | 98 passed，0 failed |
 | `pnpm --dir frontend/web build` | `tsc -b` 与 vite 8.3.4 通过。主块 `index-D9xOHS0T.js` 317.76 kB。`ProjectPages-D3PC1rUI.js` 116.12 kB |
 | `E2E_PYTHON=python3 pnpm --dir frontend/web exec playwright test --config e2e/playwright.config.ts` | 14 passed。本机没有 `python` 命令，所以指定 `python3`。CI 仍用作业里的 `E2E_PYTHON=python` |
+
+## QA 独立复签（REV-M0-T22 / e691405）
+
+成长测试QA于恢复后独立复跑。签署记录见 [e691405复签](2026-10-12-app-m2-t114-e691405-signoff.md)。结论通过；**缺协议、受限依赖 ISSUE-033**。智能匹配与规则 2 端到端仍挂 ISSUE-033。APP-M2-T114 不标 done。
+
+| 命令 | 结果 |
+|---|---|
+| `node --test frontend/web/tests/evidence-drawer.test.mjs` | 5 passed（Node 24.9.0） |
+| `node --test frontend/web/tests/*.test.mjs tests/frontend/*.test.mjs` | 98 passed，0 failed |
+| `pnpm --dir frontend/web build` | `tsc -b` 与 vite 8.3.4 通过。主块 `index-D9xOHS0T.js` 317.76 kB。`ProjectPages-D3PC1rUI.js` 116.12 kB |
+| `E2E_PYTHON=<venv> E2E_PORT=8877 pnpm --dir frontend/web exec playwright test --config e2e/playwright.config.ts` | 14 passed |
+| CI [run 38227446697](https://github.com/Faith-Neil/if-children-have-been-grown/actions/runs/38227446697) | 五个 job 全绿（head `e691405`） |
