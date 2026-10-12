@@ -99,6 +99,7 @@ WORKFLOW无规则变化，治理块保持g1.1。
 | 2026-10-12 | qa-rerun-16 / done | ISSUE-022契约冻结复签（REV-M0-T20）：README补上N7两码例外，P3句子已加入x-idempotency.retry；契约测试15个、后端351个通过，live HTTP 49/49；CI五个job全绿；被验卡和Issue的状态不变，等项目经理设置 | 成长测试QA |
 | 2026-10-12 | qa-rerun-17 / done | 0a5b655重试修复签署（REV-M0-T21）：探针34/34；502 MODEL_UNAVAILABLE与503 SECRET_KEY_UNAVAILABLE各1次请求；普通503与无错误体502照常重试，无Idempotency-Key写入不重试；Node 24.9.0前端单测97/97；被验卡和Issue的状态不变，等项目经理设置 | 成长测试QA |
 | 2026-10-12 | qa-rerun-18 / done | APP-M2-T114 e691405冲突刷新复签（REV-M0-T22）：冲突提示旁刷新；e2e他人先保存→刷新→再保存；已挂过期「证据失效」；五条挂接规则单测仍成立；Node 24.9.0 单测98、Playwright 14、build通过；CI run 38227446697；缺协议/受限依赖 ISSUE-033；被验卡与本卡不标 done，等项目经理设置 | 成长测试QA |
+| 2026-10-12 | qa-rerun-19 / done | BE-M0-T13项目聚合入库签署（REV-M0-T23）：行为三项通过（装载叠种子、变更保存、revision 409）；本地 mysql 12 passed、无库 351/12 skipped；CI 38219738690 全绿（当时 mysql junit 11/0）；方案第 6 节有对照表，批准句待 ISSUE-035；BE-M0-T13/ISSUE-018 不标 done | 成长测试QA |
 
 ## 本地验收与后续合入发布
 

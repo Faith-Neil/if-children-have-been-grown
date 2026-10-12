@@ -379,7 +379,10 @@
 | D-366 | 2026-10-12 | [挂证据规则](../issues/ISSUE-033.md) | 变更 | evidence-mount-spec-1 | in-progress | ISSUE-033 / BE-M0-T18 | 冻结契约已写 is_restricted 与挂接拒绝。不新增错误码。不标 closed |
 | D-367 | 2026-10-12 | [ISSUE-033同步](governance/ISSUE-033-sync.md) | 治理 | evidence-mount-spec-1 | 已核对 | ISSUE-033 / BE-M0-T18 | 规格已写入冻结契约。BE-M0-T18 仍 planned。不改三份基线计数 |
 | D-368 | 2026-10-12 | [T114 e691405冲突刷新复签](testing/2026-10-12-app-m2-t114-e691405-signoff.md) | 验证 | qa-rerun-18 | 本地通过 | ISSUE-013 / REV-M0-T22 | 通过；缺协议/受限依赖 ISSUE-033 |
+| 2026-10-12 | ISSUE-013 / REV-M0-T23 | QA签署：BE-M0-T13项目聚合行为验收，通过（演示表待 ISSUE-035；被验卡/Issue 状态不变） |
 | D-369 | 2026-10-12 | [REV-M0-T22签署交付](delivery/REV-M0-T22.md) | 交付 | qa-rerun-18 | 已本地验收 | ISSUE-013 / REV-M0-T22 | 无代码；结论与观察项 |
+| D-370 | 2026-10-12 | [BE-M0-T13项目聚合签署](testing/2026-10-12-be-m0-t13-signoff.md) | 验证 | qa-rerun-19 | 本地通过 | ISSUE-013 / REV-M0-T23 | 通过；O-1 P3 待 ISSUE-035 批准句 |
+| D-371 | 2026-10-12 | [REV-M0-T23签署交付](delivery/REV-M0-T23.md) | 交付 | qa-rerun-19 | 已本地验收 | ISSUE-013 / REV-M0-T23 | 无代码；演示表待 ISSUE-035，不标 done |
 
 ## 更新记录
 
