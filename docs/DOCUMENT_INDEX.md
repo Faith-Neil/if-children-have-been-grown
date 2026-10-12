@@ -304,12 +304,12 @@
 | D-291 | 2026-10-12 | [MySQL CI 核对](testing/2026-10-12-backend-mysql-ci.md) | 验证 | mysql-ci-1 | 已核对 | ISSUE-025 / BE-M0-T14 | run 38207508936：2 passed、320 deselected；密码不进仓库 |
 | D-292 | 2026-10-12 | [025同步表](governance/ISSUE-025-sync.md) | 治理 | mysql-ci-1 | 已核对 | ISSUE-025 / BE-M0-T14 | T14 done、Issue closed；PRD/ROADMAP 计数字句未改 |
 | D-293 | 2026-10-12 | [配置驱动的对话模型](architecture/model-config-provider.md) | 架构 | model-config-design-2 | in-review | ISSUE-028 / AI-01 | 只写 Provider 切换。字段与 API 以 ISSUE-024 为准。不改 OpenAPI |
-| D-294 | 2026-10-12 | [RAGFlow 检索适配器](architecture/ragflow-retrieval-adapter.md) | 架构 | ragflow-adapter-design-1 | in-review | ISSUE-029 / AI-03 | 官方路径与状态映射。无客户端 |
-| D-295 | 2026-10-12 | [ISSUE-010 决定核对](testing/2026-10-12-issue-010-decisions.md) | 验证 | model-choice-3 | 文档核对 | ISSUE-010 / AI-01 | 无内网调用 |
-| D-296 | 2026-10-12 | [ISSUE-028](../issues/ISSUE-028.md) | 变更 | model-config-design-2 | in-review | ISSUE-028 / AI-01 | 仅 Provider 侧。ISSUE-024 已登记为 new。不标 closed |
+| D-294 | 2026-10-12 | [RAGFlow 检索适配器](architecture/ragflow-retrieval-adapter.md) | 架构 | ragflow-adapter-design-1 | in-review | ISSUE-029 / AI-03 | 官方路径与状态映射。路径 C 查询词过滤留到适配器实现。无客户端 |
+| D-295 | 2026-10-12 | [ISSUE-010 决定核对](testing/2026-10-12-issue-010-decisions.md) | 验证 | model-choice-3 | 文档核对 | ISSUE-010 / AI-01 | 无内网调用。ISSUE-024 已由后台建档并拥有模型配置字段 |
+| D-296 | 2026-10-12 | [ISSUE-028](../issues/ISSUE-028.md) | 变更 | model-config-design-2 | in-review | ISSUE-028 / AI-01 | 仅 Provider 侧。开关字段名归 ISSUE-024。敏感项目 403 验收未实现。不标 closed |
 | D-297 | 2026-10-12 | [ISSUE-029](../issues/ISSUE-029.md) | 变更 | ragflow-adapter-design-1 | in-review | ISSUE-029 / AI-03 | 检索设计。不标 closed |
-| D-298 | 2026-10-12 | [028同步记录](governance/ISSUE-028-sync.md) | 治理 | model-config-design-2 | 已核对 | ISSUE-028 / AI-01 | 存储与 API 划给 ISSUE-024。不改任务计数 |
-| D-299 | 2026-10-12 | [029同步记录](governance/ISSUE-029-sync.md) | 治理 | ragflow-adapter-design-1 | 已核对 | ISSUE-029 / AI-03 | 不改检索代码 |
+| D-298 | 2026-10-12 | [028同步记录](governance/ISSUE-028-sync.md) | 治理 | model-config-design-2 | 已核对 | ISSUE-028 / AI-01 | 存储与 API 划给 ISSUE-024。QA P3 已记。不改任务计数 |
+| D-299 | 2026-10-12 | [029同步记录](governance/ISSUE-029-sync.md) | 治理 | ragflow-adapter-design-1 | 已核对 | ISSUE-029 / AI-03 | 路径 C 查询词过滤留到适配器实现。不改检索代码 |
 | D-300 | 2026-10-12 | [T001重签与T002探测](testing/2026-10-12-qa-t001-t002-t020-recheck.md) | 验证 | qa-rerun-4 | 本地执行 | ISSUE-013 / REV-M0-T08 | T001因E2E-D7不通过；T002待修复提交；ISSUE-020通过 |
 | D-301 | 2026-10-12 | [ISSUE-027](../issues/ISSUE-027.md) | 变更 | style-1 | in-review | ISSUE-027 / BE-M0-T15 | Word 默认版式；T14 仍是 MySQL 作业；不标 closed |
 | D-302 | 2026-10-12 | [版式交付](delivery/BE-M0-T15.md) | 交付 | style-1 | in-review | ISSUE-027 / BE-M0-T15 | 合成 docx 的默认版式；不标 done |
@@ -427,6 +427,7 @@
 | 2026-10-12 | ISSUE-009 / ISSUE-014 / ISSUE-020 / ISSUE-026 | 项目经理在 QA 签署后确认关闭：ISSUE-009（d55d507，REV-M0-T11）、ISSUE-014（173c39f，REV-M0-T14）、ISSUE-020（dcca509，REV-M0-T15）、ISSUE-026（9bcde17，REV-M0-T13）。关联卡 APP-M2-T001 与 APP-M2-T002 已为 done，不改其他卡片。看板手写摘要改为 371项37done、8in-review、7in-progress、266planned、49blocked、4ready。不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照。不改 ISSUE-013、ISSUE-016、ISSUE-028 与 AI-03 |
 | 2026-10-12 | ISSUE-022 / APP-M2-T124 | 第三轮复审后把大纲与任务契约标为 frozen。全局重试说明和 Idempotency-Key 说明排除 502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE。新增 423 与 503 不列 Idempotent-Replayed。N8 留到 BE-M0-T06。保留已写入枚举的两码。ISSUE-022 仍 in-review，T124 仍 blocked。不改 PRD、ROADMAP、PROJECT_BRIEF |
 | 2026-10-12 | ISSUE-017 / OPS-M0-T02 | 用户 10-12 14:34 确认。ISSUE-017 改为 closed，OPS-M0-T02 改为 done。重排定为 RAGFlow 自带的重排器，重排模型在 RAGFlow 内配置。截至 73fde1e 为 371项37done、8in-review；本提交后看板为 371项38done、7in-review、7in-progress、266planned、49blocked、4ready。之后以任务看板为准。未部署。不改 ISSUE-029，不改 ISSUE-010 正文 |
+| 2026-10-12 | ISSUE-028 / AI-01；ISSUE-029 | QA P3（REV-M0-T17，f5af6db）：决定记录改为 ISSUE-024 已由后台建档并拥有模型配置字段。流式与 JSON 模式开关的字段名归 ISSUE-024（后台决定，D-1），028 只引用、不定义。AI-01 补未勾选验收：敏感项目使用非本地模型返回 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`（由 409 改为 403）。RAGFlow 适配器设计记下 ISSUE-016 QA P3：路径 C 不按查询词过滤，实现适配器时再改。不改代码，不改任务计数。ISSUE-028 仍 in-review |
 
 ## 缺失输入
 

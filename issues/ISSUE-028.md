@@ -50,6 +50,7 @@
 | AC-01 | Provider 读取配置、启动快照、local/cloud 路由、敏感约束、流式/JSON、错误映射和 `job.model_call` 已写明。字段定义与 API 已从本设计删去，并注明以 ISSUE-024 为准 | 已写入设计。未实现 |
 | AC-02 | CI 使用记录请求头和基址的假服务；真实连接默认跳过 | 已写入设计。假服务未编码 |
 | AC-03 | 不改 OpenAPI 文件，不新增依赖 | 本轮 diff 不含 `spec/openapi/demo-v1.json` 与 `requirements.txt` |
+| AC-04 | 实现时，敏感项目使用非本地模型返回 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`（由现在的 409 `LOCAL_MODEL_REQUIRED` 改为 403） | 未实现。已记入 [AI-01](../docs/tasks/AI-M0.md#ai-01) 未勾选验收。本轮不改运行代码 |
 
 ## 六份基线 impact 与同步表
 
@@ -70,6 +71,7 @@
 | 2026-10-12 | model-config-design-2 / in-review | 按 PM 分工删去字段定义和 API。存储、字段、接口、加密、If-Match/幂等改引 ISSUE-024。不创建 ISSUE-024 文件。不改任务计数 | [设计](../docs/architecture/model-config-provider.md) |
 | 2026-10-12 | model-config-design-2 / in-review | ISSUE-024 详情已登记，状态 new。本 Issue 仍只保留 Provider 侧，不把存储字段抄回来 | [ISSUE-024](ISSUE-024.md) |
 | 2026-10-12 | model-config-design-2 / in-review | PM 批准 D-1 后，本文件只引用 ISSUE-024 的 `stream_enabled` 与 `json_mode_enabled`，不写默认值或含义。状态仍 in-review | [ISSUE-024](ISSUE-024.md) |
+| 2026-10-12 | model-config-design-2 / in-review | QA P3（REV-M0-T17，f5af6db）：决定记录改为 ISSUE-024 已由后台建档并拥有模型配置字段。流式与 JSON 模式开关的字段名归 ISSUE-024（后台决定，D-1），本 Issue 只引用、不定义。AI-01 补未勾选验收：敏感项目使用非本地模型返回 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`（由 409 改为 403）。状态仍 in-review | [决定核对](../docs/testing/2026-10-12-issue-010-decisions.md) |
 
 ## 本地验收与后续合入发布
 

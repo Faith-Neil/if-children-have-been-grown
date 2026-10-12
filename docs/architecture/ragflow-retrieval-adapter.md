@@ -56,7 +56,7 @@ T078 的 `kb_sync_status` 取值是 `unsynced`、`synced`、`failed`、`blocked`
 
 ## 证据候选
 
-路径 A 仍是已确认的资料规则，不经过 RAGFlow。路径 B 改为调用检索接口，再按公司过滤我们保存的 dataset。路径 C 的历史投标同样只查该公司的 dataset，且仍不可附着。B 或 C 失败时保留 A 并记录原因，与现在的 `EvidenceCandidateService` 一致。知识库关闭时也不调用 RAGFlow。
+路径 A 仍是已确认的资料规则，不经过 RAGFlow。路径 B 改为调用检索接口，再按公司过滤我们保存的 dataset。路径 C 的历史投标同样只查该公司的 dataset，且仍不可附着。ISSUE-016 QA P3：当前路径 C 不按查询词过滤，实现 RAGFlow 适配器时再改。B 或 C 失败时保留 A 并记录原因，与现在的 `EvidenceCandidateService` 一致。知识库关闭时也不调用 RAGFlow。本轮不改检索代码。
 
 ## CI 与风险
 

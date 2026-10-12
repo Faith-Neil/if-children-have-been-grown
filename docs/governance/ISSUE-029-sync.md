@@ -15,3 +15,5 @@
 | requirements.txt | 无 | 不加依赖 | httpx==0.28.1 已在 |
 
 未合入，未发布。
+
+2026-10-12：适配器设计记下 ISSUE-016 QA P3。当前路径 C 不按查询词过滤，实现 RAGFlow 适配器时再改。不改检索代码。ISSUE-029 仍 in-review。未合入，未发布。

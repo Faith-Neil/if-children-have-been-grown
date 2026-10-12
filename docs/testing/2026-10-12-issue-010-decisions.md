@@ -26,6 +26,6 @@
 
 ## 局限
 
-没有假服务器，也没有真实连接测试。依赖没有变化：`httpx==0.28.1` 已在仓库。ISSUE-024 留给后台模型配置契约，本仓库不建详情。ISSUE-025 与 ISSUE-026 已有详情。ISSUE-027 随后已由后端建档，是 Word 版式，本记录不改它。本轮新建 ISSUE-028 与 ISSUE-029。关闭 ISSUE-010 时 PRD、ROADMAP、PROJECT_BRIEF 的任务计数没有改。
+没有假服务器，也没有真实连接测试。依赖没有变化：`httpx==0.28.1` 已在仓库。ISSUE-024 已存在，由后台建档并拥有模型配置字段。ISSUE-025 与 ISSUE-026 已有详情。ISSUE-027 随后已由后端建档，是 Word 版式，本记录不改它。本轮新建 ISSUE-028 与 ISSUE-029。关闭 ISSUE-010 时 PRD、ROADMAP、PROJECT_BRIEF 的任务计数没有改。
 
-PM 随后把范围拆开：ISSUE-028 只保留 Provider 读取配置、启动快照、local/cloud 路由、敏感项目约束、流式与 JSON 模式、错误映射和 `job.model_call`。存储、字段定义、API、加密、If-Match 和幂等归 ISSUE-024。字段提案已交后台，以 ISSUE-024 为准。ISSUE-024 文件仍不存在，所以只在 028 侧引用。这次拆分不改任务计数。
+PM 随后把范围拆开：ISSUE-028 只保留 Provider 读取配置、启动快照、local/cloud 路由、敏感项目约束、流式与 JSON 模式、错误映射和 `job.model_call`。存储、字段定义、API、加密、If-Match 和幂等归 ISSUE-024。ISSUE-024 已由后台建档，状态 new，拥有模型配置字段。按 PM，流式与 JSON 模式开关的字段名归 ISSUE-024（后台决定，D-1）。ISSUE-028 引用 ISSUE-024，不定义这些字段名。这次拆分不改任务计数。
