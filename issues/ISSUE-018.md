@@ -39,8 +39,8 @@
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| BE-M0-T08 | 写出 ORM、驱动、迁移、字符集、回执表、租约表、事务、跨进程回执与会话，以及内网测试边界 | `docs/architecture/mysql-8-persistence-plan.md` | AC-01～AC-05 | in-review |
-| BE-M0-T10 | 连接配置与空基线迁移 | `backend/bid-core/icg_demo/database.py` | 见 ISSUE-023 | in-review |
+| BE-M0-T08 | 写出 ORM、驱动、迁移、字符集、回执表、租约表、事务、跨进程回执与会话，以及内网测试边界 | `docs/architecture/mysql-8-persistence-plan.md` | AC-01～AC-05 | done |
+| BE-M0-T10 | 连接配置与空基线迁移 | `backend/bid-core/icg_demo/database.py` | 见 ISSUE-023 | done |
 | BE-M0-T11 | 幂等回执和登录会话入库，多进程共享且重启后仍在 | 后续实现 | AC-04、AC-05 | planned |
 | BE-M0-T12 | 编辑租约入库，含续期和接管 | 后续实现 | 方案第 5 节 | planned |
 | BE-M0-T13 | 按聚合把仓库从整份状态迁到 MySQL | 后续实现 | 方案第 7 节 | planned |
@@ -76,6 +76,7 @@ PROJECT_BRIEF 排期行随任务数改为 352 项，记在下方同步表。
 |---|---|---|---|
 | 2026-10-12 | plan-1 / in-review | 方案已提交复查。当时未安装依赖，未建表 | 方案与治理检查 |
 | 2026-10-12 | impl-1 / in-progress | 项目经理批准方案和四项依赖。只实施连接与空迁移。T11～T13 仍 planned。不关闭 | [BE-M0-T10](../docs/delivery/BE-M0-T10.md) |
+| 2026-10-12 | impl-1 / in-progress | 项目经理在 QA 签署 98c5129 后确认 BE-M0-T08 与 BE-M0-T10 为 done。本 Issue 仍 in-progress。ISSUE-023 仍 in-review，等待 QA 复核 Q1 | [QA签署](../docs/testing/2026-10-12-be-m0-t10-mysql-signoff.md) |
 
 ## 本地验收与后续合入发布
 

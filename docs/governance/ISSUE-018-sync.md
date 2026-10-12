@@ -15,7 +15,7 @@
 | TASK_BOARD | 已改 | BE-M0-T08 为 in-review。BE-M0 现为 9 项 |
 | PROJECT_STATUS | 已改 | 契约段指向方案；进度为 352 项 |
 | DOCUMENT_INDEX | 已改 | 登记方案、交付、代码说明、本表和 ISSUE-021 |
-| 依赖与 CI | 未改 | SQLAlchemy、PyMySQL、cryptography、Alembic 均未加入。`mysql:8.4` 只写在方案里 |
+| 依赖与 CI | 依赖已加入。MySQL CI 未在本表实施 | SQLAlchemy、PyMySQL、cryptography、Alembic 已在 ISSUE-023 下加入并锁定。传递依赖已精确锁定，含 MarkupSafe。MySQL CI 由 ISSUE-025 负责，进行中 |
 
 ISSUE-021 的任务是 planned，Issue 状态是 blocked，因为看板没有 planned 这一档。它排在本方案之后，本轮不实施。范围另含 QA `200a105` 的 E2E-D5：`/API/...` 目前返回页面壳，将来要把 `/api` 前缀按大小写不敏感处理。本轮不改兜底路由。方案要求回执和登录会话跨进程共享，并在重启后仍在；这是验收条件，不是本轮实现。
 
