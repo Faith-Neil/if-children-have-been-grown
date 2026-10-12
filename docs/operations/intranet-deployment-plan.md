@@ -111,7 +111,7 @@ RAGFlow 的基址和调用密钥使用占位名 `ICG_RAGFLOW_BASE_URL`、`ICG_RA
 - 迁移删列、改类型或改含义时，旧程序不能指着新库启动。这时要把库恢复到迁移前的全量或对应的 binlog 位置，再启动旧程序。时间点恢复会丢掉该位置之后的写入，恢复前先停写。
 - 不假设存在自动的向下迁移。ORM 是 SQLAlchemy，驱动是 PyMySQL，迁移工具是 Alembic。会话和幂等回执的持久化仍等 ISSUE-018 的 BE-M0-T11。在那之前，未设置 `ICG_DATABASE_URL` 的单元测试继续用内存仓库，运行形态保持一个 worker、一个副本。
 
-以后的集成测试可以在托管 runner 上加一个 MySQL 8 service container。现在不加。`offline-check.yml` 保持内存和演示模型。
+ISSUE-025 已在托管 runner 上增加 `backend-mysql`：步骤内启动 `mysql:8.4`，只跑空迁移和 mysql 标记测试。原 `backend` 作业仍用内存和演示模型，不设置 `ICG_DATABASE_URL`。
 
 ## 7. RAGFlow：单独的内网服务
 

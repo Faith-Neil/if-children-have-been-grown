@@ -96,7 +96,7 @@ node --test tests/governance/*.test.cjs
 
 行为修改另跑实际受影响的验证。检查程序验证链接、治理块、任务完成材料和索引；需求与代码的语义一致性仍由任务验收与评审确认。
 
-`codex/repository-foundation` 的推送和拉取请求还由 `.github/workflows/offline-check.yml` 在 `ubuntu-24.04` 上并行执行同一组离线命令：安装 `backend/bid-core/requirements.txt` 后 `python -m pytest tests/backend`，再单独运行 `python tests/backend/session_live_http.py` 和 `cd backend/bid-core && python smoke_t06.py`；`pnpm --dir frontend/web install --frozen-lockfile` 与 `pnpm --dir frontend/web build`，以及 `node --test tests/frontend/*.test.mjs frontend/web/tests/*.test.mjs`；`node --test tests/governance/*.test.cjs tests/prototype/*.test.cjs tests/workspace-sync/*.test.cjs tests/backend/demo-page.test.cjs`。版本固定为 Python 3.13.5、Node 24.9.0、pnpm 11.25.0。该运行不使用密钥或外网模型，通过也不表示已经合入或发布。
+`codex/repository-foundation` 的推送和拉取请求还由 `.github/workflows/offline-check.yml` 在 `ubuntu-24.04` 上并行执行同一组离线命令：安装 `backend/bid-core/requirements.txt` 后 `python -m pytest tests/backend`，再单独运行 `python tests/backend/session_live_http.py` 和 `cd backend/bid-core && python smoke_t06.py`；`pnpm --dir frontend/web install --frozen-lockfile` 与 `pnpm --dir frontend/web build`，以及 `node --test tests/frontend/*.test.mjs frontend/web/tests/*.test.mjs`；`node --test tests/governance/*.test.cjs tests/prototype/*.test.cjs tests/workspace-sync/*.test.cjs tests/backend/demo-page.test.cjs`。版本固定为 Python 3.13.5、Node 24.9.0、pnpm 11.25.0。该运行不使用密钥或外网模型，通过也不表示已经合入或发布。另有并行作业 `backend-mysql`（ISSUE-025）：在运行器上启动 `mysql:8.4`，密码运行时生成且不进仓库，只执行 `alembic upgrade head` 与 `python -m pytest tests/backend -m mysql`。原 `backend` 作业仍不设置 `ICG_DATABASE_URL`。
 
 本地任务 `done`、Issue `closed` 表示已完成本地验收；交付与 Issue 分别记录 PR 是否合入、软件是否发布。未合入的修复不能写成已上线。评审发现问题时重新开启原 Issue/任务并保留原验收记录。
 

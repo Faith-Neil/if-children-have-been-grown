@@ -28,7 +28,7 @@ alembic -c backend/bid-core/alembic.ini upgrade head
 ICG_REQUIRE_MYSQL=1 python -m pytest tests/backend -m mysql
 ```
 
-`ICG_REQUIRE_MYSQL=1` 时，标记 `mysql` 的测试在连接串缺失或数据库连不上时失败，不能跳过。未设置该变量且没有连接串时，这些测试跳过。现有公网工作流 `.github/workflows/offline-check.yml` 不设置该变量，也不要加 MySQL 服务。
+`ICG_REQUIRE_MYSQL=1` 时，标记 `mysql` 的测试在连接串缺失或数据库连不上时失败，不能跳过。未设置该变量且没有连接串时，这些测试跳过。原 `backend` 作业仍不设置该变量。ISSUE-025 的 `backend-mysql` 作业另行设置，并在运行器上启动 `mysql:8.4`。
 
 字符集为 `utf8mb4`，排序规则为 `utf8mb4_0900_ai_ci`。进程不记录连接串。
 

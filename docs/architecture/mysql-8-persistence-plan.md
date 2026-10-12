@@ -141,9 +141,9 @@ CREATE TABLE user_session (
 
 ## 9. 测试
 
-单元测试继续使用 `MemoryRepository`，不需要数据库，现有离线作业保持不连 MySQL。
+单元测试继续使用 `MemoryRepository`，不需要数据库。原 `backend` 离线作业保持不连 MySQL。
 
-集成测试以后单独跑，镜像 `mysql:8.4`。容器只在内网执行机上启动，不加到当前公网托管的 GitHub Actions 作业里。库内只放合成种子数据。
+集成测试使用镜像 `mysql:8.4`，库内只放合成种子数据。公司内网执行机仍可按下面的命令自行启动。ISSUE-025 另在托管运行器上启动同一镜像，只覆盖空迁移和现有 mysql 标记测试。
 
 内网执行机在容器健康检查通过后执行：
 
@@ -157,7 +157,7 @@ alembic -c backend/bid-core/alembic.ini upgrade head
 ICG_REQUIRE_MYSQL=1 python -m pytest tests/backend -m mysql
 ```
 
-`ICG_REQUIRE_MYSQL=1` 时，标记为 `mysql` 的测试在 `ICG_DATABASE_URL` 缺失或数据库连不上时失败，不能跳过。未设置该变量且没有连接串时，这些测试跳过，现有公网作业仍然通过。不要把 `mysql:8.4` 或这条命令加进 `.github/workflows/offline-check.yml`。
+`ICG_REQUIRE_MYSQL=1` 时，标记为 `mysql` 的测试在 `ICG_DATABASE_URL` 缺失或数据库连不上时失败，不能跳过。未设置该变量且没有连接串时，这些测试跳过，原 `backend` 作业仍然通过。ISSUE-025 另加并行作业 `backend-mysql`，在托管运行器上启动 `mysql:8.4` 并执行上述迁移和 pytest。该作业的密码运行时生成，不写入仓库。它不代替公司内网的集成测试。
 
 实施后的集成测试还要覆盖：两个进程连接同一库时，一个进程写入的回执能被另一个进程重放；停掉进程再启动后，未过期回执仍可重放，已登录 token 仍可认证。本轮不跑这些测试。
 
@@ -166,7 +166,7 @@ ICG_REQUIRE_MYSQL=1 python -m pytest tests/backend -m mysql
 - 不使用托管数据库、外部备份或驱动遥测。
 - 连接地址只来自内网环境变量。
 - 集成测试不携带真实投标、账号或正文。
-- 本方案不把 `mysql:8.4` 写进现有公网 CI 工作流。
+- 原 `backend` 作业不设置连接串。ISSUE-025 的 `backend-mysql` 在托管运行器上使用 `mysql:8.4` 容器和合成库 `icg_demo`，不连接公司内网，也不使用托管数据库服务。
 - 向量和模型调用仍按 ISSUE-010，不因业务库落地而改道到外网。
 
 ## 11. 仍未做

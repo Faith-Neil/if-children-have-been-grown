@@ -8,7 +8,7 @@
 
 ## 模型与数据库待决
 
-ISSUE-010 整体仍 blocked。2026-10-12 用户决定业务库为 MySQL 8（user decision, relayed by PM）。MySQL 8 没有向量检索，向量库不再与业务库同库，pgvector 不再作为同库选项。对话模型、嵌入、重排和向量库仍待决定。公司内网 Qwen 30B 的 OpenAI 兼容接口仍是候选。连接配置和空基线迁移已随 ISSUE-023 / BE-M0-T10 进入仓库；业务表、回执、会话和租约仍未入库。未设置 `ICG_DATABASE_URL` 时单元测试继续使用内存实现。托管 CI 不能访问内网，也不跑 MySQL。
+ISSUE-010 整体仍 blocked。2026-10-12 用户决定业务库为 MySQL 8（user decision, relayed by PM）。MySQL 8 没有向量检索，向量库不再与业务库同库，pgvector 不再作为同库选项。对话模型、嵌入、重排和向量库仍待决定。公司内网 Qwen 30B 的 OpenAI 兼容接口仍是候选。连接配置和空基线迁移已随 ISSUE-023 / BE-M0-T10 进入仓库；业务表、回执、会话和租约仍未入库。未设置 `ICG_DATABASE_URL` 时单元测试继续使用内存实现。托管 CI 不能访问公司内网。原 `backend` 作业仍不跑 MySQL；ISSUE-025 的 `backend-mysql` 作业在运行器上启动 `mysql:8.4`，密码运行时生成，不进仓库。
 
 ISSUE-011 已 closed，AI-02 为 done：项目经理于 10-12 12:10 在 QA 签署后确认。OpenAI 兼容适配器默认仍是演示替身，只有显式配置才启用；失败返回现有 502，敏感项目门禁保持不变。契约测试使用假 HTTP，没有调用真实端点。ISSUE-010 仍 blocked。详见[验证](testing/2026-10-12-openai-compatible-model.md)。
 
@@ -24,7 +24,7 @@ ISSUE-017 / OPS-M0-T02 写了内网部署草案：现有单进程 uvicorn 提供
 
 ## 离线 CI 门禁
 
-ISSUE-012 / APP-M2-T008 已把现有离线检查放进 GitHub Actions，并在提交 `cf2c2a1` 上跑通：pytest 262、会话 HTTP 15、`smoke_t06.py` 12、前端函数 72、构建、`.cjs` 35 与治理检查。Python 3.13.5，Node 24.9.0，pnpm 11.25.0。工作流不使用密钥或外网模型，也不调用 soffice。项目经理于 10-12 12:10 在 QA 签署后确认，卡片为 done，ISSUE-012 为 closed。这不是已部署，也不是已合入。`buildTheme` 仍未实现。见[验证](testing/2026-10-12-offline-ci.md)。
+ISSUE-012 / APP-M2-T008 已把现有离线检查放进 GitHub Actions，并在提交 `cf2c2a1` 上跑通：pytest 262、会话 HTTP 15、`smoke_t06.py` 12、前端函数 72、构建、`.cjs` 35 与治理检查。Python 3.13.5，Node 24.9.0，pnpm 11.25.0。工作流不使用密钥或外网模型，也不调用 soffice。项目经理于 10-12 12:10 在 QA 签署后确认，卡片为 done，ISSUE-012 为 closed。这不是已部署，也不是已合入。`buildTheme` 仍未实现。见[验证](testing/2026-10-12-offline-ci.md)。ISSUE-025 / BE-M0-T14 另加 `backend-mysql`，状态 in-review：运行器上的 `mysql:8.4` 只跑空迁移和 mysql 标记测试，密码不进仓库。见[核对](testing/2026-10-12-backend-mysql-ci.md)。
 
 ## QA独立复跑
 
@@ -40,7 +40,7 @@ ISSUE-019 / REV-M0-T06新增Playwright端到端检查（`pnpm --dir frontend/web
 
 ## 任务进度口径
 
-治理版本g1.1，当前实际开发关联ISSUE-007及资料保护ISSUE-008；契约门禁关联ISSUE-005；模型与向量库待决关联ISSUE-010，业务库已决定为 MySQL 8。项目361项中26done、6in-review、7in-progress、268planned、50blocked、4ready。ISSUE-026 已把 PRD、ROADMAP、PROJECT_BRIEF 的任务计数改成同一组数字，该 Issue 为 in-review。APP-M1的16项中9项本地done：T07范围拆分及T09～16限定子任务；T01～06完整父任务继续，T08最终审计planned，T16资料及模板旧表单保护本地done。[APP-M2的259项](tasks/APP-M2.md)中T001布局、路由和离开保护为 in-review，T002请求层为 in-review，T008离线CI为 done，T124因 T078/T114 未满足仍为 blocked。ISSUE-022 为 in-review，只复核 draft, pending backend review 的大纲契约，运行时未接通，其余255项planned，覆盖47组页面和44规则，不代表软件已实现。BE-M0现为13项，其中T01～T03、T08、T10为done，4项ready，T09与T11～T13 planned。T02与T03由项目经理于 10-12 12:28 在 QA 签署后确认。T08与T10由项目经理在 QA 签署 98c5129 后确认。ISSUE-005 保持 in-progress，不关闭。AI-01仍blocked，AI-02为done，AI-03为in-review且不连接 MySQL，OPS-M0-T02内网部署草案为in-review且不是已部署。REV-M0-T05已记录QA签署；项目经理于 10-12 12:10 在 QA 签署后确认 AI-02 与 T008。REV-M0-T07已记录QA对BE-M0-T02/T03的签署。REV-M0-T06 与 REV-M0-T08 仍为 in-review。PR待合入、未发布；BE-M0-T01只证明局部后台基础，FE-M0-T03继续来源评审，生产一期尚未验收。344项、20done、2in-review、7in-progress 是加入契约六张卡之前的计数。
+治理版本g1.1，当前实际开发关联ISSUE-007及资料保护ISSUE-008；契约门禁关联ISSUE-005；模型与向量库待决关联ISSUE-010，业务库已决定为 MySQL 8。项目362项中26done、7in-review、7in-progress、268planned、50blocked、4ready。ISSUE-026 仍为 in-review；PRD、ROADMAP、PROJECT_BRIEF 的任务计数已随本卡改为同一组 362 项。APP-M1的16项中9项本地done：T07范围拆分及T09～16限定子任务；T01～06完整父任务继续，T08最终审计planned，T16资料及模板旧表单保护本地done。[APP-M2的259项](tasks/APP-M2.md)中T001布局、路由和离开保护为 in-review，T002请求层为 in-review，T008离线CI为 done，T124因 T078/T114 未满足仍为 blocked。ISSUE-022 为 in-review，只复核 draft, pending backend review 的大纲契约，运行时未接通，其余255项planned，覆盖47组页面和44规则，不代表软件已实现。BE-M0现为14项，其中T01～T03、T08、T10为done，T14托管 MySQL 作业为 in-review，4项ready，T09与T11～T13 planned。T02与T03由项目经理于 10-12 12:28 在 QA 签署后确认。T08与T10由项目经理在 QA 签署 98c5129 后确认。ISSUE-005 保持 in-progress，不关闭。AI-01仍blocked，AI-02为done，AI-03为in-review且不连接 MySQL，OPS-M0-T02内网部署草案为in-review且不是已部署。REV-M0-T05已记录QA签署；项目经理于 10-12 12:10 在 QA 签署后确认 AI-02 与 T008。REV-M0-T07已记录QA对BE-M0-T02/T03的签署。REV-M0-T06 与 REV-M0-T08 仍为 in-review。PR待合入、未发布；BE-M0-T01只证明局部后台基础，FE-M0-T03继续来源评审，生产一期尚未验收。344项、20done、2in-review、7in-progress 是加入契约六张卡之前的计数。
 
 资料库专项审查确认：当前只支持基础文字资料，确认声明、审核、受限名单、真实附件槽位、历史和引用版本仍缺。T16已修复资料及公司模板旧表单借刷新版本覆盖新内容的问题；完整C01/C06各卡继续planned，不能以修复代替其验收。
 

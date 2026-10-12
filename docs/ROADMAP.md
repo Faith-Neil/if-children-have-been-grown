@@ -14,7 +14,7 @@
 
 APP-M1-T12/T13的本章方案事实/要点/字数、共享写作输入保护及候选快照页面已本地验收；PR待合入。接下来继续完整片段、人员分配、结构化段落/变量、选区助手与规则，完整父任务不关闭。
 
-T14成员与分册分工、T15逐章分配/独立方案确认已本地验收：项目范围、多账号权限、交接、旧表单并发保护及两册内容通过。T07范围拆分已完成，新增[APP-M2的259张卡](tasks/APP-M2.md)，保留190原WBS子项、13独立产物及56规则子单位；44条规则仍按原36一期完整/3一期简化/5二期执行。当前共361项任务，26done、6in-review、7in-progress、268planned、50blocked、4ready。APP-M2-T124 因 T078 与 T114 未满足仍为 blocked。ISSUE-022 为 in-review，只复核 OpenAPI 草案（draft, pending backend review），运行时未接通。不能把任务数量当产品完成率。其中 AI-01 仍 blocked：业务库已决定为 MySQL 8，向量库、对话模型、嵌入和重排仍待决定。AI-02 与 APP-M2-T008 已由项目经理于 10-12 12:10 在 QA 签署后确认为 done。AI-03、APP-M2-T001 与 APP-M2-T002 为 in-review。AI-03 只使用内存检索。REV-M0-T02～T05 已本地验收。
+T14成员与分册分工、T15逐章分配/独立方案确认已本地验收：项目范围、多账号权限、交接、旧表单并发保护及两册内容通过。T07范围拆分已完成，新增[APP-M2的259张卡](tasks/APP-M2.md)，保留190原WBS子项、13独立产物及56规则子单位；44条规则仍按原36一期完整/3一期简化/5二期执行。当前共362项任务，26done、7in-review、7in-progress、268planned、50blocked、4ready。APP-M2-T124 因 T078 与 T114 未满足仍为 blocked。ISSUE-022 为 in-review，只复核 OpenAPI 草案（draft, pending backend review），运行时未接通。不能把任务数量当产品完成率。其中 AI-01 仍 blocked：业务库已决定为 MySQL 8，向量库、对话模型、嵌入和重排仍待决定。AI-02 与 APP-M2-T008 已由项目经理于 10-12 12:10 在 QA 签署后确认为 done。AI-03、APP-M2-T001 与 APP-M2-T002 为 in-review。AI-03 只使用内存检索。REV-M0-T02～T05 已本地验收。
 
 ISSUE-009 / APP-M2-T001会话与页面守卫阶段通过262后台、72前端、真实HTTP16及GUI，整卡继续in-progress。接下来补实际ProLayout、浏览器路由/返回和全页未保存保护，再按T003、T005/006、敏感字段前置接T046/047完整列表和详情；完整资料范围不减。
 

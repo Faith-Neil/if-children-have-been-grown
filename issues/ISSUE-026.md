@@ -70,6 +70,7 @@ ARCHITECTURE 第21行仍写「布局、浏览器路由和全页离开保护继�
 | 日期 | revision / 状态 | 完成事实、问题与下一步 | 证据 |
 |---|---|---|---|
 | 2026-10-12 | count-sync-1 / in-review | 三份基线已写成看板数字。请求层重试未动。等待项目经理签收 | [验证](../docs/testing/2026-10-12-issue-026-counts.md) |
+| 2026-10-12 | count-sync-1 / in-review | ISSUE-025 新增 BE-M0-T14 后，三份计数字句改为 362 项、7 in-review。本 Issue 仍 in-review，不改请求层 | [ISSUE-025](ISSUE-025.md) |
 
 ## 本地验收与后续合入发布
 

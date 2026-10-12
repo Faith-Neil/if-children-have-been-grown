@@ -27,7 +27,7 @@
 | 后台 | 同一个业务核心处理公司权限、上传与文字提取、人工确认、矩阵和证据、编辑权、草稿、版本、检查及两册内部稿；新增服务承诺三方比较、负责人核对、只读派生事实、变量输出和内部承诺函；本章生成/整章建议共用选定事实与证据输入，保存当次来源快照；生产身份未接入。业务库已决定为 MySQL 8。未设置 ICG_DATABASE_URL 时运行仍是内存仓库；连接配置已提交复查，业务表未建 |
 | 其他页面 | 公司资料已有基础文本记录/证据选择及部分结构化服务承诺模板；任务页只有同步执行记录；知识库、写作配置、统计和管理等页面尚未接通完整业务功能 |
 | 历史原型 | 四个静态视图仍保留；旧后台验证页移到`/demo`，它们的历史验收不能代替完整产品验收 |
-| 排期 | 当前共361项：26done、6in-review、7in-progress、268planned、50blocked、4ready。T02与T03已由项目经理于 10-12 12:28 在 QA 签署后确认 done；MySQL 8 方案与连接空迁移由项目经理在 QA 签署 98c5129 后确认 done；ISSUE-005 保持 in-progress。T001、T002、AI-03、内网草案和 E2E 两张卡为 in-review；T008与AI-02已由项目经理于 10-12 12:10 在 QA 签署后确认 done。APP-M2-T124 因 T078 与 T114 未满足仍为 blocked。ISSUE-022 为 in-review，大纲三个 operationId 只是 draft, pending backend review，没有运行时。259后续卡覆盖47组页面及44规则，其余255项planned；业务库已决定为MySQL 8，ISSUE-018 为 in-progress，方案与连接空迁移已确认 done，业务表未接入，向量库与模型仍待决定，AI-03只使用内存检索。360项及更早数字是历史阶段计数。任务完成数不是产品完成率，不能由此推算交期 |
+| 排期 | 当前共362项：26done、7in-review、7in-progress、268planned、50blocked、4ready。T02与T03已由项目经理于 10-12 12:28 在 QA 签署后确认 done；MySQL 8 方案与连接空迁移由项目经理在 QA 签署 98c5129 后确认 done；ISSUE-005 保持 in-progress。T001、T002、AI-03、内网草案、E2E 两张卡和 BE-M0-T14 为 in-review；T008与AI-02已由项目经理于 10-12 12:10 在 QA 签署后确认 done。APP-M2-T124 因 T078 与 T114 未满足仍为 blocked。ISSUE-022 为 in-review，大纲三个 operationId 只是 draft, pending backend review，没有运行时。259后续卡覆盖47组页面及44规则，其余255项planned；业务库已决定为MySQL 8，ISSUE-018 为 in-progress，方案与连接空迁移已确认 done，业务表未接入，向量库与模型仍待决定，AI-03只使用内存检索。360项及更早数字是历史阶段计数。任务完成数不是产品完成率，不能由此推算交期 |
 
 当前任务进度、运行状态与验收证据以 [PROJECT_STATUS](PROJECT_STATUS.md)、[任务看板](TASK_BOARD.md) 和专属交付为准。
 
