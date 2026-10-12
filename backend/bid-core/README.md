@@ -169,4 +169,4 @@ node --test tests/frontend/project-form.test.mjs
 
 reference-writing-1新增本章事实选择/要点/字数、负责人确认、共用生成/整章建议输入及当次快照、通用事实变量检查与两册解析。独立旧demo仍保持原模式；真实端口验收运行`python backend/bid-core/smoke_writing.py --base-url http://127.0.0.1:8710`，它只创建合成本机项目，最后故意改变来源以验证失效。当前完整测试及页面证据见[写作验收](../../docs/testing/2026-10-10-writing-input.md)。完整片段、人员分配、逐段来源、全文语义、选区助手和Word正式版式继续后续任务。
 
-最新分支复核ISSUE-033修复了片段同进程重复操作、数据库读取2048条容量边界及旧快照误删新回执；片段仍内存，数据库仍局部持久化，实机MySQL须另验。见[复核记录](../../docs/reviews/2026-10-12-foundation-review.md)。
+最新分支复核ISSUE-034修复了片段同进程重复操作、数据库读取2048条容量边界及旧快照误删新回执；片段仍内存，数据库仍局部持久化，实机MySQL须另验。见[复核记录](../../docs/reviews/2026-10-12-foundation-review.md)。

@@ -48,4 +48,27 @@
 - 智能匹配按钮尚未接通。
 - 规则 2「证据过期后该行回到待确认」没有端到端。
 
-后两项先挂在 ISSUE-033 下，等后台字段落地后再测。`frontend/web` 仍没有 lint 脚本。
+后两项先挂在 ISSUE-033 下，等后台字段落地后再测。ISSUE-033 已由后台登记，本轮不改它。`frontend/web` 仍没有 lint 脚本。
+
+## QA 验收②
+
+另一会话先保存本行后，原抽屉第二次保存出现“本行已被他人修改，请刷新后再保存”，保存按钮禁用。该提示旁的“刷新”重读本行已挂证据。冲突提示消失，保存按钮恢复。再次保存成功，抽屉关闭，矩阵仍是对方保存后的“尚未挂接”。过期挂接的“证据失效”和它自己的刷新仍在。
+
+| 命令 | 结果 |
+|---|---|
+| `node --test frontend/web/tests/evidence-drawer.test.mjs` | 5 passed |
+| `node --test frontend/web/tests/*.test.mjs tests/frontend/*.test.mjs` | 98 passed，0 failed |
+| `pnpm --dir frontend/web build` | `tsc -b` 与 vite 8.3.4 通过。主块 `index-D9xOHS0T.js` 317.76 kB。`ProjectPages-D3PC1rUI.js` 116.12 kB |
+| `E2E_PYTHON=python3 pnpm --dir frontend/web exec playwright test --config e2e/playwright.config.ts` | 14 passed。本机没有 `python` 命令，所以指定 `python3`。CI 仍用作业里的 `E2E_PYTHON=python` |
+
+## QA 独立复签（REV-M0-T22 / e691405）
+
+成长测试QA于恢复后独立复跑。签署记录见 [e691405复签](2026-10-12-app-m2-t114-e691405-signoff.md)。结论通过；**缺协议、受限依赖 ISSUE-033**。智能匹配与规则 2 端到端仍挂 ISSUE-033。项目经理随后确认 APP-M2-T114 与 REV-M0-T22 为 done（QA f521950，PM 17:13 确认）。ISSUE-033 不关闭。上面的命令计数是签署当时的结果，本轮没有重跑。
+
+| 命令 | 结果 |
+|---|---|
+| `node --test frontend/web/tests/evidence-drawer.test.mjs` | 5 passed（Node 24.9.0） |
+| `node --test frontend/web/tests/*.test.mjs tests/frontend/*.test.mjs` | 98 passed，0 failed |
+| `pnpm --dir frontend/web build` | `tsc -b` 与 vite 8.3.4 通过。主块 `index-D9xOHS0T.js` 317.76 kB。`ProjectPages-D3PC1rUI.js` 116.12 kB |
+| `E2E_PYTHON=<venv> E2E_PORT=8877 pnpm --dir frontend/web exec playwright test --config e2e/playwright.config.ts` | 14 passed |
+| CI [run 38227446697](https://github.com/Faith-Neil/if-children-have-been-grown/actions/runs/38227446697) | 五个 job 全绿（head `e691405`） |

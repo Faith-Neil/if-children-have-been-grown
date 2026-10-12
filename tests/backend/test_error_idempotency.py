@@ -45,6 +45,12 @@ def implemented_contract(document):
     for name, body in list(schemas.items()):
         if isinstance(body, dict) and body.get("x-contract-status") == FROZEN_STATUS:
             del schemas[name]
+    for item in spec["paths"].values():
+        if not isinstance(item, dict):
+            continue
+        for operation in item.values():
+            if isinstance(operation, dict):
+                operation.pop("x-issue-033", None)
     idempotency = spec.get("components", {}).get("x-idempotency")
     if isinstance(idempotency, dict) and isinstance(idempotency.get("retry"), str):
         idempotency["retry"] = idempotency["retry"].removesuffix(WRITES_WITHOUT_IDEMPOTENCY_KEY)

@@ -101,3 +101,28 @@
 | spec 与 backend | 无 | 不改 | 2026-10-12 |
 
 未合入，未发布。没有重跑 pytest。`node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：247 份 Markdown、371 项任务、29 项 Issue。」检查程序未修改。
+
+## CI 假服务
+
+日期：2026-10-12。revision model-config-fixture-1。ISSUE-028 与 AI-01 仍为 in-review。ISSUE-010 仍为 closed。不标 closed，不标 done。不改 `backend/bid-core`，不改 OpenAPI，不加依赖，不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。
+
+| 文档 | 本次影响 | 实际处理 | 版本与状态 |
+|---|---|---|---|
+| PRD.md | 无 | 不改正文，不改任务计数 | 2026-10-12 |
+| ROADMAP.md | 无 | 不改正文，不改任务计数 | 2026-10-12 |
+| PROJECT_BRIEF.md | 无 | 不改正文，不改任务计数 | 2026-10-12 |
+| ARCHITECTURE.md | 无正文变化 | 不改正文。假服务说明在 model-config-provider.md | 2026-10-12 |
+| model-config-provider.md | 有 | CI 一节改为已落地的假服务和 `ICG_RUN_REAL_MODEL_TESTS` | in-review |
+| TASK_BOARD.md | 有说明 | 不改任务计数，不改 AI-01 状态。写明假服务已落地 | 2026-10-12 |
+| PROJECT_STATUS.md | 有说明 | 不改任务计数。写明假服务与默认跳过 | 2026-10-12 |
+| DOCUMENT_INDEX.md | 有 | 更新 D-293、D-296、D-298，登记核对与代码解释，追加变更记录 | model-config-fixture-1 |
+| issues/ISSUE-028.md | 有 | AC-02 改为已编码。状态仍 in-review | model-config-fixture-1 |
+| docs/tasks/AI-M0.md | 有 | 勾选假服务验收。真实端点与 403 仍未勾选。状态仍 in-review | in-review |
+| docs/delivery/AI-01.md | 有 | 补假服务一节。不标 done | in-review |
+| docs/code/AI-01.md | 有 | 说明夹具与 opt-in。不改运行适配器 | 当前 |
+| tests/backend | 有 | `fake_openai_chat.py`、夹具、`live_model` 标记 | 2026-10-12 |
+| spec/openapi/demo-v1.json | 无 | 不改 | 2026-10-12 |
+| frozen_error_codes.py | 无 | 不改 | 2026-10-12 |
+| issues/ISSUE-010.md | 无 | 保持 closed | closed |
+
+未合入，未发布。不标 done，不标 closed。`python3 -m pytest tests/backend/test_openai_compatible_model.py -q -rs` 为 34 passed、1 skipped、1 warning。跳过原因是 `real model endpoint tests require ICG_RUN_REAL_MODEL_TESTS=1`。`python3 -m pytest tests/backend -q -rs` 为 355 passed、13 skipped、1 warning。12 项跳过是 `ICG_DATABASE_URL is unset`，另 1 项是同一真实端点开关。`node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：296 份 Markdown、383 项任务、34 项 Issue。」检查程序未修改。

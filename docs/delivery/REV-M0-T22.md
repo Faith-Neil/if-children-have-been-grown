@@ -1,38 +1,28 @@
-为什么有这个文件：交付用户要求的最新分支复核和限定修复。
+为什么有这个文件：记录QA对挂证据抽屉冲突刷新修复（e691405）签署的交付。
 
-它解决什么问题：让修改通过单独PR审查，保留协作分支和原验收历史。
+它解决什么问题：说明签署结论、证据位置和剩余观察项。
 
-# REV-M0-T22交付
+# REV-M0-T22：APP-M2-T114 e691405 冲突刷新 QA签署交付
 
 <!-- task-delivery:start -->
 | 项目 | 记录 |
 |---|---|
 | 任务ID | REV-M0-T22 |
-| 代码解释 | [限定修复](../code/REV-M0-T22.md) |
-| 验收 | [复核与实际回归](../reviews/2026-10-12-foundation-review.md)；[实际验证命令和结果](../testing/2026-10-12-foundation-review.md) |
-| 项目进度 | 新复核卡in-review；378项44done、10in-review、7in-progress、264planned、49blocked、4ready；本轮不推进新功能 |
+| 代码解释 | 无代码变更；仅验收记录 |
+| 验收 | Node 24.9.0 抽屉单测5/5、前端98/98；build 通过；Playwright 14/14（含他人先保存→刷新→再保存）；CI run 38227446697 五个 job 全绿；见[签署记录](../testing/2026-10-12-app-m2-t114-e691405-signoff.md)。**缺协议、受限依赖 ISSUE-033** |
+| 项目进度 | 被验卡 APP-M2-T114 与本卡均为 done（QA f521950，PM 17:13 确认）。缺协议、受限、智能匹配和规则 2 端到端仍挂 ISSUE-033，不关闭。未合入，未发布 |
 <!-- task-delivery:end -->
 
-日期2026-10-12；ISSUE-033 / foundation-review-fix-1。初次审查云端73fde1e，最终复核快照9c178782，保留新增项目、租约、证据抽屉和QA交付；修复分支codex/review-foundation-fixes，目标PR为codex/repository-foundation。尚未合入或发布。用户要求仅复核，需修改则提PR。
+## 关联与状态
 
-## 完成内容
+- 2026-10-12；[ISSUE-013](../../issues/ISSUE-013.md)；被验 [APP-M2-T114](../tasks/APP-M2.md#app-m2-t114)（`e691405`）；[任务卡](../tasks/REV-M0.md#rev-m0-t22)；PR #3待合入，未发布。
 
-本PR修复八项：旧会话迟到错误、失败切页后未保存提醒、同进程片段并发、数据库有效回执读取、旧快照误删新回执、旧租约覆盖新锁、证据抽屉旧权限及绕过统一导航。密钥503重试由上游0a5b655修复，本轮保留并验证。实际实现和反例见专属代码与复核记录；片段与回执提交失败同步恢复，租约失配回滚。
+## 完成内容与变更文件
 
-本轮限定修复，其他项目实施停止。合成身份、局部MySQL、内存片段和模型/检索边界不扩大；大纲/任务冻结契约和T124未满足依赖不改。原已签署任务状态与里程碑快照保留，新复核卡提交in-review待审，不由开发者done/closed。
+`docs/testing/2026-10-12-app-m2-t114-e691405-signoff.md`；同步 ISSUE-013、REV-M0任务卡、TASK_BOARD、PROJECT_STATUS、DOCUMENT_INDEX。签署当时未改被验代码。项目经理随后确认本卡与 APP-M2-T114 为 done（QA f521950，PM 17:13 确认）。
 
-## 文档与Issue同步
+## 同步与剩余
 
-| 对象 | 处理 / 无影响依据 |
-|---|---|
-| PRD | 无新业务需求；恢复既有账号隔离、文字保留和失败保护，原里程碑快照不重写 |
-| ROADMAP | 不新增功能或改变排期；只登记本次复核卡 |
-| ARCHITECTURE | 已有会话/幂等约束的实现纠错，补当前修复说明；不新建服务或接口 |
-| OpenAPI | 现有接口、冻结错误码及未来x-implemented:false未改变，无重新生成影响 |
-| Issue / TASK_BOARD | ISSUE-033与REV-M0-T22、实际验证、PR和发布分列 |
-| PROJECT_STATUS / DOCUMENT_INDEX | 复核结论及当前计数，新增交付/代码/回归入口 |
-| WORKFLOW | 治理规则及共同治理块不变；本轮以PR待审交付 |
+PRD/ROADMAP/ARCHITECTURE/PROJECT_BRIEF无影响（只读复核；计数为里程碑快照，以任务看板为准）。
 
-当前环境未连接真实MySQL；SQLite执行生产SQL不是MySQL实机验收。正文等仍在内存，完整数据库业务写入和锁核验未原子化，多副本仍未开放；原任务的局部签署不改写。代码与测试用合成数据，临时输出/凭据留仓库外；原工作区、合作分支和运行中的他人环境不改。验收命令与实际结果见[验证记录](../testing/2026-10-12-foundation-review.md)。
-
-最终PR整合保留9a5533c64f65b98d5231876d852e9762c6138c3c，包括证据刷新、编辑锁对齐登记及PM状态更新；自己的记录为ISSUE-033 / REV-M0-T22，未覆盖同伴同名记录。PR：[#4](https://github.com/Faith-Neil/if-children-have-been-grown/pull/4)，等待审核，未合入/发布。
+观察项：缺协议、受限依赖 ISSUE-033；智能匹配与规则 2 端到端挂在 ISSUE-033 下。ISSUE-033 不关闭。本卡与被验卡已由项目经理标为 done（QA f521950，PM 17:13 确认）。未合入，未发布。

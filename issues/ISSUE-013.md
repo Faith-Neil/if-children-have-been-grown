@@ -13,7 +13,7 @@
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
 | revision | qa-rerun-3 |
-| 关联 Task | [REV-M0-T02](../docs/tasks/REV-M0.md#rev-m0-t02)、[REV-M0-T05](../docs/tasks/REV-M0.md#rev-m0-t05)（QA签署复核）、[REV-M0-T07](../docs/tasks/REV-M0.md#rev-m0-t07)（BE-M0-T02/T03签署）、[REV-M0-T09](../docs/tasks/REV-M0.md#rev-m0-t09)（BE-M0-T08/T10签署）、[REV-M0-T10](../docs/tasks/REV-M0.md#rev-m0-t10)（BE-M0-T15 Word版式签署）、[REV-M0-T11](../docs/tasks/REV-M0.md#rev-m0-t11)（T001/T002复验签署）、[REV-M0-T12](../docs/tasks/REV-M0.md#rev-m0-t12)（BE-M0-T14 MySQL CI签署）、[REV-M0-T13](../docs/tasks/REV-M0.md#rev-m0-t13)（ISSUE-026快照规则签署）、[REV-M0-T14](../docs/tasks/REV-M0.md#rev-m0-t14)（ISSUE-014 ProLayout签署）、[REV-M0-T15](../docs/tasks/REV-M0.md#rev-m0-t15)（ISSUE-020路由分包签署）、[REV-M0-T16](../docs/tasks/REV-M0.md#rev-m0-t16)（ISSUE-016检索骨架签署）、[REV-M0-T17](../docs/tasks/REV-M0.md#rev-m0-t17)（ISSUE-028模型配置设计签署）、[REV-M0-T18](../docs/tasks/REV-M0.md#rev-m0-t18)（ISSUE-031错误码名单冻结签署）、[REV-M0-T19](../docs/tasks/REV-M0.md#rev-m0-t19)（BE-M0-T12编辑租约入库签署）、[REV-M0-T20](../docs/tasks/REV-M0.md#rev-m0-t20)（ISSUE-022契约冻结复签）、[REV-M0-T21](../docs/tasks/REV-M0.md#rev-m0-t21)（0a5b655重试修复签署）、[REV-M0-T08](../docs/tasks/REV-M0.md#rev-m0-t08)（T001签署）；[任务看板](../docs/TASK_BOARD.md) |
+| 关联 Task | [REV-M0-T02](../docs/tasks/REV-M0.md#rev-m0-t02)、[REV-M0-T05](../docs/tasks/REV-M0.md#rev-m0-t05)（QA签署复核）、[REV-M0-T07](../docs/tasks/REV-M0.md#rev-m0-t07)（BE-M0-T02/T03签署）、[REV-M0-T09](../docs/tasks/REV-M0.md#rev-m0-t09)（BE-M0-T08/T10签署）、[REV-M0-T10](../docs/tasks/REV-M0.md#rev-m0-t10)（BE-M0-T15 Word版式签署）、[REV-M0-T11](../docs/tasks/REV-M0.md#rev-m0-t11)（T001/T002复验签署）、[REV-M0-T12](../docs/tasks/REV-M0.md#rev-m0-t12)（BE-M0-T14 MySQL CI签署）、[REV-M0-T13](../docs/tasks/REV-M0.md#rev-m0-t13)（ISSUE-026快照规则签署）、[REV-M0-T14](../docs/tasks/REV-M0.md#rev-m0-t14)（ISSUE-014 ProLayout签署）、[REV-M0-T15](../docs/tasks/REV-M0.md#rev-m0-t15)（ISSUE-020路由分包签署）、[REV-M0-T16](../docs/tasks/REV-M0.md#rev-m0-t16)（ISSUE-016检索骨架签署）、[REV-M0-T17](../docs/tasks/REV-M0.md#rev-m0-t17)（ISSUE-028模型配置设计签署）、[REV-M0-T18](../docs/tasks/REV-M0.md#rev-m0-t18)（ISSUE-031错误码名单冻结签署）、[REV-M0-T19](../docs/tasks/REV-M0.md#rev-m0-t19)（BE-M0-T12编辑租约入库签署）、[REV-M0-T20](../docs/tasks/REV-M0.md#rev-m0-t20)（ISSUE-022契约冻结复签）、[REV-M0-T21](../docs/tasks/REV-M0.md#rev-m0-t21)（0a5b655重试修复签署）、[REV-M0-T22](../docs/tasks/REV-M0.md#rev-m0-t22)（APP-M2-T114 e691405冲突刷新复签）、[REV-M0-T23](../docs/tasks/REV-M0.md#rev-m0-t23)（BE-M0-T13项目聚合签署）、[REV-M0-T24](../docs/tasks/REV-M0.md#rev-m0-t24)（APP-M2-T078内存片段发布签署）、[REV-M0-T25](../docs/tasks/REV-M0.md#rev-m0-t25)（ISSUE-036橙色标签对比签署）、[REV-M0-T26](../docs/tasks/REV-M0.md#rev-m0-t26)（ISSUE-033规格复签）、[REV-M0-T08](../docs/tasks/REV-M0.md#rev-m0-t08)（T001签署）；[任务看板](../docs/TASK_BOARD.md) |
 | 关联 PR | [PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)，待合入 |
 | 本地验收 | 通过；2026-10-12，成长测试QA。项目经理确认签署记录已全部入库后关闭（Issue 用 closed） |
 | 合入 | 未合入 |
@@ -51,6 +51,11 @@
 | REV-M0-T19 | BE-M0-T12编辑租约入库签署 | `docs/testing/2026-10-12-be-m0-t12-lease-signoff.md` | AC-04 | done |
 | REV-M0-T20 | ISSUE-022契约冻结复签 | `docs/testing/2026-10-12-issue-022-freeze-signoff.md` | AC-04 | done |
 | REV-M0-T21 | 0a5b655重试修复签署 | `docs/testing/2026-10-12-0a5b655-retry-signoff.md` | AC-04 | done |
+| REV-M0-T22 | APP-M2-T114 e691405冲突刷新复签 | `docs/testing/2026-10-12-app-m2-t114-e691405-signoff.md` | AC-04 | done（QA f521950，PM 17:13 确认） |
+| REV-M0-T23 | BE-M0-T13项目聚合入库签署 | `docs/testing/2026-10-12-be-m0-t13-signoff.md` | AC-04 | done |
+| REV-M0-T24 | APP-M2-T078内存片段发布签署 | `docs/testing/2026-10-12-t078-snippet-signoff.md` | AC-04 | done（QA 19c4862，PM 17:20 确认） |
+| REV-M0-T25 | ISSUE-036橙色标签对比签署 | `docs/testing/2026-10-12-issue-036-qa-signoff.md` | AC-04 | in-review |
+| REV-M0-T26 | ISSUE-033规格增量契约复签 | `docs/testing/2026-10-12-issue-033-spec-resign.md` | AC-04 | in-review |
 | REV-M0-T02 | 会话实时HTTP复核入库、全套复跑记录 | `tests/backend/session_live_http.py`、`docs/testing/2026-10-12-qa-rerun.md` | AC-01～03 | done |
 
 ## 验收条目
@@ -97,6 +102,13 @@ WORKFLOW无规则变化，治理块保持g1.1。
 | 2026-10-12 | qa-rerun-15 / done | BE-M0-T12编辑租约入库签署（REV-M0-T19）：真实MySQL跨进程续期、过期接管、释放都通过；pytest -m mysql 8个通过；CI backend-mysql 8个通过，跳过0；被验卡和Issue的状态不变，等项目经理设置 | 成长测试QA |
 | 2026-10-12 | qa-rerun-16 / done | ISSUE-022契约冻结复签（REV-M0-T20）：README补上N7两码例外，P3句子已加入x-idempotency.retry；契约测试15个、后端351个通过，live HTTP 49/49；CI五个job全绿；被验卡和Issue的状态不变，等项目经理设置 | 成长测试QA |
 | 2026-10-12 | qa-rerun-17 / done | 0a5b655重试修复签署（REV-M0-T21）：探针34/34；502 MODEL_UNAVAILABLE与503 SECRET_KEY_UNAVAILABLE各1次请求；普通503与无错误体502照常重试，无Idempotency-Key写入不重试；Node 24.9.0前端单测97/97；被验卡和Issue的状态不变，等项目经理设置 | 成长测试QA |
+| 2026-10-12 | qa-rerun-18 / done | APP-M2-T114 e691405冲突刷新复签（REV-M0-T22）：冲突提示旁刷新；e2e他人先保存→刷新→再保存；已挂过期「证据失效」；五条挂接规则单测仍成立；Node 24.9.0 单测98、Playwright 14、build通过；CI run 38227446697；缺协议/受限依赖 ISSUE-033；被验卡与本卡不标 done，等项目经理设置 | 成长测试QA |
+| 2026-10-12 | qa-rerun-19 / done | BE-M0-T13项目聚合入库签署（REV-M0-T23）：行为三项通过（装载叠种子、变更保存、revision 409）；本地 mysql 12 passed、无库 351/12 skipped；CI 38219738690 全绿（当时 mysql junit 11/0）；方案第 6 节有对照表，批准句待 ISSUE-035；BE-M0-T13/ISSUE-018 不标 done | 成长测试QA |
+| 2026-10-12 | qa-rerun-20 / done | APP-M2-T078内存片段发布签署（REV-M0-T24）：拦截原因/kb_sync_status/ETag/If-Match/幂等与公司隔离通过；聚焦18 passed；全量352 passed/12 skipped；CI 38212117391五job全绿；HEAD含e6215d4；页面未做，APP-M2-T078与本卡不标 done | 成长测试QA |
+| 2026-10-12 | qa-rerun-18 / done | 项目经理确认 REV-M0-T22 与 APP-M2-T114 为 done，依据是 QA f521950，PM 17:13 确认。ISSUE-013 保持 closed。ISSUE-033 不关闭 | 项目经理 |
+| 2026-10-12 | qa-rerun-20 / done | 项目经理确认 REV-M0-T24 与 APP-M2-T078 为 done，依据是 QA 19c4862，PM 17:20 确认。范围只含内存片段发布层。页面未做，不挡住 done。ISSUE-013 保持 closed。T124 改为 ready，本轮不实现 | 项目经理 |
+| 2026-10-12 | qa-rerun-21 / done | ISSUE-036橙色标签对比签署（REV-M0-T25）：对比过线；单测98；build通过；Playwright meet 4.5:1 1 passed；CI 38229790793全绿；ISSUE-036与本卡不标 done | 成长测试QA |
+| 2026-10-12 | qa-rerun-22 / done | ISSUE-033规格增量契约复签（REV-M0-T26）：is_restricted/agreement_present/bid_deadline_at/三错误码/143冻结通过；契约相关10 passed；CI 38228282444全绿；运行时待后端；ISSUE-033不标 closed | 成长测试QA |
 
 ## 本地验收与后续合入发布
 

@@ -1,56 +1,93 @@
-为什么有这个文件：登记云端最新分支复核中发现的实际缺陷和修复范围。
+为什么有这个文件：登记挂证据规则这张卡，排在 T13 之后。
 
-它解决什么问题：避免把复核变成新功能推进，或直接改动合作分支而没有可审查的PR。
+它解决什么问题：先占住 ISSUE-033 和任务号，避免别人另开一张。本轮不查字典、不定错误码、不改接口。
 
-# ISSUE-033：最新分支复核及限定修复
+# ISSUE-033：挂证据规则
 
 | 项目 | 内容 |
 |---|---|
 | Issue ID | ISSUE-033 |
-| 类型 | bug |
+| 类型 | change |
 | 优先级 | P1 |
-| 状态 | in-review |
-| 登记 / 更新日期 | 2026-10-12 |
-| revision | foundation-review-fix-1 |
-| 关联 Task | REV-M0-T22 |
-| 审查基线 | 初次73fde1e03c0b6fce0f8c0a9f2e20551e63d811b3；最终保留并整合9c178782d2e01e47e0d46748ceac230d749fea64，包含租约、项目及证据抽屉新提交 |
-| 修复分支 | codex/review-foundation-fixes |
-| 关联 PR | [#4](https://github.com/Faith-Neil/if-children-have-been-grown/pull/4)，目标codex/repository-foundation |
-| 本地验收 | 本地必要检查通过，真实MySQL未连接；独立PR待审，不关闭原任务 |
-| 合入 / 发布 | 未合入 / 未发布 |
+| 状态 | in-progress |
+| 负责人 | backend |
+| 登记日期 | 2026-10-12 |
+| 最后更新日期 | 2026-10-12 |
+| revision | evidence-mount-spec-1 |
+| 关联 Task | [BE-M0-T18](../docs/tasks/BE-M0.md#be-m0-t18) |
+| 关联 PR | 未创建。随既有分支提交，不新开 PR |
+| 本地验收 | 冻结契约已写字段和挂接拒绝。运行时未接通。见 [同步](../docs/governance/ISSUE-033-sync.md) |
+| 合入 | 未合入 |
+| 发布 | 未发布 |
+| 交付说明 | 尚未建立。任务为 planned，无运行时代码 |
+| 代码 / 流程解释 | 只改冻结契约。不改 `backend/bid-core` 应用代码 |
+| 验证记录 | 未执行。实现后再补 |
 
-## 已复现的问题
+登记时 Issue 看板没有 planned，当时状态记为 new。项目经理批准后，规格增量写入冻结契约，状态改为 in-progress。BE-M0-T18 仍是 planned。后台另实现运行时。QA 在实现后重签。不标 closed。
 
-1. 当前App对任何401都退出登录。A账号开始读取资料后退出并登录B，A的迟到401仍能让B退出。成功结果有新旧身份检查，失败结果缺少同等保护。
-2. 编辑台有未保存文字时确认切到矩阵，URL先变但目标工作区读取失败，旧编辑台仍保留。再次点击矩阵因地址已经相同绕过提醒，成功后卸载编辑台，文字丢失。
-3. 初次审查时503 SECRET_KEY_UNAVAILABLE被重试三次。复核期间上游0a5b655已经修好，本PR保留该修复并验证，不重复计为自己的代码修复。
-4. T078片段修改与幂等回执分开提交。实际HTTP两个相同请求均200，却生成两个不同片段；回执提交失败还能留下未登记的片段。已加单事务串行及独立存储回滚，新增3项先全部失败、修复后通过。
-5. 数据库read返回的回执快照仍按内存2048上限淘汰。解析预检查在2048条时重放成功，2049条时未找到仍有效回执并返回版本冲突；数据库回执实际上还存在。
-6. 回执清理使用旧快照按键无条件删除。另一个进程已经复用到期的旧键、提交新24小时回执时，旧清理仍会删除新回执。已用实际SQL在独立SQLite探针确认；本机未连接真实MySQL，不把该探针算MySQL验收。
+## 现象与证据
 
-7. 最新09ada43已增加MySQL编辑租约持久化，但保存时只按章节ID续期/删除。另一个会话已经接管时，旧快照仍可能删掉或覆盖新锁。当前补原token、持有人、会话及到期时间比较，失配拒绝并回滚；新插入竞争返回既有锁冲突。没有把正文与数据库租约检查改成完整原子事务。
+项目经理暂停后，本项只保留登记。过期、缺协议、受限资料能不能挂为证据，字典字段和错误码都不在本文件里写。不改 `workflow.py`，不改错误表，不改 OpenAPI。
 
-8. 新证据抽屉保存和按钮使用打开时缓存的权限。当前行权限已撤回但项目版本和证据IDs未变时，仍可发PATCH；后台会拒绝，但页面不能继续沿用旧权限。需用当前行权限重新判断显示和写入。
-9. 证据抽屉“补充资料”直接写空状态的浏览器历史，绕过应用导航。此后从编辑台返回该历史项，缺少导航序号，不出现未保存提醒且页面与地址不一致。需经过现有统一导航回调。
+## 规格增量
 
-部署说明的旧文字已纠正。最新项目基本信息和成员分工已入库，正文、草稿、版本、检查、导出、资料及工作流等仍在内存；继续限定单进程和单副本。已登记的MySQL回执跨进程插入冲突及大纲/任务未来接口未实现不作为本次新增缺陷。正文提交与跨进程租约检查尚未连成完整数据库事务，不能据本次锁修复放开多副本部署。
+字典 v1.9 命名，写在 `spec/openapi/demo-v1.json` 的冻结模型 `EvidenceMountFields`，以及 `GET /api/v1/library` 和条款 `PATCH` 的 `x-issue-033`。`x-implemented` 仍是 false。运行中的 `LibraryItem` 不增加这些字段。
 
-## 验收与范围
-
-修复失败响应的新旧会话保护、失败切页后的未保存提示、片段同键只修改一次及提交失败回滚、有效回执读取与删除保护；保留上游不可重试错误修复。对新租约实现只修确认的并发缺陷。新增回归运行实际函数/路由，补必要构建及整体检查。原合成身份、内存片段、MySQL局部持久化边界不扩张。
-
-本轮仅复核和修复，不继续ProLayout、页面、模型配置或其他产品功能推进。保留同伴的新代码及旧签署事实，在独立worktree提交PR，不直接推送或合入合作分支。
-
-## 基线影响
-
-| 对象 | 影响 / 同步 |
+| 字段或规则 | 约定 |
 |---|---|
-| PRD | 无新需求；修复已有身份隔离、未保存保护和失败处理，不改既定产品范围 |
-| ROADMAP | 无新功能或里程碑推进；增加本次审查/修复任务，不改原快照口径 |
-| ARCHITECTURE / OpenAPI | 现有会话/幂等约束恢复一致；冻结契约与未来x-implemented:false保持，不新建接口 |
-| Issue / TASK_BOARD | 登记ISSUE-033和REV-M0-T22，保留旧验收状态并关联回归 |
-| PROJECT_STATUS | 记录审查结论、实际验证和当前任务数，不写成已合入或发布 |
-| DOCUMENT_INDEX | 登记本Issue、审查/代码/交付及新增回归 |
-| WORKFLOW | 无治理规则变更，g1.1治理块保持原一致版本 |
+| `source_tier` | `own`、`partner`、`reference`。`reference` 不能挂，返回 409 `EVIDENCE_NOT_USABLE` |
+| `is_restricted` | 布尔，默认 false。不用 `restricted`。受限时还看 `resource_acl`；没有 ACL 或非管理员返回 403 `FORBIDDEN` |
+| `agreement_present` | 派生、只读、不入库。由 `project_partner.agreement_attachment_id` 是否已设置得出。partner 且缺协议返回 409 `EVIDENCE_NOT_USABLE`，message 可以和 reference 区分 |
+| 有效期 | `valid_to` 与 `is_long_term` 对照项目 `bid_deadline_at`，不对照今天。过期返回 409 `EVIDENCE_EXPIRED`。`expiring` 仍覆盖截止时间，允许挂接。`unknown` 只警告，不返回 409 |
 
-最终PR整合保留9a5533c64f65b98d5231876d852e9762c6138c3c，包括证据刷新、编辑锁对齐登记及PM状态更新；自己的记录为ISSUE-033 / REV-M0-T22，未覆盖同伴同名记录。PR：[#4](https://github.com/Faith-Neil/if-children-have-been-grown/pull/4)，等待审核，未合入/发布。
+不新增错误码。`V1Error` 枚举仍是 143 个。不改 `frozen_error_codes.py`，不改 `errors.py`。
+
+## 影响与分流
+
+- 开工条件：排在 BE-M0-T13 之后。规格增量已写入冻结契约，运行时由后台另实现。
+- 本轮不改应用代码、错误表、冻结名单、`docs/reference/`、PRD、ROADMAP、PROJECT_BRIEF、工作流。
+- 实现后由 QA 重签。不重开 ISSUE-031。不标 closed。
+- ISSUE-018 仍为 in-progress。BE-M0-T13 仍为 in-review。APP-M2-T114 已 done（QA f521950，PM 17:13 确认）。BE-M0-T18 仍为 planned。本 Issue 不标 closed。缺协议、受限、智能匹配和规则 2 端到端仍在本 Issue。
+
+## 实施任务与互链
+
+| Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
+|---|---|---|---|---|
+| BE-M0-T18 | 挂证据规则。规格已冻结，运行时未接通 | `spec/openapi/demo-v1.json` 的 `EvidenceMountFields` 与 `x-issue-033` | AC-01～AC-02 | planned |
+
+## 验收条目
+
+| 编号 | 可检查的完成条件 | 结果与证据 |
+|---|---|---|
+| AC-01 | 规格增量到位后再改挂接拒绝。字段和拒绝规则已写入冻结契约 | 契约测试核对字段名和三个已有错误码。运行时未接通 |
+| AC-02 | 实现后由 QA 重签。卡片完成后为 in-review，不由开发者标 done | 未执行 |
+
+未做浏览器、服务或发布验收。new 不是 closed，planned 不是 done。
+
+## 六份基线 impact 与同步表
+
+| 基线 | impact：有影响 / 无影响 / 待评估及原因 | 更新路径 / 章节 | revision / Issue ID / 日期 | 同步状态 |
+|---|---|---|---|---|
+| PRD | 无影响。里程碑快照不改 | 不改 `docs/PRD.md` | evidence-mount-1 / ISSUE-033 / 2026-10-12 | 已核对 |
+| ROADMAP | 无影响。理由同 PRD | 不改 `docs/ROADMAP.md` | evidence-mount-1 / ISSUE-033 / 2026-10-12 | 已核对 |
+| ARCHITECTURE | 无影响。本轮不改运行结构 | 不改 `docs/ARCHITECTURE.md` | evidence-mount-1 / ISSUE-033 / 2026-10-12 | 已核对 |
+| TASK_BOARD | 有影响。新增 BE-M0-T18，状态 planned | `docs/TASK_BOARD.md`、`docs/tasks/BE-M0.md` | evidence-mount-1 / ISSUE-033 / 2026-10-12 | 已改 |
+| PROJECT_STATUS | 有影响。活计数加一张 planned 卡 | `docs/PROJECT_STATUS.md` | evidence-mount-1 / ISSUE-033 / 2026-10-12 | 已改 |
+| DOCUMENT_INDEX | 有影响。登记本 Issue 与同步表 | `docs/DOCUMENT_INDEX.md` | evidence-mount-1 / ISSUE-033 / 2026-10-12 | 已改 |
+| PROJECT_BRIEF | 无影响。里程碑快照不改 | 不改 `docs/PROJECT_BRIEF.md` | evidence-mount-1 / ISSUE-033 / 2026-10-12 | 已核对 |
+
+同步摘要见 [ISSUE-033 同步](../docs/governance/ISSUE-033-sync.md)。
+
+## 处理与复核记录
+
+| 日期 | revision / 状态 | 完成事实、问题与下一步 | 证据 / 复核人 |
+|---|---|---|---|
+| 2026-10-12 | evidence-mount-1 / new | 项目经理暂停。只登记 ISSUE-033 与 BE-M0-T18。不写字典对照，不定错误码，不改接口 | 本文件 |
+| 2026-10-12 | evidence-mount-spec-1 / in-progress | 项目经理批准后，按字典 v1.9 写入 `source_tier`、`is_restricted`、派生的 `agreement_present`，以及对照 `bid_deadline_at` 的 `valid_to` / `is_long_term`。挂接拒绝复用 409 `EVIDENCE_EXPIRED`、409 `EVIDENCE_NOT_USABLE`、403 `FORBIDDEN`。不新增错误码。BE-M0-T18 仍 planned。不标 closed | [同步](../docs/governance/ISSUE-033-sync.md) |
+
+## 本地验收与后续合入发布
+
+- 本地验收：2026-10-12 只核对冻结契约。运行时挂接拒绝未执行。
+- 未覆盖：后台尚未按这些规则拒绝挂接。QA 重签留到实现之后。
+- 六份基线：见上表与 [同步表](../docs/governance/ISSUE-033-sync.md)。
+- PR：未新开。合入与发布均未发生。

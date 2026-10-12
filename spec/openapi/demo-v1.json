@@ -5546,6 +5546,21 @@
               }
             }
           }
+        },
+        "x-issue-033": {
+          "x-contract-status": "frozen",
+          "x-implemented": false,
+          "x-aligned-with": "BE-M0-T18",
+          "description": "PATCH 正文仍是 RequirementPatch 的 evidence_ids，用来挂接资料。下列拒绝复用已有错误码，不新增 code。运行时尚未执行这些拒绝。有效期对照本项目 bid_deadline_at，不对照日历上的今天。",
+          "evidence_fields": "#/components/schemas/EvidenceMountFields",
+          "compare_deadline": "bid_deadline_at",
+          "rules": [
+            "valid_to 早于本项目 bid_deadline_at，且 is_long_term 不是 true：409 EVIDENCE_EXPIRED。",
+            "source_tier 为 reference，或 partner 且 agreement_present 不是 true：409 EVIDENCE_NOT_USABLE。两条的 message 可以区分。",
+            "is_restricted 为 true，且调用者不在 resource_acl、也不是公司管理员或资料管理员：403 FORBIDDEN。",
+            "expiring（仍覆盖 bid_deadline_at）：允许挂接。",
+            "unknown（无到期日且不是长期有效）：只警告，不返回 409。"
+          ]
         }
       }
     },
@@ -10653,6 +10668,13 @@
               }
             }
           }
+        },
+        "x-issue-033": {
+          "x-contract-status": "frozen",
+          "x-implemented": false,
+          "x-aligned-with": "BE-M0-T18",
+          "description": "资料列表实现后，每条资料包含 EvidenceMountFields。当前运行时的 LibraryItem 不返回这些字段。字段名用 is_restricted，不用 restricted。",
+          "schema": "#/components/schemas/EvidenceMountFields"
         }
       },
       "post": {
@@ -19860,6 +19882,64 @@
           "synced"
         ],
         "title": "SnippetSyncResult"
+      },
+      "EvidenceMountFields": {
+        "x-contract-status": "frozen",
+        "x-implemented": false,
+        "x-aligned-with": "BE-M0-T18",
+        "description": "挂证据时资料侧字段，命名按字典 v1.9。契约已冻结，运行时尚未返回。不新增错误码。",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "source_tier": {
+            "type": "string",
+            "enum": [
+              "own",
+              "partner",
+              "reference"
+            ],
+            "title": "Source Tier",
+            "description": "资料来源分级。own 本公司，partner 合作伙伴，reference 仅供参考。挂接 source_tier 为 reference 时拒绝，返回 409 EVIDENCE_NOT_USABLE。"
+          },
+          "is_restricted": {
+            "type": "boolean",
+            "default": false,
+            "title": "Is Restricted",
+            "description": "受限资料。字段名是 is_restricted，不是 restricted。默认 false。为 true 时，能否挂接还要看 resource_acl：公司管理员、资料管理员或授权名单中的人可以挂；没有 ACL 或非管理员返回 403 FORBIDDEN。"
+          },
+          "agreement_present": {
+            "type": "boolean",
+            "readOnly": true,
+            "title": "Agreement Present",
+            "description": "派生字段，只读，不入库。由该投标项目的 project_partner.agreement_attachment_id 是否已设置得出。partner 且本字段不是 true 时，挂接返回 409 EVIDENCE_NOT_USABLE。message 可以和 reference 的拒绝区分。"
+          },
+          "valid_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid To",
+            "description": "有效期止。与 is_long_term 一起对照本项目 bid_deadline_at（投标截止时间），不对照日历上的今天。早于 bid_deadline_at 且不是长期有效时，挂接返回 409 EVIDENCE_EXPIRED。仍覆盖截止时间但临近截止（expiring）允许挂接。无到期日且不是长期有效（unknown）只警告，不返回 409。"
+          },
+          "is_long_term": {
+            "type": "boolean",
+            "default": false,
+            "title": "Is Long Term",
+            "description": "长期有效。默认 false。为 true 时不因 valid_to 拒绝挂接。有效期对照项目 bid_deadline_at，不对照今天。"
+          }
+        },
+        "required": [
+          "source_tier",
+          "is_restricted",
+          "agreement_present",
+          "is_long_term"
+        ],
+        "title": "EvidenceMountFields"
       }
     },
     "x-error-status": {

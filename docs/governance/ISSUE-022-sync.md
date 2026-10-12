@@ -130,3 +130,11 @@
 | DOCUMENT_INDEX.md | 有 | 更新当前行并追加变更记录。不改历史行，不改计数行 | 2026-10-12 |
 
 未合入，未发布。T124 不标 done。`python3 -m pytest tests/backend/test_outline_contract_draft.py tests/backend/test_error_idempotency.py::test_openapi_declares_v1_error_body_status_table_and_retry -q` 为 7 passed、1 warning。`python3 -m pytest tests/backend -q` 为 351 passed、8 skipped、1 warning。8 项跳过都是 `ICG_DATABASE_URL is unset`。`node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：270 份 Markdown、375 项任务、31 项 Issue。」检查程序未修改。
+
+## T114 已 done
+
+日期：2026-10-12。APP-M2-T114 与 REV-M0-T22 已依据 QA f521950，PM 17:13 确认标为 done。ISSUE-022 保持 closed，不重开。T078 仍 in-review 未 done，所以 T124 仍 blocked。不改契约，不改模型输入。
+
+## T078 已 done，T124 改为 ready
+
+日期：2026-10-12。APP-M2-T078 与 REV-M0-T24 已依据 QA 19c4862，PM 17:20 确认标为 done。范围只含内存片段发布层。页面未做，不挡住 done。T124 改为 ready，本轮不实现，不改模型输入，不改契约。ISSUE-022 保持 closed，不重开。看板改为 381 项：49 done、7 in-review、7 in-progress、265 planned、48 blocked、5 ready。

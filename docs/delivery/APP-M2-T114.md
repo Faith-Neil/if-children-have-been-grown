@@ -10,14 +10,14 @@
 | 任务ID | APP-M2-T114 |
 | 代码解释 | [挂证据抽屉](../code/APP-M2-T114.md) |
 | 验收 | 前端单测 98 项通过，其中挂证据 5 项。`pnpm --dir frontend/web build` 通过。浏览器端到端 14 项通过，含本卡 1 项。见 [核对](../testing/2026-10-12-app-m2-t114-evidence-drawer.md)。缺协议和受限只在单测。Excel 与并排设计稿未做 |
-| 项目进度 | 看板 375 项：42 done、10 in-review、7 in-progress、263 planned、49 blocked、4 ready。本卡 in-review，未标 done。T124 仍 blocked。ISSUE-022 已 closed。T13 为 in-review。未合入，未发布 |
+| 项目进度 | 看板 381 项：49 done、7 in-review、7 in-progress、265 planned、48 blocked、5 ready。本卡 done（QA f521950，PM 17:13 确认）。T078 与 REV-M0-T24 已 done（QA 19c4862，PM 17:20 确认）。T124 改为 ready，本轮不实现。缺协议、受限、智能匹配和规则 2 端到端仍挂 ISSUE-033，不关闭。未合入，未发布 |
 <!-- task-delivery:end -->
 
 ## 关联与状态
 
 - 日期、里程碑、Issue、任务卡：2026-10-12，APP-M2，[ISSUE-007](../../issues/ISSUE-007.md)。[任务卡](../tasks/APP-M2.md#app-m2-t114)。
 - 分支、提交、PR：`codex/repository-foundation`。接口以冻结提交 `73fde1e` 的 `spec/openapi/demo-v1.json` 为准。其后没有再改这份 JSON。PR 未创建。
-- 本地验收状态：in-review。抽屉已接到响应矩阵。不标 done。
+- 本地验收状态：done（QA f521950，PM 17:13 确认）。抽屉已接到响应矩阵。缺协议、受限、智能匹配和规则 2 端到端仍挂 ISSUE-033，不关闭。
 - 合入 / 发布状态：未合入，未发布。
 
 ## 完成内容与变更文件
@@ -43,7 +43,7 @@
 
 ## 项目进度
 
-T114 保持 in-review，未标 done。QA 复查补上抽屉内刷新和已挂列表的“证据失效”。并入 BE-M0-T13 后看板为 375 项：42 done、10 in-review、7 in-progress、263 planned、49 blocked、4 ready。REV 20 项中 18 项已本地验收。ISSUE-022 已 closed。APP-M2 其余 253 张卡仍 planned。T124 仍 blocked，因为 T078 未标 done，T114 也未标 done。ISSUE-007 仍 in-progress。ISSUE-031 与 BE-M0-T16 仍 in-review。T13 仍 in-review。PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照不改。
+T114 为 done（QA f521950，PM 17:13 确认）。QA 复查补上抽屉内刷新、已挂列表的“证据失效”，以及冲突提示旁的刷新。当前看板为 381 项：49 done、7 in-review、7 in-progress、265 planned、48 blocked、5 ready。APP-M2 其余 253 张卡仍 planned。T078 与 REV-M0-T24 已 done（QA 19c4862，PM 17:20 确认）。T124 改为 ready，本轮不实现。ISSUE-007 仍 in-progress。ISSUE-033 仍 in-progress，不关闭。PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照不改。
 
 ## 文档与 Issue 同步
 
@@ -52,8 +52,8 @@ T114 保持 in-review，未标 done。QA 复查补上抽屉内刷新和已挂列
 | PRD | 无影响。开发仍按已登记的 v1.8。本轮不改任务计数，也不改里程碑快照 |
 | ROADMAP | 无影响。没有新增或取消任务。本轮不改任务计数 |
 | ARCHITECTURE | 无影响。没有新模块或新接口。挂接仍是现有条款更新 |
-| Issue 看板/详情 | ISSUE-007 仍 in-progress，并记下这次复查。ISSUE-022 已由上游标为 closed，本轮不改它。T124 仍 blocked。缺协议字段引用后台 ISSUE-033，本轮不新建该 Issue |
-| TASK_BOARD / PROJECT_STATUS | T114 仍 in-review。表内重数为 375 项、42 done、10 in-review、263 planned、49 blocked、4 ready。REV 为 20 项，其中 18 项已本地验收。T13 仍 in-review。三份基线计数不改 |
+| Issue 看板/详情 | ISSUE-007 仍 in-progress。ISSUE-033 不关闭。T124 改为 ready，本轮不实现。橙色标签另登记 ISSUE-036，不占用 034 或 035 |
+| TASK_BOARD / PROJECT_STATUS | T114 与 REV-M0-T22 为 done（QA f521950，PM 17:13 确认）。T078 与 REV-M0-T24 已 done（QA 19c4862，PM 17:20 确认）。看板 381 项：49 done、7 in-review、7 in-progress、265 planned、48 blocked、5 ready。T124 为 ready。三份基线计数不改 |
 | DOCUMENT_INDEX | 登记交付、代码解释、核对和同步表 |
 
 ## 风险与后续
@@ -62,4 +62,4 @@ T114 保持 in-review，未标 done。QA 复查补上抽屉内刷新和已挂列
 - 智能匹配按钮尚未接通。
 - 规则 2「证据过期后该行回到待确认」还没有端到端。当前浏览器只核对矩阵上的“证据失效”标签和抽屉文案，没有单独证明条款状态被改回待确认。
 
-上面后两项先挂在 ISSUE-033 下，等后台字段落地后再测。过期、未确认和历史标书在浏览器里核对过。已挂过期时，抽屉里的“证据失效”提示带有刷新，会重新读取资料候选和本行已挂编号。他人先保存时，第一次保存被后台版本拒绝，抽屉留在原地；再次保存才显示“本行已被他人修改”。本地通过不是合入，也不是发布。
+上面三项仍挂在 ISSUE-033 下，等后台字段落地后再测。ISSUE-033 不关闭。项目经理已把本卡标为 done（QA f521950，PM 17:13 确认），这三项缺口不因此关闭。过期、未确认和历史标书在浏览器里核对过。已挂过期时，抽屉里的“证据失效”提示带有刷新，会重新读取资料候选和本行已挂编号。他人先保存时，第一次保存被后台版本拒绝，抽屉留在原地；再次保存才显示“本行已被他人修改，请刷新后再保存”。该提示旁有刷新。刷新重读本行后可以再保存，浏览器里核对过保存成功。本地通过不是合入，也不是发布。

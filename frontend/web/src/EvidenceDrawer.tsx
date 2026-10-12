@@ -55,7 +55,7 @@ export function EvidenceDrawer({ open, requirement, library, deadline, selectedI
   }
   return <Drawer className="evidence-drawer" title="挂证据" open={open} onClose={onClose} width={560} extra={<Button type="primary" disabled={busy || !canWrite || stale} onClick={onSave}>保存挂接</Button>}>
     <Card size="small" title="本行要求原文"><p>{requirement?.text}</p><p className="muted">证明材料要求：{requirement?.proof_requirements || '未单独登记，以上方要求原文为准。'}</p></Card>
-    {stale && <Alert className="page-notice" type="warning" showIcon message="本行已被他人修改，请刷新后再保存" description="打开抽屉之后，项目版本或已挂证据变了。当前勾选仍留在这里，不会覆盖新内容。" />}
+    {stale && <Alert className="page-notice" type="warning" showIcon message="本行已被他人修改，请刷新后再保存" description="打开抽屉之后，项目版本或已挂证据变了。刷新会重读本行已挂证据，然后可以再保存。" action={<Button size="small" autoInsertSpace={false} disabled={busy} onClick={onRefresh}>刷新</Button>} />}
     {([
       ['structured', groups.structured, '没有结构化资料'],
       ['snippet', groups.snippets, '没有方案片段'],

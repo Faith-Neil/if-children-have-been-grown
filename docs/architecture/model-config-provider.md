@@ -4,7 +4,7 @@
 
 # 配置驱动的对话模型
 
-日期：2026-10-12。关联 [ISSUE-010](../../issues/ISSUE-010.md)（closed）、[ISSUE-028](../../issues/ISSUE-028.md)（in-review）、[AI-01](../tasks/AI-M0.md#ai-01)、[AI-02](../tasks/AI-M0.md#ai-02)。本文件只设计 Provider 侧。不改 `backend/bid-core`，不改 `spec/openapi/demo-v1.json`，不加依赖。
+日期：2026-10-12。关联 [ISSUE-010](../../issues/ISSUE-010.md)（closed）、[ISSUE-028](../../issues/ISSUE-028.md)（in-review）、[AI-01](../tasks/AI-M0.md#ai-01)、[AI-02](../tasks/AI-M0.md#ai-02)。本文件只设计 Provider 侧。不改 `backend/bid-core`，不改 `spec/openapi/demo-v1.json`，不加依赖。CI 假服务在测试目录，不改变默认演示替身。
 
 配置的存储、字段定义、API、加密、If-Match 和幂等归后端 [ISSUE-024](../../issues/ISSUE-024.md)。先前写在这里的字段提案以该 Issue 为准。本文件不重复该 Issue 的字段。开关名只链接 [`stream_enabled`](../../issues/ISSUE-024.md) 与 [`json_mode_enabled`](../../issues/ISSUE-024.md)。
 
@@ -56,7 +56,9 @@
 
 ## CI
 
-托管 CI 没有密钥，也没有内网。测试用一个假的 OpenAI 兼容服务，记录它实际收到的请求头和 `base_url`。连真实地址的测试必须显式打开，默认跳过，CI 不跑。
+托管 CI 没有密钥，也没有内网。`tests/backend/fake_openai_chat.py` 在 `127.0.0.1` 上提供假的 `POST /v1/chat/completions`。它记下实际收到的请求头，并从路径去掉末尾 `/v1/chat/completions`，还原调用方使用的 `base_url`。夹具是 `fake_openai_chat`。测试把现有 `OpenAICompatibleModelProvider` 的 `base_url` 指到这个地址。`create_app()` 的默认提供者仍是演示替身。
+
+连真实地址的测试带标记 `live_model`。只有 `ICG_RUN_REAL_MODEL_TESTS=1` 时才运行，默认跳过，CI 不跑。打开后还要自行提供 `ICG_MODEL_PROVIDER=openai-compatible`，以及基址、模型名、`ICG_MODEL_IS_LOCAL` 和密钥变量。
 
 ## 本轮不做
 

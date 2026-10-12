@@ -198,7 +198,7 @@ T07上段为范围拆分阶段记录；当前ISSUE-009 / APP-M2-T001为 in-revie
 | [APP-M2-T075](../tasks/APP-M2.md#app-m2-t075) | 识别结果核对（“待核对”标记） | planned | APP-M2-T047、APP-M2-T039、APP-M2-T074 | M2-C08-F2 |
 | [APP-M2-T076](../tasks/APP-M2.md#app-m2-t076) | 片段列表 | planned | APP-M2-T047 | M2-D01-F1 |
 | [APP-M2-T077](../tasks/APP-M2.md#app-m2-t077) | 片段编辑（变量校验） | planned | APP-M2-T047、APP-M2-T076、APP-M2-T070 | M2-D01-F2 |
-| [APP-M2-T078](../tasks/APP-M2.md#app-m2-t078) | 版本对比与发布（R31 拦截原因） | in-review | APP-M2-T047、APP-M2-T077、APP-M2-T238 | M2-D01-F3 |
+| [APP-M2-T078](../tasks/APP-M2.md#app-m2-t078) | 版本对比与发布（R31 拦截原因） | done | APP-M2-T047、APP-M2-T077、APP-M2-T238 | M2-D01-F3 |
 | [APP-M2-T079](../tasks/APP-M2.md#app-m2-t079) | 同步状态与重新同步 | planned | APP-M2-T047、APP-M2-T078 | M2-D01-F4 |
 | [APP-M2-T080](../tasks/APP-M2.md#app-m2-t080) | 历史标书单个 / 批量导入 | planned | APP-M2-T021 | M2-D02-F1 |
 | [APP-M2-T081](../tasks/APP-M2.md#app-m2-t081) | 入库状态派生显示与摘取为片段 | planned | APP-M2-T021、APP-M2-T080 | M2-D02-F2 |
@@ -234,7 +234,7 @@ T07上段为范围拆分阶段记录；当前ISSUE-009 / APP-M2-T001为 in-revie
 | [APP-M2-T111](../tasks/APP-M2.md#app-m2-t111) | 疑似遗漏（无批量、排除须理由）与引用未解析页签 | planned | APP-M2-T104、APP-M2-T148、APP-M2-T109 | M3-E04a-F3 |
 | [APP-M2-T112](../tasks/APP-M2.md#app-m2-t112) | 矩阵表格与筛选（风险提示） | planned | APP-M1-T03 | M3-E05-F1 |
 | [APP-M2-T113](../tasks/APP-M2.md#app-m2-t113) | 行编辑（响应方式、要点、负责人） | planned | APP-M1-T03、APP-M2-T112 | M3-E05-F2 |
-| [APP-M2-T114](../tasks/APP-M2.md#app-m2-t114) | EvidenceDrawer | in-review | APP-M1-T03、APP-M2-T048、APP-M2-T204、APP-M2-T205 | M3-E05-F3 |
+| [APP-M2-T114](../tasks/APP-M2.md#app-m2-t114) | EvidenceDrawer | done | APP-M1-T03、APP-M2-T048、APP-M2-T204、APP-M2-T205 | M3-E05-F3 |
 | [APP-M2-T115](../tasks/APP-M2.md#app-m2-t115) | 批量智能匹配与逐行确认 | planned | APP-M1-T03、APP-M2-T118 | M3-E05-F4 |
 | [APP-M2-T116](../tasks/APP-M2.md#app-m2-t116) | P-18 分册分流确认 | planned | APP-M1-T03、APP-M1-T14 | M3-E05-F5 |
 | [APP-M2-T117](../tasks/APP-M2.md#app-m2-t117) | Excel 导出与确认闸门 | planned | APP-M1-T03、APP-M2-T113、APP-M2-T114、APP-M2-T116 | M3-E05-F6 |
@@ -244,7 +244,7 @@ T07上段为范围拆分阶段记录；当前ISSUE-009 / APP-M2-T001为 in-revie
 | [APP-M2-T121](../tasks/APP-M2.md#app-m2-t121) | 项目事实表 | planned | APP-M1-T10、APP-M1-T12 | M3-E06-F3 |
 | [APP-M2-T122](../tasks/APP-M2.md#app-m2-t122) | “需复核”传播提示 | planned | APP-M1-T10、APP-M1-T12、APP-M2-T119、APP-M2-T121 | M3-E06-F4 |
 | [APP-M2-T123](../tasks/APP-M2.md#app-m2-t123) | 大纲排序、章节类型和增值理由（分工复用T15） | planned | APP-M1-T15、APP-M2-T116 | M4-F01-F1 |
-| [APP-M2-T124](../tasks/APP-M2.md#app-m2-t124) | 完整证据、片段及评分写作计划（确认复用T15） | blocked | APP-M1-T15、APP-M2-T078、APP-M2-T114 | M4-F01-F2 |
+| [APP-M2-T124](../tasks/APP-M2.md#app-m2-t124) | 完整证据、片段及评分写作计划（确认复用T15） | ready | APP-M1-T15、APP-M2-T078、APP-M2-T114 | M4-F01-F2 |
 | [APP-M2-T125](../tasks/APP-M2.md#app-m2-t125) | 招标原文预览联动与 R26 提示 | planned | APP-M1-T15、APP-M2-T123、APP-M2-T232 | M4-F01-F3 |
 | [APP-M2-T126](../tasks/APP-M2.md#app-m2-t126) | 按逐节确认结果启动生成（确认复用T15） | planned | APP-M1-T15、APP-M2-T124、APP-M2-T125 | M4-F01-F4 |
 | [APP-M2-T127](../tasks/APP-M2.md#app-m2-t127) | 五类系统生成章节预览 | planned | APP-M1-T04、APP-M2-T191、APP-M2-T192、APP-M2-T193、APP-M2-T194、APP-M2-T195 | M4-F09-F1 |
@@ -1766,7 +1766,7 @@ T07上段为范围拆分阶段记录；当前ISSUE-009 / APP-M2-T001为 in-revie
     {
       "id": "APP-M2-T078",
       "title": "版本对比与发布（R31 拦截原因）",
-      "status": "in-review",
+      "status": "done",
       "phase": "一期业务页面/支撑",
       "source": "M2-D01-F3",
       "source_key": "D01.F3",
@@ -2414,7 +2414,7 @@ T07上段为范围拆分阶段记录；当前ISSUE-009 / APP-M2-T001为 in-revie
     {
       "id": "APP-M2-T114",
       "title": "EvidenceDrawer",
-      "status": "in-review",
+      "status": "done",
       "phase": "一期业务页面/支撑",
       "source": "M3-E05-F3",
       "source_key": "E05.F3",
@@ -2603,7 +2603,7 @@ T07上段为范围拆分阶段记录；当前ISSUE-009 / APP-M2-T001为 in-revie
     {
       "id": "APP-M2-T124",
       "title": "完整证据、片段及评分写作计划（确认复用T15）",
-      "status": "blocked",
+      "status": "ready",
       "phase": "一期业务页面/支撑",
       "source": "M4-F01-F2",
       "source_key": "F01.F2",

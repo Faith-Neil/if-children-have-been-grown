@@ -4,7 +4,7 @@
 
 # 最新合作分支复核
 
-日期2026-10-12。初次基线`73fde1e03c0b6fce0f8c0a9f2e20551e63d811b3`，最终复核快照`9c178782d2e01e47e0d46748ceac230d749fea64`；期间新增租约、项目和证据抽屉完整保留。目标分支`codex/repository-foundation`，独立修复分支`codex/review-foundation-fixes`。关联ISSUE-033 / REV-M0-T22。初次云端比原本地副本多79提交，实际审查使用隔离工作树，未覆盖原工作区。后续再提交的代码需另行复核，不把动态分支名称当成无限范围。
+日期2026-10-12。初次基线`73fde1e03c0b6fce0f8c0a9f2e20551e63d811b3`，复核快照`9c178782d2e01e47e0d46748ceac230d749fea64`；期间新增租约、项目和证据抽屉完整保留。目标分支`codex/repository-foundation`，独立修复分支`codex/review-foundation-fixes`。关联ISSUE-034 / REV-M0-T27。ISSUE-033 是挂证据规则，REV-M0-T22 是 APP-M2-T114 冲突刷新 QA，本记录不占用这两个编号。初次云端比原本地副本多79提交，实际审查使用隔离工作树，未覆盖原工作区。后续再提交的代码需另行复核，不把动态分支名称当成无限范围。本卡随后并入 foundation `9e3fcdd8f60ec4e751336c55154cbf9b9bae1e35`，保留 T114 抽屉内冲突刷新、ISSUE-036 标签对比 `#9a5608`，以及 T078/T114 状态记录。这不是对 9e3fcdd 之后新提交的无限复核。
 
 ## 确认的九项问题
 
@@ -36,6 +36,6 @@ R1、R2执行实际App/Editor闭包和请求辅助函数，不复制一份导航
 
 原PRD/ROADMAP/BRIEF的里程碑计数快照不重写；当前看板新增一张复核卡。修复提交PR待审，不直接合入合作分支，不自行done/closed，也不表示上线或完整产品验收。
 
-最终PR整合保留9a5533c64f65b98d5231876d852e9762c6138c3c，包括证据刷新、编辑锁对齐登记及PM状态更新；自己的记录为ISSUE-033 / REV-M0-T22，未覆盖同伴同名记录。PR：[#4](https://github.com/Faith-Neil/if-children-have-been-grown/pull/4)，等待审核，未合入/发布。
+PR 整合保留 foundation `9e3fcdd8f60ec4e751336c55154cbf9b9bae1e35`，包括证据抽屉冲突刷新、ISSUE-036 橙色标签对比，以及 T078/T114 状态记录。本复核卡为 ISSUE-034 / REV-M0-T27，不覆盖同伴的 ISSUE-033 与 REV-M0-T22。PR：[#4](https://github.com/Faith-Neil/if-children-have-been-grown/pull/4)，等待审核，未合入/发布。
 
 保留9a5533c并行更新后，前端113项及类型/构建通过，新构建整套浏览器16/16通过（47.1秒）。后端运行代码未改变，367项原完整通过结果仍适用。最新12项MySQL标记测试单独执行，全部因未配置连接跳过（367项非MySQL测试未在该命令重复执行）。原完整运行11项跳过是9c178时快照，不能混称实机验收。

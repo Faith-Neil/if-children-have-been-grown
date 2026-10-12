@@ -261,6 +261,10 @@ test('overview steps, pending mark and editor meta meet 4.5:1', async ({ page })
   const circle = page.locator('.todo-circle').first();
   await expect(circle).toBeVisible();
   expect(await circle.evaluate(read)).toBeGreaterThanOrEqual(4.5);
+  const orangeTags = page.locator('.ant-tag-orange:visible, .ant-tag-gold:visible, .ant-tag-warning:visible');
+  expect(await orangeTags.count()).toBeGreaterThan(0);
+  const orangeRatios = await orangeTags.evaluateAll(readAll);
+  expect(Math.min(...orangeRatios)).toBeGreaterThanOrEqual(4.5);
   const steps = page.locator('.ant-steps-icon');
   expect(await steps.count()).toBeGreaterThan(0);
   const stepRatios = await steps.evaluateAll(readAll);
