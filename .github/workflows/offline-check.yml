@@ -36,7 +36,10 @@ jobs:
       - name: Live session HTTP
         run: python tests/backend/session_live_http.py
       - name: Error and idempotency live HTTP
-        run: python tests/backend/qa_error_idempotency_live_http.py
+        run: |
+          mkdir -p frontend/web/dist/assets
+          printf '%s\n' '<!doctype html><title>ci</title>' > frontend/web/dist/index.html
+          python tests/backend/qa_error_idempotency_live_http.py
       - name: T06 end-to-end smoke
         working-directory: backend/bid-core
         run: python smoke_t06.py
