@@ -374,6 +374,8 @@
 | D-361 | 2026-10-12 | [项目聚合迁移](../backend/bid-core/alembic/versions/0004_demo_project.py) | 后台 | impl-4 | 当前 | ISSUE-018 / BE-M0-T13 | demo_project 与 demo_project_team。可降回基线 |
 | D-362 | 2026-10-12 | [编辑锁对齐](../issues/ISSUE-032.md) | 变更 | edit-lock-align-1 | new | ISSUE-032 / BE-M0-T17 | 有条件批准后对齐 edit_lock。负责人 backend。不删历史锁行 |
 | D-363 | 2026-10-12 | [ISSUE-032同步](governance/ISSUE-032-sync.md) | 治理 | edit-lock-align-1 | 已核对 | ISSUE-032 / BE-M0-T17 | 新增 planned 卡。不改表 |
+| D-364 | 2026-10-12 | [0a5b655重试修复签署](testing/2026-10-12-0a5b655-retry-signoff.md) | 验证 | qa-rerun-17 | 本地通过 | ISSUE-013 / REV-M0-T21 | 通过；无观察项 |
+| D-365 | 2026-10-12 | [REV-M0-T21签署交付](delivery/REV-M0-T21.md) | 交付 | qa-rerun-17 | 已本地验收 | ISSUE-013 / REV-M0-T21 | 无代码；结论与观察项 |
 
 ## 更新记录
 
@@ -448,6 +450,7 @@
 | 2026-10-12 | ISSUE-013 / REV-M0-T18 | QA签署：ISSUE-031错误码名单冻结签署，通过（被验卡/Issue状态不变，待项目经理设置） |
 | 2026-10-12 | ISSUE-013 / REV-M0-T19 | QA签署：BE-M0-T12编辑租约入库签署，通过（被验卡/Issue状态不变，待项目经理设置） |
 | 2026-10-12 | ISSUE-013 / REV-M0-T20 | QA签署：ISSUE-022契约冻结复签，通过（被验卡/Issue状态不变，待项目经理设置） |
+| 2026-10-12 | ISSUE-013 / REV-M0-T21 | QA签署：0a5b655重试修复签署，通过（被验卡/Issue状态不变，待项目经理设置） |
 | 2026-10-12 | ISSUE-025 / BE-M0-T14 | 依据 QA 签署 b20b844 将 BE-M0-T14 标为 done、ISSUE-025 标为 closed。守卫改为任一跳过即失败。不再导出 ICG_MYSQL_PASSWORD。BE-M0-T11 记下业务表出现后的 downgrade 再 upgrade。看板改为 366项30done、8in-review、7in-progress、268planned、49blocked、4ready。PRD、ROADMAP 计数字句不改 |
 | 2026-10-12 | ISSUE-025 / BE-M0-T14 | 交付里的任务计数改为截至提交 3bb311a 的快照，并写明之后以任务看板为准。不改看板，不改卡片状态 |
 | 2026-10-12 | ISSUE-026 | 在 3bb311a 重数：看板 366项30done、8in-review。项目经理在群里确认后，APP-M2-T001 与 APP-M2-T002 标为 done，成为 366项32done、6in-review、7in-progress、268planned、49blocked、4ready。PRD、ROADMAP、PROJECT_BRIEF 改为 as of commit 3bb311a 的里程碑快照，并写明任务看板是准绳、只在里程碑更新。规则写入 WORKFLOW 第4节。检查程序不比较快照与活看板，未改脚本。Issue 仍为 in-review。不改 docs/reference |
