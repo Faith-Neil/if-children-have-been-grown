@@ -2,6 +2,7 @@
 # 它解决什么问题：避免页面伪造公司或角色、沿用撤权前身份，或在读取权限时泄露正文和私人草稿。
 
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -230,3 +231,24 @@ def test_session_openapi_names_operation_and_declares_authentication_and_optiona
     assert {"401", "403", "404", "422"}.issubset(operation["responses"])
     fields = schema["components"]["schemas"]["ApplicationSessionResponse"]["properties"]
     assert {"auth_mode", "role_mode", "user", "scope", "navigation", "allowedActions", "home_path", "session", "project_access"} == set(fields)
+    assert "/{full_path:path}" not in schema["paths"]
+
+
+def test_product_paths_serve_the_shell_and_unknown_api_stays_json(setup):
+    client, _ = setup
+    missing = client.get("/api/v1/does-not-exist")
+    assert missing.status_code == 404
+    assert missing.headers["content-type"].startswith("application/json")
+    assert missing.json()["code"] == "NOT_FOUND"
+    other = client.get("/api/demo/does-not-exist")
+    assert other.status_code == 404
+    assert other.json()["error"]["code"] == "NOT_FOUND"
+    page = client.get("/workbench")
+    index = Path(__file__).resolve().parents[2] / "frontend" / "web" / "dist" / "index.html"
+    if index.is_file():
+        assert page.status_code == 200
+        assert page.headers["content-type"].startswith("text/html")
+        assert "id=\"root\"" in page.text or "id='root'" in page.text
+    else:
+        assert page.status_code == 503
+        assert page.json()["error"]["code"] == "UI_NOT_READY"

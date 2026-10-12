@@ -75,10 +75,6 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
     }
   }, [canEdit]);
   useEffect(() => {
-    function leaving(event: BeforeUnloadEvent) { if (dirty) { event.preventDefault(); event.returnValue = ''; } }
-    window.addEventListener('beforeunload', leaving); return () => window.removeEventListener('beforeunload', leaving);
-  }, [dirty]);
-  useEffect(() => {
     currentId.current = chapterId; const start = ++epoch.current;
     setChapter(null); setContent(''); setEditFingerprint(null); setSourceReview(null); setSourceReviewed(false); selection.current = null; setSlaKey(''); setFactId(''); setLease(null); currentLease.current = null; setSuggestion(null); setDiff(null); setInputOpen(false); setSourceAdvice(false); setRecovery(null); setSavedAt(''); setNotice(''); onDirtyChange(false);
     if (!chapterId) return;

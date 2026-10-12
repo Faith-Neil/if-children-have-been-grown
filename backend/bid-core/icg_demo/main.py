@@ -235,6 +235,17 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
 
     include_workflow_routes(application, service, current_user,
                             parser_provider if parser_provider is not None else LocalTextParser())
+
+    @application.get("/{full_path:path}", include_in_schema=False)
+    def product_page(full_path: str):
+        # 深链接和刷新必须回到同一张页面；接口、静态资源和构建产物仍按原路径返回。
+        if full_path == "api" or full_path.startswith(("api/", "static/", "assets/")):
+            raise HTTPException(status_code=404)
+        path = product_directory / "index.html"
+        if not path.is_file():
+            raise DomainError(503, "UI_NOT_READY", "产品页面尚未构建，请按前端运行说明先构建页面。")
+        return FileResponse(path)
+
     return application
 
 
