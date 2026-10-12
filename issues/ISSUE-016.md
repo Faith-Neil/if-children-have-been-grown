@@ -24,7 +24,7 @@
 
 ## 现象与证据
 
-[ISSUE-010](ISSUE-010.md) 的业务库已于 2026-10-12 决定为 MySQL 8（user decision, relayed by PM）。MySQL 8 没有向量检索，pgvector 不再作为与业务库同库的选项。向量库、对话模型、嵌入和重排仍待决定，ISSUE-010 整体仍 blocked。
+[ISSUE-010](ISSUE-010.md) 已 closed。嵌入与向量库定为 RAGFlow 自带能力。本卡仍是内存实现，不连接 RAGFlow。适配器设计在 [ISSUE-029](ISSUE-029.md)，状态 in-review。
 
 本变更由项目经理指定，只增加可替换的检索口和内存实现。它不连接 MySQL，不引入驱动或迁移，也不选定向量库。
 
@@ -65,7 +65,7 @@
 | DOCUMENT_INDEX | 有影响。登记本 Issue、代码、测试、交付和验证 | `docs/DOCUMENT_INDEX.md` | retrieval-skeleton-1 / ISSUE-016 / 2026-10-12 | 已核对 |
 | PROJECT_BRIEF | 有影响。排期计数因新增一张 in-review 卡从 343 改为 344 | `docs/PROJECT_BRIEF.md` 排期行。先前 0c60842 与 S2 的句子不回退；本行只追加 AI-03 | retrieval-skeleton-1 / ISSUE-016 / 2026-10-12 | 已核对 |
 
-治理块保持 g1.1 / 2026-10-11 / ISSUE-007。`docs/reference/` 未改。ISSUE-010 仍 blocked。
+治理块保持 g1.1 / 2026-10-11 / ISSUE-007。`docs/reference/` 未改。ISSUE-010 已 closed。本卡仍不连接 RAGFlow。
 
 ## 处理与复核记录
 

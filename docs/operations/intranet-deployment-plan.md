@@ -96,7 +96,7 @@ RAGFlow 的基址和调用密钥使用占位名 `ICG_RAGFLOW_BASE_URL`、`ICG_RA
 
 业务库采用 MySQL 8。该决定已记在 [ISSUE-010](../../issues/ISSUE-010.md)（2026-10-12，user decision, relayed by PM）。字符集 `utf8mb4`。MySQL 8 的默认 Unicode 排序规则是 `utf8mb4_0900_ai_ci`；若公司规范指定另一种 `utf8mb4` 排序规则，以规范为准，但不要退回不能覆盖四字节字符的字符集。库只部署在内网，监听地址不对公网开放，应用机用专用账号连接，权限限于本业务库。
 
-本卡不改写 ISSUE-010，也不关闭 AI-01。MySQL 8 没有向量检索，向量不放进业务库，pgvector 不再作为同库选项。嵌入和向量库按第 7 节改记为 RAGFlow 自带能力；ISSUE-010 正文仍写着这些项待决，留给项目经理做基线同步。
+本卡不改写 ISSUE-010，也不关闭 AI-01。MySQL 8 没有向量检索，向量不放进业务库，pgvector 不再作为同库选项。嵌入和向量库按第 7 节改记为 RAGFlow 自带能力。起草时 ISSUE-010 正文仍写着这些项待决。随后该 Issue 已关闭，AI-01 改为 in-review。现行决定以 ISSUE-010 为准。
 
 未设置 `ICG_DATABASE_URL` 时，`MemoryRepository` 仍是运行中的仓库。设置之后，`repository_from_environment()` 使用 `MysqlConnectionRepository`：它连接 MySQL 并报告 `mode: mysql`，但 `read` 和 `transaction` 仍委托内存仓库。`requirements.txt` 已有 PyMySQL、SQLAlchemy、Alembic 和 cryptography（[ISSUE-023](../../issues/ISSUE-023.md)）。空基线迁移已在仓库。业务表还没有。下面是库就位之后的备份和回滚要求，不是已经把业务数据写入 MySQL 的行为。
 
@@ -115,7 +115,7 @@ ISSUE-025 已在托管 runner 上增加 `backend-mysql`：步骤内启动 `mysql
 
 ## 7. RAGFlow：单独的内网服务
 
-2026-10-12，项目经理转达 ISSUE-010 的用户决定，只写入本草案。不改 ISSUE-010 正文，不关闭 AI-01。
+2026-10-12，项目经理转达 ISSUE-010 的用户决定，当时只写入本草案，不改 ISSUE-010 正文，不关闭 AI-01。随后的关闭记录在 ISSUE-010，不回写本段的起草事实。
 
 - 对话模型的端点、模型名和 API 密钥放在前端配置页，本地与云端可切换。该页面尚未实现。今天仍是第 1 节的环境变量；未配置时保持演示替身。
 - 嵌入模型和向量库使用 RAGFlow 自带能力，在 RAGFlow 里面配置，不放进 MySQL，也不再从 Milvus、Qdrant 或 Elasticsearch 里选一个。

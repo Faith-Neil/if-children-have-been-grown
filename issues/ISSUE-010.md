@@ -1,140 +1,114 @@
-为什么有这个文件：把模型、向量、业务库和内网验证方式集中成一项待用户决定的记录。
+为什么有这个文件：把模型、向量、业务库和内网访问的用户决定记在一处。
 
-它解决什么问题：避免在端点、库和访问方式未确认时，把某一项建议写成已经采纳的生产选型。
+它解决什么问题：避免把配置页或 RAGFlow 的设计写成已经接通的生产服务。
 
-# ISSUE-010：模型、向量库、业务库与内网访问待决
+# ISSUE-010：模型、向量库、业务库与内网访问
 
 | 项目 | 内容 |
 |---|---|
 | Issue ID | ISSUE-010 |
 | 类型 | decision |
 | 优先级 | P0 |
-| 状态 | blocked |
+| 状态 | closed |
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
-| revision | model-choice-2 |
+| revision | model-choice-3 |
 | 关联 Task | [AI-01](../docs/tasks/AI-M0.md#ai-01)；上游门禁 [ISSUE-005](ISSUE-005.md) / FE-M0-T04 |
 | 关联 PR | 未创建 |
-| 本地验收 | 未通过。业务库已决定为 MySQL 8；其余项未决定，Issue 仍 blocked |
+| 本地验收 | 决定已登记。真实端点未验收。见 [核对](../docs/testing/2026-10-12-issue-010-decisions.md) |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | [AI-01 交付](../docs/delivery/AI-01.md) |
-| 代码 / 流程解释 | 无代码影响。本记录不新增运行代码；后续适配器见 [ISSUE-011](ISSUE-011.md) |
-| 验证记录 | 无运行时验收。业务库决定只登记在本文，不能代替其余选型通过 |
+| 代码 / 流程解释 | 无运行代码。配置设计见 [ISSUE-028](ISSUE-028.md)，检索设计见 [ISSUE-029](ISSUE-029.md) |
+| 验证记录 | [2026-10-12 决定核对](../docs/testing/2026-10-12-issue-010-decisions.md) |
 
 ## 现象与证据
 
-生产门禁 [ISSUE-005](ISSUE-005.md) 仍 blocked。当前后台默认是内存仓库和演示模型替身。公司候选的对话模型是内网本地 Qwen 30B，经 OpenAI 兼容 HTTP 接口提供。托管 CI 不能访问该内网。嵌入、重排、向量库和日志要求还没有用户结论。
+生产门禁 [ISSUE-005](ISSUE-005.md) 仍是 in-progress。当前后台默认是内存仓库和演示模型替身。托管 CI 没有密钥，也不能访问内网。
 
-2026-10-12，用户决定业务库为 MySQL 8（user decision, relayed by PM）。MySQL 8 没有向量检索，所以向量库不能再与业务库同库，pgvector 不再是同库选项。向量库与对话模型、嵌入、重排继续待决。本 Issue 整体仍是 blocked。本决定不引入数据库驱动或迁移工具，单元测试继续使用内存实现。Qwen 端点仍未接通。
+2026-10-12，用户决定业务库为 MySQL 8（user decision, relayed by PM）。MySQL 8 没有向量检索，pgvector 不再作为同库选项。连接和空迁移已由项目经理在 QA 签署 `98c5129` 后确认，业务表仍未接入。
 
-## 可选项
+同日，用户继续决定（user decision, relayed by PM）：
 
-### 对话模型
+1. 对话模型的部署形态、基址、模型名、上下文长度、最大输出和 API 密钥放在前端配置页。本地与云端可以切换。流式是默认。支持 JSON 模式。
+2. 嵌入模型和向量库使用 RAGFlow 自带能力，在 RAGFlow 内配置。本仓库不另选向量库。检索层连接 RAGFlow。
+3. 生产环境的生成服务只在内网。开发和测试可以使用互联网。
 
-| 选项 | 说明 | 当前状态 |
-|---|---|---|
-| 公司内网本地 Qwen 30B | 通过 OpenAI 兼容的 `POST {base_url}/v1/chat/completions` 提供 | 候选，未决定，端点未入库 |
-| 继续使用演示替身 | 现有 `DemoModelProvider`，不访问网络 | 代码默认值，直到显式配置真实适配器 |
-| 公司另行指定的本地模型 | 仍走同一兼容接口，具体名称待用户给出 | 未决定 |
-| 云端模型 | 是否允许尚未回答；敏感项目现有门禁仍拒绝未声明为本地的真实模型 | 未决定 |
+精确基址、模型名和上下文数字是配置页上的值，不写进仓库。重排产品没有出现在这三项里。[ISSUE-017](ISSUE-017.md) 的草案已说明这一点。检索设计提议重排留在 RAGFlow 的 `rerank_id`，该提议在 [ISSUE-029](ISSUE-029.md)，不另算一项已关闭的选型。
 
-### 嵌入、重排和向量库
+内网草案 [第 7 节](../docs/operations/intranet-deployment-plan.md) 先记下了放置方式，并写明当时不改本 Issue 正文。本记录是随后的基线同步。
 
-嵌入模型名称和维度未定。重排可以暂不启用、使用本地重排，或使用兼容接口；三者都未选。业务库已经定为 MySQL 8，而 MySQL 8 没有向量检索，因此向量库不再与业务库同库，pgvector 不再作为同库选项。向量库仍待决定，并与对话模型、嵌入和重排一起保持未决。可选方向包括：公司已经在运行的独立向量服务，或在嵌入和知识库格式确定前继续不做向量库。本记录不指定其中任何一项。
+## 已关闭的问题
 
-### 业务数据库
-
-2026-10-12 已决定：业务库为 MySQL 8。来源：user decision, relayed by PM。MySQL 8 没有向量检索，向量库另计，不因本决定而选定。本记录不添加 MySQL 驱动、不写迁移、不把单元测试改成数据库测试。
-
-| 选项 | 说明 | 当前状态 |
-|---|---|---|
-| PostgreSQL 16 | pgvector 可以与业务库共用同一个数据库。项目经理曾建议此项 | 未采纳。用户已另行决定 |
-| MySQL 8 | 没有向量检索，向量库必须另行安排 | 已决定。2026-10-12，user decision, relayed by PM |
-| SQLite | 只适合单机演示，不能当作多人生产库 | 未采纳 |
-| 公司已规定的数据库 | 若存在强制标准，以该标准为准 | 未另行给出；本次决定就是 MySQL 8 |
-
-### 内网访问与验证
-
-托管 CI 不能访问公司内网，因此不能把真实端点调用放进当前 CI。
-
-| 选项 | 说明 |
+| 问题 | 决定 |
 |---|---|
-| 手工内网联调 | 在能访问内网的环境执行，并保存可复核证据：时间、合成数据、命令、结果和失败。凭据不入库 |
-| 内网自建 runner | 由位于内网的 runner 执行需要内网的检查。凭据放在 runner 环境，不写入仓库 |
+| 对话端点、模型名、上下文、密钥放在哪里 | 配置页。值不入库 |
+| 是否允许云端模型 | 允许切换。敏感项目不能用云端，见配置设计 |
+| 嵌入与向量库 | RAGFlow 自带。不选 Milvus、Qdrant、Elasticsearch 或 pgvector |
+| 业务库 | MySQL 8。2026-10-12，user decision, relayed by PM |
+| 生产生成是否出网 | 生产不出网。开发与测试可以出网 |
+| 密钥是否可进日志 | 不可以。只允许掩码出现在 GET、列表、错误、日志和堆栈 |
 
-两项都未选定。在选定之前，自动化测试只使用假 HTTP 服务或假传输，不调用真实端点。
+并发上限、知识库规模和 OCR 仍没有数字。它们不阻止本 Issue 关闭，也不由本记录假装已经选定。
 
-## 请用户决定的问题
+## 后续设计
 
-1. 对话端点的 base URL 是什么？是否只在内网可达？
-2. 精确模型名是什么？是否就是待确认的 Qwen 30B 服务名？
-3. 上下文长度是多少？
-4. 认证方式是什么？密钥放在哪个环境变量？是否允许空密钥的内网服务？
-5. 允许的并发是多少？超时和失败重试的上限是多少？
-6. 是否允许云端模型？敏感项目是否一律禁止云端？
-7. 嵌入模型的名称和向量维度是什么？
-8. 是否需要重排？若需要，用本地模型还是兼容接口？
-9. 公司是否已有必须沿用的向量库？业务库已决定为 MySQL 8，本题只剩向量库。
-10. 知识库的格式、规模和扫描件 OCR 需求是什么？
-11. 访问隔离怎样划分：公司、项目、敏感项目是否分开存储和调用？
-12. 敏感项目的定义是什么？哪些字段或项目类型算敏感？
-13. 日志怎样才符合要求？提示词、回复和密钥是否禁止落日志？
-14. 业务库：已决定为 MySQL 8（2026-10-12，user decision, relayed by PM）。本题关闭，不解除本 Issue。
-15. 向量库放在哪里？MySQL 8 不能做向量检索，pgvector 同库方案不再适用。向量库仍待决定。
+不在本 Issue 实现。
 
-解除阻塞的条件：用户逐项给出其余决定，或明确写出哪些项继续推迟以及推迟期间禁止做的实现。业务库这一项已经记录。对话模型、嵌入、重排、向量库和内网验证仍未决定，本 Issue 因此继续 blocked。
+- [配置驱动的对话模型](../docs/architecture/model-config-provider.md)，[ISSUE-028](ISSUE-028.md)
+- [RAGFlow 检索适配器](../docs/architecture/ragflow-retrieval-adapter.md)，[ISSUE-029](ISSUE-029.md)
+
+敏感项目拒绝云端配置时，设计采用 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`。主密钥缺失时采用 503 `SECRET_KEY_UNAVAILABLE`。今天的 `require_allowed_model` 仍是 409 `LOCAL_MODEL_REQUIRED`。OpenAPI 草案归后台，本轮不改 `spec/openapi/demo-v1.json`。ISSUE-024 留给模型配置契约，ISSUE-027 留给 Word 样式卡，本仓库不建这两份详情。
 
 ## 影响与分流
 
-- 影响范围：生产模型、知识检索和持久化数据库。相关历史问题是 [ISSUE-005](ISSUE-005.md) 的 DG-06，以及仍 blocked 的 FE-M0-T04。
-- 本次登记业务库决定，仍不引入数据库依赖，不写迁移，不把内存测试改成数据库测试。
-- [ISSUE-011](ISSUE-011.md) 只增加可显式启用的对话适配器，状态为 in-review，默认仍是演示替身。
-- 阻塞原因：向量库、对话模型、嵌入、重排和内网验证仍待决定。业务库已决定不解除本 Issue。
+- 影响范围：生产模型、知识检索和已经决定的 MySQL 8。ISSUE-005 不因此关闭。FE-M0-T04 仍 blocked。
+- 本轮不改运行代码，不加依赖。`httpx` 已在仓库。Fernet 使用 ISSUE-023 已批准的 `cryptography`，本轮不调用。
+- AI-01 改为 in-review。真实端点验收未做，开发者不把 AI-01 标 done。
+- [ISSUE-011](ISSUE-011.md) 已 closed。默认仍是演示替身。
 
 ## 实施任务与互链
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| AI-01 | 列出模型、嵌入、重排、向量、业务库和内网验证选项，并记录用户已经作出的业务库决定 | `issues/ISSUE-010.md` | 业务库决定与其余待决项分开；不把 Issue 标成完成 | blocked |
+| AI-01 | 记录用户决定并同步基线 | 本文件与两份设计 | 决定与真实端点验收分开 | in-review |
 
 ## 验收条目
 
 | 编号 | 可检查的完成条件 | 结果与证据 |
 |---|---|---|
-| AC-01 | 选项覆盖对话模型、嵌入、重排、向量库、业务库和内网验证 | 已写入本文。这只是登记，不是决定通过 |
-| AC-02 | 项目经理的 PostgreSQL 16 / pgvector 建议被标明为建议，并在用户决定后标明未采纳 | 建议仍留在业务数据库表。用户决定的是 MySQL 8，不是该建议 |
-| AC-03 | 用户已确认端点、模型名、上下文、认证、并发、云端、嵌入、重排、向量库、知识库、隔离、敏感定义和日志 | 未执行。业务库不在本条剩余范围内。等待用户 |
-| AC-04 | 选定数据库之后才引入迁移工具；在引入之前测试保持内存实现 | 业务库已决定为 MySQL 8。本记录仍不引入迁移工具，内存实现仍在 |
-| AC-05 | 业务库决定写明日期和来源，且不因此关闭向量库或本 Issue | 2026-10-12，user decision, relayed by PM。向量库仍待决，Issue 仍 blocked |
-
-未完成的 AC-03 不能写成通过。本 Issue 因此保持 blocked。
+| AC-01 | 选项覆盖对话模型、嵌入、重排、向量库、业务库和内网验证 | 已写入本文与 model-choice-2 的历史 |
+| AC-02 | PostgreSQL 16 / pgvector 建议标明未采纳 | 用户决定的是 MySQL 8。向量库改为 RAGFlow 自带 |
+| AC-03 | 用户确认端点放置、云端策略、嵌入、向量库和生产出网范围 | 2026-10-12 三项决定已登记。见 [核对](../docs/testing/2026-10-12-issue-010-decisions.md)。重排产品未选定 |
+| AC-04 | 选定数据库之后才引入迁移工具 | 迁移工具已随 ISSUE-023 进入仓库。本 Issue 的关闭不新增依赖 |
+| AC-05 | 业务库决定写明日期和来源 | 2026-10-12，user decision, relayed by PM。向量库决定另记于同日 |
 
 ## 六份基线 impact 与同步表
 
 | 基线 | impact：有影响 / 无影响 / 待评估及原因 | 更新路径 / 章节 | revision / Issue ID / 日期 | 同步状态 |
 |---|---|---|---|---|
-| PRD | 无影响。没有改变页面、业务规则或验收口径；未决选型不写入产品需求 | `docs/PRD.md` 保持原业务正文 | model-choice-1 / ISSUE-010 / 2026-10-12 | 已核对 |
-| ROADMAP | 有影响。写明业务库已决定为 MySQL 8，其余选型仍待决；页面实施顺序不变 | `docs/ROADMAP.md` 当前计数与 AI 说明 | model-choice-2 / ISSUE-010 / 2026-10-12 | 已核对 |
-| ARCHITECTURE | 有影响。写明业务库为 MySQL 8，向量库仍未选定，内存实现继续用于测试 | `docs/ARCHITECTURE.md` 当前实施段 | model-choice-2 / ISSUE-010 / 2026-10-12 | 已核对 |
-| TASK_BOARD | 有影响。AI-01 为 blocked | `docs/TASK_BOARD.md`、`docs/tasks/AI-M0.md` | model-choice-1 / ISSUE-010 / 2026-10-12 | 已核对 |
-| PROJECT_STATUS | 有影响。进度中单列本决定仍待用户 | `docs/PROJECT_STATUS.md` | model-choice-1 / ISSUE-010 / 2026-10-12 | 已核对 |
-| DOCUMENT_INDEX | 有影响。登记本 Issue、任务卡、交付和同步记录，并改写业务库状态 | `docs/DOCUMENT_INDEX.md` | model-choice-2 / ISSUE-010 / 2026-10-12 | 已核对 |
-| PROJECT_BRIEF | 有影响。2026-10-12 排期行原先未登记；现补登并写上 MySQL 8 | `docs/PROJECT_BRIEF.md` 排期行。0c60842 从 340 项 18 done 改为 342 项 19 done，不回退。与 T008 的 in-review 及 REV-M0-T05 合并后为 343 项 18 done、2 in-review | model-choice-2 / ISSUE-010 / 2026-10-12 | 已核对 |
+| PRD | 无影响。P030 已有「模型配置」页名。本轮不增加验收步骤，也不改任务计数 | `docs/PRD.md` | model-choice-3 / ISSUE-010 / 2026-10-12 | 已核对 |
+| ROADMAP | 有影响。只改决定用词。任务计数留给 ISSUE-026，本轮不改数字 | `docs/ROADMAP.md` | model-choice-3 / ISSUE-010 / 2026-10-12 | 已核对 |
+| ARCHITECTURE | 有影响。写明配置页与 RAGFlow，并标明尚未实现 | `docs/ARCHITECTURE.md` 当前实施段 | model-choice-3 / ISSUE-010 / 2026-10-12 | 已核对 |
+| TASK_BOARD | 有影响。AI-01 改为 in-review | `docs/TASK_BOARD.md`、`docs/tasks/AI-M0.md` | model-choice-3 / ISSUE-010 / 2026-10-12 | 已核对 |
+| PROJECT_STATUS | 有影响。进度改为决定已登记、端点未接通 | `docs/PROJECT_STATUS.md` | model-choice-3 / ISSUE-010 / 2026-10-12 | 已核对 |
+| DOCUMENT_INDEX | 有影响。登记设计、核对和 ISSUE-028、ISSUE-029 | `docs/DOCUMENT_INDEX.md` | model-choice-3 / ISSUE-010 / 2026-10-12 | 已核对 |
+| PROJECT_BRIEF | 有影响。只改「仍待决定」这句。任务计数不改 | `docs/PROJECT_BRIEF.md` 排期行 | model-choice-3 / ISSUE-010 / 2026-10-12 | 已核对 |
 
-治理块保持 g1.1 / 2026-10-11 / ISSUE-007，因为本轮没有修改协作规则。`docs/reference/` 未改。PRD 仍无影响：没有改变页面、业务规则或验收口径。
+治理块保持 g1.1 / 2026-10-11 / ISSUE-007。`docs/reference/` 未改。
 
 ## 处理与复核记录
 
 | 日期 | revision / 状态 | 完成事实、问题与下一步 | 证据 / 复核人 |
 |---|---|---|---|
-| 2026-10-12 | model-choice-1 / blocked | 已登记选项、项目经理建议和未决问题。用户当时尚未决定 | 本文与 [AI-01 交付](../docs/delivery/AI-01.md) |
-| 2026-10-12 | model-choice-2 / blocked | 用户决定业务库为 MySQL 8（user decision, relayed by PM）。向量库、对话模型、嵌入和重排仍待决，Issue 不关闭 | 本文 |
+| 2026-10-12 | model-choice-1 / blocked | 已登记选项和建议。用户当时尚未决定 | 本文 |
+| 2026-10-12 | model-choice-2 / blocked | 用户决定业务库为 MySQL 8。其余项当时仍待决 | 本文 |
+| 2026-10-12 | model-choice-3 / closed | 用户决定配置页、RAGFlow 自带嵌入与向量库、生产生成仅内网。AI-01 改为 in-review。真实端点未验收 | [核对](../docs/testing/2026-10-12-issue-010-decisions.md) |
 
 ## 本地验收与后续合入发布
 
-- 本地验收结论与日期：未通过。2026-10-12 只完成登记。
-- 验证方式：文档核对。没有运行选型验收，也没有连接内网。
+- 本地验收结论与日期：决定登记于 2026-10-12 完成。真实连接未执行。
+- 验证方式：文档核对。没有连接内网或调用模型。
 - 六份基线同步与互链复核：见上表和 [同步记录](../docs/governance/ISSUE-010-sync.md)。
 - PR 状态：未创建。
 - 合入提交与日期：未合入。

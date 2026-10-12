@@ -34,7 +34,7 @@
 
 2026-10-10：FE-M0-T03进入评审准备，形成 [一期交付建议](../docs/decisions/phase-one-scope.md)，用户确认技术、商务两册。其他生产边界仍待决定；本地后端demo按 [ISSUE-006](ISSUE-006.md) 独立实施，模型和数据库先用可替换演示实现，不以demo验收代替本Issue全部门禁。
 
-2026-10-12：对话模型、嵌入、重排、向量库、业务库和内网验证方式另记 [ISSUE-010](ISSUE-010.md)。同日用户决定业务库为 MySQL 8（user decision, relayed by PM）；PostgreSQL 16 与 pgvector 的建议未采纳。向量库、对话模型、嵌入和重排仍待决定，ISSUE-010 整体仍 blocked。本聚合门禁不因此关闭。
+2026-10-12：对话模型、嵌入、重排、向量库、业务库和内网验证方式另记 [ISSUE-010](ISSUE-010.md)。同日用户决定业务库为 MySQL 8，对话模型由配置页提供，嵌入与向量库用 RAGFlow 自带能力，生产生成只在内网（user decision, relayed by PM）。ISSUE-010 已 closed。适配器未实现。本聚合门禁不因此关闭。
 
 需要产品负责人、前后端责任方共同确认；技术方案v1.4.2/有效设计版本未取得，或需留下经评审替代依据。当前不擅自选择MySQL/其他关系库、React/Vue、LangGraph/Dify或集群部署。
 

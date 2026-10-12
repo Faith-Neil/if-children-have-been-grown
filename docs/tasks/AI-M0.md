@@ -12,7 +12,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | blocked |
+| 状态 | in-review |
 | 估算 | 记录选项本身不依赖外部接口；用户决定的等待时间不计入实现 |
 | 关联 Issue | [ISSUE-010](../../issues/ISSUE-010.md)，并回链 [ISSUE-005](../../issues/ISSUE-005.md) |
 | 依赖 | [FE-M0-T02](FE-M0.md#fe-m0-t02)。不依赖尚未选定的端点或数据库 |
@@ -22,14 +22,12 @@
 
 范围：列出对话模型、嵌入、重排、向量库、业务库和内网验证的可选项，以及需要用户回答的问题。项目经理对 PostgreSQL 16 与 pgvector 的意见只记为建议，用户没有采纳。
 
-当前条件：2026-10-12 用户决定业务库为 MySQL 8（user decision, relayed by PM）。MySQL 8 没有向量检索，向量库、对话模型、嵌入和重排仍待决定，本卡保持 blocked。托管 CI 不能访问公司内网。本卡不引入迁移工具，单元测试继续使用内存实现。
-
-解除阻塞：用户书面确认其余问题，或明确哪些项继续推迟。向量库未决定前不能把它写成已选方案。
+当前条件：2026-10-12 用户决定业务库为 MySQL 8，对话模型由配置页提供，嵌入与向量库用 RAGFlow 自带能力，生产生成只在内网（user decision, relayed by PM）。ISSUE-010 已 closed。本卡为 in-review。托管 CI 不能访问公司内网。本卡不改运行代码。
 
 可验证验收：
 
 - [x] 选项和未决问题已写入 ISSUE-010，建议与决定分开。
-- [ ] 用户已作出选择，PRD、路线图和架构按该选择更新。
+- [x] 用户已作出选择，路线图和架构的决定用词已更新。PRD 不新增验收。PRD、路线图和 brief 的任务计数未改。
 - [ ] 选定后的真实端点或库有独立验收，不由本登记代替。
 
 <a id="ai-02"></a>
@@ -57,7 +55,7 @@
 - [x] `tests/backend/test_reference_boundaries.py` 包含在全后台回归中。
 - [x] 交付、代码解释、验证记录和基线同步已登记。真实内网调用不在本卡。
 
-项目经理于 10-12 12:10 在 QA 签署后确认。状态为 done。合入和发布仍未发生。真实端点仍随 ISSUE-010，该 Issue 仍 blocked。
+项目经理于 10-12 12:10 在 QA 签署后确认。状态为 done。合入和发布仍未发生。ISSUE-010 已 closed，真实端点仍未验收。
 
 <a id="ai-03"></a>
 
@@ -68,14 +66,14 @@
 | 状态 | in-review |
 | 估算 | 在现有协议旁增加内存检索口，不接外部服务 |
 | 关联 Issue | [ISSUE-016](../../issues/ISSUE-016.md) |
-| 依赖 | [BE-M0-T01](BE-M0.md#be-m0-t01) 的替换口。不依赖 ISSUE-010 尚未决定的向量库 |
+| 依赖 | [BE-M0-T01](BE-M0.md#be-m0-t01) 的替换口。向量库已定为 RAGFlow 自带，本卡仍不连接它 |
 | PRD / 架构出处 | [前端架构](../ARCHITECTURE.md) 当前实施段。业务库为 MySQL 8，本卡不连接它 |
 | 完成时交付 | [交付](../delivery/AI-03.md) |
 | 代码解释 | [代码解释](../code/AI-03.md) |
 
 范围：定义 `EmbeddingProvider.embed`、`RerankProvider.rerank` 和 `VectorStore.upsert/search`。搜索按 `company_id`、`status` 和 `type` 过滤。三者都只提供内存实现。`EvidenceCandidateService` 产出路径 A（已确认资料上的规则）、路径 B（嵌入、按公司检索、重排）和路径 C（历史投标，仅供参考且不可附着）。B 或 C 失败，或知识库关闭时，保留 A 并记录跳过原因。
 
-当前条件：不连接 MySQL，不选定向量库，不新增依赖，不挂到 `create_app`。
+当前条件：不连接 MySQL，不连接 RAGFlow，不新增依赖，不挂到 `create_app`。向量库选型已在 ISSUE-010 关闭，不由本卡实现。
 
 可验证验收：
 

@@ -40,7 +40,7 @@
 
 ## 项目进度
 
-本卡保持 in-review。看板计数本轮不改，以 `docs/TASK_BOARD.md` 为准。AI-01 仍 blocked。PR 未合入，未发布。
+本卡保持 in-review。看板计数以 `docs/TASK_BOARD.md` 为准。AI-01 已改为 in-review。PR 未合入，未发布。
 
 ## 文档与 Issue 同步
 
@@ -59,4 +59,4 @@
 
 ## 风险与后续
 
-ISSUE-010 正文仍写向量库、对话模型、嵌入和重排未决定，该 Issue 保持 blocked。本卡只在草案中记录 RAGFlow 决定。健康检查继续报告 `persistent: false`。
+起草时 ISSUE-010 仍写未决定。该 Issue 现已关闭。本卡只在草案中记录 RAGFlow 放置，不实现适配器。健康检查继续报告 `persistent: false`。
