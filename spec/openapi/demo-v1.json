@@ -188,6 +188,471 @@
         }
       }
     },
+    "/api/v1/chapters/{chapter_id}/lock": {
+      "post": {
+        "summary": "Acquire V1 Lock",
+        "operationId": "acquire_v1_lock_api_v1_chapters__chapter_id__lock_post",
+        "parameters": [
+          {
+            "name": "chapter_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Chapter Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LockRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaseResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "请求字段验证失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "后端演示服务异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "423": {
+            "description": "编辑权被占用或已失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chapters/{chapter_id}/lock/renew": {
+      "post": {
+        "summary": "Renew V1 Lock",
+        "operationId": "renew_v1_lock_api_v1_chapters__chapter_id__lock_renew_post",
+        "parameters": [
+          {
+            "name": "chapter_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Chapter Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeaseResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "请求字段验证失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "后端演示服务异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "423": {
+            "description": "编辑权被占用或已失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chapters/{chapter_id}/lock/release": {
+      "post": {
+        "summary": "Release V1 Lock",
+        "operationId": "release_v1_lock_api_v1_chapters__chapter_id__lock_release_post",
+        "parameters": [
+          {
+            "name": "chapter_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Chapter Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleasedResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "请求字段验证失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "后端演示服务异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "423": {
+            "description": "编辑权被占用或已失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/session": {
       "get": {
         "summary": "Get Session",

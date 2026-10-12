@@ -22,3 +22,7 @@
 数据库决定只记在文档里。本轮没有 MySQL 驱动、迁移、连接配置或表结构。PR #3 未合入，也没有新开 PR。T02 与 T03 的 done 不是 Issue 关闭，也不是发布。
 
 DG-01～DG-04、DG-06，以及 DG-05 的锁迁移、导出快照、202/SSE、operationId，都还没有验收。
+
+## lease-v1
+
+2026-10-12：BE-M0-T04 改为 in-review。三条 `POST /api/v1/chapters/{chapter_id}/lock`、`/lock/renew`、`/lock/release` 调用原租约规则，时长 120 秒。旧 `/api` 三条锁路由保留给编辑页和 `/demo`。没有重跑 `export_openapi.py`，没有新增错误码。`operationId` 留给 BE-M0-T07。ISSUE-005 仍为 in-progress，revision 为 progress-5。看板为 387 项：51 done、12 in-review、7 in-progress、265 planned、48 blocked、4 ready。BE-M0 为 19 项，9 项 done。T05～T07 仍为 ready。上文表格里的 356 项和 progress-4 是当时记录，不回写。

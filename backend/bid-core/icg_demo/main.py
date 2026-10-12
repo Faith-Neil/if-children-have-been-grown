@@ -197,6 +197,22 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     def release_lock(chapter_id: str, body: LeaseRequest, user: User):
         return service.release_lock(user, chapter_id, body.lease_token)
 
+    # 旧 /api 入口留给验证页。产品入口使用同一套租约规则，错误体改为 v1。
+    @application.post("/api/v1/chapters/{chapter_id}/lock", response_model=LeaseResponse,
+                      responses=v1_error_responses(401, 403, 404, 409, 423))
+    def acquire_v1_lock(chapter_id: str, body: LockRequest, user: User):
+        return service.acquire_lock(user, chapter_id, body.takeover_reason)
+
+    @application.post("/api/v1/chapters/{chapter_id}/lock/renew", response_model=LeaseResponse,
+                      responses=v1_error_responses(401, 403, 404, 423))
+    def renew_v1_lock(chapter_id: str, body: LeaseRequest, user: User):
+        return service.renew_lock(user, chapter_id, body.lease_token)
+
+    @application.post("/api/v1/chapters/{chapter_id}/lock/release", response_model=ReleasedResponse,
+                      responses=v1_error_responses(401, 403, 404, 423))
+    def release_v1_lock(chapter_id: str, body: LeaseRequest, user: User):
+        return service.release_lock(user, chapter_id, body.lease_token)
+
     @application.put("/api/chapters/{chapter_id}/draft", response_model=DraftResponse,
                      responses=error_responses(401, 403, 404, 409, 423))
     def save_draft(chapter_id: str, body: DraftRequest, user: User):
