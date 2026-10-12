@@ -1,5 +1,5 @@
 # 为什么有这个文件：让回执、会话、编辑租约和项目测试在一个新的解释器里调用演示接口。
-# 它解决什么问题：子进程不会经过 pytest 的路径注入，必须自己找到后台包。
+# 它解决什么问题：子进程不会经过 pytest 的路径注入，必须自己找到后台包。释放也走这一层。
 
 from __future__ import annotations
 
@@ -125,6 +125,18 @@ def run_action(action: str, payload: dict, queue) -> None:
                     "team": team.status_code,
                     "workspace": workspace.status_code,
                 },
+            })
+            return
+        if action == "lock_release":
+            response = client.post(
+                "/api/chapters/" + payload.get("chapter_id", "alpha-tech") + "/lock/release",
+                headers={"Authorization": "Bearer " + payload["token"]},
+                json={"lease_token": payload["lease_token"]},
+            )
+            queue.put({
+                "ok": response.status_code == 200,
+                "status": response.status_code,
+                "body": body_of(response),
             })
             return
         if action == "lock_renew":

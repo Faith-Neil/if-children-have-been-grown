@@ -84,6 +84,7 @@ PROJECT_BRIEF 排期行随任务数改为 352 项，记在下方同步表。
 | 2026-10-12 | impl-3 / in-progress | BE-M0-T12 提交编辑租约。续期后占用者不变，过期后其他会话可以接管。字典 v1.9 对照写在方案第 5 节，偏差需要项目经理批准。T13 仍 planned。不标 closed | [BE-M0-T12](../docs/delivery/BE-M0-T12.md) |
 | 2026-10-12 | impl-4 / in-progress | BE-M0-T13 提交项目聚合。另一个进程能看见已提交项目，看不见其新章节。字典 v1.9 对照写在方案第 6 节，偏差需要项目经理批准。章节及其他聚合仍在内存。不标 closed | [BE-M0-T13](../docs/delivery/BE-M0-T13.md) |
 | 2026-10-12 | impl-4 / in-progress | 项目经理有条件批准方案第 5 节偏差。对齐登记为 [ISSUE-032](ISSUE-032.md) / BE-M0-T17，状态 new / planned。本 Issue 仍 in-progress。T12 与 T13 仍 in-review | [ISSUE-032](ISSUE-032.md) |
+| 2026-10-12 | impl-4 / in-progress | QA ae6fd10，PM 15:32 确认。BE-M0-T12 标为 done。本 Issue 仍 in-progress。T13 仍 in-review。释放后库内行删除，已补 mysql 测试 | [BE-M0-T12](../docs/delivery/BE-M0-T12.md) |
 
 ## 本地验收与后续合入发布
 
