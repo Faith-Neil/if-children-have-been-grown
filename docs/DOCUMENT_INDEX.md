@@ -202,7 +202,7 @@
 | D-189 | 2026-10-12 | [离线CI代码解释](code/APP-M2-T008.md) | 说明 | offline-ci-1 | 当前 | ISSUE-012 / APP-M2-T008 | 作业顺序、缓存、会话脚本与smoke_t06分步 |
 | D-190 | 2026-10-12 | [离线CI验证](testing/2026-10-12-offline-ci.md) | 验证 | offline-ci-1 | 本地通过 | ISSUE-012 / APP-M2-T008 | 运行 38200746746：262/15/12/72/35；不含soffice |
 | D-191 | 2026-10-12 | [离线CI同步](governance/ISSUE-012-sync.md) | 治理 | offline-ci-1 | 已核对 | ISSUE-012 / APP-M2-T008 | 补 PROJECT_BRIEF 的日期与计数；T008 改回 in-review |
-| D-192 | 2026-10-12 | [离线CI工作流](../.github/workflows/offline-check.yml) | 工程 | mysql-ci-1 | 当前 | ISSUE-012 / APP-M2-T008；ISSUE-025 / BE-M0-T14 | ubuntu-24.04；backend-mysql 任一跳过即失败；不导出 ICG_MYSQL_PASSWORD |
+| D-192 | 2026-10-12 | [离线CI工作流](../.github/workflows/offline-check.yml) | 工程 | mysql-ci-1 | 当前 | ISSUE-012 / APP-M2-T008；ISSUE-025 / BE-M0-T14；ISSUE-019 / REV-M0-T06 | ubuntu-24.04；backend-mysql 任一跳过即失败；e2e 失败阻断工作流；不导出 ICG_MYSQL_PASSWORD |
 | D-193 | 2026-10-12 | [模型与数据库决定](../issues/ISSUE-010.md) | 决策 | model-choice-3 | closed | ISSUE-010 / AI-01 | 配置页、RAGFlow、生产仅内网；真实端点未验收 |
 | D-194 | 2026-10-12 | [兼容适配器事项](../issues/ISSUE-011.md) | 变更 | openai-adapter-3 | closed | ISSUE-011 / AI-02 | 项目经理于 10-12 12:10 在 QA 签署后确认；未合入 |
 | D-195 | 2026-10-12 | [模型准备任务](tasks/AI-M0.md) | 实施 | model-config-fixture-1 | 当前 | ISSUE-010 / AI-01；ISSUE-011 / AI-02；ISSUE-016 / AI-03 | AI-01为in-review。CI 假服务已勾选。真实端点未验收 |
@@ -255,7 +255,7 @@
 | D-243 | 2026-10-12 | [BE-M0-T02/T03签署复核](testing/2026-10-12-be-m0-t02-t03-signoff.md) | 验证 | qa-signoff-be | 本地通过 | ISSUE-013 / REV-M0-T07 | 308/15/12/77/35、探针47/47、Actions 38203448527成功 |
 | D-244 | 2026-10-12 | [BE签署复核交付](delivery/REV-M0-T07.md) | 交付 | qa-signoff-be | 已本地验收 | ISSUE-013 / REV-M0-T07 | 仅QA探针脚本；结论与Q1缺口 |
 | D-245 | 2026-10-12 | [E2E Issue](../issues/ISSUE-019.md) | 审查 | e2e-1 | in-review | ISSUE-019 / REV-M0-T06 | Playwright仅测试依赖 |
-| D-246 | 2026-10-12 | [E2E与T001签署](testing/2026-10-12-e2e-t001-signoff.md) | 验证 | e2e-1 | 本地执行 | ISSUE-019 / REV-M0-T06；ISSUE-013 / REV-M0-T08 | 11项E2E；CI 作业暂不阻断，计划 2026-10-19 再评估改为必需 |
+| D-246 | 2026-10-12 | [E2E与T001签署](testing/2026-10-12-e2e-t001-signoff.md) | 验证 | e2e-1 | 本地执行 | ISSUE-019 / REV-M0-T06；ISSUE-013 / REV-M0-T08 | 11项E2E。用户与项目经理确认后 e2e 改为必需。ISSUE-019 仍 in-review |
 | D-247 | 2026-10-12 | [E2E交付](delivery/REV-M0-T06.md) | 交付 | e2e-1 | in-review | ISSUE-019 / REV-M0-T06 | 命令、覆盖与剩余 |
 | D-248 | 2026-10-12 | [E2E代码解释](code/REV-M0-T06.md) | 说明 | e2e-1 | in-review | ISSUE-019 / REV-M0-T06 | 启动顺序与用例思路 |
 | D-249 | 2026-10-12 | [T001签署交付](delivery/REV-M0-T08.md) | 交付 | qa-rerun-3 | in-review | ISSUE-013 / REV-M0-T08 | 签署结论与缺陷 |
@@ -527,6 +527,7 @@
 | 2026-10-12 | ISSUE-033 / BE-M0-T18；ISSUE-035 / BE-M0-T19 | 项目经理批准挂证据沿用已有错误码，并有条件批准方案第 6 节偏差。BE-M0-T18 改为 in-review：过期为 409 EVIDENCE_EXPIRED，仅供参考和缺协议为 409 EVIDENCE_NOT_USABLE 且说明不同，无权受限资料为 403 FORBIDDEN。字段名是 is_restricted，与冻结的 EvidenceMountFields 一致。不新增错误码。登记 ISSUE-035，状态 new，BE-M0-T19 为 planned，等正式项目表和成员表存在后再迁移，保留历史行。对照表下补上「偏差已获 PM 有条件批准，待 ISSUE-035 对齐」。看板为 386 项：49 done、12 in-review、7 in-progress、265 planned、48 blocked、5 ready。不改 PRD、ROADMAP、PROJECT_BRIEF，不改 docs/reference，不改 .github。T13 仍 in-review。T078 与 T114 保持上游 done。T124 保持 ready。不另开 ISSUE-034。ISSUE-036 保持上游 in-review |
 | 2026-10-12 | ISSUE-018 / BE-M0-T13；ISSUE-013 / REV-M0-T23 | 项目经理确认 BE-M0-T13 与 REV-M0-T23 为 done，依据是 QA ae38ec3，PM 17:16 确认。ISSUE-018 仍为 in-progress。ISSUE-035 仍为 new，BE-M0-T19 仍为 planned。ISSUE-033 与 BE-M0-T18 仍为 in-review。看板为 386 项：50 done、11 in-review、7 in-progress、265 planned、48 blocked、5 ready。BE-M0 为 8/19 done。不改 PRD、ROADMAP、PROJECT_BRIEF，不改 docs/reference，不改 .github |
 | 2026-10-12 | ISSUE-028 / AI-01 | AC-03 证据已备，待 QA 勾选。夹具提交 `9e3fcdd` 不改 `spec/openapi/demo-v1.json` 与 `backend/bid-core/requirements.txt`。尖端 `20f2b92` 上这两份依赖与 `openai_model.py` 的 blob 仍相同；OpenAPI 差异只来自 `af51151`。ISSUE-024 与 AC-04 仍等待。路径规范化 hold，真模型冒烟另计。不改任务计数。ISSUE-028 与 AI-01 仍 in-review。不标 closed |
+| 2026-10-12 | ISSUE-019 / REV-M0-T06 | 用户与项目经理确认后，offline-check 的 e2e 作业去掉 continue-on-error，失败会阻断工作流。依据是 D3/D4 已修复，用例已无 test.fail()，运行 38205346950 为 11 passed。超时、权限和产物上传不变。不改任务计数。ISSUE-019 与 REV-M0-T06 仍 in-review。不改 PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF |
 
 ## 缺失输入
 

@@ -185,7 +185,6 @@ jobs:
     name: e2e
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    continue-on-error: true
     permissions:
       contents: read
       actions: write
