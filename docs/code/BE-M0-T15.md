@@ -11,7 +11,7 @@
 
 旧的 `build_docx` 把每一行写成普通段落，标题只用 Title 样式，表头不加粗，默认字体没有 hAnsi，也没有编号、目录、页眉页脚和第二节。QA 的 W1～W4 都出在这里。分册导出还把章节名和正文用换行拼在一起，所以章节名也是普通段落。
 
-现在 `DocxStyle` 保存纸张边距、封面、三级标题、正文、表格、页眉页脚和目录的字体与字号。`DEFAULT_DOCX_STYLE` 是 [已确认规格](../standards/word-default-style.md)。`build_docx(..., style=None, project_name=None)` 在未传入版式时用这份默认值。传入另一份 `DocxStyle` 时，边距和字体按那一份写。封面标题的 eastAsia、ascii 和 hAnsi 都是方正小标宋。黑体只在本机没有方正小标宋时由系统替换，不是拉丁或西文回退。一级标题默认居中；规格允许居中或左对齐，把 `h1_align` 改成 `left` 即可覆盖。其余字体三个属性写同一个字体名。
+现在 `DocxStyle` 保存纸张边距、封面、三级标题、正文、表格、页眉页脚和目录的字体与字号。`DEFAULT_DOCX_STYLE` 是 [已确认规格](../standards/word-default-style.md)。`build_docx(..., style=None, project_name=None)` 在未传入版式时用这份默认值。传入另一份 `DocxStyle` 时，边距和字体按那一份写。封面标题的 eastAsia、ascii 和 hAnsi 都是方正小标宋。docx 不能指定缺失字体由哪一种字体替换，由 Word 或 WPS 决定。要保证版式效果，请在本机安装方正小标宋。黑体仍是用户批准的替代字体，不是拉丁回退。一级标题默认居中；规格允许居中或左对齐，把 `h1_align` 改成 `left` 即可覆盖。其余字体三个属性写同一个字体名。
 
 ## 入口和调用顺序
 

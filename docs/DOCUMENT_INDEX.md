@@ -388,7 +388,7 @@
 | 2026-10-12 | ISSUE-013 / REV-M0-T11 | QA复验签署APP-M2-T001与APP-M2-T002通过（两卡仍in-review待项目经理标done）；365项28done |
 | 2026-10-12 | ISSUE-013 / REV-M0-T12 | QA签署BE-M0-T14托管MySQL CI通过（T14与ISSUE-025仍in-review待项目经理标done）；366项29done |
 | 2026-10-12 | ISSUE-022 / APP-M2-T078 | 方案补两句：GET 返回 ETag，供 If-Match 使用；被拦截的发布仍算成功，必须记下幂等回执。仍不写代码。T078 仍 planned，T124 仍 blocked。不改任务计数 |
-| 2026-10-12 | ISSUE-027 / BE-M0-T15 | Q1 正文首行缩进补 firstLine=560；Q2 无标题时不写目录和 TOC 域；Q3 规格中的黑体说明改为中文。不新增任务，不改变卡片状态。PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF 未改 |
+| 2026-10-12 | ISSUE-027 / BE-M0-T15 | Q1 正文首行缩进补 firstLine=560；Q2 无标题时不写目录和 TOC 域；Q3 规格改为中文：docx 不能指定缺失字体的替换字体，由 Word 或 WPS 决定，要保证效果需安装方正小标宋。不新增任务，不改变卡片状态。PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF 未改 |
 
 ## 缺失输入
 

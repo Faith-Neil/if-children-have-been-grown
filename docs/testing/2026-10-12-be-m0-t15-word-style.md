@@ -21,7 +21,7 @@
 | M2 | 承诺函封面没有项目名称 | 下载路由传入 `project_name`，CoverProject 为黑体 16 磅、居中 |
 | Q1 | 首行缩进只写了 `firstLineChars` | 正文 `w:ind` 同时写 `w:firstLineChars="200"` 和 `w:firstLine="560"` |
 | Q2 | 没有标题时仍写出“目录”和 TOC 域 | 正文没有 `# `、`## `、`### ` 时不写目录标题，也不写 TOC 域 |
-| Q3 | 规格文件用英文说明黑体替代 | `docs/standards/word-default-style.md` 改为中文：黑体只在未安装方正小标宋时使用，不是拉丁或西文回退 |
+| Q3 | 规格文件用英文说明黑体替代 | 改为中文：docx 不能指定缺失字体的替换字体，由 Word 或 WPS 决定；要保证效果，请在本机安装方正小标宋。黑体仍是用户批准的替代字体，不是拉丁回退 |
 
 ## 命令
 
@@ -38,7 +38,7 @@ env -u ICG_DATABASE_URL -u ICG_REQUIRE_MYSQL python3 -m pytest tests/backend -q
 治理检查在同一工作区执行 `node scripts/check-project-governance.cjs`。输出：
 
 ```text
-治理检查通过：225 份 Markdown、365 项任务、28 项 Issue。
+治理检查通过：227 份 Markdown、366 项任务、28 项 Issue。
 ```
 
 ## 局限

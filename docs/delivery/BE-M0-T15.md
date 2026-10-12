@@ -9,7 +9,7 @@
 |---|---|
 | 任务ID | BE-M0-T15 |
 | 代码解释 | [BE-M0-T15](../code/BE-M0-T15.md) |
-| 验收 | 2026-10-12，`env -u ICG_DATABASE_URL -u ICG_REQUIRE_MYSQL python3 -m pytest tests/backend -q`：335 passed，2 skipped。`node scripts/check-project-governance.cjs`：治理检查通过：225 份 Markdown、365 项任务、28 项 Issue。合成 docx 断言 firstLineChars=200 与 firstLine=560、无标题时不写目录、有标题时写目录占位、封面下一页分节、方正小标宋三种属性、承诺函项目名称、标题、表头、页码和页边距。规格中的黑体说明为中文 |
+| 验收 | 2026-10-12，`env -u ICG_DATABASE_URL -u ICG_REQUIRE_MYSQL python3 -m pytest tests/backend -q`：335 passed，2 skipped。`node scripts/check-project-governance.cjs`：治理检查通过：227 份 Markdown、366 项任务、28 项 Issue。合成 docx 断言 firstLineChars=200 与 firstLine=560、无标题时不写目录、有标题时写目录占位、封面下一页分节、方正小标宋三种属性、承诺函项目名称、标题、表头、页码和页边距。规格用中文说明缺失字体由 Word 或 WPS 决定，要保证效果需安装方正小标宋 |
 | 项目进度 | 363 项：26 done、9 in-review、7 in-progress、268 planned、49 blocked、4 ready。BE-M0 为 15 项，5 项 done。T14 仍是托管 MySQL 作业。本卡 in-review，不标 done |
 <!-- task-delivery:end -->
 
@@ -24,7 +24,7 @@
 
 已确认规格见 [Word 默认版式](../standards/word-default-style.md)。`build_docx` 在 `backend/bid-core/icg_demo/docx_style.py`。
 
-封面节写 `<w:type w:val="nextPage"/>`，封面单独成页且没有页码，正文页码从 1 开始。封面标题三种字体属性都是方正小标宋。黑体只在未安装该字体时由本机替换，不是拉丁回退；这句话在规格文件里用中文写明。承诺函下载把项目名称传给 `build_docx`，封面项目名称是黑体 16 磅、居中。正文样式首行缩进同时写 `w:firstLineChars="200"` 和 `w:firstLine="560"`。正文没有标题标记时，不再把文档标题再写成 Heading 1，也不写“目录”和 TOC 域。有标题时，目录前有宋体、非标题的“目录”，TOC 域的占位文字是“右键更新域以生成目录”。一级标题默认居中，`h1_align="left"` 可以改成左对齐。
+封面节写 `<w:type w:val="nextPage"/>`，封面单独成页且没有页码，正文页码从 1 开始。封面标题三种字体属性都是方正小标宋。规格用中文写明：docx 不能指定缺失字体的替换字体，由 Word 或 WPS 决定；要保证效果，请在本机安装方正小标宋。黑体仍是用户批准的替代字体，不是拉丁回退。承诺函下载把项目名称传给 `build_docx`，封面项目名称是黑体 16 磅、居中。正文样式首行缩进同时写 `w:firstLineChars="200"` 和 `w:firstLine="560"`。正文没有标题标记时，不再把文档标题再写成 Heading 1，也不写“目录”和 TOC 域。有标题时，目录前有宋体、非标题的“目录”，TOC 域的占位文字是“右键更新域以生成目录”。一级标题默认居中，`h1_align="left"` 可以改成左对齐。
 
 分册导出用 `chapter_export_block` 把章节名写成一级标题。调用方可以传入 `style` 覆盖默认值。未新增依赖。
 
@@ -55,4 +55,4 @@
 
 ## 风险与后续
 
-客户机器上没有方正小标宋、楷体_GB2312 或仿宋_GB2312 时，版式会落到系统回退字体。目录域的结果要等 Word 更新域之后才展开；`w:updateFields` 只是打开时的提示，不是已经算好的目录。视觉签收和客户模板不在本卡。
+客户机器上没有方正小标宋、楷体_GB2312 或仿宋_GB2312 时，docx 不能指定由哪一种字体替换，由 Word 或 WPS 决定。要保证效果，请在本机安装这些字体。目录域的结果要等 Word 更新域之后才展开；`w:updateFields` 只是打开时的提示，不是已经算好的目录。视觉签收和客户模板不在本卡。

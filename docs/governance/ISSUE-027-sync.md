@@ -20,4 +20,4 @@
 
 同一提交按项目经理在 QA 签署 16cf971 后的确认，把 ISSUE-023 标为 closed。Issue 状态词表没有 done，完成状态使用 closed。BE-M0-T10 在 ISSUE-023 的任务表和影响表改为 done。
 
-2026-10-12 补 Q1～Q3：正文首行缩进补 `w:firstLine="560"`，没有标题时不写目录，规格中的英文黑体说明改为中文。本跟进不新增任务，也不改变 BE-M0-T15 的 in-review。PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF 的计数句子保持看板上已有的数字，本提交不改这四份。`docs/reference` 未改。卡片仍为 in-review。
+2026-10-12 补 Q1～Q3：正文首行缩进补 `w:firstLine="560"`，没有标题时不写目录。规格中的英文字段改为中文：docx 不能指定缺失字体的替换字体，由 Word 或 WPS 决定；要保证效果，请在本机安装方正小标宋。黑体仍是用户批准的替代字体，不是拉丁回退。本跟进不新增任务，也不改变 BE-M0-T15 的 in-review。PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF 的计数句子保持看板上已有的数字，本提交不改这四份。`docs/reference` 未改。卡片仍为 in-review。

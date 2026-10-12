@@ -68,7 +68,7 @@ PROJECT_BRIEF 排期行的任务计数一并改为 363 项，记在同步表。B
 |---|---|---|---|
 | 2026-10-12 | style-1 / in-review | 默认版式已写入导出。done 与 closed 等待项目经理在 QA 后设置 | [验证](../docs/testing/2026-10-12-be-m0-t15-word-style.md) |
 | 2026-10-12 | style-1 / in-review | 封面单独成页；无标题正文不重复标题；目录有非标题“目录”和占位文字；承诺函封面写项目名称；封面标题三种字体属性都是方正小标宋 | [规格](../docs/standards/word-default-style.md) |
-| 2026-10-12 | style-1 / in-review | Q1：正文首行缩进同时写 firstLineChars=200 和 firstLine=560。Q2：没有标题时不写“目录”和 TOC 域。Q3：规格里的黑体说明改为中文。仍不标 done | [规格](../docs/standards/word-default-style.md) |
+| 2026-10-12 | style-1 / in-review | Q1：正文首行缩进同时写 firstLineChars=200 和 firstLine=560。Q2：没有标题时不写“目录”和 TOC 域。Q3：规格改为中文，说明 docx 不能指定缺失字体的替换字体，由 Word 或 WPS 决定，要保证效果需安装方正小标宋。仍不标 done | [规格](../docs/standards/word-default-style.md) |
 
 ## 本地验收与后续合入发布
 
