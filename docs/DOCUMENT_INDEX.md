@@ -21,7 +21,7 @@
 | D-009 | 2026-10-09 | [基线差异](decisions/baseline-gaps.md) | 决策 | 初版 | 待评审 | FE-M0-T01 | 16项版本、范围与选型差异 |
 | D-010 | 2026-10-09 | [PR #1 评审](reviews/pr-1-integration.md) | 协作 | 初版 / g1.0后续记录 | 待整合 | ISSUE-001 / ISSUE-003 | 系统/前端分层及后续规则、索引整合提醒 |
 | D-011 | 2026-10-09 | [原型说明](../prototypes/bidding-ux/README.md) | 原型 | 静态演示 | 当前 | ISSUE-002 / FE-M0-T01 | 离线打开、启动方法与模拟范围 |
-| D-012 | 2026-10-12 | [Issue 看板](../issues/index.md) | 问题 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010；ISSUE-017；ISSUE-024；ISSUE-031 | 017已closed，未部署；024、032、035为new；033、036为in-review；009、014、016、020、022、025、026、029、031已closed；027、028、030为in-review；010与023已closed |
+| D-012 | 2026-10-12 | [Issue 看板](../issues/index.md) | 问题 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010；ISSUE-017；ISSUE-024；ISSUE-031 | 017已closed，未部署；024、032、035为new；033、034、036为in-review；009、014、016、020、022、025、026、029、031已closed；027、028、030为in-review；010与023已closed |
 | D-013 | 2026-10-09 | [首轮测试](testing/2026-10-09-repository-foundation.md) | 验证 | 首轮快照 | 已验收 | ISSUE-002 / FE-M0-T01 | 编辑锁6项回归及当时链接校验 |
 | D-014 | 2026-10-09 | [首轮交付](delivery/2026-10-09-repository-foundation.md) | 交付 | 首轮快照 | 历史证据 | FE-M0-T01 | 保留原交付事实；逐任务归档见D-030 |
 | D-015 | 2026-10-12 | [协作流程](governance/WORKFLOW.md) | 治理 | g1.1 | 当前规则 | ISSUE-007 / APP-M1；ISSUE-026 | 第4节：三份基线计数是里程碑快照。治理块仍为 g1.1，不升版 |
@@ -547,6 +547,8 @@
 | 2026-10-12 | ISSUE-034 / REV-M0-T27 | PR #4修八项确认缺陷，并入 foundation 9e3fcdd。ISSUE-033 仍是挂证据规则，REV-M0-T22 仍是 T114 QA。本卡 in-review。看板 384项49done、10in-review、7in-progress、265planned、48blocked、5ready。不推进功能，不合入/发布 |
 | 2026-10-12 | ISSUE-034 / REV-M0-T27 | 并入 9e3fcdd 后前端复跑：Node 24.9.0 单测 113/113，build 通过，Playwright 16/16。治理检查 301 份 Markdown、384 项任务、35 项 Issue。后台 pytest 本轮未重跑。不标 done |
 | 2026-10-12 | ISSUE-034 / REV-M0-T27 | QA 正式签署通过（tip `5eced4f`）：R1～R9 全过，含真实 MySQL；前端 113、Playwright 16/16、无库 371/13 skipped、mysql 12 passed。状态仍 in-review，不标 done |
+
+| 2026-10-12 | ISSUE-034 / REV-M0-T27 | 并入 foundation be3ce98。保留 T114 刷新、ISSUE-036、BE-M0-T18 挂证据与 REV-M0-T28/T29。本卡条目改为 D-397～D-408。看板 387项50done、12in-review、7in-progress、265planned、48blocked、5ready。不标 done |
 
 ## 缺失输入
 
