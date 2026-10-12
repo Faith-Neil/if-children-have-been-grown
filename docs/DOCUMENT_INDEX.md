@@ -10,7 +10,7 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
-| D-001 | 2026-10-12 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 / AI-01；ISSUE-009 / APP-M2-T001；ISSUE-017 / OPS-M0-T02；ISSUE-018 / BE-M0-T12；ISSUE-031 / BE-M0-T16 | 388项50done、13in-review、7in-progress、265planned、48blocked、5ready。T001、T002、T12、T13、T14、T078、T114、OPS-M0-T02 与 AI-03 为 done。ISSUE-009、014、016、017、020、022、026、029、031 已 closed。未部署。T11、T15、T16 与 T18 仍 in-review。T13 与 REV-M0-T23 已依据 QA ae38ec3，PM 17:16 确认 done。T17 与 T19 为 planned。T114 与 REV-M0-T22 已依据 QA f521950，PM 17:13 确认 done。T078 与 REV-M0-T24 已依据 QA 19c4862，PM 17:20 确认 done。T124 为 ready，本轮不实现。ISSUE-033 为 in-review，不关闭。ISSUE-035 为 new。ISSUE-036 为 in-review。REV-M0-T27 / ISSUE-034 为 in-review，QA 已签 R1～R9，不标 done |
+| D-001 | 2026-10-12 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 / AI-01；ISSUE-009 / APP-M2-T001；ISSUE-017 / OPS-M0-T02；ISSUE-018 / BE-M0-T12；ISSUE-031 / BE-M0-T16 | 388项51done、12in-review、7in-progress、265planned、48blocked、5ready。T001、T002、T12、T13、T14、T15、T078、T114、OPS-M0-T02 与 AI-03 为 done。ISSUE-009、014、016、017、020、022、026、027、029、031 已 closed。未部署。T11、T16 与 T18 仍 in-review。T15 已由项目经理于 18:01 确认 done。用户已在 Word/WPS 目视确认。ISSUE-027 已 closed。T13 与 REV-M0-T23 已依据 QA ae38ec3，PM 17:16 确认 done。T17 与 T19 为 planned。T114 与 REV-M0-T22 已依据 QA f521950，PM 17:13 确认 done。T078 与 REV-M0-T24 已依据 QA 19c4862，PM 17:20 确认 done。T124 为 ready，本轮不实现。ISSUE-033 为 in-review，不关闭。ISSUE-035 为 new。ISSUE-036 为 in-review。REV-M0-T27 / ISSUE-034 为 in-review，QA 已签 R1～R9，不标 done |
 | D-002 | 2026-10-12 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025；ISSUE-027 / BE-M0-T15 | 第19行为里程碑快照 as of 3bb311a：366项32done、6in-review、其余255卡planned。第27行改为依据 PRD v1.8 与字典 v1.9 |
 | D-003 | 2026-10-12 | [前端架构](ARCHITECTURE.md) | 前端架构 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-011 / AI-02；ISSUE-016 / AI-03；ISSUE-017 / OPS-M0-T02；ISSUE-034 / REV-M0-T27 | 同源存储和替换接口；业务库为 MySQL 8，嵌入、向量库与重排定为 RAGFlow 自带，适配器未实现 |
 | D-004 | 2026-10-12 | [前端路线图](ROADMAP.md) | 计划 | 参考实施入口 / g1.1 | 执行入口 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15 | 里程碑快照 as of 3bb311a：366项32done、6in-review。任务看板是准绳。T124 为 ready，本轮不实现 |
@@ -21,12 +21,12 @@
 | D-009 | 2026-10-09 | [基线差异](decisions/baseline-gaps.md) | 决策 | 初版 | 待评审 | FE-M0-T01 | 16项版本、范围与选型差异 |
 | D-010 | 2026-10-09 | [PR #1 评审](reviews/pr-1-integration.md) | 协作 | 初版 / g1.0后续记录 | 待整合 | ISSUE-001 / ISSUE-003 | 系统/前端分层及后续规则、索引整合提醒 |
 | D-011 | 2026-10-09 | [原型说明](../prototypes/bidding-ux/README.md) | 原型 | 静态演示 | 当前 | ISSUE-002 / FE-M0-T01 | 离线打开、启动方法与模拟范围 |
-| D-012 | 2026-10-12 | [Issue 看板](../issues/index.md) | 问题 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010；ISSUE-017；ISSUE-024；ISSUE-031 | 017已closed，未部署；024、032、035为new；033、034、036为in-review；009、014、016、020、022、025、026、029、031已closed；027、028、030为in-review；010与023已closed |
+| D-012 | 2026-10-12 | [Issue 看板](../issues/index.md) | 问题 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010；ISSUE-017；ISSUE-024；ISSUE-031 | 017已closed，未部署；024、032、035为new；033、034、036为in-review；009、014、016、020、022、025、026、027、029、031已closed；028、030为in-review；010与023已closed |
 | D-013 | 2026-10-09 | [首轮测试](testing/2026-10-09-repository-foundation.md) | 验证 | 首轮快照 | 已验收 | ISSUE-002 / FE-M0-T01 | 编辑锁6项回归及当时链接校验 |
 | D-014 | 2026-10-09 | [首轮交付](delivery/2026-10-09-repository-foundation.md) | 交付 | 首轮快照 | 历史证据 | FE-M0-T01 | 保留原交付事实；逐任务归档见D-030 |
 | D-015 | 2026-10-12 | [协作流程](governance/WORKFLOW.md) | 治理 | g1.1 | 当前规则 | ISSUE-007 / APP-M1；ISSUE-026 | 第4节：三份基线计数是里程碑快照。治理块仍为 g1.1，不升版 |
 | D-016 | 2026-10-09 | [本次同步表](governance/ISSUE-003-sync.md) | 治理 | g1.0 | 本次记录 | ISSUE-003 / FE-M0-T02 | 四份基线及看板、进度、索引的影响评估 |
-| D-017 | 2026-10-12 | [任务看板](TASK_BOARD.md) | 执行 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-022 / T124；ISSUE-017 / OPS-M0-T02；ISSUE-018 / BE-M0-T12；ISSUE-031 / BE-M0-T16；ISSUE-036 | 388项50done、13in-review、7in-progress、265planned、48blocked、5ready。T11、T16、T18为in-review，T12已依据 QA ae6fd10，PM 15:32 确认 done，T13与REV-M0-T23已依据 QA ae38ec3，PM 17:16 确认 done，T17与T19为planned，T078与REV-M0-T24已依据 QA 19c4862，PM 17:20 确认 done，T114与REV-M0-T22已依据 QA f521950，PM 17:13 确认 done，T001、T002、T14、OPS-M0-T02 与 AI-03 为 done，T124为ready，本轮不实现。REV-M0-T27 / ISSUE-034 为 in-review，不标 done |
+| D-017 | 2026-10-12 | [任务看板](TASK_BOARD.md) | 执行 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-022 / T124；ISSUE-017 / OPS-M0-T02；ISSUE-018 / BE-M0-T12；ISSUE-031 / BE-M0-T16；ISSUE-036 | 388项51done、12in-review、7in-progress、265planned、48blocked、5ready。T11、T16、T18为in-review，T12已依据 QA ae6fd10，PM 15:32 确认 done，T13与REV-M0-T23已依据 QA ae38ec3，PM 17:16 确认 done，T15已由项目经理于 18:01 确认 done，用户已在 Word/WPS 目视确认，ISSUE-027 已 closed，T17与T19为planned，T078与REV-M0-T24已依据 QA 19c4862，PM 17:20 确认 done，T114与REV-M0-T22已依据 QA f521950，PM 17:13 确认 done，T001、T002、T14、OPS-M0-T02 与 AI-03 为 done，T124为ready，本轮不实现。REV-M0-T27 / ISSUE-034 为 in-review，不标 done |
 | D-018 | 2026-10-12 | [FE-M0 任务卡](tasks/FE-M0.md) | 基线与基础 | g1.1 | 当前计划 | ISSUE-006 / BE-M0-T01；ISSUE-010 | 前置基线、治理、契约与基础；T04仍待ISSUE-010 |
 | D-019 | 2026-10-09 | [FE-M1 任务卡](tasks/FE-M1.md) | 项目主流程 | g1.0 | 当前计划 | FE-M1 | 项目、招标解析、矩阵、事实 |
 | D-020 | 2026-10-09 | [FE-M2 任务卡](tasks/FE-M2.md) | 章节生成 | g1.0 | 当前计划 | FE-M2 | 方案确认、任务进度、修正与转人工 |
@@ -311,13 +311,13 @@
 | D-298 | 2026-10-12 | [028同步记录](governance/ISSUE-028-sync.md) | 治理 | model-config-fixture-1 | 已核对 | ISSUE-028 / AI-01 | AC-02 假服务已核对。不改任务计数。不改 OpenAPI |
 | D-299 | 2026-10-12 | [029同步记录](governance/ISSUE-029-sync.md) | 治理 | ragflow-adapter-design-1 | 已核对 | ISSUE-029 / AI-03 | ISSUE-029 已 closed。路径 C 查询词过滤留到适配器实现。不改检索代码 |
 | D-300 | 2026-10-12 | [T001重签与T002探测](testing/2026-10-12-qa-t001-t002-t020-recheck.md) | 验证 | qa-rerun-4 | 本地执行 | ISSUE-013 / REV-M0-T08 | T001因E2E-D7不通过；T002待修复提交；ISSUE-020通过 |
-| D-301 | 2026-10-12 | [ISSUE-027](../issues/ISSUE-027.md) | 变更 | style-1 | in-review | ISSUE-027 / BE-M0-T15 | Word 默认版式；T14 仍是 MySQL 作业；不标 closed |
-| D-302 | 2026-10-12 | [版式交付](delivery/BE-M0-T15.md) | 交付 | style-1 | in-review | ISSUE-027 / BE-M0-T15 | 合成 docx 的默认版式；不标 done |
+| D-301 | 2026-10-12 | [ISSUE-027](../issues/ISSUE-027.md) | 变更 | style-1 | closed | ISSUE-027 / BE-M0-T15 | Word 默认版式；用户 Word/WPS 目视 OK，PM 18:01 确认 closed。BE-M0-T15 为 done |
+| D-302 | 2026-10-12 | [版式交付](delivery/BE-M0-T15.md) | 交付 | style-1 | done | ISSUE-027 / BE-M0-T15 | 合成 docx 的默认版式；PM 18:01 确认 done |
 | D-303 | 2026-10-12 | [版式代码说明](code/BE-M0-T15.md) | 说明 | style-1 | 当前 | ISSUE-027 / BE-M0-T15 | 默认样式可被单个投标覆盖 |
 | D-304 | 2026-10-12 | [版式核对](testing/2026-10-12-be-m0-t15-word-style.md) | 验证 | style-1 | 已执行 | ISSUE-027 / BE-M0-T15 | 打开合成 docx |
-| D-305 | 2026-10-12 | [027同步表](governance/ISSUE-027-sync.md) | 治理 | style-1 | 已核对 | ISSUE-027 / BE-M0-T15 | 任务计数改为 363 项；ARCHITECTURE 未改 |
+| D-305 | 2026-10-12 | [027同步表](governance/ISSUE-027-sync.md) | 治理 | style-1 | 已核对 | ISSUE-027 / BE-M0-T15 | 原提交改计数为 363 项。本跟进 ISSUE-027 为 closed，看板 388 项 51 done、12 in-review |
 | D-306 | 2026-10-12 | [Word 默认版式](standards/word-default-style.md) | 标准 | style-1 | 当前 | ISSUE-027 / BE-M0-T15 | 用户确认原文。封面标题不把黑体当作拉丁回退 |
-| D-307 | 2026-10-12 | [BE-M0-T15 Word版式签署复核](testing/2026-10-12-be-m0-t15-word-style-signoff.md) | 验证 | qa-signoff-word | XML核对通过 | ISSUE-013 / REV-M0-T10 | 四份导出全过；仅LibreOffice渲染，Word/WPS待用户确认 |
+| D-307 | 2026-10-12 | [BE-M0-T15 Word版式签署复核](testing/2026-10-12-be-m0-t15-word-style-signoff.md) | 验证 | qa-signoff-word | XML核对通过 | ISSUE-013 / REV-M0-T10 | 四份导出全过；仅LibreOffice渲染。用户已 Word/WPS 目视 OK，PM 18:01 确认 T15 done |
 | D-308 | 2026-10-12 | [Word版式签署交付](delivery/REV-M0-T10.md) | 交付 | qa-signoff-word | 已本地验收 | ISSUE-013 / REV-M0-T10 | 检查器与样张；Q1～Q3 |
 | D-309 | 2026-10-12 | [026基线复核](testing/2026-10-12-issue-026-baseline-count-check.md) | 验证 | count-sync-4 | 已执行 | ISSUE-026 | 3bb311a 重数后快照为 366项32done；检查程序不比较活看板 |
 | D-310 | 2026-10-12 | [T001/T002复验签署](testing/2026-10-12-qa-t001-t002-signoff.md) | 验证 | qa-rerun-5 | 本地通过 | ISSUE-013 / REV-M0-T11 | 92/35、E2E 13/13、探针27/27、对比度≥5.66 |
@@ -543,6 +543,7 @@
 | 2026-10-12 | ISSUE-028 / AI-01 | AC-03 证据已备，待 QA 勾选。夹具提交 `9e3fcdd` 不改 `spec/openapi/demo-v1.json` 与 `backend/bid-core/requirements.txt`。尖端 `20f2b92` 上这两份依赖与 `openai_model.py` 的 blob 仍相同；OpenAPI 差异只来自 `af51151`。ISSUE-024 与 AC-04 仍等待。路径规范化 hold，真模型冒烟另计。不改任务计数。ISSUE-028 与 AI-01 仍 in-review。不标 closed |
 | 2026-10-12 | ISSUE-019 / REV-M0-T06 | 用户与项目经理确认后，offline-check 的 e2e 作业去掉 continue-on-error，失败会阻断工作流。依据是 D3/D4 已修复，用例已无 test.fail()，运行 38205346950 为 11 passed。超时、权限和产物上传不变。不改任务计数。ISSUE-019 与 REV-M0-T06 仍 in-review。不改 PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF |
 | 2026-10-12 | ISSUE-013 / REV-M0-T30 | QA签署：ISSUE-028 AC-03 OpenAPI/依赖/演示替身，通过（独立复跑 be3ce98；ISSUE-028 / AI-01 不标 done；AC-04 仍等待） |
+| 2026-10-12 | ISSUE-027 / BE-M0-T15 | 项目经理确认 BE-M0-T15 为 done，依据是用户已在 Word/WPS 目视 OK，PM 18:01 确认。ISSUE-027 标为 closed。看板为 388 项：51 done、12 in-review、7 in-progress、265 planned、48 blocked、5 ready。BE-M0 为 9/19 done。不改 PRD、ROADMAP、PROJECT_BRIEF，不改 docs/reference，不改 .github，不改产品代码 |
 
 | 2026-10-12 | ISSUE-034 / REV-M0-T27 | PR #4修八项确认缺陷，并入 foundation 9e3fcdd。ISSUE-033 仍是挂证据规则，REV-M0-T22 仍是 T114 QA。本卡 in-review。看板 384项49done、10in-review、7in-progress、265planned、48blocked、5ready。不推进功能，不合入/发布 |
 | 2026-10-12 | ISSUE-034 / REV-M0-T27 | 并入 9e3fcdd 后前端复跑：Node 24.9.0 单测 113/113，build 通过，Playwright 16/16。治理检查 301 份 Markdown、384 项任务、35 项 Issue。后台 pytest 本轮未重跑。不标 done |

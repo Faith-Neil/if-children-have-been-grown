@@ -24,3 +24,5 @@
 ## 同步与剩余
 
 PRD/ROADMAP/ARCHITECTURE/PROJECT_BRIEF无影响（只读复核）；其中的历史计数由下一次基线同步一并更新。
+
+2026-10-12 18:01，项目经理确认用户已在 Word/WPS 目视 OK，并把 BE-M0-T15 标为 done。ISSUE-027 标为 closed。本卡签署时的结论与计数不改。REV-M0-T10 仍为 done。
