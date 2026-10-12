@@ -188,6 +188,9 @@
 | D-175 | 2026-10-12 | [QA复跑交付](delivery/REV-M0-T02.md) | 交付 | qa-rerun-1 | 已本地验收 | ISSUE-013 / REV-M0-T02 | 实际文件、验证与剩余 |
 | D-176 | 2026-10-12 | [会话脚本代码解释](code/REV-M0-T02.md) | 说明 | qa-rerun-1 | 已本地验收 | ISSUE-013 / REV-M0-T02 | 启动顺序、检查项与限制 |
 | D-177 | 2026-10-12 | [会话实时HTTP脚本](../tests/backend/session_live_http.py) | 验证 | qa-rerun-1 | 15项通过 | ISSUE-013 / REV-M0-T02 | 自启空闲端口，合成数据，默认pytest不收集 |
+| D-178 | 2026-10-12 | [T06验收计划Issue](../issues/ISSUE-015.md) | 审查 | t06-plan-1 | in-review | ISSUE-015 / REV-M0-T03 | 计划编制，T06未验收 |
+| D-179 | 2026-10-12 | [APP-M1-T06验收计划](testing/2026-10-12-app-m1-t06-acceptance-plan.md) | 验证 | t06-plan-1 | 待评审 | ISSUE-015 / REV-M0-T03 | 端到端/Word/角色/权限/过期映射与缺口 |
+| D-180 | 2026-10-12 | [T06计划交付](delivery/REV-M0-T03.md) | 交付 | t06-plan-1 | in-review | ISSUE-015 / REV-M0-T03 | 无代码；缺口汇总 |
 
 ## 更新记录
 
@@ -207,6 +210,7 @@
 | 2026-10-11 | ISSUE-008 / APP-M1-T16 | 资料及公司模板旧表单保护本地交付，后台229/前端58、实际页面和6截图；337项14done/7in-progress；完整示例继续 |
 | 2026-10-11 | ISSUE-009 / APP-M2-T001 | 开始共同底座可信会话与页面守卫阶段；原完整布局/路由卡进行中，337项14done/8in-progress，后续258卡planned |
 | 2026-10-12 | ISSUE-013 / REV-M0-T02 | QA独立复跑、会话实时HTTP脚本入库及交付/说明；338项15done |
+| 2026-10-12 | ISSUE-015 / REV-M0-T03 | APP-M1-T06验收计划in-review；339项15done/1in-review |
 
 ## 缺失输入
 
