@@ -214,6 +214,8 @@
 | D-201 | 2026-10-12 | [011同步记录](governance/ISSUE-011-sync.md) | 治理 | openai-adapter-1 | 已核对 | ISSUE-011 / AI-02 | 适配器影响；数据库选择无变更 |
 | D-202 | 2026-10-12 | [兼容模型适配器](../backend/bid-core/icg_demo/openai_model.py) | 后台 | openai-adapter-1 | 契约通过 | ISSUE-011 / AI-02 | 显式启用的 chat completions，失败不伪装成功 |
 | D-203 | 2026-10-12 | [适配器契约测试](../tests/backend/test_openai_compatible_model.py) | 验证 | openai-adapter-1 | 30项通过 | ISSUE-011 / AI-02 | 假传输覆盖成功、失败和敏感门禁 |
+| D-204 | 2026-10-12 | [QA签署复核](testing/2026-10-12-qa-signoff.md) | 验证 | qa-rerun-2 | 本地通过 | ISSUE-013 / REV-M0-T05 | T008与AI-02签署：Actions三次成功、本地292/30/72/35，S1～S5 |
+| D-205 | 2026-10-12 | [签署复核交付](delivery/REV-M0-T05.md) | 交付 | qa-rerun-2 | 已本地验收 | ISSUE-013 / REV-M0-T05 | 无代码；结论与缺口 |
 
 ## 更新记录
 
@@ -237,6 +239,7 @@
 | 2026-10-12 | ISSUE-015 / REV-M0-T03、T04 | 计划评审通过；smoke_t06、Word渲染记录、2截图；340项17done |
 | 2026-10-12 | ISSUE-012 / APP-M2-T008 | 离线CI在 cf2c2a1 三作业通过；T008本地done，340项18done、8in-progress、266planned；未合入、未发布 |
 | 2026-10-12 | ISSUE-010 / AI-01；ISSUE-011 / AI-02 | 登记模型、向量、业务库和内网待决项；兼容适配器本地验收。与上述记录合并后342项19done、8in-progress、266planned、49blocked。未选库，未连真实端点 |
+| 2026-10-12 | ISSUE-013 / REV-M0-T05 | QA签署APP-M2-T008与AI-02；343项20done |
 
 ## 缺失输入
 
