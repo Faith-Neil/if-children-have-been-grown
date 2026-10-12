@@ -80,3 +80,61 @@ jobs:
         run: node --test tests/governance/*.test.cjs tests/prototype/*.test.cjs tests/workspace-sync/*.test.cjs tests/backend/demo-page.test.cjs
       - name: Governance check
         run: node scripts/check-project-governance.cjs
+
+  e2e:
+    name: e2e
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    continue-on-error: true
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13.5"
+          cache: pip
+          cache-dependency-path: backend/bid-core/requirements.txt
+      - name: Install backend dependencies
+        run: python -m pip install -r backend/bid-core/requirements.txt
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24.9.0"
+          cache: pnpm
+          cache-dependency-path: frontend/web/pnpm-lock.yaml
+      - name: Install frontend dependencies
+        working-directory: frontend/web
+        run: pnpm install --frozen-lockfile
+      - name: Playwright version from lockfile
+        id: playwright-version
+        run: |
+          version=$(grep -m1 -oE '@playwright/test@[0-9]+\.[0-9]+\.[0-9]+' frontend/web/pnpm-lock.yaml | head -n1 | sed 's/.*@//')
+          test -n "$version"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ms-playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+      - name: Install Chromium
+        run: pnpm --dir frontend/web exec playwright install --with-deps chromium
+      - name: Browser end-to-end
+        env:
+          E2E_PYTHON: python
+          E2E_SCREENSHOT_DIR: ${{ github.workspace }}/e2e-artifacts/screenshots
+          E2E_OUTPUT_DIR: ${{ github.workspace }}/e2e-artifacts/results
+          PLAYWRIGHT_HTML_REPORT: ${{ github.workspace }}/e2e-artifacts/report
+          PLAYWRIGHT_HTML_OPEN: never
+        run: pnpm --dir frontend/web e2e -- --trace=on --video=on --reporter=list --reporter=html
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e
+          retention-days: 14
+          if-no-files-found: warn
+          path: e2e-artifacts

@@ -255,7 +255,7 @@
 | D-243 | 2026-10-12 | [BE-M0-T02/T03签署复核](testing/2026-10-12-be-m0-t02-t03-signoff.md) | 验证 | qa-signoff-be | 本地通过 | ISSUE-013 / REV-M0-T07 | 308/15/12/77/35、探针47/47、Actions 38203448527成功 |
 | D-244 | 2026-10-12 | [BE签署复核交付](delivery/REV-M0-T07.md) | 交付 | qa-signoff-be | 已本地验收 | ISSUE-013 / REV-M0-T07 | 仅QA探针脚本；结论与Q1缺口 |
 | D-245 | 2026-10-12 | [E2E Issue](../issues/ISSUE-019.md) | 审查 | e2e-1 | in-review | ISSUE-019 / REV-M0-T06 | Playwright仅测试依赖 |
-| D-246 | 2026-10-12 | [E2E与T001签署](testing/2026-10-12-e2e-t001-signoff.md) | 验证 | e2e-1 | 本地执行 | ISSUE-019 / REV-M0-T06；ISSUE-013 / REV-M0-T08 | 11项E2E、T001签署不通过与D1～D6、CI建议 |
+| D-246 | 2026-10-12 | [E2E与T001签署](testing/2026-10-12-e2e-t001-signoff.md) | 验证 | e2e-1 | 本地执行 | ISSUE-019 / REV-M0-T06；ISSUE-013 / REV-M0-T08 | 11项E2E；CI 作业暂不阻断，计划 2026-10-19 再评估改为必需 |
 | D-247 | 2026-10-12 | [E2E交付](delivery/REV-M0-T06.md) | 交付 | e2e-1 | in-review | ISSUE-019 / REV-M0-T06 | 命令、覆盖与剩余 |
 | D-248 | 2026-10-12 | [E2E代码解释](code/REV-M0-T06.md) | 说明 | e2e-1 | in-review | ISSUE-019 / REV-M0-T06 | 启动顺序与用例思路 |
 | D-249 | 2026-10-12 | [T001签署交付](delivery/REV-M0-T08.md) | 交付 | qa-rerun-3 | in-review | ISSUE-013 / REV-M0-T08 | 签署结论与缺陷 |
@@ -315,6 +315,7 @@
 | 2026-10-12 | ISSUE-022 / APP-M2-T124 | 依赖未满足，T124 改为 blocked。354项仍为 21 done、7 in-review、7 in-progress，planned 改为 265，blocked 改为 50。不改产品代码。适用 REF-08 |
 | 2026-10-12 | ISSUE-005 | ARCHITECTURE 补一句：v1 错误体和 24 小时幂等回执已提交复查，无驱动、迁移或表，测试仍用内存仓库。接口约定补登到同步表。T02 与 T03 由项目经理于 10-12 12:28 在 QA 签署后确认；Issue 保持 in-progress |
 | 2026-10-12 | ISSUE-018 / BE-M0-T08；ISSUE-021 / BE-M0-T09 | MySQL 8 方案 in-review，要求回执和会话跨进程且重启后仍在。旧接口任务 planned，并登记 E2E-D5。与 T124 的 blocked 合并后为 356项23done、6in-review、7in-progress、266planned、50blocked、4ready。未加依赖，未改 PRD 与 ROADMAP |
+| 2026-10-12 | ISSUE-019 / REV-M0-T06 | 离线检查增加并行 e2e 作业，continue-on-error，不阻断其他作业。计划 2026-10-19 再评估改为必需。未改用例，ISSUE-019 仍为 in-review |
 
 ## 缺失输入
 

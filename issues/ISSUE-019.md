@@ -65,3 +65,4 @@
 |---|---|---|---|
 | 2026-10-12 | e2e-1 / in-review | 依赖与11项用例提交；待项目经理确认done | 成长测试QA |
 | 2026-10-12 | e2e-1 / in-review | 后台 CI 增加必跑步骤 `python tests/backend/qa_error_idempotency_live_http.py`。脚本自启 uvicorn，只用合成数据，不新增依赖。页面回退检查需要已有的 `frontend/web/dist`，该作业先放一张占位页和空的 `assets` 目录，不运行前端构建；47 项全部通过时退出码为 0。状态未改 | `.github/workflows/offline-check.yml` |
+| 2026-10-12 | e2e-1 / in-review | 增加并行 `e2e` 作业，`continue-on-error: true`，不阻断其他作业。计划 2026-10-19 再评估改为必需。未改用例和 `test.fail()`，状态未改 | `.github/workflows/offline-check.yml` |
