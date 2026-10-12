@@ -317,6 +317,8 @@
 | D-304 | 2026-10-12 | [版式核对](testing/2026-10-12-be-m0-t15-word-style.md) | 验证 | style-1 | 已执行 | ISSUE-027 / BE-M0-T15 | 打开合成 docx |
 | D-305 | 2026-10-12 | [027同步表](governance/ISSUE-027-sync.md) | 治理 | style-1 | 已核对 | ISSUE-027 / BE-M0-T15 | 任务计数改为 363 项；ARCHITECTURE 未改 |
 | D-306 | 2026-10-12 | [Word 默认版式](standards/word-default-style.md) | 标准 | style-1 | 当前 | ISSUE-027 / BE-M0-T15 | 用户确认原文。封面标题不把黑体当作拉丁回退 |
+| D-307 | 2026-10-12 | [BE-M0-T15 Word版式签署复核](testing/2026-10-12-be-m0-t15-word-style-signoff.md) | 验证 | qa-signoff-word | XML核对通过 | ISSUE-013 / REV-M0-T10 | 四份导出全过；仅LibreOffice渲染，Word/WPS待用户确认 |
+| D-308 | 2026-10-12 | [Word版式签署交付](delivery/REV-M0-T10.md) | 交付 | qa-signoff-word | 已本地验收 | ISSUE-013 / REV-M0-T10 | 检查器与样张；Q1～Q3 |
 
 ## 更新记录
 
@@ -375,6 +377,7 @@
 | 2026-10-12 | ISSUE-009 / APP-M2-T002 | T002-F1：没有 Idempotency-Key 的写入不自动重试。GET 和有键写入仍重试；MODEL_UNAVAILABLE 仍只发一次。ISSUE-021 给旧接口补键后这条限制解除。前端 92 项通过。仍 in-review，不改后台，不改任务计数 |
 | 2026-10-12 | ISSUE-027 / BE-M0-T15 | 封面下一页分节、无标题正文不重复封面标题、目录标题与占位文字、承诺函封面项目名称、封面标题三种属性都是方正小标宋。规格记入 standards/word-default-style.md。不改任务计数 |
 | 2026-10-12 | ISSUE-009 / APP-M2-T001 | E2E-D8：次要文字改为 #4e5969，待办圆圈改为 #9a5608，对比度至少 4.5:1。Playwright 13 passed。仍 in-review，不改后台，不改任务计数 |
+| 2026-10-12 | ISSUE-013 / REV-M0-T10 | QA签署BE-M0-T15 Word默认版式XML核对（T15仍in-review待用户确认）；364项27done |
 
 ## 缺失输入
 
