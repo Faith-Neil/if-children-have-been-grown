@@ -21,7 +21,7 @@
 | D-009 | 2026-10-09 | [基线差异](decisions/baseline-gaps.md) | 决策 | 初版 | 待评审 | FE-M0-T01 | 16项版本、范围与选型差异 |
 | D-010 | 2026-10-09 | [PR #1 评审](reviews/pr-1-integration.md) | 协作 | 初版 / g1.0后续记录 | 待整合 | ISSUE-001 / ISSUE-003 | 系统/前端分层及后续规则、索引整合提醒 |
 | D-011 | 2026-10-09 | [原型说明](../prototypes/bidding-ux/README.md) | 原型 | 静态演示 | 当前 | ISSUE-002 / FE-M0-T01 | 离线打开、启动方法与模拟范围 |
-| D-012 | 2026-10-12 | [Issue 看板](../issues/index.md) | 问题 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-010；ISSUE-011；ISSUE-012；ISSUE-013；ISSUE-014；ISSUE-015；ISSUE-016 | 010整体仍blocked；011与012已closed；009、014与016为in-review |
+| D-012 | 2026-10-12 | [Issue 看板](../issues/index.md) | 问题 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-005；ISSUE-010；ISSUE-011；ISSUE-012；ISSUE-013；ISSUE-014；ISSUE-015；ISSUE-016；ISSUE-017；ISSUE-020 | 010整体仍blocked；011与012已closed；005、009、014、016、017与020为in-review |
 | D-013 | 2026-10-09 | [首轮测试](testing/2026-10-09-repository-foundation.md) | 验证 | 首轮快照 | 已验收 | ISSUE-002 / FE-M0-T01 | 编辑锁6项回归及当时链接校验 |
 | D-014 | 2026-10-09 | [首轮交付](delivery/2026-10-09-repository-foundation.md) | 交付 | 首轮快照 | 历史证据 | FE-M0-T01 | 保留原交付事实；逐任务归档见D-030 |
 | D-015 | 2026-10-12 | [协作流程](governance/WORKFLOW.md) | 治理 | g1.1 | 当前规则 | ISSUE-007 / APP-M1；ISSUE-012 | 同一任务核对页面、后台与业务证据；开发者只标 in-review，治理块不升版 |
@@ -54,7 +54,7 @@
 | D-042 | 2026-10-10 | [检查程序回归](../tests/governance/check-project-governance.test.cjs) | 验证代码 | g1.1 | 12项通过 | BE-M0-T01 | 失败/工作区边界及Python依赖排除回归 |
 | D-043 | 2026-10-10 | [Cursor协作规则](../.cursor/rules/project-governance.mdc) | 合作执行 | g1.1 | 当前 | ISSUE-006 / BE-M0-T01 | 对合作开发端始终启用同一流程，不复制异项目模板 |
 | D-044 | 2026-10-09 | [ISSUE-004](../issues/ISSUE-004.md) | 工作流 | g1.1 | 已本地验收 | OPS-M0-T01 / REV-M0-T01 | 用户全工作区范围、合同排除、接手审查 |
-| D-045 | 2026-10-09 | [OPS任务](tasks/OPS-M0.md) | 运维 | g1.1 | 当前 | ISSUE-004 | 工作区同步与实际运行验收 |
+| D-045 | 2026-10-12 | [OPS任务](tasks/OPS-M0.md) | 运维 | g1.1 | 当前 | ISSUE-004；ISSUE-017 / OPS-M0-T02 | 工作区同步已验收；内网部署草案 in-review |
 | D-046 | 2026-10-09 | [REV任务](tasks/REV-M0.md) | 审查 | g1.1 | 当前 | ISSUE-004 | 目录/业务/技术与brief交付 |
 | D-047 | 2026-10-09 | [业务审查](reviews/2026-10-09-business-readiness.md) | 业务 | review-1 | 待决定 | REV-M0-T01 / ISSUE-005 | 场景矩阵与12项设计/验收发现 |
 | D-048 | 2026-10-09 | [技术审查](reviews/2026-10-09-technical-readiness.md) | 技术 | review-1 | 待决定 | REV-M0-T01 / ISSUE-005 | 6类契约缺口与图片目录对照 |
@@ -248,6 +248,11 @@
 | D-235 | 2026-10-12 | [路由加载器](../frontend/web/src/route-loaders.ts) | 前端 | route-chunks-1 | in-review | ISSUE-020 / APP-M2-T001 | 动态 import 并缓存进行中的请求 |
 | D-236 | 2026-10-12 | [懒加载页面](../frontend/web/src/lazy-routes.tsx) | 前端 | route-chunks-1 | in-review | ISSUE-020 / APP-M2-T001 | React.lazy 外壳和各页 |
 | D-237 | 2026-10-12 | [分包约束测试](../frontend/web/tests/route-chunks.test.mjs) | 验证 | route-chunks-1 | 1项通过 | ISSUE-020 / APP-M2-T001 | 入口不再静态引入外壳和页面 |
+| D-238 | 2026-10-12 | [内网部署草案](operations/intranet-deployment-plan.md) | 运维 | intranet-plan-1 | in-review | ISSUE-017 / OPS-M0-T02 | MySQL 8 与仍待决的向量、模型；未部署 |
+| D-239 | 2026-10-12 | [内网部署 Issue](../issues/ISSUE-017.md) | 决策 | intranet-plan-1 | in-review | ISSUE-017 / OPS-M0-T02 | 草案复核中；done 待项目经理 |
+| D-240 | 2026-10-12 | [内网部署交付](delivery/OPS-M0-T02.md) | 交付 | intranet-plan-1 | in-review | ISSUE-017 / OPS-M0-T02 | 无代码；未创建环境 |
+| D-241 | 2026-10-12 | [内网部署核对](testing/2026-10-12-intranet-deploy-plan.md) | 验证 | intranet-plan-1 | 文档核对 | ISSUE-017 / OPS-M0-T02 | 对照现有入口；未连接 MySQL 或内网 |
+| D-242 | 2026-10-12 | [017同步记录](governance/ISSUE-017-sync.md) | 治理 | intranet-plan-1 | 已核对 | ISSUE-017 / OPS-M0-T02 | 三件套与 brief 不改正文；过时的 T008 用词留给项目经理下一次基线同步 |
 
 ## 更新记录
 
@@ -279,6 +284,7 @@
 | 2026-10-12 | ISSUE-016 / AI-03 | 内存检索口与三条证据候选，状态 in-review。与 T008 的 done 合并后为 344 项 20 done、2 in-review、7 in-progress。不连接 MySQL，不选定向量库。ISSUE-010 未改 |
 | 2026-10-12 | ISSUE-005 / BE-M0-T02、T03 | 错误体与24小时幂等提交为in-review。350项20done、4in-review、7in-progress、4ready。业务库决定为MySQL 8，本轮无驱动或迁移。PRD、ROADMAP、ARCHITECTURE未改 |
 | 2026-10-12 | ISSUE-020 / APP-M2-T001 | 路由级分包提交 in-review。首屏主块 1564.53 kB 降至 315.94 kB。不新增任务，350项20done、4in-review、7in-progress、266planned、49blocked、4ready保持不变。未改基线正文，未改后台，未标 done |
+| 2026-10-12 | ISSUE-017 / OPS-M0-T02 | 内网部署草案 in-review；业务库按已登记的 MySQL 8 书写，向量与模型仍待决；351项20done、5in-review、4ready。未部署。未改 PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF |
 
 ## 缺失输入
 

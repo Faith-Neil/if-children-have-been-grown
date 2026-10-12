@@ -18,6 +18,10 @@ ISSUE-016 / AI-03 为 in-review：嵌入、重排和向量检索只有内存实�
 
 ISSUE-009 / APP-M2-T001已接可信会话和页面守卫：后台当前身份、导航/动作及最小项目权限真实读取，页面先核对再取业务数据；独立发现的撤权/迟到读取/连续切页问题已修复。262后台、72前端、真实会话HTTP16项、最终类型/构建及GUI通过，真实两册文件不含个人私稿，见[阶段交付](delivery/APP-M2-T001.md)。ProLayout、浏览器地址和编辑台未保存离开已提交复核，任务与 ISSUE-009、ISSUE-014 均为 in-review，不能标 done。资料列表/详情T046/047依赖的元数据表格/表单与敏感展示仍未验收，继续planned。业务库已决定为 MySQL 8，向量库和模型仍待决，运行仍用内存和演示模型，OIDC另在T010验收。证据见[布局复核](testing/2026-10-12-prolayout-routes.md)。ISSUE-020 已把外壳和项目页改为按路由加载，首屏主块 315.94 kB，低于引入 ProLayout 前的 1334.42 kB；该 Issue 为 in-review，不能标 done。见[分包复核](testing/2026-10-12-route-chunks.md)。
 
+## 内网部署草案
+
+ISSUE-017 / OPS-M0-T02 写了内网部署草案：现有单进程 uvicorn 提供接口和 `frontend/web/dist`，深链接由同一进程回到 `index.html`。业务库按 ISSUE-010 已登记的 MySQL 8、`utf8mb4` 书写备份与迁移回滚。向量库、对话模型、嵌入和重排仍 blocked 在 ISSUE-010。AI-03 的内存检索不改变这项待决。没有环境、容器或新的 CI 步骤。卡片为 in-review，不是已部署。见[草案](operations/intranet-deployment-plan.md)。
+
 ## 离线 CI 门禁
 
 ISSUE-012 / APP-M2-T008 已把现有离线检查放进 GitHub Actions，并在提交 `cf2c2a1` 上跑通：pytest 262、会话 HTTP 15、`smoke_t06.py` 12、前端函数 72、构建、`.cjs` 35 与治理检查。Python 3.13.5，Node 24.9.0，pnpm 11.25.0。工作流不使用密钥或外网模型，也不调用 soffice。项目经理于 10-12 12:10 在 QA 签署后确认，卡片为 done，ISSUE-012 为 closed。这不是已部署，也不是已合入。`buildTheme` 仍未实现。见[验证](testing/2026-10-12-offline-ci.md)。
@@ -34,7 +38,7 @@ ISSUE-005的DG-05拆成六张后端卡。错误体与单一状态码表[BE-M0-T0
 
 ## 任务进度口径
 
-治理版本g1.1，当前实际开发关联ISSUE-007及资料保护ISSUE-008；契约门禁关联ISSUE-005；模型与向量库待决关联ISSUE-010，业务库已决定为 MySQL 8。项目350项中20done、4in-review、7in-progress、266planned、49blocked、4ready。APP-M1的16项中9项本地done：T07范围拆分及T09～16限定子任务；T01～06完整父任务继续，T08最终审计planned，T16资料及模板旧表单保护本地done。[APP-M2的259项](tasks/APP-M2.md)中T001布局、路由和离开保护为 in-review，T008离线CI为 done，其余257项planned，覆盖47组页面和44规则，不代表软件已实现。BE-M0现为7项，其中T01为done，T02/T03为in-review，4项ready。AI-01仍blocked，AI-02为done，AI-03为in-review且不连接 MySQL。REV-M0-T05已记录QA签署；项目经理于 10-12 12:10 在 QA 签署后确认 AI-02 与 T008。PR待合入、未发布；BE-M0-T01只证明局部后台基础，FE-M0-T03继续来源评审，生产一期尚未验收。344项、20done、2in-review、7in-progress 是加入本轮六张卡之前的计数。
+治理版本g1.1，当前实际开发关联ISSUE-007及资料保护ISSUE-008；契约门禁关联ISSUE-005；模型与向量库待决关联ISSUE-010，业务库已决定为 MySQL 8。项目351项中20done、5in-review、7in-progress、266planned、49blocked、4ready。APP-M1的16项中9项本地done：T07范围拆分及T09～16限定子任务；T01～06完整父任务继续，T08最终审计planned，T16资料及模板旧表单保护本地done。[APP-M2的259项](tasks/APP-M2.md)中T001布局、路由和离开保护为 in-review，T008离线CI为 done，其余257项planned，覆盖47组页面和44规则，不代表软件已实现。BE-M0现为7项，其中T01为done，T02/T03为in-review，4项ready。AI-01仍blocked，AI-02为done，AI-03为in-review且不连接 MySQL，OPS-M0-T02内网部署草案为in-review且不是已部署。REV-M0-T05已记录QA签署；项目经理于 10-12 12:10 在 QA 签署后确认 AI-02 与 T008。PR待合入、未发布；BE-M0-T01只证明局部后台基础，FE-M0-T03继续来源评审，生产一期尚未验收。344项、20done、2in-review、7in-progress 是加入契约六张卡之前的计数。
 
 资料库专项审查确认：当前只支持基础文字资料，确认声明、审核、受限名单、真实附件槽位、历史和引用版本仍缺。T16已修复资料及公司模板旧表单借刷新版本覆盖新内容的问题；完整C01/C06各卡继续planned，不能以修复代替其验收。
 

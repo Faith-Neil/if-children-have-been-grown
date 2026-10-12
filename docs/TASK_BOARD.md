@@ -8,7 +8,7 @@
 
 将 [前端 ROADMAP](ROADMAP.md) 的 Phase 0～8 与发布 Milestone 1～5 拆为 **59 张任务卡**，由 FE-M0～FE-M8 管理。前缀 FE 表示前端合作交付；这些编号与参考全系统 M0～M8 的门禁、周期和范围独立。
 
-项目350项中 **done 20、in-review 4、in-progress 7、planned 266、blocked 49、ready 4**。APP-M1的16项中，T01～05继续实现，T06继续完整联调验收，T07已完成范围拆分，T08等待最终审计；T09～16限定子任务已本地验收，T16完成资料及公司模板旧表单保护。APP-M2的259卡中T001布局、路由和离开保护为 in-review，T008离线CI为 done，其余257卡planned，47组页面、190原WBS细项及44规则已逐项映射，见[完整后续卡](tasks/APP-M2.md)与[来源核对](testing/icg-task-mapping.md)。BE-M0现为7项：T01已验收，错误体与幂等为in-review，锁迁移、导出快照、202/SSE、operationId四张卡ready。旧FE59项保留来源，OPS/BE各1项、REV 5项已本地验收（REV-M0-T02为ISSUE-013 QA复跑，REV-M0-T03/T04为ISSUE-015，REV-M0-T05为T008与AI-02的QA签署）。AI-01仍等待向量库和模型决定，业务库已定为 MySQL 8，本轮不接入；AI-02 与 T008 均已由项目经理于 10-12 12:10 在 QA 签署后确认，标为 done。AI-03 为 in-review，只使用内存检索。开发者只能把卡片标到 in-review，done 由项目经理在 QA 签署后设置。ISSUE-009 与 ISSUE-014 随 T001 停在 in-review。ISSUE-020 路由分包为 in-review，不新增任务，计数不变。PR #3待合入。这些数量不是产品完成率。
+项目351项中 **done 20、in-review 5、in-progress 7、planned 266、blocked 49、ready 4**。APP-M1的16项中，T01～05继续实现，T06继续完整联调验收，T07已完成范围拆分，T08等待最终审计；T09～16限定子任务已本地验收，T16完成资料及公司模板旧表单保护。APP-M2的259卡中T001布局、路由和离开保护为 in-review，T008离线CI为 done，其余257卡planned，47组页面、190原WBS细项及44规则已逐项映射，见[完整后续卡](tasks/APP-M2.md)与[来源核对](testing/icg-task-mapping.md)。BE-M0现为7项：T01已验收，错误体与幂等为in-review，锁迁移、导出快照、202/SSE、operationId四张卡ready。旧FE59项保留来源，OPS 2项中 T01 已本地验收、T02 内网部署草案为 in-review，REV 5项已本地验收（REV-M0-T02为ISSUE-013 QA复跑，REV-M0-T03/T04为ISSUE-015，REV-M0-T05为T008与AI-02的QA签署）。AI-01仍等待向量库和模型决定，业务库已定为 MySQL 8，本轮不接入；AI-02 与 T008 均已由项目经理于 10-12 12:10 在 QA 签署后确认，标为 done。AI-03 为 in-review，只使用内存检索。开发者只能把卡片标到 in-review，done 由项目经理在 QA 签署后设置。ISSUE-009 与 ISSUE-014 随 T001 停在 in-review。ISSUE-020 路由分包为 in-review，不新增任务。PR #3待合入。这些数量不是产品完成率。
 
 59张前端卡片估算合计 209 小时，单卡 2～4 小时，处于 0.5～4 小时的任务粒度目标内。该总和是已有基线/接口条件下的前端增量估算，不是项目排期，不含后端、模型、取得输入、评审或等待时间。开工若预计超 4 小时，先继续拆卡并登记 Issue/版本变更，保留原任务 ID 的历史。
 
@@ -43,7 +43,7 @@
 | [FE-M6 协作](tasks/FE-M6.md) | ROADMAP Phase 7；一期可延后范围 | 4 | 0/4 | 后续范围确认后按负责人、评论、引用等具体依赖推进，彼此无需整阶段串行。 |
 | [FE-M7 效率](tasks/FE-M7.md) | ROADMAP Phase 8；一期可延后范围 | 4 | 0/4 | 可选效率增强按相关模块依赖推进，不是一期发布前置。 |
 | [FE-M8 发布门禁](tasks/FE-M8.md) | ROADMAP §11 MVP Cut Line、§13 Gate A/B/C；贯穿发布 Milestone 1～5 | 3 | 0/3 | 发布验证覆盖一期必需任务；无需等待可选 FE-M6/FE-M7。 |
-| [OPS-M0 工作区运维](tasks/OPS-M0.md) | ISSUE-004工作区同步；独立于业务MVP | 1 | 1/1 | 真实双向同步与持续运行验收完成。 |
+| [OPS-M0 工作区运维](tasks/OPS-M0.md) | ISSUE-004工作区同步；ISSUE-017内网部署草案 | 2 | 1/2 | T01同步已验收。T02只是草案，in-review，未部署。 |
 | [REV-M0 接手审查](tasks/REV-M0.md) | ISSUE-004目录与业务/技术审查；ISSUE-013 QA复跑；ISSUE-015 T06计划；ISSUE-013 签署 | 5 | 5/5 | 审查/brief交付完成，设计决定留ISSUE-005；QA复跑、T06计划及贯通冒烟/Word渲染完成。 |
 | [BE-M0 后端链路](tasks/BE-M0.md) | ISSUE-006本地后端demo；ISSUE-005契约卡 | 7 | 1/7 | T01已验收；T02/T03为in-review；T04～T07 ready。业务库决定为MySQL 8，本轮不接入。 |
 | [APP-M1 示例实现](tasks/APP-M1.md) | ISSUE-007示例与后台联调；ISSUE-008资料保护 | 16 | 9/16 | T07及T09～16已本地验收；完整父任务继续。 |
@@ -118,6 +118,7 @@
 | [FE-M8-T02](tasks/FE-M8.md#fe-m8-t02) | 安全离线长文与恢复验证 | blocked | [FE-M0-T09](tasks/FE-M0.md#fe-m0-t09)、[FE-M3-T02](tasks/FE-M3.md#fe-m3-t02)、[FE-M3-T03](tasks/FE-M3.md#fe-m3-t03)、[FE-M3-T04](tasks/FE-M3.md#fe-m3-t04)、[FE-M4-T05](tasks/FE-M4.md#fe-m4-t05)、[FE-M8-T01](tasks/FE-M8.md#fe-m8-t01) | — | `docs/delivery/FE-M8-T02.md` |
 | [FE-M8-T03](tasks/FE-M8.md#fe-m8-t03) | 版本发布与交付资料封版 | blocked | [FE-M8-T01](tasks/FE-M8.md#fe-m8-t01)、[FE-M8-T02](tasks/FE-M8.md#fe-m8-t02)、[FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | — | `docs/delivery/FE-M8-T03.md` |
 | [OPS-M0-T01](tasks/OPS-M0.md#ops-m0-t01) | 全工作区云端同步 | done | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | [ISSUE-004](../issues/ISSUE-004.md) | [交付](delivery/OPS-M0-T01.md) |
+| [OPS-M0-T02](tasks/OPS-M0.md#ops-m0-t02) | 内网部署草案 | in-review | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | [ISSUE-017](../issues/ISSUE-017.md) | [交付](delivery/OPS-M0-T02.md) |
 | [REV-M0-T01](tasks/REV-M0.md#rev-m0-t01) | 目录、业务与技术审查及brief | done | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | [ISSUE-004](../issues/ISSUE-004.md) | [交付](delivery/REV-M0-T01.md) |
 | [REV-M0-T02](tasks/REV-M0.md#rev-m0-t02) | QA独立复跑与会话真实HTTP复核入库 | done | [APP-M2-T001](tasks/APP-M2.md#app-m2-t001) | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T02.md) |
 | [REV-M0-T03](tasks/REV-M0.md#rev-m0-t03) | APP-M1-T06端到端验收计划 | done | [APP-M1-T06](tasks/APP-M1.md#app-m1-t06) | [ISSUE-015](../issues/ISSUE-015.md) | [交付](delivery/REV-M0-T03.md) |
