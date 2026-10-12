@@ -98,11 +98,14 @@ class ResponseBody(BaseModel):
     model_config = ConfigDict(extra="allow", strict=True)
 
 
+DemoCompanyRole = Literal["editor", "manager", "viewer", "company_admin", "data_admin"]
+
+
 class AccountResponse(ResponseBody):
     id: str
     name: str
     company_id: str
-    role: Literal["editor", "manager", "viewer"]
+    role: DemoCompanyRole
 
 
 class AccountListResponse(ResponseBody):

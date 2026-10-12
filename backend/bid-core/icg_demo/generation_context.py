@@ -127,6 +127,22 @@ def _date(value):
         raise DomainError(422, "INVALID_DATE", "资料有效期和项目截止时间格式无效，请先核对来源。") from error
 
 
+def evidence_expired(evidence, deadline, today=None):
+    """长期有效不算过期。有投标截止日时按截止日比较；没有截止日时只有调用方给出今天才比较。"""
+    if evidence.get("is_long_term"):
+        return False
+    expiry = evidence.get("valid_to") or evidence.get("valid_until")
+    if not expiry:
+        return False
+    if deadline:
+        reference = _date(deadline)
+    elif today is not None:
+        reference = today
+    else:
+        return False
+    return _date(expiry) < reference
+
+
 def build_generation_context(state, project_id, chapter, now):
     """返回供前端查看的清单和阻断项；只有 ready 时才允许发给模型。"""
     workflow = state.workflows.get(project_id, {})
@@ -181,7 +197,7 @@ def build_generation_context(state, project_id, chapter, now):
                     or evidence.get("project_id") not in (None, project_id)):
                 add("EVIDENCE_NOT_USABLE", "本章引用证据不存在、未确认或不属于本公司/本项目。", evidence_id=identity)
                 continue
-            if evidence.get("valid_until") and _date(evidence["valid_until"]) < reference_date:
+            if evidence_expired(evidence, project.deadline, today=reference_date):
                 add("EVIDENCE_EXPIRED", "本章证据有效期不能覆盖投标截止时间。", evidence_id=identity)
                 continue
             item = evidence_by_id.setdefault(identity, {k: deepcopy(evidence.get(k)) for k in

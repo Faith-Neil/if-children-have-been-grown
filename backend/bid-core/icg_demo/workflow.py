@@ -16,7 +16,7 @@ from .domain import Chapter, DemoService, DemoState, DomainError, Principal, iso
 from .ports import ParserProvider
 from .input_snapshot import project_input_fingerprint
 from .sla import SlaService, public_sla, resolve_variables, sla_facts, sla_issues
-from .generation_context import (build_generation_context, chapter_plan, plan_is_current, project_facts,
+from .generation_context import (build_generation_context, chapter_plan, evidence_expired, plan_is_current, project_facts,
                                  public_plan, refuse_source_change, render_model_input, require_ready,
                                  resolve_fact_variables, validate_model_output, writing_source_fingerprint)
 from .project_access import (VOLUMES, writable, lead, volume_owner, require_lead, require_chapter,
@@ -256,6 +256,9 @@ class WorkflowService:
 
     def patch_project(self, principal, project_id, payload, expected, key):
         def operation(state, project, workflow):
+            partners = payload.pop("project_partners", None)
+            if partners is not None:
+                state.project_partners[project.id] = partners
             for field, value in payload.items():
                 if value is None:
                     raise DomainError(422, "INVALID_PROJECT_FIELD", "项目字段不能设为空值，请使用空字符串清空文本。")
@@ -457,6 +460,7 @@ class WorkflowService:
                     raise DomainError(404, "NOT_FOUND", "证据不存在或不属于当前公司。")
                 if evidence["type"] == "history" or evidence["status"] != "confirmed":
                     raise DomainError(409, "EVIDENCE_NOT_USABLE", "历史标书仅可参考；其他证据必须先确认。")
+                self._reject_unusable_mount(state, principal, project, evidence)
             if "evidence_ids" in payload and len(payload["evidence_ids"]) != len(set(payload["evidence_ids"])):
                 raise DomainError(422, "DUPLICATE_EVIDENCE", "同一证据不能重复挂接。")
             updated = {**requirement, **payload}
@@ -816,11 +820,9 @@ class WorkflowService:
                             or evidence["status"] != "confirmed" or evidence["type"] == "history"):
                         add("EVIDENCE_NOT_USABLE", "条款引用的证据已失效或不能作为证据。", evidence_id=evidence_id, **links)
                         continue
-                    if evidence["valid_until"]:
-                        reference_date = (self._date(project.deadline) if project.deadline
-                                          else datetime.fromtimestamp(self.demo._now(), SHANGHAI).date())
-                        if self._date(evidence["valid_until"]) < reference_date:
-                            add("EVIDENCE_EXPIRED", "证据不能覆盖投标截止时间。", evidence_id=evidence_id, **links)
+                    today = datetime.fromtimestamp(self.demo._now(), SHANGHAI).date()
+                    if evidence_expired(evidence, project.deadline, today=today):
+                        add("EVIDENCE_EXPIRED", "证据不能覆盖投标截止时间。", evidence_id=evidence_id, **links)
             chapters = [c for c in state.chapters.values() if c.project_id == project_id and (volume == "all" or c.volume == volume)]
             required_volumes = {"technical", "business"} if volume == "all" else {volume}
             if {c.volume for c in chapters} != required_volumes:
@@ -920,7 +922,56 @@ class WorkflowService:
 
     @staticmethod
     def _public_library(item):
-        return {"reason": "", **item, "usable_as_evidence": item["status"] == "confirmed" and item["type"] != "history"}
+        public = {"reason": "", "source_tier": "own", "is_restricted": False, "is_long_term": False,
+                  "valid_to": None, "partner_entity_id": None, **item,
+                  "usable_as_evidence": item["status"] == "confirmed" and item["type"] != "history"}
+        public.pop("acl_user_ids", None)
+        public.pop("restricted", None)
+        return public
+
+    @staticmethod
+    def _replace_library_acl(state, company_id, evidence_id, user_ids):
+        state.resource_acl = [row for row in state.resource_acl
+                              if not (row["ref_type"] == "library" and row["ref_id"] == evidence_id)]
+        seen = set()
+        for user_id in user_ids:
+            if user_id in seen:
+                continue
+            seen.add(user_id)
+            account = state.accounts.get(user_id)
+            if account is None or account.company_id != company_id:
+                raise DomainError(422, "INVALID_LIBRARY_FIELD", "授权用户必须属于本公司。")
+            state.resource_acl.append({"ref_type": "library", "ref_id": evidence_id,
+                                       "user_id": user_id, "company_id": company_id})
+
+    @staticmethod
+    def _agreement_present(state, project_id, evidence):
+        partner_id = evidence.get("partner_entity_id")
+        if not partner_id:
+            return False
+        for row in state.project_partners.get(project_id, []):
+            if row.get("partner_entity_id") == partner_id and str(row.get("agreement_attachment_id") or "").strip():
+                return True
+        return False
+
+    @staticmethod
+    def _restricted_allowed(state, principal, evidence):
+        if principal.user.role in ("company_admin", "data_admin"):
+            return True
+        company_id = principal.user.company_id
+        return any(row["ref_type"] == "library" and row["ref_id"] == evidence["id"]
+                   and row["user_id"] == principal.user.id and row["company_id"] == company_id
+                   for row in state.resource_acl)
+
+    def _reject_unusable_mount(self, state, principal, project, evidence):
+        if evidence.get("is_restricted") and not self._restricted_allowed(state, principal, evidence):
+            raise DomainError(403, "FORBIDDEN", "受限资料需公司管理员、资料管理员或资源授权后才能挂接。")
+        if evidence.get("source_tier") == "reference":
+            raise DomainError(409, "EVIDENCE_NOT_USABLE", "仅供参考资料不能作为投标证据挂接。")
+        if evidence.get("source_tier") == "partner" and not self._agreement_present(state, project.id, evidence):
+            raise DomainError(409, "EVIDENCE_NOT_USABLE", "合作方资料缺协议，不能作为投标证据挂接。")
+        if evidence_expired(evidence, project.deadline):
+            raise DomainError(409, "EVIDENCE_EXPIRED", "证据不能覆盖投标截止时间。")
 
     def library(self, principal):
         state = self.repository.read()
@@ -941,11 +992,14 @@ class WorkflowService:
             if replay is not None:
                 return replay
             self._version(revision, expected)
-            if payload.get("valid_until"):
-                if len(payload["valid_until"]) != 10:
-                    raise DomainError(422, "INVALID_DATE", "资料有效期请使用 YYYY-MM-DD。")
-                self._date(payload["valid_until"])
-            if any(v is None and k != "valid_until" for k, v in payload.items()):
+            for date_key in ("valid_until", "valid_to"):
+                if payload.get(date_key):
+                    if len(payload[date_key]) != 10:
+                        raise DomainError(422, "INVALID_DATE", "资料有效期请使用 YYYY-MM-DD。")
+                    self._date(payload[date_key])
+            replace_acl = "acl_user_ids" in payload
+            acl_user_ids = payload.pop("acl_user_ids", None)
+            if any(v is None and k not in ("valid_until", "valid_to", "partner_entity_id") for k, v in payload.items()):
                 raise DomainError(422, "INVALID_LIBRARY_FIELD", "资料字段不能设为空值。")
             if any(k in payload and not payload[k].strip() for k in ("name", "content")):
                 raise DomainError(422, "EMPTY_LIBRARY_FIELD", "资料名称和正文不能为空。")
@@ -954,7 +1008,9 @@ class WorkflowService:
                 if item is None or item["company_id"] != company:
                     raise DomainError(404, "NOT_FOUND", "未找到本公司资料。")
                 updated_fields = dict(payload)
-                changed = any(k in payload and payload[k] != item[k] for k in ("name", "type", "content", "valid_until"))
+                changed = any(k in payload and payload[k] != item.get(k) for k in (
+                    "name", "type", "content", "valid_until", "valid_to", "is_long_term",
+                    "source_tier", "partner_entity_id", "is_restricted"))
                 if changed:
                     if payload.get("status") == "confirmed":
                         if not payload.get("reason", "").strip():
@@ -966,6 +1022,8 @@ class WorkflowService:
             else:
                 item = {"id": new_id("evidence"), "company_id": company, **payload, "revision": 1}
                 state.library[item["id"]] = item
+            if replace_acl:
+                self._replace_library_acl(state, company, item["id"], acl_user_ids or [])
             state.library_revisions[company] = revision + 1
             result = {"revision": revision + 1, "item": self._public_library(item)}
             remember(state, scope_id, principal.user.id, key, request_fingerprint, result, self.demo._now())

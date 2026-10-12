@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 from pydantic import Field, field_validator
 
-from .schemas import ChapterSummaryResponse, RequestBody, ResponseBody, LockSummaryResponse, AccountResponse
+from .schemas import ChapterSummaryResponse, DemoCompanyRole, RequestBody, ResponseBody, LockSummaryResponse, AccountResponse
 from .sla_schemas import ProjectSla
 
 Volume = Literal["technical", "business"]
@@ -13,11 +13,17 @@ ReviewStatus = Literal["pending", "confirmed", "rejected"]
 LibraryType = Literal["qualification", "personnel", "performance", "sla", "snippet", "history"]
 
 
+class ProjectPartnerInput(RequestBody):
+    partner_entity_id: str = Field(min_length=1, max_length=100)
+    agreement_attachment_id: str | None = Field(default=None, max_length=100)
+
+
 class ProjectPatch(RequestBody):
     name: str | None = Field(default=None, min_length=1, max_length=200)
     tender_number: str | None = Field(default=None, max_length=100)
     deadline: str | None = Field(default=None, max_length=50)
     sensitive: bool | None = None
+    project_partners: list[ProjectPartnerInput] | None = None
 
 
 class FileUpload(RequestBody):
@@ -121,6 +127,9 @@ class ProjectExportRequest(RequestBody):
     volume: Literal["all", "technical", "business"] = "all"
 
 
+SourceTier = Literal["own", "partner", "reference"]
+
+
 class LibraryCreate(RequestBody):
     name: str = Field(min_length=1, max_length=200)
     type: LibraryType
@@ -128,6 +137,12 @@ class LibraryCreate(RequestBody):
     valid_until: str | None = Field(default=None, max_length=10)
     status: Literal["pending", "confirmed"] = "pending"
     reason: str = Field(default="", max_length=2000)
+    valid_to: str | None = Field(default=None, max_length=10)
+    is_long_term: bool = False
+    source_tier: SourceTier = "own"
+    partner_entity_id: str | None = Field(default=None, max_length=100)
+    is_restricted: bool = False
+    acl_user_ids: list[str] = Field(default_factory=list, max_length=500)
 
 
 class LibraryPatch(RequestBody):
@@ -138,6 +153,12 @@ class LibraryPatch(RequestBody):
     status: Literal["pending", "confirmed", "rejected"] | None = None
     reason: str | None = Field(default=None, max_length=2000,
                                description="实质内容修改后同次重新确认必须填写本次核对依据")
+    valid_to: str | None = Field(default=None, max_length=10)
+    is_long_term: bool = False
+    source_tier: SourceTier = "own"
+    partner_entity_id: str | None = Field(default=None, max_length=100)
+    is_restricted: bool = False
+    acl_user_ids: list[str] = Field(default_factory=list, max_length=500)
 
 
 class ProjectDetail(ResponseBody):
@@ -317,7 +338,7 @@ class WorkflowChapter(ChapterSummaryResponse):
 
 class TeamMember(TeamMemberInput):
     name: str
-    company_role: Literal["editor", "manager", "viewer"]
+    company_role: DemoCompanyRole
 
 
 class VolumeOwner(VolumeOwnerInput):
@@ -434,6 +455,11 @@ class LibraryItem(ResponseBody):
     revision: int
     usable_as_evidence: bool
     reason: str
+    source_tier: SourceTier = "own"
+    is_restricted: bool = False
+    is_long_term: bool = False
+    valid_to: str | None = None
+    partner_entity_id: str | None = None
 
 
 class Workspace(ResponseBody):

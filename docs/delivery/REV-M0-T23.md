@@ -10,7 +10,7 @@
 | 任务ID | REV-M0-T23 |
 | 代码解释 | 无代码变更；仅验收记录 |
 | 验收 | 行为三项通过（装载叠种子、变更保存、revision 409）；本地 mysql 12 passed；未设库 351 passed / 12 skipped；CI 38219738690 全绿（当时 mysql junit tests=11 skipped=0）；见[签署记录](../testing/2026-10-12-be-m0-t13-signoff.md)。演示表待 ISSUE-035，不标 done |
-| 项目进度 | 被验卡和 Issue 的状态不变，等项目经理设置 |
+| 项目进度 | 被验卡 BE-M0-T13 与本卡均为 done（QA ae38ec3，PM 17:16 确认）。ISSUE-018 仍为 in-progress。ISSUE-035 仍为 new。未合入，未发布 |
 <!-- task-delivery:end -->
 
 ## 关联与状态
@@ -24,4 +24,4 @@
 
 ## 同步与剩余
 
-PRD/ROADMAP/ARCHITECTURE/PROJECT_BRIEF无影响（只读复核；计数为里程碑快照，以任务看板为准）。观察项见签署记录：第 6 节批准句与 ISSUE-035 由后端补。
+PRD/ROADMAP/ARCHITECTURE/PROJECT_BRIEF无影响（只读复核；计数为里程碑快照，以任务看板为准）。观察项见签署记录：第 6 节批准句与 ISSUE-035 由后端补。项目经理随后确认本卡与 BE-M0-T13 为 done，依据是 QA ae38ec3，PM 17:16 确认。ISSUE-018 仍为 in-progress。ISSUE-035 仍为 new。

@@ -21,8 +21,12 @@ def member(state, project_id, user_id):
 
 def writable(state, project_id, user_id):
     account, membership = state.accounts.get(user_id), member(state, project_id, user_id)
-    return bool(account and account.company_id == state.projects[project_id].company_id
-                and account.role in ("manager", "editor") and membership
+    if not (account and membership and account.company_id == state.projects[project_id].company_id):
+        return False
+    # 公司管理员和资料管理员仍须已是项目成员；经理和编辑的原有分工不变。
+    if account.role in ("company_admin", "data_admin"):
+        return True
+    return bool(account.role in ("manager", "editor")
                 and (membership["project_role"] == "writer"
                      or membership["project_role"] == "lead" and account.role == "manager"))
 

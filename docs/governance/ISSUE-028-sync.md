@@ -126,3 +126,21 @@
 | issues/ISSUE-010.md | 无 | 保持 closed | closed |
 
 未合入，未发布。不标 done，不标 closed。`python3 -m pytest tests/backend/test_openai_compatible_model.py -q -rs` 为 34 passed、1 skipped、1 warning。跳过原因是 `real model endpoint tests require ICG_RUN_REAL_MODEL_TESTS=1`。`python3 -m pytest tests/backend -q -rs` 为 355 passed、13 skipped、1 warning。12 项跳过是 `ICG_DATABASE_URL is unset`，另 1 项是同一真实端点开关。`node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：296 份 Markdown、383 项任务、34 项 Issue。」检查程序未修改。
+
+## AC-03 证据
+
+日期：2026-10-12。ISSUE-028 与 AI-01 仍为 in-review。不标 done，不标 closed。AC-02 维持 REV-M0-T29 已签署。AC-03 只准备证据，待 QA 勾选。ISSUE-024 与 AC-04 仍等待。路径规范化 hold。真模型冒烟另计。不改 `openai_model.py`，不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。
+
+| 文档 | 本次影响 | 实际处理 | 版本与状态 |
+|---|---|---|---|
+| issues/ISSUE-028.md | 有 | AC-03 结果改为可复跑证据。状态仍 in-review | model-config-fixture-1 |
+| docs/testing/2026-10-12-issue-028-ac03-evidence.md | 有 | 列出 `git show` / diff 步骤和本次结果 | 待 QA 勾选 |
+| docs/delivery/AI-01.md | 有 | 补一句指向该证据。不标 done | in-review |
+| docs/code/AI-01.md | 有 | 写明本轮不改适配器，依赖 blob 未变 | 当前 |
+| DOCUMENT_INDEX.md | 有 | 登记本证据并追加变更记录 | 2026-10-12 |
+| spec/openapi/demo-v1.json | 无 | 夹具提交不改。尖端差异属于 `af51151` | 2026-10-12 |
+| backend/bid-core/requirements.txt | 无 | `9e3fcdd^`、`9e3fcdd`、尖端 blob 相同 | 2026-10-12 |
+| openai_model.py | 无 | 不改 | 2026-10-12 |
+| PRD / ROADMAP / PROJECT_BRIEF | 无 | 不改正文，不改任务计数 | 2026-10-12 |
+
+未合入，未发布。`python3 -m pytest tests/backend/test_openai_compatible_model.py -q -rs` 为 34 passed、1 skipped、1 warning。跳过原因是 `real model endpoint tests require ICG_RUN_REAL_MODEL_TESTS=1`。`node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：306 份 Markdown、386 项任务、35 项 Issue。」检查程序未修改。

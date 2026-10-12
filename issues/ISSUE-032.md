@@ -36,7 +36,7 @@ BE-M0-T12 把当前编辑租约写入 `chapter_lease`。方案第 5 节对照字
 - `token` 与 `session_token` 要么删除，要么写出保留理由并再次请项目经理批准。
 - 迁移必须保留历史锁行，禁止用删除清空旧租约。
 - 不改 `docs/reference/`。不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照。不改工作流文件。
-- ISSUE-018 仍为 in-progress。BE-M0-T12 与 BE-M0-T13 仍为 in-review，不标 done。
+- ISSUE-018 仍为 in-progress。BE-M0-T12 已依据 QA ae6fd10，PM 15:32 确认 done。BE-M0-T13 已依据 QA ae38ec3，PM 17:16 确认 done。本 Issue 仍为 new，不标 closed。
 
 ## 实施任务与互链
 
