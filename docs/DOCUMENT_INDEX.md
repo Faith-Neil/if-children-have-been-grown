@@ -231,12 +231,12 @@
 | D-218 | 2026-10-12 | [检索实现](../backend/bid-core/icg_demo/retrieval.py) | 后台 | retrieval-skeleton-1 | 契约通过 | ISSUE-016 / AI-03 | 内存嵌入、重排、向量表和证据候选 |
 | D-219 | 2026-10-12 | [证据候选测试](../tests/backend/test_evidence_candidates.py) | 验证 | retrieval-skeleton-1 | 7项通过 | ISSUE-016 / AI-03 | 合成数据覆盖公司隔离和历史不可附着 |
 | D-220 | 2026-10-12 | [检索协议](../backend/bid-core/icg_demo/ports.py) | 后台 | retrieval-skeleton-1 | 当前 | ISSUE-016 / AI-03 | 增加嵌入、重排和向量检索协议 |
-| D-221 | 2026-10-12 | [错误体交付](delivery/BE-M0-T02.md) | 交付 | contract-1 | in-review | ISSUE-005 / BE-M0-T02 | v1错误体、一对一状态和两处收口；done待QA签收 |
+| D-221 | 2026-10-12 | [错误体交付](delivery/BE-M0-T02.md) | 交付 | contract-1 | done | ISSUE-005 / BE-M0-T02 | 项目经理于 10-12 12:28 在 QA 签署后确认 |
 | D-222 | 2026-10-12 | [错误体代码解释](code/BE-M0-T02.md) | 说明 | contract-1 | 当前 | ISSUE-005 / BE-M0-T02 | 状态表、追踪头和解析失败的原状态 |
-| D-223 | 2026-10-12 | [幂等交付](delivery/BE-M0-T03.md) | 交付 | contract-1 | in-review | ISSUE-005 / BE-M0-T03 | 24小时回执、失败不保存和旧正文字段 |
+| D-223 | 2026-10-12 | [幂等交付](delivery/BE-M0-T03.md) | 交付 | contract-1 | done | ISSUE-005 / BE-M0-T03 | 项目经理于 10-12 12:28 在 QA 签署后确认 |
 | D-224 | 2026-10-12 | [幂等代码解释](code/BE-M0-T03.md) | 说明 | contract-1 | 当前 | ISSUE-005 / BE-M0-T03 | 范围、指纹、过期和2048条上限 |
 | D-225 | 2026-10-12 | [错误体与幂等验证](testing/2026-10-12-error-idempotency.md) | 验证 | contract-1 | 已执行 | ISSUE-005 / BE-M0-T02、T03 | 后台回归和141个code的冻结表；含MODEL_UNAVAILABLE=502 |
-| D-226 | 2026-10-12 | [005同步表](governance/ISSUE-005-sync.md) | 治理 | g1.1 | 本轮记录 | ISSUE-005 | 基线逐行记录；PRD、ROADMAP、ARCHITECTURE未改 |
+| D-226 | 2026-10-12 | [005同步表](governance/ISSUE-005-sync.md) | 治理 | g1.1 | 本轮记录 | ISSUE-005 | 基线逐行记录；已补 ARCHITECTURE 一句；PRD 与 ROADMAP 未改 |
 | D-227 | 2026-10-12 | [错误状态表](../backend/bid-core/icg_demo/errors.py) | 后台 | contract-1 | 当前 | ISSUE-005 / BE-M0-T02 | 141个code的唯一HTTP状态及OpenAPI补充 |
 | D-228 | 2026-10-12 | [幂等回执](../backend/bid-core/icg_demo/idempotency.py) | 后台 | contract-1 | 当前 | ISSUE-005 / BE-M0-T03 | 24小时、上限和失败不登记 |
 | D-229 | 2026-10-12 | [错误与幂等回归](../tests/backend/test_error_idempotency.py) | 验证 | contract-1 | 当前 | ISSUE-005 / BE-M0-T02、T03 | 错误体、重放、冲突、过期、导出一致和v1模型失败 |
@@ -265,11 +265,17 @@
 | D-253 | 2026-10-12 | [编辑台1280截图](testing/assets/e2e-editor-1280.png) | 证据 | e2e-1 | E2E截图 | ISSUE-019 / REV-M0-T06 | 编辑台三栏与暗色控件 |
 | D-254 | 2026-10-12 | [概览1440截图](testing/assets/e2e-overview-1440.png) | 证据 | e2e-1 | E2E截图 | ISSUE-019 / REV-M0-T06 | 项目概览布局 |
 | D-242 | 2026-10-12 | [017同步记录](governance/ISSUE-017-sync.md) | 治理 | intranet-plan-1 | 已核对 | ISSUE-017 / OPS-M0-T02 | 三件套与 brief 不改正文；过时的 T008 用词留给项目经理下一次基线同步 |
-| D-250 | 2026-10-12 | [T124阻塞事项](../issues/ISSUE-022.md) | 变更 | t124-blocked-1 | blocked | ISSUE-022 / APP-M2-T124 | 依赖未满足，不改模型输入 |
-| D-251 | 2026-10-12 | [T124阻塞交付](delivery/APP-M2-T124.md) | 交付 | t124-blocked-1 | blocked | ISSUE-022 / APP-M2-T124 | 无产品代码；不标 done |
-| D-252 | 2026-10-12 | [T124无代码说明](code/APP-M2-T124.md) | 说明 | t124-blocked-1 | 当前 | ISSUE-022 / APP-M2-T124 | 整章输入保持；REF-08 仍适用 |
-| D-253 | 2026-10-12 | [T124依赖核对](testing/2026-10-12-t124-dependencies.md) | 验证 | t124-blocked-1 | 只读 | ISSUE-022 / APP-M2-T124 | T15 具备；T078、T114 和三个 operationId 不具备 |
-| D-254 | 2026-10-12 | [022同步记录](governance/ISSUE-022-sync.md) | 治理 | t124-blocked-1 | 已核对 | ISSUE-022 / APP-M2-T124 | 354项265planned、50blocked；PRD 与 ARCHITECTURE 未改 |
+| D-255 | 2026-10-12 | [T124阻塞事项](../issues/ISSUE-022.md) | 变更 | t124-blocked-1 | blocked | ISSUE-022 / APP-M2-T124 | 依赖未满足，不改模型输入 |
+| D-256 | 2026-10-12 | [T124阻塞交付](delivery/APP-M2-T124.md) | 交付 | t124-blocked-1 | blocked | ISSUE-022 / APP-M2-T124 | 无产品代码；不标 done |
+| D-257 | 2026-10-12 | [T124无代码说明](code/APP-M2-T124.md) | 说明 | t124-blocked-1 | 当前 | ISSUE-022 / APP-M2-T124 | 整章输入保持；REF-08 仍适用 |
+| D-258 | 2026-10-12 | [T124依赖核对](testing/2026-10-12-t124-dependencies.md) | 验证 | t124-blocked-1 | 只读 | ISSUE-022 / APP-M2-T124 | T15 具备；T078、T114 和三个 operationId 不具备 |
+| D-259 | 2026-10-12 | [022同步记录](governance/ISSUE-022-sync.md) | 治理 | t124-blocked-1 | 已核对 | ISSUE-022 / APP-M2-T124 | T124 改为 blocked；PRD 与 ARCHITECTURE 未改 |
+| D-260 | 2026-10-12 | [MySQL 8 持久化方案](architecture/mysql-8-persistence-plan.md) | 架构 | plan-1 | in-review | ISSUE-018 / BE-M0-T08 | 选型、表、事务、跨进程回执和会话；未加依赖 |
+| D-261 | 2026-10-12 | [ISSUE-018](../issues/ISSUE-018.md) | 变更 | plan-1 | in-review | ISSUE-018 / BE-M0-T08 | 方案复查；不标 closed |
+| D-262 | 2026-10-12 | [方案交付](delivery/BE-M0-T08.md) | 交付 | plan-1 | in-review | ISSUE-018 / BE-M0-T08 | 无运行时代码 |
+| D-263 | 2026-10-12 | [方案无代码说明](code/BE-M0-T08.md) | 说明 | plan-1 | 当前 | ISSUE-018 / BE-M0-T08 | 未改仓库和依赖 |
+| D-264 | 2026-10-12 | [018同步表](governance/ISSUE-018-sync.md) | 治理 | plan-1 | 已核对 | ISSUE-018 / BE-M0-T08 | PRD、ROADMAP、ARCHITECTURE 未因本方案改动 |
+| D-265 | 2026-10-12 | [ISSUE-021](../issues/ISSUE-021.md) | 变更 | queue-1 | blocked | ISSUE-021 / BE-M0-T09 | 旧接口、幂等和 E2E-D5；任务 planned；本轮不实施 |
 
 ## 更新记录
 
@@ -307,6 +313,8 @@
 | 2026-10-12 | ISSUE-016 / AI-03 | 旁路核对：适配器在 /api/v1 生成失败已是冻结错误体，只加一条测试。不新增错误码，不改码表，状态仍 in-review。不改 PRD、ROADMAP、ARCHITECTURE、TASK_BOARD、PROJECT_STATUS、PROJECT_BRIEF |
 | 2026-10-12 | ISSUE-019 / REV-M0-T06；ISSUE-013 / REV-M0-T08 | Playwright E2E与T001签署（不通过）；354项7in-review |
 | 2026-10-12 | ISSUE-022 / APP-M2-T124 | 依赖未满足，T124 改为 blocked。354项仍为 21 done、7 in-review、7 in-progress，planned 改为 265，blocked 改为 50。不改产品代码。适用 REF-08 |
+| 2026-10-12 | ISSUE-005 | ARCHITECTURE 补一句：v1 错误体和 24 小时幂等回执已提交复查，无驱动、迁移或表，测试仍用内存仓库。接口约定补登到同步表。T02 与 T03 由项目经理于 10-12 12:28 在 QA 签署后确认；Issue 保持 in-progress |
+| 2026-10-12 | ISSUE-018 / BE-M0-T08；ISSUE-021 / BE-M0-T09 | MySQL 8 方案 in-review，要求回执和会话跨进程且重启后仍在。旧接口任务 planned，并登记 E2E-D5。与 T124 的 blocked 合并后为 356项23done、6in-review、7in-progress、266planned、50blocked、4ready。未加依赖，未改 PRD 与 ROADMAP |
 
 ## 缺失输入
 

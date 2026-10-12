@@ -9,12 +9,12 @@
 | Issue ID | ISSUE-005 |
 | 类型 | decision |
 | 优先级 | P0 |
-| 状态 | in-review |
+| 状态 | in-progress |
 | 登记 / 更新日期 | 2026-10-09 / 2026-10-12 |
-| revision | review-3 |
+| revision | progress-4 |
 | 来源 | ISSUE-004 / REV-M0-T01的业务与技术审查；DG-05卡片已获批准 |
 | 关联Task | FE-M0-T03 / FE-M0-T04；BE-M0-T02～T07；APP-M2-T002仍planned |
-| 本地验收 | DG-05卡片(a)(b)已提交复查，状态为in-review；done与closed只由项目经理在QA签收后标记 |
+| 本地验收 | DG-05卡片(a)(b)已由项目经理于 10-12 12:28 在 QA 签署后确认。T04～T07 未完成，本 Issue 保持 in-progress，不关闭 |
 | 合入 / 发布 | 本轮直接提交在`codex/repository-foundation`；PR #3未合入 / 未发布 |
 
 ## 具体待决事项与关闭证据
@@ -50,15 +50,15 @@ PRD、ROADMAP、ARCHITECTURE将按每项最终决定同步业务正文及版本�
 
 | 卡片 | 任务 | 状态 | 本轮 |
 |---|---|---|---|
-| (a) 错误体与状态码表 | [BE-M0-T02](../docs/tasks/BE-M0.md#be-m0-t02) | in-review | 已实现，等待 QA 签收 |
-| (b) 幂等，回执24小时 | [BE-M0-T03](../docs/tasks/BE-M0.md#be-m0-t03) | in-review | 已实现，等待 QA 签收 |
+| (a) 错误体与状态码表 | [BE-M0-T02](../docs/tasks/BE-M0.md#be-m0-t02) | done | 项目经理于 10-12 12:28 在 QA 签署后确认 |
+| (b) 幂等，回执24小时 | [BE-M0-T03](../docs/tasks/BE-M0.md#be-m0-t03) | done | 项目经理于 10-12 12:28 在 QA 签署后确认 |
 | (c) 编辑租约迁到 /api/v1 | [BE-M0-T04](../docs/tasks/BE-M0.md#be-m0-t04) | ready | 未开工 |
 | (d) 导出快照 | [BE-M0-T05](../docs/tasks/BE-M0.md#be-m0-t05) | ready | 未开工 |
 | (e) 可恢复任务 202+SSE | [BE-M0-T06](../docs/tasks/BE-M0.md#be-m0-t06) | ready | 未开工 |
 | (f) operationId检查 | [BE-M0-T07](../docs/tasks/BE-M0.md#be-m0-t07) | ready | 未开工 |
 
-`VOLUME_OWNER_REQUIRED`固定403，`TWO_VOLUMES_REQUIRED`固定422，`MODEL_UNAVAILABLE`固定502。幂等范围是scope、账号和键；失败不保存；内存最多2048条。旧章节提交仍接受正文字段。前端请求层APP-M2-T002继续planned，因为APP-M2-T001尚未验收。DG-01～DG-04、DG-06以及DG-05的后四张卡未关闭。本Issue为in-review，不标closed。done只由项目经理在QA签收后标记。同步表见[ISSUE-005本轮同步](../docs/governance/ISSUE-005-sync.md)。
+`VOLUME_OWNER_REQUIRED`固定403，`TWO_VOLUMES_REQUIRED`固定422，`MODEL_UNAVAILABLE`固定502。幂等范围是scope、账号和键；失败不保存；内存最多2048条。旧章节提交仍接受正文字段。前端请求层APP-M2-T002继续planned，因为APP-M2-T001尚未验收。DG-01～DG-04、DG-06以及DG-05的后四张卡未关闭。本Issue保持 in-progress，不标 closed。同步表见[ISSUE-005本轮同步](../docs/governance/ISSUE-005-sync.md)。
 
 ## 2026-10-12：基线正文
 
-接口细节写在[主流程约定](../docs/architecture/icg-reference-contract.md)和 OpenAPI。基线改动逐项记在同步表；PRD、ROADMAP 与 ARCHITECTURE 本轮未改。
+接口细节写在[主流程约定](../docs/architecture/icg-reference-contract.md)和 OpenAPI。该约定已补登到同步表。基线改动逐项记在同步表；PRD 与 ROADMAP 本轮未改。ARCHITECTURE 只补 ISSUE-005 一句。

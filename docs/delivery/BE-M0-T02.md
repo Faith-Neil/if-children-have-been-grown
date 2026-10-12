@@ -10,10 +10,10 @@
 | 任务ID | BE-M0-T02 |
 | 代码解释 | [实际代码解释](../code/BE-M0-T02.md)，包含错误体、状态表和两处收口 |
 | 验收 | `PYTHONPATH=backend/bid-core python3 -m pytest tests/backend -q --tb=line` 通过，含 `MODEL_UNAVAILABLE` 的 v1 统一错误体。治理检查见[验证记录](../testing/2026-10-12-error-idempotency.md) |
-| 项目进度 | 350项中20done、4in-review、7in-progress、266planned、49blocked、4ready。本卡为in-review，done只由项目经理在QA签收后标记。未合入、未发布 |
+| 项目进度 | 本卡已由项目经理于 10-12 12:28 在 QA 签署后确认，标为 done。ISSUE-005 仍为 in-progress。未合入、未发布 |
 <!-- task-delivery:end -->
 
-日期：2026-10-12。关联：[ISSUE-005](../../issues/ISSUE-005.md)、[任务卡](../tasks/BE-M0.md#be-m0-t02)。分支`codex/repository-foundation`直接提交。状态为in-review；未合入、未发布。done只由项目经理在QA签收后标记。
+日期：2026-10-12。关联：[ISSUE-005](../../issues/ISSUE-005.md)、[任务卡](../tasks/BE-M0.md#be-m0-t02)。分支`codex/repository-foundation`直接提交。项目经理于 10-12 12:28 在 QA 签署后确认，状态为 done。未合入、未发布。ISSUE-005 不因此关闭。
 
 ## 实际成果
 

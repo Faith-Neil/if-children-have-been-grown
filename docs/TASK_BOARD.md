@@ -8,7 +8,7 @@
 
 将 [前端 ROADMAP](ROADMAP.md) 的 Phase 0～8 与发布 Milestone 1～5 拆为 **59 张任务卡**，由 FE-M0～FE-M8 管理。前缀 FE 表示前端合作交付；这些编号与参考全系统 M0～M8 的门禁、周期和范围独立。
 
-项目354项中 **done 21、in-review 7、in-progress 7、planned 265、blocked 50、ready 4**。APP-M1的16项中，T01～05继续实现，T06继续完整联调验收，T07已完成范围拆分，T08等待最终审计；T09～16限定子任务已本地验收，T16完成资料及公司模板旧表单保护。APP-M2的259卡中T001布局、路由和离开保护为 in-review，T008离线CI为 done，T124因依赖未满足为 blocked，其余256卡planned，47组页面、190原WBS细项及44规则已逐项映射，见[完整后续卡](tasks/APP-M2.md)与[来源核对](testing/icg-task-mapping.md)。BE-M0现为7项：T01已验收，错误体与幂等为in-review，锁迁移、导出快照、202/SSE、operationId四张卡ready。旧FE59项保留来源，OPS 2项中 T01 已本地验收、T02 内网部署草案为 in-review，REV 5项已本地验收（REV-M0-T02为ISSUE-013 QA复跑，REV-M0-T03/T04为ISSUE-015，REV-M0-T05为T008与AI-02的QA签署）。AI-01仍等待向量库和模型决定，业务库已定为 MySQL 8，本轮不接入；AI-02 与 T008 均已由项目经理于 10-12 12:10 在 QA 签署后确认，标为 done。AI-03 为 in-review，只使用内存检索。开发者只能把卡片标到 in-review，done 由项目经理在 QA 签署后设置。ISSUE-009 与 ISSUE-014 随 T001 停在 in-review。ISSUE-020 路由分包为 in-review，不新增任务。PR #3待合入。这些数量不是产品完成率。
+项目356项中 **done 23、in-review 6、in-progress 7、planned 266、blocked 50、ready 4**。APP-M1的16项中，T01～05继续实现，T06继续完整联调验收，T07已完成范围拆分，T08等待最终审计；T09～16限定子任务已本地验收，T16完成资料及公司模板旧表单保护。APP-M2的259卡中T001布局、路由和离开保护为 in-review，T008离线CI为 done，T124因依赖未满足为 blocked，其余256卡planned，47组页面、190原WBS细项及44规则已逐项映射，见[完整后续卡](tasks/APP-M2.md)与[来源核对](testing/icg-task-mapping.md)。BE-M0现为9项：T01已验收；T02与T03由项目经理于 10-12 12:28 在 QA 签署后确认，标为 done；MySQL 8 方案为 in-review；锁迁移、导出快照、202/SSE、operationId四张卡 ready；旧接口错误体为 planned，含 E2E-D5 的大小写 `/api` 前缀。ISSUE-005 保持 in-progress，T04～T07 未完成，不关闭。旧FE59项保留来源，OPS 2项中 T01 已本地验收、T02 内网部署草案为 in-review，REV 8项中 6 项已本地验收、T06 与 T08 为 in-review（REV-M0-T02为ISSUE-013 QA复跑，REV-M0-T03/T04为ISSUE-015，REV-M0-T05为T008与AI-02的QA签署，REV-M0-T07为T02/T03的QA签署）。AI-01仍等待向量库和模型决定，业务库已定为 MySQL 8，本轮不接入；AI-02 与 T008 均已由项目经理于 10-12 12:10 在 QA 签署后确认，标为 done。AI-03 为 in-review，只使用内存检索。开发者只能把卡片标到 in-review，done 由项目经理在 QA 签署后设置。ISSUE-009 与 ISSUE-014 随 T001 停在 in-review。ISSUE-020 路由分包为 in-review。ISSUE-018 的 MySQL 8 方案为 in-review，ISSUE-021 排队且任务为 planned，ISSUE-022 的 T124 为 blocked。PR #3待合入。这些数量不是产品完成率。
 
 59张前端卡片估算合计 209 小时，单卡 2～4 小时，处于 0.5～4 小时的任务粒度目标内。该总和是已有基线/接口条件下的前端增量估算，不是项目排期，不含后端、模型、取得输入、评审或等待时间。开工若预计超 4 小时，先继续拆卡并登记 Issue/版本变更，保留原任务 ID 的历史。
 
@@ -43,9 +43,9 @@
 | [FE-M6 协作](tasks/FE-M6.md) | ROADMAP Phase 7；一期可延后范围 | 4 | 0/4 | 后续范围确认后按负责人、评论、引用等具体依赖推进，彼此无需整阶段串行。 |
 | [FE-M7 效率](tasks/FE-M7.md) | ROADMAP Phase 8；一期可延后范围 | 4 | 0/4 | 可选效率增强按相关模块依赖推进，不是一期发布前置。 |
 | [FE-M8 发布门禁](tasks/FE-M8.md) | ROADMAP §11 MVP Cut Line、§13 Gate A/B/C；贯穿发布 Milestone 1～5 | 3 | 0/3 | 发布验证覆盖一期必需任务；无需等待可选 FE-M6/FE-M7。 |
-| [OPS-M0 工作区运维](tasks/OPS-M0.md) | ISSUE-004工作区同步；ISSUE-017内网部署草案 | 2 | 1/2 | T01同步已验收。T02只是草案，in-review，未部署。 |
-| [REV-M0 接手审查](tasks/REV-M0.md) | ISSUE-004目录与业务/技术审查；ISSUE-013 QA复跑；ISSUE-015 T06计划；ISSUE-013 签署；ISSUE-019 E2E、T001签署 | 8 | 6/8 | 审查/brief交付完成，设计决定留ISSUE-005；QA复跑、T06计划及贯通冒烟/Word渲染完成。 |
-| [BE-M0 后端链路](tasks/BE-M0.md) | ISSUE-006本地后端demo；ISSUE-005契约卡 | 7 | 1/7 | T01已验收；T02/T03为in-review；T04～T07 ready。业务库决定为MySQL 8，本轮不接入。 |
+| [OPS-M0 工作区运维](tasks/OPS-M0.md) | ISSUE-004工作区同步；ISSUE-017内网部署草案 | 2 | 1/2 | T01同步已验收。T02只是草案，in-review，未部署。多副本仍 blocked 在 ISSUE-018。 |
+| [REV-M0 接手审查](tasks/REV-M0.md) | ISSUE-004目录与业务/技术审查；ISSUE-013 QA复跑；ISSUE-015 T06计划；ISSUE-013 签署；ISSUE-019 E2E、T001签署 | 8 | 6/8 | 审查/brief交付完成，设计决定留ISSUE-005；QA复跑、T06计划及贯通冒烟/Word渲染完成。T06 与 T08 为 in-review。 |
+| [BE-M0 后端链路](tasks/BE-M0.md) | ISSUE-006本地后端demo；ISSUE-005契约卡；ISSUE-018方案；ISSUE-021排队 | 9 | 3/9 | T01～T03已验收。T02与T03由项目经理于 10-12 12:28 在 QA 签署后确认。T08为in-review；T04～T07 ready；T09 planned。ISSUE-005 仍 in-progress。 |
 | [APP-M1 示例实现](tasks/APP-M1.md) | ISSUE-007示例与后台联调；ISSUE-008资料保护 | 16 | 9/16 | T07及T09～16已本地验收；完整父任务继续。 |
 | [AI-M0 模型接入准备](tasks/AI-M0.md) | ISSUE-010选型待决；ISSUE-011兼容适配器；ISSUE-016内存检索 | 3 | 1/3 | AI-01仍blocked；AI-02为done，项目经理于 10-12 12:10 在 QA 签署后确认；AI-03为in-review。业务库已定为MySQL 8，向量库和模型仍待决定。 |
 
@@ -128,12 +128,14 @@
 | [REV-M0-T06](tasks/REV-M0.md#rev-m0-t06) | Playwright浏览器端到端检查 | in-review | [APP-M2-T001](tasks/APP-M2.md#app-m2-t001) | [ISSUE-019](../issues/ISSUE-019.md) | [交付](delivery/REV-M0-T06.md) |
 | [REV-M0-T08](tasks/REV-M0.md#rev-m0-t08) | APP-M2-T001 QA签署复核 | in-review | [REV-M0-T06](tasks/REV-M0.md#rev-m0-t06) | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T08.md) |
 | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | 后端开发准备与本地demo | done | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | [ISSUE-006](../issues/ISSUE-006.md) | [交付](delivery/BE-M0-T01.md) |
-| [BE-M0-T02](tasks/BE-M0.md#be-m0-t02) | v1统一错误体与HTTP状态码表 | in-review | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | [ISSUE-005](../issues/ISSUE-005.md) | [交付](delivery/BE-M0-T02.md) |
-| [BE-M0-T03](tasks/BE-M0.md#be-m0-t03) | v1幂等键与24小时回执 | in-review | [BE-M0-T02](tasks/BE-M0.md#be-m0-t02) | [ISSUE-005](../issues/ISSUE-005.md) | [交付](delivery/BE-M0-T03.md) |
+| [BE-M0-T02](tasks/BE-M0.md#be-m0-t02) | v1统一错误体与HTTP状态码表 | done | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | [ISSUE-005](../issues/ISSUE-005.md) | [交付](delivery/BE-M0-T02.md) |
+| [BE-M0-T03](tasks/BE-M0.md#be-m0-t03) | v1幂等键与24小时回执 | done | [BE-M0-T02](tasks/BE-M0.md#be-m0-t02) | [ISSUE-005](../issues/ISSUE-005.md) | [交付](delivery/BE-M0-T03.md) |
 | [BE-M0-T04](tasks/BE-M0.md#be-m0-t04) | 编辑租约迁到 /api/v1 | ready | [BE-M0-T02](tasks/BE-M0.md#be-m0-t02)、[BE-M0-T03](tasks/BE-M0.md#be-m0-t03) | [ISSUE-005](../issues/ISSUE-005.md) | `docs/delivery/BE-M0-T04.md` |
 | [BE-M0-T05](tasks/BE-M0.md#be-m0-t05) | 导出快照语义 | ready | [BE-M0-T02](tasks/BE-M0.md#be-m0-t02)、[BE-M0-T03](tasks/BE-M0.md#be-m0-t03) | [ISSUE-005](../issues/ISSUE-005.md) | `docs/delivery/BE-M0-T05.md` |
 | [BE-M0-T06](tasks/BE-M0.md#be-m0-t06) | 可恢复任务（202 与 SSE） | ready | [BE-M0-T02](tasks/BE-M0.md#be-m0-t02)、[BE-M0-T03](tasks/BE-M0.md#be-m0-t03) | [ISSUE-005](../issues/ISSUE-005.md) | `docs/delivery/BE-M0-T06.md` |
 | [BE-M0-T07](tasks/BE-M0.md#be-m0-t07) | operationId 检查 | ready | [BE-M0-T02](tasks/BE-M0.md#be-m0-t02) | [ISSUE-005](../issues/ISSUE-005.md) | `docs/delivery/BE-M0-T07.md` |
+| [BE-M0-T08](tasks/BE-M0.md#be-m0-t08) | MySQL 8 持久化方案 | in-review | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | [ISSUE-018](../issues/ISSUE-018.md) | [交付](delivery/BE-M0-T08.md) |
+| [BE-M0-T09](tasks/BE-M0.md#be-m0-t09) | 旧 /api 统一错误体与幂等 | planned | [BE-M0-T08](tasks/BE-M0.md#be-m0-t08) | [ISSUE-021](../issues/ISSUE-021.md) | `docs/delivery/BE-M0-T09.md` |
 | [APP-M1-T01](tasks/APP-M1.md#app-m1-t01) | 示例外壳与项目工作台 | in-progress | BE-M0-T01 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T01.md` |
 | [APP-M1-T02](tasks/APP-M1.md#app-m1-t02) | 上传解析与确认 | in-progress | APP-M1-T01工作区接口 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T02.md` |
 | [APP-M1-T03](tasks/APP-M1.md#app-m1-t03) | 矩阵事实与证据 | in-progress | APP-M1-T02条款结构 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T03.md` |
@@ -423,4 +425,4 @@
 5. 更新 Issue、任务卡和本看板状态、PROJECT_STATUS 进度，最后登记 DOCUMENT_INDEX；检查链接/状态一致后转 done。
 6. 把本地验收、合入、发布分别记录；功能只有真实接口联调通过才计生产完成。
 
-当前优先：APP-M1按ICG示例实施和联调，来源差异同步核对；模型与向量库保留接口不阻止本地产品流程开发。ISSUE-010的业务库已决定为 MySQL 8，向量库、对话模型、嵌入和重排仍待决定。AI-02已由项目经理于 10-12 12:10 在 QA 签署后确认为 done。AI-03 为 in-review，不连接 MySQL。ISSUE-005 的错误体与幂等为 in-review，后四张契约卡为 ready。生产门禁继续验证，不能用主链路内部稿替代完整交付。
+当前优先：APP-M1按ICG示例实施和联调，来源差异同步核对；模型与向量库保留接口不阻止本地产品流程开发。ISSUE-010的业务库已决定为 MySQL 8，向量库、对话模型、嵌入和重排仍待决定。AI-02已由项目经理于 10-12 12:10 在 QA 签署后确认为 done。AI-03 为 in-review，不连接 MySQL。ISSUE-005 保持 in-progress：错误体与幂等已由项目经理于 10-12 12:28 在 QA 签署后确认，后四张契约卡仍为 ready，该 Issue 不关闭。生产门禁继续验证，不能用主链路内部稿替代完整交付。

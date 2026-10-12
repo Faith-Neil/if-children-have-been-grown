@@ -1,0 +1,168 @@
+为什么有这个文件：把已决定的 MySQL 8 业务库写成可复查的持久化方案。
+
+它解决什么问题：在批准驱动和迁移之前，先定存储、事务和测试边界，避免直接把整份内存状态搬进数据库。
+
+# MySQL 8 持久化方案
+
+日期：2026-10-12。关联 [ISSUE-018](../../issues/ISSUE-018.md)、任务 [BE-M0-T08](../tasks/BE-M0.md#be-m0-t08)。状态 in-review。本文只提案，不安装依赖，不改 `requirements.txt`，不增加连接、迁移或表。
+
+业务库已决定为 MySQL 8。向量库、对话模型、嵌入和重排仍随 ISSUE-010，不放进 MySQL。现有入口是 `Repository.read()` 与 `Repository.transaction(operation)`，回调收到整份 `DemoState`。`MemoryRepository` 在锁内深拷贝整份状态，失败不提交。幂等回执在 `DemoState.workflow_receipts`，键为 `(scope_id, user_id, key)`，保留 24 小时，内存最多 2048 条。编辑租约在 `Chapter.lock`，`LEASE_SECONDS = 120`。
+
+## 1. 选型
+
+| 角色 | 选择 | 理由 | 不选 |
+|---|---|---|---|
+| ORM | SQLAlchemy 2.0 | 与现有同步调用方式一致。2.0 的 `Session` 事务可以包住一次业务写入和回执插入。类型化查询能按聚合取行，不必先装出整份 `DemoState` | SQLModel：再包一层，当前领域已经是 dataclass。Django ORM：要换应用框架 |
+| 驱动 | PyMySQL | 纯 Python，内网构建机不需要编译 C 扩展。连接串使用 `charset=utf8mb4` | mysqlclient：要系统编译库。mysql-connector-python：额外的 Oracle 客户端包，当前不需要 |
+| 异步驱动 | 本方案不用 | 现有 `transaction` 是同步的，路由也按同步仓库调用。先保持同步，避免再引入事件循环依赖 | asyncmy、aiomysql、asyncpg |
+| 迁移 | Alembic | 与 SQLAlchemy 元数据对应，可以生成可复查的 SQL。升级命令固定为 `alembic upgrade head` | 手写散落 SQL 文件：难和模型对照。应用启动时自动建表：生产和测试的结构会分叉 |
+
+MySQL 8.4 默认账号认证是 `caching_sha2_password`。PyMySQL 处理这种认证需要单独的 `cryptography` 包，所以它单独列出，不并进驱动。
+
+## 2. 待批准依赖
+
+每一项都要单独批准。批准前不写入 `backend/bid-core/requirements.txt`，也不安装。版本在批准时锁定到当时的精确版本；下表只给出系列，避免在方案里假装已经验证过某一个补丁号。
+
+| 包 | 系列 | 用途 | 本轮 |
+|---|---|---|---|
+| SQLAlchemy | 2.0 | 会话、事务和聚合映射 | 未加入 |
+| PyMySQL | 1.1 | MySQL 8 协议驱动 | 未加入 |
+| cryptography | 当前稳定版 | PyMySQL 连接 MySQL 8.4 的 `caching_sha2_password` | 未加入 |
+| Alembic | 1.14 | 迁移脚本和 `upgrade head` | 未加入 |
+
+不引入 testcontainers、SQLModel、asyncmy、aiomysql、mysqlclient。集成测试使用 CI 的数据库容器，不在测试进程里再拉一层容器库。
+
+## 3. 字符集与排序规则
+
+库和表默认：
+
+```sql
+CREATE DATABASE icg_demo CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+```
+
+`utf8mb4` 覆盖正文里的汉字和四字节字符。`utf8mb4_0900_ai_ci` 是 MySQL 8 的默认 Unicode 排序，用于标题和正文。
+
+幂等键、租约令牌和会话令牌使用 `utf8mb4_bin`。这些值大小写敏感；若用 `utf8mb4_0900_ai_ci`，`Ab` 与 `ab` 会被当成同一键，重放和冲突都会判错。键的格式仍是 `^[A-Za-z0-9_-]{8,120}$`。
+
+连接参数固定 `charset=utf8mb4`。迁移里不使用 `utf8`（它在 MySQL 里是三字节的旧字符集）。
+
+## 4. 表：幂等回执
+
+对应现在的 `workflow_receipts`。一次成功写入和它的回执在同一事务里提交；失败回滚，不留回执。过期或失败结果不占用键，同一键可以再试。
+
+```sql
+CREATE TABLE idempotency_receipt (
+  scope_id VARCHAR(160) NOT NULL,
+  user_id VARCHAR(120) NOT NULL,
+  idempotency_key VARCHAR(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  fingerprint CHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  result_json JSON NOT NULL,
+  created_at DATETIME(6) NOT NULL,
+  expires_at DATETIME(6) NOT NULL,
+  PRIMARY KEY (scope_id, user_id, idempotency_key),
+  KEY idx_idempotency_expires (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+```
+
+- `scope_id`：项目写为 `project_id`，公司资料和公司模板写为 `library:{company_id}`。
+- `fingerprint`：`action`、规范化 payload、`If-Match` 的哈希，与现有 `fingerprint()` 相同。
+- `expires_at`：`created_at` 加 24 小时。比较使用数据库的 `NOW(6)`，不使用应用机器时钟。
+- 查找时先删过期行，再按主键读取。指纹相同且未过期则重放并设 `Idempotent-Replayed: true`。指纹不同返回 409 `IDEMPOTENCY_CONFLICT`。
+- 内存里的 2048 条上限只留在 `MemoryRepository`。MySQL 不按条数删除未过期回执，否则 24 小时语义会被提前打断。过期删除在事务内做，不依赖事件调度器。
+- 回执必须对多个进程和 worker 可见。任一进程提交的成功回执，其他进程用同一 scope、账号和键都能读到。进程退出再启动后，未过期回执仍在，重放结果不变。这是方案的验收条件。当前内存实现做不到，所以 ISSUE-017 在本方案实施前仍限制为一个 worker、一个副本。本轮不改那个限制。
+
+## 5. 表：编辑租约
+
+对应 `Lease`：`token`、`owner_id`、`session_token`、`expires_at`。时长 120 秒。一章一行。
+
+```sql
+CREATE TABLE chapter_lease (
+  chapter_id VARCHAR(120) NOT NULL,
+  token VARCHAR(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  owner_id VARCHAR(120) NOT NULL,
+  session_token VARCHAR(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  expires_at DATETIME(6) NOT NULL,
+  PRIMARY KEY (chapter_id),
+  CONSTRAINT fk_chapter_lease_chapter FOREIGN KEY (chapter_id) REFERENCES chapter (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+```
+
+- 续期：同一事务里 `SELECT chapter, chapter_lease FOR UPDATE`。仅当令牌、所有者和会话都匹配且 `expires_at > NOW(6)` 时，把 `expires_at` 改为 `NOW(6) + INTERVAL 120 SECOND`。
+- 接管：租约已过期，或调用方提供接管原因时，在同一事务替换该行，审计记录原因和上一所有者。未过期且无原因时保持现有拒绝行为。
+- 释放：匹配的未过期租约删除该行并写审计。保存草稿和提交版本继续要求持有未过期租约。
+
+## 6. 其他聚合
+
+这些表在实现轮次再写迁移。本方案只定边界，避免一次事务继续拷贝全部状态。
+
+| 聚合 | 来源字段 | 写入范围 |
+|---|---|---|
+| 身份 | `accounts`、`sessions` | 登录会话写入 MySQL。任一 worker 都能用同一 token 认证；进程重启后 token 仍有效，直到被显式删除。现有演示登录没有过期时间，本方案不另加 |
+| 项目 | `projects`、`project_teams` | 项目与成员 |
+| 章节 | `chapters`、草稿、版本、`chapter_lease` | 正文、版本和租约 |
+| 检查与导出 | `checks`、`exports` | 检查结果和导出快照 |
+| 资料与承诺 | `library`、`sla_templates`、`library_revisions` | 公司资料和模板 |
+| 工作流与任务 | `workflows`、`jobs` | 项目流程和异步任务 |
+| 审计 | `audit` | 只追加 |
+| 幂等 | `workflow_receipts` | 见第 4 节 |
+
+登录会话对应现在的 `DemoState.sessions`：token 映射到 `user_id`。它和回执一样不能只活在一个进程里。
+
+```sql
+CREATE TABLE user_session (
+  token VARCHAR(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  user_id VARCHAR(120) NOT NULL,
+  created_at DATETIME(6) NOT NULL,
+  PRIMARY KEY (token),
+  KEY idx_session_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+```
+
+章节和项目保留 `revision`。更新使用 `UPDATE ... WHERE id = ? AND revision = ?`，受影响行数为 0 时返回现有版本冲突，不覆盖。
+
+## 7. 从整份仓库拆到按聚合仓库
+
+当前回调可以改 `DemoState` 的任意字段。不能第一步就换成 SQL，否则一次请求仍会读出全部表。
+
+1. 列出每个 `transaction` 回调实际读写的字段。入口在 `domain.py`、`workflow.py`、`sla.py`。
+2. 为第 6 节的每个聚合定义窄接口：按主键读取、按条件查询、在已打开的事务里保存。`MemoryRepository` 仍保存整份 `DemoState`，窄接口只是它上面的视图。
+3. 一次只改一个聚合的回调，让它使用窄接口。单元测试继续走内存，行为保持不变。
+4. 全部回调不再直接改整份状态之后，再增加 `MysqlRepository`。它实现同一组窄接口，在一个 SQLAlchemy `Session` 里提交。
+5. `create_app` 仍默认内存仓库。只有显式配置内网连接时才使用 MySQL。该切换不属于本方案的实施范围。
+
+## 8. 事务与并发
+
+- 隔离级别使用 MySQL 默认的 `REPEATABLE READ`。
+- 一次业务成功和对应回执插入要么一起提交，要么一起回滚。失败结果不插入回执。
+- 同一幂等键并发时由主键挡住第二行。后到的事务读已提交行：指纹相同则重放，不同则 409。
+- 同一章节的租约、草稿和提交使用 `SELECT ... FOR UPDATE` 锁住该章，避免两个会话同时接管。
+- 应用不在事务外先读再写后假设没有别人改过。版本列和租约行锁是并发条件。
+- SQL 日志默认关闭。不把正文、回执 JSON 或令牌打到日志。
+
+## 9. 测试
+
+单元测试继续使用 `MemoryRepository`，不需要数据库，现有离线作业保持不连 MySQL。
+
+集成测试以后单独跑，镜像 `mysql:8.4`。容器只在内网执行机上启动，不加到当前公网托管的 GitHub Actions 作业里。库内只放合成种子数据。
+
+批准实施后，CI 在容器健康检查通过后执行：
+
+```text
+alembic -c backend/bid-core/alembic.ini upgrade head
+```
+
+连接来自执行机环境变量，例如 `mysql+pymysql://USER:PASSWORD@127.0.0.1:3306/icg_demo?charset=utf8mb4`。密码不进仓库。然后运行标记为 MySQL 的集成测试。没有该环境变量时，这些测试跳过，单元测试仍然通过。
+
+实施后的集成测试还要覆盖：两个进程连接同一库时，一个进程写入的回执能被另一个进程重放；停掉进程再启动后，未过期回执仍可重放，已登录 token 仍可认证。本轮不跑这些测试。
+
+## 10. 数据不出内网
+
+- 不使用托管数据库、外部备份或驱动遥测。
+- 连接地址只来自内网环境变量。
+- 集成测试不携带真实投标、账号或正文。
+- 本方案不把 `mysql:8.4` 写进现有公网 CI 工作流。
+- 向量和模型调用仍按 ISSUE-010，不因业务库落地而改道到外网。
+
+## 11. 本轮不做
+
+不改 Python 依赖，不新增 `alembic.ini`，不建表，不改 `MemoryRepository` 的行为，不把旧 `/api` 错误体并入统一格式。后一项登记为 [ISSUE-021](../../issues/ISSUE-021.md)，排在本方案被接受之后，状态为 planned 的任务，本轮不实施。
