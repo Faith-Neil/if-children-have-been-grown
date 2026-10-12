@@ -550,3 +550,23 @@
 - [x] 验收条目逐条核对并独立复跑。
 - [x] 无库 355 passed / 13 skipped；`-m mysql` 12 passed；Q2 ~1s failed；双 worker + 重启通过；CI 38212536927 全绿。
 - [x] BE-M0-T11 / ISSUE-018 / 本卡均不标 done，等项目经理设置
+
+<a id="rev-m0-t29"></a>
+
+## REV-M0-T29 · ISSUE-028 AC-02 假端点夹具 QA签署
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review（本地验收；等项目经理设置 done） |
+| 估算 | 1小时 |
+| 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
+| 依赖 | ISSUE-028（9e3fcdd） |
+| 来源 | 项目经理签署要求；T27 预留给 PR #4；T28 已用于 BE-M0-T11 |
+| 完成交付 | [专属交付](../delivery/REV-M0-T29.md) |
+| 代码解释 | 无产品代码 |
+
+范围：签署 ISSUE-028 AC-02 假 OpenAI 兼容端点夹具（9e3fcdd）。核对 fixture、默认 skip、CI 不设旗、无生产改动。路径规范化 hold，不要求改适配器。不改他人代码；不把 ISSUE-028 / AI-01 标为 done。
+
+- [x] 验收条目逐条核对并独立复跑。
+- [x] 聚焦 34 passed / 1 skipped；全后台 355 passed / 13 skipped；治理通过；CI 38231417634 绿。
+- [x] ISSUE-028 / AI-01 / 本卡均不标 done，等项目经理设置

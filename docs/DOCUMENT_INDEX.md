@@ -399,6 +399,8 @@
 
 | D-386 | 2026-10-12 | [BE-M0-T11回执会话签署](testing/2026-10-12-be-m0-t11-qa-signoff.md) | 验证 | qa-rerun-23 | 本地通过 | ISSUE-013 / REV-M0-T28 | 通过；BE-M0-T11 / ISSUE-018 不标 done；T27 预留 |
 | D-387 | 2026-10-12 | [REV-M0-T28签署交付](delivery/REV-M0-T28.md) | 交付 | qa-rerun-23 | 已本地验收 | ISSUE-013 / REV-M0-T28 | 无代码；结论与观察项 |
+| D-388 | 2026-10-12 | [ISSUE-028 AC-02假端点签署](testing/2026-10-12-issue-028-ac02-qa-signoff.md) | 验证 | qa-rerun-24 | 本地通过 | ISSUE-013 / REV-M0-T29 | 通过；ISSUE-028 / AI-01 不标 done；路径规范化 hold |
+| D-389 | 2026-10-12 | [REV-M0-T29签署交付](delivery/REV-M0-T29.md) | 交付 | qa-rerun-24 | 已本地验收 | ISSUE-013 / REV-M0-T29 | 无代码；结论与观察项 |
 
 ## 更新记录
 
@@ -515,6 +517,7 @@
 | 2026-10-12 | ISSUE-022 / APP-M2-T078；ISSUE-013 / REV-M0-T24 | 项目经理确认 APP-M2-T078 与 REV-M0-T24 为 done，依据是 QA 19c4862，PM 17:20 确认。范围只含内存片段发布层。页面未做，不挡住 done。T124 改为 ready，本轮不实现。看板改为 381 项：49 done、7 in-review、7 in-progress、265 planned、48 blocked、5 ready。ISSUE-022 保持 closed。ISSUE-033 不关闭。不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照，不改 docs/reference，不改产品代码 |
 | 2026-10-12 | ISSUE-028 / AI-01 | AC-02 假 OpenAI 兼容服务已编码。它记录请求头，并从路径还原实际 `base_url`。真实端点须 `ICG_RUN_REAL_MODEL_TESTS=1`，默认跳过。不改 `backend/bid-core`，不改 OpenAPI，不加依赖，不改错误码名单。ISSUE-028 与 AI-01 仍 in-review。ISSUE-010 仍 closed。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。不标 closed |
 | 2026-10-12 | ISSUE-013 / REV-M0-T28 | QA签署：BE-M0-T11回执与会话入库，通过（被验卡/ISSUE-018 不标 done；T27 预留给 PR #4） |
+| 2026-10-12 | ISSUE-013 / REV-M0-T29 | QA签署：ISSUE-028 AC-02假端点夹具，通过（ISSUE-028 / AI-01 不标 done；路径规范化 hold） |
 
 ## 缺失输入
 
