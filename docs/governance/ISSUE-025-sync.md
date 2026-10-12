@@ -15,7 +15,7 @@
 | Issue 看板/详情 | 新增 ISSUE-025，in-review。ISSUE-024 不建档。ISSUE-018 仍为 in-progress，只补一条互链 |
 | TASK_BOARD | 新增 BE-M0-T14，in-review。362 项：26 done、7 in-review、7 in-progress、268 planned、50 blocked、4 ready |
 | PROJECT_STATUS | 写明托管作业使用 MySQL 8.4 容器，仍不访问公司内网。完成数与看板一致 |
-| DOCUMENT_INDEX | 登记本 Issue、交付、代码说明、核对记录和本同步表 |
+| DOCUMENT_INDEX | 登记本 Issue、交付、代码说明、核对记录和本同步表。核对条目改为已核对，并记下 run 38207508936 |
 | 持久化方案 | 删去“不要把 mysql:8.4 加进工作流”的禁令，改记为本作业。原 `backend` 作业仍不设置连接串 |
 | icg-task-mapping | 不改 |
 | 参考原文 | 不改 `docs/reference/` |

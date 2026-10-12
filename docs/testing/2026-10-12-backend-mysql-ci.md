@@ -26,9 +26,11 @@
 
 ## 执行过的检查
 
-提交前运行 `node scripts/check-project-governance.cjs`，输出为：治理检查通过：206 份 Markdown、362 项任务、25 项 Issue。该检查不启动 MySQL。数字含同分支已并入的 ISSUE-026。
+`b91d331` 提交前的治理检查输出为：治理检查通过：206 份 Markdown、362 项任务、25 项 Issue。该检查不启动 MySQL。数字含当时已并入的 ISSUE-026。
 
-推送后的 `backend-mysql` 作业结果在作业完成后补记。本地这次没有启动 MySQL 容器。
+本次补记前再次运行，输出为：治理检查通过：213 份 Markdown、362 项任务、27 项 Issue。多出来的文档和 Issue 来自已并入的 ISSUE-010 决定记录，以及 ISSUE-028、ISSUE-029。任务数仍是 362。该检查不启动 MySQL。
+
+推送 `b91d331` 后的作业：https://github.com/Faith-Neil/if-children-have-been-grown/actions/runs/38207508936 。`backend-mysql` 成功。库字符集输出为 `utf8mb4` / `utf8mb4_unicode_ci`。pytest 为 2 passed、320 deselected。junit 为 tests=2、skipped=0、failures=0、errors=0。密码在日志里显示为掩码。本地这次没有启动 MySQL 容器。第一次推送 `763064a` 的启动步骤赶上了镜像的临时初始化服务器，已改为等到 `MySQL init process done` 且 ping 成功。
 
 ## 未执行
 

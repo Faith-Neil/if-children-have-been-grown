@@ -32,7 +32,7 @@
 
 ## 验收结果
 
-核对方式见 [测试记录](../testing/2026-10-12-backend-mysql-ci.md)。治理检查在提交前执行。
+核对方式见 [测试记录](../testing/2026-10-12-backend-mysql-ci.md)。`b91d331` 的作业成功：pytest 2 passed、320 deselected，junit tests=2 skipped=0 failures=0 errors=0。治理检查在提交前执行。状态仍 in-review。
 
 ## 项目进度
 

@@ -301,7 +301,7 @@
 | D-288 | 2026-10-12 | [ISSUE-025](../issues/ISSUE-025.md) | 流程 | mysql-ci-1 | in-review | ISSUE-025 / BE-M0-T14 | 托管 MySQL 作业；ISSUE-024 不建档 |
 | D-289 | 2026-10-12 | [MySQL CI 交付](delivery/BE-M0-T14.md) | 交付 | mysql-ci-1 | in-review | ISSUE-025 / BE-M0-T14 | 不标 done；不建业务表 |
 | D-290 | 2026-10-12 | [MySQL CI 说明](code/BE-M0-T14.md) | 说明 | mysql-ci-1 | 当前 | ISSUE-025 / BE-M0-T14 | 运行时密码；docker run；junit 守卫 |
-| D-291 | 2026-10-12 | [MySQL CI 核对](testing/2026-10-12-backend-mysql-ci.md) | 验证 | mysql-ci-1 | 待 Actions | ISSUE-025 / BE-M0-T14 | 密码不进仓库；原 backend 作业不连库 |
+| D-291 | 2026-10-12 | [MySQL CI 核对](testing/2026-10-12-backend-mysql-ci.md) | 验证 | mysql-ci-1 | 已核对 | ISSUE-025 / BE-M0-T14 | run 38207508936：2 passed、320 deselected；密码不进仓库 |
 | D-292 | 2026-10-12 | [025同步表](governance/ISSUE-025-sync.md) | 治理 | mysql-ci-1 | 已核对 | ISSUE-025 / BE-M0-T14 | 计数字句改为 362 项；ARCHITECTURE 正文未改 |
 | D-293 | 2026-10-12 | [配置驱动的对话模型](architecture/model-config-provider.md) | 架构 | model-config-design-1 | in-review | ISSUE-028 / AI-01 | 字段与错误码提案。不改 OpenAPI |
 | D-294 | 2026-10-12 | [RAGFlow 检索适配器](architecture/ragflow-retrieval-adapter.md) | 架构 | ragflow-adapter-design-1 | in-review | ISSUE-029 / AI-03 | 官方路径与状态映射。无客户端 |
@@ -359,6 +359,7 @@
 | 2026-10-12 | ISSUE-026 | PRD、ROADMAP、PROJECT_BRIEF 的任务计数改为 361项26done、6in-review、7in-progress、268planned、50blocked、4ready。APP-M2 其余 255 张 planned。并入 b465316 后 T08 与 T10 为 done。不新增任务，不改请求层重试，不改后台。Issue 为 in-review |
 | 2026-10-12 | ISSUE-025 / BE-M0-T14 | 增加 backend-mysql。运行时密码，mysql:8.4，utf8mb4 / utf8mb4_unicode_ci。新增一卡后为 362项26done、7in-review、7in-progress、268planned、50blocked、4ready，三份计数字句跟着改。ISSUE-018 与 ISSUE-026 仍不关闭 |
 | 2026-10-12 | ISSUE-010 / AI-01；ISSUE-028；ISSUE-029 | 用户决定配置页对话模型、RAGFlow 自带嵌入与向量库、生产生成仅内网。ISSUE-010 改为 closed，AI-01 改为 in-review。看板改为 362项26done、8in-review、7in-progress、268planned、49blocked、4ready。不改 PRD、ROADMAP、PROJECT_BRIEF 里 ISSUE-025 写下的 362 项、7 in-review、50 blocked。不改运行代码，不加依赖，不改 OpenAPI |
+| 2026-10-12 | ISSUE-025 / BE-M0-T14 | 核对记录补记 `b91d331` 的作业 https://github.com/Faith-Neil/if-children-have-been-grown/actions/runs/38207508936 ：backend-mysql 成功，pytest 2 passed、320 deselected，junit tests=2 skipped=0 failures=0 errors=0。状态仍 in-review。不改任务计数 |
 
 ## 缺失输入
 

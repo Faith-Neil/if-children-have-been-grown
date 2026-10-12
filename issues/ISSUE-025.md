@@ -69,6 +69,7 @@ ISSUE-018 的连接与空迁移已在 `7d97369` 进入仓库，BE-M0-T08 与 BE-
 | 日期 | revision / 状态 | 完成事实、问题与下一步 | 证据 / 复核人 |
 |---|---|---|---|
 | 2026-10-12 | mysql-ci-1 / in-review | 增加 `backend-mysql`。密码运行时生成。ISSUE-024 不建档。done 待项目经理 | [核对](../docs/testing/2026-10-12-backend-mysql-ci.md) |
+| 2026-10-12 | mysql-ci-1 / in-review | `b91d331` 的作业成功：2 passed、320 deselected，junit tests=2 skipped=0 failures=0 errors=0。不标 done | [run 38207508936](https://github.com/Faith-Neil/if-children-have-been-grown/actions/runs/38207508936) |
 
 ## 本地验收与后续合入发布
 
