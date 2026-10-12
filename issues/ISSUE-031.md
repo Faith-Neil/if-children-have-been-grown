@@ -9,13 +9,13 @@
 | Issue ID | ISSUE-031 |
 | 类型 | change |
 | 优先级 | P2 |
-| 状态 | in-review |
+| 状态 | closed |
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
 | revision | frozen-names-1 |
 | 关联 Task | [BE-M0-T16](../docs/tasks/BE-M0.md#be-m0-t16) |
 | 关联 PR | 未创建。随既有分支提交，不新开 PR |
-| 本地验收 | 2026-10-12 后台测试通过。删 `SECRET_KEY_UNAVAILABLE`、加 `NOT_A_REAL_CODE` 并重新导出后，名单对照失败。等待项目经理 QA 签收 |
+| 本地验收 | QA ae6fd10，PM 15:32 确认。见 [签署](../docs/testing/2026-10-12-issue-031-frozen-names-signoff.md)。BE-M0-T16 仍 in-review |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | [BE-M0-T16](../docs/delivery/BE-M0-T16.md) |
@@ -46,9 +46,9 @@
 | AC-01 | `set(ERROR_STATUS) == FROZEN_NAMES`，且 spec 的 `V1Error.code` 枚举与这份名单相同 | 2026-10-12 契约测试通过。见验证记录 |
 | AC-02 | 在代码和 spec 里删一个旧码、加一个新码，再用 `export_openapi.py` 导出后，上述对照失败；总数仍可为 143 | 临时把 `SECRET_KEY_UNAVAILABLE` 换成 `NOT_A_REAL_CODE`。对照失败后已还原，仓库里没有这个探测码 |
 | AC-03 | 接口约定写明：增删错误码必须在同一提交更新冻结名单 | `spec/openapi/README.md` 修改与验收 |
-| AC-04 | 卡片与本 Issue 均为 in-review，不标 done，不标 closed | 看板与本文件 |
+| AC-04 | 卡片与本 Issue 均为 in-review，不标 done，不标 closed | QA ae6fd10，PM 15:32 确认后本 Issue 为 closed。BE-M0-T16 仍 in-review，不标 done |
 
-未做浏览器、服务或发布验收。in-review 不是 closed，也不是 done。
+未做浏览器、服务或发布验收。BE-M0-T16 仍 in-review，不是 done。
 
 ## 六份基线 impact 与同步表
 
@@ -67,10 +67,11 @@
 | 日期 | revision / 状态 | 完成事实、问题与下一步 | 证据 / 复核人 |
 |---|---|---|---|
 | 2026-10-12 | frozen-names-1 / in-review | 冻结名单已写入。done 与 closed 等待项目经理在 QA 后设置 | [验证](../docs/testing/2026-10-12-issue-031-frozen-error-codes.md) |
+| 2026-10-12 | frozen-names-1 / closed | QA ae6fd10，PM 15:32 确认。本 Issue 标为 closed。BE-M0-T16 仍 in-review，不标 done | [签署](../docs/testing/2026-10-12-issue-031-frozen-names-signoff.md) |
 
 ## 本地验收与后续合入发布
 
 - 本地验收：2026-10-12，见验证记录。只用合成数据。
-- 未覆盖：项目经理 QA 签收。
+- 未覆盖：BE-M0-T16 仍 in-review。合入与发布未发生。
 - 六份基线：见上表与 [同步表](../docs/governance/ISSUE-031-sync.md)。
 - PR：未新开。合入与发布均未发生。

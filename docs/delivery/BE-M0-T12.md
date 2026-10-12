@@ -17,7 +17,7 @@
 
 - 2026-10-12，BE-M0，[ISSUE-018](../../issues/ISSUE-018.md)。
 - 分支 `codex/repository-foundation`。未新开 PR，未合入，未发布。
-- 本地验收已做。等待项目经理在 QA 后才能标 done。
+- 本地验收已做。QA ae6fd10，PM 15:32 确认，本卡为 done。未合入，未发布。
 
 ## 完成内容与变更文件
 

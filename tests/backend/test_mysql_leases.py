@@ -1,5 +1,5 @@
-# 为什么有这个文件：用真实 MySQL 核对编辑租约能不能跨进程续期和过期接管。
-# 它解决什么问题：内存仓库里的 120 秒租约换进程就消失，续期和接管必须在库里仍然成立。
+# 为什么有这个文件：用真实 MySQL 核对编辑租约能不能跨进程续期、过期接管和释放。
+# 它解决什么问题：内存仓库里的 120 秒租约换进程就消失，释放后那一行也必须从库里消失。
 
 import os
 import subprocess
@@ -131,6 +131,32 @@ def test_expired_lease_can_be_taken_by_another_session():
         assert taken["body"]["lease_token"] != held["body"]["lease_token"]
         assert taken["token"] != held["token"]
         stored = _lease_row()
+        assert stored.token == taken["body"]["lease_token"]
+        assert stored.owner_id == taken["body"]["owner_id"]
+    finally:
+        _clear_lease()
+
+
+def test_released_lease_row_is_deleted_and_another_session_can_acquire():
+    _upgrade()
+    _clear_lease()
+    try:
+        held = _process("lock_acquire", {"chapter_id": CHAPTER, "account_id": "alpha-editor"})
+        assert held["status"] == 200, held
+        assert _lease_row() is not None
+        released = _process("lock_release", {
+            "chapter_id": CHAPTER,
+            "token": held["token"],
+            "lease_token": held["body"]["lease_token"],
+        })
+        assert released["status"] == 200, released
+        assert released["body"]["released"] is True
+        assert _lease_row() is None
+        taken = _process("lock_acquire", {"chapter_id": CHAPTER, "account_id": "alpha-manager"})
+        assert taken["status"] == 200, taken
+        assert taken["token"] != held["token"]
+        stored = _lease_row()
+        assert stored is not None
         assert stored.token == taken["body"]["lease_token"]
         assert stored.owner_id == taken["body"]["owner_id"]
     finally:

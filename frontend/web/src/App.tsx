@@ -257,7 +257,9 @@ export default function App() {
         isCurrent: approved => start === epoch.current && id === projectId.current && currentAuthorization.current === approved,
       });
       if (start !== epoch.current || id !== projectId.current) return;
-      setWorkspace(workspaceWithSessionPermissions(result.workspace, result.session, true)); setAccessLost(false); await refreshGlobal(activeToken.current, result.session);
+      const next = workspaceWithSessionPermissions(result.workspace, result.session, true);
+      setWorkspace(next); setAccessLost(false); await refreshGlobal(activeToken.current, result.session);
+      return next;
     } catch (error) {
       if (start === epoch.current && id === projectId.current && isRequestFailureCurrent(error, activeToken.current) && projectAccessLost(error)) {
         setWorkspace(previous => previous ? freezeWorkspace(previous) : previous); setAccessLost(true);

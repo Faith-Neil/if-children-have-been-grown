@@ -405,6 +405,26 @@
 - [x] README补上N7两码例外，P3句子已加入x-idempotency.retry；契约测试15个、后端351个通过，live HTTP 49/49；CI五个job全绿。
 - [x] 被验卡和Issue的状态不变，等项目经理设置
 
+<a id="rev-m0-t21"></a>
+
+## REV-M0-T21 · 0a5b655请求层重试修复 QA签署
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done（本地验收；PR待合入） |
+| 估算 | 1小时 |
+| 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
+| 依赖 | ISSUE-030 |
+| 来源 | 项目经理签署要求 |
+| 完成交付 | [专属交付](../delivery/REV-M0-T21.md) |
+| 代码解释 | 无产品代码 |
+
+范围：签署前端请求层重试修复（0a5b655）。不改他人代码或卡片状态。
+
+- [x] 验收条目逐条核对并独立复跑。
+- [x] 探针34/34；502 MODEL_UNAVAILABLE与503 SECRET_KEY_UNAVAILABLE各1次请求；普通503与无错误体502照常重试，无Idempotency-Key写入不重试；Node 24.9.0前端单测97/97。
+- [x] 被验卡和Issue的状态不变，等项目经理设置
+
 <a id="rev-m0-t22"></a>
 
 ## REV-M0-T22 · 最新合作分支复核与限定缺陷修复
@@ -423,4 +443,6 @@
 
 - [x] 回归先证明原缺陷，再证明修复结果。
 - [x] 运行相关实际函数/HTTP、构建及治理；真实MySQL未连接须明确。
-- [ ] 保存复核、代码、交付和基线影响；提交PR等待审核，不自行done/closed。
+- [x] 保存复核、代码、交付和基线影响；提交PR等待审核，不自行done/closed。
+
+修复PR：[#4](https://github.com/Faith-Neil/if-children-have-been-grown/pull/4)，等待审核。

@@ -15,7 +15,7 @@
 | 关联 Task | REV-M0-T22 |
 | 审查基线 | 初次73fde1e03c0b6fce0f8c0a9f2e20551e63d811b3；最终保留并整合9c178782d2e01e47e0d46748ceac230d749fea64，包含租约、项目及证据抽屉新提交 |
 | 修复分支 | codex/review-foundation-fixes |
-| 关联 PR | 修复及验收后创建，目标为上述合作分支 |
+| 关联 PR | [#4](https://github.com/Faith-Neil/if-children-have-been-grown/pull/4)，目标codex/repository-foundation |
 | 本地验收 | 本地必要检查通过，真实MySQL未连接；独立PR待审，不关闭原任务 |
 | 合入 / 发布 | 未合入 / 未发布 |
 
@@ -52,3 +52,5 @@
 | PROJECT_STATUS | 记录审查结论、实际验证和当前任务数，不写成已合入或发布 |
 | DOCUMENT_INDEX | 登记本Issue、审查/代码/交付及新增回归 |
 | WORKFLOW | 无治理规则变更，g1.1治理块保持原一致版本 |
+
+最终PR整合保留9a5533c64f65b98d5231876d852e9762c6138c3c，包括证据刷新、编辑锁对齐登记及PM状态更新；自己的记录为ISSUE-033 / REV-M0-T22，未覆盖同伴同名记录。PR：[#4](https://github.com/Faith-Neil/if-children-have-been-grown/pull/4)，等待审核，未合入/发布。

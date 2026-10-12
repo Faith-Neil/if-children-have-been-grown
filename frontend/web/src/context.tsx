@@ -6,7 +6,7 @@ import type { Account, Evidence, SlaTemplate, Workspace } from './types';
 export type ProjectContextValue = {
   workspace: Workspace; token: string; user: Account; busy: boolean; library: Evidence[]; slaTemplates: SlaTemplate[];
   mutate: (path: string, method: string, body?: unknown) => Promise<unknown>;
-  reload: () => Promise<void>;
+  reload: () => Promise<Workspace | undefined>;
   report: (error: unknown) => void;
   navigate: (tab: string) => void;
 };

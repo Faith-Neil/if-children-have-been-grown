@@ -33,6 +33,19 @@ export function evidenceInvalid(item: Evidence | undefined, deadline?: string | 
   return !evidenceDecision(item, deadline).selectable;
 }
 
+export function attachedEvidenceLabel(item: Evidence | null | undefined, deadline?: string | null): string {
+  if (!item) return '资料已不可见';
+  const decision = evidenceDecision(item, deadline);
+  if (decision.selectable) return '当前合格';
+  if (decision.reason === '过期') return '证据失效';
+  return decision.reason;
+}
+
+export function applyRefreshedAttachment(requirement: { evidence_ids: string[] }, revision: number) {
+  const ids = requirement.evidence_ids.slice();
+  return { ids, opened: { revision, ids: ids.slice() } };
+}
+
 export function groupEvidence(items: Evidence[], deadline?: string | null) {
   const decided = items.map(item => ({ item, decision: evidenceDecision(item, deadline) }));
   const structured = decided.filter(row => row.decision.group === 'structured');
