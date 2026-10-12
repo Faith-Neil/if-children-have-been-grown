@@ -226,7 +226,7 @@
 | D-213 | 2026-10-12 | [检索骨架事项](../issues/ISSUE-016.md) | 变更 | retrieval-skeleton-1 | in-review | ISSUE-016 / AI-03 | 内存检索口与三条证据候选；不连接 MySQL |
 | D-214 | 2026-10-12 | [检索骨架交付](delivery/AI-03.md) | 交付 | retrieval-skeleton-1 | in-review | ISSUE-016 / AI-03 | 契约与全后台结果；开发者不标 done |
 | D-215 | 2026-10-12 | [检索骨架代码解释](code/AI-03.md) | 说明 | retrieval-skeleton-1 | 当前 | ISSUE-016 / AI-03 | 三条路径、公司过滤和失败原因不含正文 |
-| D-216 | 2026-10-12 | [检索骨架验证](testing/2026-10-12-evidence-candidates.md) | 验证 | retrieval-skeleton-1 | 本地通过 | ISSUE-016 / AI-03 | 契约7项；全后台299项；无真实库 |
+| D-216 | 2026-10-12 | [检索骨架验证](testing/2026-10-12-evidence-candidates.md) | 验证 | retrieval-skeleton-1 | 本地通过 | ISSUE-016 / AI-03 | 契约7项；全后台300项；无真实库 |
 | D-217 | 2026-10-12 | [016同步记录](governance/ISSUE-016-sync.md) | 治理 | retrieval-skeleton-1 | 已核对 | ISSUE-016 / AI-03 | 344项20done、2in-review、7in-progress；PROJECT_BRIEF已登记 |
 | D-218 | 2026-10-12 | [检索实现](../backend/bid-core/icg_demo/retrieval.py) | 后台 | retrieval-skeleton-1 | 契约通过 | ISSUE-016 / AI-03 | 内存嵌入、重排、向量表和证据候选 |
 | D-219 | 2026-10-12 | [证据候选测试](../tests/backend/test_evidence_candidates.py) | 验证 | retrieval-skeleton-1 | 7项通过 | ISSUE-016 / AI-03 | 合成数据覆盖公司隔离和历史不可附着 |

@@ -8,9 +8,9 @@
 | ROADMAP.md | 有。新增一张 in-review 卡，计数必须跟着变 | 在 AI-02 与 T008 已 done 的 343 项（20 done、1 in-review、7 in-progress）之后改为 344 项：20 done、2 in-review、7 in-progress、266 planned、49 blocked。页面顺序不变。AI-03 不标 done | 2026-10-12 进度说明 |
 | ARCHITECTURE.md | 有。架构上多了检索替换口 | 当前实施段写明内存实现，业务库虽已定为 MySQL 8 但未连接，向量库仍待决 | 2026-10-12 说明 |
 | issues/index.md / ISSUE-016.md | 有。新变更已提交复核 | 状态为 in-review；下一编号改为 ISSUE-017。ISSUE-014 仍保留给前端。ISSUE-010 仍 blocked | in-review；未合入、未发布 |
-| TASK_BOARD.md / tasks/AI-M0.md | 有。新增 AI-03 | 看板和任务卡为 in-review。AI-M0 为 3 项、0/3。交付和代码解释已链接 | in-review |
+| TASK_BOARD.md / tasks/AI-M0.md | 有。新增 AI-03 | 看板和任务卡为 in-review。AI-M0 为 3 项、1/3：AI-02 已 done，AI-03 不标 done。交付和代码解释已链接 | in-review |
 | PROJECT_STATUS.md | 有。必须区分内存骨架和未选的向量库 | 进度中并列写出，并写明不连接 MySQL | 2026-10-12 |
-| DOCUMENT_INDEX.md | 有。Issue、代码、测试、交付和验证都要能找到 | 登记 D-206～D-213，并改写受影响条目的说明 | 2026-10-12 |
+| DOCUMENT_INDEX.md | 有。Issue、代码、测试、交付和验证都要能找到 | 登记 D-213～D-220。D-206～D-212 仍是 ISSUE-014 的布局条目 | 2026-10-12 |
 | 产品参考 PRD/字典 | 无。检索口不修改参考原文 | 未修改 `docs/reference/` | 保持原文 |
 | 业务数据库 | 无实现。ISSUE-010 已决定 MySQL 8，本卡不连接它 | 不新增驱动、迁移或向量库。单元测试仍用内存 | 内存实现 |
 | PROJECT_BRIEF.md | 有。排期行的任务总数变了 | 在项目经理确认 AI-02 与 T008 之后的 343 项（20 done、1 in-review、7 in-progress）之后改为 344 项（20 done、2 in-review、7 in-progress）。原因是新增 AI-03，且不回退先前句子。排期写明 AI-03 只使用内存检索，T001 保持 in-review，T008 保持 done | 2026-10-12；已登记 |

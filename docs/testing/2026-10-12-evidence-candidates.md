@@ -11,10 +11,10 @@
 | 检查 | 命令与结果 |
 |---|---|
 | 证据候选契约 | `python3 -m pytest tests/backend/test_evidence_candidates.py -q`：7 passed，0.03 秒 |
-| 全后台 | `python3 -m pytest tests/backend -q`：299 passed，1 warning，80.83 秒 |
+| 全后台 | `python3 -m pytest tests/backend -q`：300 passed，1 warning，84.33 秒 |
 | 记录一致性 | `node scripts/check-project-governance.cjs`：通过。输出为「治理检查通过：148 份 Markdown、344 项任务、16 项 Issue。」检查程序未修改，因此未重跑治理测试 |
 
-全后台 299 项包含原有 `tests/backend/test_reference_boundaries.py`。该文件本轮没有修改。新增 7 项使用合成公司 `company-alpha` 与 `company-beta`。
+全后台 300 项包含原有 `tests/backend/test_reference_boundaries.py`。该文件本轮没有修改。新增 7 项使用合成公司 `company-alpha` 与 `company-beta`。多出的 1 项来自已经在分支上的会话测试，不是本卡新增的依赖或数据库。
 
 既有警告一条：Starlette 提示 `httpx` 与 `TestClient` 的搭配将要弃用。它在本次改动前已经存在，本轮没有为它增加依赖。
 

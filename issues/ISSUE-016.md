@@ -15,7 +15,7 @@
 | revision | retrieval-skeleton-1 |
 | 关联 Task | [AI-03](../docs/tasks/AI-M0.md#ai-03) |
 | 关联 PR | 未创建 |
-| 本地验收 | 开发者已提交复核。2026-10-12 契约 7 项与全后台 299 项通过。开发者不标 done 或 closed |
+| 本地验收 | 开发者已提交复核。2026-10-12 契约 7 项与全后台 300 项通过。开发者不标 done 或 closed |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | [AI-03 交付](../docs/delivery/AI-03.md) |
@@ -51,7 +51,7 @@
 | AC-02 | 不连接 MySQL 或任何向量库，不新增依赖 | `requirements.txt` 未改；服务未挂到 `create_app` |
 | AC-03 | A/B/C 三条路径；B 或 C 失败或知识库关闭时回退到 A 并记录原因 | 契约测试覆盖关闭、B 失败和 C 失败 |
 | AC-04 | 合成数据覆盖跨公司隔离，历史投标不可附着 | 同公司以外的库、片段和历史不出现；路径 C 的 `attachable` 为 false |
-| AC-05 | 现有后台测试，包括 `test_reference_boundaries.py`，仍然通过 | 全后台 299 项通过，见验证记录 |
+| AC-05 | 现有后台测试，包括 `test_reference_boundaries.py`，仍然通过 | 全后台 300 项通过，见验证记录 |
 
 ## 六份基线 impact 与同步表
 
