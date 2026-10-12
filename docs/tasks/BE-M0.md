@@ -250,7 +250,7 @@
 | 完成时交付 | [实际交付](../delivery/BE-M0-T12.md) |
 | 代码解释 | [实际代码解释](../code/BE-M0-T12.md) |
 
-范围：编辑租约写入 MySQL，支持续期和接管。未设置 `ICG_DATABASE_URL` 时单元测试仍用内存仓库。卡片为 in-review，不标 done。字段与字典 v1.9 的对照写在方案第 5 节，偏差需要项目经理批准。
+范围：编辑租约写入 MySQL，支持续期和接管。未设置 `ICG_DATABASE_URL` 时单元测试仍用内存仓库。卡片为 in-review，不标 done。字段与字典 v1.9 的对照写在方案第 5 节。偏差已获 PM 有条件批准，待 [ISSUE-032](../../issues/ISSUE-032.md) 对齐。
 
 - [x] 租约 120 秒，续期后占用者不变。
 - [x] 过期后其他会话可以接管。
@@ -339,3 +339,24 @@
 - [x] 只改代码并重新导出时，名字对照失败。
 - [x] 接口约定写明同一提交必须更新名单。
 - [ ] 项目经理在 QA 之后确认。本卡仍为 in-review。
+
+<a id="be-m0-t17"></a>
+
+## BE-M0-T17 · chapter_lease 对齐字典 edit_lock
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | planned |
+| 估算 | 未开工。等 BE-M0-T13 之后，且 `bid_outline_node`、`sys_user`、`company` 已存在 |
+| 关联 Issue | [ISSUE-032](../../issues/ISSUE-032.md) |
+| 依赖 | [BE-M0-T13](BE-M0.md#be-m0-t13)；`bid_outline_node`、`sys_user`、`company` |
+| 来源 | 方案第 5 节。项目经理有条件批准 `chapter_lease` 与 `edit_lock` 的偏差 |
+| 完成时交付 | `docs/delivery/BE-M0-T17.md` |
+| 代码解释 | `docs/code/BE-M0-T17.md` |
+
+范围：把 `chapter_lease` 对齐字典 v1.9 的 `edit_lock`。包括大纲节点外键、公司隔离、A 组审计列、心跳、接管人与接管原因、释放时间与释放原因，以及 `loop_status`、`lock_release_reason` 两套枚举。`token` 与 `session_token` 删除，或写出保留理由并再次请项目经理批准。迁移必须保留历史锁行，禁止删除旧租约。本卡尚未开工，不标 done。
+
+- [ ] 三张依赖表存在后，锁表有大纲节点外键、公司隔离和 A 组审计列。
+- [ ] 心跳、接管、释放时间和两套枚举已入库。
+- [ ] `token` 与 `session_token` 已删除，或保留理由已另获项目经理批准。
+- [ ] 迁移不删除历史锁行。
