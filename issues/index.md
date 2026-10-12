@@ -33,8 +33,9 @@
 | [ISSUE-014](ISSUE-014.md) | version | P1 | in-review | 引入前后构建体积已记录；[记录](../docs/testing/2026-10-12-prolayout-routes.md) | PR #3 待合入 | 未发布 | 批准引入 @ant-design/pro-layout，记录打包体积 | 等待项目经理 QA 签收；不得另加依赖 |
 | [ISSUE-015](ISSUE-015.md) | change | P1 | in-progress | 计划评审通过；smoke_t06 12/12、Word渲染留证；[记录](../docs/testing/2026-10-12-t06-smoke-word-render.md) | PR #3 待合入 | 未发布 | APP-M1-T06端到端验收计划与缺口执行 | 后端处理W1～W4；继续缺口2、4～7 |
 | [ISSUE-016](ISSUE-016.md) | change | P1 | in-review | [契约与后台回归](../docs/testing/2026-10-12-evidence-candidates.md) | 未创建 PR，未合入 | 未发布 | 检索口与三条证据候选，仅内存实现 | 开发者已提交复核；不标 closed。不连接 MySQL，向量库仍随 ISSUE-010 |
+| [ISSUE-020](ISSUE-020.md) | change | P1 | in-review | 首屏主块 315.94 kB，低于 1334.42 kB；[记录](../docs/testing/2026-10-12-route-chunks.md) | PR #3 待合入 | 未发布 | 路由级懒加载，记录全部分包体积 | 等待项目经理 QA 签收；未改后台 |
 <!-- issue-board:end -->
 
-ISSUE-001 编号沿用合作分支。其原记录在 xqr 内标为 closed，仅表示该分支当时的文档同步验收；本地整合保持 blocked，不据此采纳或发布技术决策。ISSUE-002 的 closed 仅表示本地验收完成。ISSUE-009、ISSUE-014 与 ISSUE-016 均为 in-review：QA 可以签署，done 由项目经理设置。开发者不把任务标 done，也不把 Issue 标 closed。ISSUE-011 与 ISSUE-012 均已由项目经理于 10-12 12:10 在 QA 签署后确认并 closed。
+ISSUE-001 编号沿用合作分支。其原记录在 xqr 内标为 closed，仅表示该分支当时的文档同步验收；本地整合保持 blocked，不据此采纳或发布技术决策。ISSUE-002 的 closed 仅表示本地验收完成。ISSUE-009、ISSUE-014、ISSUE-016 与 ISSUE-020 均为 in-review：QA 可以签署，done 由项目经理设置。开发者不把任务标 done，也不把 Issue 标 closed。ISSUE-011 与 ISSUE-012 均已由项目经理于 10-12 12:10 在 QA 签署后确认并 closed。
 
-ISSUE-010 至 ISSUE-016 均已占用。ISSUE-010 的业务库已决定为 MySQL 8，向量库和模型仍待决，整体仍 blocked。ISSUE-011 已 closed：项目经理于 10-12 12:10 在 QA 签署后确认。ISSUE-012 用于离线 CI 且已 closed，ISSUE-013 用于 QA 复跑以及 T008/AI-02 的签署记录，ISSUE-014 是 `@ant-design/pro-layout` 依赖且为 in-review，ISSUE-015 用于 T06 验收计划与贯通冒烟，ISSUE-016 用于内存检索口且为 in-review。登记新号前先搜索 `issues/` 目录；当前下一可用编号是 `ISSUE-017`。只更新此表不能代替详情、任务或验收记录。
+ISSUE-010 至 ISSUE-016 与 ISSUE-020 均已占用。ISSUE-010 的业务库已决定为 MySQL 8，向量库和模型仍待决，整体仍 blocked。ISSUE-011 已 closed：项目经理于 10-12 12:10 在 QA 签署后确认。ISSUE-012 用于离线 CI 且已 closed，ISSUE-013 用于 QA 复跑以及 T008/AI-02 的签署记录，ISSUE-014 是 `@ant-design/pro-layout` 依赖且为 in-review，ISSUE-015 用于 T06 验收计划与贯通冒烟，ISSUE-016 用于内存检索口且为 in-review，ISSUE-020 用于路由分包且为 in-review。ISSUE-017 至 ISSUE-019 在本仓库尚无详情文件。登记新号前先搜索 `issues/` 目录。只更新此表不能代替详情、任务或验收记录。

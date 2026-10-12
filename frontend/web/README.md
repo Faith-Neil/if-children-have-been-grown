@@ -10,7 +10,9 @@
 
 ISSUE-009 / APP-M2-T001先接可信会话和页面守卫：登录后从后台读getSession，菜单及读取同时核对实际导航与动作；进入项目先核对项目页权限再读工作区。当前三种演示身份明确标记兼容模式，不能替代原八角色体系。撤权、迟到读取和连续切页问题已修复并独立复核。阶段一前端72项、JS 1334.42 kB / gzip 409.62 kB 是引入依赖前的基线，见[阶段验证](../../docs/testing/2026-10-11-application-session.md)。
 
-本轮外壳改为 `@ant-design/pro-layout@7.22.7`。地址可直接打开、刷新和前进后退；编辑台有未保存文字时，离开、后退和关闭标签都会先确认。引入后的构建为 JS 1564.53 kB / gzip 486.19 kB。任务、ISSUE-009 和 ISSUE-014 为 in-review，见[复核记录](../../docs/testing/2026-10-12-prolayout-routes.md)。
+本轮外壳改为 `@ant-design/pro-layout@7.22.7`。地址可直接打开、刷新和前进后退；编辑台有未保存文字时，离开、后退和关闭标签都会先确认。引入后、分包前的单脚本为 JS 1564.53 kB / gzip 486.19 kB。任务、ISSUE-009 和 ISSUE-014 为 in-review，见[复核记录](../../docs/testing/2026-10-12-prolayout-routes.md)。
+
+ISSUE-020 把外壳和项目页改成打开时再加载。分包后入口 `index-BXy7CunM.js` 为 315.94 kB / gzip 101.00 kB，低于 1334.42 kB。ISSUE-020 为 in-review，见[分包记录](../../docs/testing/2026-10-12-route-chunks.md)。
 
 ## 运行
 

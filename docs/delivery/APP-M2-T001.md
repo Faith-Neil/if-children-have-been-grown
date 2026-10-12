@@ -56,3 +56,5 @@
 | Issue / TASK_BOARD | ISSUE-009、ISSUE-014、T001 均为 in-review |
 | PROJECT_STATUS | 改为 in-review，不写 done |
 | DOCUMENT_INDEX | 登记 ISSUE-014、本轮验证、同步表和新前端模块 |
+
+ISSUE-020 在同一张任务上补了路由分包，首屏主块降到 315.94 kB。该 Issue 单独为 in-review，不把本卡标 done。见[分包交付](ISSUE-020.md)。

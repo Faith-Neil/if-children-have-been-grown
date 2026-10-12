@@ -41,3 +41,5 @@
 `AppShell.tsx` 调用 `ProLayout`：`layout="side"`、`navTheme="realDark"`、`siderWidth={216}`、默认收起、`breakpoint={false}`、`disableMobile`。菜单用 `<a href>`，普通左键阻止默认并走站内导航，带修饰键的点击留给浏览器。`backend/bid-core/icg_demo/main.py` 在全部接口之后注册 `/{full_path:path}`，`include_in_schema=False`，因此 OpenAPI 仍是 49 路径 57 操作。`api/`、`static/`、`assets/` 继续 404。
 
 直接依赖只有 `@ant-design/pro-layout@7.22.7`。`app-route.ts` 用 `./session-navigation.ts` 带扩展名，这样 Node 24 的测试可以直接 import。三断点没有实机截图。通用表单离开、侧栏记忆、OIDC 和请求层重试不在这几个文件里。
+
+2026-10-12 的 ISSUE-020 把外壳和页面改成动态 import，离开保护仍留在本节描述的 `App.tsx`。加载顺序见 [路由分包说明](ISSUE-020.md)。
