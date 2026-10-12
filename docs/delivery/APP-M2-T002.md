@@ -19,7 +19,7 @@
 
 `frontend/web/src/api.ts` 现在按冻结契约解析两类错误体。`/api/v1` 读取 `{code, message, details, traceId}`，旧 `/api` 读取 `{error, request_id}`。响应头 `X-Request-ID` 优先于正文里的追踪号。页面提示在有追踪号时附上「追踪号 …」。
 
-非 GET 的 `/api/v1/` 写入在一次 `request()` 里只生成一把 `Idempotency-Key`。自动重试只给两类请求：GET，以及这次调用已经带上 `Idempotency-Key` 的写入。可再试的失败仍是网络错误（`TypeError`）、没有统一错误体的 502，以及 503。没有统一错误体，是指正文解析后没有 `code`（顶层或旧体 `error.code`）；网关 HTML 或空对象会落到 `REQUEST_FAILED`，这时才重试 502。带统一错误体且 `code` 为 `MODEL_UNAVAILABLE` 的 502 不重试，第一次响应就抛出。`App.report` 调用 `userFacingMessage`，有追踪号时提示为「消息（追踪号 id）」。其他带 `code` 的 502 同样不重试。503 即使带统一错误体仍重试。最多 3 次含首次，等待 200ms 再 400ms。409、422、423、428、401 和 500 不自动重试。GET 的裸 502 和 503 可以重试，且不带重复请求标记。
+非 GET 的 `/api/v1/` 写入在一次 `request()` 里只生成一把 `Idempotency-Key`。自动重试只给两类请求：GET，以及这次调用已经带上 `Idempotency-Key` 的写入。可再试的失败仍是网络错误（`TypeError`）、没有统一错误体的 502，以及 503。没有统一错误体，是指正文解析后没有 `code`（顶层或旧体 `error.code`）；网关 HTML 或空对象会落到 `REQUEST_FAILED`，这时才重试 502。带统一错误体且 `code` 为 `MODEL_UNAVAILABLE` 的 502 不重试，第一次响应就抛出。`App.report` 调用 `userFacingMessage`，有追踪号时提示为「消息（追踪号 id）」。其他带 `code` 的 502 同样不重试。503 在 `code` 为 `SECRET_KEY_UNAVAILABLE` 时也不重试，其余 503 仍重试。该例外记在 [ISSUE-030](../../issues/ISSUE-030.md)，本卡仍为 done。最多 3 次含首次，等待 200ms 再 400ms。409、422、423、428、401 和 500 不自动重试。GET 的裸 502 和 503 可以重试，且不带重复请求标记。
 
 没有幂等键的写入第一次失败就停止。例如旧的 `POST /api/chapters/{id}/lock`，503、网关 502 和网络错误都只发一次，请求头里也没有 `Idempotency-Key`。这条限制在 [ISSUE-021](../../issues/ISSUE-021.md) 给这些旧接口补上幂等键之后解除：补键之后它们按「有键的写入」重试，本轮不改后台。
 

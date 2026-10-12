@@ -23,6 +23,12 @@
 
 `JobEvent.required` 仍是 `seq`、`id`、`occurred_at`、`type`。按事件类型拆必填字段，包括 `job.model_call`，留到 BE-M0-T06。没有新路由。
 
+## QA 重试说明
+
+`spec/openapi/README.md` 在“只对网络错误、502 和 503 用同一键重试”之后补上 N7：`502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。` 同文件另一处“同标记重试返回原结果”是成功重放，不是失败自动重试，所以不改。
+
+`components.x-idempotency.retry` 在同一句 N7 之后追加：`没有 Idempotency-Key 的写入不自动重试。` 这句只在该字段。`info.description` 和每条 `Idempotency-Key` 描述不追加。`errors.py` 的 `RETRY_GUIDANCE` 不改。契约测试在和运行中 OpenAPI 比较前去掉这句。
+
 ## 没改什么
 
 `backend/bid-core` 没有新路由，也没有改 `generation_context.py`。模型输入仍由该文件第 213–217 行组装，范围是整章，对应 REF-08。T15 的按章确认仍在 `workflow.py` 第 637–672 行。

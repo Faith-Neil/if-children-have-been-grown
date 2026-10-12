@@ -27,7 +27,7 @@
 
 ## 修改与验收
 
-接口变更先关联Issue与任务，修改实际服务及请求/响应模型，再重新导出本文件，并核对页面和测试。主流程字段与人工确认规则详见 [示例接口约定](../../docs/architecture/icg-reference-contract.md)。目前页面客户端`frontend/web/src/api.ts`是手写请求层，尚未从OpenAPI生成SDK；后续生成代码需要独立目录与更新流程，不能把手写文件当成自动生成成果。
+接口变更先关联Issue与任务，修改实际服务及请求/响应模型，再重新导出本文件，并核对页面和测试。新增或删除一个错误码时，必须在同一提交里更新 `backend/bid-core/icg_demo/frozen_error_codes.py` 的 `FROZEN_NAMES`。只改 `errors.py` 再运行 `export_openapi.py`，导出的枚举会跟着新表走，总数也可以仍是 143；冻结名单仍是旧名字，`set(ERROR_STATUS) == FROZEN_NAMES` 和 spec 枚举对照会失败。主流程字段与人工确认规则详见 [示例接口约定](../../docs/architecture/icg-reference-contract.md)。目前页面客户端`frontend/web/src/api.ts`是手写请求层，尚未从OpenAPI生成SDK；后续生成代码需要独立目录与更新流程，不能把手写文件当成自动生成成果。
 
 当前约定只代表已经运行的本地实现。异步202任务、持续事件通知、恢复/取消、完整结构化编辑、分册定稿和正式递交能力尚未实现。演示账号、内存存储、模型替身及已接通的内部稿输出不代表生产身份、数据库或完整合规服务。ICG完整目标由 [ISSUE-007](../../issues/ISSUE-007.md)推进，生产边界继续按 [ISSUE-005](../../issues/ISSUE-005.md)完善。
 
@@ -39,4 +39,4 @@ reference-writing-1阶段新增本章方案事实/要点/字数、实际输入�
 
 reference-members-1成员阶段（2026-10-11）从实际代码重导出48路径56操作，应用版本仍reference-1。新增项目team读取/完整保存、章节assignment、单章plan保存/确认及本人草稿明确删除；工作区返回项目/章节权限、团队分工和逐章确认依据。旧接口、原件、任务、历史和下载同时核对当前项目成员，公司manager不等于项目负责人。请求回放也必须核对当前资格；生成各次模型调用前后及保存前重新核对。实际代码和页面验证见[成员验收](../../docs/testing/2026-10-10-project-assignments.md)，未生成SDK。
 
-2026-10-12契约阶段从实际代码重导出，仍是49路径、57操作、其中v1为37个操作，没有新增路由。`/api/v1`错误改为`V1Error`：`{code, message, details, traceId}`，并带`X-Request-ID`。每个code只对应一个HTTP状态，写在`components.x-error-status`；`VOLUME_OWNER_REQUIRED`为403，`TWO_VOLUMES_REQUIRED`为422。`components.x-idempotency`记录键的格式、范围、指纹、冲突、缺失、失败不保存、86400秒过期和最多2048条回执。同键同内容重放时响应可带`Idempotent-Replayed`。说明里写明客户端只对网络错误、502和503用同一键重试。JSON仍由导出脚本生成，不手改。验收见[错误体与幂等验证](../../docs/testing/2026-10-12-error-idempotency.md)。
+2026-10-12契约阶段从实际代码重导出，仍是49路径、57操作、其中v1为37个操作，没有新增路由。`/api/v1`错误改为`V1Error`：`{code, message, details, traceId}`，并带`X-Request-ID`。每个code只对应一个HTTP状态，写在`components.x-error-status`；`VOLUME_OWNER_REQUIRED`为403，`TWO_VOLUMES_REQUIRED`为422。`components.x-idempotency`记录键的格式、范围、指纹、冲突、缺失、失败不保存、86400秒过期和最多2048条回执。同键同内容重放时响应可带`Idempotent-Replayed`。说明里写明客户端只对网络错误、502和503用同一键重试。502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。JSON仍由导出脚本生成，不手改。验收见[错误体与幂等验证](../../docs/testing/2026-10-12-error-idempotency.md)。

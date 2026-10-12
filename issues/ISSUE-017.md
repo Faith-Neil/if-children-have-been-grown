@@ -9,13 +9,13 @@
 | Issue ID | ISSUE-017 |
 | 类型 | decision |
 | 优先级 | P1 |
-| 状态 | in-review |
+| 状态 | closed |
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
 | revision | intranet-plan-1 |
 | 关联 Task | [OPS-M0-T02](../docs/tasks/OPS-M0.md#ops-m0-t02) |
 | 关联 PR | 未创建。沿用既有 PR #3 的分支，本轮不新建 PR |
-| 本地验收 | 草案已提交复核。开发者停在 in-review，done 待项目经理 |
+| 本地验收 | OPS-M0-T02 为 done。依据：用户 10-12 14:34 确认。Issue 用 closed。未部署 |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | [OPS-M0-T02 交付](../docs/delivery/OPS-M0-T02.md) |
@@ -24,20 +24,20 @@
 
 ## 现象与证据
 
-合作分支上的后台是 FastAPI/uvicorn 单进程，前端生产形态是 `frontend/web` 的 Vite 构建，由同一进程提供 `dist`。业务库按已登记决定采用 MySQL 8。2026-10-12 补记项目经理转达的用户决定：嵌入和向量库用 RAGFlow 自带能力，对话模型由尚未实现的前端配置页切换本地或云端，生产生成服务留在内网。ISSUE-010 正文未改，仍写这些项待决。
+合作分支上的后台是 FastAPI/uvicorn 单进程，前端生产形态是 `frontend/web` 的 Vite 构建，由同一进程提供 `dist`。业务库按已登记决定采用 MySQL 8。2026-10-12 补记项目经理转达的用户决定：嵌入和向量库用 RAGFlow 自带能力，对话模型由尚未实现的前端配置页切换本地或云端，生产生成服务留在内网。ISSUE-010 正文不在本卡修改。重排已由用户 10-12 14:34 确认，定为 RAGFlow 自带，在 RAGFlow 内配置。
 
 ## 影响与分流
 
 - 影响：新增草案、本 Issue、任务卡、交付、核对记录和同步表。
 - 不涉及：不创建环境、容器、反向代理配置、密钥或 GitHub Actions 步骤。不把 MySQL service container 加进 `offline-check.yml`。
 - 依赖：应用形态以 `backend/bid-core` 与 `frontend/web` 的现有入口为准。连接与空迁移已在 [ISSUE-018](ISSUE-018.md) / [ISSUE-023](ISSUE-023.md)。会话和幂等回执的持久化仍等 ISSUE-018 的后续卡。多 worker、多副本仍 blocked 在该卡。
-- 与 ISSUE-010 的关系：ISSUE-010 已记录业务库为 MySQL 8。本草案按该记录写数据库节，并按项目经理转达的用户决定补上 RAGFlow 放置。不改 ISSUE-010，也不关闭 AI-01。重排仍未由本轮选定。
+- 与 ISSUE-010 的关系：ISSUE-010 已记录业务库为 MySQL 8。本草案按该记录写数据库节，并按项目经理转达的用户决定补上 RAGFlow 放置。不改 ISSUE-010，也不关闭 AI-01。重排定为 RAGFlow 自带，在 RAGFlow 内配置。不改 ISSUE-029。
 
 ## 实施任务与互链
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| OPS-M0-T02 | 写出内网部署草案，数据库节按 MySQL 8，并补 RAGFlow 放置与连通 | `docs/operations/intranet-deployment-plan.md` | AC-01～AC-05 | in-review |
+| OPS-M0-T02 | 写出内网部署草案，数据库节按 MySQL 8，并补 RAGFlow 放置与连通 | `docs/operations/intranet-deployment-plan.md` | AC-01～AC-05 | done |
 
 ## 验收条目
 
@@ -49,7 +49,7 @@
 | AC-04 | 早期草案只列 Milvus、Qdrant 或公司 Elasticsearch。本轮改为：嵌入和向量库用 RAGFlow 自带能力；不新增 MySQL service container | 第 7 节已改记。`offline-check.yml` 未改。ISSUE-010 正文未改 |
 | AC-05 | RAGFlow 单独部署在内网；版本和规格待 AI/RAG 计划确认；不发明 API 路径。连通矩阵、占位环境变量、`ICG_SECRET_KEY`、合成探活、失败回滚，以及 CI 只用假服务且真实测试默认跳过，均已写明。单 worker、单副本约束仍在 | 已写入第 2、3、7 节。未部署，未改工作流 |
 
-未执行的运行验收不能写成通过。本 Issue 因此保持 in-review。
+未执行的运行验收不能写成已经部署。用户 10-12 14:34 确认后，本 Issue 关闭，任务为 done。
 
 ## 六份基线 impact 与同步表
 
@@ -57,9 +57,9 @@
 |---|---|---|---|---|
 | PRD | 无影响。未改页面、规则或验收口径 | 不改 `docs/PRD.md` | intranet-plan-1 / ISSUE-017 / 2026-10-12 | 已核对 |
 | ROADMAP | 无影响。未改阶段、依赖或发布顺序。任务计数以看板为准，本轮不改路线图计数字句 | 不改 `docs/ROADMAP.md` | intranet-plan-1 / ISSUE-017 / 2026-10-12 | 已核对 |
-| ARCHITECTURE | 无影响。草案未改变已实现的模块或接口。运行中的仓库仍是内存 | 不改 `docs/ARCHITECTURE.md` | intranet-plan-1 / ISSUE-017 / 2026-10-12 | 已核对 |
+| ARCHITECTURE | 有影响。只改重排这句：改为 RAGFlow 自带，在 RAGFlow 内配置。已实现的模块和接口不改 | `docs/ARCHITECTURE.md` | intranet-plan-1 / ISSUE-017 / 2026-10-12 | 已同步 |
 | PROJECT_BRIEF | 无影响。接手快照不改；进度以任务看板为准 | 不改 `docs/PROJECT_BRIEF.md` | intranet-plan-1 / ISSUE-017 / 2026-10-12 | 已核对 |
-| TASK_BOARD | 有影响。新增 OPS-M0-T02，状态 in-review | `docs/TASK_BOARD.md`、`docs/tasks/OPS-M0.md` | intranet-plan-1 / ISSUE-017 / 2026-10-12 | 已同步 |
+| TASK_BOARD | 有影响。OPS-M0-T02 为 done。看板 371 项：38 done、7 in-review | `docs/TASK_BOARD.md`、`docs/tasks/OPS-M0.md` | intranet-plan-1 / ISSUE-017 / 2026-10-12 | 已同步 |
 | PROJECT_STATUS | 有影响。记录草案未部署，完成数随看板更新 | `docs/PROJECT_STATUS.md` | intranet-plan-1 / ISSUE-017 / 2026-10-12 | 已同步 |
 | DOCUMENT_INDEX | 有影响。登记草案、Issue、交付、核对和同步表 | `docs/DOCUMENT_INDEX.md` | intranet-plan-1 / ISSUE-017 / 2026-10-12 | 已同步 |
 
@@ -72,10 +72,11 @@
 | 2026-10-12 | intranet-plan-1 / in-review | 草案写完。没有环境。数据库节跟随 ISSUE-010 已登记的 MySQL 8。向量、模型、嵌入和重排仍待决。done 待项目经理 | [草案](../docs/operations/intranet-deployment-plan.md) |
 | 2026-10-12 | intranet-plan-1 / in-review | 按 QA 补上约束：会话和幂等回执是进程内内存。ISSUE-018 的 MySQL 持久化落地前，只能一个 uvicorn worker、一个副本。重启丢失这两类状态。多 worker 和多副本 blocked 在 ISSUE-018 | [草案](../docs/operations/intranet-deployment-plan.md) 第 1～2 节 |
 | 2026-10-12 | intranet-plan-1 / in-review | 补 RAGFlow：单独的内网服务，版本和规格待 AI/RAG 计划确认。后台调用 RAGFlow，浏览器不直连；生产生成服务不出网。占位变量与 `ICG_SECRET_KEY` 只留在环境或密钥库。CI 不连真实 RAGFlow 或模型。状态保持 in-review | [草案](../docs/operations/intranet-deployment-plan.md) 第 7 节 |
+| 2026-10-12 | intranet-plan-1 / closed | 用户 10-12 14:34 确认。OPS-M0-T02 标为 done，本 Issue 标为 closed。重排定为 RAGFlow 自带，重排模型在 RAGFlow 内配置。未部署。不改 ISSUE-029 | [草案](../docs/operations/intranet-deployment-plan.md) 第 7 节 |
 
 ## 本地验收与后续合入发布
 
-- 本地验收结论与日期：2026-10-12 提交 in-review。未标 done。
+- 本地验收结论与日期：用户 10-12 14:34 确认。任务为 done，Issue 为 closed。未部署，未合入。
 - 验证方式：对照现有入口核对文档，并运行治理检查。没有连接内网、MySQL 或模型。
 - PR 状态：未创建。
 - 合入提交与日期：未合入。

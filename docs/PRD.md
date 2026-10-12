@@ -24,7 +24,7 @@ ISSUE-008 / APP-M1-T16已本地验收现有文字资料及公司SLA模板弹窗�
 
 当前目标：以ICG示例布局、操作流程和交接清单为依据，按PRD v1.8/字典v1.9贯通项目→解析确认→矩阵→编辑→检查→技术/商务两册输出，再补其余页面。模型和数据库保留替换接口。旧正文是较早前端视图，不优先于ICG目标；实际范围见[实施约定](architecture/icg-reference-contract.md)，差异见[独立记录](decisions/icg-reference-deviations.md)。ISSUE-007推进产品，ISSUE-005继续生产门禁；不以小demo替代完整示例。
 
-> 本文档为前端产品需求说明，基于《智能投标系统 第一期（MVP）PRD v1.4》与《企业投标资料库数据字典 v1.5》整理，并补充前端信息架构、交互和页面级要求。
+> 本文档为前端产品需求说明，基于[《智能投标系统 第一期（MVP）PRD v1.8》](reference/product/prd-mvp-v1.8.md)与[《企业投标资料库数据字典 v1.9》](reference/product/kb-data-dictionary-v1.9.md)整理，并补充前端信息架构、交互和页面级要求。项目经理规定后续开发以这两份为准。
 
 ## 工程协作验收附录（ISSUE-003）
 

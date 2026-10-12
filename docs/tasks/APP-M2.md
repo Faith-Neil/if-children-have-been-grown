@@ -60,7 +60,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 
 交付：`docs/delivery/APP-M2-T002.md`；代码解释：`docs/code/APP-M2-T002.md`；测试放docs/testing并逐项关联本卡，未执行写未执行。
 
-[BE-M0-T02](BE-M0.md#be-m0-t02)与[BE-M0-T03](BE-M0.md#be-m0-t03)已由项目经理于 10-12 12:28 在 QA 签署后标为 done。请求层按冻结错误体和 24 小时 `Idempotency-Key` 提交 in-review，见[交付](../delivery/APP-M2-T002.md)。`/api/v1` 非 GET 每次调用一把键。只有 GET 和已经带键的写入，才会在网络错误、没有统一错误体的 502 和 503 上复用，最多 3 次含首次。没有键的旧写入不自动重试；ISSUE-021 补键后这条限制解除。`MODEL_UNAVAILABLE` 的 502 只发一次并立刻提示追踪号。`POST /api/chapters/{id}/versions` 的请求头与正文 `idempotency_key` 相同。409、422、423、428、401 和 500 不自动重试。T001 与本卡已由项目经理在群里确认、QA 签署后标为 done。
+[BE-M0-T02](BE-M0.md#be-m0-t02)与[BE-M0-T03](BE-M0.md#be-m0-t03)已由项目经理于 10-12 12:28 在 QA 签署后标为 done。请求层按冻结错误体和 24 小时 `Idempotency-Key` 提交 in-review，见[交付](../delivery/APP-M2-T002.md)。`/api/v1` 非 GET 每次调用一把键。只有 GET 和已经带键的写入，才会在网络错误、没有统一错误体的 502 和其他 503 上复用，最多 3 次含首次。没有键的旧写入不自动重试；ISSUE-021 补键后这条限制解除。`MODEL_UNAVAILABLE` 的 502 与 `SECRET_KEY_UNAVAILABLE` 的 503 只发一次并立刻提示追踪号。ISSUE-030 为 in-review，本卡仍为 done。`POST /api/chapters/{id}/versions` 的请求头与正文 `idempotency_key` 相同。409、422、423、428、401 和 500 不自动重试。T001 与本卡已由项目经理在群里确认、QA 签署后标为 done。
 
 ### APP-M2-T003 · 通用状态组件（骨架、空态、错误、无权限、已过期、只读）
 <a id="app-m2-t003"></a>

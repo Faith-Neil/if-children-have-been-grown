@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from icg_demo.domain import DemoState, DomainError
 from icg_demo.errors import ERROR_STATUS, RETRY_GUIDANCE, status_for
+from icg_demo.frozen_error_codes import FROZEN_NAMES
 from icg_demo.idempotency import (
     IDEMPOTENCY_TTL_SECONDS, fingerprint, lookup, remember, validate_key)
 from icg_demo.main import create_app
@@ -19,6 +20,7 @@ from test_reference_flow import ProjectFlow, client, login
 PACKAGE = Path(__file__).resolve().parents[2] / "backend" / "bid-core" / "icg_demo"
 SPEC = Path(__file__).resolve().parents[2] / "spec" / "openapi" / "demo-v1.json"
 FROZEN_STATUS = "frozen"
+WRITES_WITHOUT_IDEMPOTENCY_KEY = "没有 Idempotency-Key 的写入不自动重试。"
 DEPRECATION_NOTE = "已废弃。新旧入口并存。前端改用 getOutlinePlan、confirmOutlinePlan 与 startGeneration 之后，由后续 Issue 删除本操作。运行时尚未标出 deprecated。"
 DEPRECATED_OPERATIONS = (
     "/api/v1/projects/{project_id}/plan",
@@ -43,6 +45,9 @@ def implemented_contract(document):
     for name, body in list(schemas.items()):
         if isinstance(body, dict) and body.get("x-contract-status") == FROZEN_STATUS:
             del schemas[name]
+    idempotency = spec.get("components", {}).get("x-idempotency")
+    if isinstance(idempotency, dict) and isinstance(idempotency.get("retry"), str):
+        idempotency["retry"] = idempotency["retry"].removesuffix(WRITES_WITHOUT_IDEMPOTENCY_KEY)
     return spec
 
 
@@ -67,6 +72,7 @@ def test_literal_domain_errors_use_the_single_frozen_status():
     assert ERROR_STATUS["TWO_VOLUMES_REQUIRED"] == 422
     assert ERROR_STATUS["MODEL_UNAVAILABLE"] == 502
     assert len(ERROR_STATUS) == len(set(ERROR_STATUS))
+    assert set(ERROR_STATUS) == FROZEN_NAMES
 
 
 def test_openapi_declares_v1_error_body_status_table_and_retry():
@@ -79,6 +85,9 @@ def test_openapi_declares_v1_error_body_status_table_and_retry():
     assert "TWO_VOLUMES_REQUIRED" not in table["409"]
     assert table["502"] and "MODEL_UNAVAILABLE" in table["502"]
     assert schema["components"]["schemas"]["V1Error"]["properties"]["code"]["enum"] == sorted(ERROR_STATUS)
+    assert set(schema["components"]["schemas"]["V1Error"]["properties"]["code"]["enum"]) == FROZEN_NAMES
+    stored = json.loads(SPEC.read_text(encoding="utf-8"))
+    assert set(stored["components"]["schemas"]["V1Error"]["properties"]["code"]["enum"]) == FROZEN_NAMES
     idempotency = schema["components"]["x-idempotency"]
     assert idempotency["ttl_seconds"] == IDEMPOTENCY_TTL_SECONDS
     assert idempotency["max_receipts"] == 2048
@@ -97,7 +106,9 @@ def test_openapi_declares_v1_error_body_status_table_and_retry():
                     assert response["headers"]["X-Request-ID"]["$ref"].endswith("/X-Request-ID")
             if any(parameter.get("name") == "Idempotency-Key" for parameter in operation.get("parameters", [])):
                 assert "Idempotent-Replayed" in next(iter(operation["responses"].values()))["headers"]
-    assert implemented_contract(json.loads(SPEC.read_text(encoding="utf-8"))) == schema
+    raw = json.loads(SPEC.read_text(encoding="utf-8"))
+    assert raw["components"]["x-idempotency"]["retry"] == RETRY_GUIDANCE + WRITES_WITHOUT_IDEMPOTENCY_KEY
+    assert implemented_contract(raw) == schema
 
 
 def test_v1_model_unavailable_uses_unified_error_body():

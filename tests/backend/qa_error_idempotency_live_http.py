@@ -15,9 +15,11 @@ import httpx
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "backend" / "bid-core"))
 from icg_demo.errors import ERROR_STATUS  # noqa: E402
+from icg_demo.frozen_error_codes import FROZEN_NAMES  # noqa: E402
 
 RESULTS = []
 FROZEN_STATUS = "frozen"
+WRITES_WITHOUT_IDEMPOTENCY_KEY = "没有 Idempotency-Key 的写入不自动重试。"
 DEPRECATION_NOTE = "已废弃。新旧入口并存。前端改用 getOutlinePlan、confirmOutlinePlan 与 startGeneration 之后，由后续 Issue 删除本操作。运行时尚未标出 deprecated。"
 DEPRECATED_OPERATIONS = (
     "/api/v1/projects/{project_id}/plan",
@@ -42,6 +44,9 @@ def implemented_contract(document):
     for name, body in list(schemas.items()):
         if isinstance(body, dict) and body.get("x-contract-status") == FROZEN_STATUS:
             del schemas[name]
+    idempotency = spec.get("components", {}).get("x-idempotency")
+    if isinstance(idempotency, dict) and isinstance(idempotency.get("retry"), str):
+        idempotency["retry"] = idempotency["retry"].removesuffix(WRITES_WITHOUT_IDEMPOTENCY_KEY)
     return spec
 
 
@@ -100,8 +105,11 @@ def main():
         check("spec: 每个 code 只出现一次", not dup, dup)
         check("spec 状态表 == 代码 ERROR_STATUS", flat == ERROR_STATUS,
               {k: (flat.get(k), ERROR_STATUS.get(k)) for k in set(flat) | set(ERROR_STATUS) if flat.get(k) != ERROR_STATUS.get(k)})
-        check("spec V1Error.code enum == 代码表", sorted(spec["components"]["schemas"]["V1Error"]["properties"]["code"]["enum"]) == sorted(ERROR_STATUS))
-        check("code 总数 141", len(ERROR_STATUS) == 141, len(ERROR_STATUS))
+        enum = spec["components"]["schemas"]["V1Error"]["properties"]["code"]["enum"]
+        check("spec V1Error.code enum == 代码表", sorted(enum) == sorted(ERROR_STATUS))
+        check("代码名 == 冻结名单", set(ERROR_STATUS) == FROZEN_NAMES, sorted(set(ERROR_STATUS) ^ FROZEN_NAMES))
+        check("spec V1Error.code enum == 冻结名单", set(enum) == FROZEN_NAMES, sorted(set(enum) ^ FROZEN_NAMES))
+        check("code 总数 143", len(ERROR_STATUS) == 143, len(ERROR_STATUS))  # SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL and SECRET_KEY_UNAVAILABLE, added by ISSUE-024 in 23dae10
         check("VOLUME_OWNER_REQUIRED=403 / TWO_VOLUMES_REQUIRED=422 / MODEL_UNAVAILABLE=502 / IDEMPOTENCY_KEY_REQUIRED=428",
               (ERROR_STATUS["VOLUME_OWNER_REQUIRED"], ERROR_STATUS["TWO_VOLUMES_REQUIRED"], ERROR_STATUS["MODEL_UNAVAILABLE"],
                ERROR_STATUS["IDEMPOTENCY_KEY_REQUIRED"]) == (403, 422, 502, 428))

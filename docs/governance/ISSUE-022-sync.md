@@ -96,3 +96,19 @@
 | DOCUMENT_INDEX.md | 有 | 冻结条目改为 outline-contract-frozen-1。不改计数行 | 2026-10-12 |
 
 未合入，未发布。不标 done，不标 closed。第三轮复审记录为 `docs/governance/ISSUE-022-backend-rereview.md`。`python3 -m pytest tests/backend/test_outline_contract_draft.py tests/backend/test_error_idempotency.py::test_openapi_declares_v1_error_body_status_table_and_retry -q` 为 7 passed。`python3 -m pytest tests/backend -q` 为 351 passed、6 skipped，跳过原因是 `ICG_DATABASE_URL is unset`。并入 `6c09121` 后 `node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：247 份 Markdown、371 项任务、29 项 Issue。」检查程序未修改。
+
+## QA 重试说明
+
+日期：2026-10-12。ISSUE-022 仍为 in-review。T124 仍 blocked。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数，也不改这三份正文。不改错误码计数，不改 `backend/bid-core`。
+
+| 文档 | 本次影响 | 实际处理 | 版本与状态 |
+|---|---|---|---|
+| spec/openapi/README.md | 有 | 502/503 自动重试说明补上 N7 两码例外 | 2026-10-12 |
+| spec/openapi/demo-v1.json | 有 | 只在 `x-idempotency.retry` 追加没有 Idempotency-Key 的写入不自动重试 | frozen |
+| 契约测试 | 有 | 断言该句只在 retry 字段。与运行中 OpenAPI 比较前去掉这句 | 2026-10-12 |
+| errors.py | 无 | 不改 `RETRY_GUIDANCE`，不改错误码表 | 2026-10-12 |
+| PRD.md / ROADMAP.md / PROJECT_BRIEF.md | 无 | 不改正文，不改计数 | 2026-10-12 |
+| TASK_BOARD.md / PROJECT_STATUS.md | 无状态变化 | 不改任务计数 | 2026-10-12 |
+| DOCUMENT_INDEX.md | 有 | 更新说明并追加变更记录。不改计数行 | 2026-10-12 |
+
+未合入，未发布。不标 done，不标 closed。`python3 -m pytest tests/backend/test_outline_contract_draft.py tests/backend/test_error_idempotency.py::test_openapi_declares_v1_error_body_status_table_and_retry -q` 为 7 passed、1 warning。`python3 -m pytest tests/backend -q` 为 351 passed、8 skipped、1 warning。8 项跳过都是 `ICG_DATABASE_URL is unset`。`node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：260 份 Markdown、372 项任务、31 项 Issue。」检查程序未修改。

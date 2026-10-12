@@ -30,7 +30,7 @@
 |---|---|
 | RAGFlow 写成单独的内网服务，版本和资源规格标为待 AI/RAG 计划确认 | 已写入草案第 7 节。没有填写版本号或机器规格 |
 | 没有发明 RAGFlow 的 API 路径、端口或请求字段 | 草案只写「后台到 RAGFlow API」和占位环境变量名 |
-| 连通矩阵：后台到 RAGFlow；RAGFlow 到本地模型与嵌入；浏览器不直连 RAGFlow；生产生成服务不出网；开发/测试可以出网 | 已写入第 7 节的拓扑和表 |
+| 连通矩阵：后台到 RAGFlow；RAGFlow 到本地对话、嵌入与重排；浏览器不直连 RAGFlow；生产生成服务不出网；开发/测试可以出网 | 已写入第 7 节的拓扑和表。重排已定为 RAGFlow 自带 |
 | 占位名 `ICG_RAGFLOW_BASE_URL`、`ICG_RAGFLOW_API_KEY` 只来自环境或密钥库；`ICG_SECRET_KEY` 是 Fernet 主密钥，不进仓库和数据库 | 已写入第 3 节和第 7 节。仓库中没有这些值 |
 | 连通性检查使用合成探活，且标明当前代码还不能执行 RAGFlow 探活 | 已写入第 7 节 |
 | 失败时检索不能伪装成功，也不能改道公网；回滚应用不回滚 RAGFlow 索引 | 已写入第 7 节 |
@@ -50,3 +50,7 @@
 - 没有把 MySQL service container、真实 RAGFlow 或真实模型加进 GitHub Actions。
 - 没有实现假 RAGFlow 测试替身。现有假 HTTP 只覆盖已经落地的对话适配器。
 - 推送之后的 offline-check 只重复现有内存测试。它通过也不表示本草案已经部署。
+
+## 用户确认
+
+用户 10-12 14:34 确认本草案。ISSUE-017 改为 closed，OPS-M0-T02 改为 done。重排改为已决定：使用 RAGFlow 自带的重排器，重排模型在 RAGFlow 内配置，不在本应用里另选产品，也不写入 MySQL。ISSUE-029 未改。没有启动服务，没有连接 MySQL、RAGFlow 或内网。确认不等于已经部署。

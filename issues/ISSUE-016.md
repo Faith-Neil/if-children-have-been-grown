@@ -9,22 +9,22 @@
 | Issue ID | ISSUE-016 |
 | 类型 | change |
 | 优先级 | P1 |
-| 状态 | in-review |
+| 状态 | closed |
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
 | revision | retrieval-skeleton-1 |
 | 关联 Task | [AI-03](../docs/tasks/AI-M0.md#ai-03) |
 | 关联 PR | 未创建 |
-| 本地验收 | 开发者已提交复核。2026-10-12 契约 7 项通过。v1 生成失败已是冻结错误体，另加 1 条测试。全后台次数见验证记录。开发者不标 done 或 closed |
+| 本地验收 | QA 签署 2fe6198（REV-M0-T16）通过。AI-03 为 done。见 [签署](../docs/testing/2026-10-12-issue-016-retrieval-signoff.md)。未合入，未发布 |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | [AI-03 交付](../docs/delivery/AI-03.md) |
 | 代码 / 流程解释 | [AI-03 代码解释](../docs/code/AI-03.md) |
-| 验证记录 | [2026-10-12 验证](../docs/testing/2026-10-12-evidence-candidates.md) |
+| 验证记录 | [QA 签署 2fe6198](../docs/testing/2026-10-12-issue-016-retrieval-signoff.md)；[2026-10-12 验证](../docs/testing/2026-10-12-evidence-candidates.md) |
 
 ## 现象与证据
 
-[ISSUE-010](ISSUE-010.md) 已 closed。嵌入与向量库定为 RAGFlow 自带能力。本卡仍是内存实现，不连接 RAGFlow。适配器设计在 [ISSUE-029](ISSUE-029.md)，状态 in-review。
+[ISSUE-010](ISSUE-010.md) 已 closed。嵌入与向量库定为 RAGFlow 自带能力。本卡仍是内存实现，不连接 RAGFlow。适配器设计在 [ISSUE-029](ISSUE-029.md)，已 closed，客户端未实现。
 
 本变更由项目经理指定，只增加可替换的检索口和内存实现。它不连接 MySQL，不引入驱动或迁移，也不选定向量库。
 
@@ -35,13 +35,13 @@
 - 内存实现和 `EvidenceCandidateService` 在 `retrieval.py`。路径 A 是已确认资料上的规则；路径 B 先嵌入、再按公司检索、再重排；路径 C 是历史投标，`reference_only` 且不可附着。
 - B 或 C 失败，或知识库关闭时，保留 A，并记录跳过原因。失败原因不含资料正文。
 - 不新增依赖。测试数据是合成的。
-- 状态是 in-review。开发者不把本 Issue 标为 closed，也不把 AI-03 标为 done。
+- 项目经理依据 QA 签署 2fe6198（REV-M0-T16）把本 Issue 标为 closed，AI-03 标为 done。未合入，未发布。
 
 ## 实施任务与互链
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| AI-03 | 检索口与三条证据候选，仅内存实现 | `backend/bid-core/icg_demo/ports.py`、`retrieval.py`、契约测试 | AC-01～AC-05 | in-review |
+| AI-03 | 检索口与三条证据候选，仅内存实现 | `backend/bid-core/icg_demo/ports.py`、`retrieval.py`、契约测试 | AC-01～AC-05 | done |
 
 ## 验收条目
 
@@ -73,11 +73,12 @@
 |---|---|---|---|
 | 2026-10-12 | retrieval-skeleton-1 / in-review | 内存检索口和三条路径已提交复核。未连接 MySQL，未选定向量库。开发者不标完成 | [验证记录](../docs/testing/2026-10-12-evidence-candidates.md) |
 | 2026-10-12 | retrieval-skeleton-1 / in-review | 旁路核对：OpenAI 兼容适配器在 `/api/v1` 生成失败时已返回 `{code, message, details, traceId}`，`MODEL_UNAVAILABLE` 为 502，`traceId` 等于 `X-Request-ID`。只加一条测试。本卡没有新错误码，不改码表，不改错误实现 | 同上 |
+| 2026-10-12 | retrieval-skeleton-1 / closed | 依据 QA 签署 2fe6198（REV-M0-T16）关闭。AI-03 标为 done。路径 C 不按查询词过滤仍留到 RAGFlow 适配器实现。未合入，未发布 | [签署](../docs/testing/2026-10-12-issue-016-retrieval-signoff.md) |
 
 ## 本地验收与后续合入发布
 
-- 本地验收结论与日期：开发者已于 2026-10-12 提交复核。状态保持 in-review，不标 closed。
+- 本地验收结论与日期：QA 签署 2fe6198（REV-M0-T16）通过。项目经理据此把 Issue 标为 closed，AI-03 标为 done。
 - 未覆盖：真实 MySQL、真实嵌入、重排和向量库，以及任何页面操作。
 - PR 状态：未创建。
 - 合入提交与日期：未合入。
-- 发布版本与日期：未发布。只有项目经理在 QA 签字后可把 AI-03 标为 done。
+- 发布版本与日期：未发布。
