@@ -24,7 +24,7 @@ ISSUE-008 / T16已本地验收，把相同原则用于现有文字资料及公�
 
 当前实施：`frontend/web`正式页面按ICG示例重建，通过同源接口连接`backend/bid-core`；主链路在同一公司隔离与事务存储下扩展文件、条款、矩阵、事实、证据、计划、任务、检查和两册输出。旧后台验收页作为开发工具。数据库、模型、解析器独立替换；实际字段见[接口约定](architecture/icg-reference-contract.md)。正式产品与旧demo分别验收，生产数据库和部署不因本地页面贯通自动完成。
 
-2026-10-12：ISSUE-011 在既有模型口后增加可显式启用的 OpenAI 兼容对话适配器。项目经理于 10-12 12:10 在 QA 签署后确认，AI-02 为 done，ISSUE-011 为 closed。未打开配置时默认仍是演示替身；调用失败继续返回 502，不改写成演示成功。ISSUE-010 已 closed（user decision, relayed by PM）：业务库为 MySQL 8；对话模型由配置页提供，设计见 [配置驱动的对话模型](architecture/model-config-provider.md)；嵌入与向量库用 RAGFlow 自带能力，设计见 [RAGFlow 检索适配器](architecture/ragflow-retrieval-adapter.md)；生产生成只在内网。两份设计都未实现。内存实现继续用于测试。该适配器不是内网模型已接通。ISSUE-016 的检索口仍只在内存中运行，状态为 in-review。它不进入 `create_app`，不连接 MySQL，也不连接 RAGFlow。重排产品未选定。
+2026-10-12：ISSUE-011 在既有模型口后增加可显式启用的 OpenAI 兼容对话适配器。项目经理于 10-12 12:10 在 QA 签署后确认，AI-02 为 done，ISSUE-011 为 closed。未打开配置时默认仍是演示替身；调用失败继续返回 502，不改写成演示成功。ISSUE-010 已 closed（user decision, relayed by PM）：业务库为 MySQL 8；对话模型由配置页提供，设计见 [配置驱动的对话模型](architecture/model-config-provider.md)；嵌入与向量库用 RAGFlow 自带能力，设计见 [RAGFlow 检索适配器](architecture/ragflow-retrieval-adapter.md)；生产生成只在内网。两份设计都未实现。内存实现继续用于测试。该适配器不是内网模型已接通。ISSUE-016 的检索口仍只在内存中运行，状态为 in-review。它不进入 `create_app`，不连接 MySQL，也不连接 RAGFlow。重排使用 RAGFlow 自带的重排器，重排模型在 RAGFlow 内配置（用户 10-12 14:34 确认，见 [内网部署草案](operations/intranet-deployment-plan.md)）。适配器仍未实现。
 
 2026-10-12（ISSUE-005）：`/api/v1` 错误体和 24 小时幂等回执已提交复查。本轮不引入驱动、迁移或表结构，测试仍用内存仓库。状态表不在本文重复。
 

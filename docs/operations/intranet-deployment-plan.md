@@ -4,7 +4,7 @@
 
 # 内网部署草案
 
-日期 2026-10-12。关联 [ISSUE-017](../../issues/ISSUE-017.md) / [OPS-M0-T02](../tasks/OPS-M0.md#ops-m0-t02)。状态：草案，in-review。未创建环境、Dockerfile、systemd 单元或新的 GitHub Actions 工作流，也没有改运行代码。done 由项目经理在 QA 签署后设置。
+日期 2026-10-12。关联 [ISSUE-017](../../issues/ISSUE-017.md) / [OPS-M0-T02](../tasks/OPS-M0.md#ops-m0-t02)。状态：用户 10-12 14:34 确认，卡片为 done，Issue 为 closed。未创建环境、Dockerfile、systemd 单元或新的 GitHub Actions 工作流，也没有改运行代码。确认不等于已经部署。
 
 本文件描述的是目标放置方式。当前进程仍是内存仓库和演示登录。把这份草案提交入库不等于服务已经部署。
 
@@ -121,7 +121,7 @@ ISSUE-025 已在托管 runner 上增加 `backend-mysql`：步骤内启动 `mysql
 - 嵌入模型和向量库使用 RAGFlow 自带能力，在 RAGFlow 里面配置，不放进 MySQL，也不再从 Milvus、Qdrant 或 Elasticsearch 里选一个。
 - 检索层以后通过适配器调用 RAGFlow。ISSUE-016 / AI-03 的内存检索仍是 in-review 的骨架，不连接 RAGFlow。重启后这份内存检索和业务数据一起消失。
 - 生产环境的生成服务全部留在内网。开发和测试可以使用互联网。
-- 重排没有包含在这次决定里，仍等 AI/RAG 计划，本草案不替它选型。
+- 重排使用 RAGFlow 自带的重排器。重排模型在 RAGFlow 里面配置，不在本应用里另选产品，也不写入 MySQL。用户 10-12 14:34 确认。
 
 RAGFlow 单独部署，不跟 uvicorn 进程挤在同一个工作进程里。它自带自己的组件和数据。版本号、CPU、内存和磁盘容量都标为「待 AI/RAG 计划确认」。本草案不写 RAGFlow 的版本，也不发明它的 API 路径、端口或请求字段。
 
@@ -134,7 +134,7 @@ RAGFlow 单独部署，不跟 uvicorn 进程挤在同一个工作进程里。它
                               |
                               +--> RAGFlow API（内网，另一套服务）
                                         |
-                                        +--> RAGFlow 内配置的本地对话 / 嵌入
+                                        +--> RAGFlow 内配置的本地对话 / 嵌入 / 重排
 
 浏览器 -x-> RAGFlow
 生产环境的生成服务 -x-> 互联网
@@ -145,7 +145,7 @@ RAGFlow 单独部署，不跟 uvicorn 进程挤在同一个工作进程里。它
 | 浏览器 | 反向代理后的应用 | 仅公司内网 | 本机即可 |
 | 浏览器 | RAGFlow | 不允许。页面只调本应用的 `/api` | 同样不允许直连 |
 | 后台 | RAGFlow API | 内网，使用 `ICG_RAGFLOW_BASE_URL` | 可指向内网，或指向测试替身 |
-| RAGFlow | 本地对话模型与嵌入 | 内网。这两项在 RAGFlow 内配置 | 该环境可以出网 |
+| RAGFlow | 本地对话模型、嵌入与重排 | 内网。这三项都在 RAGFlow 内配置 | 该环境可以出网 |
 | 配置页上的对话模型 | 所选端点 | 留在内网。页面可以填云端地址，生产网络没有出站 | 可以出网 |
 | 后台 | MySQL 8 | 内网 | 仅当设置了 `ICG_DATABASE_URL` |
 | 托管 CI | 真实 RAGFlow 或真实模型 | 不连接 | 不连接。见下文 |
