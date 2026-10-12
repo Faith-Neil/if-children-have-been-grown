@@ -333,6 +333,8 @@
 | D-320 | 2026-10-12 | [回执与会话核对](testing/2026-10-12-be-m0-t11-sessions-receipts.md) | 验证 | sessions-1 | 已执行 | ISSUE-018 / BE-M0-T11 | 无库、mysql:8.4、不可达地址；含 downgrade base |
 | D-321 | 2026-10-12 | [ISSUE-026快照规则签署](testing/2026-10-12-issue-026-snapshot-signoff.md) | 验证 | qa-rerun-8 | 本地通过 | ISSUE-013 / REV-M0-T13 | 366项32done快照一致；模拟签收通过；CI全绿 |
 | D-322 | 2026-10-12 | [REV-M0-T13签署交付](delivery/REV-M0-T13.md) | 交付 | qa-rerun-8 | 已本地验收 | ISSUE-013 / REV-M0-T13 | 无代码；结论与观察项 |
+| D-323 | 2026-10-12 | [ISSUE-014 ProLayout签署](testing/2026-10-12-issue-014-prolayout-signoff.md) | 验证 | qa-rerun-9 | 本地通过 | ISSUE-013 / REV-M0-T14 | 仅新增pro-layout；体积逐字复现 |
+| D-324 | 2026-10-12 | [REV-M0-T14签署交付](delivery/REV-M0-T14.md) | 交付 | qa-rerun-9 | 已本地验收 | ISSUE-013 / REV-M0-T14 | 无代码；结论与观察项 |
 
 ## 更新记录
 
@@ -400,6 +402,7 @@
 | 2026-10-12 | ISSUE-027 / BE-M0-T15 | Q1 正文首行缩进补 firstLine=560；Q2 无标题时不写目录和 TOC 域；Q3 规格改为中文：docx 不能指定缺失字体的替换字体，由 Word 或 WPS 决定，要保证效果需安装方正小标宋。不新增任务，不改变卡片状态。PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF 未改 |
 | 2026-10-12 | ISSUE-013 / REV-M0-T10 | QA复核BE-M0-T15 Q1～Q3（034b184/f989af7）通过，检查器补三项，样张覆盖；不新增任务、不改卡片状态 |
 | 2026-10-12 | ISSUE-013 / REV-M0-T13 | QA签署：ISSUE-026快照规则签署，通过（被验卡/Issue状态不变，待项目经理设置） |
+| 2026-10-12 | ISSUE-013 / REV-M0-T14 | QA签署：ISSUE-014 ProLayout签署，通过（被验卡/Issue状态不变，待项目经理设置） |
 | 2026-10-12 | ISSUE-025 / BE-M0-T14 | 依据 QA 签署 b20b844 将 BE-M0-T14 标为 done、ISSUE-025 标为 closed。守卫改为任一跳过即失败。不再导出 ICG_MYSQL_PASSWORD。BE-M0-T11 记下业务表出现后的 downgrade 再 upgrade。看板改为 366项30done、8in-review、7in-progress、268planned、49blocked、4ready。PRD、ROADMAP 计数字句不改 |
 | 2026-10-12 | ISSUE-025 / BE-M0-T14 | 交付里的任务计数改为截至提交 3bb311a 的快照，并写明之后以任务看板为准。不改看板，不改卡片状态 |
 | 2026-10-12 | ISSUE-026 | 在 3bb311a 重数：看板 366项30done、8in-review。项目经理在群里确认后，APP-M2-T001 与 APP-M2-T002 标为 done，成为 366项32done、6in-review、7in-progress、268planned、49blocked、4ready。PRD、ROADMAP、PROJECT_BRIEF 改为 as of commit 3bb311a 的里程碑快照，并写明任务看板是准绳、只在里程碑更新。规则写入 WORKFLOW 第4节。检查程序不比较快照与活看板，未改脚本。Issue 仍为 in-review。不改 docs/reference |
