@@ -8,7 +8,7 @@
 
 ## 模型与数据库待决
 
-ISSUE-010 已 closed。2026-10-12 用户决定业务库为 MySQL 8，对话模型由配置页提供，嵌入与向量库用 RAGFlow 自带能力，生产生成只在内网（user decision, relayed by PM）。pgvector 不再作为同库选项。重排使用 RAGFlow 自带的重排器，重排模型在 RAGFlow 内配置（用户 10-12 14:34 确认）。配置页和 RAGFlow 客户端都未实现，AI-01 为 in-review，真实端点未验收。CI 使用记录请求头和 `base_url` 的假对话服务；连真实地址须 `ICG_RUN_REAL_MODEL_TESTS=1`，默认跳过。配置读取仍未接通。连接配置和空基线迁移已由项目经理在 QA 签署 `98c5129` 后确认。回执和登录会话由 [BE-M0-T11](delivery/BE-M0-T11.md) 提交 in-review。编辑租约由 [BE-M0-T12](delivery/BE-M0-T12.md) 依据 QA ae6fd10，PM 15:32 确认 done。业务聚合仍未入库。未设置 `ICG_DATABASE_URL` 时单元测试继续使用内存实现。托管 CI 不能访问公司内网。原 `backend` 作业仍不跑 MySQL；ISSUE-025 的 `backend-mysql` 作业在运行器上启动 `mysql:8.4`，密码运行时生成，不进仓库。ISSUE-023 已由项目经理在 QA 签署 16cf971 后确认，状态为 closed。
+ISSUE-010 已 closed。2026-10-12 用户决定业务库为 MySQL 8，对话模型由配置页提供，嵌入与向量库用 RAGFlow 自带能力，生产生成只在内网（user decision, relayed by PM）。pgvector 不再作为同库选项。重排使用 RAGFlow 自带的重排器，重排模型在 RAGFlow 内配置（用户 10-12 14:34 确认）。配置页和 RAGFlow 客户端都未实现，AI-01 为 in-review，真实端点未验收。CI 使用记录请求头和 `base_url` 的假对话服务；连真实地址须 `ICG_RUN_REAL_MODEL_TESTS=1`，默认跳过。配置读取仍未接通。AC-03 证据已备，待 QA 勾选。ISSUE-024 与 AC-04 仍等待。路径规范化 hold，真模型冒烟另计。连接配置和空基线迁移已由项目经理在 QA 签署 `98c5129` 后确认。回执和登录会话由 [BE-M0-T11](delivery/BE-M0-T11.md) 提交 in-review。编辑租约由 [BE-M0-T12](delivery/BE-M0-T12.md) 依据 QA ae6fd10，PM 15:32 确认 done。业务聚合仍未入库。未设置 `ICG_DATABASE_URL` 时单元测试继续使用内存实现。托管 CI 不能访问公司内网。原 `backend` 作业仍不跑 MySQL；ISSUE-025 的 `backend-mysql` 作业在运行器上启动 `mysql:8.4`，密码运行时生成，不进仓库。ISSUE-023 已由项目经理在 QA 签署 16cf971 后确认，状态为 closed。
 
 ISSUE-011 已 closed，AI-02 为 done：项目经理于 10-12 12:10 在 QA 签署后确认。OpenAI 兼容适配器默认仍是演示替身，只有显式配置才启用；失败返回现有 502，敏感项目门禁保持不变。契约测试使用假 HTTP，没有调用真实端点。ISSUE-010 已 closed，真实端点仍未验收。详见[验证](testing/2026-10-12-openai-compatible-model.md)。
 

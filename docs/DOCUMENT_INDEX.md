@@ -306,7 +306,7 @@
 | D-293 | 2026-10-12 | [配置驱动的对话模型](architecture/model-config-provider.md) | 架构 | model-config-fixture-1 | in-review | ISSUE-028 / AI-01 | Provider 切换仍是设计。CI 假服务已落地。不改 OpenAPI |
 | D-294 | 2026-10-12 | [RAGFlow 检索适配器](architecture/ragflow-retrieval-adapter.md) | 架构 | ragflow-adapter-design-1 | closed | ISSUE-029 / AI-03 | 重排定为 RAGFlow 自带。路径 C 查询词过滤留到适配器实现。无客户端 |
 | D-295 | 2026-10-12 | [ISSUE-010 决定核对](testing/2026-10-12-issue-010-decisions.md) | 验证 | model-choice-3 | 文档核对 | ISSUE-010 / AI-01 | 无内网调用。只链接 ISSUE-024 的 stream_enabled 与 json_mode_enabled |
-| D-296 | 2026-10-12 | [ISSUE-028](../issues/ISSUE-028.md) | 变更 | model-config-fixture-1 | in-review | ISSUE-028 / AI-01 | AC-02 假服务已编码。真实端点默认跳过。配置运行时未接通。不标 closed |
+| D-296 | 2026-10-12 | [ISSUE-028](../issues/ISSUE-028.md) | 变更 | model-config-fixture-1 | in-review | ISSUE-028 / AI-01 | AC-02 已由 REV-M0-T29 签署。AC-03 证据已备，待 QA 勾选。不标 closed |
 | D-297 | 2026-10-12 | [ISSUE-029](../issues/ISSUE-029.md) | 变更 | ragflow-adapter-design-1 | closed | ISSUE-029 / AI-03 | 用户 10-12 14:34 确认。重排定为 RAGFlow 自带。适配器未实现 |
 | D-298 | 2026-10-12 | [028同步记录](governance/ISSUE-028-sync.md) | 治理 | model-config-fixture-1 | 已核对 | ISSUE-028 / AI-01 | AC-02 假服务已核对。不改任务计数。不改 OpenAPI |
 | D-299 | 2026-10-12 | [029同步记录](governance/ISSUE-029-sync.md) | 治理 | ragflow-adapter-design-1 | 已核对 | ISSUE-029 / AI-03 | ISSUE-029 已 closed。路径 C 查询词过滤留到适配器实现。不改检索代码 |
@@ -406,6 +406,7 @@
 | D-393 | 2026-10-12 | [挂证据代码说明](code/BE-M0-T18.md) | 说明 | evidence-mount-2 | 当前 | ISSUE-033 / BE-M0-T18 | 协议有无从合作方附件推导。授权行不进资料对象 |
 | D-394 | 2026-10-12 | [挂证据核对](testing/2026-10-12-be-m0-t18-evidence-mount.md) | 验证 | evidence-mount-2 | 已执行 | ISSUE-033 / BE-M0-T18 | 无库后台测试。不新增错误码 |
 | D-395 | 2026-10-12 | [挂证据测试](../tests/backend/test_evidence_mount.py) | 验证代码 | evidence-mount-2 | 4项通过 | ISSUE-033 / BE-M0-T18 | 过期、缺协议、仅供参考和受限资料 |
+| D-396 | 2026-10-12 | [ISSUE-028 AC-03证据](testing/2026-10-12-issue-028-ac03-evidence.md) | 验证 | model-config-fixture-1 | 待 QA 勾选 | ISSUE-028 / AI-01 | 夹具提交不改 OpenAPI 与依赖。尖端 OpenAPI 差异属于 af51151 |
 
 ## 更新记录
 
@@ -525,6 +526,7 @@
 | 2026-10-12 | ISSUE-013 / REV-M0-T29 | QA签署：ISSUE-028 AC-02假端点夹具，通过（ISSUE-028 / AI-01 不标 done；路径规范化 hold） |
 | 2026-10-12 | ISSUE-033 / BE-M0-T18；ISSUE-035 / BE-M0-T19 | 项目经理批准挂证据沿用已有错误码，并有条件批准方案第 6 节偏差。BE-M0-T18 改为 in-review：过期为 409 EVIDENCE_EXPIRED，仅供参考和缺协议为 409 EVIDENCE_NOT_USABLE 且说明不同，无权受限资料为 403 FORBIDDEN。字段名是 is_restricted，与冻结的 EvidenceMountFields 一致。不新增错误码。登记 ISSUE-035，状态 new，BE-M0-T19 为 planned，等正式项目表和成员表存在后再迁移，保留历史行。对照表下补上「偏差已获 PM 有条件批准，待 ISSUE-035 对齐」。看板为 386 项：49 done、12 in-review、7 in-progress、265 planned、48 blocked、5 ready。不改 PRD、ROADMAP、PROJECT_BRIEF，不改 docs/reference，不改 .github。T13 仍 in-review。T078 与 T114 保持上游 done。T124 保持 ready。不另开 ISSUE-034。ISSUE-036 保持上游 in-review |
 | 2026-10-12 | ISSUE-018 / BE-M0-T13；ISSUE-013 / REV-M0-T23 | 项目经理确认 BE-M0-T13 与 REV-M0-T23 为 done，依据是 QA ae38ec3，PM 17:16 确认。ISSUE-018 仍为 in-progress。ISSUE-035 仍为 new，BE-M0-T19 仍为 planned。ISSUE-033 与 BE-M0-T18 仍为 in-review。看板为 386 项：50 done、11 in-review、7 in-progress、265 planned、48 blocked、5 ready。BE-M0 为 8/19 done。不改 PRD、ROADMAP、PROJECT_BRIEF，不改 docs/reference，不改 .github |
+| 2026-10-12 | ISSUE-028 / AI-01 | AC-03 证据已备，待 QA 勾选。夹具提交 `9e3fcdd` 不改 `spec/openapi/demo-v1.json` 与 `backend/bid-core/requirements.txt`。尖端 `20f2b92` 上这两份依赖与 `openai_model.py` 的 blob 仍相同；OpenAPI 差异只来自 `af51151`。ISSUE-024 与 AC-04 仍等待。路径规范化 hold，真模型冒烟另计。不改任务计数。ISSUE-028 与 AI-01 仍 in-review。不标 closed |
 
 ## 缺失输入
 

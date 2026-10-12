@@ -20,7 +20,7 @@
 | 发布 | 未发布 |
 | 交付说明 | [AI-01 交付](../docs/delivery/AI-01.md) |
 | 代码 / 流程解释 | 不改 `backend/bid-core`。假服务见 [代码解释](../docs/code/AI-01.md) 与 [配置设计](../docs/architecture/model-config-provider.md) |
-| 验证记录 | [2026-10-12 假服务核对](../docs/testing/2026-10-12-issue-028-fake-openai.md)；[AC-02 QA签署](../docs/testing/2026-10-12-issue-028-ac02-qa-signoff.md) |
+| 验证记录 | [2026-10-12 假服务核对](../docs/testing/2026-10-12-issue-028-fake-openai.md)；[AC-02 QA签署](../docs/testing/2026-10-12-issue-028-ac02-qa-signoff.md)；[AC-03 证据](../docs/testing/2026-10-12-issue-028-ac03-evidence.md) |
 
 ## 现象与证据
 
@@ -49,7 +49,7 @@
 |---|---|---|
 | AC-01 | Provider 读取配置、启动快照、local/cloud 路由、敏感约束、流式/JSON、错误映射和 `job.model_call` 已写明。字段定义与 API 已从本设计删去，并注明以 ISSUE-024 为准 | 已写入设计。未实现 |
 | AC-02 | CI 使用记录请求头和基址的假服务；真实连接默认跳过 | 假服务已编码。QA 于 `9e3fcdd` 签署通过（REV-M0-T29）：355 passed / 13 skipped；CI 38231417634。真实连接须 `ICG_RUN_REAL_MODEL_TESTS=1`，默认跳过。路径规范化 hold。见 [核对](../docs/testing/2026-10-12-issue-028-fake-openai.md) 与 [签署](../docs/testing/2026-10-12-issue-028-ac02-qa-signoff.md)。Issue 仍 in-review，不标 closed |
-| AC-03 | 不改 OpenAPI 文件，不新增依赖 | 本轮 diff 不含 `spec/openapi/demo-v1.json` 与 `requirements.txt` |
+| AC-03 | 不改 OpenAPI 文件，不新增依赖 | 证据已备，待 QA 勾选。夹具提交 `9e3fcdd` 的文件名单不含 `spec/openapi/demo-v1.json`、`backend/bid-core/requirements.txt` 与 `openai_model.py`。这三处相对 `9e3fcdd^` 无 diff。`requirements.txt` 与 `openai_model.py` 在尖端 `20f2b92` 仍与 `9e3fcdd` 同一 blob。尖端上的 OpenAPI 差异只来自 `af51151`（ISSUE-033），不属于本夹具。见 [AC-03 证据](../docs/testing/2026-10-12-issue-028-ac03-evidence.md)。不标 closed |
 | AC-04 | 实现时，敏感项目使用非本地模型返回 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`（由现在的 409 `LOCAL_MODEL_REQUIRED` 改为 403） | 未实现。已记入 [AI-01](../docs/tasks/AI-M0.md#ai-01) 未勾选验收。本轮不改运行代码 |
 
 ## 六份基线 impact 与同步表
@@ -76,8 +76,9 @@
 | 2026-10-12 | model-config-design-2 / in-review | `3e1445e` 已把 D-1 字段写进 ISSUE-024。本文件只链接 [`stream_enabled`](ISSUE-024.md) 与 [`json_mode_enabled`](ISSUE-024.md)，不抄定义。状态仍 in-review | [ISSUE-024](ISSUE-024.md) |
 | 2026-10-12 | model-config-fixture-1 / in-review | AC-02 假服务已编码。记录请求头和实际 `base_url`。真实端点须 `ICG_RUN_REAL_MODEL_TESTS=1`，默认跳过。不改 `backend/bid-core`，不改 OpenAPI，不加依赖。配置运行时仍未接通。不标 closed | [核对](../docs/testing/2026-10-12-issue-028-fake-openai.md) |
 | 2026-10-12 | model-config-fixture-1 / in-review | QA 签署 AC-02（REV-M0-T29）：夹具层通过；路径规范化 hold，不要求改适配器；配置运行时与真模型仍未接通。**不标 closed** | [签署](../docs/testing/2026-10-12-issue-028-ac02-qa-signoff.md) |
+| 2026-10-12 | model-config-fixture-1 / in-review | AC-03 证据已备，待 QA 勾选。`9e3fcdd` 不改 OpenAPI 与依赖；尖端 `20f2b92` 的 OpenAPI 差异属于 `af51151`。ISSUE-024 与 AC-04 仍等待。路径规范化 hold，真模型冒烟另计。不标 closed，不标 done | [AC-03 证据](../docs/testing/2026-10-12-issue-028-ac03-evidence.md) |
 
 ## 本地验收与后续合入发布
 
-- 本地验收：设计已写。CI 假服务已核对。配置读取、敏感项目 403 和真实端点仍未接通。不标 closed。
+- 本地验收：设计已写。CI 假服务已核对（AC-02，REV-M0-T29）。AC-03 证据已备，待 QA 勾选。ISSUE-024 与 AC-04 仍等待。路径规范化 hold，真模型冒烟另计。不标 closed。
 - PR：未创建。合入：未合入。发布：未发布。
