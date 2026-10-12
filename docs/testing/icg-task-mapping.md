@@ -244,7 +244,7 @@ T07上段为范围拆分阶段记录；当前ISSUE-009 / APP-M2-T001为 in-revie
 | [APP-M2-T121](../tasks/APP-M2.md#app-m2-t121) | 项目事实表 | planned | APP-M1-T10、APP-M1-T12 | M3-E06-F3 |
 | [APP-M2-T122](../tasks/APP-M2.md#app-m2-t122) | “需复核”传播提示 | planned | APP-M1-T10、APP-M1-T12、APP-M2-T119、APP-M2-T121 | M3-E06-F4 |
 | [APP-M2-T123](../tasks/APP-M2.md#app-m2-t123) | 大纲排序、章节类型和增值理由（分工复用T15） | planned | APP-M1-T15、APP-M2-T116 | M4-F01-F1 |
-| [APP-M2-T124](../tasks/APP-M2.md#app-m2-t124) | 完整证据、片段及评分写作计划（确认复用T15） | planned | APP-M1-T15、APP-M2-T078、APP-M2-T114 | M4-F01-F2 |
+| [APP-M2-T124](../tasks/APP-M2.md#app-m2-t124) | 完整证据、片段及评分写作计划（确认复用T15） | blocked | APP-M1-T15、APP-M2-T078、APP-M2-T114 | M4-F01-F2 |
 | [APP-M2-T125](../tasks/APP-M2.md#app-m2-t125) | 招标原文预览联动与 R26 提示 | planned | APP-M1-T15、APP-M2-T123、APP-M2-T232 | M4-F01-F3 |
 | [APP-M2-T126](../tasks/APP-M2.md#app-m2-t126) | 按逐节确认结果启动生成（确认复用T15） | planned | APP-M1-T15、APP-M2-T124、APP-M2-T125 | M4-F01-F4 |
 | [APP-M2-T127](../tasks/APP-M2.md#app-m2-t127) | 五类系统生成章节预览 | planned | APP-M1-T04、APP-M2-T191、APP-M2-T192、APP-M2-T193、APP-M2-T194、APP-M2-T195 | M4-F09-F1 |
@@ -2603,7 +2603,7 @@ T07上段为范围拆分阶段记录；当前ISSUE-009 / APP-M2-T001为 in-revie
     {
       "id": "APP-M2-T124",
       "title": "完整证据、片段及评分写作计划（确认复用T15）",
-      "status": "planned",
+      "status": "blocked",
       "phase": "一期业务页面/支撑",
       "source": "M4-F01-F2",
       "source_key": "F01.F2",
