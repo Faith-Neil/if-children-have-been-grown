@@ -4,13 +4,11 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from io import BytesIO
 from threading import RLock
 from typing import Callable, TypeVar
-from xml.sax.saxutils import escape
-from zipfile import ZIP_DEFLATED, ZipFile
 
-from .domain import Account, Chapter, DemoState, Export, Project
+from .docx_style import DEFAULT_DOCX_STYLE, DocxStyle, build_docx
+from .domain import Account, Chapter, DemoState, Project
 
 T = TypeVar("T")
 
@@ -81,59 +79,3 @@ class DemoModelProvider:
     def suggest(self, instruction: str, content: str) -> str:
         return (f"{content}\n\n[模拟建议，未调用真实模型]\n"
                 f"修改要求：{instruction}\n请由编写人核对内容；确认提交前不会写入正式正文。")
-
-
-def build_docx(record: Export, table_rows: list[list[str]] | None = None) -> bytes:
-    # 每行写成独立段落，XML 转义保证 &、< 等文字不会变成文件结构。
-    def paragraph(text: str, *, title: bool = False) -> str:
-        style = '<w:pPr><w:pStyle w:val="Title"/></w:pPr>' if title else ""
-        return (f'<w:p>{style}<w:r><w:t xml:space="preserve">'
-                f'{escape(text)}</w:t></w:r></w:p>')
-
-    document_body = paragraph("本地演示内部稿，不可正式递交")
-    document_body += paragraph(record.title, title=True)
-    document_body += "".join(paragraph(line) for line in record.content.splitlines())
-    if table_rows:
-        borders = ''.join(f'<w:{edge} w:val="single" w:sz="4" w:color="777777"/>'
-                          for edge in ("top", "left", "bottom", "right", "insideH", "insideV"))
-        document_body += '<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblBorders>' + borders + '</w:tblBorders></w:tblPr>'
-        for index, row in enumerate(table_rows):
-            document_body += '<w:tr>' + ('<w:trPr><w:tblHeader/></w:trPr>' if index == 0 else '')
-            for cell in row:
-                document_body += '<w:tc><w:tcPr><w:tcW w:w="1800" w:type="dxa"/></w:tcPr>' + paragraph(cell) + '</w:tc>'
-            document_body += '</w:tr>'
-        document_body += '</w:tbl>'
-    document_body += ("<w:sectPr><w:pgSz w:w=\"11906\" w:h=\"16838\"/>"
-                      "<w:pgMar w:top=\"1440\" w:right=\"1440\" w:bottom=\"1440\" w:left=\"1440\"/></w:sectPr>")
-    document = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-                '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
-                f'<w:body>{document_body}</w:body></w:document>')
-    contents = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-<Default Extension="xml" ContentType="application/xml"/>
-<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
-</Types>'''
-    root_relationships = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-</Relationships>'''
-    document_relationships = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
-</Relationships>'''
-    styles = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:eastAsia="Microsoft YaHei"/><w:sz w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults>
-<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>
-<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:rPr><w:b/><w:sz w:val="32"/></w:rPr></w:style>
-</w:styles>'''
-    target = BytesIO()
-    with ZipFile(target, "w", ZIP_DEFLATED) as archive:
-        archive.writestr("[Content_Types].xml", contents)
-        archive.writestr("_rels/.rels", root_relationships)
-        archive.writestr("word/document.xml", document)
-        archive.writestr("word/_rels/document.xml.rels", document_relationships)
-        archive.writestr("word/styles.xml", styles)
-    return target.getvalue()

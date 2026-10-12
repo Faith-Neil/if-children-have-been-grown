@@ -4,7 +4,7 @@
 
 # ISSUE-023 同步
 
-日期 2026-10-12。revision deps-1。状态 in-review。
+日期 2026-10-12。revision deps-2。状态 closed。项目经理在 QA 签署 16cf971 后确认。未合入、未发布。
 
 | 对象 | 是否改动 | 理由 |
 |---|---|---|
@@ -12,7 +12,7 @@
 | ROADMAP | 未改 | 路线图正文不记录这次依赖 |
 | ARCHITECTURE | 未改 | ISSUE-005 那一句仍只描述当时的错误体和幂等复查，不在本轮改写 |
 | PROJECT_BRIEF | 已改 | 排期改为 360 项：23 done、7 in-review、7 in-progress、269 planned、50 blocked、4 ready |
-| TASK_BOARD | 已改 | BE-M0 现为 13 项。T10 in-review，T11～T13 planned。T08 仍 in-review |
+| TASK_BOARD | 已改 | BE-M0-T10 为 done。T11～T13 仍 planned。项目经理在 QA 签署 16cf971 后确认本 Issue 为 closed |
 | PROJECT_STATUS | 已改 | 写明连接和空基线已进入仓库，业务数据仍在内存 |
 | DOCUMENT_INDEX | 已改 | 登记本表、Issue、交付、代码说明和验证 |
 | 公网 CI | 未改 | `.github/workflows/offline-check.yml` 不增加 MySQL 服务 |

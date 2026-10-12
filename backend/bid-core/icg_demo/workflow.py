@@ -24,6 +24,12 @@ from .project_access import (VOLUMES, writable, lead, volume_owner, require_lead
 
 
 DOCX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+
+def chapter_export_block(title: str, body: str) -> str:
+    # 分册里的章节名要成为一级标题，正文仍按原行保留。
+    return f"# {title}\n{body}"
+
 SHANGHAI = timezone(timedelta(hours=8))
 SAMPLE_TENDER = """合成招标文件：星河数据库维保服务项目
 招标编号：DEMO-2026-001
@@ -877,7 +883,8 @@ class WorkflowService:
                 selected = [c for c in chapters if c.volume == volume]
                 filename = f"icg-{volume}-{identity}.docx"
                 documents[volume] = {"title": self._mask(project.name) + " — " + name,
-                                     "content": "\n\n".join(self._mask(c.title) + "\n" + self._mask(resolve_fact_variables(state, project_id, c.content)) for c in selected)}
+                                     "project_name": self._mask(project.name),
+                                     "content": "\n\n".join(chapter_export_block(self._mask(c.title), self._mask(resolve_fact_variables(state, project_id, c.content))) for c in selected)}
                 volumes.append({"volume": volume, "filename": filename,
                                 "download_url": f"/api/v1/projects/{project_id}/exports/{identity}/{volume}"})
             record = {"id": identity, "kind": payload["kind"], "check_id": check["id"],

@@ -157,7 +157,7 @@ def include_workflow_routes(application, service, current_user, parser):
     def download(project_id: str, export_id: str, volume: str, user: Principal = Depends(current_user)):
         document = workflow.download(user, project_id, export_id, volume)
         record = Export(export_id, "", 1, "", "", document["filename"], document["title"], document["content"])
-        return Response(content=build_docx(record), media_type=DOCX_MEDIA_TYPE,
+        return Response(content=build_docx(record, project_name=document.get("project_name")), media_type=DOCX_MEDIA_TYPE,
                         headers={"Content-Disposition": f'attachment; filename="{document["filename"]}"'})
 
     @router.get("/jobs", response_model=JobsList)

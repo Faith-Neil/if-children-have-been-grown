@@ -8,7 +8,7 @@
 
 ## 模型与数据库待决
 
-ISSUE-010 已 closed。2026-10-12 用户决定业务库为 MySQL 8，对话模型由配置页提供，嵌入与向量库用 RAGFlow 自带能力，生产生成只在内网（user decision, relayed by PM）。pgvector 不再作为同库选项。重排产品未选定。配置页和 RAGFlow 客户端都未实现，AI-01 为 in-review，真实端点未验收。连接配置和空基线迁移已由项目经理在 QA 签署 `98c5129` 后确认；业务表、回执、会话和租约仍未入库。未设置 `ICG_DATABASE_URL` 时单元测试继续使用内存实现。托管 CI 不能访问公司内网。原 `backend` 作业仍不跑 MySQL；ISSUE-025 的 `backend-mysql` 作业在运行器上启动 `mysql:8.4`，密码运行时生成，不进仓库。
+ISSUE-010 已 closed。2026-10-12 用户决定业务库为 MySQL 8，对话模型由配置页提供，嵌入与向量库用 RAGFlow 自带能力，生产生成只在内网（user decision, relayed by PM）。pgvector 不再作为同库选项。重排产品未选定。配置页和 RAGFlow 客户端都未实现，AI-01 为 in-review，真实端点未验收。连接配置和空基线迁移已由项目经理在 QA 签署 `98c5129` 后确认；业务表、回执、会话和租约仍未入库。未设置 `ICG_DATABASE_URL` 时单元测试继续使用内存实现。托管 CI 不能访问公司内网。原 `backend` 作业仍不跑 MySQL；ISSUE-025 的 `backend-mysql` 作业在运行器上启动 `mysql:8.4`，密码运行时生成，不进仓库。ISSUE-023 已由项目经理在 QA 签署 16cf971 后确认，状态为 closed。
 
 ISSUE-011 已 closed，AI-02 为 done：项目经理于 10-12 12:10 在 QA 签署后确认。OpenAI 兼容适配器默认仍是演示替身，只有显式配置才启用；失败返回现有 502，敏感项目门禁保持不变。契约测试使用假 HTTP，没有调用真实端点。ISSUE-010 已 closed，真实端点仍未验收。详见[验证](testing/2026-10-12-openai-compatible-model.md)。
 
@@ -30,7 +30,7 @@ ISSUE-012 / APP-M2-T008 已把现有离线检查放进 GitHub Actions，并在�
 
 ISSUE-013 / REV-M0-T02于2026-10-12在独立Linux环境复跑：后台262、前端72、构建、治理/原型/同步/旧页及5个真实HTTP冒烟通过；会话实时HTTP按原描述重建15项并入库为[可重跑脚本](../tests/backend/session_live_http.py)，原16项为间接复核。前端测试需Node 24。见[复跑记录](testing/2026-10-12-qa-rerun.md)。
 
-ISSUE-015 / REV-M0-T03已编制[APP-M1-T06验收计划](testing/2026-10-12-app-m1-t06-acceptance-plan.md)并评审通过；REV-M0-T04新增自启服务的`smoke_t06.py`（12/12）并首次在Linux渲染Word留证，发现无标题/编号/目录/页眉页脚等W1～W4，见[记录](testing/2026-10-12-t06-smoke-word-render.md)；T06本身仍in-progress，Word标题/编号/目录、贯通脚本及视觉渲染为已知缺口。
+ISSUE-015 / REV-M0-T03已编制[APP-M1-T06验收计划](testing/2026-10-12-app-m1-t06-acceptance-plan.md)并评审通过；REV-M0-T04新增自启服务的`smoke_t06.py`（12/12）并首次在Linux渲染Word留证，发现无标题/编号/目录/页眉页脚等W1～W4，见[记录](testing/2026-10-12-t06-smoke-word-render.md)；T06本身仍in-progress。W1～W4 由 [BE-M0-T15](delivery/BE-M0-T15.md) 提交默认版式，状态 in-review，尚未经 QA 签收。贯通脚本及视觉渲染仍是已知缺口。
 
 ## 当前契约阶段（2026-10-12）
 
@@ -40,7 +40,7 @@ ISSUE-019 / REV-M0-T06新增Playwright端到端检查（`pnpm --dir frontend/web
 
 ## 任务进度口径
 
-治理版本g1.1，当前实际开发关联ISSUE-007及资料保护ISSUE-008；契约门禁关联ISSUE-005；模型与向量库决定已记入已关闭的 ISSUE-010，业务库已决定为 MySQL 8。项目362项中26done、8in-review、7in-progress、268planned、49blocked、4ready。PRD、ROADMAP、PROJECT_BRIEF 已由 ISSUE-026 跟进写成 8in-review、49blocked，与看板相同。APP-M1的16项中9项本地done：T07范围拆分及T09～16限定子任务；T01～06完整父任务继续，T08最终审计planned，T16资料及模板旧表单保护本地done。[APP-M2的259项](tasks/APP-M2.md)中T001布局、路由和离开保护为 in-review，T002请求层为 in-review，T008离线CI为 done，T124因 T078/T114 未满足仍为 blocked。ISSUE-022 为 in-review，只复核 draft, pending backend review 的大纲契约，运行时未接通，其余255项planned，覆盖47组页面和44规则，不代表软件已实现。BE-M0现为14项，其中T01～T03、T08、T10为done，T14托管 MySQL 作业为 in-review，4项ready，T09与T11～T13 planned。T02与T03由项目经理于 10-12 12:28 在 QA 签署后确认。T08与T10由项目经理在 QA 签署 98c5129 后确认。ISSUE-005 保持 in-progress，不关闭。AI-01为in-review，AI-02为done，AI-03为in-review且不连接 MySQL 或 RAGFlow，OPS-M0-T02内网部署草案为in-review且不是已部署。REV-M0-T05已记录QA签署；项目经理于 10-12 12:10 在 QA 签署后确认 AI-02 与 T008。REV-M0-T07已记录QA对BE-M0-T02/T03的签署。REV-M0-T06 与 REV-M0-T08 仍为 in-review。PR待合入、未发布；BE-M0-T01只证明局部后台基础，FE-M0-T03继续来源评审，生产一期尚未验收。344项、20done、2in-review、7in-progress 是加入契约六张卡之前的计数。
+治理版本g1.1，当前实际开发关联ISSUE-007及资料保护ISSUE-008；契约门禁关联ISSUE-005；模型与向量库决定已记入已关闭的 ISSUE-010，业务库已决定为 MySQL 8。项目363项中26done、9in-review、7in-progress、268planned、49blocked、4ready。PRD、ROADMAP、PROJECT_BRIEF 在本卡改为 363项26done、9in-review、7in-progress、268planned、49blocked、4ready。ISSUE-026 已把三份基线写成 8in-review、49blocked；本卡新增 BE-M0-T15 后 in-review 为 9。APP-M1的16项中9项本地done：T07范围拆分及T09～16限定子任务；T01～06完整父任务继续，T08最终审计planned，T16资料及模板旧表单保护本地done。[APP-M2的259项](tasks/APP-M2.md)中T001布局、路由和离开保护为 in-review，T002请求层为 in-review，T008离线CI为 done，T124因 T078/T114 未满足仍为 blocked。ISSUE-022 为 in-review，只复核 draft, pending backend review 的大纲契约，运行时未接通，其余255项planned，覆盖47组页面和44规则，不代表软件已实现。BE-M0现为15项，其中T01～T03、T08、T10为done，T14托管 MySQL 作业为 in-review，T15 Word 默认版式为 in-review，4项ready，T09与T11～T13 planned。ISSUE-023 已由项目经理在 QA 签署 16cf971 后确认，状态为 closed。T02与T03由项目经理于 10-12 12:28 在 QA 签署后确认。T08与T10由项目经理在 QA 签署 98c5129 后确认。ISSUE-005 保持 in-progress，不关闭。AI-01为in-review，AI-02为done，AI-03为in-review且不连接 MySQL 或 RAGFlow，OPS-M0-T02内网部署草案为in-review且不是已部署。REV-M0-T05已记录QA签署；项目经理于 10-12 12:10 在 QA 签署后确认 AI-02 与 T008。REV-M0-T07已记录QA对BE-M0-T02/T03的签署。REV-M0-T06 与 REV-M0-T08 仍为 in-review。PR待合入、未发布；BE-M0-T01只证明局部后台基础，FE-M0-T03继续来源评审，生产一期尚未验收。344项、20done、2in-review、7in-progress 是加入契约六张卡之前的计数。
 
 资料库专项审查确认：当前只支持基础文字资料，确认声明、审核、受限名单、真实附件槽位、历史和引用版本仍缺。T16已修复资料及公司模板旧表单借刷新版本覆盖新内容的问题；完整C01/C06各卡继续planned，不能以修复代替其验收。
 

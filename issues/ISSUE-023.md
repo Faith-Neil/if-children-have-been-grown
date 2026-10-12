@@ -9,13 +9,13 @@
 | Issue ID | ISSUE-023 |
 | 类型 | version |
 | 优先级 | P1 |
-| 状态 | in-review |
+| 状态 | closed |
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
-| revision | deps-1 |
+| revision | deps-2 |
 | 关联 Task | [BE-M0-T10](../docs/tasks/BE-M0.md#be-m0-t10) |
 | 关联 PR | 未创建。随既有分支提交，不新开 PR |
-| 本地验收 | 2026-10-12 已安装并完成连接与迁移冒烟。等待项目经理 QA 签收 |
+| 本地验收 | 项目经理在 QA 签署 16cf971 后确认。连接与迁移冒烟已完成。未合入、未发布 |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | [BE-M0-T10](../docs/delivery/BE-M0-T10.md) |
@@ -38,7 +38,7 @@ ISSUE-018 的方案列出四个待批准包。项目经理已批准 SQLAlchemy 2
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| BE-M0-T10 | 写入四个已批准依赖，并接上连接与空迁移 | `backend/bid-core/requirements.txt` | AC-01～AC-03 | in-review |
+| BE-M0-T10 | 写入四个已批准依赖，并接上连接与空迁移 | `backend/bid-core/requirements.txt` | AC-01～AC-03 | done |
 
 ## 验收条目
 
@@ -48,7 +48,7 @@ ISSUE-018 的方案列出四个待批准包。项目经理已批准 SQLAlchemy 2
 | AC-02 | 仓库中没有数据库密码 | 已核对 `requirements.txt`、`alembic.ini` 和迁移脚本 |
 | AC-03 | 现有公网离线工作流不增加 MySQL 服务 | 未改 `.github/workflows/offline-check.yml` |
 
-未做发布验收。in-review 不是 closed。
+未做发布验收。状态为 closed，只表示项目经理确认本依赖登记完成；合入与发布仍未发生。
 
 ## 六份基线 impact 与同步表
 
@@ -57,7 +57,7 @@ ISSUE-018 的方案列出四个待批准包。项目经理已批准 SQLAlchemy 2
 | PRD | 无影响。未改页面或业务规则 | 不改 `docs/PRD.md` | deps-1 / ISSUE-023 / 2026-10-12 | 已核对 |
 | ROADMAP | 无影响。不改路线图正文 | 不改 `docs/ROADMAP.md` | deps-1 / ISSUE-023 / 2026-10-12 | 已核对 |
 | ARCHITECTURE | 无影响。ISSUE-005 已写入的那一句仍描述当时未加驱动的复查范围。本轮不改架构正文 | 不改 `docs/ARCHITECTURE.md` | deps-1 / ISSUE-023 / 2026-10-12 | 已核对 |
-| TASK_BOARD | 有影响。BE-M0-T10 为 in-review，T11～T13 为 planned | `docs/TASK_BOARD.md`、`docs/tasks/BE-M0.md` | deps-1 / ISSUE-023 / 2026-10-12 | 已改 |
+| TASK_BOARD | 有影响。BE-M0-T10 为 done，T11～T13 为 planned | `docs/TASK_BOARD.md`、`docs/tasks/BE-M0.md` | deps-2 / ISSUE-023 / 2026-10-12 | 已改 |
 | PROJECT_STATUS | 有影响。进度改为 360 项，并写明已有连接和空迁移 | `docs/PROJECT_STATUS.md` | deps-1 / ISSUE-023 / 2026-10-12 | 已改 |
 | DOCUMENT_INDEX | 有影响。登记本 Issue、交付、说明、验证和同步表 | `docs/DOCUMENT_INDEX.md` | deps-1 / ISSUE-023 / 2026-10-12 | 已改 |
 
@@ -68,6 +68,7 @@ PROJECT_BRIEF 排期行改为 360 项，记在同步表。
 | 日期 | revision / 状态 | 完成事实、问题与下一步 | 证据 / 复核人 |
 |---|---|---|---|
 | 2026-10-12 | deps-1 / in-review | 四个包已加入并完成本地连接冒烟。done 与 closed 等待项目经理在 QA 后设置 | [验证](../docs/testing/2026-10-12-mysql-connection.md) |
+| 2026-10-12 | deps-2 / closed | 项目经理在 QA 签署 16cf971 后确认。任务表和影响表中的 BE-M0-T10 改为 done。未合入、未发布 | [QA签署](../docs/testing/2026-10-12-be-m0-t10-mysql-signoff.md) |
 
 ## 本地验收与后续合入发布
 
