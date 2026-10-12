@@ -34,18 +34,18 @@
 | 状态 | in-review |
 | 估算 | 对照现有入口写一份草案；不含搭环境和等待选型 |
 | 关联Issue | [ISSUE-017](../../issues/ISSUE-017.md) |
-| 依赖 | [BE-M0-T01](BE-M0.md#be-m0-t01) 的现有进程入口。业务库按 [ISSUE-010](../../issues/ISSUE-010.md) 已登记的 MySQL 8 写入草案；向量、对话模型、嵌入和重排仍等该 Issue |
+| 依赖 | [BE-M0-T01](BE-M0.md#be-m0-t01) 的现有进程入口。业务库按 [ISSUE-010](../../issues/ISSUE-010.md) 已登记的 MySQL 8 写入草案。嵌入和向量库按后续转达的用户决定记为 RAGFlow 自带；不改 ISSUE-010 正文 |
 | 来源 | 现有 `backend/bid-core` 与 `frontend/web` 的运行说明 |
 | 完成时交付 | [专属交付](../delivery/OPS-M0-T02.md) |
 | 代码解释 | 无。不修改运行代码 |
 
-范围：写内网放置、配置与密钥、自建 runner、备份回滚，以及 MySQL 8 的字符集、内网部署、mysqldump 或 XtraBackup 加 binlog 时间点恢复、迁移与程序回滚的关系。ORM、驱动和迁移工具不在本卡。
+范围：写内网放置、配置与密钥、自建 runner、备份回滚，MySQL 8 的字符集、内网部署、mysqldump 或 XtraBackup 加 binlog 时间点恢复、迁移与程序回滚的关系，以及 RAGFlow 的单独放置和连通。建表和 RAGFlow 适配器不在本卡。
 
 当前条件：没有环境。开发者停在 in-review，done 由项目经理在 QA 签署后设置。
 
 可验证验收：
 
 - [x] 草案写明当前单进程入口、静态构建和健康检查字段，并标明尚未部署。
-- [x] MySQL 8 与仍被 ISSUE-010 挡住的向量、模型、嵌入、重排分开写。
+- [x] MySQL 8 与 RAGFlow 分开写。嵌入和向量库记为 RAGFlow 自带；重排仍未选定。ISSUE-010 正文不在本卡修改。
 - [ ] 项目经理在 QA 签署后把本卡标为 done。
 - [ ] 真实内网、MySQL 和迁移工具有独立验收，不由本草案代替。

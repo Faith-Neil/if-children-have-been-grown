@@ -9,8 +9,8 @@
 |---|---|
 | 任务ID | OPS-M0-T02 |
 | 代码解释 | 无。本卡只新增文档，不改运行代码、Dockerfile 或工作流 |
-| 验收 | [草案核对](../testing/2026-10-12-intranet-deploy-plan.md)：对照现有 uvicorn 与 Vite 构建写完五类内容，并写明单 worker、单副本约束。治理检查通过：171 份 Markdown、354 项任务、19 项 Issue。未启动服务，未加 MySQL 容器。卡片为 in-review |
-| 项目进度 | 本卡 in-review。354 项中 done 21、in-review 7、in-progress 7、planned 266、blocked 49、ready 4。done 待项目经理 |
+| 验收 | [草案核对](../testing/2026-10-12-intranet-deploy-plan.md)：对照现有入口写完放置、密钥、runner、备份和 MySQL 8，并补 RAGFlow 连通。单 worker、单副本约束仍在。未启动服务，未加 MySQL 容器，未连接 RAGFlow。卡片为 in-review |
+| 项目进度 | 本卡 in-review。计数以任务看板为准，本轮不改看板。done 待项目经理 |
 <!-- task-delivery:end -->
 
 ## 关联与状态
@@ -22,11 +22,13 @@
 
 ## 完成内容与变更文件
 
-新增 [内网部署草案](../operations/intranet-deployment-plan.md)。它按当前 `uvicorn` 单进程和 `frontend/web` 的 Vite 构建说明内网放置、环境变量、自建 runner、备份回滚，以及 MySQL 8 的字符集、备份和时间点恢复。深链接由同一进程回到 `index.html`。向量库、对话模型、嵌入和重排仍指向 ISSUE-010。AI-03 的内存检索不代替向量库决定。
+新增 [内网部署草案](../operations/intranet-deployment-plan.md)。它按当前 `uvicorn` 单进程和 `frontend/web` 的 Vite 构建说明内网放置、环境变量、自建 runner、备份回滚，以及 MySQL 8 的字符集、备份和时间点恢复。深链接由同一进程回到 `index.html`。
 
-按 QA 补上约束：`DemoState.sessions` 和 `workflow_receipts` 都在单个进程的内存里。ISSUE-018 把它们写入 MySQL 之前，只能一个 uvicorn worker、一个副本。重启丢掉会话和幂等回执。多 worker 和多副本部署 blocked 在尚未建档的 ISSUE-018。
+2026-10-12 补上 RAGFlow：单独的内网服务，版本和资源规格待 AI/RAG 计划确认。后台访问 RAGFlow API，RAGFlow 访问本地模型与嵌入，浏览器不直连。生产生成服务不出网。占位变量是 `ICG_RAGFLOW_BASE_URL` 和 `ICG_RAGFLOW_API_KEY`。模型配置密钥用 Fernet，主密钥为环境变量 `ICG_SECRET_KEY`，不进仓库和数据库。CI 不连接真实 RAGFlow 或真实模型。没有发明 RAGFlow 的 API 路径或版本。ISSUE-010 正文未改。重排未选定。
 
-没有代码变更。ORM、驱动和迁移工具留给尚未建档的 ISSUE-018。
+按 QA 补上约束：`DemoState.sessions` 和 `workflow_receipts` 都在单个进程的内存里。ISSUE-018 把它们写入 MySQL 之前，只能一个 uvicorn worker、一个副本。重启丢掉会话和幂等回执。多 worker 和多副本部署 blocked 在 ISSUE-018。该 Issue 已建档且为 in-progress。
+
+没有本卡的运行代码变更。连接与空迁移已由 ISSUE-018 / ISSUE-023 落地；业务表、回执和会话仍未入库。设置 `ICG_DATABASE_URL` 时进程可以连上 MySQL，读写仍在内存。
 
 ## 代码解释
 
@@ -38,7 +40,7 @@
 
 ## 项目进度
 
-354 项：done 21、in-review 7（APP-M2-T001、AI-03、BE-M0-T02、BE-M0-T03、REV-M0-T06、REV-M0-T08 与本卡）、in-progress 7、planned 266、blocked 49、ready 4。AI-01 仍 blocked。AI-02 与 APP-M2-T008 保持 done。PR 未合入，未发布。
+本卡保持 in-review。看板计数本轮不改，以 `docs/TASK_BOARD.md` 为准。AI-01 仍 blocked。PR 未合入，未发布。
 
 ## 文档与 Issue 同步
 
@@ -48,13 +50,13 @@
 | ROADMAP | 无影响。阶段和发布顺序未改。计数字句不在本卡改正 |
 | ARCHITECTURE | 无影响。已实现的模块仍是内存单进程。本轮不改 |
 | PROJECT_BRIEF | 无影响。接手快照不改 |
-| Issue 看板/详情 | 新增 ISSUE-017，状态 in-review。ISSUE-018 不建档。不改 ISSUE-007、ISSUE-010、ISSUE-011 |
-| TASK_BOARD / PROJECT_STATUS | OPS-M0-T02 仍为 in-review。354 项：21 done、7 in-review、7 in-progress、266 planned、49 blocked、4 ready |
-| DOCUMENT_INDEX | 新增 D-238～D-242。既有条目里的 T008 用词不改 |
+| Issue 看板/详情 | ISSUE-017 保持 in-review，补 RAGFlow 记录。不改 ISSUE-010。不改 ISSUE-018 状态 |
+| TASK_BOARD / PROJECT_STATUS | 本轮不改。二者仍可能写着向量库待决，留给项目经理 |
+| DOCUMENT_INDEX | 本轮不改。D-238 尚未写 RAGFlow |
 | icg-task-mapping | 无影响。本轮不改 |
 
 同步表见 [ISSUE-017-sync](../governance/ISSUE-017-sync.md)。
 
 ## 风险与后续
 
-ISSUE-010 已记录业务库为 MySQL 8，向量库、对话模型、嵌入和重排仍未决定，该 Issue 保持 blocked。在驱动落地前，健康检查会继续报告 `persistent: false`。
+ISSUE-010 正文仍写向量库、对话模型、嵌入和重排未决定，该 Issue 保持 blocked。本卡只在草案中记录 RAGFlow 决定。健康检查继续报告 `persistent: false`。

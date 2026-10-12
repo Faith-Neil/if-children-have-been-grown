@@ -33,7 +33,7 @@
 | [ISSUE-014](ISSUE-014.md) | version | P1 | in-review | 引入前后构建体积已记录；[记录](../docs/testing/2026-10-12-prolayout-routes.md) | PR #3 待合入 | 未发布 | 批准引入 @ant-design/pro-layout，记录打包体积 | 等待项目经理 QA 签收；不得另加依赖 |
 | [ISSUE-015](ISSUE-015.md) | change | P1 | in-progress | 计划评审通过；smoke_t06 12/12、Word渲染留证；[记录](../docs/testing/2026-10-12-t06-smoke-word-render.md) | PR #3 待合入 | 未发布 | APP-M1-T06端到端验收计划与缺口执行 | 后端处理W1～W4；继续缺口2、4～7 |
 | [ISSUE-016](ISSUE-016.md) | change | P1 | in-review | [契约与后台回归](../docs/testing/2026-10-12-evidence-candidates.md) | 未创建 PR，未合入 | 未发布 | 检索口与三条证据候选，仅内存实现 | 开发者已提交复核；不标 closed。不连接 MySQL，向量库仍随 ISSUE-010 |
-| [ISSUE-017](ISSUE-017.md) | decision | P1 | in-review | [草案核对](../docs/testing/2026-10-12-intranet-deploy-plan.md) | 未创建 PR，未合入 | 未发布 | 内网部署草案；业务库按已登记的 MySQL 8 书写 | 等待项目经理标 done。向量、模型、嵌入、重排仍看 ISSUE-010 |
+| [ISSUE-017](ISSUE-017.md) | decision | P1 | in-review | [草案核对](../docs/testing/2026-10-12-intranet-deploy-plan.md) | 未创建 PR，未合入 | 未发布 | 内网部署草案；MySQL 8，并补 RAGFlow 内网放置与连通 | 等待项目经理标 done。不改 ISSUE-010 正文。重排仍未选定 |
 | [ISSUE-018](ISSUE-018.md) | decision | P1 | in-progress | [方案](../docs/architecture/mysql-8-persistence-plan.md)；[连接交付](../docs/delivery/BE-M0-T10.md) | 未创建 PR，未合入 | 未发布 | MySQL 8 持久化。连接和空迁移已提交复查，回执会话租约和聚合表未做 | 保持 in-progress。T11～T13 仍 planned。不标 closed |
 | [ISSUE-019](ISSUE-019.md) | version | P1 | in-review | E2E 11项按预期（7通过、4已知缺陷）；[记录](../docs/testing/2026-10-12-e2e-t001-signoff.md) | PR #3 待合入 | 未发布 | Playwright浏览器端到端检查（仅测试依赖） | 项目经理确认；DevOps接入CI |
 | [ISSUE-020](ISSUE-020.md) | change | P1 | in-review | 首屏主块 315.94 kB，低于 1334.42 kB；[记录](../docs/testing/2026-10-12-route-chunks.md) | PR #3 待合入 | 未发布 | 路由级懒加载，记录全部分包体积 | 等待项目经理 QA 签收；未改后台 |
