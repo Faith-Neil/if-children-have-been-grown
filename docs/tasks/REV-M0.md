@@ -489,3 +489,43 @@
 - [x] 聚焦 18 passed；全量 352 passed / 12 skipped；CI 38212117391 全绿；HEAD 含 e6215d4。
 - [x] 页面未做，APP-M2-T078 与本卡均不标 done，等项目经理设置
 - [x] 项目经理确认本卡与 APP-M2-T078 为 done，依据是 QA 19c4862，PM 17:20 确认。范围只含内存片段发布层。页面未做，不挡住 done。本轮不实现 APP-M2-T124，只把它改为 ready
+
+<a id="rev-m0-t25"></a>
+
+## REV-M0-T25 · ISSUE-036 橙色标签对比 QA签署
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review（本地验收；等项目经理设置 done） |
+| 估算 | 1小时 |
+| 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
+| 依赖 | ISSUE-036（7f5f74d） |
+| 来源 | 项目经理签署要求 |
+| 完成交付 | [专属交付](../delivery/REV-M0-T25.md) |
+| 代码解释 | 无产品代码 |
+
+范围：签署 ISSUE-036 橙色/金色/warning 标签对比（7f5f74d）。不改他人代码；不把 ISSUE-036 标为 done。
+
+- [x] 验收条目逐条核对并独立复跑。
+- [x] 对比计算过线；前端单测 98；build 通过；Playwright「meet 4.5:1」1 passed；CI 38229790793 全绿。
+- [x] ISSUE-036 与本卡均不标 done，等项目经理设置
+
+<a id="rev-m0-t26"></a>
+
+## REV-M0-T26 · ISSUE-033 规格增量契约复签
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review（本地验收；等项目经理设置 done） |
+| 估算 | 1小时 |
+| 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
+| 依赖 | ISSUE-033（32b184c） |
+| 来源 | 项目经理签署要求 |
+| 完成交付 | [专属交付](../delivery/REV-M0-T26.md) |
+| 代码解释 | 无产品代码 |
+
+范围：复签 ISSUE-033 规格增量（32b184c）。核对 `is_restricted`、派生 `agreement_present`、对照 `bid_deadline_at`、复用三错误码。不改他人代码；不把 ISSUE-033 / BE-M0-T18 标为 done。运行时仍待后端。
+
+- [x] 验收条目逐条核对并独立复跑。
+- [x] 契约测试 10 passed；CI 38228282444 全绿；运行时未接通已写明。
+- [x] ISSUE-033 / BE-M0-T18 / 本卡均不标 done，等项目经理设置

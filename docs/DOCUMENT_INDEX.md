@@ -10,7 +10,7 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
-| D-001 | 2026-10-12 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 / AI-01；ISSUE-009 / APP-M2-T001；ISSUE-017 / OPS-M0-T02；ISSUE-018 / BE-M0-T12；ISSUE-031 / BE-M0-T16 | 381项49done、7in-review、7in-progress、265planned、48blocked、5ready。T001、T002、T12、T14、T078、T114、OPS-M0-T02 与 AI-03 为 done。ISSUE-009、014、016、017、020、022、026、029、031 已 closed。未部署。T11、T13、T15 与 T16 仍 in-review。T17 与 T18 为 planned。T114 与 REV-M0-T22 已依据 QA f521950，PM 17:13 确认 done。T078 与 REV-M0-T24 已依据 QA 19c4862，PM 17:20 确认 done。T124 为 ready，本轮不实现。ISSUE-033 不关闭。ISSUE-036 为 in-review |
+| D-001 | 2026-10-12 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 / AI-01；ISSUE-009 / APP-M2-T001；ISSUE-017 / OPS-M0-T02；ISSUE-018 / BE-M0-T12；ISSUE-031 / BE-M0-T16 | 383项49done、9in-review、7in-progress、265planned、48blocked、5ready。T001、T002、T12、T14、T078、T114、OPS-M0-T02 与 AI-03 为 done。ISSUE-009、014、016、017、020、022、026、029、031 已 closed。未部署。T11、T13、T15 与 T16 仍 in-review。T17 与 T18 为 planned。T114 与 REV-M0-T22 已依据 QA f521950，PM 17:13 确认 done。T078 与 REV-M0-T24 已依据 QA 19c4862，PM 17:20 确认 done。T124 为 ready，本轮不实现。ISSUE-033 不关闭。ISSUE-036 为 in-review |
 | D-002 | 2026-10-12 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025；ISSUE-027 / BE-M0-T15 | 第19行为里程碑快照 as of 3bb311a：366项32done、6in-review、其余255卡planned。第27行改为依据 PRD v1.8 与字典 v1.9 |
 | D-003 | 2026-10-12 | [前端架构](ARCHITECTURE.md) | 前端架构 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-011 / AI-02；ISSUE-016 / AI-03；ISSUE-017 / OPS-M0-T02 | 同源存储和替换接口；业务库为 MySQL 8，嵌入、向量库与重排定为 RAGFlow 自带，适配器未实现 |
 | D-004 | 2026-10-12 | [前端路线图](ROADMAP.md) | 计划 | 参考实施入口 / g1.1 | 执行入口 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15 | 里程碑快照 as of 3bb311a：366项32done、6in-review。任务看板是准绳。T124 为 ready，本轮不实现 |
@@ -26,7 +26,7 @@
 | D-014 | 2026-10-09 | [首轮交付](delivery/2026-10-09-repository-foundation.md) | 交付 | 首轮快照 | 历史证据 | FE-M0-T01 | 保留原交付事实；逐任务归档见D-030 |
 | D-015 | 2026-10-12 | [协作流程](governance/WORKFLOW.md) | 治理 | g1.1 | 当前规则 | ISSUE-007 / APP-M1；ISSUE-026 | 第4节：三份基线计数是里程碑快照。治理块仍为 g1.1，不升版 |
 | D-016 | 2026-10-09 | [本次同步表](governance/ISSUE-003-sync.md) | 治理 | g1.0 | 本次记录 | ISSUE-003 / FE-M0-T02 | 四份基线及看板、进度、索引的影响评估 |
-| D-017 | 2026-10-12 | [任务看板](TASK_BOARD.md) | 执行 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-022 / T124；ISSUE-017 / OPS-M0-T02；ISSUE-018 / BE-M0-T12；ISSUE-031 / BE-M0-T16；ISSUE-036 | 381项49done、7in-review、7in-progress、265planned、48blocked、5ready。T11、T13、T16为in-review，T12已依据 QA ae6fd10，PM 15:32 确认 done，T17与T18为planned，T078与REV-M0-T24已依据 QA 19c4862，PM 17:20 确认 done，T114与REV-M0-T22已依据 QA f521950，PM 17:13 确认 done，T001、T002、T14、OPS-M0-T02 与 AI-03 为 done，T124为ready，本轮不实现 |
+| D-017 | 2026-10-12 | [任务看板](TASK_BOARD.md) | 执行 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-022 / T124；ISSUE-017 / OPS-M0-T02；ISSUE-018 / BE-M0-T12；ISSUE-031 / BE-M0-T16；ISSUE-036 | 383项49done、9in-review、7in-progress、265planned、48blocked、5ready。T11、T13、T16为in-review，T12已依据 QA ae6fd10，PM 15:32 确认 done，T17与T18为planned，T078与REV-M0-T24已依据 QA 19c4862，PM 17:20 确认 done，T114与REV-M0-T22已依据 QA f521950，PM 17:13 确认 done，T001、T002、T14、OPS-M0-T02 与 AI-03 为 done，T124为ready，本轮不实现 |
 | D-018 | 2026-10-12 | [FE-M0 任务卡](tasks/FE-M0.md) | 基线与基础 | g1.1 | 当前计划 | ISSUE-006 / BE-M0-T01；ISSUE-010 | 前置基线、治理、契约与基础；T04仍待ISSUE-010 |
 | D-019 | 2026-10-09 | [FE-M1 任务卡](tasks/FE-M1.md) | 项目主流程 | g1.0 | 当前计划 | FE-M1 | 项目、招标解析、矩阵、事实 |
 | D-020 | 2026-10-09 | [FE-M2 任务卡](tasks/FE-M2.md) | 章节生成 | g1.0 | 当前计划 | FE-M2 | 方案确认、任务进度、修正与转人工 |
@@ -390,6 +390,10 @@
 | D-377 | 2026-10-12 | [橙色标签对比核对](testing/2026-10-12-issue-036-orange-contrast.md) | 验证 | orange-tag-contrast-1 | 已执行 | ISSUE-036 | 改后 5.31:1 与 5.45:1。概览页可见橙色标签纳入 4.5:1 检查 |
 | D-378 | 2026-10-12 | [ISSUE-036同步](governance/ISSUE-036-sync.md) | 治理 | orange-tag-contrast-1 | 已核对 | ISSUE-036 | 不新增任务卡。不改三份基线快照 |
 | D-379 | 2026-10-12 | [T124依赖核对（含解除）](testing/2026-10-12-t124-dependencies.md) | 验证 | t124-ready-1 | 依赖解除 | ISSUE-022 / APP-M2-T124 | T124 为 ready，本轮不实现。T078 已 done（QA 19c4862，PM 17:20 确认）。运行时未接通 |
+| D-380 | 2026-10-12 | [ISSUE-036橙色标签对比签署](testing/2026-10-12-issue-036-qa-signoff.md) | 验证 | qa-rerun-21 | 本地通过 | ISSUE-013 / REV-M0-T25 | 通过；ISSUE-036 不标 done |
+| D-381 | 2026-10-12 | [REV-M0-T25签署交付](delivery/REV-M0-T25.md) | 交付 | qa-rerun-21 | 已本地验收 | ISSUE-013 / REV-M0-T25 | 无代码；结论与观察项 |
+| D-382 | 2026-10-12 | [ISSUE-033规格复签](testing/2026-10-12-issue-033-spec-resign.md) | 验证 | qa-rerun-22 | 本地通过 | ISSUE-013 / REV-M0-T26 | 规格通过；运行时待后端 |
+| D-383 | 2026-10-12 | [REV-M0-T26签署交付](delivery/REV-M0-T26.md) | 交付 | qa-rerun-22 | 已本地验收 | ISSUE-013 / REV-M0-T26 | 无代码；结论与观察项 |
 
 ## 更新记录
 
@@ -499,6 +503,8 @@
 | 2026-10-12 | ISSUE-033 / BE-M0-T18 | 按字典 v1.9 把挂证据字段写入冻结契约：`source_tier`、`is_restricted`、派生的 `agreement_present`，以及对照 `bid_deadline_at` 的 `valid_to` / `is_long_term`。挂接拒绝复用 409 `EVIDENCE_EXPIRED`、409 `EVIDENCE_NOT_USABLE`、403 `FORBIDDEN`。不新增错误码，错误码仍是 143。ISSUE-033 改为 in-progress。BE-M0-T18 仍 planned。不改后台应用代码，不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。不标 closed |
 | 2026-10-12 | ISSUE-013 / REV-M0-T23 | QA签署：BE-M0-T13项目聚合行为验收，通过（演示表待 ISSUE-035；被验卡/Issue 状态不变） |
 | 2026-10-12 | ISSUE-013 / REV-M0-T24 | QA签署：APP-M2-T078内存片段发布，通过（页面未做；被验卡/本卡不标 done） |
+| 2026-10-12 | ISSUE-013 / REV-M0-T25 | QA签署：ISSUE-036橙色标签对比，通过（被验 Issue 不标 done，待项目经理设置） |
+| 2026-10-12 | ISSUE-013 / REV-M0-T26 | QA签署：ISSUE-033规格增量契约复签，通过（运行时待后端；ISSUE-033 不标 closed） |
 | 2026-10-12 | ISSUE-007 / APP-M2-T114；ISSUE-013 / REV-M0-T22；ISSUE-036 | 项目经理确认 APP-M2-T114 与 REV-M0-T22 为 done，依据是 QA f521950，PM 17:13 确认。并入 REV-M0-T23、T24 后看板为 381 项。本提交改为 381 项：47 done、9 in-review、7 in-progress、265 planned、49 blocked、4 ready。T124 仍 blocked，因为 T078 仍 in-review 未 done。缺协议、受限、智能匹配和规则 2 端到端仍挂 ISSUE-033，不关闭。另登记 ISSUE-036，把橙色、金色和 warning 标签文字改为 #9a5608，状态 in-review，不新增任务卡。不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照，不改 docs/reference，不改后台 |
 | 2026-10-12 | ISSUE-022 / APP-M2-T124 | PM 17:20：T078 与 T114 均 done 后，T124 解除 blocked 改为 ready。看板 381 项：47 done、9 in-review、7 in-progress、265 planned、48 blocked、5 ready。本提交不改 T078/REV-M0-T24 状态行（由前端提交；T114/REV-M0-T22 已 done）。不改运行时，不改模型输入，不改 PRD、ROADMAP、PROJECT_BRIEF 里程碑快照 |
 | 2026-10-12 | ISSUE-022 / APP-M2-T078；ISSUE-013 / REV-M0-T24 | 项目经理确认 APP-M2-T078 与 REV-M0-T24 为 done，依据是 QA 19c4862，PM 17:20 确认。范围只含内存片段发布层。页面未做，不挡住 done。T124 改为 ready，本轮不实现。看板改为 381 项：49 done、7 in-review、7 in-progress、265 planned、48 blocked、5 ready。ISSUE-022 保持 closed。ISSUE-033 不关闭。不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照，不改 docs/reference，不改产品代码 |
