@@ -34,3 +34,7 @@ BE-M0-T11 提交回执表和会话表，状态 in-review。ISSUE-018 仍为 in-p
 ## impl-1（2026-10-12）
 
 项目经理批准方案和四项依赖后，本 Issue 改为 in-progress。BE-M0-T10 实施连接和空基线。T11～T13 登记为 planned，未写代码。依赖引入另见 [ISSUE-023 同步](ISSUE-023-sync.md)。PRD、ROADMAP、ARCHITECTURE 仍未改。进度改为 360 项：23 done、7 in-review、7 in-progress、269 planned、50 blocked、4 ready。
+
+## QA 签署（REV-M0-T28）
+
+2026-10-12 QA 对 BE-M0-T11（631d4c9）正式签署通过，见 [签署记录](../testing/2026-10-12-be-m0-t11-qa-signoff.md)。ISSUE-018 仍 in-progress；T11 仍 in-review，不标 done。T27 预留给 Codex PR #4 / ISSUE-034。

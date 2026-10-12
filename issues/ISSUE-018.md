@@ -41,7 +41,7 @@
 |---|---|---|---|---|
 | BE-M0-T08 | 写出 ORM、驱动、迁移、字符集、回执表、租约表、事务、跨进程回执与会话，以及内网测试边界 | `docs/architecture/mysql-8-persistence-plan.md` | AC-01～AC-05 | done |
 | BE-M0-T10 | 连接配置与空基线迁移 | `backend/bid-core/icg_demo/database.py` | 见 ISSUE-023 | done |
-| BE-M0-T11 | 幂等回执和登录会话入库，多进程共享且重启后仍在 | `backend/bid-core/icg_demo/database.py` | AC-04、AC-05 | in-review |
+| BE-M0-T11 | 幂等回执和登录会话入库，多进程共享且重启后仍在 | `backend/bid-core/icg_demo/database.py` | AC-04、AC-05 | in-review（QA REV-M0-T28 签署通过，不标 done） |
 | BE-M0-T12 | 编辑租约入库，含续期和接管 | `backend/bid-core/icg_demo/database.py` | 方案第 5 节 | in-review |
 | BE-M0-T13 | 先迁项目聚合。章节及其他聚合仍在内存 | `backend/bid-core/icg_demo/database.py` | 方案第 6 节 | in-review |
 
@@ -52,8 +52,8 @@
 | AC-01 | 方案覆盖选型理由、逐项依赖、聚合拆分、utf8mb4、回执表、租约表、事务和 `mysql:8.4` 测试命令 | 已写入方案。功能未实施，不能标通过 |
 | AC-02 | 依赖按批准加入，密码不进仓库 | 四项已由 ISSUE-023 / BE-M0-T10 写入。方案轮次本身未改依赖。本条不把后续业务表标为通过 |
 | AC-03 | 数据不出内网：方案禁止公网 CI 和托管库 | 已写入方案第 10 节。未实际连接数据库 |
-| AC-04 | 幂等回执对多个进程或 worker 可见，并且进程重启后未过期回执仍在 | 已提交复查，见 BE-M0-T11 验证。本 Issue 不因此关闭 |
-| AC-05 | 登录会话同样跨进程共享，并且重启后仍有效 | 已提交复查，见 BE-M0-T11 验证。本 Issue 不因此关闭 |
+| AC-04 | 幂等回执对多个进程或 worker 可见，并且进程重启后未过期回执仍在 | QA REV-M0-T28 签署通过（631d4c9）。本 Issue 不因此关闭 |
+| AC-05 | 登录会话同样跨进程共享，并且重启后仍有效 | QA REV-M0-T28 签署通过（631d4c9）。本 Issue 不因此关闭 |
 
 未做浏览器、服务或发布验收。方案 in-review 不是实施完成。
 

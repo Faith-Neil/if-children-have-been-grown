@@ -529,3 +529,24 @@
 - [x] 验收条目逐条核对并独立复跑。
 - [x] 契约测试 10 passed；CI 38228282444 全绿；运行时未接通已写明。
 - [x] ISSUE-033 / BE-M0-T18 / 本卡均不标 done，等项目经理设置
+
+
+<a id="rev-m0-t28"></a>
+
+## REV-M0-T28 · BE-M0-T11 回执与会话入库 QA签署
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review（本地验收；等项目经理设置 done） |
+| 估算 | 1小时 |
+| 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
+| 依赖 | BE-M0-T11（631d4c9） |
+| 来源 | 项目经理签署要求；T27 预留给 Codex PR #4 / ISSUE-034 |
+| 完成交付 | [专属交付](../delivery/REV-M0-T28.md) |
+| 代码解释 | 无产品代码 |
+
+范围：正式签署 BE-M0-T11 幂等回执与登录会话入库。真实 MySQL 上复跑 downgrade/upgrade、Q2 快速失败、双 worker 与重启存活。不改他人代码；不把 BE-M0-T11 / ISSUE-018 标为 done。
+
+- [x] 验收条目逐条核对并独立复跑。
+- [x] 无库 355 passed / 13 skipped；`-m mysql` 12 passed；Q2 ~1s failed；双 worker + 重启通过；CI 38212536927 全绿。
+- [x] BE-M0-T11 / ISSUE-018 / 本卡均不标 done，等项目经理设置

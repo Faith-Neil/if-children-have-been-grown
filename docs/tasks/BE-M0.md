@@ -220,7 +220,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | in-review（QA REV-M0-T28 签署通过；等项目经理设置 done） |
 | 估算 | 4小时以内 |
 | 关联 Issue | [ISSUE-018](../../issues/ISSUE-018.md) |
 | 依赖 | [BE-M0-T10](BE-M0.md#be-m0-t10) |
