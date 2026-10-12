@@ -1,0 +1,25 @@
+为什么有这个文件：记录这次只把任务计数写进三份基线，没有改请求层或后台。
+
+它解决什么问题：避免把计数对齐写成布局、幂等或数据库已经完成。
+
+# ISSUE-026 同步
+
+日期 2026-10-12。revision count-sync-1。状态 in-review。治理块仍为 g1.1 / 2026-10-11 / ISSUE-007，与 [WORKFLOW](WORKFLOW.md) 一致。
+
+活的计数来自 [任务看板](../TASK_BOARD.md)：361 项，26 done、6 in-review、7 in-progress、268 planned、50 blocked、4 ready。APP-M2 其余 255 张 planned。不新增任务卡。BE-M0-T08 与 BE-M0-T10 保持项目经理已确认的 done。
+
+| 对象 | 实际处理 |
+|---|---|
+| PRD | 第19行改为 361 项与 APP-M2 其余 255 张 planned。治理块不升版 |
+| ROADMAP | 第17行改为同一组 361 项，并写上 T002 为 in-review。第19行仍写「整卡继续in-progress。接下来补实际ProLayout、浏览器路由/返回和全页未保存保护」 |
+| ARCHITECTURE | 未改。第21行仍写「布局、浏览器路由和全页离开保护继续本卡」 |
+| PROJECT_BRIEF | 排期行改为 brief-9 的 361 项，in-review 名单加上 T002，其余 255 项 planned。第68行仍写「整卡仍进行中：接下来补实际布局组件、浏览器地址/返回与全页离开保护」 |
+| Issue 看板/详情 | 新增 ISSUE-026，状态 in-review。ISSUE-009 的请求层小节改为指向这次计数。ISSUE-005、T001、T002 状态不改 |
+| TASK_BOARD | 开篇补 ISSUE-026。361 项数字不改 |
+| PROJECT_STATUS | 补一句指向 ISSUE-026。361 项数字不改 |
+| DOCUMENT_INDEX | D-283～D-287，并更新 PRD、路线图、brief、看板和项目状态的说明 |
+| WORKFLOW | 无规则变化 |
+| 参考原文 | 不改 `docs/reference/` |
+| 后台与请求层 | 不改 `backend/`、`tests/backend/`、`frontend/web/src/api.ts`。重试仍是网络错误、502 和 503，最多 3 次含首次 |
+
+PR #3 仍待合入。本轮不新建 PR，不合并，不发布。
