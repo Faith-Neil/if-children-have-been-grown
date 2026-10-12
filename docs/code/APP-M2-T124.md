@@ -7,9 +7,11 @@
 
 `spec/openapi/demo-v1.json` 在已导出的接口之外追加草案路径和草案模型。每条草案路径有 `x-contract-status: draft, pending backend review` 和 `x-implemented: false`。`startGeneration` 另有 `x-aligned-with: BE-M0-T06`，表示对齐尚未实现的可恢复任务契约。
 
-`JobStatus` 用 `allOf` 引用已经存在的 `Job`，再追加 `events`。已实现的 `Job.recoverable` 仍是 `const false`。`JobEvent.type` 固定为 `job.model_call`，字段是 `provider`、`model`、`is_real_model`、`is_local`、`duration_ms`、`error_code`。成功时 `error_code` 为 null。
+`JobStatus` 是独立模型，不用 `allOf` 继承 `Job`。它的 `status` 是 `queued`、`running`、`completed`、`failed`、`cancelled`。已实现的 `Job.recoverable` 仍是 `const false`，本草案不改它。`JobEvent` 增加 `seq`、`id`（`<job_id>:<seq>`）和 `occurred_at`，`type` 改为枚举，当前只有 `job.model_call`。`getJob` 的路径参数是 `job_id`。`streamJobEvents` 与 `cancelJob` 也是草案。
 
-`tests/backend/test_outline_contract_draft.py` 只读这份说明。`tests/backend/test_error_idempotency.py` 与 `tests/backend/qa_error_idempotency_live_http.py` 的 `implemented_contract` 在对比运行中的接口前去掉草案路径、草案模型和根上的 `x-contract-drafts`。因此现有导出仍然必须与应用一致。
+三个仍在运行的 POST（`/plan`、`/generate`、`/chapters/{chapter_id}/plan/confirm`）在说明文件里标了 `deprecated: true`。运行中的应用还没有这个标记。`implemented_contract` 在对比前去掉草案路径，并去掉这三处的 `deprecated` 和废弃说明，所以其余已实现接口仍必须与应用一致。
+
+`tests/backend/test_outline_contract_draft.py` 只读这份说明。`tests/backend/test_error_idempotency.py` 与 `tests/backend/qa_error_idempotency_live_http.py` 使用同一套过滤。
 
 ## 没改什么
 

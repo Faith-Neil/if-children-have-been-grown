@@ -12,6 +12,6 @@
 | PROJECT_STATUS.md | 有。进度不能把草案写成已接通 | 写明 ISSUE-022 为 in-review，T124 仍 blocked，计数不变 | 2026-10-12 |
 | DOCUMENT_INDEX.md | 有。计划文档要能找到 | 更新 ISSUE-022 条目，登记 T078 计划 | 2026-10-12 |
 | PROJECT_BRIEF.md | 计数无变化。接手说明要提到草案 | 排期计数不变，补一句草案待复核 | 2026-10-12；已登记 |
-| 产品代码 | 无运行时变化 | 不改 `generation_context.py`、检索、页面或 `Repository.read` / `transaction`。只在 OpenAPI 中追加带草案标记的路径 | 契约状态 draft, pending backend review |
+| 产品代码 | 无运行时变化 | 不改 `generation_context.py`、检索、页面或 `Repository.read` / `transaction`。草案按 `x-contract-status` 滤出。三个旧 POST 的 `deprecated: true` 只写在说明文件里，运行时尚未标出 | outline-contract-draft-2；契约状态 draft, pending backend review |
 
 开发者把 Issue 标到 in-review 只表示草案可以复核。这不是任务 done，不是 Issue closed，也不是模型输入已经包含评分行。

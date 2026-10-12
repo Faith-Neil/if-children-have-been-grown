@@ -12,7 +12,7 @@
 | 状态 | in-review |
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
-| revision | outline-contract-draft-1 |
+| revision | outline-contract-draft-2 |
 | 关联 Task | [APP-M2-T124](../docs/tasks/APP-M2.md#app-m2-t124) |
 | 关联 PR | 未创建 |
 | 本地验收 | 契约形状已核对。运行时未实现，模型输入未改。见 [记录](../docs/testing/2026-10-12-t124-dependencies.md) |
@@ -45,18 +45,20 @@
 
 ## 契约草案
 
-三个 operationId 已写入 `spec/openapi/demo-v1.json`，契约状态为 **draft, pending backend review**。本 Issue 因此改为 in-review，只复核这份草案。APP-M2-T124 仍是 blocked：T078 和 T114 仍 planned，运行时没有这些路由，模型输入仍是整章。
+operationId 已写入 `spec/openapi/demo-v1.json`，契约状态为 **draft, pending backend review**。本 Issue 为 in-review。后台已复核 `16e0b9e` 并接受，本轮按复核意见改了草案，仍无运行时。APP-M2-T124 仍是 blocked：T078 和 T114 仍 planned，模型输入仍是整章。
 
 | 操作 | 路径 | 约定 |
 |---|---|---|
-| `getOutlinePlan` | `GET /api/v1/projects/{project_id}/outline/plan` | 评分行、片段写作计划、逐得分要点小标题。`source_scope` 固定 `whole_chapter` |
-| `confirmOutlinePlan` | `POST /api/v1/projects/{project_id}/outline/plan/confirm` | 按章确认，复用 T15。写操作要求 `Idempotency-Key`：缺失或格式不符为 428 `IDEMPOTENCY_KEY_REQUIRED`，同键不同指纹为 409 `IDEMPOTENCY_CONFLICT`。星号或废标行标为不适用时为 422 `VALIDATION_ERROR` |
-| `startGeneration` | `POST /api/v1/projects/{project_id}/generation/start` | 长任务。返回 202，`Location` 指向 `GET /api/v1/jobs/{id}`。查询操作是 `getJob`，响应复用已有 `Job`，并追加 `events` |
-| `getJob` | `GET /api/v1/jobs/{id}` | 任务状态。`events` 含 `job.model_call`：`provider`、`model`、`is_real_model`、`is_local`、`duration_ms`、`error_code` |
+| `getOutlinePlan` | `GET /api/v1/projects/{project_id}/outline/plan` | 评分行、片段写作计划、逐得分要点小标题。成功响应带 ETag，值是整份计划的 revision。没有 fingerprint 字段 |
+| `confirmOutlinePlan` | `POST /api/v1/projects/{project_id}/outline/plan/confirm` | If-Match 核对整份计划的 revision，不符为 409 `VERSION_CONFLICT`。章或来源变化按该章 `expected_revision` 返回 409 `PLAN_STALE` |
+| `startGeneration` | `POST /api/v1/projects/{project_id}/generation/start` | 长任务。If-Match 核对已确认计划的 revision。返回 202，`Location` 指向 `GET /api/v1/jobs/{job_id}`。同一幂等键重放同一个 job id、同一个 Location 和 202 |
+| `getJob` | `GET /api/v1/jobs/{job_id}` | 独立的 `JobStatus`，不继承已实现的 `Job`。不属于本公司或本项目返回 404 `NOT_FOUND` |
+| `streamJobEvents` | `GET /api/v1/jobs/{job_id}/events` | 未来的 SSE 草案，支持 `Last-Event-ID`。事件 id 为 `<job_id>:<seq>` |
+| `cancelJob` | `POST /api/v1/jobs/{job_id}/cancel` | 带 `Idempotency-Key`。状态可变为 `cancelled` |
 
-`startGeneration` 对齐尚未实现的可恢复任务契约 [BE-M0-T06](../docs/tasks/BE-M0.md#be-m0-t06)。已实现的 `Job.recoverable` 仍是 `false`，`status` 仍只有 `completed` 与 `failed`。本草案不改这两个约束，也不新增 SSE 路径。断线后的查询目标是 `getJob`。未点名的未确认分册不阻断已确认的章。没有新增错误码，失败体仍是 `{code, message, details, traceId}`。
+`JobStatus.status` 为 `queued`、`running`、`completed`、`failed`、`cancelled`。`JobEvent` 另有 `seq`、`id`、`occurred_at`，`type` 是枚举，当前值为 `job.model_call`。已实现 `Job.recoverable` 仍是 `false`。没有新增错误码。GET 不列 413、423、428；`getJob` 不列 409；502 只列在 `startGeneration`。
 
-草案路径带 `x-contract-status: draft, pending backend review` 和 `x-implemented: false`。运行中的接口导出不含这些路径。契约测试只读这份说明，不调用新路由。
+旧的 `POST /api/v1/projects/{project_id}/plan`、`POST /api/v1/projects/{project_id}/generate`、`POST /api/v1/projects/{project_id}/chapters/{chapter_id}/plan/confirm` 在说明里标了 `deprecated: true`，与新入口并存。运行时还没标出这个标记。前端切换之后由后续 Issue 删除。草案路径仍带 `x-contract-status: draft, pending backend review`，对比运行中的接口时按这个标记滤掉。
 
 ## T078 计划
 
@@ -65,7 +67,7 @@
 ## 影响与分流
 
 - 影响范围：ISSUE-022 为 in-review，复核对象是契约草案。T124 保持 blocked，不进入 ready 或 in-progress。不改模型输入、检索服务、页面或仓库读写。
-- 不涉及：REF-07 的确认权限、ISSUE-010 的选型。ISSUE-018 已有 MySQL 8 方案且为 in-review；T078 计划不改 `Repository.read` 与 `Repository.transaction`，以免挡在第 7 节的按聚合拆分前面。
+- 不涉及：REF-07 的确认权限、ISSUE-010 的选型。ISSUE-018 的 MySQL 8 方案已批准，Issue 为 in-progress；T078 计划不改 `Repository.read` 与 `Repository.transaction`，以免挡在第 7 节的按聚合拆分前面。
 - 解除条件：后台接受草案并在运行时导出这三个 operationId，T078 提供可引用的已发布片段版本，T114 提供评分行上的当前证据版本。满足后再把 T124 从 blocked 改回可开工状态。开发者不把本 Issue 标 closed，也不把 T124 标 done。
 
 ## 实施任务与互链
@@ -101,6 +103,7 @@
 |---|---|---|---|
 | 2026-10-12 | t124-blocked-1 / blocked | 只登记阻塞。T15 已具备；T078、T114 和三个具名 operationId 当时不具备。未改产品代码 | [依赖核对](../docs/testing/2026-10-12-t124-dependencies.md) |
 | 2026-10-12 | outline-contract-draft-1 / in-review | 写入三个 operationId 与 `getJob` 的草案。`startGeneration` 为 202，对齐尚未实现的 BE-M0-T06。T078 只留下独立存储计划。未改运行时 | [契约核对](../docs/testing/2026-10-12-t124-dependencies.md) |
+| 2026-10-12 | outline-contract-draft-2 / in-review | 按后台对 `16e0b9e` 的复核改草案：独立 `JobStatus`、SSE 与 `cancelJob`、按操作列出错误、ETag 与整份计划版本。T078 计划改为独立前缀。仍无运行时 | [契约核对](../docs/testing/2026-10-12-t124-dependencies.md) |
 
 ## 本地验收与后续合入发布
 

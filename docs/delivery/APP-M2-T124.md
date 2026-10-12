@@ -10,7 +10,7 @@
 | 任务ID | APP-M2-T124 |
 | 代码解释 | 只改 OpenAPI 草案和契约测试。运行时说明见 [代码说明](../code/APP-M2-T124.md) |
 | 验收 | 契约形状已核对，见 [记录](../testing/2026-10-12-t124-dependencies.md)。模型输入验收未执行。T078 与 T114 仍 planned |
-| 项目进度 | T124 仍为 blocked。ISSUE-022 为 in-review。356 项中 23 done、6 in-review、7 in-progress、266 planned、50 blocked、4 ready |
+| 项目进度 | T124 仍为 blocked。ISSUE-022 为 in-review。361 项中 24 done、8 in-review、7 in-progress、268 planned、50 blocked、4 ready |
 <!-- task-delivery:end -->
 
 ## 关联与状态
@@ -24,14 +24,16 @@
 
 在 `spec/openapi/demo-v1.json` 增加草案，契约状态为 draft, pending backend review：
 
-- `getOutlinePlan`：`GET /api/v1/projects/{project_id}/outline/plan`
-- `confirmOutlinePlan`：`POST /api/v1/projects/{project_id}/outline/plan/confirm`，带 `Idempotency-Key`
-- `startGeneration`：`POST /api/v1/projects/{project_id}/generation/start`，返回 202，`Location` 指向 `GET /api/v1/jobs/{id}`
-- `getJob`：查询上述任务。响应复用已有 `Job`，并追加 `job.model_call` 事件
+- `getOutlinePlan`：`GET /api/v1/projects/{project_id}/outline/plan`，成功响应带 ETag
+- `confirmOutlinePlan`：`POST /api/v1/projects/{project_id}/outline/plan/confirm`。If-Match 核对整份计划 revision
+- `startGeneration`：`POST /api/v1/projects/{project_id}/generation/start`，返回 202，`Location` 指向 `GET /api/v1/jobs/{job_id}`
+- `getJob`：`GET /api/v1/jobs/{job_id}`。响应是独立的 `JobStatus`，不继承已实现的 `Job`
+- `streamJobEvents`：`GET /api/v1/jobs/{job_id}/events`，未来的 SSE 草案，支持 `Last-Event-ID`
+- `cancelJob`：`POST /api/v1/jobs/{job_id}/cancel`，带 `Idempotency-Key`
 
-草案对齐尚未实现的可恢复任务 [BE-M0-T06](../tasks/BE-M0.md#be-m0-t06)。没有新增错误码。没有改 `generation_context.py`、检索、页面或仓库读写。
+`JobStatus.status` 为 queued、running、completed、failed、cancelled。旧的按章方案确认、整项目方案和生成三个 POST 在说明里标了 `deprecated: true`，运行时尚未标出。草案对齐尚未实现的可恢复任务 [BE-M0-T06](../tasks/BE-M0.md#be-m0-t06)。没有新增错误码。没有改 `generation_context.py`、检索、页面或仓库读写。
 
-T078 的实现计划写在 [内存方案](../governance/ISSUE-022-t078-plan.md)，本轮不写那段代码。新状态将放在独立存储，不改 `Repository.read` 与 `Repository.transaction`。
+T078 的实现计划写在 [内存方案](../governance/ISSUE-022-t078-plan.md)。路径改为 `/api/v1/snippet-publications`，避免被 `/library/{item_id}` 吞掉。本轮不写那段代码。
 
 适用差异仍是 REF-08。确认仍复用 T15，不把 REF-07 当作剩余缺口。
 
@@ -41,11 +43,11 @@ T078 的实现计划写在 [内存方案](../governance/ISSUE-022-t078-plan.md)�
 
 ## 验收结果
 
-契约测试核对 operationId、错误体引用、幂等头、202 与 `Job` 复用。rebase 前 `python3 -m pytest tests/backend -q` 为 313 项通过。冲突解开后治理检查为 183 份 Markdown、356 项任务、22 项 Issue。实现验收未执行，因为 T078 和 T114 仍不存在，草案也还没有运行时。
+契约测试核对独立 `JobStatus`、按操作列出的错误码、ETag、202 与 `deprecated: true`。实现验收未执行，因为 T078 和 T114 仍不存在，草案也还没有运行时。
 
 ## 项目进度
 
-T124 为 blocked。ISSUE-022 为 in-review，复核对象是契约草案。rebase 后看板为 356 项：23 done、6 in-review、7 in-progress、266 planned、50 blocked、4 ready。本草案不增减任务。开发者不把本卡标 done。
+T124 为 blocked。ISSUE-022 为 in-review，复核对象是契约草案。并入 `98c5129` 后看板为 361 项：24 done、8 in-review、7 in-progress、268 planned、50 blocked、4 ready。本草案不增减任务。开发者不把本卡标 done。
 
 ## 文档与 Issue 同步
 

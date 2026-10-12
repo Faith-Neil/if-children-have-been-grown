@@ -29,11 +29,11 @@ T15 满足。T078 与 T114 仍不满足。三个 operationId 已写入草案，�
 
 命令：`python3 -m pytest tests/backend/test_outline_contract_draft.py tests/backend/test_error_idempotency.py::test_openapi_declares_v1_error_body_status_table_and_retry -q`
 
-核对 operationId 为 camelCase，错误响应引用 `V1Error` 且必填 `code`、`message`、`details`、`traceId`，写操作带 `Idempotency-Key` 并写明 428 与 409，`startGeneration` 只有 202 且 `Location` 指向 `/api/v1/jobs/{id}`，`JobStatus` 复用 `Job`，`job.model_call` 含 `provider`、`model`、`is_real_model`、`is_local`、`duration_ms`、`error_code`。去掉草案后的说明与 `create_app().openapi()` 一致。没有新增错误码。
+复核后的核对：operationId 为 camelCase；`JobStatus` 不继承 `Job`，status 含 queued、running、completed、failed、cancelled；`JobEvent` 含 seq、id、occurred_at，type 为枚举；GET 不列 413、423、428，`getJob` 不列 409，502 只在 `startGeneration`；`getOutlinePlan` 有 ETag；三个旧 POST 在文件里为 `deprecated: true`。去掉草案标记和这三处废弃说明后，与 `create_app().openapi()` 一致。没有新增错误码。
 
 这些测试不向新路径发请求。应用里没有对应路由。
 
-rebase 前 `python3 -m pytest tests/backend -q` 为 313 项通过。该结果只说明当时的后台和契约形状，不说明新路由已经可调用。冲突解开后 `node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：183 份 Markdown、356 项任务、22 项 Issue。」检查程序未修改。
+并入远程之前 `python3 -m pytest tests/backend -q` 为 313 项通过。该结果只说明当时的后台和契约形状，不说明新路由已经可调用。当时 `node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：183 份 Markdown、356 项任务、22 项 Issue。」检查程序未修改。并入 `98c5129` 之后的 pytest 与治理数字在冲突解开后补记。
 
 ## 局限
 

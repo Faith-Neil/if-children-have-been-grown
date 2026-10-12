@@ -265,18 +265,18 @@
 | D-253 | 2026-10-12 | [编辑台1280截图](testing/assets/e2e-editor-1280.png) | 证据 | e2e-1 | E2E截图 | ISSUE-019 / REV-M0-T06 | 编辑台三栏与暗色控件 |
 | D-254 | 2026-10-12 | [概览1440截图](testing/assets/e2e-overview-1440.png) | 证据 | e2e-1 | E2E截图 | ISSUE-019 / REV-M0-T06 | 项目概览布局 |
 | D-242 | 2026-10-12 | [017同步记录](governance/ISSUE-017-sync.md) | 治理 | intranet-plan-1 | 已核对 | ISSUE-017 / OPS-M0-T02 | 三件套与 brief 不改正文；过时的 T008 用词留给项目经理下一次基线同步 |
-| D-255 | 2026-10-12 | [T124契约事项](../issues/ISSUE-022.md) | 变更 | outline-contract-draft-1 | in-review | ISSUE-022 / APP-M2-T124 | 草案待后台复核；T124 仍 blocked |
-| D-256 | 2026-10-12 | [T124草案交付](delivery/APP-M2-T124.md) | 交付 | outline-contract-draft-1 | in-review | ISSUE-022 / APP-M2-T124 | 无运行时；不标 done |
-| D-257 | 2026-10-12 | [T124契约说明](code/APP-M2-T124.md) | 说明 | outline-contract-draft-1 | 当前 | ISSUE-022 / APP-M2-T124 | 复用 Job；整章输入保持 |
-| D-258 | 2026-10-12 | [T124契约核对](testing/2026-10-12-t124-dependencies.md) | 验证 | outline-contract-draft-1 | 契约测试 | ISSUE-022 / APP-M2-T124 | 202 与幂等头；不调用新路由 |
-| D-259 | 2026-10-12 | [022同步记录](governance/ISSUE-022-sync.md) | 治理 | outline-contract-draft-1 | 已核对 | ISSUE-022 / APP-M2-T124 | 任务计数仍为 356；PRD 与 ARCHITECTURE 未改 |
+| D-255 | 2026-10-12 | [T124契约事项](../issues/ISSUE-022.md) | 变更 | outline-contract-draft-2 | in-review | ISSUE-022 / APP-M2-T124 | 复核意见已写入草案；T124 仍 blocked |
+| D-256 | 2026-10-12 | [T124草案交付](delivery/APP-M2-T124.md) | 交付 | outline-contract-draft-2 | in-review | ISSUE-022 / APP-M2-T124 | 无运行时；不标 done |
+| D-257 | 2026-10-12 | [T124契约说明](code/APP-M2-T124.md) | 说明 | outline-contract-draft-2 | 当前 | ISSUE-022 / APP-M2-T124 | 独立 JobStatus；整章输入保持 |
+| D-258 | 2026-10-12 | [T124契约核对](testing/2026-10-12-t124-dependencies.md) | 验证 | outline-contract-draft-2 | 契约测试 | ISSUE-022 / APP-M2-T124 | ETag、SSE 与 cancel；不调用新路由 |
+| D-259 | 2026-10-12 | [022同步记录](governance/ISSUE-022-sync.md) | 治理 | outline-contract-draft-2 | 已核对 | ISSUE-022 / APP-M2-T124 | 本草案不改任务计数；PRD 与 ARCHITECTURE 未改 |
 | D-260 | 2026-10-12 | [MySQL 8 持久化方案](architecture/mysql-8-persistence-plan.md) | 架构 | impl-1 | in-review | ISSUE-018 / BE-M0-T08；ISSUE-023 / BE-M0-T10 | 选型仍有效。四项依赖已批准并写入；业务表未建 |
 | D-261 | 2026-10-12 | [ISSUE-018](../issues/ISSUE-018.md) | 变更 | impl-1 | in-progress | ISSUE-018 / BE-M0-T08；BE-M0-T10 | 连接已实施；T11～T13 planned；不关闭 |
 | D-262 | 2026-10-12 | [方案交付](delivery/BE-M0-T08.md) | 交付 | plan-1 | in-review | ISSUE-018 / BE-M0-T08 | 无运行时代码 |
 | D-263 | 2026-10-12 | [方案无代码说明](code/BE-M0-T08.md) | 说明 | plan-1 | 当前 | ISSUE-018 / BE-M0-T08 | 未改仓库和依赖 |
 | D-264 | 2026-10-12 | [018同步表](governance/ISSUE-018-sync.md) | 治理 | impl-1 | 已核对 | ISSUE-018 / BE-M0-T10 | 方案轮次未改基线；实施轮次仍不改 PRD、ROADMAP、ARCHITECTURE |
 | D-265 | 2026-10-12 | [ISSUE-021](../issues/ISSUE-021.md) | 变更 | queue-1 | blocked | ISSUE-021 / BE-M0-T09 | 旧接口、幂等和 E2E-D5；任务 planned；本轮不实施 |
-| D-266 | 2026-10-12 | [T078内存方案](governance/ISSUE-022-t078-plan.md) | 计划 | outline-contract-draft-1 | 未实现 | ISSUE-022 / APP-M2-T078 | 独立存储；不改 Repository 读写 |
+| D-266 | 2026-10-12 | [T078内存方案](governance/ISSUE-022-t078-plan.md) | 计划 | outline-contract-draft-2 | 未实现 | ISSUE-022 / APP-M2-T078 | 独立存储；路径为 snippet-publications |
 | D-267 | 2026-10-12 | [T001布局历史修复](testing/2026-10-12-t001-layout-history.md) | 验证 | layout-fix-1 | in-review | ISSUE-009 / APP-M2-T001 | Playwright 11 项通过；D6 写明内存会话 |
 | D-268 | 2026-10-12 | [T001布局修复同步](governance/APP-M2-T001-layout-sync.md) | 治理 | layout-fix-1 | 已核对 | ISSUE-009 / APP-M2-T001 | 基线未改；QA 不通过记录保留 |
 | D-269 | 2026-10-12 | [修复后工作台1680](testing/assets/t001-fixed-workbench-1680.png) | 证据 | layout-fix-1 | 修复截图 | ISSUE-009 / APP-M2-T001 | 深色侧栏、白顶栏、浅色卡片 |
@@ -338,6 +338,7 @@
 | 2026-10-12 | ISSUE-023 / BE-M0-T10；ISSUE-018 | 项目经理批准四项依赖。连接与空基线为 in-review，T11～T13 planned。360项23done、7in-review、7in-progress、269planned、50blocked、4ready。未改 PRD、ROADMAP、ARCHITECTURE，未改公网 CI |
 | 2026-10-12 | ISSUE-009 / APP-M2-T002 | 请求层提交 in-review。章节版本的 Idempotency-Key 与正文 idempotency_key 相同。360项23done、8in-review、7in-progress、268planned、50blocked、4ready。未改 PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF，未改后台，未标 done |
 | 2026-10-12 | ISSUE-013 / REV-M0-T09 | QA签署BE-M0-T08与BE-M0-T10（两卡仍in-review待项目经理标done）；361项24done |
+| 2026-10-12 | ISSUE-022 / APP-M2-T124 | 按后台复核改草案：独立 JobStatus、SSE 与 cancelJob、按操作列错误、ETag。三个旧 POST 在说明里标 deprecated。T078 路径改为 snippet-publications。仍无运行时。并入 98c5129 后任务计数仍为 361项24done、8in-review、7in-progress、268planned、50blocked、4ready |
 
 ## 缺失输入
 

@@ -38,7 +38,7 @@
 | [ISSUE-019](ISSUE-019.md) | version | P1 | in-review | E2E 11项按预期（7通过、4已知缺陷）；[记录](../docs/testing/2026-10-12-e2e-t001-signoff.md) | PR #3 待合入 | 未发布 | Playwright浏览器端到端检查（仅测试依赖） | 项目经理确认；DevOps接入CI |
 | [ISSUE-020](ISSUE-020.md) | change | P1 | in-review | 首屏主块 315.94 kB，低于 1334.42 kB；[记录](../docs/testing/2026-10-12-route-chunks.md) | PR #3 待合入 | 未发布 | 路由级懒加载，记录全部分包体积 | 等待项目经理 QA 签收；未改后台 |
 | [ISSUE-021](ISSUE-021.md) | change | P2 | blocked | 未执行；E2E-D5 见[签署记录](../docs/testing/2026-10-12-e2e-t001-signoff.md) | 未创建 PR，未合入 | 未发布 | 旧 /api 统一错误体与幂等；`/api` 前缀大小写不敏感。任务 planned | 排在 ISSUE-018 之后。本轮不实施 |
-| [ISSUE-022](ISSUE-022.md) | change | P1 | in-review | 契约草案已核对，运行时未实现；[记录](../docs/testing/2026-10-12-t124-dependencies.md) | 未创建 PR，未合入 | 未发布 | 大纲三个 operationId 为 draft, pending backend review。T124 仍 blocked | 等后台复核草案，并等 T078 与 T114。不标 closed |
+| [ISSUE-022](ISSUE-022.md) | change | P1 | in-review | 复核意见已写入草案，运行时未实现；[记录](../docs/testing/2026-10-12-t124-dependencies.md) | 未创建 PR，未合入 | 未发布 | 大纲契约为 draft, pending backend review。T124 仍 blocked | 等再次复核草案，并等 T078 与 T114。不标 closed |
 | [ISSUE-023](ISSUE-023.md) | version | P1 | in-review | [连接与迁移](../docs/testing/2026-10-12-mysql-connection.md) | 未创建 PR，未合入 | 未发布 | 批准引入 SQLAlchemy 2.0、PyMySQL 1.1、cryptography、Alembic 1.14 | 等待项目经理 QA 签收。不标 closed |
 <!-- issue-board:end -->
 

@@ -18,6 +18,12 @@ from icg_demo.errors import ERROR_STATUS  # noqa: E402
 
 RESULTS = []
 DRAFT_STATUS = "draft, pending backend review"
+DEPRECATION_NOTE = "已废弃。新旧入口并存。前端改用 getOutlinePlan、confirmOutlinePlan 与 startGeneration 之后，由后续 Issue 删除本操作。运行时尚未标出 deprecated。"
+DEPRECATED_OPERATIONS = (
+    "/api/v1/projects/{project_id}/plan",
+    "/api/v1/projects/{project_id}/generate",
+    "/api/v1/projects/{project_id}/chapters/{chapter_id}/plan/confirm",
+)
 
 
 def implemented_contract(document):
@@ -27,6 +33,11 @@ def implemented_contract(document):
     for path, item in list(spec["paths"].items()):
         if isinstance(item, dict) and item.get("x-contract-status") == DRAFT_STATUS:
             del spec["paths"][path]
+    for path in DEPRECATED_OPERATIONS:
+        operation = spec["paths"][path]["post"]
+        operation.pop("deprecated", None)
+        if operation.get("description") == DEPRECATION_NOTE:
+            operation.pop("description", None)
     schemas = spec["components"]["schemas"]
     for name, body in list(schemas.items()):
         if isinstance(body, dict) and body.get("x-contract-status") == DRAFT_STATUS:
