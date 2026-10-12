@@ -2,6 +2,7 @@
 # 它解决什么问题：避免同一错误码对应多个 HTTP 状态，或失败、过期、超额回执被当成成功重放。
 
 import ast
+import json
 from pathlib import Path
 
 import pytest
@@ -17,6 +18,21 @@ from test_reference_flow import ProjectFlow, client, login
 
 PACKAGE = Path(__file__).resolve().parents[2] / "backend" / "bid-core" / "icg_demo"
 SPEC = Path(__file__).resolve().parents[2] / "spec" / "openapi" / "demo-v1.json"
+DRAFT_STATUS = "draft, pending backend review"
+
+
+def implemented_contract(document):
+    """去掉尚未实现的草案路径和草案模型，剩下的应与运行中的接口一致。"""
+    spec = json.loads(json.dumps(document))
+    spec.pop("x-contract-drafts", None)
+    for path, item in list(spec["paths"].items()):
+        if isinstance(item, dict) and item.get("x-contract-status") == DRAFT_STATUS:
+            del spec["paths"][path]
+    schemas = spec["components"]["schemas"]
+    for name, body in list(schemas.items()):
+        if isinstance(body, dict) and body.get("x-contract-status") == DRAFT_STATUS:
+            del schemas[name]
+    return spec
 
 
 def test_literal_domain_errors_use_the_single_frozen_status():
@@ -70,8 +86,7 @@ def test_openapi_declares_v1_error_body_status_table_and_retry():
                     assert response["headers"]["X-Request-ID"]["$ref"].endswith("/X-Request-ID")
             if any(parameter.get("name") == "Idempotency-Key" for parameter in operation.get("parameters", [])):
                 assert "Idempotent-Replayed" in next(iter(operation["responses"].values()))["headers"]
-    import json
-    assert json.loads(SPEC.read_text(encoding="utf-8")) == schema
+    assert implemented_contract(json.loads(SPEC.read_text(encoding="utf-8"))) == schema
 
 
 def test_v1_model_unavailable_uses_unified_error_body():

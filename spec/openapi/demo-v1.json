@@ -11192,6 +11192,987 @@
           }
         }
       }
+    },
+    "/api/v1/projects/{project_id}/outline/plan": {
+      "x-contract-status": "draft, pending backend review",
+      "x-implemented": false,
+      "x-aligned-with": "BE-M0-T06",
+      "description": "读取大纲计划。契约状态为 draft, pending backend review。没有运行时实现。",
+      "get": {
+        "summary": "Get Outline Plan",
+        "operationId": "getOutlinePlan",
+        "description": "返回评分行、片段写作计划和逐得分要点小标题。确认状态复用按章结果。公司范围来自登录身份。失败体为 {code, message, details, traceId}。",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "当前大纲计划。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutlinePlan"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "413": {
+            "description": "超出大小或容量限制。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "423": {
+            "description": "编辑权被占用或已失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "428": {
+            "description": "缺少必需的前置请求头。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "502": {
+            "description": "下游解析或模型失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/outline/plan/confirm": {
+      "x-contract-status": "draft, pending backend review",
+      "x-implemented": false,
+      "x-aligned-with": "BE-M0-T06",
+      "description": "按章确认大纲计划。契约状态为 draft, pending backend review。没有运行时实现。",
+      "post": {
+        "summary": "Confirm Outline Plan",
+        "operationId": "confirmOutlinePlan",
+        "description": "按章确认，复用 APP-M1-T15，不实现经理批量确认。星号或废标行标为不适用时返回 422 VALIDATION_ERROR。来源已变返回 409 PLAN_STALE。版本不符返回 409 VERSION_CONFLICT。缺少 If-Match 返回 428 IF_MATCH_REQUIRED。缺少或格式不符的 Idempotency-Key 返回 428 IDEMPOTENCY_KEY_REQUIRED；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT。解析未确认返回 409 PARSE_NOT_CONFIRMED。这些 code 都已在冻结码表中。",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "if-match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-Match"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "同一次用户动作的重复请求标记，格式为 [A-Za-z0-9_-]{8,120}，UUID 符合该格式。作用域是 scope_id + user_id + key：项目写入的 scope_id 为 project_id，公司资料和公司服务承诺模板为 library:{company_id}。指纹是 action、规范化 payload 和 If-Match。同键同指纹重放首次成功结果，响应头 Idempotent-Replayed 为 true；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT；缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。回执保留 24 小时，内存最多 2048 条，超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。",
+              "title": "Idempotency-Key"
+            },
+            "description": "同一次用户动作的重复请求标记，格式为 [A-Za-z0-9_-]{8,120}，UUID 符合该格式。作用域是 scope_id + user_id + key：项目写入的 scope_id 为 project_id，公司资料和公司服务承诺模板为 library:{company_id}。指纹是 action、规范化 payload 和 If-Match。同键同指纹重放首次成功结果，响应头 Idempotent-Replayed 为 true；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT；缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。回执保留 24 小时，内存最多 2048 条，超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmOutlinePlanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "确认后的大纲计划。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutlinePlan"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "413": {
+            "description": "超出大小或容量限制。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "423": {
+            "description": "编辑权被占用或已失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "428": {
+            "description": "缺少必需的前置请求头。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "502": {
+            "description": "下游解析或模型失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/generation/start": {
+      "x-contract-status": "draft, pending backend review",
+      "x-implemented": false,
+      "x-aligned-with": "BE-M0-T06",
+      "description": "启动长任务生成。返回 202，Location 为 GET /api/v1/jobs/{id}。对齐尚未实现的可恢复任务契约 BE-M0-T06。契约状态为 draft, pending backend review。没有运行时实现。",
+      "post": {
+        "summary": "Start Generation",
+        "operationId": "startGeneration",
+        "description": "只启动 confirmation 为 current 的章。未点名的未确认分册不阻断。点名了未确认章返回 409 PLAN_NOT_CONFIRMED；点名了过期章返回 409 PLAN_STALE。旧来源返回 409 INPUT_FINGERPRINT_STALE。非本分册负责人返回 403 VOLUME_OWNER_REQUIRED。模型在任务执行中失败时，HTTP 仍保持已返回的 202，失败记在 job.model_call.error_code，使用已冻结的 MODEL_UNAVAILABLE。尚未创建任务 id 时，模型不可用仍返回 502 MODEL_UNAVAILABLE。幂等规则与其他写操作相同：428 IDEMPOTENCY_KEY_REQUIRED，409 IDEMPOTENCY_CONFLICT。",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "if-match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-Match"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "同一次用户动作的重复请求标记，格式为 [A-Za-z0-9_-]{8,120}，UUID 符合该格式。作用域是 scope_id + user_id + key：项目写入的 scope_id 为 project_id，公司资料和公司服务承诺模板为 library:{company_id}。指纹是 action、规范化 payload 和 If-Match。同键同指纹重放首次成功结果，响应头 Idempotent-Replayed 为 true；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT；缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。回执保留 24 小时，内存最多 2048 条，超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。",
+              "title": "Idempotency-Key"
+            },
+            "description": "同一次用户动作的重复请求标记，格式为 [A-Za-z0-9_-]{8,120}，UUID 符合该格式。作用域是 scope_id + user_id + key：项目写入的 scope_id 为 project_id，公司资料和公司服务承诺模板为 library:{company_id}。指纹是 action、规范化 payload 和 If-Match。同键同指纹重放首次成功结果，响应头 Idempotent-Replayed 为 true；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT；缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。回执保留 24 小时，内存最多 2048 条，超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartGenerationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "已接受。生成是长任务。Location 指向 GET /api/v1/jobs/{id}。对齐尚未实现的可恢复任务契约 BE-M0-T06，运行时尚未实现。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStatus"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Location": {
+                "required": true,
+                "description": "任务状态地址，形式为 /api/v1/jobs/{id}，id 与响应体 id 相同。",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "413": {
+            "description": "超出大小或容量限制。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "423": {
+            "description": "编辑权被占用或已失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "428": {
+            "description": "缺少必需的前置请求头。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "502": {
+            "description": "下游解析或模型失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{id}": {
+      "x-contract-status": "draft, pending backend review",
+      "x-implemented": false,
+      "x-aligned-with": "BE-M0-T06",
+      "description": "按 id 查询任务。复用 Job，响应为 JobStatus。对齐尚未实现的可恢复任务契约 BE-M0-T06。契约状态为 draft, pending backend review。没有运行时实现。现有 GET /api/v1/jobs 列表不变。",
+      "get": {
+        "summary": "Get Job",
+        "operationId": "getJob",
+        "description": "返回任务状态和 events。job.model_call 包含 provider、model、is_real_model、is_local、duration_ms、error_code。",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "任务状态。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobStatus"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "413": {
+            "description": "超出大小或容量限制。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "423": {
+            "description": "编辑权被占用或已失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "428": {
+            "description": "缺少必需的前置请求头。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "502": {
+            "description": "下游解析或模型失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -16779,6 +17760,366 @@
           "chapters"
         ],
         "title": "WritingPlan"
+      },
+      "ScoringRow": {
+        "x-contract-status": "draft, pending backend review",
+        "x-implemented": false,
+        "description": "评分行。草案，pending backend review。不进入当前模型输入。",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Id"
+          },
+          "clause": {
+            "type": "string",
+            "title": "Clause"
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "title": "Score"
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0,
+            "title": "Weight"
+          },
+          "asterisk": {
+            "type": "boolean",
+            "title": "Asterisk",
+            "description": "星号条款"
+          },
+          "disqualified": {
+            "type": "boolean",
+            "title": "Disqualified",
+            "description": "废标条款"
+          },
+          "applicable": {
+            "type": "boolean",
+            "title": "Applicable",
+            "description": "星号或废标行必须为 true。确认时写成 false 返回 422 VALIDATION_ERROR，不新增错误码。"
+          },
+          "point_headings": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "maxItems": 100,
+            "title": "Point Headings",
+            "description": "该评分行下的逐得分要点小标题"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ScoringRow",
+        "required": [
+          "id",
+          "clause",
+          "score",
+          "weight",
+          "asterisk",
+          "disqualified",
+          "applicable",
+          "point_headings"
+        ]
+      },
+      "SnippetPlanItem": {
+        "x-contract-status": "draft, pending backend review",
+        "x-implemented": false,
+        "description": "片段写作计划中的一条。草案，pending backend review。",
+        "properties": {
+          "point_heading": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Point Heading"
+          },
+          "snippet_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "maxItems": 100,
+            "title": "Snippet Ids",
+            "description": "计划引用的片段 id。已发布版本仍依赖尚未实现的 APP-M2-T078。"
+          },
+          "source_scope": {
+            "type": "string",
+            "const": "whole_chapter",
+            "title": "Source Scope",
+            "description": "仍是整章。REF-08 继续适用，本草案不改成逐段证据。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "SnippetPlanItem",
+        "required": [
+          "point_heading",
+          "snippet_ids",
+          "source_scope"
+        ]
+      },
+      "OutlineChapter": {
+        "x-contract-status": "draft, pending backend review",
+        "x-implemented": false,
+        "description": "一章的大纲计划。草案，pending backend review。",
+        "properties": {
+          "chapter_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Chapter Id"
+          },
+          "volume": {
+            "type": "string",
+            "enum": [
+              "technical",
+              "business"
+            ],
+            "title": "Volume"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "title": "Revision"
+          },
+          "confirmation": {
+            "type": "string",
+            "enum": [
+              "unconfirmed",
+              "current",
+              "stale"
+            ],
+            "title": "Confirmation",
+            "description": "复用 APP-M1-T15 的按章确认。current 表示确认仍对应当前来源。"
+          },
+          "scoring_rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScoringRow"
+            },
+            "title": "Scoring Rows"
+          },
+          "snippet_plan": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SnippetPlanItem"
+            },
+            "title": "Snippet Plan"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "OutlineChapter",
+        "required": [
+          "chapter_id",
+          "volume",
+          "revision",
+          "confirmation",
+          "scoring_rows",
+          "snippet_plan"
+        ]
+      },
+      "OutlinePlan": {
+        "x-contract-status": "draft, pending backend review",
+        "x-implemented": false,
+        "description": "大纲计划。契约状态为 draft, pending backend review。运行时尚未实现，当前模型输入仍是整章。",
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1,
+            "title": "Revision"
+          },
+          "chapters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OutlineChapter"
+            },
+            "title": "Chapters"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "OutlinePlan",
+        "required": [
+          "project_id",
+          "revision",
+          "chapters"
+        ]
+      },
+      "ConfirmOutlineChapter": {
+        "x-contract-status": "draft, pending backend review",
+        "x-implemented": false,
+        "description": "按章提交确认。不是经理跨章批量确认。",
+        "properties": {
+          "chapter_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Chapter Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "title": "Expected Revision"
+          },
+          "scoring_rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScoringRow"
+            },
+            "maxItems": 200,
+            "title": "Scoring Rows"
+          },
+          "snippet_plan": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SnippetPlanItem"
+            },
+            "maxItems": 200,
+            "title": "Snippet Plan"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ConfirmOutlineChapter",
+        "required": [
+          "chapter_id",
+          "expected_revision",
+          "scoring_rows",
+          "snippet_plan"
+        ]
+      },
+      "ConfirmOutlinePlanRequest": {
+        "x-contract-status": "draft, pending backend review",
+        "x-implemented": false,
+        "description": "确认大纲计划。只确认请求里列出的章，复用 T15 的按章确认。请求体不接受 company_id。",
+        "properties": {
+          "chapters": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 200,
+            "items": {
+              "$ref": "#/components/schemas/ConfirmOutlineChapter"
+            },
+            "title": "Chapters"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ConfirmOutlinePlanRequest",
+        "required": [
+          "chapters"
+        ]
+      },
+      "StartGenerationRequest": {
+        "x-contract-status": "draft, pending backend review",
+        "x-implemented": false,
+        "description": "启动生成。长任务。契约状态为 draft, pending backend review。",
+        "properties": {
+          "chapter_ids": {
+            "type": "array",
+            "maxItems": 200,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "title": "Chapter Ids",
+            "description": "省略或空数组时，只启动 confirmation 为 current 的章。未确认的其他分册不阻断这些章。点名了 unconfirmed 或 stale 的章时，整次请求不接受。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "StartGenerationRequest",
+        "required": []
+      },
+      "JobEvent": {
+        "x-contract-status": "draft, pending backend review",
+        "x-implemented": false,
+        "description": "任务事件。当前只约定 job.model_call。草案，pending backend review。",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "job.model_call",
+            "title": "Type"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "is_real_model": {
+            "type": "boolean",
+            "title": "Is Real Model"
+          },
+          "is_local": {
+            "type": "boolean",
+            "title": "Is Local"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "title": "Duration Ms"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code",
+            "description": "成功时为 null。失败时必须是已冻结码表中的 code，例如 MODEL_UNAVAILABLE。不新增错误码。"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "JobEvent",
+        "required": [
+          "type",
+          "provider",
+          "model",
+          "is_real_model",
+          "is_local",
+          "duration_ms",
+          "error_code"
+        ]
+      },
+      "JobStatus": {
+        "x-contract-status": "draft, pending backend review",
+        "x-implemented": false,
+        "x-aligned-with": "BE-M0-T06",
+        "description": "复用已实现的 Job，并追加 events。对齐尚未实现的可恢复任务契约 BE-M0-T06。已实现的 Job.recoverable 仍是 const false，status 仍只有 completed 与 failed；本草案不改这两个约束。SSE 仍由 BE-M0-T06 负责，这里不新增 SSE 路径。断线后查询 GET /api/v1/jobs/{id}。",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Job"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "events": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/JobEvent"
+                },
+                "title": "Events"
+              }
+            },
+            "required": [
+              "events"
+            ]
+          }
+        ],
+        "title": "JobStatus"
       }
     },
     "x-error-status": {
@@ -16982,5 +18323,11 @@
         }
       }
     }
+  },
+  "x-contract-drafts": {
+    "status": "draft, pending backend review",
+    "implemented": false,
+    "aligned_with": "BE-M0-T06",
+    "note": "getOutlinePlan、confirmOutlinePlan、startGeneration 与 getJob 是草案。startGeneration 返回 202，Location 指向 GET /api/v1/jobs/{id}。可恢复任务契约尚未实现。"
   }
 }

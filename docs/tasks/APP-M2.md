@@ -1886,7 +1886,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T124 · 完整证据、片段及评分写作计划（确认复用T15）
 <a id="app-m2-t124"></a>
 
-状态：blocked。关联Issue：[ISSUE-022](../../issues/ISSUE-022.md)（父范围仍为 ISSUE-007）。原范围：一期业务页面/支撑。依赖：[APP-M1-T15](APP-M1.md#app-m1-t15) 已在代码中按章确认；[APP-M2-T078](APP-M2.md#app-m2-t078)、[APP-M2-T114](APP-M2.md#app-m2-t114) 仍为 planned，三个具名 operationId 也不在 OpenAPI 中。2026-10-12 不改产品代码。
+状态：blocked。关联Issue：[ISSUE-022](../../issues/ISSUE-022.md)（父范围仍为 ISSUE-007；Issue 为 in-review，只复核契约草案）。原范围：一期业务页面/支撑。依赖：[APP-M1-T15](APP-M1.md#app-m1-t15) 已在代码中按章确认；[APP-M2-T078](APP-M2.md#app-m2-t078)、[APP-M2-T114](APP-M2.md#app-m2-t114) 仍为 planned。`getOutlinePlan`、`confirmOutlinePlan`、`startGeneration` 已写入 OpenAPI，契约状态为 draft, pending backend review，运行时未实现。2026-10-12 不改模型输入。
 
 原始来源：原交接 §6.5 M4-F01-F2；PRD v1.8 §5.7.2、5.7.8。交付单位：完整证据、片段及评分写作计划（确认复用T15），同一产品的页面/后台/数据/权限/输出协作一起验收。
 

@@ -17,6 +17,21 @@ sys.path.insert(0, str(ROOT / "backend" / "bid-core"))
 from icg_demo.errors import ERROR_STATUS  # noqa: E402
 
 RESULTS = []
+DRAFT_STATUS = "draft, pending backend review"
+
+
+def implemented_contract(document):
+    """与契约测试相同：草案路径不参与和运行中接口的比较。"""
+    spec = json.loads(json.dumps(document))
+    spec.pop("x-contract-drafts", None)
+    for path, item in list(spec["paths"].items()):
+        if isinstance(item, dict) and item.get("x-contract-status") == DRAFT_STATUS:
+            del spec["paths"][path]
+    schemas = spec["components"]["schemas"]
+    for name, body in list(schemas.items()):
+        if isinstance(body, dict) and body.get("x-contract-status") == DRAFT_STATUS:
+            del schemas[name]
+    return spec
 
 
 def check(name, ok, detail=""):
@@ -81,7 +96,7 @@ def main():
                ERROR_STATUS["IDEMPOTENCY_KEY_REQUIRED"]) == (403, 422, 502, 428))
         live = httpx.get(base + "/openapi.json")
         if live.status_code == 200:
-            check("运行中 OpenAPI == spec/openapi/demo-v1.json", live.json() == spec)
+            check("运行中 OpenAPI == 去掉草案后的 spec/openapi/demo-v1.json", live.json() == implemented_contract(spec))
 
         # ---- 错误体 + 状态
         r = c.get("/api/v1/session")
