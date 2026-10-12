@@ -10,12 +10,12 @@
 | 任务ID | APP-M2-T124 |
 | 代码解释 | 只改 OpenAPI 草案和契约测试。运行时说明见 [代码说明](../code/APP-M2-T124.md) |
 | 验收 | 契约形状已核对，见 [记录](../testing/2026-10-12-t124-dependencies.md)。模型输入验收未执行。T078 与 T114 仍 planned |
-| 项目进度 | T124 仍为 blocked。ISSUE-022 为 in-review。本轮不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数 |
+| 项目进度 | T124 仍为 blocked。ISSUE-022 已依据 QA 0254102，PM 15:36 确认 closed。T078 与 T114 仍为 in-review。本轮不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数 |
 <!-- task-delivery:end -->
 
 ## 关联与状态
 
-- 日期：2026-10-12。里程碑 APP-M2。Issue：[ISSUE-022](../../issues/ISSUE-022.md)，状态 in-review。父范围仍是 [ISSUE-007](../../issues/ISSUE-007.md)。任务卡：[APP-M2-T124](../tasks/APP-M2.md#app-m2-t124)，状态仍是 blocked。
+- 日期：2026-10-12。里程碑 APP-M2。Issue：[ISSUE-022](../../issues/ISSUE-022.md)，已依据 QA 0254102，PM 15:36 确认 closed。父范围仍是 [ISSUE-007](../../issues/ISSUE-007.md)。任务卡：[APP-M2-T124](../tasks/APP-M2.md#app-m2-t124)，状态仍是 blocked。
 - 分支：`codex/repository-foundation`。PR：未创建。
 - 本地验收状态：契约测试已执行。任务不标 done。
 - 合入 / 发布状态：未合入，未发布。

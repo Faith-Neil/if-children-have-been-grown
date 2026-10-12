@@ -91,7 +91,7 @@
 | D-079 | 2026-10-10 | [页面事件回归](../tests/backend/demo-page.test.cjs) | 验证代码 | demo-1 | 7项通过 | BE-M0-T01 | 直接执行页面代码，验证旧草稿、确认、恢复失败与会话锁 |
 | D-080 | 2026-10-11 | [示例联调Issue](../issues/ISSUE-007.md) | 变更 | reference-members-1 | in-progress | ISSUE-007 / APP-M1 | 同一产品逐页接通，T07/T14/T15本地验收，完整目标继续 |
 | D-081 | 2026-10-11 | [示例任务卡](tasks/APP-M1.md) | 实施 | reference-members-1 / library-basis-1 | 当前 | ISSUE-007 / APP-M1；ISSUE-008 / T16 | 16项，T07/T09～16本地done；资料及模板保护验收，完整父任务继续 |
-| D-082 | 2026-10-11 | [示例接口约定](architecture/icg-reference-contract.md) | 接口 | reference-members-1 | 实际契约 | ISSUE-007 / APP-M1 | 项目成员、分册/本节分工、逐章确认、已读依据和交接保护 |
+| D-082 | 2026-10-11 | [示例接口约定](architecture/icg-reference-contract.md) | 接口 | reference-members-1 | 实际契约 | ISSUE-007 / APP-M1；ISSUE-022 | 项目成员、分册/本节分工、逐章确认、已读依据和交接保护。502/503 自动重试含 N7：MODEL_UNAVAILABLE 与 SECRET_KEY_UNAVAILABLE 不自动重试 |
 | D-083 | 2026-10-11 | [示例差异记录](decisions/icg-reference-deviations.md) | 评审 | reference-1 | 持续维护 | ISSUE-007 / APP-M1 | 版本缺件、已取消页签和高级功能差异 |
 | D-084 | 2026-10-12 | [产品页面说明](../frontend/web/README.md) | 工程 | request-layer-2 | 构建通过 | ISSUE-009 / APP-M2-T001；APP-M2-T002 | 没有幂等键的写入不重试；GET 与有键写入仍复用同一把键 |
 | D-085 | 2026-10-11 | [独立主流程测试](../tests/backend/test_reference_flow.py) | 验证代码 | reference-1 | 21项通过 | ISSUE-007 / APP-M1-T06 | 两册真实内容、源页码、输入失效与权限，页面主流程另有阶段记录 |
@@ -265,11 +265,11 @@
 | D-253 | 2026-10-12 | [编辑台1280截图](testing/assets/e2e-editor-1280.png) | 证据 | e2e-1 | E2E截图 | ISSUE-019 / REV-M0-T06 | 编辑台三栏与暗色控件 |
 | D-254 | 2026-10-12 | [概览1440截图](testing/assets/e2e-overview-1440.png) | 证据 | e2e-1 | E2E截图 | ISSUE-019 / REV-M0-T06 | 项目概览布局 |
 | D-242 | 2026-10-12 | [017同步记录](governance/ISSUE-017-sync.md) | 治理 | intranet-plan-1 | 已核对 | ISSUE-017 / OPS-M0-T02 | ISSUE-017 已 closed。重排定为 RAGFlow 自带。不改 ISSUE-029。未部署 |
-| D-255 | 2026-10-12 | [T124契约事项](../issues/ISSUE-022.md) | 变更 | outline-contract-frozen-1 | in-review | ISSUE-022 / APP-M2-T124 | 契约文本已冻结；T078 内存发布 in-review；T124 仍 blocked |
+| D-255 | 2026-10-12 | [T124契约事项](../issues/ISSUE-022.md) | 变更 | outline-contract-frozen-1 | closed | ISSUE-022 / APP-M2-T124 | QA 0254102，PM 15:36 确认 closed。契约已冻结。T124 仍 blocked。T114 仍 in-review |
 | D-256 | 2026-10-12 | [T124草案交付](delivery/APP-M2-T124.md) | 交付 | outline-contract-frozen-1 | in-review | ISSUE-022 / APP-M2-T124 | 契约已冻结；无运行时；不标 done |
 | D-257 | 2026-10-12 | [T124契约说明](code/APP-M2-T124.md) | 说明 | outline-contract-frozen-1 | 当前 | ISSUE-022 / APP-M2-T124 | 状态 frozen；423/503 不列重放头；整章输入保持 |
 | D-258 | 2026-10-12 | [T124契约核对](testing/2026-10-12-t124-dependencies.md) | 验证 | outline-contract-frozen-1 | 契约测试 | ISSUE-022 / APP-M2-T124 | 冻结状态、N7 重试例外、无键写入不自动重试；不调用新路由 |
-| D-259 | 2026-10-12 | [022同步记录](governance/ISSUE-022-sync.md) | 治理 | outline-contract-frozen-1 | 已核对 | ISSUE-022 / APP-M2-T124 | 契约冻结；README 与 retry 补 N7 与无键写入。不改三份基线计数 |
+| D-259 | 2026-10-12 | [022同步记录](governance/ISSUE-022-sync.md) | 治理 | outline-contract-frozen-1 | 已核对 | ISSUE-022 / APP-M2-T124 | ISSUE-022 已 closed。示例接口约定补上 N7。不改三份基线计数，不改其他卡片状态 |
 | D-260 | 2026-10-12 | [MySQL 8 持久化方案](architecture/mysql-8-persistence-plan.md) | 架构 | impl-3 | in-review | ISSUE-018 / BE-M0-T12 | 回执、会话和编辑租约已提交复查。第 5 节有字典 v1.9 对照。聚合表未建 |
 | D-261 | 2026-10-12 | [ISSUE-018](../issues/ISSUE-018.md) | 变更 | impl-3 | in-progress | ISSUE-018 / BE-M0-T12 | 回执、会话和编辑租约为 in-review；T13 仍 planned；不关闭 |
 | D-262 | 2026-10-12 | [方案交付](delivery/BE-M0-T08.md) | 交付 | plan-1 | in-review | ISSUE-018 / BE-M0-T08 | 无运行时代码 |
@@ -464,6 +464,7 @@
 | 2026-10-12 | ISSUE-031 / BE-M0-T16 | 冻结 143 个错误码名字。`set(ERROR_STATUS)` 与 spec 枚举都必须等于 `FROZEN_NAMES`。增删错误码必须在同一提交更新名单。看板从 371项39done、7in-review 改为 372项39done、8in-review、7in-progress、265planned、49blocked、4ready。不改 PRD、ROADMAP、PROJECT_BRIEF，不改 docs/reference，不改 .github。ISSUE-030 仍为 in-review。ISSUE-031 与 BE-M0-T16 为 in-review |
 | 2026-10-12 | ISSUE-022 | QA：`spec/openapi/README.md` 的 502/503 自动重试说明补上 N7，502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不自动重试。`x-idempotency.retry` 追加没有 Idempotency-Key 的写入不自动重试。不改错误码计数，不改 errors.py，不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。ISSUE-022 仍 in-review |
 | 2026-10-12 | ISSUE-007 / APP-M2-T114 | 挂证据抽屉改为 in-review。分组、拦截和保存接到响应矩阵。接口仍是 `73fde1e` 的条款 `evidence_ids`。并入 BE-M0-T16 与 REV-M0-T18、T19 后看板为 374 项、41 done、9 in-review、264 planned。T124 仍 blocked。不改后台，不改冻结 JSON，不改 `docs/reference/`，不改三份基线快照。不标 done |
+| 2026-10-12 | ISSUE-022 | 依据 QA 0254102（REV-M0-T20），PM 15:36 确认，ISSUE-022 标为 closed。示例接口约定第 45 行的 502/503 自动重试补上 N7：502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不自动重试。T124 仍 blocked。T114 仍 in-review。不改其他卡片状态，不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数 |
 
 ## 缺失输入
 
