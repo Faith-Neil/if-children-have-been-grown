@@ -6,7 +6,8 @@ import re
 
 from icg_demo.errors import NON_TRANSIENT_RETRY_EXCEPTION
 from test_error_idempotency import (
-    DEPRECATED_OPERATIONS, DEPRECATION_NOTE, FROZEN_STATUS, SPEC, implemented_contract)
+    DEPRECATED_OPERATIONS, DEPRECATION_NOTE, FROZEN_STATUS, SPEC, WRITES_WITHOUT_IDEMPOTENCY_KEY,
+    implemented_contract)
 
 CAMEL = re.compile(r"^[a-z][A-Za-z0-9]*$")
 OPERATIONS = {
@@ -108,6 +109,8 @@ def test_retry_text_excludes_non_transient_model_and_secret_failures():
     assert NON_TRANSIENT_RETRY_EXCEPTION in spec["info"]["description"]
     idempotency = spec["components"]["x-idempotency"]
     assert NON_TRANSIENT_RETRY_EXCEPTION in idempotency["retry"]
+    assert idempotency["retry"].endswith(WRITES_WITHOUT_IDEMPOTENCY_KEY)
+    assert WRITES_WITHOUT_IDEMPOTENCY_KEY not in idempotency["description"]
     assert NON_TRANSIENT_RETRY_EXCEPTION in idempotency["description"]
     seen = 0
     for item in spec["paths"].values():

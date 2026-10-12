@@ -19,6 +19,7 @@ from icg_demo.frozen_error_codes import FROZEN_NAMES  # noqa: E402
 
 RESULTS = []
 FROZEN_STATUS = "frozen"
+WRITES_WITHOUT_IDEMPOTENCY_KEY = "没有 Idempotency-Key 的写入不自动重试。"
 DEPRECATION_NOTE = "已废弃。新旧入口并存。前端改用 getOutlinePlan、confirmOutlinePlan 与 startGeneration 之后，由后续 Issue 删除本操作。运行时尚未标出 deprecated。"
 DEPRECATED_OPERATIONS = (
     "/api/v1/projects/{project_id}/plan",
@@ -43,6 +44,9 @@ def implemented_contract(document):
     for name, body in list(schemas.items()):
         if isinstance(body, dict) and body.get("x-contract-status") == FROZEN_STATUS:
             del schemas[name]
+    idempotency = spec.get("components", {}).get("x-idempotency")
+    if isinstance(idempotency, dict) and isinstance(idempotency.get("retry"), str):
+        idempotency["retry"] = idempotency["retry"].removesuffix(WRITES_WITHOUT_IDEMPOTENCY_KEY)
     return spec
 
 

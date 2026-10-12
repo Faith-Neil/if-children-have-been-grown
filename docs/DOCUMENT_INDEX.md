@@ -80,10 +80,10 @@
 | D-068 | 2026-10-10 | [后端验收](testing/2026-10-10-backend-demo.md) | 验证 | demo-1 | 已本地验收 | BE-M0-T01 | 后台31项、记录12项、真实HTTP、页面下载与截图 |
 | D-069 | 2026-10-10 | [后端交付](delivery/BE-M0-T01.md) | 交付 | demo-1 | 已本地验收 | ISSUE-006 / BE-M0-T01 | 实际成果、验收、状态及后续 |
 | D-070 | 2026-10-12 | [后端运行说明](../backend/bid-core/README.md) | 工程 | reference-1 / application-foundation-1 | 当前 | ISSUE-007 / APP-M1；ISSUE-009 / T001；ISSUE-011 / AI-02；ISSUE-016 / AI-03 | 同产品运行、可信会话、可选兼容模型；MySQL 8 已决定但未连接，检索口仅内存 |
-| D-071 | 2026-10-12 | [API约定说明](../spec/openapi/README.md) | 接口 | frozen-names-1 | 当前 | ISSUE-031 / BE-M0-T16 | 增删错误码必须在同一提交更新 FROZEN_NAMES |
+| D-071 | 2026-10-12 | [API约定说明](../spec/openapi/README.md) | 接口 | frozen-names-1 | 当前 | ISSUE-031 / BE-M0-T16；ISSUE-022 | 增删错误码必须在同一提交更新 FROZEN_NAMES。502/503 自动重试说明含 N7：MODEL_UNAVAILABLE 与 SECRET_KEY_UNAVAILABLE 不自动重试 |
 | D-072 | 2026-10-10 | [启动器](../backend/bid-core/Start-Demo.ps1) | 工具 | reference-1 | 已执行构建 | ISSUE-007 / APP-M1 | 安装前后端依赖、构建页面及单进程启动 |
 | D-073 | 2026-10-10 | [依赖锁定](../backend/bid-core/requirements.txt) | 环境 | reference-1 | 安装通过 | ISSUE-007 / APP-M1 | 加数字PDF解析，pip check通过 |
-| D-074 | 2026-10-12 | [实际接口约定](../spec/openapi/demo-v1.json) | 接口 | reference-1 / outline-contract-frozen-1 | 生成加冻结文本 | ISSUE-007 / APP-M1；ISSUE-022 / T124 | 已实现路径仍从代码导出。大纲与任务路径的 x-contract-status 为 frozen，x-implemented 仍 false |
+| D-074 | 2026-10-12 | [实际接口约定](../spec/openapi/demo-v1.json) | 接口 | reference-1 / outline-contract-frozen-1 | 生成加冻结文本 | ISSUE-007 / APP-M1；ISSUE-022 / T124 | 已实现路径仍从代码导出。x-idempotency.retry 另写没有 Idempotency-Key 的写入不自动重试。大纲路径仍 frozen |
 | D-075 | 2026-10-12 | [后台入口](../backend/bid-core/icg_demo/main.py) | 代码 | reference-1 | 联调通过 | ISSUE-007 / APP-M1；ISSUE-011 / AI-02 | 同源页面、两代错误字段；显式配置才启用兼容模型 |
 | D-076 | 2026-10-11 | [后台测试](../tests/backend/test_demo.py) | 验证代码 | demo-1 | 31项通过 | BE-M0-T01 | 实际失败边界、并发与输出 |
 | D-077 | 2026-10-11 | [HTTP验收入口](../backend/bid-core/smoke_demo.py) | 验证工具 | demo-1 | 通过 | BE-M0-T01 | 连接实际监听端口执行完整链路 |
@@ -268,8 +268,8 @@
 | D-255 | 2026-10-12 | [T124契约事项](../issues/ISSUE-022.md) | 变更 | outline-contract-frozen-1 | in-review | ISSUE-022 / APP-M2-T124 | 契约文本已冻结；T078 内存发布 in-review；T124 仍 blocked |
 | D-256 | 2026-10-12 | [T124草案交付](delivery/APP-M2-T124.md) | 交付 | outline-contract-frozen-1 | in-review | ISSUE-022 / APP-M2-T124 | 契约已冻结；无运行时；不标 done |
 | D-257 | 2026-10-12 | [T124契约说明](code/APP-M2-T124.md) | 说明 | outline-contract-frozen-1 | 当前 | ISSUE-022 / APP-M2-T124 | 状态 frozen；423/503 不列重放头；整章输入保持 |
-| D-258 | 2026-10-12 | [T124契约核对](testing/2026-10-12-t124-dependencies.md) | 验证 | outline-contract-frozen-1 | 契约测试 | ISSUE-022 / APP-M2-T124 | 冻结状态、重试例外、423/503 无重放头；不调用新路由 |
-| D-259 | 2026-10-12 | [022同步记录](governance/ISSUE-022-sync.md) | 治理 | outline-contract-frozen-1 | 已核对 | ISSUE-022 / APP-M2-T124 | 契约冻结；N8 留到 BE-M0-T06；不改三份基线计数 |
+| D-258 | 2026-10-12 | [T124契约核对](testing/2026-10-12-t124-dependencies.md) | 验证 | outline-contract-frozen-1 | 契约测试 | ISSUE-022 / APP-M2-T124 | 冻结状态、N7 重试例外、无键写入不自动重试；不调用新路由 |
+| D-259 | 2026-10-12 | [022同步记录](governance/ISSUE-022-sync.md) | 治理 | outline-contract-frozen-1 | 已核对 | ISSUE-022 / APP-M2-T124 | 契约冻结；README 与 retry 补 N7 与无键写入。不改三份基线计数 |
 | D-260 | 2026-10-12 | [MySQL 8 持久化方案](architecture/mysql-8-persistence-plan.md) | 架构 | impl-3 | in-review | ISSUE-018 / BE-M0-T12 | 回执、会话和编辑租约已提交复查。第 5 节有字典 v1.9 对照。聚合表未建 |
 | D-261 | 2026-10-12 | [ISSUE-018](../issues/ISSUE-018.md) | 变更 | impl-3 | in-progress | ISSUE-018 / BE-M0-T12 | 回执、会话和编辑租约为 in-review；T13 仍 planned；不关闭 |
 | D-262 | 2026-10-12 | [方案交付](delivery/BE-M0-T08.md) | 交付 | plan-1 | in-review | ISSUE-018 / BE-M0-T08 | 无运行时代码 |
@@ -449,6 +449,7 @@
 | 2026-10-12 | ISSUE-018 / BE-M0-T12 | 编辑租约入库，状态 in-review。续期后占用者不变，过期后其他会话可以接管。方案第 5 节增加字典 v1.9 字段对照表，偏差需要项目经理批准。看板从 371项39done、6in-review、266planned 改为 371项39done、7in-review、7in-progress、265planned、49blocked、4ready。不改 PRD、ROADMAP、PROJECT_BRIEF，不改 docs/reference，不改 .github。ISSUE-018 仍 in-progress。T13 仍 planned |
 | 2026-10-12 | ISSUE-030 / APP-M2-T002 | `canRetryStatus` 对 503 `SECRET_KEY_UNAVAILABLE` 返回 false，与 502 `MODEL_UNAVAILABLE` 一样只发一次。普通 503 和裸 502 仍重试。T002 仍为 done。不改任务计数，不改后台，不改冻结 JSON，不改 `docs/reference/`。ISSUE-030 为 in-review |
 | 2026-10-12 | ISSUE-031 / BE-M0-T16 | 冻结 143 个错误码名字。`set(ERROR_STATUS)` 与 spec 枚举都必须等于 `FROZEN_NAMES`。增删错误码必须在同一提交更新名单。看板从 371项39done、7in-review 改为 372项39done、8in-review、7in-progress、265planned、49blocked、4ready。不改 PRD、ROADMAP、PROJECT_BRIEF，不改 docs/reference，不改 .github。ISSUE-030 仍为 in-review。ISSUE-031 与 BE-M0-T16 为 in-review |
+| 2026-10-12 | ISSUE-022 | QA：`spec/openapi/README.md` 的 502/503 自动重试说明补上 N7，502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不自动重试。`x-idempotency.retry` 追加没有 Idempotency-Key 的写入不自动重试。不改错误码计数，不改 errors.py，不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。ISSUE-022 仍 in-review |
 
 ## 缺失输入
 

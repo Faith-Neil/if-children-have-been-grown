@@ -20,6 +20,7 @@ from test_reference_flow import ProjectFlow, client, login
 PACKAGE = Path(__file__).resolve().parents[2] / "backend" / "bid-core" / "icg_demo"
 SPEC = Path(__file__).resolve().parents[2] / "spec" / "openapi" / "demo-v1.json"
 FROZEN_STATUS = "frozen"
+WRITES_WITHOUT_IDEMPOTENCY_KEY = "没有 Idempotency-Key 的写入不自动重试。"
 DEPRECATION_NOTE = "已废弃。新旧入口并存。前端改用 getOutlinePlan、confirmOutlinePlan 与 startGeneration 之后，由后续 Issue 删除本操作。运行时尚未标出 deprecated。"
 DEPRECATED_OPERATIONS = (
     "/api/v1/projects/{project_id}/plan",
@@ -44,6 +45,9 @@ def implemented_contract(document):
     for name, body in list(schemas.items()):
         if isinstance(body, dict) and body.get("x-contract-status") == FROZEN_STATUS:
             del schemas[name]
+    idempotency = spec.get("components", {}).get("x-idempotency")
+    if isinstance(idempotency, dict) and isinstance(idempotency.get("retry"), str):
+        idempotency["retry"] = idempotency["retry"].removesuffix(WRITES_WITHOUT_IDEMPOTENCY_KEY)
     return spec
 
 
@@ -102,7 +106,9 @@ def test_openapi_declares_v1_error_body_status_table_and_retry():
                     assert response["headers"]["X-Request-ID"]["$ref"].endswith("/X-Request-ID")
             if any(parameter.get("name") == "Idempotency-Key" for parameter in operation.get("parameters", [])):
                 assert "Idempotent-Replayed" in next(iter(operation["responses"].values()))["headers"]
-    assert implemented_contract(json.loads(SPEC.read_text(encoding="utf-8"))) == schema
+    raw = json.loads(SPEC.read_text(encoding="utf-8"))
+    assert raw["components"]["x-idempotency"]["retry"] == RETRY_GUIDANCE + WRITES_WITHOUT_IDEMPOTENCY_KEY
+    assert implemented_contract(raw) == schema
 
 
 def test_v1_model_unavailable_uses_unified_error_body():

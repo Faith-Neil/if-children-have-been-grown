@@ -109,6 +109,7 @@ operationId 已写入 `spec/openapi/demo-v1.json`，契约状态为 **frozen**�
 | 2026-10-12 | t078-memory-1 / in-review | 按方案实现进程内片段发布。T078 改为 in-review，未标 done。T124 仍 blocked。不改三份基线的任务计数 | [交付](../docs/delivery/APP-M2-T078.md) |
 | 2026-10-12 | outline-contract-draft-3 / in-review | 403 与 503 两码改由 ISSUE-024 的冻结表登记。项目经理决定见复审记录：B2 保持 423 `LOCK_HELD` / `LOCK_LOST`；B3 的状态、进度和终态事件类型已在契约中，实现仍在 BE-M0-T06。不改 OpenAPI | [复审记录](../docs/governance/ISSUE-022-backend-rereview.md) |
 | 2026-10-12 | outline-contract-frozen-1 / in-review | 第三轮复审批准后把契约状态改为 frozen。重试说明排除 502 `MODEL_UNAVAILABLE` 与 503 `SECRET_KEY_UNAVAILABLE`。新增 423 与 503 不列 `Idempotent-Replayed`。N8 按事件类型必填留到 BE-M0-T06。Issue 仍 in-review，QA 核对，项目经理关闭。不改任务计数 | [契约核对](../docs/testing/2026-10-12-t124-dependencies.md) |
+| 2026-10-12 | outline-contract-frozen-1 / in-review | QA P2：`spec/openapi/README.md` 的重试说明补上 502 `MODEL_UNAVAILABLE` 与 503 `SECRET_KEY_UNAVAILABLE` 不自动重试。QA P3：`x-idempotency.retry` 追加没有 `Idempotency-Key` 的写入不自动重试。不改错误码计数，不改 `errors.py`。状态仍 in-review | [契约核对](../docs/testing/2026-10-12-t124-dependencies.md) |
 
 ## 本地验收与后续合入发布
 

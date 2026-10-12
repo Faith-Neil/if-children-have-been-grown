@@ -55,6 +55,18 @@ T15 满足。T078 与 T114 仍不满足。三个 operationId 已写入契约，�
 
 随后 `python3 -m pytest tests/backend -q`：351 passed、6 skipped、1 warning。6 项跳过都是 `ICG_DATABASE_URL is unset`。这些测试不向新路径发请求。并入 `6c09121` 后 `node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：247 份 Markdown、371 项任务、29 项 Issue。」检查程序未修改。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。
 
+## QA 重试说明
+
+`spec/openapi/README.md` 写明客户端只对网络错误、502 和 503 用同一把 `Idempotency-Key` 重试，并补上 N7：`502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。` 同文件“同标记重试返回原结果”是成功重放，未改。
+
+`spec/openapi/demo-v1.json` 的 `components.x-idempotency.retry` 在这句 N7 之后追加：`没有 Idempotency-Key 的写入不自动重试。` 全局描述和每条 `Idempotency-Key` 描述不追加这句。`errors.py` 未改，错误码计数未改。契约测试在与运行中 OpenAPI 比较前去掉这句。
+
+命令：`python3 -m pytest tests/backend/test_outline_contract_draft.py tests/backend/test_error_idempotency.py::test_openapi_declares_v1_error_body_status_table_and_retry -q`
+
+结果：7 passed，1 warning。
+
+随后 `python3 -m pytest tests/backend -q`：351 passed、8 skipped、1 warning。8 项跳过都是 `ICG_DATABASE_URL is unset`。`node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：260 份 Markdown、372 项任务、31 项 Issue。」检查程序未修改。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。
+
 ## 局限
 
 没有连接 MySQL，没有调用模型，也没有把内存检索接到生成。草案不是可恢复任务已经实现，也不是发布。T078 计划没有对应测试，因为没有代码。

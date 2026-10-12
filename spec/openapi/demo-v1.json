@@ -20044,7 +20044,7 @@
       "ttl_seconds": 86400,
       "max_receipts": 2048,
       "legacy_body_field": "仅 POST /api/chapters/{chapter_id}/versions 仍接受正文 idempotency_key；同时出现请求头时两者必须相同",
-      "retry": "客户端只自动重试网络错误、502 和 503，并且必须复用同一个 Idempotency-Key；建议指数退避，最多 3 次。409、422、423、428 不重试，交给用户处理。401 重新登录。GET 可以重试。服务端不代替客户端重发请求。502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。",
+      "retry": "客户端只自动重试网络错误、502 和 503，并且必须复用同一个 Idempotency-Key；建议指数退避，最多 3 次。409、422、423、428 不重试，交给用户处理。401 重新登录。GET 可以重试。服务端不代替客户端重发请求。502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。没有 Idempotency-Key 的写入不自动重试。",
       "description": "同一次用户动作的重复请求标记，格式为 [A-Za-z0-9_-]{8,120}，UUID 符合该格式。作用域是 scope_id + user_id + key：项目写入的 scope_id 为 project_id，公司资料和公司服务承诺模板为 library:{company_id}。指纹是 action、规范化 payload 和 If-Match。同键同指纹重放首次成功结果，响应头 Idempotent-Replayed 为 true；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT；缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。回执保留 24 小时，内存最多 2048 条，超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。"
     },
     "headers": {
