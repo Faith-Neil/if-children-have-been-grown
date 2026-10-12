@@ -213,7 +213,7 @@
 | D-200 | 2026-10-12 | [010同步记录](governance/ISSUE-010-sync.md) | 治理 | model-choice-2 | 已核对 | ISSUE-010 / AI-01 | 补登 PROJECT_BRIEF；业务库决定为 MySQL 8 |
 | D-201 | 2026-10-12 | [011同步记录](governance/ISSUE-011-sync.md) | 治理 | openai-adapter-3 | 已核对 | ISSUE-011 / AI-02 | 补登 PROJECT_BRIEF；项目经理确认后为 done / closed |
 | D-202 | 2026-10-12 | [兼容模型适配器](../backend/bid-core/icg_demo/openai_model.py) | 后台 | openai-adapter-1 | 契约通过 | ISSUE-011 / AI-02 | 显式启用的 chat completions，失败不伪装成功 |
-| D-203 | 2026-10-12 | [适配器契约测试](../tests/backend/test_openai_compatible_model.py) | 验证 | openai-adapter-1 | 30项通过 | ISSUE-011 / AI-02 | 假传输覆盖成功、失败和敏感门禁 |
+| D-203 | 2026-10-12 | [适配器契约测试](../tests/backend/test_openai_compatible_model.py) | 验证 | openai-adapter-1 | 31项通过 | ISSUE-011 / AI-02；ISSUE-016 旁路 | 假传输覆盖成功、失败和敏感门禁；v1 生成失败为冻结错误体 |
 | D-204 | 2026-10-12 | [QA签署复核](testing/2026-10-12-qa-signoff.md) | 验证 | qa-rerun-2 | 本地通过 | ISSUE-013 / REV-M0-T05 | T008与AI-02签署：Actions三次成功、本地292/30/72/35，S1～S5 |
 | D-205 | 2026-10-12 | [签署复核交付](delivery/REV-M0-T05.md) | 交付 | qa-rerun-2 | 已本地验收 | ISSUE-013 / REV-M0-T05 | 无代码；结论与缺口 |
 | D-206 | 2026-10-12 | [ProLayout依赖Issue](../issues/ISSUE-014.md) | 版本 | pro-layout-7.22.7 | in-review | ISSUE-014 / APP-M2-T001 | 只增加 pro-layout 7.22.7；1334.42 kB 到 1564.53 kB |
@@ -226,7 +226,7 @@
 | D-213 | 2026-10-12 | [检索骨架事项](../issues/ISSUE-016.md) | 变更 | retrieval-skeleton-1 | in-review | ISSUE-016 / AI-03 | 内存检索口与三条证据候选；不连接 MySQL |
 | D-214 | 2026-10-12 | [检索骨架交付](delivery/AI-03.md) | 交付 | retrieval-skeleton-1 | in-review | ISSUE-016 / AI-03 | 契约与全后台结果；开发者不标 done |
 | D-215 | 2026-10-12 | [检索骨架代码解释](code/AI-03.md) | 说明 | retrieval-skeleton-1 | 当前 | ISSUE-016 / AI-03 | 三条路径、公司过滤和失败原因不含正文 |
-| D-216 | 2026-10-12 | [检索骨架验证](testing/2026-10-12-evidence-candidates.md) | 验证 | retrieval-skeleton-1 | 本地通过 | ISSUE-016 / AI-03 | 契约7项；全后台300项；无真实库 |
+| D-216 | 2026-10-12 | [检索骨架验证](testing/2026-10-12-evidence-candidates.md) | 验证 | retrieval-skeleton-1 | 本地通过 | ISSUE-016 / AI-03 | 契约7项；全后台309项；v1失败体已核对；无新错误码 |
 | D-217 | 2026-10-12 | [016同步记录](governance/ISSUE-016-sync.md) | 治理 | retrieval-skeleton-1 | 已核对 | ISSUE-016 / AI-03 | 344项20done、2in-review、7in-progress；PROJECT_BRIEF已登记 |
 | D-218 | 2026-10-12 | [检索实现](../backend/bid-core/icg_demo/retrieval.py) | 后台 | retrieval-skeleton-1 | 契约通过 | ISSUE-016 / AI-03 | 内存嵌入、重排、向量表和证据候选 |
 | D-219 | 2026-10-12 | [证据候选测试](../tests/backend/test_evidence_candidates.py) | 验证 | retrieval-skeleton-1 | 7项通过 | ISSUE-016 / AI-03 | 合成数据覆盖公司隔离和历史不可附着 |
@@ -288,6 +288,7 @@
 | 2026-10-12 | ISSUE-020 / APP-M2-T001 | 路由级分包提交 in-review。首屏主块 1564.53 kB 降至 315.94 kB。不新增任务，350项20done、4in-review、7in-progress、266planned、49blocked、4ready保持不变。未改基线正文，未改后台，未标 done |
 | 2026-10-12 | ISSUE-017 / OPS-M0-T02 | 内网部署草案 in-review；业务库按已登记的 MySQL 8 书写，向量与模型仍待决；351项20done、5in-review、4ready。未部署。未改 PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF |
 | 2026-10-12 | ISSUE-013 / REV-M0-T07 | QA签署BE-M0-T02与BE-M0-T03（两卡仍in-review待项目经理标done）；352项21done |
+| 2026-10-12 | ISSUE-016 / AI-03 | 旁路核对：适配器在 /api/v1 生成失败已是冻结错误体，只加一条测试。不新增错误码，不改码表，状态仍 in-review。不改 PRD、ROADMAP、ARCHITECTURE、TASK_BOARD、PROJECT_STATUS、PROJECT_BRIEF |
 
 ## 缺失输入
 

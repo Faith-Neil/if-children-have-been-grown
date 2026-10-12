@@ -15,7 +15,7 @@
 | revision | retrieval-skeleton-1 |
 | 关联 Task | [AI-03](../docs/tasks/AI-M0.md#ai-03) |
 | 关联 PR | 未创建 |
-| 本地验收 | 开发者已提交复核。2026-10-12 契约 7 项与全后台 300 项通过。开发者不标 done 或 closed |
+| 本地验收 | 开发者已提交复核。2026-10-12 契约 7 项通过。v1 生成失败已是冻结错误体，另加 1 条测试。全后台次数见验证记录。开发者不标 done 或 closed |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | [AI-03 交付](../docs/delivery/AI-03.md) |
@@ -51,7 +51,7 @@
 | AC-02 | 不连接 MySQL 或任何向量库，不新增依赖 | `requirements.txt` 未改；服务未挂到 `create_app` |
 | AC-03 | A/B/C 三条路径；B 或 C 失败或知识库关闭时回退到 A 并记录原因 | 契约测试覆盖关闭、B 失败和 C 失败 |
 | AC-04 | 合成数据覆盖跨公司隔离，历史投标不可附着 | 同公司以外的库、片段和历史不出现；路径 C 的 `attachable` 为 false |
-| AC-05 | 现有后台测试，包括 `test_reference_boundaries.py`，仍然通过 | 全后台 300 项通过，见验证记录 |
+| AC-05 | 现有后台测试，包括 `test_reference_boundaries.py`，仍然通过 | 全后台 309 项通过，见验证记录。本卡不新增错误码 |
 
 ## 六份基线 impact 与同步表
 
@@ -72,6 +72,7 @@
 | 日期 | revision / 状态 | 完成事实、问题与下一步 | 证据 / 复核人 |
 |---|---|---|---|
 | 2026-10-12 | retrieval-skeleton-1 / in-review | 内存检索口和三条路径已提交复核。未连接 MySQL，未选定向量库。开发者不标完成 | [验证记录](../docs/testing/2026-10-12-evidence-candidates.md) |
+| 2026-10-12 | retrieval-skeleton-1 / in-review | 旁路核对：OpenAI 兼容适配器在 `/api/v1` 生成失败时已返回 `{code, message, details, traceId}`，`MODEL_UNAVAILABLE` 为 502，`traceId` 等于 `X-Request-ID`。只加一条测试。本卡没有新错误码，不改码表，不改错误实现 | 同上 |
 
 ## 本地验收与后续合入发布
 

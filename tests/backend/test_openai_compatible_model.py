@@ -158,6 +158,28 @@ def test_http_failure_uses_existing_unavailable_path_and_keeps_chapter():
     assert len(calls) == 1
 
 
+def test_v1_generate_failure_returns_frozen_error_body():
+    model, calls = provider(lambda request, index: httpx.Response(500, text="synthetic-upstream"), retries=0)
+    with TestClient(create_app(model_provider=model)) as client:
+        flow = ProjectFlow(client).ready()
+        response = client.post(
+            flow.path + "/generate",
+            headers={**flow.headers, "If-Match": str(flow.state()["revision"]),
+                     "Idempotency-Key": "model-down-v1ok"},
+            json={})
+    assert response.status_code == 502, response.text
+    body = response.json()
+    assert set(body) == {"code", "message", "details", "traceId"}
+    assert body["code"] == "MODEL_UNAVAILABLE"
+    assert body["message"] == "候选生成失败，正式正文没有修改。"
+    assert body["details"] == {}
+    assert body["traceId"] == response.headers["X-Request-ID"]
+    assert len(body["traceId"]) == 32
+    assert "error" not in body and "request_id" not in body
+    assert "synthetic-upstream" not in response.text
+    assert len(calls) == 1
+
+
 @pytest.mark.parametrize("local,expected", [(False, 409), (True, 200)])
 def test_sensitive_gate_uses_provider_is_local(local, expected):
     model, calls = provider(lambda request, index: success_body(), is_local=local, retries=0)
