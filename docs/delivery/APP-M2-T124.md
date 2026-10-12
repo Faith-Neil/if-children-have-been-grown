@@ -22,7 +22,7 @@
 
 ## 完成内容与变更文件
 
-在 `spec/openapi/demo-v1.json` 增加草案，契约状态为 draft, pending backend review：
+在 `spec/openapi/demo-v1.json` 增加大纲与任务契约，状态现为 frozen：
 
 - `getOutlinePlan`：`GET /api/v1/projects/{project_id}/outline/plan`，成功响应带 ETag
 - `confirmOutlinePlan`：`POST /api/v1/projects/{project_id}/outline/plan/confirm`。If-Match 核对整份计划 revision
@@ -64,3 +64,7 @@ T124 为 blocked。ISSUE-022 为 in-review，复核对象是契约草案。并�
 ## 风险与后续
 
 后台接受草案之前，不能按这三个 operationId 写实现。T078、T114 具备之前，不能把评分行或片段计划送入模型。本地草案不是合入，也不是发布。
+
+## 契约冻结（outline-contract-frozen-1）
+
+2026-10-12 按第三轮复审把 `x-contract-status` 改为 frozen。运行时仍未实现，T124 仍 blocked，ISSUE-022 仍 in-review。重试说明排除 502 `MODEL_UNAVAILABLE` 与 503 `SECRET_KEY_UNAVAILABLE`。新增 423 与 503 不列 `Idempotent-Replayed`。`job.model_call` 的按事件类型必填字段留到 BE-M0-T06。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。不标 done。

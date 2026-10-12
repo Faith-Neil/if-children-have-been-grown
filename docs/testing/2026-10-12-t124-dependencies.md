@@ -8,7 +8,7 @@
 
 ## 结论
 
-T15 满足。T078 与 T114 仍不满足。三个 operationId 已写入草案，契约状态为 draft, pending backend review，运行时没有这些路由。T124 不能标 ready，仍是 blocked。ISSUE-022 为 in-review，只复核草案。剩余范围对应 REF-08，不对应 REF-07。
+T15 满足。T078 与 T114 仍不满足。三个 operationId 已写入契约，状态为 frozen，运行时没有这些路由。T124 不能标 ready，仍是 blocked。ISSUE-022 为 in-review，QA 核对冻结文本。剩余范围对应 REF-08，不对应 REF-07。
 
 ## 证据
 
@@ -21,7 +21,7 @@ T15 满足。T078 与 T114 仍不满足。三个 operationId 已写入草案，�
 | 片段发布 | `backend/bid-core` 与 `frontend/web` | 没有 `kb_sync_status`。`workflow_schemas.py` 第 13 行的 `snippet` 只是资料类型 |
 | T114 状态 | `docs/tasks/APP-M2.md` 第 1736 行；`docs/TASK_BOARD.md` 第 266 行 | planned |
 | 证据抽屉 | `frontend/web` | 没有 `EvidenceDrawer`。`ProjectPages.tsx` 第 129 行只保存条款的 `evidence_ids` |
-| 契约名 | `spec/openapi/demo-v1.json` 第 11203、11408、11690、11979 行 | 草案 operationId 为 `getOutlinePlan`、`confirmOutlinePlan`、`startGeneration`、`getJob`。状态为 draft, pending backend review。第 6679 行仍是已实现的 `generate_api_v1_projects__project_id__generate_post` |
+| 契约名 | `spec/openapi/demo-v1.json` | operationId 为 `getOutlinePlan`、`confirmOutlinePlan`、`startGeneration`、`getJob`。`x-contract-status` 为 frozen，`x-implemented` 为 false。已实现的生成入口仍是 `generate_api_v1_projects__project_id__generate_post` |
 | 模型输入 | `generation_context.py` 第 194、203、213–217 行 | `whole_chapter`。只拼标题、写作要点和字数目标 |
 | 差异 | `docs/decisions/icg-reference-deviations.md` 第 16–17 行 | 第 16 行是 REF-07，第 17 行是 REF-08 |
 
@@ -44,6 +44,16 @@ T15 满足。T078 与 T114 仍不满足。三个 operationId 已写入草案，�
 命令：`python3 -m pytest tests/backend/test_outline_contract_draft.py tests/backend/test_error_idempotency.py::test_openapi_declares_v1_error_body_status_table_and_retry -q`
 
 结果：5 passed。没有因此重跑全部后台测试：本轮不改 `backend/bid-core`。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。并入 `bde8e9e` 后 `node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：223 份 Markdown、364 项任务、28 项 Issue。」
+
+## 契约冻结（outline-contract-frozen-1）
+
+第三轮复审批准后冻结文本。`x-contract-status` 改为 `frozen`。已实现路径没有这个字段，过滤仍按该值去掉尚未实现的路径和模型。全局 `info.description`、`x-idempotency.retry` 和每条 `Idempotency-Key` 描述都包含：`502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。` `confirmOutlinePlan` 的 423，以及 `startGeneration` 的 423 与 503，响应头里没有 `Idempotent-Replayed`。`JobEvent.required` 未按事件类型拆开，N8 留到 BE-M0-T06。
+
+命令：`python3 -m pytest tests/backend/test_outline_contract_draft.py tests/backend/test_error_idempotency.py::test_openapi_declares_v1_error_body_status_table_and_retry -q`
+
+结果：7 passed，1 warning。
+
+随后 `python3 -m pytest tests/backend -q`：351 passed、6 skipped、1 warning。6 项跳过都是 `ICG_DATABASE_URL is unset`。这些测试不向新路径发请求。并入 `6c09121` 后 `node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：247 份 Markdown、371 项任务、29 项 Issue。」检查程序未修改。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。
 
 ## 局限
 

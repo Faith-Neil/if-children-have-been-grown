@@ -83,7 +83,7 @@
 | D-071 | 2026-10-11 | [API约定说明](../spec/openapi/README.md) | 接口 | reference-1 | 当前 | ISSUE-007 / APP-M1 | 生成当前主流程及章节约定的方法 |
 | D-072 | 2026-10-10 | [启动器](../backend/bid-core/Start-Demo.ps1) | 工具 | reference-1 | 已执行构建 | ISSUE-007 / APP-M1 | 安装前后端依赖、构建页面及单进程启动 |
 | D-073 | 2026-10-10 | [依赖锁定](../backend/bid-core/requirements.txt) | 环境 | reference-1 | 安装通过 | ISSUE-007 / APP-M1 | 加数字PDF解析，pip check通过 |
-| D-074 | 2026-10-12 | [实际接口约定](../spec/openapi/demo-v1.json) | 接口 | reference-1 / application-foundation-1 | 生成加草案 | ISSUE-007 / APP-M1；ISSUE-022 / T124 | 已实现路径仍从代码导出。大纲三个 operationId 与 getJob 是 draft, pending backend review，运行时没有 |
+| D-074 | 2026-10-12 | [实际接口约定](../spec/openapi/demo-v1.json) | 接口 | reference-1 / outline-contract-frozen-1 | 生成加冻结文本 | ISSUE-007 / APP-M1；ISSUE-022 / T124 | 已实现路径仍从代码导出。大纲与任务路径的 x-contract-status 为 frozen，x-implemented 仍 false |
 | D-075 | 2026-10-12 | [后台入口](../backend/bid-core/icg_demo/main.py) | 代码 | reference-1 | 联调通过 | ISSUE-007 / APP-M1；ISSUE-011 / AI-02 | 同源页面、两代错误字段；显式配置才启用兼容模型 |
 | D-076 | 2026-10-11 | [后台测试](../tests/backend/test_demo.py) | 验证代码 | demo-1 | 31项通过 | BE-M0-T01 | 实际失败边界、并发与输出 |
 | D-077 | 2026-10-11 | [HTTP验收入口](../backend/bid-core/smoke_demo.py) | 验证工具 | demo-1 | 通过 | BE-M0-T01 | 连接实际监听端口执行完整链路 |
@@ -265,11 +265,11 @@
 | D-253 | 2026-10-12 | [编辑台1280截图](testing/assets/e2e-editor-1280.png) | 证据 | e2e-1 | E2E截图 | ISSUE-019 / REV-M0-T06 | 编辑台三栏与暗色控件 |
 | D-254 | 2026-10-12 | [概览1440截图](testing/assets/e2e-overview-1440.png) | 证据 | e2e-1 | E2E截图 | ISSUE-019 / REV-M0-T06 | 项目概览布局 |
 | D-242 | 2026-10-12 | [017同步记录](governance/ISSUE-017-sync.md) | 治理 | intranet-plan-1 | 已核对 | ISSUE-017 / OPS-M0-T02 | 三件套与 brief 不改正文；过时的 T008 用词留给项目经理下一次基线同步 |
-| D-255 | 2026-10-12 | [T124契约事项](../issues/ISSUE-022.md) | 变更 | outline-contract-draft-3 | in-review | ISSUE-022 / APP-M2-T124 | 草案仍待复核；T078 内存发布 in-review；T124 仍 blocked |
-| D-256 | 2026-10-12 | [T124草案交付](delivery/APP-M2-T124.md) | 交付 | outline-contract-draft-3 | in-review | ISSUE-022 / APP-M2-T124 | 无运行时；不标 done |
-| D-257 | 2026-10-12 | [T124契约说明](code/APP-M2-T124.md) | 说明 | outline-contract-draft-3 | 当前 | ISSUE-022 / APP-M2-T124 | 独立 JobStatus 含 recoverable；整章输入保持 |
-| D-258 | 2026-10-12 | [T124契约核对](testing/2026-10-12-t124-dependencies.md) | 验证 | outline-contract-draft-3 | 契约测试 | ISSUE-022 / APP-M2-T124 | 快照、423、事件 payload、503 不重试；不调用新路由 |
-| D-259 | 2026-10-12 | [022同步记录](governance/ISSUE-022-sync.md) | 治理 | t078-memory-1 | 已核对 | ISSUE-022 / APP-M2-T078 | 内存发布 in-review；不改三份基线计数 |
+| D-255 | 2026-10-12 | [T124契约事项](../issues/ISSUE-022.md) | 变更 | outline-contract-frozen-1 | in-review | ISSUE-022 / APP-M2-T124 | 契约文本已冻结；T078 内存发布 in-review；T124 仍 blocked |
+| D-256 | 2026-10-12 | [T124草案交付](delivery/APP-M2-T124.md) | 交付 | outline-contract-frozen-1 | in-review | ISSUE-022 / APP-M2-T124 | 契约已冻结；无运行时；不标 done |
+| D-257 | 2026-10-12 | [T124契约说明](code/APP-M2-T124.md) | 说明 | outline-contract-frozen-1 | 当前 | ISSUE-022 / APP-M2-T124 | 状态 frozen；423/503 不列重放头；整章输入保持 |
+| D-258 | 2026-10-12 | [T124契约核对](testing/2026-10-12-t124-dependencies.md) | 验证 | outline-contract-frozen-1 | 契约测试 | ISSUE-022 / APP-M2-T124 | 冻结状态、重试例外、423/503 无重放头；不调用新路由 |
+| D-259 | 2026-10-12 | [022同步记录](governance/ISSUE-022-sync.md) | 治理 | outline-contract-frozen-1 | 已核对 | ISSUE-022 / APP-M2-T124 | 契约冻结；N8 留到 BE-M0-T06；不改三份基线计数 |
 | D-260 | 2026-10-12 | [MySQL 8 持久化方案](architecture/mysql-8-persistence-plan.md) | 架构 | impl-2 | in-review | ISSUE-018 / BE-M0-T11 | 回执和会话表已提交复查。租约和聚合表未建 |
 | D-261 | 2026-10-12 | [ISSUE-018](../issues/ISSUE-018.md) | 变更 | impl-2 | in-progress | ISSUE-018 / BE-M0-T11 | 回执和登录会话为 in-review；T12、T13 仍 planned；不关闭 |
 | D-262 | 2026-10-12 | [方案交付](delivery/BE-M0-T08.md) | 交付 | plan-1 | in-review | ISSUE-018 / BE-M0-T08 | 无运行时代码 |
@@ -425,6 +425,7 @@
 | 2026-10-12 | ISSUE-022；ISSUE-024 | 复审原文换成含 c6948c0 第三轮的版本。两码写入 V1Error.code 枚举和 x-error-status，使 403/503 响应体可通过校验。不改 ISSUE-022 的操作说明，不改任务计数 |
 | 2026-10-12 | ISSUE-024 | PM 批准 D-1。ISSUE-024 拥有 `stream_enabled`（布尔，默认 true）和 `json_mode_enabled`（布尔，默认 false）。二者纳入 `revision` 乐观锁，并在任务开始时随配置快照。ISSUE-028 只引用这两个名字，不重定义。不再把这两个开关的字段名交给 ISSUE-028。不改运行代码，不改任务计数 |
 | 2026-10-12 | ISSUE-009 / ISSUE-014 / ISSUE-020 / ISSUE-026 | 项目经理在 QA 签署后确认关闭：ISSUE-009（d55d507，REV-M0-T11）、ISSUE-014（173c39f，REV-M0-T14）、ISSUE-020（dcca509，REV-M0-T15）、ISSUE-026（9bcde17，REV-M0-T13）。关联卡 APP-M2-T001 与 APP-M2-T002 已为 done，不改其他卡片。看板手写摘要改为 371项37done、8in-review、7in-progress、266planned、49blocked、4ready。不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照。不改 ISSUE-013、ISSUE-016、ISSUE-028 与 AI-03 |
+| 2026-10-12 | ISSUE-022 / APP-M2-T124 | 第三轮复审后把大纲与任务契约标为 frozen。全局重试说明和 Idempotency-Key 说明排除 502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE。新增 423 与 503 不列 Idempotent-Replayed。N8 留到 BE-M0-T06。保留已写入枚举的两码。ISSUE-022 仍 in-review，T124 仍 blocked。不改 PRD、ROADMAP、PROJECT_BRIEF |
 
 ## 缺失输入
 

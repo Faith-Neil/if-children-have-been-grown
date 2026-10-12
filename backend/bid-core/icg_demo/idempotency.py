@@ -9,6 +9,7 @@ from contextvars import ContextVar
 from typing import Any
 
 from .domain import DemoState, DomainError, content_hash
+from .errors import NON_TRANSIENT_RETRY_EXCEPTION
 
 IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60
 MAX_IDEMPOTENCY_RECEIPTS = 2048
@@ -22,6 +23,7 @@ IDEMPOTENCY_HEADER_DESCRIPTION = (
     "缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。"
     f"回执保留 {IDEMPOTENCY_TTL_SECONDS // 3600} 小时，内存最多 {MAX_IDEMPOTENCY_RECEIPTS} 条，"
     "超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。"
+    + NON_TRANSIENT_RETRY_EXCEPTION
 )
 
 _request: ContextVar[Any] = ContextVar("idempotency_request", default=None)

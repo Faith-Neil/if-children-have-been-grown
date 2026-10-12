@@ -93,10 +93,16 @@ def _frozen_status() -> dict[str, int]:
 
 ERROR_STATUS: dict[str, int] = _frozen_status()
 
+NON_TRANSIENT_RETRY_EXCEPTION = (
+    "502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，"
+    "客户端不要自动重试，后端不发送 Retry-After。"
+)
+
 RETRY_GUIDANCE = (
     "客户端只自动重试网络错误、502 和 503，并且必须复用同一个 Idempotency-Key；"
     "建议指数退避，最多 3 次。409、422、423、428 不重试，交给用户处理。401 重新登录。"
     "GET 可以重试。服务端不代替客户端重发请求。"
+    + NON_TRANSIENT_RETRY_EXCEPTION
 )
 
 

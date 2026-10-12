@@ -4,8 +4,9 @@
 import json
 import re
 
+from icg_demo.errors import NON_TRANSIENT_RETRY_EXCEPTION
 from test_error_idempotency import (
-    DEPRECATED_OPERATIONS, DEPRECATION_NOTE, DRAFT_STATUS, SPEC, implemented_contract)
+    DEPRECATED_OPERATIONS, DEPRECATION_NOTE, FROZEN_STATUS, SPEC, implemented_contract)
 
 CAMEL = re.compile(r"^[a-z][A-Za-z0-9]*$")
 OPERATIONS = {
@@ -61,7 +62,7 @@ def load_spec():
 def operation(spec, path):
     method, name = OPERATIONS[path]
     item = spec["paths"][path]
-    assert item["x-contract-status"] == DRAFT_STATUS
+    assert item["x-contract-status"] == FROZEN_STATUS
     assert item["x-implemented"] is False
     assert item["x-aligned-with"] == "BE-M0-T06"
     body = item[method]
@@ -78,8 +79,13 @@ def test_draft_operation_ids_are_camel_case_and_absent_from_the_running_contract
         "getJob", "streamJobEvents", "cancelJob",
     }
     implemented = implemented_contract(spec)
-    assert spec["x-contract-drafts"]["status"] == DRAFT_STATUS
+    assert spec["x-contract-drafts"]["status"] == FROZEN_STATUS
+    assert FROZEN_STATUS == "frozen"
+    assert "draft, pending backend review" not in json.dumps(spec, ensure_ascii=False)
     assert spec["x-contract-drafts"]["implemented"] is False
+    for name, body in spec["components"]["schemas"].items():
+        if isinstance(body, dict) and body.get("x-implemented") is False:
+            assert body.get("x-contract-status") == FROZEN_STATUS, name
     assert "x-contract-drafts" not in implemented
     for path in OPERATIONS:
         assert path not in implemented["paths"]
@@ -89,6 +95,47 @@ def test_draft_operation_ids_are_camel_case_and_absent_from_the_running_contract
     for path in DEPRECATED_OPERATIONS:
         assert path in implemented["paths"]
         assert "deprecated" not in implemented["paths"][path]["post"]
+
+
+FAILURES_WITHOUT_RECEIPT = {
+    "/api/v1/projects/{project_id}/outline/plan/confirm": ("423",),
+    "/api/v1/projects/{project_id}/generation/start": ("423", "503"),
+}
+
+
+def test_retry_text_excludes_non_transient_model_and_secret_failures():
+    spec = load_spec()
+    assert NON_TRANSIENT_RETRY_EXCEPTION in spec["info"]["description"]
+    idempotency = spec["components"]["x-idempotency"]
+    assert NON_TRANSIENT_RETRY_EXCEPTION in idempotency["retry"]
+    assert NON_TRANSIENT_RETRY_EXCEPTION in idempotency["description"]
+    seen = 0
+    for item in spec["paths"].values():
+        if not isinstance(item, dict):
+            continue
+        for body in item.values():
+            if not isinstance(body, dict):
+                continue
+            for parameter in body.get("parameters", []):
+                if parameter.get("name") != "Idempotency-Key":
+                    continue
+                seen += 1
+                assert NON_TRANSIENT_RETRY_EXCEPTION in parameter["description"]
+                schema_text = parameter.get("schema", {}).get("description", "")
+                if schema_text:
+                    assert NON_TRANSIENT_RETRY_EXCEPTION in schema_text
+    assert seen > 0
+
+
+def test_failed_lock_and_secret_responses_do_not_advertise_replay():
+    spec = load_spec()
+    for path, codes in FAILURES_WITHOUT_RECEIPT.items():
+        body = operation(spec, path)
+        assert "Idempotent-Replayed" in next(iter(body["responses"].values()))["headers"]
+        for code in codes:
+            headers = body["responses"][code]["headers"]
+            assert "X-Request-ID" in headers
+            assert "Idempotent-Replayed" not in headers
 
 
 def test_errors_are_listed_per_operation_and_reuse_the_frozen_body():
@@ -207,4 +254,4 @@ def test_outline_confirm_uses_plan_revision_and_old_posts_are_deprecated():
         body = spec["paths"][path]["post"]
         assert body["deprecated"] is True
         assert body["description"] == DEPRECATION_NOTE
-        assert body.get("x-contract-status") != DRAFT_STATUS
+        assert body.get("x-contract-status") != FROZEN_STATUS

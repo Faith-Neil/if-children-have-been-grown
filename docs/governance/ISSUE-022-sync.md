@@ -75,3 +75,24 @@
 | DOCUMENT_INDEX.md | 有 | 登记交付、代码解释和核对 | 2026-10-12 |
 
 未合入，未发布。不标 done，不标 closed。并入 `c9a3cd5` 后 `python3 -m pytest tests/backend -q` 为 346 passed、2 skipped，跳过原因是 `ICG_DATABASE_URL is unset`。`node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：231 份 Markdown、366 项任务、28 项 Issue。」检查程序未修改。
+
+## outline-contract-frozen-1
+
+日期：2026-10-12。范围：按第三轮复审冻结大纲与任务契约文本。ISSUE-022 仍为 in-review，QA 核对，项目经理关闭。T124 仍 blocked。T078 仍 in-review。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数，也不改这三份正文。
+
+| 文档 | 本次影响 | 实际处理 | 版本与状态 |
+|---|---|---|---|
+| PRD.md | 无 | 不改正文，不改计数 | 2026-10-12 |
+| ROADMAP.md | 无 | 不改正文，不改计数。里程碑快照里的旧草案句保留 | 2026-10-12 |
+| PROJECT_BRIEF.md | 无 | 不改正文，不改计数。里程碑快照里的旧草案句保留 | 2026-10-12 |
+| ARCHITECTURE.md | 无 | 契约仍未进入运行结构 | 2026-10-12 |
+| TASK_BOARD.md | 无状态变化 | T124 仍 blocked，T078 仍 in-review。说明改为契约已冻结 | 2026-10-12 |
+| PROJECT_STATUS.md | 无状态变化 | 写明契约文本已冻结，运行时未接通。不改计数 | 2026-10-12 |
+| issues/ISSUE-022.md | 有 | revision 改为 outline-contract-frozen-1。状态仍 in-review | in-review |
+| issues/index.md | 有 | 状态不变。下一步改为 QA 核对冻结文本 | in-review |
+| spec/openapi/demo-v1.json | 有 | `x-contract-status` 改为 frozen。全局说明与每条 Idempotency-Key 说明增加非瞬时例外。新增 423 与 503 去掉 Idempotent-Replayed | frozen；x-implemented 仍 false |
+| 运行代码 | 有说明文字 | `RETRY_GUIDANCE` 与 `IDEMPOTENCY_HEADER_DESCRIPTION` 增加同一句例外。不新增路由。保留后端已写入错误表的两码 | 2026-10-12 |
+| N8 | 不做 | `job.model_call` 的按事件类型必填字段留到 BE-M0-T06。本轮不改 `JobEvent.required` | 延后 |
+| DOCUMENT_INDEX.md | 有 | 冻结条目改为 outline-contract-frozen-1。不改计数行 | 2026-10-12 |
+
+未合入，未发布。不标 done，不标 closed。第三轮复审记录为 `docs/governance/ISSUE-022-backend-rereview.md`。`python3 -m pytest tests/backend/test_outline_contract_draft.py tests/backend/test_error_idempotency.py::test_openapi_declares_v1_error_body_status_table_and_retry -q` 为 7 passed。`python3 -m pytest tests/backend -q` 为 351 passed、6 skipped，跳过原因是 `ICG_DATABASE_URL is unset`。并入 `6c09121` 后 `node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：247 份 Markdown、371 项任务、29 项 Issue。」检查程序未修改。

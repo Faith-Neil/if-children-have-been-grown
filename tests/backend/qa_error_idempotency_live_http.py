@@ -17,7 +17,7 @@ sys.path.insert(0, str(ROOT / "backend" / "bid-core"))
 from icg_demo.errors import ERROR_STATUS  # noqa: E402
 
 RESULTS = []
-DRAFT_STATUS = "draft, pending backend review"
+FROZEN_STATUS = "frozen"
 DEPRECATION_NOTE = "已废弃。新旧入口并存。前端改用 getOutlinePlan、confirmOutlinePlan 与 startGeneration 之后，由后续 Issue 删除本操作。运行时尚未标出 deprecated。"
 DEPRECATED_OPERATIONS = (
     "/api/v1/projects/{project_id}/plan",
@@ -27,11 +27,11 @@ DEPRECATED_OPERATIONS = (
 
 
 def implemented_contract(document):
-    """与契约测试相同：草案路径不参与和运行中接口的比较。"""
+    """与契约测试相同：已冻结但尚未实现的路径不参与和运行中接口的比较。"""
     spec = json.loads(json.dumps(document))
     spec.pop("x-contract-drafts", None)
     for path, item in list(spec["paths"].items()):
-        if isinstance(item, dict) and item.get("x-contract-status") == DRAFT_STATUS:
+        if isinstance(item, dict) and item.get("x-contract-status") == FROZEN_STATUS:
             del spec["paths"][path]
     for path in DEPRECATED_OPERATIONS:
         operation = spec["paths"][path]["post"]
@@ -40,7 +40,7 @@ def implemented_contract(document):
             operation.pop("description", None)
     schemas = spec["components"]["schemas"]
     for name, body in list(schemas.items()):
-        if isinstance(body, dict) and body.get("x-contract-status") == DRAFT_STATUS:
+        if isinstance(body, dict) and body.get("x-contract-status") == FROZEN_STATUS:
             del schemas[name]
     return spec
 
