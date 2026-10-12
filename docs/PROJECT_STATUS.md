@@ -10,7 +10,7 @@
 
 ISSUE-010 整体仍 blocked。2026-10-12 用户决定业务库为 MySQL 8（user decision, relayed by PM）。MySQL 8 没有向量检索，向量库不再与业务库同库，pgvector 不再作为同库选项。对话模型、嵌入、重排和向量库仍待决定。公司内网 Qwen 30B 的 OpenAI 兼容接口仍是候选。本记录不引入迁移工具，单元测试继续使用内存实现。托管 CI 不能访问内网。
 
-ISSUE-011 / AI-02 为 in-review：OpenAI 兼容适配器默认仍是演示替身，只有显式配置才启用；失败返回现有 502，敏感项目门禁保持不变。契约测试使用假 HTTP，没有调用真实端点。开发者不标 done 或 closed。详见[验证](testing/2026-10-12-openai-compatible-model.md)。
+ISSUE-011 已 closed，AI-02 为 done：项目经理于 10-12 12:10 在 QA 签署后确认。OpenAI 兼容适配器默认仍是演示替身，只有显式配置才启用；失败返回现有 502，敏感项目门禁保持不变。契约测试使用假 HTTP，没有调用真实端点。ISSUE-010 仍 blocked。详见[验证](testing/2026-10-12-openai-compatible-model.md)。
 
 ## 当前共同底座阶段
 
@@ -28,7 +28,7 @@ ISSUE-015 / REV-M0-T03已编制[APP-M1-T06验收计划](testing/2026-10-12-app-m
 
 ## 任务进度口径
 
-治理版本g1.1，当前实际开发关联ISSUE-007及资料保护ISSUE-008；范围评审关联ISSUE-005；模型与向量库待决关联ISSUE-010，业务库已决定为 MySQL 8。项目343项中18done、3in-review、7in-progress、266planned、49blocked、0ready。APP-M1的16项中9项本地done：T07范围拆分及T09～16限定子任务；T01～06完整父任务继续，T08最终审计planned，T16资料及模板旧表单保护本地done。[APP-M2的259项](tasks/APP-M2.md)中T001布局、路由和离开保护为 in-review，T008离线CI为 in-review，其余257项planned，覆盖47组页面和44规则，不代表软件已实现。AI-01仍blocked，AI-02为in-review。REV-M0-T05已记录QA对T008与AI-02的签署，不代替项目经理把这两张卡标done。PR待合入、未发布；BE-M0-T01只证明局部后台基础，FE-M0-T03继续来源评审，生产一期尚未验收。
+治理版本g1.1，当前实际开发关联ISSUE-007及资料保护ISSUE-008；范围评审关联ISSUE-005；模型与向量库待决关联ISSUE-010，业务库已决定为 MySQL 8。项目343项中19done、2in-review、7in-progress、266planned、49blocked、0ready。APP-M1的16项中9项本地done：T07范围拆分及T09～16限定子任务；T01～06完整父任务继续，T08最终审计planned，T16资料及模板旧表单保护本地done。[APP-M2的259项](tasks/APP-M2.md)中T001布局、路由和离开保护为 in-review，T008离线CI为 in-review，其余257项planned，覆盖47组页面和44规则，不代表软件已实现。AI-01仍blocked，AI-02为done。REV-M0-T05已记录QA签署；项目经理于 10-12 12:10 在 QA 签署后确认 AI-02。该签署不把 T008 标为 done。PR待合入、未发布；BE-M0-T01只证明局部后台基础，FE-M0-T03继续来源评审，生产一期尚未验收。
 
 资料库专项审查确认：当前只支持基础文字资料，确认声明、审核、受限名单、真实附件槽位、历史和引用版本仍缺。T16已修复资料及公司模板旧表单借刷新版本覆盖新内容的问题；完整C01/C06各卡继续planned，不能以修复代替其验收。
 
@@ -93,7 +93,7 @@ T16保留表单真正读到的公司、内容和版本；冲突保留填写，�
 3. 按原始交接清单补齐其他页面、结构化编辑、一期完整/简化规则及分册定稿，未完成部分保留真实状态。
 4. 示例不合理之处登记[差异记录](decisions/icg-reference-deviations.md)，完成对应流程后再修正；生产身份与部署另有明确验收门禁，模型和数据库本轮只保留接口。
 
-具体目录和阶段验收见 [目录方案](architecture/repository-layout.md)。截至 2026-10-12，业务库已决定为 MySQL 8，向量库仍未选定，也未合并合作分支。AI-02 为 in-review，只增加可显式关闭的兼容适配器，默认模型仍是替身。运行数据仍在内存中。
+具体目录和阶段验收见 [目录方案](architecture/repository-layout.md)。截至 2026-10-12，业务库已决定为 MySQL 8，向量库仍未选定，也未合并合作分支。AI-02 为 done：项目经理于 10-12 12:10 在 QA 签署后确认。它只增加可显式关闭的兼容适配器，默认模型仍是替身。运行数据仍在内存中。
 
 ## 全工作区与接手审查
 

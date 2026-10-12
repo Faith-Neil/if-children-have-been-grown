@@ -38,7 +38,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 在现有模型和 HTTP 库上增加一个适配器 |
 | 关联 Issue | [ISSUE-011](../../issues/ISSUE-011.md) |
 | 依赖 | [BE-M0-T01](BE-M0.md#be-m0-t01) 的 `ModelProvider`。不依赖 ISSUE-010 的最终端点 |
@@ -57,4 +57,4 @@
 - [x] `tests/backend/test_reference_boundaries.py` 包含在全后台回归中。
 - [x] 交付、代码解释、验证记录和基线同步已登记。真实内网调用不在本卡。
 
-开发者不把本卡标为 done。状态保持 in-review，待项目经理在 QA 签字后决定。
+项目经理于 10-12 12:10 在 QA 签署后确认。状态为 done。合入和发布仍未发生。真实端点仍随 ISSUE-010，该 Issue 仍 blocked。
