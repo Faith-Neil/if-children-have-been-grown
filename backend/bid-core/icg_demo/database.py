@@ -1,5 +1,5 @@
 # 为什么有这个文件：按环境变量决定进程使用内存仓库还是连上 MySQL。
-# 它解决什么问题：未设置连接串时，现有测试和公网 CI 仍走内存；设置后回执和登录会话对多个进程可见，并且进程重启后还在。
+# 它解决什么问题：未设置连接串时，现有测试和公网 CI 仍走内存；设置后回执、登录会话和编辑租约对多个进程可见，并且进程重启后还在。
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from threading import Lock
 from typing import Callable, TypeVar
 
 from .adapters import MemoryRepository
-from .domain import DemoState
+from .domain import DemoState, Lease
 
 DATABASE_URL_ENV = "ICG_DATABASE_URL"
 REQUIRE_MYSQL_ENV = "ICG_REQUIRE_MYSQL"
@@ -108,7 +108,7 @@ def _json_value(value):
 
 
 class MysqlConnectionRepository:
-    # 业务数据仍在内存。登录会话和幂等回执写入 MySQL，导入和 create_app 都不连接。
+    # 业务正文仍在内存。登录会话、幂等回执和编辑租约写入 MySQL，导入和 create_app 都不连接。
     mode = "mysql"
 
     def __init__(self, url: str):
@@ -144,10 +144,16 @@ class MysqlConnectionRepository:
             state.cap_receipts = False
             before_sessions = dict(state.sessions)
             before_receipts = {key: dict(receipt) for key, receipt in state.workflow_receipts.items()}
+            before_leases = _lease_snapshot(state)
             result = operation(state)
-            self._save_shared(before_sessions, dict(state.sessions), before_receipts, state.workflow_receipts)
+            self._save_shared(
+                before_sessions, dict(state.sessions), before_receipts, state.workflow_receipts,
+                before_leases, _lease_snapshot(state),
+            )
             state.sessions.clear()
             state.workflow_receipts.clear()
+            for chapter in state.chapters.values():
+                chapter.lock = None
             state.cap_receipts = True
             return result
 
@@ -163,6 +169,9 @@ class MysqlConnectionRepository:
                 "SELECT scope_id, user_id, idempotency_key, fingerprint, result_json, created_at "
                 "FROM idempotency_receipt"
             )).all()
+            leases = connection.execute(text(
+                "SELECT chapter_id, token, owner_id, session_token, expires_at FROM chapter_lease"
+            )).all()
         state.sessions = {token: user_id for token, user_id in sessions}
         state.workflow_receipts = {
             (scope_id, user_id, key): {
@@ -172,9 +181,16 @@ class MysqlConnectionRepository:
             }
             for scope_id, user_id, key, fingerprint, result_json, created_at in receipts
         }
+        loaded = {
+            chapter_id: Lease(token, owner_id, session_token, _as_timestamp(expires_at))
+            for chapter_id, token, owner_id, session_token, expires_at in leases
+        }
+        for chapter_id, chapter in state.chapters.items():
+            chapter.lock = loaded.get(chapter_id)
 
     def _save_shared(self, before_sessions: dict, after_sessions: dict,
-                     before_receipts: dict, after_receipts: dict) -> None:
+                     before_receipts: dict, after_receipts: dict,
+                     before_leases: dict, after_leases: dict) -> None:
         from sqlalchemy import text
 
         with self.engine.begin() as connection:
@@ -243,6 +259,53 @@ class MysqlConnectionRepository:
                         ),
                         payload,
                     )
+            for chapter_id in set(before_leases) | set(after_leases):
+                previous = before_leases.get(chapter_id)
+                current = after_leases.get(chapter_id)
+                if previous == current:
+                    continue
+                if current is None:
+                    connection.execute(
+                        text("DELETE FROM chapter_lease WHERE chapter_id = :chapter_id"),
+                        {"chapter_id": chapter_id},
+                    )
+                    continue
+                token, owner_id, session_token, expires_at = current
+                payload = {
+                    "chapter_id": chapter_id,
+                    "token": token,
+                    "owner_id": owner_id,
+                    "session_token": session_token,
+                    "expires_at": _utc_naive(expires_at),
+                }
+                if previous is None:
+                    connection.execute(
+                        text(
+                            "INSERT INTO chapter_lease "
+                            "(chapter_id, token, owner_id, session_token, expires_at) "
+                            "VALUES (:chapter_id, :token, :owner_id, :session_token, :expires_at)"
+                        ),
+                        payload,
+                    )
+                else:
+                    connection.execute(
+                        text(
+                            "UPDATE chapter_lease SET token = :token, owner_id = :owner_id, "
+                            "session_token = :session_token, expires_at = :expires_at "
+                            "WHERE chapter_id = :chapter_id"
+                        ),
+                        payload,
+                    )
+
+
+def _lease_snapshot(state: DemoState) -> dict:
+    snapshot = {}
+    for chapter_id, chapter in state.chapters.items():
+        lease = chapter.lock
+        snapshot[chapter_id] = None if lease is None else (
+            lease.token, lease.owner_id, lease.session_token, float(lease.expires_at),
+        )
+    return snapshot
 
 
 def _same_receipt(previous: dict, receipt: dict) -> bool:

@@ -4,7 +4,7 @@
 
 # MySQL 8 持久化方案
 
-日期：2026-10-12。关联 [ISSUE-018](../../issues/ISSUE-018.md)、任务 [BE-M0-T08](../tasks/BE-M0.md#be-m0-t08)。状态 in-review。下文第 1～8 节仍是方案。项目经理已批准四项依赖。连接配置和空基线迁移由 [BE-M0-T10](../tasks/BE-M0.md#be-m0-t10) 实施；回执、会话、租约和聚合表仍未做。
+日期：2026-10-12。关联 [ISSUE-018](../../issues/ISSUE-018.md)、任务 [BE-M0-T08](../tasks/BE-M0.md#be-m0-t08)。状态 in-review。下文第 1～8 节仍是方案。项目经理已批准四项依赖。连接配置和空基线迁移由 [BE-M0-T10](../tasks/BE-M0.md#be-m0-t10) 实施。回执和会话由 [BE-M0-T11](../tasks/BE-M0.md#be-m0-t11) 提交复查。编辑租约由 [BE-M0-T12](../tasks/BE-M0.md#be-m0-t12) 提交复查，字段对照在第 5 节。聚合表仍未做。业务数据以 [PRD v1.8](../reference/product/prd-mvp-v1.8.md) 和 [字典 v1.9](../reference/product/kb-data-dictionary-v1.9.md) 为准，这两份只读，不改 `docs/reference/`。
 
 业务库已决定为 MySQL 8。向量库、对话模型、嵌入和重排仍随 ISSUE-010，不放进 MySQL。现有入口是 `Repository.read()` 与 `Repository.transaction(operation)`，回调收到整份 `DemoState`。`MemoryRepository` 在锁内深拷贝整份状态，失败不提交。幂等回执在 `DemoState.workflow_receipts`，键为 `(scope_id, user_id, key)`，保留 24 小时，内存最多 2048 条。编辑租约在 `Chapter.lock`，`LEASE_SECONDS = 120`。
 
@@ -91,6 +91,31 @@ CREATE TABLE chapter_lease (
 - 接管：租约已过期，或调用方提供接管原因时，在同一事务替换该行，审计记录原因和上一所有者。未过期且无原因时保持现有拒绝行为。
 - 释放：匹配的未过期租约删除该行并写审计。保存草稿和提交版本继续要求持有未过期租约。
 
+BE-M0-T12 的迁移建立上表，但不加 `chapter` 外键：`chapter` 表属于 BE-M0-T13，现在还没有。
+
+### 字典 v1.9 字段对照表
+
+对照 [字典 v1.9](../reference/product/kb-data-dictionary-v1.9.md) 3.10.4.6 `edit_lock`，以及 3.0 节 A 组、C 组。PRD v1.8 第 5.7.12 节的 `edit_lock` 行与字典冲突时以字典 3.10 节为准。本卡只把演示里的当前租约写入 `chapter_lease`，不是字典全表。下表每一行偏差都需要项目经理批准；未批准前不改表、不补列。
+
+| 表 | 字段 | 类型 | 必填 | 枚举 | 字典条目 | 对照 |
+|---|---|---|---|---|---|---|
+| `chapter_lease` | `chapter_id` | VARCHAR(120) | 是 | 无 | `edit_lock.node_id`，引用→`bid_outline_node`，必填 | 偏差。字典指向大纲节点。本表存演示章节 id，并作为主键，一章只留一行。字典是部分唯一：每个 `node_id` 只有一条 `released_at` 为空的记录。需要项目经理批准 |
+| `chapter_lease` | `token` | VARCHAR(200)，`utf8mb4_bin` | 是 | 无 | 无对应列 | 偏差。演示租约令牌，用来续期和校验。字典 `edit_lock` 没有此列。需要项目经理批准 |
+| `chapter_lease` | `owner_id` | VARCHAR(120) | 是 | 无 | `edit_lock.user_id`，引用→`sys_user`，可空 | 偏差。字典可空，空表示系统持锁。本表必填，存演示账号 id，没有 `sys_user`。需要项目经理批准 |
+| `chapter_lease` | `session_token` | VARCHAR(200)，`utf8mb4_bin` | 是 | 无 | 无对应列 | 偏差。把租约绑到登录会话。字典没有此列。需要项目经理批准 |
+| `chapter_lease` | `expires_at` | DATETIME(6) | 是 | 无 | `edit_lock.expires_at`，时间，系统填写 | 偏差。字典等于最近心跳加公司设置 `edit_lock_timeout_minutes`。本表在取得或续期时用应用时钟加 120 秒，没有心跳。需要项目经理批准 |
+| `chapter_lease` | （未建） | — | — | 无 | `edit_lock.acquired_at`，时间，系统 | 偏差。取得时间没有单独的列。需要项目经理批准 |
+| `chapter_lease` | （未建） | — | — | `loop_status`：`not_started` 未开始、`plan_pending` 大纲待确认、`ready` 待生成、`generating` 生成中、`checking` 检查中、`fixing` 修正中、`completed` 已完成、`pending_human` 待人工处理、`human_handled` 人工已处理、`interrupted` 异常中断 | `edit_lock.lock_reason`，代码〈`loop_status`〉，可空 | 偏差。系统持锁原因未入库。需要项目经理批准 |
+| `chapter_lease` | （未建） | — | — | 无 | `edit_lock.heartbeat_at`，时间，系统 | 偏差。没有心跳列。心跳间隔见字典 `edit_lock_heartbeat_seconds`（示例 60 秒）。需要项目经理批准 |
+| `chapter_lease` | （未建） | — | — | 无 | `edit_lock.taken_over_from_user_id`，引用→`sys_user`，条件必填 | 偏差。接管时的上一持有人写在内存审计里，不写本表。需要项目经理批准 |
+| `chapter_lease` | （未建） | — | — | 无 | `edit_lock.takeover_reason`，文本(300)，条件必填 | 偏差。接管原因写在内存审计里，不写本表。需要项目经理批准 |
+| `chapter_lease` | （未建） | — | — | 无 | `edit_lock.released_at`，时间，系统 | 偏差。释放是删行，不保留历史。需要项目经理批准 |
+| `chapter_lease` | （未建） | — | — | `lock_release_reason`：`manual` 主动离开、`timeout` 超时、`taken_over` 被接管、`system` 系统持锁 | `edit_lock.release_reason`，代码〈`lock_release_reason`〉，系统 | 偏差。释放原因未入库。需要项目经理批准 |
+| `chapter_lease` | （未建） | — | — | 无 | A 组 `id`、`created_by`、`created_at`、`updated_by`、`updated_at`、`record_version`、`is_deleted` | 偏差。演示租约没有审计列，也没有逻辑删除。需要项目经理批准 |
+| `chapter_lease` | （未建） | — | — | 无 | C 组 `company_id`，引用→`company`，公司级表必填 | 偏差。演示数据没有公司隔离列。需要项目经理批准 |
+
+原因：本卡只让现有 120 秒租约在另一个进程里仍能续期，过期后仍能被其他会话接管。字典里的历史锁、心跳、公司隔离和两套枚举留给后续聚合，不在本卡补列。
+
 ## 6. 其他聚合
 
 这些表在实现轮次再写迁移。本方案只定边界，避免一次事务继续拷贝全部状态。
@@ -171,4 +196,4 @@ ICG_REQUIRE_MYSQL=1 python -m pytest tests/backend -m mysql
 
 ## 11. 仍未做
 
-BE-M0-T11 为 in-review：幂等回执和登录会话已写入 MySQL，多个进程可见，重启后未过期数据仍在。`alembic downgrade base` 后再 `upgrade head` 能把这两张表建回来。租约（BE-M0-T12）和按聚合迁移（BE-M0-T13）仍未做，也没有章节外键。`MemoryRepository` 仍是未设置连接串时的仓库，也仍是已连接时的业务读写委托。旧 `/api` 错误体见 [ISSUE-021](../../issues/ISSUE-021.md)，本轮不实施。
+BE-M0-T11 为 in-review：幂等回执和登录会话已写入 MySQL，多个进程可见，重启后未过期数据仍在。BE-M0-T12 为 in-review：`chapter_lease` 已写入 MySQL，续期后占用者不变，过期后其他会话可以接管。迁移能 `downgrade base` 再 `upgrade head`。没有章节外键，字段与字典 v1.9 `edit_lock` 的偏差列在第 5 节，都需要项目经理批准。按聚合迁移（BE-M0-T13）仍未做。`MemoryRepository` 仍是未设置连接串时的仓库，也仍是已连接时的业务读写委托。旧 `/api` 错误体见 [ISSUE-021](../../issues/ISSUE-021.md)，本轮不实施。
