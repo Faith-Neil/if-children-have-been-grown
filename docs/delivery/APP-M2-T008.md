@@ -9,15 +9,15 @@
 |---|---|
 | 任务ID | APP-M2-T008 |
 | 代码解释 | [离线 CI 工作流](../code/APP-M2-T008.md) |
-| 验收 | [cf2c2a1 三作业通过](../testing/2026-10-12-offline-ci.md)：pytest 262、会话 15、smoke_t06 12、前端 72、cjs 35、治理检查通过。QA 已签署。`buildTheme` 未执行。卡片为 in-review |
-| 项目进度 | 本卡 in-review。343 项中 done 19、in-review 1、in-progress 8、planned 266、blocked 49、ready 0。APP-M2 为 T001 in-progress、T008 in-review、其余 257 张 planned。done 待项目经理 |
+| 验收 | [cf2c2a1 三作业通过](../testing/2026-10-12-offline-ci.md)：pytest 262、会话 15、smoke_t06 12、前端 72、cjs 35、治理检查通过。QA 已签署。`buildTheme` 未执行。项目经理于 10-12 12:10 在 QA 签署后确认，卡片为 done |
+| 项目进度 | 本卡 done。343 项中 done 20、in-review 1、in-progress 7、planned 266、blocked 49、ready 0。APP-M2 为 T001 in-review、T008 done、其余 257 张 planned。未合入，未发布 |
 <!-- task-delivery:end -->
 
 ## 关联与状态
 
 - 日期、里程碑、Issue、任务卡：2026-10-12；APP-M2；[ISSUE-012](../../issues/ISSUE-012.md)；[任务卡](../tasks/APP-M2.md#app-m2-t008)。
 - 分支、提交、PR：`codex/repository-foundation`；工作流提交 `cf2c2a1`；[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3) 为既有草稿，本轮不新建 PR。
-- 本地验收状态：in-review。Actions 运行 [38200746746](https://github.com/Faith-Neil/if-children-have-been-grown/actions/runs/38200746746) 三个作业均为 success。QA 签署见 [57ef015](../testing/2026-10-12-qa-signoff.md)。done 由项目经理设置。
+- 本地验收状态：done。项目经理于 10-12 12:10 在 QA 签署后确认。Actions 运行 [38200746746](https://github.com/Faith-Neil/if-children-have-been-grown/actions/runs/38200746746) 三个作业均为 success。QA 签署见 [57ef015](../testing/2026-10-12-qa-signoff.md)。
 - 合入 / 发布状态：未合入，未发布。
 
 ## 完成内容与变更文件
@@ -42,19 +42,21 @@ Python 固定 3.13.5，Node 固定 24.9.0。pip 与 pnpm 使用 Actions 缓存�
 
 ## 项目进度
 
-本卡现为 in-review。343 项中 done 19、in-review 1、in-progress 8、planned 266、blocked 49、ready 0。APP-M2 的 259 张卡中 T001 仍 in-progress，T008 为 in-review，其余 257 张 planned。下一张产品卡仍按依赖推进，不因本门禁把 T001 或完整产品标完成。PR #3 待合入，未发布。
+S4 当时把本卡放回 in-review，当时快照是 343 项中 done 19、in-review 1。该句保留为当时事实。
+
+本卡现为 done。项目经理于 10-12 12:10 在 QA 签署后确认。当前看板 343 项：done 20、in-review 1（APP-M2-T001）、in-progress 7、planned 266、blocked 49、ready 0。AI-02 已在另一次确认中标为 done，本卡不改 ISSUE-011。APP-M2 的 259 张卡中 T001 为 in-review，T008 为 done，其余 257 张 planned。PR #3 待合入，未发布。
 
 ## 文档与 Issue 同步
 
 | 对象 | 更新或无影响的理由 |
 |---|---|
 | PRD | 无影响。页面、规则和验收口径未改，治理块保持 g1.1 / 2026-10-11 / ISSUE-007 |
-| ROADMAP | 无影响。阶段、依赖和发布顺序未改 |
-| ARCHITECTURE | 无影响。模块、数据、接口和部署结构未改；CI 只重复现有离线检查 |
-| Issue 看板/详情 | ISSUE-012 为 in-review；ISSUE-013 与 ISSUE-015 保留。下一编号仍是 ISSUE-016，ISSUE-014 留给并行的 ProComponents 变更 |
-| TASK_BOARD / PROJECT_STATUS | T008 改回 in-review 并链接本交付；进度为 19 done、1 in-review |
-| PROJECT_BRIEF | 2026-10-12 曾写维护日期、ISSUE-012 关联和当时的 340 项 / 18 done。本轮去掉重复的「T008离线CI已本地验收」，状态改为 in-review |
-| DOCUMENT_INDEX | 登记工作流、Issue、交付、代码解释、验证和同步表，状态改为 in-review |
+| ROADMAP | 本轮未改。阶段、依赖和发布顺序未改。计数字句仍写 T008 为 in-review，按本轮范围不改正文 |
+| ARCHITECTURE | 无影响。模块、数据、接口和部署结构未改；CI 只重复现有离线检查。本轮未改 |
+| Issue 看板/详情 | ISSUE-012 为 closed，APP-M2-T008 为 done。合入状态仍是 PR #3 待合入。未改 ISSUE-010、ISSUE-011 |
+| TASK_BOARD / PROJECT_STATUS | T008 为 done。343 项：20 done、1 in-review、7 in-progress、266 planned、49 blocked、0 ready |
+| PROJECT_BRIEF | 排期从 19 done、2 in-review 改为 20 done、1 in-review。T008 改为 done。原因：项目经理于 10-12 12:10 在 QA 签署后确认。AI-02 的 done 保留，不改 ISSUE-011。详见同步表 |
+| DOCUMENT_INDEX | 本轮未改。索引里仍有 T008 / ISSUE-012 为 in-review 的条目 |
 
 同步表见 [ISSUE-012-sync](../governance/ISSUE-012-sync.md)。
 
