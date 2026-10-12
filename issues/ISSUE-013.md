@@ -53,7 +53,7 @@
 | REV-M0-T21 | 0a5b655重试修复签署 | `docs/testing/2026-10-12-0a5b655-retry-signoff.md` | AC-04 | done |
 | REV-M0-T22 | APP-M2-T114 e691405冲突刷新复签 | `docs/testing/2026-10-12-app-m2-t114-e691405-signoff.md` | AC-04 | done（QA f521950，PM 17:13 确认） |
 | REV-M0-T23 | BE-M0-T13项目聚合入库签署 | `docs/testing/2026-10-12-be-m0-t13-signoff.md` | AC-04 | done |
-| REV-M0-T24 | APP-M2-T078内存片段发布签署 | `docs/testing/2026-10-12-t078-snippet-signoff.md` | AC-04 | in-review |
+| REV-M0-T24 | APP-M2-T078内存片段发布签署 | `docs/testing/2026-10-12-t078-snippet-signoff.md` | AC-04 | done（QA 19c4862，PM 17:20 确认） |
 | REV-M0-T02 | 会话实时HTTP复核入库、全套复跑记录 | `tests/backend/session_live_http.py`、`docs/testing/2026-10-12-qa-rerun.md` | AC-01～03 | done |
 
 ## 验收条目
@@ -104,6 +104,7 @@ WORKFLOW无规则变化，治理块保持g1.1。
 | 2026-10-12 | qa-rerun-19 / done | BE-M0-T13项目聚合入库签署（REV-M0-T23）：行为三项通过（装载叠种子、变更保存、revision 409）；本地 mysql 12 passed、无库 351/12 skipped；CI 38219738690 全绿（当时 mysql junit 11/0）；方案第 6 节有对照表，批准句待 ISSUE-035；BE-M0-T13/ISSUE-018 不标 done | 成长测试QA |
 | 2026-10-12 | qa-rerun-20 / done | APP-M2-T078内存片段发布签署（REV-M0-T24）：拦截原因/kb_sync_status/ETag/If-Match/幂等与公司隔离通过；聚焦18 passed；全量352 passed/12 skipped；CI 38212117391五job全绿；HEAD含e6215d4；页面未做，APP-M2-T078与本卡不标 done | 成长测试QA |
 | 2026-10-12 | qa-rerun-18 / done | 项目经理确认 REV-M0-T22 与 APP-M2-T114 为 done，依据是 QA f521950，PM 17:13 确认。ISSUE-013 保持 closed。ISSUE-033 不关闭 | 项目经理 |
+| 2026-10-12 | qa-rerun-20 / done | 项目经理确认 REV-M0-T24 与 APP-M2-T078 为 done，依据是 QA 19c4862，PM 17:20 确认。范围只含内存片段发布层。页面未做，不挡住 done。ISSUE-013 保持 closed。T124 改为 ready，本轮不实现 | 项目经理 |
 
 ## 本地验收与后续合入发布
 

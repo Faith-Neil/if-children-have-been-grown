@@ -8,7 +8,7 @@
 
 ## 结论
 
-T15 满足。T114 已 done（QA f521950，PM 17:13 确认）。T078 仍 in-review 未 done，所以 T124 仍不满足开工。三个 operationId 已写入契约，状态为 frozen，运行时没有这些路由。T124 不能标 ready，仍是 blocked。ISSUE-022 已依据 QA 0254102（REV-M0-T20），PM 15:36 确认 closed。剩余范围对应 REF-08，不对应 REF-07。下表里 T114 为 planned、没有抽屉，是开工核对当时的快照。
+T15 满足。T114 已 done（QA f521950，PM 17:13 确认）。T078 内存发布层已 done（QA 19c4862，PM 17:20 确认），页面未做，不挡住该卡。三个 operationId 已写入契约，状态为 frozen，运行时没有这些路由。T124 改为 ready，本轮不实现，不改模型输入。ISSUE-022 已依据 QA 0254102（REV-M0-T20），PM 15:36 确认 closed。剩余范围对应 REF-08，不对应 REF-07。下表是开工核对当时的快照，其中 T078 为 planned、T114 为 planned。
 
 ## 证据
 
@@ -73,4 +73,4 @@ T15 满足。T114 已 done（QA f521950，PM 17:13 确认）。T078 仍 in-revie
 
 ## 解除 blocked（PM 17:20）
 
-项目经理 17:20：APP-M2-T078 与 REV-M0-T24 定为 done（内存片段发布这层）；T114 与 T078 均 done 后 **APP-M2-T124 解除 blocked，改为 ready**。上文「仍不满足 / 仍是 blocked」是解除前的核对结论，保留作历史。本轮 QA 只改 T124 看板状态与相关叙述；T114/REV-M0-T22 已由前端标 done，T078/REV-M0-T24 状态行仍由前端提交。契约仍 frozen、运行时未接通；模型输入验收未执行。不标 done。
+项目经理 17:20：APP-M2-T078 与 REV-M0-T24 定为 done（内存片段发布这层），依据是 QA 19c4862，PM 17:20 确认。页面未做，不挡住 done。T114 已 done（QA f521950，PM 17:13 确认）。APP-M2-T124 改为 ready，本轮不实现。上文「仍不满足 / 仍是 blocked」是解除前的核对结论，保留作历史。契约仍 frozen、运行时未接通；模型输入验收未执行。不标 done。

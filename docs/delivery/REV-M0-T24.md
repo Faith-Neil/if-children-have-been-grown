@@ -9,8 +9,8 @@
 |---|---|
 | 任务ID | REV-M0-T24 |
 | 代码解释 | 无代码变更；仅验收记录 |
-| 验收 | 聚焦 18 passed；全量未设库 352 passed / 12 skipped；CI 38212117391 五个 job 全绿；HEAD 含 e6215d4 且片段代码无后续改动；见[签署记录](../testing/2026-10-12-t078-snippet-signoff.md)。页面未做，不标 done |
-| 项目进度 | 被验卡 APP-M2-T078 仍 in-review；本卡 in-review，等项目经理设置 |
+| 验收 | 聚焦 18 passed；全量未设库 352 passed / 12 skipped；CI 38212117391 五个 job 全绿；HEAD 含 e6215d4 且片段代码无后续改动；见[签署记录](../testing/2026-10-12-t078-snippet-signoff.md)。页面未做。项目经理随后确认 done（QA 19c4862，PM 17:20 确认），页面不挡住 done |
+| 项目进度 | 被验卡 APP-M2-T078 与本卡均为 done（QA 19c4862，PM 17:20 确认）。页面未做，不挡住 done。T124 改为 ready，本轮不实现。未合入，未发布 |
 <!-- task-delivery:end -->
 
 ## 关联与状态
@@ -20,10 +20,10 @@
 
 ## 完成内容与变更文件
 
-`docs/testing/2026-10-12-t078-snippet-signoff.md`；同步 ISSUE-013、REV-M0任务卡、TASK_BOARD、PROJECT_STATUS、DOCUMENT_INDEX。未改被验代码；不把 APP-M2-T078 标为 done。
+`docs/testing/2026-10-12-t078-snippet-signoff.md`；同步 ISSUE-013、REV-M0任务卡、TASK_BOARD、PROJECT_STATUS、DOCUMENT_INDEX。签署当时未改被验代码。项目经理随后确认本卡与 APP-M2-T078 为 done（QA 19c4862，PM 17:20 确认）。页面未做，不挡住 done。
 
 ## 同步与剩余
 
 PRD/ROADMAP/ARCHITECTURE/PROJECT_BRIEF无影响（只读复核；计数为里程碑快照，以任务看板为准）。
 
-观察项：页面未做；编辑锁/RAGFlow/持久化不在本切片。本卡与被验卡均等项目经理设置。未合入，未发布。
+观察项：页面未做；编辑锁/RAGFlow/持久化不在本切片。页面不挡住 done。本卡与被验卡已由项目经理标为 done（QA 19c4862，PM 17:20 确认）。未合入，未发布。

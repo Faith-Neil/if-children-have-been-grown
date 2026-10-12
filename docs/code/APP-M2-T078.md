@@ -35,4 +35,4 @@
 
 ## 验证与限制
 
-核对记录在 [2026-10-12 片段发布](../testing/2026-10-12-t078-snippet-publications.md)。没有页面，没有 MySQL，没有真实知识库。`generation_context.py` 没有改，模型输入仍不读这些片段。
+核对记录在 [2026-10-12 片段发布](../testing/2026-10-12-t078-snippet-publications.md)。没有页面，没有 MySQL，没有真实知识库。`generation_context.py` 没有改，模型输入仍不读这些片段。项目经理确认内存发布层为 done（QA 19c4862，PM 17:20 确认）。页面未做，不挡住 done。本说明不改行为。

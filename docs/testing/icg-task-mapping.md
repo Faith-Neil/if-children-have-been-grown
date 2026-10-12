@@ -198,7 +198,7 @@ T07上段为范围拆分阶段记录；当前ISSUE-009 / APP-M2-T001为 in-revie
 | [APP-M2-T075](../tasks/APP-M2.md#app-m2-t075) | 识别结果核对（“待核对”标记） | planned | APP-M2-T047、APP-M2-T039、APP-M2-T074 | M2-C08-F2 |
 | [APP-M2-T076](../tasks/APP-M2.md#app-m2-t076) | 片段列表 | planned | APP-M2-T047 | M2-D01-F1 |
 | [APP-M2-T077](../tasks/APP-M2.md#app-m2-t077) | 片段编辑（变量校验） | planned | APP-M2-T047、APP-M2-T076、APP-M2-T070 | M2-D01-F2 |
-| [APP-M2-T078](../tasks/APP-M2.md#app-m2-t078) | 版本对比与发布（R31 拦截原因） | in-review | APP-M2-T047、APP-M2-T077、APP-M2-T238 | M2-D01-F3 |
+| [APP-M2-T078](../tasks/APP-M2.md#app-m2-t078) | 版本对比与发布（R31 拦截原因） | done | APP-M2-T047、APP-M2-T077、APP-M2-T238 | M2-D01-F3 |
 | [APP-M2-T079](../tasks/APP-M2.md#app-m2-t079) | 同步状态与重新同步 | planned | APP-M2-T047、APP-M2-T078 | M2-D01-F4 |
 | [APP-M2-T080](../tasks/APP-M2.md#app-m2-t080) | 历史标书单个 / 批量导入 | planned | APP-M2-T021 | M2-D02-F1 |
 | [APP-M2-T081](../tasks/APP-M2.md#app-m2-t081) | 入库状态派生显示与摘取为片段 | planned | APP-M2-T021、APP-M2-T080 | M2-D02-F2 |
@@ -1766,7 +1766,7 @@ T07上段为范围拆分阶段记录；当前ISSUE-009 / APP-M2-T001为 in-revie
     {
       "id": "APP-M2-T078",
       "title": "版本对比与发布（R31 拦截原因）",
-      "status": "in-review",
+      "status": "done",
       "phase": "一期业务页面/支撑",
       "source": "M2-D01-F3",
       "source_key": "D01.F3",

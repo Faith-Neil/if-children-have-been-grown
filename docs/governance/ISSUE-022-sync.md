@@ -134,3 +134,7 @@
 ## T114 已 done
 
 日期：2026-10-12。APP-M2-T114 与 REV-M0-T22 已依据 QA f521950，PM 17:13 确认标为 done。ISSUE-022 保持 closed，不重开。T078 仍 in-review 未 done，所以 T124 仍 blocked。不改契约，不改模型输入。
+
+## T078 已 done，T124 改为 ready
+
+日期：2026-10-12。APP-M2-T078 与 REV-M0-T24 已依据 QA 19c4862，PM 17:20 确认标为 done。范围只含内存片段发布层。页面未做，不挡住 done。T124 改为 ready，本轮不实现，不改模型输入，不改契约。ISSUE-022 保持 closed，不重开。看板改为 381 项：49 done、7 in-review、7 in-progress、265 planned、48 blocked、5 ready。

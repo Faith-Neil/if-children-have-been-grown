@@ -102,3 +102,5 @@ T07已完成范围拆分：[259新卡](../docs/tasks/APP-M2.md)全部planned，4
 2026-10-12，冲突提示“本行已被他人修改，请刷新后再保存”旁边补了刷新。刷新重读本行已挂证据后可以再保存。T114 仍 in-review。见[交付](../docs/delivery/APP-M2-T114.md)。
 
 2026-10-12，项目经理确认 APP-M2-T114 与 REV-M0-T22 为 done，依据是 QA f521950，PM 17:13 确认。ISSUE-007 仍 in-progress。T124 仍 blocked，因为 T078 仍 in-review 未 done。缺协议、受限、智能匹配和规则 2 端到端仍挂 ISSUE-033，不关闭。见[交付](../docs/delivery/APP-M2-T114.md)。
+
+2026-10-12，项目经理确认 APP-M2-T078 与 REV-M0-T24 为 done，依据是 QA 19c4862，PM 17:20 确认。范围只含内存片段发布层。页面未做，不挡住 done。T124 改为 ready，本轮不实现。ISSUE-007 仍 in-progress。ISSUE-022 保持 closed。见[交付](../docs/delivery/APP-M2-T078.md)。

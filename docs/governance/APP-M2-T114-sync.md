@@ -21,3 +21,5 @@
 | docs/reference | 未改 | 不改参考原文 |
 | spec/openapi | 未改 | 接口以 `73fde1e` 的 JSON 为准。README 不代表接口 |
 | backend、tests/backend | 未改 | 本卡不改后台 |
+
+随后项目经理确认 APP-M2-T078 与 REV-M0-T24 为 done，依据是 QA 19c4862，PM 17:20 确认。页面未做，不挡住 done。T124 改为 ready，本轮不实现。看板改为 381 项：49 done、7 in-review、7 in-progress、265 planned、48 blocked、5 ready。

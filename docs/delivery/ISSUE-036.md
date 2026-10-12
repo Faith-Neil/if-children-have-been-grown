@@ -22,4 +22,4 @@
 
 ## 项目进度
 
-不新增任务卡。并入 REV-M0-T23、T24 后，看板因 T114 与 REV-M0-T22 改为 381 项：47 done、9 in-review、7 in-progress、265 planned、49 blocked、4 ready。本 Issue 为 in-review，不标 closed。未合入，未发布。
+不新增任务卡。并入 REV-M0-T23、T24 后，看板因 T114 与 REV-M0-T22 曾改为 381 项：47 done、9 in-review、7 in-progress、265 planned、49 blocked、4 ready。项目经理随后确认 T078 与 REV-M0-T24 为 done（QA 19c4862，PM 17:20 确认），T124 改为 ready。当前看板为 381 项：49 done、7 in-review、7 in-progress、265 planned、48 blocked、5 ready。本 Issue 为 in-review，不标 closed。未合入，未发布。
