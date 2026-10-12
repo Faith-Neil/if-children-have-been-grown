@@ -21,7 +21,7 @@
 | D-009 | 2026-10-09 | [基线差异](decisions/baseline-gaps.md) | 决策 | 初版 | 待评审 | FE-M0-T01 | 16项版本、范围与选型差异 |
 | D-010 | 2026-10-09 | [PR #1 评审](reviews/pr-1-integration.md) | 协作 | 初版 / g1.0后续记录 | 待整合 | ISSUE-001 / ISSUE-003 | 系统/前端分层及后续规则、索引整合提醒 |
 | D-011 | 2026-10-09 | [原型说明](../prototypes/bidding-ux/README.md) | 原型 | 静态演示 | 当前 | ISSUE-002 / FE-M0-T01 | 离线打开、启动方法与模拟范围 |
-| D-012 | 2026-10-12 | [Issue 看板](../issues/index.md) | 问题 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 | 025已closed；026、027、028、029为in-review；010与023已closed。024未建档 |
+| D-012 | 2026-10-12 | [Issue 看板](../issues/index.md) | 问题 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010；ISSUE-024 | 024为new；025已closed；026、027、028、029为in-review；010与023已closed |
 | D-013 | 2026-10-09 | [首轮测试](testing/2026-10-09-repository-foundation.md) | 验证 | 首轮快照 | 已验收 | ISSUE-002 / FE-M0-T01 | 编辑锁6项回归及当时链接校验 |
 | D-014 | 2026-10-09 | [首轮交付](delivery/2026-10-09-repository-foundation.md) | 交付 | 首轮快照 | 历史证据 | FE-M0-T01 | 保留原交付事实；逐任务归档见D-030 |
 | D-015 | 2026-10-12 | [协作流程](governance/WORKFLOW.md) | 治理 | g1.1 | 当前规则 | ISSUE-007 / APP-M1；ISSUE-026 | 第4节：三份基线计数是里程碑快照。治理块仍为 g1.1，不升版 |
@@ -306,7 +306,7 @@
 | D-293 | 2026-10-12 | [配置驱动的对话模型](architecture/model-config-provider.md) | 架构 | model-config-design-2 | in-review | ISSUE-028 / AI-01 | 只写 Provider 切换。字段与 API 以 ISSUE-024 为准。不改 OpenAPI |
 | D-294 | 2026-10-12 | [RAGFlow 检索适配器](architecture/ragflow-retrieval-adapter.md) | 架构 | ragflow-adapter-design-1 | in-review | ISSUE-029 / AI-03 | 官方路径与状态映射。无客户端 |
 | D-295 | 2026-10-12 | [ISSUE-010 决定核对](testing/2026-10-12-issue-010-decisions.md) | 验证 | model-choice-3 | 文档核对 | ISSUE-010 / AI-01 | 无内网调用 |
-| D-296 | 2026-10-12 | [ISSUE-028](../issues/ISSUE-028.md) | 变更 | model-config-design-2 | in-review | ISSUE-028 / AI-01 | 仅 Provider 侧。不建 ISSUE-024。不标 closed |
+| D-296 | 2026-10-12 | [ISSUE-028](../issues/ISSUE-028.md) | 变更 | model-config-design-2 | in-review | ISSUE-028 / AI-01 | 仅 Provider 侧。ISSUE-024 已登记为 new。不标 closed |
 | D-297 | 2026-10-12 | [ISSUE-029](../issues/ISSUE-029.md) | 变更 | ragflow-adapter-design-1 | in-review | ISSUE-029 / AI-03 | 检索设计。不标 closed |
 | D-298 | 2026-10-12 | [028同步记录](governance/ISSUE-028-sync.md) | 治理 | model-config-design-2 | 已核对 | ISSUE-028 / AI-01 | 存储与 API 划给 ISSUE-024。不改任务计数 |
 | D-299 | 2026-10-12 | [029同步记录](governance/ISSUE-029-sync.md) | 治理 | ragflow-adapter-design-1 | 已核对 | ISSUE-029 / AI-03 | 不改检索代码 |
@@ -337,6 +337,9 @@
 | D-324 | 2026-10-12 | [REV-M0-T14签署交付](delivery/REV-M0-T14.md) | 交付 | qa-rerun-9 | 已本地验收 | ISSUE-013 / REV-M0-T14 | 无代码；结论与观察项 |
 | D-325 | 2026-10-12 | [ISSUE-020路由分包签署](testing/2026-10-12-issue-020-route-split-signoff.md) | 验证 | qa-rerun-10 | 本地通过 | ISSUE-013 / REV-M0-T15 | 入口317.71 kB；92/92；E2E 13 |
 | D-326 | 2026-10-12 | [REV-M0-T15签署交付](delivery/REV-M0-T15.md) | 交付 | qa-rerun-10 | 已本地验收 | ISSUE-013 / REV-M0-T15 | 无代码；结论与观察项 |
+| D-327 | 2026-10-12 | [ISSUE-024](../issues/ISSUE-024.md) | 变更 | model-config-storage-1 | new | ISSUE-024 | 存储与 API。状态 new，负责人 backend。不改运行时 |
+| D-328 | 2026-10-12 | [024同步记录](governance/ISSUE-024-sync.md) | 治理 | model-config-storage-1 | 已核对 | ISSUE-024 | 两码只登记在 Issue 表。不改三份基线 |
+| D-329 | 2026-10-12 | [022后台复审](governance/ISSUE-022-backend-rereview.md) | 治理 | outline-contract-draft-3 | 已核对 | ISSUE-022 | 附件原文未随队列送达。B2、B3 已附在文末 |
 
 ## 更新记录
 
@@ -411,6 +414,7 @@
 | 2026-10-12 | ISSUE-026 | 在 3bb311a 重数：看板 366项30done、8in-review。项目经理在群里确认后，APP-M2-T001 与 APP-M2-T002 标为 done，成为 366项32done、6in-review、7in-progress、268planned、49blocked、4ready。PRD、ROADMAP、PROJECT_BRIEF 改为 as of commit 3bb311a 的里程碑快照，并写明任务看板是准绳、只在里程碑更新。规则写入 WORKFLOW 第4节。检查程序不比较快照与活看板，未改脚本。Issue 仍为 in-review。不改 docs/reference |
 | 2026-10-12 | ISSUE-022 / APP-M2-T078 | 按方案实现进程内片段发布。T078 改为 in-review，未标 done。并入 c9a3cd5 后看板改为 366项32done、7in-review、7in-progress、267planned、49blocked、4ready。不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照。T124 仍 blocked。pytest 346 passed、2 skipped |
 | 2026-10-12 | ISSUE-018 / BE-M0-T11 | 回执和登录会话入库，状态 in-review。含 downgrade base 再 upgrade head。看板在 e6215d4 的 32 done、7 in-review、267 planned 上改为 366项32done、8in-review、7in-progress、266planned、49blocked、4ready。不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照，不改 .github。ISSUE-018 仍 in-progress。BE-M0-T15 仍 in-review |
+| 2026-10-12 | ISSUE-024；ISSUE-022 | 登记 ISSUE-024，状态 new，负责人 backend。冻结表增加 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL` 与 503 `SECRET_KEY_UNAVAILABLE`（非瞬时，无 Retry-After）。不写入 errors.py 与 OpenAPI。复审附件原文未随队列送达，B2 与 B3 记在复审记录末尾。不改任务计数。ISSUE-028 仍 in-review |
 
 ## 缺失输入
 

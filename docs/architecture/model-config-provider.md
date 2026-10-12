@@ -6,7 +6,7 @@
 
 日期：2026-10-12。关联 [ISSUE-010](../../issues/ISSUE-010.md)（closed）、[ISSUE-028](../../issues/ISSUE-028.md)（in-review）、[AI-01](../tasks/AI-M0.md#ai-01)、[AI-02](../tasks/AI-M0.md#ai-02)。本文件只设计 Provider 侧。不改 `backend/bid-core`，不改 `spec/openapi/demo-v1.json`，不加依赖。
 
-配置的存储、字段定义、API、加密、If-Match 和幂等归后端 ISSUE-024。先前写在这里的字段提案已经交给后台，以 ISSUE-024 为准。本仓库没有 ISSUE-024 的详情文件，因此只从本文件和 ISSUE-028 引用该编号，不创建该文件。
+配置的存储、字段定义、API、加密、If-Match 和幂等归后端 [ISSUE-024](../../issues/ISSUE-024.md)。先前写在这里的字段提案以该 Issue 为准。本文件不重复 `id`、`revision`、`allow_sensitive` 和密钥掩码规则。
 
 ## 决定
 

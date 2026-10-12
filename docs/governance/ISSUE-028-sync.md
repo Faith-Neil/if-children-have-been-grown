@@ -38,3 +38,5 @@
 | issues/ISSUE-027.md | 无 | 已是 Word 版式卡，本轮不改 | in-review |
 
 未合入，未发布。不标 closed，不标 done。`node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：219 份 Markdown、363 项任务、28 项 Issue。」检查程序未修改。没有重跑 pytest：本轮不改后台代码。
+
+2026-10-12 随后登记了 [ISSUE-024](../../issues/ISSUE-024.md)，状态 new。上面 design-2 的“不创建该文件”只描述当时。Provider 字段仍不抄回本设计。

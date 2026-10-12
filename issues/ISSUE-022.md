@@ -107,6 +107,7 @@ operationId 已写入 `spec/openapi/demo-v1.json`，契约状态为 **draft, pen
 | 2026-10-12 | outline-contract-draft-3 / in-review | 按对 `046f8e5` / `fe9582c` 的复审补草案：快照与两个引用码、423、事件 type 与 payload、`recoverable`、取消响应不强制 Location、查询与 SSE 去掉 403。503 `SECRET_KEY_UNAVAILABLE` 不自动重试。仍无运行时。不改任务计数 | [契约核对](../docs/testing/2026-10-12-t124-dependencies.md) |
 | 2026-10-12 | t078-plan-etag-receipt / in-review | 只补方案两句：GET 返回 ETag；被拦截的发布仍算成功并记下幂等回执。不写代码。T078 仍 planned | [T078 内存方案](../docs/governance/ISSUE-022-t078-plan.md) |
 | 2026-10-12 | t078-memory-1 / in-review | 按方案实现进程内片段发布。T078 改为 in-review，未标 done。T124 仍 blocked。不改三份基线的任务计数 | [交付](../docs/delivery/APP-M2-T078.md) |
+| 2026-10-12 | outline-contract-draft-3 / in-review | 403 与 503 两码改由 ISSUE-024 的冻结表登记。项目经理决定见复审记录：B2 保持 423 `LOCK_HELD` / `LOCK_LOST`；B3 的状态、进度和终态事件类型已在契约中，实现仍在 BE-M0-T06。不改 OpenAPI | [复审记录](../docs/governance/ISSUE-022-backend-rereview.md) |
 
 ## 本地验收与后续合入发布
 
