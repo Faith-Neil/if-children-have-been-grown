@@ -15071,6 +15071,27 @@
             "const": true,
             "title": "Excludes Drafts",
             "description": "文件只含已提交正文，始终排除未提交草稿"
+          },
+          "check_id": {
+            "type": "string",
+            "title": "Check Id",
+            "description": "导出当时绑定的检查"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision",
+            "description": "导出当时的已提交版本"
+          },
+          "content_hash": {
+            "type": "string",
+            "title": "Content Hash",
+            "description": "导出当时的已提交正文摘要"
+          },
+          "input_fingerprint": {
+            "type": "string",
+            "title": "Input Fingerprint",
+            "description": "导出当时的项目输入摘要"
           }
         },
         "additionalProperties": true,
@@ -15079,7 +15100,11 @@
           "id",
           "filename",
           "download_url",
-          "excludes_drafts"
+          "excludes_drafts",
+          "check_id",
+          "revision",
+          "content_hash",
+          "input_fingerprint"
         ],
         "title": "ExportResponse"
       },

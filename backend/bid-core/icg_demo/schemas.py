@@ -306,6 +306,10 @@ class ExportResponse(ResponseBody):
     filename: str
     download_url: str = Field(description="同源相对路径；下载时仍须带 Bearer 登录凭据")
     excludes_drafts: Literal[True] = Field(description="文件只含已提交正文，始终排除未提交草稿")
+    check_id: str = Field(description="导出当时绑定的检查")
+    revision: int = Field(ge=1, description="导出当时的已提交版本")
+    content_hash: str = Field(description="导出当时的已提交正文摘要")
+    input_fingerprint: str = Field(description="导出当时的项目输入摘要")
 
 
 class HealthResponse(ResponseBody):

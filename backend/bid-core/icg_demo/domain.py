@@ -111,6 +111,7 @@ class Check:
     revision: int
     content_hash: str
     issues: list[dict]
+    input_fingerprint: str = ""
 
 
 @dataclass
@@ -123,6 +124,7 @@ class Export:
     filename: str
     title: str
     content: str
+    input_fingerprint: str = ""
 
 
 @dataclass
@@ -499,7 +501,8 @@ class DemoService:
             if "待补" in chapter.content:
                 issues.append({"code": "PENDING_CONTENT", "message": "已提交正文仍含待补内容。"})
             check = Check(new_id("check"), chapter.id, not issues, chapter.revision,
-                          content_hash(chapter.content), issues)
+                          content_hash(chapter.content), issues,
+                          input_fingerprint=project_input_fingerprint(state, chapter.project_id))
             state.checks[check.id] = check
             self._audit(state, principal, chapter, "check.run", {"check_id": check.id, "passed": check.passed})
             return {"id": check.id, "passed": check.passed, "revision": check.revision, "issues": check.issues}
@@ -519,13 +522,18 @@ class DemoService:
                 raise DomainError(409, "CHECK_FAILED", "基础检查未通过，不能生成演示 Word。")
             if check.revision != chapter.revision or check.content_hash != content_hash(chapter.content):
                 raise DomainError(409, "CHECK_STALE", "正文已修改，请重新检查后再导出。")
+            fingerprint = project_input_fingerprint(state, chapter.project_id)
+            if check.input_fingerprint != fingerprint:
+                raise DomainError(409, "CHECK_STALE", "项目输入已更新，请重新检查后再导出。")
             record = Export(new_id("export"), chapter.id, chapter.revision, check.content_hash,
                             check.id, f"icg-demo-{chapter.id}-r{chapter.revision}.docx",
-                            chapter.title, chapter.content)
+                            chapter.title, chapter.content, input_fingerprint=fingerprint)
             state.exports[record.id] = record
             self._audit(state, principal, chapter, "export.create", {"export_id": record.id, "check_id": check.id})
             return {"id": record.id, "filename": record.filename,
-                    "download_url": f"/api/exports/{record.id}/file", "excludes_drafts": True}
+                    "download_url": f"/api/exports/{record.id}/file", "excludes_drafts": True,
+                    "check_id": record.check_id, "revision": record.revision,
+                    "content_hash": record.content_hash, "input_fingerprint": record.input_fingerprint}
         return self.repository.transaction(operation)
 
     def download(self, principal: Principal, export_id: str) -> Export:
@@ -537,6 +545,8 @@ class DemoService:
             self._legacy_flow_guard(state, chapter)
             if record.revision != chapter.revision or record.content_hash != content_hash(chapter.content):
                 raise DomainError(409, "EXPORT_STALE", "正文已修改，旧导出文件已过期。")
+            if record.input_fingerprint != project_input_fingerprint(state, chapter.project_id):
+                raise DomainError(409, "EXPORT_STALE", "项目输入已更新，旧导出文件已过期。")
             self._audit(state, principal, chapter, "export.download", {"export_id": record.id})
             return record
         return self.repository.transaction(operation)
