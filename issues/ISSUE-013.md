@@ -116,6 +116,7 @@ WORKFLOW无规则变化，治理块保持g1.1。
 | 2026-10-12 | qa-rerun-24 / in-review | ISSUE-028 AC-02假端点夹具签署（REV-M0-T29）：假服务/fixture 过线；真模型默认 skip；CI 不设旗；无生产改动；create_app 仍 DemoModelProvider；34/1 + 355/13；CI 38231417634；ISSUE-028/AI-01/本卡不标 done；路径规范化 hold | 成长测试QA |
 | 2026-10-12 | qa-rerun-25 / in-review | ISSUE-028 AC-03签署（REV-M0-T30）：独立复跑 be3ce98 证据；OpenAPI/requirements/openai_model 夹具 diff 空；create_app 默认 DemoModelProvider；34/1；ISSUE-028/AI-01/本卡不标 done | 成长测试QA |
 | 2026-10-12 | qa-rerun-19 / done | 项目经理确认 REV-M0-T23 与 BE-M0-T13 为 done，依据是 QA ae38ec3，PM 17:16 确认。ISSUE-018 仍为 in-progress。ISSUE-035 仍为 new。ISSUE-013 保持 closed | 项目经理 |
+| 2026-10-12 | qa-rerun-7 / done | 项目经理确认 BE-M0-T15 为 done，依据是用户已在 Word/WPS 目视 OK，PM 18:01 确认。ISSUE-027 标为 closed。ISSUE-013 保持 closed。签署时的命令计数不改 | 项目经理 |
 
 ## 本地验收与后续合入发布
 

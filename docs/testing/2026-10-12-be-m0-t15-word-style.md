@@ -44,3 +44,5 @@ env -u ICG_DATABASE_URL -u ICG_REQUIRE_MYSQL python3 -m pytest tests/backend -q
 ## 局限
 
 这是 XML 结构核对，不是 Word 或 WPS 的视觉签收。机器上没有方正小标宋时，由本机替换为用户批准的黑体，文件里仍写方正小标宋，不是拉丁回退。目录域的结果要等文字处理软件更新域之后才展开。
+
+2026-10-12 18:01，项目经理确认用户已在 Word/WPS 目视 OK，并把 BE-M0-T15 标为 done。ISSUE-027 标为 closed。上文核对计数不改。

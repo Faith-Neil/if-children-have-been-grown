@@ -95,3 +95,7 @@ LibreOffice 渲染 PNG 在 QA 机 `/workspace/qa-artifacts/word-034b184/`（未�
 复跑：后台 pytest 335 passed、2 skipped；治理检查通过（227 份 Markdown、366 项任务、28 项 Issue）。
 
 结论：Q1～Q3 已修复，XML 核对通过，无新缺陷。上文“Word / WPS 待用户确认”表仍待用户在新样张上填写；Q2 承诺函无目录这一点也请用户一并确认。
+
+## 后续：用户目视确认
+
+2026-10-12 18:01，项目经理确认用户已在 Word/WPS 目视 OK，并把 BE-M0-T15 标为 done。ISSUE-027 标为 closed。上文签署结论与命令计数不改。未合入，未发布。
