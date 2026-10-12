@@ -45,6 +45,32 @@
 ## 判定
 B1–B3 补完就可以冻结。可以在同一个小提交里补，我复核差异就行。T078 方案现在可以动工，实施时补上 GET 的 ETag。
 
+---
+
+## 第三轮：复核 c6948c0（只看这个提交的 diff，只读）
+
+行号是 c6948c0 上的 `spec/openapi/demo-v1.json`，按 diff 的 hunk 起点推算，可能差几行。这个提交还改了 `tests/backend/test_outline_contract_draft.py`（+37/−3），给下面每一项都加了断言。本地没复跑测试。
+
+| 项 | 结论 | 证据 |
+|---|---|---|
+| B1 两个码只引用 ISSUE-024 | **通过** | startGeneration 描述在约 `:11615`；403 描述在约 `:11732`，并列出 VOLUME_OWNER_REQUIRED 和 SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL；新增 503 响应在约 `:11875`。两处都写明“只引用 ISSUE-024，不在本文件的 V1Error 枚举或 x-error-status 中定义”，测试也断言两个码不在 enum 和 x-error-status 里。这里没有重复定义模型配置字段 |
+| B1 快照 | **通过** | 约 `:11615` 写了“任务开始时对模型配置做快照，job.model_call 的 provider、model 取自快照”；JobEvent 描述在约 `:18206`，说法相同 |
+| B1 503 不自动重试 | **通过（本条）**，但引出了 N7，见下 | 约 `:11875`：“不是瞬时故障，客户端不要自动重试，与 MODEL_UNAVAILABLE 相同” |
+| B2 423 | **通过** | confirmOutlinePlan 描述在约 `:11362`，新增 423 响应在约 `:11586`；startGeneration 新增 423 在约 `:11857`；LOCK_HELD 和 LOCK_LOST 都列了，和旧路由一致 |
+| B3 SSE 事件类型 | **通过** | 约 `:18226` 的枚举加了 job.status_changed、job.progress、job.completed、job.failed、job.cancelled；约 `:18269` 新增 payload，并写明每种类型带哪些字段；描述注明由 BE-M0-T06 实现 |
+| P3 JobStatus.recoverable | **通过** | 约 `:18359` 是 boolean，约 `:18377` 列入 required，不继承 Job 的 const false |
+| P3 cancel 不强制 Location | **通过** | 约 `:12206` 删掉了 required 的 Location，描述在约 `:12144` |
+| P3 getJob 和 SSE 不列 403 | **通过** | getJob 的 403 删了（描述在约 `:11904`），SSE 的 403 也删了（约 `:12019`） |
+
+### 这次带进来的新问题
+- **N7（P2）全局重试规则和“503 不重试”冲突**：`info.description`（`:5`）和每个 Idempotency-Key 参数的描述（例如 `:1255`）仍然写着“客户端只对网络错误、502、503 复用本标记重试”，没有排除 MODEL_UNAVAILABLE（502）和 SECRET_KEY_UNAVAILABLE（503）。按全局规则，前端会自动重试，和 startGeneration 这里的说法正好相反。修法：全局规则加一句“例外：MODEL_UNAVAILABLE、SECRET_KEY_UNAVAILABLE 不自动重试”，或者改成“按 code 判断”。只改文字，可以和冻结状态值的修改放在同一个提交里。
+- **N8（P3）job.model_call 的 6 个字段不再强制**：`required` 缩成 seq/id/occurred_at/type（约 `:18279`），model_call 事件缺 provider、model 等字段也能通过校验。建议用 `oneOf` 加 `discriminator: type`，或者 `if type == job.model_call then required[...]`，按类型分别要求字段。T06 实现前补上就行。
+- **N9（P3）**：新增的 423 和 503 响应带了 `Idempotent-Replayed` 头。失败不登记回执，这个头不会出现。这是照抄已有写法，不影响行为，可删可不删。
+- **提示**：403 和 503 的响应体引用 V1Error，但 V1Error.code 的枚举里没有这两个码。ISSUE-024 登记码表之前，严格按 schema 校验会失败。这是按引用定义的预期代价，条件是 ISSUE-024 必须在 startGeneration 实现前把这两个码写进码表和 x-error-status。
+
+### 判定
+**可以冻结。** B1–B3 和三项 P3 都通过了。N7 只改文字，要在冻结提交里一起修掉（否则前端 T114 会照全局规则去重试）。N8 和 N9 不阻断，T06 实现时处理。冻结时，状态值的修改仍然要和实现放进同一个提交，以免探针变红。
+
 ## 项目经理决定
 
 - B2: keep 423 LOCK_HELD for locked chapter and LOCK_LOST for lost lock, same as legacy routes.

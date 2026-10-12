@@ -36,6 +36,8 @@ def _frozen_status() -> dict[str, int]:
         "SUBMISSION_FORBIDDEN", "SESSION_ROLE_UNSUPPORTED", "SESSION_SCOPE_UNSUPPORTED",
         # 角色类 *_REQUIRED。原先“尚未指定负责人”也使用本码并返回 409，现统一为 403。
         "VOLUME_OWNER_REQUIRED",
+        # ISSUE-024 登记。敏感项目不能使用云端配置。本轮不实现该拒绝。
+        "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
     ))
     _bind(table, 404, ("NOT_FOUND",))
     _bind(table, 409, (
@@ -83,7 +85,9 @@ def _frozen_status() -> dict[str, int]:
     _bind(table, 428, ("IF_MATCH_REQUIRED", "IDEMPOTENCY_KEY_REQUIRED"))
     _bind(table, 500, ("INTERNAL_ERROR",))
     _bind(table, 502, ("MODEL_UNAVAILABLE", "MODEL_OUTPUT_INVALID", "PARSER_UNAVAILABLE"))
-    _bind(table, 503, ("UI_NOT_READY",))
+    # SECRET_KEY_UNAVAILABLE 不是瞬时故障：客户端不得自动重试，服务端不得发送 Retry-After。
+    # 与 MODEL_UNAVAILABLE 相同。实现 ISSUE-024 时再断言响应没有该头。
+    _bind(table, 503, ("UI_NOT_READY", "SECRET_KEY_UNAVAILABLE"))
     return table
 
 

@@ -116,10 +116,10 @@ def test_errors_are_listed_per_operation_and_reuse_the_frozen_body():
     assert "不是瞬时故障" in secret and "不要自动重试" in secret and "MODEL_UNAVAILABLE" in secret
     assert "ISSUE-024" in start["description"]
     assert "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL" in start["description"]
-    assert "SECRET_KEY_UNAVAILABLE" not in enum
-    assert "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL" not in enum
-    assert "SECRET_KEY_UNAVAILABLE" not in spec["components"]["x-error-status"]["statuses"]["503"]
-    assert "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL" not in spec["components"]["x-error-status"]["statuses"]["403"]
+    assert "SECRET_KEY_UNAVAILABLE" in enum
+    assert "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL" in enum
+    assert "SECRET_KEY_UNAVAILABLE" in spec["components"]["x-error-status"]["statuses"]["503"]
+    assert "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL" in spec["components"]["x-error-status"]["statuses"]["403"]
     assert "423" in start["responses"]
     assert "423" in operation(spec, "/api/v1/projects/{project_id}/outline/plan/confirm")["responses"]
     assert "502" not in operation(spec, "/api/v1/projects/{project_id}/outline/plan/confirm")["responses"]

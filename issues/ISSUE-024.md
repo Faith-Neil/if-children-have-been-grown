@@ -46,7 +46,7 @@
 
 ## 冻结错误码
 
-这两码登记在本表，供 [ISSUE-022](ISSUE-022.md) 引用。本轮不写入 `backend/bid-core/icg_demo/errors.py`，也不写入 `spec/openapi/demo-v1.json` 的枚举或 `x-error-status`。实现本 Issue 时再并入那张运行时表。
+这两码登记在本表，供 [ISSUE-022](ISSUE-022.md) 引用。它们已写入 `spec/openapi/demo-v1.json` 的 `V1Error.code` 枚举和 `x-error-status`，并写入 `errors.py` 的冻结表，因此 403 与 503 的响应体可以通过 schema 校验。ISSUE-022 的操作说明没有改。本轮仍不返回这两码，也不实现加密。实现时再加测试，断言 `SECRET_KEY_UNAVAILABLE` 的响应没有 `Retry-After`。
 
 | code | HTTP | 约定 |
 |---|---|---|
@@ -55,7 +55,7 @@
 
 ## 影响与分流
 
-- 影响范围：将来的模型配置存储和 API。本轮不改 `errors.py`、OpenAPI、适配器或页面。
+- 影响范围：将来的模型配置存储和 API。本轮只把两枚错误码写入冻结表和 OpenAPI 枚举。不改适配器、页面，也不改 ISSUE-022 的操作说明。
 - 不涉及：ISSUE-028 已经写下的 Provider 字段和行为。不新增依赖。`cryptography` 已在仓库中，Fernet 实现留到开工时。
 - 不新增任务卡，不改任务计数。PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照不改。
 
@@ -71,7 +71,7 @@
 |---|---|---|
 | AC-01 | 密钥以 Fernet 加密，主密钥只来自 `ICG_SECRET_KEY`。响应只有 `api_key_masked` 与 `has_api_key`。省略为保留，空字符串为清除，送回掩码为不修改 | 未执行 |
 | AC-02 | `POST /api/v1/model-configs/{id}/test` 返回 `ok`、`provider`、`model`、`duration_ms`。任务开始时保存配置快照 | 未执行 |
-| AC-03 | 403 与 503 两码进入运行时冻结表。503 的响应没有 `Retry-After`，客户端不自动重试 | 未执行。本表已登记，代码未改 |
+| AC-03 | 403 与 503 两码进入运行时冻结表。503 的响应没有 `Retry-After`，客户端不自动重试 | 两码已进入枚举和冻结表。无 `Retry-After` 的测试未执行，因为运行时还不返回该码 |
 
 ## 六份基线 impact 与同步表
 

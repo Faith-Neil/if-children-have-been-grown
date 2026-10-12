@@ -18269,6 +18269,8 @@
               "REVIEW_REASON_REQUIRED",
               "REVISION_CONFLICT",
               "RULES_INCOMPLETE",
+              "SECRET_KEY_UNAVAILABLE",
+              "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
               "SESSION_ROLE_UNSUPPORTED",
               "SESSION_SCOPE_UNSUPPORTED",
               "SLA_COMMITMENT_BLOCKED",
@@ -19885,6 +19887,7 @@
           "PROJECT_CREATE_FORBIDDEN",
           "PROJECT_LEAD_REQUIRED",
           "PROJECT_WRITER_REQUIRED",
+          "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
           "SESSION_ROLE_UNSUPPORTED",
           "SESSION_SCOPE_UNSUPPORTED",
           "SLA_MANAGER_REQUIRED",
@@ -20033,6 +20036,7 @@
           "PARSER_UNAVAILABLE"
         ],
         "503": [
+          "SECRET_KEY_UNAVAILABLE",
           "UI_NOT_READY"
         ]
       }

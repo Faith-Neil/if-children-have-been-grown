@@ -19,10 +19,10 @@
 | issues/ISSUE-024.md | 有 | 新建。冻结 403 与 503 两码 | new |
 | issues/ISSUE-028.md | 有 | 改为指向已存在的 ISSUE-024。不改 Provider 字段 | in-review |
 | model-config-provider.md | 有 | 删去“不创建 ISSUE-024 文件”。不补回字段表 | in-review |
-| spec/openapi/demo-v1.json | 无 | 两码仍不写入枚举 | 2026-10-12 |
-| errors.py | 无 | 运行时冻结表不改 | 2026-10-12 |
+| spec/openapi/demo-v1.json | 有 | 两码写入 V1Error.code 与 x-error-status。不改 ISSUE-022 操作说明 | 2026-10-12 |
+| errors.py | 有 | 冻结表登记两码。运行时仍不返回它们 | 2026-10-12 |
 | docs/reference/ | 无 | 不改 | 2026-10-12 |
 
-`SECRET_KEY_UNAVAILABLE` 在 ISSUE-024 的表里标为非瞬时：客户端不得自动重试，服务端不得发送 `Retry-After`。实现时再加断言没有该响应头的测试。
+`SECRET_KEY_UNAVAILABLE` 在 ISSUE-024 的表里标为非瞬时：客户端不得自动重试，服务端不得发送 `Retry-After`。两码已进入 `V1Error.code` 与 `x-error-status`。无 `Retry-After` 的测试留到实现时再加。ISSUE-022 的操作说明未改。
 
-未合入，未发布。不标 closed。`node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：243 份 Markdown、369 项任务、29 项 Issue。」检查程序未修改。没有重跑 pytest：本轮不改后台代码。并入 dcca509 后任务数为 369，本提交不改任务状态。
+未合入，未发布。不标 closed。`node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：247 份 Markdown、371 项任务、29 项 Issue。」检查程序未修改。`tests/backend/test_outline_contract_draft.py` 与 `tests/backend/test_error_idempotency.py` 为 13 passed。本提交不改任务状态。

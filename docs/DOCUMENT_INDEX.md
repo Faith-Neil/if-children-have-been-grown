@@ -339,7 +339,7 @@
 | D-326 | 2026-10-12 | [REV-M0-T15签署交付](delivery/REV-M0-T15.md) | 交付 | qa-rerun-10 | 已本地验收 | ISSUE-013 / REV-M0-T15 | 无代码；结论与观察项 |
 | D-327 | 2026-10-12 | [ISSUE-024](../issues/ISSUE-024.md) | 变更 | model-config-storage-1 | new | ISSUE-024 | 存储与 API。状态 new，负责人 backend。不改运行时 |
 | D-328 | 2026-10-12 | [024同步记录](governance/ISSUE-024-sync.md) | 治理 | model-config-storage-1 | 已核对 | ISSUE-024 | 两码只登记在 Issue 表。不改三份基线 |
-| D-329 | 2026-10-12 | [022后台复审](governance/ISSUE-022-backend-rereview.md) | 治理 | outline-contract-draft-3 | 已核对 | ISSUE-022 | 046f8e5/fe9582c 复审原文。文末附 B2、B3 |
+| D-329 | 2026-10-12 | [022后台复审](governance/ISSUE-022-backend-rereview.md) | 治理 | outline-contract-draft-3 | 已核对 | ISSUE-022 | 含 c6948c0 第三轮。文末附 B2、B3 |
 | D-330 | 2026-10-12 | [ISSUE-016检索骨架签署](testing/2026-10-12-issue-016-retrieval-signoff.md) | 验证 | qa-rerun-11 | 本地通过 | ISSUE-013 / REV-M0-T16 | AC-01～05通过；O-1 P3 |
 | D-331 | 2026-10-12 | [REV-M0-T16签署交付](delivery/REV-M0-T16.md) | 交付 | qa-rerun-11 | 已本地验收 | ISSUE-013 / REV-M0-T16 | 无代码；结论与观察项 |
 | D-332 | 2026-10-12 | [ISSUE-028模型配置设计签署](testing/2026-10-12-issue-028-model-config-signoff.md) | 验证 | qa-rerun-12 | 本地通过 | ISSUE-013 / REV-M0-T17 | AC通过；D-1 P2；O-1/O-2 P3 |
@@ -422,6 +422,7 @@
 | 2026-10-12 | ISSUE-018 / BE-M0-T11 | 回执和登录会话入库，状态 in-review。含 downgrade base 再 upgrade head。看板在 e6215d4 的 32 done、7 in-review、267 planned 上改为 366项32done、8in-review、7in-progress、266planned、49blocked、4ready。不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照，不改 .github。ISSUE-018 仍 in-progress。BE-M0-T15 仍 in-review |
 | 2026-10-12 | ISSUE-024；ISSUE-022 | 登记 ISSUE-024，状态 new，负责人 backend。冻结表增加 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL` 与 503 `SECRET_KEY_UNAVAILABLE`（非瞬时，无 Retry-After）。不写入 errors.py 与 OpenAPI。复审附件原文未随队列送达，B2 与 B3 记在复审记录末尾。不改任务计数。ISSUE-028 仍 in-review |
 | 2026-10-12 | ISSUE-022 | 把 046f8e5/fe9582c 的后台复审原文写入 ISSUE-022-backend-rereview.md，文末附上项目经理对 B2、B3 的决定。403 与 503 仍只在 ISSUE-024 的冻结表里。不改 OpenAPI，不改任务计数 |
+| 2026-10-12 | ISSUE-022；ISSUE-024 | 复审原文换成含 c6948c0 第三轮的版本。两码写入 V1Error.code 枚举和 x-error-status，使 403/503 响应体可通过校验。不改 ISSUE-022 的操作说明，不改任务计数 |
 
 ## 缺失输入
 
