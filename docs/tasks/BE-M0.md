@@ -362,3 +362,24 @@
 - [ ] 心跳、接管、释放时间和两套枚举已入库。
 - [ ] `token` 与 `session_token` 已删除，或保留理由已另获项目经理批准。
 - [ ] 迁移不删除历史锁行。
+
+<a id="be-m0-t18"></a>
+
+## BE-M0-T18 · 挂证据拒绝过期、缺协议和受限资料
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | planned |
+| 估算 | 未开工。排在 BE-M0-T13 之后。规格增量由 AI bot 另交，本卡不改 spec |
+| 关联 Issue | [ISSUE-033](../../issues/ISSUE-033.md) |
+| 依赖 | [BE-M0-T13](BE-M0.md#be-m0-t13)；AI bot 的规格增量 |
+| 来源 | 字典 v1.9 G 组、V 组、`project_partner`、`resource_acl`；PRD v1.8 的 5.4.1 与 R01～R03 |
+| 完成时交付 | `docs/delivery/BE-M0-T18.md` |
+| 代码解释 | `docs/code/BE-M0-T18.md` |
+
+范围：`PATCH /api/v1/projects/{project_id}/requirements/{requirement_id}` 在挂上 `evidence_ids` 时，按 ISSUE-033 的对照拒绝三类资料。截止时已过期复用 409 `EVIDENCE_EXPIRED`。`reference` 和缺协议的 `partner` 复用 409 `EVIDENCE_NOT_USABLE`，文案能区分缺协议。受限且不在授权范围复用 403 `FORBIDDEN`，不用 `MATRIX_RESPONSE_FORBIDDEN`。不新增错误码，除非规格增量改口，那时同一提交更新冻结名单。实现后由 QA 重签。本卡尚未开工，不标 done。
+
+- [ ] 截止时已过期返回 409 `EVIDENCE_EXPIRED`。
+- [ ] 仅供参考和缺协议返回 409 `EVIDENCE_NOT_USABLE`，文案能区分。
+- [ ] 受限且无权返回 403 `FORBIDDEN`。
+- [ ] 未新增错误码，或新码与冻结名单同一提交更新，并由 QA 重签。
