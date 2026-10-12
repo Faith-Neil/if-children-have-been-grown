@@ -9,13 +9,13 @@
 | Issue ID | ISSUE-013 |
 | 类型 | change |
 | 优先级 | P1 |
-| 状态 | in-review |
+| 状态 | closed |
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
 | revision | qa-rerun-3 |
 | 关联 Task | [REV-M0-T02](../docs/tasks/REV-M0.md#rev-m0-t02)、[REV-M0-T05](../docs/tasks/REV-M0.md#rev-m0-t05)（QA签署复核）、[REV-M0-T07](../docs/tasks/REV-M0.md#rev-m0-t07)（BE-M0-T02/T03签署）、[REV-M0-T09](../docs/tasks/REV-M0.md#rev-m0-t09)（BE-M0-T08/T10签署）、[REV-M0-T10](../docs/tasks/REV-M0.md#rev-m0-t10)（BE-M0-T15 Word版式签署）、[REV-M0-T11](../docs/tasks/REV-M0.md#rev-m0-t11)（T001/T002复验签署）、[REV-M0-T12](../docs/tasks/REV-M0.md#rev-m0-t12)（BE-M0-T14 MySQL CI签署）、[REV-M0-T13](../docs/tasks/REV-M0.md#rev-m0-t13)（ISSUE-026快照规则签署）、[REV-M0-T14](../docs/tasks/REV-M0.md#rev-m0-t14)（ISSUE-014 ProLayout签署）、[REV-M0-T15](../docs/tasks/REV-M0.md#rev-m0-t15)（ISSUE-020路由分包签署）、[REV-M0-T16](../docs/tasks/REV-M0.md#rev-m0-t16)（ISSUE-016检索骨架签署）、[REV-M0-T17](../docs/tasks/REV-M0.md#rev-m0-t17)（ISSUE-028模型配置设计签署）、[REV-M0-T08](../docs/tasks/REV-M0.md#rev-m0-t08)（T001签署）；[任务看板](../docs/TASK_BOARD.md) |
 | 关联 PR | [PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)，待合入 |
-| 本地验收 | 通过；2026-10-12，成长测试QA |
+| 本地验收 | 通过；2026-10-12，成长测试QA。项目经理确认签署记录已全部入库后关闭（Issue 用 closed） |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | [REV-M0-T02交付](../docs/delivery/REV-M0-T02.md) |
@@ -88,9 +88,10 @@ WORKFLOW无规则变化，治理块保持g1.1。
 | 2026-10-12 | qa-rerun-10 / done | ISSUE-020路由分包签署（REV-M0-T15）：AC-01～03通过；入口317.71 kB/gzip 101.64 kB，预加载合计1081.97 kB低于1334.42 kB；node --test 92/92、tsc、E2E 13 passed；ISSUE-020保持in-review，待项目经理设置done | 成长测试QA |
 | 2026-10-12 | qa-rerun-11 / done | ISSUE-016检索骨架签署（REV-M0-T16）：AC-01～05通过；契约7项、补充探针（越界记录、嵌入超时）均回退到A；后台349 passed/6 skipped(mysql)；ISSUE-016与AI-03保持in-review，待项目经理设置done | 成长测试QA |
 | 2026-10-12 | qa-rerun-12 / done | ISSUE-028模型配置设计签署（REV-M0-T17）：AC-01～03通过；与openai_model.py、errors.py冻结表、ISSUE-024错误码表一致；未改OpenAPI与依赖；D-1（P2）流式/JSON字段名在028与024间互相推诿；ISSUE-028保持in-review，待项目经理设置done | 成长测试QA |
+| 2026-10-12 | qa-rerun-13 / closed | 项目经理在群里确认 ISSUE-013 下各签署记录均已入库，指示 QA 改为 closed；REV-M0 各签署卡状态不变 | 成长测试QA |
 
 ## 本地验收与后续合入发布
 
-- 本地验收结论与日期：通过，2026-10-12。
+- 本地验收结论与日期：通过，2026-10-12；同日依项目经理确认关闭。
 - 未覆盖：原16项中有1项无法还原；未做GUI复验。
 - PR状态：PR #3待合入；未发布。
