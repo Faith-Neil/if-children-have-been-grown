@@ -58,3 +58,30 @@
 - [x] 交付、代码解释、验证记录和基线同步已登记。真实内网调用不在本卡。
 
 项目经理于 10-12 12:10 在 QA 签署后确认。状态为 done。合入和发布仍未发生。真实端点仍随 ISSUE-010，该 Issue 仍 blocked。
+
+<a id="ai-03"></a>
+
+## AI-03 · 检索层内存骨架
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 在现有协议旁增加内存检索口，不接外部服务 |
+| 关联 Issue | [ISSUE-016](../../issues/ISSUE-016.md) |
+| 依赖 | [BE-M0-T01](BE-M0.md#be-m0-t01) 的替换口。不依赖 ISSUE-010 尚未决定的向量库 |
+| PRD / 架构出处 | [前端架构](../ARCHITECTURE.md) 当前实施段。业务库为 MySQL 8，本卡不连接它 |
+| 完成时交付 | [交付](../delivery/AI-03.md) |
+| 代码解释 | [代码解释](../code/AI-03.md) |
+
+范围：定义 `EmbeddingProvider.embed`、`RerankProvider.rerank` 和 `VectorStore.upsert/search`。搜索按 `company_id`、`status` 和 `type` 过滤。三者都只提供内存实现。`EvidenceCandidateService` 产出路径 A（已确认资料上的规则）、路径 B（嵌入、按公司检索、重排）和路径 C（历史投标，仅供参考且不可附着）。B 或 C 失败，或知识库关闭时，保留 A 并记录跳过原因。
+
+当前条件：不连接 MySQL，不选定向量库，不新增依赖，不挂到 `create_app`。
+
+可验证验收：
+
+- [x] 三个协议和内存实现可用，搜索必须同时给出公司、状态和类型。
+- [x] 合成数据覆盖跨公司隔离，历史投标不可附着，失败或知识库关闭时回退到 A。
+- [x] `tests/backend/test_reference_boundaries.py` 包含在全后台回归中。
+- [x] 交付、代码解释、验证记录和基线同步已登记。真实库不在本卡。
+
+开发者不把本卡标为 done。状态保持 in-review，待项目经理在 QA 签字后决定。

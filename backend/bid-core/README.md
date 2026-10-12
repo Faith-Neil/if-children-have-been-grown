@@ -34,7 +34,7 @@ pnpm --dir frontend/web build
 
 查看 `/health` 可确认 `repository: memory`、`model: mock`。`/openapi.json` 提供实际接口说明；默认 Swagger 和 ReDoc 页面关闭，以免离线运行依赖外部网页脚本。
 
-进程入口会读取模型开关，但默认不访问外部模型。只有同时把 `ICG_MODEL_PROVIDER` 设为 `openai-compatible`，并提供 `ICG_MODEL_BASE_URL`、`ICG_MODEL_NAME` 和 `ICG_MODEL_IS_LOCAL`（`true` 或 `false`），才会使用 OpenAI 兼容适配器。可选变量：`ICG_MODEL_API_KEY_ENV`（默认 `ICG_MODEL_API_KEY`，这里写的是密钥所在变量的名字）、`ICG_MODEL_TIMEOUT_SECONDS`（默认 60）、`ICG_MODEL_MAX_TOKENS`（默认 1024）、`ICG_MODEL_RETRIES`（默认 1）。密钥、内网地址和客户正文都不要写入仓库。配置缺失时进程拒绝启动，不会改用演示文本假装调用成功。测试里的 `create_app()` 不读取这些变量。真实端点仍待 ISSUE-010，当前验收没有连接内网。数据库也还没选定，运行数据仍在内存中。
+进程入口会读取模型开关，但默认不访问外部模型。只有同时把 `ICG_MODEL_PROVIDER` 设为 `openai-compatible`，并提供 `ICG_MODEL_BASE_URL`、`ICG_MODEL_NAME` 和 `ICG_MODEL_IS_LOCAL`（`true` 或 `false`），才会使用 OpenAI 兼容适配器。可选变量：`ICG_MODEL_API_KEY_ENV`（默认 `ICG_MODEL_API_KEY`，这里写的是密钥所在变量的名字）、`ICG_MODEL_TIMEOUT_SECONDS`（默认 60）、`ICG_MODEL_MAX_TOKENS`（默认 1024）、`ICG_MODEL_RETRIES`（默认 1）。密钥、内网地址和客户正文都不要写入仓库。配置缺失时进程拒绝启动，不会改用演示文本假装调用成功。测试里的 `create_app()` 不读取这些变量。真实端点仍待 ISSUE-010，当前验收没有连接内网。业务库已决定为 MySQL 8，但本进程不连接它，运行数据仍在内存中。检索口同样只在内存中，见下文。
 
 ## 当前产品主流程
 
@@ -135,6 +135,8 @@ T14/T15已实际验证项目成员、可空参与分册、技术/商务负责人
 
 `icg_demo.ports.ParserProvider.parse(filename, content)`接收原件字节并返回原文页块、分页依据和提示，不写仓库。默认`LocalTextParser`执行上文的本地文字提取；换解析器时保留公司权限、人工确认和页码来源规则。
 
+`icg_demo.ports` 另有 `EmbeddingProvider.embed`、`RerankProvider.rerank` 和 `VectorStore.upsert/search`。搜索必须同时给出公司、状态和类型。`icg_demo.retrieval.EvidenceCandidateService` 用这三个内存实现产出资料规则、片段检索和仅供参考的历史投标。`create_app` 不构造该服务，页面请求不会调用它。它不连接 MySQL，也不使用向量库。
+
 `icg_demo.main.create_app(repository=None, model_provider=None, clock=None, parser_provider=None)`可注入三个接口和可控时钟。时钟返回Unix秒数或带时区的`datetime`。服务实例在`app.state.service`，产品流程服务在`app.state.workflow`，两者共用同一仓库。不同应用实例默认各有独立内存，不共享状态。
 
 | 代码 | 负责的事情 |
@@ -145,6 +147,7 @@ T14/T15已实际验证项目成员、可空参与分册、技术/商务负责人
 | `schemas.py`、`workflow_schemas.py` | 明确前后端可以传哪些字段及返回什么 |
 | `parsing.py` | 从实际文件提取原文和位置 |
 | `ports.py`、`adapters.py` | 替换接口及当前内存、模型替身、基础Word实现 |
+| `retrieval.py` | 嵌入、重排、向量表的内存实现，以及三条证据候选 |
 
 在仓库根目录运行实际后端测试：
 
