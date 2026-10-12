@@ -362,6 +362,10 @@
 | D-349 | 2026-10-12 | [REV-M0-T18签署交付](delivery/REV-M0-T18.md) | 交付 | qa-rerun-14 | 已本地验收 | ISSUE-013 / REV-M0-T18 | 无代码；结论与观察项 |
 | D-350 | 2026-10-12 | [BE-M0-T12编辑租约入库签署](testing/2026-10-12-be-m0-t12-lease-signoff.md) | 验证 | qa-rerun-15 | 本地通过 | ISSUE-013 / REV-M0-T19 | 通过；O-1/O-2 P3 |
 | D-351 | 2026-10-12 | [REV-M0-T19签署交付](delivery/REV-M0-T19.md) | 交付 | qa-rerun-15 | 已本地验收 | ISSUE-013 / REV-M0-T19 | 无代码；结论与观察项 |
+| D-352 | 2026-10-12 | [挂证据抽屉交付](delivery/APP-M2-T114.md) | 交付 | t114-drawer-1 | in-review | ISSUE-007 / APP-M2-T114 | 抽屉接到矩阵。不标 done。T124 仍 blocked |
+| D-353 | 2026-10-12 | [挂证据抽屉说明](code/APP-M2-T114.md) | 说明 | t114-drawer-1 | 当前 | ISSUE-007 / APP-M2-T114 | 保存仍是条款 evidence_ids |
+| D-354 | 2026-10-12 | [挂证据抽屉核对](testing/2026-10-12-app-m2-t114-evidence-drawer.md) | 验证 | t114-drawer-1 | 已执行 | ISSUE-007 / APP-M2-T114 | 单测 97；浏览器 14。缺协议只在单测 |
+| D-355 | 2026-10-12 | [T114同步表](governance/APP-M2-T114-sync.md) | 治理 | t114-drawer-1 | 已核对 | ISSUE-007 / APP-M2-T114 | 9 in-review、264 planned。并入两张 QA 卡后共 374 项、41 done |
 
 ## 更新记录
 
@@ -456,6 +460,7 @@
 | 2026-10-12 | ISSUE-030 / APP-M2-T002 | `canRetryStatus` 对 503 `SECRET_KEY_UNAVAILABLE` 返回 false，与 502 `MODEL_UNAVAILABLE` 一样只发一次。普通 503 和裸 502 仍重试。T002 仍为 done。不改任务计数，不改后台，不改冻结 JSON，不改 `docs/reference/`。ISSUE-030 为 in-review |
 | 2026-10-12 | ISSUE-031 / BE-M0-T16 | 冻结 143 个错误码名字。`set(ERROR_STATUS)` 与 spec 枚举都必须等于 `FROZEN_NAMES`。增删错误码必须在同一提交更新名单。看板从 371项39done、7in-review 改为 372项39done、8in-review、7in-progress、265planned、49blocked、4ready。不改 PRD、ROADMAP、PROJECT_BRIEF，不改 docs/reference，不改 .github。ISSUE-030 仍为 in-review。ISSUE-031 与 BE-M0-T16 为 in-review |
 | 2026-10-12 | ISSUE-022 | QA：`spec/openapi/README.md` 的 502/503 自动重试说明补上 N7，502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不自动重试。`x-idempotency.retry` 追加没有 Idempotency-Key 的写入不自动重试。不改错误码计数，不改 errors.py，不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。ISSUE-022 仍 in-review |
+| 2026-10-12 | ISSUE-007 / APP-M2-T114 | 挂证据抽屉改为 in-review。分组、拦截和保存接到响应矩阵。接口仍是 `73fde1e` 的条款 `evidence_ids`。并入 BE-M0-T16 与 REV-M0-T18、T19 后看板为 374 项、41 done、9 in-review、264 planned。T124 仍 blocked。不改后台，不改冻结 JSON，不改 `docs/reference/`，不改三份基线快照。不标 done |
 
 ## 缺失输入
 

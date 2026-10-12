@@ -23,7 +23,7 @@ export type ProjectTeam = {
 export type ProjectPermissions = { manage_team: boolean; manage_project: boolean; manage_structure: boolean; prepare_sources: boolean; manage_sla: boolean; edit_facts: boolean; confirm_facts: boolean; check_all: boolean; export_internal: boolean; check_volumes: Volume[]; export_volumes: Volume[] };
 export type ChapterPermissions = { edit: boolean; confirm_plan: boolean; generate: boolean; manage_structure: boolean; assign: boolean; takeover: boolean };
 export type Source = { file_id: string; page: number; quote: string; filename?: string; sha256?: string; pagination?: string };
-export type Requirement = { id: string; text: string; category: string; volume: Volume; chapter_id: string | null; status: 'pending' | 'confirmed' | 'rejected'; response: string; reason: string; evidence_ids: string[]; source: Source; permissions?: { edit: boolean; response: boolean; route: boolean } };
+export type Requirement = { id: string; text: string; category: string; volume: Volume; chapter_id: string | null; status: 'pending' | 'confirmed' | 'rejected'; response: string; reason: string; evidence_ids: string[]; source: Source; permissions?: { edit: boolean; response: boolean; route: boolean }; proof_requirements?: string };
 export type Fact = { id: string; key: string; value: string; status: 'pending' | 'confirmed' | 'rejected' | 'needs_review'; reason: string; source: Source | null; source_type?: string; sla_var_key?: string; unit?: string; required?: boolean };
 export type SlaScalar = string | number | null;
 export type SlaVariable = { var_key: string; label: string; group: string; value_type: 'integer' | 'decimal' | 'text'; default_value: SlaScalar; unit: string; compare_direction: 'lower_better' | 'higher_better' | 'exact'; best_committable_value: SlaScalar };
@@ -53,5 +53,10 @@ export type CheckIssue = { id: string; code: string; severity: string; message: 
 export type Check = { id: string; volume: Volume | 'all'; passed: boolean; status: string; issues: CheckIssue[]; coverage: { implemented_rules: string[]; unimplemented_rules: string[]; complete: boolean }; fingerprint: string; created_at: string };
 export type Export = { id: string; kind: string; check_id: string; created_at: string; excludes_drafts: boolean; status: string; volumes: { volume: Volume; filename: string; download_url: string }[] };
 export type Job = { id: string; project_id: string; type: string; status: string; progress: number; message: string; created_at: string; completed_at: string; error: { code: string; message: string } | null; recoverable: boolean };
-export type Evidence = { id: string; name: string; type: string; content: string; valid_until: string | null; status: string; company_id?: string; usable_as_evidence?: boolean; reason?: string; revision?: number };
+export type Evidence = {
+  id: string; name: string; type: string; content: string; valid_until: string | null; status: string; company_id?: string;
+  usable_as_evidence?: boolean; reason?: string; revision?: number; match_score?: number;
+  source_tier?: 'own' | 'partner' | 'reference'; agreement_present?: boolean; restricted?: boolean;
+  source?: { filename?: string; page?: number; quote?: string };
+};
 export type Workspace = { revision: number; input_fingerprint: string; project: Project; stage: string; files: TenderFile[]; requirements: Requirement[]; facts: Fact[]; conflicts: Conflict[]; chapters: Chapter[]; checks: Check[]; exports: Export[]; jobs: Job[]; parse_confirmed: boolean; plan_confirmed: boolean; sla?: ProjectSla | null; writing_plan?: WritingPlan; team?: ProjectTeam; permissions?: ProjectPermissions };

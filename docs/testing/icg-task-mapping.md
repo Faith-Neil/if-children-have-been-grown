@@ -234,7 +234,7 @@ T07上段为范围拆分阶段记录；当前ISSUE-009 / APP-M2-T001为 in-revie
 | [APP-M2-T111](../tasks/APP-M2.md#app-m2-t111) | 疑似遗漏（无批量、排除须理由）与引用未解析页签 | planned | APP-M2-T104、APP-M2-T148、APP-M2-T109 | M3-E04a-F3 |
 | [APP-M2-T112](../tasks/APP-M2.md#app-m2-t112) | 矩阵表格与筛选（风险提示） | planned | APP-M1-T03 | M3-E05-F1 |
 | [APP-M2-T113](../tasks/APP-M2.md#app-m2-t113) | 行编辑（响应方式、要点、负责人） | planned | APP-M1-T03、APP-M2-T112 | M3-E05-F2 |
-| [APP-M2-T114](../tasks/APP-M2.md#app-m2-t114) | EvidenceDrawer | planned | APP-M1-T03、APP-M2-T048、APP-M2-T204、APP-M2-T205 | M3-E05-F3 |
+| [APP-M2-T114](../tasks/APP-M2.md#app-m2-t114) | EvidenceDrawer | in-review | APP-M1-T03、APP-M2-T048、APP-M2-T204、APP-M2-T205 | M3-E05-F3 |
 | [APP-M2-T115](../tasks/APP-M2.md#app-m2-t115) | 批量智能匹配与逐行确认 | planned | APP-M1-T03、APP-M2-T118 | M3-E05-F4 |
 | [APP-M2-T116](../tasks/APP-M2.md#app-m2-t116) | P-18 分册分流确认 | planned | APP-M1-T03、APP-M1-T14 | M3-E05-F5 |
 | [APP-M2-T117](../tasks/APP-M2.md#app-m2-t117) | Excel 导出与确认闸门 | planned | APP-M1-T03、APP-M2-T113、APP-M2-T114、APP-M2-T116 | M3-E05-F6 |
@@ -2414,7 +2414,7 @@ T07上段为范围拆分阶段记录；当前ISSUE-009 / APP-M2-T001为 in-revie
     {
       "id": "APP-M2-T114",
       "title": "EvidenceDrawer",
-      "status": "planned",
+      "status": "in-review",
       "phase": "一期业务页面/支撑",
       "source": "M3-E05-F3",
       "source_key": "E05.F3",

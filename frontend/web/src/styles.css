@@ -64,3 +64,6 @@
 .icg-shell.icg-shell-collapsed .ant-pro-global-header { padding-inline-start: 48px; }
 .topbar-leading { display: flex; align-items: center; gap: 8px; min-width: 0; width: 100%; }
 .topbar-breadcrumb { white-space: nowrap; overflow: hidden; }
+.evidence-group { margin: 16px 0 8px; }
+.evidence-group h4 { margin-bottom: 8px; }
+.evidence-invalid-row > td:first-child { box-shadow: inset 3px 0 0 #D9363E; }
