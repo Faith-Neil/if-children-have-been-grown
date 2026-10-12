@@ -363,14 +363,15 @@
 | D-350 | 2026-10-12 | [BE-M0-T12编辑租约入库签署](testing/2026-10-12-be-m0-t12-lease-signoff.md) | 验证 | qa-rerun-15 | 本地通过 | ISSUE-013 / REV-M0-T19 | 通过；O-1/O-2 P3 |
 | D-351 | 2026-10-12 | [REV-M0-T19签署交付](delivery/REV-M0-T19.md) | 交付 | qa-rerun-15 | 已本地验收 | ISSUE-013 / REV-M0-T19 | 无代码；结论与观察项 |
 
-| D-352 | 2026-10-12 | [最新分支复核问题](../issues/ISSUE-032.md) | Bug | foundation-review-fix-1 | in-progress | ISSUE-032 / REV-M0-T20 | 仅复核与限定修复，独立PR不推进功能 |
-| D-353 | 2026-10-12 | [最新分支复核](reviews/2026-10-12-foundation-review.md) | 审查 | foundation-review-fix-1 | 验证中 | ISSUE-032 / REV-M0-T20 | 六项真实缺陷、基线与验证限度 |
-| D-354 | 2026-10-12 | [审查修复代码解释](code/REV-M0-T20.md) | 说明 | foundation-review-fix-1 | 当前 | ISSUE-032 / REV-M0-T20 | 来源身份、成功显示页与回执一致性 |
-| D-355 | 2026-10-12 | [审查修复交付](delivery/REV-M0-T20.md) | 交付 | foundation-review-fix-1 | 验证中 | ISSUE-032 / REV-M0-T20 | 独立PR，不推进功能或自行done |
-| D-356 | 2026-10-12 | [实际App闭包回归](../frontend/web/tests/app-orchestration.test.mjs) | 验证 | foundation-review-fix-1 | 9项通过 | ISSUE-032 / REV-M0-T20 | 迟到失败、未保存重试、浏览器历史 |
-| D-357 | 2026-10-12 | [片段并发回归](../tests/backend/test_snippet_review.py) | 验证 | foundation-review-fix-1 | 3项通过 | ISSUE-032 / REV-M0-T20 | 同键一次修改、冲突及提交失败回滚 |
-| D-358 | 2026-10-12 | [回执数据库探针](../tests/backend/test_receipt_review.py) | 验证 | foundation-review-fix-1 | 5项通过 | ISSUE-032 / REV-M0-T20 | 容量边界及生产DELETE SQL，非MySQL实机 |
-| D-359 | 2026-10-12 | [浏览器复核反例](../frontend/web/e2e/review-regressions.spec.ts) | 验证 | foundation-review-fix-1 | 待执行 | ISSUE-032 / REV-M0-T20 | 实际500后重试与切账号后迟到401 |
+| D-362 | 2026-10-12 | [最新分支复核问题](../issues/ISSUE-032.md) | Bug | foundation-review-fix-1 | in-progress | ISSUE-032 / REV-M0-T21 | 仅复核与限定修复，独立PR不推进功能 |
+| D-363 | 2026-10-12 | [最新分支复核](reviews/2026-10-12-foundation-review.md) | 审查 | foundation-review-fix-1 | 验证中 | ISSUE-032 / REV-M0-T21 | 六项真实缺陷、基线与验证限度 |
+| D-364 | 2026-10-12 | [审查修复代码解释](code/REV-M0-T21.md) | 说明 | foundation-review-fix-1 | 当前 | ISSUE-032 / REV-M0-T21 | 来源身份、成功显示页与回执一致性 |
+| D-365 | 2026-10-12 | [审查修复交付](delivery/REV-M0-T21.md) | 交付 | foundation-review-fix-1 | 验证中 | ISSUE-032 / REV-M0-T21 | 独立PR，不推进功能或自行done |
+| D-366 | 2026-10-12 | [实际App闭包回归](../frontend/web/tests/app-orchestration.test.mjs) | 验证 | foundation-review-fix-1 | 9项通过 | ISSUE-032 / REV-M0-T21 | 迟到失败、未保存重试、浏览器历史 |
+| D-367 | 2026-10-12 | [片段并发回归](../tests/backend/test_snippet_review.py) | 验证 | foundation-review-fix-1 | 3项通过 | ISSUE-032 / REV-M0-T21 | 同键一次修改、冲突及提交失败回滚 |
+| D-368 | 2026-10-12 | [回执数据库探针](../tests/backend/test_receipt_review.py) | 验证 | foundation-review-fix-1 | 5项通过 | ISSUE-032 / REV-M0-T21 | 容量边界及生产DELETE SQL，非MySQL实机 |
+| D-369 | 2026-10-12 | [浏览器复核反例](../frontend/web/e2e/review-regressions.spec.ts) | 验证 | foundation-review-fix-1 | 待执行 | ISSUE-032 / REV-M0-T21 | 实际500后重试与切账号后迟到401 |
+| D-370 | 2026-10-12 | [最新分支验证](testing/2026-10-12-foundation-review.md) | 验证 | foundation-review-fix-1 | 验证中 | ISSUE-032 / REV-M0-T21 | 可重跑命令、真实浏览器及数据库验收限度 |
 
 ## 更新记录
 

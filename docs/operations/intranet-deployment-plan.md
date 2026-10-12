@@ -49,9 +49,9 @@ CI 固定 Python 3.13.5、Node 24.9.0。README 里的本机说明仍写过 Pytho
 6. 每个响应目前带 `Cache-Control: no-store`。不要假设静态资源可以被代理长期缓存。
 7. `/api/demo/accounts` 会列出演示账号。在演示登录被替换之前，不要把这个入口暴露到比开发验证更宽的网络。
 
-**约束（QA，2026-10-12，本轮仍然有效）：** 会话和幂等回执仍是进程内内存。在 [ISSUE-018](../../issues/ISSUE-018.md) 把它们持久化到 MySQL 之前，后台必须是一个 uvicorn worker、一个副本。`--workers` 只能是 1，不能再加进程，也不能再加应用副本。多 worker 和多副本部署 blocked 在 ISSUE-018 的后续卡（回执和会话入库，BE-M0-T11）。重启后已登录会话失效，已登记的幂等回执消失，客户端不能用旧标记重放重启前的成功结果。
+**当前约束（2026-10-12，ISSUE-032复核纠正）：** 后台仍必须是一个 uvicorn worker、一个副本，`--workers`只能是1。未设置`ICG_DATABASE_URL`时，会话、回执和租约都在内存，重启清空。设置MySQL后，BE-M0-T11/T12已实现共享会话、回执和编辑租约；但项目、正文、草稿、版本、片段等业务数据仍在进程内存。多worker、多副本和滚动发布继续等待[ISSUE-018](../../issues/ISSUE-018.md)的业务聚合迁移BE-M0-T13及整体验收，不能仅凭共享会话就放开部署。
 
-滚动发布和共享会话同样等这个持久化。在那之前，一台应用机、一个进程就是与代码一致的上限。ISSUE-018 已建档，状态 in-progress：连接和空迁移已在仓库，业务表、回执、会话和租约还没有。本草案不把该 Issue 标成完成。
+MySQL模式下重启后会话和回执可以保留，业务内容却不能恢复；保留的回执不能代替已丢失的业务数据。一台应用机、一个进程仍是当前部署上限。ISSUE-018保持in-progress，T11/T12仍待项目经理确认，T13未实施；本草案不把局部持久化写成完整交付，也不改原QA签署历史。
 
 ## 3. 配置和密钥
 
@@ -98,7 +98,7 @@ RAGFlow 的基址和调用密钥使用占位名 `ICG_RAGFLOW_BASE_URL`、`ICG_RA
 
 本卡不改写 ISSUE-010，也不关闭 AI-01。MySQL 8 没有向量检索，向量不放进业务库，pgvector 不再作为同库选项。嵌入和向量库按第 7 节改记为 RAGFlow 自带能力。起草时 ISSUE-010 正文仍写着这些项待决。随后该 Issue 已关闭，AI-01 改为 in-review。现行决定以 ISSUE-010 为准。
 
-未设置 `ICG_DATABASE_URL` 时，`MemoryRepository` 仍是运行中的仓库。设置之后，`repository_from_environment()` 使用 `MysqlConnectionRepository`：它连接 MySQL 并报告 `mode: mysql`，但 `read` 和 `transaction` 仍委托内存仓库。`requirements.txt` 已有 PyMySQL、SQLAlchemy、Alembic 和 cryptography（[ISSUE-023](../../issues/ISSUE-023.md)）。空基线迁移已在仓库。业务表还没有。下面是库就位之后的备份和回滚要求，不是已经把业务数据写入 MySQL 的行为。
+未设置`ICG_DATABASE_URL`时使用`MemoryRepository`。设置后，`MysqlConnectionRepository`报告`mode: mysql`，在每次读取和事务中加载并保存MySQL会话、回执及编辑租约，其他业务数据仍委托内存仓库。`requirements.txt`已有PyMySQL、SQLAlchemy、Alembic和cryptography（[ISSUE-023](../../issues/ISSUE-023.md)）；已有空基线及共享数据迁移。下面是备份和回滚要求，业务聚合表尚未实现，不能据此宣称项目正文已有数据库备份。
 
 备份同时做两层：
 
@@ -168,7 +168,7 @@ RAGFlow 单独部署，不跟 uvicorn 进程挤在同一个工作进程里。它
 - RAGFlow 不可用时，应用进程仍可启动并提供已有的内存演示。已经接上适配器之后，检索失败要显式失败，不能改写成演示成功，也不能改道去公网模型。
 - 回滚应用是回到上一个 Git 提交并重启那一个进程。这不回滚 RAGFlow 的索引。RAGFlow 的升级或回退单独进行，版本仍待 AI/RAG 计划确认。
 - 换 `ICG_SECRET_KEY` 之后，用旧主密钥加密的模型 API 密钥无法解密。更换前先在仓库外重新加密或重新录入。不要把新旧主密钥提交进 Git。
-- 多副本和多 worker 仍然不做。一个进程看不到另一个进程的会话和幂等回执。
+- 多副本和多worker仍然不做。MySQL模式已共享会话、回执和租约，但一个进程仍看不到另一个进程的业务正文和片段，必须等业务聚合迁移及整体验收。
 
 ### CI
 

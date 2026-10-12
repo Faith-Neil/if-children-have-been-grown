@@ -103,7 +103,7 @@ def test_old_snapshot_delete_preserves_replacement_receipt(sql_repository, chang
     before_delete = stored_receipts(sql_repository)
 
     # 此时另一进程已提交同键新回执；当前进程仍持有删除前的旧快照。
-    sql_repository._save_shared({}, {}, before, {})
+    sql_repository._save_shared({}, {}, before, {}, {}, {})
 
     assert stored_receipts(sql_repository) == before_delete
 
@@ -115,6 +115,6 @@ def test_removed_snapshot_receipt_is_deleted_when_current_row_matches(sql_reposi
     before = {RECEIPT_KEY: {"created_at": created_at.replace(tzinfo=timezone.utc).timestamp(),
                             "fingerprint": receipt_fingerprint, "result": {"revision": 1}}}
 
-    sql_repository._save_shared({}, {}, before, {})
+    sql_repository._save_shared({}, {}, before, {}, {}, {})
 
     assert stored_receipts(sql_repository) == []

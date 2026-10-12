@@ -11,7 +11,7 @@ from threading import Lock
 from typing import Callable, TypeVar
 
 from .adapters import MemoryRepository
-from .domain import DemoState, Lease
+from .domain import DemoState, DomainError, Lease
 
 DATABASE_URL_ENV = "ICG_DATABASE_URL"
 REQUIRE_MYSQL_ENV = "ICG_REQUIRE_MYSQL"
@@ -193,6 +193,7 @@ class MysqlConnectionRepository:
                      before_receipts: dict, after_receipts: dict,
                      before_leases: dict, after_leases: dict) -> None:
         from sqlalchemy import text
+        from sqlalchemy.exc import IntegrityError
 
         with self.engine.begin() as connection:
             connection.execute(text("DELETE FROM idempotency_receipt WHERE expires_at <= NOW(6)"))
@@ -268,11 +269,23 @@ class MysqlConnectionRepository:
                 current = after_leases.get(chapter_id)
                 if previous == current:
                     continue
+                # 旧快照只能修改自己读到的租约，不能撤掉或覆盖另一进程已经接管的编辑权。
+                condition = ("chapter_id = :chapter_id AND token = :previous_token "
+                             "AND owner_id = :previous_owner_id AND session_token = :previous_session_token "
+                             "AND expires_at = :previous_expires_at")
+                comparison = {} if previous is None else {
+                    "chapter_id": chapter_id,
+                    "previous_token": previous[0],
+                    "previous_owner_id": previous[1],
+                    "previous_session_token": previous[2],
+                    "previous_expires_at": _utc_naive(previous[3]),
+                }
                 if current is None:
-                    connection.execute(
-                        text("DELETE FROM chapter_lease WHERE chapter_id = :chapter_id"),
-                        {"chapter_id": chapter_id},
+                    deleted = connection.execute(
+                        text("DELETE FROM chapter_lease WHERE " + condition), comparison,
                     )
+                    if deleted.rowcount != 1:
+                        raise DomainError(423, "LOCK_LOST", "编辑权已失效，请重新取得编辑权后再操作。")
                     continue
                 token, owner_id, session_token, expires_at = current
                 payload = {
@@ -283,23 +296,28 @@ class MysqlConnectionRepository:
                     "expires_at": _utc_naive(expires_at),
                 }
                 if previous is None:
-                    connection.execute(
-                        text(
-                            "INSERT INTO chapter_lease "
-                            "(chapter_id, token, owner_id, session_token, expires_at) "
-                            "VALUES (:chapter_id, :token, :owner_id, :session_token, :expires_at)"
-                        ),
-                        payload,
-                    )
+                    try:
+                        connection.execute(
+                            text(
+                                "INSERT INTO chapter_lease "
+                                "(chapter_id, token, owner_id, session_token, expires_at) "
+                                "VALUES (:chapter_id, :token, :owner_id, :session_token, :expires_at)"
+                            ),
+                            payload,
+                        )
+                    except IntegrityError as error:
+                        raise DomainError(423, "LOCK_HELD", "其他会话正在编辑，请重新核对编辑权。") from error
                 else:
-                    connection.execute(
+                    updated = connection.execute(
                         text(
                             "UPDATE chapter_lease SET token = :token, owner_id = :owner_id, "
                             "session_token = :session_token, expires_at = :expires_at "
-                            "WHERE chapter_id = :chapter_id"
+                            "WHERE " + condition
                         ),
-                        payload,
+                        {**payload, **comparison},
                     )
+                    if updated.rowcount != 1:
+                        raise DomainError(423, "LOCK_LOST", "编辑权已失效，请重新取得编辑权后再操作。")
 
 
 def _lease_snapshot(state: DemoState) -> dict:
