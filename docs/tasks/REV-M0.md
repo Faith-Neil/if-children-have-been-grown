@@ -571,3 +571,24 @@
 - [x] 验收条目逐条核对并独立复跑。
 - [x] 聚焦 34 passed / 1 skipped；全后台 355 passed / 13 skipped；治理通过；CI 38231417634 绿。
 - [x] ISSUE-028 / AI-01 / 本卡均不标 done，等项目经理设置
+
+<a id="rev-m0-t30"></a>
+
+## REV-M0-T30 · ISSUE-028 AC-03 OpenAPI/依赖/演示替身 QA签署
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review（本地验收；等项目经理设置 done） |
+| 估算 | 1小时 |
+| 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
+| 依赖 | ISSUE-028（9e3fcdd；证据 be3ce98） |
+| 来源 | 项目经理签署要求；T27 预留给 PR #4；T28/T29 已用 |
+| 完成交付 | [专属交付](../delivery/REV-M0-T30.md) |
+| 代码解释 | 无产品代码 |
+
+范围：签署 ISSUE-028 AC-03。独立复跑 AI 证据：夹具提交不改 OpenAPI/依赖；create_app 默认演示替身。不改他人代码；不把 ISSUE-028 / AI-01 标为 done。
+
+- [x] 验收条目逐条核对并独立复跑。
+- [x] OpenAPI/requirements/openai_model 夹具 diff 为空；34 passed / 1 skipped；治理通过。
+- [x] ISSUE-028 / AI-01 / 本卡均不标 done，等项目经理设置
+
