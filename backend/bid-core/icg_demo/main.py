@@ -13,7 +13,8 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException
 
-from .adapters import DemoModelProvider, MemoryRepository, build_docx
+from .adapters import DemoModelProvider, build_docx
+from .database import repository_from_environment
 from .domain import DemoService, DomainError, Principal
 from .errors import RETRY_GUIDANCE, enrich_openapi
 from .idempotency import IDEMPOTENCY_HEADER_DESCRIPTION, bind_request, replayed_for, reset_request
@@ -51,10 +52,11 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
                clock: Callable[[], float | datetime] | None = None,
                parser_provider: ParserProvider | None = None, *,
                use_configured_model: bool = False) -> FastAPI:
-    # 未传入适配器且未打开开关时保持演示替身。只有进程入口显式打开开关，才读取环境变量。
+    # 未传入仓库时读取 ICG_DATABASE_URL；未设置则仍用内存仓库。显式传入的仓库优先。
+    # 模型仍只在进程入口打开开关时读取环境变量，未打开时保持演示替身。
     if model_provider is None and use_configured_model:
         model_provider = openai_provider_from_environment()
-    service = DemoService(repository if repository is not None else MemoryRepository(),
+    service = DemoService(repository if repository is not None else repository_from_environment(),
                           model_provider if model_provider is not None else DemoModelProvider(), clock)
     application = FastAPI(title="ICG 投标产品本地实现", version="reference-1",
                           description="本地演示接口。/api/v1 使用统一错误体；" + RETRY_GUIDANCE,

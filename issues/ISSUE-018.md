@@ -9,29 +9,29 @@
 | Issue ID | ISSUE-018 |
 | 类型 | decision |
 | 优先级 | P1 |
-| 状态 | in-review |
+| 状态 | in-progress |
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
-| revision | plan-1 |
-| 关联 Task | [BE-M0-T08](../docs/tasks/BE-M0.md#be-m0-t08) |
+| revision | impl-1 |
+| 关联 Task | [BE-M0-T08](../docs/tasks/BE-M0.md#be-m0-t08)、[BE-M0-T10](../docs/tasks/BE-M0.md#be-m0-t10) |
 | 关联 PR | 未创建。方案随既有分支提交，不新开 PR |
-| 本地验收 | 未执行功能验收。2026-10-12 只跑治理检查；无运行时代码可验 |
+| 本地验收 | 方案轮次只跑治理检查。连接与空迁移的运行时验收见 BE-M0-T10，2026-10-12 |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | [BE-M0-T08](../docs/delivery/BE-M0-T08.md) |
-| 代码 / 流程解释 | [BE-M0-T08](../docs/code/BE-M0-T08.md)。无代码影响 |
-| 验证记录 | 治理检查；见交付。未跑 MySQL |
+| 代码 / 流程解释 | 方案说明 [BE-M0-T08](../docs/code/BE-M0-T08.md)。连接实现 [BE-M0-T10](../docs/code/BE-M0-T10.md) |
+| 验证记录 | 方案轮次为治理检查。MySQL 见 [2026-10-12 连接与迁移](../docs/testing/2026-10-12-mysql-connection.md) |
 
 ## 现象与证据
 
 用户已决定业务库为 MySQL 8。当前仓库只有 `MemoryRepository`：`read()` 返回整份 `DemoState`，`transaction()` 在锁内深拷贝后提交。幂等回执保留 24 小时，编辑租约 120 秒。尚无驱动、迁移和表。
 
-本 Issue 交付的是方案：[MySQL 8 持久化方案](../docs/architecture/mysql-8-persistence-plan.md)。它不安装依赖，也不改运行时代码。
+方案在 [MySQL 8 持久化方案](../docs/architecture/mysql-8-persistence-plan.md)。项目经理已批准方案和四项依赖。连接与空迁移由 BE-M0-T10 实施，依赖登记为 [ISSUE-023](ISSUE-023.md)。回执、会话、租约和聚合表仍未做。
 
 ## 影响与分流
 
 - 影响后续持久化实施的选型和测试边界。向量库和模型仍属 ISSUE-010，不在本 Issue。
-- 本次只写方案、任务和同步记录。不改 `requirements.txt`，不改 CI 工作流。
+- 方案轮次没有改依赖。批准后的四个包由 ISSUE-023 写入 `requirements.txt`。公网 CI 工作流仍不加 MySQL。
 - 旧 `/api` 错误体另见 ISSUE-021，排在本方案之后，本轮不实施。
 - 依赖：无实施依赖。解除“可以开始建表”的条件是本方案被接受，并且第 2 节的四个包逐项批准。
 
@@ -40,13 +40,17 @@
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
 | BE-M0-T08 | 写出 ORM、驱动、迁移、字符集、回执表、租约表、事务、跨进程回执与会话，以及内网测试边界 | `docs/architecture/mysql-8-persistence-plan.md` | AC-01～AC-05 | in-review |
+| BE-M0-T10 | 连接配置与空基线迁移 | `backend/bid-core/icg_demo/database.py` | 见 ISSUE-023 | in-review |
+| BE-M0-T11 | 幂等回执和登录会话入库，多进程共享且重启后仍在 | 后续实现 | AC-04、AC-05 | planned |
+| BE-M0-T12 | 编辑租约入库，含续期和接管 | 后续实现 | 方案第 5 节 | planned |
+| BE-M0-T13 | 按聚合把仓库从整份状态迁到 MySQL | 后续实现 | 方案第 7 节 | planned |
 
 ## 验收条目
 
 | 编号 | 可检查的完成条件 | 结果与证据 |
 |---|---|---|
 | AC-01 | 方案覆盖选型理由、逐项依赖、聚合拆分、utf8mb4、回执表、租约表、事务和 `mysql:8.4` 测试命令 | 已写入方案。功能未实施，不能标通过 |
-| AC-02 | `requirements.txt` 与运行时代码无新增驱动或迁移 | 本提交不改这些文件。治理检查见交付 |
+| AC-02 | 依赖按批准加入，密码不进仓库 | 四项已由 ISSUE-023 / BE-M0-T10 写入。方案轮次本身未改依赖。本条不把后续业务表标为通过 |
 | AC-03 | 数据不出内网：方案禁止公网 CI 和托管库 | 已写入方案第 10 节。未实际连接数据库 |
 | AC-04 | 幂等回执对多个进程或 worker 可见，并且进程重启后未过期回执仍在 | 已写入方案第 4 节和第 9 节。当前仍是内存实现，本条不能标通过 |
 | AC-05 | 登录会话同样跨进程共享，并且重启后仍有效 | 已写入方案第 6 节。当前 `DemoState.sessions` 仍在进程内，本条不能标通过 |
@@ -60,8 +64,8 @@
 | PRD | 无影响。未改页面、角色或业务规则 | 不改 `docs/PRD.md` | plan-1 / ISSUE-018 / 2026-10-12 | 已核对 |
 | ROADMAP | 无影响。持久化仍是未实施项，本轮不改路线图计数 | 不改 `docs/ROADMAP.md` | plan-1 / ISSUE-018 / 2026-10-12 | 已核对 |
 | ARCHITECTURE | 无影响。持久化步骤留在方案。ISSUE-005 另补的一句不在本 Issue 修改 | 不改架构正文 | plan-1 / ISSUE-018 / 2026-10-12 | 已核对 |
-| TASK_BOARD | 有影响。新增 BE-M0-T08，状态 in-review | `docs/TASK_BOARD.md`、`docs/tasks/BE-M0.md` | plan-1 / ISSUE-018 / 2026-10-12 | 已改 |
-| PROJECT_STATUS | 有影响。进度段改为 352 项，并指向本方案 | `docs/PROJECT_STATUS.md` | plan-1 / ISSUE-018 / 2026-10-12 | 已改 |
+| TASK_BOARD | 有影响。T08 仍 in-review。T10 in-review，T11～T13 planned | `docs/TASK_BOARD.md`、`docs/tasks/BE-M0.md` | impl-1 / ISSUE-018 / 2026-10-12 | 已改 |
+| PROJECT_STATUS | 有影响。进度改为 360 项，并写明连接已提交、业务表未建 | `docs/PROJECT_STATUS.md` | impl-1 / ISSUE-018 / 2026-10-12 | 已改 |
 | DOCUMENT_INDEX | 有影响。登记方案、交付、说明和同步表 | `docs/DOCUMENT_INDEX.md` | plan-1 / ISSUE-018 / 2026-10-12 | 已改 |
 
 PROJECT_BRIEF 排期行随任务数改为 352 项，记在下方同步表。
@@ -70,7 +74,8 @@ PROJECT_BRIEF 排期行随任务数改为 352 项，记在下方同步表。
 
 | 日期 | revision / 状态 | 完成事实、问题与下一步 | 证据 / 复核人 |
 |---|---|---|---|
-| 2026-10-12 | plan-1 / in-review | 方案已提交复查。未安装依赖，未建表。done 与 closed 等待项目经理在 QA 后设置 | 方案与治理检查 |
+| 2026-10-12 | plan-1 / in-review | 方案已提交复查。当时未安装依赖，未建表 | 方案与治理检查 |
+| 2026-10-12 | impl-1 / in-progress | 项目经理批准方案和四项依赖。只实施连接与空迁移。T11～T13 仍 planned。不关闭 | [BE-M0-T10](../docs/delivery/BE-M0-T10.md) |
 
 ## 本地验收与后续合入发布
 

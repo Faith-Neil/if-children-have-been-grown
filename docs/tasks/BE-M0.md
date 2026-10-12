@@ -164,11 +164,11 @@
 | 完成时交付 | [docs/delivery/BE-M0-T08.md](../delivery/BE-M0-T08.md) |
 | 代码解释 | [docs/code/BE-M0-T08.md](../code/BE-M0-T08.md) |
 
-范围：见 [方案](../architecture/mysql-8-persistence-plan.md)。不安装 SQLAlchemy、PyMySQL、cryptography、Alembic，不建表，不改内存仓库。
+范围：见 [方案](../architecture/mysql-8-persistence-plan.md)。本卡只交付方案。项目经理批准后的依赖和连接由 BE-M0-T10 实施。
 
 - [x] 方案写明选型、逐项依赖、聚合拆分、utf8mb4、回执表、租约表、事务和内网 `mysql:8.4` 命令。
 - [x] 方案要求回执和登录会话跨进程共享，并在重启后仍在。本轮不实施。
-- [x] 本轮无驱动、迁移或运行时代码。
+- [x] 本卡只交付方案。驱动和空迁移不在本卡，见 BE-M0-T10。
 - [ ] 项目经理 QA 签收前不标 done。
 
 <a id="be-m0-t09"></a>
@@ -191,3 +191,85 @@
 - [ ] 幂等语义与 v1 一致，并有回归测试。
 - [ ] `/API` 与混合大小写的 `/api` 前缀返回 JSON 404。
 - [ ] 未接受 ISSUE-018 之前不开工。
+
+<a id="be-m0-t10"></a>
+
+## BE-M0-T10 · 连接配置与迁移骨架
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时以内；不含回执、会话、租约和聚合表 |
+| 关联 Issue | [ISSUE-018](../../issues/ISSUE-018.md)、[ISSUE-023](../../issues/ISSUE-023.md) |
+| 依赖 | [BE-M0-T08](BE-M0.md#be-m0-t08)；项目经理已批准方案和四项依赖 |
+| 来源 | ISSUE-018 方案第 1 卡 |
+| 完成时交付 | [实际交付](../delivery/BE-M0-T10.md) |
+| 代码解释 | [实际代码解释](../code/BE-M0-T10.md) |
+
+范围：`ICG_DATABASE_URL` 为空时继续使用内存仓库。有值时进程连上 MySQL 8，字符集 `utf8mb4`。Alembic 空基线只建立版本表。标记 `mysql` 的测试在 `ICG_REQUIRE_MYSQL=1` 且缺库时失败。不改公网 CI。
+
+- [x] 未设置连接串时现有测试仍用内存仓库。
+- [x] 只设置 `ICG_DATABASE_URL` 时 uvicorn 能连上 `mysql:8.4`。
+- [x] `alembic -c backend/bid-core/alembic.ini upgrade head` 不创建业务表。
+- [x] `ICG_REQUIRE_MYSQL=1` 时缺连接串或连不上为失败，不是跳过。
+- [ ] 项目经理 QA 签收前不标 done。
+
+<a id="be-m0-t11"></a>
+
+## BE-M0-T11 · 幂等回执与登录会话入库
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | planned |
+| 估算 | 4小时以内 |
+| 关联 Issue | [ISSUE-018](../../issues/ISSUE-018.md) |
+| 依赖 | [BE-M0-T10](BE-M0.md#be-m0-t10) |
+| 来源 | 方案要求回执和会话跨进程共享，并在重启后仍在 |
+| 完成时交付 | `docs/delivery/BE-M0-T11.md` |
+| 代码解释 | `docs/code/BE-M0-T11.md` |
+
+范围：把 24 小时幂等回执和登录会话写入 MySQL，多个进程可见，重启后未过期数据仍在。本卡尚未开工。
+
+- [ ] 一个进程写入的回执能被另一个进程重放。
+- [ ] 重启后未过期回执和登录 token 仍有效。
+- [ ] 失败不保存回执。内存 2048 条上限不套到 MySQL。
+
+<a id="be-m0-t12"></a>
+
+## BE-M0-T12 · 编辑租约入库
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | planned |
+| 估算 | 4小时以内 |
+| 关联 Issue | [ISSUE-018](../../issues/ISSUE-018.md) |
+| 依赖 | [BE-M0-T11](BE-M0.md#be-m0-t11) |
+| 来源 | 方案中的 120 秒租约、续期和接管 |
+| 完成时交付 | `docs/delivery/BE-M0-T12.md` |
+| 代码解释 | `docs/code/BE-M0-T12.md` |
+
+范围：编辑租约写入 MySQL，支持续期和接管。本卡尚未开工。
+
+- [ ] 租约 120 秒，续期后占用者不变。
+- [ ] 过期后其他会话可以接管。
+- [ ] 单元测试仍可在内存仓库上跑。
+
+<a id="be-m0-t13"></a>
+
+## BE-M0-T13 · 按聚合迁移仓库
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | planned |
+| 估算 | 4小时以内；超出则再拆卡 |
+| 关联 Issue | [ISSUE-018](../../issues/ISSUE-018.md) |
+| 依赖 | [BE-M0-T12](BE-M0.md#be-m0-t12) |
+| 来源 | 方案中的聚合拆分。整份 `DemoState` 不再作为 MySQL 的写入单位 |
+| 完成时交付 | `docs/delivery/BE-M0-T13.md` |
+| 代码解释 | `docs/code/BE-M0-T13.md` |
+
+范围：按聚合把业务写入迁到 MySQL。若一张卡放不下，先再拆，不在本卡里扩大范围。本卡尚未开工。
+
+- [ ] 已迁移的聚合在事务内提交，失败回滚。
+- [ ] 未迁移的聚合仍有明确边界，不把整份状态当一条记录写入。
+- [ ] 单元测试默认仍不连接 MySQL。

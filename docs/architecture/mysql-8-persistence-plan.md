@@ -4,7 +4,7 @@
 
 # MySQL 8 持久化方案
 
-日期：2026-10-12。关联 [ISSUE-018](../../issues/ISSUE-018.md)、任务 [BE-M0-T08](../tasks/BE-M0.md#be-m0-t08)。状态 in-review。本文只提案，不安装依赖，不改 `requirements.txt`，不增加连接、迁移或表。
+日期：2026-10-12。关联 [ISSUE-018](../../issues/ISSUE-018.md)、任务 [BE-M0-T08](../tasks/BE-M0.md#be-m0-t08)。状态 in-review。下文第 1～8 节仍是方案。项目经理已批准四项依赖。连接配置和空基线迁移由 [BE-M0-T10](../tasks/BE-M0.md#be-m0-t10) 实施；回执、会话、租约和聚合表仍未做。
 
 业务库已决定为 MySQL 8。向量库、对话模型、嵌入和重排仍随 ISSUE-010，不放进 MySQL。现有入口是 `Repository.read()` 与 `Repository.transaction(operation)`，回调收到整份 `DemoState`。`MemoryRepository` 在锁内深拷贝整份状态，失败不提交。幂等回执在 `DemoState.workflow_receipts`，键为 `(scope_id, user_id, key)`，保留 24 小时，内存最多 2048 条。编辑租约在 `Chapter.lock`，`LEASE_SECONDS = 120`。
 
@@ -19,16 +19,16 @@
 
 MySQL 8.4 默认账号认证是 `caching_sha2_password`。PyMySQL 处理这种认证需要单独的 `cryptography` 包，所以它单独列出，不并进驱动。
 
-## 2. 待批准依赖
+## 2. 依赖
 
-每一项都要单独批准。批准前不写入 `backend/bid-core/requirements.txt`，也不安装。版本在批准时锁定到当时的精确版本；下表只给出系列，避免在方案里假装已经验证过某一个补丁号。
+项目经理已批准下列四项，并要求用兼容发行锁在次版本上。登记见 [ISSUE-023](../../issues/ISSUE-023.md)。安装它们带出的 Mako、greenlet、cffi、pycparser 按仓库既有锁文件方式写上精确版本，不另作选型。
 
-| 包 | 系列 | 用途 | 本轮 |
+| 包 | 锁定 | 用途 | 状态 |
 |---|---|---|---|
-| SQLAlchemy | 2.0 | 会话、事务和聚合映射 | 未加入 |
-| PyMySQL | 1.1 | MySQL 8 协议驱动 | 未加入 |
-| cryptography | 当前稳定版 | PyMySQL 连接 MySQL 8.4 的 `caching_sha2_password` | 未加入 |
-| Alembic | 1.14 | 迁移脚本和 `upgrade head` | 未加入 |
+| SQLAlchemy | `sqlalchemy~=2.0.54` | 会话、事务和聚合映射 | 已写入 `backend/bid-core/requirements.txt` |
+| PyMySQL | `PyMySQL~=1.1.3` | MySQL 8 协议驱动 | 已写入 |
+| cryptography | `cryptography~=50.0.2` | PyMySQL 连接 MySQL 8.4 的 `caching_sha2_password` | 已写入。50.0 是写入时的当前稳定次版本 |
+| Alembic | `alembic~=1.14.1` | 迁移脚本和 `upgrade head` | 已写入 |
 
 不引入 testcontainers、SQLModel、asyncmy、aiomysql、mysqlclient。集成测试使用 CI 的数据库容器，不在测试进程里再拉一层容器库。
 
@@ -145,13 +145,19 @@ CREATE TABLE user_session (
 
 集成测试以后单独跑，镜像 `mysql:8.4`。容器只在内网执行机上启动，不加到当前公网托管的 GitHub Actions 作业里。库内只放合成种子数据。
 
-批准实施后，CI 在容器健康检查通过后执行：
+内网执行机在容器健康检查通过后执行：
 
 ```text
 alembic -c backend/bid-core/alembic.ini upgrade head
 ```
 
-连接来自执行机环境变量，例如 `mysql+pymysql://USER:PASSWORD@127.0.0.1:3306/icg_demo?charset=utf8mb4`。密码不进仓库。然后运行标记为 MySQL 的集成测试。没有该环境变量时，这些测试跳过，单元测试仍然通过。
+连接只来自环境变量 `ICG_DATABASE_URL`，例如 `mysql+pymysql://USER:PASSWORD@127.0.0.1:3306/icg_demo?charset=utf8mb4`。密码不进仓库。然后运行：
+
+```text
+ICG_REQUIRE_MYSQL=1 python -m pytest tests/backend -m mysql
+```
+
+`ICG_REQUIRE_MYSQL=1` 时，标记为 `mysql` 的测试在 `ICG_DATABASE_URL` 缺失或数据库连不上时失败，不能跳过。未设置该变量且没有连接串时，这些测试跳过，现有公网作业仍然通过。不要把 `mysql:8.4` 或这条命令加进 `.github/workflows/offline-check.yml`。
 
 实施后的集成测试还要覆盖：两个进程连接同一库时，一个进程写入的回执能被另一个进程重放；停掉进程再启动后，未过期回执仍可重放，已登录 token 仍可认证。本轮不跑这些测试。
 
@@ -163,6 +169,6 @@ alembic -c backend/bid-core/alembic.ini upgrade head
 - 本方案不把 `mysql:8.4` 写进现有公网 CI 工作流。
 - 向量和模型调用仍按 ISSUE-010，不因业务库落地而改道到外网。
 
-## 11. 本轮不做
+## 11. 仍未做
 
-不改 Python 依赖，不新增 `alembic.ini`，不建表，不改 `MemoryRepository` 的行为，不把旧 `/api` 错误体并入统一格式。后一项登记为 [ISSUE-021](../../issues/ISSUE-021.md)，排在本方案被接受之后，状态为 planned 的任务，本轮不实施。
+BE-M0-T10 已加入四项依赖、`ICG_DATABASE_URL` 和空基线 `alembic.ini`。业务表仍未建。回执、会话、租约和按聚合迁移分别是 BE-M0-T11、T12、T13，状态 planned。`MemoryRepository` 仍是未设置连接串时的仓库，也仍是已连接时的业务读写委托。旧 `/api` 错误体见 [ISSUE-021](../../issues/ISSUE-021.md)，本轮不实施。

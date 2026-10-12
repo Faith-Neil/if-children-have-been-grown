@@ -18,3 +18,7 @@
 | 依赖与 CI | 未改 | SQLAlchemy、PyMySQL、cryptography、Alembic 均未加入。`mysql:8.4` 只写在方案里 |
 
 ISSUE-021 的任务是 planned，Issue 状态是 blocked，因为看板没有 planned 这一档。它排在本方案之后，本轮不实施。范围另含 QA `200a105` 的 E2E-D5：`/API/...` 目前返回页面壳，将来要把 `/api` 前缀按大小写不敏感处理。本轮不改兜底路由。方案要求回执和登录会话跨进程共享，并在重启后仍在；这是验收条件，不是本轮实现。
+
+## impl-1（2026-10-12）
+
+项目经理批准方案和四项依赖后，本 Issue 改为 in-progress。BE-M0-T10 实施连接和空基线。T11～T13 登记为 planned，未写代码。依赖引入另见 [ISSUE-023 同步](ISSUE-023-sync.md)。PRD、ROADMAP、ARCHITECTURE 仍未改。进度改为 360 项：23 done、7 in-review、7 in-progress、269 planned、50 blocked、4 ready。
