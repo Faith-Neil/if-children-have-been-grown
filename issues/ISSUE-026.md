@@ -14,7 +14,7 @@
 | revision | count-sync-1 |
 | 关联 Task | 不新增任务卡。新增一张卡会把 361 改成 362。计数以 [任务看板](../docs/TASK_BOARD.md) 为准 |
 | 关联 PR | [PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3) 仍待合入。本轮直接提交在 `codex/repository-foundation`，不新建 PR |
-| 本地验收 | 在 `84a3fca` 上重数：看板 364 项，27 done、9 in-review、7 in-progress、268 planned、49 blocked、4 ready。当时三份正文仍是 363 项、26 done。本提交已改成同一组。见 [复核](../docs/testing/2026-10-12-issue-026-baseline-count-check.md)。等待项目经理签收，不标 closed |
+| 本地验收 | 在 `3bb311a` 上重数：看板 366 项，30 done、8 in-review。本提交按项目经理在群里的确认把 APP-M2-T001 与 APP-M2-T002 标为 done，之后为 32 done、6 in-review。三份基线改为里程碑快照，不要求与之后的看板逐项相等。见 [复核](../docs/testing/2026-10-12-issue-026-baseline-count-check.md)。不标 closed |
 | 合入 / 发布 | 未合入 / 未发布 |
 | 交付说明 | [ISSUE-026 交付](../docs/delivery/ISSUE-026.md) |
 | 代码 / 流程解释 | 无应用代码。[说明](../docs/code/ISSUE-026.md) |
@@ -34,7 +34,7 @@
 
 ## 影响与分流
 
-只改这三份里的任务计数，以及看板、项目进度、Issue 看板和文档索引里指向这次对齐的句子。不改请求层重试：网络错误、502 和 503 仍最多 3 次（含首次），409、422、423、428 仍不自动重试。不改 `backend/`、`tests/backend/` 和 `docs/reference/`。不把 T001、T002 或本 Issue 标成 done/closed。
+只改这三份里的任务计数，以及看板、项目进度、Issue 看板和文档索引里指向这次对齐的句子。不改请求层重试：网络错误、502 和 503 仍最多 3 次（含首次），409、422、423、428 仍不自动重试。不改 `backend/`、`tests/backend/` 和 `docs/reference/`。本 Issue 保持 in-review，不标 closed。本里程碑按项目经理在群里的确认，把 APP-M2-T001 与 APP-M2-T002 标为 done。
 
 ARCHITECTURE 第21行仍写「布局、浏览器路由和全页离开保护继续本卡」。ROADMAP 第19行仍写整卡 in-progress 和接下来补布局。PROJECT_BRIEF 第68行仍写接下来补布局组件。这三句不是任务总数，本轮不改。
 
@@ -48,7 +48,7 @@ ARCHITECTURE 第21行仍写「布局、浏览器路由和全页离开保护继�
 
 | 编号 | 可检查的完成条件 | 结果与证据 |
 |---|---|---|
-| AC-01 | PRD、ROADMAP、PROJECT_BRIEF 与看板同一组计数；APP-M2 其余 255 张 planned | 在 `84a3fca` 上看板为 364 项：27 done、9 in-review、7 in-progress、268 planned、49 blocked、4 ready。三份正文已改成同一组。见 [复核](../docs/testing/2026-10-12-issue-026-baseline-count-check.md) |
+| AC-01 | PRD、ROADMAP、PROJECT_BRIEF 的任务计数是里程碑快照；APP-M2 其余 255 张 planned | 在 `3bb311a` 上看板为 366 项：30 done、8 in-review。项目经理确认后 T001 与 T002 为 done，快照写成 366 项：32 done、6 in-review、7 in-progress、268 planned、49 blocked、4 ready，并注明 as of commit。见 [复核](../docs/testing/2026-10-12-issue-026-baseline-count-check.md) |
 | AC-02 | 不改 `frontend/web/src/api.ts` 的重试，不改后台 | 本提交不包含这些路径 |
 | AC-03 | 治理检查通过，Issue 保持 in-review | 见交付中的检查输出 |
 
@@ -73,6 +73,7 @@ ARCHITECTURE 第21行仍写「布局、浏览器路由和全页离开保护继�
 | 2026-10-12 | count-sync-1 / in-review | ISSUE-025 新增 BE-M0-T14 后，三份计数字句改为 362 项、7 in-review。本 Issue 仍 in-review，不改请求层 | [ISSUE-025](ISSUE-025.md) |
 | 2026-10-12 | count-sync-2 / in-review | AI-01 进入 in-review 后，三份基线改为 26 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready。不改 api.ts。仍 in-review | [验证](../docs/testing/2026-10-12-issue-026-counts.md) |
 | 2026-10-12 | count-sync-3 / in-review | `84a3fca` 新增 REV-M0-T10 为 done。看板 364 项、27 done。三份正文从 363 项、26 done 改成同一组。仍 in-review，不标 closed | [复核](../docs/testing/2026-10-12-issue-026-baseline-count-check.md) |
+| 2026-10-12 | count-sync-4 / in-review | `3bb311a` 看板为 366 项、30 done、8 in-review。项目经理在群里确认后，T001 与 T002 标为 done，成为 32 done、6 in-review。三份基线改为 as of commit 快照。检查程序不比较快照与活看板。仍 in-review | [复核](../docs/testing/2026-10-12-issue-026-baseline-count-check.md) |
 
 ## 本地验收与后续合入发布
 

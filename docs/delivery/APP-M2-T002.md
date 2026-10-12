@@ -9,11 +9,11 @@
 |---|---|
 | 任务ID | APP-M2-T002 |
 | 代码解释 | [请求层](../code/APP-M2-T002.md) |
-| 验收 | 前端 92 项通过、类型检查通过。T002-F1：没有幂等键的写入不自动重试。证据见 [请求层验证](../testing/2026-10-12-request-layer.md)。本卡 in-review，项目经理尚未标 done |
-| 项目进度 | 本卡 in-review。看板与三份基线均为 363 项：26 done、9 in-review、7 in-progress、268 planned、49 blocked、4 ready。APP-M2：T001 与 T002 为 in-review，T008 done，T124 blocked，其余 255 planned。本轮不改计数 |
+| 验收 | 前端 92 项通过、类型检查通过。T002-F1：没有幂等键的写入不自动重试。QA 于 REV-M0-T11 签署通过，项目经理在群里确认后本卡标为 done。证据见 [请求层验证](../testing/2026-10-12-request-layer.md) |
+| 项目进度 | 本卡 done。看板 366 项：32 done、6 in-review、7 in-progress、268 planned、49 blocked、4 ready。APP-M2：T001、T002 与 T008 done，T124 blocked，其余 255 planned |
 <!-- task-delivery:end -->
 
-日期 2026-10-12。关联 [ISSUE-009](../../issues/ISSUE-009.md)，产品父项仍是 [ISSUE-007](../../issues/ISSUE-007.md)。分支 `codex/repository-foundation`。[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3) 仍待合入，未发布。此文提交复核，不把任务或 Issue 标成 done/closed。
+日期 2026-10-12。关联 [ISSUE-009](../../issues/ISSUE-009.md)，产品父项仍是 [ISSUE-007](../../issues/ISSUE-007.md)。分支 `codex/repository-foundation`。[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3) 仍待合入，未发布。QA 于 REV-M0-T11 签署通过后，项目经理在群里确认，本卡标为 done。ISSUE-009 仍为 in-review，不标 closed。
 
 ## 完成内容与变更文件
 

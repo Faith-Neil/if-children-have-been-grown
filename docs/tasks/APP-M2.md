@@ -31,7 +31,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T001 · ProLayout 布局、路由、权限守卫、请求层
 <a id="app-m2-t001"></a>
 
-状态：in-review。关联Issue：ISSUE-007 / ISSUE-009 / ISSUE-014。原范围：一期业务页面/支撑。依赖：[BE-M0-T01](BE-M0.md#be-m0-t01)。
+状态：done。关联Issue：ISSUE-007 / ISSUE-009 / ISSUE-014。原范围：一期业务页面/支撑。依赖：[BE-M0-T01](BE-M0.md#be-m0-t01)。项目经理在群里确认 QA 签署 REV-M0-T11 后标为 done。
 
 原始来源：原交接 §6.2 M1-P08-01；PRD v1.8 §2.3、5.12、7.2。交付单位：ProLayout 布局、路由、权限守卫、请求层，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -43,12 +43,12 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 
 交付：`docs/delivery/APP-M2-T001.md`；代码解释：`docs/code/APP-M2-T001.md`；测试放docs/testing并逐项关联本卡，未执行写未执行。
 
-阶段一已交付[真实会话/页面守卫](../delivery/APP-M2-T001.md)：262后台、72前端、真实会话16项和GUI/两册内容通过；缓存撤权、迟到读取及连续切页已独立复核。ProLayout、浏览器地址和编辑台离开保护曾提交复核。QA 于 2026-10-12 签署不通过后，浅色内容、顶栏和前进/后退已修复并再次提交 in-review，done 仍由项目经理在 QA 签收后标记。ISSUE-020 的路由分包同样为 in-review，不新增任务卡。请求层细化仍属 T002，通用表单离开属 T007，断点记忆属 T009，OIDC 属 T010，原8角色业务迁移未做。
+阶段一已交付[真实会话/页面守卫](../delivery/APP-M2-T001.md)：262后台、72前端、真实会话16项和GUI/两册内容通过；缓存撤权、迟到读取及连续切页已独立复核。ProLayout、浏览器地址和编辑台离开保护曾提交复核。QA 于 2026-10-12 曾签署不通过。修复后 REV-M0-T11 签署通过，项目经理在群里确认，本卡标为 done。ISSUE-020 的路由分包同样为 in-review，不新增任务卡。请求层细化仍属 T002，通用表单离开属 T007，断点记忆属 T009，OIDC 属 T010，原8角色业务迁移未做。
 
 ### APP-M2-T002 · 请求层细化：错误体、traceId 复制、Idempotency-Key 注入、重试策略
 <a id="app-m2-t002"></a>
 
-状态：in-review。关联Issue：ISSUE-007 / ISSUE-009。原范围：一期业务页面/支撑。依赖：[BE-M0-T01](BE-M0.md#be-m0-t01)、[BE-M0-T02](BE-M0.md#be-m0-t02)、[BE-M0-T03](BE-M0.md#be-m0-t03)、[APP-M2-T001](APP-M2.md#app-m2-t001)。
+状态：done。关联Issue：ISSUE-007 / ISSUE-009。原范围：一期业务页面/支撑。依赖：[BE-M0-T01](BE-M0.md#be-m0-t01)、[BE-M0-T02](BE-M0.md#be-m0-t02)、[BE-M0-T03](BE-M0.md#be-m0-t03)、[APP-M2-T001](APP-M2.md#app-m2-t001)。项目经理在群里确认 QA 签署 REV-M0-T11 后标为 done。
 
 原始来源：原交接 §6.2 M1-P08-F2；PRD v1.8 §2.3、5.12、7.2。交付单位：请求层细化：错误体、traceId 复制、Idempotency-Key 注入、重试策略，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -60,7 +60,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 
 交付：`docs/delivery/APP-M2-T002.md`；代码解释：`docs/code/APP-M2-T002.md`；测试放docs/testing并逐项关联本卡，未执行写未执行。
 
-[BE-M0-T02](BE-M0.md#be-m0-t02)与[BE-M0-T03](BE-M0.md#be-m0-t03)已由项目经理于 10-12 12:28 在 QA 签署后标为 done。请求层按冻结错误体和 24 小时 `Idempotency-Key` 提交 in-review，见[交付](../delivery/APP-M2-T002.md)。`/api/v1` 非 GET 每次调用一把键。只有 GET 和已经带键的写入，才会在网络错误、没有统一错误体的 502 和 503 上复用，最多 3 次含首次。没有键的旧写入不自动重试；ISSUE-021 补键后这条限制解除。`MODEL_UNAVAILABLE` 的 502 只发一次并立刻提示追踪号。`POST /api/chapters/{id}/versions` 的请求头与正文 `idempotency_key` 相同。409、422、423、428、401 和 500 不自动重试。T001 仍为 in-review，本卡也不标 done。
+[BE-M0-T02](BE-M0.md#be-m0-t02)与[BE-M0-T03](BE-M0.md#be-m0-t03)已由项目经理于 10-12 12:28 在 QA 签署后标为 done。请求层按冻结错误体和 24 小时 `Idempotency-Key` 提交 in-review，见[交付](../delivery/APP-M2-T002.md)。`/api/v1` 非 GET 每次调用一把键。只有 GET 和已经带键的写入，才会在网络错误、没有统一错误体的 502 和 503 上复用，最多 3 次含首次。没有键的旧写入不自动重试；ISSUE-021 补键后这条限制解除。`MODEL_UNAVAILABLE` 的 502 只发一次并立刻提示追踪号。`POST /api/chapters/{id}/versions` 的请求头与正文 `idempotency_key` 相同。409、422、423、428、401 和 500 不自动重试。T001 与本卡已由项目经理在群里确认、QA 签署后标为 done。
 
 ### APP-M2-T003 · 通用状态组件（骨架、空态、错误、无权限、已过期、只读）
 <a id="app-m2-t003"></a>

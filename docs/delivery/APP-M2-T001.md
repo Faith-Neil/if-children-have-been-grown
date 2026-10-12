@@ -9,11 +9,11 @@
 |---|---|
 | 任务ID | APP-M2-T001 |
 | 代码解释 | [会话、布局与离开保护](../code/APP-M2-T001.md) |
-| 验收 | QA 于 200a105 签署不通过。D1–D4 与 D6 已再交。E2E-D7 展开按钮已移出 logo，仍 in-review，项目经理尚未标 done。[浏览器复核](../testing/2026-10-12-t001-layout-history.md)。阶段一[262后台、72前端、16真实会话及GUI](../testing/2026-10-11-application-session.md)仍是历史证据 |
-| 项目进度 | 本卡 in-review。看板 363 项：26 done、9 in-review、7 in-progress、268 planned、49 blocked、4 ready。APP-M2：T001 与 T002 in-review、T008 done、T124 blocked、其余 255 planned。本轮不改计数 |
+| 验收 | QA 于 REV-M0-T11 签署通过。项目经理在群里确认后，本卡标为 done。[浏览器复核](../testing/2026-10-12-t001-layout-history.md)。阶段一[262后台、72前端、16真实会话及GUI](../testing/2026-10-11-application-session.md)仍是历史证据 |
+| 项目进度 | 本卡 done。看板 366 项：32 done、6 in-review、7 in-progress、268 planned、49 blocked、4 ready。APP-M2：T001、T002 与 T008 done，T124 blocked，其余 255 planned |
 <!-- task-delivery:end -->
 
-日期2026-10-11，布局补充2026-10-12；ISSUE-009 / ISSUE-014；分支codex/repository-foundation；[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)为草稿待合入，未发布。此文提交复核，不把任务或 Issue 标成 done/closed。
+日期2026-10-11，布局补充2026-10-12；ISSUE-009 / ISSUE-014；分支codex/repository-foundation；[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)为草稿待合入，未发布。QA 于 REV-M0-T11 签署通过后，项目经理在群里确认，本卡标为 done。ISSUE-009 与 ISSUE-014 仍为 in-review，不标 closed。
 
 ## 已实现的阶段内容
 

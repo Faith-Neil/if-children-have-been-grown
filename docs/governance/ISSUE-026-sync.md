@@ -31,3 +31,11 @@ PR #3 仍待合入。本轮不新建 PR，不合并，不发布。
 ## 跟进：364 项、27 done
 
 核对提交 `84a3fca4c5e8f59410d2e0a100bc358100d0b0b6`。看板表格为 364 项：27 done、9 in-review、7 in-progress、268 planned、49 blocked、4 ready。当时 PRD 第19行、ROADMAP 第17行、PROJECT_BRIEF 排期行仍是 363 项、26 done。结论不是 no change needed。三句已改成与看板相同的 364 项、27 done。新增的 done 卡是 REV-M0-T10。in-review 仍是九张，BE-M0-T15 仍 in-review。ARCHITECTURE 第21行、ROADMAP 第19行、PROJECT_BRIEF 第68行仍不改。不改 `api.ts`、后台和 `docs/reference/`。Issue 仍为 in-review。记录见 [基线复核](../testing/2026-10-12-issue-026-baseline-count-check.md)。
+
+## 里程碑快照
+
+项目经理规定：PRD、ROADMAP、PROJECT_BRIEF 的任务计数写成 `as of commit <sha>`，并写明任务看板是准绳、这三份只在里程碑更新。不要求快照与之后的活看板逐项相等。规则写入 [WORKFLOW](WORKFLOW.md) 第4节。
+
+本里程碑核对提交 `3bb311ad3ab86c0de2f871876a50c7d50f9bb985`。当时表格为 366 项：30 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready。REV-M0-T12 与 BE-M0-T14 已是 done，ISSUE-025 已 closed。APP-M2-T001 与 APP-M2-T002 仍是 in-review。QA 已在 REV-M0-T11 签署通过，项目经理在群里确认这两张卡标为 done。标完后仍是 366 项：32 done、6 in-review、7 in-progress、268 planned、49 blocked、4 ready。三份正文使用这组数字，并注明 as of commit `3bb311ad3ab86c0de2f871876a50c7d50f9bb985` 加上本次 done。
+
+`scripts/check-project-governance.cjs` 不比较这三份的任务计数和活看板。它核对治理块、链接、索引和 done 卡的交付块。因此没有改检查程序。模拟再把一张已有交付的 in-review 卡标为 done 后，检查仍通过；该模拟不入库。ISSUE-026 仍为 in-review。不改 `docs/reference/`。

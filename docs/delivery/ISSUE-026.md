@@ -9,8 +9,8 @@
 |---|---|
 | 任务ID | ISSUE-026 |
 | 代码解释 | 无应用代码。[说明](../code/ISSUE-026.md) |
-| 验收 | 在 `84a3fca` 上看板为 364 项：27 done、9 in-review、7 in-progress、268 planned、49 blocked、4 ready。三份基线已改成同一组。[复核](../testing/2026-10-12-issue-026-baseline-count-check.md)。本 Issue 为 in-review |
-| 项目进度 | 不新增任务。364 项：27 done、9 in-review、7 in-progress、268 planned、49 blocked、4 ready。APP-M2：T001 与 T002 in-review，T008 done，T124 blocked，其余 255 planned。REV-M0-T10 为 done |
+| 验收 | 在 `3bb311a` 上看板为 366 项：30 done、8 in-review。项目经理在群里确认后，T001 与 T002 标为 done。三份基线改为里程碑快照：366 项、32 done、6 in-review，as of commit `3bb311ad3ab86c0de2f871876a50c7d50f9bb985`。[复核](../testing/2026-10-12-issue-026-baseline-count-check.md)。本 Issue 为 in-review |
+| 项目进度 | 不新增任务。366 项：32 done、6 in-review、7 in-progress、268 planned、49 blocked、4 ready。APP-M2：T001、T002 与 T008 done，T124 blocked，其余 255 planned。任务看板是准绳 |
 <!-- task-delivery:end -->
 
 日期 2026-10-12。关联 [ISSUE-026](../../issues/ISSUE-026.md)。分支 `codex/repository-foundation`。[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3) 待合入，未发布。不标 done，不标 closed。
@@ -59,6 +59,12 @@ AI-01 从 blocked 改为 in-review 之后，看板变为 26 done、8 in-review�
 ## 跟进：364 项、27 done
 
 `84a3fca` 把 REV-M0-T10 标为 done。看板变为 364 项、27 done，in-review 仍是 9。当时三份正文仍写 363 项、26 done。本跟进只改 PRD 第19行、ROADMAP 第17行、PROJECT_BRIEF 排期行，以及看板、项目进度里指向这组数字的句子。没有应用代码。Issue 仍 in-review。
+
+## 跟进：里程碑快照
+
+核对提交 `3bb311ad3ab86c0de2f871876a50c7d50f9bb985`。看板表格为 366 项：30 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready。QA 的 `d55d507` 已把 REV-M0-T11 标为 done，`b20b844` 已把 REV-M0-T12 标为 done。BE-M0-T14 已依据该签署标为 done，ISSUE-025 已 closed。APP-M2-T001 与 APP-M2-T002 当时仍是 in-review。项目经理在群里确认 QA 签署后，这两张卡标为 done。标完后为 366 项：32 done、6 in-review、7 in-progress、268 planned、49 blocked、4 ready。
+
+PRD、ROADMAP、PROJECT_BRIEF 的计数字句改成这组数字，并写成 `as of commit 3bb311ad3ab86c0de2f871876a50c7d50f9bb985`，注明计入本次 done、任务看板是准绳、只在里程碑更新。规则写入 [WORKFLOW](../governance/WORKFLOW.md) 第4节。`scripts/check-project-governance.cjs` 本来就不比较这三份计数和活看板，所以没有改检查程序。没有应用代码。Issue 仍 in-review。
 
 ## 风险与后续
 
