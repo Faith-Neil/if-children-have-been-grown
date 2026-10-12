@@ -400,13 +400,13 @@
 | D-387 | 2026-10-12 | [最新分支复核](reviews/2026-10-12-foundation-review.md) | 审查 | foundation-review-fix-1 | in-review | ISSUE-034 / REV-M0-T27 | 九项发现。八项本PR修复。保留 T114 刷新与 ISSUE-036 |
 | D-388 | 2026-10-12 | [审查修复代码解释](code/REV-M0-T27.md) | 说明 | foundation-review-fix-1 | 当前 | ISSUE-034 / REV-M0-T27 | 来源身份、成功显示页、回执与证据权限 |
 | D-389 | 2026-10-12 | [审查修复交付](delivery/REV-M0-T27.md) | 交付 | foundation-review-fix-1 | in-review | ISSUE-034 / REV-M0-T27 | 独立PR。不推进功能，不自行 done |
-| D-390 | 2026-10-12 | [实际App闭包回归](../frontend/web/tests/app-orchestration.test.mjs) | 验证 | foundation-review-fix-1 | 待本轮复跑 | ISSUE-034 / REV-M0-T27 | 迟到失败、未保存重试、浏览器历史 |
-| D-391 | 2026-10-12 | [片段并发回归](../tests/backend/test_snippet_review.py) | 验证 | foundation-review-fix-1 | 待本轮复跑 | ISSUE-034 / REV-M0-T27 | 同键一次修改、冲突及提交失败回滚 |
-| D-392 | 2026-10-12 | [回执数据库探针](../tests/backend/test_receipt_review.py) | 验证 | foundation-review-fix-1 | 待本轮复跑 | ISSUE-034 / REV-M0-T27 | 容量边界及生产DELETE SQL，非MySQL实机 |
-| D-393 | 2026-10-12 | [浏览器复核反例](../frontend/web/e2e/review-regressions.spec.ts) | 验证 | foundation-review-fix-1 | 待本轮复跑 | ISSUE-034 / REV-M0-T27 | 实际500后重试与切账号后迟到401 |
+| D-390 | 2026-10-12 | [实际App闭包回归](../frontend/web/tests/app-orchestration.test.mjs) | 验证 | foundation-review-fix-1 | 并入9e3fcdd后随113项通过 | ISSUE-034 / REV-M0-T27 | 迟到失败、未保存重试、浏览器历史 |
+| D-391 | 2026-10-12 | [片段并发回归](../tests/backend/test_snippet_review.py) | 验证 | foundation-review-fix-1 | 本轮未重跑 | ISSUE-034 / REV-M0-T27 | 同键一次修改、冲突及提交失败回滚。真实MySQL另验 |
+| D-392 | 2026-10-12 | [回执数据库探针](../tests/backend/test_receipt_review.py) | 验证 | foundation-review-fix-1 | 本轮未重跑 | ISSUE-034 / REV-M0-T27 | 容量边界及生产DELETE SQL，非MySQL实机 |
+| D-393 | 2026-10-12 | [浏览器复核反例](../frontend/web/e2e/review-regressions.spec.ts) | 验证 | foundation-review-fix-1 | 并入9e3fcdd后2项通过 | ISSUE-034 / REV-M0-T27 | 实际500后重试与切账号后迟到401。整套浏览器16/16 |
 | D-394 | 2026-10-12 | [最新分支验证](testing/2026-10-12-foundation-review.md) | 验证 | foundation-review-fix-1 | in-review | ISSUE-034 / REV-M0-T27 | 可重跑命令、真实浏览器及数据库验收限度 |
-| D-395 | 2026-10-12 | [旧租约并发回归](../tests/backend/test_lease_review.py) | 验证 | foundation-review-fix-1 | 待本轮复跑 | ISSUE-034 / REV-M0-T27 | 实际领域回调和生产SQL，旧请求不能覆盖新锁 |
-| D-396 | 2026-10-12 | [证据抽屉实际闭包回归](../frontend/web/tests/evidence-orchestration.test.mjs) | 验证 | foundation-review-fix-1 | 待本轮复跑 | ISSUE-034 / REV-M0-T27 | 当前权限、保存拒绝及资料补录历史/离开确认 |
+| D-395 | 2026-10-12 | [旧租约并发回归](../tests/backend/test_lease_review.py) | 验证 | foundation-review-fix-1 | 本轮未重跑 | ISSUE-034 / REV-M0-T27 | 实际领域回调和生产SQL，旧请求不能覆盖新锁。真实MySQL另验 |
+| D-396 | 2026-10-12 | [证据抽屉实际闭包回归](../frontend/web/tests/evidence-orchestration.test.mjs) | 验证 | foundation-review-fix-1 | 并入9e3fcdd后随113项通过 | ISSUE-034 / REV-M0-T27 | 当前权限、保存拒绝及资料补录历史/离开确认 |
 
 ## 更新记录
 
@@ -524,6 +524,7 @@
 | 2026-10-12 | ISSUE-028 / AI-01 | AC-02 假 OpenAI 兼容服务已编码。它记录请求头，并从路径还原实际 `base_url`。真实端点须 `ICG_RUN_REAL_MODEL_TESTS=1`，默认跳过。不改 `backend/bid-core`，不改 OpenAPI，不加依赖，不改错误码名单。ISSUE-028 与 AI-01 仍 in-review。ISSUE-010 仍 closed。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。不标 closed |
 
 | 2026-10-12 | ISSUE-034 / REV-M0-T27 | PR #4修八项确认缺陷，并入 foundation 9e3fcdd。ISSUE-033 仍是挂证据规则，REV-M0-T22 仍是 T114 QA。本卡 in-review。看板 384项49done、10in-review、7in-progress、265planned、48blocked、5ready。不推进功能，不合入/发布 |
+| 2026-10-12 | ISSUE-034 / REV-M0-T27 | 并入 9e3fcdd 后前端复跑：Node 24.9.0 单测 113/113，build 通过，Playwright 16/16。治理检查 301 份 Markdown、384 项任务、35 项 Issue。后台 pytest 本轮未重跑。不标 done |
 
 ## 缺失输入
 

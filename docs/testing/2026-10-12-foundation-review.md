@@ -35,3 +35,17 @@ pnpm --dir frontend/web exec playwright test --config e2e/playwright.config.ts
 这是局部修复验证，不表示正式登录、完整持久化、真实模型、生产部署或整套ICG产品已经验收。
 
 保留9a5533c并行更新后，前端113项及类型/构建通过，新构建整套浏览器16/16通过（47.1秒）。后端运行代码未改变，367项原完整通过结果仍适用。最新12项MySQL标记测试单独执行，全部因未配置连接跳过（367项非MySQL测试未在该命令重复执行）。原完整运行11项跳过是9c178时快照，不能混称实机验收。
+
+## 并入 foundation 9e3fcdd 后的前端复跑
+
+2026-10-12，合并 `9e3fcdd8f60ec4e751336c55154cbf9b9bae1e35` 并把复核卡改为 ISSUE-034 / REV-M0-T27 之后，在本机复跑前端。Node 24.9.0，pnpm 11.25.0。浏览器使用 Playwright Chromium，后台用 Python 3.12.3 的临时虚拟环境启动 uvicorn，未设置 `ICG_DATABASE_URL`。
+
+| 检查 | 命令与结果 |
+|---|---|
+| 前端单测 | `node --test tests/frontend/*.test.mjs frontend/web/tests/*.test.mjs`：113/113 通过，约 0.86 秒。含迟到 401、失败切页后的离开确认、SECRET_KEY_UNAVAILABLE 只发一次、证据抽屉当前权限，以及资料补录走应用导航 |
+| 类型与构建 | `pnpm --dir frontend/web build`：通过。入口仍为 318.42 kB，gzip 101.83 kB |
+| 浏览器 | `pnpm --dir frontend/web exec playwright test --config e2e/playwright.config.ts`：16/16 通过，48.1 秒。含橙色标签 4.5:1、证据抽屉（冲突后刷新再保存）、失败切页重试、切账号后迟到 401 |
+| 治理 | `node scripts/check-project-governance.cjs`：通过。301 份 Markdown、384 项任务、35 项 Issue |
+| 后台全量 | 本轮没有重跑 pytest。R4、R6、R7 仍要真实 MySQL，不能用这次浏览器里的内存 uvicorn 代替 |
+
+没有把任务或 Issue 标成 done 或 closed。没有声称 GitHub Actions 全绿。
