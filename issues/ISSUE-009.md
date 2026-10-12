@@ -14,7 +14,7 @@
 | revision | application-foundation-1；本轮 layout-review-1 |
 | 关联 Task | APP-M2-T001；后续T003、T005、T006、T014～018、T046～050 |
 | 关联 PR | [PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)，待合入 |
-| 本地验收 | 布局/路由/离开保护已提交 in-review，等待项目经理 QA 签收。阶段一262后台、72前端、16真实HTTP及GUI仍为历史证据 |
+| 本地验收 | QA 于 200a105 签署不通过。D1–D4 与 D6 修复后重新提交 in-review，等待项目经理再次签收。阶段一262后台、72前端、16真实HTTP及GUI仍为历史证据 |
 | 合入 / 发布 | 未合入 / 未发布 |
 
 ## 当前缺口与完整范围
@@ -74,3 +74,19 @@ getSession已真实实现并由页面消费；实际OpenAPI49路径57操作。�
 | `docs/PROJECT_BRIEF.md` 第68行 | 整卡仍进行中：接下来补实际布局组件、浏览器地址/返回与全页离开保护 | brief 不改。接手说明仍把本卡当作未签收是对的 |
 
 `docs/PROJECT_STATUS.md`、任务看板、文档索引和本 Issue 已改为 in-review。同步细节见 [ISSUE-014 同步](../docs/governance/ISSUE-014-sync.md)。
+
+## QA 退回后的修复（仍不标 done）
+
+签署记录 [2026-10-12-e2e-t001-signoff.md](../docs/testing/2026-10-12-e2e-t001-signoff.md) 的结论保持不通过。本轮把内容区改回浅色，把公司、用户和退出放回白顶栏，并按历史序号恢复前进/后退，不再用 `pushState` 截断前进记录。演示会话只在内存：刷新后需重新登录，登录后回到原地址；确认刷新会丢失未保存文字。D5 不在本轮。证据见 [布局与历史修复](../docs/testing/2026-10-12-t001-layout-history.md)。Playwright 11 项通过。Issue 与 T001 仍为 in-review。
+
+| 文件 | 仍在的句子 | 不改的原因 |
+|---|---|---|
+| `docs/PRD.md` 第19行 | T001共同底座已开工，其余258卡planned | 本卡未 done。活状态在任务看板 |
+| `docs/PRD.md` 第21行 | 整个T001、OIDC和完整资料库仍未完成 | 本卡未 done，这句话仍然成立 |
+| `docs/ROADMAP.md` 第17行 | 当前共354项任务，21done、7in-review、7in-progress、265planned、50blocked、4ready | 路线图正文不改。活的计数在任务看板：356 项，23 done、6 in-review |
+| `docs/ROADMAP.md` 第19行 | 整卡继续in-progress。接下来补实际ProLayout、浏览器路由/返回和全页未保存保护 | 实现已再次提交复核，项目经理尚未签收 |
+| `docs/ARCHITECTURE.md` 第21行 | 布局、浏览器路由和全页离开保护继续本卡 | 架构正文不改 |
+| `docs/PROJECT_BRIEF.md` 第30行 | 当前共356项：23done、6in-review、7in-progress、266planned、50blocked、4ready | brief 排期行不改 |
+| `docs/PROJECT_BRIEF.md` 第68行 | 整卡仍进行中：接下来补实际布局组件、浏览器地址/返回与全页离开保护 | brief 不改。接手说明仍把本卡当作未签收 |
+
+同步表见 [布局修复同步](../docs/governance/APP-M2-T001-layout-sync.md)。

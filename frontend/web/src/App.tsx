@@ -13,7 +13,7 @@ import { companyCollectionMutationVersion, companyReadSessionMatches, visibleCom
 import type { TemplateReadState } from './template-review';
 import { readAuthorizedCompanyData, readAuthorizedProject, readSessionCollection, readTrustedSession, requireSessionAction, requireSessionRoute, sessionAllowsAction, sessionAllowsProjectTab, sessionAllowsRoute, sessionHomeRoute, workspaceWithSessionPermissions } from './session-navigation';
 import { commitAddress, globalPath, normalizePath, parseAppPath, projectPath, routeAfterLogin, type HistoryMode } from './app-route';
-import { applyBeforeUnload, decideNavigation, holdAddressForPrompt, leaveCopy } from './leave-guard';
+import { applyBeforeUnload, decideNavigation, historyStep, leaveCopy, readHistoryIndex } from './leave-guard';
 
 const tabs = [ ['overview', '概览'], ['tender', '招标文件'], ['parse', '解析结果'], ['matrix', '响应矩阵'], ['facts', '项目事实表'], ['editor', '编辑台'], ['manual', '人工处理队列'], ['checks', '合规检查'], ['export', '导出'], ['settings', '项目设置'] ];
 const navigation = [ { id: 'workbench', name: '工作台', icon: <AppstoreOutlined /> }, { id: 'library', name: '企业资料库', icon: <DatabaseOutlined /> }, { id: 'knowledge', name: '知识库', icon: <BookOutlined /> }, { id: 'writing', name: '写作档案', icon: <FileTextOutlined /> }, { id: 'admin.rules', name: '管理规则（只读）', icon: <SettingOutlined /> } ];
@@ -48,6 +48,9 @@ export default function App() {
   const dirtyRef = useRef(false);
   const armedLeave = useRef(false);
   const addressRef = useRef(normalizePath(window.location.pathname));
+  const indexRef = useRef(readHistoryIndex(window.history.state) ?? 0);
+  const ignorePop = useRef(false);
+  const pendingLeave = useRef<{ path: string; step: number; fromIndex: number } | null>(null);
   const prompting = useRef(false);
   const [accessLost, setAccessLost] = useState(false);
   const [createForm] = Form.useForm();
@@ -82,18 +85,43 @@ export default function App() {
   }
   useEffect(() => { request<{ accounts: Account[] }>('/api/demo/accounts', null).then(data => setAccounts(data.accounts)).catch(report); }, []);
   useEffect(() => {
+    if (readHistoryIndex(window.history.state) === null) window.history.replaceState({ app: true, idx: indexRef.current }, '', window.location.pathname);
+  }, []);
+  useEffect(() => {
+    function openLeave(path: string, step: number, fromIndex: number) {
+      prompting.current = true;
+      modal.confirm({
+        title: leaveCopy.title, content: leaveCopy.content, okText: leaveCopy.okText, cancelText: leaveCopy.cancelText,
+        onOk: () => {
+          prompting.current = false; armedLeave.current = true; pendingLeave.current = null;
+          ignorePop.current = true; indexRef.current = fromIndex + step;
+          window.history.go(step); followRef.current(path, 'none');
+        },
+        onCancel: () => { prompting.current = false; pendingLeave.current = null; },
+      });
+    }
     function onLeave(event: BeforeUnloadEvent) { applyBeforeUnload(dirtyRef.current, event); }
     function onPop() {
-      if (!activeToken.current) return;
-      const incoming = window.location.pathname;
-      if (!dirtyRef.current || prompting.current) {
-        if (dirtyRef.current) holdAddressForPrompt({ pathname: incoming, push: path => { window.history.pushState({ app: true }, '', path); } }, addressRef.current);
-        else followRef.current(incoming, 'none');
+      if (ignorePop.current) {
+        ignorePop.current = false;
+        const held = pendingLeave.current;
+        if (held && !prompting.current) openLeave(held.path, held.step, held.fromIndex);
         return;
       }
-      const popped = holdAddressForPrompt({ pathname: incoming, push: path => { window.history.pushState({ app: true }, '', path); } }, addressRef.current);
-      prompting.current = true;
-      modal.confirm({ title: leaveCopy.title, content: leaveCopy.content, okText: leaveCopy.okText, cancelText: leaveCopy.cancelText, onOk: () => { prompting.current = false; armedLeave.current = true; window.history.pushState({ app: true }, '', popped); followRef.current(popped, 'none'); }, onCancel: () => { prompting.current = false; } });
+      if (!activeToken.current) return;
+      const incoming = window.location.pathname;
+      const toIndex = readHistoryIndex(window.history.state);
+      const fromIndex = indexRef.current;
+      if (!dirtyRef.current) {
+        if (toIndex !== null) indexRef.current = toIndex;
+        followRef.current(incoming, 'none');
+        return;
+      }
+      const step = historyStep(fromIndex, toIndex);
+      if (step === null) return;
+      ignorePop.current = true;
+      if (!prompting.current) pendingLeave.current = { path: incoming, step, fromIndex };
+      window.history.go(-step);
     }
     window.addEventListener('beforeunload', onLeave);
     window.addEventListener('popstate', onPop);
@@ -169,10 +197,11 @@ export default function App() {
     if (!keepEditor) { dirtyRef.current = false; setEditorDirty(false); }
   }
   function writeAddress(path: string, mode: HistoryMode) {
+    const currentIdx = readHistoryIndex(window.history.state) ?? indexRef.current;
     addressRef.current = commitAddress({
       get pathname() { return window.location.pathname; },
-      push: value => { window.history.pushState({ app: true }, '', value); },
-      replace: value => { window.history.replaceState({ app: true }, '', value); },
+      push: value => { const next = currentIdx + 1; indexRef.current = next; window.history.pushState({ app: true, idx: next }, '', value); },
+      replace: value => { indexRef.current = currentIdx; window.history.replaceState({ app: true, idx: currentIdx }, '', value); },
     }, path, mode);
   }
   function askLeave(action: () => void) {

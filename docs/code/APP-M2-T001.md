@@ -34,11 +34,13 @@
 
 入口仍是 `frontend/web/src/App.tsx`。登录成功后 `routeAfterLogin` 看当前地址：`/` 换成会话首页，已知全局路径和项目页签保持原样，未知地址留在未知页。`followPath` 再交给原来的 `requireSessionRoute` 或 `readAuthorizedProject`。未知路径走 `showMissing`，只改地址和 404，不请求工作区。
 
-`commitAddress` 在路径已经一致或模式为 `none` 时不改历史。站内点击用 `push`。登录后的第一次定位用 `replace`。浏览器 `popstate` 已经改过地址，所以先用 `holdAddressForPrompt` 把地址推回当前页；确认后再 `pushState` 到弹出的地址并 `followPath(..., 'none')`。取消则地址、页面和文字都留在原处。
+`commitAddress` 在路径已经一致或模式为 `none` 时不改历史。站内点击用 `push`。登录后的第一次定位用 `replace`。每次 `push` / `replace` 写入 `{ app: true, idx }`。浏览器 `popstate` 已经改过地址。页面干净时直接 `followPath(..., 'none')` 并记下新序号。页面有未保存文字时，用目标序号减当前序号得到步长，先 `history.go(-step)` 回到原页再询问；确认后 `history.go(step)` 并 `followPath(..., 'none')`。取消不新增历史，前进记录还在。恢复用的那次 `popstate` 由 `ignorePop` 吃掉，避免再弹一次。
 
 未保存信号只有编辑台的 `editorDirty`。`armedLeave` 在离开过程中忽略编辑台再次报脏，避免还没卸下的编辑器把脏标记写回来。真正离开编辑台时 `arrived(false)` 才清掉脏标记。401 仍立即 `logout`，不弹确认。退出按钮走 `requestDiscard`。
 
-`AppShell.tsx` 调用 `ProLayout`：`layout="side"`、`navTheme="realDark"`、`siderWidth={216}`、默认收起、`breakpoint={false}`、`disableMobile`。菜单用 `<a href>`，普通左键阻止默认并走站内导航，带修饰键的点击留给浏览器。`backend/bid-core/icg_demo/main.py` 在全部接口之后注册 `/{full_path:path}`，`include_in_schema=False`，因此 OpenAPI 仍是 49 路径 57 操作。`api/`、`static/`、`assets/` 继续 404。
+`AppShell.tsx` 调用 `ProLayout`：`layout="mix"`、`navTheme="light"`、`siderWidth={216}`、默认收起、`breakpoint={false}`、`disableMobile`。`headerTitleRender={false}` 避免顶栏再放一次标志；`menuHeaderRender` 把标志留在深色侧栏。公司、用户和退出走 `actionsRender`，因此出现在顶栏而不是 64px 侧栏。样式把 mix 侧栏拉回视口顶部并保持 `#0F1C3F`，顶栏保持白色，内容区保持 `#F5F7FA`。菜单用 `<a href>`，普通左键阻止默认并走站内导航，带修饰键的点击留给浏览器。`backend/bid-core/icg_demo/main.py` 在全部接口之后注册 `/{full_path:path}`，`include_in_schema=False`，因此 OpenAPI 仍是 49 路径 57 操作。`api/`、`static/`、`assets/` 继续 404。
+
+演示登录令牌只放在页面内存。刷新后会话丢失，需要重新登录；地址还在，登录成功后 `routeAfterLogin` 回到该地址。确认刷新会丢掉尚未保存的编辑台文字。
 
 直接依赖只有 `@ant-design/pro-layout@7.22.7`。`app-route.ts` 用 `./session-navigation.ts` 带扩展名，这样 Node 24 的测试可以直接 import。三断点没有实机截图。通用表单离开、侧栏记忆、OIDC 和请求层重试不在这几个文件里。
 

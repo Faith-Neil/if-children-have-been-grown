@@ -9,8 +9,8 @@
 |---|---|
 | 任务ID | APP-M2-T001 |
 | 代码解释 | [会话、布局与离开保护](../code/APP-M2-T001.md) |
-| 验收 | 布局/路由/离开保护已提交 in-review，项目经理尚未标 done。[复核记录](../testing/2026-10-12-prolayout-routes.md)。阶段一[262后台、72前端、16真实会话及GUI](../testing/2026-10-11-application-session.md)仍是历史证据 |
-| 项目进度 | 本卡 in-review。343项中18 done、3 in-review、7 in-progress、266 planned、49 blocked、0 ready。APP-M2：T001 in-review、T008 in-review、257 planned。AI-02 仍 in-review |
+| 验收 | QA 于 200a105 签署不通过。本轮修复 D1–D4 与 D6 后重新提交 in-review，项目经理尚未标 done。[浏览器复核](../testing/2026-10-12-t001-layout-history.md)。阶段一[262后台、72前端、16真实会话及GUI](../testing/2026-10-11-application-session.md)仍是历史证据 |
+| 项目进度 | 本卡 in-review。356项中23 done、6 in-review、7 in-progress、266 planned、50 blocked、4 ready。APP-M2：T001 in-review、T008 done、T124 blocked、其余256 planned。AI-02 已 done。BE-M0-T02/T03 已 done |
 <!-- task-delivery:end -->
 
 日期2026-10-11，布局补充2026-10-12；ISSUE-009 / ISSUE-014；分支codex/repository-foundation；[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)为草稿待合入，未发布。此文提交复核，不把任务或 Issue 标成 done/closed。
@@ -58,3 +58,14 @@
 | DOCUMENT_INDEX | 登记 ISSUE-014、本轮验证、同步表和新前端模块 |
 
 ISSUE-020 在同一张任务上补了路由分包，首屏主块降到 315.94 kB。该 Issue 单独为 in-review，不把本卡标 done。见[分包交付](ISSUE-020.md)。
+
+## QA 退回后的布局与历史修复（仍 in-review）
+
+QA 在 `200a105` 签署本切片不通过，见[签署记录](../testing/2026-10-12-e2e-t001-signoff.md)。本轮只改前端外壳和浏览器历史，不改后台。
+
+- D3：`navTheme` 从 `realDark` 改为 `light`。内容区卡片不再使用 `#141414`，正文保持深色字，页面底为 `#F5F7FA`。
+- D4：桌面端 `layout="side"` 不渲染顶栏，公司、用户和退出被放进 64px 侧栏。现改为 `layout="mix"`，并用样式把深色侧栏拉满高度，白顶栏留在内容列。退出按钮回到页面顶部。
+- D1 / D2：取消前进不再 `pushState`。每条应用历史带 `{ app: true, idx }`。未保存的前进或后退先按序号差 `history.go` 回到原页，确认后再按同一序号差走回去。取消不截断前进记录。
+- D6：演示会话只在内存。刷新会丢掉登录态，必须重新登录；登录后 `routeAfterLogin` 回到刷新前的地址。确认刷新后，尚未保存的文字会丢失，这是预期。已保存的草稿仍可在重新登录后从后台读回。D5（`/API/...` 返回页面壳）是后台行为，本轮不改。
+
+2026-10-12 在 Node v24.21.0、pnpm 11.25.0、Playwright 1.64.0 上，`pnpm --dir frontend/web e2e` 为 11 passed。前端函数测试 78 pass、0 fail。代表截图：[工作台 1680](../testing/assets/t001-fixed-workbench-1680.png)、[编辑台 1280](../testing/assets/t001-fixed-editor-1280.png)、[概览 1440](../testing/assets/t001-fixed-overview-1440.png)。QA 的失败截图未覆盖。PR #3 未合入，未发布，本卡不标 done。

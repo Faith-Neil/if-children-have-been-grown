@@ -119,9 +119,7 @@ test('browser forward: confirm leaves to next page', async ({ page }) => {
   await expect(page).toHaveURL(/\/projects\/alpha-project\/export$/);
 });
 
-test('known defect E2E-D2: forward history is lost after cancelling a forward', async ({ page }) => {
-  // 取消时页面用pushState把地址放回，截断了前进记录；再次前进没有提示也不离开。修复后去掉test.fail。
-  test.fail();
+test('forward history remains after cancelling a forward', async ({ page }) => {
   await editorWithHistory(page);
   await page.goForward();
   await cancelLeave(page);
@@ -129,9 +127,7 @@ test('known defect E2E-D2: forward history is lost after cancelling a forward', 
   await expect(dialog(page)).toBeVisible({ timeout: 3_000 });
 });
 
-test('known defect E2E-D1: back after a cancelled forward confirms to the wrong page', async ({ page }) => {
-  // QA签署2026-10-12发现：取消前进后再后退并确认离开，落到export而非overview。修复后去掉test.fail。
-  test.fail();
+test('back after a cancelled forward confirms to the previous page', async ({ page }) => {
   await editorWithHistory(page);
   await page.goForward();
   await cancelLeave(page);
@@ -162,9 +158,9 @@ test('reload: dismiss keeps text, accept reloads', async ({ page }) => {
 
 test('back/forward routing across global and project pages', async ({ page }) => {
   await login(page, '/workbench');
-  await page.locator('a[href="/library"]').click();
+  await page.locator('.ant-pro-sider a[href="/library"]').click();
   await expect(page).toHaveURL(/\/library$/);
-  await page.locator('a[href="/workbench"]').click();
+  await page.locator('.ant-pro-sider a[href="/workbench"]').click();
   await page.getByRole('button', { name: '进入项目' }).first().click();
   await expect(page).toHaveURL(/\/projects\/alpha-project\/[a-z]+$/);
   const projectUrl = page.url();
@@ -183,17 +179,13 @@ test('back/forward routing across global and project pages', async ({ page }) =>
   await expect(page.getByRole('tab', { name: '响应矩阵', selected: true })).toBeVisible();
 });
 
-test('known defect E2E-D3: realDark theme makes cards unreadable on light pages', async ({ page }) => {
-  // navTheme="realDark"让内容区antd卡片/表格背景变为#141414，正文仍为深色字。修复后去掉test.fail。
-  test.fail();
+test('light content keeps readable card backgrounds', async ({ page }) => {
   await login(page, '/workbench');
   const bg = await page.locator('.ant-card').first().evaluate(e => getComputedStyle(e).backgroundColor);
   expect(bg).not.toBe('rgb(20, 20, 20)');
 });
 
-test('known defect E2E-D4: top-bar actions render inside the collapsed side bar', async ({ page }) => {
-  // layout="side"时actionsRender落到64px侧栏底部并溢出到正文；原ICG顶栏位置应在页面顶部。修复后去掉test.fail。
-  test.fail();
+test('logout stays in the top header', async ({ page }) => {
   await login(page, '/workbench');
   const box = await page.getByRole('button', { name: '退出' }).boundingBox();
   expect(box && box.y).toBeLessThan(80);

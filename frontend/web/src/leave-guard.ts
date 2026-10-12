@@ -23,11 +23,16 @@ export function applyBeforeUnload(dirty: boolean, event: { preventDefault(): voi
   return true;
 }
 
-export function holdAddressForPrompt(history: { pathname: string; push(path: string): void }, currentPath: string): string {
-  const incoming = normalize(history.pathname);
-  const current = normalize(currentPath);
-  if (incoming !== current) history.push(current);
-  return incoming;
+export function readHistoryIndex(state: unknown): number | null {
+  if (!state || typeof state !== 'object') return null;
+  const record = state as { app?: unknown; idx?: unknown };
+  if (record.app !== true || typeof record.idx !== 'number' || !Number.isFinite(record.idx)) return null;
+  return record.idx;
+}
+
+export function historyStep(fromIndex: number, toIndex: number | null): number | null {
+  if (toIndex === null || toIndex === fromIndex) return null;
+  return toIndex - fromIndex;
 }
 
 function normalize(path: string): string {

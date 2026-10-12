@@ -16,7 +16,7 @@ ISSUE-016 / AI-03 为 in-review：嵌入、重排和向量检索只有内存实�
 
 ## 当前共同底座阶段
 
-ISSUE-009 / APP-M2-T001已接可信会话和页面守卫：后台当前身份、导航/动作及最小项目权限真实读取，页面先核对再取业务数据；独立发现的撤权/迟到读取/连续切页问题已修复。262后台、72前端、真实会话HTTP16项、最终类型/构建及GUI通过，真实两册文件不含个人私稿，见[阶段交付](delivery/APP-M2-T001.md)。ProLayout、浏览器地址和编辑台未保存离开已提交复核，任务与 ISSUE-009、ISSUE-014 均为 in-review，不能标 done。资料列表/详情T046/047依赖的元数据表格/表单与敏感展示仍未验收，继续planned。业务库已决定为 MySQL 8，向量库和模型仍待决，运行仍用内存和演示模型，OIDC另在T010验收。证据见[布局复核](testing/2026-10-12-prolayout-routes.md)。ISSUE-020 已把外壳和项目页改为按路由加载，首屏主块 315.94 kB，低于引入 ProLayout 前的 1334.42 kB；该 Issue 为 in-review，不能标 done。见[分包复核](testing/2026-10-12-route-chunks.md)。
+ISSUE-009 / APP-M2-T001已接可信会话和页面守卫：后台当前身份、导航/动作及最小项目权限真实读取，页面先核对再取业务数据；独立发现的撤权/迟到读取/连续切页问题已修复。262后台、72前端、真实会话HTTP16项、最终类型/构建及GUI通过，真实两册文件不含个人私稿，见[阶段交付](delivery/APP-M2-T001.md)。ProLayout、浏览器地址和编辑台未保存离开已提交复核，任务与 ISSUE-009、ISSUE-014 均为 in-review，不能标 done。资料列表/详情T046/047依赖的元数据表格/表单与敏感展示仍未验收，继续planned。业务库已决定为 MySQL 8，向量库和模型仍待决，运行仍用内存和演示模型，OIDC另在T010验收。证据见[布局复核](testing/2026-10-12-prolayout-routes.md)。QA 在 `200a105` 签署该切片不通过。浅色内容、顶栏和前进/后退已修复并再次提交 in-review，见[修复复核](testing/2026-10-12-t001-layout-history.md)。ISSUE-020 已把外壳和项目页改为按路由加载，首屏主块 315.94 kB，低于引入 ProLayout 前的 1334.42 kB；该 Issue 为 in-review，不能标 done。见[分包复核](testing/2026-10-12-route-chunks.md)。
 
 ## 内网部署草案
 
@@ -36,7 +36,7 @@ ISSUE-015 / REV-M0-T03已编制[APP-M1-T06验收计划](testing/2026-10-12-app-m
 
 ISSUE-005的DG-05拆成六张后端卡。错误体与单一状态码表[BE-M0-T02](delivery/BE-M0-T02.md)、24小时幂等回执[BE-M0-T03](delivery/BE-M0-T03.md)已由项目经理于 10-12 12:28 在 QA 签署后确认，标为 done。ISSUE-005 保持 in-progress：编辑租约迁到`/api/v1`、导出快照、202与SSE、operationId检查四张卡仍为 ready，本轮没有实现，该 Issue 不关闭。`MODEL_UNAVAILABLE`固定502；`/api/v1`返回`{code, message, details, traceId}`，旧`/api`章节建议仍用`error`加`request_id`。业务库已决定为MySQL 8。[持久化方案](architecture/mysql-8-persistence-plan.md)为 in-review，本轮没有加驱动、迁移或表结构，测试仍用内存仓库。方案要求回执和登录会话跨进程共享，并在重启后仍在。旧 `/api` 统一错误体登记为 ISSUE-021，任务 planned，排在该方案之后；其中 E2E-D5（`/API/...` 返回页面壳）也只登记，本轮不改兜底路由。向量库仍未决定。PR #3未合入。
 
-ISSUE-019 / REV-M0-T06新增Playwright端到端检查（`pnpm --dir frontend/web e2e`，约40秒）；ISSUE-013 / REV-M0-T08对APP-M2-T001本切片签署**不通过**：复跑数字一致，但浏览器发现realDark主题使内容卡片不可读、顶栏动作落入侧栏，以及前进取消后后退目标错误，见[记录](testing/2026-10-12-e2e-t001-signoff.md)。两卡in-review待项目经理确认。
+ISSUE-019 / REV-M0-T06新增Playwright端到端检查（`pnpm --dir frontend/web e2e`，约40秒）；ISSUE-013 / REV-M0-T08对APP-M2-T001本切片签署**不通过**，见[记录](testing/2026-10-12-e2e-t001-signoff.md)。该签署结论保留。前端随后修复 D1–D4 并写明 D6，11 项端到端通过，T001 重新提交 in-review，见[修复复核](testing/2026-10-12-t001-layout-history.md)。两张审查卡仍 in-review，待项目经理确认。
 
 ## 任务进度口径
 

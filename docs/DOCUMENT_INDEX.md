@@ -260,7 +260,7 @@
 | D-248 | 2026-10-12 | [E2E代码解释](code/REV-M0-T06.md) | 说明 | e2e-1 | in-review | ISSUE-019 / REV-M0-T06 | 启动顺序与用例思路 |
 | D-249 | 2026-10-12 | [T001签署交付](delivery/REV-M0-T08.md) | 交付 | qa-rerun-3 | in-review | ISSUE-013 / REV-M0-T08 | 签署结论与缺陷 |
 | D-250 | 2026-10-12 | [E2E配置](../frontend/web/e2e/playwright.config.ts) | 验证 | e2e-1 | in-review | ISSUE-019 / REV-M0-T06 | Chromium、自启内存后台 |
-| D-251 | 2026-10-12 | [E2E用例](../frontend/web/e2e/app-shell.spec.ts) | 验证 | e2e-1 | 11项按预期 | ISSUE-019 / REV-M0-T06 | 断点截图、离开确认、前进后退、已知缺陷 |
+| D-251 | 2026-10-12 | [E2E用例](../frontend/web/e2e/app-shell.spec.ts) | 验证 | e2e-1 | 11项通过 | ISSUE-019 / REV-M0-T06；ISSUE-009 | 断点截图、离开确认、前进后退；D1–D4 标记已去掉 |
 | D-252 | 2026-10-12 | [工作台1680截图](testing/assets/e2e-workbench-1680.png) | 证据 | e2e-1 | E2E截图 | ISSUE-019 / REV-M0-T06 | D3卡片不可读、D4顶栏落入侧栏 |
 | D-253 | 2026-10-12 | [编辑台1280截图](testing/assets/e2e-editor-1280.png) | 证据 | e2e-1 | E2E截图 | ISSUE-019 / REV-M0-T06 | 编辑台三栏与暗色控件 |
 | D-254 | 2026-10-12 | [概览1440截图](testing/assets/e2e-overview-1440.png) | 证据 | e2e-1 | E2E截图 | ISSUE-019 / REV-M0-T06 | 项目概览布局 |
@@ -277,6 +277,11 @@
 | D-264 | 2026-10-12 | [018同步表](governance/ISSUE-018-sync.md) | 治理 | plan-1 | 已核对 | ISSUE-018 / BE-M0-T08 | PRD、ROADMAP、ARCHITECTURE 未因本方案改动 |
 | D-265 | 2026-10-12 | [ISSUE-021](../issues/ISSUE-021.md) | 变更 | queue-1 | blocked | ISSUE-021 / BE-M0-T09 | 旧接口、幂等和 E2E-D5；任务 planned；本轮不实施 |
 | D-266 | 2026-10-12 | [T078内存方案](governance/ISSUE-022-t078-plan.md) | 计划 | outline-contract-draft-1 | 未实现 | ISSUE-022 / APP-M2-T078 | 独立存储；不改 Repository 读写 |
+| D-267 | 2026-10-12 | [T001布局历史修复](testing/2026-10-12-t001-layout-history.md) | 验证 | layout-fix-1 | in-review | ISSUE-009 / APP-M2-T001 | Playwright 11 项通过；D6 写明内存会话 |
+| D-268 | 2026-10-12 | [T001布局修复同步](governance/APP-M2-T001-layout-sync.md) | 治理 | layout-fix-1 | 已核对 | ISSUE-009 / APP-M2-T001 | 基线未改；QA 不通过记录保留 |
+| D-269 | 2026-10-12 | [修复后工作台1680](testing/assets/t001-fixed-workbench-1680.png) | 证据 | layout-fix-1 | 修复截图 | ISSUE-009 / APP-M2-T001 | 深色侧栏、白顶栏、浅色卡片 |
+| D-270 | 2026-10-12 | [修复后编辑台1280](testing/assets/t001-fixed-editor-1280.png) | 证据 | layout-fix-1 | 修复截图 | ISSUE-009 / APP-M2-T001 | 编辑台三栏与浅色正文 |
+| D-271 | 2026-10-12 | [修复后概览1440](testing/assets/t001-fixed-overview-1440.png) | 证据 | layout-fix-1 | 修复截图 | ISSUE-009 / APP-M2-T001 | 项目概览与顶栏 |
 
 ## 更新记录
 
@@ -318,6 +323,7 @@
 | 2026-10-12 | ISSUE-018 / BE-M0-T08；ISSUE-021 / BE-M0-T09 | MySQL 8 方案 in-review，要求回执和会话跨进程且重启后仍在。旧接口任务 planned，并登记 E2E-D5。与 T124 的 blocked 合并后为 356项23done、6in-review、7in-progress、266planned、50blocked、4ready。未加依赖，未改 PRD 与 ROADMAP |
 | 2026-10-12 | ISSUE-019 / REV-M0-T06 | 离线检查增加并行 e2e 作业，continue-on-error，不阻断其他作业。计划 2026-10-19 再评估改为必需。未改用例，ISSUE-019 仍为 in-review |
 | 2026-10-12 | ISSUE-022 / APP-M2-T124 | 大纲契约草案为 draft, pending backend review，Issue 改为 in-review。T124 仍 blocked，任务计数保持 356项23done、6in-review、7in-progress、266planned、50blocked、4ready。startGeneration 对齐尚未实现的 BE-M0-T06。T078 只记录独立存储计划 |
+| 2026-10-12 | ISSUE-009 / APP-M2-T001 | QA退回后的浅色内容、顶栏和前进/后退修复，重新提交 in-review。356项计数不变。未改基线正文，未改后台，未标 done |
 
 ## 缺失输入
 

@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { commitAddress, menuPathFor, parseAppPath, projectPath, routeAfterLogin } from '../src/app-route.ts';
-import { applyBeforeUnload, decideNavigation, holdAddressForPrompt, leaveCopy } from '../src/leave-guard.ts';
+import { applyBeforeUnload, decideNavigation, historyStep, leaveCopy, readHistoryIndex } from '../src/leave-guard.ts';
 
 test('global paths, project tabs and unknown addresses parse without reading business data', () => {
   assert.deepEqual(parseAppPath('/library'), { kind: 'global', routeId: 'library', path: '/library' });
@@ -56,13 +56,15 @@ test('unsaved navigation stays until confirmed, and refresh or close is blocked 
   assert.equal(dirty.returnValue, leaveCopy.content);
 });
 
-test('cancelling browser back restores the address of the page that still holds the text', () => {
-  const history = { pathname: '/library', pushed: [], push(path) { this.pushed.push(path); this.pathname = path; } };
-  const incoming = holdAddressForPrompt(history, '/projects/alpha-project/editor');
-  assert.equal(incoming, '/library');
-  assert.deepEqual(history.pushed, ['/projects/alpha-project/editor']);
-  assert.equal(history.pathname, '/projects/alpha-project/editor');
-  const stayed = decideNavigation({ dirty: true, currentPath: history.pathname, nextPath: incoming, confirmed: false });
+test('browser travel uses the stored index and does not invent a new history entry', () => {
+  assert.equal(readHistoryIndex({ app: true, idx: 1 }), 1);
+  assert.equal(readHistoryIndex({}), null);
+  assert.equal(readHistoryIndex(null), null);
+  assert.equal(historyStep(1, 2), 1);
+  assert.equal(historyStep(1, 0), -1);
+  assert.equal(historyStep(1, 1), null);
+  assert.equal(historyStep(1, null), null);
+  const stayed = decideNavigation({ dirty: true, currentPath: '/projects/alpha-project/editor', nextPath: '/projects/alpha-project/export', confirmed: false });
   assert.equal(stayed.proceed, false);
   assert.equal(stayed.path, '/projects/alpha-project/editor');
 });

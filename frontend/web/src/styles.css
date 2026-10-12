@@ -48,9 +48,16 @@
 @media(max-width: 1100px) { .project-member-row { grid-template-columns: minmax(170px, 1fr) 150px; } .settings-save-bar { flex-wrap: wrap; } }
 @media(max-width: 900px) { .settings-members-layout .settings-anchor { position: static; } .project-member-row { grid-template-columns: minmax(150px, 1fr) 140px; } }
 
-/* ProLayout 把侧栏放进文档流，内容区不再预留旧外壳的左内边距。 */
-.icg-shell { min-height: 100vh; }
-.icg-shell .ant-pro-layout-content, .icg-shell .ant-layout-content { padding: 0; }
-.icg-shell .ant-layout-header { line-height: 1; }
-.topbar-leading { display: flex; align-items: center; gap: 8px; min-width: 0; }
+/* ProLayout 侧栏保持原 ICG 深色，顶栏和内容区保持浅色。realDark 会把卡片染成 #141414。 */
+.icg-shell { min-height: 100vh; background: #f5f7fa; }
+.icg-shell .ant-pro-layout-content, .icg-shell .ant-layout-content { padding: 0; background: #f5f7fa; }
+.icg-shell .ant-layout-header, .icg-shell .ant-pro-global-header { line-height: 1; background: #fff; height: 56px; }
+.icg-shell .ant-pro-sider, .icg-shell .ant-layout-sider { background: #0f1c3f !important; }
+.icg-shell .ant-pro-sider.ant-pro-sider-fixed-mix { inset-block-start: 0 !important; top: 0 !important; height: 100% !important; z-index: 110; }
+.icg-shell .ant-pro-sider .ant-menu, .icg-shell .ant-layout-sider .ant-menu { background: transparent; color: rgba(255,255,255,0.72); }
+.icg-shell .ant-pro-sider .ant-menu-item, .icg-shell .ant-layout-sider .ant-menu-item,
+.icg-shell .ant-pro-sider .ant-menu-item .anticon, .icg-shell .ant-layout-sider .ant-menu-item .anticon { color: rgba(255,255,255,0.72); }
+.icg-shell .ant-pro-sider .ant-menu-item-selected, .icg-shell .ant-layout-sider .ant-menu-item-selected { background: #1e4db7 !important; color: #fff !important; }
+.icg-shell .ant-pro-sider .ant-pro-sider-logo, .icg-shell .ant-pro-sider-logo h1, .icg-shell .ant-pro-sider-logo a { color: #fff; }
+.topbar-leading { display: flex; align-items: center; gap: 8px; min-width: 0; width: 100%; }
 .topbar-breadcrumb { white-space: nowrap; overflow: hidden; }

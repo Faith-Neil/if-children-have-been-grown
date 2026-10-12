@@ -25,7 +25,7 @@
 
 ## 关键判断与异常
 
-未保存时，确认框先决定是否调用 `followPath`。取消不会卸载编辑台，地址由原来的 `holdAddressForPrompt` 留在当前页。页面块还在下载时，内层 `Suspense` 只替换内容区。401 仍立即退出，不经过离开确认。
+未保存时，确认框先决定是否调用 `followPath`。取消不会卸载编辑台。分包提交时地址由 `holdAddressForPrompt` 推回当前页；QA 退回后的前进/后退修复改为按历史序号 `history.go`，不再 `pushState`，见 [布局修复说明](APP-M2-T001.md)。页面块还在下载时，内层 `Suspense` 只替换内容区。401 仍立即退出，不经过离开确认。
 
 ## 验证与限制
 
