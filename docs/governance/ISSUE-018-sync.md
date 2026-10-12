@@ -19,6 +19,10 @@
 
 ISSUE-021 的任务是 planned，Issue 状态是 blocked，因为看板没有 planned 这一档。它排在本方案之后，本轮不实施。范围另含 QA `200a105` 的 E2E-D5：`/API/...` 目前返回页面壳，将来要把 `/api` 前缀按大小写不敏感处理。本轮不改兜底路由。方案要求回执和登录会话跨进程共享，并在重启后仍在；这是验收条件，不是本轮实现。
 
+## impl-4（2026-10-12）
+
+BE-M0-T13 提交 `demo_project` 与 `demo_project_team`，状态 in-review。ISSUE-018 仍为 in-progress。章节、检查与导出、资料与承诺、工作流与任务、审计仍在内存。重数后任务看板为 375 项：42 done、9 in-review、7 in-progress、264 planned、49 blocked、4 ready。本提交把 T13 从 planned 改为 in-review 后，为 375 项：42 done、10 in-review、7 in-progress、263 planned、49 blocked、4 ready。任务看板是准绳。PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照不改。`docs/reference/` 不改。方案第 6 节增加字典 v1.9 字段对照表。`demo_project`、`demo_project_team` 与 `bid_project`、`bid_project_member` 的每一处偏差都需要项目经理批准，未批准前不补列。工作流文件未改。
+
 ## impl-3（2026-10-12）
 
 BE-M0-T12 提交 `chapter_lease`，状态 in-review。ISSUE-018 仍为 in-progress。T13 仍 planned。并入 ISSUE-016、ISSUE-029 关闭之后，任务看板为 371 项：39 done、6 in-review、7 in-progress、266 planned、49 blocked、4 ready。本提交把 T12 从 planned 改为 in-review 后，为 371 项：39 done、7 in-review、7 in-progress、265 planned、49 blocked、4 ready。任务看板是准绳。PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照不改。`docs/reference/` 不改。方案第 5 节增加字典 v1.9 字段对照表。`chapter_lease` 与 `edit_lock` 的每一处偏差都需要项目经理批准，未批准前不补列。工作流文件未改。

@@ -12,21 +12,21 @@
 | 状态 | in-progress |
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
-| revision | impl-3 |
-| 关联 Task | [BE-M0-T08](../docs/tasks/BE-M0.md#be-m0-t08)、[BE-M0-T10](../docs/tasks/BE-M0.md#be-m0-t10)、[BE-M0-T11](../docs/tasks/BE-M0.md#be-m0-t11)、[BE-M0-T12](../docs/tasks/BE-M0.md#be-m0-t12) |
+| revision | impl-4 |
+| 关联 Task | [BE-M0-T08](../docs/tasks/BE-M0.md#be-m0-t08)、[BE-M0-T10](../docs/tasks/BE-M0.md#be-m0-t10)、[BE-M0-T11](../docs/tasks/BE-M0.md#be-m0-t11)、[BE-M0-T12](../docs/tasks/BE-M0.md#be-m0-t12)、[BE-M0-T13](../docs/tasks/BE-M0.md#be-m0-t13) |
 | 关联 PR | 未创建。方案随既有分支提交，不新开 PR |
 | 本地验收 | 方案轮次只跑治理检查。连接与空迁移的运行时验收见 BE-M0-T10，2026-10-12 |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
-| 交付说明 | [BE-M0-T08](../docs/delivery/BE-M0-T08.md)、[BE-M0-T11](../docs/delivery/BE-M0-T11.md)、[BE-M0-T12](../docs/delivery/BE-M0-T12.md) |
-| 代码 / 流程解释 | 方案说明 [BE-M0-T08](../docs/code/BE-M0-T08.md)。连接实现 [BE-M0-T10](../docs/code/BE-M0-T10.md)。回执与会话 [BE-M0-T11](../docs/code/BE-M0-T11.md)。编辑租约 [BE-M0-T12](../docs/code/BE-M0-T12.md) |
-| 验证记录 | 方案轮次为治理检查。MySQL 见 [2026-10-12 连接与迁移](../docs/testing/2026-10-12-mysql-connection.md)。回执与会话见 [2026-10-12 回执与会话](../docs/testing/2026-10-12-be-m0-t11-sessions-receipts.md)。编辑租约见 [2026-10-12 编辑租约](../docs/testing/2026-10-12-be-m0-t12-leases.md) |
+| 交付说明 | [BE-M0-T08](../docs/delivery/BE-M0-T08.md)、[BE-M0-T11](../docs/delivery/BE-M0-T11.md)、[BE-M0-T12](../docs/delivery/BE-M0-T12.md)、[BE-M0-T13](../docs/delivery/BE-M0-T13.md) |
+| 代码 / 流程解释 | 方案说明 [BE-M0-T08](../docs/code/BE-M0-T08.md)。连接实现 [BE-M0-T10](../docs/code/BE-M0-T10.md)。回执与会话 [BE-M0-T11](../docs/code/BE-M0-T11.md)。编辑租约 [BE-M0-T12](../docs/code/BE-M0-T12.md)。项目聚合 [BE-M0-T13](../docs/code/BE-M0-T13.md) |
+| 验证记录 | 方案轮次为治理检查。MySQL 见 [2026-10-12 连接与迁移](../docs/testing/2026-10-12-mysql-connection.md)。回执与会话见 [2026-10-12 回执与会话](../docs/testing/2026-10-12-be-m0-t11-sessions-receipts.md)。编辑租约见 [2026-10-12 编辑租约](../docs/testing/2026-10-12-be-m0-t12-leases.md)。项目聚合见 [2026-10-12 项目聚合](../docs/testing/2026-10-12-be-m0-t13-projects.md) |
 
 ## 现象与证据
 
 用户已决定业务库为 MySQL 8。当前仓库只有 `MemoryRepository`：`read()` 返回整份 `DemoState`，`transaction()` 在锁内深拷贝后提交。幂等回执保留 24 小时，编辑租约 120 秒。尚无驱动、迁移和表。
 
-方案在 [MySQL 8 持久化方案](../docs/architecture/mysql-8-persistence-plan.md)。项目经理已批准方案和四项依赖。连接与空迁移由 BE-M0-T10 实施，依赖登记为 [ISSUE-023](ISSUE-023.md)。回执和登录会话由 BE-M0-T11 提交复查。编辑租约由 BE-M0-T12 提交复查。聚合表仍未做。
+方案在 [MySQL 8 持久化方案](../docs/architecture/mysql-8-persistence-plan.md)。项目经理已批准方案和四项依赖。连接与空迁移由 BE-M0-T10 实施，依赖登记为 [ISSUE-023](ISSUE-023.md)。回执和登录会话由 BE-M0-T11 提交复查。编辑租约由 BE-M0-T12 提交复查。项目聚合由 BE-M0-T13 提交复查。章节和其他聚合仍在内存。
 
 ## 影响与分流
 
@@ -43,7 +43,7 @@
 | BE-M0-T10 | 连接配置与空基线迁移 | `backend/bid-core/icg_demo/database.py` | 见 ISSUE-023 | done |
 | BE-M0-T11 | 幂等回执和登录会话入库，多进程共享且重启后仍在 | `backend/bid-core/icg_demo/database.py` | AC-04、AC-05 | in-review |
 | BE-M0-T12 | 编辑租约入库，含续期和接管 | `backend/bid-core/icg_demo/database.py` | 方案第 5 节 | in-review |
-| BE-M0-T13 | 按聚合把仓库从整份状态迁到 MySQL | 后续实现 | 方案第 7 节 | planned |
+| BE-M0-T13 | 先迁项目聚合。章节及其他聚合仍在内存 | `backend/bid-core/icg_demo/database.py` | 方案第 6 节 | in-review |
 
 ## 验收条目
 
@@ -82,6 +82,7 @@ PROJECT_BRIEF 排期行随任务数改为 352 项，记在下方同步表。
 | 2026-10-12 | impl-1 / in-progress | BE-M0-T11 增加验收：真实业务表进入仓库后，CI 必须做 downgrade base 再 upgrade head。本 Issue 仍 in-progress，这一步尚未加进作业 | [QA签署](../docs/testing/2026-10-12-be-m0-t14-mysql-ci-signoff.md) |
 | 2026-10-12 | impl-2 / in-progress | BE-M0-T11 提交回执和登录会话。downgrade base 再 upgrade head 由 mysql 标记测试执行，现有 `-m mysql` 会跑到。未改工作流。T12、T13 仍 planned。不标 closed | [BE-M0-T11](../docs/delivery/BE-M0-T11.md) |
 | 2026-10-12 | impl-3 / in-progress | BE-M0-T12 提交编辑租约。续期后占用者不变，过期后其他会话可以接管。字典 v1.9 对照写在方案第 5 节，偏差需要项目经理批准。T13 仍 planned。不标 closed | [BE-M0-T12](../docs/delivery/BE-M0-T12.md) |
+| 2026-10-12 | impl-4 / in-progress | BE-M0-T13 提交项目聚合。另一个进程能看见已提交项目，看不见其新章节。字典 v1.9 对照写在方案第 6 节，偏差需要项目经理批准。章节及其他聚合仍在内存。不标 closed | [BE-M0-T13](../docs/delivery/BE-M0-T13.md) |
 
 ## 本地验收与后续合入发布
 

@@ -1,5 +1,5 @@
 # 为什么有这个文件：按环境变量决定进程使用内存仓库还是连上 MySQL。
-# 它解决什么问题：未设置连接串时，现有测试和公网 CI 仍走内存；设置后回执、登录会话和编辑租约对多个进程可见，并且进程重启后还在。
+# 它解决什么问题：未设置连接串时，现有测试和公网 CI 仍走内存；设置后回执、登录会话、编辑租约和项目对多个进程可见。
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from threading import Lock
 from typing import Callable, TypeVar
 
 from .adapters import MemoryRepository
-from .domain import DemoState, Lease
+from .domain import DemoState, DomainError, Lease, Project
 
 DATABASE_URL_ENV = "ICG_DATABASE_URL"
 REQUIRE_MYSQL_ENV = "ICG_REQUIRE_MYSQL"
@@ -108,7 +108,8 @@ def _json_value(value):
 
 
 class MysqlConnectionRepository:
-    # 业务正文仍在内存。登录会话、幂等回执和编辑租约写入 MySQL，导入和 create_app 都不连接。
+    # 章节、检查、导出、资料、工作流和审计仍在内存。登录会话、幂等回执、编辑租约和项目写入 MySQL。
+    # 导入和 create_app 都不连接。未改过的种子项目不插入，避免把整份状态写成一批行。
     mode = "mysql"
 
     def __init__(self, url: str):
@@ -135,20 +136,26 @@ class MysqlConnectionRepository:
 
     def read(self):
         state = self._memory.read()
-        self._load_shared(state)
+        self._load_shared(state, set())
         return state
 
     def transaction(self, operation: Callable[..., T]) -> T:
+        loaded_project_ids: set[str] = set()
+
         def wrapped(state: DemoState) -> T:
-            self._load_shared(state)
+            self._load_shared(state, loaded_project_ids)
             state.cap_receipts = False
             before_sessions = dict(state.sessions)
             before_receipts = {key: dict(receipt) for key, receipt in state.workflow_receipts.items()}
             before_leases = _lease_snapshot(state)
+            before_projects = _project_snapshot(state)
+            before_teams = _team_snapshot(state)
             result = operation(state)
             self._save_shared(
                 before_sessions, dict(state.sessions), before_receipts, state.workflow_receipts,
                 before_leases, _lease_snapshot(state),
+                before_projects, _project_snapshot(state), before_teams, _team_snapshot(state),
+                loaded_project_ids,
             )
             state.sessions.clear()
             state.workflow_receipts.clear()
@@ -159,7 +166,7 @@ class MysqlConnectionRepository:
 
         return self._memory.transaction(wrapped)
 
-    def _load_shared(self, state: DemoState) -> None:
+    def _load_shared(self, state: DemoState, loaded_project_ids: set[str]) -> None:
         from sqlalchemy import text
 
         with self.engine.begin() as connection:
@@ -171,6 +178,12 @@ class MysqlConnectionRepository:
             )).all()
             leases = connection.execute(text(
                 "SELECT chapter_id, token, owner_id, session_token, expires_at FROM chapter_lease"
+            )).all()
+            projects = connection.execute(text(
+                "SELECT id, name, company_id, revision, tender_number, deadline, is_sensitive FROM demo_project"
+            )).all()
+            teams = connection.execute(text(
+                "SELECT project_id, team_json FROM demo_project_team"
             )).all()
         state.sessions = {token: user_id for token, user_id in sessions}
         state.workflow_receipts = {
@@ -187,10 +200,22 @@ class MysqlConnectionRepository:
         }
         for chapter_id, chapter in state.chapters.items():
             chapter.lock = loaded.get(chapter_id)
+        loaded_project_ids.clear()
+        loaded_project_ids.update(project_id for project_id, *_rest in projects)
+        for project_id, name, company_id, revision, tender_number, deadline, sensitive in projects:
+            state.projects[project_id] = Project(
+                project_id, name, company_id, int(revision),
+                tender_number or "", deadline or "", bool(sensitive),
+            )
+        for project_id, team_json in teams:
+            state.project_teams[project_id] = _json_value(team_json)
 
     def _save_shared(self, before_sessions: dict, after_sessions: dict,
                      before_receipts: dict, after_receipts: dict,
-                     before_leases: dict, after_leases: dict) -> None:
+                     before_leases: dict, after_leases: dict,
+                     before_projects: dict, after_projects: dict,
+                     before_teams: dict, after_teams: dict,
+                     loaded_project_ids: set[str]) -> None:
         from sqlalchemy import text
 
         with self.engine.begin() as connection:
@@ -296,6 +321,9 @@ class MysqlConnectionRepository:
                         ),
                         payload,
                     )
+            _save_projects(
+                connection, before_projects, after_projects, before_teams, after_teams, loaded_project_ids,
+            )
 
 
 def _lease_snapshot(state: DemoState) -> dict:
@@ -311,6 +339,97 @@ def _lease_snapshot(state: DemoState) -> dict:
 def _same_receipt(previous: dict, receipt: dict) -> bool:
     return (previous.get("fingerprint") == receipt.get("fingerprint")
             and previous.get("result") == receipt.get("result"))
+
+
+def _project_snapshot(state: DemoState) -> dict:
+    return {
+        project.id: (
+            project.name, project.company_id, int(project.revision),
+            project.tender_number, project.deadline, bool(project.sensitive),
+        )
+        for project in state.projects.values()
+    }
+
+
+def _team_snapshot(state: DemoState) -> dict:
+    return {
+        project_id: json.dumps(team, ensure_ascii=False, sort_keys=True)
+        for project_id, team in state.project_teams.items()
+    }
+
+
+def _save_projects(connection, before_projects: dict, after_projects: dict,
+                   before_teams: dict, after_teams: dict, loaded_project_ids: set[str]) -> None:
+    from sqlalchemy import text
+
+    project_ids = set(before_projects) | set(after_projects) | set(before_teams) | set(after_teams)
+    for project_id in project_ids:
+        previous = before_projects.get(project_id)
+        current = after_projects.get(project_id)
+        previous_team = before_teams.get(project_id)
+        current_team = after_teams.get(project_id)
+        if previous == current and previous_team == current_team:
+            continue
+        loaded = project_id in loaded_project_ids
+        if current is None:
+            if loaded:
+                connection.execute(
+                    text("DELETE FROM demo_project_team WHERE project_id = :id"),
+                    {"id": project_id},
+                )
+                connection.execute(text("DELETE FROM demo_project WHERE id = :id"), {"id": project_id})
+            continue
+        name, company_id, revision, tender_number, deadline, sensitive = current
+        payload = {
+            "id": project_id,
+            "name": name,
+            "company_id": company_id,
+            "revision": revision,
+            "tender_number": tender_number,
+            "deadline": deadline,
+            "is_sensitive": 1 if sensitive else 0,
+        }
+        if not loaded:
+            connection.execute(
+                text(
+                    "INSERT INTO demo_project "
+                    "(id, name, company_id, revision, tender_number, deadline, is_sensitive) "
+                    "VALUES (:id, :name, :company_id, :revision, :tender_number, :deadline, :is_sensitive)"
+                ),
+                payload,
+            )
+        elif previous != current:
+            expected = previous[2]
+            result = connection.execute(
+                text(
+                    "UPDATE demo_project SET name = :name, company_id = :company_id, revision = :revision, "
+                    "tender_number = :tender_number, deadline = :deadline, is_sensitive = :is_sensitive "
+                    "WHERE id = :id AND revision = :expected"
+                ),
+                {**payload, "expected": expected},
+            )
+            if result.rowcount != 1:
+                raise DomainError(409, "REVISION_CONFLICT", "项目已被其他会话更新，请刷新后再保存。")
+        if current_team is None:
+            if loaded or previous is not None and previous != current:
+                connection.execute(
+                    text("DELETE FROM demo_project_team WHERE project_id = :id"),
+                    {"id": project_id},
+                )
+            continue
+        if not loaded or previous_team is None:
+            connection.execute(
+                text(
+                    "INSERT INTO demo_project_team (project_id, team_json) "
+                    "VALUES (:id, CAST(:team_json AS JSON))"
+                ),
+                {"id": project_id, "team_json": current_team},
+            )
+        elif previous_team != current_team:
+            connection.execute(
+                text("UPDATE demo_project_team SET team_json = CAST(:team_json AS JSON) WHERE project_id = :id"),
+                {"id": project_id, "team_json": current_team},
+            )
 
 
 def repository_from_environment():

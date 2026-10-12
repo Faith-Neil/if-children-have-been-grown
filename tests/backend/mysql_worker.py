@@ -1,4 +1,4 @@
-# 为什么有这个文件：让回执、会话和编辑租约测试在一个新的解释器里调用演示接口。
+# 为什么有这个文件：让回执、会话、编辑租约和项目测试在一个新的解释器里调用演示接口。
 # 它解决什么问题：子进程不会经过 pytest 的路径注入，必须自己找到后台包。
 
 from __future__ import annotations
@@ -81,6 +81,50 @@ def run_action(action: str, payload: dict, queue) -> None:
                 "status": response.status_code,
                 "body": body_of(response),
                 "token": token,
+            })
+            return
+        if action == "create_project":
+            login = client.post("/api/demo/login", json={"account_id": "alpha-manager"})
+            if login.status_code != 200:
+                queue.put({"ok": False, "step": "login", "status": login.status_code, "body": login.text})
+                return
+            token = login.json()["access_token"]
+            response = client.post(
+                "/api/projects",
+                headers={"Authorization": "Bearer " + token},
+                json={"name": payload["name"]},
+            )
+            queue.put({
+                "ok": response.status_code == 200,
+                "status": response.status_code,
+                "body": body_of(response),
+            })
+            return
+        if action == "read_project":
+            login = client.post("/api/demo/login", json={"account_id": "alpha-manager"})
+            if login.status_code != 200:
+                queue.put({"ok": False, "step": "login", "status": login.status_code, "body": login.text})
+                return
+            token = login.json()["access_token"]
+            headers = {"Authorization": "Bearer " + token}
+            project_id = payload["project_id"]
+            listed = client.get("/api/projects", headers=headers)
+            chapters = client.get("/api/projects/" + project_id + "/chapters", headers=headers)
+            team = client.get("/api/v1/projects/" + project_id + "/team", headers=headers)
+            workspace = client.get("/api/v1/projects/" + project_id + "/workspace", headers=headers)
+            queue.put({
+                "ok": (listed.status_code == 200 and chapters.status_code == 200
+                       and team.status_code == 200 and workspace.status_code == 200),
+                "listed": body_of(listed).get("projects") if listed.status_code == 200 else body_of(listed),
+                "chapters": body_of(chapters).get("chapters") if chapters.status_code == 200 else body_of(chapters),
+                "team": body_of(team),
+                "workspace": body_of(workspace),
+                "statuses": {
+                    "listed": listed.status_code,
+                    "chapters": chapters.status_code,
+                    "team": team.status_code,
+                    "workspace": workspace.status_code,
+                },
             })
             return
         if action == "lock_renew":
