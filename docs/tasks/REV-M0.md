@@ -411,7 +411,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | done（本地验收；PR待合入） |
+| 状态 | done（QA 3e91aee，PM 恢复确认；未合入/未发布） |
 | 估算 | 1小时 |
 | 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
 | 依赖 | ISSUE-030 |
@@ -424,3 +424,4 @@
 - [x] 验收条目逐条核对并独立复跑。
 - [x] 探针34/34；502 MODEL_UNAVAILABLE与503 SECRET_KEY_UNAVAILABLE各1次请求；普通503与无错误体502照常重试，无Idempotency-Key写入不重试；Node 24.9.0前端单测97/97。
 - [x] 被验卡和Issue的状态不变，等项目经理设置
+- [x] 项目经理恢复后确认本卡 done，依据是 QA 3e91aee，PM 恢复确认。ISSUE-030 仍为 in-review。APP-M2-T002 仍为 done。

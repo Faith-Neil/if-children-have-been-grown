@@ -481,6 +481,7 @@
 | 2026-10-12 | ISSUE-032 / BE-M0-T17 | 项目经理有条件批准方案第 5 节偏差。登记 ISSUE-032，负责人 backend，状态 new。新增 BE-M0-T17，状态 planned，排在 T13 之后，且要等 `bid_outline_node`、`sys_user`、`company` 存在。迁移须保留历史锁行。对照表下补上「偏差已获 PM 有条件批准，待 ISSUE-032 对齐」。看板改为 376 项：42 done、10 in-review、7 in-progress、264 planned、49 blocked、4 ready。不改表，不改 PRD、ROADMAP、PROJECT_BRIEF，不改 docs/reference，不改 .github。T12 与 T13 仍 in-review。T114 仍 in-review |
 | 2026-10-12 | ISSUE-018 / BE-M0-T12；ISSUE-031 | 依据 QA ae6fd10，PM 15:32 确认，BE-M0-T12 标为 done，ISSUE-031 标为 closed。BE-M0-T16 仍 in-review。补 mysql 标记的释放测试：释放后行删除，另一个会话可以再取得。相对签署时的 8 条，这一条是 8→9；并入 T13 的 3 条项目测试后，backend-mysql 为 12 passed、skipped=0。未设连接串时 351 passed、12 skipped。`export_openapi.py` 重跑前须保住草案操作和 deprecated 标注，脚本本轮不改。并入 REV-M0-T21 后看板为 377 项：44 done、9 in-review、7 in-progress、264 planned、49 blocked、4 ready。不改 PRD、ROADMAP、PROJECT_BRIEF，不改 docs/reference，不改 .github。T13 仍 in-review。ISSUE-018 仍 in-progress |
 | 2026-10-12 | ISSUE-033 / BE-M0-T18 | 登记挂证据规则。负责人 backend，状态 new。新增 BE-M0-T18，状态 planned，排在 T13 之后。项目经理暂停后撤下字典对照和错误码建议，不改接口。规格增量由 AI bot 另交，实现后 QA 重签。看板为 378 项：44 done、9 in-review、7 in-progress、265 planned、49 blocked、4 ready。不改 PRD、ROADMAP、PROJECT_BRIEF，不改 docs/reference，不改 .github。T13 仍 in-review。T114 仍 in-review |
+| 2026-10-12 | ISSUE-013 / REV-M0-T21 | 依据 QA 3e91aee，PM 恢复确认，REV-M0-T21 标为 done。看板计数不变：该卡已是 done。ISSUE-030 仍 in-review。APP-M2-T002 仍 done。不改 PRD、ROADMAP、PROJECT_BRIEF，不改接口 |
 
 ## 缺失输入
 

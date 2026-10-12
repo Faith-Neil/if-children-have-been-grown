@@ -24,3 +24,5 @@
 ## 同步与剩余
 
 PRD/ROADMAP/ARCHITECTURE/PROJECT_BRIEF无影响（只读复核；计数为里程碑快照，以任务看板为准）。无观察项。
+
+项目经理恢复后确认本卡为 done，依据是 QA 3e91aee，PM 恢复确认。ISSUE-030 仍为 in-review。APP-M2-T002 仍为 done。未合入，未发布。
