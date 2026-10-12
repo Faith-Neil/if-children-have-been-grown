@@ -9,8 +9,8 @@
 |---|---|
 | 任务ID | REV-M0-T10 |
 | 代码解释 | 新增QA检查器 `tests/backend/qa_docx_style_check.py`（非pytest，仅标准库）与样张 `docs/testing/samples/2026-10-12-word-style-sample.docx`；未改产品代码 |
-| 验收 | XML核对通过：样张61/61、h1左对齐61/61、技术册47/47、商务册47/47、承诺函47/47；pytest 335/2skip；治理通过；见[签署记录](../testing/2026-10-12-be-m0-t15-word-style-signoff.md) |
-| 项目进度 | BE-M0-T15保持in-review，Word/WPS视觉待用户确认；Q1～Q3为P3 |
+| 验收 | XML核对通过：样张61/61、h1左对齐61/61、技术册47/47、商务册47/47、承诺函47/47；pytest 335/2skip；治理通过；见[签署记录](../testing/2026-10-12-be-m0-t15-word-style-signoff.md)。复核二（034b184/f989af7，Q1～Q3）：样张69/69、h1左64/64、技术册与商务册50/50、承诺函45/45，样张已覆盖 |
+| 项目进度 | BE-M0-T15保持in-review，Word/WPS视觉待用户确认；Q1～Q3已修复并复核通过 |
 <!-- task-delivery:end -->
 
 ## 关联与状态

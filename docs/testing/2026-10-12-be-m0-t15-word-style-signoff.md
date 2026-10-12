@@ -67,3 +67,31 @@ PNG 在 QA 机 `/workspace/qa-artifacts/word-7428ec7/`（未入库）：封面 `
 | 正文首行缩进 2 字符（Q1） | 待确认 | 待确认 |
 | 多级编号 1 / 1.1 / 1.1.1 显示 | 待确认 | 待确认 |
 | 表头跨页重复、加粗 | 待确认 | 待确认 |
+
+## 复核二：Q1～Q3 修正（`034b184` + `f989af7`）
+
+2026-10-12，在 `f989af7`（含 `034b184`）上复跑。只读复核，未改产品代码；**BE-M0-T15 仍为 in-review**，done 待用户在 Word/WPS 中确认样张后由项目经理设置。
+
+检查器新增（原有项全部保留）：
+
+- Q1：正文样式 `w:ind` 同时有 `firstLineChars="200"` 与 `firstLine="560"`；每个正文段落的有效缩进都是这两个值。
+- Q2：文档没有 Heading 1～3 时，不得有“目录”段落、TOC 域和“更新域”占位文字；有标题时必须有 TocTitle 和 TOC 域，V3 与 TOC 字体检查只在有标题时执行。
+- Q3：`--spec-doc` 核对规格末段：没有英文句子；写明 docx 不能指定替换字体、由 Word 或 WPS 决定、需安装方正小标宋；全文不再有旧英文句。
+
+自检：7428ec7 的样张 Q1 两项 FAIL（62/64）；承诺函 Q1 两项与 Q2 三项 FAIL（42/47）；84a3fca 的规格 Q3 五项全 FAIL。
+
+| 文件 | 来源 | 结果 |
+|---|---|---|
+| 样张 + 规格 Q3 | `build_docx` + `chapter_export_block`，合成数据；`--spec-doc` | 69/69 |
+| 样张 `h1_align="left"` | 同上，styles 中 Heading1 `jc=left` | 64/64 |
+| 技术册 | `smoke_t06.py --output-dir`，真实 HTTP 导出 | 50/50 |
+| 商务册 | 同上 | 50/50 |
+| 服务承诺函 | 真实下载路由，无标题 | 45/45（Q2 三项通过：无“目录”、无 TOC 域、无占位） |
+
+样张已用本次导出覆盖 [`samples/2026-10-12-word-style-sample.docx`](samples/2026-10-12-word-style-sample.docx)（sha256 `22af2391…a233d`）。
+
+LibreOffice 渲染 PNG 在 QA 机 `/workspace/qa-artifacts/word-034b184/`（未入库）：`sample-page-1.png`、`sample-page-2.png`、`sla-page-1.png`、`sla-page-2.png`、`tech-page-1.png`、`tech-page-2.png`。正文首行缩进两字符在 LibreOffice 中已可见（Q1 修复前不可见）；承诺函正文页只有正文和表格，没有“目录”页。字体仍回退 Noto，不代表 Word/WPS 效果。
+
+复跑：后台 pytest 335 passed、2 skipped；治理检查通过（227 份 Markdown、366 项任务、28 项 Issue）。
+
+结论：Q1～Q3 已修复，XML 核对通过，无新缺陷。上文“Word / WPS 待用户确认”表仍待用户在新样张上填写；Q2 承诺函无目录这一点也请用户一并确认。

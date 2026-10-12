@@ -3,6 +3,7 @@
 """Run: python tests/backend/qa_docx_style_check.py FILE.docx [--kind sample|chapter|sla]
 退出码 0 仅当所有检查项通过。kind 决定哪些项必需（chapter 无表格；sla 无标题/目录要求按实际导出判定）。"""
 import argparse
+import re
 import sys
 import xml.etree.ElementTree as ET
 from zipfile import ZipFile
@@ -26,7 +27,7 @@ SPEC = {
     "Heading2": dict(ea="楷体_GB2312", ascii="楷体_GB2312", hansi="楷体_GB2312", sz=PT["小三"], jc=("left",), bold=True, lvl=1),
     "Heading3": dict(ea="仿宋_GB2312", ascii="仿宋_GB2312", hansi="仿宋_GB2312", sz=PT["四号"], jc=("left",), bold=True, lvl=2),
     "BodyText": dict(ea="仿宋_GB2312", ascii="仿宋_GB2312", hansi="仿宋_GB2312", sz=PT["四号"], jc=("both",), bold=False),
-    "body_spacing": dict(line="560", lineRule="exact", before="0", after="0", firstLineChars="200"),
+    "body_spacing": dict(line="560", lineRule="exact", before="0", after="0", firstLineChars="200", firstLine="560"),  # Q1：四号 14 磅×2 = 560 缇
     "heading_spacing": dict(beforeLines="50", afterLines="50"),
     "table": dict(ea="宋体", ascii="宋体", hansi="宋体", sz=PT["五号"]),
     "headerfooter": dict(ea="宋体", ascii="宋体", hansi="宋体", sz=PT["五号"], jc="center"),
@@ -121,10 +122,32 @@ def runs(p):
     return [r for r in p.iter(q("r")) if r.find(q("t")) is not None and (r.find(q("t")).text or "")]
 
 
+def check_spec_doc(path):
+    """Q3：规格末段为中文，说明 docx 不能指定替换字体、由 Word/WPS 决定、需安装方正小标宋。"""
+    paras_md = [b.strip() for b in open(path, encoding="utf-8").read().split("\n\n") if b.strip()]
+    last = paras_md[-1] if paras_md else ""
+    # 允许的拉丁词：产品名与 OOXML 属性名；其余连续英文单词视为英文句
+    stripped = re.sub(r"\b(docx|Word|WPS|eastAsia|ascii|hAnsi|A4|cm)\b", "", last)
+    eng = re.findall(r"[A-Za-z]{2,}(?:[ ,/.'-]+[A-Za-z]{2,})*", stripped)
+    check("Q3 规格末段无英文句子", not eng, eng[:3])
+    check("Q3 末段写明 docx 不能指定替换字体", "docx" in last and "不能指定" in last, last[:60])
+    check("Q3 末段写明由 Word 或 WPS 决定", "Word" in last and "WPS" in last and "决定" in last, last[:60])
+    check("Q3 末段写明安装方正小标宋", "安装" in last and "方正小标宋" in last, last[:60])
+    whole = open(path, encoding="utf-8").read()
+    check("Q3 全文不再含旧英文句（user-approved / fallback）", not re.search(r"user-approved|fallback|NOT a Latin", whole))
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("docx"); ap.add_argument("--kind", default="sample", choices=["sample", "chapter", "sla"])
+    ap.add_argument("docx", nargs="?"); ap.add_argument("--kind", default="sample", choices=["sample", "chapter", "sla"])
+    ap.add_argument("--spec-doc", help="Q3：核对 docs/standards/word-default-style.md 末段（可单独使用，不给 docx）")
     args = ap.parse_args()
+    if args.spec_doc:
+        check_spec_doc(args.spec_doc)
+        if not args.docx:
+            failed = [n for n, ok in results if not ok]
+            print(f"== {len(results) - len(failed)}/{len(results)} passed")
+            return 1 if failed else 0
     z = ZipFile(args.docx)
     names = set(z.namelist())
     doc = ET.fromstring(z.read("word/document.xml"))
@@ -248,6 +271,11 @@ def main():
         check("正文 固定行距 28 磅、段前段后 0", sp.get(q("line")) == b["line"] and sp.get(q("lineRule")) == b["lineRule"]
               and sp.get(q("before"), "0") == "0" and sp.get(q("after"), "0") == "0", sp)
         check("正文 首行缩进 2 字符", ind.get(q("firstLineChars")) == b["firstLineChars"], ind)
+        check("Q1 正文 首行缩进同时写 w:firstLine=560 缇（LibreOffice 等不认 firstLineChars）", ind.get(q("firstLine")) == b["firstLine"], ind)
+        bad = [para_text(p2)[:12] for p2 in used["BodyText"]
+               if styles.ppr("BodyText", p2.find(q("pPr"))).get(q("ind"), {}).get(q("firstLine")) != b["firstLine"]
+               or styles.ppr("BodyText", p2.find(q("pPr"))).get(q("ind"), {}).get(q("firstLineChars")) != b["firstLineChars"]]
+        check("Q1 每个正文段落有效缩进均为 firstLineChars=200 + firstLine=560（无直接格式覆盖）", not bad, bad[:3])
         check("正文 两端对齐", pp.get(q("jc"), {}).get(q("val")) == "both")
         probs = [x for p2 in used["BodyText"] for r in runs(p2) for x in run_ok(styles.rpr("BodyText", r.find(q("rPr"))), SPEC["BodyText"])]
         check("正文 仿宋_GB2312 14 磅 不加粗（三种字体属性）", not probs, probs[:4])
@@ -301,39 +329,53 @@ def main():
     dup = [para_text(p) for p in used["Heading1"] if para_text(p).strip() in cover_texts]
     check("V2 一级标题不重复封面标题", not dup, dup[:2])
 
-    # V3：目录标题与占位文字
+    # Q2：有标题才有目录；没有标题时不得有“目录”标题和 TOC 域
+    has_headings = any(used[h] for h in ("Heading1", "Heading2", "Heading3"))
     tt = [p for p in paras if para_style(p) == "TocTitle"]
-    check("V3 目录标题段落（TocTitle）存在且文字为“目录”", tt and para_text(tt[0]).strip() == "目录",
-          [para_text(p) for p in tt])
-    if tt:
-        check("V3 目录标题不是标题、不进目录（无 outlineLvl/numPr、不基于 Heading）", not_heading("TocTitle", tt[0]))
-        probs = [x for r in runs(tt[0]) for x in run_ok(styles.rpr("TocTitle", r.find(q("rPr"))), SPEC["toc"])]
-        check("V3 目录标题 宋体 小四", not probs, probs[:3])
+    instr_all = " ".join(t.text or "" for t in body.iter(q("instrText"))) + " " + \
+        " ".join(f.get(q("instr")) or "" for f in body.iter(q("fldSimple")))
+    has_toc_field = bool(re.search(r"\bTOC\b", instr_all))
+    toc_word = [para_text(p) for p in paras if para_text(p).strip() == "目录"]
+    if not has_headings:
+        check("Q2 无标题文档 不含“目录”标题段落", not tt and not toc_word, toc_word or [para_text(p) for p in tt])
+        check("Q2 无标题文档 不含 TOC 域", not has_toc_field, instr_all[:80])
+        check("Q2 无标题文档 不含目录占位文字", "更新域" not in "".join(para_text(p) for p in paras))
+    else:
+        check("Q2 有标题文档 仍生成目录（TocTitle + TOC 域）", bool(tt) and has_toc_field)
+    # V3：目录标题与占位文字（仅有标题时适用）
+    if has_headings:
+        check("V3 目录标题段落（TocTitle）存在且文字为“目录”", tt and para_text(tt[0]).strip() == "目录",
+              [para_text(p) for p in tt])
+        if tt:
+            check("V3 目录标题不是标题、不进目录（无 outlineLvl/numPr、不基于 Heading）", not_heading("TocTitle", tt[0]))
+            probs = [x for r in runs(tt[0]) for x in run_ok(styles.rpr("TocTitle", r.find(q("rPr"))), SPEC["toc"])]
+            check("V3 目录标题 宋体 小四", not probs, probs[:3])
 
-    def field_result(p_list):
-        state, text = None, ""
-        for p in p_list:
-            for r in p.iter(q("r")):
-                fc = r.find(q("fldChar"))
-                it = r.find(q("instrText"))
-                if fc is not None:
-                    kind = fc.get(q("fldCharType"))
-                    if kind == "begin": state = "begin"
-                    elif kind == "separate" and state == "toc": state = "result"
-                    elif kind == "end" and state in ("toc", "result"): return text
-                elif it is not None and state == "begin" and "TOC" in (it.text or ""):
-                    state = "toc"
-                elif state == "result":
-                    text += "".join(x.text or "" for x in r.iter(q("t")))
-        return text
-    placeholder = field_result(paras)
-    check("V3 TOC 域结果区有占位文字", bool(placeholder.strip()), repr(placeholder))
+        def field_result(p_list):
+            state, text = None, ""
+            for p in p_list:
+                for r in p.iter(q("r")):
+                    fc = r.find(q("fldChar"))
+                    it = r.find(q("instrText"))
+                    if fc is not None:
+                        kind = fc.get(q("fldCharType"))
+                        if kind == "begin": state = "begin"
+                        elif kind == "separate" and state == "toc": state = "result"
+                        elif kind == "end" and state in ("toc", "result"): return text
+                    elif it is not None and state == "begin" and "TOC" in (it.text or ""):
+                        state = "toc"
+                    elif state == "result":
+                        text += "".join(x.text or "" for x in r.iter(q("t")))
+            return text
+        placeholder = field_result(paras)
+        check("V3 TOC 域结果区有占位文字", bool(placeholder.strip()), repr(placeholder))
 
     # TOC
     instr = " ".join(t.text or "" for t in body.iter(q("instrText")))
     simple = " ".join(f.get(q("instr")) or "" for f in body.iter(q("fldSimple")))
     toc_ok = "TOC" in instr + simple and '\\o "1-3"' in instr + simple
-    check("TOC 域存在（\\o \"1-3\"）", toc_ok or args.kind == "sla", instr[:80])
+    if has_headings:
+        check("TOC 域存在（\\o \"1-3\"）", toc_ok, instr[:80])
     if toc_ok:
         tp = next(p for p in paras if any("TOC" in (t.text or "") for t in p.iter(q("instrText"))))
         rp = [r for r in tp.iter(q("r")) if r.find(q("instrText")) is not None]
