@@ -340,6 +340,8 @@
 | D-327 | 2026-10-12 | [ISSUE-024](../issues/ISSUE-024.md) | 变更 | model-config-storage-1 | new | ISSUE-024 | 存储与 API。状态 new，负责人 backend。不改运行时 |
 | D-328 | 2026-10-12 | [024同步记录](governance/ISSUE-024-sync.md) | 治理 | model-config-storage-1 | 已核对 | ISSUE-024 | 两码只登记在 Issue 表。不改三份基线 |
 | D-329 | 2026-10-12 | [022后台复审](governance/ISSUE-022-backend-rereview.md) | 治理 | outline-contract-draft-3 | 已核对 | ISSUE-022 | 附件原文未随队列送达。B2、B3 已附在文末 |
+| D-330 | 2026-10-12 | [ISSUE-016检索骨架签署](testing/2026-10-12-issue-016-retrieval-signoff.md) | 验证 | qa-rerun-11 | 本地通过 | ISSUE-013 / REV-M0-T16 | AC-01～05通过；O-1 P3 |
+| D-331 | 2026-10-12 | [REV-M0-T16签署交付](delivery/REV-M0-T16.md) | 交付 | qa-rerun-11 | 已本地验收 | ISSUE-013 / REV-M0-T16 | 无代码；结论与观察项 |
 
 ## 更新记录
 
@@ -409,6 +411,7 @@
 | 2026-10-12 | ISSUE-013 / REV-M0-T13 | QA签署：ISSUE-026快照规则签署，通过（被验卡/Issue状态不变，待项目经理设置） |
 | 2026-10-12 | ISSUE-013 / REV-M0-T14 | QA签署：ISSUE-014 ProLayout签署，通过（被验卡/Issue状态不变，待项目经理设置） |
 | 2026-10-12 | ISSUE-013 / REV-M0-T15 | QA签署：ISSUE-020路由分包签署，通过（被验卡/Issue状态不变，待项目经理设置） |
+| 2026-10-12 | ISSUE-013 / REV-M0-T16 | QA签署：ISSUE-016检索骨架签署，通过（被验卡/Issue状态不变，待项目经理设置） |
 | 2026-10-12 | ISSUE-025 / BE-M0-T14 | 依据 QA 签署 b20b844 将 BE-M0-T14 标为 done、ISSUE-025 标为 closed。守卫改为任一跳过即失败。不再导出 ICG_MYSQL_PASSWORD。BE-M0-T11 记下业务表出现后的 downgrade 再 upgrade。看板改为 366项30done、8in-review、7in-progress、268planned、49blocked、4ready。PRD、ROADMAP 计数字句不改 |
 | 2026-10-12 | ISSUE-025 / BE-M0-T14 | 交付里的任务计数改为截至提交 3bb311a 的快照，并写明之后以任务看板为准。不改看板，不改卡片状态 |
 | 2026-10-12 | ISSUE-026 | 在 3bb311a 重数：看板 366项30done、8in-review。项目经理在群里确认后，APP-M2-T001 与 APP-M2-T002 标为 done，成为 366项32done、6in-review、7in-progress、268planned、49blocked、4ready。PRD、ROADMAP、PROJECT_BRIEF 改为 as of commit 3bb311a 的里程碑快照，并写明任务看板是准绳、只在里程碑更新。规则写入 WORKFLOW 第4节。检查程序不比较快照与活看板，未改脚本。Issue 仍为 in-review。不改 docs/reference |
