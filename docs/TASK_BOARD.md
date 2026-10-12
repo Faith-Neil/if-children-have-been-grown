@@ -133,6 +133,7 @@
 | [REV-M0-T14](tasks/REV-M0.md#rev-m0-t14) | ISSUE-014 ProLayout依赖与体积 QA签署 | done | ISSUE-014 | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T14.md) |
 | [REV-M0-T15](tasks/REV-M0.md#rev-m0-t15) | ISSUE-020 路由分包 QA签署 | done | ISSUE-020 | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T15.md) |
 | [REV-M0-T16](tasks/REV-M0.md#rev-m0-t16) | ISSUE-016 检索层内存骨架 QA签署 | done | ISSUE-016、AI-03 | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T16.md) |
+| [REV-M0-T17](tasks/REV-M0.md#rev-m0-t17) | ISSUE-028 配置驱动对话模型设计 QA签署 | done | ISSUE-028 | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T17.md) |
 | [REV-M0-T06](tasks/REV-M0.md#rev-m0-t06) | Playwright浏览器端到端检查 | in-review | [APP-M2-T001](tasks/APP-M2.md#app-m2-t001) | [ISSUE-019](../issues/ISSUE-019.md) | [交付](delivery/REV-M0-T06.md) |
 | [REV-M0-T08](tasks/REV-M0.md#rev-m0-t08) | APP-M2-T001 QA签署复核 | in-review | [REV-M0-T06](tasks/REV-M0.md#rev-m0-t06) | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T08.md) |
 | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | 后端开发准备与本地demo | done | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | [ISSUE-006](../issues/ISSUE-006.md) | [交付](delivery/BE-M0-T01.md) |

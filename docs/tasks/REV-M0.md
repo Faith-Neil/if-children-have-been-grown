@@ -324,3 +324,23 @@
 - [x] 验收条目逐条核对并独立复跑。
 - [x] AC-01～05通过；契约7项、补充探针（越界记录、嵌入超时）均回退到A；后台349 passed/6 skipped(mysql)。
 - [x] ISSUE-016与AI-03保持in-review，待项目经理设置done
+
+<a id="rev-m0-t17"></a>
+
+## REV-M0-T17 · ISSUE-028 配置驱动对话模型设计 QA签署
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done（本地验收；PR待合入） |
+| 估算 | 1小时 |
+| 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
+| 依赖 | ISSUE-028 已提交 in-review |
+| 来源 | 项目经理签署要求 |
+| 完成交付 | [专属交付](../delivery/REV-M0-T17.md) |
+| 代码解释 | 无产品代码 |
+
+范围：只看Provider侧设计：验收条目、与现有适配器及冻结错误码一致性、密钥来源、依赖与契约未改。不改他人代码或卡片状态。
+
+- [x] 验收条目逐条核对并独立复跑。
+- [x] AC-01～03通过；与openai_model.py、errors.py冻结表、ISSUE-024错误码表一致；未改OpenAPI与依赖；D-1（P2）流式/JSON字段名在028与024间互相推诿。
+- [x] ISSUE-028保持in-review，待项目经理设置done
