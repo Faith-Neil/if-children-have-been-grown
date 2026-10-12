@@ -126,6 +126,30 @@ def test_without_tender_and_unquantified_are_not_satisfied_labels(client):
     flow.write("/facts/sla:P1.response", {"status": "confirmed"}, "PATCH", expected=409)
 
 
+def test_commitment_cover_includes_centered_project_name(client):
+    flow = SlaFlow(client)
+    flow.template()
+    flow.bind()
+    flow.confirm()
+    downloaded = client.get(flow.commitment()["download_url"], headers=flow.headers)
+    assert downloaded.status_code == 200, downloaded.text
+    w = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    with ZipFile(BytesIO(downloaded.content)) as package:
+        document = ElementTree.fromstring(package.read("word/document.xml"))
+        styles = ElementTree.fromstring(package.read("word/styles.xml"))
+    paragraph = next(item for item in document.iter(w + "p")
+                     if (item.find(f"{w}pPr/{w}pStyle") is not None
+                         and item.find(f"{w}pPr/{w}pStyle").get(w + "val") == "CoverProject"
+                         and "".join(node.text or "" for node in item.iter(w + "t")) == "甲公司合成投标项目"))
+    defined = next(item for item in styles.iter(w + "style") if item.get(w + "styleId") == "CoverProject")
+    fonts = paragraph.find(f".//{w}rFonts")
+    assert fonts.get(w + "ascii") == "黑体"
+    assert fonts.get(w + "hAnsi") == "黑体"
+    assert fonts.get(w + "eastAsia") == "黑体"
+    assert paragraph.find(f".//{w}sz").get(w + "val") == "32"
+    assert defined.find(f".//{w}jc").get(w + "val") == "center"
+
+
 def test_hours_render_as_template_minutes_in_actual_word(client):
     flow = SlaFlow(client)
     flow.template()

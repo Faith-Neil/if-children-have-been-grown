@@ -211,7 +211,8 @@ def include_workflow_routes(application, service, current_user, parser):
     def download_sla_commitment(project_id: str, export_id: str, user: Principal = Depends(current_user)):
         document = workflow.sla.download(user, project_id, export_id)
         record = Export(export_id, "", 1, "", "", document["filename"], document["title"], document["content"])
-        return Response(content=build_docx(record, document["table"]), media_type=DOCX_MEDIA_TYPE,
+        return Response(content=build_docx(record, document["table"], project_name=document.get("project_name")),
+                        media_type=DOCX_MEDIA_TYPE,
                         headers={"Content-Disposition": f'attachment; filename="{document["filename"]}"'})
 
     @router.get("/library", response_model=LibraryList)

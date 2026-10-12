@@ -106,7 +106,7 @@ def test_cover_heading_body_and_toc_sizes_spacing_and_indent():
     _, parts = generated()
     styles = parts["word/styles.xml"]
     cover = style(styles, "CoverTitle")
-    assert rfonts(cover) == {"ascii": "黑体", "hAnsi": "黑体", "eastAsia": "方正小标宋"}
+    assert rfonts(cover) == {"ascii": "方正小标宋", "hAnsi": "方正小标宋", "eastAsia": "方正小标宋"}
     assert attr(cover.find(f".//{W}sz"), "val") == "44"
     assert cover.find(f".//{W}b") is not None
     assert attr(cover.find(f".//{W}jc"), "val") == "center"
@@ -170,6 +170,54 @@ def test_settings_ask_word_to_update_fields_on_open():
     _, parts = generated()
     update = parts["word/settings.xml"].find(f"{W}updateFields")
     assert attr(update, "val") == "true"
+
+
+def test_cover_section_starts_the_body_on_the_next_page():
+    _, parts = generated()
+    sections = list(parts["word/document.xml"].iter(W + "sectPr"))
+    cover, body = sections
+    assert attr(cover.find(f"{W}type"), "val") == "nextPage"
+    assert cover.find(f"{W}pgNumType") is None
+    assert attr(body.find(f"{W}pgNumType"), "start") == "1"
+
+
+def test_body_without_headings_does_not_repeat_the_cover_title():
+    _, parts = package(build_docx(sample("合成正文没有标题标记。\n第二行仍在。"), project_name="合成项目名称"))
+    paragraphs = list(parts["word/document.xml"].iter(W + "p"))
+    headings = [paragraph_text(item) for item in paragraphs if paragraph_style(item) == "Heading1"]
+    assert headings == []
+    assert any(paragraph_style(item) == "CoverTitle" and paragraph_text(item) == "合成投标文件" for item in paragraphs)
+    exported = [paragraph_text(item) for item in paragraphs]
+    assert "合成正文没有标题标记。" in exported
+    assert "第二行仍在。" in exported
+
+
+def test_toc_has_non_heading_title_and_placeholder():
+    _, parts = generated()
+    styles = parts["word/styles.xml"]
+    paragraphs = list(parts["word/document.xml"].iter(W + "p"))
+    title = next(item for item in paragraphs if paragraph_text(item) == "目录")
+    style_id = paragraph_style(title)
+    assert style_id not in {"Heading1", "Heading2", "Heading3"}
+    defined = style(styles, style_id)
+    assert defined.find(f".//{W}outlineLvl") is None
+    assert rfonts(title) == {"ascii": "宋体", "hAnsi": "宋体", "eastAsia": "宋体"}
+    field = next(item for item in paragraphs if item.find(f".//{W}instrText") is not None
+                 and "TOC" in (item.find(f".//{W}instrText").text or ""))
+    assert paragraphs.index(title) < paragraphs.index(field)
+    visible = [node.text or "" for node in field.iter(W + "t")]
+    assert "右键更新域以生成目录" in visible
+
+
+def test_heading_one_defaults_to_center_and_can_align_left():
+    from icg_demo.docx_style import DEFAULT_DOCX_STYLE
+
+    _, default = generated()
+    default_heading = style(default["word/styles.xml"], "Heading1")
+    assert attr(default_heading.find(f".//{W}jc"), "val") == "center"
+    _, custom = package(build_docx(sample(), style=replace(DEFAULT_DOCX_STYLE, h1_align="left")))
+    custom_heading = style(custom["word/styles.xml"], "Heading1")
+    assert attr(custom_heading.find(f".//{W}jc"), "val") == "left"
 
 
 def test_page_number_starts_on_body_and_cover_has_none():

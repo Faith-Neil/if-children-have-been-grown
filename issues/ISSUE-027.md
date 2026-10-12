@@ -42,7 +42,7 @@ QA 在 [Word 渲染记录](../docs/testing/2026-10-12-t06-smoke-word-render.md) 
 
 | 编号 | 可检查的完成条件 | 结果与证据 |
 |---|---|---|
-| AC-01 | 打开合成 docx 能看到 Heading 1～3、三种字体属性、字号间距缩进、加粗表头、TOC 域、页码和页边距 | 2026-10-12 后台测试 329 passed、2 skipped。见验证记录 |
+| AC-01 | 打开合成 docx 能看到 Heading 1～3、三种字体属性、字号间距缩进、加粗表头、TOC 域、页码和页边距 | 2026-10-12 后台测试 335 passed、2 skipped。见验证记录 |
 | AC-02 | 未传版式时用默认值；传入版式时左边距随之改变 | 同一测试文件中的覆盖用例 |
 | AC-03 | 不新增 `requirements.txt` 依赖 | 未改依赖文件 |
 | AC-04 | 卡片保持 in-review，不标 done | 看板与本文件均为 in-review |
@@ -67,6 +67,7 @@ PROJECT_BRIEF 排期行的任务计数一并改为 363 项，记在同步表。B
 | 日期 | revision / 状态 | 完成事实、问题与下一步 | 证据 / 复核人 |
 |---|---|---|---|
 | 2026-10-12 | style-1 / in-review | 默认版式已写入导出。done 与 closed 等待项目经理在 QA 后设置 | [验证](../docs/testing/2026-10-12-be-m0-t15-word-style.md) |
+| 2026-10-12 | style-1 / in-review | 封面单独成页；无标题正文不重复标题；目录有非标题“目录”和占位文字；承诺函封面写项目名称；封面标题三种字体属性都是方正小标宋 | [规格](../docs/standards/word-default-style.md) |
 
 ## 本地验收与后续合入发布
 

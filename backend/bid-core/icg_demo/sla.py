@@ -531,5 +531,6 @@ class SlaService:
             if record["fingerprint"] != self.workflow._fingerprint(state, project_id):
                 raise DomainError(409, "EXPORT_STALE", "项目输入已变化，旧承诺函已过期。")
             self.workflow._audit(state, principal, project_id, "sla-commitment.download", {"export_id": export_id})
-            return {**record, "title": self.workflow._mask(project.name) + " — 服务承诺函（内部稿）"}
+            return {**record, "title": self.workflow._mask(project.name) + " — 服务承诺函（内部稿）",
+                    "project_name": self.workflow._mask(project.name)}
         return self.repository.transaction(operation)

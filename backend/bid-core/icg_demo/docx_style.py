@@ -28,12 +28,13 @@ class DocxStyle:
     margin_bottom_cm: float = 2.5
     margin_left_cm: float = 2.8
     margin_right_cm: float = 2.6
-    cover_title_font: FontFace = field(default_factory=lambda: face("方正小标宋", "黑体", "黑体"))
+    cover_title_font: FontFace = field(default_factory=lambda: face("方正小标宋"))
     cover_title_pt: float = 22
     cover_project_font: FontFace = field(default_factory=lambda: face("黑体"))
     cover_project_pt: float = 16
     h1_font: FontFace = field(default_factory=lambda: face("黑体"))
     h1_pt: float = 16
+    h1_align: str = "center"
     h2_font: FontFace = field(default_factory=lambda: face("楷体_GB2312"))
     h2_pt: float = 15
     h3_font: FontFace = field(default_factory=lambda: face("仿宋_GB2312"))
@@ -98,10 +99,7 @@ def _classify(line: str) -> tuple[str, str, bool]:
 
 def _blocks(record: Export) -> list[tuple[str, str, bool]]:
     lines = [] if record.content == "" else record.content.splitlines()
-    blocks = [_classify(line) for line in lines]
-    if record.title and not any(style_id.startswith("Heading") for style_id, _, _ in blocks):
-        blocks.insert(0, ("Heading1", record.title, False))
-    return blocks
+    return [_classify(line) for line in lines]
 
 
 def _style_xml(style: DocxStyle) -> str:
@@ -132,6 +130,10 @@ def _style_xml(style: DocxStyle) -> str:
         f'<w:rPr>{_fonts(style.cover_project_font)}{_size(style.cover_project_pt)}</w:rPr>')
     body = paragraph_style("BodyText", "Body Text", body_paragraph,
                            f'<w:rPr>{_fonts(style.body_font)}{_size(style.body_pt)}</w:rPr>')
+    toc_title = paragraph_style(
+        "TocTitle", "TOC Title",
+        '<w:pPr><w:jc w:val="center"/></w:pPr>',
+        f'<w:rPr>{_fonts(style.toc_font)}{_size(style.toc_pt)}</w:rPr>')
     toc = paragraph_style("TOC", "toc 1", "<w:pPr/>",
                           f'<w:rPr>{_fonts(style.toc_font)}{_size(style.toc_pt)}</w:rPr>')
     return f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -139,10 +141,10 @@ def _style_xml(style: DocxStyle) -> str:
 <w:docDefaults><w:rPrDefault><w:rPr>{_fonts(style.body_font)}{_size(style.body_pt)}</w:rPr></w:rPrDefault></w:docDefaults>
 <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:rPr>{_fonts(style.body_font)}{_size(style.body_pt)}</w:rPr></w:style>
 {cover}{project}
-{heading("Heading1", "heading 1", 0, style.h1_font, style.h1_pt, "center", False)}
+{heading("Heading1", "heading 1", 0, style.h1_font, style.h1_pt, style.h1_align, False)}
 {heading("Heading2", "heading 2", 1, style.h2_font, style.h2_pt, "left", True)}
 {heading("Heading3", "heading 3", 2, style.h3_font, style.h3_pt, "left", True)}
-{body}{toc}
+{body}{toc_title}{toc}
 </w:styles>'''
 
 
@@ -157,11 +159,13 @@ def _numbering_xml() -> str:
             + "".join(levels) + '</w:abstractNum><w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num></w:numbering>')
 
 
-def _section(style: DocxStyle, footer_id: str, *, start: str | None) -> str:
+def _section(style: DocxStyle, footer_id: str, *, start: str | None, next_page: bool = False) -> str:
     page = f'<w:pgNumType w:start="{start}"/>' if start else ""
+    break_type = '<w:type w:val="nextPage"/>' if next_page else ""
     return ('<w:sectPr>'
             '<w:headerReference w:type="default" r:id="rId3"/>'
             f'<w:footerReference w:type="default" r:id="{footer_id}"/>'
+            f'{break_type}'
             '<w:pgSz w:w="11906" w:h="16838"/>'
             f'<w:pgMar w:top="{_twips(style.margin_top_cm)}" w:right="{_twips(style.margin_right_cm)}" '
             f'w:bottom="{_twips(style.margin_bottom_cm)}" w:left="{_twips(style.margin_left_cm)}" '
@@ -193,12 +197,16 @@ def _footer(style: DocxStyle, *, page_number: bool) -> str:
 
 def _toc(style: DocxStyle) -> str:
     instruction = ' TOC \\o "1-3" \\h \\z \\u '
-    return ('<w:p><w:pPr><w:pStyle w:val="TOC"/></w:pPr>'
-            f'<w:r><w:rPr>{_fonts(style.toc_font)}{_size(style.toc_pt)}</w:rPr><w:fldChar w:fldCharType="begin"/></w:r>'
-            f'<w:r><w:rPr>{_fonts(style.toc_font)}{_size(style.toc_pt)}</w:rPr>'
+    fonts = f'{_fonts(style.toc_font)}{_size(style.toc_pt)}'
+    title = _paragraph("TocTitle", "目录", style.toc_font, style.toc_pt)
+    return (title
+            + '<w:p><w:pPr><w:pStyle w:val="TOC"/></w:pPr>'
+            f'<w:r><w:rPr>{fonts}</w:rPr><w:fldChar w:fldCharType="begin"/></w:r>'
+            f'<w:r><w:rPr>{fonts}</w:rPr>'
             f'<w:instrText xml:space="preserve">{instruction}</w:instrText></w:r>'
             '<w:r><w:fldChar w:fldCharType="separate"/></w:r>'
-            '<w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>')
+            f'<w:r><w:rPr>{fonts}</w:rPr><w:t>右键更新域以生成目录</w:t></w:r>'
+            f'<w:r><w:rPr>{fonts}</w:rPr><w:fldChar w:fldCharType="end"/></w:r></w:p>')
 
 
 def _table(rows: list[list[str]], style: DocxStyle) -> str:
@@ -230,7 +238,7 @@ def build_docx(record: Export, table_rows: list[list[str]] | None = None, *,
     cover = _paragraph("CoverTitle", record.title, chosen.cover_title_font, chosen.cover_title_pt, bold=True)
     if project_name:
         cover += _paragraph("CoverProject", project_name, chosen.cover_project_font, chosen.cover_project_pt)
-    cover += f'<w:p><w:pPr>{_section(chosen, "rId5", start=None)}</w:pPr></w:p>'
+    cover += f'<w:p><w:pPr>{_section(chosen, "rId5", start=None, next_page=True)}</w:pPr></w:p>'
     body = _toc(chosen)
     for style_id, text, bold in _blocks(record):
         face, pt, heading_bold = _faces(chosen, style_id)

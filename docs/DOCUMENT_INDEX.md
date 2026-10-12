@@ -316,6 +316,7 @@
 | D-303 | 2026-10-12 | [版式代码说明](code/BE-M0-T15.md) | 说明 | style-1 | 当前 | ISSUE-027 / BE-M0-T15 | 默认样式可被单个投标覆盖 |
 | D-304 | 2026-10-12 | [版式核对](testing/2026-10-12-be-m0-t15-word-style.md) | 验证 | style-1 | 已执行 | ISSUE-027 / BE-M0-T15 | 打开合成 docx |
 | D-305 | 2026-10-12 | [027同步表](governance/ISSUE-027-sync.md) | 治理 | style-1 | 已核对 | ISSUE-027 / BE-M0-T15 | 任务计数改为 363 项；ARCHITECTURE 未改 |
+| D-306 | 2026-10-12 | [Word 默认版式](standards/word-default-style.md) | 标准 | style-1 | 当前 | ISSUE-027 / BE-M0-T15 | 用户确认原文。封面标题不把黑体当作拉丁回退 |
 
 ## 更新记录
 
@@ -372,6 +373,7 @@
 | 2026-10-12 | ISSUE-028 | Provider 侧保留读取配置、启动快照、local/cloud 路由、敏感约束、流式/JSON、错误映射和 `job.model_call`。存储、字段定义、API、加密、If-Match/幂等改引 ISSUE-024，字段提案以 ISSUE-024 为准。不创建 ISSUE-024 文件。不改任务计数，仍为 363项26done、9in-review、7in-progress、268planned、49blocked、4ready |
 | 2026-10-12 | ISSUE-009 / APP-M2-T001 | E2E-D7：收起侧栏时展开按钮移到 logo 右侧。1280/1440/1680、浅色和深色点击后菜单可见。Playwright 12 passed。仍 in-review，不改后台，不改任务计数 |
 | 2026-10-12 | ISSUE-009 / APP-M2-T002 | T002-F1：没有 Idempotency-Key 的写入不自动重试。GET 和有键写入仍重试；MODEL_UNAVAILABLE 仍只发一次。ISSUE-021 给旧接口补键后这条限制解除。前端 92 项通过。仍 in-review，不改后台，不改任务计数 |
+| 2026-10-12 | ISSUE-027 / BE-M0-T15 | 封面下一页分节、无标题正文不重复封面标题、目录标题与占位文字、承诺函封面项目名称、封面标题三种属性都是方正小标宋。规格记入 standards/word-default-style.md。不改任务计数 |
 
 ## 缺失输入
 

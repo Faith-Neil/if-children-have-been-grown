@@ -9,7 +9,7 @@
 |---|---|
 | 任务ID | BE-M0-T15 |
 | 代码解释 | [BE-M0-T15](../code/BE-M0-T15.md) |
-| 验收 | 2026-10-12，`env -u ICG_DATABASE_URL -u ICG_REQUIRE_MYSQL python3 -m pytest tests/backend -q`：330 passed，2 skipped。`node scripts/check-project-governance.cjs` 见验证记录。合成 docx 断言标题、三种字体属性、字号间距缩进、加粗表头、TOC、`word/settings.xml` 的 `w:updateFields w:val="true"`、页码和页边距 |
+| 验收 | 2026-10-12，`env -u ICG_DATABASE_URL -u ICG_REQUIRE_MYSQL python3 -m pytest tests/backend -q`：335 passed，2 skipped。`node scripts/check-project-governance.cjs` 见验证记录。合成 docx 断言封面下一页分节、无标题不重复封面、目录标题与占位、方正小标宋三种属性、承诺函项目名称、标题、表头、页码和页边距 |
 | 项目进度 | 363 项：26 done、9 in-review、7 in-progress、268 planned、49 blocked、4 ready。BE-M0 为 15 项，5 项 done。T14 仍是托管 MySQL 作业。本卡 in-review，不标 done |
 <!-- task-delivery:end -->
 
@@ -22,11 +22,11 @@
 
 ## 完成内容与变更文件
 
-`build_docx` 改到 `backend/bid-core/icg_demo/docx_style.py`。默认版式是 A4，上 2.5 cm、下 2.5 cm、左 2.8 cm、右 2.6 cm。封面标题用方正小标宋，ascii 与 hAnsi 回退黑体，22 磅、居中、加粗。项目名称黑体 16 磅、居中。封面节没有页码。
+已确认规格见 [Word 默认版式](../standards/word-default-style.md)。`build_docx` 在 `backend/bid-core/icg_demo/docx_style.py`。
 
-正文里以 `# `、`## `、`### ` 开头的行分别成为 Heading 1、Heading 2、Heading 3，并接多级编号。标题前后各 0.5 行。一级黑体 16 磅居中；二级楷体_GB2312 15 磅左齐加粗；三级仿宋_GB2312 14 磅左齐加粗。正文仿宋_GB2312 14 磅、两端对齐、固定 28 磅行距、段前段后 0、首行缩进 2 字符。表格宋体 10.5 磅，表头行加粗。页眉页脚宋体 10.5 磅居中。目录是按 1～3 级标题生成的 TOC 域，宋体 12 磅。`word/settings.xml` 写 `<w:updateFields w:val="true"/>`，打开 Word 时提示更新目录域。正文节页码从 1 开始，页脚居中。每处 `w:rFonts` 都写 eastAsia、ascii 和 hAnsi。
+封面节写 `<w:type w:val="nextPage"/>`，封面单独成页且没有页码，正文页码从 1 开始。封面标题三种字体属性都是方正小标宋。黑体只在未安装该字体时由本机替换，不是拉丁回退。承诺函下载把项目名称传给 `build_docx`，封面项目名称是黑体 16 磅、居中。正文没有标题标记时，不再把文档标题再写成 Heading 1。目录前有宋体、非标题的“目录”，TOC 域的占位文字是“右键更新域以生成目录”。一级标题默认居中，`h1_align="left"` 可以改成左对齐。
 
-分册导出用 `chapter_export_block` 把章节名写成一级标题。调用方可以传入 `style` 覆盖默认值，也可以传入 `project_name`。未新增依赖。
+分册导出用 `chapter_export_block` 把章节名写成一级标题。调用方可以传入 `style` 覆盖默认值。未新增依赖。
 
 ## 代码解释
 
@@ -51,7 +51,7 @@
 | ARCHITECTURE | 未改。演示导出版式不改变架构基线 |
 | Issue 看板/详情 | ISSUE-027 为 in-review。ISSUE-023 在同一提交中按 QA 签署 16cf971 和项目经理确认改为 closed |
 | TASK_BOARD / PROJECT_STATUS | 已改为 363 项，本卡 in-review。BE-M0-T14 仍是托管 MySQL 作业 |
-| DOCUMENT_INDEX | 已登记本交付、代码说明、验证和同步表 |
+| DOCUMENT_INDEX | 已登记本交付、代码说明、验证、同步表和 [默认版式规格](../standards/word-default-style.md) |
 
 ## 风险与后续
 

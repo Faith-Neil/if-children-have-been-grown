@@ -11,14 +11,14 @@
 
 旧的 `build_docx` 把每一行写成普通段落，标题只用 Title 样式，表头不加粗，默认字体没有 hAnsi，也没有编号、目录、页眉页脚和第二节。QA 的 W1～W4 都出在这里。分册导出还把章节名和正文用换行拼在一起，所以章节名也是普通段落。
 
-现在 `DocxStyle` 保存纸张边距、封面、三级标题、正文、表格、页眉页脚和目录的字体与字号。`DEFAULT_DOCX_STYLE` 是批准值。`build_docx(..., style=None, project_name=None)` 在未传入版式时用这份默认值。传入另一份 `DocxStyle` 时，边距和字体按那一份写。封面标题的 eastAsia 是方正小标宋，ascii 和 hAnsi 是黑体，用来表达缺字时的回退。其余字体三个属性写同一个字体名。
+现在 `DocxStyle` 保存纸张边距、封面、三级标题、正文、表格、页眉页脚和目录的字体与字号。`DEFAULT_DOCX_STYLE` 是 [已确认规格](../standards/word-default-style.md)。`build_docx(..., style=None, project_name=None)` 在未传入版式时用这份默认值。传入另一份 `DocxStyle` 时，边距和字体按那一份写。封面标题的 eastAsia、ascii 和 hAnsi 都是方正小标宋。黑体只在本机没有方正小标宋时由系统替换，不是拉丁或西文回退。一级标题默认居中；规格允许居中或左对齐，把 `h1_align` 改成 `left` 即可覆盖。其余字体三个属性写同一个字体名。
 
 ## 入口和调用顺序
 
 1. 单章下载、分册下载和承诺函下载仍调用 `build_docx`。
 2. 分册在 `workflow.export` 里用 `chapter_export_block` 生成 `# 章节名` 加正文，并把项目名称放进下载数据。
-3. `build_docx` 先写封面和封面节。封面节不写页码。
-4. 正文节从页码 1 开始。先写 TOC 域 `TOC \o "1-3" \h \z \u`，再按行识别 `# `、`## `、`### `。没有这些标记时，文档标题本身成为 Heading 1，避免单章导出仍然没有标题级别。
+3. `build_docx` 先写封面和封面节。封面节写 `<w:type w:val="nextPage"/>`，不写页码，因此封面单独成页。承诺函下载把项目名称传给 `project_name`，封面用 CoverProject：黑体 16 磅、居中。
+4. 正文节从页码 1 开始。先写宋体、非标题样式的“目录”，再写 TOC 域 `TOC \o "1-3" \h \z \u`，域结果的占位文字是“右键更新域以生成目录”。然后按行识别 `# `、`## `、`### `。正文没有这些标记时，不再把文档标题再写成 Heading 1。
 5. 表格放在正文节。第一行保留表头重复，并给单元格加粗。
 6. 页眉写内部稿标记。正文页脚写 PAGE 域。封面页脚不写 PAGE 域。
 7. `word/settings.xml` 写入 `<w:updateFields w:val="true"/>`，让 Word 在打开文件时提示更新 TOC 域。
@@ -29,8 +29,8 @@
 
 ## 关键判断与异常
 
-封面标题使用 CoverTitle，不使用 Heading，因此不会进入目录。目录只收集 Heading 1～3。页码从正文第一节开始，封面没有页码。没有新增第三方库；打不开的部分仍用标准库 `zipfile` 和 XML。
+封面标题使用 CoverTitle，不使用 Heading，因此不会进入目录。“目录”使用 TocTitle，也没有大纲级别。目录只收集 Heading 1～3。页码从正文第一节开始，封面没有页码。没有新增第三方库；打不开的部分仍用标准库 `zipfile` 和 XML。
 
 ## 验证与限制
 
-测试直接打开生成的 zip，核对样式、字体三属性、间距、表头、TOC、`word/settings.xml` 里的 `w:updateFields w:val="true"`、页码和边距。没有在 Word 或 WPS 里做视觉签收。客户模板不是本卡的默认值，需要时传入另一份 `DocxStyle`。
+测试直接打开生成的 zip，核对样式、字体三属性、间距、表头、TOC、目录标题和占位文字、封面的下一页分节、无标题正文不重复封面标题、一级标题可改为左对齐、`word/settings.xml` 里的 `w:updateFields w:val="true"`、页码和边距。承诺函下载另核对封面项目名称。没有在 Word 或 WPS 里做视觉签收。客户模板不是本卡的默认值，需要时传入另一份 `DocxStyle`。

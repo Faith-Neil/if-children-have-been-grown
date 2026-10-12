@@ -16,5 +16,6 @@
 | PROJECT_STATUS | 已改 | 进度改为 363 项，并写明 W1～W4 由 BE-M0-T15 提交复核 |
 | DOCUMENT_INDEX | 已改 | 登记本表、Issue、交付、代码说明和验证 |
 | docs/reference | 未改 | 本卡不涉及参考资料 |
+| docs/standards/word-default-style.md | 已新增 | 用户确认的版式原文。封面标题三种字体属性都是方正小标宋；黑体只在未安装该字体时替换，不是拉丁回退 |
 
 同一提交按项目经理在 QA 签署 16cf971 后的确认，把 ISSUE-023 标为 closed。Issue 状态词表没有 done，完成状态使用 closed。BE-M0-T10 在 ISSUE-023 的任务表和影响表改为 done。
