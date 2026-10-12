@@ -47,7 +47,7 @@
 | [REV-M0 接手审查](tasks/REV-M0.md) | ISSUE-004目录与业务/技术审查；ISSUE-013 QA复跑；ISSUE-015 T06计划；ISSUE-013 签署；ISSUE-019 E2E、T001签署 | 8 | 6/8 | 审查/brief交付完成，设计决定留ISSUE-005；QA复跑、T06计划及贯通冒烟/Word渲染完成。T06 与 T08 为 in-review。 |
 | [BE-M0 后端链路](tasks/BE-M0.md) | ISSUE-006本地后端demo；ISSUE-005契约卡；ISSUE-018实施中；ISSUE-023已关闭；ISSUE-025托管MySQL作业；ISSUE-027版式；ISSUE-031错误码名字；ISSUE-032编辑锁对齐；ISSUE-033挂证据规则；ISSUE-021排队 | 18 | 7/18 | T01～T03已验收。T02与T03由项目经理于 10-12 12:28 在 QA 签署后确认。T08与T10由项目经理在 QA 签署 98c5129 后确认，标为 done；T04～T07 ready；T09 planned。T11 回执与会话为 in-review。T12 编辑租约已依据 QA ae6fd10，PM 15:32 确认 done。T13 项目聚合为 in-review。T14 已依据 QA 签署 b20b844 标为 done。T15 Word 默认版式为 in-review。T16 错误码名字为 in-review。T17 编辑锁对齐字典为 planned。T18 证据挂接规则为 planned。ISSUE-005 仍 in-progress。ISSUE-023 已 closed。 |
 | [APP-M1 示例实现](tasks/APP-M1.md) | ISSUE-007示例与后台联调；ISSUE-008资料保护 | 16 | 9/16 | T07及T09～16已本地验收；完整父任务继续。 |
-| [AI-M0 模型接入准备](tasks/AI-M0.md) | ISSUE-010已关闭；ISSUE-011兼容适配器；ISSUE-016内存检索 | 3 | 2/3 | AI-01为in-review；AI-02为done，项目经理于 10-12 12:10 在 QA 签署后确认；AI-03为done，依据 QA 签署 2fe6198（REV-M0-T16）。对话模型、RAGFlow 与内网范围已登记，真实端点未验收。 |
+| [AI-M0 模型接入准备](tasks/AI-M0.md) | ISSUE-010已关闭；ISSUE-011兼容适配器；ISSUE-016内存检索 | 3 | 2/3 | AI-01为in-review；AI-02为done，项目经理于 10-12 12:10 在 QA 签署后确认；AI-03为done，依据 QA 签署 2fe6198（REV-M0-T16）。对话模型、RAGFlow 与内网范围已登记，真实端点未验收。CI 假服务已记录请求头和 base_url；真实端点须 ICG_RUN_REAL_MODEL_TESTS=1，默认跳过。 |
 
 发布 Milestone 1～5 分别映射 FE-M1～FE-M5；FE-M0 为共用基础，FE-M6/FE-M7 为原 Phase 7/8 的可选增强，FE-M8 为贯穿原 Gate A/B/C 的发布验收。
 
@@ -452,4 +452,4 @@
 5. 更新 Issue、任务卡和本看板状态、PROJECT_STATUS 进度，最后登记 DOCUMENT_INDEX；检查链接/状态一致后转 done。
 6. 把本地验收、合入、发布分别记录；功能只有真实接口联调通过才计生产完成。
 
-当前优先：APP-M1按ICG示例实施和联调，来源差异同步核对；模型与向量库保留接口不阻止本地产品流程开发。ISSUE-010 已 closed：业务库为 MySQL 8，对话模型由配置页提供，嵌入与向量库用 RAGFlow 自带，生产生成仅内网。AI-01 为 in-review。AI-02已由项目经理于 10-12 12:10 在 QA 签署后确认为 done。AI-03 已依据 QA 签署 2fe6198（REV-M0-T16）标为 done，不连接 MySQL。ISSUE-005 保持 in-progress：错误体与幂等已由项目经理于 10-12 12:28 在 QA 签署后确认，后四张契约卡仍为 ready，该 Issue 不关闭。生产门禁继续验证，不能用主链路内部稿替代完整交付。
+当前优先：APP-M1按ICG示例实施和联调，来源差异同步核对；模型与向量库保留接口不阻止本地产品流程开发。ISSUE-010 已 closed：业务库为 MySQL 8，对话模型由配置页提供，嵌入与向量库用 RAGFlow 自带，生产生成仅内网。AI-01 为 in-review。ISSUE-028 的 CI 假服务已落地，配置运行时仍未接通，ISSUE-010 仍 closed。AI-02已由项目经理于 10-12 12:10 在 QA 签署后确认为 done。AI-03 已依据 QA 签署 2fe6198（REV-M0-T16）标为 done，不连接 MySQL。ISSUE-005 保持 in-progress：错误体与幂等已由项目经理于 10-12 12:28 在 QA 签署后确认，后四张契约卡仍为 ready，该 Issue 不关闭。生产门禁继续验证，不能用主链路内部稿替代完整交付。

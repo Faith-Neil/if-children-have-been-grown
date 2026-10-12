@@ -12,15 +12,15 @@
 | 状态 | in-review |
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
-| revision | model-config-design-2 |
+| revision | model-config-fixture-1 |
 | 关联 Task | [AI-01](../docs/tasks/AI-M0.md#ai-01)；实现仍待后续卡。现有适配器是 [AI-02](../docs/tasks/AI-M0.md#ai-02) |
 | 关联 PR | 未创建 |
-| 本地验收 | 设计已写。没有运行时。见 [核对](../docs/testing/2026-10-12-issue-010-decisions.md) |
+| 本地验收 | 设计已写。CI 假服务已编码。配置读取和真实端点仍未接通。见 [假服务核对](../docs/testing/2026-10-12-issue-028-fake-openai.md) |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | [AI-01 交付](../docs/delivery/AI-01.md) |
-| 代码 / 流程解释 | 无运行代码。设计见 [配置设计](../docs/architecture/model-config-provider.md) |
-| 验证记录 | [2026-10-12 决定核对](../docs/testing/2026-10-12-issue-010-decisions.md) |
+| 代码 / 流程解释 | 不改 `backend/bid-core`。假服务见 [代码解释](../docs/code/AI-01.md) 与 [配置设计](../docs/architecture/model-config-provider.md) |
+| 验证记录 | [2026-10-12 假服务核对](../docs/testing/2026-10-12-issue-028-fake-openai.md) |
 
 ## 现象与证据
 
@@ -33,7 +33,7 @@
 - 影响范围：下一次生成如何读取配置并路由。不改当前 409 `LOCAL_MODEL_REQUIRED`。
 - 敏感项目使用云端配置时，调用前拒绝，设计采用 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`。不写入 `spec/openapi/demo-v1.json`。
 - 保存、字段、接口、加密和乐观锁不在本 Issue。见 ISSUE-024。
-- 不加依赖。不改运行代码。
+- 不加依赖。不改 `backend/bid-core` 运行代码。CI 假服务只在测试里。默认提供者仍是演示替身。
 
 ## 实施任务与互链
 
@@ -48,7 +48,7 @@
 | 编号 | 可检查的完成条件 | 结果与证据 |
 |---|---|---|
 | AC-01 | Provider 读取配置、启动快照、local/cloud 路由、敏感约束、流式/JSON、错误映射和 `job.model_call` 已写明。字段定义与 API 已从本设计删去，并注明以 ISSUE-024 为准 | 已写入设计。未实现 |
-| AC-02 | CI 使用记录请求头和基址的假服务；真实连接默认跳过 | 已写入设计。假服务未编码 |
+| AC-02 | CI 使用记录请求头和基址的假服务；真实连接默认跳过 | 假服务已编码。它记录请求头，并从路径还原实际 `base_url`。真实连接须 `ICG_RUN_REAL_MODEL_TESTS=1`，默认跳过。见 [核对](../docs/testing/2026-10-12-issue-028-fake-openai.md) |
 | AC-03 | 不改 OpenAPI 文件，不新增依赖 | 本轮 diff 不含 `spec/openapi/demo-v1.json` 与 `requirements.txt` |
 | AC-04 | 实现时，敏感项目使用非本地模型返回 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`（由现在的 409 `LOCAL_MODEL_REQUIRED` 改为 403） | 未实现。已记入 [AI-01](../docs/tasks/AI-M0.md#ai-01) 未勾选验收。本轮不改运行代码 |
 
@@ -59,9 +59,9 @@
 | PRD | 无影响。不新增验收步骤，不改任务计数 | `docs/PRD.md` | model-config-design-2 / ISSUE-028 / 2026-10-12 | 已核对 |
 | ROADMAP | 无任务计数变化。决定用词随 ISSUE-010 | `docs/ROADMAP.md` | model-config-design-2 / ISSUE-028 / 2026-10-12 | 已核对 |
 | ARCHITECTURE | 有影响。指向本设计，并写明未实现。本轮不改该文件正文 | `docs/ARCHITECTURE.md` | model-config-design-2 / ISSUE-028 / 2026-10-12 | 已核对 |
-| TASK_BOARD | 无新任务。不改任务计数 | `docs/TASK_BOARD.md` | model-config-design-2 / ISSUE-028 / 2026-10-12 | 已核对 |
-| PROJECT_STATUS | 无新计数。设计范围改在 ISSUE-028，端点仍未接通 | `docs/PROJECT_STATUS.md` | model-config-design-2 / ISSUE-028 / 2026-10-12 | 已核对 |
-| DOCUMENT_INDEX | 有影响。本设计的说明改为 Provider 侧 | `docs/DOCUMENT_INDEX.md` | model-config-design-2 / ISSUE-028 / 2026-10-12 | 已核对 |
+| TASK_BOARD | 无新任务。不改任务计数。AI-01 仍 in-review | `docs/TASK_BOARD.md` | model-config-fixture-1 / ISSUE-028 / 2026-10-12 | 已核对 |
+| PROJECT_STATUS | 无新计数。写明假服务已落地，真实端点仍未接通 | `docs/PROJECT_STATUS.md` | model-config-fixture-1 / ISSUE-028 / 2026-10-12 | 已核对 |
+| DOCUMENT_INDEX | 有影响。登记假服务核对与代码解释 | `docs/DOCUMENT_INDEX.md` | model-config-fixture-1 / ISSUE-028 / 2026-10-12 | 已核对 |
 
 ## 处理与复核记录
 
@@ -74,8 +74,9 @@
 | 2026-10-12 | model-config-design-2 / in-review | QA P3（REV-M0-T17，f5af6db）：决定记录改为 ISSUE-024 已由后台建档并拥有模型配置字段。流式与 JSON 模式开关的字段名归 ISSUE-024（后台决定，D-1），本 Issue 只引用、不定义。AI-01 补未勾选验收：敏感项目使用非本地模型返回 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`（由 409 改为 403）。状态仍 in-review | [决定核对](../docs/testing/2026-10-12-issue-010-decisions.md) |
 | 2026-10-12 | model-config-design-2 / in-review | 后台决定 D-1 已写在 ISSUE-024。本 Issue 引用 `stream_enabled` 与 `json_mode_enabled`。类型、默认值、`revision` 乐观锁和任务开始时的配置快照以该文件为准，不重定义。状态仍 in-review | [ISSUE-024](ISSUE-024.md) |
 | 2026-10-12 | model-config-design-2 / in-review | `3e1445e` 已把 D-1 字段写进 ISSUE-024。本文件只链接 [`stream_enabled`](ISSUE-024.md) 与 [`json_mode_enabled`](ISSUE-024.md)，不抄定义。状态仍 in-review | [ISSUE-024](ISSUE-024.md) |
+| 2026-10-12 | model-config-fixture-1 / in-review | AC-02 假服务已编码。记录请求头和实际 `base_url`。真实端点须 `ICG_RUN_REAL_MODEL_TESTS=1`，默认跳过。不改 `backend/bid-core`，不改 OpenAPI，不加依赖。配置运行时仍未接通。不标 closed | [核对](../docs/testing/2026-10-12-issue-028-fake-openai.md) |
 
 ## 本地验收与后续合入发布
 
-- 本地验收：设计核对完成，运行时未做。
+- 本地验收：设计已写。CI 假服务已核对。配置读取、敏感项目 403 和真实端点仍未接通。不标 closed。
 - PR：未创建。合入：未合入。发布：未发布。

@@ -10,9 +10,26 @@ BACKEND_ROOT = Path(__file__).resolve().parents[2] / "backend" / "bid-core"
 sys.path.insert(0, str(BACKEND_ROOT))
 
 
+@pytest.fixture
+def fake_openai_chat():
+    from fake_openai_chat import FakeOpenAIChat
+
+    service = FakeOpenAIChat()
+    try:
+        yield service
+    finally:
+        service.close()
+
+
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)
 def pytest_runtest_call(item):
     # 在测试调用阶段失败，pytest 会计为 failed。夹具阶段的 pytest.fail 只会显示成 error。
+    if item.get_closest_marker("live_model") is not None:
+        from fake_openai_chat import real_model_skip_reason
+
+        reason = real_model_skip_reason()
+        if reason:
+            pytest.skip(reason)
     if item.get_closest_marker("mysql") is not None:
         from icg_demo.database import mysql_gate
 

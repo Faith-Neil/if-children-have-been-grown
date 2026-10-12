@@ -250,3 +250,47 @@ def test_environment_reader_uses_documented_defaults_and_rejects_embedded_secret
 def test_unknown_provider_name_is_rejected():
     with pytest.raises(ValueError, match="openai-compatible"):
         openai_provider_from_environment({"ICG_MODEL_PROVIDER": "pgvector"})
+
+
+def test_fake_service_records_headers_and_effective_base_url(fake_openai_chat):
+    model = OpenAICompatibleModelProvider(
+        config(base_url=fake_openai_chat.base_url, timeout_seconds=5),
+        environ={"ICG_SYNTHETIC_MODEL_KEY": SYNTHETIC_KEY})
+    assert model.suggest("补充巡检", "甲公司合成正文") == SYNTHETIC_TEXT
+    assert len(fake_openai_chat.calls) == 1
+    call = fake_openai_chat.calls[0]
+    assert call.base_url == fake_openai_chat.base_url
+    assert call.path == "/v1/chat/completions"
+    assert call.header("authorization") == "Bearer " + SYNTHETIC_KEY
+    assert call.header("content-type").startswith("application/json")
+    assert call.header("accept") == "application/json"
+
+
+def test_fake_service_records_gateway_prefix_as_base_url(fake_openai_chat):
+    prefixed = fake_openai_chat.base_url + "/gateway"
+    model = OpenAICompatibleModelProvider(
+        config(base_url=prefixed, timeout_seconds=5),
+        environ={"ICG_SYNTHETIC_MODEL_KEY": SYNTHETIC_KEY})
+    assert model.suggest("补充巡检", "甲公司合成正文") == SYNTHETIC_TEXT
+    call = fake_openai_chat.calls[0]
+    assert call.base_url == prefixed
+    assert call.path == "/gateway/v1/chat/completions"
+
+
+def test_real_model_tests_skip_unless_the_flag_is_exactly_one(monkeypatch):
+    from fake_openai_chat import real_model_skip_reason
+
+    monkeypatch.delenv("ICG_RUN_REAL_MODEL_TESTS", raising=False)
+    assert real_model_skip_reason() == "real model endpoint tests require ICG_RUN_REAL_MODEL_TESTS=1"
+    monkeypatch.setenv("ICG_RUN_REAL_MODEL_TESTS", "true")
+    assert real_model_skip_reason() is not None
+    monkeypatch.setenv("ICG_RUN_REAL_MODEL_TESTS", "1")
+    assert real_model_skip_reason() is None
+
+
+@pytest.mark.live_model
+def test_real_openai_compatible_endpoint_when_opted_in():
+    selected = openai_provider_from_environment()
+    assert selected is not None
+    text = selected.suggest("用一个词回答", "ping")
+    assert isinstance(text, str) and text.strip()

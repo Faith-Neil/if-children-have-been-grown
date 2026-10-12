@@ -205,8 +205,8 @@
 | D-192 | 2026-10-12 | [离线CI工作流](../.github/workflows/offline-check.yml) | 工程 | mysql-ci-1 | 当前 | ISSUE-012 / APP-M2-T008；ISSUE-025 / BE-M0-T14 | ubuntu-24.04；backend-mysql 任一跳过即失败；不导出 ICG_MYSQL_PASSWORD |
 | D-193 | 2026-10-12 | [模型与数据库决定](../issues/ISSUE-010.md) | 决策 | model-choice-3 | closed | ISSUE-010 / AI-01 | 配置页、RAGFlow、生产仅内网；真实端点未验收 |
 | D-194 | 2026-10-12 | [兼容适配器事项](../issues/ISSUE-011.md) | 变更 | openai-adapter-3 | closed | ISSUE-011 / AI-02 | 项目经理于 10-12 12:10 在 QA 签署后确认；未合入 |
-| D-195 | 2026-10-12 | [模型准备任务](tasks/AI-M0.md) | 实施 | model-choice-3 | 当前 | ISSUE-010 / AI-01；ISSUE-011 / AI-02；ISSUE-016 / AI-03 | AI-01为in-review，AI-02为done，AI-03为done |
-| D-196 | 2026-10-12 | [决定登记交付](delivery/AI-01.md) | 交付 | model-choice-3 | in-review | ISSUE-010 / AI-01 | 决定已登记。不标 done |
+| D-195 | 2026-10-12 | [模型准备任务](tasks/AI-M0.md) | 实施 | model-config-fixture-1 | 当前 | ISSUE-010 / AI-01；ISSUE-011 / AI-02；ISSUE-016 / AI-03 | AI-01为in-review。CI 假服务已勾选。真实端点未验收 |
+| D-196 | 2026-10-12 | [决定登记交付](delivery/AI-01.md) | 交付 | model-config-fixture-1 | in-review | ISSUE-010 / AI-01；ISSUE-028 | 决定已登记。AC-02 假服务已核对。不标 done |
 | D-197 | 2026-10-12 | [适配器交付](delivery/AI-02.md) | 交付 | openai-adapter-3 | done | ISSUE-011 / AI-02 | 项目经理已确认；真实端点仍未接通 |
 | D-198 | 2026-10-12 | [适配器代码解释](code/AI-02.md) | 说明 | openai-adapter-1 | 当前 | ISSUE-011 / AI-02 | 环境变量、请求、重试和敏感门禁 |
 | D-199 | 2026-10-12 | [适配器验证](testing/2026-10-12-openai-compatible-model.md) | 验证 | openai-adapter-1 | 本地通过 | ISSUE-011 / AI-02 | 契约30项；全后台回归通过；无真实端点 |
@@ -303,12 +303,12 @@
 | D-290 | 2026-10-12 | [MySQL CI 说明](code/BE-M0-T14.md) | 说明 | mysql-ci-1 | 当前 | ISSUE-025 / BE-M0-T14 | 不导出 ICG_MYSQL_PASSWORD；任一跳过即失败 |
 | D-291 | 2026-10-12 | [MySQL CI 核对](testing/2026-10-12-backend-mysql-ci.md) | 验证 | mysql-ci-1 | 已核对 | ISSUE-025 / BE-M0-T14 | run 38207508936：2 passed、320 deselected；密码不进仓库 |
 | D-292 | 2026-10-12 | [025同步表](governance/ISSUE-025-sync.md) | 治理 | mysql-ci-1 | 已核对 | ISSUE-025 / BE-M0-T14 | T14 done、Issue closed；PRD/ROADMAP 计数字句未改 |
-| D-293 | 2026-10-12 | [配置驱动的对话模型](architecture/model-config-provider.md) | 架构 | model-config-design-2 | in-review | ISSUE-028 / AI-01 | 只写 Provider 切换。字段与 API 以 ISSUE-024 为准。不改 OpenAPI |
+| D-293 | 2026-10-12 | [配置驱动的对话模型](architecture/model-config-provider.md) | 架构 | model-config-fixture-1 | in-review | ISSUE-028 / AI-01 | Provider 切换仍是设计。CI 假服务已落地。不改 OpenAPI |
 | D-294 | 2026-10-12 | [RAGFlow 检索适配器](architecture/ragflow-retrieval-adapter.md) | 架构 | ragflow-adapter-design-1 | closed | ISSUE-029 / AI-03 | 重排定为 RAGFlow 自带。路径 C 查询词过滤留到适配器实现。无客户端 |
 | D-295 | 2026-10-12 | [ISSUE-010 决定核对](testing/2026-10-12-issue-010-decisions.md) | 验证 | model-choice-3 | 文档核对 | ISSUE-010 / AI-01 | 无内网调用。只链接 ISSUE-024 的 stream_enabled 与 json_mode_enabled |
-| D-296 | 2026-10-12 | [ISSUE-028](../issues/ISSUE-028.md) | 变更 | model-config-design-2 | in-review | ISSUE-028 / AI-01 | 仅 Provider 侧。只链接 ISSUE-024 的 stream_enabled 与 json_mode_enabled。敏感项目 403 验收未实现。不标 closed |
+| D-296 | 2026-10-12 | [ISSUE-028](../issues/ISSUE-028.md) | 变更 | model-config-fixture-1 | in-review | ISSUE-028 / AI-01 | AC-02 假服务已编码。真实端点默认跳过。配置运行时未接通。不标 closed |
 | D-297 | 2026-10-12 | [ISSUE-029](../issues/ISSUE-029.md) | 变更 | ragflow-adapter-design-1 | closed | ISSUE-029 / AI-03 | 用户 10-12 14:34 确认。重排定为 RAGFlow 自带。适配器未实现 |
-| D-298 | 2026-10-12 | [028同步记录](governance/ISSUE-028-sync.md) | 治理 | model-config-design-2 | 已核对 | ISSUE-028 / AI-01 | 存储与 API 划给 ISSUE-024。D-1 字段名只链接 ISSUE-024。不改任务计数 |
+| D-298 | 2026-10-12 | [028同步记录](governance/ISSUE-028-sync.md) | 治理 | model-config-fixture-1 | 已核对 | ISSUE-028 / AI-01 | AC-02 假服务已核对。不改任务计数。不改 OpenAPI |
 | D-299 | 2026-10-12 | [029同步记录](governance/ISSUE-029-sync.md) | 治理 | ragflow-adapter-design-1 | 已核对 | ISSUE-029 / AI-03 | ISSUE-029 已 closed。路径 C 查询词过滤留到适配器实现。不改检索代码 |
 | D-300 | 2026-10-12 | [T001重签与T002探测](testing/2026-10-12-qa-t001-t002-t020-recheck.md) | 验证 | qa-rerun-4 | 本地执行 | ISSUE-013 / REV-M0-T08 | T001因E2E-D7不通过；T002待修复提交；ISSUE-020通过 |
 | D-301 | 2026-10-12 | [ISSUE-027](../issues/ISSUE-027.md) | 变更 | style-1 | in-review | ISSUE-027 / BE-M0-T15 | Word 默认版式；T14 仍是 MySQL 作业；不标 closed |
@@ -394,6 +394,8 @@
 | D-381 | 2026-10-12 | [REV-M0-T25签署交付](delivery/REV-M0-T25.md) | 交付 | qa-rerun-21 | 已本地验收 | ISSUE-013 / REV-M0-T25 | 无代码；结论与观察项 |
 | D-382 | 2026-10-12 | [ISSUE-033规格复签](testing/2026-10-12-issue-033-spec-resign.md) | 验证 | qa-rerun-22 | 本地通过 | ISSUE-013 / REV-M0-T26 | 规格通过；运行时待后端 |
 | D-383 | 2026-10-12 | [REV-M0-T26签署交付](delivery/REV-M0-T26.md) | 交付 | qa-rerun-22 | 已本地验收 | ISSUE-013 / REV-M0-T26 | 无代码；结论与观察项 |
+| D-384 | 2026-10-12 | [ISSUE-028假服务核对](testing/2026-10-12-issue-028-fake-openai.md) | 验证 | model-config-fixture-1 | 已执行 | ISSUE-028 / AI-01 | 假端点记录请求头和 base_url。真实端点默认跳过 |
+| D-385 | 2026-10-12 | [AI-01假服务说明](code/AI-01.md) | 说明 | model-config-fixture-1 | 当前 | ISSUE-028 / AI-01 | 只加测试夹具。不改 backend/bid-core。不标 done |
 
 ## 更新记录
 
@@ -508,6 +510,7 @@
 | 2026-10-12 | ISSUE-007 / APP-M2-T114；ISSUE-013 / REV-M0-T22；ISSUE-036 | 项目经理确认 APP-M2-T114 与 REV-M0-T22 为 done，依据是 QA f521950，PM 17:13 确认。并入 REV-M0-T23、T24 后看板为 381 项。本提交改为 381 项：47 done、9 in-review、7 in-progress、265 planned、49 blocked、4 ready。T124 仍 blocked，因为 T078 仍 in-review 未 done。缺协议、受限、智能匹配和规则 2 端到端仍挂 ISSUE-033，不关闭。另登记 ISSUE-036，把橙色、金色和 warning 标签文字改为 #9a5608，状态 in-review，不新增任务卡。不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照，不改 docs/reference，不改后台 |
 | 2026-10-12 | ISSUE-022 / APP-M2-T124 | PM 17:20：T078 与 T114 均 done 后，T124 解除 blocked 改为 ready。看板 381 项：47 done、9 in-review、7 in-progress、265 planned、48 blocked、5 ready。本提交不改 T078/REV-M0-T24 状态行（由前端提交；T114/REV-M0-T22 已 done）。不改运行时，不改模型输入，不改 PRD、ROADMAP、PROJECT_BRIEF 里程碑快照 |
 | 2026-10-12 | ISSUE-022 / APP-M2-T078；ISSUE-013 / REV-M0-T24 | 项目经理确认 APP-M2-T078 与 REV-M0-T24 为 done，依据是 QA 19c4862，PM 17:20 确认。范围只含内存片段发布层。页面未做，不挡住 done。T124 改为 ready，本轮不实现。看板改为 381 项：49 done、7 in-review、7 in-progress、265 planned、48 blocked、5 ready。ISSUE-022 保持 closed。ISSUE-033 不关闭。不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照，不改 docs/reference，不改产品代码 |
+| 2026-10-12 | ISSUE-028 / AI-01 | AC-02 假 OpenAI 兼容服务已编码。它记录请求头，并从路径还原实际 `base_url`。真实端点须 `ICG_RUN_REAL_MODEL_TESTS=1`，默认跳过。不改 `backend/bid-core`，不改 OpenAPI，不加依赖，不改错误码名单。ISSUE-028 与 AI-01 仍 in-review。ISSUE-010 仍 closed。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。不标 closed |
 
 ## 缺失输入
 
