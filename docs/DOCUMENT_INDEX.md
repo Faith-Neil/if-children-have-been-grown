@@ -188,9 +188,15 @@
 | D-175 | 2026-10-12 | [QA复跑交付](delivery/REV-M0-T02.md) | 交付 | qa-rerun-1 | 已本地验收 | ISSUE-013 / REV-M0-T02 | 实际文件、验证与剩余 |
 | D-176 | 2026-10-12 | [会话脚本代码解释](code/REV-M0-T02.md) | 说明 | qa-rerun-1 | 已本地验收 | ISSUE-013 / REV-M0-T02 | 启动顺序、检查项与限制 |
 | D-177 | 2026-10-12 | [会话实时HTTP脚本](../tests/backend/session_live_http.py) | 验证 | qa-rerun-1 | 15项通过 | ISSUE-013 / REV-M0-T02 | 自启空闲端口，合成数据，默认pytest不收集 |
-| D-178 | 2026-10-12 | [T06验收计划Issue](../issues/ISSUE-015.md) | 审查 | t06-plan-1 | in-review | ISSUE-015 / REV-M0-T03 | 计划编制，T06未验收 |
-| D-179 | 2026-10-12 | [APP-M1-T06验收计划](testing/2026-10-12-app-m1-t06-acceptance-plan.md) | 验证 | t06-plan-1 | 待评审 | ISSUE-015 / REV-M0-T03 | 端到端/Word/角色/权限/过期映射与缺口 |
-| D-180 | 2026-10-12 | [T06计划交付](delivery/REV-M0-T03.md) | 交付 | t06-plan-1 | in-review | ISSUE-015 / REV-M0-T03 | 无代码；缺口汇总 |
+| D-178 | 2026-10-12 | [T06验收计划Issue](../issues/ISSUE-015.md) | 审查 | t06-plan-2 | in-progress | ISSUE-015 / REV-M0-T03 | 计划编制，T06未验收 |
+| D-179 | 2026-10-12 | [APP-M1-T06验收计划](testing/2026-10-12-app-m1-t06-acceptance-plan.md) | 验证 | t06-plan-1 | 待评审 | ISSUE-015 / REV-M0-T03 | 端到端/Word/角色/权限/过期映射与缺口；已评审 |
+| D-180 | 2026-10-12 | [T06计划交付](delivery/REV-M0-T03.md) | 交付 | t06-plan-1 | 已本地验收 | ISSUE-015 / REV-M0-T03 | 无代码；缺口汇总 |
+| D-181 | 2026-10-12 | [T06贯通冒烟与渲染记录](testing/2026-10-12-t06-smoke-word-render.md) | 验证 | t06-plan-2 | 本地通过 | ISSUE-015 / REV-M0-T04 | smoke_t06 12/12、Word结构与LibreOffice渲染、W1～W4 |
+| D-182 | 2026-10-12 | [贯通冒烟交付](delivery/REV-M0-T04.md) | 交付 | t06-plan-2 | 已本地验收 | ISSUE-015 / REV-M0-T04 | 实际文件与剩余缺口 |
+| D-183 | 2026-10-12 | [贯通冒烟代码解释](code/REV-M0-T04.md) | 说明 | t06-plan-2 | 已本地验收 | ISSUE-015 / REV-M0-T04 | 启动顺序、核对项与局限 |
+| D-184 | 2026-10-12 | [T06贯通冒烟脚本](../backend/bid-core/smoke_t06.py) | 验证 | t06-plan-2 | 12项通过 | ISSUE-015 / REV-M0-T04 | 自启空闲端口，合成数据，退出0/1 |
+| D-185 | 2026-10-12 | [技术册渲染截图](testing/assets/t06-word-technical-render.png) | 证据 | t06-plan-2 | LibreOffice渲染 | ISSUE-015 / REV-M0-T04 | 内部稿首页，无标题样式 |
+| D-186 | 2026-10-12 | [SLA表格渲染截图](testing/assets/t06-word-sla-table-render.png) | 证据 | t06-plan-2 | LibreOffice渲染 | ISSUE-015 / REV-M0-T04 | 表格不越界，表头无区分 |
 
 ## 更新记录
 
@@ -211,6 +217,7 @@
 | 2026-10-11 | ISSUE-009 / APP-M2-T001 | 开始共同底座可信会话与页面守卫阶段；原完整布局/路由卡进行中，337项14done/8in-progress，后续258卡planned |
 | 2026-10-12 | ISSUE-013 / REV-M0-T02 | QA独立复跑、会话实时HTTP脚本入库及交付/说明；338项15done |
 | 2026-10-12 | ISSUE-015 / REV-M0-T03 | APP-M1-T06验收计划in-review；339项15done/1in-review |
+| 2026-10-12 | ISSUE-015 / REV-M0-T03、T04 | 计划评审通过；smoke_t06、Word渲染记录、2截图；340项17done |
 
 ## 缺失输入
 

@@ -27,7 +27,7 @@
 | [ISSUE-008](ISSUE-008.md) | bug | P0 | closed | 后台229、前端58及实际资料/模板页面通过；[验证](../docs/testing/2026-10-11-library-basis.md) | PR #3 待合入 | 未发布 | 资料库旧表单刷新版本后覆盖新内容 | T16限定保护本地done；完整资料/模板继续ISSUE-007 |
 | [ISSUE-009](ISSUE-009.md) | change | P0 | in-progress | 会话阶段262后台、72前端、16真实HTTP及GUI通过；完整T001未验收 | PR #3 待合入 | 未发布 | 共同页面底座与完整资料库前置 | 继续实际布局/浏览器路由/离开保护，再元数据/敏感展示和完整资料库 |
 | [ISSUE-013](ISSUE-013.md) | change | P1 | closed | 会话实时HTTP15/15、后台262、前端72复跑通过；[复跑](../docs/testing/2026-10-12-qa-rerun.md) | PR #3 待合入 | 未发布 | 会话真实HTTP复核入库与QA复跑记录 | REV-M0-T02本地done；CI显式运行会话脚本，固定Node 24 |
-| [ISSUE-015](ISSUE-015.md) | change | P1 | in-review | T06验收计划已编制待评审；[计划](../docs/testing/2026-10-12-app-m1-t06-acceptance-plan.md) | PR #3 待合入 | 未发布 | APP-M1-T06端到端验收计划 | 评审后按计划执行T06并补缺口 |
+| [ISSUE-015](ISSUE-015.md) | change | P1 | in-progress | 计划评审通过；smoke_t06 12/12、Word渲染留证；[记录](../docs/testing/2026-10-12-t06-smoke-word-render.md) | PR #3 待合入 | 未发布 | APP-M1-T06端到端验收计划与缺口执行 | 后端处理W1～W4；继续缺口2、4～7 |
 <!-- issue-board:end -->
 
 ISSUE-001 编号沿用合作分支。其原记录在 xqr 内标为 closed，仅表示该分支当时的文档同步验收；本地整合保持 blocked，不据此采纳或发布技术决策。ISSUE-002 的 closed 仅表示本地验收完成。

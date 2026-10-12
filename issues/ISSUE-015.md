@@ -9,18 +9,18 @@
 | Issue ID | ISSUE-015 |
 | 类型 | change |
 | 优先级 | P1 |
-| 状态 | in-review |
+| 状态 | in-progress |
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
-| revision | t06-plan-1 |
-| 关联 Task | [REV-M0-T03](../docs/tasks/REV-M0.md#rev-m0-t03)；被验收[APP-M1-T06](../docs/tasks/APP-M1.md#app-m1-t06)保持in-progress |
+| revision | t06-plan-2 |
+| 关联 Task | [REV-M0-T03](../docs/tasks/REV-M0.md#rev-m0-t03)（计划，评审通过）、[REV-M0-T04](../docs/tasks/REV-M0.md#rev-m0-t04)（缺口1、3）；被验收[APP-M1-T06](../docs/tasks/APP-M1.md#app-m1-t06)保持in-progress |
 | 关联 PR | [PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)，待合入 |
-| 本地验收 | 计划待项目经理评审；T06本身未执行验收 |
+| 本地验收 | 计划已评审（db246b0）；缺口1、3已完成；T06本身未完成验收 |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | [REV-M0-T03交付](../docs/delivery/REV-M0-T03.md) |
 | 代码 / 流程解释 | 无代码变更：仅计划文档，交付中说明 |
-| 验证记录 | [T06验收计划](../docs/testing/2026-10-12-app-m1-t06-acceptance-plan.md) |
+| 验证记录 | [T06验收计划](../docs/testing/2026-10-12-app-m1-t06-acceptance-plan.md)；[贯通冒烟与渲染](../docs/testing/2026-10-12-t06-smoke-word-render.md) |
 
 ## 现象与证据
 
@@ -35,14 +35,17 @@ APP-M1-T06卡要求合成招标包整链、失败路径、真实HTTP、Word文�
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| REV-M0-T03 | T06验收计划 | `docs/testing/2026-10-12-app-m1-t06-acceptance-plan.md` | AC-01～02 | in-review |
+| REV-M0-T03 | T06验收计划 | `docs/testing/2026-10-12-app-m1-t06-acceptance-plan.md` | AC-01～02 | done |
+| REV-M0-T04 | 缺口1贯通冒烟、缺口3 Word渲染 | `backend/bid-core/smoke_t06.py`、`docs/testing/2026-10-12-t06-smoke-word-render.md` | AC-03～04 | done |
 
 ## 验收条目
 
 | 编号 | 可检查的完成条件 | 结果与证据 |
 |---|---|---|
-| AC-01 | 覆盖端到端、Word版式、多角色、权限反例、过期数据，逐项映射现有测试并标缺口 | 已编制，待评审 |
+| AC-01 | 覆盖端到端、Word版式、多角色、权限反例、过期数据，逐项映射现有测试并标缺口 | 通过，项目经理评审 |
 | AC-02 | 治理检查通过，看板/进度/索引同步 | 通过，2026-10-12 |
+| AC-03 | smoke_t06自启服务完成E1～E7，退出0/1 | 通过，12/12 |
+| AC-04 | 两册Word渲染PNG及结构发现有记录 | 通过；W1～W4登记 |
 
 ## 六份基线 impact 与同步表
 
@@ -60,3 +63,4 @@ APP-M1-T06卡要求合成招标包整链、失败路径、真实HTTP、Word文�
 | 日期 | revision / 状态 | 完成事实、问题与下一步 | 证据 / 复核人 |
 |---|---|---|---|
 | 2026-10-12 | t06-plan-1 / in-review | 计划完成，待项目经理评审后执行 | 成长测试QA |
+| 2026-10-12 | t06-plan-2 / in-progress | 计划评审通过；缺口1、3完成，发现Word缺陷W1～W4；其余缺口继续 | 成长测试QA |

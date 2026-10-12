@@ -14,11 +14,11 @@ ISSUE-009 / APP-M2-T001已接可信会话和页面守卫：后台当前身份、
 
 ISSUE-013 / REV-M0-T02于2026-10-12在独立Linux环境复跑：后台262、前端72、构建、治理/原型/同步/旧页及5个真实HTTP冒烟通过；会话实时HTTP按原描述重建15项并入库为[可重跑脚本](../tests/backend/session_live_http.py)，原16项为间接复核。前端测试需Node 24。见[复跑记录](testing/2026-10-12-qa-rerun.md)。
 
-ISSUE-015 / REV-M0-T03已编制[APP-M1-T06验收计划](testing/2026-10-12-app-m1-t06-acceptance-plan.md)，待评审；T06本身仍in-progress，Word标题/编号/目录、贯通脚本及视觉渲染为已知缺口。
+ISSUE-015 / REV-M0-T03已编制[APP-M1-T06验收计划](testing/2026-10-12-app-m1-t06-acceptance-plan.md)并评审通过；REV-M0-T04新增自启服务的`smoke_t06.py`（12/12）并首次在Linux渲染Word留证，发现无标题/编号/目录/页眉页脚等W1～W4，见[记录](testing/2026-10-12-t06-smoke-word-render.md)；T06本身仍in-progress，Word标题/编号/目录、贯通脚本及视觉渲染为已知缺口。
 
 ## 任务进度口径
 
-治理版本g1.1，当前实际开发关联ISSUE-007及资料保护ISSUE-008；范围评审关联ISSUE-005。项目339项中15done、1in-review、8in-progress、267planned、48blocked、0ready。APP-M1的16项中9项本地done：T07范围拆分及T09～16限定子任务；T01～06完整父任务继续，T08最终审计planned，T16资料及模板旧表单保护本地done。[APP-M2的259项](tasks/APP-M2.md)中T001共同底座已开工，其余258项planned，覆盖47组页面和44规则，不代表软件已实现。PR待合入、未发布；BE-M0-T01只证明局部后台基础，FE-M0-T03继续来源评审，生产一期尚未验收。
+治理版本g1.1，当前实际开发关联ISSUE-007及资料保护ISSUE-008；范围评审关联ISSUE-005。项目340项中17done、8in-progress、267planned、48blocked、0ready。APP-M1的16项中9项本地done：T07范围拆分及T09～16限定子任务；T01～06完整父任务继续，T08最终审计planned，T16资料及模板旧表单保护本地done。[APP-M2的259项](tasks/APP-M2.md)中T001共同底座已开工，其余258项planned，覆盖47组页面和44规则，不代表软件已实现。PR待合入、未发布；BE-M0-T01只证明局部后台基础，FE-M0-T03继续来源评审，生产一期尚未验收。
 
 资料库专项审查确认：当前只支持基础文字资料，确认声明、审核、受限名单、真实附件槽位、历史和引用版本仍缺。T16已修复资料及公司模板旧表单借刷新版本覆盖新内容的问题；完整C01/C06各卡继续planned，不能以修复代替其验收。
 
