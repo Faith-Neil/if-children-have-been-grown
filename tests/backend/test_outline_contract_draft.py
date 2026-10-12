@@ -41,7 +41,16 @@ EVENT_FIELDS = {
     "is_local",
     "duration_ms",
     "error_code",
+    "payload",
 }
+EVENT_TYPES = [
+    "job.model_call",
+    "job.status_changed",
+    "job.progress",
+    "job.completed",
+    "job.failed",
+    "job.cancelled",
+]
 GET_EXCLUDED = {"413", "423", "428", "502"}
 
 
@@ -99,9 +108,24 @@ def test_errors_are_listed_per_operation_and_reuse_the_frozen_body():
             assert GET_EXCLUDED.isdisjoint(body["responses"])
     assert "409" not in operation(spec, "/api/v1/jobs/{job_id}")["responses"]
     assert "409" not in operation(spec, "/api/v1/jobs/{job_id}/events")["responses"]
-    assert "502" in operation(spec, "/api/v1/projects/{project_id}/generation/start")["responses"]
+    start = operation(spec, "/api/v1/projects/{project_id}/generation/start")
+    assert "502" in start["responses"]
+    assert "503" in start["responses"]
+    secret = start["responses"]["503"]["description"]
+    assert "SECRET_KEY_UNAVAILABLE" in secret
+    assert "不是瞬时故障" in secret and "不要自动重试" in secret and "MODEL_UNAVAILABLE" in secret
+    assert "ISSUE-024" in start["description"]
+    assert "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL" in start["description"]
+    assert "SECRET_KEY_UNAVAILABLE" not in enum
+    assert "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL" not in enum
+    assert "SECRET_KEY_UNAVAILABLE" not in spec["components"]["x-error-status"]["statuses"]["503"]
+    assert "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL" not in spec["components"]["x-error-status"]["statuses"]["403"]
+    assert "423" in start["responses"]
+    assert "423" in operation(spec, "/api/v1/projects/{project_id}/outline/plan/confirm")["responses"]
     assert "502" not in operation(spec, "/api/v1/projects/{project_id}/outline/plan/confirm")["responses"]
     assert "502" not in operation(spec, "/api/v1/jobs/{job_id}/cancel")["responses"]
+    assert "403" not in operation(spec, "/api/v1/jobs/{job_id}")["responses"]
+    assert "403" not in operation(spec, "/api/v1/jobs/{job_id}/events")["responses"]
 
 
 def test_job_status_is_separate_and_events_can_be_streamed():
@@ -138,17 +162,24 @@ def test_job_status_is_separate_and_events_can_be_streamed():
     assert reused["properties"]["recoverable"]["const"] is False
     assert "x-contract-status" not in reused
 
-    event = spec["components"]["schemas"]["JobEvent"]["properties"]
+    event_schema = spec["components"]["schemas"]["JobEvent"]
+    event = event_schema["properties"]
     assert set(event) == EVENT_FIELDS
-    assert event["type"]["enum"] == ["job.model_call"]
+    assert event["type"]["enum"] == EVENT_TYPES
+    assert "BE-M0-T06" in event_schema["description"]
+    assert "from" in event["payload"]["description"] and "progress" in event["payload"]["description"]
+    assert event_schema["required"] == ["seq", "id", "occurred_at", "type"]
     assert "<job_id>:<seq>" in event["id"]["description"]
     assert event["error_code"]["anyOf"] == [{"type": "string"}, {"type": "null"}]
+    assert status["properties"]["recoverable"]["type"] == "boolean"
+    assert "recoverable" in status["required"]
 
     stream = operation(spec, "/api/v1/jobs/{job_id}/events")
     assert "Last-Event-ID" in [parameter["name"] for parameter in stream["parameters"]]
     assert "text/event-stream" in stream["responses"]["200"]["content"]
     cancel = operation(spec, "/api/v1/jobs/{job_id}/cancel")
     assert cancel["responses"]["200"]["content"]["application/json"]["schema"]["$ref"].endswith("/JobStatus")
+    assert "Location" not in cancel["responses"]["200"]["headers"]
 
 
 def test_outline_confirm_uses_plan_revision_and_old_posts_are_deprecated():
@@ -161,6 +192,9 @@ def test_outline_confirm_uses_plan_revision_and_old_posts_are_deprecated():
     assert "VERSION_CONFLICT" in confirm["description"] and "PLAN_STALE" in confirm["description"]
     assert "expected_revision" in confirm["description"]
     assert "没有 fingerprint 字段" in confirm["description"]
+    assert "LOCK_HELD" in confirm["description"] and "LOCK_LOST" in confirm["description"]
+    started = operation(spec, "/api/v1/projects/{project_id}/generation/start")
+    assert "快照" in started["description"] and "不要自动重试" in started["description"]
     request = spec["components"]["schemas"]["ConfirmOutlinePlanRequest"]
     assert "company_id" not in request["properties"]
     assert "fingerprint" not in spec["components"]["schemas"]["OutlinePlan"]["properties"]

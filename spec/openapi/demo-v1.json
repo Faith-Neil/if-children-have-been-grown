@@ -11359,7 +11359,7 @@
       "post": {
         "summary": "Confirm Outline Plan",
         "operationId": "confirmOutlinePlan",
-        "description": "按章确认，复用 APP-M1-T15，不实现经理批量确认。If-Match 核对整份大纲计划的 revision，与 getOutlinePlan 的 ETag 相同；不符返回 409 VERSION_CONFLICT。某一章的内容或来源变了，按该章的 expected_revision 返回 409 PLAN_STALE。星号或废标行标为不适用时返回 422 VALIDATION_ERROR。缺少 If-Match 返回 428 IF_MATCH_REQUIRED。缺少或格式不符的 Idempotency-Key 返回 428 IDEMPOTENCY_KEY_REQUIRED；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT。解析未确认返回 409 PARSE_NOT_CONFIRMED。请求和响应都没有 fingerprint 字段。这些 code 都已在冻结码表中。",
+        "description": "按章确认，复用 APP-M1-T15，不实现经理批量确认。If-Match 核对整份大纲计划的 revision，与 getOutlinePlan 的 ETag 相同；不符返回 409 VERSION_CONFLICT。某一章的内容或来源变了，按该章的 expected_revision 返回 409 PLAN_STALE。星号或废标行标为不适用时返回 422 VALIDATION_ERROR。缺少 If-Match 返回 428 IF_MATCH_REQUIRED。缺少或格式不符的 Idempotency-Key 返回 428 IDEMPOTENCY_KEY_REQUIRED；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT。解析未确认返回 409 PARSE_NOT_CONFIRMED。章节被锁返回 423 LOCK_HELD，锁丢失返回 423 LOCK_LOST，与旧路由一致。请求和响应都没有 fingerprint 字段。这些 code 都已在冻结码表中。",
         "parameters": [
           {
             "name": "project_id",
@@ -11582,6 +11582,24 @@
                 "$ref": "#/components/headers/Idempotent-Replayed"
               }
             }
+          },
+          "423": {
+            "description": "章节被锁返回 LOCK_HELD，锁丢失返回 LOCK_LOST，与旧路由一致。这两个 code 已在冻结码表中，对应 423。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
           }
         }
       }
@@ -11594,7 +11612,7 @@
       "post": {
         "summary": "Start Generation",
         "operationId": "startGeneration",
-        "description": "只启动 confirmation 为 current 的章。未点名的未确认分册不阻断。点名了未确认章返回 409 PLAN_NOT_CONFIRMED；点名了过期章或来源已变的章返回 409 PLAN_STALE。If-Match 核对已确认大纲计划的 revision，与 getOutlinePlan 的 ETag 相同；不符返回 409 VERSION_CONFLICT。非本分册负责人返回 403 VOLUME_OWNER_REQUIRED。同一 Idempotency-Key 与同一指纹再次发送时，返回同一个 job id、同一个 Location 和 202。同键不同指纹返回 409 IDEMPOTENCY_CONFLICT。缺少或格式不符的 Idempotency-Key 返回 428 IDEMPOTENCY_KEY_REQUIRED。缺少 If-Match 返回 428 IF_MATCH_REQUIRED。模型在任务执行中失败时，已返回的 202 不变，失败记在 job.model_call.error_code，使用已冻结的 MODEL_UNAVAILABLE。尚未创建任务 id 时，模型不可用返回 502 MODEL_UNAVAILABLE。没有 fingerprint 字段。",
+        "description": "只启动 confirmation 为 current 的章。未点名的未确认分册不阻断。点名了未确认章返回 409 PLAN_NOT_CONFIRMED；点名了过期章或来源已变的章返回 409 PLAN_STALE。If-Match 核对已确认大纲计划的 revision，与 getOutlinePlan 的 ETag 相同；不符返回 409 VERSION_CONFLICT。非本分册负责人返回 403 VOLUME_OWNER_REQUIRED。同一 Idempotency-Key 与同一指纹再次发送时，返回同一个 job id、同一个 Location 和 202。同键不同指纹返回 409 IDEMPOTENCY_CONFLICT。缺少或格式不符的 Idempotency-Key 返回 428 IDEMPOTENCY_KEY_REQUIRED。缺少 If-Match 返回 428 IF_MATCH_REQUIRED。模型在任务执行中失败时，已返回的 202 不变，失败记在 job.model_call.error_code，使用已冻结的 MODEL_UNAVAILABLE。尚未创建任务 id 时，模型不可用返回 502 MODEL_UNAVAILABLE。任务开始时对模型配置做快照，job.model_call 事件里的 provider 和 model 取自这份快照。敏感项目使用云端配置时，在创建任务前返回 403 SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL。主密钥不可用时返回 503 SECRET_KEY_UNAVAILABLE。这两个 code 只引用 ISSUE-024 的冻结错误码表，不在本文件的 V1Error 枚举或 x-error-status 中定义。503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，与 MODEL_UNAVAILABLE 相同。章节被锁返回 423 LOCK_HELD，锁丢失返回 423 LOCK_LOST，与旧路由一致。没有 fingerprint 字段。",
         "parameters": [
           {
             "name": "project_id",
@@ -11711,7 +11729,7 @@
             }
           },
           "403": {
-            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "description": "非本分册负责人返回已冻结的 403 VOLUME_OWNER_REQUIRED。敏感项目使用云端配置返回 403 SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL，该码只引用 ISSUE-024 的冻结错误码表，不在本文件定义。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
             "content": {
               "application/json": {
                 "schema": {
@@ -11835,6 +11853,42 @@
                 "$ref": "#/components/headers/Idempotent-Replayed"
               }
             }
+          },
+          "423": {
+            "description": "章节被锁返回 LOCK_HELD，锁丢失返回 LOCK_LOST，与旧路由一致。这两个 code 已在冻结码表中，对应 423。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "503": {
+            "description": "主密钥不可用。code 为 SECRET_KEY_UNAVAILABLE，只引用 ISSUE-024 的冻结错误码表，不在本文件的枚举或 x-error-status 中定义。这不是瞬时故障，客户端不要自动重试，与 MODEL_UNAVAILABLE 相同。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
           }
         }
       }
@@ -11847,7 +11901,7 @@
       "get": {
         "summary": "Get Job",
         "operationId": "getJob",
-        "description": "返回任务状态和 events。不属于调用者本公司或本项目的任务返回 404 NOT_FOUND，不区分不存在与无权。",
+        "description": "返回任务状态和 events。不属于调用者本公司或本项目的任务返回 404 NOT_FOUND，不区分不存在与无权。本操作不列 403，只留 404。",
         "parameters": [
           {
             "name": "job_id",
@@ -11893,21 +11947,6 @@
           },
           "401": {
             "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V1Error"
-                }
-              }
-            },
-            "headers": {
-              "X-Request-ID": {
-                "$ref": "#/components/headers/X-Request-ID"
-              }
-            }
-          },
-          "403": {
-            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
             "content": {
               "application/json": {
                 "schema": {
@@ -11977,7 +12016,7 @@
       "get": {
         "summary": "Stream Job Events",
         "operationId": "streamJobEvents",
-        "description": "text/event-stream。事件 id 为 <job_id>:<seq>，与 JobEvent.id 相同。请求头 Last-Event-ID 从该 id 之后继续；缺省时从 seq 1 开始。不属于调用者本公司或本项目的任务返回 404 NOT_FOUND。",
+        "description": "text/event-stream。事件 id 为 <job_id>:<seq>，与 JobEvent.id 相同。请求头 Last-Event-ID 从该 id 之后继续；缺省时从 seq 1 开始。不属于调用者本公司或本项目的任务返回 404 NOT_FOUND。本操作不列 403，只留 404。",
         "parameters": [
           {
             "name": "job_id",
@@ -12033,21 +12072,6 @@
           },
           "401": {
             "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V1Error"
-                }
-              }
-            },
-            "headers": {
-              "X-Request-ID": {
-                "$ref": "#/components/headers/X-Request-ID"
-              }
-            }
-          },
-          "403": {
-            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
             "content": {
               "application/json": {
                 "schema": {
@@ -12117,7 +12141,7 @@
       "post": {
         "summary": "Cancel Job",
         "operationId": "cancelJob",
-        "description": "把 queued 或 running 的任务改为 cancelled。已是 completed、failed 或 cancelled 时返回当前 JobStatus，不改状态。不属于调用者本公司或本项目的任务返回 404 NOT_FOUND。缺少或格式不符的 Idempotency-Key 返回 428 IDEMPOTENCY_KEY_REQUIRED；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT。同一幂等键重放首次成功结果。",
+        "description": "把 queued 或 running 的任务改为 cancelled。已是 completed、failed 或 cancelled 时返回当前 JobStatus，不改状态。不属于调用者本公司或本项目的任务返回 404 NOT_FOUND。缺少或格式不符的 Idempotency-Key 返回 428 IDEMPOTENCY_KEY_REQUIRED；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT。同一幂等键重放首次成功结果。成功响应不强制带 Location 头。",
         "parameters": [
           {
             "name": "job_id",
@@ -12179,13 +12203,6 @@
               },
               "Idempotent-Replayed": {
                 "$ref": "#/components/headers/Idempotent-Replayed"
-              },
-              "Location": {
-                "required": true,
-                "description": "任务状态地址，形式为 /api/v1/jobs/{job_id}，job_id 与响应体 id 相同。",
-                "schema": {
-                  "type": "string"
-                }
               }
             }
           },
@@ -18186,7 +18203,7 @@
       "JobEvent": {
         "x-contract-status": "draft, pending backend review",
         "x-implemented": false,
-        "description": "任务事件。草案，pending backend review。type 是枚举，当前只有 job.model_call。",
+        "description": "任务事件。草案，pending backend review。由 BE-M0-T06 实现。type 是枚举。job.model_call 使用本对象上的 provider、model、is_real_model、is_local、duration_ms、error_code；provider 与 model 取自任务开始时的模型配置快照。状态变化、进度和终态使用 payload。",
         "properties": {
           "seq": {
             "type": "integer",
@@ -18206,9 +18223,15 @@
           "type": {
             "type": "string",
             "enum": [
-              "job.model_call"
+              "job.model_call",
+              "job.status_changed",
+              "job.progress",
+              "job.completed",
+              "job.failed",
+              "job.cancelled"
             ],
-            "title": "Type"
+            "title": "Type",
+            "description": "job.model_call 为模型调用。job.status_changed 为状态变化。job.progress 为进度。job.completed、job.failed、job.cancelled 为终态。由 BE-M0-T06 实现。"
           },
           "provider": {
             "type": "string",
@@ -18242,6 +18265,12 @@
             ],
             "title": "Error Code",
             "description": "成功时为 null。失败时必须是已冻结码表中的 code，例如 MODEL_UNAVAILABLE。不新增错误码。"
+          },
+          "payload": {
+            "type": "object",
+            "title": "Payload",
+            "description": "按 type 取字段，由 BE-M0-T06 实现。job.status_changed：from、to，取值与 JobStatus.status 相同。job.progress：progress（0 到 100）、message。job.completed：status 为 completed，completed_at，error 为 null。job.failed：status 为 failed，completed_at，error 为已冻结 code。job.cancelled：status 为 cancelled，completed_at，error 为 null。job.model_call 不使用 payload，字段在本对象上。",
+            "additionalProperties": true
           }
         },
         "additionalProperties": false,
@@ -18250,13 +18279,7 @@
           "seq",
           "id",
           "occurred_at",
-          "type",
-          "provider",
-          "model",
-          "is_real_model",
-          "is_local",
-          "duration_ms",
-          "error_code"
+          "type"
         ],
         "title": "JobEvent"
       },
@@ -18264,7 +18287,7 @@
         "x-contract-status": "draft, pending backend review",
         "x-implemented": false,
         "x-aligned-with": "BE-M0-T06",
-        "description": "独立的任务状态，不继承已实现的 Job。已实现 Job 的 recoverable 仍是 const false，status 仍只有 completed 与 failed。本模型的 status 为 queued、running、completed、failed、cancelled。对齐尚未实现的可恢复任务契约 BE-M0-T06。",
+        "description": "独立的任务状态，不继承已实现的 Job。已实现 Job 的 recoverable 仍是 const false，status 仍只有 completed 与 failed。本模型的 status 为 queued、running、completed、failed、cancelled。对齐尚未实现的可恢复任务契约 BE-M0-T06。recoverable 是本模型自己的布尔字段，不继承已实现 Job 的 const false。",
         "properties": {
           "id": {
             "type": "string",
@@ -18332,6 +18355,11 @@
               "$ref": "#/components/schemas/JobEvent"
             },
             "title": "Events"
+          },
+          "recoverable": {
+            "type": "boolean",
+            "title": "Recoverable",
+            "description": "可恢复任务契约 BE-M0-T06 的字段。已实现 Job.recoverable 仍是 const false，本字段不继承它。"
           }
         },
         "additionalProperties": false,
@@ -18346,7 +18374,8 @@
           "created_at",
           "completed_at",
           "error",
-          "events"
+          "events",
+          "recoverable"
         ],
         "title": "JobStatus"
       }
@@ -18557,6 +18586,6 @@
     "status": "draft, pending backend review",
     "implemented": false,
     "aligned_with": "BE-M0-T06",
-    "note": "getOutlinePlan、confirmOutlinePlan、startGeneration、getJob、streamJobEvents 与 cancelJob 是草案。JobStatus 不继承 Job。startGeneration 返回 202，Location 指向 GET /api/v1/jobs/{job_id}。SSE 路径也是草案。可恢复任务契约尚未实现。"
+    "note": "getOutlinePlan、confirmOutlinePlan、startGeneration、getJob、streamJobEvents 与 cancelJob 是草案。JobStatus 不继承 Job。startGeneration 返回 202，Location 指向 GET /api/v1/jobs/{job_id}。SSE 路径也是草案。可恢复任务契约尚未实现。startGeneration 另列 403 SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL 与 503 SECRET_KEY_UNAVAILABLE，只引用 ISSUE-024，不在本文件定义；503 不自动重试。confirmOutlinePlan 与 startGeneration 列 423。getJob 与 SSE 不列 403。cancelJob 成功响应不强制 Location。JobStatus 含 recoverable。JobEvent 的其余 type 由 BE-M0-T06 实现。"
   }
 }

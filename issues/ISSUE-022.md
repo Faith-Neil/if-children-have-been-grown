@@ -12,7 +12,7 @@
 | 状态 | in-review |
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
-| revision | outline-contract-draft-2 |
+| revision | outline-contract-draft-3 |
 | 关联 Task | [APP-M2-T124](../docs/tasks/APP-M2.md#app-m2-t124) |
 | 关联 PR | 未创建 |
 | 本地验收 | 契约形状已核对。运行时未实现，模型输入未改。见 [记录](../docs/testing/2026-10-12-t124-dependencies.md) |
@@ -50,13 +50,13 @@ operationId 已写入 `spec/openapi/demo-v1.json`，契约状态为 **draft, pen
 | 操作 | 路径 | 约定 |
 |---|---|---|
 | `getOutlinePlan` | `GET /api/v1/projects/{project_id}/outline/plan` | 评分行、片段写作计划、逐得分要点小标题。成功响应带 ETag，值是整份计划的 revision。没有 fingerprint 字段 |
-| `confirmOutlinePlan` | `POST /api/v1/projects/{project_id}/outline/plan/confirm` | If-Match 核对整份计划的 revision，不符为 409 `VERSION_CONFLICT`。章或来源变化按该章 `expected_revision` 返回 409 `PLAN_STALE` |
-| `startGeneration` | `POST /api/v1/projects/{project_id}/generation/start` | 长任务。If-Match 核对已确认计划的 revision。返回 202，`Location` 指向 `GET /api/v1/jobs/{job_id}`。同一幂等键重放同一个 job id、同一个 Location 和 202 |
-| `getJob` | `GET /api/v1/jobs/{job_id}` | 独立的 `JobStatus`，不继承已实现的 `Job`。不属于本公司或本项目返回 404 `NOT_FOUND` |
-| `streamJobEvents` | `GET /api/v1/jobs/{job_id}/events` | 未来的 SSE 草案，支持 `Last-Event-ID`。事件 id 为 `<job_id>:<seq>` |
-| `cancelJob` | `POST /api/v1/jobs/{job_id}/cancel` | 带 `Idempotency-Key`。状态可变为 `cancelled` |
+| `confirmOutlinePlan` | `POST /api/v1/projects/{project_id}/outline/plan/confirm` | If-Match 核对整份计划的 revision，不符为 409 `VERSION_CONFLICT`。章或来源变化按该章 `expected_revision` 返回 409 `PLAN_STALE`。章节被锁为 423 `LOCK_HELD`，锁丢失为 423 `LOCK_LOST` |
+| `startGeneration` | `POST /api/v1/projects/{project_id}/generation/start` | 长任务。If-Match 核对已确认计划的 revision。返回 202，`Location` 指向 `GET /api/v1/jobs/{job_id}`。同一幂等键重放同一个 job id、同一个 Location 和 202。任务开始时对模型配置做快照。另列 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL` 与 503 `SECRET_KEY_UNAVAILABLE`，只引用 ISSUE-024，不在本文件定义。503 不是瞬时故障，不自动重试，与 `MODEL_UNAVAILABLE` 相同。423 与确认接口相同 |
+| `getJob` | `GET /api/v1/jobs/{job_id}` | 独立的 `JobStatus`，含 `recoverable`。不属于本公司或本项目返回 404 `NOT_FOUND`。不列 403 |
+| `streamJobEvents` | `GET /api/v1/jobs/{job_id}/events` | 未来的 SSE 草案，支持 `Last-Event-ID`。事件 id 为 `<job_id>:<seq>`。不列 403 |
+| `cancelJob` | `POST /api/v1/jobs/{job_id}/cancel` | 带 `Idempotency-Key`。状态可变为 `cancelled`。成功响应不强制带 Location |
 
-`JobStatus.status` 为 `queued`、`running`、`completed`、`failed`、`cancelled`。`JobEvent` 另有 `seq`、`id`、`occurred_at`，`type` 是枚举，当前值为 `job.model_call`。已实现 `Job.recoverable` 仍是 `false`。没有新增错误码。GET 不列 413、423、428；`getJob` 不列 409；502 只列在 `startGeneration`。
+`JobStatus.status` 为 `queued`、`running`、`completed`、`failed`、`cancelled`，并有自己的 `recoverable` 布尔字段。已实现 `Job.recoverable` 仍是 `const false`。`JobEvent.type` 为 `job.model_call`、`job.status_changed`、`job.progress`、`job.completed`、`job.failed`、`job.cancelled`。后三类的 payload 由 BE-M0-T06 实现。`job.model_call` 的 `provider` 与 `model` 取自任务开始时的配置快照。403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL` 与 503 `SECRET_KEY_UNAVAILABLE` 只引用 ISSUE-024 的冻结错误码表，不写入本文件的枚举。503 不是瞬时故障，客户端不要自动重试，与 `MODEL_UNAVAILABLE` 相同。GET 不列 413、423、428；`getJob` 与 SSE 不列 403，也不列 409；502 与 503 只列在 `startGeneration`。`confirmOutlinePlan` 与 `startGeneration` 列 423。
 
 旧的 `POST /api/v1/projects/{project_id}/plan`、`POST /api/v1/projects/{project_id}/generate`、`POST /api/v1/projects/{project_id}/chapters/{chapter_id}/plan/confirm` 在说明里标了 `deprecated: true`，与新入口并存。运行时还没标出这个标记。前端切换之后由后续 Issue 删除。草案路径仍带 `x-contract-status: draft, pending backend review`，对比运行中的接口时按这个标记滤掉。
 
@@ -104,6 +104,7 @@ operationId 已写入 `spec/openapi/demo-v1.json`，契约状态为 **draft, pen
 | 2026-10-12 | t124-blocked-1 / blocked | 只登记阻塞。T15 已具备；T078、T114 和三个具名 operationId 当时不具备。未改产品代码 | [依赖核对](../docs/testing/2026-10-12-t124-dependencies.md) |
 | 2026-10-12 | outline-contract-draft-1 / in-review | 写入三个 operationId 与 `getJob` 的草案。`startGeneration` 为 202，对齐尚未实现的 BE-M0-T06。T078 只留下独立存储计划。未改运行时 | [契约核对](../docs/testing/2026-10-12-t124-dependencies.md) |
 | 2026-10-12 | outline-contract-draft-2 / in-review | 按后台对 `16e0b9e` 的复核改草案：独立 `JobStatus`、SSE 与 `cancelJob`、按操作列出错误、ETag 与整份计划版本。T078 计划改为独立前缀。仍无运行时 | [契约核对](../docs/testing/2026-10-12-t124-dependencies.md) |
+| 2026-10-12 | outline-contract-draft-3 / in-review | 按对 `046f8e5` / `fe9582c` 的复审补草案：快照与两个引用码、423、事件 type 与 payload、`recoverable`、取消响应不强制 Location、查询与 SSE 去掉 403。503 `SECRET_KEY_UNAVAILABLE` 不自动重试。仍无运行时。不改任务计数 | [契约核对](../docs/testing/2026-10-12-t124-dependencies.md) |
 
 ## 本地验收与后续合入发布
 

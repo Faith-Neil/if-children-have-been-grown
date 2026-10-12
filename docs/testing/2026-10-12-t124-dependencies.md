@@ -37,6 +37,14 @@ T15 满足。T078 与 T114 仍不满足。三个 operationId 已写入草案，�
 
 并入 `b364cd1`（含 `a844a17` 与 `98c5129`）之后，同一命令为 320 项通过、2 项跳过。跳过的是未设置 `ICG_DATABASE_URL` 的 MySQL 门禁。随后的文档提交不改后台代码。治理检查通过，输出为「治理检查通过：196 份 Markdown、361 项任务、23 项 Issue。」检查程序未修改。这些数字不说明新路由已经可调用。
 
+## 复审补充（outline-contract-draft-3）
+
+按已采纳的对 `046f8e5` / `fe9582c` 的复审改草案，仍不调用新路由。`startGeneration` 列 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL` 与 503 `SECRET_KEY_UNAVAILABLE`，两码不在 `V1Error` 枚举和 `x-error-status` 里。503 的响应说明写明不是瞬时故障，客户端不要自动重试，与 `MODEL_UNAVAILABLE` 相同。任务开始时的模型配置快照提供 `job.model_call` 的 `provider` 和 `model`。`confirmOutlinePlan` 与 `startGeneration` 列 423。`JobEvent.type` 增加状态变化、进度和三种终态，payload 注明由 BE-M0-T06 实现。`JobStatus` 增加 `recoverable`。`cancelJob` 成功响应没有 Location。`getJob` 与 SSE 没有 403。
+
+命令：`python3 -m pytest tests/backend/test_outline_contract_draft.py tests/backend/test_error_idempotency.py::test_openapi_declares_v1_error_body_status_table_and_retry -q`
+
+结果：5 passed。没有因此重跑全部后台测试：本轮不改 `backend/bid-core`。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。并入 `bde8e9e` 后 `node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：223 份 Markdown、364 项任务、28 项 Issue。」
+
 ## 局限
 
 没有连接 MySQL，没有调用模型，也没有把内存检索接到生成。草案不是可恢复任务已经实现，也不是发布。T078 计划没有对应测试，因为没有代码。

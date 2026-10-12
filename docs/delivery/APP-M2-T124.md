@@ -10,7 +10,7 @@
 | 任务ID | APP-M2-T124 |
 | 代码解释 | 只改 OpenAPI 草案和契约测试。运行时说明见 [代码说明](../code/APP-M2-T124.md) |
 | 验收 | 契约形状已核对，见 [记录](../testing/2026-10-12-t124-dependencies.md)。模型输入验收未执行。T078 与 T114 仍 planned |
-| 项目进度 | T124 仍为 blocked。ISSUE-022 为 in-review。361 项中 24 done、8 in-review、7 in-progress、268 planned、50 blocked、4 ready |
+| 项目进度 | T124 仍为 blocked。ISSUE-022 为 in-review。本轮不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数 |
 <!-- task-delivery:end -->
 
 ## 关联与状态

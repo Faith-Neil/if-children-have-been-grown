@@ -15,3 +15,23 @@
 | 产品代码 | 无运行时变化 | 不改 `generation_context.py`、检索、页面或 `Repository.read` / `transaction`。草案按 `x-contract-status` 滤出。三个旧 POST 的 `deprecated: true` 只写在说明文件里，运行时尚未标出 | outline-contract-draft-2；契约状态 draft, pending backend review |
 
 开发者把 Issue 标到 in-review 只表示草案可以复核。这不是任务 done，不是 Issue closed，也不是模型输入已经包含评分行。
+
+## outline-contract-draft-3
+
+日期：2026-10-12。范围：按已采纳的复审补充草案。ISSUE-022 仍为 in-review。T124 仍 blocked。契约状态仍是 draft, pending backend review。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数。
+
+| 文档 | 本次影响 | 实际处理 | 版本与状态 |
+|---|---|---|---|
+| PRD.md | 无 | 不改正文，不改计数 | 2026-10-12 |
+| ROADMAP.md | 无 | 不改正文，不改计数 | 2026-10-12 |
+| PROJECT_BRIEF.md | 无 | 不改正文，不改计数 | 2026-10-12 |
+| ARCHITECTURE.md | 无 | 草案仍未实现 | 2026-10-12 |
+| TASK_BOARD.md | 无状态变化 | T124 仍 blocked，不改计数 | 2026-10-12 |
+| PROJECT_STATUS.md | 无 | 不把草案写成已接通，不改计数 | 2026-10-12 |
+| issues/ISSUE-022.md | 有 | revision 改为 outline-contract-draft-3。状态仍 in-review | in-review |
+| issues/index.md | 有 | 下一步改为等待再次复核补充后的草案 | in-review |
+| spec/openapi/demo-v1.json | 有 | startGeneration 列 403 与 503，两码只引用 ISSUE-024。503 写明不是瞬时故障、不要自动重试。确认与启动列 423。JobEvent 增加状态、进度、终态。JobStatus 增加 recoverable。cancelJob 不强制 Location。getJob 与 SSE 去掉 403 | draft, pending backend review |
+| DOCUMENT_INDEX.md | 有 | 草案条目改为 draft-3。不改计数行 | 2026-10-12 |
+| 运行代码 | 无 | 不改 `backend/bid-core`，不把两个新码写入 `errors.py` | 2026-10-12 |
+
+未合入，未发布。不标 done，不标 closed。并入 `bde8e9e` 后 `node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：223 份 Markdown、364 项任务、28 项 Issue。」检查程序未修改。
