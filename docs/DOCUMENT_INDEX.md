@@ -362,10 +362,10 @@
 | D-349 | 2026-10-12 | [REV-M0-T18签署交付](delivery/REV-M0-T18.md) | 交付 | qa-rerun-14 | 已本地验收 | ISSUE-013 / REV-M0-T18 | 无代码；结论与观察项 |
 | D-350 | 2026-10-12 | [BE-M0-T12编辑租约入库签署](testing/2026-10-12-be-m0-t12-lease-signoff.md) | 验证 | qa-rerun-15 | 本地通过 | ISSUE-013 / REV-M0-T19 | 通过；O-1/O-2 P3 |
 | D-351 | 2026-10-12 | [REV-M0-T19签署交付](delivery/REV-M0-T19.md) | 交付 | qa-rerun-15 | 已本地验收 | ISSUE-013 / REV-M0-T19 | 无代码；结论与观察项 |
-| D-352 | 2026-10-12 | [挂证据抽屉交付](delivery/APP-M2-T114.md) | 交付 | t114-drawer-2 | in-review | ISSUE-007 / APP-M2-T114 | 过期挂接显示证据失效并有刷新。不标 done。T124 仍 blocked |
-| D-353 | 2026-10-12 | [挂证据抽屉说明](code/APP-M2-T114.md) | 说明 | t114-drawer-2 | 当前 | ISSUE-007 / APP-M2-T114 | 刷新重读资料库和已挂编号，不另发 PATCH |
-| D-354 | 2026-10-12 | [挂证据抽屉核对](testing/2026-10-12-app-m2-t114-evidence-drawer.md) | 验证 | t114-drawer-2 | 已执行 | ISSUE-007 / APP-M2-T114 | 单测 98；浏览器 14。智能匹配与规则 2 端到端仍缺 |
-| D-355 | 2026-10-12 | [T114同步表](governance/APP-M2-T114-sync.md) | 治理 | t114-drawer-2 | 已核对 | ISSUE-007 / APP-M2-T114 | 375 项、42 done、10 in-review、263 planned。引用 ISSUE-033，不新建 |
+| D-352 | 2026-10-12 | [挂证据抽屉交付](delivery/APP-M2-T114.md) | 交付 | t114-drawer-3 | in-review | ISSUE-007 / APP-M2-T114 | 冲突提示旁可刷新后再保存。不标 done。T124 仍 blocked |
+| D-353 | 2026-10-12 | [挂证据抽屉说明](code/APP-M2-T114.md) | 说明 | t114-drawer-3 | 当前 | ISSUE-007 / APP-M2-T114 | 冲突刷新与过期刷新共用 reload，不另发 PATCH |
+| D-354 | 2026-10-12 | [挂证据抽屉核对](testing/2026-10-12-app-m2-t114-evidence-drawer.md) | 验证 | t114-drawer-3 | 已执行 | ISSUE-007 / APP-M2-T114 | 单测 98；浏览器 14。含冲突后刷新再保存 |
+| D-355 | 2026-10-12 | [T114同步表](governance/APP-M2-T114-sync.md) | 治理 | t114-drawer-3 | 已核对 | ISSUE-007 / APP-M2-T114 | 看板仍 378 项、44 done、9 in-review。不新开 Issue |
 | D-356 | 2026-10-12 | [ISSUE-022契约冻结复签](testing/2026-10-12-issue-022-freeze-signoff.md) | 验证 | qa-rerun-16 | 本地通过 | ISSUE-013 / REV-M0-T20 | 通过；O-1 P3 |
 | D-357 | 2026-10-12 | [REV-M0-T20签署交付](delivery/REV-M0-T20.md) | 交付 | qa-rerun-16 | 已本地验收 | ISSUE-013 / REV-M0-T20 | 无代码；结论与观察项 |
 | D-358 | 2026-10-12 | [项目聚合交付](delivery/BE-M0-T13.md) | 交付 | impl-4 | in-review | ISSUE-018 / BE-M0-T13 | 项目与分工入库；不标 done |
@@ -482,6 +482,7 @@
 | 2026-10-12 | ISSUE-018 / BE-M0-T12；ISSUE-031 | 依据 QA ae6fd10，PM 15:32 确认，BE-M0-T12 标为 done，ISSUE-031 标为 closed。BE-M0-T16 仍 in-review。补 mysql 标记的释放测试：释放后行删除，另一个会话可以再取得。相对签署时的 8 条，这一条是 8→9；并入 T13 的 3 条项目测试后，backend-mysql 为 12 passed、skipped=0。未设连接串时 351 passed、12 skipped。`export_openapi.py` 重跑前须保住草案操作和 deprecated 标注，脚本本轮不改。并入 REV-M0-T21 后看板为 377 项：44 done、9 in-review、7 in-progress、264 planned、49 blocked、4 ready。不改 PRD、ROADMAP、PROJECT_BRIEF，不改 docs/reference，不改 .github。T13 仍 in-review。ISSUE-018 仍 in-progress |
 | 2026-10-12 | ISSUE-033 / BE-M0-T18 | 登记挂证据规则。负责人 backend，状态 new。新增 BE-M0-T18，状态 planned，排在 T13 之后。项目经理暂停后撤下字典对照和错误码建议，不改接口。规格增量由 AI bot 另交，实现后 QA 重签。看板为 378 项：44 done、9 in-review、7 in-progress、265 planned、49 blocked、4 ready。不改 PRD、ROADMAP、PROJECT_BRIEF，不改 docs/reference，不改 .github。T13 仍 in-review。T114 仍 in-review |
 | 2026-10-12 | ISSUE-013 / REV-M0-T21 | 依据 QA 3e91aee，PM 恢复确认，REV-M0-T21 标为 done。看板计数不变：该卡已是 done。ISSUE-030 仍 in-review。APP-M2-T002 仍 done。不改 PRD、ROADMAP、PROJECT_BRIEF，不改接口 |
+| 2026-10-12 | ISSUE-007 / APP-M2-T114 | QA 验收②：冲突提示“本行已被他人修改，请刷新后再保存”旁边补刷新。刷新重读本行后可以再保存。浏览器覆盖另一会话先保存、出现冲突、刷新、再保存成功。不新开 Issue。不改 ISSUE-033。T114 仍 in-review。看板计数不改，仍是 378 项、44 done、9 in-review、265 planned |
 
 ## 缺失输入
 

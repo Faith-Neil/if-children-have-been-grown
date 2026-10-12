@@ -157,7 +157,12 @@ test('evidence drawer groups records, blocks invalid ones, and keeps status sepa
   await drawer.getByRole('button', { name: '保存挂接' }).click();
   await expect(drawer.getByText('本行已被他人修改，请刷新后再保存')).toBeVisible();
   await expect(drawer.getByRole('button', { name: '保存挂接' })).toBeDisabled();
-  await drawer.getByRole('button', { name: '关闭' }).click();
+  const conflict = drawer.locator('.ant-alert').filter({ hasText: '本行已被他人修改，请刷新后再保存' });
+  await conflict.getByRole('button', { name: '刷新', exact: true }).click();
+  await expect(conflict).toHaveCount(0);
+  await expect(drawer.getByRole('button', { name: '保存挂接' })).toBeEnabled();
+  await drawer.getByRole('button', { name: '保存挂接' }).click();
+  await expect(drawer).toBeHidden();
   await expect(requirement.getByText('尚未挂接')).toBeVisible();
 
   await page.getByRole('button', { name: '退出' }).click();

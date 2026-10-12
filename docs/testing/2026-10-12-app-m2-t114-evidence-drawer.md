@@ -48,4 +48,15 @@
 - 智能匹配按钮尚未接通。
 - 规则 2「证据过期后该行回到待确认」没有端到端。
 
-后两项先挂在 ISSUE-033 下，等后台字段落地后再测。`frontend/web` 仍没有 lint 脚本。
+后两项先挂在 ISSUE-033 下，等后台字段落地后再测。ISSUE-033 已由后台登记，本轮不改它。`frontend/web` 仍没有 lint 脚本。
+
+## QA 验收②
+
+另一会话先保存本行后，原抽屉第二次保存出现“本行已被他人修改，请刷新后再保存”，保存按钮禁用。该提示旁的“刷新”重读本行已挂证据。冲突提示消失，保存按钮恢复。再次保存成功，抽屉关闭，矩阵仍是对方保存后的“尚未挂接”。过期挂接的“证据失效”和它自己的刷新仍在。
+
+| 命令 | 结果 |
+|---|---|
+| `node --test frontend/web/tests/evidence-drawer.test.mjs` | 5 passed |
+| `node --test frontend/web/tests/*.test.mjs tests/frontend/*.test.mjs` | 98 passed，0 failed |
+| `pnpm --dir frontend/web build` | `tsc -b` 与 vite 8.3.4 通过。主块 `index-D9xOHS0T.js` 317.76 kB。`ProjectPages-D3PC1rUI.js` 116.12 kB |
+| `E2E_PYTHON=python3 pnpm --dir frontend/web exec playwright test --config e2e/playwright.config.ts` | 14 passed。本机没有 `python` 命令，所以指定 `python3`。CI 仍用作业里的 `E2E_PYTHON=python` |
