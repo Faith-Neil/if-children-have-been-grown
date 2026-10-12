@@ -8,7 +8,7 @@
 
 本次仅完成范围拆分，未实现这些功能。259张新卡全部planned；190原M1～M6原子细卡各有入口，13独立章节/Word/Excel/年度划型产物和56规则子单位共同推进同一功能，不重复计功能完成。47组仍未完整实现，44规则仍未完整交付；原规则数36一期完整、3一期简化、5二期未变。旧59FE卡保留；T14/T15拆分时in-progress，只引用不增加新任务，之后状态看原卡和看板。APP-M2是批次编号，非PRD二期；模型/数据库仅留接口不豁免业务。
 
-T07上段为范围拆分阶段记录；当前ISSUE-009 / APP-M2-T001共同底座已开工，其余258张后续卡planned。功能映射与原完整期次不变，整个T001未完成，不把新增会话接口等同整套页面底座。
+T07上段为范围拆分阶段记录；当前ISSUE-009 / APP-M2-T001为 in-review，T008离线CI为 in-review，其余257张后续卡planned。功能映射与原完整期次不变。T001 尚未由项目经理标 done，不把布局提交或会话接口等同整套页面底座。
 
 ## 页面/能力47组逐项映射
 
@@ -121,7 +121,7 @@ T07上段为范围拆分阶段记录；当前ISSUE-009 / APP-M2-T001共同底座
 
 | ID | 标题 | 状态 | 依赖 | 原细卡/规则 |
 |---|---|---|---|---|
-| [APP-M2-T001](../tasks/APP-M2.md#app-m2-t001) | ProLayout 布局、路由、权限守卫、请求层 | planned | BE-M0-T01 | M1-P08-01 |
+| [APP-M2-T001](../tasks/APP-M2.md#app-m2-t001) | ProLayout 布局、路由、权限守卫、请求层 | in-review | BE-M0-T01 | M1-P08-01 |
 | [APP-M2-T002](../tasks/APP-M2.md#app-m2-t002) | 请求层细化：错误体、traceId 复制、Idempotency-Key 注入、重试策略 | planned | BE-M0-T01、APP-M2-T001 | M1-P08-F2 |
 | [APP-M2-T003](../tasks/APP-M2.md#app-m2-t003) | 通用状态组件（骨架、空态、错误、无权限、已过期、只读） | planned | BE-M0-T01、APP-M2-T001 | M1-P08-F3 |
 | [APP-M2-T004](../tasks/APP-M2.md#app-m2-t004) | 业务小组件：LevelTag、AiTag、DirectTag、Cite、SourceBar | planned | BE-M0-T01、APP-M2-T003 | M1-P08-F4 |
@@ -434,7 +434,7 @@ T07上段为范围拆分阶段记录；当前ISSUE-009 / APP-M2-T001共同底座
     {
       "id": "APP-M2-T001",
       "title": "ProLayout 布局、路由、权限守卫、请求层",
-      "status": "planned",
+      "status": "in-review",
       "phase": "一期业务页面/支撑",
       "source": "M1-P08-01",
       "source_key": "P08.F1",

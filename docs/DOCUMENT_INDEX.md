@@ -170,10 +170,10 @@
 | D-157 | 2026-10-11 | [模板页面函数回归](../frontend/web/tests/template-review.test.mjs) | 验证 | library-basis-1 | 10项通过 | ISSUE-008 / APP-M1-T16 | 指标变化、二次读取、版本配对与切公司 |
 | D-158 | 2026-10-11 | [资料真实HTTP回归](../tests/backend/test_library_basis.py) | 验证 | library-basis-1 | 13项通过 | ISSUE-008 / APP-M1-T16 | 原版本/重试/幂等/权限及完整仓储无副作用 |
 | D-159 | 2026-10-11 | [模板真实HTTP回归](../tests/backend/test_sla_template_basis.py) | 验证 | library-basis-1 | 6项通过 | ISSUE-008 / APP-M1-T16 | 旧指标数组不能覆盖，明确核对后的请求成功 |
-| D-160 | 2026-10-11 | [共同底座Issue](../issues/ISSUE-009.md) | 实施 | application-foundation-1 | in-progress | ISSUE-009 / APP-M2-T001 | T001完整范围与资料库前置，不以会话接口计整卡完成 |
+| D-160 | 2026-10-12 | [共同底座Issue](../issues/ISSUE-009.md) | 实施 | layout-review-1 | in-review | ISSUE-009 / APP-M2-T001 | 布局/路由/离开保护已提交复核；done 留给项目经理 |
 | D-161 | 2026-10-11 | [可信会话与导航契约](architecture/application-session-contract.md) | 契约 | application-foundation-1 | 当前实施 | ISSUE-009 / APP-M2-T001 | 后台身份/资源读取与三演示角色兼容边界 |
-| D-162 | 2026-10-11 | [共同底座阶段交付](delivery/APP-M2-T001.md) | 交付 | application-foundation-1 | in-progress | ISSUE-009 / APP-M2-T001 | 会话阶段与完整布局/路由剩余分列 |
-| D-163 | 2026-10-11 | [会话与守卫代码解释](code/APP-M2-T001.md) | 说明 | application-foundation-1 | 阶段实施 | ISSUE-009 / APP-M2-T001 | 同一后台身份、授权读取顺序和兼容模式 |
+| D-162 | 2026-10-12 | [共同底座阶段交付](delivery/APP-M2-T001.md) | 交付 | layout-review-1 | in-review | ISSUE-009 / APP-M2-T001 | 会话阶段保留；布局切片提交复核，未标 done |
+| D-163 | 2026-10-12 | [会话与守卫代码解释](code/APP-M2-T001.md) | 说明 | layout-review-1 | in-review | ISSUE-009 / APP-M2-T001 | 会话读取顺序，以及 ProLayout、地址和离开保护 |
 | D-164 | 2026-10-11 | [共同底座阶段验证](testing/2026-10-11-application-session.md) | 验证 | application-foundation-1 | 阶段通过 | ISSUE-009 / APP-M2-T001 | 后台262、前端72、真实会话16、GUI/两册内容；独立复核通过 |
 | D-165 | 2026-10-11 | [后台会话权限](../backend/bid-core/icg_demo/session_navigation.py) | 后台 | application-foundation-1 | 阶段实现 | ISSUE-009 / APP-M2-T001 | 当前仓储身份、八角色定义及最小项目权限 |
 | D-166 | 2026-10-11 | [后台会话专项](../tests/backend/test_application_session.py) | 验证 | application-foundation-1 | 33项通过 | ISSUE-009 / APP-M2-T001 | 身份重读、参数拒绝、项目边界及无正文 |
@@ -216,6 +216,13 @@
 | D-203 | 2026-10-12 | [适配器契约测试](../tests/backend/test_openai_compatible_model.py) | 验证 | openai-adapter-1 | 30项通过 | ISSUE-011 / AI-02 | 假传输覆盖成功、失败和敏感门禁 |
 | D-204 | 2026-10-12 | [QA签署复核](testing/2026-10-12-qa-signoff.md) | 验证 | qa-rerun-2 | 本地通过 | ISSUE-013 / REV-M0-T05 | T008与AI-02签署：Actions三次成功、本地292/30/72/35，S1～S5 |
 | D-205 | 2026-10-12 | [签署复核交付](delivery/REV-M0-T05.md) | 交付 | qa-rerun-2 | 已本地验收 | ISSUE-013 / REV-M0-T05 | 无代码；结论与缺口 |
+| D-206 | 2026-10-12 | [ProLayout依赖Issue](../issues/ISSUE-014.md) | 版本 | pro-layout-7.22.7 | in-review | ISSUE-014 / APP-M2-T001 | 只增加 pro-layout 7.22.7；1334.42 kB 到 1564.53 kB |
+| D-207 | 2026-10-12 | [布局地址复核](testing/2026-10-12-prolayout-routes.md) | 验证 | layout-review-1 | in-review | ISSUE-009 / ISSUE-014 / APP-M2-T001 | 前端77、后台293、构建体积；无三断点截图 |
+| D-208 | 2026-10-12 | [014同步记录](governance/ISSUE-014-sync.md) | 治理 | pro-layout-7.22.7 | 已核对 | ISSUE-014 / APP-M2-T001 | 基线未改的句子和 in-review 计数 |
+| D-209 | 2026-10-12 | [产品外壳](../frontend/web/src/AppShell.tsx) | 前端 | pro-layout-7.22.7 | in-review | ISSUE-009 / APP-M2-T001 | ProLayout 侧栏、顶栏和菜单链接 |
+| D-210 | 2026-10-12 | [页面地址](../frontend/web/src/app-route.ts) | 前端 | layout-review-1 | in-review | ISSUE-009 / APP-M2-T001 | 全局路径、项目页签和登录回原地址 |
+| D-211 | 2026-10-12 | [离开保护](../frontend/web/src/leave-guard.ts) | 前端 | layout-review-1 | in-review | ISSUE-009 / APP-M2-T001 | 未保存时保留地址；取消不离开 |
+| D-212 | 2026-10-12 | [地址与离开测试](../frontend/web/tests/app-navigation.test.mjs) | 验证 | layout-review-1 | 5项通过 | ISSUE-009 / APP-M2-T001 | 需 Node 22.18+ 或 Node 24；本轮用 24.21.0 |
 
 ## 更新记录
 
@@ -242,6 +249,7 @@
 | 2026-10-12 | ISSUE-013 / REV-M0-T05 | QA签署APP-M2-T008与AI-02；当时看板为343项20done |
 | 2026-10-12 | ISSUE-012 / APP-M2-T008 | 按QA的S1/S3/S4/S5改回 in-review，补PROJECT_BRIEF同步，运行器ubuntu-24.04，动作升到Node 24主版本；当时343项19done、1in-review |
 | 2026-10-12 | ISSUE-010 / AI-01；ISSUE-011 / AI-02 | 补登 PROJECT_BRIEF 排期行，不回退。AI-02 改回 in-review，T008 保持 in-review。合并后 343 项 18 done、2 in-review。用户决定业务库为 MySQL 8；向量库仍待决，ISSUE-010 仍 blocked |
+| 2026-10-12 | ISSUE-009 / ISSUE-014 / APP-M2-T001 | ProLayout、浏览器地址和编辑台离开保护提交 in-review。343项18done、3in-review、7in-progress、266planned、49blocked。未改 PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF。未标 done，未合入 |
 
 ## 缺失输入
 

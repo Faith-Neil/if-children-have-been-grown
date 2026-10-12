@@ -8,7 +8,7 @@
 
 将 [前端 ROADMAP](ROADMAP.md) 的 Phase 0～8 与发布 Milestone 1～5 拆为 **59 张任务卡**，由 FE-M0～FE-M8 管理。前缀 FE 表示前端合作交付；这些编号与参考全系统 M0～M8 的门禁、周期和范围独立。
 
-项目343项中 **done 18、in-review 2、in-progress 8、planned 266、blocked 49、ready 0**。APP-M1的16项中，T01～05继续实现，T06继续完整联调验收，T07已完成范围拆分，T08等待最终审计；T09～16限定子任务已本地验收，T16完成资料及公司模板旧表单保护。APP-M2的259卡中T001底座开工，T008离线CI为 in-review，其余257卡planned，47组页面、190原WBS细项及44规则已逐项映射，见[完整后续卡](tasks/APP-M2.md)与[来源核对](testing/icg-task-mapping.md)。旧FE59项保留来源，OPS/BE各1项、REV 5项已本地验收（REV-M0-T02为ISSUE-013 QA复跑，REV-M0-T03/T04为ISSUE-015，REV-M0-T05为T008与AI-02的QA签署）。AI-01仍等待向量库和模型决定，业务库已定为 MySQL 8；AI-02 为 in-review。开发者只能把卡片标到 in-review，done 由项目经理在 QA 签署后设置。PR #3待合入。这些数量不是产品完成率。
+项目343项中 **done 18、in-review 3、in-progress 7、planned 266、blocked 49、ready 0**。APP-M1的16项中，T01～05继续实现，T06继续完整联调验收，T07已完成范围拆分，T08等待最终审计；T09～16限定子任务已本地验收，T16完成资料及公司模板旧表单保护。APP-M2的259卡中T001布局、路由和离开保护为 in-review，T008离线CI为 in-review，其余257卡planned，47组页面、190原WBS细项及44规则已逐项映射，见[完整后续卡](tasks/APP-M2.md)与[来源核对](testing/icg-task-mapping.md)。旧FE59项保留来源，OPS/BE各1项、REV 5项已本地验收（REV-M0-T02为ISSUE-013 QA复跑，REV-M0-T03/T04为ISSUE-015，REV-M0-T05为T008与AI-02的QA签署）。AI-01仍等待向量库和模型决定，业务库已定为 MySQL 8；AI-02 为 in-review。开发者只能把卡片标到 in-review，done 由项目经理在 QA 签署后设置。ISSUE-009 与 ISSUE-014 随 T001 停在 in-review。PR #3待合入。这些数量不是产品完成率。
 
 59张前端卡片估算合计 209 小时，单卡 2～4 小时，处于 0.5～4 小时的任务粒度目标内。该总和是已有基线/接口条件下的前端增量估算，不是项目排期，不含后端、模型、取得输入、评审或等待时间。开工若预计超 4 小时，先继续拆卡并登记 Issue/版本变更，保留原任务 ID 的历史。
 
@@ -140,7 +140,7 @@
 | [APP-M1-T14](tasks/APP-M1.md#app-m1-t14) | 项目成员与分册分工 | done | T01项目、T04章节、T12方案 | [ISSUE-007](../issues/ISSUE-007.md) | [本地交付](delivery/APP-M1-T14.md) |
 | [APP-M1-T15](tasks/APP-M1.md#app-m1-t15) | 逐章分工与独立方案确认 | done | T14成员分册、T12输入 | [ISSUE-007](../issues/ISSUE-007.md) | [本地交付](delivery/APP-M1-T15.md) |
 | [APP-M1-T16](tasks/APP-M1.md#app-m1-t16) | 资料库旧表单依据保护 | done | 已有公司资料版本接口；T14/15保护经验 | [ISSUE-008](../issues/ISSUE-008.md) | [交付](delivery/APP-M1-T16.md) |
-| [APP-M2-T001](tasks/APP-M2.md#app-m2-t001) | ProLayout 布局、路由、权限守卫、请求层 | in-progress | BE-M0-T01 | [ISSUE-009](../issues/ISSUE-009.md) | `docs/delivery/APP-M2-T001.md` |
+| [APP-M2-T001](tasks/APP-M2.md#app-m2-t001) | ProLayout 布局、路由、权限守卫、请求层 | in-review | BE-M0-T01 | [ISSUE-009](../issues/ISSUE-009.md) | [交付](delivery/APP-M2-T001.md) |
 | [APP-M2-T002](tasks/APP-M2.md#app-m2-t002) | 请求层细化：错误体、traceId 复制、Idempotency-Key 注入、重试策略 | planned | BE-M0-T01、APP-M2-T001 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T002.md` |
 | [APP-M2-T003](tasks/APP-M2.md#app-m2-t003) | 通用状态组件（骨架、空态、错误、无权限、已过期、只读） | planned | BE-M0-T01、APP-M2-T001 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T003.md` |
 | [APP-M2-T004](tasks/APP-M2.md#app-m2-t004) | 业务小组件：LevelTag、AiTag、DirectTag、Cite、SourceBar | planned | BE-M0-T01、APP-M2-T003 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T004.md` |

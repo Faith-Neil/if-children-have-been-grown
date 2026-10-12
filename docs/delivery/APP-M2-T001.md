@@ -8,12 +8,12 @@
 | 项目 | 记录 |
 |---|---|
 | 任务ID | APP-M2-T001 |
-| 代码解释 | [会话与页面守卫](../code/APP-M2-T001.md) |
-| 验收 | [262后台、72前端、16真实会话及GUI/两册内容](../testing/2026-10-11-application-session.md)；独立复核通过，整卡未验收 |
-| 项目进度 | 本卡in-progress；337项14done、8in-progress、267planned、48blocked、0ready；259后续卡1进行中、258planned |
+| 代码解释 | [会话、布局与离开保护](../code/APP-M2-T001.md) |
+| 验收 | 布局/路由/离开保护已提交 in-review，项目经理尚未标 done。[复核记录](../testing/2026-10-12-prolayout-routes.md)。阶段一[262后台、72前端、16真实会话及GUI](../testing/2026-10-11-application-session.md)仍是历史证据 |
+| 项目进度 | 本卡 in-review。343项中18 done、3 in-review、7 in-progress、266 planned、49 blocked、0 ready。APP-M2：T001 in-review、T008 in-review、257 planned。AI-02 仍 in-review |
 <!-- task-delivery:end -->
 
-日期2026-10-11；ISSUE-009 / application-foundation-1；分支codex/repository-foundation；[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)为草稿待合入，未发布。此文是阶段交付，不关闭任务或Issue。
+日期2026-10-11，布局补充2026-10-12；ISSUE-009 / ISSUE-014；分支codex/repository-foundation；[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)为草稿待合入，未发布。此文提交复核，不把任务或 Issue 标成 done/closed。
 
 ## 已实现的阶段内容
 
@@ -25,7 +25,7 @@
 
 全后台262项通过，含33专项；前端72项、独立复核、最终类型/构建通过。真实会话16项和GUI经理/只读导航、快捷403、同后台项目与两册内部稿页面通过，4张截图登记。真实两册文件包和正文检查通过且不含个人未提交稿；Word页面版式未验收。网络/角色降级竞态仅函数回归及实际调用复核，没有在GUI注入，不由初次66项通过替代最终证据。
 
-完整T001尚需实际ProLayout、页面地址与刷新/前后返回、全页未保存保护及完整权限采纳；OIDC按T010另验。完整资料列表/详情仍依赖元数据表格、表单及敏感展示任务，不计ready。原任务及ICG功能未缩减。
+阶段一写到此处时，ProLayout、页面地址和全页离开保护尚未开始。2026-10-12 已把这三项提交 in-review，见下一节。OIDC 仍按 T010 另验。完整资料列表/详情仍依赖元数据表格、表单及敏感展示任务，不计 ready。原任务及 ICG 功能未缩减。
 
 ## 文档同步
 
@@ -40,3 +40,19 @@
 | WORKFLOW | 无治理规则变更，保持g1.1 / ISSUE-007治理块一致 |
 
 人工Git操作前自动同步已停止；后续正常提交/推送与恢复以真实Git及工作区外运行状态核对，不重置或强推。原ICG材料保持原文，合同原件、凭据、运行输出及合成下载不提交。
+
+## 布局、路由与离开保护（in-review）
+
+直接依赖只增加 `@ant-design/pro-layout@7.22.7`。设计规范写 `@ant-design/pro-components`；该包会再带上 ProTable、ProForm，所以改用它所依赖的同一版 ProLayout。没有加入 react-router。引入前 `pnpm build` 为 `index-BqghTeOl.js` 1334.42 kB / gzip 409.62 kB；引入后为 `index-BmV8EgUZ.js` 1564.53 kB / gzip 486.19 kB。CSS 从 20.77 kB / gzip 5.00 kB 变为 21.02 kB / gzip 5.04 kB。
+
+`AppShell.tsx` 放侧栏和顶栏。`app-route.ts` 解析 `/workbench` 等全局路径和 `/projects/:projectId/:tab`。`leave-guard.ts` 决定未保存时是否离开。`App.tsx` 用 History API 写地址，并用确认框挡住站内切换和浏览器后退；取消时地址留在原页。刷新和关闭由 `beforeunload` 拦截。编辑台内部的换章确认仍在 `EditorPage.tsx`。后台对非接口路径返回 `dist/index.html`，未知 `/api` 仍是 JSON。
+
+2026-10-12 在 Node v24.21.0、pnpm 11.25.0 上，`node --test tests/frontend/*.test.mjs frontend/web/tests/*.test.mjs` 为 77 pass、0 fail。Python 3.12.3 上 `python3 -m pytest tests/backend -q` 为 293 passed、1 warning。没有做三断点浏览器截图。T002、T007、T009、T010 和八角色迁移未做。PR #3 未合入，未发布。
+
+| 文档 | 本轮处理 |
+|---|---|
+| PRD / ROADMAP / ARCHITECTURE / PROJECT_BRIEF | 正文未改。句子和原因见 [ISSUE-009](../../issues/ISSUE-009.md) 同步表 |
+| 会话契约 | 补上实际首页和深链接，仍标明 in-review |
+| Issue / TASK_BOARD | ISSUE-009、ISSUE-014、T001 均为 in-review |
+| PROJECT_STATUS | 改为 in-review，不写 done |
+| DOCUMENT_INDEX | 登记 ISSUE-014、本轮验证、同步表和新前端模块 |

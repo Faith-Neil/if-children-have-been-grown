@@ -9,17 +9,17 @@
 | Issue ID | ISSUE-009 |
 | 类型 | change |
 | 优先级 | P0 |
-| 状态 | in-progress |
-| 登记 / 更新日期 | 2026-10-11 |
-| revision | application-foundation-1 |
+| 状态 | in-review |
+| 登记 / 更新日期 | 2026-10-11 / 2026-10-12 |
+| revision | application-foundation-1；本轮 layout-review-1 |
 | 关联 Task | APP-M2-T001；后续T003、T005、T006、T014～018、T046～050 |
 | 关联 PR | [PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)，待合入 |
-| 本地验收 | 会话/守卫阶段262后台、72前端、16真实HTTP及GUI通过；完整T001未验收 |
+| 本地验收 | 布局/路由/离开保护已提交 in-review，等待项目经理 QA 签收。阶段一262后台、72前端、16真实HTTP及GUI仍为历史证据 |
 | 合入 / 发布 | 未合入 / 未发布 |
 
 ## 当前缺口与完整范围
 
-开工前页面缺少`getSession`可信会话入口；本阶段已接入实际接口及页面守卫，但导航/项目页签仍是页面内存状态，尚无浏览器地址路由、实际ProLayout、元数据表格/表单、完整敏感查看和资料治理。APP-M2-T046/047依赖T005、T006、T017，这些前置尚未验收，不能标ready。根前置T001依赖BE-M0-T01已本地验收，可按已核对契约实施。
+开工前页面缺少`getSession`可信会话入口；会话与页面守卫已经接入。ProLayout、浏览器地址和编辑台未保存离开已提交复核，仍缺元数据表格/表单、完整敏感查看和资料治理。APP-M2-T046/047依赖T005、T006、T017，这些前置尚未验收，不能标ready。根前置T001依赖BE-M0-T01已本地验收。本 Issue 保持 in-review，不标 closed。
 
 T001完整范围保留原交接M1-P08-01：实际ProLayout并保留ICG布局、浏览器地址及返回导航、可信会话与菜单/页面守卫、公司与项目资源权限、统一请求失败和未保存离开保护。先实现会话契约及服务端导航，再接路由和布局；任何阶段结果不能把整个T001或OIDC、细粒度权限、完整资料库提前标done。
 
@@ -29,7 +29,7 @@ T001完整范围保留原交接M1-P08-01：实际ProLayout并保留ICG布局、�
 
 getSession已真实实现并由页面消费；实际OpenAPI49路径57操作。后台当前身份重读、参数拒绝及最小资源响应通过；页面按后台导航/动作读取公司集合，项目session先于workspace。独立复核发现的缓存项目权限、拒绝后迟到资料读取及连续页签竞态已修复并实际复核。最终GUI经理/只读导航、快捷403与两册内部稿记录通过，末次只调整准确提示并重新构建/页面复验。
 
-后台262项、会话33专项、前端72项（会话14专项）、真实会话HTTP16项通过；4张截图及真实两册文件内容证据见[验证](../docs/testing/2026-10-11-application-session.md)，调用关系见[代码解释](../docs/code/APP-M2-T001.md)，[阶段交付](../docs/delivery/APP-M2-T001.md)保留完整剩余。网络/角色降级竞态仅函数与实际App调用验证；正式Word版式、URL/ProLayout/全页离开保护及完整八角色业务仍未完成，Issue与T001继续in-progress。
+后台262项、会话33专项、前端72项（会话14专项）、真实会话HTTP16项通过；4张截图及真实两册文件内容证据见[验证](../docs/testing/2026-10-11-application-session.md)，调用关系见[代码解释](../docs/code/APP-M2-T001.md)，[阶段交付](../docs/delivery/APP-M2-T001.md)保留完整剩余。网络/角色降级竞态仅函数与实际App调用验证；正式Word版式及完整八角色业务仍未完成。URL、ProLayout 和编辑台离开保护已提交复核，Issue 与 T001 为 in-review，不能标 done 或 closed。
 
 ## 验收要求
 
@@ -46,9 +46,31 @@ getSession已真实实现并由页面消费；实际OpenAPI49路径57操作。�
 | PRD | 原ICG功能不缩减；可信角色阶段与完整共同底座分列 | 阶段同步 |
 | ROADMAP | 资料库前完整T001，按真实依赖继续 | 阶段同步 |
 | ARCHITECTURE | 新可信会话/导航契约及49路径57操作；布局、路由及元数据后续接入 | 阶段同步 |
-| Issue / TASK_BOARD | 009与T001继续in-progress；完整C01等仍planned | 阶段同步 |
-| PROJECT_STATUS / BRIEF | 262/72、HTTP16、GUI与完整缺口分列 | 阶段同步 |
+| Issue / TASK_BOARD | 009与T001改为 in-review；ISSUE-014 登记依赖。完整C01等仍planned。done/closed 留给项目经理 | 已提交复核 |
+| PROJECT_STATUS / BRIEF | PROJECT_STATUS 改为 in-review。PROJECT_BRIEF 未改正文，见下方同步表 | 已核对 |
 | DOCUMENT_INDEX | 本Issue、契约、实际模块/专项、交付和4截图登记 | 阶段同步 |
 | WORKFLOW | 无规则变化，保持g1.1 / ISSUE-007治理块 | 已核对 |
 
 逐阶段交付保存`docs/delivery/APP-M2-T001.md`，实际代码解释保存`docs/code/APP-M2-T001.md`；未执行或未完成明确记录。完整产品ISSUE-007保持进行中。
+
+## 本轮提交复核（不标 done）
+
+页面使用已批准的 `@ant-design/pro-layout@7.22.7`，没有引入 `react-router`，也没有改用整包 `@ant-design/pro-components`。设计规范写的是 pro-components；本轮改用它所依赖的同一版 ProLayout，避免带上 ProTable 和 ProForm。体积见 [ISSUE-014](ISSUE-014.md)。地址用 History API：全局路径与 `/projects/:projectId/:tab` 可深链接，登录后回到原地址，未知地址显示 404 且不读取工作区。编辑台未保存时，站内切换、前进后退和刷新/关闭都会拦截；取消后地址、页面和文字保留。401 退出不弹离开确认。
+
+未纳入本轮、也不能标 done 的范围：OIDC（T010）、原八角色业务迁移、请求层细化（T002）、元数据表格/表单（T005/T006）、通用表单离开条（T007）、断点记忆（T009）、三断点实机截图、Word 视觉。PR #3 仍未合入，产品未发布。
+
+## 未改基线的同步
+
+本轮没有修改 `docs/PRD.md`、`docs/ROADMAP.md`、`docs/ARCHITECTURE.md`、`docs/PROJECT_BRIEF.md` 的正文，也没有改治理块。它们仍写整卡未完成，与 in-review、尚未由项目经理标 done 一致；其中“接下来补 ProLayout”已过时，以本 Issue 和任务看板为准。
+
+| 文件 | 仍在的句子 | 不改的原因 |
+|---|---|---|
+| `docs/PRD.md` 第19行 | T001共同底座已开工，其余258卡planned | 本卡未 done。活状态在任务看板：T001 为 in-review，其余 257 张 APP-M2 卡 planned |
+| `docs/PRD.md` 第21行 | 整个T001、OIDC和完整资料库仍未完成 | 本卡未 done，这句话仍然成立 |
+| `docs/ROADMAP.md` 第17行 | 当前共343项任务，18done、8in-progress、2in-review；AI-02 与 T008 为 in-review | 路线图正文不改。活的计数在任务看板：343 项，18 done、3 in-review（T001、T008、AI-02）、7 in-progress |
+| `docs/ROADMAP.md` 第19行 | 整卡继续in-progress。接下来补实际ProLayout、浏览器路由/返回和全页未保存保护 | 协作要求非必须不改路线图。实现已提交复核，但项目经理尚未签收，所以不把路线图改成完成 |
+| `docs/ARCHITECTURE.md` 第21行 | 布局、浏览器路由和全页离开保护继续本卡 | 架构正文不改。会话契约 `docs/architecture/application-session-contract.md` 已补上实际地址 |
+| `docs/PROJECT_BRIEF.md` 第30行 | 排期仍写 18done、2in-review、8in-progress，并写 T001底座开工 | brief 排期行是 ISSUE-010 刚登记的 MySQL 8 快照。本轮不改 brief |
+| `docs/PROJECT_BRIEF.md` 第68行 | 整卡仍进行中：接下来补实际布局组件、浏览器地址/返回与全页离开保护 | brief 不改。接手说明仍把本卡当作未签收是对的 |
+
+`docs/PROJECT_STATUS.md`、任务看板、文档索引和本 Issue 已改为 in-review。同步细节见 [ISSUE-014 同步](../docs/governance/ISSUE-014-sync.md)。

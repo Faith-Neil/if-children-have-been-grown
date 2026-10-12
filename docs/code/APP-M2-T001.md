@@ -28,4 +28,16 @@
 
 新增后台专项33项，全后台262项通过；前端72项（会话14项）、独立复核、真实会话HTTP16项及GUI通过，最终类型/构建通过。两册导出继续由同一后台读取正式提交正文，实际文件内容/包已核对；模型仍为替身、存储仍为内存，重启清空。网络/角色变更竞态只做函数与调用路径验证，正式Word版式仍未验收。
 
-实际ProLayout、浏览器地址/深链接/前后返回、全页未保存保护、原八角色业务授权和正式身份尚未完成。当前框架、菜单和权限阶段不等于完整资料列表/详情、审核、附件或正式投标递交能力。
+下面一节是 2026-10-12 提交复核的布局和地址。阶段一结束时这些还没有做。原八角色业务授权和正式身份仍未完成。当前框架不等于完整资料列表/详情、审核、附件或正式投标递交。
+
+## 布局、地址和离开保护
+
+入口仍是 `frontend/web/src/App.tsx`。登录成功后 `routeAfterLogin` 看当前地址：`/` 换成会话首页，已知全局路径和项目页签保持原样，未知地址留在未知页。`followPath` 再交给原来的 `requireSessionRoute` 或 `readAuthorizedProject`。未知路径走 `showMissing`，只改地址和 404，不请求工作区。
+
+`commitAddress` 在路径已经一致或模式为 `none` 时不改历史。站内点击用 `push`。登录后的第一次定位用 `replace`。浏览器 `popstate` 已经改过地址，所以先用 `holdAddressForPrompt` 把地址推回当前页；确认后再 `pushState` 到弹出的地址并 `followPath(..., 'none')`。取消则地址、页面和文字都留在原处。
+
+未保存信号只有编辑台的 `editorDirty`。`armedLeave` 在离开过程中忽略编辑台再次报脏，避免还没卸下的编辑器把脏标记写回来。真正离开编辑台时 `arrived(false)` 才清掉脏标记。401 仍立即 `logout`，不弹确认。退出按钮走 `requestDiscard`。
+
+`AppShell.tsx` 调用 `ProLayout`：`layout="side"`、`navTheme="realDark"`、`siderWidth={216}`、默认收起、`breakpoint={false}`、`disableMobile`。菜单用 `<a href>`，普通左键阻止默认并走站内导航，带修饰键的点击留给浏览器。`backend/bid-core/icg_demo/main.py` 在全部接口之后注册 `/{full_path:path}`，`include_in_schema=False`，因此 OpenAPI 仍是 49 路径 57 操作。`api/`、`static/`、`assets/` 继续 404。
+
+直接依赖只有 `@ant-design/pro-layout@7.22.7`。`app-route.ts` 用 `./session-navigation.ts` 带扩展名，这样 Node 24 的测试可以直接 import。三断点没有实机截图。通用表单离开、侧栏记忆、OIDC 和请求层重试不在这几个文件里。
