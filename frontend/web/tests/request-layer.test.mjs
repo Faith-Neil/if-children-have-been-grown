@@ -65,6 +65,37 @@ test('a bare gateway 502 retries with the same idempotency key', async context =
   assert.deepEqual(waits, [200, 400]);
 });
 
+test('502 MODEL_UNAVAILABLE and 503 SECRET_KEY_UNAVAILABLE each send one request; plain 503 and a bare 502 still retry', async context => {
+  const cases = [
+    { name: 'model', callsExpected: 1, fail: () => jsonResponse(502, {
+      code: 'MODEL_UNAVAILABLE', message: '模型暂不可用。', traceId: 'trace-model-n7',
+    }, 'trace-model-n7') },
+    { name: 'secret', callsExpected: 1, fail: () => jsonResponse(503, {
+      code: 'SECRET_KEY_UNAVAILABLE', message: '密钥暂不可用。', traceId: 'trace-secret',
+    }, 'trace-secret') },
+    { name: 'plain-503', callsExpected: 3, fail: () => jsonResponse(503, {
+      code: 'UI_NOT_READY', message: '页面还没准备好。', traceId: 'trace-plain',
+    }, 'trace-plain') },
+    { name: 'bare-502', callsExpected: 3, fail: () => gateway502() },
+  ];
+  for (const item of cases) {
+    let calls = 0;
+    context.mock.method(globalThis, 'fetch', async () => {
+      calls += 1;
+      if (item.callsExpected > 1 && calls === item.callsExpected) return jsonResponse(200, { ok: true });
+      return item.fail();
+    });
+    const result = await request(v1, 'token', 'POST', { name: '合成项目' }, 9, noWait).catch(error => error);
+    assert.equal(calls, item.callsExpected, item.name);
+    if (item.callsExpected === 1) {
+      assert.ok(result instanceof ApiError, item.name);
+      assert.equal(result.requestId, item.name === 'secret' ? 'trace-secret' : 'trace-model-n7', item.name);
+    } else {
+      assert.deepEqual(result, { ok: true }, item.name);
+    }
+  }
+});
+
 test('a 502 MODEL_UNAVAILABLE sends one request and shows the trace id', async context => {
   let calls = 0;
   context.mock.method(globalThis, 'fetch', async () => {

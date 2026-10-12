@@ -10,7 +10,7 @@ export class ApiError extends Error {
 export const retryLimit = 3;
 
 export function canRetryStatus(status: number, code?: string) {
-  if (status === 503) return true;
+  if (status === 503) return code !== 'SECRET_KEY_UNAVAILABLE';
   if (status !== 502) return false;
   return !code || code === 'REQUEST_FAILED';
 }

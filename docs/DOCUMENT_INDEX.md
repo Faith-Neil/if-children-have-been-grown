@@ -347,6 +347,11 @@
 | D-334 | 2026-10-12 | [编辑租约交付](delivery/BE-M0-T12.md) | 交付 | lease-1 | in-review | ISSUE-018 / BE-M0-T12 | 120 秒租约入库；不标 done |
 | D-335 | 2026-10-12 | [编辑租约代码说明](code/BE-M0-T12.md) | 说明 | lease-1 | 当前 | ISSUE-018 / BE-M0-T12 | 差量保存 chapter_lease；导入时不连接 |
 | D-336 | 2026-10-12 | [编辑租约核对](testing/2026-10-12-be-m0-t12-leases.md) | 验证 | lease-1 | 已执行 | ISSUE-018 / BE-M0-T12 | 无库仍走内存；mysql 续期与过期接管 |
+| D-337 | 2026-10-12 | [ISSUE-030](../issues/ISSUE-030.md) | 变更 | retry-n7-1 | in-review | ISSUE-030 / APP-M2-T002 | 503 SECRET_KEY_UNAVAILABLE 不重试。T002 仍 done。不标 closed |
+| D-338 | 2026-10-12 | [密钥不可用交付](delivery/ISSUE-030.md) | 交付 | retry-n7-1 | in-review | ISSUE-030 / APP-M2-T002 | 只改 canRetryStatus。不改后台 |
+| D-339 | 2026-10-12 | [密钥不可用说明](code/ISSUE-030.md) | 说明 | retry-n7-1 | 当前 | ISSUE-030 / APP-M2-T002 | 503 仅在该 code 时停止 |
+| D-340 | 2026-10-12 | [密钥不可用核对](testing/2026-10-12-issue-030-secret-key-retry.md) | 验证 | retry-n7-1 | 已执行 | ISSUE-030 / APP-M2-T002 | 两码各 1 次；普通 503 与裸 502 仍重试 |
+| D-341 | 2026-10-12 | [030同步表](governance/ISSUE-030-sync.md) | 治理 | retry-n7-1 | 已核对 | ISSUE-030 / APP-M2-T002 | 不改任务计数，不改冻结 JSON |
 
 ## 更新记录
 
@@ -436,6 +441,7 @@
 | 2026-10-12 | ISSUE-028 | `3e1445e` 已把 D-1 字段写进 ISSUE-024。ISSUE-028 文档只链接 `stream_enabled` 与 `json_mode_enabled`，不抄定义。不改 ISSUE-024 正文，不改代码，不改任务计数。ISSUE-028 仍 in-review |
 | 2026-10-12 | 前端 PRD 开头 | 项目经理规定后续开发以 `docs/reference/product/prd-mvp-v1.8.md` 与 `kb-data-dictionary-v1.9.md` 为准。`docs/PRD.md` 第27行改为链接这两份，不再写 PRD v1.4 与字典 v1.5。不新开 Issue。不改第19行里程碑计数，不改治理块，不改 `docs/reference/`，不改其他 v1.4 / v1.5 句子 |
 | 2026-10-12 | ISSUE-018 / BE-M0-T12 | 编辑租约入库，状态 in-review。续期后占用者不变，过期后其他会话可以接管。方案第 5 节增加字典 v1.9 字段对照表，偏差需要项目经理批准。看板从 371项39done、6in-review、266planned 改为 371项39done、7in-review、7in-progress、265planned、49blocked、4ready。不改 PRD、ROADMAP、PROJECT_BRIEF，不改 docs/reference，不改 .github。ISSUE-018 仍 in-progress。T13 仍 planned |
+| 2026-10-12 | ISSUE-030 / APP-M2-T002 | `canRetryStatus` 对 503 `SECRET_KEY_UNAVAILABLE` 返回 false，与 502 `MODEL_UNAVAILABLE` 一样只发一次。普通 503 和裸 502 仍重试。T002 仍为 done。不改任务计数，不改后台，不改冻结 JSON，不改 `docs/reference/`。ISSUE-030 为 in-review |
 
 ## 缺失输入
 
