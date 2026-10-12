@@ -43,7 +43,7 @@
 3. 任务范围过大时先拆成多个可单独验证的任务。0.5～4 小时是初始粒度估算，复杂任务继续拆分，不把估算当完成承诺。
 4. 开工把任务标为 `in-progress`，同步 Issue 和项目进度。阻塞时写明缺少的输入与下一步。
 5. 实现后按任务验收，提交交付、代码解释和测试证据，再进入 `in-review`。
-6. 验收通过且完成记录齐全后，才标 `done`；PR 合入、部署和发布另列。
+6. 开发者只能把任务和 Issue 标到 `in-review`。`done` 与 Issue `closed` 由项目经理在 QA 签署之后设置。PR 合入、部署和发布另列。
 
 状态：`planned` → `ready` → `in-progress` → `in-review` → `done`。`blocked` 必须写原因，依赖满足后回到适当状态；`cancelled` 必须链接对应 Issue 的取舍结论。没有接口、基线或其他必要输入的正式应用任务不能标 `ready`。
 
@@ -96,7 +96,7 @@ node --test tests/governance/*.test.cjs
 
 行为修改另跑实际受影响的验证。检查程序验证链接、治理块、任务完成材料和索引；需求与代码的语义一致性仍由任务验收与评审确认。
 
-`codex/repository-foundation` 的推送和拉取请求还由 `.github/workflows/offline-check.yml` 并行执行同一组离线命令：安装 `backend/bid-core/requirements.txt` 后 `python -m pytest tests/backend`，再单独运行 `python tests/backend/session_live_http.py` 和 `cd backend/bid-core && python smoke_t06.py`；`pnpm --dir frontend/web install --frozen-lockfile` 与 `pnpm --dir frontend/web build`，以及 `node --test tests/frontend/*.test.mjs frontend/web/tests/*.test.mjs`；`node --test tests/governance/*.test.cjs tests/prototype/*.test.cjs tests/workspace-sync/*.test.cjs tests/backend/demo-page.test.cjs`。版本固定为 Python 3.13.5、Node 24.9.0、pnpm 11.25.0。该运行不使用密钥或外网模型，通过也不表示已经合入或发布。
+`codex/repository-foundation` 的推送和拉取请求还由 `.github/workflows/offline-check.yml` 在 `ubuntu-24.04` 上并行执行同一组离线命令：安装 `backend/bid-core/requirements.txt` 后 `python -m pytest tests/backend`，再单独运行 `python tests/backend/session_live_http.py` 和 `cd backend/bid-core && python smoke_t06.py`；`pnpm --dir frontend/web install --frozen-lockfile` 与 `pnpm --dir frontend/web build`，以及 `node --test tests/frontend/*.test.mjs frontend/web/tests/*.test.mjs`；`node --test tests/governance/*.test.cjs tests/prototype/*.test.cjs tests/workspace-sync/*.test.cjs tests/backend/demo-page.test.cjs`。版本固定为 Python 3.13.5、Node 24.9.0、pnpm 11.25.0。该运行不使用密钥或外网模型，通过也不表示已经合入或发布。
 
 本地任务 `done`、Issue `closed` 表示已完成本地验收；交付与 Issue 分别记录 PR 是否合入、软件是否发布。未合入的修复不能写成已上线。评审发现问题时重新开启原 Issue/任务并保留原验收记录。
 

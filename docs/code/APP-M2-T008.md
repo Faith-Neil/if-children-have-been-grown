@@ -17,7 +17,7 @@
 2. frontend 先安装 pnpm 11.25.0，再用 Node 24.9.0，缓存 `frontend/web/pnpm-lock.yaml`。在 `frontend/web` 执行 `pnpm install --frozen-lockfile` 和 `pnpm build`。`package.json` 的 `build` 是 `tsc -b && vite build`。然后在仓库根运行 `node --test tests/frontend/*.test.mjs frontend/web/tests/*.test.mjs`。
 3. governance 安装同一个 Node 24.9.0，运行 `tests/governance`、`tests/prototype`、`tests/workspace-sync` 和 `tests/backend/demo-page.test.cjs`，再运行 `node scripts/check-project-governance.cjs`。
 
-三个作业没有 `needs`，因此并行。`permissions` 只有 `contents: read`。文件中没有密钥、模型地址或内网地址。
+三个作业没有 `needs`，因此并行，都在 `ubuntu-24.04`。`permissions` 只有 `contents: read`。文件中没有密钥、模型地址或内网地址。checkout、setup-node、setup-python 使用 v7，pnpm/action-setup 使用 v6。核对过这些标签的 `action.yml`，`using` 都是 `node24`。pip 与 pnpm 缓存由这两个 setup 动作写入；独立 actions/cache 的当前主版本是 v6，也是 `node24`，这里不单独调用。
 
 ## 数据与状态
 

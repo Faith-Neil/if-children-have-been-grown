@@ -8,7 +8,7 @@
 
 ## 工作流
 
-文件：`.github/workflows/offline-check.yml`。触发：`push` 与 `pull_request`，分支 `codex/repository-foundation`。作业并行。Python 3.13.5，Node 24.9.0，pnpm 11.25.0。pip 缓存 `backend/bid-core/requirements.txt`，pnpm 缓存 `frontend/web/pnpm-lock.yaml`。无密钥。
+文件：`.github/workflows/offline-check.yml`。触发：`push` 与 `pull_request`，分支 `codex/repository-foundation`。作业并行，运行器 `ubuntu-24.04`。Python 3.13.5，Node 24.9.0，pnpm 11.25.0。动作主版本：checkout v7、setup-python v7、setup-node v7、pnpm/action-setup v6，均声明 `node24`。pip 缓存 `backend/bid-core/requirements.txt`，pnpm 缓存 `frontend/web/pnpm-lock.yaml`。无密钥。
 
 | 作业 | 命令 | 本轮 Actions 结果 |
 |---|---|---|
@@ -30,4 +30,4 @@ QA 在同一命令上的已记录结果，作为推送前基线，不是本次 A
 
 Node v20.19.2 运行 `frontend/web/tests/*.test.mjs` 会因直接导入 `.ts` 而全部失败（`ERR_UNKNOWN_FILE_EXTENSION`）。这是运行器版本问题，不是套件跳过。CI 固定 Node 24.9.0。
 
-运行器还提示 `actions/checkout`、`actions/setup-node`、`pnpm/action-setup` 仍声明 Node 20，并被强制改到 Node 24。这是动作运行时提示，测试进程固定为 Node 24.9.0。没有套件失败。
+此前运行器提示 `actions/checkout`、`actions/setup-node`、`pnpm/action-setup` 的 v4 仍声明 Node 20。本轮已换成上面的 Node 24 主版本，并固定 `ubuntu-24.04`。测试进程仍是 Node 24.9.0。没有套件失败。独立 `actions/cache` 最新主版本是 v6（`node24`）；缓存由 setup 动作完成，没有另加步骤。

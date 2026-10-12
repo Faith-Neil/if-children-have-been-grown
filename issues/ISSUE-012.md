@@ -9,13 +9,13 @@
 | Issue ID | ISSUE-012 |
 | 类型 | workflow |
 | 优先级 | P1 |
-| 状态 | closed（本地验收） |
+| 状态 | in-review |
 | 登记日期 | 2026-10-12 |
 | 最后更新日期 | 2026-10-12 |
 | revision | offline-ci-1 |
 | 关联 Task | [APP-M2-T008](../docs/tasks/APP-M2.md#app-m2-t008)；[任务看板](../docs/TASK_BOARD.md) |
 | 关联 PR | [PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)，待合入；本轮不新建 PR |
-| 本地验收 | 通过；2026-10-12。运行 [38200746746](https://github.com/Faith-Neil/if-children-have-been-grown/actions/runs/38200746746) 三个作业 success |
+| 本地验收 | QA 已于 2026-10-12 签署（[57ef015](../docs/testing/2026-10-12-qa-signoff.md)）。开发者按 S4 停在 in-review，done 待项目经理 |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | [APP-M2-T008交付](../docs/delivery/APP-M2-T008.md) |
@@ -38,7 +38,7 @@ QA 于 2026-10-12 在 Python 3.13.5、Node v24.9.0、pnpm 11.25.0 上复跑通�
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| APP-M2-T008 | 三个并行离线作业覆盖 pytest、会话 HTTP、smoke_t06、前端构建与测试、`.cjs` 套件和治理检查 | `.github/workflows/offline-check.yml` | AC-01～AC-04 | done |
+| APP-M2-T008 | 三个并行离线作业覆盖 pytest、会话 HTTP、smoke_t06、前端构建与测试、`.cjs` 套件和治理检查 | `.github/workflows/offline-check.yml` | AC-01～AC-04 | in-review |
 
 ## 验收条目
 
@@ -57,9 +57,11 @@ QA 于 2026-10-12 在 Python 3.13.5、Node v24.9.0、pnpm 11.25.0 上复跑通�
 | PRD | 无影响：未改页面、业务规则或验收口径 | 不改 `docs/PRD.md` | g1.1 / ISSUE-012 / 2026-10-12 | 已核对 |
 | ROADMAP | 无影响：未改阶段、依赖或发布顺序；任务状态在任务看板 | 不改 `docs/ROADMAP.md` | g1.1 / ISSUE-012 / 2026-10-12 | 已核对 |
 | ARCHITECTURE | 无影响：未改模块、数据、接口或部署结构；CI 只重复现有离线检查 | 不改 `docs/ARCHITECTURE.md` | g1.1 / ISSUE-012 / 2026-10-12 | 已核对 |
-| TASK_BOARD | 有影响：APP-M2-T008 改为 done 并关联本 Issue | `docs/TASK_BOARD.md` | 0.6 / ISSUE-012 / 2026-10-12 | 已同步 |
-| PROJECT_STATUS | 有影响：记录离线 CI 本地验收，完成数随任务状态更新 | `docs/PROJECT_STATUS.md` | g1.1 / ISSUE-012 / 2026-10-12 | 已同步 |
+| TASK_BOARD | 有影响：APP-M2-T008 改回 in-review 并关联本 Issue | `docs/TASK_BOARD.md` | 0.6 / ISSUE-012 / 2026-10-12 | 已同步 |
+| PROJECT_STATUS | 有影响：记录离线 CI 证据，卡片状态为 in-review | `docs/PROJECT_STATUS.md` | g1.1 / ISSUE-012 / 2026-10-12 | 已同步 |
 | DOCUMENT_INDEX | 有影响：登记工作流、Issue、交付、代码解释、验证和同步表 | `docs/DOCUMENT_INDEX.md` | g1.1 / ISSUE-012 / 2026-10-12 | 已同步 |
+| PROJECT_BRIEF | 有影响。2026-10-12 维护日期改为当天，关联加上 ISSUE-012，排期计数当时写成 340 项、18 done。本轮去掉重复的「T008离线CI已本地验收」，并把该卡改回 in-review。当前看板 343 项：19 done、1 in-review、8 in-progress、266 planned、49 blocked、0 ready | `docs/PROJECT_BRIEF.md` 排期行 | offline-ci-1 / ISSUE-012 / 2026-10-12 | 已同步 |
+| ROADMAP | 有影响，仅状态用词：APP-M2-T008 从「已本地验收」改回 in-review。阶段、依赖和发布顺序未改。计数字句仍是此前快照 | `docs/ROADMAP.md` 当前实施段一句 | g1.1 / ISSUE-012 / 2026-10-12 | 已同步 |
 
 治理块保持 WORKFLOW 的 g1.1 / 2026-10-11 / ISSUE-007。本 Issue 不改该块。
 
@@ -69,11 +71,12 @@ QA 于 2026-10-12 在 Python 3.13.5、Node v24.9.0、pnpm 11.25.0 上复跑通�
 |---|---|---|---|
 | 2026-10-12 | offline-ci-1 / in-progress | 预分配 ISSUE-012，按 QA 命令编写三个并行作业，并纳入 ISSUE-013 会话脚本 | 项目经理指定范围 |
 | 2026-10-12 | offline-ci-1 / in-review | 工作流写入 `cf2c2a1` 并推送 | 待运行结果 |
-| 2026-10-12 | offline-ci-1 / closed | 运行 38200746746 三作业 success；pytest 262、会话 15、smoke_t06 12、前端 72、cjs 35、治理检查通过 | [验证](../docs/testing/2026-10-12-offline-ci.md) |
+| 2026-10-12 | offline-ci-1 / closed | 运行 38200746746 三作业 success；pytest 262、会话 15、smoke_t06 12、前端 72、cjs 35、治理检查通过。此行是当时自标，随后按 S4 撤回 | [验证](../docs/testing/2026-10-12-offline-ci.md) |
+| 2026-10-12 | offline-ci-1 / in-review | QA 签署见 57ef015。补 PROJECT_BRIEF 同步行，去掉排期重复句，运行器改为 ubuntu-24.04，动作升到 Node 24 主版本。开发者不标 done | [QA签署](../docs/testing/2026-10-12-qa-signoff.md) |
 
 ## 本地验收与后续合入发布
 
-- 本地验收结论与日期：通过，2026-10-12。closed 只表示本地验收，PR #3 未合入，软件未发布。
+- 本地验收结论与日期：2026-10-12 QA 已签署功能与证据。状态改回 in-review，done 只由项目经理设置。PR #3 未合入，软件未发布。
 - 验证方式：见验证记录。Node 20 的 `.ts` 导入失败是环境问题，CI 固定 Node 24，不跳过该套件。没有既有失败需要隐藏。
 - 六份基线同步与互链复核：上表已填；PRD、ROADMAP、ARCHITECTURE 无正文改动。
 - PR 状态：沿用 PR #3，未新建，未合入。

@@ -9,15 +9,15 @@
 |---|---|
 | 任务ID | APP-M2-T008 |
 | 代码解释 | [离线 CI 工作流](../code/APP-M2-T008.md) |
-| 验收 | [cf2c2a1 三作业通过](../testing/2026-10-12-offline-ci.md)：pytest 262、会话 15、smoke_t06 12、前端 72、cjs 35、治理检查通过。`buildTheme` 未执行 |
-| 项目进度 | 本卡 done（本地验收）。340 项中 done 18、in-progress 8、planned 266、blocked 48、ready 0。APP-M2 为 T001 in-progress、T008 done、其余 257 张 planned |
+| 验收 | [cf2c2a1 三作业通过](../testing/2026-10-12-offline-ci.md)：pytest 262、会话 15、smoke_t06 12、前端 72、cjs 35、治理检查通过。QA 已签署。`buildTheme` 未执行。卡片为 in-review |
+| 项目进度 | 本卡 in-review。343 项中 done 19、in-review 1、in-progress 8、planned 266、blocked 49、ready 0。APP-M2 为 T001 in-progress、T008 in-review、其余 257 张 planned。done 待项目经理 |
 <!-- task-delivery:end -->
 
 ## 关联与状态
 
 - 日期、里程碑、Issue、任务卡：2026-10-12；APP-M2；[ISSUE-012](../../issues/ISSUE-012.md)；[任务卡](../tasks/APP-M2.md#app-m2-t008)。
 - 分支、提交、PR：`codex/repository-foundation`；工作流提交 `cf2c2a1`；[PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3) 为既有草稿，本轮不新建 PR。
-- 本地验收状态：done。Actions 运行 [38200746746](https://github.com/Faith-Neil/if-children-have-been-grown/actions/runs/38200746746) 三个作业均为 success。
+- 本地验收状态：in-review。Actions 运行 [38200746746](https://github.com/Faith-Neil/if-children-have-been-grown/actions/runs/38200746746) 三个作业均为 success。QA 签署见 [57ef015](../testing/2026-10-12-qa-signoff.md)。done 由项目经理设置。
 - 合入 / 发布状态：未合入，未发布。
 
 ## 完成内容与变更文件
@@ -42,7 +42,7 @@ Python 固定 3.13.5，Node 固定 24.9.0。pip 与 pnpm 使用 Actions 缓存�
 
 ## 项目进度
 
-本卡本地验收后为 340 项：done 18、in-progress 8、planned 266、blocked 48、ready 0。APP-M2 的 259 张卡中 T001 仍 in-progress，T008 为 done，其余 257 张 planned。下一张产品卡仍按依赖推进，不因本门禁把 T001 或完整产品标完成。PR #3 待合入，未发布。
+本卡现为 in-review。343 项中 done 19、in-review 1、in-progress 8、planned 266、blocked 49、ready 0。APP-M2 的 259 张卡中 T001 仍 in-progress，T008 为 in-review，其余 257 张 planned。下一张产品卡仍按依赖推进，不因本门禁把 T001 或完整产品标完成。PR #3 待合入，未发布。
 
 ## 文档与 Issue 同步
 
@@ -51,12 +51,13 @@ Python 固定 3.13.5，Node 固定 24.9.0。pip 与 pnpm 使用 Actions 缓存�
 | PRD | 无影响。页面、规则和验收口径未改，治理块保持 g1.1 / 2026-10-11 / ISSUE-007 |
 | ROADMAP | 无影响。阶段、依赖和发布顺序未改 |
 | ARCHITECTURE | 无影响。模块、数据、接口和部署结构未改；CI 只重复现有离线检查 |
-| Issue 看板/详情 | 新增 ISSUE-012，状态 closed（本地验收）；ISSUE-013 与 ISSUE-015 保留。下一编号改为 ISSUE-016，ISSUE-014 留给并行的 ProComponents 变更 |
-| TASK_BOARD / PROJECT_STATUS | T008 改为 done 并链接本交付；进度口径同步为 18 done |
-| DOCUMENT_INDEX | 登记工作流、Issue、交付、代码解释、验证和同步表 |
+| Issue 看板/详情 | ISSUE-012 为 in-review；ISSUE-013 与 ISSUE-015 保留。下一编号仍是 ISSUE-016，ISSUE-014 留给并行的 ProComponents 变更 |
+| TASK_BOARD / PROJECT_STATUS | T008 改回 in-review 并链接本交付；进度为 19 done、1 in-review |
+| PROJECT_BRIEF | 2026-10-12 曾写维护日期、ISSUE-012 关联和当时的 340 项 / 18 done。本轮去掉重复的「T008离线CI已本地验收」，状态改为 in-review |
+| DOCUMENT_INDEX | 登记工作流、Issue、交付、代码解释、验证和同步表，状态改为 in-review |
 
 同步表见 [ISSUE-012-sync](../governance/ISSUE-012-sync.md)。
 
 ## 风险与后续
 
-`cf2c2a1` 的三个作业均成功，没有需要记成既有失败的套件。`buildTheme` 与构建产物的主题令牌扫描未做。合入和发布另记。Actions 对 checkout 等动作给出 Node 20 弃用提示，测试进程仍是 Node 24.9.0。
+`cf2c2a1` 的三个作业均成功，没有需要记成既有失败的套件。`buildTheme` 与构建产物的主题令牌扫描未做。合入和发布另记。运行器现固定 `ubuntu-24.04`。动作主版本为 checkout v7、setup-python v7、setup-node v7、pnpm/action-setup v6，它们的 `action.yml` 使用 `node24`。依赖缓存仍由 setup-python 与 setup-node 完成；独立的 actions/cache 最新主版本是 v6，同样是 `node24`，工作流没有另加一步。
