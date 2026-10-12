@@ -166,6 +166,12 @@ def test_toc_field_uses_heading_levels():
     assert any("TOC" in item and '1-3' in item for item in instructions)
 
 
+def test_settings_ask_word_to_update_fields_on_open():
+    _, parts = generated()
+    update = parts["word/settings.xml"].find(f"{W}updateFields")
+    assert attr(update, "val") == "true"
+
+
 def test_page_number_starts_on_body_and_cover_has_none():
     names, parts = generated()
     sections = list(parts["word/document.xml"].iter(W + "sectPr"))

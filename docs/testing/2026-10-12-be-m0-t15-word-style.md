@@ -10,7 +10,7 @@
 
 | 缺陷 | 改前 | 本次写法 |
 |---|---|---|
-| W1 | 无标题级别、目录、页码、页眉页脚 | Heading 1～3、多级编号、TOC 域、正文页码从 1 起、页眉和页脚 |
+| W1 | 无标题级别、目录、页码、页眉页脚 | Heading 1～3、多级编号、TOC 域、`w:updateFields w:val="true"`、正文页码从 1 起、页眉和页脚 |
 | W2 | 章节名是普通段落 | 分册用 `# 章节名`，导出为 Heading 1 |
 | W3 | 表头行不加粗 | 表头单元格 `w:b`，数据行不加粗 |
 | W4 | 默认字体缺 hAnsi | 每处 `w:rFonts` 写 ascii、hAnsi、eastAsia |
@@ -23,7 +23,7 @@
 env -u ICG_DATABASE_URL -u ICG_REQUIRE_MYSQL python3 -m pytest tests/backend -q
 ```
 
-结果：329 passed，2 skipped。新增用例在 `tests/backend/test_docx_default_style.py`，打开生成的 docx，检查标题级别、三种字体属性、字号间距与首行缩进、加粗表头、TOC 域、页码与分节、页边距，以及一份左边距改为 3.0 cm 的覆盖版式。
+结果：330 passed，2 skipped。新增用例在 `tests/backend/test_docx_default_style.py`，打开生成的 docx，检查标题级别、三种字体属性、字号间距与首行缩进、加粗表头、TOC 域、`word/settings.xml` 的 `w:updateFields w:val="true"`、页码与分节、页边距，以及一份左边距改为 3.0 cm 的覆盖版式。
 
 改生成代码之前，这些用例对旧导出失败：没有 Heading1，默认字体没有 hAnsi，表头没有加粗，没有 TOC，只有一节，四边仍是 1440 缇。
 
