@@ -218,3 +218,55 @@ test('collapsed sidebar expand control opens the menu at 1280/1440/1680 in light
     }
   }
 });
+
+test('overview steps, pending mark and editor meta meet 4.5:1', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await login(page, '/projects/alpha-project/overview');
+  const contrast = (element: Element) => {
+    const parsed = (value: string) => {
+      const match = value.match(/rgba?\(([^)]+)\)/);
+      if (!match) return null;
+      const parts = match[1].split(',').map(part => Number(part.trim()));
+      return { r: parts[0], g: parts[1], b: parts[2], a: parts.length === 4 ? parts[3] : 1 };
+    };
+    const linear = (channel: number) => {
+      const value = channel / 255;
+      return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    };
+    const luminance = (color: { r: number; g: number; b: number }) => 0.2126 * linear(color.r) + 0.7152 * linear(color.g) + 0.0722 * linear(color.b);
+    const layers = [];
+    let node: Element | null = element;
+    while (node) {
+      const background = parsed(getComputedStyle(node).backgroundColor);
+      if (background && background.a > 0) layers.push(background);
+      node = node.parentElement;
+    }
+    let mixed = { r: 255, g: 255, b: 255 };
+    for (const layer of layers.reverse()) {
+      mixed = {
+        r: mixed.r * (1 - layer.a) + layer.r * layer.a,
+        g: mixed.g * (1 - layer.a) + layer.g * layer.a,
+        b: mixed.b * (1 - layer.a) + layer.b * layer.a,
+      };
+    }
+    const foreground = parsed(getComputedStyle(element).color);
+    if (!foreground) return 0;
+    const left = luminance(foreground);
+    const right = luminance(mixed);
+    const [lighter, darker] = left > right ? [left, right] : [right, left];
+    return (lighter + 0.05) / (darker + 0.05);
+  };
+  const read = new Function('element', `return (${contrast.toString()})(element);`) as (element: Element) => number;
+  const readAll = new Function('elements', `const contrast = ${contrast.toString()}; return elements.map(element => contrast(element));`) as (elements: Element[]) => number[];
+  const circle = page.locator('.todo-circle').first();
+  await expect(circle).toBeVisible();
+  expect(await circle.evaluate(read)).toBeGreaterThanOrEqual(4.5);
+  const steps = page.locator('.ant-steps-icon');
+  expect(await steps.count()).toBeGreaterThan(0);
+  const stepRatios = await steps.evaluateAll(readAll);
+  expect(Math.min(...stepRatios)).toBeGreaterThanOrEqual(4.5);
+  await tab(page, '编辑台');
+  const meta = page.locator('.document-subline').first();
+  await expect(meta).toBeVisible();
+  expect(await meta.evaluate(read)).toBeGreaterThanOrEqual(4.5);
+});

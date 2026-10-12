@@ -48,3 +48,9 @@ QA 重签见 [T001 重签](2026-10-12-qa-t001-t002-t020-recheck.md)。侧栏默�
 新用例在 1280、1440、1680，以及浅色和深色 `colorScheme` 下：先确认侧栏收起且按钮中心点到的是按钮本身，再点击，侧栏宽于 200px，菜单文字「工作台」「企业资料库」可见。默认收起不改。
 
 `E2E_PYTHON=python3 pnpm --dir frontend/web exec playwright test --config e2e/playwright.config.ts`：**12 passed**。Node v24.21.0。没有改后台。本卡仍 in-review，不标 done。
+
+## E2E-D8：次要文字对比度（仍 in-review）
+
+QA 采样里，概览步骤号和「○」是 2.68:1，编辑台元信息是 2.91:1。`--muted` 从 `#86909c` 改为 `#4e5969`，主题 `colorTextSecondary` 用同一色，步骤号落在浅底上仍高于 4.5:1。正文用的橙色从 `#e08a1e` 改为 `#9a5608`；高亮边框仍用原来的 `--orange`。白底、`#f5f7fa` 和步骤图标的浅灰底上都至少 4.5:1。
+
+新用例在 1440 宽下读取概览步骤号、「○」和编辑台 `.document-subline` 的计算对比度。`E2E_PYTHON=python3 pnpm --dir frontend/web e2e`：**13 passed**。Node v24.21.0。没有改后台。本卡仍 in-review，不标 done。

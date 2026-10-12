@@ -38,7 +38,7 @@
 
 未保存信号只有编辑台的 `editorDirty`。`armedLeave` 在离开过程中忽略编辑台再次报脏，避免还没卸下的编辑器把脏标记写回来。真正离开编辑台时 `arrived(false)` 才清掉脏标记。401 仍立即 `logout`，不弹确认。退出按钮走 `requestDiscard`。
 
-`AppShell.tsx` 调用 `ProLayout`：`layout="mix"`、`navTheme="light"`、`siderWidth={216}`、默认收起、`breakpoint={false}`、`disableMobile`。`headerTitleRender={false}` 避免顶栏再放一次标志；`menuHeaderRender` 把标志留在深色侧栏。公司、用户和退出走 `actionsRender`，因此出现在顶栏而不是 64px 侧栏。样式把 mix 侧栏拉回视口顶部并保持 `#0F1C3F`，顶栏保持白色，内容区保持 `#F5F7FA`。收起时外壳带 `icg-shell-collapsed`，顶栏 `padding-inline-start` 为 48px，加上顶栏自己的 16px 外边距，按钮从 64px 侧栏右侧开始。展开后内边距改为 200px，按钮从 216px 侧栏右侧开始。这样 logo 不再挡住「收起或展开导航」。菜单用 `<a href>`，普通左键阻止默认并走站内导航，带修饰键的点击留给浏览器。`backend/bid-core/icg_demo/main.py` 在全部接口之后注册 `/{full_path:path}`，`include_in_schema=False`，因此 OpenAPI 仍是 49 路径 57 操作。`api/`、`static/`、`assets/` 继续 404。
+`AppShell.tsx` 调用 `ProLayout`：`layout="mix"`、`navTheme="light"`、`siderWidth={216}`、默认收起、`breakpoint={false}`、`disableMobile`。`headerTitleRender={false}` 避免顶栏再放一次标志；`menuHeaderRender` 把标志留在深色侧栏。公司、用户和退出走 `actionsRender`，因此出现在顶栏而不是 64px 侧栏。样式把 mix 侧栏拉回视口顶部并保持 `#0F1C3F`，顶栏保持白色，内容区保持 `#F5F7FA`。收起时外壳带 `icg-shell-collapsed`，顶栏 `padding-inline-start` 为 48px，加上顶栏自己的 16px 外边距，按钮从 64px 侧栏右侧开始。展开后内边距改为 200px，按钮从 216px 侧栏右侧开始。这样 logo 不再挡住「收起或展开导航」。次要文字 `--muted` 与主题 `colorTextSecondary` 为 `#4e5969`；待办「○」和 `.orange` 正文为 `#9a5608`。高亮边框仍用 `#e08a1e`。菜单用 `<a href>`，普通左键阻止默认并走站内导航，带修饰键的点击留给浏览器。`backend/bid-core/icg_demo/main.py` 在全部接口之后注册 `/{full_path:path}`，`include_in_schema=False`，因此 OpenAPI 仍是 49 路径 57 操作。`api/`、`static/`、`assets/` 继续 404。
 
 演示登录令牌只放在页面内存。刷新后会话丢失，需要重新登录；地址还在，登录成功后 `routeAfterLogin` 回到该地址。确认刷新会丢掉尚未保存的编辑台文字。
 

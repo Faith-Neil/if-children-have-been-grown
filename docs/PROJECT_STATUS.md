@@ -16,7 +16,7 @@ ISSUE-016 / AI-03 为 in-review：嵌入、重排和向量检索只有内存实�
 
 ## 当前共同底座阶段
 
-ISSUE-009 / APP-M2-T001已接可信会话和页面守卫：后台当前身份、导航/动作及最小项目权限真实读取，页面先核对再取业务数据；独立发现的撤权/迟到读取/连续切页问题已修复。262后台、72前端、真实会话HTTP16项、最终类型/构建及GUI通过，真实两册文件不含个人私稿，见[阶段交付](delivery/APP-M2-T001.md)。ProLayout、浏览器地址和编辑台未保存离开已提交复核，任务与 ISSUE-009、ISSUE-014 均为 in-review，不能标 done。资料列表/详情T046/047依赖的元数据表格/表单与敏感展示仍未验收，继续planned。业务库已决定为 MySQL 8，对话模型与 RAGFlow 的决定已登记，运行仍用内存和演示模型。未设置 `ICG_DATABASE_URL` 时同样如此，OIDC另在T010验收。证据见[布局复核](testing/2026-10-12-prolayout-routes.md)。QA 在 `200a105` 签署该切片不通过。浅色内容、顶栏和前进/后退已修复并再次提交 in-review。E2E-D7：侧栏默认仍收起，展开按钮已移到 logo 右侧，1280/1440/1680 浅色和深色可点开菜单。见[修复复核](testing/2026-10-12-t001-layout-history.md)。ISSUE-020 已把外壳和项目页改为按路由加载，首屏主块 315.94 kB，低于引入 ProLayout 前的 1334.42 kB；该 Issue 为 in-review，不能标 done。见[分包复核](testing/2026-10-12-route-chunks.md)。
+ISSUE-009 / APP-M2-T001已接可信会话和页面守卫：后台当前身份、导航/动作及最小项目权限真实读取，页面先核对再取业务数据；独立发现的撤权/迟到读取/连续切页问题已修复。262后台、72前端、真实会话HTTP16项、最终类型/构建及GUI通过，真实两册文件不含个人私稿，见[阶段交付](delivery/APP-M2-T001.md)。ProLayout、浏览器地址和编辑台未保存离开已提交复核，任务与 ISSUE-009、ISSUE-014 均为 in-review，不能标 done。资料列表/详情T046/047依赖的元数据表格/表单与敏感展示仍未验收，继续planned。业务库已决定为 MySQL 8，对话模型与 RAGFlow 的决定已登记，运行仍用内存和演示模型。未设置 `ICG_DATABASE_URL` 时同样如此，OIDC另在T010验收。证据见[布局复核](testing/2026-10-12-prolayout-routes.md)。QA 在 `200a105` 签署该切片不通过。浅色内容、顶栏和前进/后退已修复并再次提交 in-review。E2E-D7：侧栏默认仍收起，展开按钮已移到 logo 右侧，1280/1440/1680 浅色和深色可点开菜单。E2E-D8：次要文字对比度至少 4.5:1。见[修复复核](testing/2026-10-12-t001-layout-history.md)。ISSUE-020 已把外壳和项目页改为按路由加载，首屏主块 315.94 kB，低于引入 ProLayout 前的 1334.42 kB；该 Issue 为 in-review，不能标 done。见[分包复核](testing/2026-10-12-route-chunks.md)。
 
 ## 内网部署草案
 

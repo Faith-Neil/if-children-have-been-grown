@@ -9,7 +9,7 @@ import './styles.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode><ConfigProvider locale={zhCN} theme={{
-    token: { colorPrimary: '#1E4DB7', colorInfo: '#1E4DB7', colorSuccess: '#2B9D5C', colorWarning: '#E08A1E', colorError: '#D9363E', colorText: '#1D2129', colorTextSecondary: '#86909C', colorBgLayout: '#F5F7FA', borderRadius: 6, fontSize: 13, fontFamily: '"Microsoft YaHei", "PingFang SC", sans-serif', controlHeight: 32 },
+    token: { colorPrimary: '#1E4DB7', colorInfo: '#1E4DB7', colorSuccess: '#2B9D5C', colorWarning: '#E08A1E', colorError: '#D9363E', colorText: '#1D2129', colorTextSecondary: '#4E5969', colorBgLayout: '#F5F7FA', borderRadius: 6, fontSize: 13, fontFamily: '"Microsoft YaHei", "PingFang SC", sans-serif', controlHeight: 32 },
     components: { Table: { headerBg: '#F7F8FA', cellPaddingBlockSM: 11, cellPaddingInlineSM: 12 }, Tabs: { horizontalItemGutter: 26 } },
   }}><AntApp><App /></AntApp></ConfigProvider></React.StrictMode>,
 );
