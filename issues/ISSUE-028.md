@@ -26,7 +26,7 @@
 
 [ISSUE-010](ISSUE-010.md) 已关闭：对话模型由配置页提供。今天的 `OpenAICompatibleModelProvider` 仍从环境变量读取，默认提供者仍是演示替身。
 
-本 Issue 只写 Provider 侧如何按配置切换：读取配置、任务启动时快照、local/cloud 路由、敏感项目约束、流式与 JSON 模式、错误映射、`job.model_call` 字段。配置的存储、API、加密和 If-Match 归后端 [ISSUE-024](ISSUE-024.md)。字段以该 Issue 列出的 `id`、`revision`、`allow_sensitive`、`stream_enabled`、`json_mode_enabled` 和密钥掩码规则为准。本文件引用 `stream_enabled` 与 `json_mode_enabled` 这两个名字。类型、默认值、纳入 `revision` 乐观锁，以及任务开始时随配置快照，均以 ISSUE-024 的 D-1 定义为准。本文件不重定义，也不重复那些存储字段。
+本 Issue 只写 Provider 侧如何按配置切换：读取配置、任务启动时快照、local/cloud 路由、敏感项目约束、流式与 JSON 模式、错误映射、`job.model_call` 字段。配置的存储、API、加密和 If-Match 归后端 [ISSUE-024](ISSUE-024.md)。字段以该 Issue 为准。本文件只链接 [`stream_enabled`](ISSUE-024.md) 与 [`json_mode_enabled`](ISSUE-024.md)，不重定义。
 
 ## 影响与分流
 
@@ -73,6 +73,7 @@
 | 2026-10-12 | model-config-design-2 / in-review | PM 批准 D-1 后，本文件只引用 ISSUE-024 的 `stream_enabled` 与 `json_mode_enabled`，不写默认值或含义。状态仍 in-review | [ISSUE-024](ISSUE-024.md) |
 | 2026-10-12 | model-config-design-2 / in-review | QA P3（REV-M0-T17，f5af6db）：决定记录改为 ISSUE-024 已由后台建档并拥有模型配置字段。流式与 JSON 模式开关的字段名归 ISSUE-024（后台决定，D-1），本 Issue 只引用、不定义。AI-01 补未勾选验收：敏感项目使用非本地模型返回 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`（由 409 改为 403）。状态仍 in-review | [决定核对](../docs/testing/2026-10-12-issue-010-decisions.md) |
 | 2026-10-12 | model-config-design-2 / in-review | 后台决定 D-1 已写在 ISSUE-024。本 Issue 引用 `stream_enabled` 与 `json_mode_enabled`。类型、默认值、`revision` 乐观锁和任务开始时的配置快照以该文件为准，不重定义。状态仍 in-review | [ISSUE-024](ISSUE-024.md) |
+| 2026-10-12 | model-config-design-2 / in-review | `3e1445e` 已把 D-1 字段写进 ISSUE-024。本文件只链接 [`stream_enabled`](ISSUE-024.md) 与 [`json_mode_enabled`](ISSUE-024.md)，不抄定义。状态仍 in-review | [ISSUE-024](ISSUE-024.md) |
 
 ## 本地验收与后续合入发布
 

@@ -85,3 +85,19 @@
 | backend/bid-core | 无 | 不改 | 2026-10-12 |
 
 未合入，未发布。没有重跑 pytest：本轮不改后台代码。`node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：247 份 Markdown、371 项任务、29 项 Issue。」检查程序未修改。
+
+## 只链接 D-1 字段名
+
+日期：2026-10-12。`3e1445e` 已在 `issues/ISSUE-024.md` 定义 `stream_enabled` 与 `json_mode_enabled`。ISSUE-028 文档只链接这两个名字，不抄类型、默认值、乐观锁或快照。ISSUE-028 仍为 in-review。不改 ISSUE-024 正文。不改任务计数。
+
+| 文档 | 本次影响 | 实际处理 | 版本与状态 |
+|---|---|---|---|
+| 决定记录 | 有 | 两个字段名改为指向 ISSUE-024 的链接 | 2026-10-12 |
+| issues/ISSUE-028.md | 有 | 正文与新历史只放链接。状态仍 in-review | model-config-design-2 |
+| model-config-provider.md | 有 | 同上 | in-review |
+| DOCUMENT_INDEX.md | 有 | 更新 D-295、D-296、D-298，并追加变更记录。不改历史行 | 2026-10-12 |
+| issues/ISSUE-024.md | 无 | 不改 | new |
+| PRD.md / ROADMAP.md / PROJECT_BRIEF.md | 无 | 不改正文，不改计数 | 2026-10-12 |
+| spec 与 backend | 无 | 不改 | 2026-10-12 |
+
+未合入，未发布。没有重跑 pytest。`node scripts/check-project-governance.cjs` 通过，输出为「治理检查通过：247 份 Markdown、371 项任务、29 项 Issue。」检查程序未修改。
