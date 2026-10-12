@@ -10,7 +10,7 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
-| D-001 | 2026-10-12 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-023 / BE-M0-T10；ISSUE-018 | 360项。连接与空迁移 in-review；业务表未入库 |
+| D-001 | 2026-10-12 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-009 / APP-M2-T002；ISSUE-023 / BE-M0-T10 | 360项23done、8in-review、268planned。请求层 in-review；业务表未入库 |
 | D-002 | 2026-10-11 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1 | ICG PRD1.8/字典1.9为当前目标；旧视图保留来源 |
 | D-003 | 2026-10-12 | [前端架构](ARCHITECTURE.md) | 前端架构 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-011 / AI-02；ISSUE-016 / AI-03 | 同源存储和替换接口；业务库为 MySQL 8，向量库未选定；检索口仅内存 |
 | D-004 | 2026-10-12 | [前端路线图](ROADMAP.md) | 计划 | 参考实施入口 / g1.1 | 执行入口 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-012 / T008；ISSUE-016 / AI-03；ISSUE-022 / T124 | 356项23done、6in-review、266planned、50blocked；T124仍blocked，契约草案待复核 |
@@ -21,12 +21,12 @@
 | D-009 | 2026-10-09 | [基线差异](decisions/baseline-gaps.md) | 决策 | 初版 | 待评审 | FE-M0-T01 | 16项版本、范围与选型差异 |
 | D-010 | 2026-10-09 | [PR #1 评审](reviews/pr-1-integration.md) | 协作 | 初版 / g1.0后续记录 | 待整合 | ISSUE-001 / ISSUE-003 | 系统/前端分层及后续规则、索引整合提醒 |
 | D-011 | 2026-10-09 | [原型说明](../prototypes/bidding-ux/README.md) | 原型 | 静态演示 | 当前 | ISSUE-002 / FE-M0-T01 | 离线打开、启动方法与模拟范围 |
-| D-012 | 2026-10-12 | [Issue 看板](../issues/index.md) | 问题 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-018；ISSUE-023 | 018为in-progress；023为in-review；010整体仍blocked |
+| D-012 | 2026-10-12 | [Issue 看板](../issues/index.md) | 问题 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-009 / APP-M2-T002；ISSUE-023 | 009仍in-review，T002已提交；023为in-review；010整体仍blocked |
 | D-013 | 2026-10-09 | [首轮测试](testing/2026-10-09-repository-foundation.md) | 验证 | 首轮快照 | 已验收 | ISSUE-002 / FE-M0-T01 | 编辑锁6项回归及当时链接校验 |
 | D-014 | 2026-10-09 | [首轮交付](delivery/2026-10-09-repository-foundation.md) | 交付 | 首轮快照 | 历史证据 | FE-M0-T01 | 保留原交付事实；逐任务归档见D-030 |
 | D-015 | 2026-10-12 | [协作流程](governance/WORKFLOW.md) | 治理 | g1.1 | 当前规则 | ISSUE-007 / APP-M1；ISSUE-012 | 同一任务核对页面、后台与业务证据；开发者只标 in-review，治理块不升版 |
 | D-016 | 2026-10-09 | [本次同步表](governance/ISSUE-003-sync.md) | 治理 | g1.0 | 本次记录 | ISSUE-003 / FE-M0-T02 | 四份基线及看板、进度、索引的影响评估 |
-| D-017 | 2026-10-12 | [任务看板](TASK_BOARD.md) | 执行 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-023 / BE-M0-T10；ISSUE-022 / T124 | 360项23done、7in-review、7in-progress、269planned、50blocked、4ready。T124仍blocked，契约草案待复核 |
+| D-017 | 2026-10-12 | [任务看板](TASK_BOARD.md) | 执行 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-009 / APP-M2-T002；ISSUE-022 / T124 | 360项23done、8in-review、7in-progress、268planned、50blocked、4ready。T124仍blocked |
 | D-018 | 2026-10-12 | [FE-M0 任务卡](tasks/FE-M0.md) | 基线与基础 | g1.1 | 当前计划 | ISSUE-006 / BE-M0-T01；ISSUE-010 | 前置基线、治理、契约与基础；T04仍待ISSUE-010 |
 | D-019 | 2026-10-09 | [FE-M1 任务卡](tasks/FE-M1.md) | 项目主流程 | g1.0 | 当前计划 | FE-M1 | 项目、招标解析、矩阵、事实 |
 | D-020 | 2026-10-09 | [FE-M2 任务卡](tasks/FE-M2.md) | 章节生成 | g1.0 | 当前计划 | FE-M2 | 方案确认、任务进度、修正与转人工 |
@@ -93,7 +93,7 @@
 | D-081 | 2026-10-11 | [示例任务卡](tasks/APP-M1.md) | 实施 | reference-members-1 / library-basis-1 | 当前 | ISSUE-007 / APP-M1；ISSUE-008 / T16 | 16项，T07/T09～16本地done；资料及模板保护验收，完整父任务继续 |
 | D-082 | 2026-10-11 | [示例接口约定](architecture/icg-reference-contract.md) | 接口 | reference-members-1 | 实际契约 | ISSUE-007 / APP-M1 | 项目成员、分册/本节分工、逐章确认、已读依据和交接保护 |
 | D-083 | 2026-10-11 | [示例差异记录](decisions/icg-reference-deviations.md) | 评审 | reference-1 | 持续维护 | ISSUE-007 / APP-M1 | 版本缺件、已取消页签和高级功能差异 |
-| D-084 | 2026-10-11 | [产品页面说明](../frontend/web/README.md) | 工程 | application-foundation-1 | 构建通过 | ISSUE-007 / APP-M1；ISSUE-008 / T16；ISSUE-009 / T001 | 72前端、可信会话守卫和真实页面；完整底座未完成 |
+| D-084 | 2026-10-12 | [产品页面说明](../frontend/web/README.md) | 工程 | request-layer-1 | 构建通过 | ISSUE-009 / APP-M2-T001；APP-M2-T002 | 请求层 in-review：同一把键，章节版本头与正文相同；完整底座未完成 |
 | D-085 | 2026-10-11 | [独立主流程测试](../tests/backend/test_reference_flow.py) | 验证代码 | reference-1 | 21项通过 | ISSUE-007 / APP-M1-T06 | 两册真实内容、源页码、输入失效与权限，页面主流程另有阶段记录 |
 | D-086 | 2026-10-11 | [完整示例覆盖清单](testing/icg-coverage.md) | 验收范围 | reference-members-1 / library-basis-1 | 未完整交付 | ISSUE-007 / APP-M1；ISSUE-008 / T16 | 成员及逐章确认更新，完整资料治理和业务规则仍缺 |
 | D-087 | 2026-10-11 | [截图来源](testing/assets/README.md) | 证据 | reference-1 / library-basis-1 | 来源已登记 | ISSUE-007 / APP-M1；ISSUE-008 / T16 | 合成项目截图；新增资料/模板6张，不能代替完整验收 |
@@ -152,7 +152,7 @@
 | D-139 | 2026-10-11 | [逐章确认交付](delivery/APP-M1-T15.md) | 交付 | reference-members-1 | 本地done | ISSUE-007 / APP-M1-T15 | 独立方案/权限、真实旧表单核对和两册 |
 | D-140 | 2026-10-11 | [逐章代码解释](code/APP-M1-T15.md) | 说明 | reference-members-1 | 当前 | ISSUE-007 / APP-M1-T15 | 单章确认依赖、逐次生成权限和旧行保护 |
 | D-141 | 2026-10-12 | [完整后续任务](tasks/APP-M2.md) | 实施计划 | icg-task-plan-1 | T008 in-review，其余按卡 | ISSUE-007 / APP-M1-T07 / APP-M2；ISSUE-012 | 每卡来源/接口核对/权限失败/依赖验收与交付；T008本轮只记离线CI |
-| D-142 | 2026-10-12 | [逐页逐规则映射](testing/icg-task-mapping.md) | 范围核对 | icg-task-map-1 | 已核对范围，功能未完成 | ISSUE-007 / APP-M1-T07；ISSUE-012 | 190原M1～M6 WBS、47组/44规则；T008状态改为 in-review |
+| D-142 | 2026-10-12 | [逐页逐规则映射](testing/icg-task-mapping.md) | 范围核对 | icg-task-map-1 | 已核对范围，功能未完成 | ISSUE-007 / APP-M1-T07；ISSUE-009 / APP-M2-T002 | 190原M1～M6 WBS、47组/44规则；T002 改为 in-review |
 | D-143 | 2026-10-11 | [项目范围核对](../backend/bid-core/icg_demo/project_access.py) | 代码 | reference-members-1 | 回归通过 | ISSUE-007 / APP-M1-T14 | 公司操作角色与项目成员/分册/本节共同判定 |
 | D-144 | 2026-10-11 | [团队交接](../backend/bid-core/icg_demo/project_team.py) | 代码 | reference-members-1 | 回归通过 | ISSUE-007 / APP-M1-T14、T15 | 分工资格、交接理由、旧锁撤销和每人草稿保留 |
 | D-145 | 2026-10-11 | [真实成员HTTP](../backend/bid-core/smoke_members.py) | 验证工具 | reference-members-1 | 实际端口通过 | ISSUE-007 / APP-M1-T14、T15 | 合成多账号独立确认/交接/私有稿与两册真实下载 |
@@ -287,6 +287,10 @@
 | D-272 | 2026-10-12 | [连接代码说明](code/BE-M0-T10.md) | 说明 | deps-1 | 当前 | ISSUE-023 / BE-M0-T10 | 环境变量决定仓库；业务读写仍在内存 |
 | D-273 | 2026-10-12 | [连接与迁移验证](testing/2026-10-12-mysql-connection.md) | 验证 | deps-1 | 已执行 | ISSUE-023 / BE-M0-T10 | mysql:8.4；含运维命令和 uvicorn 结果 |
 | D-274 | 2026-10-12 | [023同步表](governance/ISSUE-023-sync.md) | 治理 | deps-1 | 已核对 | ISSUE-023 / BE-M0-T10 | PRD、ROADMAP、ARCHITECTURE 未改 |
+| D-277 | 2026-10-12 | [请求层交付](delivery/APP-M2-T002.md) | 交付 | request-layer-1 | in-review | ISSUE-009 / APP-M2-T002 | 错误体、追踪号、键复用和章节版本同一把键；不标 done |
+| D-278 | 2026-10-12 | [请求层代码说明](code/APP-M2-T002.md) | 说明 | request-layer-1 | 当前 | ISSUE-009 / APP-M2-T002 | 一次调用一把键；旧章节头与正文相同 |
+| D-279 | 2026-10-12 | [请求层验证](testing/2026-10-12-request-layer.md) | 验证 | request-layer-1 | 已执行 | ISSUE-009 / APP-M2-T002 | 前端 89 项通过；未打真实后台 |
+| D-280 | 2026-10-12 | [请求层同步](governance/APP-M2-T002-sync.md) | 治理 | request-layer-1 | 已核对 | ISSUE-009 / APP-M2-T002 | PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF 未改 |
 
 ## 更新记录
 
@@ -330,6 +334,7 @@
 | 2026-10-12 | ISSUE-022 / APP-M2-T124 | 大纲契约草案为 draft, pending backend review，Issue 改为 in-review。T124 仍 blocked，任务计数保持 356项23done、6in-review、7in-progress、266planned、50blocked、4ready。startGeneration 对齐尚未实现的 BE-M0-T06。T078 只记录独立存储计划 |
 | 2026-10-12 | ISSUE-009 / APP-M2-T001 | QA退回后的浅色内容、顶栏和前进/后退修复，重新提交 in-review。356项计数不变。未改基线正文，未改后台，未标 done |
 | 2026-10-12 | ISSUE-023 / BE-M0-T10；ISSUE-018 | 项目经理批准四项依赖。连接与空基线为 in-review，T11～T13 planned。360项23done、7in-review、7in-progress、269planned、50blocked、4ready。未改 PRD、ROADMAP、ARCHITECTURE，未改公网 CI |
+| 2026-10-12 | ISSUE-009 / APP-M2-T002 | 请求层提交 in-review。章节版本的 Idempotency-Key 与正文 idempotency_key 相同。360项23done、8in-review、7in-progress、268planned、50blocked、4ready。未改 PRD、ROADMAP、ARCHITECTURE、PROJECT_BRIEF，未改后台，未标 done |
 
 ## 缺失输入
 

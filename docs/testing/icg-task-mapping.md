@@ -122,7 +122,7 @@ T07上段为范围拆分阶段记录；当前ISSUE-009 / APP-M2-T001为 in-revie
 | ID | 标题 | 状态 | 依赖 | 原细卡/规则 |
 |---|---|---|---|---|
 | [APP-M2-T001](../tasks/APP-M2.md#app-m2-t001) | ProLayout 布局、路由、权限守卫、请求层 | in-review | BE-M0-T01 | M1-P08-01 |
-| [APP-M2-T002](../tasks/APP-M2.md#app-m2-t002) | 请求层细化：错误体、traceId 复制、Idempotency-Key 注入、重试策略 | planned | BE-M0-T01、APP-M2-T001 | M1-P08-F2 |
+| [APP-M2-T002](../tasks/APP-M2.md#app-m2-t002) | 请求层细化：错误体、traceId 复制、Idempotency-Key 注入、重试策略 | in-review | BE-M0-T01、APP-M2-T001 | M1-P08-F2 |
 | [APP-M2-T003](../tasks/APP-M2.md#app-m2-t003) | 通用状态组件（骨架、空态、错误、无权限、已过期、只读） | planned | BE-M0-T01、APP-M2-T001 | M1-P08-F3 |
 | [APP-M2-T004](../tasks/APP-M2.md#app-m2-t004) | 业务小组件：LevelTag、AiTag、DirectTag、Cite、SourceBar | planned | BE-M0-T01、APP-M2-T003 | M1-P08-F4 |
 | [APP-M2-T005](../tasks/APP-M2.md#app-m2-t005) | 元数据驱动表格（ProTable 封装、列合并、无横滚优先） | planned | BE-M0-T01、APP-M2-T003 | M1-P08-F5 |
@@ -452,7 +452,7 @@ T07上段为范围拆分阶段记录；当前ISSUE-009 / APP-M2-T001为 in-revie
     {
       "id": "APP-M2-T002",
       "title": "请求层细化：错误体、traceId 复制、Idempotency-Key 注入、重试策略",
-      "status": "planned",
+      "status": "in-review",
       "phase": "一期业务页面/支撑",
       "source": "M1-P08-F2",
       "source_key": "P08.F2",

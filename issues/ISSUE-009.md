@@ -12,9 +12,9 @@
 | 状态 | in-review |
 | 登记 / 更新日期 | 2026-10-11 / 2026-10-12 |
 | revision | application-foundation-1；本轮 layout-review-1 |
-| 关联 Task | APP-M2-T001；后续T003、T005、T006、T014～018、T046～050 |
+| 关联 Task | APP-M2-T001；APP-M2-T002；后续T003、T005、T006、T014～018、T046～050 |
 | 关联 PR | [PR #3](https://github.com/Faith-Neil/if-children-have-been-grown/pull/3)，待合入 |
-| 本地验收 | QA 于 200a105 签署不通过。D1–D4 与 D6 修复后重新提交 in-review，等待项目经理再次签收。阶段一262后台、72前端、16真实HTTP及GUI仍为历史证据 |
+| 本地验收 | QA 于 200a105 签署不通过。D1–D4 与 D6 修复后重新提交 in-review。T002 请求层前端 89 项通过，同样等待项目经理签收。阶段一262后台、72前端、16真实HTTP及GUI仍为历史证据 |
 | 合入 / 发布 | 未合入 / 未发布 |
 
 ## 当前缺口与完整范围
@@ -90,3 +90,19 @@ getSession已真实实现并由页面消费；实际OpenAPI49路径57操作。�
 | `docs/PROJECT_BRIEF.md` 第68行 | 整卡仍进行中：接下来补实际布局组件、浏览器地址/返回与全页离开保护 | brief 不改。接手说明仍把本卡当作未签收 |
 
 同步表见 [布局修复同步](../docs/governance/APP-M2-T001-layout-sync.md)。
+
+## 请求层（仍不标 done）
+
+APP-M2-T002 按 `cba6282` 冻结的错误体和幂等约定提交 in-review。`/api/v1` 读取 `{code, message, details, traceId}`，旧 `/api` 读取 `{error, request_id}`，响应头 `X-Request-ID` 优先。同一次写入只使用一把 `Idempotency-Key`；网络错误、502 和 503 复用该键，最多 3 次（含首次）。409、422、423、428、401 和 500 不自动重试。`POST /api/chapters/{id}/versions` 的请求头与正文 `idempotency_key` 相同，避免服务端因两处不一致返回 409。证据见 [请求层验证](../docs/testing/2026-10-12-request-layer.md) 与 [交付](../docs/delivery/APP-M2-T002.md)。上文「未纳入本轮」里的请求层细化指布局那一轮；本段起 T002 单独提交复核。Issue 与 T001、T002 仍为 in-review。
+
+| 文件 | 仍在的句子 | 不改的原因 |
+|---|---|---|
+| `docs/PRD.md` 第19行 | 其中T001共同底座已开工，其余258卡planned | 本卡未 done。活状态在任务看板：T001 与 T002 为 in-review，其余 255 张 APP-M2 卡 planned |
+| `docs/PRD.md` 第21行 | 整个T001、OIDC和完整资料库仍未完成 | T001 未 done，这句话仍然成立 |
+| `docs/ROADMAP.md` 第17行 | 当前共356项任务，23done、6in-review、7in-progress、266planned、50blocked、4ready | 路线图正文不改。活的计数在任务看板：360 项，23 done、8 in-review、7 in-progress、268 planned、50 blocked、4 ready |
+| `docs/ROADMAP.md` 第19行 | 整卡继续in-progress。接下来补实际ProLayout、浏览器路由/返回和全页未保存保护 | 布局已再次提交复核，请求层另卡提交，项目经理尚未签收 |
+| `docs/ARCHITECTURE.md` 第21行 | 布局、浏览器路由和全页离开保护继续本卡 | 架构正文不改 |
+| `docs/PROJECT_BRIEF.md` 第30行 | 当前共360项：23done、7in-review、7in-progress、269planned、50blocked、4ready | brief 排期行不改。活的计数已把 T002 计入 in-review |
+| `docs/PROJECT_BRIEF.md` 第68行 | 整卡仍进行中：接下来补实际布局组件、浏览器地址/返回与全页离开保护 | brief 不改。接手说明仍把底座当作未签收 |
+
+同步表见 [请求层同步](../docs/governance/APP-M2-T002-sync.md)。

@@ -13,7 +13,7 @@
 | 登记 / 更新日期 | 2026-10-09 / 2026-10-12 |
 | revision | progress-4 |
 | 来源 | ISSUE-004 / REV-M0-T01的业务与技术审查；DG-05卡片已获批准 |
-| 关联Task | FE-M0-T03 / FE-M0-T04；BE-M0-T02～T07；APP-M2-T002仍planned |
+| 关联Task | FE-M0-T03 / FE-M0-T04；BE-M0-T02～T07；APP-M2-T002为 in-review |
 | 本地验收 | DG-05卡片(a)(b)已由项目经理于 10-12 12:28 在 QA 签署后确认。T04～T07 未完成，本 Issue 保持 in-progress，不关闭 |
 | 合入 / 发布 | 本轮直接提交在`codex/repository-foundation`；PR #3未合入 / 未发布 |
 
@@ -57,7 +57,7 @@ PRD、ROADMAP、ARCHITECTURE将按每项最终决定同步业务正文及版本�
 | (e) 可恢复任务 202+SSE | [BE-M0-T06](../docs/tasks/BE-M0.md#be-m0-t06) | ready | 未开工 |
 | (f) operationId检查 | [BE-M0-T07](../docs/tasks/BE-M0.md#be-m0-t07) | ready | 未开工 |
 
-`VOLUME_OWNER_REQUIRED`固定403，`TWO_VOLUMES_REQUIRED`固定422，`MODEL_UNAVAILABLE`固定502。幂等范围是scope、账号和键；失败不保存；内存最多2048条。旧章节提交仍接受正文字段。前端请求层APP-M2-T002继续planned，因为APP-M2-T001尚未验收。DG-01～DG-04、DG-06以及DG-05的后四张卡未关闭。本Issue保持 in-progress，不标 closed。同步表见[ISSUE-005本轮同步](../docs/governance/ISSUE-005-sync.md)。
+`VOLUME_OWNER_REQUIRED`固定403，`TWO_VOLUMES_REQUIRED`固定422，`MODEL_UNAVAILABLE`固定502。幂等范围是scope、账号和键；失败不保存；内存最多2048条。旧章节提交仍接受正文字段。前端请求层 APP-M2-T002 已按冻结契约提交 in-review，挂在 ISSUE-009；请求头与正文 `idempotency_key` 使用同一把键。DG-01～DG-04、DG-06以及DG-05的后四张卡未关闭。本Issue保持 in-progress，不标 closed。同步表见[ISSUE-005本轮同步](../docs/governance/ISSUE-005-sync.md)。
 
 ## 2026-10-12：基线正文
 

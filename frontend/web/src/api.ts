@@ -7,26 +7,94 @@ export class ApiError extends Error {
   }
 }
 
-export async function request<T>(path: string, token: string | null, method = 'GET', body?: unknown, revision?: number): Promise<T> {
-  const headers: Record<string, string> = {};
-  if (token) headers.Authorization = `Bearer ${token}`;
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
-  if (method !== 'GET' && path.startsWith('/api/v1/')) {
-    headers['Idempotency-Key'] = crypto.randomUUID();
-    if (revision !== undefined) headers['If-Match'] = String(revision);
-  }
-  const response = await fetch(path, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined, cache: 'no-store' });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new ApiError(response.status, data.error?.code ?? data.code ?? 'REQUEST_FAILED', data.error?.message ?? data.message ?? '操作失败，请稍后重试。', data.request_id ?? data.traceId, data.details ?? data.error?.details);
-  return data as T;
+export const retryLimit = 3;
+
+export function canRetryStatus(status: number) {
+  return status === 502 || status === 503;
 }
 
-export async function download(path: string, token: string, filename: string) {
-  const response = await fetch(path, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new ApiError(response.status, data.error?.code ?? data.code ?? 'DOWNLOAD_FAILED', data.error?.message ?? data.message ?? '下载失败，请重新检查。');
+export function userFacingMessage(error: unknown) {
+  if (error instanceof ApiError) return error.requestId ? `${error.message}（追踪号 ${error.requestId}）` : error.message;
+  return error instanceof Error && error.message ? error.message : '操作失败，请稍后重试。';
+}
+
+function textField(source: Record<string, unknown> | null, key: string) {
+  const value = source?.[key];
+  return typeof value === 'string' && value ? value : undefined;
+}
+
+export function apiFailure(status: number, data: unknown, headerId?: string) {
+  const body = data && typeof data === 'object' ? data as Record<string, unknown> : {};
+  const nested = body.error && typeof body.error === 'object' ? body.error as Record<string, unknown> : null;
+  const code = textField(nested, 'code') ?? textField(body, 'code') ?? 'REQUEST_FAILED';
+  const message = textField(nested, 'message') ?? textField(body, 'message') ?? '操作失败，请稍后重试。';
+  const requestId = headerId || textField(body, 'traceId') || textField(body, 'request_id');
+  const details = body.details && typeof body.details === 'object'
+    ? body.details as Record<string, unknown>
+    : nested?.details && typeof nested.details === 'object' ? nested.details as Record<string, unknown> : undefined;
+  return new ApiError(status, code, message, requestId, details);
+}
+
+function defaultWait(ms: number) {
+  return new Promise<void>(resolve => { setTimeout(resolve, ms); });
+}
+
+async function runAttempts<T>(action: () => Promise<T>, wait: (ms: number) => Promise<void>) {
+  let last: unknown;
+  for (let attempt = 0; attempt < retryLimit; attempt += 1) {
+    try {
+      return await action();
+    } catch (error) {
+      last = error;
+      const retry = error instanceof ApiError ? canRetryStatus(error.status) : error instanceof TypeError;
+      if (!retry || attempt === retryLimit - 1) throw error;
+      await wait(200 * 2 ** attempt);
+    }
   }
+  throw last;
+}
+
+async function readJson(response: Response) {
+  return response.json().catch(() => ({}));
+}
+
+function isChapterVersionWrite(path: string, method: string) {
+  if (method === 'GET') return false;
+  const bare = path.split(/[?#]/, 1)[0];
+  return /^\/api\/chapters\/[^/]+\/versions$/.test(bare);
+}
+
+function chapterVersionPayload(body: unknown) {
+  const source = body && typeof body === 'object' && !Array.isArray(body) ? { ...(body as Record<string, unknown>) } : {};
+  const supplied = source.idempotency_key;
+  const key = typeof supplied === 'string' && supplied ? supplied : crypto.randomUUID();
+  source.idempotency_key = key;
+  return { key, body: source };
+}
+
+export async function request<T>(path: string, token: string | null, method = 'GET', body?: unknown, revision?: number, wait: (ms: number) => Promise<void> = defaultWait): Promise<T> {
+  const version = isChapterVersionWrite(path, method) ? chapterVersionPayload(body) : undefined;
+  const outbound = version ? version.body : body;
+  const idempotencyKey = version?.key ?? (method !== 'GET' && path.startsWith('/api/v1/') ? crypto.randomUUID() : undefined);
+  return runAttempts(async () => {
+    const headers: Record<string, string> = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+    if (outbound !== undefined) headers['Content-Type'] = 'application/json';
+    if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
+    if (method !== 'GET' && path.startsWith('/api/v1/') && revision !== undefined) headers['If-Match'] = String(revision);
+    const response = await fetch(path, { method, headers, body: outbound !== undefined ? JSON.stringify(outbound) : undefined, cache: 'no-store' });
+    const data = await readJson(response);
+    if (!response.ok) throw apiFailure(response.status, data, response.headers.get('X-Request-ID') ?? undefined);
+    return data as T;
+  }, wait);
+}
+
+export async function download(path: string, token: string, filename: string, wait: (ms: number) => Promise<void> = defaultWait) {
+  const response = await runAttempts(async () => {
+    const result = await fetch(path, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+    if (!result.ok) throw apiFailure(result.status, await readJson(result), result.headers.get('X-Request-ID') ?? undefined);
+    return result;
+  }, wait);
   const objectUrl = URL.createObjectURL(await response.blob());
   const link = document.createElement('a'); link.href = objectUrl; link.download = filename; document.body.append(link); link.click(); link.remove();
   setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);

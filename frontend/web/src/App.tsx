@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Alert, App as AntApp, Badge, Breadcrumb, Button, Card, Col, Drawer, Empty, Form, Input, Modal, Progress, Result, Row, Select, Space, Spin, Statistic, Table, Tabs, Tag, Tooltip } from 'antd';
 import { AppstoreOutlined, ApartmentOutlined, BellOutlined, BookOutlined, CheckSquareOutlined, ClockCircleOutlined, DatabaseOutlined, DownOutlined, FileTextOutlined, PlusOutlined, SearchOutlined, SettingOutlined, TeamOutlined } from '@ant-design/icons';
-import { ApiError, download, request } from './api';
+import { ApiError, download, request, userFacingMessage } from './api';
 import { deadlineForApi, projectFields } from './project-form';
 import { ProjectContext, companyName, formatTime, roleName, volumeName } from './context';
 import type { Account, ApplicationSession, Evidence, Job, Project, SlaTemplate, Workspace } from './types';
@@ -78,10 +78,8 @@ export default function App() {
   }
 
   function report(error: unknown) {
-    if (error instanceof ApiError) {
-      message.error(error.message);
-      if (error.status === 401) logout();
-    } else message.error(error instanceof Error ? error.message : '操作失败，请稍后重试。');
+    message.error(userFacingMessage(error));
+    if (error instanceof ApiError && error.status === 401) logout();
   }
   useEffect(() => { request<{ accounts: Account[] }>('/api/demo/accounts', null).then(data => setAccounts(data.accounts)).catch(report); }, []);
   useEffect(() => {

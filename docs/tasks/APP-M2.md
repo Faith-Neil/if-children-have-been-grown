@@ -8,7 +8,7 @@
 
 APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每个单位一起实现页面、后台数据/状态/权限及实际产物；模型和数据库按授权用可替换接口，不把未接真实服务当全部业务阻塞。旧59张FE历史卡原样保留。
 
-共259张新卡：190原M1～M6 WBS子项、13独立章节/文件/资料产物、56规则实施/验收子单位。原44规则仍为36项一期完整、3项一期简化、5项二期；某规则拆多卡不能重复算多条规则。本轮T001布局、路由和离开保护为 in-review，T008离线CI为 done，T124因依赖未满足为 blocked，其余256张planned，产品尚未完整实现。T14/T15仍在APP-M1按原范围推进，不重拆成员、分册负责人和逐章确认；本拆分时两卡in-progress，最终状态以其任务卡/看板和实际交付为准。T09～13已done的限定子集保留历史，不能把父功能因此判done。
+共259张新卡：190原M1～M6 WBS子项、13独立章节/文件/资料产物、56规则实施/验收子单位。原44规则仍为36项一期完整、3项一期简化、5项二期；某规则拆多卡不能重复算多条规则。本轮T001布局、路由和离开保护为 in-review，T002请求层为 in-review，T008离线CI为 done，T124因依赖未满足为 blocked，其余255张planned，产品尚未完整实现。T14/T15仍在APP-M1按原范围推进，不重拆成员、分册负责人和逐章确认；本拆分时两卡in-progress，最终状态以其任务卡/看板和实际交付为准。T09～13已done的限定子集保留历史，不能把父功能因此判done。
 
 ## 开工及完成门禁
 
@@ -48,7 +48,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T002 · 请求层细化：错误体、traceId 复制、Idempotency-Key 注入、重试策略
 <a id="app-m2-t002"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[BE-M0-T01](BE-M0.md#be-m0-t01)、[BE-M0-T02](BE-M0.md#be-m0-t02)、[BE-M0-T03](BE-M0.md#be-m0-t03)、[APP-M2-T001](APP-M2.md#app-m2-t001)。
+状态：in-review。关联Issue：ISSUE-007 / ISSUE-009。原范围：一期业务页面/支撑。依赖：[BE-M0-T01](BE-M0.md#be-m0-t01)、[BE-M0-T02](BE-M0.md#be-m0-t02)、[BE-M0-T03](BE-M0.md#be-m0-t03)、[APP-M2-T001](APP-M2.md#app-m2-t001)。
 
 原始来源：原交接 §6.2 M1-P08-F2；PRD v1.8 §2.3、5.12、7.2。交付单位：请求层细化：错误体、traceId 复制、Idempotency-Key 注入、重试策略，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -60,7 +60,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 
 交付：`docs/delivery/APP-M2-T002.md`；代码解释：`docs/code/APP-M2-T002.md`；测试放docs/testing并逐项关联本卡，未执行写未执行。
 
-[BE-M0-T02](BE-M0.md#be-m0-t02)与[BE-M0-T03](BE-M0.md#be-m0-t03)已提交为in-review，尚未由项目经理标done。请求层可以按冻结的错误体、单一状态码表和24小时`Idempotency-Key`实现。APP-M2-T001已是in-review而不是done，所以本卡继续planned。前端`api.ts`的键复用属于本卡，本次后台契约没有改前端。
+[BE-M0-T02](BE-M0.md#be-m0-t02)与[BE-M0-T03](BE-M0.md#be-m0-t03)已由项目经理于 10-12 12:28 在 QA 签署后标为 done。请求层按冻结错误体和 24 小时 `Idempotency-Key` 提交 in-review，见[交付](../delivery/APP-M2-T002.md)。`/api/v1` 非 GET 每次调用一把键，网络错误、502 和 503 复用，最多 3 次含首次。`POST /api/chapters/{id}/versions` 的请求头与正文 `idempotency_key` 相同。409、422、423、428、401 和 500 不自动重试。T001 仍为 in-review，本卡也不标 done。
 
 ### APP-M2-T003 · 通用状态组件（骨架、空态、错误、无权限、已过期、只读）
 <a id="app-m2-t003"></a>
