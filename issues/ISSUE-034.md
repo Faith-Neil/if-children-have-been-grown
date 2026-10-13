@@ -12,7 +12,7 @@
 | 状态 | in-review |
 | 登记 / 更新日期 | 2026-10-12 |
 | revision | foundation-review-fix-1 |
-| 关联 Task | REV-M0-T27 |
+| 关联 Task | REV-M0-T27；REV-M0-T31（本轮增量审查） |
 | 审查基线 | 初次73fde1e03c0b6fce0f8c0a9f2e20551e63d811b3；复核快照9c178782d2e01e47e0d46748ceac230d749fea64，包含租约、项目及证据抽屉。本卡随后并入 foundation 9e3fcdd8f60ec4e751336c55154cbf9b9bae1e35 |
 | 修复分支 | codex/review-foundation-fixes |
 | 关联 PR | [#4](https://github.com/Faith-Neil/if-children-have-been-grown/pull/4)，目标codex/repository-foundation |
@@ -58,3 +58,5 @@
 2026-10-12 QA（成长测试QA）对 tip `5eced4f` 完成 R1～R9 正式签署，结论通过；详见签署记录。状态保持 in-review，不自行 done/closed。
 
 PR：[#4](https://github.com/Faith-Neil/if-children-have-been-grown/pull/4)，等待审核，未合入/发布。
+
+2026-10-13再次增量复核：新增审查卡REV-M0-T31，固定b7b3191，11项必要专项通过，未确认新阻断。原R1～R9及真实MySQL QA签署完整保留，本轮不重复全套验收；[标记](../docs/reviews/2026-10-13-incremental-review.md)。仍in-review，不标closed、未合入/发布。

@@ -615,3 +615,20 @@
 - [x] OpenAPI/requirements/openai_model 夹具 diff 为空；34 passed / 1 skipped；治理通过。
 - [x] ISSUE-028 / AI-01 / 本卡均不标 done，等项目经理设置
 
+<a id="rev-m0-t31"></a>
+
+## REV-M0-T31 · 2026-10-13最新增量复核
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 本轮限新增内容与必要专项 |
+| 关联Issue | [ISSUE-034](../../issues/ISSUE-034.md) |
+| 依赖 | 固定foundation b7b3191；PR #4 tip 9986747及原QA签署 |
+| 来源 | 用户要求再次复核，极速、省略重复全套验证、做好标记 |
+| 完成交付 | [专属交付](../delivery/REV-M0-T31.md) |
+| 代码解释 | 无产品代码；只更新审查及交付记录 |
+
+- [x] 检查新增挂证据、v1租约和导出输入绑定，未确认新的阻断。
+- [x] 必要后端专项11项通过；全套构建、浏览器、真实数据库/模型未在本轮重复执行。
+- [x] 沿用原QA签署和ISSUE-034，不覆盖他人编号；[PR #4](https://github.com/Faith-Neil/if-children-have-been-grown/pull/4)待审、未合入/发布。
