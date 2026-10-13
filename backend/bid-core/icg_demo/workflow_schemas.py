@@ -1,9 +1,9 @@
 # 为什么有这个文件：给示例主流程提供可生成接口契约的业务字段。
 # 它解决什么问题：前后端使用真实且明确的数据结构，不靠猜字段或空响应接通页面。
 
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .schemas import ChapterSummaryResponse, DemoCompanyRole, RequestBody, ResponseBody, LockSummaryResponse, AccountResponse
 from .sla_schemas import ProjectSla
@@ -398,6 +398,113 @@ class Job(ResponseBody):
     completed_at: str
     error: JobError | None
     recoverable: Literal[False]
+
+
+JobRunStatus = Literal["queued", "running", "completed", "failed", "cancelled"]
+
+
+class StartGenerationRequest(RequestBody):
+    """启动生成。长任务。If-Match 核对已确认大纲计划的 revision。没有 fingerprint 字段。"""
+
+    chapter_ids: list[Annotated[str, Field(min_length=1)]] | None = Field(default=None, max_length=200)
+
+
+class StatusChange(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    from_status: JobRunStatus = Field(alias="from")
+    to: JobRunStatus
+
+
+class ProgressPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    progress: int = Field(ge=0, le=100)
+    message: str
+
+
+class CompletedPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    status: Literal["completed"]
+    completed_at: str
+    error: None
+
+
+class FailedPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    status: Literal["failed"]
+    completed_at: str
+    error: str
+
+
+class CancelledPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    status: Literal["cancelled"]
+    completed_at: str
+    error: None
+
+
+class _EventCore(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    seq: int = Field(ge=1)
+    id: str = Field(description="格式为 <job_id>:<seq>。")
+    occurred_at: str
+
+
+class ModelCallEvent(_EventCore):
+    type: Literal["job.model_call"]
+    provider: str
+    model: str
+    is_real_model: bool
+    is_local: bool
+    duration_ms: int = Field(ge=0)
+    error_code: str | None
+
+
+class StatusChangedEvent(_EventCore):
+    type: Literal["job.status_changed"]
+    payload: StatusChange
+
+
+class ProgressEvent(_EventCore):
+    type: Literal["job.progress"]
+    payload: ProgressPayload
+
+
+class CompletedEvent(_EventCore):
+    type: Literal["job.completed"]
+    payload: CompletedPayload
+
+
+class FailedEvent(_EventCore):
+    type: Literal["job.failed"]
+    payload: FailedPayload
+
+
+class CancelledEvent(_EventCore):
+    type: Literal["job.cancelled"]
+    payload: CancelledPayload
+
+
+JobEvent = Annotated[
+    ModelCallEvent | StatusChangedEvent | ProgressEvent | CompletedEvent | FailedEvent | CancelledEvent,
+    Field(discriminator="type"),
+]
+
+
+class JobStatus(BaseModel):
+    """独立的任务状态，不继承已实现的 Job。由 BE-M0-T06 实现。"""
+
+    model_config = ConfigDict(extra="forbid", json_schema_extra={"x-aligned-with": "BE-M0-T06"})
+    id: str
+    project_id: str
+    type: str
+    status: JobRunStatus
+    progress: int = Field(ge=0, le=100)
+    message: str
+    created_at: str
+    completed_at: str | None
+    error: JobError | None
+    events: list[JobEvent]
+    recoverable: bool
 
 
 class CheckIssue(ResponseBody):

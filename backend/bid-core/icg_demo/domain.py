@@ -142,6 +142,8 @@ class DemoState:
     sla_templates: dict[str, dict] = field(default_factory=dict)
     library_revisions: dict[str, int] = field(default_factory=dict)
     jobs: dict[str, dict] = field(default_factory=dict)
+    # 可恢复生成任务只在本进程内存。重启后消失。不写入同步任务列表。
+    recoverable_jobs: dict[str, dict] = field(default_factory=dict)
     workflow_receipts: dict[tuple[str, str, str], dict] = field(default_factory=dict)
     project_teams: dict[str, dict] = field(default_factory=dict)
     # 合作方协议和资料授权先留在内存。正式表对齐不在本次挂接规则里做。

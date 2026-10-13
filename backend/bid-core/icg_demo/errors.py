@@ -36,7 +36,7 @@ def _frozen_status() -> dict[str, int]:
         "SUBMISSION_FORBIDDEN", "SESSION_ROLE_UNSUPPORTED", "SESSION_SCOPE_UNSUPPORTED",
         # 角色类 *_REQUIRED。原先“尚未指定负责人”也使用本码并返回 409，现统一为 403。
         "VOLUME_OWNER_REQUIRED",
-        # ISSUE-024 登记。敏感项目不能使用云端配置。本轮不实现该拒绝。
+        # ISSUE-024 登记。startGeneration 在适配器不是本地模型时拒绝敏感项目。这里不保存模型配置。
         "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
     ))
     _bind(table, 404, ("NOT_FOUND",))
@@ -182,4 +182,11 @@ def enrich_openapi(schema: dict) -> dict:
                 response_headers.setdefault("X-Request-ID", {"$ref": "#/components/headers/X-Request-ID"})
                 if writes:
                     response_headers.setdefault("Idempotent-Replayed", {"$ref": "#/components/headers/Idempotent-Replayed"})
+    # 冻结契约：startGeneration 的 423 与 503 失败不登记回执，响应头不列 Idempotent-Replayed。
+    started = schema.get("paths", {}).get("/api/v1/projects/{project_id}/generation/start", {}).get("post")
+    if isinstance(started, dict):
+        for code in ("423", "503"):
+            headers = started.get("responses", {}).get(code, {}).get("headers")
+            if isinstance(headers, dict):
+                headers.pop("Idempotent-Replayed", None)
     return schema

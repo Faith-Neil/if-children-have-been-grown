@@ -10,7 +10,7 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
-| D-001 | 2026-10-13 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 / AI-01；ISSUE-009 / APP-M2-T001；ISSUE-017 / OPS-M0-T02；ISSUE-018 / BE-M0-T12；ISSUE-031 / BE-M0-T16 | 393项52done、18in-review、7in-progress、265planned、48blocked、3ready。T001、T002、T11、T12、T13、T14、T15、T078、T114、OPS-M0-T02 与 AI-03 为 done。ISSUE-009、014、016、017、020、022、026、027、029、031 已 closed。未部署。T11 已依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done。T04、T05、T16 与 T18 仍 in-review（QA REV-M0-T32～T35 已签，等 PM）。T15 已由项目经理于 18:01 确认 done。用户已在 Word/WPS 目视确认。ISSUE-027 已 closed。T13 与 REV-M0-T23 已依据 QA ae38ec3，PM 17:16 确认 done。T17 与 T19 为 planned。T114 与 REV-M0-T22 已依据 QA f521950，PM 17:13 确认 done。T078 与 REV-M0-T24 已依据 QA 19c4862，PM 17:20 确认 done。T124 为 ready，本轮不实现。ISSUE-033 为 in-review，不关闭。ISSUE-035 为 new。ISSUE-036 为 in-review。REV-M0-T27 / ISSUE-034 为 in-review，QA 已签 R1～R9，不标 done |
+| D-001 | 2026-10-13 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 / AI-01；ISSUE-009 / APP-M2-T001；ISSUE-017 / OPS-M0-T02；ISSUE-018 / BE-M0-T12；ISSUE-031 / BE-M0-T16 | 393项52done、19in-review、7in-progress、265planned、48blocked、2ready。T001、T002、T11、T12、T13、T14、T15、T078、T114、OPS-M0-T02 与 AI-03 为 done。ISSUE-009、014、016、017、020、022、026、027、029、031 已 closed。未部署。T11 已依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done。T04、T05、T06、T16 与 T18 仍 in-review（T04/T05/T16/T18 的 QA REV-M0-T32～T35 已签，等 PM；T06 不标 done）。T15 已由项目经理于 18:01 确认 done。用户已在 Word/WPS 目视确认。ISSUE-027 已 closed。T13 与 REV-M0-T23 已依据 QA ae38ec3，PM 17:16 确认 done。T17 与 T19 为 planned。T114 与 REV-M0-T22 已依据 QA f521950，PM 17:13 确认 done。T078 与 REV-M0-T24 已依据 QA 19c4862，PM 17:20 确认 done。T124 为 ready，本轮不实现。ISSUE-033 为 in-review，不关闭。ISSUE-035 为 new。ISSUE-036 为 in-review。REV-M0-T27 / ISSUE-034 为 in-review，QA 已签 R1～R9，不标 done |
 | D-002 | 2026-10-12 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025；ISSUE-027 / BE-M0-T15 | 第19行为里程碑快照 as of 3bb311a：366项32done、6in-review、其余255卡planned。第27行改为依据 PRD v1.8 与字典 v1.9 |
 | D-003 | 2026-10-12 | [前端架构](ARCHITECTURE.md) | 前端架构 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-011 / AI-02；ISSUE-016 / AI-03；ISSUE-017 / OPS-M0-T02；ISSUE-034 / REV-M0-T27 | 同源存储和替换接口；业务库为 MySQL 8，嵌入、向量库与重排定为 RAGFlow 自带，适配器未实现 |
 | D-004 | 2026-10-12 | [前端路线图](ROADMAP.md) | 计划 | 参考实施入口 / g1.1 | 执行入口 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15 | 里程碑快照 as of 3bb311a：366项32done、6in-review。任务看板是准绳。T124 为 ready，本轮不实现 |
@@ -26,7 +26,7 @@
 | D-014 | 2026-10-09 | [首轮交付](delivery/2026-10-09-repository-foundation.md) | 交付 | 首轮快照 | 历史证据 | FE-M0-T01 | 保留原交付事实；逐任务归档见D-030 |
 | D-015 | 2026-10-12 | [协作流程](governance/WORKFLOW.md) | 治理 | g1.1 | 当前规则 | ISSUE-007 / APP-M1；ISSUE-026 | 第4节：三份基线计数是里程碑快照。治理块仍为 g1.1，不升版 |
 | D-016 | 2026-10-09 | [本次同步表](governance/ISSUE-003-sync.md) | 治理 | g1.0 | 本次记录 | ISSUE-003 / FE-M0-T02 | 四份基线及看板、进度、索引的影响评估 |
-| D-017 | 2026-10-13 | [任务看板](TASK_BOARD.md) | 执行 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-022 / T124；ISSUE-017 / OPS-M0-T02；ISSUE-018 / BE-M0-T12；ISSUE-031 / BE-M0-T16；ISSUE-036 | 393项52done、18in-review、7in-progress、265planned、48blocked、3ready。T04、T05、T16、T18为in-review（QA REV-M0-T32～T35 已签，等 PM），T11已依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done，T12已依据 QA ae6fd10，PM 15:32 确认 done，T13与REV-M0-T23已依据 QA ae38ec3，PM 17:16 确认 done，T15已由项目经理于 18:01 确认 done，用户已在 Word/WPS 目视确认，ISSUE-027 已 closed，T17与T19为planned，T078与REV-M0-T24已依据 QA 19c4862，PM 17:20 确认 done，T114与REV-M0-T22已依据 QA f521950，PM 17:13 确认 done，T001、T002、T14、OPS-M0-T02 与 AI-03 为 done，T124为ready，本轮不实现。REV-M0-T27 / ISSUE-034 为 in-review，QA 已签 R1～R9，不标 done |
+| D-017 | 2026-10-13 | [任务看板](TASK_BOARD.md) | 执行 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-022 / T124；ISSUE-017 / OPS-M0-T02；ISSUE-018 / BE-M0-T12；ISSUE-031 / BE-M0-T16；ISSUE-036 | 393项52done、19in-review、7in-progress、265planned、48blocked、2ready。T04、T05、T06、T16、T18为in-review（T04/T05/T16/T18 的 QA REV-M0-T32～T35 已签，等 PM；T06 不标 done），T11已依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done，T12已依据 QA ae6fd10，PM 15:32 确认 done，T13与REV-M0-T23已依据 QA ae38ec3，PM 17:16 确认 done，T15已由项目经理于 18:01 确认 done，用户已在 Word/WPS 目视确认，ISSUE-027 已 closed，T17与T19为planned，T078与REV-M0-T24已依据 QA 19c4862，PM 17:20 确认 done，T114与REV-M0-T22已依据 QA f521950，PM 17:13 确认 done，T001、T002、T14、OPS-M0-T02 与 AI-03 为 done，T124为ready，本轮不实现。REV-M0-T27 / ISSUE-034 为 in-review，QA 已签 R1～R9，不标 done |
 | D-018 | 2026-10-12 | [FE-M0 任务卡](tasks/FE-M0.md) | 基线与基础 | g1.1 | 当前计划 | ISSUE-006 / BE-M0-T01；ISSUE-010 | 前置基线、治理、契约与基础；T04仍待ISSUE-010 |
 | D-019 | 2026-10-09 | [FE-M1 任务卡](tasks/FE-M1.md) | 项目主流程 | g1.0 | 当前计划 | FE-M1 | 项目、招标解析、矩阵、事实 |
 | D-020 | 2026-10-09 | [FE-M2 任务卡](tasks/FE-M2.md) | 章节生成 | g1.0 | 当前计划 | FE-M2 | 方案确认、任务进度、修正与转人工 |
@@ -439,11 +439,16 @@
 | D-426 | 2026-10-13 | [REV-M0-T34签署交付](delivery/REV-M0-T34.md) | 交付 | qa-rerun-26 | 已本地验收 | ISSUE-013 / REV-M0-T34 | 无代码；结论与观察项 |
 | D-427 | 2026-10-13 | [BE-M0-T18 QA签署](testing/2026-10-13-be-m0-t18-qa-signoff.md) | 验证 | qa-rerun-26 | 本地通过 | ISSUE-013 / REV-M0-T35 | tip 90b2334 运行时；不标 done |
 | D-428 | 2026-10-13 | [REV-M0-T35签署交付](delivery/REV-M0-T35.md) | 交付 | qa-rerun-26 | 已本地验收 | ISSUE-013 / REV-M0-T35 | 无代码；结论与观察项 |
+| D-429 | 2026-10-13 | [可恢复任务交付](delivery/BE-M0-T06.md) | 交付 | recoverable-job-1 | in-review | ISSUE-005 / BE-M0-T06 | 不标 done。不关闭 ISSUE-005。不新增错误码 |
+| D-430 | 2026-10-13 | [可恢复任务说明](code/BE-M0-T06.md) | 说明 | recoverable-job-1 | 当前 | ISSUE-005 / BE-M0-T06 | 202、JobStatus、SSE 与取消。同步生成不改 |
+| D-431 | 2026-10-13 | [可恢复任务核对](testing/2026-10-13-be-m0-t06-recoverable-jobs.md) | 验证 | recoverable-job-1 | 已执行 | ISSUE-005 / BE-M0-T06 | 无库后台测试。不新增错误码 |
+| D-432 | 2026-10-13 | [可恢复任务测试](../tests/backend/test_recoverable_jobs.py) | 验证代码 | recoverable-job-1 | 5项通过 | ISSUE-005 / BE-M0-T06 | 202、断线查询、取消、失败和前置拒绝 |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-10-13 | ISSUE-005 / BE-M0-T06 | 可恢复生成任务提交 in-review。202、JobStatus、SSE 与取消已接到运行时。大纲读取仍未实现。不标 done，不关闭 ISSUE-005。看板为 393 项：52 done、19 in-review、7 in-progress、265 planned、48 blocked、2 ready。BE-M0 仍为 10/19 done |
 | 2026-10-09 | FE-M0-T01 | 建立初始D-001～D-014条目，整理目录与参考输入 |
 | 2026-10-09 | ISSUE-003 / FE-M0-T02 | 增加版本、状态、更新日期和来源字段，登记逐任务治理资料 |
 | 2026-10-09 | ISSUE-004 / OPS / REV | Git根提升、ICG来源、同步工具与运行、审查/brief及未决门禁；历史记录不回写 |

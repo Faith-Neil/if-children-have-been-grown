@@ -10,6 +10,7 @@ from .domain import Export, Principal
 from .schemas import EmptyRequest
 from .sla_schemas import (SlaMutationResult, SlaReviewRequest, SlaSelection, SlaTemplateCreate,
                           SlaTemplateList, SlaTemplatePatch, SlaTemplateResult, SlaValuePatch)
+from .recoverable_jobs import include_recoverable_routes
 from .workflow import DOCX_MEDIA_TYPE, WorkflowService
 from .idempotency import IDEMPOTENCY_HEADER_DESCRIPTION
 from .workflow_schemas import (CheckList, ConflictPatch, FactPatch, FileDelete, FilePreview, FileUpload,
@@ -232,3 +233,4 @@ def include_workflow_routes(application, service, current_user, parser):
         return workflow.write_library(user, body.model_dump(exclude_unset=True), if_match, idempotency_key, item_id)
 
     application.include_router(router)
+    include_recoverable_routes(application, workflow, current_user)

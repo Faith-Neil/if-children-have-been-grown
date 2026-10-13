@@ -44,3 +44,5 @@ reference-members-1成员阶段（2026-10-11）从实际代码重导出48路径5
 BE-M0-T04 增加三条运行中的租约路径：`POST /api/v1/chapters/{chapter_id}/lock`、`/lock/renew`、`/lock/release`。旧 `/api` 三条锁路由仍在。这三条从当时运行中的 OpenAPI 写入本文件，没有重跑 `export_openapi.py`，因此冻结草案和 `deprecated` 标注仍在。`operationId` 仍是框架原名。
 
 BE-M0-T05 在单章 `ExportResponse` 上写明当时绑定的 `check_id`、`revision`、`content_hash` 和 `input_fingerprint`。没有新增 `stale` 布尔字段，也没有把导出改成异步任务。这一段同样从运行中的模型写入，没有重跑 `export_openapi.py`。
+
+BE-M0-T06 把 `startGeneration`、`getJob`、`streamJobEvents`、`cancelJob` 和 `JobStatus` 从冻结草案改成运行中的模型。`getOutlinePlan` 与 `confirmOutlinePlan` 仍是冻结草案。没有重跑 `export_openapi.py`，因此其余冻结草案和 `deprecated` 标注仍在。没有新增错误码，也没有新增 SSE 库。

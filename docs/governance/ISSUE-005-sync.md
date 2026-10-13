@@ -34,3 +34,7 @@ DG-01～DG-04、DG-06，以及 DG-05 的锁迁移、导出快照、202/SSE、ope
 ## 2026-10-13 QA
 
 QA 签署 BE-M0-T04 / BE-M0-T05（REV-M0-T32 / T33，tip `90b2334`）通过。ISSUE-005 仍 in-progress，不关闭。不改 `docs/reference/` 与三份基线快照。
+
+## recoverable-job
+
+2026-10-13：BE-M0-T06 改为 in-review。`POST /api/v1/projects/{project_id}/generation/start` 返回 202，`Location` 指向 `GET /api/v1/jobs/{job_id}`。查询、SSE 和取消使用独立的 `JobStatus`，不继承已实现的 `Job`。按事件类型的必填字段落在各事件模型上。没有新增错误码，没有新增 SSE 库，没有重跑 `export_openapi.py`。同步解析和同步生成不改。任务只在当前进程内存，重启后消失。`getOutlinePlan` 与 `confirmOutlinePlan` 仍未实现。ISSUE-005 仍为 in-progress，revision 为 progress-7。看板为 393 项：52 done、19 in-review、7 in-progress、265 planned、48 blocked、2 ready。BE-M0 为 19 项，10 项 done。T04 与 T05 仍为 in-review。T07 仍为 ready。上文 export-snapshot 段的 13 in-review 和 progress-6 是当时记录，不回写。

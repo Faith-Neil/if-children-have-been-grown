@@ -44,7 +44,7 @@
 
 GET工作区/资料响应包含版本和ETag。v1写入带 `If-Match`（核对的版本）和 `Idempotency-Key`（防重复操作的标记）：缺版本或标记格式不符为428，旧版本409。标记范围是scope、账号和键。项目写入的scope是项目编号；公司资料和服务承诺模板没有项目，scope为`library:{company_id}`。指纹包含动作、请求内容和`If-Match`。同键同指纹重放首次成功结果，并返回`Idempotent-Replayed: true`；同键不同指纹为409 `IDEMPOTENCY_CONFLICT`。失败不登记，24小时后回执失效，内存最多2048条。同一项目里换章节或换动作仍用同一键，会因指纹不同而冲突。解析/生成失败也可能保存失败任务并增加版本，但不再把失败结果当成可重放回执；错误 `details.revision` 明示时页面刷新最新状态，保留填写内容。客户端只对网络错误、502和503用同一键自动重试。502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。409、422、423、428不重试。
 
-v1错误为 `{code,message,details,traceId}`，`traceId`与`X-Request-ID`相同。每个code只对应一个HTTP状态，见[验证记录](../testing/2026-10-12-error-idempotency.md)。`VOLUME_OWNER_REQUIRED`为403，`TWO_VOLUMES_REQUIRED`为422。旧接口仍用 `{error:{code,message},request_id}`，页面理解两种格式。旧章节提交仍可在正文发送重复请求标记。当前任务同步完成，未实现交接要求的202排队、SSE持续通知和重启恢复；不得假称它们已联调。
+v1错误为 `{code,message,details,traceId}`，`traceId`与`X-Request-ID`相同。每个code只对应一个HTTP状态，见[验证记录](../testing/2026-10-12-error-idempotency.md)。`VOLUME_OWNER_REQUIRED`为403，`TWO_VOLUMES_REQUIRED`为422。旧接口仍用 `{error:{code,message},request_id}`，页面理解两种格式。旧章节提交仍可在正文发送重复请求标记。生成启动可以返回 202，再用 `GET /api/v1/jobs/{job_id}` 和 SSE `GET /api/v1/jobs/{job_id}/events` 查询本进程内的任务。取消走 `POST /api/v1/jobs/{job_id}/cancel`。这些任务只在当前进程内存，重启后消失，不是多进程恢复。同步解析和同步 `POST /generate` 仍立即完成，没有改成已恢复。大纲读取 `getOutlinePlan` 仍未实现。不得把未接通的模型配置存储或重启恢复写成已联调。
 
 工作区、生成候选和旧章节建议均返回 `input_fingerprint`，即参与本次生成的资料摘要。条款、事实、证据或已提交正文改变后，旧候选失效；页面采纳前重新读取工作区核对，不只看章节版本。未声明运行位置的模型也不能处理敏感项目；两条生成入口使用同一门禁。截止时刻以UTC保存、北京时间显示；证据有效期按北京时间截止日核对，含时分的原文事实比较同一时刻。
 

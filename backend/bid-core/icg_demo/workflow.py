@@ -627,6 +627,7 @@ class WorkflowService:
                 del state.chapters[identity]
                 workflow["candidates"].pop(identity, None)
             workflow["plan_confirmed"] = True
+            workflow["outline_revision"] = int(workflow.get("outline_revision") or 0) + 1
             old_order = workflow.get("chapter_order", [])
             unaffected = [identity for identity in old_order if identity in all_old and all_old[identity].volume not in expected_volumes]
             unaffected += [identity for identity, c in all_old.items() if c.volume not in expected_volumes and identity not in unaffected]
