@@ -531,6 +531,29 @@
 - [x] 契约测试 10 passed；CI 38228282444 全绿；运行时未接通已写明。
 - [x] ISSUE-033 / BE-M0-T18 / 本卡均不标 done，等项目经理设置
 
+<a id="rev-m0-t27"></a>
+
+## REV-M0-T27 · 最新合作分支复核与限定缺陷修复
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 按实际复核记录，不作新功能交期 |
+| 关联Issue | [ISSUE-034](../../issues/ISSUE-034.md) |
+| 依赖 | 初次73fde1e，复核快照9c178782；本卡并入 foundation 9e3fcdd。ISSUE-033 与 REV-M0-T22 已由同伴占用。`ee5aaa6` 占用 REV-M0-T25（ISSUE-036）与 REV-M0-T26（ISSUE-033 规格复签），本卡保持 T27 |
+| 来源 | 用户要求复核最新分支，修改仅提PR，暂停功能推进 |
+| 完成交付 | [专属交付](../delivery/REV-M0-T27.md) |
+| 代码解释 | [修复解释](../code/REV-M0-T27.md) |
+
+范围：九项确认问题中密钥重试由上游已修复；本PR修其余八项身份、导航、片段、回执、租约和证据抽屉缺陷，并纠正部署事实。保留 foundation 上 T114 冲突刷新、ISSUE-036 橙色标签对比，以及 T078/T114 的状态记录。不新增页面、接口或模型/数据库功能。不改写已完成的 APP-M2-T114 / REV-M0-T22。独立修复分支的 PR 以 codex/repository-foundation 为目标。
+
+- [x] 回归先证明原缺陷，再证明修复结果。
+- [x] 运行相关实际函数/HTTP、构建及治理；真实MySQL未连接须明确。
+- [x] 保存复核、代码、交付和基线影响；提交PR等待审核，不自行done/closed。
+- [x] QA 正式签署（2026-10-12，tip `5eced4f`）：R1～R9 通过，含真实 MySQL R4/R6/R7；见[签署记录](../testing/2026-10-12-issue-034-qa-signoff.md)。**状态仍 in-review，不标 done。**
+
+修复PR：[#4](https://github.com/Faith-Neil/if-children-have-been-grown/pull/4)，等待审核。
+
 
 <a id="rev-m0-t28"></a>
 
@@ -542,7 +565,7 @@
 | 估算 | 1小时 |
 | 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
 | 依赖 | BE-M0-T11（631d4c9） |
-| 来源 | 项目经理签署要求；T27 预留给 Codex PR #4 / ISSUE-034 |
+| 来源 | 项目经理签署要求。REV-M0-T27 已用于 ISSUE-034，状态 in-review，不标 done |
 | 完成交付 | [专属交付](../delivery/REV-M0-T28.md) |
 | 代码解释 | 无产品代码 |
 
@@ -562,7 +585,7 @@
 | 估算 | 1小时 |
 | 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
 | 依赖 | ISSUE-028（9e3fcdd） |
-| 来源 | 项目经理签署要求；T27 预留给 PR #4；T28 已用于 BE-M0-T11 |
+| 来源 | 项目经理签署要求。REV-M0-T27 已用于 ISSUE-034。T28 已用于 BE-M0-T11 |
 | 完成交付 | [专属交付](../delivery/REV-M0-T29.md) |
 | 代码解释 | 无产品代码 |
 
@@ -582,7 +605,7 @@
 | 估算 | 1小时 |
 | 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
 | 依赖 | ISSUE-028（9e3fcdd；证据 be3ce98） |
-| 来源 | 项目经理签署要求；T27 预留给 PR #4；T28/T29 已用 |
+| 来源 | 项目经理签署要求。REV-M0-T27 已用于 ISSUE-034，状态 in-review，不标 done。T28/T29 已用 |
 | 完成交付 | [专属交付](../delivery/REV-M0-T30.md) |
 | 代码解释 | 无产品代码 |
 
@@ -592,3 +615,20 @@
 - [x] OpenAPI/requirements/openai_model 夹具 diff 为空；34 passed / 1 skipped；治理通过。
 - [x] ISSUE-028 / AI-01 / 本卡均不标 done，等项目经理设置
 
+<a id="rev-m0-t31"></a>
+
+## REV-M0-T31 · 2026-10-13最新增量复核
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 本轮限新增内容与必要专项 |
+| 关联Issue | [ISSUE-034](../../issues/ISSUE-034.md) |
+| 依赖 | 固定foundation b7b3191；PR #4 tip 9986747及原QA签署 |
+| 来源 | 用户要求再次复核，极速、省略重复全套验证、做好标记 |
+| 完成交付 | [专属交付](../delivery/REV-M0-T31.md) |
+| 代码解释 | 无产品代码；只更新审查及交付记录 |
+
+- [x] 检查新增挂证据、v1租约和导出输入绑定，未确认新的阻断。
+- [x] 必要后端专项11项通过；全套构建、浏览器、真实数据库/模型未在本轮重复执行。
+- [x] 沿用原QA签署和ISSUE-034，不覆盖他人编号；[PR #4](https://github.com/Faith-Neil/if-children-have-been-grown/pull/4)待审、未合入/发布。

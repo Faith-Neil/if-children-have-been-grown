@@ -64,6 +64,18 @@ class MemorySnippetPublicationStore:
         with self._lock:
             return {"records": deepcopy(self.records), "audits": deepcopy(self.audits)}
 
+    def transaction(self, operation):
+        # 序列化整个回执/片段操作；回执提交失败时恢复独立片段与审计。
+        # 仍只保障本进程，不能把内存片段说成跨进程持久化。
+        with self._lock:
+            before = self.snapshot()
+            try:
+                return operation()
+            except Exception:
+                self.records = before["records"]
+                self.audits = before["audits"]
+                raise
+
     def list(self, company_id: str) -> list:
         with self._lock:
             items = [_public(item) for item in self.records.values() if item["company_id"] == company_id]
@@ -218,25 +230,21 @@ class SnippetPublicationService:
 
     def _receipt(self, principal, action: str, payload: dict, if_match: str | None, key: str | None, mutate):
         # 回执仍写在既有 DemoState.workflow_receipts，作用域与公司资料相同。
-        # 片段记录和审计不进入这次事务。
+        # 片段记录仍不进入DemoState；独立存储外层锁和回滚覆盖整个回执事务。
         key = validate_key(key)
         scope_id = "library:" + principal.user.company_id
         request_fingerprint = fingerprint(action, payload, if_match)
-        now = self._clock()
 
-        def read(state):
-            return lookup(state, scope_id, principal.user.id, key, request_fingerprint, now)
-
-        replay = self.repository.transaction(read)
-        if replay is not None:
-            return replay
-        result = mutate()
-
-        def write(state):
+        def apply(state):
+            now = self._clock()
+            replay = lookup(state, scope_id, principal.user.id, key, request_fingerprint, now)
+            if replay is not None:
+                return replay
+            result = mutate()
             remember(state, scope_id, principal.user.id, key, request_fingerprint, result, now)
             return result
 
-        return self.repository.transaction(write)
+        return self.store.transaction(lambda: self.repository.transaction(apply))
 
 
 def include_snippet_routes(application, service, current_user) -> None:

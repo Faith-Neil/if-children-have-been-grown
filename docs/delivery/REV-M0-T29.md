@@ -16,7 +16,7 @@
 ## 关联与状态
 
 - 2026-10-12；[ISSUE-013](../../issues/ISSUE-013.md)；被验 [ISSUE-028](../../issues/ISSUE-028.md)（`9e3fcdd`）；[任务卡](../tasks/REV-M0.md#rev-m0-t29)；PR #3待合入，未发布。
-- REV-M0-T27 预留给 PR #4 / ISSUE-034；T28 已用于 BE-M0-T11；本卡为 T29。
+- REV-M0-T27 已用于 ISSUE-034 / PR #4，状态 in-review，不标 done；T28 已用于 BE-M0-T11；本卡为 T29。
 
 ## 完成内容与变更文件
 

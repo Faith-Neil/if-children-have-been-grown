@@ -18,4 +18,4 @@
 | frontend/web | 已改 | 只改标签文字色和已有对比检查 |
 | docs/reference、backend、spec | 未改 | 不改参考原文，不改后台，不改契约 |
 
-未合入，未发布。不标 closed。ISSUE-033 不关闭。ISSUE-034 与 ISSUE-035 未使用。
+未合入，未发布。不标 closed。ISSUE-033 不关闭。登记本 Issue 时 ISSUE-034 与 ISSUE-035 尚未使用。ISSUE-034 随后由 PR #4 登记为最新分支复核（REV-M0-T27）。ISSUE-035 仍未使用。本 Issue 不占用这两个号。

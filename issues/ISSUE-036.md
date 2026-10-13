@@ -23,7 +23,7 @@
 | 代码 / 流程解释 | [代码解释](../docs/code/ISSUE-036.md) |
 | 验证记录 | [核对](../docs/testing/2026-10-12-issue-036-orange-contrast.md) |
 
-不新增任务卡。这是已有 `frontend/web` 标签的对比修正，不新开 APP 卡，也不把任何任务标 done。ISSUE-034 与 ISSUE-035 保留，本号不用它们。
+不新增任务卡。这是已有 `frontend/web` 标签的对比修正，不新开 APP 卡，也不把任何任务标 done。本号不用 ISSUE-034 与 ISSUE-035。ISSUE-034 随后由 PR #4 登记为最新分支复核（REV-M0-T27）。ISSUE-035 仍未使用。
 
 ## 现象与证据
 

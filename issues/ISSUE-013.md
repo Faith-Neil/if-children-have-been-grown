@@ -112,6 +112,7 @@ WORKFLOW无规则变化，治理块保持g1.1。
 | 2026-10-12 | qa-rerun-20 / done | 项目经理确认 REV-M0-T24 与 APP-M2-T078 为 done，依据是 QA 19c4862，PM 17:20 确认。范围只含内存片段发布层。页面未做，不挡住 done。ISSUE-013 保持 closed。T124 改为 ready，本轮不实现 | 项目经理 |
 | 2026-10-12 | qa-rerun-21 / done | ISSUE-036橙色标签对比签署（REV-M0-T25）：对比过线；单测98；build通过；Playwright meet 4.5:1 1 passed；CI 38229790793全绿；ISSUE-036与本卡不标 done | 成长测试QA |
 | 2026-10-12 | qa-rerun-22 / done | ISSUE-033规格增量契约复签（REV-M0-T26）：is_restricted/agreement_present/bid_deadline_at/三错误码/143冻结通过；契约相关10 passed；CI 38228282444全绿；运行时待后端；ISSUE-033不标 closed | 成长测试QA |
+| 2026-10-12 | qa-rerun-24 / done | PR #4 / ISSUE-034 R1～R9 正式签署（REV-M0-T27，tip `5eced4f`）：含真实 MySQL R4/R6/R7；前端113、Playwright16、无库371/13skipped、mysql12；本 tip 无 CI；ISSUE-034/本卡不标 done | 成长测试QA |
 | 2026-10-12 | qa-rerun-23 / in-review | BE-M0-T11签署（REV-M0-T28）：真实MySQL 8.4 复跑通过；355/13、mysql 12、Q2~1s、双worker+重启；CI 38212536927；T11/ISSUE-018/本卡不标 done；T27 预留 | 成长测试QA |
 | 2026-10-12 | qa-rerun-24 / in-review | ISSUE-028 AC-02假端点夹具签署（REV-M0-T29）：假服务/fixture 过线；真模型默认 skip；CI 不设旗；无生产改动；create_app 仍 DemoModelProvider；34/1 + 355/13；CI 38231417634；ISSUE-028/AI-01/本卡不标 done；路径规范化 hold | 成长测试QA |
 | 2026-10-12 | qa-rerun-25 / in-review | ISSUE-028 AC-03签署（REV-M0-T30）：独立复跑 be3ce98 证据；OpenAPI/requirements/openai_model 夹具 diff 空；create_app 默认 DemoModelProvider；34/1；ISSUE-028/AI-01/本卡不标 done | 成长测试QA |

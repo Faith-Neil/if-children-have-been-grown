@@ -2,11 +2,41 @@
 // 它解决什么问题：避免每次重试换一把新键，或把冲突和校验失败再发给后台。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ApiError, request, userFacingMessage } from '../src/api.ts';
+import { ApiError, download, request, userFacingMessage, isRequestFailureCurrent } from '../src/api.ts';
 
 const noWait = async () => {};
 const v1 = '/api/v1/projects/p-one/files';
 const legacy = '/api/chapters/c-one/versions';
+
+test('a permanent secret-key 503 stops GET, keyed write and download on the first response', async context => {
+  for (const mode of ['GET', 'POST', 'download']) {
+    let calls = 0;
+    context.mock.method(globalThis, 'fetch', async () => {
+      calls++;
+      return jsonResponse(503, { code: 'SECRET_KEY_UNAVAILABLE', message: '密钥服务未就绪。', traceId: 'secret-review' });
+    });
+    const error = await (mode === 'download'
+      ? download('/api/v1/synthetic/file', 'synthetic-token', 'synthetic.docx', noWait)
+      : request(v1, 'synthetic-token', mode, mode === 'POST' ? {} : undefined, 1, noWait)).catch(value => value);
+    assert.ok(error instanceof ApiError);
+    assert.equal(error.code, 'SECRET_KEY_UNAVAILABLE');
+    assert.equal(error.requestId, 'secret-review');
+    assert.equal(calls, 1, mode);
+  }
+});
+
+test('transport failures keep private origin identity without putting a token on the error', async context => {
+  context.mock.method(globalThis, 'fetch', async () => jsonResponse(401, { code: 'UNAUTHENTICATED', message: '重新登录。' }));
+  const error = await request('/api/v1/session', 'old-synthetic-token', 'GET', undefined, undefined, noWait).catch(value => value);
+  assert.equal(isRequestFailureCurrent(error, 'new-synthetic-token'), false);
+  assert.equal(isRequestFailureCurrent(error, 'old-synthetic-token'), true);
+  assert.equal(isRequestFailureCurrent(error, null), false);
+  assert.equal(JSON.stringify(error).includes('old-synthetic-token'), false);
+  const unowned = new ApiError(401, 'SESSION_REQUIRED', '请登录。');
+  assert.equal(isRequestFailureCurrent(unowned, 'new-synthetic-token'), true);
+  const downloadError = await download('/api/v1/synthetic/file', 'download-old-token', 'synthetic.docx', noWait).catch(value => value);
+  assert.equal(isRequestFailureCurrent(downloadError, 'new-synthetic-token'), false);
+});
 
 function jsonResponse(status, body, headerId) {
   const headers = headerId ? { 'X-Request-ID': headerId, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
