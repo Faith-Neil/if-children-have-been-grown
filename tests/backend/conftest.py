@@ -21,6 +21,17 @@ def fake_openai_chat():
         service.close()
 
 
+@pytest.fixture
+def fake_ragflow():
+    from fake_ragflow import FakeRagflow
+
+    service = FakeRagflow()
+    try:
+        yield service
+    finally:
+        service.close()
+
+
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)
 def pytest_runtest_call(item):
     # 在测试调用阶段失败，pytest 会计为 failed。夹具阶段的 pytest.fail 只会显示成 error。
@@ -28,6 +39,12 @@ def pytest_runtest_call(item):
         from fake_openai_chat import real_model_skip_reason
 
         reason = real_model_skip_reason()
+        if reason:
+            pytest.skip(reason)
+    if item.get_closest_marker("live_ragflow") is not None:
+        from fake_ragflow import real_ragflow_skip_reason
+
+        reason = real_ragflow_skip_reason()
         if reason:
             pytest.skip(reason)
     if item.get_closest_marker("mysql") is not None:

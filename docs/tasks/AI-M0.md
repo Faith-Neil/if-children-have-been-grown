@@ -4,7 +4,7 @@
 
 # AI-M0：模型接入准备
 
-日期：2026-10-12。AI 表示模型接入任务，独立于前端 FE 计划和 APP 页面计划。
+日期：2026-10-13。AI 表示模型接入任务，独立于前端 FE 计划和 APP 页面计划。
 
 <a id="ai-01"></a>
 
@@ -85,3 +85,78 @@
 - [x] 交付、代码解释、验证记录和基线同步已登记。真实库不在本卡。
 
 项目经理依据 QA 签署 2fe6198（REV-M0-T16）确认。状态为 done。ISSUE-016 为 closed。合入和发布仍未发生。真实库不在本卡。
+
+<a id="ai-04"></a>
+
+## AI-04 · CI 假 RAGFlow 检索服务
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 只加测试夹具，不改运行代码 |
+| 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md)。设计保持 [ISSUE-029](../../issues/ISSUE-029.md) closed |
+| 依赖 | [AI-03](AI-M0.md#ai-03) 的内存口仍在。本卡不连接它，也不替换它 |
+| PRD / 架构出处 | [RAGFlow 检索适配器](../architecture/ragflow-retrieval-adapter.md)。产品字段以 [PRD v1.8](../reference/product/prd-mvp-v1.8.md) 与 [字典 v1.9](../reference/product/kb-data-dictionary-v1.9.md) 为准，不另造 |
+| 完成时交付 | [交付](../delivery/AI-04.md) |
+| 代码解释 | 不改 `backend/bid-core`。假服务见 [代码解释](../code/AI-04.md) |
+
+范围：在 `tests/backend/` 提供只监听 `127.0.0.1` 的假 RAGFlow。`POST /api/v1/retrieval` 记下 `Authorization: Bearer` 和实际 `base_url`。可选 `GET /api/v1/system/healthz`。模式覆盖成功 chunks、空 chunks、非 0 业务 `code`、HTTP 错误，以及可释放的超时停住。真实地址须 `ICG_RUN_REAL_RAGFLOW_TESTS=1`，默认跳过。
+
+当前条件：不实现 `RagflowRetrievalClient`，不改 `retrieval.py`，不加依赖。数据集生命周期和 `kb_sync` 不在本卡。零命中在适配器里记为跳过，不记为成功的空列表；本卡只让夹具返回空 chunks，不做这条映射。重排仍是 RAGFlow 的 `rerank_id`，不新增重排依赖。
+
+可验证验收：
+
+- [x] 假服务记录 `Authorization` 和实际 `base_url`，包括路径前缀。
+- [x] 成功体为 `{"code":0,"data":...}`，并另有空 chunks、非 0 业务码和 HTTP 错误。
+- [x] 真实连接默认跳过。交付、代码解释、验证记录和基线同步已登记。
+- [ ] 零命中记为跳过，以及客户端与 `retrieval.py` 接线。留给 AI-05、AI-06。
+
+不标 done。ISSUE-037 为 in-progress。合入和发布仍未发生。
+
+<a id="ai-05"></a>
+
+## AI-05 · RAGFlow 检索客户端
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | planned |
+| 估算 | 在已有 httpx 上增加一个只读检索客户端 |
+| 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md) |
+| 依赖 | [AI-04](AI-M0.md#ai-04) 的假服务。不依赖数据集创建或 `kb_sync` |
+| PRD / 架构出处 | [RAGFlow 检索适配器](../architecture/ragflow-retrieval-adapter.md) 的检索与错误节 |
+| 完成时交付 | `docs/delivery/AI-05.md` |
+| 代码解释 | `docs/code/AI-05.md` |
+
+范围：实现 `RagflowRetrievalClient`。`POST {base_url}/api/v1/retrieval`，请求头 `Authorization: Bearer`。基址与密钥只从环境注入。正文只带调用方注入的 `question`、`dataset_ids` 和 `rerank_id`。不创建数据集，不上传，不解析，不改 `kb_sync_status`。
+
+当前条件：本卡尚未开工。不改 `EvidenceCandidateService`。`code` 为 0 且 chunks 为空时返回跳过，不返回成功的空列表。非 0 业务码、HTTP 错误和超时是检索失败，不能当成命中。密钥不进日志。不加依赖，不用本仓库新的重排库。
+
+可验证验收：
+
+- [ ] 假服务覆盖成功 chunks、空 chunks 记为跳过、非 0 业务码、HTTP 错误和超时。
+- [ ] 只发送注入的 `dataset_ids` 与 `rerank_id`。不调用数据集或同步接口。
+- [ ] 不改 `retrieval.py`。交付、代码解释和基线同步另行登记。真实内网不在本卡。
+
+<a id="ai-06"></a>
+
+## AI-06 · 证据候选改走 RAGFlow 检索
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | planned |
+| 估算 | 在现有证据候选后面换上检索客户端，保留路径 A |
+| 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md) |
+| 依赖 | [AI-05](AI-M0.md#ai-05) 的客户端，以及 [AI-03](AI-M0.md#ai-03) 的三条路径 |
+| PRD / 架构出处 | [RAGFlow 检索适配器](../architecture/ragflow-retrieval-adapter.md) 的证据候选节。路径 C 按查询词过滤来自 ISSUE-016 的 QA P3 |
+| 完成时交付 | `docs/delivery/AI-06.md` |
+| 代码解释 | `docs/code/AI-06.md` |
+
+范围：路径 B、路径 C 改为调用 `RagflowRetrievalClient`。只传入该公司注入的 dataset id。路径 A 仍是已确认资料上的规则，不经过 RAGFlow。路径 C 仍不可附着，并按查询词过滤。B 或 C 失败，或零命中时，保留 A 并记录跳过原因。知识库关闭时不调用 RAGFlow。
+
+当前条件：本卡尚未开工。不建数据集，不改 `kb_sync`。重排只传 `rerank_id`。不把内存口从测试里删掉。不进入 `create_app`，除非届时另有验收。
+
+可验证验收：
+
+- [ ] 假 RAGFlow 覆盖跨公司只使用注入的 dataset id、历史投标不可附着、零命中或失败时回退到 A。
+- [ ] 路径 C 按查询词过滤。知识库关闭时没有检索请求。
+- [ ] 交付、代码解释、验证记录和基线同步已登记。真实库不在本卡。
