@@ -712,3 +712,23 @@
 - [x] 验收条目逐条核对并独立复跑。
 - [x] `test_evidence_mount.py` 通过；名单仍 143；无库 381/13。
 - [x] BE-M0-T18 / ISSUE-033 / 本卡均不标 done，等项目经理设置
+
+<a id="rev-m0-t36"></a>
+
+## REV-M0-T36 · BE-M0-T06 可恢复任务 QA签署
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review（本地验收；等项目经理设置 done） |
+| 估算 | 1小时 |
+| 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
+| 依赖 | BE-M0-T06 / ISSUE-005（tip 0cb6c38） |
+| 来源 | 项目经理解除暂停后派签 |
+| 完成交付 | [专属交付](../delivery/REV-M0-T36.md) |
+| 代码解释 | 无产品代码 |
+
+范围：正式签署可恢复生成任务运行时。核对 202、Location、JobStatus、SSE Last-Event-ID、取消与失败状态、冻结 operationId。不改他人代码；不把 BE-M0-T06 / ISSUE-005 标为 done / closed。
+
+- [x] 验收条目逐条核对并独立复跑。
+- [x] `test_recoverable_jobs.py` 5 passed；无库 386/13。
+- [x] BE-M0-T06 / ISSUE-005 / 本卡均不标 done，等项目经理设置

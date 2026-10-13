@@ -54,10 +54,10 @@ PRD、ROADMAP、ARCHITECTURE将按每项最终决定同步业务正文及版本�
 | (b) 幂等，回执24小时 | [BE-M0-T03](../docs/tasks/BE-M0.md#be-m0-t03) | done | 项目经理于 10-12 12:28 在 QA 签署后确认 |
 | (c) 编辑租约迁到 /api/v1 | [BE-M0-T04](../docs/tasks/BE-M0.md#be-m0-t04) | in-review | QA REV-M0-T32 tip `90b2334` 已签，等 PM；不标 done |
 | (d) 导出快照 | [BE-M0-T05](../docs/tasks/BE-M0.md#be-m0-t05) | in-review | QA REV-M0-T33 tip `90b2334` 已签，等 PM；不标 done |
-| (e) 可恢复任务 202+SSE | [BE-M0-T06](../docs/tasks/BE-M0.md#be-m0-t06) | in-review | 已交运行时，不标 done |
+| (e) 可恢复任务 202+SSE | [BE-M0-T06](../docs/tasks/BE-M0.md#be-m0-t06) | in-review | QA REV-M0-T36 tip `0cb6c38` 已签，等 PM；不标 done |
 | (f) operationId检查 | [BE-M0-T07](../docs/tasks/BE-M0.md#be-m0-t07) | ready | 未开工 |
 
-`VOLUME_OWNER_REQUIRED`固定403，`TWO_VOLUMES_REQUIRED`固定422，`MODEL_UNAVAILABLE`固定502。幂等范围是scope、账号和键；失败不保存；内存最多2048条。旧章节提交仍接受正文字段。前端请求层 APP-M2-T002 已按冻结契约提交 in-review，挂在 ISSUE-009；请求头与正文 `idempotency_key` 使用同一把键。DG-01～DG-04、DG-06以及DG-05的后四张卡未关闭。其中租约迁移、导出快照与 202/SSE 为 in-review，operationId 仍 ready。本Issue保持 in-progress，不标 closed。同步表见[ISSUE-005本轮同步](../docs/governance/ISSUE-005-sync.md)。
+`VOLUME_OWNER_REQUIRED`固定403，`TWO_VOLUMES_REQUIRED`固定422，`MODEL_UNAVAILABLE`固定502。幂等范围是scope、账号和键；失败不保存；内存最多2048条。旧章节提交仍接受正文字段。前端请求层 APP-M2-T002 已按冻结契约提交 in-review，挂在 ISSUE-009；请求头与正文 `idempotency_key` 使用同一把键。DG-01～DG-04、DG-06以及DG-05的后四张卡未关闭。其中租约迁移、导出快照与 202/SSE 为 in-review（T06 QA REV-M0-T36 已签，等 PM），operationId 仍 ready。本Issue保持 in-progress，不标 closed。同步表见[ISSUE-005本轮同步](../docs/governance/ISSUE-005-sync.md)。
 
 ## 2026-10-12：基线正文
 

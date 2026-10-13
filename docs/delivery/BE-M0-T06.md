@@ -9,15 +9,15 @@
 |---|---|
 | 任务ID | BE-M0-T06 |
 | 代码解释 | [BE-M0-T06](../code/BE-M0-T06.md) |
-| 验收 | 2026-10-13：启动返回 202 和 Location；查询、SSE 和取消使用独立 JobStatus。失败为 failed，取消为 cancelled。未设连接串时后台测试 386 passed、13 skipped。治理检查通过：333 份 Markdown、393 项任务、36 项 Issue |
-| 项目进度 | 任务看板是准绳。本卡从 ready 改为 in-review。看板为 393 项：52 done、19 in-review、7 in-progress、265 planned、48 blocked、2 ready。BE-M0 为 19 项，10 项 done。本卡 in-review。ISSUE-005 为 in-progress，不关闭。T04 与 T05 仍为 in-review。T07 仍为 ready |
+| 验收 | 2026-10-13：启动返回 202 和 Location；查询、SSE 和取消使用独立 JobStatus。失败为 failed，取消为 cancelled。未设连接串时后台测试 386 passed、13 skipped。治理检查通过：333 份 Markdown、393 项任务、36 项 Issue。QA 已按 tip `0cb6c38` 签署（REV-M0-T36），**不标 done** |
+| 项目进度 | 任务看板是准绳。本卡 in-review（QA REV-M0-T36 已签，等 PM）。看板为 394 项：52 done、20 in-review、7 in-progress、265 planned、48 blocked、2 ready。BE-M0 为 19 项，10 项 done。ISSUE-005 为 in-progress，不关闭。T04 与 T05 仍为 in-review。T07 仍为 ready |
 <!-- task-delivery:end -->
 
 ## 关联与状态
 
 - 2026-10-13，BE-M0，[ISSUE-005](../../issues/ISSUE-005.md) 卡片 (e)。
 - 分支 `codex/repository-foundation`。未新开 PR，未合入，未发布。
-- 本地验收已做。等待 QA 与项目经理。不标 done。
+- 本地验收已做。QA 已按 tip `0cb6c38` 签署通过（REV-M0-T36）。等待项目经理设置 done。不标 done。
 
 ## 完成内容与变更文件
 
