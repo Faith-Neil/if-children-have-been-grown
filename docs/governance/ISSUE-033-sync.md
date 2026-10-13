@@ -30,3 +30,7 @@ BE-M0-T13 已依据 QA ae38ec3，PM 17:16 确认 done。ISSUE-018 仍为 in-prog
 | 错误码 | 未改 | 仍是 143 个。过期用 409 `EVIDENCE_EXPIRED`，reference 或缺协议用 409 `EVIDENCE_NOT_USABLE`，受限且无 ACL 或非管理员用 403 `FORBIDDEN` |
 
 未合入，未发布。不标 done，不标 closed。
+
+## 2026-10-13 QA
+
+QA 运行时重签 BE-M0-T18（REV-M0-T35，tip `90b2334`）通过。ISSUE-033 仍 in-review，不标 closed。不改 `docs/reference/` 与三份基线快照。

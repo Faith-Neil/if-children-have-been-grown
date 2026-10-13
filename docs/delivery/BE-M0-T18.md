@@ -17,7 +17,7 @@
 
 - 2026-10-12，BE-M0，[ISSUE-033](../../issues/ISSUE-033.md)。
 - 分支 `codex/repository-foundation`。未新开 PR，未合入，未发布。
-- 本地验收已做。等待 QA 重签后，项目经理才能标 done。
+- 本地验收已做。QA REV-M0-T35 tip `90b2334` 运行时已重签。等待项目经理标 done。
 
 ## 完成内容与变更文件
 

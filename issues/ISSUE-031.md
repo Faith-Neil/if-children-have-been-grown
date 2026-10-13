@@ -15,7 +15,7 @@
 | revision | frozen-names-1 |
 | 关联 Task | [BE-M0-T16](../docs/tasks/BE-M0.md#be-m0-t16) |
 | 关联 PR | 未创建。随既有分支提交，不新开 PR |
-| 本地验收 | QA ae6fd10，PM 15:32 确认。见 [签署](../docs/testing/2026-10-12-issue-031-frozen-names-signoff.md)。BE-M0-T16 仍 in-review |
+| 本地验收 | QA ae6fd10，PM 15:32 确认。见 [签署](../docs/testing/2026-10-12-issue-031-frozen-names-signoff.md)。BE-M0-T16 仍 in-review（QA REV-M0-T34 tip `90b2334` 已签，等 PM） |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | [BE-M0-T16](../docs/delivery/BE-M0-T16.md) |
@@ -37,7 +37,7 @@
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| BE-M0-T16 | 143 个错误码名字写入冻结名单，增删必须同一提交更新 | `backend/bid-core/icg_demo/frozen_error_codes.py` | AC-01～AC-04 | in-review |
+| BE-M0-T16 | 143 个错误码名字写入冻结名单，增删必须同一提交更新 | `backend/bid-core/icg_demo/frozen_error_codes.py` | AC-01～AC-04 | in-review（QA REV-M0-T34 已签） |
 
 ## 验收条目
 

@@ -20,3 +20,7 @@
 | .github | 未改 | 现有 backend 作业会跑契约测试和 QA 脚本 |
 
 BE-M0-T16 为 in-review。ISSUE-031 为 in-review。不标 done，不标 closed。PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照不改。任务看板是准绳。
+
+## 2026-10-13 QA
+
+QA 签署 BE-M0-T16（REV-M0-T34，tip `90b2334`）：`set(ERROR_STATUS)==FROZEN_NAMES`（143）。ISSUE-031 保持 closed。BE-M0-T16 仍 in-review，等 PM。

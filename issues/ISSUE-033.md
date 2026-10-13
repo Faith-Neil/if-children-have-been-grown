@@ -16,7 +16,7 @@
 | revision | evidence-mount-2 |
 | 关联 Task | [BE-M0-T18](../docs/tasks/BE-M0.md#be-m0-t18) |
 | 关联 PR | 未创建。随既有分支提交，不新开 PR |
-| 本地验收 | 已做后台测试。等待 QA 重签 |
+| 本地验收 | QA tip `90b2334` 运行时重签通过（REV-M0-T35）。本 Issue / BE-M0-T18 仍 in-review，不标 closed |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | [BE-M0-T18](../docs/delivery/BE-M0-T18.md) |
@@ -62,10 +62,10 @@
 
 | 编号 | 可检查的完成条件 | 结果与证据 |
 |---|---|---|
-| AC-01 | 有效期早于投标截止日且非长期有效时，挂接返回 409 `EVIDENCE_EXPIRED`。长期有效仍可挂接 | 本地通过。见验证记录 |
-| AC-02 | `source_tier=reference` 与合作方缺少协议都返回 409 `EVIDENCE_NOT_USABLE`，说明分别为仅供参考和缺协议 | 本地通过。见验证记录 |
-| AC-03 | `is_restricted` 且调用者不是公司管理员、资料管理员，也不在授权名单时，返回 403 `FORBIDDEN`。有授权或上述身份可以挂接 | 本地通过。见验证记录 |
-| AC-04 | 不新增错误码。卡片为 in-review，QA 重签前不标 done | 错误码名单未改。QA 尚未重签 |
+| AC-01 | 有效期早于投标截止日且非长期有效时，挂接返回 409 `EVIDENCE_EXPIRED`。长期有效仍可挂接 | 本地通过。见验证记录；QA tip 90b2334 复跑通过 |
+| AC-02 | `source_tier=reference` 与合作方缺少协议都返回 409 `EVIDENCE_NOT_USABLE`，说明分别为仅供参考和缺协议 | 本地通过。见验证记录；QA tip 90b2334 复跑通过 |
+| AC-03 | `is_restricted` 且调用者不是公司管理员、资料管理员，也不在授权名单时，返回 403 `FORBIDDEN`。有授权或上述身份可以挂接 | 本地通过。见验证记录；QA tip 90b2334 复跑通过 |
+| AC-04 | 不新增错误码。卡片为 in-review，QA 重签前不标 done | 错误码名单未改（143）。QA REV-M0-T35 已重签通过；不标 done |
 
 未做浏览器验收，未合入，未发布。in-review 不是 closed，也不是 done。
 
@@ -90,6 +90,7 @@
 | 2026-10-12 | evidence-mount-1 / new | 项目经理暂停。只登记 ISSUE-033 与 BE-M0-T18。不写字典对照，不定错误码，不改接口 | 本文件 |
 | 2026-10-12 | evidence-mount-spec-1 / in-progress | 按字典 v1.9 写入冻结的 `EvidenceMountFields`。挂接拒绝复用 409 `EVIDENCE_EXPIRED`、409 `EVIDENCE_NOT_USABLE`、403 `FORBIDDEN`。当时运行时未接通 | [同步](../docs/governance/ISSUE-033-sync.md) |
 | 2026-10-12 | evidence-mount-2 / in-review | 条款 PATCH 已按上述规则拒绝。不新增错误码。等待 QA 重签 | [BE-M0-T18](../docs/delivery/BE-M0-T18.md) |
+| 2026-10-13 | evidence-mount-2 / in-review | QA 运行时重签（REV-M0-T35，tip `90b2334`）：AC-01～04 通过；无库 381/13；不标 closed | 成长测试QA |
 
 ## 本地验收与后续合入发布
 

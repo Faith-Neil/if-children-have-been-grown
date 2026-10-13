@@ -632,3 +632,83 @@
 - [x] 检查新增挂证据、v1租约和导出输入绑定，未确认新的阻断。
 - [x] 必要后端专项11项通过；全套构建、浏览器、真实数据库/模型未在本轮重复执行。
 - [x] 沿用原QA签署和ISSUE-034，不覆盖他人编号；[PR #4](https://github.com/Faith-Neil/if-children-have-been-grown/pull/4)待审、未合入/发布。
+
+<a id="rev-m0-t32"></a>
+
+## REV-M0-T32 · BE-M0-T04 编辑租约 v1 QA签署
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review（本地验收；等项目经理设置 done） |
+| 估算 | 1小时 |
+| 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
+| 依赖 | BE-M0-T04（tip 90b2334） |
+| 来源 | 项目经理恢复派活。T31 已用于增量复核 |
+| 完成交付 | [专属交付](../delivery/REV-M0-T32.md) |
+| 代码解释 | 无产品代码 |
+
+范围：正式签署 BE-M0-T04 编辑租约迁到 `/api/v1`。不改他人代码；不把 BE-M0-T04 / ISSUE-005 标为 done。
+
+- [x] 验收条目逐条核对并独立复跑。
+- [x] `test_v1_lease.py` 通过；无库 381 passed / 13 skipped；OpenAPI 含三条 v1 路径。
+- [x] BE-M0-T04 / ISSUE-005 / 本卡均不标 done，等项目经理设置
+
+<a id="rev-m0-t33"></a>
+
+## REV-M0-T33 · BE-M0-T05 导出快照 QA签署
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review（本地验收；等项目经理设置 done） |
+| 估算 | 1小时 |
+| 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
+| 依赖 | BE-M0-T05（tip 90b2334） |
+| 来源 | 项目经理恢复派活 |
+| 完成交付 | [专属交付](../delivery/REV-M0-T33.md) |
+| 代码解释 | 无产品代码 |
+
+范围：正式签署 BE-M0-T05 导出快照语义。不改他人代码；不把 BE-M0-T05 / ISSUE-005 标为 done。
+
+- [x] 验收条目逐条核对并独立复跑。
+- [x] 绑定字段齐全；CHECK_STALE / EXPORT_STALE；无库 381/13。
+- [x] BE-M0-T05 / ISSUE-005 / 本卡均不标 done，等项目经理设置
+
+<a id="rev-m0-t34"></a>
+
+## REV-M0-T34 · BE-M0-T16 错误码名字冻结 QA签署
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review（本地验收；等项目经理设置 done） |
+| 估算 | 1小时 |
+| 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
+| 依赖 | BE-M0-T16（tip 90b2334）；ISSUE-031 已 closed |
+| 来源 | 项目经理恢复派活。REV-M0-T18 为 ISSUE-031 名单签署 |
+| 完成交付 | [专属交付](../delivery/REV-M0-T34.md) |
+| 代码解释 | 无产品代码 |
+
+范围：正式签署 BE-M0-T16。核对 `set(ERROR_STATUS)==FROZEN_NAMES` 与 spec 枚举。不改他人代码；不把 BE-M0-T16 标为 done；不重开 ISSUE-031。
+
+- [x] 验收条目逐条核对并独立复跑。
+- [x] 143 名集合相等；无库 381/13。
+- [x] BE-M0-T16 / 本卡均不标 done，等项目经理设置
+
+<a id="rev-m0-t35"></a>
+
+## REV-M0-T35 · BE-M0-T18 / ISSUE-033 挂证据运行时 QA签署
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review（本地验收；等项目经理设置 done） |
+| 估算 | 1小时 |
+| 关联Issue | [ISSUE-013](../../issues/ISSUE-013.md) |
+| 依赖 | BE-M0-T18 / ISSUE-033（tip 90b2334） |
+| 来源 | 项目经理恢复派活。REV-M0-T26 为规格复签 |
+| 完成交付 | [专属交付](../delivery/REV-M0-T35.md) |
+| 代码解释 | 无产品代码 |
+
+范围：正式签署挂证据**运行时**规则。核对 is_restricted、agreement_present 派生、有效期对照截止日、三错误码复用。不改他人代码；不把 BE-M0-T18 / ISSUE-033 标为 done / closed。
+
+- [x] 验收条目逐条核对并独立复跑。
+- [x] `test_evidence_mount.py` 通过；名单仍 143；无库 381/13。
+- [x] BE-M0-T18 / ISSUE-033 / 本卡均不标 done，等项目经理设置
