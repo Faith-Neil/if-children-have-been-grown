@@ -4,7 +4,7 @@
 
 # 文档更新索引
 
-维护版本：g1.1。更新日期：2026-10-13。当前实现关联：ISSUE-007 / APP-M1；离线检查：ISSUE-012 / APP-M2-T008；范围评审：ISSUE-005 / FE-M0-T03；模型决定：ISSUE-010 / AI-01（closed / in-review；业务库为 MySQL 8，嵌入与向量库为 RAGFlow）；兼容适配器：ISSUE-011 / AI-02（done）；检索骨架：ISSUE-016 / AI-03（closed / done，仅内存）；检索实现：ISSUE-037 / AI-04（in-progress / in-review，仅 CI 假服务）。文档入口统一使用本文件，规则见 [WORKFLOW](governance/WORKFLOW.md)。历史交付维持当时版本与事实；整个ICG来源清单以D-050登记。
+维护版本：g1.1。更新日期：2026-10-16。当前实现关联：ISSUE-007 / APP-M1 / APP-M2-T003；离线检查：ISSUE-012 / APP-M2-T008；范围评审：ISSUE-005 / FE-M0-T03；模型决定：ISSUE-010 / AI-01（closed / in-review；业务库为 MySQL 8，嵌入与向量库为 RAGFlow）；兼容适配器：ISSUE-011 / AI-02（done）；检索骨架：ISSUE-016 / AI-03（closed / done，仅内存）；检索实现：ISSUE-037 / AI-04（in-progress / in-review，仅 CI 假服务）。文档入口统一使用本文件，规则见 [WORKFLOW](governance/WORKFLOW.md)。历史交付维持当时版本与事实；整个ICG来源清单以D-050登记。
 
 编号保持稳定。每次新增、修改、移动、归档文档更新路径、日期、版本、状态、关联 Issue/任务和说明；有替代文件时保留来源。治理版本与业务文档/软件版本独立，参考产品原文以文内版本为准。
 
@@ -452,11 +452,31 @@
 | D-439 | 2026-10-13 | [ISSUE-037 同步](governance/ISSUE-037-sync.md) | 治理 | ragflow-fixture-1 | 已核对 | ISSUE-037 / AI-04 | 不改三份基线快照。不改运行代码 |
 | D-440 | 2026-10-13 | [假 RAGFlow 测试](../tests/backend/test_fake_ragflow.py) | 验证代码 | ragflow-fixture-1 | 9项通过、1项跳过 | ISSUE-037 / AI-04 | 请求头、空 chunks、业务码、HTTP 错误和超时 |
 | D-441 | 2026-10-13 | [假 RAGFlow 服务](../tests/backend/fake_ragflow.py) | 验证代码 | ragflow-fixture-1 | 当前 | ISSUE-037 / AI-04 | 127.0.0.1 临时端口。不进入 create_app |
+| D-442 | 2026-10-16 | [AI-04 QA签署](testing/2026-10-16-ai-04-qa-signoff.md) | 验证 | qa-rerun-28 | 本地通过 | ISSUE-037 / REV-M0-T37 | 假RAGFlow 9 passed/1 skipped；全量后台 395/14；前端 113/0；不标 done |
+| D-443 | 2026-10-16 | [AI-05 交付](delivery/AI-05.md) | 交付 | ragflow-client-1 | in-review | ISSUE-037 / AI-05 | 只读检索客户端，不改 retrieval.py |
+| D-444 | 2026-10-16 | [AI-05 客户端说明](code/AI-05.md) | 说明 | ragflow-client-1 | 当前 | ISSUE-037 / AI-05 | 鉴权、异常分类、零命中标记与超时 |
+| D-445 | 2026-10-16 | [检索客户端测试](../tests/backend/test_ragflow_client.py) | 验证代码 | ragflow-client-1 | 25项通过、1项跳过 | ISSUE-037 / AI-05 | 25项全分支离线单测 |
+| D-446 | 2026-10-16 | [检索客户端实现](../backend/bid-core/icg_demo/ragflow_client.py) | 代码 | ragflow-client-1 | 当前 | ISSUE-037 / AI-05 | 纯只读检索客户端 |
+| D-447 | 2026-10-16 | [AI-05 QA签署](testing/2026-10-16-ai-05-qa-signoff.md) | 验证 | qa-rerun-29 | 本地通过 | ISSUE-037 / AI-05 | 25 passed/1 skipped；联合回归 41/2；不标 done |
+| D-448 | 2026-10-16 | [BE-M0-T07交付](delivery/BE-M0-T07.md) | 交付 | openapi-ops-1 | in-review | ISSUE-005 / BE-M0-T07 | 72个operationId规范为lowerCamelCase，全局唯一，无_api_；不标 done |
+| D-449 | 2026-10-16 | [BE-M0-T07说明](code/BE-M0-T07.md) | 说明 | openapi-ops-1 | 当前 | ISSUE-005 / BE-M0-T07 | 路由配置、契约同步与自动化测试说明 |
+| D-450 | 2026-10-16 | [operationId自动化测试](../tests/backend/test_operation_ids.py) | 验证代码 | openapi-ops-1 | 5项通过 | ISSUE-005 / BE-M0-T07 | 运行态与契约operationId合规、唯一、无_api_断言 |
+| D-451 | 2026-10-16 | [BE-M0-T07 QA签署](testing/2026-10-16-be-m0-t07-qa-signoff.md) | 验证 | qa-rerun-30 | 本地通过 | ISSUE-005 / BE-M0-T07 | 72个operationId合规唯一；5 passed；关键契约 26 passed；不标 done |
+| D-452 | 2026-10-16 | [APP-M2-T003交付](delivery/APP-M2-T003.md) | 交付 | status-views-1 | in-review | ISSUE-007 / APP-M2-T003 | 通用状态组件（骨架屏、空态、错误体带traceId复制、403、版本过期与只读横幅）；不标 done |
+| D-453 | 2026-10-16 | [APP-M2-T003代码说明](code/APP-M2-T003.md) | 说明 | status-views-1 | 当前 | ISSUE-007 / APP-M2-T003 | 状态组件架构、traceId一键复制降级、上下文保护与WCAG 4.5:1对比度说明 |
+| D-454 | 2026-10-16 | [通用状态组件单测](../tests/frontend/status-views.test.mjs) | 验证代码 | status-views-1 | 6项通过 | ISSUE-007 / APP-M2-T003 | WCAG对比度、多态错误提取、模式推导与剪贴板复制测试 |
+| D-455 | 2026-10-16 | [通用状态组件结构测试](../frontend/web/tests/status-views.test.mjs) | 验证代码 | status-views-1 | 8项通过 | ISSUE-007 / APP-M2-T003 | 六类组件导出、traceId复制交互、403与10s超时AST断言 |
+| D-456 | 2026-10-16 | [状态逻辑与规则实现](../frontend/web/src/status-views.ts) | 代码 | status-views-1 | 当前 | ISSUE-007 / APP-M2-T003 | 纯函数逻辑、错误体解析、复制与对比度计算 |
+| D-457 | 2026-10-16 | [通用状态组件实现](../frontend/web/src/StatusViews.tsx) | 代码 | status-views-1 | 当前 | ISSUE-007 / APP-M2-T003 | 六类状态组件React封装与别名导出 |
+| D-458 | 2026-10-16 | [APP-M2-T003 QA签署](testing/2026-10-16-app-m2-t003-qa-signoff.md) | 验证 | qa-rerun-31 | 本地通过 | ISSUE-007 / APP-M2-T003 | 六类状态组件与WCAG 4.5:1通过；前端 127 passed；构建 1.40s；不标 done |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-10-16 | ISSUE-007 / APP-M2-T003 | 通用状态组件封装交付提交 in-review。覆盖骨架屏（表格 5 行、卡片 3 张、10s 超时提醒）、空态（empty/filtered/search 模式与主操作）、错误态（code 标签、message 说明与 traceId 一键复制）、403 无权限（保留项目/角色上下文与未保存说明）、版本过期（#9a5608 对比度 > 4.8:1 与版本对照）与只读保护横幅。样式适配 ProLayout，文字对比度均符合 WCAG 4.5:1。新增 14 项前端单测，全量 127 项单测全绿，前端打包体积稳定（index 289.96 kB）。不标 done |
+| 2026-10-16 | ISSUE-005 / BE-M0-T07 | operationId 检查提交 in-review。所有 72 个 operationId 显式指定 lowerCamelCase，全局唯一，无 _api_ 冗余前缀和下划线。OpenAPI 契约 demo-v1.json 同步更新。自动化测试 test_operation_ids.py 5 项全部通过，pytest 425 passed 15 skipped 全量回归通过。看板 397 项：52 done、23 in-review、7 in-progress、266 planned、48 blocked、1 ready。不标 done，不关闭 ISSUE-005 |
+| 2026-10-16 | ISSUE-037 / AI-05 | RAGFlow 只读检索客户端提交 in-review。实现 POST /api/v1/retrieval，只传 question、dataset_ids 与 rerank_id。空 chunks 记为跳过（skipped=True），非零业务码、HTTP 错误和超时映射为异常失败。单测 25 passed 1 skipped。不改 retrieval.py，AI-06 仍 planned。看板 397 项：52 done、22 in-review、7 in-progress、266 planned、48 blocked、2 ready |
 | 2026-10-13 | ISSUE-013 / REV-M0-T36 | QA 签署 BE-M0-T06（tip `0cb6c38`）通过：202/SSE/取消与 JobStatus；无库 386/13；专项 5 passed。BE-M0-T06 / ISSUE-005 / 本卡不标 done。看板 394 项：52 done、20 in-review |
 | 2026-10-13 | ISSUE-037 / AI-04 | CI 假 RAGFlow 提交 in-review。记录 Authorization 与实际 base_url。真实地址须 ICG_RUN_REAL_RAGFLOW_TESTS=1，默认跳过。新增 AI-05、AI-06，均为 planned。不实现客户端，不改 retrieval.py，不加依赖。ISSUE-029 保持 closed。ISSUE-037 为 in-progress，不标 closed。看板为 397 项：52 done、21 in-review、7 in-progress、267 planned、48 blocked、2 ready。并入 REV-M0-T36 之后。不改 PRD、ROADMAP、PROJECT_BRIEF 的任务计数 |
 | 2026-10-13 | ISSUE-005 / BE-M0-T06 | 可恢复生成任务提交 in-review。202、JobStatus、SSE 与取消已接到运行时。大纲读取仍未实现。不标 done，不关闭 ISSUE-005。看板为 393 项：52 done、19 in-review、7 in-progress、265 planned、48 blocked、2 ready。BE-M0 仍为 10/19 done |

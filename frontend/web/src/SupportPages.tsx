@@ -8,6 +8,7 @@ import type { Account, Evidence, Job, SlaTemplate } from './types';
 import { SlaTemplatesPage } from './SlaPages';
 import { captureLibraryReview, libraryReviewProblem, libraryWriteVersion, loadReviewedLibrary, type LibraryMutation, type LibraryReader, type LibraryReviewBasis } from './library-review';
 import type { TemplateReader } from './template-review';
+import { EmptyState } from './StatusViews';
 
 const types = [{ value: 'qualification', label: '企业资质' }, { value: 'personnel', label: '人员证书' }, { value: 'performance', label: '项目业绩' }, { value: 'sla', label: '服务承诺资料' }, { value: 'snippet', label: '方案片段' }, { value: 'history', label: '历史标书（参考）' }];
 const typeName = (value: string) => types.find(item => item.value === value)?.label ?? value;
@@ -98,5 +99,5 @@ export function JobsPage({ jobs, openProject }: { jobs: Job[]; openProject: (id:
 }
 
 export function PendingPage({ title, detail }: { title: string; detail: string }) {
-  return <><div className="page-heading"><div><h2>{title}</h2></div><Tag color="orange">尚未实现</Tag></div><Card><Empty description={detail} /><Alert className="page-notice" type="info" message="当前先贯通项目主流程，再按 ICG 示例补齐此页" showIcon /></Card></>;
+  return <><div className="page-heading"><div><h2>{title}</h2></div><Tag color="orange">尚未实现</Tag></div><Card><EmptyState description={detail} /><Alert className="page-notice" type="info" message="当前先贯通项目主流程，再按 ICG 示例补齐此页" showIcon /></Card></>;
 }

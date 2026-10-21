@@ -136,19 +136,19 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | ready |
+| 状态 | in-review |
 | 估算 | 2小时；只检查并修正操作名，不加依赖 |
 | 关联 Issue | [ISSUE-005](../../issues/ISSUE-005.md) |
 | 依赖 | [BE-M0-T02](BE-M0.md#be-m0-t02) |
 | 来源 | 已批准的 ISSUE-005 契约冻结提案，卡片 (f) |
-| 完成时交付 | `docs/delivery/BE-M0-T07.md` |
-| 代码解释 | `docs/code/BE-M0-T07.md` |
+| 完成时交付 | [docs/delivery/BE-M0-T07.md](../delivery/BE-M0-T07.md) |
+| 代码解释 | [docs/code/BE-M0-T07.md](../code/BE-M0-T07.md) |
 
-范围：OpenAPI 的 `operationId` 使用 lowerCamelCase，不能重复，也不能保留框架自动生成的 `_api_` 名字。本卡尚未开工。当前导出文件除 `getSession` 外仍是框架原名。
+范围：OpenAPI 的 `operationId` 使用 lowerCamelCase，全局唯一，已去除框架自动生成的 `_api_` 冗余前缀与下划线。本卡标为 in-review，不标 done。
 
-- [ ] 每个操作有稳定、不重复的 operationId。
-- [ ] 测试拒绝重复名和自动 `_api_` 名。
-- [ ] 重导出后的约定与代码一致。
+- [x] 每个操作有稳定、不重复的 operationId。
+- [x] 测试拒绝重复名和自动 `_api_` 名。
+- [x] 重导出后的约定与代码一致。
 
 <a id="be-m0-t08"></a>
 

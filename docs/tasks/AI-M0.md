@@ -119,23 +119,25 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | planned |
+| 状态 | in-review |
 | 估算 | 在已有 httpx 上增加一个只读检索客户端 |
 | 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md) |
 | 依赖 | [AI-04](AI-M0.md#ai-04) 的假服务。不依赖数据集创建或 `kb_sync` |
 | PRD / 架构出处 | [RAGFlow 检索适配器](../architecture/ragflow-retrieval-adapter.md) 的检索与错误节 |
-| 完成时交付 | `docs/delivery/AI-05.md` |
-| 代码解释 | `docs/code/AI-05.md` |
+| 完成时交付 | [交付](../delivery/AI-05.md) |
+| 代码解释 | [代码解释](../code/AI-05.md) |
 
 范围：实现 `RagflowRetrievalClient`。`POST {base_url}/api/v1/retrieval`，请求头 `Authorization: Bearer`。基址与密钥只从环境注入。正文只带调用方注入的 `question`、`dataset_ids` 和 `rerank_id`。不创建数据集，不上传，不解析，不改 `kb_sync_status`。
 
-当前条件：本卡尚未开工。不改 `EvidenceCandidateService`。`code` 为 0 且 chunks 为空时返回跳过，不返回成功的空列表。非 0 业务码、HTTP 错误和超时是检索失败，不能当成命中。密钥不进日志。不加依赖，不用本仓库新的重排库。
+当前条件：客户端已实现。不改 `EvidenceCandidateService`。`code` 为 0 且 chunks 为空时返回跳过，不返回成功的空列表。非 0 业务码、HTTP 错误和超时是检索失败，不能当成命中。密钥不进日志。不加依赖，不用本仓库新的重排库。
 
 可验证验收：
 
-- [ ] 假服务覆盖成功 chunks、空 chunks 记为跳过、非 0 业务码、HTTP 错误和超时。
-- [ ] 只发送注入的 `dataset_ids` 与 `rerank_id`。不调用数据集或同步接口。
-- [ ] 不改 `retrieval.py`。交付、代码解释和基线同步另行登记。真实内网不在本卡。
+- [x] 假服务覆盖成功 chunks、空 chunks 记为跳过、非 0 业务码、HTTP 错误和超时。
+- [x] 只发送注入的 `dataset_ids` 与 `rerank_id`。不调用数据集或同步接口。
+- [x] 不改 `retrieval.py`。交付、代码解释和基线同步已登记。真实内网不在本卡。
+
+不标 done。本卡标为 in-review。合入和发布仍未发生。
 
 <a id="ai-06"></a>
 

@@ -123,13 +123,13 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
 
     User = Annotated[Principal, Depends(current_user)]
 
-    @application.get("/health", response_model=HealthResponse)
+    @application.get("/health", response_model=HealthResponse, operation_id="getHealth")
     def health():
         return {"status": "ok", "mode": "local-demo", "repository": getattr(service.repository, "mode", "injected"),
                 "model": "real" if getattr(service.model_provider, "is_real_model", False) else "mock",
                 "persistent": False, "single_process": True}
 
-    @application.get("/", response_class=FileResponse,
+    @application.get("/", response_class=FileResponse, operation_id="getIndex",
                      responses={**error_responses(404), 200: {"description": "本地操作页面",
                                 "content": {"text/html": {"schema": {"type": "string"}}}}})
     def index():
@@ -143,11 +143,11 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
         # 原后台验证页保留作开发工具，产品主入口使用同一后台的 ICG 页面。
         return FileResponse(static_directory / "index.html")
 
-    @application.get("/api/demo/accounts", response_model=AccountListResponse)
+    @application.get("/api/demo/accounts", response_model=AccountListResponse, operation_id="listAccounts")
     def accounts():
         return service.accounts()
 
-    @application.post("/api/demo/login", response_model=LoginResponse,
+    @application.post("/api/demo/login", response_model=LoginResponse, operation_id="login",
                       responses=error_responses(401))
     def login(body: LoginRequest):
         return service.login(body.account_id)
@@ -162,67 +162,75 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
             raise DomainError(422, "INVALID_SESSION_INPUT", "会话只接受可选的项目ID，公司与角色范围由后台身份决定。")
         return get_application_session(service, user, project_id)
 
-    @application.get("/api/projects", response_model=ProjectListResponse,
+    @application.get("/api/projects", response_model=ProjectListResponse, operation_id="listProjects",
                      responses=error_responses(401))
     def projects(user: User):
         return service.projects(user)
 
-    @application.post("/api/projects", response_model=ProjectResponse,
+    @application.post("/api/projects", response_model=ProjectResponse, operation_id="createProject",
                       responses=error_responses(401, 403))
     def create_project(body: ProjectRequest, user: User):
         return service.create_project(user, body.name)
 
     @application.get("/api/projects/{project_id}/chapters", response_model=ChapterListResponse,
-                     responses=error_responses(401, 404))
+                     operation_id="listChapters", responses=error_responses(401, 404))
     def chapters(project_id: str, user: User):
         return service.chapters(user, project_id)
 
-    @application.get("/api/chapters/{chapter_id}", response_model=ChapterResponse,
+    @application.get("/api/chapters/{chapter_id}", response_model=ChapterResponse, operation_id="getChapter",
                      responses=error_responses(401, 404))
     def chapter(chapter_id: str, user: User):
         return service.chapter(user, chapter_id)
 
     @application.post("/api/chapters/{chapter_id}/lock", response_model=LeaseResponse,
+                      operation_id="acquireLegacyLock",
                       responses=error_responses(401, 403, 404, 409, 423))
     def acquire_lock(chapter_id: str, body: LockRequest, user: User):
         return service.acquire_lock(user, chapter_id, body.takeover_reason)
 
     @application.post("/api/chapters/{chapter_id}/lock/renew", response_model=LeaseResponse,
+                      operation_id="renewLegacyLock",
                       responses=error_responses(401, 403, 404, 423))
     def renew_lock(chapter_id: str, body: LeaseRequest, user: User):
         return service.renew_lock(user, chapter_id, body.lease_token)
 
     @application.post("/api/chapters/{chapter_id}/lock/release", response_model=ReleasedResponse,
+                      operation_id="releaseLegacyLock",
                       responses=error_responses(401, 403, 404, 423))
     def release_lock(chapter_id: str, body: LeaseRequest, user: User):
         return service.release_lock(user, chapter_id, body.lease_token)
 
     # 旧 /api 入口留给验证页。产品入口使用同一套租约规则，错误体改为 v1。
     @application.post("/api/v1/chapters/{chapter_id}/lock", response_model=LeaseResponse,
+                      operation_id="acquireChapterLock",
                       responses=v1_error_responses(401, 403, 404, 409, 423))
     def acquire_v1_lock(chapter_id: str, body: LockRequest, user: User):
         return service.acquire_lock(user, chapter_id, body.takeover_reason)
 
     @application.post("/api/v1/chapters/{chapter_id}/lock/renew", response_model=LeaseResponse,
+                      operation_id="renewChapterLock",
                       responses=v1_error_responses(401, 403, 404, 423))
     def renew_v1_lock(chapter_id: str, body: LeaseRequest, user: User):
         return service.renew_lock(user, chapter_id, body.lease_token)
 
     @application.post("/api/v1/chapters/{chapter_id}/lock/release", response_model=ReleasedResponse,
+                      operation_id="releaseChapterLock",
                       responses=v1_error_responses(401, 403, 404, 423))
     def release_v1_lock(chapter_id: str, body: LeaseRequest, user: User):
         return service.release_lock(user, chapter_id, body.lease_token)
 
-    @application.put("/api/chapters/{chapter_id}/draft", response_model=DraftResponse,
+    @application.put("/api/chapters/{chapter_id}/draft", response_model=DraftResponse, operation_id="saveDraft",
                      responses=error_responses(401, 403, 404, 409, 423))
     def save_draft(chapter_id: str, body: DraftRequest, user: User):
         return service.save_draft(user, chapter_id, **body.model_dump())
 
-    @application.delete("/api/chapters/{chapter_id}/draft", response_model=DraftDiscardResponse, responses=error_responses(401, 404, 409))
+    @application.delete("/api/chapters/{chapter_id}/draft", response_model=DraftDiscardResponse,
+                        operation_id="discardDraft", responses=error_responses(401, 404, 409))
     def discard_draft(chapter_id: str, body: DraftDiscardRequest, user: User):
         return service.discard_draft(user, chapter_id, body.sequence)
 
     @application.post("/api/chapters/{chapter_id}/versions", response_model=VersionResponse,
+                      operation_id="commitVersion",
                       responses=error_responses(401, 403, 404, 409, 423, 428))
     def commit_version(chapter_id: str, body: VersionRequest, user: User,
                        idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)] = None):
@@ -230,31 +238,36 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
         return service.commit_version(user, chapter_id, **body.model_dump(), header_key=idempotency_key)
 
     @application.get("/api/chapters/{chapter_id}/versions", response_model=VersionListResponse,
+                     operation_id="listVersions",
                      responses=error_responses(401, 404))
     def versions(chapter_id: str, user: User):
         return service.versions(user, chapter_id)
 
     @application.get("/api/chapters/{chapter_id}/audit", response_model=AuditListResponse,
+                     operation_id="getAuditTrail",
                      responses=error_responses(401, 404))
     def audit(chapter_id: str, user: User):
         return service.audit(user, chapter_id)
 
     @application.post("/api/chapters/{chapter_id}/suggestions", response_model=SuggestionResponse,
+                      operation_id="suggest",
                       responses=error_responses(401, 403, 404, 502))
     def suggest(chapter_id: str, body: SuggestionRequest, user: User):
         return service.suggest(user, chapter_id, body.instruction)
 
     @application.post("/api/chapters/{chapter_id}/checks", response_model=CheckResponse,
+                      operation_id="checkChapter",
                       responses=error_responses(401, 403, 404))
     def check(chapter_id: str, body: EmptyRequest, user: User):
         return service.check(user, chapter_id)
 
     @application.post("/api/chapters/{chapter_id}/exports", response_model=ExportResponse,
+                      operation_id="exportChapter",
                       responses=error_responses(401, 403, 404, 409))
     def export(chapter_id: str, body: ExportRequest, user: User):
         return service.export(user, chapter_id, body.check_id)
 
-    @application.get("/api/exports/{export_id}/file", response_class=Response,
+    @application.get("/api/exports/{export_id}/file", response_class=Response, operation_id="downloadExportFile",
                      responses={**error_responses(401, 404, 409),
                                 200: {"description": "已提交章节的真实 Word 演示文件",
                                       "content": {DOCX_MEDIA_TYPE: {"schema": {"type": "string", "format": "binary"}}},

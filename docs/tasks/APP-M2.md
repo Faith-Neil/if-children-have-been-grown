@@ -65,7 +65,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T003 · 通用状态组件（骨架、空态、错误、无权限、已过期、只读）
 <a id="app-m2-t003"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[BE-M0-T01](BE-M0.md#be-m0-t01)、[APP-M2-T001](APP-M2.md#app-m2-t001)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[BE-M0-T01](BE-M0.md#be-m0-t01)、[APP-M2-T001](APP-M2.md#app-m2-t001)。已提交代码解释与交付文档。
 
 原始来源：原交接 §6.2 M1-P08-F3；PRD v1.8 §2.3、5.12、7.2。交付单位：通用状态组件（骨架、空态、错误、无权限、已过期、只读），同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -75,7 +75,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 
 验收：实际完成本卡标题列出的单一行为，页面读回与后台同源状态一致，不只显示静态占位。原交接验收约束（取与本子项对应的条件）：组件快照 + 可访问性断言。分别保存正例、权限反例、失败/并发及旧来源失效证据；涉及输出直接检查文件，原级别/放行/递交门禁不能被页面绕过。输出证据：页面/请求结果、三断点截图与离线构建检查。
 
-交付：`docs/delivery/APP-M2-T003.md`；代码解释：`docs/code/APP-M2-T003.md`；测试放docs/testing并逐项关联本卡，未执行写未执行。
+交付：[APP-M2-T003 交付](../delivery/APP-M2-T003.md)；代码解释：[APP-M2-T003 代码解释](../code/APP-M2-T003.md)；测试见 `tests/frontend/status-views.test.mjs` 与 `frontend/web/tests/status-views.test.mjs`。
 
 ### APP-M2-T004 · 业务小组件：LevelTag、AiTag、DirectTag、Cite、SourceBar
 <a id="app-m2-t004"></a>
