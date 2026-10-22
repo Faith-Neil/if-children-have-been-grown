@@ -43,6 +43,8 @@ jobs:
       - name: T06 end-to-end smoke
         working-directory: backend/bid-core
         run: python smoke_t06.py
+      - name: Verify OpenAPI generation consistency
+        run: python backend/bid-core/export_openapi.py --check
 
   backend-mysql:
     name: backend-mysql
@@ -164,8 +166,12 @@ jobs:
       - name: Typecheck and build
         working-directory: frontend/web
         run: pnpm build
+      - name: Frontend lint
+        working-directory: frontend/web
+        run: pnpm lint
       - name: Frontend tests
-        run: node --test frontend/web/tests/**/*.test.mjs
+        working-directory: frontend/web
+        run: pnpm test
 
   governance:
     name: governance
