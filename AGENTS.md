@@ -36,3 +36,10 @@
 - 在 `docs/testing/` 记录验证方式与局限，在 `docs/delivery/` 记录交付，并同步文档索引。
 - 收尾运行 `node scripts/check-project-governance.cjs`；检查程序只能验证记录一致性，实际功能仍按任务验收。检查程序修改时运行 `node --test tests/governance/*.test.cjs`。
 - 生成的 API SDK 后续从 `spec/openapi/` 契约生成，避免手改生成文件。
+
+## 质量整改与结构冻结规则
+
+- **后端分包边界**：禁止再向 `backend/bid-core/icg_demo/`（或后续 `icg/`）根目录平铺新增文件，新能力必须划分到上下文子包（api/domain/infra/app）。
+- **前端按域分层**：禁止再向 `frontend/web/src/` 根目录平铺新增页面文件，必须归入域目录（app/shell/project/editor/library/admin/status/shared）。
+- **API 接口收敛**：新接口只加 `/api/v1`；`/api/demo` 路径已标为 deprecated，只读兼容，不再向旧 demo 路径添加新端点。
+- **持久化门禁**：生产配置强制 `ICG_REQUIRE_MYSQL=1`；仅在测试环境下允许内存仓储，生产路径严禁静默回落到内存仓储。
