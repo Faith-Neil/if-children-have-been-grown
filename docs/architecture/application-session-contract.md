@@ -30,7 +30,18 @@
 | `session` | `expires_at: null`、`renew_supported: false` |
 | `project_access`（可选） | 项目`id`、`revision`、`route_permissions`、项目`permissions`和章节`id/volume/permissions`；不含正文、证据或草稿 |
 
-三种账号均可读取获准的项目、资料、服务模板和任务；editor/manager保留旧资料写权限，manager保留项目创建和服务模板写权限。这里的`library.write`不是完整资料负责人、审核、受限字段权限，后者仍需原任务实现。manager只有`admin.rules`只读入口，没有`admin`公司管理入口；viewer没有写作档案入口。项目导出入口还按当前项目分工和后台资源权限计算。
+### 角色模型与权限说明
+
+在 **8 角色 RBAC 模型（`role_mode: rbac-8roles`，现行权威）** 下，各角色权限严格按 `frontend/web/src/shared/roles.ts` 规定的细粒度权限集与 `backend/bid-core/` 对应的业务守卫核验：
+- `platform_admin` / `group_admin` / `company_admin`：具备不同层级的组织治理、审计日志与配置权限；
+- `data_admin`：具备全量资料库读写、敏感字段解密查看与规则配置权限；
+- `project_lead`：具备项目创建、成员分工、章节分配、流程流转及审批权限；
+- `bid_writer`：具备分配章节的在线编写、AI 生成、批注与资料引用权限；
+- `auditor`：具备只读合规审查与审计记录权限；
+- `viewer`：具备获准项目的只读浏览权限。
+
+在 **演示兼容模式（`role_mode: legacy-demo-compat`，向后兼容）** 下：
+旧版三种账号均可读取获准的项目、资料、服务模板和任务；`editor` / `manager` 保留旧资料写权限，`manager` 保留项目创建和服务模板写权限。`manager` 映射至 `project_lead`（仅限 `admin.rules` 只读，无跨租户管理入口）；`editor` 映射至 `bid_writer`；`viewer` 保持只读。所有导出与操作均按后台当前会话及资源权限计算。
 
 ## 失败与范围
 

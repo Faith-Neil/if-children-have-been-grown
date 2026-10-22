@@ -709,11 +709,14 @@
 | D-696 | 2026-10-22 | [WP-1 基线锁定与编码加固交付](delivery/WP-1.md) | 架构整改交付 | wp-1-1 | 当前 | 治理 / 质量 | WP-1 修复 alembic.ini Windows CP936 编码解析隐患，验证迁移链 0001~0011 拓扑完整性，在 AGENTS.md 固化结构冻结与 Layout First 规则 |
 | D-697 | 2026-10-22 | [质量整改遗留债务收敛](../issues/ISSUE-038.md) | 问题 | issue-038-1 | new | 治理 / 架构 | 质量整改后遗留结构债务收敛（suggestions 双错误体收敛、EditorPage 与 workflow_orchestrator 二次细化、icg/api 与 icg/app 骨架子包处置） |
 | D-698 | 2026-10-22 | [DOC-SYNC-1 文档与实树对齐交付](delivery/2026-10-22-doc-sync-1.md) | 治理 / 交付 | doc-sync-1 | 当前 | 治理 / 架构 | DOC-SYNC-1 落实文档与 WP-1～7 质量整改后实树对齐（八域目录、分包 façade、会话契约、八角色与门禁叙事同步） |
+| D-699 | 2026-10-23 | [DOC-SYNC-1.1 活文档短补丁交付](delivery/2026-10-23-doc-sync-1.1.md) | 治理 / 交付 | doc-sync-1.1 | 当前 | 治理 / 架构 | DOC-SYNC-1.1 按实树校准后端模块表、layout 现行树前置、AGENTS 与契约去纯演示口径 |
+| D-700 | 2026-10-23 | [TASK_BOARD 板头同步与指挥口令](delivery/2026-10-23-task-board-header-sync.md) | 治理 / 任务 | task-board-header-sync | 准备中 | 治理 / 任务 | TASK_BOARD 结构债收官指针、FE-M0 防误派标注与 subagent 派工指挥口令指南 |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-10-23 | 治理 / 架构 | 登记 DOC-SYNC-1.1 活文档短补丁交付（2026-10-23-doc-sync-1.1.md，D-699），按实树重写后端模块表、layout 现行树前置、AGENTS 开工前与会话契约去除纯演示口径 |
 | 2026-10-22 | 治理 / 架构 | 登记 DOC-SYNC-1 文档与实树对齐交付（2026-10-22-doc-sync-1.md，D-698），更新工程目录、前后端 README、会话契约、实树分包与门禁叙事 |
 | 2026-10-22 | 治理 / 质量 | 补齐登记 WP-1 基线锁定与编码加固交付（WP-1.md），记录 alembic.ini 编码加固、0001~0011 迁移链验证及 AGENTS.md 架构规则固化 |
 | 2026-10-22 | 治理 / 质量 | 登记 WP-7 OpenAPI 生成化与全量回归终审交付（WP-7.md），完成 CI 契约一致性校验、package.json lint 脚本补齐与 610 项后端/348 项前端全量回归终审 |

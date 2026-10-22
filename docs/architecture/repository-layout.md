@@ -12,7 +12,71 @@
 
 保留 `docs/PRD.md`、`docs/ARCHITECTURE.md`、`docs/ROADMAP.md` 的入口路径，当前增加ICG实施说明，旧视图保留来源。`main`上的三件套是前端实施视图，`xqr`上的同名文件是全系统技术标方案草稿；同名不代表同一文档层级。PRD v1.8、字典v1.9及ICG设计交接作为本轮实现目标，但不据此声明所有历史方案已经全面对齐或技术选型已经冻结。差异见[基线差异](../decisions/baseline-gaps.md)和[示例差异记录](../decisions/icg-reference-deviations.md)。
 
-## 首轮整理后的结构（FE-M0-T01快照）
+> **导航：** [查看现行真实工程骨架（权威）](#当前-icg-真实工程骨架wp-1wp-7-质量整改后实树) ｜ [历史快照：FE-M0 资产整理](#历史快照首轮整理后的结构fe-m0-t01) ｜ [历史快照：BE-M0 早期后台](#历史快照2026-10-10首个后台骨架be-m0-t01) ｜ [历史方案：早期后续目标结构（别名 features/，非现行）](#历史方案早期后续目标结构别名-features非现行)
+
+## 当前 ICG 真实工程骨架（WP-1～WP-7 质量整改后实树）
+
+以下目录为经过 2026-10-22 质量整改（WP-1 至 WP-7）后的真实工程实树。核心工程原则遵循：
+1. **前端按域分层**：`frontend/web/src/` 根目录仅保留 `main.tsx` 挂载入口，所有组件与页面按 8 大业务域收口入子目录。
+2. **后端分包解耦**：`backend/bid-core/icg_demo/` 下的 `database.py`、`workflow.py`、`adapters.py` 全面收缩为轻量级向后兼容门面（façade / re-export），真实实现下沉至 `backend/bid-core/icg/`（`infra/` 与 `domain/`）；`icg/api/` 与 `icg/app/` 为结构骨架占位（路由装配仍在 `icg_demo/main.py`，待 ISSUE-038 迁移填充）。
+3. **接口收敛与角色单源**：业务主流程全面采用 `/api/v1` 契约，旧 `/api/demo` 路径已标记为 deprecated；前端收拢至 `roles.ts`（八角色）与 `codes.ts`（数据字典），演示模式支持通过 `VITE_DEMO=0` 关闭。
+4. **测试权威收口**：前端唯一权威测试套件位于 `frontend/web/tests/`（含 `unit/`，348 项测试），`tests/frontend/` 仅保留兼容历史引用的轻量转发壳。
+
+```text
+if-children-have-been-grown/
+├─ README.md                          # 仓库主说明与模块导航
+├─ AGENTS.md                          # 合作维护约定（含质量整改与结构冻结规则）
+├─ .github/workflows/                 # 离线 CI 与 GitHub Actions 门禁（含 OpenAPI 生成一致性校验）
+├─ docs/                              # 文档体系（PRD、ROADMAP、ARCHITECTURE、TASK_BOARD、DOCUMENT_INDEX）
+│  ├─ architecture/repository-layout.md # 本文（现行仓库工程骨架权威依据）
+│  ├─ delivery/                       # 交付文档（WP-1 至 WP-7 交付报告 D-689~D-696）
+│  └─ reference/product/              # 原始需求参考（PRD v1.8、数据字典 v1.9，保持原文）
+├─ frontend/web/                      # 正式 React 前端工程
+│  ├─ package.json                    # 脚本（含 "test": "node --test tests/**/*.test.mjs", "lint": "tsc -b --noEmit"）
+│  ├─ tests/                          # 前端唯一权威测试目录（348 项测试全绿）
+│  │  └─ unit/                        # 单元测试（roles-codes-convergence、responsive-layout 等）
+│  └─ src/
+│     ├─ main.tsx                     # 唯一的全局挂载与启动入口
+│     ├─ app/                         # 应用编排域（App.tsx、LoginScreen.tsx、session-navigation.ts、context.tsx）
+│     ├─ shell/                       # 外壳与守卫域（AppShell.tsx、RouteGuard.tsx、Can.tsx、responsive.ts）
+│     ├─ project/                     # 项目与主流程域（ProjectPages.tsx、ProjectListPage.tsx、ProjectHeader.tsx）
+│     ├─ editor/                      # 章节编辑域（EditorPage.tsx、EditorHeader.tsx、CiteCapsule.tsx、SelectionBubble.tsx）
+│     ├─ library/                     # 知识资料域（LibraryPages.tsx、MetadataTable.tsx、BusinessTags.tsx）
+│     ├─ admin/                       # 系统管理与合规域（AuditLogPage.tsx、CompanyManagePage.tsx、SlaPages.tsx、MaskedField.tsx）
+│     ├─ status/                      # 状态与异步任务域（StatusViews.tsx、JobProgress.tsx、job-progress-sse.ts）
+│     └─ shared/                      # 契约与公共能力域（roles.ts、codes.ts、api.ts、types.ts、styles.css）
+├─ backend/bid-core/                  # Python/FastAPI 业务核心
+│  ├─ alembic.ini                     # Windows CP936 编码加固后的迁移配置
+│  ├─ migrations/versions/            # Alembic 0001~0011 拓扑单向链
+│  ├─ export_openapi.py               # OpenAPI 导出与 --check 门禁校验工具
+│  ├─ icg/                            # 业务实现分包层（结构冻结归宿）
+│  │  ├─ infra/                       # 持久化与基础设施（memory_repository.py, mysql_gate.py, repositories/）
+│  │  ├─ domain/                      # 核心领域服务（workflow_orchestrator.py, export_service.py, generation_service.py, outline_service.py）
+│  │  ├─ api/                         # API 路由子包（骨架占位，当前路由暂挂 icg_demo/main.py）
+│  │  └─ app/                         # 应用容器与装配子包（骨架占位）
+│  └─ icg_demo/                       # 兼容门面层（Façade / Re-export）
+│     ├─ main.py                      # 统一请求处理、异常处理器与生产演示隔离门禁
+│     ├─ database.py                  # 76 行转接壳（转发至 icg.infra.mysql_gate 与 repositories.*）
+│     ├─ workflow.py                  # 29 行转接壳（转发至 icg.domain 四大服务）
+│     ├─ adapters.py                  # 适配器门面（包含 DemoModelProvider 替身实现，re-export MemoryRepository 与 Word生成）
+│     ├─ schemas.py                   # Pydantic 契约定义（AuthMode / RoleMode / 统一错误体）
+│     └─ static/                      # /demo 历史调试页面
+├─ spec/openapi/demo-v1.json          # 权威 API 契约（FastAPI 自动化生成与 CI 一致性保障）
+├─ tests/
+│  ├─ backend/                        # 后端单元与集成测试（652 项，610 passed, 42 skipped）
+│  ├─ frontend/                       # 历史引用转发壳（re-export 自 frontend/web/tests/unit/）
+│  └─ prototype/                      # 历史原型测试
+├─ issues/                            # 问题与缺陷单（ISSUE-001 ~ ISSUE-038）
+└─ prototypes/bidding-ux/             # 离线纯静态交互原型（保留离线打开）
+```
+
+构建产物 `frontend/web/dist` 由后台根路径 `/` 和 `/assets` 静态提供，不提交到代码仓库。系统以 `/api/v1` 为主接口路径；旧 `/api/demo` 端点仅保留只读兼容并打上 Deprecation 标记，生产配置（`ICG_REQUIRE_MYSQL=1`）下强行阻断演示账号以防数据污染。
+
+---
+
+# 附录：历史快照与演进方案
+
+## 历史快照：首轮整理后的结构（FE-M0-T01）
 
 以下为本轮资产归位后的结构。文件名和目录代表当前已有资产；正式应用目录在启动开发时创建。
 
@@ -60,7 +124,7 @@ if-children-have-been-grown/
 
 静态原型的运行方式和演示范围见 [原型说明](../../prototypes/bidding-ux/README.md)。原型当前使用模拟数据，用于确认信息架构、编辑器布局与交互；正式开发需要补真实接口、权限、任务状态及模型接入。本轮回归测试针对编辑锁期间的写入保护，范围及局限见 [验证记录](../testing/2026-10-09-repository-foundation.md)。全仓文档入口见 [文档索引](../DOCUMENT_INDEX.md)，分支整合依据见 [PR #1 评审](../reviews/pr-1-integration.md)。
 
-## 后续目标结构
+## 历史方案：早期后续目标结构（别名 features/，非现行）
 
 > **现行约定与历史别名说明（DOC-SYNC-1）：**
 > 下图中的 `features/` 分组为早期构想别名。**现行权威约定为 AGENTS.md 冻结的八大业务域子目录**（`app/`、`shell/`、`project/`、`editor/`、`library/`、`admin/`、`status/`、`shared/`）。后续工程开发严格以此八域为准，禁止在 `frontend/web/src/` 根目录平铺新增文件。
@@ -208,7 +272,7 @@ Git根从原 `X:\ICG CO\if-children-have-been-grown` 提升到 `X:\ICG CO`，原
 
 工作区扩展增加了tools/workspace-sync、业务/技术审查、brief、OPS/REV任务与运行说明；后续实现再建立了页面和后台。未出现真实实现的目标目录仍是方案，不创建空服务。持续同步与人工任务验收关系见 [工作流](../governance/WORKFLOW.md) §7。
 
-## 2026-10-10首个后台骨架（BE-M0-T01快照）
+## 历史快照：2026-10-10首个后台骨架（BE-M0-T01）
 
 以下目录已包含可运行代码；上面的目标方案和10月9日快照继续保留为当时记录。
 
@@ -232,61 +296,3 @@ tests/backend/              后台成功及失败场景验证
 先使用一个模块化业务核心。模型接口负责返回建议；数据库接口负责读取和一次性完成整组写入，后续接真实服务时保留业务规则。简单页面与后台由同一个本地服务提供，减少demo的安装步骤。
 
 该次交付限单进程演示：编辑权和数据在内存中，重启清空；当时尚未接通产品解析和两册流程。具体结论见[后端准备核对](backend-demo-readiness.md)，历史交付见[BE-M0-T01](../delivery/BE-M0-T01.md)。
-
-## 当前 ICG 真实工程骨架（WP-1～WP-7 质量整改后实树）
-
-以下目录为经过 2026-10-22 质量整改（WP-1 至 WP-7）后的真实工程实树。核心工程原则遵循：
-1. **前端按域分层**：`frontend/web/src/` 根目录仅保留 `main.tsx` 挂载入口，所有组件与页面按 8 大业务域收口入子目录。
-2. **后端分包解耦**：`backend/bid-core/icg_demo/` 下的 `database.py`、`workflow.py`、`adapters.py` 全面收缩为轻量级向后兼容门面（façade / re-export），真实实现下沉至 `backend/bid-core/icg/`（`infra/` 与 `domain/`）；`icg/api/` 与 `icg/app/` 为结构骨架占位（路由装配仍在 `icg_demo/main.py`，待 ISSUE-038 迁移填充）。
-3. **接口收敛与角色单源**：业务主流程全面采用 `/api/v1` 契约，旧 `/api/demo` 路径已标记为 deprecated；前端收拢至 `roles.ts`（八角色）与 `codes.ts`（数据字典），演示模式支持通过 `VITE_DEMO=0` 关闭。
-4. **测试权威收口**：前端唯一权威测试套件位于 `frontend/web/tests/`（含 `unit/`，348 项测试），`tests/frontend/` 仅保留兼容历史引用的轻量转发壳。
-
-```text
-if-children-have-been-grown/
-├─ README.md                          # 仓库主说明与模块导航
-├─ AGENTS.md                          # 合作维护约定（含质量整改与结构冻结规则）
-├─ .github/workflows/                 # 离线 CI 与 GitHub Actions 门禁（含 OpenAPI 生成一致性校验）
-├─ docs/                              # 文档体系（PRD、ROADMAP、ARCHITECTURE、TASK_BOARD、DOCUMENT_INDEX）
-│  ├─ architecture/repository-layout.md # 本文（现行仓库工程骨架权威依据）
-│  ├─ delivery/                       # 交付文档（WP-1 至 WP-7 交付报告 D-689~D-696）
-│  └─ reference/product/              # 原始需求参考（PRD v1.8、数据字典 v1.9，保持原文）
-├─ frontend/web/                      # 正式 React 前端工程
-│  ├─ package.json                    # 脚本（含 "test": "node --test tests/**/*.test.mjs", "lint": "tsc -b --noEmit"）
-│  ├─ tests/                          # 前端唯一权威测试目录（348 项测试全绿）
-│  │  └─ unit/                        # 单元测试（roles-codes-convergence、responsive-layout 等）
-│  └─ src/
-│     ├─ main.tsx                     # 唯一的全局挂载与启动入口
-│     ├─ app/                         # 应用编排域（App.tsx、LoginScreen.tsx、session-navigation.ts、context.tsx）
-│     ├─ shell/                       # 外壳与守卫域（AppShell.tsx、RouteGuard.tsx、Can.tsx、responsive.ts）
-│     ├─ project/                     # 项目与主流程域（ProjectPages.tsx、ProjectListPage.tsx、ProjectHeader.tsx）
-│     ├─ editor/                      # 章节编辑域（EditorPage.tsx、EditorHeader.tsx、CiteCapsule.tsx、SelectionBubble.tsx）
-│     ├─ library/                     # 知识资料域（LibraryPages.tsx、MetadataTable.tsx、BusinessTags.tsx）
-│     ├─ admin/                       # 系统管理与合规域（AuditLogPage.tsx、CompanyManagePage.tsx、SlaPages.tsx、MaskedField.tsx）
-│     ├─ status/                      # 状态与异步任务域（StatusViews.tsx、JobProgress.tsx、job-progress-sse.ts）
-│     └─ shared/                      # 契约与公共能力域（roles.ts、codes.ts、api.ts、types.ts、styles.css）
-├─ backend/bid-core/                  # Python/FastAPI 业务核心
-│  ├─ alembic.ini                     # Windows CP936 编码加固后的迁移配置
-│  ├─ migrations/versions/            # Alembic 0001~0011 拓扑单向链
-│  ├─ export_openapi.py               # OpenAPI 导出与 --check 门禁校验工具
-│  ├─ icg/                            # 业务实现分包层（结构冻结归宿）
-│  │  ├─ infra/                       # 持久化仓储与适配器（10 大模块：account_store, project_store 等）
-│  │  ├─ domain/                      # 核心领域编排（workflow_orchestrator, chapter_service 等）
-│  │  ├─ api/                         # API 路由子包（骨架占位，当前路由暂挂 icg_demo/main.py）
-│  │  └─ app/                         # 应用容器与装配子包（骨架占位）
-│  └─ icg_demo/                       # 兼容门面层（Façade / Re-export）
-│     ├─ main.py                      # 统一请求处理、异常处理器与生产演示隔离门禁
-│     ├─ database.py                  # 82 行转接壳（转发至 icg.infra）
-│     ├─ workflow.py                  # 29 行转接壳（转发至 icg.domain）
-│     ├─ adapters.py                  # 36 行转接壳（转发至 icg.infra.adapters_impl）
-│     ├─ schemas.py                   # Pydantic 契约定义
-│     └─ static/                      # /demo 历史调试页面
-├─ spec/openapi/demo-v1.json          # 权威 API 契约（FastAPI 自动化生成与 CI 一致性保障）
-├─ tests/
-│  ├─ backend/                        # 后端单元与集成测试（652 项，610 passed, 42 skipped）
-│  ├─ frontend/                       # 历史引用转发壳（re-export 自 frontend/web/tests/unit/）
-│  └─ prototype/                      # 历史原型测试
-├─ issues/                            # 问题与缺陷单（ISSUE-001 ~ ISSUE-038）
-└─ prototypes/bidding-ux/             # 离线纯静态交互原型（保留离线打开）
-```
-
-构建产物 `frontend/web/dist` 由后台根路径 `/` 和 `/assets` 静态提供，不提交到代码仓库。系统以 `/api/v1` 为主接口路径；旧 `/api/demo` 端点仅保留只读兼容并打上 Deprecation 标记，生产配置（`ICG_REQUIRE_MYSQL=1`）下强行阻断演示账号以防数据污染。

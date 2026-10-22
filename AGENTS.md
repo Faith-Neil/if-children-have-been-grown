@@ -8,7 +8,7 @@
 
 1. 阅读 `docs/DOCUMENT_INDEX.md`、`docs/governance/WORKFLOW.md`、`docs/TASK_BOARD.md`、`docs/PROJECT_STATUS.md` 与 `issues/index.md`。
 2. 核对工作分支和工作区；保留他人的修改，不重置或强推合作分支。
-3. 按现有实现工作。静态原型与 `backend/bid-core/` 本地demo分别阅读说明；后端使用演示登录、内存数据和模型替身，不假设生产数据库、真实模型或正式一期已完成。
+3. 按现有实现工作。静态原型、前端页面与 `backend/bid-core/` 业务后台分别阅读说明；本地开发默认可使用合成演示数据和模型替身，但系统已具备正式 Access Token 凭据登录与 8 大标准 RBAC 角色完整链路。在关闭演示模式（`VITE_DEMO=0`）或启用生产持久化门禁（`ICG_REQUIRE_MYSQL=1`）时，严禁假设只能通过 demo 账号工作。结构与禁令严格以本文与 `docs/architecture/repository-layout.md` 现行骨架为准。
 
 ## 文档与目录
 
