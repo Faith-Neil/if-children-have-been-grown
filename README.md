@@ -8,7 +8,7 @@
 
 目前已经接通“项目 → 上传招标文件 → 解析并人工确认 → 响应矩阵与证据 → 技术/商务章节编辑 → 流程检查 → 两册 Word 内部稿”。这条流程已完成一轮真实页面操作，仍有大量示例功能待补齐，不能视为完整一期已交付。数据库和模型保留替换接口，当前使用内存存储和模型替身。Git根为本地 `X:\ICG CO`，GitHub私有仓库保存协作分支的云端版本。
 
-从 [文档索引](docs/DOCUMENT_INDEX.md)、[任务看板](docs/TASK_BOARD.md) 和 [项目状态](docs/PROJECT_STATUS.md) 开始阅读。[协作流程](docs/governance/WORKFLOW.md)规定 Issue、任务验收、逐任务交付、代码解释和文档同步。[目录重构方案](docs/architecture/repository-layout.md)说明当前骨架、目标骨架与迁移顺序。
+从 [文档索引](docs/DOCUMENT_INDEX.md)、[任务看板](docs/TASK_BOARD.md) 和 [项目状态](docs/PROJECT_STATUS.md) 开始阅读。[协作流程](docs/governance/WORKFLOW.md)规定 Issue、任务验收、逐任务交付、代码解释和文档同步。[工程目录方案](docs/architecture/repository-layout.md)说明现行 8 域分层与分包工程骨架、八角色单源收口与演进映射。
 
 中途接手先读 [PROJECT_BRIEF](docs/PROJECT_BRIEF.md)。本轮审查见 [业务报告](docs/reviews/2026-10-09-business-readiness.md) 和 [技术报告](docs/reviews/2026-10-09-technical-readiness.md)，待决事项见 [ISSUE-005](issues/ISSUE-005.md)。
 
@@ -24,8 +24,8 @@
 | [docs/decisions/baseline-gaps.md](docs/decisions/baseline-gaps.md) | 版本差异、缺件与技术决策状态 |
 | [docs/reviews/pr-1-integration.md](docs/reviews/pr-1-integration.md) | `main` 与 `xqr` 的文档整合评审 |
 | [prototypes/bidding-ux/](prototypes/bidding-ux/) | 工作台、项目概览、响应矩阵、章节编辑静态原型 |
-| [frontend/web/](frontend/web/README.md) | 按ICG资料重建的产品页面；React负责页面显示和操作 |
-| [backend/bid-core/](backend/bid-core/README.md) | 同一产品的Python业务后台；提供页面、接口、真实文字提取和内部稿输出 |
+| [frontend/web/](frontend/web/README.md) | 按 8 大业务域物理分层的 React 前端应用；单源收口八角色与状态字典，支持正式凭据登录与演示关闸 |
+| [backend/bid-core/](backend/bid-core/README.md) | 同一产品的 Python 业务后台；`icg/` 领域与仓储分包 + `icg_demo/` 兼容门面，提供 `/api/v1` 接口与 Word 输出 |
 | [spec/openapi/](spec/openapi/README.md) | 从实际代码生成的前后端接口约定 |
 | [docs/testing/icg-coverage.md](docs/testing/icg-coverage.md) | 完整示例的页面、能力和规则覆盖情况，保留未完成项 |
 | [issues/index.md](issues/index.md) | 本地问题跟踪 |
@@ -42,9 +42,9 @@
 & .\backend\bid-core\Start-Demo.ps1 -Install
 ```
 
-首次安装需要Python、Node.js和pnpm。启动器安装后台依赖、构建 `frontend/web` 页面，再启动本机服务。安装后再次启动可省略`-Install`。打开 [本机产品页面](http://127.0.0.1:8710/)，选择合成演示账号登录，新建项目并按页面流程操作。
+首次安装需要Python、Node.js和pnpm。启动器安装后台依赖、构建 `frontend/web` 页面，再启动本机服务。安装后再次启动可省略`-Install`。打开 [本机产品页面](http://127.0.0.1:8710/)，支持选择合成演示账号或输入 Access Token 凭据登录（可通过 `VITE_DEMO=0` 关闭演示），新建项目并按页面流程操作。
 
-后台提供根页面 `/` 和构建资源 `/assets`，产品页面调用同一个服务的接口。`/api/v1` 处理上传、解析确认、矩阵、项目事实、检查和两册输出；既有 `/api` 处理登录、项目和章节编辑权、草稿、版本。它们共用一份业务存储。旧的简单后台验证页保留在 `/demo`，原静态原型仍可离线打开。
+后台提供根页面 `/` 和构建资源 `/assets`，产品页面调用同一个服务的接口。`/api/v1` 作为主接口处理会话、项目、上传、解析确认、矩阵、事实、检查和两册输出；旧 `/api/demo` 端点仅供兼容并标记 Deprecated。旧的简单后台验证页保留在 `/demo`，原静态原型仍可离线打开。
 
 当前可读取UTF-8文本、DOCX和含文字的PDF，扫描PDF需要后续接入文字识别。提取结果必须由人核对，DOCX位置按明确分页符记录，并非最终印刷页码。数据只保存在当前进程，重启清空。
 
@@ -73,15 +73,20 @@ node scripts/check-project-governance.cjs
 node --test tests/governance/*.test.cjs
 ```
 
-后台、旧验证页及前端日期处理验证（先安装依赖）：
+自动化验证套件（先安装依赖）：
 
 ```powershell
-& .\.venv\Scripts\python.exe -m pytest tests/backend -q
-node --test tests/backend/demo-page.test.cjs
-node --test tests/frontend/project-form.test.mjs
-```
+# 后端测试全量回归（652 项用例，610 passed / 42 skipped）
+python -m pytest tests/backend -q
 
-前端构建检查：`pnpm --dir frontend/web build`。最新结果和局限以对应测试与交付记录为准，测试数量不代表完整产品覆盖率。
+# 前端权威测试（348 项测试全绿）与类型检查
+pnpm --dir frontend/web test
+pnpm --dir frontend/web run lint
+pnpm --dir frontend/web build
+
+# OpenAPI 契约与 FastAPI 运行时一致性检查
+python backend/bid-core/export_openapi.py --check
+```
 
 编辑锁回归检查使用 Node.js，无第三方依赖：
 

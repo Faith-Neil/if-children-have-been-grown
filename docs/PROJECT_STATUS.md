@@ -4,7 +4,16 @@
 
 # 项目状态
 
-维护日期：2026-10-22（UTC+8）。分支 `feat/opencode-ICG` 位于 tip `0290f07`；初次接手从 `main` 的 `ce064f6` 开始维护；main/xqr分支情况保留2026-10-09核对快照。已补齐 WP-1 独立交付文档（D-696），对齐 RoleMode 枚举，登记整改后结构债务收敛 ISSUE-038（D-697）。
+维护日期：2026-10-22（UTC+8）。分支 `feat/opencode-ICG` 位于 tip `c2cc28e`；初次接手从 `main` 的 `ce064f6` 开始维护；main/xqr分支情况保留2026-10-09核对快照。已补齐 WP-1 独立交付文档（D-696），对齐 RoleMode 枚举，登记整改后结构债务收敛 ISSUE-038（D-697），完成 DOC-SYNC-1 文档实树对齐（D-698）。
+
+## 现行工程结构现状（WP-1～WP-7 质量整改收官）
+
+分支 `feat/opencode-ICG` 已全面完成 2026-10-22 质量整改方案（WP-1 至 WP-7），工程实树与治理规则严格对齐：
+1. **前端 8 域物理分层**：`frontend/web/src/` 根目录仅保留 `main.tsx`，所有代码按 `app/`、`shell/`、`project/`、`editor/`、`library/`、`admin/`、`status/`、`shared/` 组织，巨石组件拆解完成，全界面严格落实 **Layout First** 原则。
+2. **后端模块解耦与分包**：`backend/bid-core/icg/` 建立 `infra/`（10 大持久化仓储模块）与 `domain/`（4 大编排服务）；`icg_demo/` 下的 `database.py`、`workflow.py`、`adapters.py` 瘦身为轻量转接壳（façade），保留 100% 向后兼容。
+3. **接口与角色收口**：主流程收敛至 `/api/v1` 路径；旧 `/api/demo` 端点标记为 Deprecated；前端由 `roles.ts`（8 大标准角色）与 `codes.ts` 单源驱动；支持凭据登录与 `VITE_DEMO=0` 演示关闸；生产环境配置（`ICG_REQUIRE_MYSQL=1`）强行阻断演示账号。
+4. **门禁与测试权威收口**：前端唯一权威测试套件位于 `frontend/web/tests/`（348 项全绿）；后端全量通过（610 passed / 42 skipped）；CI 接入 OpenAPI 一致性校验（`--check`）与前端 lint 门禁；治理检查 100% 合规。
+现行仓库骨架详见 [工程目录方案](architecture/repository-layout.md) 与 [AGENTS.md](../AGENTS.md)。
 
 ## 模型与数据库待决
 
