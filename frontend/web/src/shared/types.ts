@@ -4,7 +4,7 @@ import type { SystemRole } from './roles.ts';
 
 export type Volume = 'technical' | 'business';
 export type AuthMode = 'synthetic-demo' | 'authenticated';
-export type RoleMode = 'legacy-demo-compat' | 'standard' | 'rbac-8roles';
+export type RoleMode = 'legacy-demo-compat' | 'rbac-8roles';
 export type AccountRole = SystemRole | 'editor' | 'manager' | 'viewer' | 'readonly' | 'reviewer' | 'writer' | 'lead';
 export type Account = { id: string; name: string; company_id: string; role: AccountRole };
 // 支持合成演示模式与正式八角色会话；导航与动作采用后台返回值。

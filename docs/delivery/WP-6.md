@@ -8,7 +8,7 @@
 | 项目 | 记录 |
 |---|---|
 | 任务ID | WP-6 |
-| 代码解释 | 新增 shared/roles.ts 与 shared/codes.ts 单源收口八角色定义、权限集合与数据字典代码；拓展 types.ts 支持 AuthMode('synthetic-demo'\|'authenticated') 与 RoleMode('legacy-demo-compat'\|'standard'\|'rbac-8roles')；放宽 session-navigation.ts 信任核验，支持正式账号与八角色会话；重构 LoginScreen.tsx（落实 Layout First 去除说明文字，支持凭据登录与 VITE_DEMO 开关）；App.tsx 接入 loginWithToken 并在非演示模式下免调 demo 端点；同步 schemas.py 与 openapi 契约；详见第 2、3 节。 |
+| 代码解释 | 新增 shared/roles.ts 与 shared/codes.ts 单源收口八角色定义、权限集合与数据字典代码；拓展 types.ts 支持 AuthMode('synthetic-demo'\|'authenticated') 与 RoleMode('legacy-demo-compat'\|'rbac-8roles')；放宽 session-navigation.ts 信任核验，支持正式账号与八角色会话；重构 LoginScreen.tsx（落实 Layout First 去除说明文字，支持凭据登录与 VITE_DEMO 开关）；App.tsx 接入 loginWithToken 并在非演示模式下免调 demo 端点；同步 schemas.py 与 openapi 契约；详见第 2、3 节。 |
 | 验收 | 新增前端专属单测 tests/unit/roles-codes-convergence.test.mjs 4 项全绿；前端权威测试套件 348 项全绿（344 原测 + 4 新测）；生产构建（tsc + vite build）成功通过（1.20s，0 错误）；后端核心测试 91 项全绿（八角色矩阵 10 项、v1 接口 4 项、会话导航 34 项、幂等契约 12 项、演示流程 31 项）；工程治理检查 486 份 Markdown 0 错误。 |
 | 项目进度 | WP-6 顺利闭环；下一阶段进入 WP-7（OpenAPI 生成化与全量回归终审）。 |
 <!-- task-delivery:end -->
@@ -41,7 +41,7 @@
 
 1. **会话契约扩展（[`frontend/web/src/shared/types.ts`](file:///frontend/web/src/shared/types.ts)）**：
    - 扩展 `AuthMode = 'synthetic-demo' | 'authenticated'`。
-   - 扩展 `RoleMode = 'legacy-demo-compat' | 'standard' | 'rbac-8roles'`。
+   - 扩展 `RoleMode = 'legacy-demo-compat' | 'rbac-8roles'`。
    - 扩展 `AccountRole = SystemRole | 'editor' | 'manager' | 'viewer' | ...`。
 2. **可信会话核验放宽（[`frontend/web/src/app/session-navigation.ts`](file:///frontend/web/src/app/session-navigation.ts)）**：
    - `trustedApplicationSession` 在兼容旧演示会话的同时，正式放行 `auth_mode: 'authenticated'` 与标准八角色会话，支持正式企业账号与会话接入。

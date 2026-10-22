@@ -26,7 +26,7 @@ export function trustedApplicationSession(value: ApplicationSession): Applicatio
 
   if (!value
     || !['synthetic-demo', 'authenticated'].includes(value.auth_mode)
-    || !['legacy-demo-compat', 'standard', 'rbac-8roles'].includes(value.role_mode)
+    || !['legacy-demo-compat', 'rbac-8roles'].includes(value.role_mode)
     || !value.user?.id || !value.user.name || !roleValid
     || !value.user.company_id || !Array.isArray(value.user.roles) || !value.user.roles.length || !value.user.primary_role
     || value.scope?.kind !== 'company' || value.scope.active_company_id !== value.user.company_id

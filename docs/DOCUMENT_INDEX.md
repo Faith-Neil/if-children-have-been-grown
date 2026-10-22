@@ -706,11 +706,14 @@
 | D-693 | 2026-10-22 | [WP-5 API 接口收敛与错误体规范化交付](delivery/WP-5.md) | 架构整改交付 | wp-5-1 | 当前 | 治理 / 质量 | WP-5 /api/demo 标记 deprecated 并添加 Deprecation 头，App.tsx 切换至 /api/v1，统一错误体，生产配置禁用演示账号 |
 | D-694 | 2026-10-22 | [WP-6 去演示身份与八角色前端收口交付](delivery/WP-6.md) | 架构整改交付 | wp-6-1 | 当前 | 治理 / 质量 | WP-6 单源收口八角色 roles.ts 与字典状态 codes.ts，放宽 session-navigation 信任核验，重构 LoginScreen 落实 Layout First 去说明化，App.tsx 接入真实凭据登录，契约与全量测试通过 |
 | D-695 | 2026-10-22 | [WP-7 OpenAPI 生成化与全量回归终审交付](delivery/WP-7.md) | 架构整改交付 | wp-7-1 | 当前 | 治理 / 质量 | WP-7 升级 export_openapi.py 支持 --check 门禁与 CI 自动化校验，package.json 补齐 lint 脚本，收敛权威测试目录，完成全量 610 后端 + 348 前端终审验收 |
+| D-696 | 2026-10-22 | [WP-1 基线锁定与编码加固交付](delivery/WP-1.md) | 架构整改交付 | wp-1-1 | 当前 | 治理 / 质量 | WP-1 修复 alembic.ini Windows CP936 编码解析隐患，验证迁移链 0001~0011 拓扑完整性，在 AGENTS.md 固化结构冻结与 Layout First 规则 |
+| D-697 | 2026-10-22 | [质量整改遗留债务收敛](../issues/ISSUE-038.md) | 问题 | issue-038-1 | new | 治理 / 架构 | 质量整改后遗留结构债务收敛（suggestions 双错误体收敛、EditorPage 与 workflow_orchestrator 二次细化、icg/api 与 icg/app 骨架子包处置） |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-10-22 | 治理 / 质量 | 补齐登记 WP-1 基线锁定与编码加固交付（WP-1.md），记录 alembic.ini 编码加固、0001~0011 迁移链验证及 AGENTS.md 架构规则固化 |
 | 2026-10-22 | 治理 / 质量 | 登记 WP-7 OpenAPI 生成化与全量回归终审交付（WP-7.md），完成 CI 契约一致性校验、package.json lint 脚本补齐与 610 项后端/348 项前端全量回归终审 |
 | 2026-10-22 | 治理 / 质量 | 登记 WP-6 去演示身份与八角色前端收口交付（WP-6.md），完成 roles.ts 与 codes.ts 单源码表收口、可信会话解耦、LoginScreen 凭据登录与 Layout First 落地，前端 348 项全绿验收 |
 | 2026-10-22 | 治理 / 质量 | 登记 WP-5 API 接口收敛与错误体规范化交付（WP-5.md），完成 /api/demo 弃用与 Deprecation 头注入、统一错误体与生产演示账号禁用门禁 |
