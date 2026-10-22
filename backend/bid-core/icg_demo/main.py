@@ -1,8 +1,9 @@
 # 为什么有这个文件：把可测试的业务服务接到真实 HTTP 接口和本地操作页面。
 # 它解决什么问题：统一认证、错误和请求编号，让浏览器直接验证后台实际行为。
 
+import os
 from pathlib import Path
-from typing import Annotated, Callable
+from typing import Annotated, Any, Callable
 from datetime import datetime
 from uuid import uuid4
 
@@ -21,9 +22,11 @@ from .idempotency import IDEMPOTENCY_HEADER_DESCRIPTION, bind_request, replayed_
 from .openai_model import openai_provider_from_environment
 from .ports import ModelProvider, Repository, ParserProvider
 from .parsing import LocalTextParser
+from .model_config_storage import include_model_config_routes
+from .field_metadata import include_field_metadata_routes
 from .snippet_publication import include_snippet_routes
 from .workflow_routes import include_workflow_routes
-from .workflow_schemas import v1_error_responses
+from .workflow_schemas import V1Error, v1_error_responses
 from .session_navigation import get_application_session
 from .schemas import (AccountListResponse, ApplicationSessionResponse, AuditListResponse, ChapterListResponse,
                       ChapterResponse, CheckResponse, DraftRequest, DraftResponse, DraftDiscardRequest, DraftDiscardResponse,
@@ -39,28 +42,41 @@ DOCX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingm
 
 
 def error_responses(*statuses: int) -> dict:
-    # 这些声明只补接口说明，实际错误仍由既有异常处理器统一返回。
+    # 这些声明只补接口说明，全量接口统一使用 V1Error 错误体模型。
     descriptions = {401: "未登录或演示登录已失效", 403: "当前账号无操作权限",
                     404: "资源不存在或当前公司无权访问", 409: "版本、草稿或检查结果冲突",
                     422: "请求字段验证失败", 423: "编辑权被占用或已失效",
                     428: "缺少重复请求标记或标记无效",
                     500: "后端演示服务异常", 502: "建议服务调用失败"}
-    return {status: {"model": ErrorResponse, "description": descriptions[status]}
+    return {status: {"model": V1Error, "description": descriptions[status]}
             for status in statuses}
 
 
 def create_app(repository: Repository | None = None, model_provider: ModelProvider | None = None,
                clock: Callable[[], float | datetime] | None = None,
                parser_provider: ParserProvider | None = None, *,
-               use_configured_model: bool = False) -> FastAPI:
+               use_configured_model: bool = False,
+               model_transport: Any | None = None,
+               evidence_service: Any | None = None) -> FastAPI:
     # 未传入仓库时读取 ICG_DATABASE_URL；未设置则仍用内存仓库。显式传入的仓库优先。
     # 模型仍只在进程入口打开开关时读取环境变量，未打开时保持演示替身。
     if model_provider is None and use_configured_model:
         model_provider = openai_provider_from_environment()
+    if evidence_service is None and os.environ.get("ICG_RAGFLOW_BASE_URL", "").strip():
+        try:
+            from .ragflow_client import RagflowConfig, RagflowRetrievalClient
+            from .retrieval import EvidenceCandidateService
+            rag_cfg = RagflowConfig.from_env()
+            rag_client = RagflowRetrievalClient(rag_cfg)
+            evidence_service = EvidenceCandidateService(ragflow_client=rag_client)
+        except Exception:
+            evidence_service = None
     service = DemoService(repository if repository is not None else repository_from_environment(),
-                          model_provider if model_provider is not None else DemoModelProvider(), clock)
+                          model_provider if model_provider is not None else DemoModelProvider(),
+                          clock, model_transport=model_transport,
+                          evidence_service=evidence_service)
     application = FastAPI(title="ICG 投标产品本地实现", version="reference-1",
-                          description="本地演示接口。/api/v1 使用统一错误体；" + RETRY_GUIDANCE,
+                          description="本地演示接口。使用统一错误体；" + RETRY_GUIDANCE,
                           docs_url=None, redoc_url=None,
                           responses=error_responses(422, 500))
     application.state.service = service
@@ -86,9 +102,10 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     def error_response(request: Request, status: int, code: str, message: str,
                        headers: dict | None = None, details: dict | None = None):
         request_id = getattr(request.state, "request_id", uuid4().hex)
-        content = ({"code": code, "message": message, "details": details or {}, "traceId": request_id}
-                   if request.url.path.startswith("/api/v1/")
-                   else {"error": {"code": code, "message": message}, "request_id": request_id})
+        content = {"code": code, "message": message, "details": details or {}, "traceId": request_id}
+        if request.url.path.startswith("/api/chapters/") and "/suggestions" in request.url.path:
+            content["error"] = {"code": code, "message": message}
+            content["request_id"] = request_id
         return JSONResponse(status_code=status,
                             content=content,
                             headers={"X-Request-ID": request_id, "Cache-Control": "no-store", **(headers or {})})
@@ -167,10 +184,26 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     def projects(user: User):
         return service.projects(user)
 
+    @application.get("/api/projects/{project_id}", response_model=ProjectResponse, operation_id="getProject",
+                     responses=error_responses(401, 404))
+    def project(project_id: str, user: User):
+        return service.project(user, project_id)
+
     @application.post("/api/projects", response_model=ProjectResponse, operation_id="createProject",
-                      responses=error_responses(401, 403))
-    def create_project(body: ProjectRequest, user: User):
-        return service.create_project(user, body.name)
+                      responses=error_responses(401, 403, 409, 428))
+    def create_project(body: ProjectRequest, user: User,
+                       idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)] = None):
+        return service.create_project(user, body.name, idempotency_key=idempotency_key)
+
+    @application.get("/api/v1/projects", response_model=ProjectListResponse, operation_id="listV1Projects",
+                     responses=v1_error_responses(401))
+    def list_v1_projects(user: User):
+        return service.projects(user)
+
+    @application.get("/api/v1/projects/{project_id}", response_model=ProjectResponse, operation_id="getV1Project",
+                     responses=v1_error_responses(401, 404))
+    def get_v1_project(project_id: str, user: User):
+        return service.project(user, project_id)
 
     @application.get("/api/projects/{project_id}/chapters", response_model=ChapterListResponse,
                      operation_id="listChapters", responses=error_responses(401, 404))
@@ -184,50 +217,58 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
 
     @application.post("/api/chapters/{chapter_id}/lock", response_model=LeaseResponse,
                       operation_id="acquireLegacyLock",
-                      responses=error_responses(401, 403, 404, 409, 423))
-    def acquire_lock(chapter_id: str, body: LockRequest, user: User):
-        return service.acquire_lock(user, chapter_id, body.takeover_reason)
+                      responses=error_responses(401, 403, 404, 409, 423, 428))
+    def acquire_lock(chapter_id: str, body: LockRequest, user: User,
+                     idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)] = None):
+        return service.acquire_lock(user, chapter_id, body.takeover_reason, idempotency_key=idempotency_key)
 
     @application.post("/api/chapters/{chapter_id}/lock/renew", response_model=LeaseResponse,
                       operation_id="renewLegacyLock",
-                      responses=error_responses(401, 403, 404, 423))
-    def renew_lock(chapter_id: str, body: LeaseRequest, user: User):
-        return service.renew_lock(user, chapter_id, body.lease_token)
+                      responses=error_responses(401, 403, 404, 409, 423, 428))
+    def renew_lock(chapter_id: str, body: LeaseRequest, user: User,
+                   idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)] = None):
+        return service.renew_lock(user, chapter_id, body.lease_token, idempotency_key=idempotency_key)
 
     @application.post("/api/chapters/{chapter_id}/lock/release", response_model=ReleasedResponse,
                       operation_id="releaseLegacyLock",
-                      responses=error_responses(401, 403, 404, 423))
-    def release_lock(chapter_id: str, body: LeaseRequest, user: User):
-        return service.release_lock(user, chapter_id, body.lease_token)
+                      responses=error_responses(401, 403, 404, 409, 423, 428))
+    def release_lock(chapter_id: str, body: LeaseRequest, user: User,
+                     idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)] = None):
+        return service.release_lock(user, chapter_id, body.lease_token, idempotency_key=idempotency_key)
 
-    # 旧 /api 入口留给验证页。产品入口使用同一套租约规则，错误体改为 v1。
+    # 旧 /api 入口留给验证页。产品入口使用同一套租约规则，错误体统一为 v1。
     @application.post("/api/v1/chapters/{chapter_id}/lock", response_model=LeaseResponse,
                       operation_id="acquireChapterLock",
-                      responses=v1_error_responses(401, 403, 404, 409, 423))
-    def acquire_v1_lock(chapter_id: str, body: LockRequest, user: User):
-        return service.acquire_lock(user, chapter_id, body.takeover_reason)
+                      responses=v1_error_responses(401, 403, 404, 409, 423, 428))
+    def acquire_v1_lock(chapter_id: str, body: LockRequest, user: User,
+                        idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)] = None):
+        return service.acquire_lock(user, chapter_id, body.takeover_reason, idempotency_key=idempotency_key)
 
     @application.post("/api/v1/chapters/{chapter_id}/lock/renew", response_model=LeaseResponse,
                       operation_id="renewChapterLock",
-                      responses=v1_error_responses(401, 403, 404, 423))
-    def renew_v1_lock(chapter_id: str, body: LeaseRequest, user: User):
-        return service.renew_lock(user, chapter_id, body.lease_token)
+                      responses=v1_error_responses(401, 403, 404, 409, 423, 428))
+    def renew_v1_lock(chapter_id: str, body: LeaseRequest, user: User,
+                      idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)] = None):
+        return service.renew_lock(user, chapter_id, body.lease_token, idempotency_key=idempotency_key)
 
     @application.post("/api/v1/chapters/{chapter_id}/lock/release", response_model=ReleasedResponse,
                       operation_id="releaseChapterLock",
-                      responses=v1_error_responses(401, 403, 404, 423))
-    def release_v1_lock(chapter_id: str, body: LeaseRequest, user: User):
-        return service.release_lock(user, chapter_id, body.lease_token)
+                      responses=v1_error_responses(401, 403, 404, 409, 423, 428))
+    def release_v1_lock(chapter_id: str, body: LeaseRequest, user: User,
+                        idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)] = None):
+        return service.release_lock(user, chapter_id, body.lease_token, idempotency_key=idempotency_key)
 
     @application.put("/api/chapters/{chapter_id}/draft", response_model=DraftResponse, operation_id="saveDraft",
-                     responses=error_responses(401, 403, 404, 409, 423))
-    def save_draft(chapter_id: str, body: DraftRequest, user: User):
-        return service.save_draft(user, chapter_id, **body.model_dump())
+                     responses=error_responses(401, 403, 404, 409, 423, 428))
+    def save_draft(chapter_id: str, body: DraftRequest, user: User,
+                   idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)] = None):
+        return service.save_draft(user, chapter_id, **body.model_dump(), idempotency_key=idempotency_key)
 
     @application.delete("/api/chapters/{chapter_id}/draft", response_model=DraftDiscardResponse,
-                        operation_id="discardDraft", responses=error_responses(401, 404, 409))
-    def discard_draft(chapter_id: str, body: DraftDiscardRequest, user: User):
-        return service.discard_draft(user, chapter_id, body.sequence)
+                        operation_id="discardDraft", responses=error_responses(401, 404, 409, 428))
+    def discard_draft(chapter_id: str, body: DraftDiscardRequest, user: User,
+                      idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)] = None):
+        return service.discard_draft(user, chapter_id, body.sequence, idempotency_key=idempotency_key)
 
     @application.post("/api/chapters/{chapter_id}/versions", response_model=VersionResponse,
                       operation_id="commitVersion",
@@ -257,15 +298,17 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
 
     @application.post("/api/chapters/{chapter_id}/checks", response_model=CheckResponse,
                       operation_id="checkChapter",
-                      responses=error_responses(401, 403, 404))
-    def check(chapter_id: str, body: EmptyRequest, user: User):
-        return service.check(user, chapter_id)
+                      responses=error_responses(401, 403, 404, 409, 428))
+    def check(chapter_id: str, body: EmptyRequest, user: User,
+              idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)] = None):
+        return service.check(user, chapter_id, idempotency_key=idempotency_key)
 
     @application.post("/api/chapters/{chapter_id}/exports", response_model=ExportResponse,
                       operation_id="exportChapter",
-                      responses=error_responses(401, 403, 404, 409))
-    def export(chapter_id: str, body: ExportRequest, user: User):
-        return service.export(user, chapter_id, body.check_id)
+                      responses=error_responses(401, 403, 404, 409, 428))
+    def export(chapter_id: str, body: ExportRequest, user: User,
+               idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)] = None):
+        return service.export(user, chapter_id, body.check_id, idempotency_key=idempotency_key)
 
     @application.get("/api/exports/{export_id}/file", response_class=Response, operation_id="downloadExportFile",
                      responses={**error_responses(401, 404, 409),
@@ -282,12 +325,19 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     include_workflow_routes(application, service, current_user,
                             parser_provider if parser_provider is not None else LocalTextParser())
     include_snippet_routes(application, service, current_user)
+    include_model_config_routes(application, service, current_user)
+    include_field_metadata_routes(application, service, current_user)
 
     @application.get("/{full_path:path}", include_in_schema=False)
     def product_page(full_path: str):
         # 深链接和刷新必须回到同一张页面；接口、静态资源和构建产物仍按原路径返回。
         # 只返回固定的 index.html，不按请求路径打开文件，因此 .. 不能读出页面目录之外的内容。
-        if ".." in full_path.split("/") or full_path == "api" or full_path.startswith(("api/", "static/", "assets/")):
+        # 大小写不敏感处理 /api 前缀，满足 QA 200a105 E2E-D5：/API、/Api/... 均返回 JSON 404
+        normalized = full_path.lower()
+        if (".." in full_path.split("/")
+                or normalized == "api"
+                or normalized.startswith("api/")
+                or full_path.startswith(("static/", "assets/"))):
             raise HTTPException(status_code=404)
         index = (product_directory / "index.html").resolve()
         if index.parent != product_directory.resolve():

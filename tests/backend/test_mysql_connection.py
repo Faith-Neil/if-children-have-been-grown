@@ -49,8 +49,10 @@ def test_alembic_upgrade_creates_session_and_receipt_tables():
     assert charset[0] == "utf8mb4"
     assert charset[1] == "utf8mb4_0900_ai_ci"
     assert tables == [
-        "alembic_version", "chapter_lease", "demo_project", "demo_project_team",
-        "idempotency_receipt", "user_session",
+        "alembic_version", "chapter_lease", "demo_chapter", "demo_chapter_version",
+        "demo_check", "demo_export", "demo_job", "demo_library_item", "demo_library_revision",
+        "demo_model_config", "demo_project", "demo_project_model_config", "demo_project_team",
+        "demo_sla_template", "demo_workflow", "idempotency_receipt", "user_session",
     ]
 
 
@@ -67,13 +69,26 @@ def test_alembic_downgrade_to_base_then_upgrade_restores_tables():
         assert "demo_project" not in remaining
         assert "demo_project_team" not in remaining
         assert "chapter_lease" not in remaining
+        assert "demo_model_config" not in remaining
+        assert "demo_project_model_config" not in remaining
+        assert "demo_chapter" not in remaining
+        assert "demo_chapter_version" not in remaining
+        assert "demo_check" not in remaining
+        assert "demo_export" not in remaining
+        assert "demo_library_item" not in remaining
+        assert "demo_library_revision" not in remaining
+        assert "demo_sla_template" not in remaining
+        assert "demo_workflow" not in remaining
+        assert "demo_job" not in remaining
     finally:
         _alembic("upgrade", "head")
     repository = create_app().state.service.repository
     with repository.engine.connect() as connection:
         assert _table_names(connection) == [
-            "alembic_version", "chapter_lease", "demo_project", "demo_project_team",
-            "idempotency_receipt", "user_session",
+            "alembic_version", "chapter_lease", "demo_chapter", "demo_chapter_version",
+            "demo_check", "demo_export", "demo_job", "demo_library_item", "demo_library_revision",
+            "demo_model_config", "demo_project", "demo_project_model_config", "demo_project_team",
+            "demo_sla_template", "demo_workflow", "idempotency_receipt", "user_session",
         ]
 
 

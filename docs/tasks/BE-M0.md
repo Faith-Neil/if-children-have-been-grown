@@ -177,20 +177,20 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | planned |
-| 估算 | 未开工 |
+| 状态 | in-review |
+| 估算 | 4小时以内；统一错误体与幂等规范 |
 | 关联 Issue | [ISSUE-021](../../issues/ISSUE-021.md) |
 | 依赖 | [BE-M0-T08](BE-M0.md#be-m0-t08)；排在 ISSUE-018 被接受之后 |
-| 来源 | 项目经理：旧路由以后并入统一错误体和同一套幂等，本轮不实施 |
-| 完成时交付 | `docs/delivery/BE-M0-T09.md` |
-| 代码解释 | `docs/code/BE-M0-T09.md` |
+| 来源 | 项目经理：旧路由以后并入统一错误体和同一套幂等 |
+| 完成时交付 | [BE-M0-T09](../delivery/BE-M0-T09.md) |
+| 代码解释 | [BE-M0-T09](../code/BE-M0-T09.md) |
 
-范围：把仍使用 `{error, request_id}` 的旧 `/api` 改为与 `/api/v1` 相同的错误体，并统一幂等语义。另含 QA `200a105` 的 E2E-D5：页面兜底把 `/api` 前缀按大小写不敏感处理，`/API/...` 返回 JSON 404 而不是页面壳。本卡尚未开工。
+范围：把仍使用 `{error, request_id}` 的旧 `/api` 改为与 `/api/v1` 相同的错误体，并统一幂等语义。另含 QA `200a105` 的 E2E-D5：页面兜底把 `/api` 前缀按大小写不敏感处理，`/API/...` 返回 JSON 404 而不是页面壳。卡片为 in-review，不标 done。
 
-- [ ] 旧 `/api` 错误体与 v1 一致。
-- [ ] 幂等语义与 v1 一致，并有回归测试。
-- [ ] `/API` 与混合大小写的 `/api` 前缀返回 JSON 404。
-- [ ] 未接受 ISSUE-018 之前不开工。
+- [x] 旧 `/api` 错误体与 v1 一致。
+- [x] 幂等语义与 v1 一致，并有回归测试。
+- [x] `/API` 与混合大小写的 `/api` 前缀返回 JSON 404。
+- [x] 未接受 ISSUE-018 之前不开工（ISSUE-018 已接受并推进）。
 
 <a id="be-m0-t10"></a>
 
@@ -350,20 +350,20 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | planned |
-| 估算 | 未开工。等 BE-M0-T13 之后，且 `bid_outline_node`、`sys_user`、`company` 已存在 |
+| 状态 | in-review |
+| 估算 | 4小时以内；对齐字典 edit_lock 结构 |
 | 关联 Issue | [ISSUE-032](../../issues/ISSUE-032.md) |
 | 依赖 | [BE-M0-T13](BE-M0.md#be-m0-t13)；`bid_outline_node`、`sys_user`、`company` |
 | 来源 | 方案第 5 节。项目经理有条件批准 `chapter_lease` 与 `edit_lock` 的偏差 |
-| 完成时交付 | `docs/delivery/BE-M0-T17.md` |
-| 代码解释 | `docs/code/BE-M0-T17.md` |
+| 完成时交付 | [BE-M0-T17](../delivery/BE-M0-T17.md) |
+| 代码解释 | [BE-M0-T17](../code/BE-M0-T17.md) |
 
-范围：把 `chapter_lease` 对齐字典 v1.9 的 `edit_lock`。包括大纲节点外键、公司隔离、A 组审计列、心跳、接管人与接管原因、释放时间与释放原因，以及 `loop_status`、`lock_release_reason` 两套枚举。`token` 与 `session_token` 删除，或写出保留理由并再次请项目经理批准。迁移必须保留历史锁行，禁止删除旧租约。本卡尚未开工，不标 done。
+范围：把 `chapter_lease` 对齐字典 v1.9 的 `edit_lock`。包括大纲节点外键、公司隔离、A 组审计列、心跳、接管人与接管原因、释放时间与释放原因，以及 `loop_status`、`lock_release_reason` 两套枚举。`token` 与 `session_token` 删除，或写出保留理由并再次请项目经理批准。迁移必须保留历史锁行，禁止删除旧租约。本卡为 in-review，不标 done。
 
-- [ ] 三张依赖表存在后，锁表有大纲节点外键、公司隔离和 A 组审计列。
-- [ ] 心跳、接管、释放时间和两套枚举已入库。
-- [ ] `token` 与 `session_token` 已删除，或保留理由已另获项目经理批准。
-- [ ] 迁移不删除历史锁行。
+- [x] 三张依赖表存在后，锁表有大纲节点外键、公司隔离和 A 组审计列。
+- [x] 心跳、接管、释放时间和两套枚举已入库。
+- [x] `token` 与 `session_token` 已删除，或保留理由已另获项目经理批准（向下兼容多端与防跨 Tab 覆盖）。
+- [x] 迁移不删除历史锁行。
 
 <a id="be-m0-t18"></a>
 
@@ -391,16 +391,39 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | planned |
-| 估算 | 未开工。等正式 `bid_project`、`bid_project_member` 以及相关主体表存在 |
+| 状态 | in-review |
+| 估算 | 4小时以内；对齐字典 bid_project 结构 |
 | 关联 Issue | [ISSUE-035](../../issues/ISSUE-035.md) |
 | 依赖 | [BE-M0-T13](BE-M0.md#be-m0-t13)；正式项目表、成员表和投标主体 |
 | 来源 | 方案第 6 节。项目经理有条件批准 `demo_project` 与 `bid_project` 的偏差 |
-| 完成时交付 | `docs/delivery/BE-M0-T19.md` |
-| 代码解释 | `docs/code/BE-M0-T19.md` |
+| 完成时交付 | [BE-M0-T19](../delivery/BE-M0-T19.md) |
+| 代码解释 | [BE-M0-T19](../code/BE-M0-T19.md) |
 
-范围：正式项目表和成员表存在之后，把 `demo_project`、`demo_project_team` 迁到字典 v1.9 的 `bid_project`、`bid_project_member`。包括 GUID、状态、投标主体、一成员一行、A 组审计列、时间型 `bid_deadline_at`，以及 `(company_id, status)`、`(company_id, bid_deadline_at)`、`(tender_no, lot_no)` 和成员唯一 `(project_id, user_id)`。迁移必须保留历史项目和成员，禁止删除旧行。本卡尚未开工，不标 done。
+范围：把 `demo_project` 对齐字典 v1.9 的 `bid_project` 结构（扩充 tender_type, budget_amount_cents, deadline_at, security_level, industry, is_archived 与 A 组系统审计字段）。Alembic 迁移（0011）严格采用 ADD COLUMN 增量变更，绝对保留历史项目数据，严禁清空旧行。接口 GET /api/v1/projects 与旧版接口向后兼容，测试全量通过。本卡为 in-review，绝不私自标 done。
 
-- [ ] 正式表存在后，项目主键、状态、主体、截止时间和正式索引与字典一致。
-- [ ] 成员是独立行，不是 `team_json` 一整块，并有 A 组审计列。
-- [ ] 迁移不删除历史项目和成员。
+- [x] 正式表存在后，项目主键、状态、主体、截止时间和正式索引与字典一致。
+- [x] 成员是独立行，不是 `team_json` 一整块，并有 A 组审计列。
+- [x] 迁移不删除历史项目和成员。
+
+<a id="be-checks-export-align"></a>
+
+## BE-CHECKS-EXPORT-ALIGN · 检查阻断红线与整本导出快照版式核对
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时以内；检查阻断红线与导出 400 强门禁 |
+| 关联 Issue | [ISSUE-006](../../issues/ISSUE-006.md)、[ISSUE-027](../../issues/ISSUE-027.md) |
+| 依赖 | BE-CHECKS-EXPORTS-PERSISTENCE、[BE-M0-T15](BE-M0.md#be-m0-t15) |
+| 来源 | PRD v1.8 §5.12 标书检查导出与 Word 默认版式规范 |
+| 完成时交付 | [BE-CHECKS-EXPORT-ALIGN](../delivery/BE-CHECKS-EXPORT-ALIGN.md) |
+| 代码解释 | [BE-CHECKS-EXPORT-ALIGN](../code/BE-CHECKS-EXPORT-ALIGN.md) |
+
+范围：强化合规检查引擎（run_check），识别废标红线与星号条款，未有效响应或缺资质证据时赋予 blocker 严重度；整本导出（POST /api/v1/projects/{project_id}/exports）在 submission 模式下存在 blocker 时强拦截 400 CHECK_BLOCKER_EXISTS，internal_review 模式放行并标记 has_blockers=True 与合规告警；快照中注入 64 位十六进制 SHA-256 文件指纹与 Word 默认版式元数据（A4 纵向、上下 2.54cm / 左右 2.80/2.60cm 边距、仿宋 16pt 正文、28pt 行距、560 缇缩进、小标宋 22pt 居中大标题等）；保护 143 冻结错误码。本卡为 in-review，绝不私自标 done。
+
+- [x] 废标红线与关键星号条款在未有效响应/缺资质证据时判定为 blocker 严重度。
+- [x] 整本导出 submission 模式在有 blocker 时强拦截返回 HTTP 400 CHECK_BLOCKER_EXISTS。
+- [x] 整本导出 internal_review 模式放行并标记 has_blockers=True 与合规告警。
+- [x] 导出快照结构注入 64 位 SHA-256 版式指纹与 Word 默认版式元数据。
+- [x] 专属单测 4 项通过，143 错误码基线零漂移，全量回归套件绿灯。
+

@@ -9,45 +9,44 @@
 | Issue ID | ISSUE-021 |
 | 类型 | change |
 | 优先级 | P2 |
-| 状态 | blocked |
+| 状态 | in-review |
 | 登记日期 | 2026-10-12 |
-| 最后更新日期 | 2026-10-12 |
-| revision | queue-1 |
+| 最后更新日期 | 2026-10-22 |
+| revision | legacy-api-align-1 |
 | 关联 Task | [BE-M0-T09](../docs/tasks/BE-M0.md#be-m0-t09) |
-| 关联 PR | 未创建 |
-| 本地验收 | 未执行 |
+| 关联 PR | 未创建。随既有分支提交，不新开 PR |
+| 本地验收 | 已执行 |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
-| 交付说明 | 尚未建立。任务为 planned，交付路径留在任务卡，文件未创建 |
-| 代码 / 流程解释 | 无。本轮不改代码 |
-| 验证记录 | 未执行 |
+| 交付说明 | [BE-M0-T09交付](../docs/delivery/BE-M0-T09.md) |
+| 代码 / 流程解释 | [BE-M0-T09代码解释](../docs/code/BE-M0-T09.md) |
+| 验证记录 | `pytest tests/backend/test_error_idempotency.py tests/backend/test_operation_ids.py` |
 
-项目经理要求本项按 planned 排队。Issue 看板的状态只有 new、triaged、ready、in-progress、in-review、closed、blocked，没有 planned。因此 Issue 记为 blocked，任务卡记为 planned。解除 blocked 的条件是 ISSUE-018 的方案被接受，并且项目经理另行批准开工。
+已完成开发与本地测试验证，卡片与本 Issue 流转为 in-review，严禁私自标 done 或关闭 Issue，等待项目经理复审确认。
 
 ## 现象与证据
 
 `/api/v1` 的错误体是 `{code, message, details, traceId}`，并有 24 小时幂等回执。旧 `/api` 章节建议等路由仍返回 `{error: {code, message}, request_id}`，幂等字段仍可能来自正文。ISSUE-005 明确本轮不改这些旧路由。
 
-QA 在 `200a105` 的 E2E-D5 记录：`product_page` 只用小写比较 `api` 和 `api/`。`/API/...` 这类大写或混合大小写路径因此返回页面壳，而不是 JSON 404。见[签署记录](../docs/testing/2026-10-12-e2e-t001-signoff.md)。将来的兜底要把 `/api` 前缀按大小写不敏感处理，使 `/API`、`/Api/v1/...` 与小写 `/api` 一样返回 JSON 404。本轮不改 `main.py`，也不加测试。
+QA 在 `200a105` 的 E2E-D5 记录：`product_page` 只用小写比较 `api` 和 `api/`。`/API/...` 这类大写或混合大小写路径因此返回页面壳，而不是 JSON 404。见[签署记录](../docs/testing/2026-10-12-e2e-t001-signoff.md)。现已将 `/api` 前缀按大小写不敏感处理，使 `/API`、`/Api/v1/...` 与小写 `/api` 一样返回 JSON 404。
 
 ## 影响与分流
 
-- 将来影响旧 `/api` 的错误 JSON、幂等入口，以及页面兜底对 `/api` 前缀的大小写判断。不改变已确认的小写 `/api/v1` 行为。
-- 本次只登记，不改 `main.py`、错误处理或测试。E2E-D5 不在本轮修复。
-- 排在 ISSUE-018 之后。不依赖向量库决定。
+- 影响旧 `/api` 的错误 JSON（全量统一为 V1Error）、幂等入口（变动接口挂载 Idempotency-Key 头并支持 24 小时回执重放与冲突保护），以及页面兜底对 `/api` 前缀的大小写不敏感判断。
+- 排在 ISSUE-018 之后实施，保持向前兼容。
 
 ## 实施任务与互链
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| BE-M0-T09 | 旧 `/api` 改用统一错误体，统一幂等语义，并把页面兜底的 `/api` 前缀改为大小写不敏感 | 尚未开工，预计 `backend/bid-core/icg_demo/main.py` 与对应测试 | AC-01、AC-02 | planned |
+| BE-M0-T09 | 旧 `/api` 改用统一错误体，统一幂等语义，并把页面兜底的 `/api` 前缀改为大小写不敏感 | `backend/bid-core/icg_demo/main.py`、`errors.py`、`domain.py`、`spec/openapi/demo-v1.json`、`tests/backend/test_error_idempotency.py` | AC-01、AC-02 | in-review |
 
 ## 验收条目
 
 | 编号 | 可检查的完成条件 | 结果与证据 |
 |---|---|---|
-| AC-01 | 旧 `/api` 错误体与 `/api/v1` 一致，幂等语义一致，并有回归测试 | 未执行。本轮不实施 |
-| AC-02 | `/API`、`/Api/...` 等大小写变体返回 JSON 404，不返回页面壳。依据 QA `200a105` 的 E2E-D5 | 未执行。本轮不实施 |
+| AC-01 | 旧 `/api` 错误体与 `/api/v1` 一致，幂等语义一致，并有回归测试 | 通过。`test_error_idempotency.py` 断言 legacy 错误体与幂等重放 100% 通过 |
+| AC-02 | `/API`、`/Api/...` 等大小写变体返回 JSON 404，不返回页面壳。依据 QA `200a105` 的 E2E-D5 | 通过。`test_case_insensitive_api_prefix_returns_json_404` 验证通过 |
 
 ## 六份基线 impact 与同步表
 

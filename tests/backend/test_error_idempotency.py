@@ -173,8 +173,10 @@ def test_v1_error_body_matches_request_header_and_legacy_shape_stays(client):
     assert body["traceId"] == missing.headers["X-Request-ID"]
     assert len(body["traceId"]) == 32
     legacy = client.get("/api/projects")
-    assert set(legacy.json()) == {"error", "request_id"}
-    assert legacy.json()["request_id"] == legacy.headers["X-Request-ID"]
+    assert set(legacy.json()) == {"code", "message", "details", "traceId"}
+    assert legacy.json()["traceId"] == legacy.headers["X-Request-ID"]
+    assert legacy.json()["code"] == "UNAUTHENTICATED"
+    assert "error" not in legacy.json()
     invalid = client.post("/api/v1/library", headers=login(client), json={"name": ""})
     assert invalid.status_code == 422
     assert invalid.json()["code"] == "VALIDATION_ERROR"
@@ -269,3 +271,151 @@ def test_uncapped_receipts_keep_more_than_2048():
     for index in range(2049):
         remember(state, "library:alpha", "alpha-editor", f"capkey{index:05d}", "f" * 64, {"n": index}, now)
     assert len(state.workflow_receipts) == 2049
+
+
+def test_case_insensitive_api_prefix_returns_json_404(client):
+    """QA 200a105 E2E-D5: /API, /Api/v1/... 等大小写变体必须返回 JSON 404，不返回页面壳。"""
+    for route in ("/API", "/Api/v1/session", "/api/v1/nonexistent", "/API/projects"):
+        response = client.get(route)
+        assert response.status_code == 404, f"{route} did not return 404"
+        assert response.headers["content-type"].startswith("application/json")
+        body = response.json()
+        assert set(body) == {"code", "message", "details", "traceId"}
+        assert body["code"] == "NOT_FOUND"
+        assert body["traceId"] == response.headers["X-Request-ID"]
+        assert len(body["traceId"]) == 32
+        assert "error" not in body
+
+
+def test_legacy_endpoints_support_idempotency_key_replay(client):
+    """验证旧 /api 端点挂载 Idempotency-Key 后同键同指纹重放与冲突保护。"""
+    actor = login(client)
+
+    # 1. POST /api/projects 幂等
+    headers = {**actor, "Idempotency-Key": "proj-legacy-key-01"}
+    p1 = client.post("/api/projects", headers=headers, json={"name": "旧接口幂等项目"})
+    assert p1.status_code == 200, p1.text
+    assert "Idempotent-Replayed" not in p1.headers
+    # 同键同指纹重放
+    p2 = client.post("/api/projects", headers=headers, json={"name": "旧接口幂等项目"})
+    assert p2.status_code == 200
+    assert p2.headers.get("Idempotent-Replayed") == "true"
+    assert p1.json() == p2.json()
+    # 同键不同指纹冲突
+    p3 = client.post("/api/projects", headers=headers, json={"name": "冲突名称"})
+    assert p3.status_code == 409
+    assert p3.json()["code"] == "IDEMPOTENCY_CONFLICT"
+
+    # 2. 章节锁与草稿旧端点幂等
+    flow = ProjectFlow(client).ready()
+    ch_id = flow.state()["chapters"][0]["id"]
+    flow_headers = flow.headers
+
+    # POST /api/chapters/{id}/lock
+    h_lock = {**flow_headers, "Idempotency-Key": "lock-legacy-key-01"}
+    l1 = client.post(f"/api/chapters/{ch_id}/lock", headers=h_lock, json={})
+    assert l1.status_code == 200
+    assert "Idempotent-Replayed" not in l1.headers
+    assert "lease_token" in l1.json()
+    assert "acquired_at" in l1.json()
+    assert "heartbeat_at" in l1.json()
+    l2 = client.post(f"/api/chapters/{ch_id}/lock", headers=h_lock, json={})
+    assert l2.status_code == 200
+    assert l2.headers.get("Idempotent-Replayed") == "true"
+    assert l1.json() == l2.json()
+
+    # POST /api/chapters/{id}/lock/renew
+    token = l1.json()["lease_token"]
+    h_renew = {**flow_headers, "Idempotency-Key": "renew-legacy-key-01"}
+    rn1 = client.post(f"/api/chapters/{ch_id}/lock/renew", headers=h_renew, json={"lease_token": token})
+    assert rn1.status_code == 200
+    rn2 = client.post(f"/api/chapters/{ch_id}/lock/renew", headers=h_renew, json={"lease_token": token})
+    assert rn2.status_code == 200
+    assert rn2.headers.get("Idempotent-Replayed") == "true"
+    assert rn1.json() == rn2.json()
+
+    # PUT /api/chapters/{id}/draft
+    ch = next(c for c in flow.state()["chapters"] if c["id"] == ch_id)
+    fp = flow.state()["input_fingerprint"]
+    h_draft = {**flow_headers, "Idempotency-Key": "draft-legacy-key-01"}
+    d1 = client.put(f"/api/chapters/{ch_id}/draft", headers=h_draft,
+                    json={"lease_token": token, "base_revision": ch["revision"], "sequence": 1,
+                          "content": "旧草稿幂等内容", "input_fingerprint": fp})
+    assert d1.status_code == 200
+    d2 = client.put(f"/api/chapters/{ch_id}/draft", headers=h_draft,
+                    json={"lease_token": token, "base_revision": ch["revision"], "sequence": 1,
+                          "content": "旧草稿幂等内容", "input_fingerprint": fp})
+    assert d2.status_code == 200
+    assert d2.headers.get("Idempotent-Replayed") == "true"
+    assert d1.json() == d2.json()
+
+    # DELETE /api/chapters/{id}/draft
+    h_disc = {**flow_headers, "Idempotency-Key": "disc-legacy-key-01"}
+    dc1 = client.request("DELETE", f"/api/chapters/{ch_id}/draft", headers=h_disc, json={"sequence": 1})
+    assert dc1.status_code == 200
+    dc2 = client.request("DELETE", f"/api/chapters/{ch_id}/draft", headers=h_disc, json={"sequence": 1})
+    assert dc2.status_code == 200
+    assert dc2.headers.get("Idempotent-Replayed") == "true"
+    assert dc1.json() == dc2.json()
+
+    # POST /api/chapters/{id}/lock/release
+    h_rel = {**flow_headers, "Idempotency-Key": "rel-legacy-key-01"}
+    rl1 = client.post(f"/api/chapters/{ch_id}/lock/release", headers=h_rel, json={"lease_token": token})
+    assert rl1.status_code == 200
+    rl2 = client.post(f"/api/chapters/{ch_id}/lock/release", headers=h_rel, json={"lease_token": token})
+    assert rl2.status_code == 200
+    assert rl2.headers.get("Idempotent-Replayed") == "true"
+    assert rl1.json() == rl2.json()
+
+
+def test_chapter_lease_alignment_fields_and_persistence():
+    """BE-M0-T17: 验证 chapter_lease 对齐字典 edit_lock 字段定义与持久化完整性。"""
+    from icg_demo.domain import Chapter, DemoState, Lease
+    lease = Lease(
+        token="lease-test-token",
+        user_id="user-01",
+        session_token="session-test-token",
+        expires_at=1700000120.0,
+        acquired_at=1700000000.0,
+        heartbeat_at=1700000010.0,
+        lock_reason="编写技术章节",
+        taken_over_from_user_id="user-00",
+        takeover_reason="前任请假",
+        released_at=None,
+        release_reason=None,
+        company_id="company-alpha",
+        record_version=1,
+    )
+    assert lease.session_token == "session-test-token"
+    assert lease.owner_id == "user-01"
+    assert lease.user_id == "user-01"
+    assert lease.acquired_at == 1700000000.0
+    assert lease.heartbeat_at == 1700000010.0
+    assert lease.lock_reason == "编写技术章节"
+    assert lease.taken_over_from_user_id == "user-00"
+    assert lease.takeover_reason == "前任请假"
+    assert lease.company_id == "company-alpha"
+    assert lease.record_version == 1
+
+    state = DemoState()
+    state.chapters["chap-1"] = Chapter(
+        id="chap-1",
+        project_id="proj-1",
+        volume="default",
+        title="第一章",
+        content="",
+        lock=lease,
+    )
+    from icg_demo.database import _lease_snapshot
+    snapshot = _lease_snapshot(state)
+    assert "chap-1" in snapshot
+    entry = snapshot["chap-1"]
+    assert entry[0] == "lease-test-token"
+    assert entry[1] == "user-01"
+    assert entry[4] == 1700000000.0
+    assert entry[5] == 1700000010.0
+    assert entry[6] == "编写技术章节"
+    assert entry[7] == "user-00"
+    assert entry[8] == "前任请假"
+    assert entry[11] == "company-alpha"
+    assert entry[12] == 1

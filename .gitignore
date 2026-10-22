@@ -35,6 +35,7 @@ runtime/
 data/local/
 .cache/
 .pytest_cache/
+.gemini/
 *.log
 *.pid
 

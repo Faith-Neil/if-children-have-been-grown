@@ -3,10 +3,11 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 from dataclasses import dataclass
-from typing import Mapping
+from typing import Any, Mapping
 from urllib.parse import urlsplit
 
 import httpx
@@ -83,18 +84,21 @@ def _validate_base_url(base_url: str) -> str:
 class OpenAICompatibleConfig:
     base_url: str
     model: str
-    api_key_env: str
-    timeout_seconds: float
-    max_tokens: int
-    retries: int
-    is_local: bool
+    api_key_env: str = ""
+    timeout_seconds: float = 60.0
+    max_tokens: int = 1024
+    retries: int = 1
+    is_local: bool = True
+    stream_enabled: bool = False
+    json_mode_enabled: bool = False
+    api_key: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "base_url", _validate_base_url(self.base_url))
         if not self.model.strip():
             raise ValueError(f"{_ENV_NAMES['model']} is required")
         object.__setattr__(self, "model", self.model.strip())
-        if not _ENV_NAME.fullmatch(self.api_key_env):
+        if self.api_key_env and not _ENV_NAME.fullmatch(self.api_key_env):
             raise ValueError(f"{_ENV_NAMES['api_key_env']} must name an environment variable")
         if self.timeout_seconds <= 0 or self.timeout_seconds > 600:
             raise ValueError(f"{_ENV_NAMES['timeout']} must be greater than 0 and at most 600")
@@ -120,6 +124,8 @@ class OpenAICompatibleConfig:
             max_tokens=_bounded_int(max_tokens, _ENV_NAMES["max_tokens"], 1, 1_000_000),
             retries=_bounded_int(retries, _ENV_NAMES["retries"], 0, 5),
             is_local=_parse_local(_required(source, "is_local")),
+            stream_enabled=False,
+            json_mode_enabled=False,
         )
 
     @property
@@ -128,7 +134,7 @@ class OpenAICompatibleConfig:
 
 
 class OpenAICompatibleModelProvider:
-    """OpenAI 兼容 chat completions。密钥只在调用时从指定环境变量读取，不写入仓库或异常文本。"""
+    """OpenAI 兼容 chat completions。支持从环境变量或配置快照动态组装请求参数。"""
 
     name = "openai-compatible"
     is_real_model = True
@@ -137,6 +143,12 @@ class OpenAICompatibleModelProvider:
                  environ: Mapping[str, str] | None = None):
         self._config = config
         self.is_local = config.is_local
+        self.stream_enabled = config.stream_enabled
+        self.json_mode_enabled = config.json_mode_enabled
+        self.model = config.model
+        self.base_url = config.base_url
+        self.timeout_seconds = config.timeout_seconds
+        self.max_tokens = config.max_tokens
         self._transport = transport
         self._environ = environ
 
@@ -153,23 +165,27 @@ class OpenAICompatibleModelProvider:
         raise ModelCallError("openai-compatible model call failed") from last_error
 
     def _api_key(self) -> str:
+        if self._config.api_key is not None:
+            return self._config.api_key
         source = os.environ if self._environ is None else self._environ
-        return source.get(self._config.api_key_env, "").strip()
+        return source.get(self._config.api_key_env, "").strip() if self._config.api_key_env else ""
 
     def _once(self, instruction: str, content: str) -> str:
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
         api_key = self._api_key()
         if api_key:
             headers["Authorization"] = "Bearer " + api_key
-        payload = {
+        payload: dict[str, Any] = {
             "model": self._config.model,
             "messages": [
                 {"role": "system", "content": instruction},
                 {"role": "user", "content": content},
             ],
             "max_tokens": self._config.max_tokens,
-            "stream": False,
+            "stream": self._config.stream_enabled,
         }
+        if self._config.json_mode_enabled:
+            payload["response_format"] = {"type": "json_object"}
         try:
             with httpx.Client(transport=self._transport, timeout=self._config.timeout_seconds,
                               follow_redirects=False) as client:
@@ -186,6 +202,29 @@ class OpenAICompatibleModelProvider:
 
 
 def _assistant_text(response: httpx.Response) -> str:
+    content_type = response.headers.get("content-type", "")
+    raw_text = response.text
+    if "text/event-stream" in content_type or raw_text.startswith("data:"):
+        collected = []
+        for line in raw_text.splitlines():
+            line = line.strip()
+            if not line or not line.startswith("data:"):
+                continue
+            chunk_str = line[5:].strip()
+            if chunk_str == "[DONE]":
+                break
+            try:
+                chunk = json.loads(chunk_str)
+                choices = chunk.get("choices")
+                if isinstance(choices, list) and choices and isinstance(choices[0], dict):
+                    delta = choices[0].get("delta", {})
+                    content = delta.get("content")
+                    if content and isinstance(content, str):
+                        collected.append(content)
+            except Exception:
+                continue
+        if collected:
+            return "".join(collected)
     try:
         body = response.json()
     except ValueError:

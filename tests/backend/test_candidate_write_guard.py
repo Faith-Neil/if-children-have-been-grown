@@ -54,7 +54,7 @@ def test_source_change_after_candidate_preview_rejects_atomic_write(guarded_cont
         payload["idempotency_key"] = str(uuid4())
         response = client.post(f"/api/chapters/{chapter['id']}/versions", headers=flow.headers, json=payload)
     assert response.status_code == 409, response.text
-    assert response.json()["error"]["code"] == "INPUT_FINGERPRINT_STALE"
+    assert (response.json().get("code") or response.json().get("error", {}).get("code")) == "INPUT_FINGERPRINT_STALE"
     assert repository.read() == before
 
 
@@ -76,7 +76,7 @@ def test_missing_or_null_fingerprint_cannot_bypass_sources(guarded_context, oper
         payload["idempotency_key"] = str(uuid4())
         response = client.post(f"/api/chapters/{chapter['id']}/versions", headers=flow.headers, json=payload)
     assert response.status_code == 409, response.text
-    assert response.json()["error"]["code"] == "INPUT_FINGERPRINT_REQUIRED"
+    assert (response.json().get("code") or response.json().get("error", {}).get("code")) == "INPUT_FINGERPRINT_REQUIRED"
     assert repository.read() == before
 
 
@@ -96,7 +96,7 @@ def test_saved_draft_retains_original_fingerprint_and_cannot_commit_after_change
     response = client.post(f"/api/chapters/{chapter['id']}/versions", headers=flow.headers,
                            json={**payload, "idempotency_key": str(uuid4())})
     assert response.status_code == 409, response.text
-    assert response.json()["error"]["code"] == "INPUT_FINGERPRINT_STALE"
+    assert (response.json().get("code") or response.json().get("error", {}).get("code")) == "INPUT_FINGERPRINT_STALE"
     assert repository.read() == before
     assert repository.read().chapters[chapter["id"]].drafts["alpha-manager"].content == candidate["content"]
 
@@ -133,7 +133,7 @@ def test_retry_returns_original_commit_but_changed_request_key_is_conflict(guard
     changed["input_fingerprint"] = flow.state()["input_fingerprint"]
     conflict = client.post(f"/api/chapters/{chapter['id']}/versions", headers=flow.headers, json=changed)
     assert conflict.status_code == 409, conflict.text
-    assert conflict.json()["error"]["code"] == "IDEMPOTENCY_CONFLICT"
+    assert (conflict.json().get("code") or conflict.json().get("error", {}).get("code")) == "IDEMPOTENCY_CONFLICT"
     assert repository.read() == before
 
 

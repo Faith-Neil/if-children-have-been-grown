@@ -11,6 +11,8 @@ import * as routes from '../src/app-route.ts';
 import * as leaves from '../src/leave-guard.ts';
 import * as reviews from '../src/library-review.ts';
 import * as team from '../src/project-team.ts';
+import * as guards from '../src/route-guard.ts';
+import * as conflicts from '../src/editor-conflict.ts';
 
 function sourceFunctions(filename, component) {
   const source = readFileSync(new URL(`../src/${filename}`, import.meta.url), 'utf8');
@@ -45,18 +47,18 @@ function runSource(context, source) {
 
 function contextFor(names) {
   const initialPath = '/projects/p-one/editor';
-  const context = { ...api, ...sessions, ...routes, ...leaves, ...reviews, ...team, Error, TypeError,
+  const context = { ...api, ...sessions, ...routes, ...leaves, ...reviews, ...team, ...guards, ...conflicts, Error, TypeError,
     user: account, token: 'token-A', epoch: { current: 1 }, sessionRequest: { current: 0 }, activeToken: { current: 'token-A' },
     currentSession: { current: { company_id: 'alpha', account_id: account.id } }, currentAuthorization: { current: session() },
     currentLibrary: { current: {} }, currentTemplates: { current: {} }, projectId: { current: 'p-one' },
     workspace: workspace(), tab: 'editor', nav: 'workbench', armedLeave: { current: false }, dirtyRef: { current: true }, editorDirty: true,
     addressRef: { current: initialPath }, displayedPathRef: { current: initialPath }, indexRef: { current: 0 },
     ignorePop: { current: false }, pendingLeave: { current: null }, prompting: { current: false },
-    confirmations: [], errors: [], modal: {}, message: {}, loading: false, missing: null, denied: null, refreshes: 0,
+    confirmations: [], errors: [], modal: {}, message: {}, loading: false, missing: null, denied: null, deniedDetails: null, refreshes: 0,
   };
   context.modal.confirm = options => { context.confirmations.push(options); };
   context.message.error = value => { context.errors.push(value); };
-  for (const key of ['LibrarySnapshot', 'TemplatesSnapshot', 'Projects', 'Jobs', 'ApplicationSession', 'Token', 'User', 'Workspace', 'EditorDirty', 'CreateOpen', 'TaskDrawer', 'AccessLost', 'Denied', 'Loading', 'Missing', 'Nav', 'Tab', 'Busy', 'Notice', 'SourceAdvice', 'Lease', 'Versions', 'VersionsOpen']) {
+  for (const key of ['LibrarySnapshot', 'TemplatesSnapshot', 'Projects', 'Jobs', 'ApplicationSession', 'Token', 'User', 'Workspace', 'EditorDirty', 'CreateOpen', 'TaskDrawer', 'AccessLost', 'Denied', 'DeniedDetails', 'Loading', 'Missing', 'Nav', 'Tab', 'Busy', 'Notice', 'SourceAdvice', 'Lease', 'Versions', 'VersionsOpen']) {
     context[`set${key}`] = value => {
       const name = key[0].toLowerCase() + key.slice(1);
       context[name] = typeof value === 'function' ? value(context[name]) : value;

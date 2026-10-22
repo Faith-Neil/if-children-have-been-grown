@@ -4,6 +4,8 @@ import type { ReactNode } from 'react';
 import { Button } from 'antd';
 import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 import { ProLayout } from '@ant-design/pro-layout';
+import { useBreakpoint, type BreadcrumbItemData } from './responsive.ts';
+import { BreadcrumbNav } from './BreadcrumbNav.tsx';
 
 const proLayoutToken = {
   bgLayout: '#F5F7FA',
@@ -45,18 +47,32 @@ const proLayoutToken = {
   },
 };
 
-export function AppShell({ collapsed, onCollapsed, menuPath, menu, onNavigate, breadcrumb, actions, children }: {
+export function AppShell({ collapsed, onCollapsed, menuPath, menu, onNavigate, breadcrumb, breadcrumbs, actions, children }: {
   collapsed: boolean;
   onCollapsed: (collapsed: boolean) => void;
   menuPath: string;
   menu: { path: string; name: string; icon: ReactNode }[];
   onNavigate: (path: string) => void;
-  breadcrumb: ReactNode;
+  breadcrumb?: ReactNode;
+  breadcrumbs?: BreadcrumbItemData[];
   actions: ReactNode;
   children: ReactNode;
 }) {
-  return <ProLayout className={collapsed ? 'icg-shell icg-shell-collapsed' : 'icg-shell'} title="智能投标系统" logo={<span className="brand-square">标</span>} layout="mix" navTheme="light" locale="zh-CN" fixSiderbar fixedHeader siderWidth={216} breakpoint={false} disableMobile collapsed={collapsed} onCollapse={onCollapsed} collapsedButtonRender={false} contentStyle={{ padding: 0 }} token={proLayoutToken} location={{ pathname: menuPath }} route={{ path: '/', routes: menu }} menu={{ locale: false }} headerTitleRender={false} menuHeaderRender={(logo, title) => <a>{logo}{title}</a>} menuItemRender={(item, dom) => {
+  const breakpoint = useBreakpoint();
+  const shellClassName = [
+    'icg-shell',
+    collapsed ? 'icg-shell-collapsed' : '',
+    `breakpoint-${breakpoint.tier}`,
+  ].filter(Boolean).join(' ');
+
+  const breadcrumbContent = breadcrumbs ? (
+    <BreadcrumbNav items={breadcrumbs} onNavigate={onNavigate} />
+  ) : (
+    breadcrumb
+  );
+
+  return <ProLayout className={shellClassName} data-breakpoint={breakpoint.tier} title="智能投标系统" logo={<span className="brand-square">标</span>} layout="mix" navTheme="light" locale="zh-CN" fixSiderbar fixedHeader siderWidth={216} breakpoint={false} disableMobile collapsed={collapsed} onCollapse={onCollapsed} collapsedButtonRender={false} contentStyle={{ padding: 0 }} token={proLayoutToken} location={{ pathname: menuPath }} route={{ path: '/', routes: menu }} menu={{ locale: false }} headerTitleRender={false} menuHeaderRender={(logo, title) => <a>{logo}{title}</a>} menuItemRender={(item, dom) => {
     const path = item.path || '/workbench';
     return <a href={path} onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); onNavigate(path); }}>{dom}</a>;
-  }} headerContentRender={() => <div className="topbar-leading"><Button type="text" aria-label="收起或展开导航" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => onCollapsed(!collapsed)} />{breadcrumb}</div>} actionsRender={() => [<div className="topbar-right" key="actions">{actions}</div>]} footerRender={false} pageTitleRender={() => 'ICG · 智能投标系统'} ErrorBoundary={false}>{children}</ProLayout>;
+  }} headerContentRender={() => <div className="topbar-leading"><Button type="text" aria-label="收起或展开导航" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => onCollapsed(!collapsed)} />{breadcrumbContent}</div>} actionsRender={() => [<div className="topbar-right" key="actions">{actions}</div>]} footerRender={false} pageTitleRender={() => 'ICG · 智能投标系统'} ErrorBoundary={false}>{children}</ProLayout>;
 }

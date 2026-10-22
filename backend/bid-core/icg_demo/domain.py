@@ -69,14 +69,50 @@ class Project:
     tender_number: str = ""
     deadline: str = ""
     sensitive: bool = False
+    tender_type: str = "comprehensive"
+    budget_amount_cents: int | None = None
+    deadline_at: float | None = None
+    security_level: str = "internal"
+    industry: str = "it"
+    is_archived: bool = False
+    created_by: str | None = None
+    created_at: float | None = None
+    updated_by: str | None = None
+    updated_at: float | None = None
+    record_version: int = 1
+    is_deleted: bool = False
+
+    @property
+    def is_sensitive(self) -> bool:
+        return self.sensitive
+
+    @is_sensitive.setter
+    def is_sensitive(self, val: bool) -> None:
+        self.sensitive = val
 
 
 @dataclass
 class Lease:
     token: str
-    owner_id: str
-    session_token: str
-    expires_at: float
+    owner_id: str = ""
+    session_token: str = ""
+    expires_at: float = 0.0
+    acquired_at: float | None = None
+    heartbeat_at: float | None = None
+    lock_reason: str | None = None
+    taken_over_from_user_id: str | None = None
+    takeover_reason: str | None = None
+    released_at: float | None = None
+    release_reason: str | None = None
+    company_id: str | None = None
+    record_version: int = 1
+    user_id: str | None = None
+
+    def __post_init__(self):
+        if self.user_id is not None and not self.owner_id:
+            self.owner_id = self.user_id
+        elif self.owner_id and self.user_id is None:
+            self.user_id = self.owner_id
 
 
 @dataclass
@@ -149,6 +185,8 @@ class DemoState:
     # 合作方协议和资料授权先留在内存。正式表对齐不在本次挂接规则里做。
     project_partners: dict[str, list] = field(default_factory=dict)
     resource_acl: list[dict] = field(default_factory=list)
+    model_configs: dict[str, Any] = field(default_factory=dict)
+    project_model_configs: dict[str, str] = field(default_factory=dict)
     # 内存仓库仍按 2048 条裁剪回执。MySQL 路径在事务里把它设为 False，避免未过期回执被提前删掉。
     cap_receipts: bool = True
 
@@ -157,10 +195,110 @@ class DemoService:
     LEASE_SECONDS = 120
 
     def __init__(self, repository: Repository, model_provider: ModelProvider,
-                 clock: Callable[[], float | datetime] | None = None):
+                 clock: Callable[[], float | datetime] | None = None,
+                 model_transport: Any | None = None,
+                 evidence_service: Any | None = None):
         self.repository = repository
         self.model_provider = model_provider
         self.clock = clock or time.time
+        self.model_transport = model_transport
+        self.evidence_service = evidence_service
+        from .chapter_generation import ChapterGenerationService
+        self.chapter_generation = ChapterGenerationService(self)
+        from .editor_ai_context import EditorAIContextService
+        self.editor_context = EditorAIContextService(self)
+        from .tender_retrieval import TenderRetrievalService
+        self.tender_retrieval = TenderRetrievalService(self)
+        from .compliance_cross_check import ComplianceCrossCheckService
+        self.compliance_cross_check_service = ComplianceCrossCheckService(self)
+
+    def start_chapter_generation(self, project_id: str, chapter_id: str, principal: Principal, sync_execute: bool = False) -> dict:
+        return self.chapter_generation.start_chapter_generation(project_id, chapter_id, principal, sync_execute=sync_execute)
+
+    def assemble_writing_prompt_plan(self, project_id: str, chapter_id: str, principal: Principal | None = None) -> dict:
+        return self.chapter_generation.assemble_writing_prompt_plan(project_id, chapter_id, principal=principal)
+
+    def chat_editor_context(self, principal: Principal, project_id: str, query: str,
+                            chapter_id: str, chapter_title: str | None = None,
+                            selected_text: str | None = None, scene: str | None = None,
+                            lease_token: str | None = None, knowledge_base_enabled: bool = True,
+                            history: list[dict[str, str]] | None = None,
+                            injected_tender_clauses: list[dict[str, Any]] | None = None) -> dict:
+        return self.editor_context.chat_editor_context(
+            principal=principal,
+            project_id=project_id,
+            query=query,
+            chapter_id=chapter_id,
+            chapter_title=chapter_title,
+            selected_text=selected_text,
+            scene=scene,
+            lease_token=lease_token,
+            knowledge_base_enabled=knowledge_base_enabled,
+            history=history,
+            injected_tender_clauses=injected_tender_clauses,
+        )
+
+    def accept_ai_suggestion(
+        self,
+        principal: Principal,
+        project_id: str,
+        chapter_id: str,
+        lease_token: str,
+        base_revision: int,
+        suggested_text: str,
+        paragraph_id: str | None = None,
+        original_text: str | None = None,
+        citations: list[dict[str, Any]] | None = None,
+        input_fingerprint: str | None = None,
+    ) -> dict[str, Any]:
+        return self.editor_context.accept_ai_suggestion(
+            principal=principal,
+            project_id=project_id,
+            chapter_id=chapter_id,
+            lease_token=lease_token,
+            base_revision=base_revision,
+            suggested_text=suggested_text,
+            paragraph_id=paragraph_id,
+            original_text=original_text,
+            citations=citations,
+            input_fingerprint=input_fingerprint,
+        )
+
+    def compliance_cross_check(
+        self,
+        principal: Principal,
+        project_id: str,
+        chapter_id: str,
+        model_config_id: str | None = None,
+        strict_mode: bool = True,
+    ) -> dict[str, Any]:
+        return self.compliance_cross_check_service.cross_check_chapter(
+            principal=principal,
+            project_id=project_id,
+            chapter_id=chapter_id,
+            model_config_id=model_config_id,
+            strict_mode=strict_mode,
+        )
+
+    def resolve_model_provider(self, state: DemoState, project_id: str) -> ModelProvider:
+        bound_id = state.project_model_configs.get(project_id)
+        cfg = None
+        if bound_id and bound_id in state.model_configs:
+            cfg = state.model_configs[bound_id]
+        else:
+            project = state.projects.get(project_id)
+            if project:
+                default_id = f"default-{project.company_id}"
+                if default_id in state.model_configs:
+                    cfg = state.model_configs[default_id]
+        if cfg is not None:
+            from .model_config_storage import provider_from_model_config
+            return provider_from_model_config(cfg, transport=self.model_transport, default_provider=self.model_provider)
+        return self.model_provider
+
+    def resolve_provider_from_snapshot(self, snapshot: dict) -> ModelProvider:
+        from .model_config_storage import provider_from_model_snapshot
+        return provider_from_model_snapshot(snapshot, transport=self.model_transport, default_provider=self.model_provider)
 
     def _now(self) -> float:
         value = self.clock()
@@ -193,7 +331,11 @@ class DemoService:
 
     @staticmethod
     def _writer(principal: Principal) -> None:
-        if principal.user.role not in ("editor", "manager", "company_admin", "data_admin"):
+        from .project_access import normalize_role, READONLY_SYSTEM_ROLES
+        role = normalize_role(principal.user.role)
+        if role in READONLY_SYSTEM_ROLES or role not in (
+            "editor", "manager", "company_admin", "data_admin", "project_lead", "bid_writer"
+        ):
             raise DomainError(403, "FORBIDDEN", "当前演示账号只能查看，不能执行此操作。")
 
     @staticmethod
@@ -201,7 +343,7 @@ class DemoService:
         from .project_access import member
         project = state.projects.get(project_id)
         account = state.accounts.get(principal.user.id)
-        if (project is None or account is None or project.company_id != account.company_id
+        if (project is None or project.is_deleted or account is None or project.company_id != account.company_id
                 or state.sessions.get(principal.session_token) != account.id
                 or member(state, project_id, account.id) is None):
             raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
@@ -223,7 +365,28 @@ class DemoService:
         self._project(state, principal, chapter.project_id)
         return chapter
 
-    def require_allowed_model(self, project: Project) -> None:
+    def require_allowed_model(self, project: Project, state: DemoState | None = None) -> None:
+        cfg = None
+        if state is not None:
+            bound_id = state.project_model_configs.get(project.id)
+            if bound_id and bound_id in state.model_configs:
+                cfg = state.model_configs[bound_id]
+            else:
+                default_id = f"default-{project.company_id}"
+                if default_id in state.model_configs:
+                    cfg = state.model_configs[default_id]
+
+        if cfg is not None:
+            if project.sensitive and (not cfg.is_local or not cfg.allow_sensitive):
+                raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL", "敏感项目只能使用本地模型配置。")
+            if cfg.encrypted_api_key:
+                from .model_config_storage import get_master_key
+                try:
+                    get_master_key()
+                except DomainError:
+                    raise DomainError(503, "SECRET_KEY_UNAVAILABLE", "主密钥不可用。")
+            return
+
         if (project.sensitive and getattr(self.model_provider, "is_real_model", None) is not False
                 and not getattr(self.model_provider, "is_local", False)):
             raise DomainError(409, "LOCAL_MODEL_REQUIRED", "敏感项目只能使用本地模型适配器。")
@@ -240,30 +403,71 @@ class DemoService:
         return {"id": chapter.id, "title": chapter.title,
                 "volume": chapter.volume, "revision": chapter.revision}
 
+    @staticmethod
+    def _project_response(project: Project) -> dict:
+        data = asdict(project)
+        if isinstance(data.get("deadline_at"), (int, float)):
+            data["deadline_at"] = iso_time(data["deadline_at"])
+        if isinstance(data.get("created_at"), (int, float)):
+            data["created_at"] = iso_time(data["created_at"])
+        if isinstance(data.get("updated_at"), (int, float)):
+            data["updated_at"] = iso_time(data["updated_at"])
+        return data
+
     def projects(self, principal: Principal) -> dict:
         state = self.repository.read()
         from .project_access import member
-        return {"projects": [asdict(project) for project in state.projects.values()
+        return {"projects": [self._project_response(project) for project in state.projects.values()
                              if project.company_id == principal.user.company_id
-                             and member(state, project.id, principal.user.id)]}
+                             and member(state, project.id, principal.user.id)
+                             and not project.is_deleted]}
 
-    def create_project(self, principal: Principal, name: str) -> dict:
+    def project(self, principal: Principal, project_id: str) -> dict:
+        state = self.repository.read()
+        return self._project_response(self._project(state, principal, project_id))
+
+    def create_project(self, principal: Principal, name: str, *,
+                       idempotency_key: str | None = None) -> dict:
+        from .idempotency import fingerprint, lookup, remember, validate_key
+        key = validate_key(idempotency_key) if idempotency_key is not None else None
+        scope_id = f"company:{principal.user.company_id}"
+        req_fp = fingerprint("project.create", {"name": name}, None) if key else ""
+
         def operation(state: DemoState):
-            from .project_access import initial_team
+            if key:
+                cached = lookup(state, scope_id, principal.user.id, key, req_fp, self._now())
+                if cached is not None:
+                    return cached
+            from .project_access import initial_team, normalize_role, LEAD_COMPANY_ROLES
             actual = state.accounts.get(principal.user.id)
-            if actual is None or actual.role != "manager" or state.sessions.get(principal.session_token) != actual.id:
+            if (actual is None
+                    or normalize_role(actual.role) not in LEAD_COMPANY_ROLES
+                    or state.sessions.get(principal.session_token) != actual.id):
                 raise DomainError(403, "PROJECT_CREATE_FORBIDDEN", "普通编写人不能新建项目，请由公司项目经理建立并邀请成员。")
-            project = Project(new_id("project"), name, actual.company_id)
+            now_ts = self._now()
+            project = Project(
+                id=new_id("project"),
+                name=name,
+                company_id=actual.company_id,
+                created_by=principal.user.id,
+                created_at=now_ts,
+                updated_by=principal.user.id,
+                updated_at=now_ts,
+                record_version=1,
+            )
             state.projects[project.id] = project
             state.project_teams[project.id] = initial_team(principal.user.id)
             for volume, title in (("technical", "技术方案"), ("business", "商务响应")):
                 chapter = Chapter(new_id("chapter"), project.id, title, volume, "")
                 chapter.versions.append({"revision": 1, "content": "",
                                          "actor_id": principal.user.id,
-                                         "created_at": iso_time(self._now())})
+                                         "created_at": iso_time(now_ts)})
                 state.chapters[chapter.id] = chapter
                 self._audit(state, principal, chapter, "project.create")
-            return asdict(project)
+            res = self._project_response(project)
+            if key:
+                remember(state, scope_id, principal.user.id, key, req_fp, res, self._now())
+            return res
         return self.repository.transaction(operation)
 
     def chapters(self, principal: Principal, project_id: str) -> dict:
@@ -305,19 +509,36 @@ class DemoService:
 
     @staticmethod
     def _lease_response(lease: Lease) -> dict:
-        return {"lease_token": lease.token, "expires_at": iso_time(lease.expires_at),
+        data = {"lease_token": lease.token, "expires_at": iso_time(lease.expires_at),
                 "owner_id": lease.owner_id}
+        if lease.acquired_at is not None:
+            data["acquired_at"] = iso_time(lease.acquired_at)
+        if lease.heartbeat_at is not None:
+            data["heartbeat_at"] = iso_time(lease.heartbeat_at)
+        return data
 
     def acquire_lock(self, principal: Principal, chapter_id: str,
-                     takeover_reason: str | None) -> dict:
+                     takeover_reason: str | None, *,
+                     idempotency_key: str | None = None) -> dict:
+        from .idempotency import fingerprint, lookup, remember, validate_key
+        key = validate_key(idempotency_key) if idempotency_key is not None else None
+        req_fp = fingerprint("chapter.lock.acquire:" + chapter_id, {"takeover_reason": takeover_reason}, None) if key else ""
+
         def operation(state: DemoState):
             chapter = self._chapter(state, principal, chapter_id)
+            if key:
+                cached = lookup(state, chapter.project_id, principal.user.id, key, req_fp, self._now())
+                if cached is not None:
+                    return cached
             self._chapter_writer(state, principal, chapter)
             old_lease = chapter.lock
             active = old_lease is not None and old_lease.expires_at > self._now()
             if active and old_lease.owner_id == principal.user.id \
                     and old_lease.session_token == principal.session_token:
-                return self._lease_response(old_lease)
+                res = self._lease_response(old_lease)
+                if key:
+                    remember(state, chapter.project_id, principal.user.id, key, req_fp, res, self._now())
+                return res
             if active:
                 from .project_access import chapter_structure
                 if not chapter_structure(state, chapter, principal.user.id):
@@ -326,40 +547,98 @@ class DemoService:
                     raise DomainError(423, "LOCK_HELD", "其他会话正在编辑；项目负责人或本册负责人可以填写理由接管。")
                 if not takeover_reason or not takeover_reason.strip():
                     raise DomainError(409, "TAKEOVER_REASON_REQUIRED", "接管前必须填写理由。")
-            lease = Lease(secrets.token_urlsafe(32), principal.user.id,
-                          principal.session_token, self._now() + self.LEASE_SECONDS)
+            now = self._now()
+            lease = Lease(token=secrets.token_urlsafe(32),
+                          owner_id=principal.user.id,
+                          session_token=principal.session_token,
+                          expires_at=now + self.LEASE_SECONDS,
+                          acquired_at=now,
+                          heartbeat_at=now,
+                          lock_reason=None,
+                          taken_over_from_user_id=old_lease.owner_id if active and old_lease else None,
+                          takeover_reason=takeover_reason.strip() if active and takeover_reason else None,
+                          company_id=principal.user.company_id,
+                          record_version=1)
             chapter.lock = lease
             details = ({"reason": takeover_reason.strip(), "previous_owner_id": old_lease.owner_id}
-                       if active else {})
+                       if active and old_lease else {})
             self._audit(state, principal, chapter, "lock.takeover" if active else "lock.acquire", details)
             # 接管时保留旧用户已经收到的草稿，不宣称保存了断网设备尚未上传的文字。
-            return self._lease_response(lease)
+            res = self._lease_response(lease)
+            if key:
+                remember(state, chapter.project_id, principal.user.id, key, req_fp, res, self._now())
+            return res
         return self.repository.transaction(operation)
 
-    def renew_lock(self, principal: Principal, chapter_id: str, lease_token: str) -> dict:
+    def renew_lock(self, principal: Principal, chapter_id: str, lease_token: str, *,
+                   idempotency_key: str | None = None) -> dict:
+        from .idempotency import fingerprint, lookup, remember, validate_key
+        key = validate_key(idempotency_key) if idempotency_key is not None else None
+        req_fp = fingerprint("chapter.lock.renew:" + chapter_id, {"lease_token": lease_token}, None) if key else ""
+
         def operation(state: DemoState):
             chapter = self._chapter(state, principal, chapter_id)
+            if key:
+                cached = lookup(state, chapter.project_id, principal.user.id, key, req_fp, self._now())
+                if cached is not None:
+                    return cached
             self._chapter_writer(state, principal, chapter)
             lease = self._lease(chapter, principal, lease_token)
-            lease.expires_at = self._now() + self.LEASE_SECONDS
+            now = self._now()
+            lease.expires_at = now + self.LEASE_SECONDS
+            lease.heartbeat_at = now
+            lease.record_version += 1
             self._audit(state, principal, chapter, "lock.renew")
-            return self._lease_response(lease)
+            res = self._lease_response(lease)
+            if key:
+                remember(state, chapter.project_id, principal.user.id, key, req_fp, res, self._now())
+            return res
         return self.repository.transaction(operation)
 
-    def release_lock(self, principal: Principal, chapter_id: str, lease_token: str) -> dict:
+    def release_lock(self, principal: Principal, chapter_id: str, lease_token: str, *,
+                     idempotency_key: str | None = None) -> dict:
+        from .idempotency import fingerprint, lookup, remember, validate_key
+        key = validate_key(idempotency_key) if idempotency_key is not None else None
+        req_fp = fingerprint("chapter.lock.release:" + chapter_id, {"lease_token": lease_token}, None) if key else ""
+
         def operation(state: DemoState):
             chapter = self._chapter(state, principal, chapter_id)
+            if key:
+                cached = lookup(state, chapter.project_id, principal.user.id, key, req_fp, self._now())
+                if cached is not None:
+                    return cached
             self._chapter_writer(state, principal, chapter)
-            self._lease(chapter, principal, lease_token)
+            lease = self._lease(chapter, principal, lease_token)
+            now = self._now()
+            lease.released_at = now
+            lease.release_reason = "manual"
             chapter.lock = None
             self._audit(state, principal, chapter, "lock.release")
-            return {"released": True}
+            res = {"released": True}
+            if key:
+                remember(state, chapter.project_id, principal.user.id, key, req_fp, res, self._now())
+            return res
         return self.repository.transaction(operation)
 
     def save_draft(self, principal: Principal, chapter_id: str, lease_token: str,
-                   base_revision: int, sequence: int, content: str, input_fingerprint: str | None = None) -> dict:
+                   base_revision: int, sequence: int, content: str,
+                   input_fingerprint: str | None = None, *,
+                   idempotency_key: str | None = None) -> dict:
+        from .idempotency import fingerprint, lookup, remember, validate_key
+        key = validate_key(idempotency_key) if idempotency_key is not None else None
+        req_fp = fingerprint(
+            "chapter.draft.save:" + chapter_id,
+            {"lease_token": lease_token, "base_revision": base_revision, "sequence": sequence,
+             "content": content, "input_fingerprint": input_fingerprint},
+            None,
+        ) if key else ""
+
         def operation(state: DemoState):
             chapter = self._chapter(state, principal, chapter_id)
+            if key:
+                cached = lookup(state, chapter.project_id, principal.user.id, key, req_fp, self._now())
+                if cached is not None:
+                    return cached
             self._chapter_writer(state, principal, chapter)
             self._lease(chapter, principal, lease_token)
             self._revision(chapter, base_revision)
@@ -370,7 +649,10 @@ class DemoService:
             draft = Draft(sequence, content, base_revision, input_fingerprint)
             chapter.drafts[principal.user.id] = draft
             self._audit(state, principal, chapter, "draft.save", {"sequence": sequence})
-            return asdict(draft)
+            res = asdict(draft)
+            if key:
+                remember(state, chapter.project_id, principal.user.id, key, req_fp, res, self._now())
+            return res
         return self.repository.transaction(operation)
 
     def commit_version(self, principal: Principal, chapter_id: str, lease_token: str,
@@ -420,17 +702,32 @@ class DemoService:
         chapter = self._chapter(state, principal, chapter_id)
         return {"versions": chapter.versions}
 
-    def discard_draft(self, principal, chapter_id, sequence):
+    def discard_draft(self, principal, chapter_id, sequence, *,
+                      idempotency_key: str | None = None):
+        from .idempotency import fingerprint, lookup, remember, validate_key
+        key = validate_key(idempotency_key) if idempotency_key is not None else None
+        req_fp = fingerprint("chapter.draft.discard:" + chapter_id, {"sequence": sequence}, None) if key else ""
+
         def operation(state):
             chapter = self._chapter(state, principal, chapter_id)
+            if key:
+                cached = lookup(state, chapter.project_id, principal.user.id, key, req_fp, self._now())
+                if cached is not None:
+                    return cached
             draft = chapter.drafts.get(principal.user.id)
             if draft is None:
-                return {"discarded": False}
+                res = {"discarded": False}
+                if key:
+                    remember(state, chapter.project_id, principal.user.id, key, req_fp, res, self._now())
+                return res
             if draft.sequence != sequence:
                 raise DomainError(409, "DRAFT_SEQUENCE_CONFLICT", "草稿已更新，请先查看最新草稿再明确丢弃。")
             del chapter.drafts[principal.user.id]
             self._audit(state, principal, chapter, "draft.discard", {"sequence": sequence})
-            return {"discarded": True}
+            res = {"discarded": True}
+            if key:
+                remember(state, chapter.project_id, principal.user.id, key, req_fp, res, self._now())
+            return res
         return self.repository.transaction(operation)
 
     def audit(self, principal: Principal, chapter_id: str) -> dict:
@@ -442,7 +739,7 @@ class DemoService:
         state = self.repository.read()
         chapter = self._chapter(state, principal, chapter_id)
         self._chapter_writer(state, principal, chapter)
-        self.require_allowed_model(self._project(state, principal, chapter.project_id))
+        self.require_allowed_model(self._project(state, principal, chapter.project_id), state=state)
         fingerprint = project_input_fingerprint(state, chapter.project_id)
         # 独立旧demo保持正文建议；接入项目资料后必须与主流程使用同一输入和门禁。
         workflow = state.workflows.get(chapter.project_id, {})
@@ -451,7 +748,8 @@ class DemoService:
         if workflow.get("requirements") or workflow.get("facts") or workflow.get("sla"):
             from .generation_context import (build_generation_context, refuse_source_change,
                                              render_model_input, require_ready)
-            context = build_generation_context(state, chapter.project_id, chapter, self._now())
+            context = build_generation_context(state, chapter.project_id, chapter, self._now(),
+                                                evidence_service=self.evidence_service)
             require_ready(context)
             input_snapshot = context["input_snapshot"]
             refuse_source_change(instruction, input_snapshot)
@@ -461,13 +759,16 @@ class DemoService:
         current = self.repository.read()
         actual = self._chapter(current, principal, chapter_id)
         self._chapter_writer(current, principal, actual)
-        self.require_allowed_model(self._project(current, principal, actual.project_id))
+        self.require_allowed_model(self._project(current, principal, actual.project_id), state=current)
         if project_input_fingerprint(current, chapter.project_id) != fingerprint:
             raise DomainError(409, "VERSION_CONFLICT", "项目资料在准备建议期间更新，请核对来源后重新请求。")
+        provider = self.resolve_model_provider(current, actual.project_id)
         try:
-            suggestion = self.model_provider.suggest(instruction, model_input)
+            suggestion = provider.suggest(instruction, model_input)
             if not isinstance(suggestion, str):
                 raise TypeError("模型接口必须返回字符串")
+        except DomainError:
+            raise
         except Exception as error:
             raise DomainError(502, "MODEL_UNAVAILABLE", "演示建议服务失败，正文没有修改。") from error
         if input_snapshot is not None:
@@ -478,21 +779,30 @@ class DemoService:
         def operation(current: DemoState):
             actual = self._chapter(current, principal, chapter_id)
             self._chapter_writer(current, principal, actual)
-            self.require_allowed_model(self._project(current, principal, actual.project_id))
+            self.require_allowed_model(self._project(current, principal, actual.project_id), state=current)
             if project_input_fingerprint(current, chapter.project_id) != fingerprint:
                 raise DomainError(409, "VERSION_CONFLICT", "正文或项目资料在建议生成期间更新，请重新请求建议。")
             self._audit(current, principal, actual, "suggestion.generate",
                         {"base_revision": chapter.revision})
             return {"content": suggestion, "base_revision": chapter.revision,
-                    "provider": getattr(self.model_provider, "name", "demo"),
-                    "is_real_model": bool(getattr(self.model_provider, "is_real_model", False)),
+                    "provider": getattr(provider, "name", "demo"),
+                    "is_real_model": bool(getattr(provider, "is_real_model", False)),
                     "input_fingerprint": fingerprint, "source_scope": "whole_chapter" if input_snapshot else None,
                     "input_snapshot": input_snapshot}
         return self.repository.transaction(operation)
 
-    def check(self, principal: Principal, chapter_id: str) -> dict:
+    def check(self, principal: Principal, chapter_id: str, *,
+              idempotency_key: str | None = None) -> dict:
+        from .idempotency import fingerprint, lookup, remember, validate_key
+        key = validate_key(idempotency_key) if idempotency_key is not None else None
+        req_fp = fingerprint("chapter.check:" + chapter_id, {}, None) if key else ""
+
         def operation(state: DemoState):
             chapter = self._chapter(state, principal, chapter_id)
+            if key:
+                cached = lookup(state, chapter.project_id, principal.user.id, key, req_fp, self._now())
+                if cached is not None:
+                    return cached
             self._legacy_flow_guard(state, chapter)
             from .project_access import chapter_structure
             if not chapter_structure(state, chapter, principal.user.id):
@@ -507,12 +817,24 @@ class DemoService:
                           input_fingerprint=project_input_fingerprint(state, chapter.project_id))
             state.checks[check.id] = check
             self._audit(state, principal, chapter, "check.run", {"check_id": check.id, "passed": check.passed})
-            return {"id": check.id, "passed": check.passed, "revision": check.revision, "issues": check.issues}
+            res = {"id": check.id, "passed": check.passed, "revision": check.revision, "issues": check.issues}
+            if key:
+                remember(state, chapter.project_id, principal.user.id, key, req_fp, res, self._now())
+            return res
         return self.repository.transaction(operation)
 
-    def export(self, principal: Principal, chapter_id: str, check_id: str) -> dict:
+    def export(self, principal: Principal, chapter_id: str, check_id: str, *,
+               idempotency_key: str | None = None) -> dict:
+        from .idempotency import fingerprint, lookup, remember, validate_key
+        key = validate_key(idempotency_key) if idempotency_key is not None else None
+        req_fp = fingerprint("chapter.export:" + chapter_id, {"check_id": check_id}, None) if key else ""
+
         def operation(state: DemoState):
             chapter = self._chapter(state, principal, chapter_id)
+            if key:
+                cached = lookup(state, chapter.project_id, principal.user.id, key, req_fp, self._now())
+                if cached is not None:
+                    return cached
             from .project_access import chapter_structure
             if not chapter_structure(state, chapter, principal.user.id):
                 raise DomainError(403, "VOLUME_OWNER_REQUIRED", "内部稿导出须由本项目负责人或本册负责人办理。")
@@ -532,10 +854,13 @@ class DemoService:
                             chapter.title, chapter.content, input_fingerprint=fingerprint)
             state.exports[record.id] = record
             self._audit(state, principal, chapter, "export.create", {"export_id": record.id, "check_id": check.id})
-            return {"id": record.id, "filename": record.filename,
-                    "download_url": f"/api/exports/{record.id}/file", "excludes_drafts": True,
-                    "check_id": record.check_id, "revision": record.revision,
-                    "content_hash": record.content_hash, "input_fingerprint": record.input_fingerprint}
+            res = {"id": record.id, "filename": record.filename,
+                   "download_url": f"/api/exports/{record.id}/file", "excludes_drafts": True,
+                   "check_id": record.check_id, "revision": record.revision,
+                   "content_hash": record.content_hash, "input_fingerprint": record.input_fingerprint}
+            if key:
+                remember(state, chapter.project_id, principal.user.id, key, req_fp, res, self._now())
+            return res
         return self.repository.transaction(operation)
 
     def download(self, principal: Principal, export_id: str) -> Export:

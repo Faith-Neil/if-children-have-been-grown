@@ -4,7 +4,15 @@
 from copy import deepcopy
 
 from .domain import DomainError, iso_time, new_id
-from .project_access import VOLUMES, chapter_edit, public_team, writable
+from .project_access import (
+    LEAD_COMPANY_ROLES,
+    READONLY_SYSTEM_ROLES,
+    VOLUMES,
+    chapter_edit,
+    normalize_role,
+    public_team,
+    writable,
+)
 
 
 class ProjectTeamService:
@@ -54,9 +62,10 @@ class ProjectTeamService:
                 volumes = item["volumes"]
                 if len(volumes) != len(set(volumes)):
                     raise DomainError(422, "DUPLICATE_VOLUME", "参与分册不能重复。")
-                if item["project_role"] in ("lead", "writer") and account.role not in ("manager", "editor"):
+                norm = normalize_role(account.role)
+                if item["project_role"] in ("lead", "writer") and norm in READONLY_SYSTEM_ROLES:
                     raise DomainError(422, "MEMBER_ROLE_NOT_WRITABLE", "公司只读账号不能在项目中提升为负责人或编写人。")
-                if item["project_role"] == "lead" and account.role != "manager":
+                if item["project_role"] == "lead" and norm not in LEAD_COMPANY_ROLES:
                     raise DomainError(422, "PROJECT_LEAD_COMPANY_ROLE_REQUIRED", "项目负责人必须具有公司的项目经理操作角色，普通编写人可担任分册负责人或本节编写人。")
                 if item["project_role"] == "lead" and set(volumes) != set(VOLUMES):
                     raise DomainError(422, "LEAD_ALL_VOLUMES_REQUIRED", "项目负责人负责全部两册，须参与技术和商务。")

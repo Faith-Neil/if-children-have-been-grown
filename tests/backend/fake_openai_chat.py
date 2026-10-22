@@ -25,12 +25,19 @@ class RecordedChatCall:
     headers: dict[str, str]
     base_url: str
     path: str
+    body: bytes = b""
 
     def header(self, name: str) -> str:
         for key, value in self.headers.items():
             if key.lower() == name.lower():
                 return value
         return ""
+
+    @property
+    def json(self) -> dict:
+        if not self.body:
+            return {}
+        return json.loads(self.body.decode("utf-8"))
 
 
 class FakeOpenAIChat:
@@ -39,6 +46,9 @@ class FakeOpenAIChat:
     def __init__(self) -> None:
         self.calls: list[RecordedChatCall] = []
         self._lock = threading.Lock()
+        self.status_code: int = 200
+        self.response_body: bytes | None = None
+        self.assistant_text: str = ASSISTANT_TEXT
         handler = self._handler_type()
         self._server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
         self._thread = threading.Thread(target=self._server.serve_forever, name="fake-openai-chat", daemon=True)
@@ -65,7 +75,7 @@ class FakeOpenAIChat:
 
             def do_POST(self) -> None:
                 length = int(self.headers.get("Content-Length", "0") or "0")
-                self.rfile.read(length)
+                raw_body = self.rfile.read(length)
                 path = self.path.split("?", 1)[0]
                 host = self.headers.get("Host", "")
                 if path.endswith(CHAT_SUFFIX):
@@ -75,12 +85,19 @@ class FakeOpenAIChat:
                     effective = f"http://{host}".rstrip("/")
                 recorded = {key: value for key, value in self.headers.items()}
                 with owner._lock:
-                    owner.calls.append(RecordedChatCall(headers=recorded, base_url=effective, path=path))
+                    owner.calls.append(RecordedChatCall(headers=recorded, base_url=effective, path=path, body=raw_body))
                 if not path.endswith(CHAT_SUFFIX):
                     body = b'{"error":"not found"}'
                     self._send(404, body)
                     return
-                payload = {"choices": [{"message": {"role": "assistant", "content": ASSISTANT_TEXT}}]}
+                if owner.status_code != 200:
+                    self._send(owner.status_code, owner.response_body or b'{"error":"upstream model error"}')
+                    return
+                if owner.response_body is not None:
+                    self._send(200, owner.response_body)
+                    return
+                assistant_content = getattr(owner, "assistant_text", ASSISTANT_TEXT)
+                payload = {"choices": [{"message": {"role": "assistant", "content": assistant_content}}]}
                 self._send(200, json.dumps(payload).encode())
 
             def _send(self, status: int, body: bytes) -> None:

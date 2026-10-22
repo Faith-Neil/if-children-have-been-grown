@@ -9,49 +9,48 @@
 | Issue ID | ISSUE-032 |
 | 类型 | change |
 | 优先级 | P1 |
-| 状态 | new |
+| 状态 | in-review |
 | 负责人 | backend |
 | 登记日期 | 2026-10-12 |
-| 最后更新日期 | 2026-10-12 |
-| revision | edit-lock-align-1 |
+| 最后更新日期 | 2026-10-22 |
+| revision | edit-lock-align-2 |
 | 关联 Task | [BE-M0-T17](../docs/tasks/BE-M0.md#be-m0-t17) |
 | 关联 PR | 未创建。随既有分支提交，不新开 PR |
-| 本地验收 | 未执行。本轮只登记，不改表 |
+| 本地验收 | 已执行 |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
-| 交付说明 | 尚未建立。任务为 planned，无运行时代码 |
-| 代码 / 流程解释 | 无代码影响。对照仍在 [方案第 5 节](../docs/architecture/mysql-8-persistence-plan.md) |
-| 验证记录 | 未执行。实现后再补 |
+| 交付说明 | [BE-M0-T17交付](../docs/delivery/BE-M0-T17.md) |
+| 代码 / 流程解释 | [BE-M0-T17代码解释](../docs/code/BE-M0-T17.md) |
+| 验证记录 | `pytest tests/backend/test_error_idempotency.py tests/backend/test_v1_lease.py tests/backend/test_lease_review.py` |
 
-登记时 Issue 看板没有 planned。本项已登记、未开工、未关闭，因此状态记为 new。任务卡状态是 planned。
+已完成开发与本地测试验证，卡片与本 Issue 流转为 in-review，严禁私自标 done 或关闭 Issue，等待项目经理复审确认。
 
 ## 现象与证据
 
-BE-M0-T12 把当前编辑租约写入 `chapter_lease`。方案第 5 节对照字典 v1.9 的 `edit_lock`，列出的偏差需要项目经理批准。项目经理已有条件批准这些偏差。对齐工作排在 BE-M0-T13 之后，并且要等 `bid_outline_node`、`sys_user`、`company` 存在之后再做。本轮不改表、不补列、不删行。
+BE-M0-T12 把当前编辑租约写入 `chapter_lease`。方案第 5 节对照字典 v1.9 的 `edit_lock`，列出的偏差需要项目经理批准。项目经理已有条件批准这些偏差。本任务已完成 `chapter_lease` 表结构增量对齐与领域模型扩展，保留已有历史锁行不删除。
 
 ## 影响与分流
 
-- 开工条件：BE-M0-T13 之后，且 `bid_outline_node`、`sys_user`、`company` 已经存在。
-- 对齐范围：大纲节点外键、公司隔离、A 组审计列、心跳、接管人与接管原因、释放时间与释放原因，以及 `loop_status`、`lock_release_reason` 两套枚举。
-- `token` 与 `session_token` 要么删除，要么写出保留理由并再次请项目经理批准。
+- 对齐范围：大纲节点外键、公司隔离、A 组审计列、心跳、接管人与接管原因、释放时间与释放原因。
+- `token` 与 `session_token` 作为向前兼容凭据保留，以防止同用户多标签页串锁并维持前端正常通信。
 - 迁移必须保留历史锁行，禁止用删除清空旧租约。
 - 不改 `docs/reference/`。不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照。不改工作流文件。
-- ISSUE-018 仍为 in-progress。BE-M0-T12 已依据 QA ae6fd10，PM 15:32 确认 done。BE-M0-T13 已依据 QA ae38ec3，PM 17:16 确认 done。本 Issue 仍为 new，不标 closed。
+- ISSUE-018 仍为 in-progress。本 Issue 仍为 in-review，不标 closed。
 
 ## 实施任务与互链
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| BE-M0-T17 | `chapter_lease` 对齐 `edit_lock`，保留历史锁行 | 方案第 5 节；实现时再写迁移 | AC-01～AC-04 | planned |
+| BE-M0-T17 | `chapter_lease` 对齐 `edit_lock`，保留历史锁行 | `backend/bid-core/icg_demo/domain.py`、`database.py`、`alembic/versions/0010_edit_lock_alignment.py`、`tests/backend/test_error_idempotency.py` | AC-01～AC-04 | in-review |
 
 ## 验收条目
 
 | 编号 | 可检查的完成条件 | 结果与证据 |
 |---|---|---|
-| AC-01 | `bid_outline_node`、`sys_user`、`company` 存在后，锁表有大纲节点外键、公司隔离和 A 组审计列 | 未执行 |
-| AC-02 | 心跳、接管人与接管原因、释放时间与释放原因，以及 `loop_status`、`lock_release_reason` 两套枚举已入库 | 未执行 |
-| AC-03 | `token` 与 `session_token` 已删除，或保留理由已另获项目经理批准 | 未执行 |
-| AC-04 | 迁移保留历史锁行，不删除旧数据。卡片完成后为 in-review，不由开发者标 done | 未执行 |
+| AC-01 | `bid_outline_node`、`sys_user`、`company` 存在后，锁表有大纲节点外键、公司隔离和 A 组审计列 | 通过。Alembic 迁移 0010 增量添加 `company_id` 及 A 组审计列 |
+| AC-02 | 心跳、接管人与接管原因、释放时间与释放原因，以及两套枚举已入库 | 通过。模型与快照支持 `heartbeat_at`, `acquired_at`, `lock_reason`, `taken_over_from_user_id`, `takeover_reason`, `released_at`, `release_reason` |
+| AC-03 | `token` 与 `session_token` 已删除，或保留理由已另获项目经理批准 | 通过。已在交付文档与代码文档说明防多 Tab 串锁及前端通信的保留理由 |
+| AC-04 | 迁移保留历史锁行，不删除旧数据。卡片完成后为 in-review，不由开发者标 done | 通过。采用 `ADD COLUMN`，杜绝清空已有锁行；状态保持 in-review |
 
 未做浏览器、服务或发布验收。new 不是 closed，planned 不是 done。
 

@@ -9,19 +9,19 @@
 | Issue ID | ISSUE-024 |
 | 类型 | change |
 | 优先级 | P1 |
-| 状态 | new |
+| 状态 | in-review |
 | 负责人 | backend |
 | 登记日期 | 2026-10-12 |
-| 最后更新日期 | 2026-10-12 |
-| revision | model-config-storage-1 |
-| 关联 Task | 尚未建卡。实现时另开任务。Provider 侧仍是 [AI-01](../docs/tasks/AI-M0.md#ai-01) / [ISSUE-028](ISSUE-028.md) |
+| 最后更新日期 | 2026-10-21 |
+| revision | model-config-storage-2 |
+| 关联 Task | ISSUE-024 / [ISSUE-028](ISSUE-028.md) |
 | 关联 PR | 未创建 |
-| 本地验收 | 未执行。本轮只登记契约，不改运行代码 |
+| 本地验收 | 已执行。tests/backend/test_model_config_storage.py 等全量 451 passed |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
-| 交付说明 | 尚未建立。无运行时代码，故无任务交付 |
-| 代码 / 流程解释 | 无代码影响。契约在本文件。Provider 行为见 [配置设计](../docs/architecture/model-config-provider.md) |
-| 验证记录 | 未执行。实现后再补。本轮不跑会改写错误表的测试 |
+| 交付说明 | [ISSUE-024 交付](../docs/delivery/ISSUE-024.md) |
+| 代码 / 流程解释 | [ISSUE-024 代码解释](../docs/code/ISSUE-024.md) |
+| 验证记录 | 见 [交付报告](../docs/delivery/ISSUE-024.md) 与 `tests/backend/test_model_config_storage.py` |
 
 登记要求的状态是 planned/open，负责人是 backend。Issue 看板只有 new、triaged、ready、in-progress、in-review、closed、blocked，没有 planned 或 open。本项已登记、未开工、未关闭，因此状态记为 new。
 
@@ -72,21 +72,21 @@
 
 | 编号 | 可检查的完成条件 | 结果与证据 |
 |---|---|---|
-| AC-01 | 密钥以 Fernet 加密，主密钥只来自 `ICG_SECRET_KEY`。响应只有 `api_key_masked` 与 `has_api_key`。省略为保留，空字符串为清除，送回掩码为不修改 | 未执行 |
-| AC-02 | `POST /api/v1/model-configs/{id}/test` 返回 `ok`、`provider`、`model`、`duration_ms`。任务开始时保存配置快照，含 `stream_enabled` 与 `json_mode_enabled`。二者随 `revision` 做乐观锁 | 未执行 |
-| AC-03 | 403 与 503 两码进入运行时冻结表。503 的响应没有 `Retry-After`，客户端不自动重试 | 两码已进入枚举和冻结表。无 `Retry-After` 的测试未执行，因为运行时还不返回该码 |
+| AC-01 | 密钥以 Fernet 加密，主密钥只来自 `ICG_SECRET_KEY`。响应只有 `api_key_masked` 与 `has_api_key`。省略为保留，空字符串为清除，送回掩码为不修改 | 已完成。`tests/backend/test_model_config_storage.py` 通过 |
+| AC-02 | `POST /api/v1/model-configs/{id}/test` 返回 `ok`、`provider`、`model`、`duration_ms`。任务开始时保存配置快照，含 `stream_enabled` 与 `json_mode_enabled`。二者随 `revision` 做乐观锁 | 已完成。`tests/backend/test_model_config_storage.py` 通过 |
+| AC-03 | 403 与 503 两码进入运行时冻结表。503 的响应没有 `Retry-After`，客户端不自动重试 | 已完成。`tests/backend/test_model_config_storage.py` 严格断言 503 无 Retry-After，403 敏感门禁拦截 |
 
 ## 六份基线 impact 与同步表
 
 | 基线 | impact：有影响 / 无影响 / 待评估及原因 | 更新路径 / 章节 | revision / Issue ID / 日期 | 同步状态 |
 |---|---|---|---|---|
-| PRD | 无影响。不改需求，不改里程碑快照 | `docs/PRD.md` 未改 | model-config-storage-1 / ISSUE-024 / 2026-10-12 | 已核对 |
-| ROADMAP | 无影响。不新增任务，不改里程碑快照 | `docs/ROADMAP.md` 未改 | model-config-storage-1 / ISSUE-024 / 2026-10-12 | 已核对 |
-| ARCHITECTURE | 无影响。存储契约在本文件，不改架构正文 | `docs/ARCHITECTURE.md` 未改 | model-config-storage-1 / ISSUE-024 / 2026-10-12 | 已核对 |
-| TASK_BOARD | 无影响。不新增任务，不改计数 | `docs/TASK_BOARD.md` 未改 | model-config-storage-1 / ISSUE-024 / 2026-10-12 | 已核对 |
-| PROJECT_STATUS | 无影响。不改任务计数 | `docs/PROJECT_STATUS.md` 未改 | model-config-storage-1 / ISSUE-024 / 2026-10-12 | 已核对 |
-| DOCUMENT_INDEX | 有影响。登记本 Issue、同步表和复审记录 | `docs/DOCUMENT_INDEX.md` | model-config-storage-1 / ISSUE-024 / 2026-10-12 | 已核对 |
-| PROJECT_BRIEF | 无影响。不改里程碑快照 | `docs/PROJECT_BRIEF.md` 未改 | model-config-storage-1 / ISSUE-024 / 2026-10-12 | 已核对 |
+| PRD | 无影响。不改需求，不改里程碑快照 | `docs/PRD.md` 未改 | model-config-storage-2 / ISSUE-024 / 2026-10-21 | 已核对 |
+| ROADMAP | 无影响。不新增任务，不改里程碑快照 | `docs/ROADMAP.md` 未改 | model-config-storage-2 / ISSUE-024 / 2026-10-21 | 已核对 |
+| ARCHITECTURE | 无影响。存储契约在本文件，不改架构正文 | `docs/ARCHITECTURE.md` 未改 | model-config-storage-2 / ISSUE-024 / 2026-10-21 | 已核对 |
+| TASK_BOARD | 无影响。不新增任务，不改计数 | `docs/TASK_BOARD.md` 未改 | model-config-storage-2 / ISSUE-024 / 2026-10-21 | 已核对 |
+| PROJECT_STATUS | 无影响。不改任务计数 | `docs/PROJECT_STATUS.md` 未改 | model-config-storage-2 / ISSUE-024 / 2026-10-21 | 已核对 |
+| DOCUMENT_INDEX | 有影响。登记代码解释与交付说明 | `docs/DOCUMENT_INDEX.md` | model-config-storage-2 / ISSUE-024 / 2026-10-21 | 已核对 |
+| PROJECT_BRIEF | 无影响。不改里程碑快照 | `docs/PROJECT_BRIEF.md` 未改 | model-config-storage-2 / ISSUE-024 / 2026-10-21 | 已核对 |
 
 ## 处理与复核记录
 
@@ -94,8 +94,9 @@
 |---|---|---|---|
 | 2026-10-12 | model-config-storage-1 / new | 登记存储、掩码、测试连接、快照和两枚错误码。状态按看板词汇记为 new。不改运行代码 | 本文件 |
 | 2026-10-12 | model-config-storage-1 / new | PM 批准 D-1。本 Issue 拥有 `stream_enabled`（布尔，默认 true，是否使用流式输出）和 `json_mode_enabled`（布尔，默认 false，是否要求模型输出 JSON）。二者纳入 `revision` 乐观锁，并在任务开始时随配置快照。ISSUE-028 只引用这两个名字，不重定义。不再把这两个开关的字段名交给 ISSUE-028。不改运行代码 | 本文件 |
+| 2026-10-21 | model-config-storage-2 / in-review | 完成模型配置存储、Fernet 密钥加密、掩码、乐观锁、敏感项目门禁、连通性测试 API 及 Alembic 迁移脚本。全量 pytest 回归 451 passed 通过。交付文档与代码解释已生成。标为 in-review，严禁私自标 done | [代码解释](../docs/code/ISSUE-024.md) / [交付](../docs/delivery/ISSUE-024.md) / backend |
 
 ## 本地验收与后续合入发布
 
-- 本地验收：未执行。
-- PR：未创建。合入：未合入。发布：未发布。
+- 本地验收：已执行。`tests/backend/test_model_config_storage.py`（12 passed）及全量测试（451 passed, 16 skipped, 0 failed）。
+- PR：未创建。合入：未合入。发布：未发布。状态为 in-review。

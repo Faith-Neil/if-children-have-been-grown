@@ -126,8 +126,8 @@ def enrich_openapi(schema: dict) -> dict:
     from .idempotency import IDEMPOTENCY_HEADER_DESCRIPTION, IDEMPOTENCY_TTL_SECONDS, MAX_IDEMPOTENCY_RECEIPTS
     info = schema.setdefault("info", {})
     info["description"] = (
-        " /api/v1 错误体为 {code, message, details, traceId}，traceId 与响应头 X-Request-ID 相同，"
-        "由服务端生成。旧 /api 仍使用 {error:{code, message}, request_id}。"
+        "错误体统一为 {code, message, details, traceId}，traceId 与响应头 X-Request-ID 相同，"
+        "由服务端生成。"
         f"每个 code 只对应一个 HTTP 状态。Idempotency-Key 回执保留 {IDEMPOTENCY_TTL_SECONDS // 3600} 小时，"
         f"内存最多 {MAX_IDEMPOTENCY_RECEIPTS} 条。{RETRY_GUIDANCE}"
     )
@@ -153,7 +153,7 @@ def enrich_openapi(schema: dict) -> dict:
     }
     headers = components.setdefault("headers", {})
     headers["X-Request-ID"] = {
-        "description": "32 位十六进制请求编号，与 /api/v1 错误体 traceId 或旧错误体 request_id 相同。服务端生成，不接受客户端传入。",
+        "description": "32 位十六进制请求编号，与统一错误体 traceId 相同。服务端生成，不接受客户端传入。",
         "schema": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
     }
     headers["Idempotent-Replayed"] = {
@@ -164,8 +164,6 @@ def enrich_openapi(schema: dict) -> dict:
     if error and "properties" in error:
         error["properties"]["code"]["enum"] = sorted(ERROR_STATUS)
     for path, item in schema.get("paths", {}).items():
-        if not path.startswith("/api/v1"):
-            continue
         for operation in item.values():
             if not isinstance(operation, dict) or "responses" not in operation:
                 continue

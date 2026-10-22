@@ -197,6 +197,22 @@ class ProjectResponse(ResponseBody):
     id: str
     name: str
     company_id: str
+    revision: int = 1
+    tender_number: str = ""
+    deadline: str = ""
+    sensitive: bool = False
+    tender_type: str = "comprehensive"
+    budget_amount_cents: int | None = None
+    deadline_at: str | None = None
+    security_level: str = "internal"
+    industry: str = "it"
+    is_archived: bool = False
+    created_by: str | None = None
+    created_at: str | None = None
+    updated_by: str | None = None
+    updated_at: str | None = None
+    record_version: int = 1
+    is_deleted: bool = False
 
 
 class ProjectListResponse(ResponseBody):

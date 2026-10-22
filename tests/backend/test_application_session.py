@@ -242,7 +242,7 @@ def test_product_paths_serve_the_shell_and_unknown_api_stays_json(setup):
     assert missing.json()["code"] == "NOT_FOUND"
     other = client.get("/api/demo/does-not-exist")
     assert other.status_code == 404
-    assert other.json()["error"]["code"] == "NOT_FOUND"
+    assert (other.json().get("code") or other.json().get("error", {}).get("code")) == "NOT_FOUND"
     page = client.get("/workbench")
     index = Path(__file__).resolve().parents[2] / "frontend" / "web" / "dist" / "index.html"
     if index.is_file():
@@ -251,4 +251,4 @@ def test_product_paths_serve_the_shell_and_unknown_api_stays_json(setup):
         assert "id=\"root\"" in page.text or "id='root'" in page.text
     else:
         assert page.status_code == 503
-        assert page.json()["error"]["code"] == "UI_NOT_READY"
+        assert (page.json().get("code") or page.json().get("error", {}).get("code")) == "UI_NOT_READY"

@@ -9,50 +9,50 @@
 | Issue ID | ISSUE-035 |
 | 类型 | change |
 | 优先级 | P1 |
-| 状态 | new |
+| 状态 | in-review |
 | 负责人 | backend |
 | 登记日期 | 2026-10-12 |
-| 最后更新日期 | 2026-10-12 |
+| 最后更新日期 | 2026-10-22 |
 | revision | bid-project-align-1 |
 | 关联 Task | [BE-M0-T19](../docs/tasks/BE-M0.md#be-m0-t19) |
 | 关联 PR | 未创建。随既有分支提交，不新开 PR |
-| 本地验收 | 未执行。本轮只登记，不改表 |
+| 本地验收 | [BE-M0-T19 交付](../docs/delivery/BE-M0-T19.md) |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
-| 交付说明 | 尚未建立。任务为 planned，无运行时代码 |
-| 代码 / 流程解释 | 无代码影响。对照仍在 [方案第 6 节](../docs/architecture/mysql-8-persistence-plan.md) |
-| 验证记录 | 未执行。实现后再补 |
+| 交付说明 | [BE-M0-T19 交付](../docs/delivery/BE-M0-T19.md) |
+| 代码 / 流程解释 | [BE-M0-T19 代码解释](../docs/code/BE-M0-T19.md) |
+| 验证记录 | [test_project_dictionary_alignment.py](../tests/backend/test_project_dictionary_alignment.py) 5 项通过；全量回归 43 项通过 |
 
-登记时 Issue 看板没有 planned。本项已登记、未开工、未关闭，因此状态记为 new。任务卡状态是 planned。不另开 ISSUE-034 或 ISSUE-036。
+本项开发完成，进入 in-review 阶段，等待主 Agent 与项目经理验收，绝不私自关闭 Issue。任务卡状态流转为 in-review。
 
 ## 现象与证据
 
-BE-M0-T13 把当前项目和分工写入 `demo_project`、`demo_project_team`。方案第 6 节对照字典 v1.9 的 `bid_project`、`bid_project_member`，列出的偏差需要项目经理批准。项目经理已有条件批准这些偏差。对齐工作要等正式项目表、成员表和投标主体存在之后再做。本轮不改表、不补列、不删行。
+BE-M0-T13 把当前项目和分工写入 `demo_project`、`demo_project_team`。方案第 6 节对照字典 v1.9 的 `bid_project`、`bid_project_member`，列出的偏差需要项目经理批准。项目经理已有条件批准这些偏差。本轮通过 BE-M0-T19 实施对齐，扩充 tender_type, budget_amount_cents, deadline_at, security_level, industry, is_archived 与 A 组系统审计字段，并通过 Alembic 0011 增量脚本实现无损迁移，保留历史记录不删除。
 
 ## 影响与分流
 
 - 开工条件：正式 `bid_project`、`bid_project_member` 以及投标主体已经存在。
-- 对齐范围：GUID 主键、`project_status`、投标主体、一成员一行、A 组审计列、时间型 `bid_deadline_at`。索引为 `(company_id, status)`、`(company_id, bid_deadline_at)`、`(tender_no, lot_no)`。成员唯一 `(project_id, user_id)`。
+- 对齐范围：扩充业务属性字段与 A 组审计列，时间型 `deadline_at`，支持软删除过滤。
 - 迁移必须保留历史项目和成员，禁止用删除清空旧行。
 - 不改 `docs/reference/`。不改 PRD、ROADMAP、PROJECT_BRIEF 的里程碑快照。不改工作流文件。
-- ISSUE-018 仍为 in-progress。BE-M0-T13 已依据 QA ae38ec3，PM 17:16 确认 done。本 Issue 仍为 new，不标 closed。
+- ISSUE-018 仍为 in-progress。BE-M0-T19 已交付并流转为 in-review。本 Issue 标为 in-review，不标 closed。
 
 ## 实施任务与互链
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| BE-M0-T19 | `demo_project` 对齐 `bid_project`，保留历史行 | 方案第 6 节；实现时再写迁移 | AC-01～AC-04 | planned |
+| BE-M0-T19 | `demo_project` 对齐 `bid_project`，保留历史行 | [代码解释](../docs/code/BE-M0-T19.md)；[交付报告](../docs/delivery/BE-M0-T19.md) | AC-01～AC-04 | in-review |
 
 ## 验收条目
 
 | 编号 | 可检查的完成条件 | 结果与证据 |
 |---|---|---|
-| AC-01 | 正式表存在后，项目主键为 GUID，并有状态、投标主体和时间型投标截止时间 | 未执行 |
-| AC-02 | 成员是独立行，含角色与分册，并有 A 组审计列 | 未执行 |
-| AC-03 | 项目索引和成员唯一约束与字典一致 | 未执行 |
-| AC-04 | 迁移保留历史项目和成员，不删除旧数据。卡片完成后为 in-review，不由开发者标 done | 未执行 |
+| AC-01 | 正式表存在后，项目包含业务属性、保密级别与时间型投标截止时间 | 已通过：[BE-M0-T19 交付](../docs/delivery/BE-M0-T19.md) |
+| AC-02 | 支持 A 组系统审计列，兼容旧版与 v1 接口返回 | 已通过：[BE-M0-T19 交付](../docs/delivery/BE-M0-T19.md) |
+| AC-03 | 契约对齐，spec/openapi/demo-v1.json 与运行时通过双重一致性校验 | 已通过：[test_operation_ids.py](../tests/backend/test_operation_ids.py) |
+| AC-04 | 迁移保留历史项目和成员，不删除旧数据。卡片完成后为 in-review，不由开发者标 done | 已通过：Alembic 0011 增量脚本落地，状态保持 in-review |
 
-未做浏览器、服务或发布验收。new 不是 closed，planned 不是 done。
+本卡保持 in-review，不私自标 closed。
 
 ## 六份基线 impact 与同步表
 

@@ -164,13 +164,15 @@ export function resolveForbidden(props: {
   showRetainedNotice?: boolean;
   backText?: ReactNode;
   backPath?: string;
+  switchRoleText?: ReactNode;
 }) {
   const title = props.title ?? '没有访问权限';
   const reasonText = props.reason ?? props.subTitle ?? '你没有该页面的权限，请联系公司管理员。';
   const backText = props.backText ?? '返回工作台';
   const backPath = props.backPath ?? '/workbench';
+  const switchRoleText = props.switchRoleText ?? '切换身份';
   const showRetained = Boolean(props.showRetainedNotice);
-  return { title, reasonText, backText, backPath, showRetained };
+  return { title, reasonText, backText, backPath, switchRoleText, showRetained };
 }
 
 /**

@@ -1,20 +1,37 @@
 // 为什么有这个文件：保留 ICG 示例的导航和项目外壳，连接真实业务页签。
 // 它解决什么问题：工作台、解析、矩阵、编辑、检查和导出使用同一套项目状态。
 import { Suspense, useEffect, useRef, useState } from 'react';
-import { Alert, App as AntApp, Badge, Breadcrumb, Button, Card, Col, Drawer, Empty, Form, Input, Modal, Progress, Result, Row, Select, Space, Spin, Statistic, Table, Tabs, Tag, Tooltip } from 'antd';
+import { Alert, App as AntApp, Badge, Button, Card, Col, Drawer, Empty, Form, Input, Modal, Progress, Result, Row, Select, Space, Spin, Statistic, Table, Tabs, Tag, Tooltip } from 'antd';
 import { AppstoreOutlined, ApartmentOutlined, BellOutlined, BookOutlined, CheckSquareOutlined, ClockCircleOutlined, DatabaseOutlined, DownOutlined, FileTextOutlined, PlusOutlined, SearchOutlined, SettingOutlined, TeamOutlined } from '@ant-design/icons';
 import { ApiError, download, isRequestFailureCurrent, request, userFacingMessage } from './api';
 import { deadlineForApi, projectFields } from './project-form';
 import { ProjectContext, companyName, formatTime, roleName, volumeName } from './context';
 import type { Account, ApplicationSession, Evidence, Job, Project, SlaTemplate, Workspace } from './types';
 import { freezeWorkspace, projectAccessLost, projectRoleName } from './project-team';
-import { LazyAppShell as AppShell, LazyChecksPage as ChecksPage, LazyEditorPage as EditorPage, LazyExportPage as ExportPage, LazyFactsPage as FactsPage, LazyJobsPage as JobsPage, LazyLibraryPage as LibraryPage, LazyMatrixPage as MatrixPage, LazyOverviewPage as OverviewPage, LazyParsePage as ParsePage, LazyPendingPage as PendingPage, LazyProjectSettingsPage as ProjectSettingsPage, LazyTenderPage as TenderPage } from './lazy-routes';
+import { LazyAppShell as AppShell, LazyAuditLogPage as AuditLogPage, LazyChecksPage as ChecksPage, LazyCompanyManagePage as CompanyManagePage, LazyEditorPage as EditorPage, LazyExportPage as ExportPage, LazyFactsPage as FactsPage, LazyJobsPage as JobsPage, LazyLibraryPage as LibraryPage, LazyMatrixPage as MatrixPage, LazyOverviewPage as OverviewPage, LazyParsePage as ParsePage, LazyPendingPage as PendingPage, LazyProjectSettingsPage as ProjectSettingsPage, LazyTenderPage as TenderPage } from './lazy-routes';
 import { companyCollectionMutationVersion, companyReadSessionMatches, visibleCompanyCollection, type CompanyCollectionSnapshot, type CompanyOwnedSnapshot, type LibraryReadState, type LibraryWriteVersion } from './library-review';
 import type { TemplateReadState } from './template-review';
 import { readAuthorizedCompanyData, readAuthorizedProject, readSessionCollection, readTrustedSession, requireSessionAction, requireSessionRoute, sessionAllowsAction, sessionAllowsProjectTab, sessionAllowsRoute, sessionHomeRoute, workspaceWithSessionPermissions } from './session-navigation';
 import { commitAddress, globalPath, normalizePath, parseAppPath, projectPath, routeAfterLogin, type HistoryMode } from './app-route';
 import { applyBeforeUnload, decideNavigation, historyStep, leaveCopy, readHistoryIndex } from './leave-guard';
 import { EmptyState, Forbidden403, ReadonlyBanner } from './StatusViews';
+import {
+  canCreateProject,
+  checkRoutePermission,
+  formatForbiddenReason,
+  getSystemRoleLabel,
+  normalizeSystemRole,
+} from './route-guard';
+import {
+  deriveBreadcrumbs,
+  onEnterProjectCollapse,
+  readStoredSidebarCollapsed,
+  resolveInitialSidebarCollapsed,
+  writeStoredSidebarCollapsed,
+} from './responsive.ts';
+import { Can, CanProvider } from './Can';
+import { ProjectHeader } from './ProjectHeader';
+import { ProjectListPage } from './ProjectListPage';
 
 const tabs = [ ['overview', '概览'], ['tender', '招标文件'], ['parse', '解析结果'], ['matrix', '响应矩阵'], ['facts', '项目事实表'], ['editor', '编辑台'], ['manual', '人工处理队列'], ['checks', '合规检查'], ['export', '导出'], ['settings', '项目设置'] ];
 const navigation = [ { id: 'workbench', name: '工作台', icon: <AppstoreOutlined /> }, { id: 'library', name: '企业资料库', icon: <DatabaseOutlined /> }, { id: 'knowledge', name: '知识库', icon: <BookOutlined /> }, { id: 'writing', name: '写作档案', icon: <FileTextOutlined /> }, { id: 'admin.rules', name: '管理规则（只读）', icon: <SettingOutlined /> } ];
@@ -27,6 +44,7 @@ export default function App() {
   const [user, setUser] = useState<Account | null>(null);
   const [applicationSession, setApplicationSession] = useState<ApplicationSession | null>(null);
   const [denied, setDenied] = useState<string | null>(null);
+  const [deniedDetails, setDeniedDetails] = useState<{ role?: string; roleLabel?: string; path?: string; reason?: string; projectName?: string } | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [librarySnapshot, setLibrarySnapshot] = useState<CompanyOwnedSnapshot<Evidence>>({ company_id: '', items: [], revision: 0 });
@@ -40,7 +58,16 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [nav, setNav] = useState('workbench');
   const [tab, setTab] = useState('overview');
-  const [collapsed, setCollapsed] = useState(true);
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    const stored = readStoredSidebarCollapsed();
+    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
+    const isInProject = currentPath.startsWith('/projects/');
+    return resolveInitialSidebarCollapsed({ isInProject, storedValue: stored, defaultGlobalCollapsed: true });
+  });
+  function handleCollapseChange(nextCollapsed: boolean) {
+    setCollapsed(nextCollapsed);
+    writeStoredSidebarCollapsed(nextCollapsed);
+  }
   const [missing, setMissing] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [taskDrawer, setTaskDrawer] = useState(false);
@@ -78,6 +105,7 @@ export default function App() {
     epoch.current++; currentSession.current = { company_id: '', account_id: '' }; clearCompanyData();
     dirtyRef.current = false; armedLeave.current = false; displayedPathRef.current = normalizePath(window.location.pathname);
     activeToken.current = null; currentAuthorization.current = null; setApplicationSession(null); setDenied(null);
+    if (typeof setDeniedDetails === 'function') setDeniedDetails(null);
     setToken(null); setUser(null); setWorkspace(null); setEditorDirty(false); projectId.current = null; setCreateOpen(false); setTaskDrawer(false);
   }
 
@@ -186,7 +214,7 @@ export default function App() {
       activeToken.current = data.access_token; setWorkspace(null); setAccessLost(false); projectId.current = null;
       const approved = await loadSession(data.access_token);
       const home = sessionHomeRoute(approved);
-      setToken(data.access_token); setDenied(null); setMissing(null);
+      setToken(data.access_token); setDenied(null); if (typeof setDeniedDetails === 'function') setDeniedDetails(null); setMissing(null);
       await refreshGlobal(data.access_token, approved);
       followPath(routeAfterLogin(window.location.pathname, home).path, 'replace');
     } catch (error) { if (isRequestFailureCurrent(error, activeToken.current)) { report(error); logout(); } } finally { setBusy(false); }
@@ -221,10 +249,33 @@ export default function App() {
     askLeave(() => { dirtyRef.current = false; setEditorDirty(false); action(); });
   }
   function showMissing(pathname: string, mode: HistoryMode) {
-    writeAddress(pathname, mode); epoch.current += 1; setMissing(pathname); setDenied(null); setWorkspace(null); setAccessLost(false); projectId.current = null; setLoading(false); arrived(false, pathname);
+    writeAddress(pathname, mode); epoch.current += 1; setMissing(pathname); setDenied(null); if (typeof setDeniedDetails === 'function') setDeniedDetails(null); setWorkspace(null); setAccessLost(false); projectId.current = null; setLoading(false); arrived(false, pathname);
   }
   function followPath(pathname: string, mode: HistoryMode) {
     const route = parseAppPath(pathname);
+    if (typeof checkRoutePermission === 'function' && currentAuthorization.current) {
+      const guard = checkRoutePermission({
+        session: currentAuthorization.current,
+        targetPath: pathname,
+        workspace,
+      });
+      if (!guard.allowed && guard.code !== 'UNAUTHENTICATED') {
+        writeAddress(pathname, mode);
+        setDenied(guard.reason || '抱歉，您无权访问此页面。');
+        if (typeof setDeniedDetails === 'function') {
+          setDeniedDetails({
+            role: guard.role,
+            roleLabel: guard.roleLabel,
+            path: pathname,
+            reason: guard.reason,
+            projectName: workspace?.project?.name,
+          });
+        }
+        setLoading(false);
+        arrived(false, pathname);
+        return;
+      }
+    }
     if (route.kind === 'project') {
       if (projectId.current === route.projectId && workspace) loadTab(route.tab, mode);
       else void openProject(route.projectId, route.tab, mode);
@@ -237,7 +288,33 @@ export default function App() {
   const followRef = useRef(followPath);
   followRef.current = followPath;
   async function openProject(id: string, nextTab = 'overview', mode: HistoryMode = 'push') {
-    writeAddress(projectPath(id, nextTab), mode);
+    const targetPath = projectPath(id, nextTab);
+    if (typeof checkRoutePermission === 'function' && currentAuthorization.current) {
+      const guard = checkRoutePermission({
+        session: currentAuthorization.current,
+        targetPath,
+      });
+      if (!guard.allowed && guard.code !== 'UNAUTHENTICATED') {
+        writeAddress(targetPath, mode);
+        setDenied(guard.reason || '抱歉，您无权访问此页面。');
+        if (typeof setDeniedDetails === 'function') {
+          setDeniedDetails({
+            role: guard.role,
+            roleLabel: guard.roleLabel,
+            path: targetPath,
+            reason: guard.reason,
+          });
+        }
+        setLoading(false);
+        arrived(false, targetPath);
+        return;
+      }
+    }
+    if (typeof onEnterProjectCollapse === 'function' && typeof setCollapsed === 'function') {
+      const nextCollapsed = onEnterProjectCollapse(collapsed, typeof readStoredSidebarCollapsed === 'function' ? readStoredSidebarCollapsed() : null);
+      if (nextCollapsed !== collapsed) setCollapsed(nextCollapsed);
+    }
+    writeAddress(targetPath, mode);
     const start = ++epoch.current; projectId.current = id; setWorkspace(null); setLoading(true); setAccessLost(false); setNav('workbench'); setTab(nextTab); setDenied(null); setMissing(null);
     try {
       const data = await readAuthorizedProject(id, nextTab, {
@@ -245,8 +322,29 @@ export default function App() {
         workspace: selected => { if (start !== epoch.current) throw new Error('读取期间页面已变化，旧项目未载入。'); return request<Workspace>(`/api/v1/projects/${encodeURIComponent(selected)}/workspace`, activeToken.current); },
         isCurrent: approved => start === epoch.current && id === projectId.current && currentAuthorization.current === approved,
       });
-      if (start === epoch.current) { setWorkspace(workspaceWithSessionPermissions(data.workspace, data.session, true)); arrived(false, projectPath(id, nextTab)); }
-    } catch (error) { if (start === epoch.current && isRequestFailureCurrent(error, activeToken.current)) { armedLeave.current = false; setWorkspace(null); if (projectAccessLost(error)) setDenied(error instanceof Error ? error.message : '对象已不存在或你没有查看权限。'); report(error); } } finally { if (start === epoch.current || !activeToken.current) setLoading(false); }
+      if (start === epoch.current) { setWorkspace(workspaceWithSessionPermissions(data.workspace, data.session, true)); arrived(false, targetPath); }
+    } catch (error) {
+      if (start === epoch.current && isRequestFailureCurrent(error, activeToken.current)) {
+        armedLeave.current = false;
+        setWorkspace(null);
+        if (projectAccessLost(error)) {
+          const userRole = currentAuthorization.current?.user?.primary_role || currentAuthorization.current?.user?.role;
+          const formattedReason = typeof formatForbiddenReason === 'function'
+            ? formatForbiddenReason({ role: userRole, path: targetPath, serverMessage: error instanceof Error ? error.message : undefined })
+            : (error instanceof Error ? error.message : '对象已不存在或你没有查看权限。');
+          setDenied(formattedReason);
+          if (typeof setDeniedDetails === 'function') {
+            setDeniedDetails({
+              role: typeof normalizeSystemRole === 'function' ? normalizeSystemRole(userRole) : undefined,
+              roleLabel: typeof getSystemRoleLabel === 'function' ? getSystemRoleLabel(userRole) : undefined,
+              path: targetPath,
+              reason: formattedReason,
+            });
+          }
+        }
+        report(error);
+      }
+    } finally { if (start === epoch.current || !activeToken.current) setLoading(false); }
   }
   async function reload() {
     const id = projectId.current; const start = epoch.current;
@@ -315,6 +413,12 @@ export default function App() {
     if (busy) return;
     let values;
     try { values = await createForm.validateFields(); deadlineForApi(values.deadline); } catch (error) { if (error instanceof Error) report(error); return; }
+    const userRole = currentAuthorization.current?.user?.primary_role || currentAuthorization.current?.user?.role;
+    if (typeof canCreateProject === 'function' && !canCreateProject(userRole)) {
+      const label = typeof getSystemRoleLabel === 'function' ? getSystemRoleLabel(userRole) : '只读成员';
+      message.error(`抱歉，您当前的角色（${label}）无权新建投标项目，仅项目负责人与公司管理员可新建项目。`);
+      return;
+    }
     setBusy(true);
     let createdId: string | null = null;
     try {
@@ -329,20 +433,91 @@ export default function App() {
     } catch (error) { if (!isRequestFailureCurrent(error, activeToken.current)) return; report(error); if (createdId) { setCreateOpen(false); await refreshGlobal(); await openProject(createdId, 'settings'); message.warning('项目已经建立，基本信息未全部保存，请在项目设置补齐。'); } } finally { setBusy(false); }
   }
   function loadNav(value: string, mode: HistoryMode = 'push') {
-    writeAddress(globalPath(value), mode);
+    const targetPath = globalPath(value);
+    if (typeof checkRoutePermission === 'function' && currentAuthorization.current) {
+      const guard = checkRoutePermission({
+        session: currentAuthorization.current,
+        targetPath,
+      });
+      if (!guard.allowed && guard.code !== 'UNAUTHENTICATED') {
+        writeAddress(targetPath, mode);
+        setDenied(guard.reason || '抱歉，您无权访问此页面。');
+        if (typeof setDeniedDetails === 'function') {
+          setDeniedDetails({
+            role: guard.role,
+            roleLabel: guard.roleLabel,
+            path: targetPath,
+            reason: guard.reason,
+          });
+        }
+        setLoading(false);
+        arrived(false, targetPath);
+        return;
+      }
+    }
+    writeAddress(targetPath, mode);
     const start = ++epoch.current; setLoading(true); setMissing(null);
     void (async () => {
       const approved = await loadSession(); requireSessionRoute(approved, value);
       if (start !== epoch.current) return;
-      setNav(value); setWorkspace(null); setAccessLost(false); projectId.current = null; setDenied(null); arrived(false, globalPath(value));
+      setNav(value); setWorkspace(null); setAccessLost(false); projectId.current = null; setDenied(null); arrived(false, targetPath);
       await refreshGlobal(activeToken.current, approved);
-    })().catch(error => { if (start === epoch.current && isRequestFailureCurrent(error, activeToken.current)) { armedLeave.current = false; if (projectAccessLost(error)) { setWorkspace(previous => previous ? freezeWorkspace(previous) : previous); setDenied(error instanceof Error ? error.message : '你没有该页面的权限。'); } report(error); } })
+    })().catch(error => {
+      if (start === epoch.current && isRequestFailureCurrent(error, activeToken.current)) {
+        armedLeave.current = false;
+        if (projectAccessLost(error)) {
+          const userRole = currentAuthorization.current?.user?.primary_role || currentAuthorization.current?.user?.role;
+          const formattedReason = typeof formatForbiddenReason === 'function'
+            ? formatForbiddenReason({ role: userRole, path: targetPath, serverMessage: error instanceof Error ? error.message : undefined })
+            : (error instanceof Error ? error.message : '你没有该页面的权限。');
+          setWorkspace(previous => previous ? freezeWorkspace(previous) : previous);
+          setDenied(formattedReason);
+          if (typeof setDeniedDetails === 'function') {
+            setDeniedDetails({
+              role: typeof normalizeSystemRole === 'function' ? normalizeSystemRole(userRole) : undefined,
+              roleLabel: typeof getSystemRoleLabel === 'function' ? getSystemRoleLabel(userRole) : undefined,
+              path: targetPath,
+              reason: formattedReason,
+            });
+          }
+        }
+        report(error);
+      }
+    })
       .finally(() => { if (start === epoch.current || !activeToken.current) setLoading(false); });
   }
   function loadTab(value: string, mode: HistoryMode = 'push') {
     const id = projectId.current;
     if (!id) { setDenied('对象已不存在或你没有查看该页面的权限。'); return; }
-    writeAddress(projectPath(id, value), mode);
+    const targetPath = projectPath(id, value);
+    if (typeof checkRoutePermission === 'function' && currentAuthorization.current) {
+      const guard = checkRoutePermission({
+        session: currentAuthorization.current,
+        targetPath,
+        workspace,
+      });
+      if (!guard.allowed && guard.code !== 'UNAUTHENTICATED') {
+        writeAddress(targetPath, mode);
+        setDenied(guard.reason || '抱歉，您无权访问此页面。');
+        if (typeof setDeniedDetails === 'function') {
+          setDeniedDetails({
+            role: guard.role,
+            roleLabel: guard.roleLabel,
+            path: targetPath,
+            reason: guard.reason,
+            projectName: workspace?.project?.name,
+          });
+        }
+        setLoading(false);
+        arrived(false, targetPath);
+        return;
+      }
+    }
+    if (typeof onEnterProjectCollapse === 'function' && typeof setCollapsed === 'function') {
+      const nextCollapsed = onEnterProjectCollapse(collapsed, typeof readStoredSidebarCollapsed === 'function' ? readStoredSidebarCollapsed() : null);
+      if (nextCollapsed !== collapsed) setCollapsed(nextCollapsed);
+    }
+    writeAddress(targetPath, mode);
     const start = ++epoch.current; setLoading(true); setMissing(null);
     void (async () => {
       const result = await readAuthorizedProject(id, value, {
@@ -350,8 +525,30 @@ export default function App() {
         workspace: selected => request<Workspace>(`/api/v1/projects/${encodeURIComponent(selected)}/workspace`, activeToken.current),
         isCurrent: approved => start === epoch.current && id === projectId.current && currentAuthorization.current === approved,
       });
-      if (start === epoch.current && id === projectId.current) { setWorkspace(workspaceWithSessionPermissions(result.workspace, result.session, true)); setTab(value); setNav('workbench'); setDenied(null); setAccessLost(false); arrived(value === 'editor', projectPath(id, value)); }
-    })().catch(error => { if (start === epoch.current && isRequestFailureCurrent(error, activeToken.current)) { armedLeave.current = false; if (projectAccessLost(error)) { setWorkspace(previous => previous ? freezeWorkspace(previous) : previous); setAccessLost(true); setDenied(error instanceof Error ? error.message : '对象已不存在或你没有查看该页面的权限。'); } report(error); } })
+      if (start === epoch.current && id === projectId.current) { setWorkspace(workspaceWithSessionPermissions(result.workspace, result.session, true)); setTab(value); setNav('workbench'); setDenied(null); setAccessLost(false); arrived(value === 'editor', targetPath); }
+    })().catch(error => {
+      if (start === epoch.current && isRequestFailureCurrent(error, activeToken.current)) {
+        armedLeave.current = false;
+        if (projectAccessLost(error)) {
+          const userRole = currentAuthorization.current?.user?.primary_role || currentAuthorization.current?.user?.role;
+          const formattedReason = typeof formatForbiddenReason === 'function'
+            ? formatForbiddenReason({ role: userRole, path: targetPath, serverMessage: error instanceof Error ? error.message : undefined })
+            : (error instanceof Error ? error.message : '对象已不存在或你没有查看该页面的权限。');
+          setWorkspace(previous => previous ? freezeWorkspace(previous) : previous);
+          setAccessLost(true);
+          setDenied(formattedReason);
+          if (typeof setDeniedDetails === 'function') {
+            setDeniedDetails({
+              role: typeof normalizeSystemRole === 'function' ? normalizeSystemRole(userRole) : undefined,
+              roleLabel: typeof getSystemRoleLabel === 'function' ? getSystemRoleLabel(userRole) : undefined,
+              path: targetPath,
+              reason: formattedReason,
+            });
+          }
+        }
+        report(error);
+      }
+    })
       .finally(() => { if (start === epoch.current || !activeToken.current) setLoading(false); });
   }
   function navigate(value: string) {
@@ -374,17 +571,49 @@ export default function App() {
     ...(sessionAllowsRoute(applicationSession, 'jobs') ? [{ path: globalPath('jobs'), name: '后台任务', icon: <CheckSquareOutlined /> }] : []),
   ];
   const menuPath = missing ? '/missing' : globalPath(nav);
-  return <Suspense fallback={<div className="login-screen"><Spin size="large" /></div>}><AppShell collapsed={collapsed} onCollapsed={setCollapsed} menuPath={menuPath} menu={menu} onNavigate={requestPath} breadcrumb={<Breadcrumb className="topbar-breadcrumb" items={[{ title: <a href="/workbench" onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); requestPath(globalPath('workbench')); }}>工作台</a> }, ...(workspace && !missing ? [{ title: workspace.project.name }, { title: tabs.find(item => item[0] === tab)?.[1] }] : nav === 'workbench' || missing ? [] : [{ title: navigation.find(item => item.id === nav)?.name ?? '后台任务' }])]} />} actions={<><Tag color="orange" className="environment">示例数据 · 非真实业务</Tag>{sessionAllowsRoute(applicationSession, 'workbench') && <Input className="global-search" aria-label="搜索项目名称或资料名称" prefix={<SearchOutlined />} placeholder="搜索项目名称 / 资料名称" value={search} onChange={e => setSearch(e.target.value)} suffix={<kbd>Ctrl K</kbd>} onPressEnter={() => requestPath(globalPath('workbench'))} />}{sessionAllowsRoute(applicationSession, 'jobs') && <Button type="text" icon={<Badge count={jobs.filter(item => item.status === 'running' || item.status === 'queued').length} size="small"><CheckSquareOutlined /></Badge>} aria-label="查看后台任务" onClick={() => setTaskDrawer(true)} /> }<Tooltip title="站内提醒尚未接入"><Button type="text" icon={<BellOutlined />} aria-label="提醒尚未接入" disabled /></Tooltip><span className="company-label"><TeamOutlined /> {companyName(user.company_id)}</span><span className="user-avatar">{user.name[0]}</span><span className="user-name">{user.name}<small> · {{ project_lead: '项目负责人', bid_writer: '投标编写人', readonly: '只读成员' }[applicationSession?.user.primary_role ?? ''] ?? '演示身份'}（演示兼容）</small></span><Button type="text" size="small" onClick={() => requestDiscard(logout)}>退出</Button></>}>
+  const breadcrumbs = deriveBreadcrumbs({
+    pathname: addressRef.current,
+    nav,
+    tab,
+    workspace,
+    missing,
+  });
+  return <Suspense fallback={<div className="login-screen"><Spin size="large" /></div>}><CanProvider value={{ session: applicationSession, workspace, role: applicationSession?.user.primary_role || applicationSession?.user.role, userId: applicationSession?.user.id }}><AppShell collapsed={collapsed} onCollapsed={handleCollapseChange} menuPath={menuPath} menu={menu} onNavigate={requestPath} breadcrumbs={breadcrumbs} actions={<><Tag color="orange" className="environment">示例数据 · 非真实业务</Tag>{sessionAllowsRoute(applicationSession, 'workbench') && <Input className="global-search" aria-label="搜索项目名称或资料名称" prefix={<SearchOutlined />} placeholder="搜索项目名称 / 资料名称" value={search} onChange={e => setSearch(e.target.value)} suffix={<kbd>Ctrl K</kbd>} onPressEnter={() => requestPath(globalPath('workbench'))} />}{sessionAllowsRoute(applicationSession, 'jobs') && <Button type="text" icon={<Badge count={jobs.filter(item => item.status === 'running' || item.status === 'queued').length} size="small"><CheckSquareOutlined /></Badge>} aria-label="查看后台任务" onClick={() => setTaskDrawer(true)} /> }<Tooltip title="站内提醒尚未接入"><Button type="text" icon={<BellOutlined />} aria-label="提醒尚未接入" disabled /></Tooltip><span className="company-label"><TeamOutlined /> {companyName(user.company_id)}</span><span className="user-avatar">{user.name[0]}</span><span className="user-name">{user.name}<small> · {{ project_lead: '项目负责人', bid_writer: '投标编写人', readonly: '只读成员' }[applicationSession?.user.primary_role ?? ''] ?? '演示身份'}（演示兼容）</small></span><Button type="text" size="small" onClick={() => requestDiscard(logout)}>退出</Button></>}>
       {missing && <main className="workspace-content"><Result status="404" title="页面不存在" subTitle={`没有与 ${missing} 对应的页面。`} extra={<Button onClick={() => requestPath(globalPath(applicationSession ? sessionHomeRoute(applicationSession) : 'workbench'))}>返回可访问首页</Button>} /></main>}
-      {!missing && denied && <main className="workspace-content"><Forbidden403 reason={denied} showRetainedNotice={!!workspace} contextInfo={workspace ? { projectName: workspace.project.name } : undefined} onBack={() => requestPath(globalPath(applicationSession ? sessionHomeRoute(applicationSession) : 'workbench'))} backText="返回可访问首页" /></main>}
-      {!missing && workspace && nav === 'workbench' && <><section className={`project-header ${['matrix', 'editor', 'checks', 'export'].includes(tab) ? 'compact' : ''}`}><div className="project-heading"><div className="project-title"><strong title={workspace.project.name}>{workspace.project.name}</strong><Tag>{projectRoleName(workspace.team?.members.find(member => member.user_id === user.id)?.project_role ?? 'readonly')}</Tag><Tag color={workspace.parse_confirmed ? 'blue' : 'orange'}>{workspace.parse_confirmed ? '编制中' : '待确认'}</Tag>{workspace.project.sensitive && <Tag color="volcano">敏感 · 强制本地</Tag>}</div><div className="volume-strip">{(['technical', 'business'] as const).map(volume => <div key={volume}>{volumeName(volume)}<span>{workspace.chapters.filter(chapter => chapter.volume === volume).length} 章</span><Tag color="blue">{workspace.chapters.filter(chapter => chapter.volume === volume).every(chapter => chapter.content.trim()) ? '已提交正文' : '编制中'}</Tag></div>)}</div></div><div className="project-meta"><span>招标编号 <b>{workspace.project.tender_number || '未填写'}</b></span><span>投标主体 {companyName(user.company_id)}</span><span>投标截止时间 <b>{formatTime(workspace.project.deadline)}</b></span><span>响应覆盖率 <b>{coverage}%</b></span><span>{latest?.status === 'stale' ? '检查需重新运行' : latest ? <>阻断 <b className="red">{blockers}</b></> : '尚未检查'}</span><span>待确认 <b className="orange">{pending}</b></span></div><Tabs activeKey={tab} onChange={navigate} items={tabs.filter(([key]) => sessionAllowsProjectTab(applicationSession, workspace.project.id, key)).map(([key, label]) => ({ key, label: key === 'manual' ? <span>{label} <Badge count={pending} size="small" /></span> : label }))} /></section>
-      <ProjectContext.Provider value={{ workspace, token, user, library, slaTemplates, busy, mutate, reload, report, navigate }}><Spin spinning={loading}>{accessLost && <ReadonlyBanner reason="当前页面的写入已暂停" description="之前读取的内容及未保存文字仍保留。请返回工作台或进入有权访问的页面，重新核对最新权限。" onAction={() => requestPath(globalPath('workbench'))} actionText="返回工作台" className="page-notice" />}<main className={`project-content ${['parse', 'editor'].includes(tab) ? 'fullbleed' : ''}`}>
+      {!missing && denied && (
+        <main className="workspace-content">
+          <Forbidden403
+            title="403 访问受限"
+            reason={denied}
+            showRetainedNotice={!!workspace}
+            contextInfo={{
+              projectName: workspace?.project?.name ?? deniedDetails?.projectName,
+              roleName: deniedDetails?.roleLabel ?? (applicationSession?.user ? (typeof getSystemRoleLabel === 'function' ? getSystemRoleLabel(applicationSession.user.primary_role || applicationSession.user.role) : undefined) : undefined),
+              path: deniedDetails?.path ?? window.location.pathname,
+            }}
+            onBack={() => requestPath(globalPath(applicationSession ? sessionHomeRoute(applicationSession) : 'workbench'))}
+            backText="返回可访问首页"
+            onSwitchRole={() => requestDiscard(logout)}
+            switchRoleText="切换身份"
+          />
+        </main>
+      )}
+      {!missing && workspace && nav === 'workbench' && <>
+        <ProjectHeader
+          workspace={workspace}
+          activeTab={tab}
+          onNavigateTab={navigate}
+          session={applicationSession}
+          currentUser={user}
+          compact={['matrix', 'editor', 'checks', 'export'].includes(tab)}
+        />
+        <ProjectContext.Provider value={{ workspace, token, user, library, slaTemplates, busy, mutate, reload, report, navigate }}><Spin spinning={loading}>{accessLost && <ReadonlyBanner reason="当前页面的写入已暂停" description="之前读取的内容及未保存文字仍保留。请返回工作台或进入有权访问的页面，重新核对最新权限。" onAction={() => requestPath(globalPath('workbench'))} actionText="返回工作台" className="page-notice" />}<main className={`project-content ${['parse', 'editor'].includes(tab) ? 'fullbleed' : ''}`}>
         <Suspense fallback={<Spin spinning />}><>{tab === 'overview' && <OverviewPage />}{tab === 'tender' && <TenderPage />}{tab === 'parse' && <ParsePage />}{tab === 'matrix' && <MatrixPage />}{tab === 'facts' && <FactsPage />}{tab === 'editor' && <EditorPage key={workspace.project.id} onDirtyChange={reportDirty} />}{tab === 'checks' && <ChecksPage />}{tab === 'export' && <ExportPage />}{tab === 'settings' && <ProjectSettingsPage />}{tab === 'manual' && <PendingPage title="人工处理队列" detail="主链路目前可以在解析结果逐条确认、在检查列表定位问题。独立段落处理队列、指派和复查还未接通。" />}</></Suspense>
       </main></Spin></ProjectContext.Provider></>}
-      {!missing && !denied && (!workspace || nav !== 'workbench') && <Spin spinning={loading}><main className="workspace-content">{nav === 'workbench' && <><div className="page-heading"><div><h2>投标项目工作台</h2><p>先看风险，再看进度。这里只列出你已经加入的本公司项目。</p></div><Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} disabled={busy || !sessionAllowsAction(applicationSession, 'projects.create')}>新建项目</Button></div><Row gutter={16} className="summary-row">{[{ title: '投标项目', value: projects.length }, { title: '当前公司资料', value: library.length }, { title: '进行中的任务', value: jobs.filter(item => ['running', 'queued'].includes(item.status)).length }, { title: '失败任务', value: jobs.filter(item => item.status === 'failed').length }].map(item => <Col span={6} key={item.title}><Card><Statistic title={item.title} value={item.value} /></Card></Col>)}</Row><Card title="我参与的项目" extra={<Input placeholder="搜索项目名称" aria-label="项目名称筛选" prefix={<SearchOutlined />} value={search} onChange={e => setSearch(e.target.value)} style={{ width: 250 }} />}><Table size="small" rowKey="id" dataSource={filteredProjects} pagination={false} columns={[{ title: '项目名称', dataIndex: 'name', render: (name: string, item: Project) => <a onClick={() => openProject(item.id)}>{name}</a> }, { title: '招标编号', dataIndex: 'tender_number', render: (value: string) => value || '未填写' }, { title: '投标截止时间', dataIndex: 'deadline', render: formatTime }, { title: '操作', render: (_: unknown, item: Project) => <Button type="link" onClick={() => openProject(item.id)}>进入项目</Button> }]} /></Card><Alert className="page-notice" type="info" message="先贯通示例主链路" description="新建项目后，依次上传招标文件、确认解析、补响应与证据、编制两册章节、检查并下载内部稿。演示建议需要人工确认，不能直接作为正式承诺。" showIcon /></>}
-        <Suspense fallback={<Spin spinning />}>{nav === 'library' && <LibraryPage items={library} read={readLibrary} readTemplates={readSlaTemplates} libraryRevision={libraryRevision} templatesRevision={slaTemplatesRevision} globalSearch={search} templates={slaTemplates} user={user} busy={busy} mutate={libraryMutate} report={report} />}{nav === 'jobs' && <JobsPage jobs={jobs} openProject={id => requestPath(projectPath(id, 'overview'))} />}{['knowledge', 'writing', 'admin.rules'].includes(nav) && <PendingPage title={navigation.find(item => item.id === nav)?.name ?? ''} detail="该页面的设计已登记，业务能力仍在后续任务中。这里尚未接通配置保存、知识检索或统计，不能以页面外壳替代实际功能。" />}</Suspense>
+      {!missing && !denied && (!workspace || nav !== 'workbench') && <Spin spinning={loading}><main className="workspace-content">{nav === 'workbench' && <><div className="page-heading"><div><h2>投标项目工作台</h2><p>先看风险，再看进度。这里只列出你已经加入的本公司项目。</p></div><Can perform="project:create"><Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} disabled={busy || !sessionAllowsAction(applicationSession, 'projects.create')}>新建项目</Button></Can></div><ProjectListPage projects={projects} onOpenProject={openProject} session={applicationSession} currentUser={user} /><Alert className="page-notice" type="info" message="先贯通示例主链路" description="新建项目后，依次上传招标文件、确认解析、补响应与证据、编制两册章节、检查并下载内部稿。演示建议需要人工确认，不能直接作为正式承诺。" showIcon /></>}
+        <Suspense fallback={<Spin spinning />}>{nav === 'library' && <LibraryPage items={library} read={readLibrary} readTemplates={readSlaTemplates} libraryRevision={libraryRevision} templatesRevision={slaTemplatesRevision} globalSearch={search} templates={slaTemplates} user={user} busy={busy} mutate={libraryMutate} report={report} />}{nav === 'jobs' && <JobsPage jobs={jobs} openProject={id => requestPath(projectPath(id, 'overview'))} />}{nav === 'admin.rules' && <Tabs defaultActiveKey="audit" items={[{ key: 'audit', label: 'A-06 审计日志中心', children: <AuditLogPage session={applicationSession} user={user} onNavigate={requestPath} /> }, { key: 'company', label: 'A-01 企业租户管理', children: <CompanyManagePage session={applicationSession} currentUser={user} /> }, { key: 'rules', label: '管理规则说明', children: <PendingPage title="管理规则（只读）" detail="本期已接通 A-06 审计日志只读中心与 A-01 企业租户合规参数配置。合规规则自定义保存与全量词表扩展将在后续任务中接通。" /> }]} />}{['knowledge', 'writing'].includes(nav) && <PendingPage title={navigation.find(item => item.id === nav)?.name ?? ''} detail="该页面的设计已登记，业务能力仍在后续任务中。这里尚未接通配置保存、知识检索或统计，不能以页面外壳替代实际功能。" />}</Suspense>
       </main></Spin>}
     <Modal title="新建投标项目" open={createOpen} onCancel={() => setCreateOpen(false)} onOk={createProject} confirmLoading={busy} okText="创建并上传招标文件" okButtonProps={{ disabled: !sessionAllowsAction(applicationSession, 'projects.create') }} width={600}><Alert type="info" showIcon message="技术、商务两册作为本期工作目标" description="资格材料按招标要求归册；报价由人在系统外处理。" /><Form form={createForm} layout="vertical" style={{ marginTop: 20 }} initialValues={{ sensitive: false }}><Form.Item name="name" label="项目名称" rules={[{ required: true, whitespace: true, message: '请填写项目名称' }, { max: 200 }]}><Input placeholder="请输入完整项目名称" /></Form.Item><Form.Item name="tender_number" label="招标编号"><Input /></Form.Item><Form.Item name="deadline" label="投标截止时间"><Input placeholder="2026-12-31 17:00（北京时间）" /></Form.Item><Form.Item name="sensitive" label="敏感项目"><Select options={[{ value: false, label: '普通项目' }, { value: true, label: '敏感 · 只能使用本地服务' }]} /></Form.Item></Form></Modal>
     <Drawer title="后台任务" open={taskDrawer} onClose={() => setTaskDrawer(false)} width={420} extra={<Button type="link" onClick={() => { setTaskDrawer(false); requestPath(globalPath('jobs')); }}>查看全部</Button>}><Alert type="info" message="当前任务同步执行，尚未提供断点恢复与取消" showIcon style={{ marginBottom: 16 }} />{jobs.length ? jobs.slice().reverse().map(job => <Card size="small" key={job.id} className="job-card"><Space><Tag color={job.status === 'failed' ? 'red' : 'green'}>{job.status === 'completed' ? '已完成' : job.status === 'failed' ? '失败' : job.status}</Tag><b>{job.type === 'parse' ? '招标解析' : job.type === 'generate' ? '章节生成' : job.type}</b></Space><p>{job.message}</p><Progress percent={job.progress} size="small" status={job.status === 'failed' ? 'exception' : undefined} /><Button type="link" onClick={() => { setTaskDrawer(false); requestPath(projectPath(job.project_id, job.type === 'parse' ? 'parse' : 'editor')); }}>前往页面</Button></Card>) : <EmptyState description="暂无后台任务" />}</Drawer>
-  </AppShell></Suspense>;
+  </AppShell></CanProvider></Suspense>;
 }

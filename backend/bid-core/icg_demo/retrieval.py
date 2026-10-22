@@ -5,9 +5,11 @@ from __future__ import annotations
 
 import math
 import zlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Any, Mapping
 
 from .ports import EmbeddingProvider, RerankProvider, VectorRecord, VectorStore
+from .ragflow_client import RagflowRetrievalClient
 
 _DIM = 32
 _CONFIRMED = "confirmed"
@@ -17,6 +19,14 @@ _HISTORY = "history"
 
 class RetrievalError(Exception):
     """检索口拒绝了本次调用。异常文本不包含资料正文。"""
+
+
+class RetrievalSkip(Exception):
+    """内部标记某条检索路径被跳过。不包含资料正文。"""
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(reason)
 
 
 @dataclass(frozen=True)
@@ -51,8 +61,11 @@ class CandidateRequest:
     company_id: str
     query: str
     library_items: list[LibraryRecord]
-    chunks: list[ChunkRecord]
-    historical_bids: list[HistoricalBid]
+    chunks: list[ChunkRecord] = field(default_factory=list)
+    historical_bids: list[HistoricalBid] = field(default_factory=list)
+    dataset_ids: list[str] | None = None
+    history_dataset_ids: list[str] | None = None
+    rerank_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -63,6 +76,8 @@ class EvidenceCandidate:
     text: str
     attachable: bool
     reference_only: bool
+    document_id: str = ""
+    chunk_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -163,13 +178,36 @@ class InMemoryVectorStore:
 
 
 class EvidenceCandidateService:
-    """产出 A/B/C 三条候选。B 或 C 失败，或知识库关闭时，保留 A 并记下跳过原因。"""
+    """产出 A/B/C 三条候选。
 
-    def __init__(self, embedding: EmbeddingProvider, rerank: RerankProvider, store: VectorStore, *,
-                 knowledge_base_enabled: bool = True) -> None:
+    路径 A：已确认资料上的本地规则，不经过 RAGFlow。
+    路径 B：按公司注入的 dataset id 检索片段（当注入 RagflowRetrievalClient 时走 RAGFlow，否则走内存实现）。
+    路径 C：不可附着历史投标，仅供参考，并按查询词过滤（当注入 RagflowRetrievalClient 时走 RAGFlow，否则走内存实现）。
+    B 或 C 失败、零命中（skipped=True）或知识库关闭时，安全回退到路径 A 并记录跳过原因。
+    知识库关闭时不调用外部服务。
+    """
+
+    def __init__(
+        self,
+        embedding: EmbeddingProvider | None = None,
+        rerank: RerankProvider | None = None,
+        store: VectorStore | None = None,
+        *,
+        ragflow_client: RagflowRetrievalClient | None = None,
+        company_datasets: Mapping[str, Any] | None = None,
+        company_history_datasets: Mapping[str, Any] | None = None,
+        dataset_ids: Mapping[str, Any] | None = None,
+        history_dataset_ids: Mapping[str, Any] | None = None,
+        rerank_id: str | None = None,
+        knowledge_base_enabled: bool = True,
+    ) -> None:
         self.embedding = embedding
         self.rerank = rerank
         self.store = store
+        self.ragflow_client = ragflow_client
+        self.company_datasets = dataset_ids if company_datasets is None else company_datasets
+        self.company_history_datasets = history_dataset_ids if company_history_datasets is None else company_history_datasets
+        self.rerank_id = rerank_id
         self.knowledge_base_enabled = knowledge_base_enabled
 
     def collect(self, request: CandidateRequest) -> CandidateResult:
@@ -182,17 +220,64 @@ class EvidenceCandidateService:
                 SkippedPath("C", "knowledge base is off"),
             ])
         skipped: list[SkippedPath] = []
+        path_b: list[EvidenceCandidate] = []
+        path_c: list[EvidenceCandidate] = []
+
         try:
             path_b = self._path_b(request)
+        except RetrievalSkip as exc:
+            skipped.append(SkippedPath("B", exc.reason))
         except Exception as exc:
-            path_b = []
             skipped.append(SkippedPath("B", f"B failed: {type(exc).__name__}"))
+
         try:
             path_c = self._path_c(request)
+        except RetrievalSkip as exc:
+            skipped.append(SkippedPath("C", exc.reason))
         except Exception as exc:
-            path_c = []
             skipped.append(SkippedPath("C", f"C failed: {type(exc).__name__}"))
+
         return CandidateResult(path_a + path_b + path_c, skipped)
+
+    def _resolve_dataset_ids(self, request: CandidateRequest, path: str) -> list[str]:
+        # 1. 请求级别的显式指定
+        if path == "B" and request.dataset_ids:
+            return [request.dataset_ids] if isinstance(request.dataset_ids, str) else list(request.dataset_ids)
+        if path == "C" and request.history_dataset_ids:
+            return [request.history_dataset_ids] if isinstance(request.history_dataset_ids, str) else list(request.history_dataset_ids)
+
+        # 2. 路径 C 的特定历史库映射
+        if path == "C" and self.company_history_datasets and request.company_id in self.company_history_datasets:
+            cfg = self.company_history_datasets[request.company_id]
+            if isinstance(cfg, str):
+                return [cfg.strip()] if cfg.strip() else []
+            if isinstance(cfg, (list, tuple)):
+                return [item.strip() for item in cfg if isinstance(item, str) and item.strip()]
+
+        # 3. 查 company_datasets 配置
+        if self.company_datasets and request.company_id in self.company_datasets:
+            cfg = self.company_datasets[request.company_id]
+            if isinstance(cfg, dict):
+                val = cfg.get(path)
+                if val is None and path == "B":
+                    val = cfg.get("chunks") or cfg.get("snippet") or cfg.get("dataset_id") or cfg.get("dataset_ids")
+                elif val is None and path == "C":
+                    val = cfg.get("history") or cfg.get("history_dataset_id") or cfg.get("history_dataset_ids")
+                if val:
+                    if isinstance(val, str):
+                        return [val.strip()] if val.strip() else []
+                    if isinstance(val, (list, tuple)):
+                        return [item.strip() for item in val if isinstance(item, str) and item.strip()]
+            elif isinstance(cfg, str):
+                return [cfg.strip()] if cfg.strip() else []
+            elif isinstance(cfg, (list, tuple)):
+                return [item.strip() for item in cfg if isinstance(item, str) and item.strip()]
+
+        # 4. 路径 C 若未单独指定 history dataset，退回使用 request.dataset_ids（若有）
+        if path == "C" and request.dataset_ids:
+            return [request.dataset_ids] if isinstance(request.dataset_ids, str) else list(request.dataset_ids)
+
+        return []
 
     def _path_a(self, request: CandidateRequest) -> list[EvidenceCandidate]:
         chosen = [
@@ -207,6 +292,40 @@ class EvidenceCandidateService:
         ]
 
     def _path_b(self, request: CandidateRequest) -> list[EvidenceCandidate]:
+        if self.ragflow_client is not None:
+            return self._path_b_ragflow(request)
+        if self.store is not None and self.embedding is not None and self.rerank is not None:
+            return self._path_b_memory(request)
+        raise RetrievalSkip("RAGFlow is not configured")
+
+    def _path_b_ragflow(self, request: CandidateRequest) -> list[EvidenceCandidate]:
+        dataset_ids = self._resolve_dataset_ids(request, "B")
+        if not dataset_ids:
+            raise RetrievalSkip("RAGFlow dataset not configured")
+        if not request.query.strip():
+            raise RetrievalSkip("query is empty")
+        effective_rerank_id = request.rerank_id if request.rerank_id is not None else self.rerank_id
+        result = self.ragflow_client.retrieve(
+            question=request.query,
+            dataset_ids=dataset_ids,
+            rerank_id=effective_rerank_id,
+        )
+        if result.skipped:
+            raise RetrievalSkip(result.skip_reason or "zero hits")
+        if not result.chunks:
+            raise RetrievalSkip("zero hits")
+        for chunk in result.chunks:
+            if chunk.dataset_id and chunk.dataset_id not in dataset_ids:
+                raise RetrievalError("search returned a chunk outside the requested datasets")
+        return [
+            EvidenceCandidate(
+                "B", chunk.id, request.company_id, chunk.content, True, False,
+                document_id=chunk.document_id, chunk_id=chunk.id
+            )
+            for chunk in result.chunks
+        ]
+
+    def _path_b_memory(self, request: CandidateRequest) -> list[EvidenceCandidate]:
         vectors = self.embedding.embed([chunk.text for chunk in request.chunks])
         if len(vectors) != len(request.chunks):
             raise RetrievalError("embed count mismatch")
@@ -229,9 +348,43 @@ class EvidenceCandidateService:
         ]
 
     def _path_c(self, request: CandidateRequest) -> list[EvidenceCandidate]:
+        if self.ragflow_client is not None:
+            return self._path_c_ragflow(request)
+        if self.store is not None or self.embedding is not None:
+            return self._path_c_memory(request)
+        raise RetrievalSkip("RAGFlow is not configured")
+
+    def _path_c_ragflow(self, request: CandidateRequest) -> list[EvidenceCandidate]:
+        dataset_ids = self._resolve_dataset_ids(request, "C")
+        if not dataset_ids:
+            raise RetrievalSkip("RAGFlow dataset not configured")
+        if not request.query.strip():
+            raise RetrievalSkip("query is empty")
+        effective_rerank_id = request.rerank_id if request.rerank_id is not None else self.rerank_id
+        result = self.ragflow_client.retrieve(
+            question=request.query,
+            dataset_ids=dataset_ids,
+            rerank_id=effective_rerank_id,
+        )
+        if result.skipped:
+            raise RetrievalSkip(result.skip_reason or "zero hits")
+        if not result.chunks:
+            raise RetrievalSkip("zero hits")
+        for chunk in result.chunks:
+            if chunk.dataset_id and chunk.dataset_id not in dataset_ids:
+                raise RetrievalError("search returned a chunk outside the requested datasets")
+        return [
+            EvidenceCandidate(
+                "C", chunk.id, request.company_id, chunk.content, False, True,
+                document_id=chunk.document_id, chunk_id=chunk.id
+            )
+            for chunk in result.chunks
+        ]
+
+    def _path_c_memory(self, request: CandidateRequest) -> list[EvidenceCandidate]:
         bids = [
             bid for bid in request.historical_bids
-            if bid.company_id == request.company_id
+            if bid.company_id == request.company_id and _matches_query(request.query, f"{bid.title} {bid.text}")
         ]
         bids.sort(key=lambda bid: bid.id)
         return [

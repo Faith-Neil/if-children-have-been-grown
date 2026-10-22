@@ -419,6 +419,8 @@ export interface Forbidden403Props {
   onBack?: () => void;
   backText?: ReactNode;
   backPath?: string;
+  onSwitchRole?: () => void;
+  switchRoleText?: ReactNode;
   extra?: ReactNode;
   layout?: 'page' | 'block';
   className?: string;
@@ -434,6 +436,8 @@ export function Forbidden403({
   onBack,
   backText = '返回工作台',
   backPath = '/workbench',
+  onSwitchRole,
+  switchRoleText = '切换身份',
   extra,
   layout = 'page',
   className = '',
@@ -492,6 +496,11 @@ export function Forbidden403({
             {backText}
           </Button>
         ) : null}
+        {onSwitchRole && (
+          <Button onClick={onSwitchRole} data-testid="forbidden-switch-role-button">
+            {switchRoleText}
+          </Button>
+        )}
         {extra}
       </Space>
     );

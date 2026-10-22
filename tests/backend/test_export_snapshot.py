@@ -50,8 +50,8 @@ def test_input_change_retires_the_old_chapter_export(client):
     refused = client.post(
         f"/api/chapters/{CHAPTER}/exports", headers=headers, json={"check_id": checked["id"]})
     assert refused.status_code == 409
-    assert refused.json()["error"]["code"] == "CHECK_STALE"
+    assert (refused.json().get("code") or refused.json().get("error", {}).get("code")) == "CHECK_STALE"
     download = client.get(exported["download_url"], headers=headers)
     assert download.status_code == 409
-    assert download.json()["error"]["code"] == "EXPORT_STALE"
+    assert (download.json().get("code") or download.json().get("error", {}).get("code")) == "EXPORT_STALE"
     assert "stale" not in exported

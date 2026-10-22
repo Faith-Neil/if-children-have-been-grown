@@ -12,7 +12,21 @@ export type ApplicationSession = {
   session: { expires_at: string | null; renew_supported: boolean };
   project_access?: { id: string; revision: number; route_permissions: string[]; permissions: ProjectPermissions; chapters: { id: string; volume: Volume; permissions: ChapterPermissions }[] };
 };
-export type Project = { id: string; name: string; company_id: string; revision?: number; tender_number?: string; deadline?: string | null; sensitive?: boolean };
+export type Project = {
+  id: string;
+  name: string;
+  company_id: string;
+  revision?: number;
+  tender_number?: string;
+  deadline?: string | null;
+  sensitive?: boolean;
+  target_amount?: number | string;
+  status?: 'preparing' | 'writing' | 'reviewing' | 'completed' | string;
+  stage?: string;
+  volumes_status?: { technical?: string; business?: string };
+  description?: string;
+  created_at?: string;
+};
 export type ProjectRole = 'lead' | 'writer' | 'readonly';
 export type ProjectMember = { user_id: string; name: string; company_role: Account['role']; project_role: ProjectRole; volumes: Volume[] };
 export type ProjectTeam = {
@@ -51,12 +65,45 @@ export type Candidate = { id?: string; content: string; base_revision: number; i
 export type Chapter = { id: string; title: string; volume: Volume; revision: number; content: string; lock: { owner_id: string; expires_at: string } | null; draft?: { sequence: number; content: string; base_revision: number; input_fingerprint?: string | null } | null; candidate?: Candidate | null; requirement_ids?: string[]; writing_input?: ChapterWritingInput; assignee_id?: string | null; assignee_name?: string | null; permissions?: ChapterPermissions };
 export type CheckIssue = { id: string; code: string; severity: string; message: string; requirement_id?: string; chapter_id?: string; evidence_id?: string };
 export type Check = { id: string; volume: Volume | 'all'; passed: boolean; status: string; issues: CheckIssue[]; coverage: { implemented_rules: string[]; unimplemented_rules: string[]; complete: boolean }; fingerprint: string; created_at: string };
-export type Export = { id: string; kind: string; check_id: string; created_at: string; excludes_drafts: boolean; status: string; volumes: { volume: Volume; filename: string; download_url: string }[] };
+export type Export = {
+  id: string;
+  kind: string;
+  check_id: string;
+  created_at: string;
+  excludes_drafts: boolean;
+  status: string;
+  volumes: { volume: Volume; filename: string; download_url: string; file_size?: number; size_bytes?: number; sha256?: string; fingerprint?: string }[];
+  volume?: Volume | 'all';
+  created_by?: string;
+  operator_name?: string;
+  file_size?: number;
+  size_bytes?: number;
+  sha256?: string;
+  fingerprint?: string;
+};
 export type Job = { id: string; project_id: string; type: string; status: string; progress: number; message: string; created_at: string; completed_at: string; error: { code: string; message: string } | null; recoverable: boolean };
+export type EvidenceAttachment = {
+  id: string;
+  name: string;
+  size: number;
+  sha256?: string;
+  download_url?: string;
+  uploaded_at?: string;
+  content_type?: string;
+};
+
 export type Evidence = {
   id: string; name: string; type: string; content: string; valid_until: string | null; status: string; company_id?: string;
   usable_as_evidence?: boolean; reason?: string; revision?: number; match_score?: number;
   source_tier?: 'own' | 'partner' | 'reference'; agreement_present?: boolean; restricted?: boolean;
   source?: { filename?: string; page?: number; quote?: string };
+  system_key?: string;
+  id_card?: string;
+  phone?: string;
+  bank_account?: string;
+  attachments?: EvidenceAttachment[];
+  referenced_project_count?: number;
+  last_modified_by?: string;
+  created_at?: string;
 };
 export type Workspace = { revision: number; input_fingerprint: string; project: Project; stage: string; files: TenderFile[]; requirements: Requirement[]; facts: Fact[]; conflicts: Conflict[]; chapters: Chapter[]; checks: Check[]; exports: Export[]; jobs: Job[]; parse_confirmed: boolean; plan_confirmed: boolean; sla?: ProjectSla | null; writing_plan?: WritingPlan; team?: ProjectTeam; permissions?: ProjectPermissions };

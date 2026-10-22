@@ -123,7 +123,7 @@ class ProjectCheckRequest(RequestBody):
 
 class ProjectExportRequest(RequestBody):
     check_id: str = Field(min_length=1, max_length=100)
-    kind: Literal["internal", "submission"] = "internal"
+    kind: Literal["internal", "submission", "internal_review"] = "internal"
     volume: Literal["all", "technical", "business"] = "all"
 
 
@@ -271,6 +271,7 @@ class WritingEvidence(ResponseBody):
     status: ReviewStatus
     content: str
     requirement_ids: list[str]
+    tag: str = "[证]"
 
 
 class OmittedInput(ResponseBody):
@@ -294,6 +295,7 @@ class WritingInputSnapshot(ResponseBody):
     official_content: str
     model_input: str | None = None
     model_instruction: str | None = None
+    retrieved_evidence: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class WritingInputPreview(ResponseBody):
@@ -334,6 +336,31 @@ class WorkflowChapter(ChapterSummaryResponse):
     assignee_id: str | None
     assignee_name: str | None
     permissions: dict[str, bool]
+
+
+class ParagraphDetail(ResponseBody):
+    id: str
+    order: int
+    text: str
+    citations: list[dict[str, Any]] = Field(default_factory=list)
+    created_at: str
+    updated_at: str
+
+
+class ChapterEditDetail(ResponseBody):
+    id: str
+    project_id: str
+    title: str
+    chapter_number: str
+    outline_type: str
+    is_mandatory: bool
+    locked_by: str | None = None
+    lock_expires_at: str | None = None
+    revision: int
+    paragraphs: list[ParagraphDetail] = Field(default_factory=list)
+    volume: str | None = None
+    can_edit: bool | None = None
+    permissions: dict[str, bool] | None = None
 
 
 class TeamMember(TeamMemberInput):
@@ -510,7 +537,7 @@ class JobStatus(BaseModel):
 class CheckIssue(ResponseBody):
     id: str
     code: str
-    severity: Literal["blocking", "warning"]
+    severity: Literal["blocking", "warning", "blocker"]
     message: str
     requirement_id: str | None = None
     chapter_id: str | None = None
@@ -538,17 +565,23 @@ class ExportVolume(ResponseBody):
     volume: Volume
     filename: str
     download_url: str
+    sha256: str | None = None
+    format_metadata: dict[str, Any] | None = None
 
 
 class ProjectExport(ResponseBody):
     id: str
-    kind: Literal["internal", "submission"]
+    kind: Literal["internal", "submission", "internal_review"]
     check_id: str
     fingerprint: str
     created_at: str
     excludes_drafts: Literal[True]
     volumes: list[ExportVolume]
     status: Literal["valid", "stale"]
+    has_blockers: bool = False
+    compliance_notice: str | None = None
+    sha256: str | None = None
+    format_metadata: dict[str, Any] | None = None
 
 
 class LibraryItem(ResponseBody):
@@ -718,3 +751,80 @@ def v1_error_responses(*statuses: int) -> dict:
         f"{STATUS_MEANING[status]}。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。"
         "code 与 HTTP 状态的唯一对应见 components.x-error-status。")}
         for status in statuses}
+
+
+class TenderSearchRequest(RequestBody):
+    query: str = Field(min_length=1, max_length=1000)
+    enabled: bool | None = None
+    top_k: int = Field(default=10, ge=1, le=50)
+    clause_type: str | None = Field(default=None, max_length=50)
+
+
+class TenderIndexingSwitchRequest(RequestBody):
+    enabled: bool
+
+
+class InjectTenderClausesRequest(RequestBody):
+    slice_ids: list[str] | None = None
+    slices: list[dict[str, Any]] | None = None
+
+
+class AcceptAiSuggestionRequest(RequestBody):
+    lease_token: str = Field(min_length=1, max_length=128, description="当前会话持有的独占编辑租约锁 Token")
+    base_revision: int = Field(ge=1, description="客户端当前章节的版本号基准")
+    suggested_text: str = Field(min_length=1, max_length=50_000, description="采纳并写入正文的 AI 润色建议改写内容")
+    paragraph_id: str | None = Field(default=None, max_length=128, description="目标被润色/替换的段落编号，如 alpha-tech-p1")
+    original_text: str | None = Field(default=None, max_length=50_000, description="被改写的段落/片段原文快照，用于一致性比对校验")
+    citations: list[dict[str, Any]] | None = Field(default=None, description="本次润色建议所依据的公司证据或招标文件切片溯源引用")
+    input_fingerprint: str | None = Field(default=None, max_length=128, description="输入上下文快照指纹")
+
+
+class AcceptAiSuggestionResponse(ResponseBody):
+    chapter_id: str
+    project_id: str
+    revision: int
+    content: str
+    paragraph_id: str | None = None
+    updated_paragraph: dict[str, Any] | None = None
+    paragraphs: list[dict[str, Any]]
+    version_entry: dict[str, Any]
+    incremental_check_status: str
+    message: str
+
+
+class ComplianceFinding(ResponseBody):
+    finding_id: str
+    paragraph_id: str
+    claim_type: str = Field(description="声明类型：sla_metric、qualification、personnel、case_experience、general_promise")
+    claim_text: str
+    cited_evidence_id: str | None = None
+    evidence_status: str = Field(default="valid", description="证据状态：valid、pending_verification、expired、missing_agreement、missing")
+    tender_clause_id: str | None = None
+    confidence_score: float = Field(ge=0.0, le=1.0, description="依据置信度得分 0.0 ~ 1.0")
+    confidence_level: str = Field(description="置信度等级：high、medium、low、unsupported")
+    risk_level: str = Field(description="风险等级：block（阻断）、warning（警告）、info（提示）")
+    gap_description: str = Field(description="依据与声明差距诊断分析描述")
+    suggestion: str = Field(description="针对性改进建议")
+
+
+class ComplianceCrossCheckRequest(RequestBody):
+    chapter_id: str | None = None
+    model_config_id: str | None = None
+    strict_mode: bool = True
+
+
+class ComplianceCrossCheckResponse(ResponseBody):
+    chapter_id: str
+    project_id: str
+    overall_confidence: float = Field(ge=0.0, le=1.0)
+    compliance_status: str = Field(description="合规状态：compliant、warning、non_compliant")
+    total_claims: int
+    verified_claims: int
+    warning_claims: int
+    unsupported_claims: int
+    findings: list[ComplianceFinding]
+    checks_summary: dict[str, Any] = Field(default_factory=dict)
+    checked_at: str
+    message: str = "合规依据交叉核验与差距诊断完成"
+
+

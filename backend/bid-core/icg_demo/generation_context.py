@@ -143,7 +143,7 @@ def evidence_expired(evidence, deadline, today=None):
     return _date(expiry) < reference
 
 
-def build_generation_context(state, project_id, chapter, now):
+def build_generation_context(state, project_id, chapter, now, evidence_service=None):
     """返回供前端查看的清单和阻断项；只有 ready 时才允许发给模型。"""
     workflow = state.workflows.get(project_id, {})
     project = state.projects[project_id]
@@ -202,11 +202,69 @@ def build_generation_context(state, project_id, chapter, now):
                 continue
             item = evidence_by_id.setdefault(identity, {k: deepcopy(evidence.get(k)) for k in
                         ("id", "name", "revision", "type", "valid_until", "status", "content")})
+            item["tag"] = "[证]"
             item.setdefault("requirement_ids", []).append(row["id"])
     for index, fact in enumerate(facts):
         if any(other["key"] == fact["key"] and (other["value"], other["unit"]) != (fact["value"], fact["unit"])
                for other in facts[:index]):
             add("FACT_CONFLICT", "本章同名事实存在不同取值或单位，请到事实表处理。", fact_id=fact["id"])
+
+    # 对接 RAGFlow / 检索候选服务
+    retrieved_evidence = []
+    service = evidence_service if evidence_service is not None else getattr(state, "evidence_service", None)
+    if service is not None and getattr(project, "knowledge_base_enabled", True) is not False and workflow.get("knowledge_base_enabled") is not False:
+        query_parts = [chapter.title]
+        if plan.get("writing_points"):
+            query_parts.append(plan["writing_points"])
+        for req in requirements:
+            if req.get("text"):
+                query_parts.append(req["text"])
+        retrieval_query = " ".join(query_parts).strip()
+        if retrieval_query:
+            try:
+                from .retrieval import CandidateRequest, LibraryRecord
+                req_library_items = [
+                    LibraryRecord(
+                        id=item["id"],
+                        company_id=item["company_id"],
+                        record_type=item.get("type", ""),
+                        status=item.get("status", ""),
+                        name=item.get("name", ""),
+                        content=item.get("content", ""),
+                    )
+                    for item in state.library.values()
+                ]
+                dataset_ids = (
+                    getattr(project, "dataset_ids", None)
+                    or getattr(project, "dataset_id", None)
+                    or workflow.get("dataset_ids")
+                    or workflow.get("dataset_id")
+                )
+                if dataset_ids and isinstance(dataset_ids, str):
+                    dataset_ids = [dataset_ids]
+                cand_req = CandidateRequest(
+                    company_id=project.company_id,
+                    query=retrieval_query,
+                    library_items=req_library_items,
+                    dataset_ids=dataset_ids,
+                    rerank_id=getattr(project, "rerank_id", None) or workflow.get("rerank_id"),
+                )
+                collect_result = service.collect(cand_req)
+                for cand in collect_result.candidates:
+                    if cand.path in ("B", "C"):
+                        retrieved_evidence.append({
+                            "id": cand.source_id,
+                            "path": cand.path,
+                            "tag": "[片]",
+                            "chunk_id": cand.chunk_id or cand.source_id,
+                            "document_id": cand.document_id,
+                            "content": cand.text,
+                            "attachable": cand.attachable,
+                            "reference_only": cand.reference_only,
+                        })
+            except Exception:
+                retrieved_evidence = []
+
     snapshot = {"scope": "whole_chapter", "created_at": iso_time(now),
                 "input_fingerprint": project_input_fingerprint(state, project_id),
                 "project": {"id": project.id, "name": project.name},
@@ -214,7 +272,9 @@ def build_generation_context(state, project_id, chapter, now):
                             "base_revision": chapter.revision},
                 "plan": {**plan, "is_current": plan_is_current(state, project_id, chapter.id), "confirmed_by": confirmed.get("confirmed_by"), "confirmed_at": confirmed.get("confirmed_at"),
                          "confirmed_by_name": confirmed.get("confirmed_by_name")},
-                "requirements": requirements, "evidence": list(evidence_by_id.values()), "facts": facts,
+                "requirements": requirements, "evidence": list(evidence_by_id.values()),
+                "retrieved_evidence": retrieved_evidence, "facts": facts,
+                "injected_tender_clauses": workflow.get("injected_tender_clauses", {}).get(chapter.id, []),
                 "omitted_inputs": omitted, "official_content": chapter.content}
     return {"source_scope": "whole_chapter", "input_snapshot": snapshot, "ready": not issues, "issues": issues}
 
@@ -237,8 +297,25 @@ def render_model_input(snapshot):
             lines.append("【待补】本条款缺少已核对证据，不得编造证明。")
     if not snapshot["requirements"]:
         lines.append("【待补】请先在响应矩阵关联本章节条款。")
+    if snapshot.get("injected_tender_clauses"):
+        lines.append("以下为用户主动注入的招标文件特定条款约束：")
+        for cl in snapshot["injected_tender_clauses"]:
+            lines.append(f"- [条款 {cl.get('clause_number', '')} · {cl.get('clause_type_label', '')} (第{cl.get('page', 1)}页)]：{cl.get('content', '')}")
     for item in snapshot["evidence"]:
-        lines += [f"已确认可引用证据：{item['name']}（标识 {item['id']}，记录版本 {item['revision']}，有效期 {item['valid_until'] or '未登记'}）", item["content"]]
+        tag = item.get("tag", "[证]")
+        lines += [f"{tag} 已确认可引用证据：{item['name']}（标识 {item['id']}，记录版本 {item['revision']}，有效期 {item['valid_until'] or '未登记'}）", item["content"]]
+    for item in snapshot.get("retrieved_evidence", []):
+        tag = item.get("tag", "[片]")
+        chunk_id = item.get("chunk_id", "")
+        doc_id = item.get("document_id", "")
+        prov_parts = []
+        if chunk_id:
+            prov_parts.append(f"chunk_id: {chunk_id}")
+        if doc_id:
+            prov_parts.append(f"document_id: {doc_id}")
+        prov = f"（{', '.join(prov_parts)}）" if prov_parts else ""
+        ref_notice = "【仅供参考，不得作为正式附着证据】" if item.get("reference_only") else ""
+        lines += [f"{tag} 检索证据片段{prov}{ref_notice}：", item["content"]]
     if snapshot["facts"]:
         lines.append("以下为本章可用事实；正文引用时须保留变量，不能把变量改成手写取值：")
     for fact in snapshot["facts"]:

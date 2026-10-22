@@ -19,7 +19,10 @@ from .workflow_schemas import (CheckList, ConflictPatch, FactPatch, FileDelete, 
                                PlanRequest, ProjectCheckRequest, ProjectExportRequest,
                                ProjectPatch, RequirementPatch, Workspace, WritingInputPreview,
                                TeamUpdate, TeamResult, ChapterAssignment, ChapterPlanPatch,
-                               v1_error_responses)
+                               ChapterEditDetail, v1_error_responses, TenderSearchRequest,
+                               TenderIndexingSwitchRequest, InjectTenderClausesRequest,
+                               AcceptAiSuggestionRequest, ComplianceCrossCheckRequest,
+                               ComplianceCrossCheckResponse)
 
 
 def include_workflow_routes(application, service, current_user, parser):
@@ -68,6 +71,11 @@ def include_workflow_routes(application, service, current_user, parser):
                 operation_id="getWritingInput")
     def writing_input(project_id: str, chapter_id: str, user: Principal = Depends(current_user)):
         return workflow.writing_input(user, project_id, chapter_id)
+
+    @router.get("/projects/{project_id}/chapters/{chapter_id}", response_model=ChapterEditDetail,
+                operation_id="getChapterEditDetail")
+    def chapter_edit_detail(project_id: str, chapter_id: str, user: Principal = Depends(current_user)):
+        return workflow.chapter_edit_detail(user, project_id, chapter_id)
 
     @router.patch("/projects/{project_id}", response_model=MutationResult, response_model_exclude_none=True,
                   operation_id="patchProject")
@@ -245,6 +253,83 @@ def include_workflow_routes(application, service, current_user, parser):
     def patch_library(item_id: str, body: LibraryPatch, user: Principal = Depends(current_user),
                       if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.write_library(user, body.model_dump(exclude_unset=True), if_match, idempotency_key, item_id)
+
+    @router.post("/projects/{project_id}/tender/search", include_in_schema=False)
+    def search_tender_slices_endpoint(project_id: str, body: TenderSearchRequest, user: Principal = Depends(current_user)):
+        return workflow.search_tender_slices(
+            principal=user,
+            project_id=project_id,
+            query=body.query,
+            enabled=body.enabled,
+            top_k=body.top_k,
+            clause_type=body.clause_type,
+        )
+
+    @router.patch("/projects/{project_id}/tender/indexing-switch", include_in_schema=False)
+    def update_tender_indexing_switch_endpoint(project_id: str, body: TenderIndexingSwitchRequest, user: Principal = Depends(current_user)):
+        res = workflow.set_tender_indexing_switch(user, project_id, body.enabled)
+        return {"project_id": project_id, "tender_indexing_enabled": res}
+
+    @router.post("/projects/{project_id}/chapters/{chapter_id}/inject-tender-clauses", include_in_schema=False)
+    def inject_tender_clauses_endpoint(project_id: str, chapter_id: str, body: InjectTenderClausesRequest, user: Principal = Depends(current_user)):
+        return workflow.inject_tender_clauses(
+            principal=user,
+            project_id=project_id,
+            chapter_id=chapter_id,
+            slice_ids=body.slice_ids,
+            slices=body.slices,
+        )
+
+    @router.get("/projects/{project_id}/chapters/{chapter_id}/injected-tender-clauses", include_in_schema=False)
+    def get_injected_tender_clauses_endpoint(project_id: str, chapter_id: str, user: Principal = Depends(current_user)):
+        clauses = workflow.get_injected_tender_clauses(user, project_id, chapter_id)
+        return {"chapter_id": chapter_id, "project_id": project_id, "injected_clauses": clauses, "count": len(clauses)}
+
+    @router.delete("/projects/{project_id}/chapters/{chapter_id}/injected-tender-clauses", include_in_schema=False)
+    def clear_injected_tender_clauses_endpoint(project_id: str, chapter_id: str, user: Principal = Depends(current_user)):
+        cleared = workflow.clear_injected_tender_clauses(user, project_id, chapter_id)
+        return {"chapter_id": chapter_id, "project_id": project_id, "cleared": cleared}
+
+    @router.post("/projects/{project_id}/chapters/{chapter_id}/accept-ai-suggestion", include_in_schema=False)
+    def accept_ai_suggestion_endpoint(
+        project_id: str,
+        chapter_id: str,
+        body: AcceptAiSuggestionRequest,
+        user: Principal = Depends(current_user),
+    ):
+        return workflow.accept_ai_suggestion(
+            principal=user,
+            project_id=project_id,
+            chapter_id=chapter_id,
+            lease_token=body.lease_token,
+            base_revision=body.base_revision,
+            suggested_text=body.suggested_text,
+            paragraph_id=body.paragraph_id,
+            original_text=body.original_text,
+            citations=body.citations,
+            input_fingerprint=body.input_fingerprint,
+        )
+
+    @router.post(
+        "/projects/{project_id}/chapters/{chapter_id}/compliance-cross-check",
+        response_model=ComplianceCrossCheckResponse,
+        include_in_schema=False,
+    )
+    def compliance_cross_check_endpoint(
+        project_id: str,
+        chapter_id: str,
+        body: ComplianceCrossCheckRequest | None = None,
+        user: Principal = Depends(current_user),
+    ):
+        model_cfg = body.model_config_id if body else None
+        strict = body.strict_mode if body else True
+        return workflow.compliance_cross_check(
+            principal=user,
+            project_id=project_id,
+            chapter_id=chapter_id,
+            model_config_id=model_cfg,
+            strict_mode=strict,
+        )
 
     application.include_router(router)
     include_recoverable_routes(application, workflow, current_user)

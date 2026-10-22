@@ -1,0 +1,25 @@
+为什么有这个文件：记录 APP-M2-T026 (A-01 公司管理) 的交付状态、实现内容与验收证据。
+
+它解决什么问题：记录企业租户管理页的核心实现、合规基线参数校验、集团管理员权限感知按钮隐匿与停用二次确认保护，状态标至 in-review，绝不私自标 done。
+
+# APP-M2-T026：A-01 公司管理交付
+
+<!-- task-delivery:start -->
+| 项目 | 记录 |
+|---|---|
+| 任务ID | APP-M2-T026 |
+| 代码解释 | [docs/code/APP-M2-T026.md](../code/APP-M2-T026.md)（协同主文档见 [APP-M2-T157](../code/APP-M2-T157.md)） |
+| 验收 | 8 项专属自动化单测通过；全量 326 项前端单测通过；生产构建 build 成功且体积按需分包受控；工程治理通过 |
+| 项目进度 | 前端 M2 阶段推进，APP-M2-T026 提交 in-review，关联 ISSUE-007 保持开启，绝不私自标 done |
+<!-- task-delivery:end -->
+
+## 关联与状态
+
+- 日期：2026-10-22
+- 里程碑：APP-M2
+- 关联 Issue：[ISSUE-007](../../issues/ISSUE-007.md)
+- 关联任务卡：[APP-M2-T026](../tasks/APP-M2.md#app-m2-t026)
+- 依赖任务：[APP-M2-T014](../tasks/APP-M2.md#app-m2-t014)
+- 本地验收状态：**in-review**（严禁私自标 done）
+
+详见交付主记录 [APP-M2-T157 交付文档](APP-M2-T157.md)。

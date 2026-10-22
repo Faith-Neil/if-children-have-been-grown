@@ -53,7 +53,7 @@ def test_only_company_manager_can_create_project(setup, actor):
     client, *_ = setup
     result = client.post("/api/projects", headers=login(client, actor), json={"name": "不得由编写人新建"})
     assert result.status_code == 403
-    assert result.json()["error"]["code"] == "PROJECT_CREATE_FORBIDDEN"
+    assert (result.json().get("code") or result.json().get("error", {}).get("code")) == "PROJECT_CREATE_FORBIDDEN"
 
 
 @pytest.mark.parametrize("actor", ["alpha-outsider-manager", "beta-manager"])

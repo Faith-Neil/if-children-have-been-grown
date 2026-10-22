@@ -106,20 +106,59 @@ class RecoverableJobs:
                 raise DomainError(409, "VERSION_CONFLICT", "数据已被更新，请刷新核对后再保存。", {"current_revision": revision})
             chapters = self._chapters(state, project_id, payload.get("chapter_ids"))
             self._owners_and_locks(state, principal, project_id, chapters)
-            self._model_gate(project)
+            self._model_gate(project, state=state)
             now = iso_time(self.demo._now())
             job_id = new_id("job")
             provider = self.demo.model_provider
+
+            bound_id = state.project_model_configs.get(project_id)
+            active_config = None
+            if bound_id and bound_id in state.model_configs:
+                active_config = state.model_configs[bound_id]
+            else:
+                default_id = f"default-{project.company_id}"
+                if default_id in state.model_configs:
+                    active_config = state.model_configs[default_id]
+
+            if active_config is not None:
+                stream_enabled = active_config.stream_enabled
+                json_mode_enabled = active_config.json_mode_enabled
+                config_provider = active_config.provider
+                config_model = active_config.model
+                config_local = active_config.is_local
+                config_real = (active_config.provider != "demo")
+                config_base_url = active_config.base_url
+                config_timeout = active_config.timeout_seconds
+                config_tokens = active_config.max_tokens
+                config_key = active_config.encrypted_api_key
+            else:
+                stream_enabled = bool(getattr(provider, "stream_enabled", True))
+                json_mode_enabled = bool(getattr(provider, "json_mode_enabled", False))
+                config_provider = str(getattr(provider, "name", "demo"))
+                config_model = str(getattr(provider, "model", None) or getattr(provider, "model_name", None) or "demo")
+                config_local = bool(getattr(provider, "is_local", False))
+                config_real = bool(getattr(provider, "is_real_model", False))
+                config_base_url = getattr(provider, "base_url", "")
+                config_timeout = getattr(provider, "timeout_seconds", 60.0)
+                config_tokens = getattr(provider, "max_tokens", 1024)
+                config_key = None
+
             job = {
                 "id": job_id, "project_id": project_id, "type": "generate", "status": "queued",
                 "progress": 0, "message": "已排队。断线后查询 GET /api/v1/jobs/" + job_id + "。",
                 "created_at": now, "completed_at": None, "error": None, "events": [],
                 "recoverable": True, "chapter_ids": [chapter.id for chapter in chapters],
                 "model_snapshot": {
-                    "provider": str(getattr(provider, "name", "demo")),
-                    "model": str(getattr(provider, "model", None) or getattr(provider, "model_name", None) or "demo"),
-                    "is_real_model": bool(getattr(provider, "is_real_model", False)),
-                    "is_local": bool(getattr(provider, "is_local", False)),
+                    "provider": config_provider,
+                    "model": config_model,
+                    "is_real_model": config_real,
+                    "is_local": config_local,
+                    "stream_enabled": stream_enabled,
+                    "json_mode_enabled": json_mode_enabled,
+                    "base_url": config_base_url,
+                    "timeout_seconds": config_timeout,
+                    "max_tokens": config_tokens,
+                    "encrypted_api_key": config_key,
                 },
             }
             state.recoverable_jobs[job_id] = job
@@ -212,7 +251,25 @@ class RecoverableJobs:
             if lock.expires_at > now and lock.owner_id != principal.user.id:
                 raise DomainError(423, "LOCK_HELD", "章节正在被其他人编辑。")
 
-    def _model_gate(self, project):
+    def _model_gate(self, project, state=None):
+        if state is not None:
+            bound_id = state.project_model_configs.get(project.id)
+            cfg = None
+            if bound_id and bound_id in state.model_configs:
+                cfg = state.model_configs[bound_id]
+            else:
+                default_id = f"default-{project.company_id}"
+                if default_id in state.model_configs:
+                    cfg = state.model_configs[default_id]
+            if cfg is not None:
+                if project.sensitive and (not cfg.is_local or not cfg.allow_sensitive):
+                    raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL", "敏感项目只能使用本地模型配置。")
+                if cfg.encrypted_api_key:
+                    from .model_config_storage import get_master_key
+                    try:
+                        get_master_key()
+                    except DomainError:
+                        raise DomainError(503, "SECRET_KEY_UNAVAILABLE", "主密钥不可用，任务尚未创建。")
         provider = self.demo.model_provider
         if getattr(provider, "secret_key_available", True) is False:
             raise DomainError(503, "SECRET_KEY_UNAVAILABLE", "主密钥不可用，任务尚未创建。")
@@ -246,14 +303,21 @@ class RecoverableJobs:
         snapshot = job["model_snapshot"]
         started = self.demo._now()
         error_code = None
+        provider = self.demo.resolve_provider_from_snapshot(snapshot)
         try:
-            self.demo.model_provider.suggest(
+            provider.suggest(
                 "按已确认方案组织候选；不能编造证据。本调用只用于任务事件，不写入正文。",
                 job["id"])
         except Exception:
             error_code = "MODEL_UNAVAILABLE"
         duration_ms = max(0, int((self.demo._now() - started) * 1000))
-        self._append(job, "job.model_call", **snapshot, duration_ms=duration_ms, error_code=error_code)
+        model_call_kwargs = {
+            "provider": snapshot["provider"],
+            "model": snapshot["model"],
+            "is_real_model": snapshot.get("is_real_model", False),
+            "is_local": snapshot.get("is_local", False),
+        }
+        self._append(job, "job.model_call", **model_call_kwargs, duration_ms=duration_ms, error_code=error_code)
         if error_code:
             self._finish_failed(job, error_code, "候选生成失败，正式正文没有修改。")
             return

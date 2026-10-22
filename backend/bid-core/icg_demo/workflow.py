@@ -31,6 +31,49 @@ def chapter_export_block(title: str, body: str) -> str:
     return f"# {title}\n{body}"
 
 SHANGHAI = timezone(timedelta(hours=8))
+WORD_DEFAULT_FORMAT_METADATA = {
+    "page_size": "A4",
+    "orientation": "portrait",
+    "margins": {
+        "top": 72,
+        "bottom": 72,
+        "left": 72,
+        "right": 72,
+        "top_cm": 2.5,
+        "bottom_cm": 2.5,
+        "left_cm": 2.8,
+        "right_cm": 2.6,
+    },
+    "font_family": "SimSun",
+    "fonts": {
+        "cover_title": "方正小标宋",
+        "cover_project": "黑体",
+        "h1": "黑体",
+        "h2": "楷体_GB2312",
+        "h3": "仿宋_GB2312",
+        "body": "仿宋_GB2312",
+        "table": "宋体",
+        "header": "宋体",
+        "toc": "宋体",
+    },
+    "font_sizes_pt": {
+        "cover_title": 22.0,
+        "cover_project": 16.0,
+        "h1": 16.0,
+        "h2": 15.0,
+        "h3": 14.0,
+        "body": 14.0,
+        "table": 10.5,
+        "header": 10.5,
+        "toc": 12.0,
+    },
+    "line_spacing": {
+        "body_line_pt": 28.0,
+        "body_first_line_chars": 200,
+        "body_first_line_twips": 560,
+    },
+    "h1_align": "center",
+}
 SAMPLE_TENDER = """合成招标文件：星河数据库维保服务项目
 招标编号：DEMO-2026-001
 投标截止时间：2026-12-31T17:00:00+08:00
@@ -47,6 +90,14 @@ def _blank_workflow() -> dict:
     return {"files": {}, "requirements": {}, "facts": {}, "conflicts": {},
             "candidates": {}, "checks": {}, "exports": {}, "parse_confirmed": False,
             "plan_confirmed": False, "chapter_order": [], "sla": None, "sla_commitments": {}, "writing_plan": {}}
+
+class CheckBlockerError(DomainError):
+    def __init__(self, message: str, details: dict | None = None):
+        self.status = 400
+        self.code = "CHECK_BLOCKER_EXISTS"
+        self.message = message
+        self.details = details or {}
+        Exception.__init__(self, message)
 
 
 class WorkflowService:
@@ -65,6 +116,227 @@ class WorkflowService:
         self.sla = SlaService(self)
         from .project_team import ProjectTeamService
         self.team = ProjectTeamService(self)
+        from .answer_card import AnswerCardService
+        self.answer_card = AnswerCardService(demo)
+        from .outline_service import OutlinePlanService
+        self.outline = OutlinePlanService(demo)
+        from .tender_retrieval import TenderRetrievalService
+        self.tender_retrieval = TenderRetrievalService(demo)
+
+    def get_outline_plan(self, project_id: str, volume_id: str | None = None) -> dict[str, Any]:
+        return self.outline.get_outline_plan(project_id, volume_id=volume_id)
+
+    def confirm_outline_plan(self, project_id: str, chapter_id: str | None = None,
+                             plan_data: dict[str, Any] | None = None,
+                             principal: Principal | None = None,
+                             volume_id: str | None = None) -> dict[str, Any]:
+        return self.outline.confirm_outline_plan(
+            project_id=project_id,
+            chapter_id=chapter_id,
+            plan_data=plan_data,
+            principal=principal,
+            volume_id=volume_id,
+        )
+
+    def assistant_query(self, principal: Principal, project_id: str, query: str,
+                        knowledge_base_enabled: bool = True) -> dict:
+        return self.answer_card.process_query(principal, project_id, query, knowledge_base_enabled)
+
+    def insert_answer_card(self, principal: Principal, project_id: str, chapter_id: str,
+                           card_data: dict[str, Any], lease_token: str,
+                           item_id: str | None = None,
+                           insert_mode: str = "append",
+                           target_paragraph: str | None = None) -> dict[str, Any]:
+        return self.answer_card.insert_answer_card(
+            principal=principal,
+            project_id=project_id,
+            chapter_id=chapter_id,
+            card_data=card_data,
+            lease_token=lease_token,
+            item_id=item_id,
+            insert_mode=insert_mode,
+            target_paragraph=target_paragraph,
+        )
+
+    def general_chat(self, principal: Principal, project_id: str, query: str,
+                     knowledge_base_enabled: bool = True,
+                     chapter_id: str | None = None,
+                     history: list[dict[str, str]] | None = None,
+                     chapter_title: str | None = None,
+                     selected_text: str | None = None,
+                     scene: str | None = None,
+                     lease_token: str | None = None,
+                     injected_tender_clauses: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        return self.answer_card.general_chat(
+            principal=principal,
+            project_id=project_id,
+            query=query,
+            knowledge_base_enabled=knowledge_base_enabled,
+            chapter_id=chapter_id,
+            history=history,
+            chapter_title=chapter_title,
+            selected_text=selected_text,
+            scene=scene,
+            lease_token=lease_token,
+            injected_tender_clauses=injected_tender_clauses,
+        )
+
+    def ask_assistant(self, principal: Principal, project_id: str, query: str,
+                      knowledge_base_enabled: bool = True,
+                      chapter_id: str | None = None,
+                      history: list[dict[str, str]] | None = None,
+                      chapter_title: str | None = None,
+                      selected_text: str | None = None,
+                      scene: str | None = None,
+                      lease_token: str | None = None,
+                      injected_tender_clauses: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        return self.general_chat(
+            principal=principal,
+            project_id=project_id,
+            query=query,
+            knowledge_base_enabled=knowledge_base_enabled,
+            chapter_id=chapter_id,
+            history=history,
+            chapter_title=chapter_title,
+            selected_text=selected_text,
+            scene=scene,
+            lease_token=lease_token,
+            injected_tender_clauses=injected_tender_clauses,
+        )
+
+    def editor_ai_chat(self, principal: Principal, project_id: str, query: str,
+                       chapter_id: str, chapter_title: str | None = None,
+                       selected_text: str | None = None, scene: str | None = None,
+                       lease_token: str | None = None,
+                       knowledge_base_enabled: bool = True,
+                       history: list[dict[str, str]] | None = None,
+                       injected_tender_clauses: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        return self.demo.chat_editor_context(
+            principal=principal,
+            project_id=project_id,
+            query=query,
+            chapter_id=chapter_id,
+            chapter_title=chapter_title,
+            selected_text=selected_text,
+            scene=scene,
+            lease_token=lease_token,
+            knowledge_base_enabled=knowledge_base_enabled,
+            history=history,
+            injected_tender_clauses=injected_tender_clauses,
+        )
+
+    def accept_ai_suggestion(
+        self,
+        principal: Principal,
+        project_id: str,
+        chapter_id: str,
+        lease_token: str,
+        base_revision: int,
+        suggested_text: str,
+        paragraph_id: str | None = None,
+        original_text: str | None = None,
+        citations: list[dict[str, Any]] | None = None,
+        input_fingerprint: str | None = None,
+    ) -> dict[str, Any]:
+        return self.demo.accept_ai_suggestion(
+            principal=principal,
+            project_id=project_id,
+            chapter_id=chapter_id,
+            lease_token=lease_token,
+            base_revision=base_revision,
+            suggested_text=suggested_text,
+            paragraph_id=paragraph_id,
+            original_text=original_text,
+            citations=citations,
+            input_fingerprint=input_fingerprint,
+        )
+
+    def compliance_cross_check(
+        self,
+        principal: Principal,
+        project_id: str,
+        chapter_id: str,
+        model_config_id: str | None = None,
+        strict_mode: bool = True,
+    ) -> dict[str, Any]:
+        return self.demo.compliance_cross_check(
+            principal=principal,
+            project_id=project_id,
+            chapter_id=chapter_id,
+            model_config_id=model_config_id,
+            strict_mode=strict_mode,
+        )
+
+    def search_tender_slices(self, principal: Principal, project_id: str, query: str,
+                             enabled: bool | None = None, top_k: int = 10,
+                             clause_type: str | None = None) -> dict[str, Any]:
+        return self.tender_retrieval.search(
+            principal=principal,
+            project_id=project_id,
+            query=query,
+            enabled=enabled,
+            top_k=top_k,
+            clause_type=clause_type,
+        ).to_dict()
+
+    def inject_tender_clauses(self, principal: Principal, project_id: str, chapter_id: str,
+                              slice_ids: list[str] | None = None,
+                              slices: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        return self.tender_retrieval.inject_clauses_to_chapter(
+            principal=principal,
+            project_id=project_id,
+            chapter_id=chapter_id,
+            slice_ids=slice_ids,
+            slices=slices,
+        )
+
+    def get_injected_tender_clauses(self, principal: Principal, project_id: str, chapter_id: str) -> list[dict[str, Any]]:
+        return self.tender_retrieval.get_injected_clauses(principal, project_id, chapter_id)
+
+    def clear_injected_tender_clauses(self, principal: Principal, project_id: str, chapter_id: str) -> bool:
+        return self.tender_retrieval.clear_injected_clauses(principal, project_id, chapter_id)
+
+    def set_tender_indexing_switch(self, principal: Principal, project_id: str, enabled: bool) -> bool:
+        return self.tender_retrieval.set_feature_switch(principal, project_id, enabled)
+
+    def get_tender_indexing_switch(self, project_id: str) -> bool:
+        return self.tender_retrieval.get_feature_switch(project_id)
+
+    def build_editor_prompt_context(self, project_id: str, chapter_id: str, query: str,
+                                    selected_text: str | None = None, chapter_title: str | None = None,
+                                    scene: str | None = None, knowledge_base_enabled: bool = True,
+                                    injected_tender_clauses: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+        from .editor_ai_context import build_editor_prompt_context
+        state = self.demo.repository.read()
+        return build_editor_prompt_context(
+            state=state,
+            project_id=project_id,
+            chapter_id=chapter_id,
+            query=query,
+            selected_text=selected_text,
+            chapter_title=chapter_title,
+            scene=scene,
+            knowledge_base_enabled=knowledge_base_enabled,
+            evidence_service=getattr(self.demo, "evidence_service", None),
+            injected_tender_clauses=injected_tender_clauses,
+        )
+
+    def start_chapter_generation(self, project_id: str, chapter_id: str, principal: Principal,
+                                 sync_execute: bool = False) -> dict[str, Any]:
+        return self.demo.start_chapter_generation(
+            project_id=project_id,
+            chapter_id=chapter_id,
+            principal=principal,
+            sync_execute=sync_execute,
+        )
+
+    def assemble_writing_prompt_plan(self, project_id: str, chapter_id: str,
+                                     principal: Principal | None = None) -> dict[str, Any]:
+        return self.demo.assemble_writing_prompt_plan(
+            project_id=project_id,
+            chapter_id=chapter_id,
+            principal=principal,
+        )
 
     @staticmethod
     def _workflow(state: DemoState, project_id: str, *, create=False) -> dict:
@@ -252,7 +524,154 @@ class WorkflowService:
         chapter = self.demo._chapter(state, principal, chapter_id)
         if chapter.project_id != project_id:
             raise DomainError(404, "NOT_FOUND", "章节不属于当前项目。")
-        return build_generation_context(state, project_id, chapter, self.demo._now())
+        return build_generation_context(state, project_id, chapter, self.demo._now(),
+                                        evidence_service=self.demo.evidence_service)
+
+    def chapter_edit_detail(self, principal: Principal, project_id: str, chapter_id: str) -> dict[str, Any]:
+        """获取编辑台所需的章节详情、段落结构、持锁人与权限元数据。"""
+        import time
+        state = self.repository.read()
+        self.demo._project(state, principal, project_id)
+        chapter = state.chapters.get(chapter_id)
+        if chapter is None:
+            raise DomainError(404, "NOT_FOUND", "未找到有权访问的章节。")
+        if chapter.project_id != project_id:
+            raise DomainError(404, "NOT_FOUND", "章节不属于当前项目。")
+
+        now = self.demo._now() if hasattr(self.demo, "_now") else time.time()
+
+        # 1. 持锁状态感知（结合 ChapterLock 与 ProjectLock）
+        active_chapter_lock = chapter.lock is not None and chapter.lock.expires_at > now
+        if active_chapter_lock:
+            locked_by = chapter.lock.owner_id
+            lock_expires_at = iso_time(chapter.lock.expires_at)
+        else:
+            workflow = state.workflows.get(project_id, {})
+            p_lock = workflow.get("project_lock") or workflow.get("lock")
+            if p_lock and isinstance(p_lock, dict):
+                p_exp = p_lock.get("expires_at")
+                p_active = False
+                if isinstance(p_exp, (int, float)) and p_exp > now:
+                    p_active = True
+                    lock_expires_at = iso_time(p_exp)
+                elif isinstance(p_exp, str):
+                    p_active = True
+                    lock_expires_at = p_exp
+                if p_active:
+                    locked_by = p_lock.get("owner_id") or p_lock.get("locked_by")
+                else:
+                    locked_by = None
+                    lock_expires_at = None
+            else:
+                locked_by = None
+                lock_expires_at = None
+
+        workflow = state.workflows.get(project_id, {})
+        outline_plans = workflow.get("outline_plans", {})
+        meta = outline_plans.get(chapter_id, {})
+        requirements = list(workflow.get("requirements", {}).values())
+        matched_reqs = [r for r in requirements if r.get("chapter_id") == chapter.id]
+
+        # 2. 星号条款 (★) 与废标条款识别
+        has_asterisk = any(
+            r.get("mandatory") or r.get("asterisk") or "★" in r.get("clause", "") or "★" in r.get("text", "")
+            for r in matched_reqs
+        )
+        has_disqualified = any(
+            r.get("disqualified") or "废标" in r.get("clause", "") or "废标" in r.get("text", "")
+            for r in matched_reqs
+        )
+        is_mandatory = bool(has_asterisk or has_disqualified or meta.get("is_mandatory", False))
+
+        # 3. 章节编号与大纲类型
+        chapter_number = meta.get("section_number") or meta.get("chapter_number")
+        if not chapter_number:
+            chapters_in_proj = [c for c in state.chapters.values() if c.project_id == project_id]
+            order_map = {cid: idx for idx, cid in enumerate(workflow.get("chapter_order", []))}
+            chapters_in_proj.sort(key=lambda c: order_map.get(c.id, len(order_map)))
+            try:
+                idx = [c.id for c in chapters_in_proj].index(chapter.id)
+                chapter_number = f"{idx + 1}.0"
+            except ValueError:
+                chapter_number = "1.0"
+
+        from .outline_service import infer_chapter_type
+        outline_type = meta.get("chapter_type") or infer_chapter_type(chapter.title)
+
+        # 4. 组装段落结构与 citations
+        stored_paragraphs = workflow.get("chapter_paragraphs", {}).get(chapter.id)
+        if stored_paragraphs and isinstance(stored_paragraphs, list):
+            paragraphs = []
+            for idx, p in enumerate(stored_paragraphs, start=1):
+                paragraphs.append({
+                    "id": p.get("id") or f"{chapter.id}-p{idx}",
+                    "order": p.get("order", idx),
+                    "text": p.get("text", ""),
+                    "citations": p.get("citations", []),
+                    "created_at": p.get("created_at") or iso_time(now),
+                    "updated_at": p.get("updated_at") or iso_time(now),
+                })
+        else:
+            all_citations = []
+            seen_cite_ids = set()
+            for v in getattr(chapter, "versions", []):
+                cite = v.get("citation")
+                if cite and isinstance(cite, dict) and cite.get("id") not in seen_cite_ids:
+                    all_citations.append(cite)
+                    seen_cite_ids.add(cite.get("id"))
+            for r in matched_reqs:
+                for ev_id in r.get("evidence_ids", []):
+                    if ev_id not in seen_cite_ids:
+                        item = state.library.get(ev_id)
+                        if item:
+                            cite_entry = {
+                                "id": item.get("id", ev_id),
+                                "name": item.get("name", "证据资料"),
+                                "tag": "[证]",
+                                "source_type": "company_library",
+                                "revision": item.get("revision", 1),
+                            }
+                            all_citations.append(cite_entry)
+                            seen_cite_ids.add(ev_id)
+
+            created_at_str = iso_time(now)
+            updated_at_str = iso_time(now)
+            if chapter.versions:
+                first_v = chapter.versions[0]
+                latest_v = chapter.versions[-1]
+                if first_v.get("created_at"):
+                    created_at_str = first_v["created_at"]
+                if latest_v.get("created_at"):
+                    updated_at_str = latest_v["created_at"]
+
+            from .database import decompose_paragraphs
+            paragraphs = decompose_paragraphs(
+                chapter.content or "",
+                chapter.id,
+                citations=all_citations,
+                created_at=created_at_str,
+                updated_at=updated_at_str,
+            )
+
+        from .project_access import chapter_edit, chapter_permissions
+        can_edit = chapter_edit(state, chapter, principal.user.id)
+        permissions = chapter_permissions(state, chapter, principal.user.id)
+
+        return {
+            "id": chapter.id,
+            "project_id": chapter.project_id,
+            "title": chapter.title,
+            "volume": chapter.volume,
+            "chapter_number": chapter_number,
+            "outline_type": outline_type,
+            "is_mandatory": is_mandatory,
+            "locked_by": locked_by,
+            "lock_expires_at": lock_expires_at,
+            "revision": chapter.revision,
+            "paragraphs": paragraphs,
+            "can_edit": can_edit,
+            "permissions": permissions,
+        }
 
     def patch_project(self, principal, project_id, payload, expected, key):
         def operation(state, project, workflow):
@@ -688,7 +1107,7 @@ class WorkflowService:
         if previous:
             return previous
         project = self.demo._project(snapshot, principal, project_id)
-        self.demo.require_allowed_model(project)
+        self.demo.require_allowed_model(project, state=snapshot)
         workflow = self._workflow(snapshot, project_id)
         if not workflow["parse_confirmed"]:
             raise DomainError(409, "PARSE_NOT_CONFIRMED", "解析确认后才能生成章节候选。")
@@ -703,19 +1122,23 @@ class WorkflowService:
             current = self.repository.read()
             actual_project = self.demo._project(current, principal, project_id)
             self._authorize(current, principal, project_id, "chapter.generate", payload)
-            self.demo.require_allowed_model(actual_project)
+            self.demo.require_allowed_model(actual_project, state=current)
             if self._fingerprint(current, project_id) != self._fingerprint(snapshot, project_id):
                 raise DomainError(409, "VERSION_CONFLICT", "项目输入在生成期间发生变化，不能继续把旧资料交给模型或保存候选。")
         for chapter in chapters:
-            assembled = build_generation_context(snapshot, project_id, chapter, self.demo._now())
+            assembled = build_generation_context(snapshot, project_id, chapter, self.demo._now(),
+                                                 evidence_service=self.demo.evidence_service)
             require_ready(assembled)
             input_snapshot = assembled["input_snapshot"]
             context = render_model_input(input_snapshot)
             instruction = "按本章已确认条款、响应、证据和事实组织候选；不能编造证据与承诺。引用事实保留变量，不能改取值。"
             refuse_source_change(input_snapshot["plan"]["writing_points"], input_snapshot)
             check_model_access()
+            provider = self.demo.resolve_model_provider(snapshot, project_id)
             try:
-                content = self.demo.model_provider.suggest(instruction, context)
+                content = provider.suggest(instruction, context)
+            except DomainError:
+                raise
             except Exception as error:
                 raise DomainError(502, "MODEL_UNAVAILABLE", "候选生成失败，正式正文没有修改。") from error
             check_model_access()
@@ -724,12 +1147,12 @@ class WorkflowService:
             candidates[chapter.id] = {"id": new_id("candidate"), "content": content,
                                       "base_revision": chapter.revision,
                                       "input_fingerprint": self._fingerprint(snapshot, project_id),
-                                      "provider": getattr(self.demo.model_provider, "name", "injected"),
-                                      "is_real_model": bool(getattr(self.demo.model_provider, "is_real_model", False)),
+                                      "provider": getattr(provider, "name", "injected"),
+                                      "is_real_model": bool(getattr(provider, "is_real_model", False)),
                                       "created_at": iso_time(self.demo._now()), "source_scope": "whole_chapter",
                                       "input_snapshot": input_snapshot}
         def operation(state, project, current):
-            self.demo.require_allowed_model(project)
+            self.demo.require_allowed_model(project, state=state)
             if self._fingerprint(state, project_id) != self._fingerprint(snapshot, project_id):
                 raise DomainError(409, "VERSION_CONFLICT", "项目资料在生成期间更新，请重新生成候选。")
             # 旧编辑接口也可能在模型调用期间提交版本，必须重新核对。
@@ -759,14 +1182,31 @@ class WorkflowService:
             raise DomainError(422, "INVALID_DATE", "截止时间请使用 ISO 时间格式；未带时区时按北京时间理解。") from error
 
     @staticmethod
-    def _issue(code, message, **links):
-        return {"id": new_id("issue"), "code": code, "severity": "blocking", "message": message, **links}
+    def _is_critical_requirement(row: dict) -> bool:
+        text = str(row.get("text", "") or "")
+        is_disqual = bool(
+            row.get("is_disqualification") is True
+            or row.get("category") == "disqualification"
+            or "废标" in text
+            or "否决" in text
+        )
+        is_star = bool(
+            row.get("importance") == "star"
+            or row.get("category") == "star"
+            or "★" in text
+            or "标星" in text
+        )
+        return is_disqual or is_star
+
+    @staticmethod
+    def _issue(code, message, severity="blocking", **links):
+        return {"id": new_id("issue"), "code": code, "severity": severity, "message": message, **links}
 
     def run_check(self, principal, project_id, payload, expected, key):
         def operation(state, project, workflow):
             volume = payload.get("volume", "all")
             issues = []
-            add = lambda code, message, **links: issues.append(self._issue(code, message, **links))
+            add = lambda code, message, severity="blocking", **links: issues.append(self._issue(code, message, severity=severity, **links))
             if not workflow["parse_confirmed"]:
                 add("PARSE_NOT_CONFIRMED", "解析结果尚未确认。")
             checked_chapters = [c for c in state.chapters.values() if c.project_id == project_id
@@ -799,8 +1239,11 @@ class WorkflowService:
                 if volume != "all" and row["volume"] != volume:
                     continue
                 links = {"requirement_id": row["id"]}
+                is_crit = self._is_critical_requirement(row)
+                crit_sev = "blocker" if is_crit else "blocking"
+
                 if row["status"] == "pending":
-                    add("REQUIREMENT_PENDING", "条款尚待确认：" + row["text"][:60], **links)
+                    add("REQUIREMENT_PENDING", "条款尚待确认：" + row["text"][:60], severity=crit_sev, **links)
                 if row["status"] == "rejected":
                     if not row["reason"].strip():
                         add("REJECTION_REASON_MISSING", "忽略条款没有理由。", **links)
@@ -809,21 +1252,27 @@ class WorkflowService:
                     add("REFERENCE_UNRESOLVED", "条款引用尚未人工核对。", **links)
                 chapter = state.chapters.get(row["chapter_id"] or "")
                 if chapter is None or chapter.project_id != project_id or chapter.volume != row["volume"]:
-                    add("MATRIX_MAPPING_MISSING", "条款没有映射到本分册有效章节。", **links)
+                    add("MATRIX_MAPPING_MISSING", "条款没有映射到本分册有效章节。", severity=crit_sev, **links)
                 if not row["response"].strip() or "待补" in row["response"]:
-                    add("MATRIX_RESPONSE_MISSING", "条款响应为空或仍有待补。", **links)
-                need_evidence = any(word in row["text"] for word in ("资质", "证书", "证明", "业绩", "授权"))
+                    add("MATRIX_RESPONSE_MISSING", "条款响应为空或仍有待补。", severity=crit_sev, **links)
+                elif chapter is not None:
+                    if not chapter.content.strip():
+                        add("CHAPTER_CONTENT_EMPTY", "条款映射章节正文为空：" + chapter.title, severity=crit_sev, chapter_id=chapter.id, **links)
+                    elif "待补" in chapter.content:
+                        add("CHAPTER_CONTENT_PENDING", "条款映射章节正文仍有待补：" + chapter.title, severity=crit_sev, chapter_id=chapter.id, **links)
+
+                need_evidence = any(word in row["text"] for word in ("资质", "证书", "证明", "业绩", "授权")) or row.get("need_evidence") is True
                 if need_evidence and not row["evidence_ids"]:
-                    add("EVIDENCE_MISSING", "证明类条款缺少已确认的企业证据。", **links)
+                    add("EVIDENCE_MISSING", "证明类条款缺少已确认的企业证据。", severity=crit_sev, **links)
                 for evidence_id in row["evidence_ids"]:
                     evidence = state.library.get(evidence_id)
                     if (evidence is None or evidence["company_id"] != project.company_id
                             or evidence["status"] != "confirmed" or evidence["type"] == "history"):
-                        add("EVIDENCE_NOT_USABLE", "条款引用的证据已失效或不能作为证据。", evidence_id=evidence_id, **links)
+                        add("EVIDENCE_NOT_USABLE", "条款引用的证据已失效或不能作为证据。", severity=crit_sev, evidence_id=evidence_id, **links)
                         continue
                     today = datetime.fromtimestamp(self.demo._now(), SHANGHAI).date()
                     if evidence_expired(evidence, project.deadline, today=today):
-                        add("EVIDENCE_EXPIRED", "证据不能覆盖投标截止时间。", evidence_id=evidence_id, **links)
+                        add("EVIDENCE_EXPIRED", "证据不能覆盖投标截止时间。", severity=crit_sev, evidence_id=evidence_id, **links)
             chapters = [c for c in state.chapters.values() if c.project_id == project_id and (volume == "all" or c.volume == volume)]
             required_volumes = {"technical", "business"} if volume == "all" else {volume}
             if {c.volume for c in chapters} != required_volumes:
@@ -866,13 +1315,23 @@ class WorkflowService:
                 raise DomainError(404, "NOT_FOUND", "未找到本项目检查批次。")
             if check["fingerprint"] != self._fingerprint(state, project_id):
                 raise DomainError(409, "CHECK_STALE", "正文、项目资料或证据已更新，请重新检查。")
-            if not check["passed"]:
+
+            check_issues = check.get("issues", [])
+            has_blockers = any(i.get("severity") == "blocker" for i in check_issues)
+
+            if payload.get("kind") == "submission" and has_blockers:
+                raise CheckBlockerError("分册最新检查结果存在未解决的废标或星号条款阻断项，无法导出正式递交版。")
+
+            if payload.get("kind") == "submission":
+                raise DomainError(409, "RULES_INCOMPLETE", "完整合规规则与分册定稿未实现，不能把本地内部稿冒充递交版。")
+
+            is_internal_review = payload.get("kind") == "internal_review"
+            if not is_internal_review and not check["passed"]:
                 raise DomainError(409, "CHECK_FAILED", "当前已实现的流程检查仍有阻断项。")
+
             scope = payload.get("volume", "all")
             if check["volume"] != scope:
                 raise DomainError(409, "ALL_VOLUMES_CHECK_REQUIRED", "导出范围必须和已完成的检查一致；两册导出需要检查全部分册。")
-            if payload["kind"] == "submission":
-                raise DomainError(409, "RULES_INCOMPLETE", "完整合规规则与分册定稿未实现，不能把本地内部稿冒充递交版。")
             chapters = self._ordered_chapters(state, project_id, workflow)
             chapters = [c for c in chapters if scope == "all" or c.volume == scope]
             required_volumes = set(VOLUMES) if scope == "all" else {scope}
@@ -885,14 +1344,46 @@ class WorkflowService:
                     continue
                 selected = [c for c in chapters if c.volume == volume]
                 filename = f"icg-{volume}-{identity}.docx"
-                documents[volume] = {"title": self._mask(project.name) + " — " + name,
-                                     "project_name": self._mask(project.name),
-                                     "content": "\n\n".join(chapter_export_block(self._mask(c.title), self._mask(resolve_fact_variables(state, project_id, c.content))) for c in selected)}
-                volumes.append({"volume": volume, "filename": filename,
-                                "download_url": f"/api/v1/projects/{project_id}/exports/{identity}/{volume}"})
-            record = {"id": identity, "kind": payload["kind"], "check_id": check["id"],
-                      "fingerprint": check["fingerprint"], "created_at": iso_time(self.demo._now()),
-                      "excludes_drafts": True, "volumes": volumes, "documents": documents}
+                doc_title = self._mask(project.name) + " — " + name
+                doc_content = "\n\n".join(chapter_export_block(self._mask(c.title), self._mask(resolve_fact_variables(state, project_id, c.content))) for c in selected)
+                vol_sha = hashlib.sha256(doc_content.encode("utf-8")).hexdigest()
+                documents[volume] = {
+                    "title": doc_title,
+                    "project_name": self._mask(project.name),
+                    "content": doc_content,
+                    "sha256": vol_sha,
+                    "format_metadata": WORD_DEFAULT_FORMAT_METADATA,
+                }
+                volumes.append({
+                    "volume": volume,
+                    "filename": filename,
+                    "download_url": f"/api/v1/projects/{project_id}/exports/{identity}/{volume}",
+                    "sha256": vol_sha,
+                    "format_metadata": WORD_DEFAULT_FORMAT_METADATA,
+                })
+            combined_content = "\n---\n".join(documents[v]["content"] for v in documents)
+            record_sha = hashlib.sha256(combined_content.encode("utf-8")).hexdigest()
+            compliance_notice = (
+                "存在未解决的废标或星号条款阻断项，仅供内部评审，不可作为正式递交文件。"
+                if has_blockers else (
+                    "仅供内部评审，不可作为正式递交文件。"
+                    if is_internal_review else None
+                )
+            )
+            record = {
+                "id": identity,
+                "kind": payload["kind"],
+                "check_id": check["id"],
+                "fingerprint": check["fingerprint"],
+                "created_at": iso_time(self.demo._now()),
+                "excludes_drafts": True,
+                "volumes": volumes,
+                "documents": documents,
+                "has_blockers": has_blockers,
+                "compliance_notice": compliance_notice,
+                "sha256": record_sha,
+                "format_metadata": WORD_DEFAULT_FORMAT_METADATA,
+            }
             workflow["exports"][identity] = record
             self._job(state, project_id, "export", ("两个独立 Word 内部稿已生成" if scope == "all" else "本册 Word 内部稿已生成") + "；只含已提交正文。")
             return {"export": self._public_export(state, project_id, record)}

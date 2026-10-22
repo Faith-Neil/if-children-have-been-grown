@@ -17,12 +17,12 @@
 | 关联 Issue | [ISSUE-010](../../issues/ISSUE-010.md)，并回链 [ISSUE-005](../../issues/ISSUE-005.md) |
 | 依赖 | [FE-M0-T02](FE-M0.md#fe-m0-t02)。不依赖尚未选定的端点或数据库 |
 | PRD / 架构出处 | [前端架构](../ARCHITECTURE.md) 当前实施段；[ISSUE-005](../../issues/ISSUE-005.md) DG-06 |
-| 完成时交付 | [登记交付](../delivery/AI-01.md) |
-| 代码解释 | 不改 `backend/bid-core`。假服务见 [代码解释](../code/AI-01.md) |
+| 完成时交付 | [登记交付](../delivery/AI-01.md)；运行时见 [ISSUE-028 交付](../delivery/ISSUE-028.md) |
+| 代码解释 | 假服务见 [代码解释](../code/AI-01.md)；运行时见 [ISSUE-028 代码解释](../code/ISSUE-028.md) |
 
 范围：列出对话模型、嵌入、重排、向量库、业务库和内网验证的可选项，以及需要用户回答的问题。项目经理对 PostgreSQL 16 与 pgvector 的意见只记为建议，用户没有采纳。
 
-当前条件：2026-10-12 用户决定业务库为 MySQL 8，对话模型由配置页提供，嵌入与向量库用 RAGFlow 自带能力，生产生成只在内网（user decision, relayed by PM）。ISSUE-010 已 closed。本卡为 in-review。托管 CI 不能访问公司内网。不改 `backend/bid-core`。CI 使用测试目录里的假对话服务；连真实地址须 `ICG_RUN_REAL_MODEL_TESTS=1`，默认跳过。配置读取仍未实现。
+当前条件：2026-10-12 用户决定业务库为 MySQL 8，对话模型由配置页提供，嵌入与向量库用 RAGFlow 自带能力，生产生成只在内网（user decision, relayed by PM）。ISSUE-010 已 closed。本卡为 in-review。托管 CI 不能访问公司内网。CI 使用测试目录里的假对话服务；连真实地址须 `ICG_RUN_REAL_MODEL_TESTS=1`，默认跳过。配置读取与运行时路由已通过 ISSUE-028 接入。
 
 可验证验收：
 
@@ -30,7 +30,7 @@
 - [x] 用户已作出选择，路线图和架构的决定用词已更新。PRD 不新增验收。PRD、路线图和 brief 的任务计数未改。
 - [x] CI 使用假的 OpenAI 兼容服务，记录请求头和实际 `base_url`。连真实地址的测试须 `ICG_RUN_REAL_MODEL_TESTS=1`，默认跳过。
 - [ ] 选定后的真实端点或库有独立验收，不由本登记代替。
-- [ ] 敏感项目使用非本地模型返回 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`（由 409 改为 403）。
+- [x] 敏感项目使用非本地模型返回 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`（由 409 改为 403，见 ISSUE-028 与 `test_model_config_provider.py`）。
 
 <a id="ai-02"></a>
 
@@ -145,20 +145,87 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | planned |
+| 状态 | in-review |
 | 估算 | 在现有证据候选后面换上检索客户端，保留路径 A |
 | 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md) |
 | 依赖 | [AI-05](AI-M0.md#ai-05) 的客户端，以及 [AI-03](AI-M0.md#ai-03) 的三条路径 |
 | PRD / 架构出处 | [RAGFlow 检索适配器](../architecture/ragflow-retrieval-adapter.md) 的证据候选节。路径 C 按查询词过滤来自 ISSUE-016 的 QA P3 |
-| 完成时交付 | `docs/delivery/AI-06.md` |
-| 代码解释 | `docs/code/AI-06.md` |
+| 完成时交付 | [AI-06 交付](../delivery/AI-06.md)；[AI 端到端流水线交付](../delivery/AI-GENERATION-PIPELINE.md) |
+| 代码解释 | [AI-06 代码解释](../code/AI-06.md)；[AI 端到端流水线代码解释](../code/AI-GENERATION-PIPELINE.md) |
 
 范围：路径 B、路径 C 改为调用 `RagflowRetrievalClient`。只传入该公司注入的 dataset id。路径 A 仍是已确认资料上的规则，不经过 RAGFlow。路径 C 仍不可附着，并按查询词过滤。B 或 C 失败，或零命中时，保留 A 并记录跳过原因。知识库关闭时不调用 RAGFlow。
 
-当前条件：本卡尚未开工。不建数据集，不改 `kb_sync`。重排只传 `rerank_id`。不把内存口从测试里删掉。不进入 `create_app`，除非届时另有验收。
+当前条件：已完成编码与自动化验证，提交复核。不建数据集，不改 `kb_sync`。重排只传 `rerank_id`。不把内存口从测试里删掉。不进入 `create_app`。
 
 可验证验收：
 
-- [ ] 假 RAGFlow 覆盖跨公司只使用注入的 dataset id、历史投标不可附着、零命中或失败时回退到 A。
-- [ ] 路径 C 按查询词过滤。知识库关闭时没有检索请求。
-- [ ] 交付、代码解释、验证记录和基线同步已登记。真实库不在本卡。
+- [x] 假 RAGFlow 覆盖跨公司只使用注入的 dataset id、历史投标不可附着、零命中或失败时回退到 A。
+- [x] 路径 C 按查询词过滤。知识库关闭时没有检索请求。
+- [x] 交付、代码解释、验证记录和基线同步已登记。真实库不在本卡。
+- [x] 检索能力与动态模型配置端到端闭环接入章节生成 (`WorkflowService.generate`) 与章节建议 (`DemoService.suggest`)，详见 [AI 端到端流水线交付](../delivery/AI-GENERATION-PIPELINE.md)。
+
+不标 done。本卡标为 in-review。合入和发布仍未发生。
+
+<a id="ai-editor-context-linkage"></a>
+
+## AI-EDITOR-CONTEXT-LINKAGE · 编辑台章节上下文感知问答与划词引用联动
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 编辑台右侧助手与中间正文深度联动，支持划词润色与合规诊断 |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [AI-06](AI-M0.md#ai-06) 的检索与证据候选能力，以及 [APP-M2-T179](APP-M2.md#app-m2-t179) 助手门禁规范 |
+| PRD / 架构出处 | [PRD v1.8 §5.11.3～5.11.6、§5.7.8](../reference/product/prd-mvp-v1.8.md) |
+| 完成时交付 | [AI-EDITOR-CONTEXT-LINKAGE 交付](../delivery/AI-EDITOR-CONTEXT-LINKAGE.md) |
+| 代码解释 | [AI-EDITOR-CONTEXT-LINKAGE 代码解释](../code/AI-EDITOR-CONTEXT-LINKAGE.md) |
+
+范围：实现编辑台章节正文上下文感知与划词引用联动。支持传入 `chapter_id`, `chapter_title`, `selected_text`，正文切分为带编号段落 `[P1]`, `[P2]...` 并精准标定划词命中段落。支持两类场景：划词优化/润色建议（`polish`，输出 Diff 建议与改写片段，强制保护事实变量）与章节合规性/完整度问答（`compliance_qa`，条款覆盖诊断）。四道安全门禁守卫：未获独占编辑锁时强制 `can_insert=False`、`action="copy_only"` 且章节正文零突变；持有有效锁且具有溯源依据放行 `suggest_replacement` 建议；敏感项目强制本地离线模型（403）；只读角色（403）与跨租户隔离（404）。
+
+当前条件：已完成编码与自动化验证，提交复核。专属单测 12 passed，联合套件 73 passed 全部绿灯。
+
+可验证验收：
+- [x] 正文结构化切分段落 `[P1]`, `[P2]...`，选中文本精准命中，无选中文本时无损兜底。
+- [x] 划词润色场景输出 Diff 建议产物，保留事实与 SLA 变量标记。
+- [x] 章节合规性问答注入招标文件条款要求与公司证据清单。
+- [x] 自动搜集 `[证]` 与 `[片]` 依据并计算唯一 SHA-256 溯源指纹与 `context_fingerprint`。
+- [x] 未获锁时强制 `can_insert=False`，章节正文/修订号/版本历史零修改。
+- [x] 敏感项目强阻断云端模型（403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`）。
+- [x] 系统只读角色与项目只读成员拦截 403 `FORBIDDEN`，跨租户隔离 404 `NOT_FOUND`。
+- [x] 交付、代码解释、验证记录和基线同步已登记。
+
+不标 done。本卡标为 in-review。合入和发布仍未发生。
+
+<a id="ai-compliance-cross-check"></a>
+
+## AI-COMPLIANCE-CROSS-CHECK · AI 合规检查依据交叉核验与差距诊断
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 正文声明与引用智能抽取，对标 RAGFlow 证据与招标文件条款进行置信度推导与差距诊断 |
+| 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [APP-M2-T185](APP-M2.md#app-m2-t185) 采纳建议回写，以及 [AI-EDITOR-CONTEXT-LINKAGE](AI-M0.md#ai-editor-context-linkage) 上下文感知 |
+| PRD / 架构出处 | [PRD v1.8 §5.8、§5.11.5、§5.11.6](../reference/product/prd-mvp-v1.8.md) |
+| 完成时交付 | [AI-COMPLIANCE-CROSS-CHECK 交付](../delivery/AI-COMPLIANCE-CROSS-CHECK.md) |
+| 代码解释 | [AI-COMPLIANCE-CROSS-CHECK 代码解释](../code/AI-COMPLIANCE-CROSS-CHECK.md) |
+
+范围：实现 AI 合规检查依据交叉核验与差距诊断核心引擎。多维度抽取正文段落中声明（SLA 可用性、响应恢复时限、覆盖时段、巡检频次、RTO/RPO、资质认证、人员能力、业绩案例及服务承诺）并精准绑定行内 `[证:ID]` 引用胶囊。实现 7 类交叉核验场景比对与置信度推导（充分证据 0.95 high、一般描述 0.55 medium warning 并提供针对性差距诊断与补传建议、未标引用 0.15~0.40 low/unsupported）。对标招标文件硬性条款检出负偏离直接评定 0.00 unsupported block 并阻断废标隐患；对标证据有效性（过期、缺失合作协议）直接评定 0.00 unsupported block。核验结果沉淀至 `workflow['incremental_checks']`，联动更新 `chapter.incremental_check_status` 并构建 `CheckIssue`。严格落实涉密项目本地模型门禁（403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`）、非成员权限拦截（403 `FORBIDDEN`）、跨租户隔离（404 `NOT_FOUND`）与 OpenAPI 契约零漂移（`include_in_schema=False`）。
+
+当前条件：已完成编码与自动化验证，提交复核。专属单测 9 passed，关联回归 47 passed 全部绿灯。
+
+可验证验收：
+- [x] 多维度声明（SLA、资质、人员、案例、承诺）抽取与行内引用区间精准绑定。
+- [x] 充分证据高置信度（0.95 high）比对通过。
+- [x] “正文承诺 99.99% 但证据仅为一般描述”识别为 0.55 medium warning，并输出差距诊断与补传建议。
+- [x] 正文承诺劣于招标文件硬性条款识别为 0.00 unsupported block 负偏离阻断。
+- [x] 引用过期证据或缺失合作协议识别为 0.00 unsupported block 阻断。
+- [x] 后端 checks 服务联动与增量复查状态更新（`passed` / `warning` / `failed`）。
+- [x] 涉密项目拦截云端模型（403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`）。
+- [x] 跨租户 404 与非项目成员 403 严格隔离。
+- [x] HTTP 端点 `include_in_schema=False` 保护 143 个冻结错误码无变更。
+- [x] 交付、代码解释、测试文件和基线同步已登记。
+
+不标 done。本卡标为 in-review。合入和发布仍未发生。
+
+
