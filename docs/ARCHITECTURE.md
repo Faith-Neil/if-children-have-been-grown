@@ -513,6 +513,9 @@ taking_over
 
 ## 19. 建议目录结构
 
+> **现行实现与八域收敛说明（DOC-SYNC-1）：**
+> 在质量整改 WP-2 落地后，现行权威前端工程结构已收敛为 8 大业务域子目录（`app/`、`shell/`、`project/`、`editor/`、`library/`、`admin/`、`status/`、`shared/`），详见 `docs/architecture/repository-layout.md` 与 `AGENTS.md`。下述 `features/` 分组为早期方案草案，现行开发严格遵循八域分层。
+
 ```text
 src/
 ├─ app/
