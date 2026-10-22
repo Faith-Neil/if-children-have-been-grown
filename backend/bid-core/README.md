@@ -10,7 +10,7 @@
 
 资料及公司模板旧表单保护已在同源页面接通；后台仍按原公司版本校验，前端不能把刷新当作用户已核对。ISSUE-008 / T16新增19项真实HTTP回归，当时全后台229项通过，见[验收](../../docs/testing/2026-10-11-library-basis.md)。这是限定缺陷修复，完整资料审核、附件、知识片段和正式Word仍待实现。
 
-ISSUE-009 / APP-M2-T001第一阶段新增真实`GET /api/v1/session`：重新读取后台当前账号，返回导航/动作、公司和可选项目/章节权限，不带正文/草稿。页面先核验会话再请求业务数据；三演示角色显式兼容，不冒充完整八角色。当前后台262项及真实会话HTTP16项通过，见[阶段验证](../../docs/testing/2026-10-11-application-session.md)。本卡原布局、浏览器地址/返回、全页离开保护等仍未完成，任务保持in-progress。
+会话与权限契约已落地真实 `GET /api/v1/session`：重新读取后台当前会话账号，返回导航/动作、公司和可选项目/章节权限，不带正文/草稿。页面先核验会话再请求业务数据。系统现行支持 8 大标准 RBAC 角色体系（`platform_admin`、`group_admin`、`company_admin`、`data_admin`、`project_lead`、`bid_writer`、`auditor`、`viewer`），并对历史三角色（`manager`、`editor`、`viewer`）保留显式兼容映射（`role_mode: legacy-demo-compat`），支持通过 `VITE_DEMO=0` 关闭演示模式。
 
 ## 安装和启动
 
@@ -155,14 +155,19 @@ T14/T15已实际验证项目成员、可空参与分册、技术/商务负责人
 
 | 模块路径 | 分层定位 | 职责描述 |
 |---|---|---|
-| `icg_demo/main.py` | 适配器入口 | FastAPI 应用组装、生命周期、全局中间件、统一错误体及生产演示账号门禁 |
-| `icg_demo/database.py` | 兼容门面 (Façade) | 82 行转接壳，提供 100% 向后兼容导入，透明代理至 `icg.infra.*` |
-| `icg_demo/workflow.py` | 兼容门面 (Façade) | 29 行转接壳，透明代理至 `icg.domain.workflow_orchestrator` |
-| `icg_demo/adapters.py` | 兼容门面 (Façade) | 36 行转接壳，透明代理至 `icg.infra.adapters_impl` |
+| `icg_demo/main.py` | 适配器与装配入口 | FastAPI 应用组装、生命周期、全局中间件、统一错误体及生产演示账号门禁 |
+| `icg_demo/database.py` | 兼容门面 (Façade) | 76 行转接壳，向后兼容代理至 `icg.infra.mysql_gate` 与 `icg.infra.repositories.*` |
+| `icg_demo/workflow.py` | 兼容门面 (Façade) | 29 行转接壳，向后兼容代理至 `icg.domain` 四大服务（workflow_orchestrator, export_service, generation_service, outline_service） |
+| `icg_demo/adapters.py` | 适配器门面与替身 | 包含 `DemoModelProvider` 演示替身实现；re-export `MemoryRepository` 与 Word 生成工具 |
 | `icg_demo/schemas.py` | 契约模型层 | 请求/响应 Pydantic 模型，定义 AuthMode / RoleMode / 统一错误体契约 |
-| `icg/infra/*` | 基础设施实现层 | 10 大持久化仓储（account_store, project_store, chapter_store 等）与适配器实现 |
-| `icg/domain/*` | 业务领域服务层 | 核心领域编排（workflow_orchestrator, chapter_service, checks_service, export_service） |
-| `icg/api/`、`icg/app/` | 架构骨架占位 | 上下文子包骨架，主路由当前仍在 `icg_demo/main.py`，待后续 ISSUE-038 迁移填充 |
+| `icg/infra/memory_repository.py` | 基础设施实现 | 内存事务仓储 `MemoryRepository` 与演示状态初始化 `seed_state` |
+| `icg/infra/mysql_gate.py` | 基础设施门禁 | MySQL 引擎连接、`ICG_REQUIRE_MYSQL=1` 生产门禁与重试回执处理 |
+| `icg/infra/repositories/` | 持久化仓储模块 | `chapters.py`、`checks_exports.py`、`projects.py`、`library.py`、`sla.py`、`jobs.py`、`model_config.py`、`mysql_repository.py`、`common.py` |
+| `icg/domain/workflow_orchestrator.py` | 领域编排服务 | 投标项目整体工作流状态机编排与用例协调 |
+| `icg/domain/export_service.py` | 领域导出服务 | 标书 Word 导出格式装配、导出阻断检查错误（`CheckBlockerError`）与快照指纹 |
+| `icg/domain/generation_service.py` | 领域生成服务 | 章节 AI 建议生成与候选装配 |
+| `icg/domain/outline_service.py` | 领域大纲服务 | 项目章节大纲推断与结构服务 |
+| `icg/api/`、`icg/app/` | 架构骨架占位 | 仅含 `__init__.py` 说明；当前路由与装配仍在 `icg_demo/main.py`（待后续 ISSUE-038 迁移填充） |
 | `icg_demo/parsing.py` | 提取服务 | 提取原件文本与分页位置 |
 | `icg_demo/retrieval.py` | 检索服务 | 嵌入、重排与三条证据候选服务 |
 
