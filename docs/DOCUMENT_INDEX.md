@@ -704,11 +704,13 @@
 | D-691 | 2026-10-22 | [WP-3 前端巨石组件拆分解耦交付](delivery/WP-3.md) | 架构整改交付 | wp-3-1 | 当前 | 治理 / 质量 | WP-3 拆解 App.tsx、ProjectPages.tsx 与 EditorPage.tsx 提取 13 个领域子组件交付报告 |
 | D-692 | 2026-10-22 | [WP-4 后端巨石模块解耦与分包治理交付](delivery/WP-4.md) | 架构整改交付 | wp-4-1 | 当前 | 治理 / 质量 | WP-4 拆解 database.py（2352行）与 workflow.py（1524行）至 icg/ 分包（infra/domain）架构，保持 icg_demo 100% 兼容 façade |
 | D-693 | 2026-10-22 | [WP-5 API 接口收敛与错误体规范化交付](delivery/WP-5.md) | 架构整改交付 | wp-5-1 | 当前 | 治理 / 质量 | WP-5 /api/demo 标记 deprecated 并添加 Deprecation 头，App.tsx 切换至 /api/v1，统一错误体，生产配置禁用演示账号 |
+| D-694 | 2026-10-22 | [WP-6 去演示身份与八角色前端收口交付](delivery/WP-6.md) | 架构整改交付 | wp-6-1 | 当前 | 治理 / 质量 | WP-6 单源收口八角色 roles.ts 与字典状态 codes.ts，放宽 session-navigation 信任核验，重构 LoginScreen 落实 Layout First 去说明化，App.tsx 接入真实凭据登录，契约与全量测试通过 |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-10-22 | 治理 / 质量 | 登记 WP-6 去演示身份与八角色前端收口交付（WP-6.md），完成 roles.ts 与 codes.ts 单源码表收口、可信会话解耦、LoginScreen 凭据登录与 Layout First 落地，前端 348 项全绿验收 |
 | 2026-10-22 | 治理 / 质量 | 登记 WP-5 API 接口收敛与错误体规范化交付（WP-5.md），完成 /api/demo 弃用与 Deprecation 头注入、统一错误体与生产演示账号禁用门禁 |
 | 2026-10-22 | 治理 / 质量 | 登记 WP-4 后端巨石模块解耦分包交付（WP-4.md），完成 database.py 与 workflow.py 模块化解耦，全量 606 项后端与 344 项前端测试全绿验收 |
 | 2026-10-22 | 治理 / 质量 | 登记 WP-3 前端巨石组件拆分解耦交付（WP-3.md），完成 App.tsx、ProjectPages.tsx 与 EditorPage.tsx 13 个领域子组件拆解与 344 项单测全绿验收 |

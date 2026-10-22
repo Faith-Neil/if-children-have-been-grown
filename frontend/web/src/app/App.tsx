@@ -33,6 +33,7 @@ import { Can, CanProvider } from '../shell/Can';
 import { ProjectHeader } from '../project/ProjectHeader';
 import { ProjectListPage } from '../project/ProjectListPage';
 import { LoginScreen } from './LoginScreen';
+import { isDemoMode } from '../shared/roles';
 import { CreateProjectModal } from '../project/CreateProjectModal';
 import { TaskDrawer } from '../status/TaskDrawer';
 
@@ -117,7 +118,11 @@ export default function App() {
     message.error(userFacingMessage(error));
     if (error instanceof ApiError && error.status === 401) logout();
   }
-  useEffect(() => { request<{ accounts: Account[] }>('/api/demo/accounts', null).then(data => setAccounts(data.accounts)).catch(report); }, []);
+  useEffect(() => {
+    if (isDemoMode()) {
+      request<{ accounts: Account[] }>('/api/demo/accounts', null).then(data => setAccounts(data.accounts)).catch(report);
+    }
+  }, []);
   useEffect(() => {
     if (readHistoryIndex(window.history.state) === null) window.history.replaceState({ app: true, idx: indexRef.current }, '', window.location.pathname);
   }, []);
@@ -221,6 +226,35 @@ export default function App() {
       await refreshGlobal(data.access_token, approved);
       followPath(routeAfterLogin(window.location.pathname, home).path, 'replace');
     } catch (error) { if (isRequestFailureCurrent(error, activeToken.current)) { report(error); logout(); } } finally { setBusy(false); }
+  }
+  async function loginWithToken(tokenValue: string) {
+    setBusy(true);
+    try {
+      epoch.current++;
+      clearCompanyData();
+      currentSession.current = { company_id: '', account_id: '' };
+      currentAuthorization.current = null;
+      setApplicationSession(null);
+      activeToken.current = tokenValue;
+      setWorkspace(null);
+      setAccessLost(false);
+      projectId.current = null;
+      const approved = await loadSession(tokenValue);
+      const home = sessionHomeRoute(approved);
+      setToken(tokenValue);
+      setDenied(null);
+      if (typeof setDeniedDetails === 'function') setDeniedDetails(null);
+      setMissing(null);
+      await refreshGlobal(tokenValue, approved);
+      followPath(routeAfterLogin(window.location.pathname, home).path, 'replace');
+    } catch (error) {
+      if (isRequestFailureCurrent(error, activeToken.current)) {
+        report(error);
+        logout();
+      }
+    } finally {
+      setBusy(false);
+    }
   }
   function reportDirty(value: boolean) {
     if (armedLeave.current) return;
@@ -567,7 +601,7 @@ export default function App() {
   const blockers = latest?.issues.filter(item => item.severity === 'blocker' || item.severity === 'blocking' || item.severity === 'error').length ?? 0;
   const coverage = workspace?.requirements.length ? Math.round(workspace.requirements.filter(item => item.response.trim()).length / workspace.requirements.length * 100) : 0;
 
-  if (!token || !user) return <LoginScreen accounts={accounts} accountId={accountId} onAccountIdChange={setAccountId} onLogin={login} busy={busy} />;
+  if (!token || !user) return <LoginScreen accounts={accounts} accountId={accountId} onAccountIdChange={setAccountId} onLogin={login} onTokenLogin={loginWithToken} busy={busy} />;
 
   const menu = [
     ...navigation.filter(item => sessionAllowsRoute(applicationSession, item.id)).map(item => ({ path: globalPath(item.id), name: item.name, icon: item.icon })),

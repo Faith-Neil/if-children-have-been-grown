@@ -17236,12 +17236,18 @@
         "properties": {
           "auth_mode": {
             "type": "string",
-            "const": "synthetic-demo",
+            "enum": [
+            "synthetic-demo",
+            "authenticated"
+          ],
             "title": "Auth Mode"
           },
           "role_mode": {
             "type": "string",
-            "const": "legacy-demo-compat",
+            "enum": [
+            "legacy-demo-compat",
+            "rbac-8roles"
+          ],
             "title": "Role Mode"
           },
           "user": {

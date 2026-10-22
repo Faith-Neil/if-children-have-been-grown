@@ -1,10 +1,15 @@
 // 为什么有这个文件：把后台主链路的数据字段集中说明。
 // 它解决什么问题：页面之间传递同一项目、条款、章节和检查状态。
+import type { SystemRole } from './roles.ts';
+
 export type Volume = 'technical' | 'business';
-export type Account = { id: string; name: string; company_id: string; role: 'editor' | 'manager' | 'viewer' };
-// 当前会话只提供三种兼容演示身份；导航与动作采用后台返回值，业务页暂保留原 role。
+export type AuthMode = 'synthetic-demo' | 'authenticated';
+export type RoleMode = 'legacy-demo-compat' | 'standard' | 'rbac-8roles';
+export type AccountRole = SystemRole | 'editor' | 'manager' | 'viewer' | 'readonly' | 'reviewer' | 'writer' | 'lead';
+export type Account = { id: string; name: string; company_id: string; role: AccountRole };
+// 支持合成演示模式与正式八角色会话；导航与动作采用后台返回值。
 export type ApplicationSession = {
-  auth_mode: 'synthetic-demo'; role_mode: 'legacy-demo-compat';
+  auth_mode: AuthMode; role_mode: RoleMode;
   user: Account & { roles: string[]; primary_role: string };
   scope: { kind: 'company'; active_company_id: string; allowed_company_ids: string[] };
   navigation: { route_id: string; path: string; access: 'read' | 'write' }[];

@@ -1,6 +1,7 @@
 // 为什么有这个文件：让导航与数据读取先采用后台重新核验的会话。
 // 它解决什么问题：登录时的旧角色不能授权菜单，未知或无权入口不会先读取业务数据。
 import type { ApplicationSession, ChapterPermissions, ProjectPermissions, Workspace } from '../shared/types';
+import { isKnownRole } from '../shared/roles.ts';
 
 export class SessionNavigationError extends Error {
   status = 403;
@@ -18,8 +19,15 @@ function forbidden(message = '你没有该页面的权限，请联系公司管�
 }
 
 export function trustedApplicationSession(value: ApplicationSession): ApplicationSession {
-  if (!value || value.auth_mode !== 'synthetic-demo' || value.role_mode !== 'legacy-demo-compat'
-    || !value.user?.id || !value.user.name || !['manager', 'editor', 'viewer'].includes(value.user.role)
+  const isLegacyDemo = value?.role_mode === 'legacy-demo-compat';
+  const roleValid = isLegacyDemo
+    ? ['manager', 'editor', 'viewer'].includes(value?.user?.role)
+    : isKnownRole(value?.user?.role);
+
+  if (!value
+    || !['synthetic-demo', 'authenticated'].includes(value.auth_mode)
+    || !['legacy-demo-compat', 'standard', 'rbac-8roles'].includes(value.role_mode)
+    || !value.user?.id || !value.user.name || !roleValid
     || !value.user.company_id || !Array.isArray(value.user.roles) || !value.user.roles.length || !value.user.primary_role
     || value.scope?.kind !== 'company' || value.scope.active_company_id !== value.user.company_id
     || !Array.isArray(value.scope.allowed_company_ids) || !value.scope.allowed_company_ids.includes(value.user.company_id)

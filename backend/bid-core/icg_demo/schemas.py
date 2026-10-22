@@ -182,8 +182,8 @@ class SessionProjectAccess(ResponseBody):
 
 
 class ApplicationSessionResponse(ResponseBody):
-    auth_mode: Literal["synthetic-demo"]
-    role_mode: Literal["legacy-demo-compat"]
+    auth_mode: Literal["synthetic-demo", "authenticated"]
+    role_mode: Literal["legacy-demo-compat", "rbac-8roles"]
     user: SessionUserResponse
     scope: SessionScopeResponse
     navigation: list[SessionNavigationResponse]
