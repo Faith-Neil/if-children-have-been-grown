@@ -13,7 +13,7 @@
 | 登记日期 | 2026-10-22 |
 | 最后更新日期 | 2026-10-22 |
 | revision | 1 |
-| 关联 Task | 待分配；[任务看板](../docs/TASK_BOARD.md) |
+| 关联 Task | [BE-TECH-DEBT-01](../docs/TASK_BOARD.md#be-tech-debt-01)、[FE-TECH-DEBT-01](../docs/TASK_BOARD.md#fe-tech-debt-01)、[BE-TECH-DEBT-02](../docs/TASK_BOARD.md#be-tech-debt-02)；[任务看板](../docs/TASK_BOARD.md) |
 | 关联 PR | 未创建 |
 | 本地验收 | 未执行 |
 | 合入 | 未合入 |

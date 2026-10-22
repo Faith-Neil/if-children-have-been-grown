@@ -54,10 +54,10 @@
 
 ### A5. 验收（板头同步）
 
-- [ ] 打开 `TASK_BOARD.md` 一眼能看到「WP 已收官 + 勿重做 FE-M0」
-- [ ] FE-M0-T04～T10 有防误派标注
-- [ ] ISSUE-038 三债卡可见
-- [ ] 未新建第二套看板文件
+- [x] 打开 `TASK_BOARD.md` 一眼能看到「WP 已收官 + 勿重做 FE-M0」
+- [x] FE-M0-T04～T10 有防误派标注
+- [x] ISSUE-038 三债卡可见
+- [x] 未新建第二套看板文件
 
 **提交建议：** `docs(governance): sync TASK_BOARD header after WP/DOC-SYNC`
 
@@ -149,7 +149,7 @@ AI subagent：只做 board 上 AI-M0 已具备接口的验收或最小对接；�
 
 | 项 | 填写 |
 |---|---|
-| 完成 tip | |
-| 改动文件 | |
-| FE-M0 标注方式 | |
-| ISSUE-038 行 ID | |
+| 完成 tip | 待落地提交 HEAD（见本卡交付提交） |
+| 改动文件 | `docs/TASK_BOARD.md`<br>`docs/tasks/FE-M0.md`<br>`issues/ISSUE-038.md`<br>`docs/delivery/2026-10-23-task-board-header-sync.md` |
+| FE-M0 标注方式 | 在板表任务名及 tasks/FE-M0.md 卡头显式标注 `superseded-by-WP` / 「禁止重建；仅允许补交付/验收」，状态标为 `cancelled` |
+| ISSUE-038 行 ID | `BE-TECH-DEBT-01`、`FE-TECH-DEBT-01`、`BE-TECH-DEBT-02`（均关联 ISSUE-038，状态 planned，优先级 P2） |
