@@ -3,6 +3,7 @@
 它解决什么问题：消除 backend/bid-core/icg_demo 中 2352 行的 database.py 和 1524 行的 workflow.py 巨石代码，在 backend/bid-core/icg 下建立标准限界上下文分包（infra/repositories、domain、api、app），并由 icg_demo 保持 100% 行为与导入契约兼容。
 
 # WP-4：后端巨石模块解耦与分包治理交付
+> **历史快照（DOC-SYNC-1）：** 本文记录整改当时目标与验收；**现行**仓库结构与入口约定见 `docs/architecture/repository-layout.md` 与 `AGENTS.md`。
 
 <!-- task-delivery:start -->
 | 项目 | 记录 |

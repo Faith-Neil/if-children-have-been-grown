@@ -3,6 +3,7 @@
 它解决什么问题：解决 Windows 环境下 CP936 代码页导致 Alembic 配置解析与迁移脚本报错中断的隐患，核验数据库迁移链 0001~0011 的连贯性与正确性，并在 AGENTS.md 中固化后端分包、前端按域、API 收敛、测试收口与 Layout First 等架构质量规则，建立可信整改基线。
 
 # WP-1：基线锁定与 Windows CP936 编码加固交付
+> **历史快照（DOC-SYNC-1）：** 本文记录整改当时目标与验收；**现行**仓库结构与入口约定见 `docs/architecture/repository-layout.md` 与 `AGENTS.md`。
 
 <!-- task-delivery:start -->
 | 项目 | 记录 |

@@ -3,6 +3,7 @@
 它解决什么问题：针对 App.tsx、ProjectPages.tsx、EditorPage.tsx 三大单体巨石，在 100% 保持既有行为与 AST 契约的前提下，按领域抽取 13 个细粒度子组件（单文件规模均控制在 21~348 行），杜绝冗余标签与界面说明书化。
 
 # WP-3：前端巨石组件拆分解耦交付
+> **历史快照（DOC-SYNC-1）：** 本文记录整改当时目标与验收；**现行**仓库结构与入口约定见 `docs/architecture/repository-layout.md` 与 `AGENTS.md`。
 
 <!-- task-delivery:start -->
 | 项目 | 记录 |

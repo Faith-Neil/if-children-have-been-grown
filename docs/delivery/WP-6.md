@@ -3,6 +3,7 @@
 它解决什么问题：解耦前端对合成演示会话与三角色的强制依赖，建立基于 PRD v1.8 §2.2 与数据字典 v1.9 §4.16 的前端八角色码表 roles.ts 与状态字典 codes.ts 单源驱动，支持正式路径 /api/v1/session 凭据会话与演示模式（VITE_DEMO）可关闭，并落实 Layout First 去说明化界面原则。
 
 # WP-6：去演示身份与八角色前端收口交付
+> **历史快照（DOC-SYNC-1）：** 本文记录整改当时目标与验收；**现行**仓库结构与入口约定见 `docs/architecture/repository-layout.md` 与 `AGENTS.md`。
 
 <!-- task-delivery:start -->
 | 项目 | 记录 |

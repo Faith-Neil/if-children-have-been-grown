@@ -3,6 +3,7 @@
 它解决什么问题：实现 OpenAPI 由代码生成并接入 CI 自动化一致性校验（--check 门禁），杜绝手工维护 900KB 巨型契约；补齐 package.json 的 lint/test 脚本；完成全流程全量回归终审，确保整轮质量整改零回归。
 
 # WP-7：OpenAPI 生成化、测试脚本规范化与全量回归终审交付
+> **历史快照（DOC-SYNC-1）：** 本文记录整改当时目标与验收；**现行**仓库结构与入口约定见 `docs/architecture/repository-layout.md` 与 `AGENTS.md`。
 
 <!-- task-delivery:start -->
 | 项目 | 记录 |

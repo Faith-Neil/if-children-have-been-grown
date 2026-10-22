@@ -1,4 +1,5 @@
 # ICG 质量审查与整改方案（交给 Antigravity）
+> **历史快照（DOC-SYNC-1）：** 本文记录整改当时目标与验收；**现行**仓库结构与入口约定见 `docs/architecture/repository-layout.md` 与 `AGENTS.md`。
 
 - 审查日期：2026-10-22（Asia/Shanghai）
 - 本机路径：`C:\Users\徐佳馨\if-children-have-been-grown`

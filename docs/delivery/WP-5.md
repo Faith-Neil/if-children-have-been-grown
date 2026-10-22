@@ -3,6 +3,7 @@
 它解决什么问题：收敛前后端 API 路由至 /api/v1 标准路径，弃用历史 /api/demo 端点并增加 Deprecation: true 响应头，统一所有错误响应格式为 {code, message, details, traceId}，并在生产配置下阻断内置演示账号登录。
 
 # WP-5：API 接口收敛与错误体规范化交付
+> **历史快照（DOC-SYNC-1）：** 本文记录整改当时目标与验收；**现行**仓库结构与入口约定见 `docs/architecture/repository-layout.md` 与 `AGENTS.md`。
 
 <!-- task-delivery:start -->
 | 项目 | 记录 |
