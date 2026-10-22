@@ -43,4 +43,5 @@
 - **前端按域分层**：禁止再向 `frontend/web/src/` 根目录平铺新增页面文件，必须归入域目录（app/shell/project/editor/library/admin/status/shared）。
 - **UI 与界面设计克制（Layout First）**：Avoid unnecessary secondary labels and descriptions. Let the layout do the explaining. 避免在 UI 设计与组件开发时堆砌莫名其妙的次级标签、徽标或说明文字，杜绝将界面做成说明书；依靠清晰的视觉层级、布局与交互流自然表达意图。
 - **API 接口收敛**：新接口只加 `/api/v1`；`/api/demo` 路径已标为 deprecated，只读兼容，不再向旧 demo 路径添加新端点。
+- **前端测试权威收口**：前端唯一权威测试套件位于 `frontend/web/tests/`（含 `unit/`，通过 `pnpm --dir frontend/web test` 运行）。根目录 `tests/frontend/` 仅保留兼容历史文档引用的轻量级转发壳（re-export），严禁在此新增或扩展第三套测试目录，严禁在 `tests/frontend/` 中编写实际业务测试逻辑。
 - **持久化门禁**：生产配置强制 `ICG_REQUIRE_MYSQL=1`；仅在测试环境下允许内存仓储，生产路径严禁静默回落到内存仓储。

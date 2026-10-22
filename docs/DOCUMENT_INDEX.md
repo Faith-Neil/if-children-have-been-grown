@@ -699,11 +699,14 @@
 | D-686 | 2026-10-22 | [四大终局成果 QA终验签署](testing/2026-10-22-final-sprint-qa-signoff.md) | 验证 | qa-rerun-64 | 本地通过 | ISSUE-005 / ISSUE-006 / ISSUE-007 / ISSUE-027 / ISSUE-037 / APP-M2-T195 / APP-M2-T196 / APP-M2-T020 / BE-CHECKS-EXPORT-ALIGN / AI-COMPLIANCE-CROSS-CHECK | 四大终局收尾成果（APP-M2-T195/T196 合规检查红线与双模导出、APP-M2-T020 SSE订阅流断线重试与轮询回退、BE-CHECKS-EXPORT-ALIGN 检查blocker判定与导出400强拦截及版式指纹、AI-COMPLIANCE-CROSS-CHECK 正文引用与RAGFlow交叉核验及负偏离阻断）独立复测全部通过；后端专属与回归 43 passed、前端单测 344 passed、前端生产构建 960ms 无告警通过、治理 478 份通过；保持 in-review 不标 done |
 | D-687 | 2026-10-22 | [全量回归质量终审 QA签署](testing/2026-10-22-full-regression-qa-signoff.md) | 验证 | qa-rerun-65 | 本地通过 | ISSUE-005 / ISSUE-006 / ISSUE-007 / ISSUE-018 / ISSUE-021 / ISSUE-027 / ISSUE-032 / ISSUE-035 / ISSUE-037 / 全量模块 | 项目全量回归独立复测通过：后端全量 606 passed 42 skipped 0 failed、会话冒烟 15/15 passed、T06 Word 冒烟 12/12 passed、前端全量单测 344 passed、生产构建 843ms 顺利通过、治理 479 份 0 错误；修复 database.py 空值转 int 与 OpenAPI 冻结草案元数据；被验卡保持 in-review 不标 done |
 | D-688 | 2026-10-22 | [质量审查与整改方案](delivery/2026-10-22-quality-remediation-plan.md) | 规划 | quality-remediation-1 | 当前 | 治理 / 质量 | ICG 质量审查与整改方案，系统化梳理 P0~P3 结构性债务与四阶段无行为变更演进路线 |
+| D-689 | 2026-10-22 | [PRD完备性审查与差距汇总](delivery/2026-10-22-prd-gap-summary.md) | 审查 | prd-gap-1 | 当前 | PRD / 差距分析 | PRD MVP v1.8 功能完备性审查与缺陷汇总，系统梳理 13 大能力块现状与差距 |
+| D-690 | 2026-10-22 | [WP-2 前端目录搬家交付](delivery/WP-2.md) | 架构整改交付 | wp-2-1 | 当前 | 治理 / 质量 | WP-2 前端按域子目录无行为物理分层交付与工作台/编辑台/资料库三页结构冒烟点验记录 |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-10-22 | 治理 / 质量 | 登记 WP-2 前端目录搬家交付（WP-2.md）与 PRD 完备性差距汇总（2026-10-22-prd-gap-summary.md），确认工作台/编辑台/资料库三核心页面结构冒烟通过 |
 | 2026-10-22 | 治理 / 质量 | 登记质量审查与整改方案（2026-10-22-quality-remediation-plan.md），系统化梳理 P0~P3 结构性债务与四阶段无行为变更演进路线 |
 | 2026-10-22 | ISSUE-005 / ISSUE-006 / ISSUE-007 / ISSUE-018 / ISSUE-021 / ISSUE-027 / ISSUE-032 / ISSUE-035 / ISSUE-037 / 全量模块 | QA签署：全量回归测试套件与质量门禁终验，通过（后端全量回归 606 passed 42 skipped 0 failed、会话冒烟 15 passed、T06 Word 双册渲染冒烟 12 passed、前端全量 344 passed、生产构建 843ms 顺利通过、分包体积健康受控、工程治理检查 479 份 Markdown 0 错误；修复 database.py _project_snapshot 空值转换异常、补齐 demo-v1.json x-contract-drafts 冻结草案元数据、升级旧测试对统一 V1Error 错误体的断言兼容；全部被验任务卡统一维持 in-review 不私自标 done） |
 | 2026-10-22 | ISSUE-005 / ISSUE-006 / ISSUE-007 / ISSUE-027 / ISSUE-037 / APP-M2-T195 / APP-M2-T196 / APP-M2-T020 / BE-CHECKS-EXPORT-ALIGN / AI-COMPLIANCE-CROSS-CHECK | QA签署：四大终局收尾成果独立复验，通过（APP-M2-T195/T196 ChecksPage 挂载 blocker 红色告警横幅与受阻章节列表、ExportPage 正式递交版强阻断置灰与内部评审稿放行、导出历史表格与 64 位 SHA-256 版式指纹；APP-M2-T020 JobProgress SSE 实时流式事件订阅 /api/v1/jobs/{id}/events、断线 3 阶梯指数退避重试 1s->2s->4s 与平滑轮询降级；BE-CHECKS-EXPORT-ALIGN 废标条款与关键星号条款判定为 blocker 严重度、正式递交导出 400 CHECK_BLOCKER_EXISTS 强拦截门禁、内部评审稿放行标记、Word 默认版式元数据与 64 位 SHA-256 版式指纹注入；AI-COMPLIANCE-CROSS-CHECK 正文 SLA 与资质人员声明及 .cite 证据提取、对标招标文件强制条款识别负偏离并阻断 risk=block 置信度 0.0、依据置信度推导 0.0~1.0 与改进建议；后端单测 43 passed、前端单测 344 passed、生产构建 960ms 顺利通过、分包体积健康受控；全部被验任务卡保持 in-review 不标 done） |
