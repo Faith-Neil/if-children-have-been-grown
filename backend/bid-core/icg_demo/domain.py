@@ -46,12 +46,27 @@ class DomainError(Exception):
         super().__init__(message)
 
 
+DEMO_ONLY_ACCOUNT_IDS = frozenset({
+    "alpha-editor",
+    "alpha-manager",
+    "alpha-viewer",
+    "beta-editor",
+    "alpha-tech",
+    "alpha-business",
+    "alpha-outsider-manager",
+    "beta-manager",
+    "alpha-company-admin",
+    "alpha-data-admin",
+})
+
+
 @dataclass(frozen=True)
 class Account:
     id: str
     name: str
     company_id: str
     role: str
+    _DEMO_ONLY: bool = False
 
 
 @dataclass(frozen=True)
@@ -317,6 +332,11 @@ class DemoService:
             user = state.accounts.get(account_id)
             if user is None:
                 raise DomainError(401, "INVALID_ACCOUNT", "请选择有效的合成演示账号。")
+            import os
+            if (os.environ.get("ICG_ALLOW_DEMO_LOGIN", "1") == "0"
+                    or os.environ.get("DEMO_ACCOUNTS_ENABLED") == "0"
+                    or os.environ.get("ICG_ENV") == "production") and (account_id in DEMO_ONLY_ACCOUNT_IDS or getattr(user, "_DEMO_ONLY", False)):
+                raise DomainError(403, "FORBIDDEN", "生产配置下禁用内置演示账号登录。")
             token = secrets.token_urlsafe(32)
             state.sessions[token] = user.id
             return {"access_token": token, "token_type": "bearer", "user": asdict(user)}

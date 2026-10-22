@@ -95,6 +95,8 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
             reset_request(token)
         response.headers["X-Request-ID"] = request.state.request_id
         response.headers["Cache-Control"] = "no-store"
+        if request.url.path.startswith("/api/demo"):
+            response.headers["Deprecation"] = "true"
         if replayed_for(request):
             response.headers["Idempotent-Replayed"] = "true"
         return response
@@ -106,9 +108,12 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
         if request.url.path.startswith("/api/chapters/") and "/suggestions" in request.url.path:
             content["error"] = {"code": code, "message": message}
             content["request_id"] = request_id
+        resp_headers = {"X-Request-ID": request_id, "Cache-Control": "no-store", **(headers or {})}
+        if request.url.path.startswith("/api/demo"):
+            resp_headers["Deprecation"] = "true"
         return JSONResponse(status_code=status,
                             content=content,
-                            headers={"X-Request-ID": request_id, "Cache-Control": "no-store", **(headers or {})})
+                            headers=resp_headers)
 
     @application.exception_handler(DomainError)
     async def business_error(request: Request, error: DomainError):
@@ -160,12 +165,12 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
         # 原后台验证页保留作开发工具，产品主入口使用同一后台的 ICG 页面。
         return FileResponse(static_directory / "index.html")
 
-    @application.get("/api/demo/accounts", response_model=AccountListResponse, operation_id="listAccounts")
+    @application.get("/api/demo/accounts", response_model=AccountListResponse, operation_id="listAccounts", deprecated=True)
     def accounts():
         return service.accounts()
 
     @application.post("/api/demo/login", response_model=LoginResponse, operation_id="login",
-                      responses=error_responses(401))
+                      responses=error_responses(401), deprecated=True)
     def login(body: LoginRequest):
         return service.login(body.account_id)
 

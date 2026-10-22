@@ -177,7 +177,8 @@
               }
             }
           }
-        }
+        },
+        "deprecated": true
       }
     },
     "/api/demo/login": {
@@ -255,7 +256,8 @@
               }
             }
           }
-        }
+        },
+        "deprecated": true
       }
     },
     "/api/v1/session": {

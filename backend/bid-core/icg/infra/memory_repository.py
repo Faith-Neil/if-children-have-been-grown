@@ -19,16 +19,16 @@ def seed_state() -> DemoState:
     """构建单元测试与演示使用的初始合成数据状态。"""
     state = DemoState()
     for user in (
-        Account("alpha-editor", "甲公司编写人（合成）", "alpha", "editor"),
-        Account("alpha-manager", "甲公司项目经理（合成）", "alpha", "manager"),
-        Account("alpha-viewer", "甲公司查看人（合成）", "alpha", "viewer"),
-        Account("beta-editor", "乙公司编写人（合成）", "beta", "editor"),
-        Account("alpha-tech", "甲公司技术编写人（合成）", "alpha", "editor"),
-        Account("alpha-business", "甲公司商务编写人（合成）", "alpha", "editor"),
-        Account("alpha-outsider-manager", "甲公司其他项目经理（合成）", "alpha", "manager"),
-        Account("beta-manager", "乙公司项目经理（合成）", "beta", "manager"),
-        Account("alpha-company-admin", "甲公司管理员（合成）", "alpha", "company_admin"),
-        Account("alpha-data-admin", "甲公司资料管理员（合成）", "alpha", "data_admin"),
+        Account("alpha-editor", "甲公司编写人（合成）", "alpha", "editor", _DEMO_ONLY=True),
+        Account("alpha-manager", "甲公司项目经理（合成）", "alpha", "manager", _DEMO_ONLY=True),
+        Account("alpha-viewer", "甲公司查看人（合成）", "alpha", "viewer", _DEMO_ONLY=True),
+        Account("beta-editor", "乙公司编写人（合成）", "beta", "editor", _DEMO_ONLY=True),
+        Account("alpha-tech", "甲公司技术编写人（合成）", "alpha", "editor", _DEMO_ONLY=True),
+        Account("alpha-business", "甲公司商务编写人（合成）", "alpha", "editor", _DEMO_ONLY=True),
+        Account("alpha-outsider-manager", "甲公司其他项目经理（合成）", "alpha", "manager", _DEMO_ONLY=True),
+        Account("beta-manager", "乙公司项目经理（合成）", "beta", "manager", _DEMO_ONLY=True),
+        Account("alpha-company-admin", "甲公司管理员（合成）", "alpha", "company_admin", _DEMO_ONLY=True),
+        Account("alpha-data-admin", "甲公司资料管理员（合成）", "alpha", "data_admin", _DEMO_ONLY=True),
     ):
         state.accounts[user.id] = user
     for company in ("alpha", "beta"):

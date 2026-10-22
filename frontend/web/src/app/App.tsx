@@ -197,7 +197,7 @@ export default function App() {
     const account = approved.user.id;
     const start = epoch.current;
     const results = await readAuthorizedCompanyData(approved, {
-      projects: () => request<{ projects: Project[] }>('/api/projects', currentToken),
+      projects: () => request<{ projects: Project[] }>('/api/v1/projects', currentToken),
       library: () => request<CompanyCollectionSnapshot<Evidence>>('/api/v1/library', currentToken),
       templates: () => request<CompanyCollectionSnapshot<SlaTemplate>>('/api/v1/sla/templates', currentToken),
       jobs: () => request<{ jobs: Job[] }>('/api/v1/jobs', currentToken),
