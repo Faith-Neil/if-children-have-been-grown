@@ -44,6 +44,8 @@ import {
 } from './editor-conflict';
 import { CiteCapsule, RichParagraphWithCites } from './CiteCapsule';
 import { SelectionBubble } from './SelectionBubble';
+import { EditorAssistantPanel } from './EditorAssistantPanel';
+import { EditorVersionsDrawer } from './EditorVersionsDrawer';
 import { extractCitationIds, type CiteKind, type CitationMeta } from './cite-capsule';
 
 type Lease = { lease_token: string; expires_at: string; owner_id: string };
@@ -896,37 +898,26 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
           </article> : <Empty description="当前分册没有可编辑章节" />}
         </div></Spin>
       </section>
-      <aside className="editor-right">
-        <Tabs size="small" activeKey={rightTab} onChange={setRightTab} items={[{ key: 'assistant', label: '对话助手' }, { key: 'issues', label: '问题' }, { key: 'sources', label: '写作来源' }]} />
-        <div className="assistant-scroll">
-          {rightTab === 'assistant' && <>
-            <div className="model-label"><AiTag variant={candidate?.is_real_model ? 'model' : 'demo'} /><span>整章候选 · 人工确认后才写入</span></div>
-            {workspace.project.sensitive && <Alert type="info" message="敏感项目 · 只使用本地服务" />}
-            <Card size="small" className="instruction-card"><span className="muted">当前章节 · {chapter?.title}</span><p>{instruction}</p></Card>
-            {candidate ? <Card size="small" className="suggestion-card" title={<Space wrap><AiTag variant="candidate" /><span>基于 v{candidate.base_revision}</span></Space>}>
-              {candidateIssue && <Alert type="warning" showIcon message="候选已失效，暂不能写入" description={candidateIssue} className="page-notice" />}
-              <p className="suggestion-content">{candidate.content}</p>
-              <Alert type="info" showIcon message={candidate.is_real_model ? '模型建议仍须人工核对' : '当前为演示建议，不代表真实模型已接入'} />
-              <p className="muted">先核对当次输入，再比较整章内容；写入后仍需提交本节。</p><p className="muted">已校验输入状态、变量和单位；完整事实语义、段落来源和选区预检仍待完成。</p>
-              <Space wrap><Button size="small" onClick={() => setInputOpen(true)}>查看当次输入来源</Button>
-                <Button type="primary" size="small" disabled={combinedBusy || !held || !chapter || !!candidateIssue} onClick={() => showDiff(candidate)}>查看差异并确认写入</Button></Space>
-            </Card> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="先确认写作方案，生成整章候选或取得整章修改建议" />}
-          </>}
-          {rightTab === 'sources' && <WritingSources key={chapterId} chapterId={chapterId} candidate={candidate} />}
-          {rightTab === 'issues' && <>
-            {workspace.checks[workspace.checks.length - 1]?.issues.filter(item => item.chapter_id === chapterId).map(item => <Alert key={item.id} className="page-notice" type={item.severity === 'warning' ? 'warning' : 'error'} message={`${item.code} · ${item.message}`} />) ?? <Empty description="请提交正文后运行检查" />}
-            <Alert type="info" message="问题依据当前检查批次；未提交内容尚未检查" />
-          </>}
-        </div>
-        {rightTab === 'assistant' && <div className="assistant-input">
-          <div className="prompt-chips">{['改写', '扩写', '缩写', '按指令修改', '换一种说法'].map(text => <button key={text} onClick={() => setInstruction(`${text}当前章节，依据已核对原文与事实，不新增未经证实的承诺。`)}>{text}</button>)}</div>
-          <Input.TextArea aria-label="给助手的修改要求" placeholder="针对已提交正文输入整章修改要求" rows={3} maxLength={2000} value={instruction} onChange={e => setInstruction(e.target.value)} disabled={combinedBusy || !canEdit} />
-          <div className="assistant-send"><span className="muted">整章建议 · 选区助手待实现</span><Button size="small" type="primary" icon={<SendOutlined />}
-            disabled={combinedBusy || !canGenerate || !chapter || !planCurrent || !instruction.trim() || modified} onClick={suggest}>发送</Button></div>
-          {modified && <span className="muted">先提交本节，再基于已提交正文请求建议</span>}
-          {!planCurrent && <span className="muted">先由本节编写人或负责人确认本节方案，再请求整章建议</span>}
-        </div>}
-      </aside>
+      <EditorAssistantPanel
+        rightTab={rightTab}
+        setRightTab={setRightTab}
+        candidate={candidate}
+        candidateIssue={candidateIssue}
+        instruction={instruction}
+        setInstruction={setInstruction}
+        combinedBusy={combinedBusy}
+        held={held}
+        canEdit={canEdit}
+        canGenerate={canGenerate}
+        chapter={chapter}
+        planCurrent={planCurrent}
+        modified={modified}
+        workspace={workspace}
+        chapterId={chapterId}
+        onViewInput={() => setInputOpen(true)}
+        onShowDiff={showDiff}
+        onSuggest={suggest}
+      />
     </div>
     <Modal title="写入确认 · 整章建议差异" cancelText="放弃这次写入" width={960} open={!!diff} onCancel={() => setDiff(null)} onOk={apply} okText="确认写入当前草稿"
       okButtonProps={{ disabled: !held || combinedBusy || !reviewed || !chapter || !diff || !!candidateProblem(diff, workspace.input_fingerprint, chapter.revision) }}>
@@ -938,11 +929,16 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
       {candidateIssue && <Alert className="page-notice" showIcon type="warning" message="候选已失效；下方仍保留生成时的输入供核对" />}
       <WritingInputPreviewContent snapshot={candidate?.input_snapshot} historical />
     </Drawer>
-    <Drawer title="正式版本记录" open={versionsOpen} onClose={() => setVersionsOpen(false)} width={680}>
-      {versions.length ? versions.map(item => <Card size="small" className="version-card" title={`正文 v${item.revision}`} extra={formatTime(item.created_at)} key={item.revision}>
-        <p className="muted">提交账号：{item.actor_id}</p><pre>{item.content}</pre><Button size="small" disabled={combinedBusy || !held || item.revision === chapter?.revision} onClick={() => reviewRecovery({ title: `历史正文 v${item.revision}`, content: item.content, source_kind: 'history', input_fingerprint: workspace.input_fingerprint })}>核对并恢复为草稿</Button>
-      </Card>) : <Empty description="暂无已提交版本" />}<Alert type="info" message="历史版本保留不变。恢复先保存个人草稿，人工修订并提交后才产生新正文版本。" />
-    </Drawer>
+    <EditorVersionsDrawer
+      open={versionsOpen}
+      onClose={() => setVersionsOpen(false)}
+      versions={versions}
+      combinedBusy={combinedBusy}
+      held={held}
+      currentRevision={chapter?.revision}
+      inputFingerprint={workspace.input_fingerprint}
+      onReviewRecovery={reviewRecovery}
+    />
     <RecoveryReview choice={recovery} current={content} reviewed={recoveryReviewed} busy={busy} writable={held && !combinedBusy && canEdit} onReview={setRecoveryReviewed} onCancel={() => setRecovery(null)} onSave={saveRecovery} onReviewSources={() => reviewCurrentSources('recovery')} />
     <WritingPlanReview chapterId={chapterId} open={planOpen} onClose={() => setPlanOpen(false)} />
     <Drawer title="核对最新来源 · 更新这次文字的写作依据" open={!!sourceReview} onClose={() => setSourceReview(null)} width={760} zIndex={1200}

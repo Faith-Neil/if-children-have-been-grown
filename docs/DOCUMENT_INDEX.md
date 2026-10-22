@@ -701,11 +701,13 @@
 | D-688 | 2026-10-22 | [质量审查与整改方案](delivery/2026-10-22-quality-remediation-plan.md) | 规划 | quality-remediation-1 | 当前 | 治理 / 质量 | ICG 质量审查与整改方案，系统化梳理 P0~P3 结构性债务与四阶段无行为变更演进路线 |
 | D-689 | 2026-10-22 | [PRD完备性审查与差距汇总](delivery/2026-10-22-prd-gap-summary.md) | 审查 | prd-gap-1 | 当前 | PRD / 差距分析 | PRD MVP v1.8 功能完备性审查与缺陷汇总，系统梳理 13 大能力块现状与差距 |
 | D-690 | 2026-10-22 | [WP-2 前端目录搬家交付](delivery/WP-2.md) | 架构整改交付 | wp-2-1 | 当前 | 治理 / 质量 | WP-2 前端按域子目录无行为物理分层交付与工作台/编辑台/资料库三页结构冒烟点验记录 |
+| D-691 | 2026-10-22 | [WP-3 前端巨石组件拆分解耦交付](delivery/WP-3.md) | 架构整改交付 | wp-3-1 | 当前 | 治理 / 质量 | WP-3 拆解 App.tsx、ProjectPages.tsx 与 EditorPage.tsx 提取 13 个领域子组件交付报告 |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-10-22 | 治理 / 质量 | 登记 WP-3 前端巨石组件拆分解耦交付（WP-3.md），完成 App.tsx、ProjectPages.tsx 与 EditorPage.tsx 13 个领域子组件拆解与 344 项单测全绿验收 |
 | 2026-10-22 | 治理 / 质量 | 登记 WP-2 前端目录搬家交付（WP-2.md）与 PRD 完备性差距汇总（2026-10-22-prd-gap-summary.md），确认工作台/编辑台/资料库三核心页面结构冒烟通过 |
 | 2026-10-22 | 治理 / 质量 | 登记质量审查与整改方案（2026-10-22-quality-remediation-plan.md），系统化梳理 P0~P3 结构性债务与四阶段无行为变更演进路线 |
 | 2026-10-22 | ISSUE-005 / ISSUE-006 / ISSUE-007 / ISSUE-018 / ISSUE-021 / ISSUE-027 / ISSUE-032 / ISSUE-035 / ISSUE-037 / 全量模块 | QA签署：全量回归测试套件与质量门禁终验，通过（后端全量回归 606 passed 42 skipped 0 failed、会话冒烟 15 passed、T06 Word 双册渲染冒烟 12 passed、前端全量 344 passed、生产构建 843ms 顺利通过、分包体积健康受控、工程治理检查 479 份 Markdown 0 错误；修复 database.py _project_snapshot 空值转换异常、补齐 demo-v1.json x-contract-drafts 冻结草案元数据、升级旧测试对统一 V1Error 错误体的断言兼容；全部被验任务卡统一维持 in-review 不私自标 done） |

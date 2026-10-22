@@ -25,99 +25,12 @@ const statusName = (value: string) => value === 'confirmed' ? '已确认' : valu
 const statusColor = (value: string) => value === 'confirmed' ? 'green' : value === 'rejected' ? 'default' : 'orange';
 const ignoreFailure = () => undefined;
 
-function SourceLink({ source, onClick }: { source: Source | null; onClick: (source: Source) => void }) {
-  return source ? <a className="source-link" onClick={() => onClick(source)}><FileTextOutlined /> P.{source.page}</a> : <span className="muted">服务承诺引用 · 无招标页码</span>;
-}
-
-function OriginalPreview({ source }: { source: Source | null }) {
-  const { workspace, token, report } = useProject();
-  const [preview, setPreview] = useState<Preview | null>(null);
-  const [fileId, setFileId] = useState(source?.file_id || workspace.files[0]?.id || '');
-  const [page, setPage] = useState(source?.page || 1);
-  const requestEpoch = useRef(0);
-  useEffect(() => { if (source) { setFileId(source.file_id); setPage(source.page); } }, [source]);
-  useEffect(() => {
-    const epoch = ++requestEpoch.current; setPreview(null);
-    if (!fileId) return;
-    request<Preview>(`/api/v1/projects/${workspace.project.id}/files/${fileId}/preview`, token).then(data => { if (epoch === requestEpoch.current) setPreview(data); }).catch(error => { if (epoch === requestEpoch.current && error.code !== 'FILE_NOT_PARSED') report(error); });
-  }, [fileId, workspace.project.id, workspace.files.find(file => file.id === fileId)?.status]);
-  const originalText = preview?.pages.find(item => item.page === page)?.text ?? '';
-  const quote = source?.file_id === fileId && source.page === page ? source.quote : '';
-  const index = quote ? originalText.indexOf(quote) : -1;
-  const file = workspace.files.find(item => item.id === fileId);
-  return <div className="original-preview"><div className="original-toolbar"><FileTextOutlined /><Select aria-label="原文文件" size="small" value={fileId || undefined} onChange={value => { setFileId(value); setPage(1); }} options={workspace.files.map(item => ({ value: item.id, label: item.filename }))} /><Select aria-label="原文页码" size="small" value={page} onChange={setPage} options={(preview?.pages ?? [{ page: 1 }]).map(item => ({ value: item.page, label: `第 ${item.page} 页` }))} />{file && <Tooltip title="下载实际上传原件"><Button size="small" type="text" icon={<DownloadOutlined />} aria-label="下载原文" onClick={() => download(file.download_url, token, file.filename).catch(report)} /></Tooltip>}</div><div className="paper-wrap">{preview ? <article className="original-paper"><h4>{preview.filename}</h4>{index >= 0 ? <p>{originalText.slice(0, index)}<mark>{quote}</mark>{originalText.slice(index + quote.length)}</p> : <p>{originalText}</p>}<div className="page-number">— {page} —</div></article> : <Empty description={file ? '请先解析文件，再查看原文与条款位置' : '还没有上传招标文件'} />}</div>{preview && <div className="original-foot">页码方式：{paginationName(preview.pagination)}{preview.warnings.length > 0 && ` · ${preview.warnings.join('；')}`}</div>}</div>;
-}
-
-export function OverviewPage() {
-  const { workspace, navigate } = useProject();
-  const steps = ['建立项目', '上传并解析', '确认与挂证据', '编制两册', '检查与导出'];
-  const current = !workspace.files.length ? 0 : !workspace.parse_confirmed ? 1 : workspace.requirements.some(item => item.status !== 'rejected' && !item.response.trim()) ? 2 : workspace.chapters.some(item => !item.content.trim()) ? 3 : 4;
-  const pendingItems = [
-    { title: '上传招标文件与补遗', detail: `${workspace.files.length} 个文件`, tab: 'tender', done: !!workspace.files.length },
-    { title: '逐条确认解析结果', detail: `${workspace.requirements.filter(item => item.status === 'pending').length} 条待确认，${workspace.conflicts.filter(item => item.status === 'pending').length} 个冲突`, tab: 'parse', done: workspace.parse_confirmed },
-    { title: '填回应要点并挂证据', detail: `${workspace.requirements.filter(item => item.status !== 'rejected' && !item.response.trim()).length} 条尚未响应`, tab: 'matrix', done: workspace.requirements.length > 0 && workspace.requirements.filter(item => item.status !== 'rejected').every(item => item.response.trim()) },
-    { title: '确认项目事实', detail: `${workspace.facts.filter(item => ['pending', 'needs_review'].includes(item.status)).length} 项待核对`, tab: 'facts', done: workspace.facts.every(item => !['pending', 'needs_review'].includes(item.status)) },
-    { title: '编制技术与商务两册', detail: `${workspace.chapters.filter(item => item.content.trim()).length} / ${workspace.chapters.length} 章有已提交正文`, tab: 'editor', done: workspace.chapters.every(item => item.content.trim()) },
-    { title: '运行检查并下载内部稿', detail: `${workspace.exports.filter(item => item.status === 'valid').length} 次有效输出`, tab: 'export', done: workspace.exports.some(item => item.status === 'valid') },
-  ];
-  return <><Card className="flow-card"><Steps current={current} size="small" items={steps.map(title => ({ title }))} /></Card><Row gutter={16}><Col span={16}><Card title="下一步该做什么"><List dataSource={pendingItems} renderItem={item => <List.Item actions={[<Button type="link" onClick={() => navigate(item.tab)}>前往处理</Button>]}><List.Item.Meta avatar={item.done ? <CheckCircleOutlined className="green" /> : <ClockCircleSymbol />} title={<span className={item.done ? 'muted' : ''}>{item.title}</span>} description={item.detail} /></List.Item>} /></Card></Col><Col span={8}><Card title="分册进度" className="stack-card">{(['technical', 'business'] as const).map(volume => { const chapters = workspace.chapters.filter(item => item.volume === volume); return <div key={volume} className="volume-progress"><b>{volumeName(volume)}</b><Progress percent={chapters.length ? Math.round(chapters.filter(item => item.content.trim()).length / chapters.length * 100) : 0} /><span className="muted">已提交正文 {chapters.filter(item => item.content.trim()).length} / {chapters.length} 章</span></div>; })}</Card><Card title="最近导出">{workspace.exports.length ? workspace.exports.slice(-3).reverse().map(item => <p key={item.id}><Tag color={item.status === 'valid' ? 'green' : 'orange'}>{item.status === 'valid' ? '有效内部稿' : '已过期'}</Tag>{formatTime(item.created_at)}</p>) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="还没有生成输出文件" />}</Card></Col></Row><Collapse className="page-notice" items={[{ key: 'writing', label: '写作观察统计（项目）', children: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="统计尚未接通；不会以章节数量代替质量评价" /> }]} /></>;
-}
-function ClockCircleSymbol() { return <span className="todo-circle">○</span>; }
-
-export function TenderPage() {
-  const { workspace, user, token, busy, mutate, report, navigate } = useProject();
-  const [uploading, setUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<string>('');
-  const [removeFile, setRemoveFile] = useState<TenderFile | null>(null);
-  const [removeReason, setRemoveReason] = useState('');
-  async function removeUpload() {
-    if (!removeFile || !removeReason.trim()) { report(new Error('请说明移除原因，方便后续核对。')); return; }
-    try {
-      await mutate(`/api/v1/projects/${workspace.project.id}/files/${removeFile.id}`, 'DELETE', { reason: removeReason.trim() });
-      setRemoveFile(null); setRemoveReason('');
-    } catch { /* 保留理由和选中文件，后台拒绝时显示实际原因 */ }
-  }
-  async function upload(file: File) {
-    if (file.size > 5 * 1024 * 1024) { report(new Error('当前联调版本支持 5MB 以内文件，请拆分后上传。')); return false; }
-    setUploading(true);
-    try { await mutate(`/api/v1/projects/${workspace.project.id}/files`, 'POST', { filename: file.name, content_base64: await encodeFile(file) }); } catch { /* 统一入口已显示具体错误 */ } finally { setUploading(false); }
-    return false;
-  }
-  async function parse() { try { await mutate(`/api/v1/projects/${workspace.project.id}/parse`, 'POST', {}); navigate('parse'); } catch { /* 保留当前文件列表供重试 */ } }
-  function sample() {
-    const text = '合成招标文件：星河数据库维保服务项目\n招标编号：DEMO-2026-001\n投标截止时间：2026-12-31T17:00:00+08:00\n服务期限：12个月\n采购人：星河科技（虚构）\n★技术要求：提供数据库日常巡检，每月提交巡检报告。\n技术要求：重大故障响应不超过30分钟，处理方案由双方核对。\n商务要求：投标人应提供有效企业资质证明。\n商务要求：提供同类项目业绩证明，所有资料仅使用合成测试数据。\n';
-    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' })); const link = document.createElement('a'); link.href = url; link.download = '合成招标示例.txt'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
-  return <><div className="page-heading"><div><h2>招标文件</h2><p>上传原件后，提取条款与项目事实。结果需人工逐项核对。</p></div><Space><Button onClick={sample} icon={<DownloadOutlined />}>下载合成示例</Button><Button type="primary" icon={<ReloadOutlined />} loading={busy} disabled={!workspace.files.length || !projectCan(workspace, 'prepare_sources') || uploading} onClick={parse}>解析招标文件</Button></Space></div><Alert type="info" showIcon className="page-notice" message="当前为本地解析流程" description="文本与可解析的 Word 会读取实际原文；扫描件及复杂版式按解析结果提示处理。页码方式、能力限制会随原文显示，解析完成也需要人确认。" /><Card><Upload.Dragger accept=".txt,.md,.docx,.pdf" beforeUpload={file => upload(file)} showUploadList={false} disabled={busy || uploading || !projectCan(workspace, 'prepare_sources')}><p className="ant-upload-drag-icon"><UploadOutlined /></p><p className="ant-upload-text">拖入招标文件、补遗或附件，或点击选择</p><p className="ant-upload-hint">UTF-8 文本、Word（.docx）、PDF · 当前每份不超过 5MB</p></Upload.Dragger><Table className="file-table" size="small" rowKey="id" dataSource={workspace.files} pagination={false} columns={[{ title: '文件名称', dataIndex: 'filename', render: (value: string) => <Space><FileTextOutlined />{value}</Space> }, { title: '大小', dataIndex: 'size', render: (value: number) => `${Math.round(value / 1024 * 10) / 10} KB` }, { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === 'parsed' ? 'green' : value === 'failed' ? 'red' : 'blue'}>{value === 'parsed' ? '已解析' : value === 'failed' ? '解析失败' : '已上传'}</Tag> }, { title: '原文与说明', render: (_, item) => <Space>{item.status === 'parsed' && <a onClick={() => setSelectedFile(item.id)}>查看原文</a>}<Button type="link" size="small" onClick={() => download(item.download_url, token, item.filename).catch(report)}>下载原件</Button>{item.warnings?.length > 0 && <Tooltip title={item.warnings.join('；')}><WarningOutlined className="orange" /></Tooltip>}{['uploaded', 'failed'].includes(item.status) && <Button type="link" danger size="small" disabled={busy || uploading || !projectCan(workspace, 'prepare_sources')} onClick={() => { setRemoveFile(item); setRemoveReason(''); }}>移除上传</Button>}</Space> }]} /></Card><Modal title="移除失败或未解析的上传" open={!!removeFile} onCancel={() => setRemoveFile(null)} onOk={removeUpload} okText="按上述原因移除" cancelText="保留文件" confirmLoading={busy} okButtonProps={{ danger: true, disabled: !removeReason.trim() || !projectCan(workspace, 'prepare_sources') }}><Alert showIcon type="warning" message={`准备移除：${removeFile?.filename ?? ''}`} description="只移除当前项目中的这一份上传。已有解析条款的文件不能在这里移除，避免来源断开；如需保留，请先下载原件。移除会要求重新确认解析结果。" /><Input.TextArea style={{ marginTop: 16 }} aria-label="移除上传的原因" value={removeReason} onChange={event => setRemoveReason(event.target.value)} maxLength={2000} placeholder="例如：误传了扫描件，将改用可解析的文字版" /></Modal><Drawer title="实际招标原文" width={760} open={!!selectedFile} onClose={() => setSelectedFile('')}><OriginalPreview source={selectedFile ? { file_id: selectedFile, page: 1, quote: '' } : null} /></Drawer></>;
-}
-
-export function ParsePage() {
-  const { workspace, user, busy, mutate, navigate } = useProject();
-  const { modal } = AntApp.useApp();
-  const [category, setCategory] = useState('all');
-  const [source, setSource] = useState<Source | null>(workspace.requirements[0]?.source ?? null);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [conflictsOpen, setConflictsOpen] = useState(false);
-  const [edit, setEdit] = useState<Requirement | null>(null);
-  const [form] = Form.useForm();
-  const categories = [...new Set(workspace.requirements.map(item => item.category))];
-  const pending = workspace.requirements.filter(item => item.status === 'pending').length;
-  const conflicts = workspace.conflicts.filter(item => item.status === 'pending').length;
-  const pendingFacts = workspace.facts.filter(item => item.status === 'pending').length;
-  const shown = workspace.requirements.filter(item => category === 'all' || item.category === category);
-  function editItem(item: Requirement) { setEdit(item); form.setFieldsValue(item); }
-  async function save() { const values = await form.validateFields(); try { await mutate(`/api/v1/projects/${workspace.project.id}/requirements/${edit!.id}`, 'PATCH', { text: values.text, category: values.category, volume: values.volume, chapter_id: values.chapter_id || null, status: values.status, reason: values.reason || '' }); setEdit(null); } catch { /* 仍保留人工输入 */ } }
-  async function confirm() { try { await mutate(`/api/v1/projects/${workspace.project.id}/parse/confirm`, 'POST', {}); navigate('matrix'); } catch { /* 按后台列出的前提继续处理 */ } }
-  function reject(item: Requirement) { let reason = ''; modal.confirm({ title: '排除误抽取条目', content: <Input.TextArea aria-label="排除理由" placeholder="写明为何不是当前项目的响应要求" onChange={e => { reason = e.target.value; }} />, okText: '确认排除', onOk: async () => { if (!reason.trim()) throw new Error('请填写排除理由'); await mutate(`/api/v1/projects/${workspace.project.id}/requirements/${item.id}`, 'PATCH', { status: 'rejected', reason }); } }); }
-  return <><div className="postprocess-bar"><span><CheckCircleOutlined className="green" /> 原文抽取 {workspace.requirements.length} 条 · 本地规则 · 人工核对</span><Space><Button danger size="small" onClick={() => setConflictsOpen(true)}>冲突待选定 {conflicts}</Button><Tooltip title="疑似遗漏与引用补齐暂未接通，需要结合左侧原文核对"><Button size="small" disabled>疑似遗漏 · 待实现</Button></Tooltip><Button type="primary" size="small" disabled={busy || !projectCan(workspace, 'prepare_sources') || !workspace.requirements.length || pending > 0 || conflicts > 0 || pendingFacts > 0} onClick={confirm}>{workspace.parse_confirmed ? '已确认解析结果' : '确认解析结果并进入矩阵'}</Button></Space></div><div className="parse-layout"><OriginalPreview source={source} /><aside className="parse-category"><div className="panel-title">抽取类别 <span className="muted">{workspace.requirements.length} 条</span></div><button className={category === 'all' ? 'active' : ''} onClick={() => setCategory('all')}>全部要求 <span>{workspace.requirements.filter(item => item.status === 'confirmed').length}/{workspace.requirements.length}</span></button>{categories.map((value, index) => <button key={value} className={category === value ? 'active' : ''} onClick={() => setCategory(value)}>{index + 1} {categoryName(value)}<span>{workspace.requirements.filter(item => item.category === value && item.status === 'confirmed').length}/{workspace.requirements.filter(item => item.category === value).length}</span></button>)}<div className="category-section">后处理 <button onClick={() => setConflictsOpen(true)}>冲突待选定 <Badge count={conflicts} size="small" /></button><button onClick={() => navigate('facts')}>项目事实待核对 <Badge count={pendingFacts} size="small" /></button></div></aside><section className="parse-cards"><div className="panel-title">{category === 'all' ? '全部要求' : categoryName(category)} <span className="muted">{shown.length} 条</span></div><Alert type="info" showIcon message="点条目可定位左侧原文。每条要求都需核对后确认；排除必须写理由。" />{shown.length ? shown.map(item => <Card size="small" key={item.id} className={`requirement-card ${selected === item.id ? 'selected' : ''} ${item.status === 'rejected' ? 'rejected' : ''}`} onClick={() => { setSelected(item.id); setSource(item.source); }}><div className="card-heading"><b>{categoryName(item.category)}</b><Space><SourceLink source={item.source} onClick={setSource} /><Tag color={statusColor(item.status)}>{statusName(item.status)}</Tag></Space></div><p className="requirement-text">{item.text}</p><blockquote>{item.source.quote}</blockquote><Space><Tag>{volumeName(item.volume)}</Tag><span className="muted">{workspace.chapters.find(chapter => chapter.id === item.chapter_id)?.title ?? '尚未分配章节'}</span></Space>{item.reason && <p className="muted">处理说明：{item.reason}</p>}<div className="card-actions"><Button type="link" size="small" disabled={busy || !projectCan(workspace, 'prepare_sources') || item.status === 'confirmed'} onClick={e => { e.stopPropagation(); void mutate(`/api/v1/projects/${workspace.project.id}/requirements/${item.id}`, 'PATCH', { status: 'confirmed' }).catch(ignoreFailure); }}>确认</Button><Button type="link" size="small" disabled={busy || !projectCan(workspace, 'prepare_sources')} onClick={e => { e.stopPropagation(); editItem(item); }}>修改</Button><Button type="link" size="small" danger disabled={busy || !projectCan(workspace, 'prepare_sources') || item.status === 'rejected'} onClick={e => { e.stopPropagation(); reject(item); }}>排除（误抽取）</Button></div></Card>) : <Empty description="还没有抽取条目，请上传并解析招标文件" />}<div className="parse-prerequisites">确认前提：无待处理冲突；要求逐条确认或填写排除理由；项目事实完成核对。<Progress size="small" percent={workspace.requirements.length ? Math.round((workspace.requirements.length - pending) / workspace.requirements.length * 100) : 0} /></div></section></div><Drawer title="抽取后处理 · 冲突待选定" open={conflictsOpen} onClose={() => setConflictsOpen(false)} width={560}><Alert type="error" showIcon message="冲突全部处理后才能确认解析结果" description="选择正确取值，并写明依据；未选事实不会被自动当作正式承诺。" /><ConflictCards onLocate={value => { setSource(value); }} /><Alert className="page-notice" type="info" message="疑似遗漏、引用未解析的专用后处理尚未实现" description="请结合原文逐项核查。当前不能把本地规则抽取称为完整智能解析。" /></Drawer><Modal title="修改抽取要求" open={!!edit} onCancel={() => setEdit(null)} onOk={save} cancelText="取消" confirmLoading={busy} okText="保存修改"><Form form={form} layout="vertical"><Form.Item name="text" label="要求原文" rules={[{ required: true, whitespace: true }]}><Input.TextArea rows={4} /></Form.Item><Row gutter={12}><Col span={12}><Form.Item name="category" label="抽取类别" rules={[{ required: true }]}><Input /></Form.Item></Col><Col span={12}><Form.Item name="volume" label="归属分册"><Select options={[{ value: 'technical', label: '技术分册' }, { value: 'business', label: '商务分册' }]} /></Form.Item></Col></Row><Form.Item name="chapter_id" label="对应章节"><Select allowClear options={workspace.chapters.map(item => ({ value: item.id, label: item.title }))} /></Form.Item><Form.Item name="status" label="核对状态"><Select options={[{ value: 'pending', label: '待确认' }, { value: 'confirmed', label: '已确认' }, { value: 'rejected', label: '已排除' }]} /></Form.Item><Form.Item name="reason" label="修改或排除说明"><Input.TextArea rows={2} /></Form.Item></Form></Modal></>;
-}
-
-function ConflictCards({ onLocate }: { onLocate: (source: Source) => void }) {
-  const { workspace, busy, user, mutate } = useProject();
-  const [choices, setChoices] = useState<Record<string, string>>({});
-  const [reasons, setReasons] = useState<Record<string, string>>({});
-  return workspace.conflicts.length ? <>{workspace.conflicts.map(item => <Card className="conflict-card" key={item.id} title={item.key} extra={<Tag color={item.status === 'resolved' ? 'green' : 'red'}>{item.status === 'resolved' ? '已处理' : '待处理'}</Tag>}><Radio.Group value={choices[item.id] ?? item.selected_fact_id} onChange={e => setChoices({ ...choices, [item.id]: e.target.value })} disabled={busy || !projectCan(workspace, 'prepare_sources')} style={{ width: '100%' }}>{item.fact_ids.map(id => { const fact = workspace.facts.find(value => value.id === id); return fact ? <Radio className="conflict-option" value={id} key={id}><b>{fact.value}</b><p><SourceLink source={fact.source} onClick={onLocate} /></p><blockquote>{fact.source?.quote || '服务承诺引用，无独立招标原文'}</blockquote></Radio> : null; })}</Radio.Group><Input.TextArea rows={3} placeholder="选定理由（必填），例如以正式招标文件为准" value={reasons[item.id] ?? item.reason} onChange={e => setReasons({ ...reasons, [item.id]: e.target.value })} disabled={!projectCan(workspace, 'prepare_sources')} /><Button style={{ marginTop: 12 }} type="primary" disabled={busy || !projectCan(workspace, 'prepare_sources') || !(choices[item.id] ?? item.selected_fact_id) || !(reasons[item.id] ?? item.reason)?.trim()} onClick={() => mutate(`/api/v1/projects/${workspace.project.id}/conflicts/${item.id}`, 'PATCH', { selected_fact_id: choices[item.id] ?? item.selected_fact_id, reason: reasons[item.id] ?? item.reason }).catch(ignoreFailure)}>选定正确取值</Button></Card>)}</> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="当前没有发现取值冲突；仍需人工对照原文" />;
-}
+import { SourceLink } from './SourceLink';
+import { OriginalPreview } from './OriginalPreview';
+import { ConflictCards } from './ConflictCards';
+export { OverviewPage } from './OverviewTab';
+export { TenderPage } from './TenderTab';
+export { ParsePage } from './ParseTab';
 
 export function MatrixPage() {
   const { workspace, user, token, library, busy, mutate, reload, report, navigate } = useProject();
@@ -165,45 +78,7 @@ export function MatrixPage() {
   return <><Row gutter={12} className="matrix-statistics">{[{ title: '响应点总数', value: active.length }, { title: '已回应', value: responded, color: '#2B9D5C' }, { title: '未确认条款', value: active.filter(item => item.status === 'pending').length, color: '#D9363E' }, { title: '缺证据', value: active.filter(item => /资质|证书|证明|业绩|授权/.test(item.text) && !item.evidence_ids.length).length, color: '#D9363E' }, { title: '覆盖率', value: `${active.length ? Math.round(responded / active.length * 100) : 0}%`, color: '#1E4DB7' }].map(item => <Col flex="1" key={item.title}><Card><Statistic title={item.title} value={item.value} valueStyle={{ color: item.color }} /></Card></Col>)}</Row>{!workspace.parse_confirmed && <Alert type="warning" showIcon className="page-notice" message="解析结果尚未完整确认" description="先在解析结果处理冲突和待确认条款，避免未经核对的数据进入写作方案。" />}<div className="matrix-switch"><Radio.Group value={kind} optionType="button" buttonStyle="solid" onChange={e => setKind(e.target.value)} options={[{ value: 'requirements', label: '要求矩阵' }, { value: 'sla', label: '服务响应承诺（SLA）' }]} />{kind === 'sla' && <span className="muted">招标要求、我方承诺与公司能力逐项对照。</span>}</div>{kind === 'sla' ? <SlaMatrixPage onLocate={setSource} /> : <Card className="matrix-card" bodyStyle={{ padding: 0 }}><div className="table-toolbar"><Input prefix={<SearchOutlined />} aria-label="搜索要求原文或响应" placeholder="搜索要求原文 / 响应要点" value={search} onChange={e => setSearch(e.target.value)} style={{ width: 280 }} /><Select aria-label="矩阵状态" value={status} onChange={setStatus} options={[{ value: 'all', label: '全部状态' }, { value: 'confirmed', label: '已确认' }, { value: 'pending', label: '待确认' }]} /><Select aria-label="矩阵分册" value={volume} onChange={setVolume} options={[{ value: 'all', label: '全部分册' }, { value: 'technical', label: '技术分册' }, { value: 'business', label: '商务分册' }]} /><Tooltip title="批量匹配、Excel 和指派尚未接通"><Button disabled>智能匹配证据</Button></Tooltip></div><Table rowKey="id" size="small" pagination={{ pageSize: 10 }} scroll={{ x: 1040 }} dataSource={rows} rowClassName={item => [item.status === 'pending' || !item.response.trim() ? 'risk-row' : '', item.evidence_ids.some(id => evidenceInvalid(library.find(value => value.id === id), workspace.project.deadline)) ? 'evidence-invalid-row' : ''].filter(Boolean).join(' ')} columns={[{ title: '#', width: 40, render: (_, __, index) => index + 1 }, { title: '要求原文', dataIndex: 'text', width: 270, render: (value: string, item: Requirement) => <><div>{value}</div><SourceLink source={item.source} onClick={setSource} /></> }, { title: '类别 / 性质', width: 105, render: (_, item) => <Tag color={['qualification', 'star', 'disqualification'].includes(item.category) ? 'purple' : 'blue'}>{categoryName(item.category)}</Tag> }, { title: '归属分册', dataIndex: 'volume', width: 90, render: volumeName }, { title: '响应要点', dataIndex: 'response', width: 220, render: (value: string) => value || <span className="orange">未填写</span> }, { title: '对应章节', width: 150, render: (_, item) => workspace.chapters.find(chapter => chapter.id === item.chapter_id)?.title ?? <span className="orange">未分配</span> }, { title: '证据', width: 220, render: (_, item) => <>{item.evidence_ids.length ? item.evidence_ids.map(id => { const evidence = library.find(value => value.id === id); const invalid = evidenceInvalid(evidence, workspace.project.deadline); return <p className={invalid ? 'red' : ''} key={id}>{evidence?.name ?? '资料已不可见'}{evidence ? ` · v${evidence.revision ?? '—'}` : ''}{invalid && <Tag color="red">证据失效</Tag>}</p>; }) : <span className="muted">尚未挂接</span>}<Button type="link" size="small" disabled={!item.permissions?.response || busy} onClick={() => openEvidence(item)}>挂证据</Button></> }, { title: '状态 / 操作', width: 130, render: (_, item) => <><Tag color={statusColor(item.status)}>{statusName(item.status)}</Tag><p><Button type="link" size="small" disabled={busy || !item.permissions?.response} onClick={() => { setEdit(item); form.setFieldsValue(item); }}>编辑响应</Button></p></> }]} /></Card>}<EvidenceDrawer open={!!evidenceItem} requirement={evidenceItem} library={library} deadline={workspace.project.deadline} selectedIds={evidenceIds} openedIds={openedEvidence?.ids ?? []} canWrite={workspace.requirements.find(item => item.id === evidenceItem?.id)?.permissions?.response === true} busy={busy} stale={evidenceStale} onClose={closeEvidence} onSelected={setEvidenceIds} onSave={() => { void saveEvidence(); }} onRefresh={() => { void refreshEvidence(); }} onSupplement={() => navigate('/library')} /><Drawer title="要求来源 · 招标原文" open={!!source} onClose={() => setSource(null)} width={760}><OriginalPreview source={source} /></Drawer><Modal title="编辑响应与分册分流" open={!!edit} onCancel={() => setEdit(null)} onOk={save} cancelText="取消" confirmLoading={busy} okText="保存" okButtonProps={{ disabled: !edit?.permissions?.response }}><Alert type="info" message={edit?.text} /><Form form={form} layout="vertical" disabled={busy || !edit?.permissions?.response} style={{ marginTop: 16 }}><Form.Item name="response" label="我方响应要点"><Input.TextArea rows={4} placeholder="根据实际能力、证据和招标要求写清回应" /></Form.Item><Form.Item name="volume" label="归属分册"><Select disabled={!edit?.permissions?.route} options={[{ value: 'technical', label: '技术分册' }, { value: 'business', label: '商务分册' }]} /></Form.Item><Form.Item name="chapter_id" label="对应章节"><Select disabled={!edit?.permissions?.route} allowClear options={workspace.chapters.map(item => ({ value: item.id, label: `${volumeName(item.volume)} · ${item.title}` }))} /></Form.Item><Form.Item name="status" label="人工确认"><Select disabled={!edit?.permissions?.route} options={[{ value: 'pending', label: '待确认' }, { value: 'confirmed', label: '已确认' }]} /></Form.Item><Form.Item name="reason" label="说明"><Input.TextArea rows={2} /></Form.Item></Form></Modal></>;
 }
 
-export function FactsPage() {
-  const { workspace, busy, user, mutate, navigate } = useProject();
-  const [edit, setEdit] = useState<Fact | null>(null);
-  const [source, setSource] = useState<Source | null>(null);
-  const [form] = Form.useForm();
-  const referenced = edit?.source_type === 'sla';
-  async function save() {
-    const values = await form.validateFields();
-    if (!edit || !projectCan(workspace, 'edit_facts') || ((referenced || edit.required) && !projectCan(workspace, 'confirm_facts'))) return;
-    try {
-      await mutate(`/api/v1/projects/${workspace.project.id}/facts/${encodeURIComponent(edit.id)}`, 'PATCH', {
-        ...(referenced ? {} : { value: values.value }), ...(projectCan(workspace, 'confirm_facts') ? { status: values.status } : {}), reason: values.reason || '',
-      });
-      setEdit(null);
-    } catch { /* 保留输入供重新核对；引用事实绝不另写一份取值。 */ }
-  }
-  return <>
-    <div className="page-heading"><div><h2>项目事实表</h2><p>统一项目口径；服务承诺直接引用矩阵里的取值，修改后必须重新核对。</p></div></div>
-    {workspace.facts.some(item => ['pending', 'needs_review'].includes(item.status)) && <Alert className="page-notice" showIcon type="warning" message="存在待确认或需重新核对的事实；必备服务承诺由负责人逐条确认" />}
-    <Card><Table rowKey="id" size="small" dataSource={workspace.facts} pagination={false} columns={[
-      { title: '事实名称', render: (_, item) => <>{item.key}{item.required && <Tag color="red">必备</Tag>}</> },
-      { title: '当前取值', render: (_, item) => displaySlaValue(item.value, item.unit) },
-      { title: '来源', render: (_, item) => <>{item.source_type === 'sla' && <p><a onClick={() => navigate('matrix')}>引用服务承诺矩阵（值只读）</a></p>}<SourceLink source={item.source} onClick={setSource} /></> },
-      { title: '状态', dataIndex: 'status', render: value => <Tag color={statusColor(value)}>{statusName(value)}</Tag> },
-      { title: '说明', dataIndex: 'reason' },
-      { title: '操作', render: (_, item) => <Button type="link" disabled={busy || !projectCan(workspace, 'edit_facts') || ((item.source_type === 'sla' || item.required) && !projectCan(workspace, 'confirm_facts'))} onClick={() => { setEdit(item); form.setFieldsValue({ ...item, status: item.source_type === 'sla' ? 'confirmed' : item.status }); }}>{item.source_type === 'sla' ? '逐项核对并确认' : '核对与修改'}</Button> },
-    ]} /></Card>
-    <div className="page-notice"><h3>取值冲突</h3><ConflictCards onLocate={setSource} /></div>
-    <Drawer title="事实来源" width={760} open={!!source} onClose={() => setSource(null)}><OriginalPreview source={source} /></Drawer>
-    <Modal title={referenced ? '负责人确认引用事实' : '核对项目事实'} open={!!edit} onCancel={() => setEdit(null)} onOk={save} cancelText="取消" okText={projectCan(workspace, 'confirm_facts') ? '保存确认' : '保存待核对修改'} confirmLoading={busy} okButtonProps={{ disabled: !projectCan(workspace, 'edit_facts') || ((referenced || edit?.required) && !projectCan(workspace, 'confirm_facts')) }}>
-      {referenced && <Alert className="page-notice" showIcon type="info" message="此值来自服务承诺矩阵，本页只确认，不另外修改取值" description={displaySlaValue(edit?.value, edit?.unit)} />}
-      <Form form={form} layout="vertical" disabled={busy || !projectCan(workspace, 'edit_facts')}>
-        <Form.Item name="value" label={edit?.key} rules={referenced ? [] : [{ required: true, whitespace: true }]}><Input.TextArea rows={3} disabled={referenced} /></Form.Item>
-        <Form.Item name="status" label="人工核对状态"><Select disabled={!projectCan(workspace, 'confirm_facts')} options={referenced ? [{ value: 'confirmed', label: '已逐项核对当前取值' }] : [{ value: 'pending', label: '待确认' }, { value: 'confirmed', label: '已确认' }, { value: 'rejected', label: '已排除' }]} /></Form.Item>
-        <Form.Item name="reason" label="核对依据"><Input.TextArea rows={3} /></Form.Item>
-      </Form>
-    </Modal>
-  </>;
-}
+export { FactsPage } from './FactsTab';
 
 export function ChecksPage() {
   const { workspace, busy, user, mutate, navigate } = useProject();
