@@ -94,22 +94,38 @@ T14/T15已实际验证项目成员、可空参与分册、技术/商务负责人
 | `GET /api/v1/jobs` | 查看本公司项目的同步任务记录；没有取消和断点恢复 |
 | `GET/POST /api/v1/library`；`PATCH /api/v1/library/{id}` | 本公司基础文本资料及确认状态、有效期维护 |
 
-章节编辑继续使用已经验证的接口：
+系统以 `/api/v1` 为主接口路径。核心主流程与会话接口：
 
-| 路径 | 作用 |
+| 产品主接口（主路径） | 作用 |
 |---|---|
-| `GET /api/demo/accounts`、`POST /api/demo/login` | 选择预置账号，不是真实身份认证 |
-| `GET /api/projects`、`POST /api/projects` | 查看本公司项目；新建项目自动建立技术、商务章节 |
+| `GET /api/v1/session` | 依据 Bearer Token 重新核验会话，返回 8 角色权限集与可用导航 |
+| `GET /api/v1/projects` | 读取当前有权访问的项目列表 |
+| `GET /api/v1/projects/{id}/workspace` | 读取项目、文件、条款、事实、章节、检查和输出摘要，返回版本号与ETag |
+| `PATCH /api/v1/projects/{id}` | 更新项目基本信息 |
+| `POST /api/v1/projects/{id}/files`；`GET .../files/{file_id}`、`.../preview` | 保存真实上传字节、下载原件和读取文字预览 |
+| `POST /api/v1/projects/{id}/parse`、`/parse/confirm` | 执行本地解析和人工确认门禁 |
+| `PATCH /api/v1/projects/{id}/requirements/{rid}`、`/facts/{fid}`、`/conflicts/{cid}` | 核对条款、填响应/证据/章节映射、处理事实和冲突 |
+| `POST /api/v1/projects/{id}/plan`、`/generate` | 保存两册大纲与顺序、创建待人核对的章节候选 |
+| `GET/POST /api/v1/projects/{id}/checks` | 查看和执行项目级流程检查 |
+| `POST /api/v1/projects/{id}/exports`；`GET .../exports/{eid}/{volume}` | 创建技术/商务内部稿并带权限下载 |
+| `GET /api/v1/jobs` | 查看本公司项目的同步任务记录 |
+| `GET/POST /api/v1/library`；`PATCH /api/v1/library/{id}` | 本公司基础文本资料及确认状态维护 |
+
+章节编辑与旧演示兼容接口（已标为 Deprecated 或受控兼容）：
+
+| 接口路径 | 兼容说明 |
+|---|---|
+| `GET /api/demo/accounts`、`POST /api/demo/login` | **[Deprecated]** 仅供演示兼容；响应头返回 `Deprecation: true`；生产配置（`ICG_REQUIRE_MYSQL=1`）下阻断演示账号 |
 | `GET /api/projects/{id}/chapters`、`GET /api/chapters/{id}` | 查看本公司章节、当前正式正文、有效锁摘要和本人草稿 |
 | `POST /api/chapters/{id}/lock`、`/lock/renew`、`/lock/release` | 取得、续期和释放编辑权，默认有效期 120 秒 |
-| `PUT /api/chapters/{id}/draft` | 带编辑凭据、正式版本号及递增序号保存草稿，拒绝乱序覆盖 |
+| `PUT /api/chapters/{id}/draft` | 带编辑凭据、正式版本号及递增序号保存草稿 |
 | `POST /api/chapters/{id}/versions` | 原子提交正文、新版本、审计和重复请求结果 |
 | `GET /api/chapters/{id}/versions`、`/audit` | 查看该章节实际版本与操作记录 |
-| `POST /api/chapters/{id}/suggestions` | 返回模拟修改建议及其基础版本，不自动保存正文 |
-| `POST /api/chapters/{id}/checks`、`/exports` | 对已提交正文做基础检查，并按有效检查创建输出记录 |
-| `GET /api/exports/{id}/file` | 携带登录凭据下载文件，重新核对公司权限和正文版本 |
+| `POST /api/chapters/{id}/suggestions` | 返回修改建议及其基础版本，不自动保存正文 |
+| `POST /api/chapters/{id}/checks`、`/exports` | 对已提交正文做基础检查，并创建输出记录 |
+| `GET /api/exports/{id}/file` | 携带登录凭据下载文件 |
 
-当前`editor`兼容投标编写人，`manager`兼容项目负责人，`viewer`兼容只读成员；公司经理不自动得到公司管理员权限。公司一致还须加入项目，写入和两册内部稿按项目/分册/章节分工决定，不能仅凭公司角色；只读成员没有v1项目导出权限。允许接管的负责人仍须填写理由，普通编写人不能接管。编辑权同时绑定账号与本次登录会话，别人的凭据也不能冒用。后台每次写入重新核对权限和编辑权，不能只靠页面按钮是否可点；旧单章输出接口继续仅供历史验证页使用。
+在演示兼容模式（`role_mode: legacy-demo-compat`）下，系统将历史演示身份映射为标准角色（`manager → project_lead`，`editor → bid_writer`，`viewer → viewer`）；在标准 RBAC 模式（`role_mode: rbac-8roles`）下，系统支持 PRD v1.8 定义的全部 8 大标准角色及权限集。公司经理不自动得到公司管理员权限。公司一致还须加入项目，写入和两册内部稿按项目/分册/章节分工决定，不能仅凭公司角色；只读成员没有v1项目导出权限。允许接管的负责人仍须填写理由，普通编写人不能接管。编辑权同时绑定账号与本次登录会话，别人的凭据也不能冒用。后台每次写入重新核对权限和编辑权，不能只靠页面按钮是否可点；旧单章输出接口继续仅供历史验证页使用。
 
 未登录为401，只读账号写入为403，跨公司或不存在的资源为404，旧版本、乱序草稿、重复请求内容冲突为409，编辑权占用或失效为423，字段不符合要求为422。`/api/v1`缺少版本号或重复请求标记为428；体积限制为413。每个业务code只对应一个HTTP状态。`MODEL_UNAVAILABLE`为502：`/api/v1`候选生成返回`{code, message, details, traceId}`，旧`/api`章节建议仍返回`{error: {code, message}, request_id}`。两者响应头都含服务端生成的`X-Request-ID`。
 
@@ -137,15 +153,18 @@ T14/T15已实际验证项目成员、可空参与分册、技术/商务负责人
 
 `icg_demo.main.create_app(repository=None, model_provider=None, clock=None, parser_provider=None)`可注入三个接口和可控时钟。时钟返回Unix秒数或带时区的`datetime`。服务实例在`app.state.service`，产品流程服务在`app.state.workflow`，两者共用同一仓库。不同应用实例默认各有独立内存，不共享状态。
 
-| 代码 | 负责的事情 |
-|---|---|
-| `main.py`、`workflow_routes.py` | 接收页面请求、登录校验、错误与文件响应 |
-| `domain.py` | 公司权限、章节编辑权、草稿、提交版本和原子写入 |
-| `workflow.py` | 项目、解析确认、矩阵事实、大纲、候选、检查和两册输出 |
-| `schemas.py`、`workflow_schemas.py` | 明确前后端可以传哪些字段及返回什么 |
-| `parsing.py` | 从实际文件提取原文和位置 |
-| `ports.py`、`adapters.py` | 替换接口及当前内存、模型替身、基础Word实现 |
-| `retrieval.py` | 嵌入、重排、向量表的内存实现，以及三条证据候选 |
+| 模块路径 | 分层定位 | 职责描述 |
+|---|---|---|
+| `icg_demo/main.py` | 适配器入口 | FastAPI 应用组装、生命周期、全局中间件、统一错误体及生产演示账号门禁 |
+| `icg_demo/database.py` | 兼容门面 (Façade) | 82 行转接壳，提供 100% 向后兼容导入，透明代理至 `icg.infra.*` |
+| `icg_demo/workflow.py` | 兼容门面 (Façade) | 29 行转接壳，透明代理至 `icg.domain.workflow_orchestrator` |
+| `icg_demo/adapters.py` | 兼容门面 (Façade) | 36 行转接壳，透明代理至 `icg.infra.adapters_impl` |
+| `icg_demo/schemas.py` | 契约模型层 | 请求/响应 Pydantic 模型，定义 AuthMode / RoleMode / 统一错误体契约 |
+| `icg/infra/*` | 基础设施实现层 | 10 大持久化仓储（account_store, project_store, chapter_store 等）与适配器实现 |
+| `icg/domain/*` | 业务领域服务层 | 核心领域编排（workflow_orchestrator, chapter_service, checks_service, export_service） |
+| `icg/api/`、`icg/app/` | 架构骨架占位 | 上下文子包骨架，主路由当前仍在 `icg_demo/main.py`，待后续 ISSUE-038 迁移填充 |
+| `icg_demo/parsing.py` | 提取服务 | 提取原件文本与分页位置 |
+| `icg_demo/retrieval.py` | 检索服务 | 嵌入、重排与三条证据候选服务 |
 
 在仓库根目录运行实际后端测试：
 

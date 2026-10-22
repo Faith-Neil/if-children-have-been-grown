@@ -4,7 +4,7 @@
 
 # 应用会话与导航契约
 
-日期2026-10-11，地址补充2026-10-12；版本application-foundation-1。ISSUE-009 / APP-M2-T001 为 in-review。会话身份规则仍是本契约的主体；浏览器地址已接到这些路径，但不表示项目经理已签收，也不表示 OIDC 或八角色已完成。实际接口说明须从代码导出到`spec/openapi/demo-v1.json`。
+维护日期：2026-10-22；版本：application-foundation-2（DOC-SYNC-1 与 WP-6 会话演进）。关联 ISSUE-009 / WP-6。会话身份规则是本契约的主体；系统已实现正式凭据认证、八角色单源收口与演示模式关闸。实际接口说明从后台代码自动化导出到 `spec/openapi/demo-v1.json` 并受 CI 门禁保障。
 
 ## 当前阶段入口
 
@@ -12,12 +12,17 @@
 
 响应：演示身份模式、当前账号、公司范围、原PRD角色映射、服务端允许的导航入口和动作、默认首页，以及会话续期是否可用。选项目时返回最小项目权限，不带正文、证据内容或任何人的草稿。当前演示会话没有真实到期/续期机制，明确返回`expires_at: null`、`renew_supported: false`，不能假设OIDC已接入。
 
-三种既有演示角色的兼容映射：`manager → project_lead`（项目负责人）、`editor → bid_writer`（投标编写人）、`viewer → readonly`（只读成员）；manager不等于公司管理员。原PRD8角色矩阵在`session_navigation.py`独立定义：`platform_admin`、`group_admin`、`company_admin`、`data_admin`、`project_lead`、`bid_writer`、`reviewer`、`readonly`。当前身份来源只给出三种演示角色，不以演示账号冒充全部八角色，也未完成完整业务授权迁移。
+系统支持两种运行与认证模式，可通过环境变量与配置解耦：
+1. **演示模式（默认或 `VITE_DEMO=1`）**：支持演示账号快速登录，会话返回 `auth_mode: "synthetic-demo"` 与 `role_mode: "legacy-demo-compat"`；历史三角色映射为标准角色（`manager → project_lead`、`editor → bid_writer`、`viewer → viewer`）。
+2. **正式认证模式（`VITE_DEMO=0`）**：前端登录页仅展示正式 Access Token 凭据输入框；后端支持正式会话凭据核验，返回 `auth_mode: "authenticated"` 与 `role_mode: "rbac-8roles"`。在生产环境（`ICG_REQUIRE_MYSQL=1`）下，后端强行阻断演示账号登录。
+3. **八角色权威单源**：前端单一事实源收口至 `frontend/web/src/shared/roles.ts`（包含 `platform_admin`、`group_admin`、`company_admin`、`data_admin`、`project_lead`、`bid_writer`、`auditor`、`viewer` 8 大角色及其权限集），并通过 `shared/codes.ts` 单源驱动状态字典。
+4. **枚举一致性对齐说明**：经 WP-6 / 本轮治理收敛，前端 `RoleMode`、后端 `schemas.py` 与 OpenAPI 契约均统一为严格一致的 `["legacy-demo-compat", "rbac-8roles"]`，移除了历史过渡遗留的 `standard` 别名。
 
-| 返回字段 | 当前实际内容 |
+| 返回字段 | 契约取值与说明 |
 |---|---|
-| `auth_mode` / `role_mode` | `synthetic-demo` / `legacy-demo-compat`，明确是合成演示和兼容阶段 |
-| `user` | 既有账号字段，加`roles`和`primary_role`；响应不带令牌 |
+| `auth_mode` | `"synthetic-demo" | "authenticated"`，标识是合成演示会话还是正式凭据认证会话 |
+| `role_mode` | `"legacy-demo-compat" | "rbac-8roles"`，标识是旧三角色兼容还是标准 8 角色 RBAC 模型 |
+| `user` | 包含 `id`, `name`, `company_id`, `role`, `roles`, `primary_role`；响应不带令牌敏感信息 |
 | `scope` | `kind: company`、`active_company_id`、`allowed_company_ids`，只含身份实际所属公司 |
 | `navigation` | `route_id`、`path`、`access: read/write`；页面还检查入口与路径是否匹配 |
 | `allowedActions` | 当前粗粒度读写动作；导航与动作同时允许才读取对应公司数据 |
