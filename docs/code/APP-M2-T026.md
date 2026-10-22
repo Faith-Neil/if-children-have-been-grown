@@ -9,11 +9,11 @@
 - 交付文档：[APP-M2-T026 交付](../delivery/APP-M2-T026.md)
 - 日期：2026-10-22
 - 实际代码路径：
-  - [company-manage-core.ts](../../frontend/web/src/company-manage-core.ts)
-  - [CompanyManagePage.tsx](../../frontend/web/src/CompanyManagePage.tsx)
-  - [lazy-routes.tsx](../../frontend/web/src/lazy-routes.tsx)
-  - [route-loaders.ts](../../frontend/web/src/route-loaders.ts)
-  - [App.tsx](../../frontend/web/src/App.tsx)
+  - [company-manage-core.ts](../../frontend/web/src/admin/company-manage-core.ts)
+  - [CompanyManagePage.tsx](../../frontend/web/src/admin/CompanyManagePage.tsx)
+  - [lazy-routes.tsx](../../frontend/web/src/app/lazy-routes.tsx)
+  - [route-loaders.ts](../../frontend/web/src/app/route-loaders.ts)
+  - [App.tsx](../../frontend/web/src/app/App.tsx)
   - [audit-company-pages.test.mjs](../../tests/frontend/audit-company-pages.test.mjs)
 
 ---

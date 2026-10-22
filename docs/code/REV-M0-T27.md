@@ -6,7 +6,7 @@
 
 2026-10-12；ISSUE-034 / foundation-review-fix-1；[复核记录](../reviews/2026-10-12-foundation-review.md)，[交付](../delivery/REV-M0-T27.md)。不新增业务功能或接口。ISSUE-033 仍是挂证据规则，REV-M0-T22 仍是 T114 冲突刷新 QA。本说明只解释 PR #4 的限定修复。
 
-`frontend/web/src/api.ts`在请求或下载最终失败时，将错误与发起时的会话放入私有WeakMap（只在内存里关联两个对象的表）。`isRequestFailureCurrent`只回答是否仍属于当前会话，不能把令牌序列化到日志或页面。App的report、重新读取和失败后补救入口均先核验；当前401仍显示追踪号并清身份，旧401不会登出新账号。503缺密钥停止重试由上游0a5b655修复，本PR保留并验证。
+`frontend/web/src/shared/api.ts`在请求或下载最终失败时，将错误与发起时的会话放入私有WeakMap（只在内存里关联两个对象的表）。`isRequestFailureCurrent`只回答是否仍属于当前会话，不能把令牌序列化到日志或页面。App的report、重新读取和失败后补救入口均先核验；当前401仍显示追踪号并清身份，旧401不会登出新账号。503缺密钥停止重试由上游0a5b655修复，本PR保留并验证。
 
 `App.tsx`新增displayedPathRef保存真正已载入的页。地址可以先表示目标，只有页面成功切换才更新显示页。未保存提示、浏览器返回/前进按显示页判断；失败重试不因地址相同而静默丢文字。现有成功页、输入和历史条目不被失败假装替换。
 

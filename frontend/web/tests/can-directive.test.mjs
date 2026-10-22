@@ -20,7 +20,7 @@ function parseSource(relativePath) {
 }
 
 test('can-directive.ts exports can, normalizeAction and types', () => {
-  const { tree } = parseSource('../src/can-directive.ts');
+  const { tree } = parseSource('../src/shell/can-directive.ts');
   const exported = new Set();
 
   ts.forEachChild(tree, node => {
@@ -34,7 +34,7 @@ test('can-directive.ts exports can, normalizeAction and types', () => {
 });
 
 test('useCan.ts exports useCan and useCanMap hooks', () => {
-  const { tree } = parseSource('../src/useCan.ts');
+  const { tree } = parseSource('../src/shell/useCan.ts');
   const exported = new Set();
 
   ts.forEachChild(tree, node => {
@@ -48,7 +48,7 @@ test('useCan.ts exports useCan and useCanMap hooks', () => {
 });
 
 test('Can.tsx exports Can, CanProvider, CanContext and re-exports hooks', () => {
-  const { content, tree } = parseSource('../src/Can.tsx');
+  const { content, tree } = parseSource('../src/shell/Can.tsx');
   const exportedVars = new Set();
 
   ts.forEachChild(tree, node => {
@@ -67,7 +67,7 @@ test('Can.tsx exports Can, CanProvider, CanContext and re-exports hooks', () => 
 });
 
 test('Can.tsx guarantees complete DOM omission on unauthorized by default', () => {
-  const { content } = parseSource('../src/Can.tsx');
+  const { content } = parseSource('../src/shell/Can.tsx');
 
   // 1. 验证默认 fallback 为 null
   assert.ok(content.includes('fallback = null'), 'Can.tsx must default fallback to null');
@@ -81,10 +81,10 @@ test('Can.tsx guarantees complete DOM omission on unauthorized by default', () =
 });
 
 test('App.tsx integrates CanProvider and protects create project button with Can directive', () => {
-  const { content } = parseSource('../src/App.tsx');
+  const { content } = parseSource('../src/app/App.tsx');
 
   // 1. 验证导入 Can 与 CanProvider
-  assert.ok(content.includes("import { Can, CanProvider } from './Can';"), 'App.tsx must import Can and CanProvider');
+  assert.ok(content.includes("import { Can, CanProvider } from '../shell/Can';"), 'App.tsx must import Can and CanProvider');
 
   // 2. 验证 AppShell 外部包裹 CanProvider
   assert.ok(content.includes('<CanProvider value='), 'App.tsx must provide CanProvider context');

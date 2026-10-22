@@ -20,21 +20,21 @@
 ## 2. 交付成果清单
 
 ### 2.1 新增与修改源码
-1. **纯业务逻辑层** (`frontend/web/src/library-pages-core.ts` - 新增):
+1. **纯业务逻辑层** (`frontend/web/src/library/library-pages-core.ts` - 新增):
    - 分类元数据 `LIBRARY_CATEGORIES` 与中文映射 `CATEGORY_LABEL_MAP`；
    - 智能生命周期推导 `deriveEvidenceStatus`；
    - 证据引用可用性深度诊断 `checkEvidenceUsability`（涵盖过期、未核验、缺合作协议等判定）；
    - 多字段模糊检索与多维筛选器 `filterEvidenceList`；
    - 八角色管理权限与高敏字段查看白名单 `canManageLibrary` / `canRevealSensitiveField`；
    - 附件槽位防篡改 SHA256 校验 `verifyAttachmentSecurity`。
-2. **UI 组件层** (`frontend/web/src/LibraryPages.tsx` - 新增):
+2. **UI 组件层** (`frontend/web/src/library/LibraryPages.tsx` - 新增):
    - 顶部统计卡片（全部资料、生效可引用、待核验、历史参考）；
    - 响应式五大分类侧边栏导航 + SLA承诺模板切换；
    - 集成搜索栏、状态多选、可引用快速筛选、批量核验操作栏；
    - 集成 `<MaskedField>` 高敏证件脱敏；
    - 资料元数据详情抽屉（基本信息、核验说明、关联项目引用数、附件槽位、操作日志）；
    - 附件原件预览 Modal 与安全审计告知 Popconfirm。
-3. **路由级按需加载** (`frontend/web/src/route-loaders.ts`、`lazy-routes.tsx`、`SupportPages.tsx`):
+3. **路由级按需加载** (`frontend/web/src/app/route-loaders.ts`、`lazy-routes.tsx`、`SupportPages.tsx`):
    - 抽离 `loadLibraryPages`，生成独立分块 `LibraryPages-[hash].js`；
    - `SupportPages.tsx` 保留兼容 re-export，体积压缩至 2.28 kB。
 4. **自动化测试** (`tests/frontend/library-pages.test.mjs` - 新增):

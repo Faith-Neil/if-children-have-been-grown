@@ -29,27 +29,27 @@
 ## 完成内容与变更文件
 
 ### 1. 核心产出
-1. **多粒度数据权限判定层 (`frontend/web/src/data-permission.ts`)**：
+1. **多粒度数据权限判定层 (`frontend/web/src/shell/data-permission.ts`)**：
    - 实现了纯函数 `resolveDataPermission(context)`，支持根据系统角色、项目团队角色、主管分册与章节指派综合判定；
    - 输出包括 `readOnly: boolean`、`canEdit: boolean`、`scope: 'project' | 'volume' | 'chapter' | 'none'`、`scopeName: string`、`readOnlyReason: string`、`reasonType`、`role` 与 `roleLabel`；
    - 严格覆盖系统级只读角色（集团管理员/只读成员/审计员/平台管理员）、项目内只读成员、分册主管跨分册浏览、普通编写人跨章节浏览等场景。
-2. **React Hook 封装 (`frontend/web/src/useDataPermission.ts`)**：
+2. **React Hook 封装 (`frontend/web/src/shell/useDataPermission.ts`)**：
    - 提取 `CanContext` 与 `ProjectContext`，无缝响应角色与分工变动，动态返回数据权限状态。
-3. **只读表现组件与纯文本渲染 (`frontend/web/src/ReadOnlyGate.tsx`)**：
+3. **只读表现组件与纯文本渲染 (`frontend/web/src/shell/ReadOnlyGate.tsx`)**：
    - `<ReadOnlyGate>`：容器级只读控制网关，集成 `ReadonlyBanner` 横幅与 `readOnlyView` 纯文本插槽；
    - `<ReadOnlyField>` / `<ReadOnlyText>`：字段级组件，当处于只读模式时，**直接在 DOM 中渲染排版语义 `<span>` 纯文本，完全不渲染 `<input>` 或 `<textarea>` 再 disabled**，严格落实 PRD v1.8 §5.11.9 验收约束。
-4. **编辑台与表单页面落地 (`frontend/web/src/EditorPage.tsx`, `frontend/web/src/MetadataForm.tsx`)**：
+4. **编辑台与表单页面落地 (`frontend/web/src/editor/EditorPage.tsx`, `frontend/web/src/library/MetadataForm.tsx`)**：
    - `EditorPage`：接入 `useDataPermission`，在无编辑权或只读态时，正文区自动切换为带浅底边框的高对比度纯文本段落（`<div className="chapter-editor-readonly-view"><div className="chapter-editor-readonly-text" data-testid="readonly-editor-text"><pre>...`），顶部呈现带具体范围与原因的 `ReadonlyBanner`；
    - `MetadataForm`：新增 `readOnly?: boolean` 选项，开启时表单各项切换为 `ReadOnlyField` 纯文本输出，并自动隐藏底部提交操作条；
    - `styles.css`：定义高对比度只读排版样式。
 
 ### 2. 变更文件清单
-- `frontend/web/src/data-permission.ts` (新增): 多粒度数据权限判定核心算法与类型定义
-- `frontend/web/src/useDataPermission.ts` (新增): React Hook 封装
-- `frontend/web/src/ReadOnlyGate.tsx` (新增): `ReadOnlyGate` 与 `ReadOnlyField` 表现层组件
-- `frontend/web/src/EditorPage.tsx` (修改): 编辑台接入只读态纯文本渲染与只读横幅
-- `frontend/web/src/MetadataForm.tsx` (修改): 支持 `readOnly` 纯文本排版与操作条自动隐藏
-- `frontend/web/src/styles.css` (修改): 增加只读视图与文本样式
+- `frontend/web/src/shell/data-permission.ts` (新增): 多粒度数据权限判定核心算法与类型定义
+- `frontend/web/src/shell/useDataPermission.ts` (新增): React Hook 封装
+- `frontend/web/src/shell/ReadOnlyGate.tsx` (新增): `ReadOnlyGate` 与 `ReadOnlyField` 表现层组件
+- `frontend/web/src/editor/EditorPage.tsx` (修改): 编辑台接入只读态纯文本渲染与只读横幅
+- `frontend/web/src/library/MetadataForm.tsx` (修改): 支持 `readOnly` 纯文本排版与操作条自动隐藏
+- `frontend/web/src/shared/styles.css` (修改): 增加只读视图与文本样式
 - `tests/frontend/data-permission.test.mjs` (新增): 6 项表格驱动多粒度数据权限单元测试
 - `frontend/web/tests/data-permission.test.mjs` (新增): 6 项 AST 契约与纯文本零控件断言测试
 - `docs/code/APP-M2-T016.md` (新增): 代码解释文档

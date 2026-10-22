@@ -29,30 +29,30 @@
 ## 完成内容与变更文件
 
 ### 1. 核心产出
-1. **纯逻辑权限核验模块 (`frontend/web/src/can-directive.ts`)**：
+1. **纯逻辑权限核验模块 (`frontend/web/src/shell/can-directive.ts`)**：
    - 实现了操作与资源规范化解析 `normalizeAction`（支持冒号分隔与对象参数）；
    - 实现了基于 PRD v1.8 §2.3 的八角色权限判定纯函数 `can(perform, on, context)`；
    - 涵盖只读角色全局熔断、项目创建资质、解析与矩阵确认、章节分配编辑、锁接管、递交导出与内部稿导出差异化控制、敏感身份证号查看门禁等。
-2. **权限上下文与 Hook (`frontend/web/src/can-context.ts`, `frontend/web/src/useCan.ts`)**：
+2. **权限上下文与 Hook (`frontend/web/src/shell/can-context.ts`, `frontend/web/src/shell/useCan.ts`)**：
    - 创建 `CanContext` React 上下文，支持在页面任意层级通过 `<CanProvider>` 注入；
    - 提供 `useCan(perform, on, context)` 与 `useCanMap(rules, context)` 便捷获取权限核验结果对象。
-3. **权限指令组件 (`frontend/web/src/Can.tsx`)**：
+3. **权限指令组件 (`frontend/web/src/shell/Can.tsx`)**：
    - 封装 `<Can>` 声明式指令组件；
    - **默认严格安全模式**：未授权且无 fallback 时直接返回 `null`，DOM 树上零节点输出，杜绝 CSS `display:none` 绕过；
    - **支持降级模式**：提供 `passThrough` 置灰禁用及 `tooltipOnDisabled` 悬浮提示。
-4. **App 顶层集成 (`frontend/web/src/App.tsx`)**：
+4. **App 顶层集成 (`frontend/web/src/app/App.tsx`)**：
    - 挂载 `<CanProvider>` 全局权限上下文；
    - 工作台“新建项目”按钮由 `<Can perform="project:create">` 保护，无资质角色无法在 DOM 中查看到该按钮。
-5. **项目分工鉴权修正 (`frontend/web/src/route-guard.ts`)**：
+5. **项目分工鉴权修正 (`frontend/web/src/shell/route-guard.ts`)**：
    - 修正了 `checkChapterEditPermission` 中项目负责人判定的成员边界，严格依据 `member.project_role === 'lead'` 判定，杜绝非负责人被误放行。
 
 ### 2. 变更文件清单
-- `frontend/web/src/can-directive.ts` (新增): 权限核验纯逻辑核心
-- `frontend/web/src/can-context.ts` (新增): React 上下文容器
-- `frontend/web/src/useCan.ts` (新增): `useCan` 与 `useCanMap` Hook 封装
-- `frontend/web/src/Can.tsx` (新增): `<Can>` 指令组件与 `<CanProvider>`
-- `frontend/web/src/App.tsx` (修改): 挂载 CanProvider 与包裹新建项目按钮
-- `frontend/web/src/route-guard.ts` (修改): 精准化项目负责人判定
+- `frontend/web/src/shell/can-directive.ts` (新增): 权限核验纯逻辑核心
+- `frontend/web/src/shell/can-context.ts` (新增): React 上下文容器
+- `frontend/web/src/shell/useCan.ts` (新增): `useCan` 与 `useCanMap` Hook 封装
+- `frontend/web/src/shell/Can.tsx` (新增): `<Can>` 指令组件与 `<CanProvider>`
+- `frontend/web/src/app/App.tsx` (修改): 挂载 CanProvider 与包裹新建项目按钮
+- `frontend/web/src/shell/route-guard.ts` (修改): 精准化项目负责人判定
 - `tests/frontend/can-directive.test.mjs` (新增): 10 项细粒度与表格驱动单测
 - `frontend/web/tests/can-directive.test.mjs` (新增): 5 项 AST 与零 DOM 残留契约测试
 - `docs/code/APP-M2-T015.md` (新增): 代码解释文档

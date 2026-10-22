@@ -5,12 +5,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
-import * as evidence from '../src/evidence-drawer.ts';
-import * as api from '../src/api.ts';
-import * as routes from '../src/app-route.ts';
-import * as leaves from '../src/leave-guard.ts';
-import * as sessions from '../src/session-navigation.ts';
-import * as team from '../src/project-team.ts';
+import * as evidence from '../src/library/evidence-drawer.ts';
+import * as api from '../src/shared/api.ts';
+import * as routes from '../src/app/app-route.ts';
+import * as leaves from '../src/app/leave-guard.ts';
+import * as sessions from '../src/app/session-navigation.ts';
+import * as team from '../src/project/project-team.ts';
 
 function component(filename, name) {
   const source = readFileSync(new URL(`../src/${filename}`, import.meta.url), 'utf8');
@@ -19,8 +19,8 @@ function component(filename, name) {
   assert.ok(node?.body);
   return { tree, node, functions: new Map(node.body.statements.filter(ts.isFunctionDeclaration).map(value => [value.name.text, value.getText(tree)])) };
 }
-const matrix = component('ProjectPages.tsx', 'MatrixPage');
-const app = component('App.tsx', 'App');
+const matrix = component('project/ProjectPages.tsx', 'MatrixPage');
+const app = component('app/App.tsx', 'App');
 let drawer;
 function findDrawer(node) { if (ts.isJsxSelfClosingElement(node) && node.tagName.getText(matrix.tree) === 'EvidenceDrawer') drawer = node; ts.forEachChild(node, findDrawer); }
 findDrawer(matrix.node); assert.ok(drawer);

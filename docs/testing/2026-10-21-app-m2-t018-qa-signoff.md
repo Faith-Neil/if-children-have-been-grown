@@ -10,11 +10,11 @@
 - 关联交付：[APP-M2-T018 交付](../delivery/APP-M2-T018.md)、[代码解释](../code/APP-M2-T018.md)
 - 依赖任务：[APP-M2-T014](../tasks/APP-M2.md#app-m2-t014)、[APP-M2-T017](../tasks/APP-M2.md#app-m2-t017)
 - 被验核心文件：
-  - `frontend/web/src/company-mask-settings.ts`
-  - `frontend/web/src/company-mask-context.ts`
-  - `frontend/web/src/useCompanyMaskSettings.ts`
-  - `frontend/web/src/MaskNoticeBanner.tsx`
-  - `frontend/web/src/MaskedField.tsx`
+  - `frontend/web/src/admin/company-mask-settings.ts`
+  - `frontend/web/src/admin/company-mask-context.ts`
+  - `frontend/web/src/admin/useCompanyMaskSettings.ts`
+  - `frontend/web/src/admin/MaskNoticeBanner.tsx`
+  - `frontend/web/src/admin/MaskedField.tsx`
   - `tests/frontend/company-mask-settings.test.mjs`
   - `frontend/web/tests/company-mask-settings.test.mjs`
 - 复验环境：Windows, Node v24.18.0, pnpm v11.20.0

@@ -7,7 +7,7 @@
 - 被验任务：[APP-M2-T005](../tasks/APP-M2.md#app-m2-t005) · 元数据驱动表格封装
 - 关联 Issue：[ISSUE-007](../../issues/ISSUE-007.md)
 - 关联交付：[APP-M2-T005 交付](../delivery/APP-M2-T005.md)、[代码解释](../code/APP-M2-T005.md)
-- 被验核心文件：`frontend/web/src/MetadataTable.tsx`、`frontend/web/src/metadata-table.ts`、`frontend/web/src/styles.css`、`frontend/web/tests/metadata-table.test.mjs`、`tests/frontend/metadata-table.test.mjs`
+- 被验核心文件：`frontend/web/src/library/MetadataTable.tsx`、`frontend/web/src/library/metadata-table.ts`、`frontend/web/src/shared/styles.css`、`frontend/web/tests/metadata-table.test.mjs`、`tests/frontend/metadata-table.test.mjs`
 - 复验环境：Windows, Node v24.18.0, pnpm v11.20.0
 - 结论：**通过 (PASS)**。**APP-M2-T005 保持 in-review，严禁标 done**。
 

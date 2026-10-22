@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 const srcDir = path.resolve(__dirname, '../src');
 
 test('1. 静态契约：company-mask-settings.ts 核心常量与纯函数导出完整', () => {
-  const filePath = path.join(srcDir, 'company-mask-settings.ts');
+  const filePath = path.join(srcDir, 'admin', 'company-mask-settings.ts');
   assert.ok(fs.existsSync(filePath), 'company-mask-settings.ts 必须存在');
   const content = fs.readFileSync(filePath, 'utf8');
 
@@ -28,7 +28,7 @@ test('1. 静态契约：company-mask-settings.ts 核心常量与纯函数导出�
 });
 
 test('2. 静态契约：useCompanyMaskSettings.ts 提供 Provider 与 Hook 且支持动态响应更新', () => {
-  const filePath = path.join(srcDir, 'useCompanyMaskSettings.ts');
+  const filePath = path.join(srcDir, 'admin', 'useCompanyMaskSettings.ts');
   assert.ok(fs.existsSync(filePath), 'useCompanyMaskSettings.ts 必须存在');
   const content = fs.readFileSync(filePath, 'utf8');
 
@@ -39,7 +39,7 @@ test('2. 静态契约：useCompanyMaskSettings.ts 提供 Provider 与 Hook 且�
 });
 
 test('3. 静态契约：MaskNoticeBanner.tsx 导出留痕提示组件与 AuditTraceHint 别名', () => {
-  const filePath = path.join(srcDir, 'MaskNoticeBanner.tsx');
+  const filePath = path.join(srcDir, 'admin', 'MaskNoticeBanner.tsx');
   assert.ok(fs.existsSync(filePath), 'MaskNoticeBanner.tsx 必须存在');
   const content = fs.readFileSync(filePath, 'utf8');
 
@@ -54,7 +54,7 @@ test('3. 静态契约：MaskNoticeBanner.tsx 导出留痕提示组件与 AuditTr
 });
 
 test('4. 静态契约：MaskedField.tsx 深度集成 useCompanyMaskSettings 响应式获取生效掩码规则', () => {
-  const filePath = path.join(srcDir, 'MaskedField.tsx');
+  const filePath = path.join(srcDir, 'admin', 'MaskedField.tsx');
   const content = fs.readFileSync(filePath, 'utf8');
 
   assert.ok(content.includes('useCompanyMaskSettings'), 'MaskedField 必须引入 useCompanyMaskSettings');

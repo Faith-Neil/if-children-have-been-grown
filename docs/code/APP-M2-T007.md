@@ -17,11 +17,11 @@
 - 交付文档：[APP-M2-T007 交付](../delivery/APP-M2-T007.md)
 - 日期：2026-10-21
 - 实际代码路径：
-  - `frontend/web/src/form-interactions.ts`（前端纯函数逻辑层：脏数据检测算法、服务端多格式字段错误解析映射、就近平滑滚动聚焦、离开拦截纯逻辑）
-  - `frontend/web/src/FormActionFooter.tsx`（前端 React 组件层：固底吸附操作条、修改计数标签、★ 变动警示、保存/重置/取消按钮与扩展插槽）
-  - `frontend/web/src/useUnsavedPrompt.ts`（前端 React Hook：beforeunload 事件生命周期管理、路由跳转 Modal 模态拦截二次确认）
-  - `frontend/web/src/MetadataForm.tsx`（组件集成层：无缝连接脏数据状态、服务端错误自动监听注入、FormActionFooter 与未保存拦截 Hook）
-  - `frontend/web/src/styles.css`（吸底样式 `.icg-form-sticky-footer`、毛玻璃背景、微上边框、错误项脉冲微动动画）
+  - `frontend/web/src/shared/form-interactions.ts`（前端纯函数逻辑层：脏数据检测算法、服务端多格式字段错误解析映射、就近平滑滚动聚焦、离开拦截纯逻辑）
+  - `frontend/web/src/shared/FormActionFooter.tsx`（前端 React 组件层：固底吸附操作条、修改计数标签、★ 变动警示、保存/重置/取消按钮与扩展插槽）
+  - `frontend/web/src/shared/useUnsavedPrompt.ts`（前端 React Hook：beforeunload 事件生命周期管理、路由跳转 Modal 模态拦截二次确认）
+  - `frontend/web/src/library/MetadataForm.tsx`（组件集成层：无缝连接脏数据状态、服务端错误自动监听注入、FormActionFooter 与未保存拦截 Hook）
+  - `frontend/web/src/shared/styles.css`（吸底样式 `.icg-form-sticky-footer`、毛玻璃背景、微上边框、错误项脉冲微动动画）
   - `tests/frontend/form-interactions.test.mjs`（前端纯逻辑单测：脏数据比对、FastAPI/Pydantic 错误解析、Node 环境 DOM 安全性、离开规则）
   - `frontend/web/tests/form-interactions.test.mjs`（组件与 Hook AST 结构静态断言）
 
@@ -44,17 +44,17 @@
 ## 入口和调用顺序
 
 ### 1. 组件与模块导出
-- `frontend/web/src/form-interactions.ts`：
+- `frontend/web/src/shared/form-interactions.ts`：
   - `detectDirtyFields`：比对初始值与当前值，输出 `FieldChangeSummary`（`isDirty`、`modifiedCount`、`modifiedKeys`、`starredModifiedCount`、`summaryText`）；
   - `mapServerFieldErrors`：多格式服务端错误体解析器，输出 `fieldErrors`、`firstErrorField`、`generalMessage`；
   - `scrollFieldIntoView`：安全平滑滚动聚焦函数；
   - `shouldBlockNavigation` / `applyBeforeUnloadEvent`：离开拦截纯逻辑；
   - `FORM_LEAVE_COPY`：标准提示文案常量。
-- `frontend/web/src/FormActionFooter.tsx`：
+- `frontend/web/src/shared/FormActionFooter.tsx`：
   - `FormActionFooter`：吸底操作栏组件（具名与默认导出）。
-- `frontend/web/src/useUnsavedPrompt.ts`：
+- `frontend/web/src/shared/useUnsavedPrompt.ts`：
   - `useUnsavedPrompt`：未保存离开拦截 Hook。
-- `frontend/web/src/MetadataForm.tsx`：
+- `frontend/web/src/library/MetadataForm.tsx`：
   - 增强 `MetadataForm`，原生支持 `stickyFooter`、`promptOnUnsaved`、`serverErrors`、`autoScrollToError`、`onReset`、`onCancel`。
 
 ### 2. 状态流与时序图
@@ -107,32 +107,32 @@ sequenceDiagram
 
 ## 改动文件清单
 
-1. `frontend/web/src/form-interactions.ts`（新增）：
+1. `frontend/web/src/shared/form-interactions.ts`（新增）：
    - 定义 `FieldChangeSummary`、`ServerFieldError`、`AntFormFieldError`、`MappedServerErrors` 等核心契约类型；
    - 实现了 `detectDirtyFields` 脏数据与修改项统计纯函数，集成 `areValuesEquivalent` 严谨比对；
    - 实现了 `mapServerFieldErrors` 服务端错误解析器，兼容 details 数组（含 `loc` 路径提取）、字典映射、直接字段对象与嵌套 error 结构；
    - 实现了 `scrollFieldIntoView` 安全定位函数，支持选择器多级降级查找、平滑居中滚动与内部输入框延迟自动聚焦；
    - 实现了 `shouldBlockNavigation` 与 `applyBeforeUnloadEvent` 离开拦截纯逻辑。
 
-2. `frontend/web/src/FormActionFooter.tsx`（新增）：
+2. `frontend/web/src/shared/FormActionFooter.tsx`（新增）：
    - 实现表单吸底操作条组件 `FormActionFooter`；
    - 容器支持 `sticky` 吸附切换，辅以毛玻璃效果与柔和阴影（`0 -4px 12px rgba(0,0,0,0.06)`）；
    - 左侧自适应展示修改项计数标签（`Tag color="blue"` / `Tag color="warning"`），关键字段变动时展示醒目警示文案；
    - 右侧排列取消、重置、保存按钮与扩展插槽，重置按钮在无脏数据时自动禁用，文字对比度符合 WCAG AA 4.5:1。
 
-3. `frontend/web/src/useUnsavedPrompt.ts`（新增）：
+3. `frontend/web/src/shared/useUnsavedPrompt.ts`（新增）：
    - 实现通用 React Hook `useUnsavedPrompt`；
    - 监听 `beforeunload` 原生事件并在组件卸载时安全清理；
    - 封装 `confirmNavigation`，通过 Ant Design `Modal.confirm` 拦截路由跳转并以红色警示按钮（`okButtonProps: { danger: true }`）强化警示。
 
-4. `frontend/web/src/MetadataForm.tsx`（修改）：
+4. `frontend/web/src/library/MetadataForm.tsx`（修改）：
    - 增加 `stickyFooter`、`showCancelButton`、`cancelText`、`resetText`、`promptOnUnsaved`、`serverErrors`、`autoScrollToError`、`onReset`、`onCancel` 属性；
    - 接入 `detectDirtyFields` 实时计算修改项；
    - 接入 `useUnsavedPrompt` 离开保护；
    - 接入 `serverErrors` 监听与 `scrollFieldIntoView` 首错字段自动滚动聚焦；
    - 底部操作区接入 `FormActionFooter`。
 
-5. `frontend/web/src/styles.css`（修改）：
+5. `frontend/web/src/shared/styles.css`（修改）：
    - 增加 `.icg-form-sticky-footer` 及 `.is-sticky` 样式；
    - 增加 `.icg-footer-inner`、`.icg-footer-left-info`、`.icg-footer-modified-tag`、`.icg-footer-right-actions` 弹性排版样式；
    - 增加 `@keyframes icg-field-error-pulse` 错误字段高亮微动动画。

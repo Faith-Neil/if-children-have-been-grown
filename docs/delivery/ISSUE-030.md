@@ -8,7 +8,7 @@
 
 ## 完成内容与变更文件
 
-`frontend/web/src/api.ts` 的 `canRetryStatus` 在状态为 503 且 `code` 为 `SECRET_KEY_UNAVAILABLE` 时返回 false。502 `MODEL_UNAVAILABLE` 仍只发一次。没有统一错误体的 502，以及 `code` 不是 `SECRET_KEY_UNAVAILABLE` 的 503，仍按原规则重试。判断只在这一处，GET 和已经带 `Idempotency-Key` 的写入共用它。
+`frontend/web/src/shared/api.ts` 的 `canRetryStatus` 在状态为 503 且 `code` 为 `SECRET_KEY_UNAVAILABLE` 时返回 false。502 `MODEL_UNAVAILABLE` 仍只发一次。没有统一错误体的 502，以及 `code` 不是 `SECRET_KEY_UNAVAILABLE` 的 503，仍按原规则重试。判断只在这一处，GET 和已经带 `Idempotency-Key` 的写入共用它。
 
 未改 `backend/`、`tests/backend/`、`spec/openapi/` 与 `docs/reference/`。未新增依赖。未改任务计数。`spec/openapi/README.md` 仍写客户端重试 502 和 503，那份说明不是接口字段；冻结 JSON 在 `73fde1e` 已经排除这两个 code，本轮不改 README。
 

@@ -9,10 +9,10 @@
 - 交付文档：[APP-M2-T123 交付](../delivery/APP-M2-T123.md)
 - 日期：2026-10-22
 - 实际代码路径：
-  - [outline-tree.ts](../../frontend/web/src/outline-tree.ts)
-  - [ChapterTypeBadge.tsx](../../frontend/web/src/ChapterTypeBadge.tsx)
-  - [ValueAddedReasonModal.tsx](../../frontend/web/src/ValueAddedReasonModal.tsx)
-  - [OutlineTreeView.tsx](../../frontend/web/src/OutlineTreeView.tsx)
+  - [outline-tree.ts](../../frontend/web/src/project/outline-tree.ts)
+  - [ChapterTypeBadge.tsx](../../frontend/web/src/project/ChapterTypeBadge.tsx)
+  - [ValueAddedReasonModal.tsx](../../frontend/web/src/project/ValueAddedReasonModal.tsx)
+  - [OutlineTreeView.tsx](../../frontend/web/src/project/OutlineTreeView.tsx)
   - [outline-tree.test.mjs](../../tests/frontend/outline-tree.test.mjs)
   - [outline-tree.test.mjs](../../frontend/web/tests/outline-tree.test.mjs)
 
@@ -32,7 +32,7 @@
 
 ## 2. 具体实现架构
 
-### 2.1 纯逻辑层 (`frontend/web/src/outline-tree.ts`)
+### 2.1 纯逻辑层 (`frontend/web/src/project/outline-tree.ts`)
 脱离 DOM 纯 TypeScript 实现，具备高可测性与高稳定性：
 1. **章节模型与 5 类类型定义**：
    - 导出 `ChapterType`：`'specialized' | 'general' | 'system_generated' | 'cover_and_catalog' | 'not_applicable'`；

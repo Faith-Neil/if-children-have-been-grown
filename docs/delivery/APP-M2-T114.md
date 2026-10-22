@@ -22,11 +22,11 @@
 
 ## 完成内容与变更文件
 
-- `frontend/web/src/evidence-drawer.ts`：分组、可勾选判断、已挂过期文案、刷新后的编号副本、打开时的增减和版本过期。
-- `frontend/web/src/EvidenceDrawer.tsx`：要求原文、结构化资料、方案片段、历史标书参考、已挂列表。过期挂接显示“证据失效”，并给出刷新。
-- `frontend/web/src/ProjectPages.tsx`：矩阵打开抽屉，保存 `PATCH` 的 `evidence_ids`。状态列仍是条款状态。证据失效单独成标签。
-- `frontend/web/src/types.ts`：资料上的可选版本、相关度、来源层级、协议、受限和原文位置。
-- `frontend/web/src/styles.css`：证据失效行左侧色条。
+- `frontend/web/src/library/evidence-drawer.ts`：分组、可勾选判断、已挂过期文案、刷新后的编号副本、打开时的增减和版本过期。
+- `frontend/web/src/library/EvidenceDrawer.tsx`：要求原文、结构化资料、方案片段、历史标书参考、已挂列表。过期挂接显示“证据失效”，并给出刷新。
+- `frontend/web/src/project/ProjectPages.tsx`：矩阵打开抽屉，保存 `PATCH` 的 `evidence_ids`。状态列仍是条款状态。证据失效单独成标签。
+- `frontend/web/src/shared/types.ts`：资料上的可选版本、相关度、来源层级、协议、受限和原文位置。
+- `frontend/web/src/shared/styles.css`：证据失效行左侧色条。
 - `frontend/web/tests/evidence-drawer.test.mjs` 与 `frontend/web/e2e/evidence-drawer.spec.ts`。
 
 冻结契约没有 `listEvidenceCandidates` 和 `attachEvidence`。保存沿用已有的条款更新。`LibraryItem` 允许额外字段，所以页面能读到协议或受限标记；新建资料的请求体不允许这些字段，演示里补不出来。字典里的 `matrix_evidence` 审计列（引用版本、挂接人、挂接时间、匹配方式）后台没有单独存储，本轮只对照打开抽屉时的编号列表。

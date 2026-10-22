@@ -2,10 +2,10 @@
 // 它解决什么问题：旧登录角色、未知入口和项目撤权不能导致先读取资料或正文。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ApiError, request } from '../src/api.ts';
-import { SessionNavigationError, readAuthorizedCompanyData, readAuthorizedProject, readSessionCollection, readTrustedSession, requireProjectTab, requireSessionAction, requireSessionRoute, sessionAllowsRoute, sessionHomeRoute, sessionNavigation, trustedApplicationSession, workspaceWithSessionPermissions } from '../src/session-navigation.ts';
-import { chapterCan, projectCan } from '../src/project-team.ts';
-import { companyReadSessionMatches } from '../src/library-review.ts';
+import { ApiError, request } from '../src/shared/api.ts';
+import { SessionNavigationError, readAuthorizedCompanyData, readAuthorizedProject, readSessionCollection, readTrustedSession, requireProjectTab, requireSessionAction, requireSessionRoute, sessionAllowsRoute, sessionHomeRoute, sessionNavigation, trustedApplicationSession, workspaceWithSessionPermissions } from '../src/app/session-navigation.ts';
+import { chapterCan, projectCan } from '../src/project/project-team.ts';
+import { companyReadSessionMatches } from '../src/library/library-review.ts';
 
 const session = (change = {}) => ({
   auth_mode: 'synthetic-demo', role_mode: 'legacy-demo-compat',

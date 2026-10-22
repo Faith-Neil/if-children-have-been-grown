@@ -9,7 +9,7 @@
 
 ## 改了什么以及为什么
 
-改的是 PRD、ROADMAP 和 PROJECT_BRIEF 里的任务计数，使它们等于任务看板。没有改 `frontend/web/src/api.ts`，也没有改 `backend/`。
+改的是 PRD、ROADMAP 和 PROJECT_BRIEF 里的任务计数，使它们等于任务看板。没有改 `frontend/web/src/shared/api.ts`，也没有改 `backend/`。
 
 ## 入口和调用顺序
 
@@ -33,4 +33,4 @@ AI-01 进入 in-review 后，三份基线改成 8 in-review、49 blocked。这�
 
 `84a3fca` 之后三份基线改成 364 项、27 done。仍然没有应用代码，不改 `api.ts` 和 `backend/`。核对见 [基线复核](../testing/2026-10-12-issue-026-baseline-count-check.md)。
 
-`3bb311a` 之后，三份基线改为里程碑快照，不要求与之后的活看板逐项相等。检查程序仍只核对治理块、链接和完成材料，本跟进不改 `scripts/check-project-governance.cjs`。APP-M2-T001 与 APP-M2-T002 标为 done 只改任务状态和文档，不改 `frontend/web/src/api.ts` 或 `backend/`。
+`3bb311a` 之后，三份基线改为里程碑快照，不要求与之后的活看板逐项相等。检查程序仍只核对治理块、链接和完成材料，本跟进不改 `scripts/check-project-governance.cjs`。APP-M2-T001 与 APP-M2-T002 标为 done 只改任务状态和文档，不改 `frontend/web/src/shared/api.ts` 或 `backend/`。

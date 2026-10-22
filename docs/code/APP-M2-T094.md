@@ -16,13 +16,13 @@
 - **交付文档**：[APP-M2-T094 交付](../delivery/APP-M2-T094.md)
 - **日期**：2026-10-22
 - **涉及源码与测试**：
-  - `frontend/web/src/ProjectHeader.tsx`：ProjectHeader 项目摘要条与快速导航页签组件
-  - `frontend/web/src/project-header-core.ts`：倒计时计算、金额格式化与八角色页签过滤纯函数
-  - `frontend/web/src/ProjectListPage.tsx`：项目列表页、多维筛选栏与元数据详情抽屉组件
-  - `frontend/web/src/project-list-core.ts`：生命周期阶段推导、分册状态推导与多维筛选纯函数
-  - `frontend/web/src/ProjectPages.tsx`：模块统一导出更新
-  - `frontend/web/src/App.tsx`：工作台与项目主外壳组件替换
-  - `frontend/web/src/types.ts`：扩充 Project 实体类型可选字段
+  - `frontend/web/src/project/ProjectHeader.tsx`：ProjectHeader 项目摘要条与快速导航页签组件
+  - `frontend/web/src/project/project-header-core.ts`：倒计时计算、金额格式化与八角色页签过滤纯函数
+  - `frontend/web/src/project/ProjectListPage.tsx`：项目列表页、多维筛选栏与元数据详情抽屉组件
+  - `frontend/web/src/project/project-list-core.ts`：生命周期阶段推导、分册状态推导与多维筛选纯函数
+  - `frontend/web/src/project/ProjectPages.tsx`：模块统一导出更新
+  - `frontend/web/src/app/App.tsx`：工作台与项目主外壳组件替换
+  - `frontend/web/src/shared/types.ts`：扩充 Project 实体类型可选字段
   - `tests/frontend/project-header-list.test.mjs`：专属单元测试用例
 
 ---
@@ -125,14 +125,14 @@ Project[] 原始列表
 
 | 文件路径 | 模块类型 | 核心改动说明 |
 |---|---|---|
-| `frontend/web/src/project-header-core.ts` | 业务核心 | 封装倒计时计算、金额千分位格式化、八角色权限过滤纯函数 |
-| `frontend/web/src/project-list-core.ts` | 业务核心 | 封装项目生命周期状态推导、分册状态推导与多维筛选纯函数 |
-| `frontend/web/src/ProjectHeader.tsx` | UI 组件 | 封装统一项目摘要条、涉密横幅、MaskedField 脱敏标的金额与页签导航 |
-| `frontend/web/src/ProjectListPage.tsx` | UI 组件 | 封装项目列表多维筛选页、统计卡片与项目元数据抽屉 |
-| `frontend/web/src/ProjectPages.tsx` | 模块入口 | 重导出 `ProjectHeader` 与 `ProjectListPage` |
-| `frontend/web/src/App.tsx` | 应用主外壳 | 将原内联 project-header 和简陋 Table 替换为标准新组件 |
-| `frontend/web/src/types.ts` | 类型声明 | 为 `Project` 增加 `target_amount`、`status`、`stage`、`volumes_status` 等可选字段 |
-| `frontend/web/src/editor-conflict.ts` | 兼容增强 | 为 `WordCountInfo` 增加 `current`、`target`、`percentage` 兼容别名字段 |
+| `frontend/web/src/project/project-header-core.ts` | 业务核心 | 封装倒计时计算、金额千分位格式化、八角色权限过滤纯函数 |
+| `frontend/web/src/project/project-list-core.ts` | 业务核心 | 封装项目生命周期状态推导、分册状态推导与多维筛选纯函数 |
+| `frontend/web/src/project/ProjectHeader.tsx` | UI 组件 | 封装统一项目摘要条、涉密横幅、MaskedField 脱敏标的金额与页签导航 |
+| `frontend/web/src/project/ProjectListPage.tsx` | UI 组件 | 封装项目列表多维筛选页、统计卡片与项目元数据抽屉 |
+| `frontend/web/src/project/ProjectPages.tsx` | 模块入口 | 重导出 `ProjectHeader` 与 `ProjectListPage` |
+| `frontend/web/src/app/App.tsx` | 应用主外壳 | 将原内联 project-header 和简陋 Table 替换为标准新组件 |
+| `frontend/web/src/shared/types.ts` | 类型声明 | 为 `Project` 增加 `target_amount`、`status`、`stage`、`volumes_status` 等可选字段 |
+| `frontend/web/src/editor/editor-conflict.ts` | 兼容增强 | 为 `WordCountInfo` 增加 `current`、`target`、`percentage` 兼容别名字段 |
 | `tests/frontend/project-header-list.test.mjs` | 单元测试 | 5 个测试用例，覆盖倒计时判定、金额脱敏、页签权限隔离与多维筛选 |
 
 ---

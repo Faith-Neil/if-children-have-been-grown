@@ -8,9 +8,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
-import * as bizLogic from '../src/business-tags.ts';
+import * as bizLogic from '../src/library/business-tags.ts';
 
-const source = readFileSync(new URL('../src/BusinessTags.tsx', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../src/library/BusinessTags.tsx', import.meta.url), 'utf8');
 const tree = ts.createSourceFile('BusinessTags.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 
 function findVariableDeclaration(name) {

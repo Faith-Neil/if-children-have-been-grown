@@ -29,27 +29,27 @@
 ## 完成内容与变更文件
 
 ### 1. 核心产出
-1. **公司掩码配置动态解析与合规清洗 (`frontend/web/src/company-mask-settings.ts`)**：
+1. **公司掩码配置动态解析与合规清洗 (`frontend/web/src/admin/company-mask-settings.ts`)**：
    - 实现了纯函数 `extractMaskRulesFromCompanySettings(rawSettings)`，支持从公司整体设置对象或 JSON 中提取 `sensitive_mask_rules` 节点；
    - 实现了 `sanitizeMaskRule(type, customRule)`：严格落实 PRD §6.9 “每类保留的前后位数可调，但不能设为‘不掩码’，不提供关闭掩码的开关”，拦截负数、空白 `maskChar` 及企图通过超大前缀绕过脱敏的非法配置；
    - 定义标准留痕文案常量 `DEFAULT_AUDIT_TRACE_NOTICE` 与 `DEFAULT_AUDIT_TRACE_DETAIL`。
-2. **React 掩码上下文与动态 Hook 封装 (`frontend/web/src/company-mask-context.ts`, `frontend/web/src/useCompanyMaskSettings.ts`)**：
+2. **React 掩码上下文与动态 Hook 封装 (`frontend/web/src/admin/company-mask-context.ts`, `frontend/web/src/admin/useCompanyMaskSettings.ts`)**：
    - `<CompanyMaskProvider>`：上下文容器组件，维护当前生效规则并支持在运行时通过 `updateRules` 动态切换规则（如由标准 6+4 切换至严格 3+4）；
    - `useCompanyMaskSettings()`：消费上下文并提供便捷查询函数 `getRule(type)` 与当前来源 `source`，未包裹时安全兜底至平台安全默认值。
-3. **查看留痕合规警示组件 (`frontend/web/src/MaskNoticeBanner.tsx`)**：
+3. **查看留痕合规警示组件 (`frontend/web/src/admin/MaskNoticeBanner.tsx`)**：
    - `<MaskNoticeBanner>`：提供 `banner`（常规横幅）、`inline`（内联行提示）与 `compact`（带 Tooltip 紧凑图标）三种呈现模式；
    - `<AuditTraceHint>`：以行内紧凑模式暴露的快捷别名组件，便于在敏感数据表头或卡片标题右侧灵活插入；
    - 配色完全满足 WCAG AA 4.5:1 对比度标准（背景 `#fffbe6`、边框 `#ffe58f`、文字 `#613400`）。
-4. **掩码展示组件响应式联动 (`frontend/web/src/MaskedField.tsx`)**：
+4. **掩码展示组件响应式联动 (`frontend/web/src/admin/MaskedField.tsx`)**：
    - 接入 `useCompanyMaskSettings()`，在未指定特定 `maskRule` 属性时自适应消费公司上下文规则；
    - 达成原交接约束与验收标准：“规则变化后显示随之变化”。
 
 ### 2. 变更文件清单
-- `frontend/web/src/company-mask-settings.ts` (新增): 公司规则提取、合规安全清洗与留痕文案常量
-- `frontend/web/src/company-mask-context.ts` (新增): React 上下文实例与契约类型定义
-- `frontend/web/src/useCompanyMaskSettings.ts` (新增): CompanyMaskProvider 容器与 useCompanyMaskSettings Hook
-- `frontend/web/src/MaskNoticeBanner.tsx` (新增): MaskNoticeBanner 横幅与 AuditTraceHint 组件
-- `frontend/web/src/MaskedField.tsx` (修改): 接入动态公司规则，实现自适应联动刷新
+- `frontend/web/src/admin/company-mask-settings.ts` (新增): 公司规则提取、合规安全清洗与留痕文案常量
+- `frontend/web/src/admin/company-mask-context.ts` (新增): React 上下文实例与契约类型定义
+- `frontend/web/src/admin/useCompanyMaskSettings.ts` (新增): CompanyMaskProvider 容器与 useCompanyMaskSettings Hook
+- `frontend/web/src/admin/MaskNoticeBanner.tsx` (新增): MaskNoticeBanner 横幅与 AuditTraceHint 组件
+- `frontend/web/src/admin/MaskedField.tsx` (修改): 接入动态公司规则，实现自适应联动刷新
 - `tests/frontend/company-mask-settings.test.mjs` (新增): 6 项规则提取、合规清洗、自适应表格驱动与防泄露单测
 - `frontend/web/tests/company-mask-settings.test.mjs` (新增): 4 项 AST 静态契约与零 storage 写入断言测试
 - `docs/code/APP-M2-T018.md` (新增): 代码解释文档

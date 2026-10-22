@@ -7,7 +7,7 @@
 | 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md) |
 | 规范出处 | [PRD v1.8 §5.11.2～§5.11.10](../../docs/reference/product/prd-mvp-v1.8.md)、架构决策 ADR-002 |
 | 代码说明 | [APP-M2-T167 代码解释](../code/APP-M2-T167.md) |
-| 核心业务代码 | `frontend/web/src/SelectionBubble.tsx`、`frontend/web/src/EditorPage.tsx`、`frontend/web/src/styles.css` |
+| 核心业务代码 | `frontend/web/src/editor/SelectionBubble.tsx`、`frontend/web/src/editor/EditorPage.tsx`、`frontend/web/src/shared/styles.css` |
 | 专属测试套件 | `tests/frontend/cite-selection.test.mjs`、`frontend/web/tests/cite-selection.test.mjs` |
 | 前端验证结果 | `pnpm --dir frontend/web build` 编译打包 0 错误；前端 318 项单元与契约测试全量通过 |
 | 离线纯洁性 | 100% 离线测试，无任何外部网络外呼，符合 ICG 安全隔离红线 |

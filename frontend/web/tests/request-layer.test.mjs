@@ -2,7 +2,7 @@
 // 它解决什么问题：避免每次重试换一把新键，或把冲突和校验失败再发给后台。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ApiError, download, request, userFacingMessage, isRequestFailureCurrent } from '../src/api.ts';
+import { ApiError, download, request, userFacingMessage, isRequestFailureCurrent } from '../src/shared/api.ts';
 
 const noWait = async () => {};
 const v1 = '/api/v1/projects/p-one/files';

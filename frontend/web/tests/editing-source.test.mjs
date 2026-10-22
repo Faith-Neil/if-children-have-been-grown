@@ -2,8 +2,8 @@
 // 它解决什么问题：来源发生变化时不能靠刷新或取得编辑权升级旧候选，重新核对也不能遗漏期间的新变化。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { acquiredEditingFingerprint, editingContentWrite, loadedEditingFingerprint, recoveryEditingFingerprint, reviewedEditingFingerprint } from '../src/editing-source.ts';
-import { recoveryWrite } from '../src/editor-recovery.ts';
+import { acquiredEditingFingerprint, editingContentWrite, loadedEditingFingerprint, recoveryEditingFingerprint, reviewedEditingFingerprint } from '../src/editor/editing-source.ts';
+import { recoveryWrite } from '../src/editor/editor-recovery.ts';
 
 test('load and reacquire preserve a saved draft source instead of the live workspace source', () => {
   const chapter = { revision: 4, draft: { base_revision: 4, input_fingerprint: 'draft-original' } };

@@ -7,7 +7,7 @@
 - 被验任务：[APP-M2-T003](../tasks/APP-M2.md#app-m2-t003) · 通用状态组件封装
 - 关联 Issue：[ISSUE-007](../../issues/ISSUE-007.md)
 - 关联交付：[APP-M2-T003 交付](../delivery/APP-M2-T003.md)、[代码解释](../code/APP-M2-T003.md)
-- 被验核心文件：`frontend/web/src/StatusViews.tsx`、`frontend/web/src/status-views.ts`、`frontend/web/src/styles.css`、`frontend/web/tests/status-views.test.mjs`、`tests/frontend/status-views.test.mjs`
+- 被验核心文件：`frontend/web/src/status/StatusViews.tsx`、`frontend/web/src/status/status-views.ts`、`frontend/web/src/shared/styles.css`、`frontend/web/tests/status-views.test.mjs`、`tests/frontend/status-views.test.mjs`
 - 复验环境：Windows, Node v24.18.0, pnpm v11.20.0
 - 结论：**通过 (PASS)**。**APP-M2-T003 保持 in-review，严禁标 done**。
 

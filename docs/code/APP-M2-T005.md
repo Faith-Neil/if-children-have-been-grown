@@ -19,9 +19,9 @@
   - `backend/bid-core/icg_demo/main.py`（注册 `include_field_metadata_routes`）
   - `spec/openapi/demo-v1.json`（OpenAPI 3.1 规范同步：声明 `/api/v1/metadata/fields/{category}` 与 `operationId: getFieldMetadata`）
   - `tests/backend/test_field_metadata.py`（后端字段元数据专用测试套件：覆盖 401 鉴权、404 分类校验、核心业务字段断言与角色权限）
-  - `frontend/web/src/metadata-table.ts`（前端纯函数逻辑层：字段模式类型、1280px 宽度预算算法、rowSpan 计算、合规批量门禁与 Mock Schema）
-  - `frontend/web/src/MetadataTable.tsx`（前端 React 组件层：推导 Ant Design Table、双行表头、抽屉详情弹窗、工具栏与批量操作浮动栏）
-  - `frontend/web/src/styles.css`（表格工具栏、双行表头、批量浮动条、等宽时间与风险行样式）
+  - `frontend/web/src/library/metadata-table.ts`（前端纯函数逻辑层：字段模式类型、1280px 宽度预算算法、rowSpan 计算、合规批量门禁与 Mock Schema）
+  - `frontend/web/src/library/MetadataTable.tsx`（前端 React 组件层：推导 Ant Design Table、双行表头、抽屉详情弹窗、工具栏与批量操作浮动栏）
+  - `frontend/web/src/shared/styles.css`（表格工具栏、双行表头、批量浮动条、等宽时间与风险行样式）
   - `tests/frontend/metadata-table.test.mjs`（前端纯逻辑与预算算法单元测试）
   - `frontend/web/tests/metadata-table.test.mjs`（组件 AST 结构与设计规范断言）
 
@@ -37,17 +37,17 @@
 
 本次构建了端到端前后端协同实现：
 - 后端 `backend/bid-core/icg_demo/field_metadata.py`：实现 `FieldMetadataService`、别名解析引擎与路由端点，严格冻结 143 错误码；
-- 前端 `frontend/web/src/metadata-table.ts`：纯逻辑层，完全解耦 DOM，负责元数据类型系统、1280px 宽度预算分配、动态 rowSpan 计算、合规批量操作校验与 Mock 数据模式；
-- 前端 `frontend/web/src/MetadataTable.tsx`：组件表现层，封装 Ant Design Table、工具栏、双行表头渲染、抽屉详情查看（Detail Drawer）、集成 StatusViews 与 BusinessTags。
+- 前端 `frontend/web/src/library/metadata-table.ts`：纯逻辑层，完全解耦 DOM，负责元数据类型系统、1280px 宽度预算分配、动态 rowSpan 计算、合规批量操作校验与 Mock 数据模式；
+- 前端 `frontend/web/src/library/MetadataTable.tsx`：组件表现层，封装 Ant Design Table、工具栏、双行表头渲染、抽屉详情查看（Detail Drawer）、集成 StatusViews 与 BusinessTags。
 
 ## 入口和调用顺序
 
 ### 1. 组件导出与入口
-`frontend/web/src/MetadataTable.tsx` 导出：
+`frontend/web/src/library/MetadataTable.tsx` 导出：
 - `MetadataTable`：核心元数据驱动表格组件；
 - `ProTableWrapper`：别名导出，完全兼容原交接规范与约定命名。
 
-`frontend/web/src/metadata-table.ts` 导出：
+`frontend/web/src/library/metadata-table.ts` 导出：
 - `calculateRowSpans`：动态行合并算法；
 - `calculateColumnWidthBudget`：1280px 视口无横滚宽度预算引擎；
 - `canBatchConfirm`：合规批量操作限制门禁；
@@ -109,7 +109,7 @@ sequenceDiagram
 4. `tests/backend/test_field_metadata.py`（新增）：
    - 6 项后端单测，覆盖 401 未登录拦截、404 未知分类、四大核心分类字段结构断言、别名解析容错与全角色权限访问。
 
-5. `frontend/web/src/metadata-table.ts`：
+5. `frontend/web/src/library/metadata-table.ts`：
    - 定义 `FieldDataType`、`FieldMeta`、`TableMeta`、`ColumnBudgetResult`、`BatchConfirmValidation`；
    - 实现 `calculateRowSpans` 算法；
    - 实现 `calculateColumnWidthBudget` 预算算法（标准可用宽 `1040px`，长文本自动省略与分配弹性宽度）；
@@ -117,7 +117,7 @@ sequenceDiagram
    - 实现 `isRiskRow`、`isUrgentRow`、`formatDateTimeMonospace`；
    - 提供 `REQUIREMENTS_MATRIX_SCHEMA`、`LIBRARY_RECORDS_SCHEMA`、`FACTS_MATRIX_SCHEMA` 内置 Schema 及异步 mock 解析函数。
 
-2. `frontend/web/src/MetadataTable.tsx`：
+2. `frontend/web/src/library/MetadataTable.tsx`：
    - 消费元数据生成 Ant Design `columns`；
    - 集成 `SkeletonView`（表格 5 行骨架屏）、`EmptyState`（检索与空数据无缝切换）、`ErrorView`（捕获错误体展示 traceId 一键复制）；
    - 集成 `LevelTag`、`Cite`、`SourceBar`、`AiTag`、`DirectTag` 到单元格渲染；
@@ -125,7 +125,7 @@ sequenceDiagram
    - 实现长文本侧边 `Drawer` 查看详情；
    - 实现顶部工具栏（检索输入、密度切换、刷新操作）与底部批量操作浮动栏。
 
-3. `frontend/web/src/styles.css`：
+3. `frontend/web/src/shared/styles.css`：
    - 增加表格包装容器样式 `.icg-metadata-table-wrapper`；
    - 增加工具栏布局 `.icg-table-toolbar`、批量操作栏 `.icg-batch-bar` 与警示文字 `.icg-batch-warning`；
    - 增加双行表头 `.icg-two-line-header`、星号指示器 `.icg-starred-indicator`；

@@ -16,9 +16,9 @@
 
 | 类型 | 文件路径 | 简述 |
 |---|---|---|
-| 核心实现 | [frontend/web/src/EditorPage.tsx](../../frontend/web/src/EditorPage.tsx) | 编辑台集成 `OutlineTreeView`、断点折叠状态、大纲抽屉与向后兼容只读视图 |
-| 纯函数映射 | [frontend/web/src/outline-tree.ts](../../frontend/web/src/outline-tree.ts) | 导出 `mapChaptersToOutlineNodes` 纯函数，支持星号/废标/系统生成智能推导 |
-| 样式定义 | [frontend/web/src/styles.css](../../frontend/web/src/styles.css) | 增加大纲收起为迷你竖条、助手收起、1440px/1280px 中屏自适应消除横滚样式 |
+| 核心实现 | [frontend/web/src/editor/EditorPage.tsx](../../frontend/web/src/editor/EditorPage.tsx) | 编辑台集成 `OutlineTreeView`、断点折叠状态、大纲抽屉与向后兼容只读视图 |
+| 纯函数映射 | [frontend/web/src/project/outline-tree.ts](../../frontend/web/src/project/outline-tree.ts) | 导出 `mapChaptersToOutlineNodes` 纯函数，支持星号/废标/系统生成智能推导 |
+| 样式定义 | [frontend/web/src/shared/styles.css](../../frontend/web/src/shared/styles.css) | 增加大纲收起为迷你竖条、助手收起、1440px/1280px 中屏自适应消除横滚样式 |
 | 单元测试 | [tests/frontend/editor-deep-linkage.test.mjs](../../tests/frontend/editor-deep-linkage.test.mjs) | 验证章节映射、星号/废标推导、断点列数、中屏 >= 700px 宽度预算与未保存拦截 |
 | 契约测试 | [frontend/web/tests/editor-deep-linkage.test.mjs](../../frontend/web/tests/editor-deep-linkage.test.mjs) | 静态 AST 检查大纲树组件、响应式 Hook、测试属性与只读视图契约 |
 | 架构文档 | [docs/code/APP-M2-T168.md](../code/APP-M2-T168.md) | 详尽代码解释（调用链、状态流转、改动明细、限制与异常分支） |

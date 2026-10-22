@@ -4,9 +4,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
-import * as statusLogic from '../src/status-views.ts';
+import * as statusLogic from '../src/status/status-views.ts';
 
-const source = readFileSync(new URL('../src/StatusViews.tsx', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../src/status/StatusViews.tsx', import.meta.url), 'utf8');
 const tree = ts.createSourceFile('StatusViews.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 
 function findFunctionDeclaration(name) {

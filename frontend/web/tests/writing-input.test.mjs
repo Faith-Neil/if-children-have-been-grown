@@ -2,7 +2,7 @@
 // 它解决什么问题：输入变化不能采用旧候选，方案不能丢失本章选择，未确认事实不能变成正文承诺。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { advancePlanReviewRow, candidateProblem, capturePlanReviewBasis, chapterPlanChanged, chapterPlanPayload, chapterStructureChanged, insertFactToken, planReviewRowProblem, planReviewScopeProblem, writingPlanPayload, writingPlanRows } from '../src/writing-input.ts';
+import { advancePlanReviewRow, candidateProblem, capturePlanReviewBasis, chapterPlanChanged, chapterPlanPayload, chapterStructureChanged, insertFactToken, planReviewRowProblem, planReviewScopeProblem, writingPlanPayload, writingPlanRows } from '../src/editor/writing-input.ts';
 
 test('writing plans preserve per-chapter selections and use the saved plan instead of empty live defaults', () => {
   const workspace = {

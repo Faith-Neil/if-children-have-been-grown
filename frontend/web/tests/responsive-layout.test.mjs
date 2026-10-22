@@ -11,19 +11,19 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 
-const responsiveSource = readFileSync(new URL('../src/responsive.ts', import.meta.url), 'utf8');
+const responsiveSource = readFileSync(new URL('../src/shell/responsive.ts', import.meta.url), 'utf8');
 const responsiveTree = ts.createSourceFile('responsive.ts', responsiveSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
 
-const breadcrumbSource = readFileSync(new URL('../src/BreadcrumbNav.tsx', import.meta.url), 'utf8');
+const breadcrumbSource = readFileSync(new URL('../src/shell/BreadcrumbNav.tsx', import.meta.url), 'utf8');
 const breadcrumbTree = ts.createSourceFile('BreadcrumbNav.tsx', breadcrumbSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 
-const shellSource = readFileSync(new URL('../src/AppShell.tsx', import.meta.url), 'utf8');
+const shellSource = readFileSync(new URL('../src/shell/AppShell.tsx', import.meta.url), 'utf8');
 const shellTree = ts.createSourceFile('AppShell.tsx', shellSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 
-const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+const appSource = readFileSync(new URL('../src/app/App.tsx', import.meta.url), 'utf8');
 const appTree = ts.createSourceFile('App.tsx', appSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 
-const cssSource = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+const cssSource = readFileSync(new URL('../src/shared/styles.css', import.meta.url), 'utf8');
 
 function findExportedIdentifiers(tree) {
   const exports = new Set();

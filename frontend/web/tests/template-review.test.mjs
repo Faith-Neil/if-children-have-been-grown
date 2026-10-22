@@ -2,8 +2,8 @@
 // 它解决什么问题：旧服务模板不能覆盖新承诺，切公司和读取失败不能把旧数据标成新公司的资料。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { companyCollectionMutationVersion, companyReadSessionMatches, readCompanyCollections, visibleCompanyCollection } from '../src/library-review.ts';
-import { captureTemplateReview, copyTemplate, loadReviewedTemplate, templateItemBasis, templateReviewProblem, templateWriteVersion } from '../src/template-review.ts';
+import { companyCollectionMutationVersion, companyReadSessionMatches, readCompanyCollections, visibleCompanyCollection } from '../src/library/library-review.ts';
+import { captureTemplateReview, copyTemplate, loadReviewedTemplate, templateItemBasis, templateReviewProblem, templateWriteVersion } from '../src/library/template-review.ts';
 
 const variable = { var_key: 'P1.response', label: '响应', group: 'response', value_type: 'integer', default_value: 30, unit: 'minute', compare_direction: 'lower_better', best_committable_value: 20 };
 const template = { id: 'tpl-one', company_id: 'alpha', revision: 3, name: '合成服务模板', version_no: '1.0', edition: 'standard', service_hours: 'h5x8', body_text: '响应{{P1.response}}分钟。', status: 'confirmed', reason: '逐项核对', variables: [variable] };

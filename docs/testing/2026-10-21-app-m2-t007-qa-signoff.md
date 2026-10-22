@@ -8,7 +8,7 @@
 - 关联审查任务：REV-M0-T48
 - 关联 Issue：[ISSUE-007](../../issues/ISSUE-007.md)
 - 关联交付：[APP-M2-T007 交付](../delivery/APP-M2-T007.md)、[代码解释](../code/APP-M2-T007.md)
-- 被验核心文件：`frontend/web/src/FormActionFooter.tsx`、`frontend/web/src/form-interactions.ts`、`frontend/web/src/useUnsavedPrompt.ts`、`frontend/web/src/MetadataForm.tsx`、`frontend/web/src/styles.css`、`frontend/web/tests/form-interactions.test.mjs`、`tests/frontend/form-interactions.test.mjs`
+- 被验核心文件：`frontend/web/src/shared/FormActionFooter.tsx`、`frontend/web/src/shared/form-interactions.ts`、`frontend/web/src/shared/useUnsavedPrompt.ts`、`frontend/web/src/library/MetadataForm.tsx`、`frontend/web/src/shared/styles.css`、`frontend/web/tests/form-interactions.test.mjs`、`tests/frontend/form-interactions.test.mjs`
 - 复验环境：Windows, Node v24.18.0, pnpm v11.20.0
 - 结论：**通过 (PASS)**。**APP-M2-T007 保持 in-review，严禁标 done**。
 

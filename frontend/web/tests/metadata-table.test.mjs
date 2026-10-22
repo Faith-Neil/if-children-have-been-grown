@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 
-const source = readFileSync(new URL('../src/MetadataTable.tsx', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../src/library/MetadataTable.tsx', import.meta.url), 'utf8');
 const tree = ts.createSourceFile('MetadataTable.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 
 function findFunctionDeclaration(name) {

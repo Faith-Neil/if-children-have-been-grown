@@ -20,7 +20,7 @@ function parseSource(relativePath) {
 }
 
 test('1. outline-tree.ts 导出核心类型、门禁判定与排序算法', () => {
-  const { tree } = parseSource('../src/outline-tree.ts');
+  const { tree } = parseSource('../src/project/outline-tree.ts');
   const exported = new Set();
 
   ts.forEachChild(tree, node => {
@@ -45,7 +45,7 @@ test('1. outline-tree.ts 导出核心类型、门禁判定与排序算法', () =
 });
 
 test('2. ChapterTypeBadge.tsx 导出徽标组件并支持 5 类章节类型', () => {
-  const { content, tree } = parseSource('../src/ChapterTypeBadge.tsx');
+  const { content, tree } = parseSource('../src/project/ChapterTypeBadge.tsx');
   const exported = new Set();
 
   ts.forEachChild(tree, node => {
@@ -60,7 +60,7 @@ test('2. ChapterTypeBadge.tsx 导出徽标组件并支持 5 类章节类型', ()
 });
 
 test('3. ValueAddedReasonModal.tsx 具备字数限制、预置模板与只读拦截', () => {
-  const { content, tree } = parseSource('../src/ValueAddedReasonModal.tsx');
+  const { content, tree } = parseSource('../src/project/ValueAddedReasonModal.tsx');
   const exported = new Set();
 
   ts.forEachChild(tree, node => {
@@ -78,7 +78,7 @@ test('3. ValueAddedReasonModal.tsx 具备字数限制、预置模板与只读拦
 });
 
 test('4. OutlineTreeView.tsx 落实星号/废标门禁拦截、权限协同与排序跳转', () => {
-  const { content, tree } = parseSource('../src/OutlineTreeView.tsx');
+  const { content, tree } = parseSource('../src/project/OutlineTreeView.tsx');
   const exported = new Set();
 
   ts.forEachChild(tree, node => {

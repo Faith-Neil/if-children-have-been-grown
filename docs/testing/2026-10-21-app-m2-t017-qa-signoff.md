@@ -8,7 +8,7 @@
 - 关联审查任务：REV-M0-T58
 - 关联 Issue：[ISSUE-007](../../issues/ISSUE-007.md)
 - 关联交付：[APP-M2-T017 交付](../delivery/APP-M2-T017.md)、[代码解释](../code/APP-M2-T017.md)
-- 被验核心文件：`frontend/web/src/sensitive-mask.ts`、`frontend/web/src/RevealFieldModal.tsx`、`frontend/web/src/MaskedField.tsx`、`tests/frontend/masked-field.test.mjs`、`frontend/web/tests/masked-field.test.mjs`
+- 被验核心文件：`frontend/web/src/admin/sensitive-mask.ts`、`frontend/web/src/admin/RevealFieldModal.tsx`、`frontend/web/src/admin/MaskedField.tsx`、`tests/frontend/masked-field.test.mjs`、`frontend/web/tests/masked-field.test.mjs`
 - 复验环境：Windows, Node v24.18.0, pnpm v11.20.0
 - 结论：**通过 (PASS)**。**APP-M2-T017 保持 in-review，严禁标 done；关联 ISSUE-007 保持原状态**。
 

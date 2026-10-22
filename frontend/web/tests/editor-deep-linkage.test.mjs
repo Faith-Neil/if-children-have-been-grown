@@ -24,18 +24,18 @@ function parseSource(relativePath) {
 }
 
 test('1. EditorPage.tsx 静态引入大纲树组件与响应式 Hook', () => {
-  const { content } = parseSource('../src/EditorPage.tsx');
+  const { content } = parseSource('../src/editor/EditorPage.tsx');
 
-  assert.ok(content.includes("from './OutlineTreeView'"), 'must import OutlineTreeView');
-  assert.ok(content.includes("from './ChapterTypeBadge'"), 'must import ChapterTypeBadge');
-  assert.ok(content.includes("from './outline-tree'"), 'must import outline-tree helpers');
-  assert.ok(content.includes("from './responsive'"), 'must import useBreakpoint');
+  assert.ok(content.includes("from '../project/OutlineTreeView'"), 'must import OutlineTreeView');
+  assert.ok(content.includes("from '../project/ChapterTypeBadge'"), 'must import ChapterTypeBadge');
+  assert.ok(content.includes("from '../project/outline-tree'"), 'must import outline-tree helpers');
+  assert.ok(content.includes("from '../shell/responsive'"), 'must import useBreakpoint');
   assert.ok(content.includes('mapChaptersToOutlineNodes'), 'must import mapChaptersToOutlineNodes');
   assert.ok(content.includes('useDataPermission'), 'must import useDataPermission');
 });
 
 test('2. EditorPage.tsx 声明响应式折叠状态与派生大纲节点', () => {
-  const { content } = parseSource('../src/EditorPage.tsx');
+  const { content } = parseSource('../src/editor/EditorPage.tsx');
 
   assert.ok(content.includes('const breakpoint = useBreakpoint()'), 'must call useBreakpoint');
   assert.ok(content.includes('directoryCollapsed'), 'must declare directoryCollapsed state');
@@ -45,7 +45,7 @@ test('2. EditorPage.tsx 声明响应式折叠状态与派生大纲节点', () =>
 });
 
 test('3. EditorPage.tsx 渲染布局容器与测试属性契约', () => {
-  const { content } = parseSource('../src/EditorPage.tsx');
+  const { content } = parseSource('../src/editor/EditorPage.tsx');
 
   // 布局类名与 testid
   assert.ok(content.includes('data-testid="editor-page-layout"'), 'must include editor-page-layout testid');
@@ -61,7 +61,7 @@ test('3. EditorPage.tsx 渲染布局容器与测试属性契约', () => {
 });
 
 test('4. EditorPage.tsx 抽屉与只读态向后兼容契约', () => {
-  const { content } = parseSource('../src/EditorPage.tsx');
+  const { content } = parseSource('../src/editor/EditorPage.tsx');
 
   // 大纲树抽屉
   assert.ok(content.includes('data-testid="editor-outline-drawer"'), 'must include editor-outline-drawer testid');

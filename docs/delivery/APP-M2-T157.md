@@ -29,13 +29,13 @@
 ## 完成内容与变更文件
 
 ### 1. 核心产出
-1. **A-06 审计日志中心组件 (`frontend/web/src/AuditLogPage.tsx` 与 `audit-log-core.ts`)**：
+1. **A-06 审计日志中心组件 (`frontend/web/src/admin/AuditLogPage.tsx` 与 `audit-log-core.ts`)**：
    - 展现敏感数据脱敏调阅记录，展示调阅人、时间、>=5字调阅理由，并提供 `理由合规 (≥5字)` 状态 Badge；
    - 展现章节排他独占编辑锁全生命周期调度（获取锁、主动释放、超时释放、强制接管及接管理由）；
    - 展现模型密钥安全变更事件（创建、更新、轮换、吊销），严禁回显密钥明文，强制使用脱敏指纹（如 `sk-****8f92`）；
    - 支持时间范围、操作人、操作类别、具体动作类型、项目 ID/名称、执行结果等多维检索过滤；
    - 纯只读保护机制：系统级只读断言，阻断修改、编辑、删除与清空接口，提供只读存证抽屉。
-2. **A-01 企业租户管理组件 (`frontend/web/src/CompanyManagePage.tsx` 与 `company-manage-core.ts`)**：
+2. **A-01 企业租户管理组件 (`frontend/web/src/admin/CompanyManagePage.tsx` 与 `company-manage-core.ts`)**：
    - 展现多租户基本资料、统一社会信用代码、法人代表、租户资料库隔离空间与 RAGFlow 向量库空间状态；
    - 落实脱敏强合规规则不可关闭标识（`mask_strict_mode_enabled`，PRD §6.9）；
    - 落实涉密与敏感项目强制本地模型开关（`force_local_model`，PRD §6.4）；
@@ -48,13 +48,13 @@
    - 路由级按需加载（Route-level Code Splitting），将审计日志中心与公司管理页拆解为独立异步 Chunk，包体积受控。
 
 ### 2. 变更文件清单
-- `frontend/web/src/audit-log-core.ts` (新增): 审计数据契约模型、多维过滤算法、理由校验与密钥指纹脱敏
-- `frontend/web/src/AuditLogPage.tsx` (新增): A-06 审计日志中心页面组件
-- `frontend/web/src/company-manage-core.ts` (新增): 企业租户模型、安全参数校验、权限感知判定与停用核验
-- `frontend/web/src/CompanyManagePage.tsx` (新增): A-01 企业租户管理页面组件
-- `frontend/web/src/route-loaders.ts` (修改): 注册 `loadAuditLog` 与 `loadCompanyManage` 动态加载器
-- `frontend/web/src/lazy-routes.tsx` (修改): 导出 `LazyAuditLogPage` 与 `LazyCompanyManagePage` 异步路由组件
-- `frontend/web/src/App.tsx` (修改): 在管理规则区域挂载审计日志与公司管理选项卡，保持按需加载
+- `frontend/web/src/admin/audit-log-core.ts` (新增): 审计数据契约模型、多维过滤算法、理由校验与密钥指纹脱敏
+- `frontend/web/src/admin/AuditLogPage.tsx` (新增): A-06 审计日志中心页面组件
+- `frontend/web/src/admin/company-manage-core.ts` (新增): 企业租户模型、安全参数校验、权限感知判定与停用核验
+- `frontend/web/src/admin/CompanyManagePage.tsx` (新增): A-01 企业租户管理页面组件
+- `frontend/web/src/app/route-loaders.ts` (修改): 注册 `loadAuditLog` 与 `loadCompanyManage` 动态加载器
+- `frontend/web/src/app/lazy-routes.tsx` (修改): 导出 `LazyAuditLogPage` 与 `LazyCompanyManagePage` 异步路由组件
+- `frontend/web/src/app/App.tsx` (修改): 在管理规则区域挂载审计日志与公司管理选项卡，保持按需加载
 - `tests/frontend/audit-company-pages.test.mjs` (新增): 8 项覆盖调阅理由、排他锁、密钥脱敏、只读保护、多维检索、合规基线、权限感知与停用二次确认的前端测试
 - `docs/code/APP-M2-T157.md` (新增): 详尽代码解释文档
 - `docs/delivery/APP-M2-T157.md` (新增): 交付记录文档

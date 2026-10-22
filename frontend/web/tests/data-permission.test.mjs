@@ -20,7 +20,7 @@ function parseSource(relativePath) {
 }
 
 test('data-permission.ts exports resolveDataPermission, getVolumeDisplayName, getScopeLabel', () => {
-  const { tree } = parseSource('../src/data-permission.ts');
+  const { tree } = parseSource('../src/shell/data-permission.ts');
   const exported = new Set();
 
   ts.forEachChild(tree, node => {
@@ -35,7 +35,7 @@ test('data-permission.ts exports resolveDataPermission, getVolumeDisplayName, ge
 });
 
 test('useDataPermission.ts exports useDataPermission hook', () => {
-  const { tree } = parseSource('../src/useDataPermission.ts');
+  const { tree } = parseSource('../src/shell/useDataPermission.ts');
   const exported = new Set();
 
   ts.forEachChild(tree, node => {
@@ -48,7 +48,7 @@ test('useDataPermission.ts exports useDataPermission hook', () => {
 });
 
 test('ReadOnlyGate.tsx exports ReadOnlyGate, ReadOnlyWrapper, ReadOnlyField, ReadOnlyText', () => {
-  const { content, tree } = parseSource('../src/ReadOnlyGate.tsx');
+  const { content, tree } = parseSource('../src/shell/ReadOnlyGate.tsx');
   const exported = new Set();
 
   ts.forEachChild(tree, node => {
@@ -69,7 +69,7 @@ test('ReadOnlyGate.tsx exports ReadOnlyGate, ReadOnlyWrapper, ReadOnlyField, Rea
 });
 
 test('ReadOnlyField renders semantic span and omits inputs when readOnly is true', () => {
-  const { content } = parseSource('../src/ReadOnlyGate.tsx');
+  const { content } = parseSource('../src/shell/ReadOnlyGate.tsx');
 
   // 1. 验证根据 readOnly 状态分支处理
   assert.ok(content.includes('if (readOnly)'), 'ReadOnlyField must check readOnly branch');
@@ -83,11 +83,11 @@ test('ReadOnlyField renders semantic span and omits inputs when readOnly is true
 });
 
 test('EditorPage.tsx switches to semantic document text rather than disabled input on readOnly', () => {
-  const { content } = parseSource('../src/EditorPage.tsx');
+  const { content } = parseSource('../src/editor/EditorPage.tsx');
 
   // 1. 验证引入 useDataPermission 与 ReadonlyBanner
-  assert.ok(content.includes("import { ReadonlyBanner } from './StatusViews';"), 'EditorPage must import ReadonlyBanner');
-  assert.ok(content.includes("import { useDataPermission } from './useDataPermission';"), 'EditorPage must import useDataPermission');
+  assert.ok(content.includes("import { ReadonlyBanner } from '../status/StatusViews';"), 'EditorPage must import ReadonlyBanner');
+  assert.ok(content.includes("import { useDataPermission } from '../shell/useDataPermission';"), 'EditorPage must import useDataPermission');
 
   // 2. 验证计算 isReadOnlyView
   assert.ok(content.includes('isReadOnlyView = !canEdit || dataPermission.readOnly;'), 'EditorPage must compute isReadOnlyView');
@@ -105,10 +105,10 @@ test('EditorPage.tsx switches to semantic document text rather than disabled inp
 });
 
 test('MetadataForm.tsx supports readOnly pure text view and suppresses submit footer', () => {
-  const { content } = parseSource('../src/MetadataForm.tsx');
+  const { content } = parseSource('../src/library/MetadataForm.tsx');
 
   // 1. 验证导入 ReadOnlyField
-  assert.ok(content.includes("import { ReadOnlyField } from './ReadOnlyGate';"), 'MetadataForm must import ReadOnlyField');
+  assert.ok(content.includes("import { ReadOnlyField } from '../shell/ReadOnlyGate';"), 'MetadataForm must import ReadOnlyField');
 
   // 2. 验证 MetadataFormProps 支持 readOnly 属性
   assert.ok(content.includes('readOnly?: boolean;'), 'MetadataFormProps must include readOnly prop');

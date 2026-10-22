@@ -2,7 +2,7 @@
 // 它解决什么问题：避免未确认、过期、缺协议、受限或历史标书被勾成证据。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyRefreshedAttachment, attachedEvidenceLabel, attachmentDiff, attachmentStale, evidenceDecision, groupEvidence, toggleSelection } from '../src/evidence-drawer.ts';
+import { applyRefreshedAttachment, attachedEvidenceLabel, attachmentDiff, attachmentStale, evidenceDecision, groupEvidence, toggleSelection } from '../src/library/evidence-drawer.ts';
 
 const deadline = '2026-12-31T17:00:00+08:00';
 

@@ -10,10 +10,10 @@
 - 关联交付：[APP-M2-T123 交付](../delivery/APP-M2-T123.md)、[代码解释](../code/APP-M2-T123.md)
 - 依赖任务：[APP-M1-T15](../tasks/APP-M1.md#app-m1-t15)、[APP-M2-T116](../tasks/APP-M2.md#app-m2-t116)
 - 被验核心文件：
-  - `frontend/web/src/outline-tree.ts`
-  - `frontend/web/src/ChapterTypeBadge.tsx`
-  - `frontend/web/src/ValueAddedReasonModal.tsx`
-  - `frontend/web/src/OutlineTreeView.tsx`
+  - `frontend/web/src/project/outline-tree.ts`
+  - `frontend/web/src/project/ChapterTypeBadge.tsx`
+  - `frontend/web/src/project/ValueAddedReasonModal.tsx`
+  - `frontend/web/src/project/OutlineTreeView.tsx`
   - `tests/frontend/outline-tree.test.mjs`
   - `frontend/web/tests/outline-tree.test.mjs`
 - 复验环境：Windows, Node v24.18.0, pnpm v11.20.0

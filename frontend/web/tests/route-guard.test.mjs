@@ -15,7 +15,7 @@ function parseSource(path) {
 }
 
 test('route-guard.ts exports all 8 roles, normalization, predicates, and guards', () => {
-  const { content, tree } = parseSource('../src/route-guard.ts');
+  const { content, tree } = parseSource('../src/shell/route-guard.ts');
 
   // 1. 验证 8 角色枚举与元数据存在
   const requiredRoleKeys = [
@@ -58,7 +58,7 @@ test('route-guard.ts exports all 8 roles, normalization, predicates, and guards'
 });
 
 test('RouteGuard.tsx wraps Forbidden403 and provides declarative protection', () => {
-  const { content } = parseSource('../src/RouteGuard.tsx');
+  const { content } = parseSource('../src/shell/RouteGuard.tsx');
 
   assert.ok(content.includes('export function RouteGuard'), 'RouteGuard function component must be exported');
   assert.ok(content.includes('checkRoutePermission'), 'RouteGuard must use checkRoutePermission');
@@ -68,7 +68,7 @@ test('RouteGuard.tsx wraps Forbidden403 and provides declarative protection', ()
 });
 
 test('StatusViews.tsx Forbidden403 renders switch role action button', () => {
-  const { content } = parseSource('../src/StatusViews.tsx');
+  const { content } = parseSource('../src/status/StatusViews.tsx');
 
   assert.ok(content.includes('onSwitchRole?: () => void'), 'Forbidden403Props must declare onSwitchRole');
   assert.ok(content.includes('switchRoleText?: ReactNode'), 'Forbidden403Props must declare switchRoleText');
@@ -76,10 +76,10 @@ test('StatusViews.tsx Forbidden403 renders switch role action button', () => {
 });
 
 test('App.tsx intercepts navigation with route guard before data fetching', () => {
-  const { content } = parseSource('../src/App.tsx');
+  const { content } = parseSource('../src/app/App.tsx');
 
   // 1. 验证从 route-guard 模块导入必要函数
-  assert.ok(content.includes("from './route-guard'"), 'App.tsx must import from route-guard');
+  assert.ok(content.includes("from '../shell/route-guard'"), 'App.tsx must import from route-guard');
   assert.ok(content.includes('checkRoutePermission'), 'App.tsx must use checkRoutePermission');
 
   // 2. 验证切页入口前置守卫核验

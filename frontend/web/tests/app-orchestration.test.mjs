@@ -5,14 +5,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
-import * as api from '../src/api.ts';
-import * as sessions from '../src/session-navigation.ts';
-import * as routes from '../src/app-route.ts';
-import * as leaves from '../src/leave-guard.ts';
-import * as reviews from '../src/library-review.ts';
-import * as team from '../src/project-team.ts';
-import * as guards from '../src/route-guard.ts';
-import * as conflicts from '../src/editor-conflict.ts';
+import * as api from '../src/shared/api.ts';
+import * as sessions from '../src/app/session-navigation.ts';
+import * as routes from '../src/app/app-route.ts';
+import * as leaves from '../src/app/leave-guard.ts';
+import * as reviews from '../src/library/library-review.ts';
+import * as team from '../src/project/project-team.ts';
+import * as guards from '../src/shell/route-guard.ts';
+import * as conflicts from '../src/editor/editor-conflict.ts';
 
 function sourceFunctions(filename, component) {
   const source = readFileSync(new URL(`../src/${filename}`, import.meta.url), 'utf8');
@@ -21,8 +21,8 @@ function sourceFunctions(filename, component) {
   assert.ok(root?.body, `${component} is the actual component`);
   return { tree, root, functions: new Map(root.body.statements.filter(ts.isFunctionDeclaration).map(node => [node.name.text, node.getText(tree)])) };
 }
-const app = sourceFunctions('App.tsx', 'App');
-const editor = sourceFunctions('EditorPage.tsx', 'EditorPage');
+const app = sourceFunctions('app/App.tsx', 'App');
+const editor = sourceFunctions('editor/EditorPage.tsx', 'EditorPage');
 const historyEffect = app.root.body.statements.find(node => ts.isExpressionStatement(node)
   && ts.isCallExpression(node.expression) && node.expression.expression.getText(app.tree) === 'useEffect'
   && node.expression.arguments[0].getText(app.tree).includes("window.addEventListener('popstate'"));

@@ -3,10 +3,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { loadEditor, loadProjectPages, loadSettings, loadShell, loadSupportPages } from '../src/route-loaders.ts';
+import { loadEditor, loadProjectPages, loadSettings, loadShell, loadSupportPages } from '../src/app/route-loaders.ts';
 
-const appSource = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
-const loaderSource = readFileSync(new URL('../src/route-loaders.ts', import.meta.url), 'utf8');
+const appSource = readFileSync(new URL('../src/app/App.tsx', import.meta.url), 'utf8');
+const loaderSource = readFileSync(new URL('../src/app/route-loaders.ts', import.meta.url), 'utf8');
 
 test('the signed-in shell and route pages stay behind dynamic imports', () => {
   assert.doesNotMatch(appSource, /from '\.\/AppShell'/);
@@ -16,7 +16,7 @@ test('the signed-in shell and route pages stay behind dynamic imports', () => {
   assert.doesNotMatch(appSource, /from '\.\/ProjectSettingsPage'/);
   assert.match(appSource, /from '\.\/lazy-routes'/);
   assert.match(appSource, /<Suspense/);
-  for (const specifier of ['./AppShell.tsx', './EditorPage.tsx', './ProjectSettingsPage.tsx', './ProjectPages.tsx', './SupportPages.tsx']) {
+  for (const specifier of ['../shell/AppShell.tsx', '../editor/EditorPage.tsx', '../project/ProjectSettingsPage.tsx', '../project/ProjectPages.tsx', './SupportPages.tsx']) {
     assert.match(loaderSource, new RegExp(`import\\('${specifier.replaceAll('.', '\\.')}'\\)`));
   }
   for (const load of [loadShell, loadEditor, loadSettings, loadProjectPages, loadSupportPages]) {

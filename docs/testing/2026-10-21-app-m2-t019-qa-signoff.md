@@ -10,9 +10,9 @@
 - 关联交付：[APP-M2-T019 交付](../delivery/APP-M2-T019.md)、[代码解释](../code/APP-M2-T019.md)
 - 依赖任务：[APP-M2-T014](../tasks/APP-M2.md#app-m2-t014)
 - 被验核心文件：
-  - `frontend/web/src/job-progress.ts`
-  - `frontend/web/src/JobProgress.tsx`
-  - `frontend/web/src/styles.css`
+  - `frontend/web/src/status/job-progress.ts`
+  - `frontend/web/src/status/JobProgress.tsx`
+  - `frontend/web/src/shared/styles.css`
   - `tests/frontend/job-progress.test.mjs`
   - `frontend/web/tests/job-progress.test.mjs`
 - 复验环境：Windows, Node v24.18.0, pnpm v11.20.0

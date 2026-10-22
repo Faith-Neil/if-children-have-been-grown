@@ -33,30 +33,30 @@
 
 本次任务在 `frontend/web/` 下完成了断点适配、侧栏持久化记忆与动态面包屑的全面实现：
 
-1. **`frontend/web/src/responsive.ts`（新增）**：
+1. **`frontend/web/src/shell/responsive.ts`（新增）**：
    - 定义三大标准断点常量：`BREAKPOINT_COMPACT = 1280`、`BREAKPOINT_STANDARD = 1440`、`BREAKPOINT_WIDE = 1680`；
    - 纯函数 `getBreakpointInfo(width)`：计算断点级别（`tier`: `sub-compact` / `compact` / `standard` / `wide`）、布尔标志位、编辑台推荐列数（3 栏 / 4 栏）与主内容区预估宽度（紧凑视口 1040px 优先保障表格无横滚）；
    - 自定义 Hook `useBreakpoint()`：监听视口变化并利用 `requestAnimationFrame` 防抖刷新，SSR/Node 环境优雅降级为 1440 标准视口；
    - 侧栏持久化：定义 `SIDEBAR_COLLAPSED_STORAGE_KEY = 'icg_sidebar_collapsed'`，实现 `readStoredSidebarCollapsed`、`writeStoredSidebarCollapsed`（内置防崩溃 `try...catch`），实现 `resolveInitialSidebarCollapsed` 与 `onEnterProjectCollapse` 决策；
    - 动态面包屑推导：实现 `formatProjectShortName`（长名智能截断与省略号）、`deriveBreadcrumbs`（依据 404/全局/项目/编辑台分册动态推导 1~4 级导航轨迹，严格保证上层节点具备 `path`，末级节点标记 `isCurrent: true` 且无路径）。
 
-2. **`frontend/web/src/BreadcrumbNav.tsx`（新增）**：
+2. **`frontend/web/src/shell/BreadcrumbNav.tsx`（新增）**：
    - 封装 Ant Design Breadcrumb 组件；
    - 外层包裹无障碍 `<nav aria-label="面包屑导航" className="topbar-breadcrumb-nav">`；
    - 上层链接具备安全点击跳转回调与平滑样式过渡；末级当前页渲染为 `<span className="breadcrumb-leaf" aria-current="page">`；
    - 悬停展示 `fullTitle` 完整文本，避免长项目名在顶栏换行挤占。
 
-3. **`frontend/web/src/AppShell.tsx`（修改）**：
+3. **`frontend/web/src/shell/AppShell.tsx`（修改）**：
    - 集成 `useBreakpoint()`，在 ProLayout 根节点上注入 `breakpoint-${breakpoint.tier}` 类名与 `data-breakpoint` 属性；
    - 支持 `breadcrumbs` 属性，并将 `BreadcrumbNav` 按需渲染在懒加载的外壳切片中，优化首屏主 Chunk 体积。
 
-4. **`frontend/web/src/App.tsx`（修改）**：
+4. **`frontend/web/src/app/App.tsx`（修改）**：
    - 侧栏 `collapsed` 状态结合 `readStoredSidebarCollapsed` 与路由初始值初始化；
    - 手动切换通过 `handleCollapseChange` 实时写回 `localStorage`；
    - 进入项目（`openProject` / `loadTab`）时通过 `onEnterProjectCollapse` 自动收起侧栏，最大化写作区；
    - 顶栏动态调用 `deriveBreadcrumbs` 并将 `breadcrumbs` 传至 `AppShell`。
 
-5. **`frontend/web/src/styles.css`（修改）**：
+5. **`frontend/web/src/shared/styles.css`（修改）**：
    - 增加 `.breakpoint-compact` 下 `.workspace-content` 与 `.project-content:not(.fullbleed)` 的 `max-width: 1040px` 规则；
    - 增加 `.topbar-breadcrumb-nav`、`.breadcrumb-leaf`（`#1D2129` 高对比度）与链接悬停样式。
 

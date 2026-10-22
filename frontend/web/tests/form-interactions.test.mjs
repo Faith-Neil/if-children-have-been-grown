@@ -10,16 +10,16 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 
-const footerSource = readFileSync(new URL('../src/FormActionFooter.tsx', import.meta.url), 'utf8');
+const footerSource = readFileSync(new URL('../src/shared/FormActionFooter.tsx', import.meta.url), 'utf8');
 const footerTree = ts.createSourceFile('FormActionFooter.tsx', footerSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 
-const hookSource = readFileSync(new URL('../src/useUnsavedPrompt.ts', import.meta.url), 'utf8');
+const hookSource = readFileSync(new URL('../src/shared/useUnsavedPrompt.ts', import.meta.url), 'utf8');
 const hookTree = ts.createSourceFile('useUnsavedPrompt.ts', hookSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
 
-const formSource = readFileSync(new URL('../src/MetadataForm.tsx', import.meta.url), 'utf8');
+const formSource = readFileSync(new URL('../src/library/MetadataForm.tsx', import.meta.url), 'utf8');
 const formTree = ts.createSourceFile('MetadataForm.tsx', formSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 
-const cssSource = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8');
+const cssSource = readFileSync(new URL('../src/shared/styles.css', import.meta.url), 'utf8');
 
 function findFunctionDeclaration(tree, name) {
   for (const statement of tree.statements) {

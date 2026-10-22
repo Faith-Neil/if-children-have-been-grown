@@ -23,16 +23,16 @@
 
 ## 2. 变更文件与实现清单
 
-1. **`frontend/web/src/types.ts`（修改）**：
+1. **`frontend/web/src/shared/types.ts`（修改）**：
    - 扩充 `Export` 类型定义，包含 `volume`（分册范围）、`created_by` / `operator_name`（操作人）、`size_bytes` / `file_size`（文件大小）、`sha256` / `fingerprint`（版式指纹）。
-2. **`frontend/web/src/export-checks-core.ts`（新增）**：
+2. **`frontend/web/src/project/export-checks-core.ts`（新增）**：
    - 实现了 `isBlocker`：精准识别并归一化红线阻断级别；
    - 实现了 `deriveBlockerSummary`：从检查结果中提取所有 blocker 缺陷并按章节分组聚合；
    - 实现了 `canExportSubmission`：综合校验角色权限、正文完整度、有效检查与 blocker 红线，产出放行裁决；
    - 实现了 `formatFileSize`：人性化文件大小展示与伪随机模拟；
    - 实现了 `formatSha256Fingerprint`：支持 short 与 full 版式指纹规范展示；
    - 实现了 `getExportKindMeta` 与 `getExportVolumeLabel`：标准 ICG 标签映射。
-3. **`frontend/web/src/ProjectPages.tsx`（修改）**：
+3. **`frontend/web/src/project/ProjectPages.tsx`（修改）**：
    - ChecksPage：挂载 `blockerSummary.hasBlockers` 警示横幅与章节列表；
    - ExportPage：集成红线门禁前提项、分册范围单选、导出类型单选、阻断告警、强拦截生成按钮与完整导出历史表格。
 4. **`tests/frontend/checks-export.test.mjs`（新增）**：

@@ -7,7 +7,7 @@
 - 被验任务：[APP-M2-T004](../tasks/APP-M2.md#app-m2-t004) · 业务小组件封装
 - 关联 Issue：[ISSUE-007](../../issues/ISSUE-007.md)
 - 关联交付：[APP-M2-T004 交付](../delivery/APP-M2-T004.md)、[代码解释](../code/APP-M2-T004.md)
-- 被验核心文件：`frontend/web/src/BusinessTags.tsx`、`frontend/web/src/business-tags.ts`、`frontend/web/tests/business-tags.test.mjs`、`tests/frontend/business-tags.test.mjs`
+- 被验核心文件：`frontend/web/src/library/BusinessTags.tsx`、`frontend/web/src/library/business-tags.ts`、`frontend/web/tests/business-tags.test.mjs`、`tests/frontend/business-tags.test.mjs`
 - 复验环境：Windows, Node v24.18.0, pnpm v11.20.0
 - 结论：**通过 (PASS)**。**APP-M2-T004 保持 in-review，严禁标 done**。
 

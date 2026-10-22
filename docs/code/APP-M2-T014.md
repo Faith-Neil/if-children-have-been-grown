@@ -143,11 +143,11 @@ if (!guard.allowed && guard.code !== 'UNAUTHENTICATED') {
 
 | 文件路径 | 变更类型 | 说明 |
 |---|---|---|
-| `frontend/web/src/route-guard.ts` | 新增 | 八角色规范化、权限矩阵、细粒度章节分工鉴权与原因生成器 |
-| `frontend/web/src/RouteGuard.tsx` | 新增 | 声明式路由守卫组件封装，包装 `Forbidden403` 与前置准入校验 |
-| `frontend/web/src/StatusViews.tsx` | 修改 | `Forbidden403` 增加 `onSwitchRole` 与 `switchRoleText` 支持快捷切换身份 |
-| `frontend/web/src/status-views.ts` | 修改 | `resolveForbidden` 补齐 `switchRoleText` 字段解析 |
-| `frontend/web/src/App.tsx` | 修改 | 切页入口接入 `checkRoutePermission` 前置校验，杜绝越权 API 外呼；403 增加切换身份与角色详情 |
+| `frontend/web/src/shell/route-guard.ts` | 新增 | 八角色规范化、权限矩阵、细粒度章节分工鉴权与原因生成器 |
+| `frontend/web/src/shell/RouteGuard.tsx` | 新增 | 声明式路由守卫组件封装，包装 `Forbidden403` 与前置准入校验 |
+| `frontend/web/src/status/StatusViews.tsx` | 修改 | `Forbidden403` 增加 `onSwitchRole` 与 `switchRoleText` 支持快捷切换身份 |
+| `frontend/web/src/status/status-views.ts` | 修改 | `resolveForbidden` 补齐 `switchRoleText` 字段解析 |
+| `frontend/web/src/app/App.tsx` | 修改 | 切页入口接入 `checkRoutePermission` 前置校验，杜绝越权 API 外呼；403 增加切换身份与角色详情 |
 | `frontend/web/tests/app-orchestration.test.mjs` | 修改 | 扩展 VM 沙箱上下文注入 `route-guard` 导出符号与 `DeniedDetails` |
 | `tests/frontend/route-guard.test.mjs` | 新增 | 表格驱动单元测试（8 角色准入、写操作阻断、分工细粒度、零外呼保证、403 提示） |
 | `frontend/web/tests/route-guard.test.mjs` | 新增 | 静态 AST 结构断言与守卫模块契约完整性测试 |

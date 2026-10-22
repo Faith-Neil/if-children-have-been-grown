@@ -121,11 +121,11 @@ PRD v1.8 与设计规范第 7.3、9.6 节定义了三大标准断点：
 
 | 文件路径 | 改动性质 | 核心改动说明 |
 |---|---|---|
-| `frontend/web/src/responsive.ts` | 新增 | 三大断点定义、`getBreakpointInfo`、`useBreakpoint`、侧栏存储读写与决策、多层级面包屑推导算法 |
-| `frontend/web/src/BreadcrumbNav.tsx` | 新增 | 动态面包屑导航组件封装，具备可点击回跳链接、末级无障碍 Leaf 标识与测试插槽 |
-| `frontend/web/src/AppShell.tsx` | 修改 | 集成 `useBreakpoint`，为 ProLayout 外壳注入 `breakpoint-*` 类名与 `data-breakpoint` 属性；支持 `breadcrumbs` 属性动态渲染 `BreadcrumbNav` |
-| `frontend/web/src/App.tsx` | 修改 | 侧栏状态由 `readStoredSidebarCollapsed` 初始化，手动切换持久化写回；进入项目时调用 `onEnterProjectCollapse` 自动收起；动态调用 `deriveBreadcrumbs` 并将 `breadcrumbs` 传至 `AppShell` |
-| `frontend/web/src/styles.css` | 修改 | 增加 `.breakpoint-compact` 1040px 主内容区无横滚宽度约束规则；新增 `.topbar-breadcrumb-nav`、`.breadcrumb-leaf` 与链接悬停样式 |
+| `frontend/web/src/shell/responsive.ts` | 新增 | 三大断点定义、`getBreakpointInfo`、`useBreakpoint`、侧栏存储读写与决策、多层级面包屑推导算法 |
+| `frontend/web/src/shell/BreadcrumbNav.tsx` | 新增 | 动态面包屑导航组件封装，具备可点击回跳链接、末级无障碍 Leaf 标识与测试插槽 |
+| `frontend/web/src/shell/AppShell.tsx` | 修改 | 集成 `useBreakpoint`，为 ProLayout 外壳注入 `breakpoint-*` 类名与 `data-breakpoint` 属性；支持 `breadcrumbs` 属性动态渲染 `BreadcrumbNav` |
+| `frontend/web/src/app/App.tsx` | 修改 | 侧栏状态由 `readStoredSidebarCollapsed` 初始化，手动切换持久化写回；进入项目时调用 `onEnterProjectCollapse` 自动收起；动态调用 `deriveBreadcrumbs` 并将 `breadcrumbs` 传至 `AppShell` |
+| `frontend/web/src/shared/styles.css` | 修改 | 增加 `.breakpoint-compact` 1040px 主内容区无横滚宽度约束规则；新增 `.topbar-breadcrumb-nav`、`.breadcrumb-leaf` 与链接悬停样式 |
 | `tests/frontend/responsive-layout.test.mjs` | 新增 | 纯逻辑单测（覆盖 1280/1440/1680 断点计算、Storage 读写降级、进入项目收起决策、项目名截断、404/全局/项目/编辑台分册面包屑推导与链接回跳不变量） |
 | `frontend/web/tests/responsive-layout.test.mjs` | 新增 | TypeScript AST 与静态代码结构断言，核对各模块导出、JSX 无障碍语义与 CSS 规则 |
 

@@ -29,16 +29,16 @@
 ## 完成内容与变更文件
 
 ### 1. 核心产出
-1. **大纲树纯逻辑层 (`frontend/web/src/outline-tree.ts`)**：
+1. **大纲树纯逻辑层 (`frontend/web/src/project/outline-tree.ts`)**：
    - 定义 5 类核心章节类型（`specialized` 专项方案、`general` 通用方案、`system_generated` 系统生成、`cover_and_catalog` 封面目录、`not_applicable` 不适用）；
    - 落实**核心门禁红线**：`canMarkNotApplicable` 严格拦截关联星号条款(★)或废标条款的章节，禁止标记为不适用；
    - 实现了同级章节排序算法 `reorderNodes` 与章节多级编号递归归一化 `normalizeChapterNumbers`；
    - 实现了增值理由校验 `validateValueAddedReason` 与常用预置模板 `VALUE_ADDED_PRESETS`。
-2. **章节类型徽标组件 (`frontend/web/src/ChapterTypeBadge.tsx`)**：
+2. **章节类型徽标组件 (`frontend/web/src/project/ChapterTypeBadge.tsx`)**：
    - 封装 `ChapterTypeBadge`，呈现对应类型 Tag 与图标，系统生成类型专属紫标识。
-3. **增值理由编辑弹窗 (`frontend/web/src/ValueAddedReasonModal.tsx`)**：
+3. **增值理由编辑弹窗 (`frontend/web/src/project/ValueAddedReasonModal.tsx`)**：
    - 提供 500 字上限输入、字符数即时统计、常用模板快速插入与数据权限只读态拦截。
-4. **大纲树协同编辑核心视图 (`frontend/web/src/OutlineTreeView.tsx`)**：
+4. **大纲树协同编辑核心视图 (`frontend/web/src/project/OutlineTreeView.tsx`)**：
    - 支持技术分册/商务分册 Tab 维度过滤；
    - 呈现章节编号、标题、星号条款标(★)、废标条款标及关联条款数；
    - 章节类型下拉在遇到星号/废标条款时置灰禁用“不适用”选项并提示禁止原因；
@@ -47,10 +47,10 @@
    - 支持编辑增值理由与点击“编辑台”跳转联动。
 
 ### 2. 变更文件清单
-- `frontend/web/src/outline-tree.ts` (新增): 章节类型元信息、星号废标门禁拦截、排序与编号归一化纯逻辑
-- `frontend/web/src/ChapterTypeBadge.tsx` (新增): 章节类型徽标组件
-- `frontend/web/src/ValueAddedReasonModal.tsx` (新增): 增值理由编辑弹窗
-- `frontend/web/src/OutlineTreeView.tsx` (新增): 大纲树协同编辑核心视图组件
+- `frontend/web/src/project/outline-tree.ts` (新增): 章节类型元信息、星号废标门禁拦截、排序与编号归一化纯逻辑
+- `frontend/web/src/project/ChapterTypeBadge.tsx` (新增): 章节类型徽标组件
+- `frontend/web/src/project/ValueAddedReasonModal.tsx` (新增): 增值理由编辑弹窗
+- `frontend/web/src/project/OutlineTreeView.tsx` (新增): 大纲树协同编辑核心视图组件
 - `tests/frontend/outline-tree.test.mjs` (新增): 7 项纯逻辑单测
 - `frontend/web/tests/outline-tree.test.mjs` (新增): 4 项 AST 静态契约与门禁断言测试
 - `docs/code/APP-M2-T123.md` (新增): 代码解释文档

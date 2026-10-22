@@ -29,7 +29,7 @@
 
 本次任务在 `frontend/web/` 下完成了元数据驱动表单组件的全面封装，覆盖设计规范 §9.2、交接清单 M1-P08-F6、合规规范 §5.2.2 及 PRD §5.12 的所有关键项：
 
-1. **`frontend/web/src/metadata-form.ts`（新增）**：
+1. **`frontend/web/src/library/metadata-form.ts`（新增）**：
    - 纯函数逻辑与类型层，定义 `FormFieldOption`、`FormFieldMeta`、`FormSchema`、`ModifiedStarredField`、`FieldDisabledState`；
    - 实现了 `areValuesEquivalent`：严格处理 null、undefined、空串、字符串两端空白符与布尔/数值等价性，防止虚假触发修改提示；
    - 实现了 `getModifiedStarredFields` 与 `hasModifiedStarredFields`：比对 `initialValues` 与表单当前值，提取所有被修改的 `is_starred: true` 字段；
@@ -39,7 +39,7 @@
    - 预置 `FALLBACK_ORG_ENTITY_FORM_SCHEMA`（企业主体）与 `FALLBACK_PROJECT_FORM_SCHEMA`（项目基础）标准 Schema 并提供降级解析函数 `resolveFormSchema`；
    - 封装异步客户端 `fetchFieldMetadata` 对接后端 `/api/v1/metadata/fields/{category}`。
 
-2. **`frontend/web/src/MetadataForm.tsx`（新增）**：
+2. **`frontend/web/src/library/MetadataForm.tsx`（新增）**：
    - 封装统一的 Ant Design Form 表现层组件 `MetadataForm`，提供具名与默认导出；
    - 实现了 ★ 关键字段修改提示横幅（Alert `type="warning"`，带 WarningOutlined 锁色与高对比度文字）与项级边框微光黄色高亮（`.icg-form-item-starred-modified`）；
    - 实现了系统键双行标签（`.icg-form-two-line-label`、`.icg-label-primary`、`.icg-label-secondary`）；
@@ -47,7 +47,7 @@
    - 实现了控件类型自动分流：`textarea`、`number`（带单位）、`date`、`datetime`、`boolean/switch`、`select` 与单行文本；
    - 实现了 1/2/3 栏栅格布局自适应与底部操作栏（保存、重置、变动提示）。
 
-3. **`frontend/web/src/styles.css`（修改）**：
+3. **`frontend/web/src/shared/styles.css`（修改）**：
    - 增加表单外壳样式 `.icg-metadata-form-wrapper`；
    - 增加双行标签排版样式 `.icg-form-two-line-label`、`.icg-label-primary`、`.icg-label-secondary`；
    - 增加 ★ 修改合规警示横幅 `.icg-starred-warning-banner` 及项级高亮样式 `.icg-form-item-starred-modified`；

@@ -29,28 +29,28 @@
 ## 完成内容与变更文件
 
 ### 1. 核心产出
-1. **高敏脱敏与原因强校验层 (`frontend/web/src/sensitive-mask.ts`)**：
+1. **高敏脱敏与原因强校验层 (`frontend/web/src/admin/sensitive-mask.ts`)**：
    - 实现了纯函数 `maskSensitiveValue(value, type, options)`，支持基于表格驱动配置的脱敏规则；
    - 身份证号支持标准 6+4（`110101********2345`）与严格 3+4（`110***********2345`，契合 PRD v1.8 §5.4.5 示例）；
    - 手机号支持 3+4（`138****5678`），银行账号仅保留后 4 位（`***************0123`），邮箱保留前 2 位及域名（`zh***@company.com`），姓名智能脱敏；
    - 实现了调阅原因强校验 `validateRevealReason(reason, minLength)`：空字符串、纯空白字符（空格/制表符/换行）、不足 5 字符一律拦截，保障业务调阅留痕真实有效；
    - 实现了零泄密安全断言引擎 `assertNoSensitiveLeak(plaintext, targets)`，自动核验 `localStorage`、`sessionStorage` 与 URL，确保高敏明文零残留。
-2. **调阅完整值合规弹窗 (`frontend/web/src/RevealFieldModal.tsx`)**：
+2. **调阅完整值合规弹窗 (`frontend/web/src/admin/RevealFieldModal.tsx`)**：
    - `<RevealFieldModal>`：基于 Ant Design Modal 封装；
    - 顶部提供醒目的合规安全审计告警横幅（`data-testid="reveal-security-alert"`），警示每一次查看均记录操作人、时间、原因及网络环境；
    - 必填原因受控文本域（`data-testid="reveal-reason-input"`），实时检验并拦截空理由；
    - 提交通过后短暂展示等宽高对比度明文（`data-testid="revealed-plaintext-value"`），提供一键复制明文与重新遮蔽；
    - 弹窗关闭即刻调用 `destroyOnClose` 并重置内部状态，彻底销毁明文内存，严禁写入任何 storage 或 URL。
-3. **掩码展示与权限集成组件 (`frontend/web/src/MaskedField.tsx`)**：
+3. **掩码展示与权限集成组件 (`frontend/web/src/admin/MaskedField.tsx`)**：
    - `<MaskedField>`：通用高敏字段呈现组件；
    - 默认直接展示脱敏掩码文本（`data-testid="masked-value-text"`）；
    - 深度集成 `useCan('id_card:view')` 权限判定：严格遵循 PRD v1.8 §2.3 规范，**仅限 `company_admin` 与 `data_admin`** 渲染“查看完整值”触发按钮；
    - 无权限角色（编写人、项目负责人、只读成员等）默认在 DOM 中完全不渲染查看按钮（零 DOM 残留），或在 `unauthorizedMode="disabled"` 时渲染置灰并 Tooltip 悬浮解释无权限原因。
 
 ### 2. 变更文件清单
-- `frontend/web/src/sensitive-mask.ts` (新增): 高敏脱敏算法、原因强校验、表格规则与防泄露断言
-- `frontend/web/src/RevealFieldModal.tsx` (新增): 调阅高敏弹窗组件、合规审计告警横幅与短暂展示
-- `frontend/web/src/MaskedField.tsx` (新增): 掩码展示与权限判定集成组件
+- `frontend/web/src/admin/sensitive-mask.ts` (新增): 高敏脱敏算法、原因强校验、表格规则与防泄露断言
+- `frontend/web/src/admin/RevealFieldModal.tsx` (新增): 调阅高敏弹窗组件、合规审计告警横幅与短暂展示
+- `frontend/web/src/admin/MaskedField.tsx` (新增): 掩码展示与权限判定集成组件
 - `tests/frontend/masked-field.test.mjs` (新增): 7 项表格驱动脱敏、原因校验、8角色权限与 storage/URL 零泄露单测
 - `frontend/web/tests/masked-field.test.mjs` (新增): 3 项 AST 静态契约与零 storage 写入断言测试
 - `docs/code/APP-M2-T017.md` (新增): 代码解释文档

@@ -8,7 +8,7 @@
 
 ## 完成内容与变更文件
 
-`frontend/web/src/styles.css` 把 `.ant-tag-orange`、`.ant-tag-gold`、`.ant-tag-warning` 的文字色设为已有的 `#9a5608`。浅底不动。`!important` 用来压过 Ant Design 运行时样式。`frontend/web/e2e/app-shell.spec.ts` 的既有 4.5:1 检查加上当前可见的这三类标签。
+`frontend/web/src/shared/styles.css` 把 `.ant-tag-orange`、`.ant-tag-gold`、`.ant-tag-warning` 的文字色设为已有的 `#9a5608`。浅底不动。`!important` 用来压过 Ant Design 运行时样式。`frontend/web/e2e/app-shell.spec.ts` 的既有 4.5:1 检查加上当前可见的这三类标签。
 
 未改 `backend/`、`tests/backend/`、`spec/openapi/`、`docs/reference/` 与 `package.json`。未新增依赖。未把任何 APP 卡标 done。同一提交另按项目经理确认把 APP-M2-T114 与 REV-M0-T22 标为 done（QA f521950，PM 17:13 确认）。ISSUE-033 不关闭。
 

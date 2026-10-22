@@ -18,7 +18,7 @@
 
 ## 页面入口与读取顺序
 
-`frontend/web/src/types.ts`定义契约类型；`session-navigation.ts`检查身份模式、公司一致性、入口路径白名单及服务端动作。`App.tsx`实际调用这些函数：登录→getSession→允许的公司集合；打开项目→getSession(project_id)→获准的项目页→workspace。项目正文不会在目标页权限确认前请求。
+`frontend/web/src/shared/types.ts`定义契约类型；`session-navigation.ts`检查身份模式、公司一致性、入口路径白名单及服务端动作。`App.tsx`实际调用这些函数：登录→getSession→允许的公司集合；打开项目→getSession(project_id)→获准的项目页→workspace。项目正文不会在目标页权限确认前请求。
 
 资料和模板各保留自己的GET内容及版本，避免把并行请求的另一份版本配给旧资料。全局读还需要对应导航与allowedActions同时允许。401退出并清理身份、公司数据；无权入口明确显示403。项目撤权时保留已经填写的文字，停止写入；所有保存仍受后台权限、版本及编辑权约束。
 
@@ -32,7 +32,7 @@
 
 ## 布局、地址和离开保护
 
-入口仍是 `frontend/web/src/App.tsx`。登录成功后 `routeAfterLogin` 看当前地址：`/` 换成会话首页，已知全局路径和项目页签保持原样，未知地址留在未知页。`followPath` 再交给原来的 `requireSessionRoute` 或 `readAuthorizedProject`。未知路径走 `showMissing`，只改地址和 404，不请求工作区。
+入口仍是 `frontend/web/src/app/App.tsx`。登录成功后 `routeAfterLogin` 看当前地址：`/` 换成会话首页，已知全局路径和项目页签保持原样，未知地址留在未知页。`followPath` 再交给原来的 `requireSessionRoute` 或 `readAuthorizedProject`。未知路径走 `showMissing`，只改地址和 404，不请求工作区。
 
 `commitAddress` 在路径已经一致或模式为 `none` 时不改历史。站内点击用 `push`。登录后的第一次定位用 `replace`。每次 `push` / `replace` 写入 `{ app: true, idx }`。浏览器 `popstate` 已经改过地址。页面干净时直接 `followPath(..., 'none')` 并记下新序号。页面有未保存文字时，用目标序号减当前序号得到步长，先 `history.go(-step)` 回到原页再询问；确认后 `history.go(step)` 并 `followPath(..., 'none')`。取消不新增历史，前进记录还在。恢复用的那次 `popstate` 由 `ignorePop` 吃掉，避免再弹一次。
 

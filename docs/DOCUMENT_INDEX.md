@@ -124,8 +124,8 @@
 | D-112 | 2026-10-10 | [T11代码解释](code/APP-M1-T11.md) | 代码说明 | reference-sla-1 | 当前 | ISSUE-007 / APP-M1-T09～T11 | 单位换算、同一取值、旧出口保护及下载失效 |
 | D-113 | 2026-10-10 | [服务承诺核心](../backend/bid-core/icg_demo/sla.py) | 代码 | reference-sla-1 | 定向验收通过 | ISSUE-007 / APP-M1-T09～T11 | 模板、判定、批准、派生事实、变量与实际表格 |
 | D-114 | 2026-10-10 | [服务承诺字段](../backend/bid-core/icg_demo/sla_schemas.py) | 接口代码 | reference-sla-1 | 字段核对通过 | ISSUE-007 / APP-M1-T09～T11 | 严格数值与公司模板/项目值结构 |
-| D-115 | 2026-10-11 | [服务承诺页面](../frontend/web/src/SlaPages.tsx) | 页面代码 | reference-sla-1 | 真实操作通过 | ISSUE-007 / APP-M1-T09～T11 | 模板维护、数值矩阵和承诺函下载 |
-| D-116 | 2026-10-10 | [服务承诺表单](../frontend/web/src/sla-form.ts) | 代码 | reference-sla-1 | 行为通过 | ISSUE-007 / APP-M1-T09～T11 | 空值/零、数值、完整变量和单位插入 |
+| D-115 | 2026-10-11 | [服务承诺页面](../frontend/web/src/admin/SlaPages.tsx) | 页面代码 | reference-sla-1 | 真实操作通过 | ISSUE-007 / APP-M1-T09～T11 | 模板维护、数值矩阵和承诺函下载 |
+| D-116 | 2026-10-10 | [服务承诺表单](../frontend/web/src/admin/sla-form.ts) | 代码 | reference-sla-1 | 行为通过 | ISSUE-007 / APP-M1-T09～T11 | 空值/零、数值、完整变量和单位插入 |
 | D-117 | 2026-10-10 | [服务承诺HTTP工具](../backend/bid-core/smoke_sla.py) | 验证工具 | reference-sla-1 | 最终服务通过 | ISSUE-007 / APP-M1-T09～T11 | 仅本机合成项目、能力/事实门禁和真实下载 |
 | D-118 | 2026-10-10 | [服务承诺独立测试](../tests/backend/test_sla.py) | 验证代码 | reference-sla-1 | 42项通过 | ISSUE-007 / APP-M1-T09～T11 | 单位、权限、来源/模板、出口、实际Word及本次确认依据 |
 | D-119 | 2026-10-10 | [服务承诺前端测试](../tests/frontend/sla-form.test.mjs) | 验证代码 | reference-sla-1 | 4项通过 | ISSUE-007 / APP-M1-T09～T11 | 输入与选区/冲突单位，前端合计13项 |
@@ -137,12 +137,12 @@
 | D-125 | 2026-10-11 | [实际写作输入](../backend/bid-core/icg_demo/generation_context.py) | 后端 | reference-writing-1 | 当前 | ISSUE-007 / APP-M1-T12、T13 | 来源当前性、选定事实、输出变量保护 |
 | D-126 | 2026-10-10 | [写作HTTP验收](../backend/bid-core/smoke_writing.py) | 验证 | reference-writing-1 | 已执行 | ISSUE-007 / APP-M1-T12、T13 | 本机合成端口、快照/变量/两册/失效 |
 | D-127 | 2026-10-11 | [独立写作回归](../tests/backend/test_generation_context.py) | 验证 | reference-writing-1 | 已执行 | ISSUE-007 / APP-M1-T12、T13 | 捕获入参、权限/来源/变量/并发反例 |
-| D-128 | 2026-10-11 | [本章方案页面](../frontend/web/src/WritingPlanReview.tsx) | 前端 | reference-writing-1 | 当前 | ISSUE-007 / APP-M1-T12、T13 | 负责人事实选择、要点与字数确认 |
-| D-129 | 2026-10-11 | [输入快照页面](../frontend/web/src/WritingInputPreview.tsx) | 前端 | reference-writing-1 | 当前 | ISSUE-007 / APP-M1-T12、T13 | 当前准备输入与历史来源分别显示 |
-| D-130 | 2026-10-11 | [写作页面函数](../frontend/web/src/writing-input.ts) | 前端 | reference-writing-1 | 当前 | ISSUE-007 / APP-M1-T12、T13 | 方案恢复、失效与事实变量插入 |
+| D-128 | 2026-10-11 | [本章方案页面](../frontend/web/src/editor/WritingPlanReview.tsx) | 前端 | reference-writing-1 | 当前 | ISSUE-007 / APP-M1-T12、T13 | 负责人事实选择、要点与字数确认 |
+| D-129 | 2026-10-11 | [输入快照页面](../frontend/web/src/editor/WritingInputPreview.tsx) | 前端 | reference-writing-1 | 当前 | ISSUE-007 / APP-M1-T12、T13 | 当前准备输入与历史来源分别显示 |
+| D-130 | 2026-10-11 | [写作页面函数](../frontend/web/src/editor/writing-input.ts) | 前端 | reference-writing-1 | 当前 | ISSUE-007 / APP-M1-T12、T13 | 方案恢复、失效与事实变量插入 |
 | D-131 | 2026-10-11 | [写作函数回归](../frontend/web/tests/writing-input.test.mjs) | 验证 | reference-members-1 | 9项通过 | ISSUE-007 / APP-M1-T12、T13 | 本章输入、独立确认、逐行/范围旧表单和依赖变化反例 |
 | D-132 | 2026-10-10 | [写入来源独立回归](../tests/backend/test_candidate_write_guard.py) | 验证 | reference-writing-1 | 已执行 | ISSUE-007 / APP-M1-T12、T13 | 候选采纳后/草稿源改、事务拒绝、幂等与旧demo兼容 |
-| D-133 | 2026-10-10 | [编辑来源保护函数](../frontend/web/src/editing-source.ts) | 前端 | reference-writing-1 | 当前 | ISSUE-007 / APP-M1-T13 | 草稿/候选原基准、显式重新核对及恢复 |
+| D-133 | 2026-10-10 | [编辑来源保护函数](../frontend/web/src/editor/editing-source.ts) | 前端 | reference-writing-1 | 当前 | ISSUE-007 / APP-M1-T13 | 草稿/候选原基准、显式重新核对及恢复 |
 | D-134 | 2026-10-10 | [编辑来源回归](../frontend/web/tests/editing-source.test.mjs) | 验证 | reference-writing-1 | 已执行 | ISSUE-007 / APP-M1-T13 | 5项加载、恢复、写入与期间变动保护 |
 | D-135 | 2026-10-11 | [成员分工验收](testing/2026-10-10-project-assignments.md) | 验证 | reference-members-1 | 限定任务本地验收 | ISSUE-007 / APP-M1-T14、T15 | 210后台、36前端、真实HTTP/GUI及最终两册内容；正式版式未验收 |
 
@@ -157,15 +157,15 @@
 | D-144 | 2026-10-11 | [团队交接](../backend/bid-core/icg_demo/project_team.py) | 代码 | reference-members-1 | 回归通过 | ISSUE-007 / APP-M1-T14、T15 | 分工资格、交接理由、旧锁撤销和每人草稿保留 |
 | D-145 | 2026-10-11 | [真实成员HTTP](../backend/bid-core/smoke_members.py) | 验证工具 | reference-members-1 | 实际端口通过 | ISSUE-007 / APP-M1-T14、T15 | 合成多账号独立确认/交接/私有稿与两册真实下载 |
 | D-146 | 2026-10-11 | [成员权限独立回归](../tests/backend/test_project_assignments.py) | 验证 | reference-members-1 | 42项通过 | ISSUE-007 / APP-M1-T14、T15 | 范围、调用中撤权、缓存请求和单章确认相关依赖 |
-| D-147 | 2026-10-11 | [项目设置页面](../frontend/web/src/ProjectSettingsPage.tsx) | 前端 | reference-members-1 | 实际页面通过 | ISSUE-007 / APP-M1-T14 | 示例左锚点、分工和基本/团队旧表单分别保护 |
-| D-148 | 2026-10-11 | [页面分工函数](../frontend/web/src/project-team.ts) | 前端 | reference-members-1 | 当前 | ISSUE-007 / APP-M1-T14、T15 | 明确后台权限、分工资格、范围与团队已读依据 |
+| D-147 | 2026-10-11 | [项目设置页面](../frontend/web/src/project/ProjectSettingsPage.tsx) | 前端 | reference-members-1 | 实际页面通过 | ISSUE-007 / APP-M1-T14 | 示例左锚点、分工和基本/团队旧表单分别保护 |
+| D-148 | 2026-10-11 | [页面分工函数](../frontend/web/src/project/project-team.ts) | 前端 | reference-members-1 | 当前 | ISSUE-007 / APP-M1-T14、T15 | 明确后台权限、分工资格、范围与团队已读依据 |
 | D-149 | 2026-10-11 | [分工页面回归](../tests/frontend/project-team.test.mjs) | 验证 | reference-members-1 | 8项通过 | ISSUE-007 / APP-M1-T14、T15 | 角色范围、可空参与、旧团队表单和撤权保留 |
 | D-150 | 2026-10-11 | [资料旧表单缺陷](../issues/ISSUE-008.md) | Bug | library-basis-1 | closed（本地验收） | ISSUE-008 / APP-M1-T16 | 绑定已读依据、冲突保留、明确核对载入 |
 | D-151 | 2026-10-11 | [资料及模板保护交付](delivery/APP-M1-T16.md) | 交付 | library-basis-1 | 本地done | ISSUE-008 / APP-M1-T16 | 限定保护通过，完整C01/C06仍待实现 |
 | D-152 | 2026-10-11 | [资料及模板代码解释](code/APP-M1-T16.md) | 说明 | library-basis-1 | 当前 | ISSUE-008 / APP-M1-T16 | 原依据、对应集合版本、真实重读及公司身份 |
 | D-153 | 2026-10-11 | [资料及模板验证](testing/2026-10-11-library-basis.md) | 验证 | library-basis-1 | 本地通过 | ISSUE-008 / APP-M1-T16 | 后台229、前端58、构建、实际GUI与6截图；局限分列 |
-| D-154 | 2026-10-11 | [资料依据函数](../frontend/web/src/library-review.ts) | 前端 | library-basis-1 | 回归通过 | ISSUE-008 / APP-M1-T16 | 真正已读依据、成对读取及公司/账号会话 |
-| D-155 | 2026-10-11 | [模板依据函数](../frontend/web/src/template-review.ts) | 前端 | library-basis-1 | 回归通过 | ISSUE-008 / APP-M1-T16 | 完整指标数组与核对提案真实再读 |
+| D-154 | 2026-10-11 | [资料依据函数](../frontend/web/src/library/library-review.ts) | 前端 | library-basis-1 | 回归通过 | ISSUE-008 / APP-M1-T16 | 真正已读依据、成对读取及公司/账号会话 |
+| D-155 | 2026-10-11 | [模板依据函数](../frontend/web/src/library/template-review.ts) | 前端 | library-basis-1 | 回归通过 | ISSUE-008 / APP-M1-T16 | 完整指标数组与核对提案真实再读 |
 | D-156 | 2026-10-11 | [资料页面函数回归](../frontend/web/tests/library-review.test.mjs) | 验证 | library-basis-1 | 12项通过 | ISSUE-008 / APP-M1-T16 | 旧依据、搜索、删除、读取失败与迟到旧公司响应 |
 | D-157 | 2026-10-11 | [模板页面函数回归](../frontend/web/tests/template-review.test.mjs) | 验证 | library-basis-1 | 10项通过 | ISSUE-008 / APP-M1-T16 | 指标变化、二次读取、版本配对与切公司 |
 | D-158 | 2026-10-11 | [资料真实HTTP回归](../tests/backend/test_library_basis.py) | 验证 | library-basis-1 | 13项通过 | ISSUE-008 / APP-M1-T16 | 原版本/重试/幂等/权限及完整仓储无副作用 |
@@ -177,7 +177,7 @@
 | D-164 | 2026-10-11 | [共同底座阶段验证](testing/2026-10-11-application-session.md) | 验证 | application-foundation-1 | 阶段通过 | ISSUE-009 / APP-M2-T001 | 后台262、前端72、真实会话16、GUI/两册内容；独立复核通过 |
 | D-165 | 2026-10-11 | [后台会话权限](../backend/bid-core/icg_demo/session_navigation.py) | 后台 | application-foundation-1 | 阶段实现 | ISSUE-009 / APP-M2-T001 | 当前仓储身份、八角色定义及最小项目权限 |
 | D-166 | 2026-10-11 | [后台会话专项](../tests/backend/test_application_session.py) | 验证 | application-foundation-1 | 33项通过 | ISSUE-009 / APP-M2-T001 | 身份重读、参数拒绝、项目边界及无正文 |
-| D-167 | 2026-10-11 | [页面授权读取函数](../frontend/web/src/session-navigation.ts) | 前端 | application-foundation-1 | 阶段实现 | ISSUE-009 / APP-M2-T001 | 服务端导航/动作与项目读取先后 |
+| D-167 | 2026-10-11 | [页面授权读取函数](../frontend/web/src/app/session-navigation.ts) | 前端 | application-foundation-1 | 阶段实现 | ISSUE-009 / APP-M2-T001 | 服务端导航/动作与项目读取先后 |
 | D-168 | 2026-10-11 | [页面会话专项](../frontend/web/tests/application-session.test.mjs) | 验证 | application-foundation-1 | 14项通过 | ISSUE-009 / APP-M2-T001 | 未授权零业务读取、集合成对、撤权/拒绝/旧响应保护 |
 | D-169 | 2026-10-11 | [同后台项目截图](testing/assets/icg-session-product-overview.jpg) | 证据 | application-foundation-1 | 实际GUI | ISSUE-009 / APP-M2-T001 | 合成项目确认、两册提交及内部稿，原图见ICG来源 |
 | D-170 | 2026-10-11 | [两册导出页截图](testing/assets/icg-session-two-volume-export.jpg) | 证据 | application-foundation-1 | 实际GUI | ISSUE-009 / APP-M2-T001 | 有效/过期记录，实际内部Word尚未正式版式验收 |
@@ -219,9 +219,9 @@
 | D-206 | 2026-10-12 | [ProLayout依赖Issue](../issues/ISSUE-014.md) | 版本 | pro-layout-7.22.7 | closed | ISSUE-014 / APP-M2-T001 | 项目经理在 QA 签署 173c39f 后确认 closed。关联卡 T001 已 done |
 | D-207 | 2026-10-12 | [布局地址复核](testing/2026-10-12-prolayout-routes.md) | 验证 | layout-review-1 | in-review | ISSUE-009 / ISSUE-014 / APP-M2-T001 | 前端77、后台293、构建体积；无三断点截图 |
 | D-208 | 2026-10-12 | [014同步记录](governance/ISSUE-014-sync.md) | 治理 | pro-layout-7.22.7 | 已核对 | ISSUE-014 / APP-M2-T001 | 基线未改的句子和 in-review 计数 |
-| D-209 | 2026-10-12 | [产品外壳](../frontend/web/src/AppShell.tsx) | 前端 | pro-layout-7.22.7 | in-review | ISSUE-009 / APP-M2-T001 | 收起侧栏时顶栏按钮从 64px 右侧开始 |
-| D-210 | 2026-10-12 | [页面地址](../frontend/web/src/app-route.ts) | 前端 | layout-review-1 | in-review | ISSUE-009 / APP-M2-T001 | 全局路径、项目页签和登录回原地址 |
-| D-211 | 2026-10-12 | [离开保护](../frontend/web/src/leave-guard.ts) | 前端 | layout-review-1 | in-review | ISSUE-009 / APP-M2-T001 | 未保存时保留地址；取消不离开 |
+| D-209 | 2026-10-12 | [产品外壳](../frontend/web/src/shell/AppShell.tsx) | 前端 | pro-layout-7.22.7 | in-review | ISSUE-009 / APP-M2-T001 | 收起侧栏时顶栏按钮从 64px 右侧开始 |
+| D-210 | 2026-10-12 | [页面地址](../frontend/web/src/app/app-route.ts) | 前端 | layout-review-1 | in-review | ISSUE-009 / APP-M2-T001 | 全局路径、项目页签和登录回原地址 |
+| D-211 | 2026-10-12 | [离开保护](../frontend/web/src/app/leave-guard.ts) | 前端 | layout-review-1 | in-review | ISSUE-009 / APP-M2-T001 | 未保存时保留地址；取消不离开 |
 | D-212 | 2026-10-12 | [地址与离开测试](../frontend/web/tests/app-navigation.test.mjs) | 验证 | layout-review-1 | 5项通过 | ISSUE-009 / APP-M2-T001 | 需 Node 22.18+ 或 Node 24；本轮用 24.21.0 |
 | D-213 | 2026-10-12 | [检索骨架事项](../issues/ISSUE-016.md) | 变更 | retrieval-skeleton-1 | closed | ISSUE-016 / AI-03 | 依据 QA 签署 2fe6198（REV-M0-T16）关闭。内存实现。不连接 MySQL |
 | D-214 | 2026-10-12 | [检索骨架交付](delivery/AI-03.md) | 交付 | retrieval-skeleton-1 | done | ISSUE-016 / AI-03 | 依据 QA 签署 2fe6198（REV-M0-T16）。未合入，未发布 |
@@ -245,8 +245,8 @@
 | D-232 | 2026-10-12 | [020同步记录](governance/ISSUE-020-sync.md) | 治理 | route-chunks-1 | 已核对 | ISSUE-020 / APP-M2-T001 | 基线未改；不新增任务 |
 | D-233 | 2026-10-12 | [路由分包交付](delivery/ISSUE-020.md) | 交付 | route-chunks-1 | in-review | ISSUE-020 / APP-M2-T001 | 动态 import 与 Suspense；后台未改 |
 | D-234 | 2026-10-12 | [路由分包代码解释](code/ISSUE-020.md) | 说明 | route-chunks-1 | in-review | ISSUE-020 / APP-M2-T001 | 加载顺序和离开保护仍在 App |
-| D-235 | 2026-10-12 | [路由加载器](../frontend/web/src/route-loaders.ts) | 前端 | route-chunks-1 | in-review | ISSUE-020 / APP-M2-T001 | 动态 import 并缓存进行中的请求 |
-| D-236 | 2026-10-12 | [懒加载页面](../frontend/web/src/lazy-routes.tsx) | 前端 | route-chunks-1 | in-review | ISSUE-020 / APP-M2-T001 | React.lazy 外壳和各页 |
+| D-235 | 2026-10-12 | [路由加载器](../frontend/web/src/app/route-loaders.ts) | 前端 | route-chunks-1 | in-review | ISSUE-020 / APP-M2-T001 | 动态 import 并缓存进行中的请求 |
+| D-236 | 2026-10-12 | [懒加载页面](../frontend/web/src/app/lazy-routes.tsx) | 前端 | route-chunks-1 | in-review | ISSUE-020 / APP-M2-T001 | React.lazy 外壳和各页 |
 | D-237 | 2026-10-12 | [分包约束测试](../frontend/web/tests/route-chunks.test.mjs) | 验证 | route-chunks-1 | 1项通过 | ISSUE-020 / APP-M2-T001 | 入口不再静态引入外壳和页面 |
 | D-238 | 2026-10-12 | [内网部署草案](operations/intranet-deployment-plan.md) | 运维 | intranet-plan-1 | done | ISSUE-017 / OPS-M0-T02 | 用户 10-12 14:34 确认。重排为 RAGFlow 自带。未部署。单 worker 单副本，多副本 blocked 在 ISSUE-018 |
 | D-239 | 2026-10-12 | [内网部署 Issue](../issues/ISSUE-017.md) | 决策 | intranet-plan-1 | closed | ISSUE-017 / OPS-M0-T02 | 用户 10-12 14:34 确认。未部署 |
@@ -466,15 +466,15 @@
 | D-453 | 2026-10-16 | [APP-M2-T003代码说明](code/APP-M2-T003.md) | 说明 | status-views-1 | 当前 | ISSUE-007 / APP-M2-T003 | 状态组件架构、traceId一键复制降级、上下文保护与WCAG 4.5:1对比度说明 |
 | D-454 | 2026-10-16 | [通用状态组件单测](../tests/frontend/status-views.test.mjs) | 验证代码 | status-views-1 | 6项通过 | ISSUE-007 / APP-M2-T003 | WCAG对比度、多态错误提取、模式推导与剪贴板复制测试 |
 | D-455 | 2026-10-16 | [通用状态组件结构测试](../frontend/web/tests/status-views.test.mjs) | 验证代码 | status-views-1 | 8项通过 | ISSUE-007 / APP-M2-T003 | 六类组件导出、traceId复制交互、403与10s超时AST断言 |
-| D-456 | 2026-10-16 | [状态逻辑与规则实现](../frontend/web/src/status-views.ts) | 代码 | status-views-1 | 当前 | ISSUE-007 / APP-M2-T003 | 纯函数逻辑、错误体解析、复制与对比度计算 |
-| D-457 | 2026-10-16 | [通用状态组件实现](../frontend/web/src/StatusViews.tsx) | 代码 | status-views-1 | 当前 | ISSUE-007 / APP-M2-T003 | 六类状态组件React封装与别名导出 |
+| D-456 | 2026-10-16 | [状态逻辑与规则实现](../frontend/web/src/status/status-views.ts) | 代码 | status-views-1 | 当前 | ISSUE-007 / APP-M2-T003 | 纯函数逻辑、错误体解析、复制与对比度计算 |
+| D-457 | 2026-10-16 | [通用状态组件实现](../frontend/web/src/status/StatusViews.tsx) | 代码 | status-views-1 | 当前 | ISSUE-007 / APP-M2-T003 | 六类状态组件React封装与别名导出 |
 | D-458 | 2026-10-16 | [APP-M2-T003 QA签署](testing/2026-10-16-app-m2-t003-qa-signoff.md) | 验证 | qa-rerun-31 | 本地通过 | ISSUE-007 / APP-M2-T003 | 六类状态组件与WCAG 4.5:1通过；前端 127 passed；构建 1.40s；不标 done |
 | D-459 | 2026-10-21 | [APP-M2-T004交付](delivery/APP-M2-T004.md) | 交付 | biz-tags-1 | in-review | ISSUE-007 / APP-M2-T004 | 业务小组件封装（LevelTag、AiTag、DirectTag、Cite、SourceBar）；不标 done |
 | D-460 | 2026-10-21 | [APP-M2-T004代码说明](code/APP-M2-T004.md) | 说明 | biz-tags-1 | 当前 | ISSUE-007 / APP-M2-T004 | 业务小组件架构、AI紫隔离机制、引用悬浮Card、段落色条与WCAG 4.5:1对比度说明 |
 | D-461 | 2026-10-21 | [业务小组件单测](../tests/frontend/business-tags.test.mjs) | 验证代码 | biz-tags-1 | 7项通过 | ISSUE-007 / APP-M2-T004 | WCAG对比度、AI紫色彩隔离、条款级别与引用溯源测试 |
 | D-462 | 2026-10-21 | [业务小组件结构测试](../frontend/web/tests/business-tags.test.mjs) | 验证代码 | biz-tags-1 | 7项通过 | ISSUE-007 / APP-M2-T004 | 五类组件导出、AI紫隔离、Cite悬浮与SourceBar AST断言 |
-| D-463 | 2026-10-21 | [业务标签逻辑实现](../frontend/web/src/business-tags.ts) | 代码 | biz-tags-1 | 当前 | ISSUE-007 / APP-M2-T004 | 纯函数逻辑、色彩令牌、AI紫隔离检查与来源解析 |
-| D-464 | 2026-10-21 | [业务小组件React实现](../frontend/web/src/BusinessTags.tsx) | 代码 | biz-tags-1 | 当前 | ISSUE-007 / APP-M2-T004 | LevelTag、AiTag、DirectTag、Cite、SourceBar React组件封装 |
+| D-463 | 2026-10-21 | [业务标签逻辑实现](../frontend/web/src/library/business-tags.ts) | 代码 | biz-tags-1 | 当前 | ISSUE-007 / APP-M2-T004 | 纯函数逻辑、色彩令牌、AI紫隔离检查与来源解析 |
+| D-464 | 2026-10-21 | [业务小组件React实现](../frontend/web/src/library/BusinessTags.tsx) | 代码 | biz-tags-1 | 当前 | ISSUE-007 / APP-M2-T004 | LevelTag、AiTag、DirectTag、Cite、SourceBar React组件封装 |
 | D-465 | 2026-10-21 | [AI-06交付](delivery/AI-06.md) | 交付 | ragflow-candidate-1 | in-review | ISSUE-037 / AI-06 | 证据候选改走RAGFlow检索（路径B/C注入客户端、路径C不可附着与查询词过滤、零命中回退降级）；不标 done |
 | D-466 | 2026-10-21 | [AI-06代码说明](code/AI-06.md) | 说明 | ragflow-candidate-1 | 当前 | ISSUE-037 / AI-06 | 证据候选RAGFlow适配架构、回退降级策略、调用顺序与测试说明 |
 | D-467 | 2026-10-21 | [证据候选RAGFlow测试](../tests/backend/test_evidence_ragflow.py) | 验证代码 | ragflow-candidate-1 | 14项通过、1项跳过 | ISSUE-037 / AI-06 | 路径B/C注入检索客户端、跨公司隔离、路径C不可附着与查询过滤、零命中回退与安全降级 |
@@ -489,8 +489,8 @@
 | D-476 | 2026-10-21 | [APP-M2-T005代码说明](code/APP-M2-T005.md) | 说明 | meta-table-1 | 当前 | ISSUE-007 / APP-M2-T005 | 元数据表格架构、1280px宽度预算算法、rowSpan计算、合规批量门禁与测试说明 |
 | D-477 | 2026-10-21 | [元数据驱动表格单测](../tests/frontend/metadata-table.test.mjs) | 验证代码 | meta-table-1 | 7项通过 | ISSUE-007 / APP-M2-T005 | 行合并算法、1280px宽度预算、合规批量门禁、风险/急迫行与时间格式化测试 |
 | D-478 | 2026-10-21 | [元数据驱动表格结构测试](../frontend/web/tests/metadata-table.test.mjs) | 验证代码 | meta-table-1 | 7项通过 | ISSUE-007 / APP-M2-T005 | MetadataTable/ProTableWrapper导出、StatusViews与BusinessTags集成AST断言 |
-| D-479 | 2026-10-21 | [元数据表格算法与模型实现](../frontend/web/src/metadata-table.ts) | 代码 | meta-table-1 | 当前 | ISSUE-007 / APP-M2-T005 | 纯函数逻辑、字段模式类型、1280px宽度预算、rowSpan算法与内置Mock Schema |
-| D-480 | 2026-10-21 | [元数据表格React组件实现](../frontend/web/src/MetadataTable.tsx) | 代码 | meta-table-1 | 当前 | ISSUE-007 / APP-M2-T005 | MetadataTable React组件封装、双行表头、侧边抽屉、工具栏与批量浮动栏 |
+| D-479 | 2026-10-21 | [元数据表格算法与模型实现](../frontend/web/src/library/metadata-table.ts) | 代码 | meta-table-1 | 当前 | ISSUE-007 / APP-M2-T005 | 纯函数逻辑、字段模式类型、1280px宽度预算、rowSpan算法与内置Mock Schema |
+| D-480 | 2026-10-21 | [元数据表格React组件实现](../frontend/web/src/library/MetadataTable.tsx) | 代码 | meta-table-1 | 当前 | ISSUE-007 / APP-M2-T005 | MetadataTable React组件封装、双行表头、侧边抽屉、工具栏与批量浮动栏 |
 | D-481 | 2026-10-21 | [APP-M2-T005 QA签署](testing/2026-10-21-app-m2-t005-qa-signoff.md) | 验证 | qa-rerun-35 | 本地通过 | ISSUE-007 / APP-M2-T005 | 元数据驱动表格、1280px无横滚优先、rowSpan合并与合规批量门禁通过；前端 155 passed；构建 959ms；不标 done |
 | D-482 | 2026-10-21 | [模型配置运行时交付](delivery/ISSUE-028.md) | 交付 | model-config-runtime-1 | in-review | ISSUE-028 / AI-01 | 对话模型按配置动态路由、启动快照、流式/JSON透传与 AC-04 敏感门禁；11 passed 1 skipped；不标 done |
 | D-483 | 2026-10-21 | [模型配置运行时代码说明](code/ISSUE-028.md) | 说明 | model-config-runtime-1 | 当前 | ISSUE-028 / AI-01 | 动态路由调用链、快照隔离、流式/JSON模式透传、敏感项目403门禁与故障映射 |
@@ -503,16 +503,16 @@
 | D-490 | 2026-10-21 | [APP-M2-T006代码说明](code/APP-M2-T006.md) | 说明 | meta-form-1 | 当前 | ISSUE-007 / APP-M2-T006 | 元数据表单架构、★ 关键字段修改比对算法、合规警示横幅与项级高亮、双行标签与测试说明 |
 | D-491 | 2026-10-21 | [元数据驱动表单单测](../tests/frontend/metadata-form.test.mjs) | 验证代码 | meta-form-1 | 6项通过 | ISSUE-007 / APP-M2-T006 | 比对等价性、★ 字段变更收集、合规提示文案、禁用态与双行标签解析测试 |
 | D-492 | 2026-10-21 | [元数据驱动表单结构测试](../frontend/web/tests/metadata-form.test.mjs) | 验证代码 | meta-form-1 | 6项通过 | ISSUE-007 / APP-M2-T006 | MetadataForm导出规范、双行标签、Alert横幅与高亮、Tooltip悬浮与控件分流AST断言 |
-| D-493 | 2026-10-21 | [元数据表单逻辑实现](../frontend/web/src/metadata-form.ts) | 代码 | meta-form-1 | 当前 | ISSUE-007 / APP-M2-T006 | 纯函数逻辑、字段模式类型、比对算法、★ 关键字段变更收集与后端客户端封装 |
-| D-494 | 2026-10-21 | [元数据表单React组件实现](../frontend/web/src/MetadataForm.tsx) | 代码 | meta-form-1 | 当前 | ISSUE-007 / APP-M2-T006 | MetadataForm React组件封装、双行标签、★ 修改警示横幅、项级高亮与栅格布局 |
+| D-493 | 2026-10-21 | [元数据表单逻辑实现](../frontend/web/src/library/metadata-form.ts) | 代码 | meta-form-1 | 当前 | ISSUE-007 / APP-M2-T006 | 纯函数逻辑、字段模式类型、比对算法、★ 关键字段变更收集与后端客户端封装 |
+| D-494 | 2026-10-21 | [元数据表单React组件实现](../frontend/web/src/library/MetadataForm.tsx) | 代码 | meta-form-1 | 当前 | ISSUE-007 / APP-M2-T006 | MetadataForm React组件封装、双行标签、★ 修改警示横幅、项级高亮与栅格布局 |
 | D-495 | 2026-10-21 | [APP-M2-T006 QA签署](testing/2026-10-21-app-m2-t006-qa-signoff.md) | 验证 | qa-rerun-38 | 本地通过 | ISSUE-007 / APP-M2-T006 | 元数据表单、★关键字段修改提示、双行标签与不支持字段置灰通过；前端 167 passed；构建 289.99 kB；不标 done |
 | D-496 | 2026-10-21 | [APP-M2-T007交付](delivery/APP-M2-T007.md) | 交付 | form-interactions-1 | in-review | ISSUE-007 / APP-M2-T007 | 表单通用能力交付（吸底保存条、未保存离开拦截保护、服务端字段错误就近映射与平滑聚焦）；不标 done |
 | D-497 | 2026-10-21 | [APP-M2-T007代码说明](code/APP-M2-T007.md) | 说明 | form-interactions-1 | 当前 | ISSUE-007 / APP-M2-T007 | 表单交互架构、脏数据检测、FormActionFooter、useUnsavedPrompt、就近报错滚动定位说明 |
 | D-498 | 2026-10-21 | [表单通用交互单测](../tests/frontend/form-interactions.test.mjs) | 验证代码 | form-interactions-1 | 7项通过 | ISSUE-007 / APP-M2-T007 | 脏数据比对、FastAPI/Pydantic错误体映射、离开拦截与Node环境安全测试 |
 | D-499 | 2026-10-21 | [表单通用交互结构测试](../frontend/web/tests/form-interactions.test.mjs) | 验证代码 | form-interactions-1 | 4项通过 | ISSUE-007 / APP-M2-T007 | FormActionFooter组件、useUnsavedPrompt Hook、MetadataForm深度集成AST断言 |
-| D-500 | 2026-10-21 | [表单通用交互逻辑实现](../frontend/web/src/form-interactions.ts) | 代码 | form-interactions-1 | 当前 | ISSUE-007 / APP-M2-T007 | 纯函数逻辑、脏数据计算、服务端错误解析、平滑滚动聚焦与离开拦截纯逻辑 |
-| D-501 | 2026-10-21 | [表单吸底操作条组件实现](../frontend/web/src/FormActionFooter.tsx) | 代码 | form-interactions-1 | 当前 | ISSUE-007 / APP-M2-T007 | FormActionFooter吸底操作条、已修改项摘要、★ 变动提示与保存重置取消按钮 |
-| D-502 | 2026-10-21 | [离开未保存保护Hook实现](../frontend/web/src/useUnsavedPrompt.ts) | 代码 | form-interactions-1 | 当前 | ISSUE-007 / APP-M2-T007 | useUnsavedPrompt通用Hook、beforeunload原生拦截与应用内Modal二次确认 |
+| D-500 | 2026-10-21 | [表单通用交互逻辑实现](../frontend/web/src/shared/form-interactions.ts) | 代码 | form-interactions-1 | 当前 | ISSUE-007 / APP-M2-T007 | 纯函数逻辑、脏数据计算、服务端错误解析、平滑滚动聚焦与离开拦截纯逻辑 |
+| D-501 | 2026-10-21 | [表单吸底操作条组件实现](../frontend/web/src/shared/FormActionFooter.tsx) | 代码 | form-interactions-1 | 当前 | ISSUE-007 / APP-M2-T007 | FormActionFooter吸底操作条、已修改项摘要、★ 变动提示与保存重置取消按钮 |
+| D-502 | 2026-10-21 | [离开未保存保护Hook实现](../frontend/web/src/shared/useUnsavedPrompt.ts) | 代码 | form-interactions-1 | 当前 | ISSUE-007 / APP-M2-T007 | useUnsavedPrompt通用Hook、beforeunload原生拦截与应用内Modal二次确认 |
 | D-503 | 2026-10-21 | [APP-M2-T007 QA签署](testing/2026-10-21-app-m2-t007-qa-signoff.md) | 验证 | qa-rerun-39 | 本地通过 | ISSUE-007 / APP-M2-T007 | 吸底操作条、离开未保存保护、服务端错误就近映射与聚焦通过；前端 178 passed；构建 289.99 kB；不标 done |
 | D-504 | 2026-10-21 | [八角色权限代码说明](code/BE-8ROLES-RBAC.md) | 说明 | rbac-8roles-1 | 当前 | ISSUE-005 / ISSUE-007 / BE-8ROLES-RBAC | 八角色权限矩阵、细粒度守卫、只读拦截、分册隔离与撤权即时失效说明 |
 | D-505 | 2026-10-21 | [八角色权限交付](delivery/BE-8ROLES-RBAC.md) | 交付 | rbac-8roles-1 | in-review | ISSUE-005 / ISSUE-007 / BE-8ROLES-RBAC | 后端八角色权限矩阵、三级鉴权守卫与跨公司隔离交付；单测全通；不标 done |
@@ -522,8 +522,8 @@
 | D-509 | 2026-10-21 | [章节AI生成与RAGFlow端到端测试](../tests/backend/test_chapter_generation_rag_flow.py) | 验证代码 | ai-gen-pipeline-1 | 7项通过 | ISSUE-037 / ISSUE-028 / AI-GENERATION-PIPELINE | 章节生成与建议端到端贯通、Prompt[证]/[片]与溯源、零命中降级、403敏感门禁与409防篡改测试 |
 | D-510 | 2026-10-21 | [APP-M2-T009 代码解释](code/APP-M2-T009.md) | 说明 | responsive-layout-1 | 当前 | ISSUE-007 / APP-M2-T009 | 1280/1440/1680 断点自适应、侧栏 localStorage 持久化记忆与多层级动态面包屑推导代码架构说明 |
 | D-511 | 2026-10-21 | [APP-M2-T009 交付](delivery/APP-M2-T009.md) | 交付 | responsive-layout-1 | in-review | ISSUE-007 / APP-M2-T009 | 断点自适应系统、侧栏持久化与多层级动态面包屑交付；首屏主包优化至 278.49 kB；不标 done |
-| D-512 | 2026-10-21 | [断点与侧栏记忆及动态面包屑模块](../frontend/web/src/responsive.ts) | 代码 | responsive-layout-1 | 当前 | ISSUE-007 / APP-M2-T009 | getBreakpointInfo、useBreakpoint、侧栏状态持久化与 deriveBreadcrumbs 纯逻辑 |
-| D-513 | 2026-10-21 | [动态面包屑导航组件](../frontend/web/src/BreadcrumbNav.tsx) | 代码 | responsive-layout-1 | 当前 | ISSUE-007 / APP-M2-T009 | BreadcrumbNav 组件、无障碍语义容器（aria-label）与末级纯文本页签（aria-current="page"） |
+| D-512 | 2026-10-21 | [断点与侧栏记忆及动态面包屑模块](../frontend/web/src/shell/responsive.ts) | 代码 | responsive-layout-1 | 当前 | ISSUE-007 / APP-M2-T009 | getBreakpointInfo、useBreakpoint、侧栏状态持久化与 deriveBreadcrumbs 纯逻辑 |
+| D-513 | 2026-10-21 | [动态面包屑导航组件](../frontend/web/src/shell/BreadcrumbNav.tsx) | 代码 | responsive-layout-1 | 当前 | ISSUE-007 / APP-M2-T009 | BreadcrumbNav 组件、无障碍语义容器（aria-label）与末级纯文本页签（aria-current="page"） |
 | D-514 | 2026-10-21 | [断点自适应与侧栏记忆及面包屑测试](../tests/frontend/responsive-layout.test.mjs) | 验证代码 | responsive-layout-1 | 10项通过 | ISSUE-007 / APP-M2-T009 | 1280/1440/1680 断点计算、1040px 内容区预算、Storage 读写降级、进入项目收起决策与面包屑推导测试 |
 | D-515 | 2026-10-21 | [响应式布局结构测试](../frontend/web/tests/responsive-layout.test.mjs) | 验证代码 | responsive-layout-1 | 5项通过 | ISSUE-007 / APP-M2-T009 | 响应式断点、无障碍面包屑导航与样式规则 AST 静态断言 |
 | D-516 | 2026-10-21 | [BE-8ROLES-RBAC QA签署](testing/2026-10-21-be-8roles-rbac-qa-signoff.md) | 验证 | qa-rerun-40 | 本地通过 | ISSUE-005 / ISSUE-007 / BE-8ROLES-RBAC | 八角色权限矩阵、项目创建资质、分册严格隔离与撤权即时失效通过；专项 10 passed，全量回归通过；保持 in-review 不标 done |
@@ -536,8 +536,8 @@
 | D-523 | 2026-10-21 | [APP-M2-T181 QA签署](testing/2026-10-21-app-m2-t181-qa-signoff.md) | 验证 | qa-rerun-43 | 本地通过 | ISSUE-007 / APP-M2-T181 | 对话助手答案卡与意图分流复验通过（4组合路由、身份证脱敏掩码、门禁与冲突展示通过；83 passed 2 skipped；保持 in-review 不标 done） |
 | D-524 | 2026-10-21 | [APP-M2-T014 代码解释](code/APP-M2-T014.md) | 说明 | route-guard-1 | 当前 | ISSUE-007 / APP-M2-T014 | 八角色路由准入、无外呼前置守卫、细粒度项目分工鉴权与语义化 403 页面代码说明 |
 | D-525 | 2026-10-21 | [APP-M2-T014 交付](delivery/APP-M2-T014.md) | 交付 | route-guard-1 | in-review | ISSUE-007 / APP-M2-T014 | 路由守卫与 403 页交付；206 passed 全部通过，首屏构建 287.78 kB；保持 in-review 不标 done |
-| D-526 | 2026-10-21 | [路由守卫与鉴权核心模块](../frontend/web/src/route-guard.ts) | 代码 | route-guard-1 | 当前 | ISSUE-007 / APP-M2-T014 | 8角色标准化、checkRoutePermission、细粒度章节分工鉴权与原因生成器 |
-| D-527 | 2026-10-21 | [声明式路由守卫组件](../frontend/web/src/RouteGuard.tsx) | 代码 | route-guard-1 | 当前 | ISSUE-007 / APP-M2-T014 | RouteGuard 组件封装、前置准入判定与 Forbidden403 错误回退 |
+| D-526 | 2026-10-21 | [路由守卫与鉴权核心模块](../frontend/web/src/shell/route-guard.ts) | 代码 | route-guard-1 | 当前 | ISSUE-007 / APP-M2-T014 | 8角色标准化、checkRoutePermission、细粒度章节分工鉴权与原因生成器 |
+| D-527 | 2026-10-21 | [声明式路由守卫组件](../frontend/web/src/shell/RouteGuard.tsx) | 代码 | route-guard-1 | 当前 | ISSUE-007 / APP-M2-T014 | RouteGuard 组件封装、前置准入判定与 Forbidden403 错误回退 |
 | D-528 | 2026-10-21 | [路由守卫单测](../tests/frontend/route-guard.test.mjs) | 验证代码 | route-guard-1 | 9项通过 | ISSUE-007 / APP-M2-T014 | 8角色路由准入表格驱动、写操作阻断、项目分工细粒度与前置零外呼保证测试 |
 | D-529 | 2026-10-21 | [路由守卫结构测试](../frontend/web/tests/route-guard.test.mjs) | 验证代码 | route-guard-1 | 4项通过 | ISSUE-007 / APP-M2-T014 | route-guard 模块导出、RouteGuard 组件属性与 AST 静态契约断言 |
 | D-530 | 2026-10-21 | [APP-M2-T014 QA签署](testing/2026-10-21-app-m2-t014-qa-signoff.md) | 验证 | qa-rerun-44 | 本地通过 | ISSUE-007 / APP-M2-T014 | 路由守卫与 403 页面复验通过（8角色准入、切页前置零外呼拦截、项目细粒度分工与403快捷导航通过；206 passed；构建 287.78 kB <= 295 kB；保持 in-review 不标 done） |
@@ -550,9 +550,9 @@
 | D-537 | 2026-10-21 | [直查未命中与常规回答回退测试](../tests/backend/test_direct_query_fallback.py) | 验证代码 | direct-query-fallback-1 | 12项通过 | ISSUE-007 / APP-M2-T182 | 项目事实与要求未命中降级、公司资料未命中降级、知识库关闭常驻提示一致性、防编造卡片与跨租户安全测试 |
 | D-538 | 2026-10-21 | [APP-M2-T015 代码解释](code/APP-M2-T015.md) | 说明 | can-directive-1 | 当前 | ISSUE-007 / APP-M2-T015 | 八角色权限矩阵、细粒度按钮鉴权、零 DOM 残留门禁与 Can 指令代码架构说明 |
 | D-539 | 2026-10-21 | [APP-M2-T015 交付](delivery/APP-M2-T015.md) | 交付 | can-directive-1 | in-review | ISSUE-007 / APP-M2-T015 | 权限指令 `<Can>` 与按钮隐藏交付；221 passed 全部通过，首屏构建 294.82 kB <= 295 kB；保持 in-review 不标 done |
-| D-540 | 2026-10-21 | [权限指令与核验核心模块](../frontend/web/src/can-directive.ts) | 代码 | can-directive-1 | 当前 | ISSUE-007 / APP-M2-T015 | normalizeAction、can 纯函数、八角色权限矩阵、细粒度分工鉴权与写操作拦截 |
-| D-541 | 2026-10-21 | [权限指令 React 组件与上下文](../frontend/web/src/Can.tsx) | 代码 | can-directive-1 | 当前 | ISSUE-007 / APP-M2-T015 | Can 声明式指令组件、CanProvider 上下文容器、passThrough 置灰降级与零 DOM 残留保证 |
-| D-542 | 2026-10-21 | [权限指令 Hook 模块](../frontend/web/src/useCan.ts) | 代码 | can-directive-1 | 当前 | ISSUE-007 / APP-M2-T015 | useCan 权限判定 Hook 与 useCanMap 批量核验 Hook |
+| D-540 | 2026-10-21 | [权限指令与核验核心模块](../frontend/web/src/shell/can-directive.ts) | 代码 | can-directive-1 | 当前 | ISSUE-007 / APP-M2-T015 | normalizeAction、can 纯函数、八角色权限矩阵、细粒度分工鉴权与写操作拦截 |
+| D-541 | 2026-10-21 | [权限指令 React 组件与上下文](../frontend/web/src/shell/Can.tsx) | 代码 | can-directive-1 | 当前 | ISSUE-007 / APP-M2-T015 | Can 声明式指令组件、CanProvider 上下文容器、passThrough 置灰降级与零 DOM 残留保证 |
+| D-542 | 2026-10-21 | [权限指令 Hook 模块](../frontend/web/src/shell/useCan.ts) | 代码 | can-directive-1 | 当前 | ISSUE-007 / APP-M2-T015 | useCan 权限判定 Hook 与 useCanMap 批量核验 Hook |
 | D-543 | 2026-10-21 | [权限指令单测](../tests/frontend/can-directive.test.mjs) | 验证代码 | can-directive-1 | 10项通过 | ISSUE-007 / APP-M2-T015 | 8角色权限表格驱动、新建项目、解析确认、章节分工编辑、锁接管与递交导出单测 |
 | D-544 | 2026-10-21 | [权限指令结构测试](../frontend/web/tests/can-directive.test.mjs) | 验证代码 | can-directive-1 | 5项通过 | ISSUE-007 / APP-M2-T015 | can-directive 模块导出、Can 组件零 DOM 残留与 App.tsx 顶层集成 AST 静态契约断言 |
 | D-545 | 2026-10-21 | [BE-CHAPTER-PERSISTENCE QA签署](testing/2026-10-21-be-chapter-persistence-qa-signoff.md) | 验证 | qa-rerun-45 | 本地通过 | ISSUE-018 / BE-CHAPTER-PERSISTENCE | MySQL 8 章节聚合持久化与版本乐观锁独立复测通过；AC-01~AC-07全项达成，后端全量510 passed 23 skipped；保持 in-review 不标 done |
@@ -564,9 +564,9 @@
 | D-551 | 2026-10-21 | [APP-M2-T015 QA签署](testing/2026-10-21-app-m2-t015-qa-signoff.md) | 验证 | qa-rerun-47 | 本地通过 | ISSUE-007 / APP-M2-T015 | 权限指令 <Can> 与按钮隐藏独立复测通过（未授权默认零 DOM 残留、8角色权限矩阵判定、新建项目/确认/章节分工/导出/查看身份证细粒度鉴权、passThrough 置灰降级均通过；专属单测 15 passed、前端全量 221 passed；首屏构建 294.82 kB <= 295 kB 门禁；保持 in-review 不标 done） |
 | D-552 | 2026-10-21 | [APP-M2-T016 代码解释](code/APP-M2-T016.md) | 说明 | data-permission-1 | 当前 | ISSUE-007 / APP-M2-T016 | 多粒度数据权限判定算法、只读排版纯文本展示与只读提示横幅代码架构说明 |
 | D-553 | 2026-10-21 | [APP-M2-T016 交付](delivery/APP-M2-T016.md) | 交付 | data-permission-1 | in-review | ISSUE-007 / APP-M2-T016 | 数据权限的前端表现：只读态切换交付；233 passed 全部通过，首屏构建 294.86 kB <= 295 kB；保持 in-review 不标 done |
-| D-554 | 2026-10-21 | [多粒度数据权限判定核心模块](../frontend/web/src/data-permission.ts) | 代码 | data-permission-1 | 当前 | ISSUE-007 / APP-M2-T016 | resolveDataPermission、getVolumeDisplayName、getScopeLabel、系统与项目角色分工判定纯逻辑 |
-| D-555 | 2026-10-21 | [数据权限 Hook 模块](../frontend/web/src/useDataPermission.ts) | 代码 | data-permission-1 | 当前 | ISSUE-007 / APP-M2-T016 | useDataPermission 响应式权限 Hook，聚合 CanContext 与 ProjectContext 状态 |
-| D-556 | 2026-10-21 | [只读网关与文本排版组件](../frontend/web/src/ReadOnlyGate.tsx) | 代码 | data-permission-1 | 当前 | ISSUE-007 / APP-M2-T016 | ReadOnlyGate 只读控制网关、ReadOnlyField / ReadOnlyText 字段级纯文本排版组件 |
+| D-554 | 2026-10-21 | [多粒度数据权限判定核心模块](../frontend/web/src/shell/data-permission.ts) | 代码 | data-permission-1 | 当前 | ISSUE-007 / APP-M2-T016 | resolveDataPermission、getVolumeDisplayName、getScopeLabel、系统与项目角色分工判定纯逻辑 |
+| D-555 | 2026-10-21 | [数据权限 Hook 模块](../frontend/web/src/shell/useDataPermission.ts) | 代码 | data-permission-1 | 当前 | ISSUE-007 / APP-M2-T016 | useDataPermission 响应式权限 Hook，聚合 CanContext 与 ProjectContext 状态 |
+| D-556 | 2026-10-21 | [只读网关与文本排版组件](../frontend/web/src/shell/ReadOnlyGate.tsx) | 代码 | data-permission-1 | 当前 | ISSUE-007 / APP-M2-T016 | ReadOnlyGate 只读控制网关、ReadOnlyField / ReadOnlyText 字段级纯文本排版组件 |
 | D-557 | 2026-10-21 | [数据权限单测](../tests/frontend/data-permission.test.mjs) | 验证代码 | data-permission-1 | 6项通过 | ISSUE-007 / APP-M2-T016 | 8系统角色项目级只读表格驱动、项目只读成员、分册负责人跨分册只读、普通编写人跨章节只读单测 |
 | D-558 | 2026-10-21 | [数据权限结构与纯文本契约测试](../frontend/web/tests/data-permission.test.mjs) | 验证代码 | data-permission-1 | 6项通过 | ISSUE-007 / APP-M2-T016 | data-permission 模块导出、ReadOnlyField 零控件纯文本渲染与 EditorPage 只读态 AST 契约测试 |
 | D-559 | 2026-10-21 | [APP-M2-T016 QA签署](testing/2026-10-21-app-m2-t016-qa-signoff.md) | 验证 | qa-rerun-48 | 本地通过 | ISSUE-007 / APP-M2-T016 | 数据权限只读态切换独立复测通过（只读态零控件排版语义纯文本渲染、8角色项目级只读判定、跨分册与跨章节分工只读拦截、只读横幅提示与操作条抑制均通过；专属单测 12 passed、前端全量 233 passed；首屏构建 294.86 kB <= 295 kB 门禁；保持 in-review 不标 done） |
@@ -576,9 +576,9 @@
 | D-563 | 2026-10-21 | [APP-M2-T183 QA签署](testing/2026-10-21-app-m2-t183-qa-signoff.md) | 验证 | qa-rerun-49 | 本地通过 | ISSUE-007 / APP-M2-T183 | 插入为引用独立复验通过（四道门禁全量生效、编辑锁租约守卫、本项目数据禁插、资料实体资格与受限跨租户隔离、溯源引用标记、增量复查pending标记与版本审计记录均通过；12 passed；保持 in-review 不标 done） |
 | D-564 | 2026-10-21 | [APP-M2-T017 代码解释](code/APP-M2-T017.md) | 说明 | sensitive-mask-1 | 当前 | ISSUE-007 / APP-M2-T017 | 高敏脱敏规则、查看完整值原因强校验、零 storage/URL 残留与 MaskedField 权限集成代码说明 |
 | D-565 | 2026-10-21 | [APP-M2-T017 交付](delivery/APP-M2-T017.md) | 交付 | sensitive-mask-1 | in-review | ISSUE-007 / APP-M2-T017 | MaskedField 与“查看完整值”弹窗（原因必填）交付；243 passed 全部通过，首屏构建 294.86 kB <= 295 kB；保持 in-review 不标 done |
-| D-566 | 2026-10-21 | [高敏脱敏与原因校验核心模块](../frontend/web/src/sensitive-mask.ts) | 代码 | sensitive-mask-1 | 当前 | ISSUE-007 / APP-M2-T017 | maskSensitiveValue、validateRevealReason、assertNoSensitiveLeak、DEFAULT_MASK_RULES 与双模式脱敏纯逻辑 |
-| D-567 | 2026-10-21 | [调阅高敏字段弹窗组件](../frontend/web/src/RevealFieldModal.tsx) | 代码 | sensitive-mask-1 | 当前 | ISSUE-007 / APP-M2-T017 | RevealFieldModal 弹窗、安全审计告警横幅、原因强校验、明文短暂展示与关闭内存销毁 |
-| D-568 | 2026-10-21 | [掩码字段与调阅组件](../frontend/web/src/MaskedField.tsx) | 代码 | sensitive-mask-1 | 当前 | ISSUE-007 / APP-M2-T017 | MaskedField 掩码文本展示、useCan('id_card:view') 权限校验、无权限零 DOM 隐藏与置灰降级 |
+| D-566 | 2026-10-21 | [高敏脱敏与原因校验核心模块](../frontend/web/src/admin/sensitive-mask.ts) | 代码 | sensitive-mask-1 | 当前 | ISSUE-007 / APP-M2-T017 | maskSensitiveValue、validateRevealReason、assertNoSensitiveLeak、DEFAULT_MASK_RULES 与双模式脱敏纯逻辑 |
+| D-567 | 2026-10-21 | [调阅高敏字段弹窗组件](../frontend/web/src/admin/RevealFieldModal.tsx) | 代码 | sensitive-mask-1 | 当前 | ISSUE-007 / APP-M2-T017 | RevealFieldModal 弹窗、安全审计告警横幅、原因强校验、明文短暂展示与关闭内存销毁 |
+| D-568 | 2026-10-21 | [掩码字段与调阅组件](../frontend/web/src/admin/MaskedField.tsx) | 代码 | sensitive-mask-1 | 当前 | ISSUE-007 / APP-M2-T017 | MaskedField 掩码文本展示、useCan('id_card:view') 权限校验、无权限零 DOM 隐藏与置灰降级 |
 | D-569 | 2026-10-21 | [掩码字段单元测试](../tests/frontend/masked-field.test.mjs) | 验证代码 | sensitive-mask-1 | 7项通过 | ISSUE-007 / APP-M2-T017 | 表格驱动掩码脱敏、调阅原因强校验、8角色调阅权限矩阵与 storage/URL 零泄露单测 |
 | D-570 | 2026-10-21 | [掩码字段结构与安全契约测试](../frontend/web/tests/masked-field.test.mjs) | 验证代码 | sensitive-mask-1 | 3项通过 | ISSUE-007 / APP-M2-T017 | sensitive-mask 模块导出、RevealFieldModal 安全审计与零 storage 写入 AST 契约测试 |
 | D-571 | 2026-10-21 | [BE-CHECKS-EXPORTS-PERSISTENCE QA签署](testing/2026-10-21-be-checks-exports-persistence-qa-signoff.md) | 验证 | qa-rerun-50 | 本地通过 | ISSUE-018 / BE-CHECKS-EXPORTS-PERSISTENCE | MySQL 8 检查与导出聚合持久化独立复测通过（Alembic 0007 迁移结构、升降级双向无损、阻塞项自动派生与拦截、导出快照持久化、状态机原子流转、多维过滤与分页、纯内存透明降级均通过；保持 in-review 不标 done） |
@@ -590,10 +590,10 @@
 | D-577 | 2026-10-21 | [BE-LIBRARY-SLA-PERSISTENCE QA签署](testing/2026-10-21-be-library-sla-persistence-qa-signoff.md) | 验证 | qa-rerun-52 | 本地通过 | ISSUE-018 / BE-LIBRARY-SLA-PERSISTENCE | MySQL 8 资料与承诺聚合持久化独立复测通过（Alembic 0008 迁移脚本结构合规、utf8mb4_0900_ai_ci 编码、0007_checks_and_exports <-> 0008 双向无损升降级、基于 revision 的行级乐观并发更新拦截 409 REVISION_CONFLICT、commit_library_revision 单事务内原子落库与履历归档、多维检索与租户隔离、MemoryRepository 纯内存透明降级多态均通过；保持 in-review 不标 done） |
 | D-578 | 2026-10-21 | [APP-M2-T018 代码解释](code/APP-M2-T018.md) | 说明 | company-mask-1 | 当前 | ISSUE-007 / APP-M2-T018 | 公司级高敏脱敏规则动态读取清洗、CompanyMaskProvider 上下文联动与查看留痕提示横幅代码架构说明 |
 | D-579 | 2026-10-21 | [APP-M2-T018 交付](delivery/APP-M2-T018.md) | 交付 | company-mask-1 | in-review | ISSUE-007 / APP-M2-T018 | 掩码规则读取与查看留痕提示交付；253 passed 全部通过，首屏构建 294.86 kB <= 295 kB；保持 in-review 不标 done |
-| D-580 | 2026-10-21 | [公司掩码规则解析与清洗核心模块](../frontend/web/src/company-mask-settings.ts) | 代码 | company-mask-1 | 当前 | ISSUE-007 / APP-M2-T018 | extractMaskRulesFromCompanySettings、sanitizeMaskRule、留痕文案常量与不可关闭掩码合规底线 |
-| D-581 | 2026-10-21 | [公司掩码上下文模块](../frontend/web/src/company-mask-context.ts) | 代码 | company-mask-1 | 当前 | ISSUE-007 / APP-M2-T018 | CompanyMaskContext 上下文实例、契约类型与默认平台安全兜底 |
-| D-582 | 2026-10-21 | [公司掩码 Hook 与 Provider 模块](../frontend/web/src/useCompanyMaskSettings.ts) | 代码 | company-mask-1 | 当前 | ISSUE-007 / APP-M2-T018 | CompanyMaskProvider 容器、useCompanyMaskSettings Hook 与运行时动态切换规则 |
-| D-583 | 2026-10-21 | [查看留痕合规警示横幅组件](../frontend/web/src/MaskNoticeBanner.tsx) | 代码 | company-mask-1 | 当前 | ISSUE-007 / APP-M2-T018 | MaskNoticeBanner 横幅、inline 提示与 AuditTraceHint 行内紧凑图标组件（WCAG AA 4.5:1） |
+| D-580 | 2026-10-21 | [公司掩码规则解析与清洗核心模块](../frontend/web/src/admin/company-mask-settings.ts) | 代码 | company-mask-1 | 当前 | ISSUE-007 / APP-M2-T018 | extractMaskRulesFromCompanySettings、sanitizeMaskRule、留痕文案常量与不可关闭掩码合规底线 |
+| D-581 | 2026-10-21 | [公司掩码上下文模块](../frontend/web/src/admin/company-mask-context.ts) | 代码 | company-mask-1 | 当前 | ISSUE-007 / APP-M2-T018 | CompanyMaskContext 上下文实例、契约类型与默认平台安全兜底 |
+| D-582 | 2026-10-21 | [公司掩码 Hook 与 Provider 模块](../frontend/web/src/admin/useCompanyMaskSettings.ts) | 代码 | company-mask-1 | 当前 | ISSUE-007 / APP-M2-T018 | CompanyMaskProvider 容器、useCompanyMaskSettings Hook 与运行时动态切换规则 |
+| D-583 | 2026-10-21 | [查看留痕合规警示横幅组件](../frontend/web/src/admin/MaskNoticeBanner.tsx) | 代码 | company-mask-1 | 当前 | ISSUE-007 / APP-M2-T018 | MaskNoticeBanner 横幅、inline 提示与 AuditTraceHint 行内紧凑图标组件（WCAG AA 4.5:1） |
 | D-584 | 2026-10-21 | [公司掩码配置单元测试](../tests/frontend/company-mask-settings.test.mjs) | 验证代码 | company-mask-1 | 6项通过 | ISSUE-007 / APP-M2-T018 | 规则提取、合规清洗、动态自适应表格驱动与 storage 零残留单测 |
 | D-585 | 2026-10-21 | [掩码规则结构与安全契约测试](../frontend/web/tests/company-mask-settings.test.mjs) | 验证代码 | company-mask-1 | 4项通过 | ISSUE-007 / APP-M2-T018 | company-mask 模块导出、MaskNoticeBanner 组件与 AST 契约测试 |
 | D-586 | 2026-10-21 | [APP-M2-T018 QA签署](testing/2026-10-21-app-m2-t018-qa-signoff.md) | 验证 | qa-rerun-53 | 本地通过 | ISSUE-007 / APP-M2-T018 | 掩码规则读取与查看留痕提示独立复测通过（公司级掩码配置动态提取清洗、PRD §6.9 不可关闭掩码硬防线、useCompanyMaskSettings 响应式切换 6+4 至 3+4 自动联动重绘、MaskNoticeBanner / AuditTraceHint 多模式 WCAG AA 4.5:1 对比度留痕横幅、零 storage/URL 残留均通过；专属单测 10 passed、前端全量 253 passed；首屏构建 294.86 kB <= 295 kB 门禁；保持 in-review 不标 done） |
@@ -608,15 +608,15 @@
 | D-595 | 2026-10-21 | [BE-WORKFLOW-JOB-PERSISTENCE QA签署](testing/2026-10-21-be-workflow-job-persistence-qa-signoff.md) | 验证 | qa-rerun-55 | 本地通过 | ISSUE-018 / BE-WORKFLOW-JOB-PERSISTENCE | MySQL 8 工作流状态与异步任务聚合持久化独立复测通过（Alembic 0009 迁移脚本结构合规、utf8mb4_0900_ai_ci 编码、0008 <-> 0009 双向无损升降级与离线 DDL、基于 revision 的行级乐观并发更新拦截 409 REVISION_CONFLICT、demo_job 生命周期与原子进度状态更新、多维检索与项目租户隔离、MemoryRepository 纯内存透明降级多态均通过；保持 in-review 不标 done） |
 | D-596 | 2026-10-22 | [APP-M2-T019 代码解释](code/APP-M2-T019.md) | 说明 | job-progress-1 | 当前 | ISSUE-007 / APP-M2-T019 | 后台长任务进度组件 JobProgress、子步骤流转、AI 紫与业务蓝色彩隔离及失败容错代码架构说明 |
 | D-597 | 2026-10-22 | [APP-M2-T019 交付](delivery/APP-M2-T019.md) | 交付 | job-progress-1 | in-review | ISSUE-007 / APP-M2-T019 | JobProgress：步骤、子进度、AI 紫进度条交付；263 passed 全部通过，首屏构建 294.86 kB <= 295 kB；保持 in-review 不标 done |
-| D-598 | 2026-10-22 | [长任务进度核心逻辑与色彩隔离模块](../frontend/web/src/job-progress.ts) | 代码 | job-progress-1 | 当前 | ISSUE-007 / APP-M2-T019 | 5类状态机、isAiJob 判定、resolveProgressStrokeColor 色彩隔离、加权进度与耗时格式化 |
-| D-599 | 2026-10-22 | [长任务步骤与AI紫色进度条组件](../frontend/web/src/JobProgress.tsx) | 代码 | job-progress-1 | 当前 | ISSUE-007 / APP-M2-T019 | JobProgress 组件封装、Timeline 子步骤展示、失败错误容器与 traceId 一键复制交互 |
+| D-598 | 2026-10-22 | [长任务进度核心逻辑与色彩隔离模块](../frontend/web/src/status/job-progress.ts) | 代码 | job-progress-1 | 当前 | ISSUE-007 / APP-M2-T019 | 5类状态机、isAiJob 判定、resolveProgressStrokeColor 色彩隔离、加权进度与耗时格式化 |
+| D-599 | 2026-10-22 | [长任务步骤与AI紫色进度条组件](../frontend/web/src/status/JobProgress.tsx) | 代码 | job-progress-1 | 当前 | ISSUE-007 / APP-M2-T019 | JobProgress 组件封装、Timeline 子步骤展示、失败错误容器与 traceId 一键复制交互 |
 | D-600 | 2026-10-22 | [长任务进度单元测试](../tests/frontend/job-progress.test.mjs) | 验证代码 | job-progress-1 | 6项通过 | ISSUE-007 / APP-M2-T019 | 状态元信息解析、AI 任务判定、进度色彩隔离红线、加权进度与耗时格式化单测 |
 | D-601 | 2026-10-22 | [长任务进度结构与色彩契约测试](../frontend/web/tests/job-progress.test.mjs) | 验证代码 | job-progress-1 | 4项通过 | ISSUE-007 / APP-M2-T019 | job-progress 模块导出、JobProgress 组件属性、AI 紫色样式隔离与 traceId 复制契约测试 |
 | D-602 | 2026-10-22 | [APP-M2-T019 QA签署](testing/2026-10-21-app-m2-t019-qa-signoff.md) | 验证 | qa-rerun-56 | 本地通过 | ISSUE-007 / APP-M2-T019 | JobProgress 步骤与 AI 紫进度条独立复测通过（5类任务状态机、AI 专属紫色 #722ed1 与业务蓝 #1e4db7 严格色彩隔离红线、子步骤展开与加权进度计算、失败容错与 traceId 复制、零 storage 残留均通过；专属单测 10 passed、前端全量 263 passed；首屏构建 294.86 kB <= 295 kB 门禁达标；保持 in-review 不标 done） |
 | D-603 | 2026-10-22 | [APP-M2-T123 代码解释](code/APP-M2-T123.md) | 说明 | outline-tree-1 | 当前 | ISSUE-007 / APP-M2-T123 | 大纲树与章节协同编辑组件、排序算法、星号/废标条款禁止标不适用红线与增值理由代码架构说明 |
 | D-604 | 2026-10-22 | [APP-M2-T123 交付](delivery/APP-M2-T123.md) | 交付 | outline-tree-1 | in-review | ISSUE-007 / APP-M2-T123 | 大纲排序、章节类型和增值理由交付；274 passed 全部通过，首屏构建 294.86 kB <= 295 kB；保持 in-review 不标 done |
-| D-605 | 2026-10-22 | [大纲树核心逻辑与门禁拦截模块](../frontend/web/src/outline-tree.ts) | 代码 | outline-tree-1 | 当前 | ISSUE-007 / APP-M2-T123 | 5类章节类型配置、canMarkNotApplicable 红线判定、reorderNodes 排序算法与多层级编号归一化 |
-| D-606 | 2026-10-22 | [大纲树协同编辑视图组件](../frontend/web/src/OutlineTreeView.tsx) | 代码 | outline-tree-1 | 当前 | ISSUE-007 / APP-M2-T123 | OutlineTreeView 大纲树组件封装、分册 Tab 过滤、不适用选项门禁禁用与编辑台联动 |
+| D-605 | 2026-10-22 | [大纲树核心逻辑与门禁拦截模块](../frontend/web/src/project/outline-tree.ts) | 代码 | outline-tree-1 | 当前 | ISSUE-007 / APP-M2-T123 | 5类章节类型配置、canMarkNotApplicable 红线判定、reorderNodes 排序算法与多层级编号归一化 |
+| D-606 | 2026-10-22 | [大纲树协同编辑视图组件](../frontend/web/src/project/OutlineTreeView.tsx) | 代码 | outline-tree-1 | 当前 | ISSUE-007 / APP-M2-T123 | OutlineTreeView 大纲树组件封装、分册 Tab 过滤、不适用选项门禁禁用与编辑台联动 |
 | D-607 | 2026-10-22 | [大纲树单元测试](../tests/frontend/outline-tree.test.mjs) | 验证代码 | outline-tree-1 | 7项通过 | ISSUE-007 / APP-M2-T123 | 章节类型元信息、星号/废标禁止不适用红线断言、排序边界互换与编号归一化单测 |
 | D-608 | 2026-10-22 | [大纲树契约与 AST 测试](../frontend/web/tests/outline-tree.test.mjs) | 验证代码 | outline-tree-1 | 4项通过 | ISSUE-007 / APP-M2-T123 | outline-tree 模块导出、ChapterTypeBadge、ValueAddedReasonModal 与 OutlineTreeView 契约测试 |
 | D-609 | 2026-10-22 | [BE-OUTLINE-PLAN-SERVICE 代码解释](code/BE-OUTLINE-PLAN-SERVICE.md) | 说明 | outline-plan-1 | 当前 | ISSUE-007 / BE-OUTLINE-PLAN-SERVICE | 大纲写作方案服务架构设计、结构化大纲树生成、星号/废标条款绝对适用安全门禁与单事务原子版本推进代码说明 |

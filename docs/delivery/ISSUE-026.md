@@ -21,7 +21,7 @@
 
 `docs/TASK_BOARD.md` 与 `docs/PROJECT_STATUS.md` 只增加指向本 Issue 的句子，数字保持 361。没有新任务行。
 
-没有修改 `frontend/web/src/api.ts`。章节版本的请求头和正文仍用同一把键。自动重试仍只覆盖网络错误、502 和 503。
+没有修改 `frontend/web/src/shared/api.ts`。章节版本的请求头和正文仍用同一把键。自动重试仍只覆盖网络错误、502 和 503。
 
 ## 代码解释
 
@@ -54,7 +54,7 @@
 
 AI-01 从 blocked 改为 in-review 之后，看板变为 26 done、8 in-review、7 in-progress、268 planned、49 blocked、4 ready，合计仍是 362。ISSUE-010 那次提交故意把三份基线留在 7 in-review、50 blocked。本跟进只改这组数字：PRD 第19行、ROADMAP 第17行、PROJECT_BRIEF 排期行。in-review 八张是 OPS-M0-T02、REV-M0-T06、REV-M0-T08、BE-M0-T14、APP-M2-T001、APP-M2-T002、AI-01、AI-03。
 
-没有修改 `frontend/web/src/api.ts`。带 `MODEL_UNAVAILABLE` 的 502 不重试，已在单独提交里完成。本跟进不改重试。
+没有修改 `frontend/web/src/shared/api.ts`。带 `MODEL_UNAVAILABLE` 的 502 不重试，已在单独提交里完成。本跟进不改重试。
 
 ## 跟进：364 项、27 done
 

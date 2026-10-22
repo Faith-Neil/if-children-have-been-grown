@@ -9,12 +9,12 @@
 - 交付文档：[APP-M2-T015 交付](../delivery/APP-M2-T015.md)
 - 日期：2026-10-21
 - 实际代码路径：
-  - [can-directive.ts](../../frontend/web/src/can-directive.ts)
-  - [can-context.ts](../../frontend/web/src/can-context.ts)
-  - [useCan.ts](../../frontend/web/src/useCan.ts)
-  - [Can.tsx](../../frontend/web/src/Can.tsx)
-  - [App.tsx](../../frontend/web/src/App.tsx)
-  - [route-guard.ts](../../frontend/web/src/route-guard.ts)
+  - [can-directive.ts](../../frontend/web/src/shell/can-directive.ts)
+  - [can-context.ts](../../frontend/web/src/shell/can-context.ts)
+  - [useCan.ts](../../frontend/web/src/shell/useCan.ts)
+  - [Can.tsx](../../frontend/web/src/shell/Can.tsx)
+  - [App.tsx](../../frontend/web/src/app/App.tsx)
+  - [route-guard.ts](../../frontend/web/src/shell/route-guard.ts)
   - [can-directive.test.mjs](../../tests/frontend/can-directive.test.mjs)
   - [can-directive.test.mjs](../../frontend/web/tests/can-directive.test.mjs)
 

@@ -28,12 +28,12 @@
 
 本次任务在 `frontend/web/` 下完成了统一通用状态组件的封装，全面覆盖设计规范 §6.1 和任务要求中的六大状态：
 
-1. **`frontend/web/src/status-views.ts`（新增）**：
+1. **`frontend/web/src/status/status-views.ts`（新增）**：
    - 实现纯函数逻辑：`extractErrorInfo`（统一解析 `ApiError`、v1 错误体、旧版错误体、标准 `Error` 与字符串）、`copyText`（安全剪贴板复制及降级策略）、`contrastRatio`（WCAG 2.1 相对亮度与对比度计算）；
    - 定义状态缺省解析器：`resolveEmptyState`、`resolveForbidden`、`resolveExpired`、`resolveReadonly`；
    - 固化符合 WCAG 4.5:1 的色彩令牌 `STATUS_CONTRAST_TOKENS`（如高对比度深橙棕色 `#9a5608` 与深褐色 `#5c3504`）。
 
-2. **`frontend/web/src/StatusViews.tsx`（新增）**：
+2. **`frontend/web/src/status/StatusViews.tsx`（新增）**：
    - **`SkeletonView` / `PageSkeleton`**：支持 `page`、`table`（5 行）、`cards`（3 张）、`detail` 四种变体；包含 10 秒超时长任务提醒（“仍在加载，可离开本页，任务在后台继续”）；
    - **`EmptyState` / `EmptyView`**：支持 `empty`、`filtered`（默认清除筛选按钮）、`search`（动态注入搜索关键词）三种模式及主行动引导按钮；
    - **`ErrorView` / `ErrorState`**：展示统一错误体（`code` 红色标签、`message` 说明），提供 `traceId` / `requestId` 一键复制（带图标、Tooltip 及 2 秒反馈状态切换），支持 `onRetry` 动作，支持 `page`、`block`、`inline` 三种版式；
@@ -41,10 +41,10 @@
    - **`ExpiredWarning` / `StaleBanner`**：提供版本过期黄色警告条（文字使用 `#9a5608`，对比度 > 4.8:1），支持当前保存版本与后台最新版本对比显示，并提供“重新运行”/“核对最新版本”动作；
    - **`ReadonlyBanner` / `ReadOnlyBanner`**：提供中性蓝灰色的只读会话保护横幅，展示只读原因（如“项目已取消”、“只读成员模式”）、受限范围与角色标签。
 
-3. **`frontend/web/src/styles.css`（修改）**：
+3. **`frontend/web/src/shared/styles.css`（修改）**：
    - 增加 `.icg-status-skeleton`、`.icg-status-empty`、`.icg-status-error`、`.icg-status-forbidden`、`.icg-status-expired`、`.icg-status-readonly` 等样式类，确保 ProLayout 混入主题下文字对比度符合 WCAG AA 4.5:1 规范。
 
-4. **`frontend/web/src/App.tsx` 与 `SupportPages.tsx`（修改）**：
+4. **`frontend/web/src/app/App.tsx` 与 `SupportPages.tsx`（修改）**：
    - 在应用入口接入统一的 `Forbidden403`、`ReadonlyBanner` 与 `EmptyState` 组件。
 
 5. **`tests/frontend/status-views.test.mjs` 与 `frontend/web/tests/status-views.test.mjs`（新增）**：

@@ -23,7 +23,7 @@
 
 ## 实际文件与代码解释
 
-前端：[App](../../frontend/web/src/App.tsx)、[辅助页面](../../frontend/web/src/SupportPages.tsx)、[模板页面](../../frontend/web/src/SlaPages.tsx)、[资料依据](../../frontend/web/src/library-review.ts)、[模板依据](../../frontend/web/src/template-review.ts)及[资料函数回归](../../frontend/web/tests/library-review.test.mjs)、[模板函数回归](../../frontend/web/tests/template-review.test.mjs)。后台新增[资料接口回归](../../tests/backend/test_library_basis.py)及[模板接口回归](../../tests/backend/test_sla_template_basis.py)，没有修改生产后端或新增接口。
+前端：[App](../../frontend/web/src/app/App.tsx)、[辅助页面](../../frontend/web/src/app/SupportPages.tsx)、[模板页面](../../frontend/web/src/admin/SlaPages.tsx)、[资料依据](../../frontend/web/src/library/library-review.ts)、[模板依据](../../frontend/web/src/library/template-review.ts)及[资料函数回归](../../frontend/web/tests/library-review.test.mjs)、[模板函数回归](../../frontend/web/tests/template-review.test.mjs)。后台新增[资料接口回归](../../tests/backend/test_library_basis.py)及[模板接口回归](../../tests/backend/test_sla_template_basis.py)，没有修改生产后端或新增接口。
 
 数据流和关键函数见独立[代码解释](../code/APP-M1-T16.md)：页面交原版本，后台原子保存；核对确认真实再读。页面、后台是同一产品，不能以表单状态或按钮禁用替代服务端判定。
 

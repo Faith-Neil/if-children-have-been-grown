@@ -23,7 +23,7 @@ function parseSource(relativePath) {
 }
 
 test('export-checks-core.ts exports all required blocker and export helpers', () => {
-  const { tree } = parseSource('../src/export-checks-core.ts');
+  const { tree } = parseSource('../src/project/export-checks-core.ts');
   const exported = new Set();
 
   ts.forEachChild(tree, node => {
@@ -47,7 +47,7 @@ test('export-checks-core.ts exports all required blocker and export helpers', ()
 });
 
 test('ProjectPages.tsx ChecksPage integrates blocker alert banner and chapters list', () => {
-  const { content } = parseSource('../src/ProjectPages.tsx');
+  const { content } = parseSource('../src/project/ProjectPages.tsx');
 
   // 1. 验证导入 export-checks-core
   assert.ok(content.includes("from './export-checks-core'"), 'ProjectPages must import export-checks-core');
@@ -59,7 +59,7 @@ test('ProjectPages.tsx ChecksPage integrates blocker alert banner and chapters l
 });
 
 test('ProjectPages.tsx ExportPage integrates blocker redline gate, options, and history table', () => {
-  const { content } = parseSource('../src/ProjectPages.tsx');
+  const { content } = parseSource('../src/project/ProjectPages.tsx');
 
   // 1. 验证导出前提中包含合规红线门禁检查
   assert.ok(

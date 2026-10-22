@@ -2,8 +2,8 @@
 // 它解决什么问题：深链接、前进后退和取消离开不能只靠页面内存，取消时地址必须留在原页。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { commitAddress, menuPathFor, parseAppPath, projectPath, routeAfterLogin } from '../src/app-route.ts';
-import { applyBeforeUnload, decideNavigation, historyStep, leaveCopy, readHistoryIndex } from '../src/leave-guard.ts';
+import { commitAddress, menuPathFor, parseAppPath, projectPath, routeAfterLogin } from '../src/app/app-route.ts';
+import { applyBeforeUnload, decideNavigation, historyStep, leaveCopy, readHistoryIndex } from '../src/app/leave-guard.ts';
 
 test('global paths, project tabs and unknown addresses parse without reading business data', () => {
   assert.deepEqual(parseAppPath('/library'), { kind: 'global', routeId: 'library', path: '/library' });

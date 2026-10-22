@@ -5,7 +5,7 @@
 # APP-M2-T114：代码解释
 
 - 对应任务、Issue、交付文档：[APP-M2-T114](../tasks/APP-M2.md#app-m2-t114)，[ISSUE-007](../../issues/ISSUE-007.md)，[交付](../delivery/APP-M2-T114.md)。
-- 日期、实际代码路径、提交 / PR：2026-10-12。`frontend/web/src/evidence-drawer.ts`、`EvidenceDrawer.tsx`、`ProjectPages.tsx`。PR 未创建。
+- 日期、实际代码路径、提交 / PR：2026-10-12。`frontend/web/src/library/evidence-drawer.ts`、`EvidenceDrawer.tsx`、`ProjectPages.tsx`。PR 未创建。
 
 ## 改了什么以及为什么
 

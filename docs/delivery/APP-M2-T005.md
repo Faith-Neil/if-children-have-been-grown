@@ -29,7 +29,7 @@
 
 本次任务在 `frontend/web/` 下完成了元数据驱动表格组件的全面封装，覆盖设计规范 §9.1、§9.2、交接清单 M1-P08-F5 及任务要求的所有关键项：
 
-1. **`frontend/web/src/metadata-table.ts`（新增）**：
+1. **`frontend/web/src/library/metadata-table.ts`（新增）**：
    - 纯函数逻辑与类型层，定义 `FieldMeta`、`TableMeta`、`ColumnBudgetResult`、`BatchConfirmValidation`；
    - 实现了 `calculateColumnWidthBudget`：在 1280px 标准桌面视口（减去侧边栏与页边距后的安全内容可用宽 1040px）下计算列宽，长文本列自动弹性自适应并启用省略保护，保证首选无横向滚动条；当列宽显著超标时平滑降级开启滚动并锁定首列与操作列（规范 9.1 规则 2）；
    - 实现了 `calculateRowSpans`：对相邻同分组值的单元格计算 rowSpan 合并（首行计数 N，后续置 0）；
@@ -38,7 +38,7 @@
    - 实现了 `formatDateTimeMonospace`（等宽字体时间排版，规范 9.1 规则 3）；
    - 提供了 `REQUIREMENTS_MATRIX_SCHEMA`、`LIBRARY_RECORDS_SCHEMA`、`FACTS_MATRIX_SCHEMA` 内置 Schema 及异步 mock 解析函数。
 
-2. **`frontend/web/src/MetadataTable.tsx`（新增）**：
+2. **`frontend/web/src/library/MetadataTable.tsx`（新增）**：
    - 封装 Ant Design Table，导出 `MetadataTable` 与 `ProTableWrapper`；
    - 动态推导列配置，自动支持双行表头（`icg-two-line-header`，中文名 + 等宽系统键，规范 9.2 规则 2）；
    - 深度集成通用状态组件：加载无数据时渲染 5 行表格骨架屏（`SkeletonView`）、接口失败渲染带 traceId 复制的错误态（`ErrorView`）、无数据时自适应切换搜索或空列表空态（`EmptyState`）；
@@ -46,7 +46,7 @@
    - 侧边抽屉详情查看（Detail Drawer）：长文本单元格提供“查看”按钮，在 560px 宽抽屉中展示完整原文、条款级别、引用证据与来源指纹，保障紧凑排版下信息零丢失；
    - 顶部工具栏（搜索输入、密度切换、刷新操作）与底部批量操作浮动栏（实时门禁校验与拦截警示）。
 
-3. **`frontend/web/src/styles.css`（修改）**：
+3. **`frontend/web/src/shared/styles.css`（修改）**：
    - 补充 `.icg-metadata-table-wrapper`、`.icg-table-toolbar`、`.icg-batch-bar`、`.icg-batch-warning`、`.icg-two-line-header`、`.icg-monospace-time`、`.row-danger > td` 与 `.row-urgent` 等样式类。
 
 4. **`tests/frontend/metadata-table.test.mjs` 与 `frontend/web/tests/metadata-table.test.mjs`（新增）**：

@@ -20,7 +20,7 @@ function parseSource(relativePath) {
 }
 
 test('sensitive-mask.ts exports maskSensitiveValue, validateRevealReason and rules', () => {
-  const { tree } = parseSource('../src/sensitive-mask.ts');
+  const { tree } = parseSource('../src/admin/sensitive-mask.ts');
   const exported = new Set();
 
   ts.forEachChild(tree, node => {
@@ -44,7 +44,7 @@ test('sensitive-mask.ts exports maskSensitiveValue, validateRevealReason and rul
 });
 
 test('RevealFieldModal.tsx enforces mandatory reason, audit notice and zero storage persistence', () => {
-  const { content, tree } = parseSource('../src/RevealFieldModal.tsx');
+  const { content, tree } = parseSource('../src/admin/RevealFieldModal.tsx');
   const exported = new Set();
 
   ts.forEachChild(tree, node => {
@@ -77,7 +77,7 @@ test('RevealFieldModal.tsx enforces mandatory reason, audit notice and zero stor
 });
 
 test('MaskedField.tsx integrates permission checks and reveal modal', () => {
-  const { content, tree } = parseSource('../src/MaskedField.tsx');
+  const { content, tree } = parseSource('../src/admin/MaskedField.tsx');
   const exported = new Set();
 
   ts.forEachChild(tree, node => {

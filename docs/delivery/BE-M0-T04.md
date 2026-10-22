@@ -23,7 +23,7 @@
 
 `POST /api/v1/chapters/{chapter_id}/lock`、`/lock/renew`、`/lock/release` 调用原来的取得、续期和释放。时长仍是 120 秒。编写人不能接管他人，负责人接管必须填写理由。失败使用 v1 错误体。
 
-旧 `POST /api/chapters/{chapter_id}/lock` 三路由不删。`frontend/web/src/EditorPage.tsx` 和 `/demo` 验证页继续用它们，成功响应仍不是 `traceId`。
+旧 `POST /api/chapters/{chapter_id}/lock` 三路由不删。`frontend/web/src/editor/EditorPage.tsx` 和 `/demo` 验证页继续用它们，成功响应仍不是 `traceId`。
 
 OpenAPI 增加这三条路径。没有重跑 `export_openapi.py`，冻结草案和 `deprecated` 标注仍在。不改 202/SSE，不加数据库，不新增错误码。`operationId` 仍是框架原名，留给 BE-M0-T07。
 

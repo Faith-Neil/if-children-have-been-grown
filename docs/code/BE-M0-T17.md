@@ -61,7 +61,7 @@
 ## 3. token 与 session_token 保留理由说明
 字典 v1.9 原型设计偏向关系型外键约束，未定义客户端持锁凭据。但在分布式无状态 Web 服务与长连接心跳场景中：
 1. **防跨端串锁与安全隔离**：用户在多端或同一浏览器多 Tab 打开同一章节时，必须使用唯一的 `lease_token` 进行鉴权；仅靠 `user_id` 无法防止用户自身另一标签页覆盖正在编辑的内容。
-2. **多端前端兼容性**：现存前端模块（`frontend/web/src/EditorPage.tsx`、`/demo` 交互页及单元测试）均以 `lease_token` 作为请求头或载荷发送续期与释放指令。
+2. **多端前端兼容性**：现存前端模块（`frontend/web/src/editor/EditorPage.tsx`、`/demo` 交互页及单元测试）均以 `lease_token` 作为请求头或载荷发送续期与释放指令。
 因此，保留 `token` 与 `session_token` 字段并在底层持久化，兼具字典审计规范与实际运行稳定性。
 
 ## 4. 自动化测试覆盖

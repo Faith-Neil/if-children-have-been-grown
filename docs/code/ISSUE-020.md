@@ -5,7 +5,7 @@
 # ISSUE-020：代码解释
 
 - 对应任务、Issue、交付文档：APP-M2-T001、[ISSUE-020](../../issues/ISSUE-020.md)、[交付](../delivery/ISSUE-020.md)
-- 日期、实际代码路径、提交 / PR：2026-10-12；`frontend/web/src/route-loaders.ts`、`lazy-routes.tsx`、`App.tsx`；PR #3 未合入
+- 日期、实际代码路径、提交 / PR：2026-10-12；`frontend/web/src/app/route-loaders.ts`、`lazy-routes.tsx`、`App.tsx`；PR #3 未合入
 
 ## 改了什么以及为什么
 

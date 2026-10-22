@@ -8,7 +8,7 @@
 - 关联审查任务：REV-M0-T54
 - 关联 Issue：[ISSUE-007](../../issues/ISSUE-007.md)
 - 关联交付：[APP-M2-T015 交付](../delivery/APP-M2-T015.md)、[代码解释](../code/APP-M2-T015.md)
-- 被验核心文件：`frontend/web/src/can-directive.ts`、`frontend/web/src/can-context.ts`、`frontend/web/src/useCan.ts`、`frontend/web/src/Can.tsx`、`frontend/web/src/App.tsx`、`frontend/web/src/route-guard.ts`、`tests/frontend/can-directive.test.mjs`、`frontend/web/tests/can-directive.test.mjs`
+- 被验核心文件：`frontend/web/src/shell/can-directive.ts`、`frontend/web/src/shell/can-context.ts`、`frontend/web/src/shell/useCan.ts`、`frontend/web/src/shell/Can.tsx`、`frontend/web/src/app/App.tsx`、`frontend/web/src/shell/route-guard.ts`、`tests/frontend/can-directive.test.mjs`、`frontend/web/tests/can-directive.test.mjs`
 - 复验环境：Windows, Node v24.18.0, pnpm v11.20.0
 - 结论：**通过 (PASS)**。**APP-M2-T015 保持 in-review，严禁标 done；关联 ISSUE-007 保持原状态**。
 

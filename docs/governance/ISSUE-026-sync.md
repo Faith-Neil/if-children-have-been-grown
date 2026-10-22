@@ -20,7 +20,7 @@
 | DOCUMENT_INDEX | D-283～D-287，并更新 PRD、路线图、brief、看板和项目状态的说明 |
 | WORKFLOW | 无规则变化 |
 | 参考原文 | 不改 `docs/reference/` |
-| 后台与请求层 | 不改 `backend/`、`tests/backend/`、`frontend/web/src/api.ts`。重试仍是网络错误、502 和 503，最多 3 次含首次 |
+| 后台与请求层 | 不改 `backend/`、`tests/backend/`、`frontend/web/src/shared/api.ts`。重试仍是网络错误、502 和 503，最多 3 次含首次 |
 
 ## 跟进
 

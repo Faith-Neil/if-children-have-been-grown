@@ -8,7 +8,7 @@
 - 关联审查任务：REV-M0-T53
 - 关联 Issue：[ISSUE-007](../../issues/ISSUE-007.md)
 - 关联交付：[APP-M2-T014 交付](../delivery/APP-M2-T014.md)、[代码解释](../code/APP-M2-T014.md)
-- 被验核心文件：`frontend/web/src/route-guard.ts`、`frontend/web/src/RouteGuard.tsx`、`frontend/web/src/StatusViews.tsx`、`frontend/web/src/status-views.ts`、`frontend/web/src/App.tsx`、`tests/frontend/route-guard.test.mjs`、`frontend/web/tests/route-guard.test.mjs`
+- 被验核心文件：`frontend/web/src/shell/route-guard.ts`、`frontend/web/src/shell/RouteGuard.tsx`、`frontend/web/src/status/StatusViews.tsx`、`frontend/web/src/status/status-views.ts`、`frontend/web/src/app/App.tsx`、`tests/frontend/route-guard.test.mjs`、`frontend/web/tests/route-guard.test.mjs`
 - 复验环境：Windows, Node v24.18.0, pnpm v11.20.0
 - 结论：**通过 (PASS)**。**APP-M2-T014 保持 in-review，严禁标 done；关联 Issue 保持原状态**。
 

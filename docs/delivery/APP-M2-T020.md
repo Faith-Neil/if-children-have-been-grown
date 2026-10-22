@@ -24,13 +24,13 @@
 
 ## 2. 变更文件与实现清单
 
-1. **`frontend/web/src/job-progress-sse.ts`（新增）**：
+1. **`frontend/web/src/status/job-progress-sse.ts`（新增）**：
    - 实现了 `parseSseLine` 与 `parseSseMessage` 标准 SSE 消息解析算法；
    - 实现了 `calculateBackoffDelay` 指数退避延迟算法（1s -> 2s -> 4s）；
    - 实现了 `isJobTerminalStatus` 终态快速判断；
    - 实现了 `JobStreamSubscriptionManager` 控制器，集成连接、3次阶梯重试、轮询降级与终态注销；
    - 封装了声明式 React Hook `useJobProgressSse`。
-2. **`frontend/web/src/JobProgress.tsx`（修改）**：
+2. **`frontend/web/src/status/JobProgress.tsx`（修改）**：
    - 扩充 `JobProgressProps` 支持 `isFallbackPolling`、`connectionStatus` 与 `fallbackMessage`；
    - 渲染包含 `data-testid="job-stream-fallback-tag"` 的降级警告 Tag（“实时流已断开，已切换为定时刷新”）；
    - 导出包装组件 `JobProgressWithSse`，开箱即用支持自动订阅；

@@ -2,7 +2,7 @@
 // 它解决什么问题：防止旧表单借新版本覆盖资料，或核对窗口中的过时内容替换未保存文字。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { captureLibraryReview, confirmLibraryReview, libraryItemBasis, libraryMutationVersion, libraryReviewProblem, libraryWriteVersion, loadReviewedLibrary } from '../src/library-review.ts';
+import { captureLibraryReview, confirmLibraryReview, libraryItemBasis, libraryMutationVersion, libraryReviewProblem, libraryWriteVersion, loadReviewedLibrary } from '../src/library/library-review.ts';
 
 const originalItem = { id: 'evidence-one', company_id: 'alpha', revision: 3, name: '合成资料', type: 'qualification', content: '原始资料正文', valid_until: '2027-12-31', status: 'confirmed', reason: '已核对', usable_as_evidence: true };
 const original = () => ({ company_id: 'alpha', revision: 7, items: [{ ...originalItem }] });

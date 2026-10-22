@@ -17,7 +17,7 @@
 
 ## 完成内容与变更文件
 
-`frontend/web/src/route-loaders.ts` 用动态 `import()` 加载外壳、编辑台、项目设置、项目页和支撑页，并缓存进行中的请求。`lazy-routes.tsx` 把它们包成 `React.lazy`。`App.tsx` 在登录后的外壳和各页面外加 `Suspense`。登录页仍在入口里。离开确认、`beforeunload` 和 History API 仍在 `App.tsx`，没有改判断。
+`frontend/web/src/app/route-loaders.ts` 用动态 `import()` 加载外壳、编辑台、项目设置、项目页和支撑页，并缓存进行中的请求。`lazy-routes.tsx` 把它们包成 `React.lazy`。`App.tsx` 在登录后的外壳和各页面外加 `Suspense`。登录页仍在入口里。离开确认、`beforeunload` 和 History API 仍在 `App.tsx`，没有改判断。
 
 没有改 `package.json`、锁文件、`backend/` 或 `tests/backend/`。
 

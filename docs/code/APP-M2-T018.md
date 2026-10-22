@@ -9,11 +9,11 @@
 - 交付文档：[APP-M2-T018 交付](../delivery/APP-M2-T018.md)
 - 日期：2026-10-21
 - 实际代码路径：
-  - [company-mask-settings.ts](../../frontend/web/src/company-mask-settings.ts)
-  - [company-mask-context.ts](../../frontend/web/src/company-mask-context.ts)
-  - [useCompanyMaskSettings.ts](../../frontend/web/src/useCompanyMaskSettings.ts)
-  - [MaskNoticeBanner.tsx](../../frontend/web/src/MaskNoticeBanner.tsx)
-  - [MaskedField.tsx](../../frontend/web/src/MaskedField.tsx)
+  - [company-mask-settings.ts](../../frontend/web/src/admin/company-mask-settings.ts)
+  - [company-mask-context.ts](../../frontend/web/src/admin/company-mask-context.ts)
+  - [useCompanyMaskSettings.ts](../../frontend/web/src/admin/useCompanyMaskSettings.ts)
+  - [MaskNoticeBanner.tsx](../../frontend/web/src/admin/MaskNoticeBanner.tsx)
+  - [MaskedField.tsx](../../frontend/web/src/admin/MaskedField.tsx)
   - [company-mask-settings.test.mjs](../../tests/frontend/company-mask-settings.test.mjs)
   - [company-mask-settings.test.mjs](../../frontend/web/tests/company-mask-settings.test.mjs)
 

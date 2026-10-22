@@ -8,12 +8,12 @@
 
 ## 页面与后台是同一个产品
 
-`ICG/frontend doc`是目标设计/交接资料；[App](../../frontend/web/src/App.tsx)加载真实项目和资料，资料表单在[SupportPages](../../frontend/web/src/SupportPages.tsx)。用户保存时，页面把内容和自己实际核对过的公司版本交给`backend/bid-core`中的资料路由。后台只在版本匹配时原子保存，意思是“这次修改要么全部成功，要么一点也不留下”。没有第二套独立产品或资料库。
+`ICG/frontend doc`是目标设计/交接资料；[App](../../frontend/web/src/app/App.tsx)加载真实项目和资料，资料表单在[SupportPages](../../frontend/web/src/app/SupportPages.tsx)。用户保存时，页面把内容和自己实际核对过的公司版本交给`backend/bid-core`中的资料路由。后台只在版本匹配时原子保存，意思是“这次修改要么全部成功，要么一点也不留下”。没有第二套独立产品或资料库。
 
 ## 实际数据流
 
 1. 页面把完整资料集合交给依据核验，顶栏和列表搜索只过滤展示。搜索不代表记录被删或失去权限。
-2. 打开记录时，[library-review](../../frontend/web/src/library-review.ts)的`captureLibraryReview`保存公司、公司资料版本和记录字段的快照。快照就是当时看见的一份副本；后续刷新不能自动把它变成新版。
+2. 打开记录时，[library-review](../../frontend/web/src/library/library-review.ts)的`captureLibraryReview`保存公司、公司资料版本和记录字段的快照。快照就是当时看见的一份副本；后续刷新不能自动把它变成新版。
 3. 保存处理函数等待表单校验后，重新检查当前编辑窗口、角色和忙碌状态；`libraryWriteVersion`核对原依据，再把原公司/版本作为第四参数传给App保存入口。App的`libraryMutationVersion`再次核对，真实后台还用`If-Match`核验版本。
 4. 409表示“你读到的版本已经过时”。页面只刷新当前后台状态，保留原依据和填写，因此下一次点击也不能借新版本覆盖资料。
 5. 明确核对入口重新读取后台，展示最初资料、未保存填写、后台新资料。点击确认后，`loadReviewedLibrary`再次真实读取；若核对期间又变，拒绝载入且填写不动。目标未变只更新已核对公司版本并保留填写；目标已变则在明确提示后载入最新资料，再重新修改。
@@ -25,7 +25,7 @@
 
 新增真实[后台接口回归](../../tests/backend/test_library_basis.py)验证原后台旧版本拒绝、无副作用、重复操作、跨公司和只读；[前端函数回归](../../frontend/web/tests/library-review.test.mjs)执行页面实际使用的依据/异步载入函数。
 
-公司SLA模板表单在[SlaPages](../../frontend/web/src/SlaPages.tsx)，使用[template-review](../../frontend/web/src/template-review.ts)保存完整字段、业务版本、记录版本及指标数组依据。`copyTemplate`深拷贝指标，避免表单编辑改变原依据；`templateWriteVersion`绑定实际读取的版本，`loadReviewedTemplate`真实再GET后才允许载入。
+公司SLA模板表单在[SlaPages](../../frontend/web/src/admin/SlaPages.tsx)，使用[template-review](../../frontend/web/src/library/template-review.ts)保存完整字段、业务版本、记录版本及指标数组依据。`copyTemplate`深拷贝指标，避免表单编辑改变原依据；`templateWriteVersion`绑定实际读取的版本，`loadReviewedTemplate`真实再GET后才允许载入。
 
 App保存两个带公司身份的内容/版本副本，`readCompanyCollections`将每次GET返回的集合和版本成对保存；`companyCollectionMutationVersion`按请求路径选自己的依据，模板入口强制携带已核对版本，不能借普通资料的新版本。读模板只更新模板副本，不升级旧资料依据。登录/退出/401清公司数据，`visibleCompanyCollection`隐藏非本公司副本，`companyReadSessionMatches`拒绝另一账号、公司或过期页面的迟到读取。
 

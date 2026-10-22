@@ -23,7 +23,7 @@ function parseSource(relativePath) {
 }
 
 test('cite-capsule.ts exports required parsing and metadata helpers', () => {
-  const { tree } = parseSource('../src/cite-capsule.ts');
+  const { tree } = parseSource('../src/editor/cite-capsule.ts');
   const exported = new Set();
 
   ts.forEachChild(tree, node => {
@@ -45,7 +45,7 @@ test('cite-capsule.ts exports required parsing and metadata helpers', () => {
 });
 
 test('CiteCapsule.tsx exports CiteCapsule and RichParagraphWithCites with contract testids', () => {
-  const { content, tree } = parseSource('../src/CiteCapsule.tsx');
+  const { content, tree } = parseSource('../src/editor/CiteCapsule.tsx');
   const exported = new Set();
 
   ts.forEachChild(tree, node => {
@@ -68,7 +68,7 @@ test('CiteCapsule.tsx exports CiteCapsule and RichParagraphWithCites with contra
 });
 
 test('SelectionBubble.tsx exports SelectionBubble with all action buttons and testids', () => {
-  const { content, tree } = parseSource('../src/SelectionBubble.tsx');
+  const { content, tree } = parseSource('../src/editor/SelectionBubble.tsx');
   const exported = new Set();
 
   ts.forEachChild(tree, node => {
@@ -90,7 +90,7 @@ test('SelectionBubble.tsx exports SelectionBubble with all action buttons and te
 });
 
 test('EditorPage.tsx mounts SelectionBubble, RichParagraphWithCites and editor-citation-bar', () => {
-  const { content } = parseSource('../src/EditorPage.tsx');
+  const { content } = parseSource('../src/editor/EditorPage.tsx');
 
   // 1. 验证关键组件导入
   assert.ok(content.includes("from './CiteCapsule'"), 'Must import CiteCapsule');

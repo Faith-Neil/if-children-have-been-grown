@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 
 function getEditorSource() {
-  const source = readFileSync(new URL('../src/EditorPage.tsx', import.meta.url), 'utf8');
+  const source = readFileSync(new URL('../src/editor/EditorPage.tsx', import.meta.url), 'utf8');
   const tree = ts.createSourceFile('EditorPage.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
   return { source, tree };
 }

@@ -17,8 +17,8 @@
 
 | 类型 | 文件路径 | 简述 |
 |---|---|---|
-| 纯函数逻辑 | [frontend/web/src/editor-conflict.ts](../../frontend/web/src/editor-conflict.ts) | 导出字数统计诊断、脏状态判定、409 冲突识别与合并策略纯函数 |
-| 界面实现 | [frontend/web/src/EditorPage.tsx](../../frontend/web/src/EditorPage.tsx) | 落实未持锁纯文本视图、字数进度条、保存草稿高亮、409 对比合并弹窗 |
+| 纯函数逻辑 | [frontend/web/src/editor/editor-conflict.ts](../../frontend/web/src/editor/editor-conflict.ts) | 导出字数统计诊断、脏状态判定、409 冲突识别与合并策略纯函数 |
+| 界面实现 | [frontend/web/src/editor/EditorPage.tsx](../../frontend/web/src/editor/EditorPage.tsx) | 落实未持锁纯文本视图、字数进度条、保存草稿高亮、409 对比合并弹窗 |
 | 联调适配 | [frontend/web/tests/app-orchestration.test.mjs](../../frontend/web/tests/app-orchestration.test.mjs) | 补齐 VM 上下文环境依赖 |
 | 纯逻辑单测 | [tests/frontend/editor-conflict.test.mjs](../../tests/frontend/editor-conflict.test.mjs) | 验证字数计算区间、脏状态基线比对、409 冲突多载荷识别与合并决策 |
 | 契约与 AST 测试 | [frontend/web/tests/editor-conflict.test.mjs](../../frontend/web/tests/editor-conflict.test.mjs) | 静态 AST 检查三态视图、字数指标 testid、保存按钮高亮与 409 弹窗对比区 |

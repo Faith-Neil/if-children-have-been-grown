@@ -20,7 +20,7 @@ function parseSource(relativePath) {
 }
 
 test('1. job-progress.ts exports core logic and status-machine symbols', () => {
-  const { tree } = parseSource('../src/job-progress.ts');
+  const { tree } = parseSource('../src/status/job-progress.ts');
   const exported = new Set();
 
   ts.forEachChild(tree, node => {
@@ -45,7 +45,7 @@ test('1. job-progress.ts exports core logic and status-machine symbols', () => {
 });
 
 test('2. JobProgress.tsx exports JobProgress component and binds essential attributes', () => {
-  const { content, tree } = parseSource('../src/JobProgress.tsx');
+  const { content, tree } = parseSource('../src/status/JobProgress.tsx');
   const exported = new Set();
 
   ts.forEachChild(tree, node => {
@@ -67,8 +67,8 @@ test('2. JobProgress.tsx exports JobProgress component and binds essential attri
 });
 
 test('3. AI 紫色样式隔离规范断言（严格禁止非 AI 任务出现紫色）', () => {
-  const { content: tsxContent } = parseSource('../src/JobProgress.tsx');
-  const cssUrl = new URL('../src/styles.css', import.meta.url);
+  const { content: tsxContent } = parseSource('../src/status/JobProgress.tsx');
+  const cssUrl = new URL('../src/shared/styles.css', import.meta.url);
   const cssContent = readFileSync(cssUrl, 'utf8');
 
   // TSX 必须通过 isAiJob 判定动态挂载 is-ai-progress
@@ -97,7 +97,7 @@ test('3. AI 紫色样式隔离规范断言（严格禁止非 AI 任务出现紫�
 });
 
 test('4. 失败容错、重试与 Trace ID 交互契约断言', () => {
-  const { content } = parseSource('../src/JobProgress.tsx');
+  const { content } = parseSource('../src/status/JobProgress.tsx');
 
   // 验证失败态下对 traceId、errorCode、errorSummary 的渲染
   assert.ok(content.includes('job.traceId'), 'must inspect job.traceId');
@@ -109,7 +109,7 @@ test('4. 失败容错、重试与 Trace ID 交互契约断言', () => {
 });
 
 test('5. SSE 流订阅、断线重试与平滑轮询降级契约断言 (APP-M2-T020)', () => {
-  const { content, tree } = parseSource('../src/JobProgress.tsx');
+  const { content, tree } = parseSource('../src/status/JobProgress.tsx');
   const exported = new Set();
 
   ts.forEachChild(tree, node => {
@@ -126,7 +126,7 @@ test('5. SSE 流订阅、断线重试与平滑轮询降级契约断言 (APP-M2-T
   assert.ok(content.includes('实时流已断开，已切换为定时刷新'), 'must display fallback warning message');
 
   // 验证 job-progress-sse.ts 导出的核心控制器与 hook
-  const { tree: sseTree } = parseSource('../src/job-progress-sse.ts');
+  const { tree: sseTree } = parseSource('../src/status/job-progress-sse.ts');
   const sseExported = new Set();
   ts.forEachChild(sseTree, node => {
     if (ts.isFunctionDeclaration(node) && node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword)) {

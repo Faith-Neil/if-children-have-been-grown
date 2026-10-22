@@ -31,7 +31,7 @@
 
 ## 完成内容与变更文件
 
-1. **`frontend/web/src/route-guard.ts`（新增）**：
+1. **`frontend/web/src/shell/route-guard.ts`（新增）**：
    - 定义 8 类标准系统角色枚举与常量；
    - 实现 `normalizeSystemRole(roleOrRoles)`：双向兼容历史 `manager` $\rightarrow$ `project_lead`，`editor` $\rightarrow$ `bid_writer`，`readonly` $\rightarrow$ `viewer`，`reviewer` $\rightarrow$ `auditor`；
    - 角色资质判定：`isReadonlyRole`、`canCreateProject`；
@@ -39,16 +39,16 @@
    - 核心路由守卫：`checkRoutePermission`，前置判定全局路由准入、平台管理员隔离、跨公司数据隔离、项目 Tab 权限与章节编辑权限；
    - 语义化拦截原因：`formatForbiddenReason` 友好输出具体角色受限原因。
 
-2. **`frontend/web/src/RouteGuard.tsx`（新增）**：
+2. **`frontend/web/src/shell/RouteGuard.tsx`（新增）**：
    - 封装声明式路由守卫组件，前置调用 `checkRoutePermission`；
    - 校验未通过时渲染语义化 403 页面，提供“返回可访问首页”与“切换身份”快捷按钮。
 
-3. **`frontend/web/src/StatusViews.tsx` 与 `status-views.ts`（修改）**：
+3. **`frontend/web/src/status/StatusViews.tsx` 与 `status-views.ts`（修改）**：
    - `Forbidden403` 组件扩充 `onSwitchRole` 与 `switchRoleText` 属性；
    - 在操作按钮区统一渲染带有 `data-testid="forbidden-switch-role-button"` 的快捷按钮；
    - `resolveForbidden` 补齐对应字段解析。
 
-4. **`frontend/web/src/App.tsx`（修改）**：
+4. **`frontend/web/src/app/App.tsx`（修改）**：
    - 在切页与导航入口（`followPath`, `openProject`, `loadNav`, `loadTab`）调用 `checkRoutePermission` 前置核验；
    - 校验失败时直接设置 `denied` 与 `deniedDetails`，立即阻断，不调用 `readAuthorizedProject` 或 `request`，确保零越权外呼；
    - 新建项目时调用 `canCreateProject` 进行前置资质校验；

@@ -15,10 +15,10 @@
 - 交付文档：[APP-M2-T004 交付](../delivery/APP-M2-T004.md)
 - 日期：2026-10-21
 - 实际代码路径：
-  - `frontend/web/src/business-tags.ts`（业务规则纯函数、色彩令牌、AI紫防混用断言与元数据解析）
-  - `frontend/web/src/BusinessTags.tsx`（React 统一业务小组件封装）
-  - `frontend/web/src/styles.css`（组件样式类名与 WCAG 对比度类名）
-  - `frontend/web/src/EditorPage.tsx`（编辑台正文招标引用、候选建议与来源条接入）
+  - `frontend/web/src/library/business-tags.ts`（业务规则纯函数、色彩令牌、AI紫防混用断言与元数据解析）
+  - `frontend/web/src/library/BusinessTags.tsx`（React 统一业务小组件封装）
+  - `frontend/web/src/shared/styles.css`（组件样式类名与 WCAG 对比度类名）
+  - `frontend/web/src/editor/EditorPage.tsx`（编辑台正文招标引用、候选建议与来源条接入）
   - `tests/frontend/business-tags.test.mjs`（对比度、色彩隔离与数据解析单元测试）
   - `frontend/web/tests/business-tags.test.mjs`（AST 结构与组件属性测试）
 
@@ -39,7 +39,7 @@
 ## 入口和调用顺序
 
 ### 1. 组件导出与入口
-`frontend/web/src/BusinessTags.tsx` 集中导出：
+`frontend/web/src/library/BusinessTags.tsx` 集中导出：
 - `LevelTag`：条款级别标签（支持 `blocker`、`star`、`warning`、`bonus`、`scoring`、`qualification`、`general` 及其别名）；
 - `AiTag`：AI 辅助标识（支持 `suggestion`、`generated`、`candidate`、`model`、`assistant`、`demo` 等变体）；
 - `DirectTag`：直接响应 / 系统直查标签（支持 `direct`、`adopt`、`response`、`struct` 变体）；

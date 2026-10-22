@@ -12,7 +12,7 @@
 | 检查 | 结果 | 证据 |
 |---|---|---|
 | AC-01 橙/金/warning 文字在浅底 ≥4.5:1 | 通过 | `#9a5608` 在 `#fff7e6` 5.31:1、`#fffbe6` 5.45:1、白底 5.66:1；改前分别为 3.34 / 2.76 / 1.83 |
-| AC-02 不新增依赖，只改样式与已有对比检查 | 通过 | `frontend/web/src/styles.css` 增加 `.ant-tag.ant-tag-orange,.ant-tag.ant-tag-gold,.ant-tag.ant-tag-warning{color:#9a5608 !important}`；`e2e/app-shell.spec.ts` 纳入可见橙/金/warning；未改 `package.json` |
+| AC-02 不新增依赖，只改样式与已有对比检查 | 通过 | `frontend/web/src/shared/styles.css` 增加 `.ant-tag.ant-tag-orange,.ant-tag.ant-tag-gold,.ant-tag.ant-tag-warning{color:#9a5608 !important}`；`e2e/app-shell.spec.ts` 纳入可见橙/金/warning；未改 `package.json` |
 | 概览页可见橙色标签实测 | 通过 | Playwright `-g "meet 4.5:1"` **1 passed**（Node 24.9.0，E2E_PYTHON=qa-venv） |
 | 深色主题标签 | 未要求 | AC 只覆盖浅底；E2E-D3（realDark 内容区）不在本 Issue |
 

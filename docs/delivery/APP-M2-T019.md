@@ -29,27 +29,27 @@
 ## 完成内容与变更文件
 
 ### 1. 核心产出
-1. **纯逻辑层状态机、色彩隔离与进度推导 (`frontend/web/src/job-progress.ts`)**：
+1. **纯逻辑层状态机、色彩隔离与进度推导 (`frontend/web/src/status/job-progress.ts`)**：
    - 定义 5 类长任务核心状态机：`pending`（等待中）、`running`（执行中）、`completed`（已完成）、`failed`（失败）、`cancelled`（已取消）；
    - 锁定色彩规范令牌：AI 紫色 `#722ed1`、业务蓝色 `#1e4db7`、成功色 `#52c41a`、失败色 `#ff4d4f`、取消灰 `#8c8c8c`；
    - 实现了 `isAiJob(jobType, explicitIsAi)`：内置 13 类内置 AI 任务判定，支持前缀扩展与显式参数覆盖，非 AI 业务严禁返回 true；
    - 实现了 `resolveProgressStrokeColor(status, isAi)`：执行色彩红线隔离，非 AI 业务严禁出现紫色；
    - 实现了 `deriveJobProgress({ status, explicitPercent, steps })`：支持显式进度与子步骤列表加权均值推导，已完成强制 100；
    - 实现了 `formatDuration(durationMs)` 耗时友好格式化与 `resolveJobStatusMeta` 状态元信息解析。
-2. **表现层长任务进度组件封装 (`frontend/web/src/JobProgress.tsx`)**：
+2. **表现层长任务进度组件封装 (`frontend/web/src/status/JobProgress.tsx`)**：
    - 顶层容器根据 AI 判定严格挂载 `.is-ai-progress` 与 `data-is-ai="true"` 属性；
    - 头部呈现任务标题、类型 Tag（AI 紫/业务蓝）、状态 Badge、耗时与排队原因；
    - 主进度条 `<Progress ... />` 动态绑定色彩与状态；
    - 子步骤明细支持展开展示标题、耗时、状态图标、步骤说明与运行态子进度条；
    - 失败容错区块完整展示 `errorCode`、`errorMessage` 与 `errorSummary`，提供 `traceId` 一键复制（`copyText` 联动交互）与从失败步骤重试/取消操作。
-3. **样式与规范落地 (`frontend/web/src/styles.css`)**：
+3. **样式与规范落地 (`frontend/web/src/shared/styles.css`)**：
    - 补充 `.icg-job-progress` 与 `.is-ai-progress` 专属紫色光晕与卡片边框规范；
    - 确保文本符合 WCAG AA 4.5:1 对比度标准。
 
 ### 2. 变更文件清单
-- `frontend/web/src/job-progress.ts` (新增): 状态机定义、AI任务判定、色彩隔离、进度派生与耗时格式化
-- `frontend/web/src/JobProgress.tsx` (新增): 表现层组件封装（Progress、Timeline步骤、失败容错与traceId复制）
-- `frontend/web/src/styles.css` (修改): 注入 JobProgress 与 .is-ai-progress 规范样式
+- `frontend/web/src/status/job-progress.ts` (新增): 状态机定义、AI任务判定、色彩隔离、进度派生与耗时格式化
+- `frontend/web/src/status/JobProgress.tsx` (新增): 表现层组件封装（Progress、Timeline步骤、失败容错与traceId复制）
+- `frontend/web/src/shared/styles.css` (修改): 注入 JobProgress 与 .is-ai-progress 规范样式
 - `tests/frontend/job-progress.test.mjs` (新增): 6 项纯逻辑单测（状态机、AI判定、色彩隔离、进度推导与耗时）
 - `frontend/web/tests/job-progress.test.mjs` (新增): 4 项 AST 静态契约、属性完备性与样式隔离断言
 - `docs/code/APP-M2-T019.md` (新增): 代码解释文档

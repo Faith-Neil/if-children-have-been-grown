@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 
-const source = readFileSync(new URL('../src/MetadataForm.tsx', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../src/library/MetadataForm.tsx', import.meta.url), 'utf8');
 const tree = ts.createSourceFile('MetadataForm.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 
 function findFunctionDeclaration(name) {

@@ -9,9 +9,9 @@
 - 交付文档：[APP-M2-T019 交付](../delivery/APP-M2-T019.md)
 - 日期：2026-10-22
 - 实际代码路径：
-  - [job-progress.ts](../../frontend/web/src/job-progress.ts)
-  - [JobProgress.tsx](../../frontend/web/src/JobProgress.tsx)
-  - [styles.css](../../frontend/web/src/styles.css)
+  - [job-progress.ts](../../frontend/web/src/status/job-progress.ts)
+  - [JobProgress.tsx](../../frontend/web/src/status/JobProgress.tsx)
+  - [styles.css](../../frontend/web/src/shared/styles.css)
   - [job-progress.test.mjs](../../tests/frontend/job-progress.test.mjs)
   - [job-progress.test.mjs](../../frontend/web/tests/job-progress.test.mjs)
 
@@ -32,7 +32,7 @@
 
 ## 2. 具体实现架构
 
-### 2.1 纯逻辑层 (`frontend/web/src/job-progress.ts`)
+### 2.1 纯逻辑层 (`frontend/web/src/status/job-progress.ts`)
 脱离 DOM 纯 TypeScript 实现，具备高可测性与高稳定性：
 1. **状态机与色彩令牌定义**：
    - 导出 `JobStatus` 与 `JobStepStatus` 类型：`'pending' | 'running' | 'completed' | 'failed' | 'cancelled'`；
@@ -55,7 +55,7 @@
 
 ---
 
-### 2.2 表现层组件 (`frontend/web/src/JobProgress.tsx`)
+### 2.2 表现层组件 (`frontend/web/src/status/JobProgress.tsx`)
 1. **AI 紫色类名与外层属性约束**：
    - 顶层容器带有 `data-testid="job-progress"`，当且仅当判定为 AI 任务时挂载 `.is-ai-progress` CSS 类，并在 HTML 属性上打上 `data-is-ai="true"` 标记，非 AI 任务严禁挂载该类名；
 2. **头部信息与排队提示**：
@@ -76,7 +76,7 @@
 
 ---
 
-### 2.3 样式系统 (`frontend/web/src/styles.css`)
+### 2.3 样式系统 (`frontend/web/src/shared/styles.css`)
 - 注入 `.icg-job-progress` 基础卡片样式与 `.is-compact` 紧凑尺寸；
 - 注入 `.is-ai-progress` 专属紫色边框（`#d3adf7`）与微紫色背景光晕（`#fdfaff`），悬浮高亮边框 `#b37feb`；
 - 保证文本色彩符合 `#1d2129` 与 `#4e5969`，色彩对比度严格大于 4.5:1。

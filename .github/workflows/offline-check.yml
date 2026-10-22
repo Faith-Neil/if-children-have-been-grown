@@ -165,7 +165,7 @@ jobs:
         working-directory: frontend/web
         run: pnpm build
       - name: Frontend tests
-        run: node --test tests/frontend/*.test.mjs frontend/web/tests/*.test.mjs
+        run: node --test frontend/web/tests/**/*.test.mjs
 
   governance:
     name: governance

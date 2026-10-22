@@ -5,9 +5,9 @@
 - 规范出处：[PRD v1.8 §5.11.2～§5.11.10](../../docs/reference/product/prd-mvp-v1.8.md)、架构决策 ADR-002
 - 交付报告：[APP-M2-T167 交付文档](../delivery/APP-M2-T167.md)
 - 核心代码路径：
-  - `frontend/web/src/SelectionBubble.tsx`
-  - `frontend/web/src/EditorPage.tsx`
-  - `frontend/web/src/styles.css`
+  - `frontend/web/src/editor/SelectionBubble.tsx`
+  - `frontend/web/src/editor/EditorPage.tsx`
+  - `frontend/web/src/shared/styles.css`
   - `tests/frontend/cite-selection.test.mjs`
   - `frontend/web/tests/cite-selection.test.mjs`
 
@@ -55,6 +55,6 @@
 
 ## 3. 改动文件与测试
 
-- 改动文件：`frontend/web/src/SelectionBubble.tsx`、`frontend/web/src/EditorPage.tsx`、`frontend/web/src/styles.css`；
+- 改动文件：`frontend/web/src/editor/SelectionBubble.tsx`、`frontend/web/src/editor/EditorPage.tsx`、`frontend/web/src/shared/styles.css`；
 - 测试套件：`tests/frontend/cite-selection.test.mjs`、`frontend/web/tests/cite-selection.test.mjs`；
 - 构建与单测全量通过。

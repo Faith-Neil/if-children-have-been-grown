@@ -8,7 +8,7 @@
 - 关联审查任务：REV-M0-T51
 - 关联 Issue：[ISSUE-007](../../issues/ISSUE-007.md)
 - 关联交付：[APP-M2-T009 交付](../delivery/APP-M2-T009.md)、[代码解释](../code/APP-M2-T009.md)
-- 被验核心文件：`frontend/web/src/responsive.ts`、`frontend/web/src/BreadcrumbNav.tsx`、`frontend/web/src/AppShell.tsx`、`frontend/web/src/App.tsx`、`frontend/web/src/styles.css`、`tests/frontend/responsive-layout.test.mjs`、`frontend/web/tests/responsive-layout.test.mjs`
+- 被验核心文件：`frontend/web/src/shell/responsive.ts`、`frontend/web/src/shell/BreadcrumbNav.tsx`、`frontend/web/src/shell/AppShell.tsx`、`frontend/web/src/app/App.tsx`、`frontend/web/src/shared/styles.css`、`tests/frontend/responsive-layout.test.mjs`、`frontend/web/tests/responsive-layout.test.mjs`
 - 复验环境：Windows, Node v24.18.0, pnpm v11.20.0
 - 结论：**通过 (PASS)**。**APP-M2-T009 保持 in-review，严禁标 done**。
 

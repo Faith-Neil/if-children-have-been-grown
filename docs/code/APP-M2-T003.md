@@ -9,11 +9,11 @@
 - 交付文档：[APP-M2-T003 交付](../delivery/APP-M2-T003.md)
 - 日期：2026-10-16
 - 实际代码路径：
-  - `frontend/web/src/status-views.ts`（业务逻辑、对比度计算与统一错误解析）
-  - `frontend/web/src/StatusViews.tsx`（React 统一状态组件库）
-  - `frontend/web/src/styles.css`（样式层与 WCAG 对比度类名）
-  - `frontend/web/src/App.tsx`（应用外壳与 403 / 404 / 只读横幅接入）
-  - `frontend/web/src/SupportPages.tsx`（辅助页面空态组件接入）
+  - `frontend/web/src/status/status-views.ts`（业务逻辑、对比度计算与统一错误解析）
+  - `frontend/web/src/status/StatusViews.tsx`（React 统一状态组件库）
+  - `frontend/web/src/shared/styles.css`（样式层与 WCAG 对比度类名）
+  - `frontend/web/src/app/App.tsx`（应用外壳与 403 / 404 / 只读横幅接入）
+  - `frontend/web/src/app/SupportPages.tsx`（辅助页面空态组件接入）
   - `tests/frontend/status-views.test.mjs`（单元测试）
   - `frontend/web/tests/status-views.test.mjs`（组件结构与交互 AST 测试）
 
@@ -32,7 +32,7 @@
 ## 入口和调用顺序
 
 ### 1. 组件导出与入口
-`frontend/web/src/StatusViews.tsx` 集中导出：
+`frontend/web/src/status/StatusViews.tsx` 集中导出：
 - `SkeletonView`（别名 `PageSkeleton`）
 - `EmptyState`（别名 `EmptyView`）
 - `ErrorView`（别名 `ErrorState`）

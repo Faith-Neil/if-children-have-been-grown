@@ -29,31 +29,31 @@
 
 本次任务在 `frontend/web/` 下完成了表单通用交互能力的全面实现，覆盖任务指派与设计规范中的所有核心要求：
 
-1. **`frontend/web/src/form-interactions.ts`（新增）**：
+1. **`frontend/web/src/shared/form-interactions.ts`（新增）**：
    - 纯函数逻辑层，定义 `FieldChangeSummary`、`ServerFieldError`、`AntFormFieldError`、`MappedServerErrors` 等契约；
    - 实现了 `detectDirtyFields`：比对初始值与实时值，计算已修改项数 `modifiedCount`、脏数据布尔值 `isDirty` 与 ★ 关键字段修改数 `starredModifiedCount`，生成易懂的修改摘要文案；
    - 实现了 `mapServerFieldErrors`：多格式错误体解析器，兼容 FastAPI / Pydantic details 数组（含 `loc` 路径）、字典映射、直接字段对象与嵌套 `error` 结构，提取出符合 Ant Design Form 规范的 `fieldErrors` 与首个出错字段 `firstErrorField`；
    - 实现了 `scrollFieldIntoView`：执行安全的平滑滚动（`behavior: 'smooth', block: 'center'`）将首错字段居中并微延迟聚焦输入框，在 Node/SSR 环境下安全降级；
    - 实现了 `shouldBlockNavigation` 与 `applyBeforeUnloadEvent` 离开拦截纯规则。
 
-2. **`frontend/web/src/FormActionFooter.tsx`（新增）**：
+2. **`frontend/web/src/shared/FormActionFooter.tsx`（新增）**：
    - 封装吸底操作条组件 `FormActionFooter`；
    - 容器支持 `sticky` 固底吸附展示（`.icg-form-sticky-footer.is-sticky`），具有毛玻璃背景与微上阴影，长表单无需滚到底部即可保存；
    - 左侧实时呈现修改统计标签（`dirty-count-tag`），并在 ★ 关键字段变更时以琥珀色高亮警示；
    - 右侧排列取消、重置（无脏数据时禁用）、保存（Primary 提交按钮）与自定义扩展插槽，对比度符合 WCAG AA 4.5:1。
 
-3. **`frontend/web/src/useUnsavedPrompt.ts`（新增）**：
+3. **`frontend/web/src/shared/useUnsavedPrompt.ts`（新增）**：
    - 封装通用 React Hook `useUnsavedPrompt`；
    - 自动绑定与解绑原生 `beforeunload` 事件；
    - 封装 `confirmNavigation`，通过 Ant Design `Modal.confirm` 弹出模态危险操作确认框（“当前页面有未保存的修改，离开将丢失已填内容”），点击取消继续编辑，点击确认才放行离开。
 
-4. **`frontend/web/src/MetadataForm.tsx`（修改）**：
+4. **`frontend/web/src/library/MetadataForm.tsx`（修改）**：
    - 增加 `stickyFooter`、`showCancelButton`、`cancelText`、`resetText`、`promptOnUnsaved`、`serverErrors`、`autoScrollToError`、`onReset`、`onCancel` 属性；
    - 接入 `detectDirtyFields` 与 `useUnsavedPrompt`；
    - 监听 `serverErrors`，自动通过 `form.setFields` 映射红框报错并调用 `scrollFieldIntoView` 居中聚焦；
    - 底部操作栏集成 `FormActionFooter`。
 
-5. **`frontend/web/src/styles.css`（修改）**：
+5. **`frontend/web/src/shared/styles.css`（修改）**：
    - 增加 `.icg-form-sticky-footer` 及 `.is-sticky` 吸底样式；
    - 增加 `.icg-footer-inner`、`.icg-footer-left-info`、`.icg-footer-modified-tag`、`.icg-footer-right-actions` 弹性排版样式；
    - 增加 `@keyframes icg-field-error-pulse` 错误字段高亮微动动画。

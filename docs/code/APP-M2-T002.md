@@ -5,7 +5,7 @@
 # APP-M2-T002：代码解释
 
 - 对应任务、Issue、交付文档：APP-M2-T002 / [ISSUE-009](../../issues/ISSUE-009.md) / [交付](../delivery/APP-M2-T002.md)
-- 日期、实际代码路径、提交 / PR：2026-10-12。`frontend/web/src/api.ts`、`frontend/web/src/App.tsx`、`frontend/web/tests/request-layer.test.mjs`。分支 `codex/repository-foundation`。PR #3 未合入
+- 日期、实际代码路径、提交 / PR：2026-10-12。`frontend/web/src/shared/api.ts`、`frontend/web/src/app/App.tsx`、`frontend/web/tests/request-layer.test.mjs`。分支 `codex/repository-foundation`。PR #3 未合入
 
 ## 改了什么以及为什么
 

@@ -9,12 +9,12 @@
 - 交付文档：[APP-M2-T016 交付](../delivery/APP-M2-T016.md)
 - 日期：2026-10-21
 - 实际代码路径：
-  - [data-permission.ts](../../frontend/web/src/data-permission.ts)
-  - [useDataPermission.ts](../../frontend/web/src/useDataPermission.ts)
-  - [ReadOnlyGate.tsx](../../frontend/web/src/ReadOnlyGate.tsx)
-  - [EditorPage.tsx](../../frontend/web/src/EditorPage.tsx)
-  - [MetadataForm.tsx](../../frontend/web/src/MetadataForm.tsx)
-  - [styles.css](../../frontend/web/src/styles.css)
+  - [data-permission.ts](../../frontend/web/src/shell/data-permission.ts)
+  - [useDataPermission.ts](../../frontend/web/src/shell/useDataPermission.ts)
+  - [ReadOnlyGate.tsx](../../frontend/web/src/shell/ReadOnlyGate.tsx)
+  - [EditorPage.tsx](../../frontend/web/src/editor/EditorPage.tsx)
+  - [MetadataForm.tsx](../../frontend/web/src/library/MetadataForm.tsx)
+  - [styles.css](../../frontend/web/src/shared/styles.css)
   - [data-permission.test.mjs](../../tests/frontend/data-permission.test.mjs)
   - [data-permission.test.mjs](../../frontend/web/tests/data-permission.test.mjs)
 

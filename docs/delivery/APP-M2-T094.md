@@ -18,13 +18,13 @@
 
 | 类型 | 文件路径 | 简述 |
 |---|---|---|
-| UI 摘要条组件 | [frontend/web/src/ProjectHeader.tsx](../../frontend/web/src/ProjectHeader.tsx) | ProjectHeader 项目摘要条组件（名称、金额脱敏、倒计时、涉密横幅、分册进度与页签导航） |
-| 摘要核心算法 | [frontend/web/src/project-header-core.ts](../../frontend/web/src/project-header-core.ts) | 纯函数：倒计时计算、金额千分位格式化、八角色权限判断与页签过滤 |
-| UI 列表页组件 | [frontend/web/src/ProjectListPage.tsx](../../frontend/web/src/ProjectListPage.tsx) | 项目列表多维筛选页、统计卡片栏与项目元数据抽屉组件 |
-| 列表核心算法 | [frontend/web/src/project-list-core.ts](../../frontend/web/src/project-list-core.ts) | 纯函数：项目生命周期阶段推导、分册状态推导与多维复合筛选 |
-| 模块导出 | [frontend/web/src/ProjectPages.tsx](../../frontend/web/src/ProjectPages.tsx) | 统一导出 ProjectHeader 与 ProjectListPage |
-| 应用接入 | [frontend/web/src/App.tsx](../../frontend/web/src/App.tsx) | 在工作台与项目主外壳中集成新组件，替换原内联粗糙实现 |
-| 类型扩展 | [frontend/web/src/types.ts](../../frontend/web/src/types.ts) | 为 Project 实体增加标的金额、分册状态等字段支持 |
+| UI 摘要条组件 | [frontend/web/src/project/ProjectHeader.tsx](../../frontend/web/src/project/ProjectHeader.tsx) | ProjectHeader 项目摘要条组件（名称、金额脱敏、倒计时、涉密横幅、分册进度与页签导航） |
+| 摘要核心算法 | [frontend/web/src/project/project-header-core.ts](../../frontend/web/src/project/project-header-core.ts) | 纯函数：倒计时计算、金额千分位格式化、八角色权限判断与页签过滤 |
+| UI 列表页组件 | [frontend/web/src/project/ProjectListPage.tsx](../../frontend/web/src/project/ProjectListPage.tsx) | 项目列表多维筛选页、统计卡片栏与项目元数据抽屉组件 |
+| 列表核心算法 | [frontend/web/src/project/project-list-core.ts](../../frontend/web/src/project/project-list-core.ts) | 纯函数：项目生命周期阶段推导、分册状态推导与多维复合筛选 |
+| 模块导出 | [frontend/web/src/project/ProjectPages.tsx](../../frontend/web/src/project/ProjectPages.tsx) | 统一导出 ProjectHeader 与 ProjectListPage |
+| 应用接入 | [frontend/web/src/app/App.tsx](../../frontend/web/src/app/App.tsx) | 在工作台与项目主外壳中集成新组件，替换原内联粗糙实现 |
+| 类型扩展 | [frontend/web/src/shared/types.ts](../../frontend/web/src/shared/types.ts) | 为 Project 实体增加标的金额、分册状态等字段支持 |
 | 专属单测 | [tests/frontend/project-header-list.test.mjs](../../tests/frontend/project-header-list.test.mjs) | 5 个测试用例，全方位验证倒计时判定、金额脱敏掩码、权限隔离与筛选规则 |
 | 架构文档 | [docs/code/APP-M2-T094.md](../code/APP-M2-T094.md) | 架构设计、调用链路、状态流转与边界安全保护文档 |
 | 交付文档 | [docs/delivery/APP-M2-T094.md](APP-M2-T094.md) | 本交付文档与实测验证记录 |

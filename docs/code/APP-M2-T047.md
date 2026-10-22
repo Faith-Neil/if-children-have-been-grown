@@ -6,7 +6,7 @@
 👉 **[docs/code/APP-M2-T046.md](APP-M2-T046.md)**
 
 ### 核心实现要点
-1. **抽屉式详情展示**：在 `frontend/web/src/LibraryPages.tsx` 中集成详细元数据抽屉（基本信息、有效期、核验说明、关联项目引用计数）；
+1. **抽屉式详情展示**：在 `frontend/web/src/library/LibraryPages.tsx` 中集成详细元数据抽屉（基本信息、有效期、核验说明、关联项目引用计数）；
 2. **结构化附件槽位**：展示附件列表、文件大小、上传时间与 SHA256 防篡改哈希指纹；
 3. **安全防护引擎**：`verifyAttachmentSecurity` 严格检测 64 位 SHA256 哈希完整性；
 4. **原件受控调阅与下载**：原件预览 Modal 呈现安全防伪状态；原件下载提供 Popconfirm 安全审计风险告知（记录操作人、IP、时间及商业保密声明）。

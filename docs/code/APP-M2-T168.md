@@ -9,9 +9,9 @@
 - 交付文档：[APP-M2-T168 交付](../delivery/APP-M2-T168.md)
 - 日期：2026-10-22
 - 实际改动与测试路径：
-  - [EditorPage.tsx](../../frontend/web/src/EditorPage.tsx)
-  - [outline-tree.ts](../../frontend/web/src/outline-tree.ts)
-  - [styles.css](../../frontend/web/src/styles.css)
+  - [EditorPage.tsx](../../frontend/web/src/editor/EditorPage.tsx)
+  - [outline-tree.ts](../../frontend/web/src/project/outline-tree.ts)
+  - [styles.css](../../frontend/web/src/shared/styles.css)
   - [editor-deep-linkage.test.mjs](../../tests/frontend/editor-deep-linkage.test.mjs)
   - [editor-deep-linkage.test.mjs](../../frontend/web/tests/editor-deep-linkage.test.mjs)
 
@@ -96,7 +96,7 @@ useBreakpoint() 监听到视口宽度变化
 
 ## 3. 改动文件明细
 
-### 3.1 `frontend/web/src/outline-tree.ts`
+### 3.1 `frontend/web/src/project/outline-tree.ts`
 - 新增并导出纯函数 `mapChaptersToOutlineNodes(chapters, requirements)`：
   - 自动归集与当前章节关联的所有条款；
   - 判定 `isStarred`（`starred` 或 `is_starred`）；
@@ -104,7 +104,7 @@ useBreakpoint() 监听到视口宽度变化
   - 智能推导 `chapterType`（评分矩阵推导 `system_generated`，封面目录推导 `cover_and_catalog`，星号/废标推导 `specialized`）；
   - 输出字段支持 `clauseCount`、`requirementCount`、`assigneeName`、`assignee_name`、`chapterNumber` 与 `isLeaf: true`。
 
-### 3.2 `frontend/web/src/EditorPage.tsx`
+### 3.2 `frontend/web/src/editor/EditorPage.tsx`
 - 引入 `OutlineTreeView`、`ChapterTypeBadge`、`mapChaptersToOutlineNodes`、`useBreakpoint`；
 - 声明 `directoryCollapsed`、`assistantCollapsed`、`outlineDrawerOpen` 状态；
 - 使用 `useMemo` 派生 `outlineNodes = mapChaptersToOutlineNodes(workspace.chapters, workspace.requirements)`；
@@ -112,7 +112,7 @@ useBreakpoint() 监听到视口宽度变化
 - 工具栏增加大纲抽屉按钮（`data-testid="toolbar-outline-drawer-btn"`）与助手折叠切换按钮（`data-testid="toggle-assistant-btn"`）；
 - 页面底部追加 `<Drawer data-testid="editor-outline-drawer">` 挂载 `OutlineTreeView`。
 
-### 3.3 `frontend/web/src/styles.css`
+### 3.3 `frontend/web/src/shared/styles.css`
 - 增加 `.editor-layout.directory-collapsed` 与 `.editor-layout.assistant-collapsed` 网格布局类；
 - 增加 `.chapter-directory-panel` 树滚动样式与 `.chapter-directory-collapsed-strip` 迷你竖条样式；
 - 增加 `@media (max-width: 1440px)` 响应式微调，确保正文区消除横向滚动条。

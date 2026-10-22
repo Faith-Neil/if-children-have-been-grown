@@ -14,8 +14,8 @@
 - 交付文档：[APP-M2-T162 交付](../delivery/APP-M2-T162.md)
 - 日期：2026-10-22
 - 实际改动与测试路径：
-  - [editor-conflict.ts](../../frontend/web/src/editor-conflict.ts)（新增）
-  - [EditorPage.tsx](../../frontend/web/src/EditorPage.tsx)（修改）
+  - [editor-conflict.ts](../../frontend/web/src/editor/editor-conflict.ts)（新增）
+  - [EditorPage.tsx](../../frontend/web/src/editor/EditorPage.tsx)（修改）
   - [app-orchestration.test.mjs](../../frontend/web/tests/app-orchestration.test.mjs)（修改）
   - [editor-conflict.test.mjs](../../tests/frontend/editor-conflict.test.mjs)（新增纯逻辑单测）
   - [editor-conflict.test.mjs](../../frontend/web/tests/editor-conflict.test.mjs)（新增组件契约与 AST 测试）
@@ -87,7 +87,7 @@ sequenceDiagram
 
 ## 3. 改动文件明细
 
-### 3.1 `frontend/web/src/editor-conflict.ts`（新增）
+### 3.1 `frontend/web/src/editor/editor-conflict.ts`（新增）
 - 导出 `calculateWordCount(content, targetLength)`：
   计算当前字符数、目标字数、进度百分比、状态（`below_target` / `on_target` / `above_target` / `no_target`）、Tag 色彩与说明文案；
 - 导出 `calculateDirtyState(content, chapterOrDraft, ...)`：
@@ -97,7 +97,7 @@ sequenceDiagram
 - 导出 `resolveConflictChoice(choice, context)`：
   生成覆盖或放弃的解析结果与提示信息。
 
-### 3.2 `frontend/web/src/EditorPage.tsx`（修改）
+### 3.2 `frontend/web/src/editor/EditorPage.tsx`（修改）
 - 顶部工具栏：
   - 增加 `dirty && <Tag color="warning" data-testid="dirty-status-tag">未保存修改</Tag>`；
   - 增加快捷草稿保存按钮 `toolbar-save-draft-btn`；

@@ -7,7 +7,7 @@
 | 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md) |
 | 规范出处 | [PRD v1.8 §5.11.2～§5.11.10](../../docs/reference/product/prd-mvp-v1.8.md)、架构决策 ADR-002 |
 | 代码说明 | [APP-M2-T165 代码解释](../code/APP-M2-T165.md) |
-| 核心业务代码 | `frontend/web/src/cite-capsule.ts`、`frontend/web/src/CiteCapsule.tsx`、`frontend/web/src/SelectionBubble.tsx`、`frontend/web/src/EditorPage.tsx`、`frontend/web/src/styles.css` |
+| 核心业务代码 | `frontend/web/src/editor/cite-capsule.ts`、`frontend/web/src/editor/CiteCapsule.tsx`、`frontend/web/src/editor/SelectionBubble.tsx`、`frontend/web/src/editor/EditorPage.tsx`、`frontend/web/src/shared/styles.css` |
 | 专属测试套件 | `tests/frontend/cite-selection.test.mjs`（7 项全部通过）、`frontend/web/tests/cite-selection.test.mjs`（4 项全部通过） |
 | 前端验证结果 | `pnpm --dir frontend/web build` 编译打包 0 错误；前端 318 项单元与契约测试全量通过 |
 | 离线纯洁性 | 100% 离线测试，无任何外部网络外呼，符合 ICG 安全隔离红线 |
@@ -42,11 +42,11 @@
 
 | 文件路径 | 状态 | 说明 |
 |---|---|---|
-| `frontend/web/src/cite-capsule.ts` | 新建 | 正则分词、元数据合并与 ID 提取纯逻辑工具 |
-| `frontend/web/src/CiteCapsule.tsx` | 新建 | `CiteCapsule` 悬浮卡片与 `RichParagraphWithCites` 富段落组件 |
-| `frontend/web/src/SelectionBubble.tsx` | 新建 | `SelectionBubble` 选区悬浮操作条组件 |
-| `frontend/web/src/styles.css` | 修改 | 添加气泡浮动、淡入动效与 `.icg-cite` 悬浮色彩样式 |
-| `frontend/web/src/EditorPage.tsx` | 修改 | 正文区挂载选区气泡、只读态富段落、编辑态引用条与事件联动 |
+| `frontend/web/src/editor/cite-capsule.ts` | 新建 | 正则分词、元数据合并与 ID 提取纯逻辑工具 |
+| `frontend/web/src/editor/CiteCapsule.tsx` | 新建 | `CiteCapsule` 悬浮卡片与 `RichParagraphWithCites` 富段落组件 |
+| `frontend/web/src/editor/SelectionBubble.tsx` | 新建 | `SelectionBubble` 选区悬浮操作条组件 |
+| `frontend/web/src/shared/styles.css` | 修改 | 添加气泡浮动、淡入动效与 `.icg-cite` 悬浮色彩样式 |
+| `frontend/web/src/editor/EditorPage.tsx` | 修改 | 正文区挂载选区气泡、只读态富段落、编辑态引用条与事件联动 |
 | `tests/frontend/cite-selection.test.mjs` | 新建 | 纯逻辑单测：正则分词、ID 提取、提示词格式化 |
 | `frontend/web/tests/cite-selection.test.mjs` | 新建 | AST 静态契约单测：组件导出、`data-testid` 与挂载断言 |
 

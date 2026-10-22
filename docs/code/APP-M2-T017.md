@@ -9,10 +9,10 @@
 - 交付文档：[APP-M2-T017 交付](../delivery/APP-M2-T017.md)
 - 日期：2026-10-21
 - 实际代码路径：
-  - [sensitive-mask.ts](../../frontend/web/src/sensitive-mask.ts)
-  - [RevealFieldModal.tsx](../../frontend/web/src/RevealFieldModal.tsx)
-  - [MaskedField.tsx](../../frontend/web/src/MaskedField.tsx)
-  - [can-directive.ts](../../frontend/web/src/can-directive.ts)
+  - [sensitive-mask.ts](../../frontend/web/src/admin/sensitive-mask.ts)
+  - [RevealFieldModal.tsx](../../frontend/web/src/admin/RevealFieldModal.tsx)
+  - [MaskedField.tsx](../../frontend/web/src/admin/MaskedField.tsx)
+  - [can-directive.ts](../../frontend/web/src/shell/can-directive.ts)
   - [masked-field.test.mjs](../../tests/frontend/masked-field.test.mjs)
   - [masked-field.test.mjs](../../frontend/web/tests/masked-field.test.mjs)
 

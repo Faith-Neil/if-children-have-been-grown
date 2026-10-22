@@ -14,9 +14,9 @@
 - 交付文档：[APP-M2-T006 交付](../delivery/APP-M2-T006.md)
 - 日期：2026-10-21
 - 实际代码路径：
-  - `frontend/web/src/metadata-form.ts`（前端纯函数逻辑层：数据契约模型、值等价比对算法、★ 关键字段变更收集与合规提示生成、字段禁用判定、两行标签解析、内置企业实体与项目表单 Schema、后端 API 客户端封装）
-  - `frontend/web/src/MetadataForm.tsx`（前端 React 组件层：消费元数据推导 Ant Design Form、双行标签排版、★ 关键字段修改警告横幅与项级黄色高亮、Tooltip 悬浮原因解释、多类型控件分流与响应式栅格）
-  - `frontend/web/src/styles.css`（表单双行标签、★ 关键字段高亮边框、合规警示横幅与置灰悬浮说明样式）
+  - `frontend/web/src/library/metadata-form.ts`（前端纯函数逻辑层：数据契约模型、值等价比对算法、★ 关键字段变更收集与合规提示生成、字段禁用判定、两行标签解析、内置企业实体与项目表单 Schema、后端 API 客户端封装）
+  - `frontend/web/src/library/MetadataForm.tsx`（前端 React 组件层：消费元数据推导 Ant Design Form、双行标签排版、★ 关键字段修改警告横幅与项级黄色高亮、Tooltip 悬浮原因解释、多类型控件分流与响应式栅格）
+  - `frontend/web/src/shared/styles.css`（表单双行标签、★ 关键字段高亮边框、合规警示横幅与置灰悬浮说明样式）
   - `tests/frontend/metadata-form.test.mjs`（前端纯函数逻辑层单元测试：覆盖值等价比对、★ 字段变更收集、合规提示文案生成、禁用态与双行标签解析）
   - `frontend/web/tests/metadata-form.test.mjs`（组件 AST 结构与设计规范断言：覆盖具名/默认导出、双行标签结构、★ 字段修改横幅与高亮、不支持字段 Tooltip 与控件类型分流）
 
@@ -47,11 +47,11 @@
 ## 入口和调用顺序
 
 ### 1. 组件导出与入口
-`frontend/web/src/MetadataForm.tsx` 导出：
+`frontend/web/src/library/MetadataForm.tsx` 导出：
 - `MetadataForm`：核心元数据驱动表单组件（同时具名导出与默认导出）；
 - `MetadataFormProps`：组件属性接口。
 
-`frontend/web/src/metadata-form.ts` 导出：
+`frontend/web/src/library/metadata-form.ts` 导出：
 - `areValuesEquivalent`：表单值安全比对函数（处理空串、null、undefined 与数字/布尔）；
 - `getModifiedStarredFields`：比对 `initialValues` 与实时表单值，提取所有被修改的 ★ 关键字段清单；
 - `hasModifiedStarredFields`：关键字段修改布尔探测器；
@@ -107,7 +107,7 @@ sequenceDiagram
 
 ## 改动文件清单
 
-1. `frontend/web/src/metadata-form.ts`（新增）：
+1. `frontend/web/src/library/metadata-form.ts`（新增）：
    - 定义 `FormFieldOption`、`FormFieldMeta`、`FormSchema`、`ModifiedStarredField`、`FieldDisabledState` 等核心 TypeScript 接口；
    - 实现了 `areValuesEquivalent`，支持 null 与 undefined、空字符串与空白字符等价归一化，精准识别真正的数据修改；
    - 实现了 `getModifiedStarredFields` 与 `hasModifiedStarredFields`，对标记 `is_starred: true` 的字段进行精确变更扫描；
@@ -117,7 +117,7 @@ sequenceDiagram
    - 预置 `FALLBACK_ORG_ENTITY_FORM_SCHEMA` 与 `FALLBACK_PROJECT_FORM_SCHEMA`，无缝联动后端字段元数据分类；
    - 实现了 `fetchFieldMetadata`，向后端 `GET /api/v1/metadata/fields/{category}` 接口发起请求并自动转换。
 
-2. `frontend/web/src/MetadataForm.tsx`（新增）：
+2. `frontend/web/src/library/MetadataForm.tsx`（新增）：
    - React 表单组件实现，接收 `schema`、`initialValues`、`userCanEdit`、`columns`、`onFinish` 等属性；
    - 顶部动态集成 Ant Design `Alert`（`type="warning"`），在 ★ 关键字段变更时自动展现；
    - 项级双行标签渲染（`icg-form-two-line-label`、`icg-label-primary`、`icg-label-secondary`、`icg-starred-indicator`）；
@@ -127,7 +127,7 @@ sequenceDiagram
    - 响应式 1/2/3 栏栅格布局（Row gutter 16，Col span 24/12/8）；
    - 底部操作栏（保存按钮、重置按钮、★ 变动额外提示）。
 
-3. `frontend/web/src/styles.css`（修改）：
+3. `frontend/web/src/shared/styles.css`（修改）：
    - 增加 `.icg-metadata-form-wrapper`；
    - 增加 `.icg-form-two-line-label`、`.icg-label-primary`、`.icg-label-secondary`、`.icg-starred-indicator`（★ 强调色 `#faad14`）；
    - 增加 `.icg-starred-warning-banner`（边框 `#ffe58f`、底色 `#fffbe6`、文字 `#9a5608`，符合 WCAG AA 4.5:1 对比度）；

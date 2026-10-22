@@ -5,7 +5,7 @@
 # ISSUE-036：代码解释
 
 - 对应 Issue、交付文档：[ISSUE-036](../../issues/ISSUE-036.md)，[交付](../delivery/ISSUE-036.md)。
-- 日期、实际代码路径：2026-10-12。`frontend/web/src/styles.css`、`frontend/web/e2e/app-shell.spec.ts`。不新增任务卡。PR 未新开。
+- 日期、实际代码路径：2026-10-12。`frontend/web/src/shared/styles.css`、`frontend/web/e2e/app-shell.spec.ts`。不新增任务卡。PR 未新开。
 
 ## 改了什么以及为什么
 
