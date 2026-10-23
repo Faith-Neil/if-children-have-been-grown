@@ -67,3 +67,24 @@ on:
 
 - 本地治理测试：`node scripts/check-project-governance.cjs` 通过；
 - 文档登记：登记入 `docs/DOCUMENT_INDEX.md`（D-721）。
+
+## 5. 远端 Actions 运行排查与修复记录
+
+1. **初次触发（Run ID `39911657851`，Commit `cfa4f23`）**：
+   - `frontend`: 成功（耗时 51s）；
+   - `governance`: 成功（耗时 17s）；
+   - `backend-mysql`: 成功（耗时 1m48s）；
+   - `backend`: 失败（`test_real_parsed_fact`、`test_same_unit_variable` 报 `PLACEHOLDER_RESIDUAL`；`test_outline_contract_draft` 报 `KeyError: 'deprecated'`）；
+   - `e2e`: 因依赖失败被取消。
+
+2. **根因定位与修复（Commit `9d6eace`）**：
+   - **R34 合法变量误判修复**：在 `backend/bid-core/icg/domain/compliance_rules.py` 中，将 Handlebars 占位符正则表达式调整为 `\{\{(?!(?:fact|sla):)[^}]+\}\}`，排除合法的系统级事实标记 `{{fact:...}}` 与 SLA 承诺标记 `{{sla:...}}`；
+   - **OpenAPI 废弃标记保留**：在 `backend/bid-core/export_openapi.py` 中，导出时保留已废弃过渡接口（`DEPRECATED_OPERATIONS`）的 `deprecated: true` 及说明文字，保证 `demo-v1.json` 与代码导出 100% 一致；
+   - 本地全量回归：630 项后端测试全绿，370 项前端测试全绿。
+
+3. **第二次触发（Run ID `39913789636`，Commit `9d6eace`）**：
+   - `frontend`: 成功；
+   - `governance`: 成功；
+   - `backend-mysql`: 成功；
+   - `backend`: **成功**（Pytest 630+全部通过，HTTP live 验收通过，T06 冒烟通过，OpenAPI 契约一致性 100% 通过）；
+   - `e2e`: 在运行至 `Browser end-to-end` 步骤时触发原配置的 10 分钟硬上限（无缓存环境下安装 Chromium 依赖耗时约 8m40s），因此将 `e2e` 超时时间调整为 25 分钟（`timeout-minutes: 25`）。

@@ -192,7 +192,7 @@ jobs:
   e2e:
     name: e2e
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 25
     permissions:
       contents: read
       actions: write
