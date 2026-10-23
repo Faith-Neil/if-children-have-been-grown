@@ -731,11 +731,13 @@
 | D-718 | 2026-10-23 | [BE-COMPLIANCE-RULES-P0 代码说明](code/BE-COMPLIANCE-RULES-P0.md) | 代码说明 | compliance-p0-1 | 当前 | ISSUE-006 / ISSUE-027 / BE-COMPLIANCE-RULES-P0 | 第一批核心合规规则编号落地代码说明：ComplianceRulesEngine 规则引擎、R15 证明齐全性、R23 废标与关键标星 100% 响应、R34 占位符与“待补/待完善”残留排查、R37 偏离表一致性、export_service 集成与 /api/v1 契约端点 |
 | D-719 | 2026-10-22 | [第二阶段第二批任务产品视角验收报告](reviews/2026-10-22-pd-review-BATCH2-M2.md) | 验收审查 | pd-review-batch2-m2 | 当前 | ISSUE-005 / ISSUE-006 / ISSUE-007 / ISSUE-027 / FE-WRITING-ARCHIVE / BE-COMPLIANCE-RULES-P0 / INT-VOLUME-FINALIZE-GLUE | PD 视角针对第二阶段第二批任务（FE-WRITING-ARCHIVE、BE-COMPLIANCE-RULES-P0、INT-VOLUME-FINALIZE-GLUE）的产品完备性审查，核查导航占位壳彻底清零、定稿前后端胶水联动与核心合规规则编号落地，书面认可建议 PM 标 done |
 | D-720 | 2026-10-23 | [任务看板变更交付：模型与RAGFlow专项审查及用户拍板](delivery/2026-10-23-task-board-fe-be-review.md) | 治理 / 看板 | task-board-review-1 | 当前 | ISSUE-007 / ISSUE-028 / ISSUE-037 / ISSUE-012 / ISSUE-005 | 任务看板变更交付：记录六点专项审查（模型配置与知识库/RAGFlow）结论、ICG意见摘要与用户决策（①~④顺序、弹窗配置页形态、真RAGFlow服务接入、用户本人写码），校准文首tip至4c7e4b3，移除过时PR #3待合入描述，更新下一棒默认顺序与模型/RAGFlow卡片备注 |
+| D-721 | 2026-10-23 | [CI 工作流触发分支修复交付报告](delivery/2026-10-23-ci-offline-check-branches.md) | 治理 / DevOps | ci-offline-branches-1 | 当前 | ISSUE-012 / ISSUE-007 | CI工作流触发分支修复交付：修复 .github/workflows/offline-check.yml 的 on.push 与 pull_request 分支为 main 与 feat/opencode-ICG，消除因历史分支删除导致的 checks 为 0 隐患，恢复五大作业自动持续集成 |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-10-23 | 治理 / DevOps | 登记 CI 工作流触发分支修复交付（2026-10-23-ci-offline-check-branches.md，D-721），配置 on.push 与 pull_request 覆盖 main 与 feat/opencode-ICG，保障五大作业 CI 触发 |
 | 2026-10-23 | 治理 / 看板 | 登记任务看板变更交付（2026-10-23-task-board-fe-be-review.md，D-720），记录模型与RAGFlow专项审查、用户拍板决策、tip校准至4c7e4b3、更新下一棒①~④顺序与任务卡备注 |
 | 2026-10-23 | 治理 / 验收 | 登记第二阶段第二批任务产品视角验收报告（2026-10-22-pd-review-BATCH2-M2.md，D-719），PD 对照 PRD v1.8 §5.6、§5.8.1 与 §5.8.5，确认全局导航占位壳清零、定稿前后端闭环与核心合规规则落地，书面认可建议 PM 标 done |
 | 2026-10-23 | ISSUE-006 / ISSUE-027 / BE-COMPLIANCE-RULES-P0 | 登记 BE-COMPLIANCE-RULES-P0 第一批核心合规规则编号落地交付（D-717）与代码说明（D-718），完成 R15/R23/R34/R37 结构化核验引擎、run_check 与 /api/v1 契约端点集成，单测 7 passed，回归 14 passed，保持 in-review |

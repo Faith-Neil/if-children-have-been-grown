@@ -5,10 +5,12 @@ name: offline-check
 on:
   push:
     branches:
-      - codex/repository-foundation
+      - main
+      - feat/opencode-ICG
   pull_request:
     branches:
-      - codex/repository-foundation
+      - main
+      - feat/opencode-ICG
 
 permissions:
   contents: read
