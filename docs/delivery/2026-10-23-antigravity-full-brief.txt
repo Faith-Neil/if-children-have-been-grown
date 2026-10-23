@@ -1,0 +1,53 @@
+【Antigravity 完整口令 · 前因后果 + 执行】
+仓库：Faith-Neil/if-children-have-been-grown · 分支 feat/opencode-ICG
+执行方：仅你（Antigravity）改仓。ICG 五角色 bot 只读，勿派他们写码/推仓/改工单状态。
+产品最终目标：以招标相关文件为基础，智能生成投标文件。看板 done 张数 ≠ 产品完备度。
+
+======== 一、前因（2026-10-23 06:00 额度暂停期审查）========
+Antigravity 因额度暂停。项目经理对 tip≈4c7e4b3 做了产品向审查，并征求 ICG 前后端/AI/QA/DevOps 只读意见。
+
+【总判断】
+- 工程 WP-1～7 结构整改已收官；相对 PRD v1.8，产品远未 MVP 可验收。
+- 可做内网主流程演示/联调；不能按 PRD 宣称可上线。
+- 看板 done≈52/402（约13%）是工单完成率；产品完备度粗估约 28%～35%（见 docs/delivery/2026-10-22-prd-gap-summary.md）。
+- 主链路（建项→解析→矩阵→生成→编辑→检查→导出）多为部分交付；递交版仍会因规则不全被挡。
+
+【六点专项：模型配置 / 知识库 RAGFlow】
+| 项 | 结论 |
+| 模型配置前端页 | 无（无独立路由；APP-M2-T036～T041 多为 planned） |
+| 模型后端运行时 | 部分（/api/v1/model-configs CRUD+test+项目绑定；ISSUE-028/AI-01 in-review；假服务通） |
+| 模型前后端联调（含 UI） | 无 |
+| RAGFlow 前端配置页 | 无 |
+| RAGFlow 后端检索 | 部分（客户端 env 门控；AI-04/05/06 in-review；假 RAG 章节闭环有） |
+| RAGFlow 配置联调（含 UI） | 无 |
+
+【ICG 前后端等意见摘要（只读审查）】
+- 后端：主流量仍在 icg_demo/；Memory 旁路双路径是第一质量风险；demo 命名与 /api/demo+/api/v1 双前缀未收口；前端未见调用 model-configs。
+- 前端：无独立模型/RAGFlow 配置页；公司页只读字段 ≠ 联调完成。
+- AI：假服务下可跑；真 RAGFlow 未验收；缺 dataset/kb_sync 则摄入断环；配置现仅环境变量。
+- QA：单测绿≠产品可验收；in-review≈56；关演示主链路尚无独立冒烟证据。
+- DevOps：offline-check 的 on.push/pull_request.branches 仍只写已删除的 codex/repository-foundation → 推 feat/main 根本不触发 CI；tip checks=0；分支保护 off；看板仍写「PR #3待合入」已过时。
+
+======== 二、用户决策（必须按此执行）========
+1) 按序做四项：① → ② → ③ → ④（不要跳序）。
+2) 模型配置与知识库/RAGFlow 配置：前端形态定为**弹窗配置页**（不是只靠环境变量）。
+3) RAGFlow：必须接入真服务（参考 https://github.com/infiniflow/ragflow）；假服务仅保留给 CI。
+4) 写码由用户本人用 Antigravity 完成；ICG bot 只读。
+
+======== 三、你要做的事 ========
+
+【A. 先改看板（docs/TASK_BOARD.md）】
+1) 文首 tip、「PR #3待合入」按远端实 tip 改准（PR #3 已合、foundation 已删则删「待合入」）。
+2) 「下一棒默认顺序」改为下面 ①～④。
+3) 在「结构债收官指针」后新增「额度暂停期审查纪要（2026-10-23）」，写入上面「一、前因」中的总判断、联调表结论、前后端意见摘要、以及「二、用户决策」。
+4) APP-M2 模型相关 planned 卡（T036～T041 等）与 AI-01/ISSUE-028 备注：用户要求弹窗配置；后端 API 已有、前端未接。
+5) AI-04/05/06 仍 in-review；真 RAGFlow 列入③，勿标生产已接好。
+6) 新增 docs/delivery/2026-10-23-task-board-fe-be-review.md（说明板头变更来源：六点审查+用户拍板）。
+
+【B. 再按序改功能】
+① 修 .github/workflows/offline-check.yml：on.push 含 main 与 feat/opencode-ICG；pull_request 至少 main；推送后确认 Actions 五职（backend / backend-mysql / frontend / governance / e2e）红绿并写交付。
+② 对齐 tip 回写看板与 PROJECT_STATUS；整理「已签等 PM」in-review 清单（不擅自标 done，交给用户确认）；关演示主路径人工冒烟留证（VITE_DEMO=0 + ICG_REQUIRE_MYSQL=1：上传招标→解析→矩阵→生成→检查→两册 Word）。
+③ 前端弹窗：模型配置（对接已有 /api/v1/model-configs，含测连）；知识库/RAGFlow 弹窗（BASE_URL、API Key、dataset 等，按现有后端能力设计）；接入真 RAGFlow；CI 继续用假服务。真端点/Key 若仓库没有，向用户要后再写配置，勿编造。
+④ 规则最小可递交集 + 分册定稿闸门。
+
+每棒写 docs/delivery/；遵守 AGENTS.md 与分支内文档规则。做完 A 可先提交，再开 B①。

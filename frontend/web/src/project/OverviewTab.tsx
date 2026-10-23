@@ -5,13 +5,15 @@ import React from 'react';
 import { Button, Card, Col, Collapse, Empty, List, Progress, Row, Steps, Tag } from 'antd';
 import { CheckCircleOutlined } from '@ant-design/icons';
 import { formatTime, useProject, volumeName } from '../app/context.tsx';
+import { useVolumesStatus, isVolumeFinalized } from './volume-api.ts';
 
 export function ClockCircleSymbol() {
   return <span className="todo-circle">○</span>;
 }
 
 export function OverviewPage() {
-  const { workspace, navigate } = useProject();
+  const { workspace, token, navigate } = useProject();
+  const { volumes: volumesStatus } = useVolumesStatus(workspace.project.id, token, workspace.revision);
   const steps = ['建立项目', '上传并解析', '确认与挂证据', '编制两册', '检查与导出'];
   const current = !workspace.files.length
     ? 0
@@ -92,7 +94,14 @@ export function OverviewPage() {
               const chapters = workspace.chapters.filter(item => item.volume === volume);
               return (
                 <div key={volume} className="volume-progress">
-                  <b>{volumeName(volume)}</b>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <b>{volumeName(volume)}</b>
+                    {isVolumeFinalized(volumesStatus, volume) ? (
+                      <Tag color="success" data-testid={`volume-${volume}-finalized-badge`}>已定稿</Tag>
+                    ) : (
+                      <Tag color="default" data-testid={`volume-${volume}-unfinalized-badge`}>编制中</Tag>
+                    )}
+                  </div>
                   <Progress
                     percent={
                       chapters.length

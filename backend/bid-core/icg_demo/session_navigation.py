@@ -6,8 +6,14 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Iterable
 
-from .domain import DomainError, Principal
-from .project_access import chapter_permissions, project_permissions
+from .domain import DEMO_ONLY_ACCOUNT_IDS, DomainError, Principal
+from .project_access import (
+    ROLE_NORMALIZATION_MAP,
+    WRITER_COMPANY_ROLES,
+    chapter_permissions,
+    normalize_role,
+    project_permissions,
+)
 
 
 LEGACY_ROLE_MAPPING = {"manager": "project_lead", "editor": "bid_writer", "viewer": "readonly"}
@@ -60,32 +66,70 @@ def get_application_session(service, principal: Principal, project_id: str | Non
     user = state.accounts.get(state.sessions.get(principal.session_token, ""))
     if user is None:
         raise DomainError(401, "UNAUTHENTICATED", "请先选择演示账号登录。")
-    role = LEGACY_ROLE_MAPPING.get(user.role)
-    if role is None:
-        raise DomainError(403, "SESSION_ROLE_UNSUPPORTED", "当前账号角色尚未接入，请联系管理员。")
     if not isinstance(user.company_id, str) or not user.company_id.strip():
         raise DomainError(403, "SESSION_SCOPE_UNSUPPORTED", "当前账号的公司范围尚未接入，请联系管理员。")
+
+    is_legacy_demo = user.id in DEMO_ONLY_ACCOUNT_IDS or getattr(user, "_DEMO_ONLY", False)
+    if is_legacy_demo:
+        role = LEGACY_ROLE_MAPPING.get(user.role)
+        if role is None:
+            raise DomainError(403, "SESSION_ROLE_UNSUPPORTED", "当前账号角色尚未接入，请联系管理员。")
+        auth_mode = "synthetic-demo"
+        role_mode = "legacy-demo-compat"
+        primary_role = role
+        roles = [role]
+        nav_roles = [role]
+        home_path = "/workbench"
+        actions = ["projects.read", "library.read", "sla_templates.read", "jobs.read"]
+        if user.role in ("manager", "editor"):
+            actions.append("library.write")
+        if user.role == "manager":
+            actions.extend(("projects.create", "sla_templates.write"))
+    else:
+        if user.role not in ROLE_NORMALIZATION_MAP:
+            raise DomainError(403, "SESSION_ROLE_UNSUPPORTED", "当前账号角色尚未接入，请联系管理员。")
+        norm_role = normalize_role(user.role)
+        auth_mode = "authenticated"
+        role_mode = "rbac-8roles"
+        primary_role = norm_role
+        roles = [norm_role]
+        nav_role = "reviewer" if norm_role == "auditor" else ("readonly" if norm_role == "viewer" else norm_role)
+        nav_roles = [nav_role]
+        home_path = "/platform" if norm_role == "platform_admin" else "/workbench"
+        if norm_role == "platform_admin":
+            actions = ["jobs.read"]
+        else:
+            actions = ["projects.read", "library.read", "sla_templates.read", "jobs.read"]
+            if norm_role in ("project_lead", "company_admin"):
+                actions.extend(("projects.create", "sla_templates.write", "library.write"))
+            elif norm_role in ("bid_writer", "data_admin"):
+                actions.append("library.write")
+                if norm_role == "data_admin":
+                    actions.append("sla_templates.write")
+
     current = Principal(user, principal.session_token)
-    actions = ["projects.read", "library.read", "sla_templates.read", "jobs.read"]
-    if user.role in ("manager", "editor"):
-        actions.append("library.write")
-    if user.role == "manager":
-        actions.extend(("projects.create", "sla_templates.write"))
     result = {
-        "auth_mode": "synthetic-demo", "role_mode": "legacy-demo-compat",
-        "user": {**asdict(user), "roles": [role], "primary_role": role},
-        "scope": {"kind": "company", "active_company_id": user.company_id,
-                  "allowed_company_ids": [user.company_id]},
-        "navigation": navigation_for_roles([role]), "allowedActions": actions,
-        "home_path": "/workbench", "session": {"expires_at": None, "renew_supported": False},
+        "auth_mode": auth_mode,
+        "role_mode": role_mode,
+        "user": {**asdict(user), "roles": roles, "primary_role": primary_role},
+        "scope": {
+            "kind": "company",
+            "active_company_id": user.company_id,
+            "allowed_company_ids": [user.company_id],
+        },
+        "navigation": navigation_for_roles(nav_roles),
+        "allowedActions": actions,
+        "home_path": home_path,
+        "session": {"expires_at": None, "renew_supported": False},
     }
     if project_id is not None:
         project = service._project(state, current, project_id)
         permissions = project_permissions(state, project.id, user.id)
         routes = list(PROJECT_READ_ROUTES)
         team = state.project_teams.get(project.id, {})
+        user_norm_role = normalize_role(user.role) if user.role in ROLE_NORMALIZATION_MAP else user.role
         if (permissions["export_internal"] or permissions["export_volumes"]
-                or team.get("assembly_owner_id") == user.id and user.role in ("manager", "editor")):
+                or (team.get("assembly_owner_id") == user.id and (user.role in ("manager", "editor") or user_norm_role in WRITER_COMPANY_ROLES))):
             routes.append("project.export")
         result["project_access"] = {
             "id": project.id, "revision": project.revision, "route_permissions": routes,

@@ -3,6 +3,54 @@
 import type { SystemRole } from './roles.ts';
 
 export type Volume = 'technical' | 'business';
+
+export interface VolumeStatus {
+  volume_id: Volume;
+  project_id: string;
+  is_finalized: boolean;
+  finalized_by?: string | null;
+  finalized_at?: string | null;
+  unlocked_by?: string | null;
+  unlocked_at?: string | null;
+  unlock_reason?: string | null;
+}
+
+export interface VolumeFinalizeRequest {
+  check_id?: string | null;
+}
+
+export interface VolumeUnlockRequest {
+  reason: string;
+}
+
+export interface VolumeFinalizeResponse {
+  revision: number;
+  project_id: string;
+  volume_id: string;
+  is_finalized: boolean;
+  finalized_by?: string | null;
+  finalized_at?: string | null;
+  volume?: VolumeStatus | null;
+}
+
+export interface VolumeStatusResponse {
+  revision: number;
+  project_id: string;
+  volume_id: string;
+  is_finalized: boolean;
+  finalized_by?: string | null;
+  finalized_at?: string | null;
+  unlocked_by?: string | null;
+  unlocked_at?: string | null;
+  unlock_reason?: string | null;
+  volume?: VolumeStatus | null;
+}
+
+export interface VolumeListResponse {
+  revision: number;
+  project_id: string;
+  volumes: VolumeStatus[];
+}
 export type AuthMode = 'synthetic-demo' | 'authenticated';
 export type RoleMode = 'legacy-demo-compat' | 'rbac-8roles';
 export type AccountRole = SystemRole | 'editor' | 'manager' | 'viewer' | 'readonly' | 'reviewer' | 'writer' | 'lead';
@@ -111,4 +159,70 @@ export type Evidence = {
   last_modified_by?: string;
   created_at?: string;
 };
-export type Workspace = { revision: number; input_fingerprint: string; project: Project; stage: string; files: TenderFile[]; requirements: Requirement[]; facts: Fact[]; conflicts: Conflict[]; chapters: Chapter[]; checks: Check[]; exports: Export[]; jobs: Job[]; parse_confirmed: boolean; plan_confirmed: boolean; sla?: ProjectSla | null; writing_plan?: WritingPlan; team?: ProjectTeam; permissions?: ProjectPermissions };
+export type Workspace = { revision: number; input_fingerprint: string; project: Project; stage: string; files: TenderFile[]; requirements: Requirement[]; facts: Fact[]; conflicts: Conflict[]; chapters: Chapter[]; checks: Check[]; exports: Export[]; jobs: Job[]; parse_confirmed: boolean; plan_confirmed: boolean; sla?: ProjectSla | null; writing_plan?: WritingPlan; team?: ProjectTeam; permissions?: ProjectPermissions; volumes?: VolumeStatus[] };
+
+export type SnippetSyncStatus = 'synced' | 'unsynced' | 'sync_failed' | string;
+export type SnippetPublication = {
+  id: string;
+  company_id: string;
+  title?: string;
+  product: string;
+  snippet_type: string;
+  variables: string[];
+  source_group?: string;
+  boilerplate_group?: string;
+  draft_body?: string;
+  published_body: string;
+  draft_revision?: number;
+  published_revision: number;
+  kb_sync_status: SnippetSyncStatus;
+  updated_at: string;
+};
+
+export type ForbiddenWordSeverity = 'blocker' | 'warning' | 'suggestion';
+export type ForbiddenWordCategory = 'exaggeration' | 'buyer_tone' | 'competitor' | 'cliche' | string;
+
+export interface ForbiddenWord {
+  id: string;
+  word: string;
+  category: ForbiddenWordCategory;
+  severity: ForbiddenWordSeverity;
+  replacement_suggestion: string;
+  reason: string;
+}
+
+export interface TypographyRule {
+  id: string;
+  category: string;
+  rule_name: string;
+  standard: string;
+  bad_case?: string;
+  good_case?: string;
+}
+
+export interface QualitySample {
+  id: string;
+  title: string;
+  volume: Volume;
+  chapter_name: string;
+  scoring_dimension: string;
+  word_count: number;
+  tags: string[];
+  excerpt: string;
+  full_content: string;
+  revision: number;
+  updated_at: string;
+}
+
+export interface CompanyWritingProfile {
+  company_id: string;
+  company_name: string;
+  self_reference: string;
+  tenderer_reference: string;
+  tone_preference: string;
+  summary_sentence_strategy: string;
+  style_token_budget?: number;
+  typography_rules: TypographyRule[];
+  forbidden_words: ForbiddenWord[];
+  quality_samples: QualitySample[];
+}

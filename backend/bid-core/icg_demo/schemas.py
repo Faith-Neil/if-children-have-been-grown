@@ -98,7 +98,9 @@ class ResponseBody(BaseModel):
     model_config = ConfigDict(extra="allow", strict=True)
 
 
-DemoCompanyRole = Literal["editor", "manager", "viewer", "company_admin", "data_admin"]
+DemoCompanyRole = Literal["editor", "manager", "viewer", "readonly", "reviewer", "auditor",
+                          "company_admin", "data_admin", "project_lead", "bid_writer",
+                          "platform_admin", "group_admin"]
 
 
 class AccountResponse(ResponseBody):
@@ -119,7 +121,7 @@ class LoginResponse(ResponseBody):
 
 
 ApplicationRole = Literal["platform_admin", "group_admin", "company_admin", "data_admin",
-                          "project_lead", "bid_writer", "reviewer", "readonly"]
+                          "project_lead", "bid_writer", "reviewer", "readonly", "auditor", "viewer"]
 
 
 class SessionUserResponse(AccountResponse):

@@ -237,8 +237,31 @@ class ExportServiceMixin:
                 except DomainError as error:
                     add(error.code, error.message, chapter_id=chapter.id)
             issues.extend(sla_issues(state, project_id, chapters))
+            from icg.domain.compliance_rules import ComplianceRulesEngine
+            rule_results = ComplianceRulesEngine.evaluate_p0_rules(
+                state, project, workflow, volume=volume, now_ts=self.demo._now()
+            )
+            for r in rule_results:
+                for rule_issue in r.issues:
+                    is_dup = any(
+                        existing.get("code") == rule_issue.get("code")
+                        and existing.get("requirement_id") == rule_issue.get("requirement_id")
+                        and existing.get("chapter_id") == rule_issue.get("chapter_id")
+                        for existing in issues
+                    )
+                    if not is_dup:
+                        issues.append(rule_issue)
+                    else:
+                        for existing in issues:
+                            if (
+                                existing.get("code") == rule_issue.get("code")
+                                and existing.get("requirement_id") == rule_issue.get("requirement_id")
+                                and existing.get("chapter_id") == rule_issue.get("chapter_id")
+                            ):
+                                existing["rule_id"] = r.rule_id
             check = {"id": new_id("project-check"), "volume": volume, "passed": not issues,
                      "status": "failed" if issues else "passed", "issues": issues,
+                     "rules": [r.to_dict() for r in rule_results],
                      "coverage": {"implemented_rules": self.IMPLEMENTED_RULES,
                                   "unimplemented_rules": self.UNIMPLEMENTED_RULES, "complete": False},
                      "fingerprint": self._fingerprint(state, project_id), "created_at": iso_time(self.demo._now())}

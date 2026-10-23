@@ -427,3 +427,52 @@
 - [x] 导出快照结构注入 64 位 SHA-256 版式指纹与 Word 默认版式元数据。
 - [x] 专属单测 4 项通过，143 错误码基线零漂移，全量回归套件绿灯。
 
+<a id="be-volume-finalize-gate"></a>
+
+## BE-VOLUME-FINALIZE-GATE · 分册定稿状态机与前置检查门禁
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时以内；分册定稿状态机与前置安全门禁 |
+| 关联 Issue | [ISSUE-006](../../issues/ISSUE-006.md)、[ISSUE-007](../../issues/ISSUE-007.md)、[ISSUE-005](../../issues/ISSUE-005.md) |
+| 依赖 | [BE-CHECKS-EXPORT-ALIGN](BE-M0.md#be-checks-export-align)、[BE-M0-T15](BE-M0.md#be-m0-t15) |
+| 来源 | PRD v1.8 §5.8.5 分册检查与定稿闭环规范 |
+| 完成时交付 | [BE-VOLUME-FINALIZE-GATE](../delivery/BE-VOLUME-FINALIZE-GATE.md) |
+| 代码解释 | [BE-VOLUME-FINALIZE-GATE](../code/BE-VOLUME-FINALIZE-GATE.md) |
+
+范围：在 `backend/bid-core/icg/` 分包架构中实现分册定稿（finalize）状态机与安全门禁；仅项目负责人（project_lead）或公司管理员（company_admin）允许触发，编写人拦截 403 FORBIDDEN，跨租户隔离返回 404 NOT_FOUND；前置门禁 1 核对分册内全部章节已具备正式正文且当前未处于排他租约锁定状态（否则拦截 409 LOCK_HELD 或 CHAPTER_CONTENT_EMPTY）；前置门禁 2 核对分册不存在未消解的 blocker 缺陷（否则拦截 409 CHECK_BLOCKER_EXISTS）；通过后流转标记 is_finalized=True 并记录定稿人与时间戳；支持定稿后先解锁后修改生命周期（POST unlock）；新端点收敛于 /api/v1。本卡为 in-review，绝不私自标 done。
+
+- [x] 仅项目负责人与公司管理员允许定稿；编写人拦截 403，跨租户隔离 404。
+- [x] 章节排他锁定拦截 409 LOCK_HELD，释放锁定后恢复放行。
+- [x] 章节缺少正式正文拦截 409 CHAPTER_CONTENT_EMPTY。
+- [x] 存在未消解 blocker 缺陷拦截 409 CHECK_BLOCKER_EXISTS，消减后恢复放行。
+- [x] 定稿状态标记 is_finalized=True，记录定稿人与时间戳，支持解锁（unlock）全生命周期。
+- [x] 专属单测 10 项通过，回归套件全绿，OpenAPI 契约一致。
+
+<a id="be-compliance-rules-p0"></a>
+
+## BE-COMPLIANCE-RULES-P0 · 第一批核心合规规则编号落地
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时以内；合规规则体系 P0 级结构化编号落地与引擎核验 |
+| 关联 Issue | [ISSUE-006](../../issues/ISSUE-006.md)、[ISSUE-027](../../issues/ISSUE-027.md) |
+| 依赖 | [BE-CHECKS-EXPORT-ALIGN](BE-M0.md#be-checks-export-align)、[BE-VOLUME-FINALIZE-GATE](BE-M0.md#be-volume-finalize-gate) |
+| 来源 | PRD v1.8 MVP §5.8 / §5.8.1 / §5.8.5 核心合规规则核验规范 |
+| 完成时交付 | [BE-COMPLIANCE-RULES-P0](../delivery/BE-COMPLIANCE-RULES-P0.md) |
+| 代码解释 | [BE-COMPLIANCE-RULES-P0](../code/BE-COMPLIANCE-RULES-P0.md) |
+
+范围：在 `backend/bid-core/icg/domain/compliance_rules.py` 中落地 PRD 核心合规规则第一批编号体系（R15/R23/R34/R37），输出统一数据结构 `{rule_id, title, severity, passed, finding_summary, suggestion, issues, details}`；R15 证明材料齐全性（缺失/过期/未确认拦截）；R23 废标红线与关键标星条款 100% 响应与章节映射（未响应/被忽略强阻断 blocker）；R34 占位符与“待补/待完善”残留字样核验（正文与条款响应排查，拦截 blocking）；R37 偏离表一致性核验（负偏离强阻断 blocker，正偏离与无偏离一致性校验）；集成到 WorkflowService 与 run_check 导出检查门禁；在 `/api/v1` 暴露 evaluate、get 与 catalog 查询端点；保障公司租户强隔离与 RULES_INCOMPLETE 底线门禁。本卡为 in-review，绝不私自标 done。
+
+- [x] 核心合规规则第一批编号落地（R15、R23、R34、R37），严格输出规范结构体。
+- [x] R15 证明材料齐全性核验：覆盖资质、证书、财务、纳税等，拦截材料缺失、过期与未确认。
+- [x] R23 废标与关键标星条款核验：100% 覆盖与非空确认，未响应/被忽略/未映射有效章节赋 blocker。
+- [x] R34 占位符与“待补/待完善”残留排查：正文与响应残留排查，发现即判定 blocking/blocker。
+- [x] R37 偏离表一致性核验：关键条款负偏离强阻断，正偏离与无偏离与响应矩阵校验一致。
+- [x] 集成到 export_service.run_check，统一赋 rule_id 与 rules 列表；暴露 /api/v1 端点。
+- [x] 专属单测 7 项全绿，回归套件 14 项全绿，OpenAPI 契约零漂移一致。
+
+
+

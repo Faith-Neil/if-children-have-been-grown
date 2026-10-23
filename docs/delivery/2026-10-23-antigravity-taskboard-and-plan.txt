@@ -1,0 +1,39 @@
+【Antigravity 粘贴 · 看板写入 + 执行顺序】
+分支：feat/opencode-ICG。只改仓库文档/代码由你（Antigravity）执行；ICG bot 只读，勿再派他们写码。
+
+产品目标：以招标相关文件为基础，智能生成投标文件。board done 张数 ≠ 产品完备度。
+
+======== A. 先改 docs/TASK_BOARD.md ========
+1) 文首 tip /「PR #3待合入」：按远端实 tip 核对后改准（foundation 已删、PR #3 已合则删「待合入」表述）。
+2) 将「下一棒默认顺序」改为用户拍板 ①→②→③→④（见下 B）。
+3) 在「结构债收官指针」后新增一节「额度暂停期审查纪要（2026-10-23）」，写入前后端意见摘要：
+
+【后端】
+- `/api/v1/model-configs` CRUD+test+项目绑定已有；RAGFlow 有真客户端（env 门控）+ 假服务可测。
+- 主流量仍在 icg_demo/；Memory 旁路双路径是质量风险；demo 命名与 /api/demo+/api/v1 双前缀未收口。
+
+【前端】
+- 无独立模型登记 / RAGFlow 端点配置页；未见对 /api/v1/model-configs 的调用。
+- 公司页只读 rag_collection_id / force_local_model 等 ≠ 配置联调完成。
+
+【联调结论】
+- 模型配置前后端联调（含 UI）：未就绪。
+- RAGFlow 配置前后端联调（含 UI）：未就绪。假服务仅留 CI。
+
+【用户拍板】
+① 修 offline-check 触发（main + feat/opencode-ICG，PR→main）并对 tip 跑通五职。
+② 对齐 tip + 清「已签等 PM」in-review 堆 + 关演示主路径人工冒烟（VITE_DEMO=0 + ICG_REQUIRE_MYSQL=1）。
+③ 前端以**弹窗配置页**落地：模型配置、知识库/RAGFlow 配置；对接已有 model-configs API；接入真 RAGFlow（https://github.com/infiniflow/ragflow），假服务仅留 CI。
+④ 规则最小可递交集 + 分册定稿闸门。
+
+4) APP-M2 模型相关 planned 卡（T036～T041 等）与 AI-01/ISSUE-028 备注：用户要求弹窗配置；后端 API 已有、前端未接。
+5) AI-04/05/06：仍 in-review；真 RAGFlow 接入列入③，勿标生产已接好。
+6) 新增 docs/delivery/2026-10-23-task-board-fe-be-review.md 说明本次板头变更。
+
+======== B. 再按序做功能（同一 Antigravity 会话可分棒）========
+① `.github/workflows/offline-check.yml`：on.push 含 main 与 feat/opencode-ICG；pull_request 至少 main；推送后确认 Actions 五职红绿。
+② tip 回写看板/PROJECT_STATUS；清已签等 PM（只列清单给用户确认，bot 不改 done）；关演示冒烟留证据。
+③ 前端弹窗：模型配置（对接 /api/v1/model-configs，含测连）；知识库/RAGFlow 弹窗（BASE_URL/API Key/dataset 等，按现有后端能力设计）；接真 RAGFlow，CI 保留假服务。
+④ 规则最小可递交 + 分册定稿闸门。
+
+完成每棒写 docs/delivery/；遵守 AGENTS.md。真 RAGFlow 端点/Key 需用户提供后再写死配置。

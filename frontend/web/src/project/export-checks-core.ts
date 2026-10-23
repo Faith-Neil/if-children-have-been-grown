@@ -116,6 +116,7 @@ export function canExportSubmission(options: {
   hasPassedCheck: boolean;
   parseConfirmed: boolean;
   userCanExport?: boolean;
+  isFinalized?: boolean;
 }): { allowed: boolean; reason: string | null } {
   if (options.userCanExport === false) {
     return { allowed: false, reason: '当前角色无权生成导出文件' };
@@ -135,6 +136,9 @@ export function canExportSubmission(options: {
       allowed: false,
       reason: `存在 ${count} 项阻断性合规缺陷，禁止导出递交版`,
     };
+  }
+  if (options.isFinalized === false) {
+    return { allowed: false, reason: '分册尚未完成定稿锁定，禁止导出正式递交版' };
   }
   return { allowed: true, reason: null };
 }

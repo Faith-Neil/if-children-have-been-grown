@@ -31,6 +31,7 @@ import { chapterCan } from '../project/project-team';
 import { AiTag, Cite, SourceBar } from '../library/BusinessTags';
 import { ReadonlyBanner } from '../status/StatusViews';
 import { useDataPermission } from '../shell/useDataPermission';
+import { useVolumesStatus, isVolumeFinalized } from '../project/volume-api';
 import { OutlineTreeView } from '../project/OutlineTreeView';
 import { ChapterTypeBadge } from '../project/ChapterTypeBadge';
 import { mapChaptersToOutlineNodes, type ChapterOutlineNode } from '../project/outline-tree';
@@ -61,6 +62,8 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
   const [volume, setVolume] = useState<Volume>('technical');
   const [chapterId, setChapterId] = useState(workspace.chapters.find(item => item.volume === 'technical')?.id ?? workspace.chapters[0]?.id ?? '');
   const [chapter, setChapter] = useState<Chapter | null>(null);
+  const { volumes: volumesStatus } = useVolumesStatus(workspace.project.id, token, workspace.revision);
+  const isCurrentVolumeFinalized = isVolumeFinalized(volumesStatus, chapter?.volume);
   const [content, setContent] = useState('');
   const [editFingerprint, setEditFingerprint] = useState<string | null>(null);
   const [sourceReview, setSourceReview] = useState<{ preview: WritingInputPreview; target: 'editor' | 'recovery' } | null>(null);
@@ -701,7 +704,15 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
                 style={{ marginBottom: 16 }}
               />
             )}
-            <div className="document-heading"><h2>{chapter.title}</h2><Tag>{volumeName(chapter.volume)}</Tag></div>
+            <div className="document-heading">
+              <h2>{chapter.title}</h2>
+              <Tag>{volumeName(chapter.volume)}</Tag>
+              {isCurrentVolumeFinalized ? (
+                <Tag color="success" data-testid="editor-volume-finalized-tag">分册已定稿</Tag>
+              ) : (
+                <Tag color="default" data-testid="editor-volume-unfinalized-tag">分册编制中</Tag>
+              )}
+            </div>
             <p className="document-subline">本节编写人 {activeChapter?.assignee_name || '未指定'} · 正文版本 v{chapter.revision} · {sources.length} 条关联要求 · {!canEdit ? '只读，请核对本节分工' : held ? '已取得编辑权' : '只读，请先取得编辑权'}</p>
             {sources.length > 0 && <div className="chapter-source-summary"><span className="source-label">招标原文</span><div>{sources.map(item => <p key={item.id}>{item.text} <Cite type="tender" marker={`P.${item.source.page}`} metadata={{ page: item.source.page, quote: item.text, title: '招标原文' }} /></p>)}</div></div>}
             <SourceBar kind="evidence" layout="bottom" sourceName={chapter.title} version={chapter.revision} fingerprint={editFingerprint} status={sourceStale ? 'stale' : 'confirmed'} onVerifySource={() => reviewCurrentSources('editor')} />
@@ -888,7 +899,7 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
                 >
                   保存草稿{dirty ? ' *' : ''}
                 </Button>
-                {held ? <Button size="small" onClick={release} disabled={combinedBusy}>释放编辑权</Button> : <Button size="small" type="primary" icon={<LockOutlined />} onClick={() => acquire()} disabled={combinedBusy || !canEdit}>取得编辑权</Button>}
+                {held ? <Button size="small" onClick={release} disabled={combinedBusy}>释放编辑权</Button> : <Button size="small" type="primary" icon={<LockOutlined />} onClick={() => acquire()} disabled={combinedBusy || !canEdit || isCurrentVolumeFinalized} title={isCurrentVolumeFinalized ? "当前分册已定稿锁定，如需修改请先解锁定稿" : undefined}>取得编辑权</Button>}
                 {!held && chapter.lock && chapterCan(activeChapter, 'takeover') && <Button size="small" danger onClick={takeover} disabled={combinedBusy}>填写理由接管</Button>}
               </Space>
             </div>

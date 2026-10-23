@@ -26,6 +26,7 @@ from .model_config_storage import include_model_config_routes
 from .field_metadata import include_field_metadata_routes
 from .snippet_publication import include_snippet_routes
 from .workflow_routes import include_workflow_routes
+from icg.api import include_volume_routes, include_compliance_routes
 from .workflow_schemas import V1Error, v1_error_responses
 from .session_navigation import get_application_session
 from .schemas import (AccountListResponse, ApplicationSessionResponse, AuditListResponse, ChapterListResponse,
@@ -205,6 +206,12 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     def list_v1_projects(user: User):
         return service.projects(user)
 
+    @application.post("/api/v1/projects", response_model=ProjectResponse, operation_id="createV1Project",
+                      responses=v1_error_responses(401, 403, 409, 428))
+    def create_v1_project(body: ProjectRequest, user: User,
+                          idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)] = None):
+        return service.create_project(user, body.name, idempotency_key=idempotency_key)
+
     @application.get("/api/v1/projects/{project_id}", response_model=ProjectResponse, operation_id="getV1Project",
                      responses=v1_error_responses(401, 404))
     def get_v1_project(project_id: str, user: User):
@@ -329,6 +336,8 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
 
     include_workflow_routes(application, service, current_user,
                             parser_provider if parser_provider is not None else LocalTextParser())
+    include_volume_routes(application, service, current_user)
+    include_compliance_routes(application, service, current_user)
     include_snippet_routes(application, service, current_user)
     include_model_config_routes(application, service, current_user)
     include_field_metadata_routes(application, service, current_user)

@@ -20,6 +20,12 @@ import {
   getExportKindMeta,
   getExportVolumeLabel,
 } from './export-checks-core';
+import {
+  useVolumesStatus,
+  areAllVolumesFinalized,
+  isVolumeFinalized,
+  deriveFinalizePremise,
+} from './volume-api';
 
 const statusName = (value: string) => value === 'confirmed' ? '已确认' : value === 'needs_review' ? '需重新核对' : value === 'rejected' ? '已排除' : '待确认';
 const statusColor = (value: string) => value === 'confirmed' ? 'green' : value === 'rejected' ? 'default' : 'orange';
@@ -324,6 +330,11 @@ export function ExportPage() {
   const [kind, setKind] = useState('internal');
   const [volume, setVolume] = useState<Volume | 'all'>(projectCan(workspace, 'export_internal') ? 'all' : workspace.permissions?.export_volumes[0] ?? 'all');
   const [checkId, setCheckId] = useState('');
+  const { volumes: volumesStatus } = useVolumesStatus(workspace.project.id, token, workspace.revision);
+  const allFinalized = areAllVolumesFinalized(volumesStatus);
+  const isCurrentVolumeFinalized = volume === 'all'
+    ? allFinalized
+    : isVolumeFinalized(volumesStatus, volume);
   const validChecks = workspace.checks.filter(item => item.volume === volume && item.passed && item.status !== 'stale');
   const check = validChecks.find(item => item.id === checkId) ?? validChecks[validChecks.length - 1];
   const full = (volume === 'all' ? (['technical', 'business'] as const) : [volume]).every(
@@ -343,6 +354,7 @@ export function ExportPage() {
     hasPassedCheck: !!check && check.passed,
     parseConfirmed: workspace.parse_confirmed,
     userCanExport: volumeOperationAllowed(workspace, 'export', volume),
+    isFinalized: isCurrentVolumeFinalized,
   });
 
   const isButtonDisabled = busy || (isSubmission ? !submissionCheck.allowed : (!volumeOperationAllowed(workspace, 'export', volume) || !full || !workspace.parse_confirmed));
@@ -365,13 +377,25 @@ export function ExportPage() {
     { label: volume === 'all' ? '技术、商务两册均有完整已提交正文' : `${volumeName(volume)}有完整已提交正文`, ready: full, tab: 'editor' },
     { label: `${volumeName(volume)}有效检查通过当前已实现规则`, ready: !!check && check.passed, tab: 'checks' },
     { label: '合规红线门禁：无阻断性缺陷（Blocker 清零）', ready: !hasBlockers, tab: 'checks' },
+    deriveFinalizePremise(volumesStatus, volume),
   ];
 
   return (
     <>
       <div className="page-heading">
         <div>
-          <h2>导出{volume === 'all' ? '技术、商务两册合订' : volumeName(volume)}</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <h2>导出{volume === 'all' ? '技术、商务两册合订' : volumeName(volume)}</h2>
+            {isCurrentVolumeFinalized ? (
+              <Tag color="success" data-testid="export-finalized-badge">
+                {volume === 'all' ? '分册全部定稿' : `${volumeName(volume)}已定稿`}
+              </Tag>
+            ) : (
+              <Tag color="default" data-testid="export-unfinalized-badge">
+                {volume === 'all' ? '分册未全部定稿' : `${volumeName(volume)}未定稿`}
+              </Tag>
+            )}
+          </div>
           <p>项目负责人生成两册，分册负责人生成本册；合标负责人只下载已生成文件。输出取已提交正文，不使用个人草稿。</p>
         </div>
       </div>

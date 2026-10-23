@@ -48,6 +48,8 @@ class RequirementPatch(RequestBody):
     response: str | None = Field(default=None, max_length=20_000)
     reason: str | None = Field(default=None, max_length=2000)
     evidence_ids: list[str] | None = None
+    deviation_type: str | None = Field(default=None, max_length=50)
+    deviation_reason: str | None = Field(default=None, max_length=2000)
 
 
 class FactPatch(RequestBody):

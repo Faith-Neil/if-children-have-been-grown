@@ -229,3 +229,33 @@
 不标 done。本卡标为 in-review。合入和发布仍未发生。
 
 
+
+
+<a id="ai-m0-ragflow-verify"></a>
+
+## AI-M0-RAGFLOW-VERIFY · RAGFlow 端点对接与检索隔离审查
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 针对端点对接规范、多租户强隔离、防虚构出处追溯与离线测试门禁进行代码与架构审计 |
+| 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md)、[ISSUE-010](../../issues/ISSUE-010.md) |
+| 依赖 | [AI-04](AI-M0.md#ai-04)、[AI-05](AI-M0.md#ai-05)、[AI-06](AI-M0.md#ai-06) |
+| PRD / 架构出处 | [RAGFlow 检索适配器](../architecture/ragflow-retrieval-adapter.md)；[PRD v1.8 §5.8、§5.11](../reference/product/prd-mvp-v1.8.md) |
+| 完成时交付 | [AI-M0-RAGFLOW-VERIFY 交付](../delivery/AI-M0-RAGFLOW-VERIFY.md) |
+| 代码解释 | [AI-M0-RAGFLOW-VERIFY 代码说明](../code/AI-M0-RAGFLOW-VERIFY.md) |
+
+范围：全面核查 RAGFlow 检索适配层（`ragflow_client.py`、`retrieval.py`、`generation_context.py`、`compliance_cross_check.py`）。核实客户端只读规范与异常安全映射；核实多租户/公司数据集绑定与越界防御；核实事实依据来源追溯（`document_id` / `chunk_id` / `.cite` 引用）与防虚构机制；核实真实外部模型测试受 `ICG_RUN_REAL_RAGFLOW_TESTS=1` 保护与当前生产端点 blocked 依赖条件。
+
+当前条件：自动化回归测试全绿通过（41 passed 2 skipped + 14 passed 1 skipped），端到端闭环逻辑通过。生产环境对接诚实记录为 blocked 并明确环境依赖。
+
+可验证验收：
+- [x] 客户端严格遵循 POST /api/v1/retrieval 规范，输入非空校验，只传 question/dataset_ids/rerank_id，异常安全映射，零命中（code 0 且 chunks 为空）标记 skipped=True。
+- [x] 检索过程具备公司/租户强隔离语义（CandidateRequest.company_id 强制校验，数据集绑定 company_id，返回 chunk 越界严格抛出 RetrievalError 阻断）。
+- [x] 事实依据来源追溯与防编造追溯语义成立（chunk_id 与 document_id 挂载入 Prompt，事实变量防篡改 409 保护，.cite 引用精准关联知识库 ID，负偏离条款与无效证据 risk=block 强阻断）。
+- [x] 真实 RAGFlow 测试受环境变量 `ICG_RUN_REAL_RAGFLOW_TESTS=1` 保护，默认在假服务环境下测试端到端闭环逻辑；生产对接依赖诚实说明为 blocked。
+- [x] 自动化测试 `pytest tests/backend/test_fake_ragflow.py tests/backend/test_ragflow_client.py tests/backend/test_chapter_generation_rag_flow.py` 执行全过（41 passed, 2 skipped）。
+- [x] 专用检索测试 `pytest tests/backend/test_evidence_ragflow.py` 执行全过（14 passed, 1 skipped）。
+- [x] 交付报告、代码说明与任务看板同步完成。
+
+不标 done。本卡标为 in-review。合入和发布仍未发生。

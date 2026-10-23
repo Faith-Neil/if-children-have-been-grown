@@ -4,11 +4,11 @@
 
 # 项目任务看板
 
-任务版本：0.7；治理版本：g1.1；更新日期：2026-10-23；当前实现 Issue：[ISSUE-007](../issues/ISSUE-007.md)；结构收官：[ISSUE-038](../issues/ISSUE-038.md)；离线检查：[ISSUE-012](../issues/ISSUE-012.md)；生产门禁：[ISSUE-005](../issues/ISSUE-005.md)；模型决定：[ISSUE-010](../issues/ISSUE-010.md)（closed）；tip：7b3c196。
+任务版本：0.7；治理版本：g1.1；更新日期：2026-10-23；当前实现 Issue：[ISSUE-007](../issues/ISSUE-007.md)；结构收官：[ISSUE-038](../issues/ISSUE-038.md)；离线检查：[ISSUE-012](../issues/ISSUE-012.md)；生产门禁：[ISSUE-005](../issues/ISSUE-005.md)；模型决定：[ISSUE-010](../issues/ISSUE-010.md)（closed）；tip：4c7e4b3。
 
 将 [前端 ROADMAP](ROADMAP.md) 的 Phase 0～8 与发布 Milestone 1～5 拆为 **59 张任务卡**，由 FE-M0～FE-M8 管理。前缀 FE 表示前端合作交付；这些编号与参考全系统 M0～M8 的门禁、周期和范围独立。
 
-项目 402 项中（以表内实时状态为准，文首数字仅概览：done 52、in-review 56、in-progress 7、planned 239、blocked 41、cancelled 7、ready 0；FE-M0-T04～T10 已标 cancelled（superseded-by-WP），挂上 ISSUE-038 三项结构债）。APP-M1的16项中，T01～05继续实现，T06继续完整联调验收，T07已完成范围拆分，T08等待最终审计；T09～16限定子任务已本地验收，T16完成资料及公司模板旧表单保护。APP-M2的259卡中T001布局、路由和离开保护为 done，T002请求层为 done。项目经理在群里确认 QA 签署后标为 done，T008离线CI为 done，T078 内存发布为 done（QA 19c4862，PM 17:20 确认），页面未做不挡住本卡，T114 挂证据抽屉为 done（QA f521950，PM 17:13 确认），T124 改为 ready，本轮不实现，其 OpenAPI 契约已冻结且 ISSUE-022 已依据 QA 0254102，PM 15:36 确认 closed，其余253卡planned，47组页面、190原WBS细项及44规则已逐项映射，见[完整后续卡](tasks/APP-M2.md)与[来源核对](testing/icg-task-mapping.md)。BE-M0现为19项：T01已验收；T02与T03由项目经理于 10-12 12:28 在 QA 签署后确认，标为 done；MySQL 8 方案与连接空迁移由项目经理在 QA 签署 98c5129 后确认，标为 done；锁迁移 BE-M0-T04 与导出快照 BE-M0-T05 为 in-review（QA REV-M0-T32/T33 已签，等 PM），202/SSE BE-M0-T06 为 in-review（QA REV-M0-T36 tip `0cb6c38` 已签，等 PM），operationId BE-M0-T07 为 in-review；旧接口错误体为 planned。按聚合迁移的项目聚合已依据 QA ae38ec3，PM 17:16 确认 done。T11 回执与会话已依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done。T12 编辑租约已依据 QA ae6fd10，PM 15:32 确认 done。T13 项目聚合已依据 QA ae38ec3，PM 17:16 确认 done。T14 托管 MySQL 作业已依据 QA 签署 b20b844 标为 done。Word 默认版式 BE-M0-T15 已由项目经理于 18:01 确认 done。用户已在 Word/WPS 目视确认。ISSUE-027 已 closed。错误码名字冻结 BE-M0-T16 为 in-review（QA REV-M0-T34 已签，等 PM）。编辑锁对齐字典 BE-M0-T17 为 planned，排在 T13 之后。证据挂接规则 BE-M0-T18 为 in-review（QA REV-M0-T35 已签，等 PM）。项目表对齐字典 BE-M0-T19 为 planned，等正式项目表和成员表存在后再迁移，保留历史行。ISSUE-033 为 in-review。旧接口含 E2E-D5 的大小写 `/api` 前缀。ISSUE-005 保持 in-progress，T04、T05、T06 与 T07 均为 in-review（T06 QA REV-M0-T36 已签，等 PM），不关闭。旧FE59项保留来源，OPS 2项中 T01 已本地验收、T02 已由用户 10-12 14:34 确认并标为 done，未部署，REV 36项中26项已本地验收，T31为增量审查in-review；T32～T35 为 BE-M0-T04/T05/T16/T18 QA签署 in-review；T36 为 BE-M0-T06 QA签署 in-review（含 T23、T25、T26、T28、T29、T30；REV-M0-T22 已依据 QA f521950，PM 17:13 确认 done；REV-M0-T24 已依据 QA 19c4862，PM 17:20 确认 done；T06、T08、T25、T26、T27、T28、T29 与 T30 为 in-review。REV-M0-T27 / ISSUE-034 已由 QA 签署 R1～R9，不标 done）（REV-M0-T02为ISSUE-013 QA复跑，REV-M0-T03/T04为ISSUE-015，REV-M0-T05为T008与AI-02的QA签署，REV-M0-T07为T02/T03的QA签署）。AI-01改为 in-review：对话模型由配置页提供，嵌入与向量库用 RAGFlow 自带，生产生成仅内网；真实端点另计验收。业务库已定为 MySQL 8，方案与连接空迁移已由项目经理在 QA 签署 98c5129 后确认 done，回执和登录会话由 T11 已依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done，编辑租约由 T12 依据 QA ae6fd10，PM 15:32 确认 done，项目聚合由 T13 依据 QA ae38ec3，PM 17:16 确认 done，章节及其他聚合仍在内存；AI-02 与 T008 均已由项目经理于 10-12 12:10 在 QA 签署后确认，标为 done。AI-03 为 done，只使用内存检索。AI-M0 现为 6 项：AI-04、AI-05 与 AI-06 为 in-review。ISSUE-037 为 in-progress，ISSUE-029 保持 closed。开发者只能把卡片标到 in-review，done 由项目经理在 QA 签署后设置。ISSUE-009 已由项目经理在 QA 签署 d55d507（REV-M0-T11）后确认 closed。ISSUE-014 已由项目经理在 QA 签署 173c39f（REV-M0-T14）后确认 closed。T001 与 T002 已为 done。QA 于 2026-10-12 签署 T001 本切片不通过；浅色内容、顶栏和前进/后退修复后，REV-M0-T11 签署通过。ISSUE-020 已由项目经理在 QA 签署 dcca509（REV-M0-T15）后确认 closed。ISSUE-018 已批准并改为 in-progress：方案与连接空迁移已 done，T11 回执与会话已依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done，T12 已依据 QA ae6fd10，PM 15:32 确认 done，T13 项目聚合已依据 QA ae38ec3，PM 17:16 确认 done。ISSUE-023 已由项目经理在 QA 签署 16cf971 后确认，状态为 closed。ISSUE-021 排队且任务为 planned，ISSUE-022 已依据 QA 0254102（REV-M0-T20），PM 15:36 确认 closed，契约文本已冻结，T124 已按 PM 17:20 改为 ready，本轮不实现。PR #3待合入。ISSUE-026 已由项目经理在 QA 签署 9bcde17（REV-M0-T13）后确认 closed。PRD、ROADMAP 与 PROJECT_BRIEF 的任务计数是里程碑快照 as of commit 3bb311ad3ab86c0de2f871876a50c7d50f9bb985，并计入本提交将 T001 与 T002 标为 done：366 项、32 done、6 in-review、7 in-progress、268 planned、49 blocked、4 ready。任务看板是准绳，三份基线只在里程碑更新。这些数量不是产品完成率。
+项目 404 项中（以表内实时状态为准，文首数字仅概览：done 52、in-review 58、in-progress 7、planned 239、blocked 41、cancelled 7、ready 0；FE-M0-T04～T10 已标 cancelled（superseded-by-WP），挂上 ISSUE-038 三项结构债）。APP-M1的16项中，T01～05继续实现，T06继续完整联调验收，T07已完成范围拆分，T08等待最终审计；T09～16限定子任务已本地验收，T16完成资料及公司模板旧表单保护。APP-M2的259卡中T001布局、路由和离开保护为 done，T002请求层为 done。项目经理在群里确认 QA 签署后标为 done，T008离线CI为 done，T078 内存发布为 done（QA 19c4862，PM 17:20 确认），页面未做不挡住本卡，T114 挂证据抽屉为 done（QA f521950，PM 17:13 确认），T124 改为 ready，本轮不实现，其 OpenAPI 契约已冻结且 ISSUE-022 已依据 QA 0254102，PM 15:36 确认 closed，其余253卡planned，47组页面、190原WBS细项及44规则已逐项映射，见[完整后续卡](tasks/APP-M2.md)与[来源核对](testing/icg-task-mapping.md)。BE-M0现为19项：T01已验收；T02与T03由项目经理于 10-12 12:28 在 QA 签署后确认，标为 done；MySQL 8 方案与连接空迁移由项目经理在 QA 签署 98c5129 后确认，标为 done；锁迁移 BE-M0-T04 与导出快照 BE-M0-T05 为 in-review（QA REV-M0-T32/T33 已签，等 PM），202/SSE BE-M0-T06 为 in-review（QA REV-M0-T36 tip `0cb6c38` 已签，等 PM），operationId BE-M0-T07 为 in-review；旧接口错误体为 planned。按聚合迁移的项目聚合已依据 QA ae38ec3，PM 17:16 确认 done。T11 回执与会话已依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done。T12 编辑租约已依据 QA ae6fd10，PM 15:32 确认 done。T13 项目聚合已依据 QA ae38ec3，PM 17:16 确认 done。T14 托管 MySQL 作业已依据 QA 签署 b20b844 标为 done。Word 默认版式 BE-M0-T15 已由项目经理于 18:01 确认 done。用户已在 Word/WPS 目视确认。ISSUE-027 已 closed。错误码名字冻结 BE-M0-T16 为 in-review（QA REV-M0-T34 已签，等 PM）。编辑锁对齐字典 BE-M0-T17 为 planned，排在 T13 之后。证据挂接规则 BE-M0-T18 为 in-review（QA REV-M0-T35 已签，等 PM）。项目表对齐字典 BE-M0-T19 为 planned，等正式项目表和成员表存在后再迁移，保留历史行。ISSUE-033 为 in-review。旧接口含 E2E-D5 的大小写 `/api` 前缀。ISSUE-005 保持 in-progress，T04、T05、T06 与 T07 均为 in-review（T06 QA REV-M0-T36 已签，等 PM），不关闭。旧FE59项保留来源，OPS 2项中 T01 已本地验收、T02 已由用户 10-12 14:34 确认并标为 done，未部署，REV 36项中26项已本地验收，T31为增量审查in-review；T32～T35 为 BE-M0-T04/T05/T16/T18 QA签署 in-review；T36 为 BE-M0-T06 QA签署 in-review（含 T23、T25、T26、T28、T29、T30；REV-M0-T22 已依据 QA f521950，PM 17:13 确认 done；REV-M0-T24 已依据 QA 19c4862，PM 17:20 确认 done；T06、T08、T25、T26、T27、T28、T29 与 T30 为 in-review。REV-M0-T27 / ISSUE-034 已由 QA 签署 R1～R9，不标 done）（REV-M0-T02为ISSUE-013 QA复跑，REV-M0-T03/T04为ISSUE-015，REV-M0-T05为T008与AI-02的QA签署，REV-M0-T07为T02/T03的QA签署）。AI-01改为 in-review：对话模型由配置页提供，嵌入与向量库用 RAGFlow 自带，生产生成仅内网；真实端点另计验收。业务库已定为 MySQL 8，方案与连接空迁移已由项目经理在 QA 签署 98c5129 后确认 done，回执和登录会话由 T11 已依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done，编辑租约由 T12 依据 QA ae6fd10，PM 15:32 确认 done，项目聚合由 T13 依据 QA ae38ec3，PM 17:16 确认 done，章节及其他聚合仍在内存；AI-02 与 T008 均已由项目经理于 10-12 12:10 在 QA 签署后确认，标为 done。AI-03 为 done，只使用内存检索。AI-M0 现为 6 项：AI-04、AI-05 与 AI-06 为 in-review。ISSUE-037 为 in-progress，ISSUE-029 保持 closed。开发者只能把卡片标到 in-review，done 由项目经理在 QA 签署后设置。ISSUE-009 已由项目经理在 QA 签署 d55d507（REV-M0-T11）后确认 closed。ISSUE-014 已由项目经理在 QA 签署 173c39f（REV-M0-T14）后确认 closed。T001 与 T002 已为 done。QA 于 2026-10-12 签署 T001 本切片不通过；浅色内容、顶栏和前进/后退修复后，REV-M0-T11 签署通过。ISSUE-020 已由项目经理在 QA 签署 dcca509（REV-M0-T15）后确认 closed。ISSUE-018 已批准并改为 in-progress：方案与连接空迁移已 done，T11 回执与会话已依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done，T12 已依据 QA ae6fd10，PM 15:32 确认 done，T13 项目聚合已依据 QA ae38ec3，PM 17:16 确认 done。ISSUE-023 已由项目经理在 QA 签署 16cf971 后确认，状态为 closed。ISSUE-021 排队且任务为 planned，ISSUE-022 已依据 QA 0254102（REV-M0-T20），PM 15:36 确认 closed，契约文本已冻结，T124 已按 PM 17:20 改为 ready，本轮不实现。PR #3 已合入，foundation 分支已删。ISSUE-026 已由项目经理在 QA 签署 9bcde17（REV-M0-T13）后确认 closed。PRD、ROADMAP 与 PROJECT_BRIEF 的任务计数是里程碑快照 as of commit 3bb311ad3ab86c0de2f871876a50c7d50f9bb985，并计入本提交将 T001 与 T002 标为 done：366 项、32 done、6 in-review、7 in-progress、268 planned、49 blocked、4 ready。任务看板是准绳，三份基线只在里程碑更新。这些数量不是产品完成率。
 
 59张前端卡片估算合计 209 小时，单卡 2～4 小时，处于 0.5～4 小时的任务粒度目标内。该总和是已有基线/接口条件下的前端增量估算，不是项目排期，不含后端、模型、取得输入、评审或等待时间。开工若预计超 4 小时，先继续拆卡并登记 Issue/版本变更，保留原任务 ID 的历史。
 
@@ -19,7 +19,44 @@
 - **禁止把 FE-M0-T04～T10 当绿野开工**（正式工程脚手架/登录/Shell/路由等能力已被 WP + APP-M2 路径覆盖）。相关卡在看板标为 `cancelled`（`superseded-by-WP`），禁止重建工程，仅允许补充验收交付。
 - **结构债后续**：`issues/ISSUE-038.md`（双错误体 / 巨石继续瘦身 / 空 `icg.api|app`）→ 见板内 `BE-TECH-DEBT-*` / `FE-TECH-DEBT-*`（P2，勿压过 PRD P0）。
 - **完成度口径**：board `done` 张数 ≠ 产品完成度；产品以 PRD v1.8 + `docs/delivery/2026-10-22-prd-gap-summary.md` 为准。
-- **下一棒默认顺序**：DOC-SYNC-1.1（已完成）→ 清 in-review / 关演示冒烟 → 按前缀啃 APP-M2 与 PRD P0。
+- **下一棒默认顺序**（按序执行 ①→②→③→④，不跳序）：
+  - ① 修 `.github/workflows/offline-check.yml`：`on.push` 含 `main` 与 `feat/opencode-ICG`；`pull_request` 至少 `main`；推送后确认 Actions 五职（backend / backend-mysql / frontend / governance / e2e）红绿并写交付。
+  - ② 对齐 tip 回写看板与 PROJECT_STATUS；整理「已签等 PM」in-review 清单（不擅自标 done，交给用户确认）；关演示主路径人工冒烟留证（`VITE_DEMO=0` + `ICG_REQUIRE_MYSQL=1`：上传招标→解析→矩阵→生成→检查→两册 Word）。
+  - ③ 前端弹窗：模型配置（对接已有 `/api/v1/model-configs`，含测连）；知识库/RAGFlow 弹窗（BASE_URL、API Key、dataset 等，按现有后端能力设计）；接入真 RAGFlow（参考 https://github.com/infiniflow/ragflow）；CI 继续用假服务。真端点/Key 若仓库没有，向用户要后再写配置，勿编造。
+  - ④ 规则最小可递交集 + 分册定稿闸门。
+
+## 额度暂停期审查纪要（2026-10-23）
+
+### 一、前因与审查总判断
+- **工单完成率 vs 产品完备度**：看板任务 done≈52/404（约 13%）为工单任务完成率，产品完备度经深度审查粗估仅约 28%～35%（详见 `docs/delivery/2026-10-22-prd-gap-summary.md`）。任务卡通过单测不能等同于 MVP 达到上线标准。
+- **主链路交付现状**：主链路（建项→解析→矩阵→生成→编辑→检查→导出）绝大部分仍为部分交付或演示兼容壳；递交版导出仍因全量合规规则不齐及分册定稿未完成被 `RULES_INCOMPLETE` 强门禁拦截。
+
+#### 六点专项审查结论（模型配置与知识库 / RAGFlow）
+| 专项项 | 审查结论 | 现状说明 |
+|---|---|---|
+| **模型配置前端页** | **无** | 无独立路由与交互入口；APP-M2-T036～T041 多处于 planned，前端未做连接表单 |
+| **模型后端运行时** | **部分** | 后端已有 `/api/v1/model-configs` CRUD、测试连接及项目绑定能力；ISSUE-028/AI-01 为 in-review；仅假服务跑通 |
+| **模型前后端联调（含 UI）** | **无** | 前端完全未调用 `/api/v1/model-configs`，无联调界面 |
+| **RAGFlow 前端配置页** | **无** | 无任何针对 RAGFlow 端点、密钥、知识库数据集绑定的前端管理界面 |
+| **RAGFlow 后端检索** | **部分** | 客户端具备 env 门控；AI-04/05/06 为 in-review；章节 AI 闭环仅在假 RAG 服务下跑通 |
+| **RAGFlow 配置联调（含 UI）** | **无** | 缺乏前后端真实配置联动，配置当前仅依赖环境变量，未对齐真实数据集 |
+
+#### ICG 前后端审查意见摘要（只读审查）
+- **后端意见**：主流量与多数聚合调用仍在 `icg_demo/`；Memory 旁路与 MySQL 存在双路径隐患，是首要质量风险；demo 命名与 `/api/demo` + `/api/v1` 双前缀尚未完全收口；前端未调用 model-configs。
+- **前端意见**：无独立模型与 RAGFlow 配置入口；公司设置页中的只读展示字段不等于联调完成。
+- **AI 意见**：当前仅在假服务假数据下全绿；真 RAGFlow 服务从未实际验收；缺少 dataset 绑定与 kb_sync 导致知识摄入闭环缺失；配置目前仅靠环境变量硬编码。
+- **QA 意见**：单测绿不等于产品可验收；看板上积压多张 in-review；关演示真实环境（`VITE_DEMO=0` + `ICG_REQUIRE_MYSQL=1`）必须具备独立端到端人工冒烟证据。
+- **DevOps 意见**：`.github/workflows/offline-check.yml` 的 `on.push` / `pull_request` 分支仅配置了已删除的 `codex/repository-foundation`，导致向 `feat/opencode-ICG` 与 `main` 推送代码时根本不会触发 CI；远程 tip 处于 checks=0 状态；分支保护未开启；看板上仍残留「PR #3待合入」的陈旧叙述。
+
+### 二、用户决策（必须按此执行）
+1. **严格按序执行四项任务**：① → ② → ③ → ④（不要跳序）：
+   - **① 修 CI 工作流**：修复 `.github/workflows/offline-check.yml`，分支覆盖 `main` 与 `feat/opencode-ICG`，推送后确认 Actions 五大作业全绿并编写交付报告；
+   - **② 对齐 tip 与真实冒烟**：回写看板与 PROJECT_STATUS 真实 tip；梳理「已签等 PM」清单交由用户/PM确认；在 `VITE_DEMO=0` + `ICG_REQUIRE_MYSQL=1` 下完成主路径人工冒烟留证；
+   - **③ 前端弹窗配置与真 RAGFlow 接入**：模型配置与 RAGFlow 配置前端形态明确采用**弹窗配置页**；对接 `/api/v1/model-configs`；接入真实 RAGFlow 服务（参考 https://github.com/infiniflow/ragflow）；假服务仅保留供 CI 离线回归；真实端点/Key 向用户索取，严禁编造；
+   - **④ 规则最小可递交集 + 分册定稿闸门**：推进合规规则编号集与定稿锁定闭环。
+2. **配置交互形态**：模型配置与知识库/RAGFlow 配置前端形态定为**弹窗配置页**（不是只靠环境变量或整页大重构）。
+3. **真实服务底线**：RAGFlow 必须接入真实运行服务；假服务仅保留给 CI 离线检查使用。
+4. **代码编写权**：写码由用户本人通过 Antigravity 完成；ICG bot 仅执行只读审查。
 
 ## 状态与完成条件
 
@@ -184,6 +221,8 @@
 | [BE-M0-T18](tasks/BE-M0.md#be-m0-t18) | 挂证据拒绝过期、缺协议和受限资料 | in-review | [BE-M0-T13](tasks/BE-M0.md#be-m0-t13) | [ISSUE-033](../issues/ISSUE-033.md) | [交付](delivery/BE-M0-T18.md) |
 | [BE-M0-T19](tasks/BE-M0.md#be-m0-t19) | demo_project 对齐字典 bid_project | in-review | [BE-M0-T13](tasks/BE-M0.md#be-m0-t13) | [ISSUE-035](../issues/ISSUE-035.md) | [BE-M0-T19](delivery/BE-M0-T19.md) |
 | [BE-CHECKS-EXPORT-ALIGN](tasks/BE-M0.md#be-checks-export-align) | 检查阻断红线与整本导出快照版式核对 | in-review | [BE-M0-T15](tasks/BE-M0.md#be-m0-t15) | [ISSUE-006](../issues/ISSUE-006.md)；[ISSUE-027](../issues/ISSUE-027.md) | [交付](delivery/BE-CHECKS-EXPORT-ALIGN.md) |
+| [BE-VOLUME-FINALIZE-GATE](tasks/BE-M0.md#be-volume-finalize-gate) | 分册定稿状态机与前置检查门禁 | in-review | [BE-CHECKS-EXPORT-ALIGN](tasks/BE-M0.md#be-checks-export-align) | [ISSUE-006](../issues/ISSUE-006.md)、[ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/BE-VOLUME-FINALIZE-GATE.md) |
+| [BE-COMPLIANCE-RULES-P0](tasks/BE-M0.md#be-compliance-rules-p0) | 第一批核心合规规则编号落地（R15/R23/R34/R37及核验引擎） | in-review | [BE-CHECKS-EXPORT-ALIGN](tasks/BE-M0.md#be-checks-export-align) | [ISSUE-006](../issues/ISSUE-006.md)、[ISSUE-027](../issues/ISSUE-027.md) | [交付](delivery/BE-COMPLIANCE-RULES-P0.md) |
 | [APP-M1-T01](tasks/APP-M1.md#app-m1-t01) | 示例外壳与项目工作台 | in-progress | BE-M0-T01 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T01.md` |
 | [APP-M1-T02](tasks/APP-M1.md#app-m1-t02) | 上传解析与确认 | in-progress | APP-M1-T01工作区接口 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T02.md` |
 | [APP-M1-T03](tasks/APP-M1.md#app-m1-t03) | 矩阵事实与证据 | in-progress | APP-M1-T02条款结构 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T03.md` |
@@ -235,12 +274,12 @@
 | [APP-M2-T033](tasks/APP-M2.md#app-m2-t033) | BrandProvider 运行时主题 + 品牌校验函数（对比度、ΔE） | planned | APP-M2-T008 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T033.md` |
 | [APP-M2-T034](tasks/APP-M2.md#app-m2-t034) | A-12 界面品牌页（表单 + 预览 + 恢复默认） | planned | APP-M2-T008、APP-M2-T033 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T034.md` |
 | [APP-M2-T035](tasks/APP-M2.md#app-m2-t035) | 全局搜索：顶栏下拉与结果页 | planned | APP-M2-T014 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T035.md` |
-| [APP-M2-T036](tasks/APP-M2.md#app-m2-t036) | A-08 模型列表与 `service_status` | planned | APP-M2-T014 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T036.md` |
-| [APP-M2-T037](tasks/APP-M2.md#app-m2-t037) | 模型登记表单（不支持字段置灰）与测试连接 | planned | APP-M2-T014、APP-M2-T036 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T037.md` |
-| [APP-M2-T038](tasks/APP-M2.md#app-m2-t038) | 模型配置版本与回滚 | planned | APP-M2-T014、APP-M2-T037 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T038.md` |
-| [APP-M2-T039](tasks/APP-M2.md#app-m2-t039) | A-09 文档解析服务（云端 / 本地两组页签） | planned | APP-M2-T014、APP-M2-T021 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T039.md` |
-| [APP-M2-T040](tasks/APP-M2.md#app-m2-t040) | A-10 任务与模型对应表（首选本地 → 备用只列本地） | planned | APP-M2-T036 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T040.md` |
-| [APP-M2-T041](tasks/APP-M2.md#app-m2-t041) | A-05 公司模型开放 | planned | APP-M2-T036 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T041.md` |
+| [APP-M2-T036](tasks/APP-M2.md#app-m2-t036) | A-08 模型列表与 `service_status`（用户要求弹窗配置；后端 API 已有、前端未接） | planned | APP-M2-T014 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T036.md` |
+| [APP-M2-T037](tasks/APP-M2.md#app-m2-t037) | 模型登记表单与测试连接（用户要求弹窗配置；后端 API 已有、前端未接） | planned | APP-M2-T014、APP-M2-T036 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T037.md` |
+| [APP-M2-T038](tasks/APP-M2.md#app-m2-t038) | 模型配置版本与回滚（用户要求弹窗配置；后端 API 已有、前端未接） | planned | APP-M2-T014、APP-M2-T037 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T038.md` |
+| [APP-M2-T039](tasks/APP-M2.md#app-m2-t039) | A-09 文档解析服务配置（用户要求弹窗配置；后端 API 已有、前端未接） | planned | APP-M2-T014、APP-M2-T021 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T039.md` |
+| [APP-M2-T040](tasks/APP-M2.md#app-m2-t040) | A-10 任务与模型对应表（用户要求弹窗配置；后端 API 已有、前端未接） | planned | APP-M2-T036 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T040.md` |
+| [APP-M2-T041](tasks/APP-M2.md#app-m2-t041) | A-05 公司模型开放（用户要求弹窗配置；后端 API 已有、前端未接） | planned | APP-M2-T036 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T041.md` |
 | [APP-M2-T042](tasks/APP-M2.md#app-m2-t042) | A-11 部署与服务状态页 | planned | APP-M2-T036 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T042.md` |
 | [APP-M2-T043](tasks/APP-M2.md#app-m2-t043) | CrossFieldHint 组件与 9.11 规则函数 | planned | APP-M2-T025 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T043.md` |
 | [APP-M2-T044](tasks/APP-M2.md#app-m2-t044) | A-05 生成闭环参数 | planned | APP-M2-T025、APP-M2-T043 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T044.md` |
@@ -459,16 +498,21 @@
 | [APP-M2-T257](tasks/APP-M2.md#app-m2-t257) | R42 暗标正文节点 | planned | APP-M2-T197、APP-M2-T198、APP-M2-T199、APP-M2-T100 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T257.md` |
 | [APP-M2-T258](tasks/APP-M2.md#app-m2-t258) | R42 暗标输出全部位置 | planned | APP-M2-T197、APP-M2-T198、APP-M2-T199、APP-M2-T100 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T258.md` |
 | [APP-M2-T259](tasks/APP-M2.md#app-m2-t259) | 公司年度中小企业划型记录及声明取值 | planned | APP-M2-T053、APP-M2-T054、APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T259.md` |
-| [AI-01](tasks/AI-M0.md#ai-01) | 登记模型、向量、业务库和内网访问待决项 | in-review | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02)；真实端点另计验收 | [ISSUE-010](../issues/ISSUE-010.md)；[ISSUE-028](../issues/ISSUE-028.md) | [登记交付](delivery/AI-01.md) / [ISSUE-028交付](delivery/ISSUE-028.md) |
+| [AI-01](tasks/AI-M0.md#ai-01) | 登记模型、向量、业务库和内网访问待决项（后端已有 /api/v1/model-configs，用户要求弹窗配置，前端未接；保持 in-review） | in-review | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02)；真实端点另计验收 | [ISSUE-010](../issues/ISSUE-010.md)；[ISSUE-028](../issues/ISSUE-028.md) | [登记交付](delivery/AI-01.md) / [ISSUE-028交付](delivery/ISSUE-028.md) |
 | [AI-02](tasks/AI-M0.md#ai-02) | OpenAI 兼容对话适配器 | done | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | [ISSUE-011](../issues/ISSUE-011.md) | [交付](delivery/AI-02.md) |
 | [AI-03](tasks/AI-M0.md#ai-03) | 检索层内存骨架 | done | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | [ISSUE-016](../issues/ISSUE-016.md) | [交付](delivery/AI-03.md) |
-| [AI-04](tasks/AI-M0.md#ai-04) | CI 假 RAGFlow 检索服务 | in-review | [AI-03](tasks/AI-M0.md#ai-03) | [ISSUE-037](../issues/ISSUE-037.md) | [交付](delivery/AI-04.md) |
-| [AI-05](tasks/AI-M0.md#ai-05) | RAGFlow 检索客户端 | in-review | [AI-04](tasks/AI-M0.md#ai-04) | [ISSUE-037](../issues/ISSUE-037.md) | [交付](delivery/AI-05.md) |
-| [AI-06](tasks/AI-M0.md#ai-06) | 证据候选改走 RAGFlow 检索 | in-review | [AI-05](tasks/AI-M0.md#ai-05) | [ISSUE-037](../issues/ISSUE-037.md) | [交付](delivery/AI-06.md) / [流水线交付](delivery/AI-GENERATION-PIPELINE.md) |
+| [AI-04](tasks/AI-M0.md#ai-04) | CI 假 RAGFlow 检索服务（保持 in-review；真 RAGFlow 列入 ③，假服务仅限 CI，勿标生产已接好） | in-review | [AI-03](tasks/AI-M0.md#ai-03) | [ISSUE-037](../issues/ISSUE-037.md) | [交付](delivery/AI-04.md) |
+| [AI-05](tasks/AI-M0.md#ai-05) | RAGFlow 检索客户端（保持 in-review；真 RAGFlow 列入 ③，假服务仅限 CI，勿标生产已接好） | in-review | [AI-04](tasks/AI-M0.md#ai-04) | [ISSUE-037](../issues/ISSUE-037.md) | [交付](delivery/AI-05.md) |
+| [AI-06](tasks/AI-M0.md#ai-06) | 证据候选改走 RAGFlow 检索（保持 in-review；真 RAGFlow 列入 ③，假服务仅限 CI，勿标生产已接好） | in-review | [AI-05](tasks/AI-M0.md#ai-05) | [ISSUE-037](../issues/ISSUE-037.md) | [交付](delivery/AI-06.md) / [流水线交付](delivery/AI-GENERATION-PIPELINE.md) |
 | [AI-COMPLIANCE-CROSS-CHECK](tasks/AI-M0.md#ai-compliance-cross-check) | AI 合规检查依据交叉核验与差距诊断 | in-review | [APP-M2-T185](tasks/APP-M2.md#app-m2-t185) | [ISSUE-037](../issues/ISSUE-037.md)；[ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/AI-COMPLIANCE-CROSS-CHECK.md) |
+| [AI-M0-RAGFLOW-VERIFY](tasks/AI-M0.md#ai-m0-ragflow-verify) | RAGFlow 端点对接与检索隔离审查 | in-review | [AI-04](tasks/AI-M0.md#ai-04)、[AI-05](tasks/AI-M0.md#ai-05)、[AI-06](tasks/AI-M0.md#ai-06) | [ISSUE-037](../issues/ISSUE-037.md)；[ISSUE-010](../issues/ISSUE-010.md) | [交付](delivery/AI-M0-RAGFLOW-VERIFY.md) |
 | [BE-TECH-DEBT-01](../issues/ISSUE-038.md#be-tech-debt-01) | suggestions 等双错误体收敛（统一规范错误体并对齐单测） | planned | [WP-5](delivery/WP-5.md) | [ISSUE-038](../issues/ISSUE-038.md) | `docs/delivery/BE-TECH-DEBT-01.md` |
 | [FE-TECH-DEBT-01](../issues/ISSUE-038.md#fe-tech-debt-01) | EditorPage 等巨石二次瘦身（<400/600 精神，抽离 hooks 与子面板） | planned | [WP-3](delivery/WP-3.md) | [ISSUE-038](../issues/ISSUE-038.md) | `docs/delivery/FE-TECH-DEBT-01.md` |
 | [BE-TECH-DEBT-02](../issues/ISSUE-038.md#be-tech-debt-02) | 填充或删除空 `icg/api`、`icg/app`（workflow_orchestrator 细化与空包处置） | planned | [WP-4](delivery/WP-4.md) | [ISSUE-038](../issues/ISSUE-038.md) | `docs/delivery/BE-TECH-DEBT-02.md` |
+| [REV-SMOKE-001](delivery/REV-SMOKE-001.md) | 关演示全流程冒烟联调与断点排查（6大主流程端到端闭环验证） | in-review | [WP-5](delivery/WP-5.md)、[WP-6](delivery/WP-6.md)、[WP-7](delivery/WP-7.md) | [ISSUE-005](../issues/ISSUE-005.md)、[ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/REV-SMOKE-001.md) |
+| [FE-SNIPPET-LIBRARY](delivery/FE-SNIPPET-LIBRARY.md) | 知识库方案片段管理最小页（真实列表/详情/变量展示与公司隔离） | in-review | [WP-2](delivery/WP-2.md)、[APP-M2-T078](delivery/APP-M2-T078.md) | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/FE-SNIPPET-LIBRARY.md) |
+| [FE-WRITING-ARCHIVE](delivery/FE-WRITING-ARCHIVE.md) | 写作档案与风格规范最小页（语气偏好/禁用词/公文排版/标杆样章与公司隔离） | in-review | [WP-2](delivery/WP-2.md)、[FE-SNIPPET-LIBRARY](delivery/FE-SNIPPET-LIBRARY.md) | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/FE-WRITING-ARCHIVE.md) |
+| [INT-VOLUME-FINALIZE-GLUE](delivery/INT-VOLUME-FINALIZE-GLUE.md) | 分册定稿与工作台/导出的前后端契约胶水打通（状态机/导出徽章/递交门禁联动） | in-review | [BE-VOLUME-FINALIZE-GATE](tasks/BE-M0.md#be-volume-finalize-gate)、[REV-SMOKE-001](delivery/REV-SMOKE-001.md) | [ISSUE-005](../issues/ISSUE-005.md)、[ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/INT-VOLUME-FINALIZE-GLUE.md) |
 <!-- task-board:end -->
 
 ## 每次推进的同步顺序
@@ -480,4 +524,4 @@
 5. 更新 Issue、任务卡和本看板状态、PROJECT_STATUS 进度，最后登记 DOCUMENT_INDEX；检查链接/状态一致后转 done。
 6. 把本地验收、合入、发布分别记录；功能只有真实接口联调通过才计生产完成。
 
-当前优先：APP-M1按ICG示例实施和联调，来源差异同步核对；模型与向量库保留接口不阻止本地产品流程开发。ISSUE-010 已 closed：业务库为 MySQL 8，对话模型由配置页提供，嵌入与向量库用 RAGFlow 自带，生产生成仅内网。AI-01 为 in-review。ISSUE-028 的运行时配置动态路由与 AC-04 敏感门禁已落地（test_model_config_provider.py 11 passed 1 skipped），配置运行时已接通，ISSUE-028 仍 in-review，ISSUE-010 仍 closed。AI-02已由项目经理于 10-12 12:10 在 QA 签署后确认为 done。AI-03 已依据 QA 签署 2fe6198（REV-M0-T16）标为 done，不连接 MySQL。ISSUE-037 为 in-progress：AI-04、AI-05 与 AI-06 为 in-review，章节生成与建议端到端贯通（test_chapter_generation_rag_flow.py 7 passed）。ISSUE-029 保持 closed。ISSUE-005 保持 in-progress：错误体与幂等已由项目经理于 10-12 12:28 在 QA 签署后确认，T04、T05 与 T06 为 in-review，T07 仍 ready，该 Issue 不关闭。生产门禁继续验证，不能用主链路内部稿替代完整交付。
+当前优先：APP-M1按ICG示例实施和联调，来源差异同步核对；模型与向量库保留接口不阻止本地产品流程开发。ISSUE-010 已 closed：业务库为 MySQL 8，对话模型由配置页提供，嵌入与向量库用 RAGFlow 自带，生产生成仅内网。AI-01 为 in-review。ISSUE-028 的运行时配置动态路由与 AC-04 敏感门禁已落地（test_model_config_provider.py 11 passed 1 skipped），配置运行时已接通，ISSUE-028 仍 in-review，ISSUE-010 仍 closed。AI-02已由项目经理于 10-12 12:10 在 QA 签署后确认为 done。AI-03 已依据 QA 签署 2fe6198（REV-M0-T16）标为 done，不连接 MySQL。ISSUE-037 为 in-progress：AI-04、AI-05 与 AI-06 为 in-review，章节生成与建议端到端贯通（test_chapter_generation_rag_flow.py 7 passed）；AI-M0-RAGFLOW-VERIFY 审查核验已推进至 in-review，端点对接规范、租户强隔离语义与出处防虚构机制核验通过，测试 41 passed 2 skipped + 14 passed 1 skipped 全过，真实端点依赖受 ICG_RUN_REAL_RAGFLOW_TESTS=1 保护，生产对接诚实记录为 blocked。ISSUE-029 保持 closed。ISSUE-005 保持 in-progress：错误体与幂等已由项目经理于 10-12 12:28 在 QA 签署后确认，T04、T05 与 T06 为 in-review，T07 仍 ready，该 Issue 不关闭。生产门禁继续验证，不能用主链路内部稿替代完整交付。
