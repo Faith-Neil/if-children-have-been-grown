@@ -4,7 +4,7 @@
 
 # 项目任务看板
 
-任务版本：0.7；治理版本：g1.1；更新日期：2026-10-23；当前实现 Issue：[ISSUE-007](../issues/ISSUE-007.md)；结构收官：[ISSUE-038](../issues/ISSUE-038.md)；离线检查：[ISSUE-012](../issues/ISSUE-012.md)；生产门禁：[ISSUE-005](../issues/ISSUE-005.md)；模型决定：[ISSUE-010](../issues/ISSUE-010.md)（closed）；tip：4c7e4b3。
+任务版本：0.7；治理版本：g1.1；更新日期：2026-10-23；当前实现 Issue：[ISSUE-007](../issues/ISSUE-007.md)；结构收官：[ISSUE-038](../issues/ISSUE-038.md)；离线检查：[ISSUE-012](../issues/ISSUE-012.md)；生产门禁：[ISSUE-005](../issues/ISSUE-005.md)；模型决定：[ISSUE-010](../issues/ISSUE-010.md)（closed）；tip：b634ba9。
 
 将 [前端 ROADMAP](ROADMAP.md) 的 Phase 0～8 与发布 Milestone 1～5 拆为 **59 张任务卡**，由 FE-M0～FE-M8 管理。前缀 FE 表示前端合作交付；这些编号与参考全系统 M0～M8 的门禁、周期和范围独立。
 
@@ -20,9 +20,9 @@
 - **结构债后续**：`issues/ISSUE-038.md`（双错误体 / 巨石继续瘦身 / 空 `icg.api|app`）→ 见板内 `BE-TECH-DEBT-*` / `FE-TECH-DEBT-*`（P2，勿压过 PRD P0）。
 - **完成度口径**：board `done` 张数 ≠ 产品完成度；产品以 PRD v1.8 + `docs/delivery/2026-10-22-prd-gap-summary.md` 为准。
 - **下一棒默认顺序**（按序执行 ①→②→③→④，不跳序）：
-  - ① 修 `.github/workflows/offline-check.yml`：`on.push` 含 `main` 与 `feat/opencode-ICG`；`pull_request` 至少 `main`；推送后确认 Actions 五职（backend / backend-mysql / frontend / governance / e2e）红绿并写交付。
-  - ② 对齐 tip 回写看板与 PROJECT_STATUS；整理「已签等 PM」in-review 清单（不擅自标 done，交给用户确认）；关演示主路径人工冒烟留证（`VITE_DEMO=0` + `ICG_REQUIRE_MYSQL=1`：上传招标→解析→矩阵→生成→检查→两册 Word）。
-  - ③ 前端弹窗：模型配置（对接已有 `/api/v1/model-configs`，含测连）；知识库/RAGFlow 弹窗（BASE_URL、API Key、dataset 等，按现有后端能力设计）；接入真 RAGFlow（参考 https://github.com/infiniflow/ragflow）；CI 继续用假服务。真端点/Key 若仓库没有，向用户要后再写配置，勿编造。
+  - ① 修 `.github/workflows/offline-check.yml`：**【已完成】** `on.push` 与 `pull_request` 覆盖 `main` 与 `feat/opencode-ICG`；修复 R34 系统变量与 OpenAPI 废弃标记，延长 `e2e` 超时上限至 25m；五职自动化验证与交付见 [D-721](delivery/2026-10-23-ci-offline-check-branches.md)。
+  - ② 对齐 tip 回写看板与 PROJECT_STATUS；整理「已签等 PM」in-review 清单（不擅自标 done，交给用户确认）；关演示主路径人工冒烟留证（`VITE_DEMO=0` + `ICG_REQUIRE_MYSQL=1`：上传招标→解析→矩阵→生成→检查→两册 Word）：**【已完成】** tip 已对齐至 `b634ba9`；已签等 PM 清单见 [D-722](delivery/2026-10-23-in-review-signed-for-pm.md)；关演示冒烟证据见 [D-723](delivery/2026-10-23-non-demo-smoke-evidence.md)。
+  - ③ 前端弹窗：模型配置（对接已有 `/api/v1/model-configs`，含测连）；知识库/RAGFlow 弹窗（BASE_URL、API Key、dataset 等，按现有后端能力设计）；接入真 RAGFlow（参考 https://github.com/infiniflow/ragflow）；CI 继续用假服务。真端点/Key 若仓库没有，向用户要后再写配置，勿编造。**【当前下一棒，正准备执行】**
   - ④ 规则最小可递交集 + 分册定稿闸门。
 
 ## 额度暂停期审查纪要（2026-10-23）

@@ -732,11 +732,15 @@
 | D-719 | 2026-10-22 | [第二阶段第二批任务产品视角验收报告](reviews/2026-10-22-pd-review-BATCH2-M2.md) | 验收审查 | pd-review-batch2-m2 | 当前 | ISSUE-005 / ISSUE-006 / ISSUE-007 / ISSUE-027 / FE-WRITING-ARCHIVE / BE-COMPLIANCE-RULES-P0 / INT-VOLUME-FINALIZE-GLUE | PD 视角针对第二阶段第二批任务（FE-WRITING-ARCHIVE、BE-COMPLIANCE-RULES-P0、INT-VOLUME-FINALIZE-GLUE）的产品完备性审查，核查导航占位壳彻底清零、定稿前后端胶水联动与核心合规规则编号落地，书面认可建议 PM 标 done |
 | D-720 | 2026-10-23 | [任务看板变更交付：模型与RAGFlow专项审查及用户拍板](delivery/2026-10-23-task-board-fe-be-review.md) | 治理 / 看板 | task-board-review-1 | 当前 | ISSUE-007 / ISSUE-028 / ISSUE-037 / ISSUE-012 / ISSUE-005 | 任务看板变更交付：记录六点专项审查（模型配置与知识库/RAGFlow）结论、ICG意见摘要与用户决策（①~④顺序、弹窗配置页形态、真RAGFlow服务接入、用户本人写码），校准文首tip至4c7e4b3，移除过时PR #3待合入描述，更新下一棒默认顺序与模型/RAGFlow卡片备注 |
 | D-721 | 2026-10-23 | [CI 工作流触发分支修复交付报告](delivery/2026-10-23-ci-offline-check-branches.md) | 治理 / DevOps | ci-offline-branches-1 | 当前 | ISSUE-012 / ISSUE-007 | CI工作流触发分支修复交付：修复 .github/workflows/offline-check.yml 的 on.push 与 pull_request 分支为 main 与 feat/opencode-ICG，消除因历史分支删除导致的 checks 为 0 隐患，恢复五大作业自动持续集成 |
+| D-722 | 2026-10-23 | [「已签等 PM」in-review 任务清单与签署证据汇总](delivery/2026-10-23-in-review-signed-for-pm.md) | 治理 / 看板 | in-review-signed-pm-1 | 当前 | ISSUE-007 / ISSUE-005 / ISSUE-006 / ISSUE-013 / ISSUE-038 | 汇总梳理经 QA 测试核验与 PD 产品视角对照签署通过的 in-review 任务卡清单（含 BE-CHECKS-EXPORT-ALIGN、BE-M0-T07、REV-SMOKE-001、FE-SNIPPET-LIBRARY、BE-VOLUME-FINALIZE-GATE、AI-M0-RAGFLOW-VERIFY、FE-WRITING-ARCHIVE、INT-VOLUME-FINALIZE-GLUE、BE-COMPLIANCE-RULES-P0 及既有历史已签卡），呈现完整自动化与业务证据链，严格遵照不擅自标 done 铁律，交由人类 PM 最终确认 |
+| D-723 | 2026-10-23 | [关演示主路径端到端冒烟验证证据报告](delivery/2026-10-23-non-demo-smoke-evidence.md) | 验收 / 冒烟 | non-demo-smoke-1 | 当前 | ISSUE-007 / ISSUE-005 / ISSUE-012 / REV-SMOKE-001 | 关演示主路径端到端冒烟证据报告：在 VITE_DEMO=0 与 ICG_REQUIRE_MYSQL=1 条件下，实测登录拦截、正式 Token 8 角色会话、建项、招标解析、矩阵证据挂接、大纲正文生成、废标★红线拦截与两册 Word 排版/指纹导出，证明生产链路真实通畅 |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-10-23 | 验收 / 冒烟 | 登记关演示主路径端到端冒烟证据报告（2026-10-23-non-demo-smoke-evidence.md，D-723），验证非 demo 模式下从建项至两册 Word 导出的完整业务链路与导出门禁 |
+| 2026-10-23 | 治理 / 看板 | 登记「已签等 PM」in-review 任务清单与签署证据汇总（2026-10-23-in-review-signed-for-pm.md，D-722），汇总 9 张核心任务卡与历史已签卡的完整证据链，等待人类 PM 确认 |
 | 2026-10-23 | 治理 / DevOps | 登记 CI 工作流触发分支修复交付（2026-10-23-ci-offline-check-branches.md，D-721），配置 on.push 与 pull_request 覆盖 main 与 feat/opencode-ICG，保障五大作业 CI 触发 |
 | 2026-10-23 | 治理 / 看板 | 登记任务看板变更交付（2026-10-23-task-board-fe-be-review.md，D-720），记录模型与RAGFlow专项审查、用户拍板决策、tip校准至4c7e4b3、更新下一棒①~④顺序与任务卡备注 |
 | 2026-10-23 | 治理 / 验收 | 登记第二阶段第二批任务产品视角验收报告（2026-10-22-pd-review-BATCH2-M2.md，D-719），PD 对照 PRD v1.8 §5.6、§5.8.1 与 §5.8.5，确认全局导航占位壳清零、定稿前后端闭环与核心合规规则落地，书面认可建议 PM 标 done |

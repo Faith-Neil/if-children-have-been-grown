@@ -4,7 +4,7 @@
 
 # 项目状态
 
-维护日期：2026-10-23（UTC+8）。分支 `feat/opencode-ICG` 位于 tip `f50f638`；初次接手从 `main` 的 `ce064f6` 开始维护；main/xqr分支情况保留2026-10-09核对快照。已补齐 WP-1 独立交付文档（D-696），对齐 RoleMode 枚举，登记整改后结构债务收敛 ISSUE-038（D-697），完成 DOC-SYNC-1（D-698）与 DOC-SYNC-1.1（D-699）活文档实树校准。
+维护日期：2026-10-23（UTC+8）。分支 `feat/opencode-ICG` 位于 tip `b634ba9`；初次接手从 `main` 的 `ce064f6` 开始维护；main/xqr分支情况保留2026-10-09核对快照。已补齐 WP-1 独立交付文档（D-696），对齐 RoleMode 枚举，登记整改后结构债务收敛 ISSUE-038（D-697），完成 DOC-SYNC-1（D-698）与 DOC-SYNC-1.1（D-699）活文档实树校准。完成 CI 工作流触发分支修复（D-721）、已签等 PM 清单汇总（D-722）与关演示主链路冒烟留证（D-723）。
 
 ## 现行工程结构现状（WP-1～WP-7 质量整改收官）
 
@@ -12,7 +12,7 @@
 1. **前端 8 域物理分层**：`frontend/web/src/` 根目录仅保留 `main.tsx`，所有代码按 `app/`、`shell/`、`project/`、`editor/`、`library/`、`admin/`、`status/`、`shared/` 组织，巨石组件拆解完成，全界面严格落实 **Layout First** 原则。
 2. **后端模块解耦与分包**：`backend/bid-core/icg/` 建立 `infra/`（含 `memory_repository.py`、`mysql_gate.py` 及 `repositories/` 下 8 大持久化仓储）与 `domain/`（`workflow_orchestrator`、`export_service`、`generation_service`、`outline_service` 4 大服务）；`icg_demo/` 下的 `database.py`（76行）与 `workflow.py`（29行）为向后兼容转接壳（façade），`adapters.py` 保留 `DemoModelProvider` 替身实现。
 3. **接口与角色收口**：主流程收敛至 `/api/v1` 路径；旧 `/api/demo` 端点标记为 Deprecated；前端由 `roles.ts`（8 大标准角色）与 `codes.ts` 单源驱动；支持凭据登录与 `VITE_DEMO=0` 演示关闸；生产环境配置（`ICG_REQUIRE_MYSQL=1`）强行阻断演示账号。
-4. **门禁与测试权威收口**：前端唯一权威测试套件位于 `frontend/web/tests/`（348 项全绿）；后端全量通过（610 passed / 42 skipped）；CI 接入 OpenAPI 一致性校验（`--check`）与前端 lint 门禁；治理检查 100% 合规。
+4. **门禁与测试权威收口**：前端唯一权威测试套件位于 `frontend/web/tests/`（370 项全绿）；后端全量通过（630 passed / 42 skipped）；CI 接入 OpenAPI 一致性校验（`--check`）与前端 lint 门禁；治理检查 100% 合规。
 现行仓库骨架详见 [工程目录方案](architecture/repository-layout.md) 与 [AGENTS.md](../AGENTS.md)。
 
 ## 模型与数据库待决
