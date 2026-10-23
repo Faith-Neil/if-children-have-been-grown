@@ -64,9 +64,15 @@
    - 命令：`python backend/bid-core/export_openapi.py --check`
    - 结果：`[OK] OpenAPI contract (demo-v1.json) is 100% consistent with running FastAPI application.`
 
-4. **工程治理检查**：
+4. **真实 RAGFlow 服务接入与测连实测记录**：
+   - 用户提供生产内网参数：Base URL `http://192.168.100.212:9380`，API Key `ragflow-MyNmQZTQwY2ViZjExZjFiNTEzTYYyZW`，Dataset ID `03bb2312cec211f1b511e62eeb823f56`；
+   - 写入租户配置测试：`PUT /api/v1/ragflow-config` 返回 200，API Key 经 Fernet 加密后成功持久化，掩码返回 `rag***YyZW`，版本递增至 `2`；
+   - 读回校验：`GET /api/v1/ragflow-config` 返回 200，明文不回显，严格按租户隔离保护；
+   - 连通性测试：`POST /api/v1/ragflow-config/test` 针对该内网服务发起健康检查，正如用户预先说明（内网服务器在 VPN 隔离环境下），请求在超时限制内返回优雅的业务失败反馈 `ok: false, message: "连接失败: health request timed out"`，耗时 4116 ms，未产生未捕获异常或 500 崩溃，充分证明连通性检测与错误容灾链路健壮。
+
+5. **工程治理检查**：
    - 命令：`node scripts/check-project-governance.cjs`
-   - 结果：`治理检查通过：516 份 Markdown、409 项任务、38 项 Issue。`
+   - 结果：`治理检查通过：518 份 Markdown、409 项任务、38 项 Issue。`
 
 ## 文档与 Issue 同步
 
