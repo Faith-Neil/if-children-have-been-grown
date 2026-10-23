@@ -146,8 +146,8 @@ class ComplianceRulesEngine:
         re.compile(r"【待定(?:：[^】]*)?】"),
         re.compile(r"\[待定(?:：[^\]]*)?\]"),
         re.compile(r"\b(?:TODO|TBD|FIXME|XXX)\b", re.IGNORECASE),
-        re.compile(r"\{\{[^}]+\}\}"),  # 未替换的模板 Handlebars 变量
-        re.compile(r"\$\{[^}]+\}"),
+        re.compile(r"\{\{(?!(?:fact|sla):)[^}]+\}\}"),  # 未替换的模板 Handlebars 变量（排除合法变量标记 {{fact:...}} 与 {{sla:...}}）
+        re.compile(r"\$\{(?!(?:fact|sla):)[^}]+\}"),
     ]
 
     AI_CONVERSATION_RESIDUALS = [

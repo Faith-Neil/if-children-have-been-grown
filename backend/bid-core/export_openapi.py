@@ -93,6 +93,10 @@ def export_openapi(target: Path = SPEC_TARGET) -> None:
                     if isinstance(op_val, dict) and "x-issue-033" in op_val:
                         if op_key in generated["paths"][path]:
                             generated["paths"][path][op_key]["x-issue-033"] = op_val["x-issue-033"]
+                    if path in DEPRECATED_OPERATIONS and op_key == "post":
+                        if op_key in generated["paths"][path]:
+                            generated["paths"][path][op_key]["deprecated"] = True
+                            generated["paths"][path][op_key]["description"] = DEPRECATION_NOTE
         for schema_name, schema_body in stored_raw.get("components", {}).get("schemas", {}).items():
             if isinstance(schema_body, dict) and schema_body.get("x-contract-status") == FROZEN_STATUS:
                 generated["components"]["schemas"][schema_name] = schema_body

@@ -6068,7 +6068,9 @@
               }
             }
           }
-        }
+        },
+        "deprecated": true,
+        "description": "已废弃。新旧入口并存。前端改用 getOutlinePlan、confirmOutlinePlan 与 startGeneration 之后，由后续 Issue 删除本操作。运行时尚未标出 deprecated。"
       }
     },
     "/api/v1/projects/{project_id}/chapters/{chapter_id}/writing-input": {
@@ -9170,7 +9172,9 @@
               }
             }
           }
-        }
+        },
+        "deprecated": true,
+        "description": "已废弃。新旧入口并存。前端改用 getOutlinePlan、confirmOutlinePlan 与 startGeneration 之后，由后续 Issue 删除本操作。运行时尚未标出 deprecated。"
       }
     },
     "/api/v1/projects/{project_id}/generate": {
@@ -9447,7 +9451,9 @@
               }
             }
           }
-        }
+        },
+        "deprecated": true,
+        "description": "已废弃。新旧入口并存。前端改用 getOutlinePlan、confirmOutlinePlan 与 startGeneration 之后，由后续 Issue 删除本操作。运行时尚未标出 deprecated。"
       }
     },
     "/api/v1/projects/{project_id}/checks": {
