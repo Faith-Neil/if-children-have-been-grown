@@ -21,6 +21,13 @@ from icg.api.compliance import (
     ComplianceRuleCatalogItem,
     ComplianceRulesCatalogResponse,
 )
+from icg.api.ragflow import (
+    include_ragflow_routes,
+    RagflowConfigResponse,
+    RagflowConfigUpdateRequest,
+    RagflowConfigTestRequest,
+    RagflowConfigTestResponse,
+)
 
 __all__ = [
     "include_volume_routes",
@@ -37,4 +44,9 @@ __all__ = [
     "ComplianceRulesEvaluationResponse",
     "ComplianceRuleCatalogItem",
     "ComplianceRulesCatalogResponse",
+    "include_ragflow_routes",
+    "RagflowConfigResponse",
+    "RagflowConfigUpdateRequest",
+    "RagflowConfigTestRequest",
+    "RagflowConfigTestResponse",
 ]

@@ -26,7 +26,7 @@ from .model_config_storage import include_model_config_routes
 from .field_metadata import include_field_metadata_routes
 from .snippet_publication import include_snippet_routes
 from .workflow_routes import include_workflow_routes
-from icg.api import include_volume_routes, include_compliance_routes
+from icg.api import include_volume_routes, include_compliance_routes, include_ragflow_routes
 from .workflow_schemas import V1Error, v1_error_responses
 from .session_navigation import get_application_session
 from .schemas import (AccountListResponse, ApplicationSessionResponse, AuditListResponse, ChapterListResponse,
@@ -340,6 +340,7 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     include_compliance_routes(application, service, current_user)
     include_snippet_routes(application, service, current_user)
     include_model_config_routes(application, service, current_user)
+    include_ragflow_routes(application, service, current_user)
     include_field_metadata_routes(application, service, current_user)
 
     @application.get("/{full_path:path}", include_in_schema=False)

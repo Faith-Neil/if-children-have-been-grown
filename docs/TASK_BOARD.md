@@ -22,8 +22,8 @@
 - **下一棒默认顺序**（按序执行 ①→②→③→④，不跳序）：
   - ① 修 `.github/workflows/offline-check.yml`：**【已完成】** `on.push` 与 `pull_request` 覆盖 `main` 与 `feat/opencode-ICG`；修复 R34 系统变量与 OpenAPI 废弃标记，延长 `e2e` 超时上限至 25m；五职自动化验证与交付见 [D-721](delivery/2026-10-23-ci-offline-check-branches.md)。
   - ② 对齐 tip 回写看板与 PROJECT_STATUS；整理「已签等 PM」in-review 清单（不擅自标 done，交给用户确认）；关演示主路径人工冒烟留证（`VITE_DEMO=0` + `ICG_REQUIRE_MYSQL=1`：上传招标→解析→矩阵→生成→检查→两册 Word）：**【已完成】** tip 已对齐至 `b634ba9`；已签等 PM 清单见 [D-722](delivery/2026-10-23-in-review-signed-for-pm.md)；关演示冒烟证据见 [D-723](delivery/2026-10-23-non-demo-smoke-evidence.md)。
-  - ③ 前端弹窗：模型配置（对接已有 `/api/v1/model-configs`，含测连）；知识库/RAGFlow 弹窗（BASE_URL、API Key、dataset 等，按现有后端能力设计）；接入真 RAGFlow（参考 https://github.com/infiniflow/ragflow）；CI 继续用假服务。真端点/Key 若仓库没有，向用户要后再写配置，勿编造。**【当前下一棒，正准备执行】**
-  - ④ 规则最小可递交集 + 分册定稿闸门。
+  - ③ 前端弹窗：模型配置（对接已有 `/api/v1/model-configs`，含测连）；知识库/RAGFlow 弹窗（BASE_URL、API Key、dataset 等，按现有后端能力设计）；接入真 RAGFlow（参考 https://github.com/infiniflow/ragflow）；CI 继续用假服务。真端点/Key 若仓库没有，向用户要后再写配置，勿编造。**【前端弹窗及后端 API/测连已完成交付（D-724，in-review）；等待配置用户真实端点】**
+  - ④ 规则最小可递交集 + 分册定稿闸门。**【下一棒】**
 
 ## 额度暂停期审查纪要（2026-10-23）
 

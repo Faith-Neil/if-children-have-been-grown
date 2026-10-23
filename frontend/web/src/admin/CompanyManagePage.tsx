@@ -41,6 +41,8 @@ import {
   UserSwitchOutlined,
 } from '@ant-design/icons';
 import type { Account, ApplicationSession } from '../shared/types.ts';
+import { ModelConfigModal } from './ModelConfigModal.tsx';
+import { RagflowConfigModal } from './RagflowConfigModal.tsx';
 import {
   canManageCompanySettings,
   DEFAULT_COMPANIES,
@@ -105,10 +107,12 @@ export function CompanyManagePage({
     }
   }, [activeCompany, form]);
 
-  // 4. 停用二次确认弹窗状态
+  // 4. 停用二次确认弹窗状态与模型/知识库配置弹窗
   const [disableModalOpen, setDisableModalOpen] = useState(false);
   const [confirmInputName, setConfirmInputName] = useState('');
   const [disabling, setDisabling] = useState(false);
+  const [modelModalOpen, setModelModalOpen] = useState(false);
+  const [ragflowModalOpen, setRagflowModalOpen] = useState(false);
 
   // 5. 保存合规配置
   const handleSaveCompliance = async () => {
@@ -418,6 +422,24 @@ export function CompanyManagePage({
                     <Paragraph type="secondary" style={{ fontSize: 13 }}>
                       说明：非涉密普通项目若需使用云端大模型，仍需经过服务健康检测与脱敏审计，调用明细将如实记录在 A-06 审计日志中。
                     </Paragraph>
+
+                    <Divider style={{ margin: '16px 0' }} />
+                    <Space wrap>
+                      <Button
+                        data-testid="open-model-config-modal-btn"
+                        icon={<ThunderboltOutlined />}
+                        onClick={() => setModelModalOpen(true)}
+                      >
+                        配置大模型服务 (/api/v1/model-configs)
+                      </Button>
+                      <Button
+                        data-testid="open-ragflow-config-modal-btn"
+                        icon={<DatabaseOutlined />}
+                        onClick={() => setRagflowModalOpen(true)}
+                      >
+                        配置 RAGFlow 知识库检索 (/api/v1/ragflow-config)
+                      </Button>
+                    </Space>
                   </div>
                 ),
               },
@@ -572,6 +594,17 @@ export function CompanyManagePage({
           onChange={e => setConfirmInputName(e.target.value)}
         />
       </Modal>
+
+      <ModelConfigModal
+        open={modelModalOpen}
+        onClose={() => setModelModalOpen(false)}
+        session={session}
+      />
+      <RagflowConfigModal
+        open={ragflowModalOpen}
+        onClose={() => setRagflowModalOpen(false)}
+        session={session}
+      />
     </div>
   );
 }

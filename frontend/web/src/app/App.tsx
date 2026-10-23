@@ -36,6 +36,8 @@ import { LoginScreen } from './LoginScreen';
 import { isDemoMode } from '../shared/roles';
 import { CreateProjectModal } from '../project/CreateProjectModal';
 import { TaskDrawer } from '../status/TaskDrawer';
+import { ModelConfigModal } from '../admin/ModelConfigModal';
+import { RagflowConfigModal } from '../admin/RagflowConfigModal';
 
 const tabs = [ ['overview', '概览'], ['tender', '招标文件'], ['parse', '解析结果'], ['matrix', '响应矩阵'], ['facts', '项目事实表'], ['editor', '编辑台'], ['manual', '人工处理队列'], ['checks', '合规检查'], ['export', '导出'], ['settings', '项目设置'] ];
 const navigation = [ { id: 'workbench', name: '工作台', icon: <AppstoreOutlined /> }, { id: 'library', name: '企业资料库', icon: <DatabaseOutlined /> }, { id: 'knowledge', name: '知识库', icon: <BookOutlined /> }, { id: 'writing', name: '写作档案', icon: <FileTextOutlined /> }, { id: 'admin.rules', name: '管理规则（只读）', icon: <SettingOutlined /> } ];
@@ -76,6 +78,8 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [taskDrawer, setTaskDrawer] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [modelConfigModalOpen, setModelConfigModalOpen] = useState(false);
+  const [ragflowConfigModalOpen, setRagflowConfigModalOpen] = useState(false);
   const [editorDirty, setEditorDirty] = useState(false);
   const dirtyRef = useRef(false);
   const armedLeave = useRef(false);
@@ -615,7 +619,7 @@ export default function App() {
     workspace,
     missing,
   });
-  return <Suspense fallback={<div className="login-screen"><Spin size="large" /></div>}><CanProvider value={{ session: applicationSession, workspace, role: applicationSession?.user.primary_role || applicationSession?.user.role, userId: applicationSession?.user.id }}><AppShell collapsed={collapsed} onCollapsed={handleCollapseChange} menuPath={menuPath} menu={menu} onNavigate={requestPath} breadcrumbs={breadcrumbs} actions={<><Tag color="orange" className="environment">示例数据 · 非真实业务</Tag>{sessionAllowsRoute(applicationSession, 'workbench') && <Input className="global-search" aria-label="搜索项目名称或资料名称" prefix={<SearchOutlined />} placeholder="搜索项目名称 / 资料名称" value={search} onChange={e => setSearch(e.target.value)} suffix={<kbd>Ctrl K</kbd>} onPressEnter={() => requestPath(globalPath('workbench'))} />}{sessionAllowsRoute(applicationSession, 'jobs') && <Button type="text" icon={<Badge count={jobs.filter(item => item.status === 'running' || item.status === 'queued').length} size="small"><CheckSquareOutlined /></Badge>} aria-label="查看后台任务" onClick={() => setTaskDrawer(true)} /> }<Tooltip title="站内提醒尚未接入"><Button type="text" icon={<BellOutlined />} aria-label="提醒尚未接入" disabled /></Tooltip><span className="company-label"><TeamOutlined /> {companyName(user.company_id)}</span><span className="user-avatar">{user.name[0]}</span><span className="user-name">{user.name}<small> · {{ project_lead: '项目负责人', bid_writer: '投标编写人', readonly: '只读成员' }[applicationSession?.user.primary_role ?? ''] ?? '演示身份'}（演示兼容）</small></span><Button type="text" size="small" onClick={() => requestDiscard(logout)}>退出</Button></>}>
+  return <Suspense fallback={<div className="login-screen"><Spin size="large" /></div>}><CanProvider value={{ session: applicationSession, workspace, role: applicationSession?.user.primary_role || applicationSession?.user.role, userId: applicationSession?.user.id }}><AppShell collapsed={collapsed} onCollapsed={handleCollapseChange} menuPath={menuPath} menu={menu} onNavigate={requestPath} breadcrumbs={breadcrumbs} actions={<><Tag color="orange" className="environment">示例数据 · 非真实业务</Tag>{sessionAllowsRoute(applicationSession, 'workbench') && <Input className="global-search" aria-label="搜索项目名称或资料名称" prefix={<SearchOutlined />} placeholder="搜索项目名称 / 资料名称" value={search} onChange={e => setSearch(e.target.value)} suffix={<kbd>Ctrl K</kbd>} onPressEnter={() => requestPath(globalPath('workbench'))} />}{sessionAllowsRoute(applicationSession, 'jobs') && <Button type="text" icon={<Badge count={jobs.filter(item => item.status === 'running' || item.status === 'queued').length} size="small"><CheckSquareOutlined /></Badge>} aria-label="查看后台任务" onClick={() => setTaskDrawer(true)} /> }<Tooltip title="站内提醒尚未接入"><Button type="text" icon={<BellOutlined />} aria-label="提醒尚未接入" disabled /></Tooltip><span className="company-label"><TeamOutlined /> {companyName(user.company_id)}</span><span className="user-avatar">{user.name[0]}</span><span className="user-name">{user.name}<small> · {{ project_lead: '项目负责人', bid_writer: '投标编写人', readonly: '只读成员' }[applicationSession?.user.primary_role ?? ''] ?? '演示身份'}（演示兼容）</small></span><Button type="text" size="small" onClick={() => requestDiscard(logout)}>退出</Button><Button type="text" icon={<SettingOutlined />} aria-label="模型服务配置" onClick={() => setModelConfigModalOpen(true)}>模型配置</Button><Button type="text" icon={<DatabaseOutlined />} aria-label="知识库检索配置" onClick={() => setRagflowConfigModalOpen(true)}>知识库配置</Button></>}>
       {missing && <main className="workspace-content"><Result status="404" title="页面不存在" subTitle={`没有与 ${missing} 对应的页面。`} extra={<Button onClick={() => requestPath(globalPath(applicationSession ? sessionHomeRoute(applicationSession) : 'workbench'))}>返回可访问首页</Button>} /></main>}
       {!missing && denied && (
         <main className="workspace-content">
@@ -652,5 +656,7 @@ export default function App() {
       </main></Spin>}
     <CreateProjectModal open={createOpen} onCancel={() => setCreateOpen(false)} onOk={createProject} confirmLoading={busy} canCreate={sessionAllowsAction(applicationSession, 'projects.create')} form={createForm} />
     <TaskDrawer open={taskDrawer} onClose={() => setTaskDrawer(false)} jobs={jobs} onViewAll={() => { setTaskDrawer(false); requestPath(globalPath('jobs')); }} onNavigateJob={job => { setTaskDrawer(false); requestPath(projectPath(job.project_id, job.type === 'parse' ? 'parse' : 'editor')); }} />
+    <ModelConfigModal open={modelConfigModalOpen} onClose={() => setModelConfigModalOpen(false)} token={token} session={applicationSession} />
+    <RagflowConfigModal open={ragflowConfigModalOpen} onClose={() => setRagflowConfigModalOpen(false)} token={token} session={applicationSession} />
   </AppShell></CanProvider></Suspense>;
 }
