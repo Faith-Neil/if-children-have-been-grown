@@ -736,11 +736,14 @@
 | D-723 | 2026-10-23 | [关演示主路径端到端冒烟验证证据报告](delivery/2026-10-23-non-demo-smoke-evidence.md) | 验收 / 冒烟 | non-demo-smoke-1 | 当前 | ISSUE-007 / ISSUE-005 / ISSUE-012 / REV-SMOKE-001 | 关演示主路径端到端冒烟证据报告：在 VITE_DEMO=0 与 ICG_REQUIRE_MYSQL=1 条件下，实测登录拦截、正式 Token 8 角色会话、建项、招标解析、矩阵证据挂接、大纲正文生成、废标★红线拦截与两册 Word 排版/指纹导出，证明生产链路真实通畅 |
 | D-724 | 2026-10-23 | [大模型服务与 RAGFlow 知识库弹窗配置及连通性闭环交付](delivery/2026-10-23-model-ragflow-config-modals.md) | 任务交付 | model-ragflow-modal-1 | in-review | ISSUE-007 / ISSUE-028 / ISSUE-010 / APP-M2-T036 / APP-M2-T037 / AI-01 | 大模型服务与 RAGFlow 知识库弹窗配置及连通性闭环交付：落实用户拍板决策 Step ③，实现 ModelConfigModal 与 RagflowConfigModal 模态弹窗及核心纯逻辑校验，顶栏与公司合规页双入口挂载，后端新增 /api/v1/ragflow-config（GET/PUT/test）并打通 Fernet 对称加密与 If-Match 乐观锁，前端 378 项单测与后端 28 项单测全绿，保持 in-review |
 | D-725 | 2026-10-23 | [大模型服务与 RAGFlow 知识库弹窗配置代码说明](code/2026-10-23-model-ragflow-config-modals.md) | 代码说明 | model-ragflow-modal-1 | 当前 | ISSUE-007 / ISSUE-028 / APP-M2-T036 / APP-M2-T037 / AI-01 | 大模型服务与 RAGFlow 知识库弹窗配置代码说明：架构分层（前端八域 admin/ 与后端 icg/domain、icg/api）、大模型与 RAGFlow 交互时序、Fernet 对称加密与密钥零泄露机制、多租户强隔离与 If-Match 乐观锁 |
+| D-726 | 2026-10-23 | [规则最小可递交集与分册定稿闸门端到端闭环交付](delivery/2026-10-23-submission-rules-finalize-gate.md) | 任务交付 | submission-finalize-gate-1 | in-review | ISSUE-006 / ISSUE-007 / ISSUE-027 / BE-COMPLIANCE-RULES-P0 / BE-VOLUME-FINALIZE-GATE | 规则最小可递交集与分册定稿闸门端到端闭环交付报告：落实用户拍板决策 Step ④，将 PRD §5.8.5 分册定稿锁定状态机与 export_service 整本递交导出门禁紧密结合，未定稿时精确抛出 409 RULES_INCOMPLETE，有 blocker 时阻断 400 CHECK_BLOCKER_EXISTS，全部定稿合规放行递交版 Word，编写人下载拦截 403，经理放行 200，全套 24 项后端测试与契约 check 100% 通过，保持 in-review |
+| D-727 | 2026-10-23 | [规则最小可递交集与分册定稿闸门代码说明](code/2026-10-23-submission-rules-finalize-gate.md) | 代码说明 | submission-finalize-gate-1 | 当前 | ISSUE-006 / ISSUE-007 / ISSUE-027 / BE-COMPLIANCE-RULES-P0 / BE-VOLUME-FINALIZE-GATE | 规则最小可递交集与分册定稿闸门代码说明：架构分层（icg/domain/export_service、workflow_schemas 与 spec/openapi）、动态分册定稿判定时序、RULES_INCOMPLETE 精准阻断与合规放行状态流转、RBAC 角色权限与 SHA-256 防篡改指纹 |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-10-23 | ISSUE-006 / ISSUE-007 / ISSUE-027 / BE-COMPLIANCE-RULES-P0 / BE-VOLUME-FINALIZE-GATE | 登记规则最小可递交集与分册定稿闸门闭环交付报告（2026-10-23-submission-rules-finalize-gate.md，D-726）与代码说明（D-727），落实用户拍板决策 Step ④，打通分册定稿与整本递交导出门禁，支持合法解除 RULES_INCOMPLETE 导出正式递交版 Word，单测与回归全绿，保持 in-review |
 | 2026-10-23 | ISSUE-007 / ISSUE-028 / APP-M2-T036 / APP-M2-T037 / AI-01 | 登记大模型服务与 RAGFlow 知识库弹窗配置及连通性闭环交付报告（2026-10-23-model-ragflow-config-modals.md，D-724）与代码说明，落实用户决策 Step ③，实现前端弹窗与核心校验，打通后端 /api/v1/ragflow-config 端点与测试，全量单测通过，保持 in-review |
 | 2026-10-23 | 验收 / 冒烟 | 登记关演示主路径端到端冒烟证据报告（2026-10-23-non-demo-smoke-evidence.md，D-723），验证非 demo 模式下从建项至两册 Word 导出的完整业务链路与导出门禁 |
 | 2026-10-23 | 治理 / 看板 | 登记「已签等 PM」in-review 任务清单与签署证据汇总（2026-10-23-in-review-signed-for-pm.md，D-722），汇总 9 张核心任务卡与历史已签卡的完整证据链，等待人类 PM 确认 |

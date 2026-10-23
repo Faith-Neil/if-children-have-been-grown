@@ -22,8 +22,8 @@
 - **下一棒默认顺序**（按序执行 ①→②→③→④，不跳序）：
   - ① 修 `.github/workflows/offline-check.yml`：**【已完成】** `on.push` 与 `pull_request` 覆盖 `main` 与 `feat/opencode-ICG`；修复 R34 系统变量与 OpenAPI 废弃标记，延长 `e2e` 超时上限至 25m；五职自动化验证与交付见 [D-721](delivery/2026-10-23-ci-offline-check-branches.md)。
   - ② 对齐 tip 回写看板与 PROJECT_STATUS；整理「已签等 PM」in-review 清单（不擅自标 done，交给用户确认）；关演示主路径人工冒烟留证（`VITE_DEMO=0` + `ICG_REQUIRE_MYSQL=1`：上传招标→解析→矩阵→生成→检查→两册 Word）：**【已完成】** tip 已对齐至 `b634ba9`；已签等 PM 清单见 [D-722](delivery/2026-10-23-in-review-signed-for-pm.md)；关演示冒烟证据见 [D-723](delivery/2026-10-23-non-demo-smoke-evidence.md)。
-  - ③ 前端弹窗：模型配置（对接已有 `/api/v1/model-configs`，含测连）；知识库/RAGFlow 弹窗（BASE_URL、API Key、dataset 等，按现有后端能力设计）；接入真 RAGFlow（参考 https://github.com/infiniflow/ragflow）；CI 继续用假服务。真端点/Key 若仓库没有，向用户要后再写配置，勿编造。**【前端弹窗及后端 API/测连已完成交付（D-724，in-review）；等待配置用户真实端点】**
-  - ④ 规则最小可递交集 + 分册定稿闸门。**【下一棒】**
+  - ③ 前端弹窗：模型配置（对接已有 `/api/v1/model-configs`，含测连）；知识库/RAGFlow 弹窗（BASE_URL、API Key、dataset 等，按现有后端能力设计）；接入真 RAGFlow（参考 https://github.com/infiniflow/ragflow）；CI 继续用假服务。真端点/Key 若仓库没有，向用户要后再写配置，勿编造。**【已完成】** 前端弹窗（`ModelConfigModal`、`RagflowConfigModal`）及后端 API（`/api/v1/ragflow-config` GET/PUT/test，Fernet 加密与 If-Match 乐观锁）已闭环交付（[D-724](delivery/2026-10-23-model-ragflow-config-modals.md) / [D-725](code/2026-10-23-model-ragflow-config-modals.md)，in-review）；用户提供的公司内网真服务凭据实测连通（内网 VPN 隔离安全超时处理验证，无 500 崩溃）。
+  - ④ 规则最小可递交集 + 分册定稿闸门：**【已完成】** 规则最小可递交集（R15/R23/R34/R37）与分册定稿闸门（PRD §5.8.5 锁定状态机）动态联动集成；未定稿严格阻断 409 `RULES_INCOMPLETE`，有 blocker 阻断 400 `CHECK_BLOCKER_EXISTS`；全部定稿且合规后放行正式递交版 Word 并生成 64 位 SHA-256 版式指纹；普通编写人拦截 403 `SUBMISSION_FORBIDDEN`，项目负责人放行 200；全套 24 项后端测试与契约 check 100% 通过（交付见 [D-726](delivery/2026-10-23-submission-rules-finalize-gate.md) / [D-727](code/2026-10-23-submission-rules-finalize-gate.md)，in-review）。
 
 ## 额度暂停期审查纪要（2026-10-23）
 
@@ -223,6 +223,7 @@
 | [BE-CHECKS-EXPORT-ALIGN](tasks/BE-M0.md#be-checks-export-align) | 检查阻断红线与整本导出快照版式核对 | in-review | [BE-M0-T15](tasks/BE-M0.md#be-m0-t15) | [ISSUE-006](../issues/ISSUE-006.md)；[ISSUE-027](../issues/ISSUE-027.md) | [交付](delivery/BE-CHECKS-EXPORT-ALIGN.md) |
 | [BE-VOLUME-FINALIZE-GATE](tasks/BE-M0.md#be-volume-finalize-gate) | 分册定稿状态机与前置检查门禁 | in-review | [BE-CHECKS-EXPORT-ALIGN](tasks/BE-M0.md#be-checks-export-align) | [ISSUE-006](../issues/ISSUE-006.md)、[ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/BE-VOLUME-FINALIZE-GATE.md) |
 | [BE-COMPLIANCE-RULES-P0](tasks/BE-M0.md#be-compliance-rules-p0) | 第一批核心合规规则编号落地（R15/R23/R34/R37及核验引擎） | in-review | [BE-CHECKS-EXPORT-ALIGN](tasks/BE-M0.md#be-checks-export-align) | [ISSUE-006](../issues/ISSUE-006.md)、[ISSUE-027](../issues/ISSUE-027.md) | [交付](delivery/BE-COMPLIANCE-RULES-P0.md) |
+| [BE-SUBMISSION-FINALIZE-GATE](delivery/2026-10-23-submission-rules-finalize-gate.md) | 规则最小可递交集与分册定稿闸门端到端闭环 | in-review | [BE-VOLUME-FINALIZE-GATE](tasks/BE-M0.md#be-volume-finalize-gate)、[BE-COMPLIANCE-RULES-P0](tasks/BE-M0.md#be-compliance-rules-p0) | [ISSUE-006](../issues/ISSUE-006.md)、[ISSUE-007](../issues/ISSUE-007.md)、[ISSUE-027](../issues/ISSUE-027.md) | [交付](delivery/2026-10-23-submission-rules-finalize-gate.md) |
 | [APP-M1-T01](tasks/APP-M1.md#app-m1-t01) | 示例外壳与项目工作台 | in-progress | BE-M0-T01 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T01.md` |
 | [APP-M1-T02](tasks/APP-M1.md#app-m1-t02) | 上传解析与确认 | in-progress | APP-M1-T01工作区接口 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T02.md` |
 | [APP-M1-T03](tasks/APP-M1.md#app-m1-t03) | 矩阵事实与证据 | in-progress | APP-M1-T02条款结构 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T03.md` |

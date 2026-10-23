@@ -584,6 +584,7 @@ class ProjectExport(ResponseBody):
     compliance_notice: str | None = None
     sha256: str | None = None
     format_metadata: dict[str, Any] | None = None
+    is_submission: bool = False
 
 
 class LibraryItem(ResponseBody):

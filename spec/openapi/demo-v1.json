@@ -23227,6 +23227,11 @@
               }
             ],
             "title": "Format Metadata"
+          },
+          "is_submission": {
+            "type": "boolean",
+            "title": "Is Submission",
+            "default": false
           }
         },
         "additionalProperties": true,

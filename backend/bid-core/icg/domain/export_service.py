@@ -295,19 +295,32 @@ class ExportServiceMixin:
             if payload.get("kind") == "submission" and has_blockers:
                 raise CheckBlockerError("分册最新检查结果存在未解决的废标或星号条款阻断项，无法导出正式递交版。")
 
+            scope = payload.get("volume", "all")
+            required_volumes = set(VOLUMES) if scope == "all" else {scope}
+
             if payload.get("kind") == "submission":
-                raise DomainError(409, "RULES_INCOMPLETE", "完整合规规则与分册定稿未实现，不能把本地内部稿冒充递交版。")
+                # 分册定稿闸门（PRD §5.8.5）：所选分册必须全部经负责人或管理员定稿锁定
+                volumes_state = workflow.get("volumes", {})
+                unfinalized = [
+                    vol for vol in sorted(required_volumes)
+                    if not volumes_state.get(vol, {}).get("is_finalized")
+                ]
+                if unfinalized:
+                    unfinalized_names = "、".join("技术分册" if v == "technical" else "商务分册" for v in unfinalized)
+                    raise DomainError(
+                        409,
+                        "RULES_INCOMPLETE",
+                        f"完整合规规则与分册定稿未完成：{unfinalized_names}尚未完成责任人定稿锁定，不能把本地内部稿冒充递交版。"
+                    )
 
             is_internal_review = payload.get("kind") == "internal_review"
             if not is_internal_review and not check["passed"]:
                 raise DomainError(409, "CHECK_FAILED", "当前已实现的流程检查仍有阻断项。")
 
-            scope = payload.get("volume", "all")
             if check["volume"] != scope:
                 raise DomainError(409, "ALL_VOLUMES_CHECK_REQUIRED", "导出范围必须和已完成的检查一致；两册导出需要检查全部分册。")
             chapters = self._ordered_chapters(state, project_id, workflow)
             chapters = [c for c in chapters if scope == "all" or c.volume == scope]
-            required_volumes = set(VOLUMES) if scope == "all" else {scope}
             if {c.volume for c in chapters} != required_volumes:
                 raise DomainError(422, "TWO_VOLUMES_REQUIRED", "导出必须包含技术和商务两册。")
             identity = new_id("project-export")
@@ -356,9 +369,14 @@ class ExportServiceMixin:
                 "compliance_notice": compliance_notice,
                 "sha256": record_sha,
                 "format_metadata": WORD_DEFAULT_FORMAT_METADATA,
+                "is_submission": payload.get("kind") == "submission",
             }
             workflow["exports"][identity] = record
-            self._job(state, project_id, "export", ("两个独立 Word 内部稿已生成" if scope == "all" else "本册 Word 内部稿已生成") + "；只含已提交正文。")
+            if payload.get("kind") == "submission":
+                job_desc = ("两个独立 Word 正式递交版已生成" if scope == "all" else "本册 Word 正式递交版已生成") + "；已完成责任人定稿与门禁核验。"
+            else:
+                job_desc = ("两个独立 Word 内部稿已生成" if scope == "all" else "本册 Word 内部稿已生成") + "；只含已提交正文。"
+            self._job(state, project_id, "export", job_desc)
             return {"export": self._public_export(state, project_id, record)}
         return self._write(principal, project_id, "project.export", payload, expected, key, operation)
 
