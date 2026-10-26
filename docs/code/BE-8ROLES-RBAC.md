@@ -6,17 +6,17 @@
 
 - 对应任务：八角色权限体系、[ISSUE-005](../../docs/governance/ISSUE-005-sync.md)、[ISSUE-007](../../docs/governance/ISSUE-007-sync.md)、[交付文档](../delivery/BE-8ROLES-RBAC.md)。
 - 关键源文件：
-  - [project_access.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/project_access.py)
-  - [domain.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/domain.py)
-  - [project_team.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/project_team.py)
-  - [adapters.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/adapters.py)
-  - [test_eight_roles_access.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/tests/backend/test_eight_roles_access.py)
+  - [project_access.py](../../backend/bid-core/icg_demo/project_access.py)
+  - [domain.py](../../backend/bid-core/icg_demo/domain.py)
+  - [project_team.py](../../backend/bid-core/icg_demo/project_team.py)
+  - [adapters.py](../../backend/bid-core/icg_demo/adapters.py)
+  - [test_eight_roles_access.py](../../tests/backend/test_eight_roles_access.py)
 
 ---
 
 ## 1. 架构与角色体系定义
 
-依据 [《智能投标系统第一期（MVP）PRD v1.8》](file:///c:/Users/徐佳馨/if-children-have-been-grown/docs/reference/product/prd-mvp-v1.8.md) §2.2 与 §2.3，系统包含 3 个层级与 8 类系统角色：
+依据 [《智能投标系统第一期（MVP）PRD v1.8》](../reference/product/prd-mvp-v1.8.md) §2.2 与 §2.3，系统包含 3 个层级与 8 类系统角色：
 
 | 层级 | 标准角色名 | 职责与权限边界 | 兼容历史别名 |
 |---|---|---|---|
@@ -38,7 +38,7 @@
 
 ## 2. 核心鉴权守卫与逻辑实现
 
-在 [project_access.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/project_access.py) 中沉淀了标准角色集合、归一化函数与细粒度守卫：
+在 [project_access.py](../../backend/bid-core/icg_demo/project_access.py) 中沉淀了标准角色集合、归一化函数与细粒度守卫：
 
 ### 2.1 角色归一化与集合分类
 ```python
@@ -85,12 +85,12 @@ WRITER_COMPANY_ROLES = {ROLE_BID_WRITER, ROLE_PROJECT_LEAD, ROLE_COMPANY_ADMIN, 
 
 ## 3. 跨模块联动
 
-1. **新建项目权限门禁**（[domain.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/domain.py) `create_project`）：
+1. **新建项目权限门禁**（[domain.py](../../backend/bid-core/icg_demo/domain.py) `create_project`）：
    - 调用 `normalize_role(actual.role) in LEAD_COMPANY_ROLES`。
    - 允许 `project_lead`、`manager`、`company_admin` 新建项目；其余角色一律拦截并抛出 HTTP 403 `PROJECT_CREATE_FORBIDDEN`。
-2. **知识库/通用写门禁**（[domain.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/domain.py) `_writer`）：
+2. **知识库/通用写门禁**（[domain.py](../../backend/bid-core/icg_demo/domain.py) `_writer`）：
    - 过滤 `READONLY_SYSTEM_ROLES`，确保 `group_admin`、`viewer`、`auditor` 在所有通用写入入口被拦截为 403 `FORBIDDEN`。
-3. **团队成员分配与提升门禁**（[project_team.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/project_team.py) `update`）：
+3. **团队成员分配与提升门禁**（[project_team.py](../../backend/bid-core/icg_demo/project_team.py) `update`）：
    - 企图将只读角色提升为编写人或负责人：抛出 422 `MEMBER_ROLE_NOT_WRITABLE`。
    - 企图将普通编写人或资料管理员设为项目负责人：抛出 422 `PROJECT_LEAD_COMPANY_ROLE_REQUIRED`。
 4. **撤权即时失效（Instant Revocation）**：
@@ -100,7 +100,7 @@ WRITER_COMPANY_ROLES = {ROLE_BID_WRITER, ROLE_PROJECT_LEAD, ROLE_COMPANY_ADMIN, 
 
 ## 4. 自动化测试与覆盖
 
-在 [test_eight_roles_access.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/tests/backend/test_eight_roles_access.py) 中落地 10 项严密单测：
+在 [test_eight_roles_access.py](../../tests/backend/test_eight_roles_access.py) 中落地 10 项严密单测：
 - `test_role_normalization_and_aliases`：八角色常量、归一化映射与分类集合测试。
 - `test_readonly_roles_forbidden_from_library_write`：只读角色写入拦截测试。
 - `test_writable_roles_permitted_by_writer_guard`：可写角色通行测试。

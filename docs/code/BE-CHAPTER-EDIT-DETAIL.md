@@ -8,11 +8,11 @@
 - **交付文档**：[BE-CHAPTER-EDIT-DETAIL.md](../delivery/BE-CHAPTER-EDIT-DETAIL.md)
 - **依赖基线**：BE-CHAPTER-PERSISTENCE（章节聚合持久化）、BE-OUTLINE-PLAN-SERVICE（大纲写作方案服务）、BE-8ROLES-RBAC（八角色权限）
 - **关键源文件**：
-  - 路由定义：[workflow_routes.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/workflow_routes.py)
-  - 契约模型：[workflow_schemas.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/workflow_schemas.py)
-  - 业务编排：[workflow.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/workflow.py)
-  - 持久化辅助：[database.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/database.py)
-  - 自动化测试：[test_chapter_edit_detail.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/tests/backend/test_chapter_edit_detail.py)
+  - 路由定义：[workflow_routes.py](../../backend/bid-core/icg_demo/workflow_routes.py)
+  - 契约模型：[workflow_schemas.py](../../backend/bid-core/icg_demo/workflow_schemas.py)
+  - 业务编排：[workflow.py](../../backend/bid-core/icg_demo/workflow.py)
+  - 持久化辅助：[database.py](../../backend/bid-core/icg_demo/database.py)
+  - 自动化测试：[test_chapter_edit_detail.py](../../tests/backend/test_chapter_edit_detail.py)
 
 ---
 
@@ -68,7 +68,7 @@
 
 ## 3. 段落切分与引用关联算法
 
-在 [database.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/database.py) 与 [workflow.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/workflow.py) 中实现双层段落解析机制：
+在 [database.py](../../backend/bid-core/icg_demo/database.py) 与 [workflow.py](../../backend/bid-core/icg_demo/workflow.py) 中实现双层段落解析机制：
 
 1. **优先读取已持久化结构化段落**：
    若工作流中存在用户或生成服务自定义持久化的 `workflow["chapter_paragraphs"][chapter_id]`，则保持其原子定义完整输出。
@@ -109,7 +109,7 @@
 
 ## 6. 自动化测试验证矩阵
 
-在 [test_chapter_edit_detail.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/tests/backend/test_chapter_edit_detail.py) 中包含 8 项核心自动化测试：
+在 [test_chapter_edit_detail.py](../../tests/backend/test_chapter_edit_detail.py) 中包含 8 项核心自动化测试：
 1. `test_get_chapter_edit_detail_success`：正常获取章节详情、完整顶级元数据与段落数组；
 2. `test_get_chapter_edit_detail_paragraphs_and_citations`：正文多段落切分、星号条款 `is_mandatory` 识别、段落 order/id/时间戳与 citations 引用匹配；
 3. `test_unauthenticated_returns_401`：未携带 Token 拦截 401 UNAUTHENTICATED；

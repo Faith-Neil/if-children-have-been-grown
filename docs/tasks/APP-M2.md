@@ -4,7 +4,7 @@
 
 # APP-M2：完整示例后续实施任务
 
-日期：2026-10-11。版本：icg-task-plan-1。关联[ISSUE-007](../../issues/ISSUE-007.md) / [APP-M1-T07](APP-M1.md#app-m1-t07)。原依据：[前端交接v1](<../../ICG/frontend doc/frontend-handoff-v1.md>) §4～6、[PRD v1.8](../reference/product/prd-mvp-v1.8.md)。完整映射见[icg-task-mapping](../testing/icg-task-mapping.md)。
+日期：2026-10-11。版本：icg-task-plan-1。关联[ISSUE-007](../../issues/ISSUE-007.md) / [APP-M1-T07](APP-M1.md#app-m1-t07)。原依据：[前端交接v1](../source/WORKSPACE_MATERIALS.md) §4～6、[PRD v1.8](../reference/product/prd-mvp-v1.8.md)。完整映射见[icg-task-mapping](../testing/icg-task-mapping.md)。
 
 APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每个单位一起实现页面、后台数据/状态/权限及实际产物；模型和数据库按授权用可替换接口，不把未接真实服务当全部业务阻塞。旧59张FE历史卡原样保留。
 

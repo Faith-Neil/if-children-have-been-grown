@@ -8,17 +8,17 @@
 - **交付文档**：[BE-LIBRARY-SLA-PERSISTENCE.md](../delivery/BE-LIBRARY-SLA-PERSISTENCE.md)
 - **依赖基线**：BE-CHECKS-EXPORTS-PERSISTENCE（检查与导出入库）、BE-CHAPTER-PERSISTENCE（章节聚合入库）
 - **关键源文件**：
-  - 迁移脚本：[0008_library_and_sla.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/alembic/versions/0008_library_and_sla.py)
-  - 存储实现：[database.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/database.py)
-  - 内存适配器：[adapters.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/adapters.py)
-  - 自动化测试：[test_library_sla_persistence.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/tests/backend/test_library_sla_persistence.py)
-  - 契约连接测试：[test_mysql_connection.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/tests/backend/test_mysql_connection.py)
+  - 迁移脚本：[0008_library_and_sla.py](../../backend/bid-core/alembic/versions/0008_library_and_sla.py)
+  - 存储实现：[database.py](../../backend/bid-core/icg_demo/database.py)
+  - 内存适配器：[adapters.py](../../backend/bid-core/icg_demo/adapters.py)
+  - 自动化测试：[test_library_sla_persistence.py](../../tests/backend/test_library_sla_persistence.py)
+  - 契约连接测试：[test_mysql_connection.py](../../tests/backend/test_mysql_connection.py)
 
 ---
 
 ## 1. 架构与数据表设计
 
-依据 [《MySQL 8 持久化方案》](file:///c:/Users/徐佳馨/if-children-have-been-grown/docs/architecture/mysql-8-persistence-plan.md) 第 6 节，资料与承诺聚合包含企业知识库资料条目、修订历史履历与 SLA 服务承诺模板。Alembic 迁移脚本 `0008_library_and_sla.py` 建立了下列三张表，向下依赖 `0007_checks_and_exports`：
+依据 [《MySQL 8 持久化方案》](../architecture/mysql-8-persistence-plan.md) 第 6 节，资料与承诺聚合包含企业知识库资料条目、修订历史履历与 SLA 服务承诺模板。Alembic 迁移脚本 `0008_library_and_sla.py` 建立了下列三张表，向下依赖 `0007_checks_and_exports`：
 
 ### 1.1 `demo_library_item`（资料条目主表）
 | 列名 | 类型 | 约束 | 说明 |
@@ -67,7 +67,7 @@
 
 ## 2. 资料与承诺持久化核心机制
 
-在 [database.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/database.py) 中，提供窄接口持久化方法与仓库多态扩展：
+在 [database.py](../../backend/bid-core/icg_demo/database.py) 中，提供窄接口持久化方法与仓库多态扩展：
 
 ### 2.1 资料条目操作接口
 1. **保存资料条目** `save_library_item(target, item_data, expected_revision=None, updated_at=None)`：
@@ -110,7 +110,7 @@
 
 ## 3. 内存降级与多态机制
 
-在 [adapters.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/adapters.py) 的 `MemoryRepository` 中，以完全相同的签名和语义实现了上述 10 项 CRUD 接口：
+在 [adapters.py](../../backend/bid-core/icg_demo/adapters.py) 的 `MemoryRepository` 中，以完全相同的签名和语义实现了上述 10 项 CRUD 接口：
 - 内存模式下使用线程安全锁，并对 `expected_revision` 进行严格的比对校验（版本不匹配时抛出同样的 409 `REVISION_CONFLICT`）。
 - 修订历史存储在内部的 `_lib_revisions_map` 中，保持完整版本追踪能力。
 - 未设置 `ICG_DATABASE_URL` 时，系统 100% 透明运行在内存模式，确保开发与测试环境无缝平滑。

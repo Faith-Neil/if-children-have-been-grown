@@ -29,18 +29,18 @@
 
 ### 1. OpenAPI 自动化生成与 CI 门禁
 
-1. **导出脚本与检验门禁（[`backend/bid-core/export_openapi.py`](file:///backend/bid-core/export_openapi.py)）**：
+1. **导出脚本与检验门禁（[`backend/bid-core/export_openapi.py`](../../backend/bid-core/export_openapi.py)）**：
    - 升级导出脚本支持 `--check` 命令行参数；
    - 提取并复用 `implemented_contract` 契约过滤算法，自动比对已提交契约与当前 FastAPI 运行时应用的 `app.openapi()`；
    - 支持跨平台 Windows 控制台安全输出（避免 Unicode 字符编码崩溃）；
    - 在导出模式下智能保留已冻结草案与扩展元数据（`x-contract-drafts`、`x-issue-033`、`x-idempotency` 等）。
-2. **CI 流程集成（[`.github/workflows/offline-check.yml`](file:///.github/workflows/offline-check.yml)）**：
+2. **CI 流程集成（[`.github/workflows/offline-check.yml`](../../.github/workflows/offline-check.yml)）**：
    - 在 `backend` 作业中新增 `Verify OpenAPI generation consistency` 步骤，运行 `python backend/bid-core/export_openapi.py --check`，任何契约不一致自动阻断流水线；
    - 在 `frontend` 作业中新增 `Frontend lint` 步骤，执行 `pnpm lint`。
 
 ### 2. 测试脚本与权威目录收敛
 
-1. **前端脚本补全（[`frontend/web/package.json`](file:///frontend/web/package.json)）**：
+1. **前端脚本补全（[`frontend/web/package.json`](../../frontend/web/package.json)）**：
    - 新增 `"lint": "tsc -b --noEmit"` 脚本；
    - 保留 `"test": "node --test tests/**/*.test.mjs"` 权威脚本，支持一键运行全量单元测试与 AST 静态契约断言。
 2. **测试目录权威性收敛**：

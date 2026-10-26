@@ -16,8 +16,8 @@
 ## 1. 关联与状态
 
 - 日期：2026-10-21。
-- 业务标准：[PRD v1.8 §2.2 与 §2.3](file:///c:/Users/徐佳馨/if-children-have-been-grown/docs/reference/product/prd-mvp-v1.8.md)。
-- 关联问题：[ISSUE-005](file:///c:/Users/徐佳馨/if-children-have-been-grown/docs/governance/ISSUE-005-sync.md)、[ISSUE-007](file:///c:/Users/徐佳馨/if-children-have-been-grown/docs/governance/ISSUE-007-sync.md)。
+- 业务标准：[PRD v1.8 §2.2 与 §2.3](../reference/product/prd-mvp-v1.8.md)。
+- 关联问题：[ISSUE-005](../governance/ISSUE-005-sync.md)、[ISSUE-007](../governance/ISSUE-007-sync.md)。
 - 交付状态：**in-review**（待主 Agent 与 QA 审查签署，严禁私自标 done 或关闭 Issue）。
 
 ## 2. 交付成果与变更文件清单

@@ -16,7 +16,7 @@
 ## 1. 关联与状态
 
 - 日期：2026-10-21。
-- 业务标准：[《MySQL 8 持久化方案》](file:///c:/Users/徐佳馨/if-children-have-been-grown/docs/architecture/mysql-8-persistence-plan.md) 第 6 节、第 8 节。
+- 业务标准：[《MySQL 8 持久化方案》](../architecture/mysql-8-persistence-plan.md) 第 6 节、第 8 节。
 - 关联问题：[ISSUE-018](../../issues/ISSUE-018.md)（持久化实施阶段）。
 - 依赖前置：BE-M0-T13（项目聚合入库）、BE-M0-T12（编辑租约入库）。
 - 交付状态：**in-review**（待主 Agent 与 QA 审查签署，严禁私自标 done 或关闭 Issue）。

@@ -3,7 +3,7 @@
 为什么有这个文档：记录 `APP-M2-T014` 路由守卫、八角色权限准入矩阵、细粒度项目分工鉴权以及语义化 403 页面的实现细节与架构设计。
 
 它解决什么问题：
-1. **八角色权限矩阵严格核验**：落实 [PRD v1.8 §2.2 / §2.3](file:///c:/Users/徐佳馨/if-children-have-been-grown/docs/reference/product/prd-mvp-v1.8.md) 与 [BE-8ROLES-RBAC](file:///c:/Users/徐佳馨/if-children-have-been-grown/docs/delivery/BE-8ROLES-RBAC.md) 规范，支持 8 类标准系统角色（`platform_admin`, `group_admin`, `company_admin`, `data_admin`, `project_lead`, `bid_writer`, `auditor`, `viewer`）的前端路由准入控制；
+1. **八角色权限矩阵严格核验**：落实 [PRD v1.8 §2.2 / §2.3](../reference/product/prd-mvp-v1.8.md) 与 [BE-8ROLES-RBAC](../delivery/BE-8ROLES-RBAC.md) 规范，支持 8 类标准系统角色（`platform_admin`, `group_admin`, `company_admin`, `data_admin`, `project_lead`, `bid_writer`, `auditor`, `viewer`）的前端路由准入控制；
 2. **前置拦截与杜绝越权外呼**：在路由跳转与数据加载前置调用守卫校验，当权限校验不通过时阻断执行，绝不向后端发起受保护数据的 API 请求，彻底杜绝静默越权外呼；
 3. **细粒度项目分工判定**：不仅校验全局角色，更校验项目空间成员资格、分册分工（分册负责人）与章节指派（编写人），编写人仅限编辑被分配的章节或所属分册；
 4. **语义化 403 页面呈现与快捷操作**：无权限或后端 403 时，呈现友好的语义化 403 页面，明确提示当前角色与受限原因，并提供“返回可访问首页/工作台”与“切换身份”快捷按钮，并保留未保存草稿与上下文说明。

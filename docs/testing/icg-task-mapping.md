@@ -4,7 +4,7 @@
 
 # ICG页面、规则与任务映射
 
-日期：2026-10-11。版本：icg-task-map-1。关联[ISSUE-007](../../issues/ISSUE-007.md) / [APP-M1-T07](../tasks/APP-M1.md#app-m1-t07)。卡片见[APP-M2](../tasks/APP-M2.md)；来源清单见[icg-coverage](icg-coverage.md)，原依据为[交接v1](<../../ICG/frontend doc/frontend-handoff-v1.md>) §4～6及[PRD v1.8](../reference/product/prd-mvp-v1.8.md) §5.8.1。
+日期：2026-10-11。版本：icg-task-map-1。关联[ISSUE-007](../../issues/ISSUE-007.md) / [APP-M1-T07](../tasks/APP-M1.md#app-m1-t07)。卡片见[APP-M2](../tasks/APP-M2.md)；来源清单见[icg-coverage](icg-coverage.md)，原依据为[交接v1](../source/WORKSPACE_MATERIALS.md) §4～6及[PRD v1.8](../reference/product/prd-mvp-v1.8.md) §5.8.1。
 
 本次仅完成范围拆分，未实现这些功能。259张新卡全部planned；190原M1～M6原子细卡各有入口，13独立章节/Word/Excel/年度划型产物和56规则子单位共同推进同一功能，不重复计功能完成。47组仍未完整实现，44规则仍未完整交付；原规则数36一期完整、3一期简化、5二期未变。旧59FE卡保留；T14/T15拆分时in-progress，只引用不增加新任务，之后状态看原卡和看板。APP-M2是批次编号，非PRD二期；模型/数据库仅留接口不豁免业务。
 

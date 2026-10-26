@@ -8,17 +8,17 @@
 - **交付文档**：[BE-WORKFLOW-JOB-PERSISTENCE.md](../delivery/BE-WORKFLOW-JOB-PERSISTENCE.md)
 - **依赖基线**：BE-LIBRARY-SLA-PERSISTENCE（资料与承诺入库）、BE-CHECKS-EXPORTS-PERSISTENCE（检查与导出入库）
 - **关键源文件**：
-  - 迁移脚本：[0009_workflow_and_jobs.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/alembic/versions/0009_workflow_and_jobs.py)
-  - 存储实现：[database.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/database.py)
-  - 内存适配器：[adapters.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/adapters.py)
-  - 自动化测试：[test_workflow_job_persistence.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/tests/backend/test_workflow_job_persistence.py)
-  - 契约连接测试：[test_mysql_connection.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/tests/backend/test_mysql_connection.py)
+  - 迁移脚本：[0009_workflow_and_jobs.py](../../backend/bid-core/alembic/versions/0009_workflow_and_jobs.py)
+  - 存储实现：[database.py](../../backend/bid-core/icg_demo/database.py)
+  - 内存适配器：[adapters.py](../../backend/bid-core/icg_demo/adapters.py)
+  - 自动化测试：[test_workflow_job_persistence.py](../../tests/backend/test_workflow_job_persistence.py)
+  - 契约连接测试：[test_mysql_connection.py](../../tests/backend/test_mysql_connection.py)
 
 ---
 
 ## 1. 架构与数据表设计
 
-依据 [《MySQL 8 持久化方案》](file:///c:/Users/徐佳馨/if-children-have-been-grown/docs/architecture/mysql-8-persistence-plan.md) 第 6 节，工作流与任务聚合包含项目六阶段推进主线、增量合规复查队列与跨进程异步执行任务。Alembic 迁移脚本 `0009_workflow_and_jobs.py` 建立了下列两张表，向下依赖 `0008_library_and_sla`：
+依据 [《MySQL 8 持久化方案》](../architecture/mysql-8-persistence-plan.md) 第 6 节，工作流与任务聚合包含项目六阶段推进主线、增量合规复查队列与跨进程异步执行任务。Alembic 迁移脚本 `0009_workflow_and_jobs.py` 建立了下列两张表，向下依赖 `0008_library_and_sla`：
 
 ### 1.1 `demo_workflow`（工作流主表）
 | 列名 | 类型 | 约束 | 说明 |
@@ -53,7 +53,7 @@
 
 ## 2. 工作流与异步任务持久化核心机制
 
-在 [database.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/database.py) 中，提供窄接口持久化方法与仓库多态扩展：
+在 [database.py](../../backend/bid-core/icg_demo/database.py) 中，提供窄接口持久化方法与仓库多态扩展：
 
 ### 2.1 工作流操作接口
 1. **保存工作流** `save_workflow(target, workflow_data, expected_revision=None, updated_at=None)`：
@@ -92,7 +92,7 @@
 
 ## 3. 内存仓库多态实现（MemoryRepository）
 
-在 [adapters.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/adapters.py) 中，`MemoryRepository` 实现了与 MySQL 完全对称的接口方法：
+在 [adapters.py](../../backend/bid-core/icg_demo/adapters.py) 中，`MemoryRepository` 实现了与 MySQL 完全对称的接口方法：
 - `save_workflow`：基于内存字典记录 `_workflow_records`，严格核对 `expected_revision`，不匹配抛出 409 `REVISION_CONFLICT`。
 - `read_workflow` / `delete_workflow`：深拷贝快照返回，杜绝引用泄露。
 - `save_job` / `read_job` / `update_job_progress` / `list_jobs_by_project` / `delete_job`：支持任务全生命周期流转、倒序排序与分页截断。

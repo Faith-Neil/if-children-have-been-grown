@@ -6,7 +6,7 @@
 
 日期：2026-10-11。关联ISSUE-007 / APP-M1-T07、T08；数值服务承诺关联T09～T11，本章写作输入关联T12/T13，成员与逐章确认关联T14/T15；资料旧表单修复关联ISSUE-008 / T16。这里的47行是原交接文档的页面/能力分组，不是47个已完成页面；44项规则按原PRD分36项一期完整、3项一期简化、5项二期。授权保留模型/数据库接口只豁免真实服务接入，不豁免业务页面。
 
-来源：[前端交接清单](<../../ICG/frontend doc/frontend-handoff-v1.md>) §4～6、[PRD v1.8](../reference/product/prd-mvp-v1.8.md) §5.8.1。原文版本冲突在[差异记录](../decisions/icg-reference-deviations.md)持续维护。
+来源：[前端交接清单](../source/WORKSPACE_MATERIALS.md) §4～6、[PRD v1.8](../reference/product/prd-mvp-v1.8.md) §5.8.1。原文版本冲突在[差异记录](../decisions/icg-reference-deviations.md)持续维护。
 
 ## 页面与后续实施入口
 

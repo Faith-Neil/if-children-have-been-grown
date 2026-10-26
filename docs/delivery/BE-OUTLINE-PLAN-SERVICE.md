@@ -16,7 +16,7 @@
 ## 1. 关联与状态
 
 - 日期：2026-10-22。
-- 业务标准：PRD v1.8 §5.7 大纲写作方案、[架构决策：方向 B（大纲与章节树协同编辑）](file:///c:/Users/徐佳馨/if-children-have-been-grown/docs/architecture/outline-section-collaboration.md)。
+- 业务标准：PRD v1.8 §5.7 大纲写作方案、架构决策：方向 B（大纲与章节树协同编辑）。
 - 关联问题：[ISSUE-007](../../issues/ISSUE-007.md)（项目主流程）、[ISSUE-018](../../issues/ISSUE-018.md)（数据持久化与工作流）。
 - 依赖前置：BE-WORKFLOW-JOB-PERSISTENCE（工作流持久化）、BE-8ROLES-RBAC（八角色权限校验）。
 - 交付状态：**in-review**（待主 Agent 与 QA 审查签署，严禁私自标 done 或关闭 Issue）。

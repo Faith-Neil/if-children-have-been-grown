@@ -7,12 +7,12 @@
 - 对应任务：[REV-SMOKE-001](../delivery/REV-SMOKE-001.md)
 - 关联问题：[ISSUE-005](../../issues/ISSUE-005.md)、[ISSUE-007](../../issues/ISSUE-007.md)
 - 核心修改文件：
-  - [main.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/main.py)
-  - [schemas.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/schemas.py)
-  - [session_navigation.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/session_navigation.py)
-  - [App.tsx](file:///c:/Users/徐佳馨/if-children-have-been-grown/frontend/web/src/app/App.tsx)
-  - [demo-v1.json](file:///c:/Users/徐佳馨/if-children-have-been-grown/spec/openapi/demo-v1.json)
-  - [test_smoke_non_demo_pipeline.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/tests/backend/test_smoke_non_demo_pipeline.py)
+  - [main.py](../../backend/bid-core/icg_demo/main.py)
+  - [schemas.py](../../backend/bid-core/icg_demo/schemas.py)
+  - [session_navigation.py](../../backend/bid-core/icg_demo/session_navigation.py)
+  - [App.tsx](../../frontend/web/src/app/App.tsx)
+  - [demo-v1.json](../../spec/openapi/demo-v1.json)
+  - [test_smoke_non_demo_pipeline.py](../../tests/backend/test_smoke_non_demo_pipeline.py)
 
 ---
 
@@ -47,7 +47,7 @@
 ## 2. 关键代码变更与解释
 
 ### 2.1 规范端点补充：`POST /api/v1/projects`
-在 [main.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/main.py) 中：
+在 [main.py](../../backend/bid-core/icg_demo/main.py) 中：
 ```python
 @app.post(
     "/api/v1/projects",
@@ -63,10 +63,10 @@ def create_v1_project(
     return domain.create_project(state, user, payload, idempotency_key=idempotency_key)
 ```
 - **解释**：将前端原本调用的历史 `/api/projects` 提升为规范的 `/api/v1/projects`，附带 `operation_id="createV1Project"`，并在统一错误体模板中声明 401、403、409、428 响应码。
-- **前端同步**：在 [App.tsx](file:///c:/Users/徐佳馨/if-children-have-been-grown/frontend/web/src/app/App.tsx) 中将 `handleCreateProject` 内的请求路径更新为 `/api/v1/projects`。
+- **前端同步**：在 [App.tsx](../../frontend/web/src/app/App.tsx) 中将 `handleCreateProject` 内的请求路径更新为 `/api/v1/projects`。
 
 ### 2.2 八角色 Schema 拓展：`DemoCompanyRole` 与 `ApplicationRole`
-在 [schemas.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/schemas.py) 中：
+在 [schemas.py](../../backend/bid-core/icg_demo/schemas.py) 中：
 ```python
 DemoCompanyRole = Literal[
     "editor", "manager", "viewer", "company_admin", "data_admin",
@@ -81,7 +81,7 @@ ApplicationRole = Literal[
 - **解释**：在 Pydantic 模型校验时，旧代码仅允许 5 种历史演示角色，导致标准 RBAC 8 角色调用 `GET /api/v1/session` 时在响应序列化阶段抛出 `ResponseValidationError`。扩展后全面兼容系统标准角色。
 
 ### 2.3 正式用户 8 角色会话解析：`get_application_session`
-在 [session_navigation.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/session_navigation.py) 中：
+在 [session_navigation.py](../../backend/bid-core/icg_demo/session_navigation.py) 中：
 ```python
     is_demo_account = (
         user.id in DEMO_ONLY_ACCOUNT_IDS or
@@ -124,6 +124,6 @@ ApplicationRole = Literal[
 
 ## 3. 契约同步与 OpenAPI 保障
 
-- 在 [demo-v1.json](file:///c:/Users/徐佳馨/if-children-have-been-grown/spec/openapi/demo-v1.json) 中严格同步 `/api/v1/projects` POST 路径定义。
+- 在 [demo-v1.json](../../spec/openapi/demo-v1.json) 中严格同步 `/api/v1/projects` POST 路径定义。
 - 保证错误码集合严格锁定在已有 143 个错误码范围内，未发生命名漂移。
 - 运行 `pytest tests/backend/test_operation_ids.py tests/backend/test_error_idempotency.py` 确保 100% 契约一致。

@@ -4,7 +4,7 @@
 
 # 仓库目录与渐进迁移方案
 
-维护日期：2026-10-22。状态：WP-1～WP-7 质量整改已收官，前端完成 8 域物理分层，后端完成分包解耦与持久化治理；历史整理快照与现行目录方案分别保留。当前实现关联 ISSUE-007 / DOC-SYNC-1。
+维护日期：2026-10-26。状态：2026-10-26 拍板决策（B1~B6 / D0~D5）技术债与结构重构全面收口落地，后端去平铺进入 `backend/bid-core/icg/{api,app,domain,infra}`，`icg_demo` 降为 364 行薄兼容 Façade；前端接入 `react-router` 现代化路由与 8 域物理分层；MySQL 8 事务级增量持久化闭环；关联 ISSUE-007 / ISSUE-038 / DOC-SYNC-1.1。
 
 本仓库承接投标系统合作工作区。当前已经有`frontend/web`产品页面、`backend/bid-core`业务后台及依赖清单，按ICG示例接通主流程。页面与后台是同一产品的两部分，共用一份业务状态。完整示例仍未完成，现有目录不能作为完成证明。
 
@@ -12,15 +12,15 @@
 
 保留 `docs/PRD.md`、`docs/ARCHITECTURE.md`、`docs/ROADMAP.md` 的入口路径，当前增加ICG实施说明，旧视图保留来源。`main`上的三件套是前端实施视图，`xqr`上的同名文件是全系统技术标方案草稿；同名不代表同一文档层级。PRD v1.8、字典v1.9及ICG设计交接作为本轮实现目标，但不据此声明所有历史方案已经全面对齐或技术选型已经冻结。差异见[基线差异](../decisions/baseline-gaps.md)和[示例差异记录](../decisions/icg-reference-deviations.md)。
 
-> **导航：** [查看现行真实工程骨架（权威）](#当前-icg-真实工程骨架wp-1wp-7-质量整改后实树) ｜ [历史快照：FE-M0 资产整理](#历史快照首轮整理后的结构fe-m0-t01) ｜ [历史快照：BE-M0 早期后台](#历史快照2026-10-10首个后台骨架be-m0-t01) ｜ [历史方案：早期后续目标结构（别名 features/，非现行）](#历史方案早期后续目标结构别名-features非现行)
+> **导航：** [查看现行真实工程骨架（权威）](#当前-icg-真实工程骨架2026-10-26-现行架构实树) ｜ [历史快照：FE-M0 资产整理](#历史快照首轮整理后的结构fe-m0-t01) ｜ [历史快照：BE-M0 早期后台](#历史快照2026-10-10首个后台骨架be-m0-t01) ｜ [历史方案：早期后续目标结构（别名 features/，非现行）](#历史方案早期后续目标结构别名-features非现行)
 
-## 当前 ICG 真实工程骨架（WP-1～WP-7 质量整改后实树）
+## 当前 ICG 真实工程骨架（2026-10-26 现行架构实树）
 
-以下目录为经过 2026-10-22 质量整改（WP-1 至 WP-7）后的真实工程实树。核心工程原则遵循：
-1. **前端按域分层**：`frontend/web/src/` 根目录仅保留 `main.tsx` 挂载入口，所有组件与页面按 8 大业务域收口入子目录。
-2. **后端分包解耦**：`backend/bid-core/icg_demo/` 下的 `database.py`、`workflow.py`、`adapters.py` 全面收缩为轻量级向后兼容门面（façade / re-export），真实实现下沉至 `backend/bid-core/icg/`（`infra/` 与 `domain/`）；`icg/api/` 与 `icg/app/` 为结构骨架占位（路由装配仍在 `icg_demo/main.py`，待 ISSUE-038 迁移填充）。
-3. **接口收敛与角色单源**：业务主流程全面采用 `/api/v1` 契约，旧 `/api/demo` 路径已标记为 deprecated；前端收拢至 `roles.ts`（八角色）与 `codes.ts`（数据字典），演示模式支持通过 `VITE_DEMO=0` 关闭。
-4. **测试权威收口**：前端唯一权威测试套件位于 `frontend/web/tests/`（含 `unit/`，348 项测试），`tests/frontend/` 仅保留兼容历史引用的轻量转发壳。
+以下目录为经过 2026-10-26 深度治理与去平铺解耦后的真实工程实树。核心工程原则遵循：
+1. **前端按域分层与现代路由**：`frontend/web/src/` 根目录仅保留 `main.tsx` 挂载入口，所有组件与页面按 8 大业务域（app, shell, project, editor, library, admin, status, shared）收口入子目录，全量接入 `react-router` 结构化声明式路由体系。
+2. **后端去平铺与架构分包**：主实现全面迁入 `backend/bid-core/icg/`：`api/`（路由子包）、`app/`（应用工厂与容器装配）、`domain/`（领域服务与合规引擎）与 `infra/`（MySQL 持久化仓储与网关）；`icg_demo/` 降为 364 行薄转接门面（façade / re-export），通过 `sys.modules` 动态模块代理保证单测零断裂。
+3. **接口收敛与 RFC 8594 Sunset 废弃**：业务主流程全面采用 `/api/v1` 契约；旧 `/api/demo` 路径打上 `Deprecation: true` 与 `Sunset: Sun, 15 Nov 2026 00:00:00 GMT` 响应头，只读兼容至窗口期后清理下线；前端收拢至 `roles.ts`（八角色）与 `codes.ts`（数据字典），演示模式默认关闭（`VITE_DEMO=0`）。
+4. **测试权威收口**：前端唯一权威测试套件位于 `frontend/web/tests/`（含 `unit/`，395 项测试全绿），`tests/frontend/` 仅保留兼容历史引用的轻量转发壳。
 
 ```text
 if-children-have-been-grown/
@@ -29,11 +29,11 @@ if-children-have-been-grown/
 ├─ .github/workflows/                 # 离线 CI 与 GitHub Actions 门禁（含 OpenAPI 生成一致性校验）
 ├─ docs/                              # 文档体系（PRD、ROADMAP、ARCHITECTURE、TASK_BOARD、DOCUMENT_INDEX）
 │  ├─ architecture/repository-layout.md # 本文（现行仓库工程骨架权威依据）
-│  ├─ delivery/                       # 交付文档（WP-1 至 WP-7 交付报告 D-689~D-696）
+│  ├─ delivery/                       # 交付文档（WP-1 至 WP-7 交付报告 D-689~D-741）
 │  └─ reference/product/              # 原始需求参考（PRD v1.8、数据字典 v1.9，保持原文）
 ├─ frontend/web/                      # 正式 React 前端工程
 │  ├─ package.json                    # 脚本（含 "test": "node --test tests/**/*.test.mjs", "lint": "tsc -b --noEmit"）
-│  ├─ tests/                          # 前端唯一权威测试目录（348 项测试全绿）
+│  ├─ tests/                          # 前端唯一权威测试目录（395 项测试全绿）
 │  │  └─ unit/                        # 单元测试（roles-codes-convergence、responsive-layout 等）
 │  └─ src/
 │     ├─ main.tsx                     # 唯一的全局挂载与启动入口
@@ -50,11 +50,11 @@ if-children-have-been-grown/
 │  ├─ migrations/versions/            # Alembic 0001~0011 拓扑单向链
 │  ├─ export_openapi.py               # OpenAPI 导出与 --check 门禁校验工具
 │  ├─ icg/                            # 业务实现分包层（结构冻结归宿）
-│  │  ├─ infra/                       # 持久化与基础设施（memory_repository.py, mysql_gate.py, repositories/）
-│  │  ├─ domain/                      # 核心领域服务（workflow_orchestrator.py, export_service.py, generation_service.py, outline_service.py）
-│  │  ├─ api/                         # API 路由子包（骨架占位，当前路由暂挂 icg_demo/main.py）
-│  │  └─ app/                         # 应用容器与装配子包（骨架占位）
-│  └─ icg_demo/                       # 兼容门面层（Façade / Re-export）
+│  │  ├─ infra/                       # 持久化与基础设施（memory_repository.py, mysql_gate.py, ragflow_client.py, repositories/）
+│  │  ├─ domain/                      # 核心领域服务（compliance_rules.py, workflow_orchestrator.py, export_service.py, volume_finalize.py）
+│  │  ├─ api/                         # API 路由子包（projects.py, workspace.py, compliance.py, session.py, ragflow.py, model_configs.py）
+│  │  └─ app/                         # 应用容器与装配子包（app_factory.py）
+│  └─ icg_demo/                       # 兼容门面层（Façade / Re-export，364 行薄转接壳）
 │     ├─ main.py                      # 统一请求处理、异常处理器与生产演示隔离门禁
 │     ├─ database.py                  # 76 行转接壳（转发至 icg.infra.mysql_gate 与 repositories.*）
 │     ├─ workflow.py                  # 29 行转接壳（转发至 icg.domain 四大服务）
@@ -63,7 +63,7 @@ if-children-have-been-grown/
 │     └─ static/                      # /demo 历史调试页面
 ├─ spec/openapi/demo-v1.json          # 权威 API 契约（FastAPI 自动化生成与 CI 一致性保障）
 ├─ tests/
-│  ├─ backend/                        # 后端单元与集成测试（652 项，610 passed, 42 skipped）
+│  ├─ backend/                        # 后端单元与集成测试（652 项，660+ 项全绿）
 │  ├─ frontend/                       # 历史引用转发壳（re-export 自 frontend/web/tests/unit/）
 │  └─ prototype/                      # 历史原型测试
 ├─ issues/                            # 问题与缺陷单（ISSUE-001 ~ ISSUE-038）

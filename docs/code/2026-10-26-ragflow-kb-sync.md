@@ -12,7 +12,7 @@
 
 ## 1. 架构总览与调用流程
 
-知识库摄入由领域服务 [`RagflowConfigService`](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg/domain/ragflow_config.py)、底层客户端 [`RagflowRetrievalClient`](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/ragflow_client.py) 以及存储层 [`MemorySnippetPublicationStore`](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg/domain/snippet_publication.py) 共同驱动：
+知识库摄入由领域服务 [`RagflowConfigService`](../../backend/bid-core/icg/domain/ragflow_config.py)、底层客户端 [`RagflowRetrievalClient`](../../backend/bid-core/icg_demo/ragflow_client.py) 以及存储层 [`MemorySnippetPublicationStore`](../../backend/bid-core/icg/domain/snippet_publication.py) 共同驱动：
 
 ```mermaid
 sequenceDiagram

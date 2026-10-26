@@ -8,17 +8,17 @@
 - **交付文档**：[BE-CHAPTER-PERSISTENCE.md](../delivery/BE-CHAPTER-PERSISTENCE.md)
 - **依赖基线**：BE-M0-T13（项目聚合入库）、BE-M0-T12（编辑租约入库）
 - **关键源文件**：
-  - 迁移脚本：[0006_chapters.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/alembic/versions/0006_chapters.py)
-  - 存储实现：[database.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/database.py)
-  - 内存适配器：[adapters.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/adapters.py)
-  - 自动化测试：[test_chapter_persistence.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/tests/backend/test_chapter_persistence.py)
-  - 契约连接测试：[test_mysql_connection.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/tests/backend/test_mysql_connection.py)
+  - 迁移脚本：[0006_chapters.py](../../backend/bid-core/alembic/versions/0006_chapters.py)
+  - 存储实现：[database.py](../../backend/bid-core/icg_demo/database.py)
+  - 内存适配器：[adapters.py](../../backend/bid-core/icg_demo/adapters.py)
+  - 自动化测试：[test_chapter_persistence.py](../../tests/backend/test_chapter_persistence.py)
+  - 契约连接测试：[test_mysql_connection.py](../../tests/backend/test_mysql_connection.py)
 
 ---
 
 ## 1. 架构与数据表设计
 
-依据 [《MySQL 8 持久化方案》](file:///c:/Users/徐佳馨/if-children-have-been-grown/docs/architecture/mysql-8-persistence-plan.md) 第 6 节，章节聚合包含章节最新状态和历史版本记录。Alembic 迁移脚本 `0006_chapters.py` 建立了下列两张表，向下依赖 `0005_model_config`：
+依据 [《MySQL 8 持久化方案》](../architecture/mysql-8-persistence-plan.md) 第 6 节，章节聚合包含章节最新状态和历史版本记录。Alembic 迁移脚本 `0006_chapters.py` 建立了下列两张表，向下依赖 `0005_model_config`：
 
 ### 1.1 `demo_chapter`（章节主表）
 | 列名 | 类型 | 约束 | 说明 |
@@ -51,7 +51,7 @@
 
 ## 2. 章节聚合持久化核心机制
 
-在 [database.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/database.py) 中，提供窄接口持久化方法与仓库多态扩展：
+在 [database.py](../../backend/bid-core/icg_demo/database.py) 中，提供窄接口持久化方法与仓库多态扩展：
 
 ### 2.1 章节读取 `read_chapter(target, chapter_id)`
 - 从 `demo_chapter` 读取章节基本信息与最新正文。
@@ -111,7 +111,7 @@ def commit_chapter_version(target, chapter_id: str, content: str, expected_revis
 ## 3. 内存模式多态纯洁性保障
 
 系统必须保证在未配置 `ICG_DATABASE_URL` 时，默认以纯内存模式正常工作：
-- [adapters.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/adapters.py) 中的 `MemoryRepository` 实现了与 `MysqlConnectionRepository` 相同的接口规范：
+- [adapters.py](../../backend/bid-core/icg_demo/adapters.py) 中的 `MemoryRepository` 实现了与 `MysqlConnectionRepository` 相同的接口规范：
   - `read_chapter(chapter_id)`
   - `save_chapter(chapter, expected_revision=None, updated_at=None)`
   - `commit_chapter_version(chapter_id, content, expected_revision, new_revision, created_by, updated_at=None)`
@@ -122,7 +122,7 @@ def commit_chapter_version(target, chapter_id: str, content: str, expected_revis
 
 ## 4. 跨进程状态装配与共享
 
-在 [database.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/database.py) 的 `_load_shared` 中增加章节及版本装配：
+在 [database.py](../../backend/bid-core/icg_demo/database.py) 的 `_load_shared` 中增加章节及版本装配：
 - 任何工作进程在执行 `read()` 或 `transaction()` 时，自动查询 `demo_chapter` 与 `demo_chapter_version`，将数据库中已持久化的章节叠加到内存工作状态中。
 - 保留未改动种子章节的就地机制，保持与项目聚合相同的轻量设计，避免空启动时将整个演示状态刷入数据库。
 
@@ -130,7 +130,7 @@ def commit_chapter_version(target, chapter_id: str, content: str, expected_revis
 
 ## 5. 验证与回归覆盖
 
-在 [test_chapter_persistence.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/tests/backend/test_chapter_persistence.py) 中覆盖：
+在 [test_chapter_persistence.py](../../tests/backend/test_chapter_persistence.py) 中覆盖：
 1. `test_chapter_save_and_read`：章节保存与读取，字段与编码严格核对。
 2. `test_chapter_version_commit_in_same_transaction`：在同一事务中提交版本，正文更新与历史版本行同时落库。
 3. `test_optimistic_locking_prevents_stale_revision_overwrite`：乐观并发更新拦截，旧版本覆盖被拒并抛出 409 `REVISION_CONFLICT`。

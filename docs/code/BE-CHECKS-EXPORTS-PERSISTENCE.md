@@ -8,17 +8,17 @@
 - **交付文档**：[BE-CHECKS-EXPORTS-PERSISTENCE.md](../delivery/BE-CHECKS-EXPORTS-PERSISTENCE.md)
 - **依赖基线**：BE-CHAPTER-PERSISTENCE（章节聚合入库）、BE-M0-T13（项目聚合入库）
 - **关键源文件**：
-  - 迁移脚本：[0007_checks_and_exports.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/alembic/versions/0007_checks_and_exports.py)
-  - 存储实现：[database.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/database.py)
-  - 内存适配器：[adapters.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/adapters.py)
-  - 自动化测试：[test_checks_exports_persistence.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/tests/backend/test_checks_exports_persistence.py)
-  - 契约连接测试：[test_mysql_connection.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/tests/backend/test_mysql_connection.py)
+  - 迁移脚本：[0007_checks_and_exports.py](../../backend/bid-core/alembic/versions/0007_checks_and_exports.py)
+  - 存储实现：[database.py](../../backend/bid-core/icg_demo/database.py)
+  - 内存适配器：[adapters.py](../../backend/bid-core/icg_demo/adapters.py)
+  - 自动化测试：[test_checks_exports_persistence.py](../../tests/backend/test_checks_exports_persistence.py)
+  - 契约连接测试：[test_mysql_connection.py](../../tests/backend/test_mysql_connection.py)
 
 ---
 
 ## 1. 架构与数据表设计
 
-依据 [《MySQL 8 持久化方案》](file:///c:/Users/徐佳馨/if-children-have-been-grown/docs/architecture/mysql-8-persistence-plan.md) 第 6 节，检查与导出聚合包含合规性校验历史记录与投标文件生成导出快照。Alembic 迁移脚本 `0007_checks_and_exports.py` 建立了下列两张表，向下依赖 `0006_chapters`：
+依据 [《MySQL 8 持久化方案》](../architecture/mysql-8-persistence-plan.md) 第 6 节，检查与导出聚合包含合规性校验历史记录与投标文件生成导出快照。Alembic 迁移脚本 `0007_checks_and_exports.py` 建立了下列两张表，向下依赖 `0006_chapters`：
 
 ### 1.1 `demo_check`（检查结果主表）
 | 列名 | 类型 | 约束 | 说明 |
@@ -56,7 +56,7 @@
 
 ## 2. 检查与导出持久化核心机制
 
-在 [database.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/database.py) 中，提供窄接口持久化方法与仓库多态扩展：
+在 [database.py](../../backend/bid-core/icg_demo/database.py) 中，提供窄接口持久化方法与仓库多态扩展：
 
 ### 2.1 检查批次操作接口
 1. **保存检查结果** `save_check(target, check_data, updated_at=None)`：
@@ -90,7 +90,7 @@
 ## 3. 内存降级与多态机制
 
 为了保持与公网 CI、离线单元测试及本地开发环境的 100% 兼容：
-- `backend/bid-core/icg_demo/adapters.py` 中的 [MemoryRepository](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/adapters.py) 实现了完全同名的 9 个 Check 与 Export CRUD 方法：
+- `backend/bid-core/icg_demo/adapters.py` 中的 [MemoryRepository](../../backend/bid-core/icg_demo/adapters.py) 实现了完全同名的 9 个 Check 与 Export CRUD 方法：
   - `save_check`、`read_check`、`list_checks_by_project`、`delete_check`
   - `save_export`、`read_export`、`update_export_status`、`list_exports_by_project`、`delete_export`
 - 当未设置 `ICG_DATABASE_URL` 时，系统自动回退至纯内存运行，内部利用线程锁与深拷贝保障线程安全性与数据隔离，完全无需外部 MySQL 依赖。

@@ -8,10 +8,10 @@
 - **交付文档**：[BE-OUTLINE-PLAN-SERVICE.md](../delivery/BE-OUTLINE-PLAN-SERVICE.md)
 - **依赖基线**：BE-WORKFLOW-JOB-PERSISTENCE（工作流持久化）、BE-8ROLES-RBAC（八角色权限）
 - **关键源文件**：
-  - 服务实现：[outline_service.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/outline_service.py)
-  - 业务编排：[workflow.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/workflow.py)
-  - 权限控制：[project_access.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/project_access.py)
-  - 专属测试：[test_outline_plan_service.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/tests/backend/test_outline_plan_service.py)
+  - 服务实现：[outline_service.py](../../backend/bid-core/icg_demo/outline_service.py)
+  - 业务编排：[workflow.py](../../backend/bid-core/icg_demo/workflow.py)
+  - 权限控制：[project_access.py](../../backend/bid-core/icg_demo/project_access.py)
+  - 专属测试：[test_outline_plan_service.py](../../tests/backend/test_outline_plan_service.py)
 
 ---
 
@@ -19,7 +19,7 @@
 
 在大纲与章节树协同编辑场景下，大纲方案不仅是章节的简单目录罗列，而是统揽招标文件响应要求、章节分工编写责任、星号/废标硬性合规防线以及增值服务亮点的核心编制蓝图。
 
-`OutlinePlanService` 独立封装于 [outline_service.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/backend/bid-core/icg_demo/outline_service.py)，并挂载于 `WorkflowService.outline` 门面，实现大纲结构化方案读取与安全确认。
+`OutlinePlanService` 独立封装于 [outline_service.py](../../backend/bid-core/icg_demo/outline_service.py)，并挂载于 `WorkflowService.outline` 门面，实现大纲结构化方案读取与安全确认。
 
 ---
 
@@ -105,7 +105,7 @@ def confirm_outline_plan(
 
 ## 5. 自动化测试验证矩阵
 
-在 [test_outline_plan_service.py](file:///c:/Users/徐佳馨/if-children-have-been-grown/tests/backend/test_outline_plan_service.py) 中建立了 6 大维度的专属测试：
+在 [test_outline_plan_service.py](../../tests/backend/test_outline_plan_service.py) 中建立了 6 大维度的专属测试：
 1. `test_get_outline_plan_tree_and_metadata`：大纲树分册层级、章节类型推断、星号/废标标记识别与分册过滤；
 2. `test_asterisk_and_disqualified_cannot_be_marked_not_applicable`：星号与废标条款标记不适用强拦截（400 INVALID_ACTION）；
 3. `test_permission_gates_role_and_volume_owner`：只读角色拦截、非成员拦截、分册负责人本分册放行与跨分册 403 拦截、项目负责人全局放行；

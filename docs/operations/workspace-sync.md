@@ -4,7 +4,7 @@
 
 ## 范围与状态入口
 
-Git根为 `X:\ICG CO`，远端是项目GitHub私有仓库，自动快照分支固定 `codex/repository-foundation`。`ICG/` 的34份历史资料纳入；两个银行合同目录、凭据、依赖、构建及运行输出排除。根仅保留一套Git历史，旧 `if-children-have-been-grown/` 空目录不再作为独立仓库使用。
+Git根为 `X:\ICG CO`，远端是项目GitHub私有仓库，自动快照分支固定 `feat/opencode-ICG`。`ICG/` 的34份历史资料纳入；两个银行合同目录、凭据、依赖、构建及运行输出排除。根仅保留一套Git历史，旧 `if-children-have-been-grown/` 空目录不再作为独立仓库使用。
 
 实际配置为 `%LOCALAPPDATA%\CodexWorkspaceSync\Faith-Neil-if-children-have-been-grown\settings.json`。同目录的 `credential.dpapi` 用当前Windows用户加密；`runtime/status.json` 是最新状态，`events.jsonl` 是滚动事件记录。它们在工作区外，不能提交。
 

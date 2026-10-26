@@ -33,19 +33,19 @@
 
 | 领域目录 | 新增组件文件 | 对应提取自 | 行数 | 职责说明 |
 |---|---|---|---|---|
-| `src/app/` | [`LoginScreen.tsx`](file:///frontend/web/src/app/LoginScreen.tsx) | `App.tsx` | 70 行 | 登录全屏界面：合成账号切换、系统品牌介绍与登录提交 |
-| `src/project/` | [`CreateProjectModal.tsx`](file:///frontend/web/src/project/CreateProjectModal.tsx) | `App.tsx` | 66 行 | 新建投标项目弹窗：名称、编号、截止时间与涉密属性输入表单 |
-| `src/status/` | [`TaskDrawer.tsx`](file:///frontend/web/src/status/TaskDrawer.tsx) | `App.tsx` | 70 行 | 后台任务抽屉：长任务状态 Tag、实时进度条与页面跳转入口 |
-| `src/project/` | [`SourceLink.tsx`](file:///frontend/web/src/project/SourceLink.tsx) | `ProjectPages.tsx` | 21 行 | 招标文件条款页码定位与锚点链接小组件 |
-| `src/project/` | [`OriginalPreview.tsx`](file:///frontend/web/src/project/OriginalPreview.tsx) | `ProjectPages.tsx` | 110 行 | 原文预览卡片：原文文件与页码切换、条款引用高亮、原件安全下载 |
-| `src/project/` | [`ConflictCards.tsx`](file:///frontend/web/src/project/ConflictCards.tsx) | `ProjectPages.tsx` | 85 行 | 抽取事实冲突决策卡片列表：单选候选值与选定理由填写 |
-| `src/project/` | [`OverviewTab.tsx`](file:///frontend/web/src/project/OverviewTab.tsx) | `ProjectPages.tsx` | 146 行 | 项目工作区概览页（OverviewPage）：步骤进度、待办任务、分册正文提交率与最近导出 |
-| `src/project/` | [`TenderTab.tsx`](file:///frontend/web/src/project/TenderTab.tsx) | `ProjectPages.tsx` | 223 行 | 招标文件页（TenderPage）：多格式文件上传拖拽、解析触发、原件下载与异常文件移除 |
-| `src/project/` | [`ParseTab.tsx`](file:///frontend/web/src/project/ParseTab.tsx) | `ProjectPages.tsx` | 348 行 | 招标解析页（ParsePage）：原文条款多维分类、确认/修改/排除模态窗、冲突与事实抽屉联动 |
-| `src/project/` | [`FactsTab.tsx`](file:///frontend/web/src/project/FactsTab.tsx) | `ProjectPages.tsx` | 185 行 | 项目事实表（FactsPage）：必备事实列表、SLA 矩阵引用核对、事实修改与确认依据提交 |
-| `src/editor/` | [`EditorAssistantPanel.tsx`](file:///frontend/web/src/editor/EditorAssistantPanel.tsx) | `EditorPage.tsx` | 184 行 | 编辑器右栏助手（EditorAssistantPanel）：对话助手 Tab、整章建议卡片、问题列表与写作来源 |
-| `src/editor/` | [`EditorDiffModal.tsx`](file:///frontend/web/src/editor/EditorDiffModal.tsx) | `EditorPage.tsx` | 61 行 | 编辑器差异对比确认弹窗（EditorDiffModal）：当前正文与建议内容双栏对比与采纳 |
-| `src/editor/` | [`EditorVersionsDrawer.tsx`](file:///frontend/web/src/editor/EditorVersionsDrawer.tsx) | `EditorPage.tsx` | 61 行 | 编辑器历史版本抽屉（EditorVersionsDrawer）：正文版本时间线与核对恢复为草稿 |
+| `src/app/` | [`LoginScreen.tsx`](../../frontend/web/src/app/LoginScreen.tsx) | `App.tsx` | 70 行 | 登录全屏界面：合成账号切换、系统品牌介绍与登录提交 |
+| `src/project/` | [`CreateProjectModal.tsx`](../../frontend/web/src/project/CreateProjectModal.tsx) | `App.tsx` | 66 行 | 新建投标项目弹窗：名称、编号、截止时间与涉密属性输入表单 |
+| `src/status/` | [`TaskDrawer.tsx`](../../frontend/web/src/status/TaskDrawer.tsx) | `App.tsx` | 70 行 | 后台任务抽屉：长任务状态 Tag、实时进度条与页面跳转入口 |
+| `src/project/` | [`SourceLink.tsx`](../../frontend/web/src/project/SourceLink.tsx) | `ProjectPages.tsx` | 21 行 | 招标文件条款页码定位与锚点链接小组件 |
+| `src/project/` | [`OriginalPreview.tsx`](../../frontend/web/src/project/OriginalPreview.tsx) | `ProjectPages.tsx` | 110 行 | 原文预览卡片：原文文件与页码切换、条款引用高亮、原件安全下载 |
+| `src/project/` | [`ConflictCards.tsx`](../../frontend/web/src/project/ConflictCards.tsx) | `ProjectPages.tsx` | 85 行 | 抽取事实冲突决策卡片列表：单选候选值与选定理由填写 |
+| `src/project/` | [`OverviewTab.tsx`](../../frontend/web/src/project/OverviewTab.tsx) | `ProjectPages.tsx` | 146 行 | 项目工作区概览页（OverviewPage）：步骤进度、待办任务、分册正文提交率与最近导出 |
+| `src/project/` | [`TenderTab.tsx`](../../frontend/web/src/project/TenderTab.tsx) | `ProjectPages.tsx` | 223 行 | 招标文件页（TenderPage）：多格式文件上传拖拽、解析触发、原件下载与异常文件移除 |
+| `src/project/` | [`ParseTab.tsx`](../../frontend/web/src/project/ParseTab.tsx) | `ProjectPages.tsx` | 348 行 | 招标解析页（ParsePage）：原文条款多维分类、确认/修改/排除模态窗、冲突与事实抽屉联动 |
+| `src/project/` | [`FactsTab.tsx`](../../frontend/web/src/project/FactsTab.tsx) | `ProjectPages.tsx` | 185 行 | 项目事实表（FactsPage）：必备事实列表、SLA 矩阵引用核对、事实修改与确认依据提交 |
+| `src/editor/` | [`EditorAssistantPanel.tsx`](../../frontend/web/src/editor/EditorAssistantPanel.tsx) | `EditorPage.tsx` | 184 行 | 编辑器右栏助手（EditorAssistantPanel）：对话助手 Tab、整章建议卡片、问题列表与写作来源 |
+| `src/editor/` | [`EditorDiffModal.tsx`](../../frontend/web/src/editor/EditorDiffModal.tsx) | `EditorPage.tsx` | 61 行 | 编辑器差异对比确认弹窗（EditorDiffModal）：当前正文与建议内容双栏对比与采纳 |
+| `src/editor/` | [`EditorVersionsDrawer.tsx`](../../frontend/web/src/editor/EditorVersionsDrawer.tsx) | `EditorPage.tsx` | 61 行 | 编辑器历史版本抽屉（EditorVersionsDrawer）：正文版本时间线与核对恢复为草稿 |
 
 ### 2. 主体单体重构与行数瘦身
 

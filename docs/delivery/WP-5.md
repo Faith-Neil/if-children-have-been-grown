@@ -30,23 +30,23 @@
 ### 1. 后端路由与错误体治理
 
 1. **`/api/demo/*` 废弃标记与响应头**：
-   - 在 [`backend/bid-core/icg_demo/main.py`](file:///backend/bid-core/icg_demo/main.py) 中，将 `/api/demo/accounts` 和 `/api/demo/login` 路由装饰器显式添加 `deprecated=True`。
+   - 在 [`backend/bid-core/icg_demo/main.py`](../../backend/bid-core/icg_demo/main.py) 中，将 `/api/demo/accounts` 和 `/api/demo/login` 路由装饰器显式添加 `deprecated=True`。
    - 在全局 HTTP 中间件 `request_identity` 和 `error_response` 中，针对所有 `/api/demo` 请求注入 `Deprecation: true` 响应头，向下兼容的同时明确告知调用方接口已弃用。
-   - 同步在 [`spec/openapi/demo-v1.json`](file:///spec/openapi/demo-v1.json) 中为对应端点添加 `"deprecated": true`，保持契约校验严格通过。
+   - 同步在 [`spec/openapi/demo-v1.json`](../../spec/openapi/demo-v1.json) 中为对应端点添加 `"deprecated": true`，保持契约校验严格通过。
 2. **统一错误响应体格式**：
    - 所有异常与错误统一标准化为：`{"code": code, "message": message, "details": details or {}, "traceId": request_id}`。
    - 响应头统一注入 `X-Request-ID: <traceId>` 与 `Cache-Control: no-store`。
 3. **演示账号隔离与生产门禁**：
-   - 在 [`backend/bid-core/icg_demo/domain.py`](file:///backend/bid-core/icg_demo/domain.py) 中定义 `DEMO_ONLY_ACCOUNT_IDS` 集合，并在 `Account` 实体标注 `_DEMO_ONLY: bool = False`。
-   - 在 `seed_state()`（[`backend/bid-core/icg/infra/memory_repository.py`](file:///backend/bid-core/icg/infra/memory_repository.py)）中为全部内置合成账号明确标注 `_DEMO_ONLY=True`。
+   - 在 [`backend/bid-core/icg_demo/domain.py`](../../backend/bid-core/icg_demo/domain.py) 中定义 `DEMO_ONLY_ACCOUNT_IDS` 集合，并在 `Account` 实体标注 `_DEMO_ONLY: bool = False`。
+   - 在 `seed_state()`（[`backend/bid-core/icg/infra/memory_repository.py`](../../backend/bid-core/icg/infra/memory_repository.py)）中为全部内置合成账号明确标注 `_DEMO_ONLY=True`。
    - 在 `DemoService.login` 中增加生产门禁：当 `ICG_ALLOW_DEMO_LOGIN=0`、`DEMO_ACCOUNTS_ENABLED=0` 或 `ICG_ENV=production` 时，严格抛出 `DomainError(403, "FORBIDDEN", "生产配置下禁用内置演示账号登录。")`，彻底杜绝生产环境未授权混用演示账号风险。
 
 ### 2. 前端请求与客户端对齐
 
 1. **API 调用切换至 `/api/v1`**：
-   - 在 [`frontend/web/src/app/App.tsx`](file:///frontend/web/src/app/App.tsx) 中，将项目列表读取从旧 `/api/projects` 平滑切换为 `/api/v1/projects`。
+   - 在 [`frontend/web/src/app/App.tsx`](../../frontend/web/src/app/App.tsx) 中，将项目列表读取从旧 `/api/projects` 平滑切换为 `/api/v1/projects`。
 2. **错误解析与追踪号兼容**：
-   - [`frontend/web/src/shared/api.ts`](file:///frontend/web/src/shared/api.ts) 中继续保持以 `traceId` 为权威来源，兼容回退至 `request_id`，统一包装为 `ApiError` 并向用户提供可排错追踪号提示。
+   - [`frontend/web/src/shared/api.ts`](../../frontend/web/src/shared/api.ts) 中继续保持以 `traceId` 为权威来源，兼容回退至 `request_id`，统一包装为 `ApiError` 并向用户提供可排错追踪号提示。
 
 ---
 

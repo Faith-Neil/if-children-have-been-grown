@@ -7,12 +7,12 @@
 - 对应任务：[INT-VOLUME-FINALIZE-GLUE](../delivery/INT-VOLUME-FINALIZE-GLUE.md)
 - 关联问题：[ISSUE-005](../../issues/ISSUE-005.md)、[ISSUE-007](../../issues/ISSUE-007.md)
 - 核心源文件：
-  - [volume-api.ts](file:///c:/Users/徐佳馨/if-children-have-been-grown/frontend/web/src/project/volume-api.ts)
-  - [export-checks-core.ts](file:///c:/Users/徐佳馨/if-children-have-been-grown/frontend/web/src/project/export-checks-core.ts)
-  - [ProjectPages.tsx](file:///c:/Users/徐佳馨/if-children-have-been-grown/frontend/web/src/project/ProjectPages.tsx)
-  - [OverviewTab.tsx](file:///c:/Users/徐佳馨/if-children-have-been-grown/frontend/web/src/project/OverviewTab.tsx)
-  - [EditorPage.tsx](file:///c:/Users/徐佳馨/if-children-have-been-grown/frontend/web/src/editor/EditorPage.tsx)
-  - [types.ts](file:///c:/Users/徐佳馨/if-children-have-been-grown/frontend/web/src/shared/types.ts)
+  - [volume-api.ts](../../frontend/web/src/project/volume-api.ts)
+  - [export-checks-core.ts](../../frontend/web/src/project/export-checks-core.ts)
+  - [ProjectPages.tsx](../../frontend/web/src/project/ProjectPages.tsx)
+  - [OverviewTab.tsx](../../frontend/web/src/project/OverviewTab.tsx)
+  - [EditorPage.tsx](../../frontend/web/src/editor/EditorPage.tsx)
+  - [types.ts](../../frontend/web/src/shared/types.ts)
 
 ---
 
