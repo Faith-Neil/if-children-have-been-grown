@@ -4,7 +4,7 @@
 
 # 项目任务看板
 
-任务版本：0.7；治理版本：g1.1；更新日期：2026-10-26；当前实现 Issue：[ISSUE-007](../issues/ISSUE-007.md)；结构收官：[ISSUE-038](../issues/ISSUE-038.md)；离线检查：[ISSUE-012](../issues/ISSUE-012.md)；生产门禁：[ISSUE-005](../issues/ISSUE-005.md)；模型决定：[ISSUE-010](../issues/ISSUE-010.md)（closed）；tip：59fbbf3。
+任务版本：0.7；治理版本：g1.1；更新日期：2026-10-26；当前实现 Issue：[ISSUE-007](../issues/ISSUE-007.md)；结构收官：[ISSUE-038](../issues/ISSUE-038.md)；离线检查：[ISSUE-012](../issues/ISSUE-012.md)；生产门禁：[ISSUE-005](../issues/ISSUE-005.md)；模型决定：[ISSUE-010](../issues/ISSUE-010.md)（closed）；tip：7296017。
 
 将 [前端 ROADMAP](ROADMAP.md) 的 Phase 0～8 与发布 Milestone 1～5 拆为 **59 张任务卡**，由 FE-M0～FE-M8 管理。前缀 FE 表示前端合作交付；这些编号与参考全系统 M0～M8 的门禁、周期和范围独立。
 
