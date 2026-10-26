@@ -536,3 +536,35 @@
 - [x] 前端分册定稿操作成功调用 `/api/v1` 定稿端点，状态即时刷新。
 - [x] 存在 blocker 缺陷时前端正确呈现 409 拦截提示，消解后定稿成功。
 - [x] 前后端联合冒烟通过，契约 100% 对齐 OpenAPI。
+
+<a id="be-compliance-rules-p1"></a>
+
+## BE-COMPLIANCE-RULES-P1 · 核心合规规则第二批编号落地（R03/R04/R09/R10）
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-progress |
+| 估算 | 4小时以内；PRD 核心合规规则第二批结构化落地与导出阻断联动 |
+| 关联 Issue | [ISSUE-006](../../issues/ISSUE-006.md)、[ISSUE-007](../../issues/ISSUE-007.md)、[ISSUE-027](../../issues/ISSUE-027.md) |
+| 依赖 | [BE-COMPLIANCE-RULES-P0](BE-M0.md#be-compliance-rules-p0)、[BE-VOLUME-FINALIZE-GATE](BE-M0.md#be-volume-finalize-gate) |
+| 来源 | PRD v1.8 §5.8 商务与资质合规规则核验规范 |
+| 完成时交付 | `docs/delivery/BE-COMPLIANCE-RULES-P1.md`（待产出） |
+| 代码解释 | `docs/code/BE-COMPLIANCE-RULES-P1.md`（待产出） |
+
+范围：在 `backend/bid-core/icg/domain/compliance_rules.py` 中扩展落地 R03（资质有效期核验）、R04（联合体协议核验）、R09（服务承诺一致性与SLA响应）、R10（质保期与响应时间）规则裁决；集成至 run_check 与整本导出门禁，在 submission 模式下存在 blocker 强行拦截；编写专属单测 tests/backend/test_compliance_rules_p1.py。
+
+<a id="int-model-config-modal"></a>
+
+## INT-MODEL-CONFIG-MODAL · 大模型与 RAGFlow 弹窗配置前后端契约联调
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-progress |
+| 估算 | 4小时；大模型与知识库配置弹窗前后端契约打通与连通性联调 |
+| 关联 Issue | [ISSUE-010](../../issues/ISSUE-010.md)、[ISSUE-028](../../issues/ISSUE-028.md)、[ISSUE-037](../../issues/ISSUE-037.md) |
+| 依赖 | [AI-RAGFLOW-KB-SYNC](AI-M0.md#ai-ragflow-kb-sync)、[APP-M2-T036](APP-M2.md#app-m2-t036) |
+| 来源 | 用户 2026-10-26 拍板“模型与知识库前端定为弹窗配置页” |
+| 完成时交付 | `docs/delivery/INT-MODEL-CONFIG-MODAL.md`（待产出） |
+| 代码解释 | `docs/code/INT-MODEL-CONFIG-MODAL.md`（待产出） |
+
+范围：打通前端设置/导航弹窗组件与后端 /api/v1/model-configs 及 /api/v1/ragflow/config 的前后端调用契约；支持模型配置列表查询、连通性实时测试、项目绑定与内网 RAGFlow 配置更新；在涉密项目绑定非本地模型时前端呈现 403 阻断；编写契约联调测试。
