@@ -27,9 +27,9 @@
 - **下一棒默认顺序（D0～D5 执行路线图，按序推进）**：
   - D0 治理回写：**【已完成】** 实 tip `e586f26` 回写，WP1～7 纠偏，B1～B6 拍板落地，产出 [D-728](delivery/2026-10-26-debt-backlog-board-sync.md) 与 [D-729](delivery/2026-10-26-signed-awaiting-pm.md)。
   - D1 默认路径诚实化：**【已完成】** 启动脚本与文档明确生产必用 MySQL；关演示冒烟与 CI 强制 `ICG_REQUIRE_MYSQL=1`；堵住无 URL 静默 Memory 当绿；前端明确 `VITE_DEMO` 诚实默认策略为 `false`（关演示走正式账号与可信会话），仅显式 `VITE_DEMO=1` 开启演示；测试全绿，交付见 [D-730](delivery/2026-10-26-demo-mysql-defaults.md) 与 [D-731](code/2026-10-26-demo-mysql-defaults.md)（in-review）。
-  - D2 后端去平铺（包重命名与迁移）：落实 B1 拍板，主实现迁入 `backend/bid-core/icg/{api,app,domain,infra}`，`icg_demo` 降为薄兼容，填满 `icg/api` 与 `icg/app`；根级业务 py 显著下降。**【下一棒】**
-  - D3 持久化与双错误体收口：正文/草稿等聚合点迁入 MySQL 或加测试专用门禁；错误体统一 `{code,message,details,traceId}`；落实 B4 拍板 `/api/demo` 标 deprecated。
-  - D4 产品断环：落实 B5/B6 拍板，对接内网真 RAGFlow 补齐 dataset/kb_sync 摄入；推进下一批高优先 PRD 合规规则；关演示主链路端到端人工冒烟留证。
+  - D2 后端去平铺（包重命名与迁移）：**【已完成主实现分层迁移与 Façade 瘦身】** 落实 B1 拍板，主实现迁入 ackend/bid-core/icg/{api,app,domain,infra}，icg_demo 降为薄兼容（由 12,589 行锐减至 364 行，压缩率 97.11%），填满 icg/api 与 icg/app；测试与 OpenAPI check 全绿，交付见 [D-736](delivery/2026-10-26-backend-unflatten-progress.md) 与 [D-737](code/2026-10-26-backend-unflatten-progress.md)（in-review）。
+  - D3 持久化与双错误体收口：**【已完成契约与错误体收口联调】** 落实 B4 拍板 `/api/demo` 标 deprecated 与 RFC 8594 Sunset 响应头；全站统一规范错误体 `{code,message,details,traceId}` 并严格优先解构；后端与前端双错误体与废弃声明专属测试全绿；交付见 [D-732](delivery/2026-10-26-persistence-and-error-body.md) 与 [D-733](code/2026-10-26-persistence-and-error-body.md)（in-review）。
+  - D4 产品断环（RAGFlow 知识库摄入）：**【已完成知识库摄入闭环】** 落实 B5/B6 拍板，补齐 RAGFlow dataset/kb_sync 摄入闭环，实现多租户命名空间强隔离、文档上传、内置解析轮询、状态映射与优雅降级；专属单测 10 项全绿通过（9 passed 1 skipped），联合回归 71 项全绿通过；交付见 [D-734](delivery/2026-10-26-ragflow-kb-sync.md) 与 [D-735](code/2026-10-26-ragflow-kb-sync.md)（in-review）。推进下一批高优先 PRD 合规规则与关演示主链路端到端人工冒烟留证。
   - D5 二次瘦身与低优先：落实 B2 拍板引入 react-router；App.tsx / EditorPage.tsx 拆解瘦身；OpenAPI / styles.css 拆分；清理 tests/frontend 转发壳。
 
 ## 规划未落地债收口与用户拍板纪要（2026-10-26）
@@ -534,13 +534,15 @@
 | [AI-06](tasks/AI-M0.md#ai-06) | 证据候选改走 RAGFlow 检索（保持 in-review；真 RAGFlow 列入 ③，假服务仅限 CI，勿标生产已接好） | in-review | [AI-05](tasks/AI-M0.md#ai-05) | [ISSUE-037](../issues/ISSUE-037.md) | [交付](delivery/AI-06.md) / [流水线交付](delivery/AI-GENERATION-PIPELINE.md) |
 | [AI-COMPLIANCE-CROSS-CHECK](tasks/AI-M0.md#ai-compliance-cross-check) | AI 合规检查依据交叉核验与差距诊断 | in-review | [APP-M2-T185](tasks/APP-M2.md#app-m2-t185) | [ISSUE-037](../issues/ISSUE-037.md)；[ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/AI-COMPLIANCE-CROSS-CHECK.md) |
 | [AI-M0-RAGFLOW-VERIFY](tasks/AI-M0.md#ai-m0-ragflow-verify) | RAGFlow 端点对接与检索隔离审查 | in-review | [AI-04](tasks/AI-M0.md#ai-04)、[AI-05](tasks/AI-M0.md#ai-05)、[AI-06](tasks/AI-M0.md#ai-06) | [ISSUE-037](../issues/ISSUE-037.md)；[ISSUE-010](../issues/ISSUE-010.md) | [交付](delivery/AI-M0-RAGFLOW-VERIFY.md) |
-| [BE-TECH-DEBT-01](../issues/ISSUE-038.md#be-tech-debt-01) | suggestions 等双错误体收敛（统一规范错误体并对齐单测） | planned | [WP-5](delivery/WP-5.md) | [ISSUE-038](../issues/ISSUE-038.md) | `docs/delivery/BE-TECH-DEBT-01.md` |
+| [AI-RAGFLOW-KB-SYNC](tasks/AI-M0.md#ai-ragflow-kb-sync) | RAGFlow 知识库摄入与同步闭环（dataset/kb_sync，租户隔离与方案片段同步，落实拍板 B5/B6） | in-review | [AI-M0-RAGFLOW-VERIFY](tasks/AI-M0.md#ai-m0-ragflow-verify) | [ISSUE-037](../issues/ISSUE-037.md)；[ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/2026-10-26-ragflow-kb-sync.md) |
+| [BE-TECH-DEBT-01](../issues/ISSUE-038.md#be-tech-debt-01) | suggestions 等双错误体收敛（统一规范错误体并对齐单测） | in-review | [WP-5](delivery/WP-5.md) | [ISSUE-038](../issues/ISSUE-038.md) | [交付](delivery/2026-10-26-persistence-and-error-body.md) |
 | [FE-TECH-DEBT-01](../issues/ISSUE-038.md#fe-tech-debt-01) | EditorPage 等巨石二次瘦身（<400/600 精神，抽离 hooks 与子面板） | planned | [WP-3](delivery/WP-3.md) | [ISSUE-038](../issues/ISSUE-038.md) | `docs/delivery/FE-TECH-DEBT-01.md` |
-| [BE-TECH-DEBT-02](../issues/ISSUE-038.md#be-tech-debt-02) | 填充或删除空 `icg/api`、`icg/app`（workflow_orchestrator 细化与空包处置） | planned | [WP-4](delivery/WP-4.md) | [ISSUE-038](../issues/ISSUE-038.md) | `docs/delivery/BE-TECH-DEBT-02.md` |
+| [BE-TECH-DEBT-02](../issues/ISSUE-038.md#be-tech-debt-02) | 填充 icg/api 与 icg/app，业务实现迁入 icg 分层体系（去平铺与包命名体系规范化） | in-review | [WP-4](delivery/WP-4.md) | [ISSUE-038](../issues/ISSUE-038.md) | [交付](delivery/2026-10-26-backend-unflatten-progress.md) |
 | [REV-SMOKE-001](delivery/REV-SMOKE-001.md) | 关演示全流程冒烟联调与断点排查（6大主流程端到端闭环验证） | in-review | [WP-5](delivery/WP-5.md)、[WP-6](delivery/WP-6.md)、[WP-7](delivery/WP-7.md) | [ISSUE-005](../issues/ISSUE-005.md)、[ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/REV-SMOKE-001.md) |
 | [FE-SNIPPET-LIBRARY](delivery/FE-SNIPPET-LIBRARY.md) | 知识库方案片段管理最小页（真实列表/详情/变量展示与公司隔离） | in-review | [WP-2](delivery/WP-2.md)、[APP-M2-T078](delivery/APP-M2-T078.md) | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/FE-SNIPPET-LIBRARY.md) |
 | [FE-WRITING-ARCHIVE](delivery/FE-WRITING-ARCHIVE.md) | 写作档案与风格规范最小页（语气偏好/禁用词/公文排版/标杆样章与公司隔离） | in-review | [WP-2](delivery/WP-2.md)、[FE-SNIPPET-LIBRARY](delivery/FE-SNIPPET-LIBRARY.md) | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/FE-WRITING-ARCHIVE.md) |
 | [INT-VOLUME-FINALIZE-GLUE](delivery/INT-VOLUME-FINALIZE-GLUE.md) | 分册定稿与工作台/导出的前后端契约胶水打通（状态机/导出徽章/递交门禁联动） | in-review | [BE-VOLUME-FINALIZE-GATE](tasks/BE-M0.md#be-volume-finalize-gate)、[REV-SMOKE-001](delivery/REV-SMOKE-001.md) | [ISSUE-005](../issues/ISSUE-005.md)、[ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/INT-VOLUME-FINALIZE-GLUE.md) |
+| [FE-REACT-ROUTER](delivery/2026-10-26-frontend-react-router.md) | React-Router 现代化路由体系与可信守卫落地（落实用户拍板 B2） | in-review | [WP-6](delivery/WP-6.md)、[FE-WRITING-ARCHIVE](delivery/FE-WRITING-ARCHIVE.md) | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/2026-10-26-frontend-react-router.md) |
 <!-- task-board:end -->
 
 ## 每次推进的同步顺序

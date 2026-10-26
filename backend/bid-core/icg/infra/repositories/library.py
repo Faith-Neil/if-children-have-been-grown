@@ -11,7 +11,7 @@ from uuid import uuid4
 
 from sqlalchemy import text
 
-from icg_demo.domain import DomainError
+from icg.domain.domain import DomainError
 from icg.infra.repositories.common import json_value
 
 

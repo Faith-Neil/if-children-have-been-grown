@@ -44,7 +44,7 @@
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| BE-TECH-DEBT-01 | 收敛 suggestions 双错误体至规范体 | `backend/bid-core/icg_demo/main.py`、`tests/backend/test_openai_compatible_model.py` | AC-01 | planned |
+| BE-TECH-DEBT-01 | 收敛 suggestions 双错误体至规范体 | `backend/bid-core/icg_demo/main.py`、`tests/backend/test_openai_compatible_model.py` | AC-01 | in-review |
 | FE-TECH-DEBT-01 | EditorPage.tsx 状态机与子面板二次拆分（目标 < 600 行） | `frontend/web/src/editor/EditorPage.tsx` | AC-02 | planned |
 | BE-TECH-DEBT-02 | workflow_orchestrator.py 服务细化与 icg/api、icg/app 填充 | `backend/bid-core/icg/` | AC-03 | planned |
 

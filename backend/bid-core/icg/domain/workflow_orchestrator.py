@@ -15,11 +15,11 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import PurePosixPath
 from typing import Any, Callable
 
-from icg_demo.domain import Chapter, DemoService, DemoState, DomainError, Principal, iso_time, new_id
-from icg_demo.ports import ParserProvider
-from icg_demo.input_snapshot import project_input_fingerprint
-from icg_demo.sla import SlaService, public_sla, resolve_variables, sla_facts, sla_issues
-from icg_demo.generation_context import (
+from icg.domain.domain import Chapter, DemoService, DemoState, DomainError, Principal, iso_time, new_id
+from icg.domain.ports import ParserProvider
+from icg.domain.input_snapshot import project_input_fingerprint
+from icg.domain.sla import SlaService, public_sla, resolve_variables, sla_facts, sla_issues
+from icg.domain.generation_context import (
     build_generation_context,
     chapter_plan,
     evidence_expired,
@@ -33,7 +33,7 @@ from icg_demo.generation_context import (
     validate_model_output,
     writing_source_fingerprint,
 )
-from icg_demo.project_access import (
+from icg.domain.project_access import (
     VOLUMES,
     writable,
     lead,
@@ -46,13 +46,12 @@ from icg_demo.project_access import (
     project_permissions,
     public_team,
 )
-from icg_demo.outline_service import OutlinePlanService, OutlinePlanError, infer_chapter_type
-from icg_demo.answer_card import AnswerCardService
-from icg_demo.tender_retrieval import TenderRetrievalService
-from icg_demo.editor_ai_context import build_editor_prompt_context
-from icg_demo.parsing import LocalTextParser
-from icg_demo.idempotency import lookup, remember
-from icg.infra.repositories.chapters import decompose_paragraphs
+from icg.domain.outline_plan import OutlinePlanService, OutlinePlanError, infer_chapter_type
+from icg.domain.answer_card import AnswerCardService
+from icg.infra.tender_retrieval import TenderRetrievalService
+from icg.domain.editor_ai_context import build_editor_prompt_context
+from icg.domain.parsing import LocalTextParser
+from icg.domain.idempotency import lookup, remember
 
 from icg.domain.export_service import ExportServiceMixin, CheckBlockerError, chapter_export_block, DOCX_MEDIA_TYPE, WORD_DEFAULT_FORMAT_METADATA, SHANGHAI
 from icg.domain.outline_service import OutlineServiceMixin
@@ -93,13 +92,13 @@ class WorkflowService(OutlineServiceMixin, GenerationServiceMixin, ExportService
         self.repository = demo.repository
         self.parser = parser
         self.sla = SlaService(self)
-        from icg_demo.project_team import ProjectTeamService
+        from icg.domain.project_team import ProjectTeamService
         self.team = ProjectTeamService(self)
-        from icg_demo.answer_card import AnswerCardService
+        from icg.domain.answer_card import AnswerCardService
         self.answer_card = AnswerCardService(demo)
-        from icg_demo.outline_service import OutlinePlanService
+        from icg.domain.outline_plan import OutlinePlanService
         self.outline = OutlinePlanService(demo)
-        from icg_demo.tender_retrieval import TenderRetrievalService
+        from icg.infra.tender_retrieval import TenderRetrievalService
         self.tender_retrieval = TenderRetrievalService(demo)
 
     @staticmethod
@@ -118,16 +117,16 @@ class WorkflowService(OutlineServiceMixin, GenerationServiceMixin, ExportService
 
     @staticmethod
     def _idempotency(key: str | None) -> str:
-        from icg_demo.idempotency import validate_key
+        from icg.domain.idempotency import validate_key
         return validate_key(key)
 
     @staticmethod
     def _request_hash(action: str, payload: dict, expected: str | None) -> str:
-        from icg_demo.idempotency import fingerprint
+        from icg.domain.idempotency import fingerprint
         return fingerprint(action, payload, expected)
 
     def _preflight(self, principal, project_id, action, payload, expected, key):
-        from icg_demo.idempotency import lookup
+        from icg.domain.idempotency import lookup
         key = self._idempotency(key)
         state = self.repository.read()
         project = self.demo._project(state, principal, project_id)
@@ -152,7 +151,7 @@ class WorkflowService(OutlineServiceMixin, GenerationServiceMixin, ExportService
 
     def _write(self, principal: Principal, project_id: str, action: str, payload: dict,
                expected: str | None, key: str | None, operation: Callable, audit_details: dict | None = None) -> dict:
-        from icg_demo.idempotency import lookup, remember
+        from icg.domain.idempotency import lookup, remember
         key = self._idempotency(key)
         request_fingerprint = self._request_hash(action, payload, expected)
 
@@ -178,7 +177,7 @@ class WorkflowService(OutlineServiceMixin, GenerationServiceMixin, ExportService
         identity = principal.user.id
         name, _, resource_id = action.partition(":")
         if name in ("volume.finalize", "volume.unlock"):
-            from icg_demo.project_access import normalize_role
+            from icg.domain.project_access import normalize_role
             project = state.projects.get(project_id)
             if project and project.company_id != principal.user.company_id:
                 raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
@@ -371,7 +370,7 @@ class WorkflowService(OutlineServiceMixin, GenerationServiceMixin, ExportService
             except ValueError:
                 chapter_number = "1.0"
 
-        from icg_demo.outline_service import infer_chapter_type
+        from icg.domain.outline_plan import infer_chapter_type
         outline_type = meta.get("chapter_type") or infer_chapter_type(chapter.title)
 
         # 4. 组装段落结构与 citations
@@ -420,7 +419,7 @@ class WorkflowService(OutlineServiceMixin, GenerationServiceMixin, ExportService
                 if latest_v.get("created_at"):
                     updated_at_str = latest_v["created_at"]
 
-            from icg_demo.database import decompose_paragraphs
+            from icg.infra.database import decompose_paragraphs
             paragraphs = decompose_paragraphs(
                 chapter.content or "",
                 chapter.id,
@@ -429,7 +428,7 @@ class WorkflowService(OutlineServiceMixin, GenerationServiceMixin, ExportService
                 updated_at=updated_at_str,
             )
 
-        from icg_demo.project_access import chapter_edit, chapter_permissions
+        from icg.domain.project_access import chapter_edit, chapter_permissions
         can_edit = chapter_edit(state, chapter, principal.user.id)
         permissions = chapter_permissions(state, chapter, principal.user.id)
 
@@ -628,7 +627,7 @@ class WorkflowService(OutlineServiceMixin, GenerationServiceMixin, ExportService
                     "facts": list(actual["facts"].values()), "conflicts": list(actual["conflicts"].values())}
         result = self._write(principal, project_id, "parse.run", payload, expected, key, operation)
         if result["job"]["status"] == "failed":
-            from icg_demo.errors import status_for
+            from icg.domain.errors import status_for
             error = result["job"]["error"]
             raise DomainError(status_for(error["code"]), error["code"], error["message"],
                               {"job_id": result["job"]["id"], "revision": result["revision"]})
@@ -814,7 +813,7 @@ class WorkflowService(OutlineServiceMixin, GenerationServiceMixin, ExportService
                 "items": [self._public_library(item) for item in state.library.values() if item["company_id"] == principal.user.company_id]}
 
     def write_library(self, principal, payload, expected, key, item_id=None):
-        from icg_demo.idempotency import lookup, remember
+        from icg.domain.idempotency import lookup, remember
         self.demo._writer(principal)
         key = self._idempotency(key)
         company = principal.user.company_id

@@ -52,7 +52,7 @@ import { extractCitationIds, type CiteKind, type CitationMeta } from './cite-cap
 type Lease = { lease_token: string; expires_at: string; owner_id: string };
 type Version = { revision: number; content: string; actor_id: string; created_at: string };
 
-export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: boolean) => void }) {
+export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirtyChange: (dirty: boolean) => void; initialChapterId?: string }) {
   const { workspace, user, token, busy: projectBusy, mutate, reload, report, navigate } = useProject();
   const { modal } = AntApp.useApp();
   const breakpoint = useBreakpoint();
@@ -60,7 +60,15 @@ export default function EditorPage({ onDirtyChange }: { onDirtyChange: (dirty: b
   const [assistantCollapsed, setAssistantCollapsed] = useState(false);
   const [outlineDrawerOpen, setOutlineDrawerOpen] = useState(false);
   const [volume, setVolume] = useState<Volume>('technical');
-  const [chapterId, setChapterId] = useState(workspace.chapters.find(item => item.volume === 'technical')?.id ?? workspace.chapters[0]?.id ?? '');
+  const [chapterId, setChapterId] = useState(() => {
+    if (initialChapterId && workspace.chapters.some(item => item.id === initialChapterId)) return initialChapterId;
+    return workspace.chapters.find(item => item.volume === 'technical')?.id ?? workspace.chapters[0]?.id ?? '';
+  });
+  useEffect(() => {
+    if (initialChapterId && workspace.chapters.some(item => item.id === initialChapterId)) {
+      setChapterId(initialChapterId);
+    }
+  }, [initialChapterId]);
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const { volumes: volumesStatus } = useVolumesStatus(workspace.project.id, token, workspace.revision);
   const isCurrentVolumeFinalized = isVolumeFinalized(volumesStatus, chapter?.volume);

@@ -10,9 +10,9 @@ from typing import Annotated, Any, Literal
 from fastapi import APIRouter, Depends, Header, Query
 from pydantic import BaseModel, ConfigDict, Field
 
-from icg_demo.domain import DemoService, DomainError, Principal
-from icg_demo.schemas import RequestBody, ResponseBody
-from icg_demo.workflow_schemas import v1_error_responses
+from icg.domain.domain import DemoService, DomainError, Principal
+from icg.domain.schemas import RequestBody, ResponseBody
+from icg.domain.workflow_schemas import v1_error_responses
 
 
 class ComplianceRuleIssueSchema(ResponseBody):
@@ -75,7 +75,7 @@ def include_compliance_routes(application, service: DemoService, current_user):
         workflow = getattr(application.state, "workflow", None)
         if workflow is None:
             from icg.domain.workflow_orchestrator import WorkflowService
-            from icg_demo.parsing import LocalTextParser
+            from icg.domain.parsing import LocalTextParser
             workflow = WorkflowService(service, LocalTextParser())
             application.state.workflow = workflow
         return workflow

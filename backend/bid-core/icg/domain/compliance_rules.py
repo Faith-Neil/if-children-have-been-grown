@@ -13,7 +13,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Literal
 
-from icg_demo.domain import (
+from icg.domain.domain import (
     DemoService,
     DemoState,
     DomainError,
@@ -21,8 +21,8 @@ from icg_demo.domain import (
     iso_time,
     new_id,
 )
-from icg_demo.generation_context import evidence_expired
-from icg_demo.project_access import (
+from icg.domain.generation_context import evidence_expired
+from icg.domain.project_access import (
     VOLUMES,
     lead,
     writable,

@@ -11,7 +11,7 @@ from typing import Any, Callable, TypeVar
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
-from icg_demo.domain import Chapter, DemoState, DomainError, Lease, Project, iso_time
+from icg.domain.domain import Chapter, DemoState, DomainError, Lease, Project, iso_time
 from icg.infra.mysql_gate import create_mysql_engine, RECEIPT_TTL
 from icg.infra.memory_repository import MemoryRepository
 from icg.infra.repositories.common import as_timestamp, parse_db_timestamp, utc_naive, json_value
@@ -332,7 +332,7 @@ class MysqlConnectionRepository:
                 bindings = connection.execute(text(
                     "SELECT project_id, model_config_id FROM demo_project_model_config"
                 )).all()
-            from icg_demo.model_config_storage import ModelConfig
+            from icg.infra.model_config_storage import ModelConfig
             for (cid, company_id, name, provider, base_url, model, encrypted_api_key,
                  api_key_masked, is_local, allow_sensitive, stream_enabled, json_mode_enabled,
                  revision, timeout_seconds, max_tokens) in configs:

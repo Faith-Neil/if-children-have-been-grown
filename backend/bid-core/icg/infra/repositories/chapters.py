@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from sqlalchemy import text
 
-from icg_demo.domain import Chapter, DomainError, iso_time
+from icg.domain.domain import Chapter, DomainError, iso_time
 from icg.infra.repositories.common import as_timestamp, utc_naive
 
 

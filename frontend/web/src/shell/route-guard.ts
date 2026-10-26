@@ -330,8 +330,8 @@ export function checkRoutePermission(params: RoutePermissionCheckParams): RouteP
     };
   }
 
-  // 3. 根目录自动放行
-  if (route.kind === 'home') {
+  // 3. 根目录与登录页自动放行
+  if (route.kind === 'home' || route.kind === 'login') {
     return { allowed: true, role: normRole, roleLabel };
   }
 

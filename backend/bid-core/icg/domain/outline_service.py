@@ -15,11 +15,11 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import PurePosixPath
 from typing import Any, Callable
 
-from icg_demo.domain import Chapter, DemoService, DemoState, DomainError, Principal, iso_time, new_id
-from icg_demo.ports import ParserProvider
-from icg_demo.input_snapshot import project_input_fingerprint
-from icg_demo.sla import SlaService, public_sla, resolve_variables, sla_facts, sla_issues
-from icg_demo.generation_context import (
+from icg.domain.domain import Chapter, DemoService, DemoState, DomainError, Principal, iso_time, new_id
+from icg.domain.ports import ParserProvider
+from icg.domain.input_snapshot import project_input_fingerprint
+from icg.domain.sla import SlaService, public_sla, resolve_variables, sla_facts, sla_issues
+from icg.domain.generation_context import (
     build_generation_context,
     chapter_plan,
     evidence_expired,
@@ -33,7 +33,7 @@ from icg_demo.generation_context import (
     validate_model_output,
     writing_source_fingerprint,
 )
-from icg_demo.project_access import (
+from icg.domain.project_access import (
     VOLUMES,
     writable,
     lead,
@@ -46,13 +46,12 @@ from icg_demo.project_access import (
     project_permissions,
     public_team,
 )
-from icg_demo.outline_service import OutlinePlanService, OutlinePlanError, infer_chapter_type
-from icg_demo.answer_card import AnswerCardService
-from icg_demo.tender_retrieval import TenderRetrievalService
-from icg_demo.editor_ai_context import build_editor_prompt_context
-from icg_demo.parsing import LocalTextParser
-from icg_demo.idempotency import lookup, remember
-from icg.infra.repositories.chapters import decompose_paragraphs
+from icg.domain.outline_plan import OutlinePlanService, OutlinePlanError, infer_chapter_type
+from icg.domain.answer_card import AnswerCardService
+from icg.infra.tender_retrieval import TenderRetrievalService
+from icg.domain.editor_ai_context import build_editor_prompt_context
+from icg.domain.parsing import LocalTextParser
+from icg.domain.idempotency import lookup, remember
 
 class OutlineServiceMixin:
     def get_outline_plan(self, project_id: str, volume_id: str | None = None) -> dict[str, Any]:
@@ -96,7 +95,7 @@ class OutlineServiceMixin:
                     raise DomainError(409, "FACT_NOT_FOUND", "所选事实不属于本项目或已经删除。")
                 if any(facts[identity]["status"] != "confirmed" for identity in ids):
                     raise DomainError(409, "FACT_NOT_READY", "本章所选事实须先确认取值。")
-                from icg_demo.parsing import LocalTextParser
+                from icg.domain.parsing import LocalTextParser
                 LocalTextParser._validate_text(item.get("writing_points", ""))
                 if not item["title"].strip():
                     raise DomainError(422, "EMPTY_CHAPTER_TITLE", "章节标题不能为空。")

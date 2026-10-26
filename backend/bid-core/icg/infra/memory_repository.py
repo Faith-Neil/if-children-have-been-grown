@@ -10,7 +10,7 @@ from threading import RLock
 from typing import Any, Callable, TypeVar
 from uuid import uuid4
 
-from icg_demo.domain import Account, Chapter, DemoState, DomainError, Project, iso_time
+from icg.domain.domain import Account, Chapter, DemoState, DomainError, Project, iso_time
 
 T = TypeVar("T")
 
@@ -34,7 +34,7 @@ def seed_state() -> DemoState:
     for company in ("alpha", "beta"):
         project = Project(f"{company}-project", f"{'甲' if company == 'alpha' else '乙'}公司合成投标项目", company)
         state.projects[project.id] = project
-        from icg_demo.project_access import initial_team
+        from icg.domain.project_access import initial_team
         state.project_teams[project.id] = initial_team("alpha-manager" if company == "alpha" else "beta-manager")
         if company == "alpha":
             state.project_teams[project.id]["members"].update({

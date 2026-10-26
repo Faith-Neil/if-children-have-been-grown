@@ -99,11 +99,12 @@ export function extractErrorInfo(error: unknown, fallbackMessage = '操作失败
   if (typeof error === 'object') {
     const record = error as Record<string, unknown>;
     const nested = record.error && typeof record.error === 'object' ? (record.error as Record<string, unknown>) : null;
-    const code = (typeof nested?.code === 'string' ? nested.code : null)
-      ?? (typeof record.code === 'string' ? record.code : null)
+    // 严格优先解构规范体 {code, message, details, traceId}，旧结构 {error, request_id} 仅作兼容兜底
+    const code = (typeof record.code === 'string' ? record.code : null)
+      ?? (typeof nested?.code === 'string' ? nested.code : null)
       ?? 'REQUEST_FAILED';
-    const message = (typeof nested?.message === 'string' ? nested.message : null)
-      ?? (typeof record.message === 'string' ? record.message : null)
+    const message = (typeof record.message === 'string' ? record.message : null)
+      ?? (typeof nested?.message === 'string' ? nested.message : null)
       ?? fallbackMessage;
     const traceId = (typeof record.traceId === 'string' ? record.traceId : null)
       ?? (typeof record.requestId === 'string' ? record.requestId : null)

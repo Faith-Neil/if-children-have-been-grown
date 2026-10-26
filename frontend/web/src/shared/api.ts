@@ -41,8 +41,9 @@ function textField(source: Record<string, unknown> | null, key: string) {
 export function apiFailure(status: number, data: unknown, headerId?: string) {
   const body = data && typeof data === 'object' ? data as Record<string, unknown> : {};
   const nested = body.error && typeof body.error === 'object' ? body.error as Record<string, unknown> : null;
-  const code = textField(nested, 'code') ?? textField(body, 'code') ?? 'REQUEST_FAILED';
-  const message = textField(nested, 'message') ?? textField(body, 'message') ?? '操作失败，请稍后重试。';
+  // 严格优先解构规范体 {code, message, details, traceId}，旧结构 {error, request_id} 仅作兼容兜底
+  const code = textField(body, 'code') ?? textField(nested, 'code') ?? 'REQUEST_FAILED';
+  const message = textField(body, 'message') ?? textField(nested, 'message') ?? '操作失败，请稍后重试。';
   const requestId = headerId || textField(body, 'traceId') || textField(body, 'request_id');
   const details = body.details && typeof body.details === 'object'
     ? body.details as Record<string, unknown>

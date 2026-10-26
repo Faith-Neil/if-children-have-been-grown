@@ -1,5 +1,5 @@
-// 为什么有这个文件：保留 ICG 示例的导航和项目外壳，连接真实业务页签。
-// 它解决什么问题：工作台、解析、矩阵、编辑、检查和导出使用同一套项目状态。
+// 为什么有这个文件：保留 ICG 示例的导航和项目外壳，连接真实业务页签，并全面接入 React-Router 现代化路由体系。
+// 它解决什么问题：工作台、解析、矩阵、编辑、检查和导出使用同一套项目状态与结构化路由守卫。
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { Alert, App as AntApp, Badge, Button, Card, Col, Drawer, Empty, Form, Input, Modal, Progress, Result, Row, Select, Space, Spin, Statistic, Table, Tabs, Tag, Tooltip } from 'antd';
 import { AppstoreOutlined, ApartmentOutlined, BellOutlined, BookOutlined, CheckSquareOutlined, ClockCircleOutlined, DatabaseOutlined, DownOutlined, FileTextOutlined, PlusOutlined, SearchOutlined, SettingOutlined, TeamOutlined } from '@ant-design/icons';
@@ -38,6 +38,7 @@ import { CreateProjectModal } from '../project/CreateProjectModal';
 import { TaskDrawer } from '../status/TaskDrawer';
 import { ModelConfigModal } from '../admin/ModelConfigModal';
 import { RagflowConfigModal } from '../admin/RagflowConfigModal';
+import { APP_ROUTES, buildGlobalPath } from './routes';
 
 const tabs = [ ['overview', '概览'], ['tender', '招标文件'], ['parse', '解析结果'], ['matrix', '响应矩阵'], ['facts', '项目事实表'], ['editor', '编辑台'], ['manual', '人工处理队列'], ['checks', '合规检查'], ['export', '导出'], ['settings', '项目设置'] ];
 const navigation = [ { id: 'workbench', name: '工作台', icon: <AppstoreOutlined /> }, { id: 'library', name: '企业资料库', icon: <DatabaseOutlined /> }, { id: 'knowledge', name: '知识库', icon: <BookOutlined /> }, { id: 'writing', name: '写作档案', icon: <FileTextOutlined /> }, { id: 'admin.rules', name: '管理规则（只读）', icon: <SettingOutlined /> } ];
@@ -115,6 +116,7 @@ export default function App() {
     activeToken.current = null; currentAuthorization.current = null; setApplicationSession(null); setDenied(null);
     if (typeof setDeniedDetails === 'function') setDeniedDetails(null);
     setToken(null); setUser(null); setWorkspace(null); setEditorDirty(false); projectId.current = null; setCreateOpen(false); setTaskDrawer(false);
+    
   }
 
   function report(error: unknown) {
@@ -170,6 +172,7 @@ export default function App() {
     window.addEventListener('popstate', onPop);
     return () => { window.removeEventListener('beforeunload', onLeave); window.removeEventListener('popstate', onPop); };
   }, [modal]);
+
   async function loadSession(currentToken = activeToken.current, selectedProject?: string) {
     if (!currentToken) throw new ApiError(401, 'SESSION_REQUIRED', '请重新登录。');
     const start = epoch.current;
@@ -228,7 +231,8 @@ export default function App() {
       const home = sessionHomeRoute(approved);
       setToken(data.access_token); setDenied(null); if (typeof setDeniedDetails === 'function') setDeniedDetails(null); setMissing(null);
       await refreshGlobal(data.access_token, approved);
-      followPath(routeAfterLogin(window.location.pathname, home).path, 'replace');
+      const dest = routeAfterLogin(window.location.pathname, home).path;
+      followPath(dest, 'replace');
     } catch (error) { if (isRequestFailureCurrent(error, activeToken.current)) { report(error); logout(); } } finally { setBusy(false); }
   }
   async function loginWithToken(tokenValue: string) {
@@ -250,7 +254,8 @@ export default function App() {
       if (typeof setDeniedDetails === 'function') setDeniedDetails(null);
       setMissing(null);
       await refreshGlobal(tokenValue, approved);
-      followPath(routeAfterLogin(window.location.pathname, home).path, 'replace');
+      const dest = routeAfterLogin(window.location.pathname, home).path;
+      followPath(dest, 'replace');
     } catch (error) {
       if (isRequestFailureCurrent(error, activeToken.current)) {
         report(error);
@@ -599,6 +604,8 @@ export default function App() {
     if (!id) { setDenied('对象已不存在或你没有查看该页面的权限。'); return; }
     requestPath(projectPath(id, value));
   }
+
+  const currentRoute = parseAppPath(typeof window !== 'undefined' ? window.location.pathname : '/');
   const filteredProjects = projects.filter(item => item.name.includes(search));
   const pending = workspace ? workspace.requirements.filter(item => item.status === 'pending').length + workspace.facts.filter(item => ['pending', 'needs_review'].includes(item.status)).length : 0;
   const latest = workspace?.checks[workspace.checks.length - 1];
@@ -619,6 +626,7 @@ export default function App() {
     workspace,
     missing,
   });
+
   return <Suspense fallback={<div className="login-screen"><Spin size="large" /></div>}><CanProvider value={{ session: applicationSession, workspace, role: applicationSession?.user.primary_role || applicationSession?.user.role, userId: applicationSession?.user.id }}><AppShell collapsed={collapsed} onCollapsed={handleCollapseChange} menuPath={menuPath} menu={menu} onNavigate={requestPath} breadcrumbs={breadcrumbs} actions={<><Tag color="orange" className="environment">示例数据 · 非真实业务</Tag>{sessionAllowsRoute(applicationSession, 'workbench') && <Input className="global-search" aria-label="搜索项目名称或资料名称" prefix={<SearchOutlined />} placeholder="搜索项目名称 / 资料名称" value={search} onChange={e => setSearch(e.target.value)} suffix={<kbd>Ctrl K</kbd>} onPressEnter={() => requestPath(globalPath('workbench'))} />}{sessionAllowsRoute(applicationSession, 'jobs') && <Button type="text" icon={<Badge count={jobs.filter(item => item.status === 'running' || item.status === 'queued').length} size="small"><CheckSquareOutlined /></Badge>} aria-label="查看后台任务" onClick={() => setTaskDrawer(true)} /> }<Tooltip title="站内提醒尚未接入"><Button type="text" icon={<BellOutlined />} aria-label="提醒尚未接入" disabled /></Tooltip><span className="company-label"><TeamOutlined /> {companyName(user.company_id)}</span><span className="user-avatar">{user.name[0]}</span><span className="user-name">{user.name}<small> · {{ project_lead: '项目负责人', bid_writer: '投标编写人', readonly: '只读成员' }[applicationSession?.user.primary_role ?? ''] ?? '演示身份'}（演示兼容）</small></span><Button type="text" size="small" onClick={() => requestDiscard(logout)}>退出</Button><Button type="text" icon={<SettingOutlined />} aria-label="模型服务配置" onClick={() => setModelConfigModalOpen(true)}>模型配置</Button><Button type="text" icon={<DatabaseOutlined />} aria-label="知识库检索配置" onClick={() => setRagflowConfigModalOpen(true)}>知识库配置</Button></>}>
       {missing && <main className="workspace-content"><Result status="404" title="页面不存在" subTitle={`没有与 ${missing} 对应的页面。`} extra={<Button onClick={() => requestPath(globalPath(applicationSession ? sessionHomeRoute(applicationSession) : 'workbench'))}>返回可访问首页</Button>} /></main>}
       {!missing && denied && (
@@ -649,7 +657,7 @@ export default function App() {
           compact={['matrix', 'editor', 'checks', 'export'].includes(tab)}
         />
         <ProjectContext.Provider value={{ workspace, token, user, library, slaTemplates, busy, mutate, reload, report, navigate }}><Spin spinning={loading}>{accessLost && <ReadonlyBanner reason="当前页面的写入已暂停" description="之前读取的内容及未保存文字仍保留。请返回工作台或进入有权访问的页面，重新核对最新权限。" onAction={() => requestPath(globalPath('workbench'))} actionText="返回工作台" className="page-notice" />}<main className={`project-content ${['parse', 'editor'].includes(tab) ? 'fullbleed' : ''}`}>
-        <Suspense fallback={<Spin spinning />}><>{tab === 'overview' && <OverviewPage />}{tab === 'tender' && <TenderPage />}{tab === 'parse' && <ParsePage />}{tab === 'matrix' && <MatrixPage />}{tab === 'facts' && <FactsPage />}{tab === 'editor' && <EditorPage key={workspace.project.id} onDirtyChange={reportDirty} />}{tab === 'checks' && <ChecksPage />}{tab === 'export' && <ExportPage />}{tab === 'settings' && <ProjectSettingsPage />}{tab === 'manual' && <PendingPage title="人工处理队列" detail="主链路目前可以在解析结果逐条确认、在检查列表定位问题。独立段落处理队列、指派和复查还未接通。" />}</></Suspense>
+        <Suspense fallback={<Spin spinning />}><>{tab === 'overview' && <OverviewPage />}{tab === 'tender' && <TenderPage />}{tab === 'parse' && <ParsePage />}{tab === 'matrix' && <MatrixPage />}{tab === 'facts' && <FactsPage />}{tab === 'editor' && <EditorPage key={workspace.project.id} onDirtyChange={reportDirty} initialChapterId={currentRoute.kind === 'project' && currentRoute.tab === 'editor' ? currentRoute.chapterId : undefined} />}{tab === 'checks' && <ChecksPage />}{tab === 'export' && <ExportPage />}{tab === 'settings' && <ProjectSettingsPage />}{tab === 'manual' && <PendingPage title="人工处理队列" detail="主链路目前可以在解析结果逐条确认、在检查列表定位问题。独立段落处理队列、指派和复查还未接通。" />}</></Suspense>
       </main></Spin></ProjectContext.Provider></>}
       {!missing && !denied && (!workspace || nav !== 'workbench') && <Spin spinning={loading}><main className="workspace-content">{nav === 'workbench' && <><div className="page-heading"><div><h2>投标项目工作台</h2><p>先看风险，再看进度。这里只列出你已经加入的本公司项目。</p></div><Can perform="project:create"><Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} disabled={busy || !sessionAllowsAction(applicationSession, 'projects.create')}>新建项目</Button></Can></div><ProjectListPage projects={projects} onOpenProject={openProject} session={applicationSession} currentUser={user} /><Alert className="page-notice" type="info" message="先贯通示例主链路" description="新建项目后，依次上传招标文件、确认解析、补响应与证据、编制两册章节、检查并下载内部稿。演示建议需要人工确认，不能直接作为正式承诺。" showIcon /></>}
         <Suspense fallback={<Spin spinning />}>{nav === 'library' && <LibraryPage items={library} read={readLibrary} readTemplates={readSlaTemplates} libraryRevision={libraryRevision} templatesRevision={slaTemplatesRevision} globalSearch={search} templates={slaTemplates} user={user} busy={busy} mutate={libraryMutate} report={report} />}{nav === 'jobs' && <JobsPage jobs={jobs} openProject={id => requestPath(projectPath(id, 'overview'))} />}{nav === 'admin.rules' && <Tabs defaultActiveKey="audit" items={[{ key: 'audit', label: 'A-06 审计日志中心', children: <AuditLogPage session={applicationSession} user={user} onNavigate={requestPath} /> }, { key: 'company', label: 'A-01 企业租户管理', children: <CompanyManagePage session={applicationSession} currentUser={user} /> }, { key: 'rules', label: '管理规则说明', children: <PendingPage title="管理规则（只读）" detail="本期已接通 A-06 审计日志只读中心与 A-01 企业租户合规参数配置。合规规则自定义保存与全量词表扩展将在后续任务中接通。" /> }]} />}{nav === 'knowledge' && <SnippetLibraryPage token={token} user={user} session={applicationSession} />}{nav === 'writing' && <WritingArchivePage user={user} session={applicationSession} />}</Suspense>

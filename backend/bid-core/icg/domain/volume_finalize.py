@@ -11,8 +11,8 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from icg_demo.domain import DemoState, DomainError, Principal, Project, iso_time, new_id
-from icg_demo.project_access import VOLUMES, normalize_role, lead
+from icg.domain.domain import DemoState, DomainError, Principal, Project, iso_time, new_id
+from icg.domain.project_access import VOLUMES, normalize_role, lead
 from icg.domain.export_service import ExportServiceMixin
 
 
@@ -158,7 +158,7 @@ class VolumeFinalizeMixin:
             raise DomainError(404, "NOT_FOUND", f"未找到指定分册：{volume_id}")
 
         payload = payload or {}
-        from icg_demo.idempotency import fingerprint, lookup, remember
+        from icg.domain.idempotency import fingerprint, lookup, remember
 
         action = f"volume.finalize:{volume_id}"
         request_fingerprint = fingerprint(action, payload, expected) if key else ""
@@ -275,7 +275,7 @@ class VolumeFinalizeMixin:
         if not reason:
             raise DomainError(422, "REASON_REQUIRED", "解锁已定稿分册必须填写修改原因。")
 
-        from icg_demo.idempotency import fingerprint, lookup, remember
+        from icg.domain.idempotency import fingerprint, lookup, remember
 
         action = f"volume.unlock:{volume_id}"
         request_fingerprint = fingerprint(action, payload, expected) if key else ""

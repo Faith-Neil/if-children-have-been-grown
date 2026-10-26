@@ -15,11 +15,11 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import PurePosixPath
 from typing import Any, Callable
 
-from icg_demo.domain import Chapter, DemoService, DemoState, DomainError, Principal, iso_time, new_id
-from icg_demo.ports import ParserProvider
-from icg_demo.input_snapshot import project_input_fingerprint
-from icg_demo.sla import SlaService, public_sla, resolve_variables, sla_facts, sla_issues
-from icg_demo.generation_context import (
+from icg.domain.domain import Chapter, DemoService, DemoState, DomainError, Principal, iso_time, new_id
+from icg.domain.ports import ParserProvider
+from icg.domain.input_snapshot import project_input_fingerprint
+from icg.domain.sla import SlaService, public_sla, resolve_variables, sla_facts, sla_issues
+from icg.domain.generation_context import (
     build_generation_context,
     chapter_plan,
     evidence_expired,
@@ -33,7 +33,7 @@ from icg_demo.generation_context import (
     validate_model_output,
     writing_source_fingerprint,
 )
-from icg_demo.project_access import (
+from icg.domain.project_access import (
     VOLUMES,
     writable,
     lead,
@@ -46,13 +46,12 @@ from icg_demo.project_access import (
     project_permissions,
     public_team,
 )
-from icg_demo.outline_service import OutlinePlanService, OutlinePlanError, infer_chapter_type
-from icg_demo.answer_card import AnswerCardService
-from icg_demo.tender_retrieval import TenderRetrievalService
-from icg_demo.editor_ai_context import build_editor_prompt_context
-from icg_demo.parsing import LocalTextParser
-from icg_demo.idempotency import lookup, remember
-from icg.infra.repositories.chapters import decompose_paragraphs
+from icg.domain.outline_plan import OutlinePlanService, OutlinePlanError, infer_chapter_type
+from icg.domain.answer_card import AnswerCardService
+from icg.infra.tender_retrieval import TenderRetrievalService
+from icg.domain.editor_ai_context import build_editor_prompt_context
+from icg.domain.parsing import LocalTextParser
+from icg.domain.idempotency import lookup, remember
 
 class GenerationServiceMixin:
     def assistant_query(self, principal: Principal, project_id: str, query: str,
@@ -223,7 +222,7 @@ class GenerationServiceMixin:
                                     selected_text: str | None = None, chapter_title: str | None = None,
                                     scene: str | None = None, knowledge_base_enabled: bool = True,
                                     injected_tender_clauses: list[dict[str, Any]] | None = None) -> dict[str, Any]:
-        from icg_demo.editor_ai_context import build_editor_prompt_context
+        from icg.domain.editor_ai_context import build_editor_prompt_context
         state = self.demo.repository.read()
         return build_editor_prompt_context(
             state=state,

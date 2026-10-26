@@ -1,7 +1,12 @@
 # 为什么有这个文件：让后台回归直接导入本仓库真实的demo应用。
 # 它解决什么问题：后端目录名带连字符且未安装为包，测试仍能使用同一实际实现。
 from pathlib import Path
+import os
 import sys
+
+# 保证本机测试夹具与子进程不受 Windows 系统代理干扰
+os.environ.setdefault("NO_PROXY", "*")
+os.environ.setdefault("no_proxy", "*")
 
 import pytest
 

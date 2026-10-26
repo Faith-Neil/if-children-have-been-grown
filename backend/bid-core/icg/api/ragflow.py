@@ -7,9 +7,9 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Header, Response
 from pydantic import Field
 
-from icg_demo.domain import DemoService, Principal
-from icg_demo.schemas import RequestBody, ResponseBody
-from icg_demo.workflow_schemas import v1_error_responses
+from icg.domain.domain import DemoService, Principal
+from icg.domain.schemas import RequestBody, ResponseBody
+from icg.domain.workflow_schemas import v1_error_responses
 from icg.domain.ragflow_config import RagflowConfigService
 
 
@@ -46,7 +46,8 @@ class RagflowConfigTestResponse(ResponseBody):
 
 
 def include_ragflow_routes(application, service: DemoService, current_user) -> None:
-    config_service = RagflowConfigService(service)
+    pub_store = getattr(application.state, "snippet_publications", None) or getattr(service, "snippet_publications", None)
+    config_service = RagflowConfigService(service, snippet_publications=pub_store)
     application.state.ragflow_config_service = config_service
     router = APIRouter(prefix="/api/v1", responses=v1_error_responses(401, 403, 404, 409, 422, 428, 500, 503))
 
@@ -75,5 +76,29 @@ def include_ragflow_routes(application, service: DemoService, current_user) -> N
         """测试 RAGFlow 知识库服务的网络连通性与健康状态。"""
         payload = body.model_dump(exclude_unset=True) if body else {}
         return config_service.test_connectivity(user, payload)
+
+    @router.get("/ragflow/datasets", include_in_schema=False)
+    def list_ragflow_datasets(user: Principal = Depends(current_user)):
+        """列出当前租户绑定的 RAGFlow 数据集。"""
+        return {"items": config_service.list_datasets(user)}
+
+    @router.post("/ragflow/datasets", include_in_schema=False)
+    def create_ragflow_dataset(body: dict[str, Any], user: Principal = Depends(current_user)):
+        """为当前租户创建专属前缀隔离的 RAGFlow 数据集。"""
+        name = str(body.get("name") or "knowledge-base")
+        parser_id = str(body.get("parser_id") or "general")
+        return config_service.create_dataset(user, name, parser_id=parser_id)
+
+    @router.get("/ragflow/datasets/{dataset_id}", include_in_schema=False)
+    def get_ragflow_dataset(dataset_id: str, user: Principal = Depends(current_user)):
+        """获取指定数据集详情，严格核实租户所有权。"""
+        return config_service.get_dataset(user, dataset_id)
+
+    @router.post("/ragflow/sync", include_in_schema=False)
+    def sync_ragflow_knowledge_base(body: dict[str, Any] | None = None, user: Principal = Depends(current_user)):
+        """将已发布方案片段或知识库内容同步至 RAGFlow 知识库中。"""
+        payload = body or {}
+        snippet_id = payload.get("snippet_id") or payload.get("id")
+        return config_service.sync_knowledge_base(user, snippet_id, payload)
 
     application.include_router(router)

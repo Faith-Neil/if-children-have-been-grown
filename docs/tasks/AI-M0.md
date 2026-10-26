@@ -259,3 +259,35 @@
 - [x] 交付报告、代码说明与任务看板同步完成。
 
 不标 done。本卡标为 in-review。合入和发布仍未发生。
+
+<a id="ai-ragflow-kb-sync"></a>
+
+## AI-RAGFLOW-KB-SYNC · RAGFlow 知识库摄入与同步闭环（D4-AI）
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 落实用户拍板 B5/B6，补齐知识库摄入闭环，实现多租户强隔离、文档上传、解析轮询与优雅降级 |
+| 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [AI-M0-RAGFLOW-VERIFY](AI-M0.md#ai-m0-ragflow-verify) |
+| PRD / 架构出处 | [PRD v1.8 §5.8、§5.11](../reference/product/prd-mvp-v1.8.md)；用户 2026-10-26 拍板 B5/B6 |
+| 完成时交付 | [AI-RAGFLOW-KB-SYNC 交付](../delivery/2026-10-26-ragflow-kb-sync.md) |
+| 代码解释 | [AI-RAGFLOW-KB-SYNC 代码说明](../code/2026-10-26-ragflow-kb-sync.md) |
+
+范围：落实用户拍板 B5（招标/投标私有内网隔离、严禁向公网发请求）与 B6（私有化部署、Windows/Linux 兼容），打通知识库片段摄入与同步闭环（`dataset/kb_sync`）。扩展客户端 `create_dataset`（带租户命名空间前缀）、`list_datasets`（租户隔离过滤）、`get_dataset`（所有权核验）、`upload_document`（multipart上传）、`trigger_parse`（触发内置解析）与 `get_document_status`（解析生命周期轮询）。扩展领域服务 `RagflowConfigService.sync_knowledge_base`，支持从方案片段发布存储及企业资料库结构化摄入、智能对齐或自动创建租户隔离数据集、将 run 映射为规范的 `kb_sync_status`（`synced` / `failed` / `unsynced`）并回写存储。实现非本公司跨租户同步 404 拦截、网络异常优雅降级，以及 `@pytest.mark.live_ragflow` 真实环境门控。保持 143 个冻结错误码与 OpenAPI 契约 100% 零漂移。
+
+当前条件：自动化回归测试全绿通过（专属测试 9 passed 1 skipped，联合全量 67 passed 4 skipped）。端到端闭环逻辑通过。真实生产端点诚实记录为 blocked 并明确环境依赖。
+
+可验证验收：
+- [x] 客户端支持带 `${company_id}::` 命名空间前缀的数据集创建与所有权检查；
+- [x] 客户端 `httpx.Client` 强制配置 `trust_env=False`，避免系统代理劫持内网请求；
+- [x] 领域服务 `sync_knowledge_base` 完整闭环，方案片段发布后摄入知识库并回写 `kb_sync_status` 为 `synced`；
+- [x] 非本公司方案片段跨租户同步严格抛出 404 `NOT_FOUND`；
+- [x] 上游网络/服务端 500 异常时优雅降级并返回失败状态，不引起主服务崩溃；
+- [x] 真实 RAGFlow 测试受 `ICG_RUN_REAL_RAGFLOW_TESTS=1` 保护，默认在假服务环境下闭环；
+- [x] 专属测试套件 `pytest tests/backend/test_ragflow_kb_sync.py -v` 执行全过（9 passed, 1 skipped）；
+- [x] 全量 RAGFlow 测试 `pytest tests/backend/test_fake_ragflow.py tests/backend/test_ragflow_client.py tests/backend/test_evidence_ragflow.py tests/backend/test_ragflow_config_api.py tests/backend/test_ragflow_kb_sync.py tests/backend/test_chapter_generation_rag_flow.py` 全绿（67 passed, 4 skipped）；
+- [x] OpenAPI 契约校验 `python backend/bid-core/export_openapi.py --check` 100% 一致；
+- [x] 交付文档、代码说明、任务卡与任务看板同步更新。
+
+不标 done。本卡标为 in-review。合入和发布仍未发生。

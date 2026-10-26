@@ -115,7 +115,7 @@ T14/T15已实际验证项目成员、可空参与分册、技术/商务负责人
 
 | 接口路径 | 兼容说明 |
 |---|---|
-| `GET /api/demo/accounts`、`POST /api/demo/login` | **[Deprecated]** 仅供演示兼容；响应头返回 `Deprecation: true`；生产配置（`ICG_REQUIRE_MYSQL=1`）下阻断演示账号 |
+| `GET /api/demo/accounts`、`POST /api/demo/login` | **[Deprecated]** 仅供演示兼容；兼容截止至 2026-11-15（RFC 8594 `Sunset: Sun, 15 Nov 2026 00:00:00 GMT`）；响应头返回 `Deprecation: true` 与 `Sunset` 头；生产配置（`ICG_REQUIRE_MYSQL=1`）下阻断演示账号 |
 | `GET /api/projects/{id}/chapters`、`GET /api/chapters/{id}` | 查看本公司章节、当前正式正文、有效锁摘要和本人草稿 |
 | `POST /api/chapters/{id}/lock`、`/lock/renew`、`/lock/release` | 取得、续期和释放编辑权，默认有效期 120 秒 |
 | `PUT /api/chapters/{id}/draft` | 带编辑凭据、正式版本号及递增序号保存草稿 |

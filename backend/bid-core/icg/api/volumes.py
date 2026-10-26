@@ -8,10 +8,10 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Header, Path
 from pydantic import BaseModel, Field
 
-from icg_demo.domain import Principal
-from icg_demo.idempotency import IDEMPOTENCY_HEADER_DESCRIPTION
-from icg_demo.schemas import RequestBody, ResponseBody
-from icg_demo.workflow_schemas import v1_error_responses
+from icg.domain.domain import Principal
+from icg.domain.idempotency import IDEMPOTENCY_HEADER_DESCRIPTION
+from icg.domain.schemas import RequestBody, ResponseBody
+from icg.domain.workflow_schemas import v1_error_responses
 
 
 class VolumeFinalizeRequest(RequestBody):
@@ -91,7 +91,7 @@ def include_volume_routes(application: Any, service: Any, current_user: Any) -> 
         workflow = getattr(application.state, "workflow", None)
         if workflow is None:
             from icg.domain.workflow_orchestrator import WorkflowService
-            from icg_demo.parsing import LocalTextParser
+            from icg.domain.parsing import LocalTextParser
             workflow = WorkflowService(service, LocalTextParser())
             application.state.workflow = workflow
 
@@ -127,7 +127,7 @@ def include_volume_routes(application: Any, service: Any, current_user: Any) -> 
         workflow = getattr(application.state, "workflow", None)
         if workflow is None:
             from icg.domain.workflow_orchestrator import WorkflowService
-            from icg_demo.parsing import LocalTextParser
+            from icg.domain.parsing import LocalTextParser
             workflow = WorkflowService(service, LocalTextParser())
             application.state.workflow = workflow
 
@@ -154,7 +154,7 @@ def include_volume_routes(application: Any, service: Any, current_user: Any) -> 
         workflow = getattr(application.state, "workflow", None)
         if workflow is None:
             from icg.domain.workflow_orchestrator import WorkflowService
-            from icg_demo.parsing import LocalTextParser
+            from icg.domain.parsing import LocalTextParser
             workflow = WorkflowService(service, LocalTextParser())
             application.state.workflow = workflow
 
@@ -173,7 +173,7 @@ def include_volume_routes(application: Any, service: Any, current_user: Any) -> 
         workflow = getattr(application.state, "workflow", None)
         if workflow is None:
             from icg.domain.workflow_orchestrator import WorkflowService
-            from icg_demo.parsing import LocalTextParser
+            from icg.domain.parsing import LocalTextParser
             workflow = WorkflowService(service, LocalTextParser())
             application.state.workflow = workflow
 

@@ -8,7 +8,7 @@ from typing import Any
 
 from sqlalchemy import text
 
-from icg_demo.domain import DemoState, DomainError
+from icg.domain.domain import DemoState, DomainError
 from icg.infra.repositories.common import to_utc_naive, _to_utc_naive
 
 
