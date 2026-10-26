@@ -4,7 +4,7 @@
 
 # 项目任务看板
 
-任务版本：0.7；治理版本：g1.1；更新日期：2026-10-23；当前实现 Issue：[ISSUE-007](../issues/ISSUE-007.md)；结构收官：[ISSUE-038](../issues/ISSUE-038.md)；离线检查：[ISSUE-012](../issues/ISSUE-012.md)；生产门禁：[ISSUE-005](../issues/ISSUE-005.md)；模型决定：[ISSUE-010](../issues/ISSUE-010.md)（closed）；tip：b634ba9。
+任务版本：0.7；治理版本：g1.1；更新日期：2026-10-26；当前实现 Issue：[ISSUE-007](../issues/ISSUE-007.md)；结构收官：[ISSUE-038](../issues/ISSUE-038.md)；离线检查：[ISSUE-012](../issues/ISSUE-012.md)；生产门禁：[ISSUE-005](../issues/ISSUE-005.md)；模型决定：[ISSUE-010](../issues/ISSUE-010.md)（closed）；tip：e586f26。
 
 将 [前端 ROADMAP](ROADMAP.md) 的 Phase 0～8 与发布 Milestone 1～5 拆为 **59 张任务卡**，由 FE-M0～FE-M8 管理。前缀 FE 表示前端合作交付；这些编号与参考全系统 M0～M8 的门禁、周期和范围独立。
 
@@ -12,18 +12,45 @@
 
 59张前端卡片估算合计 209 小时，单卡 2～4 小时，处于 0.5～4 小时的任务粒度目标内。该总和是已有基线/接口条件下的前端增量估算，不是项目排期，不含后端、模型、取得输入、评审或等待时间。开工若预计超 4 小时，先继续拆卡并登记 Issue/版本变更，保留原任务 ID 的历史。
 
-## 结构债收官指针（2026-10-23 · 勿忽略）
+## 结构债收官指针（2026-10-26 · 勿忽略）
 
-- **WP-1～WP-7 已收官**（代码结构）：前端八域、`backend/bid-core/icg/` 分包、`/api/v1`、八角色/演示关闸、OpenAPI/CI。详见 `docs/PROJECT_STATUS.md`「现行工程结构」、`docs/architecture/repository-layout.md`「现行骨架」、`docs/delivery/WP-*.md`、`AGENTS.md` 冻结规则。
+- **WP-1～WP-7 真实进展与口径纠偏（2026-10-26 审计）**：前端八域物理分层完成；后端分包进行中 / 双路径未收口（`icg_demo` 根级仍有 35 个业务 py 平铺，Memory 旁路与 MySQL 双路径仍存，`/api/demo` 兼容窗口至 2026-11-15）。用户 2026-10-26 已官方拍板 B1～B6，全面开启 D0～D5 规划未落地债收口。
 - **DOC-SYNC-1 与 DOC-SYNC-1.1 已落地**（tip：`7b3c196`）；活文档已与代码实树全面对齐，禁止抄假模块名。
 - **禁止把 FE-M0-T04～T10 当绿野开工**（正式工程脚手架/登录/Shell/路由等能力已被 WP + APP-M2 路径覆盖）。相关卡在看板标为 `cancelled`（`superseded-by-WP`），禁止重建工程，仅允许补充验收交付。
 - **结构债后续**：`issues/ISSUE-038.md`（双错误体 / 巨石继续瘦身 / 空 `icg.api|app`）→ 见板内 `BE-TECH-DEBT-*` / `FE-TECH-DEBT-*`（P2，勿压过 PRD P0）。
 - **完成度口径**：board `done` 张数 ≠ 产品完成度；产品以 PRD v1.8 + `docs/delivery/2026-10-22-prd-gap-summary.md` 为准。
-- **下一棒默认顺序**（按序执行 ①→②→③→④，不跳序）：
-  - ① 修 `.github/workflows/offline-check.yml`：**【已完成】** `on.push` 与 `pull_request` 覆盖 `main` 与 `feat/opencode-ICG`；修复 R34 系统变量与 OpenAPI 废弃标记，延长 `e2e` 超时上限至 25m；五职自动化验证与交付见 [D-721](delivery/2026-10-23-ci-offline-check-branches.md)。
-  - ② 对齐 tip 回写看板与 PROJECT_STATUS；整理「已签等 PM」in-review 清单（不擅自标 done，交给用户确认）；关演示主路径人工冒烟留证（`VITE_DEMO=0` + `ICG_REQUIRE_MYSQL=1`：上传招标→解析→矩阵→生成→检查→两册 Word）：**【已完成】** tip 已对齐至 `b634ba9`；已签等 PM 清单见 [D-722](delivery/2026-10-23-in-review-signed-for-pm.md)；关演示冒烟证据见 [D-723](delivery/2026-10-23-non-demo-smoke-evidence.md)。
-  - ③ 前端弹窗：模型配置（对接已有 `/api/v1/model-configs`，含测连）；知识库/RAGFlow 弹窗（BASE_URL、API Key、dataset 等，按现有后端能力设计）；接入真 RAGFlow（参考 https://github.com/infiniflow/ragflow）；CI 继续用假服务。真端点/Key 若仓库没有，向用户要后再写配置，勿编造。**【已完成】** 前端弹窗（`ModelConfigModal`、`RagflowConfigModal`）及后端 API（`/api/v1/ragflow-config` GET/PUT/test，Fernet 加密与 If-Match 乐观锁）已闭环交付（[D-724](delivery/2026-10-23-model-ragflow-config-modals.md) / [D-725](code/2026-10-23-model-ragflow-config-modals.md)，in-review）；用户提供的公司内网真服务凭据实测连通（内网 VPN 隔离安全超时处理验证，无 500 崩溃）。
-  - ④ 规则最小可递交集 + 分册定稿闸门：**【已完成】** 规则最小可递交集（R15/R23/R34/R37）与分册定稿闸门（PRD §5.8.5 锁定状态机）动态联动集成；未定稿严格阻断 409 `RULES_INCOMPLETE`，有 blocker 阻断 400 `CHECK_BLOCKER_EXISTS`；全部定稿且合规后放行正式递交版 Word 并生成 64 位 SHA-256 版式指纹；普通编写人拦截 403 `SUBMISSION_FORBIDDEN`，项目负责人放行 200；全套 24 项后端测试与契约 check 100% 通过（交付见 [D-726](delivery/2026-10-23-submission-rules-finalize-gate.md) / [D-727](code/2026-10-23-submission-rules-finalize-gate.md)，in-review）。
+- **前四项拍板任务已交付**（①～④ 全部闭环）：
+  - ① CI 分支修复与 5 大作业自动运行（[D-721](delivery/2026-10-23-ci-offline-check-branches.md)）
+  - ② tip 对齐与非 demo 冒烟留证（[D-722](delivery/2026-10-23-in-review-signed-for-pm.md)、[D-723](delivery/2026-10-23-non-demo-smoke-evidence.md)）
+  - ③ 模型与 RAGFlow 弹窗配置及内网真服务连通（[D-724](delivery/2026-10-23-model-ragflow-config-modals.md)、[D-725](code/2026-10-23-model-ragflow-config-modals.md)）
+  - ④ 规则最小集与分册定稿闸门（[D-726](delivery/2026-10-23-submission-rules-finalize-gate.md)、[D-727](code/2026-10-23-submission-rules-finalize-gate.md)）
+- **下一棒默认顺序（D0～D5 执行路线图，按序推进）**：
+  - D0 治理回写：**【已完成】** 实 tip `e586f26` 回写，WP1～7 纠偏，B1～B6 拍板落地，产出 [D-728](delivery/2026-10-26-debt-backlog-board-sync.md) 与 [D-729](delivery/2026-10-26-signed-awaiting-pm.md)。
+  - D1 默认路径诚实化：启动脚本与文档明确生产必用 MySQL；关演示冒烟与 CI 强制 `ICG_REQUIRE_MYSQL=1`；前端明确 `VITE_DEMO` 默认策略（未设置默认 false 走正式会话）；堵住无 URL 静默 Memory 当绿。**【下一棒】**
+  - D2 后端去平铺（包重命名与迁移）：落实 B1 拍板，主实现迁入 `backend/bid-core/icg/{api,app,domain,infra}`，`icg_demo` 降为薄兼容，填满 `icg/api` 与 `icg/app`；根级业务 py 显著下降。
+  - D3 持久化与双错误体收口：正文/草稿等聚合点迁入 MySQL 或加测试专用门禁；错误体统一 `{code,message,details,traceId}`；落实 B4 拍板 `/api/demo` 标 deprecated。
+  - D4 产品断环：落实 B5/B6 拍板，对接内网真 RAGFlow 补齐 dataset/kb_sync 摄入；推进下一批高优先 PRD 合规规则；关演示主链路端到端人工冒烟留证。
+  - D5 二次瘦身与低优先：落实 B2 拍板引入 react-router；App.tsx / EditorPage.tsx 拆解瘦身；OpenAPI / styles.css 拆分；清理 tests/frontend 转发壳。
+
+## 规划未落地债收口与用户拍板纪要（2026-10-26）
+
+### 一、实施审计总判断
+- 前端八域搬家、CI触发修复、OpenAPI check、八角色码表已切实闭环。
+- “WP-1～7完全收官”口径虚高：实为前端八域分层完成；后端主实现仍平铺在 `icg_demo/`（35个业务py），Memory 旁路与 MySQL 双路径仍存，`/api/demo` 与双错误体未收口，章节正文等聚合点仍偏 Memory。
+- 产品口令①已解决；②③④均为部分完成（tip滞后、dataset/kb_sync摄入断环、规则库仅为最小集而非R01–44）。
+- 看板 `done` 张数（52/404）≠ 产品完备度（约28%～35%）。
+
+### 二、用户针对审计 B 类的官方拍板结论（必须按此执行）
+1. **B1. 包重命名**：**【已拍板】确定本轮重命名**。将 `icg_demo` 推进至 `icg` 命名体系，主实现进入 `icg/{api,app,domain,infra}`，`icg_demo` 保留薄层转接兼容下游。
+2. **B2. 路由方案**：**【已拍板】确定引入 React-router**。替换简易字符串匹配，规范路由表与守卫。
+3. **B3. 持久化门禁**：**【已拍板】强制。生产、关演示冒烟、CI 均强制 `ICG_REQUIRE_MYSQL=1`**。本地单测允许显式指定 Memory，但绝对禁止无 URL 时静默回落到 Memory 还当绿灯。
+4. **B4. `/api/demo` 下线窗口**：**【已拍板】立即 deprecated，不再加新接口；兼容截止 2026-11-15，之后删除**（未迁调用须先迁至 `/api/v1`）。
+5. **B5. 数据与模型边界**：**【已拍板】严禁发外网**。招标/投标内容仅走内网本地 Qwen 与自建 RAGFlow，数据不出公网。
+6. **B6. 交付目标环境**：**【已拍板】公司内网私有化、可离线**；OS 以 Windows 为主、兼顾内网 Linux；MySQL 8 + 内网 Qwen + 自建 RAGFlow。
+7. **B7. 已签等 PM 清单**：**【已拍板】仅产出清单与证据路径，等用户 PM 最终确认后再标 done**（详见 [D-729](delivery/2026-10-26-signed-awaiting-pm.md)）。
+
+### 三、本轮执行路线图（D0～D5）
+详见上文“下一棒默认顺序”与交付文档 [D-728](delivery/2026-10-26-debt-backlog-board-sync.md)。
 
 ## 额度暂停期审查纪要（2026-10-23）
 

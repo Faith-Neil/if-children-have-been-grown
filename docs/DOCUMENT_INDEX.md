@@ -738,11 +738,14 @@
 | D-725 | 2026-10-23 | [大模型服务与 RAGFlow 知识库弹窗配置代码说明](code/2026-10-23-model-ragflow-config-modals.md) | 代码说明 | model-ragflow-modal-1 | 当前 | ISSUE-007 / ISSUE-028 / APP-M2-T036 / APP-M2-T037 / AI-01 | 大模型服务与 RAGFlow 知识库弹窗配置代码说明：架构分层（前端八域 admin/ 与后端 icg/domain、icg/api）、大模型与 RAGFlow 交互时序、Fernet 对称加密与密钥零泄露机制、多租户强隔离与 If-Match 乐观锁 |
 | D-726 | 2026-10-23 | [规则最小可递交集与分册定稿闸门端到端闭环交付](delivery/2026-10-23-submission-rules-finalize-gate.md) | 任务交付 | submission-finalize-gate-1 | in-review | ISSUE-006 / ISSUE-007 / ISSUE-027 / BE-COMPLIANCE-RULES-P0 / BE-VOLUME-FINALIZE-GATE | 规则最小可递交集与分册定稿闸门端到端闭环交付报告：落实用户拍板决策 Step ④，将 PRD §5.8.5 分册定稿锁定状态机与 export_service 整本递交导出门禁紧密结合，未定稿时精确抛出 409 RULES_INCOMPLETE，有 blocker 时阻断 400 CHECK_BLOCKER_EXISTS，全部定稿合规放行递交版 Word，编写人下载拦截 403，经理放行 200，全套 24 项后端测试与契约 check 100% 通过，保持 in-review |
 | D-727 | 2026-10-23 | [规则最小可递交集与分册定稿闸门代码说明](code/2026-10-23-submission-rules-finalize-gate.md) | 代码说明 | submission-finalize-gate-1 | 当前 | ISSUE-006 / ISSUE-007 / ISSUE-027 / BE-COMPLIANCE-RULES-P0 / BE-VOLUME-FINALIZE-GATE | 规则最小可递交集与分册定稿闸门代码说明：架构分层（icg/domain/export_service、workflow_schemas 与 spec/openapi）、动态分册定稿判定时序、RULES_INCOMPLETE 精准阻断与合规放行状态流转、RBAC 角色权限与 SHA-256 防篡改指纹 |
+| D-728 | 2026-10-26 | [治理交付：规划未落地债审计与看板状态校准（D0）](delivery/2026-10-26-debt-backlog-board-sync.md) | 治理 / 看板 | debt-backlog-sync-1 | 当前 | ISSUE-007 / ISSUE-038 / ISSUE-005 / ISSUE-006 / ISSUE-012 | 治理交付：实 tip e586f26 回写看板与项目状态，清理过时 PR #3 叙述，纠正 WP-1～7 描述口径，登记用户对 B1～B6（包重命名、react-router、MySQL 强制门禁、/api/demo 兼容至 11-15 下线、内网模型边界与私有化环境）官方拍板结果，规划 D1～D5 落地顺序 |
+| D-729 | 2026-10-26 | [「已签等 PM」in-review 任务清单与签署证据汇总（2026-10-26）](delivery/2026-10-26-signed-awaiting-pm.md) | 治理 / 看板 | in-review-signed-pm-2 | 当前 | ISSUE-007 / ISSUE-005 / ISSUE-006 / ISSUE-013 / ISSUE-038 | 汇总梳理经 QA 测试核验与 PD 产品视角对照签署通过的 in-review 任务卡清单（新增弹窗闭环 D-724 与定稿闸门 D-726），呈现完整自动化与业务证据链，严格遵照不擅自标 done 铁律，交由人类 PM 最终确认 |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-10-26 | 治理 / 看板 / 审计 | 登记规划未落地债审计与看板状态校准交付（2026-10-26-debt-backlog-board-sync.md，D-728）与已签等 PM 清单汇总（2026-10-26-signed-awaiting-pm.md，D-729），校准实 tip 至 e586f26，纠正 WP-1～7 描述口径，登记用户 B1～B6 官方拍板结果，确立 D1～D5 执行路线图 |
 | 2026-10-23 | ISSUE-006 / ISSUE-007 / ISSUE-027 / BE-COMPLIANCE-RULES-P0 / BE-VOLUME-FINALIZE-GATE | 登记规则最小可递交集与分册定稿闸门闭环交付报告（2026-10-23-submission-rules-finalize-gate.md，D-726）与代码说明（D-727），落实用户拍板决策 Step ④，打通分册定稿与整本递交导出门禁，支持合法解除 RULES_INCOMPLETE 导出正式递交版 Word，单测与回归全绿，保持 in-review |
 | 2026-10-23 | ISSUE-007 / ISSUE-028 / APP-M2-T036 / APP-M2-T037 / AI-01 | 登记大模型服务与 RAGFlow 知识库弹窗配置及连通性闭环交付报告（2026-10-23-model-ragflow-config-modals.md，D-724）与代码说明，落实用户决策 Step ③，实现前端弹窗与核心校验，打通后端 /api/v1/ragflow-config 端点与测试，全量单测通过，保持 in-review |
 | 2026-10-23 | 验收 / 冒烟 | 登记关演示主路径端到端冒烟证据报告（2026-10-23-non-demo-smoke-evidence.md，D-723），验证非 demo 模式下从建项至两册 Word 导出的完整业务链路与导出门禁 |

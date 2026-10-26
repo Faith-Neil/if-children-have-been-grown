@@ -4,11 +4,11 @@
 
 # 项目状态
 
-维护日期：2026-10-23（UTC+8）。分支 `feat/opencode-ICG` 位于 tip `2609a34`；初次接手从 `main` 的 `ce064f6` 开始维护；main/xqr分支情况保留2026-10-09核对快照。已补齐 WP-1 独立交付文档（D-696），对齐 RoleMode 枚举，登记整改后结构债务收敛 ISSUE-038（D-697），完成 DOC-SYNC-1（D-698）与 DOC-SYNC-1.1（D-699）活文档实树校准。完成 CI 工作流触发分支修复（D-721）、已签等 PM 清单汇总（D-722）与关演示主链路冒烟留证（D-723）、大模型与 RAGFlow 弹窗配置及实测（D-724/D-725）、以及规则最小可递交集与分册定稿闸门端到端闭环（D-726/D-727）。
+维护日期：2026-10-26（UTC+8）。分支 `feat/opencode-ICG` 位于 tip `e586f26`；初次接手从 `main` 的 `ce064f6` 开始维护；main/xqr分支情况保留2026-10-09核对快照。已补齐 WP-1 独立交付文档（D-696），对齐 RoleMode 枚举，登记整改后结构债务收敛 ISSUE-038（D-697），完成 DOC-SYNC-1（D-698）与 DOC-SYNC-1.1（D-699）活文档实树校准。完成 CI 工作流触发分支修复（D-721）、已签等 PM 清单汇总（D-722）与关演示主链路冒烟留证（D-723）、大模型与 RAGFlow 弹窗配置及实测（D-724/D-725）、规则最小可递交集与分册定稿闸门端到端闭环（D-726/D-727）、以及 2026-10-26 规划未落地债审计与看板状态校准（D-728/D-729）。
 
-## 现行工程结构现状（WP-1～WP-7 质量整改收官）
+## 现行工程结构现状与规划未落地债审计（2026-10-26 纠偏）
 
-分支 `feat/opencode-ICG` 已全面完成 2026-10-22 质量整改方案（WP-1 至 WP-7），工程实树与治理规则严格对齐：
+分支 `feat/opencode-ICG` 前端八域物理分层已切实落地；但经 2026-10-26 深度审计确认，原“WP-1～7 完全收官”口径存在虚高，后端 `icg_demo` 根目录仍有 35 个业务 py 平铺承载主流量，Memory 旁路与 MySQL 双路径仍存，`/api/demo` 兼容窗口至 2026-11-15。根据用户 2026-10-26 官方拍板决定（B1~B6），正式启动 D1～D5 规划未落地债收口：
 1. **前端 8 域物理分层**：`frontend/web/src/` 根目录仅保留 `main.tsx`，所有代码按 `app/`、`shell/`、`project/`、`editor/`、`library/`、`admin/`、`status/`、`shared/` 组织，巨石组件拆解完成，全界面严格落实 **Layout First** 原则。
 2. **后端模块解耦与分包**：`backend/bid-core/icg/` 建立 `infra/`（含 `memory_repository.py`、`mysql_gate.py` 及 `repositories/` 下 8 大持久化仓储）与 `domain/`（`workflow_orchestrator`、`export_service`、`generation_service`、`outline_service` 4 大服务）；`icg_demo/` 下的 `database.py`（76行）与 `workflow.py`（29行）为向后兼容转接壳（façade），`adapters.py` 保留 `DemoModelProvider` 替身实现。
 3. **接口与角色收口**：主流程收敛至 `/api/v1` 路径；旧 `/api/demo` 端点标记为 Deprecated；前端由 `roles.ts`（8 大标准角色）与 `codes.ts` 单源驱动；支持凭据登录与 `VITE_DEMO=0` 演示关闸；生产环境配置（`ICG_REQUIRE_MYSQL=1`）强行阻断演示账号。
@@ -45,7 +45,7 @@ ISSUE-015 / REV-M0-T03已编制[APP-M1-T06验收计划](testing/2026-10-12-app-m
 
 ## 当前契约阶段（2026-10-12）
 
-ISSUE-005的DG-05拆成六张后端卡。错误体与单一状态码表[BE-M0-T02](delivery/BE-M0-T02.md)、24小时幂等回执[BE-M0-T03](delivery/BE-M0-T03.md)已由项目经理于 10-12 12:28 在 QA 签署后确认，标为 done。ISSUE-005 保持 in-progress：编辑租约迁到`/api/v1` 的 BE-M0-T04 为 in-review，导出快照 BE-M0-T05 为 in-review，202与SSE 的 BE-M0-T06 为 in-review，operationId 检查 BE-M0-T07 为 in-review，该 Issue 不关闭。`MODEL_UNAVAILABLE`固定502；`/api/v1`返回`{code, message, details, traceId}`，旧`/api`章节建议仍用`error`加`request_id`。前端请求层 APP-M2-T002 已由项目经理在群里确认、QA 签署后标为 done：追踪号优先读 `X-Request-ID`，章节版本提交的请求头与正文 `idempotency_key` 相同。带统一错误体且 code 为 MODEL_UNAVAILABLE 的 502，以及 code 为 SECRET_KEY_UNAVAILABLE 的 503，不自动重试，页面立刻用追踪号提示。只有 GET 和已经带 Idempotency-Key 的写入，才对网络错误、没有统一错误体的 502 和其他 503 重试。ISSUE-030 为 in-review，T002 仍为 done。没有键的旧写入第一次失败就停止；ISSUE-021 给这些接口补键之后这条限制解除。见[交付](delivery/APP-M2-T002.md)。业务库已决定为MySQL 8。[持久化方案](architecture/mysql-8-persistence-plan.md)已由项目经理批准，ISSUE-018 为 in-progress。[连接与空迁移](delivery/BE-M0-T10.md)与方案卡 BE-M0-T08 已由项目经理在 QA 签署 98c5129 后确认，标为 done。设置 `ICG_DATABASE_URL` 即可连接，未设置时测试仍用内存仓库。回执和登录会话由 [BE-M0-T11](delivery/BE-M0-T11.md) 依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done。编辑租约由 BE-M0-T12 依据 QA ae6fd10，PM 15:32 确认 done。聚合表仍未做。旧 `/api` 统一错误体登记为 ISSUE-021，任务 planned，排在该方案之后；其中 E2E-D5（`/API/...` 返回页面壳）也只登记，本轮不改兜底路由。向量库已定为 RAGFlow 自带，客户端未实现。PR #3未合入。
+ISSUE-005的DG-05拆成六张后端卡。错误体与单一状态码表[BE-M0-T02](delivery/BE-M0-T02.md)、24小时幂等回执[BE-M0-T03](delivery/BE-M0-T03.md)已由项目经理于 10-12 12:28 在 QA 签署后确认，标为 done。ISSUE-005 保持 in-progress：编辑租约迁到`/api/v1` 的 BE-M0-T04 为 in-review，导出快照 BE-M0-T05 为 in-review，202与SSE 的 BE-M0-T06 为 in-review，operationId 检查 BE-M0-T07 为 in-review，该 Issue 不关闭。`MODEL_UNAVAILABLE`固定502；`/api/v1`返回`{code, message, details, traceId}`，旧`/api`章节建议仍用`error`加`request_id`。前端请求层 APP-M2-T002 已由项目经理在群里确认、QA 签署后标为 done：追踪号优先读 `X-Request-ID`，章节版本提交的请求头与正文 `idempotency_key` 相同。带统一错误体且 code 为 MODEL_UNAVAILABLE 的 502，以及 code 为 SECRET_KEY_UNAVAILABLE 的 503，不自动重试，页面立刻用追踪号提示。只有 GET 和已经带 Idempotency-Key 的写入，才对网络错误、没有统一错误体的 502 和其他 503 重试。ISSUE-030 为 in-review，T002 仍为 done。没有键的旧写入第一次失败就停止；ISSUE-021 给这些接口补键之后这条限制解除。见[交付](delivery/APP-M2-T002.md)。业务库已决定为MySQL 8。[持久化方案](architecture/mysql-8-persistence-plan.md)已由项目经理批准，ISSUE-018 为 in-progress。[连接与空迁移](delivery/BE-M0-T10.md)与方案卡 BE-M0-T08 已由项目经理在 QA 签署 98c5129 后确认，标为 done。设置 `ICG_DATABASE_URL` 即可连接，未设置时测试仍用内存仓库。回执和登录会话由 [BE-M0-T11](delivery/BE-M0-T11.md) 依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done。编辑租约由 BE-M0-T12 依据 QA ae6fd10，PM 15:32 确认 done。聚合表仍未做。旧 `/api` 统一错误体登记为 ISSUE-021，任务 planned，排在该方案之后；其中 E2E-D5（`/API/...` 返回页面壳）也只登记，本轮不改兜底路由。向量库已定为 RAGFlow 自带，客户端未实现。PR #3 已合入。
 
 ISSUE-019 / REV-M0-T06新增Playwright端到端检查（`pnpm --dir frontend/web e2e`，约40秒）；ISSUE-013 / REV-M0-T08对APP-M2-T001本切片签署**不通过**，见[记录](testing/2026-10-12-e2e-t001-signoff.md)。该签署结论保留。前端随后修复 D1–D4 并写明 D6。QA 重签新增 E2E-D7 后，展开按钮已可点，端到端 12 项通过。随后 REV-M0-T11 签署通过，项目经理在群里确认后 T001 标为 done，见[修复复核](testing/2026-10-12-t001-layout-history.md)。用户与项目经理确认 D3/D4 修复后，offline-check 的 `e2e` 作业改为必需，失败会阻断工作流。REV-M0-T06 与 REV-M0-T08 仍为 in-review。
 
@@ -59,7 +59,7 @@ ISSUE-019 / REV-M0-T06新增Playwright端到端检查（`pnpm --dir frontend/web
 
 资料库专项审查确认：当前只支持基础文字资料，确认声明、审核、受限名单、真实附件槽位、历史和引用版本仍缺。T16已修复资料及公司模板旧表单借刷新版本覆盖新内容的问题；完整C01/C06各卡继续planned，不能以修复代替其验收。
 
-已完成首轮目录/原型修复FE-M0-T01和任务交付治理FE-M0-T02。前端59项中2项本地done、1项in-progress、8项planned、48项blocked；FE-M0完成2/10。两项交付均在PR #3中等待合入。任务计数不代表按工时加权的产品完成率。
+已完成首轮目录/原型修复FE-M0-T01和任务交付治理FE-M0-T02。前端59项中2项本地done、1项in-progress、8项planned、48项blocked；FE-M0完成2/10。两项交付均已在 PR #3 合入。任务计数不代表按工时加权的产品完成率。
 
 每个done任务必须有交付、验收、代码解释和文档同步记录；PR合入/发布独立记录。逐任务证据见 [T01交付](delivery/FE-M0-T01.md)、[T02交付](delivery/FE-M0-T02.md)，规则见 [WORKFLOW](governance/WORKFLOW.md)。
 

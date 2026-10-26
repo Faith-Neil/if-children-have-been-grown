@@ -1,0 +1,116 @@
+【Antigravity 完整口令 · 规划未落地债收口 · 前因后果 + 执行】
+仓库：Faith-Neil/if-children-have-been-grown · 分支 feat/opencode-ICG
+核对基线 tip：e586f26（若本机已前进，以实 tip 为准并回写看板）
+执行方：仅你（Antigravity）改仓。ICG 五角色 bot 只读，勿派他们写码/推仓/改工单状态。
+产品最终目标：以招标相关文件为基础，智能生成投标文件。看板 done 张数 ≠ 产品完备度。
+约束：不改未批准技术栈；每棒可独立验收；写 docs/delivery/；遵守 AGENTS.md。
+
+======== 一、前因（2026-10-26 规划实施审计）========
+用户要求对照多份规划文档 + 成长项目经理发布的口令/纪要，筛「规划过但没真正解决」项（含未拍板、被跳过）。
+
+【已对照文档】
+- docs/delivery/2026-10-22-quality-remediation-plan.md（WP-1～7 / P0～P3 / §6 拍板）
+- docs/delivery/2026-10-22-prd-gap-summary.md
+- docs/ROADMAP.md、docs/ARCHITECTURE.md、docs/architecture/repository-layout.md
+- docs/PROJECT_STATUS.md、docs/TASK_BOARD.md
+- docs/reviews（含 2026-10-12 foundation 复核等）
+- PM：2026-10-23 antigravity-full-brief / 额度暂停期审查纪要 / 产品口令①～④及相关 delivery
+
+【总判断】
+- 前端八域搬家、CI 触发修复、OpenAPI check、八角色码表、推仓/alembic 跟踪等已基本闭环。
+- 「WP1～7 收官」口径虚高：实为前端分层 + 后端部分 façade；icg_demo 平铺主流量、双路径、演示默认开、Memory 回落、规则大盘、kb_sync 等仍欠。
+- 产品口令①已解决；②③④均为部分完成（tip 又滞后；弹窗/连测有但摄入断环；最小规则有但非 R01–44）。
+- ISSUE-038 把多项后端结构债标成 P2「勿压过 PRD P0」——被产品①～④让路，不等于已解决。
+
+【审计 A 类（写了仍未闭环）摘要】
+1) icg_demo 仍 35 根级 py 平铺主流量；icg/ 壳未迁完
+2) 无 DATABASE_URL 仍可静默 Memory
+3) /api/demo + 双错误体未收口
+4) App/Editor 巨石二次瘦身未达标
+5) workflow_orchestrator 仍巨石；icg/api|app 未填满
+6) OpenAPI 单文件≈955KB（可延后）
+7) styles.css≈39KB（可延后）
+8) 未设 VITE_DEMO 时演示默认 true；synthetic-demo 仍在
+9) TASK_BOARD/PROJECT_STATUS tip 滞后于实 tip
+10) 章节正文等聚合仍偏 Memory（foundation 复核未闭环）
+11) dataset/kb_sync 摄入断环（③只到弹窗+真连测）
+12) R01–R44 大块仍欠（④只最小集+定稿闸门）
+13) 组件级真实交互测偏弱（可延后）
+14) 分支保护仍 off
+
+【审计 B 类】
+B1) icg_demo→icg 是否本轮重命名、兼容多久 —— 仍待用户拍板（默认：本轮不重命名，只迁实现）
+B2) 是否引入 react-router —— 仍待用户拍板（默认：不引入，沿用自研路由表）
+B3) 生产/默认是否强制 ICG_REQUIRE_MYSQL=1 —— 【已拍板】是。生产与关演示冒烟强制；CI 强制；本地单测可显式 Memory，禁止无 URL 静默回落当绿。
+B4) /api/demo 下线窗口 —— 【已拍板】立即 deprecated、禁止扩展；兼容截止 2026-11-15，之后可删（未迁调用须先迁 /api/v1）。
+B5) 业务文件能否发外部解析/AI —— 【已拍板】不能。仅内网已部署服务（本地 Qwen、自建 RAGFlow）；数据不出外网。
+B6) 交付目标环境 —— 【已拍板】公司内网私有化、可离线/断外网；OS 以 Windows 为主并兼顾内网 Linux；MySQL 8；内网 Qwen；自建 RAGFlow。
+B7) 「已签等 PM」哪些卡可标 done —— 仍待用户确认（只整理证据，不擅自 done）
+
+【审计 C 类（被优先级让路）】
+后端去平铺；ISSUE-038 瘦身；OpenAPI/styles/tests 壳清理；ROADMAP Phase5–8 与专类页/队列/答案卡 UX；PR #1 xqr 文档整合长期挂起。
+
+======== 二、本轮执行原则 ========
+1) 先治理回写与可验收结构债，再产品断环；低优先项（OpenAPI 拆分、styles、组件测、tests 壳）单列，勿与主路径抢工。
+2) B3～B6 已拍板，必须按上表执行。B1/B2 未拍板：本轮不重命名包、不引入 react-router；Memory 实现可保留但须测试专用门禁（与 B3 一致）。
+3) B7：只产出「建议 done / 仍 in-review」清单 + 证据，交给用户确认后再改看板状态。
+4) 不要把「结构债已清」写进 STATUS；口径改为「前端八域完成；后端分包进行中 / 双路径未收」。
+5) 假 RAG/假模型仅 CI；真服务配置勿编造 Key。
+
+======== 三、按序要做的事 ========
+
+【D0. 治理回写（先做，半日）】
+1) 用实 tip 回写 docs/TASK_BOARD.md 文首与 docs/PROJECT_STATUS.md；删过时「PR #3 待合入」类表述（若仍残留）。
+2) 在 TASK_BOARD「结构债/下一棒」写入本口令顺序 D1～D5，并链到本 delivery。
+3) 纠正「WP1～7 收官」表述：标明未闭环项（icg_demo 平铺、Memory 门禁、demo API、巨石残留）。
+4) 交付：docs/delivery/2026-10-26-debt-backlog-board-sync.md
+
+【D1. 默认路径诚实化（不依赖重命名拍板）】
+1) 文档 + 启动脚本 / README / AGENTS：生产路径必须 MySQL；本地未设 URL 的 Memory 回落写清「仅开发/测试」。
+2) CI 与关演示冒烟继续 ICG_REQUIRE_MYSQL=1；不要静默把 Memory 当绿。
+3) 前端：明确 VITE_DEMO 默认策略——建议改为未设置时 false（关演示才走正式会话）；若改默认，补回归与 delivery 说明。保留 VITE_DEMO=1 演示入口。
+4) 交付：docs/delivery/2026-10-26-demo-mysql-defaults.md
+   ※ B3 已拍板：生产/冒烟/CI 强制 MySQL；改代码堵住「无 URL 静默 Memory 当绿」。
+
+【D2. 后端去平铺（主流量迁出，保留兼容名）】
+目标：行为不变；主实现进入 backend/bid-core/icg/{api,app,domain,infra}；icg_demo 降为薄兼容 re-export（或逐步变空），根目录不再堆新业务 py。
+1) 禁止再向 icg_demo/ 根新增业务文件（写入 AGENTS/冻结规则若缺失则补）。
+2) 迁移优先：main 路由挂载、workflow_orchestrator、仍巨石的领域模块；填满 icg/api 与 icg/app（现多空壳）。
+3) 不在本棒做包重命名 icg_demo→icg（等 B1）；/api/demo 不删除，只保证新代码只挂 /api/v1。
+4) 验收：backend 全量测试绿；对外 API 不变；icg_demo 根级业务 py 数量显著下降并有清单。
+5) 交付：docs/delivery/2026-10-26-backend-unflatten-progress.md
+   ※ 与 ISSUE-038 对齐：可关/更新对应 BE-TECH-DEBT 卡说明，不擅自标产品 P0 done。
+
+【D3. 持久化与双错误体收口（接 foundation 复核 + WP-5）】
+1) 章节正文/草稿/检查等仍走 Memory 的聚合点：迁 MySQL 路径或明确测试专用并加门禁（有测试证据）。
+2) 错误体统一优先 {code,message,details,traceId}；旧 error/request_id 仅兼容层；前端客户端只认 v1。
+3) /api/demo：立即 deprecated + 文档；不扩展；写明兼容截止 2026-11-15（B4 已拍板）。
+4) 交付：docs/delivery/2026-10-26-persistence-and-error-body.md
+
+【D4. 产品断环（接未完成的③④，产品优先于巨石美化）】
+1) kb_sync / dataset 生命周期：补齐摄入闭环（对接内网真 RAGFlow，禁止外网）；假服务仅 CI。缺真实 endpoint/Key 则停并问用户，勿编造。（B5/B6 已拍板）
+2) 规则：在已有最小可递交（R15/R23/R34/R37 + 定稿闸门）之上，按 PRD/prd-gap 列下一小批高优先级规则并交付，不宣称 R01–44 完成。
+3) 关演示主路径冒烟留证（VITE_DEMO=0 + MySQL）：上传招标→解析→矩阵→生成→检查→两册 Word。
+4) 交付：docs/delivery/2026-10-26-product-gap-kb-rules-smoke.md
+
+【D5. 二次瘦身与低优先（勿压过 D2～D4）】
+仅当 D2～D4 可验收后：
+- App.tsx / EditorPage.tsx 继续拆（目标行数见 remediation WP-3）
+- OpenAPI 拆分或按 tag 生成（可登记延后）
+- styles.css 按域拆
+- tests/frontend 转发壳清理
+- 组件级交互测补强
+分支保护：只准备说明与推荐设置，是否开启交给用户（不在本机改 GitHub 设置除非用户明确要求）。
+
+【并行只读、交给用户的清单】
+- B7「已签等 PM」：更新建议 done 列表 + 证据路径，写入 docs/delivery/2026-10-26-signed-awaiting-pm.md，等用户确认后再改看板状态。
+- B1/B2/B7：在 board sync 文首列「待拍板」；B3～B6 已拍板，写入看板纪要。
+
+======== 四、明确不要做 ========
+1) 不 force-push；不擅自合并 PR；不擅自把 in-review 标 done。
+2) 不在分层完成前堆新大功能进 icg_demo 根或前端 src 根。
+3) 不删除 Memory 实现（可标测试专用）；不未拍板就引入 react-router / 新 UI 状态库。
+4) 不宣称 RAGFlow「生产已接好」或「R01–44 完成」。
+5) 不打断用户未完成的其他 Antigravity 会话目标时，以本口令为新会话主线；若用户说先做别的，以用户当场指示为准。
+
+做完 D0 可先提交；再 D1→D2→D3→D4；D5 最后。每棒 tip 回写看板。
