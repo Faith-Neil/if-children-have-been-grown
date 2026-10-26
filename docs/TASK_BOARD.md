@@ -4,7 +4,7 @@
 
 # 项目任务看板
 
-任务版本：0.7；治理版本：g1.1；更新日期：2026-10-26；当前实现 Issue：[ISSUE-007](../issues/ISSUE-007.md)；结构收官：[ISSUE-038](../issues/ISSUE-038.md)；离线检查：[ISSUE-012](../issues/ISSUE-012.md)；生产门禁：[ISSUE-005](../issues/ISSUE-005.md)；模型决定：[ISSUE-010](../issues/ISSUE-010.md)（closed）；tip：8362da2。
+任务版本：0.7；治理版本：g1.1；更新日期：2026-10-26；当前实现 Issue：[ISSUE-007](../issues/ISSUE-007.md)；结构收官：[ISSUE-038](../issues/ISSUE-038.md)；离线检查：[ISSUE-012](../issues/ISSUE-012.md)；生产门禁：[ISSUE-005](../issues/ISSUE-005.md)；模型决定：[ISSUE-010](../issues/ISSUE-010.md)（closed）；tip：92a29c4。
 
 将 [前端 ROADMAP](ROADMAP.md) 的 Phase 0～8 与发布 Milestone 1～5 拆为 **59 张任务卡**，由 FE-M0～FE-M8 管理。前缀 FE 表示前端合作交付；这些编号与参考全系统 M0～M8 的门禁、周期和范围独立。
 
@@ -249,7 +249,7 @@
 | [BE-M0-T19](tasks/BE-M0.md#be-m0-t19) | demo_project 对齐字典 bid_project | in-review | [BE-M0-T13](tasks/BE-M0.md#be-m0-t13) | [ISSUE-035](../issues/ISSUE-035.md) | [BE-M0-T19](delivery/BE-M0-T19.md) |
 | [BE-CHECKS-EXPORT-ALIGN](tasks/BE-M0.md#be-checks-export-align) | 检查阻断红线与整本导出快照版式核对 | in-review | [BE-M0-T15](tasks/BE-M0.md#be-m0-t15) | [ISSUE-006](../issues/ISSUE-006.md)；[ISSUE-027](../issues/ISSUE-027.md) | [交付](delivery/BE-CHECKS-EXPORT-ALIGN.md) |
 | [BE-VOLUME-FINALIZE-GATE](tasks/BE-M0.md#be-volume-finalize-gate) | 分册定稿状态机与前置检查门禁 | in-review | [BE-CHECKS-EXPORT-ALIGN](tasks/BE-M0.md#be-checks-export-align) | [ISSUE-006](../issues/ISSUE-006.md)、[ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/BE-VOLUME-FINALIZE-GATE.md) |
-| [BE-COMPLIANCE-RULES-P0](tasks/BE-M0.md#be-compliance-rules-p0) | 第一批核心合规规则编号落地（R15/R23/R34/R37及核验引擎） | in-review | [BE-CHECKS-EXPORT-ALIGN](tasks/BE-M0.md#be-checks-export-align) | [ISSUE-006](../issues/ISSUE-006.md)、[ISSUE-027](../issues/ISSUE-027.md) | [交付](delivery/BE-COMPLIANCE-RULES-P0.md) |
+| [BE-COMPLIANCE-RULES-P0](tasks/BE-M0.md#be-compliance-rules-p0) | 核心合规规则扩写落地（R01/R02/R15/R23/R34/R35/R37及核验引擎） | in-review | [BE-CHECKS-EXPORT-ALIGN](tasks/BE-M0.md#be-checks-export-align) | [ISSUE-006](../issues/ISSUE-006.md)、[ISSUE-027](../issues/ISSUE-027.md) | [交付](delivery/2026-10-26-product-gap-kb-rules-smoke.md) |
 | [BE-SUBMISSION-FINALIZE-GATE](delivery/2026-10-23-submission-rules-finalize-gate.md) | 规则最小可递交集与分册定稿闸门端到端闭环 | in-review | [BE-VOLUME-FINALIZE-GATE](tasks/BE-M0.md#be-volume-finalize-gate)、[BE-COMPLIANCE-RULES-P0](tasks/BE-M0.md#be-compliance-rules-p0) | [ISSUE-006](../issues/ISSUE-006.md)、[ISSUE-007](../issues/ISSUE-007.md)、[ISSUE-027](../issues/ISSUE-027.md) | [交付](delivery/2026-10-23-submission-rules-finalize-gate.md) |
 | [APP-M1-T01](tasks/APP-M1.md#app-m1-t01) | 示例外壳与项目工作台 | in-progress | BE-M0-T01 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T01.md` |
 | [APP-M1-T02](tasks/APP-M1.md#app-m1-t02) | 上传解析与确认 | in-progress | APP-M1-T01工作区接口 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T02.md` |
@@ -538,7 +538,7 @@
 | [BE-TECH-DEBT-01](../issues/ISSUE-038.md#be-tech-debt-01) | suggestions 等双错误体收敛（统一规范错误体并对齐单测） | in-review | [WP-5](delivery/WP-5.md) | [ISSUE-038](../issues/ISSUE-038.md) | [交付](delivery/2026-10-26-persistence-and-error-body.md) |
 | [FE-TECH-DEBT-01](../issues/ISSUE-038.md#fe-tech-debt-01) | EditorPage 等巨石二次瘦身（<400/600 精神，抽离 hooks 与子面板） | planned | [WP-3](delivery/WP-3.md) | [ISSUE-038](../issues/ISSUE-038.md) | `docs/delivery/FE-TECH-DEBT-01.md` |
 | [BE-TECH-DEBT-02](../issues/ISSUE-038.md#be-tech-debt-02) | 填充 icg/api 与 icg/app，业务实现迁入 icg 分层体系（去平铺与包命名体系规范化） | in-review | [WP-4](delivery/WP-4.md) | [ISSUE-038](../issues/ISSUE-038.md) | [交付](delivery/2026-10-26-backend-unflatten-progress.md) |
-| [REV-SMOKE-001](delivery/REV-SMOKE-001.md) | 关演示全流程冒烟联调与断点排查（6大主流程端到端闭环验证） | in-review | [WP-5](delivery/WP-5.md)、[WP-6](delivery/WP-6.md)、[WP-7](delivery/WP-7.md) | [ISSUE-005](../issues/ISSUE-005.md)、[ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/REV-SMOKE-001.md) |
+| [REV-SMOKE-001](delivery/2026-10-26-product-gap-kb-rules-smoke.md) | 关演示全流程冒烟联调与断点排查（6大主流程端到端闭环验证与双册Word留证） | in-review | [WP-5](delivery/WP-5.md)、[WP-6](delivery/WP-6.md)、[WP-7](delivery/WP-7.md) | [ISSUE-005](../issues/ISSUE-005.md)、[ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/2026-10-26-product-gap-kb-rules-smoke.md) |
 | [FE-SNIPPET-LIBRARY](delivery/FE-SNIPPET-LIBRARY.md) | 知识库方案片段管理最小页（真实列表/详情/变量展示与公司隔离） | in-review | [WP-2](delivery/WP-2.md)、[APP-M2-T078](delivery/APP-M2-T078.md) | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/FE-SNIPPET-LIBRARY.md) |
 | [FE-WRITING-ARCHIVE](delivery/FE-WRITING-ARCHIVE.md) | 写作档案与风格规范最小页（语气偏好/禁用词/公文排版/标杆样章与公司隔离） | in-review | [WP-2](delivery/WP-2.md)、[FE-SNIPPET-LIBRARY](delivery/FE-SNIPPET-LIBRARY.md) | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/FE-WRITING-ARCHIVE.md) |
 | [INT-VOLUME-FINALIZE-GLUE](delivery/INT-VOLUME-FINALIZE-GLUE.md) | 分册定稿与工作台/导出的前后端契约胶水打通（状态机/导出徽章/递交门禁联动） | in-review | [BE-VOLUME-FINALIZE-GATE](tasks/BE-M0.md#be-volume-finalize-gate)、[REV-SMOKE-001](delivery/REV-SMOKE-001.md) | [ISSUE-005](../issues/ISSUE-005.md)、[ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/INT-VOLUME-FINALIZE-GLUE.md) |

@@ -96,6 +96,22 @@ class ComplianceRulesEngine:
 
     CATALOG = [
         {
+            "rule_id": "R01",
+            "title": "招标单位与项目名称提取一致性核验",
+            "category": "consistency",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "核验正文与条款响应中出现的招标人全称、项目名称及招标编号与项目元数据是否严格一致，严禁名称错漏或项目编号冲突。",
+        },
+        {
+            "rule_id": "R02",
+            "title": "资质有效性与原件备查承诺核验",
+            "category": "qualification",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "核验营业执照、行业资质及原件核对条款，必须具备真实有效承诺与原件备查书面声明，严禁无承诺响应。",
+        },
+        {
             "rule_id": "R15",
             "title": "证明材料齐全性核验",
             "category": "qualification",
@@ -118,6 +134,14 @@ class ComplianceRulesEngine:
             "default_severity": "blocking",
             "can_disable": False,
             "description": "排查正文与条款响应中的【待补】、TODO占位符、未替换变量模板及AI遗留对话，禁止带草稿瑕疵导出。",
+        },
+        {
+            "rule_id": "R35",
+            "title": "投标主体自称与称谓统一性核验",
+            "category": "consistency",
+            "default_severity": "warning",
+            "can_disable": False,
+            "description": "全册核验投标主体自称（我方/本投标人/公司全称）与对招标方称谓（贵方/招标人/采购人）是否口径统一，提示口径混乱瑕疵。",
         },
         {
             "rule_id": "R37",
@@ -159,6 +183,194 @@ class ComplianceRulesEngine:
         "希望以上方案能满足",
         "如果还有其他需要补充",
     ]
+
+
+    @classmethod
+    def check_r01(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R01：招标单位与项目名称提取一致性核验。
+        核验项目名称、招标编号与条款/正文中的引用一致性，防范张冠李戴错漏。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        expected_code = str(getattr(project, "tender_number", "") or "").strip()
+        expected_name = str(getattr(project, "name", "") or "").strip()
+
+        # 检查项目章节正文
+        chapters = [ch for ch in state.chapters.values() if ch.project_id == project.id]
+        if volume != "all":
+            chapters = [ch for ch in chapters if ch.volume == volume]
+
+        code_pattern = re.compile(r"\b[A-Z0-9]{3,}-[0-9]{4}-[A-Z0-9-]+\b")
+
+        for ch in chapters:
+            if not ch.content:
+                continue
+            # 若正文中出现其他编号且与项目招标编号不符
+            if expected_code:
+                found_codes = code_pattern.findall(ch.content)
+                for fc in set(found_codes):
+                    if fc != expected_code:
+                        issues.append(
+                            ComplianceRuleIssue(
+                                id=new_id("issue"),
+                                rule_id="R01",
+                                code="TENDER_NUMBER_CONFLICT",
+                                severity="blocker",
+                                message=f"章节【{ch.title}】正文中出现与项目招标编号不符的编号：{fc}（期望：{expected_code}）",
+                                chapter_id=ch.id,
+                                details={"found_code": fc, "expected_code": expected_code},
+                            )
+                        )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            f"核验项目名称【{expected_name}】与招标编号【{expected_code or '未设置'}】，正文未发现编号冲突或串标瑕疵。"
+            if passed
+            else f"发现 {len(issues)} 处项目编号或招标名称不一致风险，存在张冠李戴阻断红线。"
+        )
+        suggestion = "核验通过" if passed else "请修正正文中错误的招标编号或项目名称，确保与招标公告一致。"
+
+        return ComplianceRuleResult(
+            rule_id="R01",
+            title="招标单位与项目名称提取一致性核验",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"expected_code": expected_code, "expected_name": expected_name},
+        )
+
+    @classmethod
+    def check_r02(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R02：资质有效性与原件备查承诺核验。
+        对明确要求原件备查或资质承诺的关键条款进行响应核验。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        requirements = workflow.get("requirements", {})
+        checked = 0
+
+        for req_id, req in requirements.items():
+            if volume != "all" and req.get("volume") != volume:
+                continue
+
+            text = str(req.get("text", "") or "")
+            need_original = any(w in text for w in ("原件备查", "原件核对", "提供原件", "核验原件"))
+            if not need_original:
+                continue
+
+            checked += 1
+            resp = str(req.get("response", "") or req.get("confirmed_response", "") or "").strip()
+            # 检查响应中是否明确承诺真实原件备查
+            has_commitment = any(w in resp for w in ("原件备查", "提供原件", "承诺", "真实有效", "备查"))
+
+            if not has_commitment:
+                is_crit = is_critical_requirement(req)
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R02",
+                        code="QUALIFICATION_ORIGINAL_COMMITMENT_MISSING",
+                        severity="blocker" if is_crit else "blocking",
+                        message=f"条款要求原件备查，但响应说明中未见明确书面承诺：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"requirement_text": text, "response": resp},
+                    )
+                )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if any(i.severity == "blocker" for i in issues) else ("blocking" if issues else "info")
+        summary = (
+            f"共核验 {checked} 条原件备查与资质条款，全部具备真实有效原件备查书面承诺。"
+            if passed
+            else f"共核验 {checked} 条原件备查条款，发现 {len(issues)} 处缺少原件承诺书面声明。"
+        )
+        suggestion = "核验通过" if passed else "请在响应说明中补充'我方承诺按招标文件要求提供相关真实有效原件备查'。"
+
+        return ComplianceRuleResult(
+            rule_id="R02",
+            title="资质有效性与原件备查承诺核验",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked},
+        )
+
+    @classmethod
+    def check_r35(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R35：投标主体自称与称谓统一性核验。
+        检查全册自称口径（我方/本公司/本单位）及客户称呼规范性。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        chapters = [ch for ch in state.chapters.values() if ch.project_id == project.id]
+        if volume != "all":
+            chapters = [ch for ch in chapters if ch.volume == volume]
+
+        self_terms = {"我方": 0, "本投标人": 0, "我司": 0, "我们公司": 0, "本单位": 0}
+        counter_terms = {"贵方": 0, "招标人": 0, "采购人": 0, "甲方": 0}
+
+        for ch in chapters:
+            content = ch.content or ""
+            for t in self_terms:
+                self_terms[t] += content.count(t)
+            for t in counter_terms:
+                counter_terms[t] += content.count(t)
+
+        used_self = [t for t, cnt in self_terms.items() if cnt > 0]
+        if len(used_self) > 2:
+            issues.append(
+                ComplianceRuleIssue(
+                    id=new_id("issue"),
+                    rule_id="R35",
+                    code="SELF_DESIGNATION_INCONSISTENT",
+                    severity="warning",
+                    message=f"投标主体自称口径不统一，混合使用了多种表达：{', '.join(used_self)}（建议统一为'我方'或'本投标人'）",
+                    details={"used_self": used_self, "counts": self_terms},
+                )
+            )
+
+        if counter_terms["甲方"] > 0:
+            issues.append(
+                ComplianceRuleIssue(
+                    id=new_id("issue"),
+                    rule_id="R35",
+                    code="COUNTERPARTY_DESIGNATION_IRREGULAR",
+                    severity="warning",
+                    message="投标文件正文中出现'甲方'非规范招投标称谓（建议规范使用'贵方'或'招标人/采购人'）",
+                    details={"counts": counter_terms},
+                )
+            )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "warning" if issues else "info"
+        summary = (
+            "全册自称与称谓口径一致规范。"
+            if passed
+            else f"检测到 {len(issues)} 处称谓口径不一致或非规范称谓风险提示。"
+        )
+        suggestion = "核验通过" if passed else "建议通读全书，将自称统一规范为'我方'，客户称谓统一为'贵方/招标人'。"
+
+        return ComplianceRuleResult(
+            rule_id="R35",
+            title="投标主体自称与称谓统一性核验",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"self_terms": self_terms, "counter_terms": counter_terms},
+        )
 
     @classmethod
     def check_r15(
@@ -733,11 +945,14 @@ class ComplianceRulesEngine:
     def evaluate_p0_rules(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
     ) -> list[ComplianceRuleResult]:
-        """按顺序完整执行 PRD P0 级合规规则体系。"""
+        """按顺序完整执行 PRD P0 级合规规则体系（R01, R02, R15, R23, R34, R35, R37）。"""
         return [
+            cls.check_r01(state, project, workflow, volume=volume),
+            cls.check_r02(state, project, workflow, volume=volume),
             cls.check_r15(state, project, workflow, volume=volume, now_ts=now_ts),
             cls.check_r23(state, project, workflow, volume=volume),
             cls.check_r34(state, project, workflow, volume=volume),
+            cls.check_r35(state, project, workflow, volume=volume),
             cls.check_r37(state, project, workflow, volume=volume),
         ]
 

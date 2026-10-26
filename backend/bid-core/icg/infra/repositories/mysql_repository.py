@@ -15,9 +15,9 @@ from icg.domain.domain import Chapter, DemoState, DomainError, Lease, Project, i
 from icg.infra.mysql_gate import create_mysql_engine, RECEIPT_TTL
 from icg.infra.memory_repository import MemoryRepository
 from icg.infra.repositories.common import as_timestamp, parse_db_timestamp, utc_naive, json_value
-from icg.infra.repositories.chapters import read_chapter, save_chapter, commit_chapter_version
+from icg.infra.repositories.chapters import read_chapter, save_chapter, commit_chapter_version, chapter_snapshot, save_chapters_diff
 from icg.infra.repositories.checks_exports import (
-    save_check, read_check, list_checks_by_project, delete_check,
+    save_check, read_check, list_checks_by_project, delete_check, check_snapshot, save_checks_diff,
     save_export, read_export, update_export_status, list_exports_by_project, delete_export,
 )
 from icg.infra.repositories.library import (
@@ -188,9 +188,11 @@ class MysqlConnectionRepository:
 
     def transaction(self, operation: Callable[..., T]) -> T:
         loaded_project_ids: set[str] = set()
+        loaded_chapter_ids: set[str] = set()
+        loaded_check_ids: set[str] = set()
 
         def wrapped(state: DemoState) -> T:
-            self._load_shared(state, loaded_project_ids)
+            self._load_shared(state, loaded_project_ids, loaded_chapter_ids, loaded_check_ids)
             state.cap_receipts = False
             before_sessions = dict(state.sessions)
             before_receipts = {key: dict(receipt) for key, receipt in state.workflow_receipts.items()}
@@ -199,6 +201,8 @@ class MysqlConnectionRepository:
             before_teams = team_snapshot(state)
             before_configs = dict(state.model_configs)
             before_bindings = dict(state.project_model_configs)
+            before_chapters = chapter_snapshot(state)
+            before_checks = check_snapshot(state)
             result = operation(state)
             self._save_shared(
                 before_sessions, dict(state.sessions), before_receipts, state.workflow_receipts,
@@ -207,6 +211,8 @@ class MysqlConnectionRepository:
                 loaded_project_ids,
                 before_configs, dict(state.model_configs),
                 before_bindings, dict(state.project_model_configs),
+                before_chapters, chapter_snapshot(state), state.chapters, loaded_chapter_ids,
+                before_checks, check_snapshot(state), state.checks, loaded_check_ids,
             )
             state.sessions.clear()
             state.workflow_receipts.clear()
@@ -217,7 +223,9 @@ class MysqlConnectionRepository:
 
         return self._memory.transaction(wrapped)
 
-    def _load_shared(self, state: DemoState, loaded_project_ids: set[str]) -> None:
+    def _load_shared(self, state: DemoState, loaded_project_ids: set[str],
+                     loaded_chapter_ids: set[str] | None = None,
+                     loaded_check_ids: set[str] | None = None) -> None:
         with self.engine.begin() as connection:
             connection.execute(text("DELETE FROM idempotency_receipt WHERE expires_at <= NOW(6)"))
             sessions = connection.execute(text("SELECT token, user_id FROM user_session")).all()
@@ -370,6 +378,9 @@ class MysqlConnectionRepository:
                     "created_by": v_actor,
                     "created_at": iso_time(as_timestamp(v_created)) if isinstance(v_created, datetime) else str(v_created),
                 })
+            if loaded_chapter_ids is not None:
+                loaded_chapter_ids.clear()
+                loaded_chapter_ids.update(r[0] for r in chapters_rows)
             for cid, pid, volume, title, content, rev, assignee_id, updated_at in chapters_rows:
                 if cid in state.chapters:
                     ch = state.chapters[cid]
@@ -392,6 +403,29 @@ class MysqlConnectionRepository:
                         assignee_id=assignee_id,
                         versions=versions_by_cid.get(cid, []),
                     )
+            # 加载历史 checks 记录
+            try:
+                with self.engine.begin() as connection:
+                    check_rows = connection.execute(text(
+                        "SELECT id, project_id, volume_id, status, blocking_count, warning_count, issues_json FROM demo_check"
+                    )).all()
+                if loaded_check_ids is not None:
+                    loaded_check_ids.clear()
+                    loaded_check_ids.update(r[0] for r in check_rows)
+                from icg.domain.domain import Check
+                for chk_id, p_id, v_id, status_val, blk_cnt, wrn_cnt, issues_raw in check_rows:
+                    if chk_id not in state.checks:
+                        issues_list = json_value(issues_raw) if issues_raw else []
+                        state.checks[chk_id] = Check(
+                            id=chk_id,
+                            chapter_id=p_id or "",
+                            passed=(status_val == "passed"),
+                            revision=1,
+                            content_hash="",
+                            issues=issues_list if isinstance(issues_list, list) else [],
+                        )
+            except Exception:
+                pass
         except Exception:
             pass
 
@@ -402,7 +436,11 @@ class MysqlConnectionRepository:
                      before_teams: dict, after_teams: dict,
                      loaded_project_ids: set[str],
                      before_configs: dict | None = None, after_configs: dict | None = None,
-                     before_bindings: dict | None = None, after_bindings: dict | None = None) -> None:
+                     before_bindings: dict | None = None, after_bindings: dict | None = None,
+                     before_chapters: dict | None = None, after_chapters: dict | None = None,
+                     state_chapters: dict | None = None, loaded_chapter_ids: set[str] | None = None,
+                     before_checks: dict | None = None, after_checks: dict | None = None,
+                     state_checks: dict | None = None, loaded_check_ids: set[str] | None = None) -> None:
         with self.engine.begin() as connection:
             connection.execute(text("DELETE FROM idempotency_receipt WHERE expires_at <= NOW(6)"))
             for token in before_sessions:
@@ -567,4 +605,14 @@ class MysqlConnectionRepository:
                 save_model_configs(
                     connection, before_configs, after_configs,
                     before_bindings or {}, after_bindings or {},
+                )
+            if before_chapters is not None and after_chapters is not None and state_chapters is not None:
+                save_chapters_diff(
+                    connection, before_chapters, after_chapters,
+                    state_chapters, loaded_chapter_ids or set(),
+                )
+            if before_checks is not None and after_checks is not None and state_checks is not None:
+                save_checks_diff(
+                    connection, before_checks, after_checks,
+                    state_checks, loaded_check_ids or set(),
                 )

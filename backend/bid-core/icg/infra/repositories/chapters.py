@@ -294,3 +294,52 @@ def decompose_paragraphs(
             "updated_at": u_at,
         })
     return paragraphs
+
+
+def chapter_snapshot(state: Any) -> dict[str, tuple]:
+    """提取状态中所有章节的快照元组，用于增量脏检查。"""
+    return {
+        cid: (
+            ch.project_id,
+            ch.volume,
+            ch.title,
+            ch.content,
+            int(ch.revision),
+            ch.assignee_id,
+            tuple(
+                (int(v.get("revision", v.get("version_number", 1))), v.get("content", ""))
+                for v in getattr(ch, "versions", [])
+            ),
+        )
+        for cid, ch in state.chapters.items()
+    }
+
+
+def save_chapters_diff(
+    connection: Any,
+    before_chapters: dict[str, tuple],
+    after_chapters: dict[str, tuple],
+    state_chapters: dict[str, Any],
+    loaded_chapter_ids: set[str],
+) -> None:
+    """批量同步事务内变更的章节与版本至 demo_chapter 与 demo_chapter_version。"""
+    all_cids = set(before_chapters) | set(after_chapters)
+    for cid in all_cids:
+        prev = before_chapters.get(cid)
+        curr = after_chapters.get(cid)
+        if prev == curr:
+            continue
+        if curr is None:
+            if cid in loaded_chapter_ids:
+                connection.execute(
+                    text("DELETE FROM demo_chapter_version WHERE chapter_id = :id"),
+                    {"id": cid},
+                )
+                connection.execute(
+                    text("DELETE FROM demo_chapter WHERE id = :id"),
+                    {"id": cid},
+                )
+        else:
+            ch = state_chapters[cid]
+            save_chapter(connection, ch)
+

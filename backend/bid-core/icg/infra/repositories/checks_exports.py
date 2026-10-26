@@ -351,3 +351,53 @@ def delete_export(target: Any, export_id: str) -> bool:
         with engine.begin() as connection:
             return _execute_delete(connection)
     return _execute_delete(engine)
+
+
+def check_snapshot(state: Any) -> dict[str, tuple]:
+    """提取状态中所有检查记录的快照元组，用于增量脏检查。"""
+    return {
+        cid: (
+            c.chapter_id,
+            bool(c.passed),
+            int(c.revision),
+            c.content_hash,
+            c.input_fingerprint,
+            json.dumps(c.issues, sort_keys=True, ensure_ascii=False),
+        )
+        for cid, c in state.checks.items()
+    }
+
+
+def save_checks_diff(
+    connection: Any,
+    before_checks: dict[str, tuple],
+    after_checks: dict[str, tuple],
+    state_checks: dict[str, Any],
+    loaded_check_ids: set[str],
+) -> None:
+    """批量同步事务内变更的检查结果至 demo_check 表。"""
+    for cid in set(before_checks) | set(after_checks):
+        prev = before_checks.get(cid)
+        curr = after_checks.get(cid)
+        if prev == curr:
+            continue
+        if curr is None:
+            if cid in loaded_check_ids:
+                connection.execute(
+                    text("DELETE FROM demo_check WHERE id = :id"),
+                    {"id": cid},
+                )
+        else:
+            check_obj = state_checks[cid]
+            proj_id = getattr(check_obj, "project_id", None) or getattr(check_obj, "chapter_id", "")
+            vol_id = getattr(check_obj, "volume_id", None)
+            check_data = {
+                "id": cid,
+                "project_id": proj_id,
+                "volume_id": vol_id,
+                "status": "passed" if check_obj.passed else "blocked",
+                "blocking_count": sum(1 for i in check_obj.issues if i.get("severity") in ("blocking", "blocker")),
+                "warning_count": sum(1 for i in check_obj.issues if i.get("severity") == "warning"),
+                "issues_json": check_obj.issues,
+            }
+            save_check(connection, check_data)
