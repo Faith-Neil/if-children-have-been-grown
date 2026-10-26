@@ -26,8 +26,8 @@
   - ④ 规则最小集与分册定稿闸门（[D-726](delivery/2026-10-23-submission-rules-finalize-gate.md)、[D-727](code/2026-10-23-submission-rules-finalize-gate.md)）
 - **下一棒默认顺序（D0～D5 执行路线图，按序推进）**：
   - D0 治理回写：**【已完成】** 实 tip `e586f26` 回写，WP1～7 纠偏，B1～B6 拍板落地，产出 [D-728](delivery/2026-10-26-debt-backlog-board-sync.md) 与 [D-729](delivery/2026-10-26-signed-awaiting-pm.md)。
-  - D1 默认路径诚实化：启动脚本与文档明确生产必用 MySQL；关演示冒烟与 CI 强制 `ICG_REQUIRE_MYSQL=1`；前端明确 `VITE_DEMO` 默认策略（未设置默认 false 走正式会话）；堵住无 URL 静默 Memory 当绿。**【下一棒】**
-  - D2 后端去平铺（包重命名与迁移）：落实 B1 拍板，主实现迁入 `backend/bid-core/icg/{api,app,domain,infra}`，`icg_demo` 降为薄兼容，填满 `icg/api` 与 `icg/app`；根级业务 py 显著下降。
+  - D1 默认路径诚实化：**【已完成】** 启动脚本与文档明确生产必用 MySQL；关演示冒烟与 CI 强制 `ICG_REQUIRE_MYSQL=1`；堵住无 URL 静默 Memory 当绿；前端明确 `VITE_DEMO` 诚实默认策略为 `false`（关演示走正式账号与可信会话），仅显式 `VITE_DEMO=1` 开启演示；测试全绿，交付见 [D-730](delivery/2026-10-26-demo-mysql-defaults.md) 与 [D-731](code/2026-10-26-demo-mysql-defaults.md)（in-review）。
+  - D2 后端去平铺（包重命名与迁移）：落实 B1 拍板，主实现迁入 `backend/bid-core/icg/{api,app,domain,infra}`，`icg_demo` 降为薄兼容，填满 `icg/api` 与 `icg/app`；根级业务 py 显著下降。**【下一棒】**
   - D3 持久化与双错误体收口：正文/草稿等聚合点迁入 MySQL 或加测试专用门禁；错误体统一 `{code,message,details,traceId}`；落实 B4 拍板 `/api/demo` 标 deprecated。
   - D4 产品断环：落实 B5/B6 拍板，对接内网真 RAGFlow 补齐 dataset/kb_sync 摄入；推进下一批高优先 PRD 合规规则；关演示主链路端到端人工冒烟留证。
   - D5 二次瘦身与低优先：落实 B2 拍板引入 react-router；App.tsx / EditorPage.tsx 拆解瘦身；OpenAPI / styles.css 拆分；清理 tests/frontend 转发壳。

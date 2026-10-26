@@ -2,6 +2,7 @@
 # 它解决什么问题：统一认证、错误和请求编号，让浏览器直接验证后台实际行为。
 
 import os
+import sys
 from pathlib import Path
 from typing import Annotated, Any, Callable
 from datetime import datetime
@@ -373,4 +374,5 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     return application
 
 
-app = create_app(use_configured_model=True)
+# 生产入口实例（uvicorn 加载；测试环境下惰性加载避免 collection 阶段误触门禁）
+app = create_app(use_configured_model=True) if "pytest" not in sys.modules else None

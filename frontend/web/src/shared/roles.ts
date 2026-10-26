@@ -137,17 +137,16 @@ export function isKnownRole(role?: string | null): boolean {
 }
 
 /**
- * 判断是否开启演示模式（支持 VITE_DEMO=0 关闭，纯生产模式走真实账号与会话）
+ * 判断是否开启演示模式。
+ * 默认策略（未设置 VITE_DEMO）为 false，生产与关演示路径走真实账号与 RBAC 8 角色会话；
+ * 仅在显式配置 VITE_DEMO=1 或 VITE_DEMO=true 时开启本地演示快捷入口。
  */
 export function isDemoMode(): boolean {
   const metaEnv = (import.meta as unknown as { env?: Record<string, string | undefined> })?.env;
   if (metaEnv) {
-    if (metaEnv.VITE_DEMO === '0' || metaEnv.VITE_DEMO === 'false') {
-      return false;
-    }
     if (metaEnv.VITE_DEMO === '1' || metaEnv.VITE_DEMO === 'true') {
       return true;
     }
   }
-  return true;
+  return false;
 }

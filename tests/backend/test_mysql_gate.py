@@ -46,6 +46,25 @@ def test_gate_fails_when_required_and_url_missing(monkeypatch):
     assert "ICG_DATABASE_URL" in gate.reason
 
 
+def test_repository_from_environment_raises_when_required_and_url_missing(monkeypatch):
+    import pytest
+    from icg.infra.mysql_gate import repository_from_environment
+
+    monkeypatch.delenv("ICG_DATABASE_URL", raising=False)
+    monkeypatch.setenv("ICG_REQUIRE_MYSQL", "1")
+    with pytest.raises(RuntimeError, match="ICG_REQUIRE_MYSQL=1 but ICG_DATABASE_URL is missing"):
+        repository_from_environment()
+
+
+def test_repository_from_environment_allows_memory_when_not_required(monkeypatch):
+    from icg.infra.mysql_gate import repository_from_environment
+
+    monkeypatch.delenv("ICG_DATABASE_URL", raising=False)
+    monkeypatch.delenv("ICG_REQUIRE_MYSQL", raising=False)
+    repo = repository_from_environment()
+    assert repo.mode == "memory"
+
+
 def test_gate_fails_when_required_and_database_unreachable(monkeypatch):
     monkeypatch.setenv("ICG_DATABASE_URL", "mysql+pymysql://user:secret@127.0.0.1:1/icg_demo")
     monkeypatch.setenv("ICG_REQUIRE_MYSQL", "1")

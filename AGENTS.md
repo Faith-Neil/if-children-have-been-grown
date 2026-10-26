@@ -42,6 +42,7 @@
 - **后端分包边界**：禁止再向 `backend/bid-core/icg_demo/`（或后续 `icg/`）根目录平铺新增文件，新能力必须划分到上下文子包（api/domain/infra/app）。
 - **前端按域分层**：禁止再向 `frontend/web/src/` 根目录平铺新增页面文件，必须归入域目录（app/shell/project/editor/library/admin/status/shared）。
 - **UI 与界面设计克制（Layout First）**：Avoid unnecessary secondary labels and descriptions. Let the layout do the explaining. 避免在 UI 设计与组件开发时堆砌莫名其妙的次级标签、徽标或说明文字，杜绝将界面做成说明书；依靠清晰的视觉层级、布局与交互流自然表达意图。
-- **API 接口收敛**：新接口只加 `/api/v1`；`/api/demo` 路径已标为 deprecated，只读兼容，不再向旧 demo 路径添加新端点。
+- **API 接口收敛**：新接口只加 `/api/v1`；`/api/demo` 路径已标为 deprecated，只读兼容至 2026-11-15 窗口期，之后予以清理下线；严禁再向旧 demo 路径添加新端点。
 - **前端测试权威收口**：前端唯一权威测试套件位于 `frontend/web/tests/`（含 `unit/`，通过 `pnpm --dir frontend/web test` 运行）。根目录 `tests/frontend/` 仅保留兼容历史文档引用的轻量级转发壳（re-export），严禁在此新增或扩展第三套测试目录，严禁在 `tests/frontend/` 中编写实际业务测试逻辑。
-- **持久化门禁**：生产配置强制 `ICG_REQUIRE_MYSQL=1`；仅在测试环境下允许内存仓储，生产路径严禁静默回落到内存仓储。
+- **持久化门禁**：生产配置、CI 工作流与关演示端到端冒烟强制 `ICG_REQUIRE_MYSQL=1`；仅在未开启门禁的纯本地开发或显式单元测试环境下允许使用内存仓储，生产路径与强制门禁下严禁静默回落到内存仓储。
+- **默认演示关闭**：前端 `VITE_DEMO` 未设置时默认为 `false`（走真实账号与标准 RBAC 8 角色会话），仅在显式配置 `VITE_DEMO=1` 或 `true` 时开启演示快捷登录。

@@ -86,12 +86,13 @@ def mysql_gate() -> MysqlGate:
 
 
 def repository_from_environment():
-    """根据环境变量创建合适的持久化仓储。生产或强制要求时，严禁静默回退到内存。"""
-    import sys
-
+    """根据环境变量创建合适的持久化仓储。生产或强制要求时，严禁静默回退到内存。
+    本地未设置 ICG_DATABASE_URL 时回退至 MemoryRepository 仅供开发与显式单元测试使用；
+    生产、CI 与关演示冒烟必须设置 ICG_REQUIRE_MYSQL=1 并提供有效数据库连接串。
+    """
     url = database_url()
     if not url:
-        if mysql_required() and "pytest" not in sys.modules:
+        if mysql_required():
             raise RuntimeError("ICG_REQUIRE_MYSQL=1 but ICG_DATABASE_URL is missing")
         from icg.infra.memory_repository import MemoryRepository
         return MemoryRepository()

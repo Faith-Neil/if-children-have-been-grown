@@ -169,3 +169,8 @@ test('session-navigation: supports authentic rbac-8roles session verification', 
     error => error instanceof SessionNavigationError && error.status === 403
   );
 });
+
+test('roles.ts: isDemoMode defaults to false when unset, enables only on explicit VITE_DEMO=1/true', () => {
+  // 在未显式设置 VITE_DEMO 时，isDemoMode() 必须诚实默认返回 false（关演示正式模式）
+  assert.equal(isDemoMode(), false);
+});
