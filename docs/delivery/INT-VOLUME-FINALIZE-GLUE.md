@@ -10,7 +10,7 @@
 | 任务ID | INT-VOLUME-FINALIZE-GLUE |
 | 代码解释 | 详见 [代码解释](../code/INT-VOLUME-FINALIZE-GLUE.md) |
 | 验收 | 1. 前端权威测试套件 `pnpm --dir frontend/web test`：370 passed（含新增专属单测 `tests/unit/volume-finalize-glue.test.mjs` 5 passed）；<br>2. 后端定稿安全门禁套件 `pytest tests/backend/test_volume_finalize_gate.py`：10 passed；<br>3. 全链路冒烟套件 `pytest tests/backend/test_smoke_non_demo_pipeline.py`：3 passed；<br>4. OpenAPI 契约校验 `python backend/bid-core/export_openapi.py --check`：100% 严格一致；<br>5. 治理检查 `node scripts/check-project-governance.cjs`：校验通过（0 错误）。 |
-| 项目进度 | 本卡由 INT 前后端联调 subagent 交付，状态标为 **in-review**（绝不私自标 done，保留给 PM/QA 终审签署）；关联 ISSUE-005 / ISSUE-007 保持 in-progress。 |
+| 项目进度 | 已经 QA 独立终验签署（D-742）与 PD 产品对照核准（D-743），人类 PM 最终确认标为 **done** |
 <!-- task-delivery:end -->
 
 ## 1. 任务背景与目标

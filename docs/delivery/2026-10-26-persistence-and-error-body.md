@@ -10,7 +10,7 @@
 <!-- task-delivery:start -->
 | 项目 | 记录 |
 |---|---|
-| 任务ID | PERSISTENCE-AND-ERROR-BODY-2026-10-26 / D3 |
+| 任务ID | BE-TECH-DEBT-01 |
 | 代码解释 | `docs/code/2026-10-26-persistence-and-error-body.md` |
 | 验收 | 1) `GET /api/demo/accounts` 与 `POST /api/demo/login` 在 OpenAPI 规范中具备 `deprecated: true`；<br>2) 中间件与错误响应在 `/api/demo` 路径注入 `Sunset: Sun, 15 Nov 2026 00:00:00 GMT` 与 `Deprecation: true` 响应头；<br>3) 前端 `api.ts` 与 `status-views.ts` 严格优先解构外层标准错误体 `{code, message, details, traceId}`，旧 `error`/`request_id` 降级为向后兼容兜底；<br>4) 后端新增专属测试 `tests/backend/test_deprecated_demo_api.py` 5 项全绿；前端新增专属测试 `frontend/web/tests/unit/error-body-convergence.test.mjs` 5 项全绿；<br>5) 全量前端 384 项测试通过，后端关键回归用例全绿，`export_openapi.py --check` 100% 一致，保持 `in-review`。 |
 | 项目进度 | D3 契约与双错误体收口闭环交付，推进至 D4（产品断环与 RAGFlow 真实接入） |

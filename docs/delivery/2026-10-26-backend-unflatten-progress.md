@@ -10,7 +10,7 @@
 <!-- task-delivery:start -->
 | 项目 | 记录 |
 |---|---|
-| 任务ID | BE-TECH-DEBT-02 / D2 后端去平铺（包命名体系规范化） |
+| 任务ID | BE-TECH-DEBT-02 |
 | 代码解释 | `docs/code/2026-10-26-backend-unflatten-progress.md` |
 | 验收 | 1) `backend/bid-core/icg/app/main.py` 建立标准 `create_app` 应用工厂与依赖注入机制；<br>2) `backend/bid-core/icg/api/` 按领域严格收拢路由（`session.py`、`projects.py`、`chapters.py`、`workflow.py`、`volumes.py`、`compliance.py`、`ragflow.py`），全量端点契约与 OpenAPI 规范 100% 对齐；<br>3) `icg/domain/` 完整承载 21 个核心领域文件；`icg/infra/` 完整承载 8 个持久化与客户端适配器文件；<br>4) `backend/bid-core/icg_demo/` 35 个根级业务文件全量降级为纯重导出薄层兼容 Façade，总行数由 12,589 行降至 364 行（缩减率 >97.1%），并内建 `sys.modules[__name__] = _src_0` 动态模块代理机制，全面支持 pytest monkeypatch 与无缝转接；<br>5) `python backend/bid-core/export_openapi.py --check` 校验通过（0 差异）；<br>6) 后端核心与全量测试套件验证通过，治理检查 `check-project-governance.cjs` 及 12 项治理单元测试全绿；保持 `in-review`。 |
 | 项目进度 | D2 后端去平铺与包命名体系规范化闭环交付，推进至 D4（产品断环与 RAGFlow 真实接入） |

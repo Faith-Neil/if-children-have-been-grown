@@ -10,7 +10,7 @@
 | 任务ID | BE-COMPLIANCE-RULES-P0 |
 | 代码解释 | [BE-COMPLIANCE-RULES-P0](../code/BE-COMPLIANCE-RULES-P0.md) |
 | 验收 | 2026-10-23：第一批核心合规规则编号落地（R15/R23/R34/R37）与核验引擎已在 `backend/bid-core/icg/` 分包架构中完全实现；成功支持结构化规则诊断输出（rule_id, title, severity, passed, finding_summary, suggestion, issues, details）；R15 证明材料齐全性（资质/业绩等材料缺失、失效、过期及未确认拦截）；R23 废标红线与关键标星条款响应率（100% 覆盖与非空确认，未响应/被忽略/未映射有效章节赋 blocker）；R34 占位符与“待补/待完善”残留字样排查（正文与条款响应草稿瑕疵阻断 blocking/blocker）；R37 技术/商务偏离表一致性校验（关键条款负偏离强阻断 blocker，正偏离与无偏离前后一致）；集成至 run_check 导出检查门禁，统一赋 rule_id 与 rules 列表；暴露 /api/v1 端点；严禁绕过 RULES_INCOMPLETE 底线；专属单测 7 项全绿，回归套件 14 项全绿，OpenAPI 契约一致性 100% 通过 |
-| 项目进度 | 任务看板是准绳。本卡状态流转为 in-review，严禁私自标 done，等待项目经理复审验收 |
+| 项目进度 | 已经 QA 独立终验签署（D-742）与 PD 产品对照核准（D-743），人类 PM 最终确认标为 **done** |
 <!-- task-delivery:end -->
 
 ## 关联与状态

@@ -11,7 +11,7 @@
 <!-- task-delivery:start -->
 | 项目 | 记录 |
 |---|---|
-| 任务ID | D4-AI / RAGFLOW-KB-SYNC-2026-10-26 |
+| 任务ID | AI-RAGFLOW-KB-SYNC |
 | 代码解释 | `docs/code/2026-10-26-ragflow-kb-sync.md` |
 | 验收 | 1) `RagflowRetrievalClient` 扩展完成：支持带租户命名空间前缀的 `create_dataset`、租户隔离过滤的 `list_datasets`、所有权强校验的 `get_dataset`、文档 `upload_document`、解析触发 `trigger_parse` 与状态轮询 `get_document_status`；<br>2) 网络代理防劫持：`httpx.Client` 强制 `trust_env=False`，杜绝系统代理劫持内网私有化请求（落实用户拍板 B5/B6）；<br>3) `RagflowConfigService` 领域服务实现 `sync_knowledge_base`：支持从 `snippet_publications` 与 `library` 结构化摄入方案片段，自动智能对齐租户隔离数据集，文档上传后触发解析并将 run 映射为 `kb_sync_status`（`synced` / `failed` / `unsynced`），回写片段存储；<br>4) 跨租户强隔离：非本公司方案片段跨租户同步严格抛出 404 `NOT_FOUND`，数据集强制注入 `${company_id}::` 前缀隔离；<br>5) 优雅降级：上游 500/网络崩溃时优雅降级并返回结构化失败状态，主进程不崩溃；<br>6) 专属测试套件 `tests/backend/test_ragflow_kb_sync.py` 10 项测试全绿（9 passed, 1 skipped，真实端点门禁由 `ICG_RUN_REAL_RAGFLOW_TESTS=1` 保护）；<br>7) 全量 RAGFlow 相关套件联合回归 71 项全部通过（67 passed, 4 skipped），`export_openapi.py --check` 100% 一致。 |
 | 项目进度 | D4 RAGFlow 知识库摄入与同步闭环交付，推进状态为 `in-review` |

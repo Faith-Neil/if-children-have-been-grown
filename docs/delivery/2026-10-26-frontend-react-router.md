@@ -6,7 +6,7 @@
 | 任务ID | FE-REACT-ROUTER |
 | 代码解释 | [React-Router 现代化路由体系与可信守卫实现说明](../code/2026-10-26-frontend-react-router.md) |
 | 验收 | 1. 专属单元测试：`frontend/web/tests/unit/react-router.test.mjs`：11 passed；<br>2. 前端全量单测回归：`pnpm --dir frontend/web test`：395 passed（100% 全绿通过）；<br>3. TypeScript 严格类型检查：`pnpm --dir frontend/web lint`：0 错误、0 警告；<br>4. 项目工程治理脚本核验：`node scripts/check-project-governance.cjs`：校验通过。 |
-| 项目进度 | 本卡由 FE 前端 subagent 交付，状态标为 **in-review**（严禁自行标 done，等待主 Agent / PM / QA 验收审核）；彻底解决前端简易字符串手动路由分发的技术债，落实用户拍板决策 B2。 |
+| 项目进度 | 已经 QA 独立终验签署（D-742）与 PD 产品对照核准（D-743），人类 PM 最终确认标为 **done** |
 <!-- task-delivery:end -->
 
 ## 1. 任务背景与目标

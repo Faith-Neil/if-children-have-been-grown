@@ -10,7 +10,7 @@
 | 任务ID | REV-SMOKE-001 |
 | 代码解释 | 详见下方第 3 节胶水修复与变更清单 |
 | 验收 | 1. 关演示冒烟专属自动化套件 `pytest tests/backend/test_smoke_non_demo_pipeline.py`：3 passed；<br>2. 会话与角色权限套件 `pytest tests/backend/test_application_session.py tests/backend/test_eight_roles_access.py`：44 passed；<br>3. 导出门禁与幂等套件 `tests/backend/test_checks_export_blocker_gate.py tests/backend/test_error_idempotency.py tests/backend/test_operation_ids.py`：21 passed；<br>4. 前端全量单测 `pnpm --dir frontend/web test`：348 passed（100% 通过）；<br>5. 后端全量测试 611 passed；<br>6. 工程治理检查 `node scripts/check-project-governance.cjs` 校验通过。 |
-| 项目进度 | 本卡由 INT 联调 subagent 交付，状态标为 **in-review**（绝不私自标 done，保留给 PM/QA 终审签署）；关联 ISSUE-005 / ISSUE-007 保持 in-progress。 |
+| 项目进度 | 已经 QA 独立终验签署（D-742）与 PD 产品对照核准（D-743），人类 PM 最终确认标为 **done** |
 <!-- task-delivery:end -->
 
 ## 1. 任务背景与目标
