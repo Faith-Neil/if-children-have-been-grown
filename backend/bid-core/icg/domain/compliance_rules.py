@@ -112,6 +112,38 @@ class ComplianceRulesEngine:
             "description": "核验营业执照、行业资质及原件核对条款，必须具备真实有效承诺与原件备查书面声明，严禁无承诺响应。",
         },
         {
+            "rule_id": "R03",
+            "title": "资质有效期与信誉核验",
+            "category": "qualification",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "核验营业执照与行业资质证书在投标截止时间是否有效，且未被列入失信被执行人或重大违法名单，过期直接判定阻断红线。",
+        },
+        {
+            "rule_id": "R04",
+            "title": "联合体投标协议核验",
+            "category": "consortium",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "当项目标记为联合体投标时，核验是否已上传合法联合体协议书及全部成员资质，缺失直接阻断递交。",
+        },
+        {
+            "rule_id": "R09",
+            "title": "服务期/工期与 SLA 承诺核验",
+            "category": "commitment",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "核验服务承诺工期是否满足招标文件要求，负偏离或未承诺指标直接判为阻断缺陷。",
+        },
+        {
+            "rule_id": "R10",
+            "title": "质保期与服务响应时间核验",
+            "category": "commitment",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "核验质保期年限与故障响应时限，低于招标基线或各章节承诺自相矛盾直接判为阻断缺陷。",
+        },
+        {
             "rule_id": "R15",
             "title": "证明材料齐全性核验",
             "category": "qualification",
@@ -303,6 +335,602 @@ class ComplianceRulesEngine:
             issues=[i.to_dict() for i in issues],
             details={"checked_count": checked},
         )
+
+    @classmethod
+    def check_r03(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        """
+        R03：资质有效期与信誉核验。
+        核验营业执照与行业资质证书在投标截止时间 deadline 是否有效，且未被列入失信名单；过期或缺失判为 blocker。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        requirements = workflow.get("requirements", {})
+        checked = 0
+
+        today = (
+            datetime.fromtimestamp(now_ts, SHANGHAI).date()
+            if now_ts
+            else datetime.now(SHANGHAI).date()
+        )
+        deadline_str = getattr(project, "deadline", "") or ""
+
+        # 1. 核验资质与信誉类条款
+        for req_id, req in requirements.items():
+            if volume != "all" and req.get("volume") != volume:
+                continue
+
+            text = str(req.get("text", "") or "")
+            is_qual = bool(
+                req.get("category") == "qualification"
+                or any(w in text for w in ("营业执照", "资质", "许可", "认证证书", "资格证书", "信用", "信誉", "失信", "黑名单", "纳税信用"))
+            )
+            if not is_qual:
+                continue
+
+            checked += 1
+            is_crit = is_critical_requirement(req)
+            resp = str(req.get("response", "") or req.get("confirmed_response", "") or "").strip()
+
+            # 信誉/失信名单排查
+            if any(w in text for w in ("失信", "黑名单", "信用中国", "受惩黑名单", "违法失信")):
+                dishonest_triggers = ("列入失信", "存在失信", "行政处罚", "被执行人", "有失信记录", "重大税收违法")
+                has_dishonest = False
+                sentences = re.split(r"[，,。；;！!\n]", resp)
+                for sentence in sentences:
+                    sentence = sentence.strip()
+                    for trig in dishonest_triggers:
+                        if trig in sentence:
+                            t_idx = sentence.find(trig)
+                            pre = sentence[:t_idx]
+                            negations = ("未", "无", "不", "免", "非", "没", "零", "排除")
+                            if not any(neg in pre for neg in negations):
+                                has_dishonest = True
+                                break
+                    if has_dishonest:
+                        break
+                if has_dishonest:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R03",
+                            code="DISHONEST_RECORD_EXISTS",
+                            severity="blocker",
+                            message=f"投标主体存在被列入失信被执行人或重大税收违法失信记录风险：{text[:50]}",
+                            requirement_id=req_id,
+                            details={"response": resp},
+                        )
+                    )
+                elif not resp:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R03",
+                            code="CREDIT_COMMITMENT_MISSING",
+                            severity="blocker",
+                            message=f"招标文件要求的信用与无重大违法记录声明未作响应承诺：{text[:50]}",
+                            requirement_id=req_id,
+                            details={"text": text},
+                        )
+                    )
+
+            # 资质证书挂接核验
+            needs_cert = any(w in text for w in ("营业执照", "资质", "证书", "许可", "认证"))
+            if needs_cert:
+                evidence_ids = req.get("evidence_ids") or []
+                if not evidence_ids:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R03",
+                            code="QUALIFICATION_CERTIFICATE_MISSING",
+                            severity="blocker",
+                            message=f"资质证明材料缺失：招标文件要求的资质/证照未挂接有效证书材料：{text[:50]}",
+                            requirement_id=req_id,
+                            details={"text": text, "is_critical": is_crit},
+                        )
+                    )
+                    continue
+
+                for eid in evidence_ids:
+                    evidence = state.library.get(eid)
+                    if evidence is None or evidence.get("company_id") != project.company_id:
+                        issues.append(
+                            ComplianceRuleIssue(
+                                id=new_id("issue"),
+                                rule_id="R03",
+                                code="QUALIFICATION_CERTIFICATE_INVALID",
+                                severity="blocker",
+                                message=f"挂接的资质证明材料不存在或属于其他公司空间：{eid}",
+                                requirement_id=req_id,
+                                evidence_id=eid,
+                                details={"reason": "cross_company_or_missing"},
+                            )
+                        )
+                        continue
+
+                    if evidence.get("status") != "confirmed":
+                        issues.append(
+                            ComplianceRuleIssue(
+                                id=new_id("issue"),
+                                rule_id="R03",
+                                code="QUALIFICATION_CERTIFICATE_UNCONFIRMED",
+                                severity="blocker",
+                                message=f"挂接的资质证明材料【{evidence.get('name', eid)}】尚未完成审核确认",
+                                requirement_id=req_id,
+                                evidence_id=eid,
+                                details={"status": evidence.get("status")},
+                            )
+                        )
+                        continue
+
+                    if evidence.get("is_dishonest") or "失信" in str(evidence.get("name", "")):
+                        issues.append(
+                            ComplianceRuleIssue(
+                                id=new_id("issue"),
+                                rule_id="R03",
+                                code="DISHONEST_RECORD_EXISTS",
+                                severity="blocker",
+                                message=f"挂接的企业材料【{evidence.get('name')}】包含不良信用或失信信息记录",
+                                requirement_id=req_id,
+                                evidence_id=eid,
+                            )
+                        )
+
+                    if evidence_expired(evidence, deadline_str, today=today):
+                        valid_to = evidence.get("valid_to") or evidence.get("valid_until") or "已过期"
+                        issues.append(
+                            ComplianceRuleIssue(
+                                id=new_id("issue"),
+                                rule_id="R03",
+                                code="QUALIFICATION_CERTIFICATE_EXPIRED",
+                                severity="blocker",
+                                message=f"资质证书【{evidence.get('name')}】有效截止期为 {valid_to}，无法覆盖投标截止时间（{deadline_str[:10] or '未设定'}）",
+                                requirement_id=req_id,
+                                evidence_id=eid,
+                                details={"valid_to": valid_to, "deadline": deadline_str},
+                            )
+                        )
+
+        # 2. 核验企业基础营业执照有效性（在 library 中登记的 license）
+        company_libs = [item for item in state.library.values() if item.get("company_id") == project.company_id]
+        license_items = [item for item in company_libs if "营业执照" in str(item.get("name", "")) or item.get("type") == "license"]
+        for lic in license_items:
+            if evidence_expired(lic, deadline_str, today=today):
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R03",
+                        code="BUSINESS_LICENSE_EXPIRED",
+                        severity="blocker",
+                        message=f"企业营业执照【{lic.get('name')}】在投标截止时间已过期失效",
+                        evidence_id=lic.get("id"),
+                        details={"deadline": deadline_str},
+                    )
+                )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            f"共核验 {checked} 条资质与信誉要求及企业证照，资质证照均在投标截止期内真实有效且无失信记录。"
+            if passed
+            else f"共核验 {checked} 条资质与信誉要求，发现 {len(issues)} 处资质证照缺失、过期或失信阻断红线。"
+        )
+        suggestion = "核验通过" if passed else "请补充挂接真实有效且在投标截止期内有效的营业执照与行业资质证书，确保无失信受惩记录。"
+
+        return ComplianceRuleResult(
+            rule_id="R03",
+            title="资质有效期与信誉核验",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked, "deadline": deadline_str},
+        )
+
+    @classmethod
+    def check_r04(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R04：联合体投标协议核验。
+        当项目为联合体投标时，核验是否已附联合体协议书及各成员资质，缺失判为 blocker。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        is_consortium = bool(
+            getattr(project, "is_consortium", False)
+            or getattr(project, "consortium", False)
+            or getattr(project, "joint_venture", False)
+            or workflow.get("is_consortium")
+            or workflow.get("joint_venture")
+            or workflow.get("is_joint_venture")
+            or state.project_partners.get(project.id)
+            or getattr(project, "partner_ids", None)
+            or workflow.get("partners")
+        )
+
+        if not is_consortium:
+            requirements = workflow.get("requirements", {})
+            for r in requirements.values():
+                t = str(r.get("text", "") or "")
+                resp = str(r.get("response", "") or "")
+                if "联合体投标" in t and ("是以联合体" in resp or "作为联合体牵头人" in resp or "联合体成员" in resp):
+                    is_consortium = True
+                    break
+
+        if not is_consortium:
+            return ComplianceRuleResult(
+                rule_id="R04",
+                title="联合体投标协议核验",
+                severity="info",
+                passed=True,
+                finding_summary="本项目为单一主体独立投标，不涉及联合体协议及各成员资质核验。",
+                suggestion="核验通过",
+                issues=[],
+                details={"is_consortium": False},
+            )
+
+        # 联合体投标：1. 核验联合体协议书文件
+        uploaded_files = workflow.get("files", {})
+        if isinstance(uploaded_files, dict):
+            file_list = list(uploaded_files.values())
+        elif isinstance(uploaded_files, list):
+            file_list = uploaded_files
+        else:
+            file_list = []
+
+        library_files = [item for item in state.library.values() if item.get("company_id") == project.company_id]
+
+        has_agreement = any(
+            any(w in str(f.get("name", "") or f.get("title", "") or f.get("filename", "")) for w in ("联合体协议", "联合体投标协议", "联合体协议书", "联合体合作协议"))
+            for f in file_list
+        ) or any(
+            any(w in str(lib.get("name", "")) for w in ("联合体协议", "联合体投标协议", "联合体协议书", "联合体合作协议"))
+            for lib in library_files
+        ) or bool(workflow.get("consortium_agreement_file_id") or workflow.get("consortium_agreement")) or any(
+            bool(p.get("agreement_attachment_id")) for p in (state.project_partners.get(project.id, []) or [])
+        )
+
+        if not has_agreement:
+            issues.append(
+                ComplianceRuleIssue(
+                    id=new_id("issue"),
+                    rule_id="R04",
+                    code="CONSORTIUM_AGREEMENT_MISSING",
+                    severity="blocker",
+                    message="本项目为联合体投标，但未上传由各成员共同盖章签署的《联合体投标协议书》。",
+                    details={"is_consortium": True},
+                )
+            )
+
+        # 2. 核验各成员单位信息与资质文件
+        partners = (
+            state.project_partners.get(project.id, [])
+            or workflow.get("partners", [])
+            or getattr(project, "partner_ids", [])
+        )
+
+        if not partners and is_consortium:
+            issues.append(
+                ComplianceRuleIssue(
+                    id=new_id("issue"),
+                    rule_id="R04",
+                    code="CONSORTIUM_MEMBERS_MISSING",
+                    severity="blocker",
+                    message="项目已标记为联合体投标，但未登记联合体成员单位名单。",
+                    details={"is_consortium": True},
+                )
+            )
+        else:
+            for p in partners:
+                p_name = p.get("name") or p.get("partner_entity_id") if isinstance(p, dict) else str(p)
+                p_qual = (
+                    p.get("license_file_id")
+                    or p.get("evidence_ids")
+                    or p.get("qualification_id")
+                    or p.get("has_qualification")
+                    if isinstance(p, dict) else False
+                )
+                if isinstance(p, dict) and not p_qual:
+                    has_lib_qual = any((p_name in str(lib.get("name", ""))) or (lib.get("partner_entity_id") == p_name and lib.get("status") == "confirmed") for lib in library_files)
+                    if not has_lib_qual:
+                        issues.append(
+                            ComplianceRuleIssue(
+                                id=new_id("issue"),
+                                rule_id="R04",
+                                code="CONSORTIUM_MEMBER_QUALIFICATION_MISSING",
+                                severity="blocker",
+                                message=f"联合体成员单位【{p_name}】未上传营业执照或法定资质证明材料。",
+                                details={"partner_name": p_name},
+                            )
+                        )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            "联合体投标协议书齐全，各成员单位法定资质文件完备。"
+            if passed
+            else f"联合体投标核验未通过，发现 {len(issues)} 处协议或成员资质缺失阻断红线。"
+        )
+        suggestion = "核验通过" if passed else "请上传由联合体牵头人与各成员单位法定代表人签署盖章的协议书，并补充各成员资质证明。"
+
+        return ComplianceRuleResult(
+            rule_id="R04",
+            title="联合体投标协议核验",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"is_consortium": is_consortium, "partners_count": len(partners)},
+        )
+
+    @classmethod
+    def check_r09(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R09：服务期/工期与 SLA 承诺核验。
+        核验服务承诺工期是否满足招标文件要求，负偏离或无承诺判为 blocker。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        requirements = workflow.get("requirements", {})
+        checked_count = 0
+
+        # 1. 工期与服务期条款核验
+        for req_id, req in requirements.items():
+            if volume != "all" and req.get("volume") != volume:
+                continue
+
+            text = str(req.get("text", "") or "")
+            is_service_period = any(
+                w in text for w in ("服务期", "工期", "交货期", "服务期限", "交付时限", "运维周期", "实施周期", "完成时限")
+            )
+            if not is_service_period:
+                continue
+
+            checked_count += 1
+            resp = str(req.get("response", "") or req.get("confirmed_response", "") or "").strip()
+            dev_type = str(req.get("deviation_type", "")).lower()
+
+            if not resp:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R09",
+                        code="SERVICE_PERIOD_COMMITMENT_MISSING",
+                        severity="blocker",
+                        message=f"服务期/工期条款未填写响应承诺：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"text": text},
+                    )
+                )
+                continue
+
+            # 负偏离核验
+            is_negative = (
+                dev_type in ("negative", "负偏离")
+                or any(w in resp for w in ("负偏离", "无法满足工期", "无法按期", "延迟交付", "延长工期", "不能满足服务期", "超出招标要求时限"))
+            )
+            if is_negative:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R09",
+                        code="SERVICE_PERIOD_NEGATIVE_DEVIATION",
+                        severity="blocker",
+                        message=f"服务期承诺劣于招标文件要求，构成实质性负偏离：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"response": resp, "deviation_type": "negative"},
+                    )
+                )
+
+        # 2. SLA 核心指标承诺核验
+        sla = workflow.get("sla") or {}
+        sla_values = sla.get("values") or {}
+        if isinstance(sla_values, dict):
+            for k, item in sla_values.items():
+                if not isinstance(item, dict):
+                    continue
+                checked_count += 1
+                val = str(item.get("current_value") or item.get("value") or "").strip()
+                dev = str(item.get("deviation") or "").lower()
+                name = item.get("name") or k
+
+                if not val:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R09",
+                            code="SLA_VALUE_MISSING",
+                            severity="blocker",
+                            message=f"SLA 核心服务指标【{name}】尚未承诺取值",
+                            details={"variable_key": k},
+                        )
+                    )
+                elif dev in ("negative", "负偏离") or item.get("is_negative"):
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R09",
+                            code="SLA_COMMITMENT_NEGATIVE_DEVIATION",
+                            severity="blocker",
+                            message=f"SLA 核心指标【{name}】承诺劣于招标基线，存在负偏离",
+                            details={"variable_key": k, "value": val},
+                        )
+                    )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            f"共核验 {checked_count} 条服务期/工期与 SLA 承诺项，服务承诺完全满足招标文件基线要求。"
+            if passed
+            else f"共核验 {checked_count} 条服务期与 SLA 承诺项，发现 {len(issues)} 处负偏离或未承诺阻断缺陷。"
+        )
+        suggestion = "核验通过" if passed else "请修正负偏离工期表述，补充未填报的 SLA 承诺指标，确保满足招标文件要求。"
+
+        return ComplianceRuleResult(
+            rule_id="R09",
+            title="服务期/工期与 SLA 承诺核验",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked_count},
+        )
+
+    @classmethod
+    def check_r10(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R10：质保期与服务响应时间核验。
+        质保期年限与响应时间核验，低于招标基线或各分册自相矛盾判为 blocker。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        requirements = workflow.get("requirements", {})
+        checked_count = 0
+
+        # 1. 质保期条款核验
+        for req_id, req in requirements.items():
+            if volume != "all" and req.get("volume") != volume:
+                continue
+
+            text = str(req.get("text", "") or "")
+            is_warranty = any(
+                w in text for w in ("质保期", "维保期", "保修期", "免费维保", "免费质保", "质量保证期")
+            )
+            if not is_warranty:
+                continue
+
+            checked_count += 1
+            resp = str(req.get("response", "") or req.get("confirmed_response", "") or "").strip()
+            dev_type = str(req.get("deviation_type", "")).lower()
+
+            if not resp:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R10",
+                        code="WARRANTY_PERIOD_MISSING",
+                        severity="blocker",
+                        message=f"质保期/维保期条款未填写响应承诺：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"text": text},
+                    )
+                )
+                continue
+
+            if dev_type in ("negative", "负偏离") or any(
+                w in resp for w in ("负偏离", "无法满足", "不满足质保", "缩短质保期", "少于招标文件要求", "不提供免费质保")
+            ):
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R10",
+                        code="WARRANTY_PERIOD_BELOW_BASELINE",
+                        severity="blocker",
+                        message=f"承诺质保期低于招标文件基线要求：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"response": resp, "deviation_type": "negative"},
+                    )
+                )
+
+        # 2. 服务响应时间条款核验
+        for req_id, req in requirements.items():
+            if volume != "all" and req.get("volume") != volume:
+                continue
+
+            text = str(req.get("text", "") or "")
+            is_response_time = any(
+                w in text for w in ("响应时间", "响应时限", "到达现场时间", "解决时限", "故障排除时间", "恢复时限")
+            )
+            if not is_response_time:
+                continue
+
+            checked_count += 1
+            resp = str(req.get("response", "") or req.get("confirmed_response", "") or "").strip()
+            dev_type = str(req.get("deviation_type", "")).lower()
+
+            if not resp:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R10",
+                        code="RESPONSE_TIME_COMMITMENT_MISSING",
+                        severity="blocker",
+                        message=f"服务响应时间条款未填写明确响应承诺：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"text": text},
+                    )
+                )
+                continue
+
+            if dev_type in ("negative", "负偏离") or any(
+                w in resp for w in ("负偏离", "超时响应", "无法达到响应时间", "响应时间延长", "无法满足响应")
+            ):
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R10",
+                        code="RESPONSE_TIME_BELOW_BASELINE",
+                        severity="blocker",
+                        message=f"服务响应时间承诺劣于招标文件基线要求：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"response": resp, "deviation_type": "negative"},
+                    )
+                )
+
+        # 3. 章节间质保期与响应时间一致性核验（全文一致性）
+        chapters = [ch for ch in state.chapters.values() if ch.project_id == project.id]
+        if volume != "all":
+            chapters = [ch for ch in chapters if ch.volume == volume]
+
+        warranty_pattern = re.compile(r"([1-9][0-9]*)\s*年(?:免费)?(?:质保|维保|保修)")
+        found_warranties: dict[int, list[str]] = {}
+        for ch in chapters:
+            if not ch.content:
+                continue
+            matches = warranty_pattern.findall(ch.content)
+            for m in matches:
+                y = int(m)
+                found_warranties.setdefault(y, []).append(ch.title)
+
+        if len(found_warranties) > 1:
+            years_str = " vs ".join(f"{y}年（{', '.join(titles)}）" for y, titles in found_warranties.items())
+            issues.append(
+                ComplianceRuleIssue(
+                    id=new_id("issue"),
+                    rule_id="R10",
+                    code="WARRANTY_PERIOD_INCONSISTENT",
+                    severity="blocker",
+                    message=f"投标文件各章节质保期年限承诺自相矛盾：{years_str}",
+                    details={"warranties": {str(k): v for k, v in found_warranties.items()}},
+                )
+            )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            f"共核验 {checked_count} 条质保期与响应时限条款，承诺均满足招标要求且全册口径一致。"
+            if passed
+            else f"共核验 {checked_count} 条质保与响应条款，发现 {len(issues)} 处低于基线或自相矛盾阻断红线。"
+        )
+        suggestion = "核验通过" if passed else "请修正低于招标要求的质保与响应指标，统一各章节承诺年限与响应时限。"
+
+        return ComplianceRuleResult(
+            rule_id="R10",
+            title="质保期与服务响应时间核验",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked_count},
+        )
+
 
     @classmethod
     def check_r35(
@@ -956,6 +1584,28 @@ class ComplianceRulesEngine:
             cls.check_r37(state, project, workflow, volume=volume),
         ]
 
+    @classmethod
+    def evaluate_p1_rules(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> list[ComplianceRuleResult]:
+        """按顺序完整执行 PRD P1 级核心商务与资质合规规则（R03, R04, R09, R10）。"""
+        return [
+            cls.check_r03(state, project, workflow, volume=volume, now_ts=now_ts),
+            cls.check_r04(state, project, workflow, volume=volume),
+            cls.check_r09(state, project, workflow, volume=volume),
+            cls.check_r10(state, project, workflow, volume=volume),
+        ]
+
+    @classmethod
+    def evaluate_all(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> list[ComplianceRuleResult]:
+        """执行当前系统已落地的全部合规规则体系（P0 与 P1 批次共 11 项规则）。"""
+        return (
+            cls.evaluate_p0_rules(state, project, workflow, volume=volume, now_ts=now_ts)
+            + cls.evaluate_p1_rules(state, project, workflow, volume=volume, now_ts=now_ts)
+        )
+
 
 class ComplianceRulesMixin:
     """混入工作流服务，提供合规规则评估与查询能力。"""
@@ -971,7 +1621,7 @@ class ComplianceRulesMixin:
         if project.company_id != principal.user.company_id:
             raise DomainError(404, "NOT_FOUND", "项目不存在或不属于当前企业空间。")
 
-        rule_results = ComplianceRulesEngine.evaluate_p0_rules(
+        rule_results = ComplianceRulesEngine.evaluate_all(
             state, project, workflow, volume=volume, now_ts=self.demo._now()
         )
 

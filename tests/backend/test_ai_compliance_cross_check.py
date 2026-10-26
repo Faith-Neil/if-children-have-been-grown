@@ -434,3 +434,183 @@ def test_incremental_check_status_and_checks_integration(setup_context, workflow
     assert "findings" in latest_check
     assert res["checks_summary"]["issues_count"] >= 1
 
+
+def test_cross_check_cross_company_evidence_blocked_as_discrepancy(setup_context, workflow, repo):
+    """测试跨企业租户引用证据（如 alpha 项目正文中援引 beta 公司的证据）被严格识别为 cross_check_discrepancy 并阻断。"""
+    ctx = setup_context
+    pid = ctx["project_id"]
+    cid = ctx["chapter_id"]
+    manager = ctx["manager"]
+
+    eid_beta = "cite-beta-qual-001"
+    def seed_data(st: DemoState):
+        ch = st.chapters[cid]
+        ch.content = f"我方资质完备：拥有高级软件认证，并持有 CMMI5 认证证书 [证:{eid_beta}]。"
+        wf = st.workflows.setdefault(pid, {})
+        # 将归属于 beta 公司的证据注入候选集中
+        wf.setdefault("candidates", {})[eid_beta] = {
+            "id": eid_beta,
+            "company_id": "beta",  # 异企租户
+            "name": "Beta公司CMMI5级评估证书",
+            "content": "认定北京某Beta科技公司达到 CMMI 5级能力成熟度模型要求。",
+            "status": "confirmed",
+            "is_expired": False,
+            "agreement_present": True,
+            "document_id": "doc-beta-cmmi",
+            "chunk_id": "chk-beta-cmmi-01",
+        }
+    repo.transaction(seed_data)
+
+    res = workflow.compliance_cross_check(
+        principal=manager,
+        project_id=pid,
+        chapter_id=cid,
+    )
+
+    assert res["compliance_status"] == "non_compliant"
+    assert res["discrepancy_count"] >= 1
+
+    cross_co_findings = [f for f in res["findings"] if f.evidence_status == "cross_company"]
+    assert len(cross_co_findings) == 1
+    finding = cross_co_findings[0]
+    assert finding.is_discrepancy is True
+    assert finding.discrepancy_type == "cross_check_discrepancy"
+    assert finding.risk_level == "block"
+    assert finding.confidence_score == 0.0
+    assert finding.confidence_level == "unsupported"
+    assert "beta" in finding.gap_description
+    assert "跨公司" in finding.gap_description or "强隔离红线" in finding.gap_description
+    assert "本企业" in finding.suggestion
+    # 溯源元数据留存供审计
+    assert finding.document_id == "doc-beta-cmmi"
+    assert finding.chunk_id == "chk-beta-cmmi-01"
+
+
+def test_cross_check_ragflow_source_traceability(setup_context, workflow, repo):
+    """测试正文声明与知识库真实证据比对时，完整透传 RAGFlow document_id 与 chunk_id 溯源元数据。"""
+    ctx = setup_context
+    pid = ctx["project_id"]
+    cid = ctx["chapter_id"]
+    manager = ctx["manager"]
+
+    eid_ragflow = "cite-ragflow-sla-valid"
+    doc_id = "doc-ragflow-sla-001"
+    chk_id = "chk-sla-chunk-042"
+
+    def seed_data(st: DemoState):
+        ch = st.chapters[cid]
+        ch.content = f"本方案承诺业务系统可用性达到 99.99% 的高可用 SLA 指标 [cite:{eid_ragflow}]。"
+        wf = st.workflows.setdefault(pid, {})
+        wf.setdefault("candidates", {})[eid_ragflow] = {
+            "id": eid_ragflow,
+            "company_id": "alpha",
+            "name": "99.99%高可用评测报告及公章SLA承诺",
+            "content": "经严格测试，确认业务可用性达到 99.99% 的高可用标准，符合 SLA 指标要求。",
+            "status": "confirmed",
+            "is_expired": False,
+            "agreement_present": True,
+            "document_id": doc_id,
+            "chunk_id": chk_id,
+        }
+    repo.transaction(seed_data)
+
+    res = workflow.compliance_cross_check(
+        principal=manager,
+        project_id=pid,
+        chapter_id=cid,
+    )
+
+    assert res["compliance_status"] == "compliant"
+    assert res["discrepancy_count"] == 0
+    assert len(res["findings"]) >= 1
+
+    finding = res["findings"][0]
+    assert finding.confidence_level == "high"
+    assert finding.confidence_score >= 0.90
+    assert finding.is_discrepancy is False
+    assert finding.discrepancy_type is None
+    assert finding.document_id == doc_id
+    assert finding.chunk_id == chk_id
+
+
+def test_cross_check_fabricated_nonexistent_evidence_flagged(setup_context, workflow, repo):
+    """测试正文引用完全不存在的虚构/幻觉依据 ID（如 [证:fake-id]），严格识别为 cross_check_discrepancy 并阻断。"""
+    ctx = setup_context
+    pid = ctx["project_id"]
+    cid = ctx["chapter_id"]
+    manager = ctx["manager"]
+
+    def seed_data(st: DemoState):
+        ch = st.chapters[cid]
+        ch.content = "项目团队人员资质：我方项目实施团队持有 PMP 证书 [证:cite-hallucinated-999]。"
+    repo.transaction(seed_data)
+
+    res = workflow.compliance_cross_check(
+        principal=manager,
+        project_id=pid,
+        chapter_id=cid,
+    )
+
+    assert res["compliance_status"] == "non_compliant"
+    assert res["discrepancy_count"] >= 1
+
+    finding = res["findings"][0]
+    assert finding.is_discrepancy is True
+    assert finding.discrepancy_type == "cross_check_discrepancy"
+    assert finding.evidence_status == "missing"
+    assert finding.risk_level == "block"
+    assert finding.confidence_score <= 0.10
+    assert "虚构" in finding.gap_description
+    assert "严禁虚构依据出处" in finding.suggestion
+
+
+def test_cross_check_discrepancy_count_and_cite_tag_flexibility(setup_context, workflow, repo):
+    """测试同时包含充分依据声明与一般描述差距声明时，discrepancy_count 统计准确并支持 [cite:ID] 标记。"""
+    ctx = setup_context
+    pid = ctx["project_id"]
+    cid = ctx["chapter_id"]
+    manager = ctx["manager"]
+
+    eid_valid = "cite-iso-valid"
+    eid_vague = "cite-vague-pmp"
+
+    def seed_data(st: DemoState):
+        ch = st.chapters[cid]
+        # 段落包含两个声明：一个充分支撑，一个仅为一般描述
+        ch.content = (
+            f"公司资质：我方已通过 ISO27001 认证体系 [cite:{eid_valid}]。\n\n"
+            f"人员方案：项目团队持有 PMP 证书 [证:{eid_vague}]。"
+        )
+        wf = st.workflows.setdefault(pid, {})
+        wf.setdefault("candidates", {})[eid_valid] = {
+            "id": eid_valid,
+            "company_id": "alpha",
+            "name": "ISO27001信息安全管理体系认证",
+            "content": "获得权威机构颁发的 ISO27001 证书。",
+            "status": "confirmed",
+            "is_expired": False,
+            "agreement_present": True,
+        }
+        wf["candidates"][eid_vague] = {
+            "id": eid_vague,
+            "company_id": "alpha",
+            "name": "人员管理规章",
+            "content": "公司鼓励员工参与各项技能培训与认证考试，持续提升技术队伍综合素养。",
+            "status": "confirmed",
+            "is_expired": False,
+            "agreement_present": True,
+        }
+    repo.transaction(seed_data)
+
+    res = workflow.compliance_cross_check(
+        principal=manager,
+        project_id=pid,
+        chapter_id=cid,
+    )
+
+    assert res["total_claims"] == 2
+    assert res["verified_claims"] == 1
+    assert res["discrepancy_count"] == 1
+    assert res["compliance_status"] == "warning"
+
+

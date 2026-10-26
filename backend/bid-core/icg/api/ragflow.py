@@ -77,6 +77,32 @@ def include_ragflow_routes(application, service: DemoService, current_user) -> N
         payload = body.model_dump(exclude_unset=True) if body else {}
         return config_service.test_connectivity(user, payload)
 
+    @router.get("/ragflow/config", response_model=RagflowConfigResponse, include_in_schema=False)
+    def get_ragflow_config_alias(user: Principal = Depends(current_user)):
+        """兼容 /api/v1/ragflow/config 路径别名。"""
+        return config_service.get(user)
+
+    @router.put("/ragflow/config", response_model=RagflowConfigResponse, include_in_schema=False)
+    def update_ragflow_config_alias(
+        body: RagflowConfigUpdateRequest,
+        response: Response,
+        user: Principal = Depends(current_user),
+        if_match: Annotated[str | None, Header(alias="If-Match")] = None,
+    ):
+        """兼容 /api/v1/ragflow/config 路径别名。"""
+        result = config_service.update(user, body.model_dump(exclude_unset=True), if_match)
+        response.headers["ETag"] = f'"{result["revision"]}"'
+        return result
+
+    @router.post("/ragflow/config/test", response_model=RagflowConfigTestResponse, include_in_schema=False)
+    def test_ragflow_config_alias(
+        body: RagflowConfigTestRequest | None = None,
+        user: Principal = Depends(current_user),
+    ):
+        """兼容 /api/v1/ragflow/config/test 路径别名。"""
+        payload = body.model_dump(exclude_unset=True) if body else {}
+        return config_service.test_connectivity(user, payload)
+
     @router.get("/ragflow/datasets", include_in_schema=False)
     def list_ragflow_datasets(user: Principal = Depends(current_user)):
         """列出当前租户绑定的 RAGFlow 数据集。"""

@@ -12,9 +12,10 @@ from icg.domain.compliance_rules import ComplianceRulesEngine
 def test_compliance_rules_catalog():
     catalog = ComplianceRulesEngine.CATALOG
     rule_ids = [r["rule_id"] for r in catalog]
-    assert rule_ids == ["R01", "R02", "R15", "R23", "R34", "R35", "R37"]
+    expected = ["R01", "R02", "R03", "R04", "R09", "R10", "R15", "R23", "R34", "R35", "R37"]
+    assert rule_ids == expected
     for item in catalog:
-        assert item["rule_id"] in ("R01", "R02", "R15", "R23", "R34", "R35", "R37")
+        assert item["rule_id"] in expected
         assert "title" in item
         assert "default_severity" in item
         assert "description" in item

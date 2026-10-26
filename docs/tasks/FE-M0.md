@@ -438,12 +438,12 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-progress |
+| 状态 | in-review |
 | 估算 | 6小时；EditorPage 抽离 hooks 与子面板，单文件行数降至 600 行以内 |
 | 关联 Issue | [ISSUE-038](../../issues/ISSUE-038.md) |
 | 依赖 | [WP-3](../delivery/WP-3.md) |
 | 来源 | ISSUE-038 结构债务收敛提案 |
-| 完成时交付 | `docs/delivery/FE-TECH-DEBT-01.md`（待产出） |
-| 代码解释 | `docs/code/FE-TECH-DEBT-01.md`（待产出） |
+| 完成时交付 | [FE-TECH-DEBT-01 交付报告](../delivery/FE-TECH-DEBT-01.md) |
+| 代码解释 | [FE-TECH-DEBT-01 代码说明](../code/FE-TECH-DEBT-01.md) |
 
 范围：对 `frontend/web/src/editor/EditorPage.tsx` 执行二次细粒度解耦，将编辑锁定租约心跳、Diff 比对抽屉、AI 划词气泡状态机抽离为专属 Custom Hook 与子组件，使单个源文件行数控制在 600 行以内，严格保持交互与测试行为零回归。

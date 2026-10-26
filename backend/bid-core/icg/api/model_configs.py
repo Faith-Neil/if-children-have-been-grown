@@ -55,6 +55,12 @@ def include_model_config_routes(application, service: DemoService, current_user)
         """测试模型配置连通性。返回 ok、provider、model 与 duration_ms。若配置包含加密密钥且 ICG_SECRET_KEY 不可用，返回 503 SECRET_KEY_UNAVAILABLE 且无 Retry-After。"""
         return config_service.test_connectivity(user, id)
 
+    @router.post("/model-configs/test", response_model=ModelConfigTestResponse, include_in_schema=False)
+    def test_model_config_direct(body: dict | None = None, user: Principal = Depends(current_user)):
+        """兼容 /api/v1/model-configs/test 直接测试（不传 id 默认测试 default 配置）。"""
+        config_id = (body or {}).get("model_config_id") or (body or {}).get("id") or "default"
+        return config_service.test_connectivity(user, config_id)
+
     @router.post("/projects/{project_id}/model-config", response_model=ProjectModelConfigBindingResponse,
                  operation_id="bindProjectModelConfig")
     def bind_project_model_config(project_id: str, body: ProjectModelConfigBindingRequest,

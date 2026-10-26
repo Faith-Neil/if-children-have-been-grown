@@ -664,7 +664,7 @@ export default function App() {
       </main></Spin>}
     <CreateProjectModal open={createOpen} onCancel={() => setCreateOpen(false)} onOk={createProject} confirmLoading={busy} canCreate={sessionAllowsAction(applicationSession, 'projects.create')} form={createForm} />
     <TaskDrawer open={taskDrawer} onClose={() => setTaskDrawer(false)} jobs={jobs} onViewAll={() => { setTaskDrawer(false); requestPath(globalPath('jobs')); }} onNavigateJob={job => { setTaskDrawer(false); requestPath(projectPath(job.project_id, job.type === 'parse' ? 'parse' : 'editor')); }} />
-    <ModelConfigModal open={modelConfigModalOpen} onClose={() => setModelConfigModalOpen(false)} token={token} session={applicationSession} />
+    <ModelConfigModal open={modelConfigModalOpen} onClose={() => setModelConfigModalOpen(false)} token={token} session={applicationSession} projectId={workspace?.project?.id} projectSensitive={Boolean(workspace?.project?.sensitive)} />
     <RagflowConfigModal open={ragflowConfigModalOpen} onClose={() => setRagflowConfigModalOpen(false)} token={token} session={applicationSession} />
   </AppShell></CanProvider></Suspense>;
 }

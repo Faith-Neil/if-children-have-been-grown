@@ -237,7 +237,7 @@ class ExportServiceMixin:
                     add(error.code, error.message, chapter_id=chapter.id)
             issues.extend(sla_issues(state, project_id, chapters))
             from icg.domain.compliance_rules import ComplianceRulesEngine
-            rule_results = ComplianceRulesEngine.evaluate_p0_rules(
+            rule_results = ComplianceRulesEngine.evaluate_all(
                 state, project, workflow, volume=volume, now_ts=self.demo._now()
             )
             for r in rule_results:

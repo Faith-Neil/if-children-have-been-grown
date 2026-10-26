@@ -49,6 +49,9 @@ export interface ModelConfigModalProps {
   onClose: () => void;
   token?: string | null;
   session?: ApplicationSession | null;
+  projectId?: string | null;
+  projectSensitive?: boolean;
+  onBound?: (configId: string) => void;
 }
 
 export function ModelConfigModal({
@@ -56,12 +59,18 @@ export function ModelConfigModal({
   onClose,
   token = null,
   session = null,
+  projectId = null,
+  projectSensitive = false,
+  onBound,
 }: ModelConfigModalProps) {
   const [loading, setLoading] = useState(false);
   const [configs, setConfigs] = useState<ModelConfigItem[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [form] = Form.useForm();
+  const [projectBoundConfigId, setProjectBoundConfigId] = useState<string | null>(null);
+  const [binding, setBinding] = useState(false);
+  const [bindError, setBindError] = useState<string | null>(null);
 
   // 测试连通性状态
   const [testing, setTesting] = useState(false);
@@ -88,6 +97,19 @@ export function ModelConfigModal({
       if (items.length > 0 && !selectedId) {
         setSelectedId(items[0].id);
       }
+      if (projectId) {
+        try {
+          const bound = await request<ModelConfigItem>(
+            `/api/v1/projects/${encodeURIComponent(projectId)}/model-config`,
+            token
+          );
+          if (bound?.id) {
+            setProjectBoundConfigId(bound.id);
+          }
+        } catch {
+          // 未单独绑定或默认配置
+        }
+      }
     } catch (err) {
       message.error(err instanceof Error ? err.message : '加载模型配置失败');
     } finally {
@@ -104,6 +126,7 @@ export function ModelConfigModal({
   // 当选中的配置改变或切换到新建时更新表单
   useEffect(() => {
     setTestResult(null);
+    setBindError(null);
     if (isCreatingNew) {
       form.setFieldsValue({
         id: '',
@@ -236,6 +259,36 @@ export function ModelConfigModal({
     }
   };
 
+  // 绑定配置至当前项目（仅当在项目上下文中调用时生效）
+  const handleBindProject = async () => {
+    if (!projectId || !activeConfig) return;
+    setBinding(true);
+    setBindError(null);
+    try {
+      await request(
+        `/api/v1/projects/${encodeURIComponent(projectId)}/model-config`,
+        token,
+        'POST',
+        { model_config_id: activeConfig.id }
+      );
+      setProjectBoundConfigId(activeConfig.id);
+      message.success(`已将模型「${activeConfig.name}」绑定至本项目`);
+      onBound?.(activeConfig.id);
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL') {
+        const msg = err.message || '涉密项目必须使用本地模型或允许敏感数据的服务。';
+        setBindError(msg);
+        message.error(msg);
+      } else {
+        const msg = err instanceof Error ? err.message : '项目模型绑定失败';
+        setBindError(msg);
+        message.error(msg);
+      }
+    } finally {
+      setBinding(false);
+    }
+  };
+
   return (
     <Modal
       open={open}
@@ -250,7 +303,7 @@ export function ModelConfigModal({
       width={760}
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
+          <Space>
             {!isCreatingNew && activeConfig && (
               <Button
                 data-testid="test-connection-btn"
@@ -261,7 +314,19 @@ export function ModelConfigModal({
                 测试连通性
               </Button>
             )}
-          </div>
+            {projectId && !isCreatingNew && activeConfig && (
+              <Button
+                data-testid="bind-project-model-btn"
+                icon={<CloudServerOutlined />}
+                loading={binding}
+                onClick={handleBindProject}
+                type={projectBoundConfigId === activeConfig.id ? 'default' : 'primary'}
+                ghost={projectBoundConfigId !== activeConfig.id}
+              >
+                {projectBoundConfigId === activeConfig.id ? '当前项目已生效' : '应用至当前项目'}
+              </Button>
+            )}
+          </Space>
           <Space>
             <Button onClick={onClose}>关闭</Button>
             <Button
@@ -305,6 +370,12 @@ export function ModelConfigModal({
               loading={loading}
               title="刷新配置列表"
             />
+            {projectBoundConfigId && activeConfig && projectBoundConfigId === activeConfig.id && (
+              <Tag color="green" data-testid="project-bound-tag">本项目当前生效</Tag>
+            )}
+            {projectSensitive && (
+              <Tag color="orange" data-testid="project-sensitive-tag">涉密项目门控</Tag>
+            )}
           </Space>
 
           <Button
@@ -322,6 +393,20 @@ export function ModelConfigModal({
             {isCreatingNew ? '取消新建' : '新建模型配置'}
           </Button>
         </div>
+
+        {/* 涉密项目策略拦截警告 */}
+        {bindError && (
+          <Alert
+            data-testid="sensitive-model-blocked-alert"
+            style={{ marginBottom: 16 }}
+            type="error"
+            showIcon
+            message="涉密项目模型策略拦截 (403)"
+            description={bindError}
+            closable
+            onClose={() => setBindError(null)}
+          />
+        )}
 
         {/* 测试连通性提示条 */}
         {testResult && (

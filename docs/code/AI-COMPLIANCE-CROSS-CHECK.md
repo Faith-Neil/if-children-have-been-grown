@@ -1,11 +1,12 @@
 # 为什么有这个文件：说明 AI 合规检查依据交叉核验与差距诊断服务（AI-COMPLIANCE-CROSS-CHECK）的技术架构、算法设计、置信度推导矩阵与安全门禁。
 # 它解决什么问题：
-# 1. 声明内容与 .cite 引用多模态智能抽取：精准识别正文段落中出现的 SLA 数值承诺（可用性指标、响应/恢复时限、服务覆盖时段、巡检频次、RTO/RPO）、资质认证、人员团队能力、业绩案例及重大服务承诺；
-# 2. 交叉核验与差距诊断：比对 RAGFlow 已核验资料与招标文件强制条款，针对“正文承诺 99.99% 高可用但证据仅为一般性架构描述”等缺乏量化依据支撑场景，输出依据置信度得分（0.0~1.0）、置信等级与具备针对性的改进建议；
-# 3. 负偏离合规强阻断：当正文承诺指标劣于招标文件强制条款（如响应时限劣于招标要求）或引用已过期/缺协议证据时，评定为 0.0 置信度并阻断（risk=block），防范废标风险；
-# 4. 后端 checks 服务与增量复查联动：将诊断结果完整沉淀至 workflow['incremental_checks']，更新章节 incremental_check_status（passed/warning/failed）；
-# 5. 敏感项目与多租户权限隔离：涉密项目强拦截云端非本地模型（403 SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL），跨租户拦截 404 NOT_FOUND，非项目成员拦截 403 FORBIDDEN；
-# 6. OpenAPI 契约零漂移：路由使用 include_in_schema=False 保护契约。
+# 1. 声明内容与 .cite 引用多模态智能抽取：精准识别正文段落中出现的 SLA 数值承诺（可用性指标、响应/恢复时限、服务覆盖时段、巡检频次、RTO/RPO）、资质认证、人员团队能力、业绩案例及重大服务承诺，支持 [证:ID]、[片:ID]、[cite:ID]；
+# 2. 交叉核验与差距诊断：比对 RAGFlow 已核验证据与招标文件强制条款，针对“正文承诺 99.99% 高可用但证据仅为一般性架构描述”等缺乏量化依据支撑场景，输出依据置信度得分（0.0~1.0）、置信等级与具备针对性的改进建议；
+# 3. 多租户强隔离与防虚构出处追溯：多租户 ${company_id}:: 前缀严格隔离，跨公司证据引用强阻断（risk=block，置信度 0.0）；虚构依据引用强阻断（risk=block，置信度 <= 0.10）；透传 RAGFlow 来源文档与分块溯源元数据（document_id / chunk_id）；
+# 4. 负偏离合规强阻断：当正文承诺指标劣于招标文件强制条款（如响应时限劣于招标要求）或引用已过期/缺协议证据时，评定为 0.0 置信度并阻断（risk=block），防范废标风险；
+# 5. 后端 checks 服务与增量复查联动：将诊断结果完整沉淀至 workflow['incremental_checks']，更新章节 incremental_check_status（passed/warning/failed）及 discrepancy_count；
+# 6. 敏感项目与多租户权限隔离：涉密项目强拦截云端非本地模型（403 SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL），跨租户拦截 404 NOT_FOUND，非项目成员拦截 403 FORBIDDEN；
+# 7. OpenAPI 契约零漂移：路由使用 include_in_schema=False 保护契约。
 
 # AI-COMPLIANCE-CROSS-CHECK 代码解释：AI 合规检查依据交叉核验与差距诊断
 
@@ -16,12 +17,12 @@
 - 依赖任务：`APP-M2-T185`（采纳原地回写）、`AI-EDITOR-CONTEXT-LINKAGE`（章节上下文感知与划词引用联动）
 - 交付报告：[AI-COMPLIANCE-CROSS-CHECK 交付](../delivery/AI-COMPLIANCE-CROSS-CHECK.md)
 - 核心代码路径：
-  - `backend/bid-core/icg_demo/compliance_cross_check.py`（核心核验服务类、抽取规则、置信度算法与差距推导）
-  - `backend/bid-core/icg_demo/workflow_schemas.py`（定义 `ComplianceFinding`、`ComplianceCrossCheckRequest`、`ComplianceCrossCheckResponse`）
-  - `backend/bid-core/icg_demo/domain.py`（挂载 `compliance_cross_check` 业务方法）
-  - `backend/bid-core/icg_demo/workflow.py`（暴露 `compliance_cross_check` 门面接口）
-  - `backend/bid-core/icg_demo/workflow_routes.py`（注册 HTTP POST 端点并指定 `include_in_schema=False`）
-  - `tests/backend/test_ai_compliance_cross_check.py`（9 项专属自动化单测）
+  - `backend/bid-core/icg/domain/compliance_cross_check.py`（核心核验服务类、抽取规则、置信度算法与差距推导）
+  - `backend/bid-core/icg/domain/workflow_schemas.py`（定义 `ComplianceFinding`、`ComplianceCrossCheckRequest`、`ComplianceCrossCheckResponse`）
+  - `backend/bid-core/icg/domain/domain.py`（挂载 `compliance_cross_check` 业务方法）
+  - `backend/bid-core/icg/domain/workflow_orchestrator.py`（暴露 `compliance_cross_check` 门面接口）
+  - `backend/bid-core/icg/api/workflow.py`（注册 HTTP POST 端点并指定 `include_in_schema=False`）
+  - `tests/backend/test_ai_compliance_cross_check.py`（13 项专属自动化单测）
 
 ---
 
@@ -29,17 +30,17 @@
 
 ```mermaid
 flowchart TD
-    UserTrigger["用户在编辑台点击【依据核验】或编辑后触发增量复查"] --> ParseText["【声明与引用抽取】<br/>• extract_citations_from_text 抽取 .cite 标记<br/>• extract_claims_from_text 抽取 SLA/资质/人员/案例声明"]
+    UserTrigger["用户在编辑台点击【依据核验】或编辑后触发增量复查"] --> ParseText["【声明与引用抽取】<br/>• extract_citations_from_text 抽取 .cite/[证:ID]/[片:ID]/[cite:ID]<br/>• extract_claims_from_text 抽取 SLA/资质/人员/案例/通用承诺"]
     
     ParseText --> TenantGate{"【门禁 1 & 2：租户与权限隔离】<br/>项目归属 company_id 核验（跨租户 404）<br/>项目成员身份校验（非成员 403）"}
     TenantGate -- "通过" --> SensitiveGate{"【门禁 3：涉密项目模型守卫】<br/>project.sensitive == True 时<br/>模型配置是否为本地（is_local）？"}
     
     SensitiveGate -- "非本地模型" --> BlockSensitive["拦截 403<br/>SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL"]
-    SensitiveGate -- "通过/非涉密" --> CrossMatch["【交叉核验与比对引擎】<br/>1. 对标招标文件强制条款（负偏离检测）<br/>2. 对标 RAGFlow 已核验证据与切片<br/>3. 核验证据有效性（过期/待核验/缺协议）"]
+    SensitiveGate -- "通过/非涉密" --> CrossMatch["【交叉核验与比对引擎】<br/>1. 对标招标文件强制条款（负偏离检测）<br/>2. 对标 RAGFlow 已核验证据与知识库切片<br/>3. 多租户数据隔离校验（拦截跨租户引用）<br/>4. 防虚构校验（拦截未入库证据引用）<br/>5. 核验证据有效性（过期/待核验/缺协议）"]
     
-    CrossMatch --> ConfidenceCalc["【置信度推导与差距诊断】<br/>• High (0.85~1.0)：确切指标公章支撑<br/>• Medium (0.50~0.84)：仅一般描述缺乏量化数据<br/>• Low/Unsupported (<0.50)：未标注证据/负偏离/失效证据"]
+    CrossMatch --> ConfidenceCalc["【置信度推导与差距诊断】<br/>• High (0.85~1.0)：确切指标公章支撑<br/>• Medium (0.50~0.84)：仅一般描述缺乏量化数据<br/>• Low/Unsupported (<0.50)：未标注证据/负偏离/失效证据/跨租户/虚构依据"]
     
-    ConfidenceCalc --> SyncChecks["【后端 checks 联动与增量复查更新】<br/>• 写入 workflow['incremental_checks']<br/>• 更新 chapter.incremental_check_status<br/>• 组装 ComplianceCrossCheckResponse 返回"]
+    ConfidenceCalc --> SyncChecks["【后端 checks 联动与增量复查更新】<br/>• 写入 workflow['incremental_checks']<br/>• 记录 document_id 与 chunk_id 溯源元数据<br/>• 更新 chapter.incremental_check_status<br/>• 统计 discrepancy_count 并返回 ComplianceCrossCheckResponse"]
 ```
 
 ---
@@ -63,26 +64,37 @@ flowchart TD
 5. **重大服务通用承诺（`general_promise`）**：
    - 抽取 `驻场保障服务`、`免费备品备件库`、`支持零数据丢失`、`原厂备件保障`。
 
-### 2.2 基于字符物理位点的精确引用绑定
-当同一段落包含多个声明和多个 `.cite` 引用胶囊（如 `我司具备 CMMI5 认证 [证:cite-01]，同时承诺驻场服务 [证:cite-02]`）时：
-- 服务记录每个 claim 的起止字符偏移量 `(start, end)`；
-- 优先查找紧随当前声明之后的带 ID 引用胶囊（`closest citation where start >= claim.end`）；
-- 若段落仅有单个引用，则自动绑定该唯一引用；
+### 2.2 灵活引用语法与位置物理绑定
+服务支持多种引用标签书写习惯：
+- `[证:ID]` / `[片:ID]` / `[cite:ID]`
+- 基于起止字符偏移量 `(start, end)`，优先绑定紧随声明之后的带 ID 胶囊（`closest citation where start >= claim.end`）；
 - 若段落无行内引用，自动核查章节已挂依据列表中语义匹配的条目。
+
+### 2.3 多租户强隔离与防虚构出处追溯
+1. **多租户数据强隔离（`${company_id}::` 命名空间）**：
+   - 检查引用证据的 `company_id` 或数据集名称前缀；
+   - 当 `evidence_company != project.company_id` 时，判定为非法跨租户援引，赋予 `evidence_status = "cross_company"`，置信度直接归零（0.0），标记 `is_discrepancy = True`、`discrepancy_type = "cross_check_discrepancy"` 并输出高危阻断。
+2. **防虚构出处追溯（Zero Tolerance for Hallucinations）**：
+   - 若正文中引用了未在资料库/知识库中真实存在的 ID（如 `[证:fake-id]`），严防 AI 编造出处，赋予 `evidence_status = "missing"`，置信度降为 0.10，标记 `is_discrepancy = True`、`discrepancy_type = "cross_check_discrepancy"` 并阻断。
+3. **RAGFlow 原始来源追溯**：
+   - 从证据记录及元数据中透传 `document_id` 与 `chunk_id`，写入 `ComplianceFinding` 结构，提供完整的可追溯审计凭据。
 
 ---
 
 ## 3. 交叉核验矩阵与置信度推导规则
 
-| 交叉核验场景 | 证据状态 | 核心比对特征 | 置信度得分 | 置信等级 | 风险级别 | 差距诊断与改进建议示例 |
-|---|---|---|---|---|---|---|
-| **充分量化证据支撑** | `valid` | 声明数值（如 `99.99%`）在已核验证据正文或公章测评报告中完全吻合 | **0.95** | `high` | `info` | 依据充分，与正文声明严格相符。建议保持。 |
-| **仅一般描述缺乏量化数据** | `valid` | 正文做高额数值承诺（如 `99.99%可用性`），但佐证仅有文字性高可用架构设计描述，无明确测评数据 | **0.55** | `medium` | `warning` | 正文承诺 99.99%，但引用证据仅包含一般架构描述，缺乏公章承诺或第三方 SLA 测评指标支撑。建议补充上传评测报告或盖章承诺。 |
-| **正文负偏离硬性条款** | — | 正文承诺指标（如响应时间 30 分钟）劣于招标文件条款要求（15 分钟） | **0.00** | `unsupported` | `block` | 正文承诺指标劣于招标文件条款要求，构成负偏离废标风险。必须将响应时间调整至 15 分钟以内。 |
-| **声明缺乏依据标注** | `missing` | 正文作出了关键承诺或资质声称，但在正文中未标注任何依据引用 | **0.15 ~ 0.40** | `unsupported` / `low` | `warning` | 段落陈述了强承诺，但正文中未关联任何佐证依据。建议在资料库核查并添加 `[证:ID]` 标记。 |
-| **引用证据已失效/过期** | `expired` | 引用的证据已超过有效截止时间（`is_expired=True`） | **0.00** | `unsupported` | `block` | 引用的证据已超过有效截止时间，属于失效依据。请更新该证据资质证明。 |
-| **合作伙伴缺失合作协议** | `missing_agreement` | 合作伙伴资料未上传联合体协议或分包合作协议 | **0.00** | `unsupported` | `block` | 引用的合作伙伴证据缺少合作协议。请补传合作协议，否则不可作为合规依据。 |
-| **证据尚未审核确认** | `pending_verification` | 引用的证据处于待核验草稿态 | **0.40** | `medium` | `warning` | 证据尚未经录入人或管理员确认。建议先完成核验后再引用。 |
+| 交叉核验场景 | 证据状态 | 核心比对特征 | 置信度得分 | 置信等级 | 风险级别 | 差距标记与类型 | 差距诊断与改进建议示例 |
+|---|---|---|---|---|---|---|---|
+| **充分量化证据支撑** | `valid` | 声明数值（如 `99.99%`）在已核验证据正文或公章测评报告中完全吻合 | **0.95** | `high` | `info` | `is_discrepancy=False` | 依据充分，与正文声明严格相符。建议保持。 |
+| **仅一般描述缺乏量化数据** | `valid` | 正文做高额数值承诺（如 `99.99%可用性`），但佐证仅有文字性高可用架构设计描述，无明确测评数据 | **0.55** | `medium` | `warning` | `is_discrepancy=True`<br/>`cross_check_discrepancy` | 正文承诺 99.99%，但引用证据仅包含一般架构描述，缺乏公章承诺或第三方 SLA 测评指标支撑。建议补充上传评测报告或盖章承诺。 |
+| **人员/案例仅一般描述** | `valid` | 正文声明持有 PMP 或同类业绩，但引用证据仅为管理规章，无人员证书扫描件或项目合同 | **0.50** | `medium` | `warning` | `is_discrepancy=True`<br/>`cross_check_discrepancy` | 正文声明人员资质，但引用的证据仅为一般规章，未找到对应证书。建议补充上传资格证书或合同证明。 |
+| **跨租户异企证据引用** | `cross_company` | 引用的证据归属其他企业租户（如 beta），违反租户数据隔离红线 | **0.00** | `unsupported` | `block` | `is_discrepancy=True`<br/>`cross_check_discrepancy` | 引用的证据属于其他企业租户，违反多租户数据强隔离红线，严禁跨公司援引。请切换并引用本企业知识库佐证。 |
+| **引用虚构/未入库证据** | `missing` | 正文标记了引用编号，但在企业知识库中完全不存在该记录 | **0.10** | `unsupported` | `block` | `is_discrepancy=True`<br/>`cross_check_discrepancy` | 正文标记了引用依据，但在企业知识库与资料库中完全不存在该记录，存在依据虚构风险。严禁虚构出处。 |
+| **正文负偏离硬性条款** | — | 正文承诺指标（如响应时间 30 分钟）劣于招标文件条款要求（15 分钟） | **0.00** | `unsupported` | `block` | `is_discrepancy=True`<br/>`cross_check_discrepancy` | 正文承诺指标劣于招标文件条款要求，构成负偏离废标风险。必须将响应时间调整至 15 分钟以内。 |
+| **声明缺乏依据标注** | `missing` | 正文作出了关键承诺或资质声称，但在正文中未标注任何依据引用 | **0.15 ~ 0.40** | `unsupported` / `low` | `warning` | `is_discrepancy=True`<br/>`cross_check_discrepancy` | 段落陈述了强承诺，但正文中未关联任何佐证依据。建议在资料库核查并添加 `[证:ID]` 标记。 |
+| **引用证据已失效/过期** | `expired` | 引用的证据已超过有效截止时间（`is_expired=True`） | **0.00** | `unsupported` | `block` | `is_discrepancy=True`<br/>`cross_check_discrepancy` | 引用的证据已超过有效截止时间，属于失效依据。请更新该证据资质证明。 |
+| **合作伙伴缺失合作协议** | `missing_agreement` | 合作伙伴资料未上传联合体协议或分包合作协议 | **0.00** | `unsupported` | `block` | `is_discrepancy=True`<br/>`cross_check_discrepancy` | 引用的合作伙伴证据缺少合作协议。请补传合作协议，否则不可作为合规依据。 |
+| **证据尚未审核确认** | `pending_verification` | 引用的证据处于待核验草稿态 | **0.40** | `medium` | `warning` | `is_discrepancy=True`<br/>`cross_check_discrepancy` | 证据尚未经录入人或管理员确认。建议先完成核验后再引用。 |
 
 ---
 
@@ -92,5 +104,6 @@ flowchart TD
   - 若存在任意 `risk_level == "block"` 的诊断项，`compliance_status = "non_compliant"`，触发 `chapter.incremental_check_status = "failed"`；
   - 若无阻断但存在 `risk_level == "warning"`，`compliance_status = "warning"`，触发 `chapter.incremental_check_status = "warning"`；
   - 若全部为高置信度支撑，`compliance_status = "compliant"`，触发 `chapter.incremental_check_status = "passed"`；
+- 输出 `discrepancy_count` 统计全部 `is_discrepancy=True` 的异常差距项；
 - 诊断结果沉淀至 `DemoState.workflows[project_id]["incremental_checks"]` 供项目合规中心追溯历史；
 - 阻断与警告项同步构建标准 `CheckIssue` 结构体，供导出前检查中心读取。

@@ -41,24 +41,24 @@ RISK_INFO = "info"
 
 
 def extract_citations_from_text(text: str) -> list[dict[str, str]]:
-    """从文本中抽取 .cite 标记（如 [证:ID]、[片:ID]、[证]、[片]）。"""
+    """从文本中抽取 .cite 标记（如 [证:ID]、[片:ID]、[cite:ID]、[证]、[片]、[cite]）。"""
     citations = []
-    # 抽取带 ID 的引用胶囊 [证:ID] 或 [片:ID]
-    for m in re.finditer(r"\[(证|片):([a-zA-Z0-9_\-\.\:]+)\]", text):
-        tag = m.group(1)
+    # 抽取带 ID 的引用胶囊 [证:ID]、[片:ID]、[cite:ID]
+    for m in re.finditer(r"\[(证|片|cite):([a-zA-Z0-9_\-\.\:]+)\]", text, re.IGNORECASE):
+        tag = m.group(1).lower()
         cid = m.group(2)
         citations.append({
-            "type": "evidence" if tag == "证" else "tender_slice",
+            "type": "evidence" if tag in ("证", "cite") else "tender_slice",
             "id": cid,
             "raw": m.group(0),
             "start": m.start(),
             "end": m.end(),
         })
-    # 抽取不带 ID 的泛指标记 [证] 或 [片]
-    for m in re.finditer(r"\[(证|片)\]", text):
-        tag = m.group(1)
+    # 抽取不带 ID 的泛指标记 [证] 或 [片] 或 [cite]
+    for m in re.finditer(r"\[(证|片|cite)\]", text, re.IGNORECASE):
+        tag = m.group(1).lower()
         citations.append({
-            "type": "evidence" if tag == "证" else "tender_slice",
+            "type": "evidence" if tag in ("证", "cite") else "tender_slice",
             "id": "",
             "raw": m.group(0),
             "start": m.start(),
@@ -333,13 +333,29 @@ class ComplianceCrossCheckService:
 
                     evidence = None
                     if matched_eid:
-                        evidence = candidates.get(matched_eid) or citations_map.get(matched_eid)
+                        evidence = candidates.get(matched_eid) or citations_map.get(matched_eid) or state.library.get(matched_eid)
+
+                    # 提取溯源元数据（RAGFlow 文档与分块 ID）
+                    doc_id = None
+                    chk_id = None
+                    if evidence is not None:
+                        doc_id = (
+                            evidence.get("document_id")
+                            or evidence.get("doc_id")
+                            or (evidence.get("metadata", {}).get("document_id") if isinstance(evidence.get("metadata"), dict) else None)
+                        )
+                        chk_id = (
+                            evidence.get("chunk_id")
+                            or (evidence.get("metadata", {}).get("chunk_id") if isinstance(evidence.get("metadata"), dict) else None)
+                        )
 
                     # 2. 交叉比对与置信度推导
                     confidence_score = 1.0
                     confidence_level = CONF_HIGH
                     risk_level = RISK_INFO
                     evidence_status = "valid"
+                    is_discrepancy = False
+                    discrepancy_type = None
                     gap_desc = "依据充分，与正文声明严格相符。"
                     sugg = "依据充分，可保持。"
                     matched_req_id = None
@@ -363,6 +379,8 @@ class ComplianceCrossCheckService:
                                     confidence_score = 0.0
                                     confidence_level = CONF_UNSUPPORTED
                                     risk_level = RISK_BLOCK
+                                    is_discrepancy = True
+                                    discrepancy_type = "cross_check_discrepancy"
                                     gap_desc = (
                                         f"正文承诺的响应时间【{target_val}】劣于招标文件条款要求（不超过 {req_minutes} 分钟），"
                                         "构成负偏离废标风险。"
@@ -380,6 +398,10 @@ class ComplianceCrossCheckService:
                             cited_evidence_id=matched_eid,
                             evidence_status=evidence_status,
                             tender_clause_id=matched_req_id,
+                            document_id=doc_id,
+                            chunk_id=chk_id,
+                            is_discrepancy=is_discrepancy,
+                            discrepancy_type=discrepancy_type,
                             confidence_score=confidence_score,
                             confidence_level=confidence_level,
                             risk_level=risk_level,
@@ -388,14 +410,41 @@ class ComplianceCrossCheckService:
                         ))
                         continue
 
-                    # 2.2 证据状态核验
-                    if matched_eid and evidence is not None:
+                    # 2.2 租户数据隔离强校验（跨公司引用阻断）
+                    evidence_company = None
+                    if evidence is not None:
+                        evidence_company = (
+                            evidence.get("company_id")
+                            or evidence.get("company")
+                            or (evidence.get("metadata", {}).get("company_id") if isinstance(evidence.get("metadata"), dict) else None)
+                        )
+                        ds_name = evidence.get("dataset_name") or (evidence.get("metadata", {}).get("dataset_name") if isinstance(evidence.get("metadata"), dict) else None)
+                        if ds_name and "::" in ds_name:
+                            ds_co = ds_name.split("::", 1)[0]
+                            if not evidence_company:
+                                evidence_company = ds_co
+
+                    if matched_eid and evidence is not None and evidence_company and evidence_company != project.company_id:
+                        evidence_status = "cross_company"
+                        confidence_score = 0.0
+                        confidence_level = CONF_UNSUPPORTED
+                        risk_level = RISK_BLOCK
+                        is_discrepancy = True
+                        discrepancy_type = "cross_check_discrepancy"
+                        gap_desc = (
+                            f"引用的证据 (ID: {matched_eid}) 属于企业租户【{evidence_company}】，"
+                            f"与当前项目所属企业【{project.company_id}】不符，违反多租户数据强隔离红线，严禁跨公司援引。"
+                        )
+                        sugg = f"请切换并引用本企业 ({project.company_id}) 知识库中已核准的同类资质或方案佐证。"
+                    elif matched_eid and evidence is not None:
                         # 检查过期
                         if evidence.get("is_expired") or evidence.get("status") == "expired":
                             evidence_status = "expired"
                             confidence_score = 0.0
                             confidence_level = CONF_UNSUPPORTED
                             risk_level = RISK_BLOCK
+                            is_discrepancy = True
+                            discrepancy_type = "cross_check_discrepancy"
                             gap_desc = f"引用的证据 (ID: {matched_eid}) 已超过有效截止时间，属于失效依据。"
                             sugg = "请在资料库更新该证据的有效资质证明或重新上传有效版本。"
                         elif evidence.get("status") in ("unconfirmed", "draft"):
@@ -403,6 +452,8 @@ class ComplianceCrossCheckService:
                             confidence_score = 0.40
                             confidence_level = CONF_MEDIUM
                             risk_level = RISK_WARNING
+                            is_discrepancy = True
+                            discrepancy_type = "cross_check_discrepancy"
                             gap_desc = f"引用的证据 (ID: {matched_eid}) 尚未经录入人或资料管理员审核确认。"
                             sugg = "请先在资料库完成证据真实性与有效性复核确认后再引用。"
                         elif evidence.get("source_tier") == "partner" and not evidence.get("agreement_present", True):
@@ -410,6 +461,8 @@ class ComplianceCrossCheckService:
                             confidence_score = 0.0
                             confidence_level = CONF_UNSUPPORTED
                             risk_level = RISK_BLOCK
+                            is_discrepancy = True
+                            discrepancy_type = "cross_check_discrepancy"
                             gap_desc = f"引用的合作伙伴证据 (ID: {matched_eid}) 缺少联合体协议或分包合作协议。"
                             sugg = "请在项目挂证据抽屉中补传合作协议，否则不可作为合规依据引用。"
                         else:
@@ -427,6 +480,8 @@ class ComplianceCrossCheckService:
                                     confidence_score = 0.95
                                     confidence_level = CONF_HIGH
                                     risk_level = RISK_INFO
+                                    is_discrepancy = False
+                                    discrepancy_type = None
                                     gap_desc = f"声明的【{c_text}】在已核验证据 (ID: {matched_eid}) 中有确切公章/测评指标支撑。"
                                     sugg = "依据充分，可保持。"
                                 else:
@@ -434,6 +489,8 @@ class ComplianceCrossCheckService:
                                     confidence_score = 0.55
                                     confidence_level = CONF_MEDIUM
                                     risk_level = RISK_WARNING
+                                    is_discrepancy = True
+                                    discrepancy_type = "cross_check_discrepancy"
                                     gap_desc = (
                                         f"正文承诺【{c_text}】，但引用的证据 (ID: {matched_eid}) 仅包含一般性架构或运维文字描述，"
                                         f"缺少明确的【{target_val}】量化指标测评报告或加盖公章的 SLA 承诺支撑。"
@@ -449,31 +506,89 @@ class ComplianceCrossCheckService:
                                     confidence_score = 0.95
                                     confidence_level = CONF_HIGH
                                     risk_level = RISK_INFO
+                                    is_discrepancy = False
+                                    discrepancy_type = None
                                     gap_desc = f"正文声明的资质【{c_text}】与已核验证据严格一致。"
                                     sugg = "依据充分，可保持。"
                                 else:
                                     confidence_score = 0.50
                                     confidence_level = CONF_MEDIUM
                                     risk_level = RISK_WARNING
+                                    is_discrepancy = True
+                                    discrepancy_type = "cross_check_discrepancy"
                                     gap_desc = f"正文声明持有【{c_text}】，但引用证据未明确记载该特定等级认证。"
                                     sugg = "请上传对应等级的证书原件或核准资质名称。"
+                            elif c_type == CLAIM_PERSONNEL:
+                                # 人员能力与资质认证核验 (PMP, ITIL, 年限等)
+                                key_terms = ["PMP", "ITIL", "CCIE", "HCIE", "CISP", "软考高项", "高级工程师"]
+                                matched_cert = next((kt for kt in key_terms if kt.upper() in target_val.upper()), None)
+                                cert_supported = False
+                                if matched_cert:
+                                    cert_supported = matched_cert.upper() in evidence_text.upper()
+                                else:
+                                    cert_supported = target_val.replace(" ", "") in evidence_text.replace(" ", "")
+
+                                if cert_supported:
+                                    confidence_score = 0.95
+                                    confidence_level = CONF_HIGH
+                                    risk_level = RISK_INFO
+                                    is_discrepancy = False
+                                    discrepancy_type = None
+                                    gap_desc = f"正文声明的人员资质【{c_text}】在已核验证据中有确切证书或任职证明支撑。"
+                                    sugg = "依据充分，可保持。"
+                                else:
+                                    confidence_score = 0.50
+                                    confidence_level = CONF_MEDIUM
+                                    risk_level = RISK_WARNING
+                                    is_discrepancy = True
+                                    discrepancy_type = "cross_check_discrepancy"
+                                    gap_desc = f"正文声明【{c_text}】，但引用的证据 (ID: {matched_eid}) 仅为一般管理规章，未找到对应人员证书或履历证明。"
+                                    sugg = "请在资料库补充上传对应人员资格证书（如 PMP/软考等）扫描件或劳动合同证明。"
+                            elif c_type == CLAIM_CASE:
+                                # 业绩案例核验
+                                clean_case = target_val.replace(" ", "")
+                                if clean_case in evidence_text.replace(" ", ""):
+                                    confidence_score = 0.92
+                                    confidence_level = CONF_HIGH
+                                    risk_level = RISK_INFO
+                                    is_discrepancy = False
+                                    discrepancy_type = None
+                                    gap_desc = f"正文声明的业绩案例【{c_text}】与佐证资料严格相符。"
+                                    sugg = "依据充分，可保持。"
+                                else:
+                                    confidence_score = 0.50
+                                    confidence_level = CONF_MEDIUM
+                                    risk_level = RISK_WARNING
+                                    is_discrepancy = True
+                                    discrepancy_type = "cross_check_discrepancy"
+                                    gap_desc = f"正文声明持有同类业绩【{c_text}】，但引用的证据 (ID: {matched_eid}) 缺少对应项目合同或验收单支撑。"
+                                    sugg = "请补充上传对应业绩项目的合同关键页及验收证明扫描件。"
                             else:
                                 confidence_score = 0.88
                                 confidence_level = CONF_HIGH
                                 risk_level = RISK_INFO
+                                is_discrepancy = False
+                                discrepancy_type = None
                                 gap_desc = "正文陈述与引用的佐证资料基本一致。"
                                 sugg = "依据有效，可保持。"
                     elif matched_eid and evidence is None:
-                        # 标记了证据 ID 但未找到实体
+                        # 标记了证据 ID 但未找到实体（防幻觉与虚构依据门禁）
                         evidence_status = "missing"
-                        confidence_score = 0.20
+                        confidence_score = 0.10
                         confidence_level = CONF_UNSUPPORTED
-                        risk_level = RISK_WARNING
-                        gap_desc = f"段落中标记了引用依据 [{matched_eid}]，但在本项目资料库中未检索到该记录。"
-                        sugg = "请核对引用 ID 是否正确，或在资料库重新录入并挂接该证据。"
+                        risk_level = RISK_BLOCK
+                        is_discrepancy = True
+                        discrepancy_type = "cross_check_discrepancy"
+                        gap_desc = (
+                            f"正文标记了引用依据 [{matched_eid}]，但在企业知识库与项目资料库中完全不存在该记录，"
+                            f"存在依据虚构/幻觉风险。"
+                        )
+                        sugg = f"严禁虚构依据出处 [{matched_eid}]；请核对知识库中真实资料并重新挂接有效依据。"
                     else:
                         # 正文有强声明但完全没有引用标记
                         evidence_status = "missing"
+                        is_discrepancy = True
+                        discrepancy_type = "cross_check_discrepancy"
                         # 检查在项目候选资料库中是否有潜在支撑
                         potential_match = None
                         for cid, cand in candidates.items():
@@ -503,6 +618,10 @@ class ComplianceCrossCheckService:
                         cited_evidence_id=matched_eid,
                         evidence_status=evidence_status,
                         tender_clause_id=matched_req_id,
+                        document_id=doc_id,
+                        chunk_id=chk_id,
+                        is_discrepancy=is_discrepancy,
+                        discrepancy_type=discrepancy_type,
                         confidence_score=confidence_score,
                         confidence_level=confidence_level,
                         risk_level=risk_level,
@@ -515,6 +634,7 @@ class ComplianceCrossCheckService:
             verified_claims = sum(1 for f in findings if f.confidence_level == CONF_HIGH)
             warning_claims = sum(1 for f in findings if f.confidence_level == CONF_MEDIUM)
             unsupported_claims = sum(1 for f in findings if f.confidence_level in (CONF_LOW, CONF_UNSUPPORTED))
+            discrepancy_count = sum(1 for f in findings if f.is_discrepancy)
 
             if total_claims > 0:
                 overall_confidence = round(sum(f.confidence_score for f in findings) / total_claims, 3)
@@ -553,6 +673,7 @@ class ComplianceCrossCheckService:
                 "verified_claims": verified_claims,
                 "warning_claims": warning_claims,
                 "unsupported_claims": unsupported_claims,
+                "discrepancy_count": discrepancy_count,
                 "findings": [f.model_dump() for f in findings],
                 "created_at": now_iso,
                 "checked_by": principal.user.id,
@@ -588,13 +709,14 @@ class ComplianceCrossCheckService:
                 "verified_claims": verified_claims,
                 "warning_claims": warning_claims,
                 "unsupported_claims": unsupported_claims,
+                "discrepancy_count": discrepancy_count,
                 "findings": findings,
                 "checks_summary": checks_summary,
                 "checked_at": now_iso,
                 "message": (
                     f"章节交叉核验完成：共核验 {total_claims} 项声明，"
                     f"充分支撑 {verified_claims} 项，"
-                    f"待补差距 {warning_claims + unsupported_claims} 项，"
+                    f"存在依据差距/异常 {discrepancy_count} 项，"
                     f"综合置信度 {overall_confidence:.1%}。"
                 ),
             }

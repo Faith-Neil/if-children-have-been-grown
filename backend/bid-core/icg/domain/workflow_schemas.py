@@ -801,8 +801,12 @@ class ComplianceFinding(ResponseBody):
     claim_type: str = Field(description="声明类型：sla_metric、qualification、personnel、case_experience、general_promise")
     claim_text: str
     cited_evidence_id: str | None = None
-    evidence_status: str = Field(default="valid", description="证据状态：valid、pending_verification、expired、missing_agreement、missing")
+    evidence_status: str = Field(default="valid", description="证据状态：valid、pending_verification、expired、missing_agreement、missing、cross_company")
     tender_clause_id: str | None = None
+    document_id: str | None = Field(default=None, description="RAGFlow 原始文档 ID 或知识库来源文档 ID")
+    chunk_id: str | None = Field(default=None, description="RAGFlow 原始分块 ID")
+    is_discrepancy: bool = Field(default=False, description="是否判定为合规依据差距/异常项")
+    discrepancy_type: str | None = Field(default=None, description="差距类型：cross_check_discrepancy 等")
     confidence_score: float = Field(ge=0.0, le=1.0, description="依据置信度得分 0.0 ~ 1.0")
     confidence_level: str = Field(description="置信度等级：high、medium、low、unsupported")
     risk_level: str = Field(description="风险等级：block（阻断）、warning（警告）、info（提示）")
@@ -825,6 +829,7 @@ class ComplianceCrossCheckResponse(ResponseBody):
     verified_claims: int
     warning_claims: int
     unsupported_claims: int
+    discrepancy_count: int = Field(default=0, description="依据差距与异常项计数")
     findings: list[ComplianceFinding]
     checks_summary: dict[str, Any] = Field(default_factory=dict)
     checked_at: str

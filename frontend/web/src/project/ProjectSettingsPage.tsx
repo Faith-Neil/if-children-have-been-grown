@@ -7,11 +7,33 @@ import { deadlineForForm, projectBasis, projectFields } from './project-form';
 import { formatTime, useProject, volumeName } from '../app/context';
 import { eligibleOwners, projectCan, projectRoleName, teamBasis, teamFormValues, teamPayload, type TeamFormValues } from './project-team';
 import type { ProjectTeam } from '../shared/types';
+import { request } from '../shared/api';
+import { ModelConfigModal } from '../admin/ModelConfigModal';
 
 const anchors = [ ['basic', '基本信息'], ['members', '成员与分工'], ['partners', '合作方'], ['persons', '拟派人员'], ['sla', 'SLA 取值'], ['rules', '规则覆盖'], ['loops', '生成闭环'], ['volumes', '分册'], ['export', '导出设置'] ];
 
 export default function ProjectSettingsPage() {
-  const { workspace, user, busy, mutate, report, navigate } = useProject();
+  const { workspace, token, user, busy, mutate, report, navigate } = useProject();
+  const [projectModel, setProjectModel] = useState<{ id: string; name: string; model: string; is_local: boolean; allow_sensitive: boolean } | null>(null);
+  const [modelModalOpen, setModelModalOpen] = useState(false);
+
+  const loadProjectModel = async () => {
+    try {
+      const data = await request<{ id: string; name: string; model: string; is_local: boolean; allow_sensitive: boolean }>(
+        `/api/v1/projects/${workspace.project.id}/model-config`,
+        token
+      );
+      setProjectModel(data);
+    } catch {
+      // 默认全局或未单独绑定
+    }
+  };
+
+  useEffect(() => {
+    if (workspace.project.id) {
+      loadProjectModel();
+    }
+  }, [workspace.project.id, token]);
   const { modal, message } = AntApp.useApp();
   const [basicForm] = Form.useForm();
   const [teamForm] = Form.useForm<TeamFormValues>();
@@ -103,7 +125,50 @@ export default function ProjectSettingsPage() {
           {team?.handoffs.length ? <Table size="small" rowKey="id" pagination={false} dataSource={team.handoffs.slice().reverse()} columns={[{ title: '时间', dataIndex: 'at', render: formatTime }, { title: '交接依据', dataIndex: 'reason' }, { title: '涉及章节', render: (_, handoff) => handoff.chapter_ids.map(id => workspace.chapters.find(chapter => chapter.id === id)?.title ?? id).join('、') || '成员或分册调整' }, { title: '保护处理', render: (_, handoff) => <>撤销旧编辑权 {handoff.revoked_lock_count} 份<br />保留个人草稿 {handoff.preserved_draft_count} 份</> }]} /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无人员交接记录" />}
         </Card>
         {anchors.filter(([id]) => !['basic', 'members', 'volumes'].includes(id)).map(([id, title]) => <Card id={`project-setting-${id}`} key={id} title={title} className="stack-card">
-          {id === 'sla' ? <><p>服务承诺（SLA）是公司能承诺的响应、恢复等标准。实际取值已在响应矩阵逐项核对。</p><Button onClick={() => navigate('matrix')}>前往服务承诺矩阵</Button></> : <Alert type="info" message="该组完整设置仍待实现" description={id === 'export' ? '本轮仅保存合标分工。命名、正式递交完整值类别、定稿与模板选项尚未接通，当前两册仍为内部复核稿。' : `${title}的原始业务范围继续按任务实施，这里没有可保存的配置。`} showIcon />}
+          {id === 'loops' ? (
+            <div data-testid="project-model-config-panel">
+              <p style={{ marginBottom: 12 }}>
+                管理本项目在分节生成与提示词推理时绑定的大模型服务配置。涉密项目受策略保护，仅允许选用本地部署模型。
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: '#F8FAFC', borderRadius: 6, border: '1px solid #E2E8F0' }}>
+                <Space direction="vertical" size={4}>
+                  <Space>
+                    <span style={{ fontWeight: 600 }}>生效模型：</span>
+                    <span data-testid="project-current-model-name">{projectModel ? `${projectModel.name} (${projectModel.model})` : '默认全局模型 (qwen2.5-72b-instruct)'}</span>
+                    {projectModel?.is_local ? (
+                      <Tag color="cyan">本地模型</Tag>
+                    ) : (
+                      <Tag color="blue">公网模型</Tag>
+                    )}
+                    {workspace.project.sensitive && (
+                      <Tag color="orange" data-testid="project-sensitive-badge">涉密项目门控</Tag>
+                    )}
+                  </Space>
+                  <span style={{ fontSize: 12, color: '#64748B' }}>
+                    {workspace.project.sensitive ? '当前项目标记为涉密，严禁绑定非本地或未经许可的外部模型服务。' : '普通项目，支持按需配置内网本地模型或外部安全推理服务。'}
+                  </span>
+                </Space>
+                <Button
+                  data-testid="open-model-config-btn"
+                  type="primary"
+                  ghost
+                  onClick={() => setModelModalOpen(true)}
+                >
+                  配置项目模型
+                </Button>
+              </div>
+              <ModelConfigModal
+                open={modelModalOpen}
+                onClose={() => setModelModalOpen(false)}
+                token={token}
+                projectId={workspace.project.id}
+                projectSensitive={Boolean(workspace.project.sensitive)}
+                onBound={() => {
+                  loadProjectModel();
+                }}
+              />
+            </div>
+          ) : id === 'sla' ? <><p>服务承诺（SLA）是公司能承诺的响应、恢复等标准。实际取值已在响应矩阵逐项核对。</p><Button onClick={() => navigate('matrix')}>前往服务承诺矩阵</Button></> : <Alert type="info" message="该组完整设置仍待实现" description={id === 'export' ? '本轮仅保存合标分工。命名、正式递交完整值类别、定稿与模板选项尚未接通，当前两册仍为内部复核稿。' : `${title}的原始业务范围继续按任务实施，这里没有可保存的配置。`} showIcon />}
         </Card>)}
       </div>
     </div>

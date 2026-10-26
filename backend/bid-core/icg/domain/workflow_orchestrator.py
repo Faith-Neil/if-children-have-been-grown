@@ -83,7 +83,7 @@ class WorkflowService(OutlineServiceMixin, GenerationServiceMixin, ExportService
                          "evidence-company-and-review", "evidence-validity", "committed-content",
                          "pending-markers", "two-volumes", "input-fingerprint", "export-permission",
                          "sla-values-and-capability-subset", "sla-variables-and-labelled-numbers-subset",
-                         "R15", "R23", "R34", "R37"]
+                         "R01", "R02", "R03", "R04", "R09", "R10", "R15", "R23", "R34", "R35", "R37"]
     UNIMPLEMENTED_RULES = ["参考合规规则尚未逐条完成（按一期完整/一期简化/二期分组）", "语义事实与承诺核对",
                            "公司全文查重", "结构化敏感变量", "交叉复核和完整分册定稿"]
 

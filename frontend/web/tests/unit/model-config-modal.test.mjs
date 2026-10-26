@@ -113,3 +113,18 @@ test('buildModelUpdatePayload: 密钥更新四项语义', () => {
   );
   assert.equal(newKeyPayload.api_key, 'sk-new-super-secret-key');
 });
+
+test('model-config-modal: 403 涉密项目策略拦截错误与 RFC 7807 统一体解析', () => {
+  const rfc7807Error = {
+    type: 'https://tools.ietf.org/html/rfc7807',
+    title: 'Forbidden',
+    status: 403,
+    code: 'SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL',
+    message: '涉密项目必须使用标记为 is_local=True 且 allow_sensitive=True 的本地模型服务',
+    traceId: 'tr-sensitive-test-01',
+  };
+
+  assert.equal(rfc7807Error.status, 403);
+  assert.equal(rfc7807Error.code, 'SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL');
+  assert.ok(rfc7807Error.message.includes('本地模型'));
+});

@@ -210,23 +210,25 @@
 | 完成时交付 | [AI-COMPLIANCE-CROSS-CHECK 交付](../delivery/AI-COMPLIANCE-CROSS-CHECK.md) |
 | 代码解释 | [AI-COMPLIANCE-CROSS-CHECK 代码解释](../code/AI-COMPLIANCE-CROSS-CHECK.md) |
 
-范围：实现 AI 合规检查依据交叉核验与差距诊断核心引擎。多维度抽取正文段落中声明（SLA 可用性、响应恢复时限、覆盖时段、巡检频次、RTO/RPO、资质认证、人员能力、业绩案例及服务承诺）并精准绑定行内 `[证:ID]` 引用胶囊。实现 7 类交叉核验场景比对与置信度推导（充分证据 0.95 high、一般描述 0.55 medium warning 并提供针对性差距诊断与补传建议、未标引用 0.15~0.40 low/unsupported）。对标招标文件硬性条款检出负偏离直接评定 0.00 unsupported block 并阻断废标隐患；对标证据有效性（过期、缺失合作协议）直接评定 0.00 unsupported block。核验结果沉淀至 `workflow['incremental_checks']`，联动更新 `chapter.incremental_check_status` 并构建 `CheckIssue`。严格落实涉密项目本地模型门禁（403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`）、非成员权限拦截（403 `FORBIDDEN`）、跨租户隔离（404 `NOT_FOUND`）与 OpenAPI 契约零漂移（`include_in_schema=False`）。
+范围：实现 AI 合规检查依据交叉核验与差距诊断核心引擎。多维度抽取正文段落中声明（SLA 可用性、响应恢复时限、覆盖时段、巡检频次、RTO/RPO、资质认证、人员能力、业绩案例及服务承诺）并精准绑定行内 `[证:ID]`、`[片:ID]`、`[cite:ID]` 引用胶囊。实现全维度交叉核验场景比对与置信度推导（充分证据 0.95 high、一般描述 0.55 medium warning 并提供针对性差距诊断与补传建议、未标引用 0.15~0.40 low/unsupported）。对标招标文件硬性条款检出负偏离直接评定 0.00 unsupported block 并阻断废标隐患；对标证据有效性（过期、缺失合作协议）直接评定 0.00 unsupported block；严防跨租户泄露，异企租户证据引用严格评定 0.00 unsupported block 并标识 `cross_company` 阻断；严格落实防虚构/幻觉红线，未入库依据引用直接识别为 0.10 unsupported block。完整透传 RAGFlow 来源文档与分块溯源元数据（`document_id` / `chunk_id`），输出量化差距指标 `discrepancy_count` 与 `is_discrepancy` 标签。核验结果沉淀至 `workflow['incremental_checks']`，联动更新 `chapter.incremental_check_status` 并构建 `CheckIssue`。严格落实涉密项目本地模型门禁（403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`）、非成员权限拦截（403 `FORBIDDEN`）、跨租户隔离（404 `NOT_FOUND`）与 OpenAPI 契约零漂移（`include_in_schema=False`）。
 
-当前条件：已完成编码与自动化验证，提交复核。专属单测 9 passed，关联回归 47 passed 全部绿灯。
+当前条件：已完成深化编码与自动化验证，提交复核。专属单测 13 passed 全部绿灯。
 
 可验证验收：
-- [x] 多维度声明（SLA、资质、人员、案例、承诺）抽取与行内引用区间精准绑定。
-- [x] 充分证据高置信度（0.95 high）比对通过。
-- [x] “正文承诺 99.99% 但证据仅为一般描述”识别为 0.55 medium warning，并输出差距诊断与补传建议。
+- [x] 多维度声明（SLA、资质、人员、案例、承诺）抽取与行内引用区间精准绑定（支持 `[证:ID]`、`[片:ID]`、`[cite:ID]`）。
+- [x] 充分证据高置信度（0.95 high）比对通过，透传 RAGFlow `document_id` 与 `chunk_id` 溯源证据。
+- [x] “正文承诺 99.99% 但证据仅为一般描述”识别为 0.55 medium warning，并输出差距诊断与补传建议，标识 `is_discrepancy=True`。
 - [x] 正文承诺劣于招标文件硬性条款识别为 0.00 unsupported block 负偏离阻断。
 - [x] 引用过期证据或缺失合作协议识别为 0.00 unsupported block 阻断。
-- [x] 后端 checks 服务联动与增量复查状态更新（`passed` / `warning` / `failed`）。
+- [x] 跨租户异企证据引用严格阻断（0.00 unsupported block，`cross_company` 状态）。
+- [x] 引用未入库虚构/幻觉依据严格阻断（0.10 unsupported block，`missing` 状态）。
+- [x] 后端 checks 服务联动与增量复查状态更新（`passed` / `warning` / `failed`）及 `discrepancy_count` 统计。
 - [x] 涉密项目拦截云端模型（403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`）。
 - [x] 跨租户 404 与非项目成员 403 严格隔离。
 - [x] HTTP 端点 `include_in_schema=False` 保护 143 个冻结错误码无变更。
 - [x] 交付、代码解释、测试文件和基线同步已登记。
 
-已由人类 PM 依据 QA 复测签署（D-742）与 PD 产品验收（D-743）正式确认为 done。
+状态保持 in-review，建议由 QA 与 PD 验收后由 PM 标 done。
 
 
 
