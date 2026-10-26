@@ -767,11 +767,15 @@
 | D-751 | 2026-10-26 | [代码说明：模型配置弹窗前后端联调与涉密本地隔离守卫（INT-MODEL-CONFIG-MODAL）](code/INT-MODEL-CONFIG-MODAL.md) | 代码说明 | int-model-config-modal-1 | 当前 | ISSUE-028 / ISSUE-007 / INT-MODEL-CONFIG-MODAL | 模型配置弹窗前后端联调代码说明：时序流程图、敏感项目本地门禁设计、RFC 7807 统一错误响应结构 |
 | D-752 | 2026-10-26 | [任务交付：PRD P1 核心合规规则引擎扩充与导出门禁联动（BE-COMPLIANCE-RULES-P1）](delivery/BE-COMPLIANCE-RULES-P1.md) | 任务交付 | compliance-p1-1 | in-review | ISSUE-006 / ISSUE-027 / BE-COMPLIANCE-RULES-P1 | PRD P1 核心合规规则引擎扩充交付：落地 R03（资质/信誉）、R04（联合体协议）、R09（工期/SLA）、R10（质保期/响应时限）规则引擎，整本递交导出门禁 400 CHECK_BLOCKER_EXISTS 联动，专属单测 5 项全绿，建议 PM 标 done |
 | D-753 | 2026-10-26 | [代码说明：PRD P1 核心合规规则引擎扩充与导出门禁联动（BE-COMPLIANCE-RULES-P1）](code/BE-COMPLIANCE-RULES-P1.md) | 代码说明 | compliance-p1-1 | 当前 | ISSUE-006 / ISSUE-027 / BE-COMPLIANCE-RULES-P1 | PRD P1 核心合规规则引擎扩充代码说明：架构分层（icg/domain/compliance_rules）、规则评估时序图、跨章节质保冲突识别与递交门禁逻辑 |
+| D-754 | 2026-10-26 | [QA终验签署：Wave 2核心能力与技术债批次（共4卡）](testing/2026-10-26-wave-2-batch-qa-signoff.md) | 验收签署 | wave2-qa-signoff-1 | 已通过 | ISSUE-038 / ISSUE-006 / ISSUE-037 / ISSUE-028 | Wave 2 批次（FE-TECH-DEBT-01、BE-COMPLIANCE-RULES-P1、AI-COMPLIANCE-CROSS-CHECK、INT-MODEL-CONFIG-MODAL）QA独立复测全绿通过（单测396 passed、类型检查0 error、后端pytest 21 passed专项/62 passed大回归、OpenAPI 0漂移、工程治理0错误），签署PASS并建议PM标done |
+| D-755 | 2026-10-26 | [PD产品验收报告：Wave 2业务功能与技术治理批次](reviews/2026-10-26-pd-review-wave2.md) | 产品验收 | pd-review-wave2-1 | 已通过 | ISSUE-038 / ISSUE-006 / ISSUE-037 / ISSUE-028 | Wave 2 批次（FE-TECH-DEBT-01、BE-COMPLIANCE-RULES-P1、AI-COMPLIANCE-CROSS-CHECK、INT-MODEL-CONFIG-MODAL）PD 对照 PRD v1.8 与数据字典 v1.9 全维度核验通过，书面认可并建议 PM 标 done |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-10-26 | PD / 验收 / Wave 2 | 登记 Wave 2 业务功能与技术治理批次产品视角对照验收报告（2026-10-26-pd-review-wave2.md，D-755），对照 PRD v1.8 §5.8/§5.10/§5.11/§6.4/§8 与字典 v1.9，书面认可并建议 PM 标 done |
+| 2026-10-26 | QA / 验收 / Wave 2 | 登记 Wave 2 核心能力与技术债批次（共 4 卡）QA 终验签署报告（2026-10-26-wave-2-batch-qa-signoff.md，D-754），核验 FE-TECH-DEBT-01、BE-COMPLIANCE-RULES-P1、AI-COMPLIANCE-CROSS-CHECK 与 INT-MODEL-CONFIG-MODAL，全量测试全绿，出具正式 PASS 签署并建议 PM 标 done |
 | 2026-10-26 | 后端 / 架构 / D2 | 登记后端去平铺、包重命名与分层体系规范化交付报告（2026-10-26-backend-unflatten-progress.md，D-736）与代码说明（D-737），落实用户官方拍板 B1，主实现迁入 icg/{api,app,domain,infra}，icg_demo 35 个业务 py 降为薄层兼容 Façade（代码行数由 12,589 锐减至 364 行，缩减率 97.11%），sys.modules 动态模块代理无缝支持 monkeypatch，OpenAPI 契约一致性门禁 100% 通过，全量测试全绿，保持 in-review |
 | 2026-10-26 | AI / RAGFlow / D4 | 登记 RAGFlow 知识库摄入与同步闭环交付报告（2026-10-26-ragflow-kb-sync.md，D-738）与代码说明（D-739），落实用户拍板 B5/B6，打通知识库片段摄入与同步闭环（dataset/kb_sync），支持多租户强隔离、文档上传、解析轮询与优雅降级，专属单测 10 项（9 passed 1 skipped）与联合回归 71 项全绿，OpenAPI 契约零漂移，保持 in-review |
 | 2026-10-26 | 前端 / 路由 / D5 | 登记 React-Router 现代化路由体系与可信守卫落地交付报告（2026-10-26-frontend-react-router.md，D-734）与代码说明（D-735），落实用户拍板决策 B2，解耦简易手动路由，落地 AuthGuard 八角色守卫与 DirtyGuard 脏状态拦截，支持深层章节链接，全量单测 395 项全绿，保持 in-review |
