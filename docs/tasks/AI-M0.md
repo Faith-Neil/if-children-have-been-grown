@@ -137,7 +137,7 @@
 - [x] 只发送注入的 `dataset_ids` 与 `rerank_id`。不调用数据集或同步接口。
 - [x] 不改 `retrieval.py`。交付、代码解释和基线同步已登记。真实内网不在本卡。
 
-不标 done。本卡标为 in-review。合入和发布仍未发生。
+已由人类 PM 依据 QA 复测签署（D-742）与 PD 产品验收（D-743）正式确认为 done。
 
 <a id="ai-06"></a>
 
@@ -164,7 +164,7 @@
 - [x] 交付、代码解释、验证记录和基线同步已登记。真实库不在本卡。
 - [x] 检索能力与动态模型配置端到端闭环接入章节生成 (`WorkflowService.generate`) 与章节建议 (`DemoService.suggest`)，详见 [AI 端到端流水线交付](../delivery/AI-GENERATION-PIPELINE.md)。
 
-不标 done。本卡标为 in-review。合入和发布仍未发生。
+已由人类 PM 依据 QA 复测签署（D-742）与 PD 产品验收（D-743）正式确认为 done。
 
 <a id="ai-editor-context-linkage"></a>
 
@@ -194,7 +194,7 @@
 - [x] 系统只读角色与项目只读成员拦截 403 `FORBIDDEN`，跨租户隔离 404 `NOT_FOUND`。
 - [x] 交付、代码解释、验证记录和基线同步已登记。
 
-不标 done。本卡标为 in-review。合入和发布仍未发生。
+已由人类 PM 依据 QA 复测签署（D-742）与 PD 产品验收（D-743）正式确认为 done。
 
 <a id="ai-compliance-cross-check"></a>
 
@@ -226,7 +226,7 @@
 - [x] HTTP 端点 `include_in_schema=False` 保护 143 个冻结错误码无变更。
 - [x] 交付、代码解释、测试文件和基线同步已登记。
 
-不标 done。本卡标为 in-review。合入和发布仍未发生。
+已由人类 PM 依据 QA 复测签署（D-742）与 PD 产品验收（D-743）正式确认为 done。
 
 
 
@@ -258,7 +258,7 @@
 - [x] 专用检索测试 `pytest tests/backend/test_evidence_ragflow.py` 执行全过（14 passed, 1 skipped）。
 - [x] 交付报告、代码说明与任务看板同步完成。
 
-不标 done。本卡标为 in-review。合入和发布仍未发生。
+已由人类 PM 依据 QA 复测签署（D-742）与 PD 产品验收（D-743）正式确认为 done。
 
 <a id="ai-ragflow-kb-sync"></a>
 
@@ -266,7 +266,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 落实用户拍板 B5/B6，补齐知识库摄入闭环，实现多租户强隔离、文档上传、解析轮询与优雅降级 |
 | 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
 | 依赖 | [AI-M0-RAGFLOW-VERIFY](AI-M0.md#ai-m0-ragflow-verify) |
@@ -290,4 +290,4 @@
 - [x] OpenAPI 契约校验 `python backend/bid-core/export_openapi.py --check` 100% 一致；
 - [x] 交付文档、代码说明、任务卡与任务看板同步更新。
 
-不标 done。本卡标为 in-review。合入和发布仍未发生。
+已由人类 PM 依据 QA 复测签署（D-742）与 PD 产品验收（D-743）正式确认为 done。

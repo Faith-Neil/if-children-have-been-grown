@@ -732,3 +732,23 @@
 - [x] 验收条目逐条核对并独立复跑。
 - [x] `test_recoverable_jobs.py` 5 passed；无库 386/13。
 - [x] BE-M0-T06 / ISSUE-005 / 本卡均不标 done，等项目经理设置
+
+<a id="rev-smoke-001"></a>
+
+## REV-SMOKE-001 · 关演示全流程冒烟断点排查与双册 Word 导出验证
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 4小时；关演示模式（VITE_DEMO=0 + ICG_REQUIRE_MYSQL=1）端到端主链路冒烟留证 |
+| 关联 Issue | [ISSUE-005](../../issues/ISSUE-005.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [WP-5](../delivery/WP-5.md)、[WP-6](../delivery/WP-6.md)、[WP-7](../delivery/WP-7.md) |
+| 来源 | 主 Agent 业务验收五条金标准与关演示可用底线 |
+| 完成时交付 | [REV-SMOKE-001 交付](../delivery/REV-SMOKE-001.md) |
+| 代码解释 | [REV-SMOKE-001 代码说明](../code/REV-SMOKE-001.md) |
+
+范围：排查并打通关演示（`VITE_DEMO=0`）且强制 MySQL 持久化（`ICG_REQUIRE_MYSQL=1`）环境下的完整端到端主业务路径：标准 RBAC 凭据登录 → 项目创建 → 招标文件解析确认 → 响应矩阵 → 分节生成/大纲方案 → 检查中心（阻断废标拦截）→ 技术标与商务标双卷 Word 真实导出并计算 64 位 SHA-256 版式指纹；落地自动化测试套件 `tests/backend/test_smoke_non_demo_pipeline.py`。
+
+- [x] 关演示与 MySQL 门禁下，6 大主阶段业务全链路打通。
+- [x] 技术标与商务标两卷真实 Word 导出并留存版式指纹证据。
+- [x] 专属自动化测试套件全绿通过。

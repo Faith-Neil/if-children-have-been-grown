@@ -20,10 +20,10 @@
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 当前页面与后台边界、共用状态及旧架构视图 |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | 先贯通主流程，再逐页补齐ICG目标的执行入口 |
 | [docs/design/ux.md](docs/design/ux.md) | UX 规范；原路径为 `ui/ux.md` |
-| [docs/reference/product/](docs/reference/product/) | 已脱敏 PRD v1.8、字典 v1.9，供评审与差异核对 |
+| [docs/reference/product/](docs/reference/product/prd-mvp-v1.8.md) | 已脱敏 PRD v1.8、字典 v1.9，供评审与差异核对 |
 | [docs/decisions/baseline-gaps.md](docs/decisions/baseline-gaps.md) | 版本差异、缺件与技术决策状态 |
 | [docs/reviews/pr-1-integration.md](docs/reviews/pr-1-integration.md) | `main` 与 `xqr` 的文档整合评审 |
-| [prototypes/bidding-ux/](prototypes/bidding-ux/) | 工作台、项目概览、响应矩阵、章节编辑静态原型 |
+| [prototypes/bidding-ux/](prototypes/bidding-ux/index.html) | 工作台、项目概览、响应矩阵、章节编辑静态原型 |
 | [frontend/web/](frontend/web/README.md) | 按 8 大业务域物理分层的 React 前端应用；单源收口八角色与状态字典，支持正式凭据登录与演示关闸 |
 | [backend/bid-core/](backend/bid-core/README.md) | 同一产品的 Python 业务后台；`icg/` 领域与仓储分包 + `icg_demo/` 兼容门面，提供 `/api/v1` 接口与 Word 输出 |
 | [spec/openapi/](spec/openapi/README.md) | 从实际代码生成的前后端接口约定 |

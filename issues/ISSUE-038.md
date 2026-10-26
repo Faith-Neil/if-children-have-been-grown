@@ -13,7 +13,7 @@
 | 登记日期 | 2026-10-22 |
 | 最后更新日期 | 2026-10-22 |
 | revision | 1 |
-| 关联 Task | [BE-TECH-DEBT-01](../docs/TASK_BOARD.md#be-tech-debt-01)、[FE-TECH-DEBT-01](../docs/TASK_BOARD.md#fe-tech-debt-01)、[BE-TECH-DEBT-02](../docs/TASK_BOARD.md#be-tech-debt-02)；[任务看板](../docs/TASK_BOARD.md) |
+| 关联 Task | [BE-TECH-DEBT-01](../docs/tasks/BE-M0.md#be-tech-debt-01)、[FE-TECH-DEBT-01](../docs/tasks/FE-M0.md#fe-tech-debt-01)、[BE-TECH-DEBT-02](../docs/tasks/BE-M0.md#be-tech-debt-02)；[任务看板](../docs/TASK_BOARD.md) |
 | 关联 PR | 未创建 |
 | 本地验收 | 未执行 |
 | 合入 | 未合入 |
@@ -44,9 +44,9 @@
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| BE-TECH-DEBT-01 | 收敛 suggestions 双错误体至规范体 | `backend/bid-core/icg_demo/main.py`、`tests/backend/test_openai_compatible_model.py` | AC-01 | in-review |
-| FE-TECH-DEBT-01 | EditorPage.tsx 状态机与子面板二次拆分（目标 < 600 行） | `frontend/web/src/editor/EditorPage.tsx` | AC-02 | planned |
-| BE-TECH-DEBT-02 | workflow_orchestrator.py 服务细化与 icg/api、icg/app 填充 | `backend/bid-core/icg/` | AC-03 | planned |
+| <a id="be-tech-debt-01"></a>BE-TECH-DEBT-01 | 收敛 suggestions 双错误体至规范体 | `backend/bid-core/icg_demo/main.py`、`tests/backend/test_openai_compatible_model.py` | AC-01 | in-review |
+| <a id="fe-tech-debt-01"></a>FE-TECH-DEBT-01 | EditorPage.tsx 状态机与子面板二次拆分（目标 < 600 行） | `frontend/web/src/editor/EditorPage.tsx` | AC-02 | planned |
+| <a id="be-tech-debt-02"></a>BE-TECH-DEBT-02 | workflow_orchestrator.py 服务细化与 icg/api、icg/app 填充 | `backend/bid-core/icg/` | AC-03 | planned |
 
 ## 验收条目
 

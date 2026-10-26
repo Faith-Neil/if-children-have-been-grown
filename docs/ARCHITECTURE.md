@@ -36,11 +36,11 @@ ISSUE-008 / T16已本地验收，把相同原则用于现有文字资料及公�
 
 | 路径 | 职责 |
 |---|---|
-| [docs/TASK_BOARD.md](TASK_BOARD.md) / [docs/tasks/](tasks/) | 里程碑总览与任务卡，记录依赖、范围、验收 |
-| [issues/](../issues/) | 需求、版本、Bug及决策的来源和闭环状态 |
+| [docs/TASK_BOARD.md](TASK_BOARD.md) / [docs/tasks/](tasks/README.md) | 里程碑总览与任务卡，记录依赖、范围、验收 |
+| [issues/](../issues/index.md) | 需求、版本、Bug及决策的来源和闭环状态 |
 | [docs/governance/WORKFLOW.md](governance/WORKFLOW.md) | Issue → 任务 → 实现 → 验收 → 交付 → 文档同步流程 |
-| [docs/templates/](templates/) | 任务、交付、代码解释模板 |
-| [docs/delivery/](delivery/) / [docs/code/](code/) | 每任务验收、进度和实际代码解释 |
+| [docs/templates/](templates/README.md) | 任务、交付、代码解释模板 |
+| [docs/delivery/](DOCUMENT_INDEX.md) / [docs/code/](DOCUMENT_INDEX.md) | 每任务验收、进度和实际代码解释 |
 | [docs/PROJECT_STATUS.md](PROJECT_STATUS.md) | 基于任务事实的项目进度 |
 | [docs/DOCUMENT_INDEX.md](DOCUMENT_INDEX.md) | 文档版本、状态、日期和来源登记 |
 | [scripts/check-project-governance.cjs](../scripts/check-project-governance.cjs) | 结构一致性检查，无第三方依赖 |

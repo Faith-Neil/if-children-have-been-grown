@@ -371,3 +371,79 @@
 - [ ] 排队、运行、失败、完成各状态可验证，未授权重试被后端拒绝。
 - [ ] 接口失败或事件断开不显示假完成，恢复逻辑有必要验证。
 - [ ] 专属交付文件存在，解释实际变更及关键代码/文档逻辑；关联 Issue、任务看板、项目状态与受影响文档/索引完成核对。
+
+<a id="fe-snippet-library"></a>
+
+## FE-SNIPPET-LIBRARY · 知识库方案片段管理最小页
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时；在 library/ 域实现真实方案片段列表、详情与公司隔离 |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [WP-2](../delivery/WP-2.md)、[APP-M2-T078](../delivery/APP-M2-T078.md) |
+| 来源 | PRD v1.8 §5.3 知识资料库与方案片段管理规范 |
+| 完成时交付 | [FE-SNIPPET-LIBRARY 交付](../delivery/FE-SNIPPET-LIBRARY.md) |
+| 代码解释 | [FE-SNIPPET-LIBRARY 代码说明](../code/FE-SNIPPET-LIBRARY.md) |
+
+范围：在 `frontend/web/src/library/` 域目录下实现真实的知识库方案片段列表与详情查看组件 `SnippetLibraryPage.tsx`，在 `App.tsx` 中接通真实路由，替换掉原有的 `PendingPage` 占位壳；对接后端 `/api/v1/snippet_publications` 接口获取已发布的方案片段；支持按当前登录会话的 `company_id` 租户强隔离展示，查看标题、分类、套话组、版本与更新时间，展开查看正文与变量；践行 Layout First 原则，提供空状态与加载状态。
+
+- [x] 组件落位于 `frontend/web/src/library/` 域目录，严禁在 src 根平铺。
+- [x] 成功调用 `/api/v1/snippet_publications` 并落实多租户强隔离。
+- [x] 专属单测全绿通过（frontend 395 项测试保持 100% 绿灯）。
+
+<a id="fe-writing-archive"></a>
+
+## FE-WRITING-ARCHIVE · 写作档案与风格规范最小页
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时；在 library/ 域实现真实写作档案与风格规范管理 |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [WP-2](../delivery/WP-2.md)、[FE-SNIPPET-LIBRARY](FE-M0.md#fe-snippet-library) |
+| 来源 | PRD v1.8 §5.4 写作档案与风格规范配置要求 |
+| 完成时交付 | [FE-WRITING-ARCHIVE 交付](../delivery/FE-WRITING-ARCHIVE.md) |
+| 代码解释 | [FE-WRITING-ARCHIVE 代码说明](../code/FE-WRITING-ARCHIVE.md) |
+
+范围：在 `frontend/web/src/library/` 域目录下实现真实写作档案组件 `WritingProfilePage.tsx`，替换原占位壳；支持配置语气偏好（严谨客观/富有说服力）、企业禁用词名单、公文排版规范与标杆样章参考；按公司多租户隔离持久化；践行 Layout First 交互设计；单测权威收敛至 `frontend/web/tests/unit/`。
+
+- [x] 组件落位于 `frontend/web/src/library/WritingProfilePage.tsx`。
+- [x] 具备语气偏好、禁用词、排版与标杆样章展示和配置能力，按 company_id 隔离。
+- [x] 前端权威测试全绿通过。
+
+<a id="fe-react-router"></a>
+
+## FE-REACT-ROUTER · React-Router 现代化路由体系落地
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 5小时；落实用户拍板决策 B2，引入 react-router-dom 替换简易路由 |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [WP-6](../delivery/WP-6.md)、[FE-WRITING-ARCHIVE](FE-M0.md#fe-writing-archive) |
+| 来源 | 用户 2026-10-26 拍板 B2 决策 |
+| 完成时交付 | [FE-REACT-ROUTER 交付](../delivery/2026-10-26-frontend-react-router.md) |
+| 代码解释 | [FE-REACT-ROUTER 代码说明](../code/2026-10-26-frontend-react-router.md) |
+
+范围：在 `frontend/web/` 中引入 `react-router-dom` 核心现代路由库，建立统一声明式路由表与路由守卫（RouteGuard / RequireAuth）；将原有字符串匹配 `nav` 状态重构为标准 URL 路径驱动（`/projects`, `/editor/:chapterId`, `/library/snippets`, `/admin/audit` 等）；支持前进/后退历史堆栈感知与未保存编辑离开拦截；395 项前端单测保持全绿。
+
+- [x] 引入 react-router-dom 并完成全站声明式路由改造。
+- [x] 页面刷新与直接访问深链接正常渲染，权限守卫拦截有效。
+- [x] 前端测试 395 项全绿，TypeScript 检查零错误。
+
+<a id="fe-tech-debt-01"></a>
+
+## FE-TECH-DEBT-01 · EditorPage 等巨石二次瘦身
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | planned |
+| 估算 | 6小时；EditorPage 抽离 hooks 与子面板，单文件行数降至 600 行以内 |
+| 关联 Issue | [ISSUE-038](../../issues/ISSUE-038.md) |
+| 依赖 | [WP-3](../delivery/WP-3.md) |
+| 来源 | ISSUE-038 结构债务收敛提案 |
+| 完成时交付 | `docs/delivery/FE-TECH-DEBT-01.md`（待产出） |
+| 代码解释 | `docs/code/FE-TECH-DEBT-01.md`（待产出） |
+
+范围：对 `frontend/web/src/editor/EditorPage.tsx` 执行二次细粒度解耦，将编辑锁定租约心跳、Diff 比对抽屉、AI 划词气泡状态机抽离为专属 Custom Hook 与子组件，使单个源文件行数控制在 600 行以内，严格保持交互与测试行为零回归。

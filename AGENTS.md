@@ -22,6 +22,7 @@
 - 用户本轮明确授权纳入整个 `X:\ICG CO` 中的项目资料，并明确排除两类银行合同根。`ICG/`历史材料保持来源与原版本，通过 `docs/source/WORKSPACE_MATERIALS.md` 登记；它们不自动替代活动基线。合同目录、凭据及运行输出仍不得入库。
 - Git 根已提升到工作区根，不在旧子目录重建第二套 Git。自动同步配置和加密令牌保存在工作区外，操作说明见 `docs/operations/workspace-sync.md`。
 - **文档路径规范**：所有交付文档、代码说明、状态报告及架构文档中，严禁使用包含用户或本地盘符的绝对文件链接（如 `file:///c:/Users/...`），必须使用标准相对仓库路径（如 `../../backend/bid-core/...` 或 `../../frontend/web/...`），保证跨机器可移植性。
+- **超链接与引用零死链红线（Zero Broken Links）**：全库所有 Markdown 链接必须指向具体有效的文件（如 `tasks/README.md`、`DOCUMENT_INDEX.md`）或目标文件中实际存在的 HTML 锚点/标题锚点；严禁使用目录相对路径作为超链接（如 `(tasks/)`、`(templates/)`、`(delivery/)`、`(code/)`），避免在编辑器或 Markdown 预览中点击报目录错误；在表格或任务列表中需要支持跨文档锚点跳转时，必须在目标文档中配置显式 HTML `<a id="..."></a>` 标签；D 编号必须与 `DOCUMENT_INDEX.md` 唯一登记严格一致，严禁错编、重编或虚构。
 
 ## 修改与交付
 
@@ -29,6 +30,7 @@
 - 以 `docs/TASK_BOARD.md` 的单个任务推进；每个任务核对任务卡、依赖和验收，再标 `in-progress`。缺基线、接口或其他必要输入时不得标 `ready`。
 - 每任务完成必须保存 `docs/delivery/<TASK_ID>.md`，写实际完成内容、验收、项目进度、代码解释及同步记录；有代码变更同时维护 `docs/code/<TASK_ID>.md`。模板在 `docs/templates/`。
 - **签署与状态流转纪律**：各 subagent 及开发者最高只能将任务卡推到 `in-review`；`done` 状态必须由 QA 签署证据 + PD 产品验收核准 + 主 Agent 确认后，向人类 PM 推荐，由人类 PM 最终标 `done`（交付文档中明确写「建议 PM 标 done」）。
+- **任务看板与任务卡双向原子一致性**：`TASK_BOARD.md` 的 Task ID 列必须指向 `tasks/<MODULE>.md#<task-id>` 对应的具体任务卡；严禁仅在看板平铺新任务行而不补齐对应的 `docs/tasks/<MODULE>.md` 任务卡定义；PM 标 done 或流转状态时，看板、任务卡、Issue 以及 delivery 文档必须四处同步变更为对应状态，严禁出现看板已 done 但任务卡仍为 in-review 的割裂。
 - 每个变更必须检查 PRD、ROADMAP、ARCHITECTURE、Issue看板/详情的影响并对齐，连同 TASK_BOARD、PROJECT_STATUS、DOCUMENT_INDEX 一起更新。无影响在 Issue 和交付同步表说明原因，禁止默默跳过。
 - 三件套与 Issue 看板的治理块和 `docs/governance/WORKFLOW.md` 保持同一版本、日期与 Issue；业务版本按实际变化独立维护，参考原文不改。
 - 自动 WIP 快照只保存进行中的文件，不标任务 done/Issue closed；人工 Git 暂存、分支切换或整合前先停止同步。双方分叉保留现场，不强推或重置覆盖。
@@ -90,3 +92,5 @@
 - **前端测试权威收口**：前端唯一权威测试套件位于 `frontend/web/tests/`（含 `unit/`，通过 `pnpm --dir frontend/web test` 运行）。根目录 `tests/frontend/` 仅保留兼容历史文档引用的轻量级转发壳（re-export），严禁在此新增或扩展第三套测试目录，严禁在 `tests/frontend/` 中编写实际业务测试逻辑。
 - **持久化门禁**：生产配置、CI 工作流与关演示端到端冒烟强制 `ICG_REQUIRE_MYSQL=1`；章节正文（demo_chapter）、历史版本（demo_chapter_version）与检查结果（demo_check）全部纳入统一 MySQL 事务落盘；仅在未开启门禁的纯本地开发或显式单元测试环境下允许使用内存仓储，生产路径与强制门禁下严禁静默回落到内存仓储。
 - **默认演示关闭**：前端 `VITE_DEMO` 未设置时默认为 `false`（走真实账号与标准 RBAC 8 角色会话），仅在显式配置 `VITE_DEMO=1` 或 `true` 时开启演示快捷登录。
+- **内网物理隔离与外部模型零外泄红线（Airgap Boundary）**：用户明确拍板（决策 B5/B6），客户招标文件、投标正文、Prompt 组装内容、事实与方案片段，严禁发往任何公网外部服务或公有云大模型；生产环境严格限定内网私有化部署：MySQL 8 + 内网本地 Qwen + 自建私有 RAGFlow；后端针对内网服务（RAGFlow、本地大模型）的 HTTP 客户端必须显式设置 `trust_env=False`，防止操作系统透明代理（如 VPN）拦截或劫持内网请求。
+- **离线 CI 门禁与真实生产依赖隔离**：托管 CI 环境物理断开公司内网，严禁在 CI 中尝试连接内网真实服务；真实连通性测试必须通过显式环境变量（`ICG_RUN_REAL_RAGFLOW_TESTS=1`、`ICG_RUN_REAL_MODEL_TESTS=1`）门控；在假服务/Mock 服务下测绿，绝不能伪造或声称生产环境对接已完成；受阻时必须诚实记录依赖 blocked。

@@ -4,7 +4,7 @@
 
 # 文档更新索引
 
-维护版本：g1.1。更新日期：2026-10-22。当前实现关联：ISSUE-007 / ISSUE-005 / ISSUE-006 / ISSUE-027 / APP-M1 / APP-M2-T003 / APP-M2-T004 / APP-M2-T005 / APP-M2-T006 / APP-M2-T007 / APP-M2-T009 / APP-M2-T014 / APP-M2-T015 / APP-M2-T016 / APP-M2-T017 / APP-M2-T018 / APP-M2-T020 / APP-M2-T195 / APP-M2-T196 / APP-M2-T181 / APP-M2-T182 / BE-CHECKS-EXPORT-ALIGN；离线检查：ISSUE-012 / APP-M2-T008；范围评审：ISSUE-005 / FE-M0-T03；模型决定：ISSUE-010 / AI-01（closed / in-review；业务库为 MySQL 8，嵌入与向量库为 RAGFlow）；兼容适配器：ISSUE-011 / AI-02（done）；检索骨架：ISSUE-016 / AI-03（closed / done，仅内存）；检索实现：ISSUE-037 / AI-04、AI-05、AI-06（in-progress / in-review，假服务、只读客户端与证据候选改走 RAGFlow 接线）。文档入口统一使用本文件，规则见 [WORKFLOW](governance/WORKFLOW.md)。历史交付维持当时版本与事实；整个ICG来源清单以D-050登记。
+维护版本：g1.1。更新日期：2026-10-26。当前实现关联：ISSUE-007 / ISSUE-005 / ISSUE-006 / ISSUE-027 / APP-M1 / APP-M2-T003 / APP-M2-T004 / APP-M2-T005 / APP-M2-T006 / APP-M2-T007 / APP-M2-T009 / APP-M2-T014 / APP-M2-T015 / APP-M2-T016 / APP-M2-T017 / APP-M2-T018 / APP-M2-T020 / APP-M2-T195 / APP-M2-T196 / APP-M2-T181 / APP-M2-T182 / BE-CHECKS-EXPORT-ALIGN；离线检查：ISSUE-012 / APP-M2-T008；范围评审：ISSUE-005 / FE-M0-T03；模型决定：ISSUE-010 / AI-01（closed / in-review；业务库为 MySQL 8，嵌入与向量库为 RAGFlow）；兼容适配器：ISSUE-011 / AI-02（done）；检索骨架：ISSUE-016 / AI-03（closed / done，仅内存）；检索实现：ISSUE-037 / AI-04、AI-05、AI-06（in-progress / in-review，假服务、只读客户端与证据候选改走 RAGFlow 接线）。文档入口统一使用本文件，规则见 [WORKFLOW](governance/WORKFLOW.md)。历史交付维持当时版本与事实；整个ICG来源清单以D-050登记。
 
 编号保持稳定。每次新增、修改、移动、归档文档更新路径、日期、版本、状态、关联 Issue/任务和说明；有替代文件时保留来源。治理版本与业务文档/软件版本独立，参考产品原文以文内版本为准。
 
@@ -13,14 +13,14 @@
 | 2026-10-26 | 任务看板 / PM 标 done | 依据 QA 独立终验签署报告（D-742）与 PD 产品视角对照验收报告（D-743），人类 PM 确认将 BE-TECH-DEBT-01、BE-TECH-DEBT-02、FE-REACT-ROUTER、AI-RAGFLOW-KB-SYNC、BE-COMPLIANCE-RULES-P0、REV-SMOKE-001、INT-VOLUME-FINALIZE-GLUE 共 7 张任务卡在 TASK_BOARD 与相应任务卡/Issue中正式标为 done，看板推进至 61 done、13 in-review |
 | 2026-10-26 | 产品 / 验收 / D0~D5 | 登记两轮治理与技术债重构批次产品视角对照验收报告（2026-10-26-pd-review-debt-remediation.md，D-743），PD 对照 PRD v1.8 与数据字典 v1.9，全面书面认可 7 张任务卡，建议 PM 标 done |
 | 2026-10-26 | 质量 / 验收 / D0~D5 | 登记 D0～D5 技术债治理与核心能力建设批次 QA 独立复测与签署报告（2026-10-26-debt-remediation-batch-qa-signoff.md，D-742），覆盖 BE-TECH-DEBT-01、BE-TECH-DEBT-02、FE-REACT-ROUTER、AI-RAGFLOW-KB-SYNC、BE-COMPLIANCE-RULES-P0、REV-SMOKE-001 共 6 张任务卡，后端 42 项专项全过、前端 395 项单测全绿、OpenAPI 100% 一致无 diff，签署通过建议 PM 标 done |
-| D-001 | 2026-10-22 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15；ISSUE-010 / AI-01；ISSUE-009 / APP-M2-T001；ISSUE-017 / OPS-M0-T02；ISSUE-018 / BE-M0-T12；ISSUE-031 / BE-M0-T16；ISSUE-037 / AI-06 | 397项52done、24in-review、7in-progress、265planned、48blocked、1ready。AI-04、AI-05 与 AI-06 为 in-review。ISSUE-037 为 in-progress，ISSUE-029 保持 closed。T001、T002、T11、T12、T13、T14、T15、T078、T114、OPS-M0-T02 与 AI-03 为 done。ISSUE-009、014、016、017、020、022、026、027、029、031 已 closed。未部署。T11 已依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done。T04、T05、T06、T16 与 T18 仍 in-review（T04/T05/T16/T18 的 QA REV-M0-T32～T35 已签，等 PM；T06 的 QA REV-M0-T36 tip `0cb6c38` 已签，等 PM）。T15 已由项目经理于 18:01 确认 done。用户已在 Word/WPS 目视确认。ISSUE-027 已 closed。T13 与 REV-M0-T23 已依据 QA ae38ec3，PM 17:16 确认 done。T17 与 T19 为 planned。T114 与 REV-M0-T22 已依据 QA f521950，PM 17:13 确认 done。T078 与 REV-M0-T24 已依据 QA 19c4862，PM 17:20 确认 done。T124 为 ready，本轮不实现。ISSUE-033 为 in-review，不关闭。ISSUE-035 为 new。ISSUE-036 为 in-review。REV-M0-T27 / ISSUE-034 为 in-review，QA 已签 R1～R9，不标 done |
-| D-002 | 2026-10-12 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025；ISSUE-027 / BE-M0-T15 | 第19行为里程碑快照 as of 3bb311a：366项32done、6in-review、其余255卡planned。第27行改为依据 PRD v1.8 与字典 v1.9 |
-| D-003 | 2026-10-12 | [前端架构](ARCHITECTURE.md) | 前端架构 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-010 / AI-01；ISSUE-011 / AI-02；ISSUE-016 / AI-03；ISSUE-017 / OPS-M0-T02；ISSUE-034 / REV-M0-T27 | 同源存储和替换接口；业务库为 MySQL 8，嵌入、向量库与重排定为 RAGFlow 自带，适配器未实现 |
-| D-004 | 2026-10-12 | [前端路线图](ROADMAP.md) | 计划 | 参考实施入口 / g1.1 | 执行入口 | ISSUE-007 / APP-M1；ISSUE-026；ISSUE-025 / BE-M0-T14；ISSUE-027 / BE-M0-T15 | 里程碑快照 as of 3bb311a：366项32done、6in-review。任务看板是准绳。T124 为 ready，本轮不实现 |
+| D-001 | 2026-10-26 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-038 / BE-TECH-DEBT-01/02；ISSUE-005；ISSUE-010；ISSUE-037 | 412项61done、13in-review、7in-progress、273planned、45blocked、13cancelled、0ready。落实2026-10-26用户拍板B1~B6，后端主实现分包至icg/{api,app,domain,infra}，icg_demo降为薄Façade；前端接入react-router与8域分层；全链路非演示冒烟通过；知识库摄入闭环完成 |
+| D-002 | 2026-10-26 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-038；ISSUE-005；ISSUE-027 | 维护现行前端实施需求，明确以 PRD v1.8 与字典 v1.9 为准绳；反映 412 项任务与 61 done 进度快照 |
+| D-003 | 2026-10-26 | [前端架构](ARCHITECTURE.md) | 前端架构 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-010；ISSUE-011；ISSUE-016；ISSUE-038 | 现行前端与后端分层架构；react-router 路由与 8 域物理分包；后端 icg/{api,app,domain,infra} 去平铺规范；修复全量目录超链接 |
+| D-004 | 2026-10-26 | [前端路线图](ROADMAP.md) | 计划 | 参考实施入口 / g1.1 | 执行入口 | ISSUE-007 / APP-M1；ISSUE-038；ISSUE-027 | 现行阶段实施路线图，纳入 D0~D5 技术债与产品断环推进顺序，反映 412 项任务全景 |
 | D-005 | 2026-10-09 | [UX 规范](design/ux.md) | 设计 | 原文 | 参考 | FE-M0-T01 | 从ui/ux.md迁移，无业务内容改写 |
 | D-006 | 2026-10-09 | [产品 PRD v1.8](reference/product/prd-mvp-v1.8.md) | 产品参考 | v1.8 | 供评审 | FE-M0-T01 | 已脱敏原文，不受治理修订覆盖 |
 | D-007 | 2026-10-09 | [资料库字典 v1.9](reference/product/kb-data-dictionary-v1.9.md) | 数据参考 | v1.9 | 供评审 | FE-M0-T01 | 逻辑字典，不是数据库迁移 |
-| D-008 | 2026-10-10 | [目录方案](architecture/repository-layout.md) | 架构 | 当前骨架 / reference-1 | 当前方案 | ISSUE-007 / APP-M1 | 首轮快照与实际同源前后端结构分列 |
+| D-008 | 2026-10-26 | [目录方案](architecture/repository-layout.md) | 架构 | 当前骨架 / reference-1 | 当前方案 | ISSUE-007 / ISSUE-038 | 现行权威仓库工程实树；前端 8 域与 react-router、后端去平铺 icg/{api,app,domain,infra} 与 364 行 icg_demo 兼容 Façade 规范 |
 | D-009 | 2026-10-09 | [基线差异](decisions/baseline-gaps.md) | 决策 | 初版 | 待评审 | FE-M0-T01 | 16项版本、范围与选型差异 |
 | D-010 | 2026-10-09 | [PR #1 评审](reviews/pr-1-integration.md) | 协作 | 初版 / g1.0后续记录 | 待整合 | ISSUE-001 / ISSUE-003 | 系统/前端分层及后续规则、索引整合提醒 |
 | D-011 | 2026-10-09 | [原型说明](../prototypes/bidding-ux/README.md) | 原型 | 静态演示 | 当前 | ISSUE-002 / FE-M0-T01 | 离线打开、启动方法与模拟范围 |
@@ -1014,3 +1014,5 @@
 ## 缺失输入
 
 技术方案v1.4.2、设计规范v1.2与完整高保真原型包尚未取得；历史产品稿和真实投标原件未入库。缺件和适用性按 [基线差异](decisions/baseline-gaps.md)追踪，不能以索引登记代替取得或验收。
+| D-744 | 2026-10-26 | [任务卡目录索引](tasks/README.md) | 任务规范 | g1.1 | 当前 | ISSUE-007 / DOC-SYNC-1.1 | 汇总各业务与技术域任务卡定义与导航入口，解决目录超链接失效问题 |
+| D-745 | 2026-10-26 | [协作模板目录索引](templates/README.md) | 工程治理 | g1.1 | 当前 | ISSUE-007 / DOC-SYNC-1.1 | 汇总任务卡、交付说明与代码解释模板导航，解决模板目录超链接失效问题 |

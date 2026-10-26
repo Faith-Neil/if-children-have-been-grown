@@ -456,7 +456,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 4小时以内；合规规则体系 P0 级结构化编号落地与引擎核验 |
 | 关联 Issue | [ISSUE-006](../../issues/ISSUE-006.md)、[ISSUE-027](../../issues/ISSUE-027.md) |
 | 依赖 | [BE-CHECKS-EXPORT-ALIGN](BE-M0.md#be-checks-export-align)、[BE-VOLUME-FINALIZE-GATE](BE-M0.md#be-volume-finalize-gate) |
@@ -476,3 +476,63 @@
 
 
 
+
+<a id="be-tech-debt-01"></a>
+
+## BE-TECH-DEBT-01 · 收敛 suggestions 双错误体至规范体
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 4小时以内；收敛 suggestions 接口双错误体分支并完善单测 |
+| 关联 Issue | [ISSUE-038](../../issues/ISSUE-038.md)、[ISSUE-005](../../issues/ISSUE-005.md) |
+| 依赖 | [WP-5](../delivery/WP-5.md) |
+| 来源 | ISSUE-038 结构债务收敛提案 |
+| 完成时交付 | [BE-TECH-DEBT-01 交付](../delivery/2026-10-26-persistence-and-error-body.md) |
+| 代码解释 | [BE-TECH-DEBT-01 代码说明](../code/2026-10-26-persistence-and-error-body.md) |
+
+范围：在 `backend/bid-core/icg_demo/main.py` 的异常处理器中，彻底移除旧结构兼容分支，全站统一遵循 RFC 7807 规范错误体 `{code, message, details, traceId}`；同步更新 `tests/backend/test_openai_compatible_model.py` 等单测对标准错误体的直接解构断言；在 `/api/demo` 端点注入 RFC 8594 `Sunset: Sun, 15 Nov 2026 00:00:00 GMT` 与 `Deprecation: true` 响应头；新增错误体与废弃声明专属单测。
+
+- [x] suggestions 接口在异常时仅返回单一标准错误体（无根级 error 与 request_id 冗余）。
+- [x] /api/demo 全量端点在响应头注入 Sunset 与 Deprecation 标记。
+- [x] 专属单测全绿通过，全量回归套件无断裂。
+
+<a id="be-tech-debt-02"></a>
+
+## BE-TECH-DEBT-02 · 后端业务主实现分层迁移至 icg 上下文分包体系（去平铺）
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 6小时；落实用户拍板决策 B1，主实现全面迁出 icg_demo/ 至 icg/{api,app,domain,infra} |
+| 关联 Issue | [ISSUE-038](../../issues/ISSUE-038.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [WP-4](../delivery/WP-4.md) |
+| 来源 | 用户 2026-10-26 拍板 B1 决策 |
+| 完成时交付 | [BE-TECH-DEBT-02 交付](../delivery/2026-10-26-backend-unflatten-progress.md) |
+| 代码解释 | [BE-TECH-DEBT-02 代码说明](../code/2026-10-26-backend-unflatten-progress.md) |
+
+范围：将原平铺在 `backend/bid-core/icg_demo/` 根目录的 35 个业务模块分层迁移至 `backend/bid-core/icg/`：`api/`（路由）、`app/`（应用装配）、`domain/`（领域服务）与 `infra/`（持久化仓储）；`icg_demo/` 代码量由 12,589 行锐减至 364 行薄兼容 Façade（压缩率 97.11%），通过 `sys.modules` 动态模块代理保障单测零断裂；OpenAPI 契约一致性校验通过。
+
+- [x] 主业务逻辑完全入驻 icg/{api,app,domain,infra} 分包体系。
+- [x] icg_demo 保持超轻量兼容门面（< 400 行）。
+- [x] 后端 41 项自动化测试全过，OpenAPI 契约零漂移。
+
+<a id="int-volume-finalize-glue"></a>
+
+## INT-VOLUME-FINALIZE-GLUE · 分册定稿与工作台/导出前后端契约胶水打通
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 4小时；分册定稿工作台交互、状态流转与导出前置门禁前后端联调打通 |
+| 关联 Issue | [ISSUE-005](../../issues/ISSUE-005.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [BE-VOLUME-FINALIZE-GATE](BE-M0.md#be-volume-finalize-gate)、[REV-SMOKE-001](../delivery/REV-SMOKE-001.md) |
+| 来源 | PRD v1.8 §5.8.5 分册定稿前后端闭环规范 |
+| 完成时交付 | [INT-VOLUME-FINALIZE-GLUE 交付](../delivery/INT-VOLUME-FINALIZE-GLUE.md) |
+| 代码解释 | [INT-VOLUME-FINALIZE-GLUE 代码说明](../code/INT-VOLUME-FINALIZE-GLUE.md) |
+
+范围：排查并打通前端 `ProjectPages.tsx` / `EditorPage.tsx` 与后端 `/api/v1/projects/{project_id}/volumes/{volume_id}/finalize` 的契约胶水；验证项目负责人角色触发定稿、成功标记 `is_finalized`、章节锁定与定稿后正文禁止直接覆写的联动；验证未消解 blocker 时的 409 拦截与前端错误提示提示；打通递交版导出在分册已定稿且合规规则齐备下的顺利流转。
+
+- [x] 前端分册定稿操作成功调用 `/api/v1` 定稿端点，状态即时刷新。
+- [x] 存在 blocker 缺陷时前端正确呈现 409 拦截提示，消解后定稿成功。
+- [x] 前后端联合冒烟通过，契约 100% 对齐 OpenAPI。
