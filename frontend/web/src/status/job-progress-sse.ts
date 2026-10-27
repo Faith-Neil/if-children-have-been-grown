@@ -327,8 +327,39 @@ export class JobStreamSubscriptionManager {
     }
 
     if (payload && typeof payload === 'object') {
-      // 提取 job 数据
-      const jobUpdate: Partial<JobProgressData> = payload.job || payload;
+      // 提取 job 数据（兼容直接传输的 jobUpdate 对象或符合 OpenAPI 规范的 JobEvent 事件报文）
+      const eventPayload = payload.payload;
+      const derivedStatus =
+        payload.status ||
+        eventPayload?.status ||
+        (payload.type === 'job.completed'
+          ? 'completed'
+          : payload.type === 'job.failed'
+          ? 'failed'
+          : payload.type === 'job.cancelled'
+          ? 'cancelled'
+          : payload.type === 'job.status_changed'
+          ? eventPayload?.to
+          : undefined);
+
+      const derivedProgress =
+        payload.percent ??
+        payload.progress ??
+        eventPayload?.progress ??
+        (derivedStatus === 'completed' ? 100 : undefined);
+
+      const derivedMessage =
+        payload.description ||
+        payload.message ||
+        eventPayload?.message;
+
+      const jobUpdate: Partial<JobProgressData> = {
+        ...(payload.job || payload),
+        ...(derivedStatus ? { status: derivedStatus } : {}),
+        ...(typeof derivedProgress === 'number' ? { percent: derivedProgress } : {}),
+        ...(derivedMessage ? { description: derivedMessage } : {}),
+      };
+
       if (this.onJobUpdate) {
         this.onJobUpdate(jobUpdate);
       }

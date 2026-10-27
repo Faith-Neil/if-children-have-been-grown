@@ -183,6 +183,32 @@ class GenerationServiceMixin:
             strict_mode=strict_mode,
         )
 
+    def match_snippets(
+        self,
+        principal: Principal,
+        project_id: str,
+        chapter_id: str | None = None,
+        chapter_title: str | None = None,
+        scoring_points: list[str] | None = None,
+        query: str | None = None,
+        limit: int = 5,
+        min_score: float = 0.05,
+        model_config_id: str | None = None,
+        snippet_store: Any | None = None,
+    ) -> dict[str, Any]:
+        return self.demo.match_snippets(
+            principal=principal,
+            project_id=project_id,
+            chapter_id=chapter_id,
+            chapter_title=chapter_title,
+            scoring_points=scoring_points,
+            query=query,
+            limit=limit,
+            min_score=min_score,
+            model_config_id=model_config_id,
+            snippet_store=snippet_store,
+        )
+
     def search_tender_slices(self, principal: Principal, project_id: str, query: str,
                              enabled: bool | None = None, top_k: int = 10,
                              clause_type: str | None = None) -> dict[str, Any]:

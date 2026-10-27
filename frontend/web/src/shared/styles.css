@@ -535,3 +535,28 @@
   border-color: #b37feb !important;
 }
 
+
+
+/* APP-M2-T021 任务中心抽屉与卡片样式 */
+.task-center-drawer .ant-drawer-body {
+  padding: 16px 20px;
+}
+.task-center-card {
+  transition: all 0.2s ease-in-out;
+}
+.task-center-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.task-center-card.is-ai-task-card {
+  border-color: #d3adf7;
+  background-color: #fdfaff;
+}
+.task-center-card.is-ai-task-card:hover {
+  border-color: #b37feb;
+  box-shadow: 0 4px 12px rgba(114, 46, 209, 0.12);
+}
+.task-badge-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

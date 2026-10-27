@@ -226,6 +226,8 @@ class DemoService:
         self.tender_retrieval = TenderRetrievalService(self)
         from .compliance_cross_check import ComplianceCrossCheckService
         self.compliance_cross_check_service = ComplianceCrossCheckService(self)
+        from .snippet_retrieval import SnippetRetrievalService
+        self.snippet_retrieval_service = SnippetRetrievalService(self)
 
     def start_chapter_generation(self, project_id: str, chapter_id: str, principal: Principal, sync_execute: bool = False) -> dict:
         return self.chapter_generation.start_chapter_generation(project_id, chapter_id, principal, sync_execute=sync_execute)
@@ -293,6 +295,32 @@ class DemoService:
             chapter_id=chapter_id,
             model_config_id=model_config_id,
             strict_mode=strict_mode,
+        )
+
+    def match_snippets(
+        self,
+        principal: Principal,
+        project_id: str,
+        chapter_id: str | None = None,
+        chapter_title: str | None = None,
+        scoring_points: list[str] | None = None,
+        query: str | None = None,
+        limit: int = 5,
+        min_score: float = 0.05,
+        model_config_id: str | None = None,
+        snippet_store: Any | None = None,
+    ) -> dict[str, Any]:
+        return self.snippet_retrieval_service.match_snippets(
+            principal=principal,
+            project_id=project_id,
+            chapter_id=chapter_id,
+            chapter_title=chapter_title,
+            scoring_points=scoring_points,
+            query=query,
+            limit=limit,
+            min_score=min_score,
+            model_config_id=model_config_id,
+            snippet_store=snippet_store,
         )
 
     def resolve_model_provider(self, state: DemoState, project_id: str) -> ModelProvider:

@@ -293,3 +293,45 @@
 - [x] 交付文档、代码说明、任务卡与任务看板同步更新。
 
 已由人类 PM 依据 QA 复测签署（D-742）与 PD 产品验收（D-743）正式确认为 done。
+
+<a id="ai-snippet-retrieval-match"></a>
+
+## AI-SNIPPET-RETRIEVAL-MATCH · 方案片段智能检索与上下文精准匹配
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 针对章节与评分项实现方案片段高精度检索、项目事实变量抽取对齐与出处防伪溯源 |
+| 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md)、[ISSUE-010](../../issues/ISSUE-010.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [AI-RAGFLOW-KB-SYNC](AI-M0.md#ai-ragflow-kb-sync)、[AI-06](AI-M0.md#ai-06) |
+| PRD / 架构出处 | [PRD v1.8 §5.8、§5.11](../reference/product/prd-mvp-v1.8.md)；[资料库字典 v1.9](../reference/product/kb-data-dictionary-v1.9.md) |
+| 完成时交付 | [AI-SNIPPET-RETRIEVAL-MATCH 交付](../delivery/AI-SNIPPET-RETRIEVAL-MATCH.md) |
+| 代码解释 | [AI-SNIPPET-RETRIEVAL-MATCH 代码说明](../code/AI-SNIPPET-RETRIEVAL-MATCH.md) |
+
+范围：在 `backend/bid-core/icg/domain/snippet_retrieval.py` 与 `infra/retrieval.py` 中实现方案片段高精度检索与上下文精准匹配服务。
+1. 多租户强隔离：严格限制只召回当前会话 `company_id` 下已发布的方案片段（`published_revision > 0`），严禁跨租户越界召回，跨租户项目访问拦截 404；
+2. 相关度匹配与变量提取：根据章节标题、评分项要点及提示词上下文，计算片段文本匹配度（字块 2-gram 重合度、关键词命中与向量余弦相似度综合加权）；自动抽取片段中声明的项目事实变量占位符（如 `{{project_name}}`, `{{service_period}}`, `{{sla_availability}}`, `{{fact:...}}`, `{{sla:...}}` 及中英文别名），并从项目事实表和 SLA 承诺中对齐填充；未对齐变量如实标入 `missing_variables` 告警；
+3. 出处防虚构与 .cite 关联：每个召回片段生成标准引用标记（`[片:snippet_id]`）、16 位不可篡改 SHA-256 防伪指纹与完整来源元数据，严禁虚构依据；提供 `format_snippets_for_prompt` 规范化 Prompt 装配；
+4. 涉密项目本地模型门禁与离线隔离：涉密项目（`sensitive=True`）若配置或调用云端模型，强门禁拦截 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`；针对自建内网 RAGFlow 或本地 Qwen 客户端，设置 `trust_env=False` 严防网络代理劫持；
+5. RAGFlow 联动与优雅降级：支持多路检索并验证 `${company_id}::` 租户数据集隔离，外部服务异常时优雅降级为本地高精度检索；
+6. 契约安全：路由端点挂载 `include_in_schema=False` 保护冻结 OpenAPI 契约 100% 零漂移。
+
+当前条件：自动化回归测试全绿通过（专属测试 11 passed，联合全量 89 passed 3 skipped）。端到端闭环逻辑通过。
+
+可验证验收：
+- [x] 多租户强隔离：只召回本公司已发布片段，未发布草稿与跨租户片段 100% 隔离；
+- [x] 越权隔离：跨租户项目访问拦截 404 NOT_FOUND；
+- [x] 相关度精准匹配与加权排序：字块 2-gram、关键词加权与向量余弦相似度联合打分（0.0 ~ 1.0）；
+- [x] 事实变量自动对齐替换：支持 project_name、service_period、sla_availability、fact:ID、sla:KEY 等精准填充；
+- [x] 缺失变量识别：未对齐变量标入 missing_variables 并保留占位符，标识 has_missing_variables=True；
+- [x] 出处防虚构与 .cite 溯源：标准 [片:ID] 标签、16 位 SHA-256 防伪指纹与 Prompt 上下文装配；
+- [x] 涉密项目本地模型强门禁：敏感项目绑定云端模型拦截 403 SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL；
+- [x] 优雅降级：RAGFlow 超时或异常时本地检索正常返回；
+- [x] RAGFlow 越界召回拦截：非本租户数据集分块触发 RetrievalError 阻断；
+- [x] HTTP 端点 POST /api/v1/projects/{project_id}/snippets/match 认证与租户隔离安全；
+- [x] 专属自动化测试套件 `pytest tests/backend/test_ai_snippet_retrieval.py -v` 执行全过（11 passed）；
+- [x] 全量 AI 与 RAG 联合测试回归全绿（89 passed, 3 skipped）；
+- [x] OpenAPI 契约校验 `python backend/bid-core/export_openapi.py --check` 100% 一致；
+- [x] 交付文档、代码说明、任务卡与任务看板同步更新。
+
+状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。

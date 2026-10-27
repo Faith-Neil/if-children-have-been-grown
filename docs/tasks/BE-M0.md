@@ -568,3 +568,41 @@
 | 代码解释 | [INT-MODEL-CONFIG-MODAL 代码说明](../code/INT-MODEL-CONFIG-MODAL.md) |
 
 范围：打通前端设置/导航弹窗组件与后端 /api/v1/model-configs 及 /api/v1/ragflow/config 的前后端调用契约；支持模型配置列表查询、连通性实时测试、项目绑定与内网 RAGFlow 配置更新；在涉密项目绑定非本地模型时前端呈现 403 阻断；编写契约联调测试。
+
+<a id="be-compliance-rules-p2"></a>
+
+## BE-COMPLIANCE-RULES-P2 · 核心合规规则第三批编号落地（R07/R11/R14/R25/R31）
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时以内；PRD 第三批核心合规规则结构化落地与导出门禁联动 |
+| 关联 Issue | [ISSUE-006](../../issues/ISSUE-006.md)、[ISSUE-007](../../issues/ISSUE-007.md)、[ISSUE-027](../../issues/ISSUE-027.md) |
+| 依赖 | [BE-COMPLIANCE-RULES-P1](BE-M0.md#be-compliance-rules-p1)、[BE-VOLUME-FINALIZE-GATE](BE-M0.md#be-volume-finalize-gate) |
+| 来源 | PRD v1.8 §5.8 第三批核心合规规则定义 |
+| 完成时交付 | [BE-COMPLIANCE-RULES-P2 交付报告](../delivery/BE-COMPLIANCE-RULES-P2.md) |
+| 代码解释 | [BE-COMPLIANCE-RULES-P2 代码说明](../code/BE-COMPLIANCE-RULES-P2.md) |
+
+范围：在 `backend/bid-core/icg/domain/compliance_rules.py` 中扩充落地 R07（原厂授权覆盖与多级授权链核验）、R11（本单位人员与社保缴纳核验）、R14（必备附件齐全性核验）、R25（其他公司/旧项目名称与文档残留排查）、R31（真实巡检报告与敏感信息残留排查）规则判定；并在 `export_service.py` 确保在正式递交版导出时存在任一 blocker 缺陷严格返回 400 `CHECK_BLOCKER_EXISTS`；编写专属单测 `tests/backend/test_compliance_rules_p2.py`。
+
+<a id="int-task-center-glue"></a>
+
+## INT-TASK-CENTER-GLUE · 异步任务中心与长任务流式通知前后端联调
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时；长任务异步创建、demo_job 持久化、SSE 流式推流与操作动作权限联调 |
+| 关联 Issue | [ISSUE-006](../../issues/ISSUE-006.md)、[ISSUE-020](../../issues/ISSUE-020.md)、[ISSUE-038](../../issues/ISSUE-038.md) |
+| 依赖 | [BE-M0-T06](BE-M0.md#be-m0-t06)、[APP-M2-T020](APP-M2.md#app-m2-t020)、[APP-M2-T021](APP-M2.md#app-m2-t021) |
+| 来源 | PRD v1.8 §5.12.4 后台长任务中心与流式推流通知 |
+| 完成时交付 | [INT-TASK-CENTER-GLUE 交付报告](../delivery/INT-TASK-CENTER-GLUE.md) |
+| 代码解释 | [INT-TASK-CENTER-GLUE 代码说明](../code/INT-TASK-CENTER-GLUE.md) |
+
+范围：打通非演示模式（VITE_DEMO=0）下后台长任务中心端到端前后端胶水：
+1. 建立长任务启动与 demo_job 持久化记录分配（写入 demo_job 表，状态 pending/queued，返回 202 与 Location）；
+2. 订阅 /api/v1/jobs/{job_id}/events 获取 SSE 实时推流，支持 Last-Event-ID 断点续传与平滑降级轮询 GET /api/v1/jobs/{job_id}，终态连接优雅关闭；
+3. 落地 allowedActions 操作权限流转与门禁：进行中任务 cancel、失败/已取消任务 retry（POST /api/v1/jobs/{job_id}/retry，仅负责人与管理员允许，只读与编写人 403 拦截，非终态 409 拦截）；
+4. 严格保障多租户企业空间物理隔离（跨公司访问长任务严格 404，任务列表按公司隔离）；
+5. 编写全链路联调自动化测试 tests/backend/test_task_center_glue.py 并全绿通过。
+

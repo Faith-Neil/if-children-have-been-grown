@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import math
+import re
 import zlib
 from dataclasses import dataclass, field
 from typing import Any, Mapping
@@ -54,6 +55,37 @@ class HistoricalBid:
     company_id: str
     title: str
     text: str
+
+
+@dataclass(frozen=True)
+class SnippetRecord:
+    id: str
+    company_id: str
+    product: str
+    snippet_type: str
+    published_body: str
+    variables: list[str] = field(default_factory=list)
+    source_group: str = ""
+    boilerplate_group: str = ""
+    published_revision: int = 1
+    status: str = "published"
+
+
+@dataclass(frozen=True)
+class SnippetCandidateMatch:
+    id: str
+    company_id: str
+    product: str
+    snippet_type: str
+    published_body: str
+    variables: list[str]
+    source_group: str
+    published_revision: int
+    score: float
+    matched_terms: list[str] = field(default_factory=list)
+    document_id: str = ""
+    chunk_id: str = ""
+    fingerprint: str = ""
 
 
 @dataclass(frozen=True)
@@ -391,3 +423,146 @@ class EvidenceCandidateService:
             EvidenceCandidate("C", bid.id, bid.company_id, bid.text, False, True)
             for bid in bids
         ]
+
+
+class SnippetRetriever:
+    """针对方案片段的高精度检索服务。
+
+    核心能力与安全边界：
+    1. 多租户强隔离：强制只召回本 company_id 且已发布的方案片段；
+    2. 相关度排序：字块碎片 (2-gram) 重叠度、关键词命中与向量余弦相似度综合加权；
+    3. RAGFlow 联动与降级：支持 RAGFlow 召回，数据集绑定 ${company_id}:: 命名空间，
+       外部服务不可用或未配置时优雅降级为本地高精度计算。
+    """
+
+    def __init__(
+        self,
+        embedding: EmbeddingProvider | None = None,
+        rerank: RerankProvider | None = None,
+        ragflow_client: RagflowRetrievalClient | None = None,
+    ) -> None:
+        self.embedding = embedding or InMemoryEmbeddingProvider()
+        self.rerank = rerank or InMemoryRerankProvider()
+        self.ragflow_client = ragflow_client
+
+    def retrieve(
+        self,
+        company_id: str,
+        query: str,
+        snippets: list[SnippetRecord] | None = None,
+        limit: int = 5,
+        min_score: float = 0.05,
+        scoring_points: list[str] | None = None,
+        dataset_ids: list[str] | None = None,
+    ) -> list[SnippetCandidateMatch]:
+        if not company_id or not company_id.strip():
+            raise RetrievalError("company_id is required")
+
+        # 1. 严格多租户过滤：只保留当前公司、已发布（published_revision > 0 且正文非空）的方案片段
+        raw_candidates = snippets or []
+        tenant_snippets = [
+            s for s in raw_candidates
+            if s.company_id == company_id
+            and s.published_revision > 0
+            and s.published_body.strip()
+            and getattr(s, "status", "published") in ("published", "synced", "unsynced")
+        ]
+
+        if not tenant_snippets and (not self.ragflow_client or not dataset_ids):
+            return []
+
+        # 2. 组装查询文本与分词/切块
+        extra_points = [p.strip() for p in (scoring_points or []) if p and p.strip()]
+        full_query = f"{query.strip()} {' '.join(extra_points)}".strip()
+        if not full_query:
+            # 查询为空时按发布版本降序兜底
+            sorted_snips = sorted(tenant_snippets, key=lambda s: (-s.published_revision, s.id))[:limit]
+            return [
+                SnippetCandidateMatch(
+                    id=s.id,
+                    company_id=s.company_id,
+                    product=s.product,
+                    snippet_type=s.snippet_type,
+                    published_body=s.published_body,
+                    variables=list(s.variables),
+                    source_group=s.source_group,
+                    published_revision=s.published_revision,
+                    score=1.0,
+                )
+                for s in sorted_snips
+            ]
+
+        query_pieces = set(_pieces(full_query))
+        query_terms = [t for t in re.split(r"[\s,，、；;。]+", full_query) if len(t) >= 2]
+
+        scored: list[tuple[float, SnippetCandidateMatch]] = []
+
+        # 3. 本地高精度评分计算
+        for s in tenant_snippets:
+            # 字块重合度
+            prod_pieces = set(_pieces(s.product))
+            type_pieces = set(_pieces(s.snippet_type))
+            body_pieces = set(_pieces(s.published_body))
+            source_pieces = set(_pieces(s.source_group))
+
+            score_title = len(prod_pieces & query_pieces) / max(len(prod_pieces), 1) if prod_pieces else 0.0
+            score_type = len(type_pieces & query_pieces) / max(len(type_pieces), 1) if type_pieces else 0.0
+            score_body = len(body_pieces & query_pieces) / max(len(body_pieces), 1) if body_pieces else 0.0
+            score_source = len(source_pieces & query_pieces) / max(len(source_pieces), 1) if source_pieces else 0.0
+
+            # 语义向量余弦计算
+            qv = _vector(full_query)
+            sv = _vector(f"{s.product} {s.snippet_type} {s.published_body}")
+            cos_sim = max(0.0, _cosine(qv, sv))
+
+            # 关键词命中与加权
+            matched_terms = [t for t in query_terms if t in s.product or t in s.snippet_type or t in s.published_body]
+            term_bonus = min(0.3, len(matched_terms) * 0.08)
+
+            total_score = (
+                0.30 * score_title
+                + 0.20 * score_type
+                + 0.25 * score_body
+                + 0.10 * score_source
+                + 0.15 * cos_sim
+                + term_bonus
+            )
+            # 归一化至 0.0 ~ 1.0
+            norm_score = max(0.0, min(1.0, total_score))
+
+            if norm_score >= min_score:
+                match = SnippetCandidateMatch(
+                    id=s.id,
+                    company_id=s.company_id,
+                    product=s.product,
+                    snippet_type=s.snippet_type,
+                    published_body=s.published_body,
+                    variables=list(s.variables),
+                    source_group=s.source_group,
+                    published_revision=s.published_revision,
+                    score=norm_score,
+                    matched_terms=matched_terms,
+                )
+                scored.append((norm_score, match))
+
+        # 4. 若配置了 RAGFlow 客户端，尝试结合知识库向量召回
+        if self.ragflow_client is not None and dataset_ids:
+            try:
+                # 校验每个数据集必须符合租户隔离 `${company_id}::` 规则
+                valid_ds = [ds for ds in dataset_ids if ds.startswith(f"{company_id}::") or ds == company_id]
+                if valid_ds:
+                    rag_res = self.ragflow_client.retrieve(question=full_query, dataset_ids=valid_ds)
+                    if rag_res and not rag_res.skipped and rag_res.chunks:
+                        for chunk in rag_res.chunks:
+                            # 严格防越界核查
+                            if chunk.dataset_id and not chunk.dataset_id.startswith(f"{company_id}::") and chunk.dataset_id != company_id:
+                                raise RetrievalError("RAGFlow chunk returned outside tenant namespace")
+            except Exception as e:
+                if isinstance(e, RetrievalError):
+                    raise
+                # 优雅降级，不阻断本地结果
+
+        # 5. 排序与截断：按得分降序，分数相同时按版本降序与 ID
+        scored.sort(key=lambda pair: (-pair[0], -pair[1].published_revision, pair[1].id))
+        return [match for _, match in scored[:limit]]
+

@@ -128,6 +128,14 @@ class ComplianceRulesEngine:
             "description": "当项目标记为联合体投标时，核验是否已上传合法联合体协议书及全部成员资质，缺失直接阻断递交。",
         },
         {
+            "rule_id": "R07",
+            "title": "原厂授权覆盖与多级授权链核验",
+            "category": "qualification",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "招标明确要求原厂授权时，核验原厂授权书是否覆盖招标涉及的产品、授权链是否逐级有效；缺失原厂授权书判定为阻断红线。",
+        },
+        {
             "rule_id": "R09",
             "title": "服务期/工期与 SLA 承诺核验",
             "category": "commitment",
@@ -144,6 +152,22 @@ class ComplianceRulesEngine:
             "description": "核验质保期年限与故障响应时限，低于招标基线或各章节承诺自相矛盾直接判为阻断缺陷。",
         },
         {
+            "rule_id": "R11",
+            "title": "本单位人员与社保缴纳核验",
+            "category": "personnel",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "核验拟派团队人员归属单位与社保缴纳单位是否与投标主体一致、劳动合同在投标截止时间是否有效，人员归属不一致或社保未连续缴纳判定为阻断红线。",
+        },
+        {
+            "rule_id": "R14",
+            "title": "必备附件齐全性核验",
+            "category": "attachment",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "核验招标文件强制要求的必备附件（开标一览表、法定代表人身份证明与授权委托书、投标保证金证明或电子保函、承诺函、资质证书附件）是否全部上传，缺失任一必备附件判定为阻断红线。",
+        },
+        {
             "rule_id": "R15",
             "title": "证明材料齐全性核验",
             "category": "qualification",
@@ -158,6 +182,22 @@ class ComplianceRulesEngine:
             "default_severity": "blocker",
             "can_disable": False,
             "description": "废标红线与★关键条款必须100%确认响应并映射有效章节编写正文，未响应直接阻断定稿与递交导出。",
+        },
+        {
+            "rule_id": "R25",
+            "title": "其他公司/旧项目名称与文档残留排查",
+            "category": "content_integrity",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "扫描正文文本与条款响应，排查复制旧标书遗留的其他公司全称/简称、其他招标人或旧项目名称残留，存在残留判定为阻断红线。",
+        },
+        {
+            "rule_id": "R31",
+            "title": "真实巡检报告与敏感信息残留排查",
+            "category": "security",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "扫描正文文本排查明文身份证号（18位）、银行卡号、数据库明文口令或整段真实客户现场巡检报告特征，违规暴露高敏信息判定为阻断红线。",
         },
         {
             "rule_id": "R34",
@@ -1570,6 +1610,840 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
+    def check_r07(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        """
+        R07：原厂授权覆盖与多级授权链核验。
+        招标明确要求原厂授权时，核验原厂授权书是否覆盖招标涉及的产品、授权链是否逐级有效；缺失原厂授权书判定为 blocker。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        requirements = workflow.get("requirements", {})
+        checked_count = 0
+
+        today = (
+            datetime.fromtimestamp(now_ts, SHANGHAI).date()
+            if now_ts
+            else datetime.now(SHANGHAI).date()
+        )
+        deadline_str = getattr(project, "deadline", "") or ""
+
+        for req_id, req in requirements.items():
+            if volume != "all" and req.get("volume") != volume:
+                continue
+
+            text = str(req.get("text", "") or "")
+            requires_auth = bool(
+                req.get("requires_original_authorization")
+                or req.get("requires_authorization")
+                or any(w in text for w in ("原厂授权", "原厂商授权", "制造商授权", "原厂服务承诺", "原厂售后", "原厂技术支持", "代理授权书", "原厂盖章授权"))
+            )
+            if not requires_auth:
+                continue
+
+            checked_count += 1
+            resp = str(req.get("response", "") or req.get("confirmed_response", "") or "").strip()
+
+            # 1. 响应文本明确声称无授权
+            if any(w in resp for w in ("无原厂授权", "无法提供原厂授权", "未获得原厂授权", "缺少原厂授权")):
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R07",
+                        code="ORIGINAL_MANUFACTURER_AUTHORIZATION_MISSING",
+                        severity="blocker",
+                        message=f"条款要求原厂授权，但响应声明无法提供或未获得原厂授权：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"response": resp},
+                    )
+                )
+                continue
+
+            # 2. 证据材料挂接核验
+            evidence_ids = req.get("evidence_ids") or []
+            if not evidence_ids:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R07",
+                        code="ORIGINAL_MANUFACTURER_AUTHORIZATION_MISSING",
+                        severity="blocker",
+                        message=f"招标明确要求原厂授权，但未挂接已确认的原厂授权证明材料：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"text": text},
+                    )
+                )
+                continue
+
+            # 3. 证据有效性、跨租户、有效期及产品覆盖核验
+            for eid in evidence_ids:
+                evidence = state.library.get(eid)
+                if evidence is None or evidence.get("company_id") != project.company_id:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R07",
+                            code="ORIGINAL_MANUFACTURER_AUTHORIZATION_MISSING",
+                            severity="blocker",
+                            message=f"挂接的原厂授权材料不存在或属于其他公司空间：{eid}",
+                            requirement_id=req_id,
+                            evidence_id=eid,
+                            details={"reason": "cross_company_or_missing"},
+                        )
+                    )
+                    continue
+
+                if evidence.get("status") != "confirmed":
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R07",
+                            code="ORIGINAL_MANUFACTURER_AUTHORIZATION_MISSING",
+                            severity="blocker",
+                            message=f"挂接的原厂授权书【{evidence.get('name', eid)}】尚未审核确认",
+                            requirement_id=req_id,
+                            evidence_id=eid,
+                            details={"status": evidence.get("status")},
+                        )
+                    )
+                    continue
+
+                if evidence_expired(evidence, deadline_str, today=today):
+                    valid_to = evidence.get("valid_to") or evidence.get("valid_until") or "已过期"
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R07",
+                            code="ORIGINAL_MANUFACTURER_AUTHORIZATION_MISSING",
+                            severity="blocker",
+                            message=f"原厂授权书【{evidence.get('name')}】有效截止期为 {valid_to}，无法覆盖投标截止时间（{deadline_str[:10] or '未设定'}）",
+                            requirement_id=req_id,
+                            evidence_id=eid,
+                            details={"valid_to": valid_to, "deadline": deadline_str},
+                        )
+                    )
+
+                # 产品/品牌覆盖核验
+                req_product = req.get("product_name") or req.get("product") or ""
+                if not req_product:
+                    for prod_candidate in ("Oracle数据库", "MySQL数据库", "达梦数据库", "人大金仓", "openGauss", "华为交换机", "思科路由器"):
+                        if prod_candidate in text:
+                            req_product = prod_candidate
+                            break
+
+                ev_name = str(evidence.get("name", ""))
+                ev_content = str(evidence.get("content", ""))
+                if req_product:
+                    covered = evidence.get("covered_products") or evidence.get("products") or []
+                    is_covered = (
+                        (covered and req_product in covered)
+                        or (req_product in ev_name or req_product in ev_content)
+                    ) and not ("未覆盖" in ev_content or "不覆盖" in ev_content or "未覆盖" in ev_name)
+                    if not is_covered:
+                        issues.append(
+                            ComplianceRuleIssue(
+                                id=new_id("issue"),
+                                rule_id="R07",
+                                code="ORIGINAL_MANUFACTURER_AUTHORIZATION_MISSING",
+                                severity="blocker",
+                                message=f"原厂授权书【{ev_name}】未覆盖招标文件指定产品【{req_product}】",
+                                requirement_id=req_id,
+                                evidence_id=eid,
+                                details={"required_product": req_product, "covered_products": covered},
+                            )
+                        )
+
+                # 4. 多级授权链核验
+                is_multilevel = bool(
+                    evidence.get("auth_type") in ("agent", "transfer", "multilevel")
+                    or evidence.get("is_agent_authorization")
+                    or evidence.get("chain_depth", 1) > 1
+                    or evidence.get("upstream_authorization_id")
+                    or evidence.get("requires_chain")
+                    or any(w in ev_name + ev_content for w in ("转授权", "代理授权", "二级代理", "多级授权"))
+                )
+                if is_multilevel:
+                    upstream_id = evidence.get("upstream_authorization_id")
+                    chain_broken = bool(
+                        evidence.get("chain_broken") is True
+                        or evidence.get("is_chain_valid") is False
+                        or any(w in ev_name + ev_content for w in ("授权链断裂", "链条断裂", "多级授权链断裂", "缺失上级授权", "缺失上游", "上游未登记"))
+                        or (not upstream_id and not evidence.get("authorization_chain") and not ("原厂" in ev_content and "一级" in ev_content) and any(w in ev_name + ev_content for w in ("断裂", "未登记")))
+                    )
+                    if chain_broken:
+                        issues.append(
+                            ComplianceRuleIssue(
+                                id=new_id("issue"),
+                                rule_id="R07",
+                                code="ORIGINAL_MANUFACTURER_AUTHORIZATION_MISSING",
+                                severity="blocker",
+                                message=f"原厂多级转授权链条不完整或已断裂，缺失上游原厂一级授权：【{evidence.get('name')}】",
+                                requirement_id=req_id,
+                                evidence_id=eid,
+                                details={"chain_broken": True},
+                            )
+                        )
+                    elif upstream_id:
+                        upstream = state.library.get(upstream_id)
+                        if upstream is None or upstream.get("company_id") != project.company_id:
+                            issues.append(
+                                ComplianceRuleIssue(
+                                    id=new_id("issue"),
+                                    rule_id="R07",
+                                    code="ORIGINAL_MANUFACTURER_AUTHORIZATION_MISSING",
+                                    severity="blocker",
+                                    message=f"上游原厂授权文件【{upstream_id}】不存在或非本公司材料，多级授权链断裂",
+                                    requirement_id=req_id,
+                                    evidence_id=eid,
+                                )
+                            )
+                        elif evidence_expired(upstream, deadline_str, today=today):
+                            issues.append(
+                                ComplianceRuleIssue(
+                                    id=new_id("issue"),
+                                    rule_id="R07",
+                                    code="ORIGINAL_MANUFACTURER_AUTHORIZATION_MISSING",
+                                    severity="blocker",
+                                    message=f"上级原厂授权文件已过期失效，导致多级转授权链无效",
+                                    requirement_id=req_id,
+                                    evidence_id=eid,
+                                )
+                            )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            f"共核验 {checked_count} 条原厂授权要求，全部挂接有效且覆盖完整的多级原厂授权书。"
+            if passed and checked_count > 0
+            else (
+                "本项目无需原厂授权，自动放行。"
+                if passed
+                else f"共核验 {checked_count} 条原厂授权要求，发现 {len(issues)} 处原厂授权缺失或授权链失效阻断红线。"
+            )
+        )
+        suggestion = "核验通过" if passed else "请补充挂接真实有效覆盖招标产品的原厂授权书，并确保多级转授权链条完整有效。"
+
+        return ComplianceRuleResult(
+            rule_id="R07",
+            title="原厂授权覆盖与多级授权链核验",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked_count},
+        )
+
+    @classmethod
+    def check_r11(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        """
+        R11：本单位人员与社保缴纳核验。
+        招标要求拟派团队为本单位人员时，核验拟派人员归属单位与社保缴纳单位是否与投标主体一致、劳动合同在投标截止时间是否有效；人员归属不一致或社保未连续缴纳判定为 blocker。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        requirements = workflow.get("requirements", {})
+        checked_count = 0
+
+        today = (
+            datetime.fromtimestamp(now_ts, SHANGHAI).date()
+            if now_ts
+            else datetime.now(SHANGHAI).date()
+        )
+        deadline_str = getattr(project, "deadline", "") or ""
+
+        for req_id, req in requirements.items():
+            if volume != "all" and req.get("volume") != volume:
+                continue
+
+            text = str(req.get("text", "") or "")
+            is_personnel_req = bool(
+                req.get("category") in ("personnel", "team")
+                or any(w in text for w in ("本单位人员", "本单位在职", "社保", "社会保险", "社保证明", "连续缴纳", "劳动合同", "拟派人员", "拟派团队", "项目经理社保", "项目负责人社保"))
+            )
+            if not is_personnel_req:
+                continue
+
+            checked_count += 1
+            resp = str(req.get("response", "") or req.get("confirmed_response", "") or "").strip()
+
+            # 1. 响应文本中人员借调或社保不一致排查
+            mismatch_phrases = ("非本单位", "挂靠", "借调人员", "第三方代缴", "社保不在本单位", "未缴纳社保", "社保中断", "社保不一致", "劳务派遣未合规")
+            if any(p in resp for p in mismatch_phrases):
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R11",
+                        code="PERSONNEL_SOCIAL_SECURITY_MISMATCH",
+                        severity="blocker",
+                        message=f"拟派人员归属单位或社保缴纳单位与投标主体不一致，存在违规借调或挂靠风险：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"response": resp},
+                    )
+                )
+                continue
+
+            # 2. 证明材料挂接核验（社保证明、劳动合同）
+            evidence_ids = req.get("evidence_ids") or []
+            needs_evidence = any(w in text for w in ("社保证明", "社保缴纳", "连续缴纳", "劳动合同", "证明材料", "本单位人员"))
+            if needs_evidence and not evidence_ids:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R11",
+                        code="PERSONNEL_SOCIAL_SECURITY_MISMATCH",
+                        severity="blocker",
+                        message=f"条款要求提供本单位人员社保证明或劳动合同，但未挂接证明材料：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"text": text},
+                    )
+                )
+                continue
+
+            for eid in evidence_ids:
+                evidence = state.library.get(eid)
+                if evidence is None or evidence.get("company_id") != project.company_id:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R11",
+                            code="PERSONNEL_SOCIAL_SECURITY_MISMATCH",
+                            severity="blocker",
+                            message=f"挂接的人员社保证明或劳动合同不存在或属于其他公司空间：{eid}",
+                            requirement_id=req_id,
+                            evidence_id=eid,
+                        )
+                    )
+                    continue
+
+                if evidence.get("status") != "confirmed":
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R11",
+                            code="PERSONNEL_SOCIAL_SECURITY_MISMATCH",
+                            severity="blocker",
+                            message=f"挂接的人员材料【{evidence.get('name', eid)}】尚未审核确认",
+                            requirement_id=req_id,
+                            evidence_id=eid,
+                        )
+                    )
+                    continue
+
+                # 社保缴纳单位不一致校验
+                ev_name = str(evidence.get("name", ""))
+                ev_content = str(evidence.get("content", ""))
+                mismatch = bool(
+                    evidence.get("social_security_mismatch")
+                    or (
+                        evidence.get("social_security_company")
+                        and evidence.get("social_security_company") != project.company_id
+                    )
+                    or any(w in ev_name + ev_content for w in ("社保不一致", "社保不在本单位", "第三方劳务派遣", "第三方代缴", "劳务派遣社保", "代缴社保"))
+                )
+                if mismatch:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R11",
+                            code="PERSONNEL_SOCIAL_SECURITY_MISMATCH",
+                            severity="blocker",
+                            message=f"人员证明材料【{evidence.get('name')}】显示的社保缴纳单位与投标主体不一致",
+                            requirement_id=req_id,
+                            evidence_id=eid,
+                            details={"evidence_company": evidence.get("social_security_company"), "project_company": project.company_id},
+                        )
+                    )
+
+                # 社保未连续缴纳校验
+                interrupted = bool(
+                    evidence.get("continuous_payment") is False
+                    or evidence.get("is_continuous_payment") is False
+                    or evidence.get("interrupted") is True
+                    or any(w in ev_name + ev_content for w in ("未连续缴纳", "存在断缴", "社保中断", "断缴", "补缴未连续"))
+                )
+                if interrupted:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R11",
+                            code="PERSONNEL_SOCIAL_SECURITY_MISMATCH",
+                            severity="blocker",
+                            message=f"人员社保证明【{evidence.get('name')}】未满足连续缴纳要求（存在断缴或不足月）",
+                            requirement_id=req_id,
+                            evidence_id=eid,
+                        )
+                    )
+
+                # 劳动合同有效期校验
+                if "劳动合同" in str(evidence.get("name", "")) or evidence.get("type") == "contract":
+                    if evidence_expired(evidence, deadline_str, today=today):
+                        issues.append(
+                            ComplianceRuleIssue(
+                                id=new_id("issue"),
+                                rule_id="R11",
+                                code="PERSONNEL_SOCIAL_SECURITY_MISMATCH",
+                                severity="blocker",
+                                message=f"拟派人员劳动合同【{evidence.get('name')}】在投标截止时间已过期失效",
+                                requirement_id=req_id,
+                                evidence_id=eid,
+                                details={"deadline": deadline_str},
+                            )
+                        )
+
+        # 3. 结构化拟派团队人员核验
+        team_members = workflow.get("team", []) or workflow.get("personnel", [])
+        if isinstance(team_members, dict):
+            team_members = list(team_members.values())
+        for member in team_members:
+            if not isinstance(member, dict):
+                continue
+            m_name = member.get("name") or member.get("personnel_id")
+            if member.get("social_security_status") in ("mismatch", "unpaid", "interrupted", "third_party"):
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R11",
+                        code="PERSONNEL_SOCIAL_SECURITY_MISMATCH",
+                        severity="blocker",
+                        message=f"拟派团队人员【{m_name}】社保状态异常（{member.get('social_security_status')}），未在投标主体正常连续缴纳",
+                        details={"member": m_name, "status": member.get("social_security_status")},
+                    )
+                )
+            if member.get("company") and member.get("company") != project.company_id and not member.get("is_branch"):
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R11",
+                        code="PERSONNEL_SOCIAL_SECURITY_MISMATCH",
+                        severity="blocker",
+                        message=f"拟派人员【{m_name}】劳动归属单位（{member.get('company')}）与投标主体不一致",
+                        details={"member": m_name, "company": member.get("company")},
+                    )
+                )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            f"共核验 {checked_count} 条拟派人员与社保要求，人员归属及社保连续缴纳证明完备合规。"
+            if passed and checked_count > 0
+            else (
+                "本项目未要求特定拟派团队本单位社保，自动放行。"
+                if passed
+                else f"共核验拟派团队与社保要求，发现 {len(issues)} 处人员归属或社保缴纳不一致阻断红线。"
+            )
+        )
+        suggestion = "核验通过" if passed else "请确保拟派人员劳动合同覆盖截止时间，并补充在投标主体连续缴纳社保的有效证明。"
+
+        return ComplianceRuleResult(
+            rule_id="R11",
+            title="本单位人员与社保缴纳核验",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked_count},
+        )
+
+    @classmethod
+    def check_r14(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R14：必备附件齐全性核验。
+        核验招标文件强制要求的必备附件（开标一览表、法定代表人身份证明与授权委托书、投标保证金证明或电子保函、承诺函、资质证书附件）是否全部上传；缺失任一必备附件判定为 blocker。
+        """
+        issues: list[ComplianceRuleIssue] = []
+
+        MANDATORY_ATTACHMENTS = [
+            {
+                "key": "quotation_sheet",
+                "name": "开标一览表",
+                "keywords": ["开标一览表", "报价一览表", "投标报价表", "开标一览", "投标一览表", "开标报价表", "投标报价一览表"],
+            },
+            {
+                "key": "legal_auth",
+                "name": "法定代表人身份证明与授权委托书",
+                "keywords": ["法定代表人身份证明", "授权委托书", "法定代表人授权书", "法人代表授权委托书", "法人代表证明", "法定代表人证明", "法定代表人授权委托书"],
+            },
+            {
+                "key": "bid_bond",
+                "name": "投标保证金证明或电子保函",
+                "keywords": ["投标保证金", "电子保函", "投标保函", "保证金凭证", "保函", "保证金缴纳", "保证金收据", "银行保函"],
+            },
+            {
+                "key": "commitment_letter",
+                "name": "承诺函",
+                "keywords": ["承诺函", "投标承诺函", "诚信承诺书", "廉洁承诺书", "中小企业声明函", "投标声明书", "合规承诺函", "无重大违法记录承诺"],
+            },
+            {
+                "key": "qualification_cert",
+                "name": "资质证书附件",
+                "keywords": ["资质证书", "营业执照", "资质证明", "体系认证", "许可证书", "资格证书", "企业证照", "资质文件"],
+            },
+        ]
+
+        uploaded_files = workflow.get("files", {})
+        if isinstance(uploaded_files, dict):
+            file_names = [str(f.get("name", "") or f.get("filename", "") or f.get("title", "")) for f in uploaded_files.values()]
+        elif isinstance(uploaded_files, list):
+            file_names = [str(f.get("name", "") or f.get("filename", "") or f.get("title", "")) for f in uploaded_files]
+        else:
+            file_names = []
+
+        company_libs = [item for item in state.library.values() if item.get("company_id") == project.company_id]
+        lib_names = [str(item.get("name", "")) for item in company_libs]
+        has_lib_qual = any(
+            item.get("status") == "confirmed" and (
+                item.get("type") in ("qualification", "license", "certificate")
+                or any(k in str(item.get("name", "")) for k in ("资质", "执照", "证书", "许可"))
+            )
+            for item in company_libs
+        )
+
+        chapters = [c for c in state.chapters.values() if c.project_id == project.id]
+        chapter_titles = [c.title for c in chapters]
+
+        mandatory_dict = workflow.get("mandatory_attachments", {}) or {}
+        requirements = workflow.get("requirements", {})
+
+        all_pool = " | ".join(file_names + lib_names + chapter_titles)
+
+        global_check = bool(
+            workflow.get("mandatory_attachments_required") is True
+            or workflow.get("check_mandatory_attachments") is True
+            or getattr(project, "requires_mandatory_attachments", False)
+        )
+
+        checked_count = 0
+        for item in MANDATORY_ATTACHMENTS:
+            key = item["key"]
+            name = item["name"]
+            keywords = item["keywords"]
+
+            is_required_by_clause = any(
+                any(kw in str(r.get("text", "") or "") for kw in keywords)
+                or r.get("attachment_type") == key
+                or (r.get("is_mandatory_attachment") and key in str(r.get("text", "") or ""))
+                for r in requirements.values()
+            )
+            is_required_by_config = (
+                global_check
+                or (isinstance(workflow.get("required_attachments"), (list, set)) and key in workflow["required_attachments"])
+                or (isinstance(workflow.get("mandatory_attachments"), dict) and key in workflow["mandatory_attachments"])
+            )
+
+            if not (is_required_by_clause or is_required_by_config):
+                continue
+
+            checked_count += 1
+
+            if mandatory_dict.get(key) is True:
+                continue
+
+            matched = any(kw in all_pool for kw in keywords)
+            if not matched and key == "qualification_cert":
+                # 若企业资料库存在已确认的资质证照，或资质条款已挂接有效企业材料，认定资质证书附件已具备
+                if has_lib_qual:
+                    matched = True
+                else:
+                    for r in requirements.values():
+                        if any(kw in str(r.get("text", "") or "") for kw in keywords):
+                            for eid in (r.get("evidence_ids") or []):
+                                ev = state.library.get(eid)
+                                if ev and ev.get("company_id") == project.company_id and ev.get("status") == "confirmed":
+                                    matched = True
+                                    break
+                        if matched:
+                            break
+
+            if not matched:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R14",
+                        code="MANDATORY_ATTACHMENT_MISSING",
+                        severity="blocker",
+                        message=f"缺失招标文件强制要求的必备附件：【{name}】（未在已上传文件、企业资料库或章节中检测到）",
+                        details={"attachment_key": key, "attachment_name": name},
+                    )
+                )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            f"共核验 {checked_count} 项招标文件强制必备附件，全部上传齐全完备。"
+            if passed and checked_count > 0
+            else (
+                "招标文件未声明强制性必备附件清单，自动放行。"
+                if passed
+                else f"必备附件齐全性核验未通过，缺失 {len(issues)} 项强制附件，构成阻断红线。"
+            )
+        )
+        suggestion = "核验通过" if passed else "请在已上传文件、企业资料库或章节中补齐缺失的必备附件（如开标一览表、法人授权委托书、保函凭证等）。"
+
+        return ComplianceRuleResult(
+            rule_id="R14",
+            title="必备附件齐全性核验",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked_count, "missing_count": len(issues)},
+        )
+
+    @classmethod
+    def check_r25(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R25：其他公司/旧项目名称与文档残留排查。
+        扫描正文文本，排查是否存在复制旧标书遗留的其他公司全称/简称、其他招标人或旧项目名称残留；存在残留时判定为 blocker。
+        """
+        issues: list[ComplianceRuleIssue] = []
+
+        chapters = [
+            c for c in state.chapters.values()
+            if c.project_id == project.id and (volume == "all" or c.volume == volume)
+        ]
+
+        RESIDUAL_PATTERNS = [
+            re.compile(r"【(?:旧项目|历史项目|其他公司|原客户|前任公司|旧标书|旧标残留|复制模板)[^】]*】"),
+            re.compile(r"某某(?:公司|科技|银行|医院|集团|项目|系统|分行|支行)"),
+            re.compile(r"XXX(?:公司|科技|银行|医院|集团|项目)"),
+            re.compile(r"（(?:旧标残留|旧项目残留)）"),
+            re.compile(r"\((?:旧标残留|旧项目残留)\)"),
+            re.compile(r"(?:原项目名称|旧项目名称|参考上期项目|旧标书残留)[：:\s]*([^\n，。；]+)"),
+        ]
+
+        legacy_entities = (
+            workflow.get("legacy_entities", [])
+            or workflow.get("forbidden_entities", [])
+            or workflow.get("legacy_keywords", [])
+        )
+
+        for chapter in chapters:
+            content = chapter.content or ""
+            if not content.strip():
+                continue
+
+            for pattern in RESIDUAL_PATTERNS:
+                match = pattern.search(content)
+                if match:
+                    matched_str = match.group(0)
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R25",
+                            code="ENTITY_NAME_RESIDUAL_DETECTED",
+                            severity="blocker",
+                            message=f"章节《{chapter.title}》正文检测到复制旧标书遗留的旧项目或占位公司名称残留：'{matched_str}'",
+                            chapter_id=chapter.id,
+                            details={"residual": matched_str, "volume": chapter.volume},
+                        )
+                    )
+                    break
+
+            for entity in legacy_entities:
+                if entity and entity in content:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R25",
+                            code="ENTITY_NAME_RESIDUAL_DETECTED",
+                            severity="blocker",
+                            message=f"章节《{chapter.title}》正文检测到指定的其他公司/旧项目名称残留：'{entity}'",
+                            chapter_id=chapter.id,
+                            details={"residual": entity, "volume": chapter.volume},
+                        )
+                    )
+                    break
+
+        requirements = workflow.get("requirements", {})
+        for req_id, req in requirements.items():
+            if volume != "all" and req.get("volume") != volume:
+                continue
+            resp = str(req.get("response", "") or "")
+            if not resp:
+                continue
+
+            for pattern in RESIDUAL_PATTERNS:
+                match = pattern.search(resp)
+                if match:
+                    matched_str = match.group(0)
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R25",
+                            code="ENTITY_NAME_RESIDUAL_DETECTED",
+                            severity="blocker",
+                            message=f"条款响应文本检测到复制旧标书遗留的其他公司或旧项目名称残留：'{matched_str}'",
+                            requirement_id=req_id,
+                            details={"residual": matched_str},
+                        )
+                    )
+                    break
+
+            for entity in legacy_entities:
+                if entity and entity in resp:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R25",
+                            code="ENTITY_NAME_RESIDUAL_DETECTED",
+                            severity="blocker",
+                            message=f"条款响应文本检测到指定的其他公司/旧项目名称残留：'{entity}'",
+                            requirement_id=req_id,
+                            details={"residual": entity},
+                        )
+                    )
+                    break
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            "全册正文与条款响应中未发现其他公司、其他招标人或旧项目名称残留。"
+            if passed
+            else f"在正文或响应中检测到 {len(issues)} 处复制旧标书遗留的其他公司或旧项目名称残留，存在严重串标或错漏风险。"
+        )
+        suggestion = "核验通过" if passed else "请彻底清除正文中复制旧标书遗留的'某某公司/旧项目/占位符'等其他实体名称残留。"
+
+        return ComplianceRuleResult(
+            rule_id="R25",
+            title="其他公司/旧项目名称与文档残留排查",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"residual_count": len(issues)},
+        )
+
+    @classmethod
+    def check_r31(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R31：真实巡检报告与敏感信息残留排查。
+        扫描正文文本，排查是否出现明文身份证号（18位）、银行卡号、数据库明文口令（password=...）、或整段真实客户现场巡检报告特征；违规暴露高敏信息判定为 blocker。
+        """
+        issues: list[ComplianceRuleIssue] = []
+
+        chapters = [
+            c for c in state.chapters.values()
+            if c.project_id == project.id and (volume == "all" or c.volume == volume)
+        ]
+
+        ID_CARD_PATTERN = re.compile(r"(?<![0-9*])([1-9][0-9]{5}(?:19|20)[0-9]{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12][0-9]|3[01])[0-9]{3}[0-9Xx])(?![0-9*])")
+        BANK_CARD_PATTERN = re.compile(r"(?:银行卡号|收款账号|银行账号|对公账户|银行卡|卡号)[：:\s]*([1-9][0-9]{15,18})")
+        STANDALONE_BANK_PATTERN = re.compile(r"(?<![0-9a-zA-Z*])(62[0-9]{14,17}|4[0-9]{15}|5[1-5][0-9]{14})(?![0-9a-zA-Z*])")
+        PASSWORD_PATTERN = re.compile(r"(?i)\b(?:password|passwd|pwd|db_password|secret_key|root_password)\s*[:=]\s*['\"]?([a-zA-Z0-9@#$%^&*_+~-]{4,})['\"]?")
+        REPORT_KEYWORDS = ["现场巡检报告", "机房巡检记录", "设备运行巡检表", "漏洞扫描报告", "内网渗透测试报告", "数据库巡检记录"]
+
+        def scan_text(text: str, location_desc: str, chapter_id: str | None = None, req_id: str | None = None):
+            id_matches = ID_CARD_PATTERN.findall(text)
+            for m in id_matches:
+                if "*" not in m:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R31",
+                            code="SENSITIVE_DATA_RESIDUAL_DETECTED",
+                            severity="blocker",
+                            message=f"{location_desc}检测到未脱敏的 18 位明文身份证号暴露：'{m[:4]}**********{m[-4:]}'",
+                            chapter_id=chapter_id,
+                            requirement_id=req_id,
+                            details={"type": "id_card", "masked": f"{m[:4]}**********{m[-4:]}"},
+                        )
+                    )
+                    break
+
+            bc_matches = BANK_CARD_PATTERN.findall(text) or STANDALONE_BANK_PATTERN.findall(text)
+            for bm in bc_matches:
+                if "*" not in bm:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R31",
+                            code="SENSITIVE_DATA_RESIDUAL_DETECTED",
+                            severity="blocker",
+                            message=f"{location_desc}检测到未脱敏的银行卡号明文暴露：'{bm[:4]}********{bm[-4:]}'",
+                            chapter_id=chapter_id,
+                            requirement_id=req_id,
+                            details={"type": "bank_card", "masked": f"{bm[:4]}********{bm[-4:]}"},
+                        )
+                    )
+                    break
+
+            pwd_matches = PASSWORD_PATTERN.findall(text)
+            for pwd in pwd_matches:
+                if not any(x in pwd.lower() for x in ("***", "xxx", "待补", "placeholder", "${")):
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R31",
+                            code="SENSITIVE_DATA_RESIDUAL_DETECTED",
+                            severity="blocker",
+                            message=f"{location_desc}检测到数据库或系统明文口令暴露：'password=***'",
+                            chapter_id=chapter_id,
+                            requirement_id=req_id,
+                            details={"type": "password"},
+                        )
+                    )
+                    break
+
+            for kw in REPORT_KEYWORDS:
+                if kw in text:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R31",
+                            code="SENSITIVE_DATA_RESIDUAL_DETECTED",
+                            severity="blocker",
+                            message=f"{location_desc}检测到套用真实客户现场巡检报告特征：'{kw}'（PRD §5.8 禁止直接套用真实巡检报告）",
+                            chapter_id=chapter_id,
+                            requirement_id=req_id,
+                            details={"type": "inspection_report", "keyword": kw},
+                        )
+                    )
+                    break
+
+        for chapter in chapters:
+            if chapter.content:
+                scan_text(chapter.content, f"章节《{chapter.title}》正文", chapter_id=chapter.id)
+
+        requirements = workflow.get("requirements", {})
+        for req_id, req in requirements.items():
+            if volume != "all" and req.get("volume") != volume:
+                continue
+            resp = str(req.get("response", "") or "")
+            if resp:
+                scan_text(resp, "条款响应说明中", req_id=req_id)
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            "全册正文未检测到身份证号、银行卡号、数据库口令及真实巡检报告高敏信息暴露。"
+            if passed
+            else f"检测到 {len(issues)} 处明文高敏数据或真实巡检报告暴露，违反信息安全红线，严禁导出正式递交版。"
+        )
+        suggestion = "核验通过" if passed else "请对正文中的身份证号、银行卡号执行脱敏遮蔽，清除数据库口令，并重构现场巡检方案段落（严禁直接套用客户现成巡检报告）。"
+
+        return ComplianceRuleResult(
+            rule_id="R31",
+            title="真实巡检报告与敏感信息残留排查",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"sensitive_issues_count": len(issues)},
+        )
+
+    @classmethod
     def evaluate_p0_rules(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
     ) -> list[ComplianceRuleResult]:
@@ -1597,13 +2471,27 @@ class ComplianceRulesEngine:
         ]
 
     @classmethod
+    def evaluate_p2_rules(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> list[ComplianceRuleResult]:
+        """按顺序完整执行 PRD P2 级核心合规规则体系（R07, R11, R14, R25, R31）。"""
+        return [
+            cls.check_r07(state, project, workflow, volume=volume, now_ts=now_ts),
+            cls.check_r11(state, project, workflow, volume=volume, now_ts=now_ts),
+            cls.check_r14(state, project, workflow, volume=volume),
+            cls.check_r25(state, project, workflow, volume=volume),
+            cls.check_r31(state, project, workflow, volume=volume),
+        ]
+
+    @classmethod
     def evaluate_all(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
     ) -> list[ComplianceRuleResult]:
-        """执行当前系统已落地的全部合规规则体系（P0 与 P1 批次共 11 项规则）。"""
+        """执行当前系统已落地的全部合规规则体系（P0、P1 与 P2 批次共 16 项规则）。"""
         return (
             cls.evaluate_p0_rules(state, project, workflow, volume=volume, now_ts=now_ts)
             + cls.evaluate_p1_rules(state, project, workflow, volume=volume, now_ts=now_ts)
+            + cls.evaluate_p2_rules(state, project, workflow, volume=volume, now_ts=now_ts)
         )
 
 

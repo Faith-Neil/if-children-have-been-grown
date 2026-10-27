@@ -11,7 +11,10 @@ from fastapi.responses import StreamingResponse
 from .domain import DomainError, Lease, iso_time, new_id
 from .generation_context import plan_is_current
 from .idempotency import IDEMPOTENCY_HEADER_DESCRIPTION, fingerprint, lookup, remember, validate_key
-from .project_access import volume_owner, writable
+from .project_access import (
+    READONLY_SYSTEM_ROLES, ROLE_COMPANY_ADMIN, ROLE_PLATFORM_ADMIN,
+    lead, normalize_role, volume_owner, writable,
+)
 from .workflow_schemas import (
     CancelledEvent, CancelledPayload, CompletedEvent, CompletedPayload, FailedEvent, FailedPayload,
     JobStatus, ModelCallEvent, ProgressEvent, ProgressPayload, StartGenerationRequest, StatusChange,
@@ -21,6 +24,7 @@ from .workflow_schemas import (
 PUBLIC_FIELDS = (
     "id", "project_id", "type", "status", "progress", "message",
     "created_at", "completed_at", "error", "events", "recoverable",
+    "allowed_actions", "allowedActions",
 )
 TERMINAL = {"completed", "failed", "cancelled"}
 
@@ -59,8 +63,25 @@ CANCEL_DESCRIPTION = (
 )
 
 
+RETRY_DESCRIPTION = (
+    "重试失败或已取消的长任务。仅项目负责人或管理员可触发，只读角色拦截 403。"
+    "非终态失败（如 running/queued/completed）返回 409 VERSION_CONFLICT。"
+    "缺少或格式不符的 Idempotency-Key 返回 428 IDEMPOTENCY_KEY_REQUIRED。"
+)
+
+
 def _public(job: dict) -> dict:
-    return {key: job[key] for key in PUBLIC_FIELDS}
+    res = {key: job[key] for key in PUBLIC_FIELDS if key in job}
+    status = job.get("status")
+    if status in ("queued", "running", "pending"):
+        actions = ["cancel"]
+    elif status in ("failed", "cancelled"):
+        actions = ["retry"]
+    else:
+        actions = []
+    res["allowed_actions"] = actions
+    res["allowedActions"] = actions
+    return res
 
 
 def _sse(event: dict) -> str:
@@ -162,6 +183,17 @@ class RecoverableJobs:
                 },
             }
             state.recoverable_jobs[job_id] = job
+            self.repository.save_job({
+                "id": job_id,
+                "job_type": "generate",
+                "project_id": project_id,
+                "status": "pending",
+                "progress": 0,
+                "step_name": "已排队。断线后查询 GET /api/v1/jobs/" + job_id + "。",
+                "created_by": principal.user.id,
+                "created_at": now,
+                "recoverable": True,
+            })
             body = _public(job)
             remember(state, project_id, principal.user.id, key, request_fingerprint, body, self.demo._now())
             return body
@@ -204,6 +236,61 @@ class RecoverableJobs:
             job["error"] = None
             self._append(job, "job.status_changed", payload={"from": previous, "to": "cancelled"})
             self._append(job, "job.cancelled", payload={"status": "cancelled", "completed_at": now, "error": None})
+            self.repository.update_job_progress(job_id, progress=100, status="cancelled", step_name="任务已取消。正式正文没有修改。")
+            if job_id in state.jobs:
+                state.jobs[job_id]["status"] = "cancelled"
+                state.jobs[job_id]["progress"] = 100
+                state.jobs[job_id]["message"] = "任务已取消。正式正文没有修改。"
+                state.jobs[job_id]["completed_at"] = now
+            body = _public(job)
+            remember(state, job["project_id"], principal.user.id, key, request_fingerprint, body, self.demo._now())
+            return body
+        return self.repository.transaction(operation)
+
+    def retry(self, principal, job_id: str, key: str | None) -> dict:
+        key = validate_key(key)
+        request_fingerprint = fingerprint("job.retry:" + job_id, {}, None)
+
+        def operation(state):
+            job = self._visible(state, principal, job_id)
+            norm = normalize_role(principal.user.role)
+            is_lead = lead(state, job["project_id"], principal.user.id)
+            is_admin = norm in (ROLE_COMPANY_ADMIN, ROLE_PLATFORM_ADMIN)
+            if not (is_lead or is_admin) or norm in READONLY_SYSTEM_ROLES:
+                raise DomainError(403, "PROJECT_LEAD_REQUIRED", "仅项目负责人或管理员可重试任务。")
+
+            replay = lookup(state, job["project_id"], principal.user.id, key, request_fingerprint, self.demo._now())
+            if replay is not None:
+                return replay
+
+            if job["status"] not in ("failed", "cancelled"):
+                raise DomainError(409, "VERSION_CONFLICT", "只有失败或已取消的任务可以重试。")
+
+            previous = job["status"]
+            now = iso_time(self.demo._now())
+            job["status"] = "queued"
+            job["progress"] = 0
+            job["message"] = "任务已重置排队，准备重新执行。"
+            job["completed_at"] = None
+            job["error"] = None
+            self._append(job, "job.status_changed", payload={"from": previous, "to": "queued"})
+            self._append(job, "job.progress", payload={"progress": 0, "message": "任务已重置排队，准备重新执行。"})
+
+            self.repository.update_job_progress(
+                job_id,
+                progress=0,
+                status="pending",
+                step_name="任务已重新排队",
+                error_json=None,
+                result_json=None,
+            )
+            if job_id in state.jobs:
+                state.jobs[job_id]["status"] = "queued"
+                state.jobs[job_id]["progress"] = 0
+                state.jobs[job_id]["message"] = "任务已重新排队。"
+                state.jobs[job_id]["error"] = None
+                state.jobs[job_id]["completed_at"] = None
+
             body = _public(job)
             remember(state, job["project_id"], principal.user.id, key, request_fingerprint, body, self.demo._now())
             return body
@@ -282,6 +369,43 @@ class RecoverableJobs:
     def _visible(self, state, principal, job_id: str) -> dict:
         job = state.recoverable_jobs.get(job_id)
         if job is None:
+            persisted = self.repository.read_job(job_id) or state.jobs.get(job_id)
+            if persisted:
+                try:
+                    self.demo._project(state, principal, persisted["project_id"])
+                except DomainError as error:
+                    if error.code == "NOT_FOUND":
+                        raise DomainError(404, "NOT_FOUND", "未找到有权访问的任务。") from error
+                    raise
+                now_str = iso_time(self.demo._now())
+                raw_status = persisted.get("status", "queued")
+                status = "queued" if raw_status == "pending" else raw_status
+                progress = int(persisted.get("progress", 0))
+                message = persisted.get("step_name") or "后台任务处理中"
+                error = persisted.get("error_json") or persisted.get("error")
+                completed_at = str(persisted.get("updated_at") or now_str) if status in TERMINAL else None
+                job = {
+                    "id": persisted["id"],
+                    "project_id": persisted["project_id"],
+                    "type": persisted.get("job_type", persisted.get("type", "generate")),
+                    "status": status,
+                    "progress": progress,
+                    "message": message,
+                    "created_at": str(persisted.get("created_at") or now_str),
+                    "completed_at": completed_at,
+                    "error": error,
+                    "events": [],
+                    "recoverable": True,
+                }
+                job["events"].append({
+                    "seq": 1,
+                    "id": f"{job['id']}:1",
+                    "occurred_at": str(persisted.get("created_at") or now_str),
+                    "type": "job.progress",
+                    "payload": {"progress": progress, "message": message},
+                })
+                state.recoverable_jobs[job_id] = job
+                return job
             raise DomainError(404, "NOT_FOUND", "未找到有权访问的任务。")
         try:
             self.demo._project(state, principal, job["project_id"])
@@ -300,7 +424,20 @@ class RecoverableJobs:
         self._append(job, "job.status_changed", payload={"from": "queued", "to": "running"})
         self._append(job, "job.progress", payload={"progress": 40, "message": "已读取任务开始时的模型快照。"})
         job["progress"] = 40
-        snapshot = job["model_snapshot"]
+        self.repository.update_job_progress(job["id"], progress=40, status="running", step_name="已读取任务开始时的模型快照。")
+        snapshot = job.get("model_snapshot")
+        if snapshot is None:
+            finished = iso_time(self.demo._now())
+            job["status"] = "completed"
+            job["progress"] = 100
+            job["message"] = "生成任务已结束。"
+            job["completed_at"] = finished
+            job["error"] = None
+            self._append(job, "job.progress", payload={"progress": 100, "message": job["message"]})
+            self._append(job, "job.completed", payload={"status": "completed", "completed_at": finished, "error": None})
+            self.repository.update_job_progress(job["id"], progress=100, status="completed", step_name=job["message"])
+            return
+
         started = self.demo._now()
         error_code = None
         provider = self.demo.resolve_provider_from_snapshot(snapshot)
@@ -329,6 +466,7 @@ class RecoverableJobs:
         job["error"] = None
         self._append(job, "job.progress", payload={"progress": 100, "message": job["message"]})
         self._append(job, "job.completed", payload={"status": "completed", "completed_at": finished, "error": None})
+        self.repository.update_job_progress(job["id"], progress=100, status="completed", step_name=job["message"])
 
     def _finish_failed(self, job, code, message):
         finished = iso_time(self.demo._now())
@@ -338,6 +476,7 @@ class RecoverableJobs:
         job["completed_at"] = finished
         job["error"] = {"code": code, "message": message}
         self._append(job, "job.failed", payload={"status": "failed", "completed_at": finished, "error": code})
+        self.repository.update_job_progress(job["id"], progress=100, status="failed", step_name=message, error_json=job["error"])
 
     def _append(self, job: dict, kind: str, payload: dict | None = None, **fields) -> None:
         seq = len(job["events"]) + 1
@@ -425,5 +564,13 @@ def include_recoverable_routes(application, workflow, current_user):
                    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key",
                                                         description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return jobs.cancel(user, job_id, idempotency_key)
+
+    @router.post("/jobs/{job_id}/retry", response_model=JobStatus, operation_id="retryJob",
+                 description=RETRY_DESCRIPTION, summary="Retry Job",
+                 responses=v1_error_responses(401, 403, 404, 409, 422, 428, 500))
+    def retry_job(job_id: str, user=Depends(current_user),
+                  idempotency_key: str | None = Header(default=None, alias="Idempotency-Key",
+                                                       description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return jobs.retry(user, job_id, idempotency_key)
 
     application.include_router(router)

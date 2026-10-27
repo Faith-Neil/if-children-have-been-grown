@@ -522,7 +522,7 @@ JobEvent = Annotated[
 class JobStatus(BaseModel):
     """独立的任务状态，不继承已实现的 Job。由 BE-M0-T06 实现。"""
 
-    model_config = ConfigDict(extra="forbid", json_schema_extra={"x-aligned-with": "BE-M0-T06"})
+    model_config = ConfigDict(extra="forbid", json_schema_extra={"x-aligned-with": "BE-M0-T06"}, populate_by_name=True)
     id: str
     project_id: str
     type: str
@@ -534,6 +534,8 @@ class JobStatus(BaseModel):
     error: JobError | None
     events: list[JobEvent]
     recoverable: bool
+    allowed_actions: list[str] | None = None
+    allowedActions: list[str] | None = None
 
 
 class CheckIssue(ResponseBody):
@@ -739,6 +741,46 @@ class SnippetPublishResult(ResponseBody):
 class SnippetSyncResult(ResponseBody):
     item: SnippetPublication
     synced: bool
+
+
+class SnippetMatchRequest(RequestBody):
+    chapter_id: str | None = Field(default=None, description="可选关联合同章节 ID")
+    chapter_title: str | None = Field(default=None, description="可选章节标题")
+    scoring_points: list[str] = Field(default_factory=list, description="评分项要点或条款要求")
+    query: str = Field(default="", description="检索补充查询词或上下文提示词")
+    limit: int = Field(default=5, ge=1, le=20, description="最大召回数量")
+    min_score: float = Field(default=0.05, ge=0.0, le=1.0, description="最低匹配相关度得分")
+    model_config_id: str | None = Field(default=None, description="指定模型配置 ID，涉密项目校验")
+
+
+class SnippetMatchItem(ResponseBody):
+    snippet_id: str
+    company_id: str
+    product: str
+    snippet_type: str
+    source_group: str
+    boilerplate_group: str
+    published_revision: int
+    original_body: str
+    rendered_body: str
+    variables: list[str]
+    matched_variables: dict[str, str]
+    missing_variables: list[str]
+    score: float
+    cite_tag: str
+    citation_clause: str
+    fingerprint: str
+    cite_metadata: dict[str, Any]
+
+
+class SnippetMatchResponse(ResponseBody):
+    project_id: str
+    chapter_id: str | None
+    company_id: str
+    total_matched: int
+    items: list[SnippetMatchItem]
+    extracted_fact_count: int
+    has_missing_variables: bool
 
 
 class V1Error(ResponseBody):

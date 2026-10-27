@@ -22,7 +22,8 @@ from icg.domain.workflow_schemas import (CheckList, ConflictPatch, FactPatch, Fi
                                ChapterEditDetail, v1_error_responses, TenderSearchRequest,
                                TenderIndexingSwitchRequest, InjectTenderClausesRequest,
                                AcceptAiSuggestionRequest, ComplianceCrossCheckRequest,
-                               ComplianceCrossCheckResponse)
+                               ComplianceCrossCheckResponse, SnippetMatchRequest,
+                               SnippetMatchResponse)
 
 
 def include_workflow_routes(application, service, current_user, parser):
@@ -329,6 +330,28 @@ def include_workflow_routes(application, service, current_user, parser):
             chapter_id=chapter_id,
             model_config_id=model_cfg,
             strict_mode=strict,
+        )
+
+    @router.post(
+        "/projects/{project_id}/snippets/match",
+        response_model=SnippetMatchResponse,
+        include_in_schema=False,
+    )
+    def match_snippets_endpoint(
+        project_id: str,
+        body: SnippetMatchRequest,
+        user: Principal = Depends(current_user),
+    ):
+        return workflow.match_snippets(
+            principal=user,
+            project_id=project_id,
+            chapter_id=body.chapter_id,
+            chapter_title=body.chapter_title,
+            scoring_points=body.scoring_points,
+            query=body.query,
+            limit=body.limit,
+            min_score=body.min_score,
+            model_config_id=body.model_config_id,
         )
 
     application.include_router(router)

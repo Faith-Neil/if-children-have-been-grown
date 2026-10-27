@@ -36,6 +36,8 @@ import { LoginScreen } from './LoginScreen';
 import { isDemoMode } from '../shared/roles';
 import { CreateProjectModal } from '../project/CreateProjectModal';
 import { TaskDrawer } from '../status/TaskDrawer';
+import { TaskCenterDrawer } from '../shell/TaskCenterDrawer';
+import { TaskBadge } from '../shell/TaskBadge';
 import { ModelConfigModal } from '../admin/ModelConfigModal';
 import { RagflowConfigModal } from '../admin/RagflowConfigModal';
 import { APP_ROUTES, buildGlobalPath } from './routes';
@@ -220,6 +222,28 @@ export default function App() {
     setLibrarySnapshot(results.library ? { company_id: company, ...results.library } : { company_id: '', items: [], revision: 0 });
     setTemplatesSnapshot(results.templates ? { company_id: company, ...results.templates } : { company_id: '', items: [], revision: 0 });
     setJobs(results.jobs?.jobs ?? []);
+  }
+  async function handleCancelJob(jobId: string) {
+    try {
+      if (token) {
+        await request(`/api/v1/jobs/${encodeURIComponent(jobId)}/cancel`, token, 'POST');
+      }
+      setJobs(prev => prev.map(j => (j.id === jobId ? { ...j, status: 'cancelled' } : j)));
+      message.success('已取消后台任务');
+    } catch (err) {
+      report(err);
+    }
+  }
+  async function handleRetryJob(jobId: string) {
+    try {
+      message.info('正在请求重新执行任务...');
+      if (token) {
+        const res = await request<{ jobs: Job[] }>('/api/v1/jobs', token);
+        setJobs(res.jobs ?? []);
+      }
+    } catch (err) {
+      report(err);
+    }
   }
   async function login() {
     setBusy(true);
@@ -627,7 +651,7 @@ export default function App() {
     missing,
   });
 
-  return <Suspense fallback={<div className="login-screen"><Spin size="large" /></div>}><CanProvider value={{ session: applicationSession, workspace, role: applicationSession?.user.primary_role || applicationSession?.user.role, userId: applicationSession?.user.id }}><AppShell collapsed={collapsed} onCollapsed={handleCollapseChange} menuPath={menuPath} menu={menu} onNavigate={requestPath} breadcrumbs={breadcrumbs} actions={<><Tag color="orange" className="environment">示例数据 · 非真实业务</Tag>{sessionAllowsRoute(applicationSession, 'workbench') && <Input className="global-search" aria-label="搜索项目名称或资料名称" prefix={<SearchOutlined />} placeholder="搜索项目名称 / 资料名称" value={search} onChange={e => setSearch(e.target.value)} suffix={<kbd>Ctrl K</kbd>} onPressEnter={() => requestPath(globalPath('workbench'))} />}{sessionAllowsRoute(applicationSession, 'jobs') && <Button type="text" icon={<Badge count={jobs.filter(item => item.status === 'running' || item.status === 'queued').length} size="small"><CheckSquareOutlined /></Badge>} aria-label="查看后台任务" onClick={() => setTaskDrawer(true)} /> }<Tooltip title="站内提醒尚未接入"><Button type="text" icon={<BellOutlined />} aria-label="提醒尚未接入" disabled /></Tooltip><span className="company-label"><TeamOutlined /> {companyName(user.company_id)}</span><span className="user-avatar">{user.name[0]}</span><span className="user-name">{user.name}<small> · {{ project_lead: '项目负责人', bid_writer: '投标编写人', readonly: '只读成员' }[applicationSession?.user.primary_role ?? ''] ?? '演示身份'}（演示兼容）</small></span><Button type="text" size="small" onClick={() => requestDiscard(logout)}>退出</Button><Button type="text" icon={<SettingOutlined />} aria-label="模型服务配置" onClick={() => setModelConfigModalOpen(true)}>模型配置</Button><Button type="text" icon={<DatabaseOutlined />} aria-label="知识库检索配置" onClick={() => setRagflowConfigModalOpen(true)}>知识库配置</Button></>}>
+  return <Suspense fallback={<div className="login-screen"><Spin size="large" /></div>}><CanProvider value={{ session: applicationSession, workspace, role: applicationSession?.user.primary_role || applicationSession?.user.role, userId: applicationSession?.user.id }}><AppShell collapsed={collapsed} onCollapsed={handleCollapseChange} menuPath={menuPath} menu={menu} onNavigate={requestPath} breadcrumbs={breadcrumbs} actions={<><Tag color="orange" className="environment">示例数据 · 非真实业务</Tag>{sessionAllowsRoute(applicationSession, 'workbench') && <Input className="global-search" aria-label="搜索项目名称或资料名称" prefix={<SearchOutlined />} placeholder="搜索项目名称 / 资料名称" value={search} onChange={e => setSearch(e.target.value)} suffix={<kbd>Ctrl K</kbd>} onPressEnter={() => requestPath(globalPath('workbench'))} />}{sessionAllowsRoute(applicationSession, 'jobs') && <TaskBadge tasks={jobs} companyId={user?.company_id} onClick={() => setTaskDrawer(true)} />}<Tooltip title="站内提醒尚未接入"><Button type="text" icon={<BellOutlined />} aria-label="提醒尚未接入" disabled /></Tooltip><span className="company-label"><TeamOutlined /> {companyName(user.company_id)}</span><span className="user-avatar">{user.name[0]}</span><span className="user-name">{user.name}<small> · {{ project_lead: '项目负责人', bid_writer: '投标编写人', readonly: '只读成员' }[applicationSession?.user.primary_role ?? ''] ?? '演示身份'}（演示兼容）</small></span><Button type="text" size="small" onClick={() => requestDiscard(logout)}>退出</Button><Button type="text" icon={<SettingOutlined />} aria-label="模型服务配置" onClick={() => setModelConfigModalOpen(true)}>模型配置</Button><Button type="text" icon={<DatabaseOutlined />} aria-label="知识库检索配置" onClick={() => setRagflowConfigModalOpen(true)}>知识库配置</Button></>}>
       {missing && <main className="workspace-content"><Result status="404" title="页面不存在" subTitle={`没有与 ${missing} 对应的页面。`} extra={<Button onClick={() => requestPath(globalPath(applicationSession ? sessionHomeRoute(applicationSession) : 'workbench'))}>返回可访问首页</Button>} /></main>}
       {!missing && denied && (
         <main className="workspace-content">
@@ -660,10 +684,10 @@ export default function App() {
         <Suspense fallback={<Spin spinning />}><>{tab === 'overview' && <OverviewPage />}{tab === 'tender' && <TenderPage />}{tab === 'parse' && <ParsePage />}{tab === 'matrix' && <MatrixPage />}{tab === 'facts' && <FactsPage />}{tab === 'editor' && <EditorPage key={workspace.project.id} onDirtyChange={reportDirty} initialChapterId={currentRoute.kind === 'project' && currentRoute.tab === 'editor' ? currentRoute.chapterId : undefined} />}{tab === 'checks' && <ChecksPage />}{tab === 'export' && <ExportPage />}{tab === 'settings' && <ProjectSettingsPage />}{tab === 'manual' && <PendingPage title="人工处理队列" detail="主链路目前可以在解析结果逐条确认、在检查列表定位问题。独立段落处理队列、指派和复查还未接通。" />}</></Suspense>
       </main></Spin></ProjectContext.Provider></>}
       {!missing && !denied && (!workspace || nav !== 'workbench') && <Spin spinning={loading}><main className="workspace-content">{nav === 'workbench' && <><div className="page-heading"><div><h2>投标项目工作台</h2><p>先看风险，再看进度。这里只列出你已经加入的本公司项目。</p></div><Can perform="project:create"><Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} disabled={busy || !sessionAllowsAction(applicationSession, 'projects.create')}>新建项目</Button></Can></div><ProjectListPage projects={projects} onOpenProject={openProject} session={applicationSession} currentUser={user} /><Alert className="page-notice" type="info" message="先贯通示例主链路" description="新建项目后，依次上传招标文件、确认解析、补响应与证据、编制两册章节、检查并下载内部稿。演示建议需要人工确认，不能直接作为正式承诺。" showIcon /></>}
-        <Suspense fallback={<Spin spinning />}>{nav === 'library' && <LibraryPage items={library} read={readLibrary} readTemplates={readSlaTemplates} libraryRevision={libraryRevision} templatesRevision={slaTemplatesRevision} globalSearch={search} templates={slaTemplates} user={user} busy={busy} mutate={libraryMutate} report={report} />}{nav === 'jobs' && <JobsPage jobs={jobs} openProject={id => requestPath(projectPath(id, 'overview'))} />}{nav === 'admin.rules' && <Tabs defaultActiveKey="audit" items={[{ key: 'audit', label: 'A-06 审计日志中心', children: <AuditLogPage session={applicationSession} user={user} onNavigate={requestPath} /> }, { key: 'company', label: 'A-01 企业租户管理', children: <CompanyManagePage session={applicationSession} currentUser={user} /> }, { key: 'rules', label: '管理规则说明', children: <PendingPage title="管理规则（只读）" detail="本期已接通 A-06 审计日志只读中心与 A-01 企业租户合规参数配置。合规规则自定义保存与全量词表扩展将在后续任务中接通。" /> }]} />}{nav === 'knowledge' && <SnippetLibraryPage token={token} user={user} session={applicationSession} />}{nav === 'writing' && <WritingArchivePage user={user} session={applicationSession} />}</Suspense>
+        <Suspense fallback={<Spin spinning />}>{nav === 'library' && <LibraryPage items={library} read={readLibrary} readTemplates={readSlaTemplates} libraryRevision={libraryRevision} templatesRevision={slaTemplatesRevision} globalSearch={search} templates={slaTemplates} user={user} busy={busy} mutate={libraryMutate} report={report} />}{nav === 'jobs' && <JobsPage jobs={jobs} openProject={id => requestPath(projectPath(id, 'overview'))} onRetry={handleRetryJob} onCancel={handleCancelJob} companyId={user?.company_id} />}{nav === 'admin.rules' && <Tabs defaultActiveKey="audit" items={[{ key: 'audit', label: 'A-06 审计日志中心', children: <AuditLogPage session={applicationSession} user={user} onNavigate={requestPath} /> }, { key: 'company', label: 'A-01 企业租户管理', children: <CompanyManagePage session={applicationSession} currentUser={user} /> }, { key: 'rules', label: '管理规则说明', children: <PendingPage title="管理规则（只读）" detail="本期已接通 A-06 审计日志只读中心与 A-01 企业租户合规参数配置。合规规则自定义保存与全量词表扩展将在后续任务中接通。" /> }]} />}{nav === 'knowledge' && <SnippetLibraryPage token={token} user={user} session={applicationSession} />}{nav === 'writing' && <WritingArchivePage user={user} session={applicationSession} />}</Suspense>
       </main></Spin>}
     <CreateProjectModal open={createOpen} onCancel={() => setCreateOpen(false)} onOk={createProject} confirmLoading={busy} canCreate={sessionAllowsAction(applicationSession, 'projects.create')} form={createForm} />
-    <TaskDrawer open={taskDrawer} onClose={() => setTaskDrawer(false)} jobs={jobs} onViewAll={() => { setTaskDrawer(false); requestPath(globalPath('jobs')); }} onNavigateJob={job => { setTaskDrawer(false); requestPath(projectPath(job.project_id, job.type === 'parse' ? 'parse' : 'editor')); }} />
+    <TaskCenterDrawer open={taskDrawer} onClose={() => setTaskDrawer(false)} tasks={jobs} companyId={user?.company_id} onViewAll={() => { setTaskDrawer(false); requestPath(globalPath('jobs')); }} onNavigateJob={task => { setTaskDrawer(false); if (task.projectId) { requestPath(projectPath(task.projectId, task.type === 'parse' ? 'parse' : 'editor')); } }} onRetry={handleRetryJob} onCancel={handleCancelJob} />
     <ModelConfigModal open={modelConfigModalOpen} onClose={() => setModelConfigModalOpen(false)} token={token} session={applicationSession} projectId={workspace?.project?.id} projectSensitive={Boolean(workspace?.project?.sensitive)} />
     <RagflowConfigModal open={ragflowConfigModalOpen} onClose={() => setRagflowConfigModalOpen(false)} token={token} session={applicationSession} />
   </AppShell></CanProvider></Suspense>;

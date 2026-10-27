@@ -68,12 +68,17 @@ class MemoryRepository:
 
     def transaction(self, operation: Callable[[DemoState], T]) -> T:
         with self._lock:
-            working = deepcopy(self._state)
-            result = operation(working)
-            safe_result = deepcopy(result)
-            committed = deepcopy(working)
-            self._state = committed
-            return safe_result
+            if getattr(self, "_depth", 0) > 0:
+                return operation(self._working_state)
+            self._depth = 1
+            self._working_state = deepcopy(self._state)
+            try:
+                result = operation(self._working_state)
+                self._state = deepcopy(self._working_state)
+                return deepcopy(result)
+            finally:
+                self._depth = 0
+                self._working_state = None
 
     def read_chapter(self, chapter_id: str) -> dict | None:
         state = self.read()
@@ -540,7 +545,8 @@ class MemoryRepository:
             if not hasattr(state, "_job_records"):
                 state._job_records = {}
             state._job_records[jid] = rec
-            state.jobs[jid] = rec
+            if not job_data.get("recoverable") and status in ("completed", "failed"):
+                state.jobs[jid] = rec
         self.transaction(op)
 
     def read_job(self, job_id: str) -> dict | None:
