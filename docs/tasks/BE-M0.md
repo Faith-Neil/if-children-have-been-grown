@@ -543,7 +543,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 4小时以内；PRD 核心合规规则第二批结构化落地与导出阻断联动 |
 | 关联 Issue | [ISSUE-006](../../issues/ISSUE-006.md)、[ISSUE-007](../../issues/ISSUE-007.md)、[ISSUE-027](../../issues/ISSUE-027.md) |
 | 依赖 | [BE-COMPLIANCE-RULES-P0](BE-M0.md#be-compliance-rules-p0)、[BE-VOLUME-FINALIZE-GATE](BE-M0.md#be-volume-finalize-gate) |
@@ -559,7 +559,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 4小时；大模型与知识库配置弹窗前后端契约打通与连通性联调 |
 | 关联 Issue | [ISSUE-010](../../issues/ISSUE-010.md)、[ISSUE-028](../../issues/ISSUE-028.md)、[ISSUE-037](../../issues/ISSUE-037.md) |
 | 依赖 | [AI-RAGFLOW-KB-SYNC](AI-M0.md#ai-ragflow-kb-sync)、[APP-M2-T036](APP-M2.md#app-m2-t036) |
@@ -575,7 +575,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 4小时以内；PRD 第三批核心合规规则结构化落地与导出门禁联动 |
 | 关联 Issue | [ISSUE-006](../../issues/ISSUE-006.md)、[ISSUE-007](../../issues/ISSUE-007.md)、[ISSUE-027](../../issues/ISSUE-027.md) |
 | 依赖 | [BE-COMPLIANCE-RULES-P1](BE-M0.md#be-compliance-rules-p1)、[BE-VOLUME-FINALIZE-GATE](BE-M0.md#be-volume-finalize-gate) |
@@ -591,7 +591,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 4小时；长任务异步创建、demo_job 持久化、SSE 流式推流与操作动作权限联调 |
 | 关联 Issue | [ISSUE-006](../../issues/ISSUE-006.md)、[ISSUE-020](../../issues/ISSUE-020.md)、[ISSUE-038](../../issues/ISSUE-038.md) |
 | 依赖 | [BE-M0-T06](BE-M0.md#be-m0-t06)、[APP-M2-T020](APP-M2.md#app-m2-t020)、[APP-M2-T021](APP-M2.md#app-m2-t021) |

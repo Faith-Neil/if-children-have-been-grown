@@ -6,7 +6,7 @@
 | 任务ID | INT-MODEL-CONFIG-MODAL |
 | 代码解释 | [模型配置弹窗前后端联调代码说明](../code/INT-MODEL-CONFIG-MODAL.md) |
 | 验收 | 1. 前端弹窗全功能：`frontend/web/src/admin/ModelConfigModal.tsx` 支持本地 Qwen 与云端模型新增、修改、API Key 掩码保护与连通性即时探测；<br>2. 业务页面集成：在 `App.tsx` 导航中心与 `ProjectSettingsPage.tsx` 项目设置页深度集成模型配置与绑定；<br>3. 物理隔离与涉密门禁：敏感项目尝试绑定云端模型时，后端严格拦截返回 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`，返回统一错误体；<br>4. 内部网络防代理劫持：调用内网模型与 RAGFlow 的 HTTP 客户端显式设置 `trust_env=False`，防止操作系统 VPN/透明代理劫持；<br>5. 单元测试与端到端联调测试全绿：前端单测与 `tests/backend/test_model_config_glue.py` 3 项测试全部通过。 |
-| 项目进度 | 本次交付完成，单测与联调测试全绿，推至 `in-review`，等待 QA 复测签署与 PD 对照核准，建议人类 PM 标 done |
+| 项目进度 | 本次交付已获 QA 独立终验签署与 PD 产品视角验收通过，并由人类 PM 正式确认标为 done |
 <!-- task-delivery:end -->
 
 ## 1. 任务背景与目标

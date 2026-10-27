@@ -6,7 +6,7 @@
 | 任务ID | AI-SNIPPET-RETRIEVAL-MATCH |
 | 代码解释 | [docs/code/AI-SNIPPET-RETRIEVAL-MATCH.md](../code/AI-SNIPPET-RETRIEVAL-MATCH.md) |
 | 验收 | 11 项专属后端自动化测试全绿（11 passed）；全量 AI 与 RAG 联合测试全绿（89 passed, 3 skipped）；OpenAPI 契约一致性 100% 保持；工程治理检查通过（548 份文档无死链） |
-| 项目进度 | AI 核心推进，AI-SNIPPET-RETRIEVAL-MATCH 提交 in-review，关联 ISSUE-037、ISSUE-010、ISSUE-007 保持开启，绝不私自标 done，建议 PM 标 done |
+| 项目进度 | 本次交付已获 QA 独立终验签署与 PD 产品视角验收通过，并由人类 PM 正式确认标为 done |
 <!-- task-delivery:end -->
 
 ## 1. 交付目标对照

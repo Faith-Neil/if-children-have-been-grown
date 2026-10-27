@@ -6,7 +6,7 @@
 | 任务ID | AI-COMPLIANCE-CROSS-CHECK |
 | 代码解释 | [docs/code/AI-COMPLIANCE-CROSS-CHECK.md](../code/AI-COMPLIANCE-CROSS-CHECK.md) |
 | 验收 | 13 项专属后端自动化测试全绿（13 passed）；关联回归全部通过；OpenAPI 契约零漂移；工程治理检查通过 |
-| 项目进度 | AI 核心推进，AI-COMPLIANCE-CROSS-CHECK 提交 in-review，关联 ISSUE-037、ISSUE-007 保持开启，绝不私自标 done，建议 PM 标 done |
+| 项目进度 | 本次交付已获 QA 独立终验签署与 PD 产品视角验收通过，并由人类 PM 正式确认标为 done |
 <!-- task-delivery:end -->
 
 ## 1. 交付目标对照

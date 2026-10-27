@@ -6,7 +6,7 @@
 | 任务ID | FE-TECH-DEBT-01 |
 | 代码解释 | [EditorPage 巨石二次瘦身与模块解耦代码说明](../code/FE-TECH-DEBT-01.md) |
 | 验收 | 1. 架构瘦身达标：`frontend/web/src/editor/EditorPage.tsx` 从 1090 行二次拆解瘦身至 **497 行**（净缩减 593 行，缩减率 54.4%），所有拆分模块严格限定在 500 行以内；<br>2. 模块分包解耦：抽离 `useEditorLock.ts`（租约心跳锁定）、`useSelectionBubble.ts`（划词气泡状态机）、`useEditorOperations.ts`（业务操作流）、`EditorDiffDrawer.tsx`（历史版本与 Diff 双栏比对抽屉）、`EditorSlaTools.tsx`（事实与 SLA 变量工具条）、`EditorAuxiliaryDrawers.tsx`（辅助抽屉组）；<br>3. 前端全量单测保持 100% 全绿：`pnpm --dir frontend/web test` 395 passed, 0 failed；<br>4. TypeScript 严格类型检查：`pnpm --dir frontend/web lint` 0 错误、0 警告；<br>5. 项目工程治理脚本核验：`node scripts/check-project-governance.cjs` 校验通过。 |
-| 项目进度 | 本次交付完成，单测与类型检查全部绿灯，推至 `in-review`，等待 QA 终验签署与 PD 产品核准，建议人类 PM 标 done |
+| 项目进度 | 本次交付已获 QA 独立终验签署与 PD 产品视角验收通过，并由人类 PM 正式确认标为 done |
 <!-- task-delivery:end -->
 
 ## 1. 任务背景与目标

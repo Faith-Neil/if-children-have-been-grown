@@ -6,7 +6,7 @@
 | 任务ID | INT-TASK-CENTER-GLUE |
 | 代码解释 | [异步任务中心与长任务流式通知代码说明](../code/INT-TASK-CENTER-GLUE.md) |
 | 验收 | 1. **长任务创建与 demo_job 持久化**：触发长任务操作（如章节批量生成、大纲生成），后端正确分配异步 `job_id`，写入 `demo_job` 持久化仓储（状态 `pending`，progress 0），返回 202 与标准 Location 响应头；<br>2. **SSE 流式推流与 Last-Event-ID 续传**：订阅 `/api/v1/jobs/{id}/events` 获取 `text/event-stream` 实时事件推流，支持 `Last-Event-ID` 断点恢复续传；前端胶水层 `job-progress-sse.ts` 优雅解包标准 OpenAPI `JobEvent` 事件载荷并驱动 UI；<br>3. **平滑降级 HTTP 轮询**：断线后客户端平滑降级至 `GET /api/v1/jobs/{id}`，返回标准 `JobStatus` 模型，任务到达 `completed`/`failed`/`cancelled` 终态时连接优雅关闭；<br>4. **操作动作（allowedActions）与角色权限门禁**：进行中任务 `POST /api/v1/jobs/{id}/cancel`，只读角色拦截 403 `PROJECT_WRITER_REQUIRED`，终态任务再次取消拦截 409 `VERSION_CONFLICT`；失败/已取消任务 `POST /api/v1/jobs/{id}/retry`，仅项目负责人或管理员可办理，只读与非负责人编写人拦截 403 `PROJECT_LEAD_REQUIRED`，排队中/运行中触发重试拦截 409 `VERSION_CONFLICT`，幂等重试支持 `Idempotent-Replayed`；<br>5. **多租户企业空间物理隔离**：跨公司访问长任务严格返回 404 `NOT_FOUND`（杜绝信息嗅探），任务列表 `GET /api/v1/jobs` 按当前登录用户企业空间强隔离；<br>6. **自动化回归全绿**：专属联调测试 `tests/backend/test_task_center_glue.py` 7 项全通，大回归 26 passed，前端权威单测 396 passed，OpenAPI 契约零漂移核验通过。 |
-| 项目进度 | 本次交付完成，测试全绿，推至 `in-review`，等待 QA 终验签署与 PD 产品对照核准，建议人类 PM 标 done |
+| 项目进度 | 本次交付已获 QA 独立终验签署与 PD 产品视角验收通过，并由人类 PM 正式确认标为 done |
 <!-- task-delivery:end -->
 
 ## 1. 任务背景与目标

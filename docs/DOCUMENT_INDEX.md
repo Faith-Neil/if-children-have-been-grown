@@ -10,10 +10,11 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
+| 2026-10-27 | 任务看板 / PM 标 done | 依据 QA 独立签署报告（D-754 / D-764）与 PD 产品视角验收报告（D-755 / D-765），人类 PM 确认将 FE-TECH-DEBT-01、BE-COMPLIANCE-RULES-P1、AI-COMPLIANCE-CROSS-CHECK、INT-MODEL-CONFIG-MODAL、APP-M2-T021、BE-COMPLIANCE-RULES-P2、AI-SNIPPET-RETRIEVAL-MATCH、INT-TASK-CENTER-GLUE 共 8 张任务卡在 TASK_BOARD 与相应任务卡文件中正式标为 done，看板推进至 67 done、60 in-review |
 | 2026-10-26 | 任务看板 / PM 标 done | 依据 QA 独立终验签署报告（D-742）与 PD 产品视角对照验收报告（D-743），人类 PM 确认将 BE-TECH-DEBT-01、BE-TECH-DEBT-02、FE-REACT-ROUTER、AI-RAGFLOW-KB-SYNC、BE-COMPLIANCE-RULES-P0、REV-SMOKE-001、INT-VOLUME-FINALIZE-GLUE 共 7 张任务卡在 TASK_BOARD 与相应任务卡/Issue中正式标为 done，看板推进至 61 done、13 in-review |
 | 2026-10-26 | 产品 / 验收 / D0~D5 | 登记两轮治理与技术债重构批次产品视角对照验收报告（2026-10-26-pd-review-debt-remediation.md，D-743），PD 对照 PRD v1.8 与数据字典 v1.9，全面书面认可 7 张任务卡，建议 PM 标 done |
 | 2026-10-26 | 质量 / 验收 / D0~D5 | 登记 D0～D5 技术债治理与核心能力建设批次 QA 独立复测与签署报告（2026-10-26-debt-remediation-batch-qa-signoff.md，D-742），覆盖 BE-TECH-DEBT-01、BE-TECH-DEBT-02、FE-REACT-ROUTER、AI-RAGFLOW-KB-SYNC、BE-COMPLIANCE-RULES-P0、REV-SMOKE-001 共 6 张任务卡，后端 42 项专项全过、前端 395 项单测全绿、OpenAPI 100% 一致无 diff，签署通过建议 PM 标 done |
-| D-001 | 2026-10-26 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-038 / BE-TECH-DEBT-01/02；ISSUE-005；ISSUE-010；ISSUE-037 | 412项61done、13in-review、7in-progress、273planned、45blocked、13cancelled、0ready。落实2026-10-26用户拍板B1~B6，后端主实现分包至icg/{api,app,domain,infra}，icg_demo降为薄Façade；前端接入react-router与8域分层；全链路非演示冒烟通过；知识库摄入闭环完成 |
+| D-001 | 2026-10-27 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-038 / BE-TECH-DEBT-01/02；ISSUE-005；ISSUE-010；ISSUE-037 | 417项67done、60in-review、7in-progress、235planned、41blocked、7cancelled、0ready。Wave 2与Wave 3共8张核心卡正式标done；长任务中心流式通知、P1/P2规则与导出门禁、方案片段智能检索全通 |
 | D-002 | 2026-10-26 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-038；ISSUE-005；ISSUE-027 | 维护现行前端实施需求，明确以 PRD v1.8 与字典 v1.9 为准绳；反映 412 项任务与 61 done 进度快照 |
 | D-003 | 2026-10-26 | [前端架构](ARCHITECTURE.md) | 前端架构 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-010；ISSUE-011；ISSUE-016；ISSUE-038 | 现行前端与后端分层架构；react-router 路由与 8 域物理分包；后端 icg/{api,app,domain,infra} 去平铺规范；修复全量目录超链接 |
 | D-004 | 2026-10-26 | [前端路线图](ROADMAP.md) | 计划 | 参考实施入口 / g1.1 | 执行入口 | ISSUE-007 / APP-M1；ISSUE-038；ISSUE-027 | 现行阶段实施路线图，纳入 D0~D5 技术债与产品断环推进顺序，反映 412 项任务全景 |
@@ -784,6 +785,7 @@
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-10-27 | 任务看板 / PM 标 done | 依据 QA 独立终验签署报告（D-754 / D-764）与 PD 产品视角验收报告（D-755 / D-765），人类 PM 正式批准将 FE-TECH-DEBT-01、BE-COMPLIANCE-RULES-P1、AI-COMPLIANCE-CROSS-CHECK、INT-MODEL-CONFIG-MODAL、APP-M2-T021、BE-COMPLIANCE-RULES-P2、AI-SNIPPET-RETRIEVAL-MATCH、INT-TASK-CENTER-GLUE 共 8 张任务卡在 TASK_BOARD 与相应任务卡文件中正式标为 done，看板推进至 67 done、60 in-review |
 | 2026-10-27 | PD / 验收 / Wave 3 | 登记 Wave 3 业务功能与核心技术交付批次产品视角对照验收报告（2026-10-27-pd-review-wave3.md，D-765），对照 PRD v1.8 §5.12.4/§5.7.6/§5.8/§5.11/§6.4/§8 与字典 v1.9，书面认可并建议 PM 标 done |
 | 2026-10-27 | QA / 验收 / Wave 3 | 登记 Wave 3 核心能力与技术交付批次（共 4 卡）QA 终验签署报告（2026-10-27-wave-3-batch-qa-signoff.md，D-764），核验 APP-M2-T021、BE-COMPLIANCE-RULES-P2、AI-SNIPPET-RETRIEVAL-MATCH 与 INT-TASK-CENTER-GLUE，全量测试全绿，出具正式 PASS 签署并建议 PM 标 done |
 | 2026-10-26 | 契约 / 联调 / INT-TASK-CENTER-GLUE | 登记异步任务中心与长任务流式通知前后端联调交付报告（INT-TASK-CENTER-GLUE.md，D-762）与代码说明（D-763），打通长任务创建（202 + Location）、demo_job 持久化、SSE 实时推流与 Last-Event-ID 断点续传、降级轮询、cancel/retry 角色动作权限控制、企业租户强隔离（跨租户 404 NOT_FOUND 防信息嗅探）、前端流式事件解包与状态清理，专属单测 7 项全绿，核心与回归套件 26 项全绿，OpenAPI 契约零漂移，保持 in-review |

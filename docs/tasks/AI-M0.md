@@ -202,7 +202,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 正文声明与引用智能抽取，对标 RAGFlow 证据与招标文件条款进行置信度推导与差距诊断 |
 | 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
 | 依赖 | [APP-M2-T185](APP-M2.md#app-m2-t185) 采纳建议回写，以及 [AI-EDITOR-CONTEXT-LINKAGE](AI-M0.md#ai-editor-context-linkage) 上下文感知 |
@@ -300,7 +300,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 针对章节与评分项实现方案片段高精度检索、项目事实变量抽取对齐与出处防伪溯源 |
 | 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md)、[ISSUE-010](../../issues/ISSUE-010.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
 | 依赖 | [AI-RAGFLOW-KB-SYNC](AI-M0.md#ai-ragflow-kb-sync)、[AI-06](AI-M0.md#ai-06) |

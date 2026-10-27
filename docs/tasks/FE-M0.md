@@ -438,7 +438,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 6小时；EditorPage 抽离 hooks 与子面板，单文件行数降至 600 行以内 |
 | 关联 Issue | [ISSUE-038](../../issues/ISSUE-038.md) |
 | 依赖 | [WP-3](../delivery/WP-3.md) |

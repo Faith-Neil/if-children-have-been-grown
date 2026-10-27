@@ -10,8 +10,8 @@
 | 任务ID | APP-M2-T021 |
 | 代码解释 | [docs/code/APP-M2-T021.md](../code/APP-M2-T021.md) |
 | 文档登记 | [D-756](../DOCUMENT_INDEX.md) |
-| 验收证据 | 7 项专属自动化单测通过；全量 403 项前端单元测试 100% 保持绿色；TypeScript 静态编译 0 error；Vite 生产构建成功；工程治理检查通过 |
-| 项目进度 | 前端核心能力推进，APP-M2-T021 状态推至 `in-review`，关联 ISSUE-007 保持开启，严禁自行标 done |
+| 验收 | 7 项专属自动化单测通过；全量 403 项前端单元测试 100% 保持绿色；TypeScript 静态编译 0 error；Vite 生产构建成功；工程治理检查通过 |
+| 项目进度 | 本次交付已获 QA 独立终验签署与 PD 产品视角验收通过，并由人类 PM 正式确认标为 done |
 <!-- task-delivery:end -->
 
 ## 关联与状态

@@ -6,7 +6,7 @@
 | 任务ID | BE-COMPLIANCE-RULES-P1 |
 | 代码解释 | [PRD P1 核心合规规则引擎扩充代码说明](../code/BE-COMPLIANCE-RULES-P1.md) |
 | 验收 | 1. 规则引擎扩充：在 `backend/bid-core/icg/domain/compliance_rules.py` 完整实现 PRD MVP §5.8 第二批核心合规规则（R03/R04/R09/R10）；<br>2. 业务阻断红线：资质过期/缺失/失信名单（R03）、联合体协议书/成员资质缺失（R04）、服务期未承诺/负偏离（R09）、质保期低于基线/响应时间超标/跨章节承诺自相矛盾（R10）均判定为 blocker；<br>3. 导出门禁严格联动：在 `backend/bid-core/icg/domain/export_service.py` 严格校验，存在任一 blocker 缺陷时，正式递交版导出强阻断并返回 400 `CHECK_BLOCKER_EXISTS`；<br>4. 自动化测试套件：`tests/backend/test_compliance_rules_p1.py` 5 项测试全部通过（5 passed）；<br>5. 契约无漂移：OpenAPI 100% 对齐无 diff。 |
-| 项目进度 | 本次交付完成，测试全绿，推至 `in-review`，等待 QA 复测签署与 PD 对照核准，建议人类 PM 标 done |
+| 项目进度 | 本次交付已获 QA 独立终验签署与 PD 产品视角验收通过，并由人类 PM 正式确认标为 done |
 <!-- task-delivery:end -->
 
 ## 1. 任务背景与目标
