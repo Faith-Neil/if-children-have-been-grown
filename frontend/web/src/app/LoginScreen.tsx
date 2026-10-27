@@ -1,7 +1,7 @@
 // 为什么有这个文件：提取 App.tsx 登录屏界面，降低应用编排主文件行数。
 // 它解决什么问题：解耦登录 UI 渲染与全局状态机，支持合成账号与真实凭据登录，落实 Layout First 去说明化。
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Card, Input, Select, Tabs } from 'antd';
 import type { Account } from '../shared/types.ts';
 import { roleName } from './context.tsx';
@@ -27,6 +27,12 @@ export function LoginScreen({
   const demoEnabled = isDemoMode() && accounts.length > 0;
   const [loginTab, setLoginTab] = useState<'demo' | 'credential'>(demoEnabled ? 'demo' : 'credential');
   const [customToken, setCustomToken] = useState('');
+
+  useEffect(() => {
+    if (demoEnabled) {
+      setLoginTab('demo');
+    }
+  }, [demoEnabled]);
 
   const handleCredentialSubmit = () => {
     if (customToken.trim() && onTokenLogin) {
