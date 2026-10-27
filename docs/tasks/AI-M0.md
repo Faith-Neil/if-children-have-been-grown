@@ -474,3 +474,53 @@
 - [x] 交付文档、代码说明、任务卡与任务看板同步更新。
 
 状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。
+
+
+<a id="ai-outline-score-weight-calc"></a>
+
+## AI-OUTLINE-SCORE-WEIGHT-CALC · 大纲评分项分值权重加权与章节优先级智能排序引擎
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 落实基于真实招标文件评分项的分值权重加权算法、星号与废标红线综合优先级加权得分、推荐多章节批量生成执行队列、多租户隔离与涉密本地模型门禁 |
+| 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [AI-OUTLINE-AUTO-TREE-BUILD](AI-M0.md#ai-outline-auto-tree-build) |
+| PRD / 架构出处 | [PRD v1.8 §5.7.1、§5.7.8](../reference/product/prd-mvp-v1.8.md)；[APP-M2-T126](APP-M2.md#app-m2-t126) |
+| 完成时交付 | [AI-OUTLINE-SCORE-WEIGHT-CALC 交付](../delivery/AI-OUTLINE-SCORE-WEIGHT-CALC.md) |
+| 代码解释 | [AI-OUTLINE-SCORE-WEIGHT-CALC 代码说明](../code/AI-OUTLINE-SCORE-WEIGHT-CALC.md) |
+
+范围：在 `backend/bid-core/icg/domain/outline_auto_tree.py`、`outline_plan.py`、`outline_orchestrator.py`、`outline_service.py` 与 `backend/bid-core/icg/api/workflow.py` 中落地大纲评分项分值权重加权与章节优先级智能排序引擎：
+1. 真实评分项分值累加与权重加权算法：提取叶子章节关联的真实招标文件条款评分（`score`），累加计算章节分值 `total_score`，计算章节全标权重比 `score_weight`（0.0 ~ 1.0）与所属分册内权重比 `volume_score_weight`（0.0 ~ 1.0），包含全零分值除零保护；
+2. 星号条款（★）与一票否决废标红线综合优先级加权判定：
+   - 含一票否决废标条款（`has_disqualified`）：`priority="critical"`，加权附加分 `bonus=100.0`，最高优先级排头；
+   - 含★关键必保条款（`has_asterisk`）：`priority="critical"`，加权附加分 `bonus=60.0`，前置重点编写；
+   - 高分值项（分值>=15分或占比>=15%）：`priority="high"`，加权附加分 `bonus=30.0`；
+   - 中分值项（分值>=5分或占比>=5%）：`priority="medium"`，加权附加分 `bonus=15.0`；
+   - 基础支撑项：`priority="low"`，附加分 `bonus=0.0`；
+   - 综合优先级分值计算：`priority_score = round(sec_score + bonus, 2)`；
+3. 多章节批量生成推荐执行队列（`recommended_writing_order`）：按 `(-priority_score, -total_score, section_number)` 倒序构建推荐编写序列，为后续大纲多章节批量生成提供智能编排驱动；
+4. 大纲树构建引擎内建集成与单事务持久化：`AutoTreeBuildEngine.build_tree_structure` 自动集成权重计算，`OutlinePlanService.auto_build_outline_tree` 与 `calculate_outline_score_weights` 将权重与优先级字段持久化至 `workflow["outline_plans"][ch_id]` 与 `workflow["recommended_writing_order"]`；
+5. 多租户强隔离与 RBAC 权限门禁：跨租户项目严格抛出 404 `NOT_FOUND`，系统只读角色与项目只读成员拦截 403 `FORBIDDEN`；
+6. 涉密项目本地模型门禁：敏感项目硬门禁拦截云端外部模型（403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`）；
+7. HTTP API 端点集成：注册 `POST /api/v1/projects/{project_id}/outline/score-weights` 与 `GET /api/v1/projects/{project_id}/outline/recommended-order`（`include_in_schema=False` 保障 OpenAPI 零漂移）。
+
+当前条件：自动化回归测试全绿通过（专属测试 8 passed，回归套件 25 passed，AI 全量 64 passed）。端到端闭环逻辑通过。
+
+可验证验收：
+- [x] 分值权重加权算法：精确计算章节全标权重比与分册内权重比，除零边界鲁棒；
+- [x] 综合优先级梯度判定：一票否决（bonus 100）、★必保（bonus 60）、高分值（bonus 30）、中分值（bonus 15）及综合优先级分 `priority_score`；
+- [x] 推荐编写执行队列生成：按优先级分降序生成推荐编写序列，指导批量生成；
+- [x] 防编造与溯源保真：分值严格来源于招标文件真实评分条款，严禁虚构分值；
+- [x] 多租户强隔离门禁：跨公司项目精确拦截 404 `NOT_FOUND`；
+- [x] RBAC 权限门禁：只读角色与项目只读成员拦截 403 `FORBIDDEN`；
+- [x] 涉密项目本地模型门禁：敏感项目调用外部云端模型拦截 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`；
+- [x] 大纲方案元数据与工作流原子持久化：权重、优先级、推荐队列原子落盘；
+- [x] HTTP API 端点集成：POST /outline/score-weights 与 GET /outline/recommended-order 端到端调用成功；
+- [x] 专属自动化测试套件 `pytest tests/backend/test_ai_outline_score_weight.py -v` 执行全过（8 passed）；
+- [x] 全套大纲回归测试 `pytest tests/backend/test_ai_outline_*.py ...` 执行全过（25 passed）；
+- [x] 全量 AI 核心联合测试回归全绿（64 passed）；
+- [x] OpenAPI 契约校验 `python backend/bid-core/export_openapi.py --check` 100% 一致；
+- [x] 交付文档、代码说明、任务卡与任务看板同步更新。
+
+状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。

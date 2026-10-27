@@ -391,5 +391,33 @@ def include_workflow_routes(application, service, current_user, parser):
             options=options,
         )
 
+    @router.post(
+        "/projects/{project_id}/outline/score-weights",
+        include_in_schema=False,
+    )
+    def calculate_outline_score_weights_endpoint(
+        project_id: str,
+        options: dict | None = None,
+        user: Principal = Depends(current_user),
+    ):
+        return workflow.calculate_outline_score_weights(
+            principal=user,
+            project_id=project_id,
+            options=options,
+        )
+
+    @router.get(
+        "/projects/{project_id}/outline/recommended-order",
+        include_in_schema=False,
+    )
+    def get_recommended_writing_order_endpoint(
+        project_id: str,
+        user: Principal = Depends(current_user),
+    ):
+        return workflow.get_recommended_writing_order(
+            principal=user,
+            project_id=project_id,
+        )
+
     application.include_router(router)
     include_recoverable_routes(application, workflow, current_user)

@@ -721,3 +721,44 @@
 3. 启停用正常生命周期与过滤查询（is_disabled: true/false）；
 4. 提供前端类型化 API 交互胶水层 `dict-config-api.ts` 与 OpenAPI 契约 0 漂移；
 5. 编写专属端到端自动化测试 `tests/backend/test_dict_config_rbac_glue.py` 并全绿通过。
+
+<a id="int-auth-login-rbac-glue"></a>
+
+## INT-AUTH-LOGIN-RBAC-GLUE · 账号密码认证与超级管理员端到端契约联调
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 4小时；账号密码登录端点、超管admin/X_2026鉴权、401拦截与系统级全权限联调 |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md)、[ISSUE-038](../../issues/ISSUE-038.md) |
+| 依赖 | [FE-LOGIN-ACCOUNT-PASSWORD](FE-M0.md#fe-login-account-password)、[BE-AUTH-SUPER-ADMIN](BE-M0.md#be-auth-super-admin) |
+| 来源 | PRD v1.8 身份认证与权限、生产无演示账号登录契约 |
+| 完成时交付 | [INT-AUTH-LOGIN-RBAC-GLUE 交付报告](../delivery/INT-AUTH-LOGIN-RBAC-GLUE.md) |
+| 代码解释 | [INT-AUTH-LOGIN-RBAC-GLUE 代码说明](../code/INT-AUTH-LOGIN-RBAC-GLUE.md) |
+
+范围：打通非演示模式（VITE_DEMO=0）下账号密码登录与超级管理员鉴权前后端胶水：
+1. 认证端点契约打通：通过 `POST /api/v1/auth/login` 传入账号密码换取 Access Token，并通过 `GET /api/v1/session` 成功加载正式 RBAC-8 角色导航会话；
+2. 凭据错误安全拦截：密码错误或未知用户统一拦截 401 `INVALID_CREDENTIALS`，符合 RFC 7807 标准；
+3. 超级管理员系统级能力核验：超管 `admin` 具备全量长任务脱敏审计（`/jobs?masked=true`）、A-03 字典读写配置、合规规则全目录（`/compliance-rules/catalog`）调阅与跨公司审计权；
+4. 编写专属自动化测试 `tests/backend/test_auth_login_rbac_glue.py` 并全绿通过。
+
+<a id="be-auth-super-admin"></a>
+
+## BE-AUTH-SUPER-ADMIN · 正式账号密码认证机制与全系统超级管理员内置
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 4小时；PBKDF2加盐哈希、POST /api/v1/auth/login、超管全系统穿透与防缓存响应头 |
+| 关联 Issue | [ISSUE-006](../../issues/ISSUE-006.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [BE-COMPLIANCE-RULES-P4](BE-M0.md#be-compliance-rules-p4) |
+| 来源 | PRD v1.8 身份认证与权限、生产无演示账号登录契约 |
+| 完成时交付 | [BE-AUTH-SUPER-ADMIN 交付报告](../delivery/BE-AUTH-SUPER-ADMIN.md) |
+| 代码解释 | [BE-AUTH-SUPER-ADMIN 代码说明](../code/BE-AUTH-SUPER-ADMIN.md) |
+
+范围：为系统构建正式「账号 + 密码」凭据认证体系与系统超级管理员能力：
+1. 密码加盐哈希与核验服务：采用标准库 PBKDF2-HMAC-SHA256（100,000次迭代 + 账号独立随机盐），密码比对采用 hmac.compare_digest 常量时间核验，彻底阻断明文存储与时序侧信道攻击；
+2. 认证端点注册与响应头规范：落地 `POST /api/v1/auth/login`，接受 `{username, password}` 换取 Bearer Access Token 及脱敏用户信息；失败统一返回 401 `INVALID_CREDENTIALS` 符合 RFC 7807；强制注入 `Cache-Control: no-store, no-cache, must-revalidate` 与 `Pragma: no-cache` 凭据防缓存响应头；
+3. 超级管理员全局穿透：内置超级管理员 `admin`（初始密码 `X_2026`，角色 `platform_admin`，公司 `system`），穿透公司隔离边界享有系统级全路由写入权限、全套项目管理权限与双卷导出资格；
+4. 生产关演示可用：在关闭演示账号登录（`ICG_ALLOW_DEMO_LOGIN=0` / `ICG_ENV=production`）下正式认证完全独立通畅；
+5. 编写专属单元测试套件 `tests/backend/test_auth_super_admin.py` 并全绿通过。

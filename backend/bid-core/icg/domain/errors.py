@@ -28,7 +28,7 @@ def _bind(table: dict[str, int], status: int, codes: tuple[str, ...]) -> None:
 
 def _frozen_status() -> dict[str, int]:
     table: dict[str, int] = {}
-    _bind(table, 401, ("UNAUTHENTICATED", "INVALID_ACCOUNT"))
+    _bind(table, 401, ("UNAUTHENTICATED", "INVALID_ACCOUNT", "INVALID_CREDENTIALS"))
     _bind(table, 403, (
         "FORBIDDEN", "PROJECT_CREATE_FORBIDDEN", "PROJECT_WRITER_REQUIRED",
         "CHAPTER_STRUCTURE_REQUIRED", "CHAPTER_EDITOR_REQUIRED", "PROJECT_LEAD_REQUIRED",

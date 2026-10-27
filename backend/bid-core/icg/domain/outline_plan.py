@@ -14,7 +14,11 @@ from typing import Any, Callable
 from .domain import Chapter, DemoService, DemoState, DomainError, Principal, Project, iso_time, new_id
 from .generation_context import chapter_plan, writing_source_fingerprint
 from .project_access import READONLY_SYSTEM_ROLES, lead, member, normalize_role, volume_owner, writable
-from .outline_auto_tree import AutoTreeBuildEngine, check_tree_finalization_readiness
+from .outline_auto_tree import (
+    AutoTreeBuildEngine,
+    check_tree_finalization_readiness,
+    calculate_score_weights_and_priorities,
+)
 
 
 class OutlinePlanError(DomainError):
@@ -493,6 +497,13 @@ class OutlinePlanService:
                     "has_asterisk": leaf["has_asterisk"],
                     "has_disqualified": leaf["has_disqualified"],
                     "is_mandatory": leaf["is_mandatory"],
+                    "total_score": leaf.get("total_score", 0.0),
+                    "score_weight": leaf.get("score_weight", 0.0),
+                    "volume_score_weight": leaf.get("volume_score_weight", 0.0),
+                    "priority": leaf.get("priority", "low"),
+                    "priority_score": leaf.get("priority_score", 0.0),
+                    "priority_reason": leaf.get("priority_reason", ""),
+                    "suggested_action": leaf.get("suggested_action", ""),
                     "status": "unconfirmed",
                     "scoring_rows": deepcopy(leaf["scoring_rows"]),
                     "writing_points": leaf["writing_points"],
@@ -523,6 +534,8 @@ class OutlinePlanService:
 
             # 更新章节排序
             workflow["chapter_order"] = new_chapter_order
+            workflow["score_weights_summary"] = deepcopy(tree_result.get("score_weights_summary", {}))
+            workflow["recommended_writing_order"] = deepcopy(tree_result.get("recommended_writing_order", []))
             workflow["outline_revision"] = int(workflow.get("outline_revision") or 0) + 1
             project.revision += 1
 
@@ -548,4 +561,161 @@ class OutlinePlanService:
             return tree_result
 
         return self.repository.transaction(transaction_operation)
+
+    def calculate_outline_score_weights(
+        self,
+        project_id: str,
+        principal: Principal | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """计算大纲各章节评分项分值权重加权与章节优先级，并生成推荐编写序列。"""
+        if principal is None:
+            raise DomainError(401, "UNAUTHENTICATED", "未登录或会话无效。")
+        options = options or {}
+
+        def transaction_operation(state: DemoState) -> dict[str, Any]:
+            # 1. 租户隔离校验
+            project = state.projects.get(project_id)
+            if project is None or project.company_id != principal.user.company_id:
+                raise DomainError(404, "NOT_FOUND", "项目不存在或当前公司无权访问。")
+
+            # 2. 权限校验
+            norm_role = normalize_role(principal.user.role)
+            if norm_role in READONLY_SYSTEM_ROLES:
+                raise DomainError(403, "FORBIDDEN", "只读角色无权计算或调整大纲分值权重。")
+
+            user_member = member(state, project_id, principal.user.id)
+            if user_member is None:
+                raise DomainError(403, "FORBIDDEN", "非本项目成员无权操作大纲方案。")
+            if user_member.get("project_role") == "readonly":
+                raise DomainError(403, "FORBIDDEN", "项目只读成员无权计算或调整大纲分值权重。")
+
+            # 3. 涉密项目本地模型门禁
+            if project.sensitive and options.get("use_ai_model", False):
+                bound_id = state.project_model_configs.get(project_id)
+                is_local = False
+                if bound_id and bound_id in state.model_configs:
+                    is_local = bool(state.model_configs[bound_id].is_local)
+                elif hasattr(self.demo, "model_provider"):
+                    is_local = getattr(self.demo.model_provider, "is_local", False)
+                if not is_local:
+                    raise DomainError(
+                        403,
+                        "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
+                        "涉密项目严禁使用云端外部模型规划大纲。",
+                    )
+
+            workflow = state.workflows.setdefault(project_id, {})
+            requirements = list(workflow.get("requirements", {}).values())
+            outline_plans = workflow.setdefault("outline_plans", {})
+
+            # 4. 获取属于该项目的章节
+            chapters = [c for c in state.chapters.values() if c.project_id == project_id]
+            chapter_order = workflow.get("chapter_order", [])
+            order_map = {cid: idx for idx, cid in enumerate(chapter_order)}
+            chapters.sort(key=lambda c: order_map.get(c.id, len(order_map)))
+
+            # 5. 构造叶子章节节点列表用于分值与权重计算
+            leaf_chapters = []
+            for ch in chapters:
+                meta = outline_plans.get(ch.id, {})
+                bound_rids = meta.get("bound_requirement_ids") or []
+                matched_reqs = [
+                    r for r in requirements
+                    if r.get("chapter_id") == ch.id or r.get("id") in bound_rids
+                ]
+                scoring_rows = [
+                    {
+                        "id": r.get("id"),
+                        "clause": r.get("clause") or r.get("text"),
+                        "score": r.get("score"),
+                        "mandatory": bool(r.get("mandatory") or r.get("asterisk")),
+                        "disqualified": bool(r.get("disqualified")),
+                    }
+                    for r in matched_reqs
+                ]
+                has_asterisk = meta.get("has_asterisk") or any(
+                    r.get("mandatory") or r.get("asterisk") or "★" in (r.get("clause") or r.get("text") or "")
+                    for r in matched_reqs
+                )
+                has_disqualified = meta.get("has_disqualified") or any(
+                    r.get("disqualified") or "废标" in (r.get("clause") or r.get("text") or "")
+                    for r in matched_reqs
+                )
+
+                leaf_node = {
+                    "id": ch.id,
+                    "chapter_id": ch.id,
+                    "title": ch.title,
+                    "volume": ch.volume,
+                    "section_number": meta.get("section_number", ""),
+                    "chapter_type": meta.get("chapter_type", "general"),
+                    "bound_requirement_ids": bound_rids or [r["id"] for r in matched_reqs],
+                    "scoring_rows": scoring_rows,
+                    "has_asterisk": bool(has_asterisk),
+                    "has_disqualified": bool(has_disqualified),
+                    "is_mandatory": bool(has_asterisk or has_disqualified),
+                }
+                leaf_chapters.append(leaf_node)
+
+            summary, recommended_order = calculate_score_weights_and_priorities(leaf_chapters, requirements)
+
+            # 6. 回写更新 outline_plans 和 workflow
+            now_dt = datetime.now(timezone.utc)
+            for leaf in leaf_chapters:
+                ch_id = leaf["id"]
+                if ch_id in outline_plans:
+                    outline_plans[ch_id]["total_score"] = leaf.get("total_score", 0.0)
+                    outline_plans[ch_id]["score_weight"] = leaf.get("score_weight", 0.0)
+                    outline_plans[ch_id]["volume_score_weight"] = leaf.get("volume_score_weight", 0.0)
+                    outline_plans[ch_id]["priority"] = leaf.get("priority", "low")
+                    outline_plans[ch_id]["priority_score"] = leaf.get("priority_score", 0.0)
+                    outline_plans[ch_id]["priority_reason"] = leaf.get("priority_reason", "")
+                    outline_plans[ch_id]["suggested_action"] = leaf.get("suggested_action", "")
+                    outline_plans[ch_id]["has_asterisk"] = leaf.get("has_asterisk", False)
+                    outline_plans[ch_id]["has_disqualified"] = leaf.get("has_disqualified", False)
+
+            workflow["score_weights_summary"] = deepcopy(summary)
+            workflow["recommended_writing_order"] = deepcopy(recommended_order)
+
+            return {
+                "project_id": project_id,
+                "score_weights_summary": summary,
+                "recommended_writing_order": recommended_order,
+                "chapters_count": len(leaf_chapters),
+            }
+
+        return self.repository.transaction(transaction_operation)
+
+    def get_recommended_writing_order(
+        self,
+        project_id: str,
+        principal: Principal | None = None,
+    ) -> dict[str, Any]:
+        """获取大纲章节推荐编写次序队列。"""
+        if principal is None:
+            raise DomainError(401, "UNAUTHENTICATED", "未登录或会话无效。")
+
+        state = self.repository.read()
+        project = state.projects.get(project_id)
+        if project is None or project.company_id != principal.user.company_id:
+            raise DomainError(404, "NOT_FOUND", "项目不存在或当前公司无权访问。")
+
+        workflow = state.workflows.get(project_id, {})
+        recommended = workflow.get("recommended_writing_order")
+        summary = workflow.get("score_weights_summary")
+
+        if not recommended:
+            res = self.calculate_outline_score_weights(project_id, principal)
+            return {
+                "project_id": project_id,
+                "score_weights_summary": res["score_weights_summary"],
+                "recommended_writing_order": res["recommended_writing_order"],
+            }
+
+        return {
+            "project_id": project_id,
+            "score_weights_summary": summary or {},
+            "recommended_writing_order": recommended,
+        }
 

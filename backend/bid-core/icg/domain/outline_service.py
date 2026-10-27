@@ -4,7 +4,11 @@
 from __future__ import annotations
 
 from icg.domain.outline_plan import OutlinePlanError, infer_chapter_type, OutlinePlanService
-from icg.domain.outline_auto_tree import AutoTreeBuildEngine, check_tree_finalization_readiness
+from icg.domain.outline_auto_tree import (
+    AutoTreeBuildEngine,
+    check_tree_finalization_readiness,
+    calculate_score_weights_and_priorities,
+)
 from icg.domain.outline_orchestrator import OutlineOrchestratorMixin, OutlineOrchestrator
 
 class OutlineServiceMixin(OutlineOrchestratorMixin):
@@ -25,4 +29,5 @@ __all__ = [
     "OutlinePlanService",
     "AutoTreeBuildEngine",
     "check_tree_finalization_readiness",
+    "calculate_score_weights_and_priorities",
 ]

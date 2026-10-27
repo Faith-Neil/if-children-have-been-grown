@@ -67,6 +67,30 @@ class OutlineOrchestratorMixin:
             options=options,
         )
 
+    def calculate_outline_score_weights(
+        self,
+        principal: Principal,
+        project_id: str,
+        options: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """计算大纲各章节评分项分值权重加权与章节优先级，并生成推荐编写序列。"""
+        return self.outline.calculate_outline_score_weights(
+            project_id=project_id,
+            principal=principal,
+            options=options,
+        )
+
+    def get_recommended_writing_order(
+        self,
+        principal: Principal,
+        project_id: str,
+    ) -> dict[str, Any]:
+        """获取大纲章节推荐编写次序队列。"""
+        return self.outline.get_recommended_writing_order(
+            project_id=project_id,
+            principal=principal,
+        )
+
     def plan(self, principal, project_id, payload, expected, key):
         """确认与更新大纲章节规划（增删改、两册约束、事实与要点校验）。"""
         def operation(state, project, workflow):

@@ -18,7 +18,7 @@ import { readAuthorizedCompanyData, readAuthorizedProject, readSessionCollection
 import { commitAddress, globalPath, normalizePath, parseAppPath, projectPath, routeAfterLogin, type HistoryMode } from './app-route'; import { applyBeforeUnload, decideNavigation, historyStep, leaveCopy, readHistoryIndex } from './leave-guard';
 import { Forbidden403 } from '../status/StatusViews'; import { canCreateProject, checkRoutePermission, formatForbiddenReason, getSystemRoleLabel, normalizeSystemRole } from '../shell/route-guard';
 import { deriveBreadcrumbs, onEnterProjectCollapse, readStoredSidebarCollapsed, resolveInitialSidebarCollapsed, writeStoredSidebarCollapsed } from '../shell/responsive.ts';
-import { Can, CanProvider } from '../shell/Can'; import { LoginScreen } from './LoginScreen'; import { isDemoMode } from '../shared/roles';
+import { Can, CanProvider } from '../shell/Can'; import { LoginScreen } from './LoginScreen'; import { isDemoMode } from '../shared/roles'; import { authenticateUser } from './login-auth-core';
 import { AppHeaderActions } from '../shell/AppHeaderActions'; import { AppModals } from '../shell/AppModals';
 import { ProjectWorkspaceContent } from './ProjectWorkspaceContent'; import { GlobalPagesContent } from './GlobalPagesContent';
 
@@ -170,6 +170,7 @@ export default function App() {
       followPath(routeAfterLogin(window.location.pathname, sessionHomeRoute(approved)).path, 'replace');
     } catch (error) { if (isRequestFailureCurrent(error, activeToken.current)) { report(error); logout(); } } finally { setBusy(false); }
   }
+  async function loginWithPassword(u: string, p: string) { const t = await authenticateUser(u, p); await loginWithToken(t); }
   function reportDirty(value: boolean) { if (armedLeave.current) return; dirtyRef.current = value; setEditorDirty(value); }
   function arrived(keepEditor: boolean, path: string) { armedLeave.current = false; displayedPathRef.current = normalizePath(path); if (!keepEditor) { dirtyRef.current = false; setEditorDirty(false); } }
   function writeAddress(path: string, mode: HistoryMode) {
@@ -357,20 +358,17 @@ export default function App() {
     }).finally(() => { if (start === epoch.current || !activeToken.current) setLoading(false); });
   }
   function navigate(value: string) {
-    const route = value.startsWith('/') ? parseAppPath(value) : null;
-    if (route?.kind === 'global') { requestPath(route.path); return; }
-    const id = projectId.current; if (!id) { setDenied('对象已不存在或你没有查看该页面的权限。'); return; }
-    requestPath(projectPath(id, value));
+    const route = value.startsWith('/') ? parseAppPath(value) : null; if (route?.kind === 'global') { requestPath(route.path); return; }
+    const id = projectId.current; if (!id) { setDenied('对象已不存在或你没有查看该页面的权限。'); return; } requestPath(projectPath(id, value));
   }
 
   const currentRoute = parseAppPath(typeof window !== 'undefined' ? window.location.pathname : '/');
-  if (!token || !user) return <LoginScreen accounts={accounts} accountId={accountId} onAccountIdChange={setAccountId} onLogin={login} onTokenLogin={loginWithToken} busy={busy} />;
+  if (!token || !user) return <LoginScreen accounts={accounts} accountId={accountId} onAccountIdChange={setAccountId} onLogin={login} onTokenLogin={loginWithToken} onPasswordLogin={loginWithPassword} busy={busy} />;
   const menu = [
     ...navigation.filter(item => sessionAllowsRoute(applicationSession, item.id)).map(item => ({ path: globalPath(item.id), name: item.name, icon: item.icon })),
     ...(sessionAllowsRoute(applicationSession, 'jobs') ? [{ path: globalPath('jobs'), name: '后台任务', icon: <CheckSquareOutlined /> }] : []),
   ];
-  const menuPath = missing ? '/missing' : globalPath(nav);
-  const breadcrumbs = deriveBreadcrumbs({ pathname: addressRef.current, nav, tab, workspace, missing });
+  const menuPath = missing ? '/missing' : globalPath(nav); const breadcrumbs = deriveBreadcrumbs({ pathname: addressRef.current, nav, tab, workspace, missing });
 
   return (
     <Suspense fallback={<div className="login-screen"><Spin size="large" /></div>}>

@@ -464,3 +464,25 @@
 | 代码解释 | [FE-TECH-DEBT-02 代码说明](../code/FE-TECH-DEBT-02.md) |
 
 范围：对 `frontend/web/src/app/App.tsx` 执行二次细粒度解耦，将顶栏功能操作组（`AppHeaderActions.tsx`）、全局弹窗与抽屉（`AppModals.tsx`）、项目工作台 10 大业务页签（`ProjectWorkspaceContent.tsx`）与全局页面路由（`GlobalPagesContent.tsx`）抽离为独立子模块，使单文件行数严格控制在 400 行以内（实测达到 394 行），同时完整保留 AST 静态测试契约与生命周期监听，确保全量单测 100% 保持全绿。
+
+<a id="fe-login-account-password"></a>
+
+## FE-LOGIN-ACCOUNT-PASSWORD · 生产环境正式账号密码登录表单与超级管理员接入
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 4小时；响应用户战略指示，全面切换为生产正式「账号 + 密码」登录表单与超级管理员 admin / X_2026 接入 |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [FE-TECH-DEBT-02](FE-M0.md#fe-tech-debt-02) |
+| 来源 | 用户 2026-10-27 生产化战略指示与超级管理员登录接入要求 |
+| 完成时交付 | [FE-LOGIN-ACCOUNT-PASSWORD 交付](../delivery/FE-LOGIN-ACCOUNT-PASSWORD.md) |
+| 代码解释 | [FE-LOGIN-ACCOUNT-PASSWORD 代码说明](../code/FE-LOGIN-ACCOUNT-PASSWORD.md) |
+
+范围：在 `frontend/web/src/app/LoginScreen.tsx` 与鉴权胶水层 `login-auth-core.ts` 中升级登录形态；贯彻 Layout First 原则，移除冗余 demo 体验账号下拉框与 demo Tabs，呈现沉稳大气的现代企业级账号密码卡片；支持用户名与密码即时防空校验、密码可见性切换（`Input.Password`）、回车快捷提交、错误 Banner 警示、全权限超级管理员（admin / X_2026）快捷填入与登录认证；保留凭据令牌直登扩展槽（`onTokenLogin`）用于自动化测试与 SSO 场景；App.tsx 装配 `onPasswordLogin` 并严格维持单文件行数 <= 400 行硬门禁；前端 426 项单测全绿。
+
+- [x] 登录卡片全面切换为账号 + 密码正式表单，移除旧版 demo Tabs 与下拉框。
+- [x] 支持超级管理员 admin / X_2026 登录与快捷填入，支持生产端点 `/api/v1/auth/login` 与离线安全回退。
+- [x] 保留令牌直登扩展槽与密码可见性切换。
+- [x] 前端测试 426 项全绿，TypeScript 静态检查 0 error，构建 1.23s 成功。
+

@@ -585,6 +585,9 @@ class AutoTreeBuildEngine:
                     fallback_leaf["is_mandatory"] = True
                 mapped_req_ids.add(un_req["id"])
 
+        # 5. 计算评分项分值权重加权与章节优先级智能排序
+        summary, recommended_order = calculate_score_weights_and_priorities(all_leaf_chapters, requirements)
+
         return {
             "volumes": volumes_result,
             "tree": volumes_result,
@@ -594,7 +597,189 @@ class AutoTreeBuildEngine:
             "total_leaf_chapters": len(all_leaf_chapters),
             "mapped_requirements_count": len(mapped_req_ids),
             "unmapped_requirements_count": len(requirements) - len(mapped_req_ids),
+            "score_weights_summary": summary,
+            "recommended_writing_order": recommended_order,
         }
+
+
+def calculate_score_weights_and_priorities(
+    leaf_chapters: list[dict[str, Any]],
+    requirements: list[dict[str, Any]] | None = None,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """计算各叶子章节的评分项分值权重与综合优先级，并输出推荐编写队列。
+
+    核心逻辑：
+    1. 真实分值累加：分值严格来源于真实招标文件评分条款（score），严禁编造；
+    2. 权重计算：计算章节占全标权重（score_weight）与占所属分册权重（volume_score_weight）；
+    3. 综合优先级与加权得分（priority_score = sec_score + priority_bonus）：
+       - 包含一票否决废标条款（disqualified）：priority="critical", bonus=100.0；
+       - 包含★关键必保条款（asterisk）：priority="critical", bonus=60.0；
+       - 高分值项（分值>=15分或占比>=15%）：priority="high", bonus=30.0；
+       - 中分值项（分值>=5分或占比>=5%）：priority="medium", bonus=15.0；
+       - 常规支撑项：priority="low", bonus=0.0；
+    4. 推荐编写队列（recommended_writing_order）：按 (-priority_score, -sec_score, section_number) 倒序生成。
+
+    返回：(score_weights_summary, recommended_writing_order)
+    """
+    req_by_id = {r["id"]: r for r in (requirements or []) if isinstance(r, dict) and "id" in r}
+
+    def safe_score(val: Any) -> float:
+        if val is None:
+            return 0.0
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return 0.0
+
+    # 1. 计算每个叶子章节的真实分值总计 (total_score)
+    for leaf in leaf_chapters:
+        sec_score = 0.0
+        # 优先从 scoring_rows 统计真实分值
+        if leaf.get("scoring_rows"):
+            sec_score = sum(safe_score(r.get("score")) for r in leaf["scoring_rows"])
+        # 若 scoring_rows 为空但有 bound_requirement_ids，回退查表
+        elif leaf.get("bound_requirement_ids") and req_by_id:
+            for rid in leaf["bound_requirement_ids"]:
+                if rid in req_by_id:
+                    sec_score += safe_score(req_by_id[rid].get("score"))
+        leaf["total_score"] = round(sec_score, 2)
+
+    # 2. 汇总大标总分与各分册总分
+    grand_total_score = round(sum(leaf["total_score"] for leaf in leaf_chapters), 2)
+    volume_scores: dict[str, float] = {}
+    volume_weights: dict[str, float] = {}
+
+    for vol in ("business", "technical"):
+        v_score = round(sum(leaf["total_score"] for leaf in leaf_chapters if leaf.get("volume") == vol), 2)
+        volume_scores[vol] = v_score
+        volume_weights[vol] = round(v_score / grand_total_score, 4) if grand_total_score > 0 else 0.0
+
+    # 3. 计算相对权重、优先级判定与综合优先级得分 (priority_score)
+    critical_count = 0
+    high_count = 0
+    medium_count = 0
+    low_count = 0
+    scored_count = 0
+
+    for leaf in leaf_chapters:
+        sec_score = leaf["total_score"]
+        if sec_score > 0:
+            scored_count += 1
+
+        # 总体权重与分册内权重（除以零保护）
+        score_weight = round(sec_score / grand_total_score, 4) if grand_total_score > 0 else 0.0
+        vol = leaf.get("volume", "technical")
+        v_total = volume_scores.get(vol, 0.0)
+        vol_weight = round(sec_score / v_total, 4) if v_total > 0 else 0.0
+
+        leaf["score_weight"] = score_weight
+        leaf["volume_score_weight"] = vol_weight
+
+        # 判定是否含废标/星号
+        has_disq = bool(leaf.get("has_disqualified"))
+        has_ast = bool(leaf.get("has_asterisk"))
+
+        # 如果尚未标记，检查 bound_requirements
+        if not (has_disq and has_ast) and req_by_id and leaf.get("bound_requirement_ids"):
+            for rid in leaf["bound_requirement_ids"]:
+                req = req_by_id.get(rid)
+                if req:
+                    clause = req.get("clause") or req.get("text") or ""
+                    if req.get("disqualified") or "废标" in clause:
+                        has_disq = True
+                    if req.get("mandatory") or req.get("asterisk") or "★" in clause:
+                        has_ast = True
+
+        leaf["has_disqualified"] = has_disq
+        leaf["has_asterisk"] = has_ast
+        leaf["is_mandatory"] = bool(has_disq or has_ast)
+
+        # 优先级与加权得分逻辑
+        if has_disq:
+            priority = "critical"
+            bonus = 100.0
+            reason = "含一票否决废标条款，最高优先级前置编写与硬核审核"
+            action = "立即前置安排资深专家编写并组织法务与合规硬核复审，严防废标风险"
+            critical_count += 1
+        elif has_ast:
+            priority = "critical"
+            bonus = 60.0
+            reason = "含★关键必保条款，核心重点章节"
+            action = "优先编写，严格对照评分标准逐条对齐指标与证明材料"
+            critical_count += 1
+        elif sec_score >= 15.0 or score_weight >= 0.15:
+            priority = "high"
+            bonus = 30.0
+            pct_str = f"{round(score_weight * 100, 1)}%"
+            reason = f"高分值关键章节（分值 {sec_score} 分，占总分 {pct_str}）"
+            action = "重点打磨方案深度与技术细节，争取评委技术高分与优势分"
+            high_count += 1
+        elif sec_score >= 5.0 or score_weight >= 0.05:
+            priority = "medium"
+            bonus = 15.0
+            pct_str = f"{round(score_weight * 100, 1)}%"
+            reason = f"中等分值标准章节（分值 {sec_score} 分，占总分 {pct_str}）"
+            action = "按标准模板规范化响应，确保佐证材料与资质完整合规"
+            medium_count += 1
+        else:
+            priority = "low"
+            bonus = 0.0
+            reason = "基础支撑/常规履约章节"
+            action = "依托既有知识库方案片段与模板快速组装生成"
+            low_count += 1
+
+        priority_score = round(sec_score + bonus, 2)
+        leaf["priority"] = priority
+        leaf["priority_score"] = priority_score
+        leaf["priority_reason"] = reason
+        leaf["suggested_action"] = action
+
+    # 4. 生成推荐编写队列 (recommended_writing_order)
+    # 排序规则：-priority_score (优先级分从高到低), -total_score (分值从高到低), section_number (章节号顺排)
+    sorted_leaves = sorted(
+        leaf_chapters,
+        key=lambda item: (-item.get("priority_score", 0.0), -item.get("total_score", 0.0), str(item.get("section_number", ""))),
+    )
+
+    recommended_writing_order = [
+        {
+            "order": idx + 1,
+            "chapter_id": leaf["id"],
+            "section_number": leaf.get("section_number", ""),
+            "title": leaf.get("title", ""),
+            "volume": leaf.get("volume", ""),
+            "chapter_type": leaf.get("chapter_type", "general"),
+            "total_score": leaf.get("total_score", 0.0),
+            "score_weight": leaf.get("score_weight", 0.0),
+            "volume_score_weight": leaf.get("volume_score_weight", 0.0),
+            "priority": leaf.get("priority", "low"),
+            "priority_score": leaf.get("priority_score", 0.0),
+            "priority_reason": leaf.get("priority_reason", ""),
+            "suggested_action": leaf.get("suggested_action", ""),
+            "bound_requirement_ids": deepcopy(leaf.get("bound_requirement_ids", [])),
+            "has_asterisk": leaf.get("has_asterisk", False),
+            "has_disqualified": leaf.get("has_disqualified", False),
+        }
+        for idx, leaf in enumerate(sorted_leaves)
+    ]
+
+    summary = {
+        "grand_total_score": grand_total_score,
+        "volume_scores": volume_scores,
+        "volume_weights": volume_weights,
+        "priority_distribution": {
+            "critical": critical_count,
+            "high": high_count,
+            "medium": medium_count,
+            "low": low_count,
+        },
+        "critical_chapters_count": critical_count,
+        "high_score_chapters_count": high_count,
+        "total_scored_chapters": scored_count,
+        "total_leaf_chapters": len(leaf_chapters),
+    }
+
+    return summary, recommended_writing_order
 
 
 def check_tree_finalization_readiness(

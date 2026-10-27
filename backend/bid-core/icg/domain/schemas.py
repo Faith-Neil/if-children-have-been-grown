@@ -26,6 +26,11 @@ class LoginRequest(RequestBody):
     account_id: str = Field(min_length=1, max_length=80)
 
 
+class UsernamePasswordLoginRequest(RequestBody):
+    username: str = Field(min_length=1, max_length=100, description="登录用户名")
+    password: str = Field(min_length=1, max_length=128, description="登录密码")
+
+
 class ProjectRequest(RequestBody):
     name: str = Field(min_length=1, max_length=200)
 
@@ -108,6 +113,8 @@ class AccountResponse(ResponseBody):
     name: str
     company_id: str
     role: DemoCompanyRole
+    username: str | None = None
+    display_name: str | None = None
 
 
 class AccountListResponse(ResponseBody):
@@ -130,7 +137,7 @@ class SessionUserResponse(AccountResponse):
 
 
 class SessionScopeResponse(ResponseBody):
-    kind: Literal["company"]
+    kind: Literal["company", "system"]
     active_company_id: str
     allowed_company_ids: list[str]
 

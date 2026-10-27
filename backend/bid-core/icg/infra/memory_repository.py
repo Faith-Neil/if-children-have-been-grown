@@ -18,20 +18,36 @@ T = TypeVar("T")
 def seed_state() -> DemoState:
     """构建单元测试与演示使用的初始合成数据状态。"""
     state = DemoState()
+    from icg.domain.auth_service import hash_password
+    admin_hash, admin_salt = hash_password("X_2026")
+    default_hash, default_salt = hash_password("X_2026")
+
+    admin = Account(
+        id="admin",
+        name="系统超级管理员",
+        company_id="system",
+        role="platform_admin",
+        _DEMO_ONLY=False,
+        password_hash=admin_hash,
+        salt=admin_salt,
+        display_name="系统超级管理员",
+    )
+    state.accounts[admin.id] = admin
+
     for user in (
-        Account("alpha-editor", "甲公司编写人（合成）", "alpha", "editor", _DEMO_ONLY=True),
-        Account("alpha-manager", "甲公司项目经理（合成）", "alpha", "manager", _DEMO_ONLY=True),
-        Account("alpha-viewer", "甲公司查看人（合成）", "alpha", "viewer", _DEMO_ONLY=True),
-        Account("beta-editor", "乙公司编写人（合成）", "beta", "editor", _DEMO_ONLY=True),
-        Account("alpha-tech", "甲公司技术编写人（合成）", "alpha", "editor", _DEMO_ONLY=True),
-        Account("alpha-business", "甲公司商务编写人（合成）", "alpha", "editor", _DEMO_ONLY=True),
-        Account("alpha-outsider-manager", "甲公司其他项目经理（合成）", "alpha", "manager", _DEMO_ONLY=True),
-        Account("beta-manager", "乙公司项目经理（合成）", "beta", "manager", _DEMO_ONLY=True),
-        Account("alpha-company-admin", "甲公司管理员（合成）", "alpha", "company_admin", _DEMO_ONLY=True),
-        Account("alpha-data-admin", "甲公司资料管理员（合成）", "alpha", "data_admin", _DEMO_ONLY=True),
-        Account("alpha-auditor", "甲公司审核人（合成）", "alpha", "auditor", _DEMO_ONLY=True),
-        Account("alpha-group-admin", "集团管理员（合成）", "group", "group_admin", _DEMO_ONLY=True),
-        Account("platform-admin", "平台运维管理员（合成）", "system", "platform_admin", _DEMO_ONLY=True),
+        Account("alpha-editor", "甲公司编写人（合成）", "alpha", "editor", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司编写人（合成）"),
+        Account("alpha-manager", "甲公司项目经理（合成）", "alpha", "manager", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司项目经理（合成）"),
+        Account("alpha-viewer", "甲公司查看人（合成）", "alpha", "viewer", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司查看人（合成）"),
+        Account("beta-editor", "乙公司编写人（合成）", "beta", "editor", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="乙公司编写人（合成）"),
+        Account("alpha-tech", "甲公司技术编写人（合成）", "alpha", "editor", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司技术编写人（合成）"),
+        Account("alpha-business", "甲公司商务编写人（合成）", "alpha", "editor", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司商务编写人（合成）"),
+        Account("alpha-outsider-manager", "甲公司其他项目经理（合成）", "alpha", "manager", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司其他项目经理（合成）"),
+        Account("beta-manager", "乙公司项目经理（合成）", "beta", "manager", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="乙公司项目经理（合成）"),
+        Account("alpha-company-admin", "甲公司管理员（合成）", "alpha", "company_admin", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司管理员（合成）"),
+        Account("alpha-data-admin", "甲公司资料管理员（合成）", "alpha", "data_admin", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司资料管理员（合成）"),
+        Account("alpha-auditor", "甲公司审核人（合成）", "alpha", "auditor", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司审核人（合成）"),
+        Account("alpha-group-admin", "集团管理员（合成）", "group", "group_admin", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="集团管理员（合成）"),
+        Account("platform-admin", "平台运维管理员（合成）", "system", "platform_admin", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="平台运维管理员（合成）"),
     ):
         state.accounts[user.id] = user
     for company in ("alpha", "beta"):

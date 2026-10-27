@@ -6,6 +6,7 @@ from __future__ import annotations
 from dataclasses import asdict
 
 from .domain import DomainError
+from .auth_service import is_super_admin
 
 VOLUMES = ("technical", "business")
 
@@ -73,6 +74,8 @@ def member(state, project_id, user_id):
 
 
 def writable(state, project_id, user_id):
+    if is_super_admin(user_id):
+        return True
     account, membership = state.accounts.get(user_id), member(state, project_id, user_id)
     if not (account and membership and account.company_id == state.projects[project_id].company_id):
         return False
@@ -90,11 +93,15 @@ def writable(state, project_id, user_id):
 
 
 def lead(state, project_id, user_id):
+    if is_super_admin(user_id):
+        return True
     m = member(state, project_id, user_id)
     return writable(state, project_id, user_id) and m is not None and m.get("project_role") == "lead"
 
 
 def volume_owner(state, project_id, volume, user_id):
+    if is_super_admin(user_id):
+        return True
     m = member(state, project_id, user_id)
     return (writable(state, project_id, user_id)
             and m is not None
@@ -103,6 +110,8 @@ def volume_owner(state, project_id, volume, user_id):
 
 
 def chapter_edit(state, chapter, user_id):
+    if is_super_admin(user_id):
+        return True
     m = member(state, chapter.project_id, user_id)
     if not (writable(state, chapter.project_id, user_id) and m is not None):
         return False
@@ -114,6 +123,8 @@ def chapter_edit(state, chapter, user_id):
 
 
 def chapter_structure(state, chapter, user_id):
+    if is_super_admin(user_id):
+        return True
     return lead(state, chapter.project_id, user_id) or volume_owner(state, chapter.project_id, chapter.volume, user_id)
 
 
@@ -121,17 +132,23 @@ def require_same_company(state, principal, project_id):
     project = state.projects.get(project_id)
     if project is None:
         raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
+    if is_super_admin(principal):
+        return
     if principal.user.company_id != project.company_id:
         raise DomainError(403, "FORBIDDEN", "无权跨公司访问其他公司的项目。")
 
 
 def ensure_not_readonly(principal):
+    if is_super_admin(principal):
+        return
     norm = normalize_role(principal.user.role)
     if norm in READONLY_SYSTEM_ROLES:
         raise DomainError(403, "FORBIDDEN", "只读角色不能执行修改操作。")
 
 
 def require_lead(state, principal, project_id):
+    if is_super_admin(principal):
+        return
     project = state.projects.get(project_id)
     if project and principal.user.company_id and principal.user.company_id != project.company_id:
         raise DomainError(403, "FORBIDDEN", "无权跨公司操作其他公司的投标项目。")
@@ -143,6 +160,8 @@ def require_lead(state, principal, project_id):
 
 
 def require_chapter(state, principal, chapter):
+    if is_super_admin(principal):
+        return
     project = state.projects.get(chapter.project_id)
     if project and principal.user.company_id and principal.user.company_id != project.company_id:
         raise DomainError(403, "FORBIDDEN", "无权跨公司操作其他公司的章节。")
@@ -154,6 +173,8 @@ def require_chapter(state, principal, chapter):
 
 
 def require_volume_owner(state, principal, project_id, volume):
+    if is_super_admin(principal):
+        return
     project = state.projects.get(project_id)
     if project and principal.user.company_id and principal.user.company_id != project.company_id:
         raise DomainError(403, "FORBIDDEN", "无权跨公司操作其他公司的分册。")
@@ -165,6 +186,8 @@ def require_volume_owner(state, principal, project_id, volume):
 
 
 def require_project_writer(state, principal, project_id):
+    if is_super_admin(principal):
+        return
     project = state.projects.get(project_id)
     if project and principal.user.company_id and principal.user.company_id != project.company_id:
         raise DomainError(403, "FORBIDDEN", "无权跨公司操作其他公司的投标项目。")
@@ -176,18 +199,28 @@ def require_project_writer(state, principal, project_id):
 
 
 def require_data_admin(state, principal):
+    if is_super_admin(principal):
+        return
     norm = normalize_role(principal.user.role)
     if norm not in (ROLE_DATA_ADMIN, ROLE_COMPANY_ADMIN):
         raise DomainError(403, "FORBIDDEN", "此操作须由资料管理员或公司管理员办理。")
 
 
 def chapter_permissions(state, chapter, user_id):
+    if is_super_admin(user_id):
+        return {"edit": True, "confirm_plan": True, "generate": True,
+                "manage_structure": True, "assign": True, "takeover": True}
     edit, structure = chapter_edit(state, chapter, user_id), chapter_structure(state, chapter, user_id)
     return {"edit": edit, "confirm_plan": edit, "generate": edit,
             "manage_structure": structure, "assign": structure, "takeover": structure}
 
 
 def project_permissions(state, project_id, user_id):
+    if is_super_admin(user_id):
+        return {"manage_team": True, "manage_project": True, "manage_structure": True,
+                "prepare_sources": True, "manage_sla": True, "confirm_facts": True,
+                "edit_facts": True, "check_all": True, "export_internal": True,
+                "check_volumes": list(VOLUMES), "export_volumes": list(VOLUMES)}
     is_lead = lead(state, project_id, user_id)
     volumes = [v for v in VOLUMES if is_lead or volume_owner(state, project_id, v, user_id)]
     return {"manage_team": is_lead, "manage_project": is_lead, "manage_structure": is_lead,

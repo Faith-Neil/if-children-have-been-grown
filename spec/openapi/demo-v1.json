@@ -260,6 +260,85 @@
         "deprecated": true
       }
     },
+    "/api/v1/auth/login": {
+      "post": {
+        "summary": "账号密码登录认证",
+        "description": "正式非演示模式下基于账号密码凭据进行身份认证。支持超级管理员 admin（初始密码 X_2026）及已注册账号登录；凭据错误返回 401 INVALID_CREDENTIALS。",
+        "operationId": "authLogin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsernamePasswordLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/session": {
       "get": {
         "summary": "Get Session",
@@ -20051,6 +20130,28 @@
               "group_admin"
             ],
             "title": "Role"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
           }
         },
         "additionalProperties": true,
@@ -25733,7 +25834,10 @@
         "properties": {
           "kind": {
             "type": "string",
-            "const": "company",
+            "enum": [
+              "company",
+              "system"
+            ],
             "title": "Kind"
           },
           "active_company_id": {
@@ -25815,6 +25919,28 @@
               "group_admin"
             ],
             "title": "Role"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
           },
           "roles": {
             "items": {
@@ -27639,6 +27765,31 @@
         "type": "object",
         "title": "UpdateDictItemRequest"
       },
+      "UsernamePasswordLoginRequest": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Username",
+            "description": "登录用户名"
+          },
+          "password": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Password",
+            "description": "登录密码"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "UsernamePasswordLoginRequest"
+      },
       "V1Error": {
         "properties": {
           "code": {
@@ -27702,6 +27853,7 @@
               "INTERNAL_ERROR",
               "INVALID_ACCOUNT",
               "INVALID_CONFLICT_SELECTION",
+              "INVALID_CREDENTIALS",
               "INVALID_DATE",
               "INVALID_DOCX",
               "INVALID_FACT",
@@ -29226,6 +29378,7 @@
       "statuses": {
         "401": [
           "INVALID_ACCOUNT",
+          "INVALID_CREDENTIALS",
           "UNAUTHENTICATED"
         ],
         "403": [

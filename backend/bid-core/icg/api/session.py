@@ -2,10 +2,10 @@
 # 它解决什么问题：按领域拆分 API，提供账号列表、登录鉴权与 8 角色会话上下文接口。
 
 from typing import Annotated
-from fastapi import APIRouter, Depends, Header, Query, Request
+from fastapi import APIRouter, Depends, Header, Query, Request, Response
 
 from icg.domain.domain import DemoService, DomainError, Principal
-from icg.domain.schemas import AccountListResponse, ApplicationSessionResponse, LoginRequest, LoginResponse
+from icg.domain.schemas import AccountListResponse, ApplicationSessionResponse, LoginRequest, LoginResponse, UsernamePasswordLoginRequest
 from icg.domain.session_navigation import get_application_session
 from icg.domain.workflow_schemas import v1_error_responses
 
@@ -37,6 +37,19 @@ def include_session_routes(application, service: DemoService, current_user) -> N
                       responses=error_responses(401), deprecated=True)
     def login(body: LoginRequest):
         return service.login(body.account_id)
+
+    @application.post(
+        "/api/v1/auth/login",
+        response_model=LoginResponse,
+        operation_id="authLogin",
+        summary="账号密码登录认证",
+        description="正式非演示模式下基于账号密码凭据进行身份认证。支持超级管理员 admin（初始密码 X_2026）及已注册账号登录；凭据错误返回 401 INVALID_CREDENTIALS。",
+        responses=v1_error_responses(401, 422, 500),
+    )
+    def auth_login(body: UsernamePasswordLoginRequest, response: Response):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        return service.auth_login(body.username, body.password)
 
     @application.get("/api/v1/session", response_model=ApplicationSessionResponse,
                      response_model_exclude_unset=True, operation_id="getSession",
