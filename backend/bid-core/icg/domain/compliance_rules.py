@@ -263,6 +263,46 @@ class ComplianceRulesEngine:
             "can_disable": False,
             "description": "技术与商务条款偏离表与响应矩阵严格一致性校验；关键条款负偏离强阻断，正偏离与无偏离前后一致。",
         },
+        {
+            "rule_id": "R13",
+            "title": "团队人员配置核验（项目经理执业资格、持证人数门槛）",
+            "category": "personnel",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "核验拟派项目经理是否具备招标文件要求的执业证书（如一级建造师、PMP等）、社保证明连续性及团队专业技术人员配置门槛；项目经理资质缺失或证书不满足判定为阻断红线。",
+        },
+        {
+            "rule_id": "R16",
+            "title": "投标保证金与保函有效性核验",
+            "category": "finance",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "核验投标保证金金额是否满足招标文件金额或比例要求、保函有效期是否覆盖投标有效期、出账单位是否与投标主体完全一致；保证金不足或开具单位不一致判定为阻断红线。",
+        },
+        {
+            "rule_id": "R18",
+            "title": "联合体投标协议与资质认定核验",
+            "category": "consortium",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "若声明联合体投标，核验是否签署正式有效的联合体协议书、牵头人授权及各成员资质分工；非联合体投标放行，若联合体协议缺失或资质不符判定为阻断红线。",
+        },
+        {
+            "rule_id": "R24",
+            "title": "响应格式排版与强制表单签名盖章完整性核验",
+            "category": "compliance",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "核验法定代表人或授权委托人签字盖章页、投标函等关键法定表单的签名盖章完整性；缺少签名或盖章占位标记判定为阻断红线。",
+        },
+        {
+            "rule_id": "R32",
+            "title": "投标有效期与承诺不可撤销性核验",
+            "category": "commitment",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "核验投标函中承诺的投标有效期是否小于招标文件规定的日历天数（如 90 天）；承诺有效期缩水或附带可撤销条件判定为重大负偏离阻断红线。",
+        },
     ]
 
     # R34 敏感占位符与残留模式
@@ -3341,6 +3381,777 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
+    def check_r13(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R13：团队人员配置核验（项目经理执业资格、持证人数门槛）。
+        核验拟派项目经理是否具备招标文件要求的执业证书（如一级建造师、PMP等）、
+        社保证明连续性及团队专业技术人员配置门槛；项目经理资质缺失或证书不满足判定为 blocker (TEAM_PROJECT_MANAGER_QUALIFICATION_MISSING)。
+        团队人员数量不足或未达门槛判定为 blocker (TEAM_STAFFING_THRESHOLD_UNMET)。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        reqs = list(workflow.get("requirements", {}).values())
+        if volume != "all":
+            reqs = [r for r in reqs if r.get("volume") == volume]
+
+        checked_count = 0
+        pm_keywords = ("项目经理", "项目负责人", "建造师", "PMP", "总监", "技术负责人")
+        staffing_keywords = ("人员配置", "团队配置", "持证人数", "专业技术人员", "技术人员配备", "团队人员")
+
+        for req in reqs:
+            text = str(req.get("text", "") or "")
+            resp = str(req.get("response", "") or "").strip()
+            req_id = req.get("id", "")
+
+            is_pm_clause = any(k in text for k in pm_keywords)
+            is_staffing_clause = any(k in text for k in staffing_keywords)
+
+            if not (is_pm_clause or is_staffing_clause):
+                continue
+
+            checked_count += 1
+
+            if not resp:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R13",
+                        code="TEAM_PROJECT_MANAGER_QUALIFICATION_MISSING",
+                        severity="blocker",
+                        message=f"拟派团队人员/项目经理资质条款未填写响应内容：{text[:50]}",
+                        requirement_id=req_id,
+                    )
+                )
+                continue
+
+            if req.get("status") == "rejected":
+                if is_critical_requirement(req) or is_pm_clause:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R13",
+                            code="TEAM_PROJECT_MANAGER_QUALIFICATION_MISSING",
+                            severity="blocker",
+                            message=f"招标文件要求的项目经理执业资格/团队配置条款被忽略或未响应：{text[:50]}",
+                            requirement_id=req_id,
+                        )
+                    )
+                continue
+
+            negative_pm_triggers = (
+                "无证书", "不具备执业资格", "执业资格缺失", "未取得建造师", "未取得一级建造师",
+                "未取得二级建造师", "未取得PMP", "未取得注册执业证书", "暂未取得", "暂无证书", "证书正在考取",
+                "证书过期", "无法提供建造师", "无法提供PMP", "社保未缴纳", "社保证明缺失",
+                "社保断缴", "社保不连续", "无法提供社保证明", "社保缺失", "暂无项目经理"
+            )
+            found_neg = False
+            for neg in negative_pm_triggers:
+                if neg in resp:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R13",
+                            code="TEAM_PROJECT_MANAGER_QUALIFICATION_MISSING",
+                            severity="blocker",
+                            message=f"拟派项目经理资质或社保响应存在实质性缺陷（{neg}）：{text[:50]}",
+                            requirement_id=req_id,
+                            details={"response": resp, "negative_trigger": neg},
+                        )
+                    )
+                    found_neg = True
+                    break
+
+            if found_neg:
+                continue
+
+            need_cert = any(c in text for c in ("执业资格", "注册证书", "建造师", "PMP", "证书扫描件", "社保证明"))
+            if need_cert:
+                evidence_ids = req.get("evidence_ids", [])
+                has_valid_cert = False
+                for eid in evidence_ids:
+                    ev = state.library.get(eid)
+                    if ev and ev.get("company_id") == project.company_id and ev.get("status") == "confirmed":
+                        ev_name = ev.get("name", "")
+                        ev_type = ev.get("type", "")
+                        if (
+                            ev_type in ("certificate", "personnel", "qualification", "evidence")
+                            or any(k in ev_name for k in ("建造师", "PMP", "证书", "执业", "资格", "社保", "人员"))
+                        ):
+                            has_valid_cert = True
+                            break
+
+                if not has_valid_cert:
+                    cid = req.get("chapter_id")
+                    chap = state.chapters.get(cid) if cid else None
+                    if chap and any(k in chap.content for k in ("[证", "证书编号", "建造师", "PMP", "执业资格")):
+                        has_valid_cert = True
+
+                if not has_valid_cert and ("必须" in text or "★" in text or "证明" in text or "提供" in text):
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R13",
+                            code="TEAM_PROJECT_MANAGER_QUALIFICATION_MISSING",
+                            severity="blocker",
+                            message=f"拟派项目经理执业资格证书或社保证明材料缺失，未挂接有效资质凭据：{text[:50]}",
+                            requirement_id=req_id,
+                        )
+                    )
+                    continue
+
+            if is_staffing_clause:
+                m_req_cnt = re.search(r"(?:不少于|至少|必须达到)\s*(\d+)\s*(?:人|名|位)", text)
+                m_resp_cnt = re.search(r"(?:配备|配置|派驻|投入|具有|拥有|共有)\s*(\d+)\s*(?:人|名|位)", resp)
+                if m_req_cnt and m_resp_cnt:
+                    req_cnt = int(m_req_cnt.group(1))
+                    resp_cnt = int(m_resp_cnt.group(1))
+                    if resp_cnt < req_cnt:
+                        issues.append(
+                            ComplianceRuleIssue(
+                                id=new_id("issue"),
+                                rule_id="R13",
+                                code="TEAM_STAFFING_THRESHOLD_UNMET",
+                                severity="blocker",
+                                message=f"拟派团队技术人员数量（{resp_cnt}人）低于招标文件要求的最低门槛（{req_cnt}人）：{text[:50]}",
+                                requirement_id=req_id,
+                                details={"resp_count": resp_cnt, "req_count": req_cnt},
+                            )
+                        )
+                elif any(w in resp for w in ("人数不足", "无法达到人数", "人员暂缺", "无法满足配备人数")):
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R13",
+                            code="TEAM_STAFFING_THRESHOLD_UNMET",
+                            severity="blocker",
+                            message=f"拟派团队人员数量响应表明无法满足招标文件人员配置门槛：{text[:50]}",
+                            requirement_id=req_id,
+                        )
+                    )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            "团队人员配置核验通过，拟派项目经理执业资格、注册证书、社保证明及团队专业人员配置门槛完全合规。"
+            if passed
+            else f"排查到 {len(issues)} 处团队人员配置缺陷（项目经理资质不符或团队人数未达标），构成阻断红线。"
+        )
+        suggestion = "核验通过" if passed else "请核验并补全拟派项目经理注册证书、执业资格与连续社保证明，确保团队人员数量满足招标文件强制门槛。"
+
+        return ComplianceRuleResult(
+            rule_id="R13",
+            title="团队人员配置核验（项目经理执业资格、持证人数门槛）",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked_count, "personnel_issues_count": len(issues)},
+        )
+
+    @classmethod
+    def check_r16(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R16：投标保证金与保函有效性核验。
+        核验投标保证金金额是否满足招标文件金额或比例要求、保函有效期是否覆盖投标有效期、
+        出账单位是否与投标主体完全一致；保证金不足或开具单位不一致判定为 blocker (BID_SECURITY_DEPOSIT_NON_COMPLIANT)。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        reqs = list(workflow.get("requirements", {}).values())
+        if volume != "all":
+            reqs = [r for r in reqs if r.get("volume") == volume]
+
+        checked_count = 0
+        deposit_keywords = ("保证金", "投标保证金", "投标保函", "保函", "投标担保")
+
+        for req in reqs:
+            text = str(req.get("text", "") or "")
+            resp = str(req.get("response", "") or "").strip()
+            req_id = req.get("id", "")
+
+            if not any(k in text for k in deposit_keywords):
+                continue
+
+            checked_count += 1
+
+            if not resp:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R16",
+                        code="BID_SECURITY_DEPOSIT_NON_COMPLIANT",
+                        severity="blocker",
+                        message=f"投标保证金/保函条款未填写响应内容：{text[:50]}",
+                        requirement_id=req_id,
+                    )
+                )
+                continue
+
+            if req.get("status") == "rejected":
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R16",
+                        code="BID_SECURITY_DEPOSIT_NON_COMPLIANT",
+                        severity="blocker",
+                        message=f"招标文件强制要求的投标保证金/保函条款被忽略：{text[:50]}",
+                        requirement_id=req_id,
+                    )
+                )
+                continue
+
+            deposit_triggers = {
+                "出账单位不符": "投标保证金出账单位与投标主体不一致，严禁第三方代缴代开",
+                "第三方代缴": "投标保证金出账单位与投标主体不一致，严禁第三方代缴代开",
+                "其他单位代开": "投标保证金由非本投标主体出账或开立，违反法定要求",
+                "非本单位账户": "投标保证金出账账户与投标主体账户不一致",
+                "金额不足": "投标保证金缴纳金额低于招标文件要求金额",
+                "未足额缴纳": "投标保证金未足额缴纳，存在保证金差额风险",
+                "保证金差额": "投标保证金未足额缴纳，存在保证金差额风险",
+                "保函提前到期": "投标保函有效期短于招标文件要求的投标有效期",
+                "有效期不足": "投标保函有效期未完全覆盖投标有效期",
+                "不可撤销保函缺失": "缺少不可撤销见索即付银行保函或担保文件",
+                "未缴纳": "未按招标文件规定缴纳投标保证金或提供有效保函",
+                "免交保证金申请被拒": "投标保证金未缴纳且免交依据不成立",
+            }
+            has_trigger = False
+            for trig, trig_msg in deposit_triggers.items():
+                if trig in resp:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R16",
+                            code="BID_SECURITY_DEPOSIT_NON_COMPLIANT",
+                            severity="blocker",
+                            message=f"{trig_msg}：{text[:50]}",
+                            requirement_id=req_id,
+                            details={"response": resp, "trigger": trig},
+                        )
+                    )
+                    has_trigger = True
+                    break
+
+            if has_trigger:
+                continue
+
+            def extract_amount(s: str) -> float | None:
+                m_wan = re.search(r"(\d+(?:\.\d+)?)\s*万(?:元|RMB|人民币)?", s)
+                if m_wan:
+                    return float(m_wan.group(1)) * 10000.0
+                m_yuan = re.search(r"(\d{4,10}(?:\.\d+)?)\s*(?:元|RMB|人民币)", s)
+                if m_yuan:
+                    return float(m_yuan.group(1))
+                return None
+
+            req_amt = extract_amount(text)
+            resp_amt = extract_amount(resp)
+            if req_amt is not None and resp_amt is not None:
+                if resp_amt < req_amt:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R16",
+                            code="BID_SECURITY_DEPOSIT_NON_COMPLIANT",
+                            severity="blocker",
+                            message=f"投标保证金响应缴纳金额（{resp_amt:.0f}元）低于招标文件要求金额（{req_amt:.0f}元）：{text[:50]}",
+                            requirement_id=req_id,
+                            details={"resp_amount": resp_amt, "req_amount": req_amt},
+                        )
+                    )
+                    continue
+
+            need_voucher = any(v in text for v in ("凭证", "保函", "回单", "汇款单", "电汇凭证", "收据"))
+            if need_voucher:
+                evidence_ids = req.get("evidence_ids", [])
+                has_voucher = False
+                for eid in evidence_ids:
+                    ev = state.library.get(eid)
+                    if ev and ev.get("status") == "confirmed":
+                        ev_name = ev.get("name", "")
+                        if any(v in ev_name for v in ("保函", "保证金", "凭证", "回单", "汇款", "收据")):
+                            has_voucher = True
+                            break
+
+                cid = req.get("chapter_id")
+                chap = state.chapters.get(cid) if cid else None
+                if chap and any(v in chap.content for v in ("保函", "保证金", "电汇凭据", "转账回单", "[证")):
+                    has_voucher = True
+
+                if not has_voucher and ("必须" in text or "★" in text or "原件" in text):
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R16",
+                            code="BID_SECURITY_DEPOSIT_NON_COMPLIANT",
+                            severity="blocker",
+                            message=f"投标保证金条款缺少缴纳转账凭单或银行保函证明附件：{text[:50]}",
+                            requirement_id=req_id,
+                        )
+                    )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            "投标保证金与保函有效性核验通过，保证金金额足额、出账主体一致且保函在有效期内。"
+            if passed
+            else f"排查到 {len(issues)} 处投标保证金合规缺陷（金额不足、出账单位不一致或保函有效期缺陷），构成阻断红线。"
+        )
+        suggestion = "核验通过" if passed else "请核查投标保证金银行回单或保函原件，确保出账主体为投标主体自身、金额足额且有效期覆盖投标有效期。"
+
+        return ComplianceRuleResult(
+            rule_id="R16",
+            title="投标保证金与保函有效性核验",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked_count, "deposit_issues_count": len(issues)},
+        )
+
+    @classmethod
+    def check_r18(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R18：联合体投标协议与资质认定核验。
+        若声明联合体投标，核验是否签署正式有效的联合体协议书、牵头人授权及各成员资质分工；
+        非联合体投标放行；若联合体协议缺失或资质不符判定为 blocker (CONSORTIUM_AGREEMENT_INVALID)。
+        """
+        issues: list[ComplianceRuleIssue] = []
+
+        partners = state.project_partners.get(project.id, [])
+        facts = workflow.get("facts", {})
+        is_consortium_declared = False
+
+        for fact in facts.values():
+            key = fact.get("key", "")
+            val = fact.get("value", "")
+            if any(k in key for k in ("联合体", "是否联合体", "投标形式")):
+                if any(v in val for v in ("是", "联合体", "联合体投标", "由联合体")):
+                    is_consortium_declared = True
+                elif any(v in val for v in ("否", "非联合体", "独立投标", "单独投标")):
+                    is_consortium_declared = False
+                    break
+
+        if partners:
+            is_consortium_declared = True
+
+        reqs = list(workflow.get("requirements", {}).values())
+        if volume != "all":
+            reqs = [r for r in reqs if r.get("volume") == volume]
+
+        for req in reqs:
+            text = str(req.get("text", "") or "")
+            resp = str(req.get("response", "") or "").strip()
+            if "联合体" in text or "联合体" in resp:
+                if any(v in resp for v in ("非联合体", "独立投标", "单独投标", "不采用联合体", "不以联合体", "独立投标人")):
+                    continue
+                if any(k in resp for k in ("联合体", "成员", "牵头", "协议", "分工")):
+                    is_consortium_declared = True
+
+        if not is_consortium_declared:
+            return ComplianceRuleResult(
+                rule_id="R18",
+                title="联合体投标协议与资质认定核验",
+                severity="info",
+                passed=True,
+                finding_summary="本项目为独立投标人投标，不适用联合体投标协议与资质分工核验。",
+                suggestion="核验通过（非联合体投标放行）",
+                issues=[],
+                details={"is_consortium": False},
+            )
+
+        for idx, partner in enumerate(partners, start=1):
+            p_name = partner.get("partner_name") or f"联合体成员{idx}"
+            agree_id = partner.get("agreement_attachment_id") or partner.get("agreement_id")
+            if not agree_id or not str(agree_id).strip():
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R18",
+                        code="CONSORTIUM_AGREEMENT_INVALID",
+                        severity="blocker",
+                        message=f"联合体成员「{p_name}」缺少正式有效的联合体投标协议书签署附件",
+                        details={"partner_index": idx, "partner_name": p_name},
+                    )
+                )
+
+        has_lead = any(
+            partner.get("is_lead") is True or partner.get("role") in ("lead", "牵头人", "牵头方")
+            for partner in partners
+        )
+        if partners and not has_lead:
+            issues.append(
+                ComplianceRuleIssue(
+                    id=new_id("issue"),
+                    rule_id="R18",
+                    code="CONSORTIUM_AGREEMENT_INVALID",
+                    severity="blocker",
+                    message="联合体投标各成员未明确牵头人地位或缺少牵头方书面授权证明",
+                    details={"partners_count": len(partners)},
+                )
+            )
+
+        invalid_triggers = (
+            "协议缺失", "缺少联合体协议", "尚未正式签署", "未签署完毕", "未签署协议", "未盖章",
+            "资质不足", "资质不全", "分工未定", "牵头人未授权", "牵头人不明确", "更换联合体成员", "分包变更"
+        )
+
+        for req in reqs:
+            text = str(req.get("text", "") or "")
+            resp = str(req.get("response", "") or "").strip()
+            if "联合体" not in text and "联合体" not in resp:
+                continue
+
+            for trig in invalid_triggers:
+                if trig in resp:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R18",
+                            code="CONSORTIUM_AGREEMENT_INVALID",
+                            severity="blocker",
+                            message=f"联合体协议响应存在重大合规缺陷（{trig}）：{text[:50]}",
+                            requirement_id=req.get("id"),
+                            details={"response": resp, "trigger": trig},
+                        )
+                    )
+                    break
+
+            # 若声称联合体但未挂接联合体协议材料，且无 partners
+            if not partners and not any(trig in resp for trig in invalid_triggers):
+                evidence_ids = req.get("evidence_ids", [])
+                has_agreement = any(
+                    any(k in state.library.get(eid, {}).get("name", "") for k in ("联合体", "协议"))
+                    for eid in evidence_ids
+                )
+                if not has_agreement:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R18",
+                            code="CONSORTIUM_AGREEMENT_INVALID",
+                            severity="blocker",
+                            message=f"联合体投标缺少正式签署盖章的联合体协议书扫描件：{text[:50]}",
+                            requirement_id=req.get("id"),
+                        )
+                    )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            "联合体投标协议与资质认定核验通过，协议齐全、牵头人授权明确且分工资质符合要求。"
+            if passed
+            else f"排查到 {len(issues)} 处联合体投标合规缺陷（协议缺失、牵头人未授权或分工资质不足），构成阻断红线。"
+        )
+        suggestion = "核验通过" if passed else "请补充上传各方盖章的联合体协议书原件扫描件，明确牵头人法定授权及各成员责任分工与对应资质证明。"
+
+        return ComplianceRuleResult(
+            rule_id="R18",
+            title="联合体投标协议与资质认定核验",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"is_consortium": True, "partners_count": len(partners), "issues_count": len(issues)},
+        )
+
+    @classmethod
+    def check_r24(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R24：响应格式排版与强制表单签名盖章完整性核验。
+        核验法定代表人或授权委托人签字盖章页、投标函等关键法定表单的签名盖章完整性；
+        缺少签名或盖章占位标记判定为 blocker (MANDATORY_SEAL_SIGNATURE_MISSING)。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        checked_count = 0
+
+        chapters = [c for c in state.chapters.values() if c.project_id == project.id]
+        if volume != "all":
+            chapters = [c for c in chapters if c.volume == volume]
+
+        form_keywords = ("投标函", "法定代表人身份证明", "授权委托书", "签署页", "签字盖章页", "承诺书", "投标声明")
+        valid_seal_markers = (
+            "(盖章)", "（盖章）", "[公章]", "【公章】", "[盖章]", "(公章)", "（公章）",
+            "(签字)", "（签字）", "[签名]", "[法定代表人签字]", "（法定代表人签字）", "(法定代表人签字)",
+            "电子签名", "电子印章", "CA签章", "已盖章", "已签名", "法定代表人签字或盖章"
+        )
+        missing_seal_triggers = (
+            "(未盖章)", "（未盖章）", "未盖公章", "[未签名]", "(未签名)", "（未签名）",
+            "未签字", "未附签字", "签名缺失", "印章缺失", "待盖章", "待签字", "印章未齐", "无签字"
+        )
+
+        for chap in chapters:
+            title = chap.title or ""
+            content = chap.content or ""
+            is_statutory_form = any(k in title for k in form_keywords)
+
+            if not is_statutory_form:
+                continue
+
+            checked_count += 1
+
+            if not content.strip():
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R24",
+                        code="MANDATORY_SEAL_SIGNATURE_MISSING",
+                        severity="blocker",
+                        message=f"法定关键表单「{title}」正文为空，缺少必要签名盖章与承诺声明",
+                        chapter_id=chap.id,
+                    )
+                )
+                continue
+
+            has_explicit_missing = False
+            for trig in missing_seal_triggers:
+                if trig in content:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R24",
+                            code="MANDATORY_SEAL_SIGNATURE_MISSING",
+                            severity="blocker",
+                            message=f"法定关键表单「{title}」存在未盖章或未签字标记（{trig}）",
+                            chapter_id=chap.id,
+                            details={"trigger": trig},
+                        )
+                    )
+                    has_explicit_missing = True
+                    break
+
+            if has_explicit_missing:
+                continue
+
+            if any(k in title for k in ("投标函", "授权委托书", "签署页")):
+                has_marker = any(m in content for m in valid_seal_markers)
+                if not has_marker:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R24",
+                            code="MANDATORY_SEAL_SIGNATURE_MISSING",
+                            severity="blocker",
+                            message=f"法定关键表单「{title}」缺少法定代表人签字或单位公章占位标记",
+                            chapter_id=chap.id,
+                        )
+                    )
+
+        reqs = list(workflow.get("requirements", {}).values())
+        if volume != "all":
+            reqs = [r for r in reqs if r.get("volume") == volume]
+
+        for req in reqs:
+            text = str(req.get("text", "") or "")
+            resp = str(req.get("response", "") or "").strip()
+            if any(k in text for k in ("签字并加盖公章", "法定代表人签字", "法人签字", "加盖单位公章", "签字盖章")):
+                checked_count += 1
+                if any(m in resp for m in missing_seal_triggers) or (req.get("status") == "confirmed" and not resp):
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R24",
+                            code="MANDATORY_SEAL_SIGNATURE_MISSING",
+                            severity="blocker",
+                            message=f"签名盖章强制条款响应存在缺失标记：{text[:50]}",
+                            requirement_id=req.get("id"),
+                        )
+                    )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            "响应格式排版与强制表单签名盖章完整性核验通过，投标函、授权委托书及签署页印章与签名规范齐全。"
+            if passed
+            else f"排查到 {len(issues)} 处签名盖章完整性缺陷（缺少法人签字、公章标记或存在未盖章占位），构成阻断红线。"
+        )
+        suggestion = "核验通过" if passed else "请补全投标函、法定代表人身份证明与授权委托书的法定代表人和授权人签名，并加盖公章标记。"
+
+        return ComplianceRuleResult(
+            rule_id="R24",
+            title="响应格式排版与强制表单签名盖章完整性核验",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked_count, "seal_issues_count": len(issues)},
+        )
+
+    @classmethod
+    def check_r32(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R32：投标有效期与承诺不可撤销性核验。
+        核验投标函中承诺的投标有效期是否小于招标文件规定的日历天数（如 90 天）；
+        承诺有效期缩水或附带可撤销条件判定为重大负偏离 blocker (BID_VALIDITY_PERIOD_DEFICIENT)。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        checked_count = 0
+
+        facts = workflow.get("facts", {})
+        reqs = list(workflow.get("requirements", {}).values())
+        if volume != "all":
+            reqs = [r for r in reqs if r.get("volume") == volume]
+
+        req_validity_days: int | None = None
+        for fact in facts.values():
+            key = fact.get("key", "")
+            val = fact.get("value", "")
+            if "投标有效期" in key:
+                m = re.search(r"(\d+)\s*(?:个?日历天|天|日)?", val)
+                if m:
+                    req_validity_days = int(m.group(1))
+                    break
+
+        if req_validity_days is None:
+            for req in reqs:
+                text = str(req.get("text", "") or "")
+                if "投标有效期" in text:
+                    m = re.search(r"(\d+)\s*(?:个?日历天|天|日)", text)
+                    if m:
+                        req_validity_days = int(m.group(1))
+                        break
+
+        for req in reqs:
+            text = str(req.get("text", "") or "")
+            resp = str(req.get("response", "") or "").strip()
+            req_id = req.get("id", "")
+
+            if "投标有效期" not in text and "不可撤销" not in text:
+                continue
+
+            checked_count += 1
+
+            if not resp:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R32",
+                        code="BID_VALIDITY_PERIOD_DEFICIENT",
+                        severity="blocker",
+                        message=f"投标有效期条款未填写响应承诺内容：{text[:50]}",
+                        requirement_id=req_id,
+                    )
+                )
+                continue
+
+            revocable_triggers = (
+                "可撤销", "可撤回", "有权撤回", "附条件承诺", "附带撤销条件",
+                "保留修改权利", "非不可撤销", "有效期不足", "提前失效", "缩短有效期"
+            )
+            has_revocable = False
+            for trig in revocable_triggers:
+                if trig in resp:
+                    idx = resp.find(trig)
+                    prefix = resp[max(0, idx - 6):idx]
+                    if not any(neg in prefix for neg in ("未", "无", "不", "免", "非", "零", "排除")):
+                        issues.append(
+                            ComplianceRuleIssue(
+                                id=new_id("issue"),
+                                rule_id="R32",
+                                code="BID_VALIDITY_PERIOD_DEFICIENT",
+                                severity="blocker",
+                                message=f"投标有效期响应包含可撤销或违规附条件条款（{trig}），违背承诺不可撤销性红线：{text[:50]}",
+                                requirement_id=req_id,
+                                details={"response": resp, "trigger": trig},
+                            )
+                        )
+                        has_revocable = True
+                        break
+
+            if has_revocable:
+                continue
+
+            if req_validity_days is not None:
+                m_prom = re.search(r"(\d+)\s*(?:个?日历天|天|日)", resp)
+                if m_prom:
+                    prom_days = int(m_prom.group(1))
+                    if prom_days < req_validity_days:
+                        issues.append(
+                            ComplianceRuleIssue(
+                                id=new_id("issue"),
+                                rule_id="R32",
+                                code="BID_VALIDITY_PERIOD_DEFICIENT",
+                                severity="blocker",
+                                message=f"承诺投标有效期（{prom_days}日历天）少于招标文件要求的有效期限（{req_validity_days}日历天），构成重大负偏离阻断项：{text[:50]}",
+                                requirement_id=req_id,
+                                details={"prom_days": prom_days, "req_validity_days": req_validity_days},
+                            )
+                        )
+
+        chapters = [c for c in state.chapters.values() if c.project_id == project.id]
+        if volume != "all":
+            chapters = [c for c in chapters if c.volume == volume]
+
+        for chap in chapters:
+            if "投标函" in chap.title:
+                content = chap.content or ""
+                checked_count += 1
+                for trig in ("可撤销", "附带撤回条件", "有效期不足", "可提前终止"):
+                    if trig in content:
+                        idx = content.find(trig)
+                        prefix = content[max(0, idx - 6):idx]
+                        if not any(neg in prefix for neg in ("未", "无", "不", "免", "非", "零", "排除")):
+                            issues.append(
+                                ComplianceRuleIssue(
+                                    id=new_id("issue"),
+                                    rule_id="R32",
+                                    code="BID_VALIDITY_PERIOD_DEFICIENT",
+                                    severity="blocker",
+                                    message=f"投标函正文中包含可撤销承诺或撤回条款（{trig}）",
+                                    chapter_id=chap.id,
+                                    details={"trigger": trig},
+                                )
+                            )
+
+                if req_validity_days is not None:
+                    m_chap_days = re.search(r"投标有效期\s*[:：为]?\s*(\d+)\s*(?:个?日历天|天|日)", content)
+                    if m_chap_days:
+                        chap_days = int(m_chap_days.group(1))
+                        if chap_days < req_validity_days:
+                            issues.append(
+                                ComplianceRuleIssue(
+                                    id=new_id("issue"),
+                                    rule_id="R32",
+                                    code="BID_VALIDITY_PERIOD_DEFICIENT",
+                                    severity="blocker",
+                                    message=f"投标函正文承诺投标有效期（{chap_days}日历天）少于招标文件要求（{req_validity_days}日历天），构成负偏离重大违规",
+                                    chapter_id=chap.id,
+                                    details={"chap_days": chap_days, "req_validity_days": req_validity_days},
+                                )
+                            )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            "投标有效期与承诺不可撤销性核验通过，承诺投标有效期完全覆盖招标文件规定期限且承诺严格不可撤回。"
+            if passed
+            else f"排查到 {len(issues)} 处投标有效期违规缺陷（承诺有效期限缩水或附带撤销条件），构成阻断红线。"
+        )
+        suggestion = "核验通过" if passed else "请修正投标函中关于投标有效期的表述，承诺期限不得低于招标文件要求（如90日历天），并删除可撤销前提声明。"
+
+        return ComplianceRuleResult(
+            rule_id="R32",
+            title="投标有效期与承诺不可撤销性核验",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked_count, "validity_issues_count": len(issues)},
+        )
+
+    @classmethod
     def evaluate_p0_rules(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
     ) -> list[ComplianceRuleResult]:
@@ -3394,15 +4205,29 @@ class ComplianceRulesEngine:
         ]
 
     @classmethod
+    def evaluate_p4_rules(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> list[ComplianceRuleResult]:
+        """按顺序完整执行 PRD P4 级核心合规规则体系（R13, R16, R18, R24, R32）。"""
+        return [
+            cls.check_r13(state, project, workflow, volume=volume),
+            cls.check_r16(state, project, workflow, volume=volume),
+            cls.check_r18(state, project, workflow, volume=volume),
+            cls.check_r24(state, project, workflow, volume=volume),
+            cls.check_r32(state, project, workflow, volume=volume),
+        ]
+
+    @classmethod
     def evaluate_all(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
     ) -> list[ComplianceRuleResult]:
-        """执行当前系统已落地的全部合规规则体系（P0、P1、P2 与 P3 批次共 21 项规则）。"""
+        """执行当前系统已落地的全部合规规则体系（P0、P1、P2、P3 与 P4 批次共 26 项规则）。"""
         return (
             cls.evaluate_p0_rules(state, project, workflow, volume=volume, now_ts=now_ts)
             + cls.evaluate_p1_rules(state, project, workflow, volume=volume, now_ts=now_ts)
             + cls.evaluate_p2_rules(state, project, workflow, volume=volume, now_ts=now_ts)
             + cls.evaluate_p3_rules(state, project, workflow, volume=volume, now_ts=now_ts)
+            + cls.evaluate_p4_rules(state, project, workflow, volume=volume, now_ts=now_ts)
         )
 
 

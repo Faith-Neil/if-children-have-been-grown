@@ -644,6 +644,22 @@
 
 范围：在 `backend/bid-core/icg/domain/compliance_rules.py` 中扩充落地 R05（财务指标核验：资产负债率、净利润连续性）、R06（业绩案例核验：合同金额、类似项目与签字盖章页）、R08（交付周期与进度计划偏离核验）、R12（服务响应 SLA 与质保期偏离核验）、R20（报价雷同排查：分项报价比例与异常一致性排查）规则判定；并在 `export_service.py` 确保在正式递交版导出时存在任一 blocker 缺陷严格返回 400 `CHECK_BLOCKER_EXISTS`；编写专属单测 `tests/backend/test_compliance_rules_p3.py`。
 
+<a id="be-compliance-rules-p4"></a>
+
+## BE-COMPLIANCE-RULES-P4 · 核心合规规则第五批编号落地（R13/R16/R18/R24/R32）
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 4小时以内；PRD 第五批核心合规规则结构化落地与导出门禁联动 |
+| 关联 Issue | [ISSUE-006](../../issues/ISSUE-006.md)、[ISSUE-007](../../issues/ISSUE-007.md)、[ISSUE-027](../../issues/ISSUE-027.md) |
+| 依赖 | [BE-COMPLIANCE-RULES-P3](BE-M0.md#be-compliance-rules-p3) |
+| 来源 | PRD v1.8 §5.8 第五批核心合规规则定义 |
+| 完成时交付 | [BE-COMPLIANCE-RULES-P4 交付报告](../delivery/BE-COMPLIANCE-RULES-P4.md) |
+| 代码解释 | [BE-COMPLIANCE-RULES-P4 代码说明](../code/BE-COMPLIANCE-RULES-P4.md) |
+
+范围：在 `backend/bid-core/icg/domain/compliance_rules.py` 中扩充落地 R13（团队人员配置核验：项目经理执业资格、持证人数门槛）、R16（投标保证金与保函有效性核验）、R18（联合体投标协议与资质认定核验）、R24（响应格式排版与强制表单签名盖章完整性核验）、R32（投标有效期与承诺不可撤销性核验）规则判定；并在 `export_service.py` 确保在正式递交版导出时存在任一 blocker 缺陷严格返回 400 `CHECK_BLOCKER_EXISTS`；编写专属单测 `tests/backend/test_compliance_rules_p4.py`。
+
 <a id="int-app-slim-routing"></a>
 
 ## INT-APP-SLIM-ROUTING · 路由分层与平台管理员脱敏长任务全链路联调
@@ -685,3 +701,23 @@
 3. 多租户与非演示模式（VITE_DEMO=0）下 8 大标准 RBAC 角色字段字典 editable 权限自适应（只读系统角色封退 editable=False，写作者保留可编辑）；
 4. 编写专属自动化测试 `tests/backend/test_status_tag_metadata_glue.py` 并全绿通过。
 
+<a id="int-dict-config-rbac-glue"></a>
+
+## INT-DICT-CONFIG-RBAC-GLUE · 字典配置与元数据停用/角色权限端到端契约联调
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 4小时；字典配置CRUD、在用代码停用保护红线、代码重复校验与8角色RBAC联调 |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md)、[ISSUE-038](../../issues/ISSUE-038.md) |
+| 依赖 | [INT-STATUS-TAG-METADATA-GLUE](BE-M0.md#int-status-tag-metadata-glue)、[APP-M2-T024](APP-M2.md#app-m2-t024) |
+| 来源 | PRD v1.8 §5.10.3 状态标签注册表、§6.9 数据字典与代码表管理 |
+| 完成时交付 | [INT-DICT-CONFIG-RBAC-GLUE 交付报告](../delivery/INT-DICT-CONFIG-RBAC-GLUE.md) |
+| 代码解释 | [INT-DICT-CONFIG-RBAC-GLUE 代码说明](../code/INT-DICT-CONFIG-RBAC-GLUE.md) |
+
+范围：打通前端 A-03 字典配置页与后端 `/api/v1/metadata/dict/*` 契约胶水层：
+1. 角色权限门禁端到端核验：平台管理员（platform_admin）与公司管理员（company_admin）具备写操作权限，非管理员角色（bid_writer, project_lead, viewer, auditor）发起写操作严格拦截 403 FORBIDDEN；
+2. 核心规则红线落地：系统内置核心代码或已在业务中引用的代码坚决禁止硬删除，拦截 409 DICT_ITEM_IN_USE，仅可停用；同分类下重复代码拦截 409 DICT_CODE_DUPLICATED；
+3. 启停用正常生命周期与过滤查询（is_disabled: true/false）；
+4. 提供前端类型化 API 交互胶水层 `dict-config-api.ts` 与 OpenAPI 契约 0 漂移；
+5. 编写专属端到端自动化测试 `tests/backend/test_dict_config_rbac_glue.py` 并全绿通过。

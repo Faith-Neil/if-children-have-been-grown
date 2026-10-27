@@ -427,3 +427,50 @@
 状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。
 
 
+
+
+<a id="ai-outline-auto-tree-build"></a>
+
+## AI-OUTLINE-AUTO-TREE-BUILD · 招标文件解析驱动的大纲树自动规划构建引擎
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 落实招标文件需求矩阵自动分类对齐、两卷多层级大纲树与规范编号（卷/章/节/子节）、评分要点挂接与结构化写作要点生成、条款防编造校验、涉密本地模型门禁与定稿就绪检查 |
+| 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [AI-OUTLINE-GENERATE-EXPAND](AI-M0.md#ai-outline-generate-expand) |
+| PRD / 架构出处 | [PRD v1.8 §5.7.1、§5.7.2](../reference/product/prd-mvp-v1.8.md)；[APP-M2-T126](APP-M2.md#app-m2-t126) |
+| 完成时交付 | [AI-OUTLINE-AUTO-TREE-BUILD 交付](../delivery/AI-OUTLINE-AUTO-TREE-BUILD.md) |
+| 代码解释 | [AI-OUTLINE-AUTO-TREE-BUILD 代码说明](../code/AI-OUTLINE-AUTO-TREE-BUILD.md) |
+
+范围：在 `backend/bid-core/icg/domain/outline_auto_tree.py`、`outline_plan.py`、`outline_orchestrator.py`、`outline_service.py` 与 `backend/bid-core/icg/api/workflow.py` 中落地招标文件解析驱动的大纲树自动规划构建引擎：
+1. 结构化大纲树自动衍生与规范编号：基于解析出的招标文件需求矩阵，自动推导构建两卷官方投标大纲层级结构（第一卷 商务标 / 第二卷 技术标 Level 0 卷、第一章 / 1.0 Level 1 章/编、1.1 / 1.2 Level 2 叶子节、1.1.1 Level 3 子节）；
+2. 智能条款分类与两册对齐映射：商务资质/财务审计/同类业绩对齐至商务卷，总体架构/高可用双活/实施交付SLA/安全合规对齐至技术卷，偏离表与应答清单对齐至系统类章节，实现 100% 零未映射条款；
+3. 评分要点挂接与结构化编写要点生成：为叶子章节自动挂接真实条款 ID（`bound_requirement_ids` 与 `associated_clause_ids`）、分值（`score`）、评分标准（`scoring_criteria`）、星号条款（★）与废标红线，动态加权计算建议目标字数（`target_length`，800~3000 字），合成标准结构化编写要点（`writing_points`）；
+4. 条款防编造防幻觉白名单校验：挂接条款严格核验是否存在于解析矩阵中，虚构条款抛出 422 `INVALID_REQUIREMENT_REFERENCE`；
+5. 多租户强隔离与 RBAC 权限门禁：跨租户项目拦截 404 `NOT_FOUND`，系统只读角色与项目只读成员拦截 403 `FORBIDDEN`；
+6. 涉密项目本地模型门禁：敏感项目（`sensitive=True`）模型规划硬门禁拦截云端模型（403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`）；
+7. 预览与单事务原子持久化双模式：支持 `preview=True` 纯内存推导与 `preview=False` 单事务原子更新章节（`state.chapters`）、回写需求矩阵映射（`requirement["chapter_id"]`）、排序与元数据推进；
+8. 大纲定稿锁定前置就绪检查：核验大纲完整性、分册覆盖度、零未映射条款与星号条款合规；
+9. HTTP API 端点集成：注册 `POST /api/v1/projects/{project_id}/outline/auto-tree-build`（`include_in_schema=False` 保障 OpenAPI 契约 100% 零漂移）。
+
+当前条件：自动化回归测试全绿通过（专属测试 11 passed，回归套件 50 passed，AI 全量 56 passed）。端到端闭环逻辑通过。
+
+可验证验收：
+- [x] 多层级大纲树自动推导：卷（Level 0）、章（Level 1）、节（Level 2）标准层级衍生与规范编号；
+- [x] 需求矩阵智能分类分册对齐：商务资质、技术架构、实施服务、安全合规、偏离表精准对齐，零未映射条款；
+- [x] 评分要点挂接与写作指引合成：真实条款 ID 挂接、分值汇总、星号（★）/废标标记识别与结构化 `writing_points` 组装；
+- [x] 条款防编造白名单核验：传入虚构未核实条款 ID 精确拦截 422 `INVALID_REQUIREMENT_REFERENCE`；
+- [x] 多租户强隔离门禁：跨公司项目操作精确拦截 404 `NOT_FOUND`；
+- [x] RBAC 权限门禁：只读角色与项目只读成员拦截 403 `FORBIDDEN`；
+- [x] 涉密项目本地模型门禁：敏感项目调用外部云端模型拦截 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`，本地模型放行；
+- [x] 预览与单事务原子持久化：`preview=True` 纯内存推导，持久化模式原子落盘章节、矩阵映射与版本自增；
+- [x] 大纲定稿就绪诊断检查：零未映射条款、空章节与星号条款合规阻断诊断准确；
+- [x] HTTP API 端点集成：`POST /api/v1/projects/{project_id}/outline/auto-tree-build` 端到端调用成功；
+- [x] 专属自动化测试套件 `pytest tests/backend/test_ai_outline_auto_tree_build.py -v` 执行全过（11 passed）；
+- [x] 大纲与工作流全套回归测试 `pytest tests/backend/test_outline_*.py ...` 执行全过（50 passed）；
+- [x] 全量 AI 核心联合测试回归全绿（56 passed）；
+- [x] OpenAPI 契约校验 `python backend/bid-core/export_openapi.py --check` 100% 一致；
+- [x] 交付文档、代码说明、任务卡与任务看板同步更新。
+
+状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。

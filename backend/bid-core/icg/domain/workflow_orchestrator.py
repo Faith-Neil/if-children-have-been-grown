@@ -71,7 +71,8 @@ class WorkflowService(
         "pending-markers", "two-volumes", "input-fingerprint", "export-permission",
         "sla-values-and-capability-subset", "sla-variables-and-labelled-numbers-subset",
         "R01", "R02", "R03", "R04", "R05", "R06", "R07", "R08", "R09", "R10",
-        "R11", "R12", "R14", "R15", "R20", "R23", "R25", "R31", "R34", "R35", "R37",
+        "R11", "R12", "R13", "R14", "R15", "R16", "R18", "R20", "R23", "R24",
+        "R25", "R31", "R32", "R34", "R35", "R37",
     ]
     UNIMPLEMENTED_RULES = [
         "参考合规规则尚未逐条完成（按一期完整/一期简化/二期分组）", "语义事实与承诺核对",

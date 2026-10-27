@@ -11,6 +11,7 @@ import { projectPath } from './app-route';
 import {
   LazyAuditLogPage as AuditLogPage,
   LazyCompanyManagePage as CompanyManagePage,
+  LazyDictConfigPage as DictConfigPage,
   LazyJobsPage as JobsPage,
   LazyLibraryPage as LibraryPage,
   LazyPendingPage as PendingPage,
@@ -170,6 +171,17 @@ export function GlobalPagesContent({
                     <CompanyManagePage
                       session={session}
                       currentUser={currentUser}
+                    />
+                  ),
+                },
+                {
+                  key: 'dict',
+                  label: 'A-03 字典配置',
+                  children: (
+                    <DictConfigPage
+                      session={session}
+                      currentUser={currentUser}
+                      onNavigate={onRequestPath}
                     />
                   ),
                 },

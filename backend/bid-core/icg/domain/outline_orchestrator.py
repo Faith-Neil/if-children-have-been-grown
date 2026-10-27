@@ -29,6 +29,7 @@ from icg.domain.project_access import (
     writable,
 )
 from icg.domain.outline_plan import infer_chapter_type
+from icg.domain.outline_auto_tree import check_tree_finalization_readiness
 
 
 class OutlineOrchestratorMixin:
@@ -51,6 +52,19 @@ class OutlineOrchestratorMixin:
             plan_data=plan_data,
             principal=principal,
             volume_id=volume_id,
+        )
+
+    def auto_build_outline_tree(
+        self,
+        principal: Principal,
+        project_id: str,
+        options: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """招标文件解析驱动的大纲树自动规划构建入口。"""
+        return self.outline.auto_build_outline_tree(
+            project_id=project_id,
+            principal=principal,
+            options=options,
         )
 
     def plan(self, principal, project_id, payload, expected, key):
@@ -332,44 +346,48 @@ class OutlineOrchestratorMixin:
         order_map = {cid: idx for idx, cid in enumerate(workflow.get("chapter_order", []))}
         chapters = [c for c in state.chapters.values() if c.project_id == project_id and (volume == "all" or c.volume == volume)]
         chapters.sort(key=lambda c: order_map.get(c.id, len(order_map)))
+        outline_plans = workflow.get("outline_plans", {})
+        requirements = list(workflow.get("requirements", {}).values())
 
         tree_nodes = []
         for idx, c in enumerate(chapters, start=1):
-            sec_num = f"{idx}.0"
+            meta = outline_plans.get(c.id, {})
+            sec_num = meta.get("section_number") or f"{idx}.0"
+            matched_reqs = [r for r in requirements if r.get("chapter_id") == c.id]
+            bound_ids = meta.get("bound_requirement_ids") or [r["id"] for r in matched_reqs]
+            has_asterisk = meta.get("has_asterisk") if "has_asterisk" in meta else any(
+                r.get("mandatory") or r.get("asterisk") or "★" in r.get("clause", "") for r in matched_reqs
+            )
+            has_disqualified = meta.get("has_disqualified") if "has_disqualified" in meta else any(
+                r.get("disqualified") or "废标" in r.get("clause", "") for r in matched_reqs
+            )
+
             tree_nodes.append({
                 "id": c.id,
+                "chapter_id": c.id,
                 "title": c.title,
                 "volume": c.volume,
                 "section_number": sec_num,
+                "level": meta.get("level", 2 if "." in sec_num and not sec_num.endswith(".0") else 1),
+                "chapter_type": meta.get("chapter_type") or infer_chapter_type(c.title),
+                "system_subtype": meta.get("system_subtype"),
                 "has_content": bool(c.content.strip()),
                 "has_pending": "待补" in c.content,
                 "assignee_id": getattr(c, "assignee_id", None),
                 "versions_count": len(getattr(c, "versions", [])),
+                "bound_requirement_ids": bound_ids,
+                "associated_clause_ids": bound_ids,
+                "has_asterisk": has_asterisk,
+                "has_disqualified": has_disqualified,
+                "is_mandatory": has_asterisk or has_disqualified,
+                "writing_points": meta.get("writing_points", ""),
+                "target_length": meta.get("target_length"),
             })
         return tree_nodes
 
     def check_outline_finalization_readiness(self, state: DemoState, project_id: str, volume: str) -> dict[str, Any]:
         """核验大纲是否满足分册定稿锁定的前置要求。"""
-        workflow = state.workflows.get(project_id, {})
-        chapters = [c for c in state.chapters.values() if c.project_id == project_id and c.volume == volume]
-        plan_ready = bool(workflow.get("plan_confirmed") and plan_is_current(state, project_id))
-
-        empty_chapters = [c.title for c in chapters if not c.content.strip()]
-        pending_chapters = [c.title for c in chapters if "待补" in c.content]
-        unmapped_reqs = [
-            r["id"] for r in workflow.get("requirements", {}).values()
-            if r.get("volume") == volume and r.get("status") != "rejected" and not r.get("chapter_id")
-        ]
-
-        ready = plan_ready and not empty_chapters and not pending_chapters and not unmapped_reqs
-        return {
-            "volume": volume,
-            "ready": ready,
-            "plan_confirmed": plan_ready,
-            "empty_chapters": empty_chapters,
-            "pending_chapters": pending_chapters,
-            "unmapped_requirements_count": len(unmapped_reqs),
-        }
+        return check_tree_finalization_readiness(state, project_id, volume)
 
 
 class OutlineOrchestrator(OutlineOrchestratorMixin):

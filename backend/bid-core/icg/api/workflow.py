@@ -376,5 +376,20 @@ def include_workflow_routes(application, service, current_user, parser):
             snippet_matches_by_chapter=body.snippet_matches_by_chapter,
         )
 
+    @router.post(
+        "/projects/{project_id}/outline/auto-tree-build",
+        include_in_schema=False,
+    )
+    def auto_build_outline_tree_endpoint(
+        project_id: str,
+        options: dict | None = None,
+        user: Principal = Depends(current_user),
+    ):
+        return workflow.auto_build_outline_tree(
+            principal=user,
+            project_id=project_id,
+            options=options,
+        )
+
     application.include_router(router)
     include_recoverable_routes(application, workflow, current_user)

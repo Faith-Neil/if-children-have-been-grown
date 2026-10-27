@@ -14,6 +14,7 @@ from typing import Any, Callable
 from .domain import Chapter, DemoService, DemoState, DomainError, Principal, Project, iso_time, new_id
 from .generation_context import chapter_plan, writing_source_fingerprint
 from .project_access import READONLY_SYSTEM_ROLES, lead, member, normalize_role, volume_owner, writable
+from .outline_auto_tree import AutoTreeBuildEngine, check_tree_finalization_readiness
 
 
 class OutlinePlanError(DomainError):
@@ -349,3 +350,202 @@ class OutlinePlanService:
             }
 
         return self.repository.transaction(transaction_operation)
+
+    def auto_build_outline_tree(
+        self,
+        project_id: str,
+        principal: Principal | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """招标文件解析驱动的大纲树自动规划构建入口。
+
+        支持：
+        - 多租户强隔离门禁（404 NOT_FOUND）；
+        - RBAC 角色门禁（403 FORBIDDEN，只读角色拦截）；
+        - 涉密项目本地模型门禁（403 SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL）；
+        - 条款防编造校验（422 INVALID_REQUIREMENT_REFERENCE）；
+        - 完整层级编号衍生（第一卷、第一章、1.1、1.1.1）；
+        - 评分要点与写作指引自动挂接（bound_requirement_ids, writing_points）；
+        - 单事务原子更新或 preview 模式返回。
+        """
+        if principal is None:
+            raise DomainError(401, "UNAUTHENTICATED", "未登录或会话无效。")
+
+        options = options or {}
+        preview = bool(options.get("preview", False))
+
+        def transaction_operation(state: DemoState) -> dict[str, Any]:
+            # 1. 租户隔离校验
+            project = state.projects.get(project_id)
+            if project is None or project.company_id != principal.user.company_id:
+                raise DomainError(404, "NOT_FOUND", "项目不存在或当前公司无权访问。")
+
+            # 2. 权限校验
+            norm_role = normalize_role(principal.user.role)
+            if norm_role in READONLY_SYSTEM_ROLES:
+                raise DomainError(403, "FORBIDDEN", "只读角色无权构建或规划大纲树。")
+
+            user_member = member(state, project_id, principal.user.id)
+            if user_member is None:
+                raise DomainError(403, "FORBIDDEN", "非本项目成员无权操作大纲方案。")
+            if user_member.get("project_role") == "readonly":
+                raise DomainError(403, "FORBIDDEN", "项目只读成员无权构建或规划大纲树。")
+
+            # 3. 涉密项目硬门禁检查
+            if project.sensitive:
+                use_ai = options.get("use_ai_model", False)
+                if use_ai:
+                    bound_id = state.project_model_configs.get(project_id)
+                    is_local = False
+                    if bound_id and bound_id in state.model_configs:
+                        is_local = bool(state.model_configs[bound_id].is_local)
+                    elif hasattr(self.demo, "model_provider"):
+                        is_local = getattr(self.demo.model_provider, "is_local", False)
+                    if not is_local:
+                        raise DomainError(
+                            403,
+                            "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
+                            "涉密项目严禁使用云端外部模型规划大纲。",
+                        )
+
+            workflow = state.workflows.setdefault(project_id, {})
+            requirements = list(workflow.get("requirements", {}).values())
+
+            # 获取本项目现有章节
+            existing_chapters = [c for c in state.chapters.values() if c.project_id == project_id]
+
+            # 4. 执行自动大纲树引擎推导
+            engine = AutoTreeBuildEngine(self.demo)
+            tree_result = engine.build_tree_structure(
+                requirements=requirements,
+                options=options,
+                existing_chapters=existing_chapters,
+            )
+
+            # 预览模式：不修改 state 直接返回
+            if preview:
+                tree_result["project_id"] = project_id
+                tree_result["preview"] = True
+                tree_result["finalization_readiness"] = check_tree_finalization_readiness(state, project_id)
+                return tree_result
+
+            # 5. 持久化模式：单事务原子写入章节、工作流与大纲元数据
+            now_dt = datetime.now(timezone.utc)
+            now_str = iso_time(now_dt.timestamp())
+
+            outline_plans_map = workflow.setdefault("outline_plans", {})
+            writing_plan_chapters = workflow.setdefault("writing_plan", {}).setdefault("chapters", {})
+
+            # 查找默认分册编写人
+            teams = state.project_teams.get(project_id, {})
+            members_map = teams.get("members", {})
+            writers_by_vol = {
+                "technical": [uid for uid, m in members_map.items() if m.get("project_role") != "readonly" and "technical" in m.get("volumes", [])],
+                "business": [uid for uid, m in members_map.items() if m.get("project_role") != "readonly" and "business" in m.get("volumes", [])],
+            }
+            default_tech_writer = writers_by_vol["technical"][0] if writers_by_vol["technical"] else principal.user.id
+            default_biz_writer = writers_by_vol["business"][0] if writers_by_vol["business"] else principal.user.id
+
+            leaf_chapters = tree_result["leaf_chapters"]
+            new_chapter_order = []
+
+            for leaf in leaf_chapters:
+                ch_id = leaf["id"]
+                vol = leaf["volume"]
+                assigned_user = default_tech_writer if vol == "technical" else default_biz_writer
+
+                # 创建或更新 Chapter
+                if ch_id in state.chapters:
+                    chapter = state.chapters[ch_id]
+                    chapter.title = leaf["title"]
+                    chapter.volume = vol
+                    if not chapter.assignee_id:
+                        chapter.assignee_id = assigned_user
+                    chapter.revision += 1
+                else:
+                    chapter = Chapter(ch_id, project_id, leaf["title"], vol, "")
+                    chapter.assignee_id = assigned_user
+                    chapter.versions.append({
+                        "revision": 1,
+                        "content": "",
+                        "actor_id": principal.user.id,
+                        "created_at": now_str,
+                        "change_reason": f"大纲树自动规划创建（{leaf['section_number']}）",
+                    })
+                    state.chapters[ch_id] = chapter
+
+                new_chapter_order.append(ch_id)
+
+                # 更新大纲方案元数据
+                meta_record = {
+                    "chapter_id": ch_id,
+                    "volume": vol,
+                    "title": leaf["title"],
+                    "section_number": leaf["section_number"],
+                    "level": leaf["level"],
+                    "chapter_type": leaf["chapter_type"],
+                    "system_subtype": leaf.get("system_subtype"),
+                    "value_added": leaf.get("value_added", False),
+                    "value_added_reason": leaf.get("value_added_reason", ""),
+                    "applicable": True,
+                    "bound_requirement_ids": deepcopy(leaf["bound_requirement_ids"]),
+                    "associated_clause_ids": deepcopy(leaf["associated_clause_ids"]),
+                    "has_asterisk": leaf["has_asterisk"],
+                    "has_disqualified": leaf["has_disqualified"],
+                    "is_mandatory": leaf["is_mandatory"],
+                    "status": "unconfirmed",
+                    "scoring_rows": deepcopy(leaf["scoring_rows"]),
+                    "writing_points": leaf["writing_points"],
+                    "target_length": leaf["target_length"],
+                    "revision": chapter.revision,
+                    "updated_at": now_str,
+                }
+                outline_plans_map[ch_id] = meta_record
+
+                # 同步更新 writing_plan
+                existing_wp = chapter_plan(workflow, ch_id)
+                writing_plan_chapters[ch_id] = {
+                    **existing_wp,
+                    "id": ch_id,
+                    "title": leaf["title"],
+                    "volume": vol,
+                    "writing_points": leaf["writing_points"],
+                    "target_length": leaf["target_length"],
+                    "confirmation_pending": True,
+                    "confirmed_by": None,
+                    "confirmed_at": None,
+                }
+
+                # 回写需求条款的 chapter_id 映射
+                for req_id in leaf["bound_requirement_ids"]:
+                    if req_id in workflow.get("requirements", {}):
+                        workflow["requirements"][req_id]["chapter_id"] = ch_id
+
+            # 更新章节排序
+            workflow["chapter_order"] = new_chapter_order
+            workflow["outline_revision"] = int(workflow.get("outline_revision") or 0) + 1
+            project.revision += 1
+
+            # 若持久化仓库支持章节和工作流存储，执行同步落库
+            if hasattr(self.repository, "save_chapter"):
+                for ch_id in new_chapter_order:
+                    self.repository.save_chapter(state.chapters[ch_id], updated_at=now_dt)
+            if hasattr(self.repository, "save_workflow"):
+                self.repository.save_workflow({
+                    "project_id": project_id,
+                    "current_stage": workflow.get("current_stage", "outline"),
+                    "stages_json": workflow.get("stages", {}),
+                    "incremental_checks_json": workflow.get("incremental_checks", []),
+                    "revision": project.revision,
+                }, updated_at=now_dt)
+
+            tree_result["project_id"] = project_id
+            tree_result["project_revision"] = project.revision
+            tree_result["outline_revision"] = workflow["outline_revision"]
+            tree_result["preview"] = False
+            tree_result["finalization_readiness"] = check_tree_finalization_readiness(state, project_id)
+
+            return tree_result
+
+        return self.repository.transaction(transaction_operation)
+
