@@ -777,11 +777,15 @@
 | D-761 | 2026-10-26 | [代码说明：方案片段智能检索与上下文精准匹配（AI-SNIPPET-RETRIEVAL-MATCH）](code/AI-SNIPPET-RETRIEVAL-MATCH.md) | 代码说明 | ai-snippet-retrieval-1 | 当前 | ISSUE-037 / ISSUE-010 / ISSUE-007 / AI-SNIPPET-RETRIEVAL-MATCH | 方案片段智能检索代码说明：架构分层（icg/domain/snippet_retrieval 与 icg/infra/retrieval）、时序流程图、字块与向量综合排序算法、变量对齐替换算法、防伪指纹计算与 HTTP 路由挂载 |
 | D-762 | 2026-10-26 | [任务交付：异步任务中心与长任务流式通知前后端联调（INT-TASK-CENTER-GLUE）](delivery/INT-TASK-CENTER-GLUE.md) | 联调交付 | int-task-center-glue-1 | in-review | ISSUE-007 / APP-M2-T021 / INT-TASK-CENTER-GLUE | 异步任务中心与长任务流式通知前后端联调交付：打通长任务创建（202 Accepted + Location）、demo_job 持久化与状态映射（pending/queued）、SSE 实时推流（text/event-stream + Last-Event-ID 断点续传）、降级轮询、取消（cancel）与重试（retry）角色动作门禁（项目负责人/管理员限制）、企业租户强隔离（跨租户 404 NOT_FOUND 防信息嗅探）、前端事件驱动与断线清理，专属单测 7 项全绿，建议 PM 标 done |
 | D-763 | 2026-10-26 | [代码说明：异步任务中心与长任务流式通知前后端联调（INT-TASK-CENTER-GLUE）](code/INT-TASK-CENTER-GLUE.md) | 代码说明 | int-task-center-glue-1 | 当前 | ISSUE-007 / APP-M2-T021 / INT-TASK-CENTER-GLUE | 异步任务中心与长任务流式通知前后端联调代码说明：时序流程图、内存仓储嵌套事务一致性、JobRunStatus 契约与数据库状态映射、allowedActions 动作权限派发、SSE 流式解析器增强 |
+| D-764 | 2026-10-27 | [QA终验签署：Wave 3核心能力与技术交付批次（共4卡）](testing/2026-10-27-wave-3-batch-qa-signoff.md) | 验收签署 | wave3-qa-signoff-1 | 已通过 | ISSUE-007 / ISSUE-006 / ISSUE-037 / APP-M2-T021 | Wave 3 批次（APP-M2-T021、BE-COMPLIANCE-RULES-P2、AI-SNIPPET-RETRIEVAL-MATCH、INT-TASK-CENTER-GLUE）QA独立复测全绿通过（单测403 passed、类型检查0 error、后端pytest专项全绿、OpenAPI 0漂移、工程治理0错误），签署PASS并建议PM标done |
+| D-765 | 2026-10-27 | [PD产品验收报告：Wave 3业务功能与核心技术交付](reviews/2026-10-27-pd-review-wave3.md) | 产品验收 | pd-review-wave3-1 | 已通过 | ISSUE-007 / ISSUE-006 / ISSUE-037 / APP-M2-T021 | Wave 3 批次（APP-M2-T021、BE-COMPLIANCE-RULES-P2、AI-SNIPPET-RETRIEVAL-MATCH、INT-TASK-CENTER-GLUE）PD 对照 PRD v1.8 与数据字典 v1.9 全维度核验通过，书面认可并建议 PM 标 done |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-10-27 | PD / 验收 / Wave 3 | 登记 Wave 3 业务功能与核心技术交付批次产品视角对照验收报告（2026-10-27-pd-review-wave3.md，D-765），对照 PRD v1.8 §5.12.4/§5.7.6/§5.8/§5.11/§6.4/§8 与字典 v1.9，书面认可并建议 PM 标 done |
+| 2026-10-27 | QA / 验收 / Wave 3 | 登记 Wave 3 核心能力与技术交付批次（共 4 卡）QA 终验签署报告（2026-10-27-wave-3-batch-qa-signoff.md，D-764），核验 APP-M2-T021、BE-COMPLIANCE-RULES-P2、AI-SNIPPET-RETRIEVAL-MATCH 与 INT-TASK-CENTER-GLUE，全量测试全绿，出具正式 PASS 签署并建议 PM 标 done |
 | 2026-10-26 | 契约 / 联调 / INT-TASK-CENTER-GLUE | 登记异步任务中心与长任务流式通知前后端联调交付报告（INT-TASK-CENTER-GLUE.md，D-762）与代码说明（D-763），打通长任务创建（202 + Location）、demo_job 持久化、SSE 实时推流与 Last-Event-ID 断点续传、降级轮询、cancel/retry 角色动作权限控制、企业租户强隔离（跨租户 404 NOT_FOUND 防信息嗅探）、前端流式事件解包与状态清理，专属单测 7 项全绿，核心与回归套件 26 项全绿，OpenAPI 契约零漂移，保持 in-review |
 | 2026-10-26 | AI / 方案检索 / AI-SNIPPET-RETRIEVAL-MATCH | 登记方案片段智能检索与上下文精准匹配交付报告（AI-SNIPPET-RETRIEVAL-MATCH.md，D-760）与代码说明（D-761），落地多租户强隔离召回（company_id 强隔离）、多模态加权检索（2-gram+关键词+向量余弦）、项目事实与 SLA 自动对齐填充、missing_variables 告警、[片:ID] 标签与 16 位 SHA-256 防伪指纹、涉密项目 403 本地模型强门禁、RAGFlow 异常降级，专属单测 11 项全绿，全量 AI 测试 89 passed 3 skipped 全绿，保持 in-review |
 | 2026-10-26 | 前端 / 任务中心 / APP-M2-T021 | 登记任务中心页基础 + 顶栏任务角标与抽屉交付报告（APP-M2-T021.md，D-756）与代码说明（D-757），落地顶栏运行中+排队中动态角标、任务抽屉四分类筛选与卡片、AI专属紫/业务蓝色彩隔离、失败重试与进行中取消权限、JobsPage 升级，专属单测 7 项与全量单测 403 项全绿，保持 in-review |
