@@ -612,7 +612,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 4小时以内；PRD 第四批核心合规规则结构化落地与导出门禁联动 |
 | 关联 Issue | [ISSUE-006](../../issues/ISSUE-006.md)、[ISSUE-007](../../issues/ISSUE-007.md)、[ISSUE-027](../../issues/ISSUE-027.md) |
 | 依赖 | [BE-COMPLIANCE-RULES-P2](BE-M0.md#be-compliance-rules-p2) |
@@ -628,7 +628,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 4小时；平台运维管理员脱敏长任务视图、任务重试/取消权限门禁与前后端胶水联调 |
 | 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md)、[ISSUE-038](../../issues/ISSUE-038.md) |
 | 依赖 | [INT-TASK-CENTER-GLUE](BE-M0.md#int-task-center-glue)、[APP-M2-T021](APP-M2.md#app-m2-t021)、[APP-M2-T022](APP-M2.md#app-m2-t022) |

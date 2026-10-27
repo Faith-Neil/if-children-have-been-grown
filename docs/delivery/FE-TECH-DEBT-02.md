@@ -7,7 +7,7 @@
 | 代码解释 | [App.tsx 巨石二次瘦身与路由解耦代码说明](../code/FE-TECH-DEBT-02.md) |
 | 文档登记 | [D-772](../DOCUMENT_INDEX.md) |
 | 验收 | 1. 架构瘦身达标：`frontend/web/src/app/App.tsx` 从 695 行二次拆解瘦身至 **394 行**（净缩减 301 行，缩减率 43.3%），单文件行数严格控制在 **400 行** 阈值以内；<br>2. 领域模块解耦：抽离 `AppHeaderActions.tsx`（顶栏环境标识、搜索框、任务角标与用户信息）、`AppModals.tsx`（新建项目、任务中心、模型配置与 RAGFlow 配置四大全局弹窗）、`ProjectWorkspaceContent.tsx`（项目工作台顶栏、上下文与 10 大业务 Tab 路由）、`GlobalPagesContent.tsx`（项目列表、企业资料库、任务中心、规则审计与方案片段/写作规范全局页面）；<br>3. 前端全量单测保持 100% 全绿：`pnpm --dir frontend/web test` 408 passed, 0 failed（新增专属单测 5 项全部通过）；<br>4. TypeScript 严格类型检查：`pnpm --dir frontend/web lint` 0 错误、0 警告（`tsc -b --noEmit` 顺利退出）；<br>5. 生产构建验证：`pnpm --dir frontend/web build` 1.60s 顺利完成，分包体积健康受控；<br>6. 工程治理脚本核验：`node scripts/check-project-governance.cjs` 校验通过。 |
-| 项目进度 | 本地已完成实现与多维质量验证，测试与构建 100% 绿灯，按规范推至 in-review，建议 PM 标 done |
+| 项目进度 | 本次交付已获 QA 独立终验签署（D-776 PASS）与 PD 产品视角验收（D-777 认可）通过，并由人类 PM 正式确认标为 done |
 <!-- task-delivery:end -->
 
 ## 1. 任务背景与目标

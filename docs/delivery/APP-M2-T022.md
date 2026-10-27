@@ -11,7 +11,7 @@
 | 代码解释 | [APP-M2-T022 代码说明](../code/APP-M2-T022.md) |
 | 文档登记 | [D-774](../DOCUMENT_INDEX.md) |
 | 验收 | 1. 角色精确识别：`isPlatformAdminRole(role)` 准确识别 `platform_admin`；<br>2. 业务敏感字段脱敏：`maskTaskForPlatformAdmin` 将项目名称替换为 `*** (业务项目已脱敏)`，项目 ID 替换为 `***`，标书文件名由 `sanitizePlatformAdminTitle` 净化；<br>3. 操作权限硬隔离：平台管理员视图下 `allowedActions` 强制置空，无重试（retry）、取消（cancel）或跳转至业务项目链接；<br>4. 运维排查信息完整：保留 `id`、`companyId`、`durationMs`、`status`、`progress`、`traceId` 等纯运维字段；<br>5. 醒目合规告知：抽屉与页面顶部均呈现 `platform-admin-masked-alert` 警示横幅；<br>6. 自动化测试验证：专属单元测试 5 项全部通过，全量 408 项单测 100% 保持全绿，TypeScript 与构建零错误。 |
-| 项目进度 | 本地已完成实现与多维质量验证，测试与构建 100% 绿灯，按规范推至 in-review，建议 PM 标 done |
+| 项目进度 | 本次交付已获 QA 独立终验签署（D-776 PASS）与 PD 产品视角验收（D-777 认可）通过，并由人类 PM 正式确认标为 done |
 <!-- task-delivery:end -->
 
 ## 1. 业务背景与合规约束

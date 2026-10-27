@@ -455,7 +455,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 6小时；App.tsx 抽离顶栏操作、全局弹窗、项目工作台与全局页面，单文件行数严格控制在 400 行以内 |
 | 关联 Issue | [ISSUE-038](../../issues/ISSUE-038.md)；[ISSUE-007](../../issues/ISSUE-007.md) |
 | 依赖 | [FE-TECH-DEBT-01](FE-M0.md#fe-tech-debt-01) |

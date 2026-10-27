@@ -6,7 +6,7 @@
 | 任务ID | AI-DYNAMIC-PROMPT-CONTEXT |
 | 代码解释 | [docs/code/AI-DYNAMIC-PROMPT-CONTEXT.md](../code/AI-DYNAMIC-PROMPT-CONTEXT.md) |
 | 验收 | 10 项专属自动化测试全绿（10 passed in 1.45s）；全量 AI 与 RAG 联合套件全绿（109 passed, 3 skipped in 102.10s）；OpenAPI 契约一致性 100% 保持；工程治理检查通过（零死链） |
-| 项目进度 | 已完成核心能力研发与全量回归测试，提交 in-review，建议由 QA 与 PD 终验签署后由人类 PM 标 done |
+| 项目进度 | 本次交付已获 QA 独立终验签署（D-776 PASS）与 PD 产品视角验收（D-777 认可）通过，并由人类 PM 正式确认标为 done |
 <!-- task-delivery:end -->
 
 ## 1. 交付目标对照

@@ -6,7 +6,7 @@
 | 任务ID | INT-APP-SLIM-ROUTING |
 | 代码解释 | [路由分层与平台管理员脱敏长任务全链路联调代码说明](../code/INT-APP-SLIM-ROUTING.md) |
 | 验收 | 1. **平台管理员脱敏任务视图（listJobsMasked）**：支持 `GET /api/v1/jobs?masked=true` 与 `GET /api/v1/jobs/masked`（或平台管理员 `platform_admin` 角色登录访问 `GET /api/v1/jobs`）。返回任务类型、企业标识脱敏（如 `al***`）、耗时毫秒、状态、错误码与脱敏摘要，隐藏敏感项目名称（统一替换为 `prj-***`）与原始招标文件名称，不暴露任务操作权限（`allowed_actions` 为空）；<br>2. **平台运维安全隔离与防嗅探**：平台管理员仅具备运维审计视图，严禁返回项目业务正文或密钥；直调普通项目业务接口（如 `/workspace`、`/generation/start`）或长任务详情/取消/重试接口时，严格触发多租户防嗅探机制返回 404 `NOT_FOUND`（而非 403，杜绝跨租户资源探测）；<br>3. **长任务取消与失败重试端到端鉴权**：项目负责人可执行 retry（`POST /api/v1/jobs/{job_id}/retry` -> 200），普通写作者与负责人可执行 cancel（200）；普通写作者/只读角色越权 retry 拦截 403 `PROJECT_LEAD_REQUIRED`；只读角色越权 cancel 拦截 403 `PROJECT_WRITER_REQUIRED`；非终态任务触发重试拦截 409 `VERSION_CONFLICT`；<br>4. **前端控制器胶水对接**：`useAppController.ts` 中的 `handleRetryJob` 修复为先向后端发起 `POST /api/v1/jobs/${encodeURIComponent(jobId)}/retry` 成功后再触发前端任务列表刷新；<br>5. **RFC 7807 统一错误响应**：所有 400/403/404/409 异常均返回标准 RFC 7807 Problem Details 结构（含 `type`, `title`, `status`, `detail`, `instance`），契约严格对齐；<br>6. **OpenAPI 契约零漂移**：`backend/bid-core/export_openapi.py --check` 核验 100% 一致（0 漂移）；<br>7. **全自动化回归与工程治理全绿**：专属联调测试 `tests/backend/test_app_routing_and_masked_jobs.py` 4 项全绿，长任务套件回归全绿，前端单元测试 403 passed，工程治理检查通过。 |
-| 项目进度 | 本次交付已完成全链路前后端契约打通与自动化回归验证，代码与测试全绿，状态推至 in-review，建议 PM 标 done |
+| 项目进度 | 本次交付已获 QA 独立终验签署（D-776 PASS）与 PD 产品视角验收（D-777 认可）通过，并由人类 PM 正式确认标为 done |
 <!-- task-delivery:end -->
 
 ## 1. 任务背景与目标

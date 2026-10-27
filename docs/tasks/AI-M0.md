@@ -342,7 +342,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 基于模型上下文窗口与 Token 预算，实现四级优先级动态裁剪、加权 Token 估算与防伪指纹计算 |
 | 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
 | 依赖 | [AI-SNIPPET-RETRIEVAL-MATCH](AI-M0.md#ai-snippet-retrieval-match)、[APP-M2-T124](APP-M2.md#app-m2-t124) |

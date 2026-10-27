@@ -6,7 +6,7 @@
 | 任务ID | BE-COMPLIANCE-RULES-P3 |
 | 代码解释 | [PRD P3 核心合规规则引擎扩充代码说明](../code/BE-COMPLIANCE-RULES-P3.md) |
 | 验收 | 1. 规则引擎扩充：在 `backend/bid-core/icg/domain/compliance_rules.py` 完整落地 PRD MVP §5.8 第四批核心合规规则（R05/R06/R08/R12/R20）；<br>2. 业务阻断红线：资产负债率超标或净利润亏损（R05，`FINANCIAL_METRICS_NON_COMPLIANT`）、业绩案例金额不足/缺盖章/缺验收证明/超出三年年限（R06，`PERFORMANCE_CASE_INSUFFICIENT`）、承诺交付天数超过招标上限或工期负偏离（R08，`DELIVERY_TIMELINE_NEGATIVE_DEVIATION`）、承诺质保期低于基线或现场到达响应超时（R12，`SLA_WARRANTY_NEGATIVE_DEVIATION`）、正文/响应串标特征或报价比例异常一致雷同（R20，`BID_PRICE_COLLUSION_RISK_DETECTED`）均严格判定为 blocker；<br>3. 导出门禁严格联动：在 `backend/bid-core/icg/domain/export_service.py` 保证上述 blocker 缺陷在正式递交版（submission）导出时严格触发 400 `CHECK_BLOCKER_EXISTS`，严禁带病递交；<br>4. 自动化测试套件：`tests/backend/test_compliance_rules_p3.py` 6 项测试全部通过（6 passed in 9.61s），全量 42 项合规测试全部通过；<br>5. 契约无漂移：OpenAPI 100% 对齐无 diff。 |
-| 项目进度 | 本次交付处于 `in-review`，建议由 QA 独立签署证据与 PD 产品验收核准后，由人类 PM 最终标 done |
+| 项目进度 | 本次交付已获 QA 独立终验签署（D-776 PASS）与 PD 产品视角验收（D-777 认可）通过，并由人类 PM 正式确认标为 done |
 <!-- task-delivery:end -->
 
 ## 1. 任务背景与目标

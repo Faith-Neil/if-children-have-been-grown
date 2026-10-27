@@ -350,7 +350,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T022 · 平台管理员脱敏视图；从失败步骤重试、取消权限
 <a id="app-m2-t022"></a>
 
-状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T021](APP-M2.md#app-m2-t021)。交付见 [APP-M2-T022 交付报告](../delivery/APP-M2-T022.md)，全链路联调见 [INT-APP-SLIM-ROUTING 交付报告](../delivery/INT-APP-SLIM-ROUTING.md)。
+状态：done（依据 QA 终验签署 D-776 与 PD 产品验收 D-777，由 PM 确认标为 done）。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T021](APP-M2.md#app-m2-t021)。交付见 [APP-M2-T022 交付报告](../delivery/APP-M2-T022.md)，全链路联调见 [INT-APP-SLIM-ROUTING 交付报告](../delivery/INT-APP-SLIM-ROUTING.md)。
 
 原始来源：原交接 §6.2 M1-P05a-F1；PRD v1.8 §2.3、5.12.4。交付单位：平台管理员脱敏视图；从失败步骤重试、取消权限，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
