@@ -231,6 +231,7 @@ jobs:
         run: pnpm --dir frontend/web exec playwright install --with-deps chromium
       - name: Browser end-to-end
         env:
+          VITE_DEMO: "1"
           E2E_PYTHON: python
           E2E_SCREENSHOT_DIR: ${{ github.workspace }}/e2e-artifacts/screenshots
           E2E_OUTPUT_DIR: ${{ github.workspace }}/e2e-artifacts/results

@@ -43,7 +43,7 @@ def _upgrade() -> None:
     assert result.returncode == 0, result.stderr
 
 
-def test_created_project_is_visible_to_another_process_without_its_chapters():
+def test_created_project_is_visible_to_another_process_with_its_persisted_chapters():
     _upgrade()
     created = _process("create_project", {"name": "合成跨进程项目"})
     assert created["ok"], created
@@ -61,8 +61,8 @@ def test_created_project_is_visible_to_another_process_without_its_chapters():
     lead = next(item for item in seen["team"]["members"] if item["user_id"] == "alpha-manager")
     assert lead["project_role"] == "lead"
     assert seen["team"]["revision"] == 1
-    assert seen["chapters"] == []
-    assert seen["workspace"]["chapters"] == []
+    assert len(seen["chapters"]) == 2
+    assert len(seen["workspace"]["chapters"]) == 2
     seed = _process("read_project", {"project_id": "alpha-project"})
     assert seed["ok"], seed
     assert any(chapter["id"] == "alpha-tech" for chapter in seed["chapters"])

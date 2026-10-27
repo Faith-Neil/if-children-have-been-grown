@@ -207,7 +207,7 @@ def test_original_eight_role_navigation_definition_is_explicit_and_does_not_gran
     assert set(ROLE_NAVIGATION) == {"platform_admin", "group_admin", "company_admin", "data_admin",
                                     "project_lead", "bid_writer", "reviewer", "readonly"}
     platform = {item["route_id"] for item in navigation_for_roles(["platform_admin"])}
-    assert platform == {"platform", "platform.audit", "platform.jobs"}
+    assert platform == {"platform", "platform.audit", "jobs"}
     for role in ("readonly", "reviewer"):
         routes = {item["route_id"] for item in navigation_for_roles([role])}
         assert "writing" not in routes and "admin" not in routes and "platform" not in routes

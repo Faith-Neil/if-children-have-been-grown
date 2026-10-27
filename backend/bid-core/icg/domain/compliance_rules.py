@@ -814,7 +814,7 @@ class ComplianceRulesEngine:
                 if not isinstance(item, dict):
                     continue
                 checked_count += 1
-                val = str(item.get("current_value") or item.get("value") or "").strip()
+                val = str(item.get("project_value") or item.get("current_value") or item.get("value") or "").strip()
                 dev = str(item.get("deviation") or "").lower()
                 name = item.get("name") or k
 

@@ -38,7 +38,7 @@ def repository(monkeypatch):
     repository = MysqlConnectionRepository("unused-synthetic-url")
     repository._engine = engine
 
-    def load_snapshot(state, _loaded_project_ids):
+    def load_snapshot(state, _loaded_project_ids, *_args, **_kwargs):
         # 模拟进程已读到旧租约，另一个进程在保存之前提交了接管。
         state.sessions = {"editor-session": "alpha-editor", "manager-session": "alpha-manager"}
         state.workflow_receipts = {}

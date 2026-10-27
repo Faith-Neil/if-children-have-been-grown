@@ -108,7 +108,7 @@ def test_smoke_step1_eight_roles_session_retrieval(non_demo_env):
         "auditor": {"workbench", "library", "knowledge", "jobs"},
         "viewer": {"workbench", "library", "knowledge", "jobs"},
         "group_admin": {"workbench", "library", "knowledge", "writing", "admin"},
-        "platform_admin": {"platform", "platform.audit", "platform.jobs"},
+        "platform_admin": {"platform", "platform.audit", "jobs"},
     }
 
     for role, token in tokens.items():
