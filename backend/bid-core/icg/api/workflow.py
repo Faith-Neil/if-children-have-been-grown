@@ -23,7 +23,7 @@ from icg.domain.workflow_schemas import (CheckList, ConflictPatch, FactPatch, Fi
                                TenderIndexingSwitchRequest, InjectTenderClausesRequest,
                                AcceptAiSuggestionRequest, ComplianceCrossCheckRequest,
                                ComplianceCrossCheckResponse, SnippetMatchRequest,
-                               SnippetMatchResponse)
+                               SnippetMatchResponse, BatchGenerateChaptersRequest)
 
 
 def include_workflow_routes(application, service, current_user, parser):
@@ -356,6 +356,24 @@ def include_workflow_routes(application, service, current_user, parser):
             limit=body.limit,
             min_score=body.min_score,
             model_config_id=body.model_config_id,
+        )
+
+    @router.post(
+        "/projects/{project_id}/chapters/batch-generate",
+        include_in_schema=False,
+    )
+    def batch_generate_chapters_endpoint(
+        project_id: str,
+        body: BatchGenerateChaptersRequest,
+        user: Principal = Depends(current_user),
+    ):
+        return workflow.batch_generate_chapters(
+            project_id=project_id,
+            chapter_ids=body.chapter_ids,
+            principal=user,
+            sync_execute=body.sync_execute,
+            max_context_tokens=body.max_context_tokens,
+            snippet_matches_by_chapter=body.snippet_matches_by_chapter,
         )
 
     application.include_router(router)

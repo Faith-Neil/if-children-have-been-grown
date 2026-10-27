@@ -215,7 +215,8 @@ def build_generation_context(state, project_id, chapter, now, evidence_service=N
     if service is not None and getattr(project, "knowledge_base_enabled", True) is not False and workflow.get("knowledge_base_enabled") is not False:
         query_parts = [chapter.title]
         if plan.get("writing_points"):
-            query_parts.append(plan["writing_points"])
+            wp = plan["writing_points"]
+            query_parts.append(" ".join(wp) if isinstance(wp, list) else str(wp))
         for req in requirements:
             if req.get("text"):
                 query_parts.append(req["text"])
@@ -332,6 +333,10 @@ def render_model_input(snapshot):
 
 
 def refuse_source_change(instruction, snapshot):
+    if isinstance(instruction, list):
+        instruction = "\n".join(str(item) for item in instruction)
+    else:
+        instruction = str(instruction or "")
     verbs = re.search(r"(?:修改|更改|改成|改为|调整|设为|设置为|替换|改写|换成|change|replace|update|set)\s*", instruction, re.I)
     if not verbs:
         return

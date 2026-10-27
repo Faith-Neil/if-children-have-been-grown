@@ -57,6 +57,8 @@ DEMO_ONLY_ACCOUNT_IDS = frozenset({
     "beta-manager",
     "alpha-company-admin",
     "alpha-data-admin",
+    "alpha-auditor",
+    "alpha-group-admin",
     "platform-admin",
 })
 
@@ -230,8 +232,41 @@ class DemoService:
         from .snippet_retrieval import SnippetRetrievalService
         self.snippet_retrieval_service = SnippetRetrievalService(self)
 
-    def start_chapter_generation(self, project_id: str, chapter_id: str, principal: Principal, sync_execute: bool = False) -> dict:
-        return self.chapter_generation.start_chapter_generation(project_id, chapter_id, principal, sync_execute=sync_execute)
+    def start_chapter_generation(
+        self,
+        project_id: str,
+        chapter_id: str,
+        principal: Principal,
+        sync_execute: bool = False,
+        max_context_tokens: int | None = None,
+        snippet_matches: list[dict] | None = None,
+    ) -> dict:
+        return self.chapter_generation.start_chapter_generation(
+            project_id,
+            chapter_id,
+            principal,
+            sync_execute=sync_execute,
+            max_context_tokens=max_context_tokens,
+            snippet_matches=snippet_matches,
+        )
+
+    def batch_generate_chapters(
+        self,
+        project_id: str,
+        chapter_ids: list[str],
+        principal: Principal,
+        sync_execute: bool = False,
+        max_context_tokens: int | None = None,
+        snippet_matches_by_chapter: dict[str, list[dict]] | None = None,
+    ) -> dict[str, Any]:
+        return self.chapter_generation.batch_generate_chapters(
+            project_id=project_id,
+            chapter_ids=chapter_ids,
+            principal=principal,
+            sync_execute=sync_execute,
+            max_context_tokens=max_context_tokens,
+            snippet_matches_by_chapter=snippet_matches_by_chapter,
+        )
 
     def assemble_writing_prompt_plan(
         self,

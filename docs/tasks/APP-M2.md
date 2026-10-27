@@ -365,7 +365,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T023 · StatusTag 状态注册表（9.3 全部代码表）
 <a id="app-m2-t023"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T005](APP-M2.md#app-m2-t005)。
+状态：done。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T005](APP-M2.md#app-m2-t005)。交付见 [APP-M2-T023 交付报告](../delivery/APP-M2-T023.md)。依据 QA 签署（D-786）与 PD 验收（D-787）由 PM 确认为 done。
 
 原始来源：原交接 §6.2 M1-P09-F1；PRD v1.8 §5.10.3、6.9。交付单位：StatusTag 状态注册表（9.3 全部代码表），同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -375,7 +375,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 
 验收：实际完成本卡标题列出的单一行为，页面读回与后台同源状态一致，不只显示静态占位。原交接验收约束（取与本子项对应的条件）：逐表断言代码 → 显示名 → 颜色；未知代码告警。分别保存正例、权限反例、失败/并发及旧来源失效证据；涉及输出直接检查文件，原级别/放行/递交门禁不能被页面绕过。输出证据：完整注册表和字典/设置版本。
 
-交付：`docs/delivery/APP-M2-T023.md`；代码解释：`docs/code/APP-M2-T023.md`；测试放docs/testing并逐项关联本卡，未执行写未执行。
+交付：[APP-M2-T023 交付](../delivery/APP-M2-T023.md)；代码解释：[APP-M2-T023 代码解释](../code/APP-M2-T023.md)；前后端联调见 [INT-STATUS-TAG-METADATA-GLUE 交付](../delivery/INT-STATUS-TAG-METADATA-GLUE.md)；测试见 `frontend/web/tests/unit/status-tag.test.mjs` 与 `tests/backend/test_status_tag_metadata_glue.py`。
 
 ### APP-M2-T024 · A-03 字典配置页
 <a id="app-m2-t024"></a>

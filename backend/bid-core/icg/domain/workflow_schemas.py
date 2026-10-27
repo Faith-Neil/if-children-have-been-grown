@@ -887,3 +887,10 @@ class ComplianceCrossCheckResponse(ResponseBody):
     message: str = "合规依据交叉核验与差距诊断完成"
 
 
+class BatchGenerateChaptersRequest(RequestBody):
+    chapter_ids: list[str] = Field(min_length=1, max_length=100)
+    sync_execute: bool = False
+    max_context_tokens: int | None = None
+    snippet_matches_by_chapter: dict[str, list[dict[str, Any]]] | None = None
+
+

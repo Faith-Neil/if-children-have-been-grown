@@ -829,8 +829,356 @@ METADATA_DEFINITIONS: dict[str, dict[str, Any]] = {
             },
         ],
     },
+    "chapter": {
+        "category_name": "章节与大纲",
+        "fields": [
+            {
+                "field_key": "chapter_title",
+                "label": "章节标题",
+                "data_type": "string",
+                "required": True,
+                "editable": True,
+                "default_width": 200,
+                "align": "left",
+                "render_type": "text",
+                "filterable": True,
+                "sortable": True,
+                "is_starred": False,
+                "is_sensitive": False,
+                "description": "标书章节或大纲标题",
+            },
+            {
+                "field_key": "chapter_status",
+                "label": "章节状态",
+                "data_type": "string",
+                "required": False,
+                "editable": False,
+                "default_width": 120,
+                "align": "center",
+                "render_type": "tag",
+                "filterable": True,
+                "sortable": True,
+                "is_starred": False,
+                "is_sensitive": False,
+                "description": "章节编写与流转状态",
+                "options": [
+                    {"value": "not_started", "label": "未开始"},
+                    {"value": "generating", "label": "生成中"},
+                    {"value": "draft", "label": "草稿"},
+                    {"value": "reviewed", "label": "已复核"},
+                    {"value": "approved", "label": "已定稿"},
+                    {"value": "locked", "label": "已锁定"},
+                    {"value": "stale", "label": "已失效"},
+                ],
+            },
+        ],
+    },
+    "job": {
+        "category_name": "后台长任务",
+        "fields": [
+            {
+                "field_key": "job_type",
+                "label": "任务类型",
+                "data_type": "string",
+                "required": True,
+                "editable": False,
+                "default_width": 140,
+                "align": "left",
+                "render_type": "text",
+                "filterable": True,
+                "sortable": True,
+                "is_starred": False,
+                "is_sensitive": False,
+                "description": "后台异步任务类型",
+            },
+            {
+                "field_key": "status",
+                "label": "任务状态",
+                "data_type": "string",
+                "required": False,
+                "editable": False,
+                "default_width": 110,
+                "align": "center",
+                "render_type": "tag",
+                "filterable": True,
+                "sortable": True,
+                "is_starred": False,
+                "is_sensitive": False,
+                "description": "长任务生命周期状态",
+                "options": [
+                    {"value": "queued", "label": "排队中"},
+                    {"value": "running", "label": "进行中"},
+                    {"value": "completed", "label": "已完成"},
+                    {"value": "failed", "label": "异常失败"},
+                    {"value": "cancelled", "label": "已取消"},
+                ],
+            },
+        ],
+    },
+    "check": {
+        "category_name": "合规检查",
+        "fields": [
+            {
+                "field_key": "rule_id",
+                "label": "规则编号",
+                "data_type": "string",
+                "required": True,
+                "editable": False,
+                "default_width": 120,
+                "align": "left",
+                "render_type": "text",
+                "filterable": True,
+                "sortable": True,
+                "is_starred": False,
+                "is_sensitive": False,
+                "description": "检查规则唯一标识",
+            },
+            {
+                "field_key": "status",
+                "label": "检查状态",
+                "data_type": "string",
+                "required": False,
+                "editable": False,
+                "default_width": 110,
+                "align": "center",
+                "render_type": "tag",
+                "filterable": True,
+                "sortable": True,
+                "is_starred": False,
+                "is_sensitive": False,
+                "description": "合规检查结论状态",
+                "options": [
+                    {"value": "passed", "label": "合规通过"},
+                    {"value": "warning", "label": "合规提醒"},
+                    {"value": "blocker", "label": "废标阻断"},
+                ],
+            },
+        ],
+    },
+    "export": {
+        "category_name": "标书导出交付",
+        "fields": [
+            {
+                "field_key": "volume_type",
+                "label": "分册类型",
+                "data_type": "string",
+                "required": True,
+                "editable": False,
+                "default_width": 120,
+                "align": "center",
+                "render_type": "text",
+                "filterable": True,
+                "sortable": True,
+                "is_starred": False,
+                "is_sensitive": False,
+                "description": "技术标或商务标分册",
+            },
+            {
+                "field_key": "status",
+                "label": "导出状态",
+                "data_type": "string",
+                "required": False,
+                "editable": False,
+                "default_width": 110,
+                "align": "center",
+                "render_type": "tag",
+                "filterable": True,
+                "sortable": True,
+                "is_starred": False,
+                "is_sensitive": False,
+                "description": "导出任务状态",
+                "options": [
+                    {"value": "idle", "label": "待导出"},
+                    {"value": "processing", "label": "排版中"},
+                    {"value": "completed", "label": "已生成"},
+                    {"value": "failed", "label": "导出失败"},
+                ],
+            },
+        ],
+    },
+    "lock": {
+        "category_name": "编辑租约锁",
+        "fields": [
+            {
+                "field_key": "resource_id",
+                "label": "锁定资源",
+                "data_type": "string",
+                "required": True,
+                "editable": False,
+                "default_width": 160,
+                "align": "left",
+                "render_type": "text",
+                "filterable": True,
+                "sortable": False,
+                "is_starred": False,
+                "is_sensitive": False,
+                "description": "锁定的章节或项目资源ID",
+            },
+            {
+                "field_key": "status",
+                "label": "租约状态",
+                "data_type": "string",
+                "required": False,
+                "editable": False,
+                "default_width": 120,
+                "align": "center",
+                "render_type": "tag",
+                "filterable": True,
+                "sortable": True,
+                "is_starred": False,
+                "is_sensitive": False,
+                "description": "编辑排他锁租约状态",
+                "options": [
+                    {"value": "unlocked", "label": "空闲可编辑"},
+                    {"value": "locked_self", "label": "本人编辑中"},
+                    {"value": "locked_other", "label": "他人占用"},
+                    {"value": "expired", "label": "租约过期"},
+                ],
+            },
+        ],
+    },
+    "status": {
+        "category_name": "六大业务状态注册表",
+        "fields": [
+            {
+                "field_key": "project_status",
+                "label": "项目状态",
+                "data_type": "string",
+                "required": False,
+                "editable": False,
+                "default_width": 110,
+                "align": "center",
+                "render_type": "tag",
+                "filterable": True,
+                "sortable": True,
+                "is_starred": False,
+                "is_sensitive": False,
+                "description": "项目生命周期流转状态",
+                "options": [
+                    {"value": "draft", "label": "草稿"},
+                    {"value": "parsing", "label": "解析中"},
+                    {"value": "pending_confirm", "label": "待确认"},
+                    {"value": "in_progress", "label": "编写中"},
+                    {"value": "checking", "label": "检查中"},
+                    {"value": "exportable", "label": "可导出"},
+                    {"value": "exported", "label": "已导出"},
+                    {"value": "submitted", "label": "已递交"},
+                    {"value": "opened", "label": "已开标"},
+                    {"value": "closed", "label": "已结束"},
+                    {"value": "cancelled", "label": "已取消"},
+                ],
+            },
+            {
+                "field_key": "chapter_status",
+                "label": "章节状态",
+                "data_type": "string",
+                "required": False,
+                "editable": False,
+                "default_width": 120,
+                "align": "center",
+                "render_type": "tag",
+                "filterable": True,
+                "sortable": True,
+                "is_starred": False,
+                "is_sensitive": False,
+                "description": "章节编写流转状态",
+                "options": [
+                    {"value": "not_started", "label": "未开始"},
+                    {"value": "generating", "label": "生成中"},
+                    {"value": "draft", "label": "草稿"},
+                    {"value": "reviewed", "label": "已复核"},
+                    {"value": "approved", "label": "已定稿"},
+                    {"value": "locked", "label": "已锁定"},
+                    {"value": "stale", "label": "已失效"},
+                ],
+            },
+            {
+                "field_key": "job_status",
+                "label": "长任务状态",
+                "data_type": "string",
+                "required": False,
+                "editable": False,
+                "default_width": 110,
+                "align": "center",
+                "render_type": "tag",
+                "filterable": True,
+                "sortable": True,
+                "is_starred": False,
+                "is_sensitive": False,
+                "description": "后台异步长任务状态",
+                "options": [
+                    {"value": "queued", "label": "排队中"},
+                    {"value": "running", "label": "进行中"},
+                    {"value": "completed", "label": "已完成"},
+                    {"value": "failed", "label": "异常失败"},
+                    {"value": "cancelled", "label": "已取消"},
+                ],
+            },
+            {
+                "field_key": "check_status",
+                "label": "合规检查状态",
+                "data_type": "string",
+                "required": False,
+                "editable": False,
+                "default_width": 110,
+                "align": "center",
+                "render_type": "tag",
+                "filterable": True,
+                "sortable": True,
+                "is_starred": False,
+                "is_sensitive": False,
+                "description": "合规检查结论状态",
+                "options": [
+                    {"value": "passed", "label": "合规通过"},
+                    {"value": "warning", "label": "合规提醒"},
+                    {"value": "blocker", "label": "废标阻断"},
+                ],
+            },
+            {
+                "field_key": "export_status",
+                "label": "导出交付状态",
+                "data_type": "string",
+                "required": False,
+                "editable": False,
+                "default_width": 110,
+                "align": "center",
+                "render_type": "tag",
+                "filterable": True,
+                "sortable": True,
+                "is_starred": False,
+                "is_sensitive": False,
+                "description": "标书导出交付状态",
+                "options": [
+                    {"value": "idle", "label": "待导出"},
+                    {"value": "processing", "label": "排版中"},
+                    {"value": "completed", "label": "已生成"},
+                    {"value": "failed", "label": "导出失败"},
+                ],
+            },
+            {
+                "field_key": "lock_status",
+                "label": "编辑租约状态",
+                "data_type": "string",
+                "required": False,
+                "editable": False,
+                "default_width": 120,
+                "align": "center",
+                "render_type": "tag",
+                "filterable": True,
+                "sortable": True,
+                "is_starred": False,
+                "is_sensitive": False,
+                "description": "编辑排他锁租约状态",
+                "options": [
+                    {"value": "unlocked", "label": "空闲可编辑"},
+                    {"value": "locked_self", "label": "本人编辑中"},
+                    {"value": "locked_other", "label": "他人占用"},
+                    {"value": "expired", "label": "租约过期"},
+                ],
+            },
+        ],
+    },
 }
-
 # 别名映射，提高容错性
 CATEGORY_ALIASES: dict[str, str] = {
     "bid_project": "project",
@@ -844,6 +1192,18 @@ CATEGORY_ALIASES: dict[str, str] = {
     "project_sla": "sla",
     "sla_value": "sla",
     "sla_template": "sla",
+    "outline": "chapter",
+    "chapters": "chapter",
+    "task": "job",
+    "tasks": "job",
+    "jobs": "job",
+    "compliance": "check",
+    "checks": "check",
+    "export_delivery": "export",
+    "exports": "export",
+    "lease": "lock",
+    "locks": "lock",
+    "statuses": "status",
 }
 
 
@@ -853,6 +1213,8 @@ class FieldMetadataService:
 
     def resolve_category(self, category: str) -> str:
         cat_key = category.strip().lower()
+        if cat_key == "all":
+            return "all"
         if cat_key in METADATA_DEFINITIONS:
             return cat_key
         if cat_key in CATEGORY_ALIASES:
@@ -860,9 +1222,39 @@ class FieldMetadataService:
         raise DomainError(404, "NOT_FOUND", f"未找到该分类的字段元数据：{category}。")
 
     def get_fields(self, category: str, principal: Principal) -> dict[str, Any]:
+        from .project_access import ROLE_NORMALIZATION_MAP, READONLY_SYSTEM_ROLES
+
         canonical_category = self.resolve_category(category)
+        user_role = getattr(principal.user, "role", "viewer") if principal and principal.user else "viewer"
+        norm_role = ROLE_NORMALIZATION_MAP.get(user_role, user_role)
+        is_readonly = norm_role in READONLY_SYSTEM_ROLES
+
+        if canonical_category == "all":
+            all_fields: list[FieldMetadataItem] = []
+            for cat_key, defn in METADATA_DEFINITIONS.items():
+                if cat_key == "status":
+                    continue  # 避免全量字段中混入重复的状态字段
+                for item in defn["fields"]:
+                    item_dict = dict(item)
+                    if is_readonly:
+                        item_dict["editable"] = False
+                    all_fields.append(FieldMetadataItem(**item_dict))
+            return {
+                "category": "all",
+                "category_name": "全部分类字段元数据",
+                "total": len(all_fields),
+                "fields": all_fields,
+                "items": all_fields,
+            }
+
         definition = METADATA_DEFINITIONS[canonical_category]
-        fields_data = [FieldMetadataItem(**item) for item in definition["fields"]]
+        fields_data: list[FieldMetadataItem] = []
+        for item in definition["fields"]:
+            item_dict = dict(item)
+            if is_readonly:
+                item_dict["editable"] = False
+            fields_data.append(FieldMetadataItem(**item_dict))
+
         return {
             "category": canonical_category,
             "category_name": definition["category_name"],

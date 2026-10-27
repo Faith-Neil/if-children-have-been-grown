@@ -29,6 +29,8 @@ def seed_state() -> DemoState:
         Account("beta-manager", "乙公司项目经理（合成）", "beta", "manager", _DEMO_ONLY=True),
         Account("alpha-company-admin", "甲公司管理员（合成）", "alpha", "company_admin", _DEMO_ONLY=True),
         Account("alpha-data-admin", "甲公司资料管理员（合成）", "alpha", "data_admin", _DEMO_ONLY=True),
+        Account("alpha-auditor", "甲公司审核人（合成）", "alpha", "auditor", _DEMO_ONLY=True),
+        Account("alpha-group-admin", "集团管理员（合成）", "group", "group_admin", _DEMO_ONLY=True),
         Account("platform-admin", "平台运维管理员（合成）", "system", "platform_admin", _DEMO_ONLY=True),
     ):
         state.accounts[user.id] = user

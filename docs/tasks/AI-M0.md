@@ -336,6 +336,7 @@
 
 状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。
 
+
 <a id="ai-dynamic-prompt-context"></a>
 
 ## AI-DYNAMIC-PROMPT-CONTEXT · 自适应 Prompt 动态上下文裁剪与 Token 预算控制
@@ -380,4 +381,49 @@
 - [x] 交付文档、代码说明、任务卡与任务看板同步更新。
 
 状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。
+
+<a id="ai-outline-generate-expand"></a>
+
+## AI-OUTLINE-GENERATE-EXPAND · 章节写作方案多段落结构化批量生成引擎
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 落实多段落结构化切分（[P1]~[Pn]）、得分要点小标题解析、白名单引用核验、多章节独立启动与容错批量生成 |
+| 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [AI-DYNAMIC-PROMPT-CONTEXT](AI-M0.md#ai-dynamic-prompt-context) |
+| PRD / 架构出处 | [PRD v1.8 §5.7.2、§5.7.8](../reference/product/prd-mvp-v1.8.md)；[APP-M2-T126](APP-M2.md#app-m2-t126) |
+| 完成时交付 | [AI-OUTLINE-GENERATE-EXPAND 交付](../delivery/AI-OUTLINE-GENERATE-EXPAND.md) |
+| 代码解释 | [AI-OUTLINE-GENERATE-EXPAND 代码说明](../code/AI-OUTLINE-GENERATE-EXPAND.md) |
+
+范围：在 `backend/bid-core/icg/domain/chapter_generation.py`、`domain.py`、`generation_orchestrator.py` 与 `backend/bid-core/icg/api/workflow.py` 中落地章节写作方案多段落结构化批量生成引擎：
+1. 结构化段落分块与要点小标题映射（`parse_structured_paragraphs`）：将大模型生成正文解析为带有 `[P1]`~`[Pn]` 编号、段落标签、小标题与引用绑定的结构化段落列表；每一段携带独立 `id`、`paragraph_id`、`order`、`label`、`subheading`、`title`、`text`、`content`、`scoring_point`、`variables` 与 `char_length`；无标签时自适应自动编号；
+2. 引用标记提取与防幻觉核验（`extract_paragraph_citations`）：从段落正文中提取 `[证:xxx]` 与 `[片:xxx]` 标记，对照入参白名单严格校验，非法虚构引用标记为 `valid=False`；
+3. 多段落 Markdown 回写格式化（`format_structured_chapter_content`）：将结构化段落逆向还原为排版规范的 Markdown 正文，聚合去重小标题；
+4. 单章同步生成产物增强：`start_chapter_generation(sync_execute=True)` 自动解析多段落、小标题与引用并落盘入 `candidate`；
+5. 跨章节独立批量生成（`batch_generate_chapters`）：支持指定多章节批量独立生成；落实 PRD §5.7.8 关键红线：未确认方案章节（记入 `failed_chapters`，错误码 `PLAN_NOT_CONFIRMED`）绝对不阻塞已确认章节的独立启动；自动汇总各章任务、指纹与 Token 预算统计；
+6. 涉密项目本地模型强门禁：敏感项目拦截云端模型（403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`）；
+7. 角色权限拦截（只读角色 403 `FORBIDDEN`）与租户隔离（404 `NOT_FOUND`）；
+8. HTTP API 端点集成：注册 `POST /api/v1/projects/{project_id}/chapters/batch-generate`（`include_in_schema=False` 保障 OpenAPI 契约 100% 零漂移）。
+
+当前条件：自动化回归测试全绿通过（专属测试 11 passed，联合全量 156 passed 2 skipped）。端到端闭环逻辑通过。
+
+可验证验收：
+- [x] 多段落结构化解析：包含显式 `[P1]`~`[Pn]` 标签、小标题与引用的正文精准解析；
+- [x] 无标签自适应编号：无标签正文自适应分配 `[P1]`~`[Pn]` 并顺序对齐写作要点小标题；
+- [x] 行内引用与防幻觉：白名单内真实引用（`valid=True`）与虚构伪造引用（`valid=False`）精确区分；
+- [x] Markdown 回写格式化：结构化段落列表逆向回写标准 Markdown 文本；
+- [x] 单章同步生成成果丰富：候选成果自动填充 `paragraphs`、`structured_content`、`scoring_subheadings`；
+- [x] 批量生成全确认成功：指定多章节全部确认时批量生成成功并汇总任务、指纹与预算；
+- [x] 关键红线未确认不阻塞：未确认章节记录 `PLAN_NOT_CONFIRMED`，绝对不阻塞已确认章节生成；
+- [x] 涉密项目本地模型门禁：敏感项目绑定云端模型前置拦截 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`；
+- [x] 角色权限与租户隔离：只读角色拦截 403 `FORBIDDEN`，跨租户项目拦截 404 `NOT_FOUND`；
+- [x] HTTP 端点集成：`POST /api/v1/projects/{project_id}/chapters/batch-generate` 端到端调用成功；
+- [x] 专属自动化测试套件 `pytest tests/backend/test_ai_outline_generation_expand.py -v` 执行全过（11 passed）；
+- [x] 全量 AI 与 RAG 联合测试回归全绿（156 passed, 2 skipped）；
+- [x] OpenAPI 契约校验 `python backend/bid-core/export_openapi.py --check` 100% 一致；
+- [x] 交付文档、代码说明、任务卡与任务看板同步更新。
+
+状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。
+
 

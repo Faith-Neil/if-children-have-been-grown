@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import re
 import time
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -34,6 +35,172 @@ from .prompt_budget import (
     DynamicPromptContextManager,
     check_sensitive_model_gate,
 )
+
+VARIABLE_PATTERN = re.compile(r"\{\{([A-Za-z0-9_.:\u4e00-\u9fa5-]+)\}\}")
+CITATION_PATTERN = re.compile(r"\[(证|片|cite)(?::([^\]]+))?\]")
+
+
+def parse_scoring_points(writing_points: str | list[str] | None) -> list[str]:
+    """解析章节写作计划中的评分要点清单。"""
+    if not writing_points:
+        return []
+    items = writing_points if isinstance(writing_points, list) else str(writing_points).split("\n")
+    points = []
+    for item in items:
+        line = str(item).strip()
+        if not line:
+            continue
+        cleaned = re.sub(r"^[0-9]+[、.．\s-]+\s*", "", line).strip()
+        if cleaned:
+            points.append(cleaned)
+    return points
+
+
+def extract_paragraph_citations(
+    text: str,
+    allowed_evidence_ids: set[str] | None = None,
+    allowed_snippet_ids: set[str] | None = None,
+) -> list[dict[str, Any]]:
+    """提取段落内的 [证:xxx] 与 [片:xxx] 引用标记，并校验是否在有效依据范围内。"""
+    citations = []
+    for match in CITATION_PATTERN.finditer(text):
+        tag_type = match.group(1)
+        ref_id = (match.group(2) or "").strip()
+        full_tag = match.group(0)
+        cit_type = "evidence" if tag_type == "证" else ("snippet" if tag_type == "片" else "cite")
+
+        is_valid = True
+        if ref_id:
+            if cit_type == "evidence" and allowed_evidence_ids is not None:
+                is_valid = ref_id in allowed_evidence_ids
+            elif cit_type == "snippet" and allowed_snippet_ids is not None:
+                is_valid = ref_id in allowed_snippet_ids
+
+        citations.append({
+            "tag": full_tag,
+            "type": cit_type,
+            "id": ref_id,
+            "valid": is_valid,
+        })
+    return citations
+
+
+def parse_structured_paragraphs(
+    raw_content: str,
+    scoring_points: str | list[str] | None = None,
+    allowed_evidence_ids: set[str] | None = None,
+    allowed_snippet_ids: set[str] | None = None,
+) -> list[dict[str, Any]]:
+    """将大模型生成的正文解析为带有 [P1]~[Pn] 编号、小标题与引用绑定的结构化段落列表。"""
+    if not raw_content or not raw_content.strip():
+        return []
+
+    parsed_points = parse_scoring_points(scoring_points)
+    lines = raw_content.strip().split("\n")
+
+    paragraphs: list[dict[str, Any]] = []
+    current_subheading: str | None = None
+    current_title: str | None = None
+    current_scoring_point: str | None = None
+    accumulated_lines: list[str] = []
+
+    def flush_paragraph():
+        nonlocal accumulated_lines, current_subheading, current_title, current_scoring_point
+        if not accumulated_lines:
+            return
+        p_text = " ".join(l.strip() for l in accumulated_lines if l.strip()).strip()
+        accumulated_lines = []
+        if not p_text:
+            return
+
+        order = len(paragraphs) + 1
+        label = f"[P{order}]"
+
+        m_label = re.match(r"^\[P(\d+)\]\s*(.*)", p_text, re.DOTALL)
+        if m_label:
+            clean_text = m_label.group(2).strip()
+            label = f"[P{order}]"
+        else:
+            clean_text = p_text
+
+        subhead = current_subheading
+        title = current_title
+        sc_point = current_scoring_point
+        if not subhead and parsed_points:
+            sp_idx = min(order - 1, len(parsed_points) - 1)
+            sc_point = parsed_points[sp_idx]
+            subhead = f"### 1.{sp_idx + 1} {sc_point}"
+            title = sc_point
+
+        citations = extract_paragraph_citations(clean_text, allowed_evidence_ids, allowed_snippet_ids)
+        variables = [m.group(1) for m in VARIABLE_PATTERN.finditer(clean_text)]
+
+        paragraphs.append({
+            "id": f"p-{order}",
+            "paragraph_id": f"p-{order}",
+            "order": order,
+            "label": label,
+            "subheading": subhead,
+            "title": title,
+            "text": clean_text,
+            "content": f"{label} {clean_text}",
+            "citations": citations,
+            "scoring_point": sc_point,
+            "variables": variables,
+            "char_length": len(clean_text),
+        })
+
+    heading_pattern = re.compile(r"^(#{1,6})\s*(.+)$")
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            flush_paragraph()
+            continue
+
+        h_match = heading_pattern.match(stripped)
+        if h_match:
+            flush_paragraph()
+            current_subheading = stripped
+            raw_title = h_match.group(2).strip()
+            current_title = re.sub(r"^[0-9]+[、.．\s-]+\s*", "", raw_title).strip()
+            current_scoring_point = None
+            if parsed_points:
+                for sp in parsed_points:
+                    if sp in current_title or current_title in sp:
+                        current_scoring_point = sp
+                        break
+                if not current_scoring_point and parsed_points:
+                    sp_idx = min(len(paragraphs), len(parsed_points) - 1)
+                    current_scoring_point = parsed_points[sp_idx]
+            continue
+
+        if re.match(r"^\[P\d+\]", stripped):
+            flush_paragraph()
+
+        accumulated_lines.append(stripped)
+
+    flush_paragraph()
+    return paragraphs
+
+
+def format_structured_chapter_content(paragraphs: list[dict[str, Any]]) -> str:
+    """将结构化段落列表格式化为标准 Markdown 章节正文。"""
+    if not paragraphs:
+        return ""
+
+    blocks = []
+    emitted_subheadings = set()
+
+    for p in paragraphs:
+        subheading = p.get("subheading")
+        if subheading and subheading not in emitted_subheadings:
+            blocks.append(subheading)
+            emitted_subheadings.add(subheading)
+
+        blocks.append(p.get("content") or f"{p.get('label', '')} {p.get('text', '')}".strip())
+
+    return "\n\n".join(blocks).strip()
 
 
 def format_writing_plan_prompt(snapshot: dict) -> str:
@@ -232,8 +399,10 @@ class ChapterGenerationService:
         chapter_id: str,
         principal: Principal,
         sync_execute: bool = False,
+        max_context_tokens: int | None = None,
+        snippet_matches: list[dict] | None = None,
     ) -> dict:
-        """按逐节确认结果独立启动已确认章节的生成任务（APP-M2-T126）。"""
+        """按逐节确认结果独立启动已确认章节的生成任务（APP-M2-T126 / AI-OUTLINE-GENERATE-EXPAND）。"""
         state = self.repository.read()
 
         # 门禁 1：角色与操作权限核验（只读角色拦截）
@@ -253,7 +422,14 @@ class ChapterGenerationService:
         self._check_model_gate(state, project)
 
         # 组装 Prompt 写作计划（APP-M2-T124 / AI-DYNAMIC-PROMPT-CONTEXT）
-        prompt_plan = self.assemble_writing_prompt_plan(project_id, chapter_id, principal, state=state)
+        prompt_plan = self.assemble_writing_prompt_plan(
+            project_id,
+            chapter_id,
+            principal,
+            state=state,
+            max_context_tokens=max_context_tokens,
+            snippet_matches=snippet_matches,
+        )
         input_snapshot = prompt_plan["input_snapshot"]
         prompt = prompt_plan["prompt"]
         token_budget_usage = prompt_plan.get("token_budget_usage")
@@ -347,10 +523,33 @@ class ChapterGenerationService:
 
             validate_model_output(state, project_id, content, input_snapshot)
 
+            # 解析结构化多段落与评分小标题
+            scoring_points = prompt_plan.get("writing_points", "")
+            allowed_evidence_ids = {e.get("id") for e in prompt_plan.get("evidence", []) if e.get("id")}
+            allowed_snippet_ids = {s.get("snippet_id") or s.get("id") for s in (snippet_matches or []) if s.get("snippet_id") or s.get("id")}
+
+            paragraphs = parse_structured_paragraphs(
+                content,
+                scoring_points=scoring_points,
+                allowed_evidence_ids=allowed_evidence_ids,
+                allowed_snippet_ids=allowed_snippet_ids,
+            )
+            structured_content = format_structured_chapter_content(paragraphs)
+            seen_subheads = set()
+            scoring_subheadings = []
+            for p in paragraphs:
+                sh = p.get("title") or p.get("subheading")
+                if sh and sh not in seen_subheads:
+                    seen_subheads.add(sh)
+                    scoring_subheadings.append(sh)
+
             cand_id = new_id("candidate")
             candidate = {
                 "id": cand_id,
                 "content": content,
+                "structured_content": structured_content,
+                "paragraphs": paragraphs,
+                "scoring_subheadings": scoring_subheadings,
                 "base_revision": chapter.revision,
                 "input_fingerprint": project_input_fingerprint(state, project_id),
                 "context_fingerprint": context_fingerprint,
@@ -378,6 +577,7 @@ class ChapterGenerationService:
                     "chapter_id": chapter_id,
                     "token_budget_usage": token_budget_usage,
                     "context_fingerprint": context_fingerprint,
+                    "paragraph_count": len(paragraphs),
                 },
             )
 
@@ -399,6 +599,113 @@ class ChapterGenerationService:
             "candidate": candidate,
             "token_budget_usage": token_budget_usage,
             "context_fingerprint": context_fingerprint,
+            "paragraphs": candidate.get("paragraphs") if candidate else [],
+            "structured_content": candidate.get("structured_content") if candidate else None,
+            "scoring_subheadings": candidate.get("scoring_subheadings") if candidate else [],
+        }
+
+    def batch_generate_chapters(
+        self,
+        project_id: str,
+        chapter_ids: list[str],
+        principal: Principal,
+        sync_execute: bool = False,
+        max_context_tokens: int | None = None,
+        snippet_matches_by_chapter: dict[str, list[dict]] | None = None,
+    ) -> dict[str, Any]:
+        """批量启动多章节结构化写作方案生成（PRD MVP v1.8 §5.7.2 / AI-OUTLINE-GENERATE-EXPAND）。"""
+        state = self.repository.read()
+
+        # 门禁 1：角色与操作权限核验（只读角色拦截）
+        role = getattr(principal.user, "role", "")
+        norm_role = ROLE_NORMALIZATION_MAP.get(role, role)
+        if norm_role in READONLY_SYSTEM_ROLES:
+            raise DomainError(403, "FORBIDDEN", "只读角色不可启动章节生成。")
+
+        project = state.projects.get(project_id)
+        if project is None or project.company_id != principal.user.company_id:
+            raise DomainError(404, "NOT_FOUND", "项目不存在或不属于当前公司。")
+
+        if not writable(state, project_id, principal.user.id):
+            raise DomainError(403, "PROJECT_WRITER_REQUIRED", "当前角色无权编辑或启动章节生成。")
+
+        # 门禁 2：敏感项目本地模型隔离门禁（前置阻断）
+        self._check_model_gate(state, project)
+
+        successful_results: dict[str, Any] = {}
+        failed_chapters: dict[str, Any] = {}
+        all_jobs: list[dict[str, Any]] = []
+        fingerprints: dict[str, str] = {}
+        total_prompt_tokens = 0
+        total_estimated_tokens = 0
+
+        for cid in chapter_ids:
+            chapter = state.chapters.get(cid)
+            if chapter is None or chapter.project_id != project_id:
+                failed_chapters[cid] = {
+                    "code": "NOT_FOUND",
+                    "message": f"章节 {cid} 不存在或不属于当前项目。",
+                }
+                continue
+
+            workflow = state.workflows.get(project_id, {})
+            saved_plan = workflow.get("writing_plan", {}).get("chapters", {}).get(cid, {})
+            if not saved_plan.get("confirmed_at") or not plan_is_current(state, project_id, cid):
+                # 核心约束：未确认分册或未确认章节绝对不阻塞已确认章节的独立启动
+                failed_chapters[cid] = {
+                    "code": "PLAN_NOT_CONFIRMED",
+                    "message": f"章节 {cid} 写作方案尚未确认或方案已过期，不能启动生成。",
+                }
+                continue
+
+            try:
+                snips = (snippet_matches_by_chapter or {}).get(cid)
+                res = self.start_chapter_generation(
+                    project_id=project_id,
+                    chapter_id=cid,
+                    principal=principal,
+                    sync_execute=sync_execute,
+                    max_context_tokens=max_context_tokens,
+                    snippet_matches=snips,
+                )
+                successful_results[cid] = res
+                if res.get("job"):
+                    all_jobs.append(res["job"])
+                if res.get("context_fingerprint"):
+                    fingerprints[cid] = res["context_fingerprint"]
+                usage = res.get("token_budget_usage", {})
+                total_prompt_tokens += usage.get("prompt_tokens", 0)
+                total_estimated_tokens += usage.get("total_estimated_tokens", 0)
+            except DomainError as err:
+                failed_chapters[cid] = {
+                    "code": err.code,
+                    "message": err.message,
+                }
+            except Exception as exc:
+                failed_chapters[cid] = {
+                    "code": "GENERATION_FAILED",
+                    "message": str(exc),
+                }
+
+        return {
+            "project_id": project_id,
+            "total_chapters": len(chapter_ids),
+            "total_requested": len(chapter_ids),
+            "successful_count": len(successful_results),
+            "failed_count": len(failed_chapters),
+            "results": successful_results,
+            "failed_chapters": failed_chapters,
+            "jobs": all_jobs,
+            "fingerprints": fingerprints,
+            "aggregate_summary": {
+                "total_prompt_tokens": total_prompt_tokens,
+                "total_estimated_tokens": total_estimated_tokens,
+                "context_fingerprints": fingerprints,
+            },
+            "token_budget_usage_summary": {
+                "total_prompt_tokens": total_prompt_tokens,
+                "total_estimated_tokens": total_estimated_tokens,
+            },
         }
 
     def _check_access(self, state: DemoState, project_id: str, chapter_id: str, principal: Principal) -> None:
@@ -445,12 +752,21 @@ def start_chapter_generation(
     repository: Any | None = None,
     evidence_service: Any | None = None,
     sync_execute: bool = False,
+    max_context_tokens: int | None = None,
+    snippet_matches: list[dict] | None = None,
 ) -> dict:
     """按逐节确认结果独立启动已确认章节的生成任务（模块顶层快捷入口，兼容多种传参形式）。"""
     if hasattr(project_id_or_service, "start_chapter_generation") and not isinstance(project_id_or_service, str):
         # 形式 1: start_chapter_generation(service, project_id, chapter_id, principal)
         service = project_id_or_service
-        return service.start_chapter_generation(chapter_id_or_proj, principal_or_chap, principal, sync_execute=sync_execute)
+        return service.start_chapter_generation(
+            chapter_id_or_proj,
+            principal_or_chap,
+            principal,
+            sync_execute=sync_execute,
+            max_context_tokens=max_context_tokens,
+            snippet_matches=snippet_matches,
+        )
 
     # 形式 2: start_chapter_generation(project_id, chapter_id, principal, demo=...)
     project_id = str(project_id_or_service)
@@ -461,4 +777,54 @@ def start_chapter_generation(
         raise ValueError("demo or service must be provided to start_chapter_generation")
 
     service = ChapterGenerationService(demo, repository=repository, evidence_service=evidence_service)
-    return service.start_chapter_generation(project_id, chapter_id, prin, sync_execute=sync_execute)
+    return service.start_chapter_generation(
+        project_id,
+        chapter_id,
+        prin,
+        sync_execute=sync_execute,
+        max_context_tokens=max_context_tokens,
+        snippet_matches=snippet_matches,
+    )
+
+
+def batch_generate_chapters(
+    project_id_or_service: Any,
+    chapter_ids_or_proj: list[str] | None = None,
+    principal_or_chap: Any = None,
+    principal: Principal | None = None,
+    *,
+    demo: Any | None = None,
+    repository: Any | None = None,
+    evidence_service: Any | None = None,
+    sync_execute: bool = False,
+    max_context_tokens: int | None = None,
+    snippet_matches_by_chapter: dict[str, list[dict]] | None = None,
+) -> dict[str, Any]:
+    """批量启动多章节结构化写作方案生成（模块顶层快捷入口）。"""
+    if hasattr(project_id_or_service, "batch_generate_chapters") and not isinstance(project_id_or_service, str):
+        service = project_id_or_service
+        return service.batch_generate_chapters(
+            chapter_ids_or_proj,
+            principal_or_chap,
+            principal=principal,
+            sync_execute=sync_execute,
+            max_context_tokens=max_context_tokens,
+            snippet_matches_by_chapter=snippet_matches_by_chapter,
+        )
+
+    project_id = str(project_id_or_service)
+    chapter_ids = list(chapter_ids_or_proj or [])
+    prin = principal_or_chap if principal is None else principal
+
+    if demo is None:
+        raise ValueError("demo or service must be provided to batch_generate_chapters")
+
+    service = ChapterGenerationService(demo, repository=repository, evidence_service=evidence_service)
+    return service.batch_generate_chapters(
+        project_id,
+        chapter_ids,
+        prin,
+        sync_execute=sync_execute,
+        max_context_tokens=max_context_tokens,
+        snippet_matches_by_chapter=snippet_matches_by_chapter,
+    )

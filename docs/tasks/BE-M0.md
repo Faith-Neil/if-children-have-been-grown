@@ -517,6 +517,28 @@
 - [x] icg_demo 保持超轻量兼容门面（< 400 行）。
 - [x] 后端 41 项自动化测试全过，OpenAPI 契约零漂移。
 
+<a id="be-tech-debt-03"></a>
+
+## BE-TECH-DEBT-03 · workflow_orchestrator 巨石解耦与领域子编排服务细化
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 6小时；拆分 workflow_orchestrator.py 巨石至领域子编排服务，代码行数严格控制 <= 350 行 |
+| 关联 Issue | [ISSUE-038](../../issues/ISSUE-038.md)、[ISSUE-006](../../issues/ISSUE-006.md) |
+| 依赖 | [BE-TECH-DEBT-02](BE-M0.md#be-tech-debt-02) |
+| 来源 | ISSUE-038 后端核心域结构债务治理与领域解耦 |
+| 完成时交付 | [BE-TECH-DEBT-03](../delivery/BE-TECH-DEBT-03.md) |
+| 代码解释 | [BE-TECH-DEBT-03](../code/BE-TECH-DEBT-03.md) |
+
+范围：将 `backend/bid-core/icg/domain/workflow_orchestrator.py`（983 行巨石）拆解为 5 大领域子编排服务：`outline_orchestrator.py`（大纲树构建、章节序号规范化、大纲定稿就绪检查）、`generation_orchestrator.py`（章节生成、提示词预算管理 DynamicPromptContextManager 集成、候选归档）、`check_orchestrator.py`（全规则引擎调用 ComplianceRulesEngine.evaluate_all、阻断缺陷汇总 aggregate_blockers、增量复检队列管理）、`tender_orchestrator.py`（招标文件解析提取、响应矩阵维护、事实冲突消解）、`library_orchestrator.py`（企业资料库 ACL 鉴权与合作协议校验、长任务脱敏管理）；`WorkflowService` 保持为高内聚统一门面，代码行数严格控制在 **350 行以内**（实测 330 行）；保持所有历史导入与调用 100% 向后兼容；新增专项单元测试，全量回归套件绿灯，OpenAPI 零漂移。本卡为 in-review，绝不私自标 done。
+
+- [x] 抽离 outline_orchestrator.py、generation_orchestrator.py、check_orchestrator.py、tender_orchestrator.py 与 library_orchestrator.py。
+- [x] WorkflowService 行数严格控制在 350 行以内（实测 330 行）。
+- [x] outline_service、generation_service 与 export_service 转化为兼容继承门面，签名 100% 保持兼容。
+- [x] 专项单元测试 6 项全绿，全量回归套件 55 项全绿。
+- [x] OpenAPI 契约 100% 一致零漂移，工程治理检查通过。
+
 <a id="int-volume-finalize-glue"></a>
 
 ## INT-VOLUME-FINALIZE-GLUE · 分册定稿与工作台/导出前后端契约胶水打通
@@ -643,5 +665,23 @@
 4. 前端控制器 `useAppController.ts` 打通后端真实重试 HTTP 调用；
 5. 编写专属自动化测试 `tests/backend/test_app_routing_and_masked_jobs.py` 并全绿通过。
 
+<a id="int-status-tag-metadata-glue"></a>
 
+## INT-STATUS-TAG-METADATA-GLUE · 状态注册表与元数据接口端到端契约联调
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 4小时；6大状态码表对齐、字段元数据字典聚合与8角色自适应权限联调 |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md)、[ISSUE-038](../../issues/ISSUE-038.md) |
+| 依赖 | [INT-APP-SLIM-ROUTING](BE-M0.md#int-app-slim-routing)、[APP-M2-T023](APP-M2.md#app-m2-t023) |
+| 来源 | PRD v1.8 §5.10.3 状态标签注册表、§6.9 状态字典代码表 |
+| 完成时交付 | [INT-STATUS-TAG-METADATA-GLUE 交付报告](../delivery/INT-STATUS-TAG-METADATA-GLUE.md) |
+| 代码解释 | [INT-STATUS-TAG-METADATA-GLUE 代码说明](../code/INT-STATUS-TAG-METADATA-GLUE.md) |
+
+范围：打通前端业务状态注册表与后端元数据字典服务端到端前后端胶水：
+1. 6大业务状态枚举（ProjectStatus、ChapterStatus、JobStatus、CheckStatus、ExportStatus、LockStatus）在 `/api/v1/metadata/fields/status` 与各专用领域接口中与前端 StatusTag / status-registry.ts 完全对齐，严禁未知状态裸显英文或丢失色彩；
+2. 落地 `GET /api/v1/metadata/fields/all` 全量元数据聚合查询端点；
+3. 多租户与非演示模式（VITE_DEMO=0）下 8 大标准 RBAC 角色字段字典 editable 权限自适应（只读系统角色封退 editable=False，写作者保留可编辑）；
+4. 编写专属自动化测试 `tests/backend/test_status_tag_metadata_glue.py` 并全绿通过。
 
