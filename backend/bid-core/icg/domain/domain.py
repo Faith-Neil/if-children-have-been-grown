@@ -57,6 +57,7 @@ DEMO_ONLY_ACCOUNT_IDS = frozenset({
     "beta-manager",
     "alpha-company-admin",
     "alpha-data-admin",
+    "platform-admin",
 })
 
 
@@ -232,8 +233,21 @@ class DemoService:
     def start_chapter_generation(self, project_id: str, chapter_id: str, principal: Principal, sync_execute: bool = False) -> dict:
         return self.chapter_generation.start_chapter_generation(project_id, chapter_id, principal, sync_execute=sync_execute)
 
-    def assemble_writing_prompt_plan(self, project_id: str, chapter_id: str, principal: Principal | None = None) -> dict:
-        return self.chapter_generation.assemble_writing_prompt_plan(project_id, chapter_id, principal=principal)
+    def assemble_writing_prompt_plan(
+        self,
+        project_id: str,
+        chapter_id: str,
+        principal: Principal | None = None,
+        max_context_tokens: int | None = None,
+        snippet_matches: list[dict] | None = None,
+    ) -> dict:
+        return self.chapter_generation.assemble_writing_prompt_plan(
+            project_id,
+            chapter_id,
+            principal=principal,
+            max_context_tokens=max_context_tokens,
+            snippet_matches=snippet_matches,
+        )
 
     def chat_editor_context(self, principal: Principal, project_id: str, query: str,
                             chapter_id: str, chapter_title: str | None = None,

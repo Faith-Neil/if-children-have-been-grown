@@ -29,6 +29,11 @@ from .project_access import (
     ROLE_NORMALIZATION_MAP,
     writable,
 )
+from .prompt_budget import (
+    DEFAULT_MAX_CONTEXT_TOKENS,
+    DynamicPromptContextManager,
+    check_sensitive_model_gate,
+)
 
 
 def format_writing_plan_prompt(snapshot: dict) -> str:
@@ -131,8 +136,10 @@ def assemble_writing_prompt_plan(
     chapter_id: str,
     evidence_service: Any | None = None,
     now: float | None = None,
+    max_context_tokens: int | None = None,
+    snippet_matches: list[dict] | None = None,
 ) -> dict:
-    """组装各章节得分要点小标题、已关联公司证据版本、RAGFlow候选切片及项目事实要点为模型Prompt写作计划（APP-M2-T124）。"""
+    """组装各章节得分要点小标题、已关联公司证据版本、RAGFlow候选切片及项目事实要点为模型Prompt写作计划（APP-M2-T124 / AI-DYNAMIC-PROMPT-CONTEXT）。"""
     project = state.projects.get(project_id)
     if project is None:
         raise DomainError(404, "NOT_FOUND", "未找到项目。")
@@ -140,20 +147,42 @@ def assemble_writing_prompt_plan(
     if chapter is None or chapter.project_id != project_id:
         raise DomainError(404, "NOT_FOUND", "未找到章节。")
 
+    # 涉密项目本地模型强门禁拦截
+    check_sensitive_model_gate(state, project_id)
+
+    # 动态上下文 Token 预算与最大窗口解析
+    effective_max_tokens = max_context_tokens
+    if effective_max_tokens is None:
+        bound_id = state.project_model_configs.get(project_id)
+        cfg = state.model_configs.get(bound_id) if bound_id else state.model_configs.get(f"default-{project.company_id}")
+        if cfg:
+            effective_max_tokens = getattr(cfg, "context_window", None) or getattr(cfg, "max_context_tokens", None)
+        if effective_max_tokens is None:
+            effective_max_tokens = DEFAULT_MAX_CONTEXT_TOKENS
+
     current_time = now if now is not None else time.time()
     service = evidence_service if evidence_service is not None else getattr(state, "evidence_service", None)
     assembled = build_generation_context(state, project_id, chapter, current_time, evidence_service=service)
     snapshot = assembled["input_snapshot"]
     plan = snapshot.get("plan", {})
 
-    rendered_prompt = format_writing_plan_prompt(snapshot)
+    # 自适应 Prompt 动态上下文裁剪与 Token 预算控制
+    manager = DynamicPromptContextManager(max_context_tokens=effective_max_tokens)
+    budget_result = manager.assemble_budgeted_prompt(snapshot, snippet_matches=snippet_matches)
 
     return {
         "project_id": project_id,
         "chapter_id": chapter_id,
         "title": chapter.title,
         "volume": chapter.volume,
-        "prompt": rendered_prompt,
+        "prompt": budget_result["prompt"],
+        "token_budget_usage": budget_result["token_budget_usage"],
+        "context_fingerprint": budget_result["context_fingerprint"],
+        "missing_variables": budget_result["missing_variables"],
+        "has_missing_variables": budget_result["has_missing_variables"],
+        "truncated_items_count": budget_result["truncated_items_count"],
+        "truncated_items": budget_result["truncated_items"],
+        "retained_counts": budget_result["retained_counts"],
         "writing_points": plan.get("writing_points", ""),
         "target_length": plan.get("target_length"),
         "fact_constraints": "正文引用事实必须保留变量标记（如 {{fact:xxx}} 或 {{sla:xxx}}），严禁修改事实取值或手写替换。",
@@ -167,7 +196,7 @@ def assemble_writing_prompt_plan(
 
 
 class ChapterGenerationService:
-    """章节写作计划组装与按逐节确认结果启动生成服务（APP-M2-T124 / T126）。"""
+    """章节写作计划组装与按逐节确认结果启动生成服务（APP-M2-T124 / T126 / AI-DYNAMIC-PROMPT-CONTEXT）。"""
 
     def __init__(self, demo: Any, repository: Any | None = None, evidence_service: Any | None = None):
         self.demo = demo
@@ -180,8 +209,10 @@ class ChapterGenerationService:
         chapter_id: str,
         principal: Principal | None = None,
         state: DemoState | None = None,
+        max_context_tokens: int | None = None,
+        snippet_matches: list[dict] | None = None,
     ) -> dict:
-        """组装章节写作方案 Prompt 输入（APP-M2-T124）。"""
+        """组装章节写作方案 Prompt 输入（APP-M2-T124 / AI-DYNAMIC-PROMPT-CONTEXT）。"""
         st = state if state is not None else self.repository.read()
         if principal is not None:
             self._check_access(st, project_id, chapter_id, principal)
@@ -191,6 +222,8 @@ class ChapterGenerationService:
             chapter_id,
             evidence_service=self.evidence_service,
             now=self.demo._now() if hasattr(self.demo, "_now") else time.time(),
+            max_context_tokens=max_context_tokens,
+            snippet_matches=snippet_matches,
         )
 
     def start_chapter_generation(
@@ -219,10 +252,12 @@ class ChapterGenerationService:
         # 门禁 3：敏感项目本地模型隔离门禁
         self._check_model_gate(state, project)
 
-        # 组装 Prompt 写作计划（APP-M2-T124）
+        # 组装 Prompt 写作计划（APP-M2-T124 / AI-DYNAMIC-PROMPT-CONTEXT）
         prompt_plan = self.assemble_writing_prompt_plan(project_id, chapter_id, principal, state=state)
         input_snapshot = prompt_plan["input_snapshot"]
         prompt = prompt_plan["prompt"]
+        token_budget_usage = prompt_plan.get("token_budget_usage")
+        context_fingerprint = prompt_plan.get("context_fingerprint")
 
         # 在 demo_job 中创建异步任务（job_type="generate_chapter", status="running", progress=0）
         now_time = self.demo._now() if hasattr(self.demo, "_now") else time.time()
@@ -243,6 +278,8 @@ class ChapterGenerationService:
             "updated_at": now_iso,
             "error_json": None,
             "result_json": None,
+            "token_budget_usage": token_budget_usage,
+            "context_fingerprint": context_fingerprint,
         }
 
         # 持久化或存入仓储与状态机
@@ -316,6 +353,8 @@ class ChapterGenerationService:
                 "content": content,
                 "base_revision": chapter.revision,
                 "input_fingerprint": project_input_fingerprint(state, project_id),
+                "context_fingerprint": context_fingerprint,
+                "token_budget_usage": token_budget_usage,
                 "provider": getattr(provider, "name", "model"),
                 "is_real_model": bool(getattr(provider, "is_real_model", False)),
                 "created_at": now_iso,
@@ -334,10 +373,19 @@ class ChapterGenerationService:
                 progress=100,
                 status="completed",
                 step_name="章节生成完成",
-                result_json={"candidate_id": cand_id, "chapter_id": chapter_id},
+                result_json={
+                    "candidate_id": cand_id,
+                    "chapter_id": chapter_id,
+                    "token_budget_usage": token_budget_usage,
+                    "context_fingerprint": context_fingerprint,
+                },
             )
 
         final_job = self.repository.read_job(job_id) or job_data
+        if token_budget_usage and "token_budget_usage" not in final_job:
+            final_job["token_budget_usage"] = token_budget_usage
+        if context_fingerprint and "context_fingerprint" not in final_job:
+            final_job["context_fingerprint"] = context_fingerprint
 
         return {
             "job_id": job_id,
@@ -349,6 +397,8 @@ class ChapterGenerationService:
             "step_name": final_job.get("step_name"),
             "prompt_plan": prompt_plan,
             "candidate": candidate,
+            "token_budget_usage": token_budget_usage,
+            "context_fingerprint": context_fingerprint,
         }
 
     def _check_access(self, state: DemoState, project_id: str, chapter_id: str, principal: Principal) -> None:

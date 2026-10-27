@@ -447,3 +447,20 @@
 | 代码解释 | [FE-TECH-DEBT-01 代码说明](../code/FE-TECH-DEBT-01.md) |
 
 范围：对 `frontend/web/src/editor/EditorPage.tsx` 执行二次细粒度解耦，将编辑锁定租约心跳、Diff 比对抽屉、AI 划词气泡状态机抽离为专属 Custom Hook 与子组件，使单个源文件行数控制在 600 行以内，严格保持交互与测试行为零回归。
+
+
+<a id="fe-tech-debt-02"></a>
+
+## FE-TECH-DEBT-02 · App.tsx 巨石二次瘦身与路由解耦
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 6小时；App.tsx 抽离顶栏操作、全局弹窗、项目工作台与全局页面，单文件行数严格控制在 400 行以内 |
+| 关联 Issue | [ISSUE-038](../../issues/ISSUE-038.md)；[ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [FE-TECH-DEBT-01](FE-M0.md#fe-tech-debt-01) |
+| 来源 | ISSUE-038 结构债务收敛提案 |
+| 完成时交付 | [FE-TECH-DEBT-02 交付报告](../delivery/FE-TECH-DEBT-02.md) |
+| 代码解释 | [FE-TECH-DEBT-02 代码说明](../code/FE-TECH-DEBT-02.md) |
+
+范围：对 `frontend/web/src/app/App.tsx` 执行二次细粒度解耦，将顶栏功能操作组（`AppHeaderActions.tsx`）、全局弹窗与抽屉（`AppModals.tsx`）、项目工作台 10 大业务页签（`ProjectWorkspaceContent.tsx`）与全局页面路由（`GlobalPagesContent.tsx`）抽离为独立子模块，使单文件行数严格控制在 400 行以内（实测达到 394 行），同时完整保留 AST 静态测试契约与生命周期监听，确保全量单测 100% 保持全绿。

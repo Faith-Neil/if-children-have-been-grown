@@ -128,12 +128,36 @@ class ComplianceRulesEngine:
             "description": "当项目标记为联合体投标时，核验是否已上传合法联合体协议书及全部成员资质，缺失直接阻断递交。",
         },
         {
+            "rule_id": "R05",
+            "title": "财务指标核验（资产负债率、净利润连续性）",
+            "category": "qualification",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "核验企业审计报告中资产负债率是否低于招标最高限额要求（如不超过70%）、近三年净利润是否为正；严重资不抵债或亏损判定为阻断红线。",
+        },
+        {
+            "rule_id": "R06",
+            "title": "业绩案例核验（合同金额、类似项目与签字盖章页）",
+            "category": "performance",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "核验提供的业绩案例合同金额是否达到招标门槛金额、签订时间是否在有效年限内、是否附带双方签字盖章页及验收证明；业绩金额不足或缺少盖章页判定为阻断红线。",
+        },
+        {
             "rule_id": "R07",
             "title": "原厂授权覆盖与多级授权链核验",
             "category": "qualification",
             "default_severity": "blocker",
             "can_disable": False,
             "description": "招标明确要求原厂授权时，核验原厂授权书是否覆盖招标涉及的产品、授权链是否逐级有效；缺失原厂授权书判定为阻断红线。",
+        },
+        {
+            "rule_id": "R08",
+            "title": "交付周期与进度计划偏离核验",
+            "category": "commitment",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "招标明确要求交付天数上限（如60日历天），投标响应承诺交付周期若超过招标上限，判定为负偏离重大违规阻断红线。",
         },
         {
             "rule_id": "R09",
@@ -160,6 +184,14 @@ class ComplianceRulesEngine:
             "description": "核验拟派团队人员归属单位与社保缴纳单位是否与投标主体一致、劳动合同在投标截止时间是否有效，人员归属不一致或社保未连续缴纳判定为阻断红线。",
         },
         {
+            "rule_id": "R12",
+            "title": "服务响应 SLA 与质保期偏离核验",
+            "category": "commitment",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "招标要求质保期最低年限（如3年）及现场到达响应时间（如2小时），响应若低于质保期要求或超出到达响应时间，判定为阻断红线。",
+        },
+        {
             "rule_id": "R14",
             "title": "必备附件齐全性核验",
             "category": "attachment",
@@ -174,6 +206,14 @@ class ComplianceRulesEngine:
             "default_severity": "blocker",
             "can_disable": False,
             "description": "核验资质、证书、业绩、原厂授权等证明类要求是否已挂接已确认且在保质期内的企业材料，严禁证据缺失或过期。",
+        },
+        {
+            "rule_id": "R20",
+            "title": "报价雷同排查（分项报价比例与异常一致性排查）",
+            "category": "collusion",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "排查分项报价清单是否存在异常数字规律、或明显复制其他投标主体的报价结构，排查违规串通投标风险；识别重大异常判定为阻断红线。",
         },
         {
             "rule_id": "R23",
@@ -2444,6 +2484,863 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
+    def check_r05(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R05：财务指标核验（资产负债率、净利润连续性）。
+        核验企业审计报告中资产负债率是否低于招标最高限额要求（如不超过 70%）、近三年净利润是否为正；严重资不抵债或亏损判定为 blocker (FINANCIAL_METRICS_NON_COMPLIANT)。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        requirements = workflow.get("requirements", {})
+        checked_count = 0
+
+        for req_id, req in requirements.items():
+            if volume != "all" and req.get("volume") != volume:
+                continue
+
+            text = str(req.get("text", "") or "")
+            is_financial = bool(
+                req.get("category") in ("financial", "finance")
+                or any(w in text for w in ("财务", "资产负债率", "净利润", "审计报告", "财务状况", "财务指标", "负债率", "资不抵债", "连续盈利"))
+            )
+            if not is_financial:
+                continue
+
+            checked_count += 1
+            resp = str(req.get("response", "") or req.get("confirmed_response", "") or "").strip()
+            dev_type = str(req.get("deviation_type", "")).lower()
+
+            if not resp:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R05",
+                        code="FINANCIAL_METRICS_NON_COMPLIANT",
+                        severity="blocker",
+                        message=f"财务指标与审计报告要求未作响应承诺：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"text": text},
+                    )
+                )
+                continue
+
+            # 实质性负偏离
+            if dev_type in ("negative", "负偏离"):
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R05",
+                        code="FINANCIAL_METRICS_NON_COMPLIANT",
+                        severity="blocker",
+                        message=f"财务指标响应存在实质性负偏离：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"response": resp, "deviation_type": "negative"},
+                    )
+                )
+                continue
+
+            # 资不抵债或亏损明确标识
+            loss_triggers = (
+                "资不抵债", "净利润为负", "严重亏损", "连续亏损", "出现亏损", "存在亏损",
+                "未连续盈利", "资产负债率超标", "负债率过高", "资产负债率过高", "无法提供审计报告",
+                "财务指标不达标", "资产负债率超出", "净利润亏损"
+            )
+            has_explicit_loss = False
+            for trig in loss_triggers:
+                if trig in resp:
+                    idx = resp.find(trig)
+                    prefix = resp[max(0, idx - 6):idx]
+                    if not any(neg in prefix for neg in ("未", "无", "不", "免", "非", "零", "排除", "防止")):
+                        has_explicit_loss = True
+                        break
+
+            if has_explicit_loss:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R05",
+                        code="FINANCIAL_METRICS_NON_COMPLIANT",
+                        severity="blocker",
+                        message=f"企业财务指标不达标（出现亏损、资不抵债或负债率超标）：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"response": resp},
+                    )
+                )
+                continue
+
+            # 资产负债率上限数值核验
+            max_ratio = 70.0
+            ratio_limit_match = re.search(r"(?:资产负债率|负债率)(?:不超过|不高于|低于|<=|≤|小于)\s*(\d+(?:\.\d+)?)\s*%", text)
+            if ratio_limit_match:
+                max_ratio = float(ratio_limit_match.group(1))
+
+            # 从响应与挂接材料提取资产负债率
+            bidder_ratio: float | None = None
+            ratio_match = re.search(r"(?:资产负债率|负债率)(?:为|达到|约|约为|是|：|:)?\s*(\d+(?:\.\d+)?)\s*%", resp)
+            if ratio_match:
+                bidder_ratio = float(ratio_match.group(1))
+            else:
+                for ev_id in req.get("evidence_ids", []):
+                    ev = state.library.get(ev_id)
+                    if ev:
+                        ev_name = ev.get("name", "") if isinstance(ev, dict) else getattr(ev, "name", "")
+                        ev_content = ev.get("content", "") if isinstance(ev, dict) else getattr(ev, "content", "")
+                        ev_text = f"{ev_name} {ev_content}"
+                        ev_ratio = re.search(r"(?:资产负债率|负债率)(?:为|达到|约|约为|是|：|:)?\s*(\d+(?:\.\d+)?)\s*%", ev_text)
+                        if ev_ratio:
+                            bidder_ratio = float(ev_ratio.group(1))
+                            break
+
+            if bidder_ratio is not None and bidder_ratio > max_ratio:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R05",
+                        code="FINANCIAL_METRICS_NON_COMPLIANT",
+                        severity="blocker",
+                        message=f"企业资产负债率（{bidder_ratio}%）超出招标文件最高限额要求（{max_ratio}%）：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"bidder_ratio": bidder_ratio, "max_ratio": max_ratio},
+                    )
+                )
+                continue
+
+            # 近三年净利润核验
+            profit_req = any(w in text for w in ("近三年净利润", "近3年净利润", "净利润连续", "净利润为正", "连续盈利", "无亏损"))
+            if profit_req:
+                combined_text = resp
+                for ev_id in req.get("evidence_ids", []):
+                    ev = state.library.get(ev_id)
+                    if ev:
+                        ev_name = ev.get("name", "") if isinstance(ev, dict) else getattr(ev, "name", "")
+                        ev_content = ev.get("content", "") if isinstance(ev, dict) else getattr(ev, "content", "")
+                        combined_text += f" {ev_name} {ev_content}"
+                if any(k in combined_text for k in ("净利润为负", "年度亏损", "出现亏损")):
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R05",
+                            code="FINANCIAL_METRICS_NON_COMPLIANT",
+                            severity="blocker",
+                            message=f"近三年净利润存在负值或年度亏损，不满足连续盈利要求：{text[:50]}",
+                            requirement_id=req_id,
+                            details={"text": text},
+                        )
+                    )
+
+        # 扫描正文文本（商务分册）是否存在资不抵债或财务亏损违规描述
+        chapters = [ch for ch in state.chapters.values() if ch.project_id == project.id]
+        if volume != "all":
+            chapters = [ch for ch in chapters if ch.volume == volume]
+        for ch in chapters:
+            if not ch.content:
+                continue
+            if "严重资不抵债" in ch.content or "企业发生重大连续亏损" in ch.content:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R05",
+                        code="FINANCIAL_METRICS_NON_COMPLIANT",
+                        severity="blocker",
+                        message=f"章节《{ch.title}》正文包含严重资不抵债或重大连续亏损描述，违反财务合格底线",
+                        chapter_id=ch.id,
+                        details={"chapter_title": ch.title},
+                    )
+                )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            "财务指标核验通过，资产负债率与近三年净利润指标均满足招标文件合规要求。"
+            if passed
+            else f"检测到 {len(issues)} 处财务指标不合规项（资产负债率超标、净利润亏损或承诺缺失），构成阻断红线。"
+        )
+        suggestion = "核验通过" if passed else "请核对审计报告中资产负债率是否低于招标限额（如70%），确保近三年净利润持续为正，并补充合法合规的财务审计报告。"
+
+        return ComplianceRuleResult(
+            rule_id="R05",
+            title="财务指标核验（资产负债率、净利润连续性）",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked_count, "financial_issues_count": len(issues)},
+        )
+
+    @classmethod
+    def check_r06(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        """
+        R06：业绩案例核验（合同金额、类似项目与签字盖章页）。
+        核验提供的业绩案例合同金额是否达到招标门槛金额、签订时间是否在有效年限内（如近3年）、是否附带双方签字盖章页及验收证明；业绩金额不足或缺少盖章页判定为 blocker (PERFORMANCE_CASE_INSUFFICIENT)。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        requirements = workflow.get("requirements", {})
+        checked_count = 0
+
+        today = (
+            datetime.fromtimestamp(now_ts, SHANGHAI).date()
+            if now_ts
+            else datetime.now(SHANGHAI).date()
+        )
+        current_year = today.year
+
+        for req_id, req in requirements.items():
+            if volume != "all" and req.get("volume") != volume:
+                continue
+
+            text = str(req.get("text", "") or "")
+            is_perf = bool(
+                req.get("category") in ("performance", "case")
+                or any(w in text for w in ("业绩", "同类项目", "类似项目", "案例", "合同业绩", "实施案例", "成功案例"))
+            )
+            if not is_perf:
+                continue
+
+            checked_count += 1
+            resp = str(req.get("response", "") or req.get("confirmed_response", "") or "").strip()
+            dev_type = str(req.get("deviation_type", "")).lower()
+
+            if not resp:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R06",
+                        code="PERFORMANCE_CASE_INSUFFICIENT",
+                        severity="blocker",
+                        message=f"业绩案例条款未填写响应说明与案例承诺：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"text": text},
+                    )
+                )
+                continue
+
+            if dev_type in ("negative", "负偏离"):
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R06",
+                        code="PERFORMANCE_CASE_INSUFFICIENT",
+                        severity="blocker",
+                        message=f"业绩案例响应存在实质性负偏离：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"response": resp, "deviation_type": "negative"},
+                    )
+                )
+                continue
+
+            # 明显声明业绩不足或缺失
+            missing_perf_triggers = (
+                "无类似业绩", "无同类业绩", "无类似项目", "无业绩案例", "无法提供合同",
+                "业绩不足", "业绩金额不足", "未达门槛金额", "缺少盖章页", "未盖章",
+                "缺少签字盖章", "无验收证明", "缺失验收证明", "合同超出3年", "非近3年业绩",
+                "无法提供验收报告", "缺少双方盖章"
+            )
+            has_explicit_perf_issue = False
+            for trig in missing_perf_triggers:
+                if trig in resp:
+                    idx = resp.find(trig)
+                    prefix = resp[max(0, idx - 6):idx]
+                    if not any(neg in prefix for neg in ("未", "无", "不", "免", "非", "零", "排除", "防止")):
+                        has_explicit_perf_issue = True
+                        break
+
+            if has_explicit_perf_issue:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R06",
+                        code="PERFORMANCE_CASE_INSUFFICIENT",
+                        severity="blocker",
+                        message=f"业绩案例不满足招标要求（缺少盖章/金额不足/无验收证明）：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"response": resp},
+                    )
+                )
+                continue
+
+            # 合同金额门槛提取与核验
+            threshold_amount: float | None = None
+            th_m = re.search(r"(?:合同金额|单项合同|金额)(?:不少于|不低于|达到|大于等于|≥|>=)\s*(\d+(?:\.\d+)?)\s*(?:万元|万)", text)
+            if not th_m:
+                th_m = re.search(r"(\d+(?:\.\d+)?)\s*(?:万元|万)(?:以上|及以上)", text)
+            if th_m:
+                threshold_amount = float(th_m.group(1))
+
+            # 从响应及挂接材料提取业绩案例金额
+            case_amount: float | None = None
+            resp_amt_m = re.search(r"(?:合同金额|业绩金额|金额)(?:为|达到|：|:)?\s*(\d+(?:\.\d+)?)\s*(?:万元|万)", resp)
+            if resp_amt_m:
+                case_amount = float(resp_amt_m.group(1))
+
+            evidence_ids = req.get("evidence_ids") or []
+            ev_texts = []
+            for ev_id in evidence_ids:
+                ev = state.library.get(ev_id)
+                if ev:
+                    ev_name = ev.get("name", "") if isinstance(ev, dict) else getattr(ev, "name", "")
+                    ev_content = ev.get("content", "") if isinstance(ev, dict) else getattr(ev, "content", "")
+                    ev_texts.append(f"{ev_name} {ev_content}")
+                    if case_amount is None:
+                        ev_amt_m = re.search(r"(?:合同金额|业绩金额|金额)(?:为|达到|：|:)?\s*(\d+(?:\.\d+)?)\s*(?:万元|万)", f"{ev_name} {ev_content}")
+                        if ev_amt_m:
+                            case_amount = float(ev_amt_m.group(1))
+
+            all_perf_text = resp + " " + " ".join(ev_texts)
+
+            if threshold_amount is not None and case_amount is not None:
+                if case_amount < threshold_amount:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R06",
+                            code="PERFORMANCE_CASE_INSUFFICIENT",
+                            severity="blocker",
+                            message=f"业绩案例合同金额（{case_amount}万元）未达到招标文件门槛要求（{threshold_amount}万元）：{text[:50]}",
+                            requirement_id=req_id,
+                            details={"case_amount": case_amount, "threshold_amount": threshold_amount},
+                        )
+                    )
+                    continue
+
+            # 签字盖章页与验收证明核验
+            needs_stamp = any(w in text for w in ("签字盖章", "双方盖章", "盖章页", "合同关键页"))
+            needs_acceptance = any(w in text for w in ("验收证明", "验收报告", "竣工证明", "用户证明", "验收合格"))
+            
+            if needs_stamp:
+                if any(w in all_perf_text for w in ("缺少盖章页", "未盖章", "无公章", "无签字盖章", "缺盖章")):
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R06",
+                            code="PERFORMANCE_CASE_INSUFFICIENT",
+                            severity="blocker",
+                            message=f"业绩案例缺少双方签字盖章页证明材料：{text[:50]}",
+                            requirement_id=req_id,
+                            details={"text": text},
+                        )
+                    )
+                    continue
+            
+            if needs_acceptance:
+                if any(w in all_perf_text for w in ("缺少验收证明", "无验收证明", "未附验收报告", "无验收报告", "缺失验收证明")):
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R06",
+                            code="PERFORMANCE_CASE_INSUFFICIENT",
+                            severity="blocker",
+                            message=f"业绩案例缺少项目验收证明或竣工验收报告：{text[:50]}",
+                            requirement_id=req_id,
+                            details={"text": text},
+                        )
+                    )
+                    continue
+
+            # 近三年签订时间有效性核验
+            needs_three_years = any(w in text for w in ("近三年", "近3年", "三年内", "3年内"))
+            if needs_three_years:
+                if any(w in all_perf_text for w in ("超过3年", "非近3年", "超出三年", "合同已超期", "签订时间早于近3年")):
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R06",
+                            code="PERFORMANCE_CASE_INSUFFICIENT",
+                            severity="blocker",
+                            message=f"业绩案例合同签订时间超出近三年有效期限：{text[:50]}",
+                            requirement_id=req_id,
+                            details={"text": text},
+                        )
+                    )
+                    continue
+                year_matches = re.findall(r"(\b20[12][0-9]\b)年?合同", all_perf_text)
+                for ym in year_matches:
+                    y = int(ym)
+                    if current_year - y > 3:
+                        issues.append(
+                            ComplianceRuleIssue(
+                                id=new_id("issue"),
+                                rule_id="R06",
+                                code="PERFORMANCE_CASE_INSUFFICIENT",
+                                severity="blocker",
+                                message=f"业绩案例合同年份（{y}年）超出近三年有效期限（{current_year-3}至{current_year}年）：{text[:50]}",
+                                requirement_id=req_id,
+                                details={"contract_year": y, "current_year": current_year},
+                            )
+                        )
+                        break
+
+            needs_contract_evidence = any(w in text for w in ("提供合同", "附合同", "合同扫描件", "业绩证明材料"))
+            if needs_contract_evidence and not evidence_ids and not any(w in resp for w in ("已提供", "已上传", "见附件", "附合同")):
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R06",
+                        code="PERFORMANCE_CASE_INSUFFICIENT",
+                        severity="blocker",
+                        message=f"业绩案例条款要求上传合同证明材料，但未挂接有效材料：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"text": text},
+                    )
+                )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            "业绩案例核验通过，业绩合同金额、签约年限、签字盖章页与验收证明均符合要求。"
+            if passed
+            else f"检测到 {len(issues)} 处业绩案例不合规项（金额不足、缺少盖章页/验收证明或超出年限），构成阻断红线。"
+        )
+        suggestion = "核验通过" if passed else "请补充符合招标文件门槛金额（如500万以上）、近三年内签署且具备完整双方签字盖章页与验收证明的有效业绩案例材料。"
+
+        return ComplianceRuleResult(
+            rule_id="R06",
+            title="业绩案例核验（合同金额、类似项目与签字盖章页）",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked_count, "performance_issues_count": len(issues)},
+        )
+
+    @classmethod
+    def check_r08(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R08：交付周期与进度计划偏离核验。
+        招标明确要求交付天数上限（如 60 日历天），投标响应承诺交付周期若超过招标上限，判定为负偏离重大违规 blocker (DELIVERY_TIMELINE_NEGATIVE_DEVIATION)。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        requirements = workflow.get("requirements", {})
+        checked_count = 0
+
+        for req_id, req in requirements.items():
+            if volume != "all" and req.get("volume") != volume:
+                continue
+
+            text = str(req.get("text", "") or "")
+            is_delivery = any(
+                w in text for w in ("交付周期", "交付天数", "交货期", "交付时限", "完工时限", "实施周期", "工期要求", "日历天", "进度计划", "交付时间")
+            )
+            if not is_delivery:
+                continue
+
+            checked_count += 1
+            resp = str(req.get("response", "") or req.get("confirmed_response", "") or "").strip()
+            dev_type = str(req.get("deviation_type", "")).lower()
+
+            if not resp:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R08",
+                        code="DELIVERY_TIMELINE_NEGATIVE_DEVIATION",
+                        severity="blocker",
+                        message=f"交付周期与进度计划未填写明确响应承诺：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"text": text},
+                    )
+                )
+                continue
+
+            if dev_type in ("negative", "负偏离"):
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R08",
+                        code="DELIVERY_TIMELINE_NEGATIVE_DEVIATION",
+                        severity="blocker",
+                        message=f"交付周期与进度计划响应存在实质性负偏离：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"response": resp, "deviation_type": "negative"},
+                    )
+                )
+                continue
+
+            deviation_triggers = (
+                "超出交付周期", "无法按期完成", "交期超出", "延迟交付", "延长工期",
+                "超出招标上限", "无法在要求时限内", "超期", "负偏离", "工期无法满足", "延长交付天数"
+            )
+            has_explicit_dev = False
+            for trig in deviation_triggers:
+                if trig in resp:
+                    idx = resp.find(trig)
+                    prefix = resp[max(0, idx - 6):idx]
+                    if not any(neg in prefix for neg in ("未", "无", "不", "免", "非", "零", "排除", "防止")):
+                        has_explicit_dev = True
+                        break
+
+            if has_explicit_dev:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R08",
+                        code="DELIVERY_TIMELINE_NEGATIVE_DEVIATION",
+                        severity="blocker",
+                        message=f"交付周期响应劣于招标文件上限要求，构成实质性负偏离：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"response": resp},
+                    )
+                )
+                continue
+
+            # 提取招标上限天数与投标承诺天数
+            req_days: int | None = None
+            m_req = re.search(r"(?:交付周期|交货期|工期)?(?:不超过|不高于|低于|<=|≤|内)?\s*(\d+)\s*(?:个?日历天|天|日)(?:内完成|交付|完工)?", text)
+            if not m_req:
+                m_req = re.search(r"(\d+)\s*(?:个?日历天|天|日)内", text)
+            if m_req:
+                req_days = int(m_req.group(1))
+
+            prom_days: int | None = None
+            m_prom = re.search(r"(?:承诺|交付周期|工期|交货期|需|需要|用时|时间为)\s*(\d+)\s*(?:个?日历天|天|日)", resp)
+            if not m_prom:
+                m_prom = re.search(r"(\d+)\s*(?:个?日历天|天|日)内完成", resp)
+            if not m_prom:
+                m_prom = re.search(r"(\d+)\s*(?:个?日历天|天|日)", resp)
+            if m_prom:
+                prom_days = int(m_prom.group(1))
+
+            if req_days is not None and prom_days is not None:
+                if prom_days > req_days:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R08",
+                            code="DELIVERY_TIMELINE_NEGATIVE_DEVIATION",
+                            severity="blocker",
+                            message=f"投标承诺交付周期（{prom_days}日历天）超出招标文件规定的最高限额（{req_days}日历天），构成负偏离重大违规：{text[:50]}",
+                            requirement_id=req_id,
+                            details={"prom_days": prom_days, "req_days": req_days},
+                        )
+                    )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            "交付周期与进度计划核验通过，承诺交付工期与各节点完全满足招标文件上限要求。"
+            if passed
+            else f"检测到 {len(issues)} 处交付周期负偏离缺陷（承诺天数超出招标上限或无明确承诺），构成阻断红线。"
+        )
+        suggestion = "核验通过" if passed else "请修正投标响应与进度计划，确保承诺交付天数不超过招标文件限定的上限（如60日历天）。"
+
+        return ComplianceRuleResult(
+            rule_id="R08",
+            title="交付周期与进度计划偏离核验",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked_count, "delivery_issues_count": len(issues)},
+        )
+
+    @classmethod
+    def check_r12(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R12：服务响应 SLA 与质保期偏离核验。
+        招标要求质保期最低年限（如 3 年）及现场到达响应时间（如 2 小时），响应若低于质保期要求或超出到达响应时间，判定为 blocker (SLA_WARRANTY_NEGATIVE_DEVIATION)。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        requirements = workflow.get("requirements", {})
+        checked_count = 0
+
+        for req_id, req in requirements.items():
+            if volume != "all" and req.get("volume") != volume:
+                continue
+
+            text = str(req.get("text", "") or "")
+            is_sla_warranty = any(
+                w in text for w in ("质保期", "维保期", "保修期", "免费质保", "免费维保", "响应时间", "到达现场", "现场响应", "赶赴现场", "SLA")
+            )
+            if not is_sla_warranty:
+                continue
+
+            checked_count += 1
+            resp = str(req.get("response", "") or req.get("confirmed_response", "") or "").strip()
+            dev_type = str(req.get("deviation_type", "")).lower()
+
+            if not resp:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R12",
+                        code="SLA_WARRANTY_NEGATIVE_DEVIATION",
+                        severity="blocker",
+                        message=f"服务响应 SLA 与质保期未填写明确响应承诺：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"text": text},
+                    )
+                )
+                continue
+
+            if dev_type in ("negative", "负偏离"):
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R12",
+                        code="SLA_WARRANTY_NEGATIVE_DEVIATION",
+                        severity="blocker",
+                        message=f"服务响应 SLA 或质保期承诺存在实质性负偏离：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"response": resp, "deviation_type": "negative"},
+                    )
+                )
+                continue
+
+            dev_triggers = (
+                "低于质保期", "缩短质保期", "少于招标文件要求", "不提供免费质保",
+                "超出到达响应时间", "响应超时", "无法在要求时间内到达", "无法在2小时内到达",
+                "响应时间负偏离", "超出到达时限", "负偏离", "延长现场到达时间"
+            )
+            has_explicit_dev = False
+            for trig in dev_triggers:
+                if trig in resp:
+                    idx = resp.find(trig)
+                    prefix = resp[max(0, idx - 6):idx]
+                    if not any(neg in prefix for neg in ("未", "无", "不", "免", "非", "零", "排除", "防止")):
+                        has_explicit_dev = True
+                        break
+
+            if has_explicit_dev:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R12",
+                        code="SLA_WARRANTY_NEGATIVE_DEVIATION",
+                        severity="blocker",
+                        message=f"服务响应 SLA 或质保期劣于招标文件最低基线，构成实质性负偏离：{text[:50]}",
+                        requirement_id=req_id,
+                        details={"response": resp},
+                    )
+                )
+                continue
+
+            # 1. 质保期年限对比核验
+            is_warranty = any(w in text for w in ("质保期", "维保期", "保修期", "免费质保", "免费维保"))
+            if is_warranty:
+                req_years: int | None = None
+                m_w_req = re.search(r"(?:不少于|不低于|提供|至少|>=|≥)?\s*(\d+)\s*年(?:免费)?(?:质保|维保|保修)", text)
+                if m_w_req:
+                    req_years = int(m_w_req.group(1))
+
+                prom_years: int | None = None
+                m_w_prom = re.search(r"(?:提供|承诺|质保期为|质保期|维保期|免费质保)?\s*(\d+)\s*年(?:免费)?(?:质保|维保|保修)", resp)
+                if m_w_prom:
+                    prom_years = int(m_w_prom.group(1))
+
+                if req_years is not None and prom_years is not None:
+                    if prom_years < req_years:
+                        issues.append(
+                            ComplianceRuleIssue(
+                                id=new_id("issue"),
+                                rule_id="R12",
+                                code="SLA_WARRANTY_NEGATIVE_DEVIATION",
+                                severity="blocker",
+                                message=f"承诺质保期（{prom_years}年）低于招标文件最低要求（{req_years}年）：{text[:50]}",
+                                requirement_id=req_id,
+                                details={"prom_years": prom_years, "req_years": req_years},
+                            )
+                        )
+                        continue
+
+            # 2. 现场到达响应时间对比核验
+            is_arrival = any(w in text for w in ("到达现场", "现场响应", "现场到达", "赶赴现场"))
+            if is_arrival:
+                req_hours: float | None = None
+                m_h_req = re.search(r"(?:不超过|内|<=|≤)?\s*(\d+(?:\.\d+)?)\s*小时(?:内)?(?:到达现场|到达|赶赴现场)", text)
+                if not m_h_req:
+                    m_h_req = re.search(r"(\d+(?:\.\d+)?)\s*小时内到达", text)
+                if m_h_req:
+                    req_hours = float(m_h_req.group(1))
+
+                prom_hours: float | None = None
+                m_h_prom = re.search(r"(?:承诺|需|将在)?\s*(\d+(?:\.\d+)?)\s*小时(?:内)?(?:到达现场|到达|赶赴现场)", resp)
+                if not m_h_prom:
+                    m_h_prom = re.search(r"(\d+(?:\.\d+)?)\s*小时内到达", resp)
+                if m_h_prom:
+                    prom_hours = float(m_h_prom.group(1))
+
+                if req_hours is not None and prom_hours is not None:
+                    if prom_hours > req_hours:
+                        issues.append(
+                            ComplianceRuleIssue(
+                                id=new_id("issue"),
+                                rule_id="R12",
+                                code="SLA_WARRANTY_NEGATIVE_DEVIATION",
+                                severity="blocker",
+                                message=f"承诺现场到达响应时间（{prom_hours}小时）超出招标文件限定时限（{req_hours}小时）：{text[:50]}",
+                                requirement_id=req_id,
+                                details={"prom_hours": prom_hours, "req_hours": req_hours},
+                            )
+                        )
+                        continue
+
+        # 检查 workflow['sla'] 指标负偏离
+        sla = workflow.get("sla") or {}
+        sla_values = sla.get("values") or {}
+        if isinstance(sla_values, dict):
+            for k, item in sla_values.items():
+                if not isinstance(item, dict):
+                    continue
+                dev = str(item.get("deviation") or "").lower()
+                name = item.get("name") or k
+                if dev in ("negative", "负偏离"):
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R12",
+                            code="SLA_WARRANTY_NEGATIVE_DEVIATION",
+                            severity="blocker",
+                            message=f"SLA 核心服务指标【{name}】标记为实质性负偏离",
+                            details={"variable_key": k, "deviation": dev},
+                        )
+                    )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            "服务响应 SLA 与质保期核验通过，质保年限与现场到达响应时间均符合或优于招标文件要求。"
+            if passed
+            else f"检测到 {len(issues)} 处质保期或 SLA 服务响应负偏离缺陷，阻断正式递交导出。"
+        )
+        suggestion = "核验通过" if passed else "请修正质保承诺（不少于招标年限）并缩短现场到达响应时间（不超过限定时限）。"
+
+        return ComplianceRuleResult(
+            rule_id="R12",
+            title="服务响应 SLA 与质保期偏离核验",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked_count, "sla_warranty_issues_count": len(issues)},
+        )
+
+    @classmethod
+    def check_r20(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R20：报价雷同排查（分项报价比例与异常一致性排查）。
+        排查分项报价清单是否存在异常数字规律、或明显复制其他投标主体的报价结构，排查违规串通投标风险；识别重大异常判定为 blocker (BID_PRICE_COLLUSION_RISK_DETECTED)。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        checked_count = 0
+
+        # 1. 扫描正文文本（重点在商务分册 business 与报价相关章节）
+        chapters = [ch for ch in state.chapters.values() if ch.project_id == project.id]
+        if volume != "all":
+            chapters = [ch for ch in chapters if ch.volume == volume]
+
+        collusion_patterns = [
+            "分项报价比例异常一致",
+            "报价雷同",
+            "复制其他投标主体报价",
+            "复制其他投标人报价",
+            "串通投标风险",
+            "串标嫌疑",
+            "存在串标",
+            "分项报价呈固定比例成倍递增",
+            "分项报价比例完全一致",
+            "与其他投标人报价规律异常一致",
+            "报价结构完全雷同",
+            "多份投标文件分项报价比例相同",
+            "报价规律高度一致",
+        ]
+
+        for ch in chapters:
+            if not ch.content:
+                continue
+            checked_count += 1
+            for pat in collusion_patterns:
+                if pat in ch.content:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R20",
+                            code="BID_PRICE_COLLUSION_RISK_DETECTED",
+                            severity="blocker",
+                            message=f"章节《{ch.title}》正文排查到报价雷同或串通投标风险特征：'{pat}'（违反招投标反串标合规红线）",
+                            chapter_id=ch.id,
+                            details={"chapter_title": ch.title, "pattern": pat},
+                        )
+                    )
+                    break
+
+        # 2. 扫描条款响应
+        requirements = workflow.get("requirements", {})
+        for req_id, req in requirements.items():
+            if volume != "all" and req.get("volume") != volume:
+                continue
+            resp = str(req.get("response", "") or req.get("confirmed_response", "") or "").strip()
+            if not resp:
+                continue
+            checked_count += 1
+            for pat in collusion_patterns:
+                if pat in resp:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R20",
+                            code="BID_PRICE_COLLUSION_RISK_DETECTED",
+                            severity="blocker",
+                            message=f"条款响应中排查到报价雷同或串通投标风险特征：'{pat}'",
+                            requirement_id=req_id,
+                            details={"pattern": pat},
+                        )
+                    )
+                    break
+
+        # 3. 排查结构化报价数据 workflow.get("quotation") / workflow.get("pricing")
+        quotation = workflow.get("quotation") or workflow.get("pricing") or {}
+        if isinstance(quotation, dict):
+            checked_count += 1
+            if (
+                quotation.get("collusion_risk") is True
+                or quotation.get("identical_breakdown_ratio") is True
+                or quotation.get("is_collusive") is True
+                or quotation.get("abnormal_consistency") is True
+            ):
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R20",
+                        code="BID_PRICE_COLLUSION_RISK_DETECTED",
+                        severity="blocker",
+                        message="报价清单数据分析检测到分项报价比例异常一致，存在串通投标雷同风险",
+                        details={"quotation": quotation},
+                    )
+                )
+
+        passed = len(issues) == 0
+        severity: Literal["blocker", "blocking", "warning", "info"] = "blocker" if issues else "info"
+        summary = (
+            "报价清单排查通过，未检测到分项报价比例异常一致、规律性雷同或串通投标风险。"
+            if passed
+            else f"排查到 {len(issues)} 处报价雷同或串标高危特征，违反招投标公平竞争红线，阻断正式递交导出。"
+        )
+        suggestion = "排查通过" if passed else "请核查分项报价测算明细，消除与其他投标主体分项比例异常一致或报价雷同嫌疑，确保报价独立编制。"
+
+        return ComplianceRuleResult(
+            rule_id="R20",
+            title="报价雷同排查（分项报价比例与异常一致性排查）",
+            severity=severity,
+            passed=passed,
+            finding_summary=summary,
+            suggestion=suggestion,
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked_count, "collusion_issues_count": len(issues)},
+        )
+
+    @classmethod
     def evaluate_p0_rules(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
     ) -> list[ComplianceRuleResult]:
@@ -2484,14 +3381,28 @@ class ComplianceRulesEngine:
         ]
 
     @classmethod
+    def evaluate_p3_rules(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> list[ComplianceRuleResult]:
+        """按顺序完整执行 PRD P3 级核心合规规则体系（R05, R06, R08, R12, R20）。"""
+        return [
+            cls.check_r05(state, project, workflow, volume=volume),
+            cls.check_r06(state, project, workflow, volume=volume, now_ts=now_ts),
+            cls.check_r08(state, project, workflow, volume=volume),
+            cls.check_r12(state, project, workflow, volume=volume),
+            cls.check_r20(state, project, workflow, volume=volume),
+        ]
+
+    @classmethod
     def evaluate_all(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
     ) -> list[ComplianceRuleResult]:
-        """执行当前系统已落地的全部合规规则体系（P0、P1 与 P2 批次共 16 项规则）。"""
+        """执行当前系统已落地的全部合规规则体系（P0、P1、P2 与 P3 批次共 21 项规则）。"""
         return (
             cls.evaluate_p0_rules(state, project, workflow, volume=volume, now_ts=now_ts)
             + cls.evaluate_p1_rules(state, project, workflow, volume=volume, now_ts=now_ts)
             + cls.evaluate_p2_rules(state, project, workflow, volume=volume, now_ts=now_ts)
+            + cls.evaluate_p3_rules(state, project, workflow, volume=volume, now_ts=now_ts)
         )
 
 

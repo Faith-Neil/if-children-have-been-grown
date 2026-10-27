@@ -10433,6 +10433,18 @@
         "operationId": "listJobs",
         "parameters": [
           {
+            "name": "masked",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "是否脱敏返回任务运维审计视图",
+              "default": false,
+              "title": "Masked"
+            },
+            "description": "是否脱敏返回任务运维审计视图"
+          },
+          {
             "name": "authorization",
             "in": "header",
             "required": false,
@@ -21554,26 +21566,32 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "completed",
-              "failed"
-            ],
             "title": "Status"
           },
           "progress": {
             "type": "integer",
-            "title": "Progress"
+            "title": "Progress",
+            "default": 0
           },
           "message": {
             "type": "string",
-            "title": "Message"
+            "title": "Message",
+            "default": ""
           },
           "created_at": {
             "type": "string",
-            "title": "Created At"
+            "title": "Created At",
+            "default": ""
           },
           "completed_at": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Completed At"
           },
           "error": {
@@ -21589,7 +21607,113 @@
           "recoverable": {
             "type": "boolean",
             "const": false,
-            "title": "Recoverable"
+            "title": "Recoverable",
+            "default": false
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "company_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Id"
+          },
+          "masked_company": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Masked Company"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "masked_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Masked Summary"
+          },
+          "is_masked": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Masked"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "allowed_actions": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed Actions"
+          },
+          "allowedActions": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowedactions"
           }
         },
         "additionalProperties": true,
@@ -21598,13 +21722,7 @@
           "id",
           "project_id",
           "type",
-          "status",
-          "progress",
-          "message",
-          "created_at",
-          "completed_at",
-          "error",
-          "recoverable"
+          "status"
         ],
         "title": "Job"
       },

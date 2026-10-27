@@ -335,3 +335,49 @@
 - [x] 交付文档、代码说明、任务卡与任务看板同步更新。
 
 状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。
+
+<a id="ai-dynamic-prompt-context"></a>
+
+## AI-DYNAMIC-PROMPT-CONTEXT · 自适应 Prompt 动态上下文裁剪与 Token 预算控制
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 基于模型上下文窗口与 Token 预算，实现四级优先级动态裁剪、加权 Token 估算与防伪指纹计算 |
+| 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [AI-SNIPPET-RETRIEVAL-MATCH](AI-M0.md#ai-snippet-retrieval-match)、[APP-M2-T124](APP-M2.md#app-m2-t124) |
+| PRD / 架构出处 | [PRD v1.8 §5.7.8](../reference/product/prd-mvp-v1.8.md)；[APP-M2-T126](APP-M2.md#app-m2-t126) |
+| 完成时交付 | [AI-DYNAMIC-PROMPT-CONTEXT 交付](../delivery/AI-DYNAMIC-PROMPT-CONTEXT.md) |
+| 代码解释 | [AI-DYNAMIC-PROMPT-CONTEXT 代码说明](../code/AI-DYNAMIC-PROMPT-CONTEXT.md) |
+
+范围：在 `backend/bid-core/icg/domain/prompt_budget.py` 与 `chapter_generation.py` 中落地自适应 Prompt 动态上下文裁剪与 Token 预算控制引擎：
+1. Token 预算分配策略：根据模型上下文窗口（`max_context_tokens`，默认 4096，支持 8192 / 16k / 32k）与预留生成空间（默认 1024）动态计算 Prompt 可用预算；实现中英文加权 Token 估算算法（中文字符 0.7、英文单词 1.3、空白标点 0.3）；
+2. 四级优先级动态自适应裁剪：
+   - Priority 1（最高核心指令，绝对不裁剪）：角色设定、章节分册目标、得分要点小标题、字数预期、事实约束规范、[证] 引用标记规范；
+   - Priority 2（高优先级事实与成熟方案）：高置信度方案片段（精确匹配得分 >= 0.70）与项目已核对事实清单；空间不足时局部截断并附加告示；
+   - Priority 3（中优先级条款与有效证据）：招标文件条款与响应要求、已关联公司证据清单；超出预算按相关度截取；
+   - Priority 4（低优先级参考背景）：RAGFlow 候选参考切片与低相关片段；预算紧张时自适应优先丢弃；
+3. 不可篡改上下文防伪指纹与 Token 指标：基于章节 ID、核心要点、保留切片 ID 列表与项目事实快照计算不可伪造的 16 位 SHA-256 `context_fingerprint`；输出包含 `priority_breakdown` 与 `truncated_items` 的完整 `token_budget_usage`；
+4. 涉密隔离与防编造红线：涉密项目（`sensitive=True`）强制使用本地模型配置，企图调用云端模型拦截 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`；缺失变量如实上报 `missing_variables`，杜绝模型幻觉编造；
+5. 服务层深度集成：全面集成入 `assemble_writing_prompt_plan` 与 `ChapterGenerationService.start_chapter_generation`，异步任务与候选成果自动记录指纹与预算指标。
+
+当前条件：自动化回归测试全绿通过（专属测试 10 passed，联合全量 109 passed 3 skipped）。端到端闭环逻辑通过。
+
+可验证验收：
+- [x] Token 加权估算：中文字符、英文单词与混合符号加权计算准确；
+- [x] Priority 1 核心指令保全：在极端紧缩预算下 P1 核心指令与硬约束绝对不裁剪；
+- [x] Priority 4 自适应优先裁剪：预算受限时低优先级 RAGFlow 背景切片优先舍弃并记录原因；
+- [x] Priority 2 方案片段局部截断：空间不足但具备缓冲时局部自适应截断并追加清晰告示；
+- [x] 完整 Token 使用统计：输出包含四级分解与裁剪条目详情的 `token_budget_usage`；
+- [x] 上下文指纹防伪：计算 16 位 SHA-256 `context_fingerprint`，输入或事实微调指纹立即改变；
+- [x] 缺失变量识别防幻觉：未对齐变量如实记录至 `missing_variables`，标识 `has_missing_variables=True`；
+- [x] 涉密项目本地模型强门禁：敏感项目绑定云端模型拦截 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`；
+- [x] 端到端写作计划组装完整性：`assemble_writing_prompt_plan` 返回规范化 Prompt、预算指标与指纹；
+- [x] 任务与候选成果记录指纹与预算：`start_chapter_generation` 产出任务与 candidate 均落盘上下文指纹与 Token 指标；
+- [x] 专属自动化测试套件 `pytest tests/backend/test_ai_prompt_budget.py -v` 执行全过（10 passed）；
+- [x] 全量 AI 与 RAG 联合测试回归全绿（109 passed, 3 skipped）；
+- [x] OpenAPI 契约校验 `python backend/bid-core/export_openapi.py --check` 100% 一致；
+- [x] 交付文档、代码说明、任务卡与任务看板同步更新。
+
+状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。
+

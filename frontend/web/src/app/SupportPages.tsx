@@ -1,7 +1,7 @@
 // 为什么有这个文件：展示已经接通的资料与任务，并标明其余页面的真实边界。
 // 它解决什么问题：辅助页面不再硬编码成功，也不会把待实现能力误当作完成。
 import React, { useState } from 'react';
-import { Badge, Button, Card, Progress, Space, Table, Tabs, Tag, Tooltip } from 'antd';
+import { Alert, Badge, Button, Card, Progress, Space, Table, Tabs, Tag, Tooltip } from 'antd';
 import { RedoOutlined, StopOutlined } from '@ant-design/icons';
 import { formatTime } from './context';
 import type { Job } from '../shared/types';
@@ -14,6 +14,8 @@ import {
   formatTaskTime,
   getJobTypeLabel,
   isAiJob,
+  isPlatformAdminRole,
+  maskTaskForPlatformAdmin,
   normalizeTask,
   resolveJobStatusMeta,
   resolveProgressStrokeColor,
@@ -29,6 +31,8 @@ export interface JobsPageProps {
   onRetry?: (jobId: string, failedStepKey?: string) => Promise<void> | void;
   onCancel?: (jobId: string) => Promise<void> | void;
   companyId?: string;
+  role?: string;
+  masked?: boolean;
 }
 
 export function JobsPage({
@@ -37,10 +41,16 @@ export function JobsPage({
   onRetry,
   onCancel,
   companyId,
+  role,
+  masked,
 }: JobsPageProps) {
   const [filter, setFilter] = useState<TaskFilterKey>('all');
+  const isPlatform = Boolean(masked || isPlatformAdminRole(role));
 
-  const normalizedTasks: TaskItem[] = jobs.map(j => normalizeTask(j));
+  const rawTasks: TaskItem[] = jobs.map(j => normalizeTask(j));
+  const normalizedTasks: TaskItem[] = isPlatform
+    ? rawTasks.map(t => maskTaskForPlatformAdmin(t))
+    : rawTasks;
   const counts = computeTaskCounts(normalizedTasks, companyId);
   const filtered = filterTasks(normalizedTasks, filter, { companyId });
 
@@ -86,7 +96,23 @@ export function JobsPage({
           <h2>后台任务中心</h2>
           <p>集中查看与管理当前公司的异步任务运行进度与处理结果。</p>
         </div>
+        {isPlatform && (
+          <Tag color="default" data-testid="platform-admin-badge">
+            平台管理员脱敏视图
+          </Tag>
+        )}
       </div>
+
+      {isPlatform && (
+        <Alert
+          type="info"
+          showIcon
+          message="平台管理员只读运维视图"
+          description="系统已对所有跨租户业务项目名称、招标文件及业务细节实施只读脱敏；平台运维人员不具备项目跳转与业务重试/取消权限。"
+          style={{ marginBottom: 16 }}
+          data-testid="platform-admin-masked-alert"
+        />
+      )}
 
       <Card>
         <Tabs
@@ -117,12 +143,30 @@ export function JobsPage({
               dataIndex: 'title',
               render: (_, item) => (
                 <Space direction="vertical" size={2}>
-                  <span style={{ fontWeight: 500 }}>{item.title}</span>
+                  <Space size={6} wrap>
+                    <span style={{ fontWeight: 500 }}>{item.title}</span>
+                    {item.isMasked && (
+                      <Tag color="default" style={{ margin: 0, fontSize: 11 }}>脱敏</Tag>
+                    )}
+                    {isPlatform && item.companyId && (
+                      <Tag style={{ margin: 0, fontSize: 11 }}>租户: {item.companyId}</Tag>
+                    )}
+                  </Space>
+                  {item.projectName && (
+                    <small style={{ color: item.isMasked ? '#8c8c8c' : '#1e4db7' }}>
+                      项目: {item.projectName}
+                    </small>
+                  )}
                   {item.currentStepTitle && (
                     <small style={{ color: '#8c8c8c' }}>步骤: {item.currentStepTitle}</small>
                   )}
                   {item.message && item.message !== item.title && (
                     <small style={{ color: '#4e5969' }}>{item.message}</small>
+                  )}
+                  {item.traceId && (
+                    <small style={{ color: '#8c8c8c' }}>
+                      Trace: <code>{item.traceId}</code>
+                    </small>
                   )}
                 </Space>
               ),
@@ -174,6 +218,13 @@ export function JobsPage({
               title: '操作',
               width: 180,
               render: (_, item) => {
+                if (isPlatform) {
+                  return (
+                    <span style={{ color: '#8c8c8c', fontSize: 12 }} data-testid="platform-admin-readonly-op">
+                      只读运维
+                    </span>
+                  );
+                }
                 const showRetry = canPerformTaskAction(item, 'retry') && !!onRetry;
                 const showCancel = canPerformTaskAction(item, 'cancel') && !!onCancel;
 

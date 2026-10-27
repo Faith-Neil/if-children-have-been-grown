@@ -48,6 +48,7 @@ export interface TaskItem {
   durationMs?: number;
   isAi: boolean;
   allowedActions: Array<'retry' | 'cancel'>;
+  isMasked?: boolean;
   error?: { code?: string; message?: string } | null;
   errorCode?: string;
   errorMessage?: string;
@@ -415,6 +416,50 @@ export function canPerformTaskAction(
     return isTaskRunning(task.status);
   }
   return false;
+}
+
+/**
+ * 判断是否为平台管理员角色（APP-M2-T022）
+ */
+export function isPlatformAdminRole(role?: string): boolean {
+  if (!role) return false;
+  const normalized = role.toLowerCase().trim();
+  return normalized === 'platform_admin';
+}
+
+/**
+ * 脱敏清洗任务标题中的招标文件或具体项目名称（APP-M2-T022）
+ */
+export function sanitizePlatformAdminTitle(title?: string, type?: string): string {
+  const fallback = type ? getJobTypeLabel(type) : '后台异步任务';
+  if (!title) return fallback;
+  // 若包含具体文件格式（如 .pdf, .docx, .doc, .zip 等），屏蔽文件名为 [招标文件]
+  if (/\.(pdf|docx?|zip|xlsx?)/i.test(title)) {
+    return `${fallback} (脱敏文件)`;
+  }
+  // 屏蔽具体项目敏感词
+  return title.replace(/项目|公司|工程/g, '***');
+}
+
+/**
+ * 对任务项执行平台管理员运维视图脱敏（APP-M2-T022）
+ * 规则：
+ * 1. 项目名称脱敏为 '*** (业务项目已脱敏)' 或隐藏；
+ * 2. 项目ID遮盖为 '***'；
+ * 3. 严格清空 allowedActions: []，平台管理员严禁重试或取消业务任务；
+ * 4. 标题与说明做敏感信息脱敏；
+ * 5. 保留运维必须信息：id, type, companyId, durationMs, status, progress, traceId。
+ */
+export function maskTaskForPlatformAdmin(task: TaskItem): TaskItem {
+  return {
+    ...task,
+    isMasked: true,
+    projectName: task.projectName || task.projectId ? '*** (业务项目已脱敏)' : undefined,
+    projectId: task.projectId ? '***' : undefined,
+    title: sanitizePlatformAdminTitle(task.title, task.type),
+    message: task.message ? '任务正在执行系统级运算，具体业务细节已对平台运维屏蔽。' : undefined,
+    allowedActions: [], // 平台管理员严禁直接操作业务任务
+  };
 }
 
 export {

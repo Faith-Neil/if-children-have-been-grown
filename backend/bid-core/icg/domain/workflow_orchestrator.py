@@ -45,6 +45,10 @@ from icg.domain.project_access import (
     chapter_permissions,
     project_permissions,
     public_team,
+    ROLE_PLATFORM_ADMIN,
+    ROLE_COMPANY_ADMIN,
+    ROLE_DATA_ADMIN,
+    normalize_role,
 )
 from icg.domain.outline_plan import OutlinePlanService, OutlinePlanError, infer_chapter_type
 from icg.domain.answer_card import AnswerCardService
@@ -83,7 +87,7 @@ class WorkflowService(OutlineServiceMixin, GenerationServiceMixin, ExportService
                          "evidence-company-and-review", "evidence-validity", "committed-content",
                          "pending-markers", "two-volumes", "input-fingerprint", "export-permission",
                          "sla-values-and-capability-subset", "sla-variables-and-labelled-numbers-subset",
-                         "R01", "R02", "R03", "R04", "R07", "R09", "R10", "R11", "R14", "R15", "R23", "R25", "R31", "R34", "R35", "R37"]
+                         "R01", "R02", "R03", "R04", "R05", "R06", "R07", "R08", "R09", "R10", "R11", "R12", "R14", "R15", "R20", "R23", "R25", "R31", "R34", "R35", "R37"]
     UNIMPLEMENTED_RULES = ["参考合规规则尚未逐条完成（按一期完整/一期简化/二期分组）", "语义事实与承诺核对",
                            "公司全文查重", "结构化敏感变量", "交叉复核和完整分册定稿"]
 
@@ -748,11 +752,123 @@ class WorkflowService(OutlineServiceMixin, GenerationServiceMixin, ExportService
             return {"parse_confirmed": True}
         return self._write(principal, project_id, "parse.confirm", payload, expected, key, operation)
 
-    def jobs(self, principal):
+    def jobs(self, principal: Principal, masked: bool = False) -> dict:
         state = self.repository.read()
-        allowed = {p.id for p in state.projects.values() if p.company_id == principal.user.company_id
-                   and principal.user.id in state.project_teams.get(p.id, {}).get("members", {})}
-        return {"jobs": [j for j in state.jobs.values() if j["project_id"] in allowed]}
+        norm_role = normalize_role(principal.user.role)
+        is_platform_admin = (norm_role == ROLE_PLATFORM_ADMIN)
+        should_mask = is_platform_admin or bool(masked)
+
+        if not should_mask:
+            if norm_role in (ROLE_COMPANY_ADMIN, ROLE_DATA_ADMIN):
+                allowed = {p.id for p in state.projects.values() if p.company_id == principal.user.company_id}
+            else:
+                allowed = {
+                    p.id for p in state.projects.values()
+                    if p.company_id == principal.user.company_id
+                    and principal.user.id in state.project_teams.get(p.id, {}).get("members", {})
+                }
+            return {"jobs": [j for j in state.jobs.values() if j.get("project_id") in allowed]}
+
+        # 平台管理员或请求脱敏视图（APP-M2-T022）
+        all_jobs_dict = {}
+        for j in state.jobs.values():
+            all_jobs_dict[j["id"]] = dict(j)
+        for j in state.recoverable_jobs.values():
+            all_jobs_dict[j["id"]] = dict(j)
+        records = getattr(state, "_job_records", {})
+        for jid, rec in records.items():
+            if jid not in all_jobs_dict:
+                all_jobs_dict[jid] = dict(rec)
+
+        projects_by_id = {p.id: p for p in state.projects.values()}
+
+        masked_jobs = []
+        for j in all_jobs_dict.values():
+            pid = j.get("project_id", "")
+            # 非平台管理员请求脱敏时，依然受租户公司隔离约束
+            if not is_platform_admin:
+                proj = projects_by_id.get(pid)
+                if not proj or proj.company_id != principal.user.company_id:
+                    continue
+
+            # 提取所属公司
+            company_id = "unknown"
+            if pid in projects_by_id:
+                company_id = projects_by_id[pid].company_id
+            elif j.get("company_id"):
+                company_id = j["company_id"]
+
+            # 企业标识脱敏（如 alpha -> al***）
+            masked_company = (company_id[:2] + "***") if len(company_id) > 2 else "**"
+
+            # 耗时计算 (毫秒)
+            duration_ms = j.get("duration_ms")
+            if duration_ms is None:
+                try:
+                    c_at = j.get("created_at")
+                    f_at = j.get("completed_at") or j.get("updated_at")
+                    if c_at and f_at:
+                        t1 = datetime.fromisoformat(str(c_at).replace("Z", "+00:00"))
+                        t2 = datetime.fromisoformat(str(f_at).replace("Z", "+00:00"))
+                        duration_ms = max(0, int((t2 - t1).total_seconds() * 1000))
+                    else:
+                        duration_ms = 0
+                except Exception:
+                    duration_ms = 0
+
+            # 状态与错误码
+            raw_status = j.get("status", "pending")
+            status = "queued" if raw_status == "pending" else raw_status
+            error = j.get("error_json") or j.get("error")
+            err_code = None
+            if isinstance(error, dict):
+                err_code = error.get("code")
+            elif isinstance(error, str):
+                err_code = error
+
+            # 脱敏摘要与消息
+            job_type = j.get("job_type", j.get("type", "generation"))
+            type_labels = {
+                "parse_tender": "招标文件解析",
+                "generate": "章节生成",
+                "generate_chapter": "章节生成",
+                "check_compliance": "合规检查",
+                "export_docx": "两卷导出",
+            }
+            type_label = type_labels.get(job_type, "后台计算")
+            if status in ("running", "queued", "pending"):
+                masked_summary = f"{type_label}任务正在执行（业务细节已脱敏）"
+            elif status in ("completed", "succeeded"):
+                masked_summary = f"{type_label}任务已完成（业务细节已脱敏）"
+            elif status == "cancelled":
+                masked_summary = f"{type_label}任务已取消（业务细节已脱敏）"
+            else:
+                masked_summary = f"{type_label}任务执行异常（业务细节已脱敏）"
+
+            masked_job = {
+                "id": j["id"],
+                "project_id": "prj-***",
+                "type": job_type,
+                "status": status,
+                "progress": int(j.get("progress", 0)),
+                "message": masked_summary,
+                "created_at": str(j.get("created_at") or ""),
+                "completed_at": str(j["completed_at"]) if j.get("completed_at") else None,
+                "error": {"code": err_code, "message": "执行异常（已脱敏）"} if err_code else None,
+                "recoverable": False,
+                "duration_ms": duration_ms,
+                "company_id": masked_company,
+                "masked_company": masked_company,
+                "summary": masked_summary,
+                "masked_summary": masked_summary,
+                "is_masked": True,
+                "error_code": err_code,
+                "allowed_actions": [],
+                "allowedActions": [],
+            }
+            masked_jobs.append(masked_job)
+
+        return {"jobs": masked_jobs}
 
     @staticmethod
     def _public_library(item):

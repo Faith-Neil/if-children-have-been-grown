@@ -39,6 +39,8 @@ import {
   formatTaskTime,
   getJobTypeLabel,
   isAiJob,
+  isPlatformAdminRole,
+  maskTaskForPlatformAdmin,
   normalizeTask,
   resolveJobStatusMeta,
   resolveProgressStrokeColor,
@@ -59,6 +61,7 @@ export interface TaskCenterCardProps {
   onCancel?: (jobId: string) => Promise<void> | void;
   onNavigateJob?: (task: TaskItem) => void;
   compact?: boolean;
+  masked?: boolean;
 }
 
 /**
@@ -70,7 +73,9 @@ export function TaskCenterCard({
   onCancel,
   onNavigateJob,
   compact = false,
+  masked = false,
 }: TaskCenterCardProps) {
+  const isMasked = masked || task.isMasked;
   const [copied, setCopied] = useState(false);
   const statusMeta = resolveJobStatusMeta(
     task.status === 'succeeded'
@@ -99,12 +104,13 @@ export function TaskCenterCard({
     isAi ? 'is-ai-task-card' : 'is-default-task-card',
     `status-${task.status}`,
     compact ? 'is-compact' : '',
+    isMasked ? 'is-masked-card' : '',
   ]
     .filter(Boolean)
     .join(' ');
 
-  const showRetry = canPerformTaskAction(task, 'retry') && !!onRetry;
-  const showCancel = canPerformTaskAction(task, 'cancel') && !!onCancel;
+  const showRetry = !isMasked && canPerformTaskAction(task, 'retry') && !!onRetry;
+  const showCancel = !isMasked && canPerformTaskAction(task, 'cancel') && !!onCancel;
 
   return (
     <Card
@@ -114,6 +120,7 @@ export function TaskCenterCard({
       data-task-id={task.id}
       data-task-status={task.status}
       data-is-ai={isAi ? 'true' : 'false'}
+      data-is-masked={isMasked ? 'true' : 'false'}
       style={{
         marginBottom: 12,
         borderRadius: 8,
@@ -149,6 +156,16 @@ export function TaskCenterCard({
             style={{ fontSize: 12 }}
             data-testid="task-status-badge"
           />
+          {isMasked && (
+            <Tag color="default" style={{ margin: 0, fontSize: 11 }} data-testid="task-masked-tag">
+              平台脱敏
+            </Tag>
+          )}
+          {isMasked && task.companyId && (
+            <Tag style={{ margin: 0, fontSize: 11 }} data-testid="task-company-tag">
+              租户: {task.companyId}
+            </Tag>
+          )}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#8c8c8c' }}>
@@ -177,9 +194,9 @@ export function TaskCenterCard({
       >
         {(task.projectName || task.projectId) && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }} data-testid="task-project-info">
-            <FolderOutlined style={{ color: '#1e4db7' }} />
-            <Text ellipsis style={{ maxWidth: 220, fontSize: 12, color: '#1e4db7' }}>
-              {task.projectName || `项目 (${task.projectId})`}
+            <FolderOutlined style={{ color: isMasked ? '#8c8c8c' : '#1e4db7' }} />
+            <Text ellipsis style={{ maxWidth: 220, fontSize: 12, color: isMasked ? '#8c8c8c' : '#1e4db7' }}>
+              {task.projectName || (isMasked ? '*** (项目已脱敏)' : `项目 (${task.projectId})`)}
             </Text>
           </div>
         )}
@@ -267,12 +284,18 @@ export function TaskCenterCard({
         style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'flex-end',
+          justifyContent: isMasked ? 'space-between' : 'flex-end',
           gap: 8,
           borderTop: '1px solid #f0f0f0',
           paddingTop: 8,
         }}
       >
+        {isMasked && (
+          <span style={{ fontSize: 12, color: '#8c8c8c' }} data-testid="task-masked-actions-hint">
+            平台运维视图 · 无业务操作权限
+          </span>
+        )}
+
         {/* 重试按钮 */}
         {showRetry && (
           <Button
@@ -302,7 +325,7 @@ export function TaskCenterCard({
         )}
 
         {/* 前往页面 / 前往项目 */}
-        {onNavigateJob && (
+        {!isMasked && onNavigateJob && (
           <Button
             size="small"
             type="link"
@@ -324,6 +347,8 @@ export interface TaskCenterDrawerProps {
   onClose: () => void;
   tasks: RawTaskInput[];
   companyId?: string;
+  role?: string;
+  masked?: boolean;
   onViewAll?: () => void;
   onNavigateJob?: (task: TaskItem) => void;
   onRetry?: (jobId: string, failedStepKey?: string) => Promise<void> | void;
@@ -336,12 +361,16 @@ export function TaskCenterDrawer({
   onClose,
   tasks,
   companyId,
+  role,
+  masked,
   onViewAll,
   onNavigateJob,
   onRetry,
   onCancel,
   width = 460,
 }: TaskCenterDrawerProps) {
+  const isPlatform = Boolean(masked || isPlatformAdminRole(role));
+
   const {
     counts,
     filter,
@@ -353,6 +382,10 @@ export function TaskCenterDrawer({
     initialFilter: 'all',
     initialOpen: open,
   });
+
+  const displayTasks = isPlatform
+    ? filteredTasks.map(task => maskTaskForPlatformAdmin(task))
+    : filteredTasks;
 
   const tabItems = [
     {
@@ -410,6 +443,18 @@ export function TaskCenterDrawer({
         ) : null
       }
     >
+      {/* 平台管理员脱敏提示横幅 (APP-M2-T022) */}
+      {isPlatform && (
+        <Alert
+          type="info"
+          showIcon
+          message="平台管理员脱敏视图"
+          description="已自动隐藏项目名称、标书文件名及客户敏感业务上下文；禁用业务跳转与业务重试/取消操作。"
+          style={{ marginBottom: 16 }}
+          data-testid="platform-admin-masked-alert"
+        />
+      )}
+
       {/* 四分类筛选 Tabs */}
       <Tabs
         activeKey={filter}
@@ -421,15 +466,16 @@ export function TaskCenterDrawer({
       />
 
       {/* 任务卡片列表 */}
-      {filteredTasks.length > 0 ? (
+      {displayTasks.length > 0 ? (
         <div className="task-cards-list" data-testid="task-cards-list">
-          {filteredTasks.map(task => (
+          {displayTasks.map(task => (
             <TaskCenterCard
               key={task.id}
               task={task}
-              onRetry={onRetry}
-              onCancel={onCancel}
-              onNavigateJob={onNavigateJob}
+              masked={isPlatform}
+              onRetry={isPlatform ? undefined : onRetry}
+              onCancel={isPlatform ? undefined : onCancel}
+              onNavigateJob={isPlatform ? undefined : onNavigateJob}
             />
           ))}
         </div>

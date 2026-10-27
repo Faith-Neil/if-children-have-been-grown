@@ -272,12 +272,20 @@ class GenerationServiceMixin:
             sync_execute=sync_execute,
         )
 
-    def assemble_writing_prompt_plan(self, project_id: str, chapter_id: str,
-                                     principal: Principal | None = None) -> dict[str, Any]:
+    def assemble_writing_prompt_plan(
+        self,
+        project_id: str,
+        chapter_id: str,
+        principal: Principal | None = None,
+        max_context_tokens: int | None = None,
+        snippet_matches: list[dict] | None = None,
+    ) -> dict[str, Any]:
         return self.demo.assemble_writing_prompt_plan(
             project_id=project_id,
             chapter_id=chapter_id,
             principal=principal,
+            max_context_tokens=max_context_tokens,
+            snippet_matches=snippet_matches,
         )
 
     def generate(self, principal, project_id, payload, expected, key):

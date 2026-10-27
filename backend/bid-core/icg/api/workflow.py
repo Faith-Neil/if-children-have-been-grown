@@ -3,7 +3,7 @@
 
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Header, Response
+from fastapi import APIRouter, Depends, Header, Query, Response
 
 from icg.infra.adapters import build_docx
 from icg.domain.domain import Export, Principal
@@ -179,8 +179,12 @@ def include_workflow_routes(application, service, current_user, parser):
                         headers={"Content-Disposition": f'attachment; filename="{document["filename"]}"'})
 
     @router.get("/jobs", response_model=JobsList, operation_id="listJobs")
-    def jobs(user: Principal = Depends(current_user)):
-        return workflow.jobs(user)
+    def jobs(user: Principal = Depends(current_user), masked: bool = Query(default=False, description="是否脱敏返回任务运维审计视图")):
+        return workflow.jobs(user, masked=masked)
+
+    @router.get("/jobs/masked", response_model=JobsList, operation_id="listJobsMasked", include_in_schema=False)
+    def jobs_masked(user: Principal = Depends(current_user)):
+        return workflow.jobs(user, masked=True)
 
     @router.get("/sla/templates", response_model=SlaTemplateList, operation_id="listSlaTemplates")
     def sla_templates(response: Response, user: Principal = Depends(current_user)):

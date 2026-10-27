@@ -606,3 +606,42 @@
 4. 严格保障多租户企业空间物理隔离（跨公司访问长任务严格 404，任务列表按公司隔离）；
 5. 编写全链路联调自动化测试 tests/backend/test_task_center_glue.py 并全绿通过。
 
+<a id="be-compliance-rules-p3"></a>
+
+## BE-COMPLIANCE-RULES-P3 · 核心合规规则第四批编号落地（R05/R06/R08/R12/R20）
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时以内；PRD 第四批核心合规规则结构化落地与导出门禁联动 |
+| 关联 Issue | [ISSUE-006](../../issues/ISSUE-006.md)、[ISSUE-007](../../issues/ISSUE-007.md)、[ISSUE-027](../../issues/ISSUE-027.md) |
+| 依赖 | [BE-COMPLIANCE-RULES-P2](BE-M0.md#be-compliance-rules-p2) |
+| 来源 | PRD v1.8 §5.8 第四批核心合规规则定义 |
+| 完成时交付 | [BE-COMPLIANCE-RULES-P3 交付报告](../delivery/BE-COMPLIANCE-RULES-P3.md) |
+| 代码解释 | [BE-COMPLIANCE-RULES-P3 代码说明](../code/BE-COMPLIANCE-RULES-P3.md) |
+
+范围：在 `backend/bid-core/icg/domain/compliance_rules.py` 中扩充落地 R05（财务指标核验：资产负债率、净利润连续性）、R06（业绩案例核验：合同金额、类似项目与签字盖章页）、R08（交付周期与进度计划偏离核验）、R12（服务响应 SLA 与质保期偏离核验）、R20（报价雷同排查：分项报价比例与异常一致性排查）规则判定；并在 `export_service.py` 确保在正式递交版导出时存在任一 blocker 缺陷严格返回 400 `CHECK_BLOCKER_EXISTS`；编写专属单测 `tests/backend/test_compliance_rules_p3.py`。
+
+<a id="int-app-slim-routing"></a>
+
+## INT-APP-SLIM-ROUTING · 路由分层与平台管理员脱敏长任务全链路联调
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时；平台运维管理员脱敏长任务视图、任务重试/取消权限门禁与前后端胶水联调 |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md)、[ISSUE-038](../../issues/ISSUE-038.md) |
+| 依赖 | [INT-TASK-CENTER-GLUE](BE-M0.md#int-task-center-glue)、[APP-M2-T021](APP-M2.md#app-m2-t021)、[APP-M2-T022](APP-M2.md#app-m2-t022) |
+| 来源 | PRD v1.8 §2.3 角色体系、§5.12.4 平台管理员脱敏长任务中心 |
+| 完成时交付 | [INT-APP-SLIM-ROUTING 交付报告](../delivery/INT-APP-SLIM-ROUTING.md) |
+| 代码解释 | [INT-APP-SLIM-ROUTING 代码说明](../code/INT-APP-SLIM-ROUTING.md) |
+
+范围：打通平台管理员脱敏长任务审计与任务中心重试/取消端到端前后端胶水：
+1. 平台管理员脱敏视图接口（`GET /api/v1/jobs?masked=true` 与 `/api/v1/jobs/masked`，`operationId="listJobsMasked"`），返回企业代码脱敏（`al***`）、项目 ID 脱敏（`prj-***`）、脱敏摘要、耗时毫秒与错误码，清空操作动作权限；
+2. 平台运维安全隔离与防嗅探机制：直调跨租户普通项目业务接口严格返回 404 `NOT_FOUND`，杜绝敏感业务信息泄露；
+3. 长任务取消与重试权限矩阵：项目负责人允许重试（`POST /api/v1/jobs/{job_id}/retry`），编写人/负责人允许取消，编写人重试拦截 403 `PROJECT_LEAD_REQUIRED`，只读角色取消拦截 403 `PROJECT_WRITER_REQUIRED`，非终态重试拦截 409 `VERSION_CONFLICT`；
+4. 前端控制器 `useAppController.ts` 打通后端真实重试 HTTP 调用；
+5. 编写专属自动化测试 `tests/backend/test_app_routing_and_masked_jobs.py` 并全绿通过。
+
+
+

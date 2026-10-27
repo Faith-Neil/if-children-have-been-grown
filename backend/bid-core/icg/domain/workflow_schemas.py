@@ -420,13 +420,22 @@ class Job(ResponseBody):
     id: str
     project_id: str
     type: str
-    status: Literal["completed", "failed"]
-    progress: int
-    message: str
-    created_at: str
-    completed_at: str
-    error: JobError | None
-    recoverable: Literal[False]
+    status: str
+    progress: int = 0
+    message: str = ""
+    created_at: str = ""
+    completed_at: str | None = None
+    error: JobError | None = None
+    recoverable: Literal[False] = False
+    duration_ms: int | None = None
+    company_id: str | None = None
+    masked_company: str | None = None
+    summary: str | None = None
+    masked_summary: str | None = None
+    is_masked: bool | None = None
+    error_code: str | None = None
+    allowed_actions: list[str] | None = None
+    allowedActions: list[str] | None = None
 
 
 JobRunStatus = Literal["queued", "running", "completed", "failed", "cancelled"]

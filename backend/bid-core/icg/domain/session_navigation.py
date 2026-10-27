@@ -21,7 +21,7 @@ LEGACY_ROLE_MAPPING = {"manager": "project_lead", "editor": "bid_writer", "viewe
 # 原8角色的入口矩阵是后续身份适配的共同定义，不代表当前演示身份已经具备这些角色。
 # 写作档案遵循PRD具体矩阵：审核人、只读成员不授予；公司统计独立于项目/集团统计。
 ROLE_NAVIGATION = {
-    "platform_admin": (("platform", "write"), ("platform.audit", "read"), ("platform.jobs", "read")),
+    "platform_admin": (("platform", "write"), ("platform.audit", "read"), ("jobs", "read")),
     "group_admin": (("workbench", "read"), ("library", "read"), ("knowledge", "read"),
                     ("writing", "read"), ("admin", "read")),
     "company_admin": (("workbench", "write"), ("library", "write"), ("knowledge", "write"),
