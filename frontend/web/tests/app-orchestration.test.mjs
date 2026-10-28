@@ -31,7 +31,7 @@ assert.ok(historyEffect, 'the actual App history effect is exercised');
 const permissions = { manage_team: false, manage_project: false, manage_structure: false, prepare_sources: false, manage_sla: false, edit_facts: false, confirm_facts: false, check_all: false, export_internal: false, check_volumes: [], export_volumes: [] };
 const account = { id: 'alpha-editor', name: '合成编写人', company_id: 'alpha', role: 'editor', roles: ['bid_writer'], primary_role: 'bid_writer' };
 const session = () => ({
-  auth_mode: 'synthetic-demo', role_mode: 'legacy-demo-compat', user: account,
+  auth_mode: 'authenticated', role_mode: 'rbac-8roles', user: account,
   scope: { kind: 'company', active_company_id: 'alpha', allowed_company_ids: ['alpha'] },
   navigation: [{ route_id: 'workbench', path: '/workbench', access: 'read' }, { route_id: 'library', path: '/library', access: 'write' }],
   allowedActions: ['projects.read', 'library.read', 'sla_templates.read'], home_path: '/workbench', session: { expires_at: null, renew_supported: false },
