@@ -155,51 +155,45 @@ class TenderOrchestratorMixin:
                     (f["key"], f["value"], f["source"]["file_id"], f["source"]["page"])
                     for f in actual["facts"].values()
                 }
-                for page, text in enumerate(result.pages, start=1):
-                    for raw in text.splitlines():
-                        line = raw.strip()
-                        if not line:
-                            continue
-                        source = {"file_id": identity, "page": page, "quote": line}
-                        match = re.match(r"^(招标编号|投标截止时间|服务期限|采购人|项目名称|服务地点|响应时间)\s*[:：]\s*(.+)$", line)
-                        if match:
-                            fact_key, value = match.groups()
-                            fact_key_tuple = (fact_key, value, identity, page)
-                            if fact_key_tuple not in existing_facts:
-                                fact = {
-                                    "id": new_id("fact"),
-                                    "key": fact_key,
-                                    "value": value,
-                                    "status": "pending",
-                                    "reason": "",
-                                    "source": source,
-                                }
-                                actual["facts"][fact["id"]] = fact
-                                existing_facts.add(fact_key_tuple)
-                            continue
-                        if line.startswith(("合成招标文件", "招标文件：", "招标文件:")):
-                            continue
-                        source_key = (identity, page, line)
-                        if source_key in existing:
-                            continue
-                        business = any(word in line for word in ("商务", "资质", "报价", "业绩", "授权", "证书"))
-                        references = re.findall(r"(?:见|详见|参照)(?:附件|第)[^，。；\n]{0,40}", line)
-                        requirement = {
-                            "id": new_id("req"),
-                            "text": line,
-                            "category": "mandatory" if "★" in line or "废标" in line or "必须" in line else "business" if business else "technical",
-                            "volume": "business" if business else "technical",
-                            "chapter_id": None,
-                            "status": "pending",
-                            "response": "",
-                            "reason": "",
-                            "evidence_ids": [],
-                            "source": source,
-                            "references": references,
-                            "reference_status": "unresolved" if references else "none",
-                        }
-                        actual["requirements"][requirement["id"]] = requirement
-                        existing.add(source_key)
+                from icg.domain.tender_extraction import extract_facts, extract_requirements, is_fact_line
+                for item in extract_facts(result.pages):
+                    fact_key_tuple = (item.key, item.value, identity, item.page)
+                    if fact_key_tuple in existing_facts:
+                        continue
+                    fact = {"id": new_id("fact"), "key": item.key, "value": item.value, "status": "pending",
+                            "reason": "", "source": {"file_id": identity, "page": item.page, "quote": item.quote}}
+                    actual["facts"][fact["id"]] = fact
+                    existing_facts.add(fact_key_tuple)
+                extracted, summary = extract_requirements(result.pages)
+                record["extraction"] = summary
+                for item in extracted:
+                    if is_fact_line(item.quote) and len(item.text) == len(item.quote):
+                        continue  # 单行事实（招标编号：…）已进事实表，不重复成条款
+                    if item.quote.startswith(("合成招标文件", "招标文件：", "招标文件:")):
+                        continue
+                    source_key = (identity, item.page, item.quote)
+                    if source_key in existing:
+                        continue
+                    references = re.findall(r"(?:见|详见|参照)(?:附件|第)[^，。；\n]{0,40}", item.text)
+                    requirement = {
+                        "id": new_id("req"),
+                        "text": item.text,
+                        "category": item.category,
+                        "volume": item.volume,
+                        "chapter_id": None,
+                        "status": "pending",
+                        "response": "",
+                        "reason": "",
+                        "evidence_ids": [],
+                        "source": {"file_id": identity, "page": item.page, "quote": item.quote},
+                        "references": references,
+                        "reference_status": "unresolved" if references else "none",
+                        "section_path": list(item.section_path),
+                        "section_kind": item.section_kind,
+                        "score": item.score,
+                    }
+                    actual["requirements"][requirement["id"]] = requirement
+                    existing.add(source_key)
             groups = {}
             for fact in actual["facts"].values():
                 groups.setdefault(fact["key"], []).append(fact)

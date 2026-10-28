@@ -109,11 +109,23 @@ export function ParsePage() {
     });
   }
 
+  const SKIP_LABEL: Record<string, string> = { contract: '合同条款', format: '文件格式', notice: '须知说明', other: '其他说明' };
+  const extractionNote = workspace.files
+    .map(file => file.extraction)
+    .filter((x): x is NonNullable<typeof x> => Boolean(x?.structured))
+    .reduce<string[]>((notes, x) => {
+      const skipped = Object.entries(x.skipped_items).map(([kind, n]) => `${SKIP_LABEL[kind] ?? kind} ${n} 项`).join('、');
+      notes.push(`识别 ${x.sections} 个章节，实质性条款 ${x.mandatory} 条${skipped ? `；未作为条款：${skipped}（可在原文中查看）` : ''}`);
+      return notes;
+    }, [])
+    .join('；');
+
   return (
     <>
       <div className="postprocess-bar">
         <span>
-          <CheckCircleOutlined className="green" /> 原文抽取 {workspace.requirements.length} 条 · 本地规则 · 人工核对
+          <CheckCircleOutlined className="green" /> 原文抽取 {workspace.requirements.length} 条 · 按章节条目抽取 · 人工核对
+          {extractionNote && <span className="muted" data-testid="extraction-summary"> · {extractionNote}</span>}
         </span>
         <Space>
           <Button danger size="small" onClick={() => setConflictsOpen(true)}>
@@ -209,8 +221,9 @@ export function ParsePage() {
                     <Tag color={statusColor(item.status)}>{statusName(item.status)}</Tag>
                   </Space>
                 </div>
+                {item.section_path?.length ? <p className="muted requirement-section">{item.section_path.join(' › ')}{typeof item.score === 'number' ? ` · ${item.score} 分` : ''}</p> : null}
                 <p className="requirement-text">{item.text}</p>
-                <blockquote>{item.source.quote}</blockquote>
+                {item.source.quote !== item.text && <blockquote>{item.source.quote}</blockquote>}
                 <Space>
                   <Tag>{volumeName(item.volume)}</Tag>
                   <span className="muted">
