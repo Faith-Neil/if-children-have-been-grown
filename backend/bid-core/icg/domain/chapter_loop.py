@@ -289,7 +289,8 @@ def run_chapter_loop(content: str, context: LoopContext, *, max_rounds: int = DE
         findings = check_paragraphs(paragraphs, context)
         current = {f["fingerprint"] for f in findings}
         record = {"round": round_no, "checked_hash": paragraph_hash(join_paragraphs(paragraphs)),
-                  "found": len(findings), "new": 0, "resolved": 0, "modified_paragraphs": [], "conclusion": ""}
+                  "found": len(findings), "new": 0, "resolved": 0, "modified_paragraphs": [], "conclusion": "",
+                  "codes": sorted({f["code"] for f in findings}), "fixes": []}
         if previous_findings is not None:
             previous_fps = {f["fingerprint"] for f in previous_findings}
             introduced = [f for f in findings if f["fingerprint"] not in previous_fps and f["paragraph_index"] in last_modified]
@@ -328,9 +329,11 @@ def run_chapter_loop(content: str, context: LoopContext, *, max_rounds: int = DE
         for f in auto:
             by_paragraph.setdefault(f["paragraph_index"], []).append(f)
         modified: set[int] = set()
+        fixes: list[dict] = []
         for index, issues in by_paragraph.items():
             original = paragraphs[index]
             replacement = None
+            fixed_by = "rule"
             if model_fix is not None:
                 try:
                     candidate = model_fix(original, issues)
@@ -338,6 +341,7 @@ def run_chapter_loop(content: str, context: LoopContext, *, max_rounds: int = DE
                     candidate = None
                 if candidate and model_fix_is_safe(original, candidate, context):
                     replacement = candidate.strip()
+                    fixed_by = "model"
             if replacement is None:
                 replacement = deterministic_fix(original, issues, context)
             for issue in issues:
@@ -345,8 +349,10 @@ def run_chapter_loop(content: str, context: LoopContext, *, max_rounds: int = DE
             if replacement != original:
                 paragraphs[index] = replacement
                 modified.add(index)
+                fixes.append({"paragraph_index": index, "by": fixed_by, "codes": sorted({i["code"] for i in issues})})
         last_modified = modified
         record["modified_paragraphs"] = sorted(modified)
+        record["fixes"] = sorted(fixes, key=lambda item: item["paragraph_index"])
         record["conclusion"] = "继续修正"
         rounds.append(record)
 
@@ -387,7 +393,7 @@ def chapter_loop_status(store: dict, chapter_id: str) -> str | None:
 
 
 def record_loop(workflow: dict, chapter: Any, chapter_number: int, outcome: dict, *, actor_id: str,
-                now_iso: str, checked_revision: int, kind: str = "generation") -> dict:
+                now_iso: str, checked_revision: int, kind: str = "generation", meta: dict | None = None) -> dict:
     """把一次循环的结果写进队列：同指纹沿用编号并重新打开，未再出现的关闭为已解决。"""
     store = queue_store(workflow)
     previous = store["loops"].get(chapter.id)
@@ -423,12 +429,14 @@ def record_loop(workflow: dict, chapter: Any, chapter_number: int, outcome: dict
     history = list((previous or {}).get("history", []))
     if previous:
         history.append({key: previous.get(key) for key in (
-            "loop_no", "stop_reason", "rounds", "rolled_back", "started_at", "checked_revision", "kind")})
+            "loop_no", "stop_reason", "stop_reason_label", "rounds", "rolled_back", "started_at", "started_by",
+            "checked_revision", "result_revision", "kind", "meta")})
     loop = {"chapter_id": chapter.id, "loop_no": loop_no, "kind": kind, "status": status,
             "stop_reason": outcome["stop_reason"], "stop_reason_label": outcome["stop_reason_label"],
             "rounds": outcome["rounds"], "max_rounds": outcome["max_rounds"], "rolled_back": outcome["rolled_back"],
             "started_at": now_iso, "started_by": actor_id, "checked_revision": checked_revision,
-            "history": history[-10:]}
+            "result_revision": int(getattr(chapter, "revision", checked_revision) or checked_revision),
+            "meta": dict(meta or {}), "history": history[-10:]}
     store["loops"][chapter.id] = loop
     return loop
 

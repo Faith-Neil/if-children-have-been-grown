@@ -56,6 +56,11 @@ class ChapterLoopState(ResponseBody):
     started_at: str
     stale: bool
     loop_count: int
+    started_by: str | None = None
+    checked_revision: int | None = None
+    result_revision: int | None = None
+    # 轮次依据：任务、模型/配置、修正方式、实际输入规模、前章摘要接力（APP-M2-T131）
+    meta: dict[str, Any] = Field(default_factory=dict)
 
 
 class HumanQueueChapter(ResponseBody):
@@ -90,6 +95,29 @@ class HumanQueueResponse(ResponseBody):
     deadline: str = ""
     summary: HumanQueueSummary
     chapters: list[HumanQueueChapter]
+
+
+class ChapterLoopRow(ResponseBody):
+    chapter_id: str
+    title: str
+    volume: str
+    number: int
+    chapter_revision: int
+    has_content: bool
+    assignee_name: str | None = None
+    volume_finalized: bool
+    can_recheck: bool
+    loop: ChapterLoopState | None = None
+    pending: int
+    resolved: int
+
+
+class ChapterLoopListResponse(ResponseBody):
+    revision: int
+    project_id: str
+    volume: str
+    totals: dict[str, int]
+    chapters: list[ChapterLoopRow]
 
 
 class ChapterLoopResponse(ResponseBody):
@@ -217,6 +245,14 @@ def include_chapter_loop_routes(application: Any, service: Any, current_user: An
                    volume: VolumeFilter = "all",
                    user: Principal = Depends(current_user)):
         return workflow().list_human_queue(user, project_id, volume)
+
+    @router.get("/projects/{project_id}/chapter-loops", response_model=ChapterLoopListResponse,
+                operation_id="listChapterLoops", summary="全部章节循环进度",
+                description="按章节顺序列出每章最近一次生成→检查→修正→复查循环的状态、停止原因与待处理数，含尚未开始的章节。")
+    def list_loops(project_id: ProjectId,
+                   volume: VolumeFilter = "all",
+                   user: Principal = Depends(current_user)):
+        return workflow().list_chapter_loops(user, project_id, volume)
 
     @router.get("/projects/{project_id}/chapters/{chapter_id}/loop", response_model=ChapterLoopResponse,
                 operation_id="getChapterLoop", summary="章节循环进度",

@@ -281,8 +281,36 @@ def build_generation_context(state, project_id, chapter, now, evidence_service=N
                 "requirements": requirements, "evidence": list(evidence_by_id.values()),
                 "retrieved_evidence": retrieved_evidence, "facts": facts,
                 "injected_tender_clauses": workflow.get("injected_tender_clauses", {}).get(chapter.id, []),
-                "omitted_inputs": omitted, "official_content": chapter.content}
+                "omitted_inputs": omitted, "official_content": chapter.content,
+                "previous_chapter": previous_chapter_relay(state, project_id, chapter)}
     return {"source_scope": "whole_chapter", "input_snapshot": snapshot, "ready": not issues, "issues": issues}
+
+
+_MARKUP = re.compile(r"\{\{[^}]*\}\}|\[(证|片)(:[^\]]*)?\]|【待补】")
+
+
+def previous_chapter_relay(state, project_id, chapter, limit=200):
+    """前章摘要接力：取同一分册里排在本章之前的一章正文开头作为衔接摘要。
+
+    前章还没有正文时明确标为 missing（不编造衔接），本册第一章为 not_applicable。
+    """
+    workflow = state.workflows.get(project_id, {})
+    positions = {identity: index for index, identity in enumerate(workflow.get("chapter_order", []))}
+    chapters = sorted((c for c in state.chapters.values() if c.project_id == project_id),
+                      key=lambda c: positions.get(c.id, len(positions)))
+    same_volume = [c.id for c in chapters if c.volume == chapter.volume]
+    if chapter.id not in same_volume or same_volume.index(chapter.id) == 0:
+        return {"status": "not_applicable", "message": "本章是本册第一章，没有前章摘要。"}
+    previous = state.chapters[same_volume[same_volume.index(chapter.id) - 1]]
+    lines = [line.strip() for line in (previous.content or "").splitlines()]
+    body = [line for line in lines if line and not line.startswith("#")]
+    text = _MARKUP.sub("", "".join(body)).strip()
+    if not text:
+        return {"status": "missing", "chapter_id": previous.id, "title": previous.title,
+                "message": f"前章《{previous.title}》还没有正文，本章未使用前章摘要，章节衔接须人工核对。"}
+    summary = text[:limit] + ("…" if len(text) > limit else "")
+    return {"status": "used", "chapter_id": previous.id, "title": previous.title,
+            "revision": int(previous.revision or 0), "summary": summary}
 
 
 def require_ready(context):

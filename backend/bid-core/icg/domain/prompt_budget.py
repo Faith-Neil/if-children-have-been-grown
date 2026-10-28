@@ -178,6 +178,11 @@ class DynamicPromptContextManager:
             "2. [片] 检索切片仅供写作方案参考，不得作为正式附着证据；",
             "",
         ]
+        relay = snapshot.get("previous_chapter") or {}
+        if relay.get("status") == "used":
+            p1_lines += ["【前章摘要（仅用于衔接，不要复述）】", f"《{relay.get('title', '')}》：{relay.get('summary', '')}", ""]
+        elif relay.get("status") == "missing":
+            p1_lines += ["【前章摘要】", "前章尚无正文：不要假设或引用前章内容。", ""]
         p1_text = "\n".join(p1_lines)
         p1_tokens = estimate_tokens(p1_text)
         priority_breakdown["priority_1_system_and_core"] = p1_tokens

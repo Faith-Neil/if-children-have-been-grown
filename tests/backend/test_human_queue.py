@@ -216,3 +216,66 @@ def test_recheck_refuses_locked_chapter_and_needs_version(client):
     no_version = client.post(f"{flow.path}/chapters/{cid}/loop/recheck", json={},
                              headers={**login(client), "Idempotency-Key": str(uuid4())})
     assert no_version.status_code == 428
+
+
+# ---------------------------------------------------------------- 循环进度与轮次时间线（APP-M2-T130 / T131）
+
+def test_round_records_which_paragraph_was_fixed_and_how():
+    outcome = run_chapter_loop("内容。希望能帮到您！\n第二段正常。", LoopContext())
+    first = outcome["rounds"][0]
+    assert first["codes"] and first["fixes"] == [{"paragraph_index": 0, "by": "rule", "codes": first["fixes"][0]["codes"]}]
+    assert outcome["rounds"][-1]["fixes"] == []
+
+
+def test_chapter_loops_lists_every_chapter_and_progress(client):
+    flow, cid = _prepared(client)
+    before = client.get(f"{flow.path}/chapter-loops", headers=flow.headers)
+    assert before.status_code == 200, before.text
+    rows = before.json()["chapters"]
+    assert len(rows) == len(flow.state()["chapters"]) and all(r["loop"] is None for r in rows)
+    assert before.json()["totals"]["not_started"] == len(rows)
+
+    client.post(f"{flow.path}/chapters/{cid}/loop/recheck", json={}, headers=_headers(flow))
+    body = client.get(f"{flow.path}/chapter-loops?volume=technical", headers=flow.headers).json()
+    row = next(r for r in body["chapters"] if r["chapter_id"] == cid)
+    assert row["loop"]["status"] == "pending_human" and row["pending"] == 2 and row["can_recheck"] is True
+    assert body["totals"]["pending_human"] == 1
+    assert all(r["volume"] == "technical" for r in body["chapters"])
+    viewer = client.get(f"{flow.path}/chapter-loops", headers=login(client, "alpha-viewer")).json()
+    assert all(r["can_recheck"] is False for r in viewer["chapters"])
+    assert client.get(f"{flow.path}/chapter-loops", headers=login(client, "beta-manager")).status_code == 404
+
+
+def test_loop_timeline_records_task_inputs_versions_and_summary_relay(client):
+    flow, cid = _prepared(client)
+    client.post(f"{flow.path}/chapters/{cid}/loop/recheck", json={}, headers=_headers(flow))
+    client.post(f"{flow.path}/chapters/{cid}/loop/recheck", json={}, headers=_headers(flow))
+    body = client.get(f"{flow.path}/chapters/{cid}/loop", headers=flow.headers).json()
+    loop = body["loop"]
+    meta = loop["meta"]
+    assert meta["task"] == "recheck" and meta["model"] is None and "规则" in meta["fixer"]
+    assert set(meta["inputs"]) >= {"requirements", "evidence", "snippets", "facts"}
+    assert meta["summary_relay"]["status"] in {"not_applicable", "missing", "used"}
+    assert loop["result_revision"] == body["chapter_revision"] and loop["started_by"]
+    # 上一次循环进入历史，带版本与依据
+    assert loop["loop_count"] == 2 and len(body["history"]) == 1
+    previous = body["history"][0]
+    assert previous["meta"]["base_revision"] < previous["result_revision"]
+    assert previous["rounds"][0]["fixes"][0]["by"] == "rule"
+
+
+def test_summary_relay_marks_missing_previous_chapter():
+    from types import SimpleNamespace
+    from icg.domain.generation_context import previous_chapter_relay
+
+    one = SimpleNamespace(id="c1", project_id="p", volume="technical", title="总体方案", content="", revision=1)
+    two = SimpleNamespace(id="c2", project_id="p", volume="technical", title="服务方案", content="", revision=1)
+    other = SimpleNamespace(id="c3", project_id="p", volume="business", title="商务", content="正文", revision=1)
+    state = SimpleNamespace(workflows={"p": {"chapter_order": ["c1", "c3", "c2"]}}, chapters={"c1": one, "c2": two, "c3": other})
+    assert previous_chapter_relay(state, "p", one)["status"] == "not_applicable"
+    missing = previous_chapter_relay(state, "p", two)
+    assert missing["status"] == "missing" and "总体方案" in missing["message"]
+    one.content = "# 总体方案\n我司按 {{fact:f1}} 提供驻场服务[证:ev1]，覆盖全部系统。"
+    used = previous_chapter_relay(state, "p", two)
+    assert used["status"] == "used" and used["summary"].startswith("我司按") and "{{" not in used["summary"]
+    assert previous_chapter_relay(state, "p", other)["status"] == "not_applicable"

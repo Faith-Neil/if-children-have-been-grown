@@ -14,7 +14,7 @@ from .chapter_loop import (
     LoopContext, queue_store, record_loop, refresh_chapter_status, run_chapter_loop,
 )
 from .domain import DemoState, DomainError, Principal, iso_time
-from .generation_context import project_facts
+from .generation_context import previous_chapter_relay, project_facts
 from .project_access import chapter_edit, lead, member, normalize_role
 
 LEAD_ONLY_REASONS = ("EXTRA_COMMITMENT", "DISCLOSURE")
@@ -119,6 +119,39 @@ class HumanQueueMixin:
             },
             "chapters": groups,
         }
+
+    def list_chapter_loops(self, principal: Principal, project_id: str, volume: str | None = None) -> dict:
+        """全部章节的循环进度（含没有待处理问题的章节）：哪些章已生成并检查、停在哪、还剩什么。"""
+        state = self.repository.read()
+        self._queue_viewable(state, principal, project_id)
+        project = state.projects[project_id]
+        workflow = self._workflow(state, project_id)
+        store = workflow.get("human_queue", {"loops": {}, "issues": {}})
+        rows = []
+        totals = {"chapters": 0, "not_started": 0, "completed": 0, "pending_human": 0, "human_handled": 0, "stale": 0}
+        for chapter in self._ordered_chapters(state, project_id, workflow):
+            if volume and volume != "all" and chapter.volume != volume:
+                continue
+            loop = self._public_loop(state, chapter, store.get("loops", {}).get(chapter.id))
+            issues = [i for i in store.get("issues", {}).values() if i["chapter_id"] == chapter.id]
+            pending = len([i for i in issues if i["status"] in OPEN_STATUSES])
+            totals["chapters"] += 1
+            totals[loop["status"] if loop else "not_started"] = totals.get(loop["status"] if loop else "not_started", 0) + 1
+            if loop and loop.get("stale"):
+                totals["stale"] += 1
+            rows.append({
+                "chapter_id": chapter.id, "title": chapter.title, "volume": chapter.volume,
+                "number": self._chapter_number(state, project_id, workflow, chapter.id),
+                "chapter_revision": chapter.revision, "has_content": bool((chapter.content or "").strip()),
+                "assignee_name": state.accounts[chapter.assignee_id].name if chapter.assignee_id in state.accounts else None,
+                "volume_finalized": _volume_finalized(workflow, chapter.volume),
+                "can_recheck": (chapter_edit(state, chapter, principal.user.id) and not _volume_finalized(workflow, chapter.volume)
+                                and bool((chapter.content or "").strip())),
+                "loop": loop, "pending": pending,
+                "resolved": len([i for i in issues if i["status"] in ("resolved", "human_handled")]),
+            })
+        return {"revision": project.revision, "project_id": project_id, "volume": volume or "all",
+                "totals": totals, "chapters": rows}
 
     def get_chapter_loop(self, principal: Principal, project_id: str, chapter_id: str) -> dict:
         state = self.repository.read()
@@ -247,6 +280,7 @@ class HumanQueueMixin:
             context = LoopContext(title=chapter.title, allowed_evidence_ids=evidence_ids,
                                   allowed_snippet_ids={s for s in snippet_ids if s}, facts=facts, critical=critical)
             max_rounds = int(payload.get("max_rounds") or 3)
+            base_revision = int(chapter.revision or 0)
             outcome = run_chapter_loop(chapter.content, context, max_rounds=max_rounds)
             fixed = outcome["content"] != chapter.content
             now = iso_time(now_ts)
@@ -258,7 +292,13 @@ class HumanQueueMixin:
                                          "source": "chapter_loop", "note": "章节循环定位修正"})
             loop = record_loop(workflow, chapter, self._chapter_number(state, project_id, workflow, chapter_id),
                                outcome, actor_id=principal.user.id, now_iso=now,
-                               checked_revision=chapter.revision, kind="recheck")
+                               checked_revision=chapter.revision, kind="recheck",
+                               meta={"task": "recheck", "task_label": "重新检查", "model": None,
+                                     "fixer": "规则修正（不调用模型）", "base_revision": base_revision,
+                                     "inputs": {"requirements": len(rows), "evidence": len(evidence_ids),
+                                                "snippets": len({s for s in snippet_ids if s}),
+                                                "facts": len(facts), "critical": critical},
+                                     "summary_relay": previous_chapter_relay(state, project_id, chapter)})
             return {"chapter_id": chapter_id, "chapter_revision": chapter.revision, "content_fixed": fixed,
                     "loop": self._public_loop(state, chapter, loop),
                     "stop_reason": outcome["stop_reason"], "stop_reason_label": STOP_REASONS[outcome["stop_reason"]],

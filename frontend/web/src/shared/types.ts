@@ -43,7 +43,42 @@ export interface ChapterLoopState {
   chapter_id: string; loop_no: number; kind: string; status: 'completed' | 'pending_human' | 'human_handled';
   status_label: string; stop_reason: string; stop_reason_label: string; max_rounds: number; rolled_back: boolean;
   started_at: string; stale: boolean; loop_count: number;
-  rounds: { round: number; found: number; new: number; resolved: number; modified_paragraphs: number[]; conclusion: string }[];
+  started_by?: string | null; checked_revision?: number | null; result_revision?: number | null;
+  meta?: ChapterLoopMeta;
+  rounds: LoopRound[];
+}
+export interface LoopRound {
+  round: number; found: number; new: number; resolved: number; modified_paragraphs: number[]; conclusion: string;
+  codes?: string[]; fixes?: { paragraph_index: number; by: 'model' | 'rule'; codes: string[] }[];
+}
+export interface SummaryRelay {
+  status: 'used' | 'missing' | 'not_applicable' | 'not_recorded'; chapter_id?: string; title?: string;
+  summary?: string; message?: string; revision?: number;
+}
+export interface ChapterLoopMeta {
+  task?: string; task_label?: string; model?: string | null; is_real_model?: boolean; model_config_id?: string | null;
+  model_name?: string | null; fixer?: string; base_revision?: number | null; context_fingerprint?: string | null;
+  inputs?: Partial<Record<'requirements' | 'evidence' | 'snippets' | 'facts' | 'omitted' | 'truncated', number>> & { critical?: boolean };
+  summary_relay?: SummaryRelay;
+}
+export interface ChapterLoopHistoryEntry {
+  loop_no: number; kind: string; stop_reason: string; stop_reason_label?: string; rounds: LoopRound[]; rolled_back: boolean;
+  started_at: string; started_by?: string | null; checked_revision?: number | null; result_revision?: number | null; meta?: ChapterLoopMeta;
+}
+export interface ChapterLoopRow {
+  chapter_id: string; title: string; volume: Volume; number: number; chapter_revision: number; has_content: boolean;
+  assignee_name?: string | null; volume_finalized: boolean; can_recheck: boolean; loop: ChapterLoopState | null;
+  pending: number; resolved: number;
+}
+export interface ChapterLoopList {
+  revision: number; project_id: string; volume: Volume | 'all';
+  totals: Record<'chapters' | 'not_started' | 'completed' | 'pending_human' | 'human_handled' | 'stale', number>;
+  chapters: ChapterLoopRow[];
+}
+export interface ChapterLoopDetail {
+  revision: number; chapter_id: string; title: string; volume: Volume; chapter_revision: number;
+  loop: ChapterLoopState | null; history: ChapterLoopHistoryEntry[];
+  counts: Record<HumanIssueStatus, number>; issues: HumanIssue[];
 }
 export interface HumanQueueChapter {
   chapter_id: string; title: string; volume: Volume; number: number; assignee_id?: string | null;

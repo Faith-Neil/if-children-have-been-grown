@@ -22000,6 +22000,181 @@
         }
       }
     },
+    "/api/v1/projects/{project_id}/chapter-loops": {
+      "get": {
+        "summary": "全部章节循环进度",
+        "description": "按章节顺序列出每章最近一次生成→检查→修正→复查循环的状态、停止原因与待处理数，含尚未开始的章节。",
+        "operationId": "listChapterLoops",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "项目ID",
+              "title": "Project Id"
+            },
+            "description": "项目ID"
+          },
+          {
+            "name": "volume",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "all",
+                "technical",
+                "business"
+              ],
+              "type": "string",
+              "description": "分册筛选",
+              "default": "all",
+              "title": "Volume"
+            },
+            "description": "分册筛选"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChapterLoopListResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "428": {
+            "description": "缺少必需的前置请求头。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/projects/{project_id}/chapters/{chapter_id}/loop": {
       "get": {
         "summary": "章节循环进度",
@@ -29479,6 +29654,46 @@
         ],
         "title": "ChapterListResponse"
       },
+      "ChapterLoopListResponse": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
+          "volume": {
+            "type": "string",
+            "title": "Volume"
+          },
+          "totals": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Totals"
+          },
+          "chapters": {
+            "items": {
+              "$ref": "#/components/schemas/ChapterLoopRow"
+            },
+            "type": "array",
+            "title": "Chapters"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "revision",
+          "project_id",
+          "volume",
+          "totals",
+          "chapters"
+        ],
+        "title": "ChapterLoopListResponse"
+      },
       "ChapterLoopResponse": {
         "properties": {
           "revision": {
@@ -29548,6 +29763,86 @@
         ],
         "title": "ChapterLoopResponse"
       },
+      "ChapterLoopRow": {
+        "properties": {
+          "chapter_id": {
+            "type": "string",
+            "title": "Chapter Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "volume": {
+            "type": "string",
+            "title": "Volume"
+          },
+          "number": {
+            "type": "integer",
+            "title": "Number"
+          },
+          "chapter_revision": {
+            "type": "integer",
+            "title": "Chapter Revision"
+          },
+          "has_content": {
+            "type": "boolean",
+            "title": "Has Content"
+          },
+          "assignee_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Name"
+          },
+          "volume_finalized": {
+            "type": "boolean",
+            "title": "Volume Finalized"
+          },
+          "can_recheck": {
+            "type": "boolean",
+            "title": "Can Recheck"
+          },
+          "loop": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChapterLoopState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pending": {
+            "type": "integer",
+            "title": "Pending"
+          },
+          "resolved": {
+            "type": "integer",
+            "title": "Resolved"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "chapter_id",
+          "title",
+          "volume",
+          "number",
+          "chapter_revision",
+          "has_content",
+          "volume_finalized",
+          "can_recheck",
+          "pending",
+          "resolved"
+        ],
+        "title": "ChapterLoopRow"
+      },
       "ChapterLoopState": {
         "properties": {
           "chapter_id": {
@@ -29605,6 +29900,44 @@
           "loop_count": {
             "type": "integer",
             "title": "Loop Count"
+          },
+          "started_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started By"
+          },
+          "checked_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked Revision"
+          },
+          "result_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Revision"
+          },
+          "meta": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Meta"
           }
         },
         "additionalProperties": true,

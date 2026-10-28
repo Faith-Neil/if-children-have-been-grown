@@ -2,7 +2,7 @@
 // 它解决什么问题：把各章节自动修不了的问题按章节集中，逐条处理或驳回，处理完可对本节重新检查；按钮是否出现以后台返回的权限为准。
 
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Button, Card, Checkbox, Empty, Form, Input, Modal, Radio, Segmented, Space, Spin, Tag, Tooltip } from 'antd';
+import { Alert, Button, Card, Checkbox, Empty, Form, Input, Modal, Radio, Segmented, Space, Spin, Tabs, Tag, Tooltip } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import { useProject, volumeName } from '../app/context.tsx';
 import { editorChapterPath } from '../app/app-route.ts';
@@ -11,10 +11,26 @@ import {
   RESOLVE_METHODS, daysUntil, defaultResolveMethod, fetchHumanQueue, loopLine, needsMaterial, queuePaths,
   sameParagraphIssues, severityTag,
 } from './main-path-core.ts';
+import { ChapterLoopPage } from './ChapterLoopPage.tsx';
 
 type Pending = { kind: 'resolve' | 'reject'; group: HumanQueueChapter; issue: HumanIssue } | null;
 
+// 页签内两个视图：待人工处理的问题（默认）与全部章节的循环进度/轮次时间线（APP-M2-T130/T131）。
 export function ManualQueuePage() {
+  const [view, setView] = useState('queue');
+  return (
+    <Tabs
+      activeKey={view}
+      onChange={setView}
+      items={[
+        { key: 'queue', label: '待人工处理', children: <HumanQueueView /> },
+        { key: 'loops', label: '章节循环进度', children: <ChapterLoopPage /> },
+      ]}
+    />
+  );
+}
+
+function HumanQueueView() {
   const { workspace, token, busy, mutate, navigate, report } = useProject();
   const [volume, setVolume] = useState<Volume | 'all'>('all');
   const [queue, setQueue] = useState<HumanQueue | null>(null);

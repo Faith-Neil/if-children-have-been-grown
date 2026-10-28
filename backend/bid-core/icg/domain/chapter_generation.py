@@ -1010,6 +1010,40 @@ def assemble_writing_prompt_plan(
     }
 
 
+def _config_value(config: Any, key: str) -> Any:
+    if config is None:
+        return None
+    return config.get(key) if isinstance(config, dict) else getattr(config, key, None)
+
+
+def generation_loop_meta(state: Any, project_id: str, candidate: dict) -> dict:
+    """生成后循环的轮次依据：模型、配置、任务、实际输入规模与前章摘要接力。"""
+    snapshot = candidate.get("input_snapshot") or {}
+    bound = state.project_model_configs.get(project_id) if hasattr(state, "project_model_configs") else None
+    project = state.projects.get(project_id)
+    config_id = bound or (f"default-{project.company_id}" if project is not None else None)
+    config = state.model_configs.get(config_id) if config_id and hasattr(state, "model_configs") else None
+    usage = candidate.get("token_budget_usage") or {}
+    if hasattr(usage, "__dict__") and not isinstance(usage, dict):
+        usage = vars(usage)
+    return {
+        "task": "generate_chapter", "task_label": "章节生成",
+        "model": candidate.get("provider"), "is_real_model": bool(candidate.get("is_real_model")),
+        "model_config_id": config_id if config is not None else None,
+        "model_name": _config_value(config, "model_name") or _config_value(config, "model"),
+        "fixer": "模型修正（未通过安全核对时退回规则修正）",
+        "base_revision": candidate.get("base_revision"),
+        "context_fingerprint": candidate.get("context_fingerprint"),
+        "inputs": {"requirements": len(snapshot.get("requirements") or []),
+                   "evidence": len(snapshot.get("evidence") or []),
+                   "snippets": len(snapshot.get("retrieved_evidence") or []),
+                   "facts": len(snapshot.get("facts") or []),
+                   "omitted": len(snapshot.get("omitted_inputs") or []),
+                   "truncated": int(usage.get("truncated_items_count") or 0) if isinstance(usage, dict) else 0},
+        "summary_relay": snapshot.get("previous_chapter") or {"status": "not_recorded", "message": "生成时未记录前章摘要。"},
+    }
+
+
 class ChapterGenerationService:
     """章节写作计划组装与按逐节确认结果启动生成服务（APP-M2-T124 / T126 / AI-DYNAMIC-PROMPT-CONTEXT）。"""
 
@@ -1263,6 +1297,7 @@ class ChapterGenerationService:
                             rem_res["loop_outcome"], actor_id=principal.user.id,
                             now_iso=iso_time(self.demo._now()) if hasattr(self.demo, "_now") else iso_time(time.time()),
                             checked_revision=int(live_chapter.revision or 0), kind="generation_candidate",
+                            meta=generation_loop_meta(st, project_id, candidate),
                         )
 
             self.repository.transaction(save_candidate_op)
@@ -2151,6 +2186,7 @@ class ChapterGenerationService:
                 loop_record = record_loop(
                     wf, live_chapter, number, loop_outcome, actor_id=principal.user.id, now_iso=now_iso,
                     checked_revision=int(getattr(live_chapter, "revision", 0) or 0), kind="generation_candidate",
+                    meta=generation_loop_meta(st, project_id, remediated_candidate),
                 )
 
             self.repository.transaction(save_remediated_cand)
