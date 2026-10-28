@@ -337,6 +337,7 @@ class GenerationOrchestratorMixin:
         sync_execute: bool = False,
         max_context_tokens: int | None = None,
         snippet_matches: list[dict] | None = None,
+        auto_remediate: bool = False,
     ) -> dict[str, Any]:
         return self.demo.start_chapter_generation(
             project_id=project_id,
@@ -345,6 +346,7 @@ class GenerationOrchestratorMixin:
             sync_execute=sync_execute,
             max_context_tokens=max_context_tokens,
             snippet_matches=snippet_matches,
+            auto_remediate=auto_remediate,
         )
 
     def batch_generate_chapters(
