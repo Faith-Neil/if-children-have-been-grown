@@ -18,12 +18,12 @@ async function loginManager(page: Page) {
     await page.getByRole('button', { name: '进入工作台', exact: true }).click();
   }
   await expect(page.getByRole('button', { name: '退出', exact: true })).toBeVisible();
-  await expect(page.locator('textarea.chapter-editor')).toBeVisible();
+  await expect(page.locator('.chapter-editor-unheld-view, textarea.chapter-editor')).toBeVisible();
 }
 
 async function dirtyEditor(page: Page) {
   // 图标参与可访问名称（实际 DOM 为“lock 取得编辑权”）；沿用既有用例的文字匹配。
-  const acquire = page.getByRole('button', { name: '取得编辑权' });
+  const acquire = page.getByRole('button', { name: '取得编辑权' }).first();
   const held = page.getByRole('button', { name: '释放编辑权' });
   await expect(acquire.or(held)).toBeVisible();
   const takeover = page.getByRole('button', { name: '填写理由接管', exact: true });

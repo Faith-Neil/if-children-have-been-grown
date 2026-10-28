@@ -32,7 +32,7 @@ async function tab(page: Page, name: string) {
 
 async function dirtyEditor(page: Page) {
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
-  const lease = page.getByRole('button', { name: '取得编辑权' });
+  const lease = page.getByRole('button', { name: '取得编辑权' }).first();
   const held = page.getByRole('button', { name: '释放编辑权' });
   await expect(lease.or(held)).toBeVisible();
   const takeover = page.getByRole('button', { name: '填写理由接管' });
@@ -170,7 +170,7 @@ test('reload: dismiss keeps text, accept reloads', async ({ page }) => {
     await page.getByRole('button', { name: '进入工作台' }).click();
   }
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
-  await expect(page.locator('textarea.chapter-editor')).not.toHaveValue(new RegExp(marker));
+  await expect(page.locator('.chapter-editor-unheld-view, textarea.chapter-editor')).not.toContainText(marker);
 });
 
 test('back/forward routing across global and project pages', async ({ page }) => {
@@ -178,7 +178,7 @@ test('back/forward routing across global and project pages', async ({ page }) =>
   await page.locator('.ant-pro-sider a[href="/library"]').click();
   await expect(page).toHaveURL(/\/library$/);
   await page.locator('.ant-pro-sider a[href="/workbench"]').click();
-  await page.getByRole('button', { name: '进入项目' }).first().click();
+  await page.getByRole('button', { name: /进入(项目|工作台)/ }).first().click();
   await expect(page).toHaveURL(/\/projects\/alpha-project\/[a-z]+$/);
   const projectUrl = page.url();
   await tab(page, '响应矩阵');
@@ -214,7 +214,13 @@ test('collapsed sidebar expand control opens the menu at 1280/1440/1680 in light
     await page.emulateMedia({ colorScheme: scheme });
     for (const width of [1280, 1440, 1680]) {
       await page.setViewportSize({ width, height: 900 });
+      await page.addInitScript(() => {
+        try { localStorage.removeItem('icg_sidebar_collapsed'); } catch {}
+      });
       await login(page, '/workbench');
+      await page.evaluate(() => {
+        try { localStorage.removeItem('icg_sidebar_collapsed'); } catch {}
+      }).catch(() => undefined);
       const sider = page.locator('.ant-pro-sider');
       const siderWidth = () => sider.evaluateAll(elements => Math.max(...elements.map(element => element.getBoundingClientRect().width)));
       await expect(sider.first()).toHaveClass(/ant-layout-sider-collapsed/);
