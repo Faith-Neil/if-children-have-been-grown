@@ -509,7 +509,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | planned |
+| 状态 | in-review |
 | 估算 | 3小时 |
 | 关联 Issue | [ISSUE-044](../../issues/ISSUE-044.md) |
 | 依赖 | — |
@@ -519,3 +519,4 @@
 
 范围：`frontend/web/tests/*.test.mjs` 28 个文件纳入 `pnpm test`，8 项失败逐个判定修复。
 
+结论（2026-10-28）：8 项失败全部是断言过期，不是回归——测试夹具仍用已删除的演示会话（`synthetic-demo` / `legacy-demo-compat`），被生产会话核验正确拒绝。夹具改为 `authenticated` / `rbac-8roles`，“未知角色被拒”用例改用不存在的角色；`package.json` 的 `test` 同时执行 `tests/*.test.mjs` 与 `tests/**/*.test.mjs`，前端 469 项全部通过。

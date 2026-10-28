@@ -8,7 +8,22 @@
 
 将 [前端 ROADMAP](ROADMAP.md) 的 Phase 0～8 与发布 Milestone 1～5 拆为 **59 张任务卡**，由 FE-M0～FE-M8 管理。前缀 FE 表示前端合作交付；这些编号与参考全系统 M0～M8 的门禁、周期和范围独立。
 
-项目 451 项中（以表内实时状态为准，2026-10-28 逐行统计：done 96、in-review 72、in-progress 8、planned 227、blocked 41、cancelled 7、ready 0），挂上 ISSUE-038 三项结构债）。APP-M1的16项中，T01～05继续实现，T06继续完整联调验收，T07已完成范围拆分，T08等待最终审计；T09～16限定子任务已本地验收，T16完成资料及公司模板旧表单保护。APP-M2的259卡中T001布局、路由和离开保护为 done，T002请求层为 done。项目经理在群里确认 QA 签署后标为 done，T008离线CI为 done，T078 内存发布为 done（QA 19c4862，PM 17:20 确认），页面未做不挡住本卡，T114 挂证据抽屉为 done（QA f521950，PM 17:13 确认），T124 改为 ready，本轮不实现，其 OpenAPI 契约已冻结且 ISSUE-022 已依据 QA 0254102，PM 15:36 确认 closed，APP-M2-T021 已依据 QA 签署（D-764）与 PD 验收（D-765）由 PM 确认为 done，其余252卡planned，47组页面、190原WBS细项及44规则已逐项映射，见[完整后续卡](tasks/APP-M2.md)与[来源核对](testing/icg-task-mapping.md)。BE-M0现为19项：T01已验收；T02与T03由项目经理于 10-12 12:28 在 QA 签署后确认，标为 done；MySQL 8 方案与连接空迁移由项目经理在 QA 签署 98c5129 后确认，标为 done；锁迁移 BE-M0-T04 与导出快照 BE-M0-T05 为 in-review（QA REV-M0-T32/T33 已签，等 PM），202/SSE BE-M0-T06 为 in-review（QA REV-M0-T36 tip `0cb6c38` 已签，等 PM），operationId BE-M0-T07 为 in-review；旧接口错误体为 planned。按聚合迁移的项目聚合已依据 QA ae38ec3，PM 17:16 确认 done。T11 回执与会话已依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done。T12 编辑租约已依据 QA ae6fd10，PM 15:32 确认 done。T13 项目聚合已依据 QA ae38ec3，PM 17:16 确认 done。T14 托管 MySQL 作业已依据 QA 签署 b20b844 标为 done。Word 默认版式 BE-M0-T15 已由项目经理于 18:01 确认 done。用户已在 Word/WPS 目视确认。ISSUE-027 已 closed。错误码名字冻结 BE-M0-T16 为 in-review（QA REV-M0-T34 已签，等 PM）。编辑锁对齐字典 BE-M0-T17 为 planned，排在 T13 之后。证据挂接规则 BE-M0-T18 为 in-review（QA REV-M0-T35 已签，等 PM）。项目表对齐字典 BE-M0-T19 为 planned，等正式项目表和成员表存在后再迁移，保留历史行。ISSUE-033 为 in-review。旧接口含 E2E-D5 的大小写 `/api` 前缀。ISSUE-005 保持 in-progress，T04、T05、T06 与 T07 均为 in-review（T06 QA REV-M0-T36 已签，等 PM），不关闭。旧FE59项保留来源，OPS 2项中 T01 已本地验收、T02 已由用户 10-12 14:34 确认并标为 done，未部署，REV 36项中26项已本地验收，T31为增量审查in-review；T32～T35 为 BE-M0-T04/T05/T16/T18 QA签署 in-review；T36 为 BE-M0-T06 QA签署 in-review（含 T23、T25、T26、T28、T29、T30；REV-M0-T22 已依据 QA f521950，PM 17:13 确认 done；REV-M0-T24 已依据 QA 19c4862，PM 17:20 确认 done；T06、T08、T25、T26、T27、T28、T29 与 T30 为 in-review。REV-M0-T27 / ISSUE-034 已由 QA 签署 R1～R9，不标 done）（REV-M0-T02为ISSUE-013 QA复跑，REV-M0-T03/T04为ISSUE-015，REV-M0-T05为T008与AI-02的QA签署，REV-M0-T07为T02/T03的QA签署）。AI-01改为 in-review：对话模型由配置页提供，嵌入与向量库用 RAGFlow 自带，生产生成仅内网；真实端点另计验收。业务库已定为 MySQL 8，方案与连接空迁移已由项目经理在 QA 签署 98c5129 后确认 done，回执和登录会话由 T11 已依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done，编辑租约由 T12 依据 QA ae6fd10，PM 15:32 确认 done，项目聚合由 T13 依据 QA ae38ec3，PM 17:16 确认 done，章节及其他聚合仍在内存；AI-02 与 T008 均已由项目经理于 10-12 12:10 在 QA 签署后确认，标为 done。AI-03 为 done，只使用内存检索。AI-M0 现为 6 项：AI-04、AI-05 与 AI-06 为 in-review。ISSUE-037 为 in-progress，ISSUE-029 保持 closed。开发者只能把卡片标到 in-review，done 由项目经理在 QA 签署后设置。ISSUE-009 已由项目经理在 QA 签署 d55d507（REV-M0-T11）后确认 closed。ISSUE-014 已由项目经理在 QA 签署 173c39f（REV-M0-T14）后确认 closed。T001 与 T002 已为 done。QA 于 2026-10-12 签署 T001 本切片不通过；浅色内容、顶栏和前进/后退修复后，REV-M0-T11 签署通过。ISSUE-020 已由项目经理在 QA 签署 dcca509（REV-M0-T15）后确认 closed。ISSUE-018 已批准并改为 in-progress：方案与连接空迁移已 done，T11 回执与会话已依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done，T12 已依据 QA ae6fd10，PM 15:32 确认 done，T13 项目聚合已依据 QA ae38ec3，PM 17:16 确认 done。ISSUE-023 已由项目经理在 QA 签署 16cf971 后确认，状态为 closed。ISSUE-021 排队且任务为 planned，ISSUE-022 已依据 QA 0254102（REV-M0-T20），PM 15:36 确认 closed，契约文本已冻结，T124 已按 PM 17:20 改为 ready，本轮不实现。PR #3 已合入，foundation 分支已删。ISSUE-026 已由项目经理在 QA 签署 9bcde17（REV-M0-T13）后确认 closed。PRD、ROADMAP 与 PROJECT_BRIEF 的任务计数是里程碑快照 as of commit 3bb311ad3ab86c0de2f871876a50c7d50f9bb985，并计入本提交将 T001 与 T002 标为 done：366 项、32 done、6 in-review、7 in-progress、268 planned、49 blocked、4 ready。任务看板是准绳，三份基线只在里程碑更新。这些数量不是产品完成率。
+## 当前基线（2026-10-28 按代码实况重定，[ISSUE-045](../issues/ISSUE-045.md)）
+
+项目 451 项：done 96、in-review 110、in-progress 48、planned 142、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+
+| 能力 | 实况 | 主要缺口 |
+|---|---|---|
+| 账号与权限 | 生产口令登录、8 角色 RBAC、数据权限只读态；演示入口已删 | OIDC/Keycloak（T010～T013）未做，内网可只用口令登录 |
+| 持久化 | 项目工作流、账号、资料库、知识库索引写入 MySQL 8（Alembic 0012） | 旧 `/api/projects`、`/api/chapters` 路由仍在（BE-M0-T09） |
+| 招标解析 | PDF/Word 文字提取；按章节与条目抽取条款，适配真实招标文件版式（展平表格、段内（1）…（8）、否决/无效/废标）；事实含前附表 | 扫描件经 RAGFlow DeepDOC 解析；PDF 定位高亮（T103）；需求矩阵表（T112～T117） |
+| 知识库 | 每公司三类数据集、ICG 摄入流程、管控接口与管理页、检索带片号引用；内置解析评测定默认阈值 | 流程模式评测；历史标书批量导入（T080/T081） |
+| 生成与编辑 | 章节闭环、人工处理队列、交叉复核与定稿门禁、编辑台差异确认 | 章节循环进度页与轮次时间线（T130/T131）、确定性章节（T191～T194）、自动保存（T172） |
+| 合规规则 | 31 条有检查与测试（R01～R20、R23～R28、R31、R32、R34、R35、R37） | R21、R22、R29、R30、R33、R36、R38～R44 |
+| 导出 | Word 版式、分册定稿、递交门禁 | 合标核对清单（T200）、内部追溯 Excel（T201） |
+| 管理 | 模型/RAGFlow 弹窗配置、公司管理、审计日志、SLA 模板 | 站内提醒、配置版本、任务模型映射 |
+
+旧的逐卡签署叙述见 git 历史与 [项目进度](PROJECT_STATUS.md)；FE-M1～M5、FE-M8 与 APP-M1 示例外壳卡已标 cancelled（superseded-by-APP-M2）。
 
 59张前端卡片估算合计 209 小时，单卡 2～4 小时，处于 0.5～4 小时的任务粒度目标内。该总和是已有基线/接口条件下的前端增量估算，不是项目排期，不含后端、模型、取得输入、评审或等待时间。开工若预计超 4 小时，先继续拆卡并登记 Issue/版本变更，保留原任务 ID 的历史。
 
@@ -18,7 +33,8 @@
 - in-review：AI-KB-CONTROL-PLANE（知识库管控接口与 ICG 摄入流程，见[技术决定](decisions/2026-10-28-kb-control-plane-and-pipelines.md)）。
 - in-progress：AI-KB-RAG-EVAL（评测脚本与金标集已就绪；真实 RAGFlow 上嵌入模型不可用：Jiekou.AI 被代理假 IP 拦截、Gemini 免费额度用尽）。
 - 续（用户决定去掉演示环境）：BE-AUTH-PRODUCTION-ONLY、AI-TENDER-STRUCTURED-EXTRACTION、FE-KB-BUSINESS-FLOWS、FE-E2E-LIBRARY-DRIFT 为 in-review；新登记 ISSUE-044 / FE-TEST-ORPHANS。
-- 余下顺序：招标扫描件经 RAGFlow 解析 → AI-KB-RAG-EVAL（流程模式）→ FE-TEST-ORPHANS → APP-M2-T130/T131 → APP-M2-T235/T236/T237 → APP-M2-T200。
+- FE-TEST-ORPHANS 为 in-review（ISSUE-044：8 项失败为演示会话夹具过期，根目录测试已并入 `pnpm test`）。
+- 余下顺序（重定后）：AI-KB-RAG-EVAL（流程模式）→ APP-M2-T130/T131 → APP-M2-T235/T236/T237 → APP-M2-T200 → 招标扫描件经 RAGFlow 解析。
 - 自测记录：[Wave 12 开发自测](testing/2026-10-28-wave-12-verification.md)。
 
 ## Wave 11 主路径补环（2026-10-28）
@@ -124,18 +140,18 @@
 | 前端里程碑 | 原路线图来源 | 任务数 | 当前完成 | 可并行关系 |
 |---|---|---|---|---|
 | [FE-M0 基线与基础](tasks/FE-M0.md) | ROADMAP Phase 0；发布 Milestone 1～5 的共用基础 | 10 | 2 done / 7 cancelled | T01/T02已验收；T04～T10已由 WP-1～7 质量整改覆盖（superseded-by-WP，标为 cancelled，禁止绿野重建）。 |
-| [FE-M1 项目主流程](tasks/FE-M1.md) | ROADMAP Phase 1；发布 Milestone 1 | 7 | 0/7 | 项目创建、解析与资料列表依各自基础卡启动；事实不必等待全部矩阵界面。 |
-| [FE-M2 章节生成](tasks/FE-M2.md) | ROADMAP Phase 2；发布 Milestone 2 | 5 | 0/5 | 章节树与方案接入按矩阵/事实依赖推进；任务卡默认能力依契约，不等待管理界面完成。 |
-| [FE-M3 编辑台](tasks/FE-M3.md) | ROADMAP Phase 3；发布 Milestone 3 | 9 | 0/9 | 文档模型、草稿和锁可在全部章节闭环之前开发；来源与助手按数据依赖接入。 |
-| [FE-M4 检查导出](tasks/FE-M4.md) | ROADMAP Phase 4；发布 Milestone 4 | 6 | 0/6 | 检查中心可与生成结果及编辑器联调并行；真实导出等待有效检查与权限。 |
-| [FE-M5 资料写作管理](tasks/FE-M5.md) | ROADMAP Phase 5～6；发布 Milestone 5；参考 PRD 通用与运维页面补差异 | 11 | 0/11 | 资料库在基础客户端/Shell 到位后可与 FE-M1 并行；管理模块按具体接口拆开。 |
+| [FE-M1 项目主流程](tasks/FE-M1.md) | ROADMAP Phase 1；发布 Milestone 1 | 7 | 7 cancelled（superseded-by-APP-M2，ISSUE-045） | 项目创建、解析与资料列表依各自基础卡启动；事实不必等待全部矩阵界面。 |
+| [FE-M2 章节生成](tasks/FE-M2.md) | ROADMAP Phase 2；发布 Milestone 2 | 5 | 5 cancelled（superseded-by-APP-M2，ISSUE-045） | 章节树与方案接入按矩阵/事实依赖推进；任务卡默认能力依契约，不等待管理界面完成。 |
+| [FE-M3 编辑台](tasks/FE-M3.md) | ROADMAP Phase 3；发布 Milestone 3 | 9 | 9 cancelled（superseded-by-APP-M2，ISSUE-045） | 文档模型、草稿和锁可在全部章节闭环之前开发；来源与助手按数据依赖接入。 |
+| [FE-M4 检查导出](tasks/FE-M4.md) | ROADMAP Phase 4；发布 Milestone 4 | 6 | 6 cancelled（superseded-by-APP-M2，ISSUE-045） | 检查中心可与生成结果及编辑器联调并行；真实导出等待有效检查与权限。 |
+| [FE-M5 资料写作管理](tasks/FE-M5.md) | ROADMAP Phase 5～6；发布 Milestone 5；参考 PRD 通用与运维页面补差异 | 11 | 11 cancelled（superseded-by-APP-M2，ISSUE-045） | 资料库在基础客户端/Shell 到位后可与 FE-M1 并行；管理模块按具体接口拆开。 |
 | [FE-M6 协作](tasks/FE-M6.md) | ROADMAP Phase 7；一期可延后范围 | 4 | 0/4 | 后续范围确认后按负责人、评论、引用等具体依赖推进，彼此无需整阶段串行。 |
 | [FE-M7 效率](tasks/FE-M7.md) | ROADMAP Phase 8；一期可延后范围 | 4 | 0/4 | 可选效率增强按相关模块依赖推进，不是一期发布前置。 |
-| [FE-M8 发布门禁](tasks/FE-M8.md) | ROADMAP §11 MVP Cut Line、§13 Gate A/B/C；贯穿发布 Milestone 1～5 | 3 | 0/3 | 发布验证覆盖一期必需任务；无需等待可选 FE-M6/FE-M7。 |
+| [FE-M8 发布门禁](tasks/FE-M8.md) | ROADMAP §11 MVP Cut Line、§13 Gate A/B/C；贯穿发布 Milestone 1～5 | 3 | 3 cancelled（superseded-by-APP-M2，ISSUE-045） | 发布验证覆盖一期必需任务；无需等待可选 FE-M6/FE-M7。 |
 | [OPS-M0 工作区运维](tasks/OPS-M0.md) | ISSUE-004工作区同步；ISSUE-017内网部署草案 | 2 | 2/2 | T01同步已验收。T02 已由用户 10-12 14:34 确认，标为 done，未部署。多副本仍 blocked 在 ISSUE-018。 |
 | [REV-M0 接手审查](tasks/REV-M0.md) | ISSUE-004目录与业务/技术审查；ISSUE-013 QA复跑；ISSUE-015 T06计划；ISSUE-013 签署；ISSUE-019 E2E、T001签署；ISSUE-034 最新分支复核 | 36 | 26/36 | 审查/brief交付完成，设计决定留ISSUE-005；QA复跑、T06计划及贯通冒烟/Word渲染完成。T22 为 T114 冲突刷新 QA，已 done。T23 与 T24 已 done。T06、T08、T25、T26、T27、T28、T29、T30、T31、T32、T33、T34、T35、T36 为 in-review。T32～T35 为 tip 90b2334 上 T04/T05/T16/T18 QA签署；T36 为 tip 0cb6c38 上 T06 QA签署，不标 done。 |
 | [BE-M0 后端链路](tasks/BE-M0.md) | ISSUE-006本地后端demo；ISSUE-005契约卡；ISSUE-018实施中；ISSUE-023已关闭；ISSUE-025托管MySQL作业；ISSUE-027版式；ISSUE-031错误码名字；ISSUE-032编辑锁对齐；ISSUE-033挂证据规则；ISSUE-035项目表对齐；ISSUE-021排队 | 19 | 10/19 | T01～T03已验收。T02与T03由项目经理于 10-12 12:28 在 QA 签署后确认。T08与T10由项目经理在 QA 签署 98c5129 后确认，标为 done；T04 与 T05 为 in-review（QA REV-M0-T32/T33 已签，等 PM），T06 为 in-review（QA REV-M0-T36 tip `0cb6c38` 已签，等 PM），T07 为 in-review；T09 planned。T11 回执与会话已依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done。T12 编辑租约已依据 QA ae6fd10，PM 15:32 确认 done。T13 项目聚合已依据 QA ae38ec3，PM 17:16 确认 done。T14 已依据 QA 签署 b20b844 标为 done。T15 Word 默认版式已由项目经理于 18:01 确认 done。用户已在 Word/WPS 目视确认。ISSUE-027 已 closed。T16 错误码名字为 in-review（QA REV-M0-T34 已签，等 PM）。T17 编辑锁对齐字典为 planned。T18 证据挂接规则为 in-review（QA REV-M0-T35 已签，等 PM）。T19 项目表对齐字典为 planned。ISSUE-005 仍 in-progress。ISSUE-023 已 closed。 |
-| [APP-M1 示例实现](tasks/APP-M1.md) | ISSUE-007示例与后台联调；ISSUE-008资料保护 | 16 | 9/16 | T07及T09～16已本地验收；完整父任务继续。 |
+| [APP-M1 示例实现](tasks/APP-M1.md) | ISSUE-007示例与后台联调；ISSUE-008资料保护 | 16 | 9 done / 7 cancelled | T07及T09～16已本地验收；T01～T06、T08 随演示外壳删除标 cancelled（ISSUE-045）。 |
 | [AI-M0 模型接入准备](tasks/AI-M0.md) | ISSUE-010已关闭；ISSUE-011兼容适配器；ISSUE-016内存检索；ISSUE-037检索实现 | 6 | 2/6 | AI-01为in-review；AI-02为done，项目经理于 10-12 12:10 在 QA 签署后确认；AI-03为done，依据 QA 签署 2fe6198（REV-M0-T16）。AI-04、AI-05 与 AI-06 为 in-review：CI 假 RAGFlow 已记录 Authorization 与 base_url，只读客户端与证据候选改走 RAGFlow 接线完成，章节 AI 生成与建议端到端闭环贯通（test_chapter_generation_rag_flow.py 7 passed），真实连接须 ICG_RUN_REAL_RAGFLOW_TESTS=1，默认跳过。对话模型假服务仍须 ICG_RUN_REAL_MODEL_TESTS=1。不改 ISSUE-028/AI-01 为 done。ISSUE-029 保持 closed。 |
 
 发布 Milestone 1～5 分别映射 FE-M1～FE-M5；FE-M0 为共用基础，FE-M6/FE-M7 为原 Phase 7/8 的可选增强，FE-M8 为贯穿原 Gate A/B/C 的发布验收。
@@ -157,44 +173,44 @@
 | [FE-M0-T08](tasks/FE-M0.md#fe-m0-t08) | API 客户端与错误审计通路（superseded-by-WP，api.ts 与统一错误体已落地；禁止重建；仅允许补交付/验收） | cancelled | [FE-M0-T04](tasks/FE-M0.md#fe-m0-t04)、[FE-M0-T05](tasks/FE-M0.md#fe-m0-t05) | [ISSUE-038](../issues/ISSUE-038.md) | `docs/delivery/FE-M0-T08.md` |
 | [FE-M0-T09](tasks/FE-M0.md#fe-m0-t09) | 基础组件与离线资源（superseded-by-WP，shared/ 与组件已建立；禁止重建；仅允许补交付/验收） | cancelled | [FE-M0-T05](tasks/FE-M0.md#fe-m0-t05)、[FE-M0-T07](tasks/FE-M0.md#fe-m0-t07) | [ISSUE-038](../issues/ISSUE-038.md) | `docs/delivery/FE-M0-T09.md` |
 | [FE-M0-T10](tasks/FE-M0.md#fe-m0-t10) | 统一长任务状态组件（superseded-by-WP，status/JobProgress 与 SSE 已落地；禁止重建；仅允许补交付/验收） | cancelled | [FE-M0-T08](tasks/FE-M0.md#fe-m0-t08)、[FE-M0-T09](tasks/FE-M0.md#fe-m0-t09) | [ISSUE-038](../issues/ISSUE-038.md) | `docs/delivery/FE-M0-T10.md` |
-| [FE-M1-T01](tasks/FE-M1.md#fe-m1-t01) | 项目列表与创建入口 | blocked | [FE-M0-T07](tasks/FE-M0.md#fe-m0-t07)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08)、[FE-M0-T09](tasks/FE-M0.md#fe-m0-t09) | — | `docs/delivery/FE-M1-T01.md` |
-| [FE-M1-T02](tasks/FE-M1.md#fe-m1-t02) | 项目概览与分册风险 | blocked | [FE-M1-T01](tasks/FE-M1.md#fe-m1-t01)、[FE-M0-T10](tasks/FE-M0.md#fe-m0-t10) | — | `docs/delivery/FE-M1-T02.md` |
-| [FE-M1-T03](tasks/FE-M1.md#fe-m1-t03) | 招标文件上传与解析任务 | blocked | [FE-M1-T01](tasks/FE-M1.md#fe-m1-t01)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08)、[FE-M0-T10](tasks/FE-M0.md#fe-m0-t10) | — | `docs/delivery/FE-M1-T03.md` |
-| [FE-M1-T04](tasks/FE-M1.md#fe-m1-t04) | 原文查看与页码定位 | blocked | [FE-M1-T03](tasks/FE-M1.md#fe-m1-t03) | — | `docs/delivery/FE-M1-T04.md` |
-| [FE-M1-T05](tasks/FE-M1.md#fe-m1-t05) | 解析后处理与确认门 | blocked | [FE-M1-T03](tasks/FE-M1.md#fe-m1-t03)、[FE-M1-T04](tasks/FE-M1.md#fe-m1-t04)、[FE-M0-T04](tasks/FE-M0.md#fe-m0-t04) | — | `docs/delivery/FE-M1-T05.md` |
-| [FE-M1-T06](tasks/FE-M1.md#fe-m1-t06) | 响应矩阵最小编辑与证据 | blocked | [FE-M1-T05](tasks/FE-M1.md#fe-m1-t05)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08)、[FE-M5-T01](tasks/FE-M5.md#fe-m5-t01) | — | `docs/delivery/FE-M1-T06.md` |
-| [FE-M1-T07](tasks/FE-M1.md#fe-m1-t07) | 项目事实编辑与确认 | blocked | [FE-M1-T01](tasks/FE-M1.md#fe-m1-t01)、[FE-M1-T05](tasks/FE-M1.md#fe-m1-t05)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08) | — | `docs/delivery/FE-M1-T07.md` |
-| [FE-M2-T01](tasks/FE-M2.md#fe-m2-t01) | 章节树与状态导航 | blocked | [FE-M1-T06](tasks/FE-M1.md#fe-m1-t06)、[FE-M0-T07](tasks/FE-M0.md#fe-m0-t07) | — | `docs/delivery/FE-M2-T01.md` |
-| [FE-M2-T02](tasks/FE-M2.md#fe-m2-t02) | 写作方案查看确认与启动 | blocked | [FE-M2-T01](tasks/FE-M2.md#fe-m2-t01)、[FE-M1-T07](tasks/FE-M1.md#fe-m1-t07)、[FE-M0-T04](tasks/FE-M0.md#fe-m0-t04) | — | `docs/delivery/FE-M2-T02.md` |
-| [FE-M2-T03](tasks/FE-M2.md#fe-m2-t03) | 生成轮次与长任务 Timeline | blocked | [FE-M2-T02](tasks/FE-M2.md#fe-m2-t02)、[FE-M0-T10](tasks/FE-M0.md#fe-m0-t10) | — | `docs/delivery/FE-M2-T03.md` |
-| [FE-M2-T04](tasks/FE-M2.md#fe-m2-t04) | 检查与定位修正结果 | blocked | [FE-M2-T03](tasks/FE-M2.md#fe-m2-t03)、[FE-M1-T04](tasks/FE-M1.md#fe-m1-t04) | — | `docs/delivery/FE-M2-T04.md` |
-| [FE-M2-T05](tasks/FE-M2.md#fe-m2-t05) | 停止条件与人工处理交接 | blocked | [FE-M2-T04](tasks/FE-M2.md#fe-m2-t04)、[FE-M0-T10](tasks/FE-M0.md#fe-m0-t10) | — | `docs/delivery/FE-M2-T05.md` |
-| [FE-M3-T01](tasks/FE-M3.md#fe-m3-t01) | 编辑文档模型与段落元数据 | blocked | [FE-M0-T04](tasks/FE-M0.md#fe-m0-t04)、[FE-M0-T05](tasks/FE-M0.md#fe-m0-t05)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08) | — | `docs/delivery/FE-M3-T01.md` |
-| [FE-M3-T02](tasks/FE-M3.md#fe-m3-t02) | 长文基础编辑与只读保护 | blocked | [FE-M3-T01](tasks/FE-M3.md#fe-m3-t01)、[FE-M0-T09](tasks/FE-M0.md#fe-m0-t09) | — | `docs/delivery/FE-M3-T02.md` |
-| [FE-M3-T03](tasks/FE-M3.md#fe-m3-t03) | 草稿自动保存与并发冲突 | blocked | [FE-M3-T01](tasks/FE-M3.md#fe-m3-t01)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08) | — | `docs/delivery/FE-M3-T03.md` |
-| [FE-M3-T04](tasks/FE-M3.md#fe-m3-t04) | 真实编辑锁与心跳接管 | blocked | [FE-M3-T01](tasks/FE-M3.md#fe-m3-t01)、[FE-M0-T06](tasks/FE-M0.md#fe-m0-t06)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08) | — | `docs/delivery/FE-M3-T04.md` |
-| [FE-M3-T05](tasks/FE-M3.md#fe-m3-t05) | 段落来源与问题抽屉 | blocked | [FE-M3-T01](tasks/FE-M3.md#fe-m3-t01)、[FE-M1-T04](tasks/FE-M1.md#fe-m1-t04)、[FE-M1-T07](tasks/FE-M1.md#fe-m1-t07) | — | `docs/delivery/FE-M3-T05.md` |
-| [FE-M3-T06](tasks/FE-M3.md#fe-m3-t06) | 普通问答与结构化答案卡 | blocked | [FE-M0-T08](tasks/FE-M0.md#fe-m0-t08)、[FE-M1-T07](tasks/FE-M1.md#fe-m1-t07)、[FE-M5-T01](tasks/FE-M5.md#fe-m5-t01) | — | `docs/delivery/FE-M3-T06.md` |
-| [FE-M3-T07](tasks/FE-M3.md#fe-m3-t07) | 选区样例与上下文快照 | blocked | [FE-M3-T01](tasks/FE-M3.md#fe-m3-t01)、[FE-M3-T04](tasks/FE-M3.md#fe-m3-t04)、[FE-M3-T06](tasks/FE-M3.md#fe-m3-t06) | — | `docs/delivery/FE-M3-T07.md` |
-| [FE-M3-T08](tasks/FE-M3.md#fe-m3-t08) | Diff 确认与安全写入 | blocked | [FE-M3-T07](tasks/FE-M3.md#fe-m3-t07)、[FE-M3-T03](tasks/FE-M3.md#fe-m3-t03)、[FE-M3-T04](tasks/FE-M3.md#fe-m3-t04) | — | `docs/delivery/FE-M3-T08.md` |
-| [FE-M3-T09](tasks/FE-M3.md#fe-m3-t09) | 版本比较与回退 | blocked | [FE-M3-T03](tasks/FE-M3.md#fe-m3-t03)、[FE-M3-T04](tasks/FE-M3.md#fe-m3-t04)、[FE-M3-T08](tasks/FE-M3.md#fe-m3-t08) | — | `docs/delivery/FE-M3-T09.md` |
-| [FE-M4-T01](tasks/FE-M4.md#fe-m4-t01) | 检查中心筛选与问题定位 | blocked | [FE-M0-T10](tasks/FE-M0.md#fe-m0-t10)、[FE-M3-T05](tasks/FE-M3.md#fe-m3-t05) | — | `docs/delivery/FE-M4-T01.md` |
-| [FE-M4-T02](tasks/FE-M4.md#fe-m4-t02) | 编辑后增量复查反馈 | blocked | [FE-M3-T08](tasks/FE-M3.md#fe-m3-t08)、[FE-M4-T01](tasks/FE-M4.md#fe-m4-t01) | — | `docs/delivery/FE-M4-T02.md` |
-| [FE-M4-T03](tasks/FE-M4.md#fe-m4-t03) | 分册检查定稿与解锁 | blocked | [FE-M4-T01](tasks/FE-M4.md#fe-m4-t01)、[FE-M2-T05](tasks/FE-M2.md#fe-m2-t05)、[FE-M3-T09](tasks/FE-M3.md#fe-m3-t09) | — | `docs/delivery/FE-M4-T03.md` |
-| [FE-M4-T04](tasks/FE-M4.md#fe-m4-t04) | 全文检查与跨分册门禁 | blocked | [FE-M4-T03](tasks/FE-M4.md#fe-m4-t03)、[FE-M1-T06](tasks/FE-M1.md#fe-m1-t06) | — | `docs/delivery/FE-M4-T04.md` |
-| [FE-M4-T05](tasks/FE-M4.md#fe-m4-t05) | 内部稿与递交版导出入口 | blocked | [FE-M4-T04](tasks/FE-M4.md#fe-m4-t04)、[FE-M0-T06](tasks/FE-M0.md#fe-m0-t06)、[FE-M0-T10](tasks/FE-M0.md#fe-m0-t10) | — | `docs/delivery/FE-M4-T05.md` |
-| [FE-M4-T06](tasks/FE-M4.md#fe-m4-t06) | 导出历史下载与版式核对 | blocked | [FE-M4-T05](tasks/FE-M4.md#fe-m4-t05) | — | `docs/delivery/FE-M4-T06.md` |
-| [FE-M5-T01](tasks/FE-M5.md#fe-m5-t01) | 资料库列表与治理状态 | blocked | [FE-M0-T07](tasks/FE-M0.md#fe-m0-t07)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08)、[FE-M0-T09](tasks/FE-M0.md#fe-m0-t09) | — | `docs/delivery/FE-M5-T01.md` |
-| [FE-M5-T02](tasks/FE-M5.md#fe-m5-t02) | 主体资质与附件表单切片 | blocked | [FE-M5-T01](tasks/FE-M5.md#fe-m5-t01) | — | `docs/delivery/FE-M5-T02.md` |
-| [FE-M5-T03](tasks/FE-M5.md#fe-m5-t03) | 人员证书与授权关联 | blocked | [FE-M5-T01](tasks/FE-M5.md#fe-m5-t01)、[FE-M5-T02](tasks/FE-M5.md#fe-m5-t02) | — | `docs/delivery/FE-M5-T03.md` |
-| [FE-M5-T04](tasks/FE-M5.md#fe-m5-t04) | 业绩与能力资料首批视图 | blocked | [FE-M5-T01](tasks/FE-M5.md#fe-m5-t01)、[FE-M5-T02](tasks/FE-M5.md#fe-m5-t02) | — | `docs/delivery/FE-M5-T04.md` |
-| [FE-M5-T05](tasks/FE-M5.md#fe-m5-t05) | 方案片段与历史参考管理 | blocked | [FE-M5-T01](tasks/FE-M5.md#fe-m5-t01)、[FE-M1-T04](tasks/FE-M1.md#fe-m1-t04) | — | `docs/delivery/FE-M5-T05.md` |
-| [FE-M5-T06](tasks/FE-M5.md#fe-m5-t06) | 公司写作档案与模板风格 | blocked | [FE-M5-T01](tasks/FE-M5.md#fe-m5-t01)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08) | — | `docs/delivery/FE-M5-T06.md` |
-| [FE-M5-T07](tasks/FE-M5.md#fe-m5-t07) | 任务卡版本与模型参数管理 | blocked | [FE-M5-T06](tasks/FE-M5.md#fe-m5-t06)、[FE-M0-T04](tasks/FE-M0.md#fe-m0-t04) | — | `docs/delivery/FE-M5-T07.md` |
-| [FE-M5-T08](tasks/FE-M5.md#fe-m5-t08) | 用户角色与公司设置 | blocked | [FE-M0-T06](tasks/FE-M0.md#fe-m0-t06)、[FE-M5-T01](tasks/FE-M5.md#fe-m5-t01) | — | `docs/delivery/FE-M5-T08.md` |
-| [FE-M5-T09](tasks/FE-M5.md#fe-m5-t09) | 站内提醒与一期全局搜索 | blocked | [FE-M0-T07](tasks/FE-M0.md#fe-m0-t07)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08)、[FE-M1-T01](tasks/FE-M1.md#fe-m1-t01)、[FE-M5-T01](tasks/FE-M5.md#fe-m5-t01) | — | `docs/delivery/FE-M5-T09.md` |
-| [FE-M5-T10](tasks/FE-M5.md#fe-m5-t10) | 规则配置与兜底扫描版本 | blocked | [FE-M0-T08](tasks/FE-M0.md#fe-m0-t08)、[FE-M5-T08](tasks/FE-M5.md#fe-m5-t08)、[FE-M1-T05](tasks/FE-M1.md#fe-m1-t05) | — | `docs/delivery/FE-M5-T10.md` |
-| [FE-M5-T11](tasks/FE-M5.md#fe-m5-t11) | 服务状态品牌与任务中心入口 | blocked | [FE-M0-T10](tasks/FE-M0.md#fe-m0-t10)、[FE-M5-T08](tasks/FE-M5.md#fe-m5-t08)、[FE-M0-T09](tasks/FE-M0.md#fe-m0-t09) | — | `docs/delivery/FE-M5-T11.md` |
+| [FE-M1-T01](tasks/FE-M1.md#fe-m1-t01) | 项目列表与创建入口 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M0-T07](tasks/FE-M0.md#fe-m0-t07)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08)、[FE-M0-T09](tasks/FE-M0.md#fe-m0-t09) | — | `docs/delivery/FE-M1-T01.md` |
+| [FE-M1-T02](tasks/FE-M1.md#fe-m1-t02) | 项目概览与分册风险 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M1-T01](tasks/FE-M1.md#fe-m1-t01)、[FE-M0-T10](tasks/FE-M0.md#fe-m0-t10) | — | `docs/delivery/FE-M1-T02.md` |
+| [FE-M1-T03](tasks/FE-M1.md#fe-m1-t03) | 招标文件上传与解析任务 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M1-T01](tasks/FE-M1.md#fe-m1-t01)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08)、[FE-M0-T10](tasks/FE-M0.md#fe-m0-t10) | — | `docs/delivery/FE-M1-T03.md` |
+| [FE-M1-T04](tasks/FE-M1.md#fe-m1-t04) | 原文查看与页码定位 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M1-T03](tasks/FE-M1.md#fe-m1-t03) | — | `docs/delivery/FE-M1-T04.md` |
+| [FE-M1-T05](tasks/FE-M1.md#fe-m1-t05) | 解析后处理与确认门 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M1-T03](tasks/FE-M1.md#fe-m1-t03)、[FE-M1-T04](tasks/FE-M1.md#fe-m1-t04)、[FE-M0-T04](tasks/FE-M0.md#fe-m0-t04) | — | `docs/delivery/FE-M1-T05.md` |
+| [FE-M1-T06](tasks/FE-M1.md#fe-m1-t06) | 响应矩阵最小编辑与证据 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M1-T05](tasks/FE-M1.md#fe-m1-t05)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08)、[FE-M5-T01](tasks/FE-M5.md#fe-m5-t01) | — | `docs/delivery/FE-M1-T06.md` |
+| [FE-M1-T07](tasks/FE-M1.md#fe-m1-t07) | 项目事实编辑与确认 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M1-T01](tasks/FE-M1.md#fe-m1-t01)、[FE-M1-T05](tasks/FE-M1.md#fe-m1-t05)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08) | — | `docs/delivery/FE-M1-T07.md` |
+| [FE-M2-T01](tasks/FE-M2.md#fe-m2-t01) | 章节树与状态导航 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M1-T06](tasks/FE-M1.md#fe-m1-t06)、[FE-M0-T07](tasks/FE-M0.md#fe-m0-t07) | — | `docs/delivery/FE-M2-T01.md` |
+| [FE-M2-T02](tasks/FE-M2.md#fe-m2-t02) | 写作方案查看确认与启动 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M2-T01](tasks/FE-M2.md#fe-m2-t01)、[FE-M1-T07](tasks/FE-M1.md#fe-m1-t07)、[FE-M0-T04](tasks/FE-M0.md#fe-m0-t04) | — | `docs/delivery/FE-M2-T02.md` |
+| [FE-M2-T03](tasks/FE-M2.md#fe-m2-t03) | 生成轮次与长任务 Timeline | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M2-T02](tasks/FE-M2.md#fe-m2-t02)、[FE-M0-T10](tasks/FE-M0.md#fe-m0-t10) | — | `docs/delivery/FE-M2-T03.md` |
+| [FE-M2-T04](tasks/FE-M2.md#fe-m2-t04) | 检查与定位修正结果 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M2-T03](tasks/FE-M2.md#fe-m2-t03)、[FE-M1-T04](tasks/FE-M1.md#fe-m1-t04) | — | `docs/delivery/FE-M2-T04.md` |
+| [FE-M2-T05](tasks/FE-M2.md#fe-m2-t05) | 停止条件与人工处理交接 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M2-T04](tasks/FE-M2.md#fe-m2-t04)、[FE-M0-T10](tasks/FE-M0.md#fe-m0-t10) | — | `docs/delivery/FE-M2-T05.md` |
+| [FE-M3-T01](tasks/FE-M3.md#fe-m3-t01) | 编辑文档模型与段落元数据 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M0-T04](tasks/FE-M0.md#fe-m0-t04)、[FE-M0-T05](tasks/FE-M0.md#fe-m0-t05)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08) | — | `docs/delivery/FE-M3-T01.md` |
+| [FE-M3-T02](tasks/FE-M3.md#fe-m3-t02) | 长文基础编辑与只读保护 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M3-T01](tasks/FE-M3.md#fe-m3-t01)、[FE-M0-T09](tasks/FE-M0.md#fe-m0-t09) | — | `docs/delivery/FE-M3-T02.md` |
+| [FE-M3-T03](tasks/FE-M3.md#fe-m3-t03) | 草稿自动保存与并发冲突 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M3-T01](tasks/FE-M3.md#fe-m3-t01)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08) | — | `docs/delivery/FE-M3-T03.md` |
+| [FE-M3-T04](tasks/FE-M3.md#fe-m3-t04) | 真实编辑锁与心跳接管 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M3-T01](tasks/FE-M3.md#fe-m3-t01)、[FE-M0-T06](tasks/FE-M0.md#fe-m0-t06)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08) | — | `docs/delivery/FE-M3-T04.md` |
+| [FE-M3-T05](tasks/FE-M3.md#fe-m3-t05) | 段落来源与问题抽屉 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M3-T01](tasks/FE-M3.md#fe-m3-t01)、[FE-M1-T04](tasks/FE-M1.md#fe-m1-t04)、[FE-M1-T07](tasks/FE-M1.md#fe-m1-t07) | — | `docs/delivery/FE-M3-T05.md` |
+| [FE-M3-T06](tasks/FE-M3.md#fe-m3-t06) | 普通问答与结构化答案卡 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M0-T08](tasks/FE-M0.md#fe-m0-t08)、[FE-M1-T07](tasks/FE-M1.md#fe-m1-t07)、[FE-M5-T01](tasks/FE-M5.md#fe-m5-t01) | — | `docs/delivery/FE-M3-T06.md` |
+| [FE-M3-T07](tasks/FE-M3.md#fe-m3-t07) | 选区样例与上下文快照 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M3-T01](tasks/FE-M3.md#fe-m3-t01)、[FE-M3-T04](tasks/FE-M3.md#fe-m3-t04)、[FE-M3-T06](tasks/FE-M3.md#fe-m3-t06) | — | `docs/delivery/FE-M3-T07.md` |
+| [FE-M3-T08](tasks/FE-M3.md#fe-m3-t08) | Diff 确认与安全写入 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M3-T07](tasks/FE-M3.md#fe-m3-t07)、[FE-M3-T03](tasks/FE-M3.md#fe-m3-t03)、[FE-M3-T04](tasks/FE-M3.md#fe-m3-t04) | — | `docs/delivery/FE-M3-T08.md` |
+| [FE-M3-T09](tasks/FE-M3.md#fe-m3-t09) | 版本比较与回退 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M3-T03](tasks/FE-M3.md#fe-m3-t03)、[FE-M3-T04](tasks/FE-M3.md#fe-m3-t04)、[FE-M3-T08](tasks/FE-M3.md#fe-m3-t08) | — | `docs/delivery/FE-M3-T09.md` |
+| [FE-M4-T01](tasks/FE-M4.md#fe-m4-t01) | 检查中心筛选与问题定位 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M0-T10](tasks/FE-M0.md#fe-m0-t10)、[FE-M3-T05](tasks/FE-M3.md#fe-m3-t05) | — | `docs/delivery/FE-M4-T01.md` |
+| [FE-M4-T02](tasks/FE-M4.md#fe-m4-t02) | 编辑后增量复查反馈 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M3-T08](tasks/FE-M3.md#fe-m3-t08)、[FE-M4-T01](tasks/FE-M4.md#fe-m4-t01) | — | `docs/delivery/FE-M4-T02.md` |
+| [FE-M4-T03](tasks/FE-M4.md#fe-m4-t03) | 分册检查定稿与解锁 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M4-T01](tasks/FE-M4.md#fe-m4-t01)、[FE-M2-T05](tasks/FE-M2.md#fe-m2-t05)、[FE-M3-T09](tasks/FE-M3.md#fe-m3-t09) | — | `docs/delivery/FE-M4-T03.md` |
+| [FE-M4-T04](tasks/FE-M4.md#fe-m4-t04) | 全文检查与跨分册门禁 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M4-T03](tasks/FE-M4.md#fe-m4-t03)、[FE-M1-T06](tasks/FE-M1.md#fe-m1-t06) | — | `docs/delivery/FE-M4-T04.md` |
+| [FE-M4-T05](tasks/FE-M4.md#fe-m4-t05) | 内部稿与递交版导出入口 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M4-T04](tasks/FE-M4.md#fe-m4-t04)、[FE-M0-T06](tasks/FE-M0.md#fe-m0-t06)、[FE-M0-T10](tasks/FE-M0.md#fe-m0-t10) | — | `docs/delivery/FE-M4-T05.md` |
+| [FE-M4-T06](tasks/FE-M4.md#fe-m4-t06) | 导出历史下载与版式核对 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M4-T05](tasks/FE-M4.md#fe-m4-t05) | — | `docs/delivery/FE-M4-T06.md` |
+| [FE-M5-T01](tasks/FE-M5.md#fe-m5-t01) | 资料库列表与治理状态 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M0-T07](tasks/FE-M0.md#fe-m0-t07)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08)、[FE-M0-T09](tasks/FE-M0.md#fe-m0-t09) | — | `docs/delivery/FE-M5-T01.md` |
+| [FE-M5-T02](tasks/FE-M5.md#fe-m5-t02) | 主体资质与附件表单切片 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M5-T01](tasks/FE-M5.md#fe-m5-t01) | — | `docs/delivery/FE-M5-T02.md` |
+| [FE-M5-T03](tasks/FE-M5.md#fe-m5-t03) | 人员证书与授权关联 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M5-T01](tasks/FE-M5.md#fe-m5-t01)、[FE-M5-T02](tasks/FE-M5.md#fe-m5-t02) | — | `docs/delivery/FE-M5-T03.md` |
+| [FE-M5-T04](tasks/FE-M5.md#fe-m5-t04) | 业绩与能力资料首批视图 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M5-T01](tasks/FE-M5.md#fe-m5-t01)、[FE-M5-T02](tasks/FE-M5.md#fe-m5-t02) | — | `docs/delivery/FE-M5-T04.md` |
+| [FE-M5-T05](tasks/FE-M5.md#fe-m5-t05) | 方案片段与历史参考管理 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M5-T01](tasks/FE-M5.md#fe-m5-t01)、[FE-M1-T04](tasks/FE-M1.md#fe-m1-t04) | — | `docs/delivery/FE-M5-T05.md` |
+| [FE-M5-T06](tasks/FE-M5.md#fe-m5-t06) | 公司写作档案与模板风格 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M5-T01](tasks/FE-M5.md#fe-m5-t01)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08) | — | `docs/delivery/FE-M5-T06.md` |
+| [FE-M5-T07](tasks/FE-M5.md#fe-m5-t07) | 任务卡版本与模型参数管理 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M5-T06](tasks/FE-M5.md#fe-m5-t06)、[FE-M0-T04](tasks/FE-M0.md#fe-m0-t04) | — | `docs/delivery/FE-M5-T07.md` |
+| [FE-M5-T08](tasks/FE-M5.md#fe-m5-t08) | 用户角色与公司设置 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M0-T06](tasks/FE-M0.md#fe-m0-t06)、[FE-M5-T01](tasks/FE-M5.md#fe-m5-t01) | — | `docs/delivery/FE-M5-T08.md` |
+| [FE-M5-T09](tasks/FE-M5.md#fe-m5-t09) | 站内提醒与一期全局搜索 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M0-T07](tasks/FE-M0.md#fe-m0-t07)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08)、[FE-M1-T01](tasks/FE-M1.md#fe-m1-t01)、[FE-M5-T01](tasks/FE-M5.md#fe-m5-t01) | — | `docs/delivery/FE-M5-T09.md` |
+| [FE-M5-T10](tasks/FE-M5.md#fe-m5-t10) | 规则配置与兜底扫描版本 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M0-T08](tasks/FE-M0.md#fe-m0-t08)、[FE-M5-T08](tasks/FE-M5.md#fe-m5-t08)、[FE-M1-T05](tasks/FE-M1.md#fe-m1-t05) | — | `docs/delivery/FE-M5-T10.md` |
+| [FE-M5-T11](tasks/FE-M5.md#fe-m5-t11) | 服务状态品牌与任务中心入口 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M0-T10](tasks/FE-M0.md#fe-m0-t10)、[FE-M5-T08](tasks/FE-M5.md#fe-m5-t08)、[FE-M0-T09](tasks/FE-M0.md#fe-m0-t09) | — | `docs/delivery/FE-M5-T11.md` |
 | [FE-M6-T01](tasks/FE-M6.md#fe-m6-t01) | 章节负责人分派与待办 | planned | [FE-M2-T01](tasks/FE-M2.md#fe-m2-t01)、[FE-M5-T08](tasks/FE-M5.md#fe-m5-t08) | — | `docs/delivery/FE-M6-T01.md` |
 | [FE-M6-T02](tasks/FE-M6.md#fe-m6-t02) | 评论批注与提及解决 | planned | [FE-M3-T01](tasks/FE-M3.md#fe-m3-t01)、[FE-M3-T05](tasks/FE-M3.md#fe-m3-t05)、[FE-M5-T09](tasks/FE-M5.md#fe-m5-t09) | — | `docs/delivery/FE-M6-T02.md` |
 | [FE-M6-T03](tasks/FE-M6.md#fe-m6-t03) | 知识引用地图 | planned | [FE-M3-T05](tasks/FE-M3.md#fe-m3-t05)、[FE-M5-T05](tasks/FE-M5.md#fe-m5-t05) | — | `docs/delivery/FE-M6-T03.md` |
@@ -203,9 +219,9 @@
 | [FE-M7-T02](tasks/FE-M7.md#fe-m7-t02) | 能力与写作质量指标视图 | planned | [FE-M5-T04](tasks/FE-M5.md#fe-m5-t04)、[FE-M5-T06](tasks/FE-M5.md#fe-m5-t06)、[FE-M2-T03](tasks/FE-M2.md#fe-m2-t03) | — | `docs/delivery/FE-M7-T02.md` |
 | [FE-M7-T03](tasks/FE-M7.md#fe-m7-t03) | 历史复用推荐预览 | planned | [FE-M5-T05](tasks/FE-M5.md#fe-m5-t05)、[FE-M3-T07](tasks/FE-M3.md#fe-m3-t07)、[FE-M3-T08](tasks/FE-M3.md#fe-m3-t08) | — | `docs/delivery/FE-M7-T03.md` |
 | [FE-M7-T04](tasks/FE-M7.md#fe-m7-t04) | 高频批量操作 | planned | [FE-M1-T06](tasks/FE-M1.md#fe-m1-t06)、[FE-M2-T02](tasks/FE-M2.md#fe-m2-t02)、[FE-M0-T10](tasks/FE-M0.md#fe-m0-t10) | — | `docs/delivery/FE-M7-T04.md` |
-| [FE-M8-T01](tasks/FE-M8.md#fe-m8-t01) | 一期完整主链路联调 | blocked | [FE-M1-T07](tasks/FE-M1.md#fe-m1-t07)、[FE-M2-T05](tasks/FE-M2.md#fe-m2-t05)、[FE-M3-T09](tasks/FE-M3.md#fe-m3-t09)、[FE-M4-T06](tasks/FE-M4.md#fe-m4-t06)、[FE-M5-T07](tasks/FE-M5.md#fe-m5-t07)、[FE-M5-T08](tasks/FE-M5.md#fe-m5-t08)、[FE-M5-T09](tasks/FE-M5.md#fe-m5-t09)、[FE-M5-T10](tasks/FE-M5.md#fe-m5-t10)、[FE-M5-T11](tasks/FE-M5.md#fe-m5-t11) | — | `docs/delivery/FE-M8-T01.md` |
-| [FE-M8-T02](tasks/FE-M8.md#fe-m8-t02) | 安全离线长文与恢复验证 | blocked | [FE-M0-T09](tasks/FE-M0.md#fe-m0-t09)、[FE-M3-T02](tasks/FE-M3.md#fe-m3-t02)、[FE-M3-T03](tasks/FE-M3.md#fe-m3-t03)、[FE-M3-T04](tasks/FE-M3.md#fe-m3-t04)、[FE-M4-T05](tasks/FE-M4.md#fe-m4-t05)、[FE-M8-T01](tasks/FE-M8.md#fe-m8-t01) | — | `docs/delivery/FE-M8-T02.md` |
-| [FE-M8-T03](tasks/FE-M8.md#fe-m8-t03) | 版本发布与交付资料封版 | blocked | [FE-M8-T01](tasks/FE-M8.md#fe-m8-t01)、[FE-M8-T02](tasks/FE-M8.md#fe-m8-t02)、[FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | — | `docs/delivery/FE-M8-T03.md` |
+| [FE-M8-T01](tasks/FE-M8.md#fe-m8-t01) | 一期完整主链路联调 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M1-T07](tasks/FE-M1.md#fe-m1-t07)、[FE-M2-T05](tasks/FE-M2.md#fe-m2-t05)、[FE-M3-T09](tasks/FE-M3.md#fe-m3-t09)、[FE-M4-T06](tasks/FE-M4.md#fe-m4-t06)、[FE-M5-T07](tasks/FE-M5.md#fe-m5-t07)、[FE-M5-T08](tasks/FE-M5.md#fe-m5-t08)、[FE-M5-T09](tasks/FE-M5.md#fe-m5-t09)、[FE-M5-T10](tasks/FE-M5.md#fe-m5-t10)、[FE-M5-T11](tasks/FE-M5.md#fe-m5-t11) | — | `docs/delivery/FE-M8-T01.md` |
+| [FE-M8-T02](tasks/FE-M8.md#fe-m8-t02) | 安全离线长文与恢复验证 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M0-T09](tasks/FE-M0.md#fe-m0-t09)、[FE-M3-T02](tasks/FE-M3.md#fe-m3-t02)、[FE-M3-T03](tasks/FE-M3.md#fe-m3-t03)、[FE-M3-T04](tasks/FE-M3.md#fe-m3-t04)、[FE-M4-T05](tasks/FE-M4.md#fe-m4-t05)、[FE-M8-T01](tasks/FE-M8.md#fe-m8-t01) | — | `docs/delivery/FE-M8-T02.md` |
+| [FE-M8-T03](tasks/FE-M8.md#fe-m8-t03) | 版本发布与交付资料封版 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M8-T01](tasks/FE-M8.md#fe-m8-t01)、[FE-M8-T02](tasks/FE-M8.md#fe-m8-t02)、[FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | — | `docs/delivery/FE-M8-T03.md` |
 | [OPS-M0-T01](tasks/OPS-M0.md#ops-m0-t01) | 全工作区云端同步 | done | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | [ISSUE-004](../issues/ISSUE-004.md) | [交付](delivery/OPS-M0-T01.md) |
 | [OPS-M0-T02](tasks/OPS-M0.md#ops-m0-t02) | 内网部署草案 | done | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | [ISSUE-017](../issues/ISSUE-017.md) | [交付](delivery/OPS-M0-T02.md) |
 | [REV-M0-T01](tasks/REV-M0.md#rev-m0-t01) | 目录、业务与技术审查及brief | done | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | [ISSUE-004](../issues/ISSUE-004.md) | [交付](delivery/REV-M0-T01.md) |
@@ -267,14 +283,14 @@
 | [BE-VOLUME-FINALIZE-GATE](tasks/BE-M0.md#be-volume-finalize-gate) | 分册定稿状态机与前置检查门禁 | in-review | [BE-CHECKS-EXPORT-ALIGN](tasks/BE-M0.md#be-checks-export-align) | [ISSUE-006](../issues/ISSUE-006.md)、[ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/BE-VOLUME-FINALIZE-GATE.md) |
 | [BE-COMPLIANCE-RULES-P0](tasks/BE-M0.md#be-compliance-rules-p0) | 核心合规规则补齐（R01/R02/R15/R23/R34/R35/R37等） | done | [BE-CHECKS-EXPORT-ALIGN](tasks/BE-M0.md#be-checks-export-align) | [ISSUE-006](../issues/ISSUE-006.md)、[ISSUE-027](../issues/ISSUE-027.md) | [交付](delivery/BE-COMPLIANCE-RULES-P0.md) |
 | [BE-SUBMISSION-FINALIZE-GATE](delivery/2026-10-23-submission-rules-finalize-gate.md) | 规则最小可递交集与分册定稿闸门端到端闭环 | in-review | [BE-VOLUME-FINALIZE-GATE](tasks/BE-M0.md#be-volume-finalize-gate)、[BE-COMPLIANCE-RULES-P0](tasks/BE-M0.md#be-compliance-rules-p0) | [ISSUE-006](../issues/ISSUE-006.md)、[ISSUE-007](../issues/ISSUE-007.md)、[ISSUE-027](../issues/ISSUE-027.md) | [交付](delivery/2026-10-23-submission-rules-finalize-gate.md) |
-| [APP-M1-T01](tasks/APP-M1.md#app-m1-t01) | 示例外壳与项目工作台 | in-progress | BE-M0-T01 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T01.md` |
-| [APP-M1-T02](tasks/APP-M1.md#app-m1-t02) | 上传解析与确认 | in-progress | APP-M1-T01工作区接口 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T02.md` |
-| [APP-M1-T03](tasks/APP-M1.md#app-m1-t03) | 矩阵事实与证据 | in-progress | APP-M1-T02条款结构 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T03.md` |
-| [APP-M1-T04](tasks/APP-M1.md#app-m1-t04) | 大纲章节与示例编辑台 | in-progress | APP-M1-T03映射接口 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T04.md` |
-| [APP-M1-T05](tasks/APP-M1.md#app-m1-t05) | 检查与两册输出 | in-progress | APP-M1-T03/04数据结构 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T05.md` |
-| [APP-M1-T06](tasks/APP-M1.md#app-m1-t06) | 核心流程端到端验收 | in-progress | APP-M1-T01～05 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T06.md` |
+| [APP-M1-T01](tasks/APP-M1.md#app-m1-t01) | 示例外壳与项目工作台 | cancelled（superseded-by-APP-M2：演示外壳已删除，2026-10-28 重定，见 ISSUE-045） | BE-M0-T01 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T01.md` |
+| [APP-M1-T02](tasks/APP-M1.md#app-m1-t02) | 上传解析与确认 | cancelled（superseded-by-APP-M2：演示外壳已删除，2026-10-28 重定，见 ISSUE-045） | APP-M1-T01工作区接口 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T02.md` |
+| [APP-M1-T03](tasks/APP-M1.md#app-m1-t03) | 矩阵事实与证据 | cancelled（superseded-by-APP-M2：演示外壳已删除，2026-10-28 重定，见 ISSUE-045） | APP-M1-T02条款结构 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T03.md` |
+| [APP-M1-T04](tasks/APP-M1.md#app-m1-t04) | 大纲章节与示例编辑台 | cancelled（superseded-by-APP-M2：演示外壳已删除，2026-10-28 重定，见 ISSUE-045） | APP-M1-T03映射接口 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T04.md` |
+| [APP-M1-T05](tasks/APP-M1.md#app-m1-t05) | 检查与两册输出 | cancelled（superseded-by-APP-M2：演示外壳已删除，2026-10-28 重定，见 ISSUE-045） | APP-M1-T03/04数据结构 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T05.md` |
+| [APP-M1-T06](tasks/APP-M1.md#app-m1-t06) | 核心流程端到端验收 | cancelled（superseded-by-APP-M2：演示外壳已删除，2026-10-28 重定，见 ISSUE-045） | APP-M1-T01～05 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T06.md` |
 | [APP-M1-T07](tasks/APP-M1.md#app-m1-t07) | 其他页面和完整规则拆分 | done | 核心结构验证 | [ISSUE-007](../issues/ISSUE-007.md) | [本地交付](delivery/APP-M1-T07.md) |
-| [APP-M1-T08](tasks/APP-M1.md#app-m1-t08) | 完整示例交付审计 | planned | 核心与后续任务完成 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T08.md` |
+| [APP-M1-T08](tasks/APP-M1.md#app-m1-t08) | 完整示例交付审计 | cancelled（superseded-by-APP-M2：演示外壳已删除，2026-10-28 重定，见 ISSUE-045） | 核心与后续任务完成 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M1-T08.md` |
 | [APP-M1-T09](tasks/APP-M1.md#app-m1-t09) | 服务承诺模板与公司能力 | done | 公司资料接口已接通 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M1-T09.md) |
 | [APP-M1-T10](tasks/APP-M1.md#app-m1-t10) | 三方对照、判断与事实引用 | done | T09模板、T03原文要求 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M1-T10.md) |
 | [APP-M1-T11](tasks/APP-M1.md#app-m1-t11) | 承诺变量、检查与承诺函 | done | T10取值、T04/05正文输出 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M1-T11.md) |
@@ -293,7 +309,7 @@
 | [APP-M2-T008](tasks/APP-M2.md#app-m2-t008) | 主题运行时接口位与离线检查纳入 CI（应用级） | done | BE-M0-T01、APP-M2-T001 | [ISSUE-012](../issues/ISSUE-012.md) | [交付](delivery/APP-M2-T008.md) |
 | [APP-M2-T009](tasks/APP-M2.md#app-m2-t009) | 断点与侧栏记忆（1280 / 1440 / 1680）、面包屑 | in-review | BE-M0-T01、APP-M2-T001 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T009.md) |
 | [APP-M2-T010](tasks/APP-M2.md#app-m2-t010) | OIDC 登录跳转、会话续期、401 回登录并返回原页 | planned | APP-M2-T001 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T010.md` |
-| [APP-M2-T011](tasks/APP-M2.md#app-m2-t011) | 会话超时处理、用户菜单与退出登录 | planned | APP-M2-T001、APP-M2-T010 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T011.md` |
+| [APP-M2-T011](tasks/APP-M2.md#app-m2-t011) | 会话超时处理、用户菜单与退出登录 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T001、APP-M2-T010 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T011.md` |
 | [APP-M2-T012](tasks/APP-M2.md#app-m2-t012) | Keycloak 自定义登录主题（离线；错误、锁定、超时，已有示例卡） | planned | APP-M2-T010 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T012.md` |
 | [APP-M2-T013](tasks/APP-M2.md#app-m2-t013) | 登录主题：首次登录强制改密、公司停用提示、读取品牌设置 | planned | APP-M2-T010 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T013.md` |
 | [APP-M2-T014](tasks/APP-M2.md#app-m2-t014) | 路由守卫与 403 页 | in-review | APP-M2-T010 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T014.md) |
@@ -302,7 +318,7 @@
 | [APP-M2-T017](tasks/APP-M2.md#app-m2-t017) | MaskedField 与“查看完整值”弹窗（原因必填） | in-review | APP-M2-T014 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T017.md) |
 | [APP-M2-T018](tasks/APP-M2.md#app-m2-t018) | 掩码规则读取与查看留痕提示 | in-review | APP-M2-T014、APP-M2-T017 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T018.md) |
 | [APP-M2-T019](tasks/APP-M2.md#app-m2-t019) | JobProgress：步骤、子进度、AI 紫进度条 | in-review | APP-M2-T014 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T019.md) |
-| [APP-M2-T020](tasks/APP-M2.md#app-m2-t020) | JobProgress：SSE 订阅、断线提示与轮询回退 | planned | APP-M2-T014、APP-M2-T019 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T020.md` |
+| [APP-M2-T020](tasks/APP-M2.md#app-m2-t020) | JobProgress：SSE 订阅、断线提示与轮询回退 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T014、APP-M2-T019 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T020.md` |
 | [APP-M2-T021](tasks/APP-M2.md#app-m2-t021) | 任务中心页基础 + 顶栏任务角标与抽屉 | done | APP-M2-T014、APP-M2-T019、APP-M2-T020 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T021.md) |
 | [APP-M2-T022](tasks/APP-M2.md#app-m2-t022) | 平台管理员脱敏视图；从失败步骤重试、取消权限 | done | APP-M2-T021 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T022.md) |
 | [APP-M2-T023](tasks/APP-M2.md#app-m2-t023) | StatusTag 状态注册表（9.3 全部代码表） | done | APP-M2-T005 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T023.md) |
@@ -311,34 +327,34 @@
 | [APP-M2-T026](tasks/APP-M2.md#app-m2-t026) | A-01 公司管理 | in-review | APP-M2-T014 | [ISSUE-007](../issues/ISSUE-007.md) | [APP-M2-T026 交付](delivery/APP-M2-T026.md) |
 | [APP-M2-T027](tasks/APP-M2.md#app-m2-t027) | A-02 用户列表、新增、停用前转交；“账号安全设置”面板（公司密码策略，只能调严） | done | APP-M2-T014、APP-M2-T026 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T027.md) |
 | [APP-M2-T028](tasks/APP-M2.md#app-m2-t028) | A-02 角色分配、解锁、重置密码 | done | APP-M2-T014、APP-M2-T027 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T028.md) |
-| [APP-M2-T029](tasks/APP-M2.md#app-m2-t029) | 顶栏铃铛与未读数 | planned | APP-M2-T010 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T029.md` |
+| [APP-M2-T029](tasks/APP-M2.md#app-m2-t029) | 顶栏铃铛与未读数 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T010 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T029.md` |
 | [APP-M2-T030](tasks/APP-M2.md#app-m2-t030) | 提醒下拉：最近 7 条、标已读、全部已读 | planned | APP-M2-T010、APP-M2-T029 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T030.md` |
 | [APP-M2-T031](tasks/APP-M2.md#app-m2-t031) | G-02 站内提醒列表页（筛选、已读 / 未读、合并显示） | planned | APP-M2-T029 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T031.md` |
 | [APP-M2-T032](tasks/APP-M2.md#app-m2-t032) | 17 类提醒的跳转目标映射与“对象已不存在”提示 | planned | APP-M2-T029、APP-M2-T031 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T032.md` |
 | [APP-M2-T033](tasks/APP-M2.md#app-m2-t033) | BrandProvider 运行时主题 + 品牌校验函数（对比度、ΔE） | planned | APP-M2-T008 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T033.md` |
 | [APP-M2-T034](tasks/APP-M2.md#app-m2-t034) | A-12 界面品牌页（表单 + 预览 + 恢复默认） | planned | APP-M2-T008、APP-M2-T033 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T034.md` |
-| [APP-M2-T035](tasks/APP-M2.md#app-m2-t035) | 全局搜索：顶栏下拉与结果页 | planned | APP-M2-T014 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T035.md` |
-| [APP-M2-T036](tasks/APP-M2.md#app-m2-t036) | A-08 模型列表与 `service_status`（用户要求弹窗配置；后端 API 已有、前端未接） | planned | APP-M2-T014 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T036.md` |
-| [APP-M2-T037](tasks/APP-M2.md#app-m2-t037) | 模型登记表单与测试连接（用户要求弹窗配置；后端 API 已有、前端未接） | planned | APP-M2-T014、APP-M2-T036 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T037.md` |
+| [APP-M2-T035](tasks/APP-M2.md#app-m2-t035) | 全局搜索：顶栏下拉与结果页 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T014 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T035.md` |
+| [APP-M2-T036](tasks/APP-M2.md#app-m2-t036) | A-08 模型列表与 `service_status`（用户要求弹窗配置；后端 API 已有、前端未接） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T014 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T036.md` |
+| [APP-M2-T037](tasks/APP-M2.md#app-m2-t037) | 模型登记表单与测试连接（用户要求弹窗配置；后端 API 已有、前端未接） | in-review（2026-10-28 重定：代码与测试已存在） | APP-M2-T014、APP-M2-T036 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T037.md` |
 | [APP-M2-T038](tasks/APP-M2.md#app-m2-t038) | 模型配置版本与回滚（用户要求弹窗配置；后端 API 已有、前端未接） | planned | APP-M2-T014、APP-M2-T037 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T038.md` |
-| [APP-M2-T039](tasks/APP-M2.md#app-m2-t039) | A-09 文档解析服务配置（用户要求弹窗配置；后端 API 已有、前端未接） | planned | APP-M2-T014、APP-M2-T021 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T039.md` |
+| [APP-M2-T039](tasks/APP-M2.md#app-m2-t039) | A-09 文档解析服务配置（用户要求弹窗配置；后端 API 已有、前端未接） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T014、APP-M2-T021 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T039.md` |
 | [APP-M2-T040](tasks/APP-M2.md#app-m2-t040) | A-10 任务与模型对应表（用户要求弹窗配置；后端 API 已有、前端未接） | planned | APP-M2-T036 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T040.md` |
 | [APP-M2-T041](tasks/APP-M2.md#app-m2-t041) | A-05 公司模型开放（用户要求弹窗配置；后端 API 已有、前端未接） | planned | APP-M2-T036 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T041.md` |
-| [APP-M2-T042](tasks/APP-M2.md#app-m2-t042) | A-11 部署与服务状态页 | planned | APP-M2-T036 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T042.md` |
+| [APP-M2-T042](tasks/APP-M2.md#app-m2-t042) | A-11 部署与服务状态页 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T036 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T042.md` |
 | [APP-M2-T043](tasks/APP-M2.md#app-m2-t043) | CrossFieldHint 组件与 9.11 规则函数 | planned | APP-M2-T025 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T043.md` |
 | [APP-M2-T044](tasks/APP-M2.md#app-m2-t044) | A-05 生成闭环参数 | planned | APP-M2-T025、APP-M2-T043 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T044.md` |
 | [APP-M2-T045](tasks/APP-M2.md#app-m2-t045) | 编辑台与对话助手参数（自动保存、心跳 15～120、锁超时） | planned | APP-M2-T025、APP-M2-T043 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T045.md` |
-| [APP-M2-T046](tasks/APP-M2.md#app-m2-t046) | 资料列表通用页 | planned | APP-M2-T005、APP-M2-T006、APP-M2-T017 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T046.md` |
-| [APP-M2-T047](tasks/APP-M2.md#app-m2-t047) | 资料详情通用页（附件槽位、来源） | planned | APP-M2-T005、APP-M2-T006、APP-M2-T017 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T047.md` |
-| [APP-M2-T048](tasks/APP-M2.md#app-m2-t048) | 确认 / 审核状态机界面（★ 字段重确认） | planned | APP-M2-T005、APP-M2-T006、APP-M2-T017、APP-M2-T047、APP-M2-T203 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T048.md` |
+| [APP-M2-T046](tasks/APP-M2.md#app-m2-t046) | 资料列表通用页 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T005、APP-M2-T006、APP-M2-T017 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T046.md` |
+| [APP-M2-T047](tasks/APP-M2.md#app-m2-t047) | 资料详情通用页（附件槽位、来源） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T005、APP-M2-T006、APP-M2-T017 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T047.md` |
+| [APP-M2-T048](tasks/APP-M2.md#app-m2-t048) | 确认 / 审核状态机界面（★ 字段重确认） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T005、APP-M2-T006、APP-M2-T017、APP-M2-T047、APP-M2-T203 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T048.md` |
 | [APP-M2-T049](tasks/APP-M2.md#app-m2-t049) | 受限资料与转交 | planned | APP-M2-T005、APP-M2-T006、APP-M2-T017、APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T049.md` |
 | [APP-M2-T050](tasks/APP-M2.md#app-m2-t050) | 变更历史与被引用情况 | planned | APP-M2-T005、APP-M2-T006、APP-M2-T017、APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T050.md` |
 | [APP-M2-T051](tasks/APP-M2.md#app-m2-t051) | 厂商产品树 | planned | APP-M2-T024 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T051.md` |
 | [APP-M2-T052](tasks/APP-M2.md#app-m2-t052) | 证书类别与附件槽位 | planned | APP-M2-T024、APP-M2-T051 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T052.md` |
 | [APP-M2-T053](tasks/APP-M2.md#app-m2-t053) | 中小企业划型标准 | planned | APP-M2-T024、APP-M2-T051 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T053.md` |
-| [APP-M2-T054](tasks/APP-M2.md#app-m2-t054) | 公司主体（含关联关系） | planned | APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T054.md` |
-| [APP-M2-T055](tasks/APP-M2.md#app-m2-t055) | 证明材料 | planned | APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T055.md` |
-| [APP-M2-T056](tasks/APP-M2.md#app-m2-t056) | 资质证书 | planned | APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T056.md` |
+| [APP-M2-T054](tasks/APP-M2.md#app-m2-t054) | 公司主体（含关联关系） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T054.md` |
+| [APP-M2-T055](tasks/APP-M2.md#app-m2-t055) | 证明材料 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T055.md` |
+| [APP-M2-T056](tasks/APP-M2.md#app-m2-t056) | 资质证书 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T056.md` |
 | [APP-M2-T057](tasks/APP-M2.md#app-m2-t057) | 安全与合规事件 | planned | APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T057.md` |
 | [APP-M2-T058](tasks/APP-M2.md#app-m2-t058) | 工具与设备 | planned | APP-M2-T047、APP-M2-T051 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T058.md` |
 | [APP-M2-T059](tasks/APP-M2.md#app-m2-t059) | 附件库 | planned | APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T059.md` |
@@ -351,20 +367,20 @@
 | [APP-M2-T066](tasks/APP-M2.md#app-m2-t066) | 授权链图（不满足节点标红、上游未登记虚线） | planned | APP-M2-T047、APP-M2-T051、APP-M2-T054、APP-M2-T065 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T066.md` |
 | [APP-M2-T067](tasks/APP-M2.md#app-m2-t067) | 业绩列表与详情 | planned | APP-M2-T047、APP-M2-T051 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T067.md` |
 | [APP-M2-T068](tasks/APP-M2.md#app-m2-t068) | 业绩成员与产品 | planned | APP-M2-T047、APP-M2-T051、APP-M2-T067、APP-M2-T060 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T068.md` |
-| [APP-M2-T069](tasks/APP-M2.md#app-m2-t069) | SLA 模板（等级、变量） | planned | APP-M2-T047、APP-M2-T051 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T069.md` |
+| [APP-M2-T069](tasks/APP-M2.md#app-m2-t069) | SLA 模板（等级、变量） | in-review（2026-10-28 重定：代码与测试已存在） | APP-M2-T047、APP-M2-T051 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T069.md` |
 | [APP-M2-T070](tasks/APP-M2.md#app-m2-t070) | 全局变量 | planned | APP-M2-T047、APP-M2-T051 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T070.md` |
 | [APP-M2-T071](tasks/APP-M2.md#app-m2-t071) | 资料库首页健康度卡片 | planned | APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T071.md` |
 | [APP-M2-T072](tasks/APP-M2.md#app-m2-t072) | Excel 批量导入与逐条 / 按批确认 | planned | APP-M2-T047、APP-M2-T046 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T072.md` |
 | [APP-M2-T073](tasks/APP-M2.md#app-m2-t073) | 有效期提醒与 A-04 资料库设置 | planned | APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T073.md` |
-| [APP-M2-T074](tasks/APP-M2.md#app-m2-t074) | 附件识别上传与进度 | planned | APP-M2-T047、APP-M2-T039 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T074.md` |
-| [APP-M2-T075](tasks/APP-M2.md#app-m2-t075) | 识别结果核对（“待核对”标记） | planned | APP-M2-T047、APP-M2-T039、APP-M2-T074 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T075.md` |
-| [APP-M2-T076](tasks/APP-M2.md#app-m2-t076) | 片段列表 | planned | APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T076.md` |
-| [APP-M2-T077](tasks/APP-M2.md#app-m2-t077) | 片段编辑（变量校验） | planned | APP-M2-T047、APP-M2-T076、APP-M2-T070 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T077.md` |
+| [APP-M2-T074](tasks/APP-M2.md#app-m2-t074) | 附件识别上传与进度 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T047、APP-M2-T039 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T074.md` |
+| [APP-M2-T075](tasks/APP-M2.md#app-m2-t075) | 识别结果核对（“待核对”标记） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T047、APP-M2-T039、APP-M2-T074 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T075.md` |
+| [APP-M2-T076](tasks/APP-M2.md#app-m2-t076) | 片段列表 | in-review（2026-10-28 重定：代码与测试已存在） | APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T076.md` |
+| [APP-M2-T077](tasks/APP-M2.md#app-m2-t077) | 片段编辑（变量校验） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T047、APP-M2-T076、APP-M2-T070 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T077.md` |
 | [APP-M2-T078](tasks/APP-M2.md#app-m2-t078) | 版本对比与发布（R31 拦截原因） | done | APP-M2-T047、APP-M2-T077、APP-M2-T238 | [ISSUE-022](../issues/ISSUE-022.md) | [交付](delivery/APP-M2-T078.md) |
-| [APP-M2-T079](tasks/APP-M2.md#app-m2-t079) | 同步状态与重新同步 | planned | APP-M2-T047、APP-M2-T078 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T079.md` |
+| [APP-M2-T079](tasks/APP-M2.md#app-m2-t079) | 同步状态与重新同步 | in-review（2026-10-28 重定：代码与测试已存在） | APP-M2-T047、APP-M2-T078 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T079.md` |
 | [APP-M2-T080](tasks/APP-M2.md#app-m2-t080) | 历史标书单个 / 批量导入 | planned | APP-M2-T021 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T080.md` |
 | [APP-M2-T081](tasks/APP-M2.md#app-m2-t081) | 入库状态派生显示与摘取为片段 | planned | APP-M2-T021、APP-M2-T080 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T081.md` |
-| [APP-M2-T082](tasks/APP-M2.md#app-m2-t082) | 版本条（发布、回滚） | planned | APP-M2-T025 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T082.md` |
+| [APP-M2-T082](tasks/APP-M2.md#app-m2-t082) | 版本条（发布、回滚） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T025 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T082.md` |
 | [APP-M2-T083](tasks/APP-M2.md#app-m2-t083) | 章节模板 | planned | APP-M2-T025、APP-M2-T082 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T083.md` |
 | [APP-M2-T084](tasks/APP-M2.md#app-m2-t084) | 叫法术语、语气称呼 | planned | APP-M2-T025、APP-M2-T082 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T084.md` |
 | [APP-M2-T085](tasks/APP-M2.md#app-m2-t085) | 句式规则 | planned | APP-M2-T025、APP-M2-T082 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T085.md` |
@@ -377,22 +393,22 @@
 | [APP-M2-T092](tasks/APP-M2.md#app-m2-t092) | 风格样例卡片墙（启用开关） | planned | APP-M2-T082、APP-M2-T081 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T092.md` |
 | [APP-M2-T093](tasks/APP-M2.md#app-m2-t093) | 入库脱敏扫描结果展示 | planned | APP-M2-T082、APP-M2-T092、APP-M2-T230、APP-M2-T238、APP-M2-T243 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T093.md` |
 | [APP-M2-T094](tasks/APP-M2.md#app-m2-t094) | ProjectHeader 摘要条与页签（无“资料匹配”） | planned | APP-M1-T14 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T094.md` |
-| [APP-M2-T095](tasks/APP-M2.md#app-m2-t095) | 项目列表 | planned | APP-M1-T14 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T095.md` |
+| [APP-M2-T095](tasks/APP-M2.md#app-m2-t095) | 项目列表 | in-review（2026-10-28 重定：代码与测试已存在） | APP-M1-T14 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T095.md` |
 | [APP-M2-T096](tasks/APP-M2.md#app-m2-t096) | 新建项目与 R19 提示 | planned | APP-M1-T14、APP-M2-T224 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T096.md` |
-| [APP-M2-T097](tasks/APP-M2.md#app-m2-t097) | 项目概览（待办、分册、状态操作） | planned | APP-M1-T14、APP-M2-T094 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T097.md` |
+| [APP-M2-T097](tasks/APP-M2.md#app-m2-t097) | 项目概览（待办、分册、状态操作） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M1-T14、APP-M2-T094 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T097.md` |
 | [APP-M2-T098](tasks/APP-M2.md#app-m2-t098) | 项目基本字段和合作方协议（成员复用T14） | planned | APP-M1-T14、APP-M2-T054 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T098.md` |
 | [APP-M2-T099](tasks/APP-M2.md#app-m2-t099) | 项目设置：拟派人员、SLA 取值、规则覆盖 | planned | APP-M1-T14、APP-M2-T060、APP-M2-T069 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T099.md` |
 | [APP-M2-T100](tasks/APP-M2.md#app-m2-t100) | 分册格式、闭环及导出设置（分工复用T14） | planned | APP-M1-T14、APP-M2-T044、APP-M2-T045、APP-M2-T086 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T100.md` |
-| [APP-M2-T101](tasks/APP-M2.md#app-m2-t101) | 招标文件上传与版本链 | planned | APP-M1-T02、APP-M2-T021 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T101.md` |
-| [APP-M2-T102](tasks/APP-M2.md#app-m2-t102) | 解析进度页（JobProgress 接入） | planned | APP-M1-T02、APP-M2-T021、APP-M2-T101 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T102.md` |
+| [APP-M2-T101](tasks/APP-M2.md#app-m2-t101) | 招标文件上传与版本链 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M1-T02、APP-M2-T021 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T101.md` |
+| [APP-M2-T102](tasks/APP-M2.md#app-m2-t102) | 解析进度页（JobProgress 接入） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M1-T02、APP-M2-T021、APP-M2-T101 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T102.md` |
 | [APP-M2-T103](tasks/APP-M2.md#app-m2-t103) | PdfLocator（PDF.js 本地 Worker、跳页高亮） | planned | APP-M1-T02、APP-M2-T101 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T103.md` |
 | [APP-M2-T104](tasks/APP-M2.md#app-m2-t104) | 解析结果三栏布局与分类树 | planned | APP-M1-T02、APP-M2-T103 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T104.md` |
-| [APP-M2-T105](tasks/APP-M2.md#app-m2-t105) | 条目卡片编辑与逐条确认 | planned | APP-M1-T02、APP-M2-T104 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T105.md` |
+| [APP-M2-T105](tasks/APP-M2.md#app-m2-t105) | 条目卡片编辑与逐条确认 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M1-T02、APP-M2-T104 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T105.md` |
 | [APP-M2-T106](tasks/APP-M2.md#app-m2-t106) | 批量确认（星号 / 废标 / 资格禁用）与置信度高亮 | planned | APP-M1-T02、APP-M2-T105 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T106.md` |
 | [APP-M2-T107](tasks/APP-M2.md#app-m2-t107) | 重抽不覆盖与补遗差异 | planned | APP-M1-T02、APP-M2-T105、APP-M2-T101 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T107.md` |
-| [APP-M2-T108](tasks/APP-M2.md#app-m2-t108) | “确认解析结果”闸门（悬停列未满足项） | planned | APP-M1-T02、APP-M2-T106、APP-M2-T107、APP-M2-T109、APP-M2-T110、APP-M2-T111 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T108.md` |
+| [APP-M2-T108](tasks/APP-M2.md#app-m2-t108) | “确认解析结果”闸门（悬停列未满足项） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M1-T02、APP-M2-T106、APP-M2-T107、APP-M2-T109、APP-M2-T110、APP-M2-T111 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T108.md` |
 | [APP-M2-T109](tasks/APP-M2.md#app-m2-t109) | 后处理条与合并条目（“已合并 N 条 · 拆分”、多位置切换） | planned | APP-M2-T104、APP-M2-T019 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T109.md` |
-| [APP-M2-T110](tasks/APP-M2.md#app-m2-t110) | 冲突待选定页签（并列取值、理由必填） | planned | APP-M2-T104、APP-M2-T109 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T110.md` |
+| [APP-M2-T110](tasks/APP-M2.md#app-m2-t110) | 冲突待选定页签（并列取值、理由必填） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T104、APP-M2-T109 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T110.md` |
 | [APP-M2-T111](tasks/APP-M2.md#app-m2-t111) | 疑似遗漏（无批量、排除须理由）与引用未解析页签（Wave 11：疑似遗漏部分已交付，引用未解析未做） | in-review | APP-M2-T104、APP-M2-T148、APP-M2-T109 | [ISSUE-007](../issues/ISSUE-007.md)、[ISSUE-040](../issues/ISSUE-040.md) | [交付](delivery/APP-M2-T111.md) |
 | [APP-M2-T112](tasks/APP-M2.md#app-m2-t112) | 矩阵表格与筛选（风险提示） | planned | APP-M1-T03 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T112.md` |
 | [APP-M2-T113](tasks/APP-M2.md#app-m2-t113) | 行编辑（响应方式、要点、负责人） | planned | APP-M1-T03、APP-M2-T112 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T113.md` |
@@ -400,10 +416,10 @@
 | [APP-M2-T115](tasks/APP-M2.md#app-m2-t115) | 批量智能匹配与逐行确认 | planned | APP-M1-T03、APP-M2-T118 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T115.md` |
 | [APP-M2-T116](tasks/APP-M2.md#app-m2-t116) | P-18 分册分流确认 | planned | APP-M1-T03、APP-M1-T14 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T116.md` |
 | [APP-M2-T117](tasks/APP-M2.md#app-m2-t117) | Excel 导出与确认闸门 | planned | APP-M1-T03、APP-M2-T113、APP-M2-T114、APP-M2-T116 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T117.md` |
-| [APP-M2-T118](tasks/APP-M2.md#app-m2-t118) | 挂证据候选的三路显示（结构化规则匹配 / 片段检索 / 历史标书仅参考） | planned | APP-M2-T114、APP-M2-T078、APP-M2-T081 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T118.md` |
-| [APP-M2-T119](tasks/APP-M2.md#app-m2-t119) | SLA 矩阵表与判定 | planned | APP-M1-T10、APP-M1-T12、APP-M2-T069 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T119.md` |
+| [APP-M2-T118](tasks/APP-M2.md#app-m2-t118) | 挂证据候选的三路显示（结构化规则匹配 / 片段检索 / 历史标书仅参考） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T114、APP-M2-T078、APP-M2-T081 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T118.md` |
+| [APP-M2-T119](tasks/APP-M2.md#app-m2-t119) | SLA 矩阵表与判定 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M1-T10、APP-M1-T12、APP-M2-T069 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T119.md` |
 | [APP-M2-T120](tasks/APP-M2.md#app-m2-t120) | 模板取值与承诺函导出 | planned | APP-M1-T10、APP-M1-T12、APP-M2-T119 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T120.md` |
-| [APP-M2-T121](tasks/APP-M2.md#app-m2-t121) | 项目事实表 | planned | APP-M1-T10、APP-M1-T12 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T121.md` |
+| [APP-M2-T121](tasks/APP-M2.md#app-m2-t121) | 项目事实表 | in-review（2026-10-28 重定：代码与测试已存在） | APP-M1-T10、APP-M1-T12 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T121.md` |
 | [APP-M2-T122](tasks/APP-M2.md#app-m2-t122) | “需复核”传播提示 | planned | APP-M1-T10、APP-M1-T12、APP-M2-T119、APP-M2-T121 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T122.md` |
 | [APP-M2-T123](tasks/APP-M2.md#app-m2-t123) | 大纲排序、章节类型和增值理由（分工复用T15） | in-review | APP-M1-T15、APP-M2-T116 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T123.md) |
 | [APP-M2-T124](tasks/APP-M2.md#app-m2-t124) | 完整证据、片段及评分写作计划（确认复用T15） | in-review | APP-M1-T15已具备；APP-M2-T078 已 done（QA 19c4862，PM 17:20 确认），APP-M2-T114 已 done（QA f521950，PM 17:13 确认）。写作方案Prompt输入上下文完整组装 | [ISSUE-022](../issues/ISSUE-022.md) | [交付](delivery/APP-M2-T126.md) |
@@ -412,29 +428,29 @@
 | [APP-M2-T127](tasks/APP-M2.md#app-m2-t127) | 五类系统生成章节预览 | planned | APP-M1-T04、APP-M2-T191、APP-M2-T192、APP-M2-T193、APP-M2-T194、APP-M2-T195 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T127.md` |
 | [APP-M2-T128](tasks/APP-M2.md#app-m2-t128) | 锁定提示与“去数据源修改” | planned | APP-M1-T04、APP-M2-T127、APP-M2-T163 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T128.md` |
 | [APP-M2-T129](tasks/APP-M2.md#app-m2-t129) | 章节列表（编辑台入口） | planned | APP-M2-T126、APP-M2-T021 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T129.md` |
-| [APP-M2-T130](tasks/APP-M2.md#app-m2-t130) | 章节循环进度页 | planned | APP-M2-T126、APP-M2-T021、APP-M2-T044、APP-M2-T234、APP-M2-T237、APP-M2-T238、APP-M2-T254、APP-M2-T244、APP-M2-T245、APP-M2-T246、APP-M2-T247、APP-M2-T248、APP-M2-T249 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T130.md` |
+| [APP-M2-T130](tasks/APP-M2.md#app-m2-t130) | 章节循环进度页 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T126、APP-M2-T021、APP-M2-T044、APP-M2-T234、APP-M2-T237、APP-M2-T238、APP-M2-T254、APP-M2-T244、APP-M2-T245、APP-M2-T246、APP-M2-T247、APP-M2-T248、APP-M2-T249 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T130.md` |
 | [APP-M2-T131](tasks/APP-M2.md#app-m2-t131) | 轮次时间线 | planned | APP-M2-T126、APP-M2-T021、APP-M2-T130 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T131.md` |
 | [APP-M2-T132](tasks/APP-M2.md#app-m2-t132) | 版本对比（复用 DiffView） | planned | APP-M2-T126、APP-M2-T021、APP-M2-T175 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T132.md` |
 | [APP-M2-T133](tasks/APP-M2.md#app-m2-t133) | 人工处理队列列表（Wave 11） | in-review | APP-M2-T126、APP-M2-T021、APP-M2-T130 | [ISSUE-007](../issues/ISSUE-007.md)、[ISSUE-040](../issues/ISSUE-040.md) | [交付](delivery/APP-M2-T133.md) |
-| [APP-M2-T134](tasks/APP-M2.md#app-m2-t134) | 队列详情单段编辑 | planned | APP-M2-T126、APP-M2-T021、APP-M2-T133、APP-M2-T174 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T134.md` |
-| [APP-M2-T135](tasks/APP-M2.md#app-m2-t135) | 一键重新检查 | planned | APP-M2-T126、APP-M2-T021、APP-M2-T134 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T135.md` |
-| [APP-M2-T136](tasks/APP-M2.md#app-m2-t136) | 异常中断与重试 | planned | APP-M2-T126、APP-M2-T021、APP-M2-T130 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T136.md` |
+| [APP-M2-T134](tasks/APP-M2.md#app-m2-t134) | 队列详情单段编辑 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T126、APP-M2-T021、APP-M2-T133、APP-M2-T174 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T134.md` |
+| [APP-M2-T135](tasks/APP-M2.md#app-m2-t135) | 一键重新检查 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T126、APP-M2-T021、APP-M2-T134 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T135.md` |
+| [APP-M2-T136](tasks/APP-M2.md#app-m2-t136) | 异常中断与重试 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T126、APP-M2-T021、APP-M2-T130 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T136.md` |
 | [APP-M2-T137](tasks/APP-M2.md#app-m2-t137) | W-03 公司级写作观察统计 | planned | APP-M2-T131、APP-M2-T189 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T137.md` |
 | [APP-M2-T138](tasks/APP-M2.md#app-m2-t138) | P-17 项目级折叠区 | planned | APP-M2-T131、APP-M2-T189 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T138.md` |
 | [APP-M2-T139](tasks/APP-M2.md#app-m2-t139) | 图表组件（AntV G2，待技术确认） | planned | APP-M2-T131、APP-M2-T189 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T139.md` |
 | [APP-M2-T140](tasks/APP-M2.md#app-m2-t140) | RuleIssueList | planned | APP-M1-T05 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T140.md` |
-| [APP-M2-T141](tasks/APP-M2.md#app-m2-t141) | 合规检查页布局与结论条 | planned | APP-M1-T05、APP-M2-T140 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T141.md` |
-| [APP-M2-T142](tasks/APP-M2.md#app-m2-t142) | 警告放行（理由必填，阻断无放行） | planned | APP-M1-T05、APP-M2-T140 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T142.md` |
+| [APP-M2-T141](tasks/APP-M2.md#app-m2-t141) | 合规检查页布局与结论条 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M1-T05、APP-M2-T140 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T141.md` |
+| [APP-M2-T142](tasks/APP-M2.md#app-m2-t142) | 警告放行（理由必填，阻断无放行） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M1-T05、APP-M2-T140 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T142.md` |
 | [APP-M2-T143](tasks/APP-M2.md#app-m2-t143) | R18 段落相似度并排对比 | planned | APP-M1-T05、APP-M2-T223 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T143.md` |
 | [APP-M2-T144](tasks/APP-M2.md#app-m2-t144) | 分册检查 / 定稿 / 解锁 / 交叉复核（Wave 11：警告放行留痕未做） | in-review | APP-M1-T05、APP-M2-T142、APP-M2-T228、APP-M2-T229、APP-M2-T250、APP-M2-T251、APP-M2-T252、APP-M2-T255、APP-M2-T256、APP-M2-T257、APP-M2-T258 | [ISSUE-007](../issues/ISSUE-007.md)、[ISSUE-040](../issues/ISSUE-040.md) | [交付](delivery/APP-M2-T144.md) |
-| [APP-M2-T145](tasks/APP-M2.md#app-m2-t145) | 全文检查与“结果已过期”提示 | planned | APP-M1-T05、APP-M2-T144 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T145.md` |
+| [APP-M2-T145](tasks/APP-M2.md#app-m2-t145) | 全文检查与“结果已过期”提示 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M1-T05、APP-M2-T144 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T145.md` |
 | [APP-M2-T146](tasks/APP-M2.md#app-m2-t146) | 合规规则页签（不可关闭锁、R43 无阻断） | planned | APP-M2-T025 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T146.md` |
 | [APP-M2-T147](tasks/APP-M2.md#app-m2-t147) | 规则参数、恢复平台默认、修改历史 | planned | APP-M2-T025、APP-M2-T146 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T147.md` |
 | [APP-M2-T148](tasks/APP-M2.md#app-m2-t148) | 兜底扫描词表（草稿、试扫、发布） | planned | APP-M2-T025、APP-M2-T146 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T148.md` |
-| [APP-M2-T149](tasks/APP-M2.md#app-m2-t149) | 导出前提检查 | planned | APP-M1-T05、APP-M2-T145 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T149.md` |
-| [APP-M2-T150](tasks/APP-M2.md#app-m2-t150) | 导出类型、模板与命名 | planned | APP-M1-T05、APP-M2-T196、APP-M2-T197、APP-M2-T198 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T150.md` |
-| [APP-M2-T151](tasks/APP-M2.md#app-m2-t151) | 导出历史与下载（`export_status` 含排队） | planned | APP-M1-T05、APP-M2-T202 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T151.md` |
-| [APP-M2-T152](tasks/APP-M2.md#app-m2-t152) | 递交版：仅项目负责人可见、已确认完整值类别展示、内部稿掩码说明 | planned | APP-M2-T149、APP-M2-T100、APP-M2-T017、APP-M2-T196 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T152.md` |
+| [APP-M2-T149](tasks/APP-M2.md#app-m2-t149) | 导出前提检查 | in-review（2026-10-28 重定：代码与测试已存在） | APP-M1-T05、APP-M2-T145 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T149.md` |
+| [APP-M2-T150](tasks/APP-M2.md#app-m2-t150) | 导出类型、模板与命名 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M1-T05、APP-M2-T196、APP-M2-T197、APP-M2-T198 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T150.md` |
+| [APP-M2-T151](tasks/APP-M2.md#app-m2-t151) | 导出历史与下载（`export_status` 含排队） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M1-T05、APP-M2-T202 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T151.md` |
+| [APP-M2-T152](tasks/APP-M2.md#app-m2-t152) | 递交版：仅项目负责人可见、已确认完整值类别展示、内部稿掩码说明 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T149、APP-M2-T100、APP-M2-T017、APP-M2-T196 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T152.md` |
 | [APP-M2-T153](tasks/APP-M2.md#app-m2-t153) | 工作台 6 张统计卡（点击即筛选） | planned | APP-M2-T095 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T153.md` |
 | [APP-M2-T154](tasks/APP-M2.md#app-m2-t154) | 概览底部折叠区 | planned | APP-M2-T095 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T154.md` |
 | [APP-M2-T155](tasks/APP-M2.md#app-m2-t155) | 集团管理员公司切换与只读视图 | planned | APP-M2-T016 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T155.md` |
@@ -454,13 +470,13 @@
 | [APP-M2-T169](tasks/APP-M2.md#app-m2-t169) | 工具栏紧凑模式（“格式”下拉） | planned | APP-M1-T15、APP-M2-T160 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T169.md` |
 | [APP-M2-T170](tasks/APP-M2.md#app-m2-t170) | 只读态（他人编辑中） | planned | APP-M1-T15、APP-M2-T173 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T170.md` |
 | [APP-M2-T171](tasks/APP-M2.md#app-m2-t171) | 长章节性能 | planned | APP-M1-T15、APP-M2-T161、APP-M2-T166、APP-M2-T167 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T171.md` |
-| [APP-M2-T172](tasks/APP-M2.md#app-m2-t172) | 自动保存草稿 | planned | APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T172.md` |
-| [APP-M2-T173](tasks/APP-M2.md#app-m2-t173) | EditLockBadge、心跳、超时提示、接管 | planned | APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T173.md` |
+| [APP-M2-T172](tasks/APP-M2.md#app-m2-t172) | 自动保存草稿 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T172.md` |
+| [APP-M2-T173](tasks/APP-M2.md#app-m2-t173) | EditLockBadge、心跳、超时提示、接管 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T173.md` |
 | [APP-M2-T174](tasks/APP-M2.md#app-m2-t174) | 提交版本与版本历史 | planned | APP-M2-T161、APP-M2-T172、APP-M2-T173 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T174.md` |
 | [APP-M2-T175](tasks/APP-M2.md#app-m2-t175) | 版本对比与回退 | planned | APP-M2-T161、APP-M2-T174 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T175.md` |
 | [APP-M2-T176](tasks/APP-M2.md#app-m2-t176) | 对话面板与会话列表 | planned | APP-M2-T167、APP-M2-T089 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T176.md` |
 | [APP-M2-T177](tasks/APP-M2.md#app-m2-t177) | 流式输出、模型标识、降级提示 | planned | APP-M2-T167、APP-M2-T089、APP-M2-T176、APP-M2-T040 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T177.md` |
-| [APP-M2-T178](tasks/APP-M2.md#app-m2-t178) | 建议卡片（写法、差异、来源、预检） | planned | APP-M2-T167、APP-M2-T089、APP-M2-T176、APP-M2-T242、APP-M2-T243、APP-M2-T244、APP-M2-T248 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T178.md` |
+| [APP-M2-T178](tasks/APP-M2.md#app-m2-t178) | 建议卡片（写法、差异、来源、预检） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T167、APP-M2-T089、APP-M2-T176、APP-M2-T242、APP-M2-T243、APP-M2-T244、APP-M2-T248 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T178.md` |
 | [APP-M2-T179](tasks/APP-M2.md#app-m2-t179) | 自由问答（只“复制”） | in-review | APP-M2-T167、APP-M2-T089、APP-M2-T181 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T179.md) |
 | [APP-M2-T180](tasks/APP-M2.md#app-m2-t180) | 上下文与样例任务卡选择 | planned | APP-M2-T167、APP-M2-T089、APP-M2-T176、APP-M2-T124 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T180.md` |
 | [APP-M2-T181](tasks/APP-M2.md#app-m2-t181) | 资料库与本项目数据答案卡 | in-review | APP-M2-T176、APP-M2-T047、APP-M2-T112 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T181.md) |
@@ -468,7 +484,7 @@
 | [APP-M2-T183](tasks/APP-M2.md#app-m2-t183) | 插入为引用：差异视图、写入、引用标记 | in-review | APP-M2-T181、APP-M2-T185 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T183.md) |
 | [APP-M2-T184](tasks/APP-M2.md#app-m2-t184) | 本项目招标文件轻量索引的检索结果展示 | in-review | APP-M2-T181 | [ISSUE-007](../issues/ISSUE-007.md) / [ISSUE-037](../issues/ISSUE-037.md) | [交付](delivery/APP-M2-T184.md) |
 | [APP-M2-T185](tasks/APP-M2.md#app-m2-t185) | 差异确认写入 | in-review | APP-M2-T167、APP-M2-T178 | [ISSUE-007](../issues/ISSUE-007.md) / [ISSUE-037](../issues/ISSUE-037.md) | [交付](delivery/APP-M2-T185.md) |
-| [APP-M2-T186](tasks/APP-M2.md#app-m2-t186) | “我已逐字核对”二次确认（星号 / 废标 / 偏离 / 披露） | planned | APP-M2-T167、APP-M2-T178、APP-M2-T185 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T186.md` |
+| [APP-M2-T186](tasks/APP-M2.md#app-m2-t186) | “我已逐字核对”二次确认（星号 / 废标 / 偏离 / 披露） | in-review（2026-10-28 重定：代码与测试已存在） | APP-M2-T167、APP-M2-T178、APP-M2-T185 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T186.md` |
 | [APP-M2-T187](tasks/APP-M2.md#app-m2-t187) | 冲突校验与重新定位提示 | planned | APP-M2-T167、APP-M2-T178、APP-M2-T185 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T187.md` |
 | [APP-M2-T188](tasks/APP-M2.md#app-m2-t188) | 粘贴识别 | planned | APP-M2-T167、APP-M2-T178、APP-M2-T185、APP-M2-T242、APP-M2-T243 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T188.md` |
 | [APP-M2-T189](tasks/APP-M2.md#app-m2-t189) | 对话助手观察指标 | planned | APP-M2-T174、APP-M2-T185 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T189.md` |
@@ -484,48 +500,48 @@
 | [APP-M2-T199](tasks/APP-M2.md#app-m2-t199) | Word属性修订与批注清理 | planned | APP-M2-T196 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T199.md` |
 | [APP-M2-T200](tasks/APP-M2.md#app-m2-t200) | 同批合标核对清单输出 | planned | APP-M2-T149、APP-M2-T197、APP-M2-T192、APP-M2-T193 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T200.md` |
 | [APP-M2-T201](tasks/APP-M2.md#app-m2-t201) | 内部响应追溯Excel | planned | APP-M2-T117、APP-M2-T162、APP-M2-T165 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T201.md` |
-| [APP-M2-T202](tasks/APP-M2.md#app-m2-t202) | 递交批次原子输出和历史快照 | planned | APP-M2-T152、APP-M2-T197、APP-M2-T198、APP-M2-T199、APP-M2-T200 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T202.md` |
-| [APP-M2-T203](tasks/APP-M2.md#app-m2-t203) | R01 不可引用的资料禁止引用 | planned | APP-M2-T047、APP-M2-T077 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T203.md` |
-| [APP-M2-T204](tasks/APP-M2.md#app-m2-t204) | R02 资料来源分级与投标主体一致 | planned | APP-M2-T054、APP-M2-T098 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T204.md` |
-| [APP-M2-T205](tasks/APP-M2.md#app-m2-t205) | R03 有效期覆盖投标截止时间 | planned | APP-M2-T047、APP-M2-T099 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T205.md` |
-| [APP-M2-T206](tasks/APP-M2.md#app-m2-t206) | R04 临期与复审提醒 | planned | APP-M2-T073、APP-M2-T031 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T206.md` |
-| [APP-M2-T207](tasks/APP-M2.md#app-m2-t207) | R05 年审/监督审核有效 | planned | APP-M2-T056 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T207.md` |
-| [APP-M2-T208](tasks/APP-M2.md#app-m2-t208) | R06 持证单位与主体名称一致 | planned | APP-M2-T056、APP-M2-T075 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T208.md` |
-| [APP-M2-T209](tasks/APP-M2.md#app-m2-t209) | R07 原厂授权覆盖招标涉及的全部产品，授权链逐级有效，地域覆盖到地 | planned | APP-M2-T066、APP-M2-T051 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T209.md` |
-| [APP-M2-T210](tasks/APP-M2.md#app-m2-t210) | R08 拟派人员持有招标涉及产品的有效原厂认证 | planned | APP-M2-T062、APP-M2-T099 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T210.md` |
-| [APP-M2-T211](tasks/APP-M2.md#app-m2-t211) | R09 故障等级与服务时段 | planned | APP-M2-T119、APP-M2-T121、APP-M2-T069 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T211.md` |
-| [APP-M2-T212](tasks/APP-M2.md#app-m2-t212) | R09 全类别SLA及能力比较 | planned | APP-M2-T119、APP-M2-T121、APP-M2-T069 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T212.md` |
-| [APP-M2-T213](tasks/APP-M2.md#app-m2-t213) | R09 模板外承诺类事实 | planned | APP-M2-T119、APP-M2-T121、APP-M2-T069 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T213.md` |
-| [APP-M2-T214](tasks/APP-M2.md#app-m2-t214) | R10 手写与自然表达全文承诺 | planned | APP-M2-T119、APP-M2-T164、APP-M2-T193 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T214.md` |
-| [APP-M2-T215](tasks/APP-M2.md#app-m2-t215) | R10 结构节点及确定性输出 | planned | APP-M2-T119、APP-M2-T164、APP-M2-T193 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T215.md` |
-| [APP-M2-T216](tasks/APP-M2.md#app-m2-t216) | R11 本单位人员与社保核对 | planned | APP-M2-T061、APP-M2-T099 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T216.md` |
-| [APP-M2-T217](tasks/APP-M2.md#app-m2-t217) | R12 人员占用冲突 | planned | APP-M2-T063、APP-M2-T099 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T217.md` |
-| [APP-M2-T218](tasks/APP-M2.md#app-m2-t218) | R13 业绩满足资格与评分条件 | planned | APP-M2-T067、APP-M2-T068 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T218.md` |
-| [APP-M2-T219](tasks/APP-M2.md#app-m2-t219) | R14 必备附件齐全 | planned | APP-M2-T059、APP-M2-T195、APP-M2-T198 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T219.md` |
-| [APP-M2-T220](tasks/APP-M2.md#app-m2-t220) | R15 占位符与【待补】清零 | planned | APP-M2-T164、APP-M2-T165 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T220.md` |
-| [APP-M2-T221](tasks/APP-M2.md#app-m2-t221) | R16 主体基本资格与证明材料时效 | planned | APP-M2-T054、APP-M2-T055 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T221.md` |
-| [APP-M2-T222](tasks/APP-M2.md#app-m2-t222) | R17 使用提示与保密项目提醒 | planned | APP-M2-T047、APP-M2-T100 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T222.md` |
-| [APP-M2-T223](tasks/APP-M2.md#app-m2-t223) | R18 相似度检查 | planned | APP-M2-T095、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T223.md` |
-| [APP-M2-T224](tasks/APP-M2.md#app-m2-t224) | R19 关联投标冲突 | planned | APP-M1-T01、APP-M2-T054 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T224.md` |
-| [APP-M2-T225](tasks/APP-M2.md#app-m2-t225) | R20 同一编写人 | planned | APP-M2-T028、APP-M2-T174 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T225.md` |
+| [APP-M2-T202](tasks/APP-M2.md#app-m2-t202) | 递交批次原子输出和历史快照 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T152、APP-M2-T197、APP-M2-T198、APP-M2-T199、APP-M2-T200 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T202.md` |
+| [APP-M2-T203](tasks/APP-M2.md#app-m2-t203) | R01 不可引用的资料禁止引用 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T047、APP-M2-T077 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T203.md` |
+| [APP-M2-T204](tasks/APP-M2.md#app-m2-t204) | R02 资料来源分级与投标主体一致 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T054、APP-M2-T098 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T204.md` |
+| [APP-M2-T205](tasks/APP-M2.md#app-m2-t205) | R03 有效期覆盖投标截止时间 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T047、APP-M2-T099 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T205.md` |
+| [APP-M2-T206](tasks/APP-M2.md#app-m2-t206) | R04 临期与复审提醒 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T073、APP-M2-T031 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T206.md` |
+| [APP-M2-T207](tasks/APP-M2.md#app-m2-t207) | R05 年审/监督审核有效 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T056 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T207.md` |
+| [APP-M2-T208](tasks/APP-M2.md#app-m2-t208) | R06 持证单位与主体名称一致 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T056、APP-M2-T075 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T208.md` |
+| [APP-M2-T209](tasks/APP-M2.md#app-m2-t209) | R07 原厂授权覆盖招标涉及的全部产品，授权链逐级有效，地域覆盖到地 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T066、APP-M2-T051 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T209.md` |
+| [APP-M2-T210](tasks/APP-M2.md#app-m2-t210) | R08 拟派人员持有招标涉及产品的有效原厂认证 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T062、APP-M2-T099 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T210.md` |
+| [APP-M2-T211](tasks/APP-M2.md#app-m2-t211) | R09 故障等级与服务时段 | in-progress（2026-10-28 重定：规则方法已有，子范围待逐项核） | APP-M2-T119、APP-M2-T121、APP-M2-T069 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T211.md` |
+| [APP-M2-T212](tasks/APP-M2.md#app-m2-t212) | R09 全类别SLA及能力比较 | in-progress（2026-10-28 重定：规则方法已有，子范围待逐项核） | APP-M2-T119、APP-M2-T121、APP-M2-T069 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T212.md` |
+| [APP-M2-T213](tasks/APP-M2.md#app-m2-t213) | R09 模板外承诺类事实 | in-progress（2026-10-28 重定：规则方法已有，子范围待逐项核） | APP-M2-T119、APP-M2-T121、APP-M2-T069 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T213.md` |
+| [APP-M2-T214](tasks/APP-M2.md#app-m2-t214) | R10 手写与自然表达全文承诺 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T119、APP-M2-T164、APP-M2-T193 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T214.md` |
+| [APP-M2-T215](tasks/APP-M2.md#app-m2-t215) | R10 结构节点及确定性输出 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T119、APP-M2-T164、APP-M2-T193 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T215.md` |
+| [APP-M2-T216](tasks/APP-M2.md#app-m2-t216) | R11 本单位人员与社保核对 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T061、APP-M2-T099 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T216.md` |
+| [APP-M2-T217](tasks/APP-M2.md#app-m2-t217) | R12 人员占用冲突 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T063、APP-M2-T099 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T217.md` |
+| [APP-M2-T218](tasks/APP-M2.md#app-m2-t218) | R13 业绩满足资格与评分条件 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T067、APP-M2-T068 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T218.md` |
+| [APP-M2-T219](tasks/APP-M2.md#app-m2-t219) | R14 必备附件齐全 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T059、APP-M2-T195、APP-M2-T198 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T219.md` |
+| [APP-M2-T220](tasks/APP-M2.md#app-m2-t220) | R15 占位符与【待补】清零 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T164、APP-M2-T165 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T220.md` |
+| [APP-M2-T221](tasks/APP-M2.md#app-m2-t221) | R16 主体基本资格与证明材料时效 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T054、APP-M2-T055 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T221.md` |
+| [APP-M2-T222](tasks/APP-M2.md#app-m2-t222) | R17 使用提示与保密项目提醒 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T047、APP-M2-T100 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T222.md` |
+| [APP-M2-T223](tasks/APP-M2.md#app-m2-t223) | R18 相似度检查 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T095、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T223.md` |
+| [APP-M2-T224](tasks/APP-M2.md#app-m2-t224) | R19 关联投标冲突 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M1-T01、APP-M2-T054 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T224.md` |
+| [APP-M2-T225](tasks/APP-M2.md#app-m2-t225) | R20 同一编写人 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T028、APP-M2-T174 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T225.md` |
 | [APP-M2-T226](tasks/APP-M2.md#app-m2-t226) | R21 不同公司同一项目拟派人员为同一人 | planned | APP-M2-T061、APP-M2-T099 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T226.md` |
 | [APP-M2-T227](tasks/APP-M2.md#app-m2-t227) | R22 不同公司同一项目的保证金转出账户相同 | planned | APP-M2-T054、APP-M2-T100 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T227.md` |
-| [APP-M2-T228](tasks/APP-M2.md#app-m2-t228) | R23 星号条款、废标条款全部已确认响应 | planned | APP-M2-T105、APP-M2-T113 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T228.md` |
-| [APP-M2-T229](tasks/APP-M2.md#app-m2-t229) | R24 格式要求 | planned | APP-M2-T191、APP-M2-T192、APP-M2-T193、APP-M2-T197 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T229.md` |
-| [APP-M2-T230](tasks/APP-M2.md#app-m2-t230) | R25 名称机构残留 | planned | APP-M2-T161、APP-M2-T199 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T230.md` |
-| [APP-M2-T231](tasks/APP-M2.md#app-m2-t231) | R25 Word元数据残留 | planned | APP-M2-T161、APP-M2-T199 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T231.md` |
-| [APP-M2-T232](tasks/APP-M2.md#app-m2-t232) | R26 评分项覆盖度 | planned | APP-M2-T123、APP-M2-T113、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T232.md` |
-| [APP-M2-T233](tasks/APP-M2.md#app-m2-t233) | R27 项目事实一致 | planned | APP-M2-T121、APP-M2-T164 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T233.md` |
-| [APP-M2-T234](tasks/APP-M2.md#app-m2-t234) | R28 章节模型评审 | planned | APP-M2-T091、APP-M2-T089、APP-M2-T044、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T234.md` |
+| [APP-M2-T228](tasks/APP-M2.md#app-m2-t228) | R23 星号条款、废标条款全部已确认响应 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T105、APP-M2-T113 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T228.md` |
+| [APP-M2-T229](tasks/APP-M2.md#app-m2-t229) | R24 格式要求 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T191、APP-M2-T192、APP-M2-T193、APP-M2-T197 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T229.md` |
+| [APP-M2-T230](tasks/APP-M2.md#app-m2-t230) | R25 名称机构残留 | in-progress（2026-10-28 重定：规则方法已有，子范围待逐项核） | APP-M2-T161、APP-M2-T199 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T230.md` |
+| [APP-M2-T231](tasks/APP-M2.md#app-m2-t231) | R25 Word元数据残留 | in-progress（2026-10-28 重定：规则方法已有，子范围待逐项核） | APP-M2-T161、APP-M2-T199 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T231.md` |
+| [APP-M2-T232](tasks/APP-M2.md#app-m2-t232) | R26 评分项覆盖度 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T123、APP-M2-T113、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T232.md` |
+| [APP-M2-T233](tasks/APP-M2.md#app-m2-t233) | R27 项目事实一致 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T121、APP-M2-T164 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T233.md` |
+| [APP-M2-T234](tasks/APP-M2.md#app-m2-t234) | R28 章节模型评审 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T091、APP-M2-T089、APP-M2-T044、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T234.md` |
 | [APP-M2-T235](tasks/APP-M2.md#app-m2-t235) | R29 本公司查重 | planned | APP-M2-T081、APP-M2-T078、APP-M2-T073、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T235.md` |
 | [APP-M2-T236](tasks/APP-M2.md#app-m2-t236) | R30 无条款段落及范围外服务 | planned | APP-M2-T123、APP-M2-T121、APP-M2-T162 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T236.md` |
 | [APP-M2-T237](tasks/APP-M2.md#app-m2-t237) | R30 额外数值承诺 | planned | APP-M2-T123、APP-M2-T121、APP-M2-T162 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T237.md` |
-| [APP-M2-T238](tasks/APP-M2.md#app-m2-t238) | R31 正文敏感值与真实报告 | planned | APP-M2-T161、APP-M2-T059 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T238.md` |
-| [APP-M2-T239](tasks/APP-M2.md#app-m2-t239) | R31 插图识别文字与报告附件 | planned | APP-M2-T161、APP-M2-T059 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T239.md` |
-| [APP-M2-T240](tasks/APP-M2.md#app-m2-t240) | R32 产品范围一致 | planned | APP-M2-T051、APP-M2-T099、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T240.md` |
+| [APP-M2-T238](tasks/APP-M2.md#app-m2-t238) | R31 正文敏感值与真实报告 | in-progress（2026-10-28 重定：规则方法已有，子范围待逐项核） | APP-M2-T161、APP-M2-T059 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T238.md` |
+| [APP-M2-T239](tasks/APP-M2.md#app-m2-t239) | R31 插图识别文字与报告附件 | in-progress（2026-10-28 重定：规则方法已有，子范围待逐项核） | APP-M2-T161、APP-M2-T059 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T239.md` |
+| [APP-M2-T240](tasks/APP-M2.md#app-m2-t240) | R32 产品范围一致 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T051、APP-M2-T099、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T240.md` |
 | [APP-M2-T241](tasks/APP-M2.md#app-m2-t241) | R33 拟派人员条件 | planned | APP-M2-T061、APP-M2-T062、APP-M2-T105、APP-M2-T099 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T241.md` |
-| [APP-M2-T242](tasks/APP-M2.md#app-m2-t242) | R34 AI 痕迹与格式符号残留 | planned | APP-M2-T161、APP-M2-T089 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T242.md` |
-| [APP-M2-T243](tasks/APP-M2.md#app-m2-t243) | R35 称呼一致 | planned | APP-M2-T084、APP-M2-T098、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T243.md` |
+| [APP-M2-T242](tasks/APP-M2.md#app-m2-t242) | R34 AI 痕迹与格式符号残留 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T161、APP-M2-T089 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T242.md` |
+| [APP-M2-T243](tasks/APP-M2.md#app-m2-t243) | R35 称呼一致 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T084、APP-M2-T098、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T243.md` |
 | [APP-M2-T244](tasks/APP-M2.md#app-m2-t244) | R43 套话空泛词密度 | planned | APP-M2-T084、APP-M2-T085、APP-M2-T092、APP-M2-T162 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T244.md` |
 | [APP-M2-T245](tasks/APP-M2.md#app-m2-t245) | R43 七类句式及总结策略 | planned | APP-M2-T084、APP-M2-T085、APP-M2-T092、APP-M2-T162 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T245.md` |
 | [APP-M2-T246](tasks/APP-M2.md#app-m2-t246) | R43 注入风格样例照抄 | planned | APP-M2-T084、APP-M2-T085、APP-M2-T092、APP-M2-T162 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T246.md` |
@@ -534,7 +550,7 @@
 | [APP-M2-T249](tasks/APP-M2.md#app-m2-t249) | R44 未登记关键事实前后矛盾 | planned | APP-M2-T124、APP-M2-T162、APP-M2-T165、APP-M1-T12 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T249.md` |
 | [APP-M2-T250](tasks/APP-M2.md#app-m2-t250) | R36 人员资质证明跨册一致 | planned | APP-M2-T195、APP-M2-T193、APP-M2-T099、APP-M2-T116 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T250.md` |
 | [APP-M2-T251](tasks/APP-M2.md#app-m2-t251) | R36 偏离和证据版本跨册一致 | planned | APP-M2-T195、APP-M2-T193、APP-M2-T099、APP-M2-T116 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T251.md` |
-| [APP-M2-T252](tasks/APP-M2.md#app-m2-t252) | R37 偏离表一致性 | planned | APP-M2-T193、APP-M2-T113 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T252.md` |
+| [APP-M2-T252](tasks/APP-M2.md#app-m2-t252) | R37 偏离表一致性 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T193、APP-M2-T113 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T252.md` |
 | [APP-M2-T253](tasks/APP-M2.md#app-m2-t253) | R38 证明材料与评分要点对应 | planned | APP-M2-T058、APP-M2-T059、APP-M2-T114、APP-M2-T075 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T253.md` |
 | [APP-M2-T254](tasks/APP-M2.md#app-m2-t254) | R39 披露类条款 | planned | APP-M2-T057、APP-M2-T105、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T254.md` |
 | [APP-M2-T255](tasks/APP-M2.md#app-m2-t255) | R40 评审索引表 | planned | APP-M2-T192、APP-M2-T123 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T255.md` |
@@ -597,7 +613,7 @@
 | [BE-AUTH-PRODUCTION-ONLY](tasks/BE-M0.md#be-auth-production-only) | 去掉演示入口与三角色兼容，只保留生产认证（用户 2026-10-28 决定） | in-review | — | [ISSUE-005](../issues/ISSUE-005.md) | [自测](testing/2026-10-28-wave-12b-verification.md) |
 | [AI-TENDER-STRUCTURED-EXTRACTION](tasks/AI-M0.md#ai-tender-structured-extraction) | 招标条款按章节与条目抽取（不再逐行成条款） | in-review | — | [ISSUE-007](../issues/ISSUE-007.md) | [自测](testing/2026-10-28-wave-12b-verification.md) |
 | [FE-KB-BUSINESS-FLOWS](tasks/AI-M0.md#fe-kb-business-flows) | 知识库接入资料库、方案片段与写作输入页面 | in-review | [AI-KB-CONTROL-PLANE](tasks/AI-M0.md#ai-kb-control-plane) | [ISSUE-043](../issues/ISSUE-043.md) | [自测](testing/2026-10-28-wave-12b-verification.md) |
-| [FE-TEST-ORPHANS](tasks/FE-M0.md#fe-test-orphans) | 前端根目录 28 个测试文件从未执行，8 项失败待判定 | planned | — | [ISSUE-044](../issues/ISSUE-044.md) | `docs/delivery/FE-TEST-ORPHANS.md` |
+| [FE-TEST-ORPHANS](tasks/FE-M0.md#fe-test-orphans) | 前端根目录 28 个测试文件从未执行，8 项失败待判定 | in-review | — | [ISSUE-044](../issues/ISSUE-044.md) | `docs/delivery/FE-TEST-ORPHANS.md` |
 <!-- task-board:end -->
 
 ## 每次推进的同步顺序

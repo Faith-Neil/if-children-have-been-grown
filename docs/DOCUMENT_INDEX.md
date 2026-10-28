@@ -883,6 +883,7 @@
 | D-862 | 2026-10-28 | [RAG 检索评测：内置解析，真实 RAGFlow](testing/rag-eval-golden-v1-builtin.md) | 验证 | golden-v1 | 当前 | ISSUE-043 / AI-KB-RAG-EVAL | 阈值×关键词权重扫描；据此定默认值 0.45/0.3 |
 | D-863 | 2026-10-28 | [Wave 12 续开发自测](testing/2026-10-28-wave-12b-verification.md) | 验证 | wave12b-dev-1 | 开发自测 | ISSUE-042 / ISSUE-043 / ISSUE-044 | 去掉演示环境、知识库接入业务页面、条款结构化抽取；非 QA 签署 |
 | D-864 | 2026-10-28 | [ISSUE-044 前端根目录测试从未执行](../issues/ISSUE-044.md) | Issue | revision 1 | triaged | ISSUE-044 / FE-TEST-ORPHANS | 28 个测试文件未执行，8 项失败 |
+| D-865 | 2026-10-28 | [ISSUE-045 任务看板按代码实况重定](../issues/ISSUE-045.md) | Issue | revision 1 | in-review | ISSUE-045 | 131 卡状态重定；旧前端轨道与示例外壳 cancelled |
 
 ## 更新记录
 
@@ -892,6 +893,7 @@
 | 2026-10-28 | 开发 / Wave 12 | BE-WORKFLOW-DURABILITY 与 AI-KB-RAG-PIPELINE 交付为 in-review，AI-KB-RAG-EVAL in-progress，登记 ISSUE-043（D-855～D-860）；看板 446 项：96 done、67 in-review、8 in-progress、227 planned、41 blocked、7 cancelled、0 ready |
 | 2026-10-28 | 开发 / Wave 12 | AI-KB-CONTROL-PLANE 交付为 in-review（D-861）；看板 447 项：96 done、68 in-review、8 in-progress、227 planned、41 blocked、7 cancelled、0 ready |
 | 2026-10-28 | 开发 / Wave 12 续 | 去掉演示环境；BE-AUTH-PRODUCTION-ONLY、AI-TENDER-STRUCTURED-EXTRACTION、FE-KB-BUSINESS-FLOWS、FE-E2E-LIBRARY-DRIFT 为 in-review；登记 ISSUE-044（D-862～D-864）；看板 451 项：96 done、72 in-review、8 in-progress、227 planned、41 blocked、7 cancelled、0 ready |
+| 2026-10-28 | 治理 / 看板重定 | 按代码实况重定 131 卡（ISSUE-045，D-865）；条款抽取适配真实招标文件版式；看板 451 项：96 done、109 in-review、48 in-progress、143 planned、0 blocked、55 cancelled、0 ready |
 | 2026-10-28 | PD / 验收 / Wave 10 | 登记 Wave 10 业务功能与核心技术交付批次产品视角对照验收报告（2026-10-28-pd-review-wave10.md，D-837），对照 PRD v1.8 §2.2/§5.7.8/§5.10/§5.10.1/§5.10.2/§5.11/§6.4/§8 与 M1-P10-F3 交接约束，书面认可并建议 PM 标 done |
 | 2026-10-28 | QA / 验收 / Wave 10 | 登记 Wave 10 核心能力与技术交付批次（共 4 卡）QA 终验签署报告（2026-10-28-wave-10-batch-qa-signoff.md，D-836），核验 APP-M2-T028、INT-USER-SECURITY-OPS-GLUE、BE-USER-SECURITY-OPS 与 AI-OUTLINE-AUTO-REMEDIATION，全量测试全绿，出具正式 PASS 签署并建议 PM 标 done |
 | 2026-10-28 | AI / 自动整改重写 / AI-OUTLINE-AUTO-REMEDIATION | 登记章节合规质检缺陷自动整改建议与局部智能重写引擎交付报告（AI-OUTLINE-AUTO-REMEDIATION.md，D-834）与代码说明（D-835），落地 diagnose_paragraph_defects、synthesize_remediation_plan 与 remediate_chapter_candidate，实现 R34/R37/R24/CITATION_AUTH 缺陷精准诊断、局部智能重写与原地合规保全、多轮自适应收敛迭代（直至阻断清零且健康分>=90）、法定表单印章签名块整体注入、单章生成与大纲批量生成流水线闭环集成（auto_remediate=True）及全局看板汇总，涉密本地模型硬门禁（403）与多租户/RBAC隔离（404/403），专属单测 12 项全绿，全量 97 项 AI 核心测试全绿，OpenAPI 契约零漂移，保持 in-review |

@@ -9,13 +9,13 @@
 | Issue ID | ISSUE-044 |
 | 类型 | bug |
 | 优先级 | P1 |
-| 状态 | triaged |
+| 状态 | in-review |
 | 登记日期 | 2026-10-28 |
 | 最后更新日期 | 2026-10-28 |
-| revision | 1 |
+| revision | 2 |
 | 关联 Task | [FE-TEST-ORPHANS](../docs/tasks/FE-M0.md#fe-test-orphans)；[任务看板](../docs/TASK_BOARD.md) |
-| 关联 PR | 未创建 |
-| 本地验收 | 未执行 |
+| 关联 PR | [PR #6](https://github.com/Faith-Neil/if-children-have-been-grown/pull/6) |
+| 本地验收 | `pnpm test` 469 pass、0 fail（2026-10-28） |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | 待建立 |
@@ -30,7 +30,7 @@
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| FE-TEST-ORPHANS | 逐个判定 8 项失败是断言过期还是真实回归，修复后把根目录测试并入 `pnpm test` | `frontend/web/tests/`、`frontend/web/package.json` | 全部前端测试在 CI 执行且通过 | planned |
+| FE-TEST-ORPHANS | 逐个判定 8 项失败是断言过期还是真实回归，修复后把根目录测试并入 `pnpm test` | `frontend/web/tests/`、`frontend/web/package.json` | 全部前端测试在 CI 执行且通过 | in-review |
 
 ## 六份基线评估
 
@@ -42,3 +42,7 @@
 | TASK_BOARD | 有影响 | 新增 FE-TEST-ORPHANS |
 | PROJECT_STATUS | 有影响 | 如实记录测试覆盖缺口 |
 | DOCUMENT_INDEX | 有影响 | 登记本 Issue |
+
+## 处理结果（revision 2）
+
+8 项失败均为夹具过期：仍使用已删除的演示会话模式，被生产会话核验拒绝。夹具改为正式 RBAC 会话后全部通过；根目录测试已并入 `pnpm test`（469 项）。
