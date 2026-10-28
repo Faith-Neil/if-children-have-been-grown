@@ -734,3 +734,35 @@
 
 验收：`tests/backend/test_kb_admin.py` 11 项；流程部署与数据集绑定在真实 RAGFlow v1.0.0-rc2 上验证；完整解析待嵌入模型可用。
 
+<a id="ai-tender-structured-extraction"></a>
+
+## AI-TENDER-STRUCTURED-EXTRACTION · 招标条款按章节与条目抽取
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时 |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | — |
+| PRD / 架构出处 | PRD v1.8 §5.2；[技术决定 §4](../decisions/2026-10-28-kb-control-plane-and-pipelines.md) |
+| 完成时交付 | [Wave 12 续自测](../testing/2026-10-28-wave-12b-verification.md) |
+| 代码解释 | [Wave 12 续自测](../testing/2026-10-28-wave-12b-verification.md) |
+
+原先每个非空行都成为一条条款；现在按章节树与编号条目抽取，合同条款与格式附件不抽，★/▲/废标条目必抽，评分项带分值。`tests/backend/test_tender_extraction.py` 6 项。下一步：扫描件与 .doc/.xls 招标文件经 RAGFlow DeepDOC（tender 流程）解析。
+
+<a id="fe-kb-business-flows"></a>
+
+## FE-KB-BUSINESS-FLOWS · 知识库接入日常业务页面
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 5小时 |
+| 关联 Issue | [ISSUE-043](../../issues/ISSUE-043.md) |
+| 依赖 | [AI-KB-CONTROL-PLANE](AI-M0.md#ai-kb-control-plane) |
+| PRD / 架构出处 | PRD v1.8 §5.4、§5.7 |
+| 完成时交付 | [Wave 12 续自测](../testing/2026-10-28-wave-12b-verification.md) |
+| 代码解释 | [Wave 12 续自测](../testing/2026-10-28-wave-12b-verification.md) |
+
+写作输入显示知识库候选（[片:id]、仅参考/可挂接提示）；资料库逐条入库状态与“从证书附件识别”；方案片段新建/保存/发布（含拦截原因）与真实同步；知识库管理页解析进度。e2e `knowledge-flows.spec.ts`。
+

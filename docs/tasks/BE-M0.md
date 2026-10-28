@@ -919,3 +919,20 @@
 | 代码解释 | [代码说明](../code/BE-WORKFLOW-DURABILITY.md) |
 
 范围：`files`（原件另存）、`requirements`、`facts`、`conflicts`、`candidates`、`checks`、`exports`、`writing_plan`、`sla`、`chapter_order` 等全部业务键跨进程可见；集合等非 JSON 类型先改造；验收以 `ICG_REQUIRE_MYSQL=1` 下重启后主链路数据完整为准。
+
+<a id="be-auth-production-only"></a>
+
+## BE-AUTH-PRODUCTION-ONLY · 去掉演示入口，只保留生产认证
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时 |
+| 关联 Issue | [ISSUE-005](../../issues/ISSUE-005.md) |
+| 依赖 | — |
+| 来源 | 用户 2026-10-28 决定：不需要演示环境，以生产使用为目标测试 |
+| 完成时交付 | [Wave 12 续自测](../testing/2026-10-28-wave-12b-verification.md) |
+| 代码解释 | [Wave 12 续自测](../testing/2026-10-28-wave-12b-verification.md) |
+
+已做：删除 `/api/demo/accounts`、`/api/demo/login`、三角色兼容会话与 `/demo` 页；全部账号按 8 角色会话；无摘要账号不能登录；生产（`ICG_ENV=production`）下合成种子账号一律拒绝、管理员初始密码只能由 `ICG_ADMIN_INITIAL_PASSWORD` 设定、MySQL 仓储不加载合成种子；前端去掉内置管理员口令、令牌直登和离线令牌。
+

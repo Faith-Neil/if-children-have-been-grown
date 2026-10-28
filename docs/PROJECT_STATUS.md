@@ -6,6 +6,13 @@
 
 维护日期：2026-10-28（UTC+8）。分支 `feat/opencode-ICG` 位于 tip `4985a9d`（相对 `main` 超前 71 个提交）；Wave 11 在分支 `feat/wave-11-main-path` 开发，经 [PR #6](https://github.com/Faith-Neil/if-children-have-been-grown/pull/6) 并回；初次接手从 `main` 的 `ce064f6` 开始维护；main/xqr分支情况保留2026-10-09核对快照。已补齐 WP-1 独立交付文档（D-696），对齐 RoleMode 枚举，登记整改后结构债务收敛 ISSUE-038（D-697），完成 DOC-SYNC-1（D-698）与 DOC-SYNC-1.1（D-699）活文档实树校准。完成 CI 工作流触发分支修复（D-721）、已签等 PM 清单汇总（D-722）与关演示主链路冒烟留证（D-723）、大模型与 RAGFlow 弹窗配置及实测（D-724/D-725）、规则最小可递交集与分册定稿闸门端到端闭环（D-726/D-727）、以及 2026-10-26 规划未落地债审计与看板状态校准（D-728/D-729）。新增 R01/R02/R35 规则扩写落地与 7 大核心规则闭环、MySQL 章节/草稿/检查双向持久化、真实内网 RAGFlow 连通性网络探针证据归档与关演示全业务链路新冒烟留证（D-740/D-741）。Wave 2 批次（D-746～D-753）、Wave 3 批次（D-756～D-763）与 Wave 4 批次（FE-TECH-DEBT-02 App.tsx 瘦身至 394 行、APP-M2-T022 平台管理员脱敏长任务、BE-COMPLIANCE-RULES-P3 P3 规则扩充至 21 项与导出门禁、AI-DYNAMIC-PROMPT-CONTEXT 自适应 Prompt 预算与指纹、INT-APP-SLIM-ROUTING 路由分层与脱敏联调）（D-766～D-775）经 QA 独立终验签署（D-754/D-764/D-776 PASS）与 PD 产品验收（D-755/D-765/D-777 认可），已获人类 PM 正式批准标为 done。当前共 444 项中 96 done、65 in-review、7 in-progress、228 planned、41 blocked、7 cancelled、0 ready，2026-10-28 逐行统计）。Wave 9 批次（APP-M2-T027、INT-USER-TRANSFER-RBAC-GLUE、BE-USER-MANAGEMENT-TRANSFER、AI-CHAPTER-AUTO-VALIDATION-GATE）与 Wave 10 核心批次（APP-M2-T028 用户角色分配与账号解锁 D-828/D-829、BE-USER-SECURITY-OPS 用户安全运维服务 D-830/D-831、INT-USER-SECURITY-OPS-GLUE 账号安全契约联调 D-832/D-833、AI-OUTLINE-AUTO-REMEDIATION 质检缺陷自动整改建议与局部智能重写引擎 D-834/D-835）经 QA 独立复测终验（D-836 PASS）与 PD 产品验收（D-837 认可），已获人类 PM 正式批准标为 done。
 
+## Wave 12 续：去掉演示环境、知识库进入业务页面（2026-10-28）
+
+- 按用户决定去掉演示环境：免密演示登录、三角色兼容、演示横幅与示例数据回填全部删除；生产模式（`ICG_ENV=production`）拒绝合成种子账号、不加载种子数据，管理员初始密码只能由部署方设定。之后的测试一律走正式账号密码登录。
+- 发现并修复生产缺陷：资料库表单的“财务审计/业绩案例/通用模板”类别后端不认，保存即 422；方案片段在页面上无法新建与发布；招标条款每一行都成为一条条款。
+- 知识库进入日常页面：资料逐条入库状态、证书附件识别生成待核验资料、片段发布与真实同步、写作输入里的知识库候选。检索默认参数按真实评测改为阈值 0.45、关键词权重 0.3。
+- 仍缺：招标扫描件/.doc/.xls 解析（拟用 RAGFlow DeepDOC）、ICG 流程模式检索对比、前端 28 个从未执行的测试（ISSUE-044）。自测见 [Wave 12 续](testing/2026-10-28-wave-12b-verification.md)。产品完备度粗估约 58%。
+
 ## Wave 12 持久化与知识库（2026-10-28）
 
 - 业务状态写入 MySQL（[ISSUE-041](../issues/ISSUE-041.md) / BE-WORKFLOW-DURABILITY，in-review）：项目工作流全部键、账号、资料库、SLA 模板、作业、合作方、RAGFlow 配置、企业设置、字典、方案片段、知识库索引存入通用条目表 `demo_state_entry`，每条目乐观锁；沙箱 MySQL 8.4.13 上 `-m mysql` 40 passed。文件原件仍存在 JSON 字段，未改对象存储。

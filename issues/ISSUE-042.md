@@ -9,10 +9,10 @@
 | Issue ID | ISSUE-042 |
 | 类型 | bug |
 | 优先级 | P1 |
-| 状态 | in-progress |
+| 状态 | in-review |
 | 登记日期 | 2026-10-28 |
 | 最后更新日期 | 2026-10-28 |
-| revision | 1 |
+| revision | 2 |
 | 关联 Task | [FE-E2E-LIBRARY-DRIFT](../docs/tasks/FE-M0.md#fe-e2e-library-drift)；[任务看板](../docs/TASK_BOARD.md) |
 | 关联 PR | [PR #6](https://github.com/Faith-Neil/if-children-have-been-grown/pull/6) 只修复了第一项 |
 | 本地验收 | 部分：`app-shell.spec.ts` 本地与 CI 均通过；`evidence-drawer.spec.ts` 仍失败（[CI 运行 40652286468](https://github.com/Faith-Neil/if-children-have-been-grown/actions/runs/40652286468)：15 passed、1 failed） |
@@ -51,3 +51,7 @@
 | TASK_BOARD | 有影响 | 新增 FE-E2E-LIBRARY-DRIFT |
 | PROJECT_STATUS | 有影响 | 如实记录 CI 红灯来源 |
 | DOCUMENT_INDEX | 有影响 | 登记本 Issue |
+
+## 处理结果（2026-10-28 Wave 12）
+
+资料库表单的资料类别与后端 `LibraryType` 对齐（主体资质、人员证书、业绩案例、服务承诺、方案片段、历史标书（参考））；原表单的“财务审计、业绩案例(case)、通用模板”提交会被后端 422 拒绝，属生产缺陷，已修。证据抽屉 e2e 按现行页面重写，本地 e2e 18/18 通过、CI e2e 作业通过（`de25d64`）。

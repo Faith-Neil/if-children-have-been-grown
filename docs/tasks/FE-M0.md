@@ -493,7 +493,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | planned |
+| 状态 | in-review |
 | 估算 | 3小时 |
 | 关联 Issue | [ISSUE-042](../../issues/ISSUE-042.md) |
 | 依赖 | — |
@@ -502,3 +502,20 @@
 | 代码解释 | `docs/code/FE-E2E-LIBRARY-DRIFT.md` |
 
 范围：资料库表单恢复“历史标书（参考）”“方案片段”类别；`e2e/evidence-drawer.spec.ts` 按现行页面文案更新且不放宽断言；e2e 作业全绿。
+
+<a id="fe-test-orphans"></a>
+
+## FE-TEST-ORPHANS · 前端根目录测试并入执行
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | planned |
+| 估算 | 3小时 |
+| 关联 Issue | [ISSUE-044](../../issues/ISSUE-044.md) |
+| 依赖 | — |
+| 来源 | 2026-10-28 Wave 12 发现 |
+| 完成时交付 | `docs/delivery/FE-TEST-ORPHANS.md` |
+| 代码解释 | `docs/code/FE-TEST-ORPHANS.md` |
+
+范围：`frontend/web/tests/*.test.mjs` 28 个文件纳入 `pnpm test`，8 项失败逐个判定修复。
+
