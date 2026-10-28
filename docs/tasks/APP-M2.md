@@ -3047,7 +3047,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T200 · 同批合标核对清单输出
 <a id="app-m2-t200"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T149](APP-M2.md#app-m2-t149)、[APP-M2-T197](APP-M2.md#app-m2-t197)、[APP-M2-T192](APP-M2.md#app-m2-t192)、[APP-M2-T193](APP-M2.md#app-m2-t193)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T149](APP-M2.md#app-m2-t149)、[APP-M2-T197](APP-M2.md#app-m2-t197)、[APP-M2-T192](APP-M2.md#app-m2-t192)、[APP-M2-T193](APP-M2.md#app-m2-t193)。
 
 原始来源：PRD v1.8 §5.9.2。交付单位：同批合标核对清单输出，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -3060,6 +3060,9 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 交付：`docs/delivery/APP-M2-T200.md`；代码解释：`docs/code/APP-M2-T200.md`；测试放docs/testing并逐项关联本卡，未执行写未执行。
 
 ### APP-M2-T201 · 内部响应追溯Excel
+
+实现（2026-10-28）：`icg/domain/merge_checklist.py` 在导出递交版时生成清单并随批次保存（`merge_checklist`、`merge_checklist_url`）；`GET …/exports/{id}/merge-checklist`（getMergeChecklist）与 `…/merge-checklist.xlsx`（downloadMergeChecklist，`icg/infra/xlsx.py` 直接写 OOXML，不引入新依赖）。9 类核对项按 PRD §5.9.2；密封份数、签章、暗标、命名、系统外报价文件取自招标原文并带文件页码；一致性结论引用本批次全文检查与已放行警告，系统未实现的 R36/R41/R42 写“未运行，须人工核对”；只有一个分册时写 R36 未运行。项目负责人与分册负责人可看可下载，编写人与只读 403；分册解锁或正文改动后 `stale=true`、Excel 表头注明已过期。测试 `tests/backend/test_merge_checklist.py`、`frontend/web/tests/unit/merge-checklist.test.mjs`。偏差：公司管理员不是项目成员时看不到项目（沿用现行项目可见性），PRD 权限表要求其可下载，待确认。
+
 <a id="app-m2-t201"></a>
 
 状态：planned。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T117](APP-M2.md#app-m2-t117)、[APP-M2-T162](APP-M2.md#app-m2-t162)、[APP-M2-T165](APP-M2.md#app-m2-t165)。
