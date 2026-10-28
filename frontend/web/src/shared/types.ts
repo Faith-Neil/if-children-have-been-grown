@@ -161,6 +161,8 @@ export type WritingInputSnapshot = {
   evidence: { id: string; name: string; revision: number; type: string; valid_until: string | null; status: string; content: string; requirement_ids: string[] }[];
   facts: (Pick<Fact, 'id' | 'key' | 'value' | 'status' | 'source' | 'source_type' | 'sla_var_key'> & { unit: string; required: boolean; variable: string; label?: string })[];
   omitted_inputs: { kind: string; id: string; label: string; reason: string }[];
+  /** 公司知识库检索候选：只是写作参考，引用写 cite_tag（[片:id]）；挂到响应矩阵后才是 [证]。 */
+  retrieved_evidence?: RetrievedEvidence[];
   official_content: string;
 };
 export type WritingInputPreview = { source_scope: 'whole_chapter'; input_snapshot: WritingInputSnapshot; ready: boolean; issues: { code: string; message: string }[] };
@@ -276,3 +278,19 @@ export interface CompanyWritingProfile {
   forbidden_words: ForbiddenWord[];
   quality_samples: QualitySample[];
 }
+
+export interface RetrievedEvidence {
+  id: string;
+  path: string;
+  tag: string;
+  cite_tag?: string;
+  name?: string;
+  source_type?: string;
+  score?: number;
+  chunk_id?: string;
+  document_id?: string;
+  content: string;
+  attachable: boolean;
+  reference_only: boolean;
+}
+

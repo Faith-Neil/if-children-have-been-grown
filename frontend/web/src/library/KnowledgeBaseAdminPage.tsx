@@ -153,6 +153,13 @@ function DatasetsTab({ call, perms, token, report, setNotice }: {
     setDocs((await call<{ items: Row[] }>(kbApi.documents(kind)))?.items ?? []);
   }
   useEffect(() => { void load(); }, [kind]);
+  // 有文档在解析时每 8 秒刷新一次状态与分块数。
+  const parsing = docs.some(d => d.status === 'unsynced');
+  useEffect(() => {
+    if (!parsing) return undefined;
+    const timer = setInterval(() => { void load(); }, 8000);
+    return () => clearInterval(timer);
+  }, [parsing, kind]);
 
   async function action(path: string, method = 'POST', body: unknown = {}, done = '') {
     setBusy(true);
@@ -201,8 +208,10 @@ function DatasetsTab({ call, perms, token, report, setNotice }: {
       </Descriptions>
       <Table<Row> size="small" rowKey="document_id" dataSource={docs} pagination={{ pageSize: 15 }} locale={{ emptyText: <Empty description="暂无文档" /> }} columns={[
         { title: '文档', dataIndex: 'name', ellipsis: true },
+        { title: '进度', dataIndex: 'progress', width: 90, render: (v: number, r) => (r.status === 'unsynced' ? `${Math.round((v || 0) * 100)}%` : '') },
         { title: '状态', dataIndex: 'status', width: 110, render: v => { const m = kbStatusMeta(v === 'unsynced' ? 'parsing' : v); return <Tag color={m.color}>{m.label}</Tag>; } },
         { title: '分块', dataIndex: 'chunk_count', width: 70 },
+        { title: '说明', dataIndex: 'message', width: 160, ellipsis: true, render: (v: string, r) => (r.status === 'failed' ? <Typography.Text type="danger">{v}</Typography.Text> : '') },
         { title: '元数据', dataIndex: 'meta_fields', ellipsis: true, render: (m: Row) => Object.entries(m || {}).filter(([k]) => !['company_id', 'source_type', 'source_id', 'knowledge_kind'].includes(k)).map(([k, v]) => `${k}=${v}`).join('；') },
         { title: '启用', dataIndex: 'enabled', width: 70, render: (v, r) => <Switch size="small" checked={v} disabled={!perms.write} onChange={checked => void action(kbApi.document(kind, r.document_id), 'PATCH', { enabled: checked })} /> },
         { title: '操作', width: 300, render: (_, r) => (

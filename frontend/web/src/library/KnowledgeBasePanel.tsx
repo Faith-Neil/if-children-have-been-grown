@@ -20,9 +20,11 @@ export interface KnowledgeBasePanelProps {
   /** 资料库版本变化时重新读取（资料保存后后台会自动同步）。 */
   libraryRevision?: number;
   report?: (error: unknown) => void;
+  /** 状态读取后回调，资料表格据此显示每条资料是否已入库。 */
+  onStatus?: (status: KnowledgeBaseStatus) => void;
 }
 
-export function KnowledgeBasePanel({ token, canSync, libraryRevision = 0, report }: KnowledgeBasePanelProps) {
+export function KnowledgeBasePanel({ token, canSync, libraryRevision = 0, report, onStatus }: KnowledgeBasePanelProps) {
   const [status, setStatus] = useState<KnowledgeBaseStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
@@ -30,7 +32,9 @@ export function KnowledgeBasePanel({ token, canSync, libraryRevision = 0, report
   async function load(refresh = false) {
     if (!token) return;
     try {
-      setStatus(await request<KnowledgeBaseStatus>(`/api/v1/knowledge-base/status${refresh ? '?refresh=true' : ''}`, token));
+      const next = await request<KnowledgeBaseStatus>(`/api/v1/knowledge-base/status${refresh ? '?refresh=true' : ''}`, token);
+      setStatus(next);
+      onStatus?.(next);
     } catch (error) {
       report?.(error);
     }
@@ -53,6 +57,13 @@ export function KnowledgeBasePanel({ token, canSync, libraryRevision = 0, report
   }
 
   useEffect(() => { void load(); }, [token, libraryRevision]);
+  // 有资料在解析中时每 10 秒刷新一次，直到全部完成或失败。
+  const parsing = (status?.counts?.parsing ?? 0) > 0;
+  useEffect(() => {
+    if (!parsing) return undefined;
+    const timer = setInterval(() => { void load(true); }, 10000);
+    return () => clearInterval(timer);
+  }, [parsing, token]);
 
   if (!status) return null;
   const summary = summarizeKnowledgeBase(status);

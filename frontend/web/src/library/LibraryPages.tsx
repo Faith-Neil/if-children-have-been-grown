@@ -57,6 +57,9 @@ import type { Account, Evidence, EvidenceAttachment, SlaTemplate } from '../shar
 import { companyName, formatTime } from '../app/context.tsx';
 import { MaskedField } from '../admin/MaskedField.tsx';
 import { KnowledgeBasePanel } from './KnowledgeBasePanel.tsx';
+import { CertificateImport } from './CertificateImport.tsx';
+import { kbPermissions } from './kb-admin-core.ts';
+import { kbStatusMeta, type KnowledgeBaseStatus } from './knowledge-base-core.ts';
 import {
   CATEGORY_LABEL_MAP,
   LIBRARY_TYPE_OPTIONS,
@@ -122,6 +125,8 @@ export function LibraryPage({
   const [editingRecord, setEditingRecord] = useState<Evidence | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [previewAttachment, setPreviewAttachment] = useState<EvidenceAttachment | null>(null);
+  const [kbStatus, setKbStatus] = useState<KnowledgeBaseStatus | null>(null);
+  const kbByItem = useMemo(() => new Map((kbStatus?.items ?? []).filter(i => i.source_type === 'library').map(i => [i.source_id, i])), [kbStatus]);
 
   const [form] = Form.useForm();
 
@@ -221,6 +226,9 @@ export function LibraryPage({
           >
             补录企业资料
           </Button>
+          {token && kbPermissions(userRole).write && kbStatus?.enabled && (
+            <CertificateImport token={token} disabled={busy} onDrafted={() => { void read?.(); }} />
+          )}
         </Space>
       </div>
 
@@ -264,7 +272,7 @@ export function LibraryPage({
       </Row>
 
       {token !== undefined && (
-        <KnowledgeBasePanel token={token} canSync={hasManageRight} libraryRevision={libraryRevision} report={report} />
+        <KnowledgeBasePanel token={token} canSync={hasManageRight} libraryRevision={libraryRevision} report={report} onStatus={setKbStatus} />
       )}
 
       {/* 合规与安全声明条 */}
@@ -561,6 +569,17 @@ export function LibraryPage({
                       );
                     },
                   },
+                  ...(kbStatus?.enabled ? [{
+                    title: '知识库',
+                    key: 'kb',
+                    width: 110,
+                    render: (_: unknown, record: Evidence) => {
+                      const entry = kbByItem.get(record.id);
+                      if (!entry) return <Tooltip title="只有已确认、未过期的资料进入知识库"><Tag>不入库</Tag></Tooltip>;
+                      const meta = kbStatusMeta(entry.status);
+                      return <Tooltip title={entry.message || `已切成 ${entry.chunk_count} 块`}><Tag color={meta.color}>{meta.label}</Tag></Tooltip>;
+                    },
+                  }] : []),
                   {
                     title: '操作',
                     key: 'actions',

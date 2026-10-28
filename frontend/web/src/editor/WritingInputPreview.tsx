@@ -11,6 +11,20 @@ function CapturedSource({ source }: { source: Source | null }) {
   return source ? <div className="writing-captured-source"><p className="muted">{source.filename ?? '招标原文'} · 第 {source.page} 页{source.pagination ? ` · ${paginationName(source.pagination)}` : ''}</p><blockquote>{source.quote || '没有摘录文字；需要结合原文人工核对。'}</blockquote></div> : <p className="muted">项目人工确认或服务承诺派生，无招标页码。</p>;
 }
 
+function KnowledgeCandidates({ items }: { items: NonNullable<WritingInputSnapshot['retrieved_evidence']> }) {
+  if (!items.length) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="公司知识库没有命中，或尚未配置知识库" />;
+  return <>
+    <Alert showIcon type="info" className="page-notice" message="以下是公司知识库按本章条款检索到的候选"
+      description="模型可以参考并以 [片:编号] 标注出处；它们不是已挂接证据。资质、业绩等要作为正式证据，请到响应矩阵“挂证据”。历史标书只供参考。" />
+    {items.map(item => <Card size="small" key={`${item.path}-${item.id}`} className="source-card" data-testid="knowledge-candidate"
+      title={<Space wrap><code>{item.cite_tag || item.tag}</code><b>{item.name || '知识库片段'}</b>
+        {item.reference_only ? <Tag color="orange">仅供参考</Tag> : item.attachable ? <Tag color="green">可到矩阵挂为证据</Tag> : <Tag color="blue">写作素材</Tag>}
+        {typeof item.score === 'number' && <span className="muted">相关度 {item.score.toFixed(2)}</span>}</Space>}>
+      <pre className="writing-evidence-content">{item.content}</pre>
+    </Card>)}
+  </>;
+}
+
 export default function WritingInputPreviewContent({ snapshot, historical }: { snapshot: WritingInputSnapshot | null | undefined; historical: boolean }) {
   if (!snapshot) return <Alert showIcon type="warning" message="这份候选没有保存输入快照，不能据此认定来源已经追溯" description="重新确认方案并生成整章候选后，可以核对当次条款、证据和事实。" />;
   return <div className="writing-input-preview">
@@ -22,6 +36,7 @@ export default function WritingInputPreviewContent({ snapshot, historical }: { s
       { key: 'requirements', label: `响应矩阵 · ${snapshot.requirements.length} 条`, children: snapshot.requirements.length ? snapshot.requirements.map(item => <Card size="small" key={item.id} className="source-card" title={<Space><Tag color="blue">已确认要求</Tag><span>本章条款</span></Space>}><p>{item.text}</p><p><b>响应：</b>{item.response || '尚未填写响应'}</p><CapturedSource source={item.source} /><p className="muted">采用证据：{item.evidence_ids.map(id => snapshot.evidence.find(evidence => evidence.id === id)?.name ?? '未采用，见输入核对结果').join('、') || '无'}</p></Card>) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="本章没有已确认的关联条款" /> },
       { key: 'facts', label: `项目事实 · ${snapshot.facts.length} 项`, children: snapshot.facts.length ? snapshot.facts.map(item => <Card size="small" key={item.id} className="source-card" title={<Space wrap><b>{item.label ?? item.key}</b><Tag color={item.required ? 'blue' : 'default'}>{item.required ? '全部章节必备' : '本章选中'}</Tag></Space>}><p><b>{displaySlaValue(item.value, item.unit)}</b></p><p className="muted">正文变量：<code>{item.variable}</code></p><CapturedSource source={item.source} /></Card>) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="本次没有采用项目事实" /> },
       { key: 'evidence', label: `可引用证据 · ${snapshot.evidence.length} 份`, children: snapshot.evidence.length ? snapshot.evidence.map(item => <Card size="small" key={item.id} className="source-card" title={<Space wrap><Tag color="green">已确认</Tag><b>{item.name}</b><span>资料版本 v{item.revision}</span></Space>}><p className="muted">有效期：{item.valid_until || '未设置'}</p><pre className="writing-evidence-content">{item.content}</pre></Card>) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="本次没有采用公司证据" /> },
+      { key: 'knowledge', label: `知识库候选 · ${(snapshot.retrieved_evidence ?? []).length} 条`, children: <KnowledgeCandidates items={snapshot.retrieved_evidence ?? []} /> },
       { key: 'omitted', label: `未采用输入 · ${snapshot.omitted_inputs.length} 项`, children: snapshot.omitted_inputs.length ? snapshot.omitted_inputs.map((item, index) => <div className="writing-omitted-item" key={`${item.kind}-${item.id}-${index}`}><b>{item.label}</b><p>{item.reason}</p></div>) : <p className="muted">没有省略项。</p> },
       { key: 'official', label: '本次已提交正文', children: <pre className="writing-evidence-content">{snapshot.official_content || '（尚未提交正文）'}</pre> },
     ]} />
