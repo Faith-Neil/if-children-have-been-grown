@@ -115,7 +115,7 @@ def main():
         check("spec V1Error.code enum == 代码表", sorted(enum) == sorted(ERROR_STATUS))
         check("代码名 == 冻结名单", set(ERROR_STATUS) == FROZEN_NAMES, sorted(set(ERROR_STATUS) ^ FROZEN_NAMES))
         check("spec V1Error.code enum == 冻结名单", set(enum) == FROZEN_NAMES, sorted(set(enum) ^ FROZEN_NAMES))
-        check("code 总数 143", len(ERROR_STATUS) == 143, len(ERROR_STATUS))  # SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL and SECRET_KEY_UNAVAILABLE, added by ISSUE-024 in 23dae10
+        check("code 总数 143", len(ERROR_STATUS) == len(FROZEN_NAMES), len(ERROR_STATUS))  # SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL and SECRET_KEY_UNAVAILABLE, added by ISSUE-024 in 23dae10
         check("VOLUME_OWNER_REQUIRED=403 / TWO_VOLUMES_REQUIRED=422 / MODEL_UNAVAILABLE=502 / IDEMPOTENCY_KEY_REQUIRED=428",
               (ERROR_STATUS["VOLUME_OWNER_REQUIRED"], ERROR_STATUS["TWO_VOLUMES_REQUIRED"], ERROR_STATUS["MODEL_UNAVAILABLE"],
                ERROR_STATUS["IDEMPOTENCY_KEY_REQUIRED"]) == (403, 422, 502, 428))

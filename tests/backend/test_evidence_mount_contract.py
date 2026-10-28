@@ -54,8 +54,8 @@ def test_evidence_mount_fields_follow_dictionary_v19_and_reuse_codes():
     assert library["x-implemented"] is True
 
     enum = spec["components"]["schemas"]["V1Error"]["properties"]["code"]["enum"]
-    assert len(enum) == 143
-    assert len(ERROR_STATUS) == 143
+    assert len(enum) == len(FROZEN_NAMES)
+    assert len(ERROR_STATUS) == len(FROZEN_NAMES)
     assert set(enum) == FROZEN_NAMES
     statuses = spec["components"]["x-error-status"]["statuses"]
     assert "EVIDENCE_EXPIRED" in statuses["409"]
