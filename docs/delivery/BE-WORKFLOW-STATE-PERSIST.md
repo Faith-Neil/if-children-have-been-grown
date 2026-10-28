@@ -9,7 +9,7 @@
 |---|---|
 | 任务ID | BE-WORKFLOW-STATE-PERSIST |
 | 代码解释 | [代码说明](../code/BE-WORKFLOW-STATE-PERSIST.md) |
-| 验收 | CI `backend-mysql`（PR #6 首次运行，提交 `06f107d`）中 `test_mysql_workflow_state.py` 通过；同次运行 `test_mysql_connection.py` 2 项因表清单未含新表失败，已在 `2c8d51c` 修正，待 CI 复跑确认。本机无 MySQL，未本地执行 |
+| 验收 | CI `backend-mysql` 在 `2c8d51c` 全部通过（[CI 运行 40652286468](https://github.com/Faith-Neil/if-children-have-been-grown/actions/runs/40652286468)）；首次运行（`06f107d`）表清单断言 2 项失败已修正。本机无 MySQL，未本地执行 |
 | 项目进度 | in-review；其余工作流键持久化转 BE-WORKFLOW-DURABILITY（planned） |
 <!-- task-delivery:end -->
 
@@ -29,8 +29,8 @@
 
 | 验收点 | 结果 | 证据 |
 |---|---|---|
-| 另一仓储实例读到已定稿分册、复核通过、待人工问题数 | 通过（CI） | PR #6 `backend-mysql` 作业：36 passed、2 failed（均为表清单断言） |
-| 迁移可降级再升级 | 待复跑 | 表清单断言已更新 |
+| 另一仓储实例读到已定稿分册、复核通过、待人工问题数 | 通过（CI） | [CI 运行 40652286468](https://github.com/Faith-Neil/if-children-have-been-grown/actions/runs/40652286468) `backend-mysql` 作业 |
+| 迁移可降级再升级 | 通过（CI） | [CI 运行 40652286468](https://github.com/Faith-Neil/if-children-have-been-grown/actions/runs/40652286468) `backend-mysql` 作业 |
 | 内存模式行为不变 | 通过 | 后端全量回归 |
 
 ## 项目进度

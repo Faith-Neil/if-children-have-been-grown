@@ -21,8 +21,9 @@
 | 前端单测 | `pnpm --dir frontend/web test` | 289 pass、0 fail（新增 `main-path-core.test.mjs` 8 项） |
 | 前端类型 / 构建 | `pnpm --dir frontend/web lint`、`build` | 0 error；构建成功 |
 | 治理回归 | `node --test tests/governance/*.test.cjs tests/prototype/*.test.cjs tests/workspace-sync/*.test.cjs tests/backend/demo-page.test.cjs` | 35 pass |
+| CI 汇总（`2c8d51c`） | offline-check | backend、backend-mysql、frontend、governance 通过；e2e 15 passed、1 failed（`evidence-drawer.spec.ts`，基线同样失败）；[CI 运行 40652286468](https://github.com/Faith-Neil/if-children-have-been-grown/actions/runs/40652286468) |
 | 浏览器 e2e | `VITE_DEMO=1 pnpm --dir frontend/web e2e` | 本机：`app-shell.spec.ts` 13/13 通过（含修复后的 1280 溢出用例）；`evidence-drawer.spec.ts` 1 项失败，与基线相同，见 [ISSUE-042](../../issues/ISSUE-042.md) |
-| MySQL 作业 | CI `backend-mysql`（PR #6 首次运行，提交 `06f107d`） | 36 passed、2 failed：两项是 `test_mysql_connection.py` 表清单未含新表；新增 `test_mysql_workflow_state.py` 通过。已在 `2c8d51c` 修正表清单，待复跑 |
+| MySQL 作业 | CI `backend-mysql` | `06f107d` 首次运行 36 passed、2 failed（表清单未含新表）；`2c8d51c` 修正后全部通过（[CI 运行 40652286468](https://github.com/Faith-Neil/if-children-have-been-grown/actions/runs/40652286468)） |
 
 ## 未执行或受限
 

@@ -15,7 +15,7 @@
 | revision | 1 |
 | 关联 Task | [FE-E2E-LIBRARY-DRIFT](../docs/tasks/FE-M0.md#fe-e2e-library-drift)；[任务看板](../docs/TASK_BOARD.md) |
 | 关联 PR | [PR #6](https://github.com/Faith-Neil/if-children-have-been-grown/pull/6) 只修复了第一项 |
-| 本地验收 | 部分：`app-shell.spec.ts` 13/13 本地通过；`evidence-drawer.spec.ts` 仍失败 |
+| 本地验收 | 部分：`app-shell.spec.ts` 本地与 CI 均通过；`evidence-drawer.spec.ts` 仍失败（[CI 运行 40652286468](https://github.com/Faith-Neil/if-children-have-been-grown/actions/runs/40652286468)：15 passed、1 failed） |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | 待建立（FE） |
