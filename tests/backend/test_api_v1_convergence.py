@@ -21,7 +21,7 @@ def test_demo_routes_are_gone(client):
     assert not any(path.startswith("/api/demo") for path in paths)
 
 
-@pytest.mark.parametrize("env", [{"ICG_ENV": "production"}, {"ICG_REQUIRE_MYSQL": "1"}])
+@pytest.mark.parametrize("env", [{"ICG_ENV": "production"}])
 def test_production_config_rejects_seeded_accounts(client, monkeypatch, env):
     for key, value in env.items():
         monkeypatch.setenv(key, value)

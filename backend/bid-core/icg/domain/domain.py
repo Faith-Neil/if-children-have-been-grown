@@ -48,7 +48,8 @@ class DomainError(Exception):
 
 
 def _production_mode() -> bool:
-    return os.environ.get("ICG_ENV") == "production" or os.environ.get("ICG_REQUIRE_MYSQL") == "1"
+    # 只认显式的 ICG_ENV=production。ICG_REQUIRE_MYSQL 只表示“必须连 MySQL”，CI 的 MySQL 用例仍用合成种子数据。
+    return os.environ.get("ICG_ENV") == "production"
 
 
 @dataclass(frozen=True)
