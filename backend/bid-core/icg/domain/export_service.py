@@ -247,6 +247,31 @@ class ExportServiceMixin(CheckOrchestratorMixin):
         return self.repository.transaction(operation)
 
 
+    def response_trace(self, principal: Principal, project_id: str, volume: str = "all") -> dict:
+        """内部响应追溯表（PRD §5.9.1 规则 12）：任何时候可导出；项目负责人全部，分册负责人本册。"""
+        from icg.domain.project_access import volume_owner
+        from icg.domain.response_trace import VOLUME_NAMES, build_trace_rows, trace_sheets
+        from icg.infra.xlsx import build_xlsx
+
+        def operation(state):
+            project = self.demo._project(state, principal, project_id)
+            workflow = self._workflow(state, project_id)
+            wanted = set(VOLUMES) if volume == "all" else {volume}
+            identity = principal.user.id
+            if not lead(state, project_id, identity):
+                wanted = {v for v in wanted if volume_owner(state, project_id, v, identity)}
+                if not wanted:
+                    raise DomainError(403, "FORBIDDEN", "响应追溯表仅限项目负责人或本册负责人导出。")
+            now = iso_time(self.demo._now())
+            rows = build_trace_rows(state, project, workflow, wanted)
+            scope = "、".join(VOLUME_NAMES[v] for v in VOLUMES if v in wanted)
+            self._audit(state, principal, project_id, "project-export.response-trace", {"volumes": sorted(wanted), "rows": len(rows)})
+            return {"content": build_xlsx(trace_sheets(project, rows, scope=scope, generated_at=now)),
+                    "filename": f"response-trace-{project_id}-{'-'.join(sorted(wanted))}.xlsx"}
+
+        return self.repository.transaction(operation)
+
+
 class ExportService(ExportServiceMixin):
     def __init__(self, workflow=None):
         self._workflow = workflow

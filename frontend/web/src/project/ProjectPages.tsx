@@ -25,6 +25,7 @@ import {
   checklistFilename,
   checklistRowTone,
   latestSubmissionWithChecklist,
+  responseTracePath,
 } from './export-checks-core';
 import {
   useVolumesStatus,
@@ -634,7 +635,19 @@ export function ExportPage() {
           <MergeChecklistCard />
         </Col>
       </Row>
-      <Card title="导出历史" className="page-notice" style={{ marginTop: 16 }}>
+      <Card
+        title="导出历史"
+        className="page-notice"
+        style={{ marginTop: 16 }}
+        extra={
+          <Tooltip title="内部用：每条条款的文件页码、响应、章节段落、证据版本、负责人与确认人；不进入投标文件，任何时候可导出">
+            <Button size="small" icon={<DownloadOutlined />} data-testid="response-trace-btn"
+              onClick={() => download(responseTracePath(workspace.project.id, volume), token, `response-trace-${volume}.xlsx`).catch(report)}>
+              响应追溯表
+            </Button>
+          </Tooltip>
+        }
+      >
         <Table
           rowKey="id"
           size="small"

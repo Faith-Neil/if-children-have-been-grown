@@ -1,6 +1,7 @@
 # 为什么有这个文件：将示例主流程的页面请求接到真实业务服务。
 # 它解决什么问题：统一版本和重复请求保护，提供可核对的 OpenAPI 与带登录授权的原件、两册下载。
 
+from typing import Literal
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Header, Query, Response
@@ -178,6 +179,17 @@ def include_workflow_routes(application, service, current_user, parser):
     def export(project_id: str, body: ProjectExportRequest, user: Principal = Depends(current_user),
                if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.export(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.get("/projects/{project_id}/response-trace.xlsx", response_class=Response,
+                operation_id="downloadResponseTrace", summary="下载内部响应追溯表 Excel",
+                description="每条招标条款的所属文件与页码、响应、分册章节与段落、证据版本与知识片段、负责人与确认人。内部用，任何时候可导出；分册负责人只能导出本册。",
+                responses={200: {"description": "响应追溯表 Excel",
+                                 "content": {XLSX_MEDIA_TYPE: {"schema": {"type": "string", "format": "binary"}}}}})
+    def download_response_trace(project_id: str, volume: Literal["all", "technical", "business"] = Query(default="all", description="technical / business / all"),
+                                user: Principal = Depends(current_user)):
+        result = workflow.response_trace(user, project_id, volume)
+        return Response(content=result["content"], media_type=XLSX_MEDIA_TYPE,
+                        headers={"Content-Disposition": f'attachment; filename="{result["filename"]}"'})
 
     @router.get("/projects/{project_id}/exports/{export_id}/merge-checklist", response_model=MergeChecklistResponse,
                 operation_id="getMergeChecklist", summary="合标核对清单（递交版批次）",

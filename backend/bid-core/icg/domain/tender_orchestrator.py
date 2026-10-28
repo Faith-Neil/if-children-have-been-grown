@@ -272,6 +272,12 @@ class TenderOrchestratorMixin:
                 workflow["plan_confirmed"] = False
             if any(k in payload and payload[k] != requirement[k] for k in ("chapter_id", "response", "evidence_ids")):
                 workflow["plan_confirmed"] = False
+            if updated["status"] == "confirmed" and (requirement["status"] != "confirmed" or text_changed):
+                # 响应追溯表（APP-M2-T201）需要“确认人”
+                updated.update(confirmed_by=principal.user.id, confirmed_by_name=principal.user.name,
+                               confirmed_at=iso_time(self.demo._now()))
+            elif updated["status"] != "confirmed":
+                updated.update(confirmed_by=None, confirmed_by_name=None, confirmed_at=None)
             requirement.update(updated)
             return {"requirement": requirement}
 

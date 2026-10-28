@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { checklistFilename, checklistRowTone, latestSubmissionWithChecklist } from '../../src/project/export-checks-core.ts';
+import { checklistFilename, checklistRowTone, latestSubmissionWithChecklist, responseTracePath } from '../../src/project/export-checks-core.ts';
 
 test('latest submission batch with a checklist is chosen; internal drafts are ignored', () => {
   const exports = [
@@ -30,4 +30,11 @@ test('export page no longer hard-codes the checklist and offers the Excel downlo
   assert.match(page, /<MergeChecklistCard \/>/);
   assert.match(page, /export-checklist-btn/);
   assert.match(page, /已过期：分册已解锁或正文已改动/);
+});
+
+test('response trace path keeps the selected volume', () => {
+  assert.equal(responseTracePath('p 1', 'technical'), '/api/v1/projects/p%201/response-trace.xlsx?volume=technical');
+  assert.equal(responseTracePath('p', ''), '/api/v1/projects/p/response-trace.xlsx?volume=all');
+  const page = readFileSync(new URL('../../src/project/ProjectPages.tsx', import.meta.url), 'utf8');
+  assert.match(page, /response-trace-btn/);
 });

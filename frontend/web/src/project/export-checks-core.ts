@@ -269,3 +269,8 @@ export function checklistRowTone(status?: string | null): 'red' | 'orange' | 'gr
 export function checklistFilename(exportId: string): string {
   return `merge-checklist-${exportId}.xlsx`;
 }
+
+// 内部响应追溯表（APP-M2-T201）：项目负责人全部，分册负责人本册；后台按身份收窄范围。
+export function responseTracePath(projectId: string, volume: string): string {
+  return `/api/v1/projects/${encodeURIComponent(projectId)}/response-trace.xlsx?volume=${encodeURIComponent(volume || 'all')}`;
+}
