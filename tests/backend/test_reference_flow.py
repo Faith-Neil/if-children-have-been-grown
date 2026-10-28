@@ -130,6 +130,15 @@ class ProjectFlow:
         released = self.client.post(f"/api/chapters/{chapter_id}/lock/release", headers=self.headers, json={"lease_token": lease})
         assert released.status_code == 200
 
+    def cross_reviewed(self, volume, reviewer="alpha-editor", assigner="alpha-manager"):
+        """定稿前交叉复核（PRD v1.8 §2.3）：负责人指定非本册编写人，复核人确认通过。"""
+        for account, path, data in ((assigner, f"/volumes/{volume}/cross-review", {"reviewer_id": reviewer}),
+                                    (reviewer, f"/volumes/{volume}/cross-review/confirm", {"decision": "approved", "note": "已核对"})):
+            headers = {**login(self.client, account), "If-Match": str(self.state()["revision"]),
+                       "Idempotency-Key": str(uuid4())}
+            self.write(path, data, headers=headers)
+        return self
+
     def checked_export(self):
         check = self.write("/checks", {"volume": "all"})["check"]
         assert check["passed"] is True, check

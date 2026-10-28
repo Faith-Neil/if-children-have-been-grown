@@ -39,6 +39,7 @@ from icg.api import (
     include_field_metadata_routes,
     include_company_routes,
     include_user_routes,
+    include_chapter_loop_routes,
 )
 
 
@@ -187,6 +188,7 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     include_field_metadata_routes(application, service, current_user)
     include_company_routes(application, service, current_user)
     include_user_routes(application, service, current_user)
+    include_chapter_loop_routes(application, service, current_user)
 
     @application.get("/{full_path:path}", include_in_schema=False)
     def product_page(full_path: str):

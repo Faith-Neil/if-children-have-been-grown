@@ -22,6 +22,33 @@ class VolumeUnlockRequest(RequestBody):
     reason: str = Field(min_length=1, max_length=500, description="解锁已定稿分册的原因说明")
 
 
+class CrossReviewState(ResponseBody):
+    status: str = Field(description="none 未指定 / pending 待复核 / approved 复核通过 / returned 退回修改")
+    stale: bool = False
+    reviewer_id: str | None = None
+    reviewer_name: str | None = None
+    assigned_by: str | None = None
+    assigned_at: str | None = None
+    decided_at: str | None = None
+    decision_note: str = ""
+    history: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class CrossReviewAssignRequest(RequestBody):
+    reviewer_id: str = Field(min_length=1, max_length=120, description="交叉复核人账号ID（不能是本分册编写人）")
+
+
+class CrossReviewConfirmRequest(RequestBody):
+    decision: str = Field(pattern="^(approved|returned)$", description="approved 复核通过 / returned 退回修改")
+    note: str = Field(default="", max_length=500, description="复核意见；退回时必填")
+
+
+class CrossReviewResponse(ResponseBody):
+    revision: int
+    volume_id: str
+    cross_review: CrossReviewState
+
+
 class VolumeStatus(ResponseBody):
     volume_id: str
     project_id: str
@@ -31,6 +58,8 @@ class VolumeStatus(ResponseBody):
     unlocked_by: str | None = None
     unlocked_at: str | None = None
     unlock_reason: str | None = None
+    cross_review: CrossReviewState | None = None
+    pending_human_issues: int = 0
 
 
 class VolumeFinalizeResponse(ResponseBody):
@@ -53,6 +82,7 @@ class VolumeStatusResponse(ResponseBody):
     unlocked_by: str | None = None
     unlocked_at: str | None = None
     unlock_reason: str | None = None
+    cross_review: CrossReviewState | None = None
     volume: VolumeStatus | None = None
 
 
@@ -178,6 +208,49 @@ def include_volume_routes(application: Any, service: Any, current_user: Any) -> 
             application.state.workflow = workflow
 
         return workflow.list_volumes_status(user, project_id)
+
+    def _workflow():
+        workflow = getattr(application.state, "workflow", None)
+        if workflow is None:
+            from icg.domain.workflow_orchestrator import WorkflowService
+            from icg.domain.parsing import LocalTextParser
+            workflow = WorkflowService(service, LocalTextParser())
+            application.state.workflow = workflow
+        return workflow
+
+    @router.post(
+        "/projects/{project_id}/volumes/{volume_id}/cross-review",
+        response_model=CrossReviewResponse,
+        operation_id="assignCrossReviewer",
+        summary="指定分册交叉复核人",
+        description="项目负责人或本册负责人指定一名不是本分册编写人的项目成员做定稿前交叉复核（PRD v1.8 §2.3）。",
+    )
+    def assign_cross_reviewer(
+        project_id: Annotated[str, Path(description="项目ID")],
+        volume_id: Annotated[str, Path(description="分册标识（technical / business）")],
+        body: CrossReviewAssignRequest,
+        user: Principal = Depends(current_user),
+        if_match: str | None = Header(default=None, alias="If-Match"),
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION),
+    ):
+        return _workflow().assign_cross_reviewer(user, project_id, volume_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.post(
+        "/projects/{project_id}/volumes/{volume_id}/cross-review/confirm",
+        response_model=CrossReviewResponse,
+        operation_id="confirmCrossReview",
+        summary="确认分册交叉复核",
+        description="被指定的复核人确认通过或退回；通过时绑定本分册章节版本快照，正文之后改动即失效。",
+    )
+    def confirm_cross_review(
+        project_id: Annotated[str, Path(description="项目ID")],
+        volume_id: Annotated[str, Path(description="分册标识（technical / business）")],
+        body: CrossReviewConfirmRequest,
+        user: Principal = Depends(current_user),
+        if_match: str | None = Header(default=None, alias="If-Match"),
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION),
+    ):
+        return _workflow().confirm_cross_review(user, project_id, volume_id, body.model_dump(), if_match, idempotency_key)
 
     application.include_router(router)
     return router

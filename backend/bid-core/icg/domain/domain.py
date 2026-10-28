@@ -758,6 +758,10 @@ class DemoService:
     def _chapter_writer(state, principal, chapter):
         from .project_access import require_chapter
         require_chapter(state, principal, chapter)
+        # 已定稿分册的正文只读（PRD v1.8 §5.7.5 规则 5）；不能只靠页面禁用按钮。
+        volumes = state.workflows.get(chapter.project_id, {}).get("volumes", {})
+        if volumes.get(chapter.volume, {}).get("is_finalized"):
+            raise DomainError(409, "VOLUME_FINALIZED", "所在分册已定稿，须先解锁分册再修改。")
 
     def _lease(self, chapter: Chapter, principal: Principal, token: str) -> Lease:
         lease = chapter.lock

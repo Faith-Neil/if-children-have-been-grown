@@ -15516,6 +15516,480 @@
         }
       }
     },
+    "/api/v1/projects/{project_id}/volumes/{volume_id}/cross-review": {
+      "post": {
+        "summary": "指定分册交叉复核人",
+        "description": "项目负责人或本册负责人指定一名不是本分册编写人的项目成员做定稿前交叉复核（PRD v1.8 §2.3）。",
+        "operationId": "assignCrossReviewer",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "项目ID",
+              "title": "Project Id"
+            },
+            "description": "项目ID"
+          },
+          {
+            "name": "volume_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "分册标识（technical / business）",
+              "title": "Volume Id"
+            },
+            "description": "分册标识（technical / business）"
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-Match"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "同一次用户动作的重复请求标记，格式为 [A-Za-z0-9_-]{8,120}，UUID 符合该格式。作用域是 scope_id + user_id + key：项目写入的 scope_id 为 project_id，公司资料和公司服务承诺模板为 library:{company_id}。指纹是 action、规范化 payload 和 If-Match。同键同指纹重放首次成功结果，响应头 Idempotent-Replayed 为 true；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT；缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。回执保留 24 小时，内存最多 2048 条，超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。",
+              "title": "Idempotency-Key"
+            },
+            "description": "同一次用户动作的重复请求标记，格式为 [A-Za-z0-9_-]{8,120}，UUID 符合该格式。作用域是 scope_id + user_id + key：项目写入的 scope_id 为 project_id，公司资料和公司服务承诺模板为 library:{company_id}。指纹是 action、规范化 payload 和 If-Match。同键同指纹重放首次成功结果，响应头 Idempotent-Replayed 为 true；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT；缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。回执保留 24 小时，内存最多 2048 条，超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrossReviewAssignRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrossReviewResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "428": {
+            "description": "缺少必需的前置请求头。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/volumes/{volume_id}/cross-review/confirm": {
+      "post": {
+        "summary": "确认分册交叉复核",
+        "description": "被指定的复核人确认通过或退回；通过时绑定本分册章节版本快照，正文之后改动即失效。",
+        "operationId": "confirmCrossReview",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "项目ID",
+              "title": "Project Id"
+            },
+            "description": "项目ID"
+          },
+          {
+            "name": "volume_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "分册标识（technical / business）",
+              "title": "Volume Id"
+            },
+            "description": "分册标识（technical / business）"
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-Match"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "同一次用户动作的重复请求标记，格式为 [A-Za-z0-9_-]{8,120}，UUID 符合该格式。作用域是 scope_id + user_id + key：项目写入的 scope_id 为 project_id，公司资料和公司服务承诺模板为 library:{company_id}。指纹是 action、规范化 payload 和 If-Match。同键同指纹重放首次成功结果，响应头 Idempotent-Replayed 为 true；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT；缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。回执保留 24 小时，内存最多 2048 条，超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。",
+              "title": "Idempotency-Key"
+            },
+            "description": "同一次用户动作的重复请求标记，格式为 [A-Za-z0-9_-]{8,120}，UUID 符合该格式。作用域是 scope_id + user_id + key：项目写入的 scope_id 为 project_id，公司资料和公司服务承诺模板为 library:{company_id}。指纹是 action、规范化 payload 和 If-Match。同键同指纹重放首次成功结果，响应头 Idempotent-Replayed 为 true；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT；缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。回执保留 24 小时，内存最多 2048 条，超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrossReviewConfirmRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrossReviewResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "428": {
+            "description": "缺少必需的前置请求头。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/projects/{project_id}/compliance-rules/evaluate": {
       "post": {
         "tags": [
@@ -21484,6 +21958,1703 @@
         }
       }
     },
+    "/api/v1/projects/{project_id}/human-queue": {
+      "get": {
+        "summary": "人工处理队列",
+        "description": "按章节列出自动修不了、须由人处理的问题；可按分册筛选。只读成员可看不可操作。",
+        "operationId": "listHumanQueue",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "项目ID",
+              "title": "Project Id"
+            },
+            "description": "项目ID"
+          },
+          {
+            "name": "volume",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "all",
+                "technical",
+                "business"
+              ],
+              "type": "string",
+              "description": "分册筛选",
+              "default": "all",
+              "title": "Volume"
+            },
+            "description": "分册筛选"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanQueueResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "428": {
+            "description": "缺少必需的前置请求头。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/chapters/{chapter_id}/loop": {
+      "get": {
+        "summary": "章节循环进度",
+        "description": "返回本节最近一次循环的轮次、停止原因和本节全部问题记录。历史记录只读。",
+        "operationId": "getChapterLoop",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "项目ID",
+              "title": "Project Id"
+            },
+            "description": "项目ID"
+          },
+          {
+            "name": "chapter_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "章节ID",
+              "title": "Chapter Id"
+            },
+            "description": "章节ID"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChapterLoopResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "428": {
+            "description": "缺少必需的前置请求头。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/human-queue/issues/{issue_id}/resolve": {
+      "post": {
+        "summary": "标记问题已处理",
+        "description": "本节负责人或项目负责人标记待人工问题已处理；额外承诺、披露类问题只能由项目负责人处理。",
+        "operationId": "resolveHumanIssue",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "项目ID",
+              "title": "Project Id"
+            },
+            "description": "项目ID"
+          },
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "问题ID",
+              "title": "Issue Id"
+            },
+            "description": "问题ID"
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "项目当前版本号",
+              "title": "If-Match"
+            },
+            "description": "项目当前版本号"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "同一次用户动作的重复请求标记，格式为 [A-Za-z0-9_-]{8,120}，UUID 符合该格式。作用域是 scope_id + user_id + key：项目写入的 scope_id 为 project_id，公司资料和公司服务承诺模板为 library:{company_id}。指纹是 action、规范化 payload 和 If-Match。同键同指纹重放首次成功结果，响应头 Idempotent-Replayed 为 true；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT；缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。回执保留 24 小时，内存最多 2048 条，超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。",
+              "title": "Idempotency-Key"
+            },
+            "description": "同一次用户动作的重复请求标记，格式为 [A-Za-z0-9_-]{8,120}，UUID 符合该格式。作用域是 scope_id + user_id + key：项目写入的 scope_id 为 project_id，公司资料和公司服务承诺模板为 library:{company_id}。指纹是 action、规范化 payload 和 If-Match。同键同指纹重放首次成功结果，响应头 Idempotent-Replayed 为 true；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT；缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。回执保留 24 小时，内存最多 2048 条，超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanIssueResolveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanIssueWriteResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "428": {
+            "description": "缺少必需的前置请求头。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/human-queue/issues/{issue_id}/reject": {
+      "post": {
+        "summary": "驳回问题",
+        "description": "驳回须填写理由；阻断级问题不能驳回，规则警告只能由项目负责人驳回。",
+        "operationId": "rejectHumanIssue",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "项目ID",
+              "title": "Project Id"
+            },
+            "description": "项目ID"
+          },
+          {
+            "name": "issue_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "问题ID",
+              "title": "Issue Id"
+            },
+            "description": "问题ID"
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "项目当前版本号",
+              "title": "If-Match"
+            },
+            "description": "项目当前版本号"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "同一次用户动作的重复请求标记，格式为 [A-Za-z0-9_-]{8,120}，UUID 符合该格式。作用域是 scope_id + user_id + key：项目写入的 scope_id 为 project_id，公司资料和公司服务承诺模板为 library:{company_id}。指纹是 action、规范化 payload 和 If-Match。同键同指纹重放首次成功结果，响应头 Idempotent-Replayed 为 true；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT；缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。回执保留 24 小时，内存最多 2048 条，超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。",
+              "title": "Idempotency-Key"
+            },
+            "description": "同一次用户动作的重复请求标记，格式为 [A-Za-z0-9_-]{8,120}，UUID 符合该格式。作用域是 scope_id + user_id + key：项目写入的 scope_id 为 project_id，公司资料和公司服务承诺模板为 library:{company_id}。指纹是 action、规范化 payload 和 If-Match。同键同指纹重放首次成功结果，响应头 Idempotent-Replayed 为 true；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT；缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。回执保留 24 小时，内存最多 2048 条，超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HumanIssueRejectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HumanIssueWriteResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "428": {
+            "description": "缺少必需的前置请求头。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/chapters/{chapter_id}/loop/recheck": {
+      "post": {
+        "summary": "重新检查本节",
+        "description": "以当前正式版本为起点开始新一次循环，不重新生成；只做不编造的确定性修正，修正产生新章节版本。",
+        "operationId": "recheckChapter",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "项目ID",
+              "title": "Project Id"
+            },
+            "description": "项目ID"
+          },
+          {
+            "name": "chapter_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "章节ID",
+              "title": "Chapter Id"
+            },
+            "description": "章节ID"
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "项目当前版本号",
+              "title": "If-Match"
+            },
+            "description": "项目当前版本号"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "同一次用户动作的重复请求标记，格式为 [A-Za-z0-9_-]{8,120}，UUID 符合该格式。作用域是 scope_id + user_id + key：项目写入的 scope_id 为 project_id，公司资料和公司服务承诺模板为 library:{company_id}。指纹是 action、规范化 payload 和 If-Match。同键同指纹重放首次成功结果，响应头 Idempotent-Replayed 为 true；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT；缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。回执保留 24 小时，内存最多 2048 条，超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。",
+              "title": "Idempotency-Key"
+            },
+            "description": "同一次用户动作的重复请求标记，格式为 [A-Za-z0-9_-]{8,120}，UUID 符合该格式。作用域是 scope_id + user_id + key：项目写入的 scope_id 为 project_id，公司资料和公司服务承诺模板为 library:{company_id}。指纹是 action、规范化 payload 和 If-Match。同键同指纹重放首次成功结果，响应头 Idempotent-Replayed 为 true；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT；缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。回执保留 24 小时，内存最多 2048 条，超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChapterRecheckRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChapterRecheckResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "428": {
+            "description": "缺少必需的前置请求头。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/parse/omissions": {
+      "get": {
+        "summary": "星号/废标兜底扫描结果",
+        "description": "列出兜底扫描命中：疑似遗漏须由项目负责人逐条新增为条目或写明理由排除，处理完才能确认解析结果。",
+        "operationId": "listScanHits",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "项目ID",
+              "title": "Project Id"
+            },
+            "description": "项目ID"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanHitListResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "428": {
+            "description": "缺少必需的前置请求头。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/parse/omissions/{hit_id}/add": {
+      "post": {
+        "summary": "疑似遗漏新增为条目",
+        "description": "按命中原文新增（或升级同一原文的条目为）星号/废标条目，状态回到待确认。只能逐条处理。",
+        "operationId": "addScanHitAsRequirement",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "项目ID",
+              "title": "Project Id"
+            },
+            "description": "项目ID"
+          },
+          {
+            "name": "hit_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "兜底扫描命中ID",
+              "title": "Hit Id"
+            },
+            "description": "兜底扫描命中ID"
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "项目当前版本号",
+              "title": "If-Match"
+            },
+            "description": "项目当前版本号"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "同一次用户动作的重复请求标记，格式为 [A-Za-z0-9_-]{8,120}，UUID 符合该格式。作用域是 scope_id + user_id + key：项目写入的 scope_id 为 project_id，公司资料和公司服务承诺模板为 library:{company_id}。指纹是 action、规范化 payload 和 If-Match。同键同指纹重放首次成功结果，响应头 Idempotent-Replayed 为 true；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT；缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。回执保留 24 小时，内存最多 2048 条，超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。",
+              "title": "Idempotency-Key"
+            },
+            "description": "同一次用户动作的重复请求标记，格式为 [A-Za-z0-9_-]{8,120}，UUID 符合该格式。作用域是 scope_id + user_id + key：项目写入的 scope_id 为 project_id，公司资料和公司服务承诺模板为 library:{company_id}。指纹是 action、规范化 payload 和 If-Match。同键同指纹重放首次成功结果，响应头 Idempotent-Replayed 为 true；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT；缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。回执保留 24 小时，内存最多 2048 条，超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanHitAddRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanHitWriteResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "428": {
+            "description": "缺少必需的前置请求头。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/parse/omissions/{hit_id}/exclude": {
+      "post": {
+        "summary": "排除疑似遗漏",
+        "description": "排除须写明理由；只能逐条处理，不提供批量。",
+        "operationId": "excludeScanHit",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "项目ID",
+              "title": "Project Id"
+            },
+            "description": "项目ID"
+          },
+          {
+            "name": "hit_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "兜底扫描命中ID",
+              "title": "Hit Id"
+            },
+            "description": "兜底扫描命中ID"
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "项目当前版本号",
+              "title": "If-Match"
+            },
+            "description": "项目当前版本号"
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "同一次用户动作的重复请求标记，格式为 [A-Za-z0-9_-]{8,120}，UUID 符合该格式。作用域是 scope_id + user_id + key：项目写入的 scope_id 为 project_id，公司资料和公司服务承诺模板为 library:{company_id}。指纹是 action、规范化 payload 和 If-Match。同键同指纹重放首次成功结果，响应头 Idempotent-Replayed 为 true；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT；缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。回执保留 24 小时，内存最多 2048 条，超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。",
+              "title": "Idempotency-Key"
+            },
+            "description": "同一次用户动作的重复请求标记，格式为 [A-Za-z0-9_-]{8,120}，UUID 符合该格式。作用域是 scope_id + user_id + key：项目写入的 scope_id 为 project_id，公司资料和公司服务承诺模板为 library:{company_id}。指纹是 action、规范化 payload 和 If-Match。同键同指纹重放首次成功结果，响应头 Idempotent-Replayed 为 true；同键不同指纹返回 409 IDEMPOTENCY_CONFLICT；缺失或格式不符返回 428 IDEMPOTENCY_KEY_REQUIRED。失败不登记回执，可用同键重试。回执保留 24 小时，内存最多 2048 条，超出时删除最旧回执。客户端只对网络错误、502、503 复用本标记重试。502 MODEL_UNAVAILABLE 与 503 SECRET_KEY_UNAVAILABLE 不是瞬时故障，客户端不要自动重试，后端不发送 Retry-After。"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScanHitExcludeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanHitWriteResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          },
+          "428": {
+            "description": "缺少必需的前置请求头。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              },
+              "Idempotent-Replayed": {
+                "$ref": "#/components/headers/Idempotent-Replayed"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/projects/{project_id}/outline/plan": {
       "x-contract-status": "frozen",
       "x-implemented": false,
@@ -22385,6 +24556,153 @@
         ],
         "title": "ChapterListResponse"
       },
+      "ChapterLoopResponse": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "chapter_id": {
+            "type": "string",
+            "title": "Chapter Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "volume": {
+            "type": "string",
+            "title": "Volume"
+          },
+          "chapter_revision": {
+            "type": "integer",
+            "title": "Chapter Revision"
+          },
+          "loop": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChapterLoopState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "history": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "History"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Counts"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/HumanIssue"
+            },
+            "type": "array",
+            "title": "Issues"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "revision",
+          "chapter_id",
+          "title",
+          "volume",
+          "chapter_revision",
+          "history",
+          "counts",
+          "issues"
+        ],
+        "title": "ChapterLoopResponse"
+      },
+      "ChapterLoopState": {
+        "properties": {
+          "chapter_id": {
+            "type": "string",
+            "title": "Chapter Id"
+          },
+          "loop_no": {
+            "type": "integer",
+            "title": "Loop No"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "status_label": {
+            "type": "string",
+            "title": "Status Label"
+          },
+          "stop_reason": {
+            "type": "string",
+            "title": "Stop Reason"
+          },
+          "stop_reason_label": {
+            "type": "string",
+            "title": "Stop Reason Label"
+          },
+          "rounds": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Rounds"
+          },
+          "max_rounds": {
+            "type": "integer",
+            "title": "Max Rounds"
+          },
+          "rolled_back": {
+            "type": "boolean",
+            "title": "Rolled Back"
+          },
+          "started_at": {
+            "type": "string",
+            "title": "Started At"
+          },
+          "stale": {
+            "type": "boolean",
+            "title": "Stale"
+          },
+          "loop_count": {
+            "type": "integer",
+            "title": "Loop Count"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "chapter_id",
+          "loop_no",
+          "kind",
+          "status",
+          "status_label",
+          "stop_reason",
+          "stop_reason_label",
+          "rounds",
+          "max_rounds",
+          "rolled_back",
+          "started_at",
+          "stale",
+          "loop_count"
+        ],
+        "title": "ChapterLoopState"
+      },
       "ChapterPlanPatch": {
         "properties": {
           "fact_ids": {
@@ -22418,6 +24736,75 @@
         "additionalProperties": false,
         "type": "object",
         "title": "ChapterPlanPatch"
+      },
+      "ChapterRecheckRequest": {
+        "properties": {
+          "max_rounds": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Max Rounds",
+            "description": "本次循环最多检查几轮",
+            "default": 3
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "ChapterRecheckRequest"
+      },
+      "ChapterRecheckResponse": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "chapter_id": {
+            "type": "string",
+            "title": "Chapter Id"
+          },
+          "chapter_revision": {
+            "type": "integer",
+            "title": "Chapter Revision"
+          },
+          "content_fixed": {
+            "type": "boolean",
+            "title": "Content Fixed"
+          },
+          "loop": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChapterLoopState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "stop_reason": {
+            "type": "string",
+            "title": "Stop Reason"
+          },
+          "stop_reason_label": {
+            "type": "string",
+            "title": "Stop Reason Label"
+          },
+          "pending_issues": {
+            "type": "integer",
+            "title": "Pending Issues"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "revision",
+          "chapter_id",
+          "chapter_revision",
+          "content_fixed",
+          "stop_reason",
+          "stop_reason_label",
+          "pending_issues"
+        ],
+        "title": "ChapterRecheckResponse"
       },
       "ChapterResponse": {
         "properties": {
@@ -23562,6 +25949,157 @@
         ],
         "title": "CreateUserRequest"
       },
+      "CrossReviewAssignRequest": {
+        "properties": {
+          "reviewer_id": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Reviewer Id",
+            "description": "交叉复核人账号ID（不能是本分册编写人）"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "reviewer_id"
+        ],
+        "title": "CrossReviewAssignRequest"
+      },
+      "CrossReviewConfirmRequest": {
+        "properties": {
+          "decision": {
+            "type": "string",
+            "pattern": "^(approved|returned)$",
+            "title": "Decision",
+            "description": "approved 复核通过 / returned 退回修改"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Note",
+            "description": "复核意见；退回时必填",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "decision"
+        ],
+        "title": "CrossReviewConfirmRequest"
+      },
+      "CrossReviewResponse": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "volume_id": {
+            "type": "string",
+            "title": "Volume Id"
+          },
+          "cross_review": {
+            "$ref": "#/components/schemas/CrossReviewState"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "revision",
+          "volume_id",
+          "cross_review"
+        ],
+        "title": "CrossReviewResponse"
+      },
+      "CrossReviewState": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "none 未指定 / pending 待复核 / approved 复核通过 / returned 退回修改"
+          },
+          "stale": {
+            "type": "boolean",
+            "title": "Stale",
+            "default": false
+          },
+          "reviewer_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Id"
+          },
+          "reviewer_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Name"
+          },
+          "assigned_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned By"
+          },
+          "assigned_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned At"
+          },
+          "decided_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          },
+          "decision_note": {
+            "type": "string",
+            "title": "Decision Note",
+            "default": ""
+          },
+          "history": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "History"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "CrossReviewState"
+      },
       "DeleteDictItemResponse": {
         "properties": {
           "success": {
@@ -24642,6 +27180,411 @@
           "single_process"
         ],
         "title": "HealthResponse"
+      },
+      "HumanIssue": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "number": {
+            "type": "string",
+            "title": "Number"
+          },
+          "chapter_id": {
+            "type": "string",
+            "title": "Chapter Id"
+          },
+          "volume": {
+            "type": "string",
+            "title": "Volume"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "rule": {
+            "type": "string",
+            "title": "Rule"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "level": {
+            "type": "string",
+            "title": "Level"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "route": {
+            "type": "string",
+            "title": "Route"
+          },
+          "human_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Human Reason"
+          },
+          "human_reason_label": {
+            "type": "string",
+            "title": "Human Reason Label",
+            "default": ""
+          },
+          "paragraph_index": {
+            "type": "integer",
+            "title": "Paragraph Index"
+          },
+          "quote": {
+            "type": "string",
+            "title": "Quote"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "suggestion": {
+            "type": "string",
+            "title": "Suggestion"
+          },
+          "fix_count": {
+            "type": "integer",
+            "title": "Fix Count",
+            "default": 0
+          },
+          "loop_no": {
+            "type": "integer",
+            "title": "Loop No",
+            "default": 1
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/HumanIssuePermissions"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "number",
+          "chapter_id",
+          "volume",
+          "code",
+          "rule",
+          "source",
+          "level",
+          "severity",
+          "status",
+          "route",
+          "paragraph_index",
+          "quote",
+          "message",
+          "suggestion",
+          "permissions"
+        ],
+        "title": "HumanIssue"
+      },
+      "HumanIssuePermissions": {
+        "properties": {
+          "resolve": {
+            "type": "boolean",
+            "title": "Resolve"
+          },
+          "reject": {
+            "type": "boolean",
+            "title": "Reject"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "resolve",
+          "reject"
+        ],
+        "title": "HumanIssuePermissions"
+      },
+      "HumanIssueRejectRequest": {
+        "properties": {
+          "reason_type": {
+            "type": "string",
+            "enum": [
+              "false_positive",
+              "not_adopted"
+            ],
+            "title": "Reason Type",
+            "description": "驳回类型：误报 / 不采纳"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason",
+            "description": "驳回理由"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "reason_type",
+          "reason"
+        ],
+        "title": "HumanIssueRejectRequest"
+      },
+      "HumanIssueResolveRequest": {
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "edited",
+              "keep_placeholder",
+              "replaced_variable"
+            ],
+            "title": "Method",
+            "description": "处理方式"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Note",
+            "description": "处理说明",
+            "default": ""
+          },
+          "also_issue_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Also Issue Ids",
+            "description": "同一段落一起标为已处理的其他问题"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "method"
+        ],
+        "title": "HumanIssueResolveRequest"
+      },
+      "HumanIssueWriteResponse": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "issue_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Issue Ids"
+          },
+          "chapter_id": {
+            "type": "string",
+            "title": "Chapter Id"
+          },
+          "chapter_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chapter Status"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "revision",
+          "issue_ids",
+          "chapter_id"
+        ],
+        "title": "HumanIssueWriteResponse"
+      },
+      "HumanQueueChapter": {
+        "properties": {
+          "chapter_id": {
+            "type": "string",
+            "title": "Chapter Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "volume": {
+            "type": "string",
+            "title": "Volume"
+          },
+          "number": {
+            "type": "integer",
+            "title": "Number"
+          },
+          "assignee_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Id"
+          },
+          "assignee_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Name"
+          },
+          "volume_finalized": {
+            "type": "boolean",
+            "title": "Volume Finalized"
+          },
+          "can_recheck": {
+            "type": "boolean",
+            "title": "Can Recheck"
+          },
+          "loop": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ChapterLoopState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/HumanIssue"
+            },
+            "type": "array",
+            "title": "Issues"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "chapter_id",
+          "title",
+          "volume",
+          "number",
+          "volume_finalized",
+          "can_recheck",
+          "issues"
+        ],
+        "title": "HumanQueueChapter"
+      },
+      "HumanQueueReason": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "reason",
+          "label",
+          "count"
+        ],
+        "title": "HumanQueueReason"
+      },
+      "HumanQueueResponse": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
+          "volume": {
+            "type": "string",
+            "title": "Volume"
+          },
+          "deadline": {
+            "type": "string",
+            "title": "Deadline",
+            "default": ""
+          },
+          "summary": {
+            "$ref": "#/components/schemas/HumanQueueSummary"
+          },
+          "chapters": {
+            "items": {
+              "$ref": "#/components/schemas/HumanQueueChapter"
+            },
+            "type": "array",
+            "title": "Chapters"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "revision",
+          "project_id",
+          "volume",
+          "summary",
+          "chapters"
+        ],
+        "title": "HumanQueueResponse"
+      },
+      "HumanQueueSummary": {
+        "properties": {
+          "pending": {
+            "type": "integer",
+            "title": "Pending"
+          },
+          "chapters": {
+            "type": "integer",
+            "title": "Chapters"
+          },
+          "by_reason": {
+            "items": {
+              "$ref": "#/components/schemas/HumanQueueReason"
+            },
+            "type": "array",
+            "title": "By Reason"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "pending",
+          "chapters",
+          "by_reason"
+        ],
+        "title": "HumanQueueSummary"
       },
       "Job": {
         "properties": {
@@ -27663,6 +30606,243 @@
         ],
         "title": "ResetPasswordResponse"
       },
+      "ScanHit": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "file_id": {
+            "type": "string",
+            "title": "File Id"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename",
+            "default": ""
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "quote": {
+            "type": "string",
+            "title": "Quote"
+          },
+          "terms": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Terms"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "state": {
+            "type": "string",
+            "title": "State",
+            "description": "suspected 疑似遗漏 / covered 已覆盖 / added 已新增为条目 / excluded 已排除"
+          },
+          "covered_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Covered By"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "default": ""
+          },
+          "scan_version": {
+            "type": "string",
+            "title": "Scan Version"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "file_id",
+          "page",
+          "quote",
+          "terms",
+          "status",
+          "state",
+          "scan_version"
+        ],
+        "title": "ScanHit"
+      },
+      "ScanHitAddRequest": {
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "star",
+              "disqualification"
+            ],
+            "title": "Category",
+            "description": "新增条目的类别：星号 / 废标"
+          },
+          "volume": {
+            "type": "string",
+            "enum": [
+              "technical",
+              "business"
+            ],
+            "title": "Volume",
+            "description": "归入分册",
+            "default": "technical"
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Text",
+            "description": "条款原文；为空时取命中原文",
+            "default": ""
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "category"
+        ],
+        "title": "ScanHitAddRequest"
+      },
+      "ScanHitExcludeRequest": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason",
+            "description": "排除理由"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "ScanHitExcludeRequest"
+      },
+      "ScanHitListResponse": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
+          "scan_version": {
+            "type": "string",
+            "title": "Scan Version"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/ScanSummary"
+          },
+          "can_handle": {
+            "type": "boolean",
+            "title": "Can Handle"
+          },
+          "hits": {
+            "items": {
+              "$ref": "#/components/schemas/ScanHit"
+            },
+            "type": "array",
+            "title": "Hits"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "revision",
+          "project_id",
+          "scan_version",
+          "summary",
+          "can_handle",
+          "hits"
+        ],
+        "title": "ScanHitListResponse"
+      },
+      "ScanHitWriteResponse": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "hit": {
+            "$ref": "#/components/schemas/ScanHit"
+          },
+          "requirement": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requirement"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "revision",
+          "hit"
+        ],
+        "title": "ScanHitWriteResponse"
+      },
+      "ScanSummary": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "suspected": {
+            "type": "integer",
+            "title": "Suspected"
+          },
+          "covered": {
+            "type": "integer",
+            "title": "Covered"
+          },
+          "added": {
+            "type": "integer",
+            "title": "Added"
+          },
+          "excluded": {
+            "type": "integer",
+            "title": "Excluded"
+          },
+          "too_many": {
+            "type": "boolean",
+            "title": "Too Many"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "total",
+          "suspected",
+          "covered",
+          "added",
+          "excluded",
+          "too_many"
+        ],
+        "title": "ScanSummary"
+      },
       "SessionChapterAccess": {
         "properties": {
           "id": {
@@ -30383,7 +33563,9 @@
               "ACCOUNT_LOCKED",
               "ALL_VOLUMES_CHECK_REQUIRED",
               "ASSIGNEE_NOT_WRITABLE",
+              "BLOCKER_NOT_REJECTABLE",
               "CANNOT_DEMOTE_SELF",
+              "CHAPTER_CONTENT_EMPTY",
               "CHAPTER_EDITOR_REQUIRED",
               "CHAPTER_HAS_CONTENT",
               "CHAPTER_IN_USE",
@@ -30395,6 +33577,9 @@
               "CONFIRMED_REQUIREMENTS_EMPTY",
               "CONFLICTS_PENDING",
               "CONFLICT_SELECTION_INVALID",
+              "CROSS_REVIEWER_IS_EDITOR",
+              "CROSS_REVIEWER_REQUIRED",
+              "CROSS_REVIEW_REQUIRED",
               "DICT_CODE_DUPLICATED",
               "DICT_ITEM_IN_USE",
               "DRAFT_SEQUENCE_CONFLICT",
@@ -30430,6 +33615,8 @@
               "FORBIDDEN",
               "GENERATION_CONTEXT_TOO_LARGE",
               "HANDOFF_REASON_REQUIRED",
+              "HUMAN_ISSUES_PENDING",
+              "HUMAN_ISSUE_NOT_PENDING",
               "IDEMPOTENCY_CONFLICT",
               "IDEMPOTENCY_KEY_REQUIRED",
               "IF_MATCH_REQUIRED",
@@ -30470,6 +33657,7 @@
               "NOT_FOUND",
               "NO_TEXT",
               "OCR_REQUIRED",
+              "OMISSIONS_PENDING",
               "PARSER_UNAVAILABLE",
               "PARSE_INCOMPLETE",
               "PARSE_NOT_CONFIRMED",
@@ -30531,6 +33719,7 @@
               "USER_TRANSFER_REQUIRED",
               "VALIDATION_ERROR",
               "VERSION_CONFLICT",
+              "VOLUME_FINALIZED",
               "VOLUME_OWNER_REQUIRED"
             ]
           },
@@ -30926,6 +34115,21 @@
               }
             ],
             "title": "Unlock Reason"
+          },
+          "cross_review": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CrossReviewState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pending_human_issues": {
+            "type": "integer",
+            "title": "Pending Human Issues",
+            "default": 0
           }
         },
         "additionalProperties": true,
@@ -31009,6 +34213,16 @@
               }
             ],
             "title": "Unlock Reason"
+          },
+          "cross_review": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CrossReviewState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "volume": {
             "anyOf": [
@@ -31974,6 +35188,7 @@
           "CANNOT_DEMOTE_SELF",
           "CHAPTER_EDITOR_REQUIRED",
           "CHAPTER_STRUCTURE_REQUIRED",
+          "CROSS_REVIEWER_REQUIRED",
           "FACT_MANAGER_REQUIRED",
           "FORBIDDEN",
           "MATRIX_RESPONSE_FORBIDDEN",
@@ -31993,6 +35208,8 @@
         ],
         "409": [
           "ALL_VOLUMES_CHECK_REQUIRED",
+          "BLOCKER_NOT_REJECTABLE",
+          "CHAPTER_CONTENT_EMPTY",
           "CHAPTER_HAS_CONTENT",
           "CHAPTER_IN_USE",
           "CHAPTER_MAPPED",
@@ -32002,6 +35219,8 @@
           "CONFIRMED_REQUIREMENTS_EMPTY",
           "CONFLICTS_PENDING",
           "CONFLICT_SELECTION_INVALID",
+          "CROSS_REVIEWER_IS_EDITOR",
+          "CROSS_REVIEW_REQUIRED",
           "DICT_CODE_DUPLICATED",
           "DICT_ITEM_IN_USE",
           "DRAFT_SEQUENCE_CONFLICT",
@@ -32020,6 +35239,8 @@
           "FILE_IN_USE",
           "FILE_NOT_PARSED",
           "HANDOFF_REASON_REQUIRED",
+          "HUMAN_ISSUES_PENDING",
+          "HUMAN_ISSUE_NOT_PENDING",
           "IDEMPOTENCY_CONFLICT",
           "INPUT_FINGERPRINT_REQUIRED",
           "INPUT_FINGERPRINT_STALE",
@@ -32027,6 +35248,7 @@
           "LAST_PROJECT_LEAD_REQUIRED",
           "LOCAL_MODEL_REQUIRED",
           "MATRIX_MAPPING_MISSING",
+          "OMISSIONS_PENDING",
           "PARSE_INCOMPLETE",
           "PARSE_NOT_CONFIRMED",
           "PLAN_NOT_CONFIRMED",
@@ -32062,7 +35284,8 @@
           "SLA_VARIABLE_UNKNOWN",
           "TAKEOVER_REASON_REQUIRED",
           "USER_TRANSFER_REQUIRED",
-          "VERSION_CONFLICT"
+          "VERSION_CONFLICT",
+          "VOLUME_FINALIZED"
         ],
         "413": [
           "FILE_EXPANSION_LIMIT",

@@ -4,6 +4,7 @@
 # 2. 前置安全门禁：
 #    - 该分册所有章节必须已有正式版本正文且当前未被排他锁定；
 #    - 该分册不能存在未消解的 severity == "blocker" 缺陷（废标红线与关键星号条款未满足）；
+#    - 该分册没有待人工处理的问题，且已由非本册编写人完成交叉复核、复核对应的仍是当前正文（Wave 11）；
 # 3. 状态流转与持久化：标记 is_finalized = True，记录定稿人 ID 与时间戳 finalized_at，支持定稿查询与先解锁后修改。
 
 from __future__ import annotations
@@ -12,8 +13,9 @@ import time
 from typing import Any
 
 from icg.domain.domain import DemoState, DomainError, Principal, Project, iso_time, new_id
-from icg.domain.project_access import VOLUMES, normalize_role, lead
+from icg.domain.project_access import VOLUMES, normalize_role, lead, volume_owner
 from icg.domain.export_service import ExportServiceMixin
+from icg.domain.volume_review import pending_human_issues, public_review, require_cross_review, reset_review_on_unlock
 
 
 class VolumeGateError(DomainError):
@@ -36,8 +38,8 @@ def is_chapter_locked(chapter: Any, now: float) -> bool:
     return float(chapter.lock.expires_at) > now
 
 
-def check_finalize_permissions(state: DemoState, principal: Principal, project: Project) -> None:
-    """权限校验：仅当前公司项目负责人或公司管理员允许定稿。跨租户 404，编写人及其它角色 403。"""
+def check_finalize_permissions(state: DemoState, principal: Principal, project: Project, volume_id: str | None = None) -> None:
+    """权限校验：项目负责人、公司管理员或本分册负责人（PRD v1.8 §2.3）。跨租户 404，其它角色 403。"""
     if project.company_id != principal.user.company_id:
         raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
 
@@ -48,8 +50,10 @@ def check_finalize_permissions(state: DemoState, principal: Principal, project: 
     # 项目负责人判定（需是项目成员且 project_role == "lead"）
     if lead(state, project.id, principal.user.id):
         return
+    if volume_id and volume_owner(state, project.id, volume_id, principal.user.id):
+        return
 
-    raise DomainError(403, "FORBIDDEN", "分册定稿仅限当前项目负责人或公司管理员办理。")
+    raise DomainError(403, "FORBIDDEN", "分册定稿仅限项目负责人、本册负责人或公司管理员办理。")
 
 
 def check_volume_blockers(
@@ -168,7 +172,7 @@ class VolumeFinalizeMixin:
             project = self._resolve_project(state, principal, project_id)
 
             # 2. 权限校验
-            check_finalize_permissions(state, principal, project)
+            check_finalize_permissions(state, principal, project, volume_id)
 
             # 3. 幂等与版本检查
             if key:
@@ -210,6 +214,9 @@ class VolumeFinalizeMixin:
             check_id = payload.get("check_id")
             check_volume_blockers(state, project_id, volume_id, workflow, check_id=check_id)
 
+            # 5b. 待人工问题清零 + 交叉复核通过且对应当前正文；定稿绑定章节版本快照
+            snapshot = require_cross_review(state, project_id, volume_id, workflow)
+
             # 6. 状态流转与持久化标记
             now_iso = iso_time(now_ts)
             volume_record = {
@@ -221,6 +228,8 @@ class VolumeFinalizeMixin:
                 "unlocked_by": None,
                 "unlocked_at": None,
                 "unlock_reason": None,
+                "snapshot": snapshot,
+                "cross_reviewer_id": workflow.get("volume_reviews", {}).get(volume_id, {}).get("reviewer_id"),
             }
             workflow.setdefault("volumes", {})[volume_id] = volume_record
 
@@ -282,7 +291,7 @@ class VolumeFinalizeMixin:
 
         def transaction(state: DemoState) -> dict:
             project = self._resolve_project(state, principal, project_id)
-            check_finalize_permissions(state, principal, project)
+            check_finalize_permissions(state, principal, project, volume_id)
 
             if key:
                 replay = lookup(state, project_id, principal.user.id, key, request_fingerprint, self.demo._now())
@@ -312,6 +321,7 @@ class VolumeFinalizeMixin:
             vol_record["unlocked_by"] = principal.user.id
             vol_record["unlocked_at"] = now_iso
             vol_record["unlock_reason"] = reason
+            reset_review_on_unlock(workflow, volume_id, principal.user.id, now_iso, reason)
 
             project.revision += 1
             self._audit(
@@ -383,8 +393,9 @@ class VolumeFinalizeMixin:
             "unlocked_by": vol_record.get("unlocked_by"),
             "unlocked_at": vol_record.get("unlocked_at"),
             "unlock_reason": vol_record.get("unlock_reason"),
+            "cross_review": public_review(state, project_id, volume_id, workflow),
             "revision": project.revision,
-            "volume": vol_record,
+            "volume": {k: v for k, v in vol_record.items() if k != "snapshot"},
         }
 
     def list_volumes_status(
@@ -411,6 +422,8 @@ class VolumeFinalizeMixin:
                 "unlocked_by": rec.get("unlocked_by"),
                 "unlocked_at": rec.get("unlocked_at"),
                 "unlock_reason": rec.get("unlock_reason"),
+                "cross_review": public_review(state, project_id, vid, workflow),
+                "pending_human_issues": len(pending_human_issues(workflow, state, project_id, vid)),
             })
 
         return {

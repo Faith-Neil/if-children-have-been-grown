@@ -21,7 +21,7 @@ from test_reference_flow import ProjectFlow, client, login
 
 def test_volume_finalize_normal_by_project_lead(client):
     """验证项目负责人（project_lead / manager）正常触发分册定稿通过，记录状态与时间戳。"""
-    flow = ProjectFlow(client).ready()
+    flow = ProjectFlow(client).ready().cross_reviewed("technical")
     lead_headers = login(client, "alpha-manager")
 
     rev = flow.state()["revision"]
@@ -55,7 +55,7 @@ def test_volume_finalize_normal_by_project_lead(client):
 
 def test_volume_finalize_normal_by_company_admin(client):
     """验证公司管理员（company_admin）正常触发分册定稿通过。"""
-    flow = ProjectFlow(client).ready()
+    flow = ProjectFlow(client).ready().cross_reviewed("business")
     admin_headers = login(client, "alpha-company-admin")
 
     rev = flow.state()["revision"]
@@ -149,7 +149,7 @@ def test_volume_finalize_invalid_volume_returns_404(client):
 
 def test_volume_finalize_gate_blocks_when_chapter_is_locked(client):
     """前置门禁 1：验证分册存在处于排他锁定的章节时，定稿被拦截 409 LOCK_HELD。"""
-    flow = ProjectFlow(client).ready()
+    flow = ProjectFlow(client).ready().cross_reviewed("technical")
     lead_headers = login(client, "alpha-manager")
 
     # 获取技术分册的某个章节
@@ -304,7 +304,8 @@ def test_volume_finalize_gate_blocks_when_blocker_defects_exist(client):
     clean_check = flow.write("/checks", {"volume": "technical"})["check"]
     assert not any(i.get("severity") == "blocker" for i in clean_check["issues"]), clean_check["issues"]
 
-    # 消解 blocker 后重新定稿 -> 预期放行 200
+    # 消解 blocker 后完成交叉复核再定稿 -> 预期放行 200
+    flow.cross_reviewed("technical")
     rev2 = flow.state()["revision"]
     resp2 = client.post(
         f"{flow.path}/volumes/technical/finalize",
@@ -321,7 +322,7 @@ def test_volume_finalize_gate_blocks_when_blocker_defects_exist(client):
 
 def test_volume_unlock_lifecycle_and_reason_requirement(client):
     """验证定稿后解锁（unlock）全生命周期：编写人拦截、必填原因与状态回退。"""
-    flow = ProjectFlow(client).ready()
+    flow = ProjectFlow(client).ready().cross_reviewed("technical")
     lead_headers = login(client, "alpha-manager")
     writer_headers = login(client, "alpha-editor")
 
@@ -383,10 +384,11 @@ def test_volume_unlock_lifecycle_and_reason_requirement(client):
     assert "澄清通知" in unlocked_data["unlock_reason"]
     assert unlocked_data["unlocked_at"] is not None
 
-    # 查询状态确认已解锁
+    # 查询状态确认已解锁；交叉复核随解锁作废
     st = client.get(f"{flow.path}/volumes/technical", headers=lead_headers).json()
     assert st["is_finalized"] is False
     assert st["unlock_reason"] is not None
+    assert st["cross_review"]["status"] == "none"
 
 
 def test_volume_finalize_in_non_demo_eight_roles_environment(monkeypatch):
@@ -461,7 +463,17 @@ def test_volume_finalize_in_non_demo_eight_roles_environment(monkeypatch):
     assert resp_writer.status_code == 403
     assert resp_writer.json()["code"] == "FORBIDDEN"
 
-    # 4. 项目负责人 lead-usr 触发定稿 -> 200
+    def review(volume):
+        for token, path, data in (("lead-usr", "cross-review", {"reviewer_id": "writer-usr"}),
+                                  ("writer-usr", "cross-review/confirm", {"decision": "approved"})):
+            current = client.get(f"/api/v1/projects/{pid}/workspace", headers=tokens["lead-usr"]).json()["revision"]
+            done = client.post(f"/api/v1/projects/{pid}/volumes/{volume}/{path}", json=data,
+                               headers={**tokens[token], "If-Match": str(current), "Idempotency-Key": str(uuid4())})
+            assert done.status_code == 200, done.text
+
+    # 4. 交叉复核后，项目负责人 lead-usr 触发定稿 -> 200
+    review("technical")
+    review("business")
     rev = client.get(f"/api/v1/projects/{pid}/workspace", headers=tokens["lead-usr"]).json()["revision"]
     resp_lead = client.post(
         f"/api/v1/projects/{pid}/volumes/technical/finalize",

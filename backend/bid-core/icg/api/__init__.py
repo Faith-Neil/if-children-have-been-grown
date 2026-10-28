@@ -12,6 +12,7 @@ from icg.api.model_configs import include_model_config_routes
 from icg.api.field_metadata import include_field_metadata_routes
 from icg.api.companies import include_company_routes
 from icg.api.users import include_user_routes
+from icg.api.chapter_loop import include_chapter_loop_routes
 from icg.api.volumes import (
     include_volume_routes,
     VolumeFinalizeRequest,
@@ -48,6 +49,7 @@ __all__ = [
     "include_field_metadata_routes",
     "include_company_routes",
     "include_user_routes",
+    "include_chapter_loop_routes",
     "include_volume_routes",
     "VolumeFinalizeRequest",
     "VolumeUnlockRequest",

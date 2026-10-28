@@ -48,7 +48,8 @@ def test_submission_export_blocked_until_all_volumes_finalized(client):
     assert "技术分册" in err["message"]
     assert "商务分册" in err["message"]
 
-    # 2. 仅定稿技术分册，商务分册未定稿 -> 仍拦截 409，精准提示商务分册未定稿
+    # 2. 仅定稿技术分册（先完成交叉复核），商务分册未定稿 -> 仍拦截 409，精准提示商务分册未定稿
+    flow.cross_reviewed("technical")
     rev = flow.state()["revision"]
     resp_fin_tech = client.post(
         f"{flow.path}/volumes/technical/finalize",
@@ -77,7 +78,8 @@ def test_submission_export_blocked_until_all_volumes_finalized(client):
     assert err_partial["code"] == "RULES_INCOMPLETE"
     assert "商务分册尚未完成责任人定稿锁定" in err_partial["message"]
 
-    # 3. 商务分册也完成定稿锁定 -> 两册均定稿
+    # 3. 商务分册也完成交叉复核与定稿锁定 -> 两册均定稿
+    flow.cross_reviewed("business")
     rev = flow.state()["revision"]
     resp_fin_biz = client.post(
         f"{flow.path}/volumes/business/finalize",

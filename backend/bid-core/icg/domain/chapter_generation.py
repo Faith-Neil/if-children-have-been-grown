@@ -492,24 +492,8 @@ def validate_chapter_candidate(
 # 章节合规质检缺陷自动整改建议与局部智能重写引擎（PRD MVP v1.8 §5.7.8 & §5.10 / AI-OUTLINE-AUTO-REMEDIATION）
 # ---------------------------------------------------------------------------
 
-POSITIVE_RESPONSE_REPLACEMENTS = {
-    "存在负偏离": "完全响应并优于招标要求",
-    "实质性负偏离": "完全响应并优于招标要求",
-    "重大负偏离": "完全响应并优于招标要求",
-    "技术参数低于要求": "技术参数完全满足并优于要求",
-    "未能完全满足": "完全充分满足",
-    "偏离招标要求": "完全满足招标要求",
-    "指标不满足": "指标完全满足",
-    "无法按期交付": "保质保量按期交付",
-    "无法提供": "已完整具备并随时提供",
-    "存在差距": "完全达标并超额保障",
-    "无法满足": "完全满足",
-    "不符合要求": "完全符合招标技术规范",
-    "未能达到": "全面达到并超越",
-    "无法承诺": "郑重承诺全面履行",
-    "不满足": "完全满足",
-    "负偏离": "完全响应并优于招标要求",
-}
+# 原“负偏离 → 完全满足”的确定性翻转表已删除（ISSUE-039）：偏离与承诺属于直接转人工的问题，
+# 系统和模型都不能把“不满足”改写成“满足”（PRD v1.8 §5.7.4 第 4 条、§1.4 原则 3）。
 
 SEAL_SIGNATURE_REPLACEMENTS = {
     "未盖公章": "【单位公章】",
@@ -599,7 +583,12 @@ def sanitize_and_remediate_paragraph_text(
     allowed_snippet_ids: set[str] | None = None,
     facts: list[dict[str, Any]] | None = None,
 ) -> str:
-    """对单个违规段落执行确定性合规清洗与智能重写，确保 100% 消除 blocker。"""
+    """对单个违规段落执行不编造的确定性清洗（PRD v1.8 §1.4 原则 3、§5.7.4 第 4/5 条）。
+
+    只做：删除对话残留、签章瑕疵换成签章槽位、用已确认事实变量替换【待补】、移除失效知识片段标记、
+    把本章依据外的证据编号换成【待补：依据】。负偏离、无依据的【待补】和承诺数值属于直接转人工的问题，
+    这里保持原文不动，由人工处理队列处理。
+    """
     cleaned = p_text
 
     # 1. 清理 AI 对话残留客套语
@@ -609,20 +598,15 @@ def sanitize_and_remediate_paragraph_text(
         if res in cleaned:
             cleaned = cleaned.replace(res, "")
 
-    # 2. 负偏离改写为正向承诺
-    for neg, pos in POSITIVE_RESPONSE_REPLACEMENTS.items():
-        if neg in cleaned:
-            cleaned = cleaned.replace(neg, pos)
+    # 2. 负偏离属于商务偏离/承诺类问题，直接转人工，系统不改写为正向承诺。
 
     # 3. 签字盖章瑕疵标记替换
     for miss, valid in SEAL_SIGNATURE_REPLACEMENTS.items():
         if miss in cleaned:
             cleaned = cleaned.replace(miss, valid)
 
-    # 4. 虚构证据编号与未匹配切片替换或移除（包含模型输出新引入的虚假引用）
-    valid_ev_list = sorted(list(allowed_evidence_ids)) if allowed_evidence_ids else []
-    valid_snip_list = sorted(list(allowed_snippet_ids)) if allowed_snippet_ids else []
-
+    # 4. 依据外的证据编号不能换成别的证据（那等于给事实挂上不相干的依据），只能改为【待补：依据】；
+    #    失效的知识片段标记只是参考来源，直接移除。
     all_cits = extract_paragraph_citations(
         cleaned,
         allowed_evidence_ids=allowed_evidence_ids,
@@ -631,24 +615,18 @@ def sanitize_and_remediate_paragraph_text(
     for cit in all_cits:
         if cit.get("type") == "evidence" and cit.get("id"):
             if not cit.get("valid", True):
-                old_tag = f"[证:{cit['id']}]"
-                if valid_ev_list:
-                    cleaned = cleaned.replace(old_tag, f"[证:{valid_ev_list[0]}]")
-                else:
-                    cleaned = cleaned.replace(old_tag, "")
+                cleaned = cleaned.replace(f"[证:{cit['id']}]", "【待补：依据】")
         elif cit.get("type") == "snippet" and cit.get("id"):
             if allowed_snippet_ids is not None and len(allowed_snippet_ids) > 0:
                 if not cit.get("valid", True):
-                    old_tag = f"[片:{cit['id']}]"
-                    if valid_snip_list:
-                        cleaned = cleaned.replace(old_tag, f"[片:{valid_snip_list[0]}]")
-                    else:
-                        cleaned = cleaned.replace(old_tag, "")
+                    cleaned = cleaned.replace(f"[片:{cit['id']}]", "")
 
-    # 5. R34 占位符替换
+    # 5. 【待补】只在有已确认项目事实时替换为事实变量；没有依据时保留原标记，不写空泛承诺。
     fact_map = {}
     if facts:
         for f in facts:
+            if f.get("status") not in (None, "confirmed"):
+                continue
             key = f.get("key", "")
             var = f.get("variable", "")
             val = f.get("value", "")
@@ -656,24 +634,13 @@ def sanitize_and_remediate_paragraph_text(
                 fact_map[key] = var or val
 
     for token in defects.get("placeholders", []):
-        matched_fact_var = None
+        inner = token.strip("【】[]").split("：", 1)[-1].split(":", 1)[-1].strip()
+        if not inner or inner in ("待补", "待完善", "待确认", "待定", "占位", "占位符"):
+            continue
         for k, v in fact_map.items():
-            if k in token or token in k:
-                matched_fact_var = v
+            if v and (k == inner or k in inner or inner in k):
+                cleaned = cleaned.replace(token, str(v))
                 break
-        if matched_fact_var:
-            cleaned = cleaned.replace(token, str(matched_fact_var))
-        else:
-            if any(t in token for t in ("TODO", "TBD", "FIXME", "XXXX", "XXX")):
-                cleaned = re.sub(r"\b" + re.escape(token) + r"\b", "已全面具备并满足要求", cleaned, flags=re.IGNORECASE)
-            elif "待补" in token or "待完善" in token or "待确认" in token or "待定" in token or "占位" in token:
-                cleaned = cleaned.replace(token, "已按招标规范全面落实并具备实施条件")
-            else:
-                cleaned = cleaned.replace(token, "已严格响应并满足要求")
-
-    # 二次兜底清除 PLACEHOLDER_REGEXES 残留
-    for pat in PLACEHOLDER_REGEXES:
-        cleaned = pat.sub("已全面落实并满足要求", cleaned)
 
     cleaned = re.sub(r"[ \t]+", " ", cleaned)
     cleaned = re.sub(r"\n\s*\n\s*\n+", "\n\n", cleaned)
@@ -730,7 +697,7 @@ def synthesize_remediation_plan(
 
         if diag["placeholders"]:
             p_list_str = "、".join(diag["placeholders"])
-            instructions.append(f"彻底消除占位符（{p_list_str}），改写为符合招标文件技术规范的具体实施承诺或引用项目事实变量。")
+            instructions.append(f"占位符（{p_list_str}）有已确认项目事实时替换为事实变量；没有依据时保留【待补】并转人工补资料，不得改写为空泛承诺。")
             defect_items.append({
                 "rule_id": "R34",
                 "code": "PLACEHOLDER_RESIDUAL",
@@ -754,13 +721,14 @@ def synthesize_remediation_plan(
 
         if diag["negative_deviations"]:
             n_list_str = "、".join(diag["negative_deviations"])
-            instructions.append(f"将负偏离表述（{n_list_str}）改写为完全响应并满足招标文件实质性要求的正向承诺。")
+            instructions.append(f"偏离表述（{n_list_str}）属于商务偏离/承诺类问题，转人工核实：属实则在偏离表登记理由，能满足则由负责人补充依据后改写，模型不得自行改为满足。")
             defect_items.append({
                 "rule_id": "R37",
                 "code": "NEGATIVE_DEVIATION_DETECTED",
                 "severity": "blocker",
                 "matched_triggers": diag["negative_deviations"],
-                "instruction": "消除负偏离，改写为100%正向承诺",
+                "instruction": "转人工核实偏离，不自动改写承诺",
+                "route": "direct_human",
             })
             total_defect_count += len(diag["negative_deviations"])
 
@@ -778,13 +746,14 @@ def synthesize_remediation_plan(
 
         if diag["fabricated_ev_ids"]:
             f_list_str = "、".join([f"[证:{eid}]" for eid in diag["fabricated_ev_ids"]])
-            instructions.append(f"将虚构证据编号 {f_list_str} 替换为项目已核对白名单编号（如 {ev_whitelist_str}），或移除未核对证据标记。")
+            instructions.append(f"证据编号 {f_list_str} 不在本章依据中，改为【待补：依据】并转人工补挂真实证据，不得换成其他证据编号。")
             defect_items.append({
                 "rule_id": "CITATION_AUTH",
                 "code": "FABRICATED_OR_INVALID_EVIDENCE_CITATION",
                 "severity": "blocker",
                 "evidence_ids": diag["fabricated_ev_ids"],
-                "instruction": "替换或移除虚构证据编号",
+                "instruction": "改为【待补：依据】并转人工补挂证据",
+                "route": "direct_human",
             })
             total_defect_count += len(diag["fabricated_ev_ids"])
 
@@ -808,9 +777,9 @@ def synthesize_remediation_plan(
             f"【合法依据白名单】\n{ev_whitelist_str}\n\n"
             f"【重写指令】\n"
             f"1. 仅输出重写后的段落正文，严禁包含任何前缀、解释、客套语或分析说明；\n"
-            f"2. 严禁再次产生【待定】/TODO等占位符；\n"
-            f"3. 严禁出现负偏离或不满足声明；\n"
-            f"4. 严禁捏造未核对证据编号。"
+            f"2. 不得新增或改动任何数字、金额、时限、人员和证据编号；\n"
+            f"3. 没有依据的事实保留或写成【待补：缺少什么】，不得改写为“已满足”“已具备”等空泛承诺；\n"
+            f"4. 偏离与不满足表述原样保留，由人工核实。"
         )
 
         replacement = sanitize_and_remediate_paragraph_text(
@@ -1264,6 +1233,7 @@ class ChapterGenerationService:
                 "validation_report": validation_res["validation_report"],
             }
 
+            rem_res: dict[str, Any] | None = None
             if auto_remediate and validation_res.get("validation_failed"):
                 rem_res = self.remediate_chapter_candidate(
                     project_id=project_id,
@@ -1282,6 +1252,18 @@ class ChapterGenerationService:
             def save_candidate_op(st: DemoState):
                 wf = st.workflows.setdefault(project_id, {})
                 wf.setdefault("candidates", {})[chapter_id] = candidate
+                if rem_res is not None and rem_res.get("loop_outcome"):
+                    from .chapter_loop import record_loop
+
+                    order = wf.get("chapter_order") or [c.id for c in st.chapters.values() if c.project_id == project_id]
+                    live_chapter = st.chapters.get(chapter_id)
+                    if live_chapter is not None:
+                        record_loop(
+                            wf, live_chapter, order.index(chapter_id) + 1 if chapter_id in order else 1,
+                            rem_res["loop_outcome"], actor_id=principal.user.id,
+                            now_iso=iso_time(self.demo._now()) if hasattr(self.demo, "_now") else iso_time(time.time()),
+                            checked_revision=int(live_chapter.revision or 0), kind="generation_candidate",
+                        )
 
             self.repository.transaction(save_candidate_op)
 
@@ -2041,117 +2023,84 @@ class ChapterGenerationService:
         initial_health_score = initial_val["quality_health_score"]
         initial_rating = initial_val["quality_health_rating"]
 
-        remediation_history: list[dict[str, Any]] = []
-        remediated_indices: set[int] = set()
-        latest_plan: dict[str, Any] = {}
-        current_val = initial_val
-        rounds_executed = 0
+        # PRD v1.8 §5.7.4：由系统规则编排“检查 → 定位修正 → 再检查”，直接转人工的问题永远不进入自动修正。
+        from .chapter_loop import LoopContext, run_chapter_loop
 
-        max_r = max(1, min(int(max_rounds or 3), 5))
+        critical = any(
+            str(r.get("importance", "")).lower() in ("star", "critical", "disqualification")
+            or str(r.get("category", "")).lower() in ("star", "disqualification")
+            or "★" in str(r.get("text", ""))
+            for r in reqs
+        )
+        loop_context = LoopContext(
+            title=getattr(chapter, "title", ""),
+            allowed_evidence_ids=allowed_evidence_ids,
+            allowed_snippet_ids=allowed_snippet_ids,
+            facts=facts if isinstance(facts, list) else list(facts.values()) if isinstance(facts, dict) else [],
+            critical=critical,
+        )
 
-        for r_num in range(1, max_r + 1):
-            rounds_executed = r_num
-            if current_val["validation_passed"] and len(current_val["detected_blockers"]) == 0:
-                break
-
-            plan = synthesize_remediation_plan(
-                content=current_content,
-                paragraphs=active_paragraphs,
-                chapter=chapter,
-                allowed_evidence_ids=allowed_evidence_ids,
-                allowed_snippet_ids=allowed_snippet_ids,
-                facts=facts,
-                detected_blockers=current_val["detected_blockers"],
-                detected_warnings=current_val["detected_warnings"],
-                project=project,
+        def model_fix(original: str, issues: list[dict[str, Any]]) -> str | None:
+            if not (model_provider and hasattr(model_provider, "suggest")):
+                return None
+            prompt = (
+                f"你是投标文件编写人。请只修正章节「{getattr(chapter, 'title', '')}」中的下面这一段：\n"
+                f"【原段落】\n{original}\n【需要修正的问题】\n"
+                + "\n".join(f"- {i['message']}；{i['suggestion']}" for i in issues)
+                + "\n【要求】只输出替换后的这一段；不得新增或改动数字、人员、证据编号；没有依据的内容写【待补：缺少什么】。"
             )
-            latest_plan = plan
+            return model_provider.suggest(prompt, original)
 
-            if not plan["target_paragraphs"]:
-                break
-
-            round_remediated_indices = []
-
-            for tp in plan["target_paragraphs"]:
-                p_idx = tp["paragraph_index"]
-                if p_idx >= len(active_paragraphs):
-                    continue
-
-                orig_p = active_paragraphs[p_idx]
-                model_rewritten = None
-
-                if model_provider and hasattr(model_provider, "suggest"):
-                    try:
-                        res_text = model_provider.suggest(tp["remediation_prompt"], tp["original_text"])
-                        if res_text and not any(r in res_text for r in AI_CONVERSATION_RESIDUALS):
-                            model_rewritten = sanitize_and_remediate_paragraph_text(
-                                p_text=res_text,
-                                defects=tp["diagnostics"],
-                                chapter_title=getattr(chapter, "title", ""),
-                                allowed_evidence_ids=allowed_evidence_ids,
-                                allowed_snippet_ids=allowed_snippet_ids,
-                                facts=facts,
-                            )
-                    except Exception:
-                        model_rewritten = None
-
-                final_text = model_rewritten or tp["suggested_replacement_text"]
-
-                # 局部针对性更新该段落
-                orig_p["content"] = final_text
-                orig_p["text"] = final_text
-                orig_p["char_length"] = len(final_text)
-                orig_p["citations"] = extract_paragraph_citations(
-                    final_text,
-                    allowed_evidence_ids=allowed_evidence_ids,
-                    allowed_snippet_ids=allowed_snippet_ids,
-                )
-
-                round_remediated_indices.append(p_idx)
-                remediated_indices.add(p_idx)
-
-            # 重新格式化章节正文
-            current_content = format_structured_chapter_content(active_paragraphs)
-
-            # 重新即时执行质检核验
-            current_val = validate_chapter_candidate(
-                content=current_content,
-                paragraphs=active_paragraphs,
-                chapter=chapter,
-                allowed_evidence_ids=allowed_evidence_ids,
-                allowed_snippet_ids=allowed_snippet_ids,
-                workflow=workflow,
-                project=project,
-            )
-
-            remediation_history.append({
-                "round": r_num,
-                "remediated_paragraph_indices": round_remediated_indices,
-                "blockers_before": len(plan["target_paragraphs"]),
-                "blockers_after": len(current_val["detected_blockers"]),
-                "score_after": current_val["quality_health_score"],
-                "rating_after": current_val["quality_health_rating"],
-            })
-
-        # 法定表单缺少签字盖章保底补充
-        if current_val["validation_failed"] and any(b.get("code") == "MANDATORY_SEAL_SIGNATURE_MISSING" for b in current_val["detected_blockers"]):
-            if not any(m in current_content for m in VALID_SEAL_MARKERS):
-                current_content += STANDARD_STATUTORY_SEAL_BLOCK
-                active_paragraphs = parse_structured_paragraphs(
-                    current_content,
-                    scoring_points=prompt_plan.get("writing_points"),
-                    allowed_evidence_ids=allowed_evidence_ids,
-                    allowed_snippet_ids=allowed_snippet_ids,
-                )
-                current_val = validate_chapter_candidate(
-                    content=current_content,
-                    paragraphs=active_paragraphs,
-                    chapter=chapter,
-                    allowed_evidence_ids=allowed_evidence_ids,
-                    allowed_snippet_ids=allowed_snippet_ids,
-                    workflow=workflow,
-                    project=project,
-                )
+        loop_outcome = run_chapter_loop(current_content, loop_context, max_rounds=max_rounds, model_fix=model_fix)
+        # 段落编号沿用结构化段落（[P1]…[Pn]）口径，便于与写作方案和编辑台对照。
+        before_structured = [p.get("content") for p in active_paragraphs]
+        after_structured = [p.get("content") for p in parse_structured_paragraphs(
+            loop_outcome["content"],
+            scoring_points=prompt_plan.get("writing_points"),
+            allowed_evidence_ids=allowed_evidence_ids,
+            allowed_snippet_ids=allowed_snippet_ids,
+        )]
+        remediated_indices: set[int] = {
+            i for i, text in enumerate(after_structured) if i < len(before_structured) and text != before_structured[i]
+        }
+        current_content = loop_outcome["content"]
+        rounds_executed = len(loop_outcome["rounds"])
+        remediation_history: list[dict[str, Any]] = [
+            {
+                "round": r["round"],
+                "remediated_paragraph_indices": r["modified_paragraphs"],
+                "found": r["found"],
+                "resolved": r["resolved"],
+                "conclusion": r["conclusion"],
+            }
+            for r in loop_outcome["rounds"]
+        ]
+        active_paragraphs = parse_structured_paragraphs(
+            current_content,
+            scoring_points=prompt_plan.get("writing_points"),
+            allowed_evidence_ids=allowed_evidence_ids,
+            allowed_snippet_ids=allowed_snippet_ids,
+        )
+        current_val = validate_chapter_candidate(
+            content=current_content,
+            paragraphs=active_paragraphs,
+            chapter=chapter,
+            allowed_evidence_ids=allowed_evidence_ids,
+            allowed_snippet_ids=allowed_snippet_ids,
+            workflow=workflow,
+            project=project,
+        )
+        latest_plan = synthesize_remediation_plan(
+            content=current_content,
+            paragraphs=active_paragraphs,
+            chapter=chapter,
+            allowed_evidence_ids=allowed_evidence_ids,
+            allowed_snippet_ids=allowed_snippet_ids,
+            facts=loop_context.facts,
+            detected_blockers=current_val["detected_blockers"],
+            detected_warnings=current_val["detected_warnings"],
+            project=project,
+        ) if not loop_outcome["passed"] else {"has_defects": False, "target_paragraphs": []}
 
         now_time = self.demo._now() if hasattr(self.demo, "_now") else time.time()
         now_iso = iso_time(now_time)
@@ -2181,13 +2130,28 @@ class ChapterGenerationService:
             "post_remediation_rating": current_val["quality_health_rating"],
             "remediation_plan": latest_plan,
             "remediation_history": remediation_history,
+            "loop_stop_reason": loop_outcome["stop_reason"],
+            "loop_stop_reason_label": loop_outcome["stop_reason_label"],
+            "loop_rolled_back": loop_outcome["rolled_back"],
+            "human_issue_count": len(loop_outcome["issues"]),
             "updated_at": now_iso,
         })
 
+        loop_record: dict[str, Any] | None = None
         if auto_save:
             def save_remediated_cand(st: DemoState):
+                nonlocal loop_record
+                from .chapter_loop import record_loop
+
                 wf = st.workflows.setdefault(project_id, {})
                 wf.setdefault("candidates", {})[chapter_id] = remediated_candidate
+                order = wf.get("chapter_order") or [c.id for c in st.chapters.values() if c.project_id == project_id]
+                number = order.index(chapter_id) + 1 if chapter_id in order else 1
+                live_chapter = st.chapters.get(chapter_id, chapter)
+                loop_record = record_loop(
+                    wf, live_chapter, number, loop_outcome, actor_id=principal.user.id, now_iso=now_iso,
+                    checked_revision=int(getattr(live_chapter, "revision", 0) or 0), kind="generation_candidate",
+                )
 
             self.repository.transaction(save_remediated_cand)
 
@@ -2205,6 +2169,10 @@ class ChapterGenerationService:
             "validation_report": current_val["validation_report"],
             "remediation_plan": latest_plan,
             "remediation_history": remediation_history,
+            "loop": loop_record,
+            "loop_stop_reason": loop_outcome["stop_reason"],
+            "human_issues": loop_outcome["issues"],
+            "loop_outcome": loop_outcome if not auto_save else None,
         }
 
 

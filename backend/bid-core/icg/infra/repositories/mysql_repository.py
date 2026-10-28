@@ -33,6 +33,9 @@ from icg.infra.repositories.jobs import (
 )
 from icg.infra.repositories.projects import project_snapshot, team_snapshot, save_projects
 from icg.infra.repositories.model_config import save_model_configs
+from icg.infra.repositories.workflow_state import (
+    load_workflow_state, save_workflow_state_diff, workflow_state_snapshot,
+)
 
 T = TypeVar("T")
 
@@ -70,6 +73,8 @@ class MysqlConnectionRepository:
         self._engine = None
         self._engine_lock = Lock()
         self._memory = MemoryRepository()
+        # 0012 迁移之前的库没有工作流状态表；读到缺表时不写，避免把全部写操作拖垮。
+        self._workflow_state_table = True
 
     @property
     def engine(self):
@@ -203,6 +208,7 @@ class MysqlConnectionRepository:
             before_bindings = dict(state.project_model_configs)
             before_chapters = chapter_snapshot(state)
             before_checks = check_snapshot(state)
+            before_workflow_state = workflow_state_snapshot(state)
             result = operation(state)
             self._save_shared(
                 before_sessions, dict(state.sessions), before_receipts, state.workflow_receipts,
@@ -213,6 +219,7 @@ class MysqlConnectionRepository:
                 before_bindings, dict(state.project_model_configs),
                 before_chapters, chapter_snapshot(state), state.chapters, loaded_chapter_ids,
                 before_checks, check_snapshot(state), state.checks, loaded_check_ids,
+                before_workflow_state, workflow_state_snapshot(state),
             )
             state.sessions.clear()
             state.workflow_receipts.clear()
@@ -428,6 +435,17 @@ class MysqlConnectionRepository:
                 pass
         except Exception:
             pass
+        self._load_workflow_state(state)
+
+    def _load_workflow_state(self, state: DemoState) -> None:
+        try:
+            with self.engine.begin() as connection:
+                load_workflow_state(connection, state)
+            self._workflow_state_table = True
+        except Exception as error:  # 0012 之前的库缺表；其他错误照常抛出
+            if "demo_project_workflow_state" not in str(error):
+                raise
+            self._workflow_state_table = False
 
     def _save_shared(self, before_sessions: dict, after_sessions: dict,
                      before_receipts: dict, after_receipts: dict,
@@ -440,7 +458,9 @@ class MysqlConnectionRepository:
                      before_chapters: dict | None = None, after_chapters: dict | None = None,
                      state_chapters: dict | None = None, loaded_chapter_ids: set[str] | None = None,
                      before_checks: dict | None = None, after_checks: dict | None = None,
-                     state_checks: dict | None = None, loaded_check_ids: set[str] | None = None) -> None:
+                     state_checks: dict | None = None, loaded_check_ids: set[str] | None = None,
+                     before_workflow_state: dict | None = None,
+                     after_workflow_state: dict | None = None) -> None:
         with self.engine.begin() as connection:
             connection.execute(text("DELETE FROM idempotency_receipt WHERE expires_at <= NOW(6)"))
             for token in before_sessions:
@@ -616,3 +636,6 @@ class MysqlConnectionRepository:
                     connection, before_checks, after_checks,
                     state_checks, loaded_check_ids or set(),
                 )
+            if (self._workflow_state_table and before_workflow_state is not None
+                    and after_workflow_state is not None):
+                save_workflow_state_diff(connection, before_workflow_state, after_workflow_state)

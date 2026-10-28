@@ -40,4 +40,7 @@ def project_input_fingerprint(state: DemoState, project_id: str) -> str:
         "sla_templates": [item for item in state.sla_templates.values()
                           if item["company_id"] == project["company_id"]],
     }
+    if workflow.get("volume_epochs"):
+        # 分册解锁轮次（Wave 11）：解锁后旧检查、旧导出一律过期。为空时不写入，保持既有指纹不变。
+        payload["volume_epochs"] = workflow["volume_epochs"]
     return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()

@@ -115,6 +115,13 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                         "RULES_INCOMPLETE",
                         f"完整合规规则与分册定稿未完成：{unfinalized_names}尚未完成责任人定稿锁定，不能把本地内部稿冒充递交版。"
                     )
+                from icg.domain.volume_review import volume_snapshot
+                drifted = [vol for vol in sorted(required_volumes)
+                           if volumes_state.get(vol, {}).get("snapshot") is not None
+                           and volumes_state[vol]["snapshot"] != volume_snapshot(state, project_id, vol)]
+                if drifted:
+                    raise DomainError(409, "RULES_INCOMPLETE", "定稿后正文有改动，须解锁、重新检查和复核后再定稿。",
+                                      {"volumes": drifted})
 
             is_internal_review = payload.get("kind") == "internal_review"
             if not is_internal_review and not check["passed"]:

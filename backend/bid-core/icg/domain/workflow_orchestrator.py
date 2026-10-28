@@ -31,6 +31,9 @@ from icg.domain.export_service import ExportServiceMixin
 from icg.domain.volume_finalize import VolumeFinalizeMixin
 from icg.domain.tender_orchestrator import TenderOrchestratorMixin, TenderOrchestrator
 from icg.domain.library_orchestrator import LibraryOrchestratorMixin, LibraryOrchestrator
+from icg.domain.human_queue import HumanQueueMixin
+from icg.domain.volume_review import VolumeReviewMixin
+from icg.domain.post_process import OmissionMixin
 
 SAMPLE_TENDER: bytes = b""
 
@@ -61,6 +64,9 @@ class WorkflowService(
     VolumeFinalizeMixin,
     TenderOrchestratorMixin,
     LibraryOrchestratorMixin,
+    HumanQueueMixin,
+    VolumeReviewMixin,
+    OmissionMixin,
 ):
     """投标工作流统一领域门面服务。"""
 
@@ -76,7 +82,7 @@ class WorkflowService(
     ]
     UNIMPLEMENTED_RULES = [
         "参考合规规则尚未逐条完成（按一期完整/一期简化/二期分组）", "语义事实与承诺核对",
-        "公司全文查重", "结构化敏感变量", "交叉复核和完整分册定稿",
+        "公司全文查重", "结构化敏感变量",
     ]
 
     def __init__(self, demo: DemoService, parser: ParserProvider):
@@ -196,6 +202,11 @@ class WorkflowService(
                     raise DomainError(403, "CHAPTER_STRUCTURE_REQUIRED", "只有项目负责人或本册负责人可以分配本节。")
             else:
                 require_chapter(state, principal, chapter)
+        elif name == "chapter.loop.recheck":
+            chapter = self.demo._chapter(state, principal, resource_id)
+            if chapter.project_id != project_id:
+                raise DomainError(404, "NOT_FOUND", "章节不属于当前项目。")
+            require_chapter(state, principal, chapter)
         elif name == "chapter.generate":
             chapters = [c for c in state.chapters.values() if c.project_id == project_id]
             selected = payload.get("chapter_ids")

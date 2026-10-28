@@ -13,7 +13,7 @@ import re
 from pathlib import PurePosixPath
 from typing import Any
 
-from icg.domain.domain import DomainError, Principal, new_id
+from icg.domain.domain import DomainError, Principal, iso_time, new_id
 from icg.domain.generation_context import evidence_expired
 from icg.domain.project_access import lead
 from icg.domain.export_service import DOCX_MEDIA_TYPE
@@ -145,6 +145,8 @@ class TenderOrchestratorMixin:
                     pages=result.pages,
                     warnings=result.warnings,
                 )
+                from icg.domain.post_process import run_scan
+                run_scan(actual, identity, result.pages, iso_time(self.demo._now()))
                 existing = {
                     (r["source"]["file_id"], r["source"]["page"], r["source"]["quote"])
                     for r in actual["requirements"].values()
@@ -348,6 +350,8 @@ class TenderOrchestratorMixin:
                            for identity in conflict["fact_ids"] if identity != selected)
                 ):
                     raise DomainError(409, "CONFLICT_SELECTION_INVALID", "冲突必须有且只有一个确认取值，其余候选需忽略。")
+            from icg.domain.post_process import require_no_omissions
+            require_no_omissions(workflow)
             workflow["parse_confirmed"] = True
             return {"parse_confirmed": True}
 

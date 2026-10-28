@@ -40,6 +40,8 @@ def _frozen_status() -> dict[str, int]:
         "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
         # 超管角色不可被修改/降权与管理员防自降权 (APP-M2-T028 / PRD v1.8 §5.10.1)
         "SUPER_ADMIN_PROTECTED", "CANNOT_DEMOTE_SELF",
+        # 只有被指定的交叉复核人可以确认复核 (Wave 11 / PRD v1.8 §2.3)
+        "CROSS_REVIEWER_REQUIRED",
     ))
     _bind(table, 404, ("NOT_FOUND",))
     _bind(table, 409, (
@@ -68,6 +70,11 @@ def _frozen_status() -> dict[str, int]:
         "DICT_ITEM_IN_USE", "DICT_CODE_DUPLICATED",
         # 用户管理停用前资产转交门禁 (APP-M2-T027 / PRD v1.8 §5.10.1)
         "USER_TRANSFER_REQUIRED",
+        # 章节循环与人工处理队列、分册交叉复核与定稿 (Wave 11 / PRD v1.8 §5.7.4、§5.7.7、§5.8.5)
+        "HUMAN_ISSUE_NOT_PENDING", "HUMAN_ISSUES_PENDING", "BLOCKER_NOT_REJECTABLE",
+        "VOLUME_FINALIZED", "CHAPTER_CONTENT_EMPTY", "CROSS_REVIEW_REQUIRED", "CROSS_REVIEWER_IS_EDITOR",
+        # 解析后处理：疑似遗漏未处理不能确认解析结果 (Wave 11 / PRD v1.8 §5.2.4)
+        "OMISSIONS_PENDING",
     ))
     _bind(table, 413, (
         "FILE_SIZE_LIMIT", "FILE_EXPANSION_LIMIT", "PDF_PAGE_LIMIT", "GENERATION_CONTEXT_TOO_LARGE",
