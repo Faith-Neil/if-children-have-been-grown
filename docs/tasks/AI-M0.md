@@ -708,7 +708,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-progress |
+| 状态 | in-review |
 | 估算 | 3小时；合成金标集、评测脚本、真实实例参数扫描与报告 |
 | 关联 Issue | [ISSUE-043](../../issues/ISSUE-043.md) |
 | 依赖 | [AI-KB-RAG-PIPELINE](AI-M0.md#ai-kb-rag-pipeline) |
@@ -717,6 +717,8 @@
 | 代码解释 | [代码说明](../code/AI-KB-RAG-PIPELINE.md) |
 
 已完成：`scripts/rag_eval.py`、`tests/rag_eval/golden_v1.json`（离线跑通）。待做：真实 RAGFlow 上扫描 `similarity_threshold` × `keywords_similarity_weight`（及重排模型），以同义改写 recall@3 ≥ 0.8、负例误召回 ≤ 0.25 为初定目标，写回默认参数。阻塞：用户侧隧道 2026-10-28 不可达。
+
+结果（2026-10-28）：内置解析见 [内置解析评测](../testing/rag-eval-golden-v1-builtin.md)，据此默认阈值 0.45、关键词权重 0.3（paraphrase recall@3 0.969，负例误召回在 0.45 下为 0）。ICG 结构化流程见 [流程模式评测](../testing/rag-eval-golden-v1-pipeline.md)：21 篇有 7 篇在 LLM 抽取步骤解析失败，召回 literal 0.667 / paraphrase 0.5，低于内置解析；上线前须换稳定的内网抽取模型复测，否则按公司关闭流程。`scripts/rag_eval.py` 新增 `--dataset-id` 接续已在解析的数据集。
 
 <a id="ai-kb-control-plane"></a>
 

@@ -10,7 +10,7 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 451 项：done 96、in-review 110、in-progress 48、planned 142、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+项目 451 项：done 96、in-review 113、in-progress 46、planned 141、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
@@ -31,10 +31,11 @@
 
 - in-review：BE-WORKFLOW-DURABILITY（[ISSUE-041](../issues/ISSUE-041.md)，通用条目表 `demo_state_entry`，沙箱 MySQL 8.4.13 验证）、AI-KB-RAG-PIPELINE（[ISSUE-043](../issues/ISSUE-043.md)，知识库对账同步与实时复核检索）。
 - in-review：AI-KB-CONTROL-PLANE（知识库管控接口与 ICG 摄入流程，见[技术决定](decisions/2026-10-28-kb-control-plane-and-pipelines.md)）。
-- in-progress：AI-KB-RAG-EVAL（评测脚本与金标集已就绪；真实 RAGFlow 上嵌入模型不可用：Jiekou.AI 被代理假 IP 拦截、Gemini 免费额度用尽）。
 - 续（用户决定去掉演示环境）：BE-AUTH-PRODUCTION-ONLY、AI-TENDER-STRUCTURED-EXTRACTION、FE-KB-BUSINESS-FLOWS、FE-E2E-LIBRARY-DRIFT 为 in-review；新登记 ISSUE-044 / FE-TEST-ORPHANS。
 - FE-TEST-ORPHANS 为 in-review（ISSUE-044：8 项失败为演示会话夹具过期，根目录测试已并入 `pnpm test`）。
-- 余下顺序（重定后）：AI-KB-RAG-EVAL（流程模式）→ APP-M2-T130/T131 → APP-M2-T235/T236/T237 → APP-M2-T200 → 招标扫描件经 RAGFlow 解析。
+- AI-KB-RAG-EVAL 为 in-review：流程模式实测 7/21 文档解析失败、召回低于内置解析（[流程评测](testing/rag-eval-golden-v1-pipeline.md)）。
+- APP-M2-T130/T131 为 in-review：全部章节循环进度（`GET /chapter-loops`）与轮次时间线（任务/模型/实际输入/版本/逐轮修正/前章摘要接力）。
+- 余下顺序（重定后）：APP-M2-T235/T236/T237 → APP-M2-T200 → 招标扫描件经 RAGFlow 解析。
 - 自测记录：[Wave 12 开发自测](testing/2026-10-28-wave-12-verification.md)。
 
 ## Wave 11 主路径补环（2026-10-28）
@@ -428,8 +429,8 @@
 | [APP-M2-T127](tasks/APP-M2.md#app-m2-t127) | 五类系统生成章节预览 | planned | APP-M1-T04、APP-M2-T191、APP-M2-T192、APP-M2-T193、APP-M2-T194、APP-M2-T195 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T127.md` |
 | [APP-M2-T128](tasks/APP-M2.md#app-m2-t128) | 锁定提示与“去数据源修改” | planned | APP-M1-T04、APP-M2-T127、APP-M2-T163 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T128.md` |
 | [APP-M2-T129](tasks/APP-M2.md#app-m2-t129) | 章节列表（编辑台入口） | planned | APP-M2-T126、APP-M2-T021 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T129.md` |
-| [APP-M2-T130](tasks/APP-M2.md#app-m2-t130) | 章节循环进度页 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T126、APP-M2-T021、APP-M2-T044、APP-M2-T234、APP-M2-T237、APP-M2-T238、APP-M2-T254、APP-M2-T244、APP-M2-T245、APP-M2-T246、APP-M2-T247、APP-M2-T248、APP-M2-T249 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T130.md` |
-| [APP-M2-T131](tasks/APP-M2.md#app-m2-t131) | 轮次时间线 | planned | APP-M2-T126、APP-M2-T021、APP-M2-T130 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T131.md` |
+| [APP-M2-T130](tasks/APP-M2.md#app-m2-t130) | 章节循环进度页 | in-review（2026-10-28：循环进度页与轮次时间线已实现，见人工处理队列页签） | APP-M2-T126、APP-M2-T021、APP-M2-T044、APP-M2-T234、APP-M2-T237、APP-M2-T238、APP-M2-T254、APP-M2-T244、APP-M2-T245、APP-M2-T246、APP-M2-T247、APP-M2-T248、APP-M2-T249 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T130.md` |
+| [APP-M2-T131](tasks/APP-M2.md#app-m2-t131) | 轮次时间线 | in-review（2026-10-28：循环进度页与轮次时间线已实现，见人工处理队列页签） | APP-M2-T126、APP-M2-T021、APP-M2-T130 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T131.md` |
 | [APP-M2-T132](tasks/APP-M2.md#app-m2-t132) | 版本对比（复用 DiffView） | planned | APP-M2-T126、APP-M2-T021、APP-M2-T175 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T132.md` |
 | [APP-M2-T133](tasks/APP-M2.md#app-m2-t133) | 人工处理队列列表（Wave 11） | in-review | APP-M2-T126、APP-M2-T021、APP-M2-T130 | [ISSUE-007](../issues/ISSUE-007.md)、[ISSUE-040](../issues/ISSUE-040.md) | [交付](delivery/APP-M2-T133.md) |
 | [APP-M2-T134](tasks/APP-M2.md#app-m2-t134) | 队列详情单段编辑 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T126、APP-M2-T021、APP-M2-T133、APP-M2-T174 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T134.md` |
@@ -608,7 +609,7 @@
 | [BE-WORKFLOW-DURABILITY](tasks/BE-M0.md#be-workflow-durability) | 业务状态（项目工作流全部键、账号、资料库、服务内存储、知识库索引）写入 MySQL 通用条目表（Wave 12） | in-review | [BE-WORKFLOW-STATE-PERSIST](tasks/BE-M0.md#be-workflow-state-persist) | [ISSUE-041](../issues/ISSUE-041.md) | [交付](delivery/BE-WORKFLOW-DURABILITY.md) |
 | [FE-E2E-LIBRARY-DRIFT](tasks/FE-M0.md#fe-e2e-library-drift) | 资料库恢复历史标书/方案片段类别，证据抽屉 e2e 按现行页面对齐（Wave 12） | in-review | — | [ISSUE-042](../issues/ISSUE-042.md) | [ISSUE-042 处理结果](../issues/ISSUE-042.md) |
 | [AI-KB-RAG-PIPELINE](tasks/AI-M0.md#ai-kb-rag-pipeline) | 公司知识库同步（对账、改版/撤销/过期删除、漂移修复）与索引过滤、实时复核检索接入生产链路（Wave 12） | in-review | [AI-RAGFLOW-KB-SYNC](tasks/AI-M0.md#ai-ragflow-kb-sync)、[BE-WORKFLOW-DURABILITY](tasks/BE-M0.md#be-workflow-durability) | [ISSUE-043](../issues/ISSUE-043.md) | [交付](delivery/AI-KB-RAG-PIPELINE.md) |
-| [AI-KB-RAG-EVAL](tasks/AI-M0.md#ai-kb-rag-eval) | 知识库检索质量评测与调参（合成金标集、真实 RAGFlow 参数扫描；隧道已恢复，阻塞在嵌入模型不可用） | in-progress | [AI-KB-RAG-PIPELINE](tasks/AI-M0.md#ai-kb-rag-pipeline) | [ISSUE-043](../issues/ISSUE-043.md) | `docs/testing/rag-eval-golden-v1.md` |
+| [AI-KB-RAG-EVAL](tasks/AI-M0.md#ai-kb-rag-eval) | 知识库检索质量评测与调参（合成金标集、真实 RAGFlow 内置解析与流程模式均已实测） | in-review | [AI-KB-RAG-PIPELINE](tasks/AI-M0.md#ai-kb-rag-pipeline) | [ISSUE-043](../issues/ISSUE-043.md) | `docs/testing/rag-eval-golden-v1.md` |
 | [AI-KB-CONTROL-PLANE](tasks/AI-M0.md#ai-kb-control-plane) | 知识库管控接口（/api/v1/kb-admin）与招投标专用 RAGFlow 摄入流程（结构化资料/历史投标/证书/招标文件） | in-review | [AI-KB-RAG-PIPELINE](tasks/AI-M0.md#ai-kb-rag-pipeline) | [ISSUE-043](../issues/ISSUE-043.md) | [技术决定](decisions/2026-10-28-kb-control-plane-and-pipelines.md) |
 | [BE-AUTH-PRODUCTION-ONLY](tasks/BE-M0.md#be-auth-production-only) | 去掉演示入口与三角色兼容，只保留生产认证（用户 2026-10-28 决定） | in-review | — | [ISSUE-005](../issues/ISSUE-005.md) | [自测](testing/2026-10-28-wave-12b-verification.md) |
 | [AI-TENDER-STRUCTURED-EXTRACTION](tasks/AI-M0.md#ai-tender-structured-extraction) | 招标条款按章节与条目抽取（不再逐行成条款） | in-review | — | [ISSUE-007](../issues/ISSUE-007.md) | [自测](testing/2026-10-28-wave-12b-verification.md) |

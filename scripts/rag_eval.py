@@ -78,6 +78,21 @@ def _ingest_into(client, dataset, docs, wait_seconds: int) -> tuple[str, dict[st
         client.update_document(dataset.id, uploaded.id, meta_fields=doc.meta)
         mapping[uploaded.id] = doc.source_id
     client.trigger_parse(dataset.id, list(mapping))
+    return _wait_parsed(client, dataset, mapping, wait_seconds)
+
+
+def _attach(client, dataset_id: str, docs, wait_seconds: int) -> tuple[str, dict[str, str]]:
+    """接着用已在解析的临时数据集（上次评测进程中断，RAGFlow 侧解析仍在继续）。"""
+    by_name = {doc.filename: doc.source_id for doc in docs}
+    listed = client.list_documents(dataset_id, page_size=100)
+    mapping = {d.id: by_name[d.name] for d in listed if d.name in by_name}
+    if not mapping:
+        raise SystemExit(f"数据集 {dataset_id} 里没有金标文档")
+    print(f"  接续数据集 {dataset_id}：{len(mapping)} 篇金标文档", flush=True)
+    return _wait_parsed(client, type("Dataset", (), {"id": dataset_id})(), mapping, wait_seconds)
+
+
+def _wait_parsed(client, dataset, mapping: dict[str, str], wait_seconds: int) -> tuple[str, dict[str, str]]:
     deadline = time.time() + wait_seconds
     while True:
         listed = client.list_documents(dataset.id, page_size=100)
@@ -150,6 +165,8 @@ def main() -> None:
     parser.add_argument("--llm-id", default=os.environ.get("ICG_KB_LLM_ID", ""), help="pipeline 模式抽取用对话模型")
     parser.add_argument("--embedding-model", default=os.environ.get("ICG_KB_EMBEDDING_MODEL") or None,
                         help="model@factory；不填用 RAGFlow 租户默认嵌入模型")
+    parser.add_argument("--dataset-id", default="", help="接续已有临时数据集（不新建、不上传）")
+    parser.add_argument("--pipeline-id", default="", help="与 --dataset-id 配套：结束后一并删除的临时摄入流程")
     args = parser.parse_args()
 
     golden = json.loads(GOLDEN.read_text(encoding="utf-8"))
@@ -158,16 +175,21 @@ def main() -> None:
     print(f"模式：{'真实 RAGFlow ' + client.base_url if args.live else '离线假服务'}；文档 {len(docs)}，查询 {len(golden['queries'])}")
     rows = []
     pipeline_id = ""
-    if args.mode == "pipeline":
+    if args.dataset_id:
+        pipeline_id = args.pipeline_id
+    elif args.mode == "pipeline":
         from icg.infra.ragflow_pipelines import PROFILES, PipelineOptions, build_dsl
         agent = client.create_agent(f"icg:eval:{int(time.time())}",
                                     build_dsl(PROFILES["structured"], PipelineOptions(llm_id=args.llm_id)),
                                     canvas_category="dataflow_canvas")
         pipeline_id = agent["id"]
     try:
-        dataset_id, mapping = _ingest(client, docs, args.wait, args.embedding_model, pipeline_id)
+        if args.dataset_id:
+            dataset_id, mapping = _attach(client, args.dataset_id, docs, args.wait)
+        else:
+            dataset_id, mapping = _ingest(client, docs, args.wait, args.embedding_model, pipeline_id)
     except BaseException:
-        if pipeline_id and args.live:
+        if pipeline_id and args.live and not args.keep:
             client.delete_agent(pipeline_id)
         raise
     try:

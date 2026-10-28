@@ -884,6 +884,7 @@
 | D-863 | 2026-10-28 | [Wave 12 续开发自测](testing/2026-10-28-wave-12b-verification.md) | 验证 | wave12b-dev-1 | 开发自测 | ISSUE-042 / ISSUE-043 / ISSUE-044 | 去掉演示环境、知识库接入业务页面、条款结构化抽取；非 QA 签署 |
 | D-864 | 2026-10-28 | [ISSUE-044 前端根目录测试从未执行](../issues/ISSUE-044.md) | Issue | revision 1 | triaged | ISSUE-044 / FE-TEST-ORPHANS | 28 个测试文件未执行，8 项失败 |
 | D-865 | 2026-10-28 | [ISSUE-045 任务看板按代码实况重定](../issues/ISSUE-045.md) | Issue | revision 1 | in-review | ISSUE-045 | 131 卡状态重定；旧前端轨道与示例外壳 cancelled |
+| D-866 | 2026-10-28 | [RAG 检索评测：ICG 流程模式，真实 RAGFlow](testing/rag-eval-golden-v1-pipeline.md) | 验证 | golden-v1 | 当前 | ISSUE-043 / AI-KB-RAG-EVAL | 7/21 解析失败，召回低于内置解析；上线前换内网抽取模型复测 |
 
 ## 更新记录
 

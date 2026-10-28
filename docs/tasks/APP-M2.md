@@ -1984,7 +1984,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T130 · 章节循环进度页
 <a id="app-m2-t130"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T126](APP-M2.md#app-m2-t126)、[APP-M2-T021](APP-M2.md#app-m2-t021)、[APP-M2-T044](APP-M2.md#app-m2-t044)、[APP-M2-T234](APP-M2.md#app-m2-t234)、[APP-M2-T237](APP-M2.md#app-m2-t237)、[APP-M2-T238](APP-M2.md#app-m2-t238)、[APP-M2-T254](APP-M2.md#app-m2-t254)、[APP-M2-T244](APP-M2.md#app-m2-t244)、[APP-M2-T245](APP-M2.md#app-m2-t245)、[APP-M2-T246](APP-M2.md#app-m2-t246)、[APP-M2-T247](APP-M2.md#app-m2-t247)、[APP-M2-T248](APP-M2.md#app-m2-t248)、[APP-M2-T249](APP-M2.md#app-m2-t249)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T126](APP-M2.md#app-m2-t126)、[APP-M2-T021](APP-M2.md#app-m2-t021)、[APP-M2-T044](APP-M2.md#app-m2-t044)、[APP-M2-T234](APP-M2.md#app-m2-t234)、[APP-M2-T237](APP-M2.md#app-m2-t237)、[APP-M2-T238](APP-M2.md#app-m2-t238)、[APP-M2-T254](APP-M2.md#app-m2-t254)、[APP-M2-T244](APP-M2.md#app-m2-t244)、[APP-M2-T245](APP-M2.md#app-m2-t245)、[APP-M2-T246](APP-M2.md#app-m2-t246)、[APP-M2-T247](APP-M2.md#app-m2-t247)、[APP-M2-T248](APP-M2.md#app-m2-t248)、[APP-M2-T249](APP-M2.md#app-m2-t249)。
 
 原始来源：原交接 §6.5 M4-F10-F2；PRD v1.8 §5.7.4～5.7.7。交付单位：章节循环进度页，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -1997,9 +1997,12 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 交付：`docs/delivery/APP-M2-T130.md`；代码解释：`docs/code/APP-M2-T130.md`；测试放docs/testing并逐项关联本卡，未执行写未执行。
 
 ### APP-M2-T131 · 轮次时间线
+
+实现（2026-10-28）：`GET /api/v1/projects/{id}/chapter-loops`（listChapterLoops）列出全部章节（含未开始）的最近一次循环、停止原因、待处理数与能否重新检查；页面在“人工处理队列”页签的“章节循环进度”视图，失败显示重试、无章节显示空态，重新检查按后台 `can_recheck`。测试：`tests/backend/test_human_queue.py`、`frontend/web/tests/unit/chapter-loop-core.test.mjs`、`frontend/web/e2e/chapter-loop.spec.ts`。
+
 <a id="app-m2-t131"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T126](APP-M2.md#app-m2-t126)、[APP-M2-T021](APP-M2.md#app-m2-t021)、[APP-M2-T130](APP-M2.md#app-m2-t130)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T126](APP-M2.md#app-m2-t126)、[APP-M2-T021](APP-M2.md#app-m2-t021)、[APP-M2-T130](APP-M2.md#app-m2-t130)。
 
 原始来源：原交接 §6.5 M4-F10-F3；PRD v1.8 §5.7.4～5.7.7。交付单位：轮次时间线，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -2012,6 +2015,9 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 交付：`docs/delivery/APP-M2-T131.md`；代码解释：`docs/code/APP-M2-T131.md`；测试放docs/testing并逐项关联本卡，未执行写未执行。
 
 ### APP-M2-T132 · 版本对比（复用 DiffView）
+
+实现（2026-10-28）：每次循环记录 `meta`（任务、模型/配置、修正方式、实际输入规模、输入指纹、修正前版本）与 `result_revision`，每轮记录查出的问题码与逐段修正方（模型/规则）；生成输入新增前章摘要接力（同分册上一章正文开头），前章无正文时明确标为缺失并提示人工核对衔接。时间线抽屉按循环倒序展示，早于本功能的记录明确显示“未记录”。
+
 <a id="app-m2-t132"></a>
 
 状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T126](APP-M2.md#app-m2-t126)、[APP-M2-T021](APP-M2.md#app-m2-t021)、[APP-M2-T175](APP-M2.md#app-m2-t175)。
