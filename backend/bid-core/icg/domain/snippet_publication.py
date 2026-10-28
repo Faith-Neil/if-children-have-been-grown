@@ -52,29 +52,82 @@ def _public(record: dict) -> dict:
 
 
 class MemorySnippetPublicationStore:
-    """进程内字典。重启丢失。不经过 Repository.read 或 transaction。"""
+    """方案片段存储。
 
-    def __init__(self, clock):
+    绑定仓储后，片段与审计保存在 DemoState.service_stores["snippets"]：写操作在 SnippetPublicationService
+    的仓储事务里绑定工作状态完成，读操作读取仓储快照，因此与其他状态一起持久化（ISSUE-041）。
+    未绑定仓储（单元测试直接构造）时退回进程内字典。
+    """
+
+    def __init__(self, clock, repository=None):
         self._clock = clock
         self._lock = RLock()
-        self.records: dict[str, dict] = {}
-        self.audits: dict[str, list] = {}
+        self._repository = repository
+        self._bound: dict | None = None
+        self._local = {"records": {}, "audits": {}}
+
+    def _data(self) -> dict:
+        if self._bound is not None:
+            return self._bound
+        if self._repository is not None:
+            return self._repository.read().service_stores.get("snippets") or {"records": {}, "audits": {}}
+        return self._local
+
+    @property
+    def records(self) -> dict[str, dict]:
+        return self._data()["records"]
+
+    @property
+    def audits(self) -> dict[str, list]:
+        return self._data()["audits"]
+
+    def bind(self, state) -> None:
+        self._bound = state.service_stores.setdefault("snippets", {"records": {}, "audits": {}})
+
+    def unbind(self) -> None:
+        self._bound = None
 
     def snapshot(self) -> dict:
         with self._lock:
-            return {"records": deepcopy(self.records), "audits": deepcopy(self.audits)}
+            data = self._data()
+            return {"records": deepcopy(data["records"]), "audits": deepcopy(data["audits"])}
 
     def transaction(self, operation):
-        # 序列化整个回执/片段操作；回执提交失败时恢复独立片段与审计。
-        # 仍只保障本进程，不能把内存片段说成跨进程持久化。
+        # 序列化整个回执/片段操作。绑定仓储时由仓储事务负责回滚；未绑定时恢复进程内字典。
         with self._lock:
-            before = self.snapshot()
+            before = self.snapshot() if self._repository is None else None
             try:
                 return operation()
             except Exception:
-                self.records = before["records"]
-                self.audits = before["audits"]
+                if before is not None:
+                    self._local = before
                 raise
+            finally:
+                self.unbind()
+
+    def update_kb_status(self, snippet_id: str, status: str, **extra) -> dict | None:
+        """写回知识库同步状态（及 document_id 等附加字段）。
+
+        绑定仓储时在仓储事务里改 DemoState.service_stores，保证持久化；读快照上的改动会丢失。
+        """
+        def apply_to(data: dict) -> dict | None:
+            record = data["records"].get(snippet_id)
+            if record is None:
+                return None
+            record["kb_sync_status"] = status
+            for key, value in extra.items():
+                record[key] = value
+            record["updated_at"] = iso_time(self._clock())
+            return _public(record)
+
+        with self._lock:
+            if self._repository is None:
+                return apply_to(self._local)
+
+            def apply(state):
+                return apply_to(state.service_stores.setdefault("snippets", {"records": {}, "audits": {}}))
+
+            return self._repository.transaction(apply)
 
     def list(self, company_id: str) -> list:
         with self._lock:
@@ -236,6 +289,7 @@ class SnippetPublicationService:
         request_fingerprint = fingerprint(action, payload, if_match)
 
         def apply(state):
+            self.store.bind(state)
             now = self._clock()
             replay = lookup(state, scope_id, principal.user.id, key, request_fingerprint, now)
             if replay is not None:
@@ -248,7 +302,7 @@ class SnippetPublicationService:
 
 
 def include_snippet_routes(application, service, current_user) -> None:
-    store = MemorySnippetPublicationStore(clock=service._now)
+    store = MemorySnippetPublicationStore(clock=service._now, repository=service.repository)
     application.state.snippet_publications = store
     service.snippet_publications = store
     publications = SnippetPublicationService(store, service.repository, service._now, service._writer)

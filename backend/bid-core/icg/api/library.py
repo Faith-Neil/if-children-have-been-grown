@@ -27,7 +27,7 @@ def _list_etag(items: list) -> str:
 
 
 def include_snippet_routes(application, service, current_user) -> None:
-    store = MemorySnippetPublicationStore(clock=service._now)
+    store = MemorySnippetPublicationStore(clock=service._now, repository=service.repository)
     application.state.snippet_publications = store
     service.snippet_publications = store
     publications = SnippetPublicationService(store, service.repository, service._now, service._writer)

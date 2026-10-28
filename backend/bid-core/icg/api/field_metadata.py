@@ -29,6 +29,7 @@ def include_field_metadata_routes(application, service: DemoService, current_use
     if not dict_service:
         dict_service = DictConfigService()
         application.state.dict_config_service = dict_service
+    dict_service.repository = service.repository
     setattr(service, "dict_config_service", dict_service)
 
     router = APIRouter(prefix="/api/v1", responses=v1_error_responses(401, 403, 404, 500))

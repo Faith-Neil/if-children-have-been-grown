@@ -213,6 +213,9 @@ class DemoState:
     resource_acl: list[dict] = field(default_factory=list)
     model_configs: dict[str, Any] = field(default_factory=dict)
     project_model_configs: dict[str, str] = field(default_factory=dict)
+    # RAGFlow 租户配置与各服务（公司设置、字典、方案片段）的存储；与其他状态同一事务、同一持久化。
+    ragflow_configs: dict[str, Any] = field(default_factory=dict)
+    service_stores: dict[str, dict] = field(default_factory=dict)
     # 内存仓库仍按 2048 条裁剪回执。MySQL 路径在事务里把它设为 False，避免未过期回执被提前删掉。
     cap_receipts: bool = True
 

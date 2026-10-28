@@ -20,6 +20,7 @@ def include_company_routes(application, service: DemoService, current_user) -> N
     if not settings_service:
         settings_service = CompanySettingsService()
         application.state.company_settings_service = settings_service
+    settings_service.repository = service.repository
     setattr(service, "company_settings_service", settings_service)
 
     router = APIRouter(prefix="/api/v1", responses=v1_error_responses(401, 403, 404, 422, 500))

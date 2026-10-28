@@ -91,16 +91,36 @@ class CompanySettingsService:
     """企业设置与安全策略领域服务。"""
 
     def __init__(self) -> None:
-        self._store: dict[str, CompanySettingsModel] = {}
+        self._local: dict[str, CompanySettingsModel] = {}
+        # 绑定仓储后企业设置保存在 DemoState.service_stores["company_settings"]，随其他状态持久化（ISSUE-041）。
+        self.repository = None
+
+    @property
+    def _store(self) -> dict[str, CompanySettingsModel]:
+        if self.repository is None:
+            return self._local
+        stored = self.repository.read().service_stores.get("company_settings") or {}
+        return {cid: CompanySettingsModel(**data) for cid, data in stored.items()}
+
+    def _save(self, company_id: str, model: CompanySettingsModel) -> None:
+        if self.repository is None:
+            self._local[company_id] = model
+            return
+        data = model.model_dump()
+
+        def write(state):
+            state.service_stores.setdefault("company_settings", {})[company_id] = data
+
+        self.repository.transaction(write)
 
     def _get_or_create(self, company_id: str) -> CompanySettingsModel:
-        if company_id not in self._store:
+        current = self._store.get(company_id)
+        if current is None:
             name = "Alpha 科技" if company_id == "alpha" else ("Beta 建设" if company_id == "beta" else f"{company_id} 企业")
-            self._store[company_id] = CompanySettingsModel(
-                company_id=company_id,
-                company_name=name,
-            )
-        return copy.deepcopy(self._store[company_id])
+            current = CompanySettingsModel(company_id=company_id, company_name=name)
+            if self.repository is None:
+                self._local[company_id] = current
+        return copy.deepcopy(current)
 
     def get_settings(self, company_id: str, principal: Principal) -> CompanySettingsModel:
         """获取指定企业的设置与安全策略配置。"""
@@ -278,5 +298,5 @@ class CompanySettingsService:
         data["updated_by"] = user.id
 
         updated_model = CompanySettingsModel(**data)
-        self._store[company_id] = updated_model
+        self._save(company_id, updated_model)
         return copy.deepcopy(updated_model)

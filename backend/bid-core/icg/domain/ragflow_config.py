@@ -396,6 +396,14 @@ class RagflowConfigService:
             snippet_body = opts.get("draft_body") or opts.get("published_body") or "方案片段默认正文。"
             snippet_title = snippet_title or target_id or "snippet"
 
+        def _write_status(status: str, **extra: Any) -> None:
+            # 片段记录是仓储读快照，必须经存储写回才会持久化（ISSUE-041）。
+            update = getattr(pub_store, "update_kb_status", None)
+            if update is not None:
+                update(target_id, status, **extra)
+            elif snippet_record is not None:
+                snippet_record["kb_sync_status"] = status
+
         # 若片段明确携带 [[sync-fail]]，在测试中模拟知识库解析拒绝
         has_mock_fail = "[[sync-fail]]" in snippet_body
 
@@ -438,7 +446,7 @@ class RagflowConfigService:
                 self.repository.transaction(save_new_ds)
             except Exception as exc:
                 if snippet_record:
-                    snippet_record["kb_sync_status"] = "failed"
+                    _write_status("failed")
                 return {
                     "synced": False,
                     "kb_sync_status": "failed",
@@ -471,7 +479,7 @@ class RagflowConfigService:
 
             # 回写片段存储状态
             if snippet_record:
-                snippet_record["kb_sync_status"] = kb_status
+                _write_status(kb_status, kb_document_id=doc.id, kb_dataset_id=dataset_id)
 
             return {
                 "synced": (kb_status == "synced"),
@@ -485,7 +493,7 @@ class RagflowConfigService:
             }
         except Exception as exc:
             if snippet_record:
-                snippet_record["kb_sync_status"] = "failed"
+                _write_status("failed")
             return {
                 "synced": False,
                 "kb_sync_status": "failed",

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
+import threading
 from threading import Lock
 from typing import Any, Callable, TypeVar
 
@@ -33,9 +34,7 @@ from icg.infra.repositories.jobs import (
 )
 from icg.infra.repositories.projects import project_snapshot, team_snapshot, save_projects
 from icg.infra.repositories.model_config import save_model_configs
-from icg.infra.repositories.workflow_state import (
-    load_workflow_state, save_workflow_state_diff, workflow_state_snapshot,
-)
+from icg.infra.repositories.state_entries import StateEntryStore, snapshot as entry_snapshot
 
 T = TypeVar("T")
 
@@ -73,8 +72,9 @@ class MysqlConnectionRepository:
         self._engine = None
         self._engine_lock = Lock()
         self._memory = MemoryRepository()
-        # 0012 迁移之前的库没有工作流状态表；读到缺表时不写，避免把全部写操作拖垮。
-        self._workflow_state_table = True
+        # 其余业务状态（工作流、账号、资料库、任务、审计等）按条目写入 demo_state_entry（ISSUE-041）。
+        self._entries = StateEntryStore()
+        self._entry_context = threading.local()
 
     @property
     def engine(self):
@@ -187,6 +187,7 @@ class MysqlConnectionRepository:
 
     def read(self):
         state = self._memory.read()
+        self._entry_context.keys = None
         self._load_shared(state, set())
         state.cap_receipts = False
         return state
@@ -195,8 +196,11 @@ class MysqlConnectionRepository:
         loaded_project_ids: set[str] = set()
         loaded_chapter_ids: set[str] = set()
         loaded_check_ids: set[str] = set()
+        entry_keys: list = []
+        entry_updates: dict = {}
 
         def wrapped(state: DemoState) -> T:
+            self._entry_context.keys = entry_keys
             self._load_shared(state, loaded_project_ids, loaded_chapter_ids, loaded_check_ids)
             state.cap_receipts = False
             before_sessions = dict(state.sessions)
@@ -208,7 +212,7 @@ class MysqlConnectionRepository:
             before_bindings = dict(state.project_model_configs)
             before_chapters = chapter_snapshot(state)
             before_checks = check_snapshot(state)
-            before_workflow_state = workflow_state_snapshot(state)
+            before_entries = entry_snapshot(state)
             result = operation(state)
             self._save_shared(
                 before_sessions, dict(state.sessions), before_receipts, state.workflow_receipts,
@@ -219,7 +223,7 @@ class MysqlConnectionRepository:
                 before_bindings, dict(state.project_model_configs),
                 before_chapters, chapter_snapshot(state), state.chapters, loaded_chapter_ids,
                 before_checks, check_snapshot(state), state.checks, loaded_check_ids,
-                before_workflow_state, workflow_state_snapshot(state),
+                before_entries, entry_snapshot(state), entry_updates,
             )
             state.sessions.clear()
             state.workflow_receipts.clear()
@@ -228,7 +232,13 @@ class MysqlConnectionRepository:
             state.cap_receipts = True
             return result
 
-        return self._memory.transaction(wrapped)
+        try:
+            result = self._memory.transaction(wrapped)
+        except BaseException:
+            self._entries.forget(entry_keys)
+            raise
+        self._entries.commit(entry_updates)
+        return result
 
     def _load_shared(self, state: DemoState, loaded_project_ids: set[str],
                      loaded_chapter_ids: set[str] | None = None,
@@ -435,17 +445,14 @@ class MysqlConnectionRepository:
                 pass
         except Exception:
             pass
-        self._load_workflow_state(state)
+        self._load_entries(state, getattr(self._entry_context, "keys", None))
 
-    def _load_workflow_state(self, state: DemoState) -> None:
-        try:
-            with self.engine.begin() as connection:
-                load_workflow_state(connection, state)
-            self._workflow_state_table = True
-        except Exception as error:  # 0012 之前的库缺表；其他错误照常抛出
-            if "demo_project_workflow_state" not in str(error):
-                raise
-            self._workflow_state_table = False
+    def _load_entries(self, state: DemoState, entry_keys: list | None) -> None:
+        """读取 demo_state_entry；entry_keys 为 None 表示只读快照，不更新缓存。"""
+        with self.engine.begin() as connection:
+            keys = self._entries.load(connection, state, remember=entry_keys is not None)
+        if entry_keys is not None:
+            entry_keys.extend(keys)
 
     def _save_shared(self, before_sessions: dict, after_sessions: dict,
                      before_receipts: dict, after_receipts: dict,
@@ -459,8 +466,9 @@ class MysqlConnectionRepository:
                      state_chapters: dict | None = None, loaded_chapter_ids: set[str] | None = None,
                      before_checks: dict | None = None, after_checks: dict | None = None,
                      state_checks: dict | None = None, loaded_check_ids: set[str] | None = None,
-                     before_workflow_state: dict | None = None,
-                     after_workflow_state: dict | None = None) -> None:
+                     before_entries: dict | None = None,
+                     after_entries: dict | None = None,
+                     entry_updates: dict | None = None) -> None:
         with self.engine.begin() as connection:
             connection.execute(text("DELETE FROM idempotency_receipt WHERE expires_at <= NOW(6)"))
             for token in before_sessions:
@@ -636,6 +644,7 @@ class MysqlConnectionRepository:
                     connection, before_checks, after_checks,
                     state_checks, loaded_check_ids or set(),
                 )
-            if (self._workflow_state_table and before_workflow_state is not None
-                    and after_workflow_state is not None):
-                save_workflow_state_diff(connection, before_workflow_state, after_workflow_state)
+            if before_entries is not None and after_entries is not None:
+                updates = self._entries.save(connection, before_entries, after_entries)
+                if entry_updates is not None:
+                    entry_updates.update(updates)

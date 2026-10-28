@@ -1,5 +1,7 @@
-# 为什么有这个文件：实现 RAGFlow 检索、数据集管理与知识库文档摄入同步客户端，调用官方 HTTP API。
-# 它解决什么问题：把鉴权、路径拼接、chunks 检索、多租户数据集隔离、文档上传、解析触发、同步状态轮询与异常映射封装为统一客户端，落实 B5/B6 离线内网自建 RAGFlow 闭环。
+# 为什么有这个文件：实现 RAGFlow 检索、数据集管理与知识库文档摄入同步客户端，调用官方 HTTP API（按 RAGFlow 1.0 Go 后端契约，兼容 0.x 响应）。
+# 它解决什么问题：把鉴权、路径拼接、chunks 检索、多租户数据集隔离、文档上传/元数据/删除、解析触发、同步状态查询与异常映射封装为统一客户端，落实 B5/B6 内网自建 RAGFlow 闭环。
+# 1.0 差异（2026-10-28 用 v1.0.0-rc2 实测）：建数据集须 parse_type=1 + parser_id；文档状态在 ingestion_status；
+# 文档元数据用 PATCH meta_fields；删除用 DELETE .../documents {"ids"}；单个数据集/文档用列表接口加 ?id= 过滤。
 
 from __future__ import annotations
 
@@ -15,6 +17,7 @@ HEALTH_SUFFIX = "/api/v1/system/healthz"
 DATASETS_SUFFIX = "/api/v1/datasets"
 DEFAULT_TIMEOUT_SECONDS = 30.0
 DEFAULT_API_KEY_ENV = "ICG_RAGFLOW_API_KEY"
+INGEST_SUFFIX = "/api/v1/documents/ingest"
 
 
 class RagflowClientError(Exception):
@@ -78,12 +81,17 @@ def ragflow_run_to_kb_sync_status(run: str | None) -> str:
     - UNSTART, 0, RUNNING, 1, SCHEDULE -> unsynced
     """
     r = (run or "").upper().strip()
-    if r in {"DONE", "3"}:
+    if r in {"DONE", "3", "COMPLETED", "SUCCESS"}:
         return "synced"
-    elif r in {"FAIL", "4", "CANCEL"}:
+    elif r in {"FAIL", "4", "CANCEL", "2", "FAILED", "CANCELED", "CANCELLED"}:
         return "failed"
     else:
         return "unsynced"
+
+
+def document_state(raw: dict[str, Any]) -> str:
+    """RAGFlow 1.0 用 ingestion_status，0.x 用 run；两者都可能出现，优先 1.0 字段。"""
+    return str(raw.get("ingestion_status") or raw.get("run") or "UNSTART")
 
 
 @dataclass(frozen=True)
@@ -121,6 +129,9 @@ class RagflowChunk:
     document_id: str
     dataset_id: str
     similarity: float
+    document_name: str = ""
+    vector_similarity: float = 0.0
+    term_similarity: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -157,6 +168,34 @@ class RagflowDocument:
     progress_msg: str = ""
     status: str = "1"
     raw: dict[str, Any] = field(default_factory=dict)
+    chunk_count: int = 0
+    meta_fields: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def sync_status(self) -> str:
+        return ragflow_run_to_kb_sync_status(self.run)
+
+
+def _document_from(raw: dict[str, Any], dataset_id: str, fallback_name: str = "") -> RagflowDocument:
+    progress_raw = raw.get("progress", 0.0)
+    message = raw.get("progress_msg", "")
+    if isinstance(message, list):
+        message = message[-1] if message else ""
+    event = raw.get("latest_ingestion_event")
+    if not message and isinstance(event, dict):
+        message = str(event.get("message", ""))
+    return RagflowDocument(
+        id=str(raw.get("id", "")),
+        name=str(raw.get("name", fallback_name)),
+        dataset_id=str(raw.get("dataset_id") or dataset_id).strip(),
+        run=document_state(raw),
+        progress=float(progress_raw) if isinstance(progress_raw, (int, float)) else 0.0,
+        progress_msg=str(message)[:500],
+        status=str(raw.get("status", "1")),
+        raw=raw,
+        chunk_count=int(raw.get("chunk_count") or 0),
+        meta_fields=raw.get("meta_fields") if isinstance(raw.get("meta_fields"), dict) else {},
+    )
 
 
 class RagflowRetrievalClient:
@@ -255,18 +294,20 @@ class RagflowRetrievalClient:
             headers["Content-Type"] = "application/json"
 
         try:
+            # trust_env=False：内网 RAGFlow 请求不能被系统代理/VPN 劫持（AGENTS.md 内网隔离红线）。
             with httpx.Client(
                 transport=self._transport,
                 timeout=self.timeout_seconds,
                 follow_redirects=False,
+                trust_env=False,
             ) as client:
                 m = method.upper()
                 if m == "GET":
                     response = client.get(url, headers=headers, params=params)
                 elif m == "POST":
                     response = client.post(url, headers=headers, json=json_body, files=files, params=params)
-                elif m == "DELETE":
-                    response = client.delete(url, headers=headers, params=params)
+                elif m in ("DELETE", "PATCH", "PUT"):
+                    response = client.request(m, url, headers=headers, json=json_body, params=params)
                 else:
                     raise ValueError(f"unsupported HTTP method: {method}")
         except httpx.TimeoutException:
@@ -308,6 +349,12 @@ class RagflowRetrievalClient:
         dataset_ids: list[str],
         *,
         rerank_id: str | None = None,
+        document_ids: list[str] | None = None,
+        page_size: int | None = None,
+        similarity_threshold: float | None = None,
+        keywords_similarity_weight: float | None = None,
+        metadata_condition: dict[str, Any] | None = None,
+        highlight: bool | None = None,
     ) -> RagflowRetrievalResult:
         if not isinstance(question, str) or not question.strip():
             raise ValueError("question must be a non-empty string")
@@ -324,6 +371,18 @@ class RagflowRetrievalClient:
         }
         if rerank_id is not None and rerank_id.strip():
             payload["rerank_id"] = rerank_id.strip()
+        if document_ids:
+            payload["document_ids"] = [d.strip() for d in document_ids if d and d.strip()]
+        if page_size is not None:
+            payload["page_size"] = max(1, min(int(page_size), 100))
+        if similarity_threshold is not None:
+            payload["similarity_threshold"] = float(similarity_threshold)
+        if keywords_similarity_weight is not None:
+            payload["keywords_similarity_weight"] = float(keywords_similarity_weight)
+        if metadata_condition:
+            payload["metadata_condition"] = metadata_condition
+        if highlight is not None:
+            payload["highlight"] = bool(highlight)
 
         body = self._send_request("POST", self.retrieval_url, json_body=payload)
 
@@ -354,15 +413,20 @@ class RagflowRetrievalClient:
         for item in raw_chunks:
             if not isinstance(item, dict):
                 raise RagflowResponseError("retrieval response chunk must be an object")
-            raw_sim = item.get("similarity", 0.0)
-            sim = float(raw_sim) if isinstance(raw_sim, (int, float)) else 0.0
+            def _num(key: str) -> float:
+                value = item.get(key, 0.0)
+                return float(value) if isinstance(value, (int, float)) else 0.0
+
             chunks.append(
                 RagflowChunk(
                     id=str(item.get("id", "")),
                     content=str(item.get("content", "")),
                     document_id=str(item.get("document_id", "")),
                     dataset_id=str(item.get("dataset_id", "")),
-                    similarity=sim,
+                    similarity=_num("similarity"),
+                    document_name=str(item.get("document_keyword") or item.get("document_name") or ""),
+                    vector_similarity=_num("vector_similarity"),
+                    term_similarity=_num("term_similarity"),
                 )
             )
 
@@ -392,9 +456,12 @@ class RagflowRetrievalClient:
             if not clean_name.startswith(f"{clean_cid}::"):
                 clean_name = f"{clean_cid}::{clean_name}"
 
+        # RAGFlow 1.0：parse_type=1 表示内置解析器，必须同时给 parser_id。
         payload: dict[str, Any] = {
             "name": clean_name,
+            "parse_type": 1,
             "parser_id": parser_id.strip() or "general",
+            "language": "Chinese",
         }
         if embedding_model:
             payload["embedding_model"] = embedding_model.strip()
@@ -477,12 +544,13 @@ class RagflowRetrievalClient:
         if not isinstance(dataset_id, str) or not dataset_id.strip():
             raise ValueError("dataset_id must be a non-empty string")
 
-        url = self.dataset_url(dataset_id)
         try:
-            body = self._send_request("GET", url)
+            body = self._send_request("GET", self.datasets_url, params={"id": dataset_id.strip()})
             data = body.get("data")
+            if isinstance(data, list):
+                data = next((d for d in data if isinstance(d, dict) and str(d.get("id")) == dataset_id.strip()), None)
             if not isinstance(data, dict):
-                raise RagflowResponseError("get_dataset response missing 'data' object")
+                raise RagflowBusinessError(102, f"dataset {dataset_id} not found")
         except (RagflowHttpError, RagflowBusinessError):
             all_ds = self.list_datasets(company_id=company_id)
             for ds in all_ds:
@@ -531,13 +599,11 @@ class RagflowRetrievalClient:
             self.get_dataset(dataset_id, company_id=company_id)
 
         raw_bytes = content.encode("utf-8") if isinstance(content, str) else content
-        files = {"file": (name.strip(), raw_bytes, "text/plain")}
+        media = "text/markdown" if name.strip().lower().endswith((".md", ".markdown")) else "text/plain"
+        files = {"file": (name.strip(), raw_bytes, media)}
         url = self.documents_url(dataset_id)
-        params = {}
-        if parser_id:
-            params["parser_id"] = parser_id.strip()
-
-        body = self._send_request("POST", url, files=files, params=params)
+        # 1.0 上传不接受 parser_id 查询参数；解析方式继承数据集，个别文档用 update_document 调整。
+        body = self._send_request("POST", url, files=files)
         data = body.get("data")
         doc_dict: dict[str, Any] = {}
         if isinstance(data, list) and data:
@@ -545,16 +611,9 @@ class RagflowRetrievalClient:
         elif isinstance(data, dict):
             doc_dict = data
 
-        return RagflowDocument(
-            id=str(doc_dict.get("id", "")),
-            name=str(doc_dict.get("name", name.strip())),
-            dataset_id=dataset_id.strip(),
-            run=str(doc_dict.get("run", "UNSTART")),
-            progress=float(doc_dict.get("progress", 0.0)),
-            progress_msg=str(doc_dict.get("progress_msg", "")),
-            status=str(doc_dict.get("status", "1")),
-            raw=doc_dict,
-        )
+        if not doc_dict.get("id"):
+            raise RagflowResponseError("upload_document response missing document id")
+        return _document_from(doc_dict, dataset_id, name.strip())
 
     def list_documents(
         self,
@@ -563,6 +622,7 @@ class RagflowRetrievalClient:
         run: str | None = None,
         page: int = 1,
         page_size: int = 30,
+        document_id: str | None = None,
     ) -> list[RagflowDocument]:
         """查询指定数据集内的文档列表。"""
         if not isinstance(dataset_id, str) or not dataset_id.strip():
@@ -572,6 +632,8 @@ class RagflowRetrievalClient:
         params: dict[str, Any] = {"page": page, "page_size": page_size}
         if run:
             params["run"] = run.strip()
+        if document_id:
+            params["id"] = document_id.strip()
 
         body = self._send_request("GET", url, params=params)
         data = body.get("data")
@@ -583,33 +645,53 @@ class RagflowRetrievalClient:
             if isinstance(docs, list):
                 raw_list = [d for d in docs if isinstance(d, dict)]
 
-        result: list[RagflowDocument] = []
-        for d in raw_list:
-            result.append(
-                RagflowDocument(
-                    id=str(d.get("id", "")),
-                    name=str(d.get("name", "")),
-                    dataset_id=dataset_id.strip(),
-                    run=str(d.get("run", "UNSTART")),
-                    progress=float(d.get("progress", 0.0)),
-                    progress_msg=str(d.get("progress_msg", "")),
-                    status=str(d.get("status", "1")),
-                    raw=d,
-                )
-            )
-        return result
+        return [_document_from(d, dataset_id) for d in raw_list]
 
     def get_document_status(
         self,
         dataset_id: str,
         document_id: str,
     ) -> RagflowDocument:
-        """查询单个文档解析状态。"""
-        docs = self.list_documents(dataset_id)
+        """查询单个文档解析状态（列表接口 ?id= 精确过滤，不受分页限制）。"""
+        docs = self.list_documents(dataset_id, document_id=document_id)
         for d in docs:
             if d.id == document_id.strip():
                 return d
         raise RagflowBusinessError(102, f"document {document_id} not found in dataset {dataset_id}")
+
+    def update_document(
+        self,
+        dataset_id: str,
+        document_id: str,
+        *,
+        meta_fields: dict[str, Any] | None = None,
+        enabled: bool | None = None,
+        name: str | None = None,
+    ) -> dict[str, Any]:
+        """PATCH 文档：写入元数据（公司、资料ID、版本、类别等）或启停用。不触发重新解析。"""
+        payload: dict[str, Any] = {}
+        if meta_fields is not None:
+            payload["meta_fields"] = {str(k): ("" if v is None else str(v)) for k, v in meta_fields.items()}
+        if enabled is not None:
+            payload["enabled"] = 1 if enabled else 0
+        if name:
+            payload["name"] = name
+        if not payload:
+            return {}
+        body = self._send_request("PATCH", f"{self.documents_url(dataset_id)}/{document_id.strip()}", json_body=payload)
+        data = body.get("data")
+        return data if isinstance(data, dict) else {}
+
+    def delete_documents(self, dataset_id: str, document_ids: list[str]) -> int:
+        """删除文档及其分块。ids 为空时什么都不删（绝不发送 delete_all）。"""
+        ids = [d.strip() for d in document_ids if d and d.strip()]
+        if not ids:
+            return 0
+        body = self._send_request("DELETE", self.documents_url(dataset_id), json_body={"ids": ids})
+        data = body.get("data")
+        if isinstance(data, dict) and isinstance(data.get("deleted"), int):
+            return data["deleted"]
+        return len(ids)
 
     def trigger_parse(
         self,
@@ -623,8 +705,15 @@ class RagflowRetrievalClient:
             raise ValueError("document_ids must be a non-empty list of strings")
 
         url = self.chunks_url(dataset_id)
-        payload = {"document_ids": [d.strip() for d in document_ids]}
-        body = self._send_request("POST", url, json_body=payload)
+        ids = [d.strip() for d in document_ids]
+        try:
+            body = self._send_request("POST", url, json_body={"document_ids": ids})
+        except RagflowBusinessError as error:
+            # 使用摄入流水线的数据集不支持内置解析接口，改用 1.0 的 /documents/ingest。
+            if "pipeline" not in (error.message or "").lower():
+                raise
+            body = self._send_request("POST", f"{self.base_url}{INGEST_SUFFIX}",
+                                      json_body={"doc_ids": ids, "run": "1"})
         return body.get("code") == 0
 
     def health(self) -> dict[str, Any]:
@@ -634,6 +723,7 @@ class RagflowRetrievalClient:
                 transport=self._transport,
                 timeout=self.timeout_seconds,
                 follow_redirects=False,
+                trust_env=False,
             ) as client:
                 response = client.get(self.health_url, headers={"Accept": "application/json"})
         except httpx.TimeoutException:
