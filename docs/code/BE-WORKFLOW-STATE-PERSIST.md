@@ -7,6 +7,9 @@
 - 对应任务 BE-WORKFLOW-STATE-PERSIST；Issue [ISSUE-040](../../issues/ISSUE-040.md)；交付 [交付](../delivery/BE-WORKFLOW-STATE-PERSIST.md)
 - 提交 `06f107d`、`2c8d51c`
 
+
+> 2026-10-28 Wave 12 更新：本卡的 `demo_project_workflow_state` 表与 `workflow_state.py` 已被 [BE-WORKFLOW-DURABILITY](BE-WORKFLOW-DURABILITY.md) 的通用条目表 `demo_state_entry` 取代（Alembic 0012 原位改写，0012 从未合入长期分支）。下文保留 Wave 11 原记录。
+
 ## 入口和调用顺序
 
 1. Alembic `0012_workflow_state`：`demo_project_workflow_state(project_id PK, state_json JSON, updated_at DATETIME(6))`。

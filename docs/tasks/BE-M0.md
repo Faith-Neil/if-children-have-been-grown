@@ -910,12 +910,12 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | planned |
+| 状态 | in-review |
 | 估算 | 6～8小时，开工前按聚合再拆卡 |
 | 关联 Issue | [ISSUE-041](../../issues/ISSUE-041.md) |
 | 依赖 | [BE-WORKFLOW-STATE-PERSIST](BE-M0.md#be-workflow-state-persist) |
 | 来源 | PRD v1.8 §7.1、§7.5；AGENTS.md 金标准第 3 条 |
-| 完成时交付 | `docs/delivery/BE-WORKFLOW-DURABILITY.md` |
-| 代码解释 | `docs/code/BE-WORKFLOW-DURABILITY.md` |
+| 完成时交付 | [交付](../delivery/BE-WORKFLOW-DURABILITY.md) |
+| 代码解释 | [代码说明](../code/BE-WORKFLOW-DURABILITY.md) |
 
 范围：`files`（原件另存）、`requirements`、`facts`、`conflicts`、`candidates`、`checks`、`exports`、`writing_plan`、`sla`、`chapter_order` 等全部业务键跨进程可见；集合等非 JSON 类型先改造；验收以 `ICG_REQUIRE_MYSQL=1` 下重启后主链路数据完整为准。

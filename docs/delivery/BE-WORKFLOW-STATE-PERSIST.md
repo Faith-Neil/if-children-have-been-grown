@@ -13,6 +13,9 @@
 | 项目进度 | in-review；其余工作流键持久化转 BE-WORKFLOW-DURABILITY（planned） |
 <!-- task-delivery:end -->
 
+
+> 2026-10-28 Wave 12 更新：本卡的 `demo_project_workflow_state` 表与 `workflow_state.py` 已被 [BE-WORKFLOW-DURABILITY](BE-WORKFLOW-DURABILITY.md) 的通用条目表 `demo_state_entry` 取代（Alembic 0012 原位改写，0012 从未合入长期分支）。下文保留 Wave 11 原记录。
+
 ## 关联与状态
 
 - 日期 2026-10-28；Issue [ISSUE-040](../../issues/ISSUE-040.md)、[ISSUE-041](../../issues/ISSUE-041.md)；任务卡 [BE-WORKFLOW-STATE-PERSIST](../tasks/BE-M0.md#be-workflow-state-persist)

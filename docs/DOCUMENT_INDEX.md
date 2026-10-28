@@ -858,7 +858,7 @@
 | D-837 | 2026-10-28 | [PD产品验收报告：Wave 10业务功能与核心技术交付](reviews/2026-10-28-pd-review-wave10.md) | 产品验收 | pd-review-wave10-1 | 已通过 | ISSUE-007 / APP-M2-T028 / INT-USER-SECURITY-OPS-GLUE / BE-USER-SECURITY-OPS / AI-OUTLINE-AUTO-REMEDIATION | Wave 10 批次（APP-M2-T028、INT-USER-SECURITY-OPS-GLUE、BE-USER-SECURITY-OPS、AI-OUTLINE-AUTO-REMEDIATION）PD 对照 PRD v1.8、交接约束 M1-P10-F3、Q28 密码策略与主 Agent 五条金标准全维度核验通过，书面认可并建议 PM 标 done |
 | D-838 | 2026-10-28 | [ISSUE-039 章节自动整改引擎编造承诺与依据](../issues/ISSUE-039.md) | Issue | revision 1 | in-review | ISSUE-039 / AI-REMEDIATION-NO-FABRICATION | Wave 10 整改引擎把偏离改成满足、把【待补】改成空泛承诺、替换依据外证据；已撤回并改为规则编排转人工 |
 | D-839 | 2026-10-28 | [ISSUE-040 Wave 11 主路径补环](../issues/ISSUE-040.md) | Issue | revision 1 | in-review | ISSUE-040 / APP-M2-T133 / APP-M2-T144 / APP-M2-T111 / BE-WORKFLOW-STATE-PERSIST | 人工处理队列、分册交叉复核与定稿门禁、星号/废标兜底扫描、新聚合持久化 |
-| D-840 | 2026-10-28 | [ISSUE-041 项目工作流主体未写入 MySQL](../issues/ISSUE-041.md) | Issue | revision 1 | triaged | ISSUE-041 / BE-WORKFLOW-DURABILITY | MySQL 模式下文件、条款、事实、候选、检查、导出只在进程内存 |
+| D-840 | 2026-10-28 | [ISSUE-041 项目工作流主体未写入 MySQL](../issues/ISSUE-041.md) | Issue | revision 2 | in-review | ISSUE-041 / BE-WORKFLOW-DURABILITY | MySQL 模式下文件、条款、事实、候选、检查、导出只在进程内存 |
 | D-841 | 2026-10-28 | [ISSUE-042 e2e 证据抽屉用例与资料库表单脱节](../issues/ISSUE-042.md) | Issue | revision 1 | in-progress | ISSUE-042 / FE-E2E-LIBRARY-DRIFT | e2e 必需作业自 e56d225 起持续失败；编辑台 1280 溢出已修，资料类别回归待修 |
 | D-842 | 2026-10-28 | [PRD v1.8 实施澄清（Wave 11）](decisions/2026-10-28-prd-amendments-wave11.md) | 决策 | wave11-1 | 生效 | ISSUE-039 / ISSUE-040 | 项目经理对 PRD 不明确处的 8 条实施口径（A1～A8），原文不改 |
 | D-843 | 2026-10-28 | [PRD 缺口增量（2026-10-28）](delivery/2026-10-28-prd-gap-delta.md) | 产品审查 | delta-1 | 当前 | ISSUE-040 / ISSUE-041 / ISSUE-042 | 按代码实况更新 10-22 缺口汇总；完备度约 40%～45%；Wave 12 建议顺序 |
@@ -873,12 +873,19 @@
 | D-852 | 2026-10-28 | [任务交付：工作流新聚合持久化（BE-WORKFLOW-STATE-PERSIST）](delivery/BE-WORKFLOW-STATE-PERSIST.md) | 任务交付 | workflow-state-1 | in-review | ISSUE-040 / ISSUE-041 / BE-WORKFLOW-STATE-PERSIST | Alembic 0012 与差量写入；其余工作流键仍在内存 |
 | D-853 | 2026-10-28 | [代码说明：工作流新聚合持久化（BE-WORKFLOW-STATE-PERSIST）](code/BE-WORKFLOW-STATE-PERSIST.md) | 代码说明 | workflow-state-1 | 当前 | ISSUE-040 / BE-WORKFLOW-STATE-PERSIST | 加载、快照、差量保存与缺表处理 |
 | D-854 | 2026-10-28 | [Wave 11 开发自测记录](testing/2026-10-28-wave-11-verification.md) | 验证 | wave11-dev-1 | 开发自测 | ISSUE-039 / ISSUE-040 / ISSUE-042 | 后端 871 passed、前端 289 pass、e2e 与 MySQL 实况；非 QA 签署 |
+| D-855 | 2026-10-28 | [任务交付：业务状态写入 MySQL（BE-WORKFLOW-DURABILITY）](delivery/BE-WORKFLOW-DURABILITY.md) | 任务交付 | durability-1 | in-review | ISSUE-041 / BE-WORKFLOW-DURABILITY | 通用条目表 demo_state_entry、rev 乐观锁、服务内存储持久化 |
+| D-856 | 2026-10-28 | [代码说明：业务状态写入 MySQL（BE-WORKFLOW-DURABILITY）](code/BE-WORKFLOW-DURABILITY.md) | 代码说明 | durability-1 | 当前 | ISSUE-041 / BE-WORKFLOW-DURABILITY | 条目划分、加载与差量保存、冲突判定 |
+| D-857 | 2026-10-28 | [任务交付：公司知识库同步与检索（AI-KB-RAG-PIPELINE）](delivery/AI-KB-RAG-PIPELINE.md) | 算法交付 | kb-rag-1 | in-review | ISSUE-043 / AI-KB-RAG-PIPELINE | 对账同步、索引过滤与实时复核检索、各调用方接入 |
+| D-858 | 2026-10-28 | [代码说明：公司知识库同步与检索（AI-KB-RAG-PIPELINE）](code/AI-KB-RAG-PIPELINE.md) | 代码说明 | kb-rag-1 | 当前 | ISSUE-043 / AI-KB-RAG-PIPELINE | 索引结构、同步与检索调用顺序 |
+| D-859 | 2026-10-28 | [Wave 12 开发自测记录](testing/2026-10-28-wave-12-verification.md) | 验证 | wave12-dev-1 | 开发自测 | ISSUE-041 / ISSUE-043 | 后端 879 passed、MySQL 40 passed、知识库 13 passed；真实 RAGFlow 评测未执行；非 QA 签署 |
+| D-860 | 2026-10-28 | [ISSUE-043 知识库同步与检索未接入生产链路](../issues/ISSUE-043.md) | Issue | revision 1 | in-review | ISSUE-043 | 检索未接通、片段同步伪造、无映射与删除 |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
 | 2026-10-28 | 产品 / 开发 / Wave 11 | 新建分支 feat/wave-11-main-path（PR #6），交付 APP-M2-T133、APP-M2-T144、APP-M2-T111、AI-REMEDIATION-NO-FABRICATION、BE-WORKFLOW-STATE-PERSIST（均 in-review），登记 ISSUE-039～042、PRD 实施澄清与缺口增量（D-838～D-854）；看板 444 项：96 done、65 in-review、7 in-progress、228 planned、41 blocked、7 cancelled、0 ready |
+| 2026-10-28 | 开发 / Wave 12 | BE-WORKFLOW-DURABILITY 与 AI-KB-RAG-PIPELINE 交付为 in-review，AI-KB-RAG-EVAL in-progress，登记 ISSUE-043（D-855～D-860）；看板 446 项：96 done、67 in-review、8 in-progress、227 planned、41 blocked、7 cancelled、0 ready |
 | 2026-10-28 | PD / 验收 / Wave 10 | 登记 Wave 10 业务功能与核心技术交付批次产品视角对照验收报告（2026-10-28-pd-review-wave10.md，D-837），对照 PRD v1.8 §2.2/§5.7.8/§5.10/§5.10.1/§5.10.2/§5.11/§6.4/§8 与 M1-P10-F3 交接约束，书面认可并建议 PM 标 done |
 | 2026-10-28 | QA / 验收 / Wave 10 | 登记 Wave 10 核心能力与技术交付批次（共 4 卡）QA 终验签署报告（2026-10-28-wave-10-batch-qa-signoff.md，D-836），核验 APP-M2-T028、INT-USER-SECURITY-OPS-GLUE、BE-USER-SECURITY-OPS 与 AI-OUTLINE-AUTO-REMEDIATION，全量测试全绿，出具正式 PASS 签署并建议 PM 标 done |
 | 2026-10-28 | AI / 自动整改重写 / AI-OUTLINE-AUTO-REMEDIATION | 登记章节合规质检缺陷自动整改建议与局部智能重写引擎交付报告（AI-OUTLINE-AUTO-REMEDIATION.md，D-834）与代码说明（D-835），落地 diagnose_paragraph_defects、synthesize_remediation_plan 与 remediate_chapter_candidate，实现 R34/R37/R24/CITATION_AUTH 缺陷精准诊断、局部智能重写与原地合规保全、多轮自适应收敛迭代（直至阻断清零且健康分>=90）、法定表单印章签名块整体注入、单章生成与大纲批量生成流水线闭环集成（auto_remediate=True）及全局看板汇总，涉密本地模型硬门禁（403）与多租户/RBAC隔离（404/403），专属单测 12 项全绿，全量 97 项 AI 核心测试全绿，OpenAPI 契约零漂移，保持 in-review |

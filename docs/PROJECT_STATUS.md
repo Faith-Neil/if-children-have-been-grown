@@ -6,6 +6,13 @@
 
 维护日期：2026-10-28（UTC+8）。分支 `feat/opencode-ICG` 位于 tip `4985a9d`（相对 `main` 超前 71 个提交）；Wave 11 在分支 `feat/wave-11-main-path` 开发，经 [PR #6](https://github.com/Faith-Neil/if-children-have-been-grown/pull/6) 并回；初次接手从 `main` 的 `ce064f6` 开始维护；main/xqr分支情况保留2026-10-09核对快照。已补齐 WP-1 独立交付文档（D-696），对齐 RoleMode 枚举，登记整改后结构债务收敛 ISSUE-038（D-697），完成 DOC-SYNC-1（D-698）与 DOC-SYNC-1.1（D-699）活文档实树校准。完成 CI 工作流触发分支修复（D-721）、已签等 PM 清单汇总（D-722）与关演示主链路冒烟留证（D-723）、大模型与 RAGFlow 弹窗配置及实测（D-724/D-725）、规则最小可递交集与分册定稿闸门端到端闭环（D-726/D-727）、以及 2026-10-26 规划未落地债审计与看板状态校准（D-728/D-729）。新增 R01/R02/R35 规则扩写落地与 7 大核心规则闭环、MySQL 章节/草稿/检查双向持久化、真实内网 RAGFlow 连通性网络探针证据归档与关演示全业务链路新冒烟留证（D-740/D-741）。Wave 2 批次（D-746～D-753）、Wave 3 批次（D-756～D-763）与 Wave 4 批次（FE-TECH-DEBT-02 App.tsx 瘦身至 394 行、APP-M2-T022 平台管理员脱敏长任务、BE-COMPLIANCE-RULES-P3 P3 规则扩充至 21 项与导出门禁、AI-DYNAMIC-PROMPT-CONTEXT 自适应 Prompt 预算与指纹、INT-APP-SLIM-ROUTING 路由分层与脱敏联调）（D-766～D-775）经 QA 独立终验签署（D-754/D-764/D-776 PASS）与 PD 产品验收（D-755/D-765/D-777 认可），已获人类 PM 正式批准标为 done。当前共 444 项中 96 done、65 in-review、7 in-progress、228 planned、41 blocked、7 cancelled、0 ready，2026-10-28 逐行统计）。Wave 9 批次（APP-M2-T027、INT-USER-TRANSFER-RBAC-GLUE、BE-USER-MANAGEMENT-TRANSFER、AI-CHAPTER-AUTO-VALIDATION-GATE）与 Wave 10 核心批次（APP-M2-T028 用户角色分配与账号解锁 D-828/D-829、BE-USER-SECURITY-OPS 用户安全运维服务 D-830/D-831、INT-USER-SECURITY-OPS-GLUE 账号安全契约联调 D-832/D-833、AI-OUTLINE-AUTO-REMEDIATION 质检缺陷自动整改建议与局部智能重写引擎 D-834/D-835）经 QA 独立复测终验（D-836 PASS）与 PD 产品验收（D-837 认可），已获人类 PM 正式批准标为 done。
 
+## Wave 12 持久化与知识库（2026-10-28）
+
+- 业务状态写入 MySQL（[ISSUE-041](../issues/ISSUE-041.md) / BE-WORKFLOW-DURABILITY，in-review）：项目工作流全部键、账号、资料库、SLA 模板、作业、合作方、RAGFlow 配置、企业设置、字典、方案片段、知识库索引存入通用条目表 `demo_state_entry`，每条目乐观锁；沙箱 MySQL 8.4.13 上 `-m mysql` 40 passed。文件原件仍存在 JSON 字段，未改对象存储。
+- 公司知识库（[ISSUE-043](../issues/ISSUE-043.md) / AI-KB-RAG-PIPELINE，in-review）：此前生产写作从未检索公司资料、片段“同步成功”是伪造的；现在只有已确认未过期资料与已发布片段入库，改版/撤销/过期自动删除旧文档，检索只认索引内当前文档并实时复核，命中以 [片:id] 作为候选、不自动成为 [证]。
+- 未完成：真实 RAGFlow 上的检索质量评测（AI-KB-RAG-EVAL，in-progress），用户侧隧道当前不可达；默认阈值与权重尚未经实测确定。生产嵌入模型须换内网模型并重建数据集。
+- 自测见 [Wave 12 开发自测](testing/2026-10-28-wave-12-verification.md)。产品完备度粗估由约 40%～45% 升至约 50%，仍非 MVP 可上线。
+
 ## Wave 11 主路径补环（2026-10-28）
 
 - 已交付并 in-review：人工处理队列（APP-M2-T133，替换最后一个主导航占位页）、分册交叉复核与定稿门禁（APP-M2-T144）、星号/废标兜底扫描与疑似遗漏（APP-M2-T111）、整改引擎不编造（AI-REMEDIATION-NO-FABRICATION）、新聚合 MySQL 持久化（BE-WORKFLOW-STATE-PERSIST）。交付见各卡 `docs/delivery/`，验证见 [Wave 11 验证](testing/2026-10-28-wave-11-verification.md)。

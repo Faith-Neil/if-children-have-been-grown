@@ -685,3 +685,36 @@
 | 代码解释 | [代码说明](../code/AI-REMEDIATION-NO-FABRICATION.md) |
 
 验收：偏离、无依据【待补】、依据外证据不被自动修正并进入人工处理队列；模型改写带入新数字或新引用被拒；只有可自动修正问题时“问题全部解决”，否则如实“待人工处理”。
+
+<a id="ai-kb-rag-pipeline"></a>
+
+## AI-KB-RAG-PIPELINE · 公司知识库同步与检索接入生产链路
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 8小时；客户端对齐 1.0、对账同步、索引过滤与实时复核检索、各调用方接入、状态接口与面板 |
+| 关联 Issue | [ISSUE-043](../../issues/ISSUE-043.md)、[ISSUE-037](../../issues/ISSUE-037.md) |
+| 依赖 | [AI-RAGFLOW-KB-SYNC](AI-M0.md#ai-ragflow-kb-sync)、[BE-WORKFLOW-DURABILITY](BE-M0.md#be-workflow-durability) |
+| PRD / 架构出处 | [PRD v1.8 §1.4、§5.7](../reference/product/prd-mvp-v1.8.md)；B5/B6 拍板 |
+| 完成时交付 | [交付](../delivery/AI-KB-RAG-PIPELINE.md) |
+| 代码解释 | [代码说明](../code/AI-KB-RAG-PIPELINE.md) |
+
+验收：只有已确认未过期资料与已发布片段入库；改版、撤销、过期后旧文档不被召回；检索命中按资料实时复核并以 [片:id] 引用、不成为 [证]；片段同步状态与知识库真实结果一致；未配置时不伪造。
+
+<a id="ai-kb-rag-eval"></a>
+
+## AI-KB-RAG-EVAL · 知识库检索质量评测与调参（真实 RAGFlow）
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-progress |
+| 估算 | 3小时；合成金标集、评测脚本、真实实例参数扫描与报告 |
+| 关联 Issue | [ISSUE-043](../../issues/ISSUE-043.md) |
+| 依赖 | [AI-KB-RAG-PIPELINE](AI-M0.md#ai-kb-rag-pipeline) |
+| PRD / 架构出处 | [PRD v1.8 §1.4](../reference/product/prd-mvp-v1.8.md) |
+| 完成时交付 | `docs/testing/rag-eval-golden-v1.md` |
+| 代码解释 | [代码说明](../code/AI-KB-RAG-PIPELINE.md) |
+
+已完成：`scripts/rag_eval.py`、`tests/rag_eval/golden_v1.json`（离线跑通）。待做：真实 RAGFlow 上扫描 `similarity_threshold` × `keywords_similarity_weight`（及重排模型），以同义改写 recall@3 ≥ 0.8、负例误召回 ≤ 0.25 为初定目标，写回默认参数。阻塞：用户侧隧道 2026-10-28 不可达。
+

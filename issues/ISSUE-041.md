@@ -9,18 +9,18 @@
 | Issue ID | ISSUE-041 |
 | 类型 | bug |
 | 优先级 | P0 |
-| 状态 | triaged |
+| 状态 | in-review |
 | 登记日期 | 2026-10-28 |
 | 最后更新日期 | 2026-10-28 |
-| revision | 1 |
+| revision | 2 |
 | 关联 Task | [BE-WORKFLOW-DURABILITY](../docs/tasks/BE-M0.md#be-workflow-durability)；[任务看板](../docs/TASK_BOARD.md) |
-| 关联 PR | 未创建 |
-| 本地验收 | 未执行 |
+| 关联 PR | [PR #6](https://github.com/Faith-Neil/if-children-have-been-grown/pull/6) |
+| 本地验收 | 开发自测：沙箱 MySQL 8.4.13 `-m mysql` 40 passed |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
-| 交付说明 | 待建立（BE） |
-| 代码 / 流程解释 | 待建立（BE） |
-| 验证记录 | 待执行 |
+| 交付说明 | [交付](../docs/delivery/BE-WORKFLOW-DURABILITY.md) |
+| 代码 / 流程解释 | [代码说明](../docs/code/BE-WORKFLOW-DURABILITY.md) |
+| 验证记录 | [Wave 12 开发自测](../docs/testing/2026-10-28-wave-12-verification.md) |
 
 ## 现象与证据
 
@@ -32,11 +32,15 @@
 - 处理方向：把 workflow 其余键纳入同一 JSON 按项目持久化，或按聚合拆表；先核对键内类型（集合、字节、整型键）能否无损往返 JSON，`recheck_queue` 为集合须改为列表；文件原件改存对象存储或独立表。
 - 依赖：无；排在 Wave 12 首位。
 
+## 处理结果（2026-10-28）
+
+通用条目表 `demo_state_entry` 持久化项目工作流全部键以及账号、资料库、SLA 模板、作业、合作方、RAGFlow 配置、企业设置、字典、方案片段、知识库索引；每条目 rev 乐观锁，并发写返回 409。详见交付说明。
+
 ## 实施任务与互链
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| BE-WORKFLOW-DURABILITY | 项目工作流全部业务键写入 MySQL，跨进程可见 | `backend/bid-core/icg/infra/repositories/`、`backend/bid-core/alembic/versions/` | 跨进程读取解析、矩阵、检查、导出记录一致；`backend-mysql` 作业全绿 | planned |
+| BE-WORKFLOW-DURABILITY | 项目工作流全部业务键写入 MySQL，跨进程可见 | `backend/bid-core/icg/infra/repositories/`、`backend/bid-core/alembic/versions/` | 跨进程读取解析、矩阵、检查、导出记录一致；`backend-mysql` 作业全绿 | in-review |
 
 ## 六份基线评估
 
