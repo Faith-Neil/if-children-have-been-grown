@@ -532,7 +532,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 落地基于优先级推荐队列的大纲多章节批量生成流水线调度引擎，实现并发受控分批切片、废标与星标优先调度、未确认章节隔离跳过、全局 Token 预算聚合与单事务原子落盘 |
 | 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
 | 依赖 | [AI-OUTLINE-SCORE-WEIGHT-CALC](AI-M0.md#ai-outline-score-weight-calc) |

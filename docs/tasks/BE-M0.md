@@ -769,7 +769,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 4小时；企业设置CRUD端点、超管与企管权限矩阵、跨租户404隔离、只能调严不能调宽422越界拦截与9.11编辑锁联动 |
 | 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md)、[ISSUE-006](../../issues/ISSUE-006.md) |
 | 依赖 | [APP-M2-T025](APP-M2.md#app-m2-t025)、[BE-AUTH-SUPER-ADMIN](BE-M0.md#be-auth-super-admin) |
@@ -790,7 +790,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 4小时；R17/R19/R26/R27/R28 五大规则引擎、31 项全量规则目录、整本递交导出门禁联动与诚实守卫 |
 | 关联 Issue | [ISSUE-006](../../issues/ISSUE-006.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
 | 依赖 | [BE-COMPLIANCE-RULES-P4](BE-M0.md#be-compliance-rules-p4) |
