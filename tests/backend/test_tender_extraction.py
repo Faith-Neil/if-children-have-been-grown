@@ -105,3 +105,68 @@ def test_facts_use_aliases():
 def test_unstructured_short_text_keeps_line_behaviour():
     rows, summary = extract_requirements(["★技术要求：一级故障响应时限不得超过30分钟。\n服务期限：12个月"])
     assert summary["structured"] is False and len(rows) == 2
+
+
+# —— 真实招标文件版式（贵阳银行基础软件平台维保，76 页）——
+import re
+from pathlib import Path
+
+FIXTURE = Path(__file__).parent / "fixtures" / "tender_guiyang_2025_excerpt.txt"
+
+
+def _guiyang_pages():
+    raw = FIXTURE.read_text(encoding="utf-8")
+    pages = [""] * 76
+    for match in re.finditer(r"=== PAGE (\d+) ===\n(.*?)(?==== PAGE|\Z)", raw, re.S):
+        pages[int(match.group(1)) - 1] = match.group(2)
+    return pages
+
+
+def test_real_tender_inline_qualification_items_are_split():
+    rows, _ = extract_requirements(_guiyang_pages())
+    quals = [r for r in rows if r.section_kind == "qualification"]
+    assert [r.text[:3] for r in quals] == [f"（{n}）" for n in range(1, 9)]
+    assert "经审计的财务报告" in quals[1].text and "原厂授权服务商" in quals[4].text
+    assert all(r.page == 3 for r in quals)
+
+
+def test_real_tender_negation_phrases_are_mandatory():
+    rows, summary = extract_requirements(_guiyang_pages())
+    mandatory = [r.text for r in rows if r.mandatory]
+    assert any("将被否决" in t for t in mandatory)
+    assert any("视为无效投标" in t and "签字盖章" in t for t in mandatory)
+    assert any("做废标处理" in t for t in mandatory)
+    # ★ 只出现在格式章的盖章说明里，仍然必抽
+    assert any("标★处" in t for t in mandatory)
+    assert summary["mandatory"] >= 4
+
+
+def test_real_tender_flattened_scoring_table_keeps_points():
+    rows, _ = extract_requirements(_guiyang_pages())
+    scoring = {r.text.split("（", 1)[0]: r.score for r in rows if r.section_kind == "scoring"}
+    assert scoring == {"投标报价": 30.0, "技术方案": 25.0, "项目团队": 24.0, "类似业绩": 7.0}
+    assert not any("评分因素" in r.text or "前附表" in r.text for r in rows)
+
+
+def test_real_tender_skips_contract_format_and_procedural_notice():
+    rows, summary = extract_requirements(_guiyang_pages())
+    texts = [r.text for r in rows]
+    assert not any("支付合同价款" in t or "致：贵阳银行" in t for t in texts)
+    assert not any(t.startswith("2.1 招标文件包括") for t in texts)
+    assert any("驻场工程师不少于2名" in t and r.section_kind == "technical" for t, r in zip(texts, rows))
+    assert len(rows) <= 30
+
+
+def test_real_tender_quotes_verbatim_and_facts_from_tables():
+    pages = _guiyang_pages()
+    rows, _ = extract_requirements(pages)
+    for row in rows:
+        assert row.quote in pages[row.page - 1], row
+    facts = {(f.key, f.value) for f in extract_facts(pages)}
+    assert ("招标编号", "P52011520250008VU") in facts
+    assert ("预算金额", "3750000.00元") in facts and ("最高限价", "3750000.00元") in facts
+    assert ("投标截止时间", "2025年09月08日 09时30分") in facts
+    assert ("投标保证金", "人民币6万元") in facts
+    assert ("服务期限", "三年") in facts
+    for fact in extract_facts(pages):
+        assert fact.quote in pages[fact.page - 1], fact
