@@ -83,7 +83,7 @@ def test_model_configs_crud_and_direct_test_alias(client):
 
 def test_ragflow_config_route_aliases(client):
     """验证 RAGFlow 配置在 /ragflow/config 与 /ragflow-config 双路由别名下的完全对称一致"""
-    headers = login(client, "alpha-manager")
+    headers = login(client, "alpha-company-admin")
 
     # 1. 规范路由与别名路由 GET 返回一致
     res_canonical = client.get("/api/v1/ragflow-config", headers=headers)

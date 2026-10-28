@@ -75,6 +75,8 @@ def _frozen_status() -> dict[str, int]:
         "VOLUME_FINALIZED", "CHAPTER_CONTENT_EMPTY", "CROSS_REVIEW_REQUIRED", "CROSS_REVIEWER_IS_EDITOR",
         # 解析后处理：疑似遗漏未处理不能确认解析结果 (Wave 11 / PRD v1.8 §5.2.4)
         "OMISSIONS_PENDING",
+        # 公司知识库管控 (Wave 12 / ISSUE-043)：未配置、系统维护的文档不可手改、重建前置条件、文档未解析完
+        "KNOWLEDGE_BASE_NOT_CONFIGURED", "MANAGED_DOCUMENT", "REBUILD_BLOCKED", "KB_DOCUMENT_NOT_READY",
     ))
     _bind(table, 413, (
         "FILE_SIZE_LIMIT", "FILE_EXPANSION_LIMIT", "PDF_PAGE_LIMIT", "GENERATION_CONTEXT_TOO_LARGE",
@@ -97,11 +99,14 @@ def _frozen_status() -> dict[str, int]:
         "SETTING_VALUE_OUT_OF_BOUNDS",
         # 密码强度策略不足 (PRD v1.8 §5.10.2 / Q28)
         "PASSWORD_WEAK",
+        # 删除整类知识库须输入全名确认 (Wave 12 / ISSUE-043)
+        "CONFIRMATION_REQUIRED",
     ))
     _bind(table, 423, ("LOCK_HELD", "LOCK_LOST", "ACCOUNT_LOCKED"))
     _bind(table, 428, ("IF_MATCH_REQUIRED", "IDEMPOTENCY_KEY_REQUIRED"))
     _bind(table, 500, ("INTERNAL_ERROR",))
-    _bind(table, 502, ("MODEL_UNAVAILABLE", "MODEL_OUTPUT_INVALID", "PARSER_UNAVAILABLE"))
+    _bind(table, 502, ("MODEL_UNAVAILABLE", "MODEL_OUTPUT_INVALID", "PARSER_UNAVAILABLE",
+                       "KNOWLEDGE_BASE_UPSTREAM_ERROR"))
     # SECRET_KEY_UNAVAILABLE 不是瞬时故障：客户端不得自动重试，服务端不得发送 Retry-After。
     # 与 MODEL_UNAVAILABLE 相同。实现 ISSUE-024 时再断言响应没有该头。
     _bind(table, 503, ("UI_NOT_READY", "SECRET_KEY_UNAVAILABLE"))

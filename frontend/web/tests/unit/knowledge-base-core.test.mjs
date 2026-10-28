@@ -3,8 +3,8 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { attentionItems, kbStatusMeta, normalizeSnippetSyncStatus, summarizeKnowledgeBase } from '../src/library/knowledge-base-core.ts';
-import { getSnippetSyncStatusMeta } from '../src/library/snippet-library-core.ts';
+import { attentionItems, kbStatusMeta, normalizeSnippetSyncStatus, summarizeKnowledgeBase } from '../../src/library/knowledge-base-core.ts';
+import { getSnippetSyncStatusMeta } from '../../src/library/snippet-library-core.ts';
 
 const item = (key, status, name) => ({ key, status, name, source_type: 'library', source_id: key, item_type: 'qualification',
   revision: 1, message: '', chunk_count: 0, updated_at: null, document_id: '' });

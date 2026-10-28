@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
 from typing import Any, Mapping
@@ -715,6 +716,186 @@ class RagflowRetrievalClient:
             body = self._send_request("POST", f"{self.base_url}{INGEST_SUFFIX}",
                                       json_body={"doc_ids": ids, "run": "1"})
         return body.get("code") == 0
+
+    # ---------- 管控面（RAGFlow 1.0）：模型、摄入流程、数据集配置、分块、元数据 ----------
+
+    def list_models(self, model_type: str | None = None) -> list[dict[str, Any]]:
+        """租户已配置的模型。返回 name、instance_name、provider_name、model_type 列表，并给出可直接使用的 model@instance@provider 标识。"""
+        body = self._send_request("GET", f"{self.base_url}/api/v1/models")
+        rows = body.get("data") if isinstance(body.get("data"), list) else []
+        result = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            types = row.get("model_type") or []
+            types = types if isinstance(types, list) else [types]
+            if model_type and model_type not in types:
+                continue
+            ident = "@".join(p for p in (row.get("name"), row.get("instance_name"), row.get("provider_name")) if p)
+            result.append({"id": ident, "name": str(row.get("name", "")), "instance": str(row.get("instance_name", "")),
+                           "provider": str(row.get("provider_name", "")), "model_type": [str(t) for t in types]})
+        return result
+
+    def list_agents(self, *, canvas_category: str | None = None, keywords: str | None = None,
+                    page_size: int = 100) -> list[dict[str, Any]]:
+        params: dict[str, Any] = {"page": 1, "page_size": page_size}
+        if canvas_category:
+            params["canvas_category"] = canvas_category
+        if keywords:
+            params["keywords"] = keywords
+        body = self._send_request("GET", f"{self.base_url}/api/v1/agents", params=params)
+        data = body.get("data")
+        rows = data.get("canvas") if isinstance(data, dict) else data
+        return [r for r in (rows or []) if isinstance(r, dict)]
+
+    def get_agent(self, agent_id: str) -> dict[str, Any]:
+        body = self._send_request("GET", f"{self.base_url}/api/v1/agents/{agent_id.strip()}")
+        data = body.get("data")
+        if not isinstance(data, dict):
+            raise RagflowResponseError("get_agent response missing 'data' object")
+        return data
+
+    def create_agent(self, title: str, dsl: dict[str, Any], *, description: str = "",
+                     canvas_category: str = "agent_canvas") -> dict[str, Any]:
+        """创建画布。摄入流程（Ingestion Pipeline）用 canvas_category="dataflow_canvas"。"""
+        payload = {"title": title, "description": description, "dsl": dsl, "canvas_category": canvas_category}
+        body = self._send_request("POST", f"{self.base_url}/api/v1/agents", json_body=payload)
+        data = body.get("data")
+        if isinstance(data, dict) and data.get("id"):
+            return data
+        # 部分版本只回 data=true：按标题回查。
+        for row in self.list_agents(canvas_category=canvas_category, keywords=title):
+            if row.get("title") == title:
+                return row
+        raise RagflowResponseError("create_agent response missing id")
+
+    def update_agent(self, agent_id: str, *, title: str | None = None, dsl: dict[str, Any] | None = None,
+                     description: str | None = None) -> None:
+        payload = {k: v for k, v in (("title", title), ("dsl", dsl), ("description", description)) if v is not None}
+        if payload:
+            self._send_request("PUT", f"{self.base_url}/api/v1/agents/{agent_id.strip()}", json_body=payload)
+
+    def delete_agent(self, agent_id: str) -> None:
+        self._send_request("DELETE", f"{self.base_url}/api/v1/agents/{agent_id.strip()}")
+
+    def create_pipeline_dataset(self, name: str, pipeline_id: str, *, company_id: str | None = None,
+                                embedding_model: str | None = None, language: str = "Chinese") -> RagflowDataset:
+        """创建绑定摄入流程的数据集（parse_type=2，不能同时给 parser_id）。"""
+        clean_name = name.strip()
+        if company_id and not clean_name.startswith(f"{company_id.strip()}::"):
+            clean_name = f"{company_id.strip()}::{clean_name}"
+        payload: dict[str, Any] = {"name": clean_name, "parse_type": 2, "pipeline_id": pipeline_id.strip(),
+                                   "language": language}
+        if embedding_model:
+            payload["embedding_model"] = embedding_model.strip()
+        body = self._send_request("POST", self.datasets_url, json_body=payload)
+        data = body.get("data")
+        if not isinstance(data, dict) or not data.get("id"):
+            raise RagflowResponseError("create dataset response missing id")
+        return RagflowDataset(id=str(data["id"]), name=str(data.get("name", clean_name)), company_id=company_id,
+                              embedding_model=str(data.get("embedding_model", "")), parser_id="pipeline",
+                              document_count=int(data.get("document_count") or 0), raw=data)
+
+    def update_dataset(self, dataset_id: str, **fields: Any) -> dict[str, Any]:
+        """PUT 数据集：name/description/embedding_model/pagerank/parse_type+pipeline_id/parser_config 等。"""
+        payload = {k: v for k, v in fields.items() if v is not None}
+        body = self._send_request("PUT", self.dataset_url(dataset_id), json_body=payload)
+        data = body.get("data")
+        return data if isinstance(data, dict) else {}
+
+    def delete_datasets(self, dataset_ids: list[str]) -> None:
+        ids = [d.strip() for d in dataset_ids if d and d.strip()]
+        if ids:  # 绝不发送 delete_all
+            self._send_request("DELETE", self.datasets_url, json_body={"ids": ids})
+
+    def apply_parser_config(self, dataset_id: str) -> dict[str, Any]:
+        """把数据集当前解析设置应用到全部已有文档（不触发重新解析）。"""
+        body = self._send_request("POST", f"{self.documents_url(dataset_id)}/apply-parser-config")
+        data = body.get("data")
+        return data if isinstance(data, dict) else {}
+
+    def stop_parse(self, dataset_id: str, document_ids: list[str]) -> None:
+        ids = [d.strip() for d in document_ids if d and d.strip()]
+        if ids:
+            self._send_request("DELETE", self.chunks_url(dataset_id), json_body={"document_ids": ids})
+
+    def upload_file(self, dataset_id: str, filename: str, data: bytes, content_type: str) -> RagflowDocument:
+        """上传原件（docx/pdf/xlsx/图片等）。"""
+        files = {"file": (filename, data, content_type or "application/octet-stream")}
+        body = self._send_request("POST", self.documents_url(dataset_id), files=files)
+        payload = body.get("data")
+        doc = payload[0] if isinstance(payload, list) and payload else payload
+        if not isinstance(doc, dict) or not doc.get("id"):
+            raise RagflowResponseError("upload response missing document id")
+        return _document_from(doc, dataset_id, filename)
+
+    def download_document(self, dataset_id: str, document_id: str) -> bytes:
+        """下载原件（重建数据集时迁移原件用）。"""
+        headers = {"Authorization": f"Bearer {self._resolve_api_key()}"}
+        url = f"{self.documents_url(dataset_id)}/{document_id.strip()}"
+        try:
+            with httpx.Client(transport=self._transport, timeout=self.timeout_seconds, follow_redirects=False,
+                              trust_env=False) as client:
+                response = client.get(url, headers=headers)
+        except httpx.TimeoutException:
+            raise RagflowTimeoutError("download timed out") from None
+        except httpx.TransportError as exc:
+            raise RagflowConnectionError(f"download transport error: {type(exc).__name__}") from None
+        if response.status_code != 200:
+            raise RagflowHttpError(response.status_code, "download failed")
+        if response.headers.get("content-type", "").startswith("application/json"):
+            body = response.json()
+            if isinstance(body, dict) and body.get("code") not in (None, 0):
+                raise RagflowBusinessError(int(body.get("code")), str(body.get("message", "")))
+        return response.content
+
+    def list_chunks(self, dataset_id: str, document_id: str, *, keywords: str | None = None,
+                    page: int = 1, page_size: int = 30) -> dict[str, Any]:
+        params: dict[str, Any] = {"page": page, "page_size": max(1, min(page_size, 100))}
+        if keywords:
+            params["keywords"] = keywords
+        body = self._send_request("GET", f"{self.documents_url(dataset_id)}/{document_id.strip()}/chunks", params=params)
+        data = body.get("data") if isinstance(body.get("data"), dict) else {}
+        chunks = []
+        for raw in data.get("chunks") or []:
+            if not isinstance(raw, dict):
+                continue
+            # 1.0 列表接口返回内部字段名（content_with_weight、important_kwd…），这里统一成公开字段名。
+            def listish(*keys: str) -> list[str]:
+                for key in keys:
+                    value = raw.get(key)
+                    if isinstance(value, str):
+                        try:
+                            value = json.loads(value)
+                        except ValueError:
+                            value = [value] if value else []
+                    if isinstance(value, list):
+                        return [str(v) for v in value if str(v).strip()]
+                return []
+            available = raw.get("available", raw.get("available_int", True))
+            chunks.append({
+                "id": str(raw.get("id") or raw.get("chunk_id") or ""),
+                "content": str(raw.get("content") or raw.get("content_with_weight") or ""),
+                "important_keywords": listish("important_keywords", "important_kwd"),
+                "questions": listish("questions", "question_kwd"),
+                "available": str(available).lower() not in ("false", "0"),
+                "doc_type": str(raw.get("doc_type_kwd") or raw.get("doc_type") or ""),
+                "positions": raw.get("positions") if isinstance(raw.get("positions"), list) else [],
+            })
+        return {"total": int(data.get("total") or len(chunks)), "chunks": chunks}
+
+    def update_chunk(self, dataset_id: str, document_id: str, chunk_id: str, **fields: Any) -> None:
+        payload = {k: v for k, v in fields.items() if v is not None and k in
+                   ("content", "important_keywords", "questions", "available", "tag_kwd")}
+        if payload:
+            self._send_request("PATCH", f"{self.documents_url(dataset_id)}/{document_id.strip()}/chunks/{chunk_id.strip()}",
+                               json_body=payload)
+
+    def metadata_summary(self, dataset_id: str) -> dict[str, Any]:
+        body = self._send_request("GET", f"{self.dataset_url(dataset_id)}/metadata/summary")
+        data = body.get("data")
+        summary = data.get("summary") if isinstance(data, dict) else None
+        return summary if isinstance(summary, dict) else {}
 
     def health(self) -> dict[str, Any]:
         """健康检查 GET {base_url}/api/v1/system/healthz，不带 Authorization。"""

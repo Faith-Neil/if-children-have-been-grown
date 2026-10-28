@@ -718,3 +718,19 @@
 
 已完成：`scripts/rag_eval.py`、`tests/rag_eval/golden_v1.json`（离线跑通）。待做：真实 RAGFlow 上扫描 `similarity_threshold` × `keywords_similarity_weight`（及重排模型），以同义改写 recall@3 ≥ 0.8、负例误召回 ≤ 0.25 为初定目标，写回默认参数。阻塞：用户侧隧道 2026-10-28 不可达。
 
+<a id="ai-kb-control-plane"></a>
+
+## AI-KB-CONTROL-PLANE · 知识库管控接口与招投标专用摄入流程
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 8小时；四条 ICG 摄入流程与 DSL 生成、/api/v1/kb-admin 全部管控接口与授权审计、历史投标与证书原件、重建迁移、管理页 |
+| 关联 Issue | [ISSUE-043](../../issues/ISSUE-043.md) |
+| 依赖 | [AI-KB-RAG-PIPELINE](AI-M0.md#ai-kb-rag-pipeline) |
+| PRD / 架构出处 | [技术决定](../decisions/2026-10-28-kb-control-plane-and-pipelines.md) |
+| 完成时交付 | [技术决定](../decisions/2026-10-28-kb-control-plane-and-pipelines.md) |
+| 代码解释 | [技术决定](../decisions/2026-10-28-kb-control-plane-and-pipelines.md) |
+
+验收：`tests/backend/test_kb_admin.py` 11 项；流程部署与数据集绑定在真实 RAGFlow v1.0.0-rc2 上验证；完整解析待嵌入模型可用。
+

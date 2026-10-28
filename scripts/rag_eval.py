@@ -56,8 +56,13 @@ def _client(live: bool):
     return fake.client(), fake
 
 
-def _ingest(client, docs, wait_seconds: int) -> tuple[str, dict[str, str]]:
-    dataset = client.create_dataset(f"{COMPANY}-{int(time.time())}", company_id=COMPANY)
+def _ingest(client, docs, wait_seconds: int, embedding_model: str | None,
+            pipeline_id: str = "") -> tuple[str, dict[str, str]]:
+    name = f"{COMPANY}-{int(time.time())}"
+    if pipeline_id:
+        dataset = client.create_pipeline_dataset(name, pipeline_id, company_id=COMPANY, embedding_model=embedding_model)
+    else:
+        dataset = client.create_dataset(name, company_id=COMPANY, embedding_model=embedding_model)
     mapping: dict[str, str] = {}
     for doc in docs:
         uploaded = client.upload_document(dataset.id, doc.filename, doc.markdown)
@@ -66,10 +71,15 @@ def _ingest(client, docs, wait_seconds: int) -> tuple[str, dict[str, str]]:
     client.trigger_parse(dataset.id, list(mapping))
     deadline = time.time() + wait_seconds
     while True:
-        states = {d.id: d.sync_status for d in client.list_documents(dataset.id, page_size=100)}
+        listed = client.list_documents(dataset.id, page_size=100)
+        states = {d.id: d.sync_status for d in listed}
         pending = [d for d in mapping if states.get(d) == "unsynced"]
         failed = [d for d in mapping if states.get(d) == "failed"]
         print(f"  解析进度：完成 {len(mapping) - len(pending) - len(failed)} / {len(mapping)}，失败 {len(failed)}", flush=True)
+        if failed and len(failed) == len(mapping):
+            reason = next((d.progress_msg for d in listed if d.id in failed and d.progress_msg), "")
+            client._send_request("DELETE", client.datasets_url, json_body={"ids": [dataset.id]})
+            raise SystemExit(f"全部文档解析失败（临时数据集已删除）：{reason[:300]}")
         if not pending:
             break
         if time.time() > deadline:
@@ -126,14 +136,31 @@ def main() -> None:
     parser.add_argument("--rerank-id", default=os.environ.get("ICG_KB_RERANK_ID") or None)
     parser.add_argument("--wait", type=int, default=900, help="等待解析完成的秒数")
     parser.add_argument("--report", help="把结果写成 Markdown")
+    parser.add_argument("--mode", choices=["builtin", "pipeline"], default="builtin",
+                        help="builtin：内置 general 解析；pipeline：ICG“结构化资料”摄入流程（按标题切块+LLM 问法/关键词）")
+    parser.add_argument("--llm-id", default=os.environ.get("ICG_KB_LLM_ID", ""), help="pipeline 模式抽取用对话模型")
+    parser.add_argument("--embedding-model", default=os.environ.get("ICG_KB_EMBEDDING_MODEL") or None,
+                        help="model@factory；不填用 RAGFlow 租户默认嵌入模型")
     args = parser.parse_args()
 
     golden = json.loads(GOLDEN.read_text(encoding="utf-8"))
     docs = _documents(golden)
     client, _fake = _client(args.live)
     print(f"模式：{'真实 RAGFlow ' + client.base_url if args.live else '离线假服务'}；文档 {len(docs)}，查询 {len(golden['queries'])}")
-    dataset_id, mapping = _ingest(client, docs, args.wait)
     rows = []
+    pipeline_id = ""
+    if args.mode == "pipeline":
+        from icg.infra.ragflow_pipelines import PROFILES, PipelineOptions, build_dsl
+        agent = client.create_agent(f"icg::{COMPANY}::structured::eval{int(time.time())}",
+                                    build_dsl(PROFILES["structured"], PipelineOptions(llm_id=args.llm_id)),
+                                    canvas_category="dataflow_canvas")
+        pipeline_id = agent["id"]
+    try:
+        dataset_id, mapping = _ingest(client, docs, args.wait, args.embedding_model, pipeline_id)
+    except BaseException:
+        if pipeline_id and args.live:
+            client.delete_agent(pipeline_id)
+        raise
     try:
         for threshold in [float(x) for x in args.thresholds.split(",")]:
             for weight in [float(x) for x in args.weights.split(",")]:
@@ -146,6 +173,9 @@ def main() -> None:
             try:
                 client._send_request("DELETE", client.datasets_url, json_body={"ids": [dataset_id]})
                 print(f"已删除临时数据集 {dataset_id}")
+                if pipeline_id:
+                    client.delete_agent(pipeline_id)
+                    print(f"已删除临时摄入流程 {pipeline_id}")
             except Exception as exc:
                 print(f"临时数据集 {dataset_id} 删除失败：{type(exc).__name__}，请手动清理")
     if args.report:
@@ -154,7 +184,7 @@ def main() -> None:
 
 def _write_report(path: Path, args, golden, rows, *, live: bool) -> None:
     k = args.k
-    lines = [f"# RAG 检索评测（{golden['version']}，{'真实 RAGFlow' if live else '离线假服务'}）", "",
+    lines = [f"# RAG 检索评测（{golden['version']}，{'真实 RAGFlow' if live else '离线假服务'}，{args.mode}）", "",
              f"- 文档 {len(golden['documents'])} 篇，查询 {len(golden['queries'])} 条；k={k}；rerank={args.rerank_id or '无'}", "",
              f"| 阈值 | 关键词权重 | literal recall@{k} | literal MRR | paraphrase recall@{k} | paraphrase MRR | 负例误召回 |",
              "|---|---|---|---|---|---|---|"]

@@ -23,4 +23,5 @@ export const LazyDictConfigPage = lazy(() => loadDictConfig().then(module => ({ 
 export const LazyCompanySettingsPage = lazy(() => loadCompanySettings().then(module => ({ default: module.CompanySettingsPage })));
 export const LazyUsersPage = lazy(() => loadUsersPage().then(module => ({ default: module.UsersPage })));
 export const LazySnippetLibraryPage = lazy(() => loadSnippetLibraryPage().then(module => ({ default: module.SnippetLibraryPage })));
+export const LazyKnowledgeBaseAdminPage = lazy(() => import('../library/KnowledgeBaseAdminPage.tsx').then(module => ({ default: module.KnowledgeBaseAdminPage })));
 export const LazyWritingArchivePage = lazy(() => loadWritingArchivePage().then(module => ({ default: module.WritingArchivePage })));

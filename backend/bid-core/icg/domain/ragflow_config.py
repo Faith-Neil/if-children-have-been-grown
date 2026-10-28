@@ -107,6 +107,9 @@ class RagflowConfigService:
         updates: dict[str, Any],
         if_match: str | None,
     ) -> dict[str, Any]:
+        # 连接地址与密钥决定公司资料流向哪里（B5 数据不出内网），只允许公司管理员修改。
+        from icg.domain.kb_admin import require_kb_role
+        require_kb_role(principal, "connection")
         company_id = principal.user.company_id
 
         def operation(state: DemoState):
@@ -332,6 +335,35 @@ class RagflowConfigService:
             "status": doc.status,
         }
 
+    def _delegate_to_knowledge_base(self, principal: Principal, target_id: str,
+                                    transport: httpx.BaseTransport | None) -> dict[str, Any] | None:
+        kb = getattr(self.service, "knowledge_base", None)
+        if kb is None or not target_id or transport is not None:
+            return None
+        company_id = principal.user.company_id
+        state = self.repository.read()
+        records = (state.service_stores.get("snippets") or {}).get("records", {})
+        if target_id in records and records[target_id].get("company_id") == company_id:
+            key = "snippet:" + target_id
+        elif target_id in state.library and state.library[target_id].get("company_id") == company_id:
+            key = "library:" + target_id
+        else:
+            return None
+        if not kb.enabled(company_id):
+            return None
+        summary = kb.sync_company(company_id, keys=[key])
+        row = next((r for r in kb.status(company_id)["items"] if r["key"] == key), None)
+        if row is None:
+            return {"synced": False, "kb_sync_status": "unsynced", "snippet_id": target_id,
+                    "dataset_id": kb.status(company_id).get("dataset_id", ""),
+                    "message": "该内容尚未发布或未确认，不进入知识库。"}
+        status = {"synced": "synced", "failed": "failed"}.get(row["status"], "unsynced")
+        return {"synced": status == "synced", "kb_sync_status": status, "snippet_id": target_id,
+                "dataset_id": kb.status(company_id).get("dataset_id", ""), "document_id": row.get("document_id", ""),
+                "message": {"synced": "同步成功", "failed": row.get("message") or "解析失败"}.get(status, "正在解析"),
+                "run": {"synced": "DONE", "failed": "FAIL"}.get(status, "RUNNING"),
+                "progress": 1.0 if status == "synced" else 0.0, "summary": summary}
+
     def sync_knowledge_base(
         self,
         principal: Principal,
@@ -351,6 +383,12 @@ class RagflowConfigService:
         company_id = principal.user.company_id
         opts = payload or {}
         target_id = snippet_or_library_id or opts.get("snippet_id") or opts.get("id") or ""
+
+        # Wave 12 起由公司知识库服务统一维护“资料/片段 → RAGFlow 文档”映射与同步状态；
+        # 已登记的片段与资料一律走它，避免两套逻辑各写一份 kb_sync_status。
+        delegated = self._delegate_to_knowledge_base(principal, target_id, transport)
+        if delegated is not None:
+            return delegated
 
         snippet_record: dict[str, Any] | None = None
         snippet_title = opts.get("title") or ""

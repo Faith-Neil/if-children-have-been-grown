@@ -879,6 +879,7 @@
 | D-858 | 2026-10-28 | [代码说明：公司知识库同步与检索（AI-KB-RAG-PIPELINE）](code/AI-KB-RAG-PIPELINE.md) | 代码说明 | kb-rag-1 | 当前 | ISSUE-043 / AI-KB-RAG-PIPELINE | 索引结构、同步与检索调用顺序 |
 | D-859 | 2026-10-28 | [Wave 12 开发自测记录](testing/2026-10-28-wave-12-verification.md) | 验证 | wave12-dev-1 | 开发自测 | ISSUE-041 / ISSUE-043 | 后端 879 passed、MySQL 40 passed、知识库 13 passed；真实 RAGFlow 评测未执行；非 QA 签署 |
 | D-860 | 2026-10-28 | [ISSUE-043 知识库同步与检索未接入生产链路](../issues/ISSUE-043.md) | Issue | revision 1 | in-review | ISSUE-043 | 检索未接通、片段同步伪造、无映射与删除 |
+| D-861 | 2026-10-28 | [技术决定：知识库管控、ICG 摄入流程与招标解析是否用 RAG](decisions/2026-10-28-kb-control-plane-and-pipelines.md) | 决策 | kb-control-1 | 当前 | ISSUE-043 / AI-KB-CONTROL-PLANE | 四类知识与流程、管控接口授权、招标解析不用向量检索的理由 |
 
 ## 更新记录
 
@@ -886,6 +887,7 @@
 |---|---|---|
 | 2026-10-28 | 产品 / 开发 / Wave 11 | 新建分支 feat/wave-11-main-path（PR #6），交付 APP-M2-T133、APP-M2-T144、APP-M2-T111、AI-REMEDIATION-NO-FABRICATION、BE-WORKFLOW-STATE-PERSIST（均 in-review），登记 ISSUE-039～042、PRD 实施澄清与缺口增量（D-838～D-854）；看板 444 项：96 done、65 in-review、7 in-progress、228 planned、41 blocked、7 cancelled、0 ready |
 | 2026-10-28 | 开发 / Wave 12 | BE-WORKFLOW-DURABILITY 与 AI-KB-RAG-PIPELINE 交付为 in-review，AI-KB-RAG-EVAL in-progress，登记 ISSUE-043（D-855～D-860）；看板 446 项：96 done、67 in-review、8 in-progress、227 planned、41 blocked、7 cancelled、0 ready |
+| 2026-10-28 | 开发 / Wave 12 | AI-KB-CONTROL-PLANE 交付为 in-review（D-861）；看板 447 项：96 done、68 in-review、8 in-progress、227 planned、41 blocked、7 cancelled、0 ready |
 | 2026-10-28 | PD / 验收 / Wave 10 | 登记 Wave 10 业务功能与核心技术交付批次产品视角对照验收报告（2026-10-28-pd-review-wave10.md，D-837），对照 PRD v1.8 §2.2/§5.7.8/§5.10/§5.10.1/§5.10.2/§5.11/§6.4/§8 与 M1-P10-F3 交接约束，书面认可并建议 PM 标 done |
 | 2026-10-28 | QA / 验收 / Wave 10 | 登记 Wave 10 核心能力与技术交付批次（共 4 卡）QA 终验签署报告（2026-10-28-wave-10-batch-qa-signoff.md，D-836），核验 APP-M2-T028、INT-USER-SECURITY-OPS-GLUE、BE-USER-SECURITY-OPS 与 AI-OUTLINE-AUTO-REMEDIATION，全量测试全绿，出具正式 PASS 签署并建议 PM 标 done |
 | 2026-10-28 | AI / 自动整改重写 / AI-OUTLINE-AUTO-REMEDIATION | 登记章节合规质检缺陷自动整改建议与局部智能重写引擎交付报告（AI-OUTLINE-AUTO-REMEDIATION.md，D-834）与代码说明（D-835），落地 diagnose_paragraph_defects、synthesize_remediation_plan 与 remediate_chapter_candidate，实现 R34/R37/R24/CITATION_AUTH 缺陷精准诊断、局部智能重写与原地合规保全、多轮自适应收敛迭代（直至阻断清零且健康分>=90）、法定表单印章签名块整体注入、单章生成与大纲批量生成流水线闭环集成（auto_remediate=True）及全局看板汇总，涉密本地模型硬门禁（403）与多租户/RBAC隔离（404/403），专属单测 12 项全绿，全量 97 项 AI 核心测试全绿，OpenAPI 契约零漂移，保持 in-review |

@@ -50,11 +50,13 @@ def fake_ragflow_fixture():
 
 @pytest.fixture
 def client(secret_key):
-    with TestClient(create_app()) as test_client:
+    app = create_app()
+    app.state.service.knowledge_base.background = False  # 发布后的知识库同步在测试里同步执行，避免与断言竞态
+    with TestClient(app) as test_client:
         yield test_client
 
 
-def make_principal(user_id: str, company_id: str, role: str = "project_manager") -> Principal:
+def make_principal(user_id: str, company_id: str, role: str = "company_admin") -> Principal:
     user = Account(
         id=user_id,
         company_id=company_id,
@@ -218,7 +220,7 @@ def test_service_sync_knowledge_base_published_snippet(client, fake_ragflow_fixt
     )
 
     # 1. 在系统中创建并发布一个方案片段
-    headers = login(client, "alpha-manager")
+    headers = login(client, "alpha-company-admin")
     create_res = client.post(
         "/api/v1/snippet-publications",
         headers={**headers, "Idempotency-Key": str(uuid4())},
@@ -269,7 +271,7 @@ def test_service_sync_knowledge_base_with_sync_fail_marker(client, fake_ragflow_
         if_match=f'"{cfg["revision"]}"',
     )
 
-    headers = login(client, "alpha-manager")
+    headers = login(client, "alpha-company-admin")
     create_res = client.post(
         "/api/v1/snippet-publications",
         headers={**headers, "Idempotency-Key": str(uuid4())},
@@ -331,7 +333,7 @@ def test_service_sync_cross_tenant_isolation(client, fake_ragflow_fixture):
     p_beta = make_principal("beta-lead", "beta")
 
     # Alpha 创建并拥有一个片段
-    headers_alpha = login(client, "alpha-manager")
+    headers_alpha = login(client, "alpha-company-admin")
     create_res = client.post(
         "/api/v1/snippet-publications",
         headers={**headers_alpha, "Idempotency-Key": str(uuid4())},
@@ -358,7 +360,7 @@ def test_service_sync_cross_tenant_isolation(client, fake_ragflow_fixture):
 # ---------------------------------------------------------------------------
 
 def test_ragflow_sync_api_endpoints_integration(client, fake_ragflow_fixture):
-    headers = login(client, "alpha-manager")
+    headers = login(client, "alpha-company-admin")
 
     # 1. 配置基础地址
     client.put(
