@@ -667,3 +667,21 @@
 - [x] 交付文档、代码说明、任务卡与任务看板同步更新。
 
 已获 QA 签署（D-836 PASS）与 PD 验收（D-837 认可），经人类 PM 正式批准标 done。
+
+> 2026-10-28 回归说明：上表“R37 正向承诺反转”“CITATION_AUTH 白名单替换”及【待补】改写行为经核对违反 PRD v1.8 §1.4 原则 3 与 §5.7.4 第 4 条，登记为 [ISSUE-039](../../issues/ISSUE-039.md)，由 [AI-REMEDIATION-NO-FABRICATION](AI-M0.md#ai-remediation-no-fabrication) 撤回。本卡 done 状态与签署记录保留原文。
+
+<a id="ai-remediation-no-fabrication"></a>
+
+## AI-REMEDIATION-NO-FABRICATION · 章节自动整改不编造（按 PRD §5.7.4 规则编排）
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时；删除偏离翻转与空泛占位改写；直接转人工问题不进入自动修正；模型改写安全复核；测试按 PRD 重写 |
+| 关联 Issue | [ISSUE-039](../../issues/ISSUE-039.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [AI-OUTLINE-AUTO-REMEDIATION](AI-M0.md#ai-outline-auto-remediation) |
+| PRD / 架构出处 | [PRD v1.8 §1.4、§5.7.4](../reference/product/prd-mvp-v1.8.md)；[实施澄清 A1/A8](../decisions/2026-10-28-prd-amendments-wave11.md) |
+| 完成时交付 | [交付](../delivery/AI-REMEDIATION-NO-FABRICATION.md) |
+| 代码解释 | [代码说明](../code/AI-REMEDIATION-NO-FABRICATION.md) |
+
+验收：偏离、无依据【待补】、依据外证据不被自动修正并进入人工处理队列；模型改写带入新数字或新引用被拒；只有可自动修正问题时“问题全部解决”，否则如实“待人工处理”。

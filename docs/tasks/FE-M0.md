@@ -486,3 +486,19 @@
 - [x] 保留令牌直登扩展槽与密码可见性切换。
 - [x] 前端测试 426 项全绿，TypeScript 静态检查 0 error，构建 1.23s 成功。
 
+
+<a id="fe-e2e-library-drift"></a>
+
+## FE-E2E-LIBRARY-DRIFT · 资料库类别回归与证据抽屉 e2e 对齐
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | planned |
+| 估算 | 3小时 |
+| 关联 Issue | [ISSUE-042](../../issues/ISSUE-042.md) |
+| 依赖 | — |
+| 来源 | PRD v1.8 §5.3.1（历史标书只能参考）、§5.5；offline-check e2e 必需作业 |
+| 完成时交付 | `docs/delivery/FE-E2E-LIBRARY-DRIFT.md` |
+| 代码解释 | `docs/code/FE-E2E-LIBRARY-DRIFT.md` |
+
+范围：资料库表单恢复“历史标书（参考）”“方案片段”类别；`e2e/evidence-drawer.spec.ts` 按现行页面文案更新且不放宽断言；e2e 作业全绿。
