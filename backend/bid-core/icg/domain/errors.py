@@ -64,6 +64,8 @@ def _frozen_status() -> dict[str, int]:
         "FACT_VARIABLE_LOST", "FACT_LITERAL_REPLACEMENT",
         # 字典配置与元数据停用/保护红线 (APP-M2-T024 / PRD v1.8 §5.10.3 / §6.9)
         "DICT_ITEM_IN_USE", "DICT_CODE_DUPLICATED",
+        # 用户管理停用前资产转交门禁 (APP-M2-T027 / PRD v1.8 §5.10.1)
+        "USER_TRANSFER_REQUIRED",
     ))
     _bind(table, 413, (
         "FILE_SIZE_LIMIT", "FILE_EXPANSION_LIMIT", "PDF_PAGE_LIMIT", "GENERATION_CONTEXT_TOO_LARGE",
@@ -84,6 +86,8 @@ def _frozen_status() -> dict[str, int]:
         "TWO_VOLUMES_REQUIRED",
         # 企业设置与安全策略越界校验 (APP-M2-T025 / PRD v1.8 §5.10.2 / §6.9)
         "SETTING_VALUE_OUT_OF_BOUNDS",
+        # 密码强度策略不足 (PRD v1.8 §5.10.2 / Q28)
+        "PASSWORD_WEAK",
     ))
     _bind(table, 423, ("LOCK_HELD", "LOCK_LOST"))
     _bind(table, 428, ("IF_MATCH_REQUIRED", "IDEMPOTENCY_KEY_REQUIRED"))

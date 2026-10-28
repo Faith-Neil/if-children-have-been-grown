@@ -11,6 +11,7 @@ let auditModule: ReturnType<typeof importAuditLogPage> | undefined;
 let companyModule: ReturnType<typeof importCompanyManagePage> | undefined;
 let dictConfigModule: ReturnType<typeof importDictConfigPage> | undefined;
 let companySettingsModule: ReturnType<typeof importCompanySettingsPage> | undefined;
+let usersModule: ReturnType<typeof importUsersPage> | undefined;
 let snippetLibraryModule: ReturnType<typeof importSnippetLibraryPage> | undefined;
 let writingArchiveModule: ReturnType<typeof importWritingArchivePage> | undefined;
 
@@ -24,6 +25,7 @@ function importAuditLogPage() { return import('../admin/AuditLogPage.tsx'); }
 function importCompanyManagePage() { return import('../admin/CompanyManagePage.tsx'); }
 function importDictConfigPage() { return import('../admin/DictConfigPage.tsx'); }
 function importCompanySettingsPage() { return import('../admin/CompanySettingsPage.tsx'); }
+function importUsersPage() { return import('../admin/UsersPage.tsx'); }
 function importSnippetLibraryPage() { return import('../library/SnippetLibraryPage.tsx'); }
 function importWritingArchivePage() { return import('../library/WritingArchivePage.tsx'); }
 
@@ -37,5 +39,6 @@ export function loadAuditLog() { auditModule ??= importAuditLogPage(); return au
 export function loadCompanyManage() { companyModule ??= importCompanyManagePage(); return companyModule; }
 export function loadDictConfig() { dictConfigModule ??= importDictConfigPage(); return dictConfigModule; }
 export function loadCompanySettings() { companySettingsModule ??= importCompanySettingsPage(); return companySettingsModule; }
+export function loadUsersPage() { usersModule ??= importUsersPage(); return usersModule; }
 export function loadSnippetLibraryPage() { snippetLibraryModule ??= importSnippetLibraryPage(); return snippetLibraryModule; }
 export function loadWritingArchivePage() { writingArchiveModule ??= importWritingArchivePage(); return writingArchiveModule; }

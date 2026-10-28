@@ -570,3 +570,54 @@
 - [x] 交付文档、代码说明、任务卡与任务看板同步更新。
 
 状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。
+
+
+<a id="ai-chapter-auto-validation-gate"></a>
+
+## AI-CHAPTER-AUTO-VALIDATION-GATE · 章节生成产物合规性自动即时质检门禁
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 落地章节生成产物自动即时质检门禁引擎，实现生成即质检、R34占位符与客套语阻断、R37负偏离阻断、R24签字盖章槽位核验、证据真实性白名单排查、质量健康度评分与评级梯度量化及批量流水线看板汇聚 |
+| 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [AI-OUTLINE-BATCH-GENERATION-PIPELINE](AI-M0.md#ai-outline-batch-generation-pipeline) |
+| PRD / 架构出处 | [PRD v1.8 §5.7.8、§5.10](../reference/product/prd-mvp-v1.8.md)；[APP-M2-T126](APP-M2.md#app-m2-t126) |
+| 完成时交付 | [AI-CHAPTER-AUTO-VALIDATION-GATE 交付](../delivery/AI-CHAPTER-AUTO-VALIDATION-GATE.md) |
+| 代码解释 | [AI-CHAPTER-AUTO-VALIDATION-GATE 代码说明](../code/AI-CHAPTER-AUTO-VALIDATION-GATE.md) |
+
+范围：在 `backend/bid-core/icg/domain/chapter_generation.py`、`domain.py`、`generation_orchestrator.py` 与 `backend/bid-core/icg/api/workflow.py` 中落地章节生成产物合规性自动即时质检门禁引擎：
+1. 生成即质检（Validation on Generation）：单章独立生成（`start_chapter_generation`）与多章节批量流水线调度（`schedule_batch_pipeline`）在产出候选正文后自动即时触发多维度合规质量核验；
+2. R34 占位符与“待补/待完善”残留排查：扫描未替换的草稿标记（`【待定】`、`【待补】`、`TODO`、`XXXX` 等）与 AI 对话客套语句残留，检出即标定阻断缺陷（`code: PLACEHOLDER_RESIDUAL` / `AI_CONVERSATION_RESIDUAL`）；
+3. R37 / R28 负偏离与无法满足排查：排查“不满足”、“负偏离”、“无法提供”、“存在差距”等实质性违规表述，检出即标定阻断缺陷（`code: NEGATIVE_DEVIATION_DETECTED`）；
+4. R24 签字盖章槽位合规排查：法定承诺与授权证明章节排查显式“未盖公章”、“未签字”或缺少标准公章与法定代表人签字槽位，检出标定阻断缺陷（`code: MANDATORY_SEAL_SIGNATURE_MISSING`）；
+5. CITATION_AUTH 引用白名单真实性核验：校验证据编号 `[证:eid]` 是否在已确认白名单中，识别虚构证据并阻断（`code: FABRICATED_OR_INVALID_EVIDENCE_CITATION`）；未匹配知识库候选切片 `[片:sid]` 标定告警（`code: UNVERIFIED_SNIPPET_CITATION`）；
+6. 质量健康度评分（0~100）与评级梯度模型：量化计算 `quality_health_score` 与 `quality_health_rating`（`excellent` / `good` / `warning` / `critical`）；
+7. 自适应修复建议清单生成：根据检出缺陷代码智能输出针对性改写建议；
+8. 实体与异步进度无缝注入：注入候选草稿（`candidate`）与 `demo_job` 异步任务进度（`result_json`）；
+9. 批量流水线全局质量看板聚合：持久化汇聚汇总 `validation_summary`（通过数、失败数、阻断数、平均健康分）；
+10. 安全物理隔离硬门禁：涉密项目本地模型硬门禁（403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`）、多租户强隔离（404 `NOT_FOUND`）与只读角色门禁（403 `FORBIDDEN`）；
+11. HTTP API 端点集成：注册 `POST /api/v1/projects/{project_id}/chapters/{chapter_id}/validate-candidate`（`include_in_schema=False` 保障 OpenAPI 零漂移）。
+
+当前条件：自动化回归测试全绿通过（专属测试 12 passed，全量 AI 核心套件 85 passed）。
+
+可验证验收：
+- [x] 清洁合规正文 100% 质检通过，评定 100 分 excellent；
+- [x] R34 占位符与 AI 对话客套残留字样精准阻断拦截；
+- [x] R37 / R28 负偏离与无法满足声明精准阻断拦截；
+- [x] R24 法定承诺章节缺少公章/签字槽位精准阻断拦截；
+- [x] CITATION_AUTH 虚构证据编号精准阻断拦截，未匹配知识库切片触发告警；
+- [x] 质量健康度评分（0~100）与评级梯度（excellent/good/warning/critical）准确量化；
+- [x] 自适应修复建议清单准确生成；
+- [x] 单章生成自动注入 candidate 实体元数据与 demo_job result_json；
+- [x] 批量流水线 schedule_batch_pipeline 自动聚合 validation_summary 质量仪表盘；
+- [x] 独立按需合规质检 validate_chapter_content 调用正常；
+- [x] 多租户物理强隔离门禁拦截 404 NOT_FOUND，只读系统角色拦截 403 FORBIDDEN；
+- [x] 涉密项目调用外部云端大模型硬拦截 403 SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL；
+- [x] HTTP API 端点 POST /chapters/{cid}/validate-candidate 端到端调用成功；
+- [x] 专属自动化测试套件 pytest tests/backend/test_ai_chapter_validation_gate.py -v 执行全过（12 passed）；
+- [x] 全量 AI 核心联合测试回归全绿（85 passed）；
+- [x] OpenAPI 契约校验 python backend/bid-core/export_openapi.py --check 100% 一致；
+- [x] 交付文档、代码说明、任务卡与任务看板同步更新。
+
+状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。

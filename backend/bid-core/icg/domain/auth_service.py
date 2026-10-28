@@ -69,3 +69,21 @@ def is_super_admin(user_or_principal: Any) -> bool:
     if user_id == DEFAULT_SUPER_ADMIN_USERNAME:
         return True
     return False
+
+
+def validate_password_strength(password: str, min_length: int = 8, min_classes: int = 3) -> tuple[bool, str]:
+    """依据 PRD v1.8 §5.10.2 / Q28 定案核验密码强度：最少8位且至少包含四类字符中的三类。"""
+    if not password or len(password) < min_length:
+        return False, f"密码长度不能低于平台下限 {min_length} 位。"
+    classes = 0
+    if any(c.isupper() for c in password):
+        classes += 1
+    if any(c.islower() for c in password):
+        classes += 1
+    if any(c.isdigit() for c in password):
+        classes += 1
+    if any(not c.isalnum() for c in password):
+        classes += 1
+    if classes < min_classes:
+        return False, f"密码至少需包含大写字母、小写字母、数字、特殊符号中的 {min_classes} 类。"
+    return True, ""

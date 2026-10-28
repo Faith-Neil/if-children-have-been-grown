@@ -1,7 +1,7 @@
 // 为什么有这个文件：按页面建立可延迟的组件，而不是在入口里直接引用。
 // 它解决什么问题：只有真正打开的路由才下载对应代码。
 import { lazy } from 'react';
-import { loadAuditLog, loadCompanyManage, loadCompanySettings, loadDictConfig, loadEditor, loadLibraryPages, loadProjectPages, loadSettings, loadShell, loadSnippetLibraryPage, loadSupportPages, loadWritingArchivePage } from './route-loaders.ts';
+import { loadAuditLog, loadCompanyManage, loadCompanySettings, loadDictConfig, loadEditor, loadLibraryPages, loadProjectPages, loadSettings, loadShell, loadSnippetLibraryPage, loadSupportPages, loadUsersPage, loadWritingArchivePage } from './route-loaders.ts';
 
 export const LazyAppShell = lazy(() => loadShell().then(module => ({ default: module.AppShell })));
 export const LazyEditorPage = lazy(() => loadEditor());
@@ -20,5 +20,6 @@ export const LazyAuditLogPage = lazy(() => loadAuditLog().then(module => ({ defa
 export const LazyCompanyManagePage = lazy(() => loadCompanyManage().then(module => ({ default: module.CompanyManagePage })));
 export const LazyDictConfigPage = lazy(() => loadDictConfig().then(module => ({ default: module.DictConfigPage })));
 export const LazyCompanySettingsPage = lazy(() => loadCompanySettings().then(module => ({ default: module.CompanySettingsPage })));
+export const LazyUsersPage = lazy(() => loadUsersPage().then(module => ({ default: module.UsersPage })));
 export const LazySnippetLibraryPage = lazy(() => loadSnippetLibraryPage().then(module => ({ default: module.SnippetLibraryPage })));
 export const LazyWritingArchivePage = lazy(() => loadWritingArchivePage().then(module => ({ default: module.WritingArchivePage })));

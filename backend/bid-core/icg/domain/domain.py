@@ -73,6 +73,9 @@ class Account:
     password_hash: str = ""
     salt: str = ""
     display_name: str = ""
+    status: str = "active"
+    created_at: float | None = None
+    updated_at: float | None = None
 
 
 @dataclass(frozen=True)
@@ -291,6 +294,20 @@ class DemoService:
             max_context_tokens=max_context_tokens,
         )
 
+    def validate_chapter_content(
+        self,
+        project_id: str,
+        chapter_id: str,
+        principal: Principal,
+        content: str | None = None,
+    ) -> dict[str, Any]:
+        return self.chapter_generation.validate_chapter_content(
+            project_id=project_id,
+            chapter_id=chapter_id,
+            principal=principal,
+            content=content,
+        )
+
     def assemble_writing_prompt_plan(
         self,
         project_id: str,
@@ -475,6 +492,9 @@ class DemoService:
             if user is None:
                 raise DomainError(401, "INVALID_CREDENTIALS", "用户名或密码错误，请核实后重试。")
 
+            if getattr(user, "status", "active") == "disabled":
+                raise DomainError(401, "INVALID_CREDENTIALS", "该账号已被停用，请联系企业管理员。")
+
             from icg.domain.auth_service import verify_password
             if user.password_hash:
                 valid = verify_password(password, user.password_hash, user.salt)
@@ -499,6 +519,8 @@ class DemoService:
         user = state.accounts.get(state.sessions.get(token, ""))
         if user is None:
             raise DomainError(401, "UNAUTHENTICATED", "请先选择演示账号登录。")
+        if getattr(user, "status", "active") == "disabled":
+            raise DomainError(401, "UNAUTHENTICATED", "当前账号已被停用。")
         return Principal(user, token)
 
     @staticmethod

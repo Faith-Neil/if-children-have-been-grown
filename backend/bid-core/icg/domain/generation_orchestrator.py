@@ -385,6 +385,20 @@ class GenerationOrchestratorMixin:
             max_context_tokens=max_context_tokens,
         )
 
+    def validate_chapter_content(
+        self,
+        project_id: str,
+        chapter_id: str,
+        principal: Principal,
+        content: str | None = None,
+    ) -> dict[str, Any]:
+        return self.demo.validate_chapter_content(
+            project_id=project_id,
+            chapter_id=chapter_id,
+            principal=principal,
+            content=content,
+        )
+
     def assemble_writing_prompt_plan(
         self,
         project_id: str,

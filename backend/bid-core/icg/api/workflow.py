@@ -439,5 +439,23 @@ def include_workflow_routes(application, service, current_user, parser):
             max_context_tokens=body.get("max_context_tokens"),
         )
 
+    @router.post(
+        "/projects/{project_id}/chapters/{chapter_id}/validate-candidate",
+        include_in_schema=False,
+    )
+    def validate_chapter_candidate_endpoint(
+        project_id: str,
+        chapter_id: str,
+        body: dict | None = None,
+        user: Principal = Depends(current_user),
+    ):
+        body = body or {}
+        return workflow.validate_chapter_content(
+            project_id=project_id,
+            chapter_id=chapter_id,
+            principal=user,
+            content=body.get("content"),
+        )
+
     application.include_router(router)
     include_recoverable_routes(application, workflow, current_user)

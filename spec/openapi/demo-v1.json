@@ -19943,6 +19943,960 @@
         }
       }
     },
+    "/api/v1/users": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "调阅用户列表",
+        "description": "按条件调阅用户列表。超级管理员可调阅全平台或指定企业，企业管理员与其他成员严格按所属企业隔离，密码哈希严格脱敏。",
+        "operationId": "listUsers",
+        "parameters": [
+          {
+            "name": "company_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "所属企业租户ID",
+              "title": "Company Id"
+            },
+            "description": "所属企业租户ID"
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "系统角色代码过滤",
+              "title": "Role"
+            },
+            "description": "系统角色代码过滤"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "状态过滤：active / disabled",
+              "title": "Status"
+            },
+            "description": "状态过滤：active / disabled"
+          },
+          {
+            "name": "keyword",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "关键字检索（账号/姓名/昵称）",
+              "title": "Keyword"
+            },
+            "description": "关键字检索（账号/姓名/昵称）"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserListResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "新增企业用户",
+        "description": "创建新账号并执行 Q28 定案密码强度校验（最少8位且至少含3类字符，不足拦截 422 PASSWORD_WEAK）。超级管理员可为任意企业创建，企业管理员仅可为本企业创建，其他角色拦截 403 FORBIDDEN。",
+        "operationId": "createUser",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserModel"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{user_id}": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "获取指定用户详情",
+        "description": "获取用户详情信息，严格脱敏密码哈希与盐，跨企业访问拦截 404 NOT_FOUND。",
+        "operationId": "getUser",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserModel"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "users"
+        ],
+        "summary": "修改用户信息或停用账号",
+        "description": "更新用户属性或停用账号。停用负责在投项目的用户时，若未指定 successor_user_id 严格拦截 409 USER_TRANSFER_REQUIRED 并返回未结清清单；指定交接人时原子完成项目交接。",
+        "operationId": "updateUser",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserModel"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{user_id}/status": {
+      "patch": {
+        "tags": [
+          "users"
+        ],
+        "summary": "修改用户账号状态或停用转交",
+        "description": "更新用户账号状态（active / disabled）。当停用负责在投项目或未完结章节的用户时，若未指定 successor_user_id 严格拦截 409 USER_TRANSFER_REQUIRED；若指定合法交接人则原子完成在投项目与章节编写人转交。",
+        "operationId": "updateUserStatus",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserModel"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/{user_id}/transfer": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "转交用户在投项目资产",
+        "description": "在停用前独立将用户负责的在投项目（项目负责人、编写人、总装责任）转交至同一企业的指定接收人。",
+        "operationId": "transferUserAssets",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferUserAssetsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferUserAssetsResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/projects/{project_id}/outline/plan": {
       "x-contract-status": "frozen",
       "x-implemented": false,
@@ -21970,6 +22924,56 @@
           "label"
         ],
         "title": "CreateDictItemRequest"
+      },
+      "CreateUserRequest": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username",
+            "description": "登录账号 / 用户ID"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "用户真实姓名"
+          },
+          "company_id": {
+            "type": "string",
+            "title": "Company Id",
+            "description": "所属企业租户ID"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "分配的标准系统角色"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password",
+            "description": "初始登录密码"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "description": "展示昵称"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "name",
+          "company_id",
+          "role",
+          "password"
+        ],
+        "title": "CreateUserRequest"
       },
       "DeleteDictItemResponse": {
         "properties": {
@@ -28104,6 +29108,62 @@
         ],
         "title": "TenderFile"
       },
+      "TransferUserAssetsRequest": {
+        "properties": {
+          "successor_user_id": {
+            "type": "string",
+            "title": "Successor User Id",
+            "description": "资产交接接收人用户ID"
+          }
+        },
+        "type": "object",
+        "required": [
+          "successor_user_id"
+        ],
+        "title": "TransferUserAssetsRequest"
+      },
+      "TransferUserAssetsResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "是否交接成功",
+            "default": true
+          },
+          "from_user_id": {
+            "type": "string",
+            "title": "From User Id",
+            "description": "原资产负责人ID"
+          },
+          "successor_user_id": {
+            "type": "string",
+            "title": "Successor User Id",
+            "description": "新资产接收人ID"
+          },
+          "transferred_projects": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Transferred Projects",
+            "description": "已平滑交接的在投项目列表"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "交接执行结果说明"
+          }
+        },
+        "type": "object",
+        "required": [
+          "from_user_id",
+          "successor_user_id",
+          "transferred_projects",
+          "message"
+        ],
+        "title": "TransferUserAssetsResponse"
+      },
       "UpdateCompanySettingsRequest": {
         "properties": {
           "company_name": {
@@ -28382,6 +29442,214 @@
         "type": "object",
         "title": "UpdateDictItemRequest"
       },
+      "UpdateUserRequest": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "真实姓名"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name",
+            "description": "展示昵称"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role",
+            "description": "分配的标准系统角色"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status",
+            "description": "账号状态：active / disabled"
+          },
+          "successor_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Successor User Id",
+            "description": "停用时资产交接接收人ID"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason",
+            "description": "变更或交接原因"
+          }
+        },
+        "type": "object",
+        "title": "UpdateUserRequest"
+      },
+      "UpdateUserStatusRequest": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "账号状态：active / disabled"
+          },
+          "successor_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Successor User Id",
+            "description": "停用时资产交接接收人ID"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason",
+            "description": "状态变更或交接原因"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "UpdateUserStatusRequest"
+      },
+      "UserListResponse": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "满足条件的用户总数"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UserModel"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "用户列表"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "items"
+        ],
+        "title": "UserListResponse"
+      },
+      "UserModel": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "用户唯一账号ID"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "真实姓名"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name",
+            "description": "展示昵称"
+          },
+          "company_id": {
+            "type": "string",
+            "title": "Company Id",
+            "description": "所属企业租户ID"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "系统角色代码"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "账号状态：active / disabled",
+            "default": "active"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At",
+            "description": "创建时间（ISO 8601）"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At",
+            "description": "最后更新时间（ISO 8601）"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "display_name",
+          "company_id",
+          "role"
+        ],
+        "title": "UserModel",
+        "description": "用户信息安全对外视图（严格脱敏密码哈希与盐）。"
+      },
       "UsernamePasswordLoginRequest": {
         "properties": {
           "username": {
@@ -28505,6 +29773,7 @@
               "PARSER_UNAVAILABLE",
               "PARSE_INCOMPLETE",
               "PARSE_NOT_CONFIRMED",
+              "PASSWORD_WEAK",
               "PDF_ADAPTER_UNAVAILABLE",
               "PDF_ENCRYPTED",
               "PDF_PAGE_LIMIT",
@@ -28558,6 +29827,7 @@
               "TWO_VOLUMES_REQUIRED",
               "UI_NOT_READY",
               "UNAUTHENTICATED",
+              "USER_TRANSFER_REQUIRED",
               "VALIDATION_ERROR",
               "VERSION_CONFLICT",
               "VOLUME_OWNER_REQUIRED"
@@ -30088,6 +31358,7 @@
           "SLA_VARIABLE_UNIT_UNRESOLVED",
           "SLA_VARIABLE_UNKNOWN",
           "TAKEOVER_REASON_REQUIRED",
+          "USER_TRANSFER_REQUIRED",
           "VERSION_CONFLICT"
         ],
         "413": [
@@ -30132,6 +31403,7 @@
           "MEMBER_ROLE_NOT_WRITABLE",
           "NO_TEXT",
           "OCR_REQUIRED",
+          "PASSWORD_WEAK",
           "PDF_ADAPTER_UNAVAILABLE",
           "PDF_ENCRYPTED",
           "PROJECT_LEAD_COMPANY_ROLE_REQUIRED",

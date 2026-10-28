@@ -803,3 +803,45 @@
 2. 规则目录与编排扩充：更新 `CATALOG` 与 `evaluate_all`，使全系统已实现并纳入目录的合规规则总数达到 31 项全覆盖；在 `WorkflowService.IMPLEMENTED_RULES` 中完成收录并控制文件行数 <= 350 行；
 3. 整本递交导出门禁联动与诚实守卫：存在任一 P5 blocker 缺陷时，正式递交版导出严格触发 400 `CHECK_BLOCKER_EXISTS`；消减 blocker 后导出内部评审版正常放行（`has_blockers=False`）；分册定稿未完成时严格诚实守卫 409 `RULES_INCOMPLETE`，绝不绕过门禁假装已可递交；
 4. 编写专属自动化测试套件 `tests/backend/test_compliance_rules_p5.py` 并全绿通过。
+
+<a id="be-user-management-transfer"></a>
+
+## BE-USER-MANAGEMENT-TRANSFER · 用户管理与账号停用前业务资产强制交接服务
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 4小时；用户CRUD、Q28密码策略校验、M1-P10-F2停用前资产强制交接门禁、多租户与RBAC隔离 |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [BE-AUTH-SUPER-ADMIN](BE-M0.md#be-auth-super-admin)、[APP-M2-T027](APP-M2.md#app-m2-t027) |
+| 来源 | PRD v1.8 §5.10.1、§5.10.2、原型 §6.2 M1-P10-F2 |
+| 完成时交付 | [BE-USER-MANAGEMENT-TRANSFER 交付报告](../delivery/BE-USER-MANAGEMENT-TRANSFER.md) |
+| 代码解释 | [BE-USER-MANAGEMENT-TRANSFER 代码说明](../code/BE-USER-MANAGEMENT-TRANSFER.md) |
+
+范围：为系统落地用户管理与业务资产交接后端服务：
+1. 用户 CRUD 与密码策略：支持 `GET /api/v1/users`、`POST /api/v1/users`、`GET /api/v1/users/{user_id}`、`PATCH /api/v1/users/{user_id}` 与 `PATCH /api/v1/users/{user_id}/status`；新增用户强制使用 PBKDF2-HMAC-SHA256 加盐哈希加密，校验 Q28 密码强度策略（>=8位且至少含3类字符，不足拦截 422 `PASSWORD_WEAK`）；
+2. 核心业务红线（M1-P10-F2 停用前资产强制转交门禁）：当停用（`status="disabled"`）某用户时，若该用户仍作为项目负责人（`project_lead`）或章节编写人（`bid_writer`）绑定在未归档（`is_archived=False`）的项目或正在编辑锁定的章节中，且未指定合法接交人（`successor_user_id`），严格拦截并抛出 **HTTP 409 `USER_TRANSFER_REQUIRED`**；
+3. 原子平滑交接：若指定了合法接交人，则在单一事务中原子性完成项目负责人、分册负责人、成员角色、未完结章节编写人字段变更，安全释放持有编辑锁，记录审计日志，并作废待停用用户的全部活跃会话；
+4. 多租户强隔离与 RBAC 权限隔离：超管（`admin`）具备全租户用户运维能力；公司管理员只能管理本公司用户（跨公司拦截 404 `NOT_FOUND`）；普通角色发起写操作拦截 403 `FORBIDDEN`；超管 `admin` 账号保护不可停用（403）；
+5. 编写专属单测 `tests/backend/test_user_management_transfer.py`，保持 OpenAPI 零契约漂移。
+<a id="int-user-transfer-rbac-glue"></a>
+
+## INT-USER-TRANSFER-RBAC-GLUE · 用户管理与账号停用资产交接端到端契约联调
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 4小时；用户列表/详情/新增/修改/资产交接端到端契约、停用前在投项目交接门禁（409 USER_TRANSFER_REQUIRED）、密码强度核验（422 PASSWORD_WEAK）、密码哈希严格脱敏、多租户404与RBAC 403隔离 |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md)、[ISSUE-006](../../issues/ISSUE-006.md) |
+| 依赖 | [APP-M2-T027](APP-M2.md#app-m2-t027)、[BE-USER-MANAGEMENT-TRANSFER](BE-M0.md#be-user-management-transfer) |
+| 来源 | PRD v1.8 §5.10.1、§5.10.2、§6.9 与字典 v1.9，APP-M2-T027 用户管理业务页 |
+| 完成时交付 | [INT-USER-TRANSFER-RBAC-GLUE 交付报告](../delivery/INT-USER-TRANSFER-RBAC-GLUE.md) |
+| 代码解释 | [INT-USER-TRANSFER-RBAC-GLUE 代码说明](../code/INT-USER-TRANSFER-RBAC-GLUE.md) |
+
+范围：打通非演示模式（VITE_DEMO=0）下用户列表、新增与账号停用资产交接的前后端端到端契约与胶水层：
+1. 用户列表调阅与严格脱敏契约：打通 `GET /api/v1/users`、`GET /api/v1/users/{user_id}`、`POST /api/v1/users` 与 `PATCH /api/v1/users/{user_id}`；平台超管调阅全平台用户，企业管理员调阅本企业用户；响应体中密码哈希（password_hash）与盐（salt）绝对物理脱敏（剔除字段），杜绝凭据泄露；
+2. 密码强度策略核验（PRD §5.10.2 / Q28 定案）：新增用户时严格校验密码长度（>=8位）及字符种类（大写字母、小写字母、数字、特殊符号中至少满足3类）；弱密码请求一律阻断并返回 422 `PASSWORD_WEAK`（RFC 7807 统一错误体）；
+3. 停用前资产交接核心业务门禁（PRD §5.10.1 / M1-P10-F2 红线）：用户处于在投未完结项目的负责人（assembly_owner_id/owners/lead）或章节编写人时，直接停用严格拦截 409 `USER_TRANSFER_REQUIRED` 并返回未转交资产列表（untransferred_projects, untransferred_chapters）；
+4. 附带交接人平滑转交（`successor_user_id`）：传入有效交接人时在单一事务中原子完成项目负责人（assembly_owner_id/owners/members）平滑交接并记录交接留痕（handoffs），清退会话后成功停用账号；
+5. 租户隔离底线与 RBAC 权限隔离：非超管跨企业查询或修改用户一律严格返回 404 `NOT_FOUND`（杜绝嗅贪）；普通编写人或只读用户修改用户数据一律严格拦截 403 `FORBIDDEN`；
+6. 编写专属端到端集成测试 `tests/backend/test_user_transfer_rbac_glue.py` 与前端胶水测试 `user-management-api.test.mjs` 全绿通过。

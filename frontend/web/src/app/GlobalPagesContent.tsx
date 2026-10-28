@@ -17,6 +17,7 @@ import {
   LazyLibraryPage as LibraryPage,
   LazyPendingPage as PendingPage,
   LazySnippetLibraryPage as SnippetLibraryPage,
+  LazyUsersPage as UsersPage,
   LazyWritingArchivePage as WritingArchivePage,
 } from './lazy-routes';
 import type { Account, ApplicationSession, Evidence, Job, Project, SlaTemplate } from '../shared/types';
@@ -172,6 +173,17 @@ export function GlobalPagesContent({
                     <CompanyManagePage
                       session={session}
                       currentUser={currentUser}
+                    />
+                  ),
+                },
+                {
+                  key: 'users',
+                  label: 'A-02 用户与角色',
+                  children: (
+                    <UsersPage
+                      session={session}
+                      currentUser={currentUser}
+                      onNavigate={onRequestPath}
                     />
                   ),
                 },

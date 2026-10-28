@@ -85,6 +85,10 @@ class MemoryRepository:
         with self._lock:
             return deepcopy(self._state)
 
+    @property
+    def state(self) -> DemoState:
+        return self.read()
+
     def transaction(self, operation: Callable[[DemoState], T]) -> T:
         with self._lock:
             if getattr(self, "_depth", 0) > 0:

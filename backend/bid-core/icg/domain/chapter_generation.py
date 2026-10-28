@@ -203,6 +203,291 @@ def format_structured_chapter_content(paragraphs: list[dict[str, Any]]) -> str:
     return "\n\n".join(blocks).strip()
 
 
+# ---------------------------------------------------------------------------
+# 章节生成产物合规性自动即时质检门禁（PRD MVP v1.8 §5.7.8 & §5.10 / AI-CHAPTER-AUTO-VALIDATION-GATE）
+# ---------------------------------------------------------------------------
+
+PLACEHOLDER_REGEXES = [
+    re.compile(r"【待补(?:：[^】]*)?】"),
+    re.compile(r"\[待补(?:：[^\]]*)?\]"),
+    re.compile(r"待补"),
+    re.compile(r"【待完善(?:：[^】]*)?】"),
+    re.compile(r"\[待完善(?:：[^\]]*)?\]"),
+    re.compile(r"待完善"),
+    re.compile(r"【待确认(?:：[^】]*)?】"),
+    re.compile(r"\[待确认(?:：[^\]]*)?\]"),
+    re.compile(r"待确认"),
+    re.compile(r"【占位(?:：[^】]*)?】"),
+    re.compile(r"\[占位(?:：[^\]]*)?\]"),
+    re.compile(r"占位符"),
+    re.compile(r"【待定(?:：[^】]*)?】"),
+    re.compile(r"\[待定(?:：[^\]]*)?\]"),
+    re.compile(r"\b(?:TODO|TBD|FIXME|XXXX|XXX)\b", re.IGNORECASE),
+    re.compile(r"\{\{(?!(?:fact|sla):)[^}]+\}\}"),
+    re.compile(r"\$\{(?!(?:fact|sla):)[^}]+\}"),
+]
+
+AI_CONVERSATION_RESIDUALS = [
+    "希望对你有帮助",
+    "希望能帮到您",
+    "希望能帮助到您",
+    "作为AI语言模型",
+    "作为AI大模型",
+    "作为人工智能模型",
+    "作为大语言模型",
+    "以下是为您生成的",
+    "如需进一步修改",
+    "希望以上方案能满足",
+    "如果还有其他需要补充",
+    "如有其他需求",
+    "祝您投标顺利",
+]
+
+NEGATIVE_DEVIATION_TRIGGERS = [
+    "不满足",
+    "负偏离",
+    "无法提供",
+    "存在差距",
+    "无法满足",
+    "不符合要求",
+    "未能达到",
+    "偏离招标要求",
+    "指标不满足",
+    "存在负偏离",
+    "重大负偏离",
+    "实质性负偏离",
+    "技术参数低于要求",
+    "未能完全满足",
+    "无法按期交付",
+    "无法承诺",
+]
+
+STATUTORY_FORM_KEYWORDS = (
+    "投标函",
+    "法定代表人身份证明",
+    "授权委托书",
+    "签署页",
+    "签字盖章页",
+    "承诺书",
+    "投标声明",
+    "服务承诺书",
+    "廉政承诺书",
+    "安全承诺书",
+    "保密承诺书",
+)
+
+VALID_SEAL_MARKERS = (
+    "(盖章)", "（盖章）", "[公章]", "【公章】", "[盖章]", "(公章)", "（公章）",
+    "(签字)", "（签字）", "[签名]", "[法定代表人签字]", "（法定代表人签字）", "(法定代表人签字)",
+    "电子签名", "电子印章", "CA签章", "已盖章", "已签名", "法定代表人签字或盖章", "【法定代表人签字】", "【公章/签字】"
+)
+
+MISSING_SEAL_TRIGGERS = (
+    "未盖公章", "未签字", "(未盖章)", "（未盖章）", "[未签名]", "(未签名)", "（未签名）",
+    "待盖章", "待签字", "印章缺失", "签名缺失", "印章未齐", "无签字"
+)
+
+
+def validate_chapter_candidate(
+    content: str,
+    paragraphs: list[dict[str, Any]] | None = None,
+    chapter: Any = None,
+    allowed_evidence_ids: set[str] | None = None,
+    allowed_snippet_ids: set[str] | None = None,
+    workflow: dict[str, Any] | None = None,
+    project: Any = None,
+    strict_mode: bool = False,
+) -> dict[str, Any]:
+    """对大模型章节生成产物执行即时合规性与质量门禁核验（PRD MVP v1.8 §5.7.8 & §5.10）。
+
+    核心核验项：
+    1. R34 占位符与 AI 对话残留排查（【待定】、【待补】、TODO、XXXX 及客套语）；
+    2. R37 / R28 负偏离与不满足排查（负偏离、无法提供、存在差距等实质性违规表述）；
+    3. R24 签字盖章槽位合规排查（法定承诺与授权章节缺失签字盖章槽位或包含未盖公章标记）；
+    4. CITATION_AUTH 证据引用真实性核验（排查虚构证据编号与未匹配知识库切片）。
+
+    输出质量健康度评分（quality_health_score: 0~100）与评级（excellent / good / warning / critical）。
+    """
+    detected_blockers: list[dict[str, Any]] = []
+    detected_warnings: list[dict[str, Any]] = []
+    remediation_suggestions: list[str] = []
+
+    text_to_check = content or ""
+    ch_title = getattr(chapter, "title", "") if chapter else ""
+    if isinstance(chapter, dict):
+        ch_title = chapter.get("title", "")
+
+    # 1. R34 占位符与“待补/待完善”残留排查
+    matched_placeholders = set()
+    for pattern in PLACEHOLDER_REGEXES:
+        for m in pattern.finditer(text_to_check):
+            matched_placeholders.add(m.group(0))
+
+    if matched_placeholders:
+        tokens_preview = "、".join(sorted(list(matched_placeholders))[:5])
+        detected_blockers.append({
+            "rule_id": "R34",
+            "code": "PLACEHOLDER_RESIDUAL",
+            "severity": "blocker",
+            "message": f"正文包含未替换的占位符或待补标记：{tokens_preview}",
+            "matched_tokens": sorted(list(matched_placeholders)),
+        })
+
+    # AI 对话客套残留语句排查
+    matched_residuals = [dialogue for dialogue in AI_CONVERSATION_RESIDUALS if dialogue in text_to_check]
+    if matched_residuals:
+        res_preview = "、".join(matched_residuals[:3])
+        detected_blockers.append({
+            "rule_id": "R34",
+            "code": "AI_CONVERSATION_RESIDUAL",
+            "severity": "blocker",
+            "message": f"正文检测到 AI 对话残留语句：{res_preview}",
+            "matched_residuals": matched_residuals,
+        })
+
+    # 2. R37 / R28 负偏离与不满足排查
+    matched_neg_devs = [trig for trig in NEGATIVE_DEVIATION_TRIGGERS if trig in text_to_check]
+    if matched_neg_devs:
+        dev_preview = "、".join(matched_neg_devs[:3])
+        detected_blockers.append({
+            "rule_id": "R37",
+            "code": "NEGATIVE_DEVIATION_DETECTED",
+            "severity": "blocker",
+            "message": f"正文包含负偏离或无法满足声明：'{dev_preview}'，违反实质性响应要求",
+            "matched_triggers": matched_neg_devs,
+        })
+
+    # 3. R24 签字盖章占位合规排查
+    is_statutory_form = any(k in ch_title for k in STATUTORY_FORM_KEYWORDS)
+    if is_statutory_form:
+        # 排查显式“未盖公章”、“未签字”等瑕疵
+        matched_missing_seals = [trig for trig in MISSING_SEAL_TRIGGERS if trig in text_to_check]
+        if matched_missing_seals:
+            detected_blockers.append({
+                "rule_id": "R24",
+                "code": "MANDATORY_SEAL_SIGNATURE_MISSING",
+                "severity": "blocker",
+                "message": f"法定承诺章节「{ch_title}」存在未盖章或未签字标记：{matched_missing_seals[0]}",
+                "trigger": matched_missing_seals[0],
+            })
+        elif any(k in ch_title for k in ("投标函", "授权委托书", "签署页", "签字盖章页", "身份证明")):
+            has_valid_seal = any(m in text_to_check for m in VALID_SEAL_MARKERS)
+            if not has_valid_seal:
+                detected_blockers.append({
+                    "rule_id": "R24",
+                    "code": "MANDATORY_SEAL_SIGNATURE_MISSING",
+                    "severity": "blocker",
+                    "message": f"法定关键表单章节「{ch_title}」缺少法定代表人签字或单位公章槽位标记",
+                })
+
+    # 4. CITATION_AUTH 证据引用真实性核验
+    extracted_citations = extract_paragraph_citations(
+        text_to_check,
+        allowed_evidence_ids=allowed_evidence_ids,
+        allowed_snippet_ids=allowed_snippet_ids,
+    )
+    fabricated_ev_ids = set()
+    unverified_snip_ids = set()
+    for cit in extracted_citations:
+        if cit.get("type") == "evidence" and cit.get("id"):
+            if not cit.get("valid", True):
+                fabricated_ev_ids.add(cit["id"])
+        elif cit.get("type") == "snippet" and cit.get("id"):
+            if allowed_snippet_ids is not None and len(allowed_snippet_ids) > 0:
+                if not cit.get("valid", True):
+                    unverified_snip_ids.add(cit["id"])
+
+    for eid in sorted(list(fabricated_ev_ids)):
+        detected_blockers.append({
+            "rule_id": "CITATION_AUTH",
+            "code": "FABRICATED_OR_INVALID_EVIDENCE_CITATION",
+            "severity": "blocker",
+            "message": f"正文引用了未在项目依据白名单中登记的虚构或无效证据编号：[证:{eid}]",
+            "evidence_id": eid,
+        })
+
+    for sid in sorted(list(unverified_snip_ids)):
+        detected_warnings.append({
+            "rule_id": "CITATION_AUTH",
+            "code": "UNVERIFIED_SNIPPET_CITATION",
+            "severity": "warning",
+            "message": f"正文引用了未在当前候选切片库中的知识库切片：[片:{sid}]",
+            "snippet_id": sid,
+        })
+
+    # 5. 质量健康度评分与评级计算
+    blocker_count = len(detected_blockers)
+    warning_count = len(detected_warnings)
+
+    if blocker_count == 0:
+        validation_passed = True
+        validation_failed = False
+        if warning_count == 0:
+            quality_health_score = 100
+            quality_health_rating = "excellent"
+        elif warning_count == 1:
+            quality_health_score = 90
+            quality_health_rating = "excellent"
+        elif warning_count == 2:
+            quality_health_score = 80
+            quality_health_rating = "good"
+        elif warning_count == 3:
+            quality_health_score = 70
+            quality_health_rating = "warning"
+        else:
+            quality_health_score = max(50, 100 - warning_count * 10)
+            quality_health_rating = "warning"
+    else:
+        validation_passed = False
+        validation_failed = True
+        if blocker_count == 1:
+            quality_health_score = max(40, 55 - warning_count * 5)
+            quality_health_rating = "warning" if quality_health_score >= 50 else "critical"
+        else:
+            quality_health_score = max(0, 35 - (blocker_count - 2) * 15 - warning_count * 5)
+            quality_health_rating = "critical"
+
+    # 6. 生成修复建议清单
+    all_codes = {b.get("code") for b in detected_blockers} | {w.get("code") for w in detected_warnings}
+    if "PLACEHOLDER_RESIDUAL" in all_codes or "AI_CONVERSATION_RESIDUAL" in all_codes:
+        remediation_suggestions.append("请清除章节正文中的未替换占位符（如【待定】/TODO）与AI对话客套语，补充真实业务描述。")
+    if "NEGATIVE_DEVIATION_DETECTED" in all_codes:
+        remediation_suggestions.append("正文包含负偏离表述，请核实招标文件实质性指标要求并改写为完全满足。")
+    if "MANDATORY_SEAL_SIGNATURE_MISSING" in all_codes:
+        remediation_suggestions.append("法定表单章节必须包含公章与法定代表人签字槽位（如【盖章】、【法定代表人签字】），且不得包含未盖章标记。")
+    if "FABRICATED_OR_INVALID_EVIDENCE_CITATION" in all_codes:
+        remediation_suggestions.append("检测到虚构证据编号，请仅引用项目响应矩阵已关联并核对有效的真实资质/业绩编号。")
+    if "UNVERIFIED_SNIPPET_CITATION" in all_codes:
+        remediation_suggestions.append("建议核对知识库切片引用编号有效性，或重新匹配当前知识库候选切片。")
+
+    if not remediation_suggestions:
+        remediation_suggestions.append("章节生成产物合规性核验全部通过，质量良好。")
+
+    validation_report = {
+        "validation_passed": validation_passed,
+        "validation_failed": validation_failed,
+        "quality_health_score": quality_health_score,
+        "quality_health_rating": quality_health_rating,
+        "total_rules_evaluated": 4,
+        "total_blockers": blocker_count,
+        "total_warnings": warning_count,
+        "detected_blockers": detected_blockers,
+        "detected_warnings": detected_warnings,
+        "remediation_suggestions": remediation_suggestions,
+    }
+
+    return {
+        "validation_passed": validation_passed,
+        "validation_failed": validation_failed,
+        "quality_health_score": quality_health_score,
+        "quality_health_rating": quality_health_rating,
+        "detected_blockers": detected_blockers,
+        "detected_warnings": detected_warnings,
+        "remediation_suggestions": remediation_suggestions,
+        "validation_report": validation_report,
+    }
+
+
 def format_writing_plan_prompt(snapshot: dict) -> str:
     """将写作方案快照渲染为大模型 Prompt 写作计划文本（APP-M2-T124）。"""
     chapter = snapshot["chapter"]
@@ -526,6 +811,11 @@ class ChapterGenerationService:
             # 解析结构化多段落与评分小标题
             scoring_points = prompt_plan.get("writing_points", "")
             allowed_evidence_ids = {e.get("id") for e in prompt_plan.get("evidence", []) if e.get("id")}
+            reqs = [r for r in workflow.get("requirements", {}).values() if r.get("chapter_id") == chapter_id]
+            for r in reqs:
+                for eid in r.get("evidence_ids", []):
+                    if eid:
+                        allowed_evidence_ids.add(eid)
             allowed_snippet_ids = {s.get("snippet_id") or s.get("id") for s in (snippet_matches or []) if s.get("snippet_id") or s.get("id")}
 
             paragraphs = parse_structured_paragraphs(
@@ -543,6 +833,16 @@ class ChapterGenerationService:
                     seen_subheads.add(sh)
                     scoring_subheadings.append(sh)
 
+            validation_res = validate_chapter_candidate(
+                content=content,
+                paragraphs=paragraphs,
+                chapter=chapter,
+                allowed_evidence_ids=allowed_evidence_ids,
+                allowed_snippet_ids=allowed_snippet_ids,
+                workflow=workflow,
+                project=project,
+            )
+
             cand_id = new_id("candidate")
             candidate = {
                 "id": cand_id,
@@ -559,6 +859,14 @@ class ChapterGenerationService:
                 "created_at": now_iso,
                 "source_scope": "whole_chapter",
                 "input_snapshot": input_snapshot,
+                "validation_passed": validation_res["validation_passed"],
+                "validation_failed": validation_res["validation_failed"],
+                "quality_health_score": validation_res["quality_health_score"],
+                "quality_health_rating": validation_res["quality_health_rating"],
+                "detected_blockers": validation_res["detected_blockers"],
+                "detected_warnings": validation_res["detected_warnings"],
+                "remediation_suggestions": validation_res["remediation_suggestions"],
+                "validation_report": validation_res["validation_report"],
             }
 
             def save_candidate_op(st: DemoState):
@@ -578,6 +886,10 @@ class ChapterGenerationService:
                     "token_budget_usage": token_budget_usage,
                     "context_fingerprint": context_fingerprint,
                     "paragraph_count": len(paragraphs),
+                    "validation_passed": validation_res["validation_passed"],
+                    "quality_health_score": validation_res["quality_health_score"],
+                    "quality_health_rating": validation_res["quality_health_rating"],
+                    "blocker_count": len(validation_res["detected_blockers"]),
                 },
             )
 
@@ -602,6 +914,14 @@ class ChapterGenerationService:
             "paragraphs": candidate.get("paragraphs") if candidate else [],
             "structured_content": candidate.get("structured_content") if candidate else None,
             "scoring_subheadings": candidate.get("scoring_subheadings") if candidate else [],
+            "validation_passed": candidate.get("validation_passed", True) if candidate else True,
+            "validation_failed": candidate.get("validation_failed", False) if candidate else False,
+            "quality_health_score": candidate.get("quality_health_score", 100) if candidate else 100,
+            "quality_health_rating": candidate.get("quality_health_rating", "excellent") if candidate else "excellent",
+            "detected_blockers": candidate.get("detected_blockers", []) if candidate else [],
+            "detected_warnings": candidate.get("detected_warnings", []) if candidate else [],
+            "remediation_suggestions": candidate.get("remediation_suggestions", []) if candidate else [],
+            "validation_report": candidate.get("validation_report", {}) if candidate else {},
         }
 
     def batch_generate_chapters(
@@ -969,6 +1289,10 @@ class ChapterGenerationService:
                         "section_number": ch_meta_map.get(cid, {}).get("section_number", ""),
                         "total_score": ch_meta_map.get(cid, {}).get("total_score", 0.0),
                         "status": "success" if cid in batch_successful else "failed",
+                        "validation_passed": batch_successful.get(cid, {}).get("validation_passed", True) if cid in batch_successful else False,
+                        "quality_health_score": batch_successful.get(cid, {}).get("quality_health_score", 100) if cid in batch_successful else 0,
+                        "quality_health_rating": batch_successful.get(cid, {}).get("quality_health_rating", "excellent") if cid in batch_successful else "critical",
+                        "blocker_count": len(batch_successful.get(cid, {}).get("detected_blockers", [])) if cid in batch_successful else 0,
                     }
                     for cid in batch_cids
                 ],
@@ -1019,6 +1343,21 @@ class ChapterGenerationService:
             "by_chapter": by_chapter_tokens,
         }
 
+        total_validation_passed = sum(1 for r in successful_results.values() if r.get("validation_passed", True))
+        total_validation_failed = sum(1 for r in successful_results.values() if not r.get("validation_passed", True))
+        total_detected_blockers = sum(len(r.get("detected_blockers", [])) for r in successful_results.values())
+        average_quality_score = round(
+            sum(r.get("quality_health_score", 100) for r in successful_results.values()) / max(1, len(successful_results)),
+            1,
+        ) if successful_results else 100.0
+
+        validation_summary = {
+            "total_validation_passed": total_validation_passed,
+            "total_validation_failed": total_validation_failed,
+            "total_detected_blockers": total_detected_blockers,
+            "average_quality_score": average_quality_score,
+        }
+
         dashboard_record = {
             "pipeline_id": pipeline_id,
             "project_id": project_id,
@@ -1033,6 +1372,7 @@ class ChapterGenerationService:
             "duration_ms": total_pipeline_duration_ms,
             "token_budget_usage": token_dashboard,
             "priority_execution_summary": priority_summary,
+            "validation_summary": validation_summary,
             "created_at": iso_time(datetime.now(timezone.utc).timestamp()),
         }
 
@@ -1067,6 +1407,7 @@ class ChapterGenerationService:
             "dashboard": dashboard_record,
             "token_budget_dashboard": token_dashboard,
             "priority_execution_summary": priority_summary,
+            "validation_summary": validation_summary,
         }
 
     def _check_access(self, state: DemoState, project_id: str, chapter_id: str, principal: Principal) -> None:
@@ -1101,6 +1442,74 @@ class ChapterGenerationService:
             provider = getattr(self.demo, "model_provider", None)
             if provider and getattr(provider, "is_local", False) is False and getattr(provider, "is_real_model", None) is not False:
                 raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL", "敏感项目只能使用本地模型配置。")
+
+    def validate_chapter_content(
+        self,
+        project_id: str,
+        chapter_id: str,
+        principal: Principal,
+        content: str | None = None,
+    ) -> dict[str, Any]:
+        """即时质检章节正文或候选草稿合规性（PRD MVP v1.8 §5.7.8 / §5.10 / AI-CHAPTER-AUTO-VALIDATION-GATE）。"""
+        state = self.repository.read()
+
+        # 门禁 1：角色与操作权限核验（只读角色拦截 403）
+        role = getattr(principal.user, "role", "")
+        norm_role = ROLE_NORMALIZATION_MAP.get(role, role)
+        if norm_role in READONLY_SYSTEM_ROLES:
+            raise DomainError(403, "FORBIDDEN", "只读角色不可执行章节合规质检。")
+
+        # 租户与项目隔离（404）
+        project = state.projects.get(project_id)
+        if project is None or project.company_id != principal.user.company_id:
+            raise DomainError(404, "NOT_FOUND", "项目不存在或不属于当前公司。")
+
+        chapter = state.chapters.get(chapter_id)
+        if chapter is None or chapter.project_id != project_id:
+            raise DomainError(404, "NOT_FOUND", "章节不存在或不属于当前项目。")
+
+        workflow = state.workflows.get(project_id, {})
+        prompt_plan = workflow.get("writing_plan", {}).get("chapters", {}).get(chapter_id, {})
+
+        allowed_evidence_ids = {e.get("id") for e in prompt_plan.get("evidence", []) if e.get("id")}
+        reqs = [r for r in workflow.get("requirements", {}).values() if r.get("chapter_id") == chapter_id]
+        for r in reqs:
+            for eid in r.get("evidence_ids", []):
+                if eid:
+                    allowed_evidence_ids.add(eid)
+
+        allowed_snippet_ids: set[str] = set()
+        retrieved = prompt_plan.get("retrieved_evidence", [])
+        for chunk in retrieved:
+            cid = chunk.get("chunk_id") or chunk.get("id")
+            if cid:
+                allowed_snippet_ids.add(cid)
+
+        # 目标正文：优先使用入参 content，若无则读取候选草稿或正式正文
+        target_content = content
+        candidate = workflow.get("candidates", {}).get(chapter_id)
+        if target_content is None:
+            if candidate and candidate.get("content"):
+                target_content = candidate["content"]
+            else:
+                target_content = chapter.content or ""
+
+        paragraphs = parse_structured_paragraphs(
+            target_content,
+            scoring_points=prompt_plan.get("writing_points"),
+            allowed_evidence_ids=allowed_evidence_ids,
+            allowed_snippet_ids=allowed_snippet_ids,
+        )
+
+        return validate_chapter_candidate(
+            content=target_content,
+            paragraphs=paragraphs,
+            chapter=chapter,
+            allowed_evidence_ids=allowed_evidence_ids,
+            allowed_snippet_ids=allowed_snippet_ids,
+            workflow=workflow,
+            project=project,
+        )
 
 
 def start_chapter_generation(
@@ -1237,4 +1646,37 @@ def schedule_batch_pipeline(
         snippet_matches_by_chapter=snippet_matches_by_chapter,
         priority_threshold=priority_threshold,
     )
+
+
+def validate_chapter_content(
+    project_id_or_service: Any,
+    chapter_id_or_proj: Any = None,
+    principal: Principal | None = None,
+    content: str | None = None,
+    *,
+    demo: Any | None = None,
+    repository: Any | None = None,
+) -> dict[str, Any]:
+    """即时质检章节正文或候选草稿合规性（模块顶层快捷入口）。"""
+    if hasattr(project_id_or_service, "validate_chapter_content") and not isinstance(project_id_or_service, str):
+        service = project_id_or_service
+        return service.validate_chapter_content(
+            chapter_id_or_proj,
+            principal=principal,
+            content=content,
+        )
+
+    project_id = str(project_id_or_service)
+    chapter_id = str(chapter_id_or_proj)
+    if demo is None:
+        raise ValueError("demo or service must be provided to validate_chapter_content")
+
+    service = ChapterGenerationService(demo, repository=repository)
+    return service.validate_chapter_content(
+        project_id=project_id,
+        chapter_id=chapter_id,
+        principal=principal,
+        content=content,
+    )
+
 
