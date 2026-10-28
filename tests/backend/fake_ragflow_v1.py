@@ -8,6 +8,7 @@ import json
 import re
 import threading
 from typing import Any
+from uuid import uuid4
 
 import httpx
 
@@ -52,8 +53,9 @@ class FakeRagflowV1:
     # ---------- 内部 ----------
 
     def _id(self, prefix: str) -> str:
+        # 与真实 RAGFlow 一样用全局唯一 id：持久化仓储跨测试保留索引时不会撞上旧 id。
         self._seq += 1
-        return f"{prefix}{self._seq:04d}"
+        return f"{prefix}{self._seq:04d}{uuid4().hex[:8]}"
 
     def _parse(self, doc: dict) -> None:
         if FAIL_MARKER in doc["content"]:

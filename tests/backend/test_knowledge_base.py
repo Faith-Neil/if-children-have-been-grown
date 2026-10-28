@@ -193,6 +193,20 @@ def test_parse_failure_and_upload_failure_are_recorded_and_retried(client, fake)
     assert retried["status"] == "synced"
 
 
+def test_full_sync_repairs_drift_between_index_and_ragflow(client, fake):
+    headers = login(client)
+    item = _library_write(client, headers, _confirmed("合成漂移资料", "合成漂移正文：麒麟平台。"))
+    entry, status = _entry(client, headers, "library:" + item["id"])
+    del fake.documents[entry["document_id"]]  # 有人在 RAGFlow 里手工删了文档
+    orphan = fake.client().upload_document(status["dataset_id"], "orphan.md", "遗留文档")
+    result = client.post("/api/v1/knowledge-base/sync", headers=headers).json()
+    assert result["uploaded"] >= 1
+    repaired, _ = _entry(client, headers, "library:" + item["id"])
+    assert repaired["status"] == "synced" and repaired["document_id"] in fake.documents
+    assert orphan.id not in fake.documents
+    assert any(h["source_id"] == item["id"] for h in _search(client, headers, "麒麟平台")["items"])
+
+
 def test_snippet_publish_sync_reflects_real_status(client, fake):
     headers = login(client)
     created = client.post("/api/v1/snippet-publications", headers={**headers, "Idempotency-Key": str(uuid4())},

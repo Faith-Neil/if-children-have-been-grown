@@ -315,6 +315,16 @@ class KnowledgeBaseService:
             stale_docs: list[str] = list(previous_pending) if only is None else []
             now = iso_time(self.demo._now())
 
+            remote = self._remote_documents(client, dataset_id) if only is None else None
+            if remote is not None:
+                # 漂移修复：索引里有、RAGFlow 里没有（被手工删除）→ 重新上传；
+                # RAGFlow 里有、索引不认识（上传后进程中断等遗留）→ 删除。数据集为本系统专用，删除是安全的。
+                known = {e.get("document_id") for e in entries.values()}
+                missing = {k for k, e in entries.items() if e.get("document_id") not in remote}
+                removed |= {k for k in missing if k not in wanted}
+                entries = {k: e for k, e in entries.items() if k not in missing}
+                stale_docs.extend(sorted(remote - known - set(stale_docs)))
+
             for key, doc in wanted.items():
                 if only is not None and key not in only:
                     continue
@@ -363,6 +373,20 @@ class KnowledgeBaseService:
         refreshed = self.refresh_status(company_id)
         summary["status_counts"] = refreshed.get("counts", {})
         return summary
+
+    @staticmethod
+    def _remote_documents(client: Any, dataset_id: str) -> set[str] | None:
+        """数据集内全部文档 id；列举失败返回 None（跳过漂移修复，不误删）。"""
+        ids: set[str] = set()
+        try:
+            for page in range(1, 201):
+                batch = client.list_documents(dataset_id, page=page, page_size=100)
+                ids.update(d.id for d in batch if d.id)
+                if len(batch) < 100:
+                    return ids
+        except Exception as exc:
+            log.info("document listing failed for %s: %s", dataset_id, type(exc).__name__)
+        return None
 
     @staticmethod
     def _entry(doc: KnowledgeDocument, document_id: str, status: str, message: str, now: str) -> dict:
