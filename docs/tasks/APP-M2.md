@@ -3065,7 +3065,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 
 <a id="app-m2-t201"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T117](APP-M2.md#app-m2-t117)、[APP-M2-T162](APP-M2.md#app-m2-t162)、[APP-M2-T165](APP-M2.md#app-m2-t165)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T117](APP-M2.md#app-m2-t117)、[APP-M2-T162](APP-M2.md#app-m2-t162)、[APP-M2-T165](APP-M2.md#app-m2-t165)。
 
 原始来源：PRD v1.8 §5.9.1规则12。交付单位：内部响应追溯Excel，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -3078,6 +3078,9 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 交付：`docs/delivery/APP-M2-T201.md`；代码解释：`docs/code/APP-M2-T201.md`；测试放docs/testing并逐项关联本卡，未执行写未执行。
 
 ### APP-M2-T202 · 递交批次原子输出和历史快照
+
+实现（2026-10-28）：`icg/domain/response_trace.py` 与 `GET /api/v1/projects/{id}/response-trace.xlsx?volume=`（downloadResponseTrace）。列：序号、招标条款、所属文件、页码、条款类别、响应方式与要点、所在分册、对应章节、段落（按字面重合定位，低于阈值留空交 R30）、证据（版本）与正文 [证] 引用、知识片段来源（段落内 [片] 标记）、负责人（章节编写人，缺省为分册负责人）、确认人（条款确认时记录 `confirmed_by`）、条款状态；表头标“内部用，不进入投标文件”。项目负责人导出全部，分册负责人只导出本册，编写人与只读 403，跨公司 404；每次导出记审计。测试 `tests/backend/test_response_trace.py`、`frontend/web/e2e/export-artifacts.spec.ts`。
+
 <a id="app-m2-t202"></a>
 
 状态：planned。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T152](APP-M2.md#app-m2-t152)、[APP-M2-T197](APP-M2.md#app-m2-t197)、[APP-M2-T198](APP-M2.md#app-m2-t198)、[APP-M2-T199](APP-M2.md#app-m2-t199)、[APP-M2-T200](APP-M2.md#app-m2-t200)。

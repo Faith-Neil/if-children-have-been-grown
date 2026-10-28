@@ -10,7 +10,7 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 451 项：done 96、in-review 118、in-progress 45、planned 137、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+项目 451 项：done 96、in-review 119、in-progress 45、planned 136、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
@@ -20,7 +20,7 @@
 | 知识库 | 每公司三类数据集、ICG 摄入流程、管控接口与管理页、检索带片号引用；内置解析评测定默认阈值 | 流程模式评测；历史标书批量导入（T080/T081） |
 | 生成与编辑 | 章节闭环、人工处理队列、交叉复核与定稿门禁、编辑台差异确认 | 章节循环进度页与轮次时间线（T130/T131）、确定性章节（T191～T194）、自动保存（T172） |
 | 合规规则 | 33 条有检查与测试（R01～R20、R23～R32、R34、R35、R37）；警告须负责人填理由逐项放行 | R21、R22、R33、R36、R38～R44 |
-| 导出 | Word 版式、分册定稿、递交门禁、合标核对清单 Excel | 内部响应追溯 Excel（T201）、递交批次原子化（T202） |
+| 导出 | Word 版式、分册定稿、递交门禁、合标核对清单与内部响应追溯表 Excel | 递交批次原子化与失败整批回滚（T202）、Word 封面目录页码（T197） |
 | 管理 | 模型/RAGFlow 弹窗配置、公司管理、审计日志、SLA 模板 | 站内提醒、配置版本、任务模型映射 |
 
 旧的逐卡签署叙述见 git 历史与 [项目进度](PROJECT_STATUS.md)；FE-M1～M5、FE-M8 与 APP-M1 示例外壳卡已标 cancelled（superseded-by-APP-M2）。
@@ -37,6 +37,7 @@
 - APP-M2-T130/T131 为 in-review：全部章节循环进度（`GET /chapter-loops`）与轮次时间线（任务/模型/实际输入/版本/逐轮修正/前章摘要接力）。
 - APP-M2-T235～T237 与 T142 为 in-review：R29 本公司查重（全文检查）、R30 无条款段落与额外数值承诺（分册/全文警告、循环中转人工），警告逐项放行（`POST …/checks/{id}/issues/{issue}/release`）。
 - APP-M2-T200 为 in-review：导出递交版时同时生成合标核对清单（9 类核对项，Excel），一致性结论引用本批次全文检查，R36/R41/R42 未实现处如实写“未运行，须人工核对”，分册解锁后标已过期仍可下载。
+- APP-M2-T201 为 in-review：`GET /projects/{id}/response-trace.xlsx`，内部用，负责人全部、分册负责人本册；条款确认时记录确认人。
 - 余下顺序（重定后）：招标扫描件经 RAGFlow 解析。
 - 自测记录：[Wave 12 开发自测](testing/2026-10-28-wave-12-verification.md)。
 
@@ -502,7 +503,7 @@
 | [APP-M2-T198](tasks/APP-M2.md#app-m2-t198) | 指定附件页与敏感水印 | planned | APP-M2-T196、APP-M2-T059 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T198.md` |
 | [APP-M2-T199](tasks/APP-M2.md#app-m2-t199) | Word属性修订与批注清理 | planned | APP-M2-T196 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T199.md` |
 | [APP-M2-T200](tasks/APP-M2.md#app-m2-t200) | 同批合标核对清单输出 | in-review（2026-10-28：递交版批次随附合标核对清单 Excel） | APP-M2-T149、APP-M2-T197、APP-M2-T192、APP-M2-T193 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T200.md` |
-| [APP-M2-T201](tasks/APP-M2.md#app-m2-t201) | 内部响应追溯Excel | planned | APP-M2-T117、APP-M2-T162、APP-M2-T165 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T201.md` |
+| [APP-M2-T201](tasks/APP-M2.md#app-m2-t201) | 内部响应追溯Excel | in-review（2026-10-28：内部响应追溯表 Excel 已实现） | APP-M2-T117、APP-M2-T162、APP-M2-T165 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T201.md` |
 | [APP-M2-T202](tasks/APP-M2.md#app-m2-t202) | 递交批次原子输出和历史快照 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T152、APP-M2-T197、APP-M2-T198、APP-M2-T199、APP-M2-T200 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T202.md` |
 | [APP-M2-T203](tasks/APP-M2.md#app-m2-t203) | R01 不可引用的资料禁止引用 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T047、APP-M2-T077 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T203.md` |
 | [APP-M2-T204](tasks/APP-M2.md#app-m2-t204) | R02 资料来源分级与投标主体一致 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T054、APP-M2-T098 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T204.md` |
