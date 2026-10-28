@@ -23,11 +23,28 @@ const sample = [
 
 async function login(page: Page, accountTitle?: string) {
   await page.goto('/');
+  let username = 'alpha-manager';
   if (accountTitle) {
-    await page.locator('.login-card .ant-select-selector').click();
-    await page.getByTitle(accountTitle).click();
+    if (accountTitle.includes('查看人') || accountTitle.includes('viewer')) {
+      username = 'alpha-viewer';
+    } else if (accountTitle.includes('乙公司') || accountTitle.includes('beta')) {
+      username = 'beta-editor';
+    } else if (accountTitle.includes('编写人') || accountTitle.includes('editor')) {
+      username = 'alpha-editor';
+    }
   }
-  await page.getByRole('button', { name: '进入工作台' }).click();
+  const usernameInput = page.getByTestId('login-username-input');
+  if (await usernameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await usernameInput.fill(username);
+    await page.getByTestId('login-password-input').fill('X_2026');
+    await page.getByTestId('login-submit-button').click();
+  } else {
+    if (accountTitle) {
+      await page.locator('.login-card .ant-select-selector').click();
+      await page.getByTitle(accountTitle).click();
+    }
+    await page.getByRole('button', { name: '进入工作台' }).click();
+  }
   await expect(page.getByRole('button', { name: '退出' })).toBeVisible();
 }
 

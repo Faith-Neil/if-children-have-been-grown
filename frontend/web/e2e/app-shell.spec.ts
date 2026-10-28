@@ -9,9 +9,19 @@ const shots = process.env.E2E_SCREENSHOT_DIR || join(tmpdir(), 'icg-e2e', 'scree
 const editor = '/projects/alpha-project/editor';
 const marker = '未保存的E2E输入-合成';
 
-async function login(page: Page, path = '/') {
+async function login(page: Page, path = '/', username = 'alpha-manager', password = 'X_2026') {
   await page.goto(path);
-  await page.getByRole('button', { name: '进入工作台' }).click();
+  const usernameInput = page.getByTestId('login-username-input');
+  if (await usernameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await usernameInput.fill(username);
+    await page.getByTestId('login-password-input').fill(password);
+    await page.getByTestId('login-submit-button').click();
+  } else {
+    const legacyBtn = page.getByRole('button', { name: '进入工作台' });
+    if (await legacyBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await legacyBtn.click();
+    }
+  }
   await expect(page.getByRole('button', { name: '退出' })).toBeVisible();
 }
 
@@ -151,7 +161,14 @@ test('reload: dismiss keeps text, accept reloads', async ({ page }) => {
   expect(seen).toBe(2);
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
   await expect(page.locator('textarea.chapter-editor')).toHaveCount(0); // 会话只在内存，刷新后回到登录
-  await page.getByRole('button', { name: '进入工作台' }).click();
+  const usernameInput = page.getByTestId('login-username-input');
+  if (await usernameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await usernameInput.fill('alpha-manager');
+    await page.getByTestId('login-password-input').fill('X_2026');
+    await page.getByTestId('login-submit-button').click();
+  } else {
+    await page.getByRole('button', { name: '进入工作台' }).click();
+  }
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
   await expect(page.locator('textarea.chapter-editor')).not.toHaveValue(new RegExp(marker));
 });

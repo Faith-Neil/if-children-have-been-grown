@@ -762,3 +762,44 @@
 3. 超级管理员全局穿透：内置超级管理员 `admin`（初始密码 `X_2026`，角色 `platform_admin`，公司 `system`），穿透公司隔离边界享有系统级全路由写入权限、全套项目管理权限与双卷导出资格；
 4. 生产关演示可用：在关闭演示账号登录（`ICG_ALLOW_DEMO_LOGIN=0` / `ICG_ENV=production`）下正式认证完全独立通畅；
 5. 编写专属单元测试套件 `tests/backend/test_auth_super_admin.py` 并全绿通过。
+
+<a id="int-company-settings-rbac-glue"></a>
+
+## INT-COMPANY-SETTINGS-RBAC-GLUE · 企业设置与安全策略/租户隔离端到端契约联调
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时；企业设置CRUD端点、超管与企管权限矩阵、跨租户404隔离、只能调严不能调宽422越界拦截与9.11编辑锁联动 |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md)、[ISSUE-006](../../issues/ISSUE-006.md) |
+| 依赖 | [APP-M2-T025](APP-M2.md#app-m2-t025)、[BE-AUTH-SUPER-ADMIN](BE-M0.md#be-auth-super-admin) |
+| 来源 | PRD v1.8 §5.10.2、§5.11.9、§6.9 与字典 v1.9 §4.10、§4.17，APP-M2-T025 表单框架 |
+| 完成时交付 | [INT-COMPANY-SETTINGS-RBAC-GLUE 交付报告](../delivery/INT-COMPANY-SETTINGS-RBAC-GLUE.md) |
+| 代码解释 | [INT-COMPANY-SETTINGS-RBAC-GLUE 代码说明](../code/INT-COMPANY-SETTINGS-RBAC-GLUE.md) |
+
+范围：打通非演示模式（VITE_DEMO=0）下企业设置与安全策略的前后端端到端契约与胶水层：
+1. 企业设置 CRUD 端点契约：打通 `GET /api/v1/companies/{company_id}/settings` 与 `PATCH /api/v1/companies/{company_id}/settings`，支持企业安全参数、编辑协同参数与 AI 预算管理；
+2. 租户隔离底线防线：非超管跨租户请求统一返回 404 `NOT_FOUND`，杜绝企业存在性嗅探；
+3. RBAC 权限隔离矩阵：平台超级管理员穿透跨租户管理，企业管理员管理本企业，同企业内普通角色（编写人、项目负责人、只读成员）只读允许、修改拦截 403 `FORBIDDEN`；
+4. “只能调严不能调宽”安全基线与 9.11 编辑锁三元联动规则：密码最小长度（>=8）、密码字符类别（>=3）、失败重试锁定（<=5）、编辑锁租期（<=60分钟且>5分钟）、自动保存与心跳三元数学约束校验，越界拦截 422 `SETTING_VALUE_OUT_OF_BOUNDS`；
+5. 编写专属集成测试 `tests/backend/test_company_settings_rbac_glue.py` 与前端 `company-settings-api.test.mjs` 全绿通过。
+
+<a id="be-compliance-rules-p5"></a>
+
+## BE-COMPLIANCE-RULES-P5 · PRD P5 终批核心合规规则引擎扩充（R17/R19/R26/R27/R28）与整本导出门禁全覆盖闭环
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时；R17/R19/R26/R27/R28 五大规则引擎、31 项全量规则目录、整本递交导出门禁联动与诚实守卫 |
+| 关联 Issue | [ISSUE-006](../../issues/ISSUE-006.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [BE-COMPLIANCE-RULES-P4](BE-M0.md#be-compliance-rules-p4) |
+| 来源 | PRD v1.8 §5.8 规则定义及质量整改要求 |
+| 完成时交付 | [BE-COMPLIANCE-RULES-P5 交付报告](../delivery/BE-COMPLIANCE-RULES-P5.md) |
+| 代码解释 | [BE-COMPLIANCE-RULES-P5 代码说明](../code/BE-COMPLIANCE-RULES-P5.md) |
+
+范围：为系统扩充落地 PRD MVP §5.8 第六批（终批）核心合规规则引擎并实现全覆盖：
+1. 规则引擎完整落地：在 `backend/bid-core/icg/domain/compliance_rules.py` 落地 R17（关联交易与利害关系回避核验，`CONFLICT_OF_INTEREST_UNRESOLVED`）、R19（环保/节能/绿色采购强制产品认证核验，`MANDATORY_GREEN_CERT_MISSING`）、R26（知识产权与侵权无争议声明核验，`IP_INFRINGEMENT_INDEMNITY_MISSING`）、R27（本地化服务网点与常驻技术力量核验，`LOCAL_SERVICE_BRANCH_MISSING`）、R28（关键技术规格实质性负偏离排查，`CRITICAL_TECH_SPEC_NEGATIVE_DEVIATION`）；
+2. 规则目录与编排扩充：更新 `CATALOG` 与 `evaluate_all`，使全系统已实现并纳入目录的合规规则总数达到 31 项全覆盖；在 `WorkflowService.IMPLEMENTED_RULES` 中完成收录并控制文件行数 <= 350 行；
+3. 整本递交导出门禁联动与诚实守卫：存在任一 P5 blocker 缺陷时，正式递交版导出严格触发 400 `CHECK_BLOCKER_EXISTS`；消减 blocker 后导出内部评审版正常放行（`has_blockers=False`）；分册定稿未完成时严格诚实守卫 409 `RULES_INCOMPLETE`，绝不绕过门禁假装已可递交；
+4. 编写专属自动化测试套件 `tests/backend/test_compliance_rules_p5.py` 并全绿通过。

@@ -271,6 +271,26 @@ class DemoService:
             snippet_matches_by_chapter=snippet_matches_by_chapter,
         )
 
+    def schedule_batch_pipeline(
+        self,
+        project_id: str,
+        principal: Principal,
+        concurrency_limit: int = 2,
+        priority_threshold: str | None = None,
+        sync_execute: bool = False,
+        chapter_ids: list[str] | None = None,
+        max_context_tokens: int | None = None,
+    ) -> dict[str, Any]:
+        return self.chapter_generation.schedule_batch_pipeline(
+            project_id=project_id,
+            principal=principal,
+            concurrency_limit=concurrency_limit,
+            priority_threshold=priority_threshold,
+            sync_execute=sync_execute,
+            chapter_ids=chapter_ids,
+            max_context_tokens=max_context_tokens,
+        )
+
     def assemble_writing_prompt_plan(
         self,
         project_id: str,

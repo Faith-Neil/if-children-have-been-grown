@@ -37,6 +37,7 @@ from icg.api import (
     include_model_config_routes,
     include_ragflow_routes,
     include_field_metadata_routes,
+    include_company_routes,
 )
 
 
@@ -183,6 +184,7 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     include_model_config_routes(application, service, current_user)
     include_ragflow_routes(application, service, current_user)
     include_field_metadata_routes(application, service, current_user)
+    include_company_routes(application, service, current_user)
 
     @application.get("/{full_path:path}", include_in_schema=False)
     def product_page(full_path: str):

@@ -708,6 +708,367 @@ class ChapterGenerationService:
             },
         }
 
+    def schedule_batch_pipeline(
+        self,
+        project_id: str,
+        principal: Principal,
+        chapter_ids: list[str] | None = None,
+        concurrency_limit: int = 2,
+        sync_execute: bool = False,
+        max_context_tokens: int | None = None,
+        snippet_matches_by_chapter: dict[str, list[dict]] | None = None,
+        priority_threshold: str | None = None,
+    ) -> dict[str, Any]:
+        """基于优先级推荐队列的大纲多章节批量生成流水线调度引擎（PRD MVP v1.8 §5.7.8）。
+
+        核心能力：
+        1. 优先级自适应排序：依据大纲评分项权重与推荐编写序列（recommended_writing_order），
+           优先执行 critical 废标红线与★关键必保章节，次之 high 高分核心章节，再次 medium/low；
+        2. 批次切片并发受控：按 concurrency_limit（1~5，默认 2）切分 Stage 批次，防止瞬时并发耗尽显存与 Token 预算；
+        3. PRD §5.7.8 关键红线：未确认章节或个别生成失败，绝对不阻塞后续其他已确认/有效章节的批量生成调度与执行；
+        4. 全局看板与耗时统计：自动汇聚各批次任务状态、耗时（duration_ms）、Token 预算消耗与优先级执行分布看板；
+        5. 安全物理隔离与防编造：涉密项目本地模型强制门禁（403）、白名单防幻觉、多租户强隔离（404）。
+        """
+        pipeline_start_time = time.time()
+        state = self.repository.read()
+
+        # 门禁 1：角色与操作权限核验（只读角色拦截 403）
+        role = getattr(principal.user, "role", "")
+        norm_role = ROLE_NORMALIZATION_MAP.get(role, role)
+        if norm_role in READONLY_SYSTEM_ROLES:
+            raise DomainError(403, "FORBIDDEN", "只读角色不可启动章节生成流水线。")
+
+        project = state.projects.get(project_id)
+        if project is None or project.company_id != principal.user.company_id:
+            raise DomainError(404, "NOT_FOUND", "项目不存在或不属于当前公司。")
+
+        if not writable(state, project_id, principal.user.id):
+            raise DomainError(403, "PROJECT_WRITER_REQUIRED", "当前角色无权编辑或启动章节生成流水线。")
+
+        # 门禁 2：涉密项目本地模型隔离门禁（前置阻断）
+        self._check_model_gate(state, project)
+
+        workflow = state.workflows.get(project_id, {})
+        outline_plans = workflow.get("outline_plans", {})
+        recommended_order = workflow.get("recommended_writing_order", [])
+
+        # 1. 建立章节优先级与元数据映射
+        ch_meta_map: dict[str, dict[str, Any]] = {}
+        if recommended_order:
+            for item in recommended_order:
+                cid = item.get("chapter_id")
+                if cid:
+                    ch_meta_map[cid] = item
+
+        # 如果工作流中尚未保存 recommended_order，则尝试从 outline_plans 补齐
+        for cid, plan in outline_plans.items():
+            if cid not in ch_meta_map:
+                ch_meta_map[cid] = {
+                    "chapter_id": cid,
+                    "title": plan.get("title", ""),
+                    "priority": plan.get("priority", "low"),
+                    "priority_score": plan.get("priority_score", 0.0),
+                    "total_score": plan.get("total_score", 0.0),
+                    "section_number": plan.get("section_number", ""),
+                    "volume": plan.get("volume", ""),
+                }
+
+        # 如果仍为空，调用 calculate_score_weights_and_priorities 动态计算
+        if not ch_meta_map:
+            reqs = list(workflow.get("requirements", {}).values())
+            project_chapters = [c for c in state.chapters.values() if c.project_id == project_id]
+            leaves = []
+            for c in project_chapters:
+                op = outline_plans.get(c.id, {})
+                bound_rids = op.get("bound_requirement_ids")
+                if not bound_rids:
+                    bound_rids = [r["id"] for r in reqs if r.get("chapter_id") == c.id]
+                has_ast = op.get("has_asterisk", False) or any(
+                    (r.get("mandatory") or r.get("asterisk") or "★" in r.get("clause", "") or "★" in r.get("text", ""))
+                    for r in reqs if r.get("chapter_id") == c.id
+                )
+                has_disq = op.get("has_disqualified", False) or any(
+                    (r.get("disqualified") or "废标" in r.get("clause", "") or "废标" in r.get("text", ""))
+                    for r in reqs if r.get("chapter_id") == c.id
+                )
+                leaves.append({
+                    "id": c.id,
+                    "chapter_id": c.id,
+                    "title": c.title,
+                    "volume": c.volume,
+                    "section_number": op.get("section_number", ""),
+                    "bound_requirement_ids": bound_rids,
+                    "has_asterisk": has_ast,
+                    "has_disqualified": has_disq,
+                })
+            from icg.domain.outline_auto_tree import calculate_score_weights_and_priorities
+            _, dynamic_order = calculate_score_weights_and_priorities(leaves, reqs)
+            for item in dynamic_order:
+                cid = item.get("chapter_id")
+                if cid:
+                    ch_meta_map[cid] = item
+
+        # 2. 确定候选执行章节集合
+        if chapter_ids is not None:
+            candidate_cids = list(chapter_ids)
+        else:
+            if recommended_order:
+                candidate_cids = [item["chapter_id"] for item in recommended_order if item.get("chapter_id")]
+            else:
+                candidate_cids = [c.id for c in state.chapters.values() if c.project_id == project_id]
+
+        # 3. 按综合优先级（-priority_score, -total_score, section_number）严格排序
+        def get_sort_key(cid: str):
+            meta = ch_meta_map.get(cid, {})
+            p_score = float(meta.get("priority_score") or 0.0)
+            t_score = float(meta.get("total_score") or 0.0)
+            sec_no = str(meta.get("section_number") or "")
+            return (-p_score, -t_score, sec_no, cid)
+
+        ordered_chapter_ids = sorted(candidate_cids, key=get_sort_key)
+
+        # 4. 可选：按优先级阈值过滤（priority_threshold）
+        PRIORITY_LEVELS = {"critical": 4, "high": 3, "medium": 2, "low": 1}
+        if priority_threshold and priority_threshold.lower() in PRIORITY_LEVELS:
+            min_lvl = PRIORITY_LEVELS[priority_threshold.lower()]
+            ordered_chapter_ids = [
+                cid for cid in ordered_chapter_ids
+                if PRIORITY_LEVELS.get(ch_meta_map.get(cid, {}).get("priority", "low"), 1) >= min_lvl
+            ]
+
+        # 5. 切片批次规划（Batch Pipeline Slicing）
+        limit_val = 2 if concurrency_limit is None else concurrency_limit
+        limit = max(1, min(int(limit_val), 5))
+        batched_cids = [ordered_chapter_ids[i:i + limit] for i in range(0, len(ordered_chapter_ids), limit)]
+
+        pipeline_id = f"pipeline-{project_id}-{int(pipeline_start_time * 1000)}"
+        pipeline_batches: list[dict[str, Any]] = []
+        successful_results: dict[str, Any] = {}
+        failed_chapters: dict[str, Any] = {}
+        skipped_unconfirmed: list[dict[str, Any]] = []
+        all_jobs: list[dict[str, Any]] = []
+        fingerprints: dict[str, str] = {}
+        by_chapter_tokens: dict[str, dict[str, int]] = {}
+        total_prompt_tokens = 0
+        total_estimated_tokens = 0
+
+        # 6. 按批次切片推进执行（落实未确认章节不阻塞已确认章节核心红线）
+        for batch_idx, batch_cids in enumerate(batched_cids, start=1):
+            batch_start = time.time()
+            batch_successful: dict[str, Any] = {}
+            batch_failed: dict[str, Any] = {}
+            batch_jobs: list[dict[str, Any]] = []
+            batch_prompt_tokens = 0
+            batch_estimated_tokens = 0
+
+            for cid in batch_cids:
+                chapter = state.chapters.get(cid)
+                if chapter is None or chapter.project_id != project_id:
+                    err_info = {
+                        "code": "NOT_FOUND",
+                        "message": f"章节 {cid} 不存在或不属于当前项目。",
+                        "priority": ch_meta_map.get(cid, {}).get("priority", "low"),
+                    }
+                    failed_chapters[cid] = err_info
+                    batch_failed[cid] = err_info
+                    continue
+
+                saved_plan = workflow.get("writing_plan", {}).get("chapters", {}).get(cid, {})
+                if not saved_plan.get("confirmed_at") or not plan_is_current(state, project_id, cid):
+                    # 核心红线：未确认方案章节绝对不阻塞其他章节调度生成
+                    skip_info = {
+                        "chapter_id": cid,
+                        "reason": "PLAN_NOT_CONFIRMED",
+                        "status": "skipped",
+                        "message": f"章节 {cid} 写作方案尚未确认或方案已过期，流水线跳过生成并继续后续章节。",
+                    }
+                    skipped_unconfirmed.append(skip_info)
+                    err_info = {
+                        "code": "PLAN_NOT_CONFIRMED",
+                        "message": skip_info["message"],
+                        "priority": ch_meta_map.get(cid, {}).get("priority", "low"),
+                    }
+                    failed_chapters[cid] = err_info
+                    batch_failed[cid] = err_info
+                    continue
+
+                try:
+                    ch_start = time.time()
+                    snips = (snippet_matches_by_chapter or {}).get(cid)
+                    res = self.start_chapter_generation(
+                        project_id=project_id,
+                        chapter_id=cid,
+                        principal=principal,
+                        sync_execute=sync_execute,
+                        max_context_tokens=max_context_tokens,
+                        snippet_matches=snips,
+                    )
+                    ch_elapsed = round((time.time() - ch_start) * 1000, 2)
+                    res["elapsed_ms"] = ch_elapsed
+                    res["priority"] = ch_meta_map.get(cid, {}).get("priority", "low")
+                    res["priority_score"] = ch_meta_map.get(cid, {}).get("priority_score", 0.0)
+
+                    successful_results[cid] = res
+                    batch_successful[cid] = res
+
+                    if res.get("job"):
+                        all_jobs.append(res["job"])
+                        batch_jobs.append(res["job"])
+                    if res.get("context_fingerprint"):
+                        fingerprints[cid] = res["context_fingerprint"]
+
+                    usage = res.get("token_budget_usage", {})
+                    p_tok = usage.get("prompt_tokens", 0)
+                    e_tok = usage.get("total_estimated_tokens", 0)
+                    c_tok = usage.get("reserved_generation_tokens", max(0, e_tok - p_tok))
+                    total_prompt_tokens += p_tok
+                    total_estimated_tokens += e_tok
+                    batch_prompt_tokens += p_tok
+                    batch_estimated_tokens += e_tok
+                    by_chapter_tokens[cid] = {
+                        "prompt_tokens": p_tok,
+                        "completion_tokens": c_tok,
+                        "total_tokens": p_tok + c_tok,
+                    }
+                except DomainError as err:
+                    err_info = {
+                        "code": err.code,
+                        "message": err.message,
+                        "priority": ch_meta_map.get(cid, {}).get("priority", "low"),
+                    }
+                    failed_chapters[cid] = err_info
+                    batch_failed[cid] = err_info
+                except Exception as exc:
+                    err_info = {
+                        "code": "GENERATION_FAILED",
+                        "message": str(exc),
+                        "priority": ch_meta_map.get(cid, {}).get("priority", "low"),
+                    }
+                    failed_chapters[cid] = err_info
+                    batch_failed[cid] = err_info
+
+            batch_duration_ms = round((time.time() - batch_start) * 1000, 2)
+            if len(batch_successful) == len(batch_cids):
+                batch_status = "completed"
+            elif len(batch_successful) > 0:
+                batch_status = "partial_completed"
+            else:
+                batch_status = "failed"
+
+            batch_record = {
+                "batch_index": batch_idx,
+                "batch_name": f"Stage {batch_idx} (Batch {batch_idx})",
+                "chapter_ids": batch_cids,
+                "chapter_count": len(batch_cids),
+                "chapters_metadata": [
+                    {
+                        "chapter_id": cid,
+                        "title": ch_meta_map.get(cid, {}).get("title", ""),
+                        "priority": ch_meta_map.get(cid, {}).get("priority", "low"),
+                        "priority_score": ch_meta_map.get(cid, {}).get("priority_score", 0.0),
+                        "section_number": ch_meta_map.get(cid, {}).get("section_number", ""),
+                        "total_score": ch_meta_map.get(cid, {}).get("total_score", 0.0),
+                        "status": "success" if cid in batch_successful else "failed",
+                    }
+                    for cid in batch_cids
+                ],
+                "status": batch_status,
+                "duration_ms": batch_duration_ms,
+                "succeeded_count": len(batch_successful),
+                "failed_count": len(batch_failed),
+                "succeeded_chapter_ids": list(batch_successful.keys()),
+                "failed_chapter_ids": list(batch_failed.keys()),
+                "token_budget_usage": {
+                    "prompt_tokens": batch_prompt_tokens,
+                    "estimated_tokens": batch_estimated_tokens,
+                },
+            }
+            pipeline_batches.append(batch_record)
+
+        total_pipeline_duration_ms = round((time.time() - pipeline_start_time) * 1000, 2)
+
+        if len(successful_results) == len(ordered_chapter_ids) and len(ordered_chapter_ids) > 0:
+            pipeline_status = "completed"
+        elif len(successful_results) > 0:
+            pipeline_status = "partial_completed"
+        else:
+            pipeline_status = "failed"
+
+        # 7. 优先级分布统计
+        priority_summary = {}
+        for p in ["critical", "high", "medium", "low"]:
+            p_cids = [cid for cid in ordered_chapter_ids if ch_meta_map.get(cid, {}).get("priority") == p]
+            p_succ = sum(1 for cid in p_cids if cid in successful_results)
+            p_fail = sum(1 for cid in p_cids if cid in failed_chapters)
+            priority_summary[p] = {
+                "total": len(p_cids),
+                "succeeded": p_succ,
+                "failed": p_fail,
+            }
+
+        # 8. 全局 Token 预算与看板统计
+        limit_tokens = max_context_tokens or DEFAULT_MAX_CONTEXT_TOKENS
+        token_dashboard = {
+            "total_prompt_tokens": total_prompt_tokens,
+            "total_completion_tokens": max(0, total_estimated_tokens - total_prompt_tokens),
+            "total_tokens": total_estimated_tokens if total_estimated_tokens > 0 else total_prompt_tokens,
+            "total_estimated_tokens": total_estimated_tokens,
+            "max_context_tokens_limit": limit_tokens,
+            "average_prompt_tokens_per_chapter": round(total_prompt_tokens / max(1, len(successful_results)), 1),
+            "context_fingerprints": fingerprints,
+            "by_chapter": by_chapter_tokens,
+        }
+
+        dashboard_record = {
+            "pipeline_id": pipeline_id,
+            "project_id": project_id,
+            "concurrency_limit": limit,
+            "total_batches": len(pipeline_batches),
+            "total_chapters_planned": len(ordered_chapter_ids),
+            "total_chapters_scheduled": len(ordered_chapter_ids),
+            "succeeded_count": len(successful_results),
+            "failed_count": len(failed_chapters),
+            "skipped_unconfirmed_count": len(skipped_unconfirmed),
+            "pipeline_status": pipeline_status,
+            "duration_ms": total_pipeline_duration_ms,
+            "token_budget_usage": token_dashboard,
+            "priority_execution_summary": priority_summary,
+            "created_at": iso_time(datetime.now(timezone.utc).timestamp()),
+        }
+
+        # 9. 持久化记录到工作流
+        def save_pipeline_op(st: DemoState):
+            wf = st.workflows.setdefault(project_id, {})
+            runs = wf.setdefault("batch_pipeline_runs", [])
+            runs.append(dashboard_record)
+            wf["latest_batch_pipeline_run"] = deepcopy(dashboard_record)
+
+        self.repository.transaction(save_pipeline_op)
+
+        return {
+            "project_id": project_id,
+            "pipeline_id": pipeline_id,
+            "pipeline_status": pipeline_status,
+            "concurrency_limit": limit,
+            "total_batches": len(pipeline_batches),
+            "total_chapters_planned": len(ordered_chapter_ids),
+            "total_chapters_scheduled": len(ordered_chapter_ids),
+            "succeeded_count": len(successful_results),
+            "failed_count": len(failed_chapters),
+            "skipped_unconfirmed_count": len(skipped_unconfirmed),
+            "duration_ms": total_pipeline_duration_ms,
+            "total_duration_ms": total_pipeline_duration_ms,
+            "batches": pipeline_batches,
+            "results": successful_results,
+            "failed_chapters": failed_chapters,
+            "skipped_unconfirmed_chapters": skipped_unconfirmed,
+            "jobs": all_jobs,
+            "fingerprints": fingerprints,
+            "dashboard": dashboard_record,
+            "token_budget_dashboard": token_dashboard,
+            "priority_execution_summary": priority_summary,
+        }
+
     def _check_access(self, state: DemoState, project_id: str, chapter_id: str, principal: Principal) -> None:
         role = getattr(principal.user, "role", "")
         norm_role = ROLE_NORMALIZATION_MAP.get(role, role)
@@ -828,3 +1189,52 @@ def batch_generate_chapters(
         max_context_tokens=max_context_tokens,
         snippet_matches_by_chapter=snippet_matches_by_chapter,
     )
+
+
+def schedule_batch_pipeline(
+    project_id_or_service: Any,
+    principal_or_proj: Any = None,
+    chapter_ids: list[str] | None = None,
+    principal: Principal | None = None,
+    concurrency_limit: int = 2,
+    sync_execute: bool = False,
+    max_context_tokens: int | None = None,
+    snippet_matches_by_chapter: dict[str, list[dict]] | None = None,
+    priority_threshold: str | None = None,
+    *,
+    demo: Any | None = None,
+    repository: Any | None = None,
+    evidence_service: Any | None = None,
+) -> dict[str, Any]:
+    """基于优先级推荐队列的大纲多章节批量生成流水线调度（模块顶层快捷入口）。"""
+    if hasattr(project_id_or_service, "schedule_batch_pipeline") and not isinstance(project_id_or_service, str):
+        service = project_id_or_service
+        return service.schedule_batch_pipeline(
+            principal_or_proj,
+            chapter_ids=chapter_ids,
+            principal=principal,
+            concurrency_limit=concurrency_limit,
+            sync_execute=sync_execute,
+            max_context_tokens=max_context_tokens,
+            snippet_matches_by_chapter=snippet_matches_by_chapter,
+            priority_threshold=priority_threshold,
+        )
+
+    project_id = str(project_id_or_service)
+    prin = principal_or_proj if principal is None else principal
+
+    if demo is None:
+        raise ValueError("demo or service must be provided to schedule_batch_pipeline")
+
+    service = ChapterGenerationService(demo, repository=repository, evidence_service=evidence_service)
+    return service.schedule_batch_pipeline(
+        project_id=project_id,
+        principal=prin,
+        chapter_ids=chapter_ids,
+        concurrency_limit=concurrency_limit,
+        sync_execute=sync_execute,
+        max_context_tokens=max_context_tokens,
+        snippet_matches_by_chapter=snippet_matches_by_chapter,
+        priority_threshold=priority_threshold,
+    )
+

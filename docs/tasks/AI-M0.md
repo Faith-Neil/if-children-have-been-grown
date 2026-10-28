@@ -524,3 +524,49 @@
 - [x] 交付文档、代码说明、任务卡与任务看板同步更新。
 
 状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。
+
+
+<a id="ai-outline-batch-generation-pipeline"></a>
+
+## AI-OUTLINE-BATCH-GENERATION-PIPELINE · 基于优先级推荐队列的大纲多章节批量生成流水线调度引擎
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 落地基于优先级推荐队列的大纲多章节批量生成流水线调度引擎，实现并发受控分批切片、废标与星标优先调度、未确认章节隔离跳过、全局 Token 预算聚合与单事务原子落盘 |
+| 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [AI-OUTLINE-SCORE-WEIGHT-CALC](AI-M0.md#ai-outline-score-weight-calc) |
+| PRD / 架构出处 | [PRD v1.8 §5.7.1、§5.7.8](../reference/product/prd-mvp-v1.8.md)；[APP-M2-T126](APP-M2.md#app-m2-t126) |
+| 完成时交付 | [AI-OUTLINE-BATCH-GENERATION-PIPELINE 交付](../delivery/AI-OUTLINE-BATCH-GENERATION-PIPELINE.md) |
+| 代码解释 | [AI-OUTLINE-BATCH-GENERATION-PIPELINE 代码说明](../code/AI-OUTLINE-BATCH-GENERATION-PIPELINE.md) |
+
+范围：在 `backend/bid-core/icg/domain/chapter_generation.py`、`domain.py`、`generation_orchestrator.py` 与 `backend/bid-core/icg/api/workflow.py` 中落地基于优先级推荐队列的大纲多章节批量生成流水线调度引擎：
+1. 优先级自适应排序：依据前序评分权重与推荐编写序列（`recommended_writing_order`），优先执行 critical 废标红线与★关键必保章节，次之 high 高分核心章节，再次 medium/low；
+2. 并发门限受控切片：严格按 `concurrency_limit`（1~5 钳制，默认 2）切分 Stage 批次，防止本地模型瞬时并发导致显存崩溃与 Token 预算透支；
+3. PRD §5.7.8 关键红线：未确认章节或单章失败绝不阻塞其他章节调度生成（`skipped_unconfirmed_chapters`，流水线状态 `partial_completed`）；
+4. 优先级门限过滤：支持 `priority_threshold`（critical/high/medium/low）门限过滤调度；
+5. 全局 Token 消耗与耗时仪表盘：汇聚 `duration_ms`、`token_budget_dashboard`（含 `by_chapter` 细粒度统计）与 `priority_execution_summary`；
+6. 单事务原子落盘：执行快照原子写入 `workflow["batch_pipeline_runs"]` 与 `workflow["latest_batch_pipeline_run"]`；
+7. 多租户强隔离与 RBAC 权限门禁：跨租户项目严格抛出 404 `NOT_FOUND`，系统只读角色与项目只读成员拦截 403 `FORBIDDEN` / `PROJECT_WRITER_REQUIRED`；
+8. 涉密项目本地模型硬门禁：涉密项目企图使用云端外部模型严格拦截 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`；
+9. HTTP API 端点集成：注册 `POST /api/v1/projects/{project_id}/outline/batch-pipeline`（`include_in_schema=False` 保障 OpenAPI 零漂移）。
+
+当前条件：自动化回归测试全绿通过（专属测试 9 passed，全量 AI 核心套件 73 passed）。
+
+可验证验收：
+- [x] 优先级推荐队列排序：废标红线与★星标必保优先排入前置批次；
+- [x] 并发切片门限受控：concurrency_limit 1~5 钳制受控分批；
+- [x] PRD §5.7.8 关键红线：未确认章节（PLAN_NOT_CONFIRMED）隔离跳过，绝对不阻塞后续章节生成；
+- [x] 优先级门限过滤：priority_threshold 参数精确过滤指定层级章节；
+- [x] 全局 Token 预算与耗时统计：duration_ms 与 token_budget_dashboard 准确聚合；
+- [x] 多租户强隔离门禁：跨公司项目精确拦截 404 `NOT_FOUND`；
+- [x] RBAC 权限门禁：只读角色与项目只读成员拦截 403 `FORBIDDEN`；
+- [x] 涉密项目本地模型硬门禁：涉密项目调用外部云端模型拦截 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`；
+- [x] 单事务原子持久化：batch_pipeline_runs 与 latest_batch_pipeline_run 原子落盘；
+- [x] HTTP API 端点集成：POST /outline/batch-pipeline 端到端调用成功；
+- [x] 专属自动化测试套件 `pytest tests/backend/test_ai_outline_batch_pipeline.py -v` 执行全过（9 passed）；
+- [x] 全量 AI 核心联合测试回归全绿（73 passed）；
+- [x] OpenAPI 契约校验 `python backend/bid-core/export_openapi.py --check` 100% 一致；
+- [x] 交付文档、代码说明、任务卡与任务看板同步更新。
+
+状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。

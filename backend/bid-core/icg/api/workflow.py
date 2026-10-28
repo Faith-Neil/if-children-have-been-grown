@@ -419,5 +419,25 @@ def include_workflow_routes(application, service, current_user, parser):
             project_id=project_id,
         )
 
+    @router.post(
+        "/projects/{project_id}/outline/batch-pipeline",
+        include_in_schema=False,
+    )
+    def schedule_batch_pipeline_endpoint(
+        project_id: str,
+        body: dict | None = None,
+        user: Principal = Depends(current_user),
+    ):
+        body = body or {}
+        return workflow.schedule_batch_pipeline(
+            project_id=project_id,
+            principal=user,
+            concurrency_limit=body.get("concurrency_limit", 2),
+            priority_threshold=body.get("priority_threshold"),
+            sync_execute=body.get("sync_execute", False),
+            chapter_ids=body.get("chapter_ids"),
+            max_context_tokens=body.get("max_context_tokens"),
+        )
+
     application.include_router(router)
     include_recoverable_routes(application, workflow, current_user)

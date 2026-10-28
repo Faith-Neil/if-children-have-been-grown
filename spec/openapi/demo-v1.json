@@ -19677,6 +19677,272 @@
         }
       }
     },
+    "/api/v1/companies/{company_id}/settings": {
+      "get": {
+        "tags": [
+          "companies"
+        ],
+        "summary": "获取企业设置与安全策略",
+        "description": "按公司租户ID获取企业级配置参数（密码策略、编辑锁超时、自动保存间隔、生成循环轮数等）。平台超级管理员可查询任意公司，非超级管理员跨公司访问拦截 404 NOT_FOUND。",
+        "operationId": "getCompanySettings",
+        "parameters": [
+          {
+            "name": "company_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Company Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanySettingsModel"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "companies"
+        ],
+        "summary": "更新企业设置与安全策略",
+        "description": "更新指定企业的配置参数。严格贯彻“只能调严不能调宽”基线安全策略（越界抛出 422 SETTING_VALUE_OUT_OF_BOUNDS）。超级管理员可管理任意公司，企业管理员仅可更新本公司设置，其他角色拦截 403 FORBIDDEN。",
+        "operationId": "updateCompanySettings",
+        "parameters": [
+          {
+            "name": "company_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Company Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCompanySettingsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompanySettingsModel"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/projects/{project_id}/outline/plan": {
       "x-contract-status": "frozen",
       "x-implemented": false,
@@ -20964,6 +21230,146 @@
           "issues"
         ],
         "title": "CheckResponse"
+      },
+      "CompanySettingsModel": {
+        "properties": {
+          "company_id": {
+            "type": "string",
+            "title": "Company Id",
+            "description": "企业租户唯一标识"
+          },
+          "company_name": {
+            "type": "string",
+            "title": "Company Name",
+            "description": "企业名称",
+            "default": ""
+          },
+          "password_min_length": {
+            "type": "integer",
+            "title": "Password Min Length",
+            "description": "密码最少位数（默认8，只能调严 >= 8）",
+            "default": 8
+          },
+          "password_min_char_classes": {
+            "type": "integer",
+            "title": "Password Min Char Classes",
+            "description": "至少包含的字符类别数（默认3类，只能调严 3～4）",
+            "default": 3
+          },
+          "max_login_attempts": {
+            "type": "integer",
+            "title": "Max Login Attempts",
+            "description": "连续登录失败锁定次数（默认5，只能调严 <= 5）",
+            "default": 5
+          },
+          "session_timeout_minutes": {
+            "type": "integer",
+            "title": "Session Timeout Minutes",
+            "description": "会话超时时长（分钟，范围 30～480）",
+            "default": 120
+          },
+          "edit_lock_timeout_minutes": {
+            "type": "integer",
+            "title": "Edit Lock Timeout Minutes",
+            "description": "编辑锁超时时间（分钟，上限 60，只能调严 <= 60）",
+            "default": 30
+          },
+          "edit_lock_heartbeat_seconds": {
+            "type": "integer",
+            "title": "Edit Lock Heartbeat Seconds",
+            "description": "编辑锁心跳间隔（秒，范围 15～120）",
+            "default": 60
+          },
+          "editor_autosave_seconds": {
+            "type": "integer",
+            "title": "Editor Autosave Seconds",
+            "description": "编辑草稿自动保存间隔（秒，范围 5～60）",
+            "default": 10
+          },
+          "loop_max_rounds": {
+            "type": "integer",
+            "title": "Loop Max Rounds",
+            "description": "章节生成最大循环轮数（默认3，上限 5，只能调严 <= 5）",
+            "default": 3
+          },
+          "assistant_suggestion_count": {
+            "type": "integer",
+            "title": "Assistant Suggestion Count",
+            "description": "修改样例条数（范围 3～5）",
+            "default": 3
+          },
+          "assistant_enabled": {
+            "type": "boolean",
+            "title": "Assistant Enabled",
+            "description": "是否启用对话助手",
+            "default": true
+          },
+          "assistant_kb_default": {
+            "type": "boolean",
+            "title": "Assistant Kb Default",
+            "description": "新会话中知识库开关默认值",
+            "default": true
+          },
+          "assistant_allow_kb_off": {
+            "type": "boolean",
+            "title": "Assistant Allow Kb Off",
+            "description": "是否允许用户关闭知识库",
+            "default": true
+          },
+          "model_review_enabled": {
+            "type": "boolean",
+            "title": "Model Review Enabled",
+            "description": "是否启用章节模型评审",
+            "default": true
+          },
+          "dup_min_chars": {
+            "type": "integer",
+            "title": "Dup Min Chars",
+            "description": "查重连续相同字数阈值",
+            "default": 8
+          },
+          "dup_history_months": {
+            "type": "integer",
+            "title": "Dup History Months",
+            "description": "查重历史标书比对年限（月）",
+            "default": 24
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At",
+            "description": "最后更新时间（ISO 8601）"
+          },
+          "updated_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By",
+            "description": "最后更新人账号ID"
+          },
+          "custom_settings": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Custom Settings",
+            "description": "企业扩展键值配置"
+          }
+        },
+        "type": "object",
+        "required": [
+          "company_id"
+        ],
+        "title": "CompanySettingsModel"
       },
       "CompletedEvent": {
         "properties": {
@@ -27698,6 +28104,217 @@
         ],
         "title": "TenderFile"
       },
+      "UpdateCompanySettingsRequest": {
+        "properties": {
+          "company_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Company Name",
+            "description": "企业名称"
+          },
+          "password_min_length": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password Min Length",
+            "description": "密码最少位数（只能调严 >= 8，上限 32）"
+          },
+          "password_min_char_classes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password Min Char Classes",
+            "description": "至少包含的字符类别数（只能调严 3～4）"
+          },
+          "max_login_attempts": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Login Attempts",
+            "description": "连续登录失败锁定次数（只能调严 <= 5，下限 1）"
+          },
+          "session_timeout_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Timeout Minutes",
+            "description": "会话超时时长（分钟，范围 30～480）"
+          },
+          "edit_lock_timeout_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edit Lock Timeout Minutes",
+            "description": "编辑锁超时时间（分钟，只能调严 <= 60，下限 6）"
+          },
+          "edit_lock_heartbeat_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edit Lock Heartbeat Seconds",
+            "description": "编辑锁心跳间隔（秒，范围 15～120）"
+          },
+          "editor_autosave_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Editor Autosave Seconds",
+            "description": "自动保存间隔（秒，范围 5～60）"
+          },
+          "loop_max_rounds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Loop Max Rounds",
+            "description": "章节生成最大循环轮数（只能调严 <= 5，下限 1）"
+          },
+          "assistant_suggestion_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assistant Suggestion Count",
+            "description": "修改样例条数（范围 3～5）"
+          },
+          "assistant_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assistant Enabled",
+            "description": "是否启用对话助手"
+          },
+          "assistant_kb_default": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assistant Kb Default",
+            "description": "新会话中知识库开关默认值"
+          },
+          "assistant_allow_kb_off": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assistant Allow Kb Off",
+            "description": "是否允许用户关闭知识库"
+          },
+          "model_review_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Review Enabled",
+            "description": "是否启用章节模型评审"
+          },
+          "dup_min_chars": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dup Min Chars",
+            "description": "查重连续相同字数阈值"
+          },
+          "dup_history_months": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dup History Months",
+            "description": "查重历史标书比对年限（月）"
+          },
+          "custom_settings": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Custom Settings",
+            "description": "企业扩展键值配置"
+          }
+        },
+        "type": "object",
+        "title": "UpdateCompanySettingsRequest"
+      },
       "UpdateDictItemRequest": {
         "properties": {
           "label": {
@@ -27909,6 +28526,7 @@
               "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
               "SESSION_ROLE_UNSUPPORTED",
               "SESSION_SCOPE_UNSUPPORTED",
+              "SETTING_VALUE_OUT_OF_BOUNDS",
               "SLA_COMMITMENT_BLOCKED",
               "SLA_FACT_CONFIRM_REQUIRED",
               "SLA_FACT_INVALID",
@@ -29518,6 +30136,7 @@
           "PDF_ENCRYPTED",
           "PROJECT_LEAD_COMPANY_ROLE_REQUIRED",
           "REASON_REQUIRED",
+          "SETTING_VALUE_OUT_OF_BOUNDS",
           "SLA_FACT_CONFIRM_REQUIRED",
           "SLA_SOURCE_REQUIRED",
           "TEXT_ENCODING",

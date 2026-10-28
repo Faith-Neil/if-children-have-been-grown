@@ -303,6 +303,46 @@ class ComplianceRulesEngine:
             "can_disable": False,
             "description": "核验投标函中承诺的投标有效期是否小于招标文件规定的日历天数（如 90 天）；承诺有效期缩水或附带可撤销条件判定为重大负偏离阻断红线。",
         },
+        {
+            "rule_id": "R17",
+            "title": "关联交易与利害关系回避核验",
+            "category": "qualification",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "核验投标人与招标人、招标代理机构是否存在单位负责人为同一人或控股参股等利害关系；存在实质性利害关系未回避判定为废标红线。",
+        },
+        {
+            "rule_id": "R19",
+            "title": "环保、节能与绿色采购强制产品认证核验",
+            "category": "qualification",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "核验设备耗材是否属于国家强制节能品目并附有效证书清单；强制品目未提供认证判定为废标红线。",
+        },
+        {
+            "rule_id": "R26",
+            "title": "知识产权与侵权无争议声明核验",
+            "category": "legal",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "核验方案/产品是否声明自主知识产权并提供侵权免责与争议兜底承诺；缺少合规声明判定为废标红线。",
+        },
+        {
+            "rule_id": "R27",
+            "title": "本地化服务网点与常驻技术力量核验",
+            "category": "service",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "核验招标文件强制要求的本地售后网点或驻场机构证明；要求本地化而无有效网点判定为废标红线。",
+        },
+        {
+            "rule_id": "R28",
+            "title": "关键技术规格实质性负偏离排查",
+            "category": "technical",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "核验技术规格参数偏离表中是否存在招标文件中声明不得负偏离的关键指标负偏离；存在负偏离判定为废标红线。",
+        }
     ]
 
     # R34 敏感占位符与残留模式
@@ -4152,6 +4192,473 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
+    def check_r17(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R17 关联交易与利害关系回避核验。
+        核验投标人与招标人、招标代理机构是否存在单位负责人为同一人或控股参股等利害关系；
+        存在实质性利害关系未回避判定为 blocker (CONFLICT_OF_INTEREST_UNRESOLVED)。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        reqs = list(workflow.get("requirements", {}).values())
+        if volume != "all":
+            reqs = [r for r in reqs if r.get("volume") == volume]
+
+        checked_count = 0
+        interest_keywords = ("利害关系", "关联交易", "回避", "利益冲突", "单位负责人为同一人", "控股", "参股", "母子公司", "关联方", "存在利害关系")
+        negative_conflict_triggers = (
+            "存在关联关系", "存在利害关系", "未回避", "存在控股关系", "参股招标代理机构",
+            "控股股东为招标人", "单位负责人为同一人", "存在直接利益冲突", "未签署回避声明",
+            "构成关联交易未披露", "存在实质性关联", "未满足回避要求", "与招标人存在利害关系",
+        )
+
+        for req in reqs:
+            text = str(req.get("text", "") or "")
+            resp = str(req.get("response", "") or "").strip()
+            req_id = req.get("id", "")
+
+            if not any(k in text for k in interest_keywords):
+                continue
+
+            checked_count += 1
+
+            if not resp:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R17",
+                        code="CONFLICT_OF_INTEREST_UNRESOLVED",
+                        severity="blocker",
+                        message=f"关联交易或利害关系回避条款未填写响应承诺：{text[:50]}",
+                        requirement_id=req_id,
+                    )
+                )
+                continue
+
+            if req.get("status") == "rejected":
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R17",
+                        code="CONFLICT_OF_INTEREST_UNRESOLVED",
+                        severity="blocker",
+                        message=f"关联交易或利害关系条款被标记为拒绝或未回避：{text[:50]}",
+                        requirement_id=req_id,
+                    )
+                )
+                continue
+
+            if any(t in resp for t in negative_conflict_triggers):
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R17",
+                        code="CONFLICT_OF_INTEREST_UNRESOLVED",
+                        severity="blocker",
+                        message=f"发现未回避的实质性关联交易或利害关系：{resp[:60]}",
+                        requirement_id=req_id,
+                    )
+                )
+
+        passed = len(issues) == 0
+        finding_summary = (
+            "关联交易与利害关系回避核验通过，投标人与招标人/招标代理机构无未回避利害关系。"
+            if passed
+            else f"存在 {len(issues)} 项未回避的关联交易或利害关系，违反公平竞争回避原则！"
+        )
+        return ComplianceRuleResult(
+            rule_id="R17",
+            title="关联交易与利害关系回避核验",
+            severity="info" if passed else "blocker",
+            passed=passed,
+            finding_summary=finding_summary,
+            suggestion="若核验失败，请签署正式无利害关系承诺书并排查控股参股关系，按规定执行人员与机构回避。" if not passed else "核验正常。",
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked_count, "conflict_issues_count": len(issues)},
+        )
+
+    @classmethod
+    def check_r19(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R19 环保、节能与绿色采购强制产品认证核验。
+        核验设备耗材是否属于国家强制节能品目并附有效证书清单；
+        强制品目未提供认证判定为 blocker (MANDATORY_GREEN_CERT_MISSING)。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        reqs = list(workflow.get("requirements", {}).values())
+        if volume != "all":
+            reqs = [r for r in reqs if r.get("volume") == volume]
+
+        checked_count = 0
+        green_keywords = ("节能产品", "节能认证", "环保标志", "绿色采购", "强制节能", "强制采购节能产品", "能效标识", "低碳认证", "环境标志", "中国节能产品认证")
+        negative_green_triggers = (
+            "未取得节能认证", "无绿色采购证书", "强制节能产品未认证", "能效未达标",
+            "无环保标志认证", "暂未提供节能证书", "节能认证已过期", "未列入节能品目清单",
+            "不满足绿色采购要求", "能效指标不合格", "节能证书缺失",
+        )
+
+        for req in reqs:
+            text = str(req.get("text", "") or "")
+            resp = str(req.get("response", "") or "").strip()
+            req_id = req.get("id", "")
+
+            if not any(k in text for k in green_keywords):
+                continue
+
+            checked_count += 1
+
+            if not resp:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R19",
+                        code="MANDATORY_GREEN_CERT_MISSING",
+                        severity="blocker",
+                        message=f"环保节能或绿色采购产品要求未填写响应说明：{text[:50]}",
+                        requirement_id=req_id,
+                    )
+                )
+                continue
+
+            if req.get("status") == "rejected":
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R19",
+                        code="MANDATORY_GREEN_CERT_MISSING",
+                        severity="blocker",
+                        message=f"强制节能或环保绿色采购条款被拒绝响应：{text[:50]}",
+                        requirement_id=req_id,
+                    )
+                )
+                continue
+
+            if any(t in resp for t in negative_green_triggers):
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R19",
+                        code="MANDATORY_GREEN_CERT_MISSING",
+                        severity="blocker",
+                        message=f"强制节能或环保认证证书缺失或不符合国家要求：{resp[:60]}",
+                        requirement_id=req_id,
+                    )
+                )
+
+        passed = len(issues) == 0
+        finding_summary = (
+            "环保节能与绿色采购产品核验通过，强制品目认证证书与能效指标齐全。"
+            if passed
+            else f"存在 {len(issues)} 项强制节能或环保产品认证缺失缺陷！"
+        )
+        return ComplianceRuleResult(
+            rule_id="R19",
+            title="环保、节能与绿色采购强制产品认证核验",
+            severity="info" if passed else "blocker",
+            passed=passed,
+            finding_summary=finding_summary,
+            suggestion="若核验失败，请补充国家认证认可的节能/环保产品认证证书截图及能效标识备案证明。" if not passed else "核验正常。",
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked_count, "green_cert_issues_count": len(issues)},
+        )
+
+    @classmethod
+    def check_r26(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R26 知识产权与侵权无争议声明核验。
+        核验方案/产品是否声明自主知识产权并提供侵权免责与争议兜底承诺；
+        缺少合规声明判定为 blocker (IP_INFRINGEMENT_INDEMNITY_MISSING)。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        reqs = list(workflow.get("requirements", {}).values())
+        if volume != "all":
+            reqs = [r for r in reqs if r.get("volume") == volume]
+
+        checked_count = 0
+        ip_keywords = ("知识产权", "侵权", "免责", "专利", "软件著作权", "自主知识产权", "侵权责任", "侵权赔偿", "兜底承诺", "无争议声明", "知识产权纠纷")
+        negative_ip_triggers = (
+            "不承担侵权责任", "无法承诺无知识产权争议", "第三方侵权免责排除",
+            "侵权责任由招标人承担", "未声明自主知识产权", "存在知识产权争议",
+            "涉嫌专利侵权", "未承诺无争议兜底", "拒绝承担侵权赔偿", "知识产权归属存疑",
+            "不提供侵权赔偿承诺",
+        )
+
+        for req in reqs:
+            text = str(req.get("text", "") or "")
+            resp = str(req.get("response", "") or "").strip()
+            req_id = req.get("id", "")
+
+            if not any(k in text for k in ip_keywords):
+                continue
+
+            checked_count += 1
+
+            if not resp:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R26",
+                        code="IP_INFRINGEMENT_INDEMNITY_MISSING",
+                        severity="blocker",
+                        message=f"知识产权或侵权赔偿要求未作响应声明：{text[:50]}",
+                        requirement_id=req_id,
+                    )
+                )
+                continue
+
+            if req.get("status") == "rejected":
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R26",
+                        code="IP_INFRINGEMENT_INDEMNITY_MISSING",
+                        severity="blocker",
+                        message=f"知识产权或侵权无争议声明条款被拒绝：{text[:50]}",
+                        requirement_id=req_id,
+                    )
+                )
+                continue
+
+            if any(t in resp for t in negative_ip_triggers):
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R26",
+                        code="IP_INFRINGEMENT_INDEMNITY_MISSING",
+                        severity="blocker",
+                        message=f"方案或产品知识产权合规性存在缺陷或缺少侵权兜底承诺：{resp[:60]}",
+                        requirement_id=req_id,
+                    )
+                )
+
+        passed = len(issues) == 0
+        finding_summary = (
+            "知识产权与侵权无争议声明核验通过，已承诺自主知识产权与侵权无条件兜底赔偿。"
+            if passed
+            else f"存在 {len(issues)} 项知识产权合规或侵权兜底承诺缺陷！"
+        )
+        return ComplianceRuleResult(
+            rule_id="R26",
+            title="知识产权与侵权无争议声明核验",
+            severity="info" if passed else "blocker",
+            passed=passed,
+            finding_summary=finding_summary,
+            suggestion="若核验失败，请签署知识产权无争议声明，承诺方案完全自主可控且承担全部侵权法律与经济责任。" if not passed else "核验正常。",
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked_count, "ip_issues_count": len(issues)},
+        )
+
+    @classmethod
+    def check_r27(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R27 本地化服务网点与常驻技术力量核验。
+        核验招标文件强制要求的本地售后网点或驻场机构证明；
+        要求本地化而无有效网点判定为 blocker (LOCAL_SERVICE_BRANCH_MISSING)。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        reqs = list(workflow.get("requirements", {}).values())
+        if volume != "all":
+            reqs = [r for r in reqs if r.get("volume") == volume]
+
+        checked_count = 0
+        local_keywords = ("本地化服务", "售后网点", "分支机构", "驻场机构", "驻点技术人员", "本地售后", "本地分公司", "本地办事处", "本地服务机构", "常驻技术人员")
+        negative_local_triggers = (
+            "无本地服务机构", "无本地网点", "未设立办事处", "无法驻场",
+            "无常驻技术人员", "无本地化支持力量", "不具备本地售后条件", "暂无分支机构",
+            "无法提供本地化响应", "未设立本地服务网点", "本地化机构缺失",
+        )
+
+        for req in reqs:
+            text = str(req.get("text", "") or "")
+            resp = str(req.get("response", "") or "").strip()
+            req_id = req.get("id", "")
+
+            if not any(k in text for k in local_keywords):
+                continue
+
+            checked_count += 1
+
+            if not resp:
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R27",
+                        code="LOCAL_SERVICE_BRANCH_MISSING",
+                        severity="blocker",
+                        message=f"本地化服务网点或常驻技术力量要求未响应：{text[:50]}",
+                        requirement_id=req_id,
+                    )
+                )
+                continue
+
+            if req.get("status") == "rejected":
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R27",
+                        code="LOCAL_SERVICE_BRANCH_MISSING",
+                        severity="blocker",
+                        message=f"招标文件本地化服务或网点要求被拒绝响应：{text[:50]}",
+                        requirement_id=req_id,
+                    )
+                )
+                continue
+
+            if any(t in resp for t in negative_local_triggers):
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R27",
+                        code="LOCAL_SERVICE_BRANCH_MISSING",
+                        severity="blocker",
+                        message=f"缺少招标文件要求的本地服务网点或常驻技术支撑人员：{resp[:60]}",
+                        requirement_id=req_id,
+                    )
+                )
+
+        passed = len(issues) == 0
+        finding_summary = (
+            "本地化服务网点与常驻技术力量核验通过，本地机构证明与人员配备满足要求。"
+            if passed
+            else f"存在 {len(issues)} 项本地服务网点或人员缺失缺陷！"
+        )
+        return ComplianceRuleResult(
+            rule_id="R27",
+            title="本地化服务网点与常驻技术力量核验",
+            severity="info" if passed else "blocker",
+            passed=passed,
+            finding_summary=finding_summary,
+            suggestion="若核验失败，请提供项目所在地的分公司执照、网点租赁协议及常驻技术工程师名单与社保证明。" if not passed else "核验正常。",
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked_count, "local_branch_issues_count": len(issues)},
+        )
+
+    @classmethod
+    def check_r28(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
+        """
+        R28 关键技术规格实质性负偏离排查。
+        核验技术规格参数偏离表中是否存在招标文件中声明不得负偏离的关键指标负偏离；
+        存在负偏离判定为 blocker (CRITICAL_TECH_SPEC_NEGATIVE_DEVIATION)。
+        """
+        issues: list[ComplianceRuleIssue] = []
+        reqs = list(workflow.get("requirements", {}).values())
+        if volume != "all":
+            reqs = [r for r in reqs if r.get("volume") == volume]
+
+        checked_count = 0
+        tech_keywords = ("技术规格", "关键指标", "关键参数", "实质性要求", "不得负偏离", "参数偏离", "核心技术参数", "关键技术指标", "不可负偏离", "技术参数偏离")
+        negative_deviation_triggers = (
+            "实质性负偏离", "指标不满足", "参数低于要求",
+            "关键指标不满足", "关键参数负偏离", "存在重大负偏离", "无法满足技术规格",
+            "指标负偏离", "参数有偏离且低于招标要求",
+        )
+
+        for req in reqs:
+            text = str(req.get("text", "") or "")
+            resp = str(req.get("response", "") or "").strip()
+            req_id = req.get("id", "")
+            is_critical = is_critical_requirement(req)
+            is_tech = any(k in text for k in tech_keywords)
+
+            if not (is_critical or is_tech):
+                continue
+
+            checked_count += 1
+
+            # 字段直接标记为负偏离
+            deviation_type = str(req.get("deviation_type", "") or "").strip().lower()
+            if deviation_type in ("negative", "负偏离", "重大负偏离"):
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R28",
+                        code="CRITICAL_TECH_SPEC_NEGATIVE_DEVIATION",
+                        severity="blocker",
+                        message=f"关键技术参数被明确标定为负偏离：{text[:50]}",
+                        requirement_id=req_id,
+                    )
+                )
+                continue
+
+            if not resp:
+                if is_critical or is_tech:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R28",
+                            code="CRITICAL_TECH_SPEC_NEGATIVE_DEVIATION",
+                            severity="blocker",
+                            message=f"关键技术指标未填写具体响应参数：{text[:50]}",
+                            requirement_id=req_id,
+                        )
+                    )
+                continue
+
+            if req.get("status") == "rejected":
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R28",
+                        code="CRITICAL_TECH_SPEC_NEGATIVE_DEVIATION",
+                        severity="blocker",
+                        message=f"不可负偏离的关键技术规格条款被拒绝响应：{text[:50]}",
+                        requirement_id=req_id,
+                    )
+                )
+                continue
+
+            if any(t in resp for t in negative_deviation_triggers) or bool(re.search(r"(?<!无)(?<!不)负偏离", resp)):
+                issues.append(
+                    ComplianceRuleIssue(
+                        id=new_id("issue"),
+                        rule_id="R28",
+                        code="CRITICAL_TECH_SPEC_NEGATIVE_DEVIATION",
+                        severity="blocker",
+                        message=f"关键技术指标存在实质性负偏离：{resp[:60]}",
+                        requirement_id=req_id,
+                    )
+                )
+
+        passed = len(issues) == 0
+        finding_summary = (
+            "关键技术规格实质性负偏离排查通过，所有关键指标与参数均为无负偏离或正偏离。"
+            if passed
+            else f"排查发现 {len(issues)} 项关键技术规格实质性负偏离，触及废标红线！"
+        )
+        return ComplianceRuleResult(
+            rule_id="R28",
+            title="关键技术规格实质性负偏离排查",
+            severity="info" if passed else "blocker",
+            passed=passed,
+            finding_summary=finding_summary,
+            suggestion="若核验失败，请调整技术方案与设备选型，确保关键技术指标100%响应或优于招标文件，消除全部负偏离项。" if not passed else "核验正常。",
+            issues=[i.to_dict() for i in issues],
+            details={"checked_count": checked_count, "negative_deviation_issues_count": len(issues)},
+        )
+
+    @classmethod
+    def evaluate_p5_rules(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> list[ComplianceRuleResult]:
+        """按顺序完整执行 PRD P5 终批核心合规规则体系（R17, R19, R26, R27, R28）。"""
+        return [
+            cls.check_r17(state, project, workflow, volume=volume),
+            cls.check_r19(state, project, workflow, volume=volume),
+            cls.check_r26(state, project, workflow, volume=volume),
+            cls.check_r27(state, project, workflow, volume=volume),
+            cls.check_r28(state, project, workflow, volume=volume),
+        ]
+
+    @classmethod
     def evaluate_p0_rules(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
     ) -> list[ComplianceRuleResult]:
@@ -4228,6 +4735,7 @@ class ComplianceRulesEngine:
             + cls.evaluate_p2_rules(state, project, workflow, volume=volume, now_ts=now_ts)
             + cls.evaluate_p3_rules(state, project, workflow, volume=volume, now_ts=now_ts)
             + cls.evaluate_p4_rules(state, project, workflow, volume=volume, now_ts=now_ts)
+            + cls.evaluate_p5_rules(state, project, workflow, volume=volume, now_ts=now_ts)
         )
 
 

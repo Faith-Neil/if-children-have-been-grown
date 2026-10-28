@@ -82,6 +82,8 @@ def _frozen_status() -> dict[str, int]:
         "SLA_FACT_CONFIRM_REQUIRED",
         # 请求或已保存结构缺少两册。导出原先返回 409，现与大纲、团队设置同为 422。
         "TWO_VOLUMES_REQUIRED",
+        # 企业设置与安全策略越界校验 (APP-M2-T025 / PRD v1.8 §5.10.2 / §6.9)
+        "SETTING_VALUE_OUT_OF_BOUNDS",
     ))
     _bind(table, 423, ("LOCK_HELD", "LOCK_LOST"))
     _bind(table, 428, ("IF_MATCH_REQUIRED", "IDEMPOTENCY_KEY_REQUIRED"))

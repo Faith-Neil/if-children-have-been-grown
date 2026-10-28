@@ -9,7 +9,14 @@ const leaveDialog = (page: Page) => page.locator('.ant-modal-confirm:not(.ant-zo
 
 async function loginManager(page: Page) {
   await page.goto(editorPath);
-  await page.getByRole('button', { name: '进入工作台', exact: true }).click();
+  const usernameInput = page.getByTestId('login-username-input');
+  if (await usernameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await usernameInput.fill('alpha-manager');
+    await page.getByTestId('login-password-input').fill('X_2026');
+    await page.getByTestId('login-submit-button').click();
+  } else {
+    await page.getByRole('button', { name: '进入工作台', exact: true }).click();
+  }
   await expect(page.getByRole('button', { name: '退出', exact: true })).toBeVisible();
   await expect(page.locator('textarea.chapter-editor')).toBeVisible();
 }
@@ -80,19 +87,29 @@ test('an Editor history request returning 401 after another account logs in cann
     await test.step('A退出并回到登录页', async () => {
       console.log('review-history: 开始点击退出');
       await page.getByRole('button', { name: '退出', exact: true }).click();
-      await expect(page.getByRole('button', { name: '进入工作台', exact: true })).toBeVisible();
+      await expect(page.getByTestId('login-submit-button').or(page.getByRole('button', { name: '进入工作台', exact: true }))).toBeVisible();
       console.log('review-history: A退出完成');
     });
-    await test.step('在真实账号下拉选择B', async () => {
-      console.log('review-history: 开始打开账号下拉');
-      await page.getByRole('combobox', { name: '演示账号', exact: true }).press('ArrowDown');
-      console.log('review-history: 账号下拉点击完成');
-      await page.locator('.ant-select-dropdown:visible .ant-select-item-option-content').filter({ hasText: '乙公司编写人（合成）' }).click();
-      console.log('review-history: B账号已选中');
+    await test.step('在账号输入框输入B (beta-editor)', async () => {
+      console.log('review-history: 开始填入B账号');
+      const usernameInput = page.getByTestId('login-username-input');
+      if (await usernameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await usernameInput.fill('beta-editor');
+        await page.getByTestId('login-password-input').fill('X_2026');
+      } else {
+        await page.getByRole('combobox', { name: '演示账号', exact: true }).press('ArrowDown');
+        await page.locator('.ant-select-dropdown:visible .ant-select-item-option-content').filter({ hasText: '乙公司编写人（合成）' }).click();
+      }
+      console.log('review-history: B账号填入完成');
     });
     await test.step('B通过真实登录接口取得独立会话', async () => {
-      const loginResponse = page.waitForResponse(result => result.url().endsWith('/api/demo/login') && result.request().method() === 'POST');
-      await page.getByRole('button', { name: '进入工作台', exact: true }).click();
+      const loginResponse = page.waitForResponse(result => (result.url().includes('/api/v1/auth/login') || result.url().endsWith('/api/demo/login')) && result.request().method() === 'POST');
+      const submitBtn = page.getByTestId('login-submit-button');
+      if (await submitBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await submitBtn.click();
+      } else {
+        await page.getByRole('button', { name: '进入工作台', exact: true }).click();
+      }
       const loginBody = await (await loginResponse).json();
       expect(loginBody.user.id).toBe('beta-editor'); expect(originToken).not.toBe(`Bearer ${loginBody.access_token}`);
       await expect(page.locator('.user-name')).toContainText('乙公司编写人（合成）');
@@ -105,6 +122,7 @@ test('an Editor history request returning 401 after another account logs in cann
       await page.waitForLoadState('networkidle');
       await expect(page.locator('.user-name')).toContainText('乙公司编写人（合成）');
       await expect(page.getByRole('button', { name: '退出', exact: true })).toBeVisible();
+      await expect(page.getByTestId('login-submit-button')).toHaveCount(0);
       await expect(page.getByRole('button', { name: '进入工作台', exact: true })).toHaveCount(0);
       await expect(page.getByText(/旧账号迟到401-复核/)).toHaveCount(0);
     });

@@ -11,6 +11,7 @@ import { projectPath } from './app-route';
 import {
   LazyAuditLogPage as AuditLogPage,
   LazyCompanyManagePage as CompanyManagePage,
+  LazyCompanySettingsPage as CompanySettingsPage,
   LazyDictConfigPage as DictConfigPage,
   LazyJobsPage as JobsPage,
   LazyLibraryPage as LibraryPage,
@@ -186,12 +187,12 @@ export function GlobalPagesContent({
                   ),
                 },
                 {
-                  key: 'rules',
-                  label: '管理规则说明',
+                  key: 'settings',
+                  label: 'A-05 扩展字段与公司设置',
                   children: (
-                    <PendingPage
-                      title="管理规则（只读）"
-                      detail="本期已接通 A-06 审计日志只读中心与 A-01 企业租户合规参数配置。合规规则自定义保存与全量词表扩展将在后续任务中接通。"
+                    <CompanySettingsPage
+                      session={session}
+                      currentUser={currentUser}
                     />
                   ),
                 },

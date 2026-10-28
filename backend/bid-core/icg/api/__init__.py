@@ -10,6 +10,7 @@ from icg.api.workflow import include_workflow_routes
 from icg.api.library import include_snippet_routes
 from icg.api.model_configs import include_model_config_routes
 from icg.api.field_metadata import include_field_metadata_routes
+from icg.api.companies import include_company_routes
 from icg.api.volumes import (
     include_volume_routes,
     VolumeFinalizeRequest,
@@ -44,6 +45,7 @@ __all__ = [
     "include_snippet_routes",
     "include_model_config_routes",
     "include_field_metadata_routes",
+    "include_company_routes",
     "include_volume_routes",
     "VolumeFinalizeRequest",
     "VolumeUnlockRequest",
