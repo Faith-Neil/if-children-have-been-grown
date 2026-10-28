@@ -1,5 +1,5 @@
-// 为什么有这个文件：落实 APP-M2-T027 (A-02 用户与角色管理、新增与停用前转交安全表单)。
-// 它解决什么问题：呈现多租户用户与 8 大标准 RBAC 角色列表、新增用户及公司密码策略即时强校验、停用前业务资产强制转交抽屉（交接约束 M1-P10-F2 未转交阻断停用）、“账号安全设置”面板（密码策略只能调严不能调宽），践行 Layout First 交互设计规范。
+// 为什么有这个文件：落实 APP-M2-T027 与 APP-M2-T028 (A-02 用户与角色管理、新增、角色分配、锁定/解锁与重置密码表单)。
+// 它解决什么问题：呈现多租户用户与 8 大标准 RBAC 角色列表、新增用户及公司密码策略即时强校验、停用前业务资产强制转交抽屉（交接约束 M1-P10-F2 未转交阻断停用）、角色分配变更（M1-P10-F3）、管理员重置密码、账号安全锁定与解锁（user_status=locked 显示解锁），践行 Layout First 交互设计规范。
 
 import { useMemo, useState } from 'react';
 import {
@@ -31,38 +31,47 @@ import {
   ExclamationCircleOutlined,
   FolderOpenOutlined,
   InfoCircleOutlined,
+  KeyOutlined,
   LockOutlined,
   ReloadOutlined,
   SafetyCertificateOutlined,
   SearchOutlined,
   StopOutlined,
   SwapOutlined,
+  UnlockOutlined,
   UserAddOutlined,
   UserOutlined,
+  UserSwitchOutlined,
 } from '@ant-design/icons';
 import type { Account, ApplicationSession } from '../shared/types.ts';
 import { SYSTEM_ROLE_LABELS, type SystemRole } from '../shared/roles.ts';
 import {
   checkUserManagementPermission,
-  countPasswordCharClasses,
   DEFAULT_COMPANY_PASSWORD_POLICY,
+  executeLockUser,
+  executePasswordReset,
+  executeRoleAssignment,
+  executeUnlockUser,
   executeUserHandoverAndDisable,
   filterUsersList,
   formatAssetSummary,
+  generateCompliantPassword,
   hasActiveAssets,
   INITIAL_USERS,
   PLATFORM_PASSWORD_BASELINE,
   validateCompanyPasswordPolicy,
   validateHandoverBeforeDisable,
   validateNewUserForm,
+  validatePasswordReset,
   validatePasswordStrength,
+  validateRoleAssignment,
   type CompanyPasswordPolicy,
   type NewUserFormData,
   type UserHandoverRecord,
   type UserItem,
 } from './user-management-core.ts';
 
-const { Title, Text, Paragraph } = Typography;
+const { Text } = Typography;
 
 export interface UsersPageProps {
   session?: ApplicationSession | null;
@@ -82,7 +91,7 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
   // 2. 用户状态集与公司密码策略
   const [users, setUsers] = useState<UserItem[]>(INITIAL_USERS);
   const [passwordPolicy, setPasswordPolicy] = useState<CompanyPasswordPolicy>(DEFAULT_COMPANY_PASSWORD_POLICY);
-  const [handoverLogs, setHandoverLogs] = useState<UserHandoverRecord[]>([]);
+  const [, setHandoverLogs] = useState<UserHandoverRecord[]>([]);
 
   // 3. 筛选过滤状态
   const [keyword, setKeyword] = useState<string>('');
@@ -105,6 +114,18 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
   const [isPolicyDrawerOpen, setIsPolicyDrawerOpen] = useState<boolean>(false);
   const [policyForm] = Form.useForm<CompanyPasswordPolicy>();
 
+  // 7. 角色分配变更 Modal 状态 (APP-M2-T028)
+  const [roleModalUser, setRoleModalUser] = useState<UserItem | null>(null);
+  const [isRoleModalOpen, setIsRoleModalOpen] = useState<boolean>(false);
+  const [roleForm] = Form.useForm<{ role: SystemRole }>();
+  const [roleWarning, setRoleWarning] = useState<string | null>(null);
+
+  // 8. 密码重置 Modal 状态 (APP-M2-T028)
+  const [resetPwdUser, setResetPwdUser] = useState<UserItem | null>(null);
+  const [isResetPwdModalOpen, setIsResetPwdModalOpen] = useState<boolean>(false);
+  const [resetPwdForm] = Form.useForm<{ password: string; confirmPassword: string }>();
+  const [resetPwdValue, setResetPwdValue] = useState<string>('');
+
   // 计算过滤后的用户列表
   const filteredUsers = useMemo(() => {
     return filterUsersList(
@@ -125,19 +146,12 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
     const scopedUsers = isPlatformAdmin ? users : users.filter(u => u.company_id === currentCompanyId);
     const activeCount = scopedUsers.filter(u => u.status === 'active').length;
     const disabledCount = scopedUsers.filter(u => u.status === 'disabled').length;
-    const totalAssetsHeld = scopedUsers.reduce((acc, u) => {
-      return (
-        acc +
-        (u.assigned_assets.active_projects?.length || 0) +
-        (u.assigned_assets.active_chapters?.length || 0) +
-        (u.assigned_assets.kb_items?.length || 0)
-      );
-    }, 0);
+    const lockedCount = scopedUsers.filter(u => u.status === 'locked').length;
     return {
       total: scopedUsers.length,
       active: activeCount,
       disabled: disabledCount,
-      totalAssetsHeld,
+      locked: lockedCount,
     };
   }, [users, currentCompanyId, isPlatformAdmin]);
 
@@ -262,6 +276,135 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
     message.success(`用户 "${user.name}" 已恢复正常状态。`);
   };
 
+  // 打开角色调整 Modal
+  const handleOpenRoleModal = (user: UserItem) => {
+    if (permission.isReadOnly) {
+      message.warning('当前为只读模式，无权调整系统角色。');
+      return;
+    }
+    if (user.username === 'admin') {
+      message.error('平台超级管理员账号角色受系统保护，不可变更。');
+      return;
+    }
+
+    setRoleModalUser(user);
+    roleForm.setFieldsValue({ role: user.role });
+    setRoleWarning(null);
+    setIsRoleModalOpen(true);
+  };
+
+  // 监听角色变动并计算提醒
+  const handleRoleSelectChange = (newRole: SystemRole) => {
+    if (!roleModalUser) return;
+    const res = validateRoleAssignment({
+      sourceUser: roleModalUser,
+      newRole,
+      operatorRole: permission.role,
+    });
+    setRoleWarning(res.warning || null);
+  };
+
+  // 提交角色调整
+  const handleRoleSubmit = async () => {
+    if (!roleModalUser) return;
+    try {
+      const values = await roleForm.validateFields();
+      const validation = validateRoleAssignment({
+        sourceUser: roleModalUser,
+        newRole: values.role,
+        operatorRole: permission.role,
+      });
+
+      if (!validation.valid) {
+        message.error(validation.message || '角色变更校验失败');
+        return;
+      }
+
+      const { updatedUsers, updatedUser } = executeRoleAssignment(users, roleModalUser.id, values.role);
+      setUsers(updatedUsers);
+      message.success(`已成功将用户 "${updatedUser.name}" 的系统角色调整为 "${SYSTEM_ROLE_LABELS[updatedUser.role]}"。`);
+      setIsRoleModalOpen(false);
+      setRoleModalUser(null);
+    } catch {
+      // Form validation error
+    }
+  };
+
+  // 打开重置密码 Modal
+  const handleOpenResetPwdModal = (user: UserItem) => {
+    if (permission.isReadOnly) {
+      message.warning('当前为只读模式，无权重置密码。');
+      return;
+    }
+    setResetPwdUser(user);
+    resetPwdForm.resetFields();
+    setResetPwdValue('');
+    setIsResetPwdModalOpen(true);
+  };
+
+  // 随机生成合规强密码
+  const handleGenerateRandomPwd = () => {
+    const generated = generateCompliantPassword(passwordPolicy);
+    resetPwdForm.setFieldsValue({
+      password: generated,
+      confirmPassword: generated,
+    });
+    setResetPwdValue(generated);
+    message.info('已生成符合当前公司密码策略的高强度随机密码。');
+  };
+
+  // 提交密码重置
+  const handleResetPwdSubmit = async () => {
+    if (!resetPwdUser) return;
+    try {
+      const values = await resetPwdForm.validateFields();
+      const validation = validatePasswordReset({
+        password: values.password,
+        confirmPassword: values.confirmPassword,
+        policy: passwordPolicy,
+      });
+
+      if (!validation.valid) {
+        message.error(validation.message || '重置密码校验不通过');
+        return;
+      }
+
+      const { updatedUsers } = executePasswordReset(users, resetPwdUser.id, values.password);
+      setUsers(updatedUsers);
+      message.success(`已成功重置用户 "${resetPwdUser.name} (${resetPwdUser.username})" 的登录密码。新密码立即生效。`);
+      setIsResetPwdModalOpen(false);
+      setResetPwdUser(null);
+    } catch {
+      // Form validation error
+    }
+  };
+
+  // 解锁账号
+  const handleUnlockUser = (user: UserItem) => {
+    if (permission.isReadOnly) {
+      message.warning('当前为只读模式，无权解锁账号。');
+      return;
+    }
+    const { updatedUsers } = executeUnlockUser(users, user.id);
+    setUsers(updatedUsers);
+    message.success(`用户 "${user.name}" 已成功解锁，登录失败次数已重置，可正常登录系统。`);
+  };
+
+  // 安全锁定账号
+  const handleLockUser = (user: UserItem) => {
+    if (permission.isReadOnly) {
+      message.warning('当前为只读模式，无权锁定账号。');
+      return;
+    }
+    try {
+      const { updatedUsers } = executeLockUser(users, user.id);
+      setUsers(updatedUsers);
+      message.warning(`用户 "${user.name}" 已被锁定，解除锁定前将无法登录系统。`);
+    } catch (err: unknown) {
+      message.error(err instanceof Error ? err.message : '锁定失败');
+    }
+  };
+
   // 保存公司密码策略
   const handleSavePolicy = async () => {
     try {
@@ -329,7 +472,7 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
           return <Badge status="success" text="正常在职" />;
         }
         if (status === 'locked') {
-          return <Badge status="warning" text="已锁定" />;
+          return <Badge status="warning" text="已锁定 (登录超限)" />;
         }
         return <Badge status="error" text="已停用" />;
       },
@@ -362,54 +505,120 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
       key: 'actions',
       render: (_: unknown, record: UserItem) => {
         const isSelf = record.id === currentUser?.id || record.username === currentUser?.name;
-        if (record.status === 'active') {
-          const hasAssets = hasActiveAssets(record.assigned_assets);
-          if (hasAssets) {
-            return (
-              <Button
-                type="link"
-                danger
-                icon={<SwapOutlined />}
-                disabled={permission.isReadOnly || isSelf}
-                onClick={() => handleOpenHandoverDrawer(record)}
-                data-testid={`user-disable-btn-${record.id}`}
-              >
-                转交并停用
-              </Button>
-            );
-          }
-          return (
-            <Popconfirm
-              title="停用确认"
-              description={`确认停用用户 "${record.name}"？该用户名下无进行中业务资产。`}
-              onConfirm={() => handleDirectDisable(record)}
-              okText="确认停用"
-              cancelText="取消"
-              disabled={permission.isReadOnly || isSelf}
-            >
-              <Button
-                type="link"
-                danger
-                icon={<StopOutlined />}
-                disabled={permission.isReadOnly || isSelf}
-                data-testid={`user-disable-btn-${record.id}`}
-              >
-                停用
-              </Button>
-            </Popconfirm>
-          );
-        }
+        const isAdmin = record.username === 'admin';
 
         return (
-          <Button
-            type="link"
-            icon={<CheckCircleOutlined />}
-            disabled={permission.isReadOnly}
-            onClick={() => handleEnableUser(record)}
-            data-testid={`user-enable-btn-${record.id}`}
-          >
-            启用
-          </Button>
+          <Space size="small" wrap>
+            {/* 1. 状态流转操作 (解锁 / 停用 / 启用 / 锁定) */}
+            {record.status === 'locked' && (
+              <Popconfirm
+                title="账号解锁"
+                description={`确认解锁用户 "${record.name}"？解锁后将重置登录失败计数。`}
+                onConfirm={() => handleUnlockUser(record)}
+                okText="确认解锁"
+                cancelText="取消"
+                disabled={permission.isReadOnly}
+              >
+                <Button
+                  type="link"
+                  icon={<UnlockOutlined />}
+                  style={{ color: '#52c41a' }}
+                  disabled={permission.isReadOnly}
+                  data-testid={`user-unlock-btn-${record.id}`}
+                >
+                  解锁
+                </Button>
+              </Popconfirm>
+            )}
+
+            {record.status === 'active' && (
+              <>
+                {hasActiveAssets(record.assigned_assets) ? (
+                  <Button
+                    type="link"
+                    danger
+                    icon={<SwapOutlined />}
+                    disabled={permission.isReadOnly || isSelf || isAdmin}
+                    onClick={() => handleOpenHandoverDrawer(record)}
+                    data-testid={`user-disable-btn-${record.id}`}
+                  >
+                    转交并停用
+                  </Button>
+                ) : (
+                  <Popconfirm
+                    title="停用确认"
+                    description={`确认停用用户 "${record.name}"？该用户名下无进行中业务资产。`}
+                    onConfirm={() => handleDirectDisable(record)}
+                    okText="确认停用"
+                    cancelText="取消"
+                    disabled={permission.isReadOnly || isSelf || isAdmin}
+                  >
+                    <Button
+                      type="link"
+                      danger
+                      icon={<StopOutlined />}
+                      disabled={permission.isReadOnly || isSelf || isAdmin}
+                      data-testid={`user-disable-btn-${record.id}`}
+                    >
+                      停用
+                    </Button>
+                  </Popconfirm>
+                )}
+
+                <Popconfirm
+                  title="安全锁定确认"
+                  description={`确认临时锁定用户 "${record.name}"？锁定后该用户将无法登录。`}
+                  onConfirm={() => handleLockUser(record)}
+                  okText="确认锁定"
+                  cancelText="取消"
+                  disabled={permission.isReadOnly || isSelf || isAdmin}
+                >
+                  <Button
+                    type="link"
+                    icon={<LockOutlined />}
+                    style={{ color: '#faad14' }}
+                    disabled={permission.isReadOnly || isSelf || isAdmin}
+                    data-testid={`user-lock-btn-${record.id}`}
+                  >
+                    锁定
+                  </Button>
+                </Popconfirm>
+              </>
+            )}
+
+            {record.status === 'disabled' && (
+              <Button
+                type="link"
+                icon={<CheckCircleOutlined />}
+                disabled={permission.isReadOnly}
+                onClick={() => handleEnableUser(record)}
+                data-testid={`user-enable-btn-${record.id}`}
+              >
+                启用
+              </Button>
+            )}
+
+            {/* 2. 管理功能操作 (角色分配 / 重置密码) */}
+            <Button
+              type="link"
+              icon={<UserSwitchOutlined />}
+              disabled={permission.isReadOnly || isAdmin}
+              onClick={() => handleOpenRoleModal(record)}
+              data-testid={`user-role-btn-${record.id}`}
+            >
+              分配角色
+            </Button>
+
+            <Button
+              type="link"
+              icon={<KeyOutlined />}
+              disabled={permission.isReadOnly}
+              onClick={() => handleOpenResetPwdModal(record)}
+              data-testid={`user-reset-pwd-btn-${record.id}`}
+            >
+              重置密码
+            </Button>
+          </Space>
         );
       },
     },
@@ -484,9 +693,10 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
           </Col>
           <Col xs={12} sm={6}>
             <Statistic
-              title="当前密码策略"
-              value={`≥${passwordPolicy.password_min_length}位 · ${passwordPolicy.password_min_char_classes}类字符`}
-              valueStyle={{ fontSize: 16, color: '#1677ff' }}
+              title="已锁定"
+              value={stats.locked}
+              valueStyle={{ color: '#faad14' }}
+              suffix="人"
             />
           </Col>
         </Row>
@@ -542,6 +752,7 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
             >
               <Select.Option value="all">全部状态</Select.Option>
               <Select.Option value="active">正常在职</Select.Option>
+              <Select.Option value="locked">已锁定</Select.Option>
               <Select.Option value="disabled">已停用</Select.Option>
             </Select>
           </Col>
@@ -711,6 +922,148 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
               placeholder="请再次确认初始密码"
               prefix={<LockOutlined />}
               data-testid="user-form-confirm-password"
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 角色分配 Modal (APP-M2-T028 / PRD §5.10.2) */}
+      <Modal
+        title="分配系统角色"
+        open={isRoleModalOpen}
+        onCancel={() => setIsRoleModalOpen(false)}
+        onOk={handleRoleSubmit}
+        okText="确认调整角色"
+        cancelText="取消"
+        data-testid="user-role-modal"
+        okButtonProps={{ 'data-testid': 'role-confirm-btn' } as any}
+        destroyOnClose
+      >
+        {roleModalUser && (
+          <div>
+            <Descriptions size="small" bordered column={2} style={{ marginBottom: 16 }}>
+              <Descriptions.Item label="账号">{roleModalUser.username}</Descriptions.Item>
+              <Descriptions.Item label="姓名">{roleModalUser.name}</Descriptions.Item>
+              <Descriptions.Item label="当前角色">
+                <Tag color="blue">{SYSTEM_ROLE_LABELS[roleModalUser.role] || roleModalUser.role}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="所属企业">{roleModalUser.company_id.toUpperCase()}</Descriptions.Item>
+            </Descriptions>
+
+            {roleWarning && (
+              <Alert
+                type="warning"
+                showIcon
+                icon={<ExclamationCircleOutlined />}
+                message="角色调整影响提醒"
+                description={roleWarning}
+                style={{ marginBottom: 16 }}
+                data-testid="role-change-warning"
+              />
+            )}
+
+            <Form form={roleForm} layout="vertical">
+              <Form.Item
+                name="role"
+                label="目标系统角色（PRD 8 大标准 RBAC 角色）"
+                rules={[{ required: true, message: '请选择目标角色' }]}
+              >
+                <Select onChange={handleRoleSelectChange} data-testid="role-select">
+                  {Object.entries(SYSTEM_ROLE_LABELS).map(([code, label]) => {
+                    const isRestrictedForCompanyAdmin =
+                      !isPlatformAdmin && (code === 'platform_admin' || code === 'group_admin');
+                    return (
+                      <Select.Option key={code} value={code} disabled={isRestrictedForCompanyAdmin}>
+                        {label} {isRestrictedForCompanyAdmin ? '(仅平台超管可分配)' : ''}
+                      </Select.Option>
+                    );
+                  })}
+                </Select>
+              </Form.Item>
+            </Form>
+          </div>
+        )}
+      </Modal>
+
+      {/* 密码重置 Modal (APP-M2-T028 / PRD §5.10.2) */}
+      <Modal
+        title={`重置用户密码 - ${resetPwdUser?.name || ''} (${resetPwdUser?.username || ''})`}
+        open={isResetPwdModalOpen}
+        onCancel={() => setIsResetPwdModalOpen(false)}
+        onOk={handleResetPwdSubmit}
+        okText="确认重置密码"
+        cancelText="取消"
+        data-testid="user-reset-pwd-modal"
+        okButtonProps={{ 'data-testid': 'reset-pwd-submit-btn' } as any}
+        destroyOnClose
+      >
+        <Alert
+          type="info"
+          showIcon
+          icon={<SafetyCertificateOutlined />}
+          message="密码策略合规门禁"
+          description={`新密码必须遵循公司密码策略：长度不少于 ${passwordPolicy.password_min_length} 位，至少包含大写、小写、数字、特殊符号中的 ${passwordPolicy.password_min_char_classes} 类。重置后若账号处于锁定状态将自动恢复正常。`}
+          style={{ marginBottom: 16 }}
+        />
+
+        <Form form={resetPwdForm} layout="vertical">
+          <Form.Item
+            name="password"
+            label={
+              <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                <span>重置新密码</span>
+                <Button
+                  type="link"
+                  size="small"
+                  onClick={handleGenerateRandomPwd}
+                  data-testid="reset-pwd-generate-btn"
+                >
+                  随机生成合规强密码
+                </Button>
+              </Space>
+            }
+            rules={[{ required: true, message: '请输入重置新密码' }]}
+            help={
+              resetPwdValue ? (
+                (() => {
+                  const res = validatePasswordStrength(resetPwdValue, passwordPolicy);
+                  return (
+                    <Text type={res.valid ? 'success' : 'danger'}>
+                      {res.valid ? `密码强度合规（命中 ${res.charClassCount} 类字符）` : res.message}
+                    </Text>
+                  );
+                })()
+              ) : null
+            }
+          >
+            <Input.Password
+              placeholder="请输入重置新密码"
+              prefix={<LockOutlined />}
+              onChange={e => setResetPwdValue(e.target.value)}
+              data-testid="reset-pwd-input"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="confirmPassword"
+            label="确认新密码"
+            dependencies={['password']}
+            rules={[
+              { required: true, message: '请再次输入确认密码' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('password') === value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('两次输入的新密码不一致'));
+                },
+              }),
+            ]}
+          >
+            <Input.Password
+              placeholder="请再次确认新密码"
+              prefix={<LockOutlined />}
+              data-testid="reset-pwd-confirm-input"
             />
           </Form.Item>
         </Form>

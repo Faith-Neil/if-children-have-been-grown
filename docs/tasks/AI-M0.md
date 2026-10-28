@@ -334,7 +334,7 @@
 - [x] OpenAPI 契约校验 `python backend/bid-core/export_openapi.py --check` 100% 一致；
 - [x] 交付文档、代码说明、任务卡与任务看板同步更新。
 
-状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。
+已获 QA 签署（D-836 PASS）与 PD 验收（D-837 认可），经人类 PM 正式批准标 done。
 
 
 <a id="ai-dynamic-prompt-context"></a>
@@ -380,7 +380,7 @@
 - [x] OpenAPI 契约校验 `python backend/bid-core/export_openapi.py --check` 100% 一致；
 - [x] 交付文档、代码说明、任务卡与任务看板同步更新。
 
-状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。
+已获 QA 签署（D-836 PASS）与 PD 验收（D-837 认可），经人类 PM 正式批准标 done。
 
 <a id="ai-outline-generate-expand"></a>
 
@@ -424,7 +424,7 @@
 - [x] OpenAPI 契约校验 `python backend/bid-core/export_openapi.py --check` 100% 一致；
 - [x] 交付文档、代码说明、任务卡与任务看板同步更新。
 
-状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。
+已获 QA 签署（D-836 PASS）与 PD 验收（D-837 认可），经人类 PM 正式批准标 done。
 
 
 
@@ -473,7 +473,7 @@
 - [x] OpenAPI 契约校验 `python backend/bid-core/export_openapi.py --check` 100% 一致；
 - [x] 交付文档、代码说明、任务卡与任务看板同步更新。
 
-状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。
+已获 QA 签署（D-836 PASS）与 PD 验收（D-837 认可），经人类 PM 正式批准标 done。
 
 
 <a id="ai-outline-score-weight-calc"></a>
@@ -523,7 +523,7 @@
 - [x] OpenAPI 契约校验 `python backend/bid-core/export_openapi.py --check` 100% 一致；
 - [x] 交付文档、代码说明、任务卡与任务看板同步更新。
 
-状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。
+已获 QA 签署（D-836 PASS）与 PD 验收（D-837 认可），经人类 PM 正式批准标 done。
 
 
 <a id="ai-outline-batch-generation-pipeline"></a>
@@ -569,7 +569,7 @@
 - [x] OpenAPI 契约校验 `python backend/bid-core/export_openapi.py --check` 100% 一致；
 - [x] 交付文档、代码说明、任务卡与任务看板同步更新。
 
-状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。
+已获 QA 签署（D-836 PASS）与 PD 验收（D-837 认可），经人类 PM 正式批准标 done。
 
 
 <a id="ai-chapter-auto-validation-gate"></a>
@@ -620,4 +620,50 @@
 - [x] OpenAPI 契约校验 python backend/bid-core/export_openapi.py --check 100% 一致；
 - [x] 交付文档、代码说明、任务卡与任务看板同步更新。
 
-状态保持 in-review，建议由 QA 与 PD 终验后由 PM 标 done。
+已获 QA 签署（D-836 PASS）与 PD 验收（D-837 认可），经人类 PM 正式批准标 done。
+
+
+<a id="ai-outline-auto-remediation"></a>
+
+## AI-OUTLINE-AUTO-REMEDIATION · 章节合规质检缺陷自动整改建议与局部智能重写引擎
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 落地章节合规质检缺陷自动诊断、结构化整改建议合成、违规段落局部智能重写与原地合规保全、多轮自适应收敛迭代（直至健康分>=90）及单章与批量流水线闭环集成 |
+| 关联 Issue | [ISSUE-037](../../issues/ISSUE-037.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [AI-CHAPTER-AUTO-VALIDATION-GATE](AI-M0.md#ai-chapter-auto-validation-gate) |
+| PRD / 架构出处 | [PRD v1.8 §5.7.8、§5.10](../reference/product/prd-mvp-v1.8.md)；[APP-M2-T126](APP-M2.md#app-m2-t126) |
+| 完成时交付 | [AI-OUTLINE-AUTO-REMEDIATION 交付](../delivery/AI-OUTLINE-AUTO-REMEDIATION.md) |
+| 代码解释 | [AI-OUTLINE-AUTO-REMEDIATION 代码说明](../code/AI-OUTLINE-AUTO-REMEDIATION.md) |
+
+范围：在 `backend/bid-core/icg/domain/chapter_generation.py`、`domain.py`、`generation_orchestrator.py` 与 `backend/bid-core/icg/api/workflow.py` 中落地章节合规质检缺陷自动整改建议与局部智能重写引擎：
+1. 缺陷自动诊断与整改建议计划合成：实现 `diagnose_paragraph_defects` 与 `synthesize_remediation_plan`，针对 R34（占位符/未替换变量/AI客套语）、R37（负偏离）、R24（签字盖章缺失）、CITATION_AUTH（虚构证据）自动合成明确指令与替换预览；
+2. 局部智能重写与原地合规保全：严格执行局部最小改动原则，仅改动检出缺陷的违规段落，合格段落 100% 原样保全，段落 `[P1]`~`[Pn]` 连续编号；
+3. 多轮自适应收敛迭代：支持 `max_rounds: int = 3`，迭代至阻断项清零且质量健康分达到 `excellent`（>=90 分），并沉淀 `remediation_history`；
+4. 单章生成与批量流水线集成：支持 `auto_remediate=True`，在生成检出缺陷时全自动静默整改闭环，并聚合 `total_remediated_chapters` 至全局质量看板；
+5. 涉密本地模型硬门禁：涉密项目（`project.sensitive = True`）企图调用外部云模型拦截 403 `SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL`；
+6. 多租户强隔离与 RBAC 权限门禁：跨租户拦截 404 `NOT_FOUND`，只读角色拦截 403 `FORBIDDEN`；
+7. HTTP API 端点集成：注册 `POST /api/v1/projects/{project_id}/chapters/{chapter_id}/remediate-candidate`（`include_in_schema=False` 保障 OpenAPI 零漂移）。
+
+当前条件：自动化回归测试全绿通过（专属测试 12 passed，全量 AI 核心套件 97 passed）。
+
+可验证验收：
+- [x] R34 占位符、未填变量宏与 AI 客套语诊断及整改计划合成通过；
+- [x] R37 负偏离声明识别与正向承诺反转映射验证通过；
+- [x] R24 法定承诺章节缺少盖章签名槽位诊断与整改指引合成通过；
+- [x] CITATION_AUTH 虚构证据识别与白名单过滤通过；
+- [x] 局部智能重写：合规段落 100% 原样保全，仅改动违规段落验证通过；
+- [x] 多轮自适应收敛迭代：阻断清零且健康分达到 90+ (excellent) 验证通过；
+- [x] 法定表单章节末尾标准印章签名块整体自动注入通过；
+- [x] 单章生成接入 auto_remediate 闭环自动整改通过；
+- [x] 大纲批量生成流水线接入 auto_remediate 并汇聚看板通过；
+- [x] 涉密项目本地模型硬门禁（拦截外部云模型，403）通过；
+- [x] 多租户隔离（404 NOT_FOUND）与 RBAC 只读角色拦截（403）通过；
+- [x] HTTP API 端点 POST /remediate-candidate 端到端契约调用通过；
+- [x] 专属自动化测试套件 pytest tests/backend/test_ai_outline_auto_remediation.py -v 执行全过（12 passed）；
+- [x] 全量 AI 核心联合测试回归全绿（97 passed）；
+- [x] OpenAPI 契约校验 python backend/bid-core/export_openapi.py --check 100% 一致；
+- [x] 交付文档、代码说明、任务卡与任务看板同步更新。
+
+已获 QA 签署（D-836 PASS）与 PD 验收（D-837 认可），经人类 PM 正式批准标 done。

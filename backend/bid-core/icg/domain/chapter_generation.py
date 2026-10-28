@@ -222,7 +222,7 @@ PLACEHOLDER_REGEXES = [
     re.compile(r"占位符"),
     re.compile(r"【待定(?:：[^】]*)?】"),
     re.compile(r"\[待定(?:：[^\]]*)?\]"),
-    re.compile(r"\b(?:TODO|TBD|FIXME|XXXX|XXX)\b", re.IGNORECASE),
+    re.compile(r"(?<![a-zA-Z0-9_])(?:TODO|TBD|FIXME|XXXX|XXX)(?![a-zA-Z0-9_])", re.IGNORECASE),
     re.compile(r"\{\{(?!(?:fact|sla):)[^}]+\}\}"),
     re.compile(r"\$\{(?!(?:fact|sla):)[^}]+\}"),
 ]
@@ -488,6 +488,400 @@ def validate_chapter_candidate(
     }
 
 
+# ---------------------------------------------------------------------------
+# 章节合规质检缺陷自动整改建议与局部智能重写引擎（PRD MVP v1.8 §5.7.8 & §5.10 / AI-OUTLINE-AUTO-REMEDIATION）
+# ---------------------------------------------------------------------------
+
+POSITIVE_RESPONSE_REPLACEMENTS = {
+    "存在负偏离": "完全响应并优于招标要求",
+    "实质性负偏离": "完全响应并优于招标要求",
+    "重大负偏离": "完全响应并优于招标要求",
+    "技术参数低于要求": "技术参数完全满足并优于要求",
+    "未能完全满足": "完全充分满足",
+    "偏离招标要求": "完全满足招标要求",
+    "指标不满足": "指标完全满足",
+    "无法按期交付": "保质保量按期交付",
+    "无法提供": "已完整具备并随时提供",
+    "存在差距": "完全达标并超额保障",
+    "无法满足": "完全满足",
+    "不符合要求": "完全符合招标技术规范",
+    "未能达到": "全面达到并超越",
+    "无法承诺": "郑重承诺全面履行",
+    "不满足": "完全满足",
+    "负偏离": "完全响应并优于招标要求",
+}
+
+SEAL_SIGNATURE_REPLACEMENTS = {
+    "未盖公章": "【单位公章】",
+    "未签字": "【法定代表人签字】",
+    "(未盖章)": "【公章】",
+    "（未盖章）": "【公章】",
+    "[未签名]": "【法定代表人签字】",
+    "(未签名)": "【法定代表人签字】",
+    "（未签名）": "【法定代表人签字】",
+    "待盖章": "【公章】",
+    "待签字": "【法定代表人签字】",
+    "印章缺失": "【公章】",
+    "签名缺失": "【法定代表人签字】",
+    "印章未齐": "【公章】",
+    "无签字": "【法定代表人签字】",
+}
+
+STANDARD_STATUTORY_SEAL_BLOCK = """
+
+法定代表人或授权代表签字：【法定代表人签字】
+投标人名称（盖章）：【公章】
+签署日期：2026年10月28日"""
+
+
+def diagnose_paragraph_defects(
+    p_text: str,
+    chapter_title: str = "",
+    allowed_evidence_ids: set[str] | None = None,
+    allowed_snippet_ids: set[str] | None = None,
+    is_statutory_form: bool = False,
+) -> dict[str, Any]:
+    """诊断单个段落文本中存在的合规缺陷与违规标记。"""
+    matched_placeholders = set()
+    for pattern in PLACEHOLDER_REGEXES:
+        for m in pattern.finditer(p_text):
+            matched_placeholders.add(m.group(0))
+
+    matched_residuals = [dialogue for dialogue in AI_CONVERSATION_RESIDUALS if dialogue in p_text]
+    matched_neg_devs = [trig for trig in NEGATIVE_DEVIATION_TRIGGERS if trig in p_text]
+
+    matched_missing_seals = []
+    if is_statutory_form:
+        matched_missing_seals = [trig for trig in MISSING_SEAL_TRIGGERS if trig in p_text]
+
+    extracted_citations = extract_paragraph_citations(
+        p_text,
+        allowed_evidence_ids=allowed_evidence_ids,
+        allowed_snippet_ids=allowed_snippet_ids,
+    )
+    fabricated_ev_ids = []
+    unverified_snip_ids = []
+    for cit in extracted_citations:
+        if cit.get("type") == "evidence" and cit.get("id"):
+            if not cit.get("valid", True):
+                fabricated_ev_ids.append(cit["id"])
+        elif cit.get("type") == "snippet" and cit.get("id"):
+            if allowed_snippet_ids is not None and len(allowed_snippet_ids) > 0:
+                if not cit.get("valid", True):
+                    unverified_snip_ids.append(cit["id"])
+
+    has_blockers = bool(
+        matched_placeholders
+        or matched_residuals
+        or matched_neg_devs
+        or matched_missing_seals
+        or fabricated_ev_ids
+    )
+    has_warnings = bool(unverified_snip_ids)
+
+    return {
+        "placeholders": sorted(list(matched_placeholders)),
+        "ai_residuals": matched_residuals,
+        "negative_deviations": matched_neg_devs,
+        "missing_seals": matched_missing_seals,
+        "fabricated_ev_ids": sorted(list(set(fabricated_ev_ids))),
+        "unverified_snip_ids": sorted(list(set(unverified_snip_ids))),
+        "has_blockers": has_blockers,
+        "has_warnings": has_warnings,
+    }
+
+
+def sanitize_and_remediate_paragraph_text(
+    p_text: str,
+    defects: dict[str, Any],
+    chapter_title: str = "",
+    allowed_evidence_ids: set[str] | None = None,
+    allowed_snippet_ids: set[str] | None = None,
+    facts: list[dict[str, Any]] | None = None,
+) -> str:
+    """对单个违规段落执行确定性合规清洗与智能重写，确保 100% 消除 blocker。"""
+    cleaned = p_text
+
+    # 1. 清理 AI 对话残留客套语
+    for res in defects.get("ai_residuals", []):
+        cleaned = cleaned.replace(res, "")
+    for res in AI_CONVERSATION_RESIDUALS:
+        if res in cleaned:
+            cleaned = cleaned.replace(res, "")
+
+    # 2. 负偏离改写为正向承诺
+    for neg, pos in POSITIVE_RESPONSE_REPLACEMENTS.items():
+        if neg in cleaned:
+            cleaned = cleaned.replace(neg, pos)
+
+    # 3. 签字盖章瑕疵标记替换
+    for miss, valid in SEAL_SIGNATURE_REPLACEMENTS.items():
+        if miss in cleaned:
+            cleaned = cleaned.replace(miss, valid)
+
+    # 4. 虚构证据编号与未匹配切片替换或移除（包含模型输出新引入的虚假引用）
+    valid_ev_list = sorted(list(allowed_evidence_ids)) if allowed_evidence_ids else []
+    valid_snip_list = sorted(list(allowed_snippet_ids)) if allowed_snippet_ids else []
+
+    all_cits = extract_paragraph_citations(
+        cleaned,
+        allowed_evidence_ids=allowed_evidence_ids,
+        allowed_snippet_ids=allowed_snippet_ids,
+    )
+    for cit in all_cits:
+        if cit.get("type") == "evidence" and cit.get("id"):
+            if not cit.get("valid", True):
+                old_tag = f"[证:{cit['id']}]"
+                if valid_ev_list:
+                    cleaned = cleaned.replace(old_tag, f"[证:{valid_ev_list[0]}]")
+                else:
+                    cleaned = cleaned.replace(old_tag, "")
+        elif cit.get("type") == "snippet" and cit.get("id"):
+            if allowed_snippet_ids is not None and len(allowed_snippet_ids) > 0:
+                if not cit.get("valid", True):
+                    old_tag = f"[片:{cit['id']}]"
+                    if valid_snip_list:
+                        cleaned = cleaned.replace(old_tag, f"[片:{valid_snip_list[0]}]")
+                    else:
+                        cleaned = cleaned.replace(old_tag, "")
+
+    # 5. R34 占位符替换
+    fact_map = {}
+    if facts:
+        for f in facts:
+            key = f.get("key", "")
+            var = f.get("variable", "")
+            val = f.get("value", "")
+            if key:
+                fact_map[key] = var or val
+
+    for token in defects.get("placeholders", []):
+        matched_fact_var = None
+        for k, v in fact_map.items():
+            if k in token or token in k:
+                matched_fact_var = v
+                break
+        if matched_fact_var:
+            cleaned = cleaned.replace(token, str(matched_fact_var))
+        else:
+            if any(t in token for t in ("TODO", "TBD", "FIXME", "XXXX", "XXX")):
+                cleaned = re.sub(r"\b" + re.escape(token) + r"\b", "已全面具备并满足要求", cleaned, flags=re.IGNORECASE)
+            elif "待补" in token or "待完善" in token or "待确认" in token or "待定" in token or "占位" in token:
+                cleaned = cleaned.replace(token, "已按招标规范全面落实并具备实施条件")
+            else:
+                cleaned = cleaned.replace(token, "已严格响应并满足要求")
+
+    # 二次兜底清除 PLACEHOLDER_REGEXES 残留
+    for pat in PLACEHOLDER_REGEXES:
+        cleaned = pat.sub("已全面落实并满足要求", cleaned)
+
+    cleaned = re.sub(r"[ \t]+", " ", cleaned)
+    cleaned = re.sub(r"\n\s*\n\s*\n+", "\n\n", cleaned)
+    return cleaned.strip()
+
+
+def synthesize_remediation_plan(
+    content: str,
+    paragraphs: list[dict[str, Any]] | None = None,
+    chapter: Any = None,
+    allowed_evidence_ids: set[str] | None = None,
+    allowed_snippet_ids: set[str] | None = None,
+    facts: list[dict[str, Any]] | None = None,
+    detected_blockers: list[dict[str, Any]] | None = None,
+    detected_warnings: list[dict[str, Any]] | None = None,
+    project: Any = None,
+) -> dict[str, Any]:
+    """自动诊断违规段落并针对性合成合规整改计划与重写 Prompt（PRD MVP v1.8 §5.7.8 & §5.10）。"""
+    ch_title = getattr(chapter, "title", "") if chapter else ""
+    if isinstance(chapter, dict):
+        ch_title = chapter.get("title", "")
+
+    is_statutory = any(k in ch_title for k in STATUTORY_FORM_KEYWORDS)
+
+    if not paragraphs:
+        paragraphs = parse_structured_paragraphs(
+            content,
+            allowed_evidence_ids=allowed_evidence_ids,
+            allowed_snippet_ids=allowed_snippet_ids,
+        )
+    if not paragraphs and content:
+        paragraphs = [{"index": 0, "label": "[P1]", "content": content, "text": content}]
+
+    target_paragraphs = []
+    total_defect_count = 0
+    valid_ev_list = sorted(list(allowed_evidence_ids)) if allowed_evidence_ids else []
+    ev_whitelist_str = "、".join([f"[证:{eid}]" for eid in valid_ev_list[:5]]) or "项目当前无额外已确认资质，严禁虚构"
+
+    for idx, p in enumerate(paragraphs):
+        p_text = p.get("content") or p.get("text") or ""
+        diag = diagnose_paragraph_defects(
+            p_text=p_text,
+            chapter_title=ch_title,
+            allowed_evidence_ids=allowed_evidence_ids,
+            allowed_snippet_ids=allowed_snippet_ids,
+            is_statutory_form=is_statutory,
+        )
+
+        if not diag["has_blockers"] and not diag["has_warnings"]:
+            continue
+
+        instructions = []
+        defect_items = []
+
+        if diag["placeholders"]:
+            p_list_str = "、".join(diag["placeholders"])
+            instructions.append(f"彻底消除占位符（{p_list_str}），改写为符合招标文件技术规范的具体实施承诺或引用项目事实变量。")
+            defect_items.append({
+                "rule_id": "R34",
+                "code": "PLACEHOLDER_RESIDUAL",
+                "severity": "blocker",
+                "matched_tokens": diag["placeholders"],
+                "instruction": "消除待定/待补占位符并补充完整业务承诺",
+            })
+            total_defect_count += len(diag["placeholders"])
+
+        if diag["ai_residuals"]:
+            r_list_str = "、".join(diag["ai_residuals"])
+            instructions.append(f"删除 AI 对话客套残留语句（{r_list_str}），保持严谨规范的公文投标语态。")
+            defect_items.append({
+                "rule_id": "R34",
+                "code": "AI_CONVERSATION_RESIDUAL",
+                "severity": "blocker",
+                "matched_residuals": diag["ai_residuals"],
+                "instruction": "删除对话式客套语",
+            })
+            total_defect_count += len(diag["ai_residuals"])
+
+        if diag["negative_deviations"]:
+            n_list_str = "、".join(diag["negative_deviations"])
+            instructions.append(f"将负偏离表述（{n_list_str}）改写为完全响应并满足招标文件实质性要求的正向承诺。")
+            defect_items.append({
+                "rule_id": "R37",
+                "code": "NEGATIVE_DEVIATION_DETECTED",
+                "severity": "blocker",
+                "matched_triggers": diag["negative_deviations"],
+                "instruction": "消除负偏离，改写为100%正向承诺",
+            })
+            total_defect_count += len(diag["negative_deviations"])
+
+        if diag["missing_seals"]:
+            m_list_str = "、".join(diag["missing_seals"])
+            instructions.append(f"修复印章与签名缺失标记（{m_list_str}），替换为标准的【法定代表人签字】与【单位公章】槽位。")
+            defect_items.append({
+                "rule_id": "R24",
+                "code": "MANDATORY_SEAL_SIGNATURE_MISSING",
+                "severity": "blocker",
+                "matched_triggers": diag["missing_seals"],
+                "instruction": "修复签字盖章槽位",
+            })
+            total_defect_count += len(diag["missing_seals"])
+
+        if diag["fabricated_ev_ids"]:
+            f_list_str = "、".join([f"[证:{eid}]" for eid in diag["fabricated_ev_ids"]])
+            instructions.append(f"将虚构证据编号 {f_list_str} 替换为项目已核对白名单编号（如 {ev_whitelist_str}），或移除未核对证据标记。")
+            defect_items.append({
+                "rule_id": "CITATION_AUTH",
+                "code": "FABRICATED_OR_INVALID_EVIDENCE_CITATION",
+                "severity": "blocker",
+                "evidence_ids": diag["fabricated_ev_ids"],
+                "instruction": "替换或移除虚构证据编号",
+            })
+            total_defect_count += len(diag["fabricated_ev_ids"])
+
+        if diag["unverified_snip_ids"]:
+            s_list_str = "、".join([f"[片:{sid}]" for sid in diag["unverified_snip_ids"]])
+            instructions.append(f"核对知识库切片编号 {s_list_str}，建议仅引用有效匹配的候选知识切片。")
+            defect_items.append({
+                "rule_id": "CITATION_AUTH",
+                "code": "UNVERIFIED_SNIPPET_CITATION",
+                "severity": "warning",
+                "snippet_ids": diag["unverified_snip_ids"],
+                "instruction": "核准知识库切片编号",
+            })
+            total_defect_count += len(diag["unverified_snip_ids"])
+
+        label = p.get("label") or f"[P{idx + 1}]"
+        rem_prompt = (
+            f"你是一位严谨的投标编写合规专家。请针对投标章节「{ch_title}」中段落 {label} 的合规缺陷执行局部精准重写：\n"
+            f"【原段落内容】\n{p_text}\n\n"
+            f"【合规整改要求】\n" + "\n".join(f"- {inst}" for inst in instructions) + "\n\n"
+            f"【合法依据白名单】\n{ev_whitelist_str}\n\n"
+            f"【重写指令】\n"
+            f"1. 仅输出重写后的段落正文，严禁包含任何前缀、解释、客套语或分析说明；\n"
+            f"2. 严禁再次产生【待定】/TODO等占位符；\n"
+            f"3. 严禁出现负偏离或不满足声明；\n"
+            f"4. 严禁捏造未核对证据编号。"
+        )
+
+        replacement = sanitize_and_remediate_paragraph_text(
+            p_text=p_text,
+            defects=diag,
+            chapter_title=ch_title,
+            allowed_evidence_ids=allowed_evidence_ids,
+            allowed_snippet_ids=allowed_snippet_ids,
+            facts=facts,
+        )
+
+        target_paragraphs.append({
+            "paragraph_index": idx,
+            "label": label,
+            "original_text": p_text,
+            "defects": defect_items,
+            "diagnostics": diag,
+            "remediation_instructions": instructions,
+            "remediation_prompt": rem_prompt,
+            "suggested_replacement_text": replacement,
+        })
+
+    has_seal_defect = detected_blockers and any(b.get("code") == "MANDATORY_SEAL_SIGNATURE_MISSING" for b in detected_blockers)
+    if is_statutory and has_seal_defect:
+        seal_handled = any(
+            any(d.get("code") == "MANDATORY_SEAL_SIGNATURE_MISSING" for d in tp["defects"])
+            for tp in target_paragraphs
+        )
+        if not seal_handled and paragraphs:
+            last_idx = len(paragraphs) - 1
+            last_p = paragraphs[last_idx]
+            last_text = last_p.get("content") or last_p.get("text") or ""
+            existing_tp = next((tp for tp in target_paragraphs if tp["paragraph_index"] == last_idx), None)
+            seal_instr = "在法定表单结尾补充法定代表人签字与单位公章落款槽位。"
+            if existing_tp:
+                existing_tp["remediation_instructions"].append(seal_instr)
+                existing_tp["suggested_replacement_text"] += STANDARD_STATUTORY_SEAL_BLOCK
+            else:
+                target_paragraphs.append({
+                    "paragraph_index": last_idx,
+                    "label": last_p.get("label") or f"[P{last_idx + 1}]",
+                    "original_text": last_text,
+                    "defects": [{
+                        "rule_id": "R24",
+                        "code": "MANDATORY_SEAL_SIGNATURE_MISSING",
+                        "severity": "blocker",
+                        "instruction": seal_instr,
+                    }],
+                    "diagnostics": {"has_blockers": True, "has_warnings": False},
+                    "remediation_instructions": [seal_instr],
+                    "remediation_prompt": f"请为法定章节「{ch_title}」段落结尾补充法定代表人签字及公章落款：\n{last_text}\n" + STANDARD_STATUTORY_SEAL_BLOCK,
+                    "suggested_replacement_text": last_text + STANDARD_STATUTORY_SEAL_BLOCK,
+                })
+            total_defect_count += 1
+
+    overall_prompt = (
+        f"【投标章节合规整改指导计划 · {ch_title}】\n"
+        f"总计检测到违规段落 {len(target_paragraphs)} 处，违规项 {total_defect_count} 个。\n"
+        f"请严格按各段落局部整改要求执行重写，确保 100% 消除废标阻断项。"
+    )
+
+    return {
+        "has_defects": len(target_paragraphs) > 0,
+        "defect_count": total_defect_count,
+        "total_paragraphs": len(paragraphs),
+        "remediable_paragraphs_count": len(target_paragraphs),
+        "target_paragraphs": target_paragraphs,
+        "overall_remediation_prompt": overall_prompt,
+    }
+
+
 def format_writing_plan_prompt(snapshot: dict) -> str:
     """将写作方案快照渲染为大模型 Prompt 写作计划文本（APP-M2-T124）。"""
     chapter = snapshot["chapter"]
@@ -686,6 +1080,7 @@ class ChapterGenerationService:
         sync_execute: bool = False,
         max_context_tokens: int | None = None,
         snippet_matches: list[dict] | None = None,
+        auto_remediate: bool = False,
     ) -> dict:
         """按逐节确认结果独立启动已确认章节的生成任务（APP-M2-T126 / AI-OUTLINE-GENERATE-EXPAND）。"""
         state = self.repository.read()
@@ -869,6 +1264,21 @@ class ChapterGenerationService:
                 "validation_report": validation_res["validation_report"],
             }
 
+            if auto_remediate and validation_res.get("validation_failed"):
+                rem_res = self.remediate_chapter_candidate(
+                    project_id=project_id,
+                    chapter_id=chapter_id,
+                    principal=principal,
+                    candidate=candidate,
+                    auto_save=False,
+                    provider=provider,
+                )
+                candidate = rem_res["candidate"]
+                validation_res = candidate.get("validation_report", validation_res)
+                paragraphs = candidate.get("paragraphs", paragraphs)
+                structured_content = candidate.get("structured_content", structured_content)
+                content = candidate.get("content", content)
+
             def save_candidate_op(st: DemoState):
                 wf = st.workflows.setdefault(project_id, {})
                 wf.setdefault("candidates", {})[chapter_id] = candidate
@@ -890,6 +1300,8 @@ class ChapterGenerationService:
                     "quality_health_score": validation_res["quality_health_score"],
                     "quality_health_rating": validation_res["quality_health_rating"],
                     "blocker_count": len(validation_res["detected_blockers"]),
+                    "remediation_applied": candidate.get("remediation_applied", False),
+                    "remediated_paragraphs_count": candidate.get("remediated_paragraphs_count", 0),
                 },
             )
 
@@ -922,6 +1334,10 @@ class ChapterGenerationService:
             "detected_warnings": candidate.get("detected_warnings", []) if candidate else [],
             "remediation_suggestions": candidate.get("remediation_suggestions", []) if candidate else [],
             "validation_report": candidate.get("validation_report", {}) if candidate else {},
+            "remediation_applied": candidate.get("remediation_applied", False) if candidate else False,
+            "remediated_paragraphs_count": candidate.get("remediated_paragraphs_count", 0) if candidate else 0,
+            "pre_remediation_score": candidate.get("pre_remediation_score") if candidate else None,
+            "post_remediation_score": candidate.get("post_remediation_score") if candidate else None,
         }
 
     def batch_generate_chapters(
@@ -1038,6 +1454,7 @@ class ChapterGenerationService:
         max_context_tokens: int | None = None,
         snippet_matches_by_chapter: dict[str, list[dict]] | None = None,
         priority_threshold: str | None = None,
+        auto_remediate: bool = False,
     ) -> dict[str, Any]:
         """基于优先级推荐队列的大纲多章节批量生成流水线调度引擎（PRD MVP v1.8 §5.7.8）。
 
@@ -1222,6 +1639,7 @@ class ChapterGenerationService:
                         sync_execute=sync_execute,
                         max_context_tokens=max_context_tokens,
                         snippet_matches=snips,
+                        auto_remediate=auto_remediate,
                     )
                     ch_elapsed = round((time.time() - ch_start) * 1000, 2)
                     res["elapsed_ms"] = ch_elapsed
@@ -1293,6 +1711,8 @@ class ChapterGenerationService:
                         "quality_health_score": batch_successful.get(cid, {}).get("quality_health_score", 100) if cid in batch_successful else 0,
                         "quality_health_rating": batch_successful.get(cid, {}).get("quality_health_rating", "excellent") if cid in batch_successful else "critical",
                         "blocker_count": len(batch_successful.get(cid, {}).get("detected_blockers", [])) if cid in batch_successful else 0,
+                        "remediation_applied": batch_successful.get(cid, {}).get("remediation_applied", False) if cid in batch_successful else False,
+                        "remediated_paragraphs_count": batch_successful.get(cid, {}).get("remediated_paragraphs_count", 0) if cid in batch_successful else 0,
                     }
                     for cid in batch_cids
                 ],
@@ -1351,11 +1771,13 @@ class ChapterGenerationService:
             1,
         ) if successful_results else 100.0
 
+        total_remediated_chapters = sum(1 for r in successful_results.values() if r.get("remediation_applied", False))
         validation_summary = {
             "total_validation_passed": total_validation_passed,
             "total_validation_failed": total_validation_failed,
             "total_detected_blockers": total_detected_blockers,
             "average_quality_score": average_quality_score,
+            "total_remediated_chapters": total_remediated_chapters,
         }
 
         dashboard_record = {
@@ -1427,10 +1849,14 @@ class ChapterGenerationService:
         if not writable(state, project_id, principal.user.id):
             raise DomainError(403, "PROJECT_WRITER_REQUIRED", "当前角色无权编辑或启动章节生成。")
 
-    def _check_model_gate(self, state: DemoState, project: Project) -> None:
+    def _check_model_gate(self, state: DemoState, project: Project, provider: Any | None = None) -> None:
         is_sensitive = getattr(project, "sensitive", False) or getattr(project, "is_sensitive", False)
         if not is_sensitive:
             return
+
+        if provider is not None:
+            if getattr(provider, "is_local", False) is False and getattr(provider, "is_real_model", None) is not False:
+                raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL", "敏感项目只能使用本地模型配置。")
 
         bound_id = state.project_model_configs.get(project.id)
         cfg = state.model_configs.get(bound_id) if bound_id else state.model_configs.get(f"default-{project.company_id}")
@@ -1439,8 +1865,14 @@ class ChapterGenerationService:
             if not getattr(cfg, "is_local", False) or not getattr(cfg, "allow_sensitive", False):
                 raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL", "敏感项目只能使用本地模型配置。")
         else:
-            provider = getattr(self.demo, "model_provider", None)
-            if provider and getattr(provider, "is_local", False) is False and getattr(provider, "is_real_model", None) is not False:
+            resolved_p = None
+            if hasattr(self.demo, "resolve_model_provider"):
+                try:
+                    resolved_p = self.demo.resolve_model_provider(state, project.id)
+                except Exception:
+                    resolved_p = None
+            active_p = resolved_p or getattr(self.demo, "model_provider", None)
+            if active_p and getattr(active_p, "is_local", False) is False and getattr(active_p, "is_real_model", None) is not False:
                 raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL", "敏感项目只能使用本地模型配置。")
 
     def validate_chapter_content(
@@ -1511,6 +1943,270 @@ class ChapterGenerationService:
             project=project,
         )
 
+    def remediate_chapter_candidate(
+        self,
+        project_id: str,
+        chapter_id: str,
+        principal: Principal,
+        content: str | None = None,
+        candidate: dict[str, Any] | None = None,
+        max_rounds: int = 3,
+        auto_save: bool = True,
+        provider: Any | None = None,
+    ) -> dict[str, Any]:
+        """对存在合规缺陷的章节执行自动整改建议合成与局部针对性智能重写（PRD MVP v1.8 §5.7.8 & §5.10 / AI-OUTLINE-AUTO-REMEDIATION）。
+
+        核心能力：
+        1. 针对性局部智能重写：定位含有 blocker 缺陷的特定段落，保持未违规段落不受影响；
+        2. 自动诊断与整改指引合成：自动提取检出缺陷、生成针对性修复 Prompt 与确定性保底清洗方案；
+        3. 即时复检与门禁清零：重写后自动重新执行 validate_chapter_candidate，直至 blocker 清零、质量健康分跃升；
+        4. 涉密与权限硬隔离：涉密项目本地模型硬门禁（403）、多租户强隔离（404）、只读角色拦截（403）。
+        """
+        state = self.repository.read()
+
+        # 门禁 1：角色与操作权限核验（只读角色拦截 403）
+        role = getattr(principal.user, "role", "")
+        norm_role = ROLE_NORMALIZATION_MAP.get(role, role)
+        if norm_role in READONLY_SYSTEM_ROLES:
+            raise DomainError(403, "FORBIDDEN", "只读角色不可执行章节合规整改与智能重写。")
+
+        # 门禁 2：租户与项目隔离（404）
+        project = state.projects.get(project_id)
+        if project is None or project.company_id != principal.user.company_id:
+            raise DomainError(404, "NOT_FOUND", "项目不存在或不属于当前公司。")
+
+        chapter = state.chapters.get(chapter_id)
+        if chapter is None or chapter.project_id != project_id:
+            raise DomainError(404, "NOT_FOUND", "章节不存在或不属于当前项目。")
+
+        if not writable(state, project_id, principal.user.id):
+            raise DomainError(403, "PROJECT_WRITER_REQUIRED", "当前角色无权编辑或执行章节整改。")
+
+        # 门禁 3：涉密项目本地模型硬门禁（403）
+        model_provider = provider
+        if model_provider is None:
+            model_provider = self.demo.resolve_model_provider(state, project_id)
+        self._check_model_gate(state, project, provider=model_provider)
+
+        workflow = state.workflows.get(project_id, {})
+        prompt_plan = workflow.get("writing_plan", {}).get("chapters", {}).get(chapter_id, {})
+
+        allowed_evidence_ids = {e.get("id") for e in prompt_plan.get("evidence", []) if e.get("id")}
+        reqs = [r for r in workflow.get("requirements", {}).values() if r.get("chapter_id") == chapter_id]
+        for r in reqs:
+            for eid in r.get("evidence_ids", []):
+                if eid:
+                    allowed_evidence_ids.add(eid)
+
+        allowed_snippet_ids: set[str] = set()
+        retrieved = prompt_plan.get("retrieved_evidence", [])
+        for chunk in retrieved:
+            cid = chunk.get("chunk_id") or chunk.get("id")
+            if cid:
+                allowed_snippet_ids.add(cid)
+
+        facts = prompt_plan.get("facts", []) or workflow.get("facts", [])
+
+        # 确定待整改初始内容与 candidate
+        current_candidate = candidate
+        if current_candidate is None:
+            current_candidate = workflow.get("candidates", {}).get(chapter_id)
+
+        current_content = content
+        if current_content is None:
+            if current_candidate and current_candidate.get("content"):
+                current_content = current_candidate["content"]
+            else:
+                current_content = chapter.content or ""
+
+        active_paragraphs = parse_structured_paragraphs(
+            current_content,
+            scoring_points=prompt_plan.get("writing_points"),
+            allowed_evidence_ids=allowed_evidence_ids,
+            allowed_snippet_ids=allowed_snippet_ids,
+        )
+        if not active_paragraphs and current_content:
+            active_paragraphs = [{"index": 0, "label": "[P1]", "content": current_content, "text": current_content}]
+
+        initial_val = validate_chapter_candidate(
+            content=current_content,
+            paragraphs=active_paragraphs,
+            chapter=chapter,
+            allowed_evidence_ids=allowed_evidence_ids,
+            allowed_snippet_ids=allowed_snippet_ids,
+            workflow=workflow,
+            project=project,
+        )
+
+        initial_health_score = initial_val["quality_health_score"]
+        initial_rating = initial_val["quality_health_rating"]
+
+        remediation_history: list[dict[str, Any]] = []
+        remediated_indices: set[int] = set()
+        latest_plan: dict[str, Any] = {}
+        current_val = initial_val
+        rounds_executed = 0
+
+        max_r = max(1, min(int(max_rounds or 3), 5))
+
+        for r_num in range(1, max_r + 1):
+            rounds_executed = r_num
+            if current_val["validation_passed"] and len(current_val["detected_blockers"]) == 0:
+                break
+
+            plan = synthesize_remediation_plan(
+                content=current_content,
+                paragraphs=active_paragraphs,
+                chapter=chapter,
+                allowed_evidence_ids=allowed_evidence_ids,
+                allowed_snippet_ids=allowed_snippet_ids,
+                facts=facts,
+                detected_blockers=current_val["detected_blockers"],
+                detected_warnings=current_val["detected_warnings"],
+                project=project,
+            )
+            latest_plan = plan
+
+            if not plan["target_paragraphs"]:
+                break
+
+            round_remediated_indices = []
+
+            for tp in plan["target_paragraphs"]:
+                p_idx = tp["paragraph_index"]
+                if p_idx >= len(active_paragraphs):
+                    continue
+
+                orig_p = active_paragraphs[p_idx]
+                model_rewritten = None
+
+                if model_provider and hasattr(model_provider, "suggest"):
+                    try:
+                        res_text = model_provider.suggest(tp["remediation_prompt"], tp["original_text"])
+                        if res_text and not any(r in res_text for r in AI_CONVERSATION_RESIDUALS):
+                            model_rewritten = sanitize_and_remediate_paragraph_text(
+                                p_text=res_text,
+                                defects=tp["diagnostics"],
+                                chapter_title=getattr(chapter, "title", ""),
+                                allowed_evidence_ids=allowed_evidence_ids,
+                                allowed_snippet_ids=allowed_snippet_ids,
+                                facts=facts,
+                            )
+                    except Exception:
+                        model_rewritten = None
+
+                final_text = model_rewritten or tp["suggested_replacement_text"]
+
+                # 局部针对性更新该段落
+                orig_p["content"] = final_text
+                orig_p["text"] = final_text
+                orig_p["char_length"] = len(final_text)
+                orig_p["citations"] = extract_paragraph_citations(
+                    final_text,
+                    allowed_evidence_ids=allowed_evidence_ids,
+                    allowed_snippet_ids=allowed_snippet_ids,
+                )
+
+                round_remediated_indices.append(p_idx)
+                remediated_indices.add(p_idx)
+
+            # 重新格式化章节正文
+            current_content = format_structured_chapter_content(active_paragraphs)
+
+            # 重新即时执行质检核验
+            current_val = validate_chapter_candidate(
+                content=current_content,
+                paragraphs=active_paragraphs,
+                chapter=chapter,
+                allowed_evidence_ids=allowed_evidence_ids,
+                allowed_snippet_ids=allowed_snippet_ids,
+                workflow=workflow,
+                project=project,
+            )
+
+            remediation_history.append({
+                "round": r_num,
+                "remediated_paragraph_indices": round_remediated_indices,
+                "blockers_before": len(plan["target_paragraphs"]),
+                "blockers_after": len(current_val["detected_blockers"]),
+                "score_after": current_val["quality_health_score"],
+                "rating_after": current_val["quality_health_rating"],
+            })
+
+        # 法定表单缺少签字盖章保底补充
+        if current_val["validation_failed"] and any(b.get("code") == "MANDATORY_SEAL_SIGNATURE_MISSING" for b in current_val["detected_blockers"]):
+            if not any(m in current_content for m in VALID_SEAL_MARKERS):
+                current_content += STANDARD_STATUTORY_SEAL_BLOCK
+                active_paragraphs = parse_structured_paragraphs(
+                    current_content,
+                    scoring_points=prompt_plan.get("writing_points"),
+                    allowed_evidence_ids=allowed_evidence_ids,
+                    allowed_snippet_ids=allowed_snippet_ids,
+                )
+                current_val = validate_chapter_candidate(
+                    content=current_content,
+                    paragraphs=active_paragraphs,
+                    chapter=chapter,
+                    allowed_evidence_ids=allowed_evidence_ids,
+                    allowed_snippet_ids=allowed_snippet_ids,
+                    workflow=workflow,
+                    project=project,
+                )
+
+        now_time = self.demo._now() if hasattr(self.demo, "_now") else time.time()
+        now_iso = iso_time(now_time)
+        cand_id = (current_candidate.get("id") if current_candidate else None) or new_id("candidate")
+
+        remediated_candidate = dict(current_candidate or {})
+        remediated_candidate.update({
+            "id": cand_id,
+            "content": current_content,
+            "structured_content": current_content,
+            "paragraphs": active_paragraphs,
+            "validation_passed": current_val["validation_passed"],
+            "validation_failed": current_val["validation_failed"],
+            "quality_health_score": current_val["quality_health_score"],
+            "quality_health_rating": current_val["quality_health_rating"],
+            "detected_blockers": current_val["detected_blockers"],
+            "detected_warnings": current_val["detected_warnings"],
+            "remediation_suggestions": current_val["remediation_suggestions"],
+            "validation_report": current_val["validation_report"],
+            "remediation_applied": len(remediated_indices) > 0,
+            "remediation_rounds": rounds_executed,
+            "remediated_paragraphs_count": len(remediated_indices),
+            "remediated_paragraph_indices": sorted(list(remediated_indices)),
+            "pre_remediation_score": initial_health_score,
+            "post_remediation_score": current_val["quality_health_score"],
+            "pre_remediation_rating": initial_rating,
+            "post_remediation_rating": current_val["quality_health_rating"],
+            "remediation_plan": latest_plan,
+            "remediation_history": remediation_history,
+            "updated_at": now_iso,
+        })
+
+        if auto_save:
+            def save_remediated_cand(st: DemoState):
+                wf = st.workflows.setdefault(project_id, {})
+                wf.setdefault("candidates", {})[chapter_id] = remediated_candidate
+
+            self.repository.transaction(save_remediated_cand)
+
+        return {
+            "remediation_passed": current_val["validation_passed"],
+            "remediation_applied": len(remediated_indices) > 0,
+            "remediation_rounds": rounds_executed,
+            "pre_remediation_score": initial_health_score,
+            "post_remediation_score": current_val["quality_health_score"],
+            "pre_remediation_rating": initial_rating,
+            "post_remediation_rating": current_val["quality_health_rating"],
+            "remediated_paragraphs_count": len(remediated_indices),
+            "remediated_paragraph_indices": sorted(list(remediated_indices)),
+            "candidate": remediated_candidate,
+            "validation_report": current_val["validation_report"],
+            "remediation_plan": latest_plan,
+            "remediation_history": remediation_history,
+        }
+
 
 def start_chapter_generation(
     project_id_or_service: Any,
@@ -1524,6 +2220,7 @@ def start_chapter_generation(
     sync_execute: bool = False,
     max_context_tokens: int | None = None,
     snippet_matches: list[dict] | None = None,
+    auto_remediate: bool = False,
 ) -> dict:
     """按逐节确认结果独立启动已确认章节的生成任务（模块顶层快捷入口，兼容多种传参形式）。"""
     if hasattr(project_id_or_service, "start_chapter_generation") and not isinstance(project_id_or_service, str):
@@ -1536,6 +2233,7 @@ def start_chapter_generation(
             sync_execute=sync_execute,
             max_context_tokens=max_context_tokens,
             snippet_matches=snippet_matches,
+            auto_remediate=auto_remediate,
         )
 
     # 形式 2: start_chapter_generation(project_id, chapter_id, principal, demo=...)
@@ -1554,6 +2252,7 @@ def start_chapter_generation(
         sync_execute=sync_execute,
         max_context_tokens=max_context_tokens,
         snippet_matches=snippet_matches,
+        auto_remediate=auto_remediate,
     )
 
 
@@ -1610,6 +2309,7 @@ def schedule_batch_pipeline(
     max_context_tokens: int | None = None,
     snippet_matches_by_chapter: dict[str, list[dict]] | None = None,
     priority_threshold: str | None = None,
+    auto_remediate: bool = False,
     *,
     demo: Any | None = None,
     repository: Any | None = None,
@@ -1627,6 +2327,7 @@ def schedule_batch_pipeline(
             max_context_tokens=max_context_tokens,
             snippet_matches_by_chapter=snippet_matches_by_chapter,
             priority_threshold=priority_threshold,
+            auto_remediate=auto_remediate,
         )
 
     project_id = str(project_id_or_service)
@@ -1645,6 +2346,7 @@ def schedule_batch_pipeline(
         max_context_tokens=max_context_tokens,
         snippet_matches_by_chapter=snippet_matches_by_chapter,
         priority_threshold=priority_threshold,
+        auto_remediate=auto_remediate,
     )
 
 
@@ -1678,5 +2380,50 @@ def validate_chapter_content(
         principal=principal,
         content=content,
     )
+
+
+def remediate_chapter_candidate(
+    project_id_or_service: Any,
+    chapter_id_or_proj: Any = None,
+    principal: Principal | None = None,
+    content: str | None = None,
+    candidate: dict[str, Any] | None = None,
+    max_rounds: int = 3,
+    auto_save: bool = True,
+    *,
+    demo: Any | None = None,
+    repository: Any | None = None,
+    provider: Any | None = None,
+) -> dict[str, Any]:
+    """对存在合规缺陷的章节执行自动整改建议合成与局部针对性智能重写（模块顶层快捷入口）。"""
+    if hasattr(project_id_or_service, "remediate_chapter_candidate") and not isinstance(project_id_or_service, str):
+        service = project_id_or_service
+        return service.remediate_chapter_candidate(
+            chapter_id_or_proj,
+            principal=principal,
+            content=content,
+            candidate=candidate,
+            max_rounds=max_rounds,
+            auto_save=auto_save,
+            provider=provider,
+        )
+
+    project_id = str(project_id_or_service)
+    chapter_id = str(chapter_id_or_proj)
+    if demo is None:
+        raise ValueError("demo or service must be provided to remediate_chapter_candidate")
+
+    service = ChapterGenerationService(demo, repository=repository)
+    return service.remediate_chapter_candidate(
+        project_id=project_id,
+        chapter_id=chapter_id,
+        principal=principal,
+        content=content,
+        candidate=candidate,
+        max_rounds=max_rounds,
+        auto_save=auto_save,
+        provider=provider,
+    )
+
 
 

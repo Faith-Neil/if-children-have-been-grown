@@ -378,6 +378,209 @@ export function executeUserHandoverAndDisable(params: {
   return { updatedUsers, handoverRecord };
 }
 
+/**
+ * 校验用户角色变更合规性
+ */
+export function validateRoleAssignment(
+  userOrParams: UserItem | { sourceUser: UserItem; newRole: SystemRole; operatorRole?: string },
+  argNewRole?: SystemRole,
+  argOperatorRole?: string
+): { valid: boolean; message?: string; warning?: string } {
+  let sourceUser: UserItem;
+  let newRole: SystemRole;
+  let operatorRole: string | undefined;
+
+  if ('sourceUser' in userOrParams) {
+    sourceUser = userOrParams.sourceUser;
+    newRole = userOrParams.newRole;
+    operatorRole = userOrParams.operatorRole;
+  } else {
+    sourceUser = userOrParams;
+    newRole = argNewRole!;
+    operatorRole = argOperatorRole;
+  }
+
+  // 1. 保护超管账号 admin 或平台管理员不可篡改
+  if (sourceUser.username === 'admin' || (sourceUser.role === 'platform_admin' && newRole !== 'platform_admin')) {
+    return { valid: false, message: '平台超级管理员角色受系统保护，不可更改' };
+  }
+
+  // 2. 检查操作者权限：仅 platform_admin 和 company_admin 可调整角色
+  const normalizedOperator = operatorRole?.toLowerCase() || '';
+  if (normalizedOperator !== 'platform_admin' && normalizedOperator !== 'company_admin') {
+    return { valid: false, message: '当前操作者无权变更用户角色' };
+  }
+
+  // 3. 公司管理员不可将用户提权为平台管理员或集团管理员
+  if (normalizedOperator === 'company_admin' && (newRole === 'platform_admin' || newRole === 'group_admin')) {
+    return { valid: false, message: '公司管理员无权分配平台级或集团级管理角色' };
+  }
+
+  // 4. 新角色与原角色相同
+  if (sourceUser.role === newRole) {
+    return { valid: false, message: '用户已具备该系统角色，无需重复分配' };
+  }
+
+  // 5. 提示警告：若原为 project_lead 且持有未完结项目，变更为非负责人角色时给出友好告警
+  let warning: string | undefined;
+  const activeCount = sourceUser.assigned_assets?.active_projects?.length ?? 0;
+  if (
+    sourceUser.role === 'project_lead' &&
+    newRole !== 'project_lead' &&
+    activeCount > 0
+  ) {
+    warning = `该用户当前担任 ${activeCount} 个项目的总负责人，变更角色后已有项目资产仍保留，建议及时进行团队调整或资产交接。`;
+  }
+
+  return { valid: true, warning };
+}
+
+/**
+ * 执行角色分配变更
+ */
+export function executeRoleAssignment(
+  users: UserItem[],
+  userId: string,
+  newRole: SystemRole
+): { updatedUsers: UserItem[]; updatedUser: UserItem } {
+  const target = users.find(u => u.id === userId);
+  if (!target) {
+    throw new Error('目标用户不存在，无法变更角色。');
+  }
+
+  const updatedUser: UserItem = {
+    ...target,
+    role: newRole,
+  };
+
+  const updatedUsers = users.map(u => (u.id === userId ? updatedUser : u));
+  return { updatedUsers, updatedUser };
+}
+
+/**
+ * 校验重置密码输入与公司策略
+ */
+export function validatePasswordReset(params: {
+  password?: string;
+  confirmPassword?: string;
+  policy?: Partial<CompanyPasswordPolicy>;
+}): { valid: boolean; field?: 'password' | 'confirmPassword'; message?: string } {
+  const { password, confirmPassword, policy } = params;
+
+  if (!password) {
+    return { valid: false, field: 'password', message: '请输入重置后的新密码' };
+  }
+
+  const strength = validatePasswordStrength(password, policy);
+  if (!strength.valid) {
+    return { valid: false, field: 'password', message: strength.message };
+  }
+
+  if (password !== confirmPassword) {
+    return { valid: false, field: 'confirmPassword', message: '两次输入的新密码不一致' };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * 随机生成符合公司密码策略的合规强密码
+ */
+export function generateCompliantPassword(
+  policy: Partial<CompanyPasswordPolicy> = DEFAULT_COMPANY_PASSWORD_POLICY
+): string {
+  const minLength = Math.max(policy.password_min_length || 8, 10);
+  const uppers = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lowers = 'abcdefghijkmnopqrstuvwxyz';
+  const digits = '23456789';
+  const symbols = '!@#$%^&*()_+~';
+
+  // 确保包含大写、小写、数字、特殊符号全 4 类
+  const pwd = [
+    uppers[Math.floor(Math.random() * uppers.length)],
+    lowers[Math.floor(Math.random() * lowers.length)],
+    digits[Math.floor(Math.random() * digits.length)],
+    symbols[Math.floor(Math.random() * symbols.length)],
+  ];
+
+  const allChars = uppers + lowers + digits + symbols;
+  while (pwd.length < minLength) {
+    pwd.push(allChars[Math.floor(Math.random() * allChars.length)]);
+  }
+
+  // 打乱顺序
+  return pwd.sort(() => Math.random() - 0.5).join('');
+}
+
+/**
+ * 执行重置密码
+ */
+export function executePasswordReset(
+  users: UserItem[],
+  userId: string,
+  _newPassword: string
+): { updatedUsers: UserItem[]; updatedUser: UserItem } {
+  const target = users.find(u => u.id === userId);
+  if (!target) {
+    throw new Error('用户不存在，无法重置密码。');
+  }
+
+  // 密码重置后若原账号处于 locked，同时自动恢复为 active（解锁）
+  const updatedUser: UserItem = {
+    ...target,
+    status: target.status === 'locked' ? 'active' : target.status,
+  };
+
+  const updatedUsers = users.map(u => (u.id === userId ? updatedUser : u));
+  return { updatedUsers, updatedUser };
+}
+
+/**
+ * 执行账号解锁（PRD §5.10.2 / M1-P10-F3: user_status = locked 显示解锁）
+ */
+export function executeUnlockUser(
+  users: UserItem[],
+  userId: string
+): { updatedUsers: UserItem[]; updatedUser: UserItem } {
+  const target = users.find(u => u.id === userId);
+  if (!target) {
+    throw new Error('用户不存在，无法执行解锁。');
+  }
+
+  const updatedUser: UserItem = {
+    ...target,
+    status: 'active',
+  };
+
+  const updatedUsers = users.map(u => (u.id === userId ? updatedUser : u));
+  return { updatedUsers, updatedUser };
+}
+
+/**
+ * 执行账号安全锁定
+ */
+export function executeLockUser(
+  users: UserItem[],
+  userId: string
+): { updatedUsers: UserItem[]; updatedUser: UserItem } {
+  const target = users.find(u => u.id === userId);
+  if (!target) {
+    throw new Error('用户不存在，无法执行锁定。');
+  }
+
+  if (target.username === 'admin') {
+    throw new Error('超级管理员账号受系统保护，不可锁定。');
+  }
+
+  const updatedUser: UserItem = {
+    ...target,
+    status: 'locked',
+  };
+
+  const updatedUsers = users.map(u => (u.id === userId ? updatedUser : u));
+  return { updatedUsers, updatedUser };
+}
+
 export interface UserManagementPermissionResult {
   canOperate: boolean;
   canConfigurePolicy: boolean;
@@ -601,6 +804,23 @@ export const INITIAL_USERS: UserItem[] = [
       active_projects: [
         { id: 'p_metro_01', name: '智慧城轨综合管控平台一体化招标', role_in_project: '标段牵头人' },
       ],
+      active_chapters: [],
+      kb_items: [],
+    },
+  },
+  {
+    id: 'u_locked_chen',
+    username: 'locked_chen',
+    name: '陈敏（已锁定）',
+    role: 'bid_writer',
+    company_id: 'alpha',
+    status: 'locked',
+    email: 'chen.min@alpha.com',
+    phone: '13800001008',
+    created_at: '2026-09-12 11:00:00',
+    last_login_at: '2026-10-28 07:30:00',
+    assigned_assets: {
+      active_projects: [],
       active_chapters: [],
       kb_items: [],
     },

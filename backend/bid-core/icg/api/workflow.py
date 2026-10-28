@@ -457,5 +457,26 @@ def include_workflow_routes(application, service, current_user, parser):
             content=body.get("content"),
         )
 
+    @router.post(
+        "/projects/{project_id}/chapters/{chapter_id}/remediate-candidate",
+        include_in_schema=False,
+    )
+    def remediate_chapter_candidate_endpoint(
+        project_id: str,
+        chapter_id: str,
+        body: dict | None = None,
+        user: Principal = Depends(current_user),
+    ):
+        body = body or {}
+        return workflow.remediate_chapter_candidate(
+            project_id=project_id,
+            chapter_id=chapter_id,
+            principal=user,
+            content=body.get("content"),
+            candidate=body.get("candidate"),
+            max_rounds=body.get("max_rounds", 3),
+            auto_save=body.get("auto_save", True),
+        )
+
     application.include_router(router)
     include_recoverable_routes(application, workflow, current_user)

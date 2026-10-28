@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import time
+from dataclasses import replace
 from typing import Any
 from pydantic import BaseModel, Field
 
@@ -25,6 +26,8 @@ class UserModel(BaseModel):
     company_id: str = Field(description="所属企业租户ID")
     role: str = Field(description="系统角色代码")
     status: str = Field(default="active", description="账号状态：active / disabled")
+    is_locked: bool = Field(default=False, description="是否被锁定")
+    failed_login_attempts: int = Field(default=0, description="连续登录失败次数")
     created_at: str | None = Field(default=None, description="创建时间（ISO 8601）")
     updated_at: str | None = Field(default=None, description="最后更新时间（ISO 8601）")
 
@@ -70,6 +73,29 @@ class TransferUserAssetsResponse(BaseModel):
     message: str = Field(description="交接执行结果说明")
 
 
+class ResetPasswordRequest(BaseModel):
+    new_password: str = Field(..., min_length=1, description="新登录密码")
+
+
+class ResetPasswordResponse(BaseModel):
+    success: bool = Field(default=True, description="是否重置成功")
+    user_id: str = Field(description="被重置用户ID")
+    message: str = Field(description="重置操作结果说明")
+    updated_at: str = Field(description="更新时间")
+
+
+class UnlockUserResponse(BaseModel):
+    success: bool = Field(default=True, description="是否解锁成功")
+    user_id: str = Field(description="被解锁用户ID")
+    is_locked: bool = Field(default=False, description="当前锁定状态")
+    failed_login_attempts: int = Field(default=0, description="重置后的失败尝试次数")
+    message: str = Field(description="操作结果说明")
+
+
+class UpdateUserRoleRequest(BaseModel):
+    role: str = Field(..., description="分配的新系统角色")
+
+
 def account_to_user_model(acc: Account) -> UserModel:
     """将内部 Account 实体转化为严格脱敏的外部 UserModel。"""
     c_time = iso_time(acc.created_at) if acc.created_at else None
@@ -81,6 +107,8 @@ def account_to_user_model(acc: Account) -> UserModel:
         company_id=acc.company_id,
         role=acc.role,
         status=getattr(acc, "status", "active") or "active",
+        is_locked=getattr(acc, "is_locked", False),
+        failed_login_attempts=getattr(acc, "failed_login_attempts", 0),
         created_at=c_time,
         updated_at=u_time,
     )
@@ -385,9 +413,20 @@ class UserManagementService:
             if norm_role != ROLE_COMPANY_ADMIN:
                 raise DomainError(403, "FORBIDDEN", "只有企业管理员或平台管理员可修改用户信息。")
 
-        # 2. 超级管理员 admin 保护门禁
-        if user_id == "admin" and request.status == "disabled":
-            raise DomainError(403, "FORBIDDEN", "系统超级管理员 admin 不允许被停用。")
+        # 2. 超级管理员 admin 保护门禁与管理员防自降权
+        if user_id == "admin":
+            if request.status == "disabled":
+                raise DomainError(403, "FORBIDDEN", "系统超级管理员 admin 不允许被停用。")
+            if request.role is not None and request.role != "platform_admin":
+                raise DomainError(403, "SUPER_ADMIN_PROTECTED", "系统超级管理员 admin 角色受到保护，不可被修改或降权。")
+
+        if request.role is not None:
+            norm_curr = ROLE_NORMALIZATION_MAP.get(user.role, user.role)
+            norm_target = ROLE_NORMALIZATION_MAP.get(request.role, request.role)
+            if user_id == user.id and norm_curr in (ROLE_COMPANY_ADMIN, "platform_admin") and norm_target != norm_curr:
+                raise DomainError(403, "CANNOT_DEMOTE_SELF", "管理员账号不能对自己进行降权操作，请由其他管理员执行。")
+            if request.role not in ROLE_NORMALIZATION_MAP:
+                raise DomainError(422, "VALIDATION_ERROR", f"角色代码 '{request.role}' 不属于标准系统角色。")
 
         # 3. 停用前资产交接门禁 (PRD §5.10.1 / M1-P10-F2 核心红线：USER_TRANSFER_REQUIRED)
         if request.status == "disabled" and getattr(acc, "status", "active") != "disabled":
@@ -474,3 +513,165 @@ class UserManagementService:
             transferred_projects=transferred,
             message=f"已成功将用户 {user_id} 名下 {len(transferred)} 个项目的管理职责转交给 {request.successor_user_id}。",
         )
+
+    def reset_password(
+        self,
+        user_id: str,
+        request: ResetPasswordRequest,
+        principal: Principal,
+    ) -> ResetPasswordResponse:
+        """重置指定用户的密码，严格校验 Q28 密码强度策略并作废既有会话。"""
+        user = principal.user
+        acc = self.repository.read().accounts.get(user_id)
+        if not acc:
+            raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在。")
+
+        # 1. 租户隔离与 RBAC 权限校验
+        if not is_super_admin(user):
+            if acc.company_id != user.company_id:
+                raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在或当前账号无权访问。")
+            norm_role = ROLE_NORMALIZATION_MAP.get(user.role, user.role)
+            if norm_role != ROLE_COMPANY_ADMIN:
+                raise DomainError(403, "FORBIDDEN", "只有企业管理员或平台管理员可重置用户密码。")
+
+        # 2. 校验密码强度 (PRD §5.10.2 / Q28 定案：最少8位且至少含3类字符)
+        ok, msg = validate_password_strength(request.new_password)
+        if not ok:
+            raise DomainError(422, "PASSWORD_WEAK", f"密码强度不足：{msg}", details={"field": "new_password"})
+
+        # 3. 重新加盐哈希
+        pwd_hash, salt = hash_password(request.new_password)
+        now_ts = time.time()
+
+        def _do_reset(st):
+            target = st.accounts.get(user_id)
+            if not target:
+                raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在。")
+            updated = replace(
+                target,
+                password_hash=pwd_hash,
+                salt=salt,
+                is_locked=False,
+                failed_login_attempts=0,
+                updated_at=now_ts,
+            )
+            st.accounts[user_id] = updated
+            # 作废该用户的所有活跃会话
+            for tok, uid in list(st.sessions.items()):
+                if uid == user_id:
+                    del st.sessions[tok]
+            st.audit.append({
+                "action": "user.reset_password",
+                "operator": user.id,
+                "target_user_id": user_id,
+                "timestamp": now_ts,
+            })
+
+        self.repository.transaction(_do_reset)
+        return ResetPasswordResponse(
+            success=True,
+            user_id=user_id,
+            message=f"已成功重置用户 {user_id} 的密码并安全登出该账号的所有活跃会话。",
+            updated_at=iso_time(now_ts),
+        )
+
+    def unlock_user(self, user_id: str, principal: Principal) -> UnlockUserResponse:
+        """管理员一键清空连续失败计数并解除账号锁定。"""
+        user = principal.user
+        acc = self.repository.read().accounts.get(user_id)
+        if not acc:
+            raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在。")
+
+        # 1. 租户隔离与 RBAC 权限校验
+        if not is_super_admin(user):
+            if acc.company_id != user.company_id:
+                raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在或当前账号无权访问。")
+            norm_role = ROLE_NORMALIZATION_MAP.get(user.role, user.role)
+            if norm_role != ROLE_COMPANY_ADMIN:
+                raise DomainError(403, "FORBIDDEN", "只有企业管理员或平台管理员可解锁用户。")
+
+        now_ts = time.time()
+
+        def _do_unlock(st):
+            target = st.accounts.get(user_id)
+            if not target:
+                raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在。")
+            updated = replace(
+                target,
+                is_locked=False,
+                status="active",
+                failed_login_attempts=0,
+                updated_at=now_ts,
+            )
+            st.accounts[user_id] = updated
+            st.audit.append({
+                "action": "user.unlock",
+                "operator": user.id,
+                "target_user_id": user_id,
+                "timestamp": now_ts,
+            })
+
+        self.repository.transaction(_do_unlock)
+        return UnlockUserResponse(
+            success=True,
+            user_id=user_id,
+            is_locked=False,
+            failed_login_attempts=0,
+            message=f"已成功解除用户 {user_id} 的锁定状态并清零连续失败计数。",
+        )
+
+    def update_role(
+        self,
+        user_id: str,
+        request: UpdateUserRoleRequest,
+        principal: Principal,
+    ) -> UserModel:
+        """调整用户角色，执行超管保护与管理员防自降权门禁。"""
+        user = principal.user
+        acc = self.repository.read().accounts.get(user_id)
+        if not acc:
+            raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在。")
+
+        # 1. 租户隔离与 RBAC 权限校验
+        if not is_super_admin(user):
+            if acc.company_id != user.company_id:
+                raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在或当前账号无权访问。")
+            norm_role = ROLE_NORMALIZATION_MAP.get(user.role, user.role)
+            if norm_role != ROLE_COMPANY_ADMIN:
+                raise DomainError(403, "FORBIDDEN", "只有企业管理员或平台管理员可分配用户角色。")
+
+        # 2. 超管 admin 保护门禁（SUPER_ADMIN_PROTECTED 403）
+        if user_id == "admin":
+            raise DomainError(403, "SUPER_ADMIN_PROTECTED", "系统超级管理员 admin 角色受到保护，不可被修改或降权。")
+
+        # 3. 管理员防自降权门禁（CANNOT_DEMOTE_SELF 403）
+        if user_id == user.id:
+            norm_curr = ROLE_NORMALIZATION_MAP.get(user.role, user.role)
+            norm_target = ROLE_NORMALIZATION_MAP.get(request.role, request.role)
+            if norm_curr in (ROLE_COMPANY_ADMIN, "platform_admin") and norm_target != norm_curr:
+                raise DomainError(403, "CANNOT_DEMOTE_SELF", "管理员账号不能对自己进行降权操作，请由其他管理员执行。")
+
+        # 4. 目标角色合法性校验
+        if request.role not in ROLE_NORMALIZATION_MAP:
+            raise DomainError(422, "VALIDATION_ERROR", f"角色代码 '{request.role}' 不属于标准系统角色。")
+
+        now_ts = time.time()
+
+        def _do_change_role(st):
+            target = st.accounts.get(user_id)
+            if not target:
+                raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在。")
+            updated = replace(target, role=request.role, updated_at=now_ts)
+            st.accounts[user_id] = updated
+            st.audit.append({
+                "action": "user.change_role",
+                "operator": user.id,
+                "target_user_id": user_id,
+                "old_role": target.role,
+                "new_role": request.role,
+                "timestamp": now_ts,
+            })
+
+        self.repository.transaction(_do_change_role)
+        updated_acc = self.repository.read().accounts[user_id]
+        return account_to_user_model(updated_acc)

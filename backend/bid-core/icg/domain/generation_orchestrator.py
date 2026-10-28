@@ -399,6 +399,28 @@ class GenerationOrchestratorMixin:
             content=content,
         )
 
+    def remediate_chapter_candidate(
+        self,
+        project_id: str,
+        chapter_id: str,
+        principal: Principal,
+        content: str | None = None,
+        candidate: dict[str, Any] | None = None,
+        max_rounds: int = 3,
+        auto_save: bool = True,
+        provider: Any | None = None,
+    ) -> dict[str, Any]:
+        return self.demo.remediate_chapter_candidate(
+            project_id=project_id,
+            chapter_id=chapter_id,
+            principal=principal,
+            content=content,
+            candidate=candidate,
+            max_rounds=max_rounds,
+            auto_save=auto_save,
+            provider=provider,
+        )
+
     def assemble_writing_prompt_plan(
         self,
         project_id: str,

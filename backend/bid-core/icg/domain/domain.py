@@ -9,7 +9,7 @@ import hashlib
 import json
 import secrets
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from typing import Callable
 from uuid import uuid4
@@ -74,6 +74,8 @@ class Account:
     salt: str = ""
     display_name: str = ""
     status: str = "active"
+    is_locked: bool = False
+    failed_login_attempts: int = 0
     created_at: float | None = None
     updated_at: float | None = None
 
@@ -308,6 +310,28 @@ class DemoService:
             content=content,
         )
 
+    def remediate_chapter_candidate(
+        self,
+        project_id: str,
+        chapter_id: str,
+        principal: Principal,
+        content: str | None = None,
+        candidate: dict[str, Any] | None = None,
+        max_rounds: int = 3,
+        auto_save: bool = True,
+        provider: Any | None = None,
+    ) -> dict[str, Any]:
+        return self.chapter_generation.remediate_chapter_candidate(
+            project_id=project_id,
+            chapter_id=chapter_id,
+            principal=principal,
+            content=content,
+            candidate=candidate,
+            max_rounds=max_rounds,
+            auto_save=auto_save,
+            provider=provider,
+        )
+
     def assemble_writing_prompt_plan(
         self,
         project_id: str,
@@ -469,50 +493,85 @@ class DemoService:
         return self.repository.transaction(operation)
 
     def auth_login(self, username: str, password: str) -> dict:
-        def operation(state: DemoState):
-            if not username or not password:
-                raise DomainError(401, "INVALID_CREDENTIALS", "用户名或密码错误，请核实后重试。")
+        if not username or not password:
+            raise DomainError(401, "INVALID_CREDENTIALS", "用户名或密码错误，请核实后重试。")
 
+        state = self.repository.read()
+        user = state.accounts.get(username)
+        if user is None and username == "admin":
+            from icg.domain.auth_service import hash_password
+            def init_admin(s: DemoState):
+                if "admin" not in s.accounts:
+                    p_hash, p_salt = hash_password("X_2026")
+                    s.accounts["admin"] = Account(
+                        id="admin",
+                        name="系统超级管理员",
+                        company_id="system",
+                        role="platform_admin",
+                        _DEMO_ONLY=False,
+                        password_hash=p_hash,
+                        salt=p_salt,
+                        display_name="系统超级管理员",
+                    )
+            self.repository.transaction(init_admin)
+            state = self.repository.read()
             user = state.accounts.get(username)
-            if user is None and username == "admin":
-                from icg.domain.auth_service import hash_password
-                p_hash, p_salt = hash_password("X_2026")
-                user = Account(
-                    id="admin",
-                    name="系统超级管理员",
-                    company_id="system",
-                    role="platform_admin",
-                    _DEMO_ONLY=False,
-                    password_hash=p_hash,
-                    salt=p_salt,
-                    display_name="系统超级管理员",
-                )
-                state.accounts["admin"] = user
 
-            if user is None:
-                raise DomainError(401, "INVALID_CREDENTIALS", "用户名或密码错误，请核实后重试。")
+        if user is None:
+            raise DomainError(401, "INVALID_CREDENTIALS", "用户名或密码错误，请核实后重试。")
 
-            if getattr(user, "status", "active") == "disabled":
-                raise DomainError(401, "INVALID_CREDENTIALS", "该账号已被停用，请联系企业管理员。")
+        if getattr(user, "is_locked", False) or getattr(user, "status", "active") == "locked":
+            raise DomainError(423, "ACCOUNT_LOCKED", "账号因连续登录失败已被锁定，请联系管理员解锁。")
 
-            from icg.domain.auth_service import verify_password
-            if user.password_hash:
-                valid = verify_password(password, user.password_hash, user.salt)
+        if getattr(user, "status", "active") == "disabled":
+            raise DomainError(401, "INVALID_CREDENTIALS", "该账号已被停用，请联系企业管理员。")
+
+        from icg.domain.auth_service import verify_password
+        if user.password_hash:
+            valid = verify_password(password, user.password_hash, user.salt)
+        else:
+            valid = (password == "X_2026")
+
+        if not valid:
+            attempts = getattr(user, "failed_login_attempts", 0) + 1
+            max_attempts = 5
+            if hasattr(self, "company_settings_service") and self.company_settings_service and user.company_id:
+                st = getattr(self.company_settings_service, "_store", {}).get(user.company_id)
+                if st and getattr(st, "max_login_attempts", None):
+                    max_attempts = st.max_login_attempts
+            is_now_locked = (attempts >= max_attempts)
+
+            def record_failure(s: DemoState):
+                u = s.accounts.get(username)
+                if u:
+                    if is_now_locked:
+                        s.accounts[username] = replace(u, failed_login_attempts=attempts, is_locked=True, status="locked", updated_at=time.time())
+                        s.audit.append({"action": "user.locked", "user_id": username, "attempts": attempts, "timestamp": time.time()})
+                    else:
+                        s.accounts[username] = replace(u, failed_login_attempts=attempts, updated_at=time.time())
+
+            self.repository.transaction(record_failure)
+
+            if is_now_locked:
+                raise DomainError(423, "ACCOUNT_LOCKED", f"密码连续错误达到上限（{max_attempts}次），账号已被锁定，请联系管理员解锁。")
             else:
-                valid = (password == "X_2026")
+                raise DomainError(401, "INVALID_CREDENTIALS", f"用户名或密码错误，还剩 {max_attempts - attempts} 次尝试机会。")
 
-            if not valid:
-                raise DomainError(401, "INVALID_CREDENTIALS", "用户名或密码错误，请核实后重试。")
-
+        def record_success(s: DemoState):
+            u = s.accounts.get(username)
+            if u and getattr(u, "failed_login_attempts", 0) > 0:
+                s.accounts[username] = replace(u, failed_login_attempts=0, updated_at=time.time())
+                u = s.accounts[username]
             token = secrets.token_urlsafe(32)
-            state.sessions[token] = user.id
-            user_data = asdict(user)
+            s.sessions[token] = u.id
+            user_data = asdict(u)
             user_data.pop("password_hash", None)
             user_data.pop("salt", None)
-            user_data["username"] = user.id
-            user_data["display_name"] = user.display_name or user.name
+            user_data["username"] = u.id
+            user_data["display_name"] = u.display_name or u.name
             return {"access_token": token, "token_type": "bearer", "user": user_data}
-        return self.repository.transaction(operation)
+
+        return self.repository.transaction(record_success)
 
     def authenticate(self, token: str) -> Principal:
         state = self.repository.read()
@@ -521,6 +580,8 @@ class DemoService:
             raise DomainError(401, "UNAUTHENTICATED", "请先选择演示账号登录。")
         if getattr(user, "status", "active") == "disabled":
             raise DomainError(401, "UNAUTHENTICATED", "当前账号已被停用。")
+        if getattr(user, "is_locked", False):
+            raise DomainError(401, "UNAUTHENTICATED", "当前账号已被锁定。")
         return Principal(user, token)
 
     @staticmethod

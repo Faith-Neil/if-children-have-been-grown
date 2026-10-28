@@ -12,7 +12,9 @@ export interface ApiUserModel {
   display_name: string;
   company_id: string;
   role: string;
-  status: 'active' | 'disabled';
+  status: 'active' | 'disabled' | 'locked';
+  is_locked?: boolean;
+  failed_login_attempts?: number;
   created_at?: string | null;
   updated_at?: string | null;
 }
@@ -116,6 +118,76 @@ export async function transferUserAssets(
     `/api/v1/users/${encodeURIComponent(userId)}/transfer`,
     token ?? null,
     'POST',
+    payload
+  );
+}
+
+/**
+ * 重置用户密码（执行 Q28 定案密码强度校验）
+ */
+export interface ApiResetPasswordRequest {
+  new_password: string;
+}
+
+export interface ApiResetPasswordResponse {
+  success: boolean;
+  user_id: string;
+  message: string;
+  updated_at: string;
+}
+
+export async function resetUserPassword(
+  userId: string,
+  payload: ApiResetPasswordRequest,
+  token?: string | null
+): Promise<ApiResetPasswordResponse> {
+  return request<ApiResetPasswordResponse>(
+    `/api/v1/users/${encodeURIComponent(userId)}/reset-password`,
+    token ?? null,
+    'POST',
+    payload
+  );
+}
+
+/**
+ * 解锁用户账号并清零连续失败计数
+ */
+export interface ApiUnlockUserResponse {
+  success: boolean;
+  user_id: string;
+  is_locked: boolean;
+  failed_login_attempts: number;
+  message: string;
+}
+
+export async function unlockUser(
+  userId: string,
+  token?: string | null
+): Promise<ApiUnlockUserResponse> {
+  return request<ApiUnlockUserResponse>(
+    `/api/v1/users/${encodeURIComponent(userId)}/unlock`,
+    token ?? null,
+    'POST',
+    {}
+  );
+}
+
+/**
+ * 分配用户系统角色
+ */
+export interface ApiUpdateUserRoleRequest {
+  role: string;
+}
+
+export async function updateUserRole(
+  userId: string,
+  payload: ApiUpdateUserRoleRequest,
+  token?: string | null
+): Promise<ApiUserModel> {
+  return request<ApiUserModel>(
+    `/api/v1/users/${encodeURIComponent(userId)}/role`,
+    token ?? null,
+    'PATCH',
     payload
   );
 }

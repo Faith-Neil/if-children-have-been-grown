@@ -9,9 +9,13 @@ from fastapi import APIRouter, Depends, Query
 from icg.domain.domain import DemoService, Principal
 from icg.domain.user_management import (
     CreateUserRequest,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
     TransferUserAssetsRequest,
     TransferUserAssetsResponse,
+    UnlockUserResponse,
     UpdateUserRequest,
+    UpdateUserRoleRequest,
     UpdateUserStatusRequest,
     UserListResponse,
     UserManagementService,
@@ -27,7 +31,7 @@ def include_user_routes(application, service: DemoService, current_user) -> None
         application.state.user_management_service = user_mgmt_service
     setattr(service, "user_management_service", user_mgmt_service)
 
-    router = APIRouter(prefix="/api/v1", responses=v1_error_responses(401, 403, 404, 409, 422, 500))
+    router = APIRouter(prefix="/api/v1", responses=v1_error_responses(401, 403, 404, 409, 422, 423, 500))
 
     @router.get(
         "/users",
@@ -133,5 +137,49 @@ def include_user_routes(application, service: DemoService, current_user) -> None
         user: Principal = Depends(current_user),
     ):
         return user_mgmt_service.transfer_assets(user_id, request, user)
+
+    @router.post(
+        "/users/{user_id}/reset-password",
+        response_model=ResetPasswordResponse,
+        operation_id="resetUserPassword",
+        summary="重置用户密码",
+        description="管理员为用户重置登录密码。强制核验 Q28 密码强度（>=8位，3类字符），重置成功后安全登出该用户全部活跃会话。",
+        tags=["users"],
+    )
+    def reset_user_password(
+        user_id: str,
+        request: ResetPasswordRequest,
+        user: Principal = Depends(current_user),
+    ):
+        return user_mgmt_service.reset_password(user_id, request, user)
+
+    @router.post(
+        "/users/{user_id}/unlock",
+        response_model=UnlockUserResponse,
+        operation_id="unlockUser",
+        summary="解锁用户账号",
+        description="管理员为因连续登录失败锁定的用户解锁，一键清空连续失败计数并恢复正常使用。",
+        tags=["users"],
+    )
+    def unlock_user(
+        user_id: str,
+        user: Principal = Depends(current_user),
+    ):
+        return user_mgmt_service.unlock_user(user_id, user)
+
+    @router.patch(
+        "/users/{user_id}/role",
+        response_model=UserModel,
+        operation_id="updateUserRole",
+        summary="分配用户系统角色",
+        description="调整用户的系统角色。超管 admin 角色受保护不可被降权（403 SUPER_ADMIN_PROTECTED），管理员不可自我降权（403 CANNOT_DEMOTE_SELF）。",
+        tags=["users"],
+    )
+    def update_user_role(
+        user_id: str,
+        request: UpdateUserRoleRequest,
+        user: Principal = Depends(current_user),
+    ):
+        return user_mgmt_service.update_role(user_id, request, user)
 
     application.include_router(router)

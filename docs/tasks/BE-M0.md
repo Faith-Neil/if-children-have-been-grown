@@ -845,3 +845,45 @@
 4. 附带交接人平滑转交（`successor_user_id`）：传入有效交接人时在单一事务中原子完成项目负责人（assembly_owner_id/owners/members）平滑交接并记录交接留痕（handoffs），清退会话后成功停用账号；
 5. 租户隔离底线与 RBAC 权限隔离：非超管跨企业查询或修改用户一律严格返回 404 `NOT_FOUND`（杜绝嗅贪）；普通编写人或只读用户修改用户数据一律严格拦截 403 `FORBIDDEN`；
 6. 编写专属端到端集成测试 `tests/backend/test_user_transfer_rbac_glue.py` 与前端胶水测试 `user-management-api.test.mjs` 全绿通过。
+
+<a id="be-user-security-ops"></a>
+
+## BE-USER-SECURITY-OPS · 用户角色调配、密码强制重置与登录失败锁定/解锁服务
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 估算 | 4小时；密码强制重置(Q28/422 PASSWORD_WEAK)、连续失败锁定(423 ACCOUNT_LOCKED)与解锁、角色调配、超管保护(403 SUPER_ADMIN_PROTECTED)与管理员防自降权(403 CANNOT_DEMOTE_SELF) |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [BE-USER-MANAGEMENT-TRANSFER](BE-M0.md#be-user-management-transfer) |
+| 来源 | PRD v1.8 §5.10.1、§5.10.2、安全合规 Q28 |
+| 完成时交付 | [BE-USER-SECURITY-OPS 交付报告](../delivery/BE-USER-SECURITY-OPS.md) |
+| 代码解释 | [BE-USER-SECURITY-OPS 代码说明](../code/BE-USER-SECURITY-OPS.md) |
+
+范围：为系统落地用户角色调配、密码强制重置与登录失败自动锁定/解锁后端服务：
+1. 密码强制重置端点（`POST /api/v1/users/{user_id}/reset-password`）：管理员可强制为用户重置密码；严格执行 Q28 密码安全策略（长度>=8位，且大写字母、小写字母、数字、特殊符号中至少满足3类），弱密码强制拦截抛出 422 `PASSWORD_WEAK`；采用 PBKDF2-HMAC-SHA256 重新加盐哈希，并即时作废该用户所有活跃会话（Token 立即失效）；
+2. 连续登录失败自动锁定与一键解锁（`POST /api/v1/users/{user_id}/unlock`）：登录密码连续输错达到上限（默认 5 次或企业设置 `max_login_attempts`）时，账号自动进入锁定状态（`is_locked=True`，`status="locked"`），后续任何登录尝试直接阻断并抛出 HTTP 423 `ACCOUNT_LOCKED`；管理员调用解锁端点可一键解除锁定状态，将连续失败计数清零并恢复账号为 `active`；
+3. 用户角色调配与双重安全门禁（`PATCH /api/v1/users/{user_id}/role`）：管理员可调整用户为 8 大标准 RBAC 角色；系统超管 `admin` 角色受强制保护，任何修改尝试拦截并抛出 403 `SUPER_ADMIN_PROTECTED`；管理员无法对自己进行降权（管理员降为非管理员拦截并抛出 403 `CANNOT_DEMOTE_SELF`）；
+4. 多租户强隔离与 RBAC 权限隔离：普通非管理员发起安全运维写操作拦截 403 `FORBIDDEN`；跨公司企管操作目标用户返回 404 `NOT_FOUND` 防信息嗅探；平台超级管理员具备全租户运维权限；
+5. 编写专属单测 `tests/backend/test_user_security_ops.py`，保持 OpenAPI 零契约漂移。
+
+<a id="int-user-security-ops-glue"></a>
+
+## INT-USER-SECURITY-OPS-GLUE · 用户角色分配、重置密码与账号解锁端到端契约联调
+
+| 字段 | 记录 |
+|---|---|
+| 状态 | done |
+| 估算 | 4小时（重置密码/Token即刻失效、输错5次自动锁定423/管理员解锁、8角色调配/超管与自降权双重门禁、跨租户404防嗅探） |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md)、[ISSUE-006](../../issues/ISSUE-006.md) |
+| 前置依赖 | [APP-M2-T028](APP-M2.md#app-m2-t028)、[BE-USER-SECURITY-OPS](BE-M0.md#be-user-security-ops) |
+| 需求来源 | PRD v1.8 §5.10.1、§5.10.2、§6.9；数据字典 v1.9；A-02 用户角色分配与重置密码/解锁业务页面 |
+| 实际交付 | [INT-USER-SECURITY-OPS-GLUE 交付报告](../delivery/INT-USER-SECURITY-OPS-GLUE.md) |
+| 代码解释 | [INT-USER-SECURITY-OPS-GLUE 代码说明](../code/INT-USER-SECURITY-OPS-GLUE.md) |
+
+范围：打通非演示模式（VITE_DEMO=0）下用户角色分配、密码强制重置与账号锁定/解锁全套前后端端到端契约与胶水层：
+1. 强制重置密码与会话即时作废全链路：打通 `POST /api/v1/users/{user_id}/reset-password`，严格执行 Q28 密码安全策略（>=8位且包含大写、小写、数字、符号中至少3类，不足拦截 422 `PASSWORD_WEAK`）；重置成功后物理销毁该用户所有历史会话（旧 Token 即刻 401 `UNAUTHENTICATED`），新凭据可正常登录；
+2. 连续登录失败锁定与管理员解锁全链路：输错密码 5 次自动触发状态流转（`is_locked=True` 且 `status="locked"`），后续即便输入正确密码也严格拦截 423 `ACCOUNT_LOCKED`；管理员调用 `POST /api/v1/users/{user_id}/unlock` 后状态恢复正常（`is_locked=False`, `status="active"`）且失败计数清零，用户可正常登录；
+3. 用户角色调配与越权防护防线：打通 `PATCH /api/v1/users/{user_id}/role`，支持企业内 8 大标准角色平滑切换；超管账号 `admin` 降权严格拦截 403 `SUPER_ADMIN_PROTECTED`；管理员自身降权严格拦截 403 `CANNOT_DEMOTE_SELF`；
+4. 多租户强隔离与 RBAC 权限控制：跨租户调用安全端点统一拦截 404 `NOT_FOUND` 防止用户 ID 探测；编写人等非管理员调用写端点统一拦截 403 `FORBIDDEN`；
+5. 编写专属端到端集成测试 `tests/backend/test_user_security_ops_glue.py` 与前端胶水测试，保持 OpenAPI 契约 0 漂移。

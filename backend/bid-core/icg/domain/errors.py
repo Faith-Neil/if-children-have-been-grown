@@ -38,6 +38,8 @@ def _frozen_status() -> dict[str, int]:
         "VOLUME_OWNER_REQUIRED",
         # ISSUE-024 登记。startGeneration 在适配器不是本地模型时拒绝敏感项目。这里不保存模型配置。
         "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
+        # 超管角色不可被修改/降权与管理员防自降权 (APP-M2-T028 / PRD v1.8 §5.10.1)
+        "SUPER_ADMIN_PROTECTED", "CANNOT_DEMOTE_SELF",
     ))
     _bind(table, 404, ("NOT_FOUND",))
     _bind(table, 409, (
@@ -89,7 +91,7 @@ def _frozen_status() -> dict[str, int]:
         # 密码强度策略不足 (PRD v1.8 §5.10.2 / Q28)
         "PASSWORD_WEAK",
     ))
-    _bind(table, 423, ("LOCK_HELD", "LOCK_LOST"))
+    _bind(table, 423, ("LOCK_HELD", "LOCK_LOST", "ACCOUNT_LOCKED"))
     _bind(table, 428, ("IF_MATCH_REQUIRED", "IDEMPOTENCY_KEY_REQUIRED"))
     _bind(table, 500, ("INTERNAL_ERROR",))
     _bind(table, 502, ("MODEL_UNAVAILABLE", "MODEL_OUTPUT_INVALID", "PARSER_UNAVAILABLE"))

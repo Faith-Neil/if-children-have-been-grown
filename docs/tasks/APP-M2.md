@@ -440,7 +440,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T028 · A-02 角色分配、解锁、重置密码
 <a id="app-m2-t028"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T014](APP-M2.md#app-m2-t014)、[APP-M2-T027](APP-M2.md#app-m2-t027)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T014](APP-M2.md#app-m2-t014)、[APP-M2-T027](APP-M2.md#app-m2-t027)。
 
 原始来源：原交接 §6.2 M1-P10-F3；PRD v1.8 §2.3、5.10.1、5.10.2。交付单位：A-02 角色分配、解锁、重置密码，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -450,7 +450,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 
 验收：实际完成本卡标题列出的单一行为，页面读回与后台同源状态一致，不只显示静态占位。原交接验收约束（取与本子项对应的条件）：`user_status` = locked 显示“解锁”。分别保存正例、权限反例、失败/并发及旧来源失效证据；涉及输出直接检查文件，原级别/放行/递交门禁不能被页面绕过。输出证据：隔离空间/用户角色状态、交接/安全策略审计。
 
-交付：`docs/delivery/APP-M2-T028.md`；代码解释：`docs/code/APP-M2-T028.md`；测试放docs/testing并逐项关联本卡，未执行写未执行。
+交付：[APP-M2-T028 交付](../delivery/APP-M2-T028.md)；代码解释：[APP-M2-T028 代码说明](../code/APP-M2-T028.md)；测试见 `frontend/web/tests/unit/user-role-reset-unlock.test.mjs`。
 
 ### APP-M2-T029 · 顶栏铃铛与未读数
 <a id="app-m2-t029"></a>
