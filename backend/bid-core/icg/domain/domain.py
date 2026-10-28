@@ -6,6 +6,7 @@ from __future__ import annotations
 import re
 
 import hashlib
+import os
 import json
 import secrets
 import time
@@ -46,21 +47,8 @@ class DomainError(Exception):
         super().__init__(message)
 
 
-DEMO_ONLY_ACCOUNT_IDS = frozenset({
-    "alpha-editor",
-    "alpha-manager",
-    "alpha-viewer",
-    "beta-editor",
-    "alpha-tech",
-    "alpha-business",
-    "alpha-outsider-manager",
-    "beta-manager",
-    "alpha-company-admin",
-    "alpha-data-admin",
-    "alpha-auditor",
-    "alpha-group-admin",
-    "platform-admin",
-})
+def _production_mode() -> bool:
+    return os.environ.get("ICG_ENV") == "production" or os.environ.get("ICG_REQUIRE_MYSQL") == "1"
 
 
 @dataclass(frozen=True)
@@ -472,45 +460,29 @@ class DemoService:
             return value.timestamp()
         return float(value)
 
-    def accounts(self) -> dict:
-        state = self.repository.read()
-        res = []
-        for user in state.accounts.values():
-            d = asdict(user)
-            d.pop("password_hash", None)
-            d.pop("salt", None)
-            res.append(d)
-        return {"accounts": res}
-
-    def login(self, account_id: str) -> dict:
-        def operation(state: DemoState):
-            user = state.accounts.get(account_id)
-            if user is None:
-                raise DomainError(401, "INVALID_ACCOUNT", "请选择有效的合成演示账号。")
-            import os
-            if (os.environ.get("ICG_ALLOW_DEMO_LOGIN", "1") == "0"
-                    or os.environ.get("DEMO_ACCOUNTS_ENABLED") == "0"
-                    or os.environ.get("ICG_ENV") == "production") and (account_id in DEMO_ONLY_ACCOUNT_IDS or getattr(user, "_DEMO_ONLY", False)):
-                raise DomainError(403, "FORBIDDEN", "生产配置下禁用内置演示账号登录。")
-            token = secrets.token_urlsafe(32)
-            state.sessions[token] = user.id
-            u_data = asdict(user)
-            u_data.pop("password_hash", None)
-            u_data.pop("salt", None)
-            return {"access_token": token, "token_type": "bearer", "user": u_data}
-        return self.repository.transaction(operation)
-
     def auth_login(self, username: str, password: str) -> dict:
         if not username or not password:
             raise DomainError(401, "INVALID_CREDENTIALS", "用户名或密码错误，请核实后重试。")
 
         state = self.repository.read()
         user = state.accounts.get(username)
+        production = _production_mode()
+        if production and user is not None and getattr(user, "_DEMO_ONLY", False) and username == "admin":
+            user = None  # 生产环境忽略种子管理员，按部署设定的初始密码重新初始化
         if user is None and username == "admin":
+            # 超级管理员首次登录时初始化。生产环境必须由部署方经 ICG_ADMIN_INITIAL_PASSWORD 设定初始密码，
+            # 不存在内置默认口令；开发与自动化测试环境才回落到固定初始密码。
+            initial = os.environ.get("ICG_ADMIN_INITIAL_PASSWORD", "")
+            if not initial and production:
+                raise DomainError(401, "INVALID_CREDENTIALS", "用户名或密码错误，请核实后重试。")
+            initial = initial or "X_2026"
+            if password != initial:
+                raise DomainError(401, "INVALID_CREDENTIALS", "用户名或密码错误，请核实后重试。")
             from icg.domain.auth_service import hash_password
             def init_admin(s: DemoState):
-                if "admin" not in s.accounts:
-                    p_hash, p_salt = hash_password("X_2026")
+                existing = s.accounts.get("admin")
+                if existing is None or getattr(existing, "_DEMO_ONLY", False):
+                    p_hash, p_salt = hash_password(initial)
                     s.accounts["admin"] = Account(
                         id="admin",
                         name="系统超级管理员",
@@ -527,6 +499,9 @@ class DemoService:
 
         if user is None:
             raise DomainError(401, "INVALID_CREDENTIALS", "用户名或密码错误，请核实后重试。")
+        if production and getattr(user, "_DEMO_ONLY", False):
+            # 内存仓储预置的合成账号只用于开发与自动化测试，生产环境一律拒绝。
+            raise DomainError(401, "INVALID_CREDENTIALS", "用户名或密码错误，请核实后重试。")
 
         if getattr(user, "is_locked", False) or getattr(user, "status", "active") == "locked":
             raise DomainError(423, "ACCOUNT_LOCKED", "账号因连续登录失败已被锁定，请联系管理员解锁。")
@@ -535,10 +510,8 @@ class DemoService:
             raise DomainError(401, "INVALID_CREDENTIALS", "该账号已被停用，请联系企业管理员。")
 
         from icg.domain.auth_service import verify_password
-        if user.password_hash:
-            valid = verify_password(password, user.password_hash, user.salt)
-        else:
-            valid = (password == "X_2026")
+        # 没有密码摘要的账号不能登录（不再接受固定明文口令）。
+        valid = bool(user.password_hash) and verify_password(password, user.password_hash, user.salt)
 
         if not valid:
             attempts = getattr(user, "failed_login_attempts", 0) + 1
@@ -585,7 +558,7 @@ class DemoService:
         state = self.repository.read()
         user = state.accounts.get(state.sessions.get(token, ""))
         if user is None:
-            raise DomainError(401, "UNAUTHENTICATED", "请先选择演示账号登录。")
+            raise DomainError(401, "UNAUTHENTICATED", "登录已失效，请重新登录。")
         if getattr(user, "status", "active") == "disabled":
             raise DomainError(401, "UNAUTHENTICATED", "当前账号已被停用。")
         if getattr(user, "is_locked", False):
@@ -602,7 +575,7 @@ class DemoService:
         if role in READONLY_SYSTEM_ROLES or role not in (
             "editor", "manager", "company_admin", "data_admin", "project_lead", "bid_writer"
         ):
-            raise DomainError(403, "FORBIDDEN", "当前演示账号只能查看，不能执行此操作。")
+            raise DomainError(403, "FORBIDDEN", "当前账号只能查看，不能执行此操作。")
 
     @staticmethod
     def _project(state: DemoState, principal: Principal, project_id: str) -> Project:

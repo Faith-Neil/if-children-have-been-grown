@@ -71,7 +71,9 @@ class MysqlConnectionRepository:
         self._url = url
         self._engine = None
         self._engine_lock = Lock()
-        self._memory = MemoryRepository()
+        # 生产环境不加载合成种子数据（示例公司、项目、账号、资料）：库里有什么就是什么，管理员首次登录时初始化。
+        from icg.domain.domain import DemoState, _production_mode
+        self._memory = MemoryRepository(DemoState() if _production_mode() else None)
         # 其余业务状态（工作流、账号、资料库、任务、审计等）按条目写入 demo_state_entry（ISSUE-041）。
         self._entries = StateEntryStore()
         self._entry_context = threading.local()

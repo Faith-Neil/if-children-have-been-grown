@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Badge,
   Button,
   Card,
@@ -42,7 +43,6 @@ import {
 import type { Account, ApplicationSession } from '../shared/types.ts';
 import {
   computeSnippetStats,
-  DEFAULT_SNIPPET_PUBLICATIONS,
   filterSnippets,
   formatMonospaceTime,
   getSnippetSyncStatusMeta,
@@ -54,7 +54,6 @@ import {
   type SnippetPublication,
 } from './snippet-library-core.ts';
 import { EmptyState } from '../status/StatusViews.tsx';
-import { isDemoMode } from '../shared/roles.ts';
 
 const { Text, Paragraph, Title } = Typography;
 
@@ -109,15 +108,9 @@ export function SnippetLibraryPage({
 }: SnippetLibraryPageProps) {
   const companyId = user?.company_id ?? session?.scope?.active_company_id ?? 'alpha';
 
-  const [snippets, setSnippets] = useState<SnippetPublication[]>(() => {
-    if (initialSnippets && initialSnippets.length > 0) return initialSnippets;
-    if (isDemoMode()) {
-      return DEFAULT_SNIPPET_PUBLICATIONS.filter(item => item.company_id === companyId);
-    }
-    return [];
-  });
-
+  const [snippets, setSnippets] = useState<SnippetPublication[]>(() => initialSnippets ?? []);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedSnippet, setSelectedSnippet] = useState<SnippetPublication | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -127,24 +120,14 @@ export function SnippetLibraryPage({
   const [syncStatus, setSyncStatus] = useState('all');
   const [onlyPublished, setOnlyPublished] = useState(true);
 
-  // 加载数据
+  // 加载数据：只显示后台真实片段，失败时如实提示，不用示例数据顶替。
   async function reloadSnippets() {
     setLoading(true);
+    setLoadError(null);
     try {
-      const data = await loadSnippetPublications(token ?? null);
-      if (Array.isArray(data) && data.length > 0) {
-        setSnippets(data);
-      } else if (isDemoMode()) {
-        // 演示模式无远端片段时注入高质量示例
-        setSnippets(DEFAULT_SNIPPET_PUBLICATIONS.filter(item => item.company_id === companyId));
-      } else {
-        setSnippets(data ?? []);
-      }
-    } catch {
-      // 网络或离线异常时若为演示模式使用兜底
-      if (isDemoMode()) {
-        setSnippets(DEFAULT_SNIPPET_PUBLICATIONS.filter(item => item.company_id === companyId));
-      }
+      setSnippets((await loadSnippetPublications(token ?? null)) ?? []);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : '方案片段加载失败，请稍后重试。');
     } finally {
       setLoading(false);
     }
@@ -403,6 +386,7 @@ export function SnippetLibraryPage({
       </Card>
 
       {/* 主数据列表 */}
+      {loadError && <Alert type="error" showIcon style={{ marginBottom: 12 }} message={loadError} data-testid="snippet-load-error" />}
       <Card bodyStyle={{ padding: 0 }}>
         <Spin spinning={loading}>
           {filteredSnippets.length === 0 ? (

@@ -59,6 +59,7 @@ import { MaskedField } from '../admin/MaskedField.tsx';
 import { KnowledgeBasePanel } from './KnowledgeBasePanel.tsx';
 import {
   CATEGORY_LABEL_MAP,
+  LIBRARY_TYPE_OPTIONS,
   checkEvidenceUsability,
   deriveEvidenceStatus,
   EVIDENCE_STATUS_META,
@@ -899,15 +900,7 @@ export function LibraryPage({
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="type" label="资料类别" rules={[{ required: true }]}>
-                <Select
-                  options={[
-                    { value: 'qualification', label: '主体资质' },
-                    { value: 'financial', label: '财务审计' },
-                    { value: 'personnel', label: '人员证书' },
-                    { value: 'case', label: '业绩案例' },
-                    { value: 'template', label: '通用模板' },
-                  ]}
-                />
+                <Select options={LIBRARY_TYPE_OPTIONS} />
               </Form.Item>
             </Col>
               <Col span={12}>

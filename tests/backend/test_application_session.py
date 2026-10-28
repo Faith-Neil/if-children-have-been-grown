@@ -21,7 +21,7 @@ def setup():
 
 
 def login(client, identity="alpha-manager"):
-    response = client.post("/api/demo/login", json={"account_id": identity})
+    response = client.post("/api/v1/auth/login", json={"username": identity, "password": "X_2026"})
     assert response.status_code == 200, response.text
     return {"Authorization": "Bearer " + response.json()["access_token"]}
 
@@ -31,7 +31,7 @@ def login(client, identity="alpha-manager"):
      {"projects.read", "library.read", "sla_templates.read", "jobs.read", "library.write", "projects.create", "sla_templates.write"}),
     ("alpha-editor", "bid_writer", {"workbench", "library", "knowledge", "writing", "jobs"},
      {"projects.read", "library.read", "sla_templates.read", "jobs.read", "library.write"}),
-    ("alpha-viewer", "readonly", {"workbench", "library", "knowledge", "jobs"},
+    ("alpha-viewer", "viewer", {"workbench", "library", "knowledge", "jobs"},
      {"projects.read", "library.read", "sla_templates.read", "jobs.read"}),
 ])
 def test_session_returns_only_server_identity_and_explicit_compat_mode(setup, identity, role, routes, actions):
@@ -41,8 +41,8 @@ def test_session_returns_only_server_identity_and_explicit_compat_mode(setup, id
     response = client.get("/api/v1/session", headers=headers)
     assert response.status_code == 200, response.text
     data = response.json()
-    assert data["auth_mode"] == "synthetic-demo"
-    assert data["role_mode"] == "legacy-demo-compat"
+    assert data["auth_mode"] == "authenticated"
+    assert data["role_mode"] == "rbac-8roles"
     assert data["user"]["id"] == identity
     assert data["user"]["role"] == before.accounts[identity].role
     assert data["user"]["roles"] == [role]
@@ -69,7 +69,7 @@ def test_missing_or_bad_token_is_401(setup, authorization):
     assert "user" not in response.json() and "project_access" not in response.json()
 
 
-@pytest.mark.parametrize("role", ["unknown", "company_admin", "platform_admin", "group_admin", "data_admin", "reviewer"])
+@pytest.mark.parametrize("role", ["unknown", "superuser"])
 def test_unadapted_roles_are_denied_even_when_the_original_matrix_defines_them(setup, role):
     client, repository = setup
     headers = login(client)
@@ -152,13 +152,13 @@ def test_session_reloads_changed_role_and_ignores_the_old_principal(setup):
     response = client.get("/api/v1/session?project_id=alpha-project", headers=headers)
     assert response.status_code == 200, response.text
     data = response.json()
-    assert data["user"]["roles"] == ["readonly"]
+    assert data["user"]["roles"] == ["viewer"]
     assert "projects.create" not in data["allowedActions"]
     assert "admin.rules" not in {item["route_id"] for item in data["navigation"]}
     assert not data["project_access"]["permissions"]["manage_team"]
     assert all(not chapter["permissions"]["edit"] for chapter in data["project_access"]["chapters"])
     assert "project.export" not in data["project_access"]["route_permissions"]
-    assert get_application_session(service, stale)["user"]["roles"] == ["readonly"]
+    assert get_application_session(service, stale)["user"]["roles"] == ["viewer"]
 
 
 def test_removed_membership_is_denied_with_existing_token(setup):
@@ -252,3 +252,16 @@ def test_product_paths_serve_the_shell_and_unknown_api_stays_json(setup):
     else:
         assert page.status_code == 503
         assert (page.json().get("code") or page.json().get("error", {}).get("code")) == "UI_NOT_READY"
+
+
+@pytest.mark.parametrize("identity,role,writable", [
+    ("alpha-company-admin", "company_admin", True), ("alpha-data-admin", "data_admin", True),
+    ("alpha-auditor", "auditor", False),
+])
+def test_eight_role_accounts_get_production_sessions(setup, identity, role, writable):
+    client, _ = setup
+    data = client.get("/api/v1/session", headers=login(client, identity)).json()
+    assert data["auth_mode"] == "authenticated" and data["role_mode"] == "rbac-8roles"
+    assert data["user"]["primary_role"] == role
+    assert ("library.write" in data["allowedActions"]) is writable
+

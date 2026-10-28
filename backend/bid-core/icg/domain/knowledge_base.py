@@ -47,8 +47,8 @@ def default_settings() -> dict[str, Any]:
         "embedding_model": os.environ.get("ICG_KB_EMBEDDING_MODEL", "").strip(),
         "rerank_id": os.environ.get("ICG_KB_RERANK_ID", "").strip(),
         "llm_id": os.environ.get("ICG_KB_LLM_ID", "").strip(),
-        "similarity_threshold": _env_float("ICG_KB_SIMILARITY_THRESHOLD", 0.2),
-        "keywords_weight": _env_float("ICG_KB_KEYWORDS_WEIGHT", 0.7),
+        "similarity_threshold": _env_float("ICG_KB_SIMILARITY_THRESHOLD", 0.45),
+        "keywords_weight": _env_float("ICG_KB_KEYWORDS_WEIGHT", 0.3),
         "use_pipelines": os.environ.get("ICG_KB_USE_PIPELINES", "1").strip() != "0",
         "language": "Chinese",
         "profiles": {},
@@ -283,8 +283,8 @@ class KnowledgeBaseService:
         self._executor: ThreadPoolExecutor | None = None
         self._locks: dict[str, threading.Lock] = {}
         self._locks_guard = threading.Lock()
-        self.similarity_threshold = _env_float("ICG_KB_SIMILARITY_THRESHOLD", 0.2)
-        self.keywords_weight = _env_float("ICG_KB_KEYWORDS_WEIGHT", 0.7)
+        self.similarity_threshold = _env_float("ICG_KB_SIMILARITY_THRESHOLD", 0.45)
+        self.keywords_weight = _env_float("ICG_KB_KEYWORDS_WEIGHT", 0.3)
         self.rerank_id = os.environ.get("ICG_KB_RERANK_ID", "").strip() or None
 
     # ---------- 客户端 ----------
@@ -383,7 +383,7 @@ class KnowledgeBaseService:
                 pipeline_id = str(found["id"])
                 client.update_agent(pipeline_id, dsl=dsl)
             else:
-                pipeline_id = str(client.create_agent(title, dsl, description=profile.description,
+                pipeline_id = str(client.create_agent(title, dsl, description=f"[{company_id}] {profile.description}",
                                                       canvas_category="dataflow_canvas")["id"])
             changed = True
         now = iso_time(self.demo._now())

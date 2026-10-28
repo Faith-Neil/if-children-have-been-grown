@@ -31,12 +31,16 @@ export interface CategoryMeta {
  */
 export const LIBRARY_CATEGORIES: CategoryMeta[] = [
   { key: 'all', label: '全部资料', secondary: '全库资料概览' },
-  { key: 'qualification', label: '主体资质', secondary: '法人资质与合规准入证照' },
-  { key: 'financial', label: '财务审计', secondary: '财务报表与纳税完税凭据' },
+  { key: 'qualification', label: '主体资质', secondary: '营业执照、资质证书、财务审计与纳税凭据' },
   { key: 'personnel', label: '人员证书', secondary: '项目人员执业资格与聘书' },
-  { key: 'case', label: '业绩案例', secondary: '同类标杆案例与履约合同' },
-  { key: 'template', label: '通用模板', secondary: '服务承诺方案与商务模板' },
+  { key: 'performance', label: '业绩案例', secondary: '同类标杆案例与履约合同' },
+  { key: 'sla', label: '服务承诺', secondary: '服务指标与响应承诺' },
+  { key: 'snippet', label: '方案片段', secondary: '经核对可复用的方案文字' },
+  { key: 'history', label: '历史标书（参考）', secondary: '只供查看参考，不能挂为证据' },
 ];
+
+/** 资料类别必须与后端 LibraryType 一致（qualification/personnel/performance/sla/snippet/history），否则保存会被拒绝。 */
+export const LIBRARY_TYPE_OPTIONS = LIBRARY_CATEGORIES.filter(c => c.key !== 'all').map(c => ({ value: c.key, label: c.label }));
 
 export const CATEGORY_LABEL_MAP: Record<string, string> = {
   all: '全部资料',
@@ -51,7 +55,9 @@ export const CATEGORY_LABEL_MAP: Record<string, string> = {
   performance: '业绩案例',
   template: '通用模板',
   sla_templates: '服务承诺模板',
-  history: '历史标书参考',
+  sla: '服务承诺',
+  snippet: '方案片段',
+  history: '历史标书（参考）',
 };
 
 export function getCategoryLabel(type: string | undefined | null): string {

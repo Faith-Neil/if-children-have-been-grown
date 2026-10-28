@@ -2,7 +2,7 @@
 // 它解决什么问题：将环境标签、全局搜索、任务中心入口、用户信息、退出与配置弹窗入口从 App.tsx 抽离，降低 App 巨石复杂度。
 
 import React from 'react';
-import { Button, Input, Tag, Tooltip } from 'antd';
+import { Button, Input, Tooltip } from 'antd';
 import {
   BellOutlined,
   DatabaseOutlined,
@@ -44,22 +44,18 @@ export function AppHeaderActions({
   const userPrimaryRole = session?.user?.primary_role;
   const roleDisplayLabel =
     {
+      platform_admin: '平台管理员',
+      group_admin: '集团管理员',
+      company_admin: '公司管理员',
+      data_admin: '资料管理员',
       project_lead: '项目负责人',
       bid_writer: '投标编写人',
-      readonly: '只读成员',
-      company_admin: '企业管理员',
-      platform_admin: '平台管理员',
-      bid_auditor: '合规审计员',
-      bid_manager: '投标主管',
-      bid_finance: '财务专员',
-    }[userPrimaryRole ?? ''] ?? '演示身份';
+      auditor: '审核人',
+      viewer: '只读成员',
+    }[userPrimaryRole ?? ''] ?? '成员';
 
   return (
     <>
-      <Tag color="orange" className="environment">
-        示例数据 · 非真实业务
-      </Tag>
-
       {sessionAllowsRoute(session, 'workbench') && (
         <Input
           className="global-search"

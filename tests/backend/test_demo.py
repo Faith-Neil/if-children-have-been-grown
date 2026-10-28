@@ -36,7 +36,7 @@ def client(clock):
 
 
 def login(client, account="alpha-editor"):
-    response = client.post("/api/demo/login", json={"account_id": account})
+    response = client.post("/api/v1/auth/login", json={"username": account, "password": "X_2026"})
     assert response.status_code == 200, response.text
     token = response.json()["access_token"]
     return {"Authorization": "Bearer " + token}
@@ -91,12 +91,12 @@ def checked_export(client, headers, lease):
     return check.json(), exported.json()
 
 
-def test_demo_accounts_and_authentication_boundary(client):
-    accounts = client.get("/api/demo/accounts")
-    assert accounts.status_code == 200
-    assert {row["id"] for row in accounts.json()["accounts"]} >= {
-        "alpha-editor", "alpha-manager", "alpha-viewer", "beta-editor"
-    }
+def test_authentication_boundary_without_demo_routes(client):
+    # 演示账号列表与免密登录已移除。
+    assert client.get("/api/demo/accounts").status_code == 404
+    assert client.post("/api/demo/login", json={"account_id": "alpha-manager"}).status_code in (404, 405)
+    wrong = client.post("/api/v1/auth/login", json={"username": "alpha-manager", "password": "wrong"})
+    assert wrong.status_code == 401
     assert client.get("/api/projects").status_code == 401
     assert client.get(f"/api/chapters/{CHAPTER}").status_code == 401
     assert client.get("/api/projects", headers={"Authorization": "Bearer invalid"}).status_code == 401

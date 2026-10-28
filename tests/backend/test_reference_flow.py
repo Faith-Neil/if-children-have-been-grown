@@ -28,7 +28,7 @@ def client():
 
 
 def login(client, account="alpha-manager"):
-    result = client.post("/api/demo/login", json={"account_id": account})
+    result = client.post("/api/v1/auth/login", json={"username": account, "password": "X_2026"})
     assert result.status_code == 200, result.text
     return {"Authorization": "Bearer " + result.json()["access_token"]}
 

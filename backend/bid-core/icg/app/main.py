@@ -50,7 +50,7 @@ DOCX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingm
 
 def error_responses(*statuses: int) -> dict:
     descriptions = {
-        401: "未登录或演示登录已失效",
+        401: "未登录或登录已失效",
         403: "当前账号无操作权限",
         404: "资源不存在或当前公司无权访问",
         409: "版本、草稿或检查结果冲突",
@@ -83,10 +83,6 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
                           responses=error_responses(422, 500))
     application.state.service = service
 
-    static_directory = Path(__file__).resolve().parents[2] / "icg_demo" / "static"
-    if not static_directory.exists():
-        static_directory = Path(__file__).resolve().parent / "static"
-    application.mount("/static", StaticFiles(directory=static_directory, check_dir=False), name="static")
 
     product_directory = Path(__file__).resolve().parents[4] / "frontend" / "web" / "dist"
     application.mount("/assets", StaticFiles(directory=product_directory / "assets", check_dir=False), name="product-assets")
@@ -101,9 +97,6 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
             reset_request(token)
         response.headers["X-Request-ID"] = request.state.request_id
         response.headers["Cache-Control"] = "no-store"
-        if request.url.path.startswith("/api/demo"):
-            response.headers["Deprecation"] = "true"
-            response.headers["Sunset"] = "Sun, 15 Nov 2026 00:00:00 GMT"
         if replayed_for(request):
             response.headers["Idempotent-Replayed"] = "true"
         return response
@@ -116,9 +109,6 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
             content["error"] = {"code": code, "message": message}
             content["request_id"] = request_id
         resp_headers = {"X-Request-ID": request_id, "Cache-Control": "no-store", **(headers or {})}
-        if request.url.path.startswith("/api/demo"):
-            resp_headers["Deprecation"] = "true"
-            resp_headers["Sunset"] = "Sun, 15 Nov 2026 00:00:00 GMT"
         return JSONResponse(status_code=status,
                             content=content,
                             headers=resp_headers)
@@ -147,14 +137,19 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     def current_user(authorization: Annotated[str | None, Header()] = None) -> Principal:
         scheme, _, token = (authorization or "").partition(" ")
         if scheme.lower() != "bearer" or not token.strip():
-            raise DomainError(401, "UNAUTHENTICATED", "请先选择演示账号登录。")
+            raise DomainError(401, "UNAUTHENTICATED", "请先登录。")
         return service.authenticate(token.strip())
 
     @application.get("/health", response_model=HealthResponse, operation_id="getHealth")
     def health():
-        return {"status": "ok", "mode": "local-demo", "repository": getattr(service.repository, "mode", "injected"),
+        from icg.domain.domain import _production_mode
+        repository_mode = getattr(service.repository, "mode", "injected")
+        return {"status": "ok", "mode": "production" if _production_mode() else "development",
+                "repository": repository_mode,
                 "model": "real" if getattr(service.model_provider, "is_real_model", False) else "mock",
-                "persistent": False, "single_process": True}
+                "persistent": repository_mode == "mysql",
+                # 后台作业执行与知识库同步锁仍在进程内，部署时只能起一个应用进程。
+                "single_process": True}
 
     @application.get("/", response_class=FileResponse, operation_id="getIndex",
                      responses={**error_responses(404), 200: {"description": "本地操作页面",
@@ -164,10 +159,6 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
         if not path.is_file():
             raise DomainError(503, "UI_NOT_READY", "产品页面尚未构建，请按前端运行说明先构建页面。")
         return FileResponse(path)
-
-    @application.get("/demo", response_class=FileResponse, include_in_schema=False)
-    def developer_demo():
-        return FileResponse(static_directory / "index.html")
 
     # 按域收口注册 API 端点
     include_session_routes(application, service, current_user)

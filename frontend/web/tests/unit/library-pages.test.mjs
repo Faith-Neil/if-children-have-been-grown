@@ -16,13 +16,13 @@ import {
 
 test('LIBRARY_CATEGORIES defines standard categories and supports label lookup', () => {
   const keys = LIBRARY_CATEGORIES.map(c => c.key);
-  assert.deepEqual(keys, ['all', 'qualification', 'financial', 'personnel', 'case', 'template']);
+  assert.deepEqual(keys, ['all', 'qualification', 'personnel', 'performance', 'sla', 'snippet', 'history']);
   
   assert.equal(getCategoryLabel('qualification'), '主体资质');
   assert.equal(getCategoryLabel('financial'), '财务审计');
   assert.equal(getCategoryLabel('personnel'), '人员证书');
   assert.equal(getCategoryLabel('case'), '业绩案例');
-  assert.equal(getCategoryLabel('template'), '通用模板');
+  assert.equal(getCategoryLabel('snippet'), '方案片段');
   assert.equal(getCategoryLabel('unknown_key'), 'unknown_key');
 });
 

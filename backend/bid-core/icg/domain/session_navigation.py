@@ -6,7 +6,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Iterable
 
-from .domain import DEMO_ONLY_ACCOUNT_IDS, DomainError, Principal
+from .domain import DomainError, Principal
 from .auth_service import is_super_admin
 from .project_access import (
     ROLE_NORMALIZATION_MAP,
@@ -17,7 +17,6 @@ from .project_access import (
 )
 
 
-LEGACY_ROLE_MAPPING = {"manager": "project_lead", "editor": "bid_writer", "viewer": "readonly"}
 
 # 原8角色的入口矩阵是后续身份适配的共同定义，不代表当前演示身份已经具备这些角色。
 # 写作档案遵循PRD具体矩阵：审核人、只读成员不授予；公司统计独立于项目/集团统计。
@@ -66,7 +65,7 @@ def get_application_session(service, principal: Principal, project_id: str | Non
     state = service.repository.read()
     user = state.accounts.get(state.sessions.get(principal.session_token, ""))
     if user is None:
-        raise DomainError(401, "UNAUTHENTICATED", "请先选择演示账号登录。")
+        raise DomainError(401, "UNAUTHENTICATED", "请先登录。")
     if not isinstance(user.company_id, str) or not user.company_id.strip():
         raise DomainError(403, "SESSION_SCOPE_UNSUPPORTED", "当前账号的公司范围尚未接入，请联系管理员。")
 
@@ -89,43 +88,27 @@ def get_application_session(service, principal: Principal, project_id: str | Non
         ]
         navigation = [{"route_id": route_id, "path": path, "access": "write"} for route_id, path in NAVIGATION_PATHS.items()]
     else:
-        is_legacy_demo = user.id in DEMO_ONLY_ACCOUNT_IDS or getattr(user, "_DEMO_ONLY", False)
-        if is_legacy_demo:
-            role = LEGACY_ROLE_MAPPING.get(user.role)
-            if role is None:
-                raise DomainError(403, "SESSION_ROLE_UNSUPPORTED", "当前账号角色尚未接入，请联系管理员。")
-            auth_mode = "synthetic-demo"
-            role_mode = "legacy-demo-compat"
-            primary_role = role
-            roles = [role]
-            nav_roles = [role]
-            home_path = "/workbench"
-            actions = ["projects.read", "library.read", "sla_templates.read", "jobs.read"]
-            if user.role in ("manager", "editor"):
-                actions.append("library.write")
-            if user.role == "manager":
-                actions.extend(("projects.create", "sla_templates.write"))
+        # 所有账号都按正式 8 角色会话处理（旧 manager/editor/viewer 经 ROLE_NORMALIZATION_MAP 归一）。
+        if user.role not in ROLE_NORMALIZATION_MAP:
+            raise DomainError(403, "SESSION_ROLE_UNSUPPORTED", "当前账号角色尚未接入，请联系管理员。")
+        norm_role = normalize_role(user.role)
+        auth_mode = "authenticated"
+        role_mode = "rbac-8roles"
+        primary_role = norm_role
+        roles = [norm_role]
+        nav_role = "reviewer" if norm_role == "auditor" else ("readonly" if norm_role == "viewer" else norm_role)
+        nav_roles = [nav_role]
+        home_path = "/platform" if norm_role == "platform_admin" else "/workbench"
+        if norm_role == "platform_admin":
+            actions = ["jobs.read"]
         else:
-            if user.role not in ROLE_NORMALIZATION_MAP:
-                raise DomainError(403, "SESSION_ROLE_UNSUPPORTED", "当前账号角色尚未接入，请联系管理员。")
-            norm_role = normalize_role(user.role)
-            auth_mode = "authenticated"
-            role_mode = "rbac-8roles"
-            primary_role = norm_role
-            roles = [norm_role]
-            nav_role = "reviewer" if norm_role == "auditor" else ("readonly" if norm_role == "viewer" else norm_role)
-            nav_roles = [nav_role]
-            home_path = "/platform" if norm_role == "platform_admin" else "/workbench"
-            if norm_role == "platform_admin":
-                actions = ["jobs.read"]
-            else:
-                actions = ["projects.read", "library.read", "sla_templates.read", "jobs.read"]
-                if norm_role in ("project_lead", "company_admin"):
-                    actions.extend(("projects.create", "sla_templates.write", "library.write"))
-                elif norm_role in ("bid_writer", "data_admin"):
-                    actions.append("library.write")
-                    if norm_role == "data_admin":
-                        actions.append("sla_templates.write")
+            actions = ["projects.read", "library.read", "sla_templates.read", "jobs.read"]
+            if norm_role in ("project_lead", "company_admin"):
+                actions.extend(("projects.create", "sla_templates.write", "library.write"))
+            elif norm_role in ("bid_writer", "data_admin"):
+                actions.append("library.write")
+                if norm_role == "data_admin":
+                    actions.append("sla_templates.write")
         navigation = navigation_for_roles(nav_roles)
 
     current = Principal(user, principal.session_token)

@@ -185,7 +185,7 @@ jobs:
         with:
           node-version: "24.9.0"
       - name: CommonJS suites
-        run: node --test tests/governance/*.test.cjs tests/prototype/*.test.cjs tests/workspace-sync/*.test.cjs tests/backend/demo-page.test.cjs
+        run: node --test tests/governance/*.test.cjs tests/prototype/*.test.cjs tests/workspace-sync/*.test.cjs
       - name: Governance check
         run: node scripts/check-project-governance.cjs
 
@@ -231,7 +231,6 @@ jobs:
         run: pnpm --dir frontend/web exec playwright install --with-deps chromium
       - name: Browser end-to-end
         env:
-          VITE_DEMO: "1"
           E2E_PYTHON: python
           E2E_SCREENSHOT_DIR: ${{ github.workspace }}/e2e-artifacts/screenshots
           E2E_OUTPUT_DIR: ${{ github.workspace }}/e2e-artifacts/results

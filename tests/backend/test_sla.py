@@ -18,13 +18,16 @@ from icg_demo.main import create_app
 @pytest.fixture
 def client():
     state = seed_state()
-    state.accounts["beta-manager"] = Account("beta-manager", "乙公司项目经理（合成）", "beta", "manager")
+    from icg.domain.auth_service import hash_password
+    digest, salt = hash_password("X_2026")
+    state.accounts["beta-manager"] = Account("beta-manager", "乙公司项目经理（合成）", "beta", "manager",
+                                             password_hash=digest, salt=salt)
     with TestClient(create_app(repository=MemoryRepository(state))) as actual:
         yield actual
 
 
 def login(client, account="alpha-manager"):
-    result = client.post("/api/demo/login", json={"account_id": account})
+    result = client.post("/api/v1/auth/login", json={"username": account, "password": "X_2026"})
     assert result.status_code == 200, result.text
     return {"Authorization": "Bearer " + result.json()["access_token"]}
 

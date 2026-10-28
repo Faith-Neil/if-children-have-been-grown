@@ -19,14 +19,11 @@ function forbidden(message = '你没有该页面的权限，请联系公司管�
 }
 
 export function trustedApplicationSession(value: ApplicationSession): ApplicationSession {
-  const isLegacyDemo = value?.role_mode === 'legacy-demo-compat';
-  const roleValid = isLegacyDemo
-    ? ['manager', 'editor', 'viewer'].includes(value?.user?.role)
-    : isKnownRole(value?.user?.role);
+  const roleValid = isKnownRole(value?.user?.role);
 
   if (!value
-    || !['synthetic-demo', 'authenticated'].includes(value.auth_mode)
-    || !['legacy-demo-compat', 'rbac-8roles'].includes(value.role_mode)
+    || value.auth_mode !== 'authenticated'
+    || value.role_mode !== 'rbac-8roles'
     || !value.user?.id || !value.user.name || !roleValid
     || !value.user.company_id || !Array.isArray(value.user.roles) || !value.user.roles.length || !value.user.primary_role
     || value.scope?.kind !== 'company' || value.scope.active_company_id !== value.user.company_id

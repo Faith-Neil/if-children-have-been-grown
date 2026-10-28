@@ -175,16 +175,23 @@ PROFILES: dict[str, PipelineProfile] = {
 }
 
 
+def company_tag(company_id: str) -> str:
+    """公司在流程标题里的短标识（RAGFlow 1.0 解析任务表的 pipeline_title 列很短，实测超长即入队失败）。"""
+    return hashlib.sha1(company_id.encode("utf-8")).hexdigest()[:8]
+
+
 def pipeline_title(company_id: str, profile: PipelineProfile, version: int = PIPELINE_VERSION) -> str:
-    return f"{TITLE_PREFIX}::{company_id}::{profile.key}::v{version}"
+    # 形如 icg:history_bid:v1:1a2b3c4d，最长不超过 32 字符；公司全名记在流程描述与本系统索引里。
+    return f"{TITLE_PREFIX}:{profile.key}:v{version}:{company_tag(company_id)}"
 
 
 def parse_pipeline_title(title: str) -> tuple[str, str, int] | None:
-    parts = (title or "").split("::")
-    if len(parts) != 4 or parts[0] != TITLE_PREFIX or not parts[3].startswith("v"):
+    """返回 (公司短标识, 流程键, 版本)。"""
+    parts = (title or "").split(":")
+    if len(parts) != 4 or parts[0] != TITLE_PREFIX or not parts[2].startswith("v"):
         return None
     try:
-        return parts[1], parts[2], int(parts[3][1:])
+        return parts[3], parts[1], int(parts[2][1:])
     except ValueError:
         return None
 

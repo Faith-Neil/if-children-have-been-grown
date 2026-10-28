@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Header, Query, Request, Response
 
 from icg.domain.domain import DemoService, DomainError, Principal
-from icg.domain.schemas import AccountListResponse, ApplicationSessionResponse, LoginRequest, LoginResponse, UsernamePasswordLoginRequest
+from icg.domain.schemas import ApplicationSessionResponse, LoginResponse, UsernamePasswordLoginRequest
 from icg.domain.session_navigation import get_application_session
 from icg.domain.workflow_schemas import v1_error_responses
 
@@ -13,7 +13,7 @@ from icg.domain.workflow_schemas import v1_error_responses
 def error_responses(*statuses: int) -> dict:
     from icg.domain.workflow_schemas import V1Error
     descriptions = {
-        401: "未登录或演示登录已失效",
+        401: "未登录或登录已失效",
         403: "当前账号无操作权限",
         404: "资源不存在或当前公司无权访问",
         409: "版本、草稿或检查结果冲突",
@@ -29,21 +29,12 @@ def error_responses(*statuses: int) -> dict:
 def include_session_routes(application, service: DemoService, current_user) -> None:
     User = Annotated[Principal, Depends(current_user)]
 
-    @application.get("/api/demo/accounts", response_model=AccountListResponse, operation_id="listAccounts", deprecated=True)
-    def accounts():
-        return service.accounts()
-
-    @application.post("/api/demo/login", response_model=LoginResponse, operation_id="login",
-                      responses=error_responses(401), deprecated=True)
-    def login(body: LoginRequest):
-        return service.login(body.account_id)
-
     @application.post(
         "/api/v1/auth/login",
         response_model=LoginResponse,
         operation_id="authLogin",
         summary="账号密码登录认证",
-        description="正式非演示模式下基于账号密码凭据进行身份认证。支持超级管理员 admin（初始密码 X_2026）及已注册账号登录；凭据错误返回 401 INVALID_CREDENTIALS。",
+        description="账号密码登录。超级管理员 admin 的初始密码由部署时的 ICG_ADMIN_INITIAL_PASSWORD 设定；凭据错误返回 401 INVALID_CREDENTIALS，连续错误达到公司上限返回 423 ACCOUNT_LOCKED。",
         responses=v1_error_responses(401, 422, 500),
     )
     def auth_login(body: UsernamePasswordLoginRequest, response: Response):

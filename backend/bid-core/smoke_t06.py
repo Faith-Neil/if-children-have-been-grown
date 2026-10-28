@@ -129,7 +129,7 @@ def main():
                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         for _ in range(150):
             try:
-                httpx.get(base_url + '/api/demo/accounts', timeout=1, trust_env=False)
+                httpx.get(base_url + '/health', timeout=1, trust_env=False)
                 break
             except httpx.TransportError:
                 time.sleep(0.1)

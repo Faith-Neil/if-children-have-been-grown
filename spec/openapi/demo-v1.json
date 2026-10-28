@@ -127,143 +127,10 @@
         }
       }
     },
-    "/api/demo/accounts": {
-      "get": {
-        "summary": "Accounts",
-        "operationId": "listAccounts",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AccountListResponse"
-                }
-              }
-            },
-            "headers": {
-              "X-Request-ID": {
-                "$ref": "#/components/headers/X-Request-ID"
-              }
-            }
-          },
-          "422": {
-            "description": "请求字段验证失败",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V1Error"
-                }
-              }
-            },
-            "headers": {
-              "X-Request-ID": {
-                "$ref": "#/components/headers/X-Request-ID"
-              }
-            }
-          },
-          "500": {
-            "description": "后端演示服务异常",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V1Error"
-                }
-              }
-            },
-            "headers": {
-              "X-Request-ID": {
-                "$ref": "#/components/headers/X-Request-ID"
-              }
-            }
-          }
-        },
-        "deprecated": true
-      }
-    },
-    "/api/demo/login": {
-      "post": {
-        "summary": "Login",
-        "operationId": "login",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LoginResponse"
-                }
-              }
-            },
-            "headers": {
-              "X-Request-ID": {
-                "$ref": "#/components/headers/X-Request-ID"
-              }
-            }
-          },
-          "422": {
-            "description": "请求字段验证失败",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V1Error"
-                }
-              }
-            },
-            "headers": {
-              "X-Request-ID": {
-                "$ref": "#/components/headers/X-Request-ID"
-              }
-            }
-          },
-          "500": {
-            "description": "后端演示服务异常",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V1Error"
-                }
-              }
-            },
-            "headers": {
-              "X-Request-ID": {
-                "$ref": "#/components/headers/X-Request-ID"
-              }
-            }
-          },
-          "401": {
-            "description": "未登录或演示登录已失效",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/V1Error"
-                }
-              }
-            },
-            "headers": {
-              "X-Request-ID": {
-                "$ref": "#/components/headers/X-Request-ID"
-              }
-            }
-          }
-        },
-        "deprecated": true
-      }
-    },
     "/api/v1/auth/login": {
       "post": {
         "summary": "账号密码登录认证",
-        "description": "正式非演示模式下基于账号密码凭据进行身份认证。支持超级管理员 admin（初始密码 X_2026）及已注册账号登录；凭据错误返回 401 INVALID_CREDENTIALS。",
+        "description": "账号密码登录。超级管理员 admin 的初始密码由部署时的 ICG_ADMIN_INITIAL_PASSWORD 设定；凭据错误返回 401 INVALID_CREDENTIALS，连续错误达到公司上限返回 423 ACCOUNT_LOCKED。",
         "operationId": "authLogin",
         "requestBody": {
           "content": {
@@ -542,7 +409,7 @@
             }
           },
           "401": {
-            "description": "未登录或演示登录已失效",
+            "description": "未登录或登录已失效",
             "content": {
               "application/json": {
                 "schema": {
@@ -663,7 +530,7 @@
             }
           },
           "401": {
-            "description": "未登录或演示登录已失效",
+            "description": "未登录或登录已失效",
             "content": {
               "application/json": {
                 "schema": {
@@ -815,7 +682,7 @@
             }
           },
           "401": {
-            "description": "未登录或演示登录已失效",
+            "description": "未登录或登录已失效",
             "content": {
               "application/json": {
                 "schema": {
@@ -1574,7 +1441,7 @@
             }
           },
           "401": {
-            "description": "未登录或演示登录已失效",
+            "description": "未登录或登录已失效",
             "content": {
               "application/json": {
                 "schema": {
@@ -1684,7 +1551,7 @@
             }
           },
           "401": {
-            "description": "未登录或演示登录已失效",
+            "description": "未登录或登录已失效",
             "content": {
               "application/json": {
                 "schema": {
@@ -1831,7 +1698,7 @@
             }
           },
           "401": {
-            "description": "未登录或演示登录已失效",
+            "description": "未登录或登录已失效",
             "content": {
               "application/json": {
                 "schema": {
@@ -2056,7 +1923,7 @@
             }
           },
           "401": {
-            "description": "未登录或演示登录已失效",
+            "description": "未登录或登录已失效",
             "content": {
               "application/json": {
                 "schema": {
@@ -2281,7 +2148,7 @@
             }
           },
           "401": {
-            "description": "未登录或演示登录已失效",
+            "description": "未登录或登录已失效",
             "content": {
               "application/json": {
                 "schema": {
@@ -3181,7 +3048,7 @@
             }
           },
           "401": {
-            "description": "未登录或演示登录已失效",
+            "description": "未登录或登录已失效",
             "content": {
               "application/json": {
                 "schema": {
@@ -3404,7 +3271,7 @@
             }
           },
           "401": {
-            "description": "未登录或演示登录已失效",
+            "description": "未登录或登录已失效",
             "content": {
               "application/json": {
                 "schema": {
@@ -3593,7 +3460,7 @@
             }
           },
           "401": {
-            "description": "未登录或演示登录已失效",
+            "description": "未登录或登录已失效",
             "content": {
               "application/json": {
                 "schema": {
@@ -3779,7 +3646,7 @@
             }
           },
           "401": {
-            "description": "未登录或演示登录已失效",
+            "description": "未登录或登录已失效",
             "content": {
               "application/json": {
                 "schema": {
@@ -3889,7 +3756,7 @@
             }
           },
           "401": {
-            "description": "未登录或演示登录已失效",
+            "description": "未登录或登录已失效",
             "content": {
               "application/json": {
                 "schema": {
@@ -4009,7 +3876,7 @@
             }
           },
           "401": {
-            "description": "未登录或演示登录已失效",
+            "description": "未登录或登录已失效",
             "content": {
               "application/json": {
                 "schema": {
@@ -4186,7 +4053,7 @@
             }
           },
           "401": {
-            "description": "未登录或演示登录已失效",
+            "description": "未登录或登录已失效",
             "content": {
               "application/json": {
                 "schema": {
@@ -4393,7 +4260,7 @@
             }
           },
           "401": {
-            "description": "未登录或演示登录已失效",
+            "description": "未登录或登录已失效",
             "content": {
               "application/json": {
                 "schema": {
@@ -4570,7 +4437,7 @@
             }
           },
           "401": {
-            "description": "未登录或演示登录已失效",
+            "description": "未登录或登录已失效",
             "content": {
               "application/json": {
                 "schema": {
@@ -29133,23 +29000,6 @@
   },
   "components": {
     "schemas": {
-      "AccountListResponse": {
-        "properties": {
-          "accounts": {
-            "items": {
-              "$ref": "#/components/schemas/AccountResponse"
-            },
-            "type": "array",
-            "title": "Accounts"
-          }
-        },
-        "additionalProperties": true,
-        "type": "object",
-        "required": [
-          "accounts"
-        ],
-        "title": "AccountListResponse"
-      },
       "AccountResponse": {
         "properties": {
           "id": {
@@ -34186,22 +34036,6 @@
           "expires_at"
         ],
         "title": "LockSummaryResponse"
-      },
-      "LoginRequest": {
-        "properties": {
-          "account_id": {
-            "type": "string",
-            "maxLength": 80,
-            "minLength": 1,
-            "title": "Account Id"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": [
-          "account_id"
-        ],
-        "title": "LoginRequest"
       },
       "LoginResponse": {
         "properties": {

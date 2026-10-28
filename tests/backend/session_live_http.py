@@ -25,14 +25,14 @@ def run_checks(base_url):
     results = []
 
     def login(account):
-        response = client.post("/api/demo/login", json={"account_id": account})
+        response = client.post("/api/v1/auth/login", json={"username": account, "password": "X_2026"})
         response.raise_for_status()
         return {"Authorization": "Bearer " + response.json()["access_token"]}
 
     def check(name, ok, detail=""):
         results.append({"name": name, "pass": bool(ok), "detail": detail})
 
-    for account, role in {"alpha-manager": "project_lead", "alpha-editor": "bid_writer", "alpha-viewer": "readonly"}.items():
+    for account, role in {"alpha-manager": "project_lead", "alpha-editor": "bid_writer", "alpha-viewer": "viewer"}.items():
         response = client.get("/api/v1/session", headers=login(account))
         data = response.json()
         nav = sorted(item["route_id"] for item in data.get("navigation", []))

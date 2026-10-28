@@ -93,7 +93,7 @@
 | D-076 | 2026-10-11 | [后台测试](../tests/backend/test_demo.py) | 验证代码 | demo-1 | 31项通过 | BE-M0-T01 | 实际失败边界、并发与输出 |
 | D-077 | 2026-10-11 | [HTTP验收入口](../backend/bid-core/smoke_demo.py) | 验证工具 | demo-1 | 通过 | BE-M0-T01 | 连接实际监听端口执行完整链路 |
 | D-078 | 2026-10-10 | [接口生成器](../backend/bid-core/export_openapi.py) | 工具 | demo-1 | 通过 | BE-M0-T01 | 保持约定与实际代码同源 |
-| D-079 | 2026-10-10 | [页面事件回归](../tests/backend/demo-page.test.cjs) | 验证代码 | demo-1 | 7项通过 | BE-M0-T01 | 直接执行页面代码，验证旧草稿、确认、恢复失败与会话锁 |
+| D-079 | 2026-10-10 | `页面事件回归`（2026-10-28 随演示入口移除） | 验证代码 | demo-1 | 7项通过 | BE-M0-T01 | 直接执行页面代码，验证旧草稿、确认、恢复失败与会话锁 |
 | D-080 | 2026-10-11 | [示例联调Issue](../issues/ISSUE-007.md) | 变更 | reference-members-1 | in-progress | ISSUE-007 / APP-M1 | 同一产品逐页接通，T07/T14/T15本地验收，完整目标继续 |
 | D-081 | 2026-10-11 | [示例任务卡](tasks/APP-M1.md) | 实施 | reference-members-1 / library-basis-1 | 当前 | ISSUE-007 / APP-M1；ISSUE-008 / T16 | 16项，T07/T09～16本地done；资料及模板保护验收，完整父任务继续 |
 | D-082 | 2026-10-11 | [示例接口约定](architecture/icg-reference-contract.md) | 接口 | reference-members-1 | 实际契约 | ISSUE-007 / APP-M1；ISSUE-022 | 项目成员、分册/本节分工、逐章确认、已读依据和交接保护。502/503 自动重试含 N7：MODEL_UNAVAILABLE 与 SECRET_KEY_UNAVAILABLE 不自动重试 |
@@ -880,6 +880,7 @@
 | D-859 | 2026-10-28 | [Wave 12 开发自测记录](testing/2026-10-28-wave-12-verification.md) | 验证 | wave12-dev-1 | 开发自测 | ISSUE-041 / ISSUE-043 | 后端 879 passed、MySQL 40 passed、知识库 13 passed；真实 RAGFlow 评测未执行；非 QA 签署 |
 | D-860 | 2026-10-28 | [ISSUE-043 知识库同步与检索未接入生产链路](../issues/ISSUE-043.md) | Issue | revision 1 | in-review | ISSUE-043 | 检索未接通、片段同步伪造、无映射与删除 |
 | D-861 | 2026-10-28 | [技术决定：知识库管控、ICG 摄入流程与招标解析是否用 RAG](decisions/2026-10-28-kb-control-plane-and-pipelines.md) | 决策 | kb-control-1 | 当前 | ISSUE-043 / AI-KB-CONTROL-PLANE | 四类知识与流程、管控接口授权、招标解析不用向量检索的理由 |
+| D-862 | 2026-10-28 | [RAG 检索评测：内置解析，真实 RAGFlow](testing/rag-eval-golden-v1-builtin.md) | 验证 | golden-v1 | 当前 | ISSUE-043 / AI-KB-RAG-EVAL | 阈值×关键词权重扫描；据此定默认值 0.45/0.3 |
 
 ## 更新记录
 

@@ -63,6 +63,15 @@ def _ingest(client, docs, wait_seconds: int, embedding_model: str | None,
         dataset = client.create_pipeline_dataset(name, pipeline_id, company_id=COMPANY, embedding_model=embedding_model)
     else:
         dataset = client.create_dataset(name, company_id=COMPANY, embedding_model=embedding_model)
+    try:
+        return _ingest_into(client, dataset, docs, wait_seconds)
+    except BaseException:
+        client.delete_datasets([dataset.id])
+        print(f"摄入失败，已删除临时数据集 {dataset.id}")
+        raise
+
+
+def _ingest_into(client, dataset, docs, wait_seconds: int) -> tuple[str, dict[str, str]]:
     mapping: dict[str, str] = {}
     for doc in docs:
         uploaded = client.upload_document(dataset.id, doc.filename, doc.markdown)
@@ -151,7 +160,7 @@ def main() -> None:
     pipeline_id = ""
     if args.mode == "pipeline":
         from icg.infra.ragflow_pipelines import PROFILES, PipelineOptions, build_dsl
-        agent = client.create_agent(f"icg::{COMPANY}::structured::eval{int(time.time())}",
+        agent = client.create_agent(f"icg:eval:{int(time.time())}",
                                     build_dsl(PROFILES["structured"], PipelineOptions(llm_id=args.llm_id)),
                                     canvas_category="dataflow_canvas")
         pipeline_id = agent["id"]

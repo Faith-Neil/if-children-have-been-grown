@@ -13,7 +13,7 @@ from icg.domain.workflow_schemas import v1_error_responses
 def error_responses(*statuses: int) -> dict:
     from icg.domain.workflow_schemas import V1Error
     descriptions = {
-        401: "未登录或演示登录已失效",
+        401: "未登录或登录已失效",
         403: "当前账号无操作权限",
         404: "资源不存在或当前公司无权访问",
         409: "版本、草稿或检查结果冲突",

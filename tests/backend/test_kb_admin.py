@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 
 from fake_ragflow_v1 import FakeRagflowV1
 from icg.app.main import create_app
-from icg.infra.ragflow_pipelines import PROFILES, build_dsl, dsl_fingerprint, parse_pipeline_title
+from icg.infra.ragflow_pipelines import PROFILES, build_dsl, company_tag, dsl_fingerprint, parse_pipeline_title
 from test_reference_flow import login
 
 ADMIN = "alpha-data-admin"
@@ -70,8 +70,8 @@ def test_deploy_creates_bid_pipelines_and_binds_datasets(client, fake):
         dataset = fake.datasets[info["dataset_id"]]
         agent = fake.agents[info["pipeline_id"]]
         assert dataset["pipeline_id"] == agent["id"] and agent["canvas_category"] == "dataflow_canvas"
-        company, profile, version = parse_pipeline_title(agent["title"])
-        assert company == "alpha" and version == 1
+        tag, profile, version = parse_pipeline_title(agent["title"])
+        assert tag == company_tag("alpha") and version == 1 and len(agent["title"]) <= 32
     history = fake.agents[result["datasets"]["history"]["pipeline_id"]]["dsl"]["components"]
     chunker = next(v for k, v in history.items() if k.startswith("TitleChunker"))["obj"]["params"]
     assert chunker["include_heading_content"] is True
