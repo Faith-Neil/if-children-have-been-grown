@@ -110,6 +110,14 @@ class EvidenceCandidate:
     reference_only: bool
     document_id: str = ""
     chunk_id: str = ""
+    name: str = ""
+    score: float = 0.0
+    source_type: str = ""
+    revision: int = 0
+
+    @property
+    def id(self) -> str:
+        return self.source_id
 
 
 @dataclass(frozen=True)
@@ -270,6 +278,14 @@ class EvidenceCandidateService:
             skipped.append(SkippedPath("C", f"C failed: {type(exc).__name__}"))
 
         return CandidateResult(path_a + path_b + path_c, skipped)
+
+    def search(self, company_id: str, query: str, limit: int = 5) -> list[EvidenceCandidate]:
+        """问答卡与编辑器使用的简化检索口：只返回 B/C 候选，失败或未配置时返回空列表。"""
+        try:
+            result = self.collect(CandidateRequest(company_id=company_id, query=query, library_items=[]))
+        except Exception:
+            return []
+        return [c for c in result.candidates if c.path in ("B", "C")][:limit]
 
     def _resolve_dataset_ids(self, request: CandidateRequest, path: str) -> list[str]:
         # 1. 请求级别的显式指定
@@ -454,7 +470,9 @@ class SnippetRetriever:
         min_score: float = 0.05,
         scoring_points: list[str] | None = None,
         dataset_ids: list[str] | None = None,
+        semantic_scores: Mapping[str, float] | None = None,
     ) -> list[SnippetCandidateMatch]:
+        """semantic_scores：知识库（RAGFlow 混合检索）对片段的相似度，按片段 id。只会抬高、不会压低本地分。"""
         if not company_id or not company_id.strip():
             raise RetrievalError("company_id is required")
 
@@ -529,6 +547,10 @@ class SnippetRetriever:
             )
             # 归一化至 0.0 ~ 1.0
             norm_score = max(0.0, min(1.0, total_score))
+            semantic = (semantic_scores or {}).get(s.id)
+            if semantic is not None:
+                # 语义命中补足字面不重合但意思相近的片段（如同义改写）。
+                norm_score = max(norm_score, 0.5 * norm_score + 0.5 * max(0.0, min(1.0, float(semantic))))
 
             if norm_score >= min_score:
                 match = SnippetCandidateMatch(

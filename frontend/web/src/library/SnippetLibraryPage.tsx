@@ -378,7 +378,7 @@ export function SnippetLibraryPage({
                 { value: 'all', label: '全部同步状态' },
                 { value: 'synced', label: '已同步知识库' },
                 { value: 'unsynced', label: '未同步知识库' },
-                { value: 'sync_failed', label: '同步失败' },
+                { value: 'failed', label: '同步失败' },
               ]}
             />
           </Col>

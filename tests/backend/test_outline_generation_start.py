@@ -287,7 +287,7 @@ def test_assemble_writing_prompt_plan_context_complete(generation_env):
 
     # 6. RAGFlow 检索证据切片（带 tag [片]、chunk_id、document_id 溯源）
     assert "【RAGFlow 检索证据候选切片】" in prompt
-    assert "[片] 检索切片（chunk_id: chunk-bge-001, document_id: doc-ragflow-tech-kb-01）" in prompt
+    assert "[片:chunk-bge-001] 检索切片（chunk_id: chunk-bge-001, document_id: doc-ragflow-tech-kb-01）" in prompt
     assert "三地两中心灾备体系" in prompt
 
     # 7. 结构化 snapshot 对象校验

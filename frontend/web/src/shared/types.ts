@@ -211,7 +211,7 @@ export type Evidence = {
 };
 export type Workspace = { revision: number; input_fingerprint: string; project: Project; stage: string; files: TenderFile[]; requirements: Requirement[]; facts: Fact[]; conflicts: Conflict[]; chapters: Chapter[]; checks: Check[]; exports: Export[]; jobs: Job[]; parse_confirmed: boolean; plan_confirmed: boolean; sla?: ProjectSla | null; writing_plan?: WritingPlan; team?: ProjectTeam; permissions?: ProjectPermissions; volumes?: VolumeStatus[]; human_queue_pending?: number; omissions_pending?: number };
 
-export type SnippetSyncStatus = 'synced' | 'unsynced' | 'sync_failed' | string;
+export type SnippetSyncStatus = 'synced' | 'unsynced' | 'failed' | 'sync_failed' | string;
 export type SnippetPublication = {
   id: string;
   company_id: string;

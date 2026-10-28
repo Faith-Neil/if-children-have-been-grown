@@ -270,7 +270,12 @@ class LibraryOrchestratorMixin:
             remember(state, scope_id, principal.user.id, key, request_fingerprint, result, self.demo._now())
             return result
 
-        return self.repository.transaction(operation)
+        result = self.repository.transaction(operation)
+        # 事务提交后再同步知识库（网络调用不进事务）；失败只记在知识库索引里，不影响资料保存。
+        knowledge_base = getattr(self.demo, "knowledge_base", None)
+        if knowledge_base is not None:
+            knowledge_base.schedule(company)
+        return result
 
 
 class LibraryOrchestrator(LibraryOrchestratorMixin):

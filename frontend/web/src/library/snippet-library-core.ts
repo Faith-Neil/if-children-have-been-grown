@@ -1,11 +1,12 @@
 // 为什么有这个文件：提取知识库方案片段管理（FE-SNIPPET-LIBRARY / PRD v1.8 §5.5）的纯业务逻辑与状态诊断规则。
 // 它解决什么问题：
 // 1. 公司隔离：严格隔离当前登录会话的 company_id，杜绝跨租户片段泄露；
-// 2. 状态机与元数据解析：套话组、产品线、变量标记（{{var}}）、发布版本号与知识库同步状态（synced/unsynced/sync_failed）；
+// 2. 状态机与元数据解析：套话组、产品线、变量标记（{{var}}）、发布版本号与知识库同步状态（synced/unsynced/failed；兼容旧值 sync_failed）；
 // 3. 多维筛选与检索：支持关键字、分类、产品、同步状态及“仅已发布”筛选算法；
 // 4. API 数据加载：调用 /api/v1/snippet-publications（兼容 /api/v1/snippet_publications）获取服务端数据；
 // 5. 遵循 Layout First 原则，提供结构化指标与空状态数据判定。
 
+import { normalizeSnippetSyncStatus } from './knowledge-base-core.ts';
 import { request } from '../shared/api.ts';
 import type { SnippetPublication, SnippetSyncStatus } from '../shared/types.ts';
 
@@ -62,6 +63,7 @@ export function getSnippetSyncStatusMeta(status?: SnippetSyncStatus | null): {
       return { label: '已同步知识库', color: 'green', badgeStatus: 'success' };
     case 'unsynced':
       return { label: '未同步知识库', color: 'gold', badgeStatus: 'warning' };
+    case 'failed':
     case 'sync_failed':
       return { label: '同步失败', color: 'red', badgeStatus: 'error' };
     default:
@@ -151,7 +153,7 @@ export function filterSnippets(
     }
 
     // 5. 知识库同步状态过滤
-    if (params.kb_sync_status && params.kb_sync_status !== 'all' && item.kb_sync_status !== params.kb_sync_status) {
+    if (params.kb_sync_status && params.kb_sync_status !== 'all' && normalizeSnippetSyncStatus(item.kb_sync_status) !== normalizeSnippetSyncStatus(params.kb_sync_status)) {
       return false;
     }
 

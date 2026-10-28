@@ -40,6 +40,7 @@ from icg.api import (
     include_company_routes,
     include_user_routes,
     include_chapter_loop_routes,
+    include_knowledge_base_routes,
 )
 
 
@@ -69,15 +70,8 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
                evidence_service: Any | None = None) -> FastAPI:
     if model_provider is None and use_configured_model:
         model_provider = openai_provider_from_environment()
-    if evidence_service is None and os.environ.get("ICG_RAGFLOW_BASE_URL", "").strip():
-        try:
-            from icg.infra.ragflow_client import RagflowConfig, RagflowRetrievalClient
-            from icg.infra.retrieval import EvidenceCandidateService
-            rag_cfg = RagflowConfig.from_env()
-            rag_client = RagflowRetrievalClient(rag_cfg)
-            evidence_service = EvidenceCandidateService(ragflow_client=rag_client)
-        except Exception:
-            evidence_service = None
+    # evidence_service 未注入时，DemoService 自带公司知识库检索（icg.domain.knowledge_base）：
+    # 按公司 RAGFlow 配置（或 ICG_RAGFLOW_BASE_URL + ICG_RAGFLOW_API_KEY）检索已同步资料，未配置时安全跳过。
     service = DemoService(repository if repository is not None else repository_from_environment(),
                           model_provider if model_provider is not None else DemoModelProvider(),
                           clock, model_transport=model_transport,
@@ -189,6 +183,7 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     include_company_routes(application, service, current_user)
     include_user_routes(application, service, current_user)
     include_chapter_loop_routes(application, service, current_user)
+    include_knowledge_base_routes(application, service, current_user)
 
     @application.get("/{full_path:path}", include_in_schema=False)
     def product_page(full_path: str):

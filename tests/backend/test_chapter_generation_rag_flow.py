@@ -134,7 +134,7 @@ def test_end_to_end_chapter_generation_with_ragflow_chunks(rag_and_chat_env):
     user_prompt = chat_call.json["messages"][1]["content"]
 
     # 验证检索证据切片 [片] 与 provenance
-    assert "[片] 检索证据片段" in user_prompt
+    assert f"[片:{SYNTHETIC_CHUNK_ID}] 检索证据片段" in user_prompt
     assert f"chunk_id: {SYNTHETIC_CHUNK_ID}" in user_prompt
     assert f"document_id: {SYNTHETIC_DOCUMENT_ID}" in user_prompt
     assert SYNTHETIC_CONTENT in user_prompt
@@ -178,7 +178,7 @@ def test_end_to_end_chapter_suggestion_with_ragflow_chunks(rag_and_chat_env):
     # 验证模型实际收到 prompt
     assert len(env["fake_openai_chat"].calls) == 1
     chat_prompt = env["fake_openai_chat"].calls[0].json["messages"][1]["content"]
-    assert "[片] 检索证据片段" in chat_prompt
+    assert f"[片:{SYNTHETIC_CHUNK_ID}] 检索证据片段" in chat_prompt
     assert SYNTHETIC_CHUNK_ID in chat_prompt
 
 

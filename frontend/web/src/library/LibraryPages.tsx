@@ -56,6 +56,7 @@ import {
 import type { Account, Evidence, EvidenceAttachment, SlaTemplate } from '../shared/types.ts';
 import { companyName, formatTime } from '../app/context.tsx';
 import { MaskedField } from '../admin/MaskedField.tsx';
+import { KnowledgeBasePanel } from './KnowledgeBasePanel.tsx';
 import {
   CATEGORY_LABEL_MAP,
   checkEvidenceUsability,
@@ -89,6 +90,8 @@ export interface LibraryPagesProps {
   templatesRevision?: number;
   globalSearch?: string;
   className?: string;
+  /** 提供后在页内显示公司知识库同步状态。 */
+  token?: string | null;
 }
 
 /**
@@ -107,6 +110,7 @@ export function LibraryPage({
   templatesRevision = 0,
   globalSearch = '',
   className = '',
+  token,
 }: LibraryPagesProps) {
   // 1. 状态与筛选器
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -257,6 +261,10 @@ export function LibraryPage({
           </Card>
         </Col>
       </Row>
+
+      {token !== undefined && (
+        <KnowledgeBasePanel token={token} canSync={hasManageRight} libraryRevision={libraryRevision} report={report} />
+      )}
 
       {/* 合规与安全声明条 */}
       <Alert

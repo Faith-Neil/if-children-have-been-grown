@@ -231,7 +231,10 @@ class DemoService:
         self.model_provider = model_provider
         self.clock = clock or time.time
         self.model_transport = model_transport
-        self.evidence_service = evidence_service
+        from .knowledge_base import KnowledgeBaseService, KnowledgeEvidenceService
+        self.knowledge_base = KnowledgeBaseService(self)
+        # 未显式注入时，证据候选走公司知识库（未配置 RAGFlow 时只有路径 A，B/C 记为跳过）。
+        self.evidence_service = evidence_service if evidence_service is not None else KnowledgeEvidenceService(self.knowledge_base)
         from .chapter_generation import ChapterGenerationService
         self.chapter_generation = ChapterGenerationService(self)
         from .editor_ai_context import EditorAIContextService

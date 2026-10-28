@@ -8,14 +8,8 @@ import json
 import re
 from threading import RLock
 
-from fastapi import APIRouter, Depends, Header, Response
-
 from .domain import DomainError, content_hash, iso_time, new_id
-from .idempotency import IDEMPOTENCY_HEADER_DESCRIPTION, fingerprint, lookup, remember, validate_key
-from .schemas import EmptyRequest
-from .workflow_schemas import (
-    SnippetPublication, SnippetPublicationCreate, SnippetPublicationDraft, SnippetPublicationList,
-    SnippetPublishResult, SnippetSyncResult, v1_error_responses)
+from .idempotency import fingerprint, lookup, remember, validate_key
 
 
 VARIABLE = re.compile(r"\{\{([A-Za-z0-9_.-]+)\}\}")
@@ -186,20 +180,26 @@ class MemorySnippetPublicationStore:
                 "at": record["updated_at"]})
             return {"item": _public(record), "blocked": False, "reasons": []}
 
-    def sync(self, company_id: str, snippet_id: str, published_revision: int) -> dict:
+    def sync(self, company_id: str, snippet_id: str, published_revision: int, kb_status: str | None = None) -> dict:
+        """记录一次同步结果。kb_status 是知识库服务的真实结果；None 表示未配置知识库。
+
+        未配置知识库时不再假装同步成功：状态保持/记为 unsynced，synced=False（ISSUE-039 同类：不伪造结果）。
+        """
         with self._lock:
             record = self._owned(company_id, snippet_id)
             _version(record["published_revision"], published_revision)
-            if record["published_revision"] == 0 or "[[sync-fail]]" in record["published_body"]:
+            if record["published_revision"] == 0:
                 record["kb_sync_status"] = "failed"
                 record["updated_at"] = iso_time(self._clock())
                 return {"item": _public(record), "synced": False}
-            record["kb_sync_status"] = "synced"
+            record["kb_sync_status"] = kb_status or "unsynced"
             record["updated_at"] = iso_time(self._clock())
-            self.audits[snippet_id].append({
-                "action": "sync", "published_revision": record["published_revision"],
-                "at": record["updated_at"]})
-            return {"item": _public(record), "synced": True}
+            synced = record["kb_sync_status"] == "synced"
+            if synced:
+                self.audits[snippet_id].append({
+                    "action": "sync", "published_revision": record["published_revision"],
+                    "at": record["updated_at"]})
+            return {"item": _public(record), "synced": synced}
 
     def _owned(self, company_id: str, snippet_id: str) -> dict:
         record = self.records.get(snippet_id)
@@ -242,11 +242,12 @@ class MemorySnippetPublicationStore:
 
 
 class SnippetPublicationService:
-    def __init__(self, store: MemorySnippetPublicationStore, repository, clock, writer):
+    def __init__(self, store: MemorySnippetPublicationStore, repository, clock, writer, knowledge_base=None):
         self.store = store
         self.repository = repository
         self._clock = clock
         self._writer = writer
+        self.knowledge_base = knowledge_base
 
     def list(self, principal) -> dict:
         return {"items": self.store.list(principal.user.company_id)}
@@ -271,15 +272,28 @@ class SnippetPublicationService:
         self._writer(principal)
         validate_key(key)
         expected = _expected_revision(if_match)
-        return self._receipt(principal, "snippet.publish:" + snippet_id, payload, if_match, key,
-                             lambda: self.store.publish(principal.user.company_id, snippet_id, expected))
+        result = self._receipt(principal, "snippet.publish:" + snippet_id, payload, if_match, key,
+                               lambda: self.store.publish(principal.user.company_id, snippet_id, expected))
+        if not result.get("blocked") and self.knowledge_base is not None:
+            self.knowledge_base.schedule(principal.user.company_id)
+        return result
 
     def sync(self, principal, snippet_id: str, payload: dict, if_match: str | None, key: str | None) -> dict:
         self._writer(principal)
         validate_key(key)
         expected = _expected_revision(if_match)
+        company_id = principal.user.company_id
+        kb_status = None
+        current = self.store.get(company_id, snippet_id)
+        if current["published_revision"] == expected and expected > 0 and self.knowledge_base is not None \
+                and self.knowledge_base.enabled(company_id):
+            # 真同步：上传/解析在仓储事务之外完成，再把知识库返回的真实状态记入回执。
+            entry_key = "snippet:" + snippet_id
+            self.knowledge_base.sync_company(company_id, keys=[entry_key])
+            row = next((r for r in self.knowledge_base.status(company_id)["items"] if r["key"] == entry_key), None)
+            kb_status = {"synced": "synced", "failed": "failed"}.get((row or {}).get("status"), "unsynced")
         return self._receipt(principal, "snippet.sync:" + snippet_id, payload, if_match, key,
-                             lambda: self.store.sync(principal.user.company_id, snippet_id, expected))
+                             lambda: self.store.sync(company_id, snippet_id, expected, kb_status))
 
     def _receipt(self, principal, action: str, payload: dict, if_match: str | None, key: str | None, mutate):
         # 回执仍写在既有 DemoState.workflow_receipts，作用域与公司资料相同。
@@ -301,61 +315,7 @@ class SnippetPublicationService:
         return self.store.transaction(lambda: self.repository.transaction(apply))
 
 
-def include_snippet_routes(application, service, current_user) -> None:
-    store = MemorySnippetPublicationStore(clock=service._now, repository=service.repository)
-    application.state.snippet_publications = store
-    service.snippet_publications = store
-    publications = SnippetPublicationService(store, service.repository, service._now, service._writer)
-    application.state.snippet_publication_service = publications
-    router = APIRouter(prefix="/api/v1", responses=v1_error_responses(401, 403, 404, 409, 422, 428, 500))
-
-    @router.get("/snippet-publications", response_model=SnippetPublicationList, operation_id="listSnippetPublications")
-    def list_publications(response: Response, user=Depends(current_user)):
-        """列出本公司片段。响应头 ETag 是这份列表的指纹，不是单条草稿版本。"""
-        result = publications.list(user)
-        response.headers["ETag"] = '"' + _list_etag(result["items"]) + '"'
-        return result
-
-    @router.post("/snippet-publications", response_model=SnippetPublication, operation_id="createSnippetPublication")
-    def create_publication(body: SnippetPublicationCreate, response: Response, user=Depends(current_user),
-                           if_match: str | None = Header(default=None),
-                           idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
-        """服务端分配片段 id。公司来自登录身份。不需要 If-Match。"""
-        result = publications.create(user, body.model_dump(), idempotency_key, if_match)
-        response.headers["ETag"] = f'"{result["draft_revision"]}"'
-        return result
-
-    @router.get("/snippet-publications/{snippet_id}", response_model=SnippetPublication, operation_id="getSnippetPublication")
-    def get_publication(snippet_id: str, response: Response, user=Depends(current_user)):
-        """读取一条。ETag 是 draft_revision，供保存草稿和发布的 If-Match 使用。详情里的 kb_sync_status 就是同步状态，不再另设 GET .../sync。"""
-        result = publications.get(user, snippet_id)
-        response.headers["ETag"] = f'"{result["draft_revision"]}"'
-        return result
-
-    @router.put("/snippet-publications/{snippet_id}", response_model=SnippetPublication, operation_id="saveSnippetPublicationDraft")
-    def save_publication(snippet_id: str, body: SnippetPublicationDraft, response: Response, user=Depends(current_user),
-                         if_match: str | None = Header(default=None),
-                         idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
-        """保存草稿。If-Match 核对 draft_revision。不替换已发布正文。"""
-        result = publications.save_draft(user, snippet_id, body.model_dump(exclude_unset=True), if_match, idempotency_key)
-        response.headers["ETag"] = f'"{result["draft_revision"]}"'
-        return result
-
-    @router.post("/snippet-publications/{snippet_id}/publish", response_model=SnippetPublishResult, operation_id="publishSnippetPublication")
-    def publish_publication(snippet_id: str, body: EmptyRequest, user=Depends(current_user),
-                            if_match: str | None = Header(default=None),
-                            idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
-        """发布。If-Match 核对 draft_revision。被拦截时返回 200 和原因，记录与审计不变，但仍记下幂等回执。"""
-        return publications.publish(user, snippet_id, body.model_dump(), if_match, idempotency_key)
-
-    @router.post("/snippet-publications/{snippet_id}/sync", response_model=SnippetSyncResult, operation_id="syncSnippetPublication")
-    def sync_publication(snippet_id: str, body: EmptyRequest, user=Depends(current_user),
-                         if_match: str | None = Header(default=None),
-                         idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
-        """重新同步。If-Match 核对 published_revision。失败不把 kb_sync_status 写成 synced。正文含 [[sync-fail]] 时模拟知识库拒绝。"""
-        return publications.sync(user, snippet_id, body.model_dump(), if_match, idempotency_key)
-
-    application.include_router(router)
+# HTTP 路由在 icg/api/library.py（唯一注册点）。
 
 
 def _list_etag(items: list) -> str:

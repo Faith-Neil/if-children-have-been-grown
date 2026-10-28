@@ -137,6 +137,7 @@ export function GlobalPagesContent({
               busy={busy}
               mutate={libraryMutate}
               report={report}
+              token={token ?? null}
             />
           )}
 

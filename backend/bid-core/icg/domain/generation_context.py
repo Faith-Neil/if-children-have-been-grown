@@ -257,6 +257,11 @@ def build_generation_context(state, project_id, chapter, now, evidence_service=N
                             "id": cand.source_id,
                             "path": cand.path,
                             "tag": "[片]",
+                            # 知识库命中按资料/片段 id 引用；知识库候选不等于已挂接 [证]（PRD 原则 1）。
+                            "cite_tag": f"[片:{cand.source_id}]",
+                            "name": getattr(cand, "name", ""),
+                            "source_type": getattr(cand, "source_type", ""),
+                            "score": round(float(getattr(cand, "score", 0.0) or 0.0), 4),
                             "chunk_id": cand.chunk_id or cand.source_id,
                             "document_id": cand.document_id,
                             "content": cand.text,
@@ -316,7 +321,9 @@ def render_model_input(snapshot):
             prov_parts.append(f"document_id: {doc_id}")
         prov = f"（{', '.join(prov_parts)}）" if prov_parts else ""
         ref_notice = "【仅供参考，不得作为正式附着证据】" if item.get("reference_only") else ""
-        lines += [f"{tag} 检索证据片段{prov}{ref_notice}：", item["content"]]
+        cite = item.get("cite_tag") or tag
+        title = f"《{item['name']}》" if item.get("name") else ""
+        lines += [f"{cite} 检索证据片段{title}{prov}{ref_notice}：", item["content"]]
     if snapshot["facts"]:
         lines.append("以下为本章可用事实；正文引用时须保留变量，不能把变量改成手写取值：")
     for fact in snapshot["facts"]:

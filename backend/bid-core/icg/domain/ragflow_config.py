@@ -404,9 +404,6 @@ class RagflowConfigService:
             elif snippet_record is not None:
                 snippet_record["kb_sync_status"] = status
 
-        # 若片段明确携带 [[sync-fail]]，在测试中模拟知识库解析拒绝
-        has_mock_fail = "[[sync-fail]]" in snippet_body
-
         client = self.get_client(principal, transport=transport)
 
         # 3. 确定目标数据集 ID
@@ -474,8 +471,6 @@ class RagflowConfigService:
             # 查询解析后最新状态
             updated_doc = client.get_document_status(dataset_id=dataset_id, document_id=doc.id)
             kb_status = ragflow_run_to_kb_sync_status(updated_doc.run)
-            if has_mock_fail:
-                kb_status = "failed"
 
             # 回写片段存储状态
             if snippet_record:

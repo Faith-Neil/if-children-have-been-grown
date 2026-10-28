@@ -363,7 +363,7 @@ class DynamicPromptContextManager:
                     prov_parts.append(f"document_id: {doc_id}")
                 prov = f"（{', '.join(prov_parts)}）" if prov_parts else ""
                 ref_notice = "【仅供参考，不得作为正式附着证据】" if rc.get("reference_only") else ""
-                rc_text = f"{tag} 检索切片{prov}{ref_notice}：\n  {rc.get('content', '')}"
+                rc_text = f"{rc.get('cite_tag') or tag} 检索切片{prov}{ref_notice}：\n  {rc.get('content', '')}"
                 tokens = estimate_tokens(rc_text)
                 if tokens <= remaining_budget:
                     chunk_block_lines.append(rc_text)
