@@ -211,9 +211,13 @@ export type CheckIssue = {
   details?: { paragraph_index?: number; quote?: string; fragments?: string[]; targets?: { kind: string; name: string; submitted_on?: string | null }[]; values?: string[] };
 };
 export type Check = { id: string; volume: Volume | 'all'; passed: boolean; status: string; issues: CheckIssue[]; coverage: { implemented_rules: string[]; unimplemented_rules: string[]; complete: boolean }; fingerprint: string; created_at: string };
+export type MergeChecklistSection = { no: number; item: string; action: string; rows: { text: string; source?: string | null; status?: string | null }[] };
+export type MergeChecklist = { export_id: string; check_id?: string | null; project_name: string; generated_at: string; volumes: Volume[]; sections: MergeChecklistSection[] };
 export type Export = {
   id: string;
   kind: string;
+  merge_checklist?: MergeChecklist;
+  merge_checklist_url?: string;
   check_id: string;
   created_at: string;
   excludes_drafts: boolean;

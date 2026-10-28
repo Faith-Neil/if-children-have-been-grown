@@ -904,3 +904,30 @@ class BatchGenerateChaptersRequest(RequestBody):
     snippet_matches_by_chapter: dict[str, list[dict[str, Any]]] | None = None
 
 
+
+
+class MergeChecklistRow(ResponseBody):
+    text: str
+    source: str | None = None
+    status: str | None = None
+
+
+class MergeChecklistSection(ResponseBody):
+    no: int
+    item: str
+    action: str
+    rows: list[MergeChecklistRow]
+
+
+class MergeChecklist(ResponseBody):
+    export_id: str
+    check_id: str | None = None
+    project_name: str
+    generated_at: str
+    volumes: list[str]
+    sections: list[MergeChecklistSection]
+
+
+class MergeChecklistResponse(ResponseBody):
+    checklist: MergeChecklist
+    stale: bool

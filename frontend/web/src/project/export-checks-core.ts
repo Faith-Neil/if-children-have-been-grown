@@ -250,3 +250,22 @@ export function releasePath(projectId: string, checkId: string, issueId: string)
 export function unreleasedCount(issues: { severity: string; released?: unknown }[]): number {
   return issues.filter(issue => !['info', 'hint'].includes(issue.severity) && !(RELEASABLE_SEVERITIES.includes(issue.severity) && issue.released)).length;
 }
+
+
+// ---------------------------------------------------------------- 合标核对清单（PRD §5.9.2，APP-M2-T200）
+
+export function latestSubmissionWithChecklist<T extends { kind: string; merge_checklist?: unknown; created_at: string }>(exports: T[]): T | null {
+  return exports.filter(item => item.kind === 'submission' && item.merge_checklist)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null;
+}
+
+export function checklistRowTone(status?: string | null): 'red' | 'orange' | 'green' | 'default' {
+  if (status === 'failed') return 'red';
+  if (status === 'not_run' || status === 'manual') return 'orange';
+  if (status === 'passed') return 'green';
+  return 'default';
+}
+
+export function checklistFilename(exportId: string): string {
+  return `merge-checklist-${exportId}.xlsx`;
+}

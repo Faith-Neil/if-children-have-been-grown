@@ -12,11 +12,13 @@ from icg.domain.sla_schemas import (SlaMutationResult, SlaReviewRequest, SlaSele
                           SlaTemplateList, SlaTemplatePatch, SlaTemplateResult, SlaValuePatch)
 from icg.domain.recoverable_jobs import include_recoverable_routes
 from icg.domain.workflow import DOCX_MEDIA_TYPE, WorkflowService
+
+XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 from icg.domain.idempotency import IDEMPOTENCY_HEADER_DESCRIPTION
 from icg.domain.workflow_schemas import (CheckList, ConflictPatch, FactPatch, FileDelete, FilePreview, FileUpload,
                                GenerateRequest, JobsList, LibraryCreate, LibraryList,
                                LibraryPatch, LibraryResult, MutationResult, ParseRequest,
-                               PlanRequest, CheckReleaseRequest, ProjectCheckRequest, ProjectExportRequest,
+                               PlanRequest, CheckReleaseRequest, MergeChecklistResponse, ProjectCheckRequest, ProjectExportRequest,
                                ProjectPatch, RequirementPatch, Workspace, WritingInputPreview,
                                TeamUpdate, TeamResult, ChapterAssignment, ChapterPlanPatch,
                                ChapterEditDetail, v1_error_responses, TenderSearchRequest,
@@ -165,7 +167,7 @@ def include_workflow_routes(application, service, current_user, parser):
     @router.post("/projects/{project_id}/checks/{check_id}/issues/{issue_id}/release", response_model=MutationResult,
                  response_model_exclude_none=True, operation_id="releaseCheckIssue",
                  summary="检查警告逐项放行",
-                 description="项目负责人或公司管理员填写理由后放行一条警告或提示；阻断级不能放行（409 CHECK_BLOCKER_EXISTS）。放行按问题内容记账，正文改动后旧放行失效。")
+                 description="项目负责人或公司管理员填写理由后放行一条警告或提示；阻断级不能放行（409 BLOCKER_NOT_REJECTABLE）。放行按问题内容记账，正文改动后旧放行失效。")
     def release_check_issue(project_id: str, check_id: str, issue_id: str, body: CheckReleaseRequest,
                             user: Principal = Depends(current_user),
                             if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
@@ -176,6 +178,24 @@ def include_workflow_routes(application, service, current_user, parser):
     def export(project_id: str, body: ProjectExportRequest, user: Principal = Depends(current_user),
                if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.export(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.get("/projects/{project_id}/exports/{export_id}/merge-checklist", response_model=MergeChecklistResponse,
+                operation_id="getMergeChecklist", summary="合标核对清单（递交版批次）",
+                description="9 类合标核对项与本批次全文检查结论；分册解锁或正文改动后 stale=true（仍可查看）。仅项目负责人、分册负责人与公司管理员。")
+    def merge_checklist(project_id: str, export_id: str, user: Principal = Depends(current_user)):
+        return workflow.merge_checklist(user, project_id, export_id)
+
+    @router.get("/projects/{project_id}/exports/{export_id}/merge-checklist.xlsx", response_class=Response,
+                operation_id="downloadMergeChecklist", summary="下载合标核对清单 Excel",
+                responses={200: {"description": "合标核对清单 Excel；过期批次在表头注明“已过期”",
+                                 "content": {XLSX_MEDIA_TYPE: {"schema": {"type": "string", "format": "binary"}}}}})
+    def download_merge_checklist(project_id: str, export_id: str, user: Principal = Depends(current_user)):
+        from icg.domain.merge_checklist import checklist_sheets
+        from icg.infra.xlsx import build_xlsx
+        result = workflow.merge_checklist(user, project_id, export_id)
+        filename = f"merge-checklist-{export_id}.xlsx"
+        return Response(content=build_xlsx(checklist_sheets(result["checklist"], stale=result["stale"])),
+                        media_type=XLSX_MEDIA_TYPE, headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
     @router.get("/projects/{project_id}/exports/{export_id}/{volume}", response_class=Response,
                 operation_id="downloadVolume",

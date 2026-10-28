@@ -22,6 +22,9 @@ import {
   canReleaseIssue,
   releasePath,
   unreleasedCount,
+  checklistFilename,
+  checklistRowTone,
+  latestSubmissionWithChecklist,
 } from './export-checks-core';
 import {
   useVolumesStatus,
@@ -389,6 +392,58 @@ export function ChecksPage() {
   );
 }
 
+// 合标核对清单：取最近一次递交版批次随导出生成的清单（PRD §5.9.2）。只列事实与系统结论，不替代人工核对。
+function MergeChecklistCard() {
+  const { workspace, token, report } = useProject();
+  const latest = latestSubmissionWithChecklist(workspace.exports);
+  const checklist = latest?.merge_checklist;
+  if (!latest || !checklist) {
+    return (
+      <Card title="合标核对清单" data-testid="merge-checklist-card">
+        <Alert type="info" showIcon message="导出递交版时会同时生成合标核对清单（Excel）"
+          description="清单列出合标时须人工核对的 9 类事项：分册与文件、页码与目录、评审索引表、两本之间的一致性结论、偏离表与点对点应答、密封份数装订、签章、暗标、文件命名。" />
+      </Card>
+    );
+  }
+  const stale = latest.status !== 'valid';
+  return (
+    <Card
+      title="合标核对清单"
+      data-testid="merge-checklist-card"
+      extra={
+        <Button size="small" icon={<DownloadOutlined />} onClick={() => download(latest.merge_checklist_url as string, token, checklistFilename(latest.id)).catch(report)}>
+          下载 Excel
+        </Button>
+      }
+    >
+      {stale && <Alert type="warning" showIcon style={{ marginBottom: 8 }} message="已过期：分册已解锁或正文已改动，清单仅供追溯" />}
+      <div className="muted" style={{ marginBottom: 8 }}>批次 {latest.id.slice(-10)} · {formatTime(checklist.generated_at)} · 依据全文检查 {checklist.check_id?.slice(-10)}</div>
+      <Collapse
+        size="small"
+        items={checklist.sections.map(section => ({
+          key: String(section.no),
+          label: <Space>{section.no}. {section.item}{section.rows.some(r => r.status === 'not_run' || r.status === 'failed') && <Tag color="orange">须人工核对</Tag>}</Space>,
+          children: (
+            <List
+              size="small"
+              dataSource={section.rows}
+              renderItem={row => (
+                <List.Item>
+                  <Space direction="vertical" size={0}>
+                    <span>{row.status ? <Tag color={checklistRowTone(row.status)}>{row.status === 'not_run' ? '未运行' : row.status === 'manual' ? '人工' : row.status === 'passed' ? '通过' : '未通过'}</Tag> : null}{row.text}</span>
+                    {row.source && <span className="muted">原文：{row.source}</span>}
+                  </Space>
+                </List.Item>
+              )}
+              footer={<span className="muted">合标时：{section.action}</span>}
+            />
+          ),
+        }))}
+      />
+    </Card>
+  );
+}
+
 export function ExportPage() {
   const { workspace, token, user, busy, mutate, report, navigate } = useProject();
   const [kind, setKind] = useState('internal');
@@ -576,20 +631,7 @@ export function ExportPage() {
           </Card>
         </Col>
         <Col span={9}>
-          <Card title="合标核对清单">
-            <List
-              size="small"
-              dataSource={[
-                '资格材料是否按本项目要求归册',
-                '技术与商务的名称、日期、服务承诺是否一致',
-                '证明材料是否有效且覆盖投标截止时间',
-                '报价由人在线下处理，确认是否独立提交',
-                'Word 文件须人工复核后再使用',
-              ]}
-              renderItem={item => <List.Item>□ {item}</List.Item>}
-            />
-            <Tag color="orange" style={{ marginTop: 12 }}>清单目前用于人工核对，不替代正式定稿流程</Tag>
-          </Card>
+          <MergeChecklistCard />
         </Col>
       </Row>
       <Card title="导出历史" className="page-notice" style={{ marginTop: 16 }}>
@@ -713,6 +755,16 @@ export function ExportPage() {
                         onClick={() => download(comm.download_url, token, comm.filename).catch(report)}
                       >
                         商务 Word
+                      </Button>
+                    ) : null}
+                    {item.merge_checklist_url ? (
+                      <Button
+                        size="small"
+                        type="link"
+                        data-testid="export-checklist-btn"
+                        onClick={() => download(item.merge_checklist_url as string, token, checklistFilename(item.id)).catch(report)}
+                      >
+                        合标清单{item.status !== 'valid' ? '（已过期）' : ''}
                       </Button>
                     ) : null}
                     {!tech && !comm && <span className="muted">未生成分册文件</span>}

@@ -187,6 +187,12 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                 "format_metadata": WORD_DEFAULT_FORMAT_METADATA,
                 "is_submission": payload.get("kind") == "submission",
             }
+            if record["is_submission"]:
+                # PRD §5.9.2：导出递交版时必定同时生成合标核对清单，随批次保存
+                from icg.domain.merge_checklist import build_merge_checklist
+                record["merge_checklist"] = build_merge_checklist(state, project, workflow, record, check,
+                                                                  now_iso=record["created_at"])
+                record["merge_checklist_url"] = f"/api/v1/projects/{project_id}/exports/{identity}/merge-checklist.xlsx"
             workflow["exports"][identity] = record
             if payload.get("kind") == "submission":
                 job_desc = ("两个独立 Word 正式递交版已生成" if scope == "all" else "本册 Word 正式递交版已生成") + "；已完成责任人定稿与门禁核验。"
@@ -212,6 +218,31 @@ class ExportServiceMixin(CheckOrchestratorMixin):
             if entry is None:
                 raise DomainError(404, "NOT_FOUND", "本次导出不包含该分册。")
             return {**record["documents"][volume], "filename": entry["filename"]}
+
+        return self.repository.transaction(operation)
+
+
+    def merge_checklist(self, principal: Principal, project_id: str, export_id: str) -> dict:
+        """读取递交批次的合标核对清单。公司管理员、项目负责人与分册负责人（合标负责人默认商务分册负责人）可看可下载。"""
+        from icg.domain.merge_checklist import checklist_stale
+        from icg.domain.project_access import normalize_role, volume_owner
+
+        def operation(state):
+            project = self.demo._project(state, principal, project_id)
+            workflow = self._workflow(state, project_id)
+            record = workflow["exports"].get(export_id)
+            if record is None or not record.get("merge_checklist"):
+                raise DomainError(404, "NOT_FOUND", "该导出批次没有合标核对清单（只有递交版批次生成）。")
+            identity = principal.user.id
+            allowed = (lead(state, project_id, identity)
+                       or (normalize_role(principal.user.role) == "company_admin" and principal.user.company_id == project.company_id)
+                       or any(volume_owner(state, project_id, volume, identity) for volume in VOLUMES))
+            if not allowed:
+                raise DomainError(403, "SUBMISSION_FORBIDDEN", "合标核对清单仅限项目负责人、分册负责人和公司管理员下载。")
+            checklist = record["merge_checklist"]
+            stale = checklist_stale(workflow, checklist, self._fingerprint(state, project_id), record["fingerprint"])
+            self._audit(state, principal, project_id, "project-export.merge-checklist", {"export_id": export_id, "stale": stale})
+            return {"checklist": checklist, "stale": stale}
 
         return self.repository.transaction(operation)
 
