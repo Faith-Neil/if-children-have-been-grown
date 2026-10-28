@@ -83,7 +83,7 @@ def test_fix_that_introduces_new_problem_is_rolled_back(monkeypatch):
 
 # ---------------------------------------------------------------- HTTP 队列
 
-DEFECTIVE = "技术正文：每月巡检。我司无法提供7x24小时驻场。项目业绩见【待补：同类业绩】。希望能帮到您！"
+DEFECTIVE = "技术正文：每月巡检。我司无法提供全天候驻场。项目业绩见【待补：同类业绩】。希望能帮到您！"
 
 
 def _headers(flow, account="alpha-manager"):

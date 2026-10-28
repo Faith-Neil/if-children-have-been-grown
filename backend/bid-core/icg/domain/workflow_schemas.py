@@ -123,6 +123,11 @@ class ProjectCheckRequest(RequestBody):
     volume: Literal["technical", "business", "all"] = "all"
 
 
+class CheckReleaseRequest(RequestBody):
+    reason: str = Field(min_length=1, max_length=500, description="放行理由（必填）")
+    decision: Literal["keep", "accept"] = Field(default="keep", description="keep：确认保留（如额外数值承诺）；accept：确认无需修改")
+
+
 class ProjectExportRequest(RequestBody):
     check_id: str = Field(min_length=1, max_length=100)
     kind: Literal["internal", "submission", "internal_review"] = "internal"
@@ -145,6 +150,7 @@ class LibraryCreate(RequestBody):
     partner_entity_id: str | None = Field(default=None, max_length=100)
     is_restricted: bool = False
     acl_user_ids: list[str] = Field(default_factory=list, max_length=500)
+    submitted_on: str | None = Field(default=None, max_length=10, description="历史标书递交日期 YYYY-MM-DD（R29 比对年限）")
 
 
 class LibraryPatch(RequestBody):
@@ -161,6 +167,7 @@ class LibraryPatch(RequestBody):
     partner_entity_id: str | None = Field(default=None, max_length=100)
     is_restricted: bool = False
     acl_user_ids: list[str] = Field(default_factory=list, max_length=500)
+    submitted_on: str | None = Field(default=None, max_length=10, description="历史标书递交日期 YYYY-MM-DD（R29 比对年限）")
 
 
 class ProjectDetail(ResponseBody):
@@ -614,6 +621,7 @@ class LibraryItem(ResponseBody):
     is_long_term: bool = False
     valid_to: str | None = None
     partner_entity_id: str | None = None
+    submitted_on: str | None = None
 
 
 class Workspace(ResponseBody):

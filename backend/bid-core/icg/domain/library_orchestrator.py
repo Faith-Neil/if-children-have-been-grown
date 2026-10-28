@@ -229,14 +229,14 @@ class LibraryOrchestratorMixin:
             if replay is not None:
                 return replay
             self._version(revision, expected)
-            for date_key in ("valid_until", "valid_to"):
+            for date_key in ("valid_until", "valid_to", "submitted_on"):
                 if payload.get(date_key):
                     if len(payload[date_key]) != 10:
                         raise DomainError(422, "INVALID_DATE", "资料有效期请使用 YYYY-MM-DD。")
                     self._date(payload[date_key])
             replace_acl = "acl_user_ids" in payload
             acl_user_ids = payload.pop("acl_user_ids", None)
-            if any(v is None and k not in ("valid_until", "valid_to", "partner_entity_id") for k, v in payload.items()):
+            if any(v is None and k not in ("valid_until", "valid_to", "partner_entity_id", "submitted_on") for k, v in payload.items()):
                 raise DomainError(422, "INVALID_LIBRARY_FIELD", "资料字段不能设为空值。")
             if any(k in payload and not payload[k].strip() for k in ("name", "content")):
                 raise DomainError(422, "EMPTY_LIBRARY_FIELD", "资料名称和正文不能为空。")
@@ -249,7 +249,7 @@ class LibraryOrchestratorMixin:
                     k in payload and payload[k] != item.get(k)
                     for k in (
                         "name", "type", "content", "valid_until", "valid_to", "is_long_term",
-                        "source_tier", "partner_entity_id", "is_restricted",
+                        "source_tier", "partner_entity_id", "is_restricted", "submitted_on",
                     )
                 )
                 if changed:

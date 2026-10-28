@@ -204,7 +204,12 @@ export type WritingInputSnapshot = {
 export type WritingInputPreview = { source_scope: 'whole_chapter'; input_snapshot: WritingInputSnapshot; ready: boolean; issues: { code: string; message: string }[] };
 export type Candidate = { id?: string; content: string; base_revision: number; input_fingerprint: string; provider: string; is_real_model: boolean; source_scope?: 'whole_chapter' | null; input_snapshot?: WritingInputSnapshot | null; status?: 'valid' | 'stale' };
 export type Chapter = { id: string; title: string; volume: Volume; revision: number; content: string; lock: { owner_id: string; expires_at: string } | null; draft?: { sequence: number; content: string; base_revision: number; input_fingerprint?: string | null } | null; candidate?: Candidate | null; requirement_ids?: string[]; writing_input?: ChapterWritingInput; assignee_id?: string | null; assignee_name?: string | null; permissions?: ChapterPermissions };
-export type CheckIssue = { id: string; code: string; severity: string; message: string; requirement_id?: string; chapter_id?: string; evidence_id?: string };
+export type CheckRelease = { reason: string; by: string; by_name?: string; at: string; decision?: 'keep' | 'accept' };
+export type CheckIssue = {
+  id: string; code: string; severity: string; message: string; requirement_id?: string; chapter_id?: string; evidence_id?: string;
+  rule_id?: string; release_key?: string; released?: CheckRelease | null;
+  details?: { paragraph_index?: number; quote?: string; fragments?: string[]; targets?: { kind: string; name: string; submitted_on?: string | null }[]; values?: string[] };
+};
 export type Check = { id: string; volume: Volume | 'all'; passed: boolean; status: string; issues: CheckIssue[]; coverage: { implemented_rules: string[]; unimplemented_rules: string[]; complete: boolean }; fingerprint: string; created_at: string };
 export type Export = {
   id: string;

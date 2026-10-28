@@ -233,3 +233,20 @@ export function getExportVolumeLabel(volume?: Volume | 'all' | string): string {
   if (volume === 'business') return '商务分册';
   return '技术、商务两册合订';
 }
+
+
+// ---------------------------------------------------------------- 警告逐项放行（PRD §5.8：理由必填，阻断不能放行）
+
+export const RELEASABLE_SEVERITIES = ['warning', 'info', 'hint'];
+
+export function canReleaseIssue(issue: { severity: string; released?: unknown }, isLead: boolean): boolean {
+  return isLead && RELEASABLE_SEVERITIES.includes(issue.severity) && !issue.released;
+}
+
+export function releasePath(projectId: string, checkId: string, issueId: string): string {
+  return `/api/v1/projects/${encodeURIComponent(projectId)}/checks/${encodeURIComponent(checkId)}/issues/${encodeURIComponent(issueId)}/release`;
+}
+
+export function unreleasedCount(issues: { severity: string; released?: unknown }[]): number {
+  return issues.filter(issue => !['info', 'hint'].includes(issue.severity) && !(RELEASABLE_SEVERITIES.includes(issue.severity) && issue.released)).length;
+}

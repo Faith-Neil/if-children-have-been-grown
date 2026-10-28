@@ -1010,6 +1010,14 @@ def assemble_writing_prompt_plan(
     }
 
 
+def _tender_numbers(state: Any, project: Any, workflow: dict) -> set[tuple[str, str]] | None:
+    """R30 ② 的招标数值依据；没有解析结果时返回 None（不做该项检查，避免全文误报）。"""
+    if project is None or not (workflow.get("requirements") or workflow.get("files")):
+        return None
+    from .scope_rules import tender_number_basis
+    return tender_number_basis(state, project, workflow)
+
+
 def _config_value(config: Any, key: str) -> Any:
     if config is None:
         return None
@@ -2073,6 +2081,7 @@ class ChapterGenerationService:
             allowed_snippet_ids=allowed_snippet_ids,
             facts=facts if isinstance(facts, list) else list(facts.values()) if isinstance(facts, dict) else [],
             critical=critical,
+            tender_numbers=_tender_numbers(state, project, workflow),
         )
 
         def model_fix(original: str, issues: list[dict[str, Any]]) -> str | None:

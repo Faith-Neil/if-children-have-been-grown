@@ -16,7 +16,7 @@ from icg.domain.idempotency import IDEMPOTENCY_HEADER_DESCRIPTION
 from icg.domain.workflow_schemas import (CheckList, ConflictPatch, FactPatch, FileDelete, FilePreview, FileUpload,
                                GenerateRequest, JobsList, LibraryCreate, LibraryList,
                                LibraryPatch, LibraryResult, MutationResult, ParseRequest,
-                               PlanRequest, ProjectCheckRequest, ProjectExportRequest,
+                               PlanRequest, CheckReleaseRequest, ProjectCheckRequest, ProjectExportRequest,
                                ProjectPatch, RequirementPatch, Workspace, WritingInputPreview,
                                TeamUpdate, TeamResult, ChapterAssignment, ChapterPlanPatch,
                                ChapterEditDetail, v1_error_responses, TenderSearchRequest,
@@ -161,6 +161,15 @@ def include_workflow_routes(application, service, current_user, parser):
     def check(project_id: str, body: ProjectCheckRequest, user: Principal = Depends(current_user),
               if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.run_check(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/checks/{check_id}/issues/{issue_id}/release", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="releaseCheckIssue",
+                 summary="检查警告逐项放行",
+                 description="项目负责人或公司管理员填写理由后放行一条警告或提示；阻断级不能放行（409 CHECK_BLOCKER_EXISTS）。放行按问题内容记账，正文改动后旧放行失效。")
+    def release_check_issue(project_id: str, check_id: str, issue_id: str, body: CheckReleaseRequest,
+                            user: Principal = Depends(current_user),
+                            if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.release_check_issue(user, project_id, check_id, issue_id, body.model_dump(), if_match, idempotency_key)
 
     @router.post("/projects/{project_id}/exports", response_model=MutationResult,
                  response_model_exclude_none=True, operation_id="exportVolume")

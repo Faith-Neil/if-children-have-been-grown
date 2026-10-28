@@ -19,6 +19,9 @@ import {
   formatSha256Fingerprint,
   getExportKindMeta,
   getExportVolumeLabel,
+  canReleaseIssue,
+  releasePath,
+  unreleasedCount,
 } from './export-checks-core';
 import {
   useVolumesStatus,
@@ -97,6 +100,20 @@ export function ChecksPage() {
   const check = workspace.checks.find(item => item.id === selectedId) ?? workspace.checks.slice().reverse().find(item => item.volume === volume) ?? workspace.checks[workspace.checks.length - 1];
   const issues = check?.issues.filter(item => severity === 'all' || (severity === 'blocker' ? isBlocker(item.severity) : item.severity === severity)) ?? [];
   const blockerSummary = deriveBlockerSummary(check, workspace.chapters);
+  const isLead = projectCan(workspace, 'manage_project');
+  const [releasing, setReleasing] = useState<CheckIssue | null>(null);
+  const [releaseForm] = Form.useForm();
+
+  async function release() {
+    if (!check || !releasing) return;
+    const values = await releaseForm.validateFields();
+    try {
+      await mutate(releasePath(workspace.project.id, check.id, releasing.id), 'POST', { reason: values.reason.trim(), decision: values.decision });
+      setReleasing(null);
+    } catch {
+      /* 错误已提示；保留填写内容 */
+    }
+  }
 
   async function run() {
     if (!volumeOperationAllowed(workspace, 'check', volume) || busy) return;
@@ -188,7 +205,7 @@ export function ChecksPage() {
               ? '检查已过期：项目或证据已变化，请重新检查'
               : check.passed
               ? '当前已实现规则通过'
-              : `有问题：${check.issues.filter(item => isBlocker(item.severity)).length} 个阻断 · ${check.issues.filter(item => item.severity === 'warning').length} 个警告`
+              : `有问题：${check.issues.filter(item => isBlocker(item.severity)).length} 个阻断 · ${check.issues.filter(item => item.severity === 'warning' && !item.released).length} 个未放行警告 · 待处理 ${unreleasedCount(check.issues)} 项`
           }
           description={`检查批次 ${check.id.slice(-10)} · ${formatTime(check.created_at)} · 只检查已提交正文，不包含未提交草稿`}
         />
@@ -246,7 +263,18 @@ export function ChecksPage() {
                         ),
                       },
                       { title: '规则', width: 95, dataIndex: 'code' },
-                      { title: '问题描述', dataIndex: 'message' },
+                      {
+                        title: '问题描述',
+                        dataIndex: 'message',
+                        render: (value: string, item: CheckIssue) => (
+                          <div>
+                            <div>{value}</div>
+                            {!!item.details?.fragments?.length && <div className="muted">重复片段：{item.details.fragments.slice(0, 3).join('；')}</div>}
+                            {item.details?.quote && !item.details?.fragments?.length && <div className="muted">原句：{item.details.quote}</div>}
+                            {item.released && <Tag color="green" style={{ marginTop: 4 }}>已放行 · {item.released.by_name ?? item.released.by}：{item.released.reason}</Tag>}
+                          </div>
+                        ),
+                      },
                       {
                         title: '位置',
                         width: 160,
@@ -261,11 +289,19 @@ export function ChecksPage() {
                       },
                       {
                         title: '操作',
-                        width: 70,
+                        width: 110,
                         render: (_, item) => (
-                          <Button type="link" size="small" onClick={() => locate(item)}>
-                            定位
-                          </Button>
+                          <Space size={0}>
+                            <Button type="link" size="small" onClick={() => locate(item)}>
+                              定位
+                            </Button>
+                            {canReleaseIssue(item, isLead) && check?.status !== 'stale' && (
+                              <Button type="link" size="small" data-testid="check-release-button" disabled={busy}
+                                onClick={() => { releaseForm.resetFields(); releaseForm.setFieldsValue({ decision: 'keep', reason: '' }); setReleasing(item); }}>
+                                放行
+                              </Button>
+                            )}
+                          </Space>
                         ),
                       },
                     ]}
@@ -323,6 +359,32 @@ export function ChecksPage() {
       <Drawer title="问题依据 · 招标原文" open={!!source} onClose={() => setSource(null)} width={760}>
         <OriginalPreview source={source} />
       </Drawer>
+      <Modal
+        open={!!releasing}
+        title="放行检查警告"
+        okText="确认放行"
+        cancelText="取消"
+        confirmLoading={busy}
+        onOk={() => void release()}
+        onCancel={() => setReleasing(null)}
+        destroyOnClose
+      >
+        {releasing && (
+          <Form form={releaseForm} layout="vertical">
+            <Alert type="warning" showIcon style={{ marginBottom: 12 }} message={releasing.message}
+              description="放行会记录你的姓名、时间和理由；正文改动后放行失效，需重新确认。阻断级问题不能放行。" />
+            <Form.Item name="decision" label="处理方式">
+              <Radio.Group options={[
+                { value: 'keep', label: releasing.code === 'EXTRA_NUMERIC_COMMITMENT' ? '确认保留该承诺' : '确认保留' },
+                { value: 'accept', label: '确认无需修改' },
+              ]} />
+            </Form.Item>
+            <Form.Item name="reason" label="理由" rules={[{ required: true, whitespace: true, message: '请填写放行理由' }, { max: 500 }]}>
+              <Input.TextArea rows={3} placeholder="例如：销售确认本项目额外赠送质保；与历史标书重复部分为公司标准服务描述" />
+            </Form.Item>
+          </Form>
+        )}
+      </Modal>
     </>
   );
 }

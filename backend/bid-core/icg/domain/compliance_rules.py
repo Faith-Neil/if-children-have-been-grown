@@ -342,6 +342,22 @@ class ComplianceRulesEngine:
             "default_severity": "blocker",
             "can_disable": False,
             "description": "核验技术规格参数偏离表中是否存在招标文件中声明不得负偏离的关键指标负偏离；存在负偏离判定为废标红线。",
+        },
+        {
+            "rule_id": "R29",
+            "title": "本公司查重",
+            "category": "duplication",
+            "default_severity": "warning",
+            "can_disable": False,
+            "description": "全文检查时与本公司近 24 个月历史标书、同期在编标书和“仅供参考”资料逐字比对，去掉空格标点后连续 8 字相同记一处重复；招标原文、注明出处的段落与英文/数字术语不算。与“仅供参考”资料重复为警告，其余为提示。",
+        },
+        {
+            "rule_id": "R30",
+            "title": "超范围响应",
+            "category": "scope",
+            "default_severity": "warning",
+            "can_disable": False,
+            "description": "非增值章节中没有对应招标条款的段落为警告；正文中招标未要求的额外数值承诺（时限、次数、人数、比例、期限）为警告，须项目负责人逐条确认，章节循环中直接转人工。",
         }
     ]
 
@@ -4736,7 +4752,19 @@ class ComplianceRulesEngine:
             + cls.evaluate_p3_rules(state, project, workflow, volume=volume, now_ts=now_ts)
             + cls.evaluate_p4_rules(state, project, workflow, volume=volume, now_ts=now_ts)
             + cls.evaluate_p5_rules(state, project, workflow, volume=volume, now_ts=now_ts)
+            + cls.evaluate_p6_rules(state, project, workflow, volume=volume, now_ts=now_ts)
         )
+
+    @classmethod
+    def evaluate_p6_rules(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> list[ComplianceRuleResult]:
+        """R29 本公司查重（仅全文）与 R30 超范围响应（APP-M2-T235～T237）。"""
+        from .scope_rules import check_r29, check_r30
+        return [
+            check_r29(state, project, workflow, volume=volume, now_ts=now_ts),
+            check_r30(state, project, workflow, volume=volume),
+        ]
 
 
 class ComplianceRulesMixin:

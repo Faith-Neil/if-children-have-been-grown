@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+import hashlib
+
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Callable
 
@@ -27,6 +29,23 @@ class CheckBlockerError(DomainError):
         self.message = message
         self.details = details or {}
         Exception.__init__(self, message)
+
+
+RELEASABLE = ("warning", "info", "hint")
+
+
+def release_key(issue: dict) -> str:
+    details = issue.get("details") or {}
+    basis = "|".join(str(x) for x in (issue.get("rule_id") or "", issue.get("code"), issue.get("chapter_id") or "",
+                                      issue.get("requirement_id") or "", details.get("paragraph_index", ""),
+                                      details.get("quote") or issue.get("message", "")))
+    return hashlib.sha1(basis.encode("utf-8")).hexdigest()[:16]
+
+
+def check_passed(issues: list[dict]) -> bool:
+    """提示不挡导出；警告须逐项放行；阻断不能放行。"""
+    return not [i for i in issues if i.get("severity") not in ("info", "hint")
+                and not (i.get("severity") in RELEASABLE and i.get("released"))]
 
 
 class CheckOrchestratorMixin(ComplianceRulesMixin):
@@ -195,29 +214,31 @@ class CheckOrchestratorMixin(ComplianceRulesMixin):
             rule_results = ComplianceRulesEngine.evaluate_all(
                 state, project, workflow, volume=volume, now_ts=self.demo._now()
             )
+            def same(a, b):
+                # 段落级规则（R29/R30）同章多段各算一条，按段落下标区分
+                return (a.get("code") == b.get("code") and a.get("requirement_id") == b.get("requirement_id")
+                        and a.get("chapter_id") == b.get("chapter_id")
+                        and (a.get("details") or {}).get("paragraph_index") == (b.get("details") or {}).get("paragraph_index"))
+
             for r in rule_results:
                 for rule_issue in r.issues:
-                    is_dup = any(
-                        existing.get("code") == rule_issue.get("code")
-                        and existing.get("requirement_id") == rule_issue.get("requirement_id")
-                        and existing.get("chapter_id") == rule_issue.get("chapter_id")
-                        for existing in issues
-                    )
-                    if not is_dup:
+                    duplicate = next((existing for existing in issues if same(existing, rule_issue)), None)
+                    if duplicate is None:
                         issues.append(rule_issue)
                     else:
-                        for existing in issues:
-                            if (
-                                existing.get("code") == rule_issue.get("code")
-                                and existing.get("requirement_id") == rule_issue.get("requirement_id")
-                                and existing.get("chapter_id") == rule_issue.get("chapter_id")
-                            ):
-                                existing["rule_id"] = r.rule_id
+                        duplicate["rule_id"] = r.rule_id
+            releases = workflow.get("check_releases", {})
+            for issue in issues:
+                if issue.get("severity") in RELEASABLE:
+                    issue["release_key"] = release_key(issue)
+                    if issue["release_key"] in releases:
+                        issue["released"] = releases[issue["release_key"]]
+            passed = check_passed(issues)
             check_record = {
                 "id": new_id("project-check"),
                 "volume": volume,
-                "passed": not issues,
-                "status": "failed" if issues else "passed",
+                "passed": passed,
+                "status": "passed" if passed else "failed",
                 "issues": issues,
                 "rules": [r.to_dict() for r in rule_results],
                 "coverage": {
@@ -233,6 +254,39 @@ class CheckOrchestratorMixin(ComplianceRulesMixin):
             return {"check": check_record}
 
         return self._write(principal, project_id, "project.check", payload, expected, key, operation)
+
+    def release_check_issue(self, principal: Principal, project_id: str, check_id: str, issue_id: str, payload: dict,
+                            expected: str | None, key: str | None):
+        """警告逐项放行（PRD §5.8：仅项目负责人或公司管理员，理由必填；阻断不能放行）。
+
+        放行按问题内容（规则、章节、段落与原句）记账：正文改了就是新问题，旧放行自然失效。
+        """
+        reason = str(payload.get("reason") or "").strip()
+        if not reason:
+            raise DomainError(422, "CONFIRMATION_REQUIRED", "放行必须填写理由。")
+
+        def operation(state, project, workflow):
+            check = workflow.get("checks", {}).get(check_id)
+            if check is None:
+                raise DomainError(404, "NOT_FOUND", "未找到本项目检查批次。")
+            issue = next((i for i in check.get("issues", []) if i.get("id") == issue_id), None)
+            if issue is None:
+                raise DomainError(404, "NOT_FOUND", "检查批次中没有这个问题。")
+            if issue.get("severity") not in RELEASABLE:
+                raise DomainError(409, "BLOCKER_NOT_REJECTABLE", "阻断级问题不能放行，须在正文或矩阵中修正。")
+            record = {"reason": reason[:500], "by": principal.user.id, "by_name": principal.user.name,
+                      "at": iso_time(self.demo._now()), "decision": payload.get("decision") or "keep"}
+            key_value = issue.get("release_key") or release_key(issue)
+            workflow.setdefault("check_releases", {})[key_value] = record
+            issue["release_key"], issue["released"] = key_value, record
+            check["passed"] = check_passed(check["issues"])
+            check["status"] = "passed" if check["passed"] else "failed"
+            self._audit(state, principal, project_id, "check.release",
+                        {"check_id": check_id, "issue_id": issue_id, "code": issue.get("code"), "reason": reason[:200]})
+            return {"check": check}
+
+        return self._write(principal, project_id, f"check.release:{check_id}", {**payload, "issue_id": issue_id},
+                           expected, key, operation)
 
     def check(self, principal: Principal, project_id: str, payload: dict, expected: str | None, key: str | None):
         """run_check 的直接方法别名，保持与 WorkflowService 统一调用风格。"""

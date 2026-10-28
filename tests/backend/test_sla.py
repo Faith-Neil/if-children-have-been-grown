@@ -441,6 +441,10 @@ def test_same_unit_variable_is_resolved_in_actual_two_volume_word(client):
         "content": "一级故障响应时限为{{sla:P1.response}}分钟。", "idempotency_key": str(uuid4())})
     assert result.status_code == 200, result.text
     check = flow.write("/checks", {"volume": "all"})["check"]
+    # 商务章节没有映射条款，R30 给警告；由项目负责人填理由放行后才能导出
+    for issue in [i for i in check["issues"] if i["severity"] == "warning"]:
+        assert issue["code"] == "SCOPE_CHAPTER_WITHOUT_CLAUSE", issue
+        check = flow.write(f"/checks/{check['id']}/issues/{issue['id']}/release", {"reason": "商务章节为通用资质说明"})["check"]
     assert check["passed"], check["issues"]
     export = flow.write("/exports", {"check_id": check["id"], "kind": "internal"})["export"]
     assert {volume["volume"] for volume in export["volumes"]} == {"technical", "business"}

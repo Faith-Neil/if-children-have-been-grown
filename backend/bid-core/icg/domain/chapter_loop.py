@@ -41,6 +41,7 @@ HUMAN_REASONS: dict[str, str] = {
     "SYSTEM_CHAPTER": "系统生成章节",
     "FIX_LIMIT_REACHED": "同一问题自动修正 2 次仍在",
     "LOOP_STOPPED": "循环停止时仍未解决",
+    "EXTRA_COMMITMENT": "招标未要求的额外数值承诺",
 }
 
 STOP_REASONS: dict[str, str] = {
@@ -121,7 +122,8 @@ class LoopContext:
 
     def __init__(self, *, title: str = "", allowed_evidence_ids: set[str] | None = None,
                  allowed_snippet_ids: set[str] | None = None, facts: list[dict] | None = None,
-                 critical: bool = False, system_chapter: bool | None = None, locked_paragraphs: set[int] | None = None):
+                 critical: bool = False, system_chapter: bool | None = None, locked_paragraphs: set[int] | None = None,
+                 tender_numbers: set[tuple[str, str]] | None = None):
         self.title = title or ""
         self.allowed_evidence_ids = set(allowed_evidence_ids or ())
         self.allowed_snippet_ids = set(allowed_snippet_ids or ())
@@ -130,6 +132,8 @@ class LoopContext:
         self.system_chapter = (any(w in self.title for w in _SYSTEM_CHAPTER_WORDS)
                                if system_chapter is None else system_chapter)
         self.locked_paragraphs = set(locked_paragraphs or ())
+        # R30 ②：招标依据中出现过的（数值, 单位）；None 表示调用方未提供依据，不做该项检查
+        self.tender_numbers = tender_numbers
 
 
 def _finding(code: str, rule: str, level: str, index: int, text: str, message: str,
@@ -218,6 +222,19 @@ def check_paragraphs(paragraphs: list[str], context: LoopContext) -> list[dict]:
                 findings.append(_finding("UNVERIFIED_SNIPPET_CITATION", "R02", "warning", index, text,
                                          "正文引用了本章候选以外的知识片段：" + "、".join(f"[片:{r}]" for r in unverified),
                                          "移除失效的片段标记。", route, reason, unverified))
+    if context.tender_numbers is not None:
+        from .scope_rules import commitments_in
+        for index, text in enumerate(paragraphs):
+            extra = []
+            for value, unit, raw in commitments_in(text):
+                if (value, unit) not in context.tender_numbers and raw not in extra:
+                    extra.append(raw)
+            if extra:
+                # 额外承诺不由系统改写，也不随系统章节改道：一律由项目负责人确认保留或删除
+                findings.append(_finding("EXTRA_NUMERIC_COMMITMENT", "R30", "warning", index, text,
+                                         "承诺了招标未要求的数值：" + "、".join(extra[:5]),
+                                         "项目负责人确认保留（填写理由，必要时登记为项目事实）或删除。",
+                                         ROUTE_DIRECT, "EXTRA_COMMITMENT", extra))
     if statutory and paragraphs and not any(m in join_paragraphs(paragraphs) for m in VALID_SEAL_MARKERS):
         last = max((i for i, t in enumerate(paragraphs) if t.strip()), default=len(paragraphs) - 1)
         if not any(f["code"] == "MANDATORY_SEAL_SIGNATURE_MISSING" for f in findings):
