@@ -2172,7 +2172,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T142 · 警告放行（理由必填，阻断无放行）
 <a id="app-m2-t142"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T05](APP-M1.md#app-m1-t05)、[APP-M2-T140](APP-M2.md#app-m2-t140)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T05](APP-M1.md#app-m1-t05)、[APP-M2-T140](APP-M2.md#app-m2-t140)。
 
 原始来源：原交接 §6.6 M5-G04-F3；PRD v1.8 §5.8.2、5.8.3、5.8.5。交付单位：警告放行（理由必填，阻断无放行），同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -2185,6 +2185,9 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 交付：`docs/delivery/APP-M2-T142.md`；代码解释：`docs/code/APP-M2-T142.md`；测试放docs/testing并逐项关联本卡，未执行写未执行。
 
 ### APP-M2-T143 · R18 段落相似度并排对比
+
+实现（2026-10-28）：`POST /api/v1/projects/{id}/checks/{check_id}/issues/{issue_id}/release`（releaseCheckIssue）。仅项目负责人或公司管理员，理由必填，阻断级 409 `BLOCKER_NOT_REJECTABLE`；放行按规则、章节、段落与原句记账，同内容重新检查仍有效，正文改动即失效；检查是否通过改为“无未放行的阻断/警告”，提示不挡导出。检查页问题列表提供“放行”与已放行标记。
+
 <a id="app-m2-t143"></a>
 
 状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T05](APP-M1.md#app-m1-t05)、[APP-M2-T223](APP-M2.md#app-m2-t223)。
@@ -3637,7 +3640,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T235 · R29 本公司查重
 <a id="app-m2-t235"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期完整。依赖：[APP-M2-T081](APP-M2.md#app-m2-t081)、[APP-M2-T078](APP-M2.md#app-m2-t078)、[APP-M2-T073](APP-M2.md#app-m2-t073)、[APP-M2-T161](APP-M2.md#app-m2-t161)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期完整。依赖：[APP-M2-T081](APP-M2.md#app-m2-t081)、[APP-M2-T078](APP-M2.md#app-m2-t078)、[APP-M2-T073](APP-M2.md#app-m2-t073)、[APP-M2-T161](APP-M2.md#app-m2-t161)。
 
 原始来源：PRD v1.8 §5.8.1 R29，§5.8.1、5.8.4、5.8.5。交付单位：R29 本公司查重，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -3652,9 +3655,12 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 交付：`docs/delivery/APP-M2-T235.md`；代码解释：`docs/code/APP-M2-T235.md`；测试放docs/testing并逐项关联本卡，未执行写未执行。
 
 ### APP-M2-T236 · R30 无条款段落及范围外服务
+
+实现（2026-10-28）：`icg/domain/scope_rules.py::check_r29`。比对本公司近 `dup_history_months` 个月历史标书（资料新增可选字段 `submitted_on`，未登记按在年限内处理并注明）、同期在编的其他项目正文、来源为“仅供参考”的资料；去掉空格标点与英文/数字术语（含公司白名单 `custom_settings.dup_whitelist`）后连续 `dup_min_chars` 字相同记一处重复，与招标原文相同的部分、写了“出处/引自/摘自/来源：”的段落、标题与表格行不算。只在全文检查运行；与“仅供参考”资料重复为警告，其余为提示；结果给出重复片段、比对对象与递交日期。测试 `tests/backend/test_compliance_rules_scope.py`。
+
 <a id="app-m2-t236"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期完整。依赖：[APP-M2-T123](APP-M2.md#app-m2-t123)、[APP-M2-T121](APP-M2.md#app-m2-t121)、[APP-M2-T162](APP-M2.md#app-m2-t162)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期完整。依赖：[APP-M2-T123](APP-M2.md#app-m2-t123)、[APP-M2-T121](APP-M2.md#app-m2-t121)、[APP-M2-T162](APP-M2.md#app-m2-t162)。
 
 原始来源：PRD v1.8 §5.8.1 R30，§5.8.1、5.8.4、5.8.5。交付单位：R30 无条款段落及范围外服务，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -3669,9 +3675,12 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 交付：`docs/delivery/APP-M2-T236.md`；代码解释：`docs/code/APP-M2-T236.md`；测试放docs/testing并逐项关联本卡，未执行写未执行。
 
 ### APP-M2-T237 · R30 额外数值承诺
+
+实现（2026-10-28）：`check_r30` ①：非增值、非系统章节没有任何映射条款给章级警告；有条款时中间正文段落与本章条款/响应的字面重合低于阈值给段级警告；章首概述、章末总结与过渡短句视为对应本节整体；增值章节（大纲方案 `value_added`）豁免。
+
 <a id="app-m2-t237"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期完整。依赖：[APP-M2-T123](APP-M2.md#app-m2-t123)、[APP-M2-T121](APP-M2.md#app-m2-t121)、[APP-M2-T162](APP-M2.md#app-m2-t162)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期完整。依赖：[APP-M2-T123](APP-M2.md#app-m2-t123)、[APP-M2-T121](APP-M2.md#app-m2-t121)、[APP-M2-T162](APP-M2.md#app-m2-t162)。
 
 原始来源：PRD v1.8 §5.8.1 R30，§5.8.1、5.8.4、5.8.5。交付单位：R30 额外数值承诺，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -3686,6 +3695,9 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 交付：`docs/delivery/APP-M2-T237.md`；代码解释：`docs/code/APP-M2-T237.md`；测试放docs/testing并逐项关联本卡，未执行写未执行。
 
 ### APP-M2-T238 · R31 正文敏感值与真实报告
+
+实现（2026-10-28）：`check_r30` ②：抽取正文“数值＋单位”（分钟/小时/工作日/日/周/月/年/次/人/%/课时，排除年份与变量），在条款原文、招标文件全文、SLA 招标值与已确认事实中都找不到的判为额外承诺，分册/全文检查给警告，须项目负责人逐条放行（确认保留须填理由）；章节循环与重新检查中按 `EXTRA_COMMITMENT` 直接转人工，只有项目负责人能处理；增值章节同样检查。
+
 <a id="app-m2-t238"></a>
 
 状态：planned。关联Issue：ISSUE-007。原范围：一期完整。依赖：[APP-M2-T161](APP-M2.md#app-m2-t161)、[APP-M2-T059](APP-M2.md#app-m2-t059)。

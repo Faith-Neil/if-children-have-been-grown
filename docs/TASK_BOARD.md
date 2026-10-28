@@ -10,7 +10,7 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 451 项：done 96、in-review 113、in-progress 46、planned 141、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+项目 451 项：done 96、in-review 117、in-progress 45、planned 138、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
@@ -19,7 +19,7 @@
 | 招标解析 | PDF/Word 文字提取；按章节与条目抽取条款，适配真实招标文件版式（展平表格、段内（1）…（8）、否决/无效/废标）；事实含前附表 | 扫描件经 RAGFlow DeepDOC 解析；PDF 定位高亮（T103）；需求矩阵表（T112～T117） |
 | 知识库 | 每公司三类数据集、ICG 摄入流程、管控接口与管理页、检索带片号引用；内置解析评测定默认阈值 | 流程模式评测；历史标书批量导入（T080/T081） |
 | 生成与编辑 | 章节闭环、人工处理队列、交叉复核与定稿门禁、编辑台差异确认 | 章节循环进度页与轮次时间线（T130/T131）、确定性章节（T191～T194）、自动保存（T172） |
-| 合规规则 | 31 条有检查与测试（R01～R20、R23～R28、R31、R32、R34、R35、R37） | R21、R22、R29、R30、R33、R36、R38～R44 |
+| 合规规则 | 33 条有检查与测试（R01～R20、R23～R32、R34、R35、R37）；警告须负责人填理由逐项放行 | R21、R22、R33、R36、R38～R44 |
 | 导出 | Word 版式、分册定稿、递交门禁 | 合标核对清单（T200）、内部追溯 Excel（T201） |
 | 管理 | 模型/RAGFlow 弹窗配置、公司管理、审计日志、SLA 模板 | 站内提醒、配置版本、任务模型映射 |
 
@@ -35,7 +35,8 @@
 - FE-TEST-ORPHANS 为 in-review（ISSUE-044：8 项失败为演示会话夹具过期，根目录测试已并入 `pnpm test`）。
 - AI-KB-RAG-EVAL 为 in-review：流程模式实测 7/21 文档解析失败、召回低于内置解析（[流程评测](testing/rag-eval-golden-v1-pipeline.md)）。
 - APP-M2-T130/T131 为 in-review：全部章节循环进度（`GET /chapter-loops`）与轮次时间线（任务/模型/实际输入/版本/逐轮修正/前章摘要接力）。
-- 余下顺序（重定后）：APP-M2-T235/T236/T237 → APP-M2-T200 → 招标扫描件经 RAGFlow 解析。
+- APP-M2-T235～T237 与 T142 为 in-review：R29 本公司查重（全文检查）、R30 无条款段落与额外数值承诺（分册/全文警告、循环中转人工），警告逐项放行（`POST …/checks/{id}/issues/{issue}/release`）。
+- 余下顺序（重定后）：APP-M2-T200 → 招标扫描件经 RAGFlow 解析。
 - 自测记录：[Wave 12 开发自测](testing/2026-10-28-wave-12-verification.md)。
 
 ## Wave 11 主路径补环（2026-10-28）
@@ -441,7 +442,7 @@
 | [APP-M2-T139](tasks/APP-M2.md#app-m2-t139) | 图表组件（AntV G2，待技术确认） | planned | APP-M2-T131、APP-M2-T189 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T139.md` |
 | [APP-M2-T140](tasks/APP-M2.md#app-m2-t140) | RuleIssueList | planned | APP-M1-T05 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T140.md` |
 | [APP-M2-T141](tasks/APP-M2.md#app-m2-t141) | 合规检查页布局与结论条 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M1-T05、APP-M2-T140 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T141.md` |
-| [APP-M2-T142](tasks/APP-M2.md#app-m2-t142) | 警告放行（理由必填，阻断无放行） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M1-T05、APP-M2-T140 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T142.md` |
+| [APP-M2-T142](tasks/APP-M2.md#app-m2-t142) | 警告放行（理由必填，阻断无放行） | in-review（2026-10-28：警告逐项放行已实现，理由必填、阻断不能放行） | APP-M1-T05、APP-M2-T140 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T142.md` |
 | [APP-M2-T143](tasks/APP-M2.md#app-m2-t143) | R18 段落相似度并排对比 | planned | APP-M1-T05、APP-M2-T223 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T143.md` |
 | [APP-M2-T144](tasks/APP-M2.md#app-m2-t144) | 分册检查 / 定稿 / 解锁 / 交叉复核（Wave 11：警告放行留痕未做） | in-review | APP-M1-T05、APP-M2-T142、APP-M2-T228、APP-M2-T229、APP-M2-T250、APP-M2-T251、APP-M2-T252、APP-M2-T255、APP-M2-T256、APP-M2-T257、APP-M2-T258 | [ISSUE-007](../issues/ISSUE-007.md)、[ISSUE-040](../issues/ISSUE-040.md) | [交付](delivery/APP-M2-T144.md) |
 | [APP-M2-T145](tasks/APP-M2.md#app-m2-t145) | 全文检查与“结果已过期”提示 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M1-T05、APP-M2-T144 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T145.md` |
@@ -534,9 +535,9 @@
 | [APP-M2-T232](tasks/APP-M2.md#app-m2-t232) | R26 评分项覆盖度 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T123、APP-M2-T113、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T232.md` |
 | [APP-M2-T233](tasks/APP-M2.md#app-m2-t233) | R27 项目事实一致 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T121、APP-M2-T164 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T233.md` |
 | [APP-M2-T234](tasks/APP-M2.md#app-m2-t234) | R28 章节模型评审 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T091、APP-M2-T089、APP-M2-T044、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T234.md` |
-| [APP-M2-T235](tasks/APP-M2.md#app-m2-t235) | R29 本公司查重 | planned | APP-M2-T081、APP-M2-T078、APP-M2-T073、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T235.md` |
-| [APP-M2-T236](tasks/APP-M2.md#app-m2-t236) | R30 无条款段落及范围外服务 | planned | APP-M2-T123、APP-M2-T121、APP-M2-T162 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T236.md` |
-| [APP-M2-T237](tasks/APP-M2.md#app-m2-t237) | R30 额外数值承诺 | planned | APP-M2-T123、APP-M2-T121、APP-M2-T162 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T237.md` |
+| [APP-M2-T235](tasks/APP-M2.md#app-m2-t235) | R29 本公司查重 | in-review（2026-10-28：R29 本公司查重已实现，全文检查运行） | APP-M2-T081、APP-M2-T078、APP-M2-T073、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T235.md` |
+| [APP-M2-T236](tasks/APP-M2.md#app-m2-t236) | R30 无条款段落及范围外服务 | in-review（2026-10-28：R30 无条款段落已实现） | APP-M2-T123、APP-M2-T121、APP-M2-T162 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T236.md` |
+| [APP-M2-T237](tasks/APP-M2.md#app-m2-t237) | R30 额外数值承诺 | in-review（2026-10-28：R30 额外数值承诺已实现，循环中转人工） | APP-M2-T123、APP-M2-T121、APP-M2-T162 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T237.md` |
 | [APP-M2-T238](tasks/APP-M2.md#app-m2-t238) | R31 正文敏感值与真实报告 | in-progress（2026-10-28 重定：规则方法已有，子范围待逐项核） | APP-M2-T161、APP-M2-T059 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T238.md` |
 | [APP-M2-T239](tasks/APP-M2.md#app-m2-t239) | R31 插图识别文字与报告附件 | in-progress（2026-10-28 重定：规则方法已有，子范围待逐项核） | APP-M2-T161、APP-M2-T059 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T239.md` |
 | [APP-M2-T240](tasks/APP-M2.md#app-m2-t240) | R32 产品范围一致 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T051、APP-M2-T099、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T240.md` |
