@@ -255,7 +255,7 @@ export function ProjectHeader({
             label:
               item.key === 'manual' ? (
                 <span>
-                  {item.label} <Badge count={pendingCount} size="small" />
+                  {item.label} <Badge count={workspace.human_queue_pending ?? 0} size="small" />
                 </span>
               ) : item.key === 'checks' && blockerCount > 0 ? (
                 <span>

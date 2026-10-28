@@ -34,9 +34,11 @@ const ignoreFailure = () => undefined;
 import { SourceLink } from './SourceLink';
 import { OriginalPreview } from './OriginalPreview';
 import { ConflictCards } from './ConflictCards';
+import { VolumeFinalizePanel } from './VolumeFinalizePanel';
 export { OverviewPage } from './OverviewTab';
 export { TenderPage } from './TenderTab';
 export { ParsePage } from './ParseTab';
+export { ManualQueuePage } from './ManualQueuePage';
 
 export function MatrixPage() {
   const { workspace, user, token, library, busy, mutate, reload, report, navigate } = useProject();
@@ -414,6 +416,7 @@ export function ExportPage() {
               )}
             />
           </Card>
+          <VolumeFinalizePanel volumes={volumesStatus} />
           <Card title="导出选项">
             <Form layout="vertical">
               <Form.Item label="生成范围">

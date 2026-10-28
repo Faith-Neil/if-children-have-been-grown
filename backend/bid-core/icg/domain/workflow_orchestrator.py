@@ -33,7 +33,7 @@ from icg.domain.tender_orchestrator import TenderOrchestratorMixin, TenderOrches
 from icg.domain.library_orchestrator import LibraryOrchestratorMixin, LibraryOrchestrator
 from icg.domain.human_queue import HumanQueueMixin
 from icg.domain.volume_review import VolumeReviewMixin
-from icg.domain.post_process import OmissionMixin
+from icg.domain.post_process import OmissionMixin, suspected
 
 SAMPLE_TENDER: bytes = b""
 
@@ -315,6 +315,9 @@ class WorkflowService(
             "team": public_team(state, project_id, principal.user.id),
             "permissions": project_permissions(state, project_id, principal.user.id),
             "sla": public_sla(state, project_id),
+            "human_queue_pending": len([i for i in workflow.get("human_queue", {}).get("issues", {}).values()
+                                        if i["status"] in ("pending_fix", "pending_human")]),
+            "omissions_pending": len(suspected(workflow)),
         }
 
     def patch_project(self, principal: Principal, project_id: str, payload: dict, expected: str | None, key: str | None):

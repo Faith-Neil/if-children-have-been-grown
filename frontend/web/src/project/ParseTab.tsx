@@ -27,6 +27,7 @@ import { projectCan } from './project-team.ts';
 import { SourceLink } from './SourceLink.tsx';
 import { OriginalPreview } from './OriginalPreview.tsx';
 import { ConflictCards } from './ConflictCards.tsx';
+import { OmissionsDrawer } from './OmissionsDrawer.tsx';
 import type { Requirement, Source } from '../shared/types.ts';
 
 const statusName = (value: string) =>
@@ -42,6 +43,7 @@ export function ParsePage() {
   const [source, setSource] = useState<Source | null>(workspace.requirements[0]?.source ?? null);
   const [selected, setSelected] = useState<string | null>(null);
   const [conflictsOpen, setConflictsOpen] = useState(false);
+  const [omissionsOpen, setOmissionsOpen] = useState(false);
   const [edit, setEdit] = useState<Requirement | null>(null);
   const [form] = Form.useForm();
 
@@ -49,6 +51,7 @@ export function ParsePage() {
   const pending = workspace.requirements.filter(item => item.status === 'pending').length;
   const conflicts = workspace.conflicts.filter(item => item.status === 'pending').length;
   const pendingFacts = workspace.facts.filter(item => item.status === 'pending').length;
+  const omissions = workspace.omissions_pending ?? 0;
   const shown = workspace.requirements.filter(item => category === 'all' || item.category === category);
 
   function editItem(item: Requirement) {
@@ -116,11 +119,9 @@ export function ParsePage() {
           <Button danger size="small" onClick={() => setConflictsOpen(true)}>
             冲突待选定 {conflicts}
           </Button>
-          <Tooltip title="疑似遗漏与引用补齐暂未接通，需要结合左侧原文核对">
-            <Button size="small" disabled>
-              疑似遗漏 · 待实现
-            </Button>
-          </Tooltip>
+          <Button danger={omissions > 0} size="small" onClick={() => setOmissionsOpen(true)} data-testid="omissions-button">
+            疑似遗漏 {omissions}
+          </Button>
           <Button
             type="primary"
             size="small"
@@ -130,6 +131,7 @@ export function ParsePage() {
               !workspace.requirements.length ||
               pending > 0 ||
               conflicts > 0 ||
+              omissions > 0 ||
               pendingFacts > 0
             }
             onClick={confirm}
@@ -168,6 +170,9 @@ export function ParsePage() {
             后处理{' '}
             <button onClick={() => setConflictsOpen(true)}>
               冲突待选定 <Badge count={conflicts} size="small" />
+            </button>
+            <button onClick={() => setOmissionsOpen(true)}>
+              疑似遗漏 <Badge count={omissions} size="small" />
             </button>
             <button onClick={() => navigate('facts')}>
               项目事实待核对 <Badge count={pendingFacts} size="small" />
@@ -257,7 +262,7 @@ export function ParsePage() {
             <Empty description="还没有抽取条目，请上传并解析招标文件" />
           )}
           <div className="parse-prerequisites">
-            确认前提：无待处理冲突；要求逐条确认或填写排除理由；项目事实完成核对。
+            确认前提：无待处理冲突与疑似遗漏；要求逐条确认或填写排除理由；项目事实完成核对。
             <Progress
               size="small"
               percent={
@@ -289,10 +294,11 @@ export function ParsePage() {
         <Alert
           className="page-notice"
           type="info"
-          message="疑似遗漏、引用未解析的专用后处理尚未实现"
-          description="请结合原文逐项核查。当前不能把本地规则抽取称为完整智能解析。"
+          message="“引用未解析”专用页签尚未实现"
+          description="含“详见/参照”引用的条目在确认时须写明人工核对结果。"
         />
       </Drawer>
+      <OmissionsDrawer open={omissionsOpen} onClose={() => setOmissionsOpen(false)} onLocate={setSource} />
       <Modal
         title="修改抽取要求"
         open={!!edit}

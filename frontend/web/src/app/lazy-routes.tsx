@@ -13,6 +13,7 @@ export const LazyMatrixPage = lazy(() => loadProjectPages().then(module => ({ de
 export const LazyFactsPage = lazy(() => loadProjectPages().then(module => ({ default: module.FactsPage })));
 export const LazyChecksPage = lazy(() => loadProjectPages().then(module => ({ default: module.ChecksPage })));
 export const LazyExportPage = lazy(() => loadProjectPages().then(module => ({ default: module.ExportPage })));
+export const LazyManualQueuePage = lazy(() => loadProjectPages().then(module => ({ default: module.ManualQueuePage })));
 export const LazyLibraryPage = lazy(() => loadLibraryPages().then(module => ({ default: module.LibraryPage })));
 export const LazyJobsPage = lazy(() => loadSupportPages().then(module => ({ default: module.JobsPage })));
 export const LazyPendingPage = lazy(() => loadSupportPages().then(module => ({ default: module.PendingPage })));

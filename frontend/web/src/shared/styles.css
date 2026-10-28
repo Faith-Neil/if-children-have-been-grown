@@ -493,8 +493,9 @@
   flex-shrink: 0;
 }
 @media(max-width: 1439px) {
+  /* 1280 宽度下内容区约 1216px：三栏最小宽度合计须不超过它，否则编辑台横向溢出 */
   .editor-layout {
-    grid-template-columns: 260px minmax(650px, 1fr) 360px;
+    grid-template-columns: 240px minmax(520px, 1fr) 360px;
   }
   .editor-layout.directory-collapsed {
     grid-template-columns: 44px minmax(700px, 1fr) 360px;
@@ -560,3 +561,6 @@
   align-items: center;
   justify-content: center;
 }
+
+/* Wave 11：人工处理队列、分册定稿与复核、疑似遗漏 */
+.queue-issue{padding:12px 0;border-bottom:1px solid var(--line)}.queue-issue:last-child{border-bottom:0}.queue-issue p{margin:6px 0}.volume-finalize-row{padding:12px 0;border-bottom:1px solid var(--line)}.volume-finalize-row:last-child{border-bottom:0}.scan-hit{margin-bottom:10px}

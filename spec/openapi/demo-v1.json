@@ -34466,6 +34466,18 @@
           },
           "permissions": {
             "$ref": "#/components/schemas/ProjectPermissions"
+          },
+          "human_queue_pending": {
+            "type": "integer",
+            "title": "Human Queue Pending",
+            "description": "人工处理队列中待处理的问题数",
+            "default": 0
+          },
+          "omissions_pending": {
+            "type": "integer",
+            "title": "Omissions Pending",
+            "description": "兜底扫描中尚未处理的疑似遗漏数",
+            "default": 0
           }
         },
         "additionalProperties": true,

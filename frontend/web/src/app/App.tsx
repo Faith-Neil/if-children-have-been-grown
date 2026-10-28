@@ -359,6 +359,7 @@ export default function App() {
   }
   function navigate(value: string) {
     const route = value.startsWith('/') ? parseAppPath(value) : null; if (route?.kind === 'global') { requestPath(route.path); return; }
+    if (route?.kind === 'project') { requestPath(value); return; }
     const id = projectId.current; if (!id) { setDenied('对象已不存在或你没有查看该页面的权限。'); return; } requestPath(projectPath(id, value));
   }
 

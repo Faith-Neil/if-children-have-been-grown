@@ -635,6 +635,8 @@ class Workspace(ResponseBody):
     writing_plan: WritingPlan
     team: Team
     permissions: ProjectPermissions
+    human_queue_pending: int = Field(default=0, description="人工处理队列中待处理的问题数")
+    omissions_pending: int = Field(default=0, description="兜底扫描中尚未处理的疑似遗漏数")
 
 
 class MutationResult(ResponseBody):

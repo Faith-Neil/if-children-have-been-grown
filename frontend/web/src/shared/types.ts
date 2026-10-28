@@ -13,6 +13,56 @@ export interface VolumeStatus {
   unlocked_by?: string | null;
   unlocked_at?: string | null;
   unlock_reason?: string | null;
+  cross_review?: CrossReview | null;
+  pending_human_issues?: number;
+}
+
+export type CrossReviewStatus = 'none' | 'pending' | 'approved' | 'returned';
+export interface CrossReview {
+  status: CrossReviewStatus;
+  stale: boolean;
+  reviewer_id?: string | null;
+  reviewer_name?: string | null;
+  assigned_by?: string | null;
+  assigned_at?: string | null;
+  decided_at?: string | null;
+  decision_note?: string;
+  history?: { at: string; action: string; actor_id: string; note?: string; reviewer_id?: string }[];
+}
+
+export type HumanIssueStatus = 'pending_fix' | 'pending_human' | 'resolved' | 'human_handled' | 'rejected' | 'void';
+export interface HumanIssue {
+  id: string; number: string; chapter_id: string; volume: Volume; code: string; rule: string;
+  source: 'rule' | 'model_review'; level: 'blocker' | 'warning' | 'hint'; severity: 'high' | 'medium' | 'low';
+  status: HumanIssueStatus; route: 'auto_fix' | 'direct_human' | 'escalated_human';
+  human_reason?: string | null; human_reason_label: string; paragraph_index: number; quote: string;
+  message: string; suggestion: string; fix_count: number; loop_no: number;
+  permissions: { resolve: boolean; reject: boolean };
+}
+export interface ChapterLoopState {
+  chapter_id: string; loop_no: number; kind: string; status: 'completed' | 'pending_human' | 'human_handled';
+  status_label: string; stop_reason: string; stop_reason_label: string; max_rounds: number; rolled_back: boolean;
+  started_at: string; stale: boolean; loop_count: number;
+  rounds: { round: number; found: number; new: number; resolved: number; modified_paragraphs: number[]; conclusion: string }[];
+}
+export interface HumanQueueChapter {
+  chapter_id: string; title: string; volume: Volume; number: number; assignee_id?: string | null;
+  assignee_name?: string | null; volume_finalized: boolean; can_recheck: boolean; loop: ChapterLoopState | null;
+  issues: HumanIssue[];
+}
+export interface HumanQueue {
+  revision: number; project_id: string; volume: Volume | 'all'; deadline: string;
+  summary: { pending: number; chapters: number; by_reason: { reason: string; label: string; count: number }[] };
+  chapters: HumanQueueChapter[];
+}
+export type ScanHitState = 'suspected' | 'covered' | 'added' | 'excluded';
+export interface ScanHit {
+  id: string; file_id: string; filename: string; page: number; quote: string; terms: string[];
+  status: 'open' | 'added' | 'excluded'; state: ScanHitState; covered_by?: string | null; reason: string; scan_version: string;
+}
+export interface ScanHitList {
+  revision: number; project_id: string; scan_version: string; can_handle: boolean; hits: ScanHit[];
+  summary: { total: number; suspected: number; covered: number; added: number; excluded: number; too_many: boolean };
 }
 
 export interface VolumeFinalizeRequest {
@@ -159,7 +209,7 @@ export type Evidence = {
   last_modified_by?: string;
   created_at?: string;
 };
-export type Workspace = { revision: number; input_fingerprint: string; project: Project; stage: string; files: TenderFile[]; requirements: Requirement[]; facts: Fact[]; conflicts: Conflict[]; chapters: Chapter[]; checks: Check[]; exports: Export[]; jobs: Job[]; parse_confirmed: boolean; plan_confirmed: boolean; sla?: ProjectSla | null; writing_plan?: WritingPlan; team?: ProjectTeam; permissions?: ProjectPermissions; volumes?: VolumeStatus[] };
+export type Workspace = { revision: number; input_fingerprint: string; project: Project; stage: string; files: TenderFile[]; requirements: Requirement[]; facts: Fact[]; conflicts: Conflict[]; chapters: Chapter[]; checks: Check[]; exports: Export[]; jobs: Job[]; parse_confirmed: boolean; plan_confirmed: boolean; sla?: ProjectSla | null; writing_plan?: WritingPlan; team?: ProjectTeam; permissions?: ProjectPermissions; volumes?: VolumeStatus[]; human_queue_pending?: number; omissions_pending?: number };
 
 export type SnippetSyncStatus = 'synced' | 'unsynced' | 'sync_failed' | string;
 export type SnippetPublication = {

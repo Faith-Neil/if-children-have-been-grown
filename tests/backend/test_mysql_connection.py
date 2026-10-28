@@ -52,6 +52,7 @@ def test_alembic_upgrade_creates_session_and_receipt_tables():
         "alembic_version", "chapter_lease", "demo_chapter", "demo_chapter_version",
         "demo_check", "demo_export", "demo_job", "demo_library_item", "demo_library_revision",
         "demo_model_config", "demo_project", "demo_project_model_config", "demo_project_team",
+        "demo_project_workflow_state",
         "demo_sla_template", "demo_workflow", "idempotency_receipt", "user_session",
     ]
 
@@ -68,6 +69,7 @@ def test_alembic_downgrade_to_base_then_upgrade_restores_tables():
         assert "user_session" not in remaining
         assert "demo_project" not in remaining
         assert "demo_project_team" not in remaining
+        assert "demo_project_workflow_state" not in remaining
         assert "chapter_lease" not in remaining
         assert "demo_model_config" not in remaining
         assert "demo_project_model_config" not in remaining
@@ -88,6 +90,7 @@ def test_alembic_downgrade_to_base_then_upgrade_restores_tables():
             "alembic_version", "chapter_lease", "demo_chapter", "demo_chapter_version",
             "demo_check", "demo_export", "demo_job", "demo_library_item", "demo_library_revision",
             "demo_model_config", "demo_project", "demo_project_model_config", "demo_project_team",
+        "demo_project_workflow_state",
             "demo_sla_template", "demo_workflow", "idempotency_receipt", "user_session",
         ]
 

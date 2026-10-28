@@ -14,7 +14,7 @@ import {
   LazyMatrixPage as MatrixPage,
   LazyOverviewPage as OverviewPage,
   LazyParsePage as ParsePage,
-  LazyPendingPage as PendingPage,
+  LazyManualQueuePage as ManualQueuePage,
   LazyProjectSettingsPage as ProjectSettingsPage,
   LazyTenderPage as TenderPage,
 } from './lazy-routes';
@@ -123,12 +123,7 @@ export function ProjectWorkspaceContent({
                 {tab === 'checks' && <ChecksPage />}
                 {tab === 'export' && <ExportPage />}
                 {tab === 'settings' && <ProjectSettingsPage />}
-                {tab === 'manual' && (
-                  <PendingPage
-                    title="人工处理队列"
-                    detail="主链路目前可以在解析结果逐条确认、在检查列表定位问题。独立段落处理队列、指派和复查还未接通。"
-                  />
-                )}
+                {tab === 'manual' && <ManualQueuePage />}
               </>
             </Suspense>
           </main>
