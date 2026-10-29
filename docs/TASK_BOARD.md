@@ -10,7 +10,7 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 454 项：done 96、in-review 136、in-progress 45、planned 131、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+项目 454 项：done 96、in-review 141、in-progress 45、planned 126、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
@@ -18,7 +18,7 @@
 | 持久化 | 项目工作流、账号、资料库、知识库索引写入 MySQL 8（Alembic 0012） | 旧 `/api/projects`、`/api/chapters` 路由仍在（BE-M0-T09） |
 | 招标解析 | PDF/Word 文字提取，扫描件/.doc/Excel/图片经 RAGFlow DeepDOC；响应矩阵含响应方式、风险、批量匹配、分流确认与 Excel；按章节与条目抽取条款，适配真实招标文件版式（展平表格、段内（1）…（8）、否决/无效/废标）；事实含前附表 | PDF 定位高亮（T103）；未确认分流的行尚未从写作方案候选中排除 |
 | 知识库 | 每公司三类数据集、ICG 摄入流程、管控接口与管理页、检索带片号引用；内置解析评测定默认阈值 | 流程模式评测；历史标书批量导入（T080/T081） |
-| 生成与编辑 | 章节闭环、人工处理队列、交叉复核与定稿门禁、编辑台差异确认 | 章节循环进度页与轮次时间线（T130/T131）、确定性章节（T191～T194）、自动保存（T172） |
+| 生成与编辑 | 章节闭环、人工处理队列、交叉复核与定稿门禁、编辑台差异确认 | 章节循环进度页与轮次时间线（T130/T131）、自动保存（T172） |
 | 合规规则 | 40 条有检查与测试（R01～R20、R23～R32、R34～R37、R39～R44）；警告须负责人填理由逐项放行 | R33（缺结构化拟派人员条件）、R38（缺功能点标签）、R43 风格样例照抄与 R44 事实来源核对（缺样例库与产品字典）；R21、R22 为二期 |
 | 导出 | Word 版式、分册定稿、递交门禁、合标核对清单与内部响应追溯表 Excel | 递交批次原子化与失败整批回滚（T202）、Word 封面目录页码（T197） |
 | 管理 | 模型/RAGFlow 弹窗配置、公司管理、审计日志、SLA 模板 | 站内提醒、配置版本、任务模型映射 |
@@ -42,6 +42,7 @@
 - 2026-10-29 用户新增：BE-UPLOAD-100MB（招标文件与知识库原件单个最大 100MB，`ICG_MAX_UPLOAD_MB` 可调；二进制直传；原件存 `ICG_BLOB_DIR` 不进业务 JSON）、APP-TECHNICAL-ONLY-BID（新建项目可选“只写技术标”，不建商务册、不合标）、公司管理员可下载合标清单与追溯表。真实扫描件（贵阳银行 OCR 中台，35 页无文字层）经真实 RAGFlow DeepDOC 解析并校准抽取。
 - 2026-10-29：R36、R39～R44 实现（`icg/domain/content_rules.py`）；真实扫描件经新隧道完整走应用链路：二进制上传 24.2MB → 本地无文字 → RAGFlow 内置 DeepDOC 370 秒 → 35 页、110 条条款（6 条评分项带分值）；招标解析默认改用内置 DeepDOC（ICG 招标流程实测页码只还原 32 页）。
 - APP-M2-T112～T117 为 in-review：`GET /matrix`（listMatrixItems）、`POST /matrix/match`、`POST /matrix/routing`、`GET /matrix.xlsx`；星号/废标条款不能标不适用、如实登记偏离即为阻断项，偏离须写说明，候选只追加不替换。
+- APP-M2-T191～T195、T127 为 in-review：`icg/domain/system_chapters.py`，五类系统章节只按数据生成、缺来源写【待补】，正文手改一律 409 SYSTEM_CHAPTER_READONLY，数据源变化后检查报 SYSTEM_CHAPTER_STALE。原 T195 的 in-review 记录实际是检查红线横幅，证明材料清单此前没有生成器，本次补齐。
 - 余下顺序（重定后）：招标扫描件经 RAGFlow 解析。
 - 自测记录：[Wave 12 开发自测](testing/2026-10-28-wave-12-verification.md)。
 
@@ -433,7 +434,7 @@
 | [APP-M2-T124](tasks/APP-M2.md#app-m2-t124) | 完整证据、片段及评分写作计划（确认复用T15） | in-review | APP-M1-T15已具备；APP-M2-T078 已 done（QA 19c4862，PM 17:20 确认），APP-M2-T114 已 done（QA f521950，PM 17:13 确认）。写作方案Prompt输入上下文完整组装 | [ISSUE-022](../issues/ISSUE-022.md) | [交付](delivery/APP-M2-T126.md) |
 | [APP-M2-T125](tasks/APP-M2.md#app-m2-t125) | 招标原文预览联动与 R26 提示 | planned | APP-M1-T15、APP-M2-T123、APP-M2-T232 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T125.md` |
 | [APP-M2-T126](tasks/APP-M2.md#app-m2-t126) | 按逐节确认结果启动生成（确认复用T15） | in-review | APP-M1-T15、APP-M2-T124、APP-M2-T125 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T126.md) |
-| [APP-M2-T127](tasks/APP-M2.md#app-m2-t127) | 五类系统生成章节预览 | planned | APP-M1-T04、APP-M2-T191、APP-M2-T192、APP-M2-T193、APP-M2-T194、APP-M2-T195 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T127.md` |
+| [APP-M2-T127](tasks/APP-M2.md#app-m2-t127) | 五类系统生成章节预览 | in-review（2026-10-29：五类系统章节预览与只读按数据源生成已实现） | APP-M1-T04、APP-M2-T191、APP-M2-T192、APP-M2-T193、APP-M2-T194、APP-M2-T195 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T127.md` |
 | [APP-M2-T128](tasks/APP-M2.md#app-m2-t128) | 锁定提示与“去数据源修改” | planned | APP-M1-T04、APP-M2-T127、APP-M2-T163 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T128.md` |
 | [APP-M2-T129](tasks/APP-M2.md#app-m2-t129) | 章节列表（编辑台入口） | planned | APP-M2-T126、APP-M2-T021 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T129.md` |
 | [APP-M2-T130](tasks/APP-M2.md#app-m2-t130) | 章节循环进度页 | in-review（2026-10-28：循环进度页与轮次时间线已实现，见人工处理队列页签） | APP-M2-T126、APP-M2-T021、APP-M2-T044、APP-M2-T234、APP-M2-T237、APP-M2-T238、APP-M2-T254、APP-M2-T244、APP-M2-T245、APP-M2-T246、APP-M2-T247、APP-M2-T248、APP-M2-T249 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T130.md` |
@@ -497,11 +498,11 @@
 | [APP-M2-T188](tasks/APP-M2.md#app-m2-t188) | 粘贴识别 | planned | APP-M2-T167、APP-M2-T178、APP-M2-T185、APP-M2-T242、APP-M2-T243 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T188.md` |
 | [APP-M2-T189](tasks/APP-M2.md#app-m2-t189) | 对话助手观察指标 | planned | APP-M2-T174、APP-M2-T185 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T189.md` |
 | [APP-M2-T190](tasks/APP-M2.md#app-m2-t190) | 人工修改率分项 | planned | APP-M2-T174、APP-M2-T185 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T190.md` |
-| [APP-M2-T191](tasks/APP-M2.md#app-m2-t191) | 点对点应答确定性章节 | planned | APP-M2-T113、APP-M2-T116 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T191.md` |
-| [APP-M2-T192](tasks/APP-M2.md#app-m2-t192) | 评审索引确定性章节 | planned | APP-M2-T113、APP-M2-T123 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T192.md` |
-| [APP-M2-T193](tasks/APP-M2.md#app-m2-t193) | 偏离表确定性章节 | planned | APP-M2-T113、APP-M2-T116 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T193.md` |
-| [APP-M2-T194](tasks/APP-M2.md#app-m2-t194) | 年度服务计划确定性章节 | planned | APP-M2-T121、APP-M2-T113 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T194.md` |
-| [APP-M2-T195](tasks/APP-M2.md#app-m2-t195) | 证明材料清单确定性章节 | in-review | APP-M2-T114、APP-M2-T059、APP-M2-T099 | [ISSUE-007](../issues/ISSUE-007.md) | [APP-M2-T195 交付](delivery/APP-M2-T195.md) |
+| [APP-M2-T191](tasks/APP-M2.md#app-m2-t191) | 点对点应答确定性章节 | in-review（2026-10-29：点对点应答按数据源生成已实现） | APP-M2-T113、APP-M2-T116 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T191.md` |
+| [APP-M2-T192](tasks/APP-M2.md#app-m2-t192) | 评审索引确定性章节 | in-review（2026-10-29：评审索引表按数据源生成已实现） | APP-M2-T113、APP-M2-T123 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T192.md` |
+| [APP-M2-T193](tasks/APP-M2.md#app-m2-t193) | 偏离表确定性章节 | in-review（2026-10-29：偏离表按数据源生成已实现） | APP-M2-T113、APP-M2-T116 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T193.md` |
+| [APP-M2-T194](tasks/APP-M2.md#app-m2-t194) | 年度服务计划确定性章节 | in-review（2026-10-29：年度服务计划表按数据源生成已实现） | APP-M2-T121、APP-M2-T113 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T194.md` |
+| [APP-M2-T195](tasks/APP-M2.md#app-m2-t195) | 证明材料清单确定性章节 | in-review（2026-10-29：证明材料清单按数据源生成已实现） | APP-M2-T114、APP-M2-T059、APP-M2-T099 | [ISSUE-007](../issues/ISSUE-007.md) | [APP-M2-T195 交付](delivery/APP-M2-T195.md) |
 | [APP-M2-T196](tasks/APP-M2.md#app-m2-t196) | Word模板与正文样式渲染 | in-review | APP-M2-T086、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | [APP-M2-T196 交付](delivery/APP-M2-T196.md) |
 | [APP-M2-T197](tasks/APP-M2.md#app-m2-t197) | 分册封面、目录与页码 | planned | APP-M2-T196、APP-M2-T100 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T197.md` |
 | [APP-M2-T198](tasks/APP-M2.md#app-m2-t198) | 指定附件页与敏感水印 | planned | APP-M2-T196、APP-M2-T059 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T198.md` |

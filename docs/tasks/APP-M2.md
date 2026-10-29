@@ -1939,7 +1939,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T127 · 五类系统生成章节预览
 <a id="app-m2-t127"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T04](APP-M1.md#app-m1-t04)、[APP-M2-T191](APP-M2.md#app-m2-t191)、[APP-M2-T192](APP-M2.md#app-m2-t192)、[APP-M2-T193](APP-M2.md#app-m2-t193)、[APP-M2-T194](APP-M2.md#app-m2-t194)、[APP-M2-T195](APP-M2.md#app-m2-t195)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T04](APP-M1.md#app-m1-t04)、[APP-M2-T191](APP-M2.md#app-m2-t191)、[APP-M2-T192](APP-M2.md#app-m2-t192)、[APP-M2-T193](APP-M2.md#app-m2-t193)、[APP-M2-T194](APP-M2.md#app-m2-t194)、[APP-M2-T195](APP-M2.md#app-m2-t195)。
 
 原始来源：原交接 §6.5 M4-F09-F1；PRD v1.8 §5.7.2规则1、5.11.8。交付单位：五类系统生成章节预览，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -2912,7 +2912,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T191 · 点对点应答确定性章节
 <a id="app-m2-t191"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T113](APP-M2.md#app-m2-t113)、[APP-M2-T116](APP-M2.md#app-m2-t116)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T113](APP-M2.md#app-m2-t113)、[APP-M2-T116](APP-M2.md#app-m2-t116)。
 
 原始来源：PRD v1.8 §5.7.2、5.11.8。交付单位：点对点应答确定性章节，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -2927,7 +2927,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T192 · 评审索引确定性章节
 <a id="app-m2-t192"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T113](APP-M2.md#app-m2-t113)、[APP-M2-T123](APP-M2.md#app-m2-t123)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T113](APP-M2.md#app-m2-t113)、[APP-M2-T123](APP-M2.md#app-m2-t123)。
 
 原始来源：PRD v1.8 §5.7.2、5.9.1、R40。交付单位：评审索引确定性章节，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -2942,7 +2942,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T193 · 偏离表确定性章节
 <a id="app-m2-t193"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T113](APP-M2.md#app-m2-t113)、[APP-M2-T116](APP-M2.md#app-m2-t116)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T113](APP-M2.md#app-m2-t113)、[APP-M2-T116](APP-M2.md#app-m2-t116)。
 
 原始来源：PRD v1.8 §5.7.2、R37。交付单位：偏离表确定性章节，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -2957,7 +2957,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T194 · 年度服务计划确定性章节
 <a id="app-m2-t194"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T121](APP-M2.md#app-m2-t121)、[APP-M2-T113](APP-M2.md#app-m2-t113)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T121](APP-M2.md#app-m2-t121)、[APP-M2-T113](APP-M2.md#app-m2-t113)。
 
 原始来源：PRD v1.8 §5.7.2、5.11.8。交付单位：年度服务计划确定性章节，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -4088,3 +4088,5 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 新建项目可选编写范围 `volume_mode`：`both`（技术+商务，导出后合标）或 `technical_only`。只写技术标时：只建技术分册；商务/资格条款解析后标为不在本项目范围（忽略并写明理由，原文仍可查，可人工改到技术分册纳入）；检查与导出的“全文”即技术分册；合规规则不看范围外条款；定稿、交叉复核、导出、追溯表对商务分册一律 404；递交版只出一份技术标 Word，不生成合标核对清单。`PATCH /projects/{id}` 可切换模式：商务分册已有正文或已定稿时拒绝（409 CHAPTER_HAS_CONTENT），切回两册时补建商务分册并恢复范围外条款。测试 `tests/backend/test_technical_only.py`、`frontend/web/tests/unit/project-volumes.test.mjs`、`frontend/web/e2e/technical-only.spec.ts`。
 
 > 2026-10-29 响应矩阵实现（T112～T117）：`icg/domain/matrix.py`、`frontend/web/src/project/matrix-core.ts`、`MatrixMatchDrawer.tsx`；测试 `tests/backend/test_matrix.py`、`frontend/web/tests/unit/matrix-core.test.mjs`、`frontend/web/e2e/matrix.spec.ts`。限制：未确认分流的行尚未从写作方案候选中排除（PRD §5.3.1 验收④），结构化证据候选按字面重合排序，未按证书类别规则匹配。
+
+> 2026-10-29 系统生成章节（T191～T195、T127）：`POST /projects/{id}/chapters/{cid}/system/generate`（generateSystemChapter）与 `GET …/system`（previewSystemChapter）；编辑台显示系统章节面板并只读；编辑台提交、AI 建议采纳、答案卡插入都拒绝手改；数据源变化后全文检查报阻断级 SYSTEM_CHAPTER_STALE，重新生成后消除。年度服务计划的频次只引用已确认的 SLA 变量，服务期引用已确认事实，缺来源写【待补】。测试 `tests/backend/test_system_chapters.py`、`frontend/web/tests/unit/system-chapter-core.test.mjs`。限制：点对点应答样式与偏离表格式用固定表头，尚未读取写作档案样式与招标给定格式。

@@ -203,7 +203,7 @@ class WorkflowService(
                     raise DomainError(403, "CHAPTER_STRUCTURE_REQUIRED", "只有项目负责人或本册负责人可以分配本节。")
             else:
                 require_chapter(state, principal, chapter)
-        elif name == "chapter.loop.recheck":
+        elif name in ("chapter.loop.recheck", "chapter.system"):
             chapter = self.demo._chapter(state, principal, resource_id)
             if chapter.project_id != project_id:
                 raise DomainError(404, "NOT_FOUND", "章节不属于当前项目。")

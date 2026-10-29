@@ -928,6 +928,8 @@ class DemoService:
             if previous is not None:
                 return previous
             self._revision(chapter, base_revision)
+            from .system_chapters import refuse_manual_edit
+            refuse_manual_edit(state, chapter)
             self._writing_input(state, chapter, input_fingerprint)
             chapter.content = content
             chapter.revision += 1

@@ -213,6 +213,10 @@ class CheckOrchestratorMixin(ComplianceRulesMixin):
                 except DomainError as error:
                     add(error.code, error.message, chapter_id=chapter.id)
             issues.extend(sla_issues(state, project_id, chapters))
+            from icg.domain.system_chapters import stale_system_chapters
+            for item in stale_system_chapters(state, project, workflow):
+                if scope == "all" or state.chapters[item["chapter_id"]].volume == scope:
+                    add("SYSTEM_CHAPTER_STALE", f"系统生成章节《{item['title']}》的数据源已变化，请重新生成。", chapter_id=item["chapter_id"])
             from icg.domain.project_access import in_scope_workflow
             rule_results = ComplianceRulesEngine.evaluate_all(
                 state, project, in_scope_workflow(workflow), volume=scope, now_ts=self.demo._now()

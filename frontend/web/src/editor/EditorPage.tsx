@@ -39,6 +39,8 @@ import { EditorAssistantPanel } from './EditorAssistantPanel.tsx';
 import { EditorDiffDrawer, type ChapterVersionItem } from './EditorDiffDrawer.tsx';
 import { extractCitationIds, type CiteKind, type CitationMeta } from './cite-capsule';
 import { useEditorLock, type Lease } from './useEditorLock.ts';
+import { SystemChapterPanel } from '../project/SystemChapterPanel.tsx';
+import { systemChapterKind } from '../project/system-chapter-core.ts';
 import { useSelectionBubble } from './useSelectionBubble.ts';
 import { EditorSlaTools } from './EditorSlaTools.tsx';
 import { EditorAuxiliaryDrawers } from './EditorAuxiliaryDrawers.tsx';
@@ -81,7 +83,8 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
 
   const activeChapter = workspace.chapters.find(item => item.id === chapterId);
   const dataPermission = useDataPermission({ volume, chapterId, chapter: activeChapter, workspace, role: user?.role, userId: user?.id });
-  const canEdit = chapterCan(activeChapter, 'edit') && dataPermission.canEdit;
+  const systemKind = systemChapterKind(activeChapter?.title);
+  const canEdit = chapterCan(activeChapter, 'edit') && dataPermission.canEdit && !systemKind;
   const isReadOnlyView = !canEdit || dataPermission.readOnly;
   const canGenerate = chapterCan(activeChapter, 'generate') && dataPermission.canEdit;
   const combinedBusy = busy || projectBusy || loading;
@@ -371,7 +374,8 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
 
           {chapter ? <article className="document-paper" ref={editorWrapperRef} style={{ position: 'relative' }}>
             <SelectionBubble visible={selectionBubble.visible} position={selectionBubble.position} selectedText={selectionBubble.text} onPolish={handleBubblePolish} onComplianceQa={handleBubbleComplianceQa} onClear={handleBubbleClear} />
-            {isReadOnlyView && <ReadonlyBanner banner reason={dataPermission.readOnlyReason || '当前章节处于只读浏览状态'} scope={dataPermission.scopeName || activeChapter?.title || volumeName(chapter.volume)} roleName={dataPermission.roleLabel} style={{ marginBottom: 16 }} />}
+            {systemKind && activeChapter && <SystemChapterPanel chapterId={activeChapter.id} canGenerate={chapterCan(activeChapter, 'edit') && dataPermission.canEdit} />}
+            {isReadOnlyView && !systemKind && <ReadonlyBanner banner reason={dataPermission.readOnlyReason || '当前章节处于只读浏览状态'} scope={dataPermission.scopeName || activeChapter?.title || volumeName(chapter.volume)} roleName={dataPermission.roleLabel} style={{ marginBottom: 16 }} />}
             <div className="document-heading">
               <h2>{chapter.title}</h2>
               <Tag>{volumeName(chapter.volume)}</Tag>

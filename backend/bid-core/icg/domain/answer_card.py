@@ -794,6 +794,8 @@ class AnswerCardService:
                 else:
                     new_content = old_content + "\n" + inserted_text
 
+            from .system_chapters import refuse_manual_edit
+            refuse_manual_edit(state, chapter)
             chapter.content = new_content
             chapter.revision += 1
             state.projects[chapter.project_id].revision += 1

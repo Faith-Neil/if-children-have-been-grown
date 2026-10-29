@@ -734,6 +734,8 @@ class EditorAIContextService:
                     raise DomainError(409, "REVISION_CONFLICT", f"未在章节正文中找到待替换的原文片段：{orig_clean[:30]}...")
 
             new_content = delimiter.join(raw_blocks)
+            from .system_chapters import refuse_manual_edit
+            refuse_manual_edit(state, chapter)
             chapter.content = new_content
             chapter.revision += 1
             state.projects[project_id].revision += 1

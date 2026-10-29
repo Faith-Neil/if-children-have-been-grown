@@ -170,6 +170,17 @@ def include_workflow_routes(application, service, current_user, parser):
                  if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.generate(user, project_id, body.model_dump(), if_match, idempotency_key)
 
+    @router.get("/projects/{project_id}/chapters/{chapter_id}/system", operation_id="previewSystemChapter", response_model=dict[str, Any],
+                summary="系统生成章节预览（点对点应答/评审索引/偏离表/年度服务计划/证明材料清单）")
+    def system_preview(project_id: str, chapter_id: str, user: Principal = Depends(current_user)):
+        return workflow.preview_system_chapter(user, project_id, chapter_id)
+
+    @router.post("/projects/{project_id}/chapters/{chapter_id}/system/generate", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="generateSystemChapter", summary="按数据源生成系统章节（覆盖正文）")
+    def system_generate(project_id: str, chapter_id: str, body: EmptyRequest, user: Principal = Depends(current_user),
+                        if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.generate_system_chapter(user, project_id, chapter_id, body.model_dump(), if_match, idempotency_key)
+
     @router.get("/projects/{project_id}/matrix", operation_id="listMatrixItems", summary="响应矩阵（含响应方式、风险与默认分流）",
                 response_model=dict[str, Any])
     def matrix(project_id: str, volume: Literal["all", "technical", "business"] = Query(default="all"),

@@ -124,7 +124,10 @@ def _attachable(state: Any, project: Any, item: dict) -> tuple[bool, str]:
     return True, ""
 
 
-class MatrixMixin:
+from .system_chapters import SystemChapterMixin  # noqa: E402
+
+
+class MatrixMixin(SystemChapterMixin):
     """WorkflowService 的响应矩阵能力。"""
 
     def _matrix_item(self, state, project, workflow, row, active, names) -> dict:
