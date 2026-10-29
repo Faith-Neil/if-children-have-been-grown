@@ -14,7 +14,7 @@ from icg.domain.matrix import MatrixMixin
 from icg.domain.ports import ParserProvider
 from icg.domain.input_snapshot import project_input_fingerprint
 from icg.domain.sla import SlaService, public_sla
-from icg.domain.generation_context import build_generation_context, chapter_plan, plan_is_current, project_facts, public_plan
+from icg.domain.generation_context import build_generation_context, chapter_plan, chapter_rows, plan_is_current, project_facts, public_plan
 from icg.domain.project_access import (
     VOLUMES, project_volume_mode, writable, lead, volume_owner, require_lead, require_chapter,
     chapter_structure, chapter_edit, chapter_permissions, project_permissions,
@@ -257,7 +257,7 @@ class WorkflowService(
                 "assignee_id": chapter.assignee_id,
                 "assignee_name": state.accounts[chapter.assignee_id].name if chapter.assignee_id in state.accounts else None,
                 "permissions": chapter_permissions(state, chapter, user_id) if user_id else {},
-                "requirement_ids": [r["id"] for r in workflow["requirements"].values() if r["chapter_id"] == chapter.id]}
+                "requirement_ids": [r["id"] for r in chapter_rows(workflow, chapter.id, chapter.volume)]}
 
     def _fingerprint(self, state: DemoState, project_id: str) -> str:
         return project_input_fingerprint(state, project_id)

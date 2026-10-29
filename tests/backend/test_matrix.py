@@ -23,7 +23,9 @@ def test_matrix_lists_response_type_risk_and_suggested_volume(client):
     data = _matrix(flow)
     assert data["stats"]["total"] == len(flow.state()["requirements"]) and data["stats"]["coverage"] == 100
     star = next(i for i in data["items"] if i["critical"])
-    assert star["response_type"] is None and "routing_pending" in star["risk_flags"]
+    # ready() 里项目负责人给每行对应了章节，即确认了分流
+    assert star["response_type"] is None and "routing_pending" not in star["risk_flags"]
+    assert star["volume_confirmed_by"] == "alpha-manager" and star["volume_confirmed_at"]
     assert {i["suggested_volume"] for i in data["items"]} <= {"technical", "business"}
 
 

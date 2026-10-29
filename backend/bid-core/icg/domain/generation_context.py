@@ -40,6 +40,18 @@ def chapter_plan(workflow, chapter_id):
             "confirmed_at": saved.get("confirmed_at"), "confirmed_input_fingerprint": saved.get("confirmed_input_fingerprint")}
 
 
+def chapter_rows(workflow, chapter_id, chapter_volume=None):
+    """本章方案的条款：映射到本章的行，加上“跨分册共用”且另一分册对应到本章的行（PRD §5.3.1 规则 8、验收⑤）。"""
+    rows = []
+    for row in workflow.get("requirements", {}).values():
+        if row.get("chapter_id") == chapter_id:
+            rows.append(row)
+        elif (row.get("is_cross_volume") and row.get("shared_chapter_id") == chapter_id
+              and (chapter_volume is None or chapter_volume != row.get("volume"))):
+            rows.append(row)
+    return rows
+
+
 def writing_source_fingerprint(state, project_id, chapter_id=None):
     """方案只绑定来源和写作配置；提交正文不会要求再次确认相同方案。"""
     workflow = state.workflows.get(project_id, {})
@@ -51,7 +63,7 @@ def writing_source_fingerprint(state, project_id, chapter_id=None):
     chapter = state.chapters[chapter_id]
     plan = chapter_plan(workflow, chapter_id)
     facts = [f for f in project_facts(state, project_id) if f["required"] or f["id"] in plan["fact_ids"]]
-    requirements = [r for r in workflow.get("requirements", {}).values() if r["chapter_id"] == chapter_id]
+    requirements = chapter_rows(workflow, chapter_id, chapter.volume)
     evidence_ids = {identity for r in requirements for identity in r["evidence_ids"]}
     file_ids = {r["source"]["file_id"] for r in requirements if r.get("source")}
     file_ids.update(f["source"]["file_id"] for f in facts if f.get("source") and f["source"].get("file_id"))
@@ -181,11 +193,17 @@ def build_generation_context(state, project_id, chapter, now, evidence_service=N
         facts.append({**deepcopy(fact), "variable": variable, "source": _source(workflow, fact.get("source"))})
     requirements, evidence_by_id = [], {}
     reference_date = _date(project.deadline) if project.deadline else datetime.fromtimestamp(now, SHANGHAI).date()
-    for row in workflow.get("requirements", {}).values():
-        if row["chapter_id"] != chapter.id or row["status"] == "rejected":
+    for row in chapter_rows(workflow, chapter.id, chapter.volume):
+        if row["status"] == "rejected":
             continue
-        if row["status"] != "confirmed" or row["volume"] != chapter.volume or not _source_valid(workflow, row.get("source")):
+        shared = row["chapter_id"] != chapter.id  # 跨分册共用，经另一分册对应到本章
+        if row["status"] != "confirmed" or (row["volume"] != chapter.volume and not shared) or not _source_valid(workflow, row.get("source")):
             add("REQUIREMENT_NOT_READY", "本章条款尚未确认、分册不匹配或原文来源无效。", requirement_id=row["id"])
+            continue
+        if not row.get("volume_confirmed_at"):
+            # 未确认分流的行不能进入写作方案（PRD §5.3.1 规则 8、验收④）
+            add("REQUIREMENT_NOT_READY", "本章条款的分册分流尚未由项目负责人确认，请到响应矩阵“确认分流”后再生成。",
+                requirement_id=row["id"], reason="routing_pending")
             continue
         requirements.append({"id": row["id"], "text": row["text"], "response": row["response"],
                              "status": row["status"], "source": _source(workflow, row["source"]),

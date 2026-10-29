@@ -117,3 +117,10 @@ export function insertFactToken(content: string, start: number, end: number, fac
   const token = `{{fact:${fact.id}}}`;
   return { content: content.slice(0, start) + token + content.slice(end), cursor: start + token.length };
 }
+
+/** 方案核对弹窗里列出的本节条款：含跨分册共用行；分流未确认的行标出，确认前不会进入生成（PRD §5.3.1 验收④⑤）。 */
+export function planRequirementText(workspace: Pick<Workspace, 'requirements' | 'chapters'>, chapterId: string): string {
+  const chapter = workspace.chapters.find(item => item.id === chapterId);
+  const rows = workspace.requirements.filter(requirement => requirement.chapter_id === chapterId || chapter?.requirement_ids?.includes(requirement.id));
+  return rows.map(requirement => `${requirement.text}${requirement.volume_confirmed_at ? '' : '（分流待确认，确认前不进入写作方案）'}${requirement.chapter_id !== chapterId ? '（跨分册共用）' : ''}`).join('；') || '本节未映射条款';
+}

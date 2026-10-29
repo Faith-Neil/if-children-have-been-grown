@@ -115,6 +115,8 @@ def generation_env():
                 "response": "经核对，我司具备该证书及完备高可用方案。",
                 "status": "confirmed",
                 "evidence_ids": ["ev-iso9001"],
+                "volume_confirmed_by": "alpha-manager",  # 分流已由项目负责人确认（PRD §5.3.1 规则 8）
+                "volume_confirmed_at": "2026-10-01T00:00:00+00:00",
                 "source": {
                     "file_id": "file-tender-01",
                     "page": 2,

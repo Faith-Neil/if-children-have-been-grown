@@ -41489,6 +41489,19 @@
             ],
             "title": "Assignee Id",
             "description": "本行负责人（须为本项目可编写成员）"
+          },
+          "shared_chapter_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shared Chapter Id",
+            "description": "跨分册共用行在另一分册对应的章节（只限项目负责人；行须已标跨分册共用）"
           }
         },
         "additionalProperties": false,

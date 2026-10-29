@@ -55,6 +55,8 @@ class RequirementPatch(RequestBody):
     response_type: Literal["comply", "exceed", "deviate", "not_applicable"] | None = Field(
         default=None, description="响应方式：满足=无偏离、优于=正偏离、偏离=负偏离、不适用；星号/废标条款不能偏离或不适用")
     assignee_id: str | None = Field(default=None, max_length=80, description="本行负责人（须为本项目可编写成员）")
+    shared_chapter_id: str | None = Field(default=None, max_length=80,
+                                          description="跨分册共用行在另一分册对应的章节（只限项目负责人；行须已标跨分册共用）")
 
 
 class MatrixMatchRequest(RequestBody):

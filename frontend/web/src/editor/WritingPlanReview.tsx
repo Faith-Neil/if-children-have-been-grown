@@ -5,7 +5,7 @@ import { Alert, App as AntApp, Button, Card, Form, Input, InputNumber, Modal, Se
 import { PlusOutlined } from '@ant-design/icons';
 import { formatTime, useProject, volumeName } from '../app/context';
 import { displaySlaValue } from '../admin/sla-form';
-import { advancePlanReviewRow, capturePlanReviewBasis, chapterPlanChanged, chapterPlanPayload, chapterStructureChanged, planReviewRowProblem, planReviewScopeProblem, writingPlanPayload, writingPlanRowBasis, writingPlanRows, type WritingPlanReviewBasis, type WritingPlanRow } from './writing-input';
+import { advancePlanReviewRow, capturePlanReviewBasis, chapterPlanChanged, chapterPlanPayload, chapterStructureChanged, planRequirementText, planReviewRowProblem, planReviewScopeProblem, writingPlanPayload, writingPlanRowBasis, writingPlanRows, type WritingPlanReviewBasis, type WritingPlanRow } from './writing-input';
 import type { Chapter } from '../shared/types';
 import { assignmentCandidates, chapterCan, planScopes, type PlanScope } from '../project/project-team';
 
@@ -118,7 +118,7 @@ export default function WritingPlanReview({ open, onClose, chapterId }: { open: 
     if (!actualRow) return;
     const proposedBasis = writingPlanRowBasis(snapshot.workspace, savedChapter, snapshot);
     modal.confirm({ title: `核对并载入最新本节方案：${savedChapter.title}`, width: 850,
-      content: <><div className="diff-columns"><div><h4>当前未保存的填写（可先复制保留）</h4><pre className="diff-before">{describeRow(row)}</pre></div><div><h4>后台最新已保存方案</h4><pre className="diff-after">{describeRow(actualRow, snapshot.workspace)}</pre></div></div><p>当前来源要求：{snapshot.workspace.requirements.filter(requirement => requirement.chapter_id === row.id).map(requirement => requirement.text).join('；') || '本节未映射条款'}。</p><p>请同时核对上方必备事实。载入只替换本节表单，其他行保留原输入和各自核对依据；后台记录不变。取消保留当前文字。</p></>,
+      content: <><div className="diff-columns"><div><h4>当前未保存的填写（可先复制保留）</h4><pre className="diff-before">{describeRow(row)}</pre></div><div><h4>后台最新已保存方案</h4><pre className="diff-after">{describeRow(actualRow, snapshot.workspace)}</pre></div></div><p>当前来源要求：{planRequirementText(snapshot.workspace, row.id ?? '')}。</p><p>请同时核对上方必备事实。载入只替换本节表单，其他行保留原输入和各自核对依据；后台记录不变。取消保留当前文字。</p></>,
       okText: '已核对，载入最新本节方案', cancelText: '保留当前填写',
       onOk: () => {
         const current = latest.current.workspace.chapters.find(chapter => chapter.id === row.id);

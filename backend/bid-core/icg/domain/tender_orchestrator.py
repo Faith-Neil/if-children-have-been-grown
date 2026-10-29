@@ -308,6 +308,15 @@ class TenderOrchestratorMixin:
                 self._reject_unusable_mount(state, principal, project, evidence)
             if "evidence_ids" in payload and len(payload["evidence_ids"]) != len(set(payload["evidence_ids"])):
                 raise DomainError(422, "DUPLICATE_EVIDENCE", "同一证据不能重复挂接。")
+            if "shared_chapter_id" in payload:
+                shared_id = payload["shared_chapter_id"]
+                if not lead(state, project_id, principal.user.id):
+                    raise DomainError(403, "PROJECT_LEAD_REQUIRED", "跨分册共用行的另一分册章节只能由项目负责人对应。")
+                if shared_id:
+                    shared = self.demo._chapter(state, principal, shared_id)
+                    if (shared.project_id != project_id or not requirement.get("is_cross_volume")
+                            or shared.volume == payload.get("volume", requirement["volume"])):
+                        raise DomainError(409, "CHAPTER_VOLUME_MISMATCH", "只有标为跨分册共用的行能再对应另一分册的章节。")
             from icg.domain.matrix import apply_response_type, validate_response
             explicit_response = "response_type" in payload
             payload.update(apply_response_type(requirement, payload))
@@ -335,8 +344,15 @@ class TenderOrchestratorMixin:
             if text_changed or any(k in payload and payload[k] != requirement[k] for k in ("category", "volume", "status")):
                 workflow["parse_confirmed"] = False
                 workflow["plan_confirmed"] = False
-            if any(k in payload and payload[k] != requirement[k] for k in ("chapter_id", "response", "evidence_ids")):
+            if any(k in payload and payload[k] != requirement.get(k) for k in ("chapter_id", "response", "evidence_ids", "shared_chapter_id")):
                 workflow["plan_confirmed"] = False
+            # 分册分流（PRD §5.3.1 规则 8）：项目负责人改分册或对应章节，即确认了这一行的分流；
+            # 其他人改分册只算修改建议，这一行回到“待确认”，确认前不进入写作方案。
+            routed = any(k in payload and payload[k] is not None for k in ("volume", "chapter_id"))
+            if routed and lead(state, project_id, principal.user.id):
+                updated.update(volume_confirmed_by=principal.user.id, volume_confirmed_at=iso_time(self.demo._now()))
+            elif "volume" in payload and payload["volume"] != requirement["volume"]:
+                updated.update(volume_confirmed_by=None, volume_confirmed_at=None)
             if updated["status"] == "confirmed" and (requirement["status"] != "confirmed" or text_changed):
                 # 响应追溯表（APP-M2-T201）需要“确认人”
                 updated.update(confirmed_by=principal.user.id, confirmed_by_name=principal.user.name,
