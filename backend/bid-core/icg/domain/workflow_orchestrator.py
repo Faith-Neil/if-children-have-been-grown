@@ -1,6 +1,5 @@
 # 为什么有这个文件：由原巨石 workflow.py 解耦收敛形成的高内聚工作流门面（Façade）（BE-TECH-DEBT-03）。
-# 它解决什么问题：
-# 1. 组合大纲编排（outline）、生成编排（generation）、合规检查编排（check）、导出编排（export/volume_finalize）、招标文件解析（tender）与企业资料库（library）领域子编排服务；
+# 它解决什么问题：1. 组合大纲编排（outline）、生成编排（generation）、合规检查编排（check）、导出编排（export/volume_finalize）、招标文件解析（tender）与企业资料库（library）领域子编排服务；
 # 2. 统一管理工作流事务（_write）、前置校验（_preflight）、乐观锁与幂等机制，代码行数严格控制在 350 行以内；
 # 3. 对外暴露 100% 行为与签名兼容的工作流门面。
 
@@ -11,6 +10,7 @@ from typing import Any, Callable
 
 from icg.domain.domain import Chapter, DemoService, DemoState, DomainError, Principal, iso_time, new_id
 from icg.domain.volume_mode import switch_volume_mode
+from icg.domain.matrix import MatrixMixin
 from icg.domain.ports import ParserProvider
 from icg.domain.input_snapshot import project_input_fingerprint
 from icg.domain.sla import SlaService, public_sla
@@ -58,7 +58,7 @@ def _blank_workflow() -> dict:
 
 
 class WorkflowService(
-    OutlineOrchestratorMixin,
+    MatrixMixin, OutlineOrchestratorMixin,
     GenerationOrchestratorMixin,
     ExportServiceMixin,
     CheckOrchestratorMixin,

@@ -1706,7 +1706,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T112 · 矩阵表格与筛选（风险提示）
 <a id="app-m2-t112"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T03](APP-M1.md#app-m1-t03)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T03](APP-M1.md#app-m1-t03)。
 
 原始来源：原交接 §6.4 M3-E05-F1；PRD v1.8 §5.3.1。交付单位：矩阵表格与筛选（风险提示），同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -1721,7 +1721,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T113 · 行编辑（响应方式、要点、负责人）
 <a id="app-m2-t113"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T03](APP-M1.md#app-m1-t03)、[APP-M2-T112](APP-M2.md#app-m2-t112)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T03](APP-M1.md#app-m1-t03)、[APP-M2-T112](APP-M2.md#app-m2-t112)。
 
 原始来源：原交接 §6.4 M3-E05-F2；PRD v1.8 §5.3.1。交付单位：行编辑（响应方式、要点、负责人），同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -1753,7 +1753,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T115 · 批量智能匹配与逐行确认
 <a id="app-m2-t115"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T03](APP-M1.md#app-m1-t03)、[APP-M2-T118](APP-M2.md#app-m2-t118)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T03](APP-M1.md#app-m1-t03)、[APP-M2-T118](APP-M2.md#app-m2-t118)。
 
 原始来源：原交接 §6.4 M3-E05-F4；PRD v1.8 §5.3.1。交付单位：批量智能匹配与逐行确认，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -1768,7 +1768,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T116 · P-18 分册分流确认
 <a id="app-m2-t116"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T03](APP-M1.md#app-m1-t03)、[APP-M1-T14](APP-M1.md#app-m1-t14)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T03](APP-M1.md#app-m1-t03)、[APP-M1-T14](APP-M1.md#app-m1-t14)。
 
 原始来源：原交接 §6.4 M3-E05-F5；PRD v1.8 §5.3.1。交付单位：P-18 分册分流确认，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -1783,7 +1783,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T117 · Excel 导出与确认闸门
 <a id="app-m2-t117"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T03](APP-M1.md#app-m1-t03)、[APP-M2-T113](APP-M2.md#app-m2-t113)、[APP-M2-T114](APP-M2.md#app-m2-t114)、[APP-M2-T116](APP-M2.md#app-m2-t116)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T03](APP-M1.md#app-m1-t03)、[APP-M2-T113](APP-M2.md#app-m2-t113)、[APP-M2-T114](APP-M2.md#app-m2-t114)、[APP-M2-T116](APP-M2.md#app-m2-t116)。
 
 原始来源：原交接 §6.4 M3-E05-F6；PRD v1.8 §5.3.1。交付单位：Excel 导出与确认闸门，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -4087,3 +4087,4 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 
 新建项目可选编写范围 `volume_mode`：`both`（技术+商务，导出后合标）或 `technical_only`。只写技术标时：只建技术分册；商务/资格条款解析后标为不在本项目范围（忽略并写明理由，原文仍可查，可人工改到技术分册纳入）；检查与导出的“全文”即技术分册；合规规则不看范围外条款；定稿、交叉复核、导出、追溯表对商务分册一律 404；递交版只出一份技术标 Word，不生成合标核对清单。`PATCH /projects/{id}` 可切换模式：商务分册已有正文或已定稿时拒绝（409 CHAPTER_HAS_CONTENT），切回两册时补建商务分册并恢复范围外条款。测试 `tests/backend/test_technical_only.py`、`frontend/web/tests/unit/project-volumes.test.mjs`、`frontend/web/e2e/technical-only.spec.ts`。
 
+> 2026-10-29 响应矩阵实现（T112～T117）：`icg/domain/matrix.py`、`frontend/web/src/project/matrix-core.ts`、`MatrixMatchDrawer.tsx`；测试 `tests/backend/test_matrix.py`、`frontend/web/tests/unit/matrix-core.test.mjs`、`frontend/web/e2e/matrix.spec.ts`。限制：未确认分流的行尚未从写作方案候选中排除（PRD §5.3.1 验收④），结构化证据候选按字面重合排序，未按证书类别规则匹配。

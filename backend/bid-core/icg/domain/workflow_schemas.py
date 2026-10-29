@@ -52,6 +52,23 @@ class RequirementPatch(RequestBody):
     evidence_ids: list[str] | None = None
     deviation_type: str | None = Field(default=None, max_length=50)
     deviation_reason: str | None = Field(default=None, max_length=2000)
+    response_type: Literal["comply", "exceed", "deviate", "not_applicable"] | None = Field(
+        default=None, description="响应方式：满足=无偏离、优于=正偏离、偏离=负偏离、不适用；星号/废标条款不能偏离或不适用")
+    assignee_id: str | None = Field(default=None, max_length=80, description="本行负责人（须为本项目可编写成员）")
+
+
+class MatrixMatchRequest(RequestBody):
+    requirement_ids: list[str] = Field(min_length=1, max_length=50)
+
+
+class MatrixRoutingRow(RequestBody):
+    id: str = Field(min_length=1, max_length=80)
+    volume: Volume | None = None
+    is_cross_volume: bool = False
+
+
+class MatrixRoutingRequest(RequestBody):
+    rows: list[MatrixRoutingRow] = Field(min_length=1, max_length=500)
 
 
 class FactPatch(RequestBody):

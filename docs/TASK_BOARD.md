@@ -10,13 +10,13 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 454 项：done 96、in-review 131、in-progress 45、planned 136、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+项目 454 项：done 96、in-review 136、in-progress 45、planned 131、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
 | 账号与权限 | 生产口令登录、8 角色 RBAC、数据权限只读态；演示入口已删 | OIDC/Keycloak（T010～T013）未做，内网可只用口令登录 |
 | 持久化 | 项目工作流、账号、资料库、知识库索引写入 MySQL 8（Alembic 0012） | 旧 `/api/projects`、`/api/chapters` 路由仍在（BE-M0-T09） |
-| 招标解析 | PDF/Word 文字提取，扫描件/.doc/Excel/图片经 RAGFlow DeepDOC；按章节与条目抽取条款，适配真实招标文件版式（展平表格、段内（1）…（8）、否决/无效/废标）；事实含前附表 | PDF 定位高亮（T103）；需求矩阵表（T112～T117） |
+| 招标解析 | PDF/Word 文字提取，扫描件/.doc/Excel/图片经 RAGFlow DeepDOC；响应矩阵含响应方式、风险、批量匹配、分流确认与 Excel；按章节与条目抽取条款，适配真实招标文件版式（展平表格、段内（1）…（8）、否决/无效/废标）；事实含前附表 | PDF 定位高亮（T103）；未确认分流的行尚未从写作方案候选中排除 |
 | 知识库 | 每公司三类数据集、ICG 摄入流程、管控接口与管理页、检索带片号引用；内置解析评测定默认阈值 | 流程模式评测；历史标书批量导入（T080/T081） |
 | 生成与编辑 | 章节闭环、人工处理队列、交叉复核与定稿门禁、编辑台差异确认 | 章节循环进度页与轮次时间线（T130/T131）、确定性章节（T191～T194）、自动保存（T172） |
 | 合规规则 | 40 条有检查与测试（R01～R20、R23～R32、R34～R37、R39～R44）；警告须负责人填理由逐项放行 | R33（缺结构化拟派人员条件）、R38（缺功能点标签）、R43 风格样例照抄与 R44 事实来源核对（缺样例库与产品字典）；R21、R22 为二期 |
@@ -41,6 +41,7 @@
 - AI-TENDER-DEEPDOC-PARSE 为 in-review：本地取不出文字的招标文件交 RAGFlow DeepDOC，按版面位置还原页码后继续条款抽取；慢时标“RAGFlow 解析中”，再次解析接着取结果。
 - 2026-10-29 用户新增：BE-UPLOAD-100MB（招标文件与知识库原件单个最大 100MB，`ICG_MAX_UPLOAD_MB` 可调；二进制直传；原件存 `ICG_BLOB_DIR` 不进业务 JSON）、APP-TECHNICAL-ONLY-BID（新建项目可选“只写技术标”，不建商务册、不合标）、公司管理员可下载合标清单与追溯表。真实扫描件（贵阳银行 OCR 中台，35 页无文字层）经真实 RAGFlow DeepDOC 解析并校准抽取。
 - 2026-10-29：R36、R39～R44 实现（`icg/domain/content_rules.py`）；真实扫描件经新隧道完整走应用链路：二进制上传 24.2MB → 本地无文字 → RAGFlow 内置 DeepDOC 370 秒 → 35 页、110 条条款（6 条评分项带分值）；招标解析默认改用内置 DeepDOC（ICG 招标流程实测页码只还原 32 页）。
+- APP-M2-T112～T117 为 in-review：`GET /matrix`（listMatrixItems）、`POST /matrix/match`、`POST /matrix/routing`、`GET /matrix.xlsx`；星号/废标条款不能偏离或不适用，偏离须写说明，候选只追加不替换。
 - 余下顺序（重定后）：招标扫描件经 RAGFlow 解析。
 - 自测记录：[Wave 12 开发自测](testing/2026-10-28-wave-12-verification.md)。
 
@@ -417,12 +418,12 @@
 | [APP-M2-T109](tasks/APP-M2.md#app-m2-t109) | 后处理条与合并条目（“已合并 N 条 · 拆分”、多位置切换） | planned | APP-M2-T104、APP-M2-T019 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T109.md` |
 | [APP-M2-T110](tasks/APP-M2.md#app-m2-t110) | 冲突待选定页签（并列取值、理由必填） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T104、APP-M2-T109 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T110.md` |
 | [APP-M2-T111](tasks/APP-M2.md#app-m2-t111) | 疑似遗漏（无批量、排除须理由）与引用未解析页签（Wave 11：疑似遗漏部分已交付，引用未解析未做） | in-review | APP-M2-T104、APP-M2-T148、APP-M2-T109 | [ISSUE-007](../issues/ISSUE-007.md)、[ISSUE-040](../issues/ISSUE-040.md) | [交付](delivery/APP-M2-T111.md) |
-| [APP-M2-T112](tasks/APP-M2.md#app-m2-t112) | 矩阵表格与筛选（风险提示） | planned | APP-M1-T03 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T112.md` |
-| [APP-M2-T113](tasks/APP-M2.md#app-m2-t113) | 行编辑（响应方式、要点、负责人） | planned | APP-M1-T03、APP-M2-T112 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T113.md` |
+| [APP-M2-T112](tasks/APP-M2.md#app-m2-t112) | 矩阵表格与筛选（风险提示） | in-review（2026-10-29：矩阵表格、风险列与统计已实现） | APP-M1-T03 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T112.md` |
+| [APP-M2-T113](tasks/APP-M2.md#app-m2-t113) | 行编辑（响应方式、要点、负责人） | in-review（2026-10-29：响应方式/偏离说明/负责人行编辑已实现） | APP-M1-T03、APP-M2-T112 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T113.md` |
 | [APP-M2-T114](tasks/APP-M2.md#app-m2-t114) | EvidenceDrawer | done | APP-M1-T03、APP-M2-T048、APP-M2-T204、APP-M2-T205 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T114.md) |
-| [APP-M2-T115](tasks/APP-M2.md#app-m2-t115) | 批量智能匹配与逐行确认 | planned | APP-M1-T03、APP-M2-T118 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T115.md` |
-| [APP-M2-T116](tasks/APP-M2.md#app-m2-t116) | P-18 分册分流确认 | planned | APP-M1-T03、APP-M1-T14 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T116.md` |
-| [APP-M2-T117](tasks/APP-M2.md#app-m2-t117) | Excel 导出与确认闸门 | planned | APP-M1-T03、APP-M2-T113、APP-M2-T114、APP-M2-T116 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T117.md` |
+| [APP-M2-T115](tasks/APP-M2.md#app-m2-t115) | 批量智能匹配与逐行确认 | in-review（2026-10-29：批量智能匹配（只给候选、逐行挂接）已实现） | APP-M1-T03、APP-M2-T118 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T115.md` |
+| [APP-M2-T116](tasks/APP-M2.md#app-m2-t116) | P-18 分册分流确认 | in-review（2026-10-29：分册分流确认已实现） | APP-M1-T03、APP-M1-T14 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T116.md` |
+| [APP-M2-T117](tasks/APP-M2.md#app-m2-t117) | Excel 导出与确认闸门 | in-review（2026-10-29：矩阵 Excel 导出已实现） | APP-M1-T03、APP-M2-T113、APP-M2-T114、APP-M2-T116 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T117.md` |
 | [APP-M2-T118](tasks/APP-M2.md#app-m2-t118) | 挂证据候选的三路显示（结构化规则匹配 / 片段检索 / 历史标书仅参考） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T114、APP-M2-T078、APP-M2-T081 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T118.md` |
 | [APP-M2-T119](tasks/APP-M2.md#app-m2-t119) | SLA 矩阵表与判定 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M1-T10、APP-M1-T12、APP-M2-T069 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T119.md` |
 | [APP-M2-T120](tasks/APP-M2.md#app-m2-t120) | 模板取值与承诺函导出 | planned | APP-M1-T10、APP-M1-T12、APP-M2-T119 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T120.md` |

@@ -1,7 +1,7 @@
 # 为什么有这个文件：将示例主流程的页面请求接到真实业务服务。
 # 它解决什么问题：统一版本和重复请求保护，提供可核对的 OpenAPI 与带登录授权的原件、两册下载。
 
-from typing import Literal
+from typing import Any, Literal
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Header, Query, Request, Response
@@ -23,7 +23,7 @@ from icg.domain.idempotency import IDEMPOTENCY_HEADER_DESCRIPTION
 from icg.domain.workflow_schemas import (CheckList, ConflictPatch, FactPatch, FileDelete, FilePreview, FileUpload,
                                GenerateRequest, JobsList, LibraryCreate, LibraryList,
                                LibraryPatch, LibraryResult, MutationResult, ParseRequest,
-                               PlanRequest, CheckReleaseRequest, MergeChecklistResponse, ProjectCheckRequest, ProjectExportRequest,
+                               PlanRequest, CheckReleaseRequest, MatrixMatchRequest, MatrixRoutingRequest, MergeChecklistResponse, ProjectCheckRequest, ProjectExportRequest,
                                ProjectPatch, RequirementPatch, Workspace, WritingInputPreview,
                                TeamUpdate, TeamResult, ChapterAssignment, ChapterPlanPatch,
                                ChapterEditDetail, v1_error_responses, TenderSearchRequest,
@@ -169,6 +169,31 @@ def include_workflow_routes(application, service, current_user, parser):
     def generate(project_id: str, body: GenerateRequest, user: Principal = Depends(current_user),
                  if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.generate(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.get("/projects/{project_id}/matrix", operation_id="listMatrixItems", summary="响应矩阵（含响应方式、风险与默认分流）",
+                response_model=dict[str, Any])
+    def matrix(project_id: str, volume: Literal["all", "technical", "business"] = Query(default="all"),
+               user: Principal = Depends(current_user)):
+        return workflow.matrix(user, project_id, volume)
+
+    @router.post("/projects/{project_id}/matrix/match", operation_id="matchMatrixEvidence", response_model=dict[str, Any],
+                 summary="批量智能匹配证据（只给候选，不挂接）")
+    def matrix_match(project_id: str, body: MatrixMatchRequest, user: Principal = Depends(current_user)):
+        return workflow.match_evidence(user, project_id, body.requirement_ids)
+
+    @router.post("/projects/{project_id}/matrix/routing", response_model=MutationResult, response_model_exclude_none=True,
+                 operation_id="confirmMatrixRouting", summary="分册分流确认（项目负责人）")
+    def matrix_routing(project_id: str, body: MatrixRoutingRequest, user: Principal = Depends(current_user),
+                       if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.confirm_routing(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.get("/projects/{project_id}/matrix.xlsx", response_class=Response, operation_id="exportMatrixExcel",
+                summary="导出响应矩阵 Excel",
+                responses={200: {"description": "响应矩阵 Excel", "content": {XLSX_MEDIA_TYPE: {"schema": {"type": "string", "format": "binary"}}}}})
+    def matrix_xlsx(project_id: str, volume: Literal["all", "technical", "business"] = Query(default="all"),
+                    user: Principal = Depends(current_user)):
+        return Response(content=workflow.matrix_xlsx(user, project_id, volume), media_type=XLSX_MEDIA_TYPE,
+                        headers={"Content-Disposition": f'attachment; filename="matrix-{project_id}.xlsx"'})
 
     @router.get("/projects/{project_id}/checks", response_model=CheckList, operation_id="listChecks")
     def checks(project_id: str, user: Principal = Depends(current_user)):
