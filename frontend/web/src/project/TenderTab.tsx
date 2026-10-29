@@ -98,12 +98,12 @@ export function TenderPage() {
         type="info"
         showIcon
         className="page-notice"
-        message="当前为本地解析流程"
-        description="文本与可解析的 Word 会读取实际原文；扫描件及复杂版式按解析结果提示处理。页码方式、能力限制会随原文显示，解析完成也需要人确认。"
+        message="招标文件先在本地提取文字；扫描件、.doc、Excel 与图片交给公司自建 RAGFlow 识别版面与文字"
+        description="页码方式与能力限制随原文显示，解析完成也需要人确认。经 RAGFlow 识别的文件会标“RAGFlow 解析中”，稍后再次点击“开始解析”取回结果，识别结果请对照原件核对；未连接 RAGFlow 时这些格式会如实提示失败。"
       />
       <Card>
         <Upload.Dragger
-          accept=".txt,.md,.docx,.pdf"
+          accept=".txt,.md,.docx,.doc,.pdf,.xls,.xlsx,.png,.jpg,.jpeg"
           beforeUpload={file => upload(file)}
           showUploadList={false}
           disabled={busy || uploading || !projectCan(workspace, 'prepare_sources')}
@@ -112,7 +112,7 @@ export function TenderPage() {
             <UploadOutlined />
           </p>
           <p className="ant-upload-text">拖入招标文件、补遗或附件，或点击选择</p>
-          <p className="ant-upload-hint">UTF-8 文本、Word（.docx）、PDF · 当前每份不超过 5MB</p>
+          <p className="ant-upload-hint">UTF-8 文本、Word（.docx/.doc）、PDF（含扫描件）、Excel、图片 · 每份不超过 5MB</p>
         </Upload.Dragger>
         <Table
           className="file-table"
@@ -140,8 +140,8 @@ export function TenderPage() {
               title: '状态',
               dataIndex: 'status',
               render: (value: string) => (
-                <Tag color={value === 'parsed' ? 'green' : value === 'failed' ? 'red' : 'blue'}>
-                  {value === 'parsed' ? '已解析' : value === 'failed' ? '解析失败' : '已上传'}
+                <Tag color={value === 'parsed' ? 'green' : value === 'failed' ? 'red' : value === 'parsing_remote' ? 'processing' : 'blue'}>
+                  {value === 'parsed' ? '已解析' : value === 'failed' ? '解析失败' : value === 'parsing_remote' ? 'RAGFlow 解析中' : '已上传'}
                 </Tag>
               ),
             },
@@ -162,7 +162,7 @@ export function TenderPage() {
                       <WarningOutlined className="orange" />
                     </Tooltip>
                   )}
-                  {['uploaded', 'failed'].includes(item.status) && (
+                  {['uploaded', 'failed', 'parsing_remote'].includes(item.status) && (
                     <Button
                       type="link"
                       danger

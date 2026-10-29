@@ -39982,7 +39982,8 @@
             "enum": [
               "uploaded",
               "parsed",
-              "failed"
+              "failed",
+              "parsing_remote"
             ],
             "title": "Status"
           },

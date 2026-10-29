@@ -27,8 +27,9 @@ class TenderOrchestratorMixin:
         if filename != PurePosixPath(filename.replace("\\", "/")).name or any(c in filename for c in '\r\n\x00'):
             raise DomainError(422, "INVALID_FILENAME", "请提供文件名，不包含目录或控制字符。")
         suffix = PurePosixPath(filename).suffix.lower()
-        if suffix not in (".txt", ".md", ".docx", ".pdf"):
-            raise DomainError(422, "FILE_TYPE_UNSUPPORTED", "当前可上传文本、DOCX 与 PDF。")
+        from icg.domain.tender_remote import MEDIA_TYPES, REMOTE_SUFFIXES
+        if suffix not in {".txt", ".md", *REMOTE_SUFFIXES}:
+            raise DomainError(422, "FILE_TYPE_UNSUPPORTED", "可上传文本、Word（.docx/.doc）、PDF（含扫描件）、Excel 与图片。")
         try:
             content = base64.b64decode(payload["content_base64"], validate=True)
         except (binascii.Error, ValueError) as error:
@@ -38,7 +39,7 @@ class TenderOrchestratorMixin:
 
         def operation(state, project, workflow):
             identity = new_id("file")
-            media_type = DOCX_MEDIA_TYPE if suffix == ".docx" else "application/pdf" if suffix == ".pdf" else "text/plain; charset=utf-8"
+            media_type = DOCX_MEDIA_TYPE if suffix == ".docx" else MEDIA_TYPES.get(suffix, "text/plain; charset=utf-8")
             record = {
                 "id": identity,
                 "filename": filename,
@@ -56,7 +57,7 @@ class TenderOrchestratorMixin:
             workflow["files"][identity] = record
             workflow["parse_confirmed"] = False
             workflow["plan_confirmed"] = False
-            job = self._job(state, project_id, "upload", "原件已保存到演示内存，尚未解析。")
+            job = self._job(state, project_id, "upload", "原件已保存，尚未解析。")
             return {"file": self._public_file(record), "job": job}
 
         return self._write(principal, project_id, "file.upload", payload, expected, key, operation)
@@ -93,7 +94,7 @@ class TenderOrchestratorMixin:
                 for collection in (workflow["requirements"], workflow["facts"])
                 for item in collection.values()
             )
-            if record["status"] not in ("uploaded", "failed") or referenced:
+            if record["status"] not in ("uploaded", "failed", "parsing_remote") or referenced:
                 raise DomainError(409, "FILE_IN_USE", "已有解析结果或条款来源的文件不能移除。")
             del workflow["files"][file_id]
             workflow["parse_confirmed"] = False
@@ -114,20 +115,42 @@ class TenderOrchestratorMixin:
             raise DomainError(422, "FILES_REQUIRED", "请选择至少一份未重复的招标文件。")
         if any(identity not in workflow["files"] for identity in selected):
             raise DomainError(404, "NOT_FOUND", "所选文件不存在或不属于本项目。")
-        parsed, errors = {}, {}
+        parsed, errors, pending = {}, {}, {}
+        from icg.domain.tender_remote import RemoteTenderParser
+        remote_parser = RemoteTenderParser(getattr(self.demo, "knowledge_base", None))
+        company_id = initial.projects[project_id].company_id
         for identity in selected:
             record = workflow["files"][identity]
-            try:
-                result = self.parser.parse(record["filename"], record["content"])
-                parsed[identity] = result
-            except DomainError as error:
-                errors[identity] = error
-            except Exception:
-                errors[identity] = DomainError(502, "PARSER_UNAVAILABLE", "解析适配器失败，原件仍保留。")
+            if record.get("status") == "parsing_remote" and record.get("remote_parse"):
+                # 上次已交给 RAGFlow：接着查，不重复上传
+                outcome = remote_parser.poll(company_id, record["remote_parse"])
+            else:
+                try:
+                    parsed[identity] = self.parser.parse(record["filename"], record["content"])
+                    continue
+                except DomainError as error:
+                    if not remote_parser.eligible(record["filename"], error):
+                        errors[identity] = error
+                        continue
+                    outcome = remote_parser.submit(company_id, record["filename"], record["content"])
+                    if outcome.state == "failed":
+                        outcome.message = f"{error.message} {outcome.message}"
+                except Exception:
+                    errors[identity] = DomainError(502, "PARSER_UNAVAILABLE", "解析适配器失败，原件仍保留。")
+                    continue
+            if outcome.state == "done":
+                parsed[identity] = outcome.document
+            elif outcome.state == "pending":
+                pending[identity] = outcome
+            else:
+                errors[identity] = DomainError(422, "OCR_REQUIRED", outcome.message)
 
         def operation(state, project, actual):
             actual["parse_confirmed"] = False
             actual["plan_confirmed"] = False
+            for identity, outcome in pending.items():
+                actual["files"][identity].update(status="parsing_remote", remote_parse=outcome.remote,
+                                                 warnings=[f"{outcome.message}；稍后再次点击“开始解析”取回结果。"])
             if errors:
                 for identity, error in errors.items():
                     actual["files"][identity]["status"] = "failed"
@@ -145,6 +168,7 @@ class TenderOrchestratorMixin:
                     pages=result.pages,
                     warnings=result.warnings,
                 )
+                record.pop("remote_parse", None)
                 from icg.domain.post_process import run_scan
                 run_scan(actual, identity, result.pages, iso_time(self.demo._now()))
                 existing = {
@@ -213,7 +237,13 @@ class TenderOrchestratorMixin:
                         actual["conflicts"][conflict["id"]] = conflict
                     elif set(previous["fact_ids"]) != set(ids):
                         previous.update(fact_ids=ids, selected_fact_id=None, status="pending", reason="")
-            job = self._job(state, project_id, "parse", "真实文字提取完成；条款、事实及引用仍需人工核对。")
+            if pending and not parsed:
+                job = self._job(state, project_id, "parse",
+                                f"{len(pending)} 份文件正在由 RAGFlow 识别版面与文字，稍后再次点击“开始解析”取回结果。")
+                return {"job": job, "requirements": list(actual["requirements"].values()),
+                        "facts": list(actual["facts"].values())}
+            job = self._job(state, project_id, "parse", "真实文字提取完成；条款、事实及引用仍需人工核对。"
+                            + (f"另有 {len(pending)} 份文件仍在 RAGFlow 解析中。" if pending else ""))
             return {
                 "job": job,
                 "requirements": list(actual["requirements"].values()),

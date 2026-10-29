@@ -82,8 +82,16 @@ class FakeRagflowV1:
                      for sec in sections if sec.strip() and sec.strip() != h1]
         else:
             parts = [p.strip() for p in re.split(r"\n\s*\n", doc["content"]) if p.strip()]
-        doc["chunks"] = [{"id": self._id("chunk"), "content": p, "important_keywords": [], "questions": [],
-                          "available": True} for p in parts]
+        # 版面位置：真实 DeepDOC 返回 [[页码(1 起), 左, 右, 上, 下], …]；这里按换页符 \f 推算页码
+        chunks, cursor = [], 0
+        for part in parts:
+            found = doc["content"].find(part.splitlines()[0] if part.splitlines() else part, cursor)
+            at = found if found >= 0 else cursor
+            cursor = max(cursor, at)
+            page = doc["content"][:at].count("\f") + 1
+            chunks.append({"id": self._id("chunk"), "content": part, "important_keywords": [],
+                           "questions": [], "available": True, "positions": [[page, 0, 0, at, at + 1]]})
+        doc["chunks"] = chunks
         if dataset.get("pipeline_id") and self.metadata_extractor is not None:
             doc["meta_fields"] = {**doc.get("meta_fields", {}), **self.metadata_extractor(doc["content"])}
         doc.update(ingestion_status="COMPLETED", progress=1.0, progress_msg="", chunk_count=len(parts))
@@ -281,11 +289,15 @@ class FakeRagflowV1:
         if method == "GET":
             keywords = request.url.params.get("keywords") or ""
             rows = [c for c in doc["chunks"] if keywords in c["content"]]
+            page = int(request.url.params.get("page") or 1)
+            size = int(request.url.params.get("page_size") or 30)
+            window = rows[(page - 1) * size: page * size]
             # 1.0 列表接口返回内部字段名。
             return self._ok({"total": len(rows), "doc": self._public_doc(doc), "chunks": [
                 {"chunk_id": c["id"], "content_with_weight": c["content"], "important_kwd": json.dumps(c["important_keywords"]),
-                 "question_kwd": json.dumps(c["questions"]), "available": str(c["available"]), "doc_type_kwd": "text"}
-                for c in rows]})
+                 "question_kwd": json.dumps(c["questions"]), "available": str(c["available"]), "doc_type_kwd": "text",
+                 "positions": c.get("positions") or []}
+                for c in window]})
         if method == "PATCH" and chunk_id:
             chunk = next((c for c in doc["chunks"] if c["id"] == chunk_id), None)
             if chunk is None:

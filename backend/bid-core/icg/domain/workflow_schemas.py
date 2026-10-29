@@ -192,7 +192,7 @@ class TenderFile(ResponseBody):
     size: int
     sha256: str
     media_type: str
-    status: Literal["uploaded", "parsed", "failed"]
+    status: Literal["uploaded", "parsed", "failed", "parsing_remote"]
     page_count: int
     pagination: str
     warnings: list[str]
