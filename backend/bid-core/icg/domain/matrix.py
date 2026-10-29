@@ -1,7 +1,8 @@
 # 为什么有这个文件：响应矩阵（PRD v1.8 §5.3.1，APP-M2-T112～T117）的后台：列表与风险、响应方式、批量匹配候选、分册分流确认、Excel。
 # 它解决什么问题：矩阵页原先只是条款列表——没有响应方式（满足/优于/偏离/不适用）、没有风险标记、
 # “智能匹配证据”按钮是灰的、不能导出 Excel、分流没有确认记录。
-# 规则：星号/废标条款不能“偏离”或“不适用”；偏离与不适用必须写说明；候选只给依据，不自动挂接，
+# 规则：星号/废标条款不能标“不适用”；如实登记“偏离”时列为阻断项（PRD §5.3.1 规则 5，由检查挡住递交）；
+# 在矩阵里选“偏离/不适用”必须写说明；候选只给依据，不自动挂接，
 # 已挂证据不被替换；状态与风险分开显示；历史标书只作参考，不是证据候选。
 
 from __future__ import annotations
@@ -77,14 +78,18 @@ def risk_flags(state: Any, project: Any, row: dict) -> list[str]:
     return flags
 
 
-def validate_response(row: dict) -> None:
-    """行编辑写入前的业务核对（PRD §5.3.1 规则 5、9）。"""
+def validate_response(row: dict, explicit: bool = True) -> None:
+    """行编辑写入前的业务核对（PRD §5.3.1 规则 5、9）。
+
+    星号/废标条款做不到时必须能如实登记“偏离”（系统不能逼人写满足），它会成为阻断项；
+    但不能用“不适用”绕开。explicit=False 表示调用方只写了旧的 deviation_type，说明由 R37 继续提醒。
+    """
     kind = response_type(row)
     if kind is None:
         return
-    if critical(row) and kind in ("deviate", "not_applicable"):
-        raise DomainError(409, "REQUIREMENT_NOT_READY", "星号或废标条款不允许偏离或标为不适用。")
-    if kind in ("deviate", "not_applicable") and not str(row.get("deviation_reason") or row.get("reason") or "").strip():
+    if critical(row) and kind == "not_applicable":
+        raise DomainError(409, "REQUIREMENT_NOT_READY", "星号或废标条款不能标为不适用；做不到请如实选“偏离”，导出会被阻断。")
+    if explicit and kind in ("deviate", "not_applicable") and not str(row.get("deviation_reason") or row.get("reason") or "").strip():
         raise DomainError(422, "REASON_REQUIRED", "偏离或不适用必须填写说明。")
 
 

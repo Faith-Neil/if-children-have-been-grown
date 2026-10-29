@@ -306,11 +306,12 @@ class TenderOrchestratorMixin:
             if "evidence_ids" in payload and len(payload["evidence_ids"]) != len(set(payload["evidence_ids"])):
                 raise DomainError(422, "DUPLICATE_EVIDENCE", "同一证据不能重复挂接。")
             from icg.domain.matrix import apply_response_type, validate_response
+            explicit_response = "response_type" in payload
             payload.update(apply_response_type(requirement, payload))
             if payload.get("assignee_id") and not writable(state, project_id, payload["assignee_id"]):
                 raise DomainError(422, "ASSIGNEE_NOT_WRITABLE", "负责人必须是本项目可以编写的成员。")
             updated = {**requirement, **payload}
-            validate_response(updated)
+            validate_response(updated, explicit_response)
             if updated.get("out_of_scope") and updated.get("status") == "confirmed" and requirement.get("out_of_scope"):
                 from icg.domain.project_access import project_volumes
                 if updated.get("volume") not in project_volumes(state, project_id):

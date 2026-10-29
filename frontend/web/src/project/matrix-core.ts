@@ -41,8 +41,12 @@ export const matrixPaths = {
 };
 
 export function responseOptions(critical: boolean) {
-  // 星号/废标条款不允许偏离或不适用（PRD §5.3.1 规则 5）
-  return RESPONSE_OPTIONS.map(option => ({ ...option, disabled: critical && (option.value === 'deviate' || option.value === 'not_applicable') }));
+  // 星号/废标条款不能“不适用”；如实选“偏离”会成为阻断项（PRD §5.3.1 规则 5）
+  return RESPONSE_OPTIONS.map(option => ({
+    ...option,
+    disabled: critical && option.value === 'not_applicable',
+    label: critical && option.value === 'deviate' ? '偏离（负偏离 · 星号条款将阻断导出）' : option.label,
+  }));
 }
 
 export function needsReason(type?: ResponseType | null): boolean {

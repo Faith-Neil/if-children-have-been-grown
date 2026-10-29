@@ -27,12 +27,17 @@ def test_matrix_lists_response_type_risk_and_suggested_volume(client):
     assert {i["suggested_volume"] for i in data["items"]} <= {"technical", "business"}
 
 
-def test_response_type_maps_to_deviation_and_star_rows_cannot_deviate(client):
+def test_response_type_maps_to_deviation_and_star_rows_are_blocked_not_hidden(client):
     flow = ProjectFlow(client).ready()
     star = next(r for r in flow.state()["requirements"] if "★" in r["text"])
-    error = flow.write("/requirements/" + star["id"], {"response_type": "deviate", "deviation_reason": "做不到"}, "PATCH", expected=409)
-    assert "星号或废标条款不允许偏离" in error["message"]
-    flow.write("/requirements/" + star["id"], {"response_type": "not_applicable", "reason": "x"}, "PATCH", expected=409)
+    error = flow.write("/requirements/" + star["id"], {"response_type": "not_applicable", "reason": "x"}, "PATCH", expected=409)
+    assert "不能标为不适用" in error["message"]
+    # 做不到的星号条款可以如实登记偏离：列为阻断项，检查不通过
+    flow.write("/requirements/" + star["id"], {"response_type": "deviate", "deviation_reason": "暂不能每月巡检"}, "PATCH")
+    item = next(i for i in _matrix(flow)["items"] if i["id"] == star["id"])
+    assert "star_deviation" in item["risk_flags"]
+    check = flow.write("/checks", {"volume": "all"})["check"]
+    assert any(i["severity"] in ("blocker", "blocking") for i in check["issues"]) and not check["passed"]
     ok = flow.write("/requirements/" + star["id"], {"response_type": "exceed"}, "PATCH")["requirement"]
     assert ok["deviation_type"] == "positive"
     other = _row(flow, "business")

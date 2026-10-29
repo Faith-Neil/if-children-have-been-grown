@@ -4,9 +4,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { appendEvidence, needsReason, responseOptions, routingRows, selectable } from '../../src/project/matrix-core.ts';
 
-test('critical rows disable deviate and not applicable', () => {
+test('critical rows cannot be not applicable and deviation is labelled as blocking', () => {
   const disabled = responseOptions(true).filter(o => o.disabled).map(o => o.value);
-  assert.deepEqual(disabled, ['deviate', 'not_applicable']);
+  assert.deepEqual(disabled, ['not_applicable']);
+  assert.match(responseOptions(true).find(o => o.value === 'deviate').label, /阻断/);
   assert.equal(responseOptions(false).some(o => o.disabled), false);
   assert.equal(needsReason('deviate'), true);
   assert.equal(needsReason('comply'), false);
