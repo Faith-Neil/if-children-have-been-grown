@@ -936,3 +936,19 @@
 
 已做：删除 `/api/demo/accounts`、`/api/demo/login`、三角色兼容会话与 `/demo` 页；全部账号按 8 角色会话；无摘要账号不能登录；生产（`ICG_ENV=production`）下合成种子账号一律拒绝、管理员初始密码只能由 `ICG_ADMIN_INITIAL_PASSWORD` 设定、MySQL 仓储不加载合成种子；前端去掉内置管理员口令、令牌直登和离线令牌。
 
+<a id="be-upload-100mb"></a>
+
+## BE-UPLOAD-100MB · 全应用上传上限 100MB
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 3小时 |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | — |
+| PRD / 架构出处 | 用户 2026-10-29 决定 |
+| 完成时交付 | `docs/delivery/BE-UPLOAD-100MB.md` |
+| 代码解释 | `icg/domain/upload_limits.py`、`icg/infra/blob_store.py`、`icg/api/raw_upload.py` 文件头 |
+
+上限统一由 `ICG_MAX_UPLOAD_MB`（默认 100）决定，招标文件、知识库原件、证书附件共用。新增 `POST /projects/{id}/files/raw` 与 `POST /kb-admin/datasets/{kind}/documents/raw`：请求体为文件字节，边读边计数，超限 413。招标原件改存内容寻址文件存储（`ICG_BLOB_DIR`，默认 `backend/bid-core/data/blobs`，生产须指向持久磁盘并纳入备份），业务状态只记摘要，避免 100MB 原件超过 MySQL 单包上限。RAGFlow 上传按文件大小放宽超时。测试 `tests/backend/test_upload_limits.py`、`frontend/web/tests/unit/raw-upload.test.mjs`。
+

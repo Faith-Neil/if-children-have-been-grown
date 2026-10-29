@@ -10,7 +10,7 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 452 项：done 96、in-review 120、in-progress 45、planned 136、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+项目 454 项：done 96、in-review 122、in-progress 45、planned 136、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
@@ -39,6 +39,7 @@
 - APP-M2-T200 为 in-review：导出递交版时同时生成合标核对清单（9 类核对项，Excel），一致性结论引用本批次全文检查，R36/R41/R42 未实现处如实写“未运行，须人工核对”，分册解锁后标已过期仍可下载。
 - APP-M2-T201 为 in-review：`GET /projects/{id}/response-trace.xlsx`，内部用，负责人全部、分册负责人本册；条款确认时记录确认人。
 - AI-TENDER-DEEPDOC-PARSE 为 in-review：本地取不出文字的招标文件交 RAGFlow DeepDOC，按版面位置还原页码后继续条款抽取；慢时标“RAGFlow 解析中”，再次解析接着取结果。
+- 2026-10-29 用户新增：BE-UPLOAD-100MB（招标文件与知识库原件单个最大 100MB，`ICG_MAX_UPLOAD_MB` 可调；二进制直传；原件存 `ICG_BLOB_DIR` 不进业务 JSON）、APP-TECHNICAL-ONLY-BID（新建项目可选“只写技术标”，不建商务册、不合标）、公司管理员可下载合标清单与追溯表。真实扫描件（贵阳银行 OCR 中台，35 页无文字层）经真实 RAGFlow DeepDOC 解析并校准抽取。
 - 余下顺序（重定后）：招标扫描件经 RAGFlow 解析。
 - 自测记录：[Wave 12 开发自测](testing/2026-10-28-wave-12-verification.md)。
 
@@ -618,6 +619,8 @@
 | [BE-AUTH-PRODUCTION-ONLY](tasks/BE-M0.md#be-auth-production-only) | 去掉演示入口与三角色兼容，只保留生产认证（用户 2026-10-28 决定） | in-review | — | [ISSUE-005](../issues/ISSUE-005.md) | [自测](testing/2026-10-28-wave-12b-verification.md) |
 | [AI-TENDER-STRUCTURED-EXTRACTION](tasks/AI-M0.md#ai-tender-structured-extraction) | 招标条款按章节与条目抽取（不再逐行成条款） | in-review | — | [ISSUE-007](../issues/ISSUE-007.md) | [自测](testing/2026-10-28-wave-12b-verification.md) |
 | [AI-TENDER-DEEPDOC-PARSE](tasks/AI-M0.md#ai-tender-deepdoc-parse) | 扫描件、.doc、Excel、图片招标文件经 RAGFlow DeepDOC 解析 | in-review | AI-TENDER-STRUCTURED-EXTRACTION | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/AI-TENDER-DEEPDOC-PARSE.md` |
+| [BE-UPLOAD-100MB](tasks/BE-M0.md#be-upload-100mb) | 全应用上传上限 100MB、二进制直传、原件文件存储 | in-review | — | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/BE-UPLOAD-100MB.md` |
+| [APP-TECHNICAL-ONLY-BID](tasks/APP-M2.md#app-technical-only-bid) | 只写技术标的项目（不合标） | in-review | — | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-TECHNICAL-ONLY-BID.md` |
 | [FE-KB-BUSINESS-FLOWS](tasks/AI-M0.md#fe-kb-business-flows) | 知识库接入资料库、方案片段与写作输入页面 | in-review | [AI-KB-CONTROL-PLANE](tasks/AI-M0.md#ai-kb-control-plane) | [ISSUE-043](../issues/ISSUE-043.md) | [自测](testing/2026-10-28-wave-12b-verification.md) |
 | [FE-TEST-ORPHANS](tasks/FE-M0.md#fe-test-orphans) | 前端根目录 28 个测试文件从未执行，8 项失败待判定 | in-review | — | [ISSUE-044](../issues/ISSUE-044.md) | `docs/delivery/FE-TEST-ORPHANS.md` |
 <!-- task-board:end -->

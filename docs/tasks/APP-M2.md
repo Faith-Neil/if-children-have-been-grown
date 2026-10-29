@@ -4078,3 +4078,12 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 验收：按行业和年度边界录入/计算/确认企业划型；项目声明取投标截止所属年度适用记录，不拿平台标准当企业证明；关键数据变动重确认且旧项目引用复核。原WBS C02-F3仅平台标准，补此独立业务单位，不改原190细卡。分别保存正例、权限反例、失败/并发及旧来源失效证据；涉及输出直接检查文件，原级别/放行/递交门禁不能被页面绕过。输出证据：真实年度划型记录、计算/人工核对依据及声明使用的同年度版本。
 
 交付：`docs/delivery/APP-M2-T259.md`；代码解释：`docs/code/APP-M2-T259.md`；测试放docs/testing并逐项关联本卡，未执行写未执行。
+
+<a id="app-technical-only-bid"></a>
+
+### APP-TECHNICAL-ONLY-BID · 只写技术标的项目（不合标）
+
+状态：in-review。关联Issue：ISSUE-007。来源：用户 2026-10-29 要求（“不一定要合标”）。
+
+新建项目可选编写范围 `volume_mode`：`both`（技术+商务，导出后合标）或 `technical_only`。只写技术标时：只建技术分册；商务/资格条款解析后标为不在本项目范围（忽略并写明理由，原文仍可查，可人工改到技术分册纳入）；检查与导出的“全文”即技术分册；合规规则不看范围外条款；定稿、交叉复核、导出、追溯表对商务分册一律 404；递交版只出一份技术标 Word，不生成合标核对清单。`PATCH /projects/{id}` 可切换模式：商务分册已有正文或已定稿时拒绝（409 CHAPTER_HAS_CONTENT），切回两册时补建商务分册并恢复范围外条款。测试 `tests/backend/test_technical_only.py`、`frontend/web/tests/unit/project-volumes.test.mjs`、`frontend/web/e2e/technical-only.spec.ts`。
+
