@@ -2687,7 +2687,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T176 · 对话面板与会话列表
 <a id="app-m2-t176"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T167](APP-M2.md#app-m2-t167)、[APP-M2-T089](APP-M2.md#app-m2-t089)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T167](APP-M2.md#app-m2-t167)、[APP-M2-T089](APP-M2.md#app-m2-t089)。
 
 原始来源：原交接 §6.7 M6-I04-F1；PRD v1.8 §5.11.3～5.11.6、5.11.11。交付单位：对话面板与会话列表，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -2702,7 +2702,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T177 · 流式输出、模型标识、降级提示
 <a id="app-m2-t177"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T167](APP-M2.md#app-m2-t167)、[APP-M2-T089](APP-M2.md#app-m2-t089)、[APP-M2-T176](APP-M2.md#app-m2-t176)、[APP-M2-T040](APP-M2.md#app-m2-t040)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T167](APP-M2.md#app-m2-t167)、[APP-M2-T089](APP-M2.md#app-m2-t089)、[APP-M2-T176](APP-M2.md#app-m2-t176)、[APP-M2-T040](APP-M2.md#app-m2-t040)。
 
 原始来源：原交接 §6.7 M6-I04-F2；PRD v1.8 §5.11.3～5.11.6、5.11.11。交付单位：流式输出、模型标识、降级提示，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -2717,7 +2717,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T178 · 建议卡片（写法、差异、来源、预检）
 <a id="app-m2-t178"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T167](APP-M2.md#app-m2-t167)、[APP-M2-T089](APP-M2.md#app-m2-t089)、[APP-M2-T176](APP-M2.md#app-m2-t176)、[APP-M2-T242](APP-M2.md#app-m2-t242)、[APP-M2-T243](APP-M2.md#app-m2-t243)、[APP-M2-T244](APP-M2.md#app-m2-t244)、[APP-M2-T248](APP-M2.md#app-m2-t248)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T167](APP-M2.md#app-m2-t167)、[APP-M2-T089](APP-M2.md#app-m2-t089)、[APP-M2-T176](APP-M2.md#app-m2-t176)、[APP-M2-T242](APP-M2.md#app-m2-t242)、[APP-M2-T243](APP-M2.md#app-m2-t243)、[APP-M2-T244](APP-M2.md#app-m2-t244)、[APP-M2-T248](APP-M2.md#app-m2-t248)。
 
 原始来源：原交接 §6.7 M6-I04-F3；PRD v1.8 §5.11.3～5.11.6、5.11.11。交付单位：建议卡片（写法、差异、来源、预检），同一产品的页面/后台/数据/权限/输出协作一起验收。
 

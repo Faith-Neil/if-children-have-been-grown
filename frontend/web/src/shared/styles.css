@@ -581,3 +581,7 @@
 .rewrite-diff ins { background: #e8f7ee; color: #1f6f3f; text-decoration: none; }
 .rewrite-diff del { background: #fdecee; color: #a8323d; }
 .rewrite-facts { margin: 12px 0 0; padding-left: 18px; font-size: 13px; color: #4e5969; line-height: 1.8; }
+.rewrite-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
+.rewrite-sources { margin: 4px 0 8px; padding-left: 16px; font-size: 12px; color: #4e5969; }
+.session-messages { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.8; color: #4e5969; }
+.session-messages li.assistant { color: #6e4bd8; }

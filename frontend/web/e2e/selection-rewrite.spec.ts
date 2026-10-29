@@ -70,6 +70,10 @@ test('select a sentence, get three rewrites, replace the selection after confirm
   for (let i = 0; i < PICK.length; i += 1) await page.keyboard.press('Shift+ArrowRight');
   await page.getByTestId('bubble-polish-btn').click();
   await expect(page.getByTestId('rewrite-selection')).toHaveText(PICK);
+  // 模型标识与知识库开关：本用例公司未连接知识库，允许关闭，默认关
+  await expect(page.getByTestId('assistant-model-label')).toHaveText('fake-rewrite · 本地模型');
+  await expect(page.getByTestId('assistant-kb-switch')).not.toBeChecked();
+  await expect(page.getByTestId('assistant-kb-note')).toContainText('无知识库来源');
   await page.getByTestId('rewrite-generate-btn').click();
   await expect(page.getByTestId('rewrite-sample')).toHaveCount(3);
   expect(prompts.every(text => text.includes(`【选中的文字】\n${PICK}`) && !text.includes('报告由负责人复核。\n'))).toBeTruthy();
@@ -80,6 +84,9 @@ test('select a sentence, get three rewrites, replace the selection after confirm
   await page.getByTestId('rewrite-confirm-btn').click();
   await expect(box).toHaveValue('技术方案：每月开展一次例行巡检，报告由负责人复核。');
   await expect(page.getByTestId('rewrite-recheck')).toContainText('对话助手替换');
+  // 本次提问与写入已记入本人会话
+  await page.getByTestId('assistant-session-history').getByText('会话记录').click();
+  await expect(page.getByTestId('assistant-session-history')).toContainText('写入：对话助手替换');
   const operations = await (await request.get(`/api/v1/projects/${projectId}/chapters/${chapterId}/edit-operations`, { headers: auth })).json();
   expect(operations.operations).toHaveLength(1);
   expect(operations.operations[0].original_text).toBe(PICK);

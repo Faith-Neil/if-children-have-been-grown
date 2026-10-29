@@ -31845,6 +31845,600 @@
         }
       }
     },
+    "/api/v1/projects/{project_id}/chapters/{chapter_id}/selection-rewrites/stream": {
+      "post": {
+        "summary": "流式生成选区改写样例",
+        "description": "与 createSelectionRewrite 相同的核对在开始前完成（出错按 HTTP 状态返回）；之后以 text/event-stream 推送：started（写法、检索结果）→ sample / dropped（每种写法完成即推送）→ done（含 batch）；中途失败推送 error。",
+        "operationId": "streamSelectionRewrite",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "chapter_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Chapter Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelectionRewriteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SSE 事件流",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "后端演示服务异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "423": {
+            "description": "编辑权被占用或已失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "502": {
+            "description": "下游解析或模型失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "503": {
+            "description": "页面或依赖尚未就绪。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/chapters/{chapter_id}/assistant-policy": {
+      "get": {
+        "summary": "对话助手的公司策略与当前模型",
+        "operationId": "getAssistantPolicy",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "chapter_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Chapter Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantPolicy"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "后端演示服务异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "423": {
+            "description": "编辑权被占用或已失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "502": {
+            "description": "下游解析或模型失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "503": {
+            "description": "页面或依赖尚未就绪。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/chapters/{chapter_id}/assistant-sessions": {
+      "get": {
+        "summary": "本章的对话助手会话",
+        "description": "本人只看自己的会话；项目负责人和本公司公司管理员可看全部。",
+        "operationId": "listAssistantSessions",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "chapter_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Chapter Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionList"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "后端演示服务异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "423": {
+            "description": "编辑权被占用或已失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "502": {
+            "description": "下游解析或模型失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "503": {
+            "description": "页面或依赖尚未就绪。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/projects/{project_id}/chapters/{chapter_id}/selection-rewrites/{batch_id}/apply": {
       "post": {
         "summary": "把选定样例替换选中内容或插在其后",
@@ -32237,6 +32831,140 @@
           },
           "503": {
             "description": "页面或依赖尚未就绪。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/assistant-sessions/{session_id}": {
+      "get": {
+        "summary": "对话助手会话详情（只追加的消息记录）",
+        "operationId": "getAssistantSession",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionDetail"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "请求字段验证失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "后端演示服务异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
             "content": {
               "application/json": {
                 "schema": {
@@ -32792,6 +33520,63 @@
           "session"
         ],
         "title": "ApplicationSessionResponse"
+      },
+      "AssistantPolicy": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "kb_default": {
+            "type": "boolean",
+            "title": "Kb Default",
+            "description": "新会话知识库开关默认值（公司设置）"
+          },
+          "allow_kb_off": {
+            "type": "boolean",
+            "title": "Allow Kb Off",
+            "description": "是否允许关闭知识库（公司设置）"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "默认样例条数"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "is_real_model": {
+            "type": "boolean",
+            "title": "Is Real Model"
+          },
+          "is_local_model": {
+            "type": "boolean",
+            "title": "Is Local Model"
+          },
+          "sensitive_project": {
+            "type": "boolean",
+            "title": "Sensitive Project"
+          },
+          "knowledge_base_connected": {
+            "type": "boolean",
+            "title": "Knowledge Base Connected"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "enabled",
+          "kb_default",
+          "allow_kb_off",
+          "count",
+          "model",
+          "is_real_model",
+          "is_local_model",
+          "sensitive_project",
+          "knowledge_base_connected"
+        ],
+        "title": "AssistantPolicy"
       },
       "AuditEventResponse": {
         "properties": {
@@ -35340,6 +36125,17 @@
           "source_note": {
             "type": "string",
             "title": "Source Note"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
           },
           "original_text": {
             "type": "string",
@@ -40746,6 +41542,41 @@
         ],
         "title": "ResetPasswordResponse"
       },
+      "Retrieval": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "off",
+              "found",
+              "empty"
+            ],
+            "title": "Status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Count"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "status",
+          "message"
+        ],
+        "title": "Retrieval"
+      },
       "RewriteSample": {
         "properties": {
           "id": {
@@ -40778,11 +41609,11 @@
           },
           "sources": {
             "items": {
-              "additionalProperties": true,
-              "type": "object"
+              "$ref": "#/components/schemas/RewriteSource"
             },
             "type": "array",
-            "title": "Sources"
+            "title": "Sources",
+            "description": "样例引用的本次检索结果；知识库关闭时为空"
           },
           "status": {
             "type": "string",
@@ -40808,6 +41639,69 @@
           "status"
         ],
         "title": "RewriteSample"
+      },
+      "RewriteSource": {
+        "properties": {
+          "cite_tag": {
+            "type": "string",
+            "title": "Cite Tag",
+            "description": "写入正文的引用标记，如 [片:lib-1]"
+          },
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "source_type": {
+            "type": "string",
+            "title": "Source Type"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "item_type": {
+            "type": "string",
+            "title": "Item Type"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "document_id": {
+            "type": "string",
+            "title": "Document Id"
+          },
+          "chunk_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Chunk Ids"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "cite_tag",
+          "source_id",
+          "source_type",
+          "name",
+          "item_type",
+          "revision",
+          "score",
+          "content",
+          "document_id",
+          "chunk_ids"
+        ],
+        "title": "RewriteSource"
       },
       "ScanHit": {
         "properties": {
@@ -41192,9 +42086,23 @@
             "type": "boolean",
             "title": "Knowledge Base Enabled"
           },
+          "retrieval": {
+            "$ref": "#/components/schemas/Retrieval"
+          },
           "source_note": {
             "type": "string",
             "title": "Source Note"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
           },
           "provider": {
             "type": "string",
@@ -41213,9 +42121,11 @@
             "enum": [
               "proposed",
               "adopted",
-              "invalidated"
+              "invalidated",
+              "no_results"
             ],
-            "title": "Status"
+            "title": "Status",
+            "description": "no_results：知识库打开但没有检索到本公司资料，未调用模型"
           },
           "created_at": {
             "type": "string",
@@ -41238,6 +42148,7 @@
           "samples",
           "dropped",
           "knowledge_base_enabled",
+          "retrieval",
           "source_note",
           "provider",
           "model",
@@ -41295,12 +42206,43 @@
             "default": ""
           },
           "count": {
-            "type": "integer",
-            "maximum": 5.0,
-            "minimum": 3.0,
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 5.0,
+                "minimum": 3.0
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Count",
-            "description": "样例条数，3～5，默认 3",
-            "default": 3
+            "description": "样例条数 3～5；不传取公司设置（默认 3）"
+          },
+          "knowledge_base_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Knowledge Base Enabled",
+            "description": "知识库开关；不传取公司默认值。公司不允许关闭时传 false 返回 422"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "接着本人本章的会话提问；不传则新建会话"
           }
         },
         "additionalProperties": false,
@@ -41378,6 +42320,93 @@
           "takeover"
         ],
         "title": "SessionChapterPermissions"
+      },
+      "SessionDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "chapter_id": {
+            "type": "string",
+            "title": "Chapter Id"
+          },
+          "chapter_title": {
+            "type": "string",
+            "title": "Chapter Title"
+          },
+          "owner_id": {
+            "type": "string",
+            "title": "Owner Id"
+          },
+          "owner_name": {
+            "type": "string",
+            "title": "Owner Name"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          },
+          "message_count": {
+            "type": "integer",
+            "title": "Message Count"
+          },
+          "messages": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Messages",
+            "description": "按时间排列、只追加的消息：selection_request / samples（含 batch）/ applied"
+          },
+          "read_only": {
+            "type": "boolean",
+            "title": "Read Only",
+            "description": "不是本人的会话（负责人或公司管理员查看）时为 true"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "chapter_id",
+          "chapter_title",
+          "owner_id",
+          "owner_name",
+          "title",
+          "created_at",
+          "updated_at",
+          "message_count",
+          "messages",
+          "read_only"
+        ],
+        "title": "SessionDetail"
+      },
+      "SessionList": {
+        "properties": {
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/SessionSummary"
+            },
+            "type": "array",
+            "title": "Sessions"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "sessions"
+        ],
+        "title": "SessionList"
       },
       "SessionNavigationResponse": {
         "properties": {
@@ -41581,6 +42610,60 @@
           "renew_supported"
         ],
         "title": "SessionStateResponse"
+      },
+      "SessionSummary": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "chapter_id": {
+            "type": "string",
+            "title": "Chapter Id"
+          },
+          "chapter_title": {
+            "type": "string",
+            "title": "Chapter Title"
+          },
+          "owner_id": {
+            "type": "string",
+            "title": "Owner Id"
+          },
+          "owner_name": {
+            "type": "string",
+            "title": "Owner Name"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          },
+          "message_count": {
+            "type": "integer",
+            "title": "Message Count"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "chapter_id",
+          "chapter_title",
+          "owner_id",
+          "owner_name",
+          "title",
+          "created_at",
+          "updated_at",
+          "message_count"
+        ],
+        "title": "SessionSummary"
       },
       "SessionUserResponse": {
         "properties": {

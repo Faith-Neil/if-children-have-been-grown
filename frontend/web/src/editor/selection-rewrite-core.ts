@@ -1,6 +1,7 @@
 // 为什么有这个文件：编辑台选区改写（对话助手样例，APP-M2-T178/T180/T185/T187）的纯计算部分。
 // 它解决什么问题：选区要对应到已提交正文的字符位置；写入预览与后端规则一致（替换选区 / 插在选区后，选区在段末或样例多段时另起一段）；
 // 差异视图按字比较，删除标红、增加标绿；【待补】另行计数；后端返回“原文位置已变化”时取出新位置让用户再确认。
+// 第二步：知识库开关的默认值取公司策略（未连接知识库且允许关闭时默认关）；流式事件合并成样例列表；会话路径。
 
 import { ApiError } from '../shared/api.ts';
 
@@ -16,15 +17,29 @@ export const REWRITE_MODES: { value: RewriteMode; label: string }[] = [
 ];
 export const MAX_SELECTION = 2000;
 
+export type RewriteSource = { cite_tag: string; source_id: string; source_type: string; name: string; revision: number; score: number; content: string };
+export type Retrieval = { status: 'off' | 'found' | 'empty'; message: string; count?: number };
 export type RewriteSample = {
   id: string; style: string; style_label: string; text: string; warnings: string[]; chars: number;
-  sources: unknown[]; status: 'proposed' | 'adopted' | 'not_adopted' | 'invalidated';
+  sources: RewriteSource[]; status: 'proposed' | 'adopted' | 'not_adopted' | 'invalidated';
 };
+export type AssistantPolicy = {
+  enabled: boolean; kb_default: boolean; allow_kb_off: boolean; count: number; model: string;
+  is_real_model: boolean; is_local_model: boolean; sensitive_project: boolean; knowledge_base_connected: boolean;
+};
+export type SessionSummary = { id: string; chapter_id: string; owner_id: string; owner_name: string; title: string; updated_at: string; message_count: number };
+export type SessionMessage = {
+  id: string; role: 'user' | 'assistant'; kind: 'selection_request' | 'samples' | 'applied'; created_at: string;
+  selected_text?: string; mode_label?: string; instruction?: string; knowledge_base_enabled?: boolean;
+  sample_count?: number; retrieval?: Retrieval; edit_mode_label?: string; result_revision?: number; batch?: RewriteBatch;
+};
+export type SessionDetail = SessionSummary & { messages: SessionMessage[]; read_only: boolean };
 export type RewriteBatch = {
   id: string; chapter_id: string; base_revision: number; start: number; end: number; selected_text: string;
   selection_hash: string; mode: RewriteMode; mode_label: string; instruction: string; samples: RewriteSample[];
-  dropped: { style: string; reason: string }[]; knowledge_base_enabled: boolean; source_note: string;
-  provider: string; model: string; is_local_model: boolean; status: 'proposed' | 'adopted' | 'invalidated'; created_at: string;
+  dropped: { style: string; reason: string }[]; knowledge_base_enabled: boolean; source_note: string; retrieval: Retrieval;
+  session_id?: string | null; provider: string; model: string; is_local_model: boolean;
+  status: 'proposed' | 'adopted' | 'invalidated' | 'no_results'; created_at: string;
 };
 export type EditOperation = {
   id: string; edit_mode: string; edit_mode_label: string; base_revision: number; result_revision: number;
@@ -122,4 +137,46 @@ export const ACTION_LABEL: Record<RewriteAction, string> = { replace: '替换选
 export function rewritePath(projectId: string, chapterId: string, batchId?: string): string {
   const base = `/api/v1/projects/${projectId}/chapters/${chapterId}/selection-rewrites`;
   return batchId ? `${base}/${batchId}/apply` : base;
+}
+
+/** 知识库开关默认值：公司默认打开但知识库未连接时，允许关闭就默认关（否则后端会报未连接）。 */
+export function defaultKnowledgeBase(policy: AssistantPolicy | null): boolean {
+  if (!policy) return false;
+  if (!policy.allow_kb_off) return true;
+  return policy.kb_default && policy.knowledge_base_connected;
+}
+
+export function knowledgeBaseNote(policy: AssistantPolicy | null, on: boolean): string {
+  if (!policy) return '';
+  if (on && !policy.knowledge_base_connected) return '本公司知识库尚未连接，打开后无法检索';
+  if (!policy.allow_kb_off) return '本公司要求使用知识库，不能关闭';
+  return on ? '只检索本公司知识库和资料库，样例必须附引用' : '不检索知识库，样例标“无知识库来源”';
+}
+
+export function modelLabel(policy: AssistantPolicy | null): string {
+  if (!policy) return '';
+  if (!policy.is_real_model) return '尚未接入真实模型';
+  return `${policy.model || '模型'}${policy.is_local_model ? ' · 本地模型' : ''}`;
+}
+
+export type StreamState = { styles: string[]; samples: RewriteSample[]; dropped: { style: string; reason: string }[]; retrieval: Retrieval | null };
+
+/** 把流式事件逐条合并：started 记下写法与检索结果，sample/dropped 追加，done 由调用方换成最终批次。 */
+export function reduceStream(state: StreamState, event: Record<string, unknown>): StreamState {
+  if (event.event === 'started') return { styles: (event.styles as string[]) ?? [], samples: [], dropped: [], retrieval: (event.retrieval as Retrieval) ?? null };
+  if (event.event === 'sample') return { ...state, samples: [...state.samples, event.sample as RewriteSample] };
+  if (event.event === 'dropped') return { ...state, dropped: [...state.dropped, { style: String(event.style), reason: String(event.reason) }] };
+  return state;
+}
+
+export const EMPTY_STREAM: StreamState = { styles: [], samples: [], dropped: [], retrieval: null };
+
+export function assistantPaths(projectId: string, chapterId: string) {
+  const chapter = `/api/v1/projects/${projectId}/chapters/${chapterId}`;
+  return {
+    policy: `${chapter}/assistant-policy`,
+    stream: `${chapter}/selection-rewrites/stream`,
+    sessions: `${chapter}/assistant-sessions`,
+    session: (id: string) => `/api/v1/projects/${projectId}/assistant-sessions/${id}`,
+  };
 }

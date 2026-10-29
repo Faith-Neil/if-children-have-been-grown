@@ -60,7 +60,8 @@ def _lease(flow, chapter_id):
 def _ask(flow, chapter, text=SENTENCE, expected=200, **extra):
     content = chapter["content"]
     start = content.index(text)
-    body = {"base_revision": chapter["revision"], "start": start, "end": start + len(text), "selected_text": text, **extra}
+    body = {"base_revision": chapter["revision"], "start": start, "end": start + len(text), "selected_text": text,
+            "knowledge_base_enabled": False, **extra}
     resp = flow.client.post(f"{flow.path}/chapters/{chapter['id']}/selection-rewrites", headers=flow.headers, json=body)
     assert resp.status_code == expected, resp.text
     return resp.json()
@@ -89,6 +90,7 @@ def test_samples_are_generated_from_the_selection_only_and_prechecked(client, mo
     reasons = " ".join(d["reason"] for d in batch["dropped"])
     assert "手机号" in reasons and "合并" in reasons
     assert batch["knowledge_base_enabled"] is False and "无知识库来源" in batch["source_note"]
+    assert batch["retrieval"]["status"] == "off" and batch["session_id"]
     assert all(s["status"] == "proposed" and s["sources"] == [] for s in batch["samples"])
 
 
@@ -175,16 +177,18 @@ def test_selection_must_match_committed_text_and_permissions_are_enforced(client
     chapter = _technical(flow)
     start = chapter["content"].index(SENTENCE)
     wrong = client.post(f"{flow.path}/chapters/{chapter['id']}/selection-rewrites", headers=flow.headers, json={
-        "base_revision": chapter["revision"], "start": start, "end": start + 3, "selected_text": SENTENCE})
+        "base_revision": chapter["revision"], "start": start, "end": start + 3, "selected_text": SENTENCE, "knowledge_base_enabled": False})
     assert wrong.status_code == 409 and wrong.json()["code"] == "REVISION_CONFLICT"
     stale = client.post(f"{flow.path}/chapters/{chapter['id']}/selection-rewrites", headers=flow.headers, json={
-        "base_revision": chapter["revision"] - 1, "start": start, "end": start + len(SENTENCE), "selected_text": SENTENCE})
+        "base_revision": chapter["revision"] - 1, "start": start, "end": start + len(SENTENCE), "selected_text": SENTENCE,
+        "knowledge_base_enabled": False})
     assert stale.status_code == 409
     need = client.post(f"{flow.path}/chapters/{chapter['id']}/selection-rewrites", headers=flow.headers, json={
         "base_revision": chapter["revision"], "start": start, "end": start + len(SENTENCE), "selected_text": SENTENCE,
-        "mode": "instruction"})
+        "mode": "instruction", "knowledge_base_enabled": False})
     assert need.status_code == 422
-    body = {"base_revision": chapter["revision"], "start": start, "end": start + len(SENTENCE), "selected_text": SENTENCE}
+    body = {"base_revision": chapter["revision"], "start": start, "end": start + len(SENTENCE), "selected_text": SENTENCE,
+            "knowledge_base_enabled": False}
     viewer = client.post(f"{flow.path}/chapters/{chapter['id']}/selection-rewrites", headers=login(client, "alpha-viewer"), json=body)
     assert viewer.status_code in (403, 404)
     beta = client.post(f"{flow.path}/chapters/{chapter['id']}/selection-rewrites", headers=login(client, "beta-manager"), json=body)
@@ -241,9 +245,27 @@ def test_project_without_tender_keeps_a_complete_workspace_after_writing(client)
         "lease_token": lease, "base_revision": chapter["revision"], "content": body, "idempotency_key": str(uuid4())}).status_code == 200
     start = body.index(SENTENCE)
     batch = client.post(f"{path}/chapters/{chapter['id']}/selection-rewrites", headers=headers, json={
-        "base_revision": chapter["revision"] + 1, "start": start, "end": start + len(SENTENCE), "selected_text": SENTENCE}).json()
+        "base_revision": chapter["revision"] + 1, "start": start, "end": start + len(SENTENCE), "selected_text": SENTENCE,
+        "knowledge_base_enabled": False}).json()
     applied = client.post(f"{path}/chapters/{chapter['id']}/selection-rewrites/{batch['id']}/apply", headers=headers,
                           json={"lease_token": lease, "sample_id": batch["samples"][0]["id"], "action": "replace"})
     assert applied.status_code == 200, applied.text
     workspace = client.get(path + "/workspace", headers=headers)
     assert workspace.status_code == 200, workspace.text
+
+
+def test_precheck_rejects_real_model_failure_modes():
+    """2026-10-29 用真实模型（经 RAGFlow 的 OpenAI 兼容接口）试跑时遇到的情况。"""
+    from icg.domain.selection_rewrite import precheck
+    pick = "我方配备驻场工程师，按招标要求提供运维服务。"
+    quota = "**ERROR**: Error 429, Message: You exceeded your current quota, please check your plan"
+    assert "错误信息" in precheck(quota, pick, "replace", set())[2]
+    whole_chapter = "### 技术方案\n" + "我方承诺全面响应招标要求并配备专业团队。" * 40
+    assert "超出选区改写范围" in precheck(whole_chapter, pick, "replace", set())[2]
+    assert "没有变短" in precheck("我方配备驻场工程师，严格按照招标文件要求提供运维服务。", pick, "replace", set(), mode="shorten")[2]
+    token = "{{fact:fact-1}}"
+    ok, _, reason = precheck(f"我方为本项目（编号 {token}）配备驻场工程师。", pick, "replace", set(), allowed_vars={token})
+    assert ok and token in ok and not reason
+    assert "选区以外的变量" in precheck("编号 {{fact:unknown}}，配备驻场工程师。", pick, "replace", set(), allowed_vars={token})[2]
+    cleaned, _, _ = precheck("基于您提供的要求，改写如下：\n---\n**我方安排驻场工程师**，按要求开展运维。", pick, "replace", set())
+    assert cleaned == "我方安排驻场工程师，按要求开展运维。"

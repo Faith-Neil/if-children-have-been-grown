@@ -8,7 +8,11 @@
 #    选区被改动但能在本章唯一找到时先返回新位置请用户再确认，找不到或多处时拒绝并把样例标“已失效”；
 # 4. 每次写入生成新章节版本，记录编辑操作（修改方式、基础与结果版本、改动区间、所用样例、知识库开关、操作人），
 #    并立即对改动段落做文字规则复查（对话残留、占位符、负偏离、新增数值），不重跑整章闭环。
-# 没有接入真实模型时直接说明，不返回模拟样例。知识库检索与引用、多轮会话在第二步接入，本步样例一律标“无知识库来源”。
+# 5. 知识库开关（公司设置 assistant_kb_default / assistant_allow_kb_off）：打开时只检索本公司知识库，每条样例至少引用 1 条
+#    本次检索结果（标记 [片:来源编号]，编号须在本次结果内），检索无结果时不调用模型；关闭时样例标“无知识库来源”；
+# 6. 每次提问与写入记入本人的会话（只追加，见 assistant_sessions.py），同一会话可接着上一轮的样例继续提要求；
+# 7. 流式：各写法的样例一完成预检就推送给页面（text/event-stream），不必等全部写法生成完。
+# 没有接入真实模型时直接说明，不返回模拟样例。
 
 from __future__ import annotations
 
@@ -49,6 +53,10 @@ SENSITIVE = [
 ]
 LEADING_CHATTER = re.compile(r"^(?:以下是[^\n：:]*[：:]|好的[，,。]?|改写(?:后|如下)?[：:]|修改(?:后|如下)?[：:]|样例[一二三四五\d]*[：:])\s*")
 AMOUNT = re.compile(r"\d+(?:\.\d+)?\s*(?:万元|元|亿元)")
+# 上游模型出错时，有的网关（如 RAGFlow 的 OpenAI 兼容接口）以 200 返回错误文字，不能当成样例
+UPSTREAM_ERROR = re.compile(r"^\s*(?:\*\*)?ERROR(?:\*\*)?\s*[:：]|exceeded your current quota|rate.?limit|Error \d{3}, Message", re.I)
+PREAMBLE = re.compile(r"^[^\n]{0,80}(?:如下|以下)[：:]\s*$")
+LENGTH_LIMIT = {"expand": (2.5, 200), "shorten": (1.0, 0)}
 PENDING_NUMBER = "【待补：数值来源】"
 
 
@@ -74,8 +82,14 @@ def _clean(text: str) -> str:
     value = (text or "").strip()
     value = re.sub(r"^```[a-zA-Z]*\n?|\n?```$", "", value).strip()
     value = LEADING_CHATTER.sub("", value).strip()
+    lines = value.split("\n")
+    if lines and PREAMBLE.match(lines[0].strip()):  # “基于您提供的……扩写如下：”
+        value = "\n".join(lines[1:]).strip()
+    value = re.sub(r"(?m)^\s*(?:-{3,}|\*{3,}|_{3,})\s*$\n?", "", value)  # 分隔线
     value = re.sub(r"\*\*(.+?)\*\*", r"\1", value)
+    value = re.sub(r"`([^`]+)`", r"\1", value)
     value = re.sub(r"(?m)^#{1,6}\s*", "", value)
+    value = re.sub(r"\n{3,}", "\n\n", value).strip()
     if len(value) >= 2 and value[0] in "\"“「『" and value[-1] in "\"”」』":
         value = value[1:-1].strip()
     return value
@@ -113,21 +127,45 @@ def _replace_unsourced_numbers(text: str, known: set[str]) -> tuple[str, list[st
     return "\n".join(lines), unknown
 
 
-def precheck(sample: str, selection: str, action_scope: str, known: set[str]) -> tuple[str | None, list[str], str]:
-    """返回 (预检后文字或 None, 提示, 不展示原因)。替换与插入共用：变量/证据标记只能来自选区，替换时须全部保留。"""
+CITE = re.compile(r"\[(?:证|片|cite):[^\]]+\]")
+
+
+def precheck(sample: str, selection: str, action_scope: str, known: set[str],
+             allowed_cites: set[str] | None = None, allowed_vars: set[str] | None = None,
+             mode: str = "rewrite") -> tuple[str | None, list[str], str]:
+    """返回 (预检后文字或 None, 提示, 不展示原因)。
+
+    变量和选区里的证据标记只能来自选区，替换时须全部保留；知识库打开时（allowed_cites 不为 None），
+    样例可以新增本次检索结果的标记，且至少要引用 1 条。"""
     from .chapter_generation import AI_CONVERSATION_RESIDUALS, NEGATIVE_DEVIATION_TRIGGERS
+    if UPSTREAM_ERROR.search((sample or "")[:300]):
+        return None, [], "模型服务返回了错误信息（如额度或频率限制），不是改写结果"
     text = _clean(sample)
     if not text:
         return None, [], "模型没有返回内容"
-    if re.sub(r"\s+", "", text) == re.sub(r"\s+", "", selection):
+    ratio, slack = LENGTH_LIMIT.get(mode, (2.0, 120))
+    plain_len = len(re.sub(r"\s+", "", TOKEN.sub("", text)))
+    limit = len(re.sub(r"\s+", "", TOKEN.sub("", selection))) * ratio + slack
+    if mode == "shorten" and plain_len >= len(re.sub(r"\s+", "", TOKEN.sub("", selection))):
+        return None, [], "缩写后没有变短"
+    if mode != "shorten" and plain_len > limit:
+        return None, [], f"超出选区改写范围（{plain_len} 字，远长于原文）"
+    if re.sub(r"\s+", "", TOKEN.sub("", text)) == re.sub(r"\s+", "", TOKEN.sub("", selection)):
         return None, [], "与原文相同"
     if any(pattern.search(text) for pattern in SENSITIVE):
         return None, [], "含证件号、手机号、银行账号或口令"
-    wanted, got = sorted(TOKEN.findall(selection)), sorted(TOKEN.findall(text))
-    if set(got) - set(wanted):
-        return None, [], "出现了选区以外的变量或证据标记"
-    if action_scope == "replace" and got != wanted:
+    wanted = sorted(TOKEN.findall(selection))
+    got = TOKEN.findall(text)
+    # 新增的变量只能是已确认的项目事实变量；新增的引用只能是本次检索结果
+    extra = [token for token in set(got) - set(wanted) if token not in (allowed_vars or set())]
+    if any(not CITE.fullmatch(token) or allowed_cites is None or token not in allowed_cites for token in extra):
+        return None, [], "出现了选区以外的变量，或引用了本次检索结果之外的资料" if allowed_cites is not None \
+            else "出现了选区以外的变量或证据标记"
+    if action_scope == "replace" and sorted(t for t in got if t in wanted) != wanted:
         return None, [], "改动或丢失了选区中的变量、证据标记"
+    cited = sorted({token for token in got if allowed_cites and token in allowed_cites})
+    if allowed_cites is not None and not cited:
+        return None, [], "没有引用本次检索到的资料"
     for residual in AI_CONVERSATION_RESIDUALS:
         text = text.replace(residual, "")
     text = text.strip()
@@ -136,13 +174,17 @@ def precheck(sample: str, selection: str, action_scope: str, known: set[str]) ->
     text, replaced = _replace_unsourced_numbers(text, known)
     notes = []
     if replaced:
-        notes.append(f"{len(replaced)} 处数值对不上项目事实、本章条款或原文，已换成【待补：数值来源】")
+        notes.append(f"{len(replaced)} 处数值对不上项目事实、本章条款、引用资料或原文，已换成【待补：数值来源】")
     if AMOUNT.search(text):
         notes.append("涉及金额，采纳后转人工核对")
     hits = [t for t in NEGATIVE_DEVIATION_TRIGGERS if t in text and t not in selection]
     if hits:
         notes.append(f"含负偏离或不满足表述（{hits[0]}），请核对是否属实")
     return text, notes, ""
+
+
+def cited_tokens(text: str, allowed: set[str]) -> list[str]:
+    return sorted({token for token in CITE.findall(text) if token in allowed})
 
 
 def _merge_similar(samples: list[dict]) -> tuple[list[dict], int]:
@@ -202,12 +244,53 @@ class SelectionRewriteService:
                         if r.get("chapter_id") == chapter_id and r.get("status") == "confirmed"]
         return facts, requirements
 
+    # ---------------------------------------------------------------- 公司策略
+
+    @staticmethod
+    def _policy(state: DemoState, company_id: str) -> dict:
+        stored = (state.service_stores.get("company_settings") or {}).get(company_id) or {}
+        count = int(stored.get("assistant_suggestion_count") or DEFAULT_COUNT)
+        return {"enabled": bool(stored.get("assistant_enabled", True)),
+                "kb_default": bool(stored.get("assistant_kb_default", True)),
+                "allow_kb_off": bool(stored.get("assistant_allow_kb_off", True)),
+                "count": min(MAX_COUNT, max(MIN_COUNT, count))}
+
+    def policy(self, principal: Principal, project_id: str, chapter_id: str) -> dict:
+        """页面打开对话助手时读取：公司开关、知识库默认值、样例条数、当前模型（含是否本地）与知识库是否已连接。"""
+        state = self.demo.repository.read()
+        chapter = self.demo._chapter(state, principal, chapter_id)
+        if chapter.project_id != project_id:
+            raise DomainError(404, "NOT_FOUND", "未找到有权访问的章节。")
+        project = self.demo._project(state, principal, project_id)
+        provider = self.demo.resolve_model_provider(state, project_id)
+        kb = getattr(self.demo, "knowledge_base", None)
+        connected = bool(kb is not None and kb.client_for(project.company_id, state) is not None)
+        return {**self._policy(state, project.company_id),
+                "model": getattr(provider, "model", "") or getattr(provider, "name", ""),
+                "is_real_model": bool(getattr(provider, "is_real_model", False)),
+                "is_local_model": bool(getattr(provider, "is_local", False)),
+                "sensitive_project": bool(project.sensitive), "knowledge_base_connected": connected}
+
     # ---------------------------------------------------------------- 生成样例
 
     def generate(self, principal: Principal, project_id: str, chapter_id: str, payload: dict) -> dict:
+        prepared = self.prepare(principal, project_id, chapter_id, payload)
+        final = None
+        for event in self.stream(prepared):
+            if event["event"] == "error":
+                raise DomainError(event["status"], event["code"], event["message"], event.get("details") or {})
+            if event["event"] == "done":
+                final = event["batch"]
+        return final
+
+    def prepare(self, principal: Principal, project_id: str, chapter_id: str, payload: dict) -> dict:
+        """生成前的全部核对与检索（不调用模型、不写状态）；出错直接按 HTTP 错误返回。"""
         state = self.demo.repository.read()
         chapter, workflow = self._load(state, principal, project_id, chapter_id)
         project = self.demo._project(state, principal, project_id)
+        policy = self._policy(state, project.company_id)
+        if not policy["enabled"]:
+            raise DomainError(403, "FORBIDDEN", "本公司已关闭对话助手。")
         self.demo.require_allowed_model(project, state=state)
         start, end, selected = int(payload["start"]), int(payload["end"]), payload["selected_text"]
         content = chapter.content or ""
@@ -219,7 +302,19 @@ class SelectionRewriteService:
         instruction = (payload.get("instruction") or "").strip()
         if mode == "instruction" and not instruction:
             raise DomainError(422, "VALIDATION_ERROR", "“按指令修改”须写明修改要求。")
-        count = int(payload.get("count") or DEFAULT_COUNT)
+        count = int(payload.get("count") or policy["count"])
+        kb_on = payload.get("knowledge_base_enabled")
+        kb_on = policy["kb_default"] if kb_on is None else bool(kb_on)
+        if not kb_on and not policy["allow_kb_off"]:
+            raise DomainError(422, "VALIDATION_ERROR", "本公司要求对话助手使用知识库，不能关闭。")
+        from .assistant_sessions import history_lines, readable_session
+        session_id = payload.get("session_id")
+        history: list[str] = []
+        if session_id:
+            session = readable_session(state, principal, project_id, session_id)
+            if session["owner_id"] != principal.user.id or session["chapter_id"] != chapter_id:
+                raise DomainError(403, "FORBIDDEN", "只能在本人本章的会话中继续提问。")
+            history = history_lines(workflow, session, selection_hash(selected))
         facts, requirements = self._sources(state, project_id, chapter_id, workflow)
         from .generation_context import refuse_source_change
         refuse_source_change(instruction, {"facts": [{"key": f["key"], "variable": f["variable_token"]} for f in facts]})
@@ -227,78 +322,152 @@ class SelectionRewriteService:
         if not getattr(provider, "is_real_model", False):
             raise DomainError(502, "MODEL_UNAVAILABLE",
                               "尚未接入真实大模型：选区改写不提供模拟样例。请公司管理员在“模型配置”中接入模型后再试。")
+        hits, retrieval = ([], {"status": "off", "message": "知识库已关闭，未检索本公司资料；样例标“无知识库来源”。"})
+        if kb_on:
+            hits, retrieval = self._retrieve(principal, project.company_id, chapter.title, selected, instruction)
         before, paragraph, after = _neighbours(content, start, end)
-        known = _known_numbers(selected, paragraph, *requirements, *(f"{f['value']}" for f in facts))
-        styles = STYLES[:count]
-        user_content = self._user_content(chapter.title, requirements, facts, before, selected, after, instruction)
+        known = _known_numbers(selected, paragraph, *requirements, *(f"{f['value']}" for f in facts),
+                               *(hit["content"] for hit in hits))
+        return {
+            "principal": principal, "project_id": project_id, "chapter_id": chapter_id, "chapter_title": chapter.title,
+            "base_revision": chapter.revision, "start": start, "end": end, "selected": selected, "mode": mode,
+            "instruction": instruction, "count": count, "kb_on": kb_on, "hits": hits, "retrieval": retrieval,
+            "known": known, "provider": provider, "session_id": session_id,
+            "fact_tokens": {f["variable_token"] for f in facts},
+            "user_content": self._user_content(chapter.title, requirements, facts, before, selected, after, instruction,
+                                               hits=hits, history=history),
+        }
+
+    def _retrieve(self, principal: Principal, company_id: str, title: str, selected: str, instruction: str):
+        kb = getattr(self.demo, "knowledge_base", None)
+        if kb is None:
+            raise DomainError(409, "KNOWLEDGE_BASE_NOT_CONFIGURED", "本公司知识库尚未连接；可关闭知识库后重试（样例将标“无知识库来源”）。")
+        query = " ".join(part for part in (title, selected, instruction) if part)[:500]
+        try:
+            raw, reason = kb.search(company_id, query, limit=5, user=principal.user)
+        except Exception as error:
+            raise DomainError(502, "KNOWLEDGE_BASE_UPSTREAM_ERROR", "知识库检索暂时不可用，可稍后重试或关闭知识库后重试。") from error
+        if reason == "RAGFlow is not configured":
+            raise DomainError(409, "KNOWLEDGE_BASE_NOT_CONFIGURED", "本公司知识库尚未连接；可关闭知识库后重试（样例将标“无知识库来源”）。")
+        hits = [{"cite_tag": hit.cite_tag, "source_id": hit.source_id, "source_type": hit.source_type, "name": hit.name,
+                 "item_type": hit.item_type, "revision": hit.revision, "score": round(float(hit.score), 4),
+                 "content": hit.content[:600], "document_id": hit.document_id, "chunk_ids": list(hit.chunk_ids)}
+                for hit in raw if not hit.reference_only]
+        if not hits:
+            return [], {"status": "empty", "message": "本公司知识库和资料库中没有找到相关内容。可以关闭知识库后重试（样例将标“无知识库来源”），"
+                                                       "或去资料库、方案片段库补充资料。"}
+        return hits, {"status": "found", "message": f"检索到 {len(hits)} 条本公司资料，样例须至少引用 1 条。", "count": len(hits)}
+
+    def stream(self, prepared: dict):
+        """逐条产出事件：started → sample/dropped（按完成先后）→ done；检索无结果时不调用模型直接 done。"""
+        from concurrent.futures import as_completed
+        provider, mode = prepared["provider"], prepared["mode"]
+        styles = STYLES[:prepared["count"]]
+        hits = prepared["hits"]
+        allowed = {hit["cite_tag"] for hit in hits} if prepared["kb_on"] else None
+        yield {"event": "started", "styles": [label for _, label, _ in styles], "retrieval": prepared["retrieval"],
+               "knowledge_base_enabled": prepared["kb_on"], "model": getattr(provider, "model", "") or getattr(provider, "name", "")}
+        samples, dropped = [], []
+        if prepared["kb_on"] and not hits:
+            yield from self._finish(prepared, samples, dropped)
+            return
 
         def call(style):
             key, label, hint = style
-            system = self._system_prompt(MODES[mode], hint)
+            system = self._system_prompt(MODES[mode], hint, knowledge_base=prepared["kb_on"])
             try:
-                reply = provider.suggest(system, user_content)
+                reply = provider.suggest(system, prepared["user_content"])
             except Exception as error:  # 单条失败不影响其他写法
                 return key, label, None, type(error).__name__
             return key, label, reply if isinstance(reply, str) else str(reply), ""
 
         with ThreadPoolExecutor(max_workers=len(styles)) as pool:
-            replies = list(pool.map(call, styles))
-        samples, dropped = [], []
-        for key, label, reply, failure in replies:
-            if reply is None:
-                dropped.append({"style": label, "reason": f"模型调用失败（{failure}）"})
-                continue
-            text, notes, reason = precheck(reply, selected, "replace", known)
-            if text is None:
-                dropped.append({"style": label, "reason": reason})
-                continue
-            samples.append({"id": new_id("sample"), "style": key, "style_label": label, "text": text,
-                            "warnings": notes, "chars": len(text), "sources": [], "status": "proposed"})
+            for future in as_completed([pool.submit(call, style) for style in styles]):
+                key, label, reply, failure = future.result()
+                if reply is None:
+                    item = {"style": label, "reason": f"模型调用失败（{failure}）"}
+                    dropped.append(item)
+                    yield {"event": "dropped", **item}
+                    continue
+                text, notes, reason = precheck(reply, prepared["selected"], "replace", prepared["known"], allowed,
+                                               prepared["fact_tokens"], mode)
+                if text is None:
+                    item = {"style": label, "reason": reason}
+                    dropped.append(item)
+                    yield {"event": "dropped", **item}
+                    continue
+                sources = [dict(hit, content=hit["content"][:200]) for hit in hits if hit["cite_tag"] in cited_tokens(text, allowed or set())]
+                sample = {"id": new_id("sample"), "style": key, "style_label": label, "text": text, "warnings": notes,
+                          "chars": len(TOKEN.sub("", text)), "sources": sources, "status": "proposed"}
+                samples.append(sample)
+                yield {"event": "sample", "sample": sample}
+        order = {key: index for index, (key, _, _) in enumerate(styles)}
+        samples.sort(key=lambda item: order[item["style"]])
+        yield from self._finish(prepared, samples, dropped)
+
+    def _finish(self, prepared: dict, samples: list[dict], dropped: list[dict]):
+        principal, project_id, chapter_id = prepared["principal"], prepared["project_id"], prepared["chapter_id"]
         samples, merged = _merge_similar(samples)
         if merged:
             dropped.append({"style": "相近写法", "reason": f"{merged} 条与其他样例几乎相同，已合并"})
-        if not samples:
-            raise DomainError(502, "MODEL_OUTPUT_INVALID", "模型返回的样例都没有通过预检，正文没有修改：" +
-                              "；".join(f"{d['style']}：{d['reason']}" for d in dropped))
-
+        no_results = prepared["kb_on"] and not prepared["hits"]
+        if not samples and not no_results:
+            yield {"event": "error", "status": 502, "code": "MODEL_OUTPUT_INVALID",
+                   "message": "模型返回的样例都没有通过预检，正文没有修改：" + "；".join(f"{d['style']}：{d['reason']}" for d in dropped)}
+            return
+        provider = prepared["provider"]
         batch = {
             "id": new_id("rewrite"), "project_id": project_id, "chapter_id": chapter_id,
-            "base_revision": chapter.revision, "start": start, "end": end, "selected_text": selected,
-            "selection_hash": selection_hash(selected), "mode": mode, "mode_label": MODES[mode][0],
-            "instruction": instruction, "samples": samples, "dropped": dropped, "knowledge_base_enabled": False,
-            "provider": getattr(provider, "name", "model"), "model": getattr(provider, "model", ""),
-            "is_local_model": bool(getattr(provider, "is_local", False)), "status": "proposed",
+            "base_revision": prepared["base_revision"], "start": prepared["start"], "end": prepared["end"],
+            "selected_text": prepared["selected"], "selection_hash": selection_hash(prepared["selected"]),
+            "mode": prepared["mode"], "mode_label": MODES[prepared["mode"]][0], "instruction": prepared["instruction"],
+            "samples": samples, "dropped": dropped, "knowledge_base_enabled": prepared["kb_on"],
+            "retrieval": prepared["retrieval"], "provider": getattr(provider, "name", "model"),
+            "model": getattr(provider, "model", ""), "is_local_model": bool(getattr(provider, "is_local", False)),
+            "status": "no_results" if no_results else "proposed",
             "created_by": principal.user.id, "created_at": iso_time(self.demo._now()),
         }
 
         def operation(current: DemoState):
-            actual, flow = self._load(current, principal, project_id, chapter_id)
+            from .assistant_sessions import record_request
+            actual, _ = self._load(current, principal, project_id, chapter_id)
             if actual.revision != batch["base_revision"]:
                 raise DomainError(409, "REVISION_CONFLICT", "生成样例期间正文已被提交更新，请重新选择后再问。")
-            store = _project_workflow(current, project_id).setdefault("assistant_suggestions", {})
+            flow = _project_workflow(current, project_id)
+            batch["session_id"] = record_request(flow, principal, actual, batch, prepared["session_id"], iso_time(self.demo._now()))
+            store = flow.setdefault("assistant_suggestions", {})
             store[batch["id"]] = batch
             for old in sorted(store.values(), key=lambda b: b["created_at"])[:-KEEP_BATCHES]:
                 store.pop(old["id"], None)
             self.demo._audit(current, principal, actual, "assistant.selection_samples",
-                             {"batch_id": batch["id"], "samples": len(samples), "dropped": len(dropped), "mode": mode})
+                             {"batch_id": batch["id"], "samples": len(samples), "dropped": len(dropped),
+                              "mode": batch["mode"], "knowledge_base_enabled": batch["knowledge_base_enabled"]})
             return public_batch(batch)
 
-        return self.demo.repository.transaction(operation)
+        try:
+            yield {"event": "done", "batch": self.demo.repository.transaction(operation)}
+        except DomainError as error:
+            yield {"event": "error", "status": error.status, "code": error.code, "message": error.message,
+                   "details": getattr(error, "details", None) or {}}
 
     @staticmethod
-    def _system_prompt(mode: tuple[str, str], style_hint: str) -> str:
-        return "\n".join([
+    def _system_prompt(mode: tuple[str, str], style_hint: str, *, knowledge_base: bool = False) -> str:
+        lines = [
             "你是投标文件编写助手，只修改用户选中的那段文字。",
             f"修改方式：{mode[0]}——{mode[1]}。写法：{style_hint}。",
             "必须遵守：",
             "1. 形如 {{fact:…}}、{{sla:…}} 的变量和形如 [证:…]、[片:…] 的证据标记原样保留，不得改写、删除或换成数字；",
-            "2. 不新增原文、招标要求和项目事实中没有的数字、型号、人员、案例、客户名称和承诺；",
-            "3. 不写“以下是”“希望对你有帮助”等对话语气，不用 Markdown 符号；",
-            "4. 只输出修改后的正文，不加标题、引号和解释。",
-        ])
+            "2. 不新增原文、招标要求、项目事实" + ("和【可引用的资料】" if knowledge_base else "") + "中没有的数字、型号、人员、案例、客户名称和承诺；",
+            "3. 不写“以下是”“希望对你有帮助”等对话语气，不用 Markdown 符号、标题和分隔线；",
+            "4. 只输出修改后的这段正文，不加标题、引号和解释；篇幅与原文相近" + ("（扩写不超过原文的 2 倍）" if mode[0] == "扩写" else "") + "；",
+            "5. 【前文】【后文】只用来理解上下文，不要复述，也不要改写整章；招标要求只用来把握响应重点。",
+        ]
+        if knowledge_base:
+            lines.append("6. 至少引用 1 条【可引用的资料】：在用到该资料的句子末尾原样写上它的标记（例如 [片:lib-1]），只能用列出的标记。")
+        return "\n".join(lines)
 
     @staticmethod
-    def _user_content(title, requirements, facts, before, selected, after, instruction) -> str:
+    def _user_content(title, requirements, facts, before, selected, after, instruction, *, hits=(), history=()) -> str:
         lines = [f"【章节】{title}"]
         if requirements:
             lines.append("【本章回应的招标要求】")
@@ -306,11 +475,17 @@ class SelectionRewriteService:
         if facts:
             lines.append("【已确认的项目事实（正文中用变量表示）】")
             lines += [f"- {f['key']}：{f['value']}{f.get('unit') or ''}（变量 {f['variable_token']}）" for f in facts[:12]]
+        if hits:
+            lines.append("【可引用的资料】（本公司知识库检索结果，只能引用这里列出的标记）")
+            lines += [f"- {hit['cite_tag']} {hit['name']}（v{hit['revision']}）：{hit['content'][:300]}" for hit in hits]
         if before:
             lines.append(f"【前文】{before[:400]}")
         lines.append(f"【选中的文字】\n{selected}")
         if after:
             lines.append(f"【后文】{after[:400]}")
+        if history:
+            lines.append("【本会话之前对这段文字的要求与样例】")
+            lines += list(history)
         if instruction:
             lines.append(f"【修改要求】{instruction}")
         return "\n".join(lines)
@@ -393,13 +568,23 @@ class SelectionRewriteService:
                 "base_revision": base_revision, "result_revision": chapter.revision,
                 "selection": {"start": start, "end": end, "hash": batch["selection_hash"], "relocated": moved},
                 "changed_range": list(changed), "batch_id": batch["id"], "sample_id": sample["id"],
-                "style": sample["style_label"], "mode": batch["mode_label"], "knowledge_base_enabled": False,
-                "sources": [], "source_note": "无知识库来源", "original_text": selected, "written_text": text,
+                "style": sample["style_label"], "mode": batch["mode_label"],
+                "knowledge_base_enabled": bool(batch.get("knowledge_base_enabled")),
+                "sources": [{k: v for k, v in src.items() if k != "content"} for src in sample.get("sources", [])],
+                "source_note": "引用本公司知识库" if sample.get("sources") else "无知识库来源",
+                "original_text": selected, "written_text": text, "session_id": batch.get("session_id"),
                 "actor_id": principal.user.id, "actor_name": principal.user.name, "created_at": now,
                 "recheck": {"scope": "changed_paragraphs", "issues": issues, "checked_at": now},
             }
             flow = _project_workflow(state, project_id)
             flow.setdefault("chapter_edit_operations", []).append(record)
+            if sample.get("sources"):
+                # 写入正文的 [片:来源编号] 记为本章已核对的引用，后续 R02 不再把它当作未核实片段
+                cites = flow.setdefault("assistant_citations", {}).setdefault(chapter_id, [])
+                cites.extend(src["source_id"] for src in sample["sources"] if src["source_id"] not in cites)
+            if batch.get("session_id"):
+                from .assistant_sessions import record_apply
+                record_apply(flow, batch["session_id"], record)
             flow.setdefault("chapter_statuses", {})[chapter_id] = "人工已处理"
             batch["status"] = "adopted"
             for item in batch["samples"]:
@@ -432,7 +617,12 @@ def _project_workflow(state: DemoState, project_id: str) -> dict:
 
 
 def public_batch(batch: dict) -> dict:
+    kb_on = bool(batch.get("knowledge_base_enabled"))
+    retrieval = batch.get("retrieval") or {"status": "off", "message": "知识库已关闭，未检索本公司资料。"}
     return {key: batch[key] for key in (
         "id", "chapter_id", "base_revision", "start", "end", "selected_text", "selection_hash", "mode", "mode_label",
         "instruction", "samples", "dropped", "knowledge_base_enabled", "provider", "model", "is_local_model",
-        "status", "created_at")} | {"source_note": "无知识库来源（本步未检索知识库）"}
+        "status", "created_at")} | {
+        "session_id": batch.get("session_id"), "retrieval": retrieval,
+        "source_note": ("引用本公司知识库（每条样例至少 1 条）" if retrieval.get("status") == "found"
+                        else retrieval.get("message", "")) if kb_on else "无知识库来源（知识库已关闭）"}

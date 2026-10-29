@@ -66,3 +66,32 @@ test('the editor wires the bubble to the selection rewrite panel instead of a wh
   assert.match(bubble, /问对话助手/);
   assert.doesNotMatch(panel, /选区助手待实现/);
 });
+
+test('knowledge-base switch defaults follow company policy and connection state', async () => {
+  const { defaultKnowledgeBase, knowledgeBaseNote, modelLabel } = await import('../../src/editor/selection-rewrite-core.ts');
+  const base = { enabled: true, kb_default: true, allow_kb_off: true, count: 3, model: 'qwen-local', is_real_model: true, is_local_model: true, sensitive_project: false, knowledge_base_connected: true };
+  assert.equal(defaultKnowledgeBase(base), true);
+  assert.equal(defaultKnowledgeBase({ ...base, knowledge_base_connected: false }), false, 'unconnected and may turn off → off');
+  assert.equal(defaultKnowledgeBase({ ...base, knowledge_base_connected: false, allow_kb_off: false }), true, 'company forbids turning off');
+  assert.equal(defaultKnowledgeBase({ ...base, kb_default: false }), false);
+  assert.equal(defaultKnowledgeBase(null), false);
+  assert.match(knowledgeBaseNote({ ...base, allow_kb_off: false }, true), /不能关闭/);
+  assert.match(knowledgeBaseNote(base, false), /无知识库来源/);
+  assert.match(knowledgeBaseNote({ ...base, knowledge_base_connected: false }, true), /尚未连接/);
+  assert.equal(modelLabel(base), 'qwen-local · 本地模型');
+  assert.equal(modelLabel({ ...base, is_real_model: false }), '尚未接入真实模型');
+});
+
+test('stream events accumulate samples and drops in arrival order', async () => {
+  const { EMPTY_STREAM, reduceStream, assistantPaths } = await import('../../src/editor/selection-rewrite-core.ts');
+  let state = reduceStream(EMPTY_STREAM, { event: 'started', styles: ['严谨规范', '简洁精炼'], retrieval: { status: 'off', message: '' } });
+  state = reduceStream(state, { event: 'sample', sample: { id: 's2', style_label: '简洁精炼' } });
+  state = reduceStream(state, { event: 'dropped', style: '严谨规范', reason: '与原文相同' });
+  assert.deepEqual(state.styles, ['严谨规范', '简洁精炼']);
+  assert.deepEqual(state.samples.map(s => s.id), ['s2']);
+  assert.deepEqual(state.dropped, [{ style: '严谨规范', reason: '与原文相同' }]);
+  assert.equal(reduceStream(state, { event: 'done' }), state);
+  const paths = assistantPaths('p', 'c');
+  assert.equal(paths.stream, '/api/v1/projects/p/chapters/c/selection-rewrites/stream');
+  assert.equal(paths.session('s1'), '/api/v1/projects/p/assistant-sessions/s1');
+});

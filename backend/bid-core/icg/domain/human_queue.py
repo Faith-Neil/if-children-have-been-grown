@@ -273,6 +273,7 @@ class HumanQueueMixin:
             for row in rows:
                 evidence_ids.update(eid for eid in row.get("evidence_ids", []) if eid)
             snippet_ids = {c.get("chunk_id") or c.get("id") for c in plan.get("retrieved_evidence", []) if isinstance(c, dict)}
+            snippet_ids.update(workflow.get("assistant_citations", {}).get(chapter_id, []))  # 对话助手写入时已核对的引用
             critical = any(str(r.get("importance", "")).lower() in ("star", "critical")
                            or str(r.get("category", "")).lower() in ("star", "disqualification")
                            or "★" in str(r.get("text", "")) for r in rows)
