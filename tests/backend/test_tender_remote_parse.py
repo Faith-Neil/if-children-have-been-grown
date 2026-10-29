@@ -2,11 +2,13 @@
 # 它解决什么问题：解析不能假装成功——未连 RAGFlow 时如实报错；RAGFlow 慢时文件标“解析中”，再次解析接着取结果、不重复上传；
 # 页码按版面位置还原，条款原句仍逐字可回查；完成后删除 RAGFlow 里的临时文档。
 
+import re
+
 import pytest
 from fastapi.testclient import TestClient
 
 from fake_ragflow_v1 import FakeRagflowV1
-from icg.domain.tender_remote import html_to_text, pages_from_chunks
+from icg.domain.tender_remote import html_to_text, pages_from_chunks, regions_from_chunks
 from icg_demo.main import create_app
 from test_reference_flow import ProjectFlow, pdf_bytes
 
@@ -30,6 +32,31 @@ def wired(fake):
     kb.background = False
     with TestClient(app) as test_client:
         yield test_client
+
+
+def _plain(text: str) -> str:
+    return re.sub(r"[\s|]", "", text)
+
+
+def locatable(regions: list[dict], quote: str) -> bool:
+    """与前端 pdf-locator-core.regionHits 同一规则：区域含原句、原句含整行区域，或区域含原句前 12 字。"""
+    q = _plain(quote)
+    return any(q in _plain(r["text"]) or (len(_plain(r["text"])) >= 4 and _plain(r["text"]) in q)
+               or q[:12] in _plain(r["text"]) for r in regions)
+
+
+def test_chunk_spanning_pages_is_split_by_line_positions():
+    chunk = {"content": "第一行在第3页\n第二行在第4页\n第三行在第4页",
+             "positions": [[3, 80, 500, 700, 720], [4, 80, 500, 70, 90], [4, 80, 500, 100, 120]]}
+    pages, positioned = pages_from_chunks([{"content": "首页", "positions": [[1, 80, 500, 10, 20]]}, chunk])
+    assert positioned and pages[2] == "第一行在第3页" and pages[3] == "第二行在第4页\n第三行在第4页"
+    regions = regions_from_chunks([chunk])
+    assert regions[2] == [{"text": "第一行在第3页", "boxes": [[80, 500, 700, 720]]}]
+    assert [r["text"] for r in regions[3]] == ["第二行在第4页", "第三行在第4页"]
+    # 行数与位置框数对不上（如表格）：整块作为一个区域，按页拆框
+    table = {"content": "<table><tr><td>评分因素</td><td>分值</td></tr><tr><td>技术方案</td><td>30</td></tr></table>", "positions": [[2, 90, 400, 50, 300]]}
+    assert regions_from_chunks([table])[1] == [{"text": "评分因素 | 分值\n技术方案 | 30", "boxes": [[90, 400, 50, 300]]}]
+    assert regions_from_chunks([{"content": "无位置"}]) == []
 
 
 def test_pages_rebuilt_from_positions_and_tables_flattened():
@@ -65,6 +92,12 @@ def test_doc_file_is_parsed_by_ragflow_and_requirements_keep_page_numbers(wired,
     preview = wired.get(f"{flow.path}/files/{record['id']}/preview", headers=flow.headers).json()
     for row in state["requirements"]:
         assert row["source"]["quote"] in preview["pages"][row["source"]["page"] - 1]["text"]
+    # 原件定位（APP-M2-T103）：扫描件预览带 DeepDOC 位置框，条款原句能在所在页的区域里找到；工作区文件列表不带区域
+    for row in state["requirements"]:
+        page = preview["pages"][row["source"]["page"] - 1]
+        assert locatable(page["regions"], row["source"]["quote"]), row["source"]
+        assert all(len(box) == 4 for region in page["regions"] for box in region["boxes"])
+    assert "regions" not in record
     # 解析完成后删除 RAGFlow 里的临时文档
     dataset = next(d for d in fake.datasets.values() if d["name"].endswith("::icg-tender"))
     assert fake.docs_in(dataset["id"]) == []
@@ -132,7 +165,12 @@ def test_real_scanned_tender_from_deepdoc_chunks():
     assert not any(r.text.endswith(("场景配置", "数据标注", "评审标准")) for r in rows)
     assert any("否决其投标" in r.text and r.mandatory for r in rows)
     assert any("国密算法" in r.text and r.section_kind == "technical" for r in rows)
+    regions = regions_from_chunks(raw["chunks"])
+    assert len(regions) == 35
     for row in rows:
         assert row.quote in pages[row.page - 1], row
+        assert locatable(regions[row.page - 1], row.quote), row  # 每条条款都能在原件扫描页上画出高亮
+    # 跨页分块按行归页：“支持手动标注”在原件第 14 页，不再被算到第 13 页
+    assert next(r.page for r in rows if "支持手动标注" in r.quote) == 14
     facts = {(f.key, f.value) for f in extract_facts(pages)}
     assert ("招标编号", "GBF2025-1161") in facts and ("采购人", "贵阳银行股份有限公司") in facts

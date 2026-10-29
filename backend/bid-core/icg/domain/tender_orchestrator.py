@@ -87,12 +87,14 @@ class TenderOrchestratorMixin:
         if preview:
             if record["status"] != "parsed":
                 raise DomainError(409, "FILE_NOT_PARSED", "文件尚未成功解析，暂时没有原文预览。")
+            regions = record.get("regions") or []
             return {
                 "file_id": record["id"],
                 "filename": record["filename"],
                 "pagination": record["pagination"],
                 "warnings": record["warnings"],
-                "pages": [{"page": i + 1, "text": t} for i, t in enumerate(record["pages"])],
+                "pages": [{"page": i + 1, "text": t, "regions": regions[i] if i < len(regions) else []}
+                          for i, t in enumerate(record["pages"])],
             }
         return record
 
@@ -183,6 +185,7 @@ class TenderOrchestratorMixin:
                     pagination=result.pagination,
                     pages=result.pages,
                     warnings=result.warnings,
+                    regions=getattr(result, "regions", []) or [],
                 )
                 record.pop("remote_parse", None)
                 from icg.domain.post_process import run_scan

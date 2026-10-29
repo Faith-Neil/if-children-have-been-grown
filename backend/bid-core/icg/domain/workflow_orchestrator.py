@@ -274,7 +274,7 @@ class WorkflowService(
 
     @staticmethod
     def _public_file(record: dict) -> dict:
-        return {key: value for key, value in record.items() if key not in ("content", "pages", "blob", "remote_parse")}
+        return {key: value for key, value in record.items() if key not in ("content", "pages", "blob", "remote_parse", "regions")}
 
     def _job(self, state: DemoState, project_id: str, kind: str, message: str, error: dict | None = None) -> dict:
         now = iso_time(self.demo._now())

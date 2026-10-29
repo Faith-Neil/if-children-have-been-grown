@@ -564,3 +564,11 @@
 
 /* Wave 11：人工处理队列、分册定稿与复核、疑似遗漏 */
 .queue-issue{padding:12px 0;border-bottom:1px solid var(--line)}.queue-issue:last-child{border-bottom:0}.queue-issue p{margin:6px 0}.volume-finalize-row{padding:12px 0;border-bottom:1px solid var(--line)}.volume-finalize-row:last-child{border-bottom:0}.scan-hit{margin-bottom:10px}
+
+/* 原件 PDF 定位（APP-M2-T103）：画布上叠加条款原句高亮框。 */
+.pdf-locator { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.pdf-page { position: relative; background: white; box-shadow: 0 2px 8px #0005; }
+.pdf-page canvas { display: block; }
+.pdf-hit { position: absolute; background: #ffd66b66; outline: 2px solid var(--orange); border-radius: 2px; pointer-events: none; }
+.pdf-locate-note { align-self: stretch; color: #e8f5e9; font-size: 12px; }
+.pdf-locate-note.miss { color: #ffd591; }

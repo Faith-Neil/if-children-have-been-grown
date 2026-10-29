@@ -17,6 +17,8 @@ class ParsedDocument:
     pages: list[str]
     pagination: str
     warnings: list[str] = field(default_factory=list)
+    # 扫描件（RAGFlow DeepDOC）逐页文字区域及其位置框，用于原件 PDF 上高亮；文字层 PDF 由浏览器 PDF.js 自己定位
+    regions: list[list[dict]] = field(default_factory=list)
 
 
 class LocalTextParser:

@@ -80,10 +80,22 @@ def _position(chunk: dict) -> tuple[int, float] | None:
 
 
 def pages_from_chunks(chunks: list[dict]) -> tuple[list[str], bool]:
-    """返回 (逐页文字, 是否有版面位置)。没有位置时所有分块放在第 1 页，并由调用方提示页码不可靠。"""
+    """返回 (逐页文字, 是否有版面位置)。没有位置时所有分块放在第 1 页，并由调用方提示页码不可靠。
+
+    分块跨页且行数与位置框数相同时逐行按各自位置归页（真实扫描件里一个分块常跨 2～3 页，
+    整块归到首页会让后两页的条款页码错一页，原件上也定位不到）。"""
     placed: dict[int, list[tuple[float, int, str]]] = {}
     positioned = True
     for order, chunk in enumerate(chunks):
+        split = _split_lines(chunk)
+        if split and len({box[0] for _, box in split}) > 1:
+            by_page: dict[int, list[tuple[str, list[float]]]] = {}
+            for line, box in split:
+                by_page.setdefault(box[0], []).append((line, box))
+            for page, rows in by_page.items():
+                text = "\n".join(line for line, _ in rows)
+                placed.setdefault(page, []).append((rows[0][1][3], order, text))
+            continue
         text = drop_ocr_noise(html_to_text(str(chunk.get("content") or ""))).strip()
         if not text:
             continue
@@ -97,6 +109,57 @@ def pages_from_chunks(chunks: list[dict]) -> tuple[list[str], bool]:
     last = max(placed)
     pages = ["\n".join(text for _, _, text in sorted(placed.get(number, []))) for number in range(1, last + 1)]
     return pages, positioned
+
+
+def _boxes(chunk: dict) -> list[list[float]]:
+    """DeepDOC 分块位置 [页码, x0, x1, top, bottom]，单位为 PDF 点（左上角为原点）。"""
+    positions = chunk.get("positions") or []
+    if len(positions) >= 5 and all(isinstance(v, (int, float)) for v in positions[:5]):
+        positions = [positions]
+    boxes = []
+    for item in positions:
+        try:
+            page, x0, x1, top, bottom = (float(v) for v in item[:5])
+        except (TypeError, ValueError):
+            continue
+        if x1 > x0 and bottom > top:
+            boxes.append([max(1, int(page)), round(x0, 1), round(x1, 1), round(top, 1), round(bottom, 1)])
+    return boxes
+
+
+def _split_lines(chunk: dict) -> list[tuple[str, list[float]]]:
+    """行数与位置框数相同时返回 [(去噪后的行, [页, x0, x1, top, bottom])]；否则返回空表。"""
+    boxes = _boxes(chunk)
+    lines = [line.strip() for line in html_to_text(str(chunk.get("content") or "")).splitlines() if line.strip()]
+    if not boxes or len(lines) != len(boxes):
+        return []
+    return [(line, box) for line, box in zip(lines, boxes) if drop_ocr_noise(line).strip()]
+
+
+def regions_from_chunks(chunks: list[dict]) -> list[list[dict]]:
+    """逐页的“文字区域”，供原件 PDF 上按条款原句画高亮（APP-M2-T103）。
+
+    扫描件没有文字层，浏览器无法在 PDF 里搜原句，只能用 DeepDOC 返回的位置框。
+    分块行数与位置框数相同时逐行对应（高亮到行）；否则整块作为一个区域（高亮到段/表）。
+    返回 pages[i] = [{"text": 区域文字, "boxes": [[x0, x1, top, bottom], ...]}]，与 pages_from_chunks 页码一致。"""
+    placed: dict[int, list[dict]] = {}
+    for chunk in chunks:
+        boxes = _boxes(chunk)
+        if not boxes:
+            continue
+        split = _split_lines(chunk)
+        if split:
+            for line, box in split:
+                placed.setdefault(box[0], []).append({"text": line, "boxes": [box[1:]]})
+            continue
+        text = drop_ocr_noise(html_to_text(str(chunk.get("content") or ""))).strip()
+        if not text:
+            continue
+        for page in sorted({box[0] for box in boxes}):
+            placed.setdefault(page, []).append({"text": text, "boxes": [box[1:] for box in boxes if box[0] == page]})
+    if not placed:
+        return []
+    return [placed.get(number, []) for number in range(1, max(placed) + 1)]
 
 
 @dataclass
@@ -206,7 +269,9 @@ class RemoteTenderParser:
         if not any(p.strip() for p in pages):
             return RemoteOutcome("failed", message="RAGFlow 已解析但没有识别出文字，请提供更清晰的扫描件或原始电子版。")
         warnings = [REMOTE_WARNING] + ([] if positioned else ["RAGFlow 未返回版面位置，全部内容按第 1 页处理，页码不可用于定位。"])
-        return RemoteOutcome("done", ParsedDocument(pages=pages, pagination=PAGINATION, warnings=warnings))
+        regions = regions_from_chunks(chunks) if positioned else []
+        regions = (regions + [[] for _ in range(len(pages) - len(regions))])[:len(pages)] if regions else []
+        return RemoteOutcome("done", ParsedDocument(pages=pages, pagination=PAGINATION, warnings=warnings, regions=regions))
 
     @staticmethod
     def _cleanup(client: Any, remote: dict) -> None:

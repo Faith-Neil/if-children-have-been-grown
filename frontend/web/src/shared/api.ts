@@ -117,6 +117,16 @@ export async function download(path: string, token: string, filename: string, wa
   setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 }
 
+/** 带身份读取原件字节（如在页面内用 PDF.js 显示招标原件），失败按统一错误处理。 */
+export async function fetchBytes(path: string, token: string, wait: (ms: number) => Promise<void> = defaultWait): Promise<Uint8Array> {
+  const response = await runAttempts(async () => {
+    const result = await fetch(path, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+    if (!result.ok) throw apiFailure(result.status, await readJson(result), result.headers.get('X-Request-ID') ?? undefined);
+    return result;
+  }, wait).catch(error => rememberFailureSession(error, token));
+  return new Uint8Array(await response.arrayBuffer());
+}
+
 export async function encodeFile(file: File) {
   const bytes = new Uint8Array(await file.arrayBuffer());
   let binary = '';

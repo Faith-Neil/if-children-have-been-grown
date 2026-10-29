@@ -1569,7 +1569,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T103 · PdfLocator（PDF.js 本地 Worker、跳页高亮）
 <a id="app-m2-t103"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T02](APP-M1.md#app-m1-t02)、[APP-M2-T101](APP-M2.md#app-m2-t101)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T02](APP-M1.md#app-m1-t02)、[APP-M2-T101](APP-M2.md#app-m2-t101)。
 
 原始来源：原交接 §6.4 M3-E04-F1；PRD v1.8 §5.2.2、5.2.4。交付单位：PdfLocator（PDF.js 本地 Worker、跳页高亮），同一产品的页面/后台/数据/权限/输出协作一起验收。
 

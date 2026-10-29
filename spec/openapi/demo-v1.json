@@ -41600,6 +41600,13 @@
           "text": {
             "type": "string",
             "title": "Text"
+          },
+          "regions": {
+            "items": {
+              "$ref": "#/components/schemas/TextRegion"
+            },
+            "type": "array",
+            "title": "Regions"
           }
         },
         "additionalProperties": true,
@@ -42124,6 +42131,32 @@
           "download_url"
         ],
         "title": "TenderFile"
+      },
+      "TextRegion": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "boxes": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Boxes"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "text",
+          "boxes"
+        ],
+        "title": "TextRegion",
+        "description": "扫描件识别出的一段文字及其在原件页面上的位置框 [x0, x1, top, bottom]（PDF 点，左上角为原点）。"
       },
       "TransferUserAssetsRequest": {
         "properties": {

@@ -90,7 +90,7 @@ class FakeRagflowV1:
             cursor = max(cursor, at)
             page = doc["content"][:at].count("\f") + 1
             chunks.append({"id": self._id("chunk"), "content": part, "important_keywords": [],
-                           "questions": [], "available": True, "positions": [[page, 0, 0, at, at + 1]]})
+                           "questions": [], "available": True, "positions": [[page, 72, 520, at, at + 1]]})
         doc["chunks"] = chunks
         if dataset.get("pipeline_id") and self.metadata_extractor is not None:
             doc["meta_fields"] = {**doc.get("meta_fields", {}), **self.metadata_extractor(doc["content"])}

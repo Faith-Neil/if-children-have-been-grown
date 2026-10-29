@@ -219,9 +219,16 @@ class TenderFile(ResponseBody):
     download_url: str
 
 
+class TextRegion(ResponseBody):
+    """扫描件识别出的一段文字及其在原件页面上的位置框 [x0, x1, top, bottom]（PDF 点，左上角为原点）。"""
+    text: str
+    boxes: list[list[float]]
+
+
 class SourcePage(ResponseBody):
     page: int
     text: str
+    regions: list[TextRegion] = Field(default_factory=list)
 
 
 class FilePreview(ResponseBody):
