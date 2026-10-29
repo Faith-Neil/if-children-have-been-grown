@@ -107,8 +107,10 @@ def run(base_url, output_dir=None):
                 'base_revision': chapter['revision'], 'content': chapter['content'] + '新增：季度复盘。',
                 'input_fingerprint': fp, 'idempotency_key': str(uuid4())})
         request(client, 'POST', tech_url + '/lock/release', headers=tech, payload={'lease_token': lease})
-        stale = client.get(docs['technical'][0]['download_url'], headers=manager).status_code if 'technical' in docs else None
-        check('E7 old export rejected after new commit', stale in (409, 410), str(stale))
+        # PRD §5.9.1 规则 13（APP-M2-T202）：新提交后旧批次标“已过期”，仍提供当时生成的原文件
+        old = client.get(docs['technical'][0]['download_url'], headers=manager) if 'technical' in docs else None
+        stale = (old.status_code, old.headers.get('X-ICG-Export-Status')) if old is not None else None
+        check('E7 old export marked stale after new commit but still downloadable', stale == (200, 'stale'), str(stale))
     return {'passed': all(c['pass'] for c in checks), 'project_id': project_id, 'checks': checks,
             'layout': layout, 'real_model_called': False, 'word_layout_verified': False}
 
