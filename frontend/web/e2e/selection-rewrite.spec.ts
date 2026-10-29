@@ -45,7 +45,10 @@ async function seed(request: APIRequestContext) {
     lease_token: lock.lease_token, base_revision: chapter.revision, content: BODY, idempotency_key: crypto.randomUUID() } });
   expect(committed.ok(), await committed.text()).toBeTruthy();
   await request.post(`/api/chapters/${chapter.id}/lock/release`, { headers: auth, data: { lease_token: lock.lease_token } });
-  const config = await request.post('/api/v1/model-configs', { headers: auth, data: {
+  // 模型配置只能由公司管理员新建；项目负责人把它应用到项目
+  const adminLogin = await request.post('/api/v1/auth/login', { data: { username: 'alpha-company-admin', password: 'X_2026' } });
+  const admin = { Authorization: `Bearer ${(await adminLogin.json()).access_token}` };
+  const config = await request.post('/api/v1/model-configs', { headers: admin, data: {
     id: `e2e-rewrite-${Date.now()}`, name: '用例模型', provider: 'openai-compatible', base_url: baseUrl, model: 'fake-rewrite',
     is_local: true, allow_sensitive: true, stream_enabled: false, timeout_seconds: 10 } });
   expect(config.ok(), await config.text()).toBeTruthy();

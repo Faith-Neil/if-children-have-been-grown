@@ -6,6 +6,7 @@ import type { FormInstance } from 'antd';
 import { CreateProjectModal } from '../project/CreateProjectModal';
 import { TaskCenterDrawer } from './TaskCenterDrawer';
 import { ModelConfigModal } from '../admin/ModelConfigModal';
+import { modelConfigAccess } from '../admin/model-config-core.ts';
 import { RagflowConfigModal } from '../admin/RagflowConfigModal';
 import { sessionAllowsAction } from '../app/session-navigation';
 import type { Account, ApplicationSession, Job, Workspace } from '../shared/types';
@@ -94,6 +95,7 @@ export function AppModals({
         session={session}
         projectId={workspace?.project?.id}
         projectSensitive={Boolean(workspace?.project?.sensitive)}
+        {...modelConfigAccess(session?.user?.primary_role, workspace?.permissions?.manage_project === true)}
       />
 
       <RagflowConfigModal

@@ -318,7 +318,19 @@ class ModelConfigService:
 
         return self.repository.transaction(operation)
 
+    @staticmethod
+    def _require_manager(principal: Principal) -> None:
+        """新建、修改、测试连接只限本公司公司管理员（或平台超级管理员）。
+
+        模型地址决定标书正文发往哪里，测试连接会让服务端访问填写的地址；普通成员能改就能把正文外发或探测内网。"""
+        from icg.domain.auth_service import is_super_admin
+        from icg.domain.project_access import normalize_role
+        if is_super_admin(principal) or normalize_role(principal.user.role) in ("company_admin", "platform_admin"):
+            return
+        raise DomainError(403, "FORBIDDEN", "模型配置只能由本公司公司管理员（或平台管理员）新建、修改和测试。")
+
     def create(self, principal: Principal, payload: dict[str, Any]) -> dict[str, Any]:
+        self._require_manager(principal)
         company_id = principal.user.company_id
         config_id = payload.get("id") or f"cfg-{int(self.service._now() * 1000)}"
         plain_key = payload.get("api_key")
@@ -356,6 +368,7 @@ class ModelConfigService:
         return self.repository.transaction(operation)
 
     def update(self, principal: Principal, config_id: str, updates: dict[str, Any], if_match: str | None) -> dict[str, Any]:
+        self._require_manager(principal)
         company_id = principal.user.company_id
 
         def operation(state: DemoState):
@@ -399,6 +412,7 @@ class ModelConfigService:
 
     def test_connectivity(self, principal: Principal, config_id: str,
                           transport: httpx.BaseTransport | None = None) -> dict[str, Any]:
+        self._require_manager(principal)
         company_id = principal.user.company_id
 
         def get_cfg(state: DemoState) -> ModelConfig:
@@ -456,7 +470,15 @@ class ModelConfigService:
         company_id = principal.user.company_id
 
         def operation(state: DemoState):
-            project = self.service._project(state, principal, project_id)
+            from icg.domain.auth_service import is_super_admin
+            from icg.domain.project_access import lead, normalize_role
+            project = state.projects.get(project_id)
+            admin = (project is not None and not project.is_deleted and project.company_id == company_id
+                     and (is_super_admin(principal) or normalize_role(principal.user.role) == "company_admin"))
+            if not admin:
+                project = self.service._project(state, principal, project_id)
+                if not lead(state, project_id, principal.user.id):
+                    raise DomainError(403, "PROJECT_LEAD_REQUIRED", "只有项目负责人或公司管理员能为项目选择模型配置。")
             cfg = state.model_configs.get(config_id)
             if cfg is None or cfg.company_id != company_id:
                 raise DomainError(404, "NOT_FOUND", "未找到该模型配置。")

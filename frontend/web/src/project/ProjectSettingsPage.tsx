@@ -9,6 +9,7 @@ import { eligibleOwners, projectCan, projectRoleName, teamBasis, teamFormValues,
 import type { ProjectTeam } from '../shared/types';
 import { request } from '../shared/api';
 import { ModelConfigModal } from '../admin/ModelConfigModal';
+import { modelConfigAccess } from '../admin/model-config-core.ts';
 import { projectVolumes, technicalOnly, volumeOptions } from './project-volumes.ts';
 
 const anchors = [ ['basic', '基本信息'], ['members', '成员与分工'], ['partners', '合作方'], ['persons', '拟派人员'], ['sla', 'SLA 取值'], ['rules', '规则覆盖'], ['loops', '生成闭环'], ['volumes', '分册'], ['export', '导出设置'] ];
@@ -164,6 +165,7 @@ export default function ProjectSettingsPage() {
                 token={token}
                 projectId={workspace.project.id}
                 projectSensitive={Boolean(workspace.project.sensitive)}
+                {...modelConfigAccess(user?.role, canManageProject)}
                 onBound={() => {
                   loadProjectModel();
                 }}
