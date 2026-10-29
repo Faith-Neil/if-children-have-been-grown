@@ -10,13 +10,13 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 451 项：done 96、in-review 119、in-progress 45、planned 136、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+项目 452 项：done 96、in-review 120、in-progress 45、planned 136、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
 | 账号与权限 | 生产口令登录、8 角色 RBAC、数据权限只读态；演示入口已删 | OIDC/Keycloak（T010～T013）未做，内网可只用口令登录 |
 | 持久化 | 项目工作流、账号、资料库、知识库索引写入 MySQL 8（Alembic 0012） | 旧 `/api/projects`、`/api/chapters` 路由仍在（BE-M0-T09） |
-| 招标解析 | PDF/Word 文字提取；按章节与条目抽取条款，适配真实招标文件版式（展平表格、段内（1）…（8）、否决/无效/废标）；事实含前附表 | 扫描件经 RAGFlow DeepDOC 解析；PDF 定位高亮（T103）；需求矩阵表（T112～T117） |
+| 招标解析 | PDF/Word 文字提取，扫描件/.doc/Excel/图片经 RAGFlow DeepDOC；按章节与条目抽取条款，适配真实招标文件版式（展平表格、段内（1）…（8）、否决/无效/废标）；事实含前附表 | PDF 定位高亮（T103）；需求矩阵表（T112～T117） |
 | 知识库 | 每公司三类数据集、ICG 摄入流程、管控接口与管理页、检索带片号引用；内置解析评测定默认阈值 | 流程模式评测；历史标书批量导入（T080/T081） |
 | 生成与编辑 | 章节闭环、人工处理队列、交叉复核与定稿门禁、编辑台差异确认 | 章节循环进度页与轮次时间线（T130/T131）、确定性章节（T191～T194）、自动保存（T172） |
 | 合规规则 | 33 条有检查与测试（R01～R20、R23～R32、R34、R35、R37）；警告须负责人填理由逐项放行 | R21、R22、R33、R36、R38～R44 |
@@ -38,6 +38,7 @@
 - APP-M2-T235～T237 与 T142 为 in-review：R29 本公司查重（全文检查）、R30 无条款段落与额外数值承诺（分册/全文警告、循环中转人工），警告逐项放行（`POST …/checks/{id}/issues/{issue}/release`）。
 - APP-M2-T200 为 in-review：导出递交版时同时生成合标核对清单（9 类核对项，Excel），一致性结论引用本批次全文检查，R36/R41/R42 未实现处如实写“未运行，须人工核对”，分册解锁后标已过期仍可下载。
 - APP-M2-T201 为 in-review：`GET /projects/{id}/response-trace.xlsx`，内部用，负责人全部、分册负责人本册；条款确认时记录确认人。
+- AI-TENDER-DEEPDOC-PARSE 为 in-review：本地取不出文字的招标文件交 RAGFlow DeepDOC，按版面位置还原页码后继续条款抽取；慢时标“RAGFlow 解析中”，再次解析接着取结果。
 - 余下顺序（重定后）：招标扫描件经 RAGFlow 解析。
 - 自测记录：[Wave 12 开发自测](testing/2026-10-28-wave-12-verification.md)。
 
@@ -616,6 +617,7 @@
 | [AI-KB-CONTROL-PLANE](tasks/AI-M0.md#ai-kb-control-plane) | 知识库管控接口（/api/v1/kb-admin）与招投标专用 RAGFlow 摄入流程（结构化资料/历史投标/证书/招标文件） | in-review | [AI-KB-RAG-PIPELINE](tasks/AI-M0.md#ai-kb-rag-pipeline) | [ISSUE-043](../issues/ISSUE-043.md) | [技术决定](decisions/2026-10-28-kb-control-plane-and-pipelines.md) |
 | [BE-AUTH-PRODUCTION-ONLY](tasks/BE-M0.md#be-auth-production-only) | 去掉演示入口与三角色兼容，只保留生产认证（用户 2026-10-28 决定） | in-review | — | [ISSUE-005](../issues/ISSUE-005.md) | [自测](testing/2026-10-28-wave-12b-verification.md) |
 | [AI-TENDER-STRUCTURED-EXTRACTION](tasks/AI-M0.md#ai-tender-structured-extraction) | 招标条款按章节与条目抽取（不再逐行成条款） | in-review | — | [ISSUE-007](../issues/ISSUE-007.md) | [自测](testing/2026-10-28-wave-12b-verification.md) |
+| [AI-TENDER-DEEPDOC-PARSE](tasks/AI-M0.md#ai-tender-deepdoc-parse) | 扫描件、.doc、Excel、图片招标文件经 RAGFlow DeepDOC 解析 | in-review | AI-TENDER-STRUCTURED-EXTRACTION | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/AI-TENDER-DEEPDOC-PARSE.md` |
 | [FE-KB-BUSINESS-FLOWS](tasks/AI-M0.md#fe-kb-business-flows) | 知识库接入资料库、方案片段与写作输入页面 | in-review | [AI-KB-CONTROL-PLANE](tasks/AI-M0.md#ai-kb-control-plane) | [ISSUE-043](../issues/ISSUE-043.md) | [自测](testing/2026-10-28-wave-12b-verification.md) |
 | [FE-TEST-ORPHANS](tasks/FE-M0.md#fe-test-orphans) | 前端根目录 28 个测试文件从未执行，8 项失败待判定 | in-review | — | [ISSUE-044](../issues/ISSUE-044.md) | `docs/delivery/FE-TEST-ORPHANS.md` |
 <!-- task-board:end -->

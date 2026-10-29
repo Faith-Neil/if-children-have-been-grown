@@ -768,3 +768,19 @@
 
 写作输入显示知识库候选（[片:id]、仅参考/可挂接提示）；资料库逐条入库状态与“从证书附件识别”；方案片段新建/保存/发布（含拦截原因）与真实同步；知识库管理页解析进度。e2e `knowledge-flows.spec.ts`。
 
+<a id="ai-tender-deepdoc-parse"></a>
+
+## AI-TENDER-DEEPDOC-PARSE · 扫描件与老格式招标文件经 RAGFlow 解析
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时 |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [AI-TENDER-STRUCTURED-EXTRACTION](AI-M0.md#ai-tender-structured-extraction) |
+| PRD / 架构出处 | PRD v1.8 §5.2；[技术决定 §4](../decisions/2026-10-28-kb-control-plane-and-pipelines.md) |
+| 完成时交付 | `docs/delivery/AI-TENDER-DEEPDOC-PARSE.md` |
+| 代码解释 | `icg/domain/tender_remote.py` 文件头 |
+
+本地解析报 OCR_REQUIRED / FILE_TYPE_UNSUPPORTED 且格式为 PDF、.doc、.docx、.xls、.xlsx、图片时，上传到本公司 `icg-tender` 数据集（开启 ICG 流程时用“招标文件”流程，否则内置 DeepDOC），在 `ICG_TENDER_REMOTE_WAIT`（默认 60 秒）内轮询；未完成则文件标 `parsing_remote`，再次解析时接着查、不重复上传。完成后按分块位置（页码、纵坐标）还原逐页文字，表格 HTML 展平为“ | ”分隔行，交回原条款与事实抽取，再删除 RAGFlow 临时文档。未连接 RAGFlow、解析失败或未识别出文字时如实报 422。测试 `tests/backend/test_tender_remote_parse.py`（5 项，假 RAGFlow 新增版面位置与分页）；真实 RAGFlow 上的扫描件实测未执行。
+
