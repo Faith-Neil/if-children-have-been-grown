@@ -12,6 +12,8 @@ import {
   isBlocker,
   deriveBlockerSummary,
   canExportSubmission,
+  exportBatchLabel,
+  exportStatusMeta,
   formatFileSize,
   formatSha256Fingerprint,
   getExportKindMeta,
@@ -162,31 +164,31 @@ test('canExportSubmission strictly enforces redline blocker gate', () => {
   assert.equal(allowedResult.reason, null);
 });
 
-test('formatFileSize formats byte sizes with readable units and deterministic fallback', () => {
+test('formatFileSize formats real byte sizes and never invents one', () => {
   assert.equal(formatFileSize(512), '512 B');
   assert.equal(formatFileSize(2048), '2.0 KB');
   assert.equal(formatFileSize(2621440), '2.50 MB');
-
-  // 种子兜底推导
-  const seedSize1 = formatFileSize(null, 'export-snapshot-001');
-  const seedSize2 = formatFileSize(undefined, 'export-snapshot-001');
-  assert.ok(seedSize1.endsWith('MB'));
-  assert.equal(seedSize1, seedSize2, 'Deterministic size for same seed');
-
-  assert.equal(formatFileSize(null, ''), '—');
+  assert.equal(formatFileSize(null), '—');
+  assert.equal(formatFileSize(0), '—');
 });
 
-test('formatSha256Fingerprint formats clean sha256 with full & short display', () => {
-  const fullHex = 'a1b2c3d4e5f678901234567890abcdef1234567890abcdef1234567890abcdef';
+test('formatSha256Fingerprint shows the real digest and never generates a fake one', () => {
+  const fullHex = 'a'.repeat(64);
   const meta = formatSha256Fingerprint(`sha256:${fullHex}`);
   assert.equal(meta.full, `sha256:${fullHex}`);
-  assert.equal(meta.short, 'sha256:a1b2c3d4e5...');
+  assert.equal(meta.short, 'sha256:aaaaaaaaaa...');
+  assert.deepEqual(formatSha256Fingerprint(fullHex), meta);
+  assert.deepEqual(formatSha256Fingerprint(null), { short: '—', full: '' });
+});
 
-  // 确定性 fallback 生成
-  const generatedMeta = formatSha256Fingerprint(null, 'project-export-123');
-  assert.ok(generatedMeta.full.startsWith('sha256:'));
-  assert.equal(generatedMeta.full.length, 71); // 'sha256:' (7) + 64 hex
-  assert.ok(generatedMeta.short.endsWith('...'));
+test('export batch status: stale snapshots stay downloadable, failed batches have no files', () => {
+  assert.deepEqual(exportStatusMeta('valid'), { label: '有效', color: 'green', downloadable: true });
+  assert.equal(exportStatusMeta('stale').downloadable, true);
+  assert.match(exportStatusMeta('stale').label, /已过期/);
+  assert.equal(exportStatusMeta('failed').downloadable, false);
+  assert.match(exportStatusMeta('failed').label, /整批作废/);
+  assert.equal(exportBatchLabel({ id: 'project-export-1', batch_no: 'S20261029-001' }), 'S20261029-001');
+  assert.equal(exportBatchLabel({ id: 'project-export-1' }), 'project-export-1');
 });
 
 test('getExportKindMeta and getExportVolumeLabel return standard ICG labels', () => {

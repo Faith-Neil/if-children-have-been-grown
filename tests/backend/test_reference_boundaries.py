@@ -88,7 +88,9 @@ def test_failed_file_can_be_removed_and_project_recovered(client):
     assert all(f["id"] != bad["id"] for f in state["files"])
     assert state["parse_confirmed"] is False and state["plan_confirmed"] is False
     assert next(c for c in state["checks"] if c["id"] == check["id"])["status"] == "stale"
-    assert client.get(exported["volumes"][0]["download_url"], headers=flow.headers).status_code == 409
+    # 旧批次标“已过期”但保留下载当时的快照（PRD §5.9.1 规则 13，APP-M2-T202）
+    stale = client.get(exported["volumes"][0]["download_url"], headers=flow.headers)
+    assert stale.status_code == 200 and stale.headers["X-ICG-Export-Status"] == "stale"
     flow.write("/parse/confirm", {})
     flow.confirm_plan({"chapters": [{"id": c["id"], "title": c["title"], "volume": c["volume"]}
                                      for c in flow.state()["chapters"]]})

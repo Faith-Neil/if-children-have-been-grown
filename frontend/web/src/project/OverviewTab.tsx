@@ -2,6 +2,7 @@
 // 它解决什么问题：解耦步骤流程、待办清单、分册进度与最近导出展示，精简 ProjectPages 巨石单体。
 
 import React from 'react';
+import { exportStatusMeta, getExportKindMeta } from './export-checks-core.ts';
 import { Button, Card, Col, Collapse, Empty, List, Progress, Row, Steps, Tag } from 'antd';
 import { CheckCircleOutlined } from '@ant-design/icons';
 import { formatTime, useProject, volumeName } from '../app/context.tsx';
@@ -124,9 +125,10 @@ export function OverviewPage() {
                 .reverse()
                 .map(item => (
                   <p key={item.id}>
-                    <Tag color={item.status === 'valid' ? 'green' : 'orange'}>
-                      {item.status === 'valid' ? '有效内部稿' : '已过期'}
+                    <Tag color={exportStatusMeta(item.status).color}>
+                      {getExportKindMeta(item.kind).label} · {exportStatusMeta(item.status).label}
                     </Tag>
+                    {item.batch_no ? `${item.batch_no} · ` : ''}
                     {formatTime(item.created_at)}
                   </p>
                 ))

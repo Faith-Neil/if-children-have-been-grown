@@ -3083,7 +3083,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 
 <a id="app-m2-t202"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T152](APP-M2.md#app-m2-t152)、[APP-M2-T197](APP-M2.md#app-m2-t197)、[APP-M2-T198](APP-M2.md#app-m2-t198)、[APP-M2-T199](APP-M2.md#app-m2-t199)、[APP-M2-T200](APP-M2.md#app-m2-t200)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T152](APP-M2.md#app-m2-t152)、[APP-M2-T197](APP-M2.md#app-m2-t197)、[APP-M2-T198](APP-M2.md#app-m2-t198)、[APP-M2-T199](APP-M2.md#app-m2-t199)、[APP-M2-T200](APP-M2.md#app-m2-t200)。
 
 原始来源：PRD v1.8 §5.9.1规则13、14及异常。交付单位：递交批次原子输出和历史快照，同一产品的页面/后台/数据/权限/输出协作一起验收。
 

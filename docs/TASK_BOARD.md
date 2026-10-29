@@ -10,7 +10,7 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 454 项：done 96、in-review 142、in-progress 45、planned 125、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+项目 454 项：done 96、in-review 143、in-progress 44、planned 125、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
@@ -20,7 +20,7 @@
 | 知识库 | 每公司三类数据集、ICG 摄入流程、管控接口与管理页、检索带片号引用；内置解析评测定默认阈值 | 流程模式评测；历史标书批量导入（T080/T081） |
 | 生成与编辑 | 章节闭环、人工处理队列、交叉复核与定稿门禁、编辑台差异确认 | 章节循环进度页与轮次时间线（T130/T131）、自动保存（T172） |
 | 合规规则 | 40 条有检查与测试（R01～R20、R23～R32、R34～R37、R39～R44）；警告须负责人填理由逐项放行 | R33（缺结构化拟派人员条件）、R38（缺功能点标签）、R43 风格样例照抄与 R44 事实来源核对（缺样例库与产品字典）；R21、R22 为二期 |
-| 导出 | Word 版式、分册定稿、递交门禁、合标核对清单与内部响应追溯表 Excel | 递交批次原子化与失败整批回滚（T202）、Word 封面目录页码（T197） |
+| 导出 | Word 版式、分册定稿、递交门禁、合标核对清单与内部响应追溯表 Excel | Word 封面目录页码（T197）、导出模板与附件扫描件选项 |
 | 管理 | 模型/RAGFlow 弹窗配置、公司管理、审计日志、SLA 模板 | 站内提醒、配置版本、任务模型映射 |
 
 旧的逐卡签署叙述见 git 历史与 [项目进度](PROJECT_STATUS.md)；FE-M1～M5、FE-M8 与 APP-M1 示例外壳卡已标 cancelled（superseded-by-APP-M2）。
@@ -42,6 +42,7 @@
 - 2026-10-29 用户新增：BE-UPLOAD-100MB（招标文件与知识库原件单个最大 100MB，`ICG_MAX_UPLOAD_MB` 可调；二进制直传；原件存 `ICG_BLOB_DIR` 不进业务 JSON）、APP-TECHNICAL-ONLY-BID（新建项目可选“只写技术标”，不建商务册、不合标）、公司管理员可下载合标清单与追溯表。真实扫描件（贵阳银行 OCR 中台，35 页无文字层）经真实 RAGFlow DeepDOC 解析并校准抽取。
 - 2026-10-29：R36、R39～R44 实现（`icg/domain/content_rules.py`）；真实扫描件经新隧道完整走应用链路：二进制上传 24.2MB → 本地无文字 → RAGFlow 内置 DeepDOC 370 秒 → 35 页、110 条条款（6 条评分项带分值）；招标解析默认改用内置 DeepDOC（ICG 招标流程实测页码只还原 32 页）。
 - APP-M2-T112～T117 为 in-review：`GET /matrix`（listMatrixItems）、`POST /matrix/match`、`POST /matrix/routing`、`GET /matrix.xlsx`；星号/废标条款不能标不适用、如实登记偏离即为阻断项，偏离须写说明，候选只追加不替换。
+- APP-M2-T202 为 in-review：`icg/domain/export_batch.py`。每次导出有批次号（S/I + 日期 + 当日序号，失败也占号），各册与合标清单同号并记下绑定的检查与分册定稿。导出时就生成每册 Word；任一册生成失败，本批次记为失败（500 EXPORT_FAILED，新增冻结错误码），不留可下载文件，正文与定稿不变。Word 按内容摘要存入文件存储；正文改动或分册解锁后旧批次标“已过期”，仍下载当时的文件（响应头 X-ICG-Export-Status=stale），下载时重核权限。原先过期即 409 EXPORT_STALE 拒绝下载，与 PRD §5.9.1 规则 13“保留下载”不符，已改；没有快照的早期批次仍按 409 处理。导出历史页去掉了按编号编造的文件大小与 SHA-256，只显示真实值。
 - APP-M2-T103 为 in-review：`frontend/web/src/project/PdfLocator.tsx` 与 `pdf-locator-core.ts`。PDF.js、Worker、中文 CMap、标准字体与 JBIG2/JPEG2000 解码器随前端打包到 `assets/pdfjs`，不访问外网，只在打开 PDF 时加载。电子版按 PDF.js 文字层匹配原句；扫描件按 RAGFlow DeepDOC 位置框（预览接口新增 `pages[].regions`）。跨页分块改为按行归页，真实扫描件 111 条条款全部能在所在页画出高亮，此前跨页分块后半部分的条款页码少算一页。
 - APP-M2-T191～T195、T127 为 in-review：`icg/domain/system_chapters.py`，五类系统章节只按数据生成、缺来源写【待补】，正文手改一律 409 SYSTEM_CHAPTER_READONLY，数据源变化后检查报 SYSTEM_CHAPTER_STALE。原 T195 的 in-review 记录实际是检查红线横幅，证明材料清单此前没有生成器，本次补齐。
 - 余下顺序（重定后）：招标扫描件经 RAGFlow 解析。
@@ -510,7 +511,7 @@
 | [APP-M2-T199](tasks/APP-M2.md#app-m2-t199) | Word属性修订与批注清理 | planned | APP-M2-T196 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T199.md` |
 | [APP-M2-T200](tasks/APP-M2.md#app-m2-t200) | 同批合标核对清单输出 | in-review（2026-10-28：递交版批次随附合标核对清单 Excel） | APP-M2-T149、APP-M2-T197、APP-M2-T192、APP-M2-T193 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T200.md` |
 | [APP-M2-T201](tasks/APP-M2.md#app-m2-t201) | 内部响应追溯Excel | in-review（2026-10-28：内部响应追溯表 Excel 已实现） | APP-M2-T117、APP-M2-T162、APP-M2-T165 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T201.md` |
-| [APP-M2-T202](tasks/APP-M2.md#app-m2-t202) | 递交批次原子输出和历史快照 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T152、APP-M2-T197、APP-M2-T198、APP-M2-T199、APP-M2-T200 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T202.md` |
+| [APP-M2-T202](tasks/APP-M2.md#app-m2-t202) | 递交批次原子输出和历史快照 | in-review（2026-10-29：批次号、一册失败整批作废、Word 快照过期仍可下载） | APP-M2-T152、APP-M2-T197、APP-M2-T198、APP-M2-T199、APP-M2-T200 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T202.md` |
 | [APP-M2-T203](tasks/APP-M2.md#app-m2-t203) | R01 不可引用的资料禁止引用 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T047、APP-M2-T077 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T203.md` |
 | [APP-M2-T204](tasks/APP-M2.md#app-m2-t204) | R02 资料来源分级与投标主体一致 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T054、APP-M2-T098 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T204.md` |
 | [APP-M2-T205](tasks/APP-M2.md#app-m2-t205) | R03 有效期覆盖投标截止时间 | in-review（2026-10-28 重定：规则检查已实现并有测试，见 compliance_rules.py） | APP-M2-T047、APP-M2-T099 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T205.md` |

@@ -3,6 +3,7 @@
 
 import base64
 from io import BytesIO
+import hashlib
 from uuid import uuid4
 from xml.etree import ElementTree
 from zipfile import ZipFile
@@ -257,9 +258,12 @@ def test_input_change_invalidates_check_and_export_download(client, change):
         flow.upload(b"new original", "补遗.txt")
     assert next(c for c in flow.state()["checks"] if c["id"] == check["id"])["status"] == "stale"
     assert flow.write("/exports", {"check_id": check["id"], "kind": "internal"}, expected=409)["code"] == "CHECK_STALE"
+    # PRD §5.9.1 规则 13（APP-M2-T202）：旧文件标“已过期”但保留下载，下载到的是当时生成的快照
+    assert next(e for e in flow.state()["exports"] if e["id"] == exported["id"])["status"] == "stale"
     for volume in exported["volumes"]:
         result = client.get(volume["download_url"], headers=flow.headers)
-        assert result.status_code == 409 and result.json()["code"] == "EXPORT_STALE"
+        assert result.status_code == 200 and result.headers["X-ICG-Export-Status"] == "stale"
+        assert hashlib.sha256(result.content).hexdigest() == volume["docx_sha256"]
 
 
 def test_unsubmitted_draft_and_generated_candidate_never_replace_committed_text(client):

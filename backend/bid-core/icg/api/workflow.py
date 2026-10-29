@@ -262,13 +262,20 @@ def include_workflow_routes(application, service, current_user, parser):
 
     @router.get("/projects/{project_id}/exports/{export_id}/{volume}", response_class=Response,
                 operation_id="downloadVolume",
-                responses={200: {"description": "独立的技术或商务 Word 分册，排除未提交草稿",
+                responses={200: {"description": "独立的技术或商务 Word 分册（导出时生成的快照原文件），排除未提交草稿；"
+                                                "内容改动或分册解锁后仍可下载，响应头 X-ICG-Export-Status=stale 标明已过期，X-ICG-Export-Batch 为批次号",
                                  "content": {DOCX_MEDIA_TYPE: {"schema": {"type": "string", "format": "binary"}}}}})
     def download(project_id: str, export_id: str, volume: str, user: Principal = Depends(current_user)):
         document = workflow.download(user, project_id, export_id, volume)
-        record = Export(export_id, "", 1, "", "", document["filename"], document["title"], document["content"])
-        return Response(content=build_docx(record, project_name=document.get("project_name")), media_type=DOCX_MEDIA_TYPE,
-                        headers={"Content-Disposition": f'attachment; filename="{document["filename"]}"'})
+        content = document.get("content_bytes")
+        if content is None:
+            record = Export(export_id, "", 1, "", "", document["filename"], document["title"], document["content"])
+            content = build_docx(record, project_name=document.get("project_name"))
+        headers = {"Content-Disposition": f'attachment; filename="{document["filename"]}"',
+                   "X-ICG-Export-Status": "stale" if document.get("stale") else "valid"}
+        if document.get("batch_no"):
+            headers["X-ICG-Export-Batch"] = document["batch_no"]
+        return Response(content=content, media_type=DOCX_MEDIA_TYPE, headers=headers)
 
     @router.get("/jobs", response_model=JobsList, operation_id="listJobs")
     def jobs(user: Principal = Depends(current_user), masked: bool = Query(default=False, description="是否脱敏返回任务运维审计视图")):

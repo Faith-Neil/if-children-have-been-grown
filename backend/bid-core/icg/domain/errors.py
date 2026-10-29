@@ -104,7 +104,9 @@ def _frozen_status() -> dict[str, int]:
     ))
     _bind(table, 423, ("LOCK_HELD", "LOCK_LOST", "ACCOUNT_LOCKED"))
     _bind(table, 428, ("IF_MATCH_REQUIRED", "IDEMPOTENCY_KEY_REQUIRED"))
-    _bind(table, 500, ("INTERNAL_ERROR",))
+    _bind(table, 500, ("INTERNAL_ERROR",
+                       # 导出批次中某个分册生成失败，整批作废 (APP-M2-T202 / PRD v1.8 §5.9.1 异常)
+                       "EXPORT_FAILED"))
     _bind(table, 502, ("MODEL_UNAVAILABLE", "MODEL_OUTPUT_INVALID", "PARSER_UNAVAILABLE",
                        "KNOWLEDGE_BASE_UPSTREAM_ERROR"))
     # SECRET_KEY_UNAVAILABLE 不是瞬时故障：客户端不得自动重试，服务端不得发送 Retry-After。

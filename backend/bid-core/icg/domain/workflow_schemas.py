@@ -615,6 +615,16 @@ class ExportVolume(ResponseBody):
     download_url: str
     sha256: str | None = None
     format_metadata: dict[str, Any] | None = None
+    batch_no: str | None = Field(default=None, description="导出批次号；同一次导出的各分册文件同号")
+    docx_sha256: str | None = Field(default=None, description="导出时生成的 Word 快照文件摘要；过期后下载仍是这份文件")
+    size_bytes: int | None = None
+
+
+class BoundVolume(ResponseBody):
+    is_finalized: bool
+    finalized_by: str | None = None
+    finalized_at: str | None = None
+    snapshot_sha256: str | None = None
 
 
 class ProjectExport(ResponseBody):
@@ -625,7 +635,15 @@ class ProjectExport(ResponseBody):
     created_at: str
     excludes_drafts: Literal[True]
     volumes: list[ExportVolume]
-    status: Literal["valid", "stale"]
+    status: Literal["valid", "stale", "failed"] = Field(
+        description="valid 有效；stale 内容已改动或分册解锁（快照仍可下载）；failed 有分册生成失败，整批作废、无可下载文件")
+    batch_no: str | None = Field(default=None, description="批次号：S（递交版）/ I（内部稿）+ 日期 + 当日序号")
+    export_status: Literal["completed", "failed"] | None = None
+    error_message: str | None = None
+    failed_volume: Volume | None = None
+    volume: Literal["technical", "business", "all"] | None = None
+    created_by: str | None = None
+    bound_volumes: dict[str, BoundVolume] | None = Field(default=None, description="本批次绑定的分册定稿记录")
     has_blockers: bool = False
     compliance_notice: str | None = None
     sha256: str | None = None

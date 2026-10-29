@@ -138,6 +138,9 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                 raise DomainError(422, "TWO_VOLUMES_REQUIRED",
                                   "导出缺少技术分册正文。" if technical_only else "导出必须包含技术和商务两册。")
             identity = new_id("project-export")
+            from icg.domain.export_batch import ExportRenderError, failed_record, next_batch_no, render_batch, volume_bindings
+            now = self.demo._now()
+            batch_no = next_batch_no(workflow, payload["kind"], datetime.fromtimestamp(now, SHANGHAI))
             documents, volumes = {}, []
             for volume, name in (("technical", "技术分册"), ("business", "商务分册")):
                 if volume not in required_volumes:
@@ -166,7 +169,18 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                     "download_url": f"/api/v1/projects/{project_id}/exports/{identity}/{volume}",
                     "sha256": vol_sha,
                     "format_metadata": WORD_DEFAULT_FORMAT_METADATA,
+                    "batch_no": batch_no,
                 })
+            try:
+                # 原子批次（APP-M2-T202）：全部分册都生成成功才保存；一册失败整批记“失败”，不留可下载文件
+                render_batch(documents, volumes, **self._render_override())
+            except ExportRenderError as error:
+                failed = failed_record(identity, batch_no, payload["kind"], check, iso_time(now), error, scope)
+                failed["created_by"] = principal.user.id
+                workflow["exports"][identity] = failed
+                job = self._job(state, project_id, "export", failed["error_message"],
+                                {"code": "EXPORT_FAILED", "message": failed["error_message"]})
+                return {"export": self._public_export(state, project_id, failed), "job": job}
             combined_content = "\n---\n".join(documents[v]["content"] for v in documents)
             record_sha = hashlib.sha256(combined_content.encode("utf-8")).hexdigest()
             compliance_notice = (
@@ -190,6 +204,11 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                 "sha256": record_sha,
                 "format_metadata": WORD_DEFAULT_FORMAT_METADATA,
                 "is_submission": payload.get("kind") == "submission",
+                "batch_no": batch_no,
+                "export_status": "completed",
+                "volume": scope,
+                "created_by": principal.user.id,
+                "bound_volumes": volume_bindings(workflow, sorted(required_volumes)),
             }
             record["volume_mode"] = "technical_only" if technical_only else "both"
             if record["is_submission"] and not technical_only:
@@ -207,7 +226,17 @@ class ExportServiceMixin(CheckOrchestratorMixin):
             self._job(state, project_id, "export", job_desc)
             return {"export": self._public_export(state, project_id, record)}
 
-        return self._write(principal, project_id, "project.export", payload, expected, key, operation)
+        result = self._write(principal, project_id, "project.export", payload, expected, key, operation)
+        if result.get("export", {}).get("status") == "failed":
+            exported = result["export"]
+            raise DomainError(500, "EXPORT_FAILED", exported["error_message"],
+                              {"export_id": exported["id"], "batch_no": exported["batch_no"], "revision": result.get("revision")})
+        return result
+
+    def _render_override(self) -> dict:
+        """测试可替换分册生成函数以模拟某册失败；生产使用默认 Word 生成。"""
+        render = getattr(self, "export_renderer", None)
+        return {"render": render} if render is not None else {}
 
     def download(self, principal: Principal, project_id: str, export_id: str, volume: str):
         def operation(state):
@@ -217,13 +246,23 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                 raise DomainError(404, "NOT_FOUND", "未找到有权访问的分册文件。")
             if record["kind"] == "submission" and not lead(state, project_id, principal.user.id):
                 raise DomainError(403, "SUBMISSION_FORBIDDEN", "递交版下载仅限项目经理。")
-            if record["fingerprint"] != self._fingerprint(state, project_id):
-                raise DomainError(409, "EXPORT_STALE", "项目输入已更新，旧导出文件已过期。")
-            self._audit(state, principal, project_id, "project-export.download", {"export_id": export_id, "volume": volume})
+            if record.get("export_status") == "failed":
+                raise DomainError(404, "NOT_FOUND", "该批次生成失败，没有可下载的分册文件。")
+            stale = record["fingerprint"] != self._fingerprint(state, project_id)
             entry = next((v for v in record["volumes"] if v["volume"] == volume), None)
             if entry is None:
                 raise DomainError(404, "NOT_FOUND", "本次导出不包含该分册。")
-            return {**record["documents"][volume], "filename": entry["filename"]}
+            if stale and not entry.get("blob"):
+                # 早期批次没有存 Word 快照，无法保证与当时内容一致
+                raise DomainError(409, "EXPORT_STALE", "项目输入已更新，旧导出文件已过期。")
+            self._audit(state, principal, project_id, "project-export.download",
+                        {"export_id": export_id, "volume": volume, "batch_no": record.get("batch_no"), "stale": stale})
+            document = {**record["documents"][volume], "filename": entry["filename"], "stale": stale,
+                        "batch_no": record.get("batch_no")}
+            if entry.get("blob"):
+                from icg.infra.blob_store import get_blob
+                document["content_bytes"] = get_blob(entry["blob"])  # 生成时的快照原文件，过期后仍原样提供
+            return document
 
         return self.repository.transaction(operation)
 

@@ -269,8 +269,8 @@ class WorkflowService(
         return result
 
     def _public_export(self, state: DemoState, project_id: str, record: dict) -> dict:
-        return {k: v for k, v in record.items() if k != "documents"} | {
-            "status": "valid" if record["fingerprint"] == self._fingerprint(state, project_id) else "stale"}
+        return {k: v for k, v in record.items() if k != "documents"} | {"volumes": [{k: v for k, v in e.items() if k != "blob"} for e in record["volumes"]],
+            "status": "failed" if record.get("export_status") == "failed" else "valid" if record["fingerprint"] == self._fingerprint(state, project_id) else "stale"}
 
     @staticmethod
     def _public_file(record: dict) -> dict:

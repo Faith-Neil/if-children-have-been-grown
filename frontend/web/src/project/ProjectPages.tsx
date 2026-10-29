@@ -15,6 +15,8 @@ import {
   isBlocker,
   deriveBlockerSummary,
   canExportSubmission,
+  exportBatchLabel,
+  exportStatusMeta,
   formatFileSize,
   formatSha256Fingerprint,
   getExportKindMeta,
@@ -680,14 +682,16 @@ export function ExportPage() {
           pagination={false}
           columns={[
             {
-              title: '快照编号',
+              title: '批次号',
               dataIndex: 'id',
               key: 'id',
               width: 140,
-              render: (id: string) => (
-                <span data-testid="export-history-id" style={{ fontFamily: 'monospace', fontSize: 12 }}>
-                  {id}
-                </span>
+              render: (_: string, item) => (
+                <Tooltip title={`导出记录 ${item.id}`}>
+                  <span data-testid="export-history-id" style={{ fontFamily: 'monospace', fontSize: 12 }}>
+                    {exportBatchLabel(item)}
+                  </span>
+                </Tooltip>
               ),
             },
             {
@@ -730,8 +734,8 @@ export function ExportPage() {
               key: 'file_size',
               width: 90,
               render: (_, item) => {
-                const bytes = item.file_size ?? item.size_bytes ?? item.volumes?.[0]?.file_size ?? item.volumes?.[0]?.size_bytes;
-                return <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{formatFileSize(bytes, item.id)}</span>;
+                const bytes = item.file_size ?? item.size_bytes ?? item.volumes.reduce((sum, v) => sum + (v.size_bytes ?? v.file_size ?? 0), 0);
+                return <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{formatFileSize(bytes)}</span>;
               },
             },
             {
@@ -739,8 +743,8 @@ export function ExportPage() {
               key: 'fingerprint',
               width: 150,
               render: (_, item) => {
-                const hash = item.sha256 || item.fingerprint || item.volumes?.[0]?.sha256 || item.volumes?.[0]?.fingerprint;
-                const meta = formatSha256Fingerprint(hash, item.id);
+                const hash = item.volumes?.[0]?.docx_sha256 || item.sha256 || item.volumes?.[0]?.sha256;
+                const meta = formatSha256Fingerprint(hash);
                 return (
                   <Tooltip title={`完整指纹: ${meta.full}`}>
                     <span
@@ -758,11 +762,11 @@ export function ExportPage() {
               dataIndex: 'status',
               key: 'status',
               width: 110,
-              render: (val: string) => (
-                <Tag color={val === 'valid' ? 'green' : 'orange'}>
-                  {val === 'valid' ? '有效' : '已过期，请重新检查'}
-                </Tag>
-              ),
+              render: (val: string, item) => {
+                const meta = exportStatusMeta(val);
+                const tag = <Tag color={meta.color} data-testid="export-status">{meta.label}</Tag>;
+                return item.error_message ? <Tooltip title={item.error_message}>{tag}</Tooltip> : tag;
+              },
             },
             {
               title: '分册下载',
@@ -777,10 +781,9 @@ export function ExportPage() {
                         size="small"
                         type="link"
                         data-testid="export-download-btn"
-                        disabled={item.status !== 'valid'}
                         onClick={() => download(tech.download_url, token, tech.filename).catch(report)}
                       >
-                        技术 Word
+                        技术 Word{item.status === 'stale' ? '（已过期）' : ''}
                       </Button>
                     ) : null}
                     {comm ? (
@@ -788,10 +791,9 @@ export function ExportPage() {
                         size="small"
                         type="link"
                         data-testid="export-download-btn"
-                        disabled={item.status !== 'valid'}
                         onClick={() => download(comm.download_url, token, comm.filename).catch(report)}
                       >
-                        商务 Word
+                        商务 Word{item.status === 'stale' ? '（已过期）' : ''}
                       </Button>
                     ) : null}
                     {item.merge_checklist_url ? (
@@ -804,7 +806,7 @@ export function ExportPage() {
                         合标清单{item.status !== 'valid' ? '（已过期）' : ''}
                       </Button>
                     ) : null}
-                    {!tech && !comm && <span className="muted">未生成分册文件</span>}
+                    {!tech && !comm && <span className="muted" data-testid="export-no-files">{item.status === 'failed' ? item.error_message : '未生成分册文件'}</span>}
                   </Space>
                 );
               },

@@ -224,7 +224,11 @@ export type Export = {
   created_at: string;
   excludes_drafts: boolean;
   status: string;
-  volumes: { volume: Volume; filename: string; download_url: string; file_size?: number; size_bytes?: number; sha256?: string; fingerprint?: string }[];
+  volumes: { volume: Volume; filename: string; download_url: string; file_size?: number; size_bytes?: number; sha256?: string; fingerprint?: string; batch_no?: string; docx_sha256?: string }[];
+  batch_no?: string;
+  export_status?: 'completed' | 'failed';
+  error_message?: string;
+  failed_volume?: Volume;
   volume?: Volume | 'all';
   created_by?: string;
   operator_name?: string;

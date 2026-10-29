@@ -456,7 +456,9 @@ def test_same_unit_variable_is_resolved_in_actual_two_volume_word(client):
         if volume["volume"] == "technical":
             assert "一级故障响应时限为30分钟。" in text and "0.5分钟" not in text
     flow.write("/sla/values/P1.response", {"project_value": "1", "project_unit": "hour"}, "PATCH")
-    assert client.get(export["volumes"][0]["download_url"], headers=flow.headers).status_code == 409
+    # 旧批次标“已过期”但保留下载当时的快照（PRD §5.9.1 规则 13，APP-M2-T202）
+    stale = client.get(export["volumes"][0]["download_url"], headers=flow.headers)
+    assert stale.status_code == 200 and stale.headers["X-ICG-Export-Status"] == "stale"
 
 
 def test_unrequested_extra_promise_requires_manager_review_before_word(client):

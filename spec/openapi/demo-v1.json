@@ -12849,7 +12849,7 @@
         ],
         "responses": {
           "200": {
-            "description": "独立的技术或商务 Word 分册，排除未提交草稿",
+            "description": "独立的技术或商务 Word 分册（导出时生成的快照原文件），排除未提交草稿；内容改动或分册解锁后仍可下载，响应头 X-ICG-Export-Status=stale 标明已过期，X-ICG-Export-Batch 为批次号",
             "content": {
               "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
                 "schema": {
@@ -32247,6 +32247,53 @@
         ],
         "title": "AuditListResponse"
       },
+      "BoundVolume": {
+        "properties": {
+          "is_finalized": {
+            "type": "boolean",
+            "title": "Is Finalized"
+          },
+          "finalized_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalized By"
+          },
+          "finalized_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finalized At"
+          },
+          "snapshot_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Sha256"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "is_finalized"
+        ],
+        "title": "BoundVolume"
+      },
       "CancelledEvent": {
         "properties": {
           "seq": {
@@ -34707,6 +34754,41 @@
               }
             ],
             "title": "Format Metadata"
+          },
+          "batch_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch No",
+            "description": "导出批次号；同一次导出的各分册文件同号"
+          },
+          "docx_sha256": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Docx Sha256",
+            "description": "导出时生成的 Word 快照文件摘要；过期后下载仍是这份文件"
+          },
+          "size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Bytes"
           }
         },
         "additionalProperties": true,
@@ -38683,9 +38765,106 @@
             "type": "string",
             "enum": [
               "valid",
-              "stale"
+              "stale",
+              "failed"
             ],
-            "title": "Status"
+            "title": "Status",
+            "description": "valid 有效；stale 内容已改动或分册解锁（快照仍可下载）；failed 有分册生成失败，整批作废、无可下载文件"
+          },
+          "batch_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Batch No",
+            "description": "批次号：S（递交版）/ I（内部稿）+ 日期 + 当日序号"
+          },
+          "export_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "completed",
+                  "failed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Export Status"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "failed_volume": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "technical",
+                  "business"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failed Volume"
+          },
+          "volume": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "technical",
+                  "business",
+                  "all"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "bound_volumes": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/BoundVolume"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bound Volumes",
+            "description": "本批次绑定的分册定稿记录"
           },
           "has_blockers": {
             "type": "boolean",
@@ -42832,6 +43011,7 @@
               "EMPTY_SLA_TEMPLATE",
               "EVIDENCE_EXPIRED",
               "EVIDENCE_NOT_USABLE",
+              "EXPORT_FAILED",
               "EXPORT_STALE",
               "FACT_CONFLICT",
               "FACT_LITERAL_REPLACEMENT",
@@ -44612,6 +44792,7 @@
           "IF_MATCH_REQUIRED"
         ],
         "500": [
+          "EXPORT_FAILED",
           "INTERNAL_ERROR"
         ],
         "502": [

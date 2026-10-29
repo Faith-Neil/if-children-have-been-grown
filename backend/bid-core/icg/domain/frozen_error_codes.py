@@ -1,4 +1,4 @@
-# 为什么有这个文件：把当前 168 个业务错误码的名字冻结成一份名单。
+# 为什么有这个文件：把当前 169 个业务错误码的名字冻结成一份名单。
 # 它解决什么问题：只改总数、或只改 errors.py 再导出 OpenAPI，发现不了删一个旧码、加一个新码。
 
 FROZEN_ERROR_CODE_NAMES: tuple[str, ...] = (
@@ -39,6 +39,7 @@ FROZEN_ERROR_CODE_NAMES: tuple[str, ...] = (
     "EVIDENCE_EXPIRED",
     "EVIDENCE_NOT_USABLE",
     "EXPORT_STALE",
+    "EXPORT_FAILED",
     "FACT_CONFLICT",
     "FACT_LITERAL_REPLACEMENT",
     "FACT_MANAGER_REQUIRED",
