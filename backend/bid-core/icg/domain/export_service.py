@@ -180,6 +180,9 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                 workflow["exports"][identity] = failed
                 job = self._job(state, project_id, "export", failed["error_message"],
                                 {"code": "EXPORT_FAILED", "message": failed["error_message"]})
+                from icg.domain.notifications import notify
+                notify(state, [principal.user.id], "job_failed", f"导出批次 {batch_no} 生成失败", failed["error_message"],
+                       now=iso_time(now), project_id=project_id, target_id=identity)
                 return {"export": self._public_export(state, project_id, failed), "job": job}
             combined_content = "\n---\n".join(documents[v]["content"] for v in documents)
             record_sha = hashlib.sha256(combined_content.encode("utf-8")).hexdigest()

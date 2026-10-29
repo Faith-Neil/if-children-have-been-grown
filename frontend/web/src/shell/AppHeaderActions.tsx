@@ -2,9 +2,8 @@
 // 它解决什么问题：将环境标签、全局搜索、任务中心入口、用户信息、退出与配置弹窗入口从 App.tsx 抽离，降低 App 巨石复杂度。
 
 import React from 'react';
-import { Button, Input, Tooltip } from 'antd';
+import { Button, Input } from 'antd';
 import {
-  BellOutlined,
   DatabaseOutlined,
   SearchOutlined,
   SettingOutlined,
@@ -14,6 +13,7 @@ import { companyName } from '../app/context';
 import { sessionAllowsRoute } from '../app/session-navigation';
 import { globalPath } from '../app/app-route';
 import { TaskBadge } from './TaskBadge';
+import { NotificationBell } from '../notifications/NotificationBell';
 import type { Account, ApplicationSession, Job } from '../shared/types';
 
 export interface AppHeaderActionsProps {
@@ -27,6 +27,8 @@ export interface AppHeaderActionsProps {
   onLogout: () => void;
   onOpenModelConfig: () => void;
   onOpenRagflowConfig: () => void;
+  token?: string | null;
+  onNavigate?: (path: string) => void;
 }
 
 export function AppHeaderActions({
@@ -40,6 +42,8 @@ export function AppHeaderActions({
   onLogout,
   onOpenModelConfig,
   onOpenRagflowConfig,
+  token = null,
+  onNavigate,
 }: AppHeaderActionsProps) {
   const userPrimaryRole = session?.user?.primary_role;
   const roleDisplayLabel =
@@ -77,14 +81,7 @@ export function AppHeaderActions({
         />
       )}
 
-      <Tooltip title="站内提醒尚未接入">
-        <Button
-          type="text"
-          icon={<BellOutlined />}
-          aria-label="提醒尚未接入"
-          disabled
-        />
-      </Tooltip>
+      {sessionAllowsRoute(session, 'notifications') && onNavigate && <NotificationBell token={token} onNavigate={onNavigate} />}
 
       <span className="company-label">
         <TeamOutlined /> {companyName(user.company_id)}

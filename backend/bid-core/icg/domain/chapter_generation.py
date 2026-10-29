@@ -1307,6 +1307,8 @@ class ChapterGenerationService:
                             checked_revision=int(live_chapter.revision or 0), kind="generation_candidate",
                             meta=generation_loop_meta(st, project_id, candidate),
                         )
+                        from .notifications import notify_pending_human
+                        notify_pending_human(st, live_chapter, iso_time(self.demo._now()) if hasattr(self.demo, "_now") else iso_time(time.time()))
 
             self.repository.transaction(save_candidate_op)
 
@@ -2197,6 +2199,8 @@ class ChapterGenerationService:
                     checked_revision=int(getattr(live_chapter, "revision", 0) or 0), kind="generation_candidate",
                     meta=generation_loop_meta(st, project_id, remediated_candidate),
                 )
+                from .notifications import notify_pending_human
+                notify_pending_human(st, live_chapter, now_iso)
 
             self.repository.transaction(save_remediated_cand)
 

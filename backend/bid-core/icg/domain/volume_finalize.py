@@ -322,6 +322,12 @@ class VolumeFinalizeMixin:
             vol_record["unlocked_at"] = now_iso
             vol_record["unlock_reason"] = reason
             reset_review_on_unlock(workflow, volume_id, principal.user.id, now_iso, reason)
+            if any(e.get("kind") == "submission" and e.get("export_status") != "failed" for e in workflow.get("exports", {}).values()):
+                from .notifications import notify, project_leads
+                notify(state, project_leads(state, project_id), "export_expired", "分册已解锁，递交版导出文件已过期",
+                       f"{principal.user.name} 解锁了{'技术' if volume_id == 'technical' else '商务'}分册（理由：{reason}）；"
+                       "旧批次仍可下载，但须重新检查、复核、定稿后再导出递交版。",
+                       now=now_iso, project_id=project_id, target_id=volume_id, exclude=[principal.user.id])
 
             project.revision += 1
             self._audit(

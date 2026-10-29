@@ -817,6 +817,11 @@ class DemoService:
             details = ({"reason": takeover_reason.strip(), "previous_owner_id": old_lease.owner_id}
                        if active and old_lease else {})
             self._audit(state, principal, chapter, "lock.takeover" if active else "lock.acquire", details)
+            if active and old_lease and old_lease.owner_id != principal.user.id:
+                from .notifications import notify
+                notify(state, [old_lease.owner_id], "lock_taken_over", f"「{chapter.title}」的编辑权已被接管",
+                       f"{principal.user.name} 接管了编辑权，理由：{takeover_reason.strip()}。你已收到的草稿仍保留。",
+                       now=iso_time(now), project_id=chapter.project_id, target_id=chapter.id)
             # 接管时保留旧用户已经收到的草稿，不宣称保存了断网设备尚未上传的文字。
             res = self._lease_response(lease)
             if key:
@@ -938,6 +943,12 @@ class DemoService:
             chapter.versions.append({**result, "actor_id": principal.user.id,
                                      "created_at": iso_time(self._now())})
             chapter.drafts.pop(principal.user.id, None)
+            stale = [uid for uid, draft in chapter.drafts.items() if draft.base_revision < chapter.revision]
+            if stale:
+                from .notifications import notify
+                notify(state, stale, "draft_expired", f"「{chapter.title}」有新版本，你的草稿已过期",
+                       f"{principal.user.name} 提交了 v{chapter.revision}；你的草稿基于旧版本，不会覆盖新正文，请核对后再改。",
+                       now=iso_time(self._now()), project_id=chapter.project_id, target_id=chapter.id)
             self._audit(state, principal, chapter, "version.commit")
             remember(state, chapter.project_id, principal.user.id, key, request_fingerprint, result, self._now())
             return result

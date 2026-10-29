@@ -16,6 +16,7 @@ from icg.api.chapter_loop import include_chapter_loop_routes
 from icg.api.knowledge_base import include_knowledge_base_routes
 from icg.api.kb_admin import include_kb_admin_routes
 from icg.api.selection_rewrite import include_selection_rewrite_routes
+from icg.api.notifications import include_notification_routes
 from icg.api.volumes import (
     include_volume_routes,
     VolumeFinalizeRequest,
@@ -43,6 +44,7 @@ from icg.api.ragflow import (
 )
 
 __all__ = [
+    "include_notification_routes",
     "include_selection_rewrite_routes",
     "include_session_routes",
     "include_project_routes",

@@ -10,7 +10,7 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 454 项：done 96、in-review 148、in-progress 43、planned 121、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+项目 454 项：done 96、in-review 152、in-progress 42、planned 118、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
@@ -43,6 +43,7 @@
 - 2026-10-29：R36、R39～R44 实现（`icg/domain/content_rules.py`）；真实扫描件经新隧道完整走应用链路：二进制上传 24.2MB → 本地无文字 → RAGFlow 内置 DeepDOC 370 秒 → 35 页、110 条条款（6 条评分项带分值）；招标解析默认改用内置 DeepDOC（ICG 招标流程实测页码只还原 32 页）。
 - APP-M2-T112～T117 为 in-review：`GET /matrix`（listMatrixItems）、`POST /matrix/match`、`POST /matrix/routing`、`GET /matrix.xlsx`；星号/废标条款不能标不适用、如实登记偏离即为阻断项，偏离须写说明，候选只追加不替换。
 - 编辑台选区改写（对话助手第一步）：`icg/domain/selection_rewrite.py`、`icg/api/selection_rewrite.py`、`frontend/web/src/editor/SelectionRewritePanel.tsx`。选中文字后点“问对话助手”，只把选区及前后段、本章已确认条款和项目事实交给模型，按 3～5 种写法各生成一条。样例先预检：变量与证据标记必须保留，含证件号/手机号/银行账号的不展示，对不上来源的数值换成【待补：数值来源】，对话残留与 Markdown 去掉，相近的合并。写入只用服务端保存的样例，须持编辑锁；本人草稿先提交为手改版本；选区移动但唯一时返回新位置再确认，找不到或多处时样例失效。每次写入生成新版本、记编辑操作并对改动段落做文字规则复查。未接入真实模型时返回 502 MODEL_UNAVAILABLE，不给模拟样例。知识库引用、多轮会话、流式输出属第二步；段落锁定与段落来源记录尚未建。
+- 站内提醒（APP-M2-T029～T032）：`icg/domain/notifications.py`、`icg/api/notifications.py`、`frontend/web/src/notifications/`。17 类提醒都定义了跳转方式；已接上真实事件的有 8 类：编辑锁被接管、草稿已过期、交叉复核、分册解锁后递交版过期、章节待人工处理、解析结果待处理、导出失败（后台任务失败）、资料 30 天内到期（读取提醒时按公司扫描，资料有增改即重扫）。其余 9 类（在投项目缺资料、相似度、分册内部截止、分册解锁申请、关联投标冲突、本地任务排队、资料催办、后台任务完成、服务异常）对应的业务功能或事件尚未建，暂不产生提醒。
 - 分册分流进入写作方案（PRD §5.3.1 规则 8、验收④⑤）：分流未确认的行不进入本章写作输入，生成前报 REQUIREMENT_NOT_READY（reason=routing_pending）；项目负责人在矩阵里改分册或对应章节即视为确认这一行的分流。跨分册共用行可由项目负责人再对应另一分册的章节（`shared_chapter_id`），两个分册的写作方案都能选到。见 `generation_context.chapter_rows` 与 `tests/backend/test_routing_gate.py`。
 - 安全修复（2026-10-29）：模型配置的新建、修改、测试连接原先不核对角色，本公司任何项目成员都能把模型地址改成外部地址（正文随之外发），测试连接还能让服务端访问任意地址。现限公司管理员和平台管理员；项目绑定限项目负责人和公司管理员；编辑台与项目设置中的模型配置对其他人只读。见 `icg/infra/model_config_storage.py` 与 `tests/backend/test_model_config_storage.py::test_only_company_admin_manages_configs_and_only_lead_or_admin_binds_projects`。
 - 对话助手第二步：知识库开关的默认值与能否关闭取公司设置（`assistant_kb_default`、`assistant_allow_kb_off`、`assistant_suggestion_count`、`assistant_enabled`，原先只有字段没有生效）。打开时只检索本公司知识库（不含只作参考的资料），每条样例须引用至少 1 条本次检索结果（`[片:来源编号]`），检索无结果时不调用模型，未连接时如实报错；写入后这些引用记为本章已核对引用，R02 不再告警。会话见 `icg/domain/assistant_sessions.py`；流式接口 `streamSelectionRewrite`。用真实模型试跑后补了三道预检：网关以 200 返回的错误文字、超出选区篇幅的整章改写、没有变短的缩写都不展示；已确认的项目事实变量允许新增。
@@ -342,10 +343,10 @@
 | [APP-M2-T026](tasks/APP-M2.md#app-m2-t026) | A-01 公司管理 | in-review | APP-M2-T014 | [ISSUE-007](../issues/ISSUE-007.md) | [APP-M2-T026 交付](delivery/APP-M2-T026.md) |
 | [APP-M2-T027](tasks/APP-M2.md#app-m2-t027) | A-02 用户列表、新增、停用前转交；“账号安全设置”面板（公司密码策略，只能调严） | done | APP-M2-T014、APP-M2-T026 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T027.md) |
 | [APP-M2-T028](tasks/APP-M2.md#app-m2-t028) | A-02 角色分配、解锁、重置密码 | done | APP-M2-T014、APP-M2-T027 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T028.md) |
-| [APP-M2-T029](tasks/APP-M2.md#app-m2-t029) | 顶栏铃铛与未读数 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T010 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T029.md` |
-| [APP-M2-T030](tasks/APP-M2.md#app-m2-t030) | 提醒下拉：最近 7 条、标已读、全部已读 | planned | APP-M2-T010、APP-M2-T029 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T030.md` |
-| [APP-M2-T031](tasks/APP-M2.md#app-m2-t031) | G-02 站内提醒列表页（筛选、已读 / 未读、合并显示） | planned | APP-M2-T029 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T031.md` |
-| [APP-M2-T032](tasks/APP-M2.md#app-m2-t032) | 17 类提醒的跳转目标映射与“对象已不存在”提示 | planned | APP-M2-T029、APP-M2-T031 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T032.md` |
+| [APP-M2-T029](tasks/APP-M2.md#app-m2-t029) | 顶栏铃铛与未读数 | in-review（2026-10-29：本人未读数，超过 99 显示 99+，每分钟刷新） | APP-M2-T010 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T029.md` |
+| [APP-M2-T030](tasks/APP-M2.md#app-m2-t030) | 提醒下拉：最近 7 条、标已读、全部已读 | in-review（2026-10-29：点击跳转并标已读） | APP-M2-T010、APP-M2-T029 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T030.md` |
+| [APP-M2-T031](tasks/APP-M2.md#app-m2-t031) | G-02 站内提醒列表页（筛选、已读 / 未读、合并显示） | in-review（2026-10-29：/notifications，按类型、已读、项目、时间筛选，未读期间同对象合并） | APP-M2-T029 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T031.md` |
+| [APP-M2-T032](tasks/APP-M2.md#app-m2-t032) | 17 类提醒的跳转目标映射与“对象已不存在”提示 | in-review（2026-10-29：17 类都有跳转方式，跳转时重核对象与权限） | APP-M2-T029、APP-M2-T031 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T032.md` |
 | [APP-M2-T033](tasks/APP-M2.md#app-m2-t033) | BrandProvider 运行时主题 + 品牌校验函数（对比度、ΔE） | planned | APP-M2-T008 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T033.md` |
 | [APP-M2-T034](tasks/APP-M2.md#app-m2-t034) | A-12 界面品牌页（表单 + 预览 + 恢复默认） | planned | APP-M2-T008、APP-M2-T033 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T034.md` |
 | [APP-M2-T035](tasks/APP-M2.md#app-m2-t035) | 全局搜索：顶栏下拉与结果页 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T014 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T035.md` |

@@ -100,14 +100,14 @@ def test_smoke_step1_eight_roles_session_retrieval(non_demo_env):
 
     # 2. 8 角色正式会话结构校验
     expected_nav_keys = {
-        "project_lead": {"workbench", "library", "knowledge", "writing", "admin.rules", "jobs"},
-        "bid_writer": {"workbench", "library", "knowledge", "writing", "jobs"},
-        "company_admin": {"workbench", "library", "knowledge", "writing", "statistics", "admin", "jobs"},
-        "data_admin": {"workbench", "library", "knowledge", "writing", "jobs"},
-        "auditor": {"workbench", "library", "knowledge", "jobs"},
-        "viewer": {"workbench", "library", "knowledge", "jobs"},
-        "group_admin": {"workbench", "library", "knowledge", "writing", "admin"},
-        "platform_admin": {"platform", "platform.audit", "jobs"},
+        "project_lead": {"workbench", "library", "knowledge", "writing", "admin.rules", "jobs", "notifications"},
+        "bid_writer": {"workbench", "library", "knowledge", "writing", "jobs", "notifications"},
+        "company_admin": {"workbench", "library", "knowledge", "writing", "statistics", "admin", "jobs", "notifications"},
+        "data_admin": {"workbench", "library", "knowledge", "writing", "jobs", "notifications"},
+        "auditor": {"workbench", "library", "knowledge", "jobs", "notifications"},
+        "viewer": {"workbench", "library", "knowledge", "jobs", "notifications"},
+        "group_admin": {"workbench", "library", "knowledge", "writing", "admin", "notifications"},
+        "platform_admin": {"platform", "platform.audit", "jobs", "notifications"},
     }
 
     for role, token in tokens.items():

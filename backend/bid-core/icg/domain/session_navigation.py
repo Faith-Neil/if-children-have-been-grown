@@ -21,26 +21,26 @@ from .project_access import (
 # 原8角色的入口矩阵是后续身份适配的共同定义，不代表当前演示身份已经具备这些角色。
 # 写作档案遵循PRD具体矩阵：审核人、只读成员不授予；公司统计独立于项目/集团统计。
 ROLE_NAVIGATION = {
-    "platform_admin": (("platform", "write"), ("platform.audit", "read"), ("jobs", "read")),
+    "platform_admin": (("platform", "write"), ("platform.audit", "read"), ("jobs", "read"), ("notifications", "read")),
     "group_admin": (("workbench", "read"), ("library", "read"), ("knowledge", "read"),
-                    ("writing", "read"), ("admin", "read")),
+                    ("writing", "read"), ("admin", "read"), ("notifications", "read")),
     "company_admin": (("workbench", "write"), ("library", "write"), ("knowledge", "write"),
-                      ("writing", "write"), ("statistics", "read"), ("admin", "write"), ("jobs", "read")),
+                      ("writing", "write"), ("statistics", "read"), ("admin", "write"), ("jobs", "read"), ("notifications", "read")),
     "data_admin": (("workbench", "read"), ("library", "write"), ("knowledge", "write"),
-                   ("writing", "read"), ("jobs", "read")),
+                   ("writing", "read"), ("jobs", "read"), ("notifications", "read")),
     "project_lead": (("workbench", "write"), ("library", "write"), ("knowledge", "write"),
-                     ("writing", "read"), ("admin.rules", "read"), ("jobs", "read")),
+                     ("writing", "read"), ("admin.rules", "read"), ("jobs", "read"), ("notifications", "read")),
     "bid_writer": (("workbench", "read"), ("library", "write"), ("knowledge", "write"),
-                   ("writing", "read"), ("jobs", "read")),
-    "reviewer": (("workbench", "read"), ("library", "read"), ("knowledge", "read"), ("jobs", "read")),
-    "readonly": (("workbench", "read"), ("library", "read"), ("knowledge", "read"), ("jobs", "read")),
+                   ("writing", "read"), ("jobs", "read"), ("notifications", "read")),
+    "reviewer": (("workbench", "read"), ("library", "read"), ("knowledge", "read"), ("jobs", "read"), ("notifications", "read")),
+    "readonly": (("workbench", "read"), ("library", "read"), ("knowledge", "read"), ("jobs", "read"), ("notifications", "read")),
 }
 
 NAVIGATION_PATHS = {
     "workbench": "/workbench", "library": "/library", "knowledge": "/knowledge",
     "writing": "/writing", "statistics": "/statistics", "admin": "/admin",
     "admin.rules": "/admin/rules", "jobs": "/jobs", "platform": "/platform",
-    "platform.audit": "/platform/audit", "platform.jobs": "/platform/jobs",
+    "platform.audit": "/platform/audit", "platform.jobs": "/platform/jobs", "notifications": "/notifications",
 }
 
 PROJECT_READ_ROUTES = tuple("project." + tab for tab in (

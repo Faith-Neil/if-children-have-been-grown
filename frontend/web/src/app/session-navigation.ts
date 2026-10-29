@@ -10,7 +10,7 @@ export class SessionNavigationError extends Error {
 
 export const applicationPaths: Record<string, string> = {
   workbench: '/workbench', library: '/library', knowledge: '/knowledge', writing: '/writing',
-  'admin.rules': '/admin/rules', jobs: '/jobs',
+  'admin.rules': '/admin/rules', jobs: '/jobs', notifications: '/notifications',
 };
 export const projectTabs = ['overview', 'tender', 'parse', 'matrix', 'facts', 'editor', 'manual', 'checks', 'export', 'settings'];
 

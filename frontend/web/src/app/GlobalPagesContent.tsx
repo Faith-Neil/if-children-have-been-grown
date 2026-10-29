@@ -1,6 +1,7 @@
 // 为什么有这个文件：提取 App 全局路由页面内容呈现容器（GlobalPagesContent）。
 // 它解决什么问题：将工作台项目列表、企业资料库、后台任务中心、规则与管理、知识库、写作档案等全局页面路由分支从 App.tsx 中解耦。
 
+import { NotificationsPage } from '../notifications/NotificationsPage';
 import React, { Suspense } from 'react';
 import { Alert, Button, Spin, Tabs } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
@@ -141,6 +142,10 @@ export function GlobalPagesContent({
               report={report}
               token={token ?? null}
             />
+          )}
+
+          {nav === 'notifications' && (
+            <NotificationsPage token={token} projects={projects} onNavigate={onRequestPath} report={report} />
           )}
 
           {nav === 'jobs' && (

@@ -27,11 +27,11 @@ def login(client, identity="alpha-manager"):
 
 
 @pytest.mark.parametrize("identity,role,routes,actions", [
-    ("alpha-manager", "project_lead", {"workbench", "library", "knowledge", "writing", "admin.rules", "jobs"},
+    ("alpha-manager", "project_lead", {"workbench", "library", "knowledge", "writing", "admin.rules", "jobs", "notifications"},
      {"projects.read", "library.read", "sla_templates.read", "jobs.read", "library.write", "projects.create", "sla_templates.write"}),
-    ("alpha-editor", "bid_writer", {"workbench", "library", "knowledge", "writing", "jobs"},
+    ("alpha-editor", "bid_writer", {"workbench", "library", "knowledge", "writing", "jobs", "notifications"},
      {"projects.read", "library.read", "sla_templates.read", "jobs.read", "library.write"}),
-    ("alpha-viewer", "viewer", {"workbench", "library", "knowledge", "jobs"},
+    ("alpha-viewer", "viewer", {"workbench", "library", "knowledge", "jobs", "notifications"},
      {"projects.read", "library.read", "sla_templates.read", "jobs.read"}),
 ])
 def test_session_returns_only_server_identity_and_explicit_compat_mode(setup, identity, role, routes, actions):
@@ -207,7 +207,7 @@ def test_original_eight_role_navigation_definition_is_explicit_and_does_not_gran
     assert set(ROLE_NAVIGATION) == {"platform_admin", "group_admin", "company_admin", "data_admin",
                                     "project_lead", "bid_writer", "reviewer", "readonly"}
     platform = {item["route_id"] for item in navigation_for_roles(["platform_admin"])}
-    assert platform == {"platform", "platform.audit", "jobs"}
+    assert platform == {"platform", "platform.audit", "jobs", "notifications"}  # 站内提醒人人都有（PRD §5.12.2）
     for role in ("readonly", "reviewer"):
         routes = {item["route_id"] for item in navigation_for_roles([role])}
         assert "writing" not in routes and "admin" not in routes and "platform" not in routes

@@ -21,6 +21,7 @@ export const APP_ROUTES = {
   ADMIN: '/admin',
   ADMIN_RULES: '/admin/rules', // 兼容历史别名
   JOBS: '/jobs',
+  NOTIFICATIONS: '/notifications',
 } as const;
 
 export type AppRouteKey = keyof typeof APP_ROUTES;
@@ -59,6 +60,8 @@ export function buildGlobalPath(routeId: string): string {
       return APP_ROUTES.ADMIN;
     case 'jobs':
       return APP_ROUTES.JOBS;
+    case 'notifications':
+      return APP_ROUTES.NOTIFICATIONS;
     default:
       return APP_ROUTES.PROJECTS;
   }
@@ -76,6 +79,7 @@ export function getRouteTitle(pathname: string): string {
   if (norm === APP_ROUTES.WRITING_ARCHIVE || norm === APP_ROUTES.WRITING) return '写作档案与风格规范';
   if (norm === APP_ROUTES.ADMIN || norm === APP_ROUTES.ADMIN_RULES) return '企业合规与审计中心';
   if (norm === APP_ROUTES.JOBS) return '后台异步任务中心';
+  if (norm === APP_ROUTES.NOTIFICATIONS) return '站内提醒';
   if (norm.startsWith('/projects/')) {
     const route = parseAppPath(norm);
     if (route.kind === 'project') {

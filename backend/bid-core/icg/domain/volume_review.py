@@ -112,6 +112,10 @@ class VolumeReviewMixin:
             reviews[volume] = {"volume_id": volume, "status": "pending", "reviewer_id": reviewer_id,
                                "assigned_by": principal.user.id, "assigned_at": now,
                                "decided_at": None, "decision_note": "", "snapshot": None, "history": history}
+            from .notifications import notify
+            notify(state, [reviewer_id], "cross_review", f"请交叉复核{'技术' if volume == 'technical' else '商务'}分册",
+                   f"{principal.user.name} 指定你复核「{project.name}」的{'技术' if volume == 'technical' else '商务'}分册，复核通过后才能定稿。",
+                   now=now, project_id=project_id, target_id=volume)
             return {"volume_id": volume, "cross_review": public_review(state, project_id, volume, workflow)}
 
         return self._write(principal, project_id, f"volume.review.assign:{volume}", payload, expected, key,

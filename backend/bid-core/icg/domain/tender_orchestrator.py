@@ -262,6 +262,13 @@ class TenderOrchestratorMixin:
                                 f"{len(pending)} 份文件正在由 RAGFlow 识别版面与文字，稍后再次点击“开始解析”取回结果。")
                 return {"job": job, "requirements": list(actual["requirements"].values()),
                         "facts": list(actual["facts"].values())}
+            conflicts = sum(1 for c in actual["conflicts"].values() if c["status"] != "resolved")
+            omissions = sum(1 for h in (actual.get("post_process") or {}).get("hits", {}).values() if h.get("status") == "open")
+            if conflicts or omissions:
+                from icg.domain.notifications import notify, project_leads
+                notify(state, project_leads(state, project_id), "parse_pending", "解析结果待处理",
+                       f"「{state.projects[project_id].name}」有 {conflicts} 个事实冲突待选定、{omissions} 条疑似遗漏待处理，处理后才能确认解析结果。",
+                       now=iso_time(self.demo._now()), project_id=project_id, target_id="parse")
             job = self._job(state, project_id, "parse", "真实文字提取完成；条款、事实及引用仍需人工核对。"
                             + (f"另有 {len(pending)} 份文件仍在 RAGFlow 解析中。" if pending else ""))
             return {

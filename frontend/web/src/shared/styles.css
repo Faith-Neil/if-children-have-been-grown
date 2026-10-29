@@ -585,3 +585,10 @@
 .rewrite-sources { margin: 4px 0 8px; padding-left: 16px; font-size: 12px; color: #4e5969; }
 .session-messages { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.8; color: #4e5969; }
 .session-messages li.assistant { color: #6e4bd8; }
+
+/* 站内提醒（PRD §5.12.2） */
+.notice-dropdown { width: 380px; max-height: 460px; overflow: auto; }
+.notice-dropdown .ant-list-item.unread { background: #f4f7ff; }
+.notice-link { display: block; color: inherit; }
+.notice-dropdown-foot { display: flex; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 4px; }
+.notice-unread-row > td { background: #f7f9ff !important; }

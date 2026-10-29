@@ -302,6 +302,8 @@ class HumanQueueMixin:
                                                 "snippets": len({s for s in snippet_ids if s}),
                                                 "facts": len(facts), "critical": critical},
                                      "summary_relay": previous_chapter_relay(state, project_id, chapter)})
+            from .notifications import notify_pending_human
+            notify_pending_human(state, chapter, now)
             return {"chapter_id": chapter_id, "chapter_revision": chapter.revision, "content_fixed": fixed,
                     "loop": self._public_loop(state, chapter, loop),
                     "stop_reason": outcome["stop_reason"], "stop_reason_label": STOP_REASONS[outcome["stop_reason"]],
