@@ -210,7 +210,7 @@ class DemoState:
 
 
 class DemoService:
-    LEASE_SECONDS = 120
+    LEASE_SECONDS = 30 * 60  # 无操作 30 分钟释放（PRD §5.11.9，公司设置 edit_lock_timeout_minutes 可调）
 
     def __init__(self, repository: Repository, model_provider: ModelProvider,
                  clock: Callable[[], float | datetime] | None = None,
@@ -771,6 +771,43 @@ class DemoService:
             data["heartbeat_at"] = iso_time(lease.heartbeat_at)
         return data
 
+    def _lease_seconds(self, state: DemoState, company_id: str) -> float:
+        stored = (state.service_stores.get("company_settings") or {}).get(company_id) or {}
+        minutes = stored.get("edit_lock_timeout_minutes")
+        try:
+            return max(60.0, float(minutes) * 60) if minutes else float(self.LEASE_SECONDS)
+        except (TypeError, ValueError):
+            return float(self.LEASE_SECONDS)
+
+    def _auto_commit_draft(self, state: DemoState, chapter: Chapter, user_id: str, why: str) -> int | None:
+        """锁释放（主动离开、超时、被接管）时，把持锁人未提交的草稿自动提交为“手改”版本（PRD §5.11.9 第 1 点）。
+
+        草稿基于旧版本、来源已变化或含对话残留时不提交，草稿原样保留（之后标“已过期”，由本人对比合并）。返回新版本号。"""
+        draft = chapter.drafts.get(user_id)
+        if draft is None or draft.content == chapter.content or draft.base_revision != chapter.revision:
+            return None
+        from .system_chapters import is_system_chapter
+        workflow = state.workflows.get(chapter.project_id, {})
+        if is_system_chapter(workflow, chapter):
+            return None
+        has_sources = bool(workflow.get("requirements") or workflow.get("facts") or workflow.get("sla"))
+        if has_sources and draft.input_fingerprint != project_input_fingerprint(state, chapter.project_id):
+            return None
+        from .chapter_generation import AI_CONVERSATION_RESIDUALS
+        if any(residual in draft.content for residual in AI_CONVERSATION_RESIDUALS):
+            return None
+        chapter.content = draft.content
+        chapter.revision += 1
+        state.projects[chapter.project_id].revision += 1
+        chapter.versions.append({"revision": chapter.revision, "content": chapter.content, "actor_id": user_id,
+                                 "created_at": iso_time(self._now()), "version_origin": "manual", "edit_mode": "manual",
+                                 "note": f"自动提交（{why}）"})
+        chapter.drafts.pop(user_id, None)
+        state.audit.append({"id": new_id("event"), "action": "version.autocommit", "actor_id": user_id,
+                            "chapter_id": chapter.id, "created_at": iso_time(self._now()),
+                            "details": {"revision": chapter.revision, "reason": why}})
+        return chapter.revision
+
     def acquire_lock(self, principal: Principal, chapter_id: str,
                      takeover_reason: str | None, *,
                      idempotency_key: str | None = None) -> dict:
@@ -801,11 +838,15 @@ class DemoService:
                     raise DomainError(423, "LOCK_HELD", "其他会话正在编辑；项目负责人或本册负责人可以填写理由接管。")
                 if not takeover_reason or not takeover_reason.strip():
                     raise DomainError(409, "TAKEOVER_REASON_REQUIRED", "接管前必须填写理由。")
+            committed = None
+            if old_lease is not None and old_lease.owner_id != principal.user.id:
+                committed = self._auto_commit_draft(state, chapter, old_lease.owner_id,
+                                                    "编辑权被接管" if active else "编辑锁超时释放")
             now = self._now()
             lease = Lease(token=secrets.token_urlsafe(32),
                           owner_id=principal.user.id,
                           session_token=principal.session_token,
-                          expires_at=now + self.LEASE_SECONDS,
+                          expires_at=now + self._lease_seconds(state, principal.user.company_id),
                           acquired_at=now,
                           heartbeat_at=now,
                           lock_reason=None,
@@ -820,9 +861,10 @@ class DemoService:
             if active and old_lease and old_lease.owner_id != principal.user.id:
                 from .notifications import notify
                 notify(state, [old_lease.owner_id], "lock_taken_over", f"「{chapter.title}」的编辑权已被接管",
-                       f"{principal.user.name} 接管了编辑权，理由：{takeover_reason.strip()}。你已收到的草稿仍保留。",
+                       f"{principal.user.name} 接管了编辑权，理由：{takeover_reason.strip()}。"
+                       + (f"你的草稿已自动提交为 v{committed}。" if committed else "你已保存的草稿仍保留，未提交的修改不会覆盖新版本。"),
                        now=iso_time(now), project_id=chapter.project_id, target_id=chapter.id)
-            # 接管时保留旧用户已经收到的草稿，不宣称保存了断网设备尚未上传的文字。
+            # 接管或超时：旧持锁人已保存的草稿先自动提交；断网设备尚未上传的文字无法替其保存。
             res = self._lease_response(lease)
             if key:
                 remember(state, chapter.project_id, principal.user.id, key, req_fp, res, self._now())
@@ -844,7 +886,7 @@ class DemoService:
             self._chapter_writer(state, principal, chapter)
             lease = self._lease(chapter, principal, lease_token)
             now = self._now()
-            lease.expires_at = now + self.LEASE_SECONDS
+            lease.expires_at = now + self._lease_seconds(state, chapter.lock.company_id or principal.user.company_id)
             lease.heartbeat_at = now
             lease.record_version += 1
             self._audit(state, principal, chapter, "lock.renew")
@@ -868,6 +910,7 @@ class DemoService:
                     return cached
             self._chapter_writer(state, principal, chapter)
             lease = self._lease(chapter, principal, lease_token)
+            self._auto_commit_draft(state, chapter, principal.user.id, "主动释放编辑权")
             now = self._now()
             lease.released_at = now
             lease.release_reason = "manual"

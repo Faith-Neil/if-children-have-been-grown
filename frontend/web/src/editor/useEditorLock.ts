@@ -1,8 +1,11 @@
 // 为什么有这个文件：提取编辑权租约锁定与心跳续期状态机（useEditorLock）。
-// 它解决什么问题：解耦编辑锁状态维护、30秒心跳自动续期、失权拦截与锁释放，降低 EditorPage 复杂度。
+// 它解决什么问题：解耦编辑锁状态维护、心跳续期、失权拦截与锁释放，降低 EditorPage 复杂度。
+// PRD v1.8 §5.11.9（APP-M2-T172）：只在用户有操作时按公司设置的间隔发心跳；无操作时不续期，锁按公司设置超时释放，
+// 释放前 5 分钟提示（释放时后台会把已保存的草稿自动提交为“手改”版本）。
 
 import { useEffect, useRef, useState } from 'react';
 import { ApiError, request } from '../shared/api.ts';
+import { expiryWarning, shouldHeartbeat } from './autosave-core.ts';
 
 export interface Lease {
   lease_token: string;
@@ -18,6 +21,8 @@ export interface UseEditorLockOptions {
   report: (error: unknown) => void;
   reload: () => Promise<unknown>;
   setNotice: (notice: string) => void;
+  /** 公司设置 edit_lock_heartbeat_seconds，毫秒 */
+  heartbeatMs?: number;
 }
 
 export function useEditorLock({
@@ -28,9 +33,15 @@ export function useEditorLock({
   report,
   reload,
   setNotice,
+  heartbeatMs = 60_000,
 }: UseEditorLockOptions) {
   const [lease, setLease] = useState<Lease | null>(null);
   const currentLease = useRef<Lease | null>(null);
+  const lastActivity = useRef(0);
+  const lastHeartbeat = useRef(0);
+  const warned = useRef('');
+  /** 用户在正文区有操作（输入、选中、滚动、点击）时调用 */
+  const markActivity = () => { lastActivity.current = Date.now(); };
 
   const held = canEdit && !!lease && Date.parse(lease.expires_at) > Date.now();
 
@@ -43,13 +54,24 @@ export function useEditorLock({
     }
   }, [canEdit, setNotice]);
 
-  // 2. 30秒心跳续期状态机：在持有锁期间定期向后台 POST /lock/renew 续期
+  // 2. 心跳：每 15 秒检查一次；距上次心跳满一个心跳间隔且其间有过操作才续期；没有操作时检查是否快到期
   useEffect(() => {
     if (!lease) return;
     const start = epoch.current;
+    lastHeartbeat.current = Date.now();
     const timer = window.setInterval(async () => {
       const activeLease = currentLease.current;
       if (!activeLease || start !== epoch.current) return;
+      if (Date.now() - lastHeartbeat.current < heartbeatMs) return;
+      if (!shouldHeartbeat(lastActivity.current, lastHeartbeat.current)) {
+        const minutes = expiryWarning(activeLease.expires_at, Date.now());
+        if (minutes !== null && warned.current !== activeLease.expires_at) {
+          warned.current = activeLease.expires_at;
+          setNotice(`长时间没有操作，编辑权将在约 ${minutes} 分钟后自动释放；释放时已保存的草稿会自动提交为一个版本。继续编辑即可保持编辑权。`);
+        }
+        return;
+      }
+      lastHeartbeat.current = Date.now();
       try {
         const renewed = await request<Lease>(
           `/api/chapters/${chapterId}/lock/renew`,
@@ -72,10 +94,10 @@ export function useEditorLock({
           }
         }
       }
-    }, 30_000);
+    }, 15_000);
 
     return () => window.clearInterval(timer);
-  }, [lease?.lease_token, chapterId, token, epoch, reload, report, setNotice]);
+  }, [lease?.lease_token, chapterId, token, epoch, reload, report, setNotice, heartbeatMs]);
 
   // 3. 取得编辑锁
   const acquireLock = async (reason: string | null = null): Promise<Lease> => {
@@ -114,5 +136,6 @@ export function useEditorLock({
     acquireLock,
     releaseLock,
     clearLease,
+    markActivity,
   };
 }
