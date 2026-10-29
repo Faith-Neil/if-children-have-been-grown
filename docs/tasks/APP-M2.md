@@ -2747,7 +2747,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T180 · 上下文与样例任务卡选择
 <a id="app-m2-t180"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T167](APP-M2.md#app-m2-t167)、[APP-M2-T089](APP-M2.md#app-m2-t089)、[APP-M2-T176](APP-M2.md#app-m2-t176)、[APP-M2-T124](APP-M2.md#app-m2-t124)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T167](APP-M2.md#app-m2-t167)、[APP-M2-T089](APP-M2.md#app-m2-t089)、[APP-M2-T176](APP-M2.md#app-m2-t176)、[APP-M2-T124](APP-M2.md#app-m2-t124)。
 
 原始来源：原交接 §6.7 M6-I04-F5；PRD v1.8 §5.11.3～5.11.6、5.11.11。交付单位：上下文与样例任务卡选择，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -2852,7 +2852,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T187 · 冲突校验与重新定位提示
 <a id="app-m2-t187"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T167](APP-M2.md#app-m2-t167)、[APP-M2-T178](APP-M2.md#app-m2-t178)、[APP-M2-T185](APP-M2.md#app-m2-t185)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T167](APP-M2.md#app-m2-t167)、[APP-M2-T178](APP-M2.md#app-m2-t178)、[APP-M2-T185](APP-M2.md#app-m2-t185)。
 
 原始来源：原交接 §6.7 M6-I05-F3；PRD v1.8 §5.11.5、5.11.6。交付单位：冲突校验与重新定位提示，同一产品的页面/后台/数据/权限/输出协作一起验收。
 

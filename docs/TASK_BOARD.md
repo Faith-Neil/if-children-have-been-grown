@@ -10,7 +10,7 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 454 项：done 96、in-review 143、in-progress 44、planned 125、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+项目 454 项：done 96、in-review 145、in-progress 44、planned 123、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
@@ -18,7 +18,7 @@
 | 持久化 | 项目工作流、账号、资料库、知识库索引写入 MySQL 8（Alembic 0012） | 旧 `/api/projects`、`/api/chapters` 路由仍在（BE-M0-T09） |
 | 招标解析 | PDF/Word 文字提取，扫描件/.doc/Excel/图片经 RAGFlow DeepDOC；响应矩阵含响应方式、风险、批量匹配、分流确认与 Excel；按章节与条目抽取条款，适配真实招标文件版式（展平表格、段内（1）…（8）、否决/无效/废标）；事实含前附表 | 未确认分流的行尚未从写作方案候选中排除；三栏布局与分类树（T104） |
 | 知识库 | 每公司三类数据集、ICG 摄入流程、管控接口与管理页、检索带片号引用；内置解析评测定默认阈值 | 流程模式评测；历史标书批量导入（T080/T081） |
-| 生成与编辑 | 章节闭环、人工处理队列、交叉复核与定稿门禁、编辑台差异确认 | 章节循环进度页与轮次时间线（T130/T131）、自动保存（T172） |
+| 生成与编辑 | 章节闭环、人工处理队列、交叉复核与定稿门禁、编辑台差异确认、选区改写（3～5 种写法、替换或插入、重新定位） | 对话助手第二步：知识库检索与引用、多轮会话与会话列表、流式输出（T176/T177）；段落锁定；自动保存（T172） |
 | 合规规则 | 40 条有检查与测试（R01～R20、R23～R32、R34～R37、R39～R44）；警告须负责人填理由逐项放行 | R33（缺结构化拟派人员条件）、R38（缺功能点标签）、R43 风格样例照抄与 R44 事实来源核对（缺样例库与产品字典）；R21、R22 为二期 |
 | 导出 | Word 版式、分册定稿、递交门禁、合标核对清单与内部响应追溯表 Excel | Word 封面目录页码（T197）、导出模板与附件扫描件选项 |
 | 管理 | 模型/RAGFlow 弹窗配置、公司管理、审计日志、SLA 模板 | 站内提醒、配置版本、任务模型映射 |
@@ -42,6 +42,7 @@
 - 2026-10-29 用户新增：BE-UPLOAD-100MB（招标文件与知识库原件单个最大 100MB，`ICG_MAX_UPLOAD_MB` 可调；二进制直传；原件存 `ICG_BLOB_DIR` 不进业务 JSON）、APP-TECHNICAL-ONLY-BID（新建项目可选“只写技术标”，不建商务册、不合标）、公司管理员可下载合标清单与追溯表。真实扫描件（贵阳银行 OCR 中台，35 页无文字层）经真实 RAGFlow DeepDOC 解析并校准抽取。
 - 2026-10-29：R36、R39～R44 实现（`icg/domain/content_rules.py`）；真实扫描件经新隧道完整走应用链路：二进制上传 24.2MB → 本地无文字 → RAGFlow 内置 DeepDOC 370 秒 → 35 页、110 条条款（6 条评分项带分值）；招标解析默认改用内置 DeepDOC（ICG 招标流程实测页码只还原 32 页）。
 - APP-M2-T112～T117 为 in-review：`GET /matrix`（listMatrixItems）、`POST /matrix/match`、`POST /matrix/routing`、`GET /matrix.xlsx`；星号/废标条款不能标不适用、如实登记偏离即为阻断项，偏离须写说明，候选只追加不替换。
+- 编辑台选区改写（对话助手第一步）：`icg/domain/selection_rewrite.py`、`icg/api/selection_rewrite.py`、`frontend/web/src/editor/SelectionRewritePanel.tsx`。选中文字后点“问对话助手”，只把选区及前后段、本章已确认条款和项目事实交给模型，按 3～5 种写法各生成一条。样例先预检：变量与证据标记必须保留，含证件号/手机号/银行账号的不展示，对不上来源的数值换成【待补：数值来源】，对话残留与 Markdown 去掉，相近的合并。写入只用服务端保存的样例，须持编辑锁；本人草稿先提交为手改版本；选区移动但唯一时返回新位置再确认，找不到或多处时样例失效。每次写入生成新版本、记编辑操作并对改动段落做文字规则复查。未接入真实模型时返回 502 MODEL_UNAVAILABLE，不给模拟样例。知识库引用、多轮会话、流式输出属第二步；段落锁定与段落来源记录尚未建。
 - APP-M2-T202 为 in-review：`icg/domain/export_batch.py`。每次导出有批次号（S/I + 日期 + 当日序号，失败也占号），各册与合标清单同号并记下绑定的检查与分册定稿。导出时就生成每册 Word；任一册生成失败，本批次记为失败（500 EXPORT_FAILED，新增冻结错误码），不留可下载文件，正文与定稿不变。Word 按内容摘要存入文件存储；正文改动或分册解锁后旧批次标“已过期”，仍下载当时的文件（响应头 X-ICG-Export-Status=stale），下载时重核权限。原先过期即 409 EXPORT_STALE 拒绝下载，与 PRD §5.9.1 规则 13“保留下载”不符，已改；没有快照的早期批次仍按 409 处理。导出历史页去掉了按编号编造的文件大小与 SHA-256，只显示真实值。
 - APP-M2-T103 为 in-review：`frontend/web/src/project/PdfLocator.tsx` 与 `pdf-locator-core.ts`。PDF.js、Worker、中文 CMap、标准字体与 JBIG2/JPEG2000 解码器随前端打包到 `assets/pdfjs`，不访问外网，只在打开 PDF 时加载。电子版按 PDF.js 文字层匹配原句；扫描件按 RAGFlow DeepDOC 位置框（预览接口新增 `pages[].regions`）。跨页分块改为按行归页，真实扫描件 111 条条款全部能在所在页画出高亮，此前跨页分块后半部分的条款页码少算一页。
 - APP-M2-T191～T195、T127 为 in-review：`icg/domain/system_chapters.py`，五类系统章节只按数据生成、缺来源写【待补】，正文手改一律 409 SYSTEM_CHAPTER_READONLY，数据源变化后检查报 SYSTEM_CHAPTER_STALE。原 T195 的 in-review 记录实际是检查红线横幅，证明材料清单此前没有生成器，本次补齐。
@@ -487,16 +488,16 @@
 | [APP-M2-T175](tasks/APP-M2.md#app-m2-t175) | 版本对比与回退 | planned | APP-M2-T161、APP-M2-T174 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T175.md` |
 | [APP-M2-T176](tasks/APP-M2.md#app-m2-t176) | 对话面板与会话列表 | planned | APP-M2-T167、APP-M2-T089 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T176.md` |
 | [APP-M2-T177](tasks/APP-M2.md#app-m2-t177) | 流式输出、模型标识、降级提示 | planned | APP-M2-T167、APP-M2-T089、APP-M2-T176、APP-M2-T040 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T177.md` |
-| [APP-M2-T178](tasks/APP-M2.md#app-m2-t178) | 建议卡片（写法、差异、来源、预检） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T167、APP-M2-T089、APP-M2-T176、APP-M2-T242、APP-M2-T243、APP-M2-T244、APP-M2-T248 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T178.md` |
+| [APP-M2-T178](tasks/APP-M2.md#app-m2-t178) | 建议卡片（写法、差异、来源、预检） | in-progress（2026-10-29：选区样例卡片含写法、字数、差异、预检提示；知识库引用来源待对话助手第二步） | APP-M2-T167、APP-M2-T089、APP-M2-T176、APP-M2-T242、APP-M2-T243、APP-M2-T244、APP-M2-T248 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T178.md` |
 | [APP-M2-T179](tasks/APP-M2.md#app-m2-t179) | 自由问答（只“复制”） | in-review | APP-M2-T167、APP-M2-T089、APP-M2-T181 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T179.md) |
-| [APP-M2-T180](tasks/APP-M2.md#app-m2-t180) | 上下文与样例任务卡选择 | planned | APP-M2-T167、APP-M2-T089、APP-M2-T176、APP-M2-T124 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T180.md` |
+| [APP-M2-T180](tasks/APP-M2.md#app-m2-t180) | 上下文与样例任务卡选择 | in-review（2026-10-29：选区及前后段、本章条款与事实入模，3～5 条样例按写法生成） | APP-M2-T167、APP-M2-T089、APP-M2-T176、APP-M2-T124 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T180.md` |
 | [APP-M2-T181](tasks/APP-M2.md#app-m2-t181) | 资料库与本项目数据答案卡 | in-review | APP-M2-T176、APP-M2-T047、APP-M2-T112 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T181.md) |
 | [APP-M2-T182](tasks/APP-M2.md#app-m2-t182) | 直查未命中与常规回答回退 | in-review | APP-M2-T176、APP-M2-T047、APP-M2-T112、APP-M2-T181 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T182.md) |
 | [APP-M2-T183](tasks/APP-M2.md#app-m2-t183) | 插入为引用：差异视图、写入、引用标记 | in-review | APP-M2-T181、APP-M2-T185 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T183.md) |
 | [APP-M2-T184](tasks/APP-M2.md#app-m2-t184) | 本项目招标文件轻量索引的检索结果展示 | in-review | APP-M2-T181 | [ISSUE-007](../issues/ISSUE-007.md) / [ISSUE-037](../issues/ISSUE-037.md) | [交付](delivery/APP-M2-T184.md) |
 | [APP-M2-T185](tasks/APP-M2.md#app-m2-t185) | 差异确认写入 | in-review | APP-M2-T167、APP-M2-T178 | [ISSUE-007](../issues/ISSUE-007.md) / [ISSUE-037](../issues/ISSUE-037.md) | [交付](delivery/APP-M2-T185.md) |
 | [APP-M2-T186](tasks/APP-M2.md#app-m2-t186) | “我已逐字核对”二次确认（星号 / 废标 / 偏离 / 披露） | in-review（2026-10-28 重定：代码与测试已存在） | APP-M2-T167、APP-M2-T178、APP-M2-T185 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T186.md` |
-| [APP-M2-T187](tasks/APP-M2.md#app-m2-t187) | 冲突校验与重新定位提示 | planned | APP-M2-T167、APP-M2-T178、APP-M2-T185 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T187.md` |
+| [APP-M2-T187](tasks/APP-M2.md#app-m2-t187) | 冲突校验与重新定位提示 | in-review（2026-10-29：选区移动且唯一时重新定位再确认，找不到或多处时样例失效） | APP-M2-T167、APP-M2-T178、APP-M2-T185 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T187.md` |
 | [APP-M2-T188](tasks/APP-M2.md#app-m2-t188) | 粘贴识别 | planned | APP-M2-T167、APP-M2-T178、APP-M2-T185、APP-M2-T242、APP-M2-T243 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T188.md` |
 | [APP-M2-T189](tasks/APP-M2.md#app-m2-t189) | 对话助手观察指标 | planned | APP-M2-T174、APP-M2-T185 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T189.md` |
 | [APP-M2-T190](tasks/APP-M2.md#app-m2-t190) | 人工修改率分项 | planned | APP-M2-T174、APP-M2-T185 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T190.md` |

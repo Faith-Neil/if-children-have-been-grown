@@ -27,6 +27,8 @@ export interface EditorAssistantPanelProps {
   onViewInput: () => void;
   onShowDiff: (candidate: Candidate) => void;
   onSuggest: () => void;
+  /** 选区改写（对话助手样例），显示在整章建议之上 */
+  selectionTools?: React.ReactNode;
 }
 
 export function EditorAssistantPanel({
@@ -48,6 +50,7 @@ export function EditorAssistantPanel({
   onViewInput,
   onShowDiff,
   onSuggest,
+  selectionTools,
 }: EditorAssistantPanelProps) {
   return (
     <aside className="editor-right">
@@ -64,6 +67,7 @@ export function EditorAssistantPanel({
       <div className="assistant-scroll">
         {rightTab === 'assistant' && (
           <>
+            {selectionTools}
             <div className="model-label">
               <AiTag variant={candidate?.is_real_model ? 'model' : 'demo'} />
               <span>整章候选 · 人工确认后才写入</span>
@@ -100,7 +104,7 @@ export function EditorAssistantPanel({
                   message={candidate.is_real_model ? '模型建议仍须人工核对' : '当前为演示建议，不代表真实模型已接入'}
                 />
                 <p className="muted">先核对当次输入，再比较整章内容；写入后仍需提交本节。</p>
-                <p className="muted">已校验输入状态、变量和单位；完整事实语义、段落来源和选区预检仍待完成。</p>
+                <p className="muted">已校验输入状态、变量和单位；整章候选不逐段追溯来源，只改一段请用上方“选区改写”。</p>
                 <Space wrap>
                   <Button size="small" onClick={onViewInput}>
                     查看当次输入来源
@@ -164,7 +168,7 @@ export function EditorAssistantPanel({
             disabled={combinedBusy || !canEdit}
           />
           <div className="assistant-send">
-            <span className="muted">整章建议 · 选区助手待实现</span>
+            <span className="muted">整章建议 · 只改一段请在正文中选中文字</span>
             <Button
               size="small"
               type="primary"

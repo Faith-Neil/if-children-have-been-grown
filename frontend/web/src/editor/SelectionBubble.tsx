@@ -1,7 +1,7 @@
 // 为什么有这个文件：为编辑台正文选区提供划词快捷操作气泡（Action Bubble）。
 // 它解决什么问题：
 // 1. 用户划选一段文字后，在选区上方自适应呈现轻量浮动操作条；
-// 2. 提供「AI润色」（带入右侧助手 polish 场景）与「合规问答」（带入 compliance 场景）一键直达入口；
+// 2. 提供「问对话助手」（打开右侧选区改写，给出 3～5 种写法）与「合规问答」（带入 compliance 场景）一键直达入口；
 // 3. 支持「清除选区」快速收起，与右侧 AI 助手输入无缝联动。
 
 import React from 'react';
@@ -99,7 +99,7 @@ export const SelectionBubble: React.FC<SelectionBubbleProps> = ({
             borderColor: '#722ed1',
           }}
         >
-          AI润色
+          问对话助手
         </Button>
 
         <Button

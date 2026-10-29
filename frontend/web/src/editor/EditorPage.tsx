@@ -36,6 +36,8 @@ import {
 import { CiteCapsule, RichParagraphWithCites } from './CiteCapsule';
 import { SelectionBubble } from './SelectionBubble';
 import { EditorAssistantPanel } from './EditorAssistantPanel.tsx';
+import { SelectionRewritePanel, type RewriteSelection } from './SelectionRewritePanel.tsx';
+import type { ApplyResult } from './selection-rewrite-core.ts';
 import { EditorDiffDrawer, type ChapterVersionItem } from './EditorDiffDrawer.tsx';
 import { extractCitationIds, type CiteKind, type CitationMeta } from './cite-capsule';
 import { useEditorLock, type Lease } from './useEditorLock.ts';
@@ -77,6 +79,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const [versionsOpen, setVersionsOpen] = useState(false);
   const [conflict, setConflict] = useState<ConflictContext | null>(null);
   const [, setHighlightedSourceId] = useState<string | null>(null);
+  const [rewriteSelection, setRewriteSelection] = useState<RewriteSelection | null>(null);
 
   const epoch = useRef(0);
   const sequence = useRef(0);
@@ -97,10 +100,14 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   // 2. 划词与交互气泡 Hook
   const bubble = useSelectionBubble({
     content,
-    onPolish: text => {
+    onPolish: () => {
+      // 气泡传来的文字已去掉首尾空白；改写要用原始选区，才能对上正文中的字符位置
       setRightTab('assistant'); setAssistantCollapsed(false);
-      ops.setInstruction(`针对选区「${text.slice(0, 100)}${text.length > 100 ? '...' : ''}」进行AI润色：保持原文事实，优化文字表达，不新增未经核实的承诺。`);
-      setNotice('已将选区文本载入AI助手（润色模式）');
+      const range = selection.current;
+      const raw = range ? content.slice(range.start, range.end) : '';
+      const picked = raw.trim() ? raw : (window.getSelection()?.toString() ?? '');
+      setRewriteSelection(range && raw.trim() ? { text: raw, start: range.start, end: range.end } : { text: picked });
+      setNotice('已在右侧“选区改写”载入选中的文字，选择修改方式后生成样例。');
     },
     onComplianceQa: text => {
       setRightTab('assistant'); setAssistantCollapsed(false);
@@ -148,7 +155,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
 
   useEffect(() => {
     const start = ++epoch.current;
-    setChapter(null); setContent(''); setEditFingerprint(null); selection.current = null;
+    setChapter(null); setContent(''); setEditFingerprint(null); selection.current = null; setRewriteSelection(null);
     lock.clearLease(); ops.resetChapterStates(); setSavedAt(''); setNotice(''); onDirtyChange(false);
     if (!chapterId) return;
     setLoading(true);
@@ -297,6 +304,18 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     });
   }
 
+  async function applyRewrite(result: ApplyResult) {
+    const start = epoch.current;
+    const updated = await request<Chapter>(`/api/chapters/${chapterId}`, token);
+    const current = await request<Workspace>(`/api/v1/projects/${workspace.project.id}/workspace`, token);
+    if (start !== epoch.current) return;
+    setChapter(updated); setContent(updated.content); setEditFingerprint(current.input_fingerprint);
+    sequence.current = updated.draft?.sequence ?? sequence.current; selection.current = null; setRewriteSelection(null);
+    const issues = result.operation.recheck.issues.length;
+    setNotice(`已按${result.operation.edit_mode_label}写入正文 v${result.revision}；改动段落复查${issues ? `发现 ${issues} 项问题，见右侧` : '未发现问题'}。之前的检查和导出会失效。`);
+    await reload();
+  }
+
   function selectChapter(id: string, nextVolume?: Volume) {
     const action = () => { if (nextVolume) setVolume(nextVolume); setChapterId(id); };
     if (!dirty) action();
@@ -440,6 +459,11 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         rightTab={rightTab} setRightTab={setRightTab} candidate={candidate} candidateIssue={candidateIssue} instruction={ops.instruction} setInstruction={ops.setInstruction}
         combinedBusy={combinedBusy} held={held} canEdit={canEdit} canGenerate={canGenerate} chapter={chapter} planCurrent={planCurrent} modified={modified} workspace={workspace}
         chapterId={chapterId} onViewInput={() => ops.setInputOpen(true)} onShowDiff={ops.showDiff} onSuggest={ops.suggest}
+        selectionTools={
+          <SelectionRewritePanel projectId={workspace.project.id} chapter={chapter} content={content} selection={rewriteSelection}
+            leaseToken={held && lease ? lease.lease_token : null} canGenerate={canEdit} busy={combinedBusy} token={token}
+            onApplied={applyRewrite} onClear={() => setRewriteSelection(null)} report={report} />
+        }
       />
     </div>
 

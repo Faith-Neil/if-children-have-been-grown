@@ -572,3 +572,12 @@
 .pdf-hit { position: absolute; background: #ffd66b66; outline: 2px solid var(--orange); border-radius: 2px; pointer-events: none; }
 .pdf-locate-note { align-self: stretch; color: #e8f5e9; font-size: 12px; }
 .pdf-locate-note.miss { color: #ffd591; }
+
+/* 选区改写（APP-M2-T178/T185）：差异视图删除标红、增加标绿，【待补】醒目。 */
+.rewrite-card { margin-bottom: 12px; border-color: #d7e2fb; }
+.rewrite-card blockquote { margin: 0 0 4px; max-height: 120px; overflow: auto; }
+.prompt-chips button.active { border-color: #6e4bd8; color: #6e4bd8; background: #f2eefc; }
+.rewrite-diff { white-space: pre-wrap; line-height: 1.9; font-size: 14px; padding: 12px; border: 1px solid var(--line); border-radius: 6px; max-height: 360px; overflow: auto; }
+.rewrite-diff ins { background: #e8f7ee; color: #1f6f3f; text-decoration: none; }
+.rewrite-diff del { background: #fdecee; color: #a8323d; }
+.rewrite-facts { margin: 12px 0 0; padding-left: 18px; font-size: 13px; color: #4e5969; line-height: 1.8; }
