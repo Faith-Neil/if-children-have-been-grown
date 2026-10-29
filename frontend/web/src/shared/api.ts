@@ -123,3 +123,27 @@ export async function encodeFile(file: File) {
   for (let start = 0; start < bytes.length; start += 8192) binary += String.fromCharCode(...bytes.subarray(start, start + 8192));
   return btoa(binary);
 }
+
+// 全应用统一上传上限（与后台 ICG_MAX_UPLOAD_MB 默认值一致，后台仍会再核一次）。
+export const MAX_UPLOAD_MB = 100;
+export const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
+
+export function uploadTooLarge(file: { size: number }): string | null {
+  return file.size > MAX_UPLOAD_BYTES ? `单个文件不能超过 ${MAX_UPLOAD_MB}MB（当前 ${(file.size / 1024 / 1024).toFixed(1)}MB）。` : null;
+}
+
+export function rawUploadPath(path: string, params: Record<string, string>): string {
+  const query = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== ''));
+  return `${path}?${query.toString()}`;
+}
+
+// 大文件二进制直传：请求体就是文件本身，不先转 base64（100MB 文件不再在浏览器里拼出 134MB 字符串）。
+export async function uploadRaw<T>(path: string, token: string | null, file: Blob, revision?: number): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/octet-stream', 'Idempotency-Key': crypto.randomUUID() };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (revision !== undefined) headers['If-Match'] = String(revision);
+  const response = await fetch(path, { method: 'POST', headers, body: file, cache: 'no-store' });
+  const data = await readJson(response);
+  if (!response.ok) throw rememberFailureSession(apiFailure(response.status, data, response.headers.get('X-Request-ID') ?? undefined), token);
+  return data as T;
+}

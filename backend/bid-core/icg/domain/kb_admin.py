@@ -20,7 +20,6 @@ from .knowledge_base import (DATASET_KINDS, FILE_KINDS, KIND_PROFILE, SETTINGS_S
 
 AUDIT_STORE = "kb_audit"
 AUDIT_LIMIT = 500
-MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 READ_ROLES = {"company_admin", "data_admin", "manager", "project_lead"}
 WRITE_ROLES = {"company_admin", "data_admin"}
 CONNECTION_ROLES = {"company_admin"}
@@ -440,14 +439,17 @@ class KbAdminService:
             raise DomainError(422, "VALIDATION_ERROR", "文件名无效。")
         if not filename.lower().endswith(UPLOAD_SUFFIXES[kind]):
             raise DomainError(422, "FILE_TYPE_UNSUPPORTED", "该类知识只接受：" + "、".join(UPLOAD_SUFFIXES[kind]))
-        try:
-            data = base64.b64decode(str(payload.get("content_base64") or ""), validate=True)
-        except (binascii.Error, ValueError):
-            raise DomainError(422, "VALIDATION_ERROR", "文件内容不是合法的 base64。") from None
+        from icg.domain.upload_limits import max_upload_bytes, too_large_message
+        data = payload.get("content_bytes")
+        if data is None:
+            try:
+                data = base64.b64decode(str(payload.get("content_base64") or ""), validate=True)
+            except (binascii.Error, ValueError):
+                raise DomainError(422, "VALIDATION_ERROR", "文件内容不是合法的 base64。") from None
         if not data:
             raise DomainError(422, "VALIDATION_ERROR", "文件为空。")
-        if len(data) > MAX_UPLOAD_BYTES:
-            raise DomainError(413, "FILE_SIZE_LIMIT", "单个文件不能超过 50MB。")
+        if len(data) > max_upload_bytes():
+            raise DomainError(413, "FILE_SIZE_LIMIT", too_large_message())
         user_meta = {str(k)[:64]: str(v)[:500] for k, v in (payload.get("metadata") or {}).items() if str(v).strip()}
         company = principal.user.company_id
         client = self._client(principal)

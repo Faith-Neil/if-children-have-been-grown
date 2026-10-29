@@ -28,7 +28,7 @@ class ProjectPatch(RequestBody):
 
 class FileUpload(RequestBody):
     filename: str = Field(min_length=1, max_length=180)
-    content_base64: str = Field(min_length=1, max_length=7_000_000)
+    content_base64: str = Field(min_length=1, description="base64 原件；大文件请用 /files/raw 直接上传二进制")
 
 
 class FileDelete(RequestBody):

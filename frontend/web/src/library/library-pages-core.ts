@@ -314,7 +314,7 @@ export interface AttachmentSecurityCheck {
 export function verifyAttachmentSecurity(
   attachment: EvidenceAttachment | any,
   expectedHashOrMaxSize?: string | number,
-  maxSizeBytes = 50 * 1024 * 1024
+  maxSizeBytes = 100 * 1024 * 1024
 ): AttachmentSecurityCheck {
   if (!attachment) {
     return {

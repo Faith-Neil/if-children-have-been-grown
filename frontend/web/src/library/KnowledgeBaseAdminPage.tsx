@@ -8,7 +8,7 @@ import {
   Switch, Table, Tabs, Tag, Typography, Upload,
 } from 'antd';
 import { CloudUploadOutlined, DeploymentUnitOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
-import { encodeFile, request } from '../shared/api.ts';
+import { rawUploadPath, request, uploadRaw, uploadTooLarge } from '../shared/api.ts';
 import {
   KB_KIND_HINT, KB_KIND_LABEL, KB_UPLOAD_ACCEPT, datasetWarnings, embeddingChangeWarning, kbApi, kbPermissions,
   settingsDiff, type KbKind, type KbSearchKind, type KbSettings,
@@ -170,10 +170,14 @@ function DatasetsTab({ call, perms, token, report, setNotice }: {
   }
   async function upload(file: File) {
     if (kind === 'library') return false;
+    const tooLarge = uploadTooLarge(file);
+    if (tooLarge) { report?.(new Error(tooLarge)); return false; }
+    setBusy(true);
     try {
-      const content_base64 = await encodeFile(file);
-      await action(kbApi.documents(kind).split('?')[0], 'POST', { filename: file.name, content_base64, content_type: file.type }, `已上传并开始解析：${file.name}`);
-    } catch (error) { report?.(error); }
+      await uploadRaw(rawUploadPath(`${kbApi.documents(kind).split('?')[0]}/raw`, { filename: file.name, content_type: file.type }), token, file);
+      setNotice(`已上传并开始解析：${file.name}`);
+      await load();
+    } catch (error) { report?.(error); } finally { setBusy(false); }
     return false;
   }
   async function openChunks(doc: Row) {

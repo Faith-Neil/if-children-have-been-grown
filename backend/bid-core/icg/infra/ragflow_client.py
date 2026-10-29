@@ -283,6 +283,7 @@ class RagflowRetrievalClient:
         files: Any = None,
         params: dict[str, Any] | None = None,
         require_auth: bool = True,
+        timeout: float | None = None,
     ) -> dict[str, Any]:
         headers: dict[str, str] = {
             "Accept": "application/json",
@@ -298,7 +299,7 @@ class RagflowRetrievalClient:
             # trust_env=False：内网 RAGFlow 请求不能被系统代理/VPN 劫持（AGENTS.md 内网隔离红线）。
             with httpx.Client(
                 transport=self._transport,
-                timeout=self.timeout_seconds,
+                timeout=timeout or self.timeout_seconds,
                 follow_redirects=False,
                 trust_env=False,
             ) as client:
@@ -822,7 +823,9 @@ class RagflowRetrievalClient:
     def upload_file(self, dataset_id: str, filename: str, data: bytes, content_type: str) -> RagflowDocument:
         """上传原件（docx/pdf/xlsx/图片等）。"""
         files = {"file": (filename, data, content_type or "application/octet-stream")}
-        body = self._send_request("POST", self.documents_url(dataset_id), files=files)
+        # 大文件（最大 100MB）经隧道或内网上传：按 1MB/秒 下限给足时间，至少用配置的超时
+        upload_timeout = max(self.timeout_seconds, min(1800.0, 30.0 + len(data) / (1024 * 1024)))
+        body = self._send_request("POST", self.documents_url(dataset_id), files=files, timeout=upload_timeout)
         payload = body.get("data")
         doc = payload[0] if isinstance(payload, list) and payload else payload
         if not isinstance(doc, dict) or not doc.get("id"):

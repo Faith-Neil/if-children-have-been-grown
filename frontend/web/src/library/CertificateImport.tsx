@@ -5,7 +5,7 @@
 import React, { useState } from 'react';
 import { Alert, Button, Modal, Progress, Space, Typography, Upload } from 'antd';
 import { ScanOutlined } from '@ant-design/icons';
-import { encodeFile, request } from '../shared/api.ts';
+import { rawUploadPath, request, uploadRaw, uploadTooLarge } from '../shared/api.ts';
 import { KB_UPLOAD_ACCEPT, kbApi } from './kb-admin-core.ts';
 
 type Phase = 'idle' | 'uploading' | 'parsing' | 'drafting' | 'done' | 'failed';
@@ -28,10 +28,10 @@ export function CertificateImport({ token, disabled, onDrafted, wait = ms => new
   async function run(file: File) {
     setPhase('uploading'); setMessage(''); setPolls(0);
     try {
-      const content_base64 = await encodeFile(file);
-      const uploaded = await request<{ document_id: string; status: string }>(
-        kbApi.documents('certificate').split('?')[0], token, 'POST',
-        { filename: file.name, content_base64, content_type: file.type });
+      const tooLarge = uploadTooLarge(file);
+      if (tooLarge) throw new Error(tooLarge);
+      const uploaded = await uploadRaw<{ document_id: string; status: string }>(
+        rawUploadPath(`${kbApi.documents('certificate').split('?')[0]}/raw`, { filename: file.name, content_type: file.type }), token, file);
       setPhase('parsing');
       let status = uploaded.status;
       for (let i = 0; status !== 'synced' && i < POLL_LIMIT; i++) {

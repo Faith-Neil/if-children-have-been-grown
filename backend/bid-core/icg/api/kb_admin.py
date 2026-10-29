@@ -6,7 +6,10 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, Header, Query
+from fastapi import APIRouter, Depends, Header, Query, Request
+from starlette.concurrency import run_in_threadpool
+
+from icg.api.raw_upload import RAW_BODY_DOC, read_limited_body
 from pydantic import Field
 
 from icg.domain.domain import DemoService, DomainError, Principal
@@ -167,6 +170,15 @@ def include_kb_admin_routes(application, service: DemoService, current_user) -> 
     def upload(kind: FileKind, body: KbUpload, user: Principal = Depends(current_user)):
         """上传历史投标文件或证书附件原件（base64），按对应 ICG 流程解析。"""
         return admin.upload(user, kind, body.model_dump())
+
+    @router.post("/datasets/{kind}/documents/raw", response_model=R, operation_id="uploadKbDocumentRaw",
+                 summary="上传知识库原件（二进制）", openapi_extra=RAW_BODY_DOC,
+                 description="请求体为文件原始字节；filename、content_type 放在查询参数。大小上限见 ICG_MAX_UPLOAD_MB（默认 100MB）。")
+    async def upload_raw(kind: FileKind, request: Request, filename: str = Query(min_length=1, max_length=200),
+                         content_type: str = Query(default="", max_length=200), user: Principal = Depends(current_user)):
+        data = await read_limited_body(request)
+        return await run_in_threadpool(admin.upload, user, kind,
+                                       {"filename": filename, "content_bytes": data, "content_type": content_type})
 
     @router.patch("/datasets/{kind}/documents/{document_id}", response_model=R, operation_id="patchKbDocument")
     def patch_document(kind: Kind, document_id: str, body: KbDocumentPatch, user: Principal = Depends(current_user)):

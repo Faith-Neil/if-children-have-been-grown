@@ -4,7 +4,11 @@
 from typing import Literal
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Header, Query, Response
+from fastapi import APIRouter, Depends, Header, Query, Request, Response
+from starlette.concurrency import run_in_threadpool
+
+from icg.api.raw_upload import RAW_BODY_DOC, read_limited_body
+from icg.infra.blob_store import file_bytes
 
 from icg.infra.adapters import build_docx
 from icg.domain.domain import Export, Principal
@@ -93,6 +97,17 @@ def include_workflow_routes(application, service, current_user, parser):
                if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.upload(user, project_id, body.model_dump(), if_match, idempotency_key)
 
+    @router.post("/projects/{project_id}/files/raw", response_model=MutationResult, response_model_exclude_none=True,
+                 operation_id="uploadFileRaw", summary="上传招标文件原件（二进制）", openapi_extra=RAW_BODY_DOC,
+                 description="请求体为文件原始字节（application/octet-stream），文件名放在 filename 查询参数；大小上限见 ICG_MAX_UPLOAD_MB（默认 100MB）。")
+    async def upload_raw(project_id: str, request: Request,
+                         filename: str = Query(min_length=1, max_length=180),
+                         user: Principal = Depends(current_user),
+                         if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        data = await read_limited_body(request)
+        return await run_in_threadpool(workflow.upload, user, project_id, {"filename": filename, "content_bytes": data},
+                                       if_match, idempotency_key)
+
     @router.delete("/projects/{project_id}/files/{file_id}", response_model=MutationResult,
                    response_model_exclude_none=True, operation_id="deleteFile")
     def delete_file(project_id: str, file_id: str, body: FileDelete, user: Principal = Depends(current_user),
@@ -110,7 +125,7 @@ def include_workflow_routes(application, service, current_user, parser):
                                  "content": {"application/octet-stream": {"schema": {"type": "string", "format": "binary"}}}}})
     def original(project_id: str, file_id: str, user: Principal = Depends(current_user)):
         record = workflow.file(user, project_id, file_id)
-        return Response(content=record["content"], media_type=record["media_type"],
+        return Response(content=file_bytes(record), media_type=record["media_type"],
                         headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(record['filename'])}"})
 
     @router.post("/projects/{project_id}/parse", response_model=MutationResult, response_model_exclude_none=True,

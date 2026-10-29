@@ -14,6 +14,7 @@ from pathlib import PurePosixPath
 from typing import Any
 
 from icg.domain.domain import DomainError, Principal, iso_time, new_id
+from icg.infra.blob_store import file_bytes
 from icg.domain.generation_context import evidence_expired
 from icg.domain.project_access import lead
 from icg.domain.export_service import DOCX_MEDIA_TYPE
@@ -30,12 +31,18 @@ class TenderOrchestratorMixin:
         from icg.domain.tender_remote import MEDIA_TYPES, REMOTE_SUFFIXES
         if suffix not in {".txt", ".md", *REMOTE_SUFFIXES}:
             raise DomainError(422, "FILE_TYPE_UNSUPPORTED", "可上传文本、Word（.docx/.doc）、PDF（含扫描件）、Excel 与图片。")
-        try:
-            content = base64.b64decode(payload["content_base64"], validate=True)
-        except (binascii.Error, ValueError) as error:
-            raise DomainError(422, "INVALID_FILE_ENCODING", "文件编码不正确，请重新选择文件。") from error
-        if not content or len(content) > self.MAX_UPLOAD:
-            raise DomainError(413, "FILE_SIZE_LIMIT", "文件须有内容且不超过 5MB。")
+        from icg.domain.upload_limits import max_upload_bytes, too_large_message
+        content = payload.get("content_bytes")
+        if content is None:
+            try:
+                content = base64.b64decode(payload["content_base64"], validate=True)
+            except (binascii.Error, ValueError) as error:
+                raise DomainError(422, "INVALID_FILE_ENCODING", "文件编码不正确，请重新选择文件。") from error
+        if not content or len(content) > max_upload_bytes():
+            raise DomainError(413, "FILE_SIZE_LIMIT", too_large_message())
+        from icg.infra.blob_store import put_blob
+        blob = put_blob(content)  # 原件写入文件存储，状态里只记摘要
+        payload = {"filename": filename, "sha256": blob, "size": len(content)}
 
         def operation(state, project, workflow):
             identity = new_id("file")
@@ -44,14 +51,14 @@ class TenderOrchestratorMixin:
                 "id": identity,
                 "filename": filename,
                 "size": len(content),
-                "sha256": hashlib.sha256(content).hexdigest(),
+                "sha256": blob,
+                "blob": blob,
                 "media_type": media_type,
                 "status": "uploaded",
                 "page_count": 0,
                 "pagination": "not_parsed",
                 "warnings": [],
                 "download_url": f"/api/v1/projects/{project_id}/files/{identity}",
-                "content": content,
                 "pages": [],
             }
             workflow["files"][identity] = record
@@ -126,13 +133,13 @@ class TenderOrchestratorMixin:
                 outcome = remote_parser.poll(company_id, record["remote_parse"])
             else:
                 try:
-                    parsed[identity] = self.parser.parse(record["filename"], record["content"])
+                    parsed[identity] = self.parser.parse(record["filename"], file_bytes(record))
                     continue
                 except DomainError as error:
                     if not remote_parser.eligible(record["filename"], error):
                         errors[identity] = error
                         continue
-                    outcome = remote_parser.submit(company_id, record["filename"], record["content"])
+                    outcome = remote_parser.submit(company_id, record["filename"], file_bytes(record))
                     if outcome.state == "failed":
                         outcome.message = f"{error.message} {outcome.message}"
                 except Exception:

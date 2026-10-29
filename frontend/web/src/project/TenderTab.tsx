@@ -4,14 +4,14 @@
 import React, { useState } from 'react';
 import { Alert, Button, Card, Drawer, Input, Modal, Space, Table, Tag, Tooltip, Upload } from 'antd';
 import { DownloadOutlined, FileTextOutlined, ReloadOutlined, UploadOutlined, WarningOutlined } from '@ant-design/icons';
-import { download, encodeFile } from '../shared/api.ts';
+import { MAX_UPLOAD_MB, download, rawUploadPath, uploadRaw, uploadTooLarge } from '../shared/api.ts';
 import { projectCan } from './project-team.ts';
 import { useProject } from '../app/context.tsx';
 import { OriginalPreview } from './OriginalPreview.tsx';
 import type { TenderFile } from '../shared/types.ts';
 
 export function TenderPage() {
-  const { workspace, token, busy, mutate, report, navigate } = useProject();
+  const { workspace, token, busy, mutate, reload, report, navigate } = useProject();
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string>('');
   const [removeFile, setRemoveFile] = useState<TenderFile | null>(null);
@@ -34,19 +34,20 @@ export function TenderPage() {
   }
 
   async function upload(file: File) {
-    if (file.size > 5 * 1024 * 1024) {
-      report(new Error('当前联调版本支持 5MB 以内文件，请拆分后上传。'));
+    const tooLarge = uploadTooLarge(file);
+    if (tooLarge) {
+      report(new Error(tooLarge));
       return false;
     }
     setUploading(true);
     try {
-      await mutate(`/api/v1/projects/${workspace.project.id}/files`, 'POST', {
-        filename: file.name,
-        content_base64: await encodeFile(file),
-      });
-    } catch {
-      /* 统一入口已显示具体错误 */
+      // 二进制直传：大扫描件不先转 base64
+      await uploadRaw(rawUploadPath(`/api/v1/projects/${workspace.project.id}/files/raw`, { filename: file.name }),
+        token, file, workspace.revision);
+    } catch (error) {
+      report(error);
     } finally {
+      await reload().catch(report);
       setUploading(false);
     }
     return false;
@@ -112,7 +113,7 @@ export function TenderPage() {
             <UploadOutlined />
           </p>
           <p className="ant-upload-text">拖入招标文件、补遗或附件，或点击选择</p>
-          <p className="ant-upload-hint">UTF-8 文本、Word（.docx/.doc）、PDF（含扫描件）、Excel、图片 · 每份不超过 5MB</p>
+          <p className="ant-upload-hint">UTF-8 文本、Word（.docx/.doc）、PDF（含扫描件）、Excel、图片 · 每份不超过 {MAX_UPLOAD_MB}MB</p>
         </Upload.Dragger>
         <Table
           className="file-table"
