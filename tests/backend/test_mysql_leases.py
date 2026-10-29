@@ -83,7 +83,7 @@ def _clear_lease() -> None:
         )
 
 
-def test_renewal_keeps_the_same_owner_for_about_120_seconds():
+def test_renewal_keeps_the_same_owner_for_the_company_lock_timeout():
     _upgrade()
     _clear_lease()
     try:
@@ -95,8 +95,8 @@ def test_renewal_keeps_the_same_owner_for_about_120_seconds():
         assert stored.token == first["lease_token"]
         assert stored.owner_id == first["owner_id"]
         remaining = stored.expires_at.replace(tzinfo=timezone.utc).timestamp() - time.time()
-        # DATETIME 按 UTC 读出。剩余时间应接近租约的 120 秒，而不是会话寿命。
-        assert 90 <= remaining <= 130
+        # DATETIME 按 UTC 读出。剩余时间应接近公司设置的锁超时（默认 30 分钟，PRD §5.11.9），而不是会话寿命。
+        assert 29 * 60 <= remaining <= 31 * 60
         renewed = _process("lock_renew", {
             "chapter_id": CHAPTER,
             "token": acquired["token"],
