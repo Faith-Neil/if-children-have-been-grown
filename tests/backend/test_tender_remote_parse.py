@@ -42,8 +42,11 @@ def test_pages_rebuilt_from_positions_and_tables_flattened():
     assert positioned and pages[0] == "第一页" and pages[1] == "第二页上\n第二页下"
     assert pages[2] == "评分因素 | 分值\n技术方案 | 30"
     assert html_to_text("A&amp;B<br>C") == "A&B\nC"
-    unplaced, ok = pages_from_chunks([{"content": "甲"}, {"content": "乙"}])
-    assert not ok and unplaced == ["甲\n乙"]
+    unplaced, ok = pages_from_chunks([{"content": "甲方条款"}, {"content": "乙方条款"}])
+    assert not ok and unplaced == ["甲方条款\n乙方条款"]
+    # 扫描件水印与页边残字去掉，正文短行保留
+    noisy, _ = pages_from_chunks([{"content": "全波\nTV\n试用水\n第一页正文", "positions": [[1, 0, 0, 1, 2]]}])
+    assert noisy == ["第一页正文"]
 
 
 def test_doc_file_is_parsed_by_ragflow_and_requirements_keep_page_numbers(wired, fake):
@@ -107,3 +110,29 @@ def test_ragflow_parse_failure_is_reported(wired, fake):
 def client_without_kb():
     with TestClient(create_app()) as client:
         yield client
+
+
+# —— 真实扫描件：贵阳银行通用 OCR 技术中台招标文件（35 页，无文字层）——
+# 分块取自用户自建 RAGFlow v1.0.0-rc2 内置 DeepDOC 实际解析结果（tests/fixtures/tenders/guiyang-2025-scan.chunks.json）。
+
+def test_real_scanned_tender_from_deepdoc_chunks():
+    import json
+    from pathlib import Path
+    from icg.domain.tender_extraction import extract_facts, extract_requirements
+
+    raw = json.loads((Path(__file__).parents[1] / "fixtures" / "tenders" / "guiyang-2025-scan.chunks.json").read_text(encoding="utf-8"))
+    pages, positioned = pages_from_chunks(raw["chunks"])
+    assert positioned and len(pages) == 35
+    rows, summary = extract_requirements(pages)
+    kinds = summary["by_section_kind"]
+    # 扫描件丢了“采购需求”章标题：规格条目按内容归为技术，评审程序不进矩阵
+    assert kinds["technical"] >= 60 and kinds.get("scoring", 0) <= 25 and summary["skipped_items"]["procedure"] >= 30
+    scores = {r.score for r in rows if r.score}
+    assert {15.0, 8.0, 16.0, 5.0} <= scores
+    assert not any(r.text.endswith(("场景配置", "数据标注", "评审标准")) for r in rows)
+    assert any("否决其投标" in r.text and r.mandatory for r in rows)
+    assert any("国密算法" in r.text and r.section_kind == "technical" for r in rows)
+    for row in rows:
+        assert row.quote in pages[row.page - 1], row
+    facts = {(f.key, f.value) for f in extract_facts(pages)}
+    assert ("招标编号", "GBF2025-1161") in facts and ("采购人", "贵阳银行股份有限公司") in facts

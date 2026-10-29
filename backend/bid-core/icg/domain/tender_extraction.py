@@ -13,12 +13,14 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 MANDATORY = re.compile(
     r"[★▲]|废标|无效投标|无效响应|无效标|否决|视为无效|作无效|按无效|无效处理|不予受理|不予接受"
     r"|实质性(要求|条款|响应)|不得偏离|必须满足|不允许偏离")
-SCORE = re.compile(r"(\d+(\.\d+)?)\s*分")
+SCORE = re.compile(r"(\d+(\.\d+)?)\s*分(?![值项析别类钟配解布册包数])")
+# 资格条目应涉及投标人自身条件；扫描件丢了“技术架构要求”之类的小节标题时，系统规格会落进资格章
+QUAL_WORDS = re.compile(r"投标人|供应商|资质|资格|证书|营业执照|业绩|财务|审计|信誉|信用|社保|社会保障|纳税|税收|授权|联合体|注册|法人|分包|失信|违法|破产|停业|单位负责人|控股|标段|投标")
 
 # 标题：编号体系从高到低。只认行首，且标题行不长（正文里的“一、”不算）。
 HEADING_PATTERNS: list[tuple[int, re.Pattern]] = [
@@ -31,7 +33,11 @@ MAX_HEADING_CHARS = 40
 
 # 条目起点（同一节内的编号项）
 ITEM_START = re.compile(
-    r"^([0-9]{1,2}(\.[0-9]{1,2}){0,3}[．.、)）]|[（(][0-9]{1,2}[)）]|[①-⑳]|[a-zA-Z][．.、)）]|[-•●·▪]\s|[★▲]|注[:：])")
+    r"^([0-9]{1,2}(\.[0-9]{1,2}){0,3}[．.、)）]|[（(][0-9]{1,2}[)）]|[①-⑳]|[a-zA-Z][．.、)）]|[-•●·▪]\s|[》➢>❖◆■□]|[★▲]|注[:：])")
+# 规格类条目（扫描件常丢章节标题，靠内容判断）：项目符号开头或“支持/提供/具备…”开头、不带分值
+SPEC = re.compile(r"^\s*([》➢>❖◆■□•●]\s*)?(支持|提供|具备|具有|满足|实现|需|须|应|能够|可)")
+# 评审程序性条文：主语是评标委员会、或只是“见前附表”的指引，不是投标人要响应的条款
+PROCEDURE = re.compile(r"评标委员会|见评标办法前附表|见本章|评分分值计算|得分=|按得分由高到低|中标候选人")
 # 一段里连写的“（1）…；（2）…”条目
 INLINE_ITEM = re.compile(r"[（(]([0-9]{1,2})[)）]")
 
@@ -46,10 +52,11 @@ SECTION_KINDS: list[tuple[str, tuple[str, ...]]] = [
     ("format", ("投标文件格式", "响应文件格式", "文件格式", "格式附件", "附件格式", "投标函格式", "格式范本", "投标文件组成")),
     ("contract", ("合同条款", "合同主要条款", "通用条款", "专用条款", "合同文本", "合同格式", "政府采购合同")),
     ("scoring", ("评分", "评标办法", "评审办法", "评标方法", "评审标准", "评分标准", "综合评分", "评审因素")),
-    ("qualification", ("资格", "资质要求", "投标人条件", "供应商条件", "合格投标人", "资格审查")),
+    ("qualification", ("供应商资格", "资格", "资质要求", "投标人条件", "供应商条件", "合格投标人", "资格审查")),
     ("technical", ("技术要求", "技术规格", "技术参数", "采购需求", "服务要求", "需求说明", "项目需求", "建设内容", "功能要求", "性能要求", "服务内容", "实施要求",
-                   "招标要求", "人员要求", "维保要求", "运维要求", "服务标准")),
-    ("business", ("商务要求", "商务条款", "付款", "交付", "质保", "售后", "培训", "验收", "报价要求")),
+                   "招标要求", "人员要求", "维保要求", "运维要求", "服务标准", "业务功能", "平台功能", "系统功能", "功能需求", "其他要求",
+                   "保密要求", "文档要求", "开发商要求", "公司人员要求")),
+    ("business", ("商务要求", "商务条款", "付款方式", "验收标准", "付款", "交付", "质保", "售后", "培训", "验收", "报价要求")),
     ("notice", ("投标人须知", "供应商须知", "须知前附表", "前附表", "招标公告", "采购公告", "投标邀请")),
 ]
 RESPONSIVE_KINDS = {"qualification", "scoring", "technical", "business", "notice", "other"}
@@ -310,6 +317,14 @@ def table_facts(pages: list[str]) -> list[ExtractedFact]:
     return facts
 
 
+_NUMBER_PREFIX = re.compile(r"^\s*([0-9]{1,2}(\.[0-9]{1,2}){0,3}[．.、)）]?|[（(][0-9一二三四五六七八九十]{1,2}[)）])\s*")
+
+
+def _label_only(text: str) -> bool:
+    body = _NUMBER_PREFIX.sub("", text.strip(), count=1)
+    return "\n" not in body and len(body) <= 12 and not re.search(r"[，。；;：:、]|分", body)
+
+
 def extract_requirements(pages: list[str]) -> tuple[list[ExtractedRequirement], dict]:
     """返回 (条款, 摘要)。摘要说明结构识别与各类章节的抽取数量，供页面向人展示“抽了什么、跳过了什么”。"""
     sections = segment(pages)
@@ -326,6 +341,19 @@ def extract_requirements(pages: list[str]) -> tuple[list[ExtractedRequirement], 
             continue
         for item in _items(section):
             req = _requirement(section, item)
+            if not req.mandatory and req.score is None and _label_only(req.text):
+                skipped["label"] = skipped.get("label", 0) + 1  # “2.场景配置”这类小标题，不是条款
+                continue
+            if section.kind == "qualification" and not req.mandatory and not QUAL_WORDS.search(req.text):
+                req = replace(req, section_kind="technical")
+            if section.kind == "scoring" and req.score is None and not req.mandatory:
+                if SPEC.match(req.text):
+                    # 评分章下出现的规格条目：扫描件丢了“采购需求”章标题，按内容归为技术
+                    req = replace(req, section_kind="technical")
+                elif PROCEDURE.search(req.text) or " | " not in req.text:
+                    # 评分章里不带分值的正文多是评审程序（评标委员会如何打分），不由投标人响应
+                    skipped["procedure"] = skipped.get("procedure", 0) + 1
+                    continue
             if req.mandatory:
                 results.append(req)
             elif section.kind not in RESPONSIVE_KINDS:

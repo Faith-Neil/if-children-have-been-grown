@@ -54,6 +54,17 @@ def html_to_text(text: str) -> str:
     return "\n".join(line for line in lines if line)
 
 
+_NOISE = re.compile(r"^([A-Za-z0-9]{1,3}|[\u4e00-\u9fa5]{1,2})$")
+_WATERMARK = re.compile(r"水印|试用|^仅供|^样本$")
+
+
+def drop_ocr_noise(text: str) -> str:
+    """去掉扫描件水印与页边残字（单独成行的 1～2 个汉字或 1～3 个字母数字，如“全波”“TV”，以及“试用水”等水印字样）；带数字或标点的短行保留。"""
+    lines = [line for line in text.splitlines()
+             if not (_NOISE.match(line.strip()) or (len(line.strip()) <= 6 and _WATERMARK.search(line.strip())))]
+    return "\n".join(lines)
+
+
 def _position(chunk: dict) -> tuple[int, float] | None:
     positions = chunk.get("positions") or []
     if positions and isinstance(positions[0], (list, tuple)) and len(positions[0]) >= 4:
@@ -73,7 +84,7 @@ def pages_from_chunks(chunks: list[dict]) -> tuple[list[str], bool]:
     placed: dict[int, list[tuple[float, int, str]]] = {}
     positioned = True
     for order, chunk in enumerate(chunks):
-        text = html_to_text(str(chunk.get("content") or "")).strip()
+        text = drop_ocr_noise(html_to_text(str(chunk.get("content") or ""))).strip()
         if not text:
             continue
         where = _position(chunk)
