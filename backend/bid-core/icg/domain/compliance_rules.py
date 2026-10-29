@@ -358,6 +358,62 @@ class ComplianceRulesEngine:
             "default_severity": "warning",
             "can_disable": False,
             "description": "非增值章节中没有对应招标条款的段落为警告；正文中招标未要求的额外数值承诺（时限、次数、人数、比例、期限）为警告，须项目负责人逐条确认，章节循环中直接转人工。",
+        },
+        {
+            "rule_id": "R36",
+            "title": "跨分册一致性",
+            "category": "consistency",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "技术分册提到的资质、人员须在商务分册有对应证明或人员表；两册偏离口径一致。只有一个分册时跳过并在合标清单写明须人工核对。",
+        },
+        {
+            "rule_id": "R39",
+            "title": "披露类条款",
+            "category": "disclosure",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "招标要求披露安全隐患、行政处罚、责任事故时正文须有披露段落；资料库无事件记录时为警告，须项目负责人确认已核实。",
+        },
+        {
+            "rule_id": "R40",
+            "title": "评审索引表",
+            "category": "index",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "招标要求评审索引表时，索引表逐项覆盖评分项、顺序与评审标准一致、指向的章节存在；页码合标后填写。",
+        },
+        {
+            "rule_id": "R41",
+            "title": "证明材料齐全与盖章",
+            "category": "proof",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "资格项要求的证明材料未挂接为阻断，评分项为警告；招标要求盖章时提示人工核对盖章状态。",
+        },
+        {
+            "rule_id": "R42",
+            "title": "暗标",
+            "category": "blind",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "招标要求暗标时，暗标分册正文不得出现投标人名称简称、人员姓名与联系方式。",
+        },
+        {
+            "rule_id": "R43",
+            "title": "AI 腔调检查",
+            "category": "style",
+            "default_severity": "warning",
+            "can_disable": False,
+            "description": "套话每千字密度超阈值、否定对比/递进/序列句式超次数、中间段落总结句、连续段首相同时警告；招标原文出现过的词放行。",
+        },
+        {
+            "rule_id": "R44",
+            "title": "事实密度检查",
+            "category": "facts",
+            "default_severity": "warning",
+            "can_disable": False,
+            "description": "得分章节的可核验具体事实（数字、人员、案例、证据、事实变量）少于评分项数时警告。",
         }
     ]
 
@@ -4760,10 +4816,13 @@ class ComplianceRulesEngine:
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
     ) -> list[ComplianceRuleResult]:
         """R29 本公司查重（仅全文）与 R30 超范围响应（APP-M2-T235～T237）。"""
+        from .content_rules import check_r36, check_r39, check_r40, check_r41, check_r42, check_r43, check_r44
         from .scope_rules import check_r29, check_r30
         return [
             check_r29(state, project, workflow, volume=volume, now_ts=now_ts),
             check_r30(state, project, workflow, volume=volume),
+            *(rule(state, project, workflow, volume=volume)
+              for rule in (check_r36, check_r39, check_r40, check_r41, check_r42, check_r43, check_r44)),
         ]
 
 

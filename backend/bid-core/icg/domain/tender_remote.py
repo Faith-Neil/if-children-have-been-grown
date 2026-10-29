@@ -137,7 +137,9 @@ class RemoteTenderParser:
         if found is not None:
             dataset_id = found.id
         else:
-            if settings.get("use_pipelines"):
+            # 默认内置 DeepDOC：真实扫描件实测按版面位置还原的页码准确（35/35 页）；ICG 招标流程按标题切块后
+            # 只还原出 32 页、评分条款页码前移，条款原句无法按页回查。需要时用 ICG_TENDER_USE_PIPELINE=1 打开。
+            if os.environ.get("ICG_TENDER_USE_PIPELINE", "0") == "1" and settings.get("use_pipelines"):
                 try:
                     pipeline_id, _ = self.kb.ensure_pipeline(client, company_id, "tender", settings)
                 except Exception as exc:

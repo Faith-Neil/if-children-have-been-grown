@@ -45,11 +45,12 @@ def test_submission_export_always_generates_checklist_with_nine_items(client):
     files = " ".join(r["text"] for r in checklist["sections"][0]["rows"])
     assert all(v["filename"] in files for v in export["volumes"]) and "估算" in files
     consistency = [r["text"] for r in checklist["sections"][3]["rows"]]
-    assert any(t.startswith("R36") and "未运行" in t for t in consistency)  # 系统尚未实现 R36，不冒充已检查
+    r36 = next(r for r in check["rules"] if r["rule_id"] == "R36")
+    assert any(t.startswith("R36") and ("通过" if r36["passed"] else "未通过") in t for t in consistency)
     r10 = next(r for r in check["rules"] if r["rule_id"] == "R10")
     assert any(t.startswith("R10") and ("通过" if r10["passed"] else "未通过") in t for t in consistency)
     assert any(check["id"] in t for t in consistency)
-    assert any("R41" in r["text"] and "未运行" in r["text"] for r in checklist["sections"][6]["rows"])
+    assert any(r["text"].startswith("R41") and "尚未实现" not in r["text"] for r in checklist["sections"][6]["rows"])
 
 
 def test_checklist_excel_opens_with_header_and_rows(client):
