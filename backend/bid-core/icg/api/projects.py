@@ -43,7 +43,7 @@ def include_project_routes(application, service: DemoService, current_user) -> N
                       responses=error_responses(401, 403, 409, 428))
     def create_project(body: ProjectRequest, user: User,
                        idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)] = None):
-        return service.create_project(user, body.name, idempotency_key=idempotency_key)
+        return service.create_project(user, body.name, idempotency_key=idempotency_key, volume_mode=body.volume_mode)
 
     @application.get("/api/v1/projects", response_model=ProjectListResponse, operation_id="listV1Projects",
                      responses=v1_error_responses(401))
@@ -54,7 +54,7 @@ def include_project_routes(application, service: DemoService, current_user) -> N
                       responses=v1_error_responses(401, 403, 409, 428))
     def create_v1_project(body: ProjectRequest, user: User,
                           idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)] = None):
-        return service.create_project(user, body.name, idempotency_key=idempotency_key)
+        return service.create_project(user, body.name, idempotency_key=idempotency_key, volume_mode=body.volume_mode)
 
     @application.get("/api/v1/projects/{project_id}", response_model=ProjectResponse, operation_id="getV1Project",
                      responses=v1_error_responses(401, 404))

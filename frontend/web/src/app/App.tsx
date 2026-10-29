@@ -272,7 +272,7 @@ export default function App() {
     setBusy(true); let createdId: string | null = null;
     try {
       const approved = await loadSession(); requireSessionRoute(approved, 'workbench'); requireSessionAction(approved, 'projects.create');
-      const created = await request<Project>('/api/v1/projects', activeToken.current, 'POST', { name: values.name }); createdId = created.id;
+      const created = await request<Project>('/api/v1/projects', activeToken.current, 'POST', { name: values.name, volume_mode: values.volume_mode === 'technical_only' ? 'technical_only' : 'both' }); createdId = created.id;
       const result = await readAuthorizedProject(created.id, 'settings', { session: s => loadSession(activeToken.current, s), workspace: s => request<Workspace>(`/api/v1/projects/${encodeURIComponent(s)}/workspace`, activeToken.current) });
       await request(`/api/v1/projects/${created.id}`, activeToken.current, 'PATCH', projectFields({ tender_number: values.tender_number, sensitive: values.sensitive, deadline: values.deadline }), result.workspace.revision);
       setCreateOpen(false); createForm.resetFields(); await refreshGlobal(); await openProject(created.id, 'tender'); message.success('项目已建立，请上传招标文件。');

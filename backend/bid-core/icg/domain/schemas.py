@@ -33,6 +33,8 @@ class UsernamePasswordLoginRequest(RequestBody):
 
 class ProjectRequest(RequestBody):
     name: str = Field(min_length=1, max_length=200)
+    volume_mode: Literal["both", "technical_only"] = Field(
+        default="both", description="both：技术与商务两册，导出后合标；technical_only：只写技术标，不合标")
 
     @field_validator("name")
     @classmethod
@@ -222,6 +224,7 @@ class ProjectResponse(ResponseBody):
     updated_at: str | None = None
     record_version: int = 1
     is_deleted: bool = False
+    volume_mode: Literal["both", "technical_only"] = "both"
 
 
 class ProjectListResponse(ResponseBody):

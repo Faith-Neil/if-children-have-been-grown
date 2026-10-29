@@ -64,9 +64,53 @@ def normalize_role(role: str) -> str:
     return ROLE_NORMALIZATION_MAP.get(role, role)
 
 
-def initial_team(user_id):
-    return {"members": {user_id: {"user_id": user_id, "project_role": "lead", "volumes": list(VOLUMES)}},
-            "owners": {volume: user_id for volume in VOLUMES}, "assembly_owner_id": user_id, "handoffs": []}
+VOLUME_MODES = {"both": VOLUMES, "technical_only": ("technical",)}
+
+
+def volumes_for_mode(mode: str | None) -> tuple[str, ...]:
+    return VOLUME_MODES.get(mode or "both", VOLUMES)
+
+
+def project_volume_mode(state, project_id) -> str:
+    """项目编写哪些分册：both（技术+商务，导出后合标）或 technical_only（只写技术标，不合标）。存在项目团队记录里。"""
+    team = state.project_teams.get(project_id) or {}
+    mode = team.get("volume_mode") or "both"
+    return mode if mode in VOLUME_MODES else "both"
+
+
+def project_volumes(state, project_id) -> tuple[str, ...]:
+    return volumes_for_mode(project_volume_mode(state, project_id))
+
+
+def rule_scope(state, project_id, volume):
+    """检查与规则的实际范围：只写技术标时“全文”就是技术分册；商务分册不存在。"""
+    active = project_volumes(state, project_id)
+    if volume == "all":
+        return "all" if len(active) > 1 else active[0]
+    require_project_volume(state, project_id, volume)
+    return volume
+
+
+def in_scope_workflow(workflow):
+    """交给合规规则的工作流视图：去掉“不在本项目范围”的条款（只写技术标时的商务/资格条款）。"""
+    rows = workflow.get("requirements") or {}
+    if not any(r.get("out_of_scope") for r in rows.values()):
+        return workflow
+    return {**workflow, "requirements": {k: r for k, r in rows.items() if not r.get("out_of_scope")}}
+
+
+def require_project_volume(state, project_id, volume):
+    """只写技术标的项目里，任何指向商务分册的写入都拒绝，而不是悄悄建出一个商务册。"""
+    if volume not in project_volumes(state, project_id):
+        from .domain import DomainError
+        raise DomainError(404, "NOT_FOUND", "本项目只编写技术标，没有商务分册。")
+
+
+def initial_team(user_id, volume_mode="both"):
+    volumes = volumes_for_mode(volume_mode)
+    return {"members": {user_id: {"user_id": user_id, "project_role": "lead", "volumes": list(volumes)}},
+            "owners": {volume: user_id for volume in volumes}, "assembly_owner_id": user_id, "handoffs": [],
+            "volume_mode": volume_mode if volume_mode in VOLUME_MODES else "both"}
 
 
 def member(state, project_id, user_id):
@@ -220,9 +264,9 @@ def project_permissions(state, project_id, user_id):
         return {"manage_team": True, "manage_project": True, "manage_structure": True,
                 "prepare_sources": True, "manage_sla": True, "confirm_facts": True,
                 "edit_facts": True, "check_all": True, "export_internal": True,
-                "check_volumes": list(VOLUMES), "export_volumes": list(VOLUMES)}
+                "check_volumes": list(project_volumes(state, project_id)), "export_volumes": list(project_volumes(state, project_id))}
     is_lead = lead(state, project_id, user_id)
-    volumes = [v for v in VOLUMES if is_lead or volume_owner(state, project_id, v, user_id)]
+    volumes = [v for v in project_volumes(state, project_id) if is_lead or volume_owner(state, project_id, v, user_id)]
     return {"manage_team": is_lead, "manage_project": is_lead, "manage_structure": is_lead,
             "prepare_sources": is_lead, "manage_sla": is_lead, "confirm_facts": is_lead,
             "edit_facts": writable(state, project_id, user_id),
@@ -236,7 +280,8 @@ def public_team(state, project_id, user_id):
                         for identity, item in team["members"].items() if identity in state.accounts],
             "volumes": [{"volume": volume, "owner_id": team["owners"].get(volume),
                          "owner_name": state.accounts[team["owners"][volume]].name if team["owners"].get(volume) in state.accounts else None}
-                        for volume in VOLUMES],
+                        for volume in project_volumes(state, project_id)],
+            "volume_mode": project_volume_mode(state, project_id),
             "assembly_owner_id": team.get("assembly_owner_id"), "handoffs": team.get("handoffs", []),
             "available_accounts": [asdict(a) for a in state.accounts.values()
                                    if a.company_id == state.projects[project_id].company_id]

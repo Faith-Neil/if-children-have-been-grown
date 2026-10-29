@@ -672,11 +672,13 @@ class DemoService:
         return self._project_response(self._project(state, principal, project_id))
 
     def create_project(self, principal: Principal, name: str, *,
-                       idempotency_key: str | None = None) -> dict:
+                       idempotency_key: str | None = None, volume_mode: str = "both") -> dict:
         from .idempotency import fingerprint, lookup, remember, validate_key
+        from .project_access import volumes_for_mode
         key = validate_key(idempotency_key) if idempotency_key is not None else None
         scope_id = f"company:{principal.user.company_id}"
-        req_fp = fingerprint("project.create", {"name": name}, None) if key else ""
+        # 原有两册项目的指纹保持不变（只有技术标模式才把模式写进指纹）
+        req_fp = fingerprint("project.create", {"name": name} if volume_mode == "both" else {"name": name, "volume_mode": volume_mode}, None) if key else ""
 
         def operation(state: DemoState):
             if key:
@@ -701,15 +703,18 @@ class DemoService:
                 record_version=1,
             )
             state.projects[project.id] = project
-            state.project_teams[project.id] = initial_team(principal.user.id)
+            state.project_teams[project.id] = initial_team(principal.user.id, volume_mode)
+            active = volumes_for_mode(volume_mode)
             for volume, title in (("technical", "技术方案"), ("business", "商务响应")):
+                if volume not in active:
+                    continue
                 chapter = Chapter(new_id("chapter"), project.id, title, volume, "")
                 chapter.versions.append({"revision": 1, "content": "",
                                          "actor_id": principal.user.id,
                                          "created_at": iso_time(now_ts)})
                 state.chapters[chapter.id] = chapter
                 self._audit(state, principal, chapter, "project.create")
-            res = self._project_response(project)
+            res = {**self._project_response(project), "volume_mode": volume_mode}
             if key:
                 remember(state, scope_id, principal.user.id, key, req_fp, res, self._now())
             return res

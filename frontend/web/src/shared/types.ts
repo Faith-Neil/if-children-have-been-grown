@@ -150,8 +150,10 @@ export type ApplicationSession = {
   session: { expires_at: string | null; renew_supported: boolean };
   project_access?: { id: string; revision: number; route_permissions: string[]; permissions: ProjectPermissions; chapters: { id: string; volume: Volume; permissions: ChapterPermissions }[] };
 };
+export type VolumeMode = 'both' | 'technical_only';
 export type Project = {
   id: string;
+  volume_mode?: VolumeMode;
   name: string;
   company_id: string;
   revision?: number;
@@ -167,7 +169,7 @@ export type Project = {
 };
 export type ProjectRole = 'lead' | 'writer' | 'readonly';
 export type ProjectMember = { user_id: string; name: string; company_role: Account['role']; project_role: ProjectRole; volumes: Volume[] };
-export type ProjectTeam = {
+export type ProjectTeam = { volume_mode?: VolumeMode;
   members: ProjectMember[]; volumes: { volume: Volume; owner_id: string | null; owner_name: string | null }[];
   assembly_owner_id: string | null; available_accounts: Account[];
   handoffs: { id: string; actor_id: string; at: string; reason: string; chapter_ids: string[]; previous_user_ids: string[]; preserved_draft_count: number; revoked_lock_count: number }[];

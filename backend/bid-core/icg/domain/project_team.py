@@ -8,6 +8,7 @@ from .project_access import (
     LEAD_COMPANY_ROLES,
     READONLY_SYSTEM_ROLES,
     VOLUMES,
+    project_volumes,
     chapter_edit,
     normalize_role,
     public_team,
@@ -67,16 +68,22 @@ class ProjectTeamService:
                     raise DomainError(422, "MEMBER_ROLE_NOT_WRITABLE", "公司只读账号不能在项目中提升为负责人或编写人。")
                 if item["project_role"] == "lead" and norm not in LEAD_COMPANY_ROLES:
                     raise DomainError(422, "PROJECT_LEAD_COMPANY_ROLE_REQUIRED", "项目负责人必须具有公司的项目经理操作角色，普通编写人可担任分册负责人或本节编写人。")
-                if item["project_role"] == "lead" and set(volumes) != set(VOLUMES):
-                    raise DomainError(422, "LEAD_ALL_VOLUMES_REQUIRED", "项目负责人负责全部两册，须参与技术和商务。")
+                active = set(project_volumes(state, project_id))
+                if not set(volumes) <= active:
+                    raise DomainError(404, "NOT_FOUND", "本项目只编写技术标，没有商务分册。")
+                if item["project_role"] == "lead" and set(volumes) != active:
+                    raise DomainError(422, "LEAD_ALL_VOLUMES_REQUIRED",
+                                      "项目负责人负责全部分册，须参与技术和商务。" if len(active) > 1 else "项目负责人须参与技术分册。")
                 members[item["user_id"]] = deepcopy(item)
             if not any(m["project_role"] == "lead" for m in members.values()):
                 raise DomainError(409, "LAST_PROJECT_LEAD_REQUIRED", "项目必须保留至少一位有效负责人。")
             owners = {item["volume"]: item["owner_id"] for item in payload["volumes"]}
-            if len(payload["volumes"]) != 2 or set(owners) != set(VOLUMES):
-                raise DomainError(422, "TWO_VOLUMES_REQUIRED", "请完整设置技术和商务两册的负责人，可明确留空。")
+            active = project_volumes(state, project_id)
+            if len(payload["volumes"]) != len(active) or set(owners) != set(active):
+                raise DomainError(422, "TWO_VOLUMES_REQUIRED",
+                                  "请完整设置技术和商务两册的负责人，可明确留空。" if len(active) > 1 else "请设置技术分册负责人，可明确留空。")
             new = {"members": members, "owners": owners, "assembly_owner_id": payload["assembly_owner_id"],
-                   "handoffs": deepcopy(old.get("handoffs", []))}
+                   "handoffs": deepcopy(old.get("handoffs", [])), "volume_mode": old.get("volume_mode", "both")}
             state.project_teams[project_id] = new
             for volume, identity in owners.items():
                 self.eligible(state, project_id, identity, volume)

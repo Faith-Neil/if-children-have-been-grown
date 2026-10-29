@@ -117,13 +117,15 @@ class CheckOrchestratorMixin(ComplianceRulesMixin):
         """执行完整合规检查与全规则引擎评估。"""
         def operation(state, project, workflow):
             volume = payload.get("volume", "all")
+            from icg.domain.project_access import project_volumes, rule_scope
+            scope = rule_scope(state, project_id, volume)  # 只写技术标：全文=技术分册
             issues = []
             add = lambda code, message, severity="blocking", **links: issues.append(self._issue(code, message, severity=severity, **links))
             if not workflow["parse_confirmed"]:
                 add("PARSE_NOT_CONFIRMED", "解析结果尚未确认。")
             checked_chapters = [
                 c for c in state.chapters.values()
-                if c.project_id == project_id and (volume == "all" or c.volume == volume)
+                if c.project_id == project_id and (scope == "all" or c.volume == scope)
             ]
             if not checked_chapters or not all(plan_is_current(state, project_id, c.id) for c in checked_chapters):
                 add("PLAN_NOT_CONFIRMED", "写作大纲尚未确认。")
@@ -153,7 +155,7 @@ class CheckOrchestratorMixin(ComplianceRulesMixin):
             if not workflow["requirements"]:
                 add("REQUIREMENTS_EMPTY", "没有可核对的招标条款。")
             for row in workflow["requirements"].values():
-                if volume != "all" and row["volume"] != volume:
+                if scope != "all" and row["volume"] != scope:
                     continue
                 links = {"requirement_id": row["id"]}
                 is_crit = self._is_critical_requirement(row)
@@ -196,9 +198,9 @@ class CheckOrchestratorMixin(ComplianceRulesMixin):
                         add("EVIDENCE_EXPIRED", "证据不能覆盖投标截止时间。", severity=crit_sev, evidence_id=evidence_id, **links)
             chapters = [
                 c for c in state.chapters.values()
-                if c.project_id == project_id and (volume == "all" or c.volume == volume)
+                if c.project_id == project_id and (scope == "all" or c.volume == scope)
             ]
-            required_volumes = {"technical", "business"} if volume == "all" else {volume}
+            required_volumes = set(project_volumes(state, project_id)) if scope == "all" else {scope}
             if {c.volume for c in chapters} != required_volumes:
                 add("VOLUME_MISSING", "所检查分册缺少章节。")
             for chapter in chapters:
@@ -211,8 +213,9 @@ class CheckOrchestratorMixin(ComplianceRulesMixin):
                 except DomainError as error:
                     add(error.code, error.message, chapter_id=chapter.id)
             issues.extend(sla_issues(state, project_id, chapters))
+            from icg.domain.project_access import in_scope_workflow
             rule_results = ComplianceRulesEngine.evaluate_all(
-                state, project, workflow, volume=volume, now_ts=self.demo._now()
+                state, project, in_scope_workflow(workflow), volume=scope, now_ts=self.demo._now()
             )
             def same(a, b):
                 # 段落级规则（R29/R30）同章多段各算一条，按段落下标区分

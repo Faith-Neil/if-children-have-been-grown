@@ -146,6 +146,8 @@ class OmissionMixin:
 
         def operation(state: DemoState, project, workflow):
             hit = self._open_hit(state, principal, project_id, workflow, hit_id)
+            from icg.domain.project_access import require_project_volume
+            require_project_volume(state, project_id, volume)
             text = str(payload.get("text") or hit["quote"]).strip()
             if not text:
                 raise DomainError(422, "EMPTY_REQUIREMENT", "条款原文不能为空。")

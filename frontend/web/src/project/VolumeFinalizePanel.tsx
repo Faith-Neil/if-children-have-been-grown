@@ -6,6 +6,7 @@ import { Button, Card, Form, Input, Modal, Radio, Select, Space, Tag, Tooltip } 
 import { formatTime, useProject, volumeName } from '../app/context.tsx';
 import type { Volume, VolumeStatus } from '../shared/types.ts';
 import { queuePaths, reviewTag, reviewerCandidates, volumeActions } from './main-path-core.ts';
+import { projectVolumes, technicalOnly, volumeOptions } from './project-volumes.ts';
 
 type Dialog = { kind: 'assign' | 'confirm' | 'unlock'; volume: Volume } | null;
 
@@ -45,7 +46,7 @@ export function VolumeFinalizePanel({ volumes, checkId }: { volumes: VolumeStatu
 
   return (
     <Card title="分册定稿" className="stack-card" data-testid="volume-finalize-panel">
-      {(['technical', 'business'] as Volume[]).map(volume => {
+      {projectVolumes(workspace).map(volume => {
         const status = volumes.find(item => item.volume_id === volume);
         const actions = volumeActions(status, workspace, user.id, volume);
         const review = status?.cross_review;

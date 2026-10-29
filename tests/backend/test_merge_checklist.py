@@ -68,6 +68,9 @@ def test_checklist_permissions_and_internal_exports_have_none(client):
     flow, check, export = _submission(client)
     viewer = client.get(f"{flow.path}/exports/{export['id']}/merge-checklist", headers=login(client, "alpha-viewer"))
     assert viewer.status_code in (403, 404)
+    admin = client.get(f"{flow.path}/exports/{export['id']}/merge-checklist", headers=login(client, "alpha-company-admin"))
+    assert admin.status_code == 200, admin.text  # 公司管理员不是项目成员也可下载（用户 2026-10-29 确认）
+    assert client.get(export["merge_checklist_url"], headers=login(client, "alpha-company-admin")).status_code == 200
     writer = client.get(f"{flow.path}/exports/{export['id']}/merge-checklist", headers=login(client, "alpha-editor"))
     assert writer.status_code == 403  # 编写人不是分册负责人，不能下载
     beta = client.get(f"{flow.path}/exports/{export['id']}/merge-checklist", headers=login(client, "beta-manager"))

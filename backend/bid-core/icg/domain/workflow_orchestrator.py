@@ -10,12 +10,13 @@ from dataclasses import asdict
 from typing import Any, Callable
 
 from icg.domain.domain import Chapter, DemoService, DemoState, DomainError, Principal, iso_time, new_id
+from icg.domain.volume_mode import switch_volume_mode
 from icg.domain.ports import ParserProvider
 from icg.domain.input_snapshot import project_input_fingerprint
 from icg.domain.sla import SlaService, public_sla
 from icg.domain.generation_context import build_generation_context, chapter_plan, plan_is_current, project_facts, public_plan
 from icg.domain.project_access import (
-    VOLUMES, writable, lead, volume_owner, require_lead, require_chapter,
+    VOLUMES, project_volume_mode, writable, lead, volume_owner, require_lead, require_chapter,
     chapter_structure, chapter_edit, chapter_permissions, project_permissions,
     public_team, normalize_role,
 )
@@ -169,7 +170,7 @@ class WorkflowService(
             self._audit(state, principal, project_id, action, audit_details)
             result = {"revision": project.revision, **result}
             if "project" in result:
-                result["project"] = asdict(project)
+                result["project"] = {**asdict(project), "volume_mode": project_volume_mode(state, project_id)}
             remember(state, project_id, principal.user.id, key, request_fingerprint, result, self.demo._now())
             return result
 
@@ -295,7 +296,7 @@ class WorkflowService(
                  "matrix" if workflow["parse_confirmed"] else "review" if workflow["requirements"] else "upload")
         return {
             "revision": project.revision, "input_fingerprint": self._fingerprint(state, project_id),
-            "project": asdict(project), "stage": stage,
+            "project": {**asdict(project), "volume_mode": project_volume_mode(state, project_id)}, "stage": stage,
             "files": [self._public_file(f) for f in workflow["files"].values()],
             "requirements": [{**row, "permissions": {
                 "edit": lead(state, project_id, principal.user.id),
@@ -325,6 +326,7 @@ class WorkflowService(
             partners = payload.pop("project_partners", None)
             if partners is not None:
                 state.project_partners[project.id] = partners
+            switch_volume_mode(state, principal, project, workflow, payload.pop("volume_mode", None), now=self.demo._now())
             for field, value in payload.items():
                 if value is None:
                     raise DomainError(422, "INVALID_PROJECT_FIELD", "项目字段不能设为空值，请使用空字符串清空文本。")
@@ -333,7 +335,7 @@ class WorkflowService(
                 if field == "deadline" and value:
                     self._date(value)
                 setattr(project, field, value.strip() if isinstance(value, str) else value)
-            return {"project": asdict(project)}
+            return {"project": {**asdict(project), "volume_mode": project_volume_mode(state, project.id)}}
 
         return self._write(principal, project_id, "project.update", payload, expected, key, operation)
 

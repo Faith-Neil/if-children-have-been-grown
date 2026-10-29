@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 from .chapter_loop import OPEN_STATUSES
 from .domain import DemoState, DomainError, Principal, iso_time
-from .project_access import VOLUMES, lead, member, normalize_role, volume_owner, writable
+from .project_access import VOLUMES, lead, project_volumes, member, normalize_role, volume_owner, writable
 
 REVIEW_DECISIONS = {"approved": "复核通过", "returned": "退回修改"}
 VOLUME_LABELS = {"technical": "技术分册", "business": "商务分册"}
@@ -90,7 +90,7 @@ class VolumeReviewMixin:
 
     def assign_cross_reviewer(self, principal: Principal, project_id: str, volume: str, payload: dict,
                               expected: str | None, key: str | None) -> dict:
-        if volume not in VOLUMES:
+        if volume not in project_volumes(self.repository.read(), project_id):
             raise DomainError(404, "NOT_FOUND", f"未找到指定分册：{volume}")
         reviewer_id = str(payload.get("reviewer_id") or "").strip()
 
@@ -119,7 +119,7 @@ class VolumeReviewMixin:
 
     def confirm_cross_review(self, principal: Principal, project_id: str, volume: str, payload: dict,
                              expected: str | None, key: str | None) -> dict:
-        if volume not in VOLUMES:
+        if volume not in project_volumes(self.repository.read(), project_id):
             raise DomainError(404, "NOT_FOUND", f"未找到指定分册：{volume}")
         decision = payload.get("decision")
         note = str(payload.get("note") or "").strip()

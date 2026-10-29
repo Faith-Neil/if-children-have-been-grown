@@ -35,4 +35,6 @@ def test_trace_scope_and_permissions(client):
     for account in ("alpha-viewer", "alpha-editor"):
         assert client.get(f"{flow.path}/response-trace.xlsx", headers=login(client, account)).status_code == 403
     assert client.get(f"{flow.path}/response-trace.xlsx", headers=login(client, "beta-manager")).status_code == 404
+    admin = client.get(f"{flow.path}/response-trace.xlsx", headers=login(client, "alpha-company-admin"))
+    assert admin.status_code == 200 and len(read_xlsx_rows(admin.content)) > 4
     assert client.get(f"{flow.path}/response-trace.xlsx?volume=x", headers=flow.headers).status_code == 422

@@ -413,7 +413,12 @@ class OutlinePlanService:
                         )
 
             workflow = state.workflows.setdefault(project_id, {})
-            requirements = list(workflow.get("requirements", {}).values())
+            from icg.domain.project_access import project_volumes
+            active_volumes = project_volumes(state, project_id)
+            # 只写技术标：商务/资格条款已标为不在本项目范围，不进大纲
+            requirements = [r for r in workflow.get("requirements", {}).values()
+                            if len(active_volumes) > 1 or not r.get("out_of_scope")]
+            tree_options = {**(options or {}), "volumes": active_volumes}
 
             # 获取本项目现有章节
             existing_chapters = [c for c in state.chapters.values() if c.project_id == project_id]
@@ -422,7 +427,7 @@ class OutlinePlanService:
             engine = AutoTreeBuildEngine(self.demo)
             tree_result = engine.build_tree_structure(
                 requirements=requirements,
-                options=options,
+                options=tree_options,
                 existing_chapters=existing_chapters,
             )
 

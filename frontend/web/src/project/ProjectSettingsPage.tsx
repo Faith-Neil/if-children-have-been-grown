@@ -9,6 +9,7 @@ import { eligibleOwners, projectCan, projectRoleName, teamBasis, teamFormValues,
 import type { ProjectTeam } from '../shared/types';
 import { request } from '../shared/api';
 import { ModelConfigModal } from '../admin/ModelConfigModal';
+import { projectVolumes, technicalOnly, volumeOptions } from './project-volumes.ts';
 
 const anchors = [ ['basic', '基本信息'], ['members', '成员与分工'], ['partners', '合作方'], ['persons', '拟派人员'], ['sla', 'SLA 取值'], ['rules', '规则覆盖'], ['loops', '生成闭环'], ['volumes', '分册'], ['export', '导出设置'] ];
 
@@ -68,7 +69,7 @@ export default function ProjectSettingsPage() {
     if (!canManageTeam || busy || savingTeam) return;
     if (teamChanged) { report(new Error('后台分工已更新，当前填写内容已保留。请先核对并载入最新分工，再重新安排和保存。')); return; }
     let payload;
-    try { payload = teamPayload(await teamForm.validateFields(), accounts); } catch (error) { if (error instanceof Error) report(error); return; }
+    try { payload = teamPayload(await teamForm.validateFields(), accounts, projectVolumes(workspace)); } catch (error) { if (error instanceof Error) report(error); return; }
     const oldIds = team?.members.map(member => member.user_id) ?? [];
     const removed = oldIds.filter(id => !payload.members.some(member => member.user_id === id));
     const changeRole = team?.members.some(member => payload.members.some(next => next.user_id === member.user_id && (next.project_role !== member.project_role || JSON.stringify(next.volumes) !== JSON.stringify(member.volumes))));
@@ -107,16 +108,16 @@ export default function ProjectSettingsPage() {
             <Form.List name="members">{(fields, { add, remove }) => <>
               {fields.map(field => <div className="project-member-row" key={field.key}>
                 <Form.Item name={[field.name, 'user_id']} label={`成员 ${field.name + 1}`} rules={[{ required: true, message: '请选择项目成员' }]}><Select aria-label={`项目成员 ${field.name + 1}`} optionFilterProp="label" showSearch options={accounts.map(account => ({ value: account.id, label: `${account.name}${account.role === 'viewer' ? '（公司只读账号）' : ''}`, disabled: members.some((member, index) => index !== field.name && member.user_id === account.id) }))} /></Form.Item>
-                <Form.Item name={[field.name, 'project_role']} label="本项目角色" rules={[{ required: true }]}><Select aria-label={`成员 ${field.name + 1} 的项目角色`} options={[{ value: 'lead', label: '项目负责人', disabled: accounts.find(account => account.id === members[field.name]?.user_id)?.role !== 'manager' }, { value: 'writer', label: '投标编写人', disabled: accounts.find(account => account.id === members[field.name]?.user_id)?.role === 'viewer' }, { value: 'readonly', label: '只读成员' }]} onChange={role => { if (role === 'lead') teamForm.setFieldValue(['members', field.name, 'volumes'], ['technical', 'business']); }} /></Form.Item>
-                <Form.Item name={[field.name, 'volumes']} label="参与分册（可选）" extra="留空可先加入项目；分配本册负责人或章节时必须选择相应分册。"><Checkbox.Group disabled={members[field.name]?.project_role === 'lead' || busy || !canManageTeam} options={[{ value: 'technical', label: '技术' }, { value: 'business', label: '商务' }]} /></Form.Item>
+                <Form.Item name={[field.name, 'project_role']} label="本项目角色" rules={[{ required: true }]}><Select aria-label={`成员 ${field.name + 1} 的项目角色`} options={[{ value: 'lead', label: '项目负责人', disabled: accounts.find(account => account.id === members[field.name]?.user_id)?.role !== 'manager' }, { value: 'writer', label: '投标编写人', disabled: accounts.find(account => account.id === members[field.name]?.user_id)?.role === 'viewer' }, { value: 'readonly', label: '只读成员' }]} onChange={role => { if (role === 'lead') teamForm.setFieldValue(['members', field.name, 'volumes'], projectVolumes(workspace)); }} /></Form.Item>
+                <Form.Item name={[field.name, 'volumes']} label="参与分册（可选）" extra="留空可先加入项目；分配本册负责人或章节时必须选择相应分册。"><Checkbox.Group disabled={members[field.name]?.project_role === 'lead' || busy || !canManageTeam} options={projectVolumes(workspace).map(value => ({ value, label: value === 'technical' ? '技术' : '商务' }))} /></Form.Item>
                 <Button danger size="small" disabled={!canManageTeam || busy} onClick={() => remove(field.name)}>移出项目</Button>
               </div>)}
-              <Button icon={<PlusOutlined />} disabled={!canManageTeam || busy || fields.length >= accounts.length} onClick={() => add({ user_id: undefined, project_role: 'writer', volumes: ['technical', 'business'] })}>加入项目成员</Button>
+              <Button icon={<PlusOutlined />} disabled={!canManageTeam || busy || fields.length >= accounts.length} onClick={() => add({ user_id: undefined, project_role: 'writer', volumes: projectVolumes(workspace) })}>加入项目成员</Button>
             </>}</Form.List>
           </Card>
-          <Card id="project-setting-volumes" title="分册与合标分工" className="stack-card">
-            <Row gutter={16}><Col span={12}><Form.Item name="technical_owner_id" label="技术分册负责人" extra="负责人需参与技术册，未指定时本册不能确认写作方案。"><Select aria-label="技术分册负责人" allowClear placeholder="请选择技术分册负责人" options={options('technical')} /></Form.Item></Col><Col span={12}><Form.Item name="business_owner_id" label="商务分册负责人" extra="负责人需参与商务册，未指定时本册不能确认写作方案。"><Select aria-label="商务分册负责人" allowClear placeholder="请选择商务分册负责人" options={options('business')} /></Form.Item></Col></Row>
-            <Form.Item name="assembly_owner_id" label="合标负责人" extra="负责下载两册并人工核对合标；不会因此获得项目设置权，也不能生成正式递交版。"><Select aria-label="合标负责人" allowClear placeholder="请选择合标负责人" options={options()} /></Form.Item>
+          <Card id="project-setting-volumes" title={technicalOnly(workspace) ? '分册分工（只写技术标，不合标）' : '分册与合标分工'} className="stack-card">
+            <Row gutter={16}><Col span={12}><Form.Item name="technical_owner_id" label="技术分册负责人" extra="负责人需参与技术册，未指定时本册不能确认写作方案。"><Select aria-label="技术分册负责人" allowClear placeholder="请选择技术分册负责人" options={options('technical')} /></Form.Item></Col>{!technicalOnly(workspace) && <Col span={12}><Form.Item name="business_owner_id" label="商务分册负责人" extra="负责人需参与商务册，未指定时本册不能确认写作方案。"><Select aria-label="商务分册负责人" allowClear placeholder="请选择商务分册负责人" options={options('business')} /></Form.Item></Col>}</Row>
+            {!technicalOnly(workspace) && <Form.Item name="assembly_owner_id" label="合标负责人" extra="负责下载两册并人工核对合标；不会因此获得项目设置权，也不能生成正式递交版。"><Select aria-label="合标负责人" allowClear placeholder="请选择合标负责人" options={options()} /></Form.Item>}
             <Form.Item name="reason" label="本次调整原因与交接安排" rules={[{ required: true, whitespace: true, message: '请说明这次人员调整和交接安排' }]}><Input.TextArea aria-label="人员分工调整原因" rows={3} maxLength={2000} placeholder="例如：张工接手技术分册；原正文保留，由两人核对后继续编写；个人草稿由原账号自己处理。" /></Form.Item>
             <Button type="primary" onClick={saveTeam} disabled={!canManageTeam || busy} loading={savingTeam}>保存成员与分工</Button>
           </Card>

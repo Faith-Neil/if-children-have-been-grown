@@ -12,6 +12,7 @@ import {
   sameParagraphIssues, severityTag,
 } from './main-path-core.ts';
 import { ChapterLoopPage } from './ChapterLoopPage.tsx';
+import { projectVolumes, technicalOnly, volumeOptions } from './project-volumes.ts';
 
 type Pending = { kind: 'resolve' | 'reject'; group: HumanQueueChapter; issue: HumanIssue } | null;
 
@@ -105,7 +106,7 @@ function HumanQueueView() {
           <Segmented
             value={volume}
             onChange={value => setVolume(value as Volume | 'all')}
-            options={[{ value: 'all', label: '全部' }, { value: 'technical', label: '技术分册' }, { value: 'business', label: '商务分册' }]}
+            options={volumeOptions(workspace, true)}
           />
           <Button icon={<ReloadOutlined />} onClick={() => void load()} loading={loading}>刷新</Button>
         </Space>

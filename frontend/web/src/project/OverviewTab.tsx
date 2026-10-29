@@ -6,6 +6,7 @@ import { Button, Card, Col, Collapse, Empty, List, Progress, Row, Steps, Tag } f
 import { CheckCircleOutlined } from '@ant-design/icons';
 import { formatTime, useProject, volumeName } from '../app/context.tsx';
 import { useVolumesStatus, isVolumeFinalized } from './volume-api.ts';
+import { projectVolumes, technicalOnly, volumeOptions } from './project-volumes.ts';
 
 export function ClockCircleSymbol() {
   return <span className="todo-circle">○</span>;
@@ -90,7 +91,7 @@ export function OverviewPage() {
         </Col>
         <Col span={8}>
           <Card title="分册进度" className="stack-card">
-            {(['technical', 'business'] as const).map(volume => {
+            {projectVolumes(workspace).map(volume => {
               const chapters = workspace.chapters.filter(item => item.volume === volume);
               return (
                 <div key={volume} className="volume-progress">

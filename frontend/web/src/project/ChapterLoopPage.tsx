@@ -8,6 +8,7 @@ import { formatTime, useProject, volumeName } from '../app/context.tsx';
 import { editorChapterPath } from '../app/app-route.ts';
 import type { ChapterLoopDetail, ChapterLoopList, ChapterLoopRow, Volume } from '../shared/types.ts';
 import { queuePaths } from './main-path-core.ts';
+import { projectVolumes, technicalOnly, volumeOptions } from './project-volumes.ts';
 import {
   fetchChapterLoop, fetchChapterLoops, loopStatus, metaLines, progressPercent, relayNotice, roundColor, roundSummary, timelineLoops,
 } from './chapter-loop-core.ts';
@@ -69,7 +70,7 @@ export function ChapterLoopPage() {
           <Segmented
             value={volume}
             onChange={value => setVolume(value as Volume | 'all')}
-            options={[{ value: 'all', label: '全部' }, { value: 'technical', label: '技术分册' }, { value: 'business', label: '商务分册' }]}
+            options={volumeOptions(workspace, true)}
           />
           <Button icon={<ReloadOutlined />} onClick={() => void load()} loading={loading}>刷新</Button>
         </Space>

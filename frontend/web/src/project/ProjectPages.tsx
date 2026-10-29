@@ -42,6 +42,7 @@ import { SourceLink } from './SourceLink';
 import { OriginalPreview } from './OriginalPreview';
 import { ConflictCards } from './ConflictCards';
 import { VolumeFinalizePanel } from './VolumeFinalizePanel';
+import { projectVolumes, technicalOnly, volumeOptions } from './project-volumes';
 export { OverviewPage } from './OverviewTab';
 export { TenderPage } from './TenderTab';
 export { ParsePage } from './ParseTab';
@@ -90,7 +91,7 @@ export function MatrixPage() {
       setEvidenceItem(current); setEvidenceIds(fresh.ids); setOpenedEvidence(fresh.opened); setEvidenceStale(false);
     } catch { /* 刷新失败时抽屉保留当前勾选 */ }
   }
-  return <><Row gutter={12} className="matrix-statistics">{[{ title: '响应点总数', value: active.length }, { title: '已回应', value: responded, color: '#2B9D5C' }, { title: '未确认条款', value: active.filter(item => item.status === 'pending').length, color: '#D9363E' }, { title: '缺证据', value: active.filter(item => /资质|证书|证明|业绩|授权/.test(item.text) && !item.evidence_ids.length).length, color: '#D9363E' }, { title: '覆盖率', value: `${active.length ? Math.round(responded / active.length * 100) : 0}%`, color: '#1E4DB7' }].map(item => <Col flex="1" key={item.title}><Card><Statistic title={item.title} value={item.value} valueStyle={{ color: item.color }} /></Card></Col>)}</Row>{!workspace.parse_confirmed && <Alert type="warning" showIcon className="page-notice" message="解析结果尚未完整确认" description="先在解析结果处理冲突和待确认条款，避免未经核对的数据进入写作方案。" />}<div className="matrix-switch"><Radio.Group value={kind} optionType="button" buttonStyle="solid" onChange={e => setKind(e.target.value)} options={[{ value: 'requirements', label: '要求矩阵' }, { value: 'sla', label: '服务响应承诺（SLA）' }]} />{kind === 'sla' && <span className="muted">招标要求、我方承诺与公司能力逐项对照。</span>}</div>{kind === 'sla' ? <SlaMatrixPage onLocate={setSource} /> : <Card className="matrix-card" bodyStyle={{ padding: 0 }}><div className="table-toolbar"><Input prefix={<SearchOutlined />} aria-label="搜索要求原文或响应" placeholder="搜索要求原文 / 响应要点" value={search} onChange={e => setSearch(e.target.value)} style={{ width: 280 }} /><Select aria-label="矩阵状态" value={status} onChange={setStatus} options={[{ value: 'all', label: '全部状态' }, { value: 'confirmed', label: '已确认' }, { value: 'pending', label: '待确认' }]} /><Select aria-label="矩阵分册" value={volume} onChange={setVolume} options={[{ value: 'all', label: '全部分册' }, { value: 'technical', label: '技术分册' }, { value: 'business', label: '商务分册' }]} /><Tooltip title="批量匹配、Excel 和指派尚未接通"><Button disabled>智能匹配证据</Button></Tooltip></div><Table rowKey="id" size="small" pagination={{ pageSize: 10 }} scroll={{ x: 1040 }} dataSource={rows} rowClassName={item => [item.status === 'pending' || !item.response.trim() ? 'risk-row' : '', item.evidence_ids.some(id => evidenceInvalid(library.find(value => value.id === id), workspace.project.deadline)) ? 'evidence-invalid-row' : ''].filter(Boolean).join(' ')} columns={[{ title: '#', width: 40, render: (_, __, index) => index + 1 }, { title: '要求原文', dataIndex: 'text', width: 270, render: (value: string, item: Requirement) => <><div>{value}</div><SourceLink source={item.source} onClick={setSource} /></> }, { title: '类别 / 性质', width: 105, render: (_, item) => <Tag color={['qualification', 'star', 'disqualification'].includes(item.category) ? 'purple' : 'blue'}>{categoryName(item.category)}</Tag> }, { title: '归属分册', dataIndex: 'volume', width: 90, render: volumeName }, { title: '响应要点', dataIndex: 'response', width: 220, render: (value: string) => value || <span className="orange">未填写</span> }, { title: '对应章节', width: 150, render: (_, item) => workspace.chapters.find(chapter => chapter.id === item.chapter_id)?.title ?? <span className="orange">未分配</span> }, { title: '证据', width: 220, render: (_, item) => <>{item.evidence_ids.length ? item.evidence_ids.map(id => { const evidence = library.find(value => value.id === id); const invalid = evidenceInvalid(evidence, workspace.project.deadline); return <p className={invalid ? 'red' : ''} key={id}>{evidence?.name ?? '资料已不可见'}{evidence ? ` · v${evidence.revision ?? '—'}` : ''}{invalid && <Tag color="red">证据失效</Tag>}</p>; }) : <span className="muted">尚未挂接</span>}<Button type="link" size="small" disabled={!item.permissions?.response || busy} onClick={() => openEvidence(item)}>挂证据</Button></> }, { title: '状态 / 操作', width: 130, render: (_, item) => <><Tag color={statusColor(item.status)}>{statusName(item.status)}</Tag><p><Button type="link" size="small" disabled={busy || !item.permissions?.response} onClick={() => { setEdit(item); form.setFieldsValue(item); }}>编辑响应</Button></p></> }]} /></Card>}<EvidenceDrawer open={!!evidenceItem} requirement={evidenceItem} library={library} deadline={workspace.project.deadline} selectedIds={evidenceIds} openedIds={openedEvidence?.ids ?? []} canWrite={workspace.requirements.find(item => item.id === evidenceItem?.id)?.permissions?.response === true} busy={busy} stale={evidenceStale} onClose={closeEvidence} onSelected={setEvidenceIds} onSave={() => { void saveEvidence(); }} onRefresh={() => { void refreshEvidence(); }} onSupplement={() => navigate('/library')} /><Drawer title="要求来源 · 招标原文" open={!!source} onClose={() => setSource(null)} width={760}><OriginalPreview source={source} /></Drawer><Modal title="编辑响应与分册分流" open={!!edit} onCancel={() => setEdit(null)} onOk={save} cancelText="取消" confirmLoading={busy} okText="保存" okButtonProps={{ disabled: !edit?.permissions?.response }}><Alert type="info" message={edit?.text} /><Form form={form} layout="vertical" disabled={busy || !edit?.permissions?.response} style={{ marginTop: 16 }}><Form.Item name="response" label="我方响应要点"><Input.TextArea rows={4} placeholder="根据实际能力、证据和招标要求写清回应" /></Form.Item><Form.Item name="volume" label="归属分册"><Select disabled={!edit?.permissions?.route} options={[{ value: 'technical', label: '技术分册' }, { value: 'business', label: '商务分册' }]} /></Form.Item><Form.Item name="chapter_id" label="对应章节"><Select disabled={!edit?.permissions?.route} allowClear options={workspace.chapters.map(item => ({ value: item.id, label: `${volumeName(item.volume)} · ${item.title}` }))} /></Form.Item><Form.Item name="status" label="人工确认"><Select disabled={!edit?.permissions?.route} options={[{ value: 'pending', label: '待确认' }, { value: 'confirmed', label: '已确认' }]} /></Form.Item><Form.Item name="reason" label="说明"><Input.TextArea rows={2} /></Form.Item></Form></Modal></>;
+  return <><Row gutter={12} className="matrix-statistics">{[{ title: '响应点总数', value: active.length }, { title: '已回应', value: responded, color: '#2B9D5C' }, { title: '未确认条款', value: active.filter(item => item.status === 'pending').length, color: '#D9363E' }, { title: '缺证据', value: active.filter(item => /资质|证书|证明|业绩|授权/.test(item.text) && !item.evidence_ids.length).length, color: '#D9363E' }, { title: '覆盖率', value: `${active.length ? Math.round(responded / active.length * 100) : 0}%`, color: '#1E4DB7' }].map(item => <Col flex="1" key={item.title}><Card><Statistic title={item.title} value={item.value} valueStyle={{ color: item.color }} /></Card></Col>)}</Row>{!workspace.parse_confirmed && <Alert type="warning" showIcon className="page-notice" message="解析结果尚未完整确认" description="先在解析结果处理冲突和待确认条款，避免未经核对的数据进入写作方案。" />}<div className="matrix-switch"><Radio.Group value={kind} optionType="button" buttonStyle="solid" onChange={e => setKind(e.target.value)} options={[{ value: 'requirements', label: '要求矩阵' }, { value: 'sla', label: '服务响应承诺（SLA）' }]} />{kind === 'sla' && <span className="muted">招标要求、我方承诺与公司能力逐项对照。</span>}</div>{kind === 'sla' ? <SlaMatrixPage onLocate={setSource} /> : <Card className="matrix-card" bodyStyle={{ padding: 0 }}><div className="table-toolbar"><Input prefix={<SearchOutlined />} aria-label="搜索要求原文或响应" placeholder="搜索要求原文 / 响应要点" value={search} onChange={e => setSearch(e.target.value)} style={{ width: 280 }} /><Select aria-label="矩阵状态" value={status} onChange={setStatus} options={[{ value: 'all', label: '全部状态' }, { value: 'confirmed', label: '已确认' }, { value: 'pending', label: '待确认' }]} /><Select aria-label="矩阵分册" value={volume} onChange={setVolume} options={technicalOnly(workspace) ? [{ value: 'all', label: '全部（含不在范围的商务条款）' }, { value: 'technical', label: '技术分册' }] : [{ value: 'all', label: '全部分册' }, { value: 'technical', label: '技术分册' }, { value: 'business', label: '商务分册' }]} /><Tooltip title="批量匹配、Excel 和指派尚未接通"><Button disabled>智能匹配证据</Button></Tooltip></div><Table rowKey="id" size="small" pagination={{ pageSize: 10 }} scroll={{ x: 1040 }} dataSource={rows} rowClassName={item => [item.status === 'pending' || !item.response.trim() ? 'risk-row' : '', item.evidence_ids.some(id => evidenceInvalid(library.find(value => value.id === id), workspace.project.deadline)) ? 'evidence-invalid-row' : ''].filter(Boolean).join(' ')} columns={[{ title: '#', width: 40, render: (_, __, index) => index + 1 }, { title: '要求原文', dataIndex: 'text', width: 270, render: (value: string, item: Requirement) => <><div>{value}</div><SourceLink source={item.source} onClick={setSource} /></> }, { title: '类别 / 性质', width: 105, render: (_, item) => <Tag color={['qualification', 'star', 'disqualification'].includes(item.category) ? 'purple' : 'blue'}>{categoryName(item.category)}</Tag> }, { title: '归属分册', dataIndex: 'volume', width: 90, render: volumeName }, { title: '响应要点', dataIndex: 'response', width: 220, render: (value: string) => value || <span className="orange">未填写</span> }, { title: '对应章节', width: 150, render: (_, item) => workspace.chapters.find(chapter => chapter.id === item.chapter_id)?.title ?? <span className="orange">未分配</span> }, { title: '证据', width: 220, render: (_, item) => <>{item.evidence_ids.length ? item.evidence_ids.map(id => { const evidence = library.find(value => value.id === id); const invalid = evidenceInvalid(evidence, workspace.project.deadline); return <p className={invalid ? 'red' : ''} key={id}>{evidence?.name ?? '资料已不可见'}{evidence ? ` · v${evidence.revision ?? '—'}` : ''}{invalid && <Tag color="red">证据失效</Tag>}</p>; }) : <span className="muted">尚未挂接</span>}<Button type="link" size="small" disabled={!item.permissions?.response || busy} onClick={() => openEvidence(item)}>挂证据</Button></> }, { title: '状态 / 操作', width: 130, render: (_, item) => <><Tag color={statusColor(item.status)}>{statusName(item.status)}</Tag><p><Button type="link" size="small" disabled={busy || !item.permissions?.response} onClick={() => { setEdit(item); form.setFieldsValue(item); }}>编辑响应</Button></p></> }]} /></Card>}<EvidenceDrawer open={!!evidenceItem} requirement={evidenceItem} library={library} deadline={workspace.project.deadline} selectedIds={evidenceIds} openedIds={openedEvidence?.ids ?? []} canWrite={workspace.requirements.find(item => item.id === evidenceItem?.id)?.permissions?.response === true} busy={busy} stale={evidenceStale} onClose={closeEvidence} onSelected={setEvidenceIds} onSave={() => { void saveEvidence(); }} onRefresh={() => { void refreshEvidence(); }} onSupplement={() => navigate('/library')} /><Drawer title="要求来源 · 招标原文" open={!!source} onClose={() => setSource(null)} width={760}><OriginalPreview source={source} /></Drawer><Modal title="编辑响应与分册分流" open={!!edit} onCancel={() => setEdit(null)} onOk={save} cancelText="取消" confirmLoading={busy} okText="保存" okButtonProps={{ disabled: !edit?.permissions?.response }}><Alert type="info" message={edit?.text} /><Form form={form} layout="vertical" disabled={busy || !edit?.permissions?.response} style={{ marginTop: 16 }}><Form.Item name="response" label="我方响应要点"><Input.TextArea rows={4} placeholder="根据实际能力、证据和招标要求写清回应" /></Form.Item><Form.Item name="volume" label="归属分册"><Select disabled={!edit?.permissions?.route} options={volumeOptions(workspace)} /></Form.Item><Form.Item name="chapter_id" label="对应章节"><Select disabled={!edit?.permissions?.route} allowClear options={workspace.chapters.map(item => ({ value: item.id, label: `${volumeName(item.volume)} · ${item.title}` }))} /></Form.Item><Form.Item name="status" label="人工确认"><Select disabled={!edit?.permissions?.route} options={[{ value: 'pending', label: '待确认' }, { value: 'confirmed', label: '已确认' }]} /></Form.Item><Form.Item name="reason" label="说明"><Input.TextArea rows={2} /></Form.Item></Form></Modal></>;
 }
 
 export { FactsPage } from './FactsTab';
@@ -144,8 +145,8 @@ export function ChecksPage() {
           optionType="button"
           options={[
             { value: 'technical', label: '技术分册检查' },
-            { value: 'business', label: '商务分册检查' },
-            { value: 'all', label: '全文检查' },
+            ...(technicalOnly(workspace) ? [] : [{ value: 'business', label: '商务分册检查' }]),
+            { value: 'all', label: technicalOnly(workspace) ? '技术标全文检查' : '全文检查' },
           ]}
         />
         <Button
@@ -398,6 +399,13 @@ function MergeChecklistCard() {
   const { workspace, token, report } = useProject();
   const latest = latestSubmissionWithChecklist(workspace.exports);
   const checklist = latest?.merge_checklist;
+  if (technicalOnly(workspace)) {
+    return (
+      <Card title="合标核对清单" data-testid="merge-checklist-card">
+        <Alert type="info" showIcon message="本项目只写技术标，不需要合标" description="递交版只生成一份技术标 Word；商务/资格条款已标为不在本项目范围，在解析结果中仍可查看原文。" />
+      </Card>
+    );
+  }
   if (!latest || !checklist) {
     return (
       <Card title="合标核对清单" data-testid="merge-checklist-card">
@@ -457,7 +465,7 @@ export function ExportPage() {
     : isVolumeFinalized(volumesStatus, volume);
   const validChecks = workspace.checks.filter(item => item.volume === volume && item.passed && item.status !== 'stale');
   const check = validChecks.find(item => item.id === checkId) ?? validChecks[validChecks.length - 1];
-  const full = (volume === 'all' ? (['technical', 'business'] as const) : [volume]).every(
+  const full = (volume === 'all' ? projectVolumes(workspace) : [volume]).every(
     v => workspace.chapters.some(item => item.volume === v && item.content.trim()) && workspace.chapters.filter(item => item.volume === v).every(item => item.content.trim())
   );
 
@@ -505,7 +513,7 @@ export function ExportPage() {
       <div className="page-heading">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h2>导出{volume === 'all' ? '技术、商务两册合订' : volumeName(volume)}</h2>
+            <h2>导出{volume === 'all' ? (technicalOnly(workspace) ? '技术标' : '技术、商务两册合订') : volumeName(volume)}</h2>
             {isCurrentVolumeFinalized ? (
               <Tag color="success" data-testid="export-finalized-badge">
                 {volume === 'all' ? '分册全部定稿' : `${volumeName(volume)}已定稿`}
@@ -516,7 +524,7 @@ export function ExportPage() {
               </Tag>
             )}
           </div>
-          <p>项目负责人生成两册，分册负责人生成本册；合标负责人只下载已生成文件。输出取已提交正文，不使用个人草稿。</p>
+          <p>{technicalOnly(workspace) ? '本项目只写技术标：项目负责人生成技术标 Word，不需要合标。输出取已提交正文，不使用个人草稿。' : '项目负责人生成两册，分册负责人生成本册；合标负责人只下载已生成文件。输出取已提交正文，不使用个人草稿。'}</p>
         </div>
       </div>
       <Row gutter={16}>
@@ -546,7 +554,9 @@ export function ExportPage() {
                     setVolume(event.target.value);
                     setCheckId('');
                   }}
-                  options={[
+                  options={technicalOnly(workspace) ? [
+                    { value: 'all', label: '技术标（本项目只写技术标）', disabled: !volumeOperationAllowed(workspace, 'export', 'all') },
+                  ] : [
                     { value: 'all', label: '技术、商务两册合订', disabled: !volumeOperationAllowed(workspace, 'export', 'all') },
                     { value: 'technical', label: '技术分册', disabled: !volumeOperationAllowed(workspace, 'export', 'technical') },
                     { value: 'business', label: '商务分册', disabled: !volumeOperationAllowed(workspace, 'export', 'business') },
@@ -623,8 +633,8 @@ export function ExportPage() {
                     }}
                   >
                     {isSubmission
-                      ? `生成${volume === 'all' ? '两册合订' : volumeName(volume)}正式递交版`
-                      : `生成${volume === 'all' ? '两册合订' : volumeName(volume)}内部评审稿`}
+                      ? `生成${volume === 'all' ? (technicalOnly(workspace) ? '技术标' : '两册合订') : volumeName(volume)}正式递交版`
+                      : `生成${volume === 'all' ? (technicalOnly(workspace) ? '技术标' : '两册合订') : volumeName(volume)}内部评审稿`}
                   </Button>
                 </span>
               </Tooltip>

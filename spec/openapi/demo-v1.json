@@ -37123,6 +37123,15 @@
           "sensitive": {
             "type": "boolean",
             "title": "Sensitive"
+          },
+          "volume_mode": {
+            "type": "string",
+            "enum": [
+              "both",
+              "technical_only"
+            ],
+            "title": "Volume Mode",
+            "default": "both"
           }
         },
         "additionalProperties": true,
@@ -37423,6 +37432,22 @@
               }
             ],
             "title": "Project Partners"
+          },
+          "volume_mode": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "both",
+                  "technical_only"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Volume Mode",
+            "description": "切换为只写技术标须商务分册尚无正文且未定稿；切回两册时补建商务分册"
           }
         },
         "additionalProperties": false,
@@ -37514,6 +37539,16 @@
             "maxLength": 200,
             "minLength": 1,
             "title": "Name"
+          },
+          "volume_mode": {
+            "type": "string",
+            "enum": [
+              "both",
+              "technical_only"
+            ],
+            "title": "Volume Mode",
+            "description": "both：技术与商务两册，导出后合标；technical_only：只写技术标，不合标",
+            "default": "both"
           }
         },
         "additionalProperties": false,
@@ -37652,6 +37687,15 @@
             "type": "boolean",
             "title": "Is Deleted",
             "default": false
+          },
+          "volume_mode": {
+            "type": "string",
+            "enum": [
+              "both",
+              "technical_only"
+            ],
+            "title": "Volume Mode",
+            "default": "both"
           }
         },
         "additionalProperties": true,
@@ -40229,6 +40273,15 @@
             "type": "array",
             "title": "Volumes"
           },
+          "volume_mode": {
+            "type": "string",
+            "enum": [
+              "both",
+              "technical_only"
+            ],
+            "title": "Volume Mode",
+            "default": "both"
+          },
           "assembly_owner_id": {
             "anyOf": [
               {
@@ -40382,6 +40435,15 @@
             "type": "array",
             "title": "Volumes"
           },
+          "volume_mode": {
+            "type": "string",
+            "enum": [
+              "both",
+              "technical_only"
+            ],
+            "title": "Volume Mode",
+            "default": "both"
+          },
           "assembly_owner_id": {
             "anyOf": [
               {
@@ -40441,7 +40503,7 @@
             },
             "type": "array",
             "maxItems": 2,
-            "minItems": 2,
+            "minItems": 1,
             "title": "Volumes"
           },
           "assembly_owner_id": {

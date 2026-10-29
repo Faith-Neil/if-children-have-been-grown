@@ -37,8 +37,8 @@ export function eligibleOwners(members: TeamMemberRow[], accounts: Pick<Account,
   return members.filter(member => member.project_role !== 'readonly' && accounts.some(account => account.id === member.user_id && account.role !== 'viewer') && (!volume || member.project_role === 'lead' || member.volumes.includes(volume)));
 }
 
-export function teamPayload(values: TeamFormValues, accounts: Pick<Account, 'id' | 'role'>[]) {
-  const members = values.members.map(member => ({ user_id: member.user_id, project_role: member.project_role, volumes: member.project_role === 'lead' ? ['technical', 'business'] as Volume[] : [...new Set(member.volumes)] }));
+export function teamPayload(values: TeamFormValues, accounts: Pick<Account, 'id' | 'role'>[], active: Volume[] = ['technical', 'business']) {
+  const members = values.members.map(member => ({ user_id: member.user_id, project_role: member.project_role, volumes: member.project_role === 'lead' ? [...active] : [...new Set(member.volumes)].filter(volume => active.includes(volume)) }));
   if (!members.length || !members.some(member => member.project_role === 'lead')) throw new Error('至少保留一位项目负责人，先指定接手人再移除原负责人。');
   if (new Set(members.map(member => member.user_id)).size !== members.length) throw new Error('同一个账号只能加入项目一次。');
   for (const member of members) {
@@ -47,7 +47,7 @@ export function teamPayload(values: TeamFormValues, accounts: Pick<Account, 'id'
     if (member.project_role === 'lead' && account.role !== 'manager') throw new Error('本项目负责人必须使用公司经理账号；公司编写账号可以负责分册或章节。');
     if (account.role === 'viewer' && member.project_role !== 'readonly') throw new Error('公司只读账号只能作为项目只读成员。');
   }
-  const volumes = (['technical', 'business'] as const).map(volume => {
+  const volumes = active.map(volume => {
     const owner = values[`${volume}_owner_id`] || null;
     if (owner && !eligibleOwners(members, accounts, volume).some(member => member.user_id === owner)) throw new Error(`${volume === 'technical' ? '技术' : '商务'}分册负责人必须是参与本册且可以编写的项目成员。`);
     return { volume, owner_id: owner };
@@ -59,7 +59,7 @@ export function teamPayload(values: TeamFormValues, accounts: Pick<Account, 'id'
 }
 
 export function planScopes(workspace: Pick<Workspace, 'permissions' | 'chapters' | 'team'>, userId: string): PlanScope[] {
-  if (projectCan(workspace, 'manage_structure')) return ['all', 'technical', 'business'];
+  if (projectCan(workspace, 'manage_structure')) return workspace.team?.volume_mode === 'technical_only' ? ['all', 'technical'] : ['all', 'technical', 'business'];
   return (workspace.team?.volumes ?? []).filter(volume => volume.owner_id === userId && workspace.chapters.some(chapter => chapter.volume === volume.volume && chapterCan(chapter, 'manage_structure'))).map(volume => volume.volume);
 }
 

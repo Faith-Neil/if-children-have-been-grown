@@ -17,6 +17,7 @@ import { companyName, formatTime, volumeName } from '../app/context.tsx';
 import { projectRoleName } from './project-team.ts';
 import { MaskedField } from '../admin/MaskedField.tsx';
 import { normalizeSystemRole, READONLY_SYSTEM_ROLES, type SystemRole } from '../shell/route-guard.ts';
+import { projectVolumes, technicalOnly, volumeOptions } from './project-volumes.ts';
 import {
   calculateProjectCountdown,
   formatCurrencyAmount,
@@ -112,7 +113,7 @@ export function ProjectHeader({
   }, [session, project.id, effectiveRole, workspace.permissions]);
 
   // 6. 分册列表统计
-  const volumes: Volume[] = ['technical', 'business'];
+  const volumes: Volume[] = projectVolumes(workspace);
 
   return (
     <header

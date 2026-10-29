@@ -15,6 +15,15 @@ from typing import Any
 
 from icg.domain.domain import DomainError, Principal, iso_time, new_id
 from icg.infra.blob_store import file_bytes
+
+
+def out_of_scope_fields(state, project_id, volume):
+    """只写技术标：商务/资格条款由他人负责，标为不在本项目范围（忽略并写明理由），仍保留原文可查。"""
+    from icg.domain.project_access import project_volumes
+    if volume in project_volumes(state, project_id):
+        return {}
+    return {"status": "rejected", "out_of_scope": True,
+            "reason": "本项目只写技术标：商务/资格条款不在本项目编写范围，由商务标负责人另行响应。"}
 from icg.domain.generation_context import evidence_expired
 from icg.domain.project_access import lead
 from icg.domain.export_service import DOCX_MEDIA_TYPE
@@ -220,6 +229,7 @@ class TenderOrchestratorMixin:
                         "references": references,
                         "reference_status": "unresolved" if references else "none",
                         "section_path": list(item.section_path),
+                        **out_of_scope_fields(state, project_id, item.volume),
                         "section_kind": item.section_kind,
                         "score": item.score,
                     }
@@ -277,6 +287,11 @@ class TenderOrchestratorMixin:
                 raise DomainError(422, "EMPTY_REQUIREMENT", "条款原文不能为空。")
             chapter_id = payload.get("chapter_id", requirement["chapter_id"])
             volume = payload.get("volume", requirement["volume"])
+            if "volume" in payload:
+                from icg.domain.project_access import require_project_volume
+                require_project_volume(state, project_id, volume)
+                if requirement.get("out_of_scope") and volume == "technical":
+                    requirement["out_of_scope"] = False  # 人工把商务条款纳入技术标
             if chapter_id:
                 chapter = self.demo._chapter(state, principal, chapter_id)
                 if chapter.project_id != project_id or chapter.volume != volume:
@@ -291,6 +306,10 @@ class TenderOrchestratorMixin:
             if "evidence_ids" in payload and len(payload["evidence_ids"]) != len(set(payload["evidence_ids"])):
                 raise DomainError(422, "DUPLICATE_EVIDENCE", "同一证据不能重复挂接。")
             updated = {**requirement, **payload}
+            if updated.get("out_of_scope") and updated.get("status") == "confirmed" and requirement.get("out_of_scope"):
+                from icg.domain.project_access import project_volumes
+                if updated.get("volume") not in project_volumes(state, project_id):
+                    raise DomainError(409, "REQUIREMENT_NOT_READY", "本项目只写技术标：要响应这条商务条款，请先把分册改为技术分册。")
             if requirement["category"] == "sla" or payload.get("category") == "sla":
                 updated["sla_required"] = True
             text_changed = "text" in payload and payload["text"] != requirement["text"]

@@ -127,7 +127,9 @@ def check_r29(state: Any, project: Any, workflow: dict, volume: str = "all", now
     from .domain import new_id
 
     title = "本公司查重"
-    if volume != "all":
+    from .project_access import project_volumes
+    full_text = volume == "all" or tuple(project_volumes(state, project.id)) == (volume,)  # 只写技术标：技术分册即全文
+    if not full_text:
         return ComplianceRuleResult(rule_id="R29", title=title, severity="info", passed=True,
                                     finding_summary="本公司查重只在全文检查和导出前运行，不在分册检查中运行。",
                                     suggestion="运行全文检查时比对。", issues=[], details={"skipped": "volume_check"})

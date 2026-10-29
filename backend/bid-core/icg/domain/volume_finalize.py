@@ -13,7 +13,7 @@ import time
 from typing import Any
 
 from icg.domain.domain import DemoState, DomainError, Principal, Project, iso_time, new_id
-from icg.domain.project_access import VOLUMES, normalize_role, lead, volume_owner
+from icg.domain.project_access import VOLUMES, normalize_role, lead, project_volumes, volume_owner
 from icg.domain.export_service import ExportServiceMixin
 from icg.domain.volume_review import pending_human_issues, public_review, require_cross_review, reset_review_on_unlock
 
@@ -158,7 +158,7 @@ class VolumeFinalizeMixin:
         key: str | None = None,
     ) -> dict:
         """执行分册定稿并锁定。"""
-        if volume_id not in VOLUMES:
+        if volume_id not in project_volumes(self.repository.read(), project_id):
             raise DomainError(404, "NOT_FOUND", f"未找到指定分册：{volume_id}")
 
         payload = payload or {}
@@ -276,7 +276,7 @@ class VolumeFinalizeMixin:
         key: str | None = None,
     ) -> dict:
         """解锁已定稿的分册以支持定稿后修改（记录原因与时间戳）。"""
-        if volume_id not in VOLUMES:
+        if volume_id not in project_volumes(self.repository.read(), project_id):
             raise DomainError(404, "NOT_FOUND", f"未找到指定分册：{volume_id}")
 
         payload = payload or {}
@@ -364,7 +364,7 @@ class VolumeFinalizeMixin:
         volume_id: str,
     ) -> dict:
         """查询指定分册的定稿状态与元数据。"""
-        if volume_id not in VOLUMES:
+        if volume_id not in project_volumes(self.repository.read(), project_id):
             raise DomainError(404, "NOT_FOUND", f"未找到指定分册：{volume_id}")
 
         state = self.repository.read()
@@ -411,7 +411,7 @@ class VolumeFinalizeMixin:
         volumes_map = workflow.get("volumes", {})
 
         items = []
-        for vid in VOLUMES:
+        for vid in project_volumes(state, project_id):
             rec = volumes_map.get(vid, {})
             items.append({
                 "volume_id": vid,

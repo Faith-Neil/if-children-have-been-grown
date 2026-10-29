@@ -4781,8 +4781,9 @@ class ComplianceRulesMixin:
         if project.company_id != principal.user.company_id:
             raise DomainError(404, "NOT_FOUND", "项目不存在或不属于当前企业空间。")
 
+        from icg.domain.project_access import in_scope_workflow, rule_scope
         rule_results = ComplianceRulesEngine.evaluate_all(
-            state, project, workflow, volume=volume, now_ts=self.demo._now()
+            state, project, in_scope_workflow(workflow), volume=rule_scope(state, project_id, volume), now_ts=self.demo._now()
         )
 
         all_issues = []

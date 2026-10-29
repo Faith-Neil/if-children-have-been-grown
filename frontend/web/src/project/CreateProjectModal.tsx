@@ -2,7 +2,8 @@
 // 它解决什么问题：解耦新建项目表单交互，遵循 Layout First 原则，保持清晰的字段层级与校验规则。
 
 import React from 'react';
-import { Alert, Form, type FormInstance, Input, Modal, Select } from 'antd';
+import { Alert, Form, Input, Modal, Radio, Select, type FormInstance } from 'antd';
+import { VOLUME_MODE_OPTIONS } from './project-volumes.ts';
 
 export interface CreateProjectModalProps {
   open: boolean;
@@ -35,10 +36,13 @@ export function CreateProjectModal({
       <Alert
         type="info"
         showIcon
-        message="技术、商务两册作为本期工作目标"
-        description="资格材料按招标要求归册；报价由人在系统外处理。"
+        message="选择本项目编写范围"
+        description="两册模式：技术、商务分册分别定稿，导出后由合标负责人合标。只写技术标：只建技术分册，商务/资格条款标为不在本项目范围，递交版只出一份技术标，不生成合标核对清单。报价由人在系统外处理。"
       />
-      <Form form={form} layout="vertical" style={{ marginTop: 20 }} initialValues={{ sensitive: false }}>
+      <Form form={form} layout="vertical" style={{ marginTop: 20 }} initialValues={{ sensitive: false, volume_mode: 'both' }}>
+        <Form.Item name="volume_mode" label="编写范围">
+          <Radio.Group data-testid="volume-mode-radio" options={VOLUME_MODE_OPTIONS} />
+        </Form.Item>
         <Form.Item
           name="name"
           label="项目名称"

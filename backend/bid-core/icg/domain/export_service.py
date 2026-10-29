@@ -99,7 +99,10 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                 raise CheckBlockerError("分册最新检查结果存在未解决的废标或星号条款阻断项，无法导出正式递交版。")
 
             scope = payload.get("volume", "all")
-            required_volumes = set(VOLUMES) if scope == "all" else {scope}
+            from icg.domain.project_access import project_volumes, rule_scope
+            technical_only = len(project_volumes(state, project_id)) == 1
+            rule_scope(state, project_id, scope)  # 只写技术标时请求商务分册 → 404
+            required_volumes = set(project_volumes(state, project_id)) if scope == "all" else {scope}
 
             if payload.get("kind") == "submission":
                 # 分册定稿闸门（PRD §5.8.5）：所选分册必须全部经负责人或管理员定稿锁定
@@ -132,7 +135,8 @@ class ExportServiceMixin(CheckOrchestratorMixin):
             chapters = self._ordered_chapters(state, project_id, workflow)
             chapters = [c for c in chapters if scope == "all" or c.volume == scope]
             if {c.volume for c in chapters} != required_volumes:
-                raise DomainError(422, "TWO_VOLUMES_REQUIRED", "导出必须包含技术和商务两册。")
+                raise DomainError(422, "TWO_VOLUMES_REQUIRED",
+                                  "导出缺少技术分册正文。" if technical_only else "导出必须包含技术和商务两册。")
             identity = new_id("project-export")
             documents, volumes = {}, []
             for volume, name in (("technical", "技术分册"), ("business", "商务分册")):
@@ -187,15 +191,17 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                 "format_metadata": WORD_DEFAULT_FORMAT_METADATA,
                 "is_submission": payload.get("kind") == "submission",
             }
-            if record["is_submission"]:
-                # PRD §5.9.2：导出递交版时必定同时生成合标核对清单，随批次保存
+            record["volume_mode"] = "technical_only" if technical_only else "both"
+            if record["is_submission"] and not technical_only:
+                # PRD §5.9.2：导出递交版时必定同时生成合标核对清单，随批次保存；只写技术标的项目不合标
                 from icg.domain.merge_checklist import build_merge_checklist
                 record["merge_checklist"] = build_merge_checklist(state, project, workflow, record, check,
                                                                   now_iso=record["created_at"])
                 record["merge_checklist_url"] = f"/api/v1/projects/{project_id}/exports/{identity}/merge-checklist.xlsx"
             workflow["exports"][identity] = record
             if payload.get("kind") == "submission":
-                job_desc = ("两个独立 Word 正式递交版已生成" if scope == "all" else "本册 Word 正式递交版已生成") + "；已完成责任人定稿与门禁核验。"
+                job_desc = ("技术标 Word 正式递交版已生成（本项目只写技术标，不合标）" if technical_only
+                            else "两个独立 Word 正式递交版已生成" if scope == "all" else "本册 Word 正式递交版已生成") + "；已完成责任人定稿与门禁核验。"
             else:
                 job_desc = ("两个独立 Word 内部稿已生成" if scope == "all" else "本册 Word 内部稿已生成") + "；只含已提交正文。"
             self._job(state, project_id, "export", job_desc)
@@ -222,21 +228,34 @@ class ExportServiceMixin(CheckOrchestratorMixin):
         return self.repository.transaction(operation)
 
 
+    def _export_reader(self, state, principal: Principal, project_id: str):
+        """合标核对清单与响应追溯表的读取方（PRD §5.10 权限表）：本公司的公司管理员不必是项目成员。
+
+        返回 (项目, 是否公司管理员)。其他人仍须是项目成员（_project 的原有规则）。
+        """
+        from icg.domain.project_access import normalize_role
+        project = state.projects.get(project_id)
+        account = state.accounts.get(principal.user.id)
+        if (project is not None and not project.is_deleted and account is not None
+                and normalize_role(account.role) == "company_admin" and account.company_id == project.company_id
+                and state.sessions.get(principal.session_token) == account.id):
+            return project, True
+        return self.demo._project(state, principal, project_id), False
+
     def merge_checklist(self, principal: Principal, project_id: str, export_id: str) -> dict:
         """读取递交批次的合标核对清单。公司管理员、项目负责人与分册负责人（合标负责人默认商务分册负责人）可看可下载。"""
         from icg.domain.merge_checklist import checklist_stale
-        from icg.domain.project_access import normalize_role, volume_owner
+        from icg.domain.project_access import project_volumes, volume_owner
 
         def operation(state):
-            project = self.demo._project(state, principal, project_id)
+            project, company_admin = self._export_reader(state, principal, project_id)
             workflow = self._workflow(state, project_id)
             record = workflow["exports"].get(export_id)
             if record is None or not record.get("merge_checklist"):
                 raise DomainError(404, "NOT_FOUND", "该导出批次没有合标核对清单（只有递交版批次生成）。")
             identity = principal.user.id
-            allowed = (lead(state, project_id, identity)
-                       or (normalize_role(principal.user.role) == "company_admin" and principal.user.company_id == project.company_id)
-                       or any(volume_owner(state, project_id, volume, identity) for volume in VOLUMES))
+            allowed = (company_admin or lead(state, project_id, identity)
+                       or any(volume_owner(state, project_id, volume, identity) for volume in project_volumes(state, project_id)))
             if not allowed:
                 raise DomainError(403, "SUBMISSION_FORBIDDEN", "合标核对清单仅限项目负责人、分册负责人和公司管理员下载。")
             checklist = record["merge_checklist"]
@@ -254,11 +273,13 @@ class ExportServiceMixin(CheckOrchestratorMixin):
         from icg.infra.xlsx import build_xlsx
 
         def operation(state):
-            project = self.demo._project(state, principal, project_id)
+            project, company_admin = self._export_reader(state, principal, project_id)
             workflow = self._workflow(state, project_id)
-            wanted = set(VOLUMES) if volume == "all" else {volume}
+            from icg.domain.project_access import project_volumes, rule_scope
+            rule_scope(state, project_id, volume)
+            wanted = set(project_volumes(state, project_id)) if volume == "all" else {volume}
             identity = principal.user.id
-            if not lead(state, project_id, identity):
+            if not (company_admin or lead(state, project_id, identity)):
                 wanted = {v for v in wanted if volume_owner(state, project_id, v, identity)}
                 if not wanted:
                     raise DomainError(403, "FORBIDDEN", "响应追溯表仅限项目负责人或本册负责人导出。")

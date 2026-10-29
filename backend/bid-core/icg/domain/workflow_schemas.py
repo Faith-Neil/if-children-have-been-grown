@@ -24,6 +24,8 @@ class ProjectPatch(RequestBody):
     deadline: str | None = Field(default=None, max_length=50)
     sensitive: bool | None = None
     project_partners: list[ProjectPartnerInput] | None = None
+    volume_mode: Literal["both", "technical_only"] | None = Field(
+        default=None, description="切换为只写技术标须商务分册尚无正文且未定稿；切回两册时补建商务分册")
 
 
 class FileUpload(RequestBody):
@@ -105,7 +107,7 @@ class VolumeOwnerInput(RequestBody):
 
 class TeamUpdate(RequestBody):
     members: list[TeamMemberInput] = Field(min_length=1, max_length=500)
-    volumes: list[VolumeOwnerInput] = Field(min_length=2, max_length=2)
+    volumes: list[VolumeOwnerInput] = Field(min_length=1, max_length=2)
     assembly_owner_id: str | None
     reason: str = Field(default="", max_length=2000)
 
@@ -178,6 +180,7 @@ class ProjectDetail(ResponseBody):
     tender_number: str
     deadline: str
     sensitive: bool
+    volume_mode: Literal["both", "technical_only"] = "both"
 
 
 class Source(ResponseBody):
@@ -395,6 +398,7 @@ class Handoff(ResponseBody):
 class Team(ResponseBody):
     members: list[TeamMember]
     volumes: list[VolumeOwner]
+    volume_mode: Literal["both", "technical_only"] = "both"
     assembly_owner_id: str | None
     available_accounts: list[AccountResponse]
     handoffs: list[Handoff]
