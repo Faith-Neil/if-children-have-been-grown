@@ -1,7 +1,7 @@
 // 为什么有这个文件：按 ICG 示例实现项目主链路中的业务页签。
 // 它解决什么问题：上传与解析、响应和证据、检查与两册导出都调用后台真实结果。
 import { useEffect, useRef, useState } from 'react';
-import { Alert, App as AntApp, Badge, Button, Card, Col, Collapse, Descriptions, Drawer, Empty, Form, Input, List, Modal, Progress, Radio, Row, Select, Space, Statistic, Steps, Table, Tabs, Tag, Tooltip, Upload } from 'antd';
+import { Alert, App as AntApp, Badge, Button, Card, Checkbox, Col, Collapse, Descriptions, Drawer, Empty, Form, Input, List, Modal, Progress, Radio, Row, Select, Space, Statistic, Steps, Table, Tabs, Tag, Tooltip, Upload } from 'antd';
 import { CheckCircleOutlined, DownloadOutlined, FileTextOutlined, LinkOutlined, PlusOutlined, ReloadOutlined, SearchOutlined, StopOutlined, UploadOutlined, WarningOutlined } from '@ant-design/icons';
 import { download, encodeFile, request } from '../shared/api';
 import { projectCan, volumeOperationAllowed } from './project-team';
@@ -41,6 +41,7 @@ const statusColor = (value: string) => value === 'confirmed' ? 'green' : value =
 const ignoreFailure = () => undefined;
 
 import { SourceLink } from './SourceLink';
+import { defaultTemplateChoice, exportRequestBody, templateOptions, templateSourceLabel, wordTemplatePaths, type TemplateChoice, type WordTemplate } from '../admin/word-template-core';
 import { MatrixMatchDrawer } from './MatrixMatchDrawer';
 import { RISK_COLORS, fetchMatrix, matrixPaths, needsReason, responseOptions, routingRows, type MatrixData } from './matrix-core';
 import { OriginalPreview } from './OriginalPreview';
@@ -474,6 +475,19 @@ export function ExportPage() {
   const [kind, setKind] = useState('internal');
   const [volume, setVolume] = useState<Volume | 'all'>(projectCan(workspace, 'export_internal') ? 'all' : workspace.permissions?.export_volumes[0] ?? 'all');
   const [checkId, setCheckId] = useState('');
+  // 模板与选项（PRD §5.9.1 主要元素 5）：本公司 Word 模板或平台默认、是否插入附件扫描件、敏感附件水印文字
+  const [companyTemplate, setCompanyTemplate] = useState<WordTemplate | null>(null);
+  const [templateChoice, setTemplateChoice] = useState<TemplateChoice | null>(null);
+  const [insertAttachments, setInsertAttachments] = useState(true);
+  const [attachmentWatermark, setAttachmentWatermark] = useState('');
+  useEffect(() => {
+    let alive = true;
+    request<{ template: WordTemplate | null }>(wordTemplatePaths.info(workspace.project.company_id), token)
+      .then(result => { if (alive) setCompanyTemplate(result.template); })
+      .catch(() => { if (alive) setCompanyTemplate(null); });
+    return () => { alive = false; };
+  }, [workspace.project.company_id, token]);
+  const template = templateChoice ?? defaultTemplateChoice(companyTemplate);
   const { volumes: volumesStatus } = useVolumesStatus(workspace.project.id, token, workspace.revision);
   const allFinalized = areAllVolumesFinalized(volumesStatus);
   const isCurrentVolumeFinalized = volume === 'all'
@@ -510,7 +524,8 @@ export function ExportPage() {
     if (isSubmission && !submissionCheck.allowed) return;
     if (!check || !volumeOperationAllowed(workspace, 'export', volume)) return;
     try {
-      await mutate(`/api/v1/projects/${workspace.project.id}/exports`, 'POST', { check_id: check.id, kind, volume });
+      await mutate(`/api/v1/projects/${workspace.project.id}/exports`, 'POST',
+        exportRequestBody(check.id, kind, volume, { template, insertAttachments, watermark: attachmentWatermark }));
     } catch {
       /* 后台再次核对完整分册、角色和检查 */
     }
@@ -585,11 +600,26 @@ export function ExportPage() {
                   value={kind}
                   onChange={e => setKind(e.target.value)}
                 >
-                  <Radio value="internal">内部评审稿（带水印）</Radio>
+                  <Radio value="internal">内部评审稿</Radio>
                   {projectCan(workspace, 'manage_project') && (
                     <Radio value="submission">正式递交版（盖章版式）</Radio>
                   )}
                 </Radio.Group>
+              </Form.Item>
+              <Form.Item label="Word 模板">
+                <Select data-testid="export-template-select" value={template} onChange={setTemplateChoice}
+                  options={templateOptions(companyTemplate)} />
+              </Form.Item>
+              <Form.Item label="附件扫描件">
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Checkbox data-testid="export-insert-attachments" checked={insertAttachments}
+                    onChange={event => setInsertAttachments(event.target.checked)}>
+                    插入条款挂接资料的扫描件（按资料里设定的页码范围）
+                  </Checkbox>
+                  <Input data-testid="export-attachment-watermark" disabled={!insertAttachments} maxLength={60}
+                    value={attachmentWatermark} onChange={event => setAttachmentWatermark(event.target.value)}
+                    addonBefore="敏感附件水印" placeholder={`仅用于${workspace.project.name}投标`} />
+                </Space>
               </Form.Item>
               <Form.Item label="检查批次">
                 <Select
@@ -631,7 +661,7 @@ export function ExportPage() {
                     ? hasBlockers
                       ? '当前分册存在阻断性合规缺陷，递交版已被锁定禁止导出！请先消除阻断项。'
                       : '导出文件将应用正式盖章与递交格式，不包含内部草稿与演示水印。需项目负责人确认所有合规条款无误。'
-                    : '下载文件含内部评审水印与未核验标记。会按当前掩码规则处理高敏数字，但仍需人工复核格式与内容。'
+                    : '封面与页眉标明“内部评审稿”，作者属性留空。会按当前掩码规则处理高敏数字，但仍需人工复核格式与内容。'
                 }
               />
               <Tooltip title={buttonTooltip} placement="top">
@@ -727,6 +757,26 @@ export function ExportPage() {
               render: (val: string) => {
                 const meta = getExportKindMeta(val);
                 return <Tag color={meta.tagColor}>{meta.label}</Tag>;
+              },
+            },
+            {
+              title: '模板与附件',
+              key: 'assets',
+              width: 150,
+              render: (_, item) => {
+                const attached = item.volumes.reduce((sum, v) => sum + (v.attachments?.length ?? 0), 0);
+                const skipped = item.volumes.flatMap(v => v.skipped_attachments ?? []);
+                return (
+                  <Space direction="vertical" size={0} style={{ fontSize: 12 }}>
+                    <span>{templateSourceLabel(item.volumes[0]?.template)}</span>
+                    <span>{attached ? `附件 ${attached} 份` : '无附件'}</span>
+                    {skipped.length > 0 && (
+                      <Tooltip title={skipped.map(s => `${s.name}：${s.reason}`).join('；')}>
+                        <span className="orange">跳过 {skipped.length} 份</span>
+                      </Tooltip>
+                    )}
+                  </Space>
+                );
               },
             },
             {

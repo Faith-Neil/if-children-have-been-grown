@@ -2,7 +2,8 @@
 # 它解决什么问题：
 # 1. 同一次导出的各分册文件共用一个批次号（export_batch_no），递交版的技术、商务两册与合标核对清单同批绑定同一次检查与定稿；
 # 2. 导出时就把每册 Word 真正生成出来；任何一册生成失败，本批次整体记为“失败”，不留下任何可下载文件，不产生部分成功的递交版；
-# 3. 生成好的 Word 按内容摘要存入文件存储，成为不可改的快照：之后正文再改或分册解锁，旧批次标“已过期”但仍可下载原文件，
+# 3. 每册按导出时选定的 Word 模板样式生成，附件扫描件按插入计划出图后放进正文；
+# 4. 生成好的 Word 按内容摘要存入文件存储，成为不可改的快照：之后正文再改或分册解锁，旧批次标“已过期”但仍可下载原文件，
 #    下载时照常重核当前权限（递交版仍只限项目负责人）。
 
 from __future__ import annotations
@@ -37,10 +38,44 @@ def docx_meta(document: dict):
     return DocxMeta(**cover) if cover else None
 
 
+def _attachment_parts(document: dict, style) -> tuple[dict[int, str], list[tuple[str, str, bytes]]]:
+    """附件扫描件：解密、按页码范围出图（敏感附件带水印），排到正文对应行之后（APP-M2-T198）。"""
+    from icg.domain.attachments import plain_bytes
+    from icg.infra.docx_media import drawing, render_pages
+    from icg.infra.docx_style import caption, text_area_cm
+    inserts: dict[int, str] = {}
+    media: list[tuple[str, str, bytes]] = []
+    width, height = text_area_cm(style)
+    for entry in document.get("attachments") or []:
+        label = entry["name"]
+        pages = render_pages(plain_bytes(entry), entry["page_from"], entry["page_to"], entry["watermark"], label)
+        whole = entry["page_from"] == 1 and entry["page_to"] == entry["page_count"]
+        text = f"附件：{label}" + ("" if whole else f"（第 {entry['page_from']}～{entry['page_to']} 页）")
+        xml = caption(style, text)
+        for image in pages:
+            number = len(media) + 1
+            rid = f"rIdImg{number}"
+            media.append((rid, f"attachment{number}.{image.extension}", image.data))
+            xml += drawing(rid, number, image, width, height - 1.5)
+        inserts[entry["after_line"]] = inserts.get(entry["after_line"], "") + xml
+    return inserts, media
+
+
 def _render(volume: str, document: dict, filename: str) -> bytes:
-    from icg.infra.docx_style import build_docx
+    from icg.domain.domain import DomainError
+    from icg.infra.docx_media import AttachmentRenderError
+    from icg.infra.docx_style import DEFAULT_DOCX_STYLE, build_docx
+    from icg.infra.docx_template import style_from_dict
     record = Export("", "", 1, "", "", filename, document["title"], document["content"])
-    data = build_docx(record, project_name=document.get("project_name"), meta=docx_meta(document))
+    style = style_from_dict(document.get("style")) or DEFAULT_DOCX_STYLE
+    try:
+        inserts, media = _attachment_parts(document, style)
+    except AttachmentRenderError as error:
+        raise ExportRenderError(volume, str(error)) from error
+    except DomainError as error:
+        raise ExportRenderError(volume, error.message) from error
+    data = build_docx(record, project_name=document.get("project_name"), meta=docx_meta(document), style=style,
+                      inserts=inserts, media=media)
     if not data or data[:2] != b"PK":
         raise ExportRenderError(volume, "生成的 Word 文件不完整")
     return data

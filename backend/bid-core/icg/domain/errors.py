@@ -77,6 +77,8 @@ def _frozen_status() -> dict[str, int]:
         "OMISSIONS_PENDING",
         # 公司知识库管控 (Wave 12 / ISSUE-043)：未配置、系统维护的文档不可手改、重建前置条件、文档未解析完
         "KNOWLEDGE_BASE_NOT_CONFIGURED", "MANAGED_DOCUMENT", "REBUILD_BLOCKED", "KB_DOCUMENT_NOT_READY",
+        # 导出选了公司 Word 模板但公司尚未上传 (APP-M2-T086 / PRD v1.8 §5.9.1 规则 1)
+        "WORD_TEMPLATE_MISSING",
     ))
     _bind(table, 413, (
         "FILE_SIZE_LIMIT", "FILE_EXPANSION_LIMIT", "PDF_PAGE_LIMIT", "GENERATION_CONTEXT_TOO_LARGE",
@@ -101,6 +103,8 @@ def _frozen_status() -> dict[str, int]:
         "PASSWORD_WEAK",
         # 删除整类知识库须输入全名确认 (Wave 12 / ISSUE-043)
         "CONFIRMATION_REQUIRED",
+        # 公司 Word 模板不可用；附件扫描件类型、内容或页码范围不对 (APP-M2-T086、T059、T198 / PRD v1.8 §5.9.1 规则 1、7)
+        "WORD_TEMPLATE_INVALID", "ATTACHMENT_TYPE_UNSUPPORTED", "ATTACHMENT_UNREADABLE", "ATTACHMENT_PAGE_RANGE",
     ))
     _bind(table, 423, ("LOCK_HELD", "LOCK_LOST", "ACCOUNT_LOCKED"))
     _bind(table, 428, ("IF_MATCH_REQUIRED", "IDEMPOTENCY_KEY_REQUIRED"))

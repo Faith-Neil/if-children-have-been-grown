@@ -32,7 +32,7 @@ import { ConflictCards } from './ConflictCards.tsx';
 import { OmissionsDrawer } from './OmissionsDrawer.tsx';
 import type { Requirement, Source } from '../shared/types.ts';
 import { request } from '../shared/api.ts';
-import { batchCandidates, gateCount, gateSummary, nodeCategory, nodeRows, nodeTitle, unmetGates, type ParseReview, type TreeNode } from './parse-review-core.ts';
+import { batchCandidates, confidenceLabel, gateCount, gateSummary, lowConfidence, needsReentry, nodeCategory, nodeRows, nodeTitle, threshold, unmetGates, type ParseReview, type TreeNode } from './parse-review-core.ts';
 
 const statusName = (value: string) =>
   value === 'confirmed' ? '已确认' : value === 'needs_review' ? '需重新核对' : value === 'rejected' ? '已排除' : '待确认';
@@ -64,6 +64,9 @@ export function ParsePage() {
   const pendingFacts = workspace.facts.filter(item => item.status === 'pending').length;
   const omissions = workspace.omissions_pending ?? 0;
   const references = workspace.requirements.filter(item => item.reference_status === 'unresolved' && item.status !== 'rejected');
+  const limit = threshold(review);
+  const unreadable = workspace.requirements.filter(needsReentry).length;
+  const low = workspace.requirements.filter(item => lowConfidence(item, limit)).length;
   const shown = nodeRows(workspace.requirements, review, node);
   const currentCategory = nodeCategory(review, node);
   const batch = batchCandidates(workspace.requirements, review, node);
@@ -186,7 +189,7 @@ export function ParsePage() {
           {(review?.categories ?? []).map(item => (
             <React.Fragment key={item.key}>
               <button
-                className={node.kind !== 'all' && node.key === item.key && node.kind === 'category' ? 'active' : ''}
+                className={node.kind === 'category' && node.key === item.key ? 'active' : ''}
                 onClick={() => setNode({ kind: 'category', key: item.key })}
                 data-testid="parse-tree-category"
                 data-category={item.key}
@@ -194,7 +197,7 @@ export function ParsePage() {
                 {item.no} {item.label}
                 <span>{item.pending ? <b className="orange">待 {item.pending}</b> : null} {item.total}</span>
               </button>
-              {item.key === 'scoring' && node.kind !== 'all' && node.key === 'scoring' && (item.groups ?? []).map(group => (
+              {item.key === 'scoring' && (node.kind === 'category' || node.kind === 'group') && node.key === 'scoring' && (item.groups ?? []).map(group => (
                 <button key={group.name} className={`tree-child ${node.kind === 'group' && node.name === group.name ? 'active' : ''}`}
                   onClick={() => setNode({ kind: 'group', key: 'scoring', name: group.name })} data-testid="parse-tree-group">
                   {group.name}{group.score ? `（${group.score} 分）` : ''}
@@ -213,6 +216,12 @@ export function ParsePage() {
             </button>
             <button onClick={() => navigate('facts')}>
               项目事实待核对 <Badge count={pendingFacts} size="small" />
+            </button>
+            <button data-testid="parse-unreadable-node" onClick={() => setNode({ kind: 'quality', which: 'unreadable' })}>
+              原文不可读 <Badge count={unreadable} size="small" />
+            </button>
+            <button data-testid="parse-low-confidence-node" onClick={() => setNode({ kind: 'quality', which: 'low' })}>
+              低置信度 <Badge count={low} size="small" color="orange" />
             </button>
           </div>
         </aside>
@@ -243,6 +252,7 @@ export function ParsePage() {
                 className={`requirement-card ${selected === item.id ? 'selected' : ''} ${
                   item.status === 'rejected' ? 'rejected' : ''
                 }`}
+                style={needsReentry(item) ? { borderColor: '#ff4d4f' } : lowConfidence(item, limit) ? { borderColor: '#fa8c16', background: '#fff7e6' } : undefined}
                 onClick={() => {
                   setSelected(item.id);
                   setSource(item.source);
@@ -252,6 +262,12 @@ export function ParsePage() {
                   <b>{review?.categories.find(c => c.key === review.requirement_categories[item.id])?.label ?? categoryName(item.category)}</b>
                   <Space>
                     <SourceLink source={item.source} onClick={setSource} />
+                    {needsReentry(item) && (
+                      <Tooltip title={item.unreadable_reason || '原文摘录乱码，请对照原页补录'}>
+                        <Tag color="red" data-testid="unreadable-tag">原文不可读</Tag>
+                      </Tooltip>
+                    )}
+                    {lowConfidence(item, limit) && <Tag color="orange" data-testid="low-confidence-tag">{confidenceLabel(item)}</Tag>}
                     {item.manually_edited && <Tag color="blue" data-testid="manually-edited-tag">已人工修改</Tag>}
                     <Tag color={statusColor(item.status)}>{statusName(item.status)}</Tag>
                   </Space>
@@ -270,7 +286,7 @@ export function ParsePage() {
                   <Button
                     type="link"
                     size="small"
-                    disabled={busy || !projectCan(workspace, 'prepare_sources') || item.status === 'confirmed'}
+                    disabled={busy || !projectCan(workspace, 'prepare_sources') || item.status === 'confirmed' || needsReentry(item)}
                     onClick={e => {
                       e.stopPropagation();
                       void mutate(`/api/v1/projects/${workspace.project.id}/requirements/${item.id}`, 'PATCH', {

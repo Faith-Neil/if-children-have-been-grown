@@ -10,17 +10,17 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 454 项：done 96、in-review 155、in-progress 41、planned 116、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+项目 454 项：done 96、in-review 156、in-progress 43、planned 113、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
 | 账号与权限 | 生产口令登录、8 角色 RBAC、数据权限只读态；演示入口已删 | OIDC/Keycloak（T010～T013）未做，内网可只用口令登录 |
 | 持久化 | 项目工作流、账号、资料库、知识库索引写入 MySQL 8（Alembic 0012） | 旧 `/api/projects`、`/api/chapters` 路由仍在（BE-M0-T09） |
-| 招标解析 | PDF/Word 文字提取，扫描件/.doc/Excel/图片经 RAGFlow DeepDOC；响应矩阵含响应方式、风险、批量匹配、分流确认与 Excel；按章节与条目抽取条款，适配真实招标文件版式（展平表格、段内（1）…（8）、否决/无效/废标）；事实含前附表 | 抽取置信度与“原文不可读”标记（扫描件识别没有逐条置信度）；手工框选新增条目 |
+| 招标解析 | PDF/Word 文字提取，扫描件/.doc/Excel/图片经 RAGFlow DeepDOC；响应矩阵含响应方式、风险、批量匹配、分流确认与 Excel；按章节与条目抽取条款，适配真实招标文件版式（展平表格、段内（1）…（8）、否决/无效/废标）；事实含前附表；条目置信度（公司阈值高亮）与“原文不可读”须补录 | 手工框选新增条目；条款合并拆分（T109）；按标题分块的模型抽取（规则 1，现为规则抽取） |
 | 知识库 | 每公司三类数据集、ICG 摄入流程、管控接口与管理页、检索带片号引用；内置解析评测定默认阈值 | 流程模式评测；历史标书批量导入（T080/T081） |
 | 生成与编辑 | 章节闭环、人工处理队列、交叉复核与定稿门禁、编辑台差异确认、选区改写（3～5 种写法、替换或插入、重新定位） | 对话助手逐字流式（模型接口目前整段返回，现为按写法分批推送）、粘贴识别（T188）；段落锁定与段落来源记录 |
 | 合规规则 | 40 条有检查与测试（R01～R20、R23～R32、R34～R37、R39～R44）；警告须负责人填理由逐项放行 | R33（缺结构化拟派人员条件）、R38（缺功能点标签）、R43 风格样例照抄与 R44 事实来源核对（缺样例库与产品字典）；R21、R22 为二期 |
-| 导出 | Word 版式、分册定稿、递交门禁、合标核对清单与内部响应追溯表 Excel | 公司 Word 模板与附件扫描件插入、内部稿水印、暗标分册（R42） |
+| 导出 | Word 版式、封面目录页码、公司 Word 模板、附件扫描件按页插入与敏感水印、分册定稿、递交门禁、合标核对清单与内部响应追溯表 Excel | 导出命名规则（T086）、招标格式要求覆盖模板（规则 5）、一至八级标题、Word 属性修订批注清理（T199）；内部稿水印按用户决定不做 |
 | 管理 | 模型/RAGFlow 弹窗配置、公司管理、审计日志、SLA 模板 | 站内提醒、配置版本、任务模型映射 |
 
 旧的逐卡签署叙述见 git 历史与 [项目进度](PROJECT_STATUS.md)；FE-M1～M5、FE-M8 与 APP-M1 示例外壳卡已标 cancelled（superseded-by-APP-M2）。
@@ -43,7 +43,9 @@
 - 2026-10-29：R36、R39～R44 实现（`icg/domain/content_rules.py`）；真实扫描件经新隧道完整走应用链路：二进制上传 24.2MB → 本地无文字 → RAGFlow 内置 DeepDOC 370 秒 → 35 页、110 条条款（6 条评分项带分值）；招标解析默认改用内置 DeepDOC（ICG 招标流程实测页码只还原 32 页）。
 - APP-M2-T112～T117 为 in-review：`GET /matrix`（listMatrixItems）、`POST /matrix/match`、`POST /matrix/routing`、`GET /matrix.xlsx`；星号/废标条款不能标不适用、如实登记偏离即为阻断项，偏离须写说明，候选只追加不替换。
 - 编辑台选区改写（对话助手第一步）：`icg/domain/selection_rewrite.py`、`icg/api/selection_rewrite.py`、`frontend/web/src/editor/SelectionRewritePanel.tsx`。选中文字后点“问对话助手”，只把选区及前后段、本章已确认条款和项目事实交给模型，按 3～5 种写法各生成一条。样例先预检：变量与证据标记必须保留，含证件号/手机号/银行账号的不展示，对不上来源的数值换成【待补：数值来源】，对话残留与 Markdown 去掉，相近的合并。写入只用服务端保存的样例，须持编辑锁；本人草稿先提交为手改版本；选区移动但唯一时返回新位置再确认，找不到或多处时样例失效。每次写入生成新版本、记编辑操作并对改动段落做文字规则复查。未接入真实模型时返回 502 MODEL_UNAVAILABLE，不给模拟样例。知识库引用、多轮会话、流式输出属第二步；段落锁定与段落来源记录尚未建。
-- 分册封面、目录与页码（APP-M2-T197）：`icg/infra/docx_style.py` 的 `DocxMeta`、`_cover`、`_toc`、`_core_properties`。每册封面写投标文件、项目名称、招标编号、分册、投标人（盖章）和导出日期，缺项不写；目录单独一节（罗马数字页码），预先列出各级标题并带书签与 PAGEREF 页码域，打开时 Word/WPS 提示更新域补页码；正文一节，页码从 1 起；递交版页眉写项目名称和投标人，内部稿写“内部评审稿”；文档属性作者取投标主体（内部稿、暗标留空）。评审索引表页码列仍为“合标后由商务填写”。沙箱没有 Word/WPS/LibreOffice，未实际打开文件核对更新域后的页码，需在内网用 Word 和 WPS 各打开一次确认。
+- 分册封面、目录与页码（APP-M2-T197）：`icg/infra/docx_style.py` 的 `DocxMeta`、`_cover`、`_toc`、`_core_properties`。每册封面写投标文件、项目名称、招标编号、分册、投标人（盖章）和导出日期，缺项不写；目录单独一节（罗马数字页码），预先列出各级标题并带书签与 PAGEREF 页码域，打开时 Word/WPS 提示更新域补页码；正文一节，页码从 1 起；递交版页眉写项目名称和投标人，内部稿写“内部评审稿”；文档属性作者取投标主体（内部稿、暗标留空）。评审索引表页码列仍为“合标后由商务填写”。沙箱没有 Word/WPS/LibreOffice，未实际打开文件核对更新域后的页码，需在内网用 Word 和 WPS 各打开一次确认（2026-10-30 用户已用样例文件确认无误）。
+- 公司 Word 模板与附件扫描件（APP-M2-T086 模板部分、T198、T059 附件部分）：`icg/infra/docx_template.py`、`icg/infra/docx_media.py`、`icg/domain/word_template.py`、`icg/domain/attachments.py`、`icg/api/export_assets.py`；前端 `admin/WordTemplateCard.tsx`（企业设置“导出交付”页签）、`library/LibraryAttachments.tsx`（资料详情，替换原先的示例附件表与示例预览）、导出页“Word 模板”“附件扫描件”选项与历史“模板与附件”列。公司管理员上传 .docx 模板，系统读出一至三级标题、正文、表格、页眉、目录的字体字号、一级标题对齐、正文固定行距与首行缩进、页边距（含 basedOn 继承与主题字体），列出“读到 / 沿用默认”的项；只读样式，不带入模板属性、批注、宏和正文；拒收宏文档与带 DOCTYPE 的 XML。导出可选本公司模板或平台默认，所用模板文件名与摘要记入批次。资料扫描件（PDF/PNG/JPG）用 ICG_SECRET_KEY 加密存文件存储，同一资料重复上传按指纹返回已有附件；可设插入页码范围、敏感（水印）、带公司标识（暗标分册不插）与功能点标签（R38 用）。导出时附件插在条款对应章节之后，无对应章节时放本册证明材料清单之后，再没有放本册末尾，同册只插一次；PDF 用 pypdfium2 按 200dpi 渲染，图片长边超过 2339 像素等比缩小并转 JPEG；敏感附件把“仅用于××项目投标”斜向平铺烧进图片（找不到中文字体或字体缺字形时整批失败并写明附件与页码）；坏文件、页码超出范围同样整批失败并定位。暗标分册（按招标文本判断，与 R42 同一函数）封面、页眉和属性不写投标人。新增依赖 pillow、pypdfium2；Start-Demo.ps1 未设置 ICG_SECRET_KEY 时在 `backend/bid-core/data/` 生成本机主密钥。按用户决定不做内部稿水印。未做：导出命名规则、招标格式要求覆盖模板、四至八级标题、人工盖章状态、附件 OCR 文字。
+- 解析置信度与“原文不可读”（APP-M2-T104、T105 子项）：`icg/domain/parse_quality.py`；`tender_orchestrator.parse` 给每条条款和事实写 `confidence`、`unreadable`、`unreadable_reason`。文字版 PDF/Word 起点 1.0，经 RAGFlow DeepDOC 识别的扫描件起点 0.9（认错成别的正确汉字无法从字符发现），摘录乱码比例、所在页乱码比例、过短片段再扣分；替换字符、控制字符、私用区、西欧扩展字母（编码错乱）算乱码，占比 ≥25% 标“原文不可读”。不可读条目不能直接确认、不能批量确认（409 REQUIREMENT_NOT_READY / FACT_NOT_READY），改正文字或取值（记“已人工修改”）后才能确认，也可填理由删除；解析页闸门新增“原文不可读待补录”（阻断，与确认解析结果一致）与“置信度低于阈值”（只提示）。阈值为公司设置 `parse_confidence_threshold`（默认 0.8，0.5～0.99）。前端解析页卡片红框“原文不可读”、橙底“置信度 x.xx”，左侧后处理区可筛这两类；事实表标“原文不可读”。逐条置信度没有模型打分来源，是按识别来源与文字质量推定的。
 - 解析结果三栏与分类树（APP-M2-T104）：`icg/domain/parse_review.py`（`getParseReview`、`batchConfirmRequirements`）、`frontend/web/src/project/parse-review-core.ts`、`ParseTab.tsx`。条款和事实按 PRD 10 类归类，评分类按评分项分组列出得分要点；顶部增加“引用未解析 N”入口（只提示不阻断）；确认按钮旁列出还差的前提及条数，与 confirm_parse 一致；星号、废标、资格三类和含未解析引用的条目后台拒绝批量确认；人工改过原文的条目标“已人工修改”，重新抽取不覆盖。
 - 自动保存（APP-M2-T172）：前端 `editor/autosave-core.ts`、`useEditorLock.ts`、`EditorPage.tsx`；后端 `DemoService._auto_commit_draft`、`_lease_seconds`。编辑锁时长改为公司设置 `edit_lock_timeout_minutes`（默认 30 分钟，原先固定 120 秒），心跳间隔 `edit_lock_heartbeat_seconds`、自动保存间隔 `editor_autosave_seconds` 也从公司设置读取。锁主动释放、被接管、超时后被他人取得时，持锁人已保存的草稿自动提交为“手改”版本；草稿基于旧版本、来源已变化或含对话残留时不提交。
 - 站内提醒（APP-M2-T029～T032）：`icg/domain/notifications.py`、`icg/api/notifications.py`、`frontend/web/src/notifications/`。17 类提醒都定义了跳转方式；已接上真实事件的有 8 类：编辑锁被接管、草稿已过期、交叉复核、分册解锁后递交版过期、章节待人工处理、解析结果待处理、导出失败（后台任务失败）、资料 30 天内到期（读取提醒时按公司扫描，资料有增改即重扫）。其余 9 类（在投项目缺资料、相似度、分册内部截止、分册解锁申请、关联投标冲突、本地任务排队、资料催办、后台任务完成、服务异常）对应的业务功能或事件尚未建，暂不产生提醒。
@@ -376,7 +378,7 @@
 | [APP-M2-T056](tasks/APP-M2.md#app-m2-t056) | 资质证书 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T056.md` |
 | [APP-M2-T057](tasks/APP-M2.md#app-m2-t057) | 安全与合规事件 | planned | APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T057.md` |
 | [APP-M2-T058](tasks/APP-M2.md#app-m2-t058) | 工具与设备 | planned | APP-M2-T047、APP-M2-T051 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T058.md` |
-| [APP-M2-T059](tasks/APP-M2.md#app-m2-t059) | 附件库 | planned | APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T059.md` |
+| [APP-M2-T059](tasks/APP-M2.md#app-m2-t059) | 附件库 | in-progress（2026-10-30：资料附件扫描件加密保存、公司内指纹去重、页码范围与功能点标签可保存；人工盖章状态未做） | APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T059.md` |
 | [APP-M2-T060](tasks/APP-M2.md#app-m2-t060) | 人员列表 | planned | APP-M2-T047、APP-M2-T059 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T060.md` |
 | [APP-M2-T061](tasks/APP-M2.md#app-m2-t061) | 人员详情（MaskedField） | planned | APP-M2-T047、APP-M2-T059、APP-M2-T017 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T061.md` |
 | [APP-M2-T062](tasks/APP-M2.md#app-m2-t062) | 人员证书 | planned | APP-M2-T047、APP-M2-T059、APP-M2-T061、APP-M2-T052 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T062.md` |
@@ -403,7 +405,7 @@
 | [APP-M2-T083](tasks/APP-M2.md#app-m2-t083) | 章节模板 | planned | APP-M2-T025、APP-M2-T082 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T083.md` |
 | [APP-M2-T084](tasks/APP-M2.md#app-m2-t084) | 叫法术语、语气称呼 | planned | APP-M2-T025、APP-M2-T082 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T084.md` |
 | [APP-M2-T085](tasks/APP-M2.md#app-m2-t085) | 句式规则 | planned | APP-M2-T025、APP-M2-T082 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T085.md` |
-| [APP-M2-T086](tasks/APP-M2.md#app-m2-t086) | Word 模板与导出命名 | planned | APP-M2-T025、APP-M2-T082 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T086.md` |
+| [APP-M2-T086](tasks/APP-M2.md#app-m2-t086) | Word 模板与导出命名 | in-progress（2026-10-30：公司 Word 模板上传、读样式与导出取用已实现；导出命名规则未做） | APP-M2-T025、APP-M2-T082 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T086.md` |
 | [APP-M2-T087](tasks/APP-M2.md#app-m2-t087) | 预览抽屉 | planned | APP-M2-T025、APP-M2-T083、APP-M2-T084、APP-M2-T085 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T087.md` |
 | [APP-M2-T088](tasks/APP-M2.md#app-m2-t088) | 任务卡列表与版本 | planned | APP-M2-T082 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T088.md` |
 | [APP-M2-T089](tasks/APP-M2.md#app-m2-t089) | 提示词模板编辑与发布校验 | planned | APP-M2-T082、APP-M2-T088 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T089.md` |
@@ -515,7 +517,7 @@
 | [APP-M2-T195](tasks/APP-M2.md#app-m2-t195) | 证明材料清单确定性章节 | in-review（2026-10-29：证明材料清单按数据源生成已实现） | APP-M2-T114、APP-M2-T059、APP-M2-T099 | [ISSUE-007](../issues/ISSUE-007.md) | [APP-M2-T195 交付](delivery/APP-M2-T195.md) |
 | [APP-M2-T196](tasks/APP-M2.md#app-m2-t196) | Word模板与正文样式渲染 | in-review | APP-M2-T086、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | [APP-M2-T196 交付](delivery/APP-M2-T196.md) |
 | [APP-M2-T197](tasks/APP-M2.md#app-m2-t197) | 分册封面、目录与页码 | in-review（2026-10-29：每册封面、目录单独一节并预列标题、正文页码从 1 起、页眉与文档属性按导出类型） | APP-M2-T196、APP-M2-T100 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T197.md` |
-| [APP-M2-T198](tasks/APP-M2.md#app-m2-t198) | 指定附件页与敏感水印 | planned | APP-M2-T196、APP-M2-T059 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T198.md` |
+| [APP-M2-T198](tasks/APP-M2.md#app-m2-t198) | 指定附件页与敏感水印 | in-review（2026-10-30：附件按指定页码插入、敏感附件水印烧进图片、过大图片压缩、坏图与页码失败定位） | APP-M2-T196、APP-M2-T059 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T198.md` |
 | [APP-M2-T199](tasks/APP-M2.md#app-m2-t199) | Word属性修订与批注清理 | planned | APP-M2-T196 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T199.md` |
 | [APP-M2-T200](tasks/APP-M2.md#app-m2-t200) | 同批合标核对清单输出 | in-review（2026-10-28：递交版批次随附合标核对清单 Excel） | APP-M2-T149、APP-M2-T197、APP-M2-T192、APP-M2-T193 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T200.md` |
 | [APP-M2-T201](tasks/APP-M2.md#app-m2-t201) | 内部响应追溯Excel | in-review（2026-10-28：内部响应追溯表 Excel 已实现） | APP-M2-T117、APP-M2-T162、APP-M2-T165 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T201.md` |

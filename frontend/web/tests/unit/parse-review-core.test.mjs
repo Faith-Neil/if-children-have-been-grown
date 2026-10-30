@@ -47,3 +47,26 @@ test('gate summary lists what is still missing; non-blocking references only war
   assert.match(gateSummary(ready), /另有 2 条引用未解析/);
   assert.equal(gateSummary(null), '');
 });
+
+test('unreadable rows need re-entry, low confidence follows the company threshold, quality nodes filter rows', async () => {
+  const { needsReentry, lowConfidence, confidenceLabel, threshold } = await import('../../src/project/parse-review-core.ts');
+  const rows = [
+    { id: 'a', status: 'pending', confidence: 0.4, unreadable: true },
+    { id: 'b', status: 'pending', confidence: 0.4, unreadable: true, manually_edited: true },
+    { id: 'c', status: 'pending', confidence: 0.85 },
+    { id: 'd', status: 'rejected', confidence: 0.1, unreadable: true },
+    { id: 'e', status: 'pending' },
+  ];
+  assert.deepEqual(rows.filter(needsReentry).map(r => r.id), ['a']);
+  assert.equal(threshold(null), 0.8);
+  assert.equal(threshold({ ...review, confidence_threshold: 0.9 }), 0.9);
+  assert.deepEqual(nodeRows(rows, { ...review, confidence_threshold: 0.9 }, { kind: 'quality', which: 'low' }).map(r => r.id), ['a', 'b', 'c']);
+  assert.deepEqual(nodeRows(rows, review, { kind: 'quality', which: 'unreadable' }).map(r => r.id), ['a']);
+  assert.equal(lowConfidence(rows[2], 0.8), false);
+  assert.equal(confidenceLabel(rows[2]), '置信度 0.85');
+  assert.equal(confidenceLabel(rows[4]), '');
+  assert.equal(nodeTitle(review, { kind: 'quality', which: 'unreadable' }), '原文不可读（对照原页补录）');
+  const pendingTech = { categories: [{ no: 6, key: 'technical', label: '技术', requirements: 2, facts: 0, total: 2, pending: 2, batch_allowed: true }],
+    requirement_categories: { a: 'technical', c: 'technical' }, fact_categories: {}, gates: [], can_confirm: false, parse_confirmed: false };
+  assert.deepEqual(batchCandidates(rows, pendingTech, { kind: 'category', key: 'technical' }).map(r => r.id), ['c']);
+});

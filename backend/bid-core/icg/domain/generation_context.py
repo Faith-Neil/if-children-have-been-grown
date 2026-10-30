@@ -23,6 +23,9 @@ FACT_NUMBER_UNIT = re.compile(r"[+-]?(?:\d+(?:\.\d+)?|\.\d+)\s*(" + FACT_UNIT_PA
 SHANGHAI = timezone(timedelta(hours=8))
 
 
+PARSE_REVIEW_ONLY = ("confidence", "unreadable", "unreadable_reason", "manually_edited", "manually_edited_by")
+
+
 def project_facts(state, project_id):
     workflow = state.workflows.get(project_id, {})
     facts = [{"unit": "", "required": False, "source_type": "parsed", "sla_var_key": None, **fact}
@@ -190,7 +193,9 @@ def build_generation_context(state, project_id, chapter, now, evidence_service=N
                 add("FACT_NOT_READY", fact["key"] + "：" + reason, fact_id=fact["id"])
             continue
         variable = "{{sla:" + fact["sla_var_key"] + "}}" if fact.get("sla_var_key") else "{{fact:" + fact["id"] + "}}"
-        facts.append({**deepcopy(fact), "variable": variable, "source": _source(workflow, fact.get("source"))})
+        # 解析置信度与补录标记只服务解析核对，不进入生成输入快照（也不改变输入指纹）
+        kept = {k: v for k, v in fact.items() if k not in PARSE_REVIEW_ONLY}
+        facts.append({**deepcopy(kept), "variable": variable, "source": _source(workflow, fact.get("source"))})
     requirements, evidence_by_id = [], {}
     reference_date = _date(project.deadline) if project.deadline else datetime.fromtimestamp(now, SHANGHAI).date()
     for row in chapter_rows(workflow, chapter.id, chapter.volume):

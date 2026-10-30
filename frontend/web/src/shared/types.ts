@@ -177,8 +177,8 @@ export type ProjectTeam = { volume_mode?: VolumeMode;
 export type ProjectPermissions = { manage_team: boolean; manage_project: boolean; manage_structure: boolean; prepare_sources: boolean; manage_sla: boolean; edit_facts: boolean; confirm_facts: boolean; check_all: boolean; export_internal: boolean; check_volumes: Volume[]; export_volumes: Volume[] };
 export type ChapterPermissions = { edit: boolean; confirm_plan: boolean; generate: boolean; manage_structure: boolean; assign: boolean; takeover: boolean };
 export type Source = { file_id: string; page: number; quote: string; filename?: string; sha256?: string; pagination?: string };
-export type Requirement = { id: string; text: string; category: string; volume: Volume; chapter_id: string | null; status: 'pending' | 'confirmed' | 'rejected'; response: string; reason: string; evidence_ids: string[]; source: Source; permissions?: { edit: boolean; response: boolean; route: boolean }; proof_requirements?: string; section_path?: string[]; section_kind?: string; score?: number | null; volume_confirmed_at?: string | null; is_cross_volume?: boolean; shared_chapter_id?: string | null; references?: string[]; reference_status?: 'none' | 'unresolved' | 'resolved'; manually_edited?: boolean; out_of_scope?: boolean };
-export type Fact = { id: string; key: string; value: string; status: 'pending' | 'confirmed' | 'rejected' | 'needs_review'; reason: string; source: Source | null; source_type?: string; sla_var_key?: string; unit?: string; required?: boolean };
+export type Requirement = { id: string; text: string; category: string; volume: Volume; chapter_id: string | null; status: 'pending' | 'confirmed' | 'rejected'; response: string; reason: string; evidence_ids: string[]; source: Source; permissions?: { edit: boolean; response: boolean; route: boolean }; proof_requirements?: string; section_path?: string[]; section_kind?: string; score?: number | null; volume_confirmed_at?: string | null; is_cross_volume?: boolean; shared_chapter_id?: string | null; references?: string[]; reference_status?: 'none' | 'unresolved' | 'resolved'; manually_edited?: boolean; out_of_scope?: boolean; confidence?: number | null; unreadable?: boolean; unreadable_reason?: string };
+export type Fact = { id: string; key: string; value: string; status: 'pending' | 'confirmed' | 'rejected' | 'needs_review'; reason: string; source: Source | null; source_type?: string; sla_var_key?: string; unit?: string; required?: boolean; confidence?: number | null; unreadable?: boolean; unreadable_reason?: string; manually_edited?: boolean };
 export type SlaScalar = string | number | null;
 export type SlaVariable = { var_key: string; label: string; group: string; value_type: 'integer' | 'decimal' | 'text'; default_value: SlaScalar; unit: string; compare_direction: 'lower_better' | 'higher_better' | 'exact'; best_committable_value: SlaScalar };
 export type SlaTemplate = { id: string; company_id: string; revision: number; version_no: string; name: string; edition: string; service_hours: string; body_text: string; status: string; reason?: string; variables: SlaVariable[] };
@@ -224,7 +224,12 @@ export type Export = {
   created_at: string;
   excludes_drafts: boolean;
   status: string;
-  volumes: { volume: Volume; filename: string; download_url: string; file_size?: number; size_bytes?: number; sha256?: string; fingerprint?: string; batch_no?: string; docx_sha256?: string }[];
+  volumes: {
+    volume: Volume; filename: string; download_url: string; file_size?: number; size_bytes?: number; sha256?: string; fingerprint?: string; batch_no?: string; docx_sha256?: string;
+    template?: { source: 'company' | 'platform'; filename: string | null; sha256: string | null };
+    attachments?: { attachment_id: string; name: string; filename: string; page_from: number; page_to: number; watermarked: boolean }[];
+    skipped_attachments?: { attachment_id: string; name: string; filename: string; reason: string }[];
+  }[];
   batch_no?: string;
   export_status?: 'completed' | 'failed';
   error_message?: string;

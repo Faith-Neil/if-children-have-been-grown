@@ -3,6 +3,7 @@
 # 分册版式（PRD v1.8 §5.9.1 规则 2、3、10；APP-M2-T197）：每册独立封面（投标文件、项目名称、招标编号、分册、投标人、日期）；
 # 目录单独一节、页码用罗马数字；正文一节、页码从 1 起；目录预先列出各级标题（带书签和页码域），打开时 Word/WPS 提示更新域补页码；
 # 页眉按导出类型：递交版写项目名称和投标人，内部稿写“内部评审稿”；文档属性作者取投标人（内部稿留空），不写系统账号。
+# 公司 Word 模板（APP-M2-T086/T196）读出的样式通过 style 传入；附件扫描件（APP-M2-T198）通过 inserts 与 media 插到正文指定行之后。
 
 from __future__ import annotations
 
@@ -307,6 +308,17 @@ def _table(rows: list[list[str]], style: DocxStyle) -> str:
     return body + "</w:tbl>"
 
 
+def caption(style: DocxStyle, text: str) -> str:
+    """附件标题行：居中加粗，不进目录。"""
+    return (f'<w:p><w:pPr><w:keepNext/><w:spacing w:before="240" w:after="120"/><w:jc w:val="center"/></w:pPr>'
+            f'{_run(text, style.body_font, style.body_pt, bold=True)}</w:p>')
+
+
+def text_area_cm(style: DocxStyle) -> tuple[float, float]:
+    """A4 正文区宽、高（厘米），附件图片按此缩放。"""
+    return 21.0 - style.margin_left_cm - style.margin_right_cm, 29.7 - style.margin_top_cm - style.margin_bottom_cm
+
+
 def _faces(style: DocxStyle, style_id: str) -> tuple[FontFace, float, bool]:
     if style_id == "Heading1":
         return style.h1_font, style.h1_pt, False
@@ -319,14 +331,17 @@ def _faces(style: DocxStyle, style_id: str) -> tuple[FontFace, float, bool]:
 
 def build_docx(record: Export, table_rows: list[list[str]] | None = None, *,
                style: DocxStyle | None = None, project_name: str | None = None,
-               meta: DocxMeta | None = None) -> bytes:
+               meta: DocxMeta | None = None, inserts: dict[int, str] | None = None,
+               media: list[tuple[str, str, bytes]] | None = None) -> bytes:
+    """inserts：正文第 n 行之后追加的段落 XML（附件扫描件，n 为 -1 表示正文最前）；media：(关系 ID, 文件名, 字节)。"""
     chosen = style or DEFAULT_DOCX_STYLE
+    inserts = inserts or {}
     # 节：封面（无页眉页码）→ 目录（罗马数字页码，有标题时才有）→ 正文（页码从 1 起）
     cover = _cover(record, chosen, project_name, meta)
     cover += f'<w:p><w:pPr>{_section(chosen, "rId5", start=None, next_page=True, header_id="rId7")}</w:pPr></w:p>'
     blocks = _blocks(record)
     entries: list[tuple[int, str, str]] = []
-    body = ""
+    body = inserts.get(-1, "")
     for index, (style_id, text, bold) in enumerate(blocks):
         face_, pt, heading_bold = _faces(chosen, style_id)
         if style_id.startswith("Heading"):
@@ -337,6 +352,7 @@ def build_docx(record: Export, table_rows: list[list[str]] | None = None, *,
                      f'<w:bookmarkStart w:id="{index + 1}" w:name="{bookmark}"/>{run}<w:bookmarkEnd w:id="{index + 1}"/></w:p>')
         else:
             body += _paragraph(style_id, text, face_, pt, bold=bold or heading_bold)
+        body += inserts.get(index, "")
     if table_rows:
         body += _table(table_rows, chosen)
     toc = ""
@@ -345,12 +361,17 @@ def build_docx(record: Export, table_rows: list[list[str]] | None = None, *,
                                        '</w:pPr></w:p>')
     document = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
                 '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
-                'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+                'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
+                'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" '
+                'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" '
+                'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">'
                 f'<w:body>{cover}{toc}{body}{_section(chosen, "rId4", start="1", fmt="decimal")}</w:body></w:document>')
     contents = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
 <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
 <Default Extension="xml" ContentType="application/xml"/>
+<Default Extension="jpeg" ContentType="image/jpeg"/>
+<Default Extension="png" ContentType="image/png"/>
 <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
 <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
 <Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/>
@@ -376,6 +397,9 @@ def build_docx(record: Export, table_rows: list[list[str]] | None = None, *,
 <Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
 <Relationship Id="rId7" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="header2.xml"/>
 </Relationships>'''
+    image_type = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"
+    document_relationships = document_relationships.replace("</Relationships>", "".join(
+        f'<Relationship Id="{rid}" Type="{image_type}" Target="media/{name}"/>' for rid, name, _ in media or []) + "</Relationships>")
     settings = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:updateFields w:val="true"/></w:settings>'''
     target = BytesIO()
@@ -392,4 +416,6 @@ def build_docx(record: Export, table_rows: list[list[str]] | None = None, *,
         archive.writestr("docProps/core.xml", _core_properties(record, meta))
         archive.writestr("word/footer1.xml", _footer(chosen, page_number=True))
         archive.writestr("word/footer2.xml", _footer(chosen, page_number=False))
+        for _rid, name, data in media or []:
+            archive.writestr(f"word/media/{name}", data)
     return target.getvalue()

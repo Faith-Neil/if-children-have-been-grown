@@ -10,6 +10,7 @@ import { SourceLink } from './SourceLink.tsx';
 import { OriginalPreview } from './OriginalPreview.tsx';
 import { ConflictCards } from './ConflictCards.tsx';
 import type { Fact, Source } from '../shared/types.ts';
+import { needsReentry } from './parse-review-core.ts';
 
 const statusName = (value: string) =>
   value === 'confirmed' ? '已确认' : value === 'needs_review' ? '需重新核对' : value === 'rejected' ? '已排除' : '待确认';
@@ -77,7 +78,12 @@ export function FactsPage() {
             },
             {
               title: '当前取值',
-              render: (_, item) => displaySlaValue(item.value, item.unit),
+              render: (_, item) => (
+                <>
+                  {displaySlaValue(item.value, item.unit)}{' '}
+                  {needsReentry(item) && <Tag color="red" title={item.unreadable_reason}>原文不可读</Tag>}
+                </>
+              ),
             },
             {
               title: '来源',

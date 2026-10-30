@@ -905,7 +905,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T059 · 附件库
 <a id="app-m2-t059"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T047](APP-M2.md#app-m2-t047)。
+状态：in-progress。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T047](APP-M2.md#app-m2-t047)。
 
 原始来源：原交接 §6.3 M2-C03-F6；PRD v1.8 §5.4.7。交付单位：附件库，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -1310,7 +1310,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T086 · Word 模板与导出命名
 <a id="app-m2-t086"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T025](APP-M2.md#app-m2-t025)、[APP-M2-T082](APP-M2.md#app-m2-t082)。
+状态：in-progress。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T025](APP-M2.md#app-m2-t025)、[APP-M2-T082](APP-M2.md#app-m2-t082)。
 
 原始来源：原交接 §6.3 M2-D03-F5；PRD v1.8 §5.6.2、5.6.3。交付单位：Word 模板与导出命名，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -3017,7 +3017,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T198 · 指定附件页与敏感水印
 <a id="app-m2-t198"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T196](APP-M2.md#app-m2-t196)、[APP-M2-T059](APP-M2.md#app-m2-t059)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T196](APP-M2.md#app-m2-t196)、[APP-M2-T059](APP-M2.md#app-m2-t059)。
 
 原始来源：PRD v1.8 §5.9.1规则7、R14。交付单位：指定附件页与敏感水印，同一产品的页面/后台/数据/权限/输出协作一起验收。
 

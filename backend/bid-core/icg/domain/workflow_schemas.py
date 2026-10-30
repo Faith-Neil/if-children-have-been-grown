@@ -153,6 +153,11 @@ class ProjectExportRequest(RequestBody):
     check_id: str = Field(min_length=1, max_length=100)
     kind: Literal["internal", "submission", "internal_review"] = "internal"
     volume: Literal["all", "technical", "business"] = "all"
+    template: Literal["auto", "company", "platform"] = Field(
+        default="auto", description="Word 模板：auto 有公司模板用公司模板，否则平台默认；company 必须用公司模板；platform 平台默认")
+    insert_attachments: bool = Field(default=True, description="是否插入条款挂接资料的附件扫描件")
+    attachment_watermark: str | None = Field(default=None, max_length=60,
+                                             description="敏感附件水印文字；不填为“仅用于{项目名称}投标”")
 
 
 SourceTier = Literal["own", "partner", "reference"]
@@ -255,6 +260,9 @@ class Requirement(ResponseBody):
     references: list[str]
     reference_status: Literal["none", "unresolved", "resolved"]
     manually_edited: bool = Field(default=False, description="人工改过原文；重新抽取时不覆盖")
+    confidence: float | None = Field(default=None, description="0～1；低于公司阈值（默认 0.8）在解析页高亮；扫描件识别的条目最高 0.9")
+    unreadable: bool = Field(default=False, description="原文不可读（识别乱码）：须对照原页补录文字后才能确认")
+    unreadable_reason: str = ""
 
 
 class Fact(ResponseBody):
@@ -270,6 +278,14 @@ class Fact(ResponseBody):
     required: bool = False
     label: str = ""
     variable_token: str | None = None
+
+
+class ReviewedFact(Fact):
+    """项目事实表与解析核对用：带解析置信度与补录标记（生成输入快照不含这些字段）。"""
+    confidence: float | None = Field(default=None, description="0～1；低于公司阈值（默认 0.8）在解析页高亮")
+    unreadable: bool = Field(default=False, description="原文不可读：须对照原页补录取值后才能确认")
+    unreadable_reason: str = ""
+    manually_edited: bool = False
 
 
 class ChapterWritingInput(ResponseBody):
@@ -621,6 +637,9 @@ class ExportVolume(ResponseBody):
     batch_no: str | None = Field(default=None, description="导出批次号；同一次导出的各分册文件同号")
     docx_sha256: str | None = Field(default=None, description="导出时生成的 Word 快照文件摘要；过期后下载仍是这份文件")
     size_bytes: int | None = None
+    template: dict[str, Any] | None = Field(default=None, description="本册所用 Word 模板：source=company/platform、filename、sha256")
+    attachments: list[dict[str, Any]] | None = Field(default=None, description="插入本册的附件扫描件：资料名、文件名、页码范围、是否加水印")
+    skipped_attachments: list[dict[str, Any]] | None = Field(default=None, description="未插入的附件与原因（如暗标分册不插带公司标识的附件）")
 
 
 class BoundVolume(ResponseBody):
@@ -680,7 +699,7 @@ class Workspace(ResponseBody):
     stage: str
     files: list[TenderFile]
     requirements: list[Requirement]
-    facts: list[Fact]
+    facts: list[ReviewedFact]
     conflicts: list[Conflict]
     chapters: list[WorkflowChapter]
     checks: list[ProjectCheck]
@@ -703,10 +722,10 @@ class MutationResult(ResponseBody):
     file: TenderFile | None = None
     job: Job | None = None
     requirement: Requirement | None = None
-    fact: Fact | None = None
+    fact: ReviewedFact | None = None
     conflict: Conflict | None = None
     requirements: list[Requirement] | None = None
-    facts: list[Fact] | None = None
+    facts: list[ReviewedFact] | None = None
     conflicts: list[Conflict] | None = None
     chapters: list[WorkflowChapter] | None = None
     check: ProjectCheck | None = None
@@ -1020,3 +1039,4 @@ class ParseReview(ResponseBody):
     gates: list[ParseGate]
     can_confirm: bool
     parse_confirmed: bool
+    confidence_threshold: float = Field(default=0.8, description="低于此置信度的条目高亮（公司设置 parse_confidence_threshold）")

@@ -19,7 +19,6 @@ import {
   Form,
   Input,
   Modal,
-  Popconfirm,
   Progress,
   Radio,
   Row,
@@ -37,12 +36,8 @@ import {
   ClockCircleOutlined,
   CloseCircleOutlined,
   CopyOutlined,
-  DownloadOutlined,
   ExclamationCircleOutlined,
-  EyeOutlined,
   FileDoneOutlined,
-  FileProtectOutlined,
-  FileTextOutlined,
   FolderOpenOutlined,
   InfoCircleOutlined,
   LockOutlined,
@@ -53,7 +48,8 @@ import {
   UploadOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
-import type { Account, Evidence, EvidenceAttachment, SlaTemplate } from '../shared/types.ts';
+import type { Account, Evidence, SlaTemplate } from '../shared/types.ts';
+import { LibraryAttachments } from './LibraryAttachments.tsx';
 import { companyName, formatTime } from '../app/context.tsx';
 import { MaskedField } from '../admin/MaskedField.tsx';
 import { KnowledgeBasePanel } from './KnowledgeBasePanel.tsx';
@@ -69,7 +65,6 @@ import {
   filterEvidenceList,
   getCategoryLabel,
   LIBRARY_CATEGORIES,
-  verifyAttachmentSecurity,
   canManageLibrary,
   canRevealSensitiveField,
   type EvidenceFilterCriteria,
@@ -124,7 +119,6 @@ export function LibraryPage({
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<Evidence | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [previewAttachment, setPreviewAttachment] = useState<EvidenceAttachment | null>(null);
   const [kbStatus, setKbStatus] = useState<KnowledgeBaseStatus | null>(null);
   const kbByItem = useMemo(() => new Map((kbStatus?.items ?? []).filter(i => i.source_type === 'library').map(i => [i.source_id, i])), [kbStatus]);
 
@@ -736,160 +730,11 @@ export function LibraryPage({
               </pre>
             </div>
 
-            {/* APP-M2-T047: 附件槽位预览与安全下载防线 */}
-            <div className="attachment-slot-section" data-testid="attachment-slot-section">
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 10,
-                }}
-              >
-                <div style={{ fontWeight: 600, fontSize: 14 }}>
-                  <FileProtectOutlined style={{ color: '#1e4db7', marginRight: 6 }} />
-                  附件原件槽位 (防篡改防线)
-                </div>
-                <Tag color="cyan">SHA256 完整性防篡改</Tag>
-              </div>
-
-              <Table<EvidenceAttachment>
-                size="small"
-                rowKey="id"
-                pagination={false}
-                dataSource={
-                  selectedRecord.attachments || [
-                    {
-                      id: `att-${selectedRecord.id}`,
-                      name: `${selectedRecord.name}_正式扫描件.pdf`,
-                      size: 2048500,
-                      sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-                      uploaded_at: '2026-10-20 14:30:00',
-                    },
-                  ]
-                }
-                columns={[
-                  {
-                    title: '附件文件名',
-                    dataIndex: 'name',
-                    key: 'name',
-                    render: (name: string, att: EvidenceAttachment) => (
-                      <Space>
-                        <FileTextOutlined style={{ color: '#1e4db7' }} />
-                        <span>{name}</span>
-                      </Space>
-                    ),
-                  },
-                  {
-                    title: '大小',
-                    dataIndex: 'size',
-                    key: 'size',
-                    width: 90,
-                    render: (size: number) => `${Math.round((size / 1024 / 1024) * 10) / 10} MB`,
-                  },
-                  {
-                    title: 'SHA256 摘要指纹',
-                    dataIndex: 'sha256',
-                    key: 'sha256',
-                    width: 140,
-                    render: (hash: string) => (
-                      <Tooltip title={hash}>
-                        <code style={{ fontSize: 11 }}>{hash ? `${hash.slice(0, 8)}...${hash.slice(-8)}` : '—'}</code>
-                      </Tooltip>
-                    ),
-                  },
-                  {
-                    title: '安全操作',
-                    key: 'actions',
-                    width: 130,
-                    render: (_: unknown, att: EvidenceAttachment) => {
-                      const check = verifyAttachmentSecurity(att);
-                      return (
-                        <Space size={6}>
-                          <Button
-                            type="link"
-                            size="small"
-                            icon={<EyeOutlined />}
-                            onClick={() => setPreviewAttachment(att)}
-                            data-testid={`preview-att-${att.id}`}
-                          >
-                            预览
-                          </Button>
-                          <Popconfirm
-                            title="下载安全审计告知"
-                            description="下载文件包含内部敏感信息与人员追踪水印，严禁向无关外部第三方流转。是否确认下载？"
-                            onConfirm={() => {
-                              // 安全下载触发
-                            }}
-                            okText="记录审计并下载"
-                            cancelText="取消"
-                          >
-                            <Button
-                              type="link"
-                              size="small"
-                              icon={<DownloadOutlined />}
-                              data-testid={`download-att-${att.id}`}
-                            >
-                              安全下载
-                            </Button>
-                          </Popconfirm>
-                        </Space>
-                      );
-                    },
-                  },
-                ]}
-              />
-            </div>
+            <LibraryAttachments itemId={selectedRecord.id} token={token ?? null} canEdit={hasManageRight} />
           </div>
         )}
       </Drawer>
 
-      {/* 附件原件安全预览弹窗 */}
-      <Modal
-        title={
-          <Space>
-            <FileProtectOutlined style={{ color: '#1e4db7' }} />
-            <span>安全原件预览 · {previewAttachment?.name}</span>
-          </Space>
-        }
-        open={!!previewAttachment}
-        onCancel={() => setPreviewAttachment(null)}
-        footer={[
-          <Button key="close" onClick={() => setPreviewAttachment(null)}>
-            关闭预览
-          </Button>,
-        ]}
-        width={720}
-        data-testid="attachment-preview-modal"
-      >
-        {previewAttachment && (
-          <div>
-            <Alert
-              type="info"
-              showIcon
-              message="防泄密安全水印已生效"
-              description={`当前查阅账号：${user.name} (${user.id}) · 查阅时间：${new Date().toLocaleString()} · SHA256: ${previewAttachment.sha256 || '校验通过'}`}
-              style={{ marginBottom: 16 }}
-            />
-            <div
-              style={{
-                height: 300,
-                background: '#fafafa',
-                border: '1px dashed #d9d9d9',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#8c8c8c',
-              }}
-            >
-              <FileProtectOutlined style={{ fontSize: 48, color: '#1e4db7', marginBottom: 12 }} />
-              <div>PDF 原件安全视口渲染就绪</div>
-              <div style={{ fontSize: 12, marginTop: 4 }}>文件大小: {Math.round(previewAttachment.size / 1024)} KB</div>
-            </div>
-          </div>
-        )}
-      </Modal>
 
       {/* 新增/编辑资料表单弹窗 */}
       <Modal

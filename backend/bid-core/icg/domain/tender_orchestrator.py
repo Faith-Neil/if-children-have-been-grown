@@ -134,6 +134,7 @@ class TenderOrchestratorMixin:
         if any(identity not in workflow["files"] for identity in selected):
             raise DomainError(404, "NOT_FOUND", "所选文件不存在或不属于本项目。")
         parsed, errors, pending = {}, {}, {}
+        recognized: set[str] = set()  # 经扫描件文字识别（RAGFlow DeepDOC）取得文字的文件，条目置信度另算
         from icg.domain.tender_remote import RemoteTenderParser
         remote_parser = RemoteTenderParser(getattr(self.demo, "knowledge_base", None))
         company_id = initial.projects[project_id].company_id
@@ -158,6 +159,7 @@ class TenderOrchestratorMixin:
                     continue
             if outcome.state == "done":
                 parsed[identity] = outcome.document
+                recognized.add(identity)
             elif outcome.state == "pending":
                 pending[identity] = outcome
             else:
@@ -188,6 +190,14 @@ class TenderOrchestratorMixin:
                     regions=getattr(result, "regions", []) or [],
                 )
                 record.pop("remote_parse", None)
+                # 置信度与“原文不可读”（PRD §5.2.2 规则 2、异常与边界）
+                from icg.domain.parse_quality import assess, page_ratios
+                record["recognized"] = identity in recognized
+                ratios = page_ratios(result.pages)
+
+                def quality(quote: str, page: int) -> dict:
+                    ratio = ratios[page - 1] if 1 <= page <= len(ratios) else 0.0
+                    return assess(quote, recognized=record["recognized"], page_ratio=ratio)
                 from icg.domain.post_process import run_scan
                 run_scan(actual, identity, result.pages, iso_time(self.demo._now()))
                 existing = {
@@ -204,7 +214,8 @@ class TenderOrchestratorMixin:
                     if fact_key_tuple in existing_facts:
                         continue
                     fact = {"id": new_id("fact"), "key": item.key, "value": item.value, "status": "pending",
-                            "reason": "", "source": {"file_id": identity, "page": item.page, "quote": item.quote}}
+                            "reason": "", "source": {"file_id": identity, "page": item.page, "quote": item.quote},
+                            **quality(item.quote, item.page)}
                     actual["facts"][fact["id"]] = fact
                     existing_facts.add(fact_key_tuple)
                 extracted, summary = extract_requirements(result.pages)
@@ -235,6 +246,7 @@ class TenderOrchestratorMixin:
                         **out_of_scope_fields(state, project_id, item.volume),
                         "section_kind": item.section_kind,
                         "score": item.score,
+                        **quality(item.quote, item.page),
                     }
                     actual["requirements"][requirement["id"]] = requirement
                     existing.add(source_key)
@@ -369,6 +381,9 @@ class TenderOrchestratorMixin:
                                confirmed_at=iso_time(self.demo._now()))
             elif updated["status"] != "confirmed":
                 updated.update(confirmed_by=None, confirmed_by_name=None, confirmed_at=None)
+            from icg.domain.parse_quality import unresolved_unreadable
+            if updated["status"] == "confirmed" and unresolved_unreadable(updated):
+                raise DomainError(409, "REQUIREMENT_NOT_READY", "这条原文不可读，请对照原页补录文字后再确认，或填写理由删除。")
             requirement.update(updated)
             return {"requirement": requirement}
 
@@ -390,6 +405,11 @@ class TenderOrchestratorMixin:
                 updated["status"] = "pending"
             if not updated["value"].strip():
                 raise DomainError(422, "EMPTY_FACT", "事实取值不能为空。")
+            if "value" in payload and payload["value"] != fact["value"]:
+                updated.update(manually_edited=True, manually_edited_by=principal.user.id)
+            from icg.domain.parse_quality import unresolved_unreadable
+            if updated["status"] == "confirmed" and unresolved_unreadable(updated):
+                raise DomainError(409, "FACT_NOT_READY", "这条事实的原文不可读，请对照原页补录取值后再确认，或填写理由忽略。")
             if updated["status"] == "rejected" and not updated["reason"].strip():
                 raise DomainError(422, "REASON_REQUIRED", "忽略事实必须填写理由。")
             for conflict in workflow["conflicts"].values():

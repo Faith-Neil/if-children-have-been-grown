@@ -78,7 +78,7 @@ def _scoring_groups(rows: list[dict]) -> list[dict]:
     return list(groups.values())
 
 
-def review(workflow: dict, facts: list[dict]) -> dict:
+def review(workflow: dict, facts: list[dict], threshold: float = 0.8) -> dict:
     rows = [r for r in workflow.get("requirements", {}).values() if not r.get("out_of_scope")]
     by_id = {r["id"]: requirement_category(r) for r in rows}
     fact_by_id = {f["id"]: fact_category(f) for f in facts}
@@ -95,10 +95,10 @@ def review(workflow: dict, facts: list[dict]) -> dict:
             item["groups"] = _scoring_groups(members)
         tree.append(item)
     return {"categories": tree, "requirement_categories": by_id, "fact_categories": fact_by_id,
-            "gates": gates(workflow, rows, facts, by_id)}
+            "gates": gates(workflow, rows, facts, by_id, threshold), "confidence_threshold": threshold}
 
 
-def gates(workflow: dict, rows: list[dict], facts: list[dict], by_id: dict[str, str]) -> list[dict]:
+def gates(workflow: dict, rows: list[dict], facts: list[dict], by_id: dict[str, str], threshold: float = 0.8) -> list[dict]:
     """确认解析结果的前提（§5.2.2 规则 7），与后台 confirm_parse 的核对一致；blocking=False 的只提示。"""
     def pending_in(keys):
         return sum(1 for r in rows if r["status"] == "pending" and by_id[r["id"]] in keys)
@@ -106,6 +106,9 @@ def gates(workflow: dict, rows: list[dict], facts: list[dict], by_id: dict[str, 
     conflicts = sum(1 for c in workflow.get("conflicts", {}).values() if c.get("status") != "resolved")
     omissions = sum(1 for h in (workflow.get("post_process") or {}).get("hits", {}).values() if h.get("status") == "open")
     references = sum(1 for r in rows if r.get("reference_status") == "unresolved" and r["status"] != "rejected")
+    from .parse_quality import low_confidence, unresolved_unreadable
+    unreadable = sum(1 for item in [*rows, *facts] if unresolved_unreadable(item))
+    low = sum(1 for item in [*rows, *facts] if item.get("status") == "pending" and low_confidence(item, threshold))
     items = [
         ("CONFLICTS_PENDING", "事实冲突待选定", conflicts, True),
         ("OMISSIONS_PENDING", "疑似遗漏未处理", omissions, True),
@@ -115,6 +118,8 @@ def gates(workflow: dict, rows: list[dict], facts: list[dict], by_id: dict[str, 
         ("REQUIREMENTS_PENDING", "其他条款待确认", pending_in(set(LABELS) - INDIVIDUAL), True),
         ("FACTS_PENDING", "项目事实待核对", sum(1 for f in facts if f.get("status") == "pending"), True),
         ("REQUIREMENTS_EMPTY", "还没有抽取到条款", 0 if rows else 1, True),
+        ("UNREADABLE_PENDING", "原文不可读待对照原页补录", unreadable, True),
+        ("LOW_CONFIDENCE", f"置信度低于 {threshold:g} 待人工核对（只提示）", low, False),
         ("REFERENCES_UNRESOLVED", "引用未解析（确认条目时写明人工核对结果）", references, False),
     ]
     return [{"code": code, "label": label, "count": count, "blocking": blocking, "ok": count == 0}
@@ -130,7 +135,8 @@ class ParseReviewMixin:
         self.demo._project(state, principal, project_id)
         workflow = self._workflow(state, project_id)
         facts = [f for f in project_facts(state, project_id) if f.get("source_type", "parsed") == "parsed" and not f.get("sla_var_key")]
-        result = review(workflow, facts)
+        from .company_settings import parse_confidence_threshold
+        result = review(workflow, facts, parse_confidence_threshold(state, self.demo._project(state, principal, project_id).company_id))
         result["can_confirm"] = all(g["ok"] for g in result["gates"] if g["blocking"])
         result["parse_confirmed"] = bool(workflow.get("parse_confirmed"))
         return result
@@ -154,6 +160,11 @@ class ParseReviewMixin:
             if individual:
                 raise DomainError(409, "REQUIREMENT_NOT_READY", "星号条款、废标条款和资格要求必须逐条确认，不能批量确认。",
                                   {"requirement_ids": individual})
+            from .parse_quality import unresolved_unreadable
+            unreadable = [r["id"] for r in rows if unresolved_unreadable(r)]
+            if unreadable:
+                raise DomainError(409, "REQUIREMENT_NOT_READY", "原文不可读的条目须对照原页补录后逐条确认，不能批量确认。",
+                                  {"requirement_ids": unreadable})
             references = [r["id"] for r in rows if r.get("reference_status") == "unresolved"]
             if references:
                 raise DomainError(409, "REFERENCE_REASON_REQUIRED", "含未解析引用的条目须逐条确认并写明人工核对结果。",

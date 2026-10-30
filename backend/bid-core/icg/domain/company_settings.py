@@ -61,6 +61,8 @@ class CompanySettingsModel(BaseModel):
     # 查重与合规 (PRD §5.8.3 / §5.10.4)
     dup_min_chars: int = Field(default=8, description="查重连续相同字数阈值")
     dup_history_months: int = Field(default=24, description="查重历史标书比对年限（月）")
+    # 招标解析 (PRD §5.2.2 规则 2：低于阈值的条目高亮提示人工核对)
+    parse_confidence_threshold: float = Field(default=0.8, description="解析置信度高亮阈值（0.5～0.99，示例 0.8）")
     # 审计与扩展
     updated_at: str | None = Field(default=None, description="最后更新时间（ISO 8601）")
     updated_by: str | None = Field(default=None, description="最后更新人账号ID")
@@ -84,7 +86,14 @@ class UpdateCompanySettingsRequest(BaseModel):
     model_review_enabled: bool | None = Field(default=None, description="是否启用章节模型评审")
     dup_min_chars: int | None = Field(default=None, description="查重连续相同字数阈值")
     dup_history_months: int | None = Field(default=None, description="查重历史标书比对年限（月）")
+    parse_confidence_threshold: float | None = Field(default=None, description="解析置信度高亮阈值（0.5～0.99）")
     custom_settings: dict[str, Any] | None = Field(default=None, description="企业扩展键值配置")
+
+
+def parse_confidence_threshold(state, company_id: str) -> float:
+    stored = (getattr(state, "service_stores", {}).get("company_settings") or {}).get(company_id) or {}
+    value = stored.get("parse_confidence_threshold")
+    return float(value) if isinstance(value, (int, float)) else 0.8
 
 
 def company_display_name(state, company_id: str) -> str:
@@ -290,6 +299,14 @@ class CompanySettingsService:
                     f"会话超时时长必须在 {PLATFORM_SESSION_TIMEOUT_LOWER_BOUND}～{PLATFORM_SESSION_TIMEOUT_UPPER_BOUND} 分钟之间。",
                     details={"field": "session_timeout_minutes", "min": PLATFORM_SESSION_TIMEOUT_LOWER_BOUND, "max": PLATFORM_SESSION_TIMEOUT_UPPER_BOUND, "value": request.session_timeout_minutes},
                 )
+
+        if request.parse_confidence_threshold is not None and not 0.5 <= request.parse_confidence_threshold <= 0.99:
+            raise DomainError(
+                422,
+                "SETTING_VALUE_OUT_OF_BOUNDS",
+                "解析置信度阈值必须在 0.5～0.99 之间。",
+                details={"field": "parse_confidence_threshold", "min": 0.5, "max": 0.99, "value": request.parse_confidence_threshold},
+            )
 
         # 5. 合并更新字段
         data = current.model_dump()

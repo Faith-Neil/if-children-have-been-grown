@@ -175,11 +175,11 @@ export function rawUploadPath(path: string, params: Record<string, string>): str
 }
 
 // 大文件二进制直传：请求体就是文件本身，不先转 base64（100MB 文件不再在浏览器里拼出 134MB 字符串）。
-export async function uploadRaw<T>(path: string, token: string | null, file: Blob, revision?: number): Promise<T> {
+export async function uploadRaw<T>(path: string, token: string | null, file: Blob, revision?: number, method: 'POST' | 'PUT' = 'POST'): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/octet-stream', 'Idempotency-Key': crypto.randomUUID() };
   if (token) headers.Authorization = `Bearer ${token}`;
   if (revision !== undefined) headers['If-Match'] = String(revision);
-  const response = await fetch(path, { method: 'POST', headers, body: file, cache: 'no-store' });
+  const response = await fetch(path, { method, headers, body: file, cache: 'no-store' });
   const data = await readJson(response);
   if (!response.ok) throw rememberFailureSession(apiFailure(response.status, data, response.headers.get('X-Request-ID') ?? undefined), token);
   return data as T;

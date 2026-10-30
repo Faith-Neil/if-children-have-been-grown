@@ -211,11 +211,18 @@ def _company_names(state: Any, project: Any) -> set[str]:
     return names
 
 
-def check_r42(state: Any, project: Any, workflow: dict, volume: str = "all"):
+def blind_volume(workflow: dict) -> str | None:
+    """招标要求暗标时的暗标分册：只写商务暗标时为商务分册，否则为技术分册；未要求暗标为 None。导出版式也用它。"""
     tender = tender_text(workflow)
     if "暗标" not in tender:
+        return None
+    return "business" if re.search(r"商务[^。；\n]{0,10}暗标", tender) and not re.search(r"技术[^。；\n]{0,10}暗标", tender) else "technical"
+
+
+def check_r42(state: Any, project: Any, workflow: dict, volume: str = "all"):
+    blind = blind_volume(workflow)
+    if blind is None:
         return _result("R42", "暗标", [], ok="招标未要求暗标。", fail="", suggestion="")
-    blind = "business" if re.search(r"商务[^。；\n]{0,10}暗标", tender) and not re.search(r"技术[^。；\n]{0,10}暗标", tender) else "technical"
     if volume not in ("all", blind):
         return _result("R42", "暗标", [], ok=f"暗标分册为{VOLUME_NAMES[blind]}，本分册不查。", fail="", suggestion="")
     names = _company_names(state, project) | {p["name"] for p in _library(state, project, "personnel")}

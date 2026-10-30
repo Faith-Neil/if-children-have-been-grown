@@ -142,19 +142,29 @@ class ExportServiceMixin(CheckOrchestratorMixin):
             now = self.demo._now()
             batch_no = next_batch_no(workflow, payload["kind"], datetime.fromtimestamp(now, SHANGHAI))
             documents, volumes = {}, []
+            # 公司 Word 模板（APP-M2-T086/T196）与附件扫描件（APP-M2-T198）
+            from icg.domain.word_template import export_style
+            from icg.domain.attachments import export_plan
+            from icg.domain.content_rules import blind_volume
+            style, template = export_style(state, project.company_id, payload.get("template") or "auto")
+            blind = blind_volume(workflow)
+            watermark = (payload.get("attachment_watermark") or "").strip() or f"仅用于{self._mask(project.name)}投标"
             for volume, name in (("technical", "技术分册"), ("business", "商务分册")):
                 if volume not in required_volumes:
                     continue
                 selected = [c for c in chapters if c.volume == volume]
                 filename = f"icg-{volume}-{identity}.docx"
                 doc_title = self._mask(project.name) + " — " + name
-                doc_content = "\n\n".join(
-                    chapter_export_block(
-                        self._mask(c.title),
-                        self._mask(resolve_fact_variables(state, project_id, c.content)),
-                    )
-                    for c in selected
-                )
+                doc_content, line_ends = "", {}
+                for c in selected:
+                    block = chapter_export_block(self._mask(c.title),
+                                                 self._mask(resolve_fact_variables(state, project_id, c.content)))
+                    doc_content += ("\n\n" if doc_content else "") + block
+                    line_ends[c.id] = len(doc_content.splitlines()) - 1  # 本章最后一行，附件插在它后面
+                plan, skipped = ([], []) if payload.get("insert_attachments") is False else export_plan(
+                    state, project, workflow, volume, selected, line_ends,
+                    default_volume="technical" if technical_only else "business", blind=blind == volume,
+                    watermark=watermark)
                 vol_sha = hashlib.sha256(doc_content.encode("utf-8")).hexdigest()
                 from icg.domain.company_settings import company_display_name
                 documents[volume] = {
@@ -165,8 +175,10 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                     "format_metadata": WORD_DEFAULT_FORMAT_METADATA,
                     # 封面与页眉（APP-M2-T197）：分册名、招标编号、投标人、导出日期；内部稿页眉写“内部评审稿”
                     "cover": {"kind": payload["kind"], "volume_name": name, "tender_number": project.tender_number,
-                              "bidder": company_display_name(state, project.company_id),
+                              "bidder": company_display_name(state, project.company_id), "dark_bid": blind == volume,
                               "date": datetime.fromtimestamp(now, SHANGHAI).strftime("%Y年%m月%d日").replace("年0", "年").replace("月0", "月")},
+                    "style": style,
+                    "attachments": plan,
                 }
                 volumes.append({
                     "volume": volume,
@@ -175,6 +187,10 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                     "sha256": vol_sha,
                     "format_metadata": WORD_DEFAULT_FORMAT_METADATA,
                     "batch_no": batch_no,
+                    "template": template,
+                    "attachments": [{k: a[k] for k in ("attachment_id", "name", "filename", "page_from", "page_to")}
+                                    | {"watermarked": a["watermark"] is not None} for a in plan],
+                    "skipped_attachments": skipped,
                 })
             try:
                 # 原子批次（APP-M2-T202）：全部分册都生成成功才保存；一册失败整批记“失败”，不留可下载文件
@@ -211,6 +227,8 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                 "compliance_notice": compliance_notice,
                 "sha256": record_sha,
                 "format_metadata": WORD_DEFAULT_FORMAT_METADATA,
+                "template": template,
+                "insert_attachments": payload.get("insert_attachments") is not False,
                 "is_submission": payload.get("kind") == "submission",
                 "batch_no": batch_no,
                 "export_status": "completed",

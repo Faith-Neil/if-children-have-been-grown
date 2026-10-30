@@ -213,6 +213,7 @@ export function GlobalPagesContent({
                     <CompanySettingsPage
                       session={session}
                       currentUser={currentUser}
+                      token={token}
                     />
                   ),
                 },

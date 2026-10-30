@@ -49,6 +49,7 @@ import {
   type CompanySettingsData,
   type CustomFieldMetadata,
 } from './company-settings-core.ts';
+import { WordTemplateCard } from './WordTemplateCard.tsx';
 
 const { Text, Paragraph } = Typography;
 
@@ -56,9 +57,10 @@ export interface CompanySettingsPageProps {
   session?: ApplicationSession | null;
   currentUser?: { id?: string; name?: string; role?: string; primary_role?: string; company_id?: string } | null;
   currentRole?: string;
+  token?: string | null;
 }
 
-export function CompanySettingsPage({ session, currentUser, currentRole: explicitRole }: CompanySettingsPageProps) {
+export function CompanySettingsPage({ session, currentUser, currentRole: explicitRole, token }: CompanySettingsPageProps) {
   const activeRole = explicitRole || session?.user?.primary_role || session?.user?.role || currentUser?.primary_role || currentUser?.role || 'company_admin';
   const permission = useMemo(() => checkCompanySettingsPermission(activeRole), [activeRole]);
 
@@ -518,27 +520,8 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
                       </Card>
                     </Col>
 
-                    <Col span={12}>
-                      <Form.Item label="导出稿件启用防伪水印">
-                        <Switch
-                          checked={settings.export_watermark_enabled}
-                          disabled={!permission.canEdit}
-                          onChange={val => updateField('export_watermark_enabled', val)}
-                          data-testid="switch-export-watermark"
-                        />
-                      </Form.Item>
-                    </Col>
-
-                    <Col span={12}>
-                      <Form.Item label="默认水印文本内容">
-                        <Input
-                          value={settings.export_watermark_text}
-                          disabled={!permission.canEdit || !settings.export_watermark_enabled}
-                          onChange={e => updateField('export_watermark_text', e.target.value)}
-                          placeholder="请输入水印文字"
-                          data-testid="input-watermark-text"
-                        />
-                      </Form.Item>
+                    <Col span={24}>
+                      <WordTemplateCard companyId={settings.company_id} token={token ?? null} canEdit={permission.canEdit} />
                     </Col>
                   </Row>
                 </div>

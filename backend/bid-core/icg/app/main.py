@@ -44,6 +44,7 @@ from icg.api import (
     include_kb_admin_routes,
     include_selection_rewrite_routes,
     include_notification_routes,
+    include_export_asset_routes,
 )
 
 
@@ -181,6 +182,7 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     include_kb_admin_routes(application, service, current_user)
     include_selection_rewrite_routes(application, service, current_user)
     include_notification_routes(application, service, current_user)
+    include_export_asset_routes(application, service, current_user)
 
     @application.get("/{full_path:path}", include_in_schema=False)
     def product_page(full_path: str):
