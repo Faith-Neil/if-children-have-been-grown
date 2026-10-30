@@ -1188,7 +1188,7 @@ class ChapterGenerationService:
                 status="running",
                 step_name="调用模型推理中",
             )
-            provider = self.demo.resolve_model_provider(state, project_id)
+            provider = self.demo.resolve_model_provider(state, project_id, "chapter_generation")
             instruction = "按本章已确认条款、响应、证据和事实组织候选；不能编造证据与承诺。引用事实保留变量，不能改取值。"
             refuse_source_change(prompt_plan["writing_points"], input_snapshot)
             try:
@@ -1895,7 +1895,7 @@ class ChapterGenerationService:
             resolved_p = None
             if hasattr(self.demo, "resolve_model_provider"):
                 try:
-                    resolved_p = self.demo.resolve_model_provider(state, project.id)
+                    resolved_p = self.demo.resolve_model_provider(state, project.id, "chapter_generation")
                 except Exception:
                     resolved_p = None
             active_p = resolved_p or getattr(self.demo, "model_provider", None)
@@ -2012,7 +2012,7 @@ class ChapterGenerationService:
         # 门禁 3：涉密项目本地模型硬门禁（403）
         model_provider = provider
         if model_provider is None:
-            model_provider = self.demo.resolve_model_provider(state, project_id)
+            model_provider = self.demo.resolve_model_provider(state, project_id, "chapter_generation")
         self._check_model_gate(state, project, provider=model_provider)
 
         workflow = state.workflows.get(project_id, {})

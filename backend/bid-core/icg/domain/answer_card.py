@@ -988,7 +988,7 @@ class AnswerCardService:
                     citations = []
 
         # 调用模型生成回答
-        provider = self.demo.resolve_model_provider(state, project.id)
+        provider = self.demo.resolve_model_provider(state, project.id, "assistant_qa")
         system_prompt = (
             "你是一名专业的投标文件编写智能助手。当前处于自由问答模式，请针对用户的提问提供严谨、专业、合规的解答。\n"
             "原则要求：\n"

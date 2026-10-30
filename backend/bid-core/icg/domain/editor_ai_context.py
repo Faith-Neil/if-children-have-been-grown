@@ -538,7 +538,7 @@ class EditorAIContextService:
                     insert_disabled_reason = "缺少已核对依据溯源，不可直接替换正文"
 
         # 调用模型生成解答
-        provider = self.demo.resolve_model_provider(state, project.id)
+        provider = self.demo.resolve_model_provider(state, project.id, "assistant_qa")
         try:
             if provider is not None and hasattr(provider, "suggest"):
                 raw_reply = provider.suggest(prompt_ctx["system_prompt"], prompt_ctx["user_content"])

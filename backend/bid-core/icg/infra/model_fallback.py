@@ -4,7 +4,9 @@
 # 1. 只在健康类失败（超时、连接失败、5xx、限流 429）时降级；参数错误等 4xx 直接报错，不换模型掩盖问题；
 # 2. 降级后告诉调用方实际用了哪个模型、为什么换，页面显示“已使用备用模型 X”，记录里存实际模型；
 # 3. 已经流式输出了一部分再失败时，先通知调用方清空这一条的预览，再从备用模型重新输出；
-# 4. 用户停止（ModelCancelled）不降级；备用模型是否合规（本地/敏感项目）由组装备用模型的一方事先核对。
+# 4. 用户停止（ModelCancelled）不降级；备用模型是否合规（本地/敏感项目）由组装备用模型的一方事先核对；
+# 5. WithFallback 把主备模型包成一个模型：章节生成、写作方案、改写、问答等所有调用 suggest() 的任务都自动降级（APP-M2-T040），
+#    最近一次实际用的模型记在 last_call，供任务记录。
 
 from __future__ import annotations
 
@@ -59,7 +61,7 @@ def failure_text(error: BaseException) -> str:
 def call_model(provider: Any, system: str, user: str, *, on_delta: Callable[[str], None] | None = None,
                on_reset: Callable[[str, str], None] | None = None, cancel: Any = None) -> ModelCall:
     """调用主模型；健康类失败且配置了 provider.fallback 时改用备用模型。on_reset(备用模型名, 原因) 在切换时调用。"""
-    chain = [provider]
+    chain = [getattr(provider, "primary", provider)]
     fallback = getattr(provider, "fallback", None)
     if fallback is not None:
         chain.append(fallback)
@@ -84,3 +86,19 @@ def call_model(provider: Any, system: str, user: str, *, on_delta: Callable[[str
         return ModelCall(text if isinstance(text, str) else str(text), model_name(current),
                          bool(getattr(current, "is_local", False)), index > 0, reason)
     raise RuntimeError("unreachable")
+
+
+class WithFallback:
+    """主模型 + 备用模型。属性（model、is_local、is_real_model、stream_enabled…）取主模型的；suggest 失败时按规则降级。"""
+
+    def __init__(self, primary: Any, fallback: Any):
+        self.primary = primary
+        self.fallback = fallback
+        self.last_call: ModelCall | None = None
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.primary, name)
+
+    def suggest(self, instruction: str, content: str) -> str:
+        self.last_call = call_model(self, instruction, content)
+        return self.last_call.text

@@ -536,7 +536,7 @@ def test_auto_remediate_flag_in_start_chapter_generation(test_env):
     ch = test_env["chapters"][0]
 
     # 替换模型提供商为输出有缺陷的模型
-    test_env["demo"].resolve_model_provider = lambda st, pid: defective_provider
+    test_env["demo"].resolve_model_provider = lambda st, pid, *task: defective_provider
 
     # 不开启 auto_remediate 时，生成的 candidate 必然验证失败
     res_no_rem = service.start_chapter_generation(
@@ -571,7 +571,7 @@ def test_auto_remediate_flag_in_start_chapter_generation(test_env):
 def test_auto_remediate_in_schedule_batch_pipeline(test_env):
     """测试 9：批量流水线 schedule_batch_pipeline(auto_remediate=True) 自动批量整改闭环与看板。"""
     defective_provider = MockDefectiveModelProvider()
-    test_env["demo"].resolve_model_provider = lambda st, pid: defective_provider
+    test_env["demo"].resolve_model_provider = lambda st, pid, *task: defective_provider
 
     service = ChapterGenerationService(test_env["demo"], repository=test_env["repo"])
 
@@ -600,7 +600,7 @@ def test_auto_remediate_in_schedule_batch_pipeline(test_env):
 def test_sensitive_project_airgap_model_gate_on_remediation(test_env):
     """测试 10：涉密项目内网物理隔离红线（Airgap Boundary）—— 严禁调用公网/云端模型整改。"""
     cloud_provider = MockCloudModelProvider()
-    test_env["demo"].resolve_model_provider = lambda st, pid: cloud_provider
+    test_env["demo"].resolve_model_provider = lambda st, pid, *task: cloud_provider
 
     # 将项目置为涉密
     def mark_sensitive(st):

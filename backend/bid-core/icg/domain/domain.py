@@ -433,12 +433,23 @@ class DemoService:
             snippet_store=snippet_store,
         )
 
-    def resolve_model_provider(self, state: DemoState, project_id: str) -> ModelProvider:
+    def resolve_model_provider(self, state: DemoState, project_id: str, task: str | None = None) -> ModelProvider:
+        """项目单独绑定的模型 → 本公司任务与模型对应表（APP-M2-T040）→ 本公司默认模型 → 进程内置模型。"""
         bound_id = state.project_model_configs.get(project_id)
         cfg = None
+        route_backup = None
+        project = state.projects.get(project_id)
         if bound_id and bound_id in state.model_configs:
             cfg = state.model_configs[bound_id]
-        else:
+        elif project is not None and task:
+            from .task_model_routes import resolve as resolve_route
+            routed = resolve_route(state, project.company_id, task)
+            if routed is not None:
+                cfg, route_backup = routed
+                if project.sensitive and (not cfg.is_local or not cfg.allow_sensitive):
+                    raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
+                                      "敏感项目只能使用本地模型：任务与模型对应表里该任务的首选模型不是允许处理敏感数据的本地模型。")
+        if cfg is None:
             project = state.projects.get(project_id)
             if project:
                 default_id = f"default-{project.company_id}"
@@ -447,11 +458,14 @@ class DemoService:
         if cfg is not None:
             from icg.infra.model_config_storage import provider_from_model_config, usable_fallback
             provider = provider_from_model_config(cfg, transport=self.model_transport, default_provider=self.model_provider)
-            project = state.projects.get(project_id)
             backup = usable_fallback(state, cfg, bool(project and project.sensitive))
+            if route_backup is not None and (not (project and project.sensitive)
+                                             or (route_backup.is_local and route_backup.allow_sensitive)):
+                backup = route_backup  # 任务表里填的备用优先于模型配置自带的
             if backup is not None and getattr(provider, "is_real_model", False) and provider is not self.model_provider:
-                # 备用模型（PRD §6.5 规则 2、3）：主模型健康类失败时由 icg.infra.model_fallback.call_model 改用
-                provider.fallback = provider_from_model_config(backup, transport=self.model_transport)
+                # 备用模型（PRD §6.5 规则 2、3）：所有任务的 suggest() 在主模型健康类失败时改用备用（APP-M2-T040）
+                from icg.infra.model_fallback import WithFallback
+                return WithFallback(provider, provider_from_model_config(backup, transport=self.model_transport))
             return provider
         return self.model_provider
 
@@ -985,12 +999,18 @@ class DemoService:
             from .system_chapters import refuse_manual_edit
             refuse_manual_edit(state, chapter)
             self._writing_input(state, chapter, input_fingerprint)
+            # 粘贴识别（APP-M2-T188）：与本章近期对话助手输出高度重合的新段落，来源记为“对话助手撰写（粘贴）”并复查
+            from .paste_detection import review as paste_review
+            pasted = paste_review(state, chapter, state.workflows.get(chapter.project_id) or {}, chapter.content, content, self._now())
             chapter.content = content
             chapter.revision += 1
             state.projects[chapter.project_id].revision += 1
             result = {"revision": chapter.revision, "content": chapter.content}
-            chapter.versions.append({**result, "actor_id": principal.user.id,
-                                     "created_at": iso_time(self._now())})
+            if pasted:
+                result["paste_detected"] = pasted
+            chapter.versions.append({**{k: v for k, v in result.items() if k != "paste_detected"}, "actor_id": principal.user.id,
+                                     "created_at": iso_time(self._now()),
+                                     **({"paragraph_sources": [{k: v for k, v in p.items() if k != "issues"} for p in pasted]} if pasted else {})})
             chapter.drafts.pop(principal.user.id, None)
             stale = [uid for uid, draft in chapter.drafts.items() if draft.base_revision < chapter.revision]
             if stale:
@@ -998,7 +1018,8 @@ class DemoService:
                 notify(state, stale, "draft_expired", f"「{chapter.title}」有新版本，你的草稿已过期",
                        f"{principal.user.name} 提交了 v{chapter.revision}；你的草稿基于旧版本，不会覆盖新正文，请核对后再改。",
                        now=iso_time(self._now()), project_id=chapter.project_id, target_id=chapter.id)
-            self._audit(state, principal, chapter, "version.commit")
+            self._audit(state, principal, chapter, "version.commit",
+                        {"pasted_paragraphs": [p["paragraph_index"] for p in pasted]} if pasted else None)
             remember(state, chapter.project_id, principal.user.id, key, request_fingerprint, result, self._now())
             return result
         return self.repository.transaction(operation)
@@ -1078,7 +1099,7 @@ class DemoService:
         self.require_allowed_model(self._project(current, principal, actual.project_id), state=current)
         if project_input_fingerprint(current, chapter.project_id) != fingerprint:
             raise DomainError(409, "VERSION_CONFLICT", "项目资料在准备建议期间更新，请核对来源后重新请求。")
-        provider = self.resolve_model_provider(current, actual.project_id)
+        provider = self.resolve_model_provider(current, actual.project_id, "chapter_generation")
         try:
             suggestion = provider.suggest(instruction, model_input)
             if not isinstance(suggestion, str):
