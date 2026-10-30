@@ -1,5 +1,7 @@
 // 为什么有这个文件：按 ICG 示例实现项目主链路中的业务页签。
 // 它解决什么问题：上传与解析、响应和证据、检查与两册导出都调用后台真实结果。
+import { editorChapterPath } from '../app/app-route.ts';
+import { requestIssueFocus } from '../editor/issue-focus.ts';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, App as AntApp, Badge, Button, Card, Checkbox, Col, Collapse, Descriptions, Drawer, Empty, Form, Input, List, Modal, Progress, Radio, Row, Select, Space, Statistic, Steps, Table, Tabs, Tag, Tooltip, Upload } from 'antd';
 import { CheckCircleOutlined, DownloadOutlined, FileTextOutlined, LinkOutlined, PlusOutlined, ReloadOutlined, SearchOutlined, StopOutlined, UploadOutlined, WarningOutlined } from '@ant-design/icons';
@@ -150,7 +152,11 @@ export function ChecksPage() {
   function locate(item: CheckIssue) {
     const requirement = workspace.requirements.find(value => value.id === item.requirement_id);
     if (requirement) setSource(requirement.source);
-    else navigate(item.chapter_id ? 'editor' : item.evidence_id ? 'matrix' : 'parse');
+    else if (item.chapter_id) {
+      // 打开问题所在章节，编辑台读到问题清单后定位到段落（APP-M2-T166）
+      requestIssueFocus(item.chapter_id, item.id);
+      navigate(editorChapterPath(workspace.project.id, item.chapter_id));
+    } else navigate(item.evidence_id ? 'matrix' : 'parse');
   }
 
   return (
@@ -204,7 +210,7 @@ export function ChecksPage() {
                     style={{ cursor: ch.chapterId !== 'global_non_chapter' ? 'pointer' : 'default', padding: '2px 8px' }}
                     onClick={() => {
                       if (ch.chapterId && ch.chapterId !== 'global_non_chapter') {
-                        navigate('editor');
+                        navigate(editorChapterPath(workspace.project.id, ch.chapterId));
                       }
                     }}
                   >

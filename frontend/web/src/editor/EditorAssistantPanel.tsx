@@ -29,6 +29,9 @@ export interface EditorAssistantPanelProps {
   onSuggest: () => void;
   /** 选区改写（对话助手样例），显示在整章建议之上 */
   selectionTools?: React.ReactNode;
+  /** “问题”页签内容（APP-M2-T166）与待处理问题数 */
+  issuesPanel?: React.ReactNode;
+  openIssueCount?: number;
 }
 
 export function EditorAssistantPanel({
@@ -51,6 +54,8 @@ export function EditorAssistantPanel({
   onShowDiff,
   onSuggest,
   selectionTools,
+  issuesPanel,
+  openIssueCount = 0,
 }: EditorAssistantPanelProps) {
   return (
     <aside className="editor-right">
@@ -60,7 +65,7 @@ export function EditorAssistantPanel({
         onChange={setRightTab}
         items={[
           { key: 'assistant', label: '对话助手' },
-          { key: 'issues', label: '问题' },
+          { key: 'issues', label: openIssueCount ? `问题 ${openIssueCount}` : '问题' },
           { key: 'sources', label: '写作来源' },
         ]}
       />
@@ -128,21 +133,7 @@ export function EditorAssistantPanel({
           </>
         )}
         {rightTab === 'sources' && <WritingSources key={chapterId} chapterId={chapterId} candidate={candidate} />}
-        {rightTab === 'issues' && (
-          <>
-            {workspace.checks[workspace.checks.length - 1]?.issues
-              .filter(item => item.chapter_id === chapterId)
-              .map(item => (
-                <Alert
-                  key={item.id}
-                  className="page-notice"
-                  type={item.severity === 'warning' ? 'warning' : 'error'}
-                  message={`${item.code} · ${item.message}`}
-                />
-              )) ?? <Empty description="请提交正文后运行检查" />}
-            <Alert type="info" message="问题依据当前检查批次；未提交内容尚未检查" />
-          </>
-        )}
+        {rightTab === 'issues' && issuesPanel}
       </div>
       {rightTab === 'assistant' && (
         <div className="assistant-input">

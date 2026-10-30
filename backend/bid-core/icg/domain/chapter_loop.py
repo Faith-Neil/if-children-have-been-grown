@@ -436,6 +436,9 @@ def record_loop(workflow: dict, chapter: Any, chapter_number: int, outcome: dict
             "suggestion", "route", "human_reason", "tokens", "first_round", "last_round", "fix_count")})
         issue.update({"status": "pending_human", "loop_no": loop_no, "updated_at": now_iso,
                       "human_reason_label": HUMAN_REASONS.get(finding.get("human_reason") or "", "")})
+        # 段落键跟着段落走（APP-M2-T166）：之后正文改了，编辑台仍能定位到这一段
+        from .chapter_issues import key_for_line
+        issue["paragraph_key"] = key_for_line(chapter, finding.get("paragraph_index"))
         issue["history"].append({"at": now_iso, "action": "opened", "loop_no": loop_no, "actor_id": actor_id})
     for fp, issue in existing.items():
         if fp not in seen and issue["status"] in OPEN_STATUSES:

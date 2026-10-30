@@ -28,6 +28,53 @@ class RollbackResult(ResponseBody):
     rollback_from: int = Field(description="回退到的历史版本号")
 
 
+class ChapterIssue(ResponseBody):
+    id: str = Field(description="来源前缀 + 原问题编号：check:批次:问题 / loop:队列问题 / edit:操作:序号")
+    origin: Literal["check", "loop", "edit_recheck"]
+    origin_label: str = Field(description="合规检查 / 章节循环 / 编辑后复查")
+    rule_id: str
+    code: str
+    severity: Literal["blocker", "warning", "info"]
+    message: str
+    quote: str = Field(description="问题所在原句（截断）；整章问题为空")
+    route: str = Field(description="处理路径：auto_fix / direct_human / escalated_human / must_fix / fix_or_release / hint")
+    route_label: str
+    status: str = Field(description="open / pending_fix / pending_human / released / resolved / human_handled / rejected")
+    status_label: str
+    open: bool = Field(description="仍待处理")
+    stale: bool = Field(description="来自已过期的检查批次（正文或来源已变化）")
+    paragraph_key: str | None = Field(description="当前正文中的段落键；未能定位或整章问题为空")
+    line_start: int | None
+    line_end: int | None
+    located_by: Literal["key", "quote", "line", "none", "chapter"]
+    locate_note: str
+    created_at: str | None = None
+    check_id: str | None = None
+    issue_id: str | None = None
+    human_issue_id: str | None = None
+    number: str | None = None
+    suggestion: str | None = None
+    human_reason_label: str | None = None
+    operation_id: str | None = None
+    edit_mode_label: str | None = None
+
+
+class ChapterIssueCounts(ResponseBody):
+    open: int
+    blocker: int
+    unlocated: int
+
+
+class ChapterIssueList(ResponseBody):
+    project_id: str
+    chapter_id: str
+    revision: int
+    check: dict | None = Field(description="所用检查批次：id、volume、created_at、stale、passed；没有检查时为空")
+    loop: dict | None = Field(description="本章最近一次章节循环：loop_no、status、result_revision、started_at")
+    items: list[ChapterIssue]
+    counts: ChapterIssueCounts
+
+
 class VariableResolveRequest(RequestBody):
     content: str | None = Field(default=None, max_length=200_000,
                                 description="要解析的正文（编辑中的文字）；不传则解析已提交正文")
@@ -76,5 +123,14 @@ def include_chapter_version_routes(application, service: DemoService, current_us
                              "只读，有本章读取权限即可；不写正文、不改取值。")
     def resolve_variables(project_id: str, chapter_id: str, body: VariableResolveRequest, user: Principal = Depends(current_user)):
         return variables.resolve(user, project_id, chapter_id, body.content)
+
+    @router.get("/issues", response_model=ChapterIssueList, operation_id="listChapterIssues",
+                summary="本章问题清单与段落定位",
+                description="编辑台“问题”页签：合并本章所在分册最近一次检查（含已过期标记）、章节循环与人工处理队列、编辑后增量复查的问题；"
+                            "每条折算到当前正文的段落键（先认记下的段落键，再按原句唯一匹配，正文未变时才认行号），对不上的标未能定位。"
+                            "只读，有本章读取权限即可。")
+    def list_chapter_issues(project_id: str, chapter_id: str, user: Principal = Depends(current_user)):
+        from icg.domain.chapter_issues import chapter_issues
+        return chapter_issues(service, user, project_id, chapter_id)
 
     application.include_router(router)

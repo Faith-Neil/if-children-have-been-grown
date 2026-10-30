@@ -1066,6 +1066,15 @@ class DemoService:
             result = {"revision": chapter.revision, "content": chapter.content}
             if pasted:
                 result["paste_detected"] = pasted
+                # 粘贴识别的复查结果留存，编辑台“问题”页签标“编辑后复查”（APP-M2-T166 / PRD §5.11.6 第 5 项）
+                flow = state.workflows.setdefault(chapter.project_id, {})
+                for item in pasted:
+                    if item.get("issues"):
+                        flow.setdefault("edit_rechecks", []).append({
+                            "id": new_id("recheck"), "chapter_id": chapter.id, "revision": chapter.revision,
+                            "label": item.get("source_label") or "粘贴自对话助手", "paragraph_index": item.get("paragraph_index"),
+                            "text": item.get("text") or "", "issues": item["issues"], "at": iso_time(self._now()),
+                            "actor_id": principal.user.id})
             chapter.versions.append({**{k: v for k, v in result.items() if k != "paste_detected"}, "actor_id": principal.user.id,
                                      "created_at": iso_time(self._now()),
                                      **({"paragraph_sources": [{k: v for k, v in p.items() if k != "issues"} for p in pasted]} if pasted else {})})

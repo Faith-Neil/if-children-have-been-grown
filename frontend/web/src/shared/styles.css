@@ -596,3 +596,17 @@
 /* 解析结果分类树（APP-M2-T104） */
 .parse-category button.tree-child { padding-left: 26px; font-size: 11px; }
 .parse-cards-title { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+
+/* 编辑台问题页签与正文段落联动（APP-M2-T166） */
+.editor-issue-panel .issue-filters{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.editor-issue-panel .issue-list{list-style:none;margin:0;padding:0}
+.editor-issue-panel .issue-item{border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-bottom:8px;background:white;font-size:13px}
+.editor-issue-panel .issue-item.active{border-color:#1e4db7;box-shadow:0 0 0 2px #e8efff}
+.editor-issue-panel .issue-item.closed{opacity:.65}
+.editor-issue-panel .issue-item-head{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:4px;font-size:12px}
+.editor-issue-panel .issue-message{color:#1d2129;line-height:1.6}
+.editor-issue-panel .issue-quote{font-size:12px;line-height:1.6;margin-top:2px;word-break:break-all}
+.paragraph-issue-marker{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;margin-right:6px;padding:0 5px;border-radius:9px;border:0;font-size:12px;line-height:18px;cursor:pointer;color:white;background:#8c8c8c;vertical-align:1px}
+.paragraph-issue-marker.blocker{background:#d9363e}
+.paragraph-issue-marker.warning{background:#d46b08}
+.rich-paragraph-with-cites p.paragraph-focused{background:#fff7e6;box-shadow:-3px 0 0 #fa8c16;transition:background .3s}

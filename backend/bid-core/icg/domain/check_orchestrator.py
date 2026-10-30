@@ -240,6 +240,9 @@ class CheckOrchestratorMixin(ComplianceRulesMixin):
                     issue["release_key"] = release_key(issue)
                     if issue["release_key"] in releases:
                         issue["released"] = releases[issue["release_key"]]
+            # 段落级问题记下段落键与所查正文版本（APP-M2-T166）：正文改动后编辑台仍能按段落键定位
+            from icg.domain.chapter_issues import annotate_check_issues
+            annotate_check_issues(state, issues)
             passed = check_passed(issues)
             check_record = {
                 "id": new_id("project-check"),
@@ -254,6 +257,7 @@ class CheckOrchestratorMixin(ComplianceRulesMixin):
                     "complete": False,
                 },
                 "fingerprint": self._fingerprint(state, project_id),
+                "chapter_revisions": {c.id: c.revision for c in chapters},
                 "created_at": iso_time(self.demo._now()),
             }
             workflow["checks"][check_record["id"]] = check_record

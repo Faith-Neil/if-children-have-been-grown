@@ -38,7 +38,11 @@ import { SelectionBubble } from './SelectionBubble';
 import { EditorAssistantPanel } from './EditorAssistantPanel.tsx';
 import { SelectionRewritePanel, type RewriteSelection } from './SelectionRewritePanel.tsx';
 import { pasteNotice, type PastedParagraph } from './paste-notice.ts';
-import { paragraphsMatch } from './paragraph-keys.ts';
+import { paragraphAtOffset, paragraphsMatch } from './paragraph-keys.ts';
+import type { TextAreaRef } from 'antd/es/input/TextArea';
+import { EditorIssuePanel } from './EditorIssuePanel.tsx';
+import { useChapterIssues } from './useChapterIssues.ts';
+import { canSelectInEditor, lineRangeOffsets, type ChapterIssue } from './chapter-issues-core.ts';
 import { ParagraphLocksBar } from './ParagraphLocksBar.tsx';
 import { VARIABLE_ERROR_CODES, mayHaveVariables, nodesMatch, resolveVariables, type VariableNode } from './variable-nodes.ts';
 import { VariableChip } from './VariableChip.tsx';
@@ -89,6 +93,8 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const [timings, setTimings] = useState<EditorTimings>(() => editorTimings(null));
   const [autosavePaused, setAutosavePaused] = useState(false);
   const [variables, setVariables] = useState<VariableNode[]>([]);
+  const [cursorKey, setCursorKey] = useState<string | null>(null);
+  const textareaRef = useRef<TextAreaRef>(null);
   const autosaving = useRef(false);
 
   const epoch = useRef(0);
@@ -210,6 +216,36 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     }).catch(error => { if (start === epoch.current) report(error); }).finally(() => { if (start === epoch.current) setLoading(false); });
     return () => { ++epoch.current; void lock.releaseLock(chapterId).catch(() => undefined); };
   }, [chapterId, token]);
+
+  // 问题标注与侧栏联动（APP-M2-T166）：问题按段落键定位；正文段落标问题数，点标记只看这一段的问题
+  const issues = useChapterIssues({ projectId: workspace.project.id, chapterId, token, revision: chapter?.revision, projectRevision: workspace.revision });
+  function locateIssue(item: ChapterIssue) {
+    issues.setActiveId(item.id);
+    if (!item.paragraph_key || item.line_start === null || item.line_end === null || !chapter) return;
+    issues.setFocusedKey(item.paragraph_key);
+    const box = textareaRef.current?.resizableTextArea?.textArea;
+    if (held && box) {
+      if (!canSelectInEditor(item, content, chapter.content)) { setNotice('编辑中的文字与已提交正文不同，段落位置可能已变化；提交本节后再定位。'); return; }
+      const range = lineRangeOffsets(content, item.line_start, item.line_end);
+      if (!range) return;
+      box.focus(); box.setSelectionRange(range.start, range.end); selection.current = range;
+      box.scrollTop = Math.max(0, item.line_start * 29 - 60); box.scrollIntoView({ block: 'nearest' });
+      return;
+    }
+    const key = item.paragraph_key;
+    window.requestAnimationFrame(() => {
+      const target = document.querySelector(`.rich-paragraph-with-cites p[data-paragraph-key="${CSS.escape(key)}"]`);
+      if (target) target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      else setNotice('正文显示的是未提交的草稿，段落位置可能已变化；提交本节后再定位。');
+    });
+  }
+  useEffect(() => {
+    if (!issues.pending || !chapter) return;
+    setRightTab('issues'); setAssistantCollapsed(false); locateIssue(issues.pending); issues.clearPending();
+  }, [issues.pending, chapter]);
+  function showParagraphIssues(key: string) {
+    issues.setFilter(current => ({ ...current, paragraphKey: key })); issues.setFocusedKey(key); setRightTab('issues'); setAssistantCollapsed(false);
+  }
 
   function localError(error: unknown) {
     report(error);
@@ -516,7 +552,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
             {isReadOnlyView ? (
               <div className="chapter-editor-readonly-view" data-testid="readonly-editor-view">
                 <div className="chapter-editor-readonly-text" data-testid="readonly-editor-text" onMouseUp={handleContainerMouseUp} style={{ minHeight: 280, padding: 16, background: '#fafafa', border: '1px solid #e5e6eb', borderRadius: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#1d2129', lineHeight: 1.8, fontSize: 14 }}>
-                  {content ? <RichParagraphWithCites content={content} knownCitations={knownCitations} onCiteClick={handleCiteClick} paragraphKeys={paragraphsMatch(chapter.paragraphs, content, chapter.content) ? chapter.paragraphs : undefined} variables={shownVariables} onGoToSource={goToSource} /> : <span className="muted" style={{ color: '#86909c' }}>（本章节暂无已提交正文）</span>}
+                  {content ? <RichParagraphWithCites content={content} knownCitations={knownCitations} onCiteClick={handleCiteClick} paragraphKeys={paragraphsMatch(chapter.paragraphs, content, chapter.content) ? chapter.paragraphs : undefined} variables={shownVariables} onGoToSource={goToSource} issueMarkers={issues.markers} onIssueMarkerClick={showParagraphIssues} focusedKey={issues.focusedKey} /> : <span className="muted" style={{ color: '#86909c' }}>（本章节暂无已提交正文）</span>}
                 </div>
               </div>
             ) : !held ? (
@@ -524,7 +560,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
                 <Alert type="info" showIcon message="当前未取得本节编辑锁" description="正文以纯文本方式呈现供浏览与校对。如需修改，请点击下方或工具栏的「取得编辑权」。" style={{ marginBottom: 12 }}
                   action={<Button size="small" type="primary" icon={<LockOutlined />} onClick={() => acquire()} disabled={combinedBusy || !canEdit} data-testid="unheld-acquire-btn">取得编辑权</Button>} />
                 <div className="chapter-editor-unheld-text" data-testid="unheld-editor-text" onMouseUp={handleContainerMouseUp} style={{ minHeight: 280, padding: 16, background: '#fcfcfd', border: '1px dashed #d9d9d9', borderRadius: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#262626', lineHeight: 1.8, fontSize: 14 }}>
-                  {content ? <RichParagraphWithCites content={content} knownCitations={knownCitations} onCiteClick={handleCiteClick} paragraphKeys={paragraphsMatch(chapter.paragraphs, content, chapter.content) ? chapter.paragraphs : undefined} variables={shownVariables} onGoToSource={goToSource} /> : <span className="muted" style={{ color: '#8c8c8c' }}>（本章节暂无正文内容）</span>}
+                  {content ? <RichParagraphWithCites content={content} knownCitations={knownCitations} onCiteClick={handleCiteClick} paragraphKeys={paragraphsMatch(chapter.paragraphs, content, chapter.content) ? chapter.paragraphs : undefined} variables={shownVariables} onGoToSource={goToSource} issueMarkers={issues.markers} onIssueMarkerClick={showParagraphIssues} focusedKey={issues.focusedKey} /> : <span className="muted" style={{ color: '#8c8c8c' }}>（本章节暂无正文内容）</span>}
                 </div>
               </div>
             ) : (
@@ -532,7 +568,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
                 {lockedExcerpts.length > 0 && <Alert type="info" showIcon style={{ marginBottom: 8 }} data-testid="locked-paragraphs-notice"
                   message={`本节有 ${lockedExcerpts.length} 个锁定段落，提交时须原样保留（可以挪位置）`}
                   description={<ul style={{ margin: 0, paddingLeft: 18 }}>{lockedExcerpts.map(item => <li key={item.key}>{item.text}（{item.by}）</li>)}</ul>} />}
-                <Input.TextArea className="chapter-editor" aria-label="章节正文" placeholder="根据招标原文、项目事实和可引用证据编制正文。不要把未经核实的承诺直接写入。" autoSize={{ minRows: 18, maxRows: 35 }} value={content} onSelect={e => { lock.markActivity(); handleTextareaSelect(e); }} onKeyDown={lock.markActivity} onMouseDown={lock.markActivity} onScroll={lock.markActivity} onChange={e => { lock.markActivity(); selection.current = { start: e.target.selectionStart, end: e.target.selectionEnd }; setContent(e.target.value); }} readOnly={!held || combinedBusy} />
+                <Input.TextArea ref={textareaRef} className="chapter-editor" aria-label="章节正文" placeholder="根据招标原文、项目事实和可引用证据编制正文。不要把未经核实的承诺直接写入。" autoSize={{ minRows: 18, maxRows: 35 }} value={content} onSelect={e => { lock.markActivity(); handleTextareaSelect(e); setCursorKey(chapter.content === content ? paragraphAtOffset(content, e.currentTarget.selectionStart, chapter.paragraphs)?.key ?? null : null); }} onKeyDown={lock.markActivity} onMouseDown={lock.markActivity} onScroll={lock.markActivity} onChange={e => { lock.markActivity(); selection.current = { start: e.target.selectionStart, end: e.target.selectionEnd }; setContent(e.target.value); }} readOnly={!held || combinedBusy} />
                 {shownVariables.length > 0 && (
                   <div className="editor-variable-bar" data-testid="editor-variable-bar" style={{ marginTop: 8, padding: '8px 12px', background: '#fffdf5', border: '1px solid #f5e6b8', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 12, color: '#4e5969', fontWeight: 500 }}>正文变量 ({shownVariables.length})：</span>
@@ -585,6 +621,9 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
             leaseToken={held && lease ? lease.lease_token : null} canGenerate={canEdit} busy={combinedBusy} token={token}
             onApplied={applyRewrite} onClear={() => setRewriteSelection(null)} report={report} />
         }
+        openIssueCount={issues.data?.counts.open ?? 0}
+        issuesPanel={<EditorIssuePanel data={issues.data} loading={issues.loading} error={issues.error} filter={issues.filter} onFilterChange={issues.setFilter}
+          activeId={issues.activeId} highlightKey={held ? cursorKey : issues.focusedKey} onLocate={locateIssue} onReload={issues.reload} />}
       />
     </div>
 
