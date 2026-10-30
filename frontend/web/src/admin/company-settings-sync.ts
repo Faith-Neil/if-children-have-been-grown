@@ -10,7 +10,7 @@ const DIRECT = [
   'password_min_length', 'password_min_char_classes', 'max_login_attempts', 'session_timeout_minutes',
   'edit_lock_timeout_minutes', 'edit_lock_heartbeat_seconds', 'editor_autosave_seconds',
   'assistant_enabled', 'assistant_suggestion_count', 'assistant_kb_default', 'assistant_allow_kb_off',
-  'dup_min_chars', 'dup_history_months', 'parse_confidence_threshold',
+  'dup_min_chars', 'dup_history_months', 'parse_confidence_threshold', 'assistant_paste_match_ratio',
 ] as const;
 const STORED = {
   outline_max_depth: 'ui_outline_max_depth',

@@ -50,6 +50,7 @@ import {
   type CustomFieldMetadata,
 } from './company-settings-core.ts';
 import { WordTemplateCard } from './WordTemplateCard.tsx';
+import { TaskModelRoutesCard } from './TaskModelRoutesCard.tsx';
 import { fetchCompanySettings, updateCompanySettings } from './company-settings-api.ts';
 import { settingsFromApi, settingsPayload } from './company-settings-sync.ts';
 import { userFacingMessage } from '../shared/api.ts';
@@ -604,6 +605,13 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
                       </Form.Item>
                     </Col>
                     <Col span={8}>
+                      <Form.Item label="粘贴识别重合比例" extra={<Text type="secondary">粘贴内容与助手输出重合达到时记为对话助手撰写</Text>}>
+                        <InputNumber min={0.5} max={1} step={0.05} value={settings.assistant_paste_match_ratio} disabled={!permission.canEdit}
+                          onChange={val => updateField('assistant_paste_match_ratio', val ?? 0.8)} style={{ width: '100%' }}
+                          data-testid="input-paste-ratio" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={8}>
                       <Form.Item label="查重连续相同字数" extra={<Text type="secondary">本公司查重判定的连续字数</Text>}>
                         <InputNumber min={5} max={50} value={settings.dup_min_chars} disabled={!permission.canEdit}
                           onChange={val => updateField('dup_min_chars', val || 8)} addonAfter="字" style={{ width: '100%' }}
@@ -618,6 +626,19 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
                       </Form.Item>
                     </Col>
                   </Row>
+                </div>
+              ),
+            },
+            {
+              key: 'models',
+              label: (
+                <span>
+                  <AppstoreOutlined /> 任务与模型
+                </span>
+              ),
+              children: (
+                <div style={{ paddingTop: 16, maxWidth: 900 }}>
+                  <TaskModelRoutesCard token={token ?? null} canEdit={permission.canEdit} />
                 </div>
               ),
             },

@@ -63,6 +63,7 @@ class CompanySettingsModel(BaseModel):
     dup_history_months: int = Field(default=24, description="查重历史标书比对年限（月）")
     # 招标解析 (PRD §5.2.2 规则 2：低于阈值的条目高亮提示人工核对)
     parse_confidence_threshold: float = Field(default=0.8, description="解析置信度高亮阈值（0.5～0.99，示例 0.8）")
+    assistant_paste_match_ratio: float = Field(default=0.8, description="粘贴识别重合比例（0.5～1.0）：达到时该段来源记为对话助手撰写")
     # 审计与扩展
     updated_at: str | None = Field(default=None, description="最后更新时间（ISO 8601）")
     updated_by: str | None = Field(default=None, description="最后更新人账号ID")
@@ -87,6 +88,7 @@ class UpdateCompanySettingsRequest(BaseModel):
     dup_min_chars: int | None = Field(default=None, description="查重连续相同字数阈值")
     dup_history_months: int | None = Field(default=None, description="查重历史标书比对年限（月）")
     parse_confidence_threshold: float | None = Field(default=None, description="解析置信度高亮阈值（0.5～0.99）")
+    assistant_paste_match_ratio: float | None = Field(default=None, description="粘贴识别重合比例（0.5～1.0）")
     custom_settings: dict[str, Any] | None = Field(default=None, description="企业扩展键值配置")
 
 
@@ -306,6 +308,14 @@ class CompanySettingsService:
                 "SETTING_VALUE_OUT_OF_BOUNDS",
                 "解析置信度阈值必须在 0.5～0.99 之间。",
                 details={"field": "parse_confidence_threshold", "min": 0.5, "max": 0.99, "value": request.parse_confidence_threshold},
+            )
+
+        if request.assistant_paste_match_ratio is not None and not 0.5 <= request.assistant_paste_match_ratio <= 1.0:
+            raise DomainError(
+                422,
+                "SETTING_VALUE_OUT_OF_BOUNDS",
+                "粘贴识别重合比例必须在 0.5～1.0 之间。",
+                details={"field": "assistant_paste_match_ratio", "min": 0.5, "max": 1.0, "value": request.assistant_paste_match_ratio},
             )
 
         # 5. 合并更新字段

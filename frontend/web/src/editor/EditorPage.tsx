@@ -37,6 +37,7 @@ import { CiteCapsule, RichParagraphWithCites } from './CiteCapsule';
 import { SelectionBubble } from './SelectionBubble';
 import { EditorAssistantPanel } from './EditorAssistantPanel.tsx';
 import { SelectionRewritePanel, type RewriteSelection } from './SelectionRewritePanel.tsx';
+import { pasteNotice, type PastedParagraph } from './paste-notice.ts';
 import type { ApplyResult } from './selection-rewrite-core.ts';
 import { EditorDiffDrawer, type ChapterVersionItem } from './EditorDiffDrawer.tsx';
 import { extractCitationIds, type CiteKind, type CitationMeta } from './cite-capsule';
@@ -336,7 +337,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     await run(async () => {
       const start = epoch.current;
       try {
-        await request(`/api/chapters/${chapterId}/versions`, token, 'POST', {
+        const committed = await request<{ paste_detected?: PastedParagraph[] | null }>(`/api/chapters/${chapterId}/versions`, token, 'POST', {
           lease_token: lease.lease_token, base_revision: chapter.revision, ...editingContentWrite(content, editFingerprint), idempotency_key: crypto.randomUUID(),
         });
         const updated = await request<Chapter>(`/api/chapters/${chapterId}`, token);
@@ -344,7 +345,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         if (start !== epoch.current) return;
         setChapter(updated); setContent(updated.content); setEditFingerprint(current.input_fingerprint); ops.setSuggestion(null);
         sequence.current = updated.draft?.sequence ?? sequence.current; setSavedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false }));
-        setNotice(`已提交正文 v${updated.revision}；之前的检查和导出会失效，需要重新运行。`); setAutosavePaused(false);
+        setNotice(`已提交正文 v${updated.revision}；之前的检查和导出会失效，需要重新运行。${pasteNotice(committed.paste_detected)}`); setAutosavePaused(false);
         await reload();
       } catch (error) {
         if (isRevisionConflict(error) && (await handleRevisionConflict(error, 'commit'))) return;

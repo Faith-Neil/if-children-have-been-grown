@@ -280,6 +280,7 @@ class ReleasedResponse(ResponseBody):
 class VersionResponse(ResponseBody):
     revision: int = Field(ge=1)
     content: str
+    paste_detected: list[dict] | None = Field(default=None, description="与近期对话助手输出高度重合的新段落（粘贴识别）：段落序号、重合比例、来源与复查问题")
 
 
 class VersionRecordResponse(VersionResponse):

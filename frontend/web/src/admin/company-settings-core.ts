@@ -54,6 +54,7 @@ export interface CompanySettingsData {
   assistant_kb_default: boolean;
   assistant_allow_kb_off: boolean;
   parse_confidence_threshold: number; // 0.5~0.99
+  assistant_paste_match_ratio: number; // 0.5~1.0
   dup_min_chars: number;
   dup_history_months: number;
 }
@@ -161,6 +162,15 @@ export const PLATFORM_SETTING_BOUNDS: Record<string, SettingBoundMeta> = {
     unit: '',
     label: '解析置信度阈值',
     description: '低于此值的条目在解析页高亮',
+  },
+  assistant_paste_match_ratio: {
+    min: 0.5,
+    max: 1,
+    default: 0.8,
+    tightenDirection: 'lower',
+    unit: '',
+    label: '粘贴识别重合比例',
+    description: '粘贴内容与对话助手输出重合达到此比例时记为对话助手撰写',
   },
   dup_min_chars: {
     min: 5,
@@ -446,6 +456,7 @@ export function buildInitialCompanySettings(companyId = 'alpha', companyName = '
     assistant_kb_default: true,
     assistant_allow_kb_off: true,
     parse_confidence_threshold: 0.8,
+    assistant_paste_match_ratio: 0.8,
     dup_min_chars: 8,
     dup_history_months: 24,
   };
