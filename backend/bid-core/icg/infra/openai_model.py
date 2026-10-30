@@ -1,5 +1,7 @@
 # 为什么有这个文件：把公司内网的 OpenAI 兼容对话接口接到现有模型替换口。
 # 它解决什么问题：需要真实建议时才显式启用；失败必须暴露，不能改回演示成功文本。
+# 逐字流式（APP-M2-T177）：stream_suggest 边收边把增量文字交给回调，可随时取消（用户点“停止”或断开连接）；
+# 已经收到文字后再失败不重试，避免同一写法前后两段内容拼在一起。内网接口一律不读取系统代理（trust_env=False）。
 
 from __future__ import annotations
 
@@ -7,7 +9,7 @@ import json
 import os
 import re
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 from urllib.parse import urlsplit
 
 import httpx
@@ -19,6 +21,10 @@ class ModelCallError(Exception):
 
 class RetryableModelError(ModelCallError):
     """超时、连接失败或暂时性 HTTP 状态。耗尽重试后仍按失败处理。"""
+
+
+class ModelCancelled(ModelCallError):
+    """用户停止生成或断开连接：不重试、不改用备用模型、不保存结果。"""
 
 
 _ENV_NAMES = {
@@ -188,7 +194,7 @@ class OpenAICompatibleModelProvider:
             payload["response_format"] = {"type": "json_object"}
         try:
             with httpx.Client(transport=self._transport, timeout=self._config.timeout_seconds,
-                              follow_redirects=False) as client:
+                              follow_redirects=False, trust_env=False) as client:
                 response = client.post(self._config.chat_completions_url, headers=headers, json=payload)
         except httpx.TimeoutException:
             raise RetryableModelError("timeout") from None
@@ -199,6 +205,79 @@ class OpenAICompatibleModelProvider:
         if response.status_code != 200:
             raise ModelCallError(f"HTTP {response.status_code}")
         return _assistant_text(response)
+
+    def stream_suggest(self, instruction: str, content: str, *, on_delta: Callable[[str], None],
+                       cancel: Any = None) -> str:
+        """流式调用：每收到一段文字就交给 on_delta；cancel（threading.Event）置位即停止并抛 ModelCancelled。
+        接口不支持流式时（返回普通 JSON）整段交给 on_delta 一次。"""
+        attempts = self._config.retries + 1
+        last_error: ModelCallError | None = None
+        for _ in range(attempts):
+            emitted = [False]
+
+            def relay(text: str) -> None:
+                emitted[0] = True
+                on_delta(text)
+            try:
+                return self._stream_once(instruction, content, relay, cancel)
+            except RetryableModelError as error:
+                if emitted[0]:
+                    raise ModelCallError("openai-compatible stream broke after partial output") from error
+                last_error = error
+        raise ModelCallError("openai-compatible model call failed") from last_error
+
+    def _stream_once(self, instruction: str, content: str, on_delta: Callable[[str], None], cancel: Any) -> str:
+        headers = {"Content-Type": "application/json", "Accept": "text/event-stream"}
+        api_key = self._api_key()
+        if api_key:
+            headers["Authorization"] = "Bearer " + api_key
+        payload: dict[str, Any] = {
+            "model": self._config.model,
+            "messages": [{"role": "system", "content": instruction}, {"role": "user", "content": content}],
+            "max_tokens": self._config.max_tokens, "stream": True,
+        }
+        collected: list[str] = []
+        try:
+            with httpx.Client(transport=self._transport, timeout=self._config.timeout_seconds,
+                              follow_redirects=False, trust_env=False) as client:
+                with client.stream("POST", self._config.chat_completions_url, headers=headers, json=payload) as response:
+                    if response.status_code in _RETRYABLE_STATUS:
+                        raise RetryableModelError(f"HTTP {response.status_code}")
+                    if response.status_code != 200:
+                        raise ModelCallError(f"HTTP {response.status_code}")
+                    if "text/event-stream" not in response.headers.get("content-type", ""):
+                        response.read()
+                        text = _assistant_text(response)
+                        on_delta(text)
+                        return text
+                    for line in response.iter_lines():
+                        if cancel is not None and cancel.is_set():
+                            raise ModelCancelled("cancelled")
+                        line = line.strip()
+                        if not line.startswith("data:"):
+                            continue
+                        data = line[5:].strip()
+                        if data == "[DONE]":
+                            break
+                        try:
+                            chunk = json.loads(data)
+                        except ValueError:
+                            continue
+                        choices = chunk.get("choices") if isinstance(chunk, dict) else None
+                        if not (isinstance(choices, list) and choices and isinstance(choices[0], dict)):
+                            continue
+                        piece = (choices[0].get("delta") or {}).get("content")
+                        if isinstance(piece, str) and piece:
+                            collected.append(piece)
+                            on_delta(piece)
+        except httpx.TimeoutException:
+            raise RetryableModelError("timeout") from None
+        except httpx.TransportError:
+            raise RetryableModelError("transport") from None
+        text = "".join(collected)
+        if not text.strip():
+            raise ModelCallError("missing assistant content")
+        return text
 
 
 def _assistant_text(response: httpx.Response) -> str:

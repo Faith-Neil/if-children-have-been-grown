@@ -36,6 +36,7 @@ import {
 import { request, ApiError } from '../shared/api.ts';
 import type { ApplicationSession } from '../shared/types.ts';
 import {
+  fallbackOptions,
   type ModelConfigItem,
   buildModelUpdatePayload,
 } from './model-config-core.ts';
@@ -162,6 +163,7 @@ export function ModelConfigModal({
         json_mode_enabled: activeConfig.json_mode_enabled,
         timeout_seconds: activeConfig.timeout_seconds,
         max_tokens: activeConfig.max_tokens,
+        fallback_config_id: activeConfig.fallback_config_id ?? undefined,
       });
     }
   }, [activeConfig, isCreatingNew, form]);
@@ -215,6 +217,7 @@ export function ModelConfigModal({
           json_mode_enabled: Boolean(values.json_mode_enabled),
           timeout_seconds: Number(values.timeout_seconds),
           max_tokens: Number(values.max_tokens),
+          fallback_config_id: values.fallback_config_id ?? '',
         };
         if (values.id) payload.id = values.id;
         if (values.api_key) payload.api_key = values.api_key;
@@ -236,6 +239,7 @@ export function ModelConfigModal({
           json_mode_enabled: Boolean(values.json_mode_enabled),
           timeout_seconds: Number(values.timeout_seconds),
           max_tokens: Number(values.max_tokens),
+          fallback_config_id: values.fallback_config_id ?? '',
         };
         // 密钥传参语义：若与掩码一致则传回掩码（保持不变）；若输入新内容则传入加密
         if (values.api_key !== undefined) {
@@ -549,6 +553,16 @@ export function ModelConfigModal({
                 </Form.Item>
               </Col>
             </Row>
+
+            <Form.Item noStyle shouldUpdate={(prev, next) => prev.is_local !== next.is_local}>
+              {() => (
+                <Form.Item name="fallback_config_id" label="备用模型"
+                  extra="主模型超时、连接失败、5xx 或限流时改用；本地主模型只能选本地备用，敏感项目只用本地且允许敏感数据的备用。">
+                  <Select allowClear placeholder="不配备用模型" data-testid="model-fallback-select"
+                    options={fallbackOptions(configs, { id: isCreatingNew ? undefined : activeConfig?.id, is_local: form.getFieldValue('is_local') })} />
+                </Form.Item>
+              )}
+            </Form.Item>
           </Form>
         </Spin>
       </div>

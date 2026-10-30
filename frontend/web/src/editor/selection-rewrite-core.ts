@@ -22,10 +22,13 @@ export type Retrieval = { status: 'off' | 'found' | 'empty'; message: string; co
 export type RewriteSample = {
   id: string; style: string; style_label: string; text: string; warnings: string[]; chars: number;
   sources: RewriteSource[]; status: 'proposed' | 'adopted' | 'not_adopted' | 'invalidated';
+  model?: string | null; is_fallback?: boolean; fallback_reason?: string;
 };
+export type FallbackUse = { style: string; model: string; reason: string };
 export type AssistantPolicy = {
   enabled: boolean; kb_default: boolean; allow_kb_off: boolean; count: number; model: string;
   is_real_model: boolean; is_local_model: boolean; sensitive_project: boolean; knowledge_base_connected: boolean;
+  fallback_model?: string | null; streaming?: boolean;
 };
 export type SessionSummary = { id: string; chapter_id: string; owner_id: string; owner_name: string; title: string; updated_at: string; message_count: number };
 export type SessionMessage = {
@@ -39,6 +42,7 @@ export type RewriteBatch = {
   selection_hash: string; mode: RewriteMode; mode_label: string; instruction: string; samples: RewriteSample[];
   dropped: { style: string; reason: string }[]; knowledge_base_enabled: boolean; source_note: string; retrieval: Retrieval;
   session_id?: string | null; provider: string; model: string; is_local_model: boolean;
+  fallback_used?: FallbackUse[]; models_used?: string[];
   status: 'proposed' | 'adopted' | 'invalidated' | 'no_results'; created_at: string;
 };
 export type EditOperation = {
@@ -156,20 +160,55 @@ export function knowledgeBaseNote(policy: AssistantPolicy | null, on: boolean): 
 export function modelLabel(policy: AssistantPolicy | null): string {
   if (!policy) return '';
   if (!policy.is_real_model) return '尚未接入真实模型';
-  return `${policy.model || '模型'}${policy.is_local_model ? ' · 本地模型' : ''}`;
+  return `${policy.model || '模型'}${policy.is_local_model ? ' · 本地模型' : ''}${policy.fallback_model ? ` · 备用 ${policy.fallback_model}` : ''}`;
 }
 
-export type StreamState = { styles: string[]; samples: RewriteSample[]; dropped: { style: string; reason: string }[]; retrieval: Retrieval | null };
+/** 降级提示（PRD §6.5 规则 3）：哪些写法改用了哪个备用模型。 */
+export function fallbackNotice(uses: FallbackUse[] | undefined): string {
+  if (!uses?.length) return '';
+  const models = [...new Set(uses.map(u => u.model))].join('、');
+  return `已使用备用模型 ${models}（${uses.map(u => u.style).join('、')}；${uses[0].reason}）`;
+}
 
-/** 把流式事件逐条合并：started 记下写法与检索结果，sample/dropped 追加，done 由调用方换成最终批次。 */
+export type StreamState = {
+  styles: string[]; samples: RewriteSample[]; dropped: { style: string; reason: string }[]; retrieval: Retrieval | null;
+  drafts: Record<string, string>; fallbacks: FallbackUse[];
+};
+
+function withoutDraft(drafts: Record<string, string>, style: string) {
+  const next = { ...drafts };
+  delete next[style];
+  return next;
+}
+
+/** 把流式事件逐条合并：started 记下写法与检索结果；delta 逐字拼到该写法的预览；fallback 清空该写法预览并记下备用模型；
+ * sample/dropped 追加并收起预览；done 由调用方换成最终批次。预览只是模型原文，样例要等预检通过才出现。 */
 export function reduceStream(state: StreamState, event: Record<string, unknown>): StreamState {
-  if (event.event === 'started') return { styles: (event.styles as string[]) ?? [], samples: [], dropped: [], retrieval: (event.retrieval as Retrieval) ?? null };
-  if (event.event === 'sample') return { ...state, samples: [...state.samples, event.sample as RewriteSample] };
-  if (event.event === 'dropped') return { ...state, dropped: [...state.dropped, { style: String(event.style), reason: String(event.reason) }] };
+  if (event.event === 'started') return { ...EMPTY_STREAM, styles: (event.styles as string[]) ?? [], retrieval: (event.retrieval as Retrieval) ?? null };
+  if (event.event === 'delta') {
+    const style = String(event.style);
+    return { ...state, drafts: { ...state.drafts, [style]: (state.drafts[style] ?? '') + String(event.text ?? '') } };
+  }
+  if (event.event === 'fallback') {
+    const use = { style: String(event.style), model: String(event.model), reason: String(event.reason) };
+    return { ...state, drafts: withoutDraft(state.drafts, use.style), fallbacks: [...state.fallbacks, use] };
+  }
+  if (event.event === 'sample') {
+    const sample = event.sample as RewriteSample;
+    return { ...state, samples: [...state.samples, sample], drafts: withoutDraft(state.drafts, sample.style_label) };
+  }
+  if (event.event === 'dropped') {
+    const style = String(event.style);
+    return { ...state, dropped: [...state.dropped, { style, reason: String(event.reason) }], drafts: withoutDraft(state.drafts, style) };
+  }
   return state;
 }
 
-export const EMPTY_STREAM: StreamState = { styles: [], samples: [], dropped: [], retrieval: null };
+export const EMPTY_STREAM: StreamState = { styles: [], samples: [], dropped: [], retrieval: null, drafts: {}, fallbacks: [] };
+
+export function isAbort(error: unknown): boolean {
+  return !!error && typeof error === 'object' && (error as { name?: string }).name === 'AbortError';
+}
 
 export function assistantPaths(projectId: string, chapterId: string) {
   const chapter = `/api/v1/projects/${projectId}/chapters/${chapterId}`;

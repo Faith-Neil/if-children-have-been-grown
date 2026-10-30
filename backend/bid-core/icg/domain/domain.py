@@ -445,8 +445,14 @@ class DemoService:
                 if default_id in state.model_configs:
                     cfg = state.model_configs[default_id]
         if cfg is not None:
-            from icg.infra.model_config_storage import provider_from_model_config
-            return provider_from_model_config(cfg, transport=self.model_transport, default_provider=self.model_provider)
+            from icg.infra.model_config_storage import provider_from_model_config, usable_fallback
+            provider = provider_from_model_config(cfg, transport=self.model_transport, default_provider=self.model_provider)
+            project = state.projects.get(project_id)
+            backup = usable_fallback(state, cfg, bool(project and project.sensitive))
+            if backup is not None and getattr(provider, "is_real_model", False) and provider is not self.model_provider:
+                # 备用模型（PRD §6.5 规则 2、3）：主模型健康类失败时由 icg.infra.model_fallback.call_model 改用
+                provider.fallback = provider_from_model_config(backup, transport=self.model_transport)
+            return provider
         return self.model_provider
 
     def resolve_provider_from_snapshot(self, snapshot: dict) -> ModelProvider:

@@ -3,15 +3,17 @@
 // 可“替换选中内容”或“插在选中内容后”；写入前弹出差异视图，确认后由后端核对编辑锁与选区再写入新版本，并显示改动段落的复查结果。
 // 面板顶部显示当前模型（含是否本地）和知识库开关（默认值与能否关闭取公司设置）；样例按完成先后流式出现；
 // 每次提问与写入记入本人会话，可在会话里接着提要求，也能回看之前的会话。
+// 模型逐字输出时各写法先显示原文预览（预检通过后换成样例）；可随时“停止”（断开连接，服务端停止生成、不保存）；
+// 主模型失败改用备用模型时显示“已使用备用模型 X”（APP-M2-T177）。
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Button, Card, Collapse, Empty, Input, Modal, Select, Space, Spin, Switch, Tag, Tooltip } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 import { ApiError, request, streamEvents } from '../shared/api.ts';
 import type { Chapter } from '../shared/types.ts';
 import {
-  ACTION_LABEL, EMPTY_STREAM, REWRITE_MODES, assistantPaths, defaultKnowledgeBase, diffText, knowledgeBaseNote, locateSelection,
-  modelLabel, pendingCount, previewWrite, reduceStream, relocation, rewritePath, selectionProblem,
+  ACTION_LABEL, EMPTY_STREAM, REWRITE_MODES, assistantPaths, defaultKnowledgeBase, diffText, fallbackNotice, isAbort, knowledgeBaseNote,
+  locateSelection, modelLabel, pendingCount, previewWrite, reduceStream, relocation, rewritePath, selectionProblem,
   type ApplyResult, type AssistantPolicy, type RewriteAction, type RewriteBatch, type RewriteMode, type RewriteSample,
   type SessionDetail, type SessionSummary, type StreamState,
 } from './selection-rewrite-core.ts';
@@ -51,6 +53,9 @@ export function SelectionRewritePanel({ projectId, chapter, content, selection, 
   const [result, setResult] = useState<ApplyResult | null>(null);
   const [invalid, setInvalid] = useState('');
   const [historyTick, setHistoryTick] = useState(0);
+  const [stopped, setStopped] = useState(false);
+  const abort = useRef<AbortController | null>(null);
+  useEffect(() => () => abort.current?.abort(), []);
   const paths = chapter ? assistantPaths(projectId, chapter.id) : null;
 
   async function loadSessions(keep?: string) {
@@ -88,8 +93,10 @@ export function SelectionRewritePanel({ projectId, chapter, content, selection, 
 
   async function generate() {
     if (!located || !chapter || !paths) return;
-    setWorking(true); setResult(null); setInvalid(''); setBatch(null); setLive(EMPTY_STREAM);
+    setWorking(true); setResult(null); setInvalid(''); setBatch(null); setLive(EMPTY_STREAM); setStopped(false);
     let final: RewriteBatch | null = null;
+    const controller = new AbortController();
+    abort.current = controller;
     try {
       await streamEvents(paths.stream, token, {
         base_revision: chapter.revision, start: located.start, end: located.end, selected_text: located.text,
@@ -99,10 +106,12 @@ export function SelectionRewritePanel({ projectId, chapter, content, selection, 
         if (event.event === 'done') { final = event.batch as RewriteBatch; return; }
         if (event.event === 'error') throw new ApiError(Number(event.status) || 502, String(event.code), String(event.message));
         setLive(current => reduceStream(current ?? EMPTY_STREAM, event));
-      });
+      }, controller.signal);
       const done = final as RewriteBatch | null;
       if (done) { setBatch(done); await loadSessions(done.session_id ?? undefined); }
-    } catch (error) { report(error); } finally { setWorking(false); setLive(null); }
+    } catch (error) {
+      if (isAbort(error)) setStopped(true); else report(error);
+    } finally { abort.current = null; setWorking(false); setLive(null); }
   }
 
   async function confirm() {
@@ -182,8 +191,20 @@ export function SelectionRewritePanel({ projectId, chapter, content, selection, 
         <p className="muted" role="status" style={{ marginTop: 12 }}>
           <Spin size="small" /> {live.retrieval?.status === 'found' ? `${live.retrieval.message} ` : ''}
           已完成 {live.samples.length + live.dropped.length} / {live.styles.length || count} 种写法…
+          <Button size="small" type="link" danger data-testid="rewrite-stop-btn" onClick={() => abort.current?.abort()}>停止</Button>
         </p>
       )}
+      {stopped && <Alert type="info" showIcon data-testid="rewrite-stopped" style={{ marginTop: 8 }} message="已停止生成，正文没有修改，本次样例不保存。" />}
+      {(live?.fallbacks.length || batch?.fallback_used?.length) ? (
+        <Alert type="warning" showIcon data-testid="rewrite-fallback" style={{ marginTop: 8 }}
+          message={fallbackNotice(live ? live.fallbacks : batch?.fallback_used)} />
+      ) : null}
+      {live && Object.entries(live.drafts).map(([style, text]) => (
+        <Card key={`draft-${style}`} size="small" className="suggestion-card" data-testid="rewrite-draft"
+          title={<Space><Tag>{style}</Tag><span className="muted">生成中，预检后才能使用</span></Space>}>
+          <p className="suggestion-content muted">{text}</p>
+        </Card>
+      ))}
       {invalid && <Alert type="warning" showIcon message={invalid} style={{ marginTop: 8 }} />}
       {result && <RecheckResult result={result} />}
       {batch?.status === 'no_results' && <Alert type="info" showIcon data-testid="rewrite-no-results" style={{ marginTop: 8 }} message={batch.retrieval.message} />}
@@ -197,6 +218,7 @@ export function SelectionRewritePanel({ projectId, chapter, content, selection, 
           {shown.map(sample => (
             <Card key={sample.id} size="small" className="suggestion-card" data-testid="rewrite-sample"
               title={<Space><Tag color="purple">{sample.style_label}</Tag><span className="muted">{sample.chars} 字</span>
+                {sample.is_fallback && <Tooltip title={sample.fallback_reason}><Tag color="orange">备用模型 {sample.model}</Tag></Tooltip>}
                 {sample.status === 'adopted' && <Tag color="green">已采纳</Tag>}{sample.status === 'invalidated' && <Tag>已失效</Tag>}</Space>}>
               <p className="suggestion-content" data-testid="rewrite-sample-text">{sample.text}</p>
               {sample.warnings.map(text => <Alert key={text} type="warning" showIcon message={text} style={{ marginBottom: 6 }} />)}

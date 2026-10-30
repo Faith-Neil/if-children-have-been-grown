@@ -95,3 +95,24 @@ test('stream events accumulate samples and drops in arrival order', async () => 
   assert.equal(paths.stream, '/api/v1/projects/p/chapters/c/selection-rewrites/stream');
   assert.equal(paths.session('s1'), '/api/v1/projects/p/assistant-sessions/s1');
 });
+
+test('stream deltas build per-style previews, fallback resets the preview and is announced', async () => {
+  const core = await import('../../src/editor/selection-rewrite-core.ts');
+  let state = core.reduceStream(core.EMPTY_STREAM, { event: 'started', styles: ['严谨规范', '简洁精炼'], retrieval: null });
+  state = core.reduceStream(state, { event: 'delta', style: '严谨规范', text: '每月' });
+  state = core.reduceStream(state, { event: 'delta', style: '严谨规范', text: '巡检' });
+  state = core.reduceStream(state, { event: 'delta', style: '简洁精炼', text: '半截' });
+  assert.deepEqual(state.drafts, { 严谨规范: '每月巡检', 简洁精炼: '半截' });
+  state = core.reduceStream(state, { event: 'fallback', style: '简洁精炼', model: 'qwen-backup', reason: '主模型超时' });
+  assert.deepEqual(state.drafts, { 严谨规范: '每月巡检' });
+  assert.deepEqual(state.fallbacks, [{ style: '简洁精炼', model: 'qwen-backup', reason: '主模型超时' }]);
+  state = core.reduceStream(state, { event: 'sample', sample: { id: 's', style: 'formal', style_label: '严谨规范', text: '每月巡检', warnings: [], chars: 4, sources: [], status: 'proposed' } });
+  assert.deepEqual(state.drafts, {});
+  assert.equal(state.samples.length, 1);
+  assert.equal(core.fallbackNotice(state.fallbacks), '已使用备用模型 qwen-backup（简洁精炼；主模型超时）');
+  assert.equal(core.fallbackNotice([]), '');
+  assert.equal(core.modelLabel({ enabled: true, kb_default: true, allow_kb_off: true, count: 3, model: 'qwen-a', is_real_model: true,
+    is_local_model: true, sensitive_project: false, knowledge_base_connected: true, fallback_model: 'qwen-b' }), 'qwen-a · 本地模型 · 备用 qwen-b');
+  assert.equal(core.isAbort({ name: 'AbortError' }), true);
+  assert.equal(core.isAbort(new Error('x')), false);
+});

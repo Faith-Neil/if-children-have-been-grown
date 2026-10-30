@@ -11,7 +11,8 @@
 # 5. 知识库开关（公司设置 assistant_kb_default / assistant_allow_kb_off）：打开时只检索本公司知识库，每条样例至少引用 1 条
 #    本次检索结果（标记 [片:来源编号]，编号须在本次结果内），检索无结果时不调用模型；关闭时样例标“无知识库来源”；
 # 6. 每次提问与写入记入本人的会话（只追加，见 assistant_sessions.py），同一会话可接着上一轮的样例继续提要求；
-# 7. 流式：各写法的样例一完成预检就推送给页面（text/event-stream），不必等全部写法生成完。
+# 7. 流式：模型逐字输出时边收边推给页面（delta），每种写法预检通过即推送样例；用户停止或断开连接时全部写法停下、不保存；
+#    主模型超时、连接失败、5xx 或限流时该写法改用备用模型，页面显示“已使用备用模型 X”，样例记录实际模型（APP-M2-T177）。
 # 没有接入真实模型时直接说明，不返回模拟样例。
 
 from __future__ import annotations
@@ -19,7 +20,6 @@ from __future__ import annotations
 import difflib
 import hashlib
 import re
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from .domain import DemoState, DomainError, Principal, iso_time, new_id
@@ -265,8 +265,11 @@ class SelectionRewriteService:
         provider = self.demo.resolve_model_provider(state, project_id)
         kb = getattr(self.demo, "knowledge_base", None)
         connected = bool(kb is not None and kb.client_for(project.company_id, state) is not None)
+        backup = getattr(provider, "fallback", None)
         return {**self._policy(state, project.company_id),
                 "model": getattr(provider, "model", "") or getattr(provider, "name", ""),
+                "fallback_model": (getattr(backup, "model", "") or None) if backup is not None else None,
+                "streaming": bool(getattr(provider, "stream_enabled", False)),
                 "is_real_model": bool(getattr(provider, "is_real_model", False)),
                 "is_local_model": bool(getattr(provider, "is_local", False)),
                 "sensitive_project": bool(project.sensitive), "knowledge_base_connected": connected}
@@ -358,51 +361,90 @@ class SelectionRewriteService:
                                                        "或去资料库、方案片段库补充资料。"}
         return hits, {"status": "found", "message": f"检索到 {len(hits)} 条本公司资料，样例须至少引用 1 条。", "count": len(hits)}
 
-    def stream(self, prepared: dict):
-        """逐条产出事件：started → sample/dropped（按完成先后）→ done；检索无结果时不调用模型直接 done。"""
-        from concurrent.futures import as_completed
+    def stream(self, prepared: dict, cancel: Any = None):
+        """逐条产出事件：started → delta（逐字）/ fallback（改用备用模型）→ sample / dropped（按完成先后）→ done；
+        检索无结果时不调用模型直接 done。cancel（threading.Event）置位或生成器被关闭时停止全部写法、不保存结果，
+        产出 cancelled。"""
+        import queue
+        import threading
+        from icg.infra.model_fallback import call_model, model_name
+        from icg.infra.openai_model import ModelCancelled
+        cancel = cancel if cancel is not None else threading.Event()
         provider, mode = prepared["provider"], prepared["mode"]
         styles = STYLES[:prepared["count"]]
         hits = prepared["hits"]
         allowed = {hit["cite_tag"] for hit in hits} if prepared["kb_on"] else None
+        backup = getattr(provider, "fallback", None)
         yield {"event": "started", "styles": [label for _, label, _ in styles], "retrieval": prepared["retrieval"],
-               "knowledge_base_enabled": prepared["kb_on"], "model": getattr(provider, "model", "") or getattr(provider, "name", "")}
-        samples, dropped = [], []
+               "knowledge_base_enabled": prepared["kb_on"], "model": model_name(provider),
+               "fallback_model": model_name(backup) if backup is not None else None,
+               "streaming": bool(getattr(provider, "stream_enabled", False))}
+        samples, dropped, switched = [], [], []
         if prepared["kb_on"] and not hits:
             yield from self._finish(prepared, samples, dropped)
             return
+        inbox: queue.Queue = queue.Queue()
 
-        def call(style):
+        def work(style):
             key, label, hint = style
             system = self._system_prompt(MODES[mode], hint, knowledge_base=prepared["kb_on"])
             try:
-                reply = provider.suggest(system, prepared["user_content"])
+                result = call_model(provider, system, prepared["user_content"],
+                                    on_delta=lambda text: inbox.put(("delta", label, text)),
+                                    on_reset=lambda name, why: inbox.put(("fallback", label, (name, why))), cancel=cancel)
+                inbox.put(("result", style, result))
+            except ModelCancelled:
+                inbox.put(("cancelled", style, None))
             except Exception as error:  # 单条失败不影响其他写法
-                return key, label, None, type(error).__name__
-            return key, label, reply if isinstance(reply, str) else str(reply), ""
+                inbox.put(("failed", style, type(error).__name__))
 
-        with ThreadPoolExecutor(max_workers=len(styles)) as pool:
-            for future in as_completed([pool.submit(call, style) for style in styles]):
-                key, label, reply, failure = future.result()
-                if reply is None:
-                    item = {"style": label, "reason": f"模型调用失败（{failure}）"}
-                    dropped.append(item)
-                    yield {"event": "dropped", **item}
+        for style in styles:
+            threading.Thread(target=work, args=(style,), daemon=True).start()
+        remaining = len(styles)
+        try:
+            while remaining and not cancel.is_set():
+                try:
+                    kind, item, value = inbox.get(timeout=0.5)
+                except queue.Empty:
                     continue
-                text, notes, reason = precheck(reply, prepared["selected"], "replace", prepared["known"], allowed,
+                if kind == "delta":
+                    yield {"event": "delta", "style": item, "text": value}
+                    continue
+                if kind == "fallback":
+                    switched.append({"style": item, "model": value[0], "reason": value[1]})
+                    yield {"event": "fallback", "style": item, "model": value[0], "reason": value[1]}
+                    continue
+                remaining -= 1
+                if kind == "cancelled":
+                    continue
+                key, label, _ = item
+                if kind == "failed":
+                    entry = {"style": label, "reason": f"模型调用失败（{value}）"}
+                    dropped.append(entry)
+                    yield {"event": "dropped", **entry}
+                    continue
+                text, notes, reason = precheck(value.text, prepared["selected"], "replace", prepared["known"], allowed,
                                                prepared["fact_tokens"], mode)
                 if text is None:
-                    item = {"style": label, "reason": reason}
-                    dropped.append(item)
-                    yield {"event": "dropped", **item}
+                    entry = {"style": label, "reason": reason}
+                    dropped.append(entry)
+                    yield {"event": "dropped", **entry}
                     continue
                 sources = [dict(hit, content=hit["content"][:200]) for hit in hits if hit["cite_tag"] in cited_tokens(text, allowed or set())]
                 sample = {"id": new_id("sample"), "style": key, "style_label": label, "text": text, "warnings": notes,
-                          "chars": len(TOKEN.sub("", text)), "sources": sources, "status": "proposed"}
+                          "chars": len(TOKEN.sub("", text)), "sources": sources, "status": "proposed",
+                          "model": value.model, "is_local_model": value.is_local, "is_fallback": value.is_fallback,
+                          "fallback_reason": value.fallback_reason}
                 samples.append(sample)
                 yield {"event": "sample", "sample": sample}
+            if cancel.is_set():
+                yield {"event": "cancelled", "message": "已停止生成，正文没有修改，本次样例不保存。"}
+                return
+        finally:
+            cancel.set()  # 正常结束或被关闭（用户停止、断开连接）都让还在跑的写法停下
         order = {key: index for index, (key, _, _) in enumerate(styles)}
         samples.sort(key=lambda item: order[item["style"]])
+        prepared["fallback_used"] = switched
         yield from self._finish(prepared, samples, dropped)
 
     def _finish(self, prepared: dict, samples: list[dict], dropped: list[dict]):
@@ -424,6 +466,9 @@ class SelectionRewriteService:
             "samples": samples, "dropped": dropped, "knowledge_base_enabled": prepared["kb_on"],
             "retrieval": prepared["retrieval"], "provider": getattr(provider, "name", "model"),
             "model": getattr(provider, "model", ""), "is_local_model": bool(getattr(provider, "is_local", False)),
+            # 改用备用模型的写法（PRD §6.5 规则 3：界面显示“已使用备用模型 X”，记录实际模型）
+            "fallback_used": prepared.get("fallback_used") or [],
+            "models_used": sorted({s.get("model") or getattr(provider, "model", "") for s in samples}),
             "status": "no_results" if no_results else "proposed",
             "created_by": principal.user.id, "created_at": iso_time(self.demo._now()),
         }
@@ -624,5 +669,6 @@ def public_batch(batch: dict) -> dict:
         "instruction", "samples", "dropped", "knowledge_base_enabled", "provider", "model", "is_local_model",
         "status", "created_at")} | {
         "session_id": batch.get("session_id"), "retrieval": retrieval,
+        "fallback_used": batch.get("fallback_used") or [], "models_used": batch.get("models_used") or [],
         "source_note": ("引用本公司知识库（每条样例至少 1 条）" if retrieval.get("status") == "found"
                         else retrieval.get("message", "")) if kb_on else "无知识库来源（知识库已关闭）"}

@@ -4,9 +4,11 @@
 # 流式生成（各写法完成即推送）、本人会话列表与会话详情（项目负责人、公司管理员可看）。
 
 import json
+import threading
 from typing import Literal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
+from fastapi.concurrency import iterate_in_threadpool, run_in_threadpool
 from fastapi.responses import StreamingResponse
 from pydantic import Field
 
@@ -59,6 +61,16 @@ class RewriteSample(ResponseBody):
     chars: int
     sources: list[RewriteSource] = Field(description="样例引用的本次检索结果；知识库关闭时为空")
     status: Literal["proposed", "adopted", "not_adopted", "invalidated"]
+    model: str | None = Field(default=None, description="实际生成这条样例的模型")
+    is_local_model: bool | None = None
+    is_fallback: bool = Field(default=False, description="主模型失败后由备用模型生成")
+    fallback_reason: str = ""
+
+
+class FallbackUse(ResponseBody):
+    style: str
+    model: str = Field(description="改用的备用模型")
+    reason: str = Field(description="改用原因：主模型超时、连接失败、限流或暂时不可用")
 
 
 class DroppedSample(ResponseBody):
@@ -86,6 +98,8 @@ class SelectionRewriteBatch(ResponseBody):
     provider: str
     model: str
     is_local_model: bool
+    fallback_used: list[FallbackUse] = Field(default_factory=list, description="改用备用模型的写法")
+    models_used: list[str] = Field(default_factory=list, description="本批样例实际用到的模型")
     status: Literal["proposed", "adopted", "invalidated", "no_results"] = Field(
         description="no_results：知识库打开但没有检索到本公司资料，未调用模型")
     created_at: str
@@ -152,6 +166,8 @@ class AssistantPolicy(ResponseBody):
     is_local_model: bool
     sensitive_project: bool
     knowledge_base_connected: bool
+    fallback_model: str | None = Field(default=None, description="已配置且本项目可用的备用模型；敏感项目只列本地备用")
+    streaming: bool = Field(default=False, description="主模型是否逐字流式输出")
 
 
 class SessionSummary(ResponseBody):
@@ -191,14 +207,25 @@ def include_selection_rewrite_routes(application, service: DemoService, current_
     @router.post("/selection-rewrites/stream", response_class=StreamingResponse, operation_id="streamSelectionRewrite",
                  summary="流式生成选区改写样例",
                  description="与 createSelectionRewrite 相同的核对在开始前完成（出错按 HTTP 状态返回）；之后以 text/event-stream 推送："
-                             "started（写法、检索结果）→ sample / dropped（每种写法完成即推送）→ done（含 batch）；中途失败推送 error。",
+                             "started（写法、检索结果、主模型与备用模型）→ delta（逐字文字，按写法）/ fallback（该写法改用备用模型）→ "
+                             "sample / dropped（每种写法完成即推送）→ done（含 batch）；中途失败推送 error。客户端断开连接即停止生成、不保存。",
                  responses={200: {"description": "SSE 事件流", "content": {"text/event-stream": {"schema": {"type": "string"}}}}})
-    def stream(project_id: str, chapter_id: str, body: SelectionRewriteRequest, user: Principal = Depends(current_user)):
-        prepared = rewrite.prepare(user, project_id, chapter_id, body.model_dump())
+    async def stream(project_id: str, chapter_id: str, body: SelectionRewriteRequest, request: Request,
+                     user: Principal = Depends(current_user)):
+        prepared = await run_in_threadpool(rewrite.prepare, user, project_id, chapter_id, body.model_dump())
+        cancel = threading.Event()
+        iterator = rewrite.stream(prepared, cancel=cancel)
 
-        def events():
-            for event in rewrite.stream(prepared):
-                yield f"event: {event['event']}\ndata: {json.dumps(event, ensure_ascii=False)}\n\n"
+        async def events():
+            # 用户点“停止”或关闭页面即断开连接：置位 cancel，模型调用停下，本次样例不保存
+            try:
+                async for event in iterate_in_threadpool(iterator):
+                    if await request.is_disconnected():
+                        cancel.set()
+                        break
+                    yield f"event: {event['event']}\ndata: {json.dumps(event, ensure_ascii=False)}\n\n"
+            finally:
+                cancel.set()
 
         return StreamingResponse(events(), media_type="text/event-stream", headers={"X-Accel-Buffering": "no"})
 

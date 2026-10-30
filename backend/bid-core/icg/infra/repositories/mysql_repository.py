@@ -354,7 +354,7 @@ class MysqlConnectionRepository:
                 configs = connection.execute(text(
                     "SELECT id, company_id, name, provider, base_url, model, encrypted_api_key, "
                     "api_key_masked, is_local, allow_sensitive, stream_enabled, json_mode_enabled, "
-                    "revision, timeout_seconds, max_tokens FROM demo_model_config"
+                    "revision, timeout_seconds, max_tokens, fallback_config_id FROM demo_model_config"
                 )).all()
                 bindings = connection.execute(text(
                     "SELECT project_id, model_config_id FROM demo_project_model_config"
@@ -362,7 +362,7 @@ class MysqlConnectionRepository:
             from icg.infra.model_config_storage import ModelConfig
             for (cid, company_id, name, provider, base_url, model, encrypted_api_key,
                  api_key_masked, is_local, allow_sensitive, stream_enabled, json_mode_enabled,
-                 revision, timeout_seconds, max_tokens) in configs:
+                 revision, timeout_seconds, max_tokens, fallback_config_id) in configs:
                 state.model_configs[cid] = ModelConfig(
                     id=cid, company_id=company_id, name=name, provider=provider,
                     base_url=base_url, model=model, encrypted_api_key=encrypted_api_key,
@@ -370,6 +370,7 @@ class MysqlConnectionRepository:
                     allow_sensitive=bool(allow_sensitive), stream_enabled=bool(stream_enabled),
                     json_mode_enabled=bool(json_mode_enabled), revision=int(revision),
                     timeout_seconds=float(timeout_seconds), max_tokens=int(max_tokens),
+                    fallback_config_id=fallback_config_id,
                 )
             for pid, mid in bindings:
                 state.project_model_configs[pid] = mid

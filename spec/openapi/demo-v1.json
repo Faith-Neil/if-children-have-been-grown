@@ -32327,7 +32327,7 @@
     "/api/v1/projects/{project_id}/chapters/{chapter_id}/selection-rewrites/stream": {
       "post": {
         "summary": "流式生成选区改写样例",
-        "description": "与 createSelectionRewrite 相同的核对在开始前完成（出错按 HTTP 状态返回）；之后以 text/event-stream 推送：started（写法、检索结果）→ sample / dropped（每种写法完成即推送）→ done（含 batch）；中途失败推送 error。",
+        "description": "与 createSelectionRewrite 相同的核对在开始前完成（出错按 HTTP 状态返回）；之后以 text/event-stream 推送：started（写法、检索结果、主模型与备用模型）→ delta（逐字文字，按写法）/ fallback（该写法改用备用模型）→ sample / dropped（每种写法完成即推送）→ done（含 batch）；中途失败推送 error。客户端断开连接即停止生成、不保存。",
         "operationId": "streamSelectionRewrite",
         "parameters": [
           {
@@ -36079,6 +36079,24 @@
           "knowledge_base_connected": {
             "type": "boolean",
             "title": "Knowledge Base Connected"
+          },
+          "fallback_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback Model",
+            "description": "已配置且本项目可用的备用模型；敏感项目只列本地备用"
+          },
+          "streaming": {
+            "type": "boolean",
+            "title": "Streaming",
+            "description": "主模型是否逐字流式输出",
+            "default": false
           }
         },
         "additionalProperties": true,
@@ -39285,6 +39303,32 @@
         ],
         "title": "FailedPayload"
       },
+      "FallbackUse": {
+        "properties": {
+          "style": {
+            "type": "string",
+            "title": "Style"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model",
+            "description": "改用的备用模型"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason",
+            "description": "改用原因：主模型超时、连接失败、限流或暂时不可用"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "style",
+          "model",
+          "reason"
+        ],
+        "title": "FallbackUse"
+      },
       "FieldMetadataItem": {
         "properties": {
           "field_key": {
@@ -42087,6 +42131,19 @@
             "minimum": 1.0,
             "title": "Max Tokens",
             "default": 1024
+          },
+          "fallback_config_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback Config Id",
+            "description": "备用模型配置 ID；本地主模型只能配本地备用"
           }
         },
         "additionalProperties": false,
@@ -42178,6 +42235,18 @@
             "type": "integer",
             "title": "Max Tokens",
             "default": 1024
+          },
+          "fallback_config_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback Config Id",
+            "description": "备用模型配置；主模型超时、连接失败、5xx 或限流时改用"
           }
         },
         "additionalProperties": true,
@@ -42360,6 +42429,19 @@
               }
             ],
             "title": "Max Tokens"
+          },
+          "fallback_config_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 120
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback Config Id",
+            "description": "备用模型配置 ID；空字符串表示不配备用"
           }
         },
         "additionalProperties": false,
@@ -44933,6 +45015,40 @@
               "invalidated"
             ],
             "title": "Status"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model",
+            "description": "实际生成这条样例的模型"
+          },
+          "is_local_model": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Local Model"
+          },
+          "is_fallback": {
+            "type": "boolean",
+            "title": "Is Fallback",
+            "description": "主模型失败后由备用模型生成",
+            "default": false
+          },
+          "fallback_reason": {
+            "type": "string",
+            "title": "Fallback Reason",
+            "default": ""
           }
         },
         "additionalProperties": true,
@@ -45424,6 +45540,22 @@
           "is_local_model": {
             "type": "boolean",
             "title": "Is Local Model"
+          },
+          "fallback_used": {
+            "items": {
+              "$ref": "#/components/schemas/FallbackUse"
+            },
+            "type": "array",
+            "title": "Fallback Used",
+            "description": "改用备用模型的写法"
+          },
+          "models_used": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Models Used",
+            "description": "本批样例实际用到的模型"
           },
           "status": {
             "type": "string",
