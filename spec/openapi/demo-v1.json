@@ -37379,6 +37379,181 @@
         }
       }
     },
+    "/api/v1/projects/{project_id}/chapters/{chapter_id}/rollback": {
+      "post": {
+        "summary": "把正文回退到某个历史版本（生成新版本）",
+        "description": "须持有本章编辑锁与本节编辑权；有未提交草稿时 409 DRAFT_PENDING；目标与当前相同 409 ROLLBACK_NOOP；系统生成章节 409 SYSTEM_CHAPTER_READONLY；会改动或删除锁定段落时 409 PARAGRAPH_LOCKED；来源依据过期 409 INPUT_FINGERPRINT_STALE。",
+        "operationId": "rollbackChapterVersion",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "chapter_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Chapter Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RollbackRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RollbackResult"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "后端演示服务异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "423": {
+            "description": "编辑权被占用或已失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/projects/{project_id}/outline/plan": {
       "x-contract-status": "frozen",
       "x-implemented": false,
@@ -47637,6 +47812,76 @@
         ],
         "title": "RewriteSource"
       },
+      "RollbackRequest": {
+        "properties": {
+          "lease_token": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Lease Token",
+            "description": "本章编辑锁凭据"
+          },
+          "base_revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Base Revision",
+            "description": "页面看到的当前正文版本；不是最新时 409"
+          },
+          "target_revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Target Revision",
+            "description": "回退到的历史版本号"
+          },
+          "input_fingerprint": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Fingerprint",
+            "description": "当前来源依据指纹；项目有条款、事实或 SLA 时必填"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "lease_token",
+          "base_revision",
+          "target_revision"
+        ],
+        "title": "RollbackRequest"
+      },
+      "RollbackResult": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision",
+            "description": "回退后生成的新版本号"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "rollback_from": {
+            "type": "integer",
+            "title": "Rollback From",
+            "description": "回退到的历史版本号"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "revision",
+          "content",
+          "rollback_from"
+        ],
+        "title": "RollbackResult"
+      },
       "ScanHit": {
         "properties": {
           "id": {
@@ -51396,6 +51641,7 @@
               "CROSS_REVIEW_REQUIRED",
               "DICT_CODE_DUPLICATED",
               "DICT_ITEM_IN_USE",
+              "DRAFT_PENDING",
               "DRAFT_SEQUENCE_CONFLICT",
               "DUPLICATE_CHAPTER",
               "DUPLICATE_EVIDENCE",
@@ -51500,6 +51746,7 @@
               "REVIEW_PENDING",
               "REVIEW_REASON_REQUIRED",
               "REVISION_CONFLICT",
+              "ROLLBACK_NOOP",
               "RULES_INCOMPLETE",
               "SECRET_KEY_UNAVAILABLE",
               "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
@@ -51630,6 +51877,65 @@
             "type": "array",
             "title": "Paragraphs",
             "description": "本版本逐块的段落键与来源"
+          },
+          "version_origin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version Origin",
+            "description": "写入方式：manual / assistant_edit / ai_polish_accepted / rollback；章节循环与系统生成见 source"
+          },
+          "edit_mode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edit Mode",
+            "description": "修改方式明细，如 assistant_replace、assistant_insert、rollback"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source",
+            "description": "chapter_loop / system_generated"
+          },
+          "rollback_from": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rollback From",
+            "description": "版本回退时回退到的历史版本号"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
           },
           "created_at": {
             "type": "string",
@@ -53174,6 +53480,7 @@
           "CROSS_REVIEW_REQUIRED",
           "DICT_CODE_DUPLICATED",
           "DICT_ITEM_IN_USE",
+          "DRAFT_PENDING",
           "DRAFT_SEQUENCE_CONFLICT",
           "EVIDENCE_EXPIRED",
           "EVIDENCE_NOT_USABLE",
@@ -53216,6 +53523,7 @@
           "REVIEW_PENDING",
           "REVIEW_REASON_REQUIRED",
           "REVISION_CONFLICT",
+          "ROLLBACK_NOOP",
           "RULES_INCOMPLETE",
           "SLA_COMMITMENT_BLOCKED",
           "SLA_FACT_INVALID",

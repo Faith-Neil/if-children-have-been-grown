@@ -899,6 +899,10 @@
 | D-878 | 2026-10-30 | [代码说明：章节加载与段落键（APP-M2-T161）](code/APP-M2-T161.md) | 代码说明 | paragraph-keys-1 | 当前 | ISSUE-007 / APP-M2-T161 | 分块、分键、来源与存取 |
 | D-879 | 2026-10-30 | [任务交付：锁定内容（APP-M2-T163）](delivery/APP-M2-T163.md) | 任务交付 | paragraph-locks-1 | in-review | ISSUE-007 / APP-M2-T163 | 段落锁定与各写入路径拦截 |
 | D-880 | 2026-10-30 | [代码说明：锁定内容（APP-M2-T163）](code/APP-M2-T163.md) | 代码说明 | paragraph-locks-1 | 当前 | ISSUE-007 / APP-M2-T163 | 存储、识别与拦截点 |
+| D-881 | 2026-10-30 | [任务交付：提交版本与版本历史（APP-M2-T174）](delivery/APP-M2-T174.md) | 任务交付 | versions-1 | in-review | ISSUE-007 / APP-M2-T174 | 版本列表修改方式与段落表 |
+| D-882 | 2026-10-30 | [代码说明：提交版本与版本历史（APP-M2-T174）](code/APP-M2-T174.md) | 代码说明 | versions-1 | 当前 | ISSUE-007 / APP-M2-T174 | 版本字段来源与标签 |
+| D-883 | 2026-10-30 | [任务交付：版本对比与回退（APP-M2-T175）](delivery/APP-M2-T175.md) | 任务交付 | versions-1 | in-review | ISSUE-007 / APP-M2-T175 | 逐段对比与后台重核的回退 |
+| D-884 | 2026-10-30 | [代码说明：版本对比与回退（APP-M2-T175）](code/APP-M2-T175.md) | 代码说明 | versions-1 | 当前 | ISSUE-007 / APP-M2-T175 | 回退核对顺序与逐段对比算法 |
 
 ## 更新记录
 

@@ -301,6 +301,11 @@ class VersionResponse(ResponseBody):
 class VersionRecordResponse(VersionResponse):
     actor_id: str
     paragraphs: list[ParagraphKeyResponse] = Field(default_factory=list, description="本版本逐块的段落键与来源")
+    version_origin: str | None = Field(default=None, description="写入方式：manual / assistant_edit / ai_polish_accepted / rollback；章节循环与系统生成见 source")
+    edit_mode: str | None = Field(default=None, description="修改方式明细，如 assistant_replace、assistant_insert、rollback")
+    source: str | None = Field(default=None, description="chapter_loop / system_generated")
+    rollback_from: int | None = Field(default=None, description="版本回退时回退到的历史版本号")
+    note: str | None = None
     created_at: str = Field(description="UTC 的 ISO 8601 创建时间",
                             json_schema_extra={"format": "date-time"})
 

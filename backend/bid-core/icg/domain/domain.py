@@ -1054,7 +1054,8 @@ class DemoService:
         chapter = self._chapter(state, principal, chapter_id)
         from .paragraph_keys import ensure as ensure_paragraphs, public as public_paragraphs
         ensure_paragraphs(chapter)
-        return {"versions": [{**v, "paragraphs": public_paragraphs(v.get("paragraphs") or [])} for v in chapter.versions]}
+        return {"versions": [{**{k: val for k, val in v.items() if k != "rollback_paragraphs"},
+                              "paragraphs": public_paragraphs(v.get("paragraphs") or [])} for v in chapter.versions]}
 
     def discard_draft(self, principal, chapter_id, sequence, *,
                       idempotency_key: str | None = None):

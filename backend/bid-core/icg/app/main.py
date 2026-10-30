@@ -47,6 +47,7 @@ from icg.api import (
     include_export_asset_routes,
     include_task_model_route_routes,
     include_paragraph_lock_routes,
+    include_chapter_version_routes,
 )
 
 
@@ -187,6 +188,7 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     include_export_asset_routes(application, service, current_user)
     include_task_model_route_routes(application, service, current_user)
     include_paragraph_lock_routes(application, service, current_user)
+    include_chapter_version_routes(application, service, current_user)
 
     @application.get("/{full_path:path}", include_in_schema=False)
     def product_page(full_path: str):

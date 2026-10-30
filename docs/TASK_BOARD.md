@@ -10,7 +10,7 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，2026-10-30 整治，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 454 项：done 96、in-review 173、in-progress 37、planned 85、blocked 0、cancelled 63、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+项目 454 项：done 96、in-review 175、in-progress 37、planned 83、blocked 0、cancelled 63、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
@@ -29,7 +29,7 @@
 
 | 工作包 | 范围 | 未完成的卡 | 主要缺口 |
 |---|---|---|---|
-| WP-1 编辑台结构化正文 | T137～T139、T160～T190 | T164、T166、T160、T169、T171、T174、T175、T189、T190、T137、T138、T139 | 段落键与段落锁定已有（T161、T163 in-review），正文仍是纯文本框；变量节点、问题标注、版本提交与对比回退都挂在段落键上 |
+| WP-1 编辑台结构化正文 | T137～T139、T160～T190 | T164、T166、T160、T169、T171、T189、T190、T137、T138、T139 | 段落键、段落锁定、版本对比与回退已有（T161、T163、T174、T175 in-review），正文仍是纯文本框；变量节点、问题标注联动还没做 |
 | WP-2 资料库 | T046～T079 | T046～T068、T070～T075、T077 中未完成的 30 张 | 列表/详情按通用字段渲染，`field_metadata.kb_record` 的各类别字段与 `MetadataTable`/`MetadataForm` 没接入页面；★ 字段重确认、受限资料转交、人员/授权/业绩分类页、Excel 导入 |
 | WP-3 写作规范后台 | T080～T093 | 13 张 | 历史标书导入、章节模板、术语句式、任务卡与提示词模板、审查清单、风格样例 |
 | WP-4 项目与解析 | T094～T117 | T096～T102、T107、T109、T110 | 新建项目 R19 提示、项目设置页、补遗差异、条目合并拆分、冲突页签 |
@@ -524,8 +524,8 @@
 | [APP-M2-T171](tasks/APP-M2.md#app-m2-t171) | 长章节性能 | planned | APP-M1-T15、APP-M2-T161、APP-M2-T166、APP-M2-T167 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T171.md` |
 | [APP-M2-T172](tasks/APP-M2.md#app-m2-t172) | 自动保存草稿 | in-review（2026-10-29：停止输入 2 秒和每隔公司设置间隔自动保存草稿；心跳只在有操作时发送；释放前 5 分钟提示；锁释放、接管、超时时已保存草稿自动提交） | APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T172.md` |
 | [APP-M2-T173](tasks/APP-M2.md#app-m2-t173) | EditLockBadge、心跳、超时提示、接管 | in-review（2026-10-30：徽标显示持锁人与到期时刻，合并原 T170 只读态，补交付） | APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T173.md` |
-| [APP-M2-T174](tasks/APP-M2.md#app-m2-t174) | 提交版本与版本历史 | planned | APP-M2-T161、APP-M2-T172、APP-M2-T173 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T174.md` |
-| [APP-M2-T175](tasks/APP-M2.md#app-m2-t175) | 版本对比与回退 | planned | APP-M2-T161、APP-M2-T174 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T175.md` |
+| [APP-M2-T174](tasks/APP-M2.md#app-m2-t174) | 提交版本与版本历史 | in-review（2026-10-30：版本列表显示修改方式与段落表；心跳与超时提示见 T172/T173） | APP-M2-T161、APP-M2-T172、APP-M2-T173 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T174.md) |
+| [APP-M2-T175](tasks/APP-M2.md#app-m2-t175) | 版本对比与回退 | in-review（2026-10-30：按段落键逐段对比；回退生成新版本，后台重核锁、权限、来源、锁定段落与系统章节） | APP-M2-T161、APP-M2-T174 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T175.md) |
 | [APP-M2-T176](tasks/APP-M2.md#app-m2-t176) | 对话面板与会话列表 | in-review（2026-10-29：本人会话列表与只追加记录，负责人和公司管理员可看，可接着上一轮继续提要求） | APP-M2-T167、APP-M2-T089 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T176.md` |
 | [APP-M2-T177](tasks/APP-M2.md#app-m2-t177) | 流式输出、模型标识、降级提示 | in-review（2026-10-30：逐字流式预览、按写法完成先后推送样例、可停止且不保存；显示当前模型、是否本地与备用模型；主模型健康类失败改用备用模型并标明） | APP-M2-T167、APP-M2-T089、APP-M2-T176、APP-M2-T040 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T177.md` |
 | [APP-M2-T178](tasks/APP-M2.md#app-m2-t178) | 建议卡片（写法、差异、来源、预检） | in-review（2026-10-29：选区样例卡片含写法、字数、差异、预检提示与引用来源/无知识库来源） | APP-M2-T167、APP-M2-T089、APP-M2-T176、APP-M2-T242、APP-M2-T243、APP-M2-T244、APP-M2-T248 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T178.md` |

@@ -365,6 +365,22 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     });
   }
 
+  async function rollbackTo(target: number) {
+    if (!chapter || !lease) return;
+    await run(async () => {
+      const start = epoch.current;
+      const result = await request<{ revision: number; rollback_from: number }>(`/api/v1/projects/${workspace.project.id}/chapters/${chapterId}/rollback`, token, 'POST', {
+        lease_token: lease.lease_token, base_revision: chapter.revision, target_revision: target, input_fingerprint: workspace.input_fingerprint,
+      });
+      const updated = await request<Chapter>(`/api/chapters/${chapterId}`, token);
+      const history = await request<{ versions: ChapterVersionItem[] }>(`/api/chapters/${chapterId}/versions`, token);
+      if (start !== epoch.current) return;
+      setChapter(updated); setContent(updated.content); setVersions(history.versions.slice().reverse());
+      setNotice(`已回退到 v${result.rollback_from}，生成新版本 v${result.revision}；历史版本保留。之前的检查和导出会失效，需要重新运行。`);
+      await reload();
+    });
+  }
+
   async function viewVersions() {
     await run(async () => {
       const value = await request<{ versions: ChapterVersionItem[] }>(`/api/chapters/${chapterId}/versions`, token);
@@ -553,7 +569,8 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     </Modal>
 
     {/* 5. 版本历史与差异对比抽屉 */}
-    <EditorDiffDrawer open={versionsOpen} onClose={() => setVersionsOpen(false)} versions={versions} currentContent={content} currentRevision={chapter?.revision} combinedBusy={combinedBusy} held={held} inputFingerprint={workspace.input_fingerprint} onReviewRecovery={ops.reviewRecovery} />
+    <EditorDiffDrawer open={versionsOpen} onClose={() => setVersionsOpen(false)} versions={versions} currentContent={content} currentRevision={chapter?.revision} combinedBusy={combinedBusy} held={held}
+      dirty={modified || (!!chapter?.draft && chapter.draft.content !== chapter.content)} system={!!systemKind} inputFingerprint={workspace.input_fingerprint} onReviewRecovery={ops.reviewRecovery} onRollback={target => void rollbackTo(target)} />
 
     {/* 6. 辅助抽屉（方案、恢复、快照、来源核对） */}
     <EditorAuxiliaryDrawers

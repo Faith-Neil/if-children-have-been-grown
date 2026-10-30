@@ -93,6 +93,19 @@ def assign(chapter_id: str, previous: list[dict] | None, previous_content: str, 
                 if best is not None and best_ratio >= SAME_PARAGRAPH_RATIO:
                     keys[b] = previous[best]["key"]
                     free = [a for a in free if a > best]
+    # 版本回退：回来的块沿用目标版本里的键与来源，段落追溯不断
+    restore = version.get("rollback_paragraphs") or []
+    if restore:
+        taken = {k for k in keys if k}
+        pool: dict[str, list[dict]] = {}
+        for item in restore:
+            pool.setdefault(item["hash"], []).append(item)
+        for index, block in enumerate(blocks):
+            if keys[index] is None and pool.get(block["hash"]):
+                item = pool[block["hash"]].pop(0)
+                if item["key"] not in taken:
+                    keys[index], sources[index] = item["key"], item.get("source", "manual")
+                    taken.add(item["key"])
     used = {k for k in keys if k}
     serial = 0
     out = []

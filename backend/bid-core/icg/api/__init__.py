@@ -20,6 +20,7 @@ from icg.api.notifications import include_notification_routes
 from icg.api.export_assets import include_export_asset_routes
 from icg.api.task_model_routes import include_task_model_route_routes
 from icg.api.paragraph_locks import include_paragraph_lock_routes
+from icg.api.chapter_versions import include_chapter_version_routes
 from icg.api.volumes import (
     include_volume_routes,
     VolumeFinalizeRequest,
@@ -51,6 +52,7 @@ __all__ = [
     "include_export_asset_routes",
     "include_task_model_route_routes",
     "include_paragraph_lock_routes",
+    "include_chapter_version_routes",
     "include_selection_rewrite_routes",
     "include_session_routes",
     "include_project_routes",

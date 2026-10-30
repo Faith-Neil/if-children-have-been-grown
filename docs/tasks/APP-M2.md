@@ -2657,7 +2657,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T174 · 提交版本与版本历史
 <a id="app-m2-t174"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T161](APP-M2.md#app-m2-t161)、[APP-M2-T172](APP-M2.md#app-m2-t172)、[APP-M2-T173](APP-M2.md#app-m2-t173)。
+状态：in-review（2026-10-30：版本列表显示修改方式与段落表）。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T161](APP-M2.md#app-m2-t161)、[APP-M2-T172](APP-M2.md#app-m2-t172)、[APP-M2-T173](APP-M2.md#app-m2-t173)。
 
 原始来源：原交接 §6.7 M6-I02-F3；PRD v1.8 §5.11.9。交付单位：提交版本与版本历史，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -2667,12 +2667,12 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 
 验收：实际完成本卡标题列出的单一行为，页面读回与后台同源状态一致，不只显示静态占位。原交接验收约束（取与本子项对应的条件）：心跳只在有操作时发送（假时钟测试）；释放前 5 分钟提示。分别保存正例、权限反例、失败/并发及旧来源失效证据；涉及输出直接检查文件，原级别/放行/递交门禁不能被页面绕过。输出证据：草稿正式版本/租约审计、无覆盖恢复。
 
-交付：`docs/delivery/APP-M2-T174.md`；代码解释：`docs/code/APP-M2-T174.md`；测试放docs/testing并逐项关联本卡，未执行写未执行。
+交付：[APP-M2-T174 交付](../delivery/APP-M2-T174.md)；代码解释：[APP-M2-T174 代码解释](../code/APP-M2-T174.md)；测试见 `tests/backend/test_version_rollback.py`、`frontend/web/tests/unit/version-compare.test.mjs`。
 
 ### APP-M2-T175 · 版本对比与回退
 <a id="app-m2-t175"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T161](APP-M2.md#app-m2-t161)、[APP-M2-T174](APP-M2.md#app-m2-t174)。
+状态：in-review（2026-10-30：逐段对比与回退；并入原 T132）。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T161](APP-M2.md#app-m2-t161)、[APP-M2-T174](APP-M2.md#app-m2-t174)。
 
 原始来源：原交接 §6.7 M6-I02-F4；PRD v1.8 §5.11.9。交付单位：版本对比与回退，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -2682,7 +2682,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 
 验收：回退产生新版本保留历史，当前权限锁来源重核；不能回退覆盖系统节点。原交接验收约束（取与本子项对应的条件）：心跳只在有操作时发送（假时钟测试）；释放前 5 分钟提示。分别保存正例、权限反例、失败/并发及旧来源失效证据；涉及输出直接检查文件，原级别/放行/递交门禁不能被页面绕过。输出证据：草稿正式版本/租约审计、无覆盖恢复。
 
-交付：`docs/delivery/APP-M2-T175.md`；代码解释：`docs/code/APP-M2-T175.md`；测试放docs/testing并逐项关联本卡，未执行写未执行。
+交付：[APP-M2-T175 交付](../delivery/APP-M2-T175.md)；代码解释：[APP-M2-T175 代码解释](../code/APP-M2-T175.md)；测试见 `tests/backend/test_version_rollback.py`、`frontend/web/e2e/version-rollback.spec.ts`。
 
 ### APP-M2-T176 · 对话面板与会话列表
 <a id="app-m2-t176"></a>

@@ -42,7 +42,7 @@ test('lock a paragraph, a commit that changes it is refused, then unlock', async
   // 改动锁定段落后提交：后台拒绝，正文不变
   await box.fill(BODY.replace('驻场运维', '远程运维'));
   await page.getByRole('button', { name: '提交本节' }).click();
-  await expect(page.getByText(/改动或删除了 1 个已锁定段落/)).toBeVisible();
+  await expect(page.getByTestId('editor-center-section').getByText(/改动或删除了 1 个已锁定段落/)).toBeVisible();
   const kept = await (await request.get(`/api/chapters/${chapterId}`, { headers: auth })).json();
   expect(kept.content).toBe(BODY);
 
