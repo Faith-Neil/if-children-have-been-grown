@@ -144,7 +144,8 @@ export default function App() {
     try { if (token) await request(`/api/v1/jobs/${encodeURIComponent(jobId)}/cancel`, token, 'POST'); setJobs(prev => prev.map(j => (j.id === jobId ? { ...j, status: 'cancelled' } : j))); message.success('已取消后台任务'); } catch (err) { report(err); }
   }
   async function handleRetryJob(jobId: string) {
-    try { message.info('正在请求重新执行任务...'); if (token) { const res = await request<{ jobs: Job[] }>('/api/v1/jobs', token); setJobs(res.jobs ?? []); } } catch (err) { report(err); }
+    // 原先只刷新列表、从未调用重试接口（APP-M2-T020 发现）
+    try { if (token) { await request(`/api/v1/jobs/${encodeURIComponent(jobId)}/retry`, token, 'POST'); message.success('已重新排队'); const res = await request<{ jobs: Job[] }>('/api/v1/jobs', token); setJobs(res.jobs ?? []); } } catch (err) { report(err); }
   }
   async function loginWithToken(tokenValue: string) {
     setBusy(true);

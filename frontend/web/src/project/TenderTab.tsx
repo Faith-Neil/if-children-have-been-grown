@@ -4,11 +4,20 @@
 import React, { useState } from 'react';
 import { Alert, Button, Card, Drawer, Input, Modal, Space, Table, Tag, Tooltip, Upload } from 'antd';
 import { DownloadOutlined, FileTextOutlined, ReloadOutlined, UploadOutlined, WarningOutlined } from '@ant-design/icons';
-import { MAX_UPLOAD_MB, download, rawUploadPath, uploadRaw, uploadTooLarge } from '../shared/api.ts';
+import { MAX_UPLOAD_MB, download, rawUploadPath, request, uploadRaw, uploadTooLarge } from '../shared/api.ts';
 import { projectCan } from './project-team.ts';
 import { useProject } from '../app/context.tsx';
 import { OriginalPreview } from './OriginalPreview.tsx';
-import type { TenderFile } from '../shared/types.ts';
+import type { Job, TenderFile } from '../shared/types.ts';
+import { JobProgressWithSse } from '../status/JobProgress.tsx';
+import { jobFromStatus, type BackendJobStatus } from '../status/job-progress-sse.ts';
+import type { JobProgressData } from '../status/job-progress.ts';
+
+/** 页面打开时仍在进行的解析任务（后台任务在任务列表里留有摘要）。 */
+export function activeParseJob(jobs: Job[] | undefined): Job | undefined {
+  return (jobs ?? []).filter(job => job.type === 'parse' && ['queued', 'running'].includes(job.status))
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
+}
 
 export function TenderPage() {
   const { workspace, token, busy, mutate, reload, report, navigate } = useProject();
@@ -16,6 +25,12 @@ export function TenderPage() {
   const [selectedFile, setSelectedFile] = useState<string>('');
   const [removeFile, setRemoveFile] = useState<TenderFile | null>(null);
   const [removeReason, setRemoveReason] = useState('');
+  // 解析在后台执行（APP-M2-T020）：进度经事件流实时显示，断线时自动改为轮询
+  const [parseJob, setParseJob] = useState<{ id: string; initial: JobProgressData } | null>(() => {
+    const active = activeParseJob(workspace.jobs);
+    return active ? { id: active.id, initial: jobFromStatus(active) } : null;
+  });
+  const [parseJobDone, setParseJobDone] = useState(false);
 
   async function removeUpload() {
     if (!removeFile || !removeReason.trim()) {
@@ -55,11 +70,27 @@ export function TenderPage() {
 
   async function parse() {
     try {
-      await mutate(`/api/v1/projects/${workspace.project.id}/parse`, 'POST', {});
-      navigate('parse');
+      const job = await mutate(`/api/v1/projects/${workspace.project.id}/parse/jobs`, 'POST', {}) as BackendJobStatus;
+      setParseJobDone(false); setParseJob({ id: job.id, initial: jobFromStatus(job) });
     } catch {
       /* 保留当前文件列表供重试 */
     }
+  }
+
+  async function parseFinished(job: JobProgressData) {
+    await reload().catch(report);
+    if (job.status === 'completed') { setParseJob(null); navigate('parse'); }
+  }
+
+  async function cancelParse(jobId: string) {
+    try { await request(`/api/v1/jobs/${encodeURIComponent(jobId)}/cancel`, token, 'POST'); } catch (error) { report(error); }
+  }
+
+  async function retryParse(jobId: string) {
+    try {
+      const job = await request<BackendJobStatus>(`/api/v1/jobs/${encodeURIComponent(jobId)}/retry`, token, 'POST');
+      setParseJob({ id: `${job.id}`, initial: jobFromStatus(job) });
+    } catch (error) { report(error); }
   }
 
   function sample() {
@@ -88,19 +119,28 @@ export function TenderPage() {
             type="primary"
             icon={<ReloadOutlined />}
             loading={busy}
-            disabled={!workspace.files.length || !projectCan(workspace, 'prepare_sources') || uploading}
+            disabled={!workspace.files.length || !projectCan(workspace, 'prepare_sources') || uploading
+              || (!!parseJob && !['completed', 'failed', 'cancelled'].includes(parseJob.initial.status) && !parseJobDone)}
             onClick={parse}
           >
             解析招标文件
           </Button>
         </Space>
       </div>
+      {parseJob && (
+        <Card size="small" className="page-notice" data-testid="parse-job-card">
+          <JobProgressWithSse key={parseJob.id + parseJob.initial.status} jobId={parseJob.id} token={token} initialJob={parseJob.initial}
+            showSteps={false} onTerminal={job => { setParseJobDone(true); void parseFinished(job); }}
+            onCancel={projectCan(workspace, 'prepare_sources') ? id => void cancelParse(id) : undefined}
+            onRetry={projectCan(workspace, 'prepare_sources') ? id => { setParseJobDone(false); void retryParse(id); } : undefined} />
+        </Card>
+      )}
       <Alert
         type="info"
         showIcon
         className="page-notice"
         message="招标文件先在本地提取文字；扫描件、.doc、Excel 与图片交给公司自建 RAGFlow 识别版面与文字"
-        description="页码方式与能力限制随原文显示，解析完成也需要人确认。经 RAGFlow 识别的文件会标“RAGFlow 解析中”，稍后再次点击“开始解析”取回结果，识别结果请对照原件核对；未连接 RAGFlow 时这些格式会如实提示失败。"
+        description="页码方式与能力限制随原文显示，解析完成也需要人确认。经 RAGFlow 识别的文件标“RAGFlow 解析中”，解析任务在后台自动取回结果，可离开本页；识别结果请对照原件核对；未连接 RAGFlow 时这些格式会如实提示失败。"
       />
       <Card>
         <Upload.Dragger

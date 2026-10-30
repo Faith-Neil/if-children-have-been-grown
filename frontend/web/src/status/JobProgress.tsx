@@ -32,7 +32,6 @@ import {
 } from './job-progress.ts';
 import { copyText } from './status-views.ts';
 import {
-  useJobProgressSse,
   createJobStreamSubscription,
   JobStreamSubscriptionManager,
   calculateBackoffDelay,
@@ -41,8 +40,8 @@ import {
   isJobTerminalStatus,
   type StreamConnectionStatus,
   type JobStreamSubscriptionOptions,
-  type UseJobProgressSseOptions,
 } from './job-progress-sse.ts';
+import { useJobProgressSse, type UseJobProgressSseOptions } from './useJobProgressSse.ts';
 
 export {
   JOB_PROGRESS_COLORS,
@@ -246,6 +245,9 @@ export function JobProgress({
           className={isAi ? 'icg-progress-ai' : 'icg-progress-default'}
         />
       </div>
+      {job.description && job.status !== 'failed' && (
+        <div className="icg-job-description" data-testid="job-description"><Text type="secondary">{job.description}</Text></div>
+      )}
 
       {/* 3. 子步骤明细 Timeline/List */}
       {showSteps && job.steps && job.steps.length > 0 && (
@@ -400,23 +402,30 @@ export function JobProgress({
  */
 export interface JobProgressWithSseProps extends Omit<JobProgressProps, 'job'> {
   jobId: string;
+  token?: string | null;
   initialJob?: JobProgressData;
   baseUrl?: string;
   autoConnect?: boolean;
+  /** 任务到终态（完成、失败、取消）时调用一次 */
+  onTerminal?: (job: JobProgressData) => void;
 }
 
 export function JobProgressWithSse({
   jobId,
+  token,
   initialJob,
   baseUrl,
   autoConnect = true,
+  onTerminal,
   ...rest
 }: JobProgressWithSseProps) {
-  const { job, isPolling, connectionStatus } = useJobProgressSse({
+  const { job, isPolling, connectionStatus, reason } = useJobProgressSse({
     jobId,
+    token,
     initialJob,
     baseUrl,
     autoConnect,
+    onTerminal,
   });
 
   if (!job) {
@@ -424,12 +433,17 @@ export function JobProgressWithSse({
   }
 
   return (
-    <JobProgress
-      {...rest}
-      job={job}
-      isFallbackPolling={isPolling}
-      connectionStatus={connectionStatus}
-    />
+    <>
+      <JobProgress
+        {...rest}
+        job={job}
+        isFallbackPolling={isPolling}
+        connectionStatus={connectionStatus}
+      />
+      {connectionStatus === 'error' && reason && (
+        <Alert type="warning" showIcon message={`进度暂时无法刷新：${reason}`} data-testid="job-stream-error" style={{ marginTop: 6 }} />
+      )}
+    </>
   );
 }
 
