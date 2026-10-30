@@ -32,7 +32,8 @@ export type AssistantPolicy = {
 };
 export type SessionSummary = { id: string; chapter_id: string; owner_id: string; owner_name: string; title: string; updated_at: string; message_count: number };
 export type SessionMessage = {
-  id: string; role: 'user' | 'assistant'; kind: 'selection_request' | 'samples' | 'applied'; created_at: string;
+  id: string; role: 'user' | 'assistant'; kind: 'selection_request' | 'samples' | 'applied' | 'question' | 'answer'; created_at: string;
+  question?: string; answer?: string | null; route?: string;
   selected_text?: string; mode_label?: string; instruction?: string; knowledge_base_enabled?: boolean;
   sample_count?: number; retrieval?: Retrieval; edit_mode_label?: string; result_revision?: number; batch?: RewriteBatch;
 };

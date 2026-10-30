@@ -61,6 +61,8 @@ PREAMBLE = re.compile(r"^[^\n]{0,80}(?:如下|以下)[：:]\s*$")
 REPEAT = re.compile(r"([\u4e00-\u9fa5A-Za-z0-9，、]{4,}?)\1+")
 LENGTH_LIMIT = {"expand": (2.5, 200), "shorten": (1.0, 0)}
 PENDING_NUMBER = "【待补：数值来源】"
+LOCAL_QUEUE_SECONDS = 120.0           # 敏感项目本地模型不可用时最多排队等待的秒数
+LOCAL_QUEUE_STEPS = (5, 10, 20, 30)   # 每次重试前的等待（秒），之后按 30 秒
 
 
 def selection_hash(text: str) -> str:
@@ -274,7 +276,7 @@ class SelectionRewriteService:
         if chapter.project_id != project_id:
             raise DomainError(404, "NOT_FOUND", "未找到有权访问的章节。")
         project = self.demo._project(state, principal, project_id)
-        provider = self.demo.resolve_model_provider(state, project_id)
+        provider = self.demo.resolve_model_provider(state, project_id, "assistant_suggest")
         kb = getattr(self.demo, "knowledge_base", None)
         connected = bool(kb is not None and kb.client_for(project.company_id, state) is not None)
         from icg.infra.model_fallback import model_name
@@ -334,7 +336,7 @@ class SelectionRewriteService:
         facts, requirements = self._sources(state, project_id, chapter_id, workflow)
         from .generation_context import refuse_source_change
         refuse_source_change(instruction, {"facts": [{"key": f["key"], "variable": f["variable_token"]} for f in facts]})
-        provider = self.demo.resolve_model_provider(state, project_id)
+        provider = self.demo.resolve_model_provider(state, project_id, "assistant_suggest")
         if not getattr(provider, "is_real_model", False):
             raise DomainError(502, "MODEL_UNAVAILABLE",
                               "尚未接入真实大模型：选区改写不提供模拟样例。请公司管理员在“模型配置”中接入模型后再试。")
@@ -348,7 +350,7 @@ class SelectionRewriteService:
             "principal": principal, "project_id": project_id, "chapter_id": chapter_id, "chapter_title": chapter.title,
             "base_revision": chapter.revision, "start": start, "end": end, "selected": selected, "mode": mode,
             "instruction": instruction, "count": count, "kb_on": kb_on, "hits": hits, "retrieval": retrieval,
-            "known": known, "provider": provider, "session_id": session_id,
+            "known": known, "provider": provider, "session_id": session_id, "sensitive": bool(project.sensitive),
             "fact_tokens": {f["variable_token"] for f in facts},
             "user_content": self._user_content(chapter.title, requirements, facts, before, selected, after, instruction,
                                                hits=hits, history=history),
@@ -392,24 +394,44 @@ class SelectionRewriteService:
                "knowledge_base_enabled": prepared["kb_on"], "model": model_name(provider),
                "fallback_model": model_name(backup) if backup is not None else None,
                "streaming": bool(getattr(provider, "stream_enabled", False))}
-        samples, dropped, switched = [], [], []
+        samples, dropped, switched, queued = [], [], [], []
         if prepared["kb_on"] and not hits:
             yield from self._finish(prepared, samples, dropped)
             return
         inbox: queue.Queue = queue.Queue()
 
         def work(style):
+            from icg.infra.model_fallback import degradable
             key, label, hint = style
             system = self._system_prompt(MODES[mode], hint, knowledge_base=prepared["kb_on"])
-            try:
-                result = call_model(provider, system, prepared["user_content"],
-                                    on_delta=lambda text: inbox.put(("delta", label, text)),
-                                    on_reset=lambda name, why: inbox.put(("fallback", label, (name, why))), cancel=cancel)
-                inbox.put(("result", style, result))
-            except ModelCancelled:
-                inbox.put(("cancelled", style, None))
-            except Exception as error:  # 单条失败不影响其他写法
-                inbox.put(("failed", style, failure_text(error)))
+            waited, attempt = 0.0, 0
+            while True:
+                try:
+                    result = call_model(provider, system, prepared["user_content"],
+                                        on_delta=lambda text: inbox.put(("delta", label, text)),
+                                        on_reset=lambda name, why: inbox.put(("fallback", label, (name, why))), cancel=cancel)
+                    inbox.put(("result", style, result))
+                    return
+                except ModelCancelled:
+                    inbox.put(("cancelled", style, None))
+                    return
+                except Exception as error:  # 单条失败不影响其他写法
+                    # 敏感项目只能用本地模型（PRD §6.4、§5.11.14 第 18 项）：本地模型都不可用时排队等待重试，不改走云端
+                    if prepared.get("sensitive") and degradable(error) and waited < LOCAL_QUEUE_SECONDS and not cancel.is_set():
+                        attempt += 1
+                        pause = min(LOCAL_QUEUE_STEPS[min(attempt - 1, len(LOCAL_QUEUE_STEPS) - 1)], LOCAL_QUEUE_SECONDS - waited)
+                        inbox.put(("queued", label, {"attempt": attempt, "wait_seconds": pause, "waited_seconds": waited,
+                                                     "reason": failure_text(error)}))
+                        if cancel.wait(pause):
+                            inbox.put(("cancelled", style, None))
+                            return
+                        waited += pause
+                        continue
+                    detail = failure_text(error)
+                    if prepared.get("sensitive") and degradable(error):
+                        detail += f"；敏感项目只能用本地模型，已排队等待 {int(waited)} 秒仍不可用，未改走云端"
+                    inbox.put(("failed", style, detail))
+                    return
 
         for style in styles:
             threading.Thread(target=work, args=(style,), daemon=True).start()
@@ -422,6 +444,13 @@ class SelectionRewriteService:
                     continue
                 if kind == "delta":
                     yield {"event": "delta", "style": item, "text": value}
+                    continue
+                if kind == "queued":
+                    if not queued:
+                        self._notify_queue(prepared, value["reason"])
+                    queued.append(item)
+                    yield {"event": "queued", "style": item, **value,
+                           "message": f"本地模型暂时不可用（{value['reason']}），敏感项目不改走云端，{int(value['wait_seconds'])} 秒后重试"}
                     continue
                 if kind == "fallback":
                     switched.append({"style": item, "model": value[0], "reason": value[1]})
@@ -459,6 +488,19 @@ class SelectionRewriteService:
         samples.sort(key=lambda item: order[item["style"]])
         prepared["fallback_used"] = switched
         yield from self._finish(prepared, samples, dropped)
+
+    def _notify_queue(self, prepared: dict, reason: str) -> None:
+        """敏感项目开始排队等本地模型：发“本地任务排队”提醒（§5.12.2、§6.5），排队原因如实写“只能使用本地服务”。"""
+        from .notifications import notify
+
+        def write(state: DemoState):
+            notify(state, [prepared["principal"].user.id], "local_task_queued", "对话助手正在排队等待本地模型",
+                   f"《{prepared['chapter_title']}》：{reason}。敏感项目只能使用本地服务，不改走云端，正在排队重试。",
+                   now=iso_time(self.demo._now()), project_id=prepared["project_id"], target_id=prepared["chapter_id"])
+        try:
+            self.demo.repository.transaction(write)
+        except Exception:
+            pass  # 提醒失败不影响本次结果
 
     def _finish(self, prepared: dict, samples: list[dict], dropped: list[dict]):
         principal, project_id, chapter_id = prepared["principal"], prepared["project_id"], prepared["chapter_id"]

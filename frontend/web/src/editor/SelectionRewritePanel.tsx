@@ -11,6 +11,7 @@ import { Alert, Button, Card, Collapse, Empty, Input, Modal, Select, Space, Spin
 import { EditOutlined } from '@ant-design/icons';
 import { ApiError, request, streamEvents } from '../shared/api.ts';
 import type { Chapter } from '../shared/types.ts';
+import { AssistantAskBox } from './AssistantAskBox.tsx';
 import {
   ACTION_LABEL, EMPTY_STREAM, REWRITE_MODES, assistantPaths, defaultKnowledgeBase, diffText, fallbackNotice, isAbort, knowledgeBaseNote,
   locateSelection, modelLabel, pendingCount, previewWrite, reduceStream, relocation, rewritePath, selectionProblem,
@@ -162,7 +163,12 @@ export function SelectionRewritePanel({ projectId, chapter, content, selection, 
       </Space>
       {history && history.messages.length > 0 && <SessionHistory detail={history} />}
       {!selection ? (
-        <p className="muted">在正文中选中一段文字，点浮动按钮“问对话助手”，可得到 3～5 种写法。</p>
+        <>
+          <p className="muted">在正文中选中一段文字，点浮动按钮“问对话助手”，可得到 3～5 种写法；不选中时可以直接提问。</p>
+          <AssistantAskBox projectId={projectId} chapterId={chapter.id} token={token} knowledgeBase={knowledgeBase}
+            sessionId={sessionId === NEW_SESSION ? null : sessionId} disabled={disabled || !policy?.enabled}
+            onAnswered={id => { void loadSessions(id ?? undefined); }} />
+        </>
       ) : (
         <>
           <blockquote data-testid="rewrite-selection">{selection.text.length > 200 ? `${selection.text.slice(0, 200)}…` : selection.text}</blockquote>
@@ -258,6 +264,8 @@ function SessionHistory({ detail }: { detail: SessionDetail }) {
               {message.kind === 'selection_request' && <>问：{message.mode_label}{message.instruction ? `（${message.instruction}）` : ''} · 「{(message.selected_text ?? '').slice(0, 40)}」{message.knowledge_base_enabled ? ' · 知识库开' : ' · 知识库关'}</>}
               {message.kind === 'samples' && <>答：{message.batch?.status === 'no_results' ? message.retrieval?.message : `${message.sample_count ?? 0} 条样例`}{message.batch?.samples.find(s => s.status === 'adopted') ? ' · 已采纳 1 条' : ''}</>}
               {message.kind === 'applied' && <>写入：{message.edit_mode_label}，生成 v{message.result_revision}</>}
+              {message.kind === 'question' && <>问：{(message.question ?? '').slice(0, 60)}{message.knowledge_base_enabled ? ' · 知识库开' : ' · 知识库关'}</>}
+              {message.kind === 'answer' && <>答：{message.route === 'direct_query' ? '答案卡' : message.route === 'no_results' ? '知识库无结果' : (message.answer ?? '').slice(0, 80)}</>}
             </li>
           ))}
         </ol>

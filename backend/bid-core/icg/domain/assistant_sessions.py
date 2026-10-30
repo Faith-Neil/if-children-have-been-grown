@@ -2,7 +2,7 @@
 # 它解决什么问题：
 # 1. 每次选区提问（选区、修改方式、要求、知识库开关、检索结果、样例）和每次写入都追加到本人本章的会话里，只追加不改；
 # 2. 同一会话里接着提要求时，把这段文字之前的要求与样例交给模型，用户可以说“再短一点”；
-# 3. 会话只有本人、项目负责人和本公司公司管理员能看；继续提问只能本人。会话存在项目工作流里，随项目持久化。
+# 3. 自由提问的问题与回答也记入同一会话（APP-M2-T179）；会话只有本人、项目负责人和本公司公司管理员能看；继续提问只能本人。会话存在项目工作流里，随项目持久化。
 
 from __future__ import annotations
 
@@ -73,6 +73,34 @@ def record_request(workflow: dict, principal: Principal, chapter: Any, batch: di
                      "model": batch.get("model") or batch.get("provider"),
                      "library_query_skipped": not batch["knowledge_base_enabled"]})
     del messages[:-MAX_MESSAGES]
+    session["updated_at"] = now
+    return session["id"]
+
+
+def _session(workflow: dict, principal: Principal, chapter: Any, session_id: str | None, title: str, now: str) -> dict:
+    sessions = _sessions(workflow)
+    session = sessions.get(session_id) if session_id else None
+    if session is None:
+        session = {"id": new_id("session"), "project_id": chapter.project_id, "chapter_id": chapter.id,
+                   "chapter_title": chapter.title, "owner_id": principal.user.id, "owner_name": principal.user.name,
+                   "title": title[:24], "created_at": now, "updated_at": now, "messages": []}
+        sessions[session["id"]] = session
+        for old in sorted(sessions.values(), key=lambda item: item["updated_at"])[:-MAX_SESSIONS]:
+            sessions.pop(old["id"], None)
+    return session
+
+
+def record_question(workflow: dict, principal: Principal, chapter: Any, record: dict, session_id: str | None, now: str) -> str:
+    """自由提问（APP-M2-T179）：问题与回答（或答案卡、无检索结果）追加到本人本章会话。"""
+    session = _session(workflow, principal, chapter, session_id, record["question"], now)
+    session["messages"].append({"id": new_id("msg"), "role": "user", "kind": "question", "created_at": now,
+                                "question": record["question"], "knowledge_base_enabled": record["knowledge_base_enabled"]})
+    session["messages"].append({"id": new_id("msg"), "role": "assistant", "kind": "answer", "created_at": now,
+                                "question": record["question"], "answer": record.get("answer"), "route": record["route"],
+                                "answer_card": record.get("answer_card"), "sources": record.get("sources") or [],
+                                "model": record.get("model"), "is_fallback": record.get("is_fallback", False),
+                                "library_query_skipped": not record["knowledge_base_enabled"]})
+    del session["messages"][:-MAX_MESSAGES]
     session["updated_at"] = now
     return session["id"]
 

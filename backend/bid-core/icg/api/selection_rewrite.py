@@ -33,6 +33,12 @@ class SelectionRewriteRequest(RequestBody):
     session_id: str | None = Field(default=None, max_length=120, description="接着本人本章的会话提问；不传则新建会话")
 
 
+class AssistantQuestionRequest(RequestBody):
+    question: str = Field(min_length=1, max_length=1000, description="不选中正文时的自由提问")
+    knowledge_base_enabled: bool | None = Field(default=None, description="知识库开关；不传取公司默认值")
+    session_id: str | None = Field(default=None, max_length=120, description="接着本人本章的会话提问")
+
+
 class RewriteSource(ResponseBody):
     cite_tag: str = Field(description="写入正文的引用标记，如 [片:lib-1]")
     source_id: str
@@ -187,13 +193,16 @@ class SessionList(ResponseBody):
 
 
 class SessionDetail(SessionSummary):
-    messages: list[dict] = Field(description="按时间排列、只追加的消息：selection_request / samples（含 batch）/ applied")
+    messages: list[dict] = Field(description="按时间排列、只追加的消息：selection_request / samples（含 batch）/ applied / question / answer")
     read_only: bool = Field(description="不是本人的会话（负责人或公司管理员查看）时为 true")
 
 
 def include_selection_rewrite_routes(application, service: DemoService, current_user) -> None:
     rewrite = SelectionRewriteService(service)
     application.state.selection_rewrite = rewrite
+    from icg.domain.assistant_qa import AssistantQAService
+    qa = AssistantQAService(service, rewrite)
+    application.state.assistant_qa = qa
     router = APIRouter(prefix="/api/v1/projects/{project_id}/chapters/{chapter_id}",
                        responses=v1_error_responses(401, 403, 404, 409, 422, 423, 502, 503))
 
@@ -218,6 +227,30 @@ def include_selection_rewrite_routes(application, service: DemoService, current_
 
         async def events():
             # 用户点“停止”或关闭页面即断开连接：置位 cancel，模型调用停下，本次样例不保存
+            try:
+                async for event in iterate_in_threadpool(iterator):
+                    if await request.is_disconnected():
+                        cancel.set()
+                        break
+                    yield f"event: {event['event']}\ndata: {json.dumps(event, ensure_ascii=False)}\n\n"
+            finally:
+                cancel.set()
+
+        return StreamingResponse(events(), media_type="text/event-stream", headers={"X-Accel-Buffering": "no"})
+
+    @router.post("/assistant-questions/stream", response_class=StreamingResponse, operation_id="streamAssistantReply",
+                 summary="自由提问（流式，只回答不写入）",
+                 description="先按词表判断直查本项目或本公司数据，命中且查到时返回答案卡（不调用模型）；否则逐字流式回答，知识库打开时只能引用本次检索结果。"
+                             "事件：started → answer_card 或 delta / fallback / queued → done（含 answer，can_insert 恒为 false）；失败推送 error。"
+                             "未接入真实模型返回 502 MODEL_UNAVAILABLE。客户端断开即停止、不保存。",
+                 responses={200: {"description": "SSE 事件流", "content": {"text/event-stream": {"schema": {"type": "string"}}}}})
+    async def ask(project_id: str, chapter_id: str, body: AssistantQuestionRequest, request: Request,
+                  user: Principal = Depends(current_user)):
+        prepared = await run_in_threadpool(qa.prepare, user, project_id, chapter_id, body.model_dump())
+        cancel = threading.Event()
+        iterator = qa.stream(prepared, cancel=cancel)
+
+        async def events():
             try:
                 async for event in iterate_in_threadpool(iterator):
                     if await request.is_disconnected():
