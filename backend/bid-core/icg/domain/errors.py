@@ -83,6 +83,8 @@ def _frozen_status() -> dict[str, int]:
         "WORD_TEMPLATE_MISSING",
         # 编辑台锁定段落不能改动或删除；重复锁定 (APP-M2-T163 / PRD v1.8 §5.11.8)
         "PARAGRAPH_LOCKED", "PARAGRAPH_ALREADY_LOCKED", "ROLLBACK_NOOP", "DRAFT_PENDING",
+        # R19 关联投标冲突：须项目负责人填写说明确认 (APP-M2-T096 / PRD v1.8 §5.1.2 规则 2)
+        "RELATED_BID_CONFLICT",
     ))
     _bind(table, 413, (
         "FILE_SIZE_LIMIT", "FILE_EXPANSION_LIMIT", "PDF_PAGE_LIMIT", "GENERATION_CONTEXT_TOO_LARGE",

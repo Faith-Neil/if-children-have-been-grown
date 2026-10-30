@@ -50,6 +50,10 @@ def project_input_fingerprint(state: DemoState, project_id: str) -> str:
     if attachments:
         # 附件扫描件（导出插页、R38 功能点）：改附件后旧检查、旧导出过期。没有附件时不写入。
         payload["attachments"] = sorted(attachments, key=lambda a: a["id"])
+    if workflow.get("related_bid_ack"):
+        # R19 关联投标冲突的确认说明：确认或改动后旧检查过期，重新检查才不再报 R19。为空时不写入，保持既有指纹不变。
+        ack = workflow["related_bid_ack"]
+        payload["related_bid_ack"] = {"company_ids": ack.get("company_ids"), "reason": ack.get("reason")}
     if workflow.get("volume_epochs"):
         # 分册解锁轮次（Wave 11）：解锁后旧检查、旧导出一律过期。为空时不写入，保持既有指纹不变。
         payload["volume_epochs"] = workflow["volume_epochs"]

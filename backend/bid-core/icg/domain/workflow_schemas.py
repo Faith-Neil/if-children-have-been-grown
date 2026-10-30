@@ -26,6 +26,23 @@ class ProjectPatch(RequestBody):
     project_partners: list[ProjectPartnerInput] | None = None
     volume_mode: Literal["both", "technical_only"] | None = Field(
         default=None, description="切换为只写技术标须商务分册尚无正文且未定稿；切回两册时补建商务分册")
+    related_bid_reason: str | None = Field(
+        default=None, max_length=2000,
+        description="R19：集团内其他公司已对同一标段立项时，项目负责人确认无控股、管理关系或单位负责人相同的说明（至少 5 个字）；"
+                    "有冲突而未填写时返回 409 RELATED_BID_CONFLICT，details 只含对方公司名称")
+
+
+class RelatedBidAck(RequestBody):
+    reason: str = Field(min_length=5, max_length=2000, description="确认无控股、管理关系或单位负责人相同的说明")
+
+
+class RelatedBidStatus(ResponseBody):
+    match: Literal["exact", "approximate"] | None = Field(description="exact：同招标编号同标段；approximate：编号或标段缺失时近似判断")
+    companies: list[str] = Field(description="对方公司名称；不含对方项目任何内容")
+    message: str
+    statute: str
+    needs_ack: bool
+    acknowledged: dict | None = Field(description="已确认的说明：company_names、match、reason、by_name、at")
 
 
 class FileUpload(RequestBody):

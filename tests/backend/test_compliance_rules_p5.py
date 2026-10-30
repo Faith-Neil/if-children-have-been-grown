@@ -1,7 +1,7 @@
 # 为什么有这个文件：为 PRD MVP §5.8 第六批（终批）核心合规规则（R17/R19/R26/R27/R28，BE-COMPLIANCE-RULES-P5）提供专属自动化测试套件。
 # 它解决什么问题：
 # 1. 验证 R17 关联交易与利害关系回避核验（单位负责人为同一人/控股参股，正例放行，未回避或存在利害关系强阻断）；
-# 2. 验证 R19 环保、节能与绿色采购强制产品认证核验（国家节能品目与能效证书，正例放行，认证缺失或能效未达标强阻断）；
+# 2. 验证扩展规则 EXT-GREEN（原误标为 R19，PRD 的 R19 是关联投标冲突，见 test_related_bids.py）环保、节能与绿色采购强制产品认证核验（国家节能品目与能效证书，正例放行，认证缺失或能效未达标强阻断）；
 # 3. 验证 R26 知识产权与侵权无争议声明核验（自主知识产权与无条件侵权兜底承诺，正例放行，声明缺失或推卸侵权责任强阻断）；
 # 4. 验证 R27 本地化服务网点与常驻技术力量核验（本地售后分公司与常驻技术人员，正例放行，无本地网点或无法驻场强阻断）；
 # 5. 验证 R28 关键技术规格实质性负偏离排查（关键指标参数无负偏离，正例放行，标记负偏离或指标不满足强阻断）；
@@ -89,7 +89,7 @@ def test_r17_conflict_of_interest_compliance(client):
 
 
 def test_r19_mandatory_green_cert_compliance(client):
-    """验证 R19：环保、节能与绿色采购强制产品认证核验（正例放行，强制品目认证缺失强阻断）。"""
+    """验证 EXT-GREEN：环保、节能与绿色采购强制产品认证核验（正例放行，强制品目认证缺失强阻断）。"""
     flow = ProjectFlow(client).ready()
     reqs = flow.state()["requirements"]
     r_tech = next(r for r in reqs if r["volume"] == "technical")
@@ -115,7 +115,7 @@ def test_r19_mandatory_green_cert_compliance(client):
 
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200, resp.text
-    r19 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R19")
+    r19 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-GREEN")
     assert r19["passed"] is True
     assert r19["severity"] == "info"
 
@@ -129,7 +129,7 @@ def test_r19_mandatory_green_cert_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r19 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R19")
+    r19 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-GREEN")
     assert r19["passed"] is False
     assert r19["severity"] == "blocker"
     assert any(i["code"] == "MANDATORY_GREEN_CERT_MISSING" for i in r19["issues"])
@@ -146,7 +146,7 @@ def test_r19_mandatory_green_cert_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r19 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R19")
+    r19 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-GREEN")
     assert r19["passed"] is False
     assert r19["severity"] == "blocker"
     assert any(i["code"] == "MANDATORY_GREEN_CERT_MISSING" for i in r19["issues"])
@@ -162,7 +162,7 @@ def test_r19_mandatory_green_cert_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r19 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R19")
+    r19 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-GREEN")
     assert r19["passed"] is False
     assert r19["severity"] == "blocker"
     assert any(i["code"] == "MANDATORY_GREEN_CERT_MISSING" for i in r19["issues"])

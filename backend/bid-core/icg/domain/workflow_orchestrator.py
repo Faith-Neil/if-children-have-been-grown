@@ -323,6 +323,8 @@ class WorkflowService(
 
     def patch_project(self, principal: Principal, project_id: str, payload: dict, expected: str | None, key: str | None):
         def operation(state, project, workflow):
+            reason = payload.pop("related_bid_reason", None)
+            identity_changed = "tender_number" in payload or "name" in payload
             partners = payload.pop("project_partners", None)
             if partners is not None:
                 state.project_partners[project.id] = partners
@@ -335,6 +337,10 @@ class WorkflowService(
                 if field == "deadline" and value:
                     self._date(value)
                 setattr(project, field, value.strip() if isinstance(value, str) else value)
+            if identity_changed:
+                # R19 关联投标冲突（APP-M2-T096 / PRD §5.1.2 规则 2）：未填写说明则整次修改不保存
+                from icg.domain.related_bids import require_ack
+                require_ack(state, principal, project, workflow, reason, self.demo._now())
             return {"project": {**asdict(project), "volume_mode": project_volume_mode(state, project.id)}}
 
         return self._write(principal, project_id, "project.update", payload, expected, key, operation)

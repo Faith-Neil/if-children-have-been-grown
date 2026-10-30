@@ -68,7 +68,9 @@ class ProjectFlow:
         return self.write("/files", {"filename": filename, "content_base64": base64.b64encode(content).decode()})["file"]
 
     def reviewed(self, tender=TENDER):
-        self.write("", {"tender_number": "SYNTH-001", "deadline": "2026-12-31T17:00:00+08:00"}, "PATCH")
+        # 不同公司的用例会用同一份合成招标文件（同一招标编号）；R19 要求负责人写明无关联关系（APP-M2-T096）
+        self.write("", {"tender_number": "SYNTH-001", "deadline": "2026-12-31T17:00:00+08:00",
+                        "related_bid_reason": "合成测试：两家公司无控股、管理关系"}, "PATCH")
         self.upload(tender.encode())
         result = self.write("/parse", {})
         assert result["job"]["status"] == "completed"

@@ -13,6 +13,8 @@ import { modelConfigAccess } from '../admin/model-config-core.ts';
 import { projectVolumes, technicalOnly, volumeOptions } from './project-volumes.ts';
 import { ProposedStaffCard } from './ProposedStaffCard';
 import { ExportNamingCard } from './ExportNamingCard';
+import { relatedBidConflict } from './related-bid-core';
+import { RelatedBidBanner, askRelatedBidReason } from './RelatedBidPrompt';
 
 const anchors = [ ['basic', '基本信息'], ['members', '成员与分工'], ['partners', '合作方'], ['persons', '拟派人员'], ['sla', 'SLA 取值'], ['rules', '规则覆盖'], ['loops', '生成闭环'], ['volumes', '分册'], ['export', '导出设置'] ];
 
@@ -63,7 +65,15 @@ export default function ProjectSettingsPage() {
     if (basicChanged) { report(new Error('后台基本信息已更新，当前填写内容已保留。请先核对并载入最新基本信息，再重新保存。')); return; }
     try {
       const values = await basicForm.validateFields();
-      const result = await mutate(`/api/v1/projects/${workspace.project.id}`, 'PATCH', projectFields(values)) as { project?: typeof workspace.project };
+      const path = `/api/v1/projects/${workspace.project.id}`; const body = projectFields(values);
+      let result: { project?: typeof workspace.project };
+      try { result = await mutate(path, 'PATCH', body) as typeof result; }
+      catch (error) {
+        // R19 关联投标冲突（APP-M2-T096）：写明无关联关系才能保存；取消则保留表单不保存
+        const conflict = relatedBidConflict(error); if (!conflict) throw error;
+        const reason = await askRelatedBidReason(modal, conflict); if (!reason) return;
+        result = await mutate(path, 'PATCH', { ...body, related_bid_reason: reason }) as typeof result;
+      }
       if (result.project) { basicForm.setFieldsValue({ ...result.project, deadline: deadlineForForm(result.project.deadline) }); setLoadedBasicBasis(projectBasis(result.project)); }
       message.success('基本信息已保存，旧检查与输出需按当前资料重新核对。');
     } catch (error) { if (!(error instanceof Error && 'status' in error)) report(error); }
@@ -93,7 +103,7 @@ export default function ProjectSettingsPage() {
     {!canManageTeam && <Alert className="page-notice" showIcon type="info" message="当前账号可以查看设置；人员、分工和基本信息由本项目负责人维护。" />}
     {basicChanged && <Alert className="page-notice" showIcon type="warning" message="后台基本信息已变化，当前表单仍保留你的填写" action={<Button onClick={() => modal.confirm({ title: '核对并载入最新基本信息', content: <><p>当前项目：{workspace.project.name}；编号：{workspace.project.tender_number || '未填写'}；截止：{deadlineForForm(workspace.project.deadline) || '未填写'}；{workspace.project.sensitive ? '敏感项目' : '普通项目'}。</p><p>载入会替换当前未保存的基本信息表单，后台记录不变。</p></>, okText: '已核对，载入最新信息', cancelText: '保留当前填写', onOk: () => { basicForm.setFieldsValue({ ...workspace.project, deadline: deadlineForForm(workspace.project.deadline) }); setLoadedBasicBasis(projectBasis(workspace.project)); } })}>核对并载入最新基本信息</Button>} />}
     {teamChanged && <Alert className="page-notice" showIcon type="warning" message="后台分工已变化，当前表单仍保留你的填写" description="保存已暂停，不能用旧表单覆盖其他协作者的新安排。先核对当前成员与负责人，再决定是否载入最新分工。" action={<Button onClick={() => modal.confirm({ title: '核对并载入后台最新分工', content: <><p>最新成员：{team?.members.map(member => `${member.name}（${projectRoleName(member.project_role)}；参与：${member.volumes.map(volumeName).join('、') || '暂未指定'}）`).join('、')}</p><p>最新负责人：{team?.volumes.map(volume => `${volumeName(volume.volume)}：${volume.owner_name ?? '未指定'}`).join('；')}</p><p>最新合标负责人：{team?.members.find(member => member.user_id === team.assembly_owner_id)?.name ?? '未指定'}</p><p>载入会替换当前未保存的人员表单，后台记录不变。先保留需要重新填写的内容。</p></>, okText: '已核对，载入最新分工', cancelText: '保留当前填写', onOk: () => { teamForm.setFieldsValue(teamFormValues(team)); setLoadedTeamBasis(teamBasis(team)); } })}>核对并载入最新分工</Button>} />}
-    <Alert className="page-notice" showIcon type="info" message="当前使用合成演示账号验证多人编标" description="项目成员、参与分册与逐章分工已经接通；正式公司账号、登录安全及完整角色管理仍未交付。参与分册用于分配工作，不是隔离同一项目资料的阅读范围。" />
+    <RelatedBidBanner projectId={workspace.project.id} token={token} revision={workspace.revision} canConfirm={canManageProject} modal={modal} onConfirmed={() => reload()} report={report} />
     <div className="settings-layout settings-members-layout">
       <Card className="settings-anchor" size="small"><Anchor offsetTop={80} items={anchors.map(([id, title]) => ({ key: id, href: `#project-setting-${id}`, title }))} /></Card>
       <div className="settings-groups">

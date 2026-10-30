@@ -20,6 +20,7 @@ import { Forbidden403 } from '../status/StatusViews'; import { canCreateProject,
 import { deriveBreadcrumbs, onEnterProjectCollapse, readStoredSidebarCollapsed, resolveInitialSidebarCollapsed, writeStoredSidebarCollapsed } from '../shell/responsive.ts';
 import { Can, CanProvider } from '../shell/Can'; import { LoginScreen } from './LoginScreen'; import { passwordLogin, revokeSession, type PasswordPolicy } from './login-auth-core';
 import { PasswordChangeScreen } from './PasswordChangeScreen';
+import { relatedBidConflict } from '../project/related-bid-core'; import { askRelatedBidReason } from '../project/RelatedBidPrompt';
 import { AppHeaderActions } from '../shell/AppHeaderActions'; import { AppModals } from '../shell/AppModals';
 import { ProjectWorkspaceContent } from './ProjectWorkspaceContent'; import { GlobalPagesContent } from './GlobalPagesContent';
 
@@ -279,7 +280,9 @@ export default function App() {
       const approved = await loadSession(); requireSessionRoute(approved, 'workbench'); requireSessionAction(approved, 'projects.create');
       const created = await request<Project>('/api/v1/projects', activeToken.current, 'POST', { name: values.name, volume_mode: values.volume_mode === 'technical_only' ? 'technical_only' : 'both' }); createdId = created.id;
       const result = await readAuthorizedProject(created.id, 'settings', { session: s => loadSession(activeToken.current, s), workspace: s => request<Workspace>(`/api/v1/projects/${encodeURIComponent(s)}/workspace`, activeToken.current) });
-      await request(`/api/v1/projects/${created.id}`, activeToken.current, 'PATCH', projectFields({ tender_number: values.tender_number, sensitive: values.sensitive, deadline: values.deadline }), result.workspace.revision);
+      const basics = projectFields({ tender_number: values.tender_number, sensitive: values.sensitive, deadline: values.deadline }); const basicsPath = `/api/v1/projects/${created.id}`;
+      // R19 关联投标冲突（APP-M2-T096）：须填写说明确认无关联关系，取消则不保存招标编号
+      try { await request(basicsPath, activeToken.current, 'PATCH', basics, result.workspace.revision); } catch (error) { const conflict = relatedBidConflict(error); const reason = conflict ? await askRelatedBidReason(modal, conflict) : null; if (!reason) throw error; await request(basicsPath, activeToken.current, 'PATCH', { ...basics, related_bid_reason: reason }, result.workspace.revision); }
       setCreateOpen(false); createForm.resetFields(); await refreshGlobal(); await openProject(created.id, 'tender'); message.success('项目已建立，请上传招标文件。');
     } catch (error) { if (!isRequestFailureCurrent(error, activeToken.current)) return; report(error); if (createdId) { setCreateOpen(false); await refreshGlobal(); await openProject(createdId, 'settings'); message.warning('项目已经建立，基本信息未全部保存，请在项目设置补齐。'); } } finally { setBusy(false); }
   }

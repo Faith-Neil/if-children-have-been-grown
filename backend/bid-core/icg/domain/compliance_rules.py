@@ -313,6 +313,15 @@ class ComplianceRulesEngine:
         },
         {
             "rule_id": "R19",
+            "title": "关联投标冲突",
+            "category": "qualification",
+            "default_severity": "warning",
+            "can_disable": False,
+            "description": "集团内另一家公司已对同一招标项目同一标段立项（招标编号 + 标段；无编号时按招标人 + 项目名称近似）；项目负责人须填写说明确认无控股、管理关系或单位负责人相同，并通知集团管理员（PRD §5.1.2、§8.3）。",
+        },
+        {
+            # 原先误标为 R19；PRD 没有这条规则，作为扩展规则保留（APP-M2-T096 更正）
+            "rule_id": "EXT-GREEN",
             "title": "环保、节能与绿色采购强制产品认证核验",
             "category": "qualification",
             "default_severity": "blocker",
@@ -4370,8 +4379,35 @@ class ComplianceRulesEngine:
     def check_r19(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
     ) -> ComplianceRuleResult:
+        """R19 关联投标冲突（PRD §5.1.2、§8.3）：与平台内其他公司同标段立项且未确认说明时警告。"""
+        from icg.domain.related_bids import acknowledged, conflicts, public_details
+        found = conflicts(state, project)
+        ack = acknowledged(workflow, found)
+        issues: list[ComplianceRuleIssue] = []
+        if found["companies"] and ack is None:
+            details = public_details(found)
+            issues.append(ComplianceRuleIssue(
+                id=new_id("issue"), rule_id="R19", code="RELATED_BID_CONFLICT", severity="warning",
+                message=f"{details['message']}涉及：{'、'.join(details['companies'])}。项目负责人须在项目设置中填写说明确认无上述关系。",
+                details={"companies": details["companies"], "match": details["match"]},
+            ))
+        passed = not issues
+        summary = ("未发现集团内其他公司对同一标段立项。" if not found["companies"]
+                   else f"已由{ack['by_name']}确认无关联关系：{ack['reason']}" if ack else "存在未确认的关联投标冲突。")
+        return ComplianceRuleResult(
+            rule_id="R19", title="关联投标冲突", severity="info" if passed else "warning", passed=passed,
+            finding_summary=summary,
+            suggestion="核验正常。" if passed else "在项目设置中查看冲突公司并填写说明；有控股、管理关系时不得投同一标段。",
+            issues=[i.to_dict() for i in issues],
+            details={"conflict_companies": len(found["companies"]), "acknowledged": bool(ack)},
+        )
+
+    @classmethod
+    def check_ext_green(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
         """
-        R19 环保、节能与绿色采购强制产品认证核验。
+        扩展规则（非 PRD 编号）：环保、节能与绿色采购强制产品认证核验。原先误标为 R19。
         核验设备耗材是否属于国家强制节能品目并附有效证书清单；
         强制品目未提供认证判定为 blocker (MANDATORY_GREEN_CERT_MISSING)。
         """
@@ -4402,7 +4438,7 @@ class ComplianceRulesEngine:
                 issues.append(
                     ComplianceRuleIssue(
                         id=new_id("issue"),
-                        rule_id="R19",
+                        rule_id="EXT-GREEN",
                         code="MANDATORY_GREEN_CERT_MISSING",
                         severity="blocker",
                         message=f"环保节能或绿色采购产品要求未填写响应说明：{text[:50]}",
@@ -4415,7 +4451,7 @@ class ComplianceRulesEngine:
                 issues.append(
                     ComplianceRuleIssue(
                         id=new_id("issue"),
-                        rule_id="R19",
+                        rule_id="EXT-GREEN",
                         code="MANDATORY_GREEN_CERT_MISSING",
                         severity="blocker",
                         message=f"强制节能或环保绿色采购条款被拒绝响应：{text[:50]}",
@@ -4428,7 +4464,7 @@ class ComplianceRulesEngine:
                 issues.append(
                     ComplianceRuleIssue(
                         id=new_id("issue"),
-                        rule_id="R19",
+                        rule_id="EXT-GREEN",
                         code="MANDATORY_GREEN_CERT_MISSING",
                         severity="blocker",
                         message=f"强制节能或环保认证证书缺失或不符合国家要求：{resp[:60]}",
@@ -4443,7 +4479,7 @@ class ComplianceRulesEngine:
             else f"存在 {len(issues)} 项强制节能或环保产品认证缺失缺陷！"
         )
         return ComplianceRuleResult(
-            rule_id="R19",
+            rule_id="EXT-GREEN",
             title="环保、节能与绿色采购强制产品认证核验",
             severity="info" if passed else "blocker",
             passed=passed,
@@ -4741,6 +4777,7 @@ class ComplianceRulesEngine:
         return [
             cls.check_r17(state, project, workflow, volume=volume),
             cls.check_r19(state, project, workflow, volume=volume),
+            cls.check_ext_green(state, project, workflow, volume=volume),
             cls.check_r26(state, project, workflow, volume=volume),
             cls.check_r27(state, project, workflow, volume=volume),
             cls.check_r28(state, project, workflow, volume=volume),

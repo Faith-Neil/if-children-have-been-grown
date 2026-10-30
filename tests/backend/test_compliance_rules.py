@@ -17,7 +17,8 @@ def test_compliance_rules_catalog():
         assert core_rule in rule_ids
     assert len(rule_ids) >= 26
     for item in catalog:
-        assert item["rule_id"].startswith("R")
+        # PRD 规则为 R01～R44；不在 PRD 中的保留为扩展规则，编号以 EXT- 开头，不占用 PRD 编号
+        assert item["rule_id"].startswith("R") or item["rule_id"].startswith("EXT-")
         assert "title" in item
         assert "default_severity" in item
         assert "description" in item

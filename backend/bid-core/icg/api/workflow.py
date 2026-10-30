@@ -11,7 +11,7 @@ from icg.api.raw_upload import RAW_BODY_DOC, read_limited_body
 from icg.infra.blob_store import file_bytes
 
 from icg.infra.adapters import build_docx
-from icg.domain.domain import Export, Principal
+from icg.domain.domain import DomainError, Export, Principal
 from icg.domain.schemas import EmptyRequest
 from icg.domain.sla_schemas import (SlaMutationResult, SlaReviewRequest, SlaSelection, SlaTemplateCreate,
                           SlaTemplateList, SlaTemplatePatch, SlaTemplateResult, SlaValuePatch)
@@ -24,7 +24,7 @@ from icg.domain.workflow_schemas import (BatchConfirmRequest, ParseReview, Check
                                GenerateRequest, JobsList, LibraryCreate, LibraryList,
                                LibraryPatch, LibraryResult, MutationResult, ParseRequest,
                                PlanRequest, CheckReleaseRequest, MatrixMatchRequest, MatrixRoutingRequest, MergeChecklistResponse, ProjectCheckRequest, ProjectExportRequest,
-                               ProjectPatch, ProposedStaffResult, ProposedStaffUpdate, ExportSettings, ExportSettingsUpdate, RequirementPatch, Workspace, WritingInputPreview,
+                               ProjectPatch, RelatedBidAck, RelatedBidStatus, ProposedStaffResult, ProposedStaffUpdate, ExportSettings, ExportSettingsUpdate, RequirementPatch, Workspace, WritingInputPreview,
                                TeamUpdate, TeamResult, ChapterAssignment, ChapterPlanPatch,
                                ChapterEditDetail, v1_error_responses, TenderSearchRequest,
                                TenderIndexingSwitchRequest, InjectTenderClausesRequest,
@@ -90,6 +90,32 @@ def include_workflow_routes(application, service, current_user, parser):
     def patch_project(project_id: str, body: ProjectPatch, user: Principal = Depends(current_user),
                       if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.patch_project(user, project_id, body.model_dump(exclude_unset=True), if_match, idempotency_key)
+
+    @router.get("/projects/{project_id}/related-bids", response_model=RelatedBidStatus, operation_id="getRelatedBidStatus",
+                summary="R19 关联投标冲突状态",
+                description="按招标编号 + 标段（无编号时招标人 + 项目名称）查找平台内其他公司是否对同一标段立项；只返回对方公司名称。项目成员可读。")
+    def related_bid_status(project_id: str, user: Principal = Depends(current_user)):
+        from icg.domain.related_bids import status
+        state = workflow.repository.read()
+        return status(state, workflow.demo._project(state, user, project_id))
+
+    @router.post("/projects/{project_id}/related-bids/ack", response_model=RelatedBidStatus, operation_id="acknowledgeRelatedBid",
+                 summary="确认无关联关系并继续",
+                 description="项目负责人填写说明，确认与冲突公司无控股、管理关系或单位负责人相同；记入项目并通知集团管理员。没有冲突时 409 VERSION_CONFLICT。")
+    def acknowledge_related_bid(project_id: str, body: RelatedBidAck, user: Principal = Depends(current_user),
+                                if_match: str | None = Header(default=None),
+                                idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        from icg.domain.related_bids import conflicts, record_ack, status
+
+        def operation(state, project, flow):
+            found = conflicts(state, project)
+            if not found["companies"]:
+                raise DomainError(409, "VERSION_CONFLICT", "当前没有关联投标冲突，无需确认。")
+            record_ack(state, user, project, flow, found, body.reason.strip(), workflow.demo._now())
+            return {"related_bid": status(state, project)}
+
+        return workflow._write(user, project_id, "related_bid.ack", body.model_dump(), if_match, idempotency_key,
+                               operation)["related_bid"]
 
     @router.post("/projects/{project_id}/files", response_model=MutationResult, response_model_exclude_none=True,
                  operation_id="uploadFile")
