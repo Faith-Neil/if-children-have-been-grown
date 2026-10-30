@@ -109,7 +109,10 @@ def gates(workflow: dict, rows: list[dict], facts: list[dict], by_id: dict[str, 
     from .parse_quality import low_confidence, unresolved_unreadable
     unreadable = sum(1 for item in [*rows, *facts] if unresolved_unreadable(item))
     low = sum(1 for item in [*rows, *facts] if item.get("status") == "pending" and low_confidence(item, threshold))
+    files = workflow.get("files", {}).values()
+    unparsed = sum(1 for f in files if f.get("status") != "parsed") if files else 1
     items = [
+        ("PARSE_INCOMPLETE", "上传文件未全部解析成功（失败的须重新解析或删除）", unparsed, True),
         ("CONFLICTS_PENDING", "事实冲突待选定", conflicts, True),
         ("OMISSIONS_PENDING", "疑似遗漏未处理", omissions, True),
         ("STAR_PENDING", "星号条款待逐条确认", pending_in({"star"}), True),

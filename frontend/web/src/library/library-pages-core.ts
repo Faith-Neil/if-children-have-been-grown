@@ -388,3 +388,36 @@ export function verifyAttachmentSecurity(
     message: msg,
   };
 }
+
+/** 批量确认声明（PRD v1.8 §5.4.4 确认区）；确认时随核对依据一并提交。 */
+export const BATCH_CONFIRM_DECLARATION = '本人确认以上资料真实有效，并对其准确性负责';
+export const BATCH_BASIS_MIN = 4;
+
+export type BatchExclusion = { item: Evidence; why: string };
+
+/**
+ * 批量确认的候选拆分（PRD v1.8 §5.4.1 第 2 条、§5.4.3）：只有从未修改过的“待核验”资料可按批次确认；
+ * 改过的资料（含 ★ 关键字段被改后回到待核验的）、受限资料、合作方无协议的资料、已过期资料必须逐条确认。
+ */
+export function batchConfirmPartition(items: Evidence[], selected: Array<string | number>, now: Date | string = new Date()) {
+  const ids = new Set(selected.map(String));
+  const eligible: Evidence[] = [];
+  const excluded: BatchExclusion[] = [];
+  for (const item of items) {
+    if (!ids.has(item.id)) continue;
+    const status = deriveEvidenceStatus(item, now);
+    if (status === 'confirmed') continue;
+    if (status === 'expired') excluded.push({ item, why: '已过期，须先更新有效期' });
+    else if (status === 'rejected') excluded.push({ item, why: '已排除，不能直接确认' });
+    else if (item.is_restricted || item.restricted) excluded.push({ item, why: '受限资料，须逐条确认' });
+    else if (item.source_tier === 'partner' && !item.partner_entity_id && !item.agreement_present) excluded.push({ item, why: '合作方资料未关联合作方主体与协议' });
+    else if ((item.revision ?? 1) > 1) excluded.push({ item, why: '资料修改过（可能涉及 ★ 关键字段），须逐条重新确认' });
+    else eligible.push(item);
+  }
+  return { eligible, excluded };
+}
+
+/** 核对依据：必须本人填写，至少 4 个非空白字符。 */
+export function batchBasisValid(basis: string): boolean {
+  return basis.replace(/\s/g, '').length >= BATCH_BASIS_MIN;
+}

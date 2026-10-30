@@ -263,3 +263,23 @@ test('verifyAttachmentSecurity verifies SHA256 integrity and download audit trai
   assert.equal(missingCheck.verified, false);
   assert.match(missingCheck.audit_message, /缺少 SHA256/);
 });
+
+test('batch confirm only takes untouched pending items and needs a written basis', async () => {
+  const { batchConfirmPartition, batchBasisValid } = await import('../../src/library/library-pages-core.ts');
+  const base = { type: 'qualification', content: '证书编号 A-001', valid_until: null, status: 'pending', revision: 1 };
+  const items = [
+    { ...base, id: 'fresh', name: '新导入' },
+    { ...base, id: 'edited', name: '改过', revision: 3 },
+    { ...base, id: 'restricted', name: '受限', is_restricted: true },
+    { ...base, id: 'partner', name: '合作方', source_tier: 'partner', partner_entity_id: null },
+    { ...base, id: 'expired', name: '过期', valid_until: '2020-01-01' },
+    { ...base, id: 'done', name: '已确认', status: 'confirmed' },
+    { ...base, id: 'unselected', name: '未选' },
+  ];
+  const { eligible, excluded } = batchConfirmPartition(items, ['fresh', 'edited', 'restricted', 'partner', 'expired', 'done'], '2026-10-28');
+  assert.deepEqual(eligible.map(i => i.id), ['fresh']);
+  assert.deepEqual(excluded.map(e => e.item.id), ['edited', 'restricted', 'partner', 'expired']);
+  assert.match(excluded[0].why, /逐条重新确认/);
+  assert.equal(batchBasisValid('  已核 '), false);
+  assert.equal(batchBasisValid('已对照原件'), true);
+});

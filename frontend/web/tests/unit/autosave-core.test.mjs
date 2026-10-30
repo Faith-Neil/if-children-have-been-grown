@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { IDLE_SAVE_MS, WARN_BEFORE_MS, editorTimings, expiryWarning, shouldAutosave, shouldHeartbeat } from '../../src/editor/autosave-core.ts';
+import { IDLE_SAVE_MS, WARN_BEFORE_MS, editorTimings, expiryWarning, lockHolderLabel, shouldAutosave, shouldHeartbeat } from '../../src/editor/autosave-core.ts';
 
 test('timings come from company settings and are clamped to platform ranges', () => {
   assert.deepEqual(editorTimings(null), { autosaveMs: 10_000, heartbeatMs: 60_000, timeoutMs: 30 * 60_000 });
@@ -41,4 +41,11 @@ test('the editor saves before switching chapters and the lock heartbeat is activ
   assert.match(page, /onKeyDown=\{lock\.markActivity\}/);
   assert.match(lock, /shouldHeartbeat\(lastActivity\.current, lastHeartbeat\.current\)/);
   assert.doesNotMatch(lock, /30_000\);/);
+});
+
+test('lock badge names the holder and says the chapter is read-only for others', () => {
+  const lock = { owner_id: 'u2', owner_name: '李编写', expires_at: '2026-10-28T08:30:00Z' };
+  assert.match(lockHolderLabel(lock, 'u1'), /^李编写 编辑中，本节只读，锁至 \d{2}:\d{2}$/);
+  assert.match(lockHolderLabel(lock, 'u2'), /^本人在其他会话编辑中/);
+  assert.equal(lockHolderLabel({ owner_id: 'u3', expires_at: 'bad' }, 'u1'), '其他成员 编辑中，本节只读');
 });

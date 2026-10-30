@@ -11,8 +11,8 @@
 | 优先级 | P1 |
 | 状态 | in-review |
 | 登记日期 | 2026-10-28 |
-| 最后更新日期 | 2026-10-28 |
-| revision | 1 |
+| 最后更新日期 | 2026-10-30 |
+| revision | 2 |
 | 关联 Task | [任务看板](../docs/TASK_BOARD.md) |
 | 关联 PR | [PR #6](https://github.com/Faith-Neil/if-children-have-been-grown/pull/6) |
 | 本地验收 | `node scripts/check-project-governance.cjs` 通过 |
@@ -49,3 +49,21 @@
 | TASK_BOARD | 有影响 | 131 卡状态重定 |
 | PROJECT_STATUS | 有影响 | 写入重定后计数 |
 | DOCUMENT_INDEX | 有影响 | 登记本 Issue |
+
+## revision 2（2026-10-30 看板整治）
+
+依据：用户提供的另一会话审查 `wave11-task-audit-2026-10-30`，逐条对照代码核实后采纳或修改。
+
+| 变化 | 卡 | 理由 |
+|---|---|---|
+| 看板与任务卡状态对齐 | 142 张（APP-M1、APP-M2、FE-M0～M8 等） | 看板 2026-10-28 重定后任务卡状态行未同步；以看板为准逐卡改卡片 |
+| planned/in-progress → in-review | BE-M0-T09、BE-M0-T17、APP-M2-T094、T105、T106、T108、T135、T173 | 前两张卡片与交付早已 in-review，看板漏改；其余补交付文档，T094 去掉标的金额假默认值，T108 闸门补“文件未全部解析成功”，T173 徽标显示持锁人 |
+| → cancelled | T043、T045、T129；T170 并入 T173；T128 并入 T127；T132 并入 T175 | 功能已在别的卡实现或同一界面 |
+| → cancelled（二期延后，非永久取消） | T226、T227 | R21、R22 为 PRD 二期规则 |
+| 保留 in-progress | T231 | T199 只做导出清理，R25 仍须检查实际文件 |
+| 待用户决定 | T010、T012、T013；FE-M6、FE-M7；T139 | 是否保留 OIDC/Keycloak；一期可延后卡是否取消；图表库 |
+
+审查意见中未采纳的：无。审查提到 BE-M0-T09 应 in-review，与 revision 1 “旧路由仍在，保持 planned” 不同；T09 的范围是错误体与幂等，路由下线另算，本次以卡片范围为准。
+
+剩余工作按 [任务看板](../docs/TASK_BOARD.md) “工作包” WP-1～WP-7 推进。基线：454 项，done 96、in-review 171、in-progress 37、planned 87、cancelled 63。
+

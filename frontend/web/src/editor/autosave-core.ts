@@ -41,3 +41,11 @@ export function expiryWarning(expiresAt: string | null | undefined, nowMs: numbe
 export function savedLabel(date: Date, auto: boolean): string {
   return `${date.toLocaleTimeString('zh-CN', { hour12: false })}${auto ? ' 自动' : ''}`;
 }
+
+/** 编辑锁标签：他人持锁时显示持锁人与到期时刻；同一账号的其他会话单独说明（APP-M2-T173，含原 T170 只读态）。 */
+export function lockHolderLabel(lock: { owner_id: string; owner_name?: string | null; expires_at: string }, userId?: string | null): string {
+  const until = new Date(Date.parse(lock.expires_at));
+  const time = Number.isNaN(until.getTime()) ? '' : `，锁至 ${until.toLocaleTimeString('zh-CN', { hour12: false, hour: '2-digit', minute: '2-digit' })}`;
+  if (userId && lock.owner_id === userId) return `本人在其他会话编辑中${time}`;
+  return `${lock.owner_name || '其他成员'} 编辑中，本节只读${time}`;
+}

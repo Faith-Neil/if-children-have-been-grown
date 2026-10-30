@@ -20,7 +20,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | `blocked` |
+| 状态 | `cancelled`（2026-10-30 与看板同步） |
 | 估算 | 4 小时（估算，不等同实际耗时或承诺日期） |
 | 关联 Issue | —（未登记；开工前在统一 Issue 中登记或关联现有变更） |
 | 依赖 | [FE-M1-T07](FE-M1.md#fe-m1-t07)、[FE-M2-T05](FE-M2.md#fe-m2-t05)、[FE-M3-T09](FE-M3.md#fe-m3-t09)、[FE-M4-T06](FE-M4.md#fe-m4-t06)、[FE-M5-T07](FE-M5.md#fe-m5-t07)、[FE-M5-T08](FE-M5.md#fe-m5-t08)、[FE-M5-T09](FE-M5.md#fe-m5-t09)、[FE-M5-T10](FE-M5.md#fe-m5-t10)、[FE-M5-T11](FE-M5.md#fe-m5-t11) |
@@ -54,7 +54,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | `blocked` |
+| 状态 | `cancelled`（2026-10-30 与看板同步） |
 | 估算 | 4 小时（估算，不等同实际耗时或承诺日期） |
 | 关联 Issue | —（未登记；开工前在统一 Issue 中登记或关联现有变更） |
 | 依赖 | [FE-M0-T09](FE-M0.md#fe-m0-t09)、[FE-M3-T02](FE-M3.md#fe-m3-t02)、[FE-M3-T03](FE-M3.md#fe-m3-t03)、[FE-M3-T04](FE-M3.md#fe-m3-t04)、[FE-M4-T05](FE-M4.md#fe-m4-t05)、[FE-M8-T01](FE-M8.md#fe-m8-t01) |
@@ -88,7 +88,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | `blocked` |
+| 状态 | `cancelled`（2026-10-30 与看板同步） |
 | 估算 | 3 小时（估算，不等同实际耗时或承诺日期） |
 | 关联 Issue | —（未登记；开工前在统一 Issue 中登记或关联现有变更） |
 | 依赖 | [FE-M8-T01](FE-M8.md#fe-m8-t01)、[FE-M8-T02](FE-M8.md#fe-m8-t02)、[FE-M0-T02](FE-M0.md#fe-m0-t02) |

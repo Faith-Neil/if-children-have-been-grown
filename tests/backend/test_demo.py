@@ -167,6 +167,14 @@ def test_manager_takeover_requires_reason_and_failure_preserves_editor_lease(cli
     assert submit(client, editor, lease).status_code == 200
 
 
+def test_other_members_see_lock_holder_name(client):
+    editor, manager = login(client), login(client, "alpha-manager")
+    acquire(client, editor)
+    lock = get_chapter(client, manager)["lock"]
+    assert lock["owner_id"] == "alpha-editor"
+    assert lock["owner_name"]
+
+
 def test_takeover_invalidates_old_lease_without_partial_write(client):
     editor, manager = login(client), login(client, "alpha-manager")
     old_lease = acquire(client, editor)

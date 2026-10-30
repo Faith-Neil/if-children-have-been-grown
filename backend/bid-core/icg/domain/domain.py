@@ -209,6 +209,13 @@ class DemoState:
     cap_receipts: bool = True
 
 
+
+def lock_view(state, lease) -> dict:
+    """章节编辑锁的公开视图：其他成员看到持锁人姓名与到期时刻（APP-M2-T173）。"""
+    owner = state.accounts.get(lease.owner_id)
+    return {"owner_id": lease.owner_id, "owner_name": owner.name if owner else None,
+            "expires_at": iso_time(lease.expires_at)}
+
 class DemoService:
     LEASE_SECONDS = 30 * 60  # 无操作 30 分钟释放（PRD §5.11.9，公司设置 edit_lock_timeout_minutes 可调）
 
@@ -750,8 +757,7 @@ class DemoService:
         state = self.repository.read()
         chapter = self._chapter(state, principal, chapter_id)
         active_lock = chapter.lock and chapter.lock.expires_at > self._now()
-        lock = ({"owner_id": chapter.lock.owner_id,
-                 "expires_at": iso_time(chapter.lock.expires_at)} if active_lock else None)
+        lock = lock_view(state, chapter.lock) if active_lock else None
         draft = chapter.drafts.get(principal.user.id)
         from .project_access import chapter_permissions
         return {**self._summary(chapter), "project_id": chapter.project_id,

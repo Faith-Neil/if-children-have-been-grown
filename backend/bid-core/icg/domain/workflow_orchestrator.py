@@ -8,7 +8,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any, Callable
 
-from icg.domain.domain import Chapter, DemoService, DemoState, DomainError, Principal, iso_time, new_id
+from icg.domain.domain import Chapter, DemoService, DemoState, DomainError, Principal, iso_time, lock_view, new_id
 from icg.domain.volume_mode import switch_volume_mode
 from icg.domain.matrix import MatrixMixin
 from icg.domain.ports import ParserProvider
@@ -252,7 +252,7 @@ class WorkflowService(
         if candidate:
             candidate = {**candidate, "status": "valid" if candidate.get("input_fingerprint") == self._fingerprint(state, chapter.project_id) else "stale"}
         return {**self.demo._summary(chapter), "content": chapter.content,
-                "lock": {"owner_id": chapter.lock.owner_id, "expires_at": iso_time(chapter.lock.expires_at)} if active else None,
+                "lock": lock_view(state, chapter.lock) if active else None,
                 "candidate": candidate, "writing_input": {**chapter_plan(workflow, chapter.id), "is_current": plan_is_current(state, chapter.project_id, chapter.id)},
                 "assignee_id": chapter.assignee_id,
                 "assignee_name": state.accounts[chapter.assignee_id].name if chapter.assignee_id in state.accounts else None,

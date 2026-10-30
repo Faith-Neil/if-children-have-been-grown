@@ -75,7 +75,7 @@ def test_star_disqualification_and_qualification_cannot_be_batch_confirmed(clien
     assert denied.status_code == 403
 
 
-@pytest.mark.parametrize("gate", ["CONFLICTS_PENDING", "OMISSIONS_PENDING", "STAR_PENDING"])
+@pytest.mark.parametrize("gate", ["CONFLICTS_PENDING", "OMISSIONS_PENDING", "STAR_PENDING", "PARSE_INCOMPLETE"])
 def test_confirm_gates_are_listed_and_enforced(client, gate):
     flow = _parsed(client)
     repo = client.app.state.service.repository
@@ -96,6 +96,10 @@ def test_confirm_gates_are_listed_and_enforced(client, gate):
         repo.transaction(lambda st: st.workflows[flow.id].setdefault("post_process", {}).setdefault("hits", {}).__setitem__("h-1", {
             "id": "h-1", "file_id": "x", "page": 1, "quote": "未抽取的否决条款", "terms": ["否决"], "status": "open", "reason": ""}))
         code = "OMISSIONS_PENDING"
+    elif gate == "PARSE_INCOMPLETE":
+        file_id = next(iter(repo.read().workflows[flow.id]["files"]))
+        repo.transaction(lambda st: st.workflows[flow.id]["files"][file_id].update(status="failed"))
+        code = "PARSE_INCOMPLETE"
     else:
         star = next(i for i, k in data["requirement_categories"].items() if k == "star")
         repo.transaction(lambda st: st.workflows[flow.id]["requirements"][star].update(status="pending"))

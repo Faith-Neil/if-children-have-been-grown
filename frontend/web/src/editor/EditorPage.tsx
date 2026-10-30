@@ -48,7 +48,7 @@ import { useSelectionBubble } from './useSelectionBubble.ts';
 import { EditorSlaTools } from './EditorSlaTools.tsx';
 import { EditorAuxiliaryDrawers } from './EditorAuxiliaryDrawers.tsx';
 import { useEditorOperations } from './useEditorOperations.ts';
-import { IDLE_SAVE_MS, editorTimings, savedLabel, shouldAutosave, type EditorTimings } from './autosave-core.ts';
+import { IDLE_SAVE_MS, editorTimings, lockHolderLabel, savedLabel, shouldAutosave, type EditorTimings } from './autosave-core.ts';
 
 export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirtyChange: (dirty: boolean) => void; initialChapterId?: string }) {
   const { workspace, user, token, busy: projectBusy, mutate, reload, report, navigate } = useProject();
@@ -432,7 +432,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
             <Tooltip title="生成整章候选，不会直接改动正文"><Button size="small" onClick={ops.generate} disabled={combinedBusy || !planCurrent || !canGenerate || !chapter}>生成候选</Button></Tooltip>
           </Space>
           <Space size={6}>
-            <Tag color={held ? 'green' : canEdit && chapter?.lock ? 'orange' : 'default'} icon={held ? <LockOutlined /> : <UnlockOutlined />}>{!canEdit ? '当前无本节编辑权限' : held ? '本人锁定' : chapter?.lock ? '他人 / 其他会话编辑中' : '未取得编辑权'}</Tag>
+            <Tag color={held ? 'green' : canEdit && chapter?.lock ? 'orange' : 'default'} icon={held ? <LockOutlined /> : <UnlockOutlined />}>{!canEdit ? '当前无本节编辑权限' : held ? '本人锁定' : chapter?.lock ? lockHolderLabel(chapter.lock, user?.id) : '未取得编辑权'}</Tag>
             {savedAt && <span className="saved-at" data-testid="editor-saved-at">{savedAt} 已保存</span>}
             {autosavePaused && held && <Tag color="orange" data-testid="autosave-paused-tag">自动保存已暂停</Tag>}
             {dirty && <Tag color="warning" data-testid="dirty-status-tag" icon={<SaveOutlined />}>未保存修改</Tag>}

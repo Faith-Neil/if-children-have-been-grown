@@ -885,11 +885,22 @@
 | D-864 | 2026-10-28 | [ISSUE-044 前端根目录测试从未执行](../issues/ISSUE-044.md) | Issue | revision 1 | triaged | ISSUE-044 / FE-TEST-ORPHANS | 28 个测试文件未执行，8 项失败 |
 | D-865 | 2026-10-28 | [ISSUE-045 任务看板按代码实况重定](../issues/ISSUE-045.md) | Issue | revision 1 | in-review | ISSUE-045 | 131 卡状态重定；旧前端轨道与示例外壳 cancelled |
 | D-866 | 2026-10-28 | [RAG 检索评测：ICG 流程模式，真实 RAGFlow](testing/rag-eval-golden-v1-pipeline.md) | 验证 | golden-v1 | 当前 | ISSUE-043 / AI-KB-RAG-EVAL | 7/21 解析失败，召回低于内置解析；上线前换内网抽取模型复测 |
+| D-867 | 2026-10-30 | [任务交付：条目卡片编辑与逐条确认（APP-M2-T105）](delivery/APP-M2-T105.md) | 任务交付 | board-audit-1 | in-review | ISSUE-045 / ISSUE-007 / APP-M2-T105 | 看板整治核实已实现，补交付 |
+| D-868 | 2026-10-30 | [代码说明：条目卡片编辑与逐条确认（APP-M2-T105）](code/APP-M2-T105.md) | 代码说明 | board-audit-1 | 当前 | ISSUE-045 / APP-M2-T105 | 入口、调用顺序与限制 |
+| D-869 | 2026-10-30 | [任务交付：批量确认禁用与置信度高亮（APP-M2-T106）](delivery/APP-M2-T106.md) | 任务交付 | board-audit-1 | in-review | ISSUE-045 / ISSUE-007 / APP-M2-T106 | 看板整治核实已实现，补交付 |
+| D-870 | 2026-10-30 | [代码说明：批量确认禁用与置信度高亮（APP-M2-T106）](code/APP-M2-T106.md) | 代码说明 | board-audit-1 | 当前 | ISSUE-045 / APP-M2-T106 | 入口、调用顺序与限制 |
+| D-871 | 2026-10-30 | [任务交付：确认解析结果闸门（APP-M2-T108）](delivery/APP-M2-T108.md) | 任务交付 | board-audit-1 | in-review | ISSUE-045 / ISSUE-007 / APP-M2-T108 | 看板整治核实已实现，补交付 |
+| D-872 | 2026-10-30 | [代码说明：确认解析结果闸门（APP-M2-T108）](code/APP-M2-T108.md) | 代码说明 | board-audit-1 | 当前 | ISSUE-045 / APP-M2-T108 | 入口、调用顺序与限制 |
+| D-873 | 2026-10-30 | [任务交付：一键重新检查（APP-M2-T135）](delivery/APP-M2-T135.md) | 任务交付 | board-audit-1 | in-review | ISSUE-045 / ISSUE-007 / APP-M2-T135 | 看板整治核实已实现，补交付 |
+| D-874 | 2026-10-30 | [代码说明：一键重新检查（APP-M2-T135）](code/APP-M2-T135.md) | 代码说明 | board-audit-1 | 当前 | ISSUE-045 / APP-M2-T135 | 入口、调用顺序与限制 |
+| D-875 | 2026-10-30 | [任务交付：编辑锁徽标、心跳、超时提示、接管（APP-M2-T173）](delivery/APP-M2-T173.md) | 任务交付 | board-audit-1 | in-review | ISSUE-045 / ISSUE-007 / APP-M2-T173 | 看板整治核实已实现，补交付 |
+| D-876 | 2026-10-30 | [代码说明：编辑锁徽标、心跳、超时提示、接管（APP-M2-T173）](code/APP-M2-T173.md) | 代码说明 | board-audit-1 | 当前 | ISSUE-045 / APP-M2-T173 | 入口、调用顺序与限制 |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-10-30 | ISSUE-045 revision 2 | 按审查整治看板：142 张任务卡状态与看板对齐，8 张改 in-review 并补交付（D-867～D-876），9 张 cancelled，登记工作包 WP-1～7；看板 454 项：96 done、171 in-review、37 in-progress、87 planned、63 cancelled |
 | 2026-10-28 | 产品 / 开发 / Wave 11 | 新建分支 feat/wave-11-main-path（PR #6），交付 APP-M2-T133、APP-M2-T144、APP-M2-T111、AI-REMEDIATION-NO-FABRICATION、BE-WORKFLOW-STATE-PERSIST（均 in-review），登记 ISSUE-039～042、PRD 实施澄清与缺口增量（D-838～D-854）；看板 444 项：96 done、65 in-review、7 in-progress、228 planned、41 blocked、7 cancelled、0 ready |
 | 2026-10-28 | 开发 / Wave 12 | BE-WORKFLOW-DURABILITY 与 AI-KB-RAG-PIPELINE 交付为 in-review，AI-KB-RAG-EVAL in-progress，登记 ISSUE-043（D-855～D-860）；看板 446 项：96 done、67 in-review、8 in-progress、227 planned、41 blocked、7 cancelled、0 ready |
 | 2026-10-28 | 开发 / Wave 12 | AI-KB-CONTROL-PLANE 交付为 in-review（D-861）；看板 447 项：96 done、68 in-review、8 in-progress、227 planned、41 blocked、7 cancelled、0 ready |

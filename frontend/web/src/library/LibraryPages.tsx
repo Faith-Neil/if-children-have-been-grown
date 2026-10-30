@@ -11,6 +11,7 @@ import {
   Badge,
   Button,
   Card,
+  Checkbox,
   Col,
   Descriptions,
   Divider,
@@ -67,6 +68,9 @@ import {
   LIBRARY_CATEGORIES,
   canManageLibrary,
   canRevealSensitiveField,
+  batchBasisValid,
+  batchConfirmPartition,
+  BATCH_CONFIRM_DECLARATION,
   type EvidenceFilterCriteria,
   type EvidenceStatusKey,
   type LibraryCategoryKey,
@@ -119,6 +123,11 @@ export function LibraryPage({
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<Evidence | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batchBasis, setBatchBasis] = useState('');
+  const [batchDeclared, setBatchDeclared] = useState(false);
+  const [batchWorking, setBatchWorking] = useState(false);
+  const [batchFailures, setBatchFailures] = useState<string[]>([]);
   const [kbStatus, setKbStatus] = useState<KnowledgeBaseStatus | null>(null);
   const kbByItem = useMemo(() => new Map((kbStatus?.items ?? []).filter(i => i.source_type === 'library').map(i => [i.source_id, i])), [kbStatus]);
 
@@ -178,23 +187,36 @@ export function LibraryPage({
     }
   }
 
-  // 6. 批量操作：批量核验确认
+  // 6. 批量操作：按批次确认（PRD v1.8 §5.4.3：确认页逐条展示关键字段，防止盲确认；改过的资料须逐条确认）
+  const batch = useMemo(() => batchConfirmPartition(items, selectedRowKeys.map(String)), [items, selectedRowKeys]);
+
+  function openBatchConfirm() {
+    setBatchBasis('');
+    setBatchDeclared(false);
+    setBatchFailures([]);
+    setBatchOpen(true);
+  }
+
   async function handleBatchConfirm() {
-    if (!hasManageRight || !selectedRowKeys.length) return;
-    const targets = items.filter(i => selectedRowKeys.includes(i.id) && deriveEvidenceStatus(i) === 'pending');
-    for (const item of targets) {
-      if (mutate) {
-        try {
-          await mutate(`/api/v1/library/${item.id}`, 'PATCH', {
-            status: 'confirmed',
-            reason: '批量人工核对合规放行',
-          });
-        } catch {
-          // 单项失败不阻断整体流程
-        }
+    if (!hasManageRight || !mutate || !batch.eligible.length || !batchDeclared || !batchBasisValid(batchBasis)) return;
+    setBatchWorking(true);
+    const failed: string[] = [];
+    for (const item of batch.eligible) {
+      try {
+        await mutate(`/api/v1/library/${item.id}`, 'PATCH', {
+          status: 'confirmed',
+          reason: `${BATCH_CONFIRM_DECLARATION}。核对依据：${batchBasis.trim()}`,
+        });
+      } catch (error) {
+        failed.push(`${item.name}：${error instanceof Error ? error.message : '确认失败'}`);
       }
     }
-    setSelectedRowKeys([]);
+    setBatchWorking(false);
+    setBatchFailures(failed);
+    if (!failed.length) {
+      setBatchOpen(false);
+      setSelectedRowKeys([]);
+    }
   }
 
   return (
@@ -431,11 +453,11 @@ export function LibraryPage({
                     <Button
                       size="small"
                       type="primary"
-                      onClick={handleBatchConfirm}
+                      onClick={openBatchConfirm}
                       disabled={!hasManageRight || busy}
                       data-testid="batch-confirm-button"
                     >
-                      批量核验通过
+                      按批次确认
                     </Button>
                     <Button size="small" onClick={() => setSelectedRowKeys([])}>
                       取消选中
@@ -492,7 +514,7 @@ export function LibraryPage({
                     key: 'sensitive',
                     width: 170,
                     render: (_: unknown, record: Evidence) => {
-                      const idVal = record.id_card || (record.type === 'personnel' ? '310115198801012345' : null);
+                      const idVal = record.id_card || null;
                       if (!idVal) return <span style={{ color: '#8c8c8c' }}>—</span>;
                       return (
                         <MaskedField
@@ -684,11 +706,12 @@ export function LibraryPage({
                 {selectedRecord.valid_until || '未设到期日（长期有效）'}
               </Descriptions.Item>
               <Descriptions.Item label="关联项目数">
-                <Badge
-                  count={selectedRecord.referenced_project_count ?? 2}
-                  style={{ backgroundColor: '#1e4db7' }}
-                />
-                <span style={{ marginLeft: 6, fontSize: 12, color: '#8c8c8c' }}>个投标项目正在引用</span>
+                {typeof selectedRecord.referenced_project_count === 'number' ? (
+                  <>
+                    <Badge count={selectedRecord.referenced_project_count} showZero style={{ backgroundColor: '#1e4db7' }} />
+                    <span style={{ marginLeft: 6, fontSize: 12, color: '#8c8c8c' }}>个投标项目正在引用</span>
+                  </>
+                ) : <span style={{ color: '#8c8c8c' }}>后台未提供引用统计</span>}
               </Descriptions.Item>
             </Descriptions>
 
@@ -697,16 +720,18 @@ export function LibraryPage({
             {/* 敏感字段安全展示 */}
             <Descriptions title="高敏身份脱敏" column={1} bordered size="small">
               <Descriptions.Item label="法定证件号码">
-                <MaskedField
-                  value={selectedRecord.id_card || '310115198801012345'}
-                  fieldType="id_card"
-                  fieldName="证件号码"
-                  actionText="调阅完整值"
-                  canReveal={hasRevealRight}
-                  unauthorizedMode="disabled"
-                  unauthorizedTooltip="仅公司管理员与资料管理员有权调阅"
-                  testId="drawer-masked-id-card"
-                />
+                {selectedRecord.id_card ? (
+                  <MaskedField
+                    value={selectedRecord.id_card}
+                    fieldType="id_card"
+                    fieldName="证件号码"
+                    actionText="调阅完整值"
+                    canReveal={hasRevealRight}
+                    unauthorizedMode="disabled"
+                    unauthorizedTooltip="仅公司管理员与资料管理员有权调阅"
+                    testId="drawer-masked-id-card"
+                  />
+                ) : <span style={{ color: '#8c8c8c' }} data-testid="drawer-id-card-empty">未录入</span>}
               </Descriptions.Item>
             </Descriptions>
 
@@ -795,6 +820,49 @@ export function LibraryPage({
               <Input.TextArea rows={2} placeholder="若核验生效，请说明核对依据与证书查验路径" />
             </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        open={batchOpen}
+        title="按批次确认资料"
+        width={760}
+        okText={`确认 ${batch.eligible.length} 条`}
+        okButtonProps={{ disabled: !batch.eligible.length || !batchDeclared || !batchBasisValid(batchBasis), loading: batchWorking, 'data-testid': 'batch-confirm-submit' } as never}
+        onOk={() => void handleBatchConfirm()}
+        onCancel={() => setBatchOpen(false)}
+        destroyOnHidden
+      >
+        <div data-testid="batch-confirm-modal">
+          <p>逐条核对下列资料的关键字段后再确认。改过的资料、受限资料和缺协议的合作方资料不能按批次确认，需打开详情逐条确认。</p>
+          <Table
+            size="small"
+            rowKey="id"
+            pagination={false}
+            dataSource={batch.eligible}
+            data-testid="batch-confirm-list"
+            columns={[
+              { title: '资料名称', dataIndex: 'name' },
+              { title: '类别', dataIndex: 'type', width: 110, render: (v: string) => getCategoryLabel(v) },
+              { title: '有效期至', dataIndex: 'valid_until', width: 120, render: (v: string | null) => v || '长期有效' },
+              { title: '内容要点', dataIndex: 'content', render: (v: string) => (v.length > 60 ? `${v.slice(0, 60)}…` : v) },
+            ]}
+          />
+          {batch.excluded.length > 0 && (
+            <Alert style={{ marginTop: 12 }} type="warning" showIcon data-testid="batch-confirm-excluded"
+              message={`${batch.excluded.length} 条须逐条确认，本次不处理`}
+              description={<ul style={{ margin: 0, paddingLeft: 18 }}>{batch.excluded.map(e => <li key={e.item.id}>{e.item.name}：{e.why}</li>)}</ul>} />
+          )}
+          <Input.TextArea style={{ marginTop: 12 }} rows={2} value={batchBasis} onChange={e => setBatchBasis(e.target.value)}
+            aria-label="核对依据" data-testid="batch-confirm-basis" placeholder="写明本次核对依据，例如：已对照原件扫描件逐条核对证书编号与有效期" />
+          <Checkbox style={{ marginTop: 8 }} checked={batchDeclared} onChange={e => setBatchDeclared(e.target.checked)} data-testid="batch-confirm-declare">
+            {BATCH_CONFIRM_DECLARATION}
+          </Checkbox>
+          {batchFailures.length > 0 && (
+            <Alert style={{ marginTop: 12 }} type="error" showIcon data-testid="batch-confirm-failures"
+              message={`${batchFailures.length} 条确认失败，其余已确认`}
+              description={<ul style={{ margin: 0, paddingLeft: 18 }}>{batchFailures.map(f => <li key={f}>{f}</li>)}</ul>} />
+          )}
+        </div>
       </Modal>
     </div>
   );
