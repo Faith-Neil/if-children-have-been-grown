@@ -73,7 +73,8 @@ def save_model_configs(
                     {"project_id": pid, "model_config_id": mid},
                 )
     except Exception:
-        pass
+        # 不能吞掉：吞掉会让配置看似保存成功、重启后却丢失（事务整体回滚并报错）
+        raise
 
 
 # 兼容既有私有函数引用

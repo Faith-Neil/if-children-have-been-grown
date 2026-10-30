@@ -2,6 +2,8 @@
 # 它解决什么问题：需要真实建议时才显式启用；失败必须暴露，不能改回演示成功文本。
 # 逐字流式（APP-M2-T177）：stream_suggest 边收边把增量文字交给回调，可随时取消（用户点“停止”或断开连接）；
 # 已经收到文字后再失败不重试，避免同一写法前后两段内容拼在一起。内网接口一律不读取系统代理（trust_env=False）。
+# 兼容实测到的 RAGFlow 行为：上游限流时仍返回 HTTP 200，普通模式正文是“**ERROR**: Error 429 …”，流式模式只有一个空的结束块；
+# 部分块带的是“到目前为止的全文”而不是增量。前两种按上游失败处理（限流可改用备用模型），后一种只取新增部分。
 
 from __future__ import annotations
 
@@ -204,7 +206,9 @@ class OpenAICompatibleModelProvider:
             raise RetryableModelError(f"HTTP {response.status_code}")
         if response.status_code != 200:
             raise ModelCallError(f"HTTP {response.status_code}")
-        return _assistant_text(response)
+        text = _assistant_text(response)
+        raise_upstream_error(text)
+        return text
 
     def stream_suggest(self, instruction: str, content: str, *, on_delta: Callable[[str], None],
                        cancel: Any = None) -> str:
@@ -237,6 +241,7 @@ class OpenAICompatibleModelProvider:
             "max_tokens": self._config.max_tokens, "stream": True,
         }
         collected: list[str] = []
+        pending_error: list[str] = []
         try:
             with httpx.Client(transport=self._transport, timeout=self._config.timeout_seconds,
                               follow_redirects=False, trust_env=False) as client:
@@ -248,6 +253,7 @@ class OpenAICompatibleModelProvider:
                     if "text/event-stream" not in response.headers.get("content-type", ""):
                         response.read()
                         text = _assistant_text(response)
+                        raise_upstream_error(text)
                         on_delta(text)
                         return text
                     for line in response.iter_lines():
@@ -267,17 +273,53 @@ class OpenAICompatibleModelProvider:
                         if not (isinstance(choices, list) and choices and isinstance(choices[0], dict)):
                             continue
                         piece = (choices[0].get("delta") or {}).get("content")
-                        if isinstance(piece, str) and piece:
-                            collected.append(piece)
-                            on_delta(piece)
+                        if not isinstance(piece, str) or not piece:
+                            continue
+                        so_far = "".join(collected)
+                        if so_far and len(piece) > len(so_far) and piece.startswith(so_far):
+                            piece = piece[len(so_far):]  # 本块是到目前为止的全文，只取新增部分
+                        if not so_far:
+                            # 开头可能是夹带的上游错误“**ERROR**: …”：能对上这个前缀就先攒着不推给页面，
+                            # 整段都是错误时在流结束后按失败处理；一旦对不上就当正文照常推送
+                            candidate = "".join(pending_error) + piece
+                            head = candidate.lstrip()
+                            if head.startswith(_ERROR_MARK) or (head and _ERROR_MARK.startswith(head)):
+                                pending_error[:] = [candidate]
+                                continue
+                            pending_error.clear()
+                            piece = candidate
+                        collected.append(piece)
+                        on_delta(piece)
         except httpx.TimeoutException:
             raise RetryableModelError("timeout") from None
         except httpx.TransportError:
             raise RetryableModelError("transport") from None
+        if pending_error:
+            text = "".join(pending_error)
+            raise_upstream_error(text)  # 以“**ERROR**”开头必然抛出；只差前缀的短文本（如“**”）当正文
+            on_delta(text)
+            return text
         text = "".join(collected)
         if not text.strip():
-            raise ModelCallError("missing assistant content")
+            # 实测：上游限流时 RAGFlow 流式只回一个空的结束块；按上游暂时不可用处理，可改用备用模型
+            raise RetryableModelError("empty stream")
         return text
+
+
+_ERROR_MARK = "**ERROR**"
+_UPSTREAM_ERROR = re.compile(r"^\s*\*\*ERROR\*\*\s*:?(.*)", re.S)
+
+
+def raise_upstream_error(text: str) -> None:
+    """HTTP 200 里夹带的上游错误：限流与 5xx 归为可降级失败，其他报错直接失败；不能当作模型正文。"""
+    match = _UPSTREAM_ERROR.match(text or "")
+    if not match:
+        return
+    detail = match.group(1).strip()
+    code = re.search(r"\b(429|5\d\d)\b", detail)
+    if code or re.search(r"quota|rate.?limit|overloaded|unavailable|timeout", detail, re.I):
+        raise RetryableModelError(f"HTTP {code.group(1)}" if code else "upstream unavailable")
+    raise ModelCallError("upstream error")
 
 
 def _assistant_text(response: httpx.Response) -> str:
@@ -310,6 +352,9 @@ def _assistant_text(response: httpx.Response) -> str:
         raise ModelCallError("malformed JSON") from None
     if not isinstance(body, dict):
         raise ModelCallError("malformed JSON")
+    if "choices" not in body and body.get("code") not in (None, 0) and isinstance(body.get("message"), str):
+        # RAGFlow 的错误包（HTTP 200 + {"code":…, "message":…}），如模型名不存在：属配置错误，不降级
+        raise ModelCallError(f"upstream error {body['code']}: {body['message'][:200]}")
     choices = body.get("choices")
     if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
         raise ModelCallError("missing assistant content")

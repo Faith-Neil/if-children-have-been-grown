@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import json
 from datetime import datetime
 import threading
@@ -210,7 +212,8 @@ class MysqlConnectionRepository:
             before_leases = lease_snapshot(state)
             before_projects = project_snapshot(state)
             before_teams = team_snapshot(state)
-            before_configs = dict(state.model_configs)
+            # 按值快照：更新接口原地修改配置对象，浅拷贝会让前后相同、修改永远写不进库
+            before_configs = {cid: replace(cfg) for cid, cfg in state.model_configs.items()}
             before_bindings = dict(state.project_model_configs)
             before_chapters = chapter_snapshot(state)
             before_checks = check_snapshot(state)

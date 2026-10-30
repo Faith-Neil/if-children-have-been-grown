@@ -201,3 +201,42 @@ def test_stopping_saves_nothing(routed):
     assert seen[-1] == "cancelled" and "done" not in seen
     sessions = client.get(f"{flow.path}/chapters/{chapter['id']}/assistant-sessions", headers=flow.headers).json()
     assert sessions["sessions"] == [] if "sessions" in sessions else sessions.get("items", []) == []
+
+
+def test_ragflow_quirks_seen_on_the_real_service():
+    """2026-10-30 实测 RAGFlow（OpenAI 兼容接口）：限流时仍回 HTTP 200；普通模式正文是“**ERROR**: Error 429…”，
+    流式只有一个空的结束块；有的块是到目前为止的全文；模型名不对时回 {"code":101,"message":…}。"""
+    quota = "**ERROR**: Error 429, Message: You exceeded your current quota, please check your plan and billing details."
+    plain = provider(lambda r: httpx.Response(200, json={"choices": [{"message": {"content": quota}}]}), retries=0)
+    plain.stream_enabled = False
+    with pytest.raises(ModelCallError) as info:
+        plain.suggest("s", "u")
+    assert degradable(info.value) and str(info.value.__cause__) == "HTTP 429"
+
+    shown = []
+    empty = provider(lambda r: httpx.Response(200, headers={"content-type": "text/event-stream"},
+                                              content=b'data: {"choices":[{"delta":{"content":null},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n'),
+                     retries=0)
+    with pytest.raises(ModelCallError) as info:
+        empty.stream_suggest("s", "u", on_delta=shown.append)
+    assert degradable(info.value) and shown == []
+
+    split = provider(lambda r: httpx.Response(200, headers={"content-type": "text/event-stream"},
+                                              content=sse(["**ERR", "OR**: Error 503 ", "overloaded"])), retries=0)
+    with pytest.raises(ModelCallError) as info:
+        split.stream_suggest("s", "u", on_delta=shown.append)
+    assert degradable(info.value) and shown == []  # 错误文字不推给页面
+
+    cumulative = provider(lambda r: httpx.Response(200, headers={"content-type": "text/event-stream"},
+                                                   content=sse(["每月开展", "每月开展一次例行", "巡检"])))
+    pieces = []
+    assert cumulative.stream_suggest("s", "u", on_delta=pieces.append) == "每月开展一次例行巡检"
+    assert pieces == ["每月开展", "一次例行", "巡检"]
+
+    bold = provider(lambda r: httpx.Response(200, headers={"content-type": "text/event-stream"}, content=sse(["**", "重点**说明"])))
+    assert bold.stream_suggest("s", "u", on_delta=lambda p: None) == "**重点**说明"  # 普通 Markdown 开头不误判
+
+    envelope = provider(lambda r: httpx.Response(200, json={"code": 101, "data": None, "message": "`llm_id` m doesn't exist"}), retries=0)
+    with pytest.raises(ModelCallError) as info:
+        envelope.stream_suggest("s", "u", on_delta=lambda p: None)
+    assert "doesn't exist" in str(info.value) and not degradable(info.value)
