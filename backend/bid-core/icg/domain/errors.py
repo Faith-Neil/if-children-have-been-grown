@@ -42,6 +42,8 @@ def _frozen_status() -> dict[str, int]:
         "SUPER_ADMIN_PROTECTED", "CANNOT_DEMOTE_SELF",
         # 只有被指定的交叉复核人可以确认复核 (Wave 11 / PRD v1.8 §2.3)
         "CROSS_REVIEWER_REQUIRED",
+        # 口令登录：须先改密的会话、所属公司已停用 (APP-M2-T260 / PRD v1.8 §5.12.1)
+        "PASSWORD_CHANGE_REQUIRED", "COMPANY_DISABLED",
     ))
     _bind(table, 404, ("NOT_FOUND",))
     _bind(table, 409, (
@@ -103,6 +105,8 @@ def _frozen_status() -> dict[str, int]:
         "SETTING_VALUE_OUT_OF_BOUNDS",
         # 密码强度策略不足 (PRD v1.8 §5.10.2 / Q28)
         "PASSWORD_WEAK",
+        # 本人修改密码时原密码不对 (APP-M2-T260 / PRD v1.8 §5.12.1)
+        "OLD_PASSWORD_INCORRECT",
         # 删除整类知识库须输入全名确认 (Wave 12 / ISSUE-043)
         "CONFIRMATION_REQUIRED",
         # 公司 Word 模板不可用；附件扫描件类型、内容或页码范围不对 (APP-M2-T086、T059、T198 / PRD v1.8 §5.9.1 规则 1、7)

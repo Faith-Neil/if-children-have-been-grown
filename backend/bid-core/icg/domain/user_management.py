@@ -14,7 +14,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from .domain import Account, DemoService, DomainError, Principal, iso_time
-from .auth_service import hash_password, is_super_admin, validate_password_strength
+from .auth_service import hash_password, is_super_admin
 from .project_access import ROLE_COMPANY_ADMIN, ROLE_NORMALIZATION_MAP, VOLUMES
 
 
@@ -28,6 +28,7 @@ class UserModel(BaseModel):
     status: str = Field(default="active", description="账号状态：active / disabled")
     is_locked: bool = Field(default=False, description="是否被锁定")
     failed_login_attempts: int = Field(default=0, description="连续登录失败次数")
+    must_change_password: bool = Field(default=False, description="新建或被重置后尚未本人改密")
     created_at: str | None = Field(default=None, description="创建时间（ISO 8601）")
     updated_at: str | None = Field(default=None, description="最后更新时间（ISO 8601）")
 
@@ -109,6 +110,7 @@ def account_to_user_model(acc: Account) -> UserModel:
         status=getattr(acc, "status", "active") or "active",
         is_locked=getattr(acc, "is_locked", False),
         failed_login_attempts=getattr(acc, "failed_login_attempts", 0),
+        must_change_password=bool(getattr(acc, "must_change_password", False)),
         created_at=c_time,
         updated_at=u_time,
     )
@@ -189,10 +191,12 @@ class UserManagementService:
         if request.username in self.repository.read().accounts:
             raise DomainError(409, "DICT_CODE_DUPLICATED", f"账号 {request.username} 已存在，请更换用户名。")
 
-        # 3. 密码强度策略核验 (PRD §5.10.2 / Q28 定案：最少8位且至少含大写、小写、数字、符号中三类)
-        ok, msg = validate_password_strength(request.password)
-        if not ok:
-            raise DomainError(422, "PASSWORD_WEAK", f"密码强度不足：{msg}", details={"field": "password"})
+        # 3. 按新账号所属公司的密码规则核验 (PRD §5.10.2、§5.12.1 规则 3 / Q28；APP-M2-T260)
+        from .password_login import require_strong_password
+        require_strong_password(self.repository.read(),
+                                Account(id=request.username, name=request.name, company_id=request.company_id,
+                                        role=request.role),
+                                request.password, field="password")
 
         # 4. 加盐哈希加密 (PBKDF2-HMAC-SHA256)
         pwd_hash, salt = hash_password(request.password)
@@ -210,6 +214,8 @@ class UserManagementService:
             status="active",
             created_at=now_ts,
             updated_at=now_ts,
+            # 管理员设定的初始密码，本人首次登录须先改密（PRD §5.12.1 验收④）
+            must_change_password=True,
         )
 
         self.repository.transaction(lambda state: state.accounts.__setitem__(new_acc.id, new_acc))
@@ -469,14 +475,12 @@ class UserManagementService:
         new_role = request.role if request.role is not None else acc.role
         new_status = request.status if request.status is not None else getattr(acc, "status", "active")
 
-        updated_acc = Account(
-            id=acc.id,
+        # 用 replace 保留锁定状态、失败次数、须改密标记等未在本请求里的字段；
+        # 原先逐字段新建 Account，修改姓名就会顺带解除锁定和须改密。
+        updated_acc = replace(
+            acc,
             name=new_name,
-            company_id=acc.company_id,
             role=new_role,
-            _DEMO_ONLY=acc._DEMO_ONLY,
-            password_hash=acc.password_hash,
-            salt=acc.salt,
             display_name=new_display,
             status=new_status,
             created_at=acc.created_at or now_ts,
@@ -534,10 +538,9 @@ class UserManagementService:
             if norm_role != ROLE_COMPANY_ADMIN:
                 raise DomainError(403, "FORBIDDEN", "只有企业管理员或平台管理员可重置用户密码。")
 
-        # 2. 校验密码强度 (PRD §5.10.2 / Q28 定案：最少8位且至少含3类字符)
-        ok, msg = validate_password_strength(request.new_password)
-        if not ok:
-            raise DomainError(422, "PASSWORD_WEAK", f"密码强度不足：{msg}", details={"field": "new_password"})
+        # 2. 按目标账号适用的密码规则核验 (PRD §5.10.2、§5.12.1 规则 3 / Q28；APP-M2-T260)
+        from .password_login import require_strong_password
+        require_strong_password(self.repository.read(), acc, request.new_password, field="new_password")
 
         # 3. 重新加盐哈希
         pwd_hash, salt = hash_password(request.new_password)
@@ -553,6 +556,9 @@ class UserManagementService:
                 salt=salt,
                 is_locked=False,
                 failed_login_attempts=0,
+                locked_at=None,
+                # 被重置后本人须先改密才能使用系统（PRD §5.12.1 操作）
+                must_change_password=True,
                 updated_at=now_ts,
             )
             st.accounts[user_id] = updated
@@ -601,6 +607,7 @@ class UserManagementService:
                 is_locked=False,
                 status="active",
                 failed_login_attempts=0,
+                locked_at=None,
                 updated_at=now_ts,
             )
             st.accounts[user_id] = updated

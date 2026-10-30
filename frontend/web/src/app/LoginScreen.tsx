@@ -1,10 +1,10 @@
 // 为什么有这个文件：账号密码登录页。
 // 它解决什么问题：只提供正式账号密码登录；不预填、不内置任何账号口令，不提供令牌直登入口。
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Button, Card, Input } from 'antd';
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
-import { validateLoginForm, formatLoginErrorMessage } from './login-auth-core.ts';
+import { fetchBranding, validateLoginForm, formatLoginErrorMessage, type Branding } from './login-auth-core.ts';
 
 export interface LoginScreenProps {
   onPasswordLogin: (username: string, password: string) => Promise<void> | void;
@@ -17,7 +17,10 @@ export function LoginScreen({ onPasswordLogin, busy = false, errorMessage: exter
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [branding, setBranding] = useState<Branding | null>(null);
   const displayError = localError || externalError;
+  // 产品名与横版 Logo 取界面品牌设置（PRD §5.12.1 验收⑤），登录前即可读取；读不到时用平台默认。
+  useEffect(() => { let live = true; void fetchBranding().then(value => { if (live) setBranding(value); }); return () => { live = false; }; }, []);
   const isLoading = busy || submitting;
 
   const handlePasswordSubmit = async () => {
@@ -40,8 +43,10 @@ export function LoginScreen({ onPasswordLogin, busy = false, errorMessage: exter
   return (
     <div className="login-screen">
       <section className="login-brand">
-        <div className="brand-square">标</div>
-        <h1>智能投标系统</h1>
+        {branding?.logo_horizontal_url
+          ? <img className="brand-logo" src={branding.logo_horizontal_url} alt="" data-testid="login-brand-logo" />
+          : <div className="brand-square">标</div>}
+        <h1 data-testid="login-product-name">{branding?.product_name || '智能投标系统'}</h1>
         <p>让原文、证据和正文在同一处对齐</p>
         <div className="login-foot">
           ICG · 生产级投标工作台

@@ -140,11 +140,15 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     async def unexpected_error(request: Request, error: Exception):
         return error_response(request, 500, "INTERNAL_ERROR", "演示服务暂时失败，请凭请求编号核对日志。")
 
-    def current_user(authorization: Annotated[str | None, Header()] = None) -> Principal:
+    def current_user(request: Request, authorization: Annotated[str | None, Header()] = None) -> Principal:
         scheme, _, token = (authorization or "").partition(" ")
         if scheme.lower() != "bearer" or not token.strip():
             raise DomainError(401, "UNAUTHENTICATED", "请先登录。")
-        return service.authenticate(token.strip())
+        principal = service.authenticate(token.strip())
+        # 须改密的会话只能改密、读密码规则和注销（APP-M2-T260），所有使用登录身份的接口都经过这里。
+        from icg.domain.password_login import require_password_changed
+        require_password_changed(principal, request.method, request.url.path)
+        return principal
 
     @application.get("/health", response_model=HealthResponse, operation_id="getHealth")
     def health():

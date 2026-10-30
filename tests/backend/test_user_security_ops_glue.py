@@ -172,8 +172,16 @@ def test_reset_password_invalidates_existing_tokens_and_allows_login(client: Tes
     new_token = res_new_login.json()["access_token"]
     assert new_token != old_writer_token
 
-    # 6. 新 Token 调阅用户成功
-    res_new_access = client.get("/api/v1/users/glue-alpha-writer", headers={"Authorization": f"Bearer {new_token}"})
+    assert res_new_login.json()["must_change_password"] is True
+
+    # 6. 被重置后须先改密：业务接口拒绝（APP-M2-T260），改密后才能调阅
+    new_headers = {"Authorization": f"Bearer {new_token}"}
+    blocked = client.get("/api/v1/users/glue-alpha-writer", headers=new_headers)
+    assert blocked.status_code == 403 and blocked.json()["code"] == "PASSWORD_CHANGE_REQUIRED"
+    changed = client.post("/api/v1/auth/password", headers=new_headers,
+                          json={"old_password": "New_SuperPass_2026!", "new_password": "Own_Choice_2026#"})
+    assert changed.status_code == 200, changed.text
+    res_new_access = client.get("/api/v1/users/glue-alpha-writer", headers=new_headers)
     assert res_new_access.status_code == 200
 
 

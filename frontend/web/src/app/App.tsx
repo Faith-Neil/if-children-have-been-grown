@@ -18,7 +18,8 @@ import { readAuthorizedCompanyData, readAuthorizedProject, readSessionCollection
 import { commitAddress, globalPath, normalizePath, parseAppPath, projectPath, routeAfterLogin, type HistoryMode } from './app-route'; import { applyBeforeUnload, decideNavigation, historyStep, leaveCopy, readHistoryIndex } from './leave-guard';
 import { Forbidden403 } from '../status/StatusViews'; import { canCreateProject, checkRoutePermission, formatForbiddenReason, getSystemRoleLabel, normalizeSystemRole } from '../shell/route-guard';
 import { deriveBreadcrumbs, onEnterProjectCollapse, readStoredSidebarCollapsed, resolveInitialSidebarCollapsed, writeStoredSidebarCollapsed } from '../shell/responsive.ts';
-import { Can, CanProvider } from '../shell/Can'; import { LoginScreen } from './LoginScreen'; import { authenticateUser } from './login-auth-core';
+import { Can, CanProvider } from '../shell/Can'; import { LoginScreen } from './LoginScreen'; import { passwordLogin, revokeSession, type PasswordPolicy } from './login-auth-core';
+import { PasswordChangeScreen } from './PasswordChangeScreen';
 import { AppHeaderActions } from '../shell/AppHeaderActions'; import { AppModals } from '../shell/AppModals';
 import { ProjectWorkspaceContent } from './ProjectWorkspaceContent'; import { GlobalPagesContent } from './GlobalPagesContent';
 
@@ -28,6 +29,7 @@ export default function App() {
   const { message, modal } = AntApp.useApp();
 
   const [token, setToken] = useState<string | null>(null); const [user, setUser] = useState<Account | null>(null);
+  const [pendingChange, setPendingChange] = useState<{ token: string; username: string; policy: PasswordPolicy | null } | null>(null);
   const [applicationSession, setApplicationSession] = useState<ApplicationSession | null>(null); const [denied, setDenied] = useState<string | null>(null);
   const [deniedDetails, setDeniedDetails] = useState<{ role?: string; roleLabel?: string; path?: string; reason?: string; projectName?: string } | null>(null);
   const [projects, setProjects] = useState<Project[]>([]); const [workspace, setWorkspace] = useState<Workspace | null>(null);
@@ -155,7 +157,9 @@ export default function App() {
       followPath(routeAfterLogin(window.location.pathname, sessionHomeRoute(approved)).path, 'replace');
     } catch (error) { if (isRequestFailureCurrent(error, activeToken.current)) { report(error); logout(); } } finally { setBusy(false); }
   }
-  async function loginWithPassword(u: string, p: string) { const t = await authenticateUser(u, p); await loginWithToken(t); }
+  // 须先改密时令牌只用于改密页（APP-M2-T260），改密成功后再按正常登录进入。
+  async function loginWithPassword(u: string, p: string) { const r = await passwordLogin(u, p); if (r.mustChangePassword) { setPendingChange({ token: r.token, username: u.trim(), policy: r.policy }); return; } await loginWithToken(r.token); }
+  function signOut() { void revokeSession(activeToken.current); logout(); }
   function reportDirty(value: boolean) { if (armedLeave.current) return; dirtyRef.current = value; setEditorDirty(value); }
   function arrived(keepEditor: boolean, path: string) { armedLeave.current = false; displayedPathRef.current = normalizePath(path); if (!keepEditor) { dirtyRef.current = false; setEditorDirty(false); } }
   function writeAddress(path: string, mode: HistoryMode) {
@@ -349,6 +353,7 @@ export default function App() {
   }
 
   const currentRoute = parseAppPath(typeof window !== 'undefined' ? window.location.pathname : '/');
+  if (pendingChange) return <PasswordChangeScreen token={pendingChange.token} username={pendingChange.username} policy={pendingChange.policy} onChanged={async () => { const next = pendingChange.token; setPendingChange(null); await loginWithToken(next); }} onCancel={() => { void revokeSession(pendingChange.token); setPendingChange(null); }} />;
   if (!token || !user) return <LoginScreen onPasswordLogin={loginWithPassword} busy={busy} />;
   const menu = [
     ...navigation.filter(item => sessionAllowsRoute(applicationSession, item.id)).map(item => ({ path: globalPath(item.id), name: item.name, icon: item.icon })),
@@ -359,13 +364,13 @@ export default function App() {
   return (
     <Suspense fallback={<div className="login-screen"><Spin size="large" /></div>}>
       <CanProvider value={{ session: applicationSession, workspace, role: applicationSession?.user.primary_role || applicationSession?.user.role, userId: applicationSession?.user.id }}>
-        <AppShell collapsed={collapsed} onCollapsed={handleCollapseChange} menuPath={menuPath} menu={menu} onNavigate={requestPath} breadcrumbs={breadcrumbs} actions={<AppHeaderActions session={applicationSession} user={user} jobs={jobs} search={search} onSearchChange={setSearch} onSearchSubmit={() => requestPath(globalPath('workbench'))} onOpenTaskDrawer={() => setTaskDrawer(true)} onLogout={() => requestDiscard(logout)} onOpenModelConfig={() => setModelConfigModalOpen(true)} onOpenRagflowConfig={() => setRagflowConfigModalOpen(true)} token={token} onNavigate={requestPath} />}>
+        <AppShell collapsed={collapsed} onCollapsed={handleCollapseChange} menuPath={menuPath} menu={menu} onNavigate={requestPath} breadcrumbs={breadcrumbs} actions={<AppHeaderActions session={applicationSession} user={user} jobs={jobs} search={search} onSearchChange={setSearch} onSearchSubmit={() => requestPath(globalPath('workbench'))} onOpenTaskDrawer={() => setTaskDrawer(true)} onLogout={() => requestDiscard(signOut)} onOpenModelConfig={() => setModelConfigModalOpen(true)} onOpenRagflowConfig={() => setRagflowConfigModalOpen(true)} token={token} onNavigate={requestPath} />}>
           {missing && <main className="workspace-content"><Result status="404" title="页面不存在" subTitle={`没有与 ${missing} 对应的页面。`} extra={<Button onClick={() => requestPath(globalPath(applicationSession ? sessionHomeRoute(applicationSession) : 'workbench'))}>返回可访问首页</Button>} /></main>}
           {!missing && denied && (
             <main className="workspace-content">
               <Forbidden403 title="403 访问受限" reason={denied} showRetainedNotice={!!workspace}
                 contextInfo={{ projectName: workspace?.project?.name ?? deniedDetails?.projectName, roleName: deniedDetails?.roleLabel ?? (applicationSession?.user ? (typeof getSystemRoleLabel === 'function' ? getSystemRoleLabel(applicationSession.user.primary_role || applicationSession.user.role) : undefined) : undefined), path: deniedDetails?.path ?? window.location.pathname }}
-                onBack={() => requestPath(globalPath(applicationSession ? sessionHomeRoute(applicationSession) : 'workbench'))} backText="返回可访问首页" onSwitchRole={() => requestDiscard(logout)} switchRoleText="切换身份" />
+                onBack={() => requestPath(globalPath(applicationSession ? sessionHomeRoute(applicationSession) : 'workbench'))} backText="返回可访问首页" onSwitchRole={() => requestDiscard(signOut)} switchRoleText="切换身份" />
             </main>
           )}
           {!missing && workspace && nav === 'workbench' && (

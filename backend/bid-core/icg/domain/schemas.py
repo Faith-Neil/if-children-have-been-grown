@@ -123,10 +123,39 @@ class AccountListResponse(ResponseBody):
     accounts: list[AccountResponse]
 
 
+class PasswordPolicyResponse(ResponseBody):
+    min_length: int = Field(description="新密码最少位数")
+    min_char_classes: int = Field(description="大写字母、小写字母、数字、符号中至少包含的类数")
+    char_classes: list[str]
+    scope: Literal["platform", "company"] = Field(description="platform：平台级账号按平台默认；company：按本公司安全设置")
+    must_change_password: bool | None = None
+
+
 class LoginResponse(ResponseBody):
     access_token: str
     token_type: Literal["bearer"]
     user: AccountResponse
+    must_change_password: bool = Field(default=False, description="为 true 时须先调用 changeOwnPassword，其他接口返回 403 PASSWORD_CHANGE_REQUIRED")
+    password_policy: PasswordPolicyResponse | None = None
+
+
+class ChangePasswordRequest(RequestBody):
+    old_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=1, max_length=128)
+
+
+class ChangePasswordResponse(ResponseBody):
+    success: bool
+    must_change_password: bool
+
+
+class LogoutResponse(ResponseBody):
+    success: bool
+
+
+class BrandingResponse(ResponseBody):
+    product_name: str
+    logo_horizontal_url: str | None = None
 
 
 ApplicationRole = Literal["platform_admin", "group_admin", "company_admin", "data_admin",

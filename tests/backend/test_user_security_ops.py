@@ -189,13 +189,14 @@ def test_account_lock_on_failed_logins_and_unlock(client: TestClient, sec_ops_en
         res = client.post("/api/v1/auth/login", json={"username": target_id, "password": f"wrong_pass_{i}"})
         assert res.status_code == 401
         assert res.json()["code"] == "INVALID_CREDENTIALS"
-        assert f"还剩 {5 - i} 次" in res.json()["message"]
+        # 不提示剩余次数：否则能凭提示区分账号是否存在（APP-M2-T260）
+        assert res.json()["message"] == "账号或密码错误，请核实后重试。"
 
     # 2. 第 5 次输错密码 -> 触发自动锁定 423 ACCOUNT_LOCKED
     res5 = client.post("/api/v1/auth/login", json={"username": target_id, "password": "wrong_pass_5"})
     assert res5.status_code == 423
     assert res5.json()["code"] == "ACCOUNT_LOCKED"
-    assert "账号已被锁定" in res5.json()["message"]
+    assert "账号已锁定，请 15 分钟后重试" in res5.json()["message"]
 
     # 3. 锁定后即便输入正确密码 -> 依然被拦截 423 ACCOUNT_LOCKED
     res_correct_blocked = client.post("/api/v1/auth/login", json={"username": target_id, "password": "Target_user_2026"})

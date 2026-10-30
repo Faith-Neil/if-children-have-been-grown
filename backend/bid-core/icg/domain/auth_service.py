@@ -71,19 +71,40 @@ def is_super_admin(user_or_principal: Any) -> bool:
     return False
 
 
+CHAR_CLASS_LABELS: tuple[tuple[str, str], ...] = (
+    ("upper", "大写字母"), ("lower", "小写字母"), ("digit", "数字"), ("symbol", "符号"),
+)
+
+
+def password_char_classes(password: str) -> set[str]:
+    """PRD v1.8 §5.12.1 规则 3 的字符分类：只认 ASCII 大写、小写、数字和其他可打印 ASCII 符号；
+    空格、中文等其他字符允许使用，但不计入任何一类。页面提示用同一口径（frontend/web/src/app/password-change-core.ts）。"""
+    found: set[str] = set()
+    for c in password:
+        if "A" <= c <= "Z":
+            found.add("upper")
+        elif "a" <= c <= "z":
+            found.add("lower")
+        elif "0" <= c <= "9":
+            found.add("digit")
+        elif "!" <= c <= "~":
+            found.add("symbol")
+    return found
+
+
+def password_problems(password: str, min_length: int = 8, min_classes: int = 3) -> list[str]:
+    """逐项列出新密码不满足的规则；空列表表示满足。"""
+    problems: list[str] = []
+    if len(password or "") < min_length:
+        problems.append(f"至少 {min_length} 位（现 {len(password or '')} 位）")
+    found = password_char_classes(password or "")
+    if len(found) < min_classes:
+        missing = "、".join(label for key, label in CHAR_CLASS_LABELS if key not in found)
+        problems.append(f"大写字母、小写字母、数字、符号中至少含 {min_classes} 类（现 {len(found)} 类，缺少{missing}）")
+    return problems
+
+
 def validate_password_strength(password: str, min_length: int = 8, min_classes: int = 3) -> tuple[bool, str]:
-    """依据 PRD v1.8 §5.10.2 / Q28 定案核验密码强度：最少8位且至少包含四类字符中的三类。"""
-    if not password or len(password) < min_length:
-        return False, f"密码长度不能低于平台下限 {min_length} 位。"
-    classes = 0
-    if any(c.isupper() for c in password):
-        classes += 1
-    if any(c.islower() for c in password):
-        classes += 1
-    if any(c.isdigit() for c in password):
-        classes += 1
-    if any(not c.isalnum() for c in password):
-        classes += 1
-    if classes < min_classes:
-        return False, f"密码至少需包含大写字母、小写字母、数字、特殊符号中的 {min_classes} 类。"
-    return True, ""
+    """依据 PRD v1.8 §5.10.2 / Q28 定案核验密码强度：默认最少 8 位且至少包含四类字符中的三类。"""
+    problems = password_problems(password, min_length, min_classes)
+    return (not problems), "；".join(problems)

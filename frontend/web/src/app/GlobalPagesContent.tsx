@@ -181,6 +181,7 @@ export function GlobalPagesContent({
                     <CompanyManagePage
                       session={session}
                       currentUser={currentUser}
+                      token={token}
                     />
                   ),
                 },
