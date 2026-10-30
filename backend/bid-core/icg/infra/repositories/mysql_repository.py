@@ -18,7 +18,7 @@ from icg.domain.domain import Chapter, DemoState, DomainError, Lease, Project, i
 from icg.infra.mysql_gate import create_mysql_engine, RECEIPT_TTL
 from icg.infra.memory_repository import MemoryRepository
 from icg.infra.repositories.common import as_timestamp, parse_db_timestamp, utc_naive, json_value
-from icg.infra.repositories.chapters import read_chapter, save_chapter, commit_chapter_version, chapter_snapshot, save_chapters_diff
+from icg.infra.repositories.chapters import merge_meta, read_chapter, save_chapter, commit_chapter_version, chapter_snapshot, save_chapters_diff
 from icg.infra.repositories.checks_exports import (
     save_check, read_check, list_checks_by_project, delete_check, check_snapshot, save_checks_diff,
     save_export, read_export, update_export_status, list_exports_by_project, delete_export,
@@ -386,12 +386,12 @@ class MysqlConnectionRepository:
                     "FROM demo_chapter"
                 )).all()
                 versions_rows = connection.execute(text(
-                    "SELECT id, chapter_id, version_number, content, created_by, created_at "
+                    "SELECT id, chapter_id, version_number, content, created_by, created_at, meta "
                     "FROM demo_chapter_version ORDER BY version_number ASC"
                 )).all()
             versions_by_cid: dict[str, list[dict]] = {}
-            for vid, cid, v_num, v_content, v_actor, v_created in versions_rows:
-                versions_by_cid.setdefault(cid, []).append({
+            for vid, cid, v_num, v_content, v_actor, v_created, v_meta in versions_rows:
+                versions_by_cid.setdefault(cid, []).append(merge_meta({
                     "id": vid,
                     "chapter_id": cid,
                     "revision": int(v_num),
@@ -400,7 +400,7 @@ class MysqlConnectionRepository:
                     "actor_id": v_actor,
                     "created_by": v_actor,
                     "created_at": iso_time(as_timestamp(v_created)) if isinstance(v_created, datetime) else str(v_created),
-                })
+                }, v_meta))
             if loaded_chapter_ids is not None:
                 loaded_chapter_ids.clear()
                 loaded_chapter_ids.update(r[0] for r in chapters_rows)

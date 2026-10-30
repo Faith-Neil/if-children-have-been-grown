@@ -244,6 +244,7 @@ class ChapterListResponse(ResponseBody):
 
 class LockSummaryResponse(ResponseBody):
     owner_id: str
+    owner_name: str | None = Field(default=None, description="持锁人姓名，供其他成员看到“某某正在编辑”")
     # 只给文档增加日期格式提示，保留实际返回字符串的原写法。
     expires_at: str = Field(description="UTC 的 ISO 8601 到期时间",
                             json_schema_extra={"format": "date-time"})
@@ -260,11 +261,23 @@ class DraftResponse(ResponseBody):
     input_fingerprint: str | None = Field(default=None, description="草稿最初保存时核对的输入指纹，读取或恢复草稿不会自动改为当前来源")
 
 
+class ParagraphKeyResponse(ResponseBody):
+    key: str = Field(description="段落键：跨版本不变；改了几个字仍沿用，新增的块才拿新键")
+    kind: Literal["heading", "para", "bullet", "ordered", "table"]
+    level: int = Field(ge=0, description="标题级别（1～8），其他块为 0")
+    line_start: int = Field(ge=0, description="本块在正文中的起始行（0 起）")
+    line_end: int = Field(ge=0, description="本块在正文中的结束行（含）")
+    hash: str
+    source: Literal["manual", "assistant", "assistant_pasted", "chapter_loop", "system"]
+    source_label: str
+
+
 class ChapterResponse(ChapterSummaryResponse):
     project_id: str
     content: str = Field(description="已提交的当前正式正文，不包含草稿")
     lock: LockSummaryResponse | None = Field(description="有效编辑权的摘要，不含租约凭据")
     draft: DraftResponse | None = Field(description="当前登录人自己的草稿；没有则为 null")
+    paragraphs: list[ParagraphKeyResponse] = Field(default_factory=list, description="当前正文逐块的段落键与来源（APP-M2-T161）")
     assignee_id: str | None
     permissions: dict[str, bool] = Field(description="按当前公司角色、项目成员与本册/本节分工实时核对的操作权限")
 
@@ -285,6 +298,7 @@ class VersionResponse(ResponseBody):
 
 class VersionRecordResponse(VersionResponse):
     actor_id: str
+    paragraphs: list[ParagraphKeyResponse] = Field(default_factory=list, description="本版本逐块的段落键与来源")
     created_at: str = Field(description="UTC 的 ISO 8601 创建时间",
                             json_schema_extra={"format": "date-time"})
 

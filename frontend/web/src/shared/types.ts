@@ -1,6 +1,7 @@
 // 为什么有这个文件：把后台主链路的数据字段集中说明。
 // 它解决什么问题：页面之间传递同一项目、条款、章节和检查状态。
 import type { SystemRole } from './roles.ts';
+import type { ParagraphKey } from '../editor/paragraph-keys.ts';
 
 export type Volume = 'technical' | 'business';
 
@@ -205,7 +206,7 @@ export type WritingInputSnapshot = {
 };
 export type WritingInputPreview = { source_scope: 'whole_chapter'; input_snapshot: WritingInputSnapshot; ready: boolean; issues: { code: string; message: string }[] };
 export type Candidate = { id?: string; content: string; base_revision: number; input_fingerprint: string; provider: string; is_real_model: boolean; source_scope?: 'whole_chapter' | null; input_snapshot?: WritingInputSnapshot | null; status?: 'valid' | 'stale' };
-export type Chapter = { id: string; title: string; volume: Volume; revision: number; content: string; lock: { owner_id: string; owner_name?: string | null; expires_at: string } | null; draft?: { sequence: number; content: string; base_revision: number; input_fingerprint?: string | null } | null; candidate?: Candidate | null; requirement_ids?: string[]; writing_input?: ChapterWritingInput; assignee_id?: string | null; assignee_name?: string | null; permissions?: ChapterPermissions };
+export type Chapter = { id: string; title: string; volume: Volume; revision: number; content: string; lock: { owner_id: string; owner_name?: string | null; expires_at: string } | null; paragraphs?: ParagraphKey[]; draft?: { sequence: number; content: string; base_revision: number; input_fingerprint?: string | null } | null; candidate?: Candidate | null; requirement_ids?: string[]; writing_input?: ChapterWritingInput; assignee_id?: string | null; assignee_name?: string | null; permissions?: ChapterPermissions };
 export type CheckRelease = { reason: string; by: string; by_name?: string; at: string; decision?: 'keep' | 'accept' };
 export type CheckIssue = {
   id: string; code: string; severity: string; message: string; requirement_id?: string; chapter_id?: string; evidence_id?: string;

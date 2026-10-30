@@ -9,6 +9,7 @@ import { Popover, Tag, Button, Space } from 'antd';
 import { FileTextOutlined, CheckCircleOutlined, ClockCircleOutlined, AimOutlined } from '@ant-design/icons';
 import type { CiteKind, CitationMeta } from './cite-capsule.ts';
 import { formatCiteLabel, parseCitations } from './cite-capsule.ts';
+import { lineParagraphs, showsSource, type ParagraphKey } from './paragraph-keys.ts';
 
 export interface CiteCapsuleProps {
   id: string;
@@ -180,6 +181,8 @@ export interface RichParagraphWithCitesProps {
   onCiteClick?: (id: string, kind: CiteKind) => void;
   className?: string;
   style?: React.CSSProperties;
+  /** 后台给出的段落键与来源（APP-M2-T161）；与正文对得上时才传入。 */
+  paragraphKeys?: ParagraphKey[];
 }
 
 /**
@@ -192,8 +195,10 @@ export const RichParagraphWithCites: React.FC<RichParagraphWithCitesProps> = ({
   onCiteClick,
   className = '',
   style,
+  paragraphKeys,
 }) => {
   const actualText = content !== undefined ? content : text || '';
+  const byLine = React.useMemo(() => lineParagraphs(paragraphKeys), [paragraphKeys]);
   if (!actualText) return null;
 
   const paragraphs = actualText.split('\n');
@@ -205,8 +210,10 @@ export const RichParagraphWithCites: React.FC<RichParagraphWithCitesProps> = ({
           return <p key={pIdx} style={{ margin: '8px 0', minHeight: 14 }}>&nbsp;</p>;
         }
         const segments = parseCitations(p, knownCitations);
+        const owner = byLine.get(pIdx);
         return (
-          <p key={pIdx} style={{ margin: '8px 0' }}>
+          <p key={pIdx} style={{ margin: '8px 0' }} data-paragraph-key={owner?.key}>
+            {showsSource(owner) && <span className="paragraph-source-tag" data-testid="paragraph-source-tag" title="本段来源" style={{ display: 'inline-block', marginRight: 6, padding: '0 6px', fontSize: 12, lineHeight: '18px', borderRadius: 4, background: '#f0f5ff', color: '#1d39c4', border: '1px solid #adc6ff' }}>{owner!.label}</span>}
             {segments.map((seg, sIdx) => {
               if (seg.type === 'cite' && seg.citeMeta) {
                 return (

@@ -38,6 +38,7 @@ import { SelectionBubble } from './SelectionBubble';
 import { EditorAssistantPanel } from './EditorAssistantPanel.tsx';
 import { SelectionRewritePanel, type RewriteSelection } from './SelectionRewritePanel.tsx';
 import { pasteNotice, type PastedParagraph } from './paste-notice.ts';
+import { paragraphsMatch } from './paragraph-keys.ts';
 import type { ApplyResult } from './selection-rewrite-core.ts';
 import { EditorDiffDrawer, type ChapterVersionItem } from './EditorDiffDrawer.tsx';
 import { extractCitationIds, type CiteKind, type CitationMeta } from './cite-capsule';
@@ -467,7 +468,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
             {isReadOnlyView ? (
               <div className="chapter-editor-readonly-view" data-testid="readonly-editor-view">
                 <div className="chapter-editor-readonly-text" data-testid="readonly-editor-text" onMouseUp={handleContainerMouseUp} style={{ minHeight: 280, padding: 16, background: '#fafafa', border: '1px solid #e5e6eb', borderRadius: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#1d2129', lineHeight: 1.8, fontSize: 14 }}>
-                  {content ? <RichParagraphWithCites content={content} knownCitations={knownCitations} onCiteClick={handleCiteClick} /> : <span className="muted" style={{ color: '#86909c' }}>（本章节暂无已提交正文）</span>}
+                  {content ? <RichParagraphWithCites content={content} knownCitations={knownCitations} onCiteClick={handleCiteClick} paragraphKeys={paragraphsMatch(chapter.paragraphs, content, chapter.content) ? chapter.paragraphs : undefined} /> : <span className="muted" style={{ color: '#86909c' }}>（本章节暂无已提交正文）</span>}
                 </div>
               </div>
             ) : !held ? (
@@ -475,7 +476,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
                 <Alert type="info" showIcon message="当前未取得本节编辑锁" description="正文以纯文本方式呈现供浏览与校对。如需修改，请点击下方或工具栏的「取得编辑权」。" style={{ marginBottom: 12 }}
                   action={<Button size="small" type="primary" icon={<LockOutlined />} onClick={() => acquire()} disabled={combinedBusy || !canEdit} data-testid="unheld-acquire-btn">取得编辑权</Button>} />
                 <div className="chapter-editor-unheld-text" data-testid="unheld-editor-text" onMouseUp={handleContainerMouseUp} style={{ minHeight: 280, padding: 16, background: '#fcfcfd', border: '1px dashed #d9d9d9', borderRadius: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#262626', lineHeight: 1.8, fontSize: 14 }}>
-                  {content ? <RichParagraphWithCites content={content} knownCitations={knownCitations} onCiteClick={handleCiteClick} /> : <span className="muted" style={{ color: '#8c8c8c' }}>（本章节暂无正文内容）</span>}
+                  {content ? <RichParagraphWithCites content={content} knownCitations={knownCitations} onCiteClick={handleCiteClick} paragraphKeys={paragraphsMatch(chapter.paragraphs, content, chapter.content) ? chapter.paragraphs : undefined} /> : <span className="muted" style={{ color: '#8c8c8c' }}>（本章节暂无正文内容）</span>}
                 </div>
               </div>
             ) : (

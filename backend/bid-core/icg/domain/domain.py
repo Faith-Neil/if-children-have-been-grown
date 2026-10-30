@@ -760,8 +760,10 @@ class DemoService:
         lock = lock_view(state, chapter.lock) if active_lock else None
         draft = chapter.drafts.get(principal.user.id)
         from .project_access import chapter_permissions
+        from .paragraph_keys import current as current_paragraphs, public as public_paragraphs
         return {**self._summary(chapter), "project_id": chapter.project_id,
                 "content": chapter.content, "lock": lock,
+                "paragraphs": public_paragraphs(current_paragraphs(chapter)),
                 "draft": asdict(draft) if draft else None, "assignee_id": chapter.assignee_id,
                 "permissions": chapter_permissions(state, chapter, principal.user.id)}
 
@@ -1043,7 +1045,9 @@ class DemoService:
     def versions(self, principal: Principal, chapter_id: str) -> dict:
         state = self.repository.read()
         chapter = self._chapter(state, principal, chapter_id)
-        return {"versions": chapter.versions}
+        from .paragraph_keys import ensure as ensure_paragraphs, public as public_paragraphs
+        ensure_paragraphs(chapter)
+        return {"versions": [{**v, "paragraphs": public_paragraphs(v.get("paragraphs") or [])} for v in chapter.versions]}
 
     def discard_draft(self, principal, chapter_id, sequence, *,
                       idempotency_key: str | None = None):

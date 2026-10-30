@@ -38643,6 +38643,14 @@
             ],
             "description": "当前登录人自己的草稿；没有则为 null"
           },
+          "paragraphs": {
+            "items": {
+              "$ref": "#/components/schemas/ParagraphKeyResponse"
+            },
+            "type": "array",
+            "title": "Paragraphs",
+            "description": "当前正文逐块的段落键与来源（APP-M2-T161）"
+          },
           "assignee_id": {
             "anyOf": [
               {
@@ -42765,6 +42773,18 @@
             "type": "string",
             "title": "Owner Id"
           },
+          "owner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Name",
+            "description": "持锁人姓名，供其他成员看到“某某正在编辑”"
+          },
           "expires_at": {
             "type": "string",
             "format": "date-time",
@@ -43268,6 +43288,18 @@
           "owner_id": {
             "type": "string",
             "title": "Owner Id"
+          },
+          "owner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Name",
+            "description": "持锁人姓名，供其他成员看到“某某正在编辑”"
           },
           "expires_at": {
             "type": "string",
@@ -44511,6 +44543,76 @@
           "updated_at"
         ],
         "title": "ParagraphDetail"
+      },
+      "ParagraphKeyResponse": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "段落键：跨版本不变；改了几个字仍沿用，新增的块才拿新键"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "heading",
+              "para",
+              "bullet",
+              "ordered",
+              "table"
+            ],
+            "title": "Kind"
+          },
+          "level": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Level",
+            "description": "标题级别（1～8），其他块为 0"
+          },
+          "line_start": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Line Start",
+            "description": "本块在正文中的起始行（0 起）"
+          },
+          "line_end": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Line End",
+            "description": "本块在正文中的结束行（含）"
+          },
+          "hash": {
+            "type": "string",
+            "title": "Hash"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "assistant",
+              "assistant_pasted",
+              "chapter_loop",
+              "system"
+            ],
+            "title": "Source"
+          },
+          "source_label": {
+            "type": "string",
+            "title": "Source Label"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "key",
+          "kind",
+          "level",
+          "line_start",
+          "line_end",
+          "hash",
+          "source",
+          "source_label"
+        ],
+        "title": "ParagraphKeyResponse"
       },
       "ParseCategory": {
         "properties": {
@@ -50886,6 +50988,14 @@
           "actor_id": {
             "type": "string",
             "title": "Actor Id"
+          },
+          "paragraphs": {
+            "items": {
+              "$ref": "#/components/schemas/ParagraphKeyResponse"
+            },
+            "type": "array",
+            "title": "Paragraphs",
+            "description": "本版本逐块的段落键与来源"
           },
           "created_at": {
             "type": "string",
