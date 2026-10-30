@@ -128,9 +128,10 @@ from .system_chapters import SystemChapterMixin  # noqa: E402
 
 
 from .parse_review import ParseReviewMixin  # noqa: E402  解析结果分类树与批量确认（APP-M2-T104）
+from .staff_proof_rules import ProposedStaffMixin  # noqa: E402  拟派人员（APP-M2-T241）
 
 
-class MatrixMixin(SystemChapterMixin, ParseReviewMixin):
+class MatrixMixin(SystemChapterMixin, ParseReviewMixin, ProposedStaffMixin):
     """WorkflowService 的响应矩阵能力。"""
 
     def _matrix_item(self, state, project, workflow, row, active, names) -> dict:

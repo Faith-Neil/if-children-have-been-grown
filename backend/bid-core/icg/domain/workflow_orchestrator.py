@@ -78,7 +78,7 @@ class WorkflowService(
         "sla-values-and-capability-subset", "sla-variables-and-labelled-numbers-subset",
         "R01", "R02", "R03", "R04", "R05", "R06", "R07", "R08", "R09", "R10",
         "R11", "R12", "R13", "R14", "R15", "R16", "R17", "R18", "R19", "R20", "R23", "R24",
-        "R25", "R26", "R27", "R28", "R29", "R30", "R31", "R32", "R34", "R35", "R36", "R37", "R39", "R40", "R41", "R42", "R43", "R44",
+        "R25", "R26", "R27", "R28", "R29", "R30", "R31", "R32", "R33", "R34", "R35", "R36", "R37", "R38", "R39", "R40", "R41", "R42", "R43", "R44",
     ]
     UNIMPLEMENTED_RULES = [
         "参考合规规则尚未逐条完成（按一期完整/一期简化/二期分组）", "语义事实与承诺核对",
@@ -192,7 +192,7 @@ class WorkflowService(
             return
         if not writable(state, project_id, identity):
             raise DomainError(403, "PROJECT_WRITER_REQUIRED", "当前公司角色和项目角色只允许查看，不能办理此操作。")
-        if name in ("team.update", "project.update", "file.upload", "file.delete", "parse.run", "parse.confirm", "conflict.resolve") or name.startswith("sla."):
+        if name in ("team.update", "staff.update", "project.update", "file.upload", "file.delete", "parse.run", "parse.confirm", "conflict.resolve") or name.startswith("sla."):
             require_lead(state, principal, project_id)
         elif name in ("chapter.plan.save", "chapter.plan.confirm", "chapter.assignment"):
             chapter = self.demo._chapter(state, principal, resource_id)

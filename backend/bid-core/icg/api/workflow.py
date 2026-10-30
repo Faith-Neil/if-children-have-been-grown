@@ -24,7 +24,7 @@ from icg.domain.workflow_schemas import (BatchConfirmRequest, ParseReview, Check
                                GenerateRequest, JobsList, LibraryCreate, LibraryList,
                                LibraryPatch, LibraryResult, MutationResult, ParseRequest,
                                PlanRequest, CheckReleaseRequest, MatrixMatchRequest, MatrixRoutingRequest, MergeChecklistResponse, ProjectCheckRequest, ProjectExportRequest,
-                               ProjectPatch, RequirementPatch, Workspace, WritingInputPreview,
+                               ProjectPatch, ProposedStaffResult, ProposedStaffUpdate, RequirementPatch, Workspace, WritingInputPreview,
                                TeamUpdate, TeamResult, ChapterAssignment, ChapterPlanPatch,
                                ChapterEditDetail, v1_error_responses, TenderSearchRequest,
                                TenderIndexingSwitchRequest, InjectTenderClausesRequest,
@@ -157,6 +157,18 @@ def include_workflow_routes(application, service, current_user, parser):
                 summary="解析结果分类树与确认前提", description="10 类抽取项（评分类含评分项与得分要点）的条目数、待确认数；确认解析结果的前提逐条列出剩余条数。")
     def parse_review(project_id: str, user: Principal = Depends(current_user)):
         return workflow.parse_review(user, project_id)
+
+    @router.get("/projects/{project_id}/proposed-staff", response_model=ProposedStaffResult,
+                operation_id="getProposedStaff", summary="拟派人员与 R33 预检")
+    def proposed_staff(project_id: str, user: Principal = Depends(current_user)):
+        return workflow.proposed_staff(user, project_id)
+
+    @router.put("/projects/{project_id}/proposed-staff", response_model=ProposedStaffResult,
+                operation_id="updateProposedStaff", summary="保存拟派人员（仅项目负责人）",
+                description="从资料库“人员”资料中选人、定角色与 A/B 角；保存后立即返回 R33 拟派人员条件核对结果。")
+    def save_proposed_staff(project_id: str, body: ProposedStaffUpdate, user: Principal = Depends(current_user),
+                            if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.save_proposed_staff(user, project_id, body.model_dump(), if_match, idempotency_key)
 
     @router.post("/projects/{project_id}/requirements/batch-confirm", response_model=MutationResult,
                  response_model_exclude_none=True, operation_id="batchConfirmRequirements",

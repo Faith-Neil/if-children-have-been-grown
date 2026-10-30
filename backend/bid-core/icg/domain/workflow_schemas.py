@@ -149,6 +149,18 @@ class CheckReleaseRequest(RequestBody):
     decision: Literal["keep", "accept"] = Field(default="keep", description="keep：确认保留（如额外数值承诺）；accept：确认无需修改")
 
 
+class ProposedStaffEntry(RequestBody):
+    id: str | None = Field(default=None, max_length=120)
+    person_id: str = Field(min_length=1, max_length=120, description="资料库“人员”类资料 ID")
+    role: str = Field(min_length=1, max_length=40, description="项目角色，如项目经理、技术负责人、驻场工程师")
+    position: Literal["A", "B"] | None = Field(default=None, description="AB 角")
+    is_key_person: bool = False
+
+
+class ProposedStaffUpdate(RequestBody):
+    staff: list[ProposedStaffEntry] = Field(max_length=100)
+
+
 class ProjectExportRequest(RequestBody):
     check_id: str = Field(min_length=1, max_length=100)
     kind: Literal["internal", "submission", "internal_review"] = "internal"
@@ -713,6 +725,31 @@ class Workspace(ResponseBody):
     permissions: ProjectPermissions
     human_queue_pending: int = Field(default=0, description="人工处理队列中待处理的问题数")
     omissions_pending: int = Field(default=0, description="兜底扫描中尚未处理的疑似遗漏数")
+
+
+class StaffProfile(ResponseBody):
+    degree: str | None = None
+    major: str | None = None
+    work_start: str | None = Field(default=None, description="参加工作年月（YYYY-MM-01）")
+    years: int | None = None
+    certificates: list[str] | None = Field(default=None, description="None 表示人员资料里没有证书信息")
+
+
+class ProposedStaff(ResponseBody):
+    id: str
+    person_id: str
+    person_name: str
+    role: str
+    position: Literal["A", "B"] | None = None
+    is_key_person: bool = False
+    profile: StaffProfile | None = Field(default=None, description="从人员资料正文读出的学历、专业、参加工作时间与证书")
+
+
+class ProposedStaffResult(ResponseBody):
+    revision: int | None = None
+    staff: list[ProposedStaff]
+    roles: list[str]
+    r33: dict[str, Any] = Field(description="按当前拟派人员运行的 R33 结果（排人时即提示）")
 
 
 class MutationResult(ResponseBody):

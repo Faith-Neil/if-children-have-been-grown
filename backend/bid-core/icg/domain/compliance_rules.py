@@ -384,6 +384,22 @@ class ComplianceRulesEngine:
             "description": "招标要求评审索引表时，索引表逐项覆盖评分项、顺序与评审标准一致、指向的章节存在；页码合标后填写。",
         },
         {
+            "rule_id": "R33",
+            "title": "拟派人员条件",
+            "category": "personnel",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "学历、专业、工作年限（算到投标截止时间）、证书、人数、角色、AB 角、不得兼任与招标结构化人员条件逐项核对；资格要求不满足阻断，评分要求不满足提示，资料缺失警告。",
+        },
+        {
+            "rule_id": "R38",
+            "title": "证明材料与评分要点对应",
+            "category": "proof",
+            "default_severity": "warning",
+            "can_disable": False,
+            "description": "评分项要求截图或证明的，每个功能点至少挂一份附件，附件功能点标签或资料内容能找到该功能点或其同义词。",
+        },
+        {
             "rule_id": "R41",
             "title": "证明材料齐全与盖章",
             "category": "proof",
@@ -4818,11 +4834,12 @@ class ComplianceRulesEngine:
         """R29 本公司查重（仅全文）与 R30 超范围响应（APP-M2-T235～T237）。"""
         from .content_rules import check_r36, check_r39, check_r40, check_r41, check_r42, check_r43, check_r44
         from .scope_rules import check_r29, check_r30
+        from .staff_proof_rules import check_r33, check_r38
         return [
             check_r29(state, project, workflow, volume=volume, now_ts=now_ts),
             check_r30(state, project, workflow, volume=volume),
             *(rule(state, project, workflow, volume=volume)
-              for rule in (check_r36, check_r39, check_r40, check_r41, check_r42, check_r43, check_r44)),
+              for rule in (check_r33, check_r36, check_r38, check_r39, check_r40, check_r41, check_r42, check_r43, check_r44)),
         ]
 
 

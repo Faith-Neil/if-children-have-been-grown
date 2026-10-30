@@ -3757,7 +3757,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T241 · R33 拟派人员条件
 <a id="app-m2-t241"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期完整。依赖：[APP-M2-T061](APP-M2.md#app-m2-t061)、[APP-M2-T062](APP-M2.md#app-m2-t062)、[APP-M2-T105](APP-M2.md#app-m2-t105)、[APP-M2-T099](APP-M2.md#app-m2-t099)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期完整。依赖：[APP-M2-T061](APP-M2.md#app-m2-t061)、[APP-M2-T062](APP-M2.md#app-m2-t062)、[APP-M2-T105](APP-M2.md#app-m2-t105)、[APP-M2-T099](APP-M2.md#app-m2-t099)。
 
 原始来源：PRD v1.8 §5.8.1 R33，§5.8.1、5.8.4、5.8.5。交付单位：R33 拟派人员条件，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -3961,7 +3961,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T253 · R38 证明材料与评分要点对应
 <a id="app-m2-t253"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期完整。依赖：[APP-M2-T058](APP-M2.md#app-m2-t058)、[APP-M2-T059](APP-M2.md#app-m2-t059)、[APP-M2-T114](APP-M2.md#app-m2-t114)、[APP-M2-T075](APP-M2.md#app-m2-t075)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期完整。依赖：[APP-M2-T058](APP-M2.md#app-m2-t058)、[APP-M2-T059](APP-M2.md#app-m2-t059)、[APP-M2-T114](APP-M2.md#app-m2-t114)、[APP-M2-T075](APP-M2.md#app-m2-t075)。
 
 原始来源：PRD v1.8 §5.8.1 R38，§5.8.1、5.8.4、5.8.5。交付单位：R38 证明材料与评分要点对应，同一产品的页面/后台/数据/权限/输出协作一起验收。
 

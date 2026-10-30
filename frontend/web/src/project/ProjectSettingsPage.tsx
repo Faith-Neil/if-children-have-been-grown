@@ -11,11 +11,12 @@ import { request } from '../shared/api';
 import { ModelConfigModal } from '../admin/ModelConfigModal';
 import { modelConfigAccess } from '../admin/model-config-core.ts';
 import { projectVolumes, technicalOnly, volumeOptions } from './project-volumes.ts';
+import { ProposedStaffCard } from './ProposedStaffCard';
 
 const anchors = [ ['basic', '基本信息'], ['members', '成员与分工'], ['partners', '合作方'], ['persons', '拟派人员'], ['sla', 'SLA 取值'], ['rules', '规则覆盖'], ['loops', '生成闭环'], ['volumes', '分册'], ['export', '导出设置'] ];
 
 export default function ProjectSettingsPage() {
-  const { workspace, token, user, busy, mutate, report, navigate } = useProject();
+  const { workspace, token, user, busy, mutate, reload, report, navigate } = useProject();
   const [projectModel, setProjectModel] = useState<{ id: string; name: string; model: string; is_local: boolean; allow_sensitive: boolean } | null>(null);
   const [modelModalOpen, setModelModalOpen] = useState(false);
 
@@ -171,7 +172,10 @@ export default function ProjectSettingsPage() {
                 }}
               />
             </div>
-          ) : id === 'sla' ? <><p>服务承诺（SLA）是公司能承诺的响应、恢复等标准。实际取值已在响应矩阵逐项核对。</p><Button onClick={() => navigate('matrix')}>前往服务承诺矩阵</Button></> : <Alert type="info" message="该组完整设置仍待实现" description={id === 'export' ? '本轮仅保存合标分工。命名、正式递交完整值类别、定稿与模板选项尚未接通，当前两册仍为内部复核稿。' : `${title}的原始业务范围继续按任务实施，这里没有可保存的配置。`} showIcon />}
+          ) : id === 'persons' ? (
+            <ProposedStaffCard projectId={workspace.project.id} token={token} canEdit={canManageProject}
+              revision={workspace.revision} onSaved={reload} />
+          ) : id === 'sla' ? <><p>服务承诺（SLA）是公司能承诺的响应、恢复等标准。实际取值已在响应矩阵逐项核对。</p><Button onClick={() => navigate('matrix')}>前往服务承诺矩阵</Button></> : <Alert type="info" message="该组完整设置仍待实现" description={id === 'export' ? 'Word 模板与附件扫描件在导出页选择；导出命名规则尚未实现。' : `${title}的原始业务范围继续按任务实施，这里没有可保存的配置。`} showIcon />}
         </Card>)}
       </div>
     </div>
