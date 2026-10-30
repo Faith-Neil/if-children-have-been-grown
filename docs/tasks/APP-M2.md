@@ -320,7 +320,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T020 · JobProgress：SSE 订阅、断线提示与轮询回退
 <a id="app-m2-t020"></a>
 
-状态：in-progress（2026-10-30 与看板同步；缺口见看板工作包 WP-6）。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T014](APP-M2.md#app-m2-t014)、[APP-M2-T019](APP-M2.md#app-m2-t019)。
+状态：in-review（2026-10-31，交付见 [APP-M2-T020](../delivery/APP-M2-T020.md)）。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T014](APP-M2.md#app-m2-t014)、[APP-M2-T019](APP-M2.md#app-m2-t019)。
 
 原始来源：原交接 §6.2 M1-P05-F2；PRD v1.8 §5.12.4、5.7.6。交付单位：JobProgress：SSE 订阅、断线提示与轮询回退，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -1460,7 +1460,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T096 · 新建项目与 R19 提示
 <a id="app-m2-t096"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T14](APP-M1.md#app-m1-t14)、[APP-M2-T224](APP-M2.md#app-m2-t224)。
+状态：in-review（2026-10-31，交付见 [APP-M2-T096](../delivery/APP-M2-T096.md)）。关联Issue：ISSUE-007、ISSUE-046。原范围：一期业务页面/支撑。依赖：[APP-M1-T14](APP-M1.md#app-m1-t14)、[APP-M2-T224](APP-M2.md#app-m2-t224)。
 
 原始来源：原交接 §6.4 M3-E01-F3；PRD v1.8 §5.1.1～5.1.4。交付单位：新建项目与 R19 提示，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -2537,7 +2537,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T166 · 问题标注与侧栏联动
 <a id="app-m2-t166"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T15](APP-M1.md#app-m1-t15)、[APP-M2-T161](APP-M2.md#app-m2-t161)、[APP-M2-T140](APP-M2.md#app-m2-t140)。
+状态：in-review（2026-10-31，交付见 [APP-M2-T166](../delivery/APP-M2-T166.md)）。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T15](APP-M1.md#app-m1-t15)、[APP-M2-T161](APP-M2.md#app-m2-t161)、[APP-M2-T140](APP-M2.md#app-m2-t140)。
 
 原始来源：原交接 §6.7 M6-I01-F7；PRD v1.8 §5.11.2～5.11.10。交付单位：问题标注与侧栏联动，同一产品的页面/后台/数据/权限/输出协作一起验收。
 

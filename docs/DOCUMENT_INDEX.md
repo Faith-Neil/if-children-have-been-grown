@@ -910,6 +910,16 @@
 | D-889 | 2026-10-31 | [任务交付：口令登录（APP-M2-T260）](delivery/APP-M2-T260.md) | 任务交付 | login-1 | in-review | ISSUE-007 / APP-M2-T260 | 强制改密、公司停用、统一失败提示、公司密码规则、锁定到期解锁 |
 | D-890 | 2026-10-31 | [代码说明：口令登录（APP-M2-T260）](code/APP-M2-T260.md) | 代码说明 | login-1 | 当前 | ISSUE-007 / APP-M2-T260 | 登录判定顺序、须改密拦截点、密码规则与安全审计 |
 | D-891 | 2026-10-31 | [APP-M2-T260 口令登录验证](testing/2026-10-31-t260-password-login.md) | 测试 | login-test-1 | 当前 | ISSUE-007 / APP-M2-T260 | 本机与 CI 验证、首次 CI 失败原因与契约导出方式 |
+| D-892 | 2026-10-31 | [任务交付：问题标注与侧栏联动（APP-M2-T166）](delivery/APP-M2-T166.md) | 任务交付 | issues-1 | in-review | ISSUE-007 / APP-M2-T166 | 本章问题清单三处来源、段落定位与正文标记 |
+| D-893 | 2026-10-31 | [代码说明：问题标注与侧栏联动（APP-M2-T166）](code/APP-M2-T166.md) | 代码说明 | issues-1 | 当前 | ISSUE-007 / APP-M2-T166 | 来源合并、段落键折算顺序与前端接线 |
+| D-894 | 2026-10-31 | [APP-M2-T166 问题联动验证](testing/2026-10-31-t166-issue-linkage.md) | 测试 | issues-test-1 | 当前 | ISSUE-007 / APP-M2-T166 | 本机与 CI 验证 |
+| D-895 | 2026-10-31 | [任务交付：后台解析任务与进度订阅（APP-M2-T020）](delivery/APP-M2-T020.md) | 任务交付 | jobs-1 | in-review | ISSUE-007 / APP-M2-T020 | 解析后台任务、事件流续连、退避轮询与恢复 |
+| D-896 | 2026-10-31 | [代码说明：后台解析任务与进度订阅（APP-M2-T020）](code/APP-M2-T020.md) | 代码说明 | jobs-1 | 当前 | ISSUE-007 / APP-M2-T020 | 执行器、事件流保持与前端订阅状态机 |
+| D-897 | 2026-10-31 | [APP-M2-T020 解析任务验证](testing/2026-10-31-t020-parse-job-progress.md) | 测试 | jobs-test-1 | 当前 | ISSUE-007 / APP-M2-T020 | 本机与 CI 验证、未连真实 RAGFlow |
+| D-898 | 2026-10-31 | [任务交付：新建项目与 R19 提示（APP-M2-T096）](delivery/APP-M2-T096.md) | 任务交付 | r19-1 | in-review | ISSUE-007 / ISSUE-046 / APP-M2-T096 | 同标段核对、只示公司名、说明留痕与通知、原 R19 更正 |
+| D-899 | 2026-10-31 | [代码说明：新建项目与 R19 提示（APP-M2-T096）](code/APP-M2-T096.md) | 代码说明 | r19-1 | 当前 | ISSUE-007 / APP-M2-T096 | 匹配口径、拦截点、确认范围与检查规则 |
+| D-900 | 2026-10-31 | [APP-M2-T096 关联投标验证](testing/2026-10-31-t096-related-bid.md) | 测试 | r19-test-1 | 当前 | ISSUE-007 / APP-M2-T096 | 本机与 CI 验证 |
+| D-901 | 2026-10-31 | [ISSUE-046：合规规则编号与 PRD 规则清单不一致](../issues/ISSUE-046.md) | Issue | rule-ids-1 | new | ISSUE-046 | 约 19 条规则编号对不上 PRD，规则卡 in-review 不成立 |
 
 ## 更新记录
 

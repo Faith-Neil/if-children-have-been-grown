@@ -10,16 +10,16 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，2026-10-30 整治，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 455 项：done 96、in-review 177、in-progress 37、planned 71、blocked 0、cancelled 74、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+项目 455 项：done 96、in-review 180、in-progress 36、planned 69、blocked 0、cancelled 74、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
 | 账号与权限 | 生产口令登录、8 角色 RBAC、数据权限只读态；首次登录与重置后强制改密（后端拦截）、按公司规则校验新密码、统一失败提示、锁定到期自动解锁、停用公司拒绝登录、退出即作废令牌（T260）；账号与公司安全事件单独持久化 | 品牌页（T033/T034，登录页已读品牌接口）；平台设置页（锁定时长现用部署变量）；A-06 审计日志页仍是页面内示例；OIDC/Keycloak 已按 PM 决定取消 |
 | 持久化 | 项目工作流、账号、资料库、知识库索引写入 MySQL 8（Alembic 0012） | 旧 `/api/projects`、`/api/chapters` 路由仍在（BE-M0-T09） |
-| 招标解析 | PDF/Word 文字提取，扫描件/.doc/Excel/图片经 RAGFlow DeepDOC；响应矩阵含响应方式、风险、批量匹配、分流确认与 Excel；按章节与条目抽取条款，适配真实招标文件版式（展平表格、段内（1）…（8）、否决/无效/废标）；事实含前附表；条目置信度（公司阈值高亮）与“原文不可读”须补录 | 手工框选新增条目；条款合并拆分（T109）；按标题分块的模型抽取（规则 1，现为规则抽取） |
+| 招标解析 | 解析作为后台任务运行，页面经事件流实时显示进度、断线改为轮询，RAGFlow 识别中的文件自动反复取回（T020）；PDF/Word 文字提取，扫描件/.doc/Excel/图片经 RAGFlow DeepDOC；响应矩阵含响应方式、风险、批量匹配、分流确认与 Excel；按章节与条目抽取条款，适配真实招标文件版式（展平表格、段内（1）…（8）、否决/无效/废标）；事实含前附表；条目置信度（公司阈值高亮）与“原文不可读”须补录 | 手工框选新增条目；条款合并拆分（T109）；按标题分块的模型抽取（规则 1，现为规则抽取） |
 | 知识库 | 每公司三类数据集、ICG 摄入流程、管控接口与管理页、检索带片号引用；内置解析评测定默认阈值 | 流程模式评测；历史标书批量导入（T080/T081） |
-| 生成与编辑 | 章节闭环、人工处理队列、交叉复核与定稿门禁、编辑台差异确认、选区改写（3～5 种写法、替换或插入、重新定位） | 编辑中的正文仍是纯文本框（变量取值在框下方显示）；问题标注与正文联动（T166）；对话助手观察指标（T189）；章节模型评审目前不调用模型 |
-| 合规规则 | 42 条有检查与测试（R01～R20、R23～R44）；警告须负责人填理由逐项放行 | R33 的人员证书有效期与学历证明附件、R38 的附件文字识别；R43 风格样例照抄与 R44 事实来源核对（缺样例库与产品字典）；R21、R22 为二期 |
+| 生成与编辑 | 章节闭环、人工处理队列、交叉复核与定稿门禁、编辑台差异确认、选区改写（3～5 种写法、替换或插入、重新定位）；编辑台问题清单合并检查、章节循环与编辑后复查并按段落键双向定位（T166） | 编辑中的正文仍是纯文本框（变量取值与问题都在框外显示，持锁时定位为选中整段）；对话助手观察指标（T189）；章节模型评审目前不调用模型；手改提交不做增量复查 |
+| 合规规则 | R03、R07、R09、R11、R14、R19、R23～R25、R29～R31、R33、R35～R44 有与 PRD 同编号的检查；警告须负责人填理由逐项放行；R19 关联投标冲突在立项与导出前核对（T096） | **约 19 条规则编号与 PRD 不符（R01、R02、R04～R06、R08、R10、R12、R13、R15～R18、R20、R26～R28、R32、R34，[ISSUE-046](../issues/ISSUE-046.md)），看板里这些规则卡的 in-review 不成立，待 PM 决定**；R33 的人员证书有效期与学历证明附件、R38 的附件文字识别；R43 风格样例照抄与 R44 事实来源核对；R21、R22 为二期 |
 | 导出 | Word 版式、封面目录页码、公司 Word 模板、招标格式要求覆盖模板、一至八级标题与 Markdown 转换、附件扫描件按页插入与敏感水印、导出命名、分册定稿、递交门禁、合标核对清单与内部响应追溯表 Excel | 公司模板的四至八级标题样式未从模板读取（沿用三级标题字体）；招标规定的格式文件（投标函等）按格式填充；暗标封面；内部稿水印按用户决定不做 |
 | 管理 | 模型/RAGFlow 弹窗配置、任务与模型对应表、公司管理与公司设置、站内提醒、审计日志、SLA 模板 | 模型配置版本与回滚（T038）、公司模型开放（T041）、品牌页（T033/T034）、集团视图 |
 
@@ -29,12 +29,12 @@
 
 | 工作包 | 范围 | 未完成的卡 | 主要缺口 |
 |---|---|---|---|
-| WP-1 编辑台结构化正文 | T137～T139、T160～T190 | T166、T160、T169、T171、T189、T190、T137、T138、T139（AntV G2） | 段落键、段落锁定、版本对比与回退、变量节点已有（T161、T163、T164、T174、T175 in-review），编辑中的正文仍是纯文本框；问题标注联动还没做 |
+| WP-1 编辑台结构化正文 | T137～T139、T160～T190 | T160、T169、T171、T189、T190、T137、T138、T139（AntV G2） | 段落键、段落锁定、版本对比与回退、变量节点、问题标注与侧栏联动已有（T161、T163、T164、T166、T174、T175 in-review），编辑中的正文仍是纯文本框 |
 | WP-2 资料库 | T046～T079 | T046～T068、T070～T075、T077 中未完成的 30 张 | 列表/详情按通用字段渲染，`field_metadata.kb_record` 的各类别字段与 `MetadataTable`/`MetadataForm` 没接入页面；★ 字段重确认、受限资料转交、人员/授权/业绩分类页、Excel 导入 |
 | WP-3 写作规范后台 | T080～T093 | 13 张 | 历史标书导入、章节模板、术语句式、任务卡与提示词模板、审查清单、风格样例 |
-| WP-4 项目与解析 | T094～T117 | T096～T102、T107、T109、T110 | 新建项目 R19 提示、项目设置页、补遗差异、条目合并拆分、冲突页签 |
+| WP-4 项目与解析 | T094～T117 | T097～T102、T107、T109、T110 | 项目设置页、补遗差异、条目合并拆分、冲突页签（R19 提示已做，T096 in-review） |
 | WP-5 矩阵、SLA 与章节循环 | T118～T136、T211～T213 | 10 张 | 证据三路候选、SLA 判定与承诺函、需复核传播、R09 子范围、循环异常重试 |
-| WP-6 检查、规则、导出、看板与管理 | T011、T020、T033～T044、T140～T159、T191～T259 中未完成的 | 35 张 | `JobProgressWithSse` 未接入任何页面（任务进度靠轮询，T020）；R25 实际文件残留检查（T231）；R43/R44；暗标；品牌页；集团视图 |
+| WP-6 检查、规则、导出、看板与管理 | T011、T033～T044、T140～T159、T191～T259 中未完成的 | 34 张 | 规则编号对齐（ISSUE-046）；导出、检查仍是同步请求；R25 实际文件残留检查（T231）；R43/R44；暗标；品牌页；集团视图 |
 | WP-7 评审边界 | FE-M0-T03 | 1 张 | 评审系统与前端来源边界说明 |
 
 整治决定（2026-10-30）：
@@ -370,7 +370,7 @@
 | [APP-M2-T017](tasks/APP-M2.md#app-m2-t017) | MaskedField 与“查看完整值”弹窗（原因必填） | in-review | APP-M2-T014 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T017.md) |
 | [APP-M2-T018](tasks/APP-M2.md#app-m2-t018) | 掩码规则读取与查看留痕提示 | in-review | APP-M2-T014、APP-M2-T017 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T018.md) |
 | [APP-M2-T019](tasks/APP-M2.md#app-m2-t019) | JobProgress：步骤、子进度、AI 紫进度条 | in-review | APP-M2-T014 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T019.md) |
-| [APP-M2-T020](tasks/APP-M2.md#app-m2-t020) | JobProgress：SSE 订阅、断线提示与轮询回退 | in-progress（2026-10-28 重定：部分已实现，缺口见本页工作包 WP-6） | APP-M2-T014、APP-M2-T019 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T020.md` |
+| [APP-M2-T020](tasks/APP-M2.md#app-m2-t020) | JobProgress：SSE 订阅、断线提示与轮询回退 | in-review（2026-10-31：招标解析改为后台任务，事件流带令牌、续连、退避后轮询并恢复；导出与检查仍同步） | APP-M2-T014、APP-M2-T019 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T020.md) |
 | [APP-M2-T021](tasks/APP-M2.md#app-m2-t021) | 任务中心页基础 + 顶栏任务角标与抽屉 | done | APP-M2-T014、APP-M2-T019、APP-M2-T020 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T021.md) |
 | [APP-M2-T022](tasks/APP-M2.md#app-m2-t022) | 平台管理员脱敏视图；从失败步骤重试、取消权限 | done | APP-M2-T021 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T022.md) |
 | [APP-M2-T023](tasks/APP-M2.md#app-m2-t023) | StatusTag 状态注册表（9.3 全部代码表） | done | APP-M2-T005 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T023.md) |
@@ -446,7 +446,7 @@
 | [APP-M2-T093](tasks/APP-M2.md#app-m2-t093) | 入库脱敏扫描结果展示 | planned | APP-M2-T082、APP-M2-T092、APP-M2-T230、APP-M2-T238、APP-M2-T243 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T093.md` |
 | [APP-M2-T094](tasks/APP-M2.md#app-m2-t094) | ProjectHeader 摘要条与页签（无“资料匹配”） | in-review（2026-10-30：去掉标的金额假默认值 12800000，未填写时如实显示） | APP-M1-T14 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T094.md` |
 | [APP-M2-T095](tasks/APP-M2.md#app-m2-t095) | 项目列表 | in-review（2026-10-28 重定：代码与测试已存在） | APP-M1-T14 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T095.md` |
-| [APP-M2-T096](tasks/APP-M2.md#app-m2-t096) | 新建项目与 R19 提示 | planned | APP-M1-T14、APP-M2-T224 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T096.md` |
+| [APP-M2-T096](tasks/APP-M2.md#app-m2-t096) | 新建项目与 R19 提示 | in-review（2026-10-31：立项与导出前核对同标段，只示对方公司名，须写说明并通知集团管理员；原“R19”实为绿色采购，改为 EXT-GREEN） | APP-M1-T14、APP-M2-T224 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T096.md) |
 | [APP-M2-T097](tasks/APP-M2.md#app-m2-t097) | 项目概览（待办、分册、状态操作） | in-progress（2026-10-28 重定：部分已实现，缺口见本页工作包 WP-4） | APP-M1-T14、APP-M2-T094 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T097.md` |
 | [APP-M2-T098](tasks/APP-M2.md#app-m2-t098) | 项目基本字段和合作方协议（成员复用T14） | planned | APP-M1-T14、APP-M2-T054 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T098.md` |
 | [APP-M2-T099](tasks/APP-M2.md#app-m2-t099) | 项目设置：拟派人员、SLA 取值、规则覆盖 | planned | APP-M1-T14、APP-M2-T060、APP-M2-T069 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T099.md` |
@@ -516,7 +516,7 @@
 | [APP-M2-T163](tasks/APP-M2.md#app-m2-t163) | 锁定内容 | in-review（2026-10-30：段落锁定，各写入路径后台拒绝改动，章节循环转人工；招标原文引用段未纳入） | APP-M1-T15、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T163.md) |
 | [APP-M2-T164](tasks/APP-M2.md#app-m2-t164) | 变量节点 | in-review | APP-M1-T15、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T164.md) |
 | [APP-M2-T165](tasks/APP-M2.md#app-m2-t165) | 证据节点与 `.cite` | in-review | APP-M1-T15、APP-M2-T161、APP-M2-T048 | [ISSUE-007](../issues/ISSUE-007.md) | [APP-M2-T165 交付](delivery/APP-M2-T165.md) |
-| [APP-M2-T166](tasks/APP-M2.md#app-m2-t166) | 问题标注与侧栏联动 | planned | APP-M1-T15、APP-M2-T161、APP-M2-T140 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T166.md` |
+| [APP-M2-T166](tasks/APP-M2.md#app-m2-t166) | 问题标注与侧栏联动 | in-review（2026-10-31：问题清单合并三处来源并按段落键定位，正文段落标问题数；编辑框内仍不能画标记） | APP-M1-T15、APP-M2-T161、APP-M2-T140 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T166.md) |
 | [APP-M2-T167](tasks/APP-M2.md#app-m2-t167) | 选区悬浮工具条 | in-review | APP-M1-T15、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | [APP-M2-T167 交付](delivery/APP-M2-T167.md) |
 | [APP-M2-T168](tasks/APP-M2.md#app-m2-t168) | 目录树与章节切换 | in-review | APP-M1-T15、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | [APP-M2-T168 交付](delivery/APP-M2-T168.md) |
 | [APP-M2-T169](tasks/APP-M2.md#app-m2-t169) | 工具栏紧凑模式（“格式”下拉） | planned | APP-M1-T15、APP-M2-T160 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T169.md` |
