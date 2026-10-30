@@ -12,7 +12,7 @@
 | 状态 | in-review |
 | 登记日期 | 2026-10-28 |
 | 最后更新日期 | 2026-10-30 |
-| revision | 2 |
+| revision | 3 |
 | 关联 Task | [任务看板](../docs/TASK_BOARD.md) |
 | 关联 PR | [PR #6](https://github.com/Faith-Neil/if-children-have-been-grown/pull/6) |
 | 本地验收 | `node scripts/check-project-governance.cjs` 通过 |
@@ -66,4 +66,12 @@
 审查意见中未采纳的：无。审查提到 BE-M0-T09 应 in-review，与 revision 1 “旧路由仍在，保持 planned” 不同；T09 的范围是错误体与幂等，路由下线另算，本次以卡片范围为准。
 
 剩余工作按 [任务看板](../docs/TASK_BOARD.md) “工作包” WP-1～WP-7 推进。基线：454 项，done 96、in-review 171、in-progress 37、planned 87、cancelled 63。
-
+## revision 3（2026-10-30 PM 决定）
+依据：[一期范围的三项决定](../docs/decisions/2026-10-30-phase-one-pm-decisions.md)。
+| 变化 | 卡 | 理由 |
+|---|---|---|
+| planned → cancelled | APP-M2-T010、T012、T013 | PM 决定不用 OIDC/Keycloak，内网只用账号口令登录 |
+| 新增 planned | APP-M2-T260 | T012、T013 中首次登录强制改密、停用公司拒绝登录、统一错误提示、登录页品牌仍是 PRD §5.12.1 验收项，改在口令登录下实现 |
+| planned → cancelled（二期延后） | FE-M6-T01～T04、FE-M7-T01～T04 | PM 决定标二期 |
+| 去掉“待技术确认” | APP-M2-T139 | PM 定用 AntV G2 |
+PRD、ROADMAP、ARCHITECTURE：无影响。PRD 原文不改；登录验收仍按 §5.12.1，只是实现路径从 OIDC 改为口令登录。基线：455 项，done 96、in-review 175、in-progress 37、planned 73、cancelled 74。

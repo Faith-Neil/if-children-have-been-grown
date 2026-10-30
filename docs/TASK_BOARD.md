@@ -10,15 +10,15 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，2026-10-30 整治，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 454 项：done 96、in-review 175、in-progress 37、planned 83、blocked 0、cancelled 63、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+项目 455 项：done 96、in-review 175、in-progress 37、planned 73、blocked 0、cancelled 74、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
-| 账号与权限 | 生产口令登录、8 角色 RBAC、数据权限只读态；演示入口已删 | OIDC/Keycloak（T010、T012、T013）未做，是否保留待用户决定；内网可只用口令登录 |
+| 账号与权限 | 生产口令登录、8 角色 RBAC、数据权限只读态；演示入口已删 | 首次登录强制改密、停用公司拒绝登录、登录页品牌（T260）；OIDC/Keycloak 已按 PM 决定取消 |
 | 持久化 | 项目工作流、账号、资料库、知识库索引写入 MySQL 8（Alembic 0012） | 旧 `/api/projects`、`/api/chapters` 路由仍在（BE-M0-T09） |
 | 招标解析 | PDF/Word 文字提取，扫描件/.doc/Excel/图片经 RAGFlow DeepDOC；响应矩阵含响应方式、风险、批量匹配、分流确认与 Excel；按章节与条目抽取条款，适配真实招标文件版式（展平表格、段内（1）…（8）、否决/无效/废标）；事实含前附表；条目置信度（公司阈值高亮）与“原文不可读”须补录 | 手工框选新增条目；条款合并拆分（T109）；按标题分块的模型抽取（规则 1，现为规则抽取） |
 | 知识库 | 每公司三类数据集、ICG 摄入流程、管控接口与管理页、检索带片号引用；内置解析评测定默认阈值 | 流程模式评测；历史标书批量导入（T080/T081） |
-| 生成与编辑 | 章节闭环、人工处理队列、交叉复核与定稿门禁、编辑台差异确认、选区改写（3～5 种写法、替换或插入、重新定位） | 段落锁定；完整的逐段来源记录（目前只有对话助手写入与粘贴识别的段落来源）；对话助手观察指标（T189）；章节模型评审目前不调用模型 |
+| 生成与编辑 | 章节闭环、人工处理队列、交叉复核与定稿门禁、编辑台差异确认、选区改写（3～5 种写法、替换或插入、重新定位） | 正文仍是纯文本框：变量节点（T164）、问题标注与正文联动（T166）；对话助手观察指标（T189）；章节模型评审目前不调用模型 |
 | 合规规则 | 42 条有检查与测试（R01～R20、R23～R44）；警告须负责人填理由逐项放行 | R33 的人员证书有效期与学历证明附件、R38 的附件文字识别；R43 风格样例照抄与 R44 事实来源核对（缺样例库与产品字典）；R21、R22 为二期 |
 | 导出 | Word 版式、封面目录页码、公司 Word 模板、招标格式要求覆盖模板、一至八级标题与 Markdown 转换、附件扫描件按页插入与敏感水印、导出命名、分册定稿、递交门禁、合标核对清单与内部响应追溯表 Excel | 公司模板的四至八级标题样式未从模板读取（沿用三级标题字体）；招标规定的格式文件（投标函等）按格式填充；暗标封面；内部稿水印按用户决定不做 |
 | 管理 | 模型/RAGFlow 弹窗配置、任务与模型对应表、公司管理与公司设置、站内提醒、审计日志、SLA 模板 | 模型配置版本与回滚（T038）、公司模型开放（T041）、品牌页（T033/T034）、集团视图 |
@@ -29,12 +29,12 @@
 
 | 工作包 | 范围 | 未完成的卡 | 主要缺口 |
 |---|---|---|---|
-| WP-1 编辑台结构化正文 | T137～T139、T160～T190 | T164、T166、T160、T169、T171、T189、T190、T137、T138、T139 | 段落键、段落锁定、版本对比与回退已有（T161、T163、T174、T175 in-review），正文仍是纯文本框；变量节点、问题标注联动还没做 |
+| WP-1 编辑台结构化正文 | T137～T139、T160～T190 | T164、T166、T160、T169、T171、T189、T190、T137、T138、T139（AntV G2） | 段落键、段落锁定、版本对比与回退已有（T161、T163、T174、T175 in-review），正文仍是纯文本框；变量节点、问题标注联动还没做 |
 | WP-2 资料库 | T046～T079 | T046～T068、T070～T075、T077 中未完成的 30 张 | 列表/详情按通用字段渲染，`field_metadata.kb_record` 的各类别字段与 `MetadataTable`/`MetadataForm` 没接入页面；★ 字段重确认、受限资料转交、人员/授权/业绩分类页、Excel 导入 |
 | WP-3 写作规范后台 | T080～T093 | 13 张 | 历史标书导入、章节模板、术语句式、任务卡与提示词模板、审查清单、风格样例 |
 | WP-4 项目与解析 | T094～T117 | T096～T102、T107、T109、T110 | 新建项目 R19 提示、项目设置页、补遗差异、条目合并拆分、冲突页签 |
 | WP-5 矩阵、SLA 与章节循环 | T118～T136、T211～T213 | 10 张 | 证据三路候选、SLA 判定与承诺函、需复核传播、R09 子范围、循环异常重试 |
-| WP-6 检查、规则、导出、看板与管理 | T011、T020、T033～T044、T140～T159、T191～T260 中未完成的 | 35 张 | `JobProgressWithSse` 未接入任何页面（任务进度靠轮询，T020）；R25 实际文件残留检查（T231）；R43/R44；暗标；品牌页；集团视图 |
+| WP-6 检查、规则、导出、看板与管理 | T011、T020、T033～T044、T140～T159、T191～T260 中未完成的 | 36 张 | 口令登录强制改密与停用公司（T260）；`JobProgressWithSse` 未接入任何页面（任务进度靠轮询，T020）；R25 实际文件残留检查（T231）；R43/R44；暗标；品牌页；集团视图 |
 | WP-7 评审边界 | FE-M0-T03 | 1 张 | 评审系统与前端来源边界说明 |
 
 整治决定（2026-10-30）：
@@ -43,7 +43,7 @@
 - 改 in-review 并补交付：BE-M0-T09、BE-M0-T17、APP-M2-T094、T105、T106、T108、T135、T173。BE-M0-T09 的范围是错误体与幂等，旧 `/api/projects` 路由下线不在本卡。
 - cancelled：T043、T045（公司设置页已实现）、T129（章节循环页与大纲树承担）、T170 并入 T173、T128 并入 T127、T132 并入 T175；T226、T227 为二期延后，不是永久取消。
 - 保留：T231（T199 只做导出清理，不替代对实际文件的检查）。
-- 待用户决定：OIDC/Keycloak（T010、T012、T013）；FE-M6、FE-M7 共 8 张一期可延后卡；T139 图表库。
+- PM 2026-10-30 决定（[一期范围的三项决定](decisions/2026-10-30-phase-one-pm-decisions.md)）：取消 OIDC/Keycloak（T010、T012、T013），仍有效的登录验收拆为 T260；FE-M6、FE-M7 共 8 张标二期延后；T139 用 AntV G2。
 - 编辑锁超时按平台上限 6～60 分钟执行。PRD §6.9 的 10～120 分钟标为示例值，硬约束“大于 5 分钟”已满足；平台上限不放宽。
 - 去掉假数据：资料详情的示例证件号与“关联项目数 2”、项目标的金额默认 12800000；资料库批量确认改为逐条展示关键字段、写核对依据并勾选声明，改过的、受限的、缺协议的资料须逐条确认。
 
@@ -263,14 +263,14 @@
 | [FE-M5-T09](tasks/FE-M5.md#fe-m5-t09) | 站内提醒与一期全局搜索 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M0-T07](tasks/FE-M0.md#fe-m0-t07)、[FE-M0-T08](tasks/FE-M0.md#fe-m0-t08)、[FE-M1-T01](tasks/FE-M1.md#fe-m1-t01)、[FE-M5-T01](tasks/FE-M5.md#fe-m5-t01) | — | `docs/delivery/FE-M5-T09.md` |
 | [FE-M5-T10](tasks/FE-M5.md#fe-m5-t10) | 规则配置与兜底扫描版本 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M0-T08](tasks/FE-M0.md#fe-m0-t08)、[FE-M5-T08](tasks/FE-M5.md#fe-m5-t08)、[FE-M1-T05](tasks/FE-M1.md#fe-m1-t05) | — | `docs/delivery/FE-M5-T10.md` |
 | [FE-M5-T11](tasks/FE-M5.md#fe-m5-t11) | 服务状态品牌与任务中心入口 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M0-T10](tasks/FE-M0.md#fe-m0-t10)、[FE-M5-T08](tasks/FE-M5.md#fe-m5-t08)、[FE-M0-T09](tasks/FE-M0.md#fe-m0-t09) | — | `docs/delivery/FE-M5-T11.md` |
-| [FE-M6-T01](tasks/FE-M6.md#fe-m6-t01) | 章节负责人分派与待办 | planned（一期可延后范围，待 PM 确认取消或二期） | [FE-M2-T01](tasks/FE-M2.md#fe-m2-t01)、[FE-M5-T08](tasks/FE-M5.md#fe-m5-t08) | — | `docs/delivery/FE-M6-T01.md` |
-| [FE-M6-T02](tasks/FE-M6.md#fe-m6-t02) | 评论批注与提及解决 | planned（一期可延后范围，待 PM 确认取消或二期） | [FE-M3-T01](tasks/FE-M3.md#fe-m3-t01)、[FE-M3-T05](tasks/FE-M3.md#fe-m3-t05)、[FE-M5-T09](tasks/FE-M5.md#fe-m5-t09) | — | `docs/delivery/FE-M6-T02.md` |
-| [FE-M6-T03](tasks/FE-M6.md#fe-m6-t03) | 知识引用地图 | planned（一期可延后范围，待 PM 确认取消或二期） | [FE-M3-T05](tasks/FE-M3.md#fe-m3-t05)、[FE-M5-T05](tasks/FE-M5.md#fe-m5-t05) | — | `docs/delivery/FE-M6-T03.md` |
-| [FE-M6-T04](tasks/FE-M6.md#fe-m6-t04) | 项目模板复制 | planned（一期可延后范围，待 PM 确认取消或二期） | [FE-M1-T01](tasks/FE-M1.md#fe-m1-t01)、[FE-M1-T06](tasks/FE-M1.md#fe-m1-t06)、[FE-M5-T06](tasks/FE-M5.md#fe-m5-t06) | — | `docs/delivery/FE-M6-T04.md` |
-| [FE-M7-T01](tasks/FE-M7.md#fe-m7-t01) | 快捷命令与跳转 | planned（一期可延后范围，待 PM 确认取消或二期） | [FE-M0-T07](tasks/FE-M0.md#fe-m0-t07)、[FE-M5-T09](tasks/FE-M5.md#fe-m5-t09) | — | `docs/delivery/FE-M7-T01.md` |
-| [FE-M7-T02](tasks/FE-M7.md#fe-m7-t02) | 能力与写作质量指标视图 | planned（一期可延后范围，待 PM 确认取消或二期） | [FE-M5-T04](tasks/FE-M5.md#fe-m5-t04)、[FE-M5-T06](tasks/FE-M5.md#fe-m5-t06)、[FE-M2-T03](tasks/FE-M2.md#fe-m2-t03) | — | `docs/delivery/FE-M7-T02.md` |
-| [FE-M7-T03](tasks/FE-M7.md#fe-m7-t03) | 历史复用推荐预览 | planned（一期可延后范围，待 PM 确认取消或二期） | [FE-M5-T05](tasks/FE-M5.md#fe-m5-t05)、[FE-M3-T07](tasks/FE-M3.md#fe-m3-t07)、[FE-M3-T08](tasks/FE-M3.md#fe-m3-t08) | — | `docs/delivery/FE-M7-T03.md` |
-| [FE-M7-T04](tasks/FE-M7.md#fe-m7-t04) | 高频批量操作 | planned（一期可延后范围，待 PM 确认取消或二期） | [FE-M1-T06](tasks/FE-M1.md#fe-m1-t06)、[FE-M2-T02](tasks/FE-M2.md#fe-m2-t02)、[FE-M0-T10](tasks/FE-M0.md#fe-m0-t10) | — | `docs/delivery/FE-M7-T04.md` |
+| [FE-M6-T01](tasks/FE-M6.md#fe-m6-t01) | 章节负责人分派与待办 | cancelled（二期延后，非永久取消：PM 2026-10-30 决定） | [FE-M2-T01](tasks/FE-M2.md#fe-m2-t01)、[FE-M5-T08](tasks/FE-M5.md#fe-m5-t08) | — | `docs/delivery/FE-M6-T01.md` |
+| [FE-M6-T02](tasks/FE-M6.md#fe-m6-t02) | 评论批注与提及解决 | cancelled（二期延后，非永久取消：PM 2026-10-30 决定） | [FE-M3-T01](tasks/FE-M3.md#fe-m3-t01)、[FE-M3-T05](tasks/FE-M3.md#fe-m3-t05)、[FE-M5-T09](tasks/FE-M5.md#fe-m5-t09) | — | `docs/delivery/FE-M6-T02.md` |
+| [FE-M6-T03](tasks/FE-M6.md#fe-m6-t03) | 知识引用地图 | cancelled（二期延后，非永久取消：PM 2026-10-30 决定） | [FE-M3-T05](tasks/FE-M3.md#fe-m3-t05)、[FE-M5-T05](tasks/FE-M5.md#fe-m5-t05) | — | `docs/delivery/FE-M6-T03.md` |
+| [FE-M6-T04](tasks/FE-M6.md#fe-m6-t04) | 项目模板复制 | cancelled（二期延后，非永久取消：PM 2026-10-30 决定） | [FE-M1-T01](tasks/FE-M1.md#fe-m1-t01)、[FE-M1-T06](tasks/FE-M1.md#fe-m1-t06)、[FE-M5-T06](tasks/FE-M5.md#fe-m5-t06) | — | `docs/delivery/FE-M6-T04.md` |
+| [FE-M7-T01](tasks/FE-M7.md#fe-m7-t01) | 快捷命令与跳转 | cancelled（二期延后，非永久取消：PM 2026-10-30 决定） | [FE-M0-T07](tasks/FE-M0.md#fe-m0-t07)、[FE-M5-T09](tasks/FE-M5.md#fe-m5-t09) | — | `docs/delivery/FE-M7-T01.md` |
+| [FE-M7-T02](tasks/FE-M7.md#fe-m7-t02) | 能力与写作质量指标视图 | cancelled（二期延后，非永久取消：PM 2026-10-30 决定） | [FE-M5-T04](tasks/FE-M5.md#fe-m5-t04)、[FE-M5-T06](tasks/FE-M5.md#fe-m5-t06)、[FE-M2-T03](tasks/FE-M2.md#fe-m2-t03) | — | `docs/delivery/FE-M7-T02.md` |
+| [FE-M7-T03](tasks/FE-M7.md#fe-m7-t03) | 历史复用推荐预览 | cancelled（二期延后，非永久取消：PM 2026-10-30 决定） | [FE-M5-T05](tasks/FE-M5.md#fe-m5-t05)、[FE-M3-T07](tasks/FE-M3.md#fe-m3-t07)、[FE-M3-T08](tasks/FE-M3.md#fe-m3-t08) | — | `docs/delivery/FE-M7-T03.md` |
+| [FE-M7-T04](tasks/FE-M7.md#fe-m7-t04) | 高频批量操作 | cancelled（二期延后，非永久取消：PM 2026-10-30 决定） | [FE-M1-T06](tasks/FE-M1.md#fe-m1-t06)、[FE-M2-T02](tasks/FE-M2.md#fe-m2-t02)、[FE-M0-T10](tasks/FE-M0.md#fe-m0-t10) | — | `docs/delivery/FE-M7-T04.md` |
 | [FE-M8-T01](tasks/FE-M8.md#fe-m8-t01) | 一期完整主链路联调 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M1-T07](tasks/FE-M1.md#fe-m1-t07)、[FE-M2-T05](tasks/FE-M2.md#fe-m2-t05)、[FE-M3-T09](tasks/FE-M3.md#fe-m3-t09)、[FE-M4-T06](tasks/FE-M4.md#fe-m4-t06)、[FE-M5-T07](tasks/FE-M5.md#fe-m5-t07)、[FE-M5-T08](tasks/FE-M5.md#fe-m5-t08)、[FE-M5-T09](tasks/FE-M5.md#fe-m5-t09)、[FE-M5-T10](tasks/FE-M5.md#fe-m5-t10)、[FE-M5-T11](tasks/FE-M5.md#fe-m5-t11) | — | `docs/delivery/FE-M8-T01.md` |
 | [FE-M8-T02](tasks/FE-M8.md#fe-m8-t02) | 安全离线长文与恢复验证 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M0-T09](tasks/FE-M0.md#fe-m0-t09)、[FE-M3-T02](tasks/FE-M3.md#fe-m3-t02)、[FE-M3-T03](tasks/FE-M3.md#fe-m3-t03)、[FE-M3-T04](tasks/FE-M3.md#fe-m3-t04)、[FE-M4-T05](tasks/FE-M4.md#fe-m4-t05)、[FE-M8-T01](tasks/FE-M8.md#fe-m8-t01) | — | `docs/delivery/FE-M8-T02.md` |
 | [FE-M8-T03](tasks/FE-M8.md#fe-m8-t03) | 版本发布与交付资料封版 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M8-T01](tasks/FE-M8.md#fe-m8-t01)、[FE-M8-T02](tasks/FE-M8.md#fe-m8-t02)、[FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | — | `docs/delivery/FE-M8-T03.md` |
@@ -360,10 +360,10 @@
 | [APP-M2-T007](tasks/APP-M2.md#app-m2-t007) | 表单通用：底部保存条、离开未保存提示、就近报错 | in-review | BE-M0-T01、APP-M2-T006 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T007.md) |
 | [APP-M2-T008](tasks/APP-M2.md#app-m2-t008) | 主题运行时接口位与离线检查纳入 CI（应用级） | done | BE-M0-T01、APP-M2-T001 | [ISSUE-012](../issues/ISSUE-012.md) | [交付](delivery/APP-M2-T008.md) |
 | [APP-M2-T009](tasks/APP-M2.md#app-m2-t009) | 断点与侧栏记忆（1280 / 1440 / 1680）、面包屑 | in-review | BE-M0-T01、APP-M2-T001 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T009.md) |
-| [APP-M2-T010](tasks/APP-M2.md#app-m2-t010) | OIDC 登录跳转、会话续期、401 回登录并返回原页 | planned（待 PM 决定是否保留 OIDC/Keycloak，内网可只用口令登录） | APP-M2-T001 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T010.md` |
+| [APP-M2-T010](tasks/APP-M2.md#app-m2-t010) | OIDC 登录跳转、会话续期、401 回登录并返回原页 | cancelled（PM 2026-10-30 决定不用 OIDC/Keycloak，内网只用账号口令登录；仍有效的登录验收移到 APP-M2-T260） | APP-M2-T001 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T010.md` |
 | [APP-M2-T011](tasks/APP-M2.md#app-m2-t011) | 会话超时处理、用户菜单与退出登录 | in-progress（2026-10-28 重定：部分已实现，缺口见本页工作包 WP-6） | APP-M2-T001、APP-M2-T010 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T011.md` |
-| [APP-M2-T012](tasks/APP-M2.md#app-m2-t012) | Keycloak 自定义登录主题（离线；错误、锁定、超时，已有示例卡） | planned（待 PM 决定是否保留 OIDC/Keycloak） | APP-M2-T010 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T012.md` |
-| [APP-M2-T013](tasks/APP-M2.md#app-m2-t013) | 登录主题：首次登录强制改密、公司停用提示、读取品牌设置 | planned（待 PM 决定是否保留 OIDC/Keycloak） | APP-M2-T010 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T013.md` |
+| [APP-M2-T012](tasks/APP-M2.md#app-m2-t012) | Keycloak 自定义登录主题（离线；错误、锁定、超时，已有示例卡） | cancelled（PM 2026-10-30 决定不用 OIDC/Keycloak，内网只用账号口令登录；仍有效的登录验收移到 APP-M2-T260） | APP-M2-T010 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T012.md` |
+| [APP-M2-T013](tasks/APP-M2.md#app-m2-t013) | 登录主题：首次登录强制改密、公司停用提示、读取品牌设置 | cancelled（PM 2026-10-30 决定不用 OIDC/Keycloak，内网只用账号口令登录；仍有效的登录验收移到 APP-M2-T260） | APP-M2-T010 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T013.md` |
 | [APP-M2-T014](tasks/APP-M2.md#app-m2-t014) | 路由守卫与 403 页 | in-review | APP-M2-T010 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T014.md) |
 | [APP-M2-T015](tasks/APP-M2.md#app-m2-t015) | 权限指令 `<Can>` 与按钮隐藏 | in-review | APP-M2-T010 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T015.md) |
 | [APP-M2-T016](tasks/APP-M2.md#app-m2-t016) | 数据权限的前端表现：只读态切换（项目 / 分册 / 章节） | in-review | APP-M2-T010 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T016.md) |
@@ -489,7 +489,7 @@
 | [APP-M2-T136](tasks/APP-M2.md#app-m2-t136) | 异常中断与重试 | in-progress（2026-10-28 重定：部分已实现，缺口见本页工作包 WP-5） | APP-M2-T126、APP-M2-T021、APP-M2-T130 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T136.md` |
 | [APP-M2-T137](tasks/APP-M2.md#app-m2-t137) | W-03 公司级写作观察统计 | planned | APP-M2-T131、APP-M2-T189 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T137.md` |
 | [APP-M2-T138](tasks/APP-M2.md#app-m2-t138) | P-17 项目级折叠区 | planned | APP-M2-T131、APP-M2-T189 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T138.md` |
-| [APP-M2-T139](tasks/APP-M2.md#app-m2-t139) | 图表组件（AntV G2，待技术确认） | planned（待技术确认：AntV G2 或沿用现有表格/进度条） | APP-M2-T131、APP-M2-T189 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T139.md` |
+| [APP-M2-T139](tasks/APP-M2.md#app-m2-t139) | 图表组件（AntV G2） | planned（PM 2026-10-30 定用 AntV G2） | APP-M2-T131、APP-M2-T189 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T139.md` |
 | [APP-M2-T140](tasks/APP-M2.md#app-m2-t140) | RuleIssueList | planned | APP-M1-T05 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T140.md` |
 | [APP-M2-T141](tasks/APP-M2.md#app-m2-t141) | 合规检查页布局与结论条 | in-progress（2026-10-28 重定：部分已实现，缺口见本页工作包 WP-6） | APP-M1-T05、APP-M2-T140 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T141.md` |
 | [APP-M2-T142](tasks/APP-M2.md#app-m2-t142) | 警告放行（理由必填，阻断无放行） | in-review（2026-10-28：警告逐项放行已实现，理由必填、阻断不能放行） | APP-M1-T05、APP-M2-T140 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T142.md` |
@@ -610,6 +610,7 @@
 | [APP-M2-T257](tasks/APP-M2.md#app-m2-t257) | R42 暗标正文节点 | in-review（2026-10-29：R42 暗标正文已实现，数据缺失子项如实标“未核对”） | APP-M2-T197、APP-M2-T198、APP-M2-T199、APP-M2-T100 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T257.md` |
 | [APP-M2-T258](tasks/APP-M2.md#app-m2-t258) | R42 暗标输出全部位置 | planned | APP-M2-T197、APP-M2-T198、APP-M2-T199、APP-M2-T100 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T258.md` |
 | [APP-M2-T259](tasks/APP-M2.md#app-m2-t259) | 公司年度中小企业划型记录及声明取值 | planned | APP-M2-T053、APP-M2-T054、APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T259.md` |
+| [APP-M2-T260](tasks/APP-M2.md#app-m2-t260) | 口令登录：首次登录强制改密、公司停用、统一错误提示、登录页品牌 | planned | APP-M2-T028、APP-M2-T025 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T260.md` |
 | [AI-01](tasks/AI-M0.md#ai-01) | 登记模型、向量、业务库和内网访问待决项（后端已有 /api/v1/model-configs，用户要求弹窗配置，前端未接；保持 in-review） | in-review | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02)；真实端点另计验收 | [ISSUE-010](../issues/ISSUE-010.md)；[ISSUE-028](../issues/ISSUE-028.md) | [登记交付](delivery/AI-01.md) / [ISSUE-028交付](delivery/ISSUE-028.md) |
 | [AI-02](tasks/AI-M0.md#ai-02) | OpenAI 兼容对话适配器 | done | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | [ISSUE-011](../issues/ISSUE-011.md) | [交付](delivery/AI-02.md) |
 | [AI-03](tasks/AI-M0.md#ai-03) | 检索层内存骨架 | done | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | [ISSUE-016](../issues/ISSUE-016.md) | [交付](delivery/AI-03.md) |
