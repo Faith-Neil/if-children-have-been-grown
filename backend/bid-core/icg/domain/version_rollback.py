@@ -36,6 +36,8 @@ class VersionRollbackService:
                 raise DomainError(409, "ROLLBACK_NOOP", "目标版本与当前正文相同，不需要回退。")
             from .paragraph_locks import refuse_locked_change
             refuse_locked_change(state, chapter, content)
+            from .variable_nodes import refuse_new_invalid
+            refuse_new_invalid(state, chapter, content)
             demo._writing_input(state, chapter, payload.get("input_fingerprint"))
             draft = chapter.drafts.get(principal.user.id)
             if draft is not None and draft.content != chapter.content:

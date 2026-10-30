@@ -181,7 +181,11 @@ def test_unknown_or_incomplete_variable_blocks_check(client):
         result = client.post("/api/chapters/alpha-tech/versions", headers=flow.headers, json={
             "lease_token": lease["lease_token"], "input_fingerprint": flow.state()["input_fingerprint"], "base_revision": chapter["revision"],
             "content": text, "idempotency_key": str(uuid4())})
-        assert result.status_code == 200, result.text
+        # 提交时后台先拒绝新写入的失效变量（APP-M2-T164）
+        assert result.status_code == 409 and result.json()["code"] == "SLA_VARIABLE_UNKNOWN", result.text
+        # 检查仍是第二道关：正文里已有的失效变量（例如之前写入、后来失效）照样拦截
+        client.app.state.service.repository.transaction(
+            lambda state, text=text: setattr(state.chapters["alpha-tech"], "content", text))
         check = flow.write("/checks", {"volume": "all"})["check"]
         assert any(issue["code"] == "SLA_VARIABLE_UNKNOWN" for issue in check["issues"])
 
@@ -391,7 +395,9 @@ def test_legacy_word_cannot_leave_unknown_sla_variable(client):
     result = client.post("/api/chapters/alpha-tech/versions", headers=flow.headers, json={
         "lease_token": lease["lease_token"], "base_revision": chapter["revision"], "content": "响应{{sla:unknown}}分钟。",
         "idempotency_key": str(uuid4())})
-    assert result.status_code == 200, result.text
+    assert result.status_code == 409 and result.json()["code"] == "SLA_VARIABLE_UNKNOWN", result.text
+    client.app.state.service.repository.transaction(
+        lambda state: setattr(state.chapters["alpha-tech"], "content", "响应{{sla:unknown}}分钟。"))
     check = client.post("/api/chapters/alpha-tech/checks", headers=flow.headers, json={})
     assert check.status_code == 409, check.text
 

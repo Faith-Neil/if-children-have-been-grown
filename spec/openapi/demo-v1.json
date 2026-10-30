@@ -37382,7 +37382,7 @@
     "/api/v1/projects/{project_id}/chapters/{chapter_id}/rollback": {
       "post": {
         "summary": "把正文回退到某个历史版本（生成新版本）",
-        "description": "须持有本章编辑锁与本节编辑权；有未提交草稿时 409 DRAFT_PENDING；目标与当前相同 409 ROLLBACK_NOOP；系统生成章节 409 SYSTEM_CHAPTER_READONLY；会改动或删除锁定段落时 409 PARAGRAPH_LOCKED；来源依据过期 409 INPUT_FINGERPRINT_STALE。",
+        "description": "须持有本章编辑锁与本节编辑权；有未提交草稿时 409 DRAFT_PENDING；目标与当前相同 409 ROLLBACK_NOOP；系统生成章节 409 SYSTEM_CHAPTER_READONLY；会改动或删除锁定段落时 409 PARAGRAPH_LOCKED；来源依据过期 409 INPUT_FINGERPRINT_STALE；会写回当前已失效的变量时 409 FACT_VARIABLE_INVALID / SLA_VARIABLE_*。",
         "operationId": "rollbackChapterVersion",
         "parameters": [
           {
@@ -37437,6 +37437,181 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RollbackResult"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "后端演示服务异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "423": {
+            "description": "编辑权被占用或已失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/chapters/{chapter_id}/variables": {
+      "post": {
+        "summary": "解析正文中的变量节点",
+        "description": "按当前项目事实与服务承诺矩阵解析 {{fact:…}} / {{sla:…}}：返回当前已确认取值（敏感号码为掩码）或失效原因。只读，有本章读取权限即可；不写正文、不改取值。",
+        "operationId": "resolveChapterVariables",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "chapter_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Chapter Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VariableResolveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VariableNodeList"
                 }
               }
             },
@@ -51821,6 +51996,162 @@
           "traceId"
         ],
         "title": "V1Error"
+      },
+      "VariableNode": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token",
+            "description": "正文中的变量原文，例如 {{fact:f-1}}"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "fact",
+              "sla"
+            ],
+            "title": "Kind"
+          },
+          "ref": {
+            "type": "string",
+            "title": "Ref",
+            "description": "事实 ID 或服务承诺变量键；格式不完整时为空"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "字段名或指标名"
+          },
+          "start": {
+            "type": "integer",
+            "title": "Start",
+            "description": "在正文中的起始字符位置"
+          },
+          "end": {
+            "type": "integer",
+            "title": "End"
+          },
+          "line": {
+            "type": "integer",
+            "title": "Line",
+            "description": "所在行（0 起）"
+          },
+          "display": {
+            "type": "string",
+            "title": "Display",
+            "description": "当前已确认的取值（含单位）；敏感号码为掩码；失效时为空"
+          },
+          "masked": {
+            "type": "boolean",
+            "title": "Masked"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "valid",
+              "unknown",
+              "invalid"
+            ],
+            "title": "Status",
+            "description": "valid 有效；unknown 数据源里没有；invalid 未确认、来源失效或单位不符"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code",
+            "description": "失效时对应的错误码"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "facts",
+              "matrix"
+            ],
+            "title": "Source",
+            "description": "去哪里改取值：facts 项目事实表；matrix 服务承诺矩阵"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "token",
+          "kind",
+          "ref",
+          "label",
+          "start",
+          "end",
+          "line",
+          "display",
+          "masked",
+          "status",
+          "code",
+          "message",
+          "source"
+        ],
+        "title": "VariableNode"
+      },
+      "VariableNodeList": {
+        "properties": {
+          "chapter_id": {
+            "type": "string",
+            "title": "Chapter Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "variables": {
+            "items": {
+              "$ref": "#/components/schemas/VariableNode"
+            },
+            "type": "array",
+            "title": "Variables"
+          },
+          "invalid": {
+            "type": "integer",
+            "title": "Invalid",
+            "description": "失效变量个数"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "chapter_id",
+          "revision",
+          "variables",
+          "invalid"
+        ],
+        "title": "VariableNodeList"
+      },
+      "VariableResolveRequest": {
+        "properties": {
+          "content": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content",
+            "description": "要解析的正文（编辑中的文字）；不传则解析已提交正文"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "VariableResolveRequest"
       },
       "VersionListResponse": {
         "properties": {

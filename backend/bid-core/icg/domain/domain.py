@@ -1013,6 +1013,8 @@ class DemoService:
             refuse_manual_edit(state, chapter)
             from .paragraph_locks import refuse_locked_change
             refuse_locked_change(state, chapter, content)
+            from .variable_nodes import refuse_new_invalid
+            refuse_new_invalid(state, chapter, content)
             self._writing_input(state, chapter, input_fingerprint)
             # 粘贴识别（APP-M2-T188）：与本章近期对话助手输出高度重合的新段落，来源记为“对话助手撰写（粘贴）”并复查
             from .paste_detection import review as paste_review

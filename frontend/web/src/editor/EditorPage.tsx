@@ -40,6 +40,8 @@ import { SelectionRewritePanel, type RewriteSelection } from './SelectionRewrite
 import { pasteNotice, type PastedParagraph } from './paste-notice.ts';
 import { paragraphsMatch } from './paragraph-keys.ts';
 import { ParagraphLocksBar } from './ParagraphLocksBar.tsx';
+import { VARIABLE_ERROR_CODES, mayHaveVariables, nodesMatch, resolveVariables, type VariableNode } from './variable-nodes.ts';
+import { VariableChip } from './VariableChip.tsx';
 import type { ApplyResult } from './selection-rewrite-core.ts';
 import { EditorDiffDrawer, type ChapterVersionItem } from './EditorDiffDrawer.tsx';
 import { extractCitationIds, type CiteKind, type CitationMeta } from './cite-capsule';
@@ -86,6 +88,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const [rewriteSelection, setRewriteSelection] = useState<RewriteSelection | null>(null);
   const [timings, setTimings] = useState<EditorTimings>(() => editorTimings(null));
   const [autosavePaused, setAutosavePaused] = useState(false);
+  const [variables, setVariables] = useState<VariableNode[]>([]);
   const autosaving = useRef(false);
 
   const epoch = useRef(0);
@@ -174,6 +177,21 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
 
   useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
 
+  // 变量节点（APP-M2-T164）：取值与是否有效以后台解析为准；文字停顿后再请求，数据源变化（来源指纹变）时重新解析
+  useEffect(() => {
+    if (!chapterId || !chapter || !mayHaveVariables(content)) { setVariables([]); return; }
+    let alive = true;
+    const timer = window.setTimeout(() => {
+      resolveVariables(workspace.project.id, chapterId, token, content)
+        .then(result => { if (alive) setVariables(result.variables); })
+        .catch(() => { if (alive) setVariables([]); });
+    }, 400);
+    return () => { alive = false; window.clearTimeout(timer); };
+  }, [content, chapterId, chapter?.revision, workspace.input_fingerprint, token]);
+  const shownVariables = useMemo(() => (nodesMatch(variables, content) ? variables : []), [variables, content]);
+  const invalidVariables = shownVariables.filter(item => item.status !== 'valid');
+  function goToSource(source: VariableNode['source']) { navigate(source === 'facts' ? 'facts' : 'matrix'); }
+
   useEffect(() => {
     const start = ++epoch.current;
     setChapter(null); setContent(''); setEditFingerprint(null); selection.current = null; setRewriteSelection(null);
@@ -201,6 +219,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     }
     if (error instanceof ApiError && error.code === 'FACT_SOURCE_CHANGE_REQUIRED') { setSourceAdvice(true); setNotice(error.message); return; }
     if (error instanceof ApiError && error.code === 'PARAGRAPH_LOCKED') { setNotice(`${error.message}当前文字仍在页面。`); return; }
+    if (error instanceof ApiError && VARIABLE_ERROR_CODES.has(error.code)) { setSourceAdvice(true); setNotice(`${error.message}当前文字仍在页面。`); return; }
     if (error instanceof ApiError && [403, 404].includes(error.status)) {
       currentLease.current = null; setLease(null);
       setNotice('本次操作没有权限，当前文字保留在页面。请核对最新项目成员和章节分工；个人草稿不会转送给其他人。');
@@ -497,7 +516,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
             {isReadOnlyView ? (
               <div className="chapter-editor-readonly-view" data-testid="readonly-editor-view">
                 <div className="chapter-editor-readonly-text" data-testid="readonly-editor-text" onMouseUp={handleContainerMouseUp} style={{ minHeight: 280, padding: 16, background: '#fafafa', border: '1px solid #e5e6eb', borderRadius: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#1d2129', lineHeight: 1.8, fontSize: 14 }}>
-                  {content ? <RichParagraphWithCites content={content} knownCitations={knownCitations} onCiteClick={handleCiteClick} paragraphKeys={paragraphsMatch(chapter.paragraphs, content, chapter.content) ? chapter.paragraphs : undefined} /> : <span className="muted" style={{ color: '#86909c' }}>（本章节暂无已提交正文）</span>}
+                  {content ? <RichParagraphWithCites content={content} knownCitations={knownCitations} onCiteClick={handleCiteClick} paragraphKeys={paragraphsMatch(chapter.paragraphs, content, chapter.content) ? chapter.paragraphs : undefined} variables={shownVariables} onGoToSource={goToSource} /> : <span className="muted" style={{ color: '#86909c' }}>（本章节暂无已提交正文）</span>}
                 </div>
               </div>
             ) : !held ? (
@@ -505,7 +524,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
                 <Alert type="info" showIcon message="当前未取得本节编辑锁" description="正文以纯文本方式呈现供浏览与校对。如需修改，请点击下方或工具栏的「取得编辑权」。" style={{ marginBottom: 12 }}
                   action={<Button size="small" type="primary" icon={<LockOutlined />} onClick={() => acquire()} disabled={combinedBusy || !canEdit} data-testid="unheld-acquire-btn">取得编辑权</Button>} />
                 <div className="chapter-editor-unheld-text" data-testid="unheld-editor-text" onMouseUp={handleContainerMouseUp} style={{ minHeight: 280, padding: 16, background: '#fcfcfd', border: '1px dashed #d9d9d9', borderRadius: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#262626', lineHeight: 1.8, fontSize: 14 }}>
-                  {content ? <RichParagraphWithCites content={content} knownCitations={knownCitations} onCiteClick={handleCiteClick} paragraphKeys={paragraphsMatch(chapter.paragraphs, content, chapter.content) ? chapter.paragraphs : undefined} /> : <span className="muted" style={{ color: '#8c8c8c' }}>（本章节暂无正文内容）</span>}
+                  {content ? <RichParagraphWithCites content={content} knownCitations={knownCitations} onCiteClick={handleCiteClick} paragraphKeys={paragraphsMatch(chapter.paragraphs, content, chapter.content) ? chapter.paragraphs : undefined} variables={shownVariables} onGoToSource={goToSource} /> : <span className="muted" style={{ color: '#8c8c8c' }}>（本章节暂无正文内容）</span>}
                 </div>
               </div>
             ) : (
@@ -514,6 +533,15 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
                   message={`本节有 ${lockedExcerpts.length} 个锁定段落，提交时须原样保留（可以挪位置）`}
                   description={<ul style={{ margin: 0, paddingLeft: 18 }}>{lockedExcerpts.map(item => <li key={item.key}>{item.text}（{item.by}）</li>)}</ul>} />}
                 <Input.TextArea className="chapter-editor" aria-label="章节正文" placeholder="根据招标原文、项目事实和可引用证据编制正文。不要把未经核实的承诺直接写入。" autoSize={{ minRows: 18, maxRows: 35 }} value={content} onSelect={e => { lock.markActivity(); handleTextareaSelect(e); }} onKeyDown={lock.markActivity} onMouseDown={lock.markActivity} onScroll={lock.markActivity} onChange={e => { lock.markActivity(); selection.current = { start: e.target.selectionStart, end: e.target.selectionEnd }; setContent(e.target.value); }} readOnly={!held || combinedBusy} />
+                {shownVariables.length > 0 && (
+                  <div className="editor-variable-bar" data-testid="editor-variable-bar" style={{ marginTop: 8, padding: '8px 12px', background: '#fffdf5', border: '1px solid #f5e6b8', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 12, color: '#4e5969', fontWeight: 500 }}>正文变量 ({shownVariables.length})：</span>
+                    {shownVariables.map(item => <VariableChip key={`${item.start}-${item.token}`} node={item} onGoToSource={goToSource} />)}
+                  </div>
+                )}
+                {invalidVariables.length > 0 && <Alert type="error" showIcon style={{ marginTop: 8 }} data-testid="invalid-variables-notice"
+                  message={`${invalidVariables.length} 个变量已失效`} description="新写入的失效变量不能提交；正文原有的失效变量会在检查时拦截导出。取值请到数据源核对。"
+                  action={<Space direction="vertical">{Array.from(new Set(invalidVariables.map(item => item.source))).map(source => <Button key={source} size="small" onClick={() => goToSource(source)}>{source === 'facts' ? '去项目事实表' : '去服务承诺矩阵'}</Button>)}</Space>} />}
                 {detectedCitations.allIds.length > 0 && (
                   <div className="editor-citation-bar" data-testid="editor-citation-bar" style={{ marginTop: 8, padding: '8px 12px', background: '#f7f8fa', border: '1px solid #e5e6eb', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 12, color: '#4e5969', fontWeight: 500 }}>正文引用依据 ({detectedCitations.allIds.length})：</span>

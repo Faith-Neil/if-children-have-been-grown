@@ -904,6 +904,9 @@
 | D-883 | 2026-10-30 | [任务交付：版本对比与回退（APP-M2-T175）](delivery/APP-M2-T175.md) | 任务交付 | versions-1 | in-review | ISSUE-007 / APP-M2-T175 | 逐段对比与后台重核的回退 |
 | D-884 | 2026-10-30 | [代码说明：版本对比与回退（APP-M2-T175）](code/APP-M2-T175.md) | 代码说明 | versions-1 | 当前 | ISSUE-007 / APP-M2-T175 | 回退核对顺序与逐段对比算法 |
 | D-885 | 2026-10-30 | [一期范围的三项决定](decisions/2026-10-30-phase-one-pm-decisions.md) | 决策 | pm-1030-1 | 生效 | ISSUE-045 / APP-M2-T260 | 取消 OIDC/Keycloak、FE-M6/M7 二期、T139 用 AntV G2 |
+| D-886 | 2026-10-30 | [任务交付：变量节点（APP-M2-T164）](delivery/APP-M2-T164.md) | 任务交付 | variables-1 | in-review | ISSUE-007 / APP-M2-T164 | 变量取值与掩码、失效标记、提交拒绝新失效变量 |
+| D-887 | 2026-10-30 | [代码说明：变量节点（APP-M2-T164）](code/APP-M2-T164.md) | 代码说明 | variables-1 | 当前 | ISSUE-007 / APP-M2-T164 | 解析方式与写入拦截点 |
+| D-888 | 2026-10-30 | [WP-1 变量节点与问题联动验证](testing/2026-10-30-wp1-variables-issues.md) | 测试 | wp1-vi-1 | 当前 | ISSUE-007 / APP-M2-T164 / APP-M2-T166 | 验证命令、结果与本机 RAGFlow 误写处理 |
 
 ## 更新记录
 

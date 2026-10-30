@@ -10,6 +10,8 @@ import { FileTextOutlined, CheckCircleOutlined, ClockCircleOutlined, AimOutlined
 import type { CiteKind, CitationMeta } from './cite-capsule.ts';
 import { formatCiteLabel, parseCitations } from './cite-capsule.ts';
 import { lineParagraphs, showsSource, type ParagraphKey } from './paragraph-keys.ts';
+import { lineSegments, lineStarts, type VariableNode } from './variable-nodes.ts';
+import { VariableChip } from './VariableChip.tsx';
 
 export interface CiteCapsuleProps {
   id: string;
@@ -183,6 +185,9 @@ export interface RichParagraphWithCitesProps {
   style?: React.CSSProperties;
   /** 后台给出的段落键与来源（APP-M2-T161）；与正文对得上时才传入。 */
   paragraphKeys?: ParagraphKey[];
+  /** 后台解析的变量节点（APP-M2-T164）；与正文对得上时才传入。 */
+  variables?: VariableNode[];
+  onGoToSource?: (source: VariableNode['source']) => void;
 }
 
 /**
@@ -196,12 +201,15 @@ export const RichParagraphWithCites: React.FC<RichParagraphWithCitesProps> = ({
   className = '',
   style,
   paragraphKeys,
+  variables,
+  onGoToSource,
 }) => {
   const actualText = content !== undefined ? content : text || '';
   const byLine = React.useMemo(() => lineParagraphs(paragraphKeys), [paragraphKeys]);
   if (!actualText) return null;
 
   const paragraphs = actualText.split('\n');
+  const starts = variables?.length ? lineStarts(actualText) : [];
 
   return (
     <div className={`rich-paragraph-with-cites ${className}`} style={{ lineHeight: 1.8, ...style }}>
@@ -209,26 +217,28 @@ export const RichParagraphWithCites: React.FC<RichParagraphWithCitesProps> = ({
         if (!p.trim()) {
           return <p key={pIdx} style={{ margin: '8px 0', minHeight: 14 }}>&nbsp;</p>;
         }
-        const segments = parseCitations(p, knownCitations);
+        const pieces = variables?.length ? lineSegments(p, starts[pIdx], variables) : [{ type: 'text' as const, text: p }];
         const owner = byLine.get(pIdx);
         return (
           <p key={pIdx} style={{ margin: '8px 0', ...(owner?.locked ? { background: '#f2f3f5', color: '#4e5969' } : {}) }} data-paragraph-key={owner?.key} data-locked={owner?.locked ? 'true' : undefined}>
             {owner?.locked && owner.first && <span className="paragraph-lock-tag" data-testid="paragraph-lock-tag" style={{ display: 'inline-block', marginRight: 6, padding: '0 6px', fontSize: 12, lineHeight: '18px', borderRadius: 4, background: '#e5e6eb', color: '#4e5969' }}>已锁定 · {owner.lockedBy ?? '—'}</span>}
             {showsSource(owner) && <span className="paragraph-source-tag" data-testid="paragraph-source-tag" title="本段来源" style={{ display: 'inline-block', marginRight: 6, padding: '0 6px', fontSize: 12, lineHeight: '18px', borderRadius: 4, background: '#f0f5ff', color: '#1d39c4', border: '1px solid #adc6ff' }}>{owner!.label}</span>}
-            {segments.map((seg, sIdx) => {
-              if (seg.type === 'cite' && seg.citeMeta) {
-                return (
-                  <CiteCapsule
-                    key={`${seg.citeMeta.id}-${sIdx}`}
-                    id={seg.citeMeta.id}
-                    kind={seg.citeMeta.kind}
-                    meta={seg.citeMeta}
-                    onClick={onCiteClick}
-                  />
-                );
-              }
-              return <React.Fragment key={sIdx}>{seg.content}</React.Fragment>;
-            })}
+            {pieces.map((piece, vIdx) => piece.type === 'variable'
+              ? <VariableChip key={`v-${vIdx}`} node={piece.node} onGoToSource={onGoToSource} />
+              : parseCitations(piece.text, knownCitations).map((seg, sIdx) => {
+                if (seg.type === 'cite' && seg.citeMeta) {
+                  return (
+                    <CiteCapsule
+                      key={`${seg.citeMeta.id}-${vIdx}-${sIdx}`}
+                      id={seg.citeMeta.id}
+                      kind={seg.citeMeta.kind}
+                      meta={seg.citeMeta}
+                      onClick={onCiteClick}
+                    />
+                  );
+                }
+                return <React.Fragment key={`${vIdx}-${sIdx}`}>{seg.content}</React.Fragment>;
+              }))}
           </p>
         );
       })}

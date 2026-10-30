@@ -2507,7 +2507,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T164 · 变量节点
 <a id="app-m2-t164"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T15](APP-M1.md#app-m1-t15)、[APP-M2-T161](APP-M2.md#app-m2-t161)。
+状态：in-review（2026-10-30，交付见 [APP-M2-T164](../delivery/APP-M2-T164.md)）。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T15](APP-M1.md#app-m1-t15)、[APP-M2-T161](APP-M2.md#app-m2-t161)。
 
 原始来源：原交接 §6.7 M6-I01-F5；PRD v1.8 §5.11.2～5.11.10。交付单位：变量节点，同一产品的页面/后台/数据/权限/输出协作一起验收。
 

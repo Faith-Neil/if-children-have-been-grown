@@ -10,9 +10,9 @@
 
 - 已交付并 in-review：公司 Word 模板、附件扫描件按页插入与敏感水印、解析质量（置信度与原文不可读）；对话助手流式输出、首选失败转备用模型、停止生成；自由问答与敏感项目本地模型排队；粘贴识别；R33/R38 与拟派人员；公司设置保存；导出命名、招标格式要求覆盖模板、一至八级标题与 Markdown 表格；任务与模型对应表。真实 RAGFlow 上验证了 Gemini 与 GLM，修了两类真实模型的输出问题与 MySQL 模型配置不落库的缺陷。DeepSeek v4 在 RAGFlow 中登记的模型名不对，Jiekou 返回 model not found，需用户在 RAGFlow 改名。
 - 看板整治（[ISSUE-045](../issues/ISSUE-045.md) revision 2）：142 张任务卡状态与看板对齐；8 张改 in-review 并补交付；9 张 cancelled（含 T226/T227 二期延后）；剩余工作分为工作包 WP-1～WP-7，编辑台段落键（T161）排第一。去掉资料库与项目页的假默认值，资料库批量确认改为逐条展示关键字段并写核对依据。
-- 编辑台段落键、段落锁定、版本对比与回退（T161、T163、T174、T175）已 in-review。
+- 编辑台段落键、段落锁定、版本对比与回退（T161、T163、T174、T175）、变量节点（T164）已 in-review。变量按当前数据源显示取值或掩码，提交与回退时后台拒绝新写入的失效变量。
 - PM 2026-10-30 决定（[一期范围的三项决定](decisions/2026-10-30-phase-one-pm-decisions.md)）：取消 OIDC/Keycloak，内网只用口令登录，首次登录强制改密等仍有效的验收拆为 T260；FE-M6/FE-M7 标二期延后；T139 用 AntV G2。要求尽快完成一期。
-- 看板 455 项：96 done、175 in-review、37 in-progress、73 planned、74 cancelled。
+- 看板 455 项：96 done、176 in-review、37 in-progress、72 planned、74 cancelled。
 
 ## 看板重定与真实招标文件校准（2026-10-28）
 
