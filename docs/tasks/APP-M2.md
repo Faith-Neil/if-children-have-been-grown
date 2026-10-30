@@ -4081,7 +4081,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 
 ### APP-M2-T260 · 口令登录：首次登录强制改密、公司停用、统一错误提示、登录页品牌
 <a id="app-m2-t260"></a>
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T028](APP-M2.md#app-m2-t028)、[APP-M2-T025](APP-M2.md#app-m2-t025)。
+状态：in-review（2026-10-31，交付见 [APP-M2-T260](../delivery/APP-M2-T260.md)）。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T028](APP-M2.md#app-m2-t028)、[APP-M2-T025](APP-M2.md#app-m2-t025)。
 原始来源：PRD v1.8 §5.12.1 验收②③④⑤、Q28；字典 v1.9 `sys_user.must_change_password`；[一期范围的三项决定](../decisions/2026-10-30-phase-one-pm-decisions.md) P1（承接已取消的 T012、T013 中仍有效的部分）。
 接口与输入：`POST /api/v1/auth/login` 返回是否须改密；`POST /api/v1/auth/password`（旧密码、新密码）；公司密码规则；公司启用状态；登录页品牌（产品名、Logo）。
 权限与失败：须改密的会话只能调用改密与注销，其余接口一律拒绝（后端判定，不靠页面跳转）；新建账号与管理员重置密码后置为须改密；停用公司的用户不能登录；账号不存在、密码错误、账号停用的提示文字相同。

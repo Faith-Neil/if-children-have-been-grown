@@ -907,6 +907,9 @@
 | D-886 | 2026-10-30 | [任务交付：变量节点（APP-M2-T164）](delivery/APP-M2-T164.md) | 任务交付 | variables-1 | in-review | ISSUE-007 / APP-M2-T164 | 变量取值与掩码、失效标记、提交拒绝新失效变量 |
 | D-887 | 2026-10-30 | [代码说明：变量节点（APP-M2-T164）](code/APP-M2-T164.md) | 代码说明 | variables-1 | 当前 | ISSUE-007 / APP-M2-T164 | 解析方式与写入拦截点 |
 | D-888 | 2026-10-30 | [WP-1 变量节点与问题联动验证](testing/2026-10-30-wp1-variables-issues.md) | 测试 | wp1-vi-1 | 当前 | ISSUE-007 / APP-M2-T164 / APP-M2-T166 | 验证命令、结果与本机 RAGFlow 误写处理 |
+| D-889 | 2026-10-31 | [任务交付：口令登录（APP-M2-T260）](delivery/APP-M2-T260.md) | 任务交付 | login-1 | in-review | ISSUE-007 / APP-M2-T260 | 强制改密、公司停用、统一失败提示、公司密码规则、锁定到期解锁 |
+| D-890 | 2026-10-31 | [代码说明：口令登录（APP-M2-T260）](code/APP-M2-T260.md) | 代码说明 | login-1 | 当前 | ISSUE-007 / APP-M2-T260 | 登录判定顺序、须改密拦截点、密码规则与安全审计 |
+| D-891 | 2026-10-31 | [APP-M2-T260 口令登录验证](testing/2026-10-31-t260-password-login.md) | 测试 | login-test-1 | 当前 | ISSUE-007 / APP-M2-T260 | 本机与 CI 验证、首次 CI 失败原因与契约导出方式 |
 
 ## 更新记录
 

@@ -10,11 +10,11 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，2026-10-30 整治，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 455 项：done 96、in-review 176、in-progress 37、planned 72、blocked 0、cancelled 74、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+项目 455 项：done 96、in-review 177、in-progress 37、planned 71、blocked 0、cancelled 74、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
-| 账号与权限 | 生产口令登录、8 角色 RBAC、数据权限只读态；演示入口已删 | 首次登录强制改密、停用公司拒绝登录、登录页品牌（T260）；OIDC/Keycloak 已按 PM 决定取消 |
+| 账号与权限 | 生产口令登录、8 角色 RBAC、数据权限只读态；首次登录与重置后强制改密（后端拦截）、按公司规则校验新密码、统一失败提示、锁定到期自动解锁、停用公司拒绝登录、退出即作废令牌（T260）；账号与公司安全事件单独持久化 | 品牌页（T033/T034，登录页已读品牌接口）；平台设置页（锁定时长现用部署变量）；A-06 审计日志页仍是页面内示例；OIDC/Keycloak 已按 PM 决定取消 |
 | 持久化 | 项目工作流、账号、资料库、知识库索引写入 MySQL 8（Alembic 0012） | 旧 `/api/projects`、`/api/chapters` 路由仍在（BE-M0-T09） |
 | 招标解析 | PDF/Word 文字提取，扫描件/.doc/Excel/图片经 RAGFlow DeepDOC；响应矩阵含响应方式、风险、批量匹配、分流确认与 Excel；按章节与条目抽取条款，适配真实招标文件版式（展平表格、段内（1）…（8）、否决/无效/废标）；事实含前附表；条目置信度（公司阈值高亮）与“原文不可读”须补录 | 手工框选新增条目；条款合并拆分（T109）；按标题分块的模型抽取（规则 1，现为规则抽取） |
 | 知识库 | 每公司三类数据集、ICG 摄入流程、管控接口与管理页、检索带片号引用；内置解析评测定默认阈值 | 流程模式评测；历史标书批量导入（T080/T081） |
@@ -34,7 +34,7 @@
 | WP-3 写作规范后台 | T080～T093 | 13 张 | 历史标书导入、章节模板、术语句式、任务卡与提示词模板、审查清单、风格样例 |
 | WP-4 项目与解析 | T094～T117 | T096～T102、T107、T109、T110 | 新建项目 R19 提示、项目设置页、补遗差异、条目合并拆分、冲突页签 |
 | WP-5 矩阵、SLA 与章节循环 | T118～T136、T211～T213 | 10 张 | 证据三路候选、SLA 判定与承诺函、需复核传播、R09 子范围、循环异常重试 |
-| WP-6 检查、规则、导出、看板与管理 | T011、T020、T033～T044、T140～T159、T191～T260 中未完成的 | 36 张 | 口令登录强制改密与停用公司（T260）；`JobProgressWithSse` 未接入任何页面（任务进度靠轮询，T020）；R25 实际文件残留检查（T231）；R43/R44；暗标；品牌页；集团视图 |
+| WP-6 检查、规则、导出、看板与管理 | T011、T020、T033～T044、T140～T159、T191～T259 中未完成的 | 35 张 | `JobProgressWithSse` 未接入任何页面（任务进度靠轮询，T020）；R25 实际文件残留检查（T231）；R43/R44；暗标；品牌页；集团视图 |
 | WP-7 评审边界 | FE-M0-T03 | 1 张 | 评审系统与前端来源边界说明 |
 
 整治决定（2026-10-30）：
@@ -376,7 +376,7 @@
 | [APP-M2-T023](tasks/APP-M2.md#app-m2-t023) | StatusTag 状态注册表（9.3 全部代码表） | done | APP-M2-T005 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T023.md) |
 | [APP-M2-T024](tasks/APP-M2.md#app-m2-t024) | A-03 字典配置页 | done | APP-M2-T005 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T024.md) |
 | [APP-M2-T025](tasks/APP-M2.md#app-m2-t025) | 扩展字段与公司设置键表单框架 | done | APP-M2-T005、APP-M2-T024 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T025.md) |
-| [APP-M2-T026](tasks/APP-M2.md#app-m2-t026) | A-01 公司管理 | in-review | APP-M2-T014 | [ISSUE-007](../issues/ISSUE-007.md) | [APP-M2-T026 交付](delivery/APP-M2-T026.md) |
+| [APP-M2-T026](tasks/APP-M2.md#app-m2-t026) | A-01 公司管理 | in-review（2026-10-31：原页面为写死的示例公司、停用不落库，T260 改为读后台列表并由平台管理员停用启用） | APP-M2-T014 | [ISSUE-007](../issues/ISSUE-007.md) | [APP-M2-T026 交付](delivery/APP-M2-T026.md) |
 | [APP-M2-T027](tasks/APP-M2.md#app-m2-t027) | A-02 用户列表、新增、停用前转交；“账号安全设置”面板（公司密码策略，只能调严） | done | APP-M2-T014、APP-M2-T026 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T027.md) |
 | [APP-M2-T028](tasks/APP-M2.md#app-m2-t028) | A-02 角色分配、解锁、重置密码 | done | APP-M2-T014、APP-M2-T027 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T028.md) |
 | [APP-M2-T029](tasks/APP-M2.md#app-m2-t029) | 顶栏铃铛与未读数 | in-review（2026-10-29：本人未读数，超过 99 显示 99+，每分钟刷新） | APP-M2-T010 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T029.md` |
@@ -610,7 +610,7 @@
 | [APP-M2-T257](tasks/APP-M2.md#app-m2-t257) | R42 暗标正文节点 | in-review（2026-10-29：R42 暗标正文已实现，数据缺失子项如实标“未核对”） | APP-M2-T197、APP-M2-T198、APP-M2-T199、APP-M2-T100 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T257.md` |
 | [APP-M2-T258](tasks/APP-M2.md#app-m2-t258) | R42 暗标输出全部位置 | planned | APP-M2-T197、APP-M2-T198、APP-M2-T199、APP-M2-T100 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T258.md` |
 | [APP-M2-T259](tasks/APP-M2.md#app-m2-t259) | 公司年度中小企业划型记录及声明取值 | planned | APP-M2-T053、APP-M2-T054、APP-M2-T047 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T259.md` |
-| [APP-M2-T260](tasks/APP-M2.md#app-m2-t260) | 口令登录：首次登录强制改密、公司停用、统一错误提示、登录页品牌 | planned | APP-M2-T028、APP-M2-T025 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T260.md` |
+| [APP-M2-T260](tasks/APP-M2.md#app-m2-t260) | 口令登录：首次登录强制改密、公司停用、统一错误提示、登录页品牌 | in-review（2026-10-31：须改密由后端拦截；公司停用存后台；平台超级管理员网页登录修复；品牌页未做） | APP-M2-T028、APP-M2-T025 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T260.md) |
 | [AI-01](tasks/AI-M0.md#ai-01) | 登记模型、向量、业务库和内网访问待决项（后端已有 /api/v1/model-configs，用户要求弹窗配置，前端未接；保持 in-review） | in-review | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02)；真实端点另计验收 | [ISSUE-010](../issues/ISSUE-010.md)；[ISSUE-028](../issues/ISSUE-028.md) | [登记交付](delivery/AI-01.md) / [ISSUE-028交付](delivery/ISSUE-028.md) |
 | [AI-02](tasks/AI-M0.md#ai-02) | OpenAI 兼容对话适配器 | done | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | [ISSUE-011](../issues/ISSUE-011.md) | [交付](delivery/AI-02.md) |
 | [AI-03](tasks/AI-M0.md#ai-03) | 检索层内存骨架 | done | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | [ISSUE-016](../issues/ISSUE-016.md) | [交付](delivery/AI-03.md) |
