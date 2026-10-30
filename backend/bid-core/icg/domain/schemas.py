@@ -270,6 +270,8 @@ class ParagraphKeyResponse(ResponseBody):
     hash: str
     source: Literal["manual", "assistant", "assistant_pasted", "chapter_loop", "system"]
     source_label: str
+    locked: bool = Field(default=False, description="段落已锁定（APP-M2-T163）：任何写入都不能改动或删除")
+    locked_by_name: str | None = Field(default=None, description="锁定人")
 
 
 class ChapterResponse(ChapterSummaryResponse):

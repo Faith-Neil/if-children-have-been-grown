@@ -155,9 +155,13 @@ export function calculateDirtyState(
 /**
  * 判定错误是否为 OCC 409 版本冲突
  */
+/** 状态码同为 409、但不是版本冲突的业务拒绝：不能走合并流程，按原提示处理。 */
+const NOT_A_REVISION_CONFLICT = new Set(['PARAGRAPH_LOCKED', 'PARAGRAPH_ALREADY_LOCKED', 'SYSTEM_CHAPTER_READONLY']);
+
 export function isRevisionConflict(error: unknown): boolean {
   if (!error) return false;
   if (error instanceof ApiError) {
+    if (NOT_A_REVISION_CONFLICT.has(error.code)) return false;
     if (error.status === 409) return true;
     if (error.code === 'REVISION_CONFLICT' || error.code === 'CHAPTER_CONFLICT') return true;
   }

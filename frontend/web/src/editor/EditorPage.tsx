@@ -39,6 +39,7 @@ import { EditorAssistantPanel } from './EditorAssistantPanel.tsx';
 import { SelectionRewritePanel, type RewriteSelection } from './SelectionRewritePanel.tsx';
 import { pasteNotice, type PastedParagraph } from './paste-notice.ts';
 import { paragraphsMatch } from './paragraph-keys.ts';
+import { ParagraphLocksBar } from './ParagraphLocksBar.tsx';
 import type { ApplyResult } from './selection-rewrite-core.ts';
 import { EditorDiffDrawer, type ChapterVersionItem } from './EditorDiffDrawer.tsx';
 import { extractCitationIds, type CiteKind, type CitationMeta } from './cite-capsule';
@@ -91,6 +92,14 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const sequence = useRef(0);
 
   const activeChapter = workspace.chapters.find(item => item.id === chapterId);
+  const lockedExcerpts = useMemo(() => {
+    if (!chapter?.paragraphs) return [];
+    const lines = chapter.content.split('\n');
+    return chapter.paragraphs.filter(p => p.locked).map(p => {
+      const text = lines.slice(p.line_start, p.line_end + 1).join(' ').trim();
+      return { key: p.key, text: text.length > 40 ? `${text.slice(0, 40)}…` : text, by: p.locked_by_name ?? '—' };
+    });
+  }, [chapter]);
   const dataPermission = useDataPermission({ volume, chapterId, chapter: activeChapter, workspace, role: user?.role, userId: user?.id });
   const systemKind = systemChapterKind(activeChapter?.title);
   const canEdit = chapterCan(activeChapter, 'edit') && dataPermission.canEdit && !systemKind;
@@ -191,6 +200,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
       void reload().catch(report); return;
     }
     if (error instanceof ApiError && error.code === 'FACT_SOURCE_CHANGE_REQUIRED') { setSourceAdvice(true); setNotice(error.message); return; }
+    if (error instanceof ApiError && error.code === 'PARAGRAPH_LOCKED') { setNotice(`${error.message}当前文字仍在页面。`); return; }
     if (error instanceof ApiError && [403, 404].includes(error.status)) {
       currentLease.current = null; setLease(null);
       setNotice('本次操作没有权限，当前文字保留在页面。请核对最新项目成员和章节分工；个人草稿不会转送给其他人。');
@@ -430,6 +440,9 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
             )}
             <Tooltip title="正文格式与选区工具将在结构化编辑器中实现"><Button size="small" disabled>格式</Button></Tooltip>
             <Button size="small" icon={<HistoryOutlined />} onClick={viewVersions} disabled={combinedBusy || !chapter}>版本</Button>
+            {chapter && !systemKind && <ParagraphLocksBar projectId={workspace.project.id} chapter={chapter} content={content} token={token} canEdit={canEdit && dataPermission.canEdit}
+              busy={combinedBusy} cursor={() => selection.current?.start ?? null} report={report}
+              onChanged={async () => { const latest = await request<Chapter>(`/api/chapters/${chapterId}`, token); setChapter(latest); }} />}
             <Tooltip title="生成整章候选，不会直接改动正文"><Button size="small" onClick={ops.generate} disabled={combinedBusy || !planCurrent || !canGenerate || !chapter}>生成候选</Button></Tooltip>
           </Space>
           <Space size={6}>
@@ -481,6 +494,9 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
               </div>
             ) : (
               <div className="chapter-editor-editable-wrapper" style={{ position: 'relative' }}>
+                {lockedExcerpts.length > 0 && <Alert type="info" showIcon style={{ marginBottom: 8 }} data-testid="locked-paragraphs-notice"
+                  message={`本节有 ${lockedExcerpts.length} 个锁定段落，提交时须原样保留（可以挪位置）`}
+                  description={<ul style={{ margin: 0, paddingLeft: 18 }}>{lockedExcerpts.map(item => <li key={item.key}>{item.text}（{item.by}）</li>)}</ul>} />}
                 <Input.TextArea className="chapter-editor" aria-label="章节正文" placeholder="根据招标原文、项目事实和可引用证据编制正文。不要把未经核实的承诺直接写入。" autoSize={{ minRows: 18, maxRows: 35 }} value={content} onSelect={e => { lock.markActivity(); handleTextareaSelect(e); }} onKeyDown={lock.markActivity} onMouseDown={lock.markActivity} onScroll={lock.markActivity} onChange={e => { lock.markActivity(); selection.current = { start: e.target.selectionStart, end: e.target.selectionEnd }; setContent(e.target.value); }} readOnly={!held || combinedBusy} />
                 {detectedCitations.allIds.length > 0 && (
                   <div className="editor-citation-bar" data-testid="editor-citation-bar" style={{ marginTop: 8, padding: '8px 12px', background: '#f7f8fa', border: '1px solid #e5e6eb', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>

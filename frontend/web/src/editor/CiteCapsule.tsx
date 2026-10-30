@@ -212,7 +212,8 @@ export const RichParagraphWithCites: React.FC<RichParagraphWithCitesProps> = ({
         const segments = parseCitations(p, knownCitations);
         const owner = byLine.get(pIdx);
         return (
-          <p key={pIdx} style={{ margin: '8px 0' }} data-paragraph-key={owner?.key}>
+          <p key={pIdx} style={{ margin: '8px 0', ...(owner?.locked ? { background: '#f2f3f5', color: '#4e5969' } : {}) }} data-paragraph-key={owner?.key} data-locked={owner?.locked ? 'true' : undefined}>
+            {owner?.locked && owner.first && <span className="paragraph-lock-tag" data-testid="paragraph-lock-tag" style={{ display: 'inline-block', marginRight: 6, padding: '0 6px', fontSize: 12, lineHeight: '18px', borderRadius: 4, background: '#e5e6eb', color: '#4e5969' }}>已锁定 · {owner.lockedBy ?? '—'}</span>}
             {showsSource(owner) && <span className="paragraph-source-tag" data-testid="paragraph-source-tag" title="本段来源" style={{ display: 'inline-block', marginRight: 6, padding: '0 6px', fontSize: 12, lineHeight: '18px', borderRadius: 4, background: '#f0f5ff', color: '#1d39c4', border: '1px solid #adc6ff' }}>{owner!.label}</span>}
             {segments.map((seg, sIdx) => {
               if (seg.type === 'cite' && seg.citeMeta) {

@@ -10,7 +10,7 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，2026-10-30 整治，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 454 项：done 96、in-review 172、in-progress 37、planned 86、blocked 0、cancelled 63、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+项目 454 项：done 96、in-review 173、in-progress 37、planned 85、blocked 0、cancelled 63、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
@@ -29,7 +29,7 @@
 
 | 工作包 | 范围 | 未完成的卡 | 主要缺口 |
 |---|---|---|---|
-| WP-1 编辑台结构化正文 | T137～T139、T160～T190 | T163、T164、T166、T160、T169、T171、T174、T175、T189、T190、T137、T138、T139 | 段落键已有（T161 in-review），正文仍是纯文本框；段落锁定、变量节点、问题标注、版本提交与对比回退都挂在段落键上 |
+| WP-1 编辑台结构化正文 | T137～T139、T160～T190 | T164、T166、T160、T169、T171、T174、T175、T189、T190、T137、T138、T139 | 段落键与段落锁定已有（T161、T163 in-review），正文仍是纯文本框；变量节点、问题标注、版本提交与对比回退都挂在段落键上 |
 | WP-2 资料库 | T046～T079 | T046～T068、T070～T075、T077 中未完成的 30 张 | 列表/详情按通用字段渲染，`field_metadata.kb_record` 的各类别字段与 `MetadataTable`/`MetadataForm` 没接入页面；★ 字段重确认、受限资料转交、人员/授权/业绩分类页、Excel 导入 |
 | WP-3 写作规范后台 | T080～T093 | 13 张 | 历史标书导入、章节模板、术语句式、任务卡与提示词模板、审查清单、风格样例 |
 | WP-4 项目与解析 | T094～T117 | T096～T102、T107、T109、T110 | 新建项目 R19 提示、项目设置页、补遗差异、条目合并拆分、冲突页签 |
@@ -513,7 +513,7 @@
 | [APP-M2-T160](tasks/APP-M2.md#app-m2-t160) | 编辑台布局与三档断点（四栏 / 三栏 / 紧凑） | planned | APP-M1-T15 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T160.md` |
 | [APP-M2-T161](tasks/APP-M2.md#app-m2-t161) | 章节加载与段落键 | in-review（2026-10-30：段落键与逐段来源存入每个版本，MySQL 版本表加 meta 列；编辑区仍为纯文本框） | APP-M1-T15 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T161.md) |
 | [APP-M2-T162](tasks/APP-M2.md#app-m2-t162) | SourceBar 来源标记 | in-review | APP-M1-T15、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | [APP-M2-T162 交付](delivery/APP-M2-T162.md) |
-| [APP-M2-T163](tasks/APP-M2.md#app-m2-t163) | 锁定内容 | planned | APP-M1-T15、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T163.md` |
+| [APP-M2-T163](tasks/APP-M2.md#app-m2-t163) | 锁定内容 | in-review（2026-10-30：段落锁定，各写入路径后台拒绝改动，章节循环转人工；招标原文引用段未纳入） | APP-M1-T15、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T163.md) |
 | [APP-M2-T164](tasks/APP-M2.md#app-m2-t164) | 变量节点 | planned | APP-M1-T15、APP-M2-T161 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T164.md` |
 | [APP-M2-T165](tasks/APP-M2.md#app-m2-t165) | 证据节点与 `.cite` | in-review | APP-M1-T15、APP-M2-T161、APP-M2-T048 | [ISSUE-007](../issues/ISSUE-007.md) | [APP-M2-T165 交付](delivery/APP-M2-T165.md) |
 | [APP-M2-T166](tasks/APP-M2.md#app-m2-t166) | 问题标注与侧栏联动 | planned | APP-M1-T15、APP-M2-T161、APP-M2-T140 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T166.md` |

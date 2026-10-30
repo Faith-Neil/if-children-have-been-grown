@@ -316,6 +316,8 @@ class SelectionRewriteService:
             raise DomainError(409, "REVISION_CONFLICT", f"正文已更新到 r{chapter.revision}，请在最新正文中重新选择后再问。")
         if not (0 <= start < end <= len(content)) or content[start:end] != selected or not selected.strip():
             raise DomainError(409, "REVISION_CONFLICT", "选区与已提交正文对不上，请先提交手改或重新选择。")
+        from .paragraph_locks import refuse_locked_selection
+        refuse_locked_selection(state, chapter, start, end)
         mode = payload.get("mode") or "rewrite"
         instruction = (payload.get("instruction") or "").strip()
         if mode == "instruction" and not instruction:
@@ -617,6 +619,8 @@ class SelectionRewriteService:
             if draft is not None and draft.content != chapter.content:
                 if draft.base_revision != chapter.revision:
                     raise DomainError(409, "REVISION_CONFLICT", "编辑草稿基于旧版本，请先处理草稿后再写入样例。")
+                from .paragraph_locks import refuse_locked_change
+                refuse_locked_change(state, chapter, draft.content)
                 chapter.content = draft.content
                 chapter.revision += 1
                 state.projects[project_id].revision += 1
@@ -654,6 +658,8 @@ class SelectionRewriteService:
                     changed = (end, end + len(text))
                 edit_mode = "assistant_insert"
             base_revision = chapter.revision
+            from .paragraph_locks import refuse_locked_change
+            refuse_locked_change(state, chapter, new_content)
             chapter.content = new_content
             chapter.revision += 1
             state.projects[project_id].revision += 1

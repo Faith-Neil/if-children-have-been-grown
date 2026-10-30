@@ -279,8 +279,10 @@ class HumanQueueMixin:
                            or "★" in str(r.get("text", "")) for r in rows)
             facts = [f for f in project_facts(state, project_id) if f.get("status") == "confirmed"]
             from .scope_rules import tender_number_basis
+            from .paragraph_locks import locked_lines
             context = LoopContext(title=chapter.title, allowed_evidence_ids=evidence_ids,
                                   allowed_snippet_ids={s for s in snippet_ids if s}, facts=facts, critical=critical,
+                                  locked_paragraphs=locked_lines(chapter, workflow),
                                   tender_numbers=tender_number_basis(state, project, workflow))
             max_rounds = int(payload.get("max_rounds") or 3)
             base_revision = int(chapter.revision or 0)

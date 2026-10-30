@@ -761,9 +761,11 @@ class DemoService:
         draft = chapter.drafts.get(principal.user.id)
         from .project_access import chapter_permissions
         from .paragraph_keys import current as current_paragraphs, public as public_paragraphs
+        from .paragraph_locks import mark_locked
         return {**self._summary(chapter), "project_id": chapter.project_id,
                 "content": chapter.content, "lock": lock,
-                "paragraphs": public_paragraphs(current_paragraphs(chapter)),
+                "paragraphs": mark_locked(public_paragraphs(current_paragraphs(chapter)),
+                                          state.workflows.get(chapter.project_id) or {}, chapter.id),
                 "draft": asdict(draft) if draft else None, "assignee_id": chapter.assignee_id,
                 "permissions": chapter_permissions(state, chapter, principal.user.id)}
 
@@ -824,6 +826,9 @@ class DemoService:
         from .chapter_generation import AI_CONVERSATION_RESIDUALS
         if any(residual in draft.content for residual in AI_CONVERSATION_RESIDUALS):
             return None
+        from .paragraph_locks import violations
+        if violations(workflow, chapter.id, draft.content):
+            return None  # 草稿改动了锁定段落：不自动提交，草稿保留由本人处理
         chapter.content = draft.content
         chapter.revision += 1
         state.projects[chapter.project_id].revision += 1
@@ -1006,6 +1011,8 @@ class DemoService:
             self._revision(chapter, base_revision)
             from .system_chapters import refuse_manual_edit
             refuse_manual_edit(state, chapter)
+            from .paragraph_locks import refuse_locked_change
+            refuse_locked_change(state, chapter, content)
             self._writing_input(state, chapter, input_fingerprint)
             # 粘贴识别（APP-M2-T188）：与本章近期对话助手输出高度重合的新段落，来源记为“对话助手撰写（粘贴）”并复查
             from .paste_detection import review as paste_review

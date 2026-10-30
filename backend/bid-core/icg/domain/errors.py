@@ -79,6 +79,8 @@ def _frozen_status() -> dict[str, int]:
         "KNOWLEDGE_BASE_NOT_CONFIGURED", "MANAGED_DOCUMENT", "REBUILD_BLOCKED", "KB_DOCUMENT_NOT_READY",
         # 导出选了公司 Word 模板但公司尚未上传 (APP-M2-T086 / PRD v1.8 §5.9.1 规则 1)
         "WORD_TEMPLATE_MISSING",
+        # 编辑台锁定段落不能改动或删除；重复锁定 (APP-M2-T163 / PRD v1.8 §5.11.8)
+        "PARAGRAPH_LOCKED", "PARAGRAPH_ALREADY_LOCKED",
     ))
     _bind(table, 413, (
         "FILE_SIZE_LIMIT", "FILE_EXPANSION_LIMIT", "PDF_PAGE_LIMIT", "GENERATION_CONTEXT_TOO_LARGE",

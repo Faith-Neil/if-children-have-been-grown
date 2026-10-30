@@ -2,7 +2,7 @@
 // 它解决什么问题：表格等多行块的每一行都归到同一段落键；只有段落首行、且不是人工写的段落才标来源；本地改过正文后不再套用旧行号。
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { lineParagraphs, paragraphsMatch, showsSource } from '../../src/editor/paragraph-keys.ts';
+import { lineParagraphs, lockAction, paragraphAtOffset, paragraphsMatch, showsSource } from '../../src/editor/paragraph-keys.ts';
 
 const paragraphs = [
   { key: 'pk-a', kind: 'heading', level: 1, line_start: 0, line_end: 0, hash: 'h1', source: 'manual', source_label: '人工编写' },
@@ -30,4 +30,20 @@ test('keys are used only while the text matches the committed version', () => {
   assert.equal(paragraphsMatch(paragraphs, 'a', 'a'), true);
   assert.equal(paragraphsMatch(paragraphs, 'a（本地改过）', 'a'), false);
   assert.equal(paragraphsMatch([], 'a', 'a'), false);
+});
+
+test('cursor offset finds its paragraph; lock button explains why it is disabled', () => {
+  const content = '# 标题\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n正文';
+  assert.equal(paragraphAtOffset(content, 2, paragraphs).key, 'pk-a');
+  assert.equal(paragraphAtOffset(content, content.indexOf('| 1'), paragraphs).key, 'pk-b');
+  assert.equal(paragraphAtOffset(content, content.indexOf('\n\n'), paragraphs).key, 'pk-a');
+  assert.equal(paragraphAtOffset(content, content.indexOf('\n\n') + 1, paragraphs), undefined);
+  const free = paragraphs[2];
+  assert.deepEqual(lockAction({ canEdit: true, dirtyAgainstCommitted: false, paragraph: free }), { enabled: true, label: '锁定光标所在段落' });
+  assert.match(lockAction({ canEdit: true, dirtyAgainstCommitted: true, paragraph: free }).reason, /先提交/);
+  assert.match(lockAction({ canEdit: false, dirtyAgainstCommitted: false, paragraph: free }).reason, /编辑权/);
+  assert.equal(lockAction({ canEdit: true, dirtyAgainstCommitted: false, paragraph: { ...free, locked: true, locked_by_name: '甲' } }).label, '本段已锁定');
+  const map = lineParagraphs([{ ...free, locked: true, locked_by_name: '甲' }]);
+  assert.equal(map.get(6).locked, true);
+  assert.equal(map.get(6).lockedBy, '甲');
 });

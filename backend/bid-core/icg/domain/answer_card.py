@@ -796,6 +796,8 @@ class AnswerCardService:
 
             from .system_chapters import refuse_manual_edit
             refuse_manual_edit(state, chapter)
+            from .paragraph_locks import refuse_locked_change
+            refuse_locked_change(state, chapter, new_content)
             chapter.content = new_content
             chapter.revision += 1
             state.projects[chapter.project_id].revision += 1

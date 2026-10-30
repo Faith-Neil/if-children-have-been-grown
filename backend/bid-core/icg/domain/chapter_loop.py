@@ -41,6 +41,7 @@ HUMAN_REASONS: dict[str, str] = {
     "SYSTEM_CHAPTER": "系统生成章节",
     "FIX_LIMIT_REACHED": "同一问题自动修正 2 次仍在",
     "LOOP_STOPPED": "循环停止时仍未解决",
+    "PARAGRAPH_LOCKED": "段落已被人工锁定",
     "EXTRA_COMMITMENT": "招标未要求的额外数值承诺",
 }
 
@@ -159,7 +160,7 @@ def check_paragraphs(paragraphs: list[str], context: LoopContext) -> list[dict]:
         if context.system_chapter:
             return ROUTE_DIRECT, "SYSTEM_CHAPTER"
         if default_route == ROUTE_AUTO and index in context.locked_paragraphs:
-            return ROUTE_DIRECT, "LOOP_STOPPED"
+            return ROUTE_DIRECT, "PARAGRAPH_LOCKED"
         return default_route, reason
 
     for index, text in enumerate(paragraphs):

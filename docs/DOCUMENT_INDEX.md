@@ -897,6 +897,8 @@
 | D-876 | 2026-10-30 | [代码说明：编辑锁徽标、心跳、超时提示、接管（APP-M2-T173）](code/APP-M2-T173.md) | 代码说明 | board-audit-1 | 当前 | ISSUE-045 / APP-M2-T173 | 入口、调用顺序与限制 |
 | D-877 | 2026-10-30 | [任务交付：章节加载与段落键（APP-M2-T161）](delivery/APP-M2-T161.md) | 任务交付 | paragraph-keys-1 | in-review | ISSUE-007 / APP-M2-T161 | 段落键与逐段来源随版本保存，MySQL 版本 meta 列 |
 | D-878 | 2026-10-30 | [代码说明：章节加载与段落键（APP-M2-T161）](code/APP-M2-T161.md) | 代码说明 | paragraph-keys-1 | 当前 | ISSUE-007 / APP-M2-T161 | 分块、分键、来源与存取 |
+| D-879 | 2026-10-30 | [任务交付：锁定内容（APP-M2-T163）](delivery/APP-M2-T163.md) | 任务交付 | paragraph-locks-1 | in-review | ISSUE-007 / APP-M2-T163 | 段落锁定与各写入路径拦截 |
+| D-880 | 2026-10-30 | [代码说明：锁定内容（APP-M2-T163）](code/APP-M2-T163.md) | 代码说明 | paragraph-locks-1 | 当前 | ISSUE-007 / APP-M2-T163 | 存储、识别与拦截点 |
 
 ## 更新记录
 
