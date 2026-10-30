@@ -620,7 +620,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T040 · A-10 任务与模型对应表（首选本地 → 备用只列本地）
 <a id="app-m2-t040"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T036](APP-M2.md#app-m2-t036)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T036](APP-M2.md#app-m2-t036)。
 
 原始来源：原交接 §6.2 M1-B02-F1；PRD v1.8 §6.4、6.5、6.6.3、5.10.5。交付单位：A-10 任务与模型对应表（首选本地 → 备用只列本地），同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -2867,7 +2867,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T188 · 粘贴识别
 <a id="app-m2-t188"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T167](APP-M2.md#app-m2-t167)、[APP-M2-T178](APP-M2.md#app-m2-t178)、[APP-M2-T185](APP-M2.md#app-m2-t185)、[APP-M2-T242](APP-M2.md#app-m2-t242)、[APP-M2-T243](APP-M2.md#app-m2-t243)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T167](APP-M2.md#app-m2-t167)、[APP-M2-T178](APP-M2.md#app-m2-t178)、[APP-M2-T185](APP-M2.md#app-m2-t185)、[APP-M2-T242](APP-M2.md#app-m2-t242)、[APP-M2-T243](APP-M2.md#app-m2-t243)。
 
 原始来源：原交接 §6.7 M6-I05-F4；PRD v1.8 §5.11.5、5.11.6。交付单位：粘贴识别，同一产品的页面/后台/数据/权限/输出协作一起验收。
 

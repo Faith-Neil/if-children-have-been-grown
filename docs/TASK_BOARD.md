@@ -10,7 +10,7 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 454 项：done 96、in-review 161、in-progress 41、planned 110、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+项目 454 项：done 96、in-review 163、in-progress 41、planned 108、blocked 0、cancelled 55、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
@@ -18,7 +18,7 @@
 | 持久化 | 项目工作流、账号、资料库、知识库索引写入 MySQL 8（Alembic 0012） | 旧 `/api/projects`、`/api/chapters` 路由仍在（BE-M0-T09） |
 | 招标解析 | PDF/Word 文字提取，扫描件/.doc/Excel/图片经 RAGFlow DeepDOC；响应矩阵含响应方式、风险、批量匹配、分流确认与 Excel；按章节与条目抽取条款，适配真实招标文件版式（展平表格、段内（1）…（8）、否决/无效/废标）；事实含前附表；条目置信度（公司阈值高亮）与“原文不可读”须补录 | 手工框选新增条目；条款合并拆分（T109）；按标题分块的模型抽取（规则 1，现为规则抽取） |
 | 知识库 | 每公司三类数据集、ICG 摄入流程、管控接口与管理页、检索带片号引用；内置解析评测定默认阈值 | 流程模式评测；历史标书批量导入（T080/T081） |
-| 生成与编辑 | 章节闭环、人工处理队列、交叉复核与定稿门禁、编辑台差异确认、选区改写（3～5 种写法、替换或插入、重新定位） | 无选区的自由问答与答案卡（askAssistant）、本地模型不可用时排队（现为报错）、粘贴识别（T188）；段落锁定与段落来源记录；备用模型目前只用于对话助手，章节生成等任务的“任务与模型”映射（T040）未做 |
+| 生成与编辑 | 章节闭环、人工处理队列、交叉复核与定稿门禁、编辑台差异确认、选区改写（3～5 种写法、替换或插入、重新定位） | 段落锁定；完整的逐段来源记录（目前只有对话助手写入与粘贴识别的段落来源）；对话助手观察指标（T189）；章节模型评审目前不调用模型 |
 | 合规规则 | 42 条有检查与测试（R01～R20、R23～R44）；警告须负责人填理由逐项放行 | R33 的人员证书有效期与学历证明附件、R38 的附件文字识别；R43 风格样例照抄与 R44 事实来源核对（缺样例库与产品字典）；R21、R22 为二期 |
 | 导出 | Word 版式、封面目录页码、公司 Word 模板、招标格式要求覆盖模板、一至八级标题与 Markdown 转换、附件扫描件按页插入与敏感水印、导出命名、分册定稿、递交门禁、合标核对清单与内部响应追溯表 Excel | 公司模板的四至八级标题样式未从模板读取（沿用三级标题字体）；招标规定的格式文件（投标函等）按格式填充；暗标封面；内部稿水印按用户决定不做 |
 | 管理 | 模型/RAGFlow 弹窗配置、公司管理、审计日志、SLA 模板 | 站内提醒、配置版本、任务模型映射 |
@@ -50,6 +50,7 @@
 - R33 拟派人员条件与 R38 证明材料与评分要点对应（APP-M2-T241、T253）：`icg/domain/staff_proof_rules.py`。招标条款按规则抽出角色（项目负责人归为项目经理）、人数、学历、专业、工作年限、证书（“或”连接时持其一即可）、AB 角、不得兼任；项目设置“拟派人员”（`GET/PUT /projects/{id}/proposed-staff`，仅项目负责人保存）从资料库“人员”资料选人、定角色、A/B 角与关键人员，保存即返回 R33 结果；人员学历、专业、参加工作时间、证书从人员资料正文“学历：…”等行读取，读不到算资料缺失。资格条款不满足阻断、评分条款不满足提示、其他条款警告，没排人或资料缺项警告；工作年限算到投标截止时间。R38 对要求截图或证明的评分项拆出功能点（“支持/具备…功能”），每个功能点须在挂接资料附件的功能点标签或资料名称正文里找到该词或公司同义词（`custom_settings.r38_synonyms`），否则逐个功能点警告；没有附件也警告。拟派人员与附件设置进入输入指纹（为空时不写入，旧指纹不变），改动后旧检查与导出过期。未做：人员证书有效期、学历证明附件、附件文字识别与截图内容理解（二期）。
 - 导出补全（APP-M2-T086、T196、T199、T150）：`icg/domain/export_naming.py`（`GET/PUT /projects/{id}/export-settings`，项目设置“导出设置”）——内部稿默认“{编写人}_{版本}_{日期}_{项目名称}”（编写人取分册负责人，版本为本分册内部稿导出序号 V1.0、V2.0…，日期北京时间），递交版默认“{项目名称}_{分册名称}”，含 {编写人} 或不认识的变量不能保存，导出时再核；两册重名时补分册名称；下载头按 RFC 5987 带中文文件名，批次记规则快照。`icg/domain/tender_format.py`——从已确认的格式类条款（没有时从招标原文）读出正文、一至三级标题、表格的字体字号（含“小四”等中文字号）、正文倍数或固定行距、页边距，按招标 > 模板 > 默认叠加，每项记依据原文与条款。`icg/infra/docx_markdown.py`——一至八级标题（一至三级进目录）、Markdown 表格转 Word 表格（系统生成章节原先导出为“| … |”文字）、列表、加粗，残留符号去掉；附件按行号插在覆盖该行的块之后。导出文件整体由系统生成，模板的批注、修订、隐藏文字、自定义属性与作者不会带入（测试覆盖）。
 - 企业设置保存（A-05）：页面原先“保存”只弹提示；现读取并保存 `/api/v1/companies/{id}/settings`（`admin/company-settings-sync.ts`），新增登录失败锁定次数、对话助手（启用、样例条数、知识库默认与能否关闭）、解析置信度阈值、查重字数与年限；上下限与后台对齐（会话超时 30～480 分钟、编辑锁 6～60 分钟）。去掉没有后台支撑的“密码有效期”；“敏感项目只用本地模型”改为系统强制、不可关闭。大纲层级、默认篇幅、AI 上下文预算与自定义扩展字段存于 `custom_settings.ui_*`，保存后可读回，但生成流程与表单尚未读取（缺口）。
+- 对话助手补全（APP-M2-T179、T188、T040、T177）：`icg/domain/assistant_qa.py`（`streamAssistantReply`）——不选中正文时提问：先按词表直查本项目或本公司数据，命中且查到时返回答案卡不调用模型；否则逐字流式回答，知识库打开时只能引用本次检索结果（其他标记去掉并提示），无检索结果不调用模型；回答 `can_insert=false`、只能复制；问答记入本人本章会话；前端 `editor/AssistantAskBox.tsx`。敏感项目本地模型都不可用时（选区改写与提问）排队重试最多 120 秒，发“本地任务排队”提醒，绝不改走云端。`icg/domain/paste_detection.py`——提交正文时把新段落与本章 7 天内的助手样例和回答比对（≥6 字的连续相同片段覆盖比例），达到公司设置 `assistant_paste_match_ratio`（默认 0.8，0.5～1.0）的段落在版本里记“对话助手撰写（粘贴）”、做与助手写入相同的文字复查，结果随提交返回并在编辑台提示。`icg/domain/task_model_routes.py`（`listTaskModelRoutes`、`updateTaskModelRoute`，企业设置“任务与模型”页签）——章节长文写作、对话助手问答、修改样例各配首选与备用；首选本地则备用只能本地、备用不能同首选、只能选本公司真实模型；取模型顺序为项目单独绑定 → 任务表 → 本公司默认；敏感项目任务表首选不是本地时 403；`WithFallback` 让章节生成等所有调用 `suggest()` 的任务也按规则改用备用。2026-10-30 经 RAGFlow 用 gemini-3.6-flash 实测自由提问：7.6 秒流式完成；同时段 gemini-3.8-flash 返回 503（负载高）、gemini-3.6 连通性测试返回 429，ICG 均如实报错。
 - 解析结果三栏与分类树（APP-M2-T104）：`icg/domain/parse_review.py`（`getParseReview`、`batchConfirmRequirements`）、`frontend/web/src/project/parse-review-core.ts`、`ParseTab.tsx`。条款和事实按 PRD 10 类归类，评分类按评分项分组列出得分要点；顶部增加“引用未解析 N”入口（只提示不阻断）；确认按钮旁列出还差的前提及条数，与 confirm_parse 一致；星号、废标、资格三类和含未解析引用的条目后台拒绝批量确认；人工改过原文的条目标“已人工修改”，重新抽取不覆盖。
 - 自动保存（APP-M2-T172）：前端 `editor/autosave-core.ts`、`useEditorLock.ts`、`EditorPage.tsx`；后端 `DemoService._auto_commit_draft`、`_lease_seconds`。编辑锁时长改为公司设置 `edit_lock_timeout_minutes`（默认 30 分钟，原先固定 120 秒），心跳间隔 `edit_lock_heartbeat_seconds`、自动保存间隔 `editor_autosave_seconds` 也从公司设置读取。锁主动释放、被接管、超时后被他人取得时，持锁人已保存的草稿自动提交为“手改”版本；草稿基于旧版本、来源已变化或含对话残留时不提交。
 - 站内提醒（APP-M2-T029～T032）：`icg/domain/notifications.py`、`icg/api/notifications.py`、`frontend/web/src/notifications/`。17 类提醒都定义了跳转方式；已接上真实事件的有 8 类：编辑锁被接管、草稿已过期、交叉复核、分册解锁后递交版过期、章节待人工处理、解析结果待处理、导出失败（后台任务失败）、资料 30 天内到期（读取提醒时按公司扫描，资料有增改即重扫）。其余 9 类（在投项目缺资料、相似度、分册内部截止、分册解锁申请、关联投标冲突、本地任务排队、资料催办、后台任务完成、服务异常）对应的业务功能或事件尚未建，暂不产生提醒。
@@ -363,7 +364,7 @@
 | [APP-M2-T037](tasks/APP-M2.md#app-m2-t037) | 模型登记表单与测试连接（用户要求弹窗配置；后端 API 已有、前端未接） | in-review（2026-10-28 重定：代码与测试已存在） | APP-M2-T014、APP-M2-T036 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T037.md` |
 | [APP-M2-T038](tasks/APP-M2.md#app-m2-t038) | 模型配置版本与回滚（用户要求弹窗配置；后端 API 已有、前端未接） | planned | APP-M2-T014、APP-M2-T037 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T038.md` |
 | [APP-M2-T039](tasks/APP-M2.md#app-m2-t039) | A-09 文档解析服务配置（用户要求弹窗配置；后端 API 已有、前端未接） | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T014、APP-M2-T021 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T039.md` |
-| [APP-M2-T040](tasks/APP-M2.md#app-m2-t040) | A-10 任务与模型对应表（用户要求弹窗配置；后端 API 已有、前端未接） | planned | APP-M2-T036 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T040.md` |
+| [APP-M2-T040](tasks/APP-M2.md#app-m2-t040) | A-10 任务与模型对应表（用户要求弹窗配置；后端 API 已有、前端未接） | in-review（2026-10-30：任务与模型对应表——章节写作、对话助手问答、修改样例各配首选与备用，首选本地则备用只能本地，未绑定模型的项目按表取） | APP-M2-T036 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T040.md` |
 | [APP-M2-T041](tasks/APP-M2.md#app-m2-t041) | A-05 公司模型开放（用户要求弹窗配置；后端 API 已有、前端未接） | planned | APP-M2-T036 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T041.md` |
 | [APP-M2-T042](tasks/APP-M2.md#app-m2-t042) | A-11 部署与服务状态页 | in-progress（2026-10-28 重定：部分已实现，缺口见 tasks 卡） | APP-M2-T036 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T042.md` |
 | [APP-M2-T043](tasks/APP-M2.md#app-m2-t043) | CrossFieldHint 组件与 9.11 规则函数 | planned | APP-M2-T025 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T043.md` |
@@ -502,7 +503,7 @@
 | [APP-M2-T176](tasks/APP-M2.md#app-m2-t176) | 对话面板与会话列表 | in-review（2026-10-29：本人会话列表与只追加记录，负责人和公司管理员可看，可接着上一轮继续提要求） | APP-M2-T167、APP-M2-T089 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T176.md` |
 | [APP-M2-T177](tasks/APP-M2.md#app-m2-t177) | 流式输出、模型标识、降级提示 | in-review（2026-10-30：逐字流式预览、按写法完成先后推送样例、可停止且不保存；显示当前模型、是否本地与备用模型；主模型健康类失败改用备用模型并标明） | APP-M2-T167、APP-M2-T089、APP-M2-T176、APP-M2-T040 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T177.md` |
 | [APP-M2-T178](tasks/APP-M2.md#app-m2-t178) | 建议卡片（写法、差异、来源、预检） | in-review（2026-10-29：选区样例卡片含写法、字数、差异、预检提示与引用来源/无知识库来源） | APP-M2-T167、APP-M2-T089、APP-M2-T176、APP-M2-T242、APP-M2-T243、APP-M2-T244、APP-M2-T248 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T178.md` |
-| [APP-M2-T179](tasks/APP-M2.md#app-m2-t179) | 自由问答（只“复制”） | in-review | APP-M2-T167、APP-M2-T089、APP-M2-T181 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T179.md) |
+| [APP-M2-T179](tasks/APP-M2.md#app-m2-t179) | 自由问答（只“复制”） | in-review（2026-10-30：不选中时自由提问，逐字流式、只能复制，直查命中给答案卡，知识库开时只能引用本次检索结果，记入会话） | APP-M2-T167、APP-M2-T089、APP-M2-T181 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T179.md) |
 | [APP-M2-T180](tasks/APP-M2.md#app-m2-t180) | 上下文与样例任务卡选择 | in-review（2026-10-29：选区及前后段、本章条款与事实入模，3～5 条样例按写法生成） | APP-M2-T167、APP-M2-T089、APP-M2-T176、APP-M2-T124 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T180.md` |
 | [APP-M2-T181](tasks/APP-M2.md#app-m2-t181) | 资料库与本项目数据答案卡 | in-review | APP-M2-T176、APP-M2-T047、APP-M2-T112 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T181.md) |
 | [APP-M2-T182](tasks/APP-M2.md#app-m2-t182) | 直查未命中与常规回答回退 | in-review | APP-M2-T176、APP-M2-T047、APP-M2-T112、APP-M2-T181 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T182.md) |
@@ -511,7 +512,7 @@
 | [APP-M2-T185](tasks/APP-M2.md#app-m2-t185) | 差异确认写入 | in-review | APP-M2-T167、APP-M2-T178 | [ISSUE-007](../issues/ISSUE-007.md) / [ISSUE-037](../issues/ISSUE-037.md) | [交付](delivery/APP-M2-T185.md) |
 | [APP-M2-T186](tasks/APP-M2.md#app-m2-t186) | “我已逐字核对”二次确认（星号 / 废标 / 偏离 / 披露） | in-review（2026-10-28 重定：代码与测试已存在） | APP-M2-T167、APP-M2-T178、APP-M2-T185 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T186.md` |
 | [APP-M2-T187](tasks/APP-M2.md#app-m2-t187) | 冲突校验与重新定位提示 | in-review（2026-10-29：选区移动且唯一时重新定位再确认，找不到或多处时样例失效） | APP-M2-T167、APP-M2-T178、APP-M2-T185 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T187.md` |
-| [APP-M2-T188](tasks/APP-M2.md#app-m2-t188) | 粘贴识别 | planned | APP-M2-T167、APP-M2-T178、APP-M2-T185、APP-M2-T242、APP-M2-T243 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T188.md` |
+| [APP-M2-T188](tasks/APP-M2.md#app-m2-t188) | 粘贴识别 | in-review（2026-10-30：提交时与本章 7 天内助手输出比对，重合达公司阈值（默认 80%）的段落记“对话助手撰写（粘贴）”并复查） | APP-M2-T167、APP-M2-T178、APP-M2-T185、APP-M2-T242、APP-M2-T243 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T188.md` |
 | [APP-M2-T189](tasks/APP-M2.md#app-m2-t189) | 对话助手观察指标 | planned | APP-M2-T174、APP-M2-T185 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T189.md` |
 | [APP-M2-T190](tasks/APP-M2.md#app-m2-t190) | 人工修改率分项 | planned | APP-M2-T174、APP-M2-T185 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T190.md` |
 | [APP-M2-T191](tasks/APP-M2.md#app-m2-t191) | 点对点应答确定性章节 | in-review（2026-10-29：点对点应答按数据源生成已实现） | APP-M2-T113、APP-M2-T116 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T191.md` |
