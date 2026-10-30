@@ -31,6 +31,13 @@ export type ChapterIssue = {
   human_reason_label?: string | null;
   edit_mode_label?: string | null;
   number?: string | null;
+  /** 检查批次与原问题编号（origin=check） */
+  check_id?: string | null;
+  issue_id?: string | null;
+  /** 人工处理队列问题编号（origin=loop） */
+  human_issue_id?: string | null;
+  /** 编辑操作编号（origin=edit_recheck） */
+  operation_id?: string | null;
 };
 export type ChapterIssueList = {
   project_id: string;
