@@ -220,6 +220,9 @@ def test_ragflow_quirks_seen_on_the_real_service():
     with pytest.raises(ModelCallError) as info:
         empty.stream_suggest("s", "u", on_delta=shown.append)
     assert degradable(info.value) and shown == []
+    empty.fallback, resets = provider(lambda r: httpx.Response(200, json={"choices": [{"message": {"content": "备用正文"}}]})), []
+    assert call_model(empty, "s", "u", on_delta=lambda p: None, on_reset=lambda n, w: resets.append(w)).is_fallback
+    assert resets == ["主模型没有返回内容（多为额度用完或限流）"]
 
     split = provider(lambda r: httpx.Response(200, headers={"content-type": "text/event-stream"},
                                               content=sse(["**ERR", "OR**: Error 503 ", "overloaded"])), retries=0)
@@ -240,3 +243,52 @@ def test_ragflow_quirks_seen_on_the_real_service():
     with pytest.raises(ModelCallError) as info:
         envelope.stream_suggest("s", "u", on_delta=lambda p: None)
     assert "doesn't exist" in str(info.value) and not degradable(info.value)
+
+
+@pytest.mark.parametrize("base,url", [
+    ("http://model.local:8000", "http://model.local:8000/v1/chat/completions"),
+    ("http://model.local:8000/v1/", "http://model.local:8000/v1/chat/completions"),
+    ("https://rag.local/api/v1/openai/abc123", "https://rag.local/api/v1/openai/abc123/chat/completions"),
+    ("https://rag.local/api/v1/openai/abc123/chat/completions", "https://rag.local/api/v1/openai/abc123/chat/completions"),
+])
+def test_model_address_forms(base, url):
+    from icg.infra.openai_model import chat_completions_url
+    assert chat_completions_url(base) == url
+
+
+def test_reasoning_traces_are_dropped_with_a_clear_reason():
+    from icg.domain.selection_rewrite import precheck
+    trace = "1. **分析请求：**\n    *   **角色：** 投标文件编写助手。\n5. **起草 - 迭代 2（增加专业术语）：**"
+    text, _, reason = precheck(trace, "每月安排巡检", "replace", set(), None, set(), "rewrite")
+    assert text is None and "思考过程" in reason
+    text, _, reason = precheck("<think>先想想</think>每月开展巡检", "每月安排巡检", "replace", set(), None, set(), "rewrite")
+    assert text is None
+    text, _, _ = precheck("每月开展一次例行巡检", "每月安排巡检", "replace", set(), None, set(), "rewrite")
+    assert text == "每月开展一次例行巡检"
+
+
+def test_doubled_chunks_from_ragflow_gemini_are_counted_once():
+    pieces = []
+    doubled = provider(lambda r: httpx.Response(200, headers={"content-type": "text/event-stream"},
+                                                content=sse(["我方每月开展", "我方每月开展", "例行巡检", "例行巡检", "。", "。"])))
+    assert doubled.stream_suggest("s", "u", on_delta=pieces.append) == "我方每月开展例行巡检。"
+    assert pieces == ["我方每月开展", "例行巡检", "。"]
+    normal = provider(lambda r: httpx.Response(200, headers={"content-type": "text/event-stream"}, content=sse(["哈", "哈", "，好"])))
+    assert normal.stream_suggest("s", "u", on_delta=lambda p: None) == "哈哈，好"  # 短块重复在判定前不丢
+
+
+def test_broken_variable_markers_are_dropped():
+    from icg.domain.selection_rewrite import precheck
+    token = "{{fact:fact-abc}}"
+    text, _, reason = precheck("}}\n  *   " + token[:-2], "每月安排巡检", "replace", set(), None, {token}, "rewrite")
+    assert text is None and "残缺" in reason
+    text, _, _ = precheck(f"服务期为{token}，每月开展巡检", "每月安排巡检", "replace", set(), None, {token}, "rewrite")
+    assert text and token in text
+
+
+def test_immediate_repeats_are_collapsed_with_a_note():
+    from icg.domain.selection_rewrite import precheck
+    text, notes, _ = precheck("每月完成巡检并提交巡检报告巡检报告", "每月安排巡检", "replace", set(), None, set(), "rewrite")
+    assert text == "每月完成巡检并提交巡检报告" and notes == ["去掉了紧挨着重复的文字，请核对"]
+    text, notes, _ = precheck("每月开展巡检，巡检后提交报告", "每月安排巡检", "replace", set(), None, set(), "rewrite")
+    assert text == "每月开展巡检，巡检后提交报告" and notes == []

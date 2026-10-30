@@ -24,7 +24,8 @@ class ModelCall:
 
 
 def model_name(provider: Any) -> str:
-    return getattr(provider, "model", "") or getattr(provider, "name", "") or "模型"
+    return (getattr(provider, "display_name", "") or getattr(provider, "model", "") or getattr(provider, "name", "")
+            or "模型")
 
 
 def degradable(error: BaseException) -> bool:
@@ -43,7 +44,16 @@ def _reason(error: BaseException) -> str:
         return "主模型连接失败"
     if text.startswith("HTTP 429"):
         return "主模型限流"
+    if text == "empty stream":
+        return "主模型没有返回内容（多为额度用完或限流）"
     return f"主模型暂时不可用（{text}）"
+
+
+def failure_text(error: BaseException) -> str:
+    """写法失败时给用户看的原因：健康类失败说明是超时、连接、限流还是没返回内容，其他写明上游返回。"""
+    if degradable(error):
+        return _reason(error).replace("主模型", "模型")
+    return str(error) or type(error).__name__
 
 
 def call_model(provider: Any, system: str, user: str, *, on_delta: Callable[[str], None] | None = None,

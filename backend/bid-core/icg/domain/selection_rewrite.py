@@ -55,7 +55,10 @@ LEADING_CHATTER = re.compile(r"^(?:以下是[^\n：:]*[：:]|好的[，,。]?|�
 AMOUNT = re.compile(r"\d+(?:\.\d+)?\s*(?:万元|元|亿元)")
 # 上游模型出错时，有的网关（如 RAGFlow 的 OpenAI 兼容接口）以 200 返回错误文字，不能当成样例
 UPSTREAM_ERROR = re.compile(r"^\s*(?:\*\*)?ERROR(?:\*\*)?\s*[:：]|exceeded your current quota|rate.?limit|Error \d{3}, Message", re.I)
+# 模型把思考过程当正文输出（编号加粗的“分析/理解/解构/确定策略/起草”小标题、“起草 - 迭代”、<think>）
+THINKING = re.compile(r"^\s*(?:\d+[.、]\s*)?\*\*\s*(?:分析|理解|解构|确定(?:策略|语境)|起草)[^*\n]{0,12}\*\*|起草\s*-\s*迭代|<think>")
 PREAMBLE = re.compile(r"^[^\n]{0,80}(?:如下|以下)[：:]\s*$")
+REPEAT = re.compile(r"([\u4e00-\u9fa5A-Za-z0-9，、]{4,}?)\1+")
 LENGTH_LIMIT = {"expand": (2.5, 200), "shorten": (1.0, 0)}
 PENDING_NUMBER = "【待补：数值来源】"
 
@@ -140,9 +143,18 @@ def precheck(sample: str, selection: str, action_scope: str, known: set[str],
     from .chapter_generation import AI_CONVERSATION_RESIDUALS, NEGATIVE_DEVIATION_TRIGGERS
     if UPSTREAM_ERROR.search((sample or "")[:300]):
         return None, [], "模型服务返回了错误信息（如额度或频率限制），不是改写结果"
+    if THINKING.search(sample or ""):
+        # 实测 GLM-4.7-flash 经 RAGFlow 时把“分析请求…起草迭代”等思考过程写进正文；整条丢弃，提示换用不输出思考过程的模型
+        return None, [], "模型输出了思考过程而不是改写结果（请换用不带思考过程的模型，或在模型服务里关闭思考输出）"
     text = _clean(sample)
     if not text:
         return None, [], "模型没有返回内容"
+    if re.search(r"\{\{|\}\}", TOKEN.sub("", text)):
+        return None, [], "变量标记残缺（只剩半个 {{ 或 }}）"
+    # 流式转发偶尔把一段文字紧挨着重复一遍（实测“巡检报告巡检报告”）；4 字以上的紧邻重复只留一份并提示
+    collapsed = REPEAT.sub(r"\1", text) if TOKEN.search(text) is None else text
+    repeated = collapsed != text
+    text = collapsed
     ratio, slack = LENGTH_LIMIT.get(mode, (2.0, 120))
     plain_len = len(re.sub(r"\s+", "", TOKEN.sub("", text)))
     limit = len(re.sub(r"\s+", "", TOKEN.sub("", selection))) * ratio + slack
@@ -172,7 +184,7 @@ def precheck(sample: str, selection: str, action_scope: str, known: set[str],
     if not text:
         return None, [], "只有对话套话"
     text, replaced = _replace_unsourced_numbers(text, known)
-    notes = []
+    notes = ["去掉了紧挨着重复的文字，请核对"] if repeated else []
     if replaced:
         notes.append(f"{len(replaced)} 处数值对不上项目事实、本章条款、引用资料或原文，已换成【待补：数值来源】")
     if AMOUNT.search(text):
@@ -265,10 +277,11 @@ class SelectionRewriteService:
         provider = self.demo.resolve_model_provider(state, project_id)
         kb = getattr(self.demo, "knowledge_base", None)
         connected = bool(kb is not None and kb.client_for(project.company_id, state) is not None)
+        from icg.infra.model_fallback import model_name
         backup = getattr(provider, "fallback", None)
         return {**self._policy(state, project.company_id),
-                "model": getattr(provider, "model", "") or getattr(provider, "name", ""),
-                "fallback_model": (getattr(backup, "model", "") or None) if backup is not None else None,
+                "model": model_name(provider),
+                "fallback_model": model_name(backup) if backup is not None else None,
                 "streaming": bool(getattr(provider, "stream_enabled", False)),
                 "is_real_model": bool(getattr(provider, "is_real_model", False)),
                 "is_local_model": bool(getattr(provider, "is_local", False)),
@@ -367,7 +380,7 @@ class SelectionRewriteService:
         产出 cancelled。"""
         import queue
         import threading
-        from icg.infra.model_fallback import call_model, model_name
+        from icg.infra.model_fallback import call_model, failure_text, model_name
         from icg.infra.openai_model import ModelCancelled
         cancel = cancel if cancel is not None else threading.Event()
         provider, mode = prepared["provider"], prepared["mode"]
@@ -396,7 +409,7 @@ class SelectionRewriteService:
             except ModelCancelled:
                 inbox.put(("cancelled", style, None))
             except Exception as error:  # 单条失败不影响其他写法
-                inbox.put(("failed", style, type(error).__name__))
+                inbox.put(("failed", style, failure_text(error)))
 
         for style in styles:
             threading.Thread(target=work, args=(style,), daemon=True).start()
@@ -419,7 +432,7 @@ class SelectionRewriteService:
                     continue
                 key, label, _ = item
                 if kind == "failed":
-                    entry = {"style": label, "reason": f"模型调用失败（{value}）"}
+                    entry = {"style": label, "reason": f"模型调用失败：{value}"}
                     dropped.append(entry)
                     yield {"event": "dropped", **entry}
                     continue
@@ -449,6 +462,7 @@ class SelectionRewriteService:
 
     def _finish(self, prepared: dict, samples: list[dict], dropped: list[dict]):
         principal, project_id, chapter_id = prepared["principal"], prepared["project_id"], prepared["chapter_id"]
+        from icg.infra.model_fallback import model_name
         samples, merged = _merge_similar(samples)
         if merged:
             dropped.append({"style": "相近写法", "reason": f"{merged} 条与其他样例几乎相同，已合并"})
@@ -465,10 +479,10 @@ class SelectionRewriteService:
             "mode": prepared["mode"], "mode_label": MODES[prepared["mode"]][0], "instruction": prepared["instruction"],
             "samples": samples, "dropped": dropped, "knowledge_base_enabled": prepared["kb_on"],
             "retrieval": prepared["retrieval"], "provider": getattr(provider, "name", "model"),
-            "model": getattr(provider, "model", ""), "is_local_model": bool(getattr(provider, "is_local", False)),
+            "model": model_name(provider), "is_local_model": bool(getattr(provider, "is_local", False)),
             # 改用备用模型的写法（PRD §6.5 规则 3：界面显示“已使用备用模型 X”，记录实际模型）
             "fallback_used": prepared.get("fallback_used") or [],
-            "models_used": sorted({s.get("model") or getattr(provider, "model", "") for s in samples}),
+            "models_used": sorted({s.get("model") or model_name(provider) for s in samples}),
             "status": "no_results" if no_results else "proposed",
             "created_by": principal.user.id, "created_at": iso_time(self.demo._now()),
         }
@@ -533,6 +547,10 @@ class SelectionRewriteService:
             lines += list(history)
         if instruction:
             lines.append(f"【修改要求】{instruction}")
+        # 输出要求放在最后：实测云端模型（经 RAGFlow）只看系统提示时会写分析、方案标题和上下文效果展示
+        limit = max(30, len(selected) * 2)
+        lines.append(f"【输出要求】只输出用来替换【选中的文字】的那一段正文本身，约 {len(selected)} 字、不超过 {limit} 字；"
+                     "不要分析、标题、引号、列表、说明，也不要展示前文后文或替换效果。")
         return "\n".join(lines)
 
     # ---------------------------------------------------------------- 写入

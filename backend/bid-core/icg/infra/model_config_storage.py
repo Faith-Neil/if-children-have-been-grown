@@ -189,7 +189,10 @@ def provider_from_model_config(
             json_mode_enabled=config.json_mode_enabled,
             api_key=plain_key or None,
         )
-        return OpenAICompatibleModelProvider(cfg, transport=transport)
+        provider = OpenAICompatibleModelProvider(cfg, transport=transport)
+        # 经 RAGFlow 对话助手时请求里的模型名只能是占位的 “model”，页面改显示配置名称
+        provider.display_name = config.name if config.model.strip().lower() == "model" else config.model
+        return provider
     raise DomainError(502, "MODEL_UNAVAILABLE", f"不支持的模型提供者: {config.provider}")
 
 
@@ -286,6 +289,7 @@ class ModelConfigTestResponse(ResponseBody):
     provider: str
     model: str
     duration_ms: int = Field(ge=0)
+    message: str = Field(default="", description="不通时的原因（HTTP 状态、上游错误、超时等）")
 
 
 class ProjectModelConfigBindingRequest(RequestBody):
@@ -488,7 +492,8 @@ class ModelConfigService:
             }
 
         try:
-            url = cfg.base_url.rstrip("/") + "/v1/chat/completions"
+            from .openai_model import chat_completions_url
+            url = chat_completions_url(cfg.base_url)
             headers = {"Content-Type": "application/json"}
             if plain_key:
                 headers["Authorization"] = f"Bearer {plain_key}"
@@ -498,11 +503,22 @@ class ModelConfigService:
                 "max_tokens": 1,
                 "stream": False,
             }
-            with httpx.Client(transport=transport, timeout=min(cfg.timeout_seconds, 5.0)) as client:
+            # 云端模型首字常要十几秒（实测 RAGFlow 转发 8～30 秒），5 秒会把可用模型判成不通；上限 30 秒
+            with httpx.Client(transport=transport, timeout=min(cfg.timeout_seconds, 30.0), trust_env=False) as client:
                 resp = client.post(url, headers=headers, json=payload)
-                ok = (resp.status_code == 200)
-        except Exception:
-            ok = False
+            message = ""
+            if resp.status_code != 200:
+                ok, message = False, f"HTTP {resp.status_code}"
+            else:
+                # HTTP 200 也可能是上游错误（RAGFlow 的“**ERROR**: …”正文或 {"code":…} 错误包），要看内容
+                from .openai_model import ModelCallError, _assistant_text, raise_upstream_error
+                try:
+                    raise_upstream_error(_assistant_text(resp))
+                    ok = True
+                except ModelCallError as error:
+                    ok, message = False, str(error.__cause__ or error)
+        except Exception as error:
+            ok, message = False, type(error).__name__
 
         duration_ms = max(1, int((time.time() - start) * 1000))
         return {
@@ -510,6 +526,7 @@ class ModelConfigService:
             "provider": cfg.provider,
             "model": cfg.model,
             "duration_ms": duration_ms,
+            "message": message,
         }
 
     def bind_project(self, principal: Principal, project_id: str, config_id: str) -> dict[str, Any]:

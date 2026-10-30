@@ -3,7 +3,8 @@
 # 逐字流式（APP-M2-T177）：stream_suggest 边收边把增量文字交给回调，可随时取消（用户点“停止”或断开连接）；
 # 已经收到文字后再失败不重试，避免同一写法前后两段内容拼在一起。内网接口一律不读取系统代理（trust_env=False）。
 # 兼容实测到的 RAGFlow 行为：上游限流时仍返回 HTTP 200，普通模式正文是“**ERROR**: Error 429 …”，流式模式只有一个空的结束块；
-# 部分块带的是“到目前为止的全文”而不是增量。前两种按上游失败处理（限流可改用备用模型），后一种只取新增部分。
+# 部分块带的是“到目前为止的全文”而不是增量，或同一块连发两次。前两种按上游失败处理（限流可改用备用模型），
+# 全文块只取新增部分，双发块只算一次。
 
 from __future__ import annotations
 
@@ -40,7 +41,7 @@ _ENV_NAMES = {
     "is_local": "ICG_MODEL_IS_LOCAL",
 }
 _DEFAULT_API_KEY_ENV = "ICG_MODEL_API_KEY"
-_RETRYABLE_STATUS = {408, 429, 500, 502, 503, 504}
+_RETRYABLE_STATUS = {408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524}  # 52x：Cloudflare 隧道源站超时或断开
 _ENV_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
@@ -86,6 +87,18 @@ def _validate_base_url(base_url: str) -> str:
             or parsed.username or parsed.password or parsed.query or parsed.fragment):
         raise ValueError(f"{_ENV_NAMES['base_url']} must be an absolute http(s) origin without credentials, query, or fragment")
     return base_url.strip().rstrip("/")
+
+
+def chat_completions_url(base_url: str) -> str:
+    """模型地址 → 对话接口地址。支持三种常见填法：只填服务根地址（补 /v1/chat/completions）；
+    填到 /v1 或 RAGFlow 对话助手的 /api/v1/openai/{助手 ID}（补 /chat/completions）；已填完整接口地址（原样使用）。"""
+    base = base_url.rstrip("/")
+    path = urlsplit(base).path
+    if path.endswith("/chat/completions"):
+        return base
+    if re.search(r"/v\d+$", path) or re.search(r"/openai/[^/]+$", path):
+        return base + "/chat/completions"
+    return base + "/v1/chat/completions"
 
 
 @dataclass(frozen=True)
@@ -138,7 +151,7 @@ class OpenAICompatibleConfig:
 
     @property
     def chat_completions_url(self) -> str:
-        return self.base_url + "/v1/chat/completions"
+        return chat_completions_url(self.base_url)
 
 
 class OpenAICompatibleModelProvider:
@@ -242,6 +255,7 @@ class OpenAICompatibleModelProvider:
         }
         collected: list[str] = []
         pending_error: list[str] = []
+        last_raw, skipped_last, doubled = [None], [False], [False]
         try:
             with httpx.Client(transport=self._transport, timeout=self._config.timeout_seconds,
                               follow_redirects=False, trust_env=False) as client:
@@ -275,6 +289,12 @@ class OpenAICompatibleModelProvider:
                         piece = (choices[0].get("delta") or {}).get("content")
                         if not isinstance(piece, str) or not piece:
                             continue
+                        # 实测 RAGFlow 转发 Gemini 时每块连发两次：头一次出现较长（≥4 字）的连续重复块即认定为“双发”流，
+                        # 之后与上一块相同的块只算一次；短块（如“哈”）连续出现可能是正文，判定前不丢
+                        if piece == last_raw[0] and not skipped_last[0] and (doubled[0] or len(piece) >= 4):
+                            doubled[0], skipped_last[0] = True, True
+                            continue
+                        last_raw[0], skipped_last[0] = piece, False
                         so_far = "".join(collected)
                         if so_far and len(piece) > len(so_far) and piece.startswith(so_far):
                             piece = piece[len(so_far):]  # 本块是到目前为止的全文，只取新增部分
