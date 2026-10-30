@@ -282,7 +282,8 @@ def include_workflow_routes(application, service, current_user, parser):
         content = document.get("content_bytes")
         if content is None:
             record = Export(export_id, "", 1, "", "", document["filename"], document["title"], document["content"])
-            content = build_docx(record, project_name=document.get("project_name"))
+            from icg.domain.export_batch import docx_meta
+            content = build_docx(record, project_name=document.get("project_name"), meta=docx_meta(document))
         headers = {"Content-Disposition": f'attachment; filename="{document["filename"]}"',
                    "X-ICG-Export-Status": "stale" if document.get("stale") else "valid"}
         if document.get("batch_no"):

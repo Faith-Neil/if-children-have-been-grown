@@ -3002,7 +3002,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T197 · 分册封面、目录与页码
 <a id="app-m2-t197"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T196](APP-M2.md#app-m2-t196)、[APP-M2-T100](APP-M2.md#app-m2-t100)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T196](APP-M2.md#app-m2-t196)、[APP-M2-T100](APP-M2.md#app-m2-t100)。
 
 原始来源：PRD v1.8 §5.9.1规则2～4。交付单位：分册封面、目录与页码，同一产品的页面/后台/数据/权限/输出协作一起验收。
 

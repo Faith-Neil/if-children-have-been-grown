@@ -87,6 +87,12 @@ class UpdateCompanySettingsRequest(BaseModel):
     custom_settings: dict[str, Any] | None = Field(default=None, description="企业扩展键值配置")
 
 
+def company_display_name(state, company_id: str) -> str:
+    """投标主体名称：公司设置里的公司名称；未设置时与 _get_or_create 的默认值一致。"""
+    stored = (getattr(state, "service_stores", {}).get("company_settings") or {}).get(company_id) or {}
+    return stored.get("company_name") or ("Alpha 科技" if company_id == "alpha" else "Beta 建设" if company_id == "beta" else f"{company_id} 企业")
+
+
 class CompanySettingsService:
     """企业设置与安全策略领域服务。"""
 

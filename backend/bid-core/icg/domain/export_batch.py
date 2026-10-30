@@ -31,10 +31,16 @@ def next_batch_no(workflow: dict, kind: str, now: datetime) -> str:
     return f"{prefix}{sequence:03d}"
 
 
+def docx_meta(document: dict):
+    from icg.infra.docx_style import DocxMeta
+    cover = document.get("cover")
+    return DocxMeta(**cover) if cover else None
+
+
 def _render(volume: str, document: dict, filename: str) -> bytes:
     from icg.infra.docx_style import build_docx
     record = Export("", "", 1, "", "", filename, document["title"], document["content"])
-    data = build_docx(record, project_name=document.get("project_name"))
+    data = build_docx(record, project_name=document.get("project_name"), meta=docx_meta(document))
     if not data or data[:2] != b"PK":
         raise ExportRenderError(volume, "生成的 Word 文件不完整")
     return data

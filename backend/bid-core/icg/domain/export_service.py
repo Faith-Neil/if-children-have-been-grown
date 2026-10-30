@@ -156,12 +156,17 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                     for c in selected
                 )
                 vol_sha = hashlib.sha256(doc_content.encode("utf-8")).hexdigest()
+                from icg.domain.company_settings import company_display_name
                 documents[volume] = {
                     "title": doc_title,
                     "project_name": self._mask(project.name),
                     "content": doc_content,
                     "sha256": vol_sha,
                     "format_metadata": WORD_DEFAULT_FORMAT_METADATA,
+                    # 封面与页眉（APP-M2-T197）：分册名、招标编号、投标人、导出日期；内部稿页眉写“内部评审稿”
+                    "cover": {"kind": payload["kind"], "volume_name": name, "tender_number": project.tender_number,
+                              "bidder": company_display_name(state, project.company_id),
+                              "date": datetime.fromtimestamp(now, SHANGHAI).strftime("%Y年%m月%d日").replace("年0", "年").replace("月0", "月")},
                 }
                 volumes.append({
                     "volume": volume,
