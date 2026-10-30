@@ -123,7 +123,8 @@ def require_password_changed(principal: Principal, method: str, path: str) -> No
 
 
 def _audit(state: Any, action: str, user_id: str, **extra: Any) -> None:
-    state.audit.append({"action": action, "user_id": user_id, "operator": user_id, "timestamp": time.time(), **extra})
+    from .security_audit import record
+    record(state, action, operator=user_id, user_id=user_id, **extra)
 
 
 def change_own_password(service: Any, principal: Principal, old_password: str, new_password: str) -> dict:

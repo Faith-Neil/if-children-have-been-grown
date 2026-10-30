@@ -145,7 +145,7 @@ export type Account = { id: string; name: string; company_id: string; role: Acco
 export type ApplicationSession = {
   auth_mode: AuthMode; role_mode: RoleMode;
   user: Account & { roles: string[]; primary_role: string };
-  scope: { kind: 'company'; active_company_id: string; allowed_company_ids: string[] };
+  scope: { kind: 'company' | 'system'; active_company_id: string; allowed_company_ids: string[] };
   navigation: { route_id: string; path: string; access: 'read' | 'write' }[];
   allowedActions: string[]; home_path: string;
   session: { expires_at: string | null; renew_supported: boolean };

@@ -62,7 +62,7 @@ def test_new_account_must_change_password_before_any_business_call(client: TestC
 
     again = client.post("/api/v1/auth/login", json={"username": "t260-new-writer", "password": "Brand_New_2026"})
     assert again.status_code == 200 and again.json()["must_change_password"] is False
-    audit = client.app.state.service.repository.read().audit
+    audit = client.app.state.service.repository.read().security_audit.values()
     assert any(e.get("action") == "user.change_password" and e.get("user_id") == "t260-new-writer" and e.get("forced")
                for e in audit)
 
@@ -100,7 +100,7 @@ def test_failure_messages_do_not_reveal_whether_the_account_exists(client: TestC
         assert res.status_code == 401, res.text
         bodies.append((res.json()["code"], res.json()["message"]))
     assert bodies == [("INVALID_CREDENTIALS", GENERIC)] * 3
-    reasons = {e.get("reason") for e in client.app.state.service.repository.read().audit
+    reasons = {e.get("reason") for e in client.app.state.service.repository.read().security_audit.values()
                if e.get("action") == "user.login_failed"}
     assert {"unknown_account", "wrong_password", "account_disabled"} <= reasons
 
@@ -168,7 +168,8 @@ def test_disabled_company_cannot_log_in_and_sessions_end(client: TestClient):
     enabled = client.post("/api/v1/companies/alpha/status", headers=platform, json={"status": "active"})
     assert enabled.status_code == 200 and enabled.json()["status"] == "active"
     assert client.post("/api/v1/auth/login", json={"username": "alpha-manager", "password": "X_2026"}).status_code == 200
-    actions = [e["action"] for e in client.app.state.service.repository.read().audit if e.get("company_id") == "alpha"]
+    events = sorted(client.app.state.service.repository.read().security_audit.values(), key=lambda e: e["timestamp"])
+    actions = [e["action"] for e in events if e.get("company_id") == "alpha"]
     assert actions[-2:] == ["company.disable", "company.enable"]
 
 
@@ -189,7 +190,21 @@ def test_lock_expires_after_lock_minutes(client: TestClient):
     assert unlocked.status_code == 200, unlocked.text
     account = repository.read().accounts["alpha-viewer"]
     assert account.is_locked is False and account.failed_login_attempts == 0 and account.locked_at is None
-    assert any(e.get("action") == "user.unlock" and e.get("reason") == "lock_expired" for e in repository.read().audit)
+    assert any(e.get("action") == "user.unlock" and e.get("reason") == "lock_expired"
+               for e in repository.read().security_audit.values())
+
+
+def test_platform_admin_session_and_startup_reads_succeed(client: TestClient):
+    """平台超级管理员网页登录后加载的会话与公司数据都能读到（原先前端拒收 system 范围的会话，登不进去）。"""
+    headers = login(client, "admin")
+    session = client.get("/api/v1/session", headers=headers)
+    assert session.status_code == 200, session.text
+    body = session.json()
+    assert body["scope"]["kind"] == "system" and body["user"]["company_id"] == "system"
+    assert body["user"]["primary_role"] == "platform_admin"
+    for path in ("/api/v1/projects", "/api/v1/library", "/api/v1/sla/templates", "/api/v1/jobs", "/api/v1/companies"):
+        res = client.get(path, headers=headers)
+        assert res.status_code == 200, (path, res.text)
 
 
 def test_logout_revokes_the_token_and_branding_is_public(client: TestClient):

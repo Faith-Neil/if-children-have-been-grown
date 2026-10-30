@@ -20,13 +20,17 @@ function forbidden(message = '你没有该页面的权限，请联系公司管�
 
 export function trustedApplicationSession(value: ApplicationSession): ApplicationSession {
   const roleValid = isKnownRole(value?.user?.role);
+  // 平台超级管理员的会话范围是 system（后台 session_navigation 只给它 system）；其他账号只能是本公司范围。
+  // 原先一律要求 company，平台管理员登录后会话被判为无法核验，网页登录不进去（APP-M2-T260 发现）。
+  const scopeValid = value?.scope?.kind === 'company'
+    || (value?.scope?.kind === 'system' && value.user?.company_id === 'system' && value.user?.primary_role === 'platform_admin');
 
   if (!value
     || value.auth_mode !== 'authenticated'
     || value.role_mode !== 'rbac-8roles'
     || !value.user?.id || !value.user.name || !roleValid
     || !value.user.company_id || !Array.isArray(value.user.roles) || !value.user.roles.length || !value.user.primary_role
-    || value.scope?.kind !== 'company' || value.scope.active_company_id !== value.user.company_id
+    || !scopeValid || value.scope.active_company_id !== value.user.company_id
     || !Array.isArray(value.scope.allowed_company_ids) || !value.scope.allowed_company_ids.includes(value.user.company_id)
     || !Array.isArray(value.navigation) || !Array.isArray(value.allowedActions) || !value.session) {
     forbidden('当前会话的身份或公司范围无法核验，请重新登录。');

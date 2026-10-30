@@ -210,6 +210,9 @@ class DemoState:
     # RAGFlow 租户配置与各服务（公司设置、字典、方案片段）的存储；与其他状态同一事务、同一持久化。
     ragflow_configs: dict[str, Any] = field(default_factory=dict)
     service_stores: dict[str, dict] = field(default_factory=dict)
+    # 账号与公司安全事件（登录、登录失败、锁定、解锁、改密、注销、公司停用启用，PRD v1.8 §5.12.1 规则 4、§7.3）。
+    # 与章节审计分开：章节审计按 chapter_id 列出，并被原子性测试整体比较；安全事件按事件编号逐条持久化。
+    security_audit: dict[str, dict] = field(default_factory=dict)
     # 内存仓库仍按 2048 条裁剪回执。MySQL 路径在事务里把它设为 False，避免未过期回执被提前删掉。
     cap_receipts: bool = True
 
@@ -533,12 +536,13 @@ class DemoService:
             user = state.accounts.get(username)
 
         from icg.domain import password_login as rules
+        from icg.domain import security_audit
         from icg.domain.auth_service import verify_password
 
         def refuse(reason: str) -> DomainError:
             # 账号不存在、密码错误、账号停用对外提示相同（PRD §5.12.1 规则 2；APP-M2-T260），原因只记审计。
-            self.repository.transaction(lambda s: s.audit.append({
-                "action": "user.login_failed", "user_id": username, "reason": reason, "timestamp": time.time()}))
+            self.repository.transaction(lambda s: security_audit.record(
+                s, "user.login_failed", operator=username, user_id=username, reason=reason))
             return DomainError(401, "INVALID_CREDENTIALS", rules.LOGIN_FAILED_MESSAGE)
 
         if user is None:
@@ -559,8 +563,7 @@ class DemoService:
                 if u is not None and rules.lock_expired(u, now):
                     s.accounts[username] = replace(u, is_locked=False, status="active", failed_login_attempts=0,
                                                    locked_at=None, updated_at=now)
-                    s.audit.append({"action": "user.unlock", "user_id": username, "operator": "system",
-                                    "reason": "lock_expired", "timestamp": now})
+                    security_audit.record(s, "user.unlock", operator="system", user_id=username, reason="lock_expired")
 
             self.repository.transaction(auto_unlock)
             user = self.repository.read().accounts.get(username) or user
@@ -579,11 +582,11 @@ class DemoService:
                     if is_now_locked:
                         s.accounts[username] = replace(u, failed_login_attempts=attempts, is_locked=True, status="locked",
                                                        locked_at=now, updated_at=now)
-                        s.audit.append({"action": "user.locked", "user_id": username, "attempts": attempts, "timestamp": now})
+                        security_audit.record(s, "user.locked", operator="system", user_id=username, attempts=attempts)
                     else:
                         s.accounts[username] = replace(u, failed_login_attempts=attempts, updated_at=now)
-                    s.audit.append({"action": "user.login_failed", "user_id": username, "reason": "wrong_password",
-                                    "timestamp": now})
+                    security_audit.record(s, "user.login_failed", operator=username, user_id=username,
+                                          reason="wrong_password")
 
             self.repository.transaction(record_failure)
 
@@ -594,8 +597,8 @@ class DemoService:
 
         # 凭据正确后才说明公司已停用，避免借此探测账号是否存在（PRD §5.12.1 异常与边界）。
         if rules.company_disabled(self.repository.read(), user.company_id):
-            self.repository.transaction(lambda s: s.audit.append({
-                "action": "user.login_failed", "user_id": username, "reason": "company_disabled", "timestamp": now}))
+            self.repository.transaction(lambda s: security_audit.record(
+                s, "user.login_failed", operator=username, user_id=username, reason="company_disabled"))
             raise DomainError(403, "COMPANY_DISABLED", rules.COMPANY_DISABLED_MESSAGE)
 
         def record_success(s: DemoState):
@@ -605,7 +608,7 @@ class DemoService:
                 u = s.accounts[username]
             token = secrets.token_urlsafe(32)
             s.sessions[token] = u.id
-            s.audit.append({"action": "user.login", "user_id": u.id, "operator": u.id, "timestamp": now})
+            security_audit.record(s, "user.login", operator=u.id, user_id=u.id)
             user_data = asdict(u)
             for secret in ("password_hash", "salt", "_DEMO_ONLY"):
                 user_data.pop(secret, None)
@@ -1128,7 +1131,7 @@ class DemoService:
     def audit(self, principal: Principal, chapter_id: str) -> dict:
         state = self.repository.read()
         self._chapter(state, principal, chapter_id)
-        return {"events": [event for event in state.audit if event["chapter_id"] == chapter_id]}
+        return {"events": [event for event in state.audit if event.get("chapter_id") == chapter_id]}
 
     def suggest(self, principal: Principal, chapter_id: str, instruction: str) -> dict:
         state = self.repository.read()

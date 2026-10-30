@@ -14,6 +14,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from .domain import Account, DemoService, DomainError, Principal, iso_time
+from . import security_audit
 from .auth_service import hash_password, is_super_admin
 from .project_access import ROLE_COMPANY_ADMIN, ROLE_NORMALIZATION_MAP, VOLUMES
 
@@ -385,16 +386,15 @@ class UserManagementService:
                     })
 
             # 3. 记录安全审计日志
-            st.audit.append({
-                "action": "user.deactivate_and_transfer",
-                "operator": operator_id or from_user_id,
-                "from_user_id": from_user_id,
-                "to_user_id": successor_user_id,
-                "transferred_projects": transferred_list,
-                "transferred_chapters": transferred_chapters,
-                "timestamp": time.time(),
-                "reason": reason or "user_deactivated_handoff",
-            })
+            security_audit.record(
+                st, "user.deactivate_and_transfer",
+                operator=operator_id or from_user_id,
+                from_user_id=from_user_id,
+                to_user_id=successor_user_id,
+                transferred_projects=transferred_list,
+                transferred_chapters=transferred_chapters,
+                reason=reason or "user_deactivated_handoff",
+            )
 
             # 4. 销毁待停用用户的所有活跃会话
             for tok, uid in list(st.sessions.items()):
@@ -566,12 +566,7 @@ class UserManagementService:
             for tok, uid in list(st.sessions.items()):
                 if uid == user_id:
                     del st.sessions[tok]
-            st.audit.append({
-                "action": "user.reset_password",
-                "operator": user.id,
-                "target_user_id": user_id,
-                "timestamp": now_ts,
-            })
+            security_audit.record(st, "user.reset_password", operator=user.id, target_user_id=user_id)
 
         self.repository.transaction(_do_reset)
         return ResetPasswordResponse(
@@ -611,12 +606,7 @@ class UserManagementService:
                 updated_at=now_ts,
             )
             st.accounts[user_id] = updated
-            st.audit.append({
-                "action": "user.unlock",
-                "operator": user.id,
-                "target_user_id": user_id,
-                "timestamp": now_ts,
-            })
+            security_audit.record(st, "user.unlock", operator=user.id, target_user_id=user_id)
 
         self.repository.transaction(_do_unlock)
         return UnlockUserResponse(
@@ -670,14 +660,8 @@ class UserManagementService:
                 raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在。")
             updated = replace(target, role=request.role, updated_at=now_ts)
             st.accounts[user_id] = updated
-            st.audit.append({
-                "action": "user.change_role",
-                "operator": user.id,
-                "target_user_id": user_id,
-                "old_role": target.role,
-                "new_role": request.role,
-                "timestamp": now_ts,
-            })
+            security_audit.record(st, "user.change_role", operator=user.id, target_user_id=user_id,
+                                  old_role=target.role, new_role=request.role)
 
         self.repository.transaction(_do_change_role)
         updated_acc = self.repository.read().accounts[user_id]

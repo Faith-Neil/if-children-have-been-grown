@@ -21,7 +21,7 @@ test('a new account must change its password before entering', async ({ page, re
   await page.getByTestId('login-submit-button').click();
   await expect(page.getByTestId('password-change-card')).toBeVisible();
   await expect(page.getByTestId('password-policy-text')).toContainText('至少 8 位');
-  await expect(page.getByRole('button', { name: '退出' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '退出', exact: true })).toHaveCount(0);
 
   await page.getByTestId('password-old-input').fill('Init_Pass_2026');
   await page.getByTestId('password-new-input').fill('short1');
@@ -31,7 +31,7 @@ test('a new account must change its password before entering', async ({ page, re
   await page.getByTestId('password-new-input').fill('Brand_New_2026');
   await page.getByTestId('password-confirm-input').fill('Brand_New_2026');
   await page.getByTestId('password-change-submit').click();
-  await expect(page.getByRole('button', { name: '退出' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '退出', exact: true })).toBeVisible();
 
   const again = await request.post('/api/v1/auth/login', { data: { username, password: 'Brand_New_2026' } });
   expect((await again.json()).must_change_password).toBe(false);

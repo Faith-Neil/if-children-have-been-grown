@@ -420,7 +420,8 @@ def test_disable_user_with_valid_successor_atomic_handoff(client: TestClient, us
     assert chap.lock is None
 
     # 5. 安全审计日志留存
-    audit_events = [ev for ev in state.audit if ev.get("action") == "user.deactivate_and_transfer"]
+    audit_events = [ev for ev in sorted(state.security_audit.values(), key=lambda e: e["timestamp"])
+                    if ev.get("action") == "user.deactivate_and_transfer"]
     assert len(audit_events) >= 1
     last_audit = audit_events[-1]
     assert last_audit["from_user_id"] == lead_id

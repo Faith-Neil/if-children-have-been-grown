@@ -176,7 +176,7 @@ export function GlobalPagesContent({
                 },
                 {
                   key: 'company',
-                  label: 'A-01 企业租户管理',
+                  label: 'A-01 公司管理',
                   children: (
                     <CompanyManagePage
                       session={session}

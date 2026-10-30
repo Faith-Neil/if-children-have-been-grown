@@ -9,6 +9,7 @@ from typing import Literal
 
 from pydantic import Field
 
+from . import security_audit
 from .auth_service import is_super_admin
 from .company_settings import company_display_name
 from .domain import DomainError, Principal, iso_time
@@ -108,9 +109,8 @@ def set_company_status(service, principal: Principal, company_id: str,
                 if user_id in members:
                     del s.sessions[token]
                     revoked += 1
-        s.audit.append({"action": "company.disable" if request.status == "disabled" else "company.enable",
-                        "company_id": company_id, "operator": principal.user.id, "revoked_sessions": revoked,
-                        "timestamp": now})
+        security_audit.record(s, "company.disable" if request.status == "disabled" else "company.enable",
+                              operator=principal.user.id, company_id=company_id, revoked_sessions=revoked)
 
     service.repository.transaction(write)
     return _summary(service.repository.read(), company_id)

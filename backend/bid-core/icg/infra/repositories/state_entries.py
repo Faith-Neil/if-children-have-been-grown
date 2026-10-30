@@ -115,6 +115,7 @@ SCOPES: dict[str, tuple[Callable[[DemoState], dict], Callable[[Any], Any]]] = {
     "partners": _dict_scope("project_partners"),
     "ragflow_config": _dict_scope("ragflow_configs", _ragflow_from),
     "service_store": _dict_scope("service_stores"),
+    "security_audit": _dict_scope("security_audit"),
     "audit": (_audit_get, lambda data: data),
     "singleton": (_singleton_get, lambda data: data),
 }

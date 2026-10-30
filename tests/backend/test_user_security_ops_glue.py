@@ -121,7 +121,7 @@ def test_reset_password_weak_password_rejected_422(client: TestClient, test_user
     assert res_short.status_code == 422, res_short.text
     err = res_short.json()
     assert err["code"] == "PASSWORD_WEAK"
-    assert "密码长度" in err["message"]
+    assert "至少 8 位（现 4 位）" in err["message"]
     assert err["details"]["field"] == "new_password"
 
     # 2. 字符种类不足 3 类（仅小写字母）
@@ -133,7 +133,7 @@ def test_reset_password_weak_password_rejected_422(client: TestClient, test_user
     assert res_few_classes.status_code == 422, res_few_classes.text
     err_classes = res_few_classes.json()
     assert err_classes["code"] == "PASSWORD_WEAK"
-    assert "包含" in err_classes["message"]
+    assert "至少含 3 类" in err_classes["message"]
 
 
 def test_reset_password_invalidates_existing_tokens_and_allows_login(client: TestClient, test_users_context):
