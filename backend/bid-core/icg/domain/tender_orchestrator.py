@@ -342,6 +342,9 @@ class TenderOrchestratorMixin:
                 references = re.findall(r"(?:见|详见|参照)(?:附件|第)[^，。；\n]{0,40}", updated["text"])
                 updated.update(references=references, reference_status="unresolved" if references else "none",
                                status="pending", reason="")
+                # 人工改过原文的条目加锁：重新抽取时按原句去重，不会被新的抽取结果覆盖（§5.2.2 操作“修改”）
+                updated["manually_edited"] = True
+                updated["manually_edited_by"] = principal.user.id
             if updated["status"] == "rejected" and not updated["reason"].strip():
                 raise DomainError(422, "REASON_REQUIRED", "忽略条款必须填写理由。")
             if updated["reference_status"] == "unresolved" and updated["status"] == "confirmed":

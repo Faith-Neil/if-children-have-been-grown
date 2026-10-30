@@ -1,7 +1,9 @@
 // 为什么有这个文件：提取项目工作区「解析结果」页签（ParsePage）。
 // 它解决什么问题：解耦招标文件解析要求列表、条款核对修改/排除、冲突抽屉联动与分册分流，降低 ProjectPages 行数。
+// PRD v1.8 §5.2.2（APP-M2-T104）：左原文预览 · 中 10 类分类树（评分类下列评分项与得分要点）· 右条目卡片；
+// 顶部“冲突待选定 / 疑似遗漏 / 引用未解析”三个入口；“确认解析结果”旁列出还差哪些前提；星号、废标、资格三类没有批量确认。
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   App as AntApp,
@@ -29,6 +31,8 @@ import { OriginalPreview } from './OriginalPreview.tsx';
 import { ConflictCards } from './ConflictCards.tsx';
 import { OmissionsDrawer } from './OmissionsDrawer.tsx';
 import type { Requirement, Source } from '../shared/types.ts';
+import { request } from '../shared/api.ts';
+import { batchCandidates, gateCount, gateSummary, nodeCategory, nodeRows, nodeTitle, unmetGates, type ParseReview, type TreeNode } from './parse-review-core.ts';
 
 const statusName = (value: string) =>
   value === 'confirmed' ? '已确认' : value === 'needs_review' ? '需重新核对' : value === 'rejected' ? '已排除' : '待确认';
@@ -37,9 +41,17 @@ const statusColor = (value: string) =>
 const ignoreFailure = () => undefined;
 
 export function ParsePage() {
-  const { workspace, busy, mutate, navigate } = useProject();
+  const { workspace, token, busy, mutate, navigate } = useProject();
   const { modal } = AntApp.useApp();
-  const [category, setCategory] = useState('all');
+  const [node, setNode] = useState<TreeNode>({ kind: 'all' });
+  const [review, setReview] = useState<ParseReview | null>(null);
+  const [referencesOpen, setReferencesOpen] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    request<ParseReview>(`/api/v1/projects/${workspace.project.id}/parse/review`, token)
+      .then(value => { if (!cancelled) setReview(value); }).catch(() => { if (!cancelled) setReview(null); });
+    return () => { cancelled = true; };
+  }, [workspace.project.id, workspace.revision, token]);
   const [source, setSource] = useState<Source | null>(workspace.requirements[0]?.source ?? null);
   const [selected, setSelected] = useState<string | null>(null);
   const [conflictsOpen, setConflictsOpen] = useState(false);
@@ -47,13 +59,22 @@ export function ParsePage() {
   const [edit, setEdit] = useState<Requirement | null>(null);
   const [form] = Form.useForm();
 
-  const categories = [...new Set(workspace.requirements.map(item => item.category))];
   const pending = workspace.requirements.filter(item => item.status === 'pending').length;
   const conflicts = workspace.conflicts.filter(item => item.status === 'pending').length;
   const pendingFacts = workspace.facts.filter(item => item.status === 'pending').length;
   const omissions = workspace.omissions_pending ?? 0;
-  const shown = workspace.requirements.filter(item => category === 'all' || item.category === category);
+  const references = workspace.requirements.filter(item => item.reference_status === 'unresolved' && item.status !== 'rejected');
+  const shown = nodeRows(workspace.requirements, review, node);
+  const currentCategory = nodeCategory(review, node);
+  const batch = batchCandidates(workspace.requirements, review, node);
+  const lead = projectCan(workspace, 'prepare_sources');
+  const canConfirm = review ? review.can_confirm : !(pending > 0 || conflicts > 0 || omissions > 0 || pendingFacts > 0);
 
+  async function batchConfirm() {
+    try {
+      await mutate(`/api/v1/projects/${workspace.project.id}/requirements/batch-confirm`, 'POST', { requirement_ids: batch.map(item => item.id) });
+    } catch { /* 后台列出不能批量确认的条目 */ }
+  }
   function editItem(item: Requirement) {
     setEdit(item);
     form.setFieldsValue(item);
@@ -134,22 +155,23 @@ export function ParsePage() {
           <Button danger={omissions > 0} size="small" onClick={() => setOmissionsOpen(true)} data-testid="omissions-button">
             疑似遗漏 {omissions}
           </Button>
+          <Button size="small" onClick={() => setReferencesOpen(true)} data-testid="references-button">
+            引用未解析 {review ? gateCount(review, 'REFERENCES_UNRESOLVED') : references.length}
+          </Button>
           <Button
             type="primary"
             size="small"
-            disabled={
-              busy ||
-              !projectCan(workspace, 'prepare_sources') ||
-              !workspace.requirements.length ||
-              pending > 0 ||
-              conflicts > 0 ||
-              omissions > 0 ||
-              pendingFacts > 0
-            }
+            disabled={busy || !lead || !workspace.requirements.length || !canConfirm}
             onClick={confirm}
+            data-testid="parse-confirm-button"
           >
             {workspace.parse_confirmed ? '已确认解析结果' : '确认解析结果并进入矩阵'}
           </Button>
+          {review && (
+            <Tooltip title={unmetGates(review).map(g => `${g.label}：${g.count}`).join('；') || undefined}>
+              <span className={unmetGates(review).length ? 'orange' : 'muted'} data-testid="parse-gate-summary">{gateSummary(review)}</span>
+            </Tooltip>
+          )}
         </Space>
       </div>
       <div className="parse-layout">
@@ -158,25 +180,28 @@ export function ParsePage() {
           <div className="panel-title">
             抽取类别 <span className="muted">{workspace.requirements.length} 条</span>
           </div>
-          <button className={category === 'all' ? 'active' : ''} onClick={() => setCategory('all')}>
-            全部要求{' '}
-            <span>
-              {workspace.requirements.filter(item => item.status === 'confirmed').length}/
-              {workspace.requirements.length}
-            </span>
+          <button className={node.kind === 'all' ? 'active' : ''} onClick={() => setNode({ kind: 'all' })} data-testid="parse-tree-all">
+            全部要求 <span>{pending ? `待 ${pending}` : ''} {workspace.requirements.length}</span>
           </button>
-          {categories.map((value, index) => (
-            <button
-              key={value}
-              className={category === value ? 'active' : ''}
-              onClick={() => setCategory(value)}
-            >
-              {index + 1} {categoryName(value)}
-              <span>
-                {workspace.requirements.filter(item => item.category === value && item.status === 'confirmed').length}/
-                {workspace.requirements.filter(item => item.category === value).length}
-              </span>
-            </button>
+          {(review?.categories ?? []).map(item => (
+            <React.Fragment key={item.key}>
+              <button
+                className={node.kind !== 'all' && node.key === item.key && node.kind === 'category' ? 'active' : ''}
+                onClick={() => setNode({ kind: 'category', key: item.key })}
+                data-testid="parse-tree-category"
+                data-category={item.key}
+              >
+                {item.no} {item.label}
+                <span>{item.pending ? <b className="orange">待 {item.pending}</b> : null} {item.total}</span>
+              </button>
+              {item.key === 'scoring' && node.kind !== 'all' && node.key === 'scoring' && (item.groups ?? []).map(group => (
+                <button key={group.name} className={`tree-child ${node.kind === 'group' && node.name === group.name ? 'active' : ''}`}
+                  onClick={() => setNode({ kind: 'group', key: 'scoring', name: group.name })} data-testid="parse-tree-group">
+                  {group.name}{group.score ? `（${group.score} 分）` : ''}
+                  <span>{group.pending ? <b className="orange">待 {group.pending}</b> : null} {group.ids.length} 个要点</span>
+                </button>
+              ))}
+            </React.Fragment>
           ))}
           <div className="category-section">
             后处理{' '}
@@ -192,10 +217,19 @@ export function ParsePage() {
           </div>
         </aside>
         <section className="parse-cards">
-          <div className="panel-title">
-            {category === 'all' ? '全部要求' : categoryName(category)}{' '}
-            <span className="muted">{shown.length} 条</span>
+          <div className="panel-title parse-cards-title">
+            <span>{nodeTitle(review, node)} <span className="muted">{shown.length} 条</span></span>
+            {currentCategory && lead && (currentCategory.batch_allowed ? (
+              <Button size="small" data-testid="parse-batch-confirm" disabled={busy || !batch.length} onClick={() => void batchConfirm()}>
+                确认本类 {batch.length} 条
+              </Button>
+            ) : (
+              <Tag color="purple" data-testid="parse-individual-only">本类须逐条确认</Tag>
+            ))}
           </div>
+          {currentCategory && currentCategory.facts > 0 && (
+            <Alert className="page-notice" type="info" showIcon message={`本类另有 ${currentCategory.facts} 条项目事实`} action={<Button size="small" onClick={() => navigate('facts')}>去项目事实表</Button>} />
+          )}
           <Alert
             type="info"
             showIcon
@@ -215,9 +249,10 @@ export function ParsePage() {
                 }}
               >
                 <div className="card-heading">
-                  <b>{categoryName(item.category)}</b>
+                  <b>{review?.categories.find(c => c.key === review.requirement_categories[item.id])?.label ?? categoryName(item.category)}</b>
                   <Space>
                     <SourceLink source={item.source} onClick={setSource} />
+                    {item.manually_edited && <Tag color="blue" data-testid="manually-edited-tag">已人工修改</Tag>}
                     <Tag color={statusColor(item.status)}>{statusName(item.status)}</Tag>
                   </Space>
                 </div>
@@ -304,12 +339,19 @@ export function ParsePage() {
             setSource(value);
           }}
         />
-        <Alert
-          className="page-notice"
-          type="info"
-          message="“引用未解析”专用页签尚未实现"
-          description="含“详见/参照”引用的条目在确认时须写明人工核对结果。"
-        />
+      </Drawer>
+      <Drawer title="抽取后处理 · 引用未解析" open={referencesOpen} onClose={() => setReferencesOpen(false)} width={560}>
+        <Alert type="info" showIcon message="不阻断确认解析结果" description="条目中有“详见/参照”等引用：对照原文核对引用的内容，在说明中写明核对结果后确认。这类条目不能批量确认。" />
+        {references.length ? references.map(item => (
+          <Card key={item.id} size="small" className="requirement-card" data-testid="reference-item">
+            <p className="requirement-text">{item.text}</p>
+            <p className="muted">引用：{(item.references ?? []).join('；')}</p>
+            <Space>
+              <SourceLink source={item.source} onClick={setSource} />
+              <Button size="small" type="link" disabled={busy || !lead} onClick={() => { setReferencesOpen(false); editItem({ ...item, status: 'confirmed' }); }}>写明核对结果并确认</Button>
+            </Space>
+          </Card>
+        )) : <Empty description="没有未解析的引用" />}
       </Drawer>
       <OmissionsDrawer open={omissionsOpen} onClose={() => setOmissionsOpen(false)} onLocate={setSource} />
       <Modal

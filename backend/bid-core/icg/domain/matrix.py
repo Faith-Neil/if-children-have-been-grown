@@ -127,7 +127,10 @@ def _attachable(state: Any, project: Any, item: dict) -> tuple[bool, str]:
 from .system_chapters import SystemChapterMixin  # noqa: E402
 
 
-class MatrixMixin(SystemChapterMixin):
+from .parse_review import ParseReviewMixin  # noqa: E402  解析结果分类树与批量确认（APP-M2-T104）
+
+
+class MatrixMixin(SystemChapterMixin, ParseReviewMixin):
     """WorkflowService 的响应矩阵能力。"""
 
     def _matrix_item(self, state, project, workflow, row, active, names) -> dict:

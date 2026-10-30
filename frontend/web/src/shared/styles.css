@@ -592,3 +592,7 @@
 .notice-link { display: block; color: inherit; }
 .notice-dropdown-foot { display: flex; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 4px; }
 .notice-unread-row > td { background: #f7f9ff !important; }
+
+/* 解析结果分类树（APP-M2-T104） */
+.parse-category button.tree-child { padding-left: 26px; font-size: 11px; }
+.parse-cards-title { display: flex; justify-content: space-between; align-items: center; gap: 8px; }

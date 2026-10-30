@@ -20,7 +20,7 @@ from icg.domain.workflow import DOCX_MEDIA_TYPE, WorkflowService
 
 XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 from icg.domain.idempotency import IDEMPOTENCY_HEADER_DESCRIPTION
-from icg.domain.workflow_schemas import (CheckList, ConflictPatch, FactPatch, FileDelete, FilePreview, FileUpload,
+from icg.domain.workflow_schemas import (BatchConfirmRequest, ParseReview, CheckList, ConflictPatch, FactPatch, FileDelete, FilePreview, FileUpload,
                                GenerateRequest, JobsList, LibraryCreate, LibraryList,
                                LibraryPatch, LibraryResult, MutationResult, ParseRequest,
                                PlanRequest, CheckReleaseRequest, MatrixMatchRequest, MatrixRoutingRequest, MergeChecklistResponse, ProjectCheckRequest, ProjectExportRequest,
@@ -152,6 +152,18 @@ def include_workflow_routes(application, service, current_user, parser):
     def conflict(project_id: str, conflict_id: str, body: ConflictPatch, user: Principal = Depends(current_user),
                  if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.resolve_conflict(user, project_id, conflict_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.get("/projects/{project_id}/parse/review", response_model=ParseReview, operation_id="getParseReview",
+                summary="解析结果分类树与确认前提", description="10 类抽取项（评分类含评分项与得分要点）的条目数、待确认数；确认解析结果的前提逐条列出剩余条数。")
+    def parse_review(project_id: str, user: Principal = Depends(current_user)):
+        return workflow.parse_review(user, project_id)
+
+    @router.post("/projects/{project_id}/requirements/batch-confirm", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="batchConfirmRequirements",
+                 summary="批量确认条款", description="星号、废标、资格三类和含未解析引用的条目不能批量确认（409）；只限项目负责人。")
+    def batch_confirm(project_id: str, body: BatchConfirmRequest, user: Principal = Depends(current_user),
+                      if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.batch_confirm_requirements(user, project_id, body.model_dump(), if_match, idempotency_key)
 
     @router.post("/projects/{project_id}/parse/confirm", response_model=MutationResult,
                  response_model_exclude_none=True, operation_id="confirmParse")

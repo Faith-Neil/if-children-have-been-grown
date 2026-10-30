@@ -254,6 +254,7 @@ class Requirement(ResponseBody):
     source: Source
     references: list[str]
     reference_status: Literal["none", "unresolved", "resolved"]
+    manually_edited: bool = Field(default=False, description="人工改过原文；重新抽取时不覆盖")
 
 
 class Fact(ResponseBody):
@@ -979,3 +980,43 @@ class MergeChecklist(ResponseBody):
 class MergeChecklistResponse(ResponseBody):
     checklist: MergeChecklist
     stale: bool
+
+
+class BatchConfirmRequest(RequestBody):
+    requirement_ids: list[str] = Field(min_length=1, max_length=500)
+
+
+class ParseGate(ResponseBody):
+    code: str
+    label: str
+    count: int
+    blocking: bool = Field(description="false：只提示，不阻断确认")
+    ok: bool
+
+
+class ParseScoringGroup(ResponseBody):
+    name: str
+    score: float | None = None
+    ids: list[str]
+    pending: int
+
+
+class ParseCategory(ResponseBody):
+    no: int
+    key: str
+    label: str
+    requirements: int
+    facts: int
+    total: int
+    pending: int
+    batch_allowed: bool = Field(description="星号、废标、资格三类为 false：必须逐条确认")
+    groups: list[ParseScoringGroup] | None = Field(default=None, description="评分类：评分项及其得分要点")
+
+
+class ParseReview(ResponseBody):
+    categories: list[ParseCategory]
+    requirement_categories: dict[str, str]
+    fact_categories: dict[str, str]
+    gates: list[ParseGate]
+    can_confirm: bool
+    parse_confirmed: bool
