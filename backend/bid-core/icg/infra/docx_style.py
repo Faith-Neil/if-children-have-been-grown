@@ -4,6 +4,7 @@
 # 目录单独一节、页码用罗马数字；正文一节、页码从 1 起；目录预先列出各级标题（带书签和页码域），打开时 Word/WPS 提示更新域补页码；
 # 页眉按导出类型：递交版写项目名称和投标人，内部稿写“内部评审稿”；文档属性作者取投标人（内部稿留空），不写系统账号。
 # 公司 Word 模板（APP-M2-T086/T196）读出的样式通过 style 传入；附件扫描件（APP-M2-T198）通过 inserts 与 media 插到正文指定行之后。
+# 正文 Markdown（一至八级标题、表格、列表、加粗）由 docx_markdown 转成 Word 样式（§5.9.1 规则 1、6）。
 
 from __future__ import annotations
 
@@ -46,6 +47,7 @@ class DocxStyle:
     body_font: FontFace = field(default_factory=lambda: face("仿宋_GB2312"))
     body_pt: float = 14
     body_line_pt: float = 28
+    body_line_multiple: float | None = None  # 招标要求“1.5 倍行距”等时用倍数行距，否则用固定值 body_line_pt
     body_first_line_chars: int = 200
     body_first_line_twips: int = 560
     table_font: FontFace = field(default_factory=lambda: face("宋体"))
@@ -84,7 +86,6 @@ def header_text(meta: DocxMeta | None, style: DocxStyle, project_name: str | Non
         return "　".join(p for p in parts if p) or (meta.volume_name or "")
     return "　".join(p for p in ("内部评审稿 · 不可作为正式递交文件", project_name or "") if p)
 
-_HEADINGS = (("### ", "Heading3"), ("## ", "Heading2"), ("# ", "Heading1"))
 
 
 def _attr(value: str) -> str:
@@ -119,16 +120,12 @@ def _paragraph(style_id: str, text: str, item: FontFace, pt: float, *, bold: boo
     return f'<w:p><w:pPr><w:pStyle w:val="{style_id}"/></w:pPr>{_run(text, item, pt, bold=bold)}</w:p>'
 
 
-def _classify(line: str) -> tuple[str, str, bool]:
-    for marker, style_id in _HEADINGS:
-        if line.startswith(marker):
-            return style_id, line[len(marker):], style_id != "Heading1"
-    return "BodyText", line, False
+def _runs(parts: list[tuple[str, bool]], item: FontFace, pt: float, *, bold: bool = False) -> str:
+    return "".join(_run(text, item, pt, bold=bold or strong) for text, strong in parts)
 
 
-def _blocks(record: Export) -> list[tuple[str, str, bool]]:
-    lines = [] if record.content == "" else record.content.splitlines()
-    return [_classify(line) for line in lines]
+def _styled(style_id: str, parts: list[tuple[str, bool]], item: FontFace, pt: float, *, bold: bool = False) -> str:
+    return f'<w:p><w:pPr><w:pStyle w:val="{style_id}"/></w:pPr>{_runs(parts, item, pt, bold=bold)}</w:p>'
 
 
 def _style_xml(style: DocxStyle) -> str:
@@ -146,8 +143,9 @@ def _style_xml(style: DocxStyle) -> str:
         run = f'<w:rPr>{_fonts(item)}{_size(pt)}{weight}</w:rPr>'
         return paragraph_style(style_id, name, paragraph, run)
 
-    body_paragraph = (f'<w:pPr><w:spacing w:before="0" w:after="0" w:line="{int(round(style.body_line_pt * 20))}" '
-                      f'w:lineRule="exact"/><w:ind w:firstLineChars="{style.body_first_line_chars}" '
+    line = (f'w:line="{int(round(style.body_line_multiple * 240))}" w:lineRule="auto"' if style.body_line_multiple
+            else f'w:line="{int(round(style.body_line_pt * 20))}" w:lineRule="exact"')
+    body_paragraph = (f'<w:pPr><w:spacing w:before="0" w:after="0" {line}/><w:ind w:firstLineChars="{style.body_first_line_chars}" '
                       f'w:firstLine="{style.body_first_line_twips}"/>'
                       '<w:jc w:val="both"/></w:pPr>')
     cover = paragraph_style(
@@ -171,6 +169,10 @@ def _style_xml(style: DocxStyle) -> str:
                            f'<w:rPr>{_fonts(style.toc_font)}{_size(style.toc_pt)}</w:rPr>')
     toc3 = paragraph_style("TOC3", "toc 3", f'<w:pPr>{toc_tab}<w:ind w:left="840"/></w:pPr>',
                            f'<w:rPr>{_fonts(style.toc_font)}{_size(style.toc_pt)}</w:rPr>')
+    hanging = (f'<w:pPr><w:spacing w:before="0" w:after="0" {line}/>'
+               '<w:ind w:left="420" w:hanging="420"/><w:jc w:val="both"/></w:pPr>')
+    lists = "".join(paragraph_style(style_id, name, hanging, f'<w:rPr>{_fonts(style.body_font)}{_size(style.body_pt)}</w:rPr>')
+                    for style_id, name in (("ListBullet", "List Bullet"), ("ListNumber", "List Number")))
     cover_line = paragraph_style(
         "CoverLine", "Cover Line", '<w:pPr><w:spacing w:before="120" w:after="120"/><w:jc w:val="center"/></w:pPr>',
         f'<w:rPr>{_fonts(style.cover_project_font)}{_size(style.toc_pt + 2)}</w:rPr>')
@@ -182,13 +184,14 @@ def _style_xml(style: DocxStyle) -> str:
 {heading("Heading1", "heading 1", 0, style.h1_font, style.h1_pt, style.h1_align, False)}
 {heading("Heading2", "heading 2", 1, style.h2_font, style.h2_pt, "left", True)}
 {heading("Heading3", "heading 3", 2, style.h3_font, style.h3_pt, "left", True)}
-{body}{toc_title}{toc}{toc2}{toc3}{cover_line}
+{"".join(heading(f"Heading{n}", f"heading {n}", n - 1, *_low_heading(style, n), "left", True) for n in range(4, 9))}
+{body}{toc_title}{toc}{toc2}{toc3}{cover_line}{lists}
 </w:styles>'''
 
 
 def _numbering_xml() -> str:
     levels = []
-    for index, text in enumerate(("%1", "%1.%2", "%1.%2.%3")):
+    for index, text in enumerate(".".join(f"%{n}" for n in range(1, level + 1)) for level in range(1, 9)):
         levels.append(f'<w:lvl w:ilvl="{index}"><w:start w:val="1"/><w:numFmt w:val="decimal"/>'
                       f'<w:lvlText w:val="{text}"/><w:lvlJc w:val="left"/></w:lvl>')
     return ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -295,6 +298,11 @@ def _core_properties(record: Export, meta: DocxMeta | None) -> str:
             '<cp:lastModifiedBy></cp:lastModifiedBy></cp:coreProperties>')
 
 
+def _plain(cell: str) -> str:
+    from .docx_markdown import runs
+    return "".join(text for text, _ in runs(cell))
+
+
 def _table(rows: list[list[str]], style: DocxStyle) -> str:
     borders = "".join(f'<w:{edge} w:val="single" w:sz="4" w:color="777777"/>'
                       for edge in ("top", "left", "bottom", "right", "insideH", "insideV"))
@@ -319,14 +327,19 @@ def text_area_cm(style: DocxStyle) -> tuple[float, float]:
     return 21.0 - style.margin_left_cm - style.margin_right_cm, 29.7 - style.margin_top_cm - style.margin_bottom_cm
 
 
-def _faces(style: DocxStyle, style_id: str) -> tuple[FontFace, float, bool]:
-    if style_id == "Heading1":
+def _low_heading(style: DocxStyle, level: int) -> tuple[FontFace, float]:
+    """四至八级标题（平台默认模板预置一至八级，§5.6.1）：沿用三级标题字体，四级同三级字号，五级起同正文字号。"""
+    return style.h3_font, style.h3_pt if level == 4 else style.body_pt
+
+
+def _heading_face(style: DocxStyle, level: int) -> tuple[FontFace, float, bool]:
+    if level == 1:
         return style.h1_font, style.h1_pt, False
-    if style_id == "Heading2":
+    if level == 2:
         return style.h2_font, style.h2_pt, True
-    if style_id == "Heading3":
+    if level == 3:
         return style.h3_font, style.h3_pt, True
-    return style.body_font, style.body_pt, False
+    return (*_low_heading(style, level), True)
 
 
 def build_docx(record: Export, table_rows: list[list[str]] | None = None, *,
@@ -339,20 +352,29 @@ def build_docx(record: Export, table_rows: list[list[str]] | None = None, *,
     # 节：封面（无页眉页码）→ 目录（罗马数字页码，有标题时才有）→ 正文（页码从 1 起）
     cover = _cover(record, chosen, project_name, meta)
     cover += f'<w:p><w:pPr>{_section(chosen, "rId5", start=None, next_page=True, header_id="rId7")}</w:pPr></w:p>'
-    blocks = _blocks(record)
+    from .docx_markdown import blocks as markdown_blocks
     entries: list[tuple[int, str, str]] = []
     body = inserts.get(-1, "")
-    for index, (style_id, text, bold) in enumerate(blocks):
-        face_, pt, heading_bold = _faces(chosen, style_id)
-        if style_id.startswith("Heading"):
-            bookmark = f"_Toc{index + 1:06d}"
-            entries.append((int(style_id[-1]), text, bookmark))
-            run = _run(text, face_, pt, bold=bold or heading_bold)
-            body += (f'<w:p><w:pPr><w:pStyle w:val="{style_id}"/></w:pPr>'
-                     f'<w:bookmarkStart w:id="{index + 1}" w:name="{bookmark}"/>{run}<w:bookmarkEnd w:id="{index + 1}"/></w:p>')
+    for block in markdown_blocks(record.content):
+        first, last = block.lines
+        if block.kind == "heading":
+            face_, pt, bold = _heading_face(chosen, block.level)
+            bookmark = f"_Toc{first + 1:06d}"
+            if block.level <= 3:  # 目录列一至三级
+                entries.append((block.level, block.text, bookmark))
+            body += (f'<w:p><w:pPr><w:pStyle w:val="Heading{block.level}"/></w:pPr>'
+                     f'<w:bookmarkStart w:id="{first + 1}" w:name="{bookmark}"/>{_runs(block.runs, face_, pt, bold=bold)}'
+                     f'<w:bookmarkEnd w:id="{first + 1}"/></w:p>')
+        elif block.kind == "table":
+            body += _table([[_plain(cell) for cell in row] for row in block.rows], chosen)
+        elif block.kind == "bullet":
+            body += _styled("ListBullet", [("• ", False), *block.runs], chosen.body_font, chosen.body_pt)
+        elif block.kind == "ordered":
+            body += _styled("ListNumber", [(f"{block.number}. ", False), *block.runs], chosen.body_font, chosen.body_pt)
         else:
-            body += _paragraph(style_id, text, face_, pt, bold=bold or heading_bold)
-        body += inserts.get(index, "")
+            body += _styled("BodyText", block.runs, chosen.body_font, chosen.body_pt)
+        for line in range(first, last + 1):  # 附件插在覆盖这些行的块之后（表格中间的行号排到表格之后）
+            body += inserts.get(line, "")
     if table_rows:
         body += _table(table_rows, chosen)
     toc = ""

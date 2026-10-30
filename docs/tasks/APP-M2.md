@@ -1310,7 +1310,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T086 · Word 模板与导出命名
 <a id="app-m2-t086"></a>
 
-状态：in-progress。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T025](APP-M2.md#app-m2-t025)、[APP-M2-T082](APP-M2.md#app-m2-t082)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T025](APP-M2.md#app-m2-t025)、[APP-M2-T082](APP-M2.md#app-m2-t082)。
 
 原始来源：原交接 §6.3 M2-D03-F5；PRD v1.8 §5.6.2、5.6.3。交付单位：Word 模板与导出命名，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -2297,7 +2297,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T150 · 导出类型、模板与命名
 <a id="app-m2-t150"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T05](APP-M1.md#app-m1-t05)、[APP-M2-T196](APP-M2.md#app-m2-t196)、[APP-M2-T197](APP-M2.md#app-m2-t197)、[APP-M2-T198](APP-M2.md#app-m2-t198)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T05](APP-M1.md#app-m1-t05)、[APP-M2-T196](APP-M2.md#app-m2-t196)、[APP-M2-T197](APP-M2.md#app-m2-t197)、[APP-M2-T198](APP-M2.md#app-m2-t198)。
 
 原始来源：原交接 §6.6 M5-H03-F2；PRD v1.8 §5.9.1、5.9.2。交付单位：导出类型、模板与命名，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -3032,7 +3032,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T199 · Word属性修订与批注清理
 <a id="app-m2-t199"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T196](APP-M2.md#app-m2-t196)。
+状态：in-review。关联Issue：ISSUE-007。原范围：一期业务产物。依赖：[APP-M2-T196](APP-M2.md#app-m2-t196)。
 
 原始来源：PRD v1.8 §5.9.1规则10、R25。交付单位：Word属性修订与批注清理，同一产品的页面/后台/数据/权限/输出协作一起验收。
 

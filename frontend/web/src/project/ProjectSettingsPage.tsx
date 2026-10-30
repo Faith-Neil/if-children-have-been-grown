@@ -12,6 +12,7 @@ import { ModelConfigModal } from '../admin/ModelConfigModal';
 import { modelConfigAccess } from '../admin/model-config-core.ts';
 import { projectVolumes, technicalOnly, volumeOptions } from './project-volumes.ts';
 import { ProposedStaffCard } from './ProposedStaffCard';
+import { ExportNamingCard } from './ExportNamingCard';
 
 const anchors = [ ['basic', '基本信息'], ['members', '成员与分工'], ['partners', '合作方'], ['persons', '拟派人员'], ['sla', 'SLA 取值'], ['rules', '规则覆盖'], ['loops', '生成闭环'], ['volumes', '分册'], ['export', '导出设置'] ];
 
@@ -175,7 +176,10 @@ export default function ProjectSettingsPage() {
           ) : id === 'persons' ? (
             <ProposedStaffCard projectId={workspace.project.id} token={token} canEdit={canManageProject}
               revision={workspace.revision} onSaved={reload} />
-          ) : id === 'sla' ? <><p>服务承诺（SLA）是公司能承诺的响应、恢复等标准。实际取值已在响应矩阵逐项核对。</p><Button onClick={() => navigate('matrix')}>前往服务承诺矩阵</Button></> : <Alert type="info" message="该组完整设置仍待实现" description={id === 'export' ? 'Word 模板与附件扫描件在导出页选择；导出命名规则尚未实现。' : `${title}的原始业务范围继续按任务实施，这里没有可保存的配置。`} showIcon />}
+          ) : id === 'export' ? (
+            <ExportNamingCard projectId={workspace.project.id} projectName={workspace.project.name} tenderNumber={workspace.project.tender_number}
+              token={token} canEdit={canManageProject} revision={workspace.revision} onSaved={reload} />
+          ) : id === 'sla' ? <><p>服务承诺（SLA）是公司能承诺的响应、恢复等标准。实际取值已在响应矩阵逐项核对。</p><Button onClick={() => navigate('matrix')}>前往服务承诺矩阵</Button></> : <Alert type="info" message="该组完整设置仍待实现" description={ `${title}的原始业务范围继续按任务实施，这里没有可保存的配置。`} showIcon />}
         </Card>)}
       </div>
     </div>

@@ -161,6 +161,25 @@ class ProposedStaffUpdate(RequestBody):
     staff: list[ProposedStaffEntry] = Field(max_length=100)
 
 
+class ExportSettingsUpdate(RequestBody):
+    internal_template: str | None = Field(default=None, max_length=200, description="内部稿命名模板；空为“{编写人}_{版本}_{日期}_{项目名称}”")
+    submit_rule: str | None = Field(default=None, max_length=200, description="递交版命名规则；不得含 {编写人}；空为“{项目名称}_{分册名称}”")
+
+
+class NamingVariable(ResponseBody):
+    name: str
+    description: str
+
+
+class ExportSettings(ResponseBody):
+    revision: int | None = None
+    internal_template: str
+    submit_rule: str
+    updated_by: str | None = None
+    updated_at: str | None = None
+    variables: list[NamingVariable]
+
+
 class ProjectExportRequest(RequestBody):
     check_id: str = Field(min_length=1, max_length=100)
     kind: Literal["internal", "submission", "internal_review"] = "internal"
@@ -650,6 +669,7 @@ class ExportVolume(ResponseBody):
     docx_sha256: str | None = Field(default=None, description="导出时生成的 Word 快照文件摘要；过期后下载仍是这份文件")
     size_bytes: int | None = None
     template: dict[str, Any] | None = Field(default=None, description="本册所用 Word 模板：source=company/platform、filename、sha256")
+    format_overrides: list[dict[str, Any]] | None = Field(default=None, description="按招标格式要求覆盖模板的项：项目、取值、依据原文、条款 ID")
     attachments: list[dict[str, Any]] | None = Field(default=None, description="插入本册的附件扫描件：资料名、文件名、页码范围、是否加水印")
     skipped_attachments: list[dict[str, Any]] | None = Field(default=None, description="未插入的附件与原因（如暗标分册不插带公司标识的附件）")
 

@@ -192,7 +192,7 @@ class WorkflowService(
             return
         if not writable(state, project_id, identity):
             raise DomainError(403, "PROJECT_WRITER_REQUIRED", "当前公司角色和项目角色只允许查看，不能办理此操作。")
-        if name in ("team.update", "staff.update", "project.update", "file.upload", "file.delete", "parse.run", "parse.confirm", "conflict.resolve") or name.startswith("sla."):
+        if name in ("team.update", "staff.update", "export_settings.update", "project.update", "file.upload", "file.delete", "parse.run", "parse.confirm", "conflict.resolve") or name.startswith("sla."):
             require_lead(state, principal, project_id)
         elif name in ("chapter.plan.save", "chapter.plan.confirm", "chapter.assignment"):
             chapter = self.demo._chapter(state, principal, resource_id)

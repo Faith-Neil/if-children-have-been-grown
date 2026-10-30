@@ -24,7 +24,7 @@ from icg.domain.workflow_schemas import (BatchConfirmRequest, ParseReview, Check
                                GenerateRequest, JobsList, LibraryCreate, LibraryList,
                                LibraryPatch, LibraryResult, MutationResult, ParseRequest,
                                PlanRequest, CheckReleaseRequest, MatrixMatchRequest, MatrixRoutingRequest, MergeChecklistResponse, ProjectCheckRequest, ProjectExportRequest,
-                               ProjectPatch, ProposedStaffResult, ProposedStaffUpdate, RequirementPatch, Workspace, WritingInputPreview,
+                               ProjectPatch, ProposedStaffResult, ProposedStaffUpdate, ExportSettings, ExportSettingsUpdate, RequirementPatch, Workspace, WritingInputPreview,
                                TeamUpdate, TeamResult, ChapterAssignment, ChapterPlanPatch,
                                ChapterEditDetail, v1_error_responses, TenderSearchRequest,
                                TenderIndexingSwitchRequest, InjectTenderClausesRequest,
@@ -157,6 +157,18 @@ def include_workflow_routes(application, service, current_user, parser):
                 summary="解析结果分类树与确认前提", description="10 类抽取项（评分类含评分项与得分要点）的条目数、待确认数；确认解析结果的前提逐条列出剩余条数。")
     def parse_review(project_id: str, user: Principal = Depends(current_user)):
         return workflow.parse_review(user, project_id)
+
+    @router.get("/projects/{project_id}/export-settings", response_model=ExportSettings,
+                operation_id="getExportSettings", summary="导出命名规则")
+    def export_settings(project_id: str, user: Principal = Depends(current_user)):
+        return workflow.export_settings(user, project_id)
+
+    @router.put("/projects/{project_id}/export-settings", response_model=ExportSettings,
+                operation_id="updateExportSettings", summary="保存导出命名规则（仅项目负责人）",
+                description="内部稿命名模板与递交版命名规则；递交版规则含 {编写人} 或不认识的变量时返回 422。")
+    def save_export_settings(project_id: str, body: ExportSettingsUpdate, user: Principal = Depends(current_user),
+                             if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.save_export_settings(user, project_id, body.model_dump(), if_match, idempotency_key)
 
     @router.get("/projects/{project_id}/proposed-staff", response_model=ProposedStaffResult,
                 operation_id="getProposedStaff", summary="拟派人员与 R33 预检")
@@ -296,7 +308,8 @@ def include_workflow_routes(application, service, current_user, parser):
             record = Export(export_id, "", 1, "", "", document["filename"], document["title"], document["content"])
             from icg.domain.export_batch import docx_meta
             content = build_docx(record, project_name=document.get("project_name"), meta=docx_meta(document))
-        headers = {"Content-Disposition": f'attachment; filename="{document["filename"]}"',
+        # 文件名含中文：按 RFC 5987 给出 filename*，另给一个 ASCII 兜底名
+        headers = {"Content-Disposition": f"attachment; filename=\"{export_id}-{volume}.docx\"; filename*=UTF-8''{quote(document['filename'])}",
                    "X-ICG-Export-Status": "stale" if document.get("stale") else "valid"}
         if document.get("batch_no"):
             headers["X-ICG-Export-Batch"] = document["batch_no"]

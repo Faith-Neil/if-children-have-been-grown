@@ -262,3 +262,28 @@ def test_blind_volume_skips_attachments_that_show_the_company():
     assert skipped == [{"attachment_id": "a1", "name": "营业执照", "filename": "执照.pdf", "reason": "暗标分册不插入带公司名称或标志的附件"}]
     plan, _ = export_plan(state, project, workflow, "business", [], {}, default_volume="business", blind=False, watermark="w")
     assert plan == []  # 条款对应章节在另一册
+
+
+def test_template_comments_revisions_and_custom_properties_never_reach_the_export(client):
+    """§5.9.1 规则 10、R25（APP-M2-T199）：模板带批注、修订、隐藏文字、自定义属性和作者时，导出文件一样都不带。"""
+    buffer = BytesIO()
+    with ZipFile(BytesIO(TEMPLATE)) as source, ZipFile(buffer, "w") as target:
+        for name in source.namelist():
+            data = source.read(name)
+            if name == "word/document.xml":
+                data = data.replace(b"<w:p/>", b'<w:p><w:ins w:id="1" w:author="Template Author"><w:r><w:t>INSERTED</w:t></w:r></w:ins>'
+                                    b'<w:r><w:rPr><w:vanish/></w:rPr><w:t>HIDDEN</w:t></w:r></w:p>')
+            target.writestr(name, data)
+        target.writestr("word/comments.xml", f'<w:comments {W_NS}><w:comment w:id="0" w:author="Template Author"/></w:comments>')
+        target.writestr("docProps/custom.xml", '<Properties><property name="ClientSecret">X</property></Properties>')
+        target.writestr("docProps/core.xml", '<cp:coreProperties xmlns:cp="c" xmlns:dc="d"><dc:creator>Template Author</dc:creator></cp:coreProperties>')
+    admin = login(client, "alpha-company-admin")
+    assert _put_template(client, admin, buffer.getvalue(), "带残留模板.docx").status_code == 200
+    flow = ProjectFlow(client).ready()
+    _, files = _export(flow, client)
+    for data in files.values():
+        parts = _parts(data)
+        assert not {"word/comments.xml", "docProps/custom.xml", "docProps/app.xml"} & set(parts)
+        joined = b"".join(parts[name] for name in parts if name.endswith((".xml", ".rels")))
+        for residue in (b"Template Author", b"INSERTED", b"HIDDEN", b"ClientSecret", b"<w:ins ", b"<w:del ", b"<w:vanish"):
+            assert residue not in joined, residue

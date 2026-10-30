@@ -142,18 +142,28 @@ class ExportServiceMixin(CheckOrchestratorMixin):
             now = self.demo._now()
             batch_no = next_batch_no(workflow, payload["kind"], datetime.fromtimestamp(now, SHANGHAI))
             documents, volumes = {}, []
+            # 导出命名（APP-M2-T086）：内部稿“{编写人}_{版本}_{日期}_{项目名称}”，递交版不带编写人
+            from icg.domain.export_naming import filenames as export_filenames
+            names, naming_rule = export_filenames(
+                state, project, workflow, payload["kind"],
+                {v: n for v, n in (("technical", "技术分册"), ("business", "商务分册")) if v in required_volumes},
+                datetime.fromtimestamp(now, SHANGHAI).strftime("%Y%m%d"))
             # 公司 Word 模板（APP-M2-T086/T196）与附件扫描件（APP-M2-T198）
             from icg.domain.word_template import export_style
             from icg.domain.attachments import export_plan
             from icg.domain.content_rules import blind_volume
             style, template = export_style(state, project.company_id, payload.get("template") or "auto")
+            # 招标格式要求覆盖模板（§5.9.1 规则 5）：招标要求 > 公司模板 > 平台默认
+            from icg.domain.tender_format import apply as apply_format, overrides as tender_overrides
+            format_changes, format_applied = tender_overrides(workflow)
+            style = apply_format(style, format_changes)
             blind = blind_volume(workflow)
             watermark = (payload.get("attachment_watermark") or "").strip() or f"仅用于{self._mask(project.name)}投标"
             for volume, name in (("technical", "技术分册"), ("business", "商务分册")):
                 if volume not in required_volumes:
                     continue
                 selected = [c for c in chapters if c.volume == volume]
-                filename = f"icg-{volume}-{identity}.docx"
+                filename = names[volume]
                 doc_title = self._mask(project.name) + " — " + name
                 doc_content, line_ends = "", {}
                 for c in selected:
@@ -188,6 +198,7 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                     "format_metadata": WORD_DEFAULT_FORMAT_METADATA,
                     "batch_no": batch_no,
                     "template": template,
+                    "format_overrides": format_applied,
                     "attachments": [{k: a[k] for k in ("attachment_id", "name", "filename", "page_from", "page_to")}
                                     | {"watermarked": a["watermark"] is not None} for a in plan],
                     "skipped_attachments": skipped,
@@ -228,6 +239,7 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                 "sha256": record_sha,
                 "format_metadata": WORD_DEFAULT_FORMAT_METADATA,
                 "template": template,
+                "naming_rule": naming_rule,
                 "insert_attachments": payload.get("insert_attachments") is not False,
                 "is_submission": payload.get("kind") == "submission",
                 "batch_no": batch_no,
