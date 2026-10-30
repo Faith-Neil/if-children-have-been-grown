@@ -24,6 +24,7 @@ export interface ApiCompanySettings {
   model_review_enabled: boolean;
   dup_min_chars: number;
   dup_history_months: number;
+  parse_confidence_threshold?: number;
   updated_at?: string | null;
   updated_by?: string | null;
   custom_settings?: Record<string, unknown>;
@@ -46,6 +47,7 @@ export interface ApiUpdateCompanySettingsPayload {
   model_review_enabled?: boolean;
   dup_min_chars?: number;
   dup_history_months?: number;
+  parse_confidence_threshold?: number;
   custom_settings?: Record<string, unknown>;
 }
 
