@@ -71,7 +71,8 @@ def filenames(state: Any, project: Any, workflow: dict, kind: str, volumes: dict
         writer = state.accounts.get(owners.get(volume) or "")
         values = {"项目名称": project.name, "分册名称": label, "招标编号": project.tender_number or "", "日期": date,
                   "版本": internal_version(workflow, volume), "编写人": "" if submission else (writer.name if writer else "")}
-        names[volume] = render(rule, values)
+        custom = (workflow.get("volume_settings") or {}).get(volume, {}).get("submit_file_name") if submission else None
+        names[volume] = render(custom, {}) if custom else render(rule, values)  # 分册设置的递交文件名优先（PRD 5.1.4 第 8 项）
     if len(set(names.values())) < len(names):
         names = {volume: f"{name}_{volumes[volume]}" for volume, name in names.items()}
     return {volume: name + ".docx" for volume, name in names.items()}, rule

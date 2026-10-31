@@ -17,6 +17,7 @@ from typing import Any
 
 from .content_rules import _issue, _result, _rows
 from .domain import DomainError, Principal, iso_time, new_id
+from .project_lifecycle import occupancy_conflicts
 
 ROLES = ("项目经理", "项目负责人", "技术负责人", "驻场工程师", "运维工程师", "实施工程师", "数据库工程师", "DBA", "安全工程师",
          "网络工程师", "系统工程师", "开发工程师", "测试工程师", "售后工程师", "服务经理")
@@ -157,6 +158,7 @@ class ProposedStaffMixin:
         workflow = self._workflow(state, project_id)
         result = public_staff(state, project, workflow)
         result["r33"] = check_r33(state, project, workflow).to_dict()
+        result["occupancy"] = occupancy_conflicts(state, project, workflow)  # 同公司其他在投项目的占用提示（只提示）
         return result
 
     def save_proposed_staff(self, principal: Principal, project_id: str, payload: dict, expected: str | None, key: str | None):
@@ -165,6 +167,7 @@ class ProposedStaffMixin:
             workflow["proposed_staff_updated"] = {"by": principal.user.id, "at": iso_time(self.demo._now())}
             result = public_staff(state, project, workflow)
             result["r33"] = check_r33(state, project, workflow).to_dict()  # 排人时即提示（PRD §5.8.4）
+            result["occupancy"] = occupancy_conflicts(state, project, workflow)
             return result
         return self._write(principal, project_id, "staff.update", payload, expected, key, operation)
 

@@ -15,6 +15,9 @@ from icg.domain.domain import DomainError, Export, Principal
 from icg.domain.schemas import EmptyRequest
 from icg.domain.sla_schemas import (SlaMutationResult, SlaReviewRequest, SlaSelection, SlaTemplateCreate,
                           SlaTemplateList, SlaTemplatePatch, SlaTemplateResult, SlaValuePatch)
+from icg.domain.project_settings_schemas import (FullValueResult, FullValueUpdate, ProjectSettings, ProjectStatusRequest,
+                                                 ProjectStatusResult, RuleOverridesResult, RuleOverridesUpdate,
+                                                 VolumeSettingsResult, VolumeSettingsUpdate)
 from icg.domain.recoverable_jobs import include_recoverable_routes
 from icg.domain.workflow import DOCX_MEDIA_TYPE, WorkflowService
 
@@ -92,6 +95,42 @@ def include_workflow_routes(application, service, current_user, parser):
     def patch_project(project_id: str, body: ProjectPatch, user: Principal = Depends(current_user),
                       if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.patch_project(user, project_id, body.model_dump(exclude_unset=True), if_match, idempotency_key)
+
+    @router.get("/projects/{project_id}/settings", response_model=ProjectSettings, operation_id="getProjectSettings",
+                summary="项目设置读回", description="基本信息人工修改标记、合作方协议、规则覆盖、分册格式、递交版完整值类别、SLA 取值摘要、"
+                "拟派人员占用提示与概览待办；项目成员可读。")
+    def project_settings(project_id: str, response: Response, user: Principal = Depends(current_user)):
+        result = workflow.project_settings(user, project_id)
+        response.headers["ETag"] = f'"{result["revision"]}"'
+        return result
+
+    @router.post("/projects/{project_id}/status", response_model=ProjectStatusResult, operation_id="transitionProjectStatus",
+                 summary="登记项目状态（仅项目负责人）",
+                 description="submit 登记递交、open 登记开标、result 登记结果、cancel 取消。取消后项目只读（409 PROJECT_CANCELLED），"
+                 "不合规的流转返回 409 INVALID_STATUS_TRANSITION。")
+    def transition_status(project_id: str, body: ProjectStatusRequest, user: Principal = Depends(current_user),
+                          if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.transition_project(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.put("/projects/{project_id}/rule-overrides", response_model=RuleOverridesResult, operation_id="updateRuleOverrides",
+                summary="保存项目级规则覆盖（仅项目负责人）", description="整组替换；规则名或取值不合规返回 422。")
+    def save_rule_overrides(project_id: str, body: RuleOverridesUpdate, user: Principal = Depends(current_user),
+                            if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.save_rule_overrides(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.put("/projects/{project_id}/volume-settings", response_model=VolumeSettingsResult, operation_id="updateVolumeSettings",
+                summary="保存分册格式与编制设置（仅项目负责人）",
+                description="编制方式、内部截止时间、密封、页码、暗标、封面、递交文件名；递交文件名含编写人变量或姓名返回 422。")
+    def save_volume_settings(project_id: str, body: VolumeSettingsUpdate, user: Principal = Depends(current_user),
+                             if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.save_volume_settings(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.put("/projects/{project_id}/submit-full-value", response_model=FullValueResult, operation_id="updateSubmitFullValue",
+                summary="确认递交版需填完整值的敏感字段类别（仅项目负责人）",
+                description="类别为身份证件号码、手机号、银行账号；勾选须关联本项目招标要求作为依据，记录确认人和时间。")
+    def save_full_value(project_id: str, body: FullValueUpdate, user: Principal = Depends(current_user),
+                        if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.save_full_value(user, project_id, body.model_dump(), if_match, idempotency_key)
 
     @router.get("/projects/{project_id}/related-bids", response_model=RelatedBidStatus, operation_id="getRelatedBidStatus",
                 summary="R19 关联投标冲突状态",

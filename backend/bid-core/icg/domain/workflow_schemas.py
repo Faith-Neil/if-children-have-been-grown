@@ -6,6 +6,7 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .schemas import ChapterSummaryResponse, DemoCompanyRole, RequestBody, ResponseBody, LockSummaryResponse, AccountResponse
+from .project_settings_schemas import ProjectBasicInfo, ProjectStatusInfo
 from .sla_schemas import ProjectSla
 
 Volume = Literal["technical", "business"]
@@ -16,6 +17,8 @@ LibraryType = Literal["qualification", "personnel", "performance", "sla", "snipp
 class ProjectPartnerInput(RequestBody):
     partner_entity_id: str = Field(min_length=1, max_length=100)
     agreement_attachment_id: str | None = Field(default=None, max_length=100)
+    relation_type: Literal["consortium", "subcontract"] | None = Field(default=None, description="联合体成员 / 分包方")
+    work_share: str | None = Field(default=None, max_length=500, description="分工说明")
 
 
 class ProjectPatch(RequestBody):
@@ -24,6 +27,7 @@ class ProjectPatch(RequestBody):
     deadline: str | None = Field(default=None, max_length=50)
     sensitive: bool | None = None
     project_partners: list[ProjectPartnerInput] | None = None
+    basic_info: ProjectBasicInfo | None = Field(default=None, description="解析后带出、可人工修改的基本信息；修改处记“已人工修改”")
     volume_mode: Literal["both", "technical_only"] | None = Field(
         default=None, description="切换为只写技术标须商务分册尚无正文且未定稿；切回两册时补建商务分册")
     related_bid_reason: str | None = Field(
@@ -927,6 +931,7 @@ class Workspace(ResponseBody):
     permissions: ProjectPermissions
     human_queue_pending: int = Field(default=0, description="人工处理队列中待处理的问题数")
     omissions_pending: int = Field(default=0, description="兜底扫描中尚未处理的疑似遗漏数")
+    project_status: ProjectStatusInfo | None = Field(default=None, description="项目状态；cancelled 时只读")
 
 
 class StaffProfile(ResponseBody):
@@ -952,6 +957,7 @@ class ProposedStaffResult(ResponseBody):
     staff: list[ProposedStaff]
     roles: list[str]
     r33: dict[str, Any] = Field(description="按当前拟派人员运行的 R33 结果（排人时即提示）")
+    occupancy: list[dict[str, Any]] = Field(default_factory=list, description="同公司其他在投项目已拟派同一人（只提示，不锁定）")
 
 
 class MutationResult(ResponseBody):

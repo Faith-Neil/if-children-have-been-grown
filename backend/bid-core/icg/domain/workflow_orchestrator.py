@@ -34,6 +34,7 @@ from icg.domain.library_orchestrator import LibraryOrchestratorMixin, LibraryOrc
 from icg.domain.human_queue import HumanQueueMixin
 from icg.domain.volume_review import VolumeReviewMixin
 from icg.domain.post_process import OmissionMixin, suspected
+from icg.domain.project_lifecycle import current_status, ensure_not_cancelled
 
 SAMPLE_TENDER: bytes = b""
 
@@ -162,6 +163,7 @@ class WorkflowService(
             replay = lookup(state, project_id, principal.user.id, key, request_fingerprint, self.demo._now())
             if replay is not None:
                 return replay
+            ensure_not_cancelled(state, project_id)  # 项目取消后只读（PRD 5.1.3）
             self._version(project.revision, expected)
             workflow = self._workflow(state, project_id, create=True)
             result = operation(state, project, workflow)
@@ -294,11 +296,11 @@ class WorkflowService(
         project = self.demo._project(state, principal, project_id)
         workflow = self._workflow(state, project_id)
         chapters = [self._chapter_summary(state, workflow, c, principal.user.id) for c in self._ordered_chapters(state, project_id, workflow)]
-        stage = ("exported" if any(e["fingerprint"] == self._fingerprint(state, project_id) for e in workflow["exports"].values()) else "writing" if plan_is_current(state, project_id) else
-                 "matrix" if workflow["parse_confirmed"] else "review" if workflow["requirements"] else "upload")
+        stage = self.workspace_stage(state, project_id, workflow)
         return {
             "revision": project.revision, "input_fingerprint": self._fingerprint(state, project_id),
             "project": {**asdict(project), "volume_mode": project_volume_mode(state, project_id)}, "stage": stage,
+            "project_status": current_status(workflow, stage),
             "files": [self._public_file(f) for f in workflow["files"].values()],
             "requirements": [{**row, "permissions": {
                 "edit": lead(state, project_id, principal.user.id),

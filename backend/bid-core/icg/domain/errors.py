@@ -88,6 +88,8 @@ def _frozen_status() -> dict[str, int]:
         # 解析决策与文件版本链 (Wave 11 / WP-4)：合并拆分、文件角色与替代
         "REQUIREMENT_MERGED", "REQUIREMENT_SUPERSEDED", "NOT_MERGED", "REQUIREMENT_VALUES_DIFFER",
         "REQUIREMENT_IN_USE", "FILE_ROLE_MISMATCH", "FILE_ALREADY_SUPERSEDED", "FILE_ALREADY_PARSED",
+        # 项目状态流转与取消后只读 (APP-M2-T097 / PRD v1.8 §4.3、§5.1.3)
+        "INVALID_STATUS_TRANSITION", "PROJECT_CANCELLED",
     ))
     _bind(table, 413, (
         "FILE_SIZE_LIMIT", "FILE_EXPANSION_LIMIT", "PDF_PAGE_LIMIT", "GENERATION_CONTEXT_TOO_LARGE",
