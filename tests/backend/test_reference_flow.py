@@ -195,6 +195,8 @@ def test_review_gate_and_conflicts_require_explicit_resolution(client):
     assert flow.write("/parse/confirm", {})["parse_confirmed"] is True
     facts = [f for f in flow.state()["facts"] if f["key"] == "服务期限"]
     assert {f["status"] for f in facts} == {"confirmed", "rejected"}
+    decided = flow.state()["conflicts"][0]
+    assert decided["status"] == "resolved" and decided["decided_by"] == "alpha-manager" and decided["reason"]
 
 
 def test_unknown_reference_requires_manual_record(client):
@@ -386,5 +388,6 @@ def test_rejecting_selected_conflict_fact_reopens_conflict(client):
     flow.write("/conflicts/" + conflict["id"], {"selected_fact_id": selected, "reason": "核对合成原件后采用此值。"}, "PATCH")
     flow.write("/parse/confirm", {})
     flow.write("/facts/" + selected, {"status": "rejected", "reason": "原选值已不适用。"}, "PATCH")
-    assert flow.state()["conflicts"][0]["status"] == "pending"
+    reopened = flow.state()["conflicts"][0]
+    assert reopened["status"] == "pending" and reopened["selected_fact_id"] is None
     assert flow.write("/parse/confirm", {}, expected=409)["code"] == "CONFLICTS_PENDING"

@@ -18,7 +18,7 @@ from pathlib import PurePosixPath
 from typing import Any
 
 from .domain import DomainError
-from .parsing import ParsedDocument
+from .parsing import BATCH_PAGES, ParsedDocument, batch_ranges
 
 log = logging.getLogger(__name__)
 
@@ -162,6 +162,35 @@ def regions_from_chunks(chunks: list[dict]) -> list[list[dict]]:
     return [placed.get(number, []) for number in range(1, max(placed) + 1)]
 
 
+def remote_batch_pages() -> int:
+    try:
+        return max(1, int(os.environ.get("ICG_REMOTE_BATCH_PAGES", str(BATCH_PAGES))))
+    except ValueError:
+        return BATCH_PAGES
+
+
+def split_pdf(data: bytes, size: int) -> list[tuple[int, int, bytes]] | None:
+    """页数超过 size 的 PDF 按页码范围切成若干份；读不出页数（加密、损坏、未装 pypdf）时返回 None，整份提交。"""
+    try:
+        from io import BytesIO
+        from pypdf import PdfReader, PdfWriter
+        reader = PdfReader(BytesIO(data))
+        if reader.is_encrypted or len(reader.pages) <= size:
+            return None
+        parts = []
+        for first, last in batch_ranges(len(reader.pages), size):
+            writer = PdfWriter()
+            for index in range(first - 1, last):
+                writer.add_page(reader.pages[index])
+            output = BytesIO()
+            writer.write(output)
+            parts.append((first, last, output.getvalue()))
+        return parts
+    except Exception as exc:  # 切分失败不影响整份提交
+        log.info("tender pdf split skipped: %s", type(exc).__name__)
+        return None
+
+
 @dataclass
 class RemoteOutcome:
     state: str                      # done / pending / failed
@@ -223,14 +252,30 @@ class RemoteTenderParser:
         client = self.client(company_id)
         if client is None:
             return RemoteOutcome("failed", message="未连接 RAGFlow：扫描件、.doc、.xls 与图片须经知识库管理中连接的 RAGFlow 解析。")
+        suffix = PurePosixPath(filename).suffix.lower()
+        parts = split_pdf(data, remote_batch_pages()) if suffix == ".pdf" else None
+        uploaded: list[dict] = []
+        dataset_id = ""
         try:
             dataset_id = self.ensure_dataset(client, company_id)
-            suffix = PurePosixPath(filename).suffix.lower()
-            document = client.upload_file(dataset_id, filename, data, MEDIA_TYPES.get(suffix, "application/octet-stream"))
-            client.trigger_parse(dataset_id, [document.id])
+            if parts:
+                # 超过单次页数上限：按页码范围分批提交，取回后按原页码合并（PRD §5.2.1 规则 1）
+                stem = PurePosixPath(filename).stem
+                for first, last, chunk in parts:
+                    document = client.upload_file(dataset_id, f"{stem}-p{first}-{last}.pdf", chunk, MEDIA_TYPES[".pdf"])
+                    uploaded.append({"document_id": document.id, "first_page": first, "last_page": last})
+                client.trigger_parse(dataset_id, [p["document_id"] for p in uploaded])
+            else:
+                document = client.upload_file(dataset_id, filename, data, MEDIA_TYPES.get(suffix, "application/octet-stream"))
+                client.trigger_parse(dataset_id, [document.id])
         except Exception as exc:
             log.warning("tender remote submit failed for %s: %s", company_id, type(exc).__name__)
+            for part in uploaded:
+                self._cleanup(client, {"dataset_id": dataset_id, "document_id": part["document_id"]})
             return RemoteOutcome("failed", message=f"RAGFlow 暂不可用（{type(exc).__name__}），原件仍保留，稍后重试。")
+        if uploaded:
+            return self.poll(company_id, {"dataset_id": dataset_id, "document_id": uploaded[0]["document_id"],
+                                          "parts": uploaded})
         return self.poll(company_id, {"dataset_id": dataset_id, "document_id": document.id})
 
     def poll(self, company_id: str, remote: dict, *, budget: float | None = None) -> RemoteOutcome:
@@ -238,6 +283,8 @@ class RemoteTenderParser:
         if client is None:
             return RemoteOutcome("failed", remote=remote, message="RAGFlow 连接已断开，无法取回解析结果。")
         deadline = self.clock() + (wait_seconds() if budget is None else budget)
+        if remote.get("parts"):
+            return self._poll_parts(client, remote, deadline)
         while True:
             try:
                 document = client.get_document_status(remote["dataset_id"], remote["document_id"])
@@ -254,16 +301,69 @@ class RemoteTenderParser:
                 return RemoteOutcome("pending", remote=remote, message=f"RAGFlow 正在解析（{percent}%）")
             self.sleep(3)
 
-    def _collect(self, client: Any, remote: dict) -> RemoteOutcome:
+    def _poll_parts(self, client: Any, remote: dict, deadline: float) -> RemoteOutcome:
+        parts = remote["parts"]
+        while True:
+            progress = []
+            for part in parts:
+                try:
+                    document = client.get_document_status(remote["dataset_id"], part["document_id"])
+                except Exception as exc:
+                    return RemoteOutcome("pending", remote=remote, message=f"暂时查不到解析进度（{type(exc).__name__}）")
+                if document.sync_status == "failed":
+                    for other in parts:
+                        self._cleanup(client, {"dataset_id": remote["dataset_id"], "document_id": other["document_id"]})
+                    return RemoteOutcome("failed", message=f"RAGFlow 解析第 {part['first_page']}～{part['last_page']} 页这一批失败："
+                                                           f"{(document.progress_msg or '未给出原因')[:200]}")
+                progress.append(1.0 if document.sync_status == "synced" else float(document.progress or 0))
+            if all(value >= 1.0 for value in progress):
+                return self._collect_parts(client, remote)
+            if self.clock() >= deadline:
+                percent = int(round(sum(progress) / len(progress) * 100))
+                done = sum(1 for value in progress if value >= 1.0)
+                return RemoteOutcome("pending", remote=remote,
+                                     message=f"RAGFlow 正在分 {len(parts)} 批解析（已完成 {done} 批，总进度 {percent}%）")
+            self.sleep(3)
+
+    def _collect_parts(self, client: Any, remote: dict) -> RemoteOutcome:
+        """各批按自己的页数补齐或截断后首尾相接：第 2 批的第 1 页就是原件第 201 页，页码连续。"""
+        pages: list[str] = []
+        regions: list[list[dict]] = []
+        positioned_all = True
+        for part in remote["parts"]:
+            chunks = self._chunks(client, remote["dataset_id"], part["document_id"])
+            count = part["last_page"] - part["first_page"] + 1
+            part_pages, positioned = pages_from_chunks(chunks)
+            positioned_all = positioned_all and positioned
+            part_regions = regions_from_chunks(chunks) if positioned else []
+            pages.extend((part_pages + [""] * count)[:count])
+            regions.extend((part_regions + [[] for _ in range(count)])[:count])
+            self._cleanup(client, {"dataset_id": remote["dataset_id"], "document_id": part["document_id"]})
+        if not any(p.strip() for p in pages):
+            return RemoteOutcome("failed", message="RAGFlow 已解析但没有识别出文字，请提供更清晰的扫描件或原始电子版。")
+        batches = [[p["first_page"], p["last_page"]] for p in remote["parts"]]
+        warnings = [REMOTE_WARNING, f"共 {len(pages)} 页，按每批 {remote_batch_pages()} 页分 {len(batches)} 批提交 RAGFlow，"
+                                    "取回后按原页码合并。"]
+        if not positioned_all:
+            warnings.append("部分批次 RAGFlow 未返回版面位置，这些页的内容按该批第 1 页处理，页码不可用于定位。")
+        return RemoteOutcome("done", ParsedDocument(pages=pages, pagination=PAGINATION, warnings=warnings,
+                                                    regions=regions if any(regions) else [], batches=batches))
+
+    @staticmethod
+    def _chunks(client: Any, dataset_id: str, document_id: str) -> list[dict]:
         chunks: list[dict] = []
         page = 1
         while True:
-            batch = client.list_chunks(remote["dataset_id"], remote["document_id"], page=page, page_size=100)
+            batch = client.list_chunks(dataset_id, document_id, page=page, page_size=100)
             rows = batch.get("chunks") or []
             chunks.extend(rows)
             if not rows or len(chunks) >= int(batch.get("total") or 0) or page > 200:
                 break
             page += 1
+        return chunks
+
+    def _collect(self, client: Any, remote: dict) -> RemoteOutcome:
+        chunks = self._chunks(client, remote["dataset_id"], remote["document_id"])
         pages, positioned = pages_from_chunks(chunks)
         self._cleanup(client, remote)
         if not any(p.strip() for p in pages):

@@ -20,6 +20,8 @@ from icg.domain.workflow import DOCX_MEDIA_TYPE, WorkflowService
 
 XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 from icg.domain.idempotency import IDEMPOTENCY_HEADER_DESCRIPTION
+from icg.domain.workflow_schemas import (AddendumDiff, ConflictDecision, ConflictList, FileRole, FileRoleUpdate, FileSupersede,
+                               ItemSplit, MergeDismiss, PostProcessSummary, RequirementMerge)
 from icg.domain.workflow_schemas import (BatchConfirmRequest, ParseReview, CheckList, ConflictPatch, FactPatch, FileDelete, FilePreview, FileUpload,
                                GenerateRequest, JobsList, LibraryCreate, LibraryList,
                                LibraryPatch, LibraryResult, MutationResult, ParseRequest,
@@ -128,11 +130,78 @@ def include_workflow_routes(application, service, current_user, parser):
                  description="请求体为文件原始字节（application/octet-stream），文件名放在 filename 查询参数；大小上限见 ICG_MAX_UPLOAD_MB（默认 100MB）。")
     async def upload_raw(project_id: str, request: Request,
                          filename: str = Query(min_length=1, max_length=180),
+                         file_role: FileRole = Query(default="tender", description="文件类型（同 uploadFile 的 file_role）"),
                          user: Principal = Depends(current_user),
                          if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         data = await read_limited_body(request)
-        return await run_in_threadpool(workflow.upload, user, project_id, {"filename": filename, "content_bytes": data},
+        return await run_in_threadpool(workflow.upload, user, project_id,
+                                       {"filename": filename, "content_bytes": data, "file_role": file_role},
                                        if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/files/{file_id}/role", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="setFileRole", summary="修改文件类型（仅项目负责人）",
+                 description="解析前可改；已解析的文件不能在补遗/澄清与其他类型之间切换（409 FILE_ALREADY_PARSED）。")
+    def file_role(project_id: str, file_id: str, body: FileRoleUpdate, user: Principal = Depends(current_user),
+                  if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.set_file_role(user, project_id, file_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/files/{file_id}/supersede", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="supersedeFile", summary="设为被替代（版本链，仅项目负责人）",
+                 description="用同一类型、在其后上传的新版文件替代本文件；本文件条目标“所在文件已被替代”（不删除），"
+                             "人工改过的回到待确认；本文件未处理的疑似遗漏随之排除。")
+    def supersede_file(project_id: str, file_id: str, body: FileSupersede, user: Principal = Depends(current_user),
+                       if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.supersede_file(user, project_id, file_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.get("/projects/{project_id}/files/{file_id}/addendum-diff", response_model=AddendumDiff,
+                operation_id="getAddendumDiff", summary="补遗差异",
+                description="补遗/澄清逐条对照：修改了哪条原条款（逐字标出）、新增了什么、哪些未定位到原条款、改了哪些事实取值。")
+    def addendum_diff(project_id: str, file_id: str, user: Principal = Depends(current_user)):
+        return workflow.addendum_diff(user, project_id, file_id)
+
+    @router.get("/projects/{project_id}/parse/post-process", response_model=PostProcessSummary,
+                operation_id="getPostProcessSummary", summary="抽取后处理汇总",
+                description="冲突待选定、疑似遗漏、引用未解析的待处理数，去重合并与补遗替代的条数，以及待决定的合并建议。")
+    def post_process_summary(project_id: str, user: Principal = Depends(current_user)):
+        return workflow.post_process_summary(user, project_id)
+
+    @router.get("/projects/{project_id}/parse/conflicts", response_model=ConflictList, operation_id="listConflicts",
+                summary="冲突待选定列表", description="各方取值、原文、文件与页码并列；含已按补遗处理和历史记录。")
+    def list_conflicts(project_id: str, user: Principal = Depends(current_user)):
+        return workflow.list_conflicts(user, project_id)
+
+    @router.post("/projects/{project_id}/parse/conflicts/{conflict_id}/decision", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="chooseConflict", summary="处理冲突（仅项目负责人）",
+                 description="选定一方、标“不构成冲突”、撤销补遗替代、为未定位的补遗条目指定原条款，均须写理由；逐条处理，不提供批量。")
+    def decide_conflict(project_id: str, conflict_id: str, body: ConflictDecision, user: Principal = Depends(current_user),
+                        if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.decide_conflict(user, project_id, conflict_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/requirements/{requirement_id}/split", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="splitRequirement", summary="拆分已合并的条目（仅项目负责人）",
+                 description="被并入的条目恢复原状态单独列出；拆开的条目之后不再自动合并。")
+    def split_requirement(project_id: str, requirement_id: str, body: ItemSplit, user: Principal = Depends(current_user),
+                          if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.split_item(user, project_id, "requirement", requirement_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/facts/{fact_id}/split", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="splitFact", summary="拆分已合并的事实（仅项目负责人）")
+    def split_fact(project_id: str, fact_id: str, body: ItemSplit, user: Principal = Depends(current_user),
+                   if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.split_item(user, project_id, "fact", fact_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/requirements/{requirement_id}/merge", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="mergeRequirements", summary="合并条目（采纳合并建议，仅项目负责人）",
+                 description="取值（数字）不同的不能合并（409 REQUIREMENT_VALUES_DIFFER）；已对应章节、挂了证据或写了响应的不能并入。")
+    def merge_requirements(project_id: str, requirement_id: str, body: RequirementMerge, user: Principal = Depends(current_user),
+                           if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.merge_requirements(user, project_id, requirement_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/parse/merge-suggestions/{suggestion_id}/dismiss", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="dismissMergeSuggestion", summary="不合并（须写理由）")
+    def dismiss_merge(project_id: str, suggestion_id: str, body: MergeDismiss, user: Principal = Depends(current_user),
+                      if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.dismiss_merge_suggestion(user, project_id, suggestion_id, body.model_dump(), if_match, idempotency_key)
 
     @router.delete("/projects/{project_id}/files/{file_id}", response_model=MutationResult,
                    response_model_exclude_none=True, operation_id="deleteFile")

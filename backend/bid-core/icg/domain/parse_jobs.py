@@ -81,7 +81,8 @@ class ParseJobRunner:
             job = {"id": job_id, "project_id": project_id, "type": "parse", "status": "queued", "progress": 0,
                    "message": f"已排队：解析 {len(selected)} 份招标文件。", "created_at": now, "completed_at": None,
                    "error": None, "events": [], "recoverable": True, "live": True,
-                   "created_by": principal.user.id, "file_ids": payload.get("file_ids")}
+                   "created_by": principal.user.id, "file_ids": payload.get("file_ids"),
+                   "service": payload.get("service") or "auto"}
             state.recoverable_jobs[job_id] = job
             state.jobs[job_id] = _mirror(job)
             body = self._public(job)
@@ -171,6 +172,8 @@ class ParseJobRunner:
             return
         project_id = job["project_id"]
         payload = {"file_ids": job["file_ids"]} if job.get("file_ids") is not None else {}
+        if job.get("service") not in (None, "auto"):
+            payload["service"] = job["service"]  # 换服务重试（PRD §5.2.1 异常与边界）
         started = time.monotonic()
         attempt = 0
         while True:

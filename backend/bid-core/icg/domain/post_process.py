@@ -46,7 +46,9 @@ def _is_critical(requirement: dict) -> bool:
 def hit_covered(workflow: dict, hit: dict) -> str | None:
     """命中块被未忽略的星号/废标条目覆盖时返回该条目 ID。"""
     for requirement in workflow.get("requirements", {}).values():
-        if requirement.get("status") == "rejected" or not _is_critical(requirement):
+        # 被并入主条目、被补遗替代的条目仍代表原文这一处已抽取（不删除），所在块算已覆盖
+        handled = requirement.get("merged_into") or requirement.get("effective_status") == "superseded"
+        if (requirement.get("status") == "rejected" and not handled) or not _is_critical(requirement):
             continue
         source = requirement.get("source") or {}
         same_block = source.get("file_id") == hit["file_id"] and source.get("page") == hit["page"]

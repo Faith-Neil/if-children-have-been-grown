@@ -9,7 +9,6 @@ from dataclasses import asdict
 from typing import Any, Callable
 
 from icg.domain.domain import Chapter, DemoService, DemoState, DomainError, Principal, iso_time, lock_view, new_id
-from icg.domain.volume_mode import switch_volume_mode
 from icg.domain.matrix import MatrixMixin
 from icg.domain.ports import ParserProvider
 from icg.domain.input_snapshot import project_input_fingerprint
@@ -192,7 +191,8 @@ class WorkflowService(
             return
         if not writable(state, project_id, identity):
             raise DomainError(403, "PROJECT_WRITER_REQUIRED", "当前公司角色和项目角色只允许查看，不能办理此操作。")
-        if name in ("team.update", "staff.update", "export_settings.update", "project.update", "file.upload", "file.delete", "parse.run", "parse.confirm", "conflict.resolve") or name.startswith("sla."):
+        if name in ("team.update", "staff.update", "export_settings.update", "project.update", "parse.run", "parse.confirm",
+                    "conflict.resolve") or name.startswith(("sla.", "file.", "parse.")):
             require_lead(state, principal, project_id)
         elif name in ("chapter.plan.save", "chapter.plan.confirm", "chapter.assignment"):
             chapter = self.demo._chapter(state, principal, resource_id)
@@ -274,7 +274,9 @@ class WorkflowService(
 
     @staticmethod
     def _public_file(record: dict) -> dict:
-        return {key: value for key, value in record.items() if key not in ("content", "pages", "blob", "remote_parse", "regions")}
+        from icg.domain.tender_files import public_fields
+        return {**{key: value for key, value in record.items() if key not in ("content", "pages", "blob", "remote_parse", "regions")},
+                **public_fields(record)}
 
     def _job(self, state: DemoState, project_id: str, kind: str, message: str, error: dict | None = None) -> dict:
         now = iso_time(self.demo._now())
@@ -303,8 +305,8 @@ class WorkflowService(
                 "route": lead(state, project_id, principal.user.id),
                 "response": lead(state, project_id, principal.user.id) or volume_owner(state, project_id, row["volume"], principal.user.id)
                 or bool(row["chapter_id"] in state.chapters and chapter_edit(state, state.chapters[row["chapter_id"]], principal.user.id)),
-            }} for row in workflow["requirements"].values()],
-            "facts": project_facts(state, project_id),
+            }} for row in workflow["requirements"].values() if not row.get("merged_into")],  # 被并入的由主条目展示
+            "facts": [f for f in project_facts(state, project_id) if not f.get("merged_into")],
             "conflicts": list(workflow["conflicts"].values()),
             "chapters": chapters,
             "checks": [self._public_check(state, project_id, c) for c in workflow["checks"].values()],
@@ -320,30 +322,6 @@ class WorkflowService(
                                         if i["status"] in ("pending_fix", "pending_human")]),
             "omissions_pending": len(suspected(workflow)),
         }
-
-    def patch_project(self, principal: Principal, project_id: str, payload: dict, expected: str | None, key: str | None):
-        def operation(state, project, workflow):
-            reason = payload.pop("related_bid_reason", None)
-            identity_changed = "tender_number" in payload or "name" in payload
-            partners = payload.pop("project_partners", None)
-            if partners is not None:
-                state.project_partners[project.id] = partners
-            switch_volume_mode(state, principal, project, workflow, payload.pop("volume_mode", None), now=self.demo._now())
-            for field, value in payload.items():
-                if value is None:
-                    raise DomainError(422, "INVALID_PROJECT_FIELD", "项目字段不能设为空值，请使用空字符串清空文本。")
-                if field == "name" and not value.strip():
-                    raise DomainError(422, "INVALID_PROJECT_NAME", "项目名称不能为空。")
-                if field == "deadline" and value:
-                    self._date(value)
-                setattr(project, field, value.strip() if isinstance(value, str) else value)
-            if identity_changed:
-                # R19 关联投标冲突（APP-M2-T096 / PRD §5.1.2 规则 2）：未填写说明则整次修改不保存
-                from icg.domain.related_bids import require_ack
-                require_ack(state, principal, project, workflow, reason, self.demo._now())
-            return {"project": {**asdict(project), "volume_mode": project_volume_mode(state, project.id)}}
-
-        return self._write(principal, project_id, "project.update", payload, expected, key, operation)
 
     def writing_input(self, principal: Principal, project_id: str, chapter_id: str) -> dict:
         state = self.repository.read()

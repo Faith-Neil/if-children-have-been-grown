@@ -45,9 +45,46 @@ class RelatedBidStatus(ResponseBody):
     acknowledged: dict | None = Field(description="已确认的说明：company_names、match、reason、by_name、at")
 
 
+FileRole = Literal["tender", "clarification", "addendum", "tech_spec", "contract", "attachment"]
+FILE_ROLE_DOC = "文件类型：tender 招标文件、clarification 澄清、addendum 补遗、tech_spec 技术规范书、contract 合同条款、attachment 附件；澄清和补遗按版本链修改更早文件的条款"
+
+
 class FileUpload(RequestBody):
     filename: str = Field(min_length=1, max_length=180)
     content_base64: str = Field(min_length=1, description="base64 原件；大文件请用 /files/raw 直接上传二进制")
+    file_role: FileRole = Field(default="tender", description=FILE_ROLE_DOC)
+
+
+class FileRoleUpdate(RequestBody):
+    file_role: FileRole = Field(description=FILE_ROLE_DOC + "；已解析的文件不能在补遗/澄清与其他类型之间切换")
+
+
+class FileSupersede(RequestBody):
+    replacement_file_id: str = Field(min_length=1, max_length=100, description="替代它的新版文件（同一类型、在其后上传）")
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class ConflictDecision(RequestBody):
+    action: Literal["choose", "not_conflict", "revert", "assign_target", "confirm"] = Field(
+        description="choose 选定一方；not_conflict 不构成冲突；revert 撤销补遗替代（原条目恢复）；"
+                    "assign_target 为未定位的补遗条目指定被替代的原条款；confirm 核对“已按补遗处理”")
+    selected_fact_id: str | None = Field(default=None, max_length=100, description="choose 事实冲突时必填")
+    requirement_id: str | None = Field(default=None, max_length=100, description="choose 条款冲突或 assign_target 时必填")
+    reason: str = Field(default="", max_length=2000, description="除 confirm 外必填")
+
+
+class ItemSplit(RequestBody):
+    item_ids: list[str] | None = Field(default=None, max_length=200, description="要拆出的被并入条目；不填则全部拆开")
+    reason: str = Field(default="", max_length=2000)
+
+
+class RequirementMerge(RequestBody):
+    requirement_ids: list[str] = Field(min_length=1, max_length=50, description="并入本条（主条目）的条目")
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class MergeDismiss(RequestBody):
+    reason: str = Field(min_length=1, max_length=2000)
 
 
 class FileDelete(RequestBody):
@@ -56,6 +93,8 @@ class FileDelete(RequestBody):
 
 class ParseRequest(RequestBody):
     file_ids: list[str] | None = None
+    service: Literal["auto", "local", "ragflow"] = Field(
+        default="auto", description="解析服务：auto 先本地提取文字、取不出时交 RAGFlow；local 只用本地；ragflow 直接用 RAGFlow DeepDOC（换服务重试）")
 
 
 class RequirementPatch(RequestBody):
@@ -272,6 +311,23 @@ class TenderFile(ResponseBody):
     pagination: str
     warnings: list[str]
     download_url: str
+    file_role: FileRole = "tender"
+    file_role_label: str = "招标文件"
+    version_no: int = 1
+    supersedes_id: str | None = Field(default=None, description="本文件替代的旧版文件")
+    superseded_by: str | None = Field(default=None, description="替代本文件的新版文件；非空时本文件条目已标“所在文件已被替代”")
+    superseded_reason: str = ""
+    uploaded_by: str | None = None
+    uploaded_by_name: str = ""
+    uploaded_at: str | None = None
+    parse_service: str | None = Field(default=None, description="local-text 本地文字提取 / ragflow-deepdoc")
+    parse_service_label: str = ""
+    parse_started_at: str | None = None
+    parse_finished_at: str | None = None
+    parse_duration_ms: int | None = None
+    reused: bool = Field(default=False, description="复用了本公司同指纹、同服务、同参数的解析结果（不跨公司）")
+    reused_at: str | None = None
+    batches: list[list[int]] = Field(default_factory=list, description="分批解析的页码范围 [[1,200],[201,…]]")
 
 
 class TextRegion(ResponseBody):
@@ -311,6 +367,16 @@ class Requirement(ResponseBody):
     confidence: float | None = Field(default=None, description="0～1；低于公司阈值（默认 0.8）在解析页高亮；扫描件识别的条目最高 0.9")
     unreadable: bool = Field(default=False, description="原文不可读（识别乱码）：须对照原页补录文字后才能确认")
     unreadable_reason: str = ""
+    merge_status: Literal["independent", "primary", "merged"] | None = Field(
+        default=None, description="去重合并：primary 主条目（卡片显示“已合并 N 条”，可拆分）；被并入的条目不单列")
+    merged_ids: list[str] = Field(default_factory=list)
+    sources: list[dict[str, Any]] = Field(default_factory=list, description="主条目的全部来源（多位置切换）：file_id、page、quote、requirement_id")
+    importance: str | None = Field(default=None, description="合并后取最高一档：star > disqualification > qualification > scoring")
+    effective_status: Literal["effective", "superseded"] | None = Field(
+        default=None, description="superseded：已被补遗或新版文件替代（不删除，状态记已忽略）")
+    superseded_by: str | None = None
+    amends: str | None = Field(default=None, description="补遗条目修改的原条款")
+    source_stale: str | None = Field(default=None, description="重新解析后原句在新文字里找不到，请对照原件核对")
 
 
 class Fact(ResponseBody):
@@ -413,8 +479,107 @@ class Conflict(ResponseBody):
     key: str
     fact_ids: list[str]
     selected_fact_id: str | None
-    status: Literal["pending", "resolved"]
+    status: Literal["pending", "resolved", "not_conflict", "by_addendum"] = Field(
+        description="pending 待处理（阻断确认解析结果）、resolved 已选定、not_conflict 不构成冲突、by_addendum 已按补遗处理（不阻断）")
     reason: str
+    conflict_type: Literal["field_value", "addendum_override", "addendum_unlocated"] = "field_value"
+    requirement_ids: list[str] = Field(default_factory=list)
+    chosen_requirement_id: str | None = None
+    decided_by: str | None = None
+    decided_by_name: str = ""
+    decided_at: str | None = None
+    created_at: str | None = None
+    superseded_by: str | None = Field(default=None, description="出现新取值后另记的新冲突；本条决定保留作历史")
+    obsolete_at: str | None = None
+
+
+class ConflictValue(ResponseBody):
+    fact_id: str | None = None
+    requirement_id: str | None = None
+    value: str
+    file_id: str | None = None
+    filename: str = ""
+    page: int | None = None
+    quote: str = ""
+    status: str | None = None
+    effective_status: str = Field(default="effective", description="effective 有效 / superseded 已被替代")
+    canonical: str | None = Field(default=None, description="统一单位后的比较口径")
+
+
+class ConflictView(Conflict):
+    conflict_type_label: str
+    status_label: str
+    current: bool
+    blocking: bool
+    values: list[ConflictValue]
+    candidates: list[ConflictValue] = Field(default_factory=list, description="未定位的补遗条目可指定的原条款候选")
+    history: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class ConflictSummary(ResponseBody):
+    pending: int
+    by_addendum: int
+    resolved: int
+    not_conflict: int
+    history: int
+
+
+class ConflictList(ResponseBody):
+    revision: int
+    project_id: str
+    can_handle: bool
+    summary: ConflictSummary
+    conflicts: list[ConflictView]
+
+
+class AddendumDiffItem(ResponseBody):
+    kind: Literal["modified", "added", "unlocated", "same"]
+    requirement: ConflictValue
+    target: ConflictValue | None = None
+    amended_text: str | None = Field(default=None, description="补遗之后原条款应读作的文字（“原文‘甲’修改为‘乙’”时把甲换成乙；删除时为空）")
+    diff: list[dict[str, str]] = Field(default_factory=list, description="原条款与 amended_text 逐字对照：op 为 equal / delete / insert")
+    conflict_id: str | None = None
+    conflict_status: str | None = None
+    candidates: list[ConflictValue] = Field(default_factory=list)
+
+
+class AddendumFactChange(ResponseBody):
+    key: str
+    new: ConflictValue
+    old: list[ConflictValue]
+
+
+class AddendumDiff(ResponseBody):
+    revision: int
+    file: TenderFile
+    amending: bool
+    summary: dict[str, int]
+    items: list[AddendumDiffItem]
+    facts: list[AddendumFactChange]
+    replaced_items: list[ConflictValue] = Field(description="本文件作为新版替代旧版时，旧版中被标“所在文件已被替代”的条目")
+
+
+class MergeSuggestion(ResponseBody):
+    id: str
+    requirement_ids: list[str]
+    similarity: float
+    status: str
+    texts: list[str] = Field(default_factory=list)
+
+
+class PostProcessSummary(ResponseBody):
+    revision: int
+    project_id: str
+    conflicts_pending: int
+    conflicts_by_addendum: int
+    omissions_pending: int
+    references_unresolved: int
+    merged_groups: int
+    merged_items: int
+    superseded_items: int
+    merge_suggestions: list[MergeSuggestion]
+    scan_version: str
+    last_run: dict[str, Any] | None = None
 
 
 class Candidate(ResponseBody):
@@ -809,6 +974,12 @@ class MutationResult(ResponseBody):
     writing_plan: WritingPlan | None = None
     team: Team | None = None
     chapter: WorkflowChapter | None = None
+    item: dict[str, Any] | None = Field(default=None, description="拆分后的主条目（条款或事实）")
+    split_ids: list[str] | None = None
+    merged_ids: list[str] | None = None
+    suggestion: MergeSuggestion | None = None
+    replacement: TenderFile | None = Field(default=None, description="设为被替代时的新版文件")
+    rechecks: int | None = Field(default=None, description="旧版中人工改过、回到待确认由人核对的条目数")
 
 
 class CheckList(ResponseBody):

@@ -36,6 +36,8 @@ def requirement_category(row: dict) -> str:
     text = str(row.get("text") or "")
     category = row.get("category")
     kind = row.get("section_kind")
+    if row.get("importance") in ("star", "disqualification", "qualification"):
+        return row["importance"]  # 合并重复条目后重要性取最高一档（§5.2.4 第①步）或由疑似遗漏新增时指定
     if category == "star" or STAR.search(text):
         return "star"
     if category == "disqualification" or DISQUALIFY.search(text):
@@ -79,7 +81,9 @@ def _scoring_groups(rows: list[dict]) -> list[dict]:
 
 
 def review(workflow: dict, facts: list[dict], threshold: float = 0.8) -> dict:
-    rows = [r for r in workflow.get("requirements", {}).values() if not r.get("out_of_scope")]
+    # 被并入主条目的不单独计数（由主条目“已合并 N 条”展示）
+    rows = [r for r in workflow.get("requirements", {}).values() if not r.get("out_of_scope") and not r.get("merged_into")]
+    facts = [f for f in facts if not f.get("merged_into")]
     by_id = {r["id"]: requirement_category(r) for r in rows}
     fact_by_id = {f["id"]: fact_category(f) for f in facts}
     tree = []
@@ -103,17 +107,20 @@ def gates(workflow: dict, rows: list[dict], facts: list[dict], by_id: dict[str, 
     def pending_in(keys):
         return sum(1 for r in rows if r["status"] == "pending" and by_id[r["id"]] in keys)
 
-    conflicts = sum(1 for c in workflow.get("conflicts", {}).values() if c.get("status") != "resolved")
-    omissions = sum(1 for h in (workflow.get("post_process") or {}).get("hits", {}).values() if h.get("status") == "open")
+    from .parse_decisions import blocking_conflicts
+    from .post_process import suspected
+    from .tender_files import effective_files
+    conflicts = len(blocking_conflicts(workflow))  # 已按补遗处理的冲突不阻断（§5.2.4 规则 1）
+    omissions = len(suspected(workflow))  # 与 confirm_parse 同口径：已被条目覆盖的命中不算
     references = sum(1 for r in rows if r.get("reference_status") == "unresolved" and r["status"] != "rejected")
     from .parse_quality import low_confidence, unresolved_unreadable
     unreadable = sum(1 for item in [*rows, *facts] if unresolved_unreadable(item))
     low = sum(1 for item in [*rows, *facts] if item.get("status") == "pending" and low_confidence(item, threshold))
-    files = workflow.get("files", {}).values()
+    files = effective_files(workflow)
     unparsed = sum(1 for f in files if f.get("status") != "parsed") if files else 1
     items = [
         ("PARSE_INCOMPLETE", "上传文件未全部解析成功（失败的须重新解析或删除）", unparsed, True),
-        ("CONFLICTS_PENDING", "事实冲突待选定", conflicts, True),
+        ("CONFLICTS_PENDING", "冲突待选定", conflicts, True),
         ("OMISSIONS_PENDING", "疑似遗漏未处理", omissions, True),
         ("STAR_PENDING", "星号条款待逐条确认", pending_in({"star"}), True),
         ("DISQUALIFICATION_PENDING", "废标条款待逐条确认", pending_in({"disqualification"}), True),
