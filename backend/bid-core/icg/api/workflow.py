@@ -14,7 +14,7 @@ from icg.infra.adapters import build_docx
 from icg.domain.domain import DomainError, Export, Principal
 from icg.domain.schemas import EmptyRequest
 from icg.domain.sla_schemas import (SlaMutationResult, SlaReviewRequest, SlaSelection, SlaTemplateCreate,
-                          SlaTemplateList, SlaTemplatePatch, SlaTemplateResult, SlaValuePatch)
+                          SlaPropagation, SlaTemplateList, SlaTemplatePatch, SlaTemplateResult, SlaValuePatch)
 from icg.domain.project_settings_schemas import (FullValueResult, FullValueUpdate, ProjectSettings, ProjectStatusRequest,
                                                  ProjectStatusResult, RuleOverridesResult, RuleOverridesUpdate,
                                                  VolumeSettingsResult, VolumeSettingsUpdate)
@@ -472,6 +472,11 @@ def include_workflow_routes(application, service, current_user, parser):
     def patch_sla_template(template_id: str, body: SlaTemplatePatch, user: Principal = Depends(current_user),
                            if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.sla.write_template(user, body.model_dump(exclude_unset=True), if_match, idempotency_key, template_id)
+
+    @router.get("/projects/{project_id}/sla/propagation", response_model=SlaPropagation,
+                operation_id="getSlaPropagation", summary="服务承诺需复核传播与判定汇总")
+    def sla_propagation(project_id: str, user: Principal = Depends(current_user)):
+        return workflow.sla.propagation(user, project_id)
 
     @router.post("/projects/{project_id}/sla/template", response_model=SlaMutationResult, response_model_exclude_none=True,
                  operation_id="selectSlaTemplate")

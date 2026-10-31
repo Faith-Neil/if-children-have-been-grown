@@ -365,3 +365,15 @@ export interface RetrievedEvidence {
   reference_only: boolean;
 }
 
+
+export type SlaReasonCode = 'TEMPLATE_STALE' | 'SOURCE_STALE' | 'NEEDS_REVIEW' | 'UNCONFIRMED' | 'VALUE_INVALID' | 'RISK_UNREVIEWED';
+export interface SlaPropagationRow {
+  var_key: string; label: string; group: string; judgment: SlaRow['judgment']; judgment_label: string; fact_status: string;
+  reasons: { code: SlaReasonCode; label: string }[]; needs_review: boolean; chapters: { chapter_id: string; title: string; volume: Volume }[];
+}
+export interface SlaPropagation {
+  revision: number; project_id: string; selected: boolean; template_name: string; template_stale: boolean;
+  summary: { total: number; by_judgment: Record<string, number>; needs_review: number; unconfirmed: number; risk_unreviewed: number; invalid: number; stale_commitments: number; affected_chapters: number };
+  rows: SlaPropagationRow[];
+  chapters: { chapter_id: string; title: string; volume: Volume; var_keys: string[]; issues: { code: string; message: string }[] }[];
+}
