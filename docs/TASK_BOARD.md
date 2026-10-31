@@ -10,7 +10,7 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，2026-10-30 整治，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 455 项：done 96、in-review 180、in-progress 36、planned 69、blocked 0、cancelled 74、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+项目 455 项：done 96、in-review 185、in-progress 33、planned 67、blocked 0、cancelled 74、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
@@ -32,7 +32,7 @@
 | WP-1 编辑台结构化正文 | T137～T139、T160～T190 | T160、T169、T171、T189、T190、T137、T138、T139（AntV G2） | 段落键、段落锁定、版本对比与回退、变量节点、问题标注与侧栏联动已有（T161、T163、T164、T166、T174、T175 in-review），编辑中的正文仍是纯文本框 |
 | WP-2 资料库 | T046～T079 | T046～T068、T070～T075、T077 中未完成的 30 张 | 列表/详情按通用字段渲染，`field_metadata.kb_record` 的各类别字段与 `MetadataTable`/`MetadataForm` 没接入页面；★ 字段重确认、受限资料转交、人员/授权/业绩分类页、Excel 导入 |
 | WP-3 写作规范后台 | T080～T093 | 13 张 | 历史标书导入、章节模板、术语句式、任务卡与提示词模板、审查清单、风格样例 |
-| WP-4 项目与解析 | T094～T117 | T097～T102、T107、T109、T110 | 项目设置页、补遗差异、条目合并拆分、冲突页签（R19 提示已做，T096 in-review） |
+| WP-4 项目与解析 | T094～T117 | T097～T100 | 项目设置页（R19 提示已做，T096 in-review；T101、T102、T107、T109、T110 前端已 in-review，后端 `229d05f`） |
 | WP-5 矩阵、SLA 与章节循环 | T118～T136、T211～T213 | 10 张 | 证据三路候选、SLA 判定与承诺函、需复核传播、R09 子范围、循环异常重试 |
 | WP-6 检查、规则、导出、看板与管理 | T011、T033～T044、T140～T159、T191～T259 中未完成的 | 34 张 | 规则编号对齐（ISSUE-046）；导出、检查仍是同步请求；R25 实际文件残留检查（T231）；R43/R44；暗标；品牌页；集团视图 |
 | WP-7 评审边界 | FE-M0-T03 | 1 张 | 评审系统与前端来源边界说明 |
@@ -451,16 +451,16 @@
 | [APP-M2-T098](tasks/APP-M2.md#app-m2-t098) | 项目基本字段和合作方协议（成员复用T14） | planned | APP-M1-T14、APP-M2-T054 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T098.md` |
 | [APP-M2-T099](tasks/APP-M2.md#app-m2-t099) | 项目设置：拟派人员、SLA 取值、规则覆盖 | planned | APP-M1-T14、APP-M2-T060、APP-M2-T069 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T099.md` |
 | [APP-M2-T100](tasks/APP-M2.md#app-m2-t100) | 分册格式、闭环及导出设置（分工复用T14） | planned | APP-M1-T14、APP-M2-T044、APP-M2-T045、APP-M2-T086 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T100.md` |
-| [APP-M2-T101](tasks/APP-M2.md#app-m2-t101) | 招标文件上传与版本链 | in-progress（2026-10-28 重定：部分已实现，缺口见本页工作包 WP-4） | APP-M1-T02、APP-M2-T021 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T101.md` |
-| [APP-M2-T102](tasks/APP-M2.md#app-m2-t102) | 解析进度页（JobProgress 接入） | in-progress（2026-10-28 重定：部分已实现，缺口见本页工作包 WP-4） | APP-M1-T02、APP-M2-T021、APP-M2-T101 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T102.md` |
+| [APP-M2-T101](tasks/APP-M2.md#app-m2-t101) | 招标文件上传与版本链 | in-review（2026-10-31：文件类型、版本、上传人、设为被替代；>200页分批页面未展示，真实RAGFlow未跑） | APP-M1-T02、APP-M2-T021 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T101.md) |
+| [APP-M2-T102](tasks/APP-M2.md#app-m2-t102) | 解析进度页（JobProgress 接入） | in-review（2026-10-31：解析服务/耗时列与换服务重试；真实RAGFlow未跑） | APP-M1-T02、APP-M2-T021、APP-M2-T101 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T102.md) |
 | [APP-M2-T103](tasks/APP-M2.md#app-m2-t103) | PdfLocator（PDF.js 本地 Worker、跳页高亮） | in-review（2026-10-29：解析页左栏显示原件 PDF，按条款来源跳页并在原件上高亮原句） | APP-M1-T02、APP-M2-T101 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T103.md` |
 | [APP-M2-T104](tasks/APP-M2.md#app-m2-t104) | 解析结果三栏布局与分类树 | in-review（2026-10-29：10 类分类树与评分项得分要点、三个后处理入口、确认前提逐条列出、星号/废标/资格后台禁止批量确认） | APP-M1-T02、APP-M2-T103 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T104.md` |
 | [APP-M2-T105](tasks/APP-M2.md#app-m2-t105) | 条目卡片编辑与逐条确认 | in-review（2026-10-30 核对：条目编辑、人工锁、原文定位已实现，补交付） | APP-M1-T02、APP-M2-T104 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T105.md` |
 | [APP-M2-T106](tasks/APP-M2.md#app-m2-t106) | 批量确认（星号 / 废标 / 资格禁用）与置信度高亮 | in-review（2026-10-30 核对：三类禁批量、前后端双重拦截、置信度高亮已实现，补交付） | APP-M1-T02、APP-M2-T105 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T106.md` |
-| [APP-M2-T107](tasks/APP-M2.md#app-m2-t107) | 重抽不覆盖与补遗差异 | planned | APP-M1-T02、APP-M2-T105、APP-M2-T101 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T107.md` |
+| [APP-M2-T107](tasks/APP-M2.md#app-m2-t107) | 重抽不覆盖与补遗差异 | in-review（2026-10-31：补遗差异逐字对照、重抽保留人工修改；三栏并排截图未做） | APP-M1-T02、APP-M2-T105、APP-M2-T101 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T107.md) |
 | [APP-M2-T108](tasks/APP-M2.md#app-m2-t108) | “确认解析结果”闸门（悬停列未满足项） | in-review（2026-10-30：闸门补“文件未全部解析成功”，补交付） | APP-M1-T02、APP-M2-T106、APP-M2-T107、APP-M2-T109、APP-M2-T110、APP-M2-T111 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T108.md` |
-| [APP-M2-T109](tasks/APP-M2.md#app-m2-t109) | 后处理条与合并条目（“已合并 N 条 · 拆分”、多位置切换） | planned | APP-M2-T104、APP-M2-T019 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T109.md` |
-| [APP-M2-T110](tasks/APP-M2.md#app-m2-t110) | 冲突待选定页签（并列取值、理由必填） | in-progress（2026-10-28 重定：部分已实现，缺口见本页工作包 WP-4） | APP-M2-T104、APP-M2-T109 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T110.md` |
+| [APP-M2-T109](tasks/APP-M2.md#app-m2-t109) | 后处理条与合并条目（“已合并 N 条 · 拆分”、多位置切换） | in-review（2026-10-31：已合并N条、拆分、多位置切换、合并建议；事实合并拆分页面未接） | APP-M2-T104、APP-M2-T019 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T109.md) |
+| [APP-M2-T110](tasks/APP-M2.md#app-m2-t110) | 冲突待选定页签（并列取值、理由必填） | in-review（2026-10-31：并列取值、不构成冲突、理由必填、补遗处理不阻断；仅负责人可处理） | APP-M2-T104、APP-M2-T109 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T110.md) |
 | [APP-M2-T111](tasks/APP-M2.md#app-m2-t111) | 疑似遗漏（无批量、排除须理由）与引用未解析页签（Wave 11：疑似遗漏部分已交付，引用未解析未做） | in-review | APP-M2-T104、APP-M2-T148、APP-M2-T109 | [ISSUE-007](../issues/ISSUE-007.md)、[ISSUE-040](../issues/ISSUE-040.md) | [交付](delivery/APP-M2-T111.md) |
 | [APP-M2-T112](tasks/APP-M2.md#app-m2-t112) | 矩阵表格与筛选（风险提示） | in-review（2026-10-29：矩阵表格、风险列与统计已实现） | APP-M1-T03 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T112.md` |
 | [APP-M2-T113](tasks/APP-M2.md#app-m2-t113) | 行编辑（响应方式、要点、负责人） | in-review（2026-10-29：响应方式/偏离说明/负责人行编辑已实现） | APP-M1-T03、APP-M2-T112 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T113.md` |

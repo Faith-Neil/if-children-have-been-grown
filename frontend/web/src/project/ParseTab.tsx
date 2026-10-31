@@ -30,6 +30,8 @@ import { SourceLink } from './SourceLink.tsx';
 import { OriginalPreview } from './OriginalPreview.tsx';
 import { ConflictCards } from './ConflictCards.tsx';
 import { OmissionsDrawer } from './OmissionsDrawer.tsx';
+import { MergeSuggestionsDrawer } from './MergeSuggestionsDrawer.tsx';
+import { mergedLabel, nextSourceIndex, sourceLabel, visibleRequirements } from './parse-postprocess-core.ts';
 import type { Requirement, Source } from '../shared/types.ts';
 import { request } from '../shared/api.ts';
 import { batchCandidates, confidenceLabel, gateCount, gateSummary, lowConfidence, needsReentry, nodeCategory, nodeRows, nodeTitle, threshold, unmetGates, type ParseReview, type TreeNode } from './parse-review-core.ts';
@@ -56,6 +58,9 @@ export function ParsePage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [conflictsOpen, setConflictsOpen] = useState(false);
   const [omissionsOpen, setOmissionsOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const [mergePending, setMergePending] = useState(0);
+  const [sourceIndex, setSourceIndex] = useState<Record<string, number>>({});
   const [edit, setEdit] = useState<Requirement | null>(null);
   const [form] = Form.useForm();
 
@@ -67,7 +72,7 @@ export function ParsePage() {
   const limit = threshold(review);
   const unreadable = workspace.requirements.filter(needsReentry).length;
   const low = workspace.requirements.filter(item => lowConfidence(item, limit)).length;
-  const shown = nodeRows(workspace.requirements, review, node);
+  const shown = visibleRequirements(nodeRows(workspace.requirements, review, node));
   const currentCategory = nodeCategory(review, node);
   const batch = batchCandidates(workspace.requirements, review, node);
   const lead = projectCan(workspace, 'prepare_sources');
@@ -154,6 +159,9 @@ export function ParsePage() {
         <Space>
           <Button danger size="small" onClick={() => setConflictsOpen(true)}>
             冲突待选定 {conflicts}
+          </Button>
+          <Button size="small" onClick={() => setMergeOpen(true)} data-testid="merge-button">
+            合并建议 {mergePending}
           </Button>
           <Button danger={omissions > 0} size="small" onClick={() => setOmissionsOpen(true)} data-testid="omissions-button">
             疑似遗漏 {omissions}
@@ -268,6 +276,8 @@ export function ParsePage() {
                       </Tooltip>
                     )}
                     {lowConfidence(item, limit) && <Tag color="orange" data-testid="low-confidence-tag">{confidenceLabel(item)}</Tag>}
+                    {item.effective_status === 'superseded' && <Tag data-testid="superseded-tag">所在文件已被替代</Tag>}
+                    {mergedLabel(item) && <Tag color="purple" data-testid="merged-tag">{mergedLabel(item)}</Tag>}
                     {item.manually_edited && <Tag color="blue" data-testid="manually-edited-tag">已人工修改</Tag>}
                     <Tag color={statusColor(item.status)}>{statusName(item.status)}</Tag>
                   </Space>
@@ -281,6 +291,19 @@ export function ParsePage() {
                     {workspace.chapters.find(chapter => chapter.id === item.chapter_id)?.title ?? '尚未分配章节'}
                   </span>
                 </Space>
+                {(item.sources?.length ?? 0) > 1 && (
+                  <Space data-testid="source-switch">
+                    <Button size="small" onClick={e => {
+                      e.stopPropagation();
+                      const total = item.sources!.length;
+                      const next = nextSourceIndex(sourceIndex[item.id] ?? 0, total);
+                      setSourceIndex({ ...sourceIndex, [item.id]: next });
+                      const target = item.sources![next];
+                      if (target.file_id) setSource({ file_id: target.file_id, page: target.page ?? 1, quote: target.quote ?? '' });
+                    }}>切换位置</Button>
+                    <span className="muted">{sourceLabel(item.sources![sourceIndex[item.id] ?? 0], sourceIndex[item.id] ?? 0, item.sources!.length)}</span>
+                  </Space>
+                )}
                 {item.reason && <p className="muted">处理说明：{item.reason}</p>}
                 <div className="card-actions">
                   <Button
@@ -319,6 +342,15 @@ export function ParsePage() {
                   >
                     排除（误抽取）
                   </Button>
+                  {mergedLabel(item) && (
+                    <Button type="link" size="small" data-testid="split-button" disabled={busy || !lead}
+                      onClick={e => {
+                        e.stopPropagation();
+                        void mutate(`/api/v1/projects/${workspace.project.id}/requirements/${item.id}/split`, 'POST', { reason: '人工拆分' }).catch(ignoreFailure);
+                      }}>
+                      拆分
+                    </Button>
+                  )}
                 </div>
               </Card>
             ))
@@ -369,6 +401,7 @@ export function ParsePage() {
           </Card>
         )) : <Empty description="没有未解析的引用" />}
       </Drawer>
+      <MergeSuggestionsDrawer open={mergeOpen} onClose={() => setMergeOpen(false)} onCount={setMergePending} />
       <OmissionsDrawer open={omissionsOpen} onClose={() => setOmissionsOpen(false)} onLocate={setSource} />
       <Modal
         title="修改抽取要求"

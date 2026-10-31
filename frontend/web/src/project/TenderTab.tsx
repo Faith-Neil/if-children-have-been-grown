@@ -2,13 +2,15 @@
 // 它解决什么问题：解耦招标文件上传、解析触发、原件下载与异常移除模态窗交互，降低 ProjectPages 行数。
 
 import React, { useState } from 'react';
-import { Alert, Button, Card, Drawer, Input, Modal, Space, Table, Tag, Tooltip, Upload } from 'antd';
+import { Alert, Button, Card, Drawer, Input, Modal, Select, Space, Table, Tag, Tooltip, Upload } from 'antd';
 import { DownloadOutlined, FileTextOutlined, ReloadOutlined, UploadOutlined, WarningOutlined } from '@ant-design/icons';
 import { MAX_UPLOAD_MB, download, rawUploadPath, request, uploadRaw, uploadTooLarge } from '../shared/api.ts';
 import { projectCan } from './project-team.ts';
 import { useProject } from '../app/context.tsx';
 import { OriginalPreview } from './OriginalPreview.tsx';
-import type { Job, TenderFile } from '../shared/types.ts';
+import { AddendumDiffDrawer } from './AddendumDiffDrawer.tsx';
+import { FILE_ROLE_OPTIONS, PARSE_SERVICE_OPTIONS, durationLabel, hasAddendumDiff, replacementOptions, retryBody, roleChangeAllowed, type ParseServiceChoice } from './parse-postprocess-core.ts';
+import type { FileRole, Job, TenderFile } from '../shared/types.ts';
 import { JobProgressWithSse } from '../status/JobProgress.tsx';
 import { jobFromStatus, type BackendJobStatus } from '../status/job-progress-sse.ts';
 import type { JobProgressData } from '../status/job-progress.ts';
@@ -25,6 +27,13 @@ export function TenderPage() {
   const [selectedFile, setSelectedFile] = useState<string>('');
   const [removeFile, setRemoveFile] = useState<TenderFile | null>(null);
   const [removeReason, setRemoveReason] = useState('');
+  const [uploadRole, setUploadRole] = useState<FileRole>('tender');
+  const [diffFile, setDiffFile] = useState('');
+  const [supersede, setSupersede] = useState<TenderFile | null>(null);
+  const [replacementId, setReplacementId] = useState('');
+  const [supersedeReason, setSupersedeReason] = useState('');
+  const [retryFile, setRetryFile] = useState<TenderFile | null>(null);
+  const [retryService, setRetryService] = useState<ParseServiceChoice>('ragflow');
   // 解析在后台执行（APP-M2-T020）：进度经事件流实时显示，断线时自动改为轮询
   const [parseJob, setParseJob] = useState<{ id: string; initial: JobProgressData } | null>(() => {
     const active = activeParseJob(workspace.jobs);
@@ -57,7 +66,7 @@ export function TenderPage() {
     setUploading(true);
     try {
       // 二进制直传：大扫描件不先转 base64
-      await uploadRaw(rawUploadPath(`/api/v1/projects/${workspace.project.id}/files/raw`, { filename: file.name }),
+      await uploadRaw(rawUploadPath(`/api/v1/projects/${workspace.project.id}/files/raw`, { filename: file.name, file_role: uploadRole }),
         token, file, workspace.revision);
     } catch (error) {
       report(error);
@@ -68,9 +77,23 @@ export function TenderPage() {
     return false;
   }
 
-  async function parse() {
+  async function changeRole(file: TenderFile, role: FileRole) {
+    if (!roleChangeAllowed(file, role)) { report(new Error('已解析的文件不能在补遗/澄清与其他类型之间切换。')); return; }
+    try { await mutate(`/api/v1/projects/${workspace.project.id}/files/${file.id}/role`, 'POST', { file_role: role }); } catch { /* 后台拒绝原因已显示 */ }
+  }
+
+  async function submitSupersede() {
+    if (!supersede || !replacementId || !supersedeReason.trim()) { report(new Error('请选择新版文件并写明理由。')); return; }
     try {
-      const job = await mutate(`/api/v1/projects/${workspace.project.id}/parse/jobs`, 'POST', {}) as BackendJobStatus;
+      await mutate(`/api/v1/projects/${workspace.project.id}/files/${supersede.id}/supersede`, 'POST',
+        { replacement_file_id: replacementId, reason: supersedeReason.trim() });
+      setSupersede(null); setReplacementId(''); setSupersedeReason('');
+    } catch { /* 保留输入 */ }
+  }
+
+  async function parse(body: Record<string, unknown> = {}) {
+    try {
+      const job = await mutate(`/api/v1/projects/${workspace.project.id}/parse/jobs`, 'POST', body) as BackendJobStatus;
       setParseJobDone(false); setParseJob({ id: job.id, initial: jobFromStatus(job) });
     } catch {
       /* 保留当前文件列表供重试 */
@@ -121,7 +144,7 @@ export function TenderPage() {
             loading={busy}
             disabled={!workspace.files.length || !projectCan(workspace, 'prepare_sources') || uploading
               || (!!parseJob && !['completed', 'failed', 'cancelled'].includes(parseJob.initial.status) && !parseJobDone)}
-            onClick={parse}
+            onClick={() => void parse()}
           >
             解析招标文件
           </Button>
@@ -143,6 +166,11 @@ export function TenderPage() {
         description="页码方式与能力限制随原文显示，解析完成也需要人确认。经 RAGFlow 识别的文件标“RAGFlow 解析中”，解析任务在后台自动取回结果，可离开本页；识别结果请对照原件核对；未连接 RAGFlow 时这些格式会如实提示失败。"
       />
       <Card>
+        <Space style={{ marginBottom: 12 }}>
+          <span>本次上传的文件类型</span>
+          <Select<FileRole> value={uploadRole} options={FILE_ROLE_OPTIONS} onChange={setUploadRole} style={{ width: 160 }}
+            aria-label="上传文件类型" data-testid="upload-role-select" disabled={busy || uploading || !projectCan(workspace, 'prepare_sources')} />
+        </Space>
         <Upload.Dragger
           accept=".txt,.md,.docx,.doc,.pdf,.xls,.xlsx,.png,.jpg,.jpeg"
           beforeUpload={file => upload(file)}
@@ -170,6 +198,34 @@ export function TenderPage() {
                   <FileTextOutlined />
                   {value}
                 </Space>
+              ),
+            },
+            {
+              title: '类型',
+              dataIndex: 'file_role',
+              render: (value: FileRole | undefined, item: TenderFile) => (
+                <Select<FileRole> size="small" style={{ width: 120 }} value={value ?? 'tender'} options={FILE_ROLE_OPTIONS}
+                  aria-label="文件类型" data-testid="file-role-select"
+                  disabled={busy || !projectCan(workspace, 'prepare_sources') || !!item.superseded_by}
+                  onChange={role => void changeRole(item, role)} />
+              ),
+            },
+            {
+              title: '版本 / 上传人',
+              render: (_, item: TenderFile) => (
+                <span data-testid="file-version">
+                  v{item.version_no ?? 1}{item.superseded_by ? <Tag style={{ marginLeft: 4 }}>已被替代</Tag> : null}
+                  <br /><span className="muted">{item.uploaded_by_name || '—'}{item.uploaded_at ? ` · ${item.uploaded_at.slice(0, 16).replace('T', ' ')}` : ''}</span>
+                </span>
+              ),
+            },
+            {
+              title: '解析服务 / 耗时',
+              render: (_, item: TenderFile) => (
+                <span data-testid="file-parse-service">
+                  {item.parse_service_label || '—'}{item.reused ? <Tag color="cyan" style={{ marginLeft: 4 }}>复用</Tag> : null}
+                  <br /><span className="muted">{durationLabel(item.parse_duration_ms)}</span>
+                </span>
               ),
             },
             {
@@ -202,6 +258,15 @@ export function TenderPage() {
                     <Tooltip title={item.warnings.join('；')}>
                       <WarningOutlined className="orange" />
                     </Tooltip>
+                  )}
+                  {hasAddendumDiff(item) && <a data-testid="addendum-diff-link" onClick={() => setDiffFile(item.id)}>补遗差异</a>}
+                  {replacementOptions(item, workspace.files).length > 0 && projectCan(workspace, 'prepare_sources') && (
+                    <Button type="link" size="small" data-testid="supersede-button" disabled={busy}
+                      onClick={() => { setSupersede(item); setReplacementId(''); setSupersedeReason(''); }}>设为被替代</Button>
+                  )}
+                  {['parsed', 'failed'].includes(item.status) && projectCan(workspace, 'prepare_sources') && (
+                    <Button type="link" size="small" data-testid="retry-service-button" disabled={busy || uploading}
+                      onClick={() => { setRetryFile(item); setRetryService(item.parse_service === 'ragflow-deepdoc' ? 'local' : 'ragflow'); }}>换服务重试</Button>
                   )}
                   {['uploaded', 'failed', 'parsing_remote'].includes(item.status) && (
                     <Button
@@ -251,6 +316,23 @@ export function TenderPage() {
           placeholder="例如：误传了扫描件，将改用可解析的文字版"
         />
       </Modal>
+      <Modal title="设为被替代（版本链）" open={!!supersede} onCancel={() => setSupersede(null)} onOk={() => void submitSupersede()}
+        okText="确认替代" cancelText="取消" confirmLoading={busy} okButtonProps={{ disabled: !replacementId || !supersedeReason.trim() }}>
+        <Alert showIcon type="info" message={`旧版：${supersede?.filename ?? ''}`}
+          description="本文件的条目标“所在文件已被替代”（不删除）；人工改过的回到待确认；未处理的疑似遗漏随之排除。" />
+        <Select style={{ width: '100%', marginTop: 12 }} placeholder="选择同类型、在其后上传的新版文件" value={replacementId || undefined}
+          onChange={setReplacementId} data-testid="supersede-target"
+          options={(supersede ? replacementOptions(supersede, workspace.files) : []).map(f => ({ value: f.id, label: `${f.filename}（v${f.version_no ?? 1}）` }))} />
+        <Input.TextArea style={{ marginTop: 12 }} aria-label="替代理由" value={supersedeReason} maxLength={2000}
+          onChange={event => setSupersedeReason(event.target.value)} placeholder="理由（必填），例如重新发布的正式版" />
+      </Modal>
+      <Modal title="换一个解析服务重试" open={!!retryFile} onCancel={() => setRetryFile(null)} okText="重新解析" cancelText="取消"
+        onOk={() => { if (retryFile) { void parse(retryBody(retryService, retryFile.id)); setRetryFile(null); } }}>
+        <p>文件：{retryFile?.filename}（当前：{retryFile?.parse_service_label || '尚未解析'}）</p>
+        <Select<ParseServiceChoice> style={{ width: '100%' }} value={retryService} options={[...PARSE_SERVICE_OPTIONS]} onChange={setRetryService}
+          aria-label="解析服务" data-testid="retry-service-select" />
+      </Modal>
+      <AddendumDiffDrawer fileId={diffFile} onClose={() => setDiffFile('')} />
       <Drawer
         title="实际招标原文"
         width={760}

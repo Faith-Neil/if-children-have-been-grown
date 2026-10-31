@@ -1539,7 +1539,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T101 · 招标文件上传与版本链
 <a id="app-m2-t101"></a>
 
-状态：in-progress（2026-10-30 与看板同步；缺口见看板工作包 WP-4）。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T02](APP-M1.md#app-m1-t02)、[APP-M2-T021](APP-M2.md#app-m2-t021)。
+状态：in-review（2026-10-31，交付见 [APP-M2-T101](../delivery/APP-M2-T101.md)）。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T02](APP-M1.md#app-m1-t02)、[APP-M2-T021](APP-M2.md#app-m2-t021)。
 
 原始来源：原交接 §6.4 M3-E02-F1；PRD v1.8 §5.2.1。交付单位：招标文件上传与版本链，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -1554,7 +1554,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T102 · 解析进度页（JobProgress 接入）
 <a id="app-m2-t102"></a>
 
-状态：in-progress（2026-10-30 与看板同步；缺口见看板工作包 WP-4）。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T02](APP-M1.md#app-m1-t02)、[APP-M2-T021](APP-M2.md#app-m2-t021)、[APP-M2-T101](APP-M2.md#app-m2-t101)。
+状态：in-review（2026-10-31，交付见 [APP-M2-T102](../delivery/APP-M2-T102.md)）。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T02](APP-M1.md#app-m1-t02)、[APP-M2-T021](APP-M2.md#app-m2-t021)、[APP-M2-T101](APP-M2.md#app-m2-t101)。
 
 原始来源：原交接 §6.4 M3-E02-F2；PRD v1.8 §5.2.1。交付单位：解析进度页（JobProgress 接入），同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -1629,7 +1629,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T107 · 重抽不覆盖与补遗差异
 <a id="app-m2-t107"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T02](APP-M1.md#app-m1-t02)、[APP-M2-T105](APP-M2.md#app-m2-t105)、[APP-M2-T101](APP-M2.md#app-m2-t101)。
+状态：in-review（2026-10-31，交付见 [APP-M2-T107](../delivery/APP-M2-T107.md)）。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M1-T02](APP-M1.md#app-m1-t02)、[APP-M2-T105](APP-M2.md#app-m2-t105)、[APP-M2-T101](APP-M2.md#app-m2-t101)。
 
 原始来源：原交接 §6.4 M3-E04-F5；PRD v1.8 §5.2.2、5.2.4。交付单位：重抽不覆盖与补遗差异，同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -1659,7 +1659,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T109 · 后处理条与合并条目（“已合并 N 条 · 拆分”、多位置切换）
 <a id="app-m2-t109"></a>
 
-状态：planned。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T104](APP-M2.md#app-m2-t104)、[APP-M2-T019](APP-M2.md#app-m2-t019)。
+状态：in-review（2026-10-31，交付见 [APP-M2-T109](../delivery/APP-M2-T109.md)）。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T104](APP-M2.md#app-m2-t104)、[APP-M2-T019](APP-M2.md#app-m2-t019)。
 
 原始来源：原交接 §6.4 M3-E04a-F1；PRD v1.8 §5.2.4。交付单位：后处理条与合并条目（“已合并 N 条 · 拆分”、多位置切换），同一产品的页面/后台/数据/权限/输出协作一起验收。
 
@@ -1674,7 +1674,7 @@ APP-M2是本仓库下一批执行编号，不是把PRD一期改成二期。每�
 ### APP-M2-T110 · 冲突待选定页签（并列取值、理由必填）
 <a id="app-m2-t110"></a>
 
-状态：in-progress（2026-10-30 与看板同步；缺口见看板工作包 WP-4）。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T104](APP-M2.md#app-m2-t104)、[APP-M2-T109](APP-M2.md#app-m2-t109)。
+状态：in-review（2026-10-31，交付见 [APP-M2-T110](../delivery/APP-M2-T110.md)）。关联Issue：ISSUE-007。原范围：一期业务页面/支撑。依赖：[APP-M2-T104](APP-M2.md#app-m2-t104)、[APP-M2-T109](APP-M2.md#app-m2-t109)。
 
 原始来源：原交接 §6.4 M3-E04a-F2；PRD v1.8 §5.2.4。交付单位：冲突待选定页签（并列取值、理由必填），同一产品的页面/后台/数据/权限/输出协作一起验收。
 
