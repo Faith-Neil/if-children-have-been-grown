@@ -22,6 +22,12 @@ def fact_values(flow: ProjectFlow, key: str) -> list[tuple[str, str]]:
     return [(f["value"], f["status"]) for f in flow.state()["facts"] if f["key"] == key]
 
 
+def raw_rows(flow: ProjectFlow, kind: str) -> list[dict]:
+    """读取仓库里的全部条目（"requirements"/"facts"），包含 workspace 不展示的已并入条目。"""
+    workflow = flow.client.app.state.service.repository.read().workflows[flow.id]
+    return list(workflow[kind].values())
+
+
 def settle_pending(flow: ProjectFlow) -> None:
     """把剩下的待确认条款和事实逐条确认（星号/废标/资格也逐条）。"""
     for row in flow.state()["requirements"]:

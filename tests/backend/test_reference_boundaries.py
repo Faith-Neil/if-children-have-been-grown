@@ -133,6 +133,10 @@ def test_file_with_existing_sources_cannot_be_removed_after_reparse_failure():
     with TestClient(create_app(parser_provider=FailAgainParser())) as client:
         flow = ProjectFlow(client).ready()
         file_id = flow.state()["files"][0]["id"]
+        # 同公司同指纹、同服务、同参数版本的解析结果会被复用（PRD §5.2.1 规则 3），复用时不会调用解析器，
+        # 所以这里先清掉解析缓存（等同缓存正文已过期），才能真正走到解析失败分支。
+        from icg.domain.tender_files import CACHE_STORE
+        client.app.state.service.repository.transaction(lambda state: state.service_stores.pop(CACHE_STORE, None))
         flow.write("/parse", {}, expected=502)
         assert flow.state()["files"][0]["status"] == "failed"
         assert flow.write("/files/" + file_id, {"reason": "有来源不能删"}, "DELETE", 409)["code"] == "FILE_IN_USE"

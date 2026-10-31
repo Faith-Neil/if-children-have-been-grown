@@ -1,7 +1,7 @@
 # 为什么有这个文件：验证抽取后处理汇总、去重合并/拆分与合并建议（PRD v1.8 §5.2.4，APP-M2 WP-4）。
 # 它解决什么问题：重复条款只列一条并保留全部来源；数字不同的不能合并；拆开后不再自动合并；建议必须写理由处理。
 
-from _parse_helpers import parsed_flow
+from _parse_helpers import parsed_flow, raw_rows
 from test_reference_flow import client  # noqa: F401
 
 DUPLICATE = "★技术要求：每月完成巡检并提交报告。\n其他说明：无。\f★技术要求：每月完成巡检并提交报告。"
@@ -57,6 +57,6 @@ def test_merge_with_different_numbers_is_rejected(client):
 def test_merged_member_cannot_be_edited_until_split(client):
     flow = parsed_flow(client, DUPLICATE)
     primary = _star(flow)[0]
-    member_id = next(r["id"] for r in flow.state()["requirements"] if r.get("merged_into") == primary["id"])
+    member_id = next(r["id"] for r in raw_rows(flow, "requirements") if r.get("merged_into") == primary["id"])
     error = flow.write("/requirements/" + member_id, {"status": "confirmed"}, "PATCH", 409)
     assert error["code"] == "REQUIREMENT_MERGED"

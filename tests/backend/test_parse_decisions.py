@@ -1,7 +1,7 @@
 # 为什么有这个文件：验证冲突四种状态、补遗覆盖、重新解析保留决定、新取值另记冲突（PRD v1.8 §5.2.4，APP-M2 WP-4）。
 # 它解决什么问题：冲突必须逐条写理由处理；重新解析不能让已做的决定失效；已按补遗处理的不阻断确认。
 
-from _parse_helpers import fact_values, parsed_flow, settle_pending, upload_role
+from _parse_helpers import fact_values, parsed_flow, raw_rows, settle_pending, upload_role
 from test_reference_flow import TENDER, ProjectFlow, client  # noqa: F401
 
 DUAL = TENDER + "\n服务期限：24个月\n服务期限：1年"
@@ -24,8 +24,10 @@ def test_field_conflict_lists_values_and_same_value_is_merged(client):
     conflict = data["conflicts"][0]
     assert conflict["key"] == "服务期限" and conflict["blocking"] and conflict["status"] == "pending"
     assert len(conflict["fact_ids"]) == 2  # 12个月与1年同值，合并后只剩两种取值
-    merged = [f for f in flow.state()["facts"] if f.get("merged_into")]
+    # 并入主事实的同值条目不在 workspace 展示，只能从仓库原始数据里确认它存在
+    merged = [f for f in raw_rows(flow, "facts") if f.get("merged_into")]
     assert len(merged) == 1 and merged[0]["value"] == "1年"
+    assert sorted(f["value"] for f in flow.state()["facts"] if f["key"] == "服务期限") == ["12个月", "24个月"]
 
 
 def test_choose_requires_reason_and_confirms_selected_value(client):
@@ -34,7 +36,9 @@ def test_choose_requires_reason_and_confirms_selected_value(client):
     chosen = next(f["id"] for f in flow.state()["facts"] if f["value"] == "24个月")
     assert _decide(flow, conflict["id"], {"action": "choose", "selected_fact_id": chosen}, 422)["code"] == "REASON_REQUIRED"
     _decide(flow, conflict["id"], {"action": "choose", "selected_fact_id": chosen, "reason": "以合成合同条款为准"})
-    assert dict(fact_values(flow, "服务期限")) == {"12个月": "rejected", "24个月": "confirmed", "1年": "rejected"}
+    # 同值的“1年”已并入“12个月”，workspace 只展示主事实；被并入的一条不参与取舍，另行从仓库读取
+    assert dict(fact_values(flow, "服务期限")) == {"12个月": "rejected", "24个月": "confirmed"}
+    assert all(f["status"] == "rejected" for f in raw_rows(flow, "facts") if f["key"] == "服务期限" and f["value"] != "24个月")
     assert _conflicts(flow)["summary"]["resolved"] == 1
 
 
