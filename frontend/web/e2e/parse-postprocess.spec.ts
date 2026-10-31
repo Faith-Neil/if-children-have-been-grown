@@ -13,7 +13,7 @@ async function seed(request: APIRequestContext) {
       data: Buffer.from(text, 'utf-8') });
     expect(up.ok(), await up.text()).toBeTruthy();
   };
-  await upload('tender.txt', 'tender', '合成招标文件\n投标保证金：5万元\n服务期限：12个月\n★提供7×24小时驻场服务。\n');
+  await upload('tender.txt', 'tender', '合成招标文件\n投标保证金：5万元\n服务期限：12个月\n补充说明\n服务期限：24个月\n★提供7×24小时驻场服务。\n');
   await upload('addendum.txt', 'addendum', '合成补遗\n投标保证金：8万元\n');
   const parsed = await request.post(`/api/v1/projects/${id}/parse`, { headers: { ...auth, 'If-Match': String(await revision()), 'Idempotency-Key': crypto.randomUUID() }, data: {} });
   expect(parsed.ok(), await parsed.text()).toBeTruthy();
@@ -41,12 +41,12 @@ test('parse page conflict drawer requires a reason before deciding', async ({ pa
   await login(page, `/projects/${id}/parse`);
   await expect(page.getByTestId('merge-button')).toBeVisible();
   await page.getByRole('button', { name: /冲突待选定/ }).first().click();
-  const cards = page.getByTestId('conflict-card');
-  if (await cards.count()) {
-    const first = cards.first();
-    await expect(first.getByTestId('conflict-values')).toBeVisible();
-    await expect(first.getByTestId('conflict-not-conflict')).toBeVisible();
-    await first.getByTestId('conflict-not-conflict').click();
-    await expect(first.getByRole('alert')).toContainText('理由');
-  }
+  // 按确定的冲突类型取卡：同一文件内“服务期限”12个月与24个月是待处理的字段取值冲突，不依赖列表顺序。
+  const first = page.getByTestId('conflict-card').filter({ hasText: '服务期限' }).and(page.locator('[data-status="pending"]'));
+  await expect(first).toHaveCount(1);
+  await expect(first).toContainText('字段取值不同');
+  await expect(first.getByTestId('conflict-values')).toBeVisible();
+  await expect(first.getByTestId('conflict-not-conflict')).toBeVisible();
+  await first.getByTestId('conflict-not-conflict').click();
+  await expect(first.getByRole('alert')).toContainText('理由');
 });
