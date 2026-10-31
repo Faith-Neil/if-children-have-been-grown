@@ -8,13 +8,13 @@ import { useProject, volumeName } from '../app/context.tsx';
 import { editorChapterPath } from '../app/app-route.ts';
 import type { HumanIssue, HumanQueue, HumanQueueChapter, Volume } from '../shared/types.ts';
 import {
-  RESOLVE_METHODS, daysUntil, defaultResolveMethod, fetchHumanQueue, loopLine, needsMaterial, queuePaths,
-  sameParagraphIssues, severityTag,
+  RESOLVE_METHODS, daysUntil, defaultResolveMethod, fetchHumanQueue, loopLine, needsMaterial, paragraphEditPayload,
+  paragraphEditProblem, queuePaths, sameParagraphIssues, severityTag,
 } from './main-path-core.ts';
 import { ChapterLoopPage } from './ChapterLoopPage.tsx';
 import { projectVolumes, technicalOnly, volumeOptions } from './project-volumes.ts';
 
-type Pending = { kind: 'resolve' | 'reject'; group: HumanQueueChapter; issue: HumanIssue } | null;
+type Pending = { kind: 'resolve' | 'reject' | 'edit'; group: HumanQueueChapter; issue: HumanIssue } | null;
 
 // 页签内两个视图：待人工处理的问题（默认）与全部章节的循环进度/轮次时间线（APP-M2-T130/T131）。
 export function ManualQueuePage() {
@@ -53,11 +53,12 @@ function HumanQueueView() {
 
   useEffect(() => { void load(); }, [load, workspace.revision]);
 
-  function open(kind: 'resolve' | 'reject', group: HumanQueueChapter, issue: HumanIssue) {
+  function open(kind: 'resolve' | 'reject' | 'edit', group: HumanQueueChapter, issue: HumanIssue) {
     form.resetFields();
     form.setFieldsValue(kind === 'resolve'
       ? { method: defaultResolveMethod(issue), note: '', also: [] }
-      : { reason_type: 'false_positive', reason: '' });
+      : kind === 'edit' ? { text: issue.paragraph_text ?? '', note: '' }
+        : { reason_type: 'false_positive', reason: '' });
     setPending({ kind, group, issue });
   }
 
@@ -66,7 +67,9 @@ function HumanQueueView() {
     const values = await form.validateFields();
     const { issue } = pending;
     try {
-      if (pending.kind === 'resolve') {
+      if (pending.kind === 'edit') {
+        await mutate(queuePaths.edit(projectId, issue.id), 'POST', paragraphEditPayload(pending.group, values.text, values.note || ''));
+      } else if (pending.kind === 'resolve') {
         await mutate(queuePaths.resolve(projectId, issue.id), 'POST', {
           method: values.method, note: values.note || '', also_issue_ids: values.also || [],
         });
@@ -146,6 +149,7 @@ function HumanQueueView() {
                       <Space>
                         {needsMaterial(issue) && <Button type="link" size="small" onClick={() => navigate('matrix')}>去补资料</Button>}
                         <Button type="link" size="small" onClick={() => navigate(editorChapterPath(projectId, group.chapter_id))}>在编辑台修改</Button>
+                        {issue.permissions.edit && <Button size="small" disabled={busy} data-testid="queue-edit-paragraph" onClick={() => open('edit', group, issue)}>改写本段</Button>}
                         {issue.permissions.resolve && <Button size="small" type="primary" ghost disabled={busy} onClick={() => open('resolve', group, issue)}>标为已处理</Button>}
                         {issue.permissions.reject && <Button size="small" disabled={busy} onClick={() => open('reject', group, issue)}>驳回</Button>}
                       </Space>
@@ -162,14 +166,24 @@ function HumanQueueView() {
       </Spin>
       <Modal
         open={!!pending}
-        title={pending?.kind === 'reject' ? `驳回问题 ${pending.issue.number}` : `标记问题 ${pending?.issue.number ?? ''} 已处理`}
-        okText={pending?.kind === 'reject' ? '确认驳回' : '确认已处理'}
+        title={pending?.kind === 'reject' ? `驳回问题 ${pending.issue.number}` : pending?.kind === 'edit' ? `改写问题 ${pending.issue.number} 所在段落` : `标记问题 ${pending?.issue.number ?? ''} 已处理`}
+        okText={pending?.kind === 'reject' ? '确认驳回' : pending?.kind === 'edit' ? '保存本段并标为已处理' : '确认已处理'}
         cancelText="取消"
         onCancel={() => setPending(null)}
         onOk={submit}
         confirmLoading={busy}
       >
-        {pending?.kind === 'resolve' ? (
+        {pending?.kind === 'edit' ? (
+          <Form form={form} layout="vertical">
+            <Alert type="info" showIcon style={{ marginBottom: 12 }} message={`第 ${pending.issue.paragraph_index + 1} 段：${pending.issue.message}`}
+              description="只改写这一段，其余段落不变；保存后生成新的章节版本，本节需重新检查确认。" />
+            <Form.Item name="text" label="本段内容" rules={[{ required: true, whitespace: true, message: '请填写改写后的段落' },
+              { validator: async (_, value) => { const problem = paragraphEditProblem(pending.issue.paragraph_text ?? '', value ?? ''); if (problem) throw new Error(problem); } }]}>
+              <Input.TextArea rows={6} data-testid="queue-edit-text" />
+            </Form.Item>
+            <Form.Item name="note" label="修改说明（可选）"><Input.TextArea rows={2} maxLength={500} /></Form.Item>
+          </Form>
+        ) : pending?.kind === 'resolve' ? (
           <Form form={form} layout="vertical">
             <Form.Item name="method" label="处理方式" rules={[{ required: true }]}>
               <Radio.Group options={RESOLVE_METHODS.map(item => ({ ...item }))} />

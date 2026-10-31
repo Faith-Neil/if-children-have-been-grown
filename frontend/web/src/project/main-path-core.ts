@@ -19,6 +19,7 @@ export function fetchScanHits(projectId: string, token: string | null) {
 export const queuePaths = {
   resolve: (projectId: string, issueId: string) => `${base(projectId)}/human-queue/issues/${encodeURIComponent(issueId)}/resolve`,
   reject: (projectId: string, issueId: string) => `${base(projectId)}/human-queue/issues/${encodeURIComponent(issueId)}/reject`,
+  edit: (projectId: string, issueId: string) => `${base(projectId)}/human-queue/issues/${encodeURIComponent(issueId)}/edit`,
   recheck: (projectId: string, chapterId: string) => `${base(projectId)}/chapters/${encodeURIComponent(chapterId)}/loop/recheck`,
   assignReviewer: (projectId: string, volume: Volume) => `${base(projectId)}/volumes/${volume}/cross-review`,
   confirmReview: (projectId: string, volume: Volume) => `${base(projectId)}/volumes/${volume}/cross-review/confirm`,
@@ -45,6 +46,22 @@ export function defaultResolveMethod(issue: Pick<HumanIssue, 'code' | 'human_rea
 /** 缺证据、证据引用问题提供“去补资料”入口，直达响应矩阵。 */
 export function needsMaterial(issue: Pick<HumanIssue, 'human_reason'>): boolean {
   return ['MISSING_EVIDENCE', 'EVIDENCE_CITATION', 'PERSONNEL_IDENTITY'].includes(issue.human_reason ?? '');
+}
+
+/** 队列内单段编辑的前端预检（APP-M2-T134）；最终以后台为准：单段、非空、有改动、不超长。返回不能提交的原因。 */
+export const PARAGRAPH_EDIT_LIMIT = 5000;
+export function paragraphEditProblem(original: string, next: string): string | null {
+  const text = next.trim();
+  if (!text) return '改写后的段落不能为空';
+  if (/[\r\n]/.test(text)) return '这里只能改写一个段落，不能换行';
+  if (text.length > PARAGRAPH_EDIT_LIMIT) return `单段不能超过 ${PARAGRAPH_EDIT_LIMIT} 字`;
+  if (text === original.trim()) return '内容与原段落相同';
+  return null;
+}
+
+/** 单段编辑请求体：章节版本取读取队列时的版本，后台发现已有新版本会拒绝。 */
+export function paragraphEditPayload(group: Pick<HumanQueueChapter, 'chapter_revision'>, next: string, note: string) {
+  return { chapter_revision: group.chapter_revision ?? 0, new_text: next.trim(), note: note.trim() };
 }
 
 /** 同一段落的其他待处理问题，可以一次合并标为已处理（§5.7.7 异常与边界）。 */

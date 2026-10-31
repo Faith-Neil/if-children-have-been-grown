@@ -73,7 +73,7 @@ def _frozen_status() -> dict[str, int]:
         # 用户管理停用前资产转交门禁 (APP-M2-T027 / PRD v1.8 §5.10.1)
         "USER_TRANSFER_REQUIRED",
         # 章节循环与人工处理队列、分册交叉复核与定稿 (Wave 11 / PRD v1.8 §5.7.4、§5.7.7、§5.8.5)
-        "HUMAN_ISSUE_NOT_PENDING", "HUMAN_ISSUES_PENDING", "BLOCKER_NOT_REJECTABLE",
+        "HUMAN_ISSUE_NOT_PENDING", "HUMAN_ISSUE_STALE", "HUMAN_ISSUES_PENDING", "BLOCKER_NOT_REJECTABLE",
         "VOLUME_FINALIZED", "CHAPTER_CONTENT_EMPTY", "CROSS_REVIEW_REQUIRED", "CROSS_REVIEWER_IS_EDITOR",
         # 解析后处理：疑似遗漏未处理不能确认解析结果 (Wave 11 / PRD v1.8 §5.2.4)
         "OMISSIONS_PENDING",

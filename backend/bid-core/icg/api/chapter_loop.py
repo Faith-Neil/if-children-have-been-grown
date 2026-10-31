@@ -17,6 +17,7 @@ from icg.domain.workflow_schemas import v1_error_responses
 class HumanIssuePermissions(ResponseBody):
     resolve: bool
     reject: bool
+    edit: bool = Field(default=False, description="能否在队列里直接改写本段")
 
 
 class HumanIssue(ResponseBody):
@@ -39,6 +40,7 @@ class HumanIssue(ResponseBody):
     suggestion: str
     fix_count: int = 0
     loop_no: int = 1
+    paragraph_text: str = Field(default="", description="问题所在段落的当前全文；不能在队列里编辑时为空")
     permissions: HumanIssuePermissions
 
 
@@ -68,6 +70,7 @@ class HumanQueueChapter(ResponseBody):
     title: str
     volume: str
     number: int
+    chapter_revision: int = Field(default=0, description="当前正式正文版本号，单段编辑时原样回传")
     assignee_id: str | None = None
     assignee_name: str | None = None
     volume_finalized: bool
@@ -143,6 +146,12 @@ class HumanIssueRejectRequest(RequestBody):
     reason: str = Field(min_length=1, max_length=500, description="驳回理由")
 
 
+class HumanIssueEditRequest(RequestBody):
+    chapter_revision: int = Field(ge=0, description="读取队列时的章节版本号，用于发现他人已改动正文")
+    new_text: str = Field(min_length=1, max_length=5000, description="改写后的整段文字，不含换行")
+    note: str = Field(default="", max_length=500, description="修改说明")
+
+
 class ChapterRecheckRequest(RequestBody):
     max_rounds: int = Field(default=3, ge=1, le=5, description="本次循环最多检查几轮")
 
@@ -152,6 +161,12 @@ class HumanIssueWriteResponse(ResponseBody):
     issue_ids: list[str]
     chapter_id: str
     chapter_status: str | None = None
+
+
+class HumanIssueEditResponse(HumanIssueWriteResponse):
+    chapter_revision: int
+    paragraph_index: int
+    paragraph_text: str
 
 
 class ChapterRecheckResponse(ResponseBody):
@@ -278,6 +293,14 @@ def include_chapter_loop_routes(application: Any, service: Any, current_user: An
                body: HumanIssueRejectRequest, user: Principal = Depends(current_user),
                if_match: str | None = IfMatch, idempotency_key: str | None = IdemKey):
         return workflow().reject_human_issue(user, project_id, issue_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/human-queue/issues/{issue_id}/edit", response_model=HumanIssueEditResponse,
+                 operation_id="editHumanIssueParagraph", summary="队列内改写问题所在段落",
+                 description="只改写问题所在的这一段并生成新章节版本，同时把该问题标为已处理（已修改正文）。系统章节、定稿分册、他人正在编辑、锁定段落和基于旧正文的问题都会被拒绝。")
+    def edit_paragraph(project_id: ProjectId, issue_id: IssueId,
+                       body: HumanIssueEditRequest, user: Principal = Depends(current_user),
+                       if_match: str | None = IfMatch, idempotency_key: str | None = IdemKey):
+        return workflow().edit_human_issue_paragraph(user, project_id, issue_id, body.model_dump(), if_match, idempotency_key)
 
     @router.post("/projects/{project_id}/chapters/{chapter_id}/loop/recheck", response_model=ChapterRecheckResponse,
                  operation_id="recheckChapter", summary="重新检查本节",

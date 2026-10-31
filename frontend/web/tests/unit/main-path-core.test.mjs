@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  daysUntil, defaultHitCategory, defaultResolveMethod, loopLine, needsMaterial, queuePaths, reviewTag,
+  daysUntil, defaultHitCategory, defaultResolveMethod, loopLine, needsMaterial, paragraphEditPayload, paragraphEditProblem, queuePaths, reviewTag,
   reviewerCandidates, sameParagraphIssues, severityTag, volumeActions,
 } from '../../src/project/main-path-core.ts';
 
@@ -101,4 +101,22 @@ test('main path pages are wired instead of placeholders', () => {
   assert.ok(!/批量|全部排除|全部新增/.test(drawer), '疑似遗漏不提供批量处理');
   const exportPage = readFileSync(new URL('../../src/project/ProjectPages.tsx', import.meta.url), 'utf8');
   assert.ok(exportPage.includes('<VolumeFinalizePanel volumes={volumesStatus} />'));
+});
+
+test('single paragraph edit pre-check and payload follow the backend contract', () => {
+  assert.equal(paragraphEditProblem('原段落。', '  '), '改写后的段落不能为空');
+  assert.equal(paragraphEditProblem('原段落。', '第一行\n第二行'), '这里只能改写一个段落，不能换行');
+  assert.equal(paragraphEditProblem('原段落。', '原段落。 '), '内容与原段落相同');
+  assert.match(paragraphEditProblem('原段落。', 'x'.repeat(5001)), /不能超过 5000 字/);
+  assert.equal(paragraphEditProblem('原段落。', '新的一段。'), null);
+  assert.deepEqual(paragraphEditPayload({ chapter_revision: 7 }, ' 新的一段。 ', ' 按合同改 '),
+    { chapter_revision: 7, new_text: '新的一段。', note: '按合同改' });
+  assert.equal(queuePaths.edit('p 1', 'i/1'), '/api/v1/projects/p%201/human-queue/issues/i%2F1/edit');
+});
+
+test('queue page wires the edit button to backend permission and the edit endpoint', () => {
+  const page = readFileSync(new URL('../../src/project/ManualQueuePage.tsx', import.meta.url), 'utf8');
+  assert.ok(page.includes('issue.permissions.edit &&'), '按钮是否出现只看后台 permissions.edit');
+  assert.ok(page.includes('queuePaths.edit(projectId, issue.id)'));
+  assert.ok(page.includes('paragraphEditPayload(pending.group'));
 });

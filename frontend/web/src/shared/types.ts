@@ -38,7 +38,8 @@ export interface HumanIssue {
   status: HumanIssueStatus; route: 'auto_fix' | 'direct_human' | 'escalated_human';
   human_reason?: string | null; human_reason_label: string; paragraph_index: number; quote: string;
   message: string; suggestion: string; fix_count: number; loop_no: number;
-  permissions: { resolve: boolean; reject: boolean };
+  paragraph_text?: string;
+  permissions: { resolve: boolean; reject: boolean; edit?: boolean };
 }
 export interface ChapterLoopState {
   chapter_id: string; loop_no: number; kind: string; status: 'completed' | 'pending_human' | 'human_handled' | 'interrupted';
@@ -84,7 +85,7 @@ export interface ChapterLoopDetail {
   counts: Record<HumanIssueStatus, number>; issues: HumanIssue[];
 }
 export interface HumanQueueChapter {
-  chapter_id: string; title: string; volume: Volume; number: number; assignee_id?: string | null;
+  chapter_id: string; title: string; volume: Volume; number: number; chapter_revision?: number; assignee_id?: string | null;
   assignee_name?: string | null; volume_finalized: boolean; can_recheck: boolean; loop: ChapterLoopState | null;
   issues: HumanIssue[];
 }

@@ -122,7 +122,7 @@ def test_recheck_fixes_safe_items_and_queues_the_rest(client):
     assert labels == {"星号或废标条款"}
     assert {i["code"] for i in group["issues"]} == {"NEGATIVE_DEVIATION_DETECTED", "PLACEHOLDER_RESIDUAL"}
     assert all(i["number"].startswith("1-") for i in group["issues"])
-    assert all(i["permissions"] == {"resolve": True, "reject": False} for i in group["issues"])
+    assert all(i["permissions"]["resolve"] is True and i["permissions"]["reject"] is False for i in group["issues"])
 
     loop = client.get(f"{flow.path}/chapters/{cid}/loop", headers=flow.headers).json()
     assert loop["counts"]["pending_human"] == 2 and loop["counts"]["resolved"] == 0
@@ -134,7 +134,8 @@ def test_queue_visibility_and_tenant_isolation(client):
     client.post(f"{flow.path}/chapters/{cid}/loop/recheck", json={}, headers=_headers(flow))
     viewer = client.get(f"{flow.path}/human-queue", headers=login(client, "alpha-viewer")).json()
     assert viewer["summary"]["pending"] == 2
-    assert all(i["permissions"] == {"resolve": False, "reject": False} for i in viewer["chapters"][0]["issues"])
+    assert all(i["permissions"] == {"resolve": False, "reject": False, "edit": False} for i in viewer["chapters"][0]["issues"])
+    assert all(i["paragraph_text"] == "" for i in viewer["chapters"][0]["issues"])
     issue = viewer["chapters"][0]["issues"][0]
     denied = client.post(f"{flow.path}/human-queue/issues/{issue['id']}/resolve", json={"method": "edited"},
                          headers=_headers(flow, "alpha-viewer"))
@@ -345,3 +346,96 @@ def test_summary_relay_marks_missing_previous_chapter():
     used = previous_chapter_relay(state, "p", two)
     assert used["status"] == "used" and used["summary"].startswith("我司按") and "{{" not in used["summary"]
     assert previous_chapter_relay(state, "p", other)["status"] == "not_applicable"
+
+
+# ---------------------------------------------------------------- 队列内单段编辑（APP-M2-T134）
+
+def client_issues(client, flow):
+    return client.get(f"{flow.path}/human-queue", headers=flow.headers).json()["chapters"][0]["issues"]
+
+
+def _edit(flow, issue, text, revision, account="alpha-manager", note="按资料改写"):
+    return flow.client.post(f"{flow.path}/human-queue/issues/{issue['id']}/edit",
+                            json={"chapter_revision": revision, "new_text": text, "note": note},
+                            headers=_headers(flow, account))
+
+
+def _rechecked(client):
+    flow, cid = _prepared(client)
+    client.post(f"{flow.path}/chapters/{cid}/loop/recheck", json={}, headers=_headers(flow))
+    chapter = client.get(f"/api/chapters/{cid}", headers=flow.headers).json()
+    return flow, cid, chapter, client_issues(client, flow)
+
+
+def test_queue_edit_rewrites_only_that_paragraph_and_resolves_the_issue(client):
+    flow, cid, chapter, issues = _rechecked(client)
+    issue = next(i for i in issues if i["code"] == "PLACEHOLDER_RESIDUAL")
+    assert issue["permissions"]["edit"] is True and issue["paragraph_text"]
+    lines = chapter["content"].split("\n")
+    replacement = "项目业绩见资料库合同编号 HT-001。"
+    result = _edit(flow, issue, replacement, chapter["revision"])
+    assert result.status_code == 200, result.text
+    body = result.json()
+    assert body["chapter_revision"] == chapter["revision"] + 1 and body["paragraph_index"] == issue["paragraph_index"]
+    assert body["issue_ids"] == [issue["id"]] and body["paragraph_text"] == replacement
+    updated = client.get(f"/api/chapters/{cid}", headers=flow.headers).json()
+    expected = list(lines)
+    expected[issue["paragraph_index"]] = replacement
+    assert updated["content"].split("\n") == expected                        # 其余段落逐字不变
+    detail = client.get(f"{flow.path}/chapters/{cid}/loop", headers=flow.headers).json()
+    handled = next(i for i in detail["issues"] if i["id"] == issue["id"])
+    assert handled["status"] == "human_handled"
+    audit = client.app.state.service.repository.read().audit
+    assert any(event["action"].startswith("human.edit") for event in audit)
+    version = next(v for v in reversed(client.app.state.service.repository.read().chapters[cid].versions))
+    assert version["edit_mode"] == "queue_paragraph" and version["issue_id"] == issue["id"]
+
+
+def test_queue_edit_rejects_stale_revision_empty_multiline_and_unchanged(client):
+    flow, cid, chapter, issues = _rechecked(client)
+    issue = issues[0]
+    stale = _edit(flow, issue, "新的一段。", chapter["revision"] - 1)
+    assert stale.status_code == 409 and stale.json()["code"] == "REVISION_CONFLICT"
+    assert _edit(flow, issue, "   ", chapter["revision"]).status_code == 422
+    assert _edit(flow, issue, "第一行\n第二行", chapter["revision"]).status_code == 422
+    same = chapter["content"].split("\n")[issue["paragraph_index"]]
+    assert _edit(flow, issue, same, chapter["revision"]).status_code == 422
+    unchanged = client.get(f"/api/chapters/{cid}", headers=flow.headers).json()
+    assert unchanged["content"] == chapter["content"] and unchanged["revision"] == chapter["revision"]
+
+
+def test_queue_edit_denied_for_readonly_and_for_other_company(client):
+    flow, cid, chapter, issues = _rechecked(client)
+    denied = _edit(flow, issues[0], "只读成员不能改。", chapter["revision"], account="alpha-viewer")
+    assert denied.status_code == 403
+    other = _edit(flow, issues[0], "跨公司不能改。", chapter["revision"], account="beta-manager")
+    assert other.status_code == 404
+
+
+def test_queue_edit_refused_when_chapter_is_being_edited_or_text_changed_after_check(client):
+    flow, cid, chapter, issues = _rechecked(client)
+    issue = issues[0]
+    lease = client.post(f"/api/chapters/{cid}/lock", headers=flow.headers, json={})
+    assert lease.status_code == 200
+    busy = _edit(flow, issue, "正在编辑时不能改。", chapter["revision"])
+    assert busy.status_code == 409 and busy.json()["code"] == "CHAPTER_IN_USE"
+    released = client.post(f"/api/chapters/{cid}/lock/release", headers=flow.headers,
+                           json={"lease_token": lease.json()["lease_token"]})
+    assert released.status_code == 200, released.text
+    # 检查之后正文被别处改动：问题基于旧正文，必须先重新检查
+    flow.commit(cid, chapter["content"] + "\n新增一段。")
+    latest = client.get(f"/api/chapters/{cid}", headers=flow.headers).json()
+    stale = _edit(flow, issue, "改旧问题。", latest["revision"])
+    assert stale.status_code == 409 and stale.json()["code"] == "HUMAN_ISSUE_STALE"
+
+
+def test_queue_edit_refuses_changing_a_locked_paragraph(client):
+    flow, cid, chapter, issues = _rechecked(client)
+    issue = issues[0]
+    paragraphs = client.get(f"/api/chapters/{cid}", headers=flow.headers).json()["paragraphs"]
+    target = next(p for p in paragraphs if p["line_start"] <= issue["paragraph_index"] <= p["line_end"])
+    locked = client.post(f"/api/v1/projects/{flow.id}/chapters/{cid}/paragraph-locks", headers=flow.headers,
+                         json={"paragraph_key": target["key"], "base_revision": chapter["revision"], "reason": "已确认"})
+    assert locked.status_code in (200, 201), locked.text
+    refused = _edit(flow, issue, "改锁定段落。", chapter["revision"])
+    assert refused.status_code == 409 and refused.json()["code"] == "PARAGRAPH_LOCKED"

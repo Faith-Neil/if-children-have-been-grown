@@ -16,6 +16,7 @@ from .chapter_loop import (
 from .domain import DemoState, DomainError, Principal, iso_time
 from .generation_context import previous_chapter_relay, project_facts
 from .project_access import chapter_edit, lead, member, normalize_role
+from .queue_paragraph_edit import QueueParagraphEditMixin, queue_edit_problem
 
 LEAD_ONLY_REASONS = ("EXTRA_COMMITMENT", "DISCLOSURE")
 LOOP_STATUS_LABELS = {
@@ -30,7 +31,7 @@ def _volume_finalized(workflow: dict, volume: str) -> bool:
     return bool(workflow.get("volumes", {}).get(volume, {}).get("is_finalized"))
 
 
-class HumanQueueMixin:
+class HumanQueueMixin(QueueParagraphEditMixin):
     """WorkflowService 的人工处理队列能力。"""
 
     def _queue_viewable(self, state: DemoState, principal: Principal, project_id: str) -> None:
@@ -60,12 +61,19 @@ class HumanQueueMixin:
             reject = open_ and not locked and (is_lead or can_edit)
         else:
             reject = open_ and not locked and is_lead
-        return {"resolve": resolve, "reject": reject}
+        from .system_chapters import is_system_chapter
+        loop = (workflow.get("human_queue") or {}).get("loops", {}).get(chapter.id)
+        edit = resolve and not is_system_chapter(workflow, chapter) and queue_edit_problem(chapter, issue, loop) is None
+        return {"resolve": resolve, "reject": reject, "edit": edit}
 
     def _public_issue(self, state, principal, project_id, chapter, issue, workflow) -> dict:
         public = {k: v for k, v in issue.items() if k != "fingerprint"}
         public["human_reason_label"] = HUMAN_REASONS.get(issue.get("human_reason") or "", "")
         public["permissions"] = self._issue_permissions(state, principal, project_id, chapter, issue, workflow)
+        lines = (chapter.content or "").split("\n")
+        index = issue.get("paragraph_index")
+        public["paragraph_text"] = (lines[index] if public["permissions"]["edit"] and isinstance(index, int)
+                                    and 0 <= index < len(lines) else "")
         return public
 
     def _public_loop(self, state, chapter, loop: dict | None) -> dict | None:
@@ -103,7 +111,7 @@ class HumanQueueMixin:
             groups.append({
                 "chapter_id": chapter.id, "title": chapter.title, "volume": chapter.volume,
                 "number": self._chapter_number(state, project_id, workflow, chapter.id),
-                "assignee_id": chapter.assignee_id,
+                "chapter_revision": chapter.revision, "assignee_id": chapter.assignee_id,
                 "assignee_name": state.accounts[chapter.assignee_id].name if chapter.assignee_id in state.accounts else None,
                 "volume_finalized": _volume_finalized(workflow, chapter.volume),
                 "can_recheck": chapter_edit(state, chapter, principal.user.id) and not _volume_finalized(workflow, chapter.volume),
