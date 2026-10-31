@@ -4,7 +4,8 @@
 export type StaffProfile = { degree: string | null; major: string | null; work_start: string | null; years: number | null; certificates: string[] | null };
 export type StaffRow = { id?: string; person_id: string; role: string; position?: 'A' | 'B' | null; is_key_person?: boolean; person_name?: string; profile?: StaffProfile | null };
 export type R33Issue = { id: string; code: string; severity: 'blocker' | 'warning' | 'info'; message: string; requirement_id?: string | null };
-export type StaffResult = { revision?: number; staff: StaffRow[]; roles: string[]; r33: { passed: boolean; severity: string; finding_summary: string; issues: R33Issue[] } };
+export type OccupancyHint = { person_id: string; person_name: string; role: string; other_project_id: string; other_project_name: string; other_role: string; other_deadline?: string | null };
+export type StaffResult = { revision?: number; staff: StaffRow[]; roles: string[]; occupancy?: OccupancyHint[]; r33: { passed: boolean; severity: string; finding_summary: string; issues: R33Issue[] } };
 
 export const staffPath = (projectId: string) => `/api/v1/projects/${encodeURIComponent(projectId)}/proposed-staff`;
 
@@ -39,3 +40,8 @@ export function sortedIssues(issues: R33Issue[]): R33Issue[] {
 }
 
 export const SEVERITY_LABEL = { blocker: '阻断', warning: '警告', info: '提示' } as const;
+
+/** 同公司其他在投项目已拟派同一人：只提示，不锁定（PRD 5.1.4 第 4 项） */
+export function occupancyMessages(hints: OccupancyHint[] | undefined): string[] {
+  return (hints ?? []).map(item => `${item.person_name}已在“${item.other_project_name}”拟派为${item.other_role}，本项目拟派为${item.role}；请确认时间不冲突。`);
+}

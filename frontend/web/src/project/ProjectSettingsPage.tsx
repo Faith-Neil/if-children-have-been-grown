@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Alert, Anchor, App as AntApp, Button, Card, Checkbox, Col, Empty, Form, Input, Row, Select, Space, Table, Tag } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
-import { deadlineForForm, projectBasis, projectFields } from './project-form';
+import { basicInfoFields, deadlineForForm, projectBasis, projectFields } from './project-form';
 import { formatTime, useProject, volumeName } from '../app/context';
 import { eligibleOwners, projectCan, projectRoleName, teamBasis, teamFormValues, teamPayload, type TeamFormValues } from './project-team';
 import type { ProjectTeam } from '../shared/types';
@@ -15,8 +15,10 @@ import { ProposedStaffCard } from './ProposedStaffCard';
 import { ExportNamingCard } from './ExportNamingCard';
 import { relatedBidConflict } from './related-bid-core';
 import { RelatedBidBanner, askRelatedBidReason } from './RelatedBidPrompt';
+import { FullValueCard, PartnersCard, ProjectStatusCard, RuleOverridesCard, SlaSummaryCard, VolumeFormatCard, useProjectSettings } from './ProjectSettingsGroups';
+import { BASIC_FIELD_LABELS, manualEditNote } from './project-settings-core';
 
-const anchors = [ ['basic', '基本信息'], ['members', '成员与分工'], ['partners', '合作方'], ['persons', '拟派人员'], ['sla', 'SLA 取值'], ['rules', '规则覆盖'], ['loops', '生成闭环'], ['volumes', '分册'], ['export', '导出设置'] ];
+const anchors = [ ['status', '项目状态'], ['basic', '基本信息'], ['members', '成员与分工'], ['partners', '合作方'], ['persons', '拟派人员'], ['sla', 'SLA 取值'], ['rules', '规则覆盖'], ['loops', '生成闭环'], ['volumes', '分册'], ['format', '分册格式'], ['export', '导出设置'] ];
 
 export default function ProjectSettingsPage() {
   const { workspace, token, user, busy, mutate, reload, report, navigate } = useProject();
@@ -49,8 +51,14 @@ export default function ProjectSettingsPage() {
   const basicChanged = loadedBasicBasis !== projectBasis(workspace.project);
   const [loadedTeamBasis, setLoadedTeamBasis] = useState(teamBasis(team));
   const teamChanged = loadedTeamBasis !== teamBasis(team);
-  const canManageProject = projectCan(workspace, 'manage_project');
-  const canManageTeam = projectCan(workspace, 'manage_team');
+  const readOnly = workspace.project_status?.read_only === true;  // 项目取消后只读（PRD 5.1.3）
+  const leadCan = projectCan(workspace, 'manage_project');
+  const canManageProject = leadCan && !readOnly;
+  const canManageTeam = projectCan(workspace, 'manage_team') && !readOnly;
+  const { settings } = useProjectSettings(workspace.project.id, token, workspace.revision);
+  const nameOf = (id: string) => team?.members.find(member => member.user_id === id)?.name ?? id;
+  const editNote = (field: string) => { const note = manualEditNote(settings?.manual_edits, field, nameOf); return note ? <Tag color="gold" data-testid={`manual-edit-${field}`}>{note}</Tag> : undefined; };
+  const groupProps = { projectId: workspace.project.id, token, canEdit: canManageProject, mutate, busy, settings };
   const members = Form.useWatch('members', teamForm) ?? teamFormValues(team).members;
   const accounts = team?.available_accounts?.length ? team.available_accounts : (team?.members ?? []).map(member => ({ id: member.user_id, name: member.name, role: member.company_role, company_id: user.company_id }));
   const options = (volume?: 'technical' | 'business') => eligibleOwners(members, accounts, volume).map(member => ({ value: member.user_id, label: accounts.find(account => account.id === member.user_id)?.name ?? member.user_id }));
@@ -60,12 +68,16 @@ export default function ProjectSettingsPage() {
     teamForm.setFieldsValue(teamFormValues(team));
     setLoadedTeamBasis(teamBasis(team));
   }, [workspace.project.id]);
+  useEffect(() => {
+    // 后台带出的扩展基本信息：只在表单未被改动时载入，避免覆盖未保存的填写
+    if (settings && !basicForm.isFieldsTouched()) basicForm.setFieldsValue(settings.basic_info);
+  }, [settings?.revision]);  // eslint-disable-line react-hooks/exhaustive-deps
   async function saveBasic() {
     if (!canManageProject || busy) return;
     if (basicChanged) { report(new Error('后台基本信息已更新，当前填写内容已保留。请先核对并载入最新基本信息，再重新保存。')); return; }
     try {
       const values = await basicForm.validateFields();
-      const path = `/api/v1/projects/${workspace.project.id}`; const body = projectFields(values);
+      const path = `/api/v1/projects/${workspace.project.id}`; const body = { ...projectFields(values), basic_info: basicInfoFields(values) };
       let result: { project?: typeof workspace.project };
       try { result = await mutate(path, 'PATCH', body) as typeof result; }
       catch (error) {
@@ -100,7 +112,8 @@ export default function ProjectSettingsPage() {
   }
   return <>
     <div className="page-heading"><div><h2>项目设置</h2><p>项目角色决定本项目职责，公司角色另行限制账号可以办理的事情。</p></div><Tag>{projectRoleName(team?.members.find(member => member.user_id === user.id)?.project_role ?? 'readonly')}</Tag></div>
-    {!canManageTeam && <Alert className="page-notice" showIcon type="info" message="当前账号可以查看设置；人员、分工和基本信息由本项目负责人维护。" />}
+    {readOnly && <Alert className="page-notice" showIcon type="warning" message="项目已取消，所有设置只读。" />}
+    {!canManageTeam && !readOnly && <Alert className="page-notice" showIcon type="info" message="当前账号可以查看设置；人员、分工和基本信息由本项目负责人维护。" />}
     {basicChanged && <Alert className="page-notice" showIcon type="warning" message="后台基本信息已变化，当前表单仍保留你的填写" action={<Button onClick={() => modal.confirm({ title: '核对并载入最新基本信息', content: <><p>当前项目：{workspace.project.name}；编号：{workspace.project.tender_number || '未填写'}；截止：{deadlineForForm(workspace.project.deadline) || '未填写'}；{workspace.project.sensitive ? '敏感项目' : '普通项目'}。</p><p>载入会替换当前未保存的基本信息表单，后台记录不变。</p></>, okText: '已核对，载入最新信息', cancelText: '保留当前填写', onOk: () => { basicForm.setFieldsValue({ ...workspace.project, deadline: deadlineForForm(workspace.project.deadline) }); setLoadedBasicBasis(projectBasis(workspace.project)); } })}>核对并载入最新基本信息</Button>} />}
     {teamChanged && <Alert className="page-notice" showIcon type="warning" message="后台分工已变化，当前表单仍保留你的填写" description="保存已暂停，不能用旧表单覆盖其他协作者的新安排。先核对当前成员与负责人，再决定是否载入最新分工。" action={<Button onClick={() => modal.confirm({ title: '核对并载入后台最新分工', content: <><p>最新成员：{team?.members.map(member => `${member.name}（${projectRoleName(member.project_role)}；参与：${member.volumes.map(volumeName).join('、') || '暂未指定'}）`).join('、')}</p><p>最新负责人：{team?.volumes.map(volume => `${volumeName(volume.volume)}：${volume.owner_name ?? '未指定'}`).join('；')}</p><p>最新合标负责人：{team?.members.find(member => member.user_id === team.assembly_owner_id)?.name ?? '未指定'}</p><p>载入会替换当前未保存的人员表单，后台记录不变。先保留需要重新填写的内容。</p></>, okText: '已核对，载入最新分工', cancelText: '保留当前填写', onOk: () => { teamForm.setFieldsValue(teamFormValues(team)); setLoadedTeamBasis(teamBasis(team)); } })}>核对并载入最新分工</Button>} />}
     <RelatedBidBanner projectId={workspace.project.id} token={token} revision={workspace.revision} canConfirm={canManageProject} modal={modal} onConfirmed={async () => { await reload(); }} report={report} />
@@ -109,9 +122,10 @@ export default function ProjectSettingsPage() {
       <div className="settings-groups">
         <Card id="project-setting-basic" title="基本信息" className="settings-form stack-card">
           <Form form={basicForm} layout="vertical" disabled={busy || !canManageProject}>
-            <Form.Item name="name" label="项目名称" rules={[{ required: true, whitespace: true }, { max: 200 }]}><Input /></Form.Item>
-            <Form.Item name="tender_number" label="招标编号"><Input /></Form.Item>
-            <Row gutter={16}><Col span={16}><Form.Item name="deadline" label="投标截止时间"><Input placeholder="2026-12-31 17:00（北京时间）" /></Form.Item></Col><Col span={8}><Form.Item name="sensitive" label="敏感标记"><Select options={[{ value: false, label: '普通项目' }, { value: true, label: '敏感 · 强制本地' }]} /></Form.Item></Col></Row>
+            <Form.Item name="name" label="项目名称" extra={editNote('name')} rules={[{ required: true, whitespace: true }, { max: 200 }]}><Input /></Form.Item>
+            <Form.Item name="tender_number" label="招标编号" extra={editNote('tender_number')}><Input /></Form.Item>
+            <Row gutter={16}><Col span={16}><Form.Item name="deadline" label="投标截止时间" extra={editNote('deadline')}><Input placeholder="2026-12-31 17:00（北京时间）" /></Form.Item></Col><Col span={8}><Form.Item name="sensitive" label="敏感标记"><Select options={[{ value: false, label: '普通项目' }, { value: true, label: '敏感 · 强制本地' }]} /></Form.Item></Col></Row>
+            <Row gutter={16}>{(['tenderee_name', 'agency_name', 'lot_name', 'client_address', 'open_at', 'service_period', 'project_location'] as const).map(field => <Col span={12} key={field}><Form.Item name={field} label={BASIC_FIELD_LABELS[field]} extra={editNote(field)}><Input maxLength={200} /></Form.Item></Col>)}</Row>
             <Button type="primary" onClick={saveBasic} loading={busy} disabled={!canManageProject}>保存基本信息</Button>
           </Form>
         </Card>
@@ -139,7 +153,11 @@ export default function ProjectSettingsPage() {
           {team?.handoffs.length ? <Table size="small" rowKey="id" pagination={false} dataSource={team.handoffs.slice().reverse()} columns={[{ title: '时间', dataIndex: 'at', render: formatTime }, { title: '交接依据', dataIndex: 'reason' }, { title: '涉及章节', render: (_, handoff) => handoff.chapter_ids.map(id => workspace.chapters.find(chapter => chapter.id === id)?.title ?? id).join('、') || '成员或分册调整' }, { title: '保护处理', render: (_, handoff) => <>撤销旧编辑权 {handoff.revoked_lock_count} 份<br />保留个人草稿 {handoff.preserved_draft_count} 份</> }]} /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无人员交接记录" />}
         </Card>
         {anchors.filter(([id]) => !['basic', 'members', 'volumes'].includes(id)).map(([id, title]) => <Card id={`project-setting-${id}`} key={id} title={title} className="stack-card">
-          {id === 'loops' ? (
+          {id === 'status' ? <ProjectStatusCard {...groupProps} canEdit={leadCan} />
+          : id === 'partners' ? <PartnersCard {...groupProps} />
+          : id === 'rules' ? <RuleOverridesCard {...groupProps} requirements={workspace.requirements.map(item => ({ id: item.id, text: item.text }))} />
+          : id === 'format' ? <VolumeFormatCard {...groupProps} writerNames={(team?.members ?? []).map(member => member.name)} />
+          : id === 'loops' ? (
             <div data-testid="project-model-config-panel">
               <p style={{ marginBottom: 12 }}>
                 管理本项目在分节生成与提示词推理时绑定的大模型服务配置。涉密项目受策略保护，仅允许选用本地部署模型。
@@ -186,10 +204,12 @@ export default function ProjectSettingsPage() {
           ) : id === 'persons' ? (
             <ProposedStaffCard projectId={workspace.project.id} token={token} canEdit={canManageProject}
               revision={workspace.revision} onSaved={reload} />
-          ) : id === 'export' ? (
+          ) : id === 'export' ? (<>
             <ExportNamingCard projectId={workspace.project.id} projectName={workspace.project.name} tenderNumber={workspace.project.tender_number}
               token={token} canEdit={canManageProject} revision={workspace.revision} onSaved={reload} />
-          ) : id === 'sla' ? <><p>服务承诺（SLA）是公司能承诺的响应、恢复等标准。实际取值已在响应矩阵逐项核对。</p><Button onClick={() => navigate('matrix')}>前往服务承诺矩阵</Button></> : <Alert type="info" message="该组完整设置仍待实现" description={ `${title}的原始业务范围继续按任务实施，这里没有可保存的配置。`} showIcon />}
+            <h4 style={{ marginTop: 16 }}>递交版需填完整值的敏感字段</h4>
+            <FullValueCard {...groupProps} requirements={workspace.requirements.map(item => ({ id: item.id, text: item.text }))} />
+          </>) : id === 'sla' ? <SlaSummaryCard settings={settings} onOpen={() => navigate('matrix')} /> : <Alert type="info" message="该组完整设置仍待实现" description={ `${title}的原始业务范围继续按任务实施，这里没有可保存的配置。`} showIcon />}
         </Card>)}
       </div>
     </div>

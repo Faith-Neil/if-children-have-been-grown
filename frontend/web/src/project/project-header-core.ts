@@ -5,6 +5,8 @@ import { normalizeSystemRole, READONLY_SYSTEM_ROLES, type SystemRole } from '../
 import { sessionAllowsProjectTab } from '../app/session-navigation.ts';
 import type { ApplicationSession } from '../shared/types.ts';
 
+export const URGENT_DAYS = 3;
+
 export interface CountdownInfo {
   status: 'none' | 'expired' | 'urgent' | 'normal';
   label: string;
@@ -74,7 +76,8 @@ export function calculateProjectCountdown(
   const hours = Math.floor((diff % oneDay) / oneHour);
   const minutes = Math.floor((diff % oneHour) / oneMinute);
 
-  const isUrgent = days < 3;
+  // PRD v1.8 5.1.1：距投标截止不超过 3 天（含恰好 3 天）标红；天数示例 3 天，后续可配置
+  const isUrgent = diff <= URGENT_DAYS * oneDay;
   let label = '';
   if (days > 0) {
     label = `剩余 ${days} 天 ${hours} 小时`;
@@ -92,7 +95,7 @@ export function calculateProjectCountdown(
     minutes,
     isUrgent,
     isExpired: false,
-    color: isUrgent ? 'orange' : 'blue',
+    color: isUrgent ? 'red' : 'blue',
   };
 }
 
@@ -145,6 +148,23 @@ export const PROJECT_HEADER_TABS: Array<{ key: string; label: string }> = [
   { key: 'settings', label: '项目设置' },
 ];
 
+export type ProjectTabPermissions = {
+  manage_project?: boolean;
+  export_internal?: boolean;
+  export_volumes?: string[];
+  check_all?: boolean;
+  check_volumes?: string[];
+};
+
+/** 只在权限字段明确给出时才收紧：导出页签看 export_internal / export_volumes，与会话 project.export 路由口径一致；合规检查只读成员仍可查看，不收紧 */
+export function tabAllowedByPermissions(tab: string, permissions?: ProjectTabPermissions): boolean {
+  if (!permissions) return true;
+  if (tab === 'export' && permissions.export_internal !== undefined) {
+    return permissions.export_internal === true || (permissions.export_volumes?.length ?? 0) > 0;
+  }
+  return true;
+}
+
 /**
  * 纯函数：根据当前会话与角色过滤可用页签
  */
@@ -153,10 +173,12 @@ export function filterProjectTabs(
   session: ApplicationSession | null,
   projectId: string,
   userRole?: string | null,
-  customPermissions?: { manage_project?: boolean }
+  customPermissions?: ProjectTabPermissions
 ): Array<{ key: string; label: string }> {
   const allowSettings = canAccessProjectSettings(userRole, customPermissions);
   return tabs.filter(item => {
+    // 0. 有项目权限读回时，导出页签按实际可办理范围显示（会话另行过滤，两者取交集）
+    if (!tabAllowedByPermissions(item.key, customPermissions)) return false;
     // 1. 设置页签专门受项目设置权限感知控制
     if (item.key === 'settings' && !allowSettings) {
       return false;

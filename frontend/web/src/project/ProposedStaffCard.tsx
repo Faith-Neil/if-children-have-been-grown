@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { Alert, App as AntApp, Button, Checkbox, List, Select, Space, Table, Tag } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { request, userFacingMessage } from '../shared/api';
-import { SEVERITY_LABEL, profileGaps, sortedIssues, staffPath, staffPayload, type StaffResult, type StaffRow } from './proposed-staff-core';
+import { SEVERITY_LABEL, occupancyMessages, profileGaps, sortedIssues, staffPath, staffPayload, type StaffResult, type StaffRow } from './proposed-staff-core';
 
 type Props = { projectId: string; token: string | null; canEdit: boolean; revision: number; onSaved: () => Promise<unknown> | void };
 type Person = { id: string; name: string; type: string; status: string };
@@ -48,6 +48,7 @@ export function ProposedStaffCard({ projectId, token, canEdit, revision, onSaved
   const issues = sortedIssues(result?.r33.issues ?? []);
   return (
     <div data-testid="proposed-staff-card">
+      {occupancyMessages(result?.occupancy).map(text => <Alert key={text} type="warning" showIcon style={{ marginBottom: 8 }} message={text} data-testid="staff-occupancy-hint" />)}
       {people.length === 0 && <Alert type="info" showIcon style={{ marginBottom: 8 }} message="资料库还没有“人员”类资料，请先在资料库录入人员（学历、专业、参加工作时间、证书逐行填写）。" />}
       <Table<StaffRow> size="small" rowKey={(row, index) => row.id ?? `new-${index}`} pagination={false} dataSource={rows}
         locale={{ emptyText: '尚未拟派人员' }}
