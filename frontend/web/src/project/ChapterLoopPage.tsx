@@ -10,7 +10,7 @@ import type { ChapterLoopDetail, ChapterLoopList, ChapterLoopRow, Volume } from 
 import { queuePaths } from './main-path-core.ts';
 import { projectVolumes, technicalOnly, volumeOptions } from './project-volumes.ts';
 import {
-  fetchChapterLoop, fetchChapterLoops, loopStatus, metaLines, progressPercent, relayNotice, roundColor, roundSummary, timelineLoops,
+  fetchChapterLoop, fetchChapterLoops, interruptionText, loopStatus, metaLines, progressPercent, relayNotice, retryLabel, roundColor, roundSummary, timelineLoops,
 } from './chapter-loop-core.ts';
 
 export function ChapterLoopPage() {
@@ -61,6 +61,7 @@ export function ChapterLoopPage() {
             <span>已完成 <b className="green">{totals?.completed ?? 0}</b></span>
             <span>待人工 <b className={totals?.pending_human ? 'red' : ''}>{totals?.pending_human ?? 0}</b></span>
             <span>人工已处理 <b>{totals?.human_handled ?? 0}</b></span>
+            <span>异常中断 <b className={totals?.interrupted ? 'red' : ''} data-testid="loop-total-interrupted">{totals?.interrupted ?? 0}</b></span>
             <span>未开始 <b>{totals?.not_started ?? 0}</b></span>
             {!!totals?.stale && <Tag color="gold">正文改动待复查 {totals.stale}</Tag>}
             <Progress percent={progressPercent(totals)} size="small" style={{ width: 160 }} />
@@ -91,8 +92,10 @@ export function ChapterLoopPage() {
             dataSource={list?.chapters ?? []}
             columns={[
               { title: '章节', key: 'title', render: (_, row) => <Space direction="vertical" size={0}><b>{row.number} {row.title}</b><span className="muted">{volumeName(row.volume)} · {row.assignee_name ?? '未分配负责人'}</span></Space> },
-              { title: '状态', key: 'status', width: 150, render: (_, row) => { const tag = loopStatus(row); return <Tag color={tag.color}>{tag.label}</Tag>; } },
-              { title: '最近一次循环', key: 'loop', render: (_, row) => row.loop
+              { title: '状态', key: 'status', width: 150, render: (_, row) => { const tag = loopStatus(row); return <Tag color={tag.color} data-testid={`chapter-loop-status-${row.chapter_id}`}>{tag.label}</Tag>; } },
+              { title: '最近一次循环', key: 'loop', render: (_, row) => row.loop?.status === 'interrupted'
+                ? <span className="red" data-testid={`chapter-loop-error-${row.chapter_id}`}>{interruptionText(row.loop)}</span>
+                : row.loop
                 ? <span>第 {row.loop.loop_count} 次 · {row.loop.rounds.length}/{row.loop.max_rounds} 轮 · {row.loop.stop_reason_label}{row.loop.rolled_back ? ' · 已回退' : ''}</span>
                 : <span className="muted">{row.has_content ? '有正文，尚未检查' : '尚未生成正文'}</span> },
               { title: '待处理', key: 'pending', width: 90, render: (_, row) => <b className={row.pending ? 'red' : ''}>{row.pending}</b> },
@@ -100,7 +103,8 @@ export function ChapterLoopPage() {
                 <Space size={4} wrap>
                   <Button type="link" size="small" disabled={!row.loop} onClick={() => setOpenId(row.chapter_id)}>轮次时间线</Button>
                   <Tooltip title={row.can_recheck ? '' : row.volume_finalized ? '分册已定稿，须先解锁' : !row.has_content ? '本节还没有正文' : '只有本节负责人或项目负责人可以重新检查'}>
-                    <Button size="small" disabled={busy || !row.can_recheck} onClick={() => void recheck(row)}>重新检查</Button>
+                    <Button size="small" type={row.loop?.status === 'interrupted' ? 'primary' : 'default'} data-testid={`chapter-loop-recheck-${row.chapter_id}`}
+                      disabled={busy || !row.can_recheck} onClick={() => void recheck(row)}>{retryLabel(row.loop)}</Button>
                   </Tooltip>
                   {row.pending > 0 && <Button type="link" size="small" onClick={() => navigate(editorChapterPath(projectId, row.chapter_id))}>去编辑台</Button>}
                 </Space>
@@ -162,6 +166,10 @@ function ChapterLoopTimeline({ projectId, token, chapterId, revision, onClose }:
                   extra={<span className="muted">{formatTime(loop.started_at)}</span>}>
                   <Descriptions size="small" column={1} items={metaLines(loop.meta, loop).map(line => ({ key: line.label, label: line.label, children: line.value }))} />
                   {notice && <Alert className="stack-card" type={notice.type} showIcon message={notice.text} />}
+                  {loop.stop_reason === 'INTERRUPTED' && (
+                    <Alert className="stack-card" type="error" showIcon data-testid="chapter-loop-interrupted"
+                      message={`本次循环异常中断：${loop.meta?.error?.message ?? '未记录原因'}`} />
+                  )}
                   <Timeline
                     items={loop.rounds.map((round, index) => ({
                       color: roundColor(round, index === loop.rounds.length - 1, loop),

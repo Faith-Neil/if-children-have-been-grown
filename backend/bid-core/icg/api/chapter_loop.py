@@ -159,6 +159,8 @@ class ChapterRecheckResponse(ResponseBody):
     chapter_id: str
     chapter_revision: int
     content_fixed: bool
+    interrupted: bool = Field(default=False, description="循环中途异常中断；正文未改动，可再次调用重试")
+    error: dict[str, Any] | None = Field(default=None, description="中断时的错误说明 code/type/message")
     loop: ChapterLoopState | None = None
     stop_reason: str
     stop_reason_label: str

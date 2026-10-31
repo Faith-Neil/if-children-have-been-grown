@@ -218,6 +218,72 @@ def test_recheck_refuses_locked_chapter_and_needs_version(client):
     assert no_version.status_code == 428
 
 
+# ---------------------------------------------------------------- 异常中断与重试（APP-M2-T136）
+
+def _boom(*args, **kwargs):
+    raise RuntimeError("model gateway timeout")
+
+
+def test_interrupted_recheck_keeps_content_and_records_interruption(client, monkeypatch):
+    flow, cid = _prepared(client)
+    before = client.get(f"/api/chapters/{cid}", headers=flow.headers).json()
+    monkeypatch.setattr("icg.domain.human_queue.run_chapter_loop", _boom)
+    result = client.post(f"{flow.path}/chapters/{cid}/loop/recheck", json={}, headers=_headers(flow))
+    assert result.status_code == 200, result.text
+    body = result.json()
+    assert body["interrupted"] is True and body["content_fixed"] is False
+    assert body["error"]["code"] == "LOOP_INTERRUPTED" and body["error"]["type"] == "RuntimeError"
+    assert body["loop"]["status"] == "interrupted" and body["loop"]["status_label"] == "异常中断"
+    assert body["loop"]["stop_reason"] == "INTERRUPTED" and body["loop"]["rounds"] == []
+    after = client.get(f"/api/chapters/{cid}", headers=flow.headers).json()
+    assert after["content"] == before["content"] and after["revision"] == before["revision"]
+    loops = client.get(f"{flow.path}/chapter-loops", headers=flow.headers).json()
+    row = next(r for r in loops["chapters"] if r["chapter_id"] == cid)
+    assert row["loop"]["status"] == "interrupted" and row["can_recheck"] is True
+    assert loops["totals"]["interrupted"] == 1
+
+
+def test_retry_after_interruption_succeeds_and_counts_retry(client, monkeypatch):
+    flow, cid = _prepared(client)
+    client.post(f"{flow.path}/chapters/{cid}/loop/recheck", json={}, headers=_headers(flow))  # 先有一次正常循环，其问题需保持
+    with monkeypatch.context() as patch:
+        patch.setattr("icg.domain.human_queue.run_chapter_loop", _boom)
+        first = client.post(f"{flow.path}/chapters/{cid}/loop/recheck", json={}, headers=_headers(flow)).json()
+        assert first["interrupted"] is True and first["pending_issues"] == 2  # 既有问题不动
+        assert first["loop"]["meta"]["retry_count"] == 0
+        second = client.post(f"{flow.path}/chapters/{cid}/loop/recheck", json={}, headers=_headers(flow)).json()
+        assert second["loop"]["meta"]["retry_count"] == 1
+    retry = client.post(f"{flow.path}/chapters/{cid}/loop/recheck", json={}, headers=_headers(flow))
+    assert retry.status_code == 200, retry.text
+    body = retry.json()
+    assert body["interrupted"] is False and body["loop"]["status"] == "pending_human"
+    assert body["loop"]["meta"]["retry_count"] == 2
+    detail = client.get(f"{flow.path}/chapters/{cid}/loop", headers=flow.headers).json()
+    assert [h.get("stop_reason") for h in detail["history"]].count("INTERRUPTED") == 2
+
+
+def test_interrupted_recheck_still_requires_permission(client, monkeypatch):
+    flow, cid = _prepared(client)
+    monkeypatch.setattr("icg.domain.human_queue.run_chapter_loop", _boom)
+    denied = client.post(f"{flow.path}/chapters/{cid}/loop/recheck", json={}, headers=_headers(flow, "alpha-viewer"))
+    assert denied.status_code == 403
+    empty = client.get(f"{flow.path}/chapter-loops", headers=flow.headers).json()
+    assert empty["totals"]["interrupted"] == 0  # 无权限的调用不留下中断记录
+
+
+def test_interrupted_loop_is_not_overwritten_by_issue_status_refresh():
+    from icg.domain.chapter_loop import record_interruption, refresh_chapter_status
+
+    class Chapter:
+        id = "c1"
+
+    workflow: dict = {}
+    record_interruption(workflow, Chapter(), 1, {"code": "LOOP_INTERRUPTED", "type": "X", "message": "m"},
+                        actor_id="u", now_iso="2026-01-01T00:00:00Z", checked_revision=1)
+    assert refresh_chapter_status(workflow, "c1") == "interrupted"
+    assert workflow["human_queue"]["loops"]["c1"]["meta"]["retry_count"] == 0
+
+
 # ---------------------------------------------------------------- 循环进度与轮次时间线（APP-M2-T130 / T131）
 
 def test_round_records_which_paragraph_was_fixed_and_how():

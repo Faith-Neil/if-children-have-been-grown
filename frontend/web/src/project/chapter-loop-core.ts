@@ -23,10 +23,24 @@ export const KIND_LABELS: Record<string, string> = {
 
 export function loopStatus(row: Pick<ChapterLoopRow, 'loop' | 'has_content'>): { color: string; label: string } {
   if (!row.loop) return row.has_content ? { color: 'default', label: '未检查' } : { color: 'default', label: '未生成' };
+  if (row.loop.status === 'interrupted') return { color: 'red', label: '异常中断' };
   if (row.loop.stale) return { color: 'gold', label: '正文已改动，待复查' };
   if (row.loop.status === 'completed') return { color: 'green', label: '已完成' };
   if (row.loop.status === 'pending_human') return { color: 'orange', label: '待人工处理' };
   return { color: 'blue', label: '人工已处理' };
+}
+
+// 中断的章节按钮写“重试”，其余仍是“重新检查”；两者调用同一个重新检查接口。
+export function retryLabel(loop: Pick<ChapterLoopState, 'status'> | null | undefined): string {
+  return loop?.status === 'interrupted' ? '重试' : '重新检查';
+}
+
+export function interruptionText(loop: Pick<ChapterLoopState, 'status' | 'meta'> | null | undefined): string | null {
+  if (loop?.status !== 'interrupted') return null;
+  const error = loop.meta?.error;
+  const retries = loop.meta?.retry_count ?? 0;
+  const reason = error?.message || error?.type || '未记录原因';
+  return `循环异常中断：${reason}。正文未改动，已有问题保持原样${retries ? `，已重试 ${retries} 次仍未成功` : ''}，请点击“重试”。`;
 }
 
 export function roundSummary(round: LoopRound): string {
@@ -65,6 +79,7 @@ export function metaLines(meta: ChapterLoopMeta | undefined, loop: { checked_rev
   } else {
     lines.push({ label: '模型', value: '未调用模型' });
   }
+  if (meta.error) lines.push({ label: '中断原因', value: `${meta.error.type ? meta.error.type + '：' : ''}${meta.error.message ?? meta.error.code}` });
   if (meta.fixer) lines.push({ label: '修正方式', value: meta.fixer });
   const inputs = meta.inputs ?? {};
   const counts = INPUT_LABELS.filter(([key]) => typeof inputs[key] === 'number').map(([key, label]) => `${label} ${inputs[key]}`);

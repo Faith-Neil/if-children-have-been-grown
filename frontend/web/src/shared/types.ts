@@ -41,7 +41,7 @@ export interface HumanIssue {
   permissions: { resolve: boolean; reject: boolean };
 }
 export interface ChapterLoopState {
-  chapter_id: string; loop_no: number; kind: string; status: 'completed' | 'pending_human' | 'human_handled';
+  chapter_id: string; loop_no: number; kind: string; status: 'completed' | 'pending_human' | 'human_handled' | 'interrupted';
   status_label: string; stop_reason: string; stop_reason_label: string; max_rounds: number; rolled_back: boolean;
   started_at: string; stale: boolean; loop_count: number;
   started_by?: string | null; checked_revision?: number | null; result_revision?: number | null;
@@ -61,6 +61,8 @@ export interface ChapterLoopMeta {
   model_name?: string | null; fixer?: string; base_revision?: number | null; context_fingerprint?: string | null;
   inputs?: Partial<Record<'requirements' | 'evidence' | 'snippets' | 'facts' | 'omitted' | 'truncated', number>> & { critical?: boolean };
   summary_relay?: SummaryRelay;
+  error?: { code: string; type?: string; message?: string; at?: string };
+  retry_count?: number;
 }
 export interface ChapterLoopHistoryEntry {
   loop_no: number; kind: string; stop_reason: string; stop_reason_label?: string; rounds: LoopRound[]; rolled_back: boolean;
@@ -73,7 +75,7 @@ export interface ChapterLoopRow {
 }
 export interface ChapterLoopList {
   revision: number; project_id: string; volume: Volume | 'all';
-  totals: Record<'chapters' | 'not_started' | 'completed' | 'pending_human' | 'human_handled' | 'stale', number>;
+  totals: Record<'chapters' | 'not_started' | 'completed' | 'pending_human' | 'human_handled' | 'interrupted' | 'stale', number>;
   chapters: ChapterLoopRow[];
 }
 export interface ChapterLoopDetail {

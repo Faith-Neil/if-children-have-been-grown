@@ -11,7 +11,7 @@ from typing import Any
 
 from .chapter_loop import (
     CLOSED_STATUSES, HUMAN_REASONS, OPEN_STATUSES, REJECT_REASONS, RESOLVE_METHODS, STOP_REASONS,
-    LoopContext, queue_store, record_loop, refresh_chapter_status, run_chapter_loop,
+    LoopContext, interruption_error, queue_store, record_interruption, record_loop, refresh_chapter_status, run_chapter_loop,
 )
 from .domain import DemoState, DomainError, Principal, iso_time
 from .generation_context import previous_chapter_relay, project_facts
@@ -22,6 +22,7 @@ LOOP_STATUS_LABELS = {
     "completed": "已完成",
     "pending_human": "待人工处理",
     "human_handled": "人工已处理",
+    "interrupted": "异常中断",
 }
 
 
@@ -128,7 +129,7 @@ class HumanQueueMixin:
         workflow = self._workflow(state, project_id)
         store = workflow.get("human_queue", {"loops": {}, "issues": {}})
         rows = []
-        totals = {"chapters": 0, "not_started": 0, "completed": 0, "pending_human": 0, "human_handled": 0, "stale": 0}
+        totals = {"chapters": 0, "not_started": 0, "completed": 0, "pending_human": 0, "human_handled": 0, "interrupted": 0, "stale": 0}
         for chapter in self._ordered_chapters(state, project_id, workflow):
             if volume and volume != "all" and chapter.volume != volume:
                 continue
@@ -286,7 +287,25 @@ class HumanQueueMixin:
                                   tender_numbers=tender_number_basis(state, project, workflow))
             max_rounds = int(payload.get("max_rounds") or 3)
             base_revision = int(chapter.revision or 0)
-            outcome = run_chapter_loop(chapter.content, context, max_rounds=max_rounds)
+            chapter_no = self._chapter_number(state, project_id, workflow, chapter_id)
+            loop_meta = {"task": "recheck", "task_label": "重新检查", "model": None,
+                         "fixer": "规则修正（不调用模型）", "base_revision": base_revision,
+                         "inputs": {"requirements": len(rows), "evidence": len(evidence_ids),
+                                    "snippets": len({s for s in snippet_ids if s}),
+                                    "facts": len(facts), "critical": critical}}
+            try:
+                outcome = run_chapter_loop(chapter.content, context, max_rounds=max_rounds)
+            except Exception as exc:  # T136：循环异常不得伪造成功，正文与既有问题保持原样，记录中断供重试
+                now = iso_time(now_ts)
+                error = interruption_error(exc)
+                loop = record_interruption(workflow, chapter, chapter_no, error, actor_id=principal.user.id,
+                                           now_iso=now, checked_revision=chapter.revision, kind="recheck",
+                                           meta=loop_meta)
+                return {"chapter_id": chapter_id, "chapter_revision": chapter.revision, "content_fixed": False,
+                        "interrupted": True, "error": error, "loop": self._public_loop(state, chapter, loop),
+                        "stop_reason": "INTERRUPTED", "stop_reason_label": STOP_REASONS["INTERRUPTED"],
+                        "pending_issues": len([i for i in queue_store(workflow)["issues"].values()
+                                               if i["chapter_id"] == chapter_id and i["status"] in OPEN_STATUSES])}
             fixed = outcome["content"] != chapter.content
             now = iso_time(now_ts)
             if fixed:
@@ -295,19 +314,13 @@ class HumanQueueMixin:
                 chapter.versions.append({"revision": chapter.revision, "content": chapter.content,
                                          "actor_id": principal.user.id, "created_at": now,
                                          "source": "chapter_loop", "note": "章节循环定位修正"})
-            loop = record_loop(workflow, chapter, self._chapter_number(state, project_id, workflow, chapter_id),
-                               outcome, actor_id=principal.user.id, now_iso=now,
+            loop = record_loop(workflow, chapter, chapter_no, outcome, actor_id=principal.user.id, now_iso=now,
                                checked_revision=chapter.revision, kind="recheck",
-                               meta={"task": "recheck", "task_label": "重新检查", "model": None,
-                                     "fixer": "规则修正（不调用模型）", "base_revision": base_revision,
-                                     "inputs": {"requirements": len(rows), "evidence": len(evidence_ids),
-                                                "snippets": len({s for s in snippet_ids if s}),
-                                                "facts": len(facts), "critical": critical},
-                                     "summary_relay": previous_chapter_relay(state, project_id, chapter)})
+                               meta={**loop_meta, "summary_relay": previous_chapter_relay(state, project_id, chapter)})
             from .notifications import notify_pending_human
             notify_pending_human(state, chapter, now)
             return {"chapter_id": chapter_id, "chapter_revision": chapter.revision, "content_fixed": fixed,
-                    "loop": self._public_loop(state, chapter, loop),
+                    "interrupted": False, "loop": self._public_loop(state, chapter, loop),
                     "stop_reason": outcome["stop_reason"], "stop_reason_label": STOP_REASONS[outcome["stop_reason"]],
                     "pending_issues": len([i for i in outcome["issues"]])}
 

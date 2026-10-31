@@ -52,6 +52,7 @@ STOP_REASONS: dict[str, str] = {
     "MAX_ROUNDS": "达到最大轮数",
     "NO_DECREASE": "问题数量未减少",
     "MANUAL_TERMINATED": "人工终止",
+    "INTERRUPTED": "异常中断",
 }
 
 # 问题状态（字典 v1.7 §4.12）
@@ -413,9 +414,16 @@ def chapter_loop_status(store: dict, chapter_id: str) -> str | None:
 def record_loop(workflow: dict, chapter: Any, chapter_number: int, outcome: dict, *, actor_id: str,
                 now_iso: str, checked_revision: int, kind: str = "generation", meta: dict | None = None) -> dict:
     """把一次循环的结果写进队列：同指纹沿用编号并重新打开，未再出现的关闭为已解决。"""
+    if outcome.get("interrupted"):
+        return record_interruption(workflow, chapter, chapter_number, outcome.get("error") or {}, actor_id=actor_id,
+                                   now_iso=now_iso, checked_revision=checked_revision, kind=kind, meta=meta)
     store = queue_store(workflow)
     previous = store["loops"].get(chapter.id)
     loop_no = (previous or {}).get("loop_no", 0) + 1
+    meta = dict(meta or {})
+    if previous and previous.get("status") == "interrupted":
+        # T136：中断后的再次检查视为重试，次数在上次中断记录的基础上加一
+        meta["retry_count"] = int((previous.get("meta") or {}).get("retry_count") or 0) + 1
     existing = {i["fingerprint"]: i for i in store["issues"].values() if i["chapter_id"] == chapter.id}
     seen: set[str] = set()
     for finding in outcome["issues"]:
@@ -457,7 +465,43 @@ def record_loop(workflow: dict, chapter: Any, chapter_number: int, outcome: dict
             "rounds": outcome["rounds"], "max_rounds": outcome["max_rounds"], "rolled_back": outcome["rolled_back"],
             "started_at": now_iso, "started_by": actor_id, "checked_revision": checked_revision,
             "result_revision": int(getattr(chapter, "revision", checked_revision) or checked_revision),
-            "meta": dict(meta or {}), "history": history[-10:]}
+            "meta": meta, "history": history[-10:]}
+    store["loops"][chapter.id] = loop
+    return loop
+
+
+def interruption_error(exc: BaseException) -> dict:
+    """把循环中抛出的异常整理成可展示、可持久化的错误说明（不含堆栈，避免泄露内部信息）。"""
+    return {"code": "LOOP_INTERRUPTED", "type": type(exc).__name__, "message": (str(exc) or type(exc).__name__)[:200]}
+
+
+def interrupted_outcome(content: str, error: dict, max_rounds: int = DEFAULT_MAX_ROUNDS) -> dict:
+    """循环异常时的占位结果：正文原样、没有轮次、没有新问题，不冒充成功。"""
+    return {"content": content, "rounds": [], "max_rounds": max_rounds, "stop_reason": "INTERRUPTED",
+            "stop_reason_label": STOP_REASONS["INTERRUPTED"], "rolled_back": False, "issues": [],
+            "passed": False, "interrupted": True, "error": error}
+
+
+def record_interruption(workflow: dict, chapter: Any, chapter_number: int, error: dict, *, actor_id: str,
+                        now_iso: str, checked_revision: int, kind: str = "recheck", meta: dict | None = None) -> dict:
+    """T136：循环中断时只记录一条“异常中断”，已有问题和正文都不动，上一次循环进入历史。"""
+    store = queue_store(workflow)
+    previous = store["loops"].get(chapter.id)
+    history = list((previous or {}).get("history", []))
+    retry_count = 0
+    if previous:
+        history.append({key: previous.get(key) for key in (
+            "loop_no", "stop_reason", "stop_reason_label", "rounds", "rolled_back", "started_at", "started_by",
+            "checked_revision", "result_revision", "kind", "meta")})
+        if previous.get("status") == "interrupted":
+            retry_count = int((previous.get("meta") or {}).get("retry_count") or 0) + 1
+    loop = {"chapter_id": chapter.id, "loop_no": (previous or {}).get("loop_no", 0) + 1, "kind": kind,
+            "status": "interrupted", "stop_reason": "INTERRUPTED", "stop_reason_label": STOP_REASONS["INTERRUPTED"],
+            "rounds": [], "max_rounds": (previous or {}).get("max_rounds", DEFAULT_MAX_ROUNDS), "rolled_back": False,
+            "started_at": now_iso, "started_by": actor_id, "checked_revision": checked_revision,
+            "result_revision": checked_revision,
+            "meta": {**(meta or {}), "error": {**error, "at": now_iso}, "retry_count": retry_count},
+            "history": history[-10:]}
     store["loops"][chapter.id] = loop
     return loop
 
@@ -467,6 +511,8 @@ def refresh_chapter_status(workflow: dict, chapter_id: str) -> str | None:
     loop = store["loops"].get(chapter_id)
     if not loop:
         return None
+    if loop["status"] == "interrupted":
+        return loop["status"]  # 中断需要重试，不能因为处理完问题就改成“人工已处理”
     pending = [i for i in store["issues"].values() if i["chapter_id"] == chapter_id and i["status"] in OPEN_STATUSES]
     if pending:
         loop["status"] = "pending_human"

@@ -2097,7 +2097,11 @@ class ChapterGenerationService:
             )
             return model_provider.suggest(prompt, original)
 
-        loop_outcome = run_chapter_loop(current_content, loop_context, max_rounds=max_rounds, model_fix=model_fix)
+        try:
+            loop_outcome = run_chapter_loop(current_content, loop_context, max_rounds=max_rounds, model_fix=model_fix)
+        except Exception as exc:  # T136：循环异常时正文保持原样，记录“异常中断”，不冒充通过
+            from .chapter_loop import interrupted_outcome, interruption_error
+            loop_outcome = interrupted_outcome(current_content, interruption_error(exc), max_rounds)
         # 段落编号沿用结构化段落（[P1]…[Pn]）口径，便于与写作方案和编辑台对照。
         before_structured = [p.get("content") for p in active_paragraphs]
         after_structured = [p.get("content") for p in parse_structured_paragraphs(

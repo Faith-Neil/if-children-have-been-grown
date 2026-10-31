@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
-  loopStatus, metaLines, progressPercent, relayNotice, roundColor, roundSummary, timelineLoops,
+  interruptionText, loopStatus, metaLines, progressPercent, relayNotice, retryLabel, roundColor, roundSummary, timelineLoops,
 } from '../../src/project/chapter-loop-core.ts';
 
 const loop = (over = {}) => ({
@@ -74,4 +74,27 @@ test('page shows retry on failure, empty states and gates recheck by can_recheck
   assert.match(page, /!row\.can_recheck/);
   const queue = readFileSync(new URL('../../src/project/ManualQueuePage.tsx', import.meta.url), 'utf8');
   assert.match(queue, /章节循环进度/);
+});
+
+test('interrupted loop shows red tag, error text and a retry button label', () => {
+  const interrupted = loop({ status: 'interrupted', stop_reason: 'INTERRUPTED', stop_reason_label: '异常中断',
+    meta: { error: { code: 'LOOP_INTERRUPTED', type: 'RuntimeError', message: 'timeout' }, retry_count: 0 } });
+  assert.deepEqual(loopStatus({ loop: interrupted, has_content: true }), { color: 'red', label: '异常中断' });
+  assert.equal(retryLabel(interrupted), '重试');
+  assert.equal(retryLabel(loop()), '重新检查');
+  assert.equal(retryLabel(null), '重新检查');
+  assert.match(interruptionText(interrupted), /timeout.*正文未改动.*重试/);
+  assert.doesNotMatch(interruptionText(interrupted), /已重试/);
+  const again = { ...interrupted, meta: { ...interrupted.meta, retry_count: 2 } };
+  assert.match(interruptionText(again), /已重试 2 次/);
+  assert.equal(interruptionText(loop()), null);
+  const lines = metaLines(interrupted.meta, interrupted);
+  assert.ok(lines.some(line => line.label === '中断原因' && line.value === 'RuntimeError：timeout'));
+});
+
+test('timeline keeps an interrupted loop entry with its stop label', () => {
+  const entry = loop({ loop_no: 3, status: 'interrupted', stop_reason: 'INTERRUPTED', stop_reason_label: '异常中断' });
+  const items = timelineLoops({ loop: entry, history: [] });
+  assert.equal(items[0].stop_reason, 'INTERRUPTED');
+  assert.equal(items[0].stop_reason_label, '异常中断');
 });
