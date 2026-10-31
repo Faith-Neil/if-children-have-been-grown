@@ -10,7 +10,7 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，2026-10-30 整治，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 455 项：done 96、in-review 185、in-progress 33、planned 67、blocked 0、cancelled 74、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+项目 455 项：done 96、in-review 189、in-progress 32、planned 64、blocked 0、cancelled 74、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
@@ -32,7 +32,7 @@
 | WP-1 编辑台结构化正文 | T137～T139、T160～T190 | T160、T169、T171、T189、T190、T137、T138、T139（AntV G2） | 段落键、段落锁定、版本对比与回退、变量节点、问题标注与侧栏联动已有（T161、T163、T164、T166、T174、T175 in-review），编辑中的正文仍是纯文本框 |
 | WP-2 资料库 | T046～T079 | T046～T068、T070～T075、T077 中未完成的 30 张 | 列表/详情按通用字段渲染，`field_metadata.kb_record` 的各类别字段与 `MetadataTable`/`MetadataForm` 没接入页面；★ 字段重确认、受限资料转交、人员/授权/业绩分类页、Excel 导入 |
 | WP-3 写作规范后台 | T080～T093 | 13 张 | 历史标书导入、章节模板、术语句式、任务卡与提示词模板、审查清单、风格样例 |
-| WP-4 项目与解析 | T094～T117 | T097～T100 | 项目设置页（R19 提示已做，T096 in-review；T101、T102、T107、T109、T110 前端已 in-review，后端 `229d05f`） |
+| WP-4 项目与解析 | T094～T117 | 无（T097～T100 已 in-review） | 项目状态与取消只读、设置分组已有；规则覆盖、分册格式（除递交文件名）、完整值类别只保存未被检查与导出读取；项目列表状态筛选与统计卡、分册增删未做 |
 | WP-5 矩阵、SLA 与章节循环 | T118～T136、T211～T213 | 10 张 | 证据三路候选、SLA 判定与承诺函、需复核传播、R09 子范围、循环异常重试 |
 | WP-6 检查、规则、导出、看板与管理 | T011、T033～T044、T140～T159、T191～T259 中未完成的 | 34 张 | 规则编号对齐（ISSUE-046）；导出、检查仍是同步请求；R25 实际文件残留检查（T231）；R43/R44；暗标；品牌页；集团视图 |
 | WP-7 评审边界 | FE-M0-T03 | 1 张 | 评审系统与前端来源边界说明 |
@@ -447,10 +447,10 @@
 | [APP-M2-T094](tasks/APP-M2.md#app-m2-t094) | ProjectHeader 摘要条与页签（无“资料匹配”） | in-review（2026-10-30：去掉标的金额假默认值 12800000，未填写时如实显示） | APP-M1-T14 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T094.md` |
 | [APP-M2-T095](tasks/APP-M2.md#app-m2-t095) | 项目列表 | in-review（2026-10-28 重定：代码与测试已存在） | APP-M1-T14 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T095.md` |
 | [APP-M2-T096](tasks/APP-M2.md#app-m2-t096) | 新建项目与 R19 提示 | in-review（2026-10-31：立项与导出前核对同标段，只示对方公司名，须写说明并通知集团管理员；原“R19”实为绿色采购，改为 EXT-GREEN） | APP-M1-T14、APP-M2-T224 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T096.md) |
-| [APP-M2-T097](tasks/APP-M2.md#app-m2-t097) | 项目概览（待办、分册、状态操作） | in-progress（2026-10-28 重定：部分已实现，缺口见本页工作包 WP-4） | APP-M1-T14、APP-M2-T094 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T097.md` |
-| [APP-M2-T098](tasks/APP-M2.md#app-m2-t098) | 项目基本字段和合作方协议（成员复用T14） | planned | APP-M1-T14、APP-M2-T054 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T098.md` |
-| [APP-M2-T099](tasks/APP-M2.md#app-m2-t099) | 项目设置：拟派人员、SLA 取值、规则覆盖 | planned | APP-M1-T14、APP-M2-T060、APP-M2-T069 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T099.md` |
-| [APP-M2-T100](tasks/APP-M2.md#app-m2-t100) | 分册格式、闭环及导出设置（分工复用T14） | planned | APP-M1-T14、APP-M2-T044、APP-M2-T045、APP-M2-T086 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T100.md` |
+| [APP-M2-T097](tasks/APP-M2.md#app-m2-t097) | 项目概览（待办、分册、状态操作） | in-review（2026-10-31：项目状态流转、取消后只读、倒计时≤3天标红、概览追加真实待办；列表状态筛选与统计卡、取消只读未覆盖编辑台正文写入） | APP-M1-T14、APP-M2-T094 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T097.md) |
+| [APP-M2-T098](tasks/APP-M2.md#app-m2-t098) | 项目基本字段和合作方协议（成员复用T14） | in-review（2026-10-31：基本信息人工修改标记、合作方协议缺失标记与重复校验；附件与主体编号为自由文本，未带出解析结果） | APP-M1-T14、APP-M2-T054 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T098.md) |
+| [APP-M2-T099](tasks/APP-M2.md#app-m2-t099) | 项目设置：拟派人员、SLA 取值、规则覆盖 | in-review（2026-10-31：拟派人员占用提示、SLA 取值摘要、规则覆盖保存读回；规则覆盖尚未被合规检查读取） | APP-M1-T14、APP-M2-T060、APP-M2-T069 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T099.md) |
+| [APP-M2-T100](tasks/APP-M2.md#app-m2-t100) | 分册格式、闭环及导出设置（分工复用T14） | in-review（2026-10-31：分册编制方式、内部截止、密封/暗标/页码/封面、递交文件名与完整值类别保存；除递交文件名外尚未被导出读取） | APP-M1-T14、APP-M2-T044、APP-M2-T045、APP-M2-T086 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T100.md) |
 | [APP-M2-T101](tasks/APP-M2.md#app-m2-t101) | 招标文件上传与版本链 | in-review（2026-10-31：文件类型、版本、上传人、设为被替代；>200页分批页面未展示，真实RAGFlow未跑） | APP-M1-T02、APP-M2-T021 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T101.md) |
 | [APP-M2-T102](tasks/APP-M2.md#app-m2-t102) | 解析进度页（JobProgress 接入） | in-review（2026-10-31：解析服务/耗时列与换服务重试；真实RAGFlow未跑） | APP-M1-T02、APP-M2-T021、APP-M2-T101 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T102.md) |
 | [APP-M2-T103](tasks/APP-M2.md#app-m2-t103) | PdfLocator（PDF.js 本地 Worker、跳页高亮） | in-review（2026-10-29：解析页左栏显示原件 PDF，按条款来源跳页并在原件上高亮原句） | APP-M1-T02、APP-M2-T101 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T103.md` |
