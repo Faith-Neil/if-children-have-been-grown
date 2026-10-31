@@ -103,3 +103,75 @@ def test_matrix_excel_and_readonly_access(client):
     resp = client.patch(f"{flow.path}/requirements/{row['id']}", json={"assignee_id": "alpha-viewer"},
                         headers={**flow.headers, "If-Match": str(flow.state()["revision"]), "Idempotency-Key": str(uuid4())})
     assert resp.status_code == 422 and resp.json()["code"] == "ASSIGNEE_NOT_WRITABLE"
+
+
+# ---------------------------------------------------------------- 三路证据候选（APP-M2-T118）
+
+def _candidates(client, flow, requirement_id, headers=None):
+    return client.get(f"{flow.path}/requirements/{requirement_id}/evidence-candidates", headers=headers or flow.headers)
+
+
+def _prepare_candidates(flow):
+    flow.library(name="合成企业资质（第二份）", content="仅供测试：有效企业资质证明已核对。")
+    flow.library(name="2024 某银行投标书", type="history", content="企业资质证明详见附件。", status="pending")
+    return _row(flow, "business")
+
+
+def test_evidence_candidates_split_into_routes_and_history_is_never_attachable(client):
+    flow = ProjectFlow(client).ready()
+    row = _prepare_candidates(flow)
+    resp = _candidates(client, flow, row["id"])
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["kb_status"] in ("available", "unavailable", "disabled") and body["can_attach"] is True
+    routes = {c["route"] for c in body["candidates"]}
+    assert {"structured", "history"} <= routes <= {"structured", "snippet", "history"}
+    for c in body["candidates"]:
+        assert c["route_label"] and c["source"] and "attachable" in c
+        if c["route"] in ("history", "snippet"):
+            assert c["attachable"] is False and c["blocked_reason"]
+        if c["route"] == "history" and c["source"] == "历史标书":
+            assert c["content_preview"]
+    structured = [c for c in body["candidates"] if c["route"] == "structured"]
+    assert structured and all(c["cite_reason"] and "version" in c for c in structured)
+    assert all((c["blocked_reason"] is None) == c["attachable"] for c in structured)
+
+
+def test_history_candidate_cannot_be_attached_through_patch(client):
+    flow = ProjectFlow(client).ready()
+    row = _prepare_candidates(flow)
+    history = next(c for c in _candidates(client, flow, row["id"]).json()["candidates"]
+                   if c["route"] == "history" and c["source"] == "历史标书")
+    resp = client.patch(f"{flow.path}/requirements/{row['id']}", json={"evidence_ids": [history["id"]]},
+                        headers={**flow.headers, "If-Match": str(flow.state()["revision"]), "Idempotency-Key": str(uuid4())})
+    assert resp.status_code == 409 and resp.json()["code"] == "EVIDENCE_NOT_USABLE"
+
+
+def test_evidence_candidates_isolated_by_project_and_requirement(client):
+    flow = ProjectFlow(client).ready()
+    row = _row(flow, "business")
+    assert _candidates(client, flow, row["id"], login(client, "beta-manager")).status_code == 404
+    assert _candidates(client, flow, "req-not-exist").status_code == 404
+
+
+def test_evidence_candidates_still_return_structured_when_kb_unavailable(client, monkeypatch):
+    flow = ProjectFlow(client).ready()
+    row = _prepare_candidates(flow)
+    kb = client.app.state.service.knowledge_base
+
+    def broken(*args, **kwargs):
+        raise RuntimeError("kb down")
+
+    monkeypatch.setattr(kb, "search", broken)
+    body = _candidates(client, flow, row["id"]).json()
+    assert body["kb_status"] == "unavailable"
+    assert any(c["route"] == "structured" for c in body["candidates"])
+    assert not any(c["route"] == "snippet" for c in body["candidates"])
+
+
+def test_readonly_member_reads_candidates_but_cannot_attach(client):
+    flow = ProjectFlow(client).ready()
+    row = _prepare_candidates(flow)
+    resp = _candidates(client, flow, row["id"], login(client, "alpha-viewer"))
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["can_attach"] is False and resp.json()["candidates"]

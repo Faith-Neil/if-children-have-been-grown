@@ -15,6 +15,45 @@ export type MatrixData = { revision: number; volumes: string[]; items: MatrixIte
 export type MatchCandidate = { id?: string; source_id?: string; name: string; type?: string; revision?: number; score: number; attachable: boolean; reason?: string; already_attached?: boolean; basis: string; unavailable?: boolean };
 export type MatchResult = { requirement_id: string; structured: MatchCandidate[]; snippets: MatchCandidate[]; history_reference: MatchCandidate[] };
 
+export type CandidateRoute = 'structured' | 'snippet' | 'history';
+export type EvidenceCandidate = {
+  route: CandidateRoute; route_label: string; id?: string | null; name?: string | null; version?: number | string | null; source: string;
+  score?: number | null; valid_until?: string | null; cite_reason: string; blocked_reason?: string | null; attachable: boolean;
+  already_attached?: boolean; content_preview?: string | null;
+};
+export type EvidenceCandidates = {
+  project_id: string; requirement_id: string; revision: number; kb_status: 'available' | 'unavailable' | 'disabled';
+  can_attach: boolean; candidates: EvidenceCandidate[]; notice: string;
+};
+
+export const ROUTE_GROUPS: { route: CandidateRoute; title: string }[] = [
+  { route: 'structured', title: '资料库规则匹配' },
+  { route: 'snippet', title: '知识库片段' },
+  { route: 'history', title: '历史标书仅参考' },
+];
+
+// 固定按三路顺序分组，空组也保留，页面才能明确告诉用户“这一路没有候选”。
+export function groupCandidates(candidates: EvidenceCandidate[]): { route: CandidateRoute; title: string; items: EvidenceCandidate[] }[] {
+  return ROUTE_GROUPS.map(group => ({ ...group, items: candidates.filter(candidate => candidate.route === group.route) }));
+}
+
+// 只有资料库规则匹配、后台判定可挂接、调用人有权限且尚未挂接的候选可选；片段与历史标书永远不可选。
+export function candidateSelectable(candidate: EvidenceCandidate, canAttach: boolean): boolean {
+  return canAttach && candidate.route === 'structured' && candidate.attachable && !candidate.already_attached && !!candidate.id;
+}
+
+export function kbStatusText(status: EvidenceCandidates['kb_status']): string | null {
+  if (status === 'unavailable') return '知识库暂不可用，只给出资料库规则匹配结果。';
+  if (status === 'disabled') return '本环境未启用知识库，只给出资料库规则匹配结果。';
+  return null;
+}
+
+export function candidateMeta(candidate: EvidenceCandidate): string {
+  const parts = [candidate.version != null && candidate.version !== '' ? `v${candidate.version}` : '', candidate.source,
+    candidate.valid_until ? `有效至 ${candidate.valid_until}` : ''].filter(Boolean);
+  return parts.join(' · ');
+}
+
 const base = (projectId: string) => `/api/v1/projects/${encodeURIComponent(projectId)}`;
 
 export const RESPONSE_OPTIONS: { value: ResponseType; label: string }[] = [
@@ -33,6 +72,10 @@ export function fetchMatrix(projectId: string, token: string | null) {
 
 export function matchEvidence(projectId: string, token: string | null, ids: string[]) {
   return request<{ results: MatchResult[]; notice: string }>(`${base(projectId)}/matrix/match`, token, 'POST', { requirement_ids: ids });
+}
+
+export function fetchEvidenceCandidates(projectId: string, token: string | null, requirementId: string) {
+  return request<EvidenceCandidates>(`${base(projectId)}/requirements/${encodeURIComponent(requirementId)}/evidence-candidates`, token);
 }
 
 export const matrixPaths = {

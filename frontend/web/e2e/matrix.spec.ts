@@ -40,6 +40,10 @@ test('lead selects rows, opens smart matching and exports the matrix Excel', asy
   await page.getByTestId('matrix-match-button').click();
   await expect(page.getByTestId('matrix-match-row').first()).toBeVisible();
   await expect(page.getByText('候选不会自动挂接')).toBeVisible();
+  const row = page.getByTestId('matrix-match-row').first();
+  await expect(row.getByTestId('matrix-group-structured')).toContainText('资料库规则匹配');
+  await expect(row.getByTestId('matrix-group-snippet')).toContainText('知识库片段');
+  await expect(row.getByTestId('matrix-group-history')).toContainText('历史标书仅参考');
   await page.keyboard.press('Escape');
   const waiting = page.waitForEvent('download');
   await page.getByTestId('matrix-excel-button').click();

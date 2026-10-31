@@ -185,6 +185,39 @@ class MatrixMixin(SystemChapterMixin, ParseReviewMixin, ProposedStaffMixin, Expo
         return {"revision": project.revision, "project_id": project_id, "volume": volume, "volumes": list(active),
                 "stats": stats, "items": items}
 
+    def _requirement_candidates(self, state, principal: Principal, project, row: dict) -> dict:
+        """单条条款的三路候选（资料库规则匹配 / 知识库片段 / 历史标书参考），批量匹配与候选查询共用。"""
+        library = [i for i in state.library.values() if i.get("company_id") == project.company_id]
+        want = _grams(row.get("text"))
+        structured, history = [], []
+        for item in library:
+            overlap = len(want & _grams(f"{item.get('name', '')}{item.get('content', '')}")) / max(1, len(want))
+            if overlap < 0.12:
+                continue
+            ok, why = _attachable(state, project, item)
+            entry = {"id": item["id"], "name": item.get("name"), "type": item.get("type"), "revision": item.get("revision"),
+                     "valid_until": item.get("valid_until") or item.get("valid_to"), "score": round(overlap, 3),
+                     "attachable": ok, "reason": why, "already_attached": item["id"] in (row.get("evidence_ids") or []),
+                     "basis": "资料名称与内容和条款原文字面重合"}
+            if item.get("type") == "history":
+                entry["content_preview"] = str(item.get("content") or "")[:200]
+            (history if item.get("type") == "history" else structured).append(entry)
+        snippets: list[dict] = []
+        kb = getattr(self.demo, "knowledge_base", None)
+        kb_status = "disabled" if kb is None else "available"
+        if kb is not None:
+            try:
+                hits, _skip = kb.search(project.company_id, str(row.get("text", ""))[:300], limit=5, user=principal.user)
+                for hit in hits:
+                    public = hit.to_public()
+                    target = history if public.get("reference_only") else snippets
+                    target.append({**public, "attachable": False if public.get("reference_only") else public.get("attachable", False),
+                                   "basis": "公司知识库检索"})
+            except Exception:  # 知识库不可用时只给结构化候选，并说明
+                kb_status = "unavailable"
+        structured.sort(key=lambda c: (not c["attachable"], -c["score"]))
+        return {"structured": structured[:8], "snippets": snippets, "history": history[:5], "kb_status": kb_status}
+
     def match_evidence(self, principal: Principal, project_id: str, requirement_ids: list[str]) -> dict:
         """批量智能匹配：只返回候选与依据，不挂接（PRD §5.3.1 规则 11：结果逐行确认）。"""
         state = self.repository.read()
@@ -193,39 +226,55 @@ class MatrixMixin(SystemChapterMixin, ParseReviewMixin, ProposedStaffMixin, Expo
         rows = workflow.get("requirements", {})
         if not requirement_ids or any(rid not in rows for rid in requirement_ids):
             raise DomainError(404, "NOT_FOUND", "所选条款不存在或不属于本项目。")
-        library = [i for i in state.library.values() if i.get("company_id") == project.company_id]
-        kb = getattr(self.demo, "knowledge_base", None)
         results = []
         for rid in requirement_ids[:50]:
-            row = rows[rid]
-            want = _grams(row.get("text"))
-            structured, history = [], []
-            for item in library:
-                overlap = len(want & _grams(f"{item.get('name', '')}{item.get('content', '')}")) / max(1, len(want))
-                if overlap < 0.12:
-                    continue
-                ok, why = _attachable(state, project, item)
-                entry = {"id": item["id"], "name": item.get("name"), "type": item.get("type"), "revision": item.get("revision"),
-                         "valid_until": item.get("valid_until") or item.get("valid_to"), "score": round(overlap, 3),
-                         "attachable": ok, "reason": why, "already_attached": item["id"] in (row.get("evidence_ids") or []),
-                         "basis": "资料名称与内容和条款原文字面重合"}
-                (history if item.get("type") == "history" else structured).append(entry)
-            snippets = []
-            if kb is not None:
-                try:
-                    hits, _skip = kb.search(project.company_id, str(row.get("text", ""))[:300], limit=5, user=principal.user)
-                    for hit in hits:
-                        public = hit.to_public()
-                        target = history if public.get("reference_only") else snippets
-                        target.append({**public, "attachable": False if public.get("reference_only") else public.get("attachable", False),
-                                       "basis": "公司知识库检索"})
-                except Exception:  # 知识库不可用时只给结构化候选，并说明
-                    snippets = [{"unavailable": True, "reason": "知识库暂不可用，只给出资料库规则匹配结果"}]
-            structured.sort(key=lambda c: (not c["attachable"], -c["score"]))
-            results.append({"requirement_id": rid, "structured": structured[:8], "snippets": snippets,
-                            "history_reference": history[:5]})
+            found = self._requirement_candidates(state, principal, project, rows[rid])
+            snippets = found["snippets"]
+            if found["kb_status"] == "unavailable":
+                snippets = [{"unavailable": True, "reason": "知识库暂不可用，只给出资料库规则匹配结果"}]
+            results.append({"requirement_id": rid, "structured": found["structured"], "snippets": snippets,
+                            "history_reference": found["history"]})
         return {"project_id": project_id, "results": results,
                 "notice": "候选不会自动挂接；逐行勾选后点“挂接”才写入，已挂证据不会被替换。"}
+
+    def list_evidence_candidates(self, principal: Principal, project_id: str, requirement_id: str) -> dict:
+        """T118：单条条款的三路证据候选。只读；片段不可直接挂接，历史标书只能查看。"""
+        from .project_access import writable
+        state = self.repository.read()
+        project = self.demo._project(state, principal, project_id)
+        workflow = self._workflow(state, project_id)
+        row = workflow.get("requirements", {}).get(requirement_id)
+        if row is None:
+            raise DomainError(404, "NOT_FOUND", "未找到本项目条款。")
+        if row.get("merged_into"):
+            raise DomainError(409, "REQUIREMENT_MERGED", "这条已并入主条目，请在主条目上查看候选。",
+                              {"merged_into": row["merged_into"]})
+        found = self._requirement_candidates(state, principal, project, row)
+        can_attach = bool(writable(state, project_id, principal.user.id))
+        candidates = []
+        for entry in found["structured"]:
+            candidates.append({
+                "route": "structured", "route_label": "资料库规则匹配", "id": entry["id"], "name": entry["name"],
+                "version": entry.get("revision"), "source": "资料库", "score": entry["score"], "valid_until": entry.get("valid_until"),
+                "cite_reason": entry["basis"], "blocked_reason": entry["reason"] or None, "attachable": bool(entry["attachable"]),
+                "already_attached": entry["already_attached"], "content_preview": None})
+        for entry in found["snippets"]:
+            candidates.append({
+                "route": "snippet", "route_label": "知识库片段", "id": entry.get("source_id"), "name": entry.get("name"),
+                "version": entry.get("revision"), "source": "公司知识库", "score": entry.get("score"), "valid_until": None,
+                "cite_reason": entry["basis"], "blocked_reason": "知识库片段需在资料库确认后才能挂接", "attachable": False,
+                "already_attached": False, "content_preview": str(entry.get("content") or "")[:200]})
+        for entry in found["history"]:
+            candidates.append({
+                "route": "history", "route_label": "历史标书仅参考", "id": entry.get("id") or entry.get("source_id"),
+                "name": entry.get("name"), "version": entry.get("revision"),
+                "source": "历史标书" if entry.get("type") == "history" else "公司知识库", "score": entry.get("score"),
+                "valid_until": entry.get("valid_until"), "cite_reason": entry.get("basis") or "",
+                "blocked_reason": "历史标书仅供参考，不能作为证据挂接", "attachable": False, "already_attached": False,
+                "content_preview": entry.get("content_preview") or str(entry.get("content") or "")[:200] or None})
+        return {"project_id": project_id, "requirement_id": requirement_id, "revision": project.revision,
+                "kb_status": found["kb_status"], "can_attach": can_attach, "candidates": candidates,
+                "notice": "候选不会自动挂接；片段与历史标书只供查看，只有资料库已确认的规则匹配项可以挂接。"}
 
     def confirm_routing(self, principal: Principal, project_id: str, payload: dict, expected: str | None, key: str | None):
         """分册分流确认（PRD §5.3.1 规则 8）：项目负责人逐行确认归属分册与跨分册共用。"""

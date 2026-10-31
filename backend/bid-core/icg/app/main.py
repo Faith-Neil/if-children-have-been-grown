@@ -40,6 +40,7 @@ from icg.api import (
     include_company_routes,
     include_user_routes,
     include_chapter_loop_routes,
+    include_evidence_candidate_routes,
     include_knowledge_base_routes,
     include_kb_admin_routes,
     include_selection_rewrite_routes,
@@ -185,6 +186,7 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     include_company_routes(application, service, current_user)
     include_user_routes(application, service, current_user)
     include_chapter_loop_routes(application, service, current_user)
+    include_evidence_candidate_routes(application, service, current_user)
     include_knowledge_base_routes(application, service, current_user)
     include_kb_admin_routes(application, service, current_user)
     include_selection_rewrite_routes(application, service, current_user)
