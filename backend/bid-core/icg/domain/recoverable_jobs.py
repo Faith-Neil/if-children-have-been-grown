@@ -19,7 +19,7 @@ from .project_access import (
 )
 from .workflow_schemas import (
     CancelledEvent, CancelledPayload, CompletedEvent, CompletedPayload, FailedEvent, FailedPayload,
-    JobStatus, ModelCallEvent, ProgressEvent, ProgressPayload, StartGenerationRequest, StatusChange,
+    JobStatus, ModelCallEvent, ParseRequest, ProgressEvent, ProgressPayload, StartGenerationRequest, StatusChange,
     StatusChangedEvent, V1Error, v1_error_responses,
 )
 
@@ -562,7 +562,6 @@ class RecoverableJobs:
 
 def include_recoverable_routes(application, workflow, current_user):
     from .parse_jobs import ParseJobRunner
-    from .workflow_schemas import ParseRequest
     jobs = RecoverableJobs(workflow)
     parse_runner = ParseJobRunner(workflow, jobs)
     jobs.runners["parse"] = parse_runner
