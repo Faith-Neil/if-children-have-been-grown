@@ -33048,6 +33048,160 @@
         }
       }
     },
+    "/api/v1/projects/{project_id}/requirements/{requirement_id}/evidence-candidates": {
+      "get": {
+        "summary": "单条条款的三路证据候选",
+        "description": "按资料库规则匹配、知识库片段、历史标书三路返回候选，只读不挂接；片段与历史标书不可挂接。",
+        "operationId": "listEvidenceCandidates",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "项目ID",
+              "title": "Project Id"
+            },
+            "description": "项目ID"
+          },
+          {
+            "name": "requirement_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "条款ID",
+              "title": "Requirement Id"
+            },
+            "description": "条款ID"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceCandidatesResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/knowledge-base/status": {
       "get": {
         "summary": "Kb Status",
@@ -45382,6 +45536,25 @@
             "type": "boolean",
             "title": "Content Fixed"
           },
+          "interrupted": {
+            "type": "boolean",
+            "title": "Interrupted",
+            "description": "循环中途异常中断；正文未改动，可再次调用重试",
+            "default": false
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error",
+            "description": "中断时的错误说明 code/type/message"
+          },
           "loop": {
             "anyOf": [
               {
@@ -47876,6 +48049,190 @@
         "additionalProperties": false,
         "type": "object",
         "title": "EmptyRequest"
+      },
+      "EvidenceCandidate": {
+        "properties": {
+          "route": {
+            "type": "string",
+            "enum": [
+              "structured",
+              "snippet",
+              "history"
+            ],
+            "title": "Route",
+            "description": "structured 资料库规则匹配 / snippet 知识库片段 / history 历史标书仅参考"
+          },
+          "route_label": {
+            "type": "string",
+            "title": "Route Label"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version",
+            "description": "资料或片段所属资料的版本"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "来源：资料库 / 公司知识库 / 历史标书"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "cite_reason": {
+            "type": "string",
+            "title": "Cite Reason",
+            "description": "为什么推荐",
+            "default": ""
+          },
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked Reason",
+            "description": "不能挂接的原因；可挂接时为空"
+          },
+          "attachable": {
+            "type": "boolean",
+            "title": "Attachable"
+          },
+          "already_attached": {
+            "type": "boolean",
+            "title": "Already Attached",
+            "default": false
+          },
+          "content_preview": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Preview",
+            "description": "片段或历史标书内容预览，仅供查看"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "route",
+          "route_label",
+          "source",
+          "attachable"
+        ],
+        "title": "EvidenceCandidate"
+      },
+      "EvidenceCandidatesResponse": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
+          "requirement_id": {
+            "type": "string",
+            "title": "Requirement Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "kb_status": {
+            "type": "string",
+            "enum": [
+              "available",
+              "unavailable",
+              "disabled"
+            ],
+            "title": "Kb Status",
+            "description": "知识库状态；不可用时仍返回资料库规则匹配结果"
+          },
+          "can_attach": {
+            "type": "boolean",
+            "title": "Can Attach",
+            "description": "当前调用人是否有权挂接证据；只读成员为 false"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceCandidate"
+            },
+            "type": "array",
+            "title": "Candidates"
+          },
+          "notice": {
+            "type": "string",
+            "title": "Notice"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "project_id",
+          "requirement_id",
+          "revision",
+          "kb_status",
+          "can_attach",
+          "candidates",
+          "notice"
+        ],
+        "title": "EvidenceCandidatesResponse"
       },
       "ExportRequest": {
         "properties": {
