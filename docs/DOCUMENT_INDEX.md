@@ -4,7 +4,7 @@
 
 # 文档更新索引
 
-维护版本：g1.1。更新日期：2026-10-26。当前实现关联：ISSUE-007 / ISSUE-005 / ISSUE-006 / ISSUE-027 / APP-M1 / APP-M2-T003 / APP-M2-T004 / APP-M2-T005 / APP-M2-T006 / APP-M2-T007 / APP-M2-T009 / APP-M2-T014 / APP-M2-T015 / APP-M2-T016 / APP-M2-T017 / APP-M2-T018 / APP-M2-T020 / APP-M2-T195 / APP-M2-T196 / APP-M2-T181 / APP-M2-T182 / BE-CHECKS-EXPORT-ALIGN；离线检查：ISSUE-012 / APP-M2-T008；范围评审：ISSUE-005 / FE-M0-T03；模型决定：ISSUE-010 / AI-01（closed / in-review；业务库为 MySQL 8，嵌入与向量库为 RAGFlow）；兼容适配器：ISSUE-011 / AI-02（done）；检索骨架：ISSUE-016 / AI-03（closed / done，仅内存）；检索实现：ISSUE-037 / AI-04、AI-05、AI-06（in-progress / in-review，假服务、只读客户端与证据候选改走 RAGFlow 接线）。文档入口统一使用本文件，规则见 [WORKFLOW](governance/WORKFLOW.md)。历史交付维持当时版本与事实；整个ICG来源清单以D-050登记。
+维护版本：g1.1。更新日期：2026-10-28。当前实现关联：ISSUE-007 / ISSUE-005 / ISSUE-006 / ISSUE-027 / APP-M1 / APP-M2-T003 / APP-M2-T004 / APP-M2-T005 / APP-M2-T006 / APP-M2-T007 / APP-M2-T009 / APP-M2-T014 / APP-M2-T015 / APP-M2-T016 / APP-M2-T017 / APP-M2-T018 / APP-M2-T020 / APP-M2-T195 / APP-M2-T196 / APP-M2-T181 / APP-M2-T182 / BE-CHECKS-EXPORT-ALIGN；离线检查：ISSUE-012 / APP-M2-T008；范围评审：ISSUE-005 / FE-M0-T03；模型决定：ISSUE-010 / AI-01（closed / in-review；业务库为 MySQL 8，嵌入与向量库为 RAGFlow）；兼容适配器：ISSUE-011 / AI-02（done）；检索骨架：ISSUE-016 / AI-03（closed / done，仅内存）；检索实现：ISSUE-037 / AI-04、AI-05、AI-06（in-progress / in-review，假服务、只读客户端与证据候选改走 RAGFlow 接线）。文档入口统一使用本文件，规则见 [WORKFLOW](governance/WORKFLOW.md)。历史交付维持当时版本与事实；整个ICG来源清单以D-050登记。
 
 编号保持稳定。每次新增、修改、移动、归档文档更新路径、日期、版本、状态、关联 Issue/任务和说明；有替代文件时保留来源。治理版本与业务文档/软件版本独立，参考产品原文以文内版本为准。
 
@@ -15,9 +15,9 @@
 | 2026-10-26 | 任务看板 / PM 标 done | 依据 QA 独立终验签署报告（D-742）与 PD 产品视角对照验收报告（D-743），人类 PM 确认将 BE-TECH-DEBT-01、BE-TECH-DEBT-02、FE-REACT-ROUTER、AI-RAGFLOW-KB-SYNC、BE-COMPLIANCE-RULES-P0、REV-SMOKE-001、INT-VOLUME-FINALIZE-GLUE 共 7 张任务卡在 TASK_BOARD 与相应任务卡/Issue中正式标为 done，看板推进至 61 done、13 in-review |
 | 2026-10-26 | 产品 / 验收 / D0~D5 | 登记两轮治理与技术债重构批次产品视角对照验收报告（2026-10-26-pd-review-debt-remediation.md，D-743），PD 对照 PRD v1.8 与数据字典 v1.9，全面书面认可 7 张任务卡，建议 PM 标 done |
 | 2026-10-26 | 质量 / 验收 / D0~D5 | 登记 D0～D5 技术债治理与核心能力建设批次 QA 独立复测与签署报告（2026-10-26-debt-remediation-batch-qa-signoff.md，D-742），覆盖 BE-TECH-DEBT-01、BE-TECH-DEBT-02、FE-REACT-ROUTER、AI-RAGFLOW-KB-SYNC、BE-COMPLIANCE-RULES-P0、REV-SMOKE-001 共 6 张任务卡，后端 42 项专项全过、前端 395 项单测全绿、OpenAPI 100% 一致无 diff，签署通过建议 PM 标 done |
-| D-001 | 2026-10-27 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-038 / BE-TECH-DEBT-01/02；ISSUE-005；ISSUE-010；ISSUE-037 | 421项72done、60in-review、7in-progress、234planned、41blocked、7cancelled、0ready。Wave 4共5张核心卡正式标done；App.tsx瘦身达标、平台管理员脱敏长任务、P3合规规则扩充至21项、自适应Prompt Token预算全通 |
-| D-002 | 2026-10-26 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-038；ISSUE-005；ISSUE-027 | 维护现行前端实施需求，明确以 PRD v1.8 与字典 v1.9 为准绳；反映 412 项任务与 61 done 进度快照 |
-| D-003 | 2026-10-26 | [前端架构](ARCHITECTURE.md) | 前端架构 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-010；ISSUE-011；ISSUE-016；ISSUE-038 | 现行前端与后端分层架构；react-router 路由与 8 域物理分包；后端 icg/{api,app,domain,infra} 去平铺规范；修复全量目录超链接 |
+| D-001 | 2026-10-28 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-038 / BE-TECH-DEBT-01/02；ISSUE-005；ISSUE-010；ISSUE-037；ISSUE-039～042 / Wave 11 | 444项96done、65in-review、7in-progress、228planned、41blocked、7cancelled、0ready（2026-10-28）。Wave 11 五张卡 in-review，新发现 ISSUE-039/041/042。421项72done、60in-review、7in-progress、234planned、41blocked、7cancelled、0ready。Wave 4共5张核心卡正式标done；App.tsx瘦身达标、平台管理员脱敏长任务、P3合规规则扩充至21项、自适应Prompt Token预算全通 |
+| D-002 | 2026-10-28 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-038；ISSUE-005；ISSUE-027；ISSUE-040 | Wave 11 登记人工处理队列、交叉复核、疑似遗漏与持久化边界；维护现行前端实施需求，明确以 PRD v1.8 与字典 v1.9 为准绳；反映 412 项任务与 61 done 进度快照 |
+| D-003 | 2026-10-28 | [前端架构](ARCHITECTURE.md) | 前端架构 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-010；ISSUE-011；ISSUE-016；ISSUE-038；ISSUE-040 | Wave 11 登记人工处理队列、交叉复核、疑似遗漏与持久化边界；现行前端与后端分层架构；react-router 路由与 8 域物理分包；后端 icg/{api,app,domain,infra} 去平铺规范；修复全量目录超链接 |
 | D-004 | 2026-10-26 | [前端路线图](ROADMAP.md) | 计划 | 参考实施入口 / g1.1 | 执行入口 | ISSUE-007 / APP-M1；ISSUE-038；ISSUE-027 | 现行阶段实施路线图，纳入 D0~D5 技术债与产品断环推进顺序，反映 412 项任务全景 |
 | D-005 | 2026-10-09 | [UX 规范](design/ux.md) | 设计 | 原文 | 参考 | FE-M0-T01 | 从ui/ux.md迁移，无业务内容改写 |
 | D-006 | 2026-10-09 | [产品 PRD v1.8](reference/product/prd-mvp-v1.8.md) | 产品参考 | v1.8 | 供评审 | FE-M0-T01 | 已脱敏原文，不受治理修订覆盖 |
@@ -93,7 +93,7 @@
 | D-076 | 2026-10-11 | [后台测试](../tests/backend/test_demo.py) | 验证代码 | demo-1 | 31项通过 | BE-M0-T01 | 实际失败边界、并发与输出 |
 | D-077 | 2026-10-11 | [HTTP验收入口](../backend/bid-core/smoke_demo.py) | 验证工具 | demo-1 | 通过 | BE-M0-T01 | 连接实际监听端口执行完整链路 |
 | D-078 | 2026-10-10 | [接口生成器](../backend/bid-core/export_openapi.py) | 工具 | demo-1 | 通过 | BE-M0-T01 | 保持约定与实际代码同源 |
-| D-079 | 2026-10-10 | [页面事件回归](../tests/backend/demo-page.test.cjs) | 验证代码 | demo-1 | 7项通过 | BE-M0-T01 | 直接执行页面代码，验证旧草稿、确认、恢复失败与会话锁 |
+| D-079 | 2026-10-10 | `页面事件回归`（2026-10-28 随演示入口移除） | 验证代码 | demo-1 | 7项通过 | BE-M0-T01 | 直接执行页面代码，验证旧草稿、确认、恢复失败与会话锁 |
 | D-080 | 2026-10-11 | [示例联调Issue](../issues/ISSUE-007.md) | 变更 | reference-members-1 | in-progress | ISSUE-007 / APP-M1 | 同一产品逐页接通，T07/T14/T15本地验收，完整目标继续 |
 | D-081 | 2026-10-11 | [示例任务卡](tasks/APP-M1.md) | 实施 | reference-members-1 / library-basis-1 | 当前 | ISSUE-007 / APP-M1；ISSUE-008 / T16 | 16项，T07/T09～16本地done；资料及模板保护验收，完整父任务继续 |
 | D-082 | 2026-10-11 | [示例接口约定](architecture/icg-reference-contract.md) | 接口 | reference-members-1 | 实际契约 | ISSUE-007 / APP-M1；ISSUE-022 | 项目成员、分册/本节分工、逐章确认、已读依据和交接保护。502/503 自动重试含 N7：MODEL_UNAVAILABLE 与 SECRET_KEY_UNAVAILABLE 不自动重试 |
@@ -856,11 +856,111 @@
 | D-835 | 2026-10-28 | [代码说明：章节合规质检缺陷自动整改建议与局部智能重写引擎（AI-OUTLINE-AUTO-REMEDIATION）](code/AI-OUTLINE-AUTO-REMEDIATION.md) | 代码说明 | outline-auto-remediation-1 | 当前 | ISSUE-037 / ISSUE-007 / AI-OUTLINE-AUTO-REMEDIATION | 章节合规质检缺陷自动整改建议与局部智能重写引擎代码说明：架构时序图拓扑、四重合规缺陷逐段精准诊断算法、确定性正向承诺翻转与清洗算法、结构化整改建议计划合成、局部智能重写与原地合规保全机制、多轮自适应收敛循环、单章与批量流水线闭环集成、涉密本地模型硬门禁与12项专属自动化测试用例映射 |
 | D-836 | 2026-10-28 | [QA终验签署：Wave 10核心能力与技术交付批次（共4卡）](testing/2026-10-28-wave-10-batch-qa-signoff.md) | 验收签署 | wave10-qa-signoff-1 | 已通过 | ISSUE-007 / APP-M2-T028 / INT-USER-SECURITY-OPS-GLUE / BE-USER-SECURITY-OPS / AI-OUTLINE-AUTO-REMEDIATION | Wave 10 批次（APP-M2-T028、INT-USER-SECURITY-OPS-GLUE、BE-USER-SECURITY-OPS、AI-OUTLINE-AUTO-REMEDIATION）QA独立复测全绿通过（前端单测455 passed、类型检查0 error、后端pytest专项21项全绿、核心大回归40项全绿、OpenAPI 0漂移、工程治理0错误），签署PASS并建议PM标done |
 | D-837 | 2026-10-28 | [PD产品验收报告：Wave 10业务功能与核心技术交付](reviews/2026-10-28-pd-review-wave10.md) | 产品验收 | pd-review-wave10-1 | 已通过 | ISSUE-007 / APP-M2-T028 / INT-USER-SECURITY-OPS-GLUE / BE-USER-SECURITY-OPS / AI-OUTLINE-AUTO-REMEDIATION | Wave 10 批次（APP-M2-T028、INT-USER-SECURITY-OPS-GLUE、BE-USER-SECURITY-OPS、AI-OUTLINE-AUTO-REMEDIATION）PD 对照 PRD v1.8、交接约束 M1-P10-F3、Q28 密码策略与主 Agent 五条金标准全维度核验通过，书面认可并建议 PM 标 done |
+| D-838 | 2026-10-28 | [ISSUE-039 章节自动整改引擎编造承诺与依据](../issues/ISSUE-039.md) | Issue | revision 1 | in-review | ISSUE-039 / AI-REMEDIATION-NO-FABRICATION | Wave 10 整改引擎把偏离改成满足、把【待补】改成空泛承诺、替换依据外证据；已撤回并改为规则编排转人工 |
+| D-839 | 2026-10-28 | [ISSUE-040 Wave 11 主路径补环](../issues/ISSUE-040.md) | Issue | revision 1 | in-review | ISSUE-040 / APP-M2-T133 / APP-M2-T144 / APP-M2-T111 / BE-WORKFLOW-STATE-PERSIST | 人工处理队列、分册交叉复核与定稿门禁、星号/废标兜底扫描、新聚合持久化 |
+| D-840 | 2026-10-28 | [ISSUE-041 项目工作流主体未写入 MySQL](../issues/ISSUE-041.md) | Issue | revision 2 | in-review | ISSUE-041 / BE-WORKFLOW-DURABILITY | MySQL 模式下文件、条款、事实、候选、检查、导出只在进程内存 |
+| D-841 | 2026-10-28 | [ISSUE-042 e2e 证据抽屉用例与资料库表单脱节](../issues/ISSUE-042.md) | Issue | revision 1 | in-progress | ISSUE-042 / FE-E2E-LIBRARY-DRIFT | e2e 必需作业自 e56d225 起持续失败；编辑台 1280 溢出已修，资料类别回归待修 |
+| D-842 | 2026-10-28 | [PRD v1.8 实施澄清（Wave 11）](decisions/2026-10-28-prd-amendments-wave11.md) | 决策 | wave11-1 | 生效 | ISSUE-039 / ISSUE-040 | 项目经理对 PRD 不明确处的 8 条实施口径（A1～A8），原文不改 |
+| D-843 | 2026-10-28 | [PRD 缺口增量（2026-10-28）](delivery/2026-10-28-prd-gap-delta.md) | 产品审查 | delta-1 | 当前 | ISSUE-040 / ISSUE-041 / ISSUE-042 | 按代码实况更新 10-22 缺口汇总；完备度约 40%～45%；Wave 12 建议顺序 |
+| D-844 | 2026-10-28 | [任务交付：人工处理队列列表（APP-M2-T133）](delivery/APP-M2-T133.md) | 任务交付 | human-queue-1 | in-review | ISSUE-040 / APP-M2-T133 | 章节循环规则、队列处理/驳回/重新检查与页面，替换 manual 占位页 |
+| D-845 | 2026-10-28 | [代码说明：人工处理队列列表（APP-M2-T133）](code/APP-M2-T133.md) | 代码说明 | human-queue-1 | 当前 | ISSUE-040 / APP-M2-T133 | 入口、数据结构、转人工判定与权限 |
+| D-846 | 2026-10-28 | [任务交付：分册检查/定稿/解锁/交叉复核（APP-M2-T144）](delivery/APP-M2-T144.md) | 任务交付 | cross-review-1 | in-review | ISSUE-040 / APP-M2-T144 | 交叉复核、定稿快照、待人工清零、解锁失效、后台只读与导出页定稿区 |
+| D-847 | 2026-10-28 | [代码说明：分册检查/定稿/解锁/交叉复核（APP-M2-T144）](code/APP-M2-T144.md) | 代码说明 | cross-review-1 | 当前 | ISSUE-040 / APP-M2-T144 | 定稿前置顺序、编写人判定、快照与输入指纹 |
+| D-848 | 2026-10-28 | [任务交付：疑似遗漏（APP-M2-T111）](delivery/APP-M2-T111.md) | 任务交付 | omission-scan-1 | in-review | ISSUE-040 / APP-M2-T111 | 兜底扫描、逐条新增/排除、确认解析闸门；引用未解析未做 |
+| D-849 | 2026-10-28 | [代码说明：疑似遗漏（APP-M2-T111）](code/APP-M2-T111.md) | 代码说明 | omission-scan-1 | 当前 | ISSUE-040 / APP-M2-T111 | 扫描时机、覆盖判定与处理保留 |
+| D-850 | 2026-10-28 | [任务交付：章节自动整改不编造（AI-REMEDIATION-NO-FABRICATION）](delivery/AI-REMEDIATION-NO-FABRICATION.md) | 算法交付 | no-fabrication-1 | in-review | ISSUE-039 / AI-REMEDIATION-NO-FABRICATION | 撤回编造行为、模型改写安全复核、测试按 PRD 重写 |
+| D-851 | 2026-10-28 | [代码说明：章节自动整改不编造（AI-REMEDIATION-NO-FABRICATION）](code/AI-REMEDIATION-NO-FABRICATION.md) | 代码说明 | no-fabrication-1 | 当前 | ISSUE-039 / AI-REMEDIATION-NO-FABRICATION | 新旧行为对照与调用顺序 |
+| D-852 | 2026-10-28 | [任务交付：工作流新聚合持久化（BE-WORKFLOW-STATE-PERSIST）](delivery/BE-WORKFLOW-STATE-PERSIST.md) | 任务交付 | workflow-state-1 | in-review | ISSUE-040 / ISSUE-041 / BE-WORKFLOW-STATE-PERSIST | Alembic 0012 与差量写入；其余工作流键仍在内存 |
+| D-853 | 2026-10-28 | [代码说明：工作流新聚合持久化（BE-WORKFLOW-STATE-PERSIST）](code/BE-WORKFLOW-STATE-PERSIST.md) | 代码说明 | workflow-state-1 | 当前 | ISSUE-040 / BE-WORKFLOW-STATE-PERSIST | 加载、快照、差量保存与缺表处理 |
+| D-854 | 2026-10-28 | [Wave 11 开发自测记录](testing/2026-10-28-wave-11-verification.md) | 验证 | wave11-dev-1 | 开发自测 | ISSUE-039 / ISSUE-040 / ISSUE-042 | 后端 871 passed、前端 289 pass、e2e 与 MySQL 实况；非 QA 签署 |
+| D-855 | 2026-10-28 | [任务交付：业务状态写入 MySQL（BE-WORKFLOW-DURABILITY）](delivery/BE-WORKFLOW-DURABILITY.md) | 任务交付 | durability-1 | in-review | ISSUE-041 / BE-WORKFLOW-DURABILITY | 通用条目表 demo_state_entry、rev 乐观锁、服务内存储持久化 |
+| D-856 | 2026-10-28 | [代码说明：业务状态写入 MySQL（BE-WORKFLOW-DURABILITY）](code/BE-WORKFLOW-DURABILITY.md) | 代码说明 | durability-1 | 当前 | ISSUE-041 / BE-WORKFLOW-DURABILITY | 条目划分、加载与差量保存、冲突判定 |
+| D-857 | 2026-10-28 | [任务交付：公司知识库同步与检索（AI-KB-RAG-PIPELINE）](delivery/AI-KB-RAG-PIPELINE.md) | 算法交付 | kb-rag-1 | in-review | ISSUE-043 / AI-KB-RAG-PIPELINE | 对账同步、索引过滤与实时复核检索、各调用方接入 |
+| D-858 | 2026-10-28 | [代码说明：公司知识库同步与检索（AI-KB-RAG-PIPELINE）](code/AI-KB-RAG-PIPELINE.md) | 代码说明 | kb-rag-1 | 当前 | ISSUE-043 / AI-KB-RAG-PIPELINE | 索引结构、同步与检索调用顺序 |
+| D-859 | 2026-10-28 | [Wave 12 开发自测记录](testing/2026-10-28-wave-12-verification.md) | 验证 | wave12-dev-1 | 开发自测 | ISSUE-041 / ISSUE-043 | 后端 879 passed、MySQL 40 passed、知识库 13 passed；真实 RAGFlow 评测未执行；非 QA 签署 |
+| D-860 | 2026-10-28 | [ISSUE-043 知识库同步与检索未接入生产链路](../issues/ISSUE-043.md) | Issue | revision 1 | in-review | ISSUE-043 | 检索未接通、片段同步伪造、无映射与删除 |
+| D-861 | 2026-10-28 | [技术决定：知识库管控、ICG 摄入流程与招标解析是否用 RAG](decisions/2026-10-28-kb-control-plane-and-pipelines.md) | 决策 | kb-control-1 | 当前 | ISSUE-043 / AI-KB-CONTROL-PLANE | 四类知识与流程、管控接口授权、招标解析不用向量检索的理由 |
+| D-862 | 2026-10-28 | [RAG 检索评测：内置解析，真实 RAGFlow](testing/rag-eval-golden-v1-builtin.md) | 验证 | golden-v1 | 当前 | ISSUE-043 / AI-KB-RAG-EVAL | 阈值×关键词权重扫描；据此定默认值 0.45/0.3 |
+| D-863 | 2026-10-28 | [Wave 12 续开发自测](testing/2026-10-28-wave-12b-verification.md) | 验证 | wave12b-dev-1 | 开发自测 | ISSUE-042 / ISSUE-043 / ISSUE-044 | 去掉演示环境、知识库接入业务页面、条款结构化抽取；非 QA 签署 |
+| D-864 | 2026-10-28 | [ISSUE-044 前端根目录测试从未执行](../issues/ISSUE-044.md) | Issue | revision 1 | triaged | ISSUE-044 / FE-TEST-ORPHANS | 28 个测试文件未执行，8 项失败 |
+| D-865 | 2026-10-28 | [ISSUE-045 任务看板按代码实况重定](../issues/ISSUE-045.md) | Issue | revision 1 | in-review | ISSUE-045 | 131 卡状态重定；旧前端轨道与示例外壳 cancelled |
+| D-866 | 2026-10-28 | [RAG 检索评测：ICG 流程模式，真实 RAGFlow](testing/rag-eval-golden-v1-pipeline.md) | 验证 | golden-v1 | 当前 | ISSUE-043 / AI-KB-RAG-EVAL | 7/21 解析失败，召回低于内置解析；上线前换内网抽取模型复测 |
+| D-867 | 2026-10-30 | [任务交付：条目卡片编辑与逐条确认（APP-M2-T105）](delivery/APP-M2-T105.md) | 任务交付 | board-audit-1 | in-review | ISSUE-045 / ISSUE-007 / APP-M2-T105 | 看板整治核实已实现，补交付 |
+| D-868 | 2026-10-30 | [代码说明：条目卡片编辑与逐条确认（APP-M2-T105）](code/APP-M2-T105.md) | 代码说明 | board-audit-1 | 当前 | ISSUE-045 / APP-M2-T105 | 入口、调用顺序与限制 |
+| D-869 | 2026-10-30 | [任务交付：批量确认禁用与置信度高亮（APP-M2-T106）](delivery/APP-M2-T106.md) | 任务交付 | board-audit-1 | in-review | ISSUE-045 / ISSUE-007 / APP-M2-T106 | 看板整治核实已实现，补交付 |
+| D-870 | 2026-10-30 | [代码说明：批量确认禁用与置信度高亮（APP-M2-T106）](code/APP-M2-T106.md) | 代码说明 | board-audit-1 | 当前 | ISSUE-045 / APP-M2-T106 | 入口、调用顺序与限制 |
+| D-871 | 2026-10-30 | [任务交付：确认解析结果闸门（APP-M2-T108）](delivery/APP-M2-T108.md) | 任务交付 | board-audit-1 | in-review | ISSUE-045 / ISSUE-007 / APP-M2-T108 | 看板整治核实已实现，补交付 |
+| D-872 | 2026-10-30 | [代码说明：确认解析结果闸门（APP-M2-T108）](code/APP-M2-T108.md) | 代码说明 | board-audit-1 | 当前 | ISSUE-045 / APP-M2-T108 | 入口、调用顺序与限制 |
+| D-873 | 2026-10-30 | [任务交付：一键重新检查（APP-M2-T135）](delivery/APP-M2-T135.md) | 任务交付 | board-audit-1 | in-review | ISSUE-045 / ISSUE-007 / APP-M2-T135 | 看板整治核实已实现，补交付 |
+| D-874 | 2026-10-30 | [代码说明：一键重新检查（APP-M2-T135）](code/APP-M2-T135.md) | 代码说明 | board-audit-1 | 当前 | ISSUE-045 / APP-M2-T135 | 入口、调用顺序与限制 |
+| D-875 | 2026-10-30 | [任务交付：编辑锁徽标、心跳、超时提示、接管（APP-M2-T173）](delivery/APP-M2-T173.md) | 任务交付 | board-audit-1 | in-review | ISSUE-045 / ISSUE-007 / APP-M2-T173 | 看板整治核实已实现，补交付 |
+| D-876 | 2026-10-30 | [代码说明：编辑锁徽标、心跳、超时提示、接管（APP-M2-T173）](code/APP-M2-T173.md) | 代码说明 | board-audit-1 | 当前 | ISSUE-045 / APP-M2-T173 | 入口、调用顺序与限制 |
+| D-877 | 2026-10-30 | [任务交付：章节加载与段落键（APP-M2-T161）](delivery/APP-M2-T161.md) | 任务交付 | paragraph-keys-1 | in-review | ISSUE-007 / APP-M2-T161 | 段落键与逐段来源随版本保存，MySQL 版本 meta 列 |
+| D-878 | 2026-10-30 | [代码说明：章节加载与段落键（APP-M2-T161）](code/APP-M2-T161.md) | 代码说明 | paragraph-keys-1 | 当前 | ISSUE-007 / APP-M2-T161 | 分块、分键、来源与存取 |
+| D-879 | 2026-10-30 | [任务交付：锁定内容（APP-M2-T163）](delivery/APP-M2-T163.md) | 任务交付 | paragraph-locks-1 | in-review | ISSUE-007 / APP-M2-T163 | 段落锁定与各写入路径拦截 |
+| D-880 | 2026-10-30 | [代码说明：锁定内容（APP-M2-T163）](code/APP-M2-T163.md) | 代码说明 | paragraph-locks-1 | 当前 | ISSUE-007 / APP-M2-T163 | 存储、识别与拦截点 |
+| D-881 | 2026-10-30 | [任务交付：提交版本与版本历史（APP-M2-T174）](delivery/APP-M2-T174.md) | 任务交付 | versions-1 | in-review | ISSUE-007 / APP-M2-T174 | 版本列表修改方式与段落表 |
+| D-882 | 2026-10-30 | [代码说明：提交版本与版本历史（APP-M2-T174）](code/APP-M2-T174.md) | 代码说明 | versions-1 | 当前 | ISSUE-007 / APP-M2-T174 | 版本字段来源与标签 |
+| D-883 | 2026-10-30 | [任务交付：版本对比与回退（APP-M2-T175）](delivery/APP-M2-T175.md) | 任务交付 | versions-1 | in-review | ISSUE-007 / APP-M2-T175 | 逐段对比与后台重核的回退 |
+| D-884 | 2026-10-30 | [代码说明：版本对比与回退（APP-M2-T175）](code/APP-M2-T175.md) | 代码说明 | versions-1 | 当前 | ISSUE-007 / APP-M2-T175 | 回退核对顺序与逐段对比算法 |
+| D-885 | 2026-10-30 | [一期范围的三项决定](decisions/2026-10-30-phase-one-pm-decisions.md) | 决策 | pm-1030-1 | 生效 | ISSUE-045 / APP-M2-T260 | 取消 OIDC/Keycloak、FE-M6/M7 二期、T139 用 AntV G2 |
+| D-886 | 2026-10-30 | [任务交付：变量节点（APP-M2-T164）](delivery/APP-M2-T164.md) | 任务交付 | variables-1 | in-review | ISSUE-007 / APP-M2-T164 | 变量取值与掩码、失效标记、提交拒绝新失效变量 |
+| D-887 | 2026-10-30 | [代码说明：变量节点（APP-M2-T164）](code/APP-M2-T164.md) | 代码说明 | variables-1 | 当前 | ISSUE-007 / APP-M2-T164 | 解析方式与写入拦截点 |
+| D-888 | 2026-10-30 | [WP-1 变量节点与问题联动验证](testing/2026-10-30-wp1-variables-issues.md) | 测试 | wp1-vi-1 | 当前 | ISSUE-007 / APP-M2-T164 / APP-M2-T166 | 验证命令、结果与本机 RAGFlow 误写处理 |
+| D-889 | 2026-10-31 | [任务交付：口令登录（APP-M2-T260）](delivery/APP-M2-T260.md) | 任务交付 | login-1 | in-review | ISSUE-007 / APP-M2-T260 | 强制改密、公司停用、统一失败提示、公司密码规则、锁定到期解锁 |
+| D-890 | 2026-10-31 | [代码说明：口令登录（APP-M2-T260）](code/APP-M2-T260.md) | 代码说明 | login-1 | 当前 | ISSUE-007 / APP-M2-T260 | 登录判定顺序、须改密拦截点、密码规则与安全审计 |
+| D-891 | 2026-10-31 | [APP-M2-T260 口令登录验证](testing/2026-10-31-t260-password-login.md) | 测试 | login-test-1 | 当前 | ISSUE-007 / APP-M2-T260 | 本机与 CI 验证、首次 CI 失败原因与契约导出方式 |
+| D-892 | 2026-10-31 | [任务交付：问题标注与侧栏联动（APP-M2-T166）](delivery/APP-M2-T166.md) | 任务交付 | issues-1 | in-review | ISSUE-007 / APP-M2-T166 | 本章问题清单三处来源、段落定位与正文标记 |
+| D-893 | 2026-10-31 | [代码说明：问题标注与侧栏联动（APP-M2-T166）](code/APP-M2-T166.md) | 代码说明 | issues-1 | 当前 | ISSUE-007 / APP-M2-T166 | 来源合并、段落键折算顺序与前端接线 |
+| D-894 | 2026-10-31 | [APP-M2-T166 问题联动验证](testing/2026-10-31-t166-issue-linkage.md) | 测试 | issues-test-1 | 当前 | ISSUE-007 / APP-M2-T166 | 本机与 CI 验证 |
+| D-895 | 2026-10-31 | [任务交付：后台解析任务与进度订阅（APP-M2-T020）](delivery/APP-M2-T020.md) | 任务交付 | jobs-1 | in-review | ISSUE-007 / APP-M2-T020 | 解析后台任务、事件流续连、退避轮询与恢复 |
+| D-896 | 2026-10-31 | [代码说明：后台解析任务与进度订阅（APP-M2-T020）](code/APP-M2-T020.md) | 代码说明 | jobs-1 | 当前 | ISSUE-007 / APP-M2-T020 | 执行器、事件流保持与前端订阅状态机 |
+| D-897 | 2026-10-31 | [APP-M2-T020 解析任务验证](testing/2026-10-31-t020-parse-job-progress.md) | 测试 | jobs-test-1 | 当前 | ISSUE-007 / APP-M2-T020 | 本机与 CI 验证、未连真实 RAGFlow |
+| D-898 | 2026-10-31 | [任务交付：新建项目与 R19 提示（APP-M2-T096）](delivery/APP-M2-T096.md) | 任务交付 | r19-1 | in-review | ISSUE-007 / ISSUE-046 / APP-M2-T096 | 同标段核对、只示公司名、说明留痕与通知、原 R19 更正 |
+| D-899 | 2026-10-31 | [代码说明：新建项目与 R19 提示（APP-M2-T096）](code/APP-M2-T096.md) | 代码说明 | r19-1 | 当前 | ISSUE-007 / APP-M2-T096 | 匹配口径、拦截点、确认范围与检查规则 |
+| D-900 | 2026-10-31 | [APP-M2-T096 关联投标验证](testing/2026-10-31-t096-related-bid.md) | 测试 | r19-test-1 | 当前 | ISSUE-007 / APP-M2-T096 | 本机与 CI 验证 |
+| D-901 | 2026-10-31 | [ISSUE-046：合规规则编号与 PRD 规则清单不一致](../issues/ISSUE-046.md) | Issue | rule-ids-1 | new | ISSUE-046 | 约 19 条规则编号对不上 PRD，规则卡 in-review 不成立 |
+| D-902 | 2026-10-31 | [任务交付：招标文件上传与版本链（APP-M2-T101）](delivery/APP-M2-T101.md) | 任务交付 | wp4-1 | in-review | ISSUE-007 / APP-M2-T101 | 文件类型、版本、上传人列与设为被替代 |
+| D-903 | 2026-10-31 | [代码说明：招标文件上传与版本链（APP-M2-T101）](code/APP-M2-T101.md) | 代码说明 | wp4-1 | 当前 | ISSUE-007 / APP-M2-T101 | 前端接线与纯逻辑位置 |
+| D-904 | 2026-10-31 | [任务交付：解析进度页（APP-M2-T102）](delivery/APP-M2-T102.md) | 任务交付 | wp4-1 | in-review | ISSUE-007 / APP-M2-T102 | 解析服务与耗时列、换服务重试 |
+| D-905 | 2026-10-31 | [代码说明：解析进度页（APP-M2-T102）](code/APP-M2-T102.md) | 代码说明 | wp4-1 | 当前 | ISSUE-007 / APP-M2-T102 | 前端接线与纯逻辑位置 |
+| D-906 | 2026-10-31 | [任务交付：重抽不覆盖与补遗差异（APP-M2-T107）](delivery/APP-M2-T107.md) | 任务交付 | wp4-1 | in-review | ISSUE-007 / APP-M2-T107 | 补遗差异抽屉与逐字对照 |
+| D-907 | 2026-10-31 | [代码说明：重抽不覆盖与补遗差异（APP-M2-T107）](code/APP-M2-T107.md) | 代码说明 | wp4-1 | 当前 | ISSUE-007 / APP-M2-T107 | 前端接线与纯逻辑位置 |
+| D-908 | 2026-10-31 | [任务交付：后处理条与合并条目（APP-M2-T109）](delivery/APP-M2-T109.md) | 任务交付 | wp4-1 | in-review | ISSUE-007 / APP-M2-T109 | 已合并 N 条、拆分、多位置切换与合并建议 |
+| D-909 | 2026-10-31 | [代码说明：后处理条与合并条目（APP-M2-T109）](code/APP-M2-T109.md) | 代码说明 | wp4-1 | 当前 | ISSUE-007 / APP-M2-T109 | 前端接线与纯逻辑位置 |
+| D-910 | 2026-10-31 | [任务交付：冲突待选定页签（APP-M2-T110）](delivery/APP-M2-T110.md) | 任务交付 | wp4-1 | in-review | ISSUE-007 / APP-M2-T110 | 并列取值、不构成冲突、理由必填、补遗不阻断 |
+| D-911 | 2026-10-31 | [代码说明：冲突待选定页签（APP-M2-T110）](code/APP-M2-T110.md) | 代码说明 | wp4-1 | 当前 | ISSUE-007 / APP-M2-T110 | 前端接线与纯逻辑位置 |
+| D-912 | 2026-10-31 | [WP-4 解析后处理前端验证](testing/2026-10-31-wp4-parse-postprocess-frontend.md) | 测试 | wp4-test-1 | 当前 | ISSUE-007 / APP-M2-T101 / T102 / T107 / T109 / T110 | 本机单测结果，后端、tsc、e2e 未在本机执行 |
+| D-913 | 2026-10-31 | [任务交付：项目概览（待办、分册、状态操作）（APP-M2-T097）](delivery/APP-M2-T097.md) | 任务交付 | wp4-2 | in-review | ISSUE-007 / APP-M2-T097 | 项目状态流转、取消后只读、倒计时≤3天标红、概览追加真实待办 |
+| D-914 | 2026-10-31 | [代码说明：项目概览（待办、分册、状态操作）（APP-M2-T097）](code/APP-M2-T097.md) | 代码说明 | wp4-2 | 当前 | ISSUE-007 / APP-M2-T097 | 后台与前端接线、规则所在位置 |
+| D-915 | 2026-10-31 | [任务交付：项目基本字段和合作方协议（APP-M2-T098）](delivery/APP-M2-T098.md) | 任务交付 | wp4-2 | in-review | ISSUE-007 / APP-M2-T098 | 基本信息人工修改标记、合作方协议缺失标记与重复校验 |
+| D-916 | 2026-10-31 | [代码说明：项目基本字段和合作方协议（APP-M2-T098）](code/APP-M2-T098.md) | 代码说明 | wp4-2 | 当前 | ISSUE-007 / APP-M2-T098 | 后台与前端接线、规则所在位置 |
+| D-917 | 2026-10-31 | [任务交付：项目设置：拟派人员、SLA 取值、规则覆盖（APP-M2-T099）](delivery/APP-M2-T099.md) | 任务交付 | wp4-2 | in-review | ISSUE-007 / APP-M2-T099 | 拟派人员占用提示、SLA 取值摘要、规则覆盖保存读回 |
+| D-918 | 2026-10-31 | [代码说明：项目设置：拟派人员、SLA 取值、规则覆盖（APP-M2-T099）](code/APP-M2-T099.md) | 代码说明 | wp4-2 | 当前 | ISSUE-007 / APP-M2-T099 | 后台与前端接线、规则所在位置 |
+| D-919 | 2026-10-31 | [任务交付：分册格式、闭环及导出设置（APP-M2-T100）](delivery/APP-M2-T100.md) | 任务交付 | wp4-2 | in-review | ISSUE-007 / APP-M2-T100 | 分册编制方式、内部截止、密封/暗标/页码/封面、递交文件名与完整值类别保存 |
+| D-920 | 2026-10-31 | [代码说明：分册格式、闭环及导出设置（APP-M2-T100）](code/APP-M2-T100.md) | 代码说明 | wp4-2 | 当前 | ISSUE-007 / APP-M2-T100 | 后台与前端接线、规则所在位置 |
+| D-921 | 2026-10-31 | [项目状态、倒计时与设置验证](testing/2026-10-31-t097-t100-project-status-settings.md) | 测试 | wp4-test-2 | 当前 | ISSUE-007 / APP-M2-T097 / T098 / T099 / T100 | 本机单测结果，后端、tsc、e2e 未在本机执行 |
+| D-922 | 2026-11-01 | [任务交付：异常中断与重试（APP-M2-T136）](delivery/APP-M2-T136.md) | 任务交付 | wp5-1 | in-review | ISSUE-007 / APP-M2-T136 | 循环异常记为异常中断、正文与问题不动、进度页重试 |
+| D-923 | 2026-11-01 | [代码说明：异常中断与重试（APP-M2-T136）](code/APP-M2-T136.md) | 代码说明 | wp5-1 | 当前 | ISSUE-007 / APP-M2-T136 | 中断记录、状态流转与前端展示接线 |
+| D-924 | 2026-11-01 | [任务交付：挂证据候选的三路显示（APP-M2-T118）](delivery/APP-M2-T118.md) | 任务交付 | wp5-1 | in-review | ISSUE-007 / APP-M2-T118 | 资料库规则匹配、知识库片段、历史标书仅参考三路候选接口与抽屉 |
+| D-925 | 2026-11-01 | [代码说明：挂证据候选的三路显示（APP-M2-T118）](code/APP-M2-T118.md) | 代码说明 | wp5-1 | 当前 | ISSUE-007 / APP-M2-T118 | 候选整理、可挂接判断与前端分组接线 |
+| D-926 | 2026-11-01 | [WP-5 第一批验证：三路证据候选与循环异常重试](testing/2026-11-01-wp5-batch1-loop-evidence.md) | 测试 | wp5-test-1 | 当前 | ISSUE-007 / APP-M2-T118 / T136 | 本机单测结果，后端、tsc、e2e 未在本机执行 |
+| D-927 | 2026-11-02 | [任务交付：队列详情单段编辑（APP-M2-T134）](delivery/APP-M2-T134.md) | 任务交付 | wp5-2 | in-review | ISSUE-007 / APP-M2-T134 | 队列内只改写问题所在一段、新版本与审计、拒绝条件与新增 HUMAN_ISSUE_STALE |
+| D-928 | 2026-11-02 | [代码说明：队列详情单段编辑（APP-M2-T134）](code/APP-M2-T134.md) | 代码说明 | wp5-2 | 当前 | ISSUE-007 / APP-M2-T134 | 后台保护顺序与前端接线 |
+| D-929 | 2026-11-02 | [任务交付：“需复核”传播提示（APP-M2-T122）](delivery/APP-M2-T122.md) | 任务交付 | wp5-2 | in-review | ISSUE-007 / APP-M2-T122 / APP-M2-T119 | 服务承诺复核原因、受影响章节与判定汇总只读接口和矩阵页面板 |
+| D-930 | 2026-11-02 | [代码说明：“需复核”传播提示（APP-M2-T122）](code/APP-M2-T122.md) | 代码说明 | wp5-2 | 当前 | ISSUE-007 / APP-M2-T122 | 传播计算与前端接线 |
+| D-931 | 2026-11-02 | [WP-5 第二批验证：队列单段编辑与服务承诺需复核传播](testing/2026-11-02-wp5-batch2-sla-queue-edit.md) | 测试 | wp5-test-2 | 当前 | ISSUE-007 / APP-M2-T134 / T122 / T119 | 本机单测结果，后端、tsc、e2e 未在本机执行 |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-10-30 | ISSUE-045 revision 2 | 按审查整治看板：142 张任务卡状态与看板对齐，8 张改 in-review 并补交付（D-867～D-876），9 张 cancelled，登记工作包 WP-1～7；看板 454 项：96 done、171 in-review、37 in-progress、87 planned、63 cancelled |
+| 2026-10-28 | 产品 / 开发 / Wave 11 | 新建分支 feat/wave-11-main-path（PR #6），交付 APP-M2-T133、APP-M2-T144、APP-M2-T111、AI-REMEDIATION-NO-FABRICATION、BE-WORKFLOW-STATE-PERSIST（均 in-review），登记 ISSUE-039～042、PRD 实施澄清与缺口增量（D-838～D-854）；看板 444 项：96 done、65 in-review、7 in-progress、228 planned、41 blocked、7 cancelled、0 ready |
+| 2026-10-28 | 开发 / Wave 12 | BE-WORKFLOW-DURABILITY 与 AI-KB-RAG-PIPELINE 交付为 in-review，AI-KB-RAG-EVAL in-progress，登记 ISSUE-043（D-855～D-860）；看板 446 项：96 done、67 in-review、8 in-progress、227 planned、41 blocked、7 cancelled、0 ready |
+| 2026-10-28 | 开发 / Wave 12 | AI-KB-CONTROL-PLANE 交付为 in-review（D-861）；看板 447 项：96 done、68 in-review、8 in-progress、227 planned、41 blocked、7 cancelled、0 ready |
+| 2026-10-28 | 开发 / Wave 12 续 | 去掉演示环境；BE-AUTH-PRODUCTION-ONLY、AI-TENDER-STRUCTURED-EXTRACTION、FE-KB-BUSINESS-FLOWS、FE-E2E-LIBRARY-DRIFT 为 in-review；登记 ISSUE-044（D-862～D-864）；看板 451 项：96 done、72 in-review、8 in-progress、227 planned、41 blocked、7 cancelled、0 ready |
+| 2026-10-28 | 治理 / 看板重定 | 按代码实况重定 131 卡（ISSUE-045，D-865）；条款抽取适配真实招标文件版式；看板 451 项：96 done、109 in-review、48 in-progress、143 planned、0 blocked、55 cancelled、0 ready |
 | 2026-10-28 | PD / 验收 / Wave 10 | 登记 Wave 10 业务功能与核心技术交付批次产品视角对照验收报告（2026-10-28-pd-review-wave10.md，D-837），对照 PRD v1.8 §2.2/§5.7.8/§5.10/§5.10.1/§5.10.2/§5.11/§6.4/§8 与 M1-P10-F3 交接约束，书面认可并建议 PM 标 done |
 | 2026-10-28 | QA / 验收 / Wave 10 | 登记 Wave 10 核心能力与技术交付批次（共 4 卡）QA 终验签署报告（2026-10-28-wave-10-batch-qa-signoff.md，D-836），核验 APP-M2-T028、INT-USER-SECURITY-OPS-GLUE、BE-USER-SECURITY-OPS 与 AI-OUTLINE-AUTO-REMEDIATION，全量测试全绿，出具正式 PASS 签署并建议 PM 标 done |
 | 2026-10-28 | AI / 自动整改重写 / AI-OUTLINE-AUTO-REMEDIATION | 登记章节合规质检缺陷自动整改建议与局部智能重写引擎交付报告（AI-OUTLINE-AUTO-REMEDIATION.md，D-834）与代码说明（D-835），落地 diagnose_paragraph_defects、synthesize_remediation_plan 与 remediate_chapter_candidate，实现 R34/R37/R24/CITATION_AUTH 缺陷精准诊断、局部智能重写与原地合规保全、多轮自适应收敛迭代（直至阻断清零且健康分>=90）、法定表单印章签名块整体注入、单章生成与大纲批量生成流水线闭环集成（auto_remediate=True）及全局看板汇总，涉密本地模型硬门禁（403）与多租户/RBAC隔离（404/403），专属单测 12 项全绿，全量 97 项 AI 核心测试全绿，OpenAPI 契约零漂移，保持 in-review |

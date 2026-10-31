@@ -20,7 +20,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | `planned` |
+| 状态 | `cancelled`（二期延后，非永久取消：PM 2026-10-30 决定，见 [一期范围的三项决定](../decisions/2026-10-30-phase-one-pm-decisions.md)） |
 | 估算 | 3 小时（估算，不等同实际耗时或承诺日期） |
 | 关联 Issue | —（未登记；开工前在统一 Issue 中登记或关联现有变更） |
 | 依赖 | [FE-M2-T01](FE-M2.md#fe-m2-t01)、[FE-M5-T08](FE-M5.md#fe-m5-t08) |
@@ -54,7 +54,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | `planned` |
+| 状态 | `cancelled`（二期延后，非永久取消：PM 2026-10-30 决定，见 [一期范围的三项决定](../decisions/2026-10-30-phase-one-pm-decisions.md)） |
 | 估算 | 4 小时（估算，不等同实际耗时或承诺日期） |
 | 关联 Issue | —（未登记；开工前在统一 Issue 中登记或关联现有变更） |
 | 依赖 | [FE-M3-T01](FE-M3.md#fe-m3-t01)、[FE-M3-T05](FE-M3.md#fe-m3-t05)、[FE-M5-T09](FE-M5.md#fe-m5-t09) |
@@ -88,7 +88,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | `planned` |
+| 状态 | `cancelled`（二期延后，非永久取消：PM 2026-10-30 决定，见 [一期范围的三项决定](../decisions/2026-10-30-phase-one-pm-decisions.md)） |
 | 估算 | 3 小时（估算，不等同实际耗时或承诺日期） |
 | 关联 Issue | —（未登记；开工前在统一 Issue 中登记或关联现有变更） |
 | 依赖 | [FE-M3-T05](FE-M3.md#fe-m3-t05)、[FE-M5-T05](FE-M5.md#fe-m5-t05) |
@@ -122,7 +122,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | `planned` |
+| 状态 | `cancelled`（二期延后，非永久取消：PM 2026-10-30 决定，见 [一期范围的三项决定](../decisions/2026-10-30-phase-one-pm-decisions.md)） |
 | 估算 | 4 小时（估算，不等同实际耗时或承诺日期） |
 | 关联 Issue | —（未登记；开工前在统一 Issue 中登记或关联现有变更） |
 | 依赖 | [FE-M1-T01](FE-M1.md#fe-m1-t01)、[FE-M1-T06](FE-M1.md#fe-m1-t06)、[FE-M5-T06](FE-M5.md#fe-m5-t06) |

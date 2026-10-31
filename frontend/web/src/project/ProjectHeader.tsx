@@ -17,6 +17,7 @@ import { companyName, formatTime, volumeName } from '../app/context.tsx';
 import { projectRoleName } from './project-team.ts';
 import { MaskedField } from '../admin/MaskedField.tsx';
 import { normalizeSystemRole, READONLY_SYSTEM_ROLES, type SystemRole } from '../shell/route-guard.ts';
+import { projectVolumes, technicalOnly, volumeOptions } from './project-volumes.ts';
 import {
   calculateProjectCountdown,
   formatCurrencyAmount,
@@ -74,7 +75,8 @@ export function ProjectHeader({
   const canRevealAmount = !isReadonlyMember;
 
   // 2. 标的金额与脱敏处理
-  const formattedAmount = formatCurrencyAmount(project.target_amount ?? 12800000);
+  const hasAmount = project.target_amount !== undefined && project.target_amount !== null && String(project.target_amount) !== '';
+  const formattedAmount = formatCurrencyAmount(project.target_amount);
 
   // 3. 倒计时解析
   const countdown = useMemo(() => calculateProjectCountdown(project.deadline), [project.deadline]);
@@ -112,7 +114,7 @@ export function ProjectHeader({
   }, [session, project.id, effectiveRole, workspace.permissions]);
 
   // 6. 分册列表统计
-  const volumes: Volume[] = ['technical', 'business'];
+  const volumes: Volume[] = projectVolumes(workspace);
 
   return (
     <header
@@ -195,7 +197,7 @@ export function ProjectHeader({
         {/* 标的金额：集成 MaskedField 脱敏显示与审计调阅 */}
         <span className="project-meta-amount" data-testid="project-target-amount">
           标的金额：
-          <MaskedField
+          {!hasAmount ? <span style={{ color: '#8c8c8c' }} data-testid="target-amount-empty">未填写</span> : <MaskedField
             value={formattedAmount}
             fieldType="custom"
             fieldName="标的金额"
@@ -205,7 +207,7 @@ export function ProjectHeader({
             unauthorizedMode="disabled"
             unauthorizedTooltip="仅项目负责人与公司管理员有权调阅完整标的金额，只读成员无权查看"
             testId="target-amount-masked-field"
-          />
+          />}
         </span>
 
         {/* 投标截止时间与倒计时 */}
@@ -255,7 +257,7 @@ export function ProjectHeader({
             label:
               item.key === 'manual' ? (
                 <span>
-                  {item.label} <Badge count={pendingCount} size="small" />
+                  {item.label} <Badge count={workspace.human_queue_pending ?? 0} size="small" />
                 </span>
               ) : item.key === 'checks' && blockerCount > 0 ? (
                 <span>

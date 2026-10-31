@@ -283,6 +283,16 @@ class SnippetRetrievalService:
 
         # 5. 调用检索器计算相关度
         search_prompt = f"{final_title} {query or ''}".strip()
+        semantic_scores: dict[str, float] = {}
+        knowledge_base = getattr(self.demo, "knowledge_base", None)
+        if knowledge_base is not None and records:
+            try:
+                kb_query = " ".join([search_prompt, *points]).strip()
+                hits, _ = knowledge_base.search(principal.user.company_id, kb_query, limit=max(limit * 2, 6),
+                                                kinds={"snippet"}, user=principal.user)
+                semantic_scores = {hit.source_id: hit.score for hit in hits}
+            except Exception:
+                semantic_scores = {}  # 知识库不可用时退回本地评分。
         candidate_matches = self.retriever.retrieve(
             company_id=principal.user.company_id,
             query=search_prompt,
@@ -290,6 +300,7 @@ class SnippetRetrievalService:
             limit=limit,
             min_score=min_score,
             scoring_points=points,
+            semantic_scores=semantic_scores,
         )
 
         # 6. 提取项目事实表并进行变量对齐替换与溯源指纹生成

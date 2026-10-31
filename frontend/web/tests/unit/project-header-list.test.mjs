@@ -42,7 +42,7 @@ test('ProjectHeader: 倒计时计算与临期、过期判定', () => {
   assert.equal(resUrgent.isUrgent, true);
   assert.equal(resUrgent.isExpired, false);
   assert.equal(resUrgent.days, 2);
-  assert.equal(resUrgent.color, 'orange');
+  assert.equal(resUrgent.color, 'red');
   assert.match(resUrgent.label, /剩余 2 天 6 小时/);
 
   // 3. 距离截止不足 1 天

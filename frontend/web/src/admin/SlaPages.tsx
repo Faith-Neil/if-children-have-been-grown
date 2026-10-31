@@ -5,6 +5,7 @@ import { Alert, App as AntApp, Button, Card, Col, Descriptions, Empty, Form, Inp
 import { DownloadOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { download } from '../shared/api';
 import { projectCan } from '../project/project-team';
+import { SlaPropagationPanel } from './SlaPropagationPanel';
 import { formatTime, useProject } from '../app/context';
 import { displaySlaValue, slaScalar, slaVariablePayload, slaUnits, slaGroups } from './sla-form';
 import type { Account, SlaRow, SlaTemplate, SlaVariable, Source } from '../shared/types';
@@ -179,6 +180,7 @@ export function SlaMatrixPage({ onLocate }: { onLocate: (source: Source) => void
     {!canWrite && <Alert className="page-notice" type="info" showIcon message="服务承诺由项目负责人维护；当前角色仅查看" />}
     {sla?.template_stale && <Alert className="page-notice" type="warning" showIcon message="公司模板已变化，本项目的能力依据需要刷新" description="同一模板刷新会保留项目承诺与招标来源，并要求重新核对；尚未核对的值不能进入导出。" />}
     {!sla ? <Card><Empty description={slaTemplates.some(item => item.status === 'confirmed') ? '尚未选用服务模板，请由负责人在上方选用' : '还没有已确认的模板，请先到企业资料库维护服务承诺模板'} /></Card> : <>
+      <SlaPropagationPanel />
       <Alert className="page-notice" type="info" showIcon message={`当前模板：${sla.template_name}`} description="比较方向、单位与判定来自后台。没有招标要求或要求未量化会单独显示；工作日和自然日等不能强行换算。数字改变后，须到事实表逐项重新确认。" />
       <Table rowKey="var_key" size="small" scroll={{ x: 1240 }} pagination={false} dataSource={sla.rows} rowClassName={row => ['not_satisfied', 'missing'].includes(row.judgment) || row.source_stale ? 'risk-row' : ''} columns={[
         { title: '指标 / 比较方式', width: 185, render: (_, row) => <><b>{row.label}</b><p className="muted">{slaGroups.find(item => item.value === row.group)?.label || row.group} · {directions.find(item => item.value === row.compare_direction)?.label}</p><small className="muted">{row.var_key}</small></> },

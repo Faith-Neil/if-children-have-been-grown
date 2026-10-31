@@ -148,3 +148,53 @@ class SlaMutationResult(ResponseBody):
     revision: int
     sla: ProjectSla | None = None
     commitment: SlaCommitment | None = None
+
+
+class SlaReason(ResponseBody):
+    code: Literal["TEMPLATE_STALE", "SOURCE_STALE", "NEEDS_REVIEW", "UNCONFIRMED", "VALUE_INVALID", "RISK_UNREVIEWED"]
+    label: str
+
+
+class SlaChapterRef(ResponseBody):
+    chapter_id: str
+    title: str
+    volume: str
+
+
+class SlaPropagationRow(ResponseBody):
+    var_key: str
+    label: str
+    group: str
+    judgment: Literal["satisfied", "not_satisfied", "exceeds_capability", "missing", "manual", "not_required", "unquantified"]
+    judgment_label: str
+    fact_status: SlaFactStatus
+    reasons: list[SlaReason]
+    needs_review: bool
+    chapters: list[SlaChapterRef]
+
+
+class SlaPropagationChapter(SlaChapterRef):
+    var_keys: list[str]
+    issues: list[dict[str, str]]
+
+
+class SlaPropagationSummary(ResponseBody):
+    total: int
+    by_judgment: dict[str, int]
+    needs_review: int
+    unconfirmed: int
+    risk_unreviewed: int
+    invalid: int
+    stale_commitments: int
+    affected_chapters: int
+
+
+class SlaPropagation(ResponseBody):
+    revision: int
+    project_id: str
+    selected: bool
+    template_name: str
+    template_stale: bool
+    summary: SlaPropagationSummary
+    rows: list[SlaPropagationRow]
+    chapters: list[SlaPropagationChapter]

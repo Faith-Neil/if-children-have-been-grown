@@ -61,6 +61,9 @@ class CompanySettingsModel(BaseModel):
     # 查重与合规 (PRD §5.8.3 / §5.10.4)
     dup_min_chars: int = Field(default=8, description="查重连续相同字数阈值")
     dup_history_months: int = Field(default=24, description="查重历史标书比对年限（月）")
+    # 招标解析 (PRD §5.2.2 规则 2：低于阈值的条目高亮提示人工核对)
+    parse_confidence_threshold: float = Field(default=0.8, description="解析置信度高亮阈值（0.5～0.99，示例 0.8）")
+    assistant_paste_match_ratio: float = Field(default=0.8, description="粘贴识别重合比例（0.5～1.0）：达到时该段来源记为对话助手撰写")
     # 审计与扩展
     updated_at: str | None = Field(default=None, description="最后更新时间（ISO 8601）")
     updated_by: str | None = Field(default=None, description="最后更新人账号ID")
@@ -84,23 +87,57 @@ class UpdateCompanySettingsRequest(BaseModel):
     model_review_enabled: bool | None = Field(default=None, description="是否启用章节模型评审")
     dup_min_chars: int | None = Field(default=None, description="查重连续相同字数阈值")
     dup_history_months: int | None = Field(default=None, description="查重历史标书比对年限（月）")
+    parse_confidence_threshold: float | None = Field(default=None, description="解析置信度高亮阈值（0.5～0.99）")
+    assistant_paste_match_ratio: float | None = Field(default=None, description="粘贴识别重合比例（0.5～1.0）")
     custom_settings: dict[str, Any] | None = Field(default=None, description="企业扩展键值配置")
+
+
+def parse_confidence_threshold(state, company_id: str) -> float:
+    stored = (getattr(state, "service_stores", {}).get("company_settings") or {}).get(company_id) or {}
+    value = stored.get("parse_confidence_threshold")
+    return float(value) if isinstance(value, (int, float)) else 0.8
+
+
+def company_display_name(state, company_id: str) -> str:
+    """投标主体名称：公司设置里的公司名称；未设置时与 _get_or_create 的默认值一致。"""
+    stored = (getattr(state, "service_stores", {}).get("company_settings") or {}).get(company_id) or {}
+    return stored.get("company_name") or ("Alpha 科技" if company_id == "alpha" else "Beta 建设" if company_id == "beta" else f"{company_id} 企业")
 
 
 class CompanySettingsService:
     """企业设置与安全策略领域服务。"""
 
     def __init__(self) -> None:
-        self._store: dict[str, CompanySettingsModel] = {}
+        self._local: dict[str, CompanySettingsModel] = {}
+        # 绑定仓储后企业设置保存在 DemoState.service_stores["company_settings"]，随其他状态持久化（ISSUE-041）。
+        self.repository = None
+
+    @property
+    def _store(self) -> dict[str, CompanySettingsModel]:
+        if self.repository is None:
+            return self._local
+        stored = self.repository.read().service_stores.get("company_settings") or {}
+        return {cid: CompanySettingsModel(**data) for cid, data in stored.items()}
+
+    def _save(self, company_id: str, model: CompanySettingsModel) -> None:
+        if self.repository is None:
+            self._local[company_id] = model
+            return
+        data = model.model_dump()
+
+        def write(state):
+            state.service_stores.setdefault("company_settings", {})[company_id] = data
+
+        self.repository.transaction(write)
 
     def _get_or_create(self, company_id: str) -> CompanySettingsModel:
-        if company_id not in self._store:
+        current = self._store.get(company_id)
+        if current is None:
             name = "Alpha 科技" if company_id == "alpha" else ("Beta 建设" if company_id == "beta" else f"{company_id} 企业")
-            self._store[company_id] = CompanySettingsModel(
-                company_id=company_id,
-                company_name=name,
-            )
-        return copy.deepcopy(self._store[company_id])
+            current = CompanySettingsModel(company_id=company_id, company_name=name)
+            if self.repository is None:
+                self._local[company_id] = current
+        return copy.deepcopy(current)
 
     def get_settings(self, company_id: str, principal: Principal) -> CompanySettingsModel:
         """获取指定企业的设置与安全策略配置。"""
@@ -265,6 +302,22 @@ class CompanySettingsService:
                     details={"field": "session_timeout_minutes", "min": PLATFORM_SESSION_TIMEOUT_LOWER_BOUND, "max": PLATFORM_SESSION_TIMEOUT_UPPER_BOUND, "value": request.session_timeout_minutes},
                 )
 
+        if request.parse_confidence_threshold is not None and not 0.5 <= request.parse_confidence_threshold <= 0.99:
+            raise DomainError(
+                422,
+                "SETTING_VALUE_OUT_OF_BOUNDS",
+                "解析置信度阈值必须在 0.5～0.99 之间。",
+                details={"field": "parse_confidence_threshold", "min": 0.5, "max": 0.99, "value": request.parse_confidence_threshold},
+            )
+
+        if request.assistant_paste_match_ratio is not None and not 0.5 <= request.assistant_paste_match_ratio <= 1.0:
+            raise DomainError(
+                422,
+                "SETTING_VALUE_OUT_OF_BOUNDS",
+                "粘贴识别重合比例必须在 0.5～1.0 之间。",
+                details={"field": "assistant_paste_match_ratio", "min": 0.5, "max": 1.0, "value": request.assistant_paste_match_ratio},
+            )
+
         # 5. 合并更新字段
         data = current.model_dump()
         update_data = request.model_dump(exclude_unset=True)
@@ -278,5 +331,5 @@ class CompanySettingsService:
         data["updated_by"] = user.id
 
         updated_model = CompanySettingsModel(**data)
-        self._store[company_id] = updated_model
+        self._save(company_id, updated_model)
         return copy.deepcopy(updated_model)

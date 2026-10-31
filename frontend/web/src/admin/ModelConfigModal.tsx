@@ -36,6 +36,7 @@ import {
 import { request, ApiError } from '../shared/api.ts';
 import type { ApplicationSession } from '../shared/types.ts';
 import {
+  fallbackOptions,
   type ModelConfigItem,
   buildModelUpdatePayload,
 } from './model-config-core.ts';
@@ -52,6 +53,10 @@ export interface ModelConfigModalProps {
   projectId?: string | null;
   projectSensitive?: boolean;
   onBound?: (configId: string) => void;
+  /** 公司管理员/平台管理员：可新建、修改、测试连接 */
+  canManage?: boolean;
+  /** 公司管理员或项目负责人：可把配置应用到当前项目 */
+  canBind?: boolean;
 }
 
 export function ModelConfigModal({
@@ -62,6 +67,8 @@ export function ModelConfigModal({
   projectId = null,
   projectSensitive = false,
   onBound,
+  canManage = false,
+  canBind = false,
 }: ModelConfigModalProps) {
   const [loading, setLoading] = useState(false);
   const [configs, setConfigs] = useState<ModelConfigItem[]>([]);
@@ -156,6 +163,7 @@ export function ModelConfigModal({
         json_mode_enabled: activeConfig.json_mode_enabled,
         timeout_seconds: activeConfig.timeout_seconds,
         max_tokens: activeConfig.max_tokens,
+        fallback_config_id: activeConfig.fallback_config_id ?? undefined,
       });
     }
   }, [activeConfig, isCreatingNew, form]);
@@ -209,6 +217,7 @@ export function ModelConfigModal({
           json_mode_enabled: Boolean(values.json_mode_enabled),
           timeout_seconds: Number(values.timeout_seconds),
           max_tokens: Number(values.max_tokens),
+          fallback_config_id: values.fallback_config_id ?? '',
         };
         if (values.id) payload.id = values.id;
         if (values.api_key) payload.api_key = values.api_key;
@@ -230,6 +239,7 @@ export function ModelConfigModal({
           json_mode_enabled: Boolean(values.json_mode_enabled),
           timeout_seconds: Number(values.timeout_seconds),
           max_tokens: Number(values.max_tokens),
+          fallback_config_id: values.fallback_config_id ?? '',
         };
         // 密钥传参语义：若与掩码一致则传回掩码（保持不变）；若输入新内容则传入加密
         if (values.api_key !== undefined) {
@@ -304,7 +314,7 @@ export function ModelConfigModal({
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Space>
-            {!isCreatingNew && activeConfig && (
+            {canManage && !isCreatingNew && activeConfig && (
               <Button
                 data-testid="test-connection-btn"
                 icon={<ApiOutlined />}
@@ -314,7 +324,7 @@ export function ModelConfigModal({
                 测试连通性
               </Button>
             )}
-            {projectId && !isCreatingNew && activeConfig && (
+            {canBind && projectId && !isCreatingNew && activeConfig && (
               <Button
                 data-testid="bind-project-model-btn"
                 icon={<CloudServerOutlined />}
@@ -329,15 +339,17 @@ export function ModelConfigModal({
           </Space>
           <Space>
             <Button onClick={onClose}>关闭</Button>
-            <Button
-              data-testid="save-config-btn"
-              type="primary"
-              icon={<SaveOutlined />}
-              loading={saving}
-              onClick={handleSave}
-            >
-              {isCreatingNew ? '立即创建' : '保存配置'}
-            </Button>
+            {canManage && (
+              <Button
+                data-testid="save-config-btn"
+                type="primary"
+                icon={<SaveOutlined />}
+                loading={saving}
+                onClick={handleSave}
+              >
+                {isCreatingNew ? '立即创建' : '保存配置'}
+              </Button>
+            )}
           </Space>
         </div>
       }
@@ -378,7 +390,7 @@ export function ModelConfigModal({
             )}
           </Space>
 
-          <Button
+          {canManage && <Button
             data-testid="add-config-btn"
             type={isCreatingNew ? 'default' : 'dashed'}
             icon={isCreatingNew ? <CloseCircleOutlined /> : <PlusOutlined />}
@@ -391,7 +403,7 @@ export function ModelConfigModal({
             }}
           >
             {isCreatingNew ? '取消新建' : '新建模型配置'}
-          </Button>
+          </Button>}
         </div>
 
         {/* 涉密项目策略拦截警告 */}
@@ -420,7 +432,12 @@ export function ModelConfigModal({
         )}
 
         <Spin spinning={loading}>
-          <Form form={form} layout="vertical">
+          {!canManage && (
+            <Alert data-testid="model-config-readonly" type="info" showIcon style={{ marginBottom: 12 }}
+              message="只读：模型配置由公司管理员维护"
+              description={canBind ? '你可以把已有配置应用到当前项目；新建、修改和测试连接请联系公司管理员。' : '如需更换项目使用的模型，请联系项目负责人或公司管理员。'} />
+          )}
+          <Form form={form} layout="vertical" disabled={!canManage}>
             <Row gutter={16}>
               <Col span={14}>
                 <Form.Item
@@ -536,6 +553,16 @@ export function ModelConfigModal({
                 </Form.Item>
               </Col>
             </Row>
+
+            <Form.Item noStyle shouldUpdate={(prev, next) => prev.is_local !== next.is_local}>
+              {() => (
+                <Form.Item name="fallback_config_id" label="备用模型"
+                  extra="主模型超时、连接失败、5xx 或限流时改用；本地主模型只能选本地备用，敏感项目只用本地且允许敏感数据的备用。">
+                  <Select allowClear placeholder="不配备用模型" data-testid="model-fallback-select"
+                    options={fallbackOptions(configs, { id: isCreatingNew ? undefined : activeConfig?.id, is_local: form.getFieldValue('is_local') })} />
+                </Form.Item>
+              )}
+            </Form.Item>
           </Form>
         </Spin>
       </div>

@@ -102,21 +102,23 @@ def run(base_url, output_dir=None):
         request(client, 'GET', path + '/workspace', headers=beta, expected=404)
         request(client, 'POST', path + '/checks', headers={**viewer, 'If-Match': str(state()['revision']),
                 'Idempotency-Key': str(uuid4())}, payload={'volume': 'all'}, expected=403)
-        # 为页面恢复验收保留经理旧草稿：另一账号提交后，它必须保持旧版，不能自动盖过正文。
+        # PRD §5.11.9（APP-M2-T172）：释放编辑权时，持锁人已保存的草稿自动提交为“手改”版本，下一位在新版本上修改。
         technical = next(c for c in chapters if c['volume'] == 'technical')
         chapter_path = '/api/chapters/' + technical['id']
         current = request(client, 'GET', chapter_path, headers=manager).json()
         lease = request(client, 'POST', chapter_path + '/lock', headers=manager, payload={}).json()
         request(client, 'PUT', chapter_path + '/draft', headers=manager,
                 payload={'lease_token': lease['lease_token'], 'input_fingerprint': state()['input_fingerprint'], 'base_revision': current['revision'], 'sequence': 1,
-                         'content': BODY['technical'] + '\n旧草稿独立核对记录（合成）。'})
+                         'content': BODY['technical'] + '\n经理补充的核对记录（合成）。'})
         request(client, 'POST', chapter_path + '/lock/release', headers=manager, payload={'lease_token': lease['lease_token']})
+        committed = request(client, 'GET', chapter_path, headers=manager).json()
+        assert committed['revision'] == current['revision'] + 1 and committed['draft'] is None
+        assert committed['content'].endswith('经理补充的核对记录（合成）。')
         lease = request(client, 'POST', chapter_path + '/lock', headers=editor, payload={}).json()
         request(client, 'POST', chapter_path + '/versions', headers=editor,
-                payload={'lease_token': lease['lease_token'], 'input_fingerprint': state()['input_fingerprint'], 'base_revision': current['revision'],
+                payload={'lease_token': lease['lease_token'], 'input_fingerprint': state()['input_fingerprint'], 'base_revision': committed['revision'],
                          'content': BODY['technical'], 'idempotency_key': str(uuid4())})
         request(client, 'POST', chapter_path + '/lock/release', headers=editor, payload={'lease_token': lease['lease_token']})
-        assert request(client, 'GET', chapter_path, headers=manager).json()['draft']['base_revision'] < state()['chapters'][0]['revision']
 
         check = write('/checks', {'volume': 'all'})['check']
         assert check['passed'] and not check['coverage']['complete']
@@ -133,7 +135,7 @@ def run(base_url, output_dir=None):
                 (destination / entry['filename']).write_bytes(data)
             downloaded.append({'volume': entry['volume'], 'bytes': len(data)})
         return {'passed': True, 'project_id': project['id'], 'project_name': project['name'], 'downloads': downloaded,
-                'complete_reference': False, 'word_layout_verified': False, 'manager_draft_base_revision': current['revision']}
+                'complete_reference': False, 'word_layout_verified': False, 'manager_draft_autocommitted_revision': committed['revision']}
 
 
 if __name__ == '__main__':

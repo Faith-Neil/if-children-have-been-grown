@@ -82,6 +82,7 @@ class ModelConfig:
     revision: int = 1
     timeout_seconds: float = 60.0
     max_tokens: int = 1024
+    fallback_config_id: str | None = None  # 备用模型（PRD §6.4/§6.5）：本地主模型只能配本地备用
 
     @property
     def has_api_key(self) -> bool:
@@ -103,6 +104,7 @@ class ModelConfig:
             "api_key_masked": self.api_key_masked,
             "timeout_seconds": self.timeout_seconds,
             "max_tokens": self.max_tokens,
+            "fallback_config_id": self.fallback_config_id,
         }
 
     def snapshot(self) -> dict[str, Any]:
@@ -126,6 +128,31 @@ def check_revision(actual: int, if_match: str | None) -> None:
     raw = if_match.strip().strip('"')
     if not raw.isdigit() or int(raw) != actual:
         raise DomainError(409, "REVISION_CONFLICT", "模型配置已被更新，请刷新核对后再保存。", {"current_revision": actual})
+
+
+def fallback_problem(primary: ModelConfig, fallback: ModelConfig | None) -> str | None:
+    """保存时核对备用模型（字典 llm_model.fallback_model_id）：同公司、不是自己、本地主模型只能配本地备用。"""
+    if fallback is None or fallback.company_id != primary.company_id:
+        return "备用模型不存在或不属于本公司。"
+    if fallback.id == primary.id:
+        return "备用模型不能是它自己。"
+    if fallback.provider == "demo":
+        return "备用模型必须是真实模型。"
+    if primary.is_local and not fallback.is_local:
+        return "本地主模型的备用只能是本地模型（不改走云端）。"
+    return None
+
+
+def usable_fallback(state: Any, primary: ModelConfig, project_sensitive: bool) -> ModelConfig | None:
+    """运行时取备用模型：再核对一次（备用模型可能事后被改成云端）；敏感项目只能用本地且允许敏感的备用。"""
+    if not primary.fallback_config_id:
+        return None
+    fallback = state.model_configs.get(primary.fallback_config_id)
+    if fallback_problem(primary, fallback) is not None:
+        return None
+    if project_sensitive and (not fallback.is_local or not fallback.allow_sensitive):
+        return None
+    return fallback
 
 
 def validate_model_config_for_project(project_sensitive: bool, config: ModelConfig) -> None:
@@ -162,7 +189,10 @@ def provider_from_model_config(
             json_mode_enabled=config.json_mode_enabled,
             api_key=plain_key or None,
         )
-        return OpenAICompatibleModelProvider(cfg, transport=transport)
+        provider = OpenAICompatibleModelProvider(cfg, transport=transport)
+        # 经 RAGFlow 对话助手时请求里的模型名只能是占位的 “model”，页面改显示配置名称
+        provider.display_name = config.name if config.model.strip().lower() == "model" else config.model
+        return provider
     raise DomainError(502, "MODEL_UNAVAILABLE", f"不支持的模型提供者: {config.provider}")
 
 
@@ -216,6 +246,7 @@ class ModelConfigResponse(ResponseBody):
     api_key_masked: str | None = None
     timeout_seconds: float = 60.0
     max_tokens: int = 1024
+    fallback_config_id: str | None = Field(default=None, description="备用模型配置；主模型超时、连接失败、5xx 或限流时改用")
 
 
 class ModelConfigListResponse(ResponseBody):
@@ -235,6 +266,7 @@ class ModelConfigCreateRequest(RequestBody):
     json_mode_enabled: bool = False
     timeout_seconds: float = Field(default=60.0, gt=0, le=600)
     max_tokens: int = Field(default=1024, ge=1, le=1_000_000)
+    fallback_config_id: str | None = Field(default=None, max_length=120, description="备用模型配置 ID；本地主模型只能配本地备用")
 
 
 class ModelConfigUpdateRequest(RequestBody):
@@ -249,6 +281,7 @@ class ModelConfigUpdateRequest(RequestBody):
     json_mode_enabled: bool | None = None
     timeout_seconds: float | None = Field(default=None, gt=0, le=600)
     max_tokens: int | None = Field(default=None, ge=1, le=1_000_000)
+    fallback_config_id: str | None = Field(default=None, max_length=120, description="备用模型配置 ID；空字符串表示不配备用")
 
 
 class ModelConfigTestResponse(ResponseBody):
@@ -256,6 +289,7 @@ class ModelConfigTestResponse(ResponseBody):
     provider: str
     model: str
     duration_ms: int = Field(ge=0)
+    message: str = Field(default="", description="不通时的原因（HTTP 状态、上游错误、超时等）")
 
 
 class ProjectModelConfigBindingRequest(RequestBody):
@@ -318,7 +352,19 @@ class ModelConfigService:
 
         return self.repository.transaction(operation)
 
+    @staticmethod
+    def _require_manager(principal: Principal) -> None:
+        """新建、修改、测试连接只限本公司公司管理员（或平台超级管理员）。
+
+        模型地址决定标书正文发往哪里，测试连接会让服务端访问填写的地址；普通成员能改就能把正文外发或探测内网。"""
+        from icg.domain.auth_service import is_super_admin
+        from icg.domain.project_access import normalize_role
+        if is_super_admin(principal) or normalize_role(principal.user.role) in ("company_admin", "platform_admin"):
+            return
+        raise DomainError(403, "FORBIDDEN", "模型配置只能由本公司公司管理员（或平台管理员）新建、修改和测试。")
+
     def create(self, principal: Principal, payload: dict[str, Any]) -> dict[str, Any]:
+        self._require_manager(principal)
         company_id = principal.user.company_id
         config_id = payload.get("id") or f"cfg-{int(self.service._now() * 1000)}"
         plain_key = payload.get("api_key")
@@ -349,13 +395,19 @@ class ModelConfigService:
                 revision=1,
                 timeout_seconds=payload.get("timeout_seconds", 60.0),
                 max_tokens=payload.get("max_tokens", 1024),
+                fallback_config_id=payload.get("fallback_config_id") or None,
             )
+            if cfg.fallback_config_id:
+                problem = fallback_problem(cfg, state.model_configs.get(cfg.fallback_config_id))
+                if problem:
+                    raise DomainError(422, "VALIDATION_ERROR", problem, {"field": "fallback_config_id"})
             state.model_configs[config_id] = cfg
             return cfg.to_public_dict()
 
         return self.repository.transaction(operation)
 
     def update(self, principal: Principal, config_id: str, updates: dict[str, Any], if_match: str | None) -> dict[str, Any]:
+        self._require_manager(principal)
         company_id = principal.user.company_id
 
         def operation(state: DemoState):
@@ -390,6 +442,17 @@ class ModelConfigService:
             ):
                 if field_name in updates and updates[field_name] is not None:
                     setattr(cfg, field_name, updates[field_name])
+            if "fallback_config_id" in updates and updates["fallback_config_id"] is not None:
+                cfg.fallback_config_id = updates["fallback_config_id"] or None
+            if cfg.fallback_config_id:
+                problem = fallback_problem(cfg, state.model_configs.get(cfg.fallback_config_id))
+                if problem:
+                    raise DomainError(422, "VALIDATION_ERROR", problem, {"field": "fallback_config_id"})
+            # 本配置是别的本地主模型的备用时，不能改成云端
+            if not cfg.is_local and any(other.fallback_config_id == cfg.id and other.is_local
+                                        for other in state.model_configs.values() if other.company_id == company_id):
+                raise DomainError(422, "VALIDATION_ERROR", "这个配置是本地主模型的备用模型，不能改成非本地模型。",
+                                  {"field": "is_local"})
 
             # 4. 递增 revision
             cfg.revision += 1
@@ -399,6 +462,7 @@ class ModelConfigService:
 
     def test_connectivity(self, principal: Principal, config_id: str,
                           transport: httpx.BaseTransport | None = None) -> dict[str, Any]:
+        self._require_manager(principal)
         company_id = principal.user.company_id
 
         def get_cfg(state: DemoState) -> ModelConfig:
@@ -428,7 +492,8 @@ class ModelConfigService:
             }
 
         try:
-            url = cfg.base_url.rstrip("/") + "/v1/chat/completions"
+            from .openai_model import chat_completions_url
+            url = chat_completions_url(cfg.base_url)
             headers = {"Content-Type": "application/json"}
             if plain_key:
                 headers["Authorization"] = f"Bearer {plain_key}"
@@ -438,11 +503,22 @@ class ModelConfigService:
                 "max_tokens": 1,
                 "stream": False,
             }
-            with httpx.Client(transport=transport, timeout=min(cfg.timeout_seconds, 5.0)) as client:
+            # 云端模型首字常要十几秒（实测 RAGFlow 转发 8～30 秒），5 秒会把可用模型判成不通；上限 30 秒
+            with httpx.Client(transport=transport, timeout=min(cfg.timeout_seconds, 30.0), trust_env=False) as client:
                 resp = client.post(url, headers=headers, json=payload)
-                ok = (resp.status_code == 200)
-        except Exception:
-            ok = False
+            message = ""
+            if resp.status_code != 200:
+                ok, message = False, f"HTTP {resp.status_code}"
+            else:
+                # HTTP 200 也可能是上游错误（RAGFlow 的“**ERROR**: …”正文或 {"code":…} 错误包），要看内容
+                from .openai_model import ModelCallError, _assistant_text, raise_upstream_error
+                try:
+                    raise_upstream_error(_assistant_text(resp))
+                    ok = True
+                except ModelCallError as error:
+                    ok, message = False, str(error.__cause__ or error)
+        except Exception as error:
+            ok, message = False, type(error).__name__
 
         duration_ms = max(1, int((time.time() - start) * 1000))
         return {
@@ -450,13 +526,22 @@ class ModelConfigService:
             "provider": cfg.provider,
             "model": cfg.model,
             "duration_ms": duration_ms,
+            "message": message,
         }
 
     def bind_project(self, principal: Principal, project_id: str, config_id: str) -> dict[str, Any]:
         company_id = principal.user.company_id
 
         def operation(state: DemoState):
-            project = self.service._project(state, principal, project_id)
+            from icg.domain.auth_service import is_super_admin
+            from icg.domain.project_access import lead, normalize_role
+            project = state.projects.get(project_id)
+            admin = (project is not None and not project.is_deleted and project.company_id == company_id
+                     and (is_super_admin(principal) or normalize_role(principal.user.role) == "company_admin"))
+            if not admin:
+                project = self.service._project(state, principal, project_id)
+                if not lead(state, project_id, principal.user.id):
+                    raise DomainError(403, "PROJECT_LEAD_REQUIRED", "只有项目负责人或公司管理员能为项目选择模型配置。")
             cfg = state.model_configs.get(config_id)
             if cfg is None or cfg.company_id != company_id:
                 raise DomainError(404, "NOT_FOUND", "未找到该模型配置。")

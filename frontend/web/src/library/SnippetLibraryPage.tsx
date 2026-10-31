@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Badge,
   Button,
   Card,
@@ -42,7 +43,6 @@ import {
 import type { Account, ApplicationSession } from '../shared/types.ts';
 import {
   computeSnippetStats,
-  DEFAULT_SNIPPET_PUBLICATIONS,
   filterSnippets,
   formatMonospaceTime,
   getSnippetSyncStatusMeta,
@@ -54,7 +54,8 @@ import {
   type SnippetPublication,
 } from './snippet-library-core.ts';
 import { EmptyState } from '../status/StatusViews.tsx';
-import { isDemoMode } from '../shared/roles.ts';
+import { request } from '../shared/api.ts';
+import { SnippetEditorDrawer } from './SnippetEditorDrawer.tsx';
 
 const { Text, Paragraph, Title } = Typography;
 
@@ -109,15 +110,9 @@ export function SnippetLibraryPage({
 }: SnippetLibraryPageProps) {
   const companyId = user?.company_id ?? session?.scope?.active_company_id ?? 'alpha';
 
-  const [snippets, setSnippets] = useState<SnippetPublication[]>(() => {
-    if (initialSnippets && initialSnippets.length > 0) return initialSnippets;
-    if (isDemoMode()) {
-      return DEFAULT_SNIPPET_PUBLICATIONS.filter(item => item.company_id === companyId);
-    }
-    return [];
-  });
-
+  const [snippets, setSnippets] = useState<SnippetPublication[]>(() => initialSnippets ?? []);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedSnippet, setSelectedSnippet] = useState<SnippetPublication | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -127,24 +122,42 @@ export function SnippetLibraryPage({
   const [syncStatus, setSyncStatus] = useState('all');
   const [onlyPublished, setOnlyPublished] = useState(true);
 
-  // 加载数据
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<SnippetPublication | null | undefined>(undefined); // undefined=关闭，null=新建
+  const canWrite = ['editor', 'manager', 'bid_writer', 'project_lead', 'company_admin', 'data_admin', 'platform_admin'].includes(user?.role ?? '');
+  function upsertSnippet(item: SnippetPublication) {
+    setSnippets(prev => (prev.some(row => row.id === item.id) ? prev.map(row => (row.id === item.id ? item : row)) : [item, ...prev]));
+  }
+  const [syncNotice, setSyncNotice] = useState<{ type: 'success' | 'warning' | 'error'; text: string } | null>(null);
+
+  // 同步到公司知识库：只有 RAGFlow 解析完成才显示“已同步”；解析需要时间时如实提示稍后刷新。
+  async function syncSnippet(record: SnippetPublication) {
+    setSyncingId(record.id);
+    setSyncNotice(null);
+    try {
+      const result = await request<{ synced: boolean; item: SnippetPublication }>(
+        `/api/v1/snippet-publications/${encodeURIComponent(record.id)}/sync`, token ?? null, 'POST', {}, record.published_revision ?? 0);
+      setSnippets(prev => prev.map(item => (item.id === record.id ? { ...item, ...result.item } : item)));
+      setSyncNotice(result.synced
+        ? { type: 'success', text: `“${resolveSnippetTitle(record)}”已进入知识库，可在写作时检索。` }
+        : result.item.kb_sync_status === 'failed'
+          ? { type: 'error', text: `“${resolveSnippetTitle(record)}”同步失败，请到知识库管理查看原因。` }
+          : { type: 'warning', text: `“${resolveSnippetTitle(record)}”已提交知识库，正在解析，稍后刷新查看。若未配置知识库，请联系公司管理员。` });
+    } catch (error) {
+      setSyncNotice({ type: 'error', text: error instanceof Error ? error.message : '同步失败' });
+    } finally {
+      setSyncingId(null);
+    }
+  }
+
+  // 加载数据：只显示后台真实片段，失败时如实提示，不用示例数据顶替。
   async function reloadSnippets() {
     setLoading(true);
+    setLoadError(null);
     try {
-      const data = await loadSnippetPublications(token ?? null);
-      if (Array.isArray(data) && data.length > 0) {
-        setSnippets(data);
-      } else if (isDemoMode()) {
-        // 演示模式无远端片段时注入高质量示例
-        setSnippets(DEFAULT_SNIPPET_PUBLICATIONS.filter(item => item.company_id === companyId));
-      } else {
-        setSnippets(data ?? []);
-      }
-    } catch {
-      // 网络或离线异常时若为演示模式使用兜底
-      if (isDemoMode()) {
-        setSnippets(DEFAULT_SNIPPET_PUBLICATIONS.filter(item => item.company_id === companyId));
-      }
+      setSnippets((await loadSnippetPublications(token ?? null)) ?? []);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : '方案片段加载失败，请稍后重试。');
     } finally {
       setLoading(false);
     }
@@ -287,7 +300,18 @@ export function SnippetLibraryPage({
       width: 130,
       render: (_, record) => {
         const meta = getSnippetSyncStatusMeta(record.kb_sync_status);
-        return <Badge status={meta.badgeStatus} text={meta.label} />;
+        const published = (record.published_revision ?? 0) > 0;
+        return (
+          <Space size={4}>
+            <Badge status={meta.badgeStatus} text={meta.label} />
+            {published && record.kb_sync_status !== 'synced' && (
+              <Button type="link" size="small" loading={syncingId === record.id} disabled={!!syncingId}
+                onClick={() => void syncSnippet(record)} data-testid={`snippet-sync-${record.id}`}>
+                同步
+              </Button>
+            )}
+          </Space>
+        );
       },
     },
     {
@@ -304,9 +328,10 @@ export function SnippetLibraryPage({
     {
       title: '操作',
       key: 'action',
-      width: 100,
+      width: 120,
       fixed: 'right',
       render: (_, record) => (
+        <Space direction="vertical" size={0}>
         <Button
           type="link"
           size="small"
@@ -318,6 +343,10 @@ export function SnippetLibraryPage({
         >
           查看正文
         </Button>
+        <Button type="link" size="small" style={{ padding: 0 }} onClick={() => setEditing(record)} data-testid={`snippet-edit-${record.id}`}>
+          {canWrite ? '编辑 / 发布' : '查看草稿'}
+        </Button>
+        </Space>
       ),
     },
   ];
@@ -337,10 +366,13 @@ export function SnippetLibraryPage({
             管理并沉淀经核验的方案切片与标准套话，支持按变量注入章节生成。已严格隔离当前租户（{companyId}）。
           </Text>
         </div>
+        <Space size="large" align="center">
+        {canWrite && <Button type="primary" onClick={() => setEditing(null)} data-testid="snippet-create-button">新建片段</Button>}
         <Space size="large" style={{ background: '#fafafa', padding: '8px 16px', borderRadius: 6, border: '1px solid #f0f0f0' }}>
           <Statistic title="已发布片段" value={stats.publishedCount} suffix={`/ ${stats.totalCount}`} valueStyle={{ fontSize: 18, fontWeight: 600 }} />
           <Statistic title="已同步知识库" value={stats.syncedCount} valueStyle={{ fontSize: 18, color: '#52c41a', fontWeight: 600 }} />
           <Statistic title="已声明变量" value={stats.variablesCount} valueStyle={{ fontSize: 18, color: '#1677ff', fontWeight: 600 }} />
+        </Space>
         </Space>
       </div>
 
@@ -378,7 +410,7 @@ export function SnippetLibraryPage({
                 { value: 'all', label: '全部同步状态' },
                 { value: 'synced', label: '已同步知识库' },
                 { value: 'unsynced', label: '未同步知识库' },
-                { value: 'sync_failed', label: '同步失败' },
+                { value: 'failed', label: '同步失败' },
               ]}
             />
           </Col>
@@ -403,6 +435,8 @@ export function SnippetLibraryPage({
       </Card>
 
       {/* 主数据列表 */}
+      {loadError && <Alert type="error" showIcon style={{ marginBottom: 12 }} message={loadError} data-testid="snippet-load-error" />}
+      {syncNotice && <Alert type={syncNotice.type} showIcon closable style={{ marginBottom: 12 }} message={syncNotice.text} onClose={() => setSyncNotice(null)} />}
       <Card bodyStyle={{ padding: 0 }}>
         <Spin spinning={loading}>
           {filteredSnippets.length === 0 ? (
@@ -595,6 +629,8 @@ export function SnippetLibraryPage({
           </Space>
         )}
       </Drawer>
+      <SnippetEditorDrawer open={editing !== undefined} token={token ?? null} snippet={editing ?? null} canWrite={canWrite}
+        onClose={() => setEditing(undefined)} onSaved={item => { upsertSnippet(item); setEditing(item); }} />
     </div>
   );
 }

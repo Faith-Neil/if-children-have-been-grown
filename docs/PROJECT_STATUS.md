@@ -4,7 +4,48 @@
 
 # 项目状态
 
-维护日期：2026-10-27（UTC+8）。分支 `feat/opencode-ICG` 位于 tip `331f448`；初次接手从 `main` 的 `ce064f6` 开始维护；main/xqr分支情况保留2026-10-09核对快照。已补齐 WP-1 独立交付文档（D-696），对齐 RoleMode 枚举，登记整改后结构债务收敛 ISSUE-038（D-697），完成 DOC-SYNC-1（D-698）与 DOC-SYNC-1.1（D-699）活文档实树校准。完成 CI 工作流触发分支修复（D-721）、已签等 PM 清单汇总（D-722）与关演示主链路冒烟留证（D-723）、大模型与 RAGFlow 弹窗配置及实测（D-724/D-725）、规则最小可递交集与分册定稿闸门端到端闭环（D-726/D-727）、以及 2026-10-26 规划未落地债审计与看板状态校准（D-728/D-729）。新增 R01/R02/R35 规则扩写落地与 7 大核心规则闭环、MySQL 章节/草稿/检查双向持久化、真实内网 RAGFlow 连通性网络探针证据归档与关演示全业务链路新冒烟留证（D-740/D-741）。Wave 2 批次（D-746～D-753）、Wave 3 批次（D-756～D-763）与 Wave 4 批次（FE-TECH-DEBT-02 App.tsx 瘦身至 394 行、APP-M2-T022 平台管理员脱敏长任务、BE-COMPLIANCE-RULES-P3 P3 规则扩充至 21 项与导出门禁、AI-DYNAMIC-PROMPT-CONTEXT 自适应 Prompt 预算与指纹、INT-APP-SLIM-ROUTING 路由分层与脱敏联调）（D-766～D-775）经 QA 独立终验签署（D-754/D-764/D-776 PASS）与 PD 产品验收（D-755/D-765/D-777 认可），已获人类 PM 正式批准标为 done。当前共 440 项中 96 done、60 in-review、7 in-progress、229 planned、41 blocked、7 cancelled、0 ready）。Wave 9 批次（APP-M2-T027、INT-USER-TRANSFER-RBAC-GLUE、BE-USER-MANAGEMENT-TRANSFER、AI-CHAPTER-AUTO-VALIDATION-GATE）与 Wave 10 核心批次（APP-M2-T028 用户角色分配与账号解锁 D-828/D-829、BE-USER-SECURITY-OPS 用户安全运维服务 D-830/D-831、INT-USER-SECURITY-OPS-GLUE 账号安全契约联调 D-832/D-833、AI-OUTLINE-AUTO-REMEDIATION 质检缺陷自动整改建议与局部智能重写引擎 D-834/D-835）经 QA 独立复测终验（D-836 PASS）与 PD 产品验收（D-837 认可），已获人类 PM 正式批准标为 done。
+维护日期：2026-10-30（UTC+8）。分支 `feat/opencode-ICG` 位于 tip `4985a9d`（相对 `main` 超前 71 个提交）；Wave 11 在分支 `feat/wave-11-main-path` 开发，经 [PR #6](https://github.com/Faith-Neil/if-children-have-been-grown/pull/6) 并回；初次接手从 `main` 的 `ce064f6` 开始维护；main/xqr分支情况保留2026-10-09核对快照。已补齐 WP-1 独立交付文档（D-696），对齐 RoleMode 枚举，登记整改后结构债务收敛 ISSUE-038（D-697），完成 DOC-SYNC-1（D-698）与 DOC-SYNC-1.1（D-699）活文档实树校准。完成 CI 工作流触发分支修复（D-721）、已签等 PM 清单汇总（D-722）与关演示主链路冒烟留证（D-723）、大模型与 RAGFlow 弹窗配置及实测（D-724/D-725）、规则最小可递交集与分册定稿闸门端到端闭环（D-726/D-727）、以及 2026-10-26 规划未落地债审计与看板状态校准（D-728/D-729）。新增 R01/R02/R35 规则扩写落地与 7 大核心规则闭环、MySQL 章节/草稿/检查双向持久化、真实内网 RAGFlow 连通性网络探针证据归档与关演示全业务链路新冒烟留证（D-740/D-741）。Wave 2 批次（D-746～D-753）、Wave 3 批次（D-756～D-763）与 Wave 4 批次（FE-TECH-DEBT-02 App.tsx 瘦身至 394 行、APP-M2-T022 平台管理员脱敏长任务、BE-COMPLIANCE-RULES-P3 P3 规则扩充至 21 项与导出门禁、AI-DYNAMIC-PROMPT-CONTEXT 自适应 Prompt 预算与指纹、INT-APP-SLIM-ROUTING 路由分层与脱敏联调）（D-766～D-775）经 QA 独立终验签署（D-754/D-764/D-776 PASS）与 PD 产品验收（D-755/D-765/D-777 认可），已获人类 PM 正式批准标为 done。当前共 444 项中 96 done、65 in-review、7 in-progress、228 planned、41 blocked、7 cancelled、0 ready，2026-10-28 逐行统计）。Wave 9 批次（APP-M2-T027、INT-USER-TRANSFER-RBAC-GLUE、BE-USER-MANAGEMENT-TRANSFER、AI-CHAPTER-AUTO-VALIDATION-GATE）与 Wave 10 核心批次（APP-M2-T028 用户角色分配与账号解锁 D-828/D-829、BE-USER-SECURITY-OPS 用户安全运维服务 D-830/D-831、INT-USER-SECURITY-OPS-GLUE 账号安全契约联调 D-832/D-833、AI-OUTLINE-AUTO-REMEDIATION 质检缺陷自动整改建议与局部智能重写引擎 D-834/D-835）经 QA 独立复测终验（D-836 PASS）与 PD 产品验收（D-837 认可），已获人类 PM 正式批准标为 done。
+
+## Wave 11 续与看板整治（2026-10-29～10-30）
+
+- 已交付并 in-review：公司 Word 模板、附件扫描件按页插入与敏感水印、解析质量（置信度与原文不可读）；对话助手流式输出、首选失败转备用模型、停止生成；自由问答与敏感项目本地模型排队；粘贴识别；R33/R38 与拟派人员；公司设置保存；导出命名、招标格式要求覆盖模板、一至八级标题与 Markdown 表格；任务与模型对应表。真实 RAGFlow 上验证了 Gemini 与 GLM，修了两类真实模型的输出问题与 MySQL 模型配置不落库的缺陷。DeepSeek v4 在 RAGFlow 中登记的模型名不对，Jiekou 返回 model not found，需用户在 RAGFlow 改名。
+- 看板整治（[ISSUE-045](../issues/ISSUE-045.md) revision 2）：142 张任务卡状态与看板对齐；8 张改 in-review 并补交付；9 张 cancelled（含 T226/T227 二期延后）；剩余工作分为工作包 WP-1～WP-7，编辑台段落键（T161）排第一。去掉资料库与项目页的假默认值，资料库批量确认改为逐条展示关键字段并写核对依据。
+- 编辑台段落键、段落锁定、版本对比与回退（T161、T163、T174、T175）、变量节点（T164）已 in-review。变量按当前数据源显示取值或掩码，提交与回退时后台拒绝新写入的失效变量。
+- PM 2026-10-30 决定（[一期范围的三项决定](decisions/2026-10-30-phase-one-pm-decisions.md)）：取消 OIDC/Keycloak，内网只用口令登录，首次登录强制改密等仍有效的验收拆为 T260；FE-M6/FE-M7 标二期延后；T139 用 AntV G2。要求尽快完成一期。
+- 口令登录补齐（T260，2026-10-31）已 in-review：首次登录与被重置后须先改密（后端拦截），新密码按本公司规则，失败提示不再暴露账号是否存在，锁定 15 分钟自动解锁，停用公司不能登录且会话立即失效，退出即作废令牌。顺带修复：A-01 公司管理页原为写死的示例公司、停用不落库；平台超级管理员网页登录不进去；修改用户资料会解除锁定；账号安全审计在 MySQL 下重启即丢。
+- 编辑台问题标注与侧栏联动（T166）、招标解析后台任务与进度订阅（T020）、R19 关联投标冲突（T096）已 in-review。
+- **规则完成度被高估**（[ISSUE-046](../issues/ISSUE-046.md)）：约 19 条 `check_rXX` 检查的内容与 PRD 同编号规则不同（例如原 R19 查的是绿色采购），看板中这些规则卡的 in-review 不成立；R19 已更正，其余待 PM 决定。
+- 解析后处理前端（T101、T102、T107、T109、T110）已 in-review：文件类型与版本链、补遗差异、条目合并拆分、冲突并列取值与理由必填；真实 RAGFlow、pytest、tsc、e2e 本机均未运行，以 CI 为准。
+- 章节循环异常中断与重试（T136）、挂证据候选三路显示（T118）已 in-review：循环异常记为“异常中断”，正文与既有问题不动，进度页可重试；条款候选按资料库规则匹配、知识库片段、历史标书三路返回，片段与历史不可挂接。真实模型故障、真实 RAGFlow 未验证，pytest、tsc、e2e 本机均未运行，以 CI 为准。
+- 人工队列单段编辑（T134）、服务承诺“需复核”传播与判定汇总（T122）已 in-review：队列内只改写问题所在一段并留痕，矩阵页显示复核原因与引用章节；T119 仍 in-progress（缺故障等级/服务时段三方值），T120 导出、T211～T213 未动。pytest、tsc、e2e 本机均未运行，以 CI 为准；openapi 需同步（新增 editHumanIssueParagraph、getSlaPropagation）。
+- 项目状态、倒计时与设置（T097～T100）已 in-review：递交/开标/结果/取消流转与取消后只读、倒计时≤3天标红、基本信息“已人工修改”、合作方缺协议标记、拟派人员占用提示、规则覆盖/分册格式/完整值类别保存读回。规则覆盖与分册格式（除递交文件名）、完整值类别尚未被检查与导出读取；后端用例、tsc、e2e 本机未运行，以 CI 为准。
+- 看板 455 项：96 done、189 in-review、32 in-progress、64 planned、74 cancelled。
+
+## 看板重定与真实招标文件校准（2026-10-28）
+
+- 看板按代码实况重定（[ISSUE-045](../issues/ISSUE-045.md)）：451 项中 96 done、109 in-review、48 in-progress、143 planned、0 blocked、55 cancelled。已实现的 31 条规则检查与 8 张页面卡改 in-review，部分实现的 46 卡改 in-progress，旧前端轨道 41 卡与示例外壳 7 卡 cancelled（superseded-by-APP-M2）。能力实况与缺口表见 [任务看板](TASK_BOARD.md) 顶部。
+- 按用户提供的真实招标文件（贵阳银行基础软件平台维保，76 页）校准条款抽取：PDF 展平的前附表与评分表按行重组（评分项带分值、前附表进事实），段内“（1）…（8）”资格条件逐条拆开，“将被否决/视为无效投标/做废标处理”判为实质性条款，最高限价与预算分开记。版式样本 `tests/backend/fixtures/tender_guiyang_2025_excerpt.txt`，5 项测试。
+
+## Wave 12 续：去掉演示环境、知识库进入业务页面（2026-10-28）
+
+- 按用户决定去掉演示环境：免密演示登录、三角色兼容、演示横幅与示例数据回填全部删除；生产模式（`ICG_ENV=production`）拒绝合成种子账号、不加载种子数据，管理员初始密码只能由部署方设定。之后的测试一律走正式账号密码登录。
+- 发现并修复生产缺陷：资料库表单的“财务审计/业绩案例/通用模板”类别后端不认，保存即 422；方案片段在页面上无法新建与发布；招标条款每一行都成为一条条款。
+- 知识库进入日常页面：资料逐条入库状态、证书附件识别生成待核验资料、片段发布与真实同步、写作输入里的知识库候选。检索默认参数按真实评测改为阈值 0.45、关键词权重 0.3。
+- 仍缺：招标扫描件/.doc/.xls 解析（拟用 RAGFlow DeepDOC）、ICG 流程模式检索对比、前端 28 个从未执行的测试（ISSUE-044）。自测见 [Wave 12 续](testing/2026-10-28-wave-12b-verification.md)。产品完备度粗估约 58%。
+
+## Wave 12 持久化与知识库（2026-10-28）
+
+- 业务状态写入 MySQL（[ISSUE-041](../issues/ISSUE-041.md) / BE-WORKFLOW-DURABILITY，in-review）：项目工作流全部键、账号、资料库、SLA 模板、作业、合作方、RAGFlow 配置、企业设置、字典、方案片段、知识库索引存入通用条目表 `demo_state_entry`，每条目乐观锁；沙箱 MySQL 8.4.13 上 `-m mysql` 40 passed。文件原件仍存在 JSON 字段，未改对象存储。
+- 公司知识库（[ISSUE-043](../issues/ISSUE-043.md) / AI-KB-RAG-PIPELINE，in-review）：此前生产写作从未检索公司资料、片段“同步成功”是伪造的；现在只有已确认未过期资料与已发布片段入库，改版/撤销/过期自动删除旧文档，检索只认索引内当前文档并实时复核，命中以 [片:id] 作为候选、不自动成为 [证]。
+- 未完成：真实 RAGFlow 上的检索质量评测（AI-KB-RAG-EVAL，in-progress），用户侧隧道当前不可达；默认阈值与权重尚未经实测确定。生产嵌入模型须换内网模型并重建数据集。
+- 自测见 [Wave 12 开发自测](testing/2026-10-28-wave-12-verification.md)。产品完备度粗估由约 40%～45% 升至约 50%，仍非 MVP 可上线。
+
+## Wave 11 主路径补环（2026-10-28）
+
+- 已交付并 in-review：人工处理队列（APP-M2-T133，替换最后一个主导航占位页）、分册交叉复核与定稿门禁（APP-M2-T144）、星号/废标兜底扫描与疑似遗漏（APP-M2-T111）、整改引擎不编造（AI-REMEDIATION-NO-FABRICATION）、新聚合 MySQL 持久化（BE-WORKFLOW-STATE-PERSIST）。交付见各卡 `docs/delivery/`，验证见 [Wave 11 验证](testing/2026-10-28-wave-11-verification.md)。
+- `UNIMPLEMENTED_RULES` 移除“交叉复核和完整分册定稿”，余 4 组；递交版仍可能被 `RULES_INCOMPLETE` / `CHECK_BLOCKER_EXISTS` 拦截，不宣称可递交。
+- 新发现：[ISSUE-039](../issues/ISSUE-039.md) Wave 10 整改引擎会把“无法满足”改成“完全满足”、把【待补】改成空泛承诺，已撤回；[ISSUE-041](../issues/ISSUE-041.md) MySQL 模式下工作流主体仍只在进程内存，生产路径重启会丢解析与矩阵数据；[ISSUE-042](../issues/ISSUE-042.md) offline-check 的 e2e 必需作业自 `e56d225` 起每次失败，tip `4985a9d` 的 backend 作业也失败（`auto_remediate` 未透传，已在 `1758920` 修复）。
+- 产品完备度按 [缺口增量](delivery/2026-10-28-prd-gap-delta.md) 粗估约 40%～45%，不是 MVP 可上线。
 
 ## 现行工程结构现状与规划未落地债审计（2026-10-26 纠偏）
 

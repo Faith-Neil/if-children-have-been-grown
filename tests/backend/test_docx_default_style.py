@@ -177,10 +177,11 @@ def test_settings_ask_word_to_update_fields_on_open():
 def test_cover_section_starts_the_body_on_the_next_page():
     _, parts = generated()
     sections = list(parts["word/document.xml"].iter(W + "sectPr"))
-    cover, body = sections
-    assert attr(cover.find(f"{W}type"), "val") == "nextPage"
+    cover, toc, body = sections  # 封面 / 目录（罗马数字）/ 正文（从 1 起），APP-M2-T197
+    assert attr(cover.find(f"{W}type"), "val") == "nextPage" and attr(toc.find(f"{W}type"), "val") == "nextPage"
     assert cover.find(f"{W}pgNumType") is None
-    assert attr(body.find(f"{W}pgNumType"), "start") == "1"
+    assert attr(toc.find(f"{W}pgNumType"), "fmt") == "lowerRoman"
+    assert attr(body.find(f"{W}pgNumType"), "start") == "1" and attr(body.find(f"{W}pgNumType"), "fmt") == "decimal"
 
 
 def test_body_without_headings_does_not_repeat_the_cover_title():
@@ -211,8 +212,11 @@ def test_toc_has_non_heading_title_and_placeholder():
     field = next(item for item in paragraphs if item.find(f".//{W}instrText") is not None
                  and "TOC" in (item.find(f".//{W}instrText").text or ""))
     assert paragraphs.index(title) < paragraphs.index(field)
-    visible = [node.text or "" for node in field.iter(W + "t")]
-    assert "右键更新域以生成目录" in visible
+    # 目录预先列出各级标题（APP-M2-T197），页码由 PAGEREF 域在打开时更新
+    entries = [item for item in paragraphs if paragraph_style(item) in ("TOC", "TOC2", "TOC3")]
+    headings = [paragraph_text(item) for item in paragraphs if (paragraph_style(item) or "").startswith("Heading")]
+    assert [paragraph_text(item) for item in entries] == headings
+    assert all("PAGEREF" in "".join(n.text or "" for n in item.iter(W + "instrText")) for item in entries)
 
 
 def test_heading_one_defaults_to_center_and_can_align_left():
@@ -229,8 +233,8 @@ def test_heading_one_defaults_to_center_and_can_align_left():
 def test_page_number_starts_on_body_and_cover_has_none():
     names, parts = generated()
     sections = list(parts["word/document.xml"].iter(W + "sectPr"))
-    assert len(sections) == 2
-    cover, body = sections
+    assert len(sections) == 3
+    cover, _toc, body = sections
     assert cover.find(f"{W}pgNumType") is None
     assert attr(body.find(f"{W}pgNumType"), "start") == "1"
     assert attr(body.find(f"{W}pgSz"), "w") == "11906"
@@ -250,7 +254,7 @@ def test_page_number_starts_on_body_and_cover_has_none():
     assert rfonts(header) == {"ascii": "宋体", "hAnsi": "宋体", "eastAsia": "宋体"}
     assert attr(header.find(f".//{W}sz"), "val") == "21"
     assert attr(header.find(f".//{W}jc"), "val") == "center"
-    assert "本地演示内部稿，不可正式递交" in "".join(header.itertext())
+    assert "内部评审稿 · 不可作为正式递交文件" in "".join(header.itertext())
 
 
 def test_a4_margins_match_the_approved_centimetres():

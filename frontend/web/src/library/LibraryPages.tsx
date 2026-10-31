@@ -11,6 +11,7 @@ import {
   Badge,
   Button,
   Card,
+  Checkbox,
   Col,
   Descriptions,
   Divider,
@@ -19,7 +20,6 @@ import {
   Form,
   Input,
   Modal,
-  Popconfirm,
   Progress,
   Radio,
   Row,
@@ -37,12 +37,8 @@ import {
   ClockCircleOutlined,
   CloseCircleOutlined,
   CopyOutlined,
-  DownloadOutlined,
   ExclamationCircleOutlined,
-  EyeOutlined,
   FileDoneOutlined,
-  FileProtectOutlined,
-  FileTextOutlined,
   FolderOpenOutlined,
   InfoCircleOutlined,
   LockOutlined,
@@ -53,20 +49,28 @@ import {
   UploadOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
-import type { Account, Evidence, EvidenceAttachment, SlaTemplate } from '../shared/types.ts';
+import type { Account, Evidence, SlaTemplate } from '../shared/types.ts';
+import { LibraryAttachments } from './LibraryAttachments.tsx';
 import { companyName, formatTime } from '../app/context.tsx';
 import { MaskedField } from '../admin/MaskedField.tsx';
+import { KnowledgeBasePanel } from './KnowledgeBasePanel.tsx';
+import { CertificateImport } from './CertificateImport.tsx';
+import { kbPermissions } from './kb-admin-core.ts';
+import { kbStatusMeta, type KnowledgeBaseStatus } from './knowledge-base-core.ts';
 import {
   CATEGORY_LABEL_MAP,
+  LIBRARY_TYPE_OPTIONS,
   checkEvidenceUsability,
   deriveEvidenceStatus,
   EVIDENCE_STATUS_META,
   filterEvidenceList,
   getCategoryLabel,
   LIBRARY_CATEGORIES,
-  verifyAttachmentSecurity,
   canManageLibrary,
   canRevealSensitiveField,
+  batchBasisValid,
+  batchConfirmPartition,
+  BATCH_CONFIRM_DECLARATION,
   type EvidenceFilterCriteria,
   type EvidenceStatusKey,
   type LibraryCategoryKey,
@@ -89,6 +93,8 @@ export interface LibraryPagesProps {
   templatesRevision?: number;
   globalSearch?: string;
   className?: string;
+  /** 提供后在页内显示公司知识库同步状态。 */
+  token?: string | null;
 }
 
 /**
@@ -107,6 +113,7 @@ export function LibraryPage({
   templatesRevision = 0,
   globalSearch = '',
   className = '',
+  token,
 }: LibraryPagesProps) {
   // 1. 状态与筛选器
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -116,7 +123,13 @@ export function LibraryPage({
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<Evidence | null>(null);
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [previewAttachment, setPreviewAttachment] = useState<EvidenceAttachment | null>(null);
+  const [batchOpen, setBatchOpen] = useState(false);
+  const [batchBasis, setBatchBasis] = useState('');
+  const [batchDeclared, setBatchDeclared] = useState(false);
+  const [batchWorking, setBatchWorking] = useState(false);
+  const [batchFailures, setBatchFailures] = useState<string[]>([]);
+  const [kbStatus, setKbStatus] = useState<KnowledgeBaseStatus | null>(null);
+  const kbByItem = useMemo(() => new Map((kbStatus?.items ?? []).filter(i => i.source_type === 'library').map(i => [i.source_id, i])), [kbStatus]);
 
   const [form] = Form.useForm();
 
@@ -174,23 +187,36 @@ export function LibraryPage({
     }
   }
 
-  // 6. 批量操作：批量核验确认
+  // 6. 批量操作：按批次确认（PRD v1.8 §5.4.3：确认页逐条展示关键字段，防止盲确认；改过的资料须逐条确认）
+  const batch = useMemo(() => batchConfirmPartition(items, selectedRowKeys.map(String)), [items, selectedRowKeys]);
+
+  function openBatchConfirm() {
+    setBatchBasis('');
+    setBatchDeclared(false);
+    setBatchFailures([]);
+    setBatchOpen(true);
+  }
+
   async function handleBatchConfirm() {
-    if (!hasManageRight || !selectedRowKeys.length) return;
-    const targets = items.filter(i => selectedRowKeys.includes(i.id) && deriveEvidenceStatus(i) === 'pending');
-    for (const item of targets) {
-      if (mutate) {
-        try {
-          await mutate(`/api/v1/library/${item.id}`, 'PATCH', {
-            status: 'confirmed',
-            reason: '批量人工核对合规放行',
-          });
-        } catch {
-          // 单项失败不阻断整体流程
-        }
+    if (!hasManageRight || !mutate || !batch.eligible.length || !batchDeclared || !batchBasisValid(batchBasis)) return;
+    setBatchWorking(true);
+    const failed: string[] = [];
+    for (const item of batch.eligible) {
+      try {
+        await mutate(`/api/v1/library/${item.id}`, 'PATCH', {
+          status: 'confirmed',
+          reason: `${BATCH_CONFIRM_DECLARATION}。核对依据：${batchBasis.trim()}`,
+        });
+      } catch (error) {
+        failed.push(`${item.name}：${error instanceof Error ? error.message : '确认失败'}`);
       }
     }
-    setSelectedRowKeys([]);
+    setBatchWorking(false);
+    setBatchFailures(failed);
+    if (!failed.length) {
+      setBatchOpen(false);
+      setSelectedRowKeys([]);
+    }
   }
 
   return (
@@ -216,6 +242,9 @@ export function LibraryPage({
           >
             补录企业资料
           </Button>
+          {token && kbPermissions(userRole).write && kbStatus?.enabled && (
+            <CertificateImport token={token} disabled={busy} onDrafted={() => { void read?.(); }} />
+          )}
         </Space>
       </div>
 
@@ -257,6 +286,10 @@ export function LibraryPage({
           </Card>
         </Col>
       </Row>
+
+      {token !== undefined && (
+        <KnowledgeBasePanel token={token} canSync={hasManageRight} libraryRevision={libraryRevision} report={report} onStatus={setKbStatus} />
+      )}
 
       {/* 合规与安全声明条 */}
       <Alert
@@ -420,11 +453,11 @@ export function LibraryPage({
                     <Button
                       size="small"
                       type="primary"
-                      onClick={handleBatchConfirm}
+                      onClick={openBatchConfirm}
                       disabled={!hasManageRight || busy}
                       data-testid="batch-confirm-button"
                     >
-                      批量核验通过
+                      按批次确认
                     </Button>
                     <Button size="small" onClick={() => setSelectedRowKeys([])}>
                       取消选中
@@ -481,7 +514,7 @@ export function LibraryPage({
                     key: 'sensitive',
                     width: 170,
                     render: (_: unknown, record: Evidence) => {
-                      const idVal = record.id_card || (record.type === 'personnel' ? '310115198801012345' : null);
+                      const idVal = record.id_card || null;
                       if (!idVal) return <span style={{ color: '#8c8c8c' }}>—</span>;
                       return (
                         <MaskedField
@@ -552,6 +585,17 @@ export function LibraryPage({
                       );
                     },
                   },
+                  ...(kbStatus?.enabled ? [{
+                    title: '知识库',
+                    key: 'kb',
+                    width: 110,
+                    render: (_: unknown, record: Evidence) => {
+                      const entry = kbByItem.get(record.id);
+                      if (!entry) return <Tooltip title="只有已确认、未过期的资料进入知识库"><Tag>不入库</Tag></Tooltip>;
+                      const meta = kbStatusMeta(entry.status);
+                      return <Tooltip title={entry.message || `已切成 ${entry.chunk_count} 块`}><Tag color={meta.color}>{meta.label}</Tag></Tooltip>;
+                    },
+                  }] : []),
                   {
                     title: '操作',
                     key: 'actions',
@@ -662,11 +706,12 @@ export function LibraryPage({
                 {selectedRecord.valid_until || '未设到期日（长期有效）'}
               </Descriptions.Item>
               <Descriptions.Item label="关联项目数">
-                <Badge
-                  count={selectedRecord.referenced_project_count ?? 2}
-                  style={{ backgroundColor: '#1e4db7' }}
-                />
-                <span style={{ marginLeft: 6, fontSize: 12, color: '#8c8c8c' }}>个投标项目正在引用</span>
+                {typeof selectedRecord.referenced_project_count === 'number' ? (
+                  <>
+                    <Badge count={selectedRecord.referenced_project_count} showZero style={{ backgroundColor: '#1e4db7' }} />
+                    <span style={{ marginLeft: 6, fontSize: 12, color: '#8c8c8c' }}>个投标项目正在引用</span>
+                  </>
+                ) : <span style={{ color: '#8c8c8c' }}>后台未提供引用统计</span>}
               </Descriptions.Item>
             </Descriptions>
 
@@ -675,16 +720,18 @@ export function LibraryPage({
             {/* 敏感字段安全展示 */}
             <Descriptions title="高敏身份脱敏" column={1} bordered size="small">
               <Descriptions.Item label="法定证件号码">
-                <MaskedField
-                  value={selectedRecord.id_card || '310115198801012345'}
-                  fieldType="id_card"
-                  fieldName="证件号码"
-                  actionText="调阅完整值"
-                  canReveal={hasRevealRight}
-                  unauthorizedMode="disabled"
-                  unauthorizedTooltip="仅公司管理员与资料管理员有权调阅"
-                  testId="drawer-masked-id-card"
-                />
+                {selectedRecord.id_card ? (
+                  <MaskedField
+                    value={selectedRecord.id_card}
+                    fieldType="id_card"
+                    fieldName="证件号码"
+                    actionText="调阅完整值"
+                    canReveal={hasRevealRight}
+                    unauthorizedMode="disabled"
+                    unauthorizedTooltip="仅公司管理员与资料管理员有权调阅"
+                    testId="drawer-masked-id-card"
+                  />
+                ) : <span style={{ color: '#8c8c8c' }} data-testid="drawer-id-card-empty">未录入</span>}
               </Descriptions.Item>
             </Descriptions>
 
@@ -708,160 +755,11 @@ export function LibraryPage({
               </pre>
             </div>
 
-            {/* APP-M2-T047: 附件槽位预览与安全下载防线 */}
-            <div className="attachment-slot-section" data-testid="attachment-slot-section">
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 10,
-                }}
-              >
-                <div style={{ fontWeight: 600, fontSize: 14 }}>
-                  <FileProtectOutlined style={{ color: '#1e4db7', marginRight: 6 }} />
-                  附件原件槽位 (防篡改防线)
-                </div>
-                <Tag color="cyan">SHA256 完整性防篡改</Tag>
-              </div>
-
-              <Table<EvidenceAttachment>
-                size="small"
-                rowKey="id"
-                pagination={false}
-                dataSource={
-                  selectedRecord.attachments || [
-                    {
-                      id: `att-${selectedRecord.id}`,
-                      name: `${selectedRecord.name}_正式扫描件.pdf`,
-                      size: 2048500,
-                      sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-                      uploaded_at: '2026-10-20 14:30:00',
-                    },
-                  ]
-                }
-                columns={[
-                  {
-                    title: '附件文件名',
-                    dataIndex: 'name',
-                    key: 'name',
-                    render: (name: string, att: EvidenceAttachment) => (
-                      <Space>
-                        <FileTextOutlined style={{ color: '#1e4db7' }} />
-                        <span>{name}</span>
-                      </Space>
-                    ),
-                  },
-                  {
-                    title: '大小',
-                    dataIndex: 'size',
-                    key: 'size',
-                    width: 90,
-                    render: (size: number) => `${Math.round((size / 1024 / 1024) * 10) / 10} MB`,
-                  },
-                  {
-                    title: 'SHA256 摘要指纹',
-                    dataIndex: 'sha256',
-                    key: 'sha256',
-                    width: 140,
-                    render: (hash: string) => (
-                      <Tooltip title={hash}>
-                        <code style={{ fontSize: 11 }}>{hash ? `${hash.slice(0, 8)}...${hash.slice(-8)}` : '—'}</code>
-                      </Tooltip>
-                    ),
-                  },
-                  {
-                    title: '安全操作',
-                    key: 'actions',
-                    width: 130,
-                    render: (_: unknown, att: EvidenceAttachment) => {
-                      const check = verifyAttachmentSecurity(att);
-                      return (
-                        <Space size={6}>
-                          <Button
-                            type="link"
-                            size="small"
-                            icon={<EyeOutlined />}
-                            onClick={() => setPreviewAttachment(att)}
-                            data-testid={`preview-att-${att.id}`}
-                          >
-                            预览
-                          </Button>
-                          <Popconfirm
-                            title="下载安全审计告知"
-                            description="下载文件包含内部敏感信息与人员追踪水印，严禁向无关外部第三方流转。是否确认下载？"
-                            onConfirm={() => {
-                              // 安全下载触发
-                            }}
-                            okText="记录审计并下载"
-                            cancelText="取消"
-                          >
-                            <Button
-                              type="link"
-                              size="small"
-                              icon={<DownloadOutlined />}
-                              data-testid={`download-att-${att.id}`}
-                            >
-                              安全下载
-                            </Button>
-                          </Popconfirm>
-                        </Space>
-                      );
-                    },
-                  },
-                ]}
-              />
-            </div>
+            <LibraryAttachments itemId={selectedRecord.id} token={token ?? null} canEdit={hasManageRight} />
           </div>
         )}
       </Drawer>
 
-      {/* 附件原件安全预览弹窗 */}
-      <Modal
-        title={
-          <Space>
-            <FileProtectOutlined style={{ color: '#1e4db7' }} />
-            <span>安全原件预览 · {previewAttachment?.name}</span>
-          </Space>
-        }
-        open={!!previewAttachment}
-        onCancel={() => setPreviewAttachment(null)}
-        footer={[
-          <Button key="close" onClick={() => setPreviewAttachment(null)}>
-            关闭预览
-          </Button>,
-        ]}
-        width={720}
-        data-testid="attachment-preview-modal"
-      >
-        {previewAttachment && (
-          <div>
-            <Alert
-              type="info"
-              showIcon
-              message="防泄密安全水印已生效"
-              description={`当前查阅账号：${user.name} (${user.id}) · 查阅时间：${new Date().toLocaleString()} · SHA256: ${previewAttachment.sha256 || '校验通过'}`}
-              style={{ marginBottom: 16 }}
-            />
-            <div
-              style={{
-                height: 300,
-                background: '#fafafa',
-                border: '1px dashed #d9d9d9',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#8c8c8c',
-              }}
-            >
-              <FileProtectOutlined style={{ fontSize: 48, color: '#1e4db7', marginBottom: 12 }} />
-              <div>PDF 原件安全视口渲染就绪</div>
-              <div style={{ fontSize: 12, marginTop: 4 }}>文件大小: {Math.round(previewAttachment.size / 1024)} KB</div>
-            </div>
-          </div>
-        )}
-      </Modal>
 
       {/* 新增/编辑资料表单弹窗 */}
       <Modal
@@ -891,15 +789,7 @@ export function LibraryPage({
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="type" label="资料类别" rules={[{ required: true }]}>
-                <Select
-                  options={[
-                    { value: 'qualification', label: '主体资质' },
-                    { value: 'financial', label: '财务审计' },
-                    { value: 'personnel', label: '人员证书' },
-                    { value: 'case', label: '业绩案例' },
-                    { value: 'template', label: '通用模板' },
-                  ]}
-                />
+                <Select options={LIBRARY_TYPE_OPTIONS} />
               </Form.Item>
             </Col>
               <Col span={12}>
@@ -930,6 +820,49 @@ export function LibraryPage({
               <Input.TextArea rows={2} placeholder="若核验生效，请说明核对依据与证书查验路径" />
             </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        open={batchOpen}
+        title="按批次确认资料"
+        width={760}
+        okText={`确认 ${batch.eligible.length} 条`}
+        okButtonProps={{ disabled: !batch.eligible.length || !batchDeclared || !batchBasisValid(batchBasis), loading: batchWorking, 'data-testid': 'batch-confirm-submit' } as never}
+        onOk={() => void handleBatchConfirm()}
+        onCancel={() => setBatchOpen(false)}
+        destroyOnHidden
+      >
+        <div data-testid="batch-confirm-modal">
+          <p>逐条核对下列资料的关键字段后再确认。改过的资料、受限资料和缺协议的合作方资料不能按批次确认，需打开详情逐条确认。</p>
+          <Table
+            size="small"
+            rowKey="id"
+            pagination={false}
+            dataSource={batch.eligible}
+            data-testid="batch-confirm-list"
+            columns={[
+              { title: '资料名称', dataIndex: 'name' },
+              { title: '类别', dataIndex: 'type', width: 110, render: (v: string) => getCategoryLabel(v) },
+              { title: '有效期至', dataIndex: 'valid_until', width: 120, render: (v: string | null) => v || '长期有效' },
+              { title: '内容要点', dataIndex: 'content', render: (v: string) => (v.length > 60 ? `${v.slice(0, 60)}…` : v) },
+            ]}
+          />
+          {batch.excluded.length > 0 && (
+            <Alert style={{ marginTop: 12 }} type="warning" showIcon data-testid="batch-confirm-excluded"
+              message={`${batch.excluded.length} 条须逐条确认，本次不处理`}
+              description={<ul style={{ margin: 0, paddingLeft: 18 }}>{batch.excluded.map(e => <li key={e.item.id}>{e.item.name}：{e.why}</li>)}</ul>} />
+          )}
+          <Input.TextArea style={{ marginTop: 12 }} rows={2} value={batchBasis} onChange={e => setBatchBasis(e.target.value)}
+            aria-label="核对依据" data-testid="batch-confirm-basis" placeholder="写明本次核对依据，例如：已对照原件扫描件逐条核对证书编号与有效期" />
+          <Checkbox style={{ marginTop: 8 }} checked={batchDeclared} onChange={e => setBatchDeclared(e.target.checked)} data-testid="batch-confirm-declare">
+            {BATCH_CONFIRM_DECLARATION}
+          </Checkbox>
+          {batchFailures.length > 0 && (
+            <Alert style={{ marginTop: 12 }} type="error" showIcon data-testid="batch-confirm-failures"
+              message={`${batchFailures.length} 条确认失败，其余已确认`}
+              description={<ul style={{ margin: 0, paddingLeft: 18 }}>{batchFailures.map(f => <li key={f}>{f}</li>)}</ul>} />
+          )}
+        </div>
       </Modal>
     </div>
   );

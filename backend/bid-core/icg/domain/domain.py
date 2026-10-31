@@ -6,6 +6,7 @@ from __future__ import annotations
 import re
 
 import hashlib
+import os
 import json
 import secrets
 import time
@@ -46,21 +47,9 @@ class DomainError(Exception):
         super().__init__(message)
 
 
-DEMO_ONLY_ACCOUNT_IDS = frozenset({
-    "alpha-editor",
-    "alpha-manager",
-    "alpha-viewer",
-    "beta-editor",
-    "alpha-tech",
-    "alpha-business",
-    "alpha-outsider-manager",
-    "beta-manager",
-    "alpha-company-admin",
-    "alpha-data-admin",
-    "alpha-auditor",
-    "alpha-group-admin",
-    "platform-admin",
-})
+def _production_mode() -> bool:
+    # 只认显式的 ICG_ENV=production。ICG_REQUIRE_MYSQL 只表示“必须连 MySQL”，CI 的 MySQL 用例仍用合成种子数据。
+    return os.environ.get("ICG_ENV") == "production"
 
 
 @dataclass(frozen=True)
@@ -78,6 +67,11 @@ class Account:
     failed_login_attempts: int = 0
     created_at: float | None = None
     updated_at: float | None = None
+    # 首次登录或被管理员重置后须先改密（APP-M2-T260；字典 v1.9 sys_user.must_change_password）
+    must_change_password: bool = False
+    password_changed_at: float | None = None
+    # 连续失败锁定的时间，满 login_lock_minutes 自动解锁（PRD v1.8 §5.12.1 验收①）
+    locked_at: float | None = None
 
 
 @dataclass(frozen=True)
@@ -213,12 +207,25 @@ class DemoState:
     resource_acl: list[dict] = field(default_factory=list)
     model_configs: dict[str, Any] = field(default_factory=dict)
     project_model_configs: dict[str, str] = field(default_factory=dict)
+    # RAGFlow 租户配置与各服务（公司设置、字典、方案片段）的存储；与其他状态同一事务、同一持久化。
+    ragflow_configs: dict[str, Any] = field(default_factory=dict)
+    service_stores: dict[str, dict] = field(default_factory=dict)
+    # 账号与公司安全事件（登录、登录失败、锁定、解锁、改密、注销、公司停用启用，PRD v1.8 §5.12.1 规则 4、§7.3）。
+    # 与章节审计分开：章节审计按 chapter_id 列出，并被原子性测试整体比较；安全事件按事件编号逐条持久化。
+    security_audit: dict[str, dict] = field(default_factory=dict)
     # 内存仓库仍按 2048 条裁剪回执。MySQL 路径在事务里把它设为 False，避免未过期回执被提前删掉。
     cap_receipts: bool = True
 
 
+
+def lock_view(state, lease) -> dict:
+    """章节编辑锁的公开视图：其他成员看到持锁人姓名与到期时刻（APP-M2-T173）。"""
+    owner = state.accounts.get(lease.owner_id)
+    return {"owner_id": lease.owner_id, "owner_name": owner.name if owner else None,
+            "expires_at": iso_time(lease.expires_at)}
+
 class DemoService:
-    LEASE_SECONDS = 120
+    LEASE_SECONDS = 30 * 60  # 无操作 30 分钟释放（PRD §5.11.9，公司设置 edit_lock_timeout_minutes 可调）
 
     def __init__(self, repository: Repository, model_provider: ModelProvider,
                  clock: Callable[[], float | datetime] | None = None,
@@ -228,7 +235,10 @@ class DemoService:
         self.model_provider = model_provider
         self.clock = clock or time.time
         self.model_transport = model_transport
-        self.evidence_service = evidence_service
+        from .knowledge_base import KnowledgeBaseService, KnowledgeEvidenceService
+        self.knowledge_base = KnowledgeBaseService(self)
+        # 未显式注入时，证据候选走公司知识库（未配置 RAGFlow 时只有路径 A，B/C 记为跳过）。
+        self.evidence_service = evidence_service if evidence_service is not None else KnowledgeEvidenceService(self.knowledge_base)
         from .chapter_generation import ChapterGenerationService
         self.chapter_generation = ChapterGenerationService(self)
         from .editor_ai_context import EditorAIContextService
@@ -248,6 +258,7 @@ class DemoService:
         sync_execute: bool = False,
         max_context_tokens: int | None = None,
         snippet_matches: list[dict] | None = None,
+        auto_remediate: bool = False,
     ) -> dict:
         return self.chapter_generation.start_chapter_generation(
             project_id,
@@ -256,6 +267,7 @@ class DemoService:
             sync_execute=sync_execute,
             max_context_tokens=max_context_tokens,
             snippet_matches=snippet_matches,
+            auto_remediate=auto_remediate,
         )
 
     def batch_generate_chapters(
@@ -436,20 +448,40 @@ class DemoService:
             snippet_store=snippet_store,
         )
 
-    def resolve_model_provider(self, state: DemoState, project_id: str) -> ModelProvider:
+    def resolve_model_provider(self, state: DemoState, project_id: str, task: str | None = None) -> ModelProvider:
+        """项目单独绑定的模型 → 本公司任务与模型对应表（APP-M2-T040）→ 本公司默认模型 → 进程内置模型。"""
         bound_id = state.project_model_configs.get(project_id)
         cfg = None
+        route_backup = None
+        project = state.projects.get(project_id)
         if bound_id and bound_id in state.model_configs:
             cfg = state.model_configs[bound_id]
-        else:
+        elif project is not None and task:
+            from .task_model_routes import resolve as resolve_route
+            routed = resolve_route(state, project.company_id, task)
+            if routed is not None:
+                cfg, route_backup = routed
+                if project.sensitive and (not cfg.is_local or not cfg.allow_sensitive):
+                    raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
+                                      "敏感项目只能使用本地模型：任务与模型对应表里该任务的首选模型不是允许处理敏感数据的本地模型。")
+        if cfg is None:
             project = state.projects.get(project_id)
             if project:
                 default_id = f"default-{project.company_id}"
                 if default_id in state.model_configs:
                     cfg = state.model_configs[default_id]
         if cfg is not None:
-            from icg.infra.model_config_storage import provider_from_model_config
-            return provider_from_model_config(cfg, transport=self.model_transport, default_provider=self.model_provider)
+            from icg.infra.model_config_storage import provider_from_model_config, usable_fallback
+            provider = provider_from_model_config(cfg, transport=self.model_transport, default_provider=self.model_provider)
+            backup = usable_fallback(state, cfg, bool(project and project.sensitive))
+            if route_backup is not None and (not (project and project.sensitive)
+                                             or (route_backup.is_local and route_backup.allow_sensitive)):
+                backup = route_backup  # 任务表里填的备用优先于模型配置自带的
+            if backup is not None and getattr(provider, "is_real_model", False) and provider is not self.model_provider:
+                # 备用模型（PRD §6.5 规则 2、3）：所有任务的 suggest() 在主模型健康类失败时改用备用（APP-M2-T040）
+                from icg.infra.model_fallback import WithFallback
+                return WithFallback(provider, provider_from_model_config(backup, transport=self.model_transport))
+            return provider
         return self.model_provider
 
     def resolve_provider_from_snapshot(self, snapshot: dict) -> ModelProvider:
@@ -464,45 +496,29 @@ class DemoService:
             return value.timestamp()
         return float(value)
 
-    def accounts(self) -> dict:
-        state = self.repository.read()
-        res = []
-        for user in state.accounts.values():
-            d = asdict(user)
-            d.pop("password_hash", None)
-            d.pop("salt", None)
-            res.append(d)
-        return {"accounts": res}
-
-    def login(self, account_id: str) -> dict:
-        def operation(state: DemoState):
-            user = state.accounts.get(account_id)
-            if user is None:
-                raise DomainError(401, "INVALID_ACCOUNT", "请选择有效的合成演示账号。")
-            import os
-            if (os.environ.get("ICG_ALLOW_DEMO_LOGIN", "1") == "0"
-                    or os.environ.get("DEMO_ACCOUNTS_ENABLED") == "0"
-                    or os.environ.get("ICG_ENV") == "production") and (account_id in DEMO_ONLY_ACCOUNT_IDS or getattr(user, "_DEMO_ONLY", False)):
-                raise DomainError(403, "FORBIDDEN", "生产配置下禁用内置演示账号登录。")
-            token = secrets.token_urlsafe(32)
-            state.sessions[token] = user.id
-            u_data = asdict(user)
-            u_data.pop("password_hash", None)
-            u_data.pop("salt", None)
-            return {"access_token": token, "token_type": "bearer", "user": u_data}
-        return self.repository.transaction(operation)
-
     def auth_login(self, username: str, password: str) -> dict:
         if not username or not password:
-            raise DomainError(401, "INVALID_CREDENTIALS", "用户名或密码错误，请核实后重试。")
+            raise DomainError(401, "INVALID_CREDENTIALS", "账号或密码错误，请核实后重试。")
 
         state = self.repository.read()
         user = state.accounts.get(username)
+        production = _production_mode()
+        if production and user is not None and getattr(user, "_DEMO_ONLY", False) and username == "admin":
+            user = None  # 生产环境忽略种子管理员，按部署设定的初始密码重新初始化
         if user is None and username == "admin":
+            # 超级管理员首次登录时初始化。生产环境必须由部署方经 ICG_ADMIN_INITIAL_PASSWORD 设定初始密码，
+            # 不存在内置默认口令；开发与自动化测试环境才回落到固定初始密码。
+            initial = os.environ.get("ICG_ADMIN_INITIAL_PASSWORD", "")
+            if not initial and production:
+                raise DomainError(401, "INVALID_CREDENTIALS", "账号或密码错误，请核实后重试。")
+            initial = initial or "X_2026"
+            if password != initial:
+                raise DomainError(401, "INVALID_CREDENTIALS", "账号或密码错误，请核实后重试。")
             from icg.domain.auth_service import hash_password
             def init_admin(s: DemoState):
-                if "admin" not in s.accounts:
-                    p_hash, p_salt = hash_password("X_2026")
+                existing = s.accounts.get("admin")
+                if existing is None or getattr(existing, "_DEMO_ONLY", False):
+                    p_hash, p_salt = hash_password(initial)
                     s.accounts["admin"] = Account(
                         id="admin",
                         name="系统超级管理员",
@@ -512,64 +528,95 @@ class DemoService:
                         password_hash=p_hash,
                         salt=p_salt,
                         display_name="系统超级管理员",
+                        # 生产环境的初始密码由部署方设定，首次登录必须先改密（PRD §5.12.1 验收④）。
+                        must_change_password=production,
                     )
             self.repository.transaction(init_admin)
             state = self.repository.read()
             user = state.accounts.get(username)
 
-        if user is None:
-            raise DomainError(401, "INVALID_CREDENTIALS", "用户名或密码错误，请核实后重试。")
-
-        if getattr(user, "is_locked", False) or getattr(user, "status", "active") == "locked":
-            raise DomainError(423, "ACCOUNT_LOCKED", "账号因连续登录失败已被锁定，请联系管理员解锁。")
-
-        if getattr(user, "status", "active") == "disabled":
-            raise DomainError(401, "INVALID_CREDENTIALS", "该账号已被停用，请联系企业管理员。")
-
+        from icg.domain import password_login as rules
+        from icg.domain import security_audit
         from icg.domain.auth_service import verify_password
-        if user.password_hash:
-            valid = verify_password(password, user.password_hash, user.salt)
-        else:
-            valid = (password == "X_2026")
+
+        def refuse(reason: str) -> DomainError:
+            # 账号不存在、密码错误、账号停用对外提示相同（PRD §5.12.1 规则 2；APP-M2-T260），原因只记审计。
+            self.repository.transaction(lambda s: security_audit.record(
+                s, "user.login_failed", operator=username, user_id=username, reason=reason))
+            return DomainError(401, "INVALID_CREDENTIALS", rules.LOGIN_FAILED_MESSAGE)
+
+        if user is None:
+            raise refuse("unknown_account")
+        if production and getattr(user, "_DEMO_ONLY", False):
+            # 内存仓储预置的合成账号只用于开发与自动化测试，生产环境一律拒绝。
+            raise refuse("synthetic_account")
+        if getattr(user, "status", "active") == "disabled":
+            raise refuse("account_disabled")
+
+        now = time.time()
+        if getattr(user, "is_locked", False) or getattr(user, "status", "active") == "locked":
+            if not rules.lock_expired(user, now):
+                raise DomainError(423, "ACCOUNT_LOCKED", rules.locked_message(user, now))
+
+            def auto_unlock(s: DemoState):
+                u = s.accounts.get(username)
+                if u is not None and rules.lock_expired(u, now):
+                    s.accounts[username] = replace(u, is_locked=False, status="active", failed_login_attempts=0,
+                                                   locked_at=None, updated_at=now)
+                    security_audit.record(s, "user.unlock", operator="system", user_id=username, reason="lock_expired")
+
+            self.repository.transaction(auto_unlock)
+            user = self.repository.read().accounts.get(username) or user
+
+        # 没有密码摘要的账号不能登录（不再接受固定明文口令）。
+        valid = bool(user.password_hash) and verify_password(password, user.password_hash, user.salt)
 
         if not valid:
             attempts = getattr(user, "failed_login_attempts", 0) + 1
-            max_attempts = 5
-            if hasattr(self, "company_settings_service") and self.company_settings_service and user.company_id:
-                st = getattr(self.company_settings_service, "_store", {}).get(user.company_id)
-                if st and getattr(st, "max_login_attempts", None):
-                    max_attempts = st.max_login_attempts
+            max_attempts = rules.max_login_failures(self.repository.read(), user)
             is_now_locked = (attempts >= max_attempts)
 
             def record_failure(s: DemoState):
                 u = s.accounts.get(username)
                 if u:
                     if is_now_locked:
-                        s.accounts[username] = replace(u, failed_login_attempts=attempts, is_locked=True, status="locked", updated_at=time.time())
-                        s.audit.append({"action": "user.locked", "user_id": username, "attempts": attempts, "timestamp": time.time()})
+                        s.accounts[username] = replace(u, failed_login_attempts=attempts, is_locked=True, status="locked",
+                                                       locked_at=now, updated_at=now)
+                        security_audit.record(s, "user.locked", operator="system", user_id=username, attempts=attempts)
                     else:
-                        s.accounts[username] = replace(u, failed_login_attempts=attempts, updated_at=time.time())
+                        s.accounts[username] = replace(u, failed_login_attempts=attempts, updated_at=now)
+                    security_audit.record(s, "user.login_failed", operator=username, user_id=username,
+                                          reason="wrong_password")
 
             self.repository.transaction(record_failure)
 
             if is_now_locked:
-                raise DomainError(423, "ACCOUNT_LOCKED", f"密码连续错误达到上限（{max_attempts}次），账号已被锁定，请联系管理员解锁。")
-            else:
-                raise DomainError(401, "INVALID_CREDENTIALS", f"用户名或密码错误，还剩 {max_attempts - attempts} 次尝试机会。")
+                locked = self.repository.read().accounts.get(username) or user
+                raise DomainError(423, "ACCOUNT_LOCKED", rules.locked_message(locked, now))
+            raise DomainError(401, "INVALID_CREDENTIALS", rules.LOGIN_FAILED_MESSAGE)
+
+        # 凭据正确后才说明公司已停用，避免借此探测账号是否存在（PRD §5.12.1 异常与边界）。
+        if rules.company_disabled(self.repository.read(), user.company_id):
+            self.repository.transaction(lambda s: security_audit.record(
+                s, "user.login_failed", operator=username, user_id=username, reason="company_disabled"))
+            raise DomainError(403, "COMPANY_DISABLED", rules.COMPANY_DISABLED_MESSAGE)
 
         def record_success(s: DemoState):
             u = s.accounts.get(username)
             if u and getattr(u, "failed_login_attempts", 0) > 0:
-                s.accounts[username] = replace(u, failed_login_attempts=0, updated_at=time.time())
+                s.accounts[username] = replace(u, failed_login_attempts=0, updated_at=now)
                 u = s.accounts[username]
             token = secrets.token_urlsafe(32)
             s.sessions[token] = u.id
+            security_audit.record(s, "user.login", operator=u.id, user_id=u.id)
             user_data = asdict(u)
-            user_data.pop("password_hash", None)
-            user_data.pop("salt", None)
+            for secret in ("password_hash", "salt", "_DEMO_ONLY"):
+                user_data.pop(secret, None)
             user_data["username"] = u.id
             user_data["display_name"] = u.display_name or u.name
-            return {"access_token": token, "token_type": "bearer", "user": user_data}
+            return {"access_token": token, "token_type": "bearer", "user": user_data,
+                    "must_change_password": bool(u.must_change_password),
+                    "password_policy": rules.policy_for(s, u)}
 
         return self.repository.transaction(record_success)
 
@@ -577,11 +624,14 @@ class DemoService:
         state = self.repository.read()
         user = state.accounts.get(state.sessions.get(token, ""))
         if user is None:
-            raise DomainError(401, "UNAUTHENTICATED", "请先选择演示账号登录。")
+            raise DomainError(401, "UNAUTHENTICATED", "登录已失效，请重新登录。")
         if getattr(user, "status", "active") == "disabled":
             raise DomainError(401, "UNAUTHENTICATED", "当前账号已被停用。")
         if getattr(user, "is_locked", False):
             raise DomainError(401, "UNAUTHENTICATED", "当前账号已被锁定。")
+        from icg.domain.password_login import company_disabled
+        if company_disabled(state, user.company_id):
+            raise DomainError(401, "UNAUTHENTICATED", "所属公司已停用。")
         return Principal(user, token)
 
     @staticmethod
@@ -594,7 +644,7 @@ class DemoService:
         if role in READONLY_SYSTEM_ROLES or role not in (
             "editor", "manager", "company_admin", "data_admin", "project_lead", "bid_writer"
         ):
-            raise DomainError(403, "FORBIDDEN", "当前演示账号只能查看，不能执行此操作。")
+            raise DomainError(403, "FORBIDDEN", "当前账号只能查看，不能执行此操作。")
 
     @staticmethod
     def _project(state: DemoState, principal: Principal, project_id: str) -> Project:
@@ -690,11 +740,13 @@ class DemoService:
         return self._project_response(self._project(state, principal, project_id))
 
     def create_project(self, principal: Principal, name: str, *,
-                       idempotency_key: str | None = None) -> dict:
+                       idempotency_key: str | None = None, volume_mode: str = "both") -> dict:
         from .idempotency import fingerprint, lookup, remember, validate_key
+        from .project_access import volumes_for_mode
         key = validate_key(idempotency_key) if idempotency_key is not None else None
         scope_id = f"company:{principal.user.company_id}"
-        req_fp = fingerprint("project.create", {"name": name}, None) if key else ""
+        # 原有两册项目的指纹保持不变（只有技术标模式才把模式写进指纹）
+        req_fp = fingerprint("project.create", {"name": name} if volume_mode == "both" else {"name": name, "volume_mode": volume_mode}, None) if key else ""
 
         def operation(state: DemoState):
             if key:
@@ -719,15 +771,18 @@ class DemoService:
                 record_version=1,
             )
             state.projects[project.id] = project
-            state.project_teams[project.id] = initial_team(principal.user.id)
+            state.project_teams[project.id] = initial_team(principal.user.id, volume_mode)
+            active = volumes_for_mode(volume_mode)
             for volume, title in (("technical", "技术方案"), ("business", "商务响应")):
+                if volume not in active:
+                    continue
                 chapter = Chapter(new_id("chapter"), project.id, title, volume, "")
                 chapter.versions.append({"revision": 1, "content": "",
                                          "actor_id": principal.user.id,
                                          "created_at": iso_time(now_ts)})
                 state.chapters[chapter.id] = chapter
                 self._audit(state, principal, chapter, "project.create")
-            res = self._project_response(project)
+            res = {**self._project_response(project), "volume_mode": volume_mode}
             if key:
                 remember(state, scope_id, principal.user.id, key, req_fp, res, self._now())
             return res
@@ -743,12 +798,15 @@ class DemoService:
         state = self.repository.read()
         chapter = self._chapter(state, principal, chapter_id)
         active_lock = chapter.lock and chapter.lock.expires_at > self._now()
-        lock = ({"owner_id": chapter.lock.owner_id,
-                 "expires_at": iso_time(chapter.lock.expires_at)} if active_lock else None)
+        lock = lock_view(state, chapter.lock) if active_lock else None
         draft = chapter.drafts.get(principal.user.id)
         from .project_access import chapter_permissions
+        from .paragraph_keys import current as current_paragraphs, public as public_paragraphs
+        from .paragraph_locks import mark_locked
         return {**self._summary(chapter), "project_id": chapter.project_id,
                 "content": chapter.content, "lock": lock,
+                "paragraphs": mark_locked(public_paragraphs(current_paragraphs(chapter)),
+                                          state.workflows.get(chapter.project_id) or {}, chapter.id),
                 "draft": asdict(draft) if draft else None, "assignee_id": chapter.assignee_id,
                 "permissions": chapter_permissions(state, chapter, principal.user.id)}
 
@@ -756,6 +814,10 @@ class DemoService:
     def _chapter_writer(state, principal, chapter):
         from .project_access import require_chapter
         require_chapter(state, principal, chapter)
+        # 已定稿分册的正文只读（PRD v1.8 §5.7.5 规则 5）；不能只靠页面禁用按钮。
+        volumes = state.workflows.get(chapter.project_id, {}).get("volumes", {})
+        if volumes.get(chapter.volume, {}).get("is_finalized"):
+            raise DomainError(409, "VOLUME_FINALIZED", "所在分册已定稿，须先解锁分册再修改。")
 
     def _lease(self, chapter: Chapter, principal: Principal, token: str) -> Lease:
         lease = chapter.lock
@@ -779,6 +841,46 @@ class DemoService:
         if lease.heartbeat_at is not None:
             data["heartbeat_at"] = iso_time(lease.heartbeat_at)
         return data
+
+    def _lease_seconds(self, state: DemoState, company_id: str) -> float:
+        stored = (state.service_stores.get("company_settings") or {}).get(company_id) or {}
+        minutes = stored.get("edit_lock_timeout_minutes")
+        try:
+            return max(60.0, float(minutes) * 60) if minutes else float(self.LEASE_SECONDS)
+        except (TypeError, ValueError):
+            return float(self.LEASE_SECONDS)
+
+    def _auto_commit_draft(self, state: DemoState, chapter: Chapter, user_id: str, why: str) -> int | None:
+        """锁释放（主动离开、超时、被接管）时，把持锁人未提交的草稿自动提交为“手改”版本（PRD §5.11.9 第 1 点）。
+
+        草稿基于旧版本、来源已变化或含对话残留时不提交，草稿原样保留（之后标“已过期”，由本人对比合并）。返回新版本号。"""
+        draft = chapter.drafts.get(user_id)
+        if draft is None or draft.content == chapter.content or draft.base_revision != chapter.revision:
+            return None
+        from .system_chapters import is_system_chapter
+        workflow = state.workflows.get(chapter.project_id, {})
+        if is_system_chapter(workflow, chapter):
+            return None
+        has_sources = bool(workflow.get("requirements") or workflow.get("facts") or workflow.get("sla"))
+        if has_sources and draft.input_fingerprint != project_input_fingerprint(state, chapter.project_id):
+            return None
+        from .chapter_generation import AI_CONVERSATION_RESIDUALS
+        if any(residual in draft.content for residual in AI_CONVERSATION_RESIDUALS):
+            return None
+        from .paragraph_locks import violations
+        if violations(workflow, chapter.id, draft.content):
+            return None  # 草稿改动了锁定段落：不自动提交，草稿保留由本人处理
+        chapter.content = draft.content
+        chapter.revision += 1
+        state.projects[chapter.project_id].revision += 1
+        chapter.versions.append({"revision": chapter.revision, "content": chapter.content, "actor_id": user_id,
+                                 "created_at": iso_time(self._now()), "version_origin": "manual", "edit_mode": "manual",
+                                 "note": f"自动提交（{why}）"})
+        chapter.drafts.pop(user_id, None)
+        state.audit.append({"id": new_id("event"), "action": "version.autocommit", "actor_id": user_id,
+                            "chapter_id": chapter.id, "created_at": iso_time(self._now()),
+                            "details": {"revision": chapter.revision, "reason": why}})
+        return chapter.revision
 
     def acquire_lock(self, principal: Principal, chapter_id: str,
                      takeover_reason: str | None, *,
@@ -810,11 +912,15 @@ class DemoService:
                     raise DomainError(423, "LOCK_HELD", "其他会话正在编辑；项目负责人或本册负责人可以填写理由接管。")
                 if not takeover_reason or not takeover_reason.strip():
                     raise DomainError(409, "TAKEOVER_REASON_REQUIRED", "接管前必须填写理由。")
+            committed = None
+            if old_lease is not None and old_lease.owner_id != principal.user.id:
+                committed = self._auto_commit_draft(state, chapter, old_lease.owner_id,
+                                                    "编辑权被接管" if active else "编辑锁超时释放")
             now = self._now()
             lease = Lease(token=secrets.token_urlsafe(32),
                           owner_id=principal.user.id,
                           session_token=principal.session_token,
-                          expires_at=now + self.LEASE_SECONDS,
+                          expires_at=now + self._lease_seconds(state, principal.user.company_id),
                           acquired_at=now,
                           heartbeat_at=now,
                           lock_reason=None,
@@ -826,7 +932,13 @@ class DemoService:
             details = ({"reason": takeover_reason.strip(), "previous_owner_id": old_lease.owner_id}
                        if active and old_lease else {})
             self._audit(state, principal, chapter, "lock.takeover" if active else "lock.acquire", details)
-            # 接管时保留旧用户已经收到的草稿，不宣称保存了断网设备尚未上传的文字。
+            if active and old_lease and old_lease.owner_id != principal.user.id:
+                from .notifications import notify
+                notify(state, [old_lease.owner_id], "lock_taken_over", f"「{chapter.title}」的编辑权已被接管",
+                       f"{principal.user.name} 接管了编辑权，理由：{takeover_reason.strip()}。"
+                       + (f"你的草稿已自动提交为 v{committed}。" if committed else "你已保存的草稿仍保留，未提交的修改不会覆盖新版本。"),
+                       now=iso_time(now), project_id=chapter.project_id, target_id=chapter.id)
+            # 接管或超时：旧持锁人已保存的草稿先自动提交；断网设备尚未上传的文字无法替其保存。
             res = self._lease_response(lease)
             if key:
                 remember(state, chapter.project_id, principal.user.id, key, req_fp, res, self._now())
@@ -848,7 +960,7 @@ class DemoService:
             self._chapter_writer(state, principal, chapter)
             lease = self._lease(chapter, principal, lease_token)
             now = self._now()
-            lease.expires_at = now + self.LEASE_SECONDS
+            lease.expires_at = now + self._lease_seconds(state, chapter.lock.company_id or principal.user.company_id)
             lease.heartbeat_at = now
             lease.record_version += 1
             self._audit(state, principal, chapter, "lock.renew")
@@ -872,6 +984,7 @@ class DemoService:
                     return cached
             self._chapter_writer(state, principal, chapter)
             lease = self._lease(chapter, principal, lease_token)
+            self._auto_commit_draft(state, chapter, principal.user.id, "主动释放编辑权")
             now = self._now()
             lease.released_at = now
             lease.release_reason = "manual"
@@ -937,15 +1050,43 @@ class DemoService:
             if previous is not None:
                 return previous
             self._revision(chapter, base_revision)
+            from .system_chapters import refuse_manual_edit
+            refuse_manual_edit(state, chapter)
+            from .paragraph_locks import refuse_locked_change
+            refuse_locked_change(state, chapter, content)
+            from .variable_nodes import refuse_new_invalid
+            refuse_new_invalid(state, chapter, content)
             self._writing_input(state, chapter, input_fingerprint)
+            # 粘贴识别（APP-M2-T188）：与本章近期对话助手输出高度重合的新段落，来源记为“对话助手撰写（粘贴）”并复查
+            from .paste_detection import review as paste_review
+            pasted = paste_review(state, chapter, state.workflows.get(chapter.project_id) or {}, chapter.content, content, self._now())
             chapter.content = content
             chapter.revision += 1
             state.projects[chapter.project_id].revision += 1
             result = {"revision": chapter.revision, "content": chapter.content}
-            chapter.versions.append({**result, "actor_id": principal.user.id,
-                                     "created_at": iso_time(self._now())})
+            if pasted:
+                result["paste_detected"] = pasted
+                # 粘贴识别的复查结果留存，编辑台“问题”页签标“编辑后复查”（APP-M2-T166 / PRD §5.11.6 第 5 项）
+                flow = state.workflows.setdefault(chapter.project_id, {})
+                for item in pasted:
+                    if item.get("issues"):
+                        flow.setdefault("edit_rechecks", []).append({
+                            "id": new_id("recheck"), "chapter_id": chapter.id, "revision": chapter.revision,
+                            "label": item.get("source_label") or "粘贴自对话助手", "paragraph_index": item.get("paragraph_index"),
+                            "text": item.get("text") or "", "issues": item["issues"], "at": iso_time(self._now()),
+                            "actor_id": principal.user.id})
+            chapter.versions.append({**{k: v for k, v in result.items() if k != "paste_detected"}, "actor_id": principal.user.id,
+                                     "created_at": iso_time(self._now()),
+                                     **({"paragraph_sources": [{k: v for k, v in p.items() if k != "issues"} for p in pasted]} if pasted else {})})
             chapter.drafts.pop(principal.user.id, None)
-            self._audit(state, principal, chapter, "version.commit")
+            stale = [uid for uid, draft in chapter.drafts.items() if draft.base_revision < chapter.revision]
+            if stale:
+                from .notifications import notify
+                notify(state, stale, "draft_expired", f"「{chapter.title}」有新版本，你的草稿已过期",
+                       f"{principal.user.name} 提交了 v{chapter.revision}；你的草稿基于旧版本，不会覆盖新正文，请核对后再改。",
+                       now=iso_time(self._now()), project_id=chapter.project_id, target_id=chapter.id)
+            self._audit(state, principal, chapter, "version.commit",
+                        {"pasted_paragraphs": [p["paragraph_index"] for p in pasted]} if pasted else None)
             remember(state, chapter.project_id, principal.user.id, key, request_fingerprint, result, self._now())
             return result
         return self.repository.transaction(operation)
@@ -963,7 +1104,10 @@ class DemoService:
     def versions(self, principal: Principal, chapter_id: str) -> dict:
         state = self.repository.read()
         chapter = self._chapter(state, principal, chapter_id)
-        return {"versions": chapter.versions}
+        from .paragraph_keys import ensure as ensure_paragraphs, public as public_paragraphs
+        ensure_paragraphs(chapter)
+        return {"versions": [{**{k: val for k, val in v.items() if k != "rollback_paragraphs"},
+                              "paragraphs": public_paragraphs(v.get("paragraphs") or [])} for v in chapter.versions]}
 
     def discard_draft(self, principal, chapter_id, sequence, *,
                       idempotency_key: str | None = None):
@@ -996,7 +1140,7 @@ class DemoService:
     def audit(self, principal: Principal, chapter_id: str) -> dict:
         state = self.repository.read()
         self._chapter(state, principal, chapter_id)
-        return {"events": [event for event in state.audit if event["chapter_id"] == chapter_id]}
+        return {"events": [event for event in state.audit if event.get("chapter_id") == chapter_id]}
 
     def suggest(self, principal: Principal, chapter_id: str, instruction: str) -> dict:
         state = self.repository.read()
@@ -1025,7 +1169,7 @@ class DemoService:
         self.require_allowed_model(self._project(current, principal, actual.project_id), state=current)
         if project_input_fingerprint(current, chapter.project_id) != fingerprint:
             raise DomainError(409, "VERSION_CONFLICT", "项目资料在准备建议期间更新，请核对来源后重新请求。")
-        provider = self.resolve_model_provider(current, actual.project_id)
+        provider = self.resolve_model_provider(current, actual.project_id, "chapter_generation")
         try:
             suggestion = provider.suggest(instruction, model_input)
             if not isinstance(suggestion, str):

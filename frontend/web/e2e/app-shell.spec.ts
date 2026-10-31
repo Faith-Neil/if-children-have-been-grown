@@ -147,7 +147,7 @@ test('back after a cancelled forward confirms to the previous page', async ({ pa
   await expect(page).toHaveURL(/\/projects\/alpha-project\/overview$/, { timeout: 3_000 });
 });
 
-test('reload: dismiss keeps text, accept reloads', async ({ page }) => {
+test('reload: dismiss keeps text; autosave keeps it as a personal draft after reload', async ({ page, request }) => {
   await login(page, editor);
   const box = await dirtyEditor(page);
   let seen = 0;
@@ -156,11 +156,11 @@ test('reload: dismiss keeps text, accept reloads', async ({ page }) => {
   expect(seen).toBe(1);
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
   await expect(box).toHaveValue(new RegExp(marker));
-  page.once('dialog', d => { seen += 1; void d.accept(); });
+  // 停止输入后自动保存为本人草稿（PRD §5.11.9，APP-M2-T172）：之后刷新不再丢字
+  await expect(page.getByTestId('editor-saved-at')).toContainText('自动');
+  page.once('dialog', d => { void d.accept(); });
   await page.reload();
-  expect(seen).toBe(2);
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
-  await expect(page.locator('textarea.chapter-editor')).toHaveCount(0); // 会话只在内存，刷新后回到登录
   const usernameInput = page.getByTestId('login-username-input');
   if (await usernameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
     await usernameInput.fill('alpha-manager');
@@ -170,7 +170,15 @@ test('reload: dismiss keeps text, accept reloads', async ({ page }) => {
     await page.getByRole('button', { name: '进入工作台' }).click();
   }
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
-  await expect(page.locator('.chapter-editor-unheld-view, textarea.chapter-editor')).not.toContainText(marker);
+  await expect(page.locator('.chapter-editor-unheld-view, textarea.chapter-editor')).toContainText(marker);
+  // 草稿只是本人草稿，不是正式正文；用例结束删除，避免影响其他用例
+  const auth = { Authorization: `Bearer ${(await (await request.post('/api/v1/auth/login', { data: { username: 'alpha-manager', password: 'X_2026' } })).json()).access_token}` };
+  const workspace = await (await request.get('/api/v1/projects/alpha-project/workspace', { headers: auth })).json();
+  for (const chapter of workspace.chapters as { id: string }[]) {
+    const detail = await (await request.get(`/api/chapters/${chapter.id}`, { headers: auth })).json();
+    expect(detail.content).not.toContain(marker);
+    if (detail.draft) await request.delete(`/api/chapters/${chapter.id}/draft`, { headers: auth, data: { sequence: detail.draft.sequence } });
+  }
 });
 
 test('back/forward routing across global and project pages', async ({ page }) => {

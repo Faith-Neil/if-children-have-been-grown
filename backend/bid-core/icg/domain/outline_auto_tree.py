@@ -425,12 +425,16 @@ class AutoTreeBuildEngine:
 
         # 2. 条款分类分流
         req_mapping_buckets: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+        single = tuple(options.get("volumes") or ()) == ("technical",)
         for req in requirements:
             vol, major, sub = classify_requirement_clause(req)
+            if single and vol != "technical":
+                vol = "technical"  # 只写技术标：仍在范围内的条款都落到技术卷
             req_mapping_buckets.setdefault((vol, major, sub), []).append(req)
 
-        # 3. 递归构建分层大纲树（卷 -> 章/编 -> 节）
-        vol_order = ["business", "technical"]
+        # 3. 递归构建分层大纲树（卷 -> 章/编 -> 节）；只写技术标的项目只建技术卷（options["volumes"]）
+        active_volumes = options.get("volumes") or ("business", "technical")
+        vol_order = [v for v in ["business", "technical"] if v in active_volumes]
         volumes_result = []
         all_leaf_chapters = []
         mapped_req_ids = set()
@@ -811,7 +815,8 @@ def check_tree_finalization_readiness(
     present_volumes = {c.volume for c in all_chapters}
     missing_volumes = []
     if volume == "all":
-        missing_volumes = [v for v in VOLUMES if v not in present_volumes]
+        from icg.domain.project_access import project_volumes
+        missing_volumes = [v for v in project_volumes(state, project_id) if v not in present_volumes]
 
     # 星号条款 / 废标条款对应章节是否标记不适用
     outline_plans = workflow.get("outline_plans", {})

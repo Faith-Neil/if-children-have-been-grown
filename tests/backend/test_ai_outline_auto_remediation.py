@@ -2,11 +2,11 @@
 # 它解决什么问题：
 # 1. 自动诊断与针对性整改指引合成（Remediation Prompt Synthesis）：违规语句上下文捕获、修复 Prompt 与确定性替换；
 # 2. R34 占位符与 AI 对话客套语清洗替换；
-# 3. R37 / R28 负偏离与无法满足表述 100% 翻转为正向履约承诺；
+# 3. R37 偏离表述属于直接转人工的问题，系统不改写为“满足”（ISSUE-039，PRD v1.8 §5.7.4 第 4 条）；
 # 4. R24 法定承诺/授权表单签字盖章瑕疵修复与规范落款槽位自动注入；
-# 5. CITATION_AUTH 虚构证据自动替换为项目已核对白名单有效证据；
-# 6. 局部针对性智能重写（Targeted In-Place Remediation）：仅针对含 blocker 段落重写，严格保护合规段落不变；
-# 7. 多轮自适应收敛机制（Multi-round Convergence）与质量健康评分跃升至 100（excellent）；
+# 5. 本章依据外的证据编号只改为【待补：依据】并转人工，不替换为其他证据；
+# 6. 局部针对性修正：仅修正可自动修正的段落，严格保护其他段落逐字不变；直接转人工的问题进入人工处理队列；
+# 7. 停止条件按 §5.7.4 第 6 条判定（全部解决 / 剩余需人工 / 达到最大轮数 / 未减少 / 回退）；
 # 8. 单章生成 start_chapter_generation(auto_remediate=True) 自动即时修复闭环；
 # 9. 批量生成 schedule_batch_pipeline(auto_remediate=True) 批量自动整改与看板汇聚；
 # 10. 涉密项目本地模型硬门禁（403 SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL）；
@@ -305,12 +305,13 @@ def test_diagnose_paragraph_defects_and_synthesize_remediation_plan_r34(test_env
     # 验证客套语已彻底删除
     assert "希望能帮到您" not in cleaned
     assert "祝您投标顺利" not in cleaned
-    # 验证事实变量精准代入
-    assert "{{fact:项目经理}}" in cleaned or "张工" in cleaned
-    # 验证待定与 TODO 占位符已消除
-    assert "【待定】" not in cleaned
-    assert "TODO" not in cleaned
-    assert "【待补" not in cleaned
+    # 有已确认事实的【待补】替换为事实变量
+    assert "{{fact:项目经理}}" in cleaned
+    assert "【待补：项目经理】" not in cleaned
+    # 没有依据的占位符保留原样，不写成空泛承诺（不编造）
+    assert "【待定】" in cleaned
+    assert "TODO" in cleaned
+    assert "已全面" not in cleaned and "已按招标规范" not in cleaned
 
     # 验证合成整改计划
     plan = synthesize_remediation_plan(
@@ -326,7 +327,7 @@ def test_diagnose_paragraph_defects_and_synthesize_remediation_plan_r34(test_env
 
 
 def test_diagnose_and_synthesize_remediation_plan_r37(test_env):
-    """测试 2：R37 / R28 负偏离与无法满足表述针对性诊断与 100% 正向翻转。"""
+    """测试 2：R37 偏离表述诊断后保持原文，转人工核实，系统不翻转为“满足”。"""
     p_text = (
         "[P1] 关于投标人技术支持响应时效，我司目前无法提供7x24小时实时驻场，"
         "存在负偏离，与招标文件要求存在差距，指标不满足。"
@@ -339,17 +340,17 @@ def test_diagnose_and_synthesize_remediation_plan_r37(test_env):
     assert "指标不满足" in diag["negative_deviations"]
 
     cleaned = sanitize_and_remediate_paragraph_text(p_text, diag)
-    assert "无法提供" not in cleaned
-    assert "存在负偏离" not in cleaned
-    assert "存在差距" not in cleaned
-    assert "指标不满足" not in cleaned
-    assert "已完整具备并随时提供" in cleaned
-    assert "完全响应并优于招标要求" in cleaned
-    assert "完全达标并超额保障" in cleaned
+    assert cleaned == p_text.strip()
+    assert "完全满足" not in cleaned and "完全响应" not in cleaned
 
-    # 即时核验翻转后产物，确保无任何 R37 blocker
+    plan = synthesize_remediation_plan(content=p_text)
+    defect = next(d for d in plan["target_paragraphs"][0]["defects"] if d["rule_id"] == "R37")
+    assert defect["route"] == "direct_human"
+    assert "100%正向" not in plan["target_paragraphs"][0]["remediation_prompt"]
+
+    # 偏离仍是阻断项，导出前必须由人处理
     val = validate_chapter_candidate(cleaned)
-    assert not any(b["rule_id"] == "R37" for b in val["detected_blockers"])
+    assert any(b["rule_id"] == "R37" for b in val["detected_blockers"])
 
 
 def test_diagnose_and_synthesize_remediation_plan_r24(test_env):
@@ -370,7 +371,7 @@ def test_diagnose_and_synthesize_remediation_plan_r24(test_env):
 
 
 def test_diagnose_and_synthesize_remediation_plan_citation_auth(test_env):
-    """测试 4：CITATION_AUTH 虚构证据编号精准诊断与项目白名单合法替换。"""
+    """测试 4：本章依据外的证据编号改为【待补：依据】，不替换为白名单里的其他证据。"""
     p_text = (
         "[P1] 本项目实施过程严格按照质量保证规范执行[证:fake-cert-001]，"
         "参考切片资料[片:unknown-snippet-99]。"
@@ -393,9 +394,9 @@ def test_diagnose_and_synthesize_remediation_plan_citation_auth(test_env):
         allowed_evidence_ids=allowed_ev,
         allowed_snippet_ids=allowed_snip,
     )
-    # 虚构编号必须被清除或替换为白名单第一项 ev-cmmi5/ev-iso9001
     assert "fake-cert-001" not in cleaned
-    assert "[证:ev-cmmi5]" in cleaned or "[证:ev-iso9001]" in cleaned
+    assert "【待补：依据】" in cleaned
+    assert "[证:ev-cmmi5]" not in cleaned and "[证:ev-iso9001]" not in cleaned
     assert "unknown-snippet-99" not in cleaned
 
 
@@ -420,11 +421,14 @@ def test_targeted_in_place_remediation_preserves_untouched_paragraphs(test_env):
         auto_save=True,
     )
 
-    assert res["remediation_passed"] is True
+    # P2 的对话残留可自动删除；P2 的偏离与【待定】、P4 的依据外证据都直接转人工
+    assert res["remediation_passed"] is False
     assert res["remediation_applied"] is True
-    # 只有 P2（索引1）和 P4（索引3）有缺陷，P1（索引0）与 P3（索引2）无缺陷
-    assert res["remediated_paragraphs_count"] == 2
-    assert res["remediated_paragraph_indices"] == [1, 3]
+    assert res["remediated_paragraphs_count"] == 1
+    assert res["remediated_paragraph_indices"] == [1]
+    assert res["loop_stop_reason"] == "NEED_HUMAN"
+    reasons = {i["human_reason"] for i in res["human_issues"]}
+    assert {"BUSINESS_DEVIATION", "MISSING_EVIDENCE", "EVIDENCE_CITATION"} <= reasons
 
     remediated_cand = res["candidate"]
     paras = remediated_cand["paragraphs"]
@@ -436,16 +440,19 @@ def test_targeted_in_place_remediation_preserves_untouched_paragraphs(test_env):
     assert "项目实施规划与里程碑" in paras[2]["subheading"]
     assert "项目实施划分为四个阶段" in paras[2]["content"]
 
-    # 违规段落成功完成针对性重写
-    assert "无法提供" not in paras[1]["content"]
-    assert "【待定】" not in paras[1]["content"]
+    # 可自动修正的部分已修正；直接转人工的内容原样保留，自动修正从不改动它们
     assert "希望能帮到您" not in paras[1]["content"]
-    assert "fake-fraud-999" not in paras[3]["content"]
+    assert "无法提供" in paras[1]["content"]
+    assert "【待定】" in paras[1]["content"]
+    assert "[证:fake-fraud-999]" in paras[3]["content"]
+    assert "完全满足" not in remediated_cand["content"]
 
-    # 终验健康度跃升为 100 / excellent
-    assert res["post_remediation_score"] == 100
-    assert res["post_remediation_rating"] == "excellent"
-    assert len(res["validation_report"]["detected_blockers"]) == 0
+    # 人工处理队列已登记本节问题，章节停在“待人工处理”
+    queue = test_env["repo"].read().workflows[test_env["project"].id]["human_queue"]
+    assert queue["loops"][ch.id]["status"] == "pending_human"
+    assert queue["loops"][ch.id]["stop_reason"] == "NEED_HUMAN"
+    pending = [i for i in queue["issues"].values() if i["chapter_id"] == ch.id and i["status"] == "pending_human"]
+    assert len(pending) == len(res["human_issues"])
 
 
 def test_multi_round_remediation_convergence(test_env):
@@ -467,17 +474,32 @@ def test_multi_round_remediation_convergence(test_env):
         max_rounds=3,
     )
 
-    assert res["remediation_passed"] is True
+    assert res["remediation_passed"] is False
     assert res["pre_remediation_score"] < 50
     assert res["pre_remediation_rating"] in ("critical", "warning")
-    assert res["post_remediation_score"] >= 90
-    assert res["post_remediation_rating"] == "excellent"
     assert len(res["remediation_history"]) >= 1
+    assert "希望能帮到您" not in res["candidate"]["content"]
+    assert "【待补】" in res["candidate"]["content"]
 
-    # 仓储已落盘保存最新 candidate
-    saved_cand = test_env["repo"].read().workflows[test_env["project"].id]["candidates"][ch.id]
-    assert saved_cand["remediation_applied"] is True
-    assert saved_cand["post_remediation_score"] >= 90
+    # 仓储已落盘保存最新 candidate 与循环记录
+    saved = test_env["repo"].read().workflows[test_env["project"].id]
+    assert saved["candidates"][ch.id]["remediation_applied"] is True
+    assert saved["human_queue"]["loops"][ch.id]["loop_no"] == 1
+
+
+def test_auto_fixable_defects_converge_to_all_resolved(test_env):
+    """测试 6b：只有可自动修正的问题时，循环以“问题全部解决”停止，章节为已完成。"""
+    content = "[P1] 本项目由【待补：项目经理】负责现场组织。希望能帮到您！"
+    service = ChapterGenerationService(test_env["demo"], repository=test_env["repo"])
+    ch = test_env["chapters"][1]
+    res = service.remediate_chapter_candidate(
+        project_id=test_env["project"].id, chapter_id=ch.id, principal=test_env["manager"], content=content,
+    )
+    assert res["remediation_passed"] is True
+    assert res["loop_stop_reason"] == "ALL_RESOLVED"
+    assert "{{fact:项目经理}}" in res["candidate"]["content"]
+    loop = test_env["repo"].read().workflows[test_env["project"].id]["human_queue"]["loops"][ch.id]
+    assert loop["status"] == "completed"
 
 
 def test_statutory_form_whole_chapter_seal_block_injection(test_env):
@@ -514,7 +536,7 @@ def test_auto_remediate_flag_in_start_chapter_generation(test_env):
     ch = test_env["chapters"][0]
 
     # 替换模型提供商为输出有缺陷的模型
-    test_env["demo"].resolve_model_provider = lambda st, pid: defective_provider
+    test_env["demo"].resolve_model_provider = lambda st, pid, *task: defective_provider
 
     # 不开启 auto_remediate 时，生成的 candidate 必然验证失败
     res_no_rem = service.start_chapter_generation(
@@ -535,17 +557,21 @@ def test_auto_remediate_flag_in_start_chapter_generation(test_env):
         sync_execute=True,
         auto_remediate=True,
     )
-    assert res_rem["validation_passed"] is True
+    # 对话残留被自动删除，偏离、【待定】和依据外证据保留给人工处理，不能以“已通过”冒充
     assert res_rem["remediation_applied"] is True
-    assert res_rem["quality_health_score"] == 100
+    assert res_rem["validation_passed"] is False
     assert res_rem["remediated_paragraphs_count"] >= 1
-    assert len(res_rem["detected_blockers"]) == 0
+    codes = {b["code"] for b in res_rem["detected_blockers"]}
+    assert "NEGATIVE_DEVIATION_DETECTED" in codes
+    assert "AI_CONVERSATION_RESIDUAL" not in codes
+    queue = test_env["repo"].read().workflows[test_env["project"].id]["human_queue"]
+    assert queue["loops"][ch.id]["status"] == "pending_human"
 
 
 def test_auto_remediate_in_schedule_batch_pipeline(test_env):
     """测试 9：批量流水线 schedule_batch_pipeline(auto_remediate=True) 自动批量整改闭环与看板。"""
     defective_provider = MockDefectiveModelProvider()
-    test_env["demo"].resolve_model_provider = lambda st, pid: defective_provider
+    test_env["demo"].resolve_model_provider = lambda st, pid, *task: defective_provider
 
     service = ChapterGenerationService(test_env["demo"], repository=test_env["repo"])
 
@@ -559,22 +585,22 @@ def test_auto_remediate_in_schedule_batch_pipeline(test_env):
 
     assert res["pipeline_status"] in ("completed", "partial_completed")
     summary = res["validation_summary"]
-    assert summary["total_validation_passed"] == 3
-    assert summary["total_validation_failed"] == 0
-    assert summary["total_detected_blockers"] == 0
+    # 模型输出带偏离和依据外证据：自动整改只删除对话残留，三章都如实停在待人工
+    assert summary["total_validation_passed"] == 0
+    assert summary["total_validation_failed"] == 3
+    assert summary["total_detected_blockers"] > 0
     assert summary["total_remediated_chapters"] == 3
 
-    # 核验各 Stage 批次章节元数据中包含 remediation_applied
     first_batch = res["batches"][0]
     for ch_meta in first_batch["chapters_metadata"]:
         assert ch_meta["remediation_applied"] is True
-        assert ch_meta["validation_passed"] is True
+        assert ch_meta["validation_passed"] is False
 
 
 def test_sensitive_project_airgap_model_gate_on_remediation(test_env):
     """测试 10：涉密项目内网物理隔离红线（Airgap Boundary）—— 严禁调用公网/云端模型整改。"""
     cloud_provider = MockCloudModelProvider()
-    test_env["demo"].resolve_model_provider = lambda st, pid: cloud_provider
+    test_env["demo"].resolve_model_provider = lambda st, pid, *task: cloud_provider
 
     # 将项目置为涉密
     def mark_sensitive(st):
@@ -672,11 +698,11 @@ def test_http_api_remediate_candidate_endpoint(test_env):
     assert resp.status_code == 200
     data = resp.json()
 
-    assert data["remediation_passed"] is True
+    assert data["remediation_passed"] is False
     assert data["remediation_applied"] is True
-    assert data["post_remediation_score"] == 100
-    assert data["post_remediation_rating"] == "excellent"
     assert data["remediated_paragraphs_count"] == 1
     assert "candidate" in data
     assert "validation_report" in data
-    assert len(data["validation_report"]["detected_blockers"]) == 0
+    assert "希望能帮到您" not in data["candidate"]["content"]
+    assert "无法提供" in data["candidate"]["content"]
+    assert data["loop_stop_reason"] == "NEED_HUMAN"

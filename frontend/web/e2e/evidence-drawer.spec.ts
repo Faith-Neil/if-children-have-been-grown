@@ -62,17 +62,17 @@ async function pick(page: Page, dialog: Locator, label: string, option: string) 
 }
 
 async function addLibrary(page: Page, fields: { name: string; type?: string; content: string; validUntil?: string; status?: string; reason?: string }) {
-  await page.getByRole('button', { name: '补录合成资料' }).click();
-  const dialog = page.getByRole('dialog', { name: '补录合成资料' });
+  await page.getByTestId('create-evidence-button').click();
+  const dialog = page.getByRole('dialog', { name: '补录企业资料' });
   await dialog.getByLabel('资料名称').fill(fields.name);
   if (fields.type) await pick(page, dialog, '资料类别', fields.type);
-  await dialog.getByLabel('资料内容').fill(fields.content);
+  await dialog.getByLabel('资料内容要点与证明事实').fill(fields.content);
   if (fields.validUntil) await dialog.getByLabel('有效期至').fill(fields.validUntil);
-  if (fields.status) await pick(page, dialog, '人工核对状态', fields.status);
-  if (fields.reason) await dialog.getByLabel('本次核对说明').fill(fields.reason);
-  await dialog.getByRole('button', { name: '保存资料' }).click();
+  if (fields.status) await pick(page, dialog, '核验状态', fields.status);
+  if (fields.reason) await dialog.getByLabel('本次核验说明与依据').fill(fields.reason);
+  await dialog.getByRole('button', { name: '保存提交审核' }).click();
   await expect(dialog).toBeHidden();
-  await expect(page.getByRole('cell', { name: fields.name, exact: true })).toBeVisible();
+  await expect(page.getByRole('row', { name: new RegExp(fields.name) }).first()).toBeVisible();
 }
 
 test('evidence drawer groups records, blocks invalid ones, and keeps status separate from expiry', async ({ page }) => {
@@ -81,7 +81,7 @@ test('evidence drawer groups records, blocks invalid ones, and keeps status sepa
   await login(page);
   await go(page, '/library');
   await addLibrary(page, { name: '合成待确认资质', content: '合成待确认正文，不能挂接。' });
-  await addLibrary(page, { name: '合成历史标书参考', type: '历史标书（参考）', content: '合成历史标书原文，只能查看。', status: '已逐项核对并确认' });
+  await addLibrary(page, { name: '合成历史标书参考', type: '历史标书（参考）', content: '合成历史标书原文，只能查看。', status: '已逐项核验并确认生效' });
 
   await go(page, `${project}/settings`);
   await page.getByLabel('投标截止时间').fill('2026-12-31 17:00');
@@ -113,9 +113,9 @@ test('evidence drawer groups records, blocks invalid ones, and keeps status sepa
   await drawer.getByRole('button', { name: '去补录' }).click();
   await expect(page).toHaveURL(/\/library$/);
 
-  await addLibrary(page, { name: '合成可挂资质', content: '合成已确认资质正文。', validUntil: '2027-06-01', status: '已逐项核对并确认' });
-  await addLibrary(page, { name: '合成方案片段', type: '方案片段', content: '合成方案片段正文。', status: '已逐项核对并确认' });
-  await addLibrary(page, { name: '合成过期资质', content: '合成过期资质正文。', validUntil: '2020-01-01', status: '已逐项核对并确认' });
+  await addLibrary(page, { name: '合成可挂资质', content: '合成已确认资质正文。', validUntil: '2027-06-01', status: '已逐项核验并确认生效' });
+  await addLibrary(page, { name: '合成方案片段', type: '方案片段', content: '合成方案片段正文。', status: '已逐项核验并确认生效' });
+  await addLibrary(page, { name: '合成过期资质', content: '合成过期资质正文。', validUntil: '2020-01-01', status: '已逐项核验并确认生效' });
 
   await go(page, matrix);
   await requirement.getByRole('button', { name: '挂证据' }).click();
@@ -136,11 +136,11 @@ test('evidence drawer groups records, blocks invalid ones, and keeps status sepa
   await expect(requirement.getByText('待确认', { exact: true })).toBeVisible();
 
   await go(page, '/library');
-  await page.getByRole('row', { name: /合成可挂资质/ }).getByRole('button', { name: '核对 / 修改' }).click();
-  const editor = page.getByRole('dialog', { name: '资料详情与核对' });
+  await page.getByRole('row', { name: /合成可挂资质/ }).getByRole('button', { name: '核对修改' }).click();
+  const editor = page.getByRole('dialog', { name: '核对与编辑企业资料' });
   await editor.getByLabel('有效期至').fill('2020-01-01');
-  await editor.getByLabel('本次核对说明').fill('合成核对：把有效期改到截止日之前，用来看证据失效。');
-  await editor.getByRole('button', { name: '保存资料' }).click();
+  await editor.getByLabel('本次核验说明与依据').fill('合成核对：把有效期改到截止日之前，用来看证据失效。');
+  await editor.getByRole('button', { name: '保存提交审核' }).click();
   await expect(editor).toBeHidden();
 
   await go(page, matrix);

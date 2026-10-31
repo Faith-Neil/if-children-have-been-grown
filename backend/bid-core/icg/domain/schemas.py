@@ -33,6 +33,8 @@ class UsernamePasswordLoginRequest(RequestBody):
 
 class ProjectRequest(RequestBody):
     name: str = Field(min_length=1, max_length=200)
+    volume_mode: Literal["both", "technical_only"] = Field(
+        default="both", description="both：技术与商务两册，导出后合标；technical_only：只写技术标，不合标")
 
     @field_validator("name")
     @classmethod
@@ -121,10 +123,39 @@ class AccountListResponse(ResponseBody):
     accounts: list[AccountResponse]
 
 
+class PasswordPolicyResponse(ResponseBody):
+    min_length: int = Field(description="新密码最少位数")
+    min_char_classes: int = Field(description="大写字母、小写字母、数字、符号中至少包含的类数")
+    char_classes: list[str]
+    scope: Literal["platform", "company"] = Field(description="platform：平台级账号按平台默认；company：按本公司安全设置")
+    must_change_password: bool | None = None
+
+
 class LoginResponse(ResponseBody):
     access_token: str
     token_type: Literal["bearer"]
     user: AccountResponse
+    must_change_password: bool = Field(default=False, description="为 true 时须先调用 changeOwnPassword，其他接口返回 403 PASSWORD_CHANGE_REQUIRED")
+    password_policy: PasswordPolicyResponse | None = None
+
+
+class ChangePasswordRequest(RequestBody):
+    old_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=1, max_length=128)
+
+
+class ChangePasswordResponse(ResponseBody):
+    success: bool
+    must_change_password: bool
+
+
+class LogoutResponse(ResponseBody):
+    success: bool
+
+
+class BrandingResponse(ResponseBody):
+    product_name: str
+    logo_horizontal_url: str | None = None
 
 
 ApplicationRole = Literal["platform_admin", "group_admin", "company_admin", "data_admin",
@@ -222,6 +253,7 @@ class ProjectResponse(ResponseBody):
     updated_at: str | None = None
     record_version: int = 1
     is_deleted: bool = False
+    volume_mode: Literal["both", "technical_only"] = "both"
 
 
 class ProjectListResponse(ResponseBody):
@@ -241,6 +273,7 @@ class ChapterListResponse(ResponseBody):
 
 class LockSummaryResponse(ResponseBody):
     owner_id: str
+    owner_name: str | None = Field(default=None, description="持锁人姓名，供其他成员看到“某某正在编辑”")
     # 只给文档增加日期格式提示，保留实际返回字符串的原写法。
     expires_at: str = Field(description="UTC 的 ISO 8601 到期时间",
                             json_schema_extra={"format": "date-time"})
@@ -257,11 +290,25 @@ class DraftResponse(ResponseBody):
     input_fingerprint: str | None = Field(default=None, description="草稿最初保存时核对的输入指纹，读取或恢复草稿不会自动改为当前来源")
 
 
+class ParagraphKeyResponse(ResponseBody):
+    key: str = Field(description="段落键：跨版本不变；改了几个字仍沿用，新增的块才拿新键")
+    kind: Literal["heading", "para", "bullet", "ordered", "table"]
+    level: int = Field(ge=0, description="标题级别（1～8），其他块为 0")
+    line_start: int = Field(ge=0, description="本块在正文中的起始行（0 起）")
+    line_end: int = Field(ge=0, description="本块在正文中的结束行（含）")
+    hash: str
+    source: Literal["manual", "assistant", "assistant_pasted", "chapter_loop", "system"]
+    source_label: str
+    locked: bool = Field(default=False, description="段落已锁定（APP-M2-T163）：任何写入都不能改动或删除")
+    locked_by_name: str | None = Field(default=None, description="锁定人")
+
+
 class ChapterResponse(ChapterSummaryResponse):
     project_id: str
     content: str = Field(description="已提交的当前正式正文，不包含草稿")
     lock: LockSummaryResponse | None = Field(description="有效编辑权的摘要，不含租约凭据")
     draft: DraftResponse | None = Field(description="当前登录人自己的草稿；没有则为 null")
+    paragraphs: list[ParagraphKeyResponse] = Field(default_factory=list, description="当前正文逐块的段落键与来源（APP-M2-T161）")
     assignee_id: str | None
     permissions: dict[str, bool] = Field(description="按当前公司角色、项目成员与本册/本节分工实时核对的操作权限")
 
@@ -277,10 +324,17 @@ class ReleasedResponse(ResponseBody):
 class VersionResponse(ResponseBody):
     revision: int = Field(ge=1)
     content: str
+    paste_detected: list[dict] | None = Field(default=None, description="与近期对话助手输出高度重合的新段落（粘贴识别）：段落序号、重合比例、来源与复查问题")
 
 
 class VersionRecordResponse(VersionResponse):
     actor_id: str
+    paragraphs: list[ParagraphKeyResponse] = Field(default_factory=list, description="本版本逐块的段落键与来源")
+    version_origin: str | None = Field(default=None, description="写入方式：manual / assistant_edit / ai_polish_accepted / rollback；章节循环与系统生成见 source")
+    edit_mode: str | None = Field(default=None, description="修改方式明细，如 assistant_replace、assistant_insert、rollback")
+    source: str | None = Field(default=None, description="chapter_loop / system_generated")
+    rollback_from: int | None = Field(default=None, description="版本回退时回退到的历史版本号")
+    note: str | None = None
     created_at: str = Field(description="UTC 的 ISO 8601 创建时间",
                             json_schema_extra={"format": "date-time"})
 

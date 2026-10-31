@@ -26,6 +26,16 @@ if ($Install) {
 }
 if (-not (Test-Path -LiteralPath $demoPythonPath)) { throw 'Run Start-Demo.ps1 -Install first' }
 if (-not (Test-Path -LiteralPath (Join-Path $workspacePath 'frontend\web\dist\index.html'))) { throw 'Build frontend/web first or run Start-Demo.ps1 -Install' }
+if (-not $env:ICG_SECRET_KEY) {
+    # 本机运行：附件扫描件与模型密钥需要主密钥加密；未设置时在 backend/bid-core/data（不进版本库）生成一次并复用。
+    $keyPath = Join-Path $PSScriptRoot 'data\local-secret.key'
+    if (-not (Test-Path -LiteralPath $keyPath)) {
+        New-Item -ItemType Directory -Force -Path (Split-Path $keyPath) | Out-Null
+        & $demoPythonPath -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode(), end='')" | Set-Content -LiteralPath $keyPath -NoNewline
+        if ($LASTEXITCODE -ne 0) { throw 'Unable to create local secret key' }
+    }
+    $env:ICG_SECRET_KEY = (Get-Content -LiteralPath $keyPath -Raw).Trim()
+}
 Write-Host "ICG: http://127.0.0.1:$Port (memory data, one process; developer tool: /demo)"
 & $demoPythonPath -m uvicorn icg_demo.main:app --app-dir $PSScriptRoot --host 127.0.0.1 --port $Port --workers 1
 exit $LASTEXITCODE

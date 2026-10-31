@@ -121,7 +121,7 @@ def test_reset_password_weak_password_rejected_422(client: TestClient, test_user
     assert res_short.status_code == 422, res_short.text
     err = res_short.json()
     assert err["code"] == "PASSWORD_WEAK"
-    assert "密码长度" in err["message"]
+    assert "至少 8 位（现 4 位）" in err["message"]
     assert err["details"]["field"] == "new_password"
 
     # 2. 字符种类不足 3 类（仅小写字母）
@@ -133,7 +133,7 @@ def test_reset_password_weak_password_rejected_422(client: TestClient, test_user
     assert res_few_classes.status_code == 422, res_few_classes.text
     err_classes = res_few_classes.json()
     assert err_classes["code"] == "PASSWORD_WEAK"
-    assert "包含" in err_classes["message"]
+    assert "至少含 3 类" in err_classes["message"]
 
 
 def test_reset_password_invalidates_existing_tokens_and_allows_login(client: TestClient, test_users_context):
@@ -172,8 +172,16 @@ def test_reset_password_invalidates_existing_tokens_and_allows_login(client: Tes
     new_token = res_new_login.json()["access_token"]
     assert new_token != old_writer_token
 
-    # 6. 新 Token 调阅用户成功
-    res_new_access = client.get("/api/v1/users/glue-alpha-writer", headers={"Authorization": f"Bearer {new_token}"})
+    assert res_new_login.json()["must_change_password"] is True
+
+    # 6. 被重置后须先改密：业务接口拒绝（APP-M2-T260），改密后才能调阅
+    new_headers = {"Authorization": f"Bearer {new_token}"}
+    blocked = client.get("/api/v1/users/glue-alpha-writer", headers=new_headers)
+    assert blocked.status_code == 403 and blocked.json()["code"] == "PASSWORD_CHANGE_REQUIRED"
+    changed = client.post("/api/v1/auth/password", headers=new_headers,
+                          json={"old_password": "New_SuperPass_2026!", "new_password": "Own_Choice_2026#"})
+    assert changed.status_code == 200, changed.text
+    res_new_access = client.get("/api/v1/users/glue-alpha-writer", headers=new_headers)
     assert res_new_access.status_code == 200
 
 

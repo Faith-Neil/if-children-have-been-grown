@@ -376,7 +376,7 @@ def test_http_endpoint_and_openapi_safety(setup_context, repo):
     cid = ctx["chapter_id"]
 
     client = TestClient(create_app(repository=repo))
-    login_res = client.post("/api/demo/login", json={"account_id": "alpha-manager"})
+    login_res = client.post("/api/v1/auth/login", json={"username": "alpha-manager", "password": "X_2026"})
     assert login_res.status_code == 200
     token = login_res.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}

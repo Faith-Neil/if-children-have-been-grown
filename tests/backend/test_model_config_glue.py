@@ -55,7 +55,7 @@ def test_model_configs_crud_and_direct_test_alias(client):
         "timeout_seconds": 30.0,
         "max_tokens": 4096,
     }
-    res_create = client.post("/api/v1/model-configs", headers=headers, json=cfg_payload)
+    res_create = client.post("/api/v1/model-configs", headers=login(client, "alpha-company-admin"), json=cfg_payload)
     assert res_create.status_code == 200
     created = res_create.json()
     assert created["id"] == "cfg-glue-openai"
@@ -63,7 +63,7 @@ def test_model_configs_crud_and_direct_test_alias(client):
     assert created["allow_sensitive"] is True
 
     # 3. 通过 ID 测试连通性 (POST /api/v1/model-configs/{id}/test)
-    res_test_id = client.post("/api/v1/model-configs/cfg-glue-openai/test", headers=headers)
+    res_test_id = client.post("/api/v1/model-configs/cfg-glue-openai/test", headers=login(client, "alpha-company-admin"))
     assert res_test_id.status_code == 200
     test_id_data = res_test_id.json()
     assert "ok" in test_id_data
@@ -72,7 +72,7 @@ def test_model_configs_crud_and_direct_test_alias(client):
     # 4. 通过直接测试别名测试连通性 (POST /api/v1/model-configs/test)
     res_direct_test = client.post(
         "/api/v1/model-configs/test",
-        headers=headers,
+        headers=login(client, "alpha-company-admin"),
         json={"id": "cfg-glue-openai"},
     )
     assert res_direct_test.status_code == 200
@@ -83,7 +83,7 @@ def test_model_configs_crud_and_direct_test_alias(client):
 
 def test_ragflow_config_route_aliases(client):
     """验证 RAGFlow 配置在 /ragflow/config 与 /ragflow-config 双路由别名下的完全对称一致"""
-    headers = login(client, "alpha-manager")
+    headers = login(client, "alpha-company-admin")
 
     # 1. 规范路由与别名路由 GET 返回一致
     res_canonical = client.get("/api/v1/ragflow-config", headers=headers)
@@ -125,7 +125,7 @@ def test_sensitive_project_model_binding_gate_and_rfc7807(client):
     # 1. 创建非本地模型（云端公网模型）
     client.post(
         "/api/v1/model-configs",
-        headers=headers,
+        headers=login(client, "alpha-company-admin"),
         json={
             "id": "cfg-cloud-external",
             "name": "云端公网推理服务",
@@ -140,7 +140,7 @@ def test_sensitive_project_model_binding_gate_and_rfc7807(client):
     # 2. 创建本地涉密模型
     client.post(
         "/api/v1/model-configs",
-        headers=headers,
+        headers=login(client, "alpha-company-admin"),
         json={
             "id": "cfg-local-secure",
             "name": "内网物理隔离本地 Qwen",

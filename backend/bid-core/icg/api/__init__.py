@@ -12,6 +12,16 @@ from icg.api.model_configs import include_model_config_routes
 from icg.api.field_metadata import include_field_metadata_routes
 from icg.api.companies import include_company_routes
 from icg.api.users import include_user_routes
+from icg.api.chapter_loop import include_chapter_loop_routes
+from icg.api.evidence_candidates import include_evidence_candidate_routes
+from icg.api.knowledge_base import include_knowledge_base_routes
+from icg.api.kb_admin import include_kb_admin_routes
+from icg.api.selection_rewrite import include_selection_rewrite_routes
+from icg.api.notifications import include_notification_routes
+from icg.api.export_assets import include_export_asset_routes
+from icg.api.task_model_routes import include_task_model_route_routes
+from icg.api.paragraph_locks import include_paragraph_lock_routes
+from icg.api.chapter_versions import include_chapter_version_routes
 from icg.api.volumes import (
     include_volume_routes,
     VolumeFinalizeRequest,
@@ -39,6 +49,12 @@ from icg.api.ragflow import (
 )
 
 __all__ = [
+    "include_notification_routes",
+    "include_export_asset_routes",
+    "include_task_model_route_routes",
+    "include_paragraph_lock_routes",
+    "include_chapter_version_routes",
+    "include_selection_rewrite_routes",
     "include_session_routes",
     "include_project_routes",
     "include_chapter_routes",
@@ -48,6 +64,10 @@ __all__ = [
     "include_field_metadata_routes",
     "include_company_routes",
     "include_user_routes",
+    "include_chapter_loop_routes",
+    "include_evidence_candidate_routes",
+    "include_knowledge_base_routes",
+    "include_kb_admin_routes",
     "include_volume_routes",
     "VolumeFinalizeRequest",
     "VolumeUnlockRequest",

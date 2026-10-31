@@ -337,6 +337,7 @@ class GenerationOrchestratorMixin:
         sync_execute: bool = False,
         max_context_tokens: int | None = None,
         snippet_matches: list[dict] | None = None,
+        auto_remediate: bool = False,
     ) -> dict[str, Any]:
         return self.demo.start_chapter_generation(
             project_id=project_id,
@@ -345,6 +346,7 @@ class GenerationOrchestratorMixin:
             sync_execute=sync_execute,
             max_context_tokens=max_context_tokens,
             snippet_matches=snippet_matches,
+            auto_remediate=auto_remediate,
         )
 
     def batch_generate_chapters(
@@ -472,7 +474,7 @@ class GenerationOrchestratorMixin:
             instruction = "按本章已确认条款、响应、证据和事实组织候选；不能编造证据与承诺。引用事实保留变量，不能改取值。"
             refuse_source_change(input_snapshot["plan"]["writing_points"], input_snapshot)
             check_model_access()
-            provider = self.demo.resolve_model_provider(snapshot, project_id)
+            provider = self.demo.resolve_model_provider(snapshot, project_id, "chapter_generation")
             try:
                 content = provider.suggest(instruction, context)
             except DomainError:

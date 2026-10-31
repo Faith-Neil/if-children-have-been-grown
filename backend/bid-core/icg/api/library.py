@@ -27,10 +27,11 @@ def _list_etag(items: list) -> str:
 
 
 def include_snippet_routes(application, service, current_user) -> None:
-    store = MemorySnippetPublicationStore(clock=service._now)
+    store = MemorySnippetPublicationStore(clock=service._now, repository=service.repository)
     application.state.snippet_publications = store
     service.snippet_publications = store
-    publications = SnippetPublicationService(store, service.repository, service._now, service._writer)
+    publications = SnippetPublicationService(store, service.repository, service._now, service._writer,
+                                             getattr(service, "knowledge_base", None))
     application.state.snippet_publication_service = publications
     router = APIRouter(prefix="/api/v1", responses=v1_error_responses(401, 403, 404, 409, 422, 428, 500))
 
@@ -77,7 +78,7 @@ def include_snippet_routes(application, service, current_user) -> None:
     def sync_publication(snippet_id: str, body: EmptyRequest, user=Depends(current_user),
                          if_match: str | None = Header(default=None),
                          idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
-        """重新同步。If-Match 核对 published_revision。失败不把 kb_sync_status 写成 synced。正文含 [[sync-fail]] 时模拟知识库拒绝。"""
+        """重新同步到公司 RAGFlow 知识库。If-Match 核对 published_revision。只有知识库确认解析完成才写 synced；未配置知识库时 synced=false。"""
         return publications.sync(user, snippet_id, body.model_dump(), if_match, idempotency_key)
 
     application.include_router(router)

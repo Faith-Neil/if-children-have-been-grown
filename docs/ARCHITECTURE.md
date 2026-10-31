@@ -12,6 +12,8 @@
 | 关联 Issue | ISSUE-007 |
 <!-- governance-baseline:end -->
 
+2026-10-28 Wave 11（[ISSUE-040](../issues/ISSUE-040.md)）：后台新增 `icg/domain/chapter_loop.py`（PRD §5.7.4 章节循环规则：处理路径、停止条件、问题指纹）、`human_queue.py`（人工处理队列）、`volume_review.py`（交叉复核与定稿快照）、`post_process.py`（星号/废标兜底扫描），路由在 `icg/api/chapter_loop.py` 与 `icg/api/volumes.py`。前端对应 `project/ManualQueuePage.tsx`、`VolumeFinalizePanel.tsx`、`OmissionsDrawer.tsx`，纯逻辑在 `project/main-path-core.ts`。已定稿分册的章节写入在后台 `_chapter_writer` 统一拒绝；解锁轮次进入项目输入指纹。持久化边界：MySQL 模式下仅 `volumes`、`volume_reviews`、`volume_epochs`、`human_queue`、`post_process` 五个工作流键写入 `demo_project_workflow_state`（Alembic 0012），其余工作流键仍在进程内存（[ISSUE-041](../issues/ISSUE-041.md)）。
+
 写作输入由共享组装器从账号公司、当前项目与已确认本章方案构造；仅输入本章矩阵、合格证据、选中可选事实及全部必备事实。候选保存实际输入快照及指纹，快照/候选自身不进入指纹；变量先校验，来源或方案改变需重新确认。source_scope为新增实施字段，不表示逐段溯源已完成。
 
 T14/T15已本地验收：项目成员、分册负责人和本节编写人在同一事务存储中管理，公司操作角色与资源范围共同校验；页面使用后台权限，每次后台操作仍重新判定。逐章方案分别记确认人与依赖摘要，生成只核对本章，项目确认状态由全部章节汇总；检查/输出有本册或全部范围，并绑定项目输入。交接保留正文历史和每人私有草稿，解除旧编辑权；旧接口、原件、任务与下载都遵守项目范围。模型每次调用前后及保存结果前再次核对，撤权不能留下部分候选。

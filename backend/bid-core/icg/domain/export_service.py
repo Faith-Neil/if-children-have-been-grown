@@ -99,7 +99,10 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                 raise CheckBlockerError("分册最新检查结果存在未解决的废标或星号条款阻断项，无法导出正式递交版。")
 
             scope = payload.get("volume", "all")
-            required_volumes = set(VOLUMES) if scope == "all" else {scope}
+            from icg.domain.project_access import project_volumes, rule_scope
+            technical_only = len(project_volumes(state, project_id)) == 1
+            rule_scope(state, project_id, scope)  # 只写技术标时请求商务分册 → 404
+            required_volumes = set(project_volumes(state, project_id)) if scope == "all" else {scope}
 
             if payload.get("kind") == "submission":
                 # 分册定稿闸门（PRD §5.8.5）：所选分册必须全部经负责人或管理员定稿锁定
@@ -115,6 +118,13 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                         "RULES_INCOMPLETE",
                         f"完整合规规则与分册定稿未完成：{unfinalized_names}尚未完成责任人定稿锁定，不能把本地内部稿冒充递交版。"
                     )
+                from icg.domain.volume_review import volume_snapshot
+                drifted = [vol for vol in sorted(required_volumes)
+                           if volumes_state.get(vol, {}).get("snapshot") is not None
+                           and volumes_state[vol]["snapshot"] != volume_snapshot(state, project_id, vol)]
+                if drifted:
+                    raise DomainError(409, "RULES_INCOMPLETE", "定稿后正文有改动，须解锁、重新检查和复核后再定稿。",
+                                      {"volumes": drifted})
 
             is_internal_review = payload.get("kind") == "internal_review"
             if not is_internal_review and not check["passed"]:
@@ -125,29 +135,60 @@ class ExportServiceMixin(CheckOrchestratorMixin):
             chapters = self._ordered_chapters(state, project_id, workflow)
             chapters = [c for c in chapters if scope == "all" or c.volume == scope]
             if {c.volume for c in chapters} != required_volumes:
-                raise DomainError(422, "TWO_VOLUMES_REQUIRED", "导出必须包含技术和商务两册。")
+                raise DomainError(422, "TWO_VOLUMES_REQUIRED",
+                                  "导出缺少技术分册正文。" if technical_only else "导出必须包含技术和商务两册。")
             identity = new_id("project-export")
+            from icg.domain.export_batch import ExportRenderError, failed_record, next_batch_no, render_batch, volume_bindings
+            now = self.demo._now()
+            batch_no = next_batch_no(workflow, payload["kind"], datetime.fromtimestamp(now, SHANGHAI))
             documents, volumes = {}, []
+            # 导出命名（APP-M2-T086）：内部稿“{编写人}_{版本}_{日期}_{项目名称}”，递交版不带编写人
+            from icg.domain.export_naming import filenames as export_filenames
+            names, naming_rule = export_filenames(
+                state, project, workflow, payload["kind"],
+                {v: n for v, n in (("technical", "技术分册"), ("business", "商务分册")) if v in required_volumes},
+                datetime.fromtimestamp(now, SHANGHAI).strftime("%Y%m%d"))
+            # 公司 Word 模板（APP-M2-T086/T196）与附件扫描件（APP-M2-T198）
+            from icg.domain.word_template import export_style
+            from icg.domain.attachments import export_plan
+            from icg.domain.content_rules import blind_volume
+            style, template = export_style(state, project.company_id, payload.get("template") or "auto")
+            # 招标格式要求覆盖模板（§5.9.1 规则 5）：招标要求 > 公司模板 > 平台默认
+            from icg.domain.tender_format import apply as apply_format, overrides as tender_overrides
+            format_changes, format_applied = tender_overrides(workflow)
+            style = apply_format(style, format_changes)
+            blind = blind_volume(workflow)
+            watermark = (payload.get("attachment_watermark") or "").strip() or f"仅用于{self._mask(project.name)}投标"
             for volume, name in (("technical", "技术分册"), ("business", "商务分册")):
                 if volume not in required_volumes:
                     continue
                 selected = [c for c in chapters if c.volume == volume]
-                filename = f"icg-{volume}-{identity}.docx"
+                filename = names[volume]
                 doc_title = self._mask(project.name) + " — " + name
-                doc_content = "\n\n".join(
-                    chapter_export_block(
-                        self._mask(c.title),
-                        self._mask(resolve_fact_variables(state, project_id, c.content)),
-                    )
-                    for c in selected
-                )
+                doc_content, line_ends = "", {}
+                for c in selected:
+                    block = chapter_export_block(self._mask(c.title),
+                                                 self._mask(resolve_fact_variables(state, project_id, c.content)))
+                    doc_content += ("\n\n" if doc_content else "") + block
+                    line_ends[c.id] = len(doc_content.splitlines()) - 1  # 本章最后一行，附件插在它后面
+                plan, skipped = ([], []) if payload.get("insert_attachments") is False else export_plan(
+                    state, project, workflow, volume, selected, line_ends,
+                    default_volume="technical" if technical_only else "business", blind=blind == volume,
+                    watermark=watermark)
                 vol_sha = hashlib.sha256(doc_content.encode("utf-8")).hexdigest()
+                from icg.domain.company_settings import company_display_name
                 documents[volume] = {
                     "title": doc_title,
                     "project_name": self._mask(project.name),
                     "content": doc_content,
                     "sha256": vol_sha,
                     "format_metadata": WORD_DEFAULT_FORMAT_METADATA,
+                    # 封面与页眉（APP-M2-T197）：分册名、招标编号、投标人、导出日期；内部稿页眉写“内部评审稿”
+                    "cover": {"kind": payload["kind"], "volume_name": name, "tender_number": project.tender_number,
+                              "bidder": company_display_name(state, project.company_id), "dark_bid": blind == volume,
+                              "date": datetime.fromtimestamp(now, SHANGHAI).strftime("%Y年%m月%d日").replace("年0", "年").replace("月0", "月")},
+                    "style": style,
+                    "attachments": plan,
                 }
                 volumes.append({
                     "volume": volume,
@@ -155,7 +196,26 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                     "download_url": f"/api/v1/projects/{project_id}/exports/{identity}/{volume}",
                     "sha256": vol_sha,
                     "format_metadata": WORD_DEFAULT_FORMAT_METADATA,
+                    "batch_no": batch_no,
+                    "template": template,
+                    "format_overrides": format_applied,
+                    "attachments": [{k: a[k] for k in ("attachment_id", "name", "filename", "page_from", "page_to")}
+                                    | {"watermarked": a["watermark"] is not None} for a in plan],
+                    "skipped_attachments": skipped,
                 })
+            try:
+                # 原子批次（APP-M2-T202）：全部分册都生成成功才保存；一册失败整批记“失败”，不留可下载文件
+                render_batch(documents, volumes, **self._render_override())
+            except ExportRenderError as error:
+                failed = failed_record(identity, batch_no, payload["kind"], check, iso_time(now), error, scope)
+                failed["created_by"] = principal.user.id
+                workflow["exports"][identity] = failed
+                job = self._job(state, project_id, "export", failed["error_message"],
+                                {"code": "EXPORT_FAILED", "message": failed["error_message"]})
+                from icg.domain.notifications import notify
+                notify(state, [principal.user.id], "job_failed", f"导出批次 {batch_no} 生成失败", failed["error_message"],
+                       now=iso_time(now), project_id=project_id, target_id=identity)
+                return {"export": self._public_export(state, project_id, failed), "job": job}
             combined_content = "\n---\n".join(documents[v]["content"] for v in documents)
             record_sha = hashlib.sha256(combined_content.encode("utf-8")).hexdigest()
             compliance_notice = (
@@ -178,17 +238,43 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                 "compliance_notice": compliance_notice,
                 "sha256": record_sha,
                 "format_metadata": WORD_DEFAULT_FORMAT_METADATA,
+                "template": template,
+                "naming_rule": naming_rule,
+                "insert_attachments": payload.get("insert_attachments") is not False,
                 "is_submission": payload.get("kind") == "submission",
+                "batch_no": batch_no,
+                "export_status": "completed",
+                "volume": scope,
+                "created_by": principal.user.id,
+                "bound_volumes": volume_bindings(workflow, sorted(required_volumes)),
             }
+            record["volume_mode"] = "technical_only" if technical_only else "both"
+            if record["is_submission"] and not technical_only:
+                # PRD §5.9.2：导出递交版时必定同时生成合标核对清单，随批次保存；只写技术标的项目不合标
+                from icg.domain.merge_checklist import build_merge_checklist
+                record["merge_checklist"] = build_merge_checklist(state, project, workflow, record, check,
+                                                                  now_iso=record["created_at"])
+                record["merge_checklist_url"] = f"/api/v1/projects/{project_id}/exports/{identity}/merge-checklist.xlsx"
             workflow["exports"][identity] = record
             if payload.get("kind") == "submission":
-                job_desc = ("两个独立 Word 正式递交版已生成" if scope == "all" else "本册 Word 正式递交版已生成") + "；已完成责任人定稿与门禁核验。"
+                job_desc = ("技术标 Word 正式递交版已生成（本项目只写技术标，不合标）" if technical_only
+                            else "两个独立 Word 正式递交版已生成" if scope == "all" else "本册 Word 正式递交版已生成") + "；已完成责任人定稿与门禁核验。"
             else:
                 job_desc = ("两个独立 Word 内部稿已生成" if scope == "all" else "本册 Word 内部稿已生成") + "；只含已提交正文。"
             self._job(state, project_id, "export", job_desc)
             return {"export": self._public_export(state, project_id, record)}
 
-        return self._write(principal, project_id, "project.export", payload, expected, key, operation)
+        result = self._write(principal, project_id, "project.export", payload, expected, key, operation)
+        if result.get("export", {}).get("status") == "failed":
+            exported = result["export"]
+            raise DomainError(500, "EXPORT_FAILED", exported["error_message"],
+                              {"export_id": exported["id"], "batch_no": exported["batch_no"], "revision": result.get("revision")})
+        return result
+
+    def _render_override(self) -> dict:
+        """测试可替换分册生成函数以模拟某册失败；生产使用默认 Word 生成。"""
+        render = getattr(self, "export_renderer", None)
+        return {"render": render} if render is not None else {}
 
     def download(self, principal: Principal, project_id: str, export_id: str, volume: str):
         def operation(state):
@@ -198,13 +284,88 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                 raise DomainError(404, "NOT_FOUND", "未找到有权访问的分册文件。")
             if record["kind"] == "submission" and not lead(state, project_id, principal.user.id):
                 raise DomainError(403, "SUBMISSION_FORBIDDEN", "递交版下载仅限项目经理。")
-            if record["fingerprint"] != self._fingerprint(state, project_id):
-                raise DomainError(409, "EXPORT_STALE", "项目输入已更新，旧导出文件已过期。")
-            self._audit(state, principal, project_id, "project-export.download", {"export_id": export_id, "volume": volume})
+            if record.get("export_status") == "failed":
+                raise DomainError(404, "NOT_FOUND", "该批次生成失败，没有可下载的分册文件。")
+            stale = record["fingerprint"] != self._fingerprint(state, project_id)
             entry = next((v for v in record["volumes"] if v["volume"] == volume), None)
             if entry is None:
                 raise DomainError(404, "NOT_FOUND", "本次导出不包含该分册。")
-            return {**record["documents"][volume], "filename": entry["filename"]}
+            if stale and not entry.get("blob"):
+                # 早期批次没有存 Word 快照，无法保证与当时内容一致
+                raise DomainError(409, "EXPORT_STALE", "项目输入已更新，旧导出文件已过期。")
+            self._audit(state, principal, project_id, "project-export.download",
+                        {"export_id": export_id, "volume": volume, "batch_no": record.get("batch_no"), "stale": stale})
+            document = {**record["documents"][volume], "filename": entry["filename"], "stale": stale,
+                        "batch_no": record.get("batch_no")}
+            if entry.get("blob"):
+                from icg.infra.blob_store import get_blob
+                document["content_bytes"] = get_blob(entry["blob"])  # 生成时的快照原文件，过期后仍原样提供
+            return document
+
+        return self.repository.transaction(operation)
+
+
+    def _export_reader(self, state, principal: Principal, project_id: str):
+        """合标核对清单与响应追溯表的读取方（PRD §5.10 权限表）：本公司的公司管理员不必是项目成员。
+
+        返回 (项目, 是否公司管理员)。其他人仍须是项目成员（_project 的原有规则）。
+        """
+        from icg.domain.project_access import normalize_role
+        project = state.projects.get(project_id)
+        account = state.accounts.get(principal.user.id)
+        if (project is not None and not project.is_deleted and account is not None
+                and normalize_role(account.role) == "company_admin" and account.company_id == project.company_id
+                and state.sessions.get(principal.session_token) == account.id):
+            return project, True
+        return self.demo._project(state, principal, project_id), False
+
+    def merge_checklist(self, principal: Principal, project_id: str, export_id: str) -> dict:
+        """读取递交批次的合标核对清单。公司管理员、项目负责人与分册负责人（合标负责人默认商务分册负责人）可看可下载。"""
+        from icg.domain.merge_checklist import checklist_stale
+        from icg.domain.project_access import project_volumes, volume_owner
+
+        def operation(state):
+            project, company_admin = self._export_reader(state, principal, project_id)
+            workflow = self._workflow(state, project_id)
+            record = workflow["exports"].get(export_id)
+            if record is None or not record.get("merge_checklist"):
+                raise DomainError(404, "NOT_FOUND", "该导出批次没有合标核对清单（只有递交版批次生成）。")
+            identity = principal.user.id
+            allowed = (company_admin or lead(state, project_id, identity)
+                       or any(volume_owner(state, project_id, volume, identity) for volume in project_volumes(state, project_id)))
+            if not allowed:
+                raise DomainError(403, "SUBMISSION_FORBIDDEN", "合标核对清单仅限项目负责人、分册负责人和公司管理员下载。")
+            checklist = record["merge_checklist"]
+            stale = checklist_stale(workflow, checklist, self._fingerprint(state, project_id), record["fingerprint"])
+            self._audit(state, principal, project_id, "project-export.merge-checklist", {"export_id": export_id, "stale": stale})
+            return {"checklist": checklist, "stale": stale}
+
+        return self.repository.transaction(operation)
+
+
+    def response_trace(self, principal: Principal, project_id: str, volume: str = "all") -> dict:
+        """内部响应追溯表（PRD §5.9.1 规则 12）：任何时候可导出；项目负责人全部，分册负责人本册。"""
+        from icg.domain.project_access import volume_owner
+        from icg.domain.response_trace import VOLUME_NAMES, build_trace_rows, trace_sheets
+        from icg.infra.xlsx import build_xlsx
+
+        def operation(state):
+            project, company_admin = self._export_reader(state, principal, project_id)
+            workflow = self._workflow(state, project_id)
+            from icg.domain.project_access import project_volumes, rule_scope
+            rule_scope(state, project_id, volume)
+            wanted = set(project_volumes(state, project_id)) if volume == "all" else {volume}
+            identity = principal.user.id
+            if not (company_admin or lead(state, project_id, identity)):
+                wanted = {v for v in wanted if volume_owner(state, project_id, v, identity)}
+                if not wanted:
+                    raise DomainError(403, "FORBIDDEN", "响应追溯表仅限项目负责人或本册负责人导出。")
+            now = iso_time(self.demo._now())
+            rows = build_trace_rows(state, project, workflow, wanted)
+            scope = "、".join(VOLUME_NAMES[v] for v in VOLUMES if v in wanted)
+            self._audit(state, principal, project_id, "project-export.response-trace", {"volumes": sorted(wanted), "rows": len(rows)})
+            return {"content": build_xlsx(trace_sheets(project, rows, scope=scope, generated_at=now)),
+                    "filename": f"response-trace-{project_id}-{'-'.join(sorted(wanted))}.xlsx"}
 
         return self.repository.transaction(operation)
 

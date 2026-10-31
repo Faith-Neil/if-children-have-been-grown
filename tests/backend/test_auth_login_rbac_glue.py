@@ -127,10 +127,13 @@ def test_super_admin_system_capabilities(client: TestClient):
 def test_standard_account_password_login(client: TestClient):
     """验证企业常规管理账号（formal-company-admin）支持基于默认密码登录认证并加载工作台会话。"""
     repo = client.app.state.service.repository
+    from icg.domain.auth_service import hash_password
     from icg.domain.domain import Account
+    digest, salt = hash_password("X_2026")
     repo.transaction(lambda state: state.accounts.__setitem__(
         "formal-company-admin",
-        Account("formal-company-admin", "正式企业管理员", "alpha", "company_admin", _DEMO_ONLY=False)
+        Account("formal-company-admin", "正式企业管理员", "alpha", "company_admin", _DEMO_ONLY=False,
+                password_hash=digest, salt=salt)
     ))
 
     payload = {"username": "formal-company-admin", "password": "X_2026"}

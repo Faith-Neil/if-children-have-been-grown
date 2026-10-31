@@ -144,59 +144,37 @@ export function canExportSubmission(options: {
 }
 
 /**
- * 生成或格式化文件大小
+ * 格式化文件大小。没有真实大小时显示“—”，不推算或编造数值。
  */
-export function formatFileSize(bytes?: number | null, fallbackSeed?: string): string {
-  if (typeof bytes === 'number' && bytes > 0) {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-  }
-
-  // 基于种子确定性推导一个合理的文件大小（如 1.80 MB ~ 3.40 MB）
-  if (fallbackSeed) {
-    let hash = 0;
-    for (let i = 0; i < fallbackSeed.length; i++) {
-      hash = (hash * 31 + fallbackSeed.charCodeAt(i)) & 0xffffff;
-    }
-    const pseudoMb = 1.8 + (hash % 160) / 100;
-    return `${pseudoMb.toFixed(2)} MB`;
-  }
-
-  return '—';
+export function formatFileSize(bytes?: number | null): string {
+  if (typeof bytes !== 'number' || bytes <= 0) return '—';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
 /**
- * 格式化 SHA256 版式指纹
+ * 格式化导出文件的 SHA-256 摘要。没有真实摘要时显示“—”，不生成模拟值。
  */
-export function formatSha256Fingerprint(hash?: string | null, fallbackSeed?: string): { short: string; full: string } {
-  let hex = (hash || '').trim();
-
-  if (!hex && fallbackSeed) {
-    // 确定性生成 64 位模拟 SHA256 十六进制
-    let h1 = 0xdeadbeef;
-    let h2 = 0x41c64e6d;
-    for (let i = 0; i < fallbackSeed.length; i++) {
-      const code = fallbackSeed.charCodeAt(i);
-      h1 = Math.imul(h1 ^ code, 2654435761);
-      h2 = Math.imul(h2 ^ code, 1597334677);
-    }
-    const part1 = (h1 >>> 0).toString(16).padStart(8, '0');
-    const part2 = (h2 >>> 0).toString(16).padStart(8, '0');
-    const part3 = ((h1 ^ h2) >>> 0).toString(16).padStart(8, '0');
-    const part4 = ((h1 + h2) >>> 0).toString(16).padStart(8, '0');
-    hex = `${part1}${part2}${part3}${part4}${part2}${part1}${part4}${part3}`;
-  }
-
-  if (!hex) {
-    return { short: '—', full: '' };
-  }
-
+export function formatSha256Fingerprint(hash?: string | null): { short: string; full: string } {
+  const hex = (hash || '').trim();
+  if (!hex) return { short: '—', full: '' };
   const clean = hex.startsWith('sha256:') ? hex.slice(7) : hex;
-  const full = `sha256:${clean}`;
-  const short = `sha256:${clean.slice(0, 10)}...`;
+  return { short: `sha256:${clean.slice(0, 10)}...`, full: `sha256:${clean}` };
+}
 
-  return { short, full };
+/**
+ * 导出批次状态（APP-M2-T202）：有效 / 已过期（快照仍可下载）/ 失败（整批作废、无文件）。
+ */
+export function exportStatusMeta(status: string): { label: string; color: string; downloadable: boolean } {
+  if (status === 'valid') return { label: '有效', color: 'green', downloadable: true };
+  if (status === 'failed') return { label: '生成失败，整批作废', color: 'red', downloadable: false };
+  return { label: '已过期（保留当时文件）', color: 'orange', downloadable: true };
+}
+
+/** 历史列表的批次号：新批次用 batch_no，早期批次没有编号时显示导出记录编号。 */
+export function exportBatchLabel(item: { id: string; batch_no?: string | null }): string {
+  return item.batch_no || item.id;
 }
 
 /**
@@ -232,4 +210,45 @@ export function getExportVolumeLabel(volume?: Volume | 'all' | string): string {
   if (volume === 'technical') return '技术分册';
   if (volume === 'business') return '商务分册';
   return '技术、商务两册合订';
+}
+
+
+// ---------------------------------------------------------------- 警告逐项放行（PRD §5.8：理由必填，阻断不能放行）
+
+export const RELEASABLE_SEVERITIES = ['warning', 'info', 'hint'];
+
+export function canReleaseIssue(issue: { severity: string; released?: unknown }, isLead: boolean): boolean {
+  return isLead && RELEASABLE_SEVERITIES.includes(issue.severity) && !issue.released;
+}
+
+export function releasePath(projectId: string, checkId: string, issueId: string): string {
+  return `/api/v1/projects/${encodeURIComponent(projectId)}/checks/${encodeURIComponent(checkId)}/issues/${encodeURIComponent(issueId)}/release`;
+}
+
+export function unreleasedCount(issues: { severity: string; released?: unknown }[]): number {
+  return issues.filter(issue => !['info', 'hint'].includes(issue.severity) && !(RELEASABLE_SEVERITIES.includes(issue.severity) && issue.released)).length;
+}
+
+
+// ---------------------------------------------------------------- 合标核对清单（PRD §5.9.2，APP-M2-T200）
+
+export function latestSubmissionWithChecklist<T extends { kind: string; merge_checklist?: unknown; created_at: string }>(exports: T[]): T | null {
+  return exports.filter(item => item.kind === 'submission' && item.merge_checklist)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null;
+}
+
+export function checklistRowTone(status?: string | null): 'red' | 'orange' | 'green' | 'default' {
+  if (status === 'failed') return 'red';
+  if (status === 'not_run' || status === 'manual') return 'orange';
+  if (status === 'passed') return 'green';
+  return 'default';
+}
+
+export function checklistFilename(exportId: string): string {
+  return `merge-checklist-${exportId}.xlsx`;
+}
+
+// 内部响应追溯表（APP-M2-T201）：项目负责人全部，分册负责人本册；后台按身份收窄范围。
+export function responseTracePath(projectId: string, volume: string): string {
+  return `/api/v1/projects/${encodeURIComponent(projectId)}/response-trace.xlsx?volume=${encodeURIComponent(volume || 'all')}`;
 }

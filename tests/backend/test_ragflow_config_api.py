@@ -48,7 +48,7 @@ def test_get_ragflow_config_default_isolation(client):
 
 
 def test_update_ragflow_config_with_optimistic_lock_and_encryption(client):
-    headers = login(client, "alpha-manager")
+    headers = login(client, "alpha-company-admin")
 
     # 1. 未提供 If-Match 触发 428
     res_no_if_match = client.put(
@@ -103,7 +103,7 @@ def test_update_ragflow_config_with_optimistic_lock_and_encryption(client):
 
 
 def test_test_ragflow_connectivity(client, fake_ragflow):
-    headers = login(client, "alpha-manager")
+    headers = login(client, "alpha-company-admin")
 
     # 执行连通性测试，指向 FakeRagflow 服务地址
     res = client.post(

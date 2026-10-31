@@ -40,4 +40,21 @@ def project_input_fingerprint(state: DemoState, project_id: str) -> str:
         "sla_templates": [item for item in state.sla_templates.values()
                           if item["company_id"] == project["company_id"]],
     }
+    if workflow.get("proposed_staff"):
+        # 拟派人员（R33）：换人后旧检查、旧导出过期。为空时不写入，保持既有指纹不变。
+        payload["proposed_staff"] = workflow["proposed_staff"]
+    attachments = [{k: a.get(k) for k in ("id", "library_id", "sha256", "page_from", "page_to", "is_sensitive",
+                                          "shows_identity", "feature_tags")}
+                   for a in ((state.service_stores.get("attachments") or {}).get("items") or {}).values()
+                   if a.get("company_id") == project["company_id"]]
+    if attachments:
+        # 附件扫描件（导出插页、R38 功能点）：改附件后旧检查、旧导出过期。没有附件时不写入。
+        payload["attachments"] = sorted(attachments, key=lambda a: a["id"])
+    if workflow.get("related_bid_ack"):
+        # R19 关联投标冲突的确认说明：确认或改动后旧检查过期，重新检查才不再报 R19。为空时不写入，保持既有指纹不变。
+        ack = workflow["related_bid_ack"]
+        payload["related_bid_ack"] = {"company_ids": ack.get("company_ids"), "reason": ack.get("reason")}
+    if workflow.get("volume_epochs"):
+        # 分册解锁轮次（Wave 11）：解锁后旧检查、旧导出一律过期。为空时不写入，保持既有指纹不变。
+        payload["volume_epochs"] = workflow["volume_epochs"]
     return hashlib.sha256(json.dumps(payload, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()

@@ -145,7 +145,7 @@ def test_missing_api_key_omits_authorization_header():
 def test_http_failure_uses_existing_unavailable_path_and_keeps_chapter():
     model, calls = provider(lambda request, index: httpx.Response(500, text="synthetic"), retries=0)
     with TestClient(create_app(model_provider=model)) as client:
-        login = client.post("/api/demo/login", json={"account_id": "alpha-editor"})
+        login = client.post("/api/v1/auth/login", json={"username": "alpha-editor", "password": "X_2026"})
         headers = {"Authorization": "Bearer " + login.json()["access_token"]}
         before = client.get(f"/api/chapters/{CHAPTER}", headers=headers).json()
         response = client.post(f"/api/chapters/{CHAPTER}/suggestions", headers=headers,

@@ -117,9 +117,72 @@ export async function download(path: string, token: string, filename: string, wa
   setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 }
 
+/** 读取服务端事件流（text/event-stream）：每条事件交给 onEvent；开始前失败按统一错误抛出。不自动重试（生成会重复调用模型）。
+ * signal 中止即断开连接，服务端随之停止生成、不保存（“停止”按钮）；中止时抛出 name 为 AbortError 的错误。 */
+export async function streamEvents(path: string, token: string, body: unknown, onEvent: (event: Record<string, unknown>) => void,
+  signal?: AbortSignal): Promise<void> {
+  const response = await fetch(path, {
+    method: 'POST', cache: 'no-store', signal,
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+    body: JSON.stringify(body),
+  }).catch(error => rememberFailureSession(error, token));
+  if (!response.ok) throw rememberFailureSession(apiFailure(response.status, await readJson(response), response.headers.get('X-Request-ID') ?? undefined), token);
+  const reader = response.body?.getReader();
+  if (!reader) return;
+  const decoder = new TextDecoder();
+  let buffer = '';
+  for (;;) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+    let cut = buffer.indexOf('\n\n');
+    while (cut >= 0) {
+      const block = buffer.slice(0, cut);
+      buffer = buffer.slice(cut + 2);
+      const data = block.split('\n').filter(line => line.startsWith('data: ')).map(line => line.slice(6)).join('\n');
+      if (data) onEvent(JSON.parse(data) as Record<string, unknown>);
+      cut = buffer.indexOf('\n\n');
+    }
+    if (done) break;
+  }
+}
+
+/** 带身份读取原件字节（如在页面内用 PDF.js 显示招标原件），失败按统一错误处理。 */
+export async function fetchBytes(path: string, token: string, wait: (ms: number) => Promise<void> = defaultWait): Promise<Uint8Array> {
+  const response = await runAttempts(async () => {
+    const result = await fetch(path, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+    if (!result.ok) throw apiFailure(result.status, await readJson(result), result.headers.get('X-Request-ID') ?? undefined);
+    return result;
+  }, wait).catch(error => rememberFailureSession(error, token));
+  return new Uint8Array(await response.arrayBuffer());
+}
+
 export async function encodeFile(file: File) {
   const bytes = new Uint8Array(await file.arrayBuffer());
   let binary = '';
   for (let start = 0; start < bytes.length; start += 8192) binary += String.fromCharCode(...bytes.subarray(start, start + 8192));
   return btoa(binary);
+}
+
+// 全应用统一上传上限（与后台 ICG_MAX_UPLOAD_MB 默认值一致，后台仍会再核一次）。
+export const MAX_UPLOAD_MB = 100;
+export const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
+
+export function uploadTooLarge(file: { size: number }): string | null {
+  return file.size > MAX_UPLOAD_BYTES ? `单个文件不能超过 ${MAX_UPLOAD_MB}MB（当前 ${(file.size / 1024 / 1024).toFixed(1)}MB）。` : null;
+}
+
+export function rawUploadPath(path: string, params: Record<string, string>): string {
+  const query = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== ''));
+  return `${path}?${query.toString()}`;
+}
+
+// 大文件二进制直传：请求体就是文件本身，不先转 base64（100MB 文件不再在浏览器里拼出 134MB 字符串）。
+export async function uploadRaw<T>(path: string, token: string | null, file: Blob, revision?: number, method: 'POST' | 'PUT' = 'POST'): Promise<T> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/octet-stream', 'Idempotency-Key': crypto.randomUUID() };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (revision !== undefined) headers['If-Match'] = String(revision);
+  const response = await fetch(path, { method, headers, body: file, cache: 'no-store' });
+  const data = await readJson(response);
+  if (!response.ok) throw rememberFailureSession(apiFailure(response.status, data, response.headers.get('X-Request-ID') ?? undefined), token);
+  return data as T;
 }

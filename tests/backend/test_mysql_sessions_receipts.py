@@ -73,7 +73,7 @@ def test_receipt_and_session_survive_a_new_process():
 def test_failed_library_write_stores_no_receipt():
     key = "failedkey01"
     with TestClient(create_app()) as client:
-        login = client.post("/api/demo/login", json={"account_id": "alpha-editor"})
+        login = client.post("/api/v1/auth/login", json={"username": "alpha-editor", "password": "X_2026"})
         assert login.status_code == 200, login.text
         token = login.json()["access_token"]
         headers = {"Authorization": "Bearer " + token}

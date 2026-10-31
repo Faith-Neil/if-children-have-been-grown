@@ -2,10 +2,14 @@
 // 它解决什么问题：解耦步骤流程、待办清单、分册进度与最近导出展示，精简 ProjectPages 巨石单体。
 
 import React from 'react';
+import { exportStatusMeta, getExportKindMeta } from './export-checks-core.ts';
 import { Button, Card, Col, Collapse, Empty, List, Progress, Row, Steps, Tag } from 'antd';
 import { CheckCircleOutlined } from '@ant-design/icons';
 import { formatTime, useProject, volumeName } from '../app/context.tsx';
 import { useVolumesStatus, isVolumeFinalized } from './volume-api.ts';
+import { projectVolumes, technicalOnly, volumeOptions } from './project-volumes.ts';
+import { useProjectSettings } from './ProjectSettingsGroups.tsx';
+import { mergeTodoItems } from './project-settings-core.ts';
 
 export function ClockCircleSymbol() {
   return <span className="todo-circle">○</span>;
@@ -14,6 +18,7 @@ export function ClockCircleSymbol() {
 export function OverviewPage() {
   const { workspace, token, navigate } = useProject();
   const { volumes: volumesStatus } = useVolumesStatus(workspace.project.id, token, workspace.revision);
+  const { settings } = useProjectSettings(workspace.project.id, token, workspace.revision);
   const steps = ['建立项目', '上传并解析', '确认与挂证据', '编制两册', '检查与导出'];
   const current = !workspace.files.length
     ? 0
@@ -25,7 +30,7 @@ export function OverviewPage() {
     ? 3
     : 4;
 
-  const pendingItems = [
+  const flowItems = [
     {
       title: '上传招标文件与补遗',
       detail: `${workspace.files.length} 个文件`,
@@ -65,9 +70,13 @@ export function OverviewPage() {
       done: workspace.exports.some(item => item.status === 'valid'),
     },
   ];
+  // 后台给出的待办（合作方缺协议、分册无负责人、内部截止临近、拟派人员占用等），每项可一键跳转
+  const pendingItems = mergeTodoItems(flowItems, settings?.todos ?? []);
+  const status = workspace.project_status;
 
   return (
     <>
+      {status && <Card className="flow-card" size="small" data-testid="overview-status">项目状态：<Tag color={status.read_only ? 'default' : 'blue'}>{status.label}{status.result_label ? `（${status.result_label}）` : ''}</Tag>{status.read_only && <span className="muted">项目已取消，只读。</span>}</Card>}
       <Card className="flow-card">
         <Steps current={current} size="small" items={steps.map(title => ({ title }))} />
       </Card>
@@ -90,7 +99,7 @@ export function OverviewPage() {
         </Col>
         <Col span={8}>
           <Card title="分册进度" className="stack-card">
-            {(['technical', 'business'] as const).map(volume => {
+            {projectVolumes(workspace).map(volume => {
               const chapters = workspace.chapters.filter(item => item.volume === volume);
               return (
                 <div key={volume} className="volume-progress">
@@ -123,9 +132,10 @@ export function OverviewPage() {
                 .reverse()
                 .map(item => (
                   <p key={item.id}>
-                    <Tag color={item.status === 'valid' ? 'green' : 'orange'}>
-                      {item.status === 'valid' ? '有效内部稿' : '已过期'}
+                    <Tag color={exportStatusMeta(item.status).color}>
+                      {getExportKindMeta(item.kind).label} · {exportStatusMeta(item.status).label}
                     </Tag>
+                    {item.batch_no ? `${item.batch_no} · ` : ''}
                     {formatTime(item.created_at)}
                   </p>
                 ))

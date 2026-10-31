@@ -31,7 +31,7 @@ assert.ok(historyEffect, 'the actual App history effect is exercised');
 const permissions = { manage_team: false, manage_project: false, manage_structure: false, prepare_sources: false, manage_sla: false, edit_facts: false, confirm_facts: false, check_all: false, export_internal: false, check_volumes: [], export_volumes: [] };
 const account = { id: 'alpha-editor', name: '合成编写人', company_id: 'alpha', role: 'editor', roles: ['bid_writer'], primary_role: 'bid_writer' };
 const session = () => ({
-  auth_mode: 'synthetic-demo', role_mode: 'legacy-demo-compat', user: account,
+  auth_mode: 'authenticated', role_mode: 'rbac-8roles', user: account,
   scope: { kind: 'company', active_company_id: 'alpha', allowed_company_ids: ['alpha'] },
   navigation: [{ route_id: 'workbench', path: '/workbench', access: 'read' }, { route_id: 'library', path: '/library', access: 'write' }],
   allowedActions: ['projects.read', 'library.read', 'sla_templates.read'], home_path: '/workbench', session: { expires_at: null, renew_supported: false },
@@ -107,7 +107,7 @@ test('a late company GET 401 cannot report or log out the subsequently logged-in
 
 test('the actual Editor history callback cannot use its late 401 to clear a new login', async t => {
   const context = contextFor(['clearCompanyData', 'logout', 'report']);
-  context.chapterId = 'c-one'; context.currentLease = { current: null }; context.reload = async () => {};
+  context.chapterId = 'c-one'; context.currentLease = { current: null }; context.reload = async () => {}; context.VARIABLE_ERROR_CODES = new Set(['FACT_VARIABLE_INVALID']);
   runSource(context, ['localError', 'run', 'viewVersions'].map(name => editor.functions.get(name)).join('\n'));
   const started = deferred(); const held = deferred();
   t.mock.method(globalThis, 'fetch', async (path, init) => { assert.equal(path, '/api/chapters/c-one/versions'); assert.equal(init.headers.Authorization, 'Bearer token-A'); started.resolve(); return held.promise; });

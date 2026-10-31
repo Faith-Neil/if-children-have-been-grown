@@ -119,3 +119,8 @@ dist/assets/jsx-runtime-J66WJ9pO.js          438.61 kB │ gzip: 144.68 kB
 ✓ built in 875ms
 ```
 构建无任何 TypeScript 报错与告警，包体积受控良好。
+
+## 2026-10-30 补充
+
+- 标的金额未填写时原来显示假默认值 12800000（摘要条、项目列表与元数据抽屉三处），现在如实显示“未填写”，不再套脱敏组件。
+- 看板从 planned 同步为 in-review（卡片早已 in-review）。

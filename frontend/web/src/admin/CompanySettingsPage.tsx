@@ -5,7 +5,7 @@
 // 3. 严格落实 9.11 编辑锁心跳三元数学约束校验；
 // 4. 精细化适配 8 大标准 RBAC 角色权限，提供管理员可控保存与普通成员只读态。
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Alert,
   Badge,
@@ -49,6 +49,11 @@ import {
   type CompanySettingsData,
   type CustomFieldMetadata,
 } from './company-settings-core.ts';
+import { WordTemplateCard } from './WordTemplateCard.tsx';
+import { TaskModelRoutesCard } from './TaskModelRoutesCard.tsx';
+import { fetchCompanySettings, updateCompanySettings } from './company-settings-api.ts';
+import { settingsFromApi, settingsPayload } from './company-settings-sync.ts';
+import { userFacingMessage } from '../shared/api.ts';
 
 const { Text, Paragraph } = Typography;
 
@@ -56,9 +61,10 @@ export interface CompanySettingsPageProps {
   session?: ApplicationSession | null;
   currentUser?: { id?: string; name?: string; role?: string; primary_role?: string; company_id?: string } | null;
   currentRole?: string;
+  token?: string | null;
 }
 
-export function CompanySettingsPage({ session, currentUser, currentRole: explicitRole }: CompanySettingsPageProps) {
+export function CompanySettingsPage({ session, currentUser, currentRole: explicitRole, token }: CompanySettingsPageProps) {
   const activeRole = explicitRole || session?.user?.primary_role || session?.user?.role || currentUser?.primary_role || currentUser?.role || 'company_admin';
   const permission = useMemo(() => checkCompanySettingsPermission(activeRole), [activeRole]);
 
@@ -66,6 +72,23 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
   const [settings, setSettings] = useState<CompanySettingsData>(() =>
     buildInitialCompanySettings(currentUser?.company_id || session?.user?.company_id || 'alpha')
   );
+
+  const companyId = currentUser?.company_id || session?.user?.company_id || 'alpha';
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+
+  // 打开页面即读取后台保存的设置；读不到时不让保存，避免用默认值覆盖已保存的设置
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    fetchCompanySettings(companyId, token ?? null)
+      .then(api => { if (alive) { setSettings(settingsFromApi(api)); setSavedAt(api.updated_at ?? null); setLoadError(''); } })
+      .catch(error => { if (alive) setLoadError(userFacingMessage(error)); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [companyId, token]);
 
   // 新增扩展字段模态框
   const [fieldModalOpen, setFieldModalOpen] = useState(false);
@@ -79,13 +102,23 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
-  // 保存设置
-  const handleSave = () => {
+  // 保存设置：提交后台（后台再核一次上下限与联动规则），以后台返回为准刷新页面
+  const handleSave = async () => {
     if (!validation.valid) {
       message.error(validation.issues[0]?.message || '存在未通过的合规参数校验');
       return;
     }
-    message.success('公司设置与扩展字段已成功保存并立即生效');
+    setSaving(true);
+    try {
+      const api = await updateCompanySettings(companyId, settingsPayload(settings), token ?? null);
+      setSettings(settingsFromApi(api));
+      setSavedAt(api.updated_at ?? null);
+      message.success('公司设置已保存，新的编辑锁、对话助手与解析设置对之后的操作生效');
+    } catch (error) {
+      message.error(userFacingMessage(error));
+    } finally {
+      setSaving(false);
+    }
   };
 
   // 恢复默认
@@ -96,8 +129,8 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
       okText: '确认重置',
       cancelText: '取消',
       onOk: () => {
-        setSettings(buildInitialCompanySettings(currentUser?.company_id || 'alpha'));
-        message.info('已恢复平台默认配置');
+        setSettings(prev => ({ ...buildInitialCompanySettings(prev.company_id, prev.company_name) }));
+        message.info('已填入平台默认值，点“保存企业设置”后生效');
       },
     });
   };
@@ -262,6 +295,11 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
         </Row>
       </Card>
 
+      {loadError && (
+        <Alert type="error" showIcon style={{ marginBottom: 16 }} data-testid="company-settings-load-error"
+          message={`读取公司设置失败：${loadError}`} description="为避免用默认值覆盖已保存的设置，读取成功前不能保存。" />
+      )}
+
       {/* 只读提示条 */}
       {permission.isReadOnly && (
         <Alert
@@ -353,18 +391,18 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
                     </Col>
                     <Col span={12}>
                       <Form.Item
-                        label="密码有效轮换周期"
-                        extra={<Text type="secondary">建议 90 天，到期后登录时要求强制更换</Text>}
+                        label="连续登录失败锁定次数"
+                        extra={<Text type="secondary">平台上限 5 次，公司只能调严</Text>}
                       >
                         <InputNumber
-                          min={PLATFORM_SETTING_BOUNDS.password_expire_days.min}
-                          max={PLATFORM_SETTING_BOUNDS.password_expire_days.max}
-                          value={settings.password_expire_days}
+                          min={PLATFORM_SETTING_BOUNDS.max_login_attempts.min}
+                          max={PLATFORM_SETTING_BOUNDS.max_login_attempts.max}
+                          value={settings.max_login_attempts}
                           disabled={!permission.canEdit}
-                          onChange={val => updateField('password_expire_days', val || 90)}
-                          addonAfter="天"
+                          onChange={val => updateField('max_login_attempts', val || 5)}
+                          addonAfter="次"
                           style={{ width: '100%' }}
-                          data-testid="input-password-expire-days"
+                          data-testid="input-max-login-attempts"
                         />
                       </Form.Item>
                     </Col>
@@ -443,7 +481,7 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
                     <Col span={8}>
                       <Form.Item
                         label="排他锁超时时长"
-                        extra={<Text type="secondary">范围 10~120 分钟</Text>}
+                        extra={<Text type="secondary">范围 6~60 分钟</Text>}
                       >
                         <InputNumber
                           min={PLATFORM_SETTING_BOUNDS.edit_lock_timeout_minutes.min}
@@ -503,14 +541,13 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
                               <Tag color="purple" style={{ marginLeft: 8 }}>防数据外泄红线</Tag>
                             </div>
                             <Text type="secondary">
-                              涉密标书项目绝对禁止请求公网模型，仅允许内网本地 Qwen 与自建 MinerU。
+                              敏感项目只能使用本地模型（含备用模型），由系统强制，不能关闭。
                             </Text>
                           </Col>
                           <Col>
                             <Switch
                               checked={settings.force_local_model}
-                              disabled={!permission.canEdit}
-                              onChange={val => updateField('force_local_model', val)}
+                              disabled={true}
                               data-testid="switch-force-local-model"
                             />
                           </Col>
@@ -518,29 +555,90 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
                       </Card>
                     </Col>
 
-                    <Col span={12}>
-                      <Form.Item label="导出稿件启用防伪水印">
-                        <Switch
-                          checked={settings.export_watermark_enabled}
-                          disabled={!permission.canEdit}
-                          onChange={val => updateField('export_watermark_enabled', val)}
-                          data-testid="switch-export-watermark"
-                        />
+                    <Col span={24}>
+                      <WordTemplateCard companyId={settings.company_id} token={token ?? null} canEdit={permission.canEdit} />
+                    </Col>
+                  </Row>
+                </div>
+              ),
+            },
+            {
+              key: 'assistant',
+              label: (
+                <span>
+                  <EditOutlined /> 对话助手与检查
+                </span>
+              ),
+              children: (
+                <div style={{ paddingTop: 16, maxWidth: 800 }}>
+                  <Row gutter={[24, 24]}>
+                    <Col span={8}>
+                      <Form.Item label="启用对话助手">
+                        <Switch checked={settings.assistant_enabled} disabled={!permission.canEdit}
+                          onChange={val => updateField('assistant_enabled', val)} data-testid="switch-assistant-enabled" />
                       </Form.Item>
                     </Col>
-
-                    <Col span={12}>
-                      <Form.Item label="默认水印文本内容">
-                        <Input
-                          value={settings.export_watermark_text}
-                          disabled={!permission.canEdit || !settings.export_watermark_enabled}
-                          onChange={e => updateField('export_watermark_text', e.target.value)}
-                          placeholder="请输入水印文字"
-                          data-testid="input-watermark-text"
-                        />
+                    <Col span={8}>
+                      <Form.Item label="新会话默认打开知识库">
+                        <Switch checked={settings.assistant_kb_default} disabled={!permission.canEdit}
+                          onChange={val => updateField('assistant_kb_default', val)} data-testid="switch-assistant-kb-default" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                      <Form.Item label="允许关闭知识库">
+                        <Switch checked={settings.assistant_allow_kb_off} disabled={!permission.canEdit}
+                          onChange={val => updateField('assistant_allow_kb_off', val)} data-testid="switch-assistant-allow-kb-off" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                      <Form.Item label="修改样例条数" extra={<Text type="secondary">3~5 条</Text>}>
+                        <InputNumber min={3} max={5} value={settings.assistant_suggestion_count} disabled={!permission.canEdit}
+                          onChange={val => updateField('assistant_suggestion_count', val || 3)} addonAfter="条" style={{ width: '100%' }}
+                          data-testid="input-assistant-count" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                      <Form.Item label="解析置信度阈值" extra={<Text type="secondary">低于此值的条目高亮，0.5~0.99</Text>}>
+                        <InputNumber min={0.5} max={0.99} step={0.05} value={settings.parse_confidence_threshold} disabled={!permission.canEdit}
+                          onChange={val => updateField('parse_confidence_threshold', val ?? 0.8)} style={{ width: '100%' }}
+                          data-testid="input-parse-confidence" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                      <Form.Item label="粘贴识别重合比例" extra={<Text type="secondary">粘贴内容与助手输出重合达到时记为对话助手撰写</Text>}>
+                        <InputNumber min={0.5} max={1} step={0.05} value={settings.assistant_paste_match_ratio} disabled={!permission.canEdit}
+                          onChange={val => updateField('assistant_paste_match_ratio', val ?? 0.8)} style={{ width: '100%' }}
+                          data-testid="input-paste-ratio" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                      <Form.Item label="查重连续相同字数" extra={<Text type="secondary">本公司查重判定的连续字数</Text>}>
+                        <InputNumber min={5} max={50} value={settings.dup_min_chars} disabled={!permission.canEdit}
+                          onChange={val => updateField('dup_min_chars', val || 8)} addonAfter="字" style={{ width: '100%' }}
+                          data-testid="input-dup-min-chars" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                      <Form.Item label="查重历史年限">
+                        <InputNumber min={1} max={120} value={settings.dup_history_months} disabled={!permission.canEdit}
+                          onChange={val => updateField('dup_history_months', val || 24)} addonAfter="月" style={{ width: '100%' }}
+                          data-testid="input-dup-history-months" />
                       </Form.Item>
                     </Col>
                   </Row>
+                </div>
+              ),
+            },
+            {
+              key: 'models',
+              label: (
+                <span>
+                  <AppstoreOutlined /> 任务与模型
+                </span>
+              ),
+              children: (
+                <div style={{ paddingTop: 16, maxWidth: 900 }}>
+                  <TaskModelRoutesCard token={token ?? null} canEdit={permission.canEdit} />
                 </div>
               ),
             },
@@ -657,7 +755,7 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
             <Space>
               <CheckCircleOutlined style={{ color: validation.valid ? '#52c41a' : '#faad14' }} />
               <Text type="secondary">
-                {validation.valid ? '全部策略参数校验通过，可安全保存' : '存在合规风险提示，请按红线规则修正'}
+                {validation.valid ? (savedAt ? `上次保存 ${new Date(savedAt).toLocaleString('zh-CN', { hour12: false })}` : '尚未保存过，当前为平台默认值') : '存在合规风险提示，请按红线规则修正'}
               </Text>
             </Space>
           </Col>
@@ -674,8 +772,9 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
               <Button
                 type="primary"
                 icon={<SaveOutlined />}
-                disabled={!permission.canSave || !validation.valid}
-                onClick={handleSave}
+                disabled={!permission.canSave || !validation.valid || loading || !!loadError}
+                loading={saving}
+                onClick={() => void handleSave()}
                 data-testid="company-settings-save-btn"
               >
                 保存企业设置

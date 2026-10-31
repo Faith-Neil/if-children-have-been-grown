@@ -667,3 +667,120 @@
 - [x] 交付文档、代码说明、任务卡与任务看板同步更新。
 
 已获 QA 签署（D-836 PASS）与 PD 验收（D-837 认可），经人类 PM 正式批准标 done。
+
+> 2026-10-28 回归说明：上表“R37 正向承诺反转”“CITATION_AUTH 白名单替换”及【待补】改写行为经核对违反 PRD v1.8 §1.4 原则 3 与 §5.7.4 第 4 条，登记为 [ISSUE-039](../../issues/ISSUE-039.md)，由 [AI-REMEDIATION-NO-FABRICATION](AI-M0.md#ai-remediation-no-fabrication) 撤回。本卡 done 状态与签署记录保留原文。
+
+<a id="ai-remediation-no-fabrication"></a>
+
+## AI-REMEDIATION-NO-FABRICATION · 章节自动整改不编造（按 PRD §5.7.4 规则编排）
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时；删除偏离翻转与空泛占位改写；直接转人工问题不进入自动修正；模型改写安全复核；测试按 PRD 重写 |
+| 关联 Issue | [ISSUE-039](../../issues/ISSUE-039.md)、[ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [AI-OUTLINE-AUTO-REMEDIATION](AI-M0.md#ai-outline-auto-remediation) |
+| PRD / 架构出处 | [PRD v1.8 §1.4、§5.7.4](../reference/product/prd-mvp-v1.8.md)；[实施澄清 A1/A8](../decisions/2026-10-28-prd-amendments-wave11.md) |
+| 完成时交付 | [交付](../delivery/AI-REMEDIATION-NO-FABRICATION.md) |
+| 代码解释 | [代码说明](../code/AI-REMEDIATION-NO-FABRICATION.md) |
+
+验收：偏离、无依据【待补】、依据外证据不被自动修正并进入人工处理队列；模型改写带入新数字或新引用被拒；只有可自动修正问题时“问题全部解决”，否则如实“待人工处理”。
+
+<a id="ai-kb-rag-pipeline"></a>
+
+## AI-KB-RAG-PIPELINE · 公司知识库同步与检索接入生产链路
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 8小时；客户端对齐 1.0、对账同步、索引过滤与实时复核检索、各调用方接入、状态接口与面板 |
+| 关联 Issue | [ISSUE-043](../../issues/ISSUE-043.md)、[ISSUE-037](../../issues/ISSUE-037.md) |
+| 依赖 | [AI-RAGFLOW-KB-SYNC](AI-M0.md#ai-ragflow-kb-sync)、[BE-WORKFLOW-DURABILITY](BE-M0.md#be-workflow-durability) |
+| PRD / 架构出处 | [PRD v1.8 §1.4、§5.7](../reference/product/prd-mvp-v1.8.md)；B5/B6 拍板 |
+| 完成时交付 | [交付](../delivery/AI-KB-RAG-PIPELINE.md) |
+| 代码解释 | [代码说明](../code/AI-KB-RAG-PIPELINE.md) |
+
+验收：只有已确认未过期资料与已发布片段入库；改版、撤销、过期后旧文档不被召回；检索命中按资料实时复核并以 [片:id] 引用、不成为 [证]；片段同步状态与知识库真实结果一致；未配置时不伪造。
+
+<a id="ai-kb-rag-eval"></a>
+
+## AI-KB-RAG-EVAL · 知识库检索质量评测与调参（真实 RAGFlow）
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 3小时；合成金标集、评测脚本、真实实例参数扫描与报告 |
+| 关联 Issue | [ISSUE-043](../../issues/ISSUE-043.md) |
+| 依赖 | [AI-KB-RAG-PIPELINE](AI-M0.md#ai-kb-rag-pipeline) |
+| PRD / 架构出处 | [PRD v1.8 §1.4](../reference/product/prd-mvp-v1.8.md) |
+| 完成时交付 | `docs/testing/rag-eval-golden-v1.md` |
+| 代码解释 | [代码说明](../code/AI-KB-RAG-PIPELINE.md) |
+
+已完成：`scripts/rag_eval.py`、`tests/rag_eval/golden_v1.json`（离线跑通）。待做：真实 RAGFlow 上扫描 `similarity_threshold` × `keywords_similarity_weight`（及重排模型），以同义改写 recall@3 ≥ 0.8、负例误召回 ≤ 0.25 为初定目标，写回默认参数。阻塞：用户侧隧道 2026-10-28 不可达。
+
+结果（2026-10-28）：内置解析见 [内置解析评测](../testing/rag-eval-golden-v1-builtin.md)，据此默认阈值 0.45、关键词权重 0.3（paraphrase recall@3 0.969，负例误召回在 0.45 下为 0）。ICG 结构化流程见 [流程模式评测](../testing/rag-eval-golden-v1-pipeline.md)：21 篇有 7 篇在 LLM 抽取步骤解析失败，召回 literal 0.667 / paraphrase 0.5，低于内置解析；上线前须换稳定的内网抽取模型复测，否则按公司关闭流程。`scripts/rag_eval.py` 新增 `--dataset-id` 接续已在解析的数据集。
+
+<a id="ai-kb-control-plane"></a>
+
+## AI-KB-CONTROL-PLANE · 知识库管控接口与招投标专用摄入流程
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 8小时；四条 ICG 摄入流程与 DSL 生成、/api/v1/kb-admin 全部管控接口与授权审计、历史投标与证书原件、重建迁移、管理页 |
+| 关联 Issue | [ISSUE-043](../../issues/ISSUE-043.md) |
+| 依赖 | [AI-KB-RAG-PIPELINE](AI-M0.md#ai-kb-rag-pipeline) |
+| PRD / 架构出处 | [技术决定](../decisions/2026-10-28-kb-control-plane-and-pipelines.md) |
+| 完成时交付 | [技术决定](../decisions/2026-10-28-kb-control-plane-and-pipelines.md) |
+| 代码解释 | [技术决定](../decisions/2026-10-28-kb-control-plane-and-pipelines.md) |
+
+验收：`tests/backend/test_kb_admin.py` 11 项；流程部署与数据集绑定在真实 RAGFlow v1.0.0-rc2 上验证；完整解析待嵌入模型可用。
+
+<a id="ai-tender-structured-extraction"></a>
+
+## AI-TENDER-STRUCTURED-EXTRACTION · 招标条款按章节与条目抽取
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时 |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | — |
+| PRD / 架构出处 | PRD v1.8 §5.2；[技术决定 §4](../decisions/2026-10-28-kb-control-plane-and-pipelines.md) |
+| 完成时交付 | [Wave 12 续自测](../testing/2026-10-28-wave-12b-verification.md) |
+| 代码解释 | [Wave 12 续自测](../testing/2026-10-28-wave-12b-verification.md) |
+
+原先每个非空行都成为一条条款；现在按章节树与编号条目抽取，合同条款与格式附件不抽，★/▲/废标条目必抽，评分项带分值。`tests/backend/test_tender_extraction.py` 6 项。下一步：扫描件与 .doc/.xls 招标文件经 RAGFlow DeepDOC（tender 流程）解析。
+
+<a id="fe-kb-business-flows"></a>
+
+## FE-KB-BUSINESS-FLOWS · 知识库接入日常业务页面
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 5小时 |
+| 关联 Issue | [ISSUE-043](../../issues/ISSUE-043.md) |
+| 依赖 | [AI-KB-CONTROL-PLANE](AI-M0.md#ai-kb-control-plane) |
+| PRD / 架构出处 | PRD v1.8 §5.4、§5.7 |
+| 完成时交付 | [Wave 12 续自测](../testing/2026-10-28-wave-12b-verification.md) |
+| 代码解释 | [Wave 12 续自测](../testing/2026-10-28-wave-12b-verification.md) |
+
+写作输入显示知识库候选（[片:id]、仅参考/可挂接提示）；资料库逐条入库状态与“从证书附件识别”；方案片段新建/保存/发布（含拦截原因）与真实同步；知识库管理页解析进度。e2e `knowledge-flows.spec.ts`。
+
+<a id="ai-tender-deepdoc-parse"></a>
+
+## AI-TENDER-DEEPDOC-PARSE · 扫描件与老格式招标文件经 RAGFlow 解析
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时 |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | [AI-TENDER-STRUCTURED-EXTRACTION](AI-M0.md#ai-tender-structured-extraction) |
+| PRD / 架构出处 | PRD v1.8 §5.2；[技术决定 §4](../decisions/2026-10-28-kb-control-plane-and-pipelines.md) |
+| 完成时交付 | `docs/delivery/AI-TENDER-DEEPDOC-PARSE.md` |
+| 代码解释 | `icg/domain/tender_remote.py` 文件头 |
+
+本地解析报 OCR_REQUIRED / FILE_TYPE_UNSUPPORTED 且格式为 PDF、.doc、.docx、.xls、.xlsx、图片时，上传到本公司 `icg-tender` 数据集（开启 ICG 流程时用“招标文件”流程，否则内置 DeepDOC），在 `ICG_TENDER_REMOTE_WAIT`（默认 60 秒）内轮询；未完成则文件标 `parsing_remote`，再次解析时接着查、不重复上传。完成后按分块位置（页码、纵坐标）还原逐页文字，表格 HTML 展平为“ | ”分隔行，交回原条款与事实抽取，再删除 RAGFlow 临时文档。未连接 RAGFlow、解析失败或未识别出文字时如实报 422。测试 `tests/backend/test_tender_remote_parse.py`（5 项，假 RAGFlow 新增版面位置与分页）；真实 RAGFlow 上的扫描件实测未执行。
+

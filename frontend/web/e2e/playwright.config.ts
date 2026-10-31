@@ -26,7 +26,7 @@ export default defineConfig({
   webServer: {
     command: `${python} -m uvicorn icg_demo.main:app --app-dir backend/bid-core --host 127.0.0.1 --port ${port} --workers 1`,
     cwd: root,
-    url: `http://127.0.0.1:${port}/api/demo/accounts`,
+    url: `http://127.0.0.1:${port}/health`,
     reuseExistingServer: false,
     timeout: 60_000,
   },

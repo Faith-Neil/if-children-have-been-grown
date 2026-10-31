@@ -102,9 +102,13 @@ class OutlineOrchestratorMixin:
                 raise DomainError(409, "SLA_NOT_READY", "服务承诺或必备事实仍待处理，请先逐条核对。", {"issues": issues})
             requested = payload["chapters"]
             scope = payload.get("scope", "all")
-            expected_volumes = set(VOLUMES) if scope == "all" else {scope}
+            from icg.domain.project_access import project_volumes, rule_scope
+            rule_scope(state, project_id, scope)
+            active = set(project_volumes(state, project_id))
+            expected_volumes = active if scope == "all" else {scope}
             if {c["volume"] for c in requested} != expected_volumes:
-                raise DomainError(422, "TWO_VOLUMES_REQUIRED", "本期大纲必须同时包含技术和商务两册。")
+                raise DomainError(422, "TWO_VOLUMES_REQUIRED", "本期大纲必须同时包含技术和商务两册。" if len(active) > 1
+                                  else "本项目只写技术标，大纲只能包含技术分册章节。")
             all_old = {c.id: c for c in state.chapters.values() if c.project_id == project_id}
             old = {identity: c for identity, c in all_old.items() if c.volume in expected_volumes}
             seen, retained, planned = set(), [], {}

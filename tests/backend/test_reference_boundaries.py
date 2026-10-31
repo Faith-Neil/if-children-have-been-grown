@@ -88,7 +88,9 @@ def test_failed_file_can_be_removed_and_project_recovered(client):
     assert all(f["id"] != bad["id"] for f in state["files"])
     assert state["parse_confirmed"] is False and state["plan_confirmed"] is False
     assert next(c for c in state["checks"] if c["id"] == check["id"])["status"] == "stale"
-    assert client.get(exported["volumes"][0]["download_url"], headers=flow.headers).status_code == 409
+    # 旧批次标“已过期”但保留下载当时的快照（PRD §5.9.1 规则 13，APP-M2-T202）
+    stale = client.get(exported["volumes"][0]["download_url"], headers=flow.headers)
+    assert stale.status_code == 200 and stale.headers["X-ICG-Export-Status"] == "stale"
     flow.write("/parse/confirm", {})
     flow.confirm_plan({"chapters": [{"id": c["id"], "title": c["title"], "volume": c["volume"]}
                                      for c in flow.state()["chapters"]]})
@@ -131,6 +133,10 @@ def test_file_with_existing_sources_cannot_be_removed_after_reparse_failure():
     with TestClient(create_app(parser_provider=FailAgainParser())) as client:
         flow = ProjectFlow(client).ready()
         file_id = flow.state()["files"][0]["id"]
+        # 同公司同指纹、同服务、同参数版本的解析结果会被复用（PRD §5.2.1 规则 3），复用时不会调用解析器，
+        # 所以这里先清掉解析缓存（等同缓存正文已过期），才能真正走到解析失败分支。
+        from icg.domain.tender_files import CACHE_STORE
+        client.app.state.service.repository.transaction(lambda state: state.service_stores.pop(CACHE_STORE, None))
         flow.write("/parse", {}, expected=502)
         assert flow.state()["files"][0]["status"] == "failed"
         assert flow.write("/files/" + file_id, {"reason": "有来源不能删"}, "DELETE", 409)["code"] == "FILE_IN_USE"

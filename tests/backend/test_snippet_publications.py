@@ -3,6 +3,7 @@
 
 from uuid import uuid4
 
+from fake_ragflow_v1 import FAIL_MARKER, FakeRagflowV1
 from test_reference_flow import client, login
 
 
@@ -201,7 +202,23 @@ def test_missing_idempotency_key_and_viewer_do_not_publish(client):
     assert receipt_count(client) == receipts
 
 
+def test_sync_without_knowledge_base_never_claims_synced(client):
+    actor = login(client)
+    item = create(client, actor).json()
+    published = publish(client, actor, item["id"], 1)
+    assert published.json()["blocked"] is False
+    attempt = client.post(
+        f"/api/v1/snippet-publications/{item['id']}/sync", headers=headers(actor, 1), json={})
+    assert attempt.status_code == 200, attempt.text
+    assert attempt.json()["synced"] is False
+    assert attempt.json()["item"]["kb_sync_status"] == "unsynced"
+
+
 def test_sync_uses_published_revision_and_failure_does_not_mark_synced(client):
+    fake = FakeRagflowV1()
+    knowledge_base = client.app.state.service.knowledge_base
+    knowledge_base._client_factory = lambda state, company_id: fake.client()
+    knowledge_base.background = False
     actor = login(client)
     item = create(client, actor).json()
     before_publish = store_snapshot(client)
@@ -216,7 +233,7 @@ def test_sync_uses_published_revision_and_failure_does_not_mark_synced(client):
     saved = client.put(
         f"/api/v1/snippet-publications/{item['id']}",
         headers=headers(actor, 1),
-        json={"draft_body": "知识库拒绝这段 [[sync-fail]]，变量仍是 {{uptime}}。"})
+        json={"draft_body": "知识库拒绝这段 " + FAIL_MARKER + "，变量仍是 {{uptime}}。"})
     assert saved.status_code == 200, saved.text
     published = publish(client, actor, item["id"], 2)
     assert published.status_code == 200, published.text

@@ -887,3 +887,68 @@
 3. 用户角色调配与越权防护防线：打通 `PATCH /api/v1/users/{user_id}/role`，支持企业内 8 大标准角色平滑切换；超管账号 `admin` 降权严格拦截 403 `SUPER_ADMIN_PROTECTED`；管理员自身降权严格拦截 403 `CANNOT_DEMOTE_SELF`；
 4. 多租户强隔离与 RBAC 权限控制：跨租户调用安全端点统一拦截 404 `NOT_FOUND` 防止用户 ID 探测；编写人等非管理员调用写端点统一拦截 403 `FORBIDDEN`；
 5. 编写专属端到端集成测试 `tests/backend/test_user_security_ops_glue.py` 与前端胶水测试，保持 OpenAPI 契约 0 漂移。
+
+<a id="be-workflow-state-persist"></a>
+
+## BE-WORKFLOW-STATE-PERSIST · 分册定稿/复核/人工处理队列/兜底扫描写入 MySQL
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 3小时；Alembic 0012 `demo_project_workflow_state`；事务前后快照差量写入；旧库缺表不拖垮写入 |
+| 关联 Issue | [ISSUE-040](../../issues/ISSUE-040.md)、[ISSUE-018](../../issues/ISSUE-018.md) |
+| 依赖 | [APP-M2-T133](APP-M2.md#app-m2-t133)、[APP-M2-T144](APP-M2.md#app-m2-t144)、[APP-M2-T111](APP-M2.md#app-m2-t111) |
+| 来源 | PRD v1.8 §7.1、§7.5；AGENTS.md 持久化门禁 |
+| 完成时交付 | [交付](../delivery/BE-WORKFLOW-STATE-PERSIST.md) |
+| 代码解释 | [代码说明](../code/BE-WORKFLOW-STATE-PERSIST.md) |
+
+验收：另一个仓储实例（等同另一个进程）读到已定稿分册、复核通过与待人工问题数；`backend-mysql` 作业全绿。
+
+<a id="be-workflow-durability"></a>
+
+## BE-WORKFLOW-DURABILITY · 项目工作流主体写入 MySQL
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 6～8小时，开工前按聚合再拆卡 |
+| 关联 Issue | [ISSUE-041](../../issues/ISSUE-041.md) |
+| 依赖 | [BE-WORKFLOW-STATE-PERSIST](BE-M0.md#be-workflow-state-persist) |
+| 来源 | PRD v1.8 §7.1、§7.5；AGENTS.md 金标准第 3 条 |
+| 完成时交付 | [交付](../delivery/BE-WORKFLOW-DURABILITY.md) |
+| 代码解释 | [代码说明](../code/BE-WORKFLOW-DURABILITY.md) |
+
+范围：`files`（原件另存）、`requirements`、`facts`、`conflicts`、`candidates`、`checks`、`exports`、`writing_plan`、`sla`、`chapter_order` 等全部业务键跨进程可见；集合等非 JSON 类型先改造；验收以 `ICG_REQUIRE_MYSQL=1` 下重启后主链路数据完整为准。
+
+<a id="be-auth-production-only"></a>
+
+## BE-AUTH-PRODUCTION-ONLY · 去掉演示入口，只保留生产认证
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时 |
+| 关联 Issue | [ISSUE-005](../../issues/ISSUE-005.md) |
+| 依赖 | — |
+| 来源 | 用户 2026-10-28 决定：不需要演示环境，以生产使用为目标测试 |
+| 完成时交付 | [Wave 12 续自测](../testing/2026-10-28-wave-12b-verification.md) |
+| 代码解释 | [Wave 12 续自测](../testing/2026-10-28-wave-12b-verification.md) |
+
+已做：删除 `/api/demo/accounts`、`/api/demo/login`、三角色兼容会话与 `/demo` 页；全部账号按 8 角色会话；无摘要账号不能登录；生产（`ICG_ENV=production`）下合成种子账号一律拒绝、管理员初始密码只能由 `ICG_ADMIN_INITIAL_PASSWORD` 设定、MySQL 仓储不加载合成种子；前端去掉内置管理员口令、令牌直登和离线令牌。
+
+<a id="be-upload-100mb"></a>
+
+## BE-UPLOAD-100MB · 全应用上传上限 100MB
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 3小时 |
+| 关联 Issue | [ISSUE-007](../../issues/ISSUE-007.md) |
+| 依赖 | — |
+| PRD / 架构出处 | 用户 2026-10-29 决定 |
+| 完成时交付 | `docs/delivery/BE-UPLOAD-100MB.md` |
+| 代码解释 | `icg/domain/upload_limits.py`、`icg/infra/blob_store.py`、`icg/api/raw_upload.py` 文件头 |
+
+上限统一由 `ICG_MAX_UPLOAD_MB`（默认 100）决定，招标文件、知识库原件、证书附件共用。新增 `POST /projects/{id}/files/raw` 与 `POST /kb-admin/datasets/{kind}/documents/raw`：请求体为文件字节，边读边计数，超限 413。招标原件改存内容寻址文件存储（`ICG_BLOB_DIR`，默认 `backend/bid-core/data/blobs`，生产须指向持久磁盘并纳入备份），业务状态只记摘要，避免 100MB 原件超过 MySQL 单包上限。RAGFlow 上传按文件大小放宽超时。测试 `tests/backend/test_upload_limits.py`、`frontend/web/tests/unit/raw-upload.test.mjs`。
+

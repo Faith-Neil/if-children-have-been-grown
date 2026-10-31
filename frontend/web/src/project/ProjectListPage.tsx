@@ -303,7 +303,8 @@ export function ProjectListPage({
               key: 'target_amount',
               width: 190,
               render: (_: unknown, record: Project) => {
-                const amountText = formatCurrencyAmount(record.target_amount ?? 12800000);
+                if (record.target_amount === undefined || record.target_amount === null) return <span style={{ color: '#8c8c8c' }}>未填写</span>;
+                const amountText = formatCurrencyAmount(record.target_amount);
                 return (
                   <MaskedField
                     value={amountText}
@@ -467,8 +468,8 @@ export function ProjectListPage({
                 )}
               </Descriptions.Item>
               <Descriptions.Item label="标的金额">
-                <MaskedField
-                  value={formatCurrencyAmount(selectedProject.target_amount ?? 12800000)}
+                {selectedProject.target_amount === undefined || selectedProject.target_amount === null ? <span style={{ color: '#8c8c8c' }}>未填写</span> : <MaskedField
+                  value={formatCurrencyAmount(selectedProject.target_amount)}
                   fieldType="custom"
                   fieldName="标的金额"
                   maskRule={{ prefix: 2, suffix: 3, maskChar: '*' }}
@@ -477,7 +478,7 @@ export function ProjectListPage({
                   unauthorizedMode="disabled"
                   unauthorizedTooltip="仅项目负责人与公司管理员有权调阅完整标的金额"
                   testId="drawer-target-amount-field"
-                />
+                />}
               </Descriptions.Item>
               <Descriptions.Item label="当前生命周期阶段">
                 {(() => {

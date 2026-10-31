@@ -3,22 +3,6 @@
 
 import { normalizeSystemRole, SYSTEM_ROLE_LABELS, type SystemRole } from '../shell/route-guard.ts';
 
-export interface CompanyTenantInfo {
-  id: string;
-  name: string;
-  credit_code: string; // 18位统一社会信用代码
-  group_id: string;
-  group_name: string;
-  legal_person: string;
-  status: 'active' | 'disabled';
-  created_at: string;
-  user_count: number;
-  project_count: number;
-  storage_space_id: string;
-  rag_collection_id: string;
-  settings: CompanyComplianceSettings;
-}
-
 export interface CompanyComplianceSettings {
   // 1. 脱敏合规规则 (PRD §6.9)
   mask_strict_mode_enabled: boolean; // 强规则生效标识（不可关闭）
@@ -246,60 +230,28 @@ export function validateDisableConfirmation(
   return inputCompanyName.trim() === expectedCompanyName.trim();
 }
 
-/**
- * 默认演示公司数据（华东数智与远山信息）
- */
-export const DEFAULT_COMPANIES: CompanyTenantInfo[] = [
-  {
-    id: 'alpha',
-    name: '华东数智科技有限公司',
-    credit_code: '91310000MA1FL7XX99',
-    group_id: 'grp-east-01',
-    group_name: '东风信息技术集团',
-    legal_person: '林振华',
-    status: 'active',
-    created_at: '2026-01-15 09:00:00',
-    user_count: 28,
-    project_count: 12,
-    storage_space_id: 'space-alpha-store-01',
-    rag_collection_id: 'rag-col-alpha-kb',
-    settings: {
-      mask_strict_mode_enabled: true,
-      mask_id_card_mode: 'standard',
-      mask_phone_mode: 'standard',
-      mask_bank_card_mode: 'standard',
-      force_local_model: true,
-      password_min_length: 8,
-      password_min_char_classes: 3,
-      editor_autosave_seconds: 10,
-      edit_lock_heartbeat_seconds: 60,
-      edit_lock_timeout_minutes: 30,
-    },
-  },
-  {
-    id: 'beta',
-    name: '远山信息技术有限公司',
-    credit_code: '91330100MA2BL8YY88',
-    group_id: 'grp-east-01',
-    group_name: '东风信息技术集团',
-    legal_person: '赵远山',
-    status: 'active',
-    created_at: '2026-03-20 14:30:00',
-    user_count: 16,
-    project_count: 7,
-    storage_space_id: 'space-beta-store-01',
-    rag_collection_id: 'rag-col-beta-kb',
-    settings: {
-      mask_strict_mode_enabled: true,
-      mask_id_card_mode: 'strict',
-      mask_phone_mode: 'standard',
-      mask_bank_card_mode: 'standard',
-      force_local_model: true,
-      password_min_length: 10,
-      password_min_char_classes: 3,
-      editor_autosave_seconds: 15,
-      edit_lock_heartbeat_seconds: 60,
-      edit_lock_timeout_minutes: 45,
-    },
-  },
-];
+/** 后台公司列表的一行（GET /api/v1/companies，APP-M2-T260 / T026）。 */
+export interface CompanySummary {
+  id: string;
+  name: string;
+  status: 'active' | 'disabled';
+  user_count: number;
+  project_count: number;
+  status_changed_at?: string | null;
+  status_changed_by?: string | null;
+}
+
+export interface CompanyList { items: CompanySummary[]; can_change_status: boolean }
+
+type RequestFn = <T>(path: string, token: string | null, method?: string, body?: unknown) => Promise<T>;
+
+export function listCompanies(requestFn: RequestFn, token: string): Promise<CompanyList> {
+  return requestFn<CompanyList>('/api/v1/companies', token);
+}
+
+export function updateCompanyStatus(
+  requestFn: RequestFn, token: string, companyId: string, status: 'active' | 'disabled', confirmName?: string,
+): Promise<CompanySummary> {
+  const body = status === 'disabled' ? { status, confirm_name: confirmName ?? '' } : { status };
+  return requestFn<CompanySummary>(`/api/v1/companies/${encodeURIComponent(companyId)}/status`, token, 'POST', body);
+}

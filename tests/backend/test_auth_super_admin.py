@@ -229,21 +229,13 @@ def test_super_admin_cross_company_access(client):
 
 
 def test_super_admin_in_production_mode(monkeypatch, client):
-    """验证在关闭演示登录 (ICG_ALLOW_DEMO_LOGIN=0 / ICG_ENV=production) 下正式认证依然有效。"""
-    monkeypatch.setenv("ICG_ALLOW_DEMO_LOGIN", "0")
+    """生产配置：内置合成账号一律拒绝；admin 只能用部署时设定的初始密码，没有内置默认口令。"""
     monkeypatch.setenv("ICG_ENV", "production")
-
-    # 旧演示登录接口被阻断
-    demo_login_resp = client.post(
-        "/api/demo/login",
-        json={"account_id": "alpha-manager"},
-    )
-    assert demo_login_resp.status_code == 403
-
-    # 正式账号密码认证依然完全正常通畅
-    formal_resp = client.post(
-        "/api/v1/auth/login",
-        json={"username": "admin", "password": "X_2026"},
-    )
+    seeded = client.post("/api/v1/auth/login", json={"username": "alpha-manager", "password": "X_2026"})
+    assert seeded.status_code == 401
+    no_default = client.post("/api/v1/auth/login", json={"username": "admin", "password": "X_2026"})
+    assert no_default.status_code == 401
+    monkeypatch.setenv("ICG_ADMIN_INITIAL_PASSWORD", "Deploy-Set_9")
+    formal_resp = client.post("/api/v1/auth/login", json={"username": "admin", "password": "Deploy-Set_9"})
     assert formal_resp.status_code == 200
     assert "access_token" in formal_resp.json()

@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import json
+
 from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
@@ -12,6 +14,26 @@ from sqlalchemy import text
 from icg.domain.domain import Chapter, DomainError, iso_time
 from icg.infra.repositories.common import as_timestamp, utc_naive
 
+
+
+_CORE_VERSION_KEYS = {"id", "chapter_id", "revision", "version_number", "content", "actor_id", "created_by", "created_at"}
+
+
+def version_meta(version: dict) -> str | None:
+    """版本记录中正文以外的元数据（写入方式、粘贴识别、段落键等），存入 meta 列。"""
+    meta = {k: v for k, v in version.items() if k not in _CORE_VERSION_KEYS}
+    return json.dumps(meta, ensure_ascii=False, default=str) if meta else None
+
+
+def merge_meta(record: dict, raw: Any) -> dict:
+    if raw:
+        try:
+            meta = json.loads(raw) if isinstance(raw, (str, bytes)) else raw
+        except ValueError:
+            meta = None
+        if isinstance(meta, dict):
+            record.update({k: v for k, v in meta.items() if k not in _CORE_VERSION_KEYS})
+    return record
 
 def read_chapter(target: Any, chapter_id: str) -> dict | None:
     """读取单个章节及其全量历史版本。"""
@@ -28,14 +50,14 @@ def read_chapter(target: Any, chapter_id: str) -> dict | None:
 
         version_rows = connection.execute(
             text(
-                "SELECT id, chapter_id, version_number, content, created_by, created_at "
+                "SELECT id, chapter_id, version_number, content, created_by, created_at, meta "
                 "FROM demo_chapter_version WHERE chapter_id = :chapter_id ORDER BY version_number ASC"
             ),
             {"chapter_id": chapter_id},
         ).all()
 
         versions = [
-            {
+            merge_meta({
                 "id": v.id,
                 "chapter_id": v.chapter_id,
                 "revision": int(v.version_number),
@@ -44,7 +66,7 @@ def read_chapter(target: Any, chapter_id: str) -> dict | None:
                 "actor_id": v.created_by,
                 "created_by": v.created_by,
                 "created_at": iso_time(as_timestamp(v.created_at)) if isinstance(v.created_at, datetime) else str(v.created_at),
-            }
+            }, v.meta)
             for v in version_rows
         ]
 
@@ -146,6 +168,10 @@ def save_chapter(
                     payload,
                 )
 
+        if versions and hasattr(chapter, "versions") and hasattr(chapter, "id"):
+            # 段落键随版本一起落库（APP-M2-T161）；已有的不重算
+            from icg.domain.paragraph_keys import ensure as ensure_paragraphs
+            ensure_paragraphs(chapter)
         for v in versions:
             v_num = int(v.get("revision", v.get("version_number", 1)))
             v_content = v.get("content", "")
@@ -169,8 +195,8 @@ def save_chapter(
                 v_id = v.get("id") or f"ver-{uuid4().hex}"
                 connection.execute(
                     text(
-                        "INSERT INTO demo_chapter_version (id, chapter_id, version_number, content, created_by, created_at) "
-                        "VALUES (:id, :chapter_id, :version_number, :content, :created_by, :created_at)"
+                        "INSERT INTO demo_chapter_version (id, chapter_id, version_number, content, created_by, created_at, meta) "
+                        "VALUES (:id, :chapter_id, :version_number, :content, :created_by, :created_at, :meta)"
                     ),
                     {
                         "id": v_id,
@@ -179,6 +205,7 @@ def save_chapter(
                         "content": v_content,
                         "created_by": v_actor,
                         "created_at": v_time,
+                        "meta": version_meta(v),
                     },
                 )
 

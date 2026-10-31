@@ -36,16 +36,17 @@ def save_model_configs(
                 "revision": cfg.revision,
                 "timeout_seconds": cfg.timeout_seconds,
                 "max_tokens": cfg.max_tokens,
+                "fallback_config_id": cfg.fallback_config_id,
             }
             if prev is None:
                 connection.execute(
                     text(
                         "INSERT INTO demo_model_config (id, company_id, name, provider, base_url, model, "
                         "encrypted_api_key, api_key_masked, is_local, allow_sensitive, stream_enabled, "
-                        "json_mode_enabled, revision, timeout_seconds, max_tokens) "
+                        "json_mode_enabled, revision, timeout_seconds, max_tokens, fallback_config_id) "
                         "VALUES (:id, :company_id, :name, :provider, :base_url, :model, :encrypted_api_key, "
                         ":api_key_masked, :is_local, :allow_sensitive, :stream_enabled, :json_mode_enabled, "
-                        ":revision, :timeout_seconds, :max_tokens)"
+                        ":revision, :timeout_seconds, :max_tokens, :fallback_config_id)"
                     ),
                     payload,
                 )
@@ -56,7 +57,8 @@ def save_model_configs(
                         "model = :model, encrypted_api_key = :encrypted_api_key, api_key_masked = :api_key_masked, "
                         "is_local = :is_local, allow_sensitive = :allow_sensitive, stream_enabled = :stream_enabled, "
                         "json_mode_enabled = :json_mode_enabled, revision = :revision, "
-                        "timeout_seconds = :timeout_seconds, max_tokens = :max_tokens WHERE id = :id"
+                        "timeout_seconds = :timeout_seconds, max_tokens = :max_tokens, "
+                        "fallback_config_id = :fallback_config_id WHERE id = :id"
                     ),
                     payload,
                 )
@@ -71,7 +73,8 @@ def save_model_configs(
                     {"project_id": pid, "model_config_id": mid},
                 )
     except Exception:
-        pass
+        # 不能吞掉：吞掉会让配置看似保存成功、重启后却丢失（事务整体回滚并报错）
+        raise
 
 
 # 兼容既有私有函数引用

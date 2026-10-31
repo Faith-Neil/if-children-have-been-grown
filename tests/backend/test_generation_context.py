@@ -389,7 +389,18 @@ def test_real_parsed_fact_suffix_blocks_check_and_two_volume_export(context_clie
     fact = next(item for item in state["facts"] if item["key"] == "服务期限")
     assert fact["value"] == "12个月" and fact["unit"] == ""
     chapter = next(item for item in state["chapters"] if item["volume"] == "technical")
-    flow.commit(chapter["id"], "服务期限{{fact:" + fact["id"] + "}}" + suffix + "。")
+    text = "服务期限{{fact:" + fact["id"] + "}}" + suffix + "。"
+    # 提交时后台先拒绝单位不符的新变量（APP-M2-T164）
+    lease = client.post(f"/api/chapters/{chapter['id']}/lock", headers=flow.headers, json={}).json()["lease_token"]
+    current = client.get(f"/api/chapters/{chapter['id']}", headers=flow.headers).json()
+    refused = client.post(f"/api/chapters/{chapter['id']}/versions", headers=flow.headers, json={
+        "lease_token": lease, "base_revision": current["revision"], "content": text,
+        "idempotency_key": "unit-suffix-" + uuid4().hex, "input_fingerprint": flow.state()["input_fingerprint"]})
+    assert refused.status_code == 409 and refused.json()["code"] == code, refused.text
+    client.post(f"/api/chapters/{chapter['id']}/lock/release", headers=flow.headers, json={"lease_token": lease})
+    # 检查与导出仍是第二道关：正文里已有的这种变量照样拦截
+    client.app.state.service.repository.transaction(
+        lambda st: setattr(st.chapters[chapter["id"]], "content", text))
     check = flow.write("/checks", {"volume": "all"})["check"]
     assert check["passed"] is False
     assert any(issue["code"] == code and issue["chapter_id"] == chapter["id"] for issue in check["issues"])

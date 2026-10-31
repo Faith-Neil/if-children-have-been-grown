@@ -155,9 +155,19 @@ export function calculateDirtyState(
 /**
  * 判定错误是否为 OCC 409 版本冲突
  */
+/** 状态码同为 409、但不是版本冲突的业务拒绝：不能走合并流程，按原提示处理。 */
+// 这些 409 是内容或来源被拒，不是别人先提交了新版本，不能进入合并流程（T163 锁定段落、T164 失效变量）
+const NOT_A_REVISION_CONFLICT = new Set([
+  'PARAGRAPH_LOCKED', 'PARAGRAPH_ALREADY_LOCKED', 'SYSTEM_CHAPTER_READONLY', 'VOLUME_FINALIZED',
+  'INPUT_FINGERPRINT_REQUIRED', 'INPUT_FINGERPRINT_STALE', 'FACT_SOURCE_CHANGE_REQUIRED', 'FACT_LITERAL_REPLACEMENT',
+  'FACT_VARIABLE_INVALID', 'FACT_VARIABLE_UNIT_MISMATCH', 'FACT_VARIABLE_UNIT_DUPLICATED', 'FACT_VARIABLE_LOST',
+  'SLA_VARIABLE_UNKNOWN', 'SLA_VARIABLE_UNCONFIRMED', 'SLA_VARIABLE_UNIT_MISMATCH', 'SLA_VARIABLE_UNIT_UNRESOLVED', 'SLA_VARIABLE_REMOVED',
+]);
+
 export function isRevisionConflict(error: unknown): boolean {
   if (!error) return false;
   if (error instanceof ApiError) {
+    if (NOT_A_REVISION_CONFLICT.has(error.code)) return false;
     if (error.status === 409) return true;
     if (error.code === 'REVISION_CONFLICT' || error.code === 'CHAPTER_CONFLICT') return true;
   }

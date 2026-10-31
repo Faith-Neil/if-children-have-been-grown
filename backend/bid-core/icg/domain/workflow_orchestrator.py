@@ -1,6 +1,5 @@
 # 为什么有这个文件：由原巨石 workflow.py 解耦收敛形成的高内聚工作流门面（Façade）（BE-TECH-DEBT-03）。
-# 它解决什么问题：
-# 1. 组合大纲编排（outline）、生成编排（generation）、合规检查编排（check）、导出编排（export/volume_finalize）、招标文件解析（tender）与企业资料库（library）领域子编排服务；
+# 它解决什么问题：1. 组合大纲编排（outline）、生成编排（generation）、合规检查编排（check）、导出编排（export/volume_finalize）、招标文件解析（tender）与企业资料库（library）领域子编排服务；
 # 2. 统一管理工作流事务（_write）、前置校验（_preflight）、乐观锁与幂等机制，代码行数严格控制在 350 行以内；
 # 3. 对外暴露 100% 行为与签名兼容的工作流门面。
 
@@ -9,13 +8,14 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Any, Callable
 
-from icg.domain.domain import Chapter, DemoService, DemoState, DomainError, Principal, iso_time, new_id
+from icg.domain.domain import Chapter, DemoService, DemoState, DomainError, Principal, iso_time, lock_view, new_id
+from icg.domain.matrix import MatrixMixin
 from icg.domain.ports import ParserProvider
 from icg.domain.input_snapshot import project_input_fingerprint
 from icg.domain.sla import SlaService, public_sla
-from icg.domain.generation_context import build_generation_context, chapter_plan, plan_is_current, project_facts, public_plan
+from icg.domain.generation_context import build_generation_context, chapter_plan, chapter_rows, plan_is_current, project_facts, public_plan
 from icg.domain.project_access import (
-    VOLUMES, writable, lead, volume_owner, require_lead, require_chapter,
+    VOLUMES, project_volume_mode, writable, lead, volume_owner, require_lead, require_chapter,
     chapter_structure, chapter_edit, chapter_permissions, project_permissions,
     public_team, normalize_role,
 )
@@ -31,6 +31,10 @@ from icg.domain.export_service import ExportServiceMixin
 from icg.domain.volume_finalize import VolumeFinalizeMixin
 from icg.domain.tender_orchestrator import TenderOrchestratorMixin, TenderOrchestrator
 from icg.domain.library_orchestrator import LibraryOrchestratorMixin, LibraryOrchestrator
+from icg.domain.human_queue import HumanQueueMixin
+from icg.domain.volume_review import VolumeReviewMixin
+from icg.domain.post_process import OmissionMixin, suspected
+from icg.domain.project_lifecycle import current_status, ensure_not_cancelled
 
 SAMPLE_TENDER: bytes = b""
 
@@ -54,17 +58,19 @@ def _blank_workflow() -> dict:
 
 
 class WorkflowService(
-    OutlineOrchestratorMixin,
+    MatrixMixin, OutlineOrchestratorMixin,
     GenerationOrchestratorMixin,
     ExportServiceMixin,
     CheckOrchestratorMixin,
     VolumeFinalizeMixin,
     TenderOrchestratorMixin,
     LibraryOrchestratorMixin,
+    HumanQueueMixin,
+    VolumeReviewMixin,
+    OmissionMixin,
 ):
     """投标工作流统一领域门面服务。"""
 
-    MAX_UPLOAD = 5 * 1024 * 1024
     IMPLEMENTED_RULES = [
         "parse-confirmation", "fact-conflicts", "matrix-completeness",
         "evidence-company-and-review", "evidence-validity", "committed-content",
@@ -72,11 +78,11 @@ class WorkflowService(
         "sla-values-and-capability-subset", "sla-variables-and-labelled-numbers-subset",
         "R01", "R02", "R03", "R04", "R05", "R06", "R07", "R08", "R09", "R10",
         "R11", "R12", "R13", "R14", "R15", "R16", "R17", "R18", "R19", "R20", "R23", "R24",
-        "R25", "R26", "R27", "R28", "R31", "R32", "R34", "R35", "R37",
+        "R25", "R26", "R27", "R28", "R29", "R30", "R31", "R32", "R33", "R34", "R35", "R36", "R37", "R38", "R39", "R40", "R41", "R42", "R43", "R44",
     ]
     UNIMPLEMENTED_RULES = [
         "参考合规规则尚未逐条完成（按一期完整/一期简化/二期分组）", "语义事实与承诺核对",
-        "公司全文查重", "结构化敏感变量", "交叉复核和完整分册定稿",
+        "结构化敏感变量",
     ]
 
     def __init__(self, demo: DemoService, parser: ParserProvider):
@@ -157,6 +163,7 @@ class WorkflowService(
             replay = lookup(state, project_id, principal.user.id, key, request_fingerprint, self.demo._now())
             if replay is not None:
                 return replay
+            ensure_not_cancelled(state, project_id)  # 项目取消后只读（PRD 5.1.3）
             self._version(project.revision, expected)
             workflow = self._workflow(state, project_id, create=True)
             result = operation(state, project, workflow)
@@ -164,7 +171,7 @@ class WorkflowService(
             self._audit(state, principal, project_id, action, audit_details)
             result = {"revision": project.revision, **result}
             if "project" in result:
-                result["project"] = asdict(project)
+                result["project"] = {**asdict(project), "volume_mode": project_volume_mode(state, project_id)}
             remember(state, project_id, principal.user.id, key, request_fingerprint, result, self.demo._now())
             return result
 
@@ -173,7 +180,7 @@ class WorkflowService(
     def _authorize(self, state, principal, project_id, action, payload):
         identity = principal.user.id
         name, _, resource_id = action.partition(":")
-        if name in ("volume.finalize", "volume.unlock"):
+        if name in ("volume.finalize", "volume.unlock", "check.release"):
             project = state.projects.get(project_id)
             if project and project.company_id != principal.user.company_id:
                 raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
@@ -181,11 +188,13 @@ class WorkflowService(
             if norm_role == "company_admin":
                 return
             if not lead(state, project_id, identity):
-                raise DomainError(403, "FORBIDDEN", "分册定稿仅限当前项目负责人或公司管理员办理。")
+                raise DomainError(403, "FORBIDDEN", "检查警告放行仅限当前项目负责人或公司管理员办理。"
+                                  if name == "check.release" else "分册定稿仅限当前项目负责人或公司管理员办理。")
             return
         if not writable(state, project_id, identity):
             raise DomainError(403, "PROJECT_WRITER_REQUIRED", "当前公司角色和项目角色只允许查看，不能办理此操作。")
-        if name in ("team.update", "project.update", "file.upload", "file.delete", "parse.run", "parse.confirm", "conflict.resolve") or name.startswith("sla."):
+        if name in ("team.update", "staff.update", "export_settings.update", "project.update", "parse.run", "parse.confirm",
+                    "conflict.resolve") or name.startswith(("sla.", "file.", "parse.")):
             require_lead(state, principal, project_id)
         elif name in ("chapter.plan.save", "chapter.plan.confirm", "chapter.assignment"):
             chapter = self.demo._chapter(state, principal, resource_id)
@@ -196,6 +205,11 @@ class WorkflowService(
                     raise DomainError(403, "CHAPTER_STRUCTURE_REQUIRED", "只有项目负责人或本册负责人可以分配本节。")
             else:
                 require_chapter(state, principal, chapter)
+        elif name in ("chapter.loop.recheck", "chapter.system"):
+            chapter = self.demo._chapter(state, principal, resource_id)
+            if chapter.project_id != project_id:
+                raise DomainError(404, "NOT_FOUND", "章节不属于当前项目。")
+            require_chapter(state, principal, chapter)
         elif name == "chapter.generate":
             chapters = [c for c in state.chapters.values() if c.project_id == project_id]
             selected = payload.get("chapter_ids")
@@ -240,12 +254,12 @@ class WorkflowService(
         if candidate:
             candidate = {**candidate, "status": "valid" if candidate.get("input_fingerprint") == self._fingerprint(state, chapter.project_id) else "stale"}
         return {**self.demo._summary(chapter), "content": chapter.content,
-                "lock": {"owner_id": chapter.lock.owner_id, "expires_at": iso_time(chapter.lock.expires_at)} if active else None,
+                "lock": lock_view(state, chapter.lock) if active else None,
                 "candidate": candidate, "writing_input": {**chapter_plan(workflow, chapter.id), "is_current": plan_is_current(state, chapter.project_id, chapter.id)},
                 "assignee_id": chapter.assignee_id,
                 "assignee_name": state.accounts[chapter.assignee_id].name if chapter.assignee_id in state.accounts else None,
                 "permissions": chapter_permissions(state, chapter, user_id) if user_id else {},
-                "requirement_ids": [r["id"] for r in workflow["requirements"].values() if r["chapter_id"] == chapter.id]}
+                "requirement_ids": [r["id"] for r in chapter_rows(workflow, chapter.id, chapter.volume)]}
 
     def _fingerprint(self, state: DemoState, project_id: str) -> str:
         return project_input_fingerprint(state, project_id)
@@ -257,12 +271,14 @@ class WorkflowService(
         return result
 
     def _public_export(self, state: DemoState, project_id: str, record: dict) -> dict:
-        return {k: v for k, v in record.items() if k != "documents"} | {
-            "status": "valid" if record["fingerprint"] == self._fingerprint(state, project_id) else "stale"}
+        return {k: v for k, v in record.items() if k != "documents"} | {"volumes": [{k: v for k, v in e.items() if k != "blob"} for e in record["volumes"]],
+            "status": "failed" if record.get("export_status") == "failed" else "valid" if record["fingerprint"] == self._fingerprint(state, project_id) else "stale"}
 
     @staticmethod
     def _public_file(record: dict) -> dict:
-        return {key: value for key, value in record.items() if key not in ("content", "pages")}
+        from icg.domain.tender_files import public_fields
+        return {**{key: value for key, value in record.items() if key not in ("content", "pages", "blob", "remote_parse", "regions")},
+                **public_fields(record)}
 
     def _job(self, state: DemoState, project_id: str, kind: str, message: str, error: dict | None = None) -> dict:
         now = iso_time(self.demo._now())
@@ -280,19 +296,19 @@ class WorkflowService(
         project = self.demo._project(state, principal, project_id)
         workflow = self._workflow(state, project_id)
         chapters = [self._chapter_summary(state, workflow, c, principal.user.id) for c in self._ordered_chapters(state, project_id, workflow)]
-        stage = ("exported" if any(e["fingerprint"] == self._fingerprint(state, project_id) for e in workflow["exports"].values()) else "writing" if plan_is_current(state, project_id) else
-                 "matrix" if workflow["parse_confirmed"] else "review" if workflow["requirements"] else "upload")
+        stage = self.workspace_stage(state, project_id, workflow)
         return {
             "revision": project.revision, "input_fingerprint": self._fingerprint(state, project_id),
-            "project": asdict(project), "stage": stage,
+            "project": {**asdict(project), "volume_mode": project_volume_mode(state, project_id)}, "stage": stage,
+            "project_status": current_status(workflow, stage),
             "files": [self._public_file(f) for f in workflow["files"].values()],
             "requirements": [{**row, "permissions": {
                 "edit": lead(state, project_id, principal.user.id),
                 "route": lead(state, project_id, principal.user.id),
                 "response": lead(state, project_id, principal.user.id) or volume_owner(state, project_id, row["volume"], principal.user.id)
                 or bool(row["chapter_id"] in state.chapters and chapter_edit(state, state.chapters[row["chapter_id"]], principal.user.id)),
-            }} for row in workflow["requirements"].values()],
-            "facts": project_facts(state, project_id),
+            }} for row in workflow["requirements"].values() if not row.get("merged_into")],  # 被并入的由主条目展示
+            "facts": [f for f in project_facts(state, project_id) if not f.get("merged_into")],
             "conflicts": list(workflow["conflicts"].values()),
             "chapters": chapters,
             "checks": [self._public_check(state, project_id, c) for c in workflow["checks"].values()],
@@ -304,24 +320,10 @@ class WorkflowService(
             "team": public_team(state, project_id, principal.user.id),
             "permissions": project_permissions(state, project_id, principal.user.id),
             "sla": public_sla(state, project_id),
+            "human_queue_pending": len([i for i in workflow.get("human_queue", {}).get("issues", {}).values()
+                                        if i["status"] in ("pending_fix", "pending_human")]),
+            "omissions_pending": len(suspected(workflow)),
         }
-
-    def patch_project(self, principal: Principal, project_id: str, payload: dict, expected: str | None, key: str | None):
-        def operation(state, project, workflow):
-            partners = payload.pop("project_partners", None)
-            if partners is not None:
-                state.project_partners[project.id] = partners
-            for field, value in payload.items():
-                if value is None:
-                    raise DomainError(422, "INVALID_PROJECT_FIELD", "项目字段不能设为空值，请使用空字符串清空文本。")
-                if field == "name" and not value.strip():
-                    raise DomainError(422, "INVALID_PROJECT_NAME", "项目名称不能为空。")
-                if field == "deadline" and value:
-                    self._date(value)
-                setattr(project, field, value.strip() if isinstance(value, str) else value)
-            return {"project": asdict(project)}
-
-        return self._write(principal, project_id, "project.update", payload, expected, key, operation)
 
     def writing_input(self, principal: Principal, project_id: str, chapter_id: str) -> dict:
         state = self.repository.read()

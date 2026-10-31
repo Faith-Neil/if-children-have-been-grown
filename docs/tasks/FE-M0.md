@@ -486,3 +486,37 @@
 - [x] 保留令牌直登扩展槽与密码可见性切换。
 - [x] 前端测试 426 项全绿，TypeScript 静态检查 0 error，构建 1.23s 成功。
 
+
+<a id="fe-e2e-library-drift"></a>
+
+## FE-E2E-LIBRARY-DRIFT · 资料库类别回归与证据抽屉 e2e 对齐
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 3小时 |
+| 关联 Issue | [ISSUE-042](../../issues/ISSUE-042.md) |
+| 依赖 | — |
+| 来源 | PRD v1.8 §5.3.1（历史标书只能参考）、§5.5；offline-check e2e 必需作业 |
+| 完成时交付 | `docs/delivery/FE-E2E-LIBRARY-DRIFT.md` |
+| 代码解释 | `docs/code/FE-E2E-LIBRARY-DRIFT.md` |
+
+范围：资料库表单恢复“历史标书（参考）”“方案片段”类别；`e2e/evidence-drawer.spec.ts` 按现行页面文案更新且不放宽断言；e2e 作业全绿。
+
+<a id="fe-test-orphans"></a>
+
+## FE-TEST-ORPHANS · 前端根目录测试并入执行
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 3小时 |
+| 关联 Issue | [ISSUE-044](../../issues/ISSUE-044.md) |
+| 依赖 | — |
+| 来源 | 2026-10-28 Wave 12 发现 |
+| 完成时交付 | `docs/delivery/FE-TEST-ORPHANS.md` |
+| 代码解释 | `docs/code/FE-TEST-ORPHANS.md` |
+
+范围：`frontend/web/tests/*.test.mjs` 28 个文件纳入 `pnpm test`，8 项失败逐个判定修复。
+
+结论（2026-10-28）：8 项失败全部是断言过期，不是回归——测试夹具仍用已删除的演示会话（`synthetic-demo` / `legacy-demo-compat`），被生产会话核验正确拒绝。夹具改为 `authenticated` / `rbac-8roles`，“未知角色被拒”用例改用不存在的角色；`package.json` 的 `test` 同时执行 `tests/*.test.mjs` 与 `tests/**/*.test.mjs`，前端 469 项全部通过。

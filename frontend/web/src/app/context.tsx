@@ -18,4 +18,4 @@ export const companyName = (value: string) => value === 'alpha' ? '华东数智�
 export const formatTime = (value?: string | null) => value ? new Date(value).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }) : '未设置';
 export const categoryName = (value: string) => ({ mandatory: '必需条款', qualification: '资格要求', technical: '技术服务', commercial: '商务要求', business: '商务要求', sla: 'SLA 要求', star: '星号条款', disqualification: '废标条款', score: '评分要点', other: '其他要求', scoring: '评分要点' }[value] ?? value);
 
-export const paginationName = (value: string) => ({ explicit_form_feed: '按文本换页符定位', explicit_docx_breaks_only: '按Word明确分页符定位', pdf_page_index: '按PDF实际页码定位' }[value] ?? '页码尚未确定');
+export const paginationName = (value: string) => ({ explicit_form_feed: '按文本换页符定位', explicit_docx_breaks_only: '按Word明确分页符定位', pdf_page_index: '按PDF实际页码定位', ragflow_deepdoc_positions: '按 RAGFlow 版面识别还原页码（扫描件/表格，请对照原件）' }[value] ?? '页码尚未确定');

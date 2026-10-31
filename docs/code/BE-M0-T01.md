@@ -8,8 +8,8 @@
 
 ## 一次操作怎样到达后台
 
-1. [页面](../../backend/bid-core/icg_demo/static/index.html)显示账号、技术/商务章节、正文与操作结果。
-2. [页面脚本](../../backend/bid-core/icg_demo/static/app.js)把操作送到后台；登录凭据只留在当前页面内存，切账号或章节清掉旧编辑凭证、建议和检查状态。
+1. `页面`（2026-10-28 随演示入口移除）显示账号、技术/商务章节、正文与操作结果。
+2. `页面脚本`（2026-10-28 随演示入口移除）把操作送到后台；登录凭据只留在当前页面内存，切账号或章节清掉旧编辑凭证、建议和检查状态。
 3. [HTTP入口](../../backend/bid-core/icg_demo/main.py)核对请求字段与账号，统一错误与请求编号。
 4. [业务核心](../../backend/bid-core/icg_demo/domain.py)按公司、角色、当前编辑凭证和正文版本决定是否允许操作。
 5. [内存仓库](../../backend/bid-core/icg_demo/adapters.py)在同一事务中保存正文、版本、操作记录与重复请求结果。事务是“一组变动要么一起成功、要么一起撤回”。
@@ -44,7 +44,7 @@
 
 [后端测试](../../tests/backend/test_demo.py)覆盖权限、两会话竞争、旧编辑凭证、旧版本、乱序草稿、重复提交、接口替换和故障回滚。[HTTP验收](../../backend/bid-core/smoke_demo.py)连接真实监听端口，[验证记录](../testing/2026-10-10-backend-demo.md)保存浏览器和文件证据。
 
-[页面事件回归](../../tests/backend/demo-page.test.cjs)直接执行实际`app.js`，验证旧草稿不能无提示变为新版本、确认期间版本变化会被拒、恢复失败不替换编辑框，以及另一次登录的锁不能冒用。
+`页面事件回归`（2026-10-28 随演示入口移除）直接执行实际`app.js`，验证旧草稿不能无提示变为新版本、确认期间版本变化会被拒、恢复失败不替换编辑框，以及另一次登录的锁不能冒用。
 
 [项目记录检查器](../../scripts/check-project-governance.cjs)继续检查实际文档、任务和Issue，并跳过`.venv`、`.pytest_cache`和`__pycache__`，避免把Python依赖的文档当作项目文件。相应[回归测试](../../tests/governance/check-project-governance.test.cjs)验证这些目录中的失效链接不会污染项目检查，活动项目链接仍受检查。
 

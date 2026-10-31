@@ -20,7 +20,7 @@
 | [`backend/bid-core/README.md`](../../backend/bid-core/README.md) | 接口说明同步 | 在接口说明表格中同步更新 `/api/demo` 端点的 Sunset 2026-11-15 废弃窗口期说明 |
 | [`frontend/web/src/shared/api.ts`](../../frontend/web/src/shared/api.ts) | 错误拦截器优先级 | 调整 `apiFailure` 解构顺序，严格以顶层规范错误体 `{code, message, details, traceId}` 为第一优先级，仅当不存在时回退至旧 `nested` / `request_id` |
 | [`frontend/web/src/status/status-views.ts`](../../frontend/web/src/status/status-views.ts) | 通用状态视图错误解构 | 调整 `extractErrorInfo`，确保展示层组件解构错误信息时与请求层保持相同的绝对规范优先序 |
-| [`tests/backend/test_deprecated_demo_api.py`](../../tests/backend/test_deprecated_demo_api.py) | 专属联调测试 | 新增 5 项测试：验证 OpenAPI 契约 deprecated 元数据、成功/失败响应 Sunset 与 Deprecation 头下发、RFC 8594 日期合规性、以及 /api/v1 隔离性 |
+| ``tests/backend/test_deprecated_demo_api.py``（2026-10-28 随演示入口移除） | 专属联调测试 | 新增 5 项测试：验证 OpenAPI 契约 deprecated 元数据、成功/失败响应 Sunset 与 Deprecation 头下发、RFC 8594 日期合规性、以及 /api/v1 隔离性 |
 | [`frontend/web/tests/unit/error-body-convergence.test.mjs`](../../frontend/web/tests/unit/error-body-convergence.test.mjs) | 专属前端单测 | 新增 5 项测试：纯规范体解构、双错误体共存时规范绝对优先、纯旧版兼容兜底、`extractErrorInfo` 优先级校验 |
 
 ---

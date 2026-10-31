@@ -538,7 +538,7 @@ class EditorAIContextService:
                     insert_disabled_reason = "缺少已核对依据溯源，不可直接替换正文"
 
         # 调用模型生成解答
-        provider = self.demo.resolve_model_provider(state, project.id)
+        provider = self.demo.resolve_model_provider(state, project.id, "assistant_qa")
         try:
             if provider is not None and hasattr(provider, "suggest"):
                 raw_reply = provider.suggest(prompt_ctx["system_prompt"], prompt_ctx["user_content"])
@@ -734,6 +734,10 @@ class EditorAIContextService:
                     raise DomainError(409, "REVISION_CONFLICT", f"未在章节正文中找到待替换的原文片段：{orig_clean[:30]}...")
 
             new_content = delimiter.join(raw_blocks)
+            from .system_chapters import refuse_manual_edit
+            refuse_manual_edit(state, chapter)
+            from .paragraph_locks import refuse_locked_change
+            refuse_locked_change(state, chapter, new_content)
             chapter.content = new_content
             chapter.revision += 1
             state.projects[project_id].revision += 1

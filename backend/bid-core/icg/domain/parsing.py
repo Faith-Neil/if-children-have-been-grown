@@ -17,6 +17,26 @@ class ParsedDocument:
     pages: list[str]
     pagination: str
     warnings: list[str] = field(default_factory=list)
+    # 扫描件（RAGFlow DeepDOC）逐页文字区域及其位置框，用于原件 PDF 上高亮；文字层 PDF 由浏览器 PDF.js 自己定位
+    regions: list[list[dict]] = field(default_factory=list)
+    # 分批解析时每批的页码范围 [[起, 止], …]（从 1 起、首尾相接），页面显示“分 N 批”；不分批时为空
+    batches: list[list[int]] = field(default_factory=list)
+
+
+BATCH_PAGES = 200  # 与云端解析服务单次页数上限一致（PRD §5.2.1 规则 1）
+
+
+def batch_ranges(total: int, size: int = BATCH_PAGES) -> list[list[int]]:
+    """把 1..total 页切成首尾相接的若干批：[[1, 200], [201, 400], …]。"""
+    return [[start + 1, min(total, start + size)] for start in range(0, total, size)]
+
+
+def max_pdf_pages() -> int:
+    import os
+    try:
+        return max(1, int(os.environ.get("ICG_PDF_MAX_PAGES", "2000")))
+    except ValueError:
+        return 2000
 
 
 class LocalTextParser:
@@ -93,9 +113,14 @@ class LocalTextParser:
             reader = PdfReader(BytesIO(content))
             if reader.is_encrypted:
                 raise DomainError(422, "PDF_ENCRYPTED", "加密 PDF 请先提供可读取版本。")
-            if len(reader.pages) > 500:
-                raise DomainError(413, "PDF_PAGE_LIMIT", "PDF 页数超过本地演示的 500 页限制。")
-            pages = [page.extract_text() or "" for page in reader.pages]
+            total = len(reader.pages)
+            if total > max_pdf_pages():
+                raise DomainError(413, "PDF_PAGE_LIMIT", f"PDF 共 {total} 页，超过本地解析 {max_pdf_pages()} 页的上限，请拆分后上传。")
+            # 超过 200 页按页码范围分批提取，再按原页码顺序合并，页码连续（PRD §5.2.1 规则 1、验收 ①）
+            ranges = batch_ranges(total) if total > BATCH_PAGES else []
+            pages = []
+            for first, last in ranges or [[1, total]]:
+                pages.extend(reader.pages[index].extract_text() or "" for index in range(first - 1, last))
         except DomainError:
             raise
         except Exception as error:
@@ -107,4 +132,5 @@ class LocalTextParser:
         blank = [str(i + 1) for i, page in enumerate(pages) if not page.strip()]
         if blank:
             raise DomainError(422, "OCR_REQUIRED", "PDF 存在无文字页面，不能把部分提取冒充完整解析。", {"pages": blank})
-        return self._nonempty(ParsedDocument(pages, "pdf_page_index"))
+        warnings = [f"共 {len(pages)} 页，按每批 {BATCH_PAGES} 页分 {len(ranges)} 批提取后合并，页码与原件一致。"] if ranges else []
+        return self._nonempty(ParsedDocument(pages, "pdf_page_index", warnings, batches=ranges))

@@ -104,10 +104,9 @@ export function isVolumeFinalized(
  * 判断是否所有分册（技术与商务两册）均已定稿
  */
 export function areAllVolumesFinalized(volumes?: VolumeStatus[] | null): boolean {
+  // 后台只返回本项目实际编写的分册：两册项目两条，只写技术标一条
   if (!volumes || !Array.isArray(volumes) || volumes.length === 0) return false;
-  const tech = volumes.find(v => v.volume_id === 'technical');
-  const bus = volumes.find(v => v.volume_id === 'business');
-  return Boolean(tech?.is_finalized && bus?.is_finalized);
+  return volumes.every(v => Boolean(v.is_finalized));
 }
 
 export interface VolumeFinalizeMeta {

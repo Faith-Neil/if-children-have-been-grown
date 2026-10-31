@@ -18,14 +18,13 @@ def request(client, method, url, *, headers=None, payload=None, expected=200):
 
 
 def authenticate(client, account):
-    result = request(client, "POST", "/api/demo/login", payload={"account_id": account})
+    result = request(client, "POST", "/api/v1/auth/login", payload={"username": account, "password": "X_2026"})
     return {"Authorization": "Bearer " + result.json()["access_token"]}
 
 
 def run(base_url):
     with httpx.Client(base_url=base_url, timeout=10, trust_env=False) as client:
         request(client, "GET", "/api/projects", expected=401)
-        accounts = request(client, "GET", "/api/demo/accounts").json()["accounts"]
         editor = authenticate(client, "alpha-editor")
         manager = authenticate(client, "alpha-manager")
         viewer = authenticate(client, "alpha-viewer")
@@ -99,7 +98,7 @@ def run(base_url):
         request(client, "GET", exported["download_url"], headers=manager, expected=409)
         request(client, "POST", chapter_url + "/lock/release", headers=manager,
                 payload={"lease_token": manager_lease})
-        return {"http_smoke": "passed", "demo_accounts": len(accounts),
+        return {"http_smoke": "passed",
                 "docx_bytes": len(output.content), "real_model_called": False}
 
 

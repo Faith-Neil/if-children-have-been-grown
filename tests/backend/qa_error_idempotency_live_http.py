@@ -96,7 +96,7 @@ def main():
         c = httpx.Client(base_url=base, timeout=20)
 
         def login(acc):
-            r = c.post("/api/demo/login", json={"account_id": acc}); r.raise_for_status()
+            r = c.post("/api/v1/auth/login", json={"username": acc, "password": "X_2026"}); r.raise_for_status()
             return {"Authorization": "Bearer " + r.json()["access_token"]}
 
         # ---- spec 与代码状态表一致

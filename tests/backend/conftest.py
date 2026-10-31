@@ -7,6 +7,11 @@ import sys
 # 保证本机测试夹具与子进程不受 Windows 系统代理干扰
 os.environ.setdefault("NO_PROXY", "*")
 os.environ.setdefault("no_proxy", "*")
+# 本机环境里配了真实 RAGFlow（ICG_RAGFLOW_BASE_URL / API_KEY）时，普通用例不能写到真实服务上；
+# 只有显式开启 ICG_RUN_REAL_RAGFLOW_TESTS=1 才保留这些变量。
+if os.environ.get("ICG_RUN_REAL_RAGFLOW_TESTS") != "1":
+    for _name in ("ICG_RAGFLOW_BASE_URL", "ICG_RAGFLOW_API_KEY", "ICG_RAGFLOW_API_KEY_ENV"):
+        os.environ.pop(_name, None)
 
 import pytest
 

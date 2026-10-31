@@ -3,6 +3,7 @@
 
 import base64
 from io import BytesIO
+import hashlib
 from uuid import uuid4
 from xml.etree import ElementTree
 from zipfile import ZipFile
@@ -28,7 +29,7 @@ def client():
 
 
 def login(client, account="alpha-manager"):
-    result = client.post("/api/demo/login", json={"account_id": account})
+    result = client.post("/api/v1/auth/login", json={"username": account, "password": "X_2026"})
     assert result.status_code == 200, result.text
     return {"Authorization": "Bearer " + result.json()["access_token"]}
 
@@ -67,7 +68,9 @@ class ProjectFlow:
         return self.write("/files", {"filename": filename, "content_base64": base64.b64encode(content).decode()})["file"]
 
     def reviewed(self, tender=TENDER):
-        self.write("", {"tender_number": "SYNTH-001", "deadline": "2026-12-31T17:00:00+08:00"}, "PATCH")
+        # 不同公司的用例会用同一份合成招标文件（同一招标编号）；R19 要求负责人写明无关联关系（APP-M2-T096）
+        self.write("", {"tender_number": "SYNTH-001", "deadline": "2026-12-31T17:00:00+08:00",
+                        "related_bid_reason": "合成测试：两家公司无控股、管理关系"}, "PATCH")
         self.upload(tender.encode())
         result = self.write("/parse", {})
         assert result["job"]["status"] == "completed"
@@ -130,6 +133,15 @@ class ProjectFlow:
         released = self.client.post(f"/api/chapters/{chapter_id}/lock/release", headers=self.headers, json={"lease_token": lease})
         assert released.status_code == 200
 
+    def cross_reviewed(self, volume, reviewer="alpha-editor", assigner="alpha-manager"):
+        """定稿前交叉复核（PRD v1.8 §2.3）：负责人指定非本册编写人，复核人确认通过。"""
+        for account, path, data in ((assigner, f"/volumes/{volume}/cross-review", {"reviewer_id": reviewer}),
+                                    (reviewer, f"/volumes/{volume}/cross-review/confirm", {"decision": "approved", "note": "已核对"})):
+            headers = {**login(self.client, account), "If-Match": str(self.state()["revision"]),
+                       "Idempotency-Key": str(uuid4())}
+            self.write(path, data, headers=headers)
+        return self
+
     def checked_export(self):
         check = self.write("/checks", {"volume": "all"})["check"]
         assert check["passed"] is True, check
@@ -183,6 +195,8 @@ def test_review_gate_and_conflicts_require_explicit_resolution(client):
     assert flow.write("/parse/confirm", {})["parse_confirmed"] is True
     facts = [f for f in flow.state()["facts"] if f["key"] == "服务期限"]
     assert {f["status"] for f in facts} == {"confirmed", "rejected"}
+    decided = flow.state()["conflicts"][0]
+    assert decided["status"] == "resolved" and decided["decided_by"] == "alpha-manager" and decided["reason"]
 
 
 def test_unknown_reference_requires_manual_record(client):
@@ -248,9 +262,12 @@ def test_input_change_invalidates_check_and_export_download(client, change):
         flow.upload(b"new original", "补遗.txt")
     assert next(c for c in flow.state()["checks"] if c["id"] == check["id"])["status"] == "stale"
     assert flow.write("/exports", {"check_id": check["id"], "kind": "internal"}, expected=409)["code"] == "CHECK_STALE"
+    # PRD §5.9.1 规则 13（APP-M2-T202）：旧文件标“已过期”但保留下载，下载到的是当时生成的快照
+    assert next(e for e in flow.state()["exports"] if e["id"] == exported["id"])["status"] == "stale"
     for volume in exported["volumes"]:
         result = client.get(volume["download_url"], headers=flow.headers)
-        assert result.status_code == 409 and result.json()["code"] == "EXPORT_STALE"
+        assert result.status_code == 200 and result.headers["X-ICG-Export-Status"] == "stale"
+        assert hashlib.sha256(result.content).hexdigest() == volume["docx_sha256"]
 
 
 def test_unsubmitted_draft_and_generated_candidate_never_replace_committed_text(client):
@@ -371,5 +388,6 @@ def test_rejecting_selected_conflict_fact_reopens_conflict(client):
     flow.write("/conflicts/" + conflict["id"], {"selected_fact_id": selected, "reason": "核对合成原件后采用此值。"}, "PATCH")
     flow.write("/parse/confirm", {})
     flow.write("/facts/" + selected, {"status": "rejected", "reason": "原选值已不适用。"}, "PATCH")
-    assert flow.state()["conflicts"][0]["status"] == "pending"
+    reopened = flow.state()["conflicts"][0]
+    assert reopened["status"] == "pending" and reopened["selected_fact_id"] is None
     assert flow.write("/parse/confirm", {}, expected=409)["code"] == "CONFLICTS_PENDING"

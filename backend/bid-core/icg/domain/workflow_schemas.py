@@ -6,6 +6,7 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .schemas import ChapterSummaryResponse, DemoCompanyRole, RequestBody, ResponseBody, LockSummaryResponse, AccountResponse
+from .project_settings_schemas import ProjectBasicInfo, ProjectStatusInfo
 from .sla_schemas import ProjectSla
 
 Volume = Literal["technical", "business"]
@@ -16,6 +17,8 @@ LibraryType = Literal["qualification", "personnel", "performance", "sla", "snipp
 class ProjectPartnerInput(RequestBody):
     partner_entity_id: str = Field(min_length=1, max_length=100)
     agreement_attachment_id: str | None = Field(default=None, max_length=100)
+    relation_type: Literal["consortium", "subcontract"] | None = Field(default=None, description="联合体成员 / 分包方")
+    work_share: str | None = Field(default=None, max_length=500, description="分工说明")
 
 
 class ProjectPatch(RequestBody):
@@ -24,11 +27,68 @@ class ProjectPatch(RequestBody):
     deadline: str | None = Field(default=None, max_length=50)
     sensitive: bool | None = None
     project_partners: list[ProjectPartnerInput] | None = None
+    basic_info: ProjectBasicInfo | None = Field(default=None, description="解析后带出、可人工修改的基本信息；修改处记“已人工修改”")
+    volume_mode: Literal["both", "technical_only"] | None = Field(
+        default=None, description="切换为只写技术标须商务分册尚无正文且未定稿；切回两册时补建商务分册")
+    related_bid_reason: str | None = Field(
+        default=None, max_length=2000,
+        description="R19：集团内其他公司已对同一标段立项时，项目负责人确认无控股、管理关系或单位负责人相同的说明（至少 5 个字）；"
+                    "有冲突而未填写时返回 409 RELATED_BID_CONFLICT，details 只含对方公司名称")
+
+
+class RelatedBidAck(RequestBody):
+    reason: str = Field(min_length=5, max_length=2000, description="确认无控股、管理关系或单位负责人相同的说明")
+
+
+class RelatedBidStatus(ResponseBody):
+    match: Literal["exact", "approximate"] | None = Field(description="exact：同招标编号同标段；approximate：编号或标段缺失时近似判断")
+    companies: list[str] = Field(description="对方公司名称；不含对方项目任何内容")
+    message: str
+    statute: str
+    needs_ack: bool
+    acknowledged: dict | None = Field(description="已确认的说明：company_names、match、reason、by_name、at")
+
+
+FileRole = Literal["tender", "clarification", "addendum", "tech_spec", "contract", "attachment"]
+FILE_ROLE_DOC = "文件类型：tender 招标文件、clarification 澄清、addendum 补遗、tech_spec 技术规范书、contract 合同条款、attachment 附件；澄清和补遗按版本链修改更早文件的条款"
 
 
 class FileUpload(RequestBody):
     filename: str = Field(min_length=1, max_length=180)
-    content_base64: str = Field(min_length=1, max_length=7_000_000)
+    content_base64: str = Field(min_length=1, description="base64 原件；大文件请用 /files/raw 直接上传二进制")
+    file_role: FileRole = Field(default="tender", description=FILE_ROLE_DOC)
+
+
+class FileRoleUpdate(RequestBody):
+    file_role: FileRole = Field(description=FILE_ROLE_DOC + "；已解析的文件不能在补遗/澄清与其他类型之间切换")
+
+
+class FileSupersede(RequestBody):
+    replacement_file_id: str = Field(min_length=1, max_length=100, description="替代它的新版文件（同一类型、在其后上传）")
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class ConflictDecision(RequestBody):
+    action: Literal["choose", "not_conflict", "revert", "assign_target", "confirm"] = Field(
+        description="choose 选定一方；not_conflict 不构成冲突；revert 撤销补遗替代（原条目恢复）；"
+                    "assign_target 为未定位的补遗条目指定被替代的原条款；confirm 核对“已按补遗处理”")
+    selected_fact_id: str | None = Field(default=None, max_length=100, description="choose 事实冲突时必填")
+    requirement_id: str | None = Field(default=None, max_length=100, description="choose 条款冲突或 assign_target 时必填")
+    reason: str = Field(default="", max_length=2000, description="除 confirm 外必填")
+
+
+class ItemSplit(RequestBody):
+    item_ids: list[str] | None = Field(default=None, max_length=200, description="要拆出的被并入条目；不填则全部拆开")
+    reason: str = Field(default="", max_length=2000)
+
+
+class RequirementMerge(RequestBody):
+    requirement_ids: list[str] = Field(min_length=1, max_length=50, description="并入本条（主条目）的条目")
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class MergeDismiss(RequestBody):
+    reason: str = Field(min_length=1, max_length=2000)
 
 
 class FileDelete(RequestBody):
@@ -37,6 +97,8 @@ class FileDelete(RequestBody):
 
 class ParseRequest(RequestBody):
     file_ids: list[str] | None = None
+    service: Literal["auto", "local", "ragflow"] = Field(
+        default="auto", description="解析服务：auto 先本地提取文字、取不出时交 RAGFlow；local 只用本地；ragflow 直接用 RAGFlow DeepDOC（换服务重试）")
 
 
 class RequirementPatch(RequestBody):
@@ -50,6 +112,25 @@ class RequirementPatch(RequestBody):
     evidence_ids: list[str] | None = None
     deviation_type: str | None = Field(default=None, max_length=50)
     deviation_reason: str | None = Field(default=None, max_length=2000)
+    response_type: Literal["comply", "exceed", "deviate", "not_applicable"] | None = Field(
+        default=None, description="响应方式：满足=无偏离、优于=正偏离、偏离=负偏离、不适用；星号/废标条款不能偏离或不适用")
+    assignee_id: str | None = Field(default=None, max_length=80, description="本行负责人（须为本项目可编写成员）")
+    shared_chapter_id: str | None = Field(default=None, max_length=80,
+                                          description="跨分册共用行在另一分册对应的章节（只限项目负责人；行须已标跨分册共用）")
+
+
+class MatrixMatchRequest(RequestBody):
+    requirement_ids: list[str] = Field(min_length=1, max_length=50)
+
+
+class MatrixRoutingRow(RequestBody):
+    id: str = Field(min_length=1, max_length=80)
+    volume: Volume | None = None
+    is_cross_volume: bool = False
+
+
+class MatrixRoutingRequest(RequestBody):
+    rows: list[MatrixRoutingRow] = Field(min_length=1, max_length=500)
 
 
 class FactPatch(RequestBody):
@@ -105,7 +186,7 @@ class VolumeOwnerInput(RequestBody):
 
 class TeamUpdate(RequestBody):
     members: list[TeamMemberInput] = Field(min_length=1, max_length=500)
-    volumes: list[VolumeOwnerInput] = Field(min_length=2, max_length=2)
+    volumes: list[VolumeOwnerInput] = Field(min_length=1, max_length=2)
     assembly_owner_id: str | None
     reason: str = Field(default="", max_length=2000)
 
@@ -123,10 +204,51 @@ class ProjectCheckRequest(RequestBody):
     volume: Literal["technical", "business", "all"] = "all"
 
 
+class CheckReleaseRequest(RequestBody):
+    reason: str = Field(min_length=1, max_length=500, description="放行理由（必填）")
+    decision: Literal["keep", "accept"] = Field(default="keep", description="keep：确认保留（如额外数值承诺）；accept：确认无需修改")
+
+
+class ProposedStaffEntry(RequestBody):
+    id: str | None = Field(default=None, max_length=120)
+    person_id: str = Field(min_length=1, max_length=120, description="资料库“人员”类资料 ID")
+    role: str = Field(min_length=1, max_length=40, description="项目角色，如项目经理、技术负责人、驻场工程师")
+    position: Literal["A", "B"] | None = Field(default=None, description="AB 角")
+    is_key_person: bool = False
+
+
+class ProposedStaffUpdate(RequestBody):
+    staff: list[ProposedStaffEntry] = Field(max_length=100)
+
+
+class ExportSettingsUpdate(RequestBody):
+    internal_template: str | None = Field(default=None, max_length=200, description="内部稿命名模板；空为“{编写人}_{版本}_{日期}_{项目名称}”")
+    submit_rule: str | None = Field(default=None, max_length=200, description="递交版命名规则；不得含 {编写人}；空为“{项目名称}_{分册名称}”")
+
+
+class NamingVariable(ResponseBody):
+    name: str
+    description: str
+
+
+class ExportSettings(ResponseBody):
+    revision: int | None = None
+    internal_template: str
+    submit_rule: str
+    updated_by: str | None = None
+    updated_at: str | None = None
+    variables: list[NamingVariable]
+
+
 class ProjectExportRequest(RequestBody):
     check_id: str = Field(min_length=1, max_length=100)
     kind: Literal["internal", "submission", "internal_review"] = "internal"
     volume: Literal["all", "technical", "business"] = "all"
+    template: Literal["auto", "company", "platform"] = Field(
+        default="auto", description="Word 模板：auto 有公司模板用公司模板，否则平台默认；company 必须用公司模板；platform 平台默认")
+    insert_attachments: bool = Field(default=True, description="是否插入条款挂接资料的附件扫描件")
+    attachment_watermark: str | None = Field(default=None, max_length=60,
+                                             description="敏感附件水印文字；不填为“仅用于{项目名称}投标”")
 
 
 SourceTier = Literal["own", "partner", "reference"]
@@ -145,6 +267,7 @@ class LibraryCreate(RequestBody):
     partner_entity_id: str | None = Field(default=None, max_length=100)
     is_restricted: bool = False
     acl_user_ids: list[str] = Field(default_factory=list, max_length=500)
+    submitted_on: str | None = Field(default=None, max_length=10, description="历史标书递交日期 YYYY-MM-DD（R29 比对年限）")
 
 
 class LibraryPatch(RequestBody):
@@ -161,6 +284,7 @@ class LibraryPatch(RequestBody):
     partner_entity_id: str | None = Field(default=None, max_length=100)
     is_restricted: bool = False
     acl_user_ids: list[str] = Field(default_factory=list, max_length=500)
+    submitted_on: str | None = Field(default=None, max_length=10, description="历史标书递交日期 YYYY-MM-DD（R29 比对年限）")
 
 
 class ProjectDetail(ResponseBody):
@@ -171,6 +295,7 @@ class ProjectDetail(ResponseBody):
     tender_number: str
     deadline: str
     sensitive: bool
+    volume_mode: Literal["both", "technical_only"] = "both"
 
 
 class Source(ResponseBody):
@@ -185,16 +310,40 @@ class TenderFile(ResponseBody):
     size: int
     sha256: str
     media_type: str
-    status: Literal["uploaded", "parsed", "failed"]
+    status: Literal["uploaded", "parsed", "failed", "parsing_remote"]
     page_count: int
     pagination: str
     warnings: list[str]
     download_url: str
+    file_role: FileRole = "tender"
+    file_role_label: str = "招标文件"
+    version_no: int = 1
+    supersedes_id: str | None = Field(default=None, description="本文件替代的旧版文件")
+    superseded_by: str | None = Field(default=None, description="替代本文件的新版文件；非空时本文件条目已标“所在文件已被替代”")
+    superseded_reason: str = ""
+    uploaded_by: str | None = None
+    uploaded_by_name: str = ""
+    uploaded_at: str | None = None
+    parse_service: str | None = Field(default=None, description="local-text 本地文字提取 / ragflow-deepdoc")
+    parse_service_label: str = ""
+    parse_started_at: str | None = None
+    parse_finished_at: str | None = None
+    parse_duration_ms: int | None = None
+    reused: bool = Field(default=False, description="复用了本公司同指纹、同服务、同参数的解析结果（不跨公司）")
+    reused_at: str | None = None
+    batches: list[list[int]] = Field(default_factory=list, description="分批解析的页码范围 [[1,200],[201,…]]")
+
+
+class TextRegion(ResponseBody):
+    """扫描件识别出的一段文字及其在原件页面上的位置框 [x0, x1, top, bottom]（PDF 点，左上角为原点）。"""
+    text: str
+    boxes: list[list[float]]
 
 
 class SourcePage(ResponseBody):
     page: int
     text: str
+    regions: list[TextRegion] = Field(default_factory=list)
 
 
 class FilePreview(ResponseBody):
@@ -218,6 +367,20 @@ class Requirement(ResponseBody):
     source: Source
     references: list[str]
     reference_status: Literal["none", "unresolved", "resolved"]
+    manually_edited: bool = Field(default=False, description="人工改过原文；重新抽取时不覆盖")
+    confidence: float | None = Field(default=None, description="0～1；低于公司阈值（默认 0.8）在解析页高亮；扫描件识别的条目最高 0.9")
+    unreadable: bool = Field(default=False, description="原文不可读（识别乱码）：须对照原页补录文字后才能确认")
+    unreadable_reason: str = ""
+    merge_status: Literal["independent", "primary", "merged"] | None = Field(
+        default=None, description="去重合并：primary 主条目（卡片显示“已合并 N 条”，可拆分）；被并入的条目不单列")
+    merged_ids: list[str] = Field(default_factory=list)
+    sources: list[dict[str, Any]] = Field(default_factory=list, description="主条目的全部来源（多位置切换）：file_id、page、quote、requirement_id")
+    importance: str | None = Field(default=None, description="合并后取最高一档：star > disqualification > qualification > scoring")
+    effective_status: Literal["effective", "superseded"] | None = Field(
+        default=None, description="superseded：已被补遗或新版文件替代（不删除，状态记已忽略）")
+    superseded_by: str | None = None
+    amends: str | None = Field(default=None, description="补遗条目修改的原条款")
+    source_stale: str | None = Field(default=None, description="重新解析后原句在新文字里找不到，请对照原件核对")
 
 
 class Fact(ResponseBody):
@@ -233,6 +396,14 @@ class Fact(ResponseBody):
     required: bool = False
     label: str = ""
     variable_token: str | None = None
+
+
+class ReviewedFact(Fact):
+    """项目事实表与解析核对用：带解析置信度与补录标记（生成输入快照不含这些字段）。"""
+    confidence: float | None = Field(default=None, description="0～1；低于公司阈值（默认 0.8）在解析页高亮")
+    unreadable: bool = Field(default=False, description="原文不可读：须对照原页补录取值后才能确认")
+    unreadable_reason: str = ""
+    manually_edited: bool = False
 
 
 class ChapterWritingInput(ResponseBody):
@@ -312,8 +483,107 @@ class Conflict(ResponseBody):
     key: str
     fact_ids: list[str]
     selected_fact_id: str | None
-    status: Literal["pending", "resolved"]
+    status: Literal["pending", "resolved", "not_conflict", "by_addendum"] = Field(
+        description="pending 待处理（阻断确认解析结果）、resolved 已选定、not_conflict 不构成冲突、by_addendum 已按补遗处理（不阻断）")
     reason: str
+    conflict_type: Literal["field_value", "addendum_override", "addendum_unlocated"] = "field_value"
+    requirement_ids: list[str] = Field(default_factory=list)
+    chosen_requirement_id: str | None = None
+    decided_by: str | None = None
+    decided_by_name: str = ""
+    decided_at: str | None = None
+    created_at: str | None = None
+    superseded_by: str | None = Field(default=None, description="出现新取值后另记的新冲突；本条决定保留作历史")
+    obsolete_at: str | None = None
+
+
+class ConflictValue(ResponseBody):
+    fact_id: str | None = None
+    requirement_id: str | None = None
+    value: str
+    file_id: str | None = None
+    filename: str = ""
+    page: int | None = None
+    quote: str = ""
+    status: str | None = None
+    effective_status: str = Field(default="effective", description="effective 有效 / superseded 已被替代")
+    canonical: str | None = Field(default=None, description="统一单位后的比较口径")
+
+
+class ConflictView(Conflict):
+    conflict_type_label: str
+    status_label: str
+    current: bool
+    blocking: bool
+    values: list[ConflictValue]
+    candidates: list[ConflictValue] = Field(default_factory=list, description="未定位的补遗条目可指定的原条款候选")
+    history: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class ConflictSummary(ResponseBody):
+    pending: int
+    by_addendum: int
+    resolved: int
+    not_conflict: int
+    history: int
+
+
+class ConflictList(ResponseBody):
+    revision: int
+    project_id: str
+    can_handle: bool
+    summary: ConflictSummary
+    conflicts: list[ConflictView]
+
+
+class AddendumDiffItem(ResponseBody):
+    kind: Literal["modified", "added", "unlocated", "same"]
+    requirement: ConflictValue
+    target: ConflictValue | None = None
+    amended_text: str | None = Field(default=None, description="补遗之后原条款应读作的文字（“原文‘甲’修改为‘乙’”时把甲换成乙；删除时为空）")
+    diff: list[dict[str, str]] = Field(default_factory=list, description="原条款与 amended_text 逐字对照：op 为 equal / delete / insert")
+    conflict_id: str | None = None
+    conflict_status: str | None = None
+    candidates: list[ConflictValue] = Field(default_factory=list)
+
+
+class AddendumFactChange(ResponseBody):
+    key: str
+    new: ConflictValue
+    old: list[ConflictValue]
+
+
+class AddendumDiff(ResponseBody):
+    revision: int
+    file: TenderFile
+    amending: bool
+    summary: dict[str, int]
+    items: list[AddendumDiffItem]
+    facts: list[AddendumFactChange]
+    replaced_items: list[ConflictValue] = Field(description="本文件作为新版替代旧版时，旧版中被标“所在文件已被替代”的条目")
+
+
+class MergeSuggestion(ResponseBody):
+    id: str
+    requirement_ids: list[str]
+    similarity: float
+    status: str
+    texts: list[str] = Field(default_factory=list)
+
+
+class PostProcessSummary(ResponseBody):
+    revision: int
+    project_id: str
+    conflicts_pending: int
+    conflicts_by_addendum: int
+    omissions_pending: int
+    references_unresolved: int
+    merged_groups: int
+    merged_items: int
+    superseded_items: int
+    merge_suggestions: list[MergeSuggestion]
+    scan_version: str
+    last_run: dict[str, Any] | None = None
 
 
 class Candidate(ResponseBody):
@@ -388,6 +658,7 @@ class Handoff(ResponseBody):
 class Team(ResponseBody):
     members: list[TeamMember]
     volumes: list[VolumeOwner]
+    volume_mode: Literal["both", "technical_only"] = "both"
     assembly_owner_id: str | None
     available_accounts: list[AccountResponse]
     handoffs: list[Handoff]
@@ -580,6 +851,20 @@ class ExportVolume(ResponseBody):
     download_url: str
     sha256: str | None = None
     format_metadata: dict[str, Any] | None = None
+    batch_no: str | None = Field(default=None, description="导出批次号；同一次导出的各分册文件同号")
+    docx_sha256: str | None = Field(default=None, description="导出时生成的 Word 快照文件摘要；过期后下载仍是这份文件")
+    size_bytes: int | None = None
+    template: dict[str, Any] | None = Field(default=None, description="本册所用 Word 模板：source=company/platform、filename、sha256")
+    format_overrides: list[dict[str, Any]] | None = Field(default=None, description="按招标格式要求覆盖模板的项：项目、取值、依据原文、条款 ID")
+    attachments: list[dict[str, Any]] | None = Field(default=None, description="插入本册的附件扫描件：资料名、文件名、页码范围、是否加水印")
+    skipped_attachments: list[dict[str, Any]] | None = Field(default=None, description="未插入的附件与原因（如暗标分册不插带公司标识的附件）")
+
+
+class BoundVolume(ResponseBody):
+    is_finalized: bool
+    finalized_by: str | None = None
+    finalized_at: str | None = None
+    snapshot_sha256: str | None = None
 
 
 class ProjectExport(ResponseBody):
@@ -590,7 +875,15 @@ class ProjectExport(ResponseBody):
     created_at: str
     excludes_drafts: Literal[True]
     volumes: list[ExportVolume]
-    status: Literal["valid", "stale"]
+    status: Literal["valid", "stale", "failed"] = Field(
+        description="valid 有效；stale 内容已改动或分册解锁（快照仍可下载）；failed 有分册生成失败，整批作废、无可下载文件")
+    batch_no: str | None = Field(default=None, description="批次号：S（递交版）/ I（内部稿）+ 日期 + 当日序号")
+    export_status: Literal["completed", "failed"] | None = None
+    error_message: str | None = None
+    failed_volume: Volume | None = None
+    volume: Literal["technical", "business", "all"] | None = None
+    created_by: str | None = None
+    bound_volumes: dict[str, BoundVolume] | None = Field(default=None, description="本批次绑定的分册定稿记录")
     has_blockers: bool = False
     compliance_notice: str | None = None
     sha256: str | None = None
@@ -614,6 +907,7 @@ class LibraryItem(ResponseBody):
     is_long_term: bool = False
     valid_to: str | None = None
     partner_entity_id: str | None = None
+    submitted_on: str | None = None
 
 
 class Workspace(ResponseBody):
@@ -623,7 +917,7 @@ class Workspace(ResponseBody):
     stage: str
     files: list[TenderFile]
     requirements: list[Requirement]
-    facts: list[Fact]
+    facts: list[ReviewedFact]
     conflicts: list[Conflict]
     chapters: list[WorkflowChapter]
     checks: list[ProjectCheck]
@@ -635,6 +929,35 @@ class Workspace(ResponseBody):
     writing_plan: WritingPlan
     team: Team
     permissions: ProjectPermissions
+    human_queue_pending: int = Field(default=0, description="人工处理队列中待处理的问题数")
+    omissions_pending: int = Field(default=0, description="兜底扫描中尚未处理的疑似遗漏数")
+    project_status: ProjectStatusInfo | None = Field(default=None, description="项目状态；cancelled 时只读")
+
+
+class StaffProfile(ResponseBody):
+    degree: str | None = None
+    major: str | None = None
+    work_start: str | None = Field(default=None, description="参加工作年月（YYYY-MM-01）")
+    years: int | None = None
+    certificates: list[str] | None = Field(default=None, description="None 表示人员资料里没有证书信息")
+
+
+class ProposedStaff(ResponseBody):
+    id: str
+    person_id: str
+    person_name: str
+    role: str
+    position: Literal["A", "B"] | None = None
+    is_key_person: bool = False
+    profile: StaffProfile | None = Field(default=None, description="从人员资料正文读出的学历、专业、参加工作时间与证书")
+
+
+class ProposedStaffResult(ResponseBody):
+    revision: int | None = None
+    staff: list[ProposedStaff]
+    roles: list[str]
+    r33: dict[str, Any] = Field(description="按当前拟派人员运行的 R33 结果（排人时即提示）")
+    occupancy: list[dict[str, Any]] = Field(default_factory=list, description="同公司其他在投项目已拟派同一人（只提示，不锁定）")
 
 
 class MutationResult(ResponseBody):
@@ -644,10 +967,10 @@ class MutationResult(ResponseBody):
     file: TenderFile | None = None
     job: Job | None = None
     requirement: Requirement | None = None
-    fact: Fact | None = None
+    fact: ReviewedFact | None = None
     conflict: Conflict | None = None
     requirements: list[Requirement] | None = None
-    facts: list[Fact] | None = None
+    facts: list[ReviewedFact] | None = None
     conflicts: list[Conflict] | None = None
     chapters: list[WorkflowChapter] | None = None
     check: ProjectCheck | None = None
@@ -657,6 +980,12 @@ class MutationResult(ResponseBody):
     writing_plan: WritingPlan | None = None
     team: Team | None = None
     chapter: WorkflowChapter | None = None
+    item: dict[str, Any] | None = Field(default=None, description="拆分后的主条目（条款或事实）")
+    split_ids: list[str] | None = None
+    merged_ids: list[str] | None = None
+    suggestion: MergeSuggestion | None = None
+    replacement: TenderFile | None = Field(default=None, description="设为被替代时的新版文件")
+    rechecks: int | None = Field(default=None, description="旧版中人工改过、回到待确认由人核对的条目数")
 
 
 class CheckList(ResponseBody):
@@ -894,3 +1223,71 @@ class BatchGenerateChaptersRequest(RequestBody):
     snippet_matches_by_chapter: dict[str, list[dict[str, Any]]] | None = None
 
 
+
+
+class MergeChecklistRow(ResponseBody):
+    text: str
+    source: str | None = None
+    status: str | None = None
+
+
+class MergeChecklistSection(ResponseBody):
+    no: int
+    item: str
+    action: str
+    rows: list[MergeChecklistRow]
+
+
+class MergeChecklist(ResponseBody):
+    export_id: str
+    check_id: str | None = None
+    project_name: str
+    generated_at: str
+    volumes: list[str]
+    sections: list[MergeChecklistSection]
+
+
+class MergeChecklistResponse(ResponseBody):
+    checklist: MergeChecklist
+    stale: bool
+
+
+class BatchConfirmRequest(RequestBody):
+    requirement_ids: list[str] = Field(min_length=1, max_length=500)
+
+
+class ParseGate(ResponseBody):
+    code: str
+    label: str
+    count: int
+    blocking: bool = Field(description="false：只提示，不阻断确认")
+    ok: bool
+
+
+class ParseScoringGroup(ResponseBody):
+    name: str
+    score: float | None = None
+    ids: list[str]
+    pending: int
+
+
+class ParseCategory(ResponseBody):
+    no: int
+    key: str
+    label: str
+    requirements: int
+    facts: int
+    total: int
+    pending: int
+    batch_allowed: bool = Field(description="星号、废标、资格三类为 false：必须逐条确认")
+    groups: list[ParseScoringGroup] | None = Field(default=None, description="评分类：评分项及其得分要点")
+
+
+class ParseReview(ResponseBody):
+    categories: list[ParseCategory]
+    requirement_categories: dict[str, str]
+    fact_categories: dict[str, str]
+    gates: list[ParseGate]
+    can_confirm: bool
+    parse_confirmed: bool
+    confidence_threshold: float = Field(default=0.8, description="低于此置信度的条目高亮（公司设置 parse_confidence_threshold）")

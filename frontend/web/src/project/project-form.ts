@@ -27,3 +27,10 @@ export function deadlineForForm(value?: string | null): string {
 export function projectFields(values: { name?: string; tender_number?: string; deadline?: string | null; sensitive?: boolean }) {
   return { ...(values.name !== undefined ? { name: values.name } : {}), tender_number: values.tender_number || '', deadline: deadlineForApi(values.deadline), sensitive: !!values.sensitive };
 }
+
+export const BASIC_INFO_KEYS = ['tenderee_name', 'agency_name', 'lot_name', 'client_address', 'open_at', 'service_period', 'project_location'] as const;
+
+/** 解析后带出、可人工修改的基本信息；只发送字符串，后台比较旧值后才记“已人工修改” */
+export function basicInfoFields(values: Partial<Record<(typeof BASIC_INFO_KEYS)[number], string | null | undefined>>) {
+  return Object.fromEntries(BASIC_INFO_KEYS.map(key => [key, (values[key] ?? '').trim()]));
+}

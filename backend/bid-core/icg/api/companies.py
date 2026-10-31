@@ -6,6 +6,8 @@ from __future__ import annotations
 from typing import Annotated
 from fastapi import APIRouter, Depends
 
+from icg.domain import company_registry
+from icg.domain.company_registry import CompanyListResponse, CompanySummary, UpdateCompanyStatusRequest
 from icg.domain.domain import DemoService, Principal
 from icg.domain.company_settings import (
     CompanySettingsModel,
@@ -20,6 +22,7 @@ def include_company_routes(application, service: DemoService, current_user) -> N
     if not settings_service:
         settings_service = CompanySettingsService()
         application.state.company_settings_service = settings_service
+    settings_service.repository = service.repository
     setattr(service, "company_settings_service", settings_service)
 
     router = APIRouter(prefix="/api/v1", responses=v1_error_responses(401, 403, 404, 422, 500))
@@ -45,5 +48,29 @@ def include_company_routes(application, service: DemoService, current_user) -> N
     )
     def update_company_settings(company_id: str, request: UpdateCompanySettingsRequest, user: Principal = Depends(current_user)):
         return settings_service.update_settings(company_id, request, user)
+
+    @router.get(
+        "/companies",
+        response_model=CompanyListResponse,
+        operation_id="listCompanies",
+        summary="公司列表",
+        description="平台管理员与集团管理员看全部公司（集团管理员只读），公司管理员只看本公司；含启用状态、账号数与项目数。",
+        tags=["companies"],
+    )
+    def list_companies(user: Principal = Depends(current_user)):
+        return company_registry.list_companies(service, user)
+
+    @router.post(
+        "/companies/{company_id}/status",
+        response_model=CompanySummary,
+        operation_id="updateCompanyStatus",
+        summary="启用或停用公司",
+        description="仅平台管理员。停用须在 confirm_name 填完整公司名称（422 CONFIRMATION_REQUIRED）；"
+                    "停用后该公司账号登录返回 403 COMPANY_DISABLED，已有会话立即失效；数据保留。",
+        tags=["companies"],
+    )
+    def update_company_status(company_id: str, request: UpdateCompanyStatusRequest,
+                              user: Principal = Depends(current_user)):
+        return company_registry.set_company_status(service, user, company_id, request)
 
     application.include_router(router)

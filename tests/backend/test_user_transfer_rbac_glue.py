@@ -169,7 +169,8 @@ def test_password_strength_validation_422(client: TestClient, auth_tokens):
     assert res_short.status_code == 422, res_short.text
     err = res_short.json()
     assert err["code"] == "PASSWORD_WEAK"
-    assert "低于平台下限 8 位" in err["message"]
+    assert "至少 8 位" in err["message"]
+    assert err["details"]["problems"]
 
     # 2. 密码字符种类不足（只有小写字母，< 3 类）
     res_simple = client.post(
@@ -186,7 +187,7 @@ def test_password_strength_validation_422(client: TestClient, auth_tokens):
     assert res_simple.status_code == 422, res_simple.text
     err_simple = res_simple.json()
     assert err_simple["code"] == "PASSWORD_WEAK"
-    assert "至少需包含" in err_simple["message"]
+    assert "至少含 3 类" in err_simple["message"] and "缺少大写字母、数字、符号" in err_simple["message"]
 
     # 3. 合法强密码创建成功（>= 8 位且包含大写、小写、数字、特殊符号中的三类）
     res_valid = client.post(

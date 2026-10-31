@@ -313,6 +313,15 @@ class ComplianceRulesEngine:
         },
         {
             "rule_id": "R19",
+            "title": "关联投标冲突",
+            "category": "qualification",
+            "default_severity": "warning",
+            "can_disable": False,
+            "description": "集团内另一家公司已对同一招标项目同一标段立项（招标编号 + 标段；无编号时按招标人 + 项目名称近似）；项目负责人须填写说明确认无控股、管理关系或单位负责人相同，并通知集团管理员（PRD §5.1.2、§8.3）。",
+        },
+        {
+            # 原先误标为 R19；PRD 没有这条规则，作为扩展规则保留（APP-M2-T096 更正）
+            "rule_id": "EXT-GREEN",
             "title": "环保、节能与绿色采购强制产品认证核验",
             "category": "qualification",
             "default_severity": "blocker",
@@ -342,6 +351,94 @@ class ComplianceRulesEngine:
             "default_severity": "blocker",
             "can_disable": False,
             "description": "核验技术规格参数偏离表中是否存在招标文件中声明不得负偏离的关键指标负偏离；存在负偏离判定为废标红线。",
+        },
+        {
+            "rule_id": "R29",
+            "title": "本公司查重",
+            "category": "duplication",
+            "default_severity": "warning",
+            "can_disable": False,
+            "description": "全文检查时与本公司近 24 个月历史标书、同期在编标书和“仅供参考”资料逐字比对，去掉空格标点后连续 8 字相同记一处重复；招标原文、注明出处的段落与英文/数字术语不算。与“仅供参考”资料重复为警告，其余为提示。",
+        },
+        {
+            "rule_id": "R30",
+            "title": "超范围响应",
+            "category": "scope",
+            "default_severity": "warning",
+            "can_disable": False,
+            "description": "非增值章节中没有对应招标条款的段落为警告；正文中招标未要求的额外数值承诺（时限、次数、人数、比例、期限）为警告，须项目负责人逐条确认，章节循环中直接转人工。",
+        },
+        {
+            "rule_id": "R36",
+            "title": "跨分册一致性",
+            "category": "consistency",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "技术分册提到的资质、人员须在商务分册有对应证明或人员表；两册偏离口径一致。只有一个分册时跳过并在合标清单写明须人工核对。",
+        },
+        {
+            "rule_id": "R39",
+            "title": "披露类条款",
+            "category": "disclosure",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "招标要求披露安全隐患、行政处罚、责任事故时正文须有披露段落；资料库无事件记录时为警告，须项目负责人确认已核实。",
+        },
+        {
+            "rule_id": "R40",
+            "title": "评审索引表",
+            "category": "index",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "招标要求评审索引表时，索引表逐项覆盖评分项、顺序与评审标准一致、指向的章节存在；页码合标后填写。",
+        },
+        {
+            "rule_id": "R33",
+            "title": "拟派人员条件",
+            "category": "personnel",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "学历、专业、工作年限（算到投标截止时间）、证书、人数、角色、AB 角、不得兼任与招标结构化人员条件逐项核对；资格要求不满足阻断，评分要求不满足提示，资料缺失警告。",
+        },
+        {
+            "rule_id": "R38",
+            "title": "证明材料与评分要点对应",
+            "category": "proof",
+            "default_severity": "warning",
+            "can_disable": False,
+            "description": "评分项要求截图或证明的，每个功能点至少挂一份附件，附件功能点标签或资料内容能找到该功能点或其同义词。",
+        },
+        {
+            "rule_id": "R41",
+            "title": "证明材料齐全与盖章",
+            "category": "proof",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "资格项要求的证明材料未挂接为阻断，评分项为警告；招标要求盖章时提示人工核对盖章状态。",
+        },
+        {
+            "rule_id": "R42",
+            "title": "暗标",
+            "category": "blind",
+            "default_severity": "blocker",
+            "can_disable": False,
+            "description": "招标要求暗标时，暗标分册正文不得出现投标人名称简称、人员姓名与联系方式。",
+        },
+        {
+            "rule_id": "R43",
+            "title": "AI 腔调检查",
+            "category": "style",
+            "default_severity": "warning",
+            "can_disable": False,
+            "description": "套话每千字密度超阈值、否定对比/递进/序列句式超次数、中间段落总结句、连续段首相同时警告；招标原文出现过的词放行。",
+        },
+        {
+            "rule_id": "R44",
+            "title": "事实密度检查",
+            "category": "facts",
+            "default_severity": "warning",
+            "can_disable": False,
+            "description": "得分章节的可核验具体事实（数字、人员、案例、证据、事实变量）少于评分项数时警告。",
         }
     ]
 
@@ -4282,8 +4379,35 @@ class ComplianceRulesEngine:
     def check_r19(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
     ) -> ComplianceRuleResult:
+        """R19 关联投标冲突（PRD §5.1.2、§8.3）：与平台内其他公司同标段立项且未确认说明时警告。"""
+        from icg.domain.related_bids import acknowledged, conflicts, public_details
+        found = conflicts(state, project)
+        ack = acknowledged(workflow, found)
+        issues: list[ComplianceRuleIssue] = []
+        if found["companies"] and ack is None:
+            details = public_details(found)
+            issues.append(ComplianceRuleIssue(
+                id=new_id("issue"), rule_id="R19", code="RELATED_BID_CONFLICT", severity="warning",
+                message=f"{details['message']}涉及：{'、'.join(details['companies'])}。项目负责人须在项目设置中填写说明确认无上述关系。",
+                details={"companies": details["companies"], "match": details["match"]},
+            ))
+        passed = not issues
+        summary = ("未发现集团内其他公司对同一标段立项。" if not found["companies"]
+                   else f"已由{ack['by_name']}确认无关联关系：{ack['reason']}" if ack else "存在未确认的关联投标冲突。")
+        return ComplianceRuleResult(
+            rule_id="R19", title="关联投标冲突", severity="info" if passed else "warning", passed=passed,
+            finding_summary=summary,
+            suggestion="核验正常。" if passed else "在项目设置中查看冲突公司并填写说明；有控股、管理关系时不得投同一标段。",
+            issues=[i.to_dict() for i in issues],
+            details={"conflict_companies": len(found["companies"]), "acknowledged": bool(ack)},
+        )
+
+    @classmethod
+    def check_ext_green(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
+    ) -> ComplianceRuleResult:
         """
-        R19 环保、节能与绿色采购强制产品认证核验。
+        扩展规则（非 PRD 编号）：环保、节能与绿色采购强制产品认证核验。原先误标为 R19。
         核验设备耗材是否属于国家强制节能品目并附有效证书清单；
         强制品目未提供认证判定为 blocker (MANDATORY_GREEN_CERT_MISSING)。
         """
@@ -4314,7 +4438,7 @@ class ComplianceRulesEngine:
                 issues.append(
                     ComplianceRuleIssue(
                         id=new_id("issue"),
-                        rule_id="R19",
+                        rule_id="EXT-GREEN",
                         code="MANDATORY_GREEN_CERT_MISSING",
                         severity="blocker",
                         message=f"环保节能或绿色采购产品要求未填写响应说明：{text[:50]}",
@@ -4327,7 +4451,7 @@ class ComplianceRulesEngine:
                 issues.append(
                     ComplianceRuleIssue(
                         id=new_id("issue"),
-                        rule_id="R19",
+                        rule_id="EXT-GREEN",
                         code="MANDATORY_GREEN_CERT_MISSING",
                         severity="blocker",
                         message=f"强制节能或环保绿色采购条款被拒绝响应：{text[:50]}",
@@ -4340,7 +4464,7 @@ class ComplianceRulesEngine:
                 issues.append(
                     ComplianceRuleIssue(
                         id=new_id("issue"),
-                        rule_id="R19",
+                        rule_id="EXT-GREEN",
                         code="MANDATORY_GREEN_CERT_MISSING",
                         severity="blocker",
                         message=f"强制节能或环保认证证书缺失或不符合国家要求：{resp[:60]}",
@@ -4355,7 +4479,7 @@ class ComplianceRulesEngine:
             else f"存在 {len(issues)} 项强制节能或环保产品认证缺失缺陷！"
         )
         return ComplianceRuleResult(
-            rule_id="R19",
+            rule_id="EXT-GREEN",
             title="环保、节能与绿色采购强制产品认证核验",
             severity="info" if passed else "blocker",
             passed=passed,
@@ -4653,6 +4777,7 @@ class ComplianceRulesEngine:
         return [
             cls.check_r17(state, project, workflow, volume=volume),
             cls.check_r19(state, project, workflow, volume=volume),
+            cls.check_ext_green(state, project, workflow, volume=volume),
             cls.check_r26(state, project, workflow, volume=volume),
             cls.check_r27(state, project, workflow, volume=volume),
             cls.check_r28(state, project, workflow, volume=volume),
@@ -4736,7 +4861,23 @@ class ComplianceRulesEngine:
             + cls.evaluate_p3_rules(state, project, workflow, volume=volume, now_ts=now_ts)
             + cls.evaluate_p4_rules(state, project, workflow, volume=volume, now_ts=now_ts)
             + cls.evaluate_p5_rules(state, project, workflow, volume=volume, now_ts=now_ts)
+            + cls.evaluate_p6_rules(state, project, workflow, volume=volume, now_ts=now_ts)
         )
+
+    @classmethod
+    def evaluate_p6_rules(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> list[ComplianceRuleResult]:
+        """R29 本公司查重（仅全文）与 R30 超范围响应（APP-M2-T235～T237）。"""
+        from .content_rules import check_r36, check_r39, check_r40, check_r41, check_r42, check_r43, check_r44
+        from .scope_rules import check_r29, check_r30
+        from .staff_proof_rules import check_r33, check_r38
+        return [
+            check_r29(state, project, workflow, volume=volume, now_ts=now_ts),
+            check_r30(state, project, workflow, volume=volume),
+            *(rule(state, project, workflow, volume=volume)
+              for rule in (check_r33, check_r36, check_r38, check_r39, check_r40, check_r41, check_r42, check_r43, check_r44)),
+        ]
 
 
 class ComplianceRulesMixin:
@@ -4753,8 +4894,9 @@ class ComplianceRulesMixin:
         if project.company_id != principal.user.company_id:
             raise DomainError(404, "NOT_FOUND", "项目不存在或不属于当前企业空间。")
 
+        from icg.domain.project_access import in_scope_workflow, rule_scope
         rule_results = ComplianceRulesEngine.evaluate_all(
-            state, project, workflow, volume=volume, now_ts=self.demo._now()
+            state, project, in_scope_workflow(workflow), volume=rule_scope(state, project_id, volume), now_ts=self.demo._now()
         )
 
         all_issues = []

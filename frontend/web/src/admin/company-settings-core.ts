@@ -26,12 +26,13 @@ export interface CompanySettingsData {
   password_min_length: number; // 平台默认 8，范围 8~32
   password_min_char_classes: number; // 平台默认 3，范围 3~4
   password_expire_days: number; // 密码有效期（天），范围 30~365
-  session_timeout_minutes: number; // 会话超时（分钟），范围 15~480
+  session_timeout_minutes: number; // 会话超时（分钟），范围 30~480（与后台一致）
+  max_login_attempts: number; // 连续登录失败锁定次数，范围 1~5（只能调严）
 
   // 2. 编辑锁定与协同（规范 9.11 核心三元规则）
   editor_autosave_seconds: number; // 默认 10，范围 5~60
   edit_lock_heartbeat_seconds: number; // 默认 60，范围 15~120
-  edit_lock_timeout_minutes: number; // 默认 30，范围 10~120
+  edit_lock_timeout_minutes: number; // 默认 30，范围 6~60（与后台一致）
 
   // 3. 导出交付与合规红线 (PRD §6.9)
   export_watermark_enabled: boolean;
@@ -46,6 +47,16 @@ export interface CompanySettingsData {
 
   // 5. 扩展字段元数据
   custom_fields: CustomFieldMetadata[];
+
+  // 6. 对话助手、解析与查重（后台 CompanySettingsModel 同名字段，PRD §5.11.9、§5.2.2、§5.8.3）
+  assistant_enabled: boolean;
+  assistant_suggestion_count: number; // 3~5
+  assistant_kb_default: boolean;
+  assistant_allow_kb_off: boolean;
+  parse_confidence_threshold: number; // 0.5~0.99
+  assistant_paste_match_ratio: number; // 0.5~1.0
+  dup_min_chars: number;
+  dup_history_months: number;
 }
 
 export interface SettingBoundMeta {
@@ -90,7 +101,7 @@ export const PLATFORM_SETTING_BOUNDS: Record<string, SettingBoundMeta> = {
     description: '公司安全密码最长轮换周期',
   },
   session_timeout_minutes: {
-    min: 15,
+    min: 30,
     max: 480,
     default: 120,
     tightenDirection: 'lower',
@@ -117,13 +128,67 @@ export const PLATFORM_SETTING_BOUNDS: Record<string, SettingBoundMeta> = {
     description: '排他编辑租约续约心跳周期',
   },
   edit_lock_timeout_minutes: {
-    min: 10,
-    max: 120,
+    min: 6,
+    max: 60,
     default: 30,
     tightenDirection: 'lower',
     unit: '分钟',
     label: '编辑锁租约时长',
     description: '编辑锁闲置最大超时时长',
+  },
+  max_login_attempts: {
+    min: 1,
+    max: 5,
+    default: 5,
+    tightenDirection: 'lower',
+    unit: '次',
+    label: '连续登录失败锁定次数',
+    description: '平台上限 5 次，公司只能调严',
+  },
+  assistant_suggestion_count: {
+    min: 3,
+    max: 5,
+    default: 3,
+    tightenDirection: 'higher',
+    unit: '条',
+    label: '修改样例条数',
+    description: '对话助手每次给出的写法数',
+  },
+  parse_confidence_threshold: {
+    min: 0.5,
+    max: 0.99,
+    default: 0.8,
+    tightenDirection: 'higher',
+    unit: '',
+    label: '解析置信度阈值',
+    description: '低于此值的条目在解析页高亮',
+  },
+  assistant_paste_match_ratio: {
+    min: 0.5,
+    max: 1,
+    default: 0.8,
+    tightenDirection: 'lower',
+    unit: '',
+    label: '粘贴识别重合比例',
+    description: '粘贴内容与对话助手输出重合达到此比例时记为对话助手撰写',
+  },
+  dup_min_chars: {
+    min: 5,
+    max: 50,
+    default: 8,
+    tightenDirection: 'lower',
+    unit: '字',
+    label: '查重连续相同字数',
+    description: '本公司查重判定为重复的连续字数',
+  },
+  dup_history_months: {
+    min: 1,
+    max: 120,
+    default: 24,
+    tightenDirection: 'higher',
+    unit: '月',
+    label: '查重历史年限',
+    description: '与多少个月内的历史标书比对',
   },
   outline_max_depth: {
     min: 2,
@@ -374,6 +439,7 @@ export function buildInitialCompanySettings(companyId = 'alpha', companyName = '
     password_min_char_classes: 3,
     password_expire_days: 90,
     session_timeout_minutes: 120,
+    max_login_attempts: 5,
     editor_autosave_seconds: 10,
     edit_lock_heartbeat_seconds: 60,
     edit_lock_timeout_minutes: 30,
@@ -385,5 +451,13 @@ export function buildInitialCompanySettings(companyId = 'alpha', companyName = '
     outline_target_words_default: 3000,
     ai_token_budget_per_chapter: 16384,
     custom_fields: [...DEFAULT_CUSTOM_FIELDS],
+    assistant_enabled: true,
+    assistant_suggestion_count: 3,
+    assistant_kb_default: true,
+    assistant_allow_kb_off: true,
+    parse_confidence_threshold: 0.8,
+    assistant_paste_match_ratio: 0.8,
+    dup_min_chars: 8,
+    dup_history_months: 24,
   };
 }

@@ -15,7 +15,6 @@ import {
   getSystemRoleLabel,
   isReadonlyRole,
   isKnownRole,
-  isDemoMode,
 } from '../../src/shared/roles.ts';
 import {
   PROJECT_STATUSES,
@@ -170,7 +169,7 @@ test('session-navigation: supports authentic rbac-8roles session verification', 
   );
 });
 
-test('roles.ts: isDemoMode defaults to false when unset, enables only on explicit VITE_DEMO=1/true', () => {
-  // 在未显式设置 VITE_DEMO 时，isDemoMode() 必须诚实默认返回 false（关演示正式模式）
-  assert.equal(isDemoMode(), false);
+test('roles.ts: no demo mode switch remains', async () => {
+  const roles = await import('../../src/shared/roles.ts');
+  assert.equal(roles.isDemoMode, undefined);
 });

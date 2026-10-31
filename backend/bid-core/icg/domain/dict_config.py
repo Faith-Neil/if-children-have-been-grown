@@ -173,7 +173,7 @@ class DictConfigService:
         self._types: dict[str, dict[str, Any]] = {
             t["type_code"]: copy.deepcopy(t) for t in BUILTIN_DICT_TYPES
         }
-        self._items: list[dict[str, Any]] = [
+        self._local_items: list[dict[str, Any]] = [
             {
                 "id": f"dict_{item['type_code']}_{item['item_code']}",
                 **copy.deepcopy(item),
@@ -182,6 +182,22 @@ class DictConfigService:
             }
             for item in INITIAL_BUILTIN_ITEMS
         ]
+        # 绑定仓储后字典项保存在 DemoState.service_stores["dict_config"]，随其他状态一起持久化（ISSUE-041）。
+        self.repository = None
+
+    @property
+    def _items(self) -> list[dict[str, Any]]:
+        if self.repository is None:
+            return self._local_items
+        stored = self.repository.read().service_stores.get("dict_config")
+        return stored["items"] if stored else copy.deepcopy(self._local_items)
+
+    def _save_items(self, items: list[dict[str, Any]]) -> None:
+        if self.repository is None:
+            self._local_items = items
+            return
+        snapshot = copy.deepcopy(items)
+        self.repository.transaction(lambda state: state.service_stores.__setitem__("dict_config", {"items": snapshot}))
 
     def _check_admin_write_permission(self, principal: Principal) -> None:
         """角色权限门禁：仅平台管理员与公司管理员具备字典写操作权限，写作者与审计员严格只读"""
@@ -209,10 +225,11 @@ class DictConfigService:
             norm_role = ROLE_NORMALIZATION_MAP.get(principal.user.role, principal.user.role)
 
         result: list[DictTypeItem] = []
+        all_items = self._items
         for type_code, defn in self._types.items():
             # 统计当前租户可见的字典项
             matching_items = [
-                i for i in self._items
+                i for i in all_items
                 if i["type_code"] == type_code and (
                     i["company_id"] is None or norm_role == "platform_admin" or i["company_id"] == company_id
                 )
@@ -288,7 +305,8 @@ class DictConfigService:
 
         # 规则红线校验：同分类下代码不可重复（包括内置或本租户）
         item_code_norm = payload.item_code.strip()
-        for existing in self._items:
+        items = self._items
+        for existing in items:
             if existing["type_code"] == payload.type_code and existing["item_code"] == item_code_norm:
                 if existing["company_id"] is None or norm_role == "platform_admin" or existing["company_id"] == company_id:
                     raise DomainError(
@@ -312,7 +330,8 @@ class DictConfigService:
             "company_id": company_id if norm_role != "platform_admin" else None,
             "metadata": payload.metadata or {},
         }
-        self._items.append(new_item)
+        items.append(new_item)
+        self._save_items(items)
         return DictItemModel(**new_item)
 
     def update_dict_item(
@@ -328,8 +347,9 @@ class DictConfigService:
         company_id = self._get_tenant_company_id(principal)
         norm_role = ROLE_NORMALIZATION_MAP.get(principal.user.role, principal.user.role)
 
+        items = self._items
         target_idx = -1
-        for idx, item in enumerate(self._items):
+        for idx, item in enumerate(items):
             if item["type_code"] == type_code and item["item_code"] == item_code:
                 if item["company_id"] is None or norm_role == "platform_admin" or item["company_id"] == company_id:
                     target_idx = idx
@@ -338,7 +358,7 @@ class DictConfigService:
         if target_idx == -1:
             raise DomainError(404, "NOT_FOUND", f"未找到字典代码项：{type_code}/{item_code}。")
 
-        target = self._items[target_idx]
+        target = items[target_idx]
 
         if payload.label is not None:
             target["label"] = payload.label.strip()
@@ -351,6 +371,7 @@ class DictConfigService:
         if payload.metadata is not None:
             target["metadata"] = payload.metadata
 
+        self._save_items(items)
         return DictItemModel(**target)
 
     def delete_dict_item(
@@ -365,8 +386,9 @@ class DictConfigService:
         company_id = self._get_tenant_company_id(principal)
         norm_role = ROLE_NORMALIZATION_MAP.get(principal.user.role, principal.user.role)
 
+        items = self._items
         target_idx = -1
-        for idx, item in enumerate(self._items):
+        for idx, item in enumerate(items):
             if item["type_code"] == type_code and item["item_code"] == item_code:
                 if item["company_id"] is None or norm_role == "platform_admin" or item["company_id"] == company_id:
                     target_idx = idx
@@ -375,7 +397,7 @@ class DictConfigService:
         if target_idx == -1:
             raise DomainError(404, "NOT_FOUND", f"未找到字典代码项：{type_code}/{item_code}。")
 
-        target = self._items[target_idx]
+        target = items[target_idx]
 
         # 核心红线：“已使用的字典代码/状态只能停用，严禁物理硬删除”
         if target.get("is_builtin", False):
@@ -395,7 +417,8 @@ class DictConfigService:
             )
 
         # 仅未被引用的自定义代码允许删除
-        self._items.pop(target_idx)
+        items.pop(target_idx)
+        self._save_items(items)
         return DeleteDictItemResponse(
             success=True,
             message=f"自定义字典代码【{item_code}】已成功物理删除。",

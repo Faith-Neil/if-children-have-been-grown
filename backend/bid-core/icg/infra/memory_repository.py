@@ -27,7 +27,7 @@ def seed_state() -> DemoState:
         name="系统超级管理员",
         company_id="system",
         role="platform_admin",
-        _DEMO_ONLY=False,
+        _DEMO_ONLY=True,  # 种子账号：生产环境不认，管理员由 ICG_ADMIN_INITIAL_PASSWORD 初始化
         password_hash=admin_hash,
         salt=admin_salt,
         display_name="系统超级管理员",

@@ -31,12 +31,16 @@ export interface CategoryMeta {
  */
 export const LIBRARY_CATEGORIES: CategoryMeta[] = [
   { key: 'all', label: '全部资料', secondary: '全库资料概览' },
-  { key: 'qualification', label: '主体资质', secondary: '法人资质与合规准入证照' },
-  { key: 'financial', label: '财务审计', secondary: '财务报表与纳税完税凭据' },
+  { key: 'qualification', label: '主体资质', secondary: '营业执照、资质证书、财务审计与纳税凭据' },
   { key: 'personnel', label: '人员证书', secondary: '项目人员执业资格与聘书' },
-  { key: 'case', label: '业绩案例', secondary: '同类标杆案例与履约合同' },
-  { key: 'template', label: '通用模板', secondary: '服务承诺方案与商务模板' },
+  { key: 'performance', label: '业绩案例', secondary: '同类标杆案例与履约合同' },
+  { key: 'sla', label: '服务承诺', secondary: '服务指标与响应承诺' },
+  { key: 'snippet', label: '方案片段', secondary: '经核对可复用的方案文字' },
+  { key: 'history', label: '历史标书（参考）', secondary: '只供查看参考，不能挂为证据' },
 ];
+
+/** 资料类别必须与后端 LibraryType 一致（qualification/personnel/performance/sla/snippet/history），否则保存会被拒绝。 */
+export const LIBRARY_TYPE_OPTIONS = LIBRARY_CATEGORIES.filter(c => c.key !== 'all').map(c => ({ value: c.key, label: c.label }));
 
 export const CATEGORY_LABEL_MAP: Record<string, string> = {
   all: '全部资料',
@@ -51,7 +55,9 @@ export const CATEGORY_LABEL_MAP: Record<string, string> = {
   performance: '业绩案例',
   template: '通用模板',
   sla_templates: '服务承诺模板',
-  history: '历史标书参考',
+  sla: '服务承诺',
+  snippet: '方案片段',
+  history: '历史标书（参考）',
 };
 
 export function getCategoryLabel(type: string | undefined | null): string {
@@ -308,7 +314,7 @@ export interface AttachmentSecurityCheck {
 export function verifyAttachmentSecurity(
   attachment: EvidenceAttachment | any,
   expectedHashOrMaxSize?: string | number,
-  maxSizeBytes = 50 * 1024 * 1024
+  maxSizeBytes = 100 * 1024 * 1024
 ): AttachmentSecurityCheck {
   if (!attachment) {
     return {
@@ -381,4 +387,37 @@ export function verifyAttachmentSecurity(
     audit_message: msg,
     message: msg,
   };
+}
+
+/** 批量确认声明（PRD v1.8 §5.4.4 确认区）；确认时随核对依据一并提交。 */
+export const BATCH_CONFIRM_DECLARATION = '本人确认以上资料真实有效，并对其准确性负责';
+export const BATCH_BASIS_MIN = 4;
+
+export type BatchExclusion = { item: Evidence; why: string };
+
+/**
+ * 批量确认的候选拆分（PRD v1.8 §5.4.1 第 2 条、§5.4.3）：只有从未修改过的“待核验”资料可按批次确认；
+ * 改过的资料（含 ★ 关键字段被改后回到待核验的）、受限资料、合作方无协议的资料、已过期资料必须逐条确认。
+ */
+export function batchConfirmPartition(items: Evidence[], selected: Array<string | number>, now: Date | string = new Date()) {
+  const ids = new Set(selected.map(String));
+  const eligible: Evidence[] = [];
+  const excluded: BatchExclusion[] = [];
+  for (const item of items) {
+    if (!ids.has(item.id)) continue;
+    const status = deriveEvidenceStatus(item, now);
+    if (status === 'confirmed') continue;
+    if (status === 'expired') excluded.push({ item, why: '已过期，须先更新有效期' });
+    else if (status === 'rejected') excluded.push({ item, why: '已排除，不能直接确认' });
+    else if (item.is_restricted || item.restricted) excluded.push({ item, why: '受限资料，须逐条确认' });
+    else if (item.source_tier === 'partner' && !item.partner_entity_id && !item.agreement_present) excluded.push({ item, why: '合作方资料未关联合作方主体与协议' });
+    else if ((item.revision ?? 1) > 1) excluded.push({ item, why: '资料修改过（可能涉及 ★ 关键字段），须逐条重新确认' });
+    else eligible.push(item);
+  }
+  return { eligible, excluded };
+}
+
+/** 核对依据：必须本人填写，至少 4 个非空白字符。 */
+export function batchBasisValid(basis: string): boolean {
+  return basis.replace(/\s/g, '').length >= BATCH_BASIS_MIN;
 }

@@ -16,6 +16,18 @@ export interface ModelConfigItem {
   api_key_masked?: string | null;
   timeout_seconds: number;
   max_tokens: number;
+  fallback_config_id?: string | null;
+}
+
+/** 可选作备用的配置（PRD §6.4/§6.5）：不含自己与示例配置；本地主模型只能选本地备用（后台保存时同样核对）。 */
+export function fallbackOptions(configs: ModelConfigItem[], primary: { id?: string; is_local?: boolean } | null) {
+  return configs
+    .filter(c => c.id !== primary?.id && c.provider !== 'demo')
+    .map(c => ({
+      value: c.id,
+      label: `${c.name} (${c.model})${c.is_local ? ' · 本地' : ' · 非本地'}`,
+      disabled: !!primary?.is_local && !c.is_local,
+    }));
 }
 
 export interface ModelConfigValidationResult {
@@ -106,4 +118,11 @@ export function buildModelUpdatePayload(
   }
 
   return payload;
+}
+
+/** 谁能做什么：新建、修改、测试连接只限公司管理员和平台管理员（模型地址决定正文发往哪里）；
+ * 项目绑定另允许项目负责人。后端同样核对，这里只决定显示哪些按钮。 */
+export function modelConfigAccess(role: string | null | undefined, canManageProject: boolean): { canManage: boolean; canBind: boolean } {
+  const canManage = role === 'company_admin' || role === 'platform_admin';
+  return { canManage, canBind: canManage || canManageProject };
 }

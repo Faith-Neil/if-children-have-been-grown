@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import json
+import os
+import time
 
 from fastapi import APIRouter, Depends, Header, Response
 from fastapi.responses import StreamingResponse
@@ -17,7 +19,7 @@ from .project_access import (
 )
 from .workflow_schemas import (
     CancelledEvent, CancelledPayload, CompletedEvent, CompletedPayload, FailedEvent, FailedPayload,
-    JobStatus, ModelCallEvent, ProgressEvent, ProgressPayload, StartGenerationRequest, StatusChange,
+    JobStatus, ModelCallEvent, ParseRequest, ProgressEvent, ProgressPayload, StartGenerationRequest, StatusChange,
     StatusChangedEvent, V1Error, v1_error_responses,
 )
 
@@ -55,6 +57,14 @@ GET_DESCRIPTION = (
 STREAM_DESCRIPTION = (
     "事件流。每条事件的 id 为 <job_id>:<seq>。请求头 Last-Event-ID 使用该 id 时，只发送更大的 seq。"
     "断线后也可 GET /api/v1/jobs/{job_id}。不新增 SSE 库。"
+    "后台正在执行的任务（如招标解析任务）连接最多保持 ICG_SSE_HOLD_SECONDS（默认 25）秒：期间有新事件即推送，"
+    "每 10 秒发一行注释保活，任务结束或到时后关闭，客户端带 Last-Event-ID 重连；其他任务发完已有事件即关闭。"
+)
+PARSE_JOB_DESCRIPTION = (
+    "启动招标文件解析任务，立即返回 202 与任务（Location 为 GET /api/v1/jobs/{job_id}）。"
+    "后台按 parseFiles 同一流程解析；交给 RAGFlow 识别的文件会反复取回，直到全部取回、失败、取消或等满 ICG_PARSE_JOB_MAX_WAIT_SECONDS（默认 1800）秒。"
+    "权限与 parseFiles 相同（项目负责人）；If-Match 为项目版本；同一项目已有进行中的解析任务时返回该任务。"
+    "进度经 streamJobEvents 推送：job.status_changed、job.progress、job.completed / job.failed / job.cancelled。"
 )
 CANCEL_DESCRIPTION = (
     "取消后的任务状态。已经结束的任务返回 409 VERSION_CONFLICT。"
@@ -104,6 +114,8 @@ class RecoverableJobs:
         self.workflow = workflow
         self.demo = workflow.demo
         self.repository = workflow.repository
+        # 有真实后台执行的任务类型（APP-M2-T020）：重试后交回对应执行器
+        self.runners: dict[str, object] = {}
 
     def start(self, principal, project_id: str, payload: dict, expected: str | None, key: str | None) -> dict:
         key = validate_key(key)
@@ -207,12 +219,49 @@ class RecoverableJobs:
         return self.repository.transaction(operation)
 
     def events(self, principal, job_id: str, last_event_id: str | None) -> list[str]:
+        return self.events_since(principal, job_id, _resume_after(job_id, last_event_id))[0]
+
+    def events_since(self, principal, job_id: str, after: int) -> tuple[list[str], int, bool]:
+        """(新事件帧, 最后序号, 是否须保持连接)。只有后台正在执行、尚未结束的任务需要保持连接。"""
         def operation(state):
             job = self._visible(state, principal, job_id)
             self._advance(job)
-            after = _resume_after(job_id, last_event_id)
-            return [_sse(event) for event in job["events"] if event["seq"] > after]
+            fresh = [event for event in job["events"] if event["seq"] > after]
+            last = fresh[-1]["seq"] if fresh else after
+            hold = bool(job.get("live")) and job["status"] not in TERMINAL
+            return [_sse(event) for event in fresh], last, hold
         return self.repository.transaction(operation)
+
+    def stream(self, principal, job_id: str, last_event_id: str | None):
+        """先发已有事件；后台任务未结束时保持连接，期间推送新事件并保活。"""
+        chunks, last, hold = self.events_since(principal, job_id, _resume_after(job_id, last_event_id))
+
+        def frames():
+            yield from chunks
+            if not hold:
+                return
+            nonlocal last
+            try:
+                limit = max(1.0, float(os.environ.get("ICG_SSE_HOLD_SECONDS", "25")))
+            except ValueError:
+                limit = 25.0
+            started = time.monotonic()
+            quiet_since = started
+            while time.monotonic() - started < limit:
+                time.sleep(0.5)
+                try:
+                    fresh, last, keep = self.events_since(principal, job_id, last)
+                except DomainError:
+                    return  # 权限或任务已不可见：结束本次连接
+                if fresh:
+                    yield from fresh
+                    quiet_since = time.monotonic()
+                elif time.monotonic() - quiet_since >= 10:
+                    yield ": keep-alive\n\n"
+                    quiet_since = time.monotonic()
+                if not keep:
+                    return
+        return frames()
 
     def cancel(self, principal, job_id: str, key: str | None) -> dict:
         key = validate_key(key)
@@ -294,7 +343,11 @@ class RecoverableJobs:
             body = _public(job)
             remember(state, job["project_id"], principal.user.id, key, request_fingerprint, body, self.demo._now())
             return body
-        return self.repository.transaction(operation)
+        body = self.repository.transaction(operation)
+        runner = self.runners.get(body.get("type"))
+        if runner is not None and body.get("status") == "queued":
+            runner.submit(job_id, principal)
+        return body
 
     def _chapters(self, state, project_id, selected):
         known = [chapter for chapter in state.chapters.values() if chapter.project_id == project_id]
@@ -416,7 +469,8 @@ class RecoverableJobs:
         return job
 
     def _advance(self, job: dict) -> None:
-        if job["status"] != "queued":
+        # 只推进生成任务的进程内占位流程；有后台执行器的任务（如解析）由执行器自己推进
+        if job["status"] != "queued" or job.get("type") in self.runners:
             return
         now = iso_time(self.demo._now())
         job["status"] = "running"
@@ -507,7 +561,11 @@ class RecoverableJobs:
 
 
 def include_recoverable_routes(application, workflow, current_user):
+    from .parse_jobs import ParseJobRunner
     jobs = RecoverableJobs(workflow)
+    parse_runner = ParseJobRunner(workflow, jobs)
+    jobs.runners["parse"] = parse_runner
+    application.state.parse_job_runner = parse_runner
     router = APIRouter(prefix="/api/v1")
     start_errors = v1_error_responses(401, 403, 404, 409, 422, 428, 500, 502, 423, 503)
     start_errors[503] = {
@@ -542,6 +600,21 @@ def include_recoverable_routes(application, workflow, current_user):
         response.status_code = 202
         return result
 
+    @router.post("/projects/{project_id}/parse/jobs", status_code=202, response_model=JobStatus,
+                 operation_id="startParseJob", description=PARSE_JOB_DESCRIPTION, summary="Start Parse Job",
+                 responses={202: {"description": "已接受。Location 指向 GET /api/v1/jobs/{job_id}。",
+                                  "headers": {"Location": {"required": True, "schema": {"type": "string"},
+                                                           "description": "任务状态地址 /api/v1/jobs/{job_id}"}}},
+                            **v1_error_responses(401, 403, 404, 409, 422, 428, 500)})
+    def start_parse_job(project_id: str, body: ParseRequest, response: Response, user=Depends(current_user),
+                        if_match: str | None = Header(default=None),
+                        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key",
+                                                             description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        result = parse_runner.start(user, project_id, body.model_dump(), if_match, idempotency_key)
+        response.headers["Location"] = "/api/v1/jobs/" + result["id"]
+        response.status_code = 202
+        return result
+
     @router.get("/jobs/{job_id}", response_model=JobStatus, operation_id="getJob", description=GET_DESCRIPTION,
                 summary="Get Job", responses=v1_error_responses(401, 404, 422, 500))
     def get_job(job_id: str, user=Depends(current_user)):
@@ -554,8 +627,8 @@ def include_recoverable_routes(application, workflow, current_user):
                            **v1_error_responses(401, 404, 422, 500)})
     def stream_job_events(job_id: str, user=Depends(current_user),
                           last_event_id: str | None = Header(default=None, alias="Last-Event-ID")):
-        chunks = jobs.events(user, job_id, last_event_id)
-        return StreamingResponse(iter(chunks), media_type="text/event-stream")
+        return StreamingResponse(jobs.stream(user, job_id, last_event_id), media_type="text/event-stream",
+                                 headers={"X-Accel-Buffering": "no"})
 
     @router.post("/jobs/{job_id}/cancel", response_model=JobStatus, operation_id="cancelJob",
                  description=CANCEL_DESCRIPTION, summary="Cancel Job",

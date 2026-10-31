@@ -13,7 +13,7 @@ from icg.domain.workflow_schemas import v1_error_responses
 def error_responses(*statuses: int) -> dict:
     from icg.domain.workflow_schemas import V1Error
     descriptions = {
-        401: "未登录或演示登录已失效",
+        401: "未登录或登录已失效",
         403: "当前账号无操作权限",
         404: "资源不存在或当前公司无权访问",
         409: "版本、草稿或检查结果冲突",
@@ -43,7 +43,7 @@ def include_project_routes(application, service: DemoService, current_user) -> N
                       responses=error_responses(401, 403, 409, 428))
     def create_project(body: ProjectRequest, user: User,
                        idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)] = None):
-        return service.create_project(user, body.name, idempotency_key=idempotency_key)
+        return service.create_project(user, body.name, idempotency_key=idempotency_key, volume_mode=body.volume_mode)
 
     @application.get("/api/v1/projects", response_model=ProjectListResponse, operation_id="listV1Projects",
                      responses=v1_error_responses(401))
@@ -54,7 +54,7 @@ def include_project_routes(application, service: DemoService, current_user) -> N
                       responses=v1_error_responses(401, 403, 409, 428))
     def create_v1_project(body: ProjectRequest, user: User,
                           idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)] = None):
-        return service.create_project(user, body.name, idempotency_key=idempotency_key)
+        return service.create_project(user, body.name, idempotency_key=idempotency_key, volume_mode=body.volume_mode)
 
     @application.get("/api/v1/projects/{project_id}", response_model=ProjectResponse, operation_id="getV1Project",
                      responses=v1_error_responses(401, 404))

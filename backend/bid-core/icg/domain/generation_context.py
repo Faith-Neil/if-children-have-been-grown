@@ -23,6 +23,9 @@ FACT_NUMBER_UNIT = re.compile(r"[+-]?(?:\d+(?:\.\d+)?|\.\d+)\s*(" + FACT_UNIT_PA
 SHANGHAI = timezone(timedelta(hours=8))
 
 
+PARSE_REVIEW_ONLY = ("confidence", "unreadable", "unreadable_reason", "manually_edited", "manually_edited_by")
+
+
 def project_facts(state, project_id):
     workflow = state.workflows.get(project_id, {})
     facts = [{"unit": "", "required": False, "source_type": "parsed", "sla_var_key": None, **fact}
@@ -40,6 +43,18 @@ def chapter_plan(workflow, chapter_id):
             "confirmed_at": saved.get("confirmed_at"), "confirmed_input_fingerprint": saved.get("confirmed_input_fingerprint")}
 
 
+def chapter_rows(workflow, chapter_id, chapter_volume=None):
+    """本章方案的条款：映射到本章的行，加上“跨分册共用”且另一分册对应到本章的行（PRD §5.3.1 规则 8、验收⑤）。"""
+    rows = []
+    for row in workflow.get("requirements", {}).values():
+        if row.get("chapter_id") == chapter_id:
+            rows.append(row)
+        elif (row.get("is_cross_volume") and row.get("shared_chapter_id") == chapter_id
+              and (chapter_volume is None or chapter_volume != row.get("volume"))):
+            rows.append(row)
+    return rows
+
+
 def writing_source_fingerprint(state, project_id, chapter_id=None):
     """方案只绑定来源和写作配置；提交正文不会要求再次确认相同方案。"""
     workflow = state.workflows.get(project_id, {})
@@ -51,7 +66,7 @@ def writing_source_fingerprint(state, project_id, chapter_id=None):
     chapter = state.chapters[chapter_id]
     plan = chapter_plan(workflow, chapter_id)
     facts = [f for f in project_facts(state, project_id) if f["required"] or f["id"] in plan["fact_ids"]]
-    requirements = [r for r in workflow.get("requirements", {}).values() if r["chapter_id"] == chapter_id]
+    requirements = chapter_rows(workflow, chapter_id, chapter.volume)
     evidence_ids = {identity for r in requirements for identity in r["evidence_ids"]}
     file_ids = {r["source"]["file_id"] for r in requirements if r.get("source")}
     file_ids.update(f["source"]["file_id"] for f in facts if f.get("source") and f["source"].get("file_id"))
@@ -178,14 +193,22 @@ def build_generation_context(state, project_id, chapter, now, evidence_service=N
                 add("FACT_NOT_READY", fact["key"] + "：" + reason, fact_id=fact["id"])
             continue
         variable = "{{sla:" + fact["sla_var_key"] + "}}" if fact.get("sla_var_key") else "{{fact:" + fact["id"] + "}}"
-        facts.append({**deepcopy(fact), "variable": variable, "source": _source(workflow, fact.get("source"))})
+        # 解析置信度与补录标记只服务解析核对，不进入生成输入快照（也不改变输入指纹）
+        kept = {k: v for k, v in fact.items() if k not in PARSE_REVIEW_ONLY}
+        facts.append({**deepcopy(kept), "variable": variable, "source": _source(workflow, fact.get("source"))})
     requirements, evidence_by_id = [], {}
     reference_date = _date(project.deadline) if project.deadline else datetime.fromtimestamp(now, SHANGHAI).date()
-    for row in workflow.get("requirements", {}).values():
-        if row["chapter_id"] != chapter.id or row["status"] == "rejected":
+    for row in chapter_rows(workflow, chapter.id, chapter.volume):
+        if row["status"] == "rejected":
             continue
-        if row["status"] != "confirmed" or row["volume"] != chapter.volume or not _source_valid(workflow, row.get("source")):
+        shared = row["chapter_id"] != chapter.id  # 跨分册共用，经另一分册对应到本章
+        if row["status"] != "confirmed" or (row["volume"] != chapter.volume and not shared) or not _source_valid(workflow, row.get("source")):
             add("REQUIREMENT_NOT_READY", "本章条款尚未确认、分册不匹配或原文来源无效。", requirement_id=row["id"])
+            continue
+        if not row.get("volume_confirmed_at"):
+            # 未确认分流的行不能进入写作方案（PRD §5.3.1 规则 8、验收④）
+            add("REQUIREMENT_NOT_READY", "本章条款的分册分流尚未由项目负责人确认，请到响应矩阵“确认分流”后再生成。",
+                requirement_id=row["id"], reason="routing_pending")
             continue
         requirements.append({"id": row["id"], "text": row["text"], "response": row["response"],
                              "status": row["status"], "source": _source(workflow, row["source"]),
@@ -257,6 +280,11 @@ def build_generation_context(state, project_id, chapter, now, evidence_service=N
                             "id": cand.source_id,
                             "path": cand.path,
                             "tag": "[片]",
+                            # 知识库命中按资料/片段 id 引用；知识库候选不等于已挂接 [证]（PRD 原则 1）。
+                            "cite_tag": f"[片:{cand.source_id}]",
+                            "name": getattr(cand, "name", ""),
+                            "source_type": getattr(cand, "source_type", ""),
+                            "score": round(float(getattr(cand, "score", 0.0) or 0.0), 4),
                             "chunk_id": cand.chunk_id or cand.source_id,
                             "document_id": cand.document_id,
                             "content": cand.text,
@@ -276,8 +304,36 @@ def build_generation_context(state, project_id, chapter, now, evidence_service=N
                 "requirements": requirements, "evidence": list(evidence_by_id.values()),
                 "retrieved_evidence": retrieved_evidence, "facts": facts,
                 "injected_tender_clauses": workflow.get("injected_tender_clauses", {}).get(chapter.id, []),
-                "omitted_inputs": omitted, "official_content": chapter.content}
+                "omitted_inputs": omitted, "official_content": chapter.content,
+                "previous_chapter": previous_chapter_relay(state, project_id, chapter)}
     return {"source_scope": "whole_chapter", "input_snapshot": snapshot, "ready": not issues, "issues": issues}
+
+
+_MARKUP = re.compile(r"\{\{[^}]*\}\}|\[(证|片)(:[^\]]*)?\]|【待补】")
+
+
+def previous_chapter_relay(state, project_id, chapter, limit=200):
+    """前章摘要接力：取同一分册里排在本章之前的一章正文开头作为衔接摘要。
+
+    前章还没有正文时明确标为 missing（不编造衔接），本册第一章为 not_applicable。
+    """
+    workflow = state.workflows.get(project_id, {})
+    positions = {identity: index for index, identity in enumerate(workflow.get("chapter_order", []))}
+    chapters = sorted((c for c in state.chapters.values() if c.project_id == project_id),
+                      key=lambda c: positions.get(c.id, len(positions)))
+    same_volume = [c.id for c in chapters if c.volume == chapter.volume]
+    if chapter.id not in same_volume or same_volume.index(chapter.id) == 0:
+        return {"status": "not_applicable", "message": "本章是本册第一章，没有前章摘要。"}
+    previous = state.chapters[same_volume[same_volume.index(chapter.id) - 1]]
+    lines = [line.strip() for line in (previous.content or "").splitlines()]
+    body = [line for line in lines if line and not line.startswith("#")]
+    text = _MARKUP.sub("", "".join(body)).strip()
+    if not text:
+        return {"status": "missing", "chapter_id": previous.id, "title": previous.title,
+                "message": f"前章《{previous.title}》还没有正文，本章未使用前章摘要，章节衔接须人工核对。"}
+    summary = text[:limit] + ("…" if len(text) > limit else "")
+    return {"status": "used", "chapter_id": previous.id, "title": previous.title,
+            "revision": int(previous.revision or 0), "summary": summary}
 
 
 def require_ready(context):
@@ -316,7 +372,9 @@ def render_model_input(snapshot):
             prov_parts.append(f"document_id: {doc_id}")
         prov = f"（{', '.join(prov_parts)}）" if prov_parts else ""
         ref_notice = "【仅供参考，不得作为正式附着证据】" if item.get("reference_only") else ""
-        lines += [f"{tag} 检索证据片段{prov}{ref_notice}：", item["content"]]
+        cite = item.get("cite_tag") or tag
+        title = f"《{item['name']}》" if item.get("name") else ""
+        lines += [f"{cite} 检索证据片段{title}{prov}{ref_notice}：", item["content"]]
     if snapshot["facts"]:
         lines.append("以下为本章可用事实；正文引用时须保留变量，不能把变量改成手写取值：")
     for fact in snapshot["facts"]:

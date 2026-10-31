@@ -1,6 +1,7 @@
 // 为什么有这个文件：提取 App 全局路由页面内容呈现容器（GlobalPagesContent）。
 // 它解决什么问题：将工作台项目列表、企业资料库、后台任务中心、规则与管理、知识库、写作档案等全局页面路由分支从 App.tsx 中解耦。
 
+import { NotificationsPage } from '../notifications/NotificationsPage';
 import React, { Suspense } from 'react';
 import { Alert, Button, Spin, Tabs } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
@@ -17,12 +18,14 @@ import {
   LazyLibraryPage as LibraryPage,
   LazyPendingPage as PendingPage,
   LazySnippetLibraryPage as SnippetLibraryPage,
+  LazyKnowledgeBaseAdminPage as KnowledgeBaseAdminPage,
   LazyUsersPage as UsersPage,
   LazyWritingArchivePage as WritingArchivePage,
 } from './lazy-routes';
 import type { Account, ApplicationSession, Evidence, Job, Project, SlaTemplate } from '../shared/types';
 import type { LibraryReadState, LibraryWriteVersion } from '../library/library-review';
 import type { TemplateReadState } from '../library/template-review';
+import { kbPermissions } from '../library/kb-admin-core.ts';
 
 export interface GlobalPagesContentProps {
   nav: string;
@@ -137,7 +140,12 @@ export function GlobalPagesContent({
               busy={busy}
               mutate={libraryMutate}
               report={report}
+              token={token ?? null}
             />
+          )}
+
+          {nav === 'notifications' && (
+            <NotificationsPage token={token} projects={projects} onNavigate={onRequestPath} report={report} />
           )}
 
           {nav === 'jobs' && (
@@ -168,11 +176,12 @@ export function GlobalPagesContent({
                 },
                 {
                   key: 'company',
-                  label: 'A-01 企业租户管理',
+                  label: 'A-01 公司管理',
                   children: (
                     <CompanyManagePage
                       session={session}
                       currentUser={currentUser}
+                      token={token}
                     />
                   ),
                 },
@@ -205,6 +214,7 @@ export function GlobalPagesContent({
                     <CompanySettingsPage
                       session={session}
                       currentUser={currentUser}
+                      token={token}
                     />
                   ),
                 },
@@ -213,11 +223,29 @@ export function GlobalPagesContent({
           )}
 
           {nav === 'knowledge' && (
-            <SnippetLibraryPage
-              token={token}
-              user={currentUser}
-              session={session}
-            />
+            kbPermissions(currentUser?.role).read ? (
+              <Tabs
+                defaultActiveKey="snippets"
+                items={[
+                  {
+                    key: 'snippets',
+                    label: '方案片段',
+                    children: <SnippetLibraryPage token={token} user={currentUser} session={session} />,
+                  },
+                  {
+                    key: 'kb-admin',
+                    label: '知识库管理（RAGFlow）',
+                    children: <KnowledgeBaseAdminPage token={token} role={currentUser?.role} report={report} />,
+                  },
+                ]}
+              />
+            ) : (
+              <SnippetLibraryPage
+                token={token}
+                user={currentUser}
+                session={session}
+              />
+            )
           )}
 
           {nav === 'writing' && (

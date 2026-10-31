@@ -1,23 +1,35 @@
 # 为什么有这个文件：将示例主流程的页面请求接到真实业务服务。
 # 它解决什么问题：统一版本和重复请求保护，提供可核对的 OpenAPI 与带登录授权的原件、两册下载。
 
+from typing import Any, Literal
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Header, Query, Response
+from fastapi import APIRouter, Depends, Header, Query, Request, Response
+from starlette.concurrency import run_in_threadpool
+
+from icg.api.raw_upload import RAW_BODY_DOC, read_limited_body
+from icg.infra.blob_store import file_bytes
 
 from icg.infra.adapters import build_docx
-from icg.domain.domain import Export, Principal
+from icg.domain.domain import DomainError, Export, Principal
 from icg.domain.schemas import EmptyRequest
 from icg.domain.sla_schemas import (SlaMutationResult, SlaReviewRequest, SlaSelection, SlaTemplateCreate,
-                          SlaTemplateList, SlaTemplatePatch, SlaTemplateResult, SlaValuePatch)
+                          SlaPropagation, SlaTemplateList, SlaTemplatePatch, SlaTemplateResult, SlaValuePatch)
+from icg.domain.project_settings_schemas import (FullValueResult, FullValueUpdate, ProjectSettings, ProjectStatusRequest,
+                                                 ProjectStatusResult, RuleOverridesResult, RuleOverridesUpdate,
+                                                 VolumeSettingsResult, VolumeSettingsUpdate)
 from icg.domain.recoverable_jobs import include_recoverable_routes
 from icg.domain.workflow import DOCX_MEDIA_TYPE, WorkflowService
+
+XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 from icg.domain.idempotency import IDEMPOTENCY_HEADER_DESCRIPTION
-from icg.domain.workflow_schemas import (CheckList, ConflictPatch, FactPatch, FileDelete, FilePreview, FileUpload,
+from icg.domain.workflow_schemas import (AddendumDiff, ConflictDecision, ConflictList, FileRole, FileRoleUpdate, FileSupersede,
+                               ItemSplit, MergeDismiss, PostProcessSummary, RequirementMerge)
+from icg.domain.workflow_schemas import (BatchConfirmRequest, ParseReview, CheckList, ConflictPatch, FactPatch, FileDelete, FilePreview, FileUpload,
                                GenerateRequest, JobsList, LibraryCreate, LibraryList,
                                LibraryPatch, LibraryResult, MutationResult, ParseRequest,
-                               PlanRequest, ProjectCheckRequest, ProjectExportRequest,
-                               ProjectPatch, RequirementPatch, Workspace, WritingInputPreview,
+                               PlanRequest, CheckReleaseRequest, MatrixMatchRequest, MatrixRoutingRequest, MergeChecklistResponse, ProjectCheckRequest, ProjectExportRequest,
+                               ProjectPatch, RelatedBidAck, RelatedBidStatus, ProposedStaffResult, ProposedStaffUpdate, ExportSettings, ExportSettingsUpdate, RequirementPatch, Workspace, WritingInputPreview,
                                TeamUpdate, TeamResult, ChapterAssignment, ChapterPlanPatch,
                                ChapterEditDetail, v1_error_responses, TenderSearchRequest,
                                TenderIndexingSwitchRequest, InjectTenderClausesRequest,
@@ -84,11 +96,151 @@ def include_workflow_routes(application, service, current_user, parser):
                       if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.patch_project(user, project_id, body.model_dump(exclude_unset=True), if_match, idempotency_key)
 
+    @router.get("/projects/{project_id}/settings", response_model=ProjectSettings, operation_id="getProjectSettings",
+                summary="项目设置读回", description="基本信息人工修改标记、合作方协议、规则覆盖、分册格式、递交版完整值类别、SLA 取值摘要、"
+                "拟派人员占用提示与概览待办；项目成员可读。")
+    def project_settings(project_id: str, response: Response, user: Principal = Depends(current_user)):
+        result = workflow.project_settings(user, project_id)
+        response.headers["ETag"] = f'"{result["revision"]}"'
+        return result
+
+    @router.post("/projects/{project_id}/status", response_model=ProjectStatusResult, operation_id="transitionProjectStatus",
+                 summary="登记项目状态（仅项目负责人）",
+                 description="submit 登记递交、open 登记开标、result 登记结果、cancel 取消。取消后项目只读（409 PROJECT_CANCELLED），"
+                 "不合规的流转返回 409 INVALID_STATUS_TRANSITION。")
+    def transition_status(project_id: str, body: ProjectStatusRequest, user: Principal = Depends(current_user),
+                          if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.transition_project(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.put("/projects/{project_id}/rule-overrides", response_model=RuleOverridesResult, operation_id="updateRuleOverrides",
+                summary="保存项目级规则覆盖（仅项目负责人）", description="整组替换；规则名或取值不合规返回 422。")
+    def save_rule_overrides(project_id: str, body: RuleOverridesUpdate, user: Principal = Depends(current_user),
+                            if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.save_rule_overrides(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.put("/projects/{project_id}/volume-settings", response_model=VolumeSettingsResult, operation_id="updateVolumeSettings",
+                summary="保存分册格式与编制设置（仅项目负责人）",
+                description="编制方式、内部截止时间、密封、页码、暗标、封面、递交文件名；递交文件名含编写人变量或姓名返回 422。")
+    def save_volume_settings(project_id: str, body: VolumeSettingsUpdate, user: Principal = Depends(current_user),
+                             if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.save_volume_settings(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.put("/projects/{project_id}/submit-full-value", response_model=FullValueResult, operation_id="updateSubmitFullValue",
+                summary="确认递交版需填完整值的敏感字段类别（仅项目负责人）",
+                description="类别为身份证件号码、手机号、银行账号；勾选须关联本项目招标要求作为依据，记录确认人和时间。")
+    def save_full_value(project_id: str, body: FullValueUpdate, user: Principal = Depends(current_user),
+                        if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.save_full_value(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.get("/projects/{project_id}/related-bids", response_model=RelatedBidStatus, operation_id="getRelatedBidStatus",
+                summary="R19 关联投标冲突状态",
+                description="按招标编号 + 标段（无编号时招标人 + 项目名称）查找平台内其他公司是否对同一标段立项；只返回对方公司名称。项目成员可读。")
+    def related_bid_status(project_id: str, user: Principal = Depends(current_user)):
+        from icg.domain.related_bids import status
+        state = workflow.repository.read()
+        return status(state, workflow.demo._project(state, user, project_id))
+
+    @router.post("/projects/{project_id}/related-bids/ack", response_model=RelatedBidStatus, operation_id="acknowledgeRelatedBid",
+                 summary="确认无关联关系并继续",
+                 description="项目负责人填写说明，确认与冲突公司无控股、管理关系或单位负责人相同；记入项目并通知集团管理员。没有冲突时 409 VERSION_CONFLICT。")
+    def acknowledge_related_bid(project_id: str, body: RelatedBidAck, user: Principal = Depends(current_user),
+                                if_match: str | None = Header(default=None),
+                                idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        from icg.domain.related_bids import conflicts, record_ack, status
+
+        def operation(state, project, flow):
+            found = conflicts(state, project)
+            if not found["companies"]:
+                raise DomainError(409, "VERSION_CONFLICT", "当前没有关联投标冲突，无需确认。")
+            record_ack(state, user, project, flow, found, body.reason.strip(), workflow.demo._now())
+            return {"related_bid": status(state, project)}
+
+        return workflow._write(user, project_id, "related_bid.ack", body.model_dump(), if_match, idempotency_key,
+                               operation)["related_bid"]
+
     @router.post("/projects/{project_id}/files", response_model=MutationResult, response_model_exclude_none=True,
                  operation_id="uploadFile")
     def upload(project_id: str, body: FileUpload, user: Principal = Depends(current_user),
                if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.upload(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/files/raw", response_model=MutationResult, response_model_exclude_none=True,
+                 operation_id="uploadFileRaw", summary="上传招标文件原件（二进制）", openapi_extra=RAW_BODY_DOC,
+                 description="请求体为文件原始字节（application/octet-stream），文件名放在 filename 查询参数；大小上限见 ICG_MAX_UPLOAD_MB（默认 100MB）。")
+    async def upload_raw(project_id: str, request: Request,
+                         filename: str = Query(min_length=1, max_length=180),
+                         file_role: FileRole = Query(default="tender", description="文件类型（同 uploadFile 的 file_role）"),
+                         user: Principal = Depends(current_user),
+                         if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        data = await read_limited_body(request)
+        return await run_in_threadpool(workflow.upload, user, project_id,
+                                       {"filename": filename, "content_bytes": data, "file_role": file_role},
+                                       if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/files/{file_id}/role", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="setFileRole", summary="修改文件类型（仅项目负责人）",
+                 description="解析前可改；已解析的文件不能在补遗/澄清与其他类型之间切换（409 FILE_ALREADY_PARSED）。")
+    def file_role(project_id: str, file_id: str, body: FileRoleUpdate, user: Principal = Depends(current_user),
+                  if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.set_file_role(user, project_id, file_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/files/{file_id}/supersede", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="supersedeFile", summary="设为被替代（版本链，仅项目负责人）",
+                 description="用同一类型、在其后上传的新版文件替代本文件；本文件条目标“所在文件已被替代”（不删除），"
+                             "人工改过的回到待确认；本文件未处理的疑似遗漏随之排除。")
+    def supersede_file(project_id: str, file_id: str, body: FileSupersede, user: Principal = Depends(current_user),
+                       if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.supersede_file(user, project_id, file_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.get("/projects/{project_id}/files/{file_id}/addendum-diff", response_model=AddendumDiff,
+                operation_id="getAddendumDiff", summary="补遗差异",
+                description="补遗/澄清逐条对照：修改了哪条原条款（逐字标出）、新增了什么、哪些未定位到原条款、改了哪些事实取值。")
+    def addendum_diff(project_id: str, file_id: str, user: Principal = Depends(current_user)):
+        return workflow.addendum_diff(user, project_id, file_id)
+
+    @router.get("/projects/{project_id}/parse/post-process", response_model=PostProcessSummary,
+                operation_id="getPostProcessSummary", summary="抽取后处理汇总",
+                description="冲突待选定、疑似遗漏、引用未解析的待处理数，去重合并与补遗替代的条数，以及待决定的合并建议。")
+    def post_process_summary(project_id: str, user: Principal = Depends(current_user)):
+        return workflow.post_process_summary(user, project_id)
+
+    @router.get("/projects/{project_id}/parse/conflicts", response_model=ConflictList, operation_id="listConflicts",
+                summary="冲突待选定列表", description="各方取值、原文、文件与页码并列；含已按补遗处理和历史记录。")
+    def list_conflicts(project_id: str, user: Principal = Depends(current_user)):
+        return workflow.list_conflicts(user, project_id)
+
+    @router.post("/projects/{project_id}/parse/conflicts/{conflict_id}/decision", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="chooseConflict", summary="处理冲突（仅项目负责人）",
+                 description="选定一方、标“不构成冲突”、撤销补遗替代、为未定位的补遗条目指定原条款，均须写理由；逐条处理，不提供批量。")
+    def decide_conflict(project_id: str, conflict_id: str, body: ConflictDecision, user: Principal = Depends(current_user),
+                        if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.decide_conflict(user, project_id, conflict_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/requirements/{requirement_id}/split", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="splitRequirement", summary="拆分已合并的条目（仅项目负责人）",
+                 description="被并入的条目恢复原状态单独列出；拆开的条目之后不再自动合并。")
+    def split_requirement(project_id: str, requirement_id: str, body: ItemSplit, user: Principal = Depends(current_user),
+                          if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.split_item(user, project_id, "requirement", requirement_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/facts/{fact_id}/split", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="splitFact", summary="拆分已合并的事实（仅项目负责人）")
+    def split_fact(project_id: str, fact_id: str, body: ItemSplit, user: Principal = Depends(current_user),
+                   if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.split_item(user, project_id, "fact", fact_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/requirements/{requirement_id}/merge", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="mergeRequirements", summary="合并条目（采纳合并建议，仅项目负责人）",
+                 description="取值（数字）不同的不能合并（409 REQUIREMENT_VALUES_DIFFER）；已对应章节、挂了证据或写了响应的不能并入。")
+    def merge_requirements(project_id: str, requirement_id: str, body: RequirementMerge, user: Principal = Depends(current_user),
+                           if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.merge_requirements(user, project_id, requirement_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/parse/merge-suggestions/{suggestion_id}/dismiss", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="dismissMergeSuggestion", summary="不合并（须写理由）")
+    def dismiss_merge(project_id: str, suggestion_id: str, body: MergeDismiss, user: Principal = Depends(current_user),
+                      if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.dismiss_merge_suggestion(user, project_id, suggestion_id, body.model_dump(), if_match, idempotency_key)
 
     @router.delete("/projects/{project_id}/files/{file_id}", response_model=MutationResult,
                    response_model_exclude_none=True, operation_id="deleteFile")
@@ -107,7 +259,7 @@ def include_workflow_routes(application, service, current_user, parser):
                                  "content": {"application/octet-stream": {"schema": {"type": "string", "format": "binary"}}}}})
     def original(project_id: str, file_id: str, user: Principal = Depends(current_user)):
         record = workflow.file(user, project_id, file_id)
-        return Response(content=record["content"], media_type=record["media_type"],
+        return Response(content=file_bytes(record), media_type=record["media_type"],
                         headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(record['filename'])}"})
 
     @router.post("/projects/{project_id}/parse", response_model=MutationResult, response_model_exclude_none=True,
@@ -135,6 +287,42 @@ def include_workflow_routes(application, service, current_user, parser):
                  if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.resolve_conflict(user, project_id, conflict_id, body.model_dump(), if_match, idempotency_key)
 
+    @router.get("/projects/{project_id}/parse/review", response_model=ParseReview, operation_id="getParseReview",
+                summary="解析结果分类树与确认前提", description="10 类抽取项（评分类含评分项与得分要点）的条目数、待确认数；确认解析结果的前提逐条列出剩余条数。")
+    def parse_review(project_id: str, user: Principal = Depends(current_user)):
+        return workflow.parse_review(user, project_id)
+
+    @router.get("/projects/{project_id}/export-settings", response_model=ExportSettings,
+                operation_id="getExportSettings", summary="导出命名规则")
+    def export_settings(project_id: str, user: Principal = Depends(current_user)):
+        return workflow.export_settings(user, project_id)
+
+    @router.put("/projects/{project_id}/export-settings", response_model=ExportSettings,
+                operation_id="updateExportSettings", summary="保存导出命名规则（仅项目负责人）",
+                description="内部稿命名模板与递交版命名规则；递交版规则含 {编写人} 或不认识的变量时返回 422。")
+    def save_export_settings(project_id: str, body: ExportSettingsUpdate, user: Principal = Depends(current_user),
+                             if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.save_export_settings(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.get("/projects/{project_id}/proposed-staff", response_model=ProposedStaffResult,
+                operation_id="getProposedStaff", summary="拟派人员与 R33 预检")
+    def proposed_staff(project_id: str, user: Principal = Depends(current_user)):
+        return workflow.proposed_staff(user, project_id)
+
+    @router.put("/projects/{project_id}/proposed-staff", response_model=ProposedStaffResult,
+                operation_id="updateProposedStaff", summary="保存拟派人员（仅项目负责人）",
+                description="从资料库“人员”资料中选人、定角色与 A/B 角；保存后立即返回 R33 拟派人员条件核对结果。")
+    def save_proposed_staff(project_id: str, body: ProposedStaffUpdate, user: Principal = Depends(current_user),
+                            if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.save_proposed_staff(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/requirements/batch-confirm", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="batchConfirmRequirements",
+                 summary="批量确认条款", description="星号、废标、资格三类和含未解析引用的条目不能批量确认（409）；只限项目负责人。")
+    def batch_confirm(project_id: str, body: BatchConfirmRequest, user: Principal = Depends(current_user),
+                      if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.batch_confirm_requirements(user, project_id, body.model_dump(), if_match, idempotency_key)
+
     @router.post("/projects/{project_id}/parse/confirm", response_model=MutationResult,
                  response_model_exclude_none=True, operation_id="confirmParse")
     def confirm_parse(project_id: str, body: EmptyRequest, user: Principal = Depends(current_user),
@@ -152,6 +340,42 @@ def include_workflow_routes(application, service, current_user, parser):
                  if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.generate(user, project_id, body.model_dump(), if_match, idempotency_key)
 
+    @router.get("/projects/{project_id}/chapters/{chapter_id}/system", operation_id="previewSystemChapter", response_model=dict[str, Any],
+                summary="系统生成章节预览（点对点应答/评审索引/偏离表/年度服务计划/证明材料清单）")
+    def system_preview(project_id: str, chapter_id: str, user: Principal = Depends(current_user)):
+        return workflow.preview_system_chapter(user, project_id, chapter_id)
+
+    @router.post("/projects/{project_id}/chapters/{chapter_id}/system/generate", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="generateSystemChapter", summary="按数据源生成系统章节（覆盖正文）")
+    def system_generate(project_id: str, chapter_id: str, body: EmptyRequest, user: Principal = Depends(current_user),
+                        if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.generate_system_chapter(user, project_id, chapter_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.get("/projects/{project_id}/matrix", operation_id="listMatrixItems", summary="响应矩阵（含响应方式、风险与默认分流）",
+                response_model=dict[str, Any])
+    def matrix(project_id: str, volume: Literal["all", "technical", "business"] = Query(default="all"),
+               user: Principal = Depends(current_user)):
+        return workflow.matrix(user, project_id, volume)
+
+    @router.post("/projects/{project_id}/matrix/match", operation_id="matchMatrixEvidence", response_model=dict[str, Any],
+                 summary="批量智能匹配证据（只给候选，不挂接）")
+    def matrix_match(project_id: str, body: MatrixMatchRequest, user: Principal = Depends(current_user)):
+        return workflow.match_evidence(user, project_id, body.requirement_ids)
+
+    @router.post("/projects/{project_id}/matrix/routing", response_model=MutationResult, response_model_exclude_none=True,
+                 operation_id="confirmMatrixRouting", summary="分册分流确认（项目负责人）")
+    def matrix_routing(project_id: str, body: MatrixRoutingRequest, user: Principal = Depends(current_user),
+                       if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.confirm_routing(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.get("/projects/{project_id}/matrix.xlsx", response_class=Response, operation_id="exportMatrixExcel",
+                summary="导出响应矩阵 Excel",
+                responses={200: {"description": "响应矩阵 Excel", "content": {XLSX_MEDIA_TYPE: {"schema": {"type": "string", "format": "binary"}}}}})
+    def matrix_xlsx(project_id: str, volume: Literal["all", "technical", "business"] = Query(default="all"),
+                    user: Principal = Depends(current_user)):
+        return Response(content=workflow.matrix_xlsx(user, project_id, volume), media_type=XLSX_MEDIA_TYPE,
+                        headers={"Content-Disposition": f'attachment; filename="matrix-{project_id}.xlsx"'})
+
     @router.get("/projects/{project_id}/checks", response_model=CheckList, operation_id="listChecks")
     def checks(project_id: str, user: Principal = Depends(current_user)):
         return workflow.checks(user, project_id)
@@ -162,21 +386,68 @@ def include_workflow_routes(application, service, current_user, parser):
               if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.run_check(user, project_id, body.model_dump(), if_match, idempotency_key)
 
+    @router.post("/projects/{project_id}/checks/{check_id}/issues/{issue_id}/release", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="releaseCheckIssue",
+                 summary="检查警告逐项放行",
+                 description="项目负责人或公司管理员填写理由后放行一条警告或提示；阻断级不能放行（409 BLOCKER_NOT_REJECTABLE）。放行按问题内容记账，正文改动后旧放行失效。")
+    def release_check_issue(project_id: str, check_id: str, issue_id: str, body: CheckReleaseRequest,
+                            user: Principal = Depends(current_user),
+                            if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.release_check_issue(user, project_id, check_id, issue_id, body.model_dump(), if_match, idempotency_key)
+
     @router.post("/projects/{project_id}/exports", response_model=MutationResult,
                  response_model_exclude_none=True, operation_id="exportVolume")
     def export(project_id: str, body: ProjectExportRequest, user: Principal = Depends(current_user),
                if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.export(user, project_id, body.model_dump(), if_match, idempotency_key)
 
+    @router.get("/projects/{project_id}/response-trace.xlsx", response_class=Response,
+                operation_id="downloadResponseTrace", summary="下载内部响应追溯表 Excel",
+                description="每条招标条款的所属文件与页码、响应、分册章节与段落、证据版本与知识片段、负责人与确认人。内部用，任何时候可导出；分册负责人只能导出本册。",
+                responses={200: {"description": "响应追溯表 Excel",
+                                 "content": {XLSX_MEDIA_TYPE: {"schema": {"type": "string", "format": "binary"}}}}})
+    def download_response_trace(project_id: str, volume: Literal["all", "technical", "business"] = Query(default="all", description="technical / business / all"),
+                                user: Principal = Depends(current_user)):
+        result = workflow.response_trace(user, project_id, volume)
+        return Response(content=result["content"], media_type=XLSX_MEDIA_TYPE,
+                        headers={"Content-Disposition": f'attachment; filename="{result["filename"]}"'})
+
+    @router.get("/projects/{project_id}/exports/{export_id}/merge-checklist", response_model=MergeChecklistResponse,
+                operation_id="getMergeChecklist", summary="合标核对清单（递交版批次）",
+                description="9 类合标核对项与本批次全文检查结论；分册解锁或正文改动后 stale=true（仍可查看）。仅项目负责人、分册负责人与公司管理员。")
+    def merge_checklist(project_id: str, export_id: str, user: Principal = Depends(current_user)):
+        return workflow.merge_checklist(user, project_id, export_id)
+
+    @router.get("/projects/{project_id}/exports/{export_id}/merge-checklist.xlsx", response_class=Response,
+                operation_id="downloadMergeChecklist", summary="下载合标核对清单 Excel",
+                responses={200: {"description": "合标核对清单 Excel；过期批次在表头注明“已过期”",
+                                 "content": {XLSX_MEDIA_TYPE: {"schema": {"type": "string", "format": "binary"}}}}})
+    def download_merge_checklist(project_id: str, export_id: str, user: Principal = Depends(current_user)):
+        from icg.domain.merge_checklist import checklist_sheets
+        from icg.infra.xlsx import build_xlsx
+        result = workflow.merge_checklist(user, project_id, export_id)
+        filename = f"merge-checklist-{export_id}.xlsx"
+        return Response(content=build_xlsx(checklist_sheets(result["checklist"], stale=result["stale"])),
+                        media_type=XLSX_MEDIA_TYPE, headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+
     @router.get("/projects/{project_id}/exports/{export_id}/{volume}", response_class=Response,
                 operation_id="downloadVolume",
-                responses={200: {"description": "独立的技术或商务 Word 分册，排除未提交草稿",
+                responses={200: {"description": "独立的技术或商务 Word 分册（导出时生成的快照原文件），排除未提交草稿；"
+                                                "内容改动或分册解锁后仍可下载，响应头 X-ICG-Export-Status=stale 标明已过期，X-ICG-Export-Batch 为批次号",
                                  "content": {DOCX_MEDIA_TYPE: {"schema": {"type": "string", "format": "binary"}}}}})
     def download(project_id: str, export_id: str, volume: str, user: Principal = Depends(current_user)):
         document = workflow.download(user, project_id, export_id, volume)
-        record = Export(export_id, "", 1, "", "", document["filename"], document["title"], document["content"])
-        return Response(content=build_docx(record, project_name=document.get("project_name")), media_type=DOCX_MEDIA_TYPE,
-                        headers={"Content-Disposition": f'attachment; filename="{document["filename"]}"'})
+        content = document.get("content_bytes")
+        if content is None:
+            record = Export(export_id, "", 1, "", "", document["filename"], document["title"], document["content"])
+            from icg.domain.export_batch import docx_meta
+            content = build_docx(record, project_name=document.get("project_name"), meta=docx_meta(document))
+        # 文件名含中文：按 RFC 5987 给出 filename*，另给一个 ASCII 兜底名
+        headers = {"Content-Disposition": f"attachment; filename=\"{export_id}-{volume}.docx\"; filename*=UTF-8''{quote(document['filename'])}",
+                   "X-ICG-Export-Status": "stale" if document.get("stale") else "valid"}
+        if document.get("batch_no"):
+            headers["X-ICG-Export-Batch"] = document["batch_no"]
+        return Response(content=content, media_type=DOCX_MEDIA_TYPE, headers=headers)
 
     @router.get("/jobs", response_model=JobsList, operation_id="listJobs")
     def jobs(user: Principal = Depends(current_user), masked: bool = Query(default=False, description="是否脱敏返回任务运维审计视图")):
@@ -201,6 +472,11 @@ def include_workflow_routes(application, service, current_user, parser):
     def patch_sla_template(template_id: str, body: SlaTemplatePatch, user: Principal = Depends(current_user),
                            if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.sla.write_template(user, body.model_dump(exclude_unset=True), if_match, idempotency_key, template_id)
+
+    @router.get("/projects/{project_id}/sla/propagation", response_model=SlaPropagation,
+                operation_id="getSlaPropagation", summary="服务承诺需复核传播与判定汇总")
+    def sla_propagation(project_id: str, user: Principal = Depends(current_user)):
+        return workflow.sla.propagation(user, project_id)
 
     @router.post("/projects/{project_id}/sla/template", response_model=SlaMutationResult, response_model_exclude_none=True,
                  operation_id="selectSlaTemplate")

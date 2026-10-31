@@ -258,6 +258,13 @@ class SlaService:
         if principal.user.role != "manager":
             raise DomainError(403, "SLA_MANAGER_REQUIRED", "服务承诺维护和必备事实确认仅限本公司项目负责人。")
 
+    def propagation(self, principal, project_id):
+        from .sla_propagation import sla_propagation
+        state = self.repository.read()
+        self.demo._project(state, principal, project_id)
+        workflow = self.workflow._workflow(state, project_id)
+        return sla_propagation(state, project_id, self.workflow._ordered_chapters(state, project_id, workflow))
+
     def templates(self, principal):
         state = self.repository.read()
         company = principal.user.company_id

@@ -493,8 +493,9 @@
   flex-shrink: 0;
 }
 @media(max-width: 1439px) {
+  /* 1280 宽度下内容区约 1216px：三栏最小宽度合计须不超过它，否则编辑台横向溢出 */
   .editor-layout {
-    grid-template-columns: 260px minmax(650px, 1fr) 360px;
+    grid-template-columns: 240px minmax(520px, 1fr) 360px;
   }
   .editor-layout.directory-collapsed {
     grid-template-columns: 44px minmax(700px, 1fr) 360px;
@@ -560,3 +561,52 @@
   align-items: center;
   justify-content: center;
 }
+
+/* Wave 11：人工处理队列、分册定稿与复核、疑似遗漏 */
+.queue-issue{padding:12px 0;border-bottom:1px solid var(--line)}.queue-issue:last-child{border-bottom:0}.queue-issue p{margin:6px 0}.volume-finalize-row{padding:12px 0;border-bottom:1px solid var(--line)}.volume-finalize-row:last-child{border-bottom:0}.scan-hit{margin-bottom:10px}
+
+/* 原件 PDF 定位（APP-M2-T103）：画布上叠加条款原句高亮框。 */
+.pdf-locator { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.pdf-page { position: relative; background: white; box-shadow: 0 2px 8px #0005; }
+.pdf-page canvas { display: block; }
+.pdf-hit { position: absolute; background: #ffd66b66; outline: 2px solid var(--orange); border-radius: 2px; pointer-events: none; }
+.pdf-locate-note { align-self: stretch; color: #e8f5e9; font-size: 12px; }
+.pdf-locate-note.miss { color: #ffd591; }
+
+/* 选区改写（APP-M2-T178/T185）：差异视图删除标红、增加标绿，【待补】醒目。 */
+.rewrite-card { margin-bottom: 12px; border-color: #d7e2fb; }
+.rewrite-card blockquote { margin: 0 0 4px; max-height: 120px; overflow: auto; }
+.prompt-chips button.active { border-color: #6e4bd8; color: #6e4bd8; background: #f2eefc; }
+.rewrite-diff { white-space: pre-wrap; line-height: 1.9; font-size: 14px; padding: 12px; border: 1px solid var(--line); border-radius: 6px; max-height: 360px; overflow: auto; }
+.rewrite-diff ins { background: #e8f7ee; color: #1f6f3f; text-decoration: none; }
+.rewrite-diff del { background: #fdecee; color: #a8323d; }
+.rewrite-facts { margin: 12px 0 0; padding-left: 18px; font-size: 13px; color: #4e5969; line-height: 1.8; }
+.rewrite-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
+.rewrite-sources { margin: 4px 0 8px; padding-left: 16px; font-size: 12px; color: #4e5969; }
+.session-messages { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.8; color: #4e5969; }
+.session-messages li.assistant { color: #6e4bd8; }
+
+/* 站内提醒（PRD §5.12.2） */
+.notice-dropdown { width: 380px; max-height: 460px; overflow: auto; }
+.notice-dropdown .ant-list-item.unread { background: #f4f7ff; }
+.notice-link { display: block; color: inherit; }
+.notice-dropdown-foot { display: flex; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 4px; }
+.notice-unread-row > td { background: #f7f9ff !important; }
+
+/* 解析结果分类树（APP-M2-T104） */
+.parse-category button.tree-child { padding-left: 26px; font-size: 11px; }
+.parse-cards-title { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+
+/* 编辑台问题页签与正文段落联动（APP-M2-T166） */
+.editor-issue-panel .issue-filters{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.editor-issue-panel .issue-list{list-style:none;margin:0;padding:0}
+.editor-issue-panel .issue-item{border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-bottom:8px;background:white;font-size:13px}
+.editor-issue-panel .issue-item.active{border-color:#1e4db7;box-shadow:0 0 0 2px #e8efff}
+.editor-issue-panel .issue-item.closed{opacity:.65}
+.editor-issue-panel .issue-item-head{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:4px;font-size:12px}
+.editor-issue-panel .issue-message{color:#1d2129;line-height:1.6}
+.editor-issue-panel .issue-quote{font-size:12px;line-height:1.6;margin-top:2px;word-break:break-all}
+.paragraph-issue-marker{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;margin-right:6px;padding:0 5px;border-radius:9px;border:0;font-size:12px;line-height:18px;cursor:pointer;color:white;background:#8c8c8c;vertical-align:1px}
+.paragraph-issue-marker.blocker{background:#d9363e}
+.paragraph-issue-marker.warning{background:#d46b08}
+.rich-paragraph-with-cites p.paragraph-focused{background:#fff7e6;box-shadow:-3px 0 0 #fa8c16;transition:background .3s}

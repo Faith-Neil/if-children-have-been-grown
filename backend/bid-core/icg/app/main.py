@@ -39,6 +39,16 @@ from icg.api import (
     include_field_metadata_routes,
     include_company_routes,
     include_user_routes,
+    include_chapter_loop_routes,
+    include_evidence_candidate_routes,
+    include_knowledge_base_routes,
+    include_kb_admin_routes,
+    include_selection_rewrite_routes,
+    include_notification_routes,
+    include_export_asset_routes,
+    include_task_model_route_routes,
+    include_paragraph_lock_routes,
+    include_chapter_version_routes,
 )
 
 
@@ -47,7 +57,7 @@ DOCX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingm
 
 def error_responses(*statuses: int) -> dict:
     descriptions = {
-        401: "未登录或演示登录已失效",
+        401: "未登录或登录已失效",
         403: "当前账号无操作权限",
         404: "资源不存在或当前公司无权访问",
         409: "版本、草稿或检查结果冲突",
@@ -68,15 +78,8 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
                evidence_service: Any | None = None) -> FastAPI:
     if model_provider is None and use_configured_model:
         model_provider = openai_provider_from_environment()
-    if evidence_service is None and os.environ.get("ICG_RAGFLOW_BASE_URL", "").strip():
-        try:
-            from icg.infra.ragflow_client import RagflowConfig, RagflowRetrievalClient
-            from icg.infra.retrieval import EvidenceCandidateService
-            rag_cfg = RagflowConfig.from_env()
-            rag_client = RagflowRetrievalClient(rag_cfg)
-            evidence_service = EvidenceCandidateService(ragflow_client=rag_client)
-        except Exception:
-            evidence_service = None
+    # evidence_service 未注入时，DemoService 自带公司知识库检索（icg.domain.knowledge_base）：
+    # 按公司 RAGFlow 配置（或 ICG_RAGFLOW_BASE_URL + ICG_RAGFLOW_API_KEY）检索已同步资料，未配置时安全跳过。
     service = DemoService(repository if repository is not None else repository_from_environment(),
                           model_provider if model_provider is not None else DemoModelProvider(),
                           clock, model_transport=model_transport,
@@ -87,10 +90,6 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
                           responses=error_responses(422, 500))
     application.state.service = service
 
-    static_directory = Path(__file__).resolve().parents[2] / "icg_demo" / "static"
-    if not static_directory.exists():
-        static_directory = Path(__file__).resolve().parent / "static"
-    application.mount("/static", StaticFiles(directory=static_directory, check_dir=False), name="static")
 
     product_directory = Path(__file__).resolve().parents[4] / "frontend" / "web" / "dist"
     application.mount("/assets", StaticFiles(directory=product_directory / "assets", check_dir=False), name="product-assets")
@@ -105,9 +104,6 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
             reset_request(token)
         response.headers["X-Request-ID"] = request.state.request_id
         response.headers["Cache-Control"] = "no-store"
-        if request.url.path.startswith("/api/demo"):
-            response.headers["Deprecation"] = "true"
-            response.headers["Sunset"] = "Sun, 15 Nov 2026 00:00:00 GMT"
         if replayed_for(request):
             response.headers["Idempotent-Replayed"] = "true"
         return response
@@ -120,9 +116,6 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
             content["error"] = {"code": code, "message": message}
             content["request_id"] = request_id
         resp_headers = {"X-Request-ID": request_id, "Cache-Control": "no-store", **(headers or {})}
-        if request.url.path.startswith("/api/demo"):
-            resp_headers["Deprecation"] = "true"
-            resp_headers["Sunset"] = "Sun, 15 Nov 2026 00:00:00 GMT"
         return JSONResponse(status_code=status,
                             content=content,
                             headers=resp_headers)
@@ -148,17 +141,26 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     async def unexpected_error(request: Request, error: Exception):
         return error_response(request, 500, "INTERNAL_ERROR", "演示服务暂时失败，请凭请求编号核对日志。")
 
-    def current_user(authorization: Annotated[str | None, Header()] = None) -> Principal:
+    def current_user(request: Request, authorization: Annotated[str | None, Header()] = None) -> Principal:
         scheme, _, token = (authorization or "").partition(" ")
         if scheme.lower() != "bearer" or not token.strip():
-            raise DomainError(401, "UNAUTHENTICATED", "请先选择演示账号登录。")
-        return service.authenticate(token.strip())
+            raise DomainError(401, "UNAUTHENTICATED", "请先登录。")
+        principal = service.authenticate(token.strip())
+        # 须改密的会话只能改密、读密码规则和注销（APP-M2-T260），所有使用登录身份的接口都经过这里。
+        from icg.domain.password_login import require_password_changed
+        require_password_changed(principal, request.method, request.url.path)
+        return principal
 
     @application.get("/health", response_model=HealthResponse, operation_id="getHealth")
     def health():
-        return {"status": "ok", "mode": "local-demo", "repository": getattr(service.repository, "mode", "injected"),
+        from icg.domain.domain import _production_mode
+        repository_mode = getattr(service.repository, "mode", "injected")
+        return {"status": "ok", "mode": "production" if _production_mode() else "development",
+                "repository": repository_mode,
                 "model": "real" if getattr(service.model_provider, "is_real_model", False) else "mock",
-                "persistent": False, "single_process": True}
+                "persistent": repository_mode == "mysql",
+                # 后台作业执行与知识库同步锁仍在进程内，部署时只能起一个应用进程。
+                "single_process": True}
 
     @application.get("/", response_class=FileResponse, operation_id="getIndex",
                      responses={**error_responses(404), 200: {"description": "本地操作页面",
@@ -168,10 +170,6 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
         if not path.is_file():
             raise DomainError(503, "UI_NOT_READY", "产品页面尚未构建，请按前端运行说明先构建页面。")
         return FileResponse(path)
-
-    @application.get("/demo", response_class=FileResponse, include_in_schema=False)
-    def developer_demo():
-        return FileResponse(static_directory / "index.html")
 
     # 按域收口注册 API 端点
     include_session_routes(application, service, current_user)
@@ -187,6 +185,16 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     include_field_metadata_routes(application, service, current_user)
     include_company_routes(application, service, current_user)
     include_user_routes(application, service, current_user)
+    include_chapter_loop_routes(application, service, current_user)
+    include_evidence_candidate_routes(application, service, current_user)
+    include_knowledge_base_routes(application, service, current_user)
+    include_kb_admin_routes(application, service, current_user)
+    include_selection_rewrite_routes(application, service, current_user)
+    include_notification_routes(application, service, current_user)
+    include_export_asset_routes(application, service, current_user)
+    include_task_model_route_routes(application, service, current_user)
+    include_paragraph_lock_routes(application, service, current_user)
+    include_chapter_version_routes(application, service, current_user)
 
     @application.get("/{full_path:path}", include_in_schema=False)
     def product_page(full_path: str):

@@ -3,8 +3,11 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import json
 from datetime import datetime
+import threading
 from threading import Lock
 from typing import Any, Callable, TypeVar
 
@@ -15,7 +18,7 @@ from icg.domain.domain import Chapter, DemoState, DomainError, Lease, Project, i
 from icg.infra.mysql_gate import create_mysql_engine, RECEIPT_TTL
 from icg.infra.memory_repository import MemoryRepository
 from icg.infra.repositories.common import as_timestamp, parse_db_timestamp, utc_naive, json_value
-from icg.infra.repositories.chapters import read_chapter, save_chapter, commit_chapter_version, chapter_snapshot, save_chapters_diff
+from icg.infra.repositories.chapters import merge_meta, read_chapter, save_chapter, commit_chapter_version, chapter_snapshot, save_chapters_diff
 from icg.infra.repositories.checks_exports import (
     save_check, read_check, list_checks_by_project, delete_check, check_snapshot, save_checks_diff,
     save_export, read_export, update_export_status, list_exports_by_project, delete_export,
@@ -33,6 +36,7 @@ from icg.infra.repositories.jobs import (
 )
 from icg.infra.repositories.projects import project_snapshot, team_snapshot, save_projects
 from icg.infra.repositories.model_config import save_model_configs
+from icg.infra.repositories.state_entries import StateEntryStore, snapshot as entry_snapshot
 
 T = TypeVar("T")
 
@@ -69,7 +73,12 @@ class MysqlConnectionRepository:
         self._url = url
         self._engine = None
         self._engine_lock = Lock()
-        self._memory = MemoryRepository()
+        # 生产环境不加载合成种子数据（示例公司、项目、账号、资料）：库里有什么就是什么，管理员首次登录时初始化。
+        from icg.domain.domain import DemoState, _production_mode
+        self._memory = MemoryRepository(DemoState() if _production_mode() else None)
+        # 其余业务状态（工作流、账号、资料库、任务、审计等）按条目写入 demo_state_entry（ISSUE-041）。
+        self._entries = StateEntryStore()
+        self._entry_context = threading.local()
 
     @property
     def engine(self):
@@ -182,6 +191,7 @@ class MysqlConnectionRepository:
 
     def read(self):
         state = self._memory.read()
+        self._entry_context.keys = None
         self._load_shared(state, set())
         state.cap_receipts = False
         return state
@@ -190,8 +200,11 @@ class MysqlConnectionRepository:
         loaded_project_ids: set[str] = set()
         loaded_chapter_ids: set[str] = set()
         loaded_check_ids: set[str] = set()
+        entry_keys: list = []
+        entry_updates: dict = {}
 
         def wrapped(state: DemoState) -> T:
+            self._entry_context.keys = entry_keys
             self._load_shared(state, loaded_project_ids, loaded_chapter_ids, loaded_check_ids)
             state.cap_receipts = False
             before_sessions = dict(state.sessions)
@@ -199,10 +212,12 @@ class MysqlConnectionRepository:
             before_leases = lease_snapshot(state)
             before_projects = project_snapshot(state)
             before_teams = team_snapshot(state)
-            before_configs = dict(state.model_configs)
+            # 按值快照：更新接口原地修改配置对象，浅拷贝会让前后相同、修改永远写不进库
+            before_configs = {cid: replace(cfg) for cid, cfg in state.model_configs.items()}
             before_bindings = dict(state.project_model_configs)
             before_chapters = chapter_snapshot(state)
             before_checks = check_snapshot(state)
+            before_entries = entry_snapshot(state)
             result = operation(state)
             self._save_shared(
                 before_sessions, dict(state.sessions), before_receipts, state.workflow_receipts,
@@ -213,6 +228,7 @@ class MysqlConnectionRepository:
                 before_bindings, dict(state.project_model_configs),
                 before_chapters, chapter_snapshot(state), state.chapters, loaded_chapter_ids,
                 before_checks, check_snapshot(state), state.checks, loaded_check_ids,
+                before_entries, entry_snapshot(state), entry_updates,
             )
             state.sessions.clear()
             state.workflow_receipts.clear()
@@ -221,7 +237,13 @@ class MysqlConnectionRepository:
             state.cap_receipts = True
             return result
 
-        return self._memory.transaction(wrapped)
+        try:
+            result = self._memory.transaction(wrapped)
+        except BaseException:
+            self._entries.forget(entry_keys)
+            raise
+        self._entries.commit(entry_updates)
+        return result
 
     def _load_shared(self, state: DemoState, loaded_project_ids: set[str],
                      loaded_chapter_ids: set[str] | None = None,
@@ -335,7 +357,7 @@ class MysqlConnectionRepository:
                 configs = connection.execute(text(
                     "SELECT id, company_id, name, provider, base_url, model, encrypted_api_key, "
                     "api_key_masked, is_local, allow_sensitive, stream_enabled, json_mode_enabled, "
-                    "revision, timeout_seconds, max_tokens FROM demo_model_config"
+                    "revision, timeout_seconds, max_tokens, fallback_config_id FROM demo_model_config"
                 )).all()
                 bindings = connection.execute(text(
                     "SELECT project_id, model_config_id FROM demo_project_model_config"
@@ -343,7 +365,7 @@ class MysqlConnectionRepository:
             from icg.infra.model_config_storage import ModelConfig
             for (cid, company_id, name, provider, base_url, model, encrypted_api_key,
                  api_key_masked, is_local, allow_sensitive, stream_enabled, json_mode_enabled,
-                 revision, timeout_seconds, max_tokens) in configs:
+                 revision, timeout_seconds, max_tokens, fallback_config_id) in configs:
                 state.model_configs[cid] = ModelConfig(
                     id=cid, company_id=company_id, name=name, provider=provider,
                     base_url=base_url, model=model, encrypted_api_key=encrypted_api_key,
@@ -351,6 +373,7 @@ class MysqlConnectionRepository:
                     allow_sensitive=bool(allow_sensitive), stream_enabled=bool(stream_enabled),
                     json_mode_enabled=bool(json_mode_enabled), revision=int(revision),
                     timeout_seconds=float(timeout_seconds), max_tokens=int(max_tokens),
+                    fallback_config_id=fallback_config_id,
                 )
             for pid, mid in bindings:
                 state.project_model_configs[pid] = mid
@@ -363,12 +386,12 @@ class MysqlConnectionRepository:
                     "FROM demo_chapter"
                 )).all()
                 versions_rows = connection.execute(text(
-                    "SELECT id, chapter_id, version_number, content, created_by, created_at "
+                    "SELECT id, chapter_id, version_number, content, created_by, created_at, meta "
                     "FROM demo_chapter_version ORDER BY version_number ASC"
                 )).all()
             versions_by_cid: dict[str, list[dict]] = {}
-            for vid, cid, v_num, v_content, v_actor, v_created in versions_rows:
-                versions_by_cid.setdefault(cid, []).append({
+            for vid, cid, v_num, v_content, v_actor, v_created, v_meta in versions_rows:
+                versions_by_cid.setdefault(cid, []).append(merge_meta({
                     "id": vid,
                     "chapter_id": cid,
                     "revision": int(v_num),
@@ -377,7 +400,7 @@ class MysqlConnectionRepository:
                     "actor_id": v_actor,
                     "created_by": v_actor,
                     "created_at": iso_time(as_timestamp(v_created)) if isinstance(v_created, datetime) else str(v_created),
-                })
+                }, v_meta))
             if loaded_chapter_ids is not None:
                 loaded_chapter_ids.clear()
                 loaded_chapter_ids.update(r[0] for r in chapters_rows)
@@ -428,6 +451,14 @@ class MysqlConnectionRepository:
                 pass
         except Exception:
             pass
+        self._load_entries(state, getattr(self._entry_context, "keys", None))
+
+    def _load_entries(self, state: DemoState, entry_keys: list | None) -> None:
+        """读取 demo_state_entry；entry_keys 为 None 表示只读快照，不更新缓存。"""
+        with self.engine.begin() as connection:
+            keys = self._entries.load(connection, state, remember=entry_keys is not None)
+        if entry_keys is not None:
+            entry_keys.extend(keys)
 
     def _save_shared(self, before_sessions: dict, after_sessions: dict,
                      before_receipts: dict, after_receipts: dict,
@@ -440,7 +471,10 @@ class MysqlConnectionRepository:
                      before_chapters: dict | None = None, after_chapters: dict | None = None,
                      state_chapters: dict | None = None, loaded_chapter_ids: set[str] | None = None,
                      before_checks: dict | None = None, after_checks: dict | None = None,
-                     state_checks: dict | None = None, loaded_check_ids: set[str] | None = None) -> None:
+                     state_checks: dict | None = None, loaded_check_ids: set[str] | None = None,
+                     before_entries: dict | None = None,
+                     after_entries: dict | None = None,
+                     entry_updates: dict | None = None) -> None:
         with self.engine.begin() as connection:
             connection.execute(text("DELETE FROM idempotency_receipt WHERE expires_at <= NOW(6)"))
             for token in before_sessions:
@@ -616,3 +650,7 @@ class MysqlConnectionRepository:
                     connection, before_checks, after_checks,
                     state_checks, loaded_check_ids or set(),
                 )
+            if before_entries is not None and after_entries is not None:
+                updates = self._entries.save(connection, before_entries, after_entries)
+                if entry_updates is not None:
+                    entry_updates.update(updates)

@@ -7,8 +7,11 @@ import assert from 'node:assert/strict';
 import {
   parseSseLine,
   parseSseMessage,
+  splitSseBuffer,
   calculateBackoffDelay,
   isJobTerminalStatus,
+  jobFromStatus,
+  applyJobEvent,
   JobStreamSubscriptionManager,
   TERMINAL_JOB_STATUSES,
 } from '../../src/status/job-progress-sse.ts';
@@ -93,222 +96,106 @@ test('3. 任务终态判定集合 (isJobTerminalStatus & TERMINAL_JOB_STATUSES)'
   assert.equal(isJobTerminalStatus(''), false);
 });
 
-test('4. SSE 模拟订阅与正常进度推送更新', () => {
+const frame = (jobId, seq, type, payload) => `id: ${jobId}:${seq}\nevent: ${type}\ndata: ${JSON.stringify({ seq, id: `${jobId}:${seq}`, type, payload })}\n\n`;
+const streamResponse = text => ({ ok: true, status: 200, body: null, text: async () => text, json: async () => ({}) });
+const jsonResponse = (status, data) => ({ ok: status >= 200 && status < 300, status, body: null, text: async () => JSON.stringify(data), json: async () => data });
+const settle = (ms = 30) => new Promise(resolve => setTimeout(resolve, ms));
+
+test('4. 后台任务状态与事件换成页面进度数据', () => {
+  const job = jobFromStatus({ id: 'job-1', type: 'parse', status: 'queued', progress: 0, message: '已排队', error: null, allowedActions: ['cancel'] });
+  assert.deepEqual([job.jobId, job.jobType, job.status, job.percent, job.description, job.allowedActions], ['job-1', 'parse', 'pending', 0, '已排队', ['cancel']]);
+  const running = applyJobEvent(job, { seq: 1, id: 'job-1:1', type: 'job.status_changed', payload: { from: 'queued', to: 'running' } });
+  assert.equal(running.status, 'running');
+  const progress = applyJobEvent(running, { seq: 2, id: 'job-1:2', type: 'job.progress', payload: { progress: 40, message: 'RAGFlow 正在识别' } });
+  assert.deepEqual([progress.percent, progress.description], [40, 'RAGFlow 正在识别']);
+  const failed = applyJobEvent(progress, { seq: 3, id: 'job-1:3', type: 'job.failed', payload: { status: 'failed', completed_at: 't', error: 'PARSER_UNAVAILABLE' } });
+  assert.deepEqual([failed.status, failed.errorCode, failed.allowedActions], ['failed', 'PARSER_UNAVAILABLE', ['retry']]);
+  const failedStatus = jobFromStatus({ id: 'job-2', type: 'parse', status: 'failed', progress: 100, message: 'x', error: { code: 'INTERNAL_ERROR', message: '中断' } });
+  assert.deepEqual([failedStatus.errorCode, failedStatus.errorMessage], ['INTERNAL_ERROR', '中断']);
+  assert.deepEqual(splitSseBuffer('id: a\ndata: 1\n\nid: b\nda'), { complete: 'id: a\ndata: 1\n\n', rest: 'id: b\nda' });
+});
+
+test('5. 事件流带令牌与 Last-Event-ID；后台到时关闭后续连，任务结束即停止', async () => {
+  const calls = [];
+  const replies = [
+    streamResponse(frame('job-5', 1, 'job.status_changed', { from: 'queued', to: 'running' }) + frame('job-5', 2, 'job.progress', { progress: 30, message: '识别中' })),
+    streamResponse(': keep-alive\n\n' + frame('job-5', 3, 'job.completed', { status: 'completed', completed_at: 't', error: null })),
+  ];
   const updates = [];
-  const statusChanges = [];
-
-  class MockEventSource {
-    constructor(url) {
-      this.url = url;
-      this.onopen = null;
-      this.onmessage = null;
-      this.onerror = null;
-      this.listeners = new Map();
-      this.closed = false;
-
-      // 异步触发 open
-      setTimeout(() => {
-        if (!this.closed && this.onopen) this.onopen({ type: 'open' });
-      }, 0);
-    }
-    close() {
-      this.closed = true;
-    }
-    addEventListener(type, cb) {
-      this.listeners.set(type, cb);
-    }
-  }
-
-  let mockEsInstance = null;
+  let terminal = null;
   const manager = new JobStreamSubscriptionManager({
-    jobId: 'job-101',
-    eventSourceFactory: (url) => {
-      mockEsInstance = new MockEventSource(url);
-      return mockEsInstance;
-    },
-    onJobUpdate: (job) => updates.push(job),
-    onStatusChange: (status, meta) => statusChanges.push({ status, meta }),
+    jobId: 'job-5', token: 'tok', reconnectDelayMs: 1,
+    fetchFn: async (url, init) => { calls.push({ url, headers: init.headers }); return replies.shift(); },
+    onJobUpdate: job => updates.push(job), onTerminal: job => { terminal = job; },
   });
-
   manager.connect();
-
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // 验证连接建立
-      assert.equal(manager.getStatus(), 'connected');
-
-      // 模拟服务器推送进度数据
-      mockEsInstance.onmessage({
-        data: JSON.stringify({
-          jobId: 'job-101',
-          status: 'running',
-          percent: 30,
-        }),
-      });
-
-      assert.equal(updates.length, 1);
-      assert.equal(updates[0].percent, 30);
-      assert.equal(updates[0].status, 'running');
-
-      manager.disconnect();
-      assert.equal(manager.getStatus(), 'closed');
-      assert.equal(mockEsInstance.closed, true);
-      resolve();
-    }, 10);
-  });
+  await settle();
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].url, '/api/v1/jobs/job-5/events');
+  assert.equal(calls[0].headers.Authorization, 'Bearer tok');
+  assert.equal(calls[0].headers['Last-Event-ID'], undefined);
+  assert.equal(calls[1].headers['Last-Event-ID'], 'job-5:2');
+  assert.deepEqual(updates.map(u => [u.status, u.percent]), [['running', undefined], ['running', 30], ['completed', 100]]);
+  assert.equal(terminal.status, 'completed');
+  assert.equal(manager.getStatus(), 'closed');
 });
 
-test('5. 断线 3 次阶梯指数退避重连与重试计数', () => {
-  class FailingMockEventSource {
-    constructor(url) {
-      this.url = url;
-      this.onopen = null;
-      this.onmessage = null;
-      this.onerror = null;
-      this.closed = false;
-
-      // 立即触发错误
-      setTimeout(() => {
-        if (!this.closed && this.onerror) this.onerror(new Error('Connection dropped'));
-      }, 0);
-    }
-    close() {
-      this.closed = true;
-    }
-  }
-
-  let connectionAttempts = 0;
-  const retryStatuses = [];
-
+test('6. 出错 3 次退避后改为带令牌轮询，轮询中再试实时流成功即恢复', async () => {
+  const calls = [];
+  let streamAttempts = 0;
+  const statuses = [];
   const manager = new JobStreamSubscriptionManager({
-    jobId: 'job-retry-test',
-    maxRetries: 3,
-    baseBackoffMs: 10, // 缩短单测时间
-    eventSourceFactory: (url) => {
-      connectionAttempts++;
-      return new FailingMockEventSource(url);
+    jobId: 'job-6', token: 'tok', maxRetries: 3, baseBackoffMs: 1, pollingIntervalMs: 1, resumeEveryPolls: 2, reconnectDelayMs: 1,
+    fetchFn: async (url, init) => {
+      calls.push({ url, auth: init.headers.Authorization });
+      if (url.endsWith('/events')) {
+        streamAttempts += 1;
+        if (streamAttempts <= 4) throw new TypeError('network down');
+        return streamResponse(frame('job-6', 9, 'job.completed', { status: 'completed', completed_at: 't', error: null }));
+      }
+      return jsonResponse(200, { id: 'job-6', type: 'parse', status: 'running', progress: 60, message: '识别中', error: null, events: [{ seq: 8, id: 'job-6:8', type: 'job.progress' }] });
     },
-    onStatusChange: (status, meta) => {
-      retryStatuses.push({ status, retryCount: meta.retryCount, isFallback: meta.isFallback });
-    },
+    onStatusChange: (status, meta) => statuses.push([status, meta.isFallback]),
   });
-
   manager.connect();
-
-  return new Promise((resolve) => {
-    // 观察 3 次重试过程
-    setTimeout(() => {
-      // 3 次重试耗尽后应该触发降级轮询
-      assert.ok(connectionAttempts >= 3, `Expected at least 3 attempts, got ${connectionAttempts}`);
-      assert.ok(manager.getRetryCount() >= 3, `Retry count should reach at least 3`);
-      manager.disconnect();
-      resolve();
-    }, 100);
-  });
+  await settle(80);
+  assert.ok(statuses.some(([status, fallback]) => status === 'polling' && fallback), JSON.stringify(statuses));
+  assert.ok(calls.filter(c => !c.url.endsWith('/events')).length >= 2);
+  assert.ok(calls.every(c => c.auth === 'Bearer tok'));
+  assert.ok(statuses.some(([status, fallback]) => status === 'connected' && !fallback), '轮询期间恢复实时流');
+  assert.equal(manager.getJob().status, 'completed');
+  assert.equal(manager.getStatus(), 'closed');
 });
 
-test('6. 超过 3 次重试后平滑回退至定时轮询模式', () => {
-  class FailImmediatelyEventSource {
-    constructor(url) {
-      this.onerror = null;
-      this.closed = false;
-      setTimeout(() => {
-        if (this.onerror) this.onerror(new Error('ECONNRESET'));
-      }, 0);
-    }
-    close() {
-      this.closed = true;
-    }
+test('7. 401/404 立即停止，不无限重试；断开后不再发请求', async () => {
+  for (const status of [401, 404]) {
+    let count = 0;
+    const statuses = [];
+    const manager = new JobStreamSubscriptionManager({
+      jobId: 'job-7', token: 'tok', baseBackoffMs: 1,
+      fetchFn: async () => { count += 1; return jsonResponse(status, {}); },
+      onStatusChange: (value, meta) => statuses.push([value, meta.reason]),
+    });
+    manager.connect();
+    await settle();
+    assert.equal(count, 1);
+    assert.equal(manager.getStatus(), 'error');
+    assert.ok(statuses.at(-1)[1]);
   }
-
-  let pollFetchCount = 0;
-  const pollUpdates = [];
-
-  const mockFetch = async (url) => {
-    pollFetchCount++;
-    return {
-      ok: true,
-      status: 200,
-      json: async () => ({
-        jobId: 'job-fallback-1',
-        status: 'running',
-        percent: 60,
-      }),
-    };
-  };
-
+  let count = 0;
   const manager = new JobStreamSubscriptionManager({
-    jobId: 'job-fallback-1',
-    maxRetries: 1, // 设置为 1 次快速触发降级
-    baseBackoffMs: 5,
-    pollingIntervalMs: 20,
-    eventSourceFactory: (url) => new FailImmediatelyEventSource(url),
-    fetchFn: mockFetch,
-    onJobUpdate: (job) => pollUpdates.push(job),
+    jobId: 'job-8', reconnectDelayMs: 5,
+    fetchFn: async () => { count += 1; return streamResponse(''); },
   });
-
   manager.connect();
-
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // 验证已自动切换为轮询模式
-      assert.equal(manager.getStatus(), 'polling');
-      assert.equal(manager.getIsFallback(), true);
-      assert.ok(pollFetchCount >= 1, 'Poll fetch must be invoked');
-      assert.ok(pollUpdates.length >= 1, 'Poll updates must receive data');
-      assert.equal(pollUpdates[0].percent, 60);
-
-      manager.disconnect();
-      assert.equal(manager.getStatus(), 'closed');
-      resolve();
-    }, 60);
-  });
-});
-
-test('7. 任务进入终态 (completed / failed / cancelled) 自动关闭连接与定时器', () => {
-  class TerminalMockEventSource {
-    constructor(url) {
-      this.onopen = null;
-      this.onmessage = null;
-      this.onerror = null;
-      this.closed = false;
-      setTimeout(() => {
-        if (this.onopen) this.onopen({});
-      }, 0);
-    }
-    close() {
-      this.closed = true;
-    }
-  }
-
-  let esInstance = null;
-  const manager = new JobStreamSubscriptionManager({
-    jobId: 'job-terminal-test',
-    eventSourceFactory: (url) => {
-      esInstance = new TerminalMockEventSource(url);
-      return esInstance;
-    },
-  });
-
-  manager.connect();
-
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      assert.equal(manager.getStatus(), 'connected');
-
-      // 发送终态消息 completed
-      esInstance.onmessage({
-        data: JSON.stringify({
-          jobId: 'job-terminal-test',
-          status: 'completed',
-          percent: 100,
-        }),
-      });
-
-      // 验证连接已被自动关闭
-      assert.equal(manager.getStatus(), 'closed');
-      assert.equal(esInstance.closed, true);
-      resolve();
-    }, 10);
-  });
+  await settle(1);
+  manager.disconnect();
+  const seen = count;
+  await settle(30);
+  assert.equal(count, seen);
+  assert.equal(manager.getStatus(), 'closed');
+  const done = new JobStreamSubscriptionManager({ jobId: 'job-9', initialJob: { jobId: 'job-9', jobType: 'parse', status: 'completed' },
+    fetchFn: async () => { throw new Error('must not fetch'); } });
+  done.connect();
+  assert.equal(done.getStatus(), 'closed');
 });

@@ -139,7 +139,14 @@ test('5. SSE 流订阅、断线重试与平滑轮询降级契约断言 (APP-M2-T
 
   assert.ok(sseExported.has('JobStreamSubscriptionManager'), 'job-progress-sse.ts must export JobStreamSubscriptionManager');
   assert.ok(sseExported.has('createJobStreamSubscription'), 'job-progress-sse.ts must export createJobStreamSubscription');
-  assert.ok(sseExported.has('useJobProgressSse'), 'job-progress-sse.ts must export useJobProgressSse');
+  // 订阅钩子单独放在 useJobProgressSse.ts，job-progress-sse.ts 不依赖 React，可直接单测
+  assert.ok(!sseExported.has('useJobProgressSse'), 'job-progress-sse.ts stays React-free');
+  const { tree: hookTree } = parseSource('../src/status/useJobProgressSse.ts');
+  const hookExported = new Set();
+  ts.forEachChild(hookTree, node => {
+    if (ts.isFunctionDeclaration(node) && node.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword) && node.name) hookExported.add(node.name.text);
+  });
+  assert.ok(hookExported.has('useJobProgressSse'), 'useJobProgressSse.ts must export useJobProgressSse');
   assert.ok(sseExported.has('calculateBackoffDelay'), 'job-progress-sse.ts must export calculateBackoffDelay');
   assert.ok(sseExported.has('isJobTerminalStatus'), 'job-progress-sse.ts must export isJobTerminalStatus');
 });

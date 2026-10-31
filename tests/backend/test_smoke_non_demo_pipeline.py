@@ -81,12 +81,11 @@ def test_smoke_step1_demo_login_blocked_in_production(non_demo_env):
     """排查断点 1：验证生产非演示模式下内置演示账号登录被严格阻断。"""
     client, _, _ = non_demo_env
     for demo_id in ("alpha-manager", "alpha-editor", "alpha-viewer", "beta-manager"):
-        resp = client.post("/api/demo/login", json={"account_id": demo_id})
-        assert resp.status_code == 403
+        resp = client.post("/api/v1/auth/login", json={"username": demo_id, "password": "X_2026"})
+        assert resp.status_code == 401
         data = resp.json()
-        assert data["code"] == "FORBIDDEN"
+        assert data["code"] == "INVALID_CREDENTIALS"
         assert "traceId" in data
-        assert resp.headers.get("Deprecation") == "true"
 
 
 def test_smoke_step1_eight_roles_session_retrieval(non_demo_env):
@@ -101,14 +100,14 @@ def test_smoke_step1_eight_roles_session_retrieval(non_demo_env):
 
     # 2. 8 角色正式会话结构校验
     expected_nav_keys = {
-        "project_lead": {"workbench", "library", "knowledge", "writing", "admin.rules", "jobs"},
-        "bid_writer": {"workbench", "library", "knowledge", "writing", "jobs"},
-        "company_admin": {"workbench", "library", "knowledge", "writing", "statistics", "admin", "jobs"},
-        "data_admin": {"workbench", "library", "knowledge", "writing", "jobs"},
-        "auditor": {"workbench", "library", "knowledge", "jobs"},
-        "viewer": {"workbench", "library", "knowledge", "jobs"},
-        "group_admin": {"workbench", "library", "knowledge", "writing", "admin"},
-        "platform_admin": {"platform", "platform.audit", "jobs"},
+        "project_lead": {"workbench", "library", "knowledge", "writing", "admin.rules", "jobs", "notifications"},
+        "bid_writer": {"workbench", "library", "knowledge", "writing", "jobs", "notifications"},
+        "company_admin": {"workbench", "library", "knowledge", "writing", "statistics", "admin", "jobs", "notifications"},
+        "data_admin": {"workbench", "library", "knowledge", "writing", "jobs", "notifications"},
+        "auditor": {"workbench", "library", "knowledge", "jobs", "notifications"},
+        "viewer": {"workbench", "library", "knowledge", "jobs", "notifications"},
+        "group_admin": {"workbench", "library", "knowledge", "writing", "admin", "notifications"},
+        "platform_admin": {"platform", "platform.audit", "jobs", "notifications"},
     }
 
     for role, token in tokens.items():

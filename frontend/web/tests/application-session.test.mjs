@@ -8,7 +8,7 @@ import { chapterCan, projectCan } from '../src/project/project-team.ts';
 import { companyReadSessionMatches } from '../src/library/library-review.ts';
 
 const session = (change = {}) => ({
-  auth_mode: 'synthetic-demo', role_mode: 'legacy-demo-compat',
+  auth_mode: 'authenticated', role_mode: 'rbac-8roles',
   user: { id: 'alpha-manager', name: '合成经理', company_id: 'alpha', role: 'manager', roles: ['project_lead'], primary_role: 'project_lead' },
   scope: { kind: 'company', active_company_id: 'alpha', allowed_company_ids: ['alpha'] },
   navigation: [{ route_id: 'workbench', path: '/workbench', access: 'write' }, { route_id: 'library', path: '/library', access: 'write' }, { route_id: 'jobs', path: '/jobs', access: 'read' }],
@@ -53,11 +53,22 @@ test('unknown routes, mismatched paths and unsupported access never become usabl
 test('unsupported identity modes and contradictory company scopes fail before any company read', async () => {
   let reads = 0;
   const readers = Object.fromEntries(['projects', 'library', 'templates', 'jobs'].map(key => [key, async () => { reads++; return []; }]));
-  for (const current of [session({ auth_mode: 'oidc' }), session({ scope: { kind: 'company', active_company_id: 'beta', allowed_company_ids: ['beta'] } }), session({ user: { ...session().user, role: 'platform_admin' } })]) {
+  for (const current of [session({ auth_mode: 'oidc' }), session({ scope: { kind: 'company', active_company_id: 'beta', allowed_company_ids: ['beta'] } }), session({ user: { ...session().user, role: 'superuser' } })]) {
     assert.throws(() => trustedApplicationSession(current), denied);
     await assert.rejects(readAuthorizedCompanyData(current, readers), denied);
   }
   assert.equal(reads, 0);
+});
+
+test('only the platform super admin may hold a system scope', () => {
+  const platform = session({
+    user: { id: 'admin', name: '系统超级管理员', company_id: 'system', role: 'platform_admin', roles: ['platform_admin'], primary_role: 'platform_admin' },
+    scope: { kind: 'system', active_company_id: 'system', allowed_company_ids: ['alpha', 'system'] },
+  });
+  assert.equal(trustedApplicationSession(platform), platform);
+  assert.throws(() => trustedApplicationSession(session({ scope: { kind: 'system', active_company_id: 'alpha', allowed_company_ids: ['alpha'] } })), denied);
+  assert.throws(() => trustedApplicationSession({ ...platform, user: { ...platform.user, primary_role: 'company_admin', role: 'company_admin' } }), denied);
+  assert.throws(() => trustedApplicationSession({ ...platform, scope: { kind: 'group', active_company_id: 'system', allowed_company_ids: ['system'] } }), denied);
 });
 
 test('company readers require both the matching route and the individual server action', async () => {

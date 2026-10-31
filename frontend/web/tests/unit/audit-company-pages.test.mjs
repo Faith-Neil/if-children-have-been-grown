@@ -28,7 +28,6 @@ import {
   validateCompanyComplianceSettings,
   canManageCompanySettings,
   validateDisableConfirmation,
-  DEFAULT_COMPANIES,
 } from '../../src/admin/company-manage-core.ts';
 
 /* ========================================================================= */

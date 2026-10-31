@@ -21,7 +21,7 @@ def run_action(action: str, payload: dict, queue) -> None:
 
     with TestClient(create_app()) as client:
         if action == "write":
-            login = client.post("/api/demo/login", json={"account_id": "alpha-editor"})
+            login = client.post("/api/v1/auth/login", json={"username": "alpha-editor", "password": "X_2026"})
             if login.status_code != 200:
                 queue.put({"ok": False, "step": "login", "status": login.status_code, "body": login.text})
                 return
@@ -66,7 +66,7 @@ def run_action(action: str, payload: dict, queue) -> None:
             return
         if action == "lock_acquire":
             account_id = payload.get("account_id", "alpha-editor")
-            login = client.post("/api/demo/login", json={"account_id": account_id})
+            login = client.post("/api/v1/auth/login", json={"username": account_id, "password": "X_2026"})
             if login.status_code != 200:
                 queue.put({"ok": False, "step": "login", "status": login.status_code, "body": login.text})
                 return
@@ -84,7 +84,7 @@ def run_action(action: str, payload: dict, queue) -> None:
             })
             return
         if action == "create_project":
-            login = client.post("/api/demo/login", json={"account_id": "alpha-manager"})
+            login = client.post("/api/v1/auth/login", json={"username": "alpha-manager", "password": "X_2026"})
             if login.status_code != 200:
                 queue.put({"ok": False, "step": "login", "status": login.status_code, "body": login.text})
                 return
@@ -101,7 +101,7 @@ def run_action(action: str, payload: dict, queue) -> None:
             })
             return
         if action == "read_project":
-            login = client.post("/api/demo/login", json={"account_id": "alpha-manager"})
+            login = client.post("/api/v1/auth/login", json={"username": "alpha-manager", "password": "X_2026"})
             if login.status_code != 200:
                 queue.put({"ok": False, "step": "login", "status": login.status_code, "body": login.text})
                 return

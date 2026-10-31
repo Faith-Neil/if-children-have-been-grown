@@ -18,13 +18,16 @@ from icg_demo.main import create_app
 @pytest.fixture
 def client():
     state = seed_state()
-    state.accounts["beta-manager"] = Account("beta-manager", "乙公司项目经理（合成）", "beta", "manager")
+    from icg.domain.auth_service import hash_password
+    digest, salt = hash_password("X_2026")
+    state.accounts["beta-manager"] = Account("beta-manager", "乙公司项目经理（合成）", "beta", "manager",
+                                             password_hash=digest, salt=salt)
     with TestClient(create_app(repository=MemoryRepository(state))) as actual:
         yield actual
 
 
 def login(client, account="alpha-manager"):
-    result = client.post("/api/demo/login", json={"account_id": account})
+    result = client.post("/api/v1/auth/login", json={"username": account, "password": "X_2026"})
     assert result.status_code == 200, result.text
     return {"Authorization": "Bearer " + result.json()["access_token"]}
 
@@ -178,7 +181,11 @@ def test_unknown_or_incomplete_variable_blocks_check(client):
         result = client.post("/api/chapters/alpha-tech/versions", headers=flow.headers, json={
             "lease_token": lease["lease_token"], "input_fingerprint": flow.state()["input_fingerprint"], "base_revision": chapter["revision"],
             "content": text, "idempotency_key": str(uuid4())})
-        assert result.status_code == 200, result.text
+        # 提交时后台先拒绝新写入的失效变量（APP-M2-T164）
+        assert result.status_code == 409 and result.json()["code"] == "SLA_VARIABLE_UNKNOWN", result.text
+        # 检查仍是第二道关：正文里已有的失效变量（例如之前写入、后来失效）照样拦截
+        client.app.state.service.repository.transaction(
+            lambda state, text=text: setattr(state.chapters["alpha-tech"], "content", text))
         check = flow.write("/checks", {"volume": "all"})["check"]
         assert any(issue["code"] == "SLA_VARIABLE_UNKNOWN" for issue in check["issues"])
 
@@ -388,7 +395,9 @@ def test_legacy_word_cannot_leave_unknown_sla_variable(client):
     result = client.post("/api/chapters/alpha-tech/versions", headers=flow.headers, json={
         "lease_token": lease["lease_token"], "base_revision": chapter["revision"], "content": "响应{{sla:unknown}}分钟。",
         "idempotency_key": str(uuid4())})
-    assert result.status_code == 200, result.text
+    assert result.status_code == 409 and result.json()["code"] == "SLA_VARIABLE_UNKNOWN", result.text
+    client.app.state.service.repository.transaction(
+        lambda state: setattr(state.chapters["alpha-tech"], "content", "响应{{sla:unknown}}分钟。"))
     check = client.post("/api/chapters/alpha-tech/checks", headers=flow.headers, json={})
     assert check.status_code == 409, check.text
 
@@ -438,6 +447,10 @@ def test_same_unit_variable_is_resolved_in_actual_two_volume_word(client):
         "content": "一级故障响应时限为{{sla:P1.response}}分钟。", "idempotency_key": str(uuid4())})
     assert result.status_code == 200, result.text
     check = flow.write("/checks", {"volume": "all"})["check"]
+    # 商务章节没有映射条款，R30 给警告；由项目负责人填理由放行后才能导出
+    for issue in [i for i in check["issues"] if i["severity"] == "warning"]:
+        assert issue["code"] == "SCOPE_CHAPTER_WITHOUT_CLAUSE", issue
+        check = flow.write(f"/checks/{check['id']}/issues/{issue['id']}/release", {"reason": "商务章节为通用资质说明"})["check"]
     assert check["passed"], check["issues"]
     export = flow.write("/exports", {"check_id": check["id"], "kind": "internal"})["export"]
     assert {volume["volume"] for volume in export["volumes"]} == {"technical", "business"}
@@ -449,7 +462,9 @@ def test_same_unit_variable_is_resolved_in_actual_two_volume_word(client):
         if volume["volume"] == "technical":
             assert "一级故障响应时限为30分钟。" in text and "0.5分钟" not in text
     flow.write("/sla/values/P1.response", {"project_value": "1", "project_unit": "hour"}, "PATCH")
-    assert client.get(export["volumes"][0]["download_url"], headers=flow.headers).status_code == 409
+    # 旧批次标“已过期”但保留下载当时的快照（PRD §5.9.1 规则 13，APP-M2-T202）
+    stale = client.get(export["volumes"][0]["download_url"], headers=flow.headers)
+    assert stale.status_code == 200 and stale.headers["X-ICG-Export-Status"] == "stale"
 
 
 def test_unrequested_extra_promise_requires_manager_review_before_word(client):
