@@ -468,7 +468,7 @@
 | [APP-M2-T115](tasks/APP-M2.md#app-m2-t115) | 批量智能匹配与逐行确认 | in-review（2026-10-29：批量智能匹配（只给候选、逐行挂接）已实现） | APP-M1-T03、APP-M2-T118 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T115.md` |
 | [APP-M2-T116](tasks/APP-M2.md#app-m2-t116) | P-18 分册分流确认 | in-review（2026-10-29：分册分流确认已实现） | APP-M1-T03、APP-M1-T14 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T116.md` |
 | [APP-M2-T117](tasks/APP-M2.md#app-m2-t117) | Excel 导出与确认闸门 | in-review（2026-10-29：矩阵 Excel 导出已实现） | APP-M1-T03、APP-M2-T113、APP-M2-T114、APP-M2-T116 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T117.md` |
-| [APP-M2-T118](tasks/APP-M2.md#app-m2-t118) | 挂证据候选的三路显示（结构化规则匹配 / 片段检索 / 历史标书仅参考） | in-progress（2026-10-28 重定：部分已实现，缺口见本页工作包 WP-5） | APP-M2-T114、APP-M2-T078、APP-M2-T081 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T118.md` |
+| [APP-M2-T118](tasks/APP-M2.md#app-m2-t118) | 挂证据候选的三路显示（结构化规则匹配 / 片段检索 / 历史标书仅参考） | in-review（2026-11-01：三路候选接口与抽屉分组已实现；历史与片段不可挂接；真实 RAGFlow 未验证，pytest/e2e 仅 CI） | APP-M2-T114、APP-M2-T078、APP-M2-T081 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T118.md) |
 | [APP-M2-T119](tasks/APP-M2.md#app-m2-t119) | SLA 矩阵表与判定 | in-progress（2026-10-28 重定：部分已实现，缺口见本页工作包 WP-5） | APP-M1-T10、APP-M1-T12、APP-M2-T069 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T119.md` |
 | [APP-M2-T120](tasks/APP-M2.md#app-m2-t120) | 模板取值与承诺函导出 | planned | APP-M1-T10、APP-M1-T12、APP-M2-T119 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T120.md` |
 | [APP-M2-T121](tasks/APP-M2.md#app-m2-t121) | 项目事实表 | in-review（2026-10-28 重定：代码与测试已存在） | APP-M1-T10、APP-M1-T12 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T121.md` |
@@ -486,7 +486,7 @@
 | [APP-M2-T133](tasks/APP-M2.md#app-m2-t133) | 人工处理队列列表（Wave 11） | in-review | APP-M2-T126、APP-M2-T021、APP-M2-T130 | [ISSUE-007](../issues/ISSUE-007.md)、[ISSUE-040](../issues/ISSUE-040.md) | [交付](delivery/APP-M2-T133.md) |
 | [APP-M2-T134](tasks/APP-M2.md#app-m2-t134) | 队列详情单段编辑 | in-progress（2026-10-28 重定：部分已实现，缺口见本页工作包 WP-5） | APP-M2-T126、APP-M2-T021、APP-M2-T133、APP-M2-T174 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T134.md` |
 | [APP-M2-T135](tasks/APP-M2.md#app-m2-t135) | 一键重新检查 | in-review（2026-10-30 核对：章节循环页与人工队列页的重新检查已实现，补交付） | APP-M2-T126、APP-M2-T021、APP-M2-T134 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T135.md` |
-| [APP-M2-T136](tasks/APP-M2.md#app-m2-t136) | 异常中断与重试 | in-progress（2026-10-28 重定：部分已实现，缺口见本页工作包 WP-5） | APP-M2-T126、APP-M2-T021、APP-M2-T130 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T136.md` |
+| [APP-M2-T136](tasks/APP-M2.md#app-m2-t136) | 异常中断与重试 | in-review（2026-11-01：循环异常记为异常中断并可重试；无端到端用例，真实模型故障未验证，pytest 仅 CI） | APP-M2-T126、APP-M2-T021、APP-M2-T130 | [ISSUE-007](../issues/ISSUE-007.md) | [交付](delivery/APP-M2-T136.md) |
 | [APP-M2-T137](tasks/APP-M2.md#app-m2-t137) | W-03 公司级写作观察统计 | planned | APP-M2-T131、APP-M2-T189 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T137.md` |
 | [APP-M2-T138](tasks/APP-M2.md#app-m2-t138) | P-17 项目级折叠区 | planned | APP-M2-T131、APP-M2-T189 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T138.md` |
 | [APP-M2-T139](tasks/APP-M2.md#app-m2-t139) | 图表组件（AntV G2） | planned（PM 2026-10-30 定用 AntV G2） | APP-M2-T131、APP-M2-T189 | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-M2-T139.md` |
