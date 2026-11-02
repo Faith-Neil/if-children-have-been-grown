@@ -35,7 +35,7 @@ def test_r17_conflict_of_interest_compliance(client):
 
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200, resp.text
-    r17 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R17")
+    r17 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-CONFLICT-INTEREST")
     assert r17["passed"] is True
     assert r17["severity"] == "info"
 
@@ -49,7 +49,7 @@ def test_r17_conflict_of_interest_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r17 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R17")
+    r17 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-CONFLICT-INTEREST")
     assert r17["passed"] is False
     assert r17["severity"] == "blocker"
     assert any(i["code"] == "CONFLICT_OF_INTEREST_UNRESOLVED" for i in r17["issues"])
@@ -66,7 +66,7 @@ def test_r17_conflict_of_interest_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r17 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R17")
+    r17 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-CONFLICT-INTEREST")
     assert r17["passed"] is False
     assert r17["severity"] == "blocker"
     assert any(i["code"] == "CONFLICT_OF_INTEREST_UNRESOLVED" for i in r17["issues"])
@@ -82,7 +82,7 @@ def test_r17_conflict_of_interest_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r17 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R17")
+    r17 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-CONFLICT-INTEREST")
     assert r17["passed"] is False
     assert r17["severity"] == "blocker"
     assert any(i["code"] == "CONFLICT_OF_INTEREST_UNRESOLVED" for i in r17["issues"])
@@ -188,7 +188,7 @@ def test_r26_ip_infringement_indemnity_compliance(client):
 
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200, resp.text
-    r26 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R26")
+    r26 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-IP-INDEMNITY")
     assert r26["passed"] is True
     assert r26["severity"] == "info"
 
@@ -202,7 +202,7 @@ def test_r26_ip_infringement_indemnity_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r26 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R26")
+    r26 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-IP-INDEMNITY")
     assert r26["passed"] is False
     assert r26["severity"] == "blocker"
     assert any(i["code"] == "IP_INFRINGEMENT_INDEMNITY_MISSING" for i in r26["issues"])
@@ -219,7 +219,7 @@ def test_r26_ip_infringement_indemnity_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r26 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R26")
+    r26 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-IP-INDEMNITY")
     assert r26["passed"] is False
     assert r26["severity"] == "blocker"
     assert any(i["code"] == "IP_INFRINGEMENT_INDEMNITY_MISSING" for i in r26["issues"])
@@ -235,7 +235,7 @@ def test_r26_ip_infringement_indemnity_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r26 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R26")
+    r26 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-IP-INDEMNITY")
     assert r26["passed"] is False
     assert r26["severity"] == "blocker"
     assert any(i["code"] == "IP_INFRINGEMENT_INDEMNITY_MISSING" for i in r26["issues"])
@@ -268,7 +268,7 @@ def test_r27_local_service_branch_compliance(client):
 
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200, resp.text
-    r27 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R27")
+    r27 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-LOCAL-SERVICE")
     assert r27["passed"] is True
     assert r27["severity"] == "info"
 
@@ -282,7 +282,7 @@ def test_r27_local_service_branch_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r27 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R27")
+    r27 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-LOCAL-SERVICE")
     assert r27["passed"] is False
     assert r27["severity"] == "blocker"
     assert any(i["code"] == "LOCAL_SERVICE_BRANCH_MISSING" for i in r27["issues"])
@@ -299,7 +299,7 @@ def test_r27_local_service_branch_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r27 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R27")
+    r27 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-LOCAL-SERVICE")
     assert r27["passed"] is False
     assert r27["severity"] == "blocker"
     assert any(i["code"] == "LOCAL_SERVICE_BRANCH_MISSING" for i in r27["issues"])
@@ -315,7 +315,7 @@ def test_r27_local_service_branch_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r27 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R27")
+    r27 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-LOCAL-SERVICE")
     assert r27["passed"] is False
     assert r27["severity"] == "blocker"
     assert any(i["code"] == "LOCAL_SERVICE_BRANCH_MISSING" for i in r27["issues"])
@@ -342,7 +342,7 @@ def test_r28_critical_tech_spec_negative_deviation_compliance(client):
 
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200, resp.text
-    r28 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R28")
+    r28 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-CRITICAL-TECH-DEVIATION")
     assert r28["passed"] is True
     assert r28["severity"] == "info"
 
@@ -357,7 +357,7 @@ def test_r28_critical_tech_spec_negative_deviation_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r28 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R28")
+    r28 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-CRITICAL-TECH-DEVIATION")
     assert r28["passed"] is False
     assert r28["severity"] == "blocker"
     assert any(i["code"] == "CRITICAL_TECH_SPEC_NEGATIVE_DEVIATION" for i in r28["issues"])
@@ -373,7 +373,7 @@ def test_r28_critical_tech_spec_negative_deviation_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r28 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R28")
+    r28 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-CRITICAL-TECH-DEVIATION")
     assert r28["passed"] is False
     assert r28["severity"] == "blocker"
     assert any(i["code"] == "CRITICAL_TECH_SPEC_NEGATIVE_DEVIATION" for i in r28["issues"])
@@ -389,7 +389,7 @@ def test_r28_critical_tech_spec_negative_deviation_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r28 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R28")
+    r28 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-CRITICAL-TECH-DEVIATION")
     assert r28["passed"] is False
     assert r28["severity"] == "blocker"
     assert any(i["code"] == "CRITICAL_TECH_SPEC_NEGATIVE_DEVIATION" for i in r28["issues"])

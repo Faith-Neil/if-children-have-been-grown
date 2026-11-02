@@ -14,6 +14,10 @@
 | 本机前端单测全量 | `node --test tests/*.test.mjs tests/**/*.test.mjs` | 543 通过，4 个文件因本机缺 antd/react 失败（与改前相同的那几个） |
 | CI（`afc31f4`） | offline-check | 结论写入交付文档 |
 
+## CI（main @ cfdf5ad，2026-11-02）
+
+PR #6 合并后 tip `cfdf5ad972339db229c3e7c43482086b4ba3dd4b` 上 `offline-check` 五项作业均为 success。
+
 ## 局限
 - 未连真实 RAGFlow 跑扫描件的后台取回；真实取回仍走原 `RemoteTenderParser.poll`，本卡未改。
 - 未验证应用重启时进行中任务的丢失提示（任务在进程内，重启后消失）。

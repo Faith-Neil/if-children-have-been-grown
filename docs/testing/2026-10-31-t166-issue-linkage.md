@@ -15,6 +15,10 @@
 | CI 第一次（`0dc05d5`） | offline-check | frontend 类型检查失败：`ChapterIssue` 未声明 `issue_id`；e2e 因构建失败未执行 |
 | CI 第二次（`c12b3af`） | offline-check | 结论写入交付文档 |
 
+## CI（main @ cfdf5ad，2026-11-02）
+
+PR #6 合并后 tip `cfdf5ad972339db229c3e7c43482086b4ba3dd4b` 上 GitHub Actions `offline-check` 五项作业（backend、backend-mysql、frontend、governance、e2e）均为 success。本卡行为在该 tip 之后无破坏性变更时沿用此结论。
+
 ## 局限
 - 本机未运行后端测试与浏览器用例，以 CI 为准。
 - 未在 1280～1679 与 ≥1680 三种宽度下截图（T160）。

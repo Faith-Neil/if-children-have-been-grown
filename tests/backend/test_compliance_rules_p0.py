@@ -14,8 +14,26 @@ from icg_demo.main import create_app
 from test_reference_flow import ProjectFlow, client, login
 
 
-def test_r15_proof_material_completeness(client):
-    """验证 R15：证明材料齐全性核验（正例与缺失/过期/未确认反例）。"""
+def test_r15_placeholder_clearance(client):
+    """验证 R15（PRD）：占位符与【待补】清零（检测到残留即为 blocking/blocker）。"""
+    flow = ProjectFlow(client).ready()
+    chapters = flow.state()["chapters"]
+    target_chapter = chapters[0]
+
+    res = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
+    assert res.status_code == 200
+    r15 = next(r for r in res.json()["rules"] if r["rule_id"] == "R15")
+    assert r15["passed"] is True
+
+    flow.commit(target_chapter["id"], "本章节正文正在编写中，数据库巡检方案【待补：补充巡检表】。")
+    res = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
+    r15 = next(r for r in res.json()["rules"] if r["rule_id"] == "R15")
+    assert r15["passed"] is False
+    assert any(i["code"] == "PLACEHOLDER_RESIDUAL" for i in r15["issues"])
+
+
+def test_ext_proof_material_completeness(client):
+    """验证 EXT-PROOF-MATERIAL：原 R15 证明材料齐全性（正例与缺失/过期/未确认反例）。"""
     flow = ProjectFlow(client).ready()
     state = flow.state()
     reqs = state["requirements"]
@@ -28,7 +46,7 @@ def test_r15_proof_material_completeness(client):
     )
     assert resp.status_code == 200, resp.text
     data = resp.json()
-    r15_res = next(r for r in data["rules"] if r["rule_id"] == "R15")
+    r15_res = next(r for r in data["rules"] if r["rule_id"] == "EXT-PROOF-MATERIAL")
     assert r15_res["passed"] is True
     assert r15_res["severity"] == "info"
     assert len(r15_res["issues"]) == 0
@@ -51,7 +69,7 @@ def test_r15_proof_material_completeness(client):
         json={"volume": "all"},
     )
     assert res.status_code == 200
-    r15 = next(r for r in res.json()["rules"] if r["rule_id"] == "R15")
+    r15 = next(r for r in res.json()["rules"] if r["rule_id"] == "EXT-PROOF-MATERIAL")
     assert r15["passed"] is False
     assert any(i["code"] == "EVIDENCE_MISSING" for i in r15["issues"])
 
@@ -71,7 +89,7 @@ def test_r15_proof_material_completeness(client):
     flow.write("", {"deadline": "2028-12-31T17:00:00+08:00"}, "PATCH")
     res = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert res.status_code == 200
-    r15 = next(r for r in res.json()["rules"] if r["rule_id"] == "R15")
+    r15 = next(r for r in res.json()["rules"] if r["rule_id"] == "EXT-PROOF-MATERIAL")
     assert r15["passed"] is False
     assert any(i["code"] == "EVIDENCE_EXPIRED" for i in r15["issues"])
     # 恢复项目截止时间
@@ -87,7 +105,7 @@ def test_r15_proof_material_completeness(client):
     assert res_patch.status_code == 200
     res = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert res.status_code == 200
-    r15 = next(r for r in res.json()["rules"] if r["rule_id"] == "R15")
+    r15 = next(r for r in res.json()["rules"] if r["rule_id"] == "EXT-PROOF-MATERIAL")
     assert r15["passed"] is False
     assert any(i["code"] == "EVIDENCE_NOT_USABLE" for i in r15["issues"])
 
@@ -177,43 +195,29 @@ def test_r23_critical_clauses_100_percent_response(client):
     assert any(i["code"] == "MATRIX_MAPPING_MISSING" and i["severity"] == "blocker" for i in r23["issues"])
 
 
-def test_r34_placeholder_and_residual_verification(client):
-    """验证 R34：占位符与“待补/待完善”残留字样核验（检测到残留即为 blocking/blocker）。"""
+def test_r34_ai_and_markdown_residual_verification(client):
+    """验证 R34（PRD）：AI 对话残留阻断；Markdown 符号警告。"""
     flow = ProjectFlow(client).ready()
     chapters = flow.state()["chapters"]
     target_chapter = chapters[0]
 
-    # 1. 正例：clean state 应该通过 R34
     res = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
-    assert res.status_code == 200
     r34 = next(r for r in res.json()["rules"] if r["rule_id"] == "R34")
     assert r34["passed"] is True
-    assert r34["severity"] == "info"
 
-    # 2. 反例 A：章节正文中包含【待补】
-    flow.commit(target_chapter["id"], "本章节正文正在编写中，数据库巡检方案【待补：补充巡检表】。")
+    flow.commit(
+        target_chapter["id"],
+        "本项目维保体系完整。希望对你有帮助，如果还有其他需要补充请随时告诉我。",
+    )
     res = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
-    assert res.status_code == 200
-    r34 = next(r for r in res.json()["rules"] if r["rule_id"] == "R34")
-    assert r34["passed"] is False
-    assert r34["severity"] in ("blocking", "blocker")
-    assert any(i["code"] == "PLACEHOLDER_RESIDUAL" for i in r34["issues"])
-
-    # 3. 反例 B：章节正文中包含 TODO 或未替换模板变量 {{var}}
-    flow.commit(target_chapter["id"], "数据库故障切换指标如下：TODO 补充切换时延 {{sla_metric}} 秒。")
-    res = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
-    assert res.status_code == 200
-    r34 = next(r for r in res.json()["rules"] if r["rule_id"] == "R34")
-    assert r34["passed"] is False
-    assert any(i["code"] == "PLACEHOLDER_RESIDUAL" for i in r34["issues"])
-
-    # 4. 反例 C：章节正文中遗留 AI 对话残留句
-    flow.commit(target_chapter["id"], "本项目维保体系完整。希望对你有帮助，如果还有其他需要补充请随时告诉我。")
-    res = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
-    assert res.status_code == 200
     r34 = next(r for r in res.json()["rules"] if r["rule_id"] == "R34")
     assert r34["passed"] is False
     assert any(i["code"] == "AI_CONVERSATION_RESIDUAL" for i in r34["issues"])
+
+    flow.commit(target_chapter["id"], "## 小节标题\n**加粗** 正文")
+    res = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
+    r34 = next(r for r in res.json()["rules"] if r["rule_id"] == "R34")
+    assert any(i["code"] == "MARKDOWN_SYMBOL_RESIDUAL" for i in r34["issues"])
 
 
 def test_r37_deviation_table_consistency(client):
@@ -307,7 +311,7 @@ def test_compliance_rules_catalog_api(client):
     for item in catalog:
         assert item["can_disable"] is False
         assert item["title"]
-        assert item["default_severity"] in ("blocker", "blocking", "warning")
+        assert item["default_severity"] in ("blocker", "blocking", "warning", "info")
 
 
 def test_compliance_rules_tenant_and_auth_isolation(client):

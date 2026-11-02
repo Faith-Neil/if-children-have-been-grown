@@ -97,14 +97,28 @@ def test_r03_qualification_validity_and_credit(client):
     assert any(i["code"] == "DISHONEST_RECORD_EXISTS" for i in r03["issues"])
 
 
-def test_r04_consortium_agreement_verification(client):
-    """验证 R04：联合体投标协议核验（独立投标放行、联合体协议缺失/成员资质缺失拦截）。"""
+def test_r04_expiry_reminder_info(client):
+    """验证 R04（PRD）：临期与复审提醒（info，不阻断）。"""
+    flow = ProjectFlow(client).ready()
+    from datetime import date, timedelta
+
+    soon = (date.today() + timedelta(days=10)).isoformat()
+    flow.library(name="临期证书样例", valid_until=soon, valid_to=soon)
+    resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
+    r04 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R04")
+    assert r04["passed"] is True
+    assert r04["severity"] == "info"
+    assert r04["title"] == "临期与复审提醒"
+
+
+def test_ext_consortium_agreement_verification(client):
+    """验证 EXT-CONSORTIUM-AGREEMENT：原 R04 联合体投标协议核验。"""
     flow = ProjectFlow(client).ready()
 
     # 1. 正例 A：非联合体独立投标 -> 自动放行
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r04 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R04")
+    r04 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-CONSORTIUM-AGREEMENT")
     assert r04["passed"] is True
     assert r04["severity"] == "info"
     assert "单一主体独立投标" in r04["finding_summary"]
@@ -113,7 +127,7 @@ def test_r04_consortium_agreement_verification(client):
     flow.write("", {"project_partners": [{"partner_entity_id": "贝塔科技"}]}, "PATCH")
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r04 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R04")
+    r04 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-CONSORTIUM-AGREEMENT")
     assert r04["passed"] is False
     assert r04["severity"] == "blocker"
     assert any(i["code"] == "CONSORTIUM_AGREEMENT_MISSING" for i in r04["issues"])
@@ -125,7 +139,7 @@ def test_r04_consortium_agreement_verification(client):
 
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r04 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R04")
+    r04 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-CONSORTIUM-AGREEMENT")
     assert r04["passed"] is True
     assert r04["severity"] == "info"
 
@@ -133,7 +147,7 @@ def test_r04_consortium_agreement_verification(client):
     flow.write("", {"project_partners": [{"partner_entity_id": "贝塔科技"}, {"partner_entity_id": "伽马科技"}]}, "PATCH")
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r04 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R04")
+    r04 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-CONSORTIUM-AGREEMENT")
     assert r04["passed"] is False
     assert r04["severity"] == "blocker"
     assert any(i["code"] == "CONSORTIUM_MEMBER_QUALIFICATION_MISSING" for i in r04["issues"])
@@ -194,8 +208,17 @@ def test_r09_service_period_and_sla_commitment(client):
     assert any(i["code"] == "SERVICE_PERIOD_NEGATIVE_DEVIATION" for i in r09["issues"])
 
 
-def test_r10_warranty_period_and_response_time(client):
-    """验证 R10：质保期与服务响应时间核验（质保期低于基线/响应时间负偏离/各章节承诺矛盾拦截）。"""
+def test_r10_sla_full_text_consistency(client):
+    """验证 R10（PRD）：SLA 承诺全文一致（集成 sla_issues 的 SLA_TEXT_MISMATCH）。"""
+    flow = ProjectFlow(client).ready()
+    resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
+    r10 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R10")
+    assert r10["rule_id"] == "R10"
+    assert "SLA" in r10["title"] or "一致" in r10["title"]
+
+
+def test_ext_warranty_period_and_response_time(client):
+    """验证 EXT-WARRANTY-RESPONSE-LEGACY：原 R10 质保期与服务响应时间核验。"""
     flow = ProjectFlow(client).ready()
     reqs = flow.state()["requirements"]
     r0 = reqs[0]
@@ -228,7 +251,7 @@ def test_r10_warranty_period_and_response_time(client):
 
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r10 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R10")
+    r10 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-WARRANTY-RESPONSE-LEGACY")
     assert r10["passed"] is True
     assert r10["severity"] == "info"
 
@@ -243,7 +266,7 @@ def test_r10_warranty_period_and_response_time(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r10 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R10")
+    r10 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-WARRANTY-RESPONSE-LEGACY")
     assert r10["passed"] is False
     assert r10["severity"] == "blocker"
     assert any(i["code"] == "WARRANTY_PERIOD_BELOW_BASELINE" for i in r10["issues"])
@@ -269,7 +292,7 @@ def test_r10_warranty_period_and_response_time(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r10 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R10")
+    r10 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-WARRANTY-RESPONSE-LEGACY")
     assert r10["passed"] is False
     assert r10["severity"] == "blocker"
     assert any(i["code"] == "RESPONSE_TIME_BELOW_BASELINE" for i in r10["issues"])
@@ -289,7 +312,7 @@ def test_r10_warranty_period_and_response_time(client):
 
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r10 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R10")
+    r10 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-WARRANTY-RESPONSE-LEGACY")
     assert r10["passed"] is False
     assert r10["severity"] == "blocker"
     assert any(i["code"] == "WARRANTY_PERIOD_INCONSISTENT" for i in r10["issues"])

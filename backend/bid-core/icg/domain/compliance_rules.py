@@ -97,19 +97,19 @@ class ComplianceRulesEngine:
     CATALOG = [
         {
             "rule_id": "R01",
-            "title": "招标单位与项目名称提取一致性核验",
-            "category": "consistency",
+            "title": "不可引用的资料禁止引用",
+            "category": "evidence",
             "default_severity": "blocker",
             "can_disable": False,
-            "description": "核验正文与条款响应中出现的招标人全称、项目名称及招标编号与项目元数据是否严格一致，严禁名称错漏或项目编号冲突。",
+            "description": "未确认、未审核、已停用、已删除或仅供参考的资料不得作为证据引用；章节循环与导出前复核正文 [证] 引用。",
         },
         {
             "rule_id": "R02",
-            "title": "资质有效性与原件备查承诺核验",
-            "category": "qualification",
+            "title": "资料来源分级与投标主体一致",
+            "category": "evidence",
             "default_severity": "blocker",
             "can_disable": False,
-            "description": "核验营业执照、行业资质及原件核对条款，必须具备真实有效承诺与原件备查书面声明，严禁无承诺响应。",
+            "description": "合作伙伴资料须已登记合作方并上传协议；引用时注明来源；来源分级与投标主体不一致阻断。",
         },
         {
             "rule_id": "R03",
@@ -121,11 +121,11 @@ class ComplianceRulesEngine:
         },
         {
             "rule_id": "R04",
-            "title": "联合体投标协议核验",
-            "category": "consortium",
-            "default_severity": "blocker",
+            "title": "临期与复审提醒",
+            "category": "library",
+            "default_severity": "info",
             "can_disable": False,
-            "description": "当项目标记为联合体投标时，核验是否已上传合法联合体协议书及全部成员资质，缺失直接阻断递交。",
+            "description": "每日定时扫描资料库有效期，对 30 天内到期的资料向资料负责人发出复审提醒。",
         },
         {
             "rule_id": "R05",
@@ -201,11 +201,11 @@ class ComplianceRulesEngine:
         },
         {
             "rule_id": "R15",
-            "title": "证明材料齐全性核验",
-            "category": "qualification",
+            "title": "占位符与【待补】清零",
+            "category": "content_integrity",
             "default_severity": "blocker",
             "can_disable": False,
-            "description": "核验资质、证书、业绩、原厂授权等证明类要求是否已挂接已确认且在保质期内的企业材料，严禁证据缺失或过期。",
+            "description": "章节正文与条款响应中的【待补】、占位符与未替换变量须清零后方可导出。",
         },
         {
             "rule_id": "R20",
@@ -241,11 +241,11 @@ class ComplianceRulesEngine:
         },
         {
             "rule_id": "R34",
-            "title": "占位符与“待补/待完善”残留字样核验",
+            "title": "AI 痕迹与格式符号残留",
             "category": "content_integrity",
-            "default_severity": "blocking",
+            "default_severity": "blocker",
             "can_disable": False,
-            "description": "排查正文与条款响应中的【待补】、TODO占位符、未替换变量模板及AI遗留对话，禁止带草稿瑕疵导出。",
+            "description": "对话残留句阻断；Markdown 符号（#、**、代码块等）警告，导出时可自动转换。",
         },
         {
             "rule_id": "R35",
@@ -475,7 +475,7 @@ class ComplianceRulesEngine:
 
 
     @classmethod
-    def check_r01(
+    def _legacy_misaligned_r01(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
     ) -> ComplianceRuleResult:
         """
@@ -534,7 +534,7 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
-    def check_r02(
+    def _legacy_misaligned_r02(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
     ) -> ComplianceRuleResult:
         """
@@ -787,7 +787,7 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
-    def check_r04(
+    def _legacy_misaligned_r04(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
     ) -> ComplianceRuleResult:
         """
@@ -1039,7 +1039,7 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
-    def check_r10(
+    def _legacy_misaligned_r10(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
     ) -> ComplianceRuleResult:
         """
@@ -1258,7 +1258,7 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
-    def check_r15(
+    def _legacy_misaligned_r15(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
     ) -> ComplianceRuleResult:
         """
@@ -1555,7 +1555,7 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
-    def check_r34(
+    def _legacy_misaligned_r34(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
     ) -> ComplianceRuleResult:
         """
@@ -2661,7 +2661,7 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
-    def check_r05(
+    def _legacy_misaligned_r05(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
     ) -> ComplianceRuleResult:
         """
@@ -2847,7 +2847,7 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
-    def check_r06(
+    def _legacy_misaligned_r06(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
     ) -> ComplianceRuleResult:
         """
@@ -3085,7 +3085,7 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
-    def check_r08(
+    def _legacy_misaligned_r08(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
     ) -> ComplianceRuleResult:
         """
@@ -3218,7 +3218,7 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
-    def check_r12(
+    def _legacy_misaligned_r12(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
     ) -> ComplianceRuleResult:
         """
@@ -3402,7 +3402,7 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
-    def check_r20(
+    def _legacy_misaligned_r20(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
     ) -> ComplianceRuleResult:
         """
@@ -3518,7 +3518,7 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
-    def check_r13(
+    def _legacy_misaligned_r13(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
     ) -> ComplianceRuleResult:
         """
@@ -3688,7 +3688,7 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
-    def check_r16(
+    def _legacy_misaligned_r16(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
     ) -> ComplianceRuleResult:
         """
@@ -3850,7 +3850,7 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
-    def check_r18(
+    def _legacy_misaligned_r18(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
     ) -> ComplianceRuleResult:
         """
@@ -4124,7 +4124,7 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
-    def check_r32(
+    def _legacy_misaligned_r32(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
     ) -> ComplianceRuleResult:
         """
@@ -4289,7 +4289,7 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
-    def check_r17(
+    def _legacy_misaligned_r17(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
     ) -> ComplianceRuleResult:
         """
@@ -4490,7 +4490,7 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
-    def check_r26(
+    def _legacy_misaligned_r26(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
     ) -> ComplianceRuleResult:
         """
@@ -4578,7 +4578,7 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
-    def check_r27(
+    def _legacy_misaligned_r27(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
     ) -> ComplianceRuleResult:
         """
@@ -4665,7 +4665,7 @@ class ComplianceRulesEngine:
         )
 
     @classmethod
-    def check_r28(
+    def _legacy_misaligned_r28(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all"
     ) -> ComplianceRuleResult:
         """
@@ -4769,6 +4769,291 @@ class ComplianceRulesEngine:
             details={"checked_count": checked_count, "negative_deviation_issues_count": len(issues)},
         )
 
+
+    @classmethod
+    def check_r01(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import prd_check_r01
+        return prd_check_r01(state, project, workflow, volume=volume, now_ts=now_ts)
+
+    @classmethod
+    def check_ext_consistency_tender_name(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import remap_ext_result
+        legacy = cls._legacy_misaligned_r01(state, project, workflow, volume=volume)
+        return remap_ext_result(legacy, "EXT-CONSISTENCY-TENDER-NAME", "招标单位与项目名称提取一致性核验")
+
+    @classmethod
+    def check_r02(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import prd_check_r02
+        return prd_check_r02(state, project, workflow, volume=volume, now_ts=now_ts)
+
+    @classmethod
+    def check_ext_qualification_original(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import remap_ext_result
+        legacy = cls._legacy_misaligned_r02(state, project, workflow, volume=volume)
+        return remap_ext_result(legacy, "EXT-QUALIFICATION-ORIGINAL", "资质有效性与原件备查承诺核验")
+
+    @classmethod
+    def check_r04(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import prd_check_r04
+        return prd_check_r04(state, project, workflow, volume=volume, now_ts=now_ts)
+
+    @classmethod
+    def check_ext_consortium_agreement(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import remap_ext_result
+        legacy = cls._legacy_misaligned_r04(state, project, workflow, volume=volume)
+        return remap_ext_result(legacy, "EXT-CONSORTIUM-AGREEMENT", "联合体投标协议核验")
+
+    @classmethod
+    def check_r05(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import prd_check_r05
+        return prd_check_r05(state, project, workflow, volume=volume, now_ts=now_ts)
+
+    @classmethod
+    def check_ext_financial_metrics(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import remap_ext_result
+        legacy = cls._legacy_misaligned_r05(state, project, workflow, volume=volume)
+        return remap_ext_result(legacy, "EXT-FINANCIAL-METRICS", "财务指标核验（资产负债率、净利润连续性）")
+
+    @classmethod
+    def check_r06(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import prd_check_r06
+        return prd_check_r06(state, project, workflow, volume=volume, now_ts=now_ts)
+
+    @classmethod
+    def check_ext_performance_case(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import remap_ext_result
+        legacy = cls._legacy_misaligned_r06(state, project, workflow, volume=volume, now_ts=now_ts)
+        return remap_ext_result(legacy, "EXT-PERFORMANCE-CASE", "业绩案例核验")
+
+    @classmethod
+    def check_r08(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import prd_check_r08
+        return prd_check_r08(state, project, workflow, volume=volume, now_ts=now_ts)
+
+    @classmethod
+    def check_ext_delivery_timeline(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import remap_ext_result
+        legacy = cls._legacy_misaligned_r08(state, project, workflow, volume=volume)
+        return remap_ext_result(legacy, "EXT-DELIVERY-TIMELINE", "交付周期与进度计划偏离核验")
+
+    @classmethod
+    def check_r10(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import prd_check_r10
+        return prd_check_r10(state, project, workflow, volume=volume, now_ts=now_ts)
+
+    @classmethod
+    def check_ext_warranty_response_legacy(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import remap_ext_result
+        legacy = cls._legacy_misaligned_r10(state, project, workflow, volume=volume)
+        return remap_ext_result(legacy, "EXT-WARRANTY-RESPONSE-LEGACY", "质保期与服务响应时间核验（旧）")
+
+    @classmethod
+    def check_r12(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import prd_check_r12
+        return prd_check_r12(state, project, workflow, volume=volume, now_ts=now_ts)
+
+    @classmethod
+    def check_ext_sla_warranty_deviation(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import remap_ext_result
+        legacy = cls._legacy_misaligned_r12(state, project, workflow, volume=volume)
+        return remap_ext_result(legacy, "EXT-SLA-WARRANTY-DEVIATION", "服务响应 SLA 与质保期偏离核验")
+
+    @classmethod
+    def check_r13(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import prd_check_r13
+        return prd_check_r13(state, project, workflow, volume=volume, now_ts=now_ts)
+
+    @classmethod
+    def check_ext_team_staffing(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import remap_ext_result
+        legacy = cls._legacy_misaligned_r13(state, project, workflow, volume=volume)
+        return remap_ext_result(legacy, "EXT-TEAM-STAFFING", "团队人员配置核验")
+
+    @classmethod
+    def check_r15(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import prd_check_r15
+        return prd_check_r15(state, project, workflow, volume=volume, now_ts=now_ts)
+
+    @classmethod
+    def check_ext_proof_material(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import remap_ext_result
+        legacy = cls._legacy_misaligned_r15(state, project, workflow, volume=volume, now_ts=now_ts)
+        return remap_ext_result(legacy, "EXT-PROOF-MATERIAL", "证明材料齐全性核验")
+
+    @classmethod
+    def check_r16(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import prd_check_r16
+        return prd_check_r16(state, project, workflow, volume=volume, now_ts=now_ts)
+
+    @classmethod
+    def check_ext_bid_security(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import remap_ext_result
+        legacy = cls._legacy_misaligned_r16(state, project, workflow, volume=volume)
+        return remap_ext_result(legacy, "EXT-BID-SECURITY", "投标保证金与保函有效性核验")
+
+    @classmethod
+    def check_r17(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import prd_check_r17
+        return prd_check_r17(state, project, workflow, volume=volume, now_ts=now_ts)
+
+    @classmethod
+    def check_ext_conflict_interest(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import remap_ext_result
+        legacy = cls._legacy_misaligned_r17(state, project, workflow, volume=volume)
+        return remap_ext_result(legacy, "EXT-CONFLICT-INTEREST", "关联交易与利害关系回避核验")
+
+    @classmethod
+    def check_r18(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import prd_check_r18
+        return prd_check_r18(state, project, workflow, volume=volume, now_ts=now_ts)
+
+    @classmethod
+    def check_ext_consortium_qualification(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import remap_ext_result
+        legacy = cls._legacy_misaligned_r18(state, project, workflow, volume=volume)
+        return remap_ext_result(legacy, "EXT-CONSORTIUM-QUALIFICATION", "联合体投标协议与资质认定核验")
+
+    @classmethod
+    def check_r20(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import prd_check_r20
+        return prd_check_r20(state, project, workflow, volume=volume, now_ts=now_ts)
+
+    @classmethod
+    def check_ext_quotation_collusion(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import remap_ext_result
+        legacy = cls._legacy_misaligned_r20(state, project, workflow, volume=volume)
+        return remap_ext_result(legacy, "EXT-QUOTATION-COLLUSION", "报价雷同排查")
+
+    @classmethod
+    def check_r26(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import prd_check_r26
+        return prd_check_r26(state, project, workflow, volume=volume, now_ts=now_ts)
+
+    @classmethod
+    def check_ext_ip_indemnity(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import remap_ext_result
+        legacy = cls._legacy_misaligned_r26(state, project, workflow, volume=volume)
+        return remap_ext_result(legacy, "EXT-IP-INDEMNITY", "知识产权与侵权无争议声明核验")
+
+    @classmethod
+    def check_r27(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import prd_check_r27
+        return prd_check_r27(state, project, workflow, volume=volume, now_ts=now_ts)
+
+    @classmethod
+    def check_ext_local_service(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import remap_ext_result
+        legacy = cls._legacy_misaligned_r27(state, project, workflow, volume=volume)
+        return remap_ext_result(legacy, "EXT-LOCAL-SERVICE", "本地化服务网点与常驻技术力量核验")
+
+    @classmethod
+    def check_r28(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import prd_check_r28
+        return prd_check_r28(state, project, workflow, volume=volume, now_ts=now_ts)
+
+    @classmethod
+    def check_ext_critical_tech_deviation(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import remap_ext_result
+        legacy = cls._legacy_misaligned_r28(state, project, workflow, volume=volume)
+        return remap_ext_result(legacy, "EXT-CRITICAL-TECH-DEVIATION", "关键技术规格实质性负偏离排查")
+
+    @classmethod
+    def check_r32(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import prd_check_r32
+        return prd_check_r32(state, project, workflow, volume=volume, now_ts=now_ts)
+
+    @classmethod
+    def check_ext_bid_validity(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import remap_ext_result
+        legacy = cls._legacy_misaligned_r32(state, project, workflow, volume=volume)
+        return remap_ext_result(legacy, "EXT-BID-VALIDITY", "投标有效期与承诺不可撤销性核验")
+
+    @classmethod
+    def check_r34(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import prd_check_r34
+        return prd_check_r34(state, project, workflow, volume=volume, now_ts=now_ts)
+
+    @classmethod
+    def check_ext_placeholder_legacy(
+        cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
+    ) -> ComplianceRuleResult:
+        from icg.domain.compliance_prd_checks import remap_ext_result
+        legacy = cls._legacy_misaligned_r34(state, project, workflow, volume=volume)
+        return remap_ext_result(legacy, "EXT-PLACEHOLDER-LEGACY", "占位符与待补残留核验（旧合订）")
     @classmethod
     def evaluate_p5_rules(
         cls, state: DemoState, project: Any, workflow: dict[str, Any], volume: str = "all", now_ts: float | None = None
@@ -4776,11 +5061,15 @@ class ComplianceRulesEngine:
         """按顺序完整执行 PRD P5 终批核心合规规则体系（R17, R19, R26, R27, R28）。"""
         return [
             cls.check_r17(state, project, workflow, volume=volume),
+            cls.check_ext_conflict_interest(state, project, workflow, volume=volume),
             cls.check_r19(state, project, workflow, volume=volume),
             cls.check_ext_green(state, project, workflow, volume=volume),
             cls.check_r26(state, project, workflow, volume=volume),
+            cls.check_ext_ip_indemnity(state, project, workflow, volume=volume),
             cls.check_r27(state, project, workflow, volume=volume),
+            cls.check_ext_local_service(state, project, workflow, volume=volume),
             cls.check_r28(state, project, workflow, volume=volume),
+            cls.check_ext_critical_tech_deviation(state, project, workflow, volume=volume),
         ]
 
     @classmethod
@@ -4790,10 +5079,14 @@ class ComplianceRulesEngine:
         """按顺序完整执行 PRD P0 级合规规则体系（R01, R02, R15, R23, R34, R35, R37）。"""
         return [
             cls.check_r01(state, project, workflow, volume=volume),
+            cls.check_ext_consistency_tender_name(state, project, workflow, volume=volume),
             cls.check_r02(state, project, workflow, volume=volume),
+            cls.check_ext_qualification_original(state, project, workflow, volume=volume),
             cls.check_r15(state, project, workflow, volume=volume, now_ts=now_ts),
+            cls.check_ext_proof_material(state, project, workflow, volume=volume, now_ts=now_ts),
             cls.check_r23(state, project, workflow, volume=volume),
             cls.check_r34(state, project, workflow, volume=volume),
+            cls.check_ext_placeholder_legacy(state, project, workflow, volume=volume),
             cls.check_r35(state, project, workflow, volume=volume),
             cls.check_r37(state, project, workflow, volume=volume),
         ]
@@ -4806,8 +5099,10 @@ class ComplianceRulesEngine:
         return [
             cls.check_r03(state, project, workflow, volume=volume, now_ts=now_ts),
             cls.check_r04(state, project, workflow, volume=volume),
+            cls.check_ext_consortium_agreement(state, project, workflow, volume=volume),
             cls.check_r09(state, project, workflow, volume=volume),
             cls.check_r10(state, project, workflow, volume=volume),
+            cls.check_ext_warranty_response_legacy(state, project, workflow, volume=volume),
         ]
 
     @classmethod
@@ -4830,10 +5125,15 @@ class ComplianceRulesEngine:
         """按顺序完整执行 PRD P3 级核心合规规则体系（R05, R06, R08, R12, R20）。"""
         return [
             cls.check_r05(state, project, workflow, volume=volume),
+            cls.check_ext_financial_metrics(state, project, workflow, volume=volume),
             cls.check_r06(state, project, workflow, volume=volume, now_ts=now_ts),
+            cls.check_ext_performance_case(state, project, workflow, volume=volume, now_ts=now_ts),
             cls.check_r08(state, project, workflow, volume=volume),
+            cls.check_ext_delivery_timeline(state, project, workflow, volume=volume),
             cls.check_r12(state, project, workflow, volume=volume),
+            cls.check_ext_sla_warranty_deviation(state, project, workflow, volume=volume),
             cls.check_r20(state, project, workflow, volume=volume),
+            cls.check_ext_quotation_collusion(state, project, workflow, volume=volume),
         ]
 
     @classmethod
@@ -4843,10 +5143,14 @@ class ComplianceRulesEngine:
         """按顺序完整执行 PRD P4 级核心合规规则体系（R13, R16, R18, R24, R32）。"""
         return [
             cls.check_r13(state, project, workflow, volume=volume),
+            cls.check_ext_team_staffing(state, project, workflow, volume=volume),
             cls.check_r16(state, project, workflow, volume=volume),
+            cls.check_ext_bid_security(state, project, workflow, volume=volume),
             cls.check_r18(state, project, workflow, volume=volume),
+            cls.check_ext_consortium_qualification(state, project, workflow, volume=volume),
             cls.check_r24(state, project, workflow, volume=volume),
             cls.check_r32(state, project, workflow, volume=volume),
+            cls.check_ext_bid_validity(state, project, workflow, volume=volume),
         ]
 
     @classmethod

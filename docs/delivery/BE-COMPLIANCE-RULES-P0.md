@@ -79,3 +79,7 @@
 ## 限制与未完成事项
 - 严格遵守开发规范，本卡状态推进至 `in-review`，绝不私自标为 `done`。
 - 当前为第一批 P0 核心规则落地（R15/R23/R34/R37）；其余 40 项次要与推荐性规则保留在 `RULES_INCOMPLETE` 演进清单中，后续迭代推进。
+
+## ISSUE-046 免责声明（2026-11-02）
+
+本批次 `done` 表示 **合规引擎框架与 P0 规则批次落地**，不等于 ISSUE-046 所列 19 条错位编号均已按 PRD 对齐。编号重挂见 [BE-ISSUE-046-RULE-REALIGN](../delivery/BE-ISSUE-046-RULE-REALIGN.md) 与 [决策矩阵](../decisions/2026-11-02-issue-046-realignment-matrix.md)。P1～P5 批次交付同样仅指引擎分批接线，不替代各 APP-M2 规则单卡 QA/PM 签署。

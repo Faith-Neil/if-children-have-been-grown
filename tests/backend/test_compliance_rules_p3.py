@@ -42,7 +42,7 @@ def test_r05_financial_metrics_compliance(client):
 
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200, resp.text
-    r05 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R05")
+    r05 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-FINANCIAL-METRICS")
     assert r05["passed"] is True
     assert r05["severity"] == "info"
 
@@ -56,7 +56,7 @@ def test_r05_financial_metrics_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r05 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R05")
+    r05 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-FINANCIAL-METRICS")
     assert r05["passed"] is False
     assert r05["severity"] == "blocker"
     assert any(i["code"] == "FINANCIAL_METRICS_NON_COMPLIANT" for i in r05["issues"])
@@ -71,7 +71,7 @@ def test_r05_financial_metrics_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r05 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R05")
+    r05 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-FINANCIAL-METRICS")
     assert r05["passed"] is False
     assert r05["severity"] == "blocker"
     assert any(i["code"] == "FINANCIAL_METRICS_NON_COMPLIANT" for i in r05["issues"])
@@ -86,7 +86,7 @@ def test_r05_financial_metrics_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r05 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R05")
+    r05 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-FINANCIAL-METRICS")
     assert r05["passed"] is False
     assert r05["severity"] == "blocker"
     assert any(i["code"] == "FINANCIAL_METRICS_NON_COMPLIANT" for i in r05["issues"])
@@ -102,7 +102,7 @@ def test_r05_financial_metrics_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r05 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R05")
+    r05 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-FINANCIAL-METRICS")
     assert r05["passed"] is False
     assert r05["severity"] == "blocker"
     assert any(i["code"] == "FINANCIAL_METRICS_NON_COMPLIANT" for i in r05["issues"])
@@ -135,7 +135,7 @@ def test_r06_performance_case_sufficiency(client):
 
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200, resp.text
-    r06 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R06")
+    r06 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-PERFORMANCE-CASE")
     assert r06["passed"] is True
     assert r06["severity"] == "info"
 
@@ -149,7 +149,7 @@ def test_r06_performance_case_sufficiency(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r06 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R06")
+    r06 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-PERFORMANCE-CASE")
     assert r06["passed"] is False
     assert r06["severity"] == "blocker"
     assert any(i["code"] == "PERFORMANCE_CASE_INSUFFICIENT" for i in r06["issues"])
@@ -171,7 +171,7 @@ def test_r06_performance_case_sufficiency(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r06 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R06")
+    r06 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-PERFORMANCE-CASE")
     assert r06["passed"] is False
     assert r06["severity"] == "blocker"
     assert any(i["code"] == "PERFORMANCE_CASE_INSUFFICIENT" for i in r06["issues"])
@@ -187,7 +187,7 @@ def test_r06_performance_case_sufficiency(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r06 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R06")
+    r06 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-PERFORMANCE-CASE")
     assert r06["passed"] is False
     assert r06["severity"] == "blocker"
     assert any(i["code"] == "PERFORMANCE_CASE_INSUFFICIENT" for i in r06["issues"])
@@ -203,7 +203,7 @@ def test_r06_performance_case_sufficiency(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r06 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R06")
+    r06 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-PERFORMANCE-CASE")
     assert r06["passed"] is False
     assert r06["severity"] == "blocker"
     assert any(i["code"] == "PERFORMANCE_CASE_INSUFFICIENT" for i in r06["issues"])
@@ -229,7 +229,7 @@ def test_r08_delivery_timeline_deviation(client):
 
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200, resp.text
-    r08 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R08")
+    r08 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-DELIVERY-TIMELINE")
     assert r08["passed"] is True
     assert r08["severity"] == "info"
 
@@ -243,7 +243,7 @@ def test_r08_delivery_timeline_deviation(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r08 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R08")
+    r08 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-DELIVERY-TIMELINE")
     assert r08["passed"] is False
     assert r08["severity"] == "blocker"
     assert any(i["code"] == "DELIVERY_TIMELINE_NEGATIVE_DEVIATION" for i in r08["issues"])
@@ -258,7 +258,7 @@ def test_r08_delivery_timeline_deviation(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r08 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R08")
+    r08 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-DELIVERY-TIMELINE")
     assert r08["passed"] is False
     assert r08["severity"] == "blocker"
     assert any(i["code"] == "DELIVERY_TIMELINE_NEGATIVE_DEVIATION" for i in r08["issues"])
@@ -273,7 +273,7 @@ def test_r08_delivery_timeline_deviation(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r08 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R08")
+    r08 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-DELIVERY-TIMELINE")
     assert r08["passed"] is False
     assert r08["severity"] == "blocker"
     assert any(i["code"] == "DELIVERY_TIMELINE_NEGATIVE_DEVIATION" for i in r08["issues"])
@@ -299,7 +299,7 @@ def test_r12_sla_warranty_deviation(client):
 
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200, resp.text
-    r12 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R12")
+    r12 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-SLA-WARRANTY-DEVIATION")
     assert r12["passed"] is True
     assert r12["severity"] == "info"
 
@@ -313,7 +313,7 @@ def test_r12_sla_warranty_deviation(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r12 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R12")
+    r12 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-SLA-WARRANTY-DEVIATION")
     assert r12["passed"] is False
     assert r12["severity"] == "blocker"
     assert any(i["code"] == "SLA_WARRANTY_NEGATIVE_DEVIATION" for i in r12["issues"])
@@ -328,7 +328,7 @@ def test_r12_sla_warranty_deviation(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r12 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R12")
+    r12 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-SLA-WARRANTY-DEVIATION")
     assert r12["passed"] is False
     assert r12["severity"] == "blocker"
     assert any(i["code"] == "SLA_WARRANTY_NEGATIVE_DEVIATION" for i in r12["issues"])
@@ -344,7 +344,7 @@ def test_r12_sla_warranty_deviation(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r12 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R12")
+    r12 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-SLA-WARRANTY-DEVIATION")
     assert r12["passed"] is False
     assert r12["severity"] == "blocker"
     assert any(i["code"] == "SLA_WARRANTY_NEGATIVE_DEVIATION" for i in r12["issues"])
@@ -360,7 +360,7 @@ def test_r20_quotation_collusion_risk_detection(client):
     flow.commit(biz_chapter["id"], "商务分册报价表：各项服务及软件分项报价依据实际工时测算，独立编制，总价合规。")
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200, resp.text
-    r20 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R20")
+    r20 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-QUOTATION-COLLUSION")
     assert r20["passed"] is True
     assert r20["severity"] == "info"
 
@@ -368,7 +368,7 @@ def test_r20_quotation_collusion_risk_detection(client):
     flow.commit(biz_chapter["id"], "报价分析备注：经对比，我方分项报价比例异常一致，各子项均呈固定比例分布。")
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r20 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R20")
+    r20 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-QUOTATION-COLLUSION")
     assert r20["passed"] is False
     assert r20["severity"] == "blocker"
     assert any(i["code"] == "BID_PRICE_COLLUSION_RISK_DETECTED" for i in r20["issues"])
@@ -377,7 +377,7 @@ def test_r20_quotation_collusion_risk_detection(client):
     flow.commit(biz_chapter["id"], "本标段直接复制其他投标主体报价清单结构，调整系数为0.98。")
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r20 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R20")
+    r20 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-QUOTATION-COLLUSION")
     assert r20["passed"] is False
     assert r20["severity"] == "blocker"
     assert any(i["code"] == "BID_PRICE_COLLUSION_RISK_DETECTED" for i in r20["issues"])
@@ -395,7 +395,7 @@ def test_r20_quotation_collusion_risk_detection(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r20 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R20")
+    r20 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-QUOTATION-COLLUSION")
     assert r20["passed"] is False
     assert r20["severity"] == "blocker"
     assert any(i["code"] == "BID_PRICE_COLLUSION_RISK_DETECTED" for i in r20["issues"])
@@ -428,7 +428,7 @@ def test_export_gate_blocked_by_p3_compliance_rules(client):
     blocker_issues = [i for i in check["issues"] if i.get("severity") == "blocker"]
     assert len(blocker_issues) > 0
     assert any(i.get("code") == "DELIVERY_TIMELINE_NEGATIVE_DEVIATION" for i in blocker_issues)
-    assert any(i.get("rule_id") == "R08" for i in blocker_issues)
+    assert any(i.get("rule_id") == "EXT-DELIVERY-TIMELINE" for i in blocker_issues)
 
     # 尝试在存在 blocker 缺陷时导出 submission 正式递交版 -> 必须被 400 CHECK_BLOCKER_EXISTS 门禁拦截！
     res = flow.client.post(

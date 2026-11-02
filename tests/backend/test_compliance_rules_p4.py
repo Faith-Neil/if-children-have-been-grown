@@ -42,7 +42,7 @@ def test_r13_team_staffing_compliance(client):
 
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200, resp.text
-    r13 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R13")
+    r13 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-TEAM-STAFFING")
     assert r13["passed"] is True
     assert r13["severity"] == "info"
 
@@ -56,7 +56,7 @@ def test_r13_team_staffing_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r13 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R13")
+    r13 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-TEAM-STAFFING")
     assert r13["passed"] is False
     assert r13["severity"] == "blocker"
     assert any(i["code"] == "TEAM_PROJECT_MANAGER_QUALIFICATION_MISSING" for i in r13["issues"])
@@ -71,7 +71,7 @@ def test_r13_team_staffing_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r13 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R13")
+    r13 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-TEAM-STAFFING")
     assert r13["passed"] is False
     assert r13["severity"] == "blocker"
     assert any(i["code"] == "TEAM_PROJECT_MANAGER_QUALIFICATION_MISSING" for i in r13["issues"])
@@ -86,7 +86,7 @@ def test_r13_team_staffing_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r13 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R13")
+    r13 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-TEAM-STAFFING")
     assert r13["passed"] is False
     assert r13["severity"] == "blocker"
     assert any(i["code"] == "TEAM_STAFFING_THRESHOLD_UNMET" for i in r13["issues"])
@@ -101,7 +101,7 @@ def test_r13_team_staffing_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r13 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R13")
+    r13 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-TEAM-STAFFING")
     assert r13["passed"] is False
     assert r13["severity"] == "blocker"
     assert any(i["code"] == "TEAM_PROJECT_MANAGER_QUALIFICATION_MISSING" for i in r13["issues"])
@@ -134,7 +134,7 @@ def test_r16_bid_security_deposit_compliance(client):
 
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200, resp.text
-    r16 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R16")
+    r16 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-BID-SECURITY")
     assert r16["passed"] is True
     assert r16["severity"] == "info"
 
@@ -148,7 +148,7 @@ def test_r16_bid_security_deposit_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r16 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R16")
+    r16 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-BID-SECURITY")
     assert r16["passed"] is False
     assert r16["severity"] == "blocker"
     assert any(i["code"] == "BID_SECURITY_DEPOSIT_NON_COMPLIANT" for i in r16["issues"])
@@ -163,7 +163,7 @@ def test_r16_bid_security_deposit_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r16 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R16")
+    r16 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-BID-SECURITY")
     assert r16["passed"] is False
     assert r16["severity"] == "blocker"
     assert any(i["code"] == "BID_SECURITY_DEPOSIT_NON_COMPLIANT" for i in r16["issues"])
@@ -178,7 +178,7 @@ def test_r16_bid_security_deposit_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r16 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R16")
+    r16 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-BID-SECURITY")
     assert r16["passed"] is False
     assert r16["severity"] == "blocker"
     assert any(i["code"] == "BID_SECURITY_DEPOSIT_NON_COMPLIANT" for i in r16["issues"])
@@ -193,7 +193,7 @@ def test_r16_bid_security_deposit_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r16 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R16")
+    r16 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-BID-SECURITY")
     assert r16["passed"] is False
     assert r16["severity"] == "blocker"
     assert any(i["code"] == "BID_SECURITY_DEPOSIT_NON_COMPLIANT" for i in r16["issues"])
@@ -219,7 +219,7 @@ def test_r18_consortium_agreement_compliance(client):
 
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200, resp.text
-    r18 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R18")
+    r18 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-CONSORTIUM-QUALIFICATION")
     assert r18["passed"] is True
     assert r18["severity"] == "info"
 
@@ -240,7 +240,7 @@ def test_r18_consortium_agreement_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r18 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R18")
+    r18 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-CONSORTIUM-QUALIFICATION")
     assert r18["passed"] is True
     assert r18["severity"] == "info"
 
@@ -255,7 +255,7 @@ def test_r18_consortium_agreement_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r18 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R18")
+    r18 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-CONSORTIUM-QUALIFICATION")
     assert r18["passed"] is False
     assert r18["severity"] == "blocker"
     assert any(i["code"] == "CONSORTIUM_AGREEMENT_INVALID" for i in r18["issues"])
@@ -270,7 +270,7 @@ def test_r18_consortium_agreement_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r18 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R18")
+    r18 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-CONSORTIUM-QUALIFICATION")
     assert r18["passed"] is False
     assert r18["severity"] == "blocker"
     assert any(i["code"] == "CONSORTIUM_AGREEMENT_INVALID" for i in r18["issues"])
@@ -285,7 +285,7 @@ def test_r18_consortium_agreement_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r18 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R18")
+    r18 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-CONSORTIUM-QUALIFICATION")
     assert r18["passed"] is False
     assert r18["severity"] == "blocker"
     assert any(i["code"] == "CONSORTIUM_AGREEMENT_INVALID" for i in r18["issues"])
@@ -375,7 +375,7 @@ def test_r32_bid_validity_period_compliance(client):
 
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200, resp.text
-    r32 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R32")
+    r32 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-BID-VALIDITY")
     assert r32["passed"] is True
     assert r32["severity"] == "info"
 
@@ -389,7 +389,7 @@ def test_r32_bid_validity_period_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r32 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R32")
+    r32 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-BID-VALIDITY")
     assert r32["passed"] is False
     assert r32["severity"] == "blocker"
     assert any(i["code"] == "BID_VALIDITY_PERIOD_DEFICIENT" for i in r32["issues"])
@@ -404,7 +404,7 @@ def test_r32_bid_validity_period_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r32 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R32")
+    r32 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-BID-VALIDITY")
     assert r32["passed"] is False
     assert r32["severity"] == "blocker"
     assert any(i["code"] == "BID_VALIDITY_PERIOD_DEFICIENT" for i in r32["issues"])
@@ -419,7 +419,7 @@ def test_r32_bid_validity_period_compliance(client):
     )
     resp = flow.client.get(f"{flow.path}/compliance-rules", headers=flow.headers)
     assert resp.status_code == 200
-    r32 = next(r for r in resp.json()["rules"] if r["rule_id"] == "R32")
+    r32 = next(r for r in resp.json()["rules"] if r["rule_id"] == "EXT-BID-VALIDITY")
     assert r32["passed"] is False
     assert r32["severity"] == "blocker"
     assert any(i["code"] == "BID_VALIDITY_PERIOD_DEFICIENT" for i in r32["issues"])
@@ -452,7 +452,7 @@ def test_export_gate_blocked_by_p4_compliance_rules(client):
     blocker_issues = [i for i in check["issues"] if i.get("severity") == "blocker"]
     assert len(blocker_issues) > 0
     assert any(i.get("code") == "BID_VALIDITY_PERIOD_DEFICIENT" for i in blocker_issues)
-    assert any(i.get("rule_id") == "R32" for i in blocker_issues)
+    assert any(i.get("rule_id") == "EXT-BID-VALIDITY" for i in blocker_issues)
 
     # 尝试在存在 blocker 缺陷时导出 submission 正式递交版 -> 必须被 400 CHECK_BLOCKER_EXISTS 门禁拦截！
     res = flow.client.post(

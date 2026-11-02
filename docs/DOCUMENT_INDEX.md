@@ -950,6 +950,10 @@
 | D-929 | 2026-11-02 | [任务交付：“需复核”传播提示（APP-M2-T122）](delivery/APP-M2-T122.md) | 任务交付 | wp5-2 | in-review | ISSUE-007 / APP-M2-T122 / APP-M2-T119 | 服务承诺复核原因、受影响章节与判定汇总只读接口和矩阵页面板 |
 | D-930 | 2026-11-02 | [代码说明：“需复核”传播提示（APP-M2-T122）](code/APP-M2-T122.md) | 代码说明 | wp5-2 | 当前 | ISSUE-007 / APP-M2-T122 | 传播计算与前端接线 |
 | D-931 | 2026-11-02 | [WP-5 第二批验证：队列单段编辑与服务承诺需复核传播](testing/2026-11-02-wp5-batch2-sla-queue-edit.md) | 测试 | wp5-test-2 | 当前 | ISSUE-007 / APP-M2-T134 / T122 / T119 | 本机单测结果，后端、tsc、e2e 未在本机执行 |
+| D-932 | 2026-11-02 | [ISSUE-046 PRD 规则编号重挂矩阵](decisions/2026-11-02-issue-046-realignment-matrix.md) | 决策 | issue-046-1 | 生效 | ISSUE-046 | 19 条规则 PRD/EXT 映射 |
+| D-933 | 2026-11-02 | [BE-ISSUE-046-RULE-REALIGN 交付](delivery/BE-ISSUE-046-RULE-REALIGN.md) | 任务交付 | issue-046-1 | in-review | ISSUE-046 | compliance_prd_checks 重挂 |
+| D-934 | 2026-11-02 | [main 合入文档同步](delivery/2026-11-02-doc-sync-main-merge.md) | 任务交付 | doc-sync-1 | 当前 | PR #6 / cfdf5ad | 合入元数据与 testing 回填 |
+| D-935 | 2026-11-02 | [PM 标 done 队列](delivery/2026-11-02-pm-done-queue.md) | 任务交付 | pm-queue-1 | 当前 | T260 / T166 / T020 / T096 | PM Build 计划四卡 done |
 
 ## 更新记录
 
