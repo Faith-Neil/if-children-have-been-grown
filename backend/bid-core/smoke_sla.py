@@ -12,7 +12,7 @@ from zipfile import ZipFile
 
 import httpx
 
-from smoke_demo import authenticate, request
+from smoke_demo import authenticate, release_releasable_check_issues, request
 from smoke_reference import run as create_reference_project, word_text
 
 
@@ -80,6 +80,7 @@ def run(base_url, output_dir=None):
         request(client, 'POST', chapter_path + '/lock/release', headers=manager,
                 payload={'lease_token': lease['lease_token']})
         check = write('/checks', {'volume': 'all'})['check']
+        check = release_releasable_check_issues(client, path, check, manager)
         assert check['passed'] and not check['coverage']['complete'], check['issues']
         volumes = write('/exports', {'check_id': check['id'], 'kind': 'internal'})['export']
         commitment = write('/sla/commitment', {})['commitment']

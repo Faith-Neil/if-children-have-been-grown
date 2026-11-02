@@ -22,6 +22,25 @@ def authenticate(client, account):
     return {"Authorization": "Bearer " + result.json()["access_token"]}
 
 
+RELEASABLE_SEVERITIES = ("warning", "info", "hint")
+
+
+def release_releasable_check_issues(client, project_path, check, headers, reason="合成冒烟：负责人确认已知警告并继续。"):
+    """PRD：warning/info/hint 须项目负责人放行后 check 才算 passed（与 ISSUE-046 后 pytest  harness 一致）。"""
+    for issue in list(check.get("issues", [])):
+        if issue.get("released") or issue.get("severity") not in RELEASABLE_SEVERITIES:
+            continue
+        rev = request(client, "GET", project_path + "/workspace", headers=headers).json()["revision"]
+        check = request(
+            client,
+            "POST",
+            f"{project_path}/checks/{check['id']}/issues/{issue['id']}/release",
+            headers={**headers, "If-Match": str(rev), "Idempotency-Key": str(uuid4())},
+            payload={"reason": reason},
+        ).json()["check"]
+    return check
+
+
 def run(base_url):
     with httpx.Client(base_url=base_url, timeout=10, trust_env=False) as client:
         request(client, "GET", "/api/projects", expected=401)

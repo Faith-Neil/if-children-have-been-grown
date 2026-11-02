@@ -10,7 +10,7 @@ from uuid import uuid4
 
 import httpx
 
-from smoke_demo import authenticate, request
+from smoke_demo import authenticate, release_releasable_check_issues, request
 from smoke_reference import run as create_reference_project, word_text
 
 
@@ -99,6 +99,7 @@ def run(base_url, output_dir=None):
         write(business_path + '/plan/confirm', {}, actor=business)
         # 草稿保留用于GUI查看，实际输出只取已提交正文。
         check = write('/checks', {'volume': 'all'})['check']
+        check = release_releasable_check_issues(client, path, check, manager)
         assert check['passed'], check['issues']
         exported = write('/exports', {'check_id': check['id'], 'kind': 'internal'})['export']
         outputs = []

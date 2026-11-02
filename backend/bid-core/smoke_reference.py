@@ -13,7 +13,7 @@ from zipfile import ZipFile
 
 import httpx
 
-from smoke_demo import authenticate, request
+from smoke_demo import authenticate, release_releasable_check_issues, request
 
 
 TENDER = ('合成招标文件：星河数据库维保项目\n招标编号：DEMO-2026-001\n'
@@ -121,6 +121,7 @@ def run(base_url, output_dir=None):
         request(client, 'POST', chapter_path + '/lock/release', headers=editor, payload={'lease_token': lease['lease_token']})
 
         check = write('/checks', {'volume': 'all'})['check']
+        check = release_releasable_check_issues(client, path, check, manager)
         assert check['passed'] and not check['coverage']['complete']
         exported = write('/exports', {'check_id': check['id'], 'kind': 'internal'})['export']
         downloaded = []
