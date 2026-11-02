@@ -20,7 +20,7 @@ def test_submission_export_blocked_until_all_volumes_finalized(client):
     state = flow.state()
 
     # 执行项目全部分册合规检查
-    check = flow.write("/checks", {"volume": "all"})["check"]
+    check = flow.check_all_volumes()
     assert check["status"] == "passed"
     assert not any(i.get("severity") == "blocker" for i in check["issues"])
 

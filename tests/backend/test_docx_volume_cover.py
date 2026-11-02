@@ -52,7 +52,7 @@ def test_submission_volumes_have_cover_toc_pages_and_bidder_header(client):
 
 def test_internal_drafts_say_so_in_header_and_leave_author_empty(client):
     flow = ProjectFlow(client).ready()
-    check = flow.write("/checks", {"volume": "all"})["check"]
+    check = flow.check_all_volumes()
     export = flow.write("/exports", {"check_id": check["id"], "kind": "internal", "volume": "all"})["export"]
     for data in _download(client, flow, export).values():
         parts = _parts(data)

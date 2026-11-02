@@ -18,7 +18,7 @@ def _put(flow, body, expected=200, headers=None):
 
 
 def _internal(flow):
-    check = flow.write("/checks", {"volume": "all"})["check"]
+    check = flow.check_all_volumes()
     return flow.write("/exports", {"check_id": check["id"], "kind": "internal", "volume": "all"})["export"]
 
 

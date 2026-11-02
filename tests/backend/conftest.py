@@ -14,9 +14,30 @@ if os.environ.get("ICG_RUN_REAL_RAGFLOW_TESTS") != "1":
         os.environ.pop(_name, None)
 
 import pytest
+from uuid import uuid4
 
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2] / "backend" / "bid-core"
+RELEASABLE_SEVERITIES = ("warning", "info", "hint")
+
+
+def release_releasable_check_issues(client, project_id: str, check: dict, headers: dict) -> dict:
+    """PRD：警告须负责人逐项放行；合成/冒烟主流程在 ISSUE-046 后可能产生 warning，测试里统一放行。"""
+    base = f"/api/v1/projects/{project_id}"
+    for issue in list(check.get("issues", [])):
+        if issue.get("released") or issue.get("severity") not in RELEASABLE_SEVERITIES:
+            continue
+        rev = client.get(f"{base}/workspace", headers=headers).json()["revision"]
+        resp = client.post(
+            f"{base}/checks/{check['id']}/issues/{issue['id']}/release",
+            json={"reason": "合成/冒烟测试：负责人确认已知警告并继续。"},
+            headers={**headers, "If-Match": str(rev), "Idempotency-Key": str(uuid4())},
+        )
+        assert resp.status_code == 200, resp.text
+        check = resp.json()["check"]
+    return check
+
+
 sys.path.insert(0, str(BACKEND_ROOT))
 
 

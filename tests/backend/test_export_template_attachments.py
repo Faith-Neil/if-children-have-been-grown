@@ -98,7 +98,7 @@ def _parts(data: bytes) -> dict[str, bytes]:
 
 
 def _export(flow, client, **options):
-    check = flow.write("/checks", {"volume": "all"})["check"]
+    check = flow.check_all_volumes()
     export = flow.write("/exports", {"check_id": check["id"], "kind": "internal", "volume": "all", **options})["export"]
     files = {v["volume"]: client.get(v["download_url"], headers=flow.headers).content for v in export["volumes"]}
     return export, files

@@ -211,7 +211,7 @@ def test_evidence_date_covers_local_deadline_not_previous_utc_day(client):
     assert updated.status_code == 200, updated.text
     # 来源改变后确认方案，再单独验证有效期恢复；旧方案不能沿用。
     flow.confirm_plan()
-    assert flow.write("/checks", {})["check"]["passed"] is True
+    assert flow.check_all_volumes()["passed"] is True
 
 
 @pytest.mark.parametrize("change", ["response", "fact", "evidence", "project", "content"])

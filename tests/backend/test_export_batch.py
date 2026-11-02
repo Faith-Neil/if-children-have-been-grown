@@ -100,8 +100,7 @@ def test_old_batch_stays_downloadable_as_the_original_file_after_content_changes
 def _ready_for_submission(client):
     from test_reference_flow import ProjectFlow
     flow = ProjectFlow(client).ready()
-    check = flow.write("/checks", {"volume": "all"})["check"]
-    assert check["passed"], check["issues"]
+    check = flow.check_all_volumes()
     for volume in ("technical", "business"):
         flow.cross_reviewed(volume)
         resp = client.post(f"{flow.path}/volumes/{volume}/finalize", json={"check_id": check["id"]}, headers=_headers(flow))

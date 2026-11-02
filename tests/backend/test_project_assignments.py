@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from icg_demo.adapters import MemoryRepository, seed_state
 from icg_demo.domain import Account
 from icg_demo.main import create_app
+from conftest import release_releasable_check_issues
 from test_reference_flow import ProjectFlow, login, word_text
 from test_generation_context import CapturingProvider
 
@@ -300,6 +301,7 @@ def test_only_lead_or_volume_owner_can_check_and_export_matching_scope(setup):
     acting(client, flow, "alpha-tech", "/checks", {"volume": "business"}, expected=403)
     acting(client, flow, "alpha-tech", "/checks", {"volume": "all"}, expected=403)
     check = acting(client, flow, "alpha-tech", "/checks", {"volume": "technical"})["check"]
+    check = release_releasable_check_issues(client, flow.id, check, login(client, "alpha-manager"))
     assert check["passed"]
     acting(client, flow, "alpha-tech", "/exports", {"check_id": check["id"], "kind": "internal"}, expected=403)
     exported = acting(client, flow, "alpha-tech", "/exports", {"check_id": check["id"], "volume": "technical", "kind": "internal"})["export"]

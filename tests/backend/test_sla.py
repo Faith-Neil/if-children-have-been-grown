@@ -446,11 +446,11 @@ def test_same_unit_variable_is_resolved_in_actual_two_volume_word(client):
         "lease_token": lease["lease_token"], "input_fingerprint": flow.state()["input_fingerprint"], "base_revision": chapter["revision"],
         "content": "一级故障响应时限为{{sla:P1.response}}分钟。", "idempotency_key": str(uuid4())})
     assert result.status_code == 200, result.text
+    from conftest import release_releasable_check_issues
+
     check = flow.write("/checks", {"volume": "all"})["check"]
-    # 商务章节没有映射条款，R30 给警告；由项目负责人填理由放行后才能导出
-    for issue in [i for i in check["issues"] if i["severity"] == "warning"]:
-        assert issue["code"] == "SCOPE_CHAPTER_WITHOUT_CLAUSE", issue
-        check = flow.write(f"/checks/{check['id']}/issues/{issue['id']}/release", {"reason": "商务章节为通用资质说明"})["check"]
+    # 商务章节没有映射条款（R30）及评分项未指派（R26）等 warning 须负责人放行后才能导出
+    check = release_releasable_check_issues(flow.client, flow.project_id, check, flow.headers)
     assert check["passed"], check["issues"]
     export = flow.write("/exports", {"check_id": check["id"], "kind": "internal"})["export"]
     assert {volume["volume"] for volume in export["volumes"]} == {"technical", "business"}

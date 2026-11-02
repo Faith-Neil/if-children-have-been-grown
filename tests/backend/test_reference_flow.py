@@ -9,6 +9,7 @@ from xml.etree import ElementTree
 from zipfile import ZipFile
 
 import pytest
+from conftest import release_releasable_check_issues
 from fastapi.testclient import TestClient
 from pypdf import PdfWriter
 from pypdf.generic import DictionaryObject, NameObject, DecodedStreamObject
@@ -142,9 +143,15 @@ class ProjectFlow:
             self.write(path, data, headers=headers)
         return self
 
-    def checked_export(self):
+    def check_all_volumes(self) -> dict:
         check = self.write("/checks", {"volume": "all"})["check"]
+        if not check["passed"]:
+            check = release_releasable_check_issues(self.client, self.id, check, self.headers)
         assert check["passed"] is True, check
+        return check
+
+    def checked_export(self):
+        check = self.check_all_volumes()
         assert check["coverage"]["complete"] is False
         exported = self.write("/exports", {"check_id": check["id"], "kind": "internal"})["export"]
         return check, exported

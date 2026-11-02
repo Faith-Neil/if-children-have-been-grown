@@ -14,8 +14,7 @@ def _headers(flow, account="alpha-manager"):
 
 def _submission(client):
     flow = ProjectFlow(client).ready()
-    check = flow.write("/checks", {"volume": "all"})["check"]
-    assert check["passed"], check["issues"]
+    check = flow.check_all_volumes()
     for volume in ("technical", "business"):
         flow.cross_reviewed(volume)
         resp = client.post(f"{flow.path}/volumes/{volume}/finalize", json={"check_id": check["id"]}, headers=_headers(flow))
@@ -80,7 +79,7 @@ def test_checklist_permissions_and_internal_exports_have_none(client):
 
 def test_internal_export_has_no_checklist(client):
     flow = ProjectFlow(client).ready()
-    check = flow.write("/checks", {"volume": "all"})["check"]
+    check = flow.check_all_volumes()
     export = flow.write("/exports", {"check_id": check["id"], "kind": "internal"})["export"]
     assert "merge_checklist_url" not in export
     assert client.get(f"{flow.path}/exports/{export['id']}/merge-checklist", headers=flow.headers).status_code == 404

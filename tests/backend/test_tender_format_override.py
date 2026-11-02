@@ -43,7 +43,7 @@ def test_export_uses_the_tender_format(client):
     flow.confirm_plan({"chapters": [{"id": c["id"], "title": c["title"], "volume": c["volume"]} for c in chapters]})
     for chapter in flow.state()["chapters"]:
         flow.commit(chapter["id"], "合成正文：每月安排巡检，报告由负责人复核。")
-    check = flow.write("/checks", {"volume": "all"})["check"]
+    check = flow.check_all_volumes()
     export = flow.write("/exports", {"check_id": check["id"], "kind": "internal", "volume": "all"})["export"]
     volume = export["volumes"][0]
     assert {item["item"] for item in volume["format_overrides"]} >= {"正文字体", "正文字号", "正文行距（倍数）", "一级标题字号"}

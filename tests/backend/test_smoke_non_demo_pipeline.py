@@ -388,7 +388,13 @@ def test_smoke_full_pipeline_steps_2_to_6(non_demo_env):
         headers={**lead_headers, "If-Match": str(rev), "Idempotency-Key": str(uuid4())},
     )
     assert resp_check_clean.status_code == 200
+    from conftest import release_releasable_check_issues
+
     clean_check = resp_check_clean.json()["check"]
+    if not clean_check["passed"]:
+        clean_check = release_releasable_check_issues(
+            client, project_id, clean_check, lead_headers
+        )
     assert clean_check["passed"] is True
     assert not any(i.get("severity") == "blocker" for i in clean_check["issues"])
 
