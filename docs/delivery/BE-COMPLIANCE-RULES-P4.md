@@ -76,3 +76,7 @@ node scripts/check-project-governance.cjs
 - 本次交付完整覆盖 PRD MVP §5.8 第五批核心合规规则（R13/R16/R18/R24/R32），全部代码严格落盘在 `icg/domain/` 上下文包；
 - 导出门禁无缝拦截任何 blocker 缺陷，阻断违规导出正式递交文件；
 - 建议 PM 在后续验收通过后将 `BE-COMPLIANCE-RULES-P4` 标为 `done`。
+
+## ISSUE-046 免责声明（2026-11-02）
+
+本批次 `done` 表示 **合规引擎 P4 批次接线**，不等于 ISSUE-046 所列错位编号均已按 PRD 产品签署完成。编号重挂见 [BE-ISSUE-046-RULE-REALIGN](../delivery/BE-ISSUE-046-RULE-REALIGN.md) 与 [决策矩阵](../decisions/2026-11-02-issue-046-realignment-matrix.md)。

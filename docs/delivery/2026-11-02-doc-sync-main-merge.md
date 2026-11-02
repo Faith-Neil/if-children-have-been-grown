@@ -15,3 +15,8 @@
 
 - `node scripts/check-project-governance.cjs`（收尾）
 - ISSUE-046 规则重挂：`python -m pytest tests/backend/test_compliance_rules*.py`（46 passed，2026-11-02 本机 bid-core 环境）
+
+## 后续（2026-11-02）
+
+- 代码合入：`7e206e4` `fix(compliance): realign 19 PRD rule IDs per ISSUE-046`（推送 `main` 后须复跑 GitHub offline-check 五项）。
+- 文档：`BE-COMPLIANCE-RULES-P1～P5` ISSUE-046 免责声明；[规则单卡索引](2026-11-02-issue-046-rule-card-index.md)；看板 done 100 / tip `7e206e4`。

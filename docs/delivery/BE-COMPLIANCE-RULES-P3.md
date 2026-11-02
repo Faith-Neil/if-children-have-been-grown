@@ -76,3 +76,7 @@ node scripts/check-project-governance.cjs
 
 本卡改动严格限定在后端领域规则引擎与门禁逻辑实现，测试全绿，已推至 `in-review`。
 依据项目治理纪律，建议由 QA 执行独立签署核验 + PD 产品对照验收核准后，由人类 PM 最终标 `done`。
+
+## ISSUE-046 免责声明（2026-11-02）
+
+本批次 `done` 表示 **合规引擎 P3 批次接线**，不等于 ISSUE-046 所列错位编号均已按 PRD 产品签署完成。编号重挂见 [BE-ISSUE-046-RULE-REALIGN](../delivery/BE-ISSUE-046-RULE-REALIGN.md) 与 [决策矩阵](../decisions/2026-11-02-issue-046-realignment-matrix.md)。

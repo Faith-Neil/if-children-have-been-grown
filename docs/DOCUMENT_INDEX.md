@@ -954,6 +954,7 @@
 | D-933 | 2026-11-02 | [BE-ISSUE-046-RULE-REALIGN 交付](delivery/BE-ISSUE-046-RULE-REALIGN.md) | 任务交付 | issue-046-1 | in-review | ISSUE-046 | compliance_prd_checks 重挂 |
 | D-934 | 2026-11-02 | [main 合入文档同步](delivery/2026-11-02-doc-sync-main-merge.md) | 任务交付 | doc-sync-1 | 当前 | PR #6 / cfdf5ad | 合入元数据与 testing 回填 |
 | D-935 | 2026-11-02 | [PM 标 done 队列](delivery/2026-11-02-pm-done-queue.md) | 任务交付 | pm-queue-1 | 当前 | T260 / T166 / T020 / T096 | PM Build 计划四卡 done |
+| D-936 | 2026-11-02 | [ISSUE-046 规则单卡交付索引](delivery/2026-11-02-issue-046-rule-card-index.md) | 任务交付 | issue-046-2 | 当前 | ISSUE-046 / APP-M2-T203～T242 | 编号已对齐说明，待逐卡 delivery |
 
 ## 更新记录
 

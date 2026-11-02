@@ -47,3 +47,7 @@ tests/backend/test_compliance_rules_p1.py::test_r10_warranty_period_and_response
 tests/backend/test_compliance_rules_p1.py::test_export_gate_blocked_by_p1_compliance_rules PASSED [100%]
 ============================== 5 passed in 4.96s ==============================
 ```
+
+## ISSUE-046 免责声明（2026-11-02）
+
+本批次 `done` 表示 **合规引擎 P1 批次接线**，不等于 ISSUE-046 所列错位编号均已按 PRD 产品签署完成。编号重挂见 [BE-ISSUE-046-RULE-REALIGN](../delivery/BE-ISSUE-046-RULE-REALIGN.md) 与 [决策矩阵](../decisions/2026-11-02-issue-046-realignment-matrix.md)。

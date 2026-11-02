@@ -5,7 +5,7 @@
 | Task ID | BE-ISSUE-046-RULE-REALIGN |
 | 状态 | in-review |
 | Issue | [ISSUE-046](../../issues/ISSUE-046.md)（closed 2026-11-02） |
-| 合入 | `main`（本变更待提交）；基于 tip `cfdf5ad` |
+| 合入 | 分支 `main` @ `7e206e48b557017f9b0ea6df907faa0320fbeb0c`（基于 `cfdf5ad`） |
 
 ## 完成内容
 

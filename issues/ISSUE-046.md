@@ -16,7 +16,7 @@
 | 关联 Task | [BE-ISSUE-046-RULE-REALIGN](../docs/delivery/BE-ISSUE-046-RULE-REALIGN.md)；[APP-M2-T096](../docs/tasks/APP-M2.md#app-m2-t096)（R19 已更正） |
 | 关联 PR | [PR #6](https://github.com/Faith-Neil/if-children-have-been-grown/pull/6)（已合并进 main） |
 | 本地验收 | 2026-11-02：`tests/backend/test_compliance_rules*.py` 46 passed；`export_openapi.py --check` OK |
-| 合入 | 分支 `main` @ `cfdf5ad972339db229c3e7c43482086b4ba3dd4b`；PR #6 已合并（2026-11-02） |
+| 合入 | 分支 `main` @ `7e206e48b557017f9b0ea6df907faa0320fbeb0c`（ISSUE-046 重挂）；PR #6 已合并（2026-11-02） |
 | 发布 | 未发布 |
 
 ## 处理结果（2026-11-02）

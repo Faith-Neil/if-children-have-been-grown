@@ -102,3 +102,7 @@ node --test tests/governance/*.test.cjs
 1. **导出门禁严格联动**：凡检测到未回避利害关系、强制节能认证缺失、知识产权无争议声明缺失、本地服务机构缺失或关键技术指标实质性负偏离，检查引擎均给出 `severity="blocker"` 裁决并录入检查快照，导出正式递交版时由 `export_service.py` 严格阻断拦截（400 `CHECK_BLOCKER_EXISTS`）；
 2. **RULES_INCOMPLETE 诚实守卫**：在消减上述 blocker 之后，系统因尚未完成分册定稿前置审批流程，导出正式递交版时依旧严格返回 409 `RULES_INCOMPLETE`。交付报告与测试套件诚实记录此阻断，绝不绕过门禁假装规则已全部完成或已达递交上线标准；
 3. **状态建议**：本卡实现完整，测试与治理全部通过，状态推至 `in-review`，建议 PM 标 `done`。
+
+## ISSUE-046 免责声明（2026-11-02）
+
+本批次 `done` 表示 **合规引擎 P5 批次接线**（含 EXT-GREEN 等扩展规则），不等于 ISSUE-046 所列错位编号均已按 PRD 产品签署完成。编号重挂见 [BE-ISSUE-046-RULE-REALIGN](../delivery/BE-ISSUE-046-RULE-REALIGN.md) 与 [决策矩阵](../decisions/2026-11-02-issue-046-realignment-matrix.md)。
