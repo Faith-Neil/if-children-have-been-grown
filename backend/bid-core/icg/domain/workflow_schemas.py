@@ -198,6 +198,7 @@ class ChapterAssignment(RequestBody):
 
 class GenerateRequest(RequestBody):
     chapter_ids: list[str] | None = None
+    section: str | None = Field(default=None, max_length=500, description="只重新生成这一节；不填则按顺序写全部可写的节")
 
 
 class ProjectCheckRequest(RequestBody):
@@ -381,6 +382,10 @@ class Requirement(ResponseBody):
     superseded_by: str | None = None
     amends: str | None = Field(default=None, description="补遗条目修改的原条款")
     source_stale: str | None = Field(default=None, description="重新解析后原句在新文字里找不到，请对照原件核对")
+    technical_clause: bool = Field(default=False, description="技术分册按教程抽出的条款；同一件事只有一行")
+    response_origin: Literal["", "history", "model", "retrieval_failed", "draft_failed"] = ""
+    history_filename: str = ""
+    history_quote: str = ""
 
 
 class Fact(ResponseBody):
@@ -608,6 +613,7 @@ class WorkflowChapter(ChapterSummaryResponse):
     assignee_id: str | None
     assignee_name: str | None
     permissions: dict[str, bool]
+    needs_regeneration: bool = False
 
 
 class ParagraphDetail(ResponseBody):
@@ -910,6 +916,20 @@ class LibraryItem(ResponseBody):
     submitted_on: str | None = None
 
 
+class TechnicalHeading(ResponseBody):
+    level: int
+    number: str
+    title: str
+    requirement_id: str | None = None
+
+
+class TechnicalOutline(ResponseBody):
+    title: str
+    chapter_id: str
+    headings: list[TechnicalHeading]
+    missing: list[str] = Field(default_factory=list, description="还没有三级标题的条款")
+
+
 class Workspace(ResponseBody):
     revision: int
     input_fingerprint: str
@@ -925,6 +945,12 @@ class Workspace(ResponseBody):
     jobs: list[Job]
     parse_confirmed: bool
     plan_confirmed: bool
+    source_fingerprint: str = ""
+    parsed_source_fingerprint: str = ""
+    technical_extract_empty: bool = Field(default=False, description="技术分册这次没有抽出技术条款")
+    technical_outline: TechnicalOutline | None = Field(default=None, description="技术分册的单章目录；创建时的技术方案不是这份目录")
+    technical_deviation_note: str = Field(default="", description="没有偏离表样表时的说明；有样表则为空")
+    technical_needs_review: list[str] = Field(default_factory=list, description="正文偏离表述和矩阵不一致、或同一指标出现两个数字的小节")
     sla: ProjectSla | None = None
     writing_plan: WritingPlan
     team: Team

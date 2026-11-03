@@ -29,8 +29,11 @@ test('team payload for a technical-only project sends one owner row', () => {
   assert.deepEqual(payload.members.map(m => m.volumes), [['technical'], ['technical']]);
 });
 
-test('create modal offers the technical-only choice and export page explains no merge', () => {
-  assert.match(readFileSync(new URL('../../src/project/CreateProjectModal.tsx', import.meta.url), 'utf8'), /volume_mode/);
+test('create modal fixes technical-only and export page explains no merge', () => {
+  const modal = readFileSync(new URL('../../src/project/CreateProjectModal.tsx', import.meta.url), 'utf8');
+  assert.match(modal, /volume_mode: 'technical_only'/);
+  assert.doesNotMatch(modal, /volume-mode-radio/);
   assert.match(readFileSync(new URL('../../src/project/ProjectPages.tsx', import.meta.url), 'utf8'), /本项目只写技术标，不需要合标/);
-  assert.match(readFileSync(new URL('../../src/app/App.tsx', import.meta.url), 'utf8'), /volume_mode: values\.volume_mode === 'technical_only'/);
+  assert.match(readFileSync(new URL('../../src/app/App.tsx', import.meta.url), 'utf8'), /volume_mode: 'technical_only'/);
+  assert.doesNotMatch(readFileSync(new URL('../../src/app/App.tsx', import.meta.url), 'utf8'), /企业资料库|写作档案/);
 });

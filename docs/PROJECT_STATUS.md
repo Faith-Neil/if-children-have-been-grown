@@ -6,6 +6,10 @@
 
 维护日期：2026-10-30（UTC+8）。分支 `feat/opencode-ICG` 位于 tip `4985a9d`（相对 `main` 超前 71 个提交）；Wave 11 在分支 `feat/wave-11-main-path` 开发，经 [PR #6](https://github.com/Faith-Neil/if-children-have-been-grown/pull/6) 并回；初次接手从 `main` 的 `ce064f6` 开始维护；main/xqr分支情况保留2026-10-09核对快照。已补齐 WP-1 独立交付文档（D-696），对齐 RoleMode 枚举，登记整改后结构债务收敛 ISSUE-038（D-697），完成 DOC-SYNC-1（D-698）与 DOC-SYNC-1.1（D-699）活文档实树校准。完成 CI 工作流触发分支修复（D-721）、已签等 PM 清单汇总（D-722）与关演示主链路冒烟留证（D-723）、大模型与 RAGFlow 弹窗配置及实测（D-724/D-725）、规则最小可递交集与分册定稿闸门端到端闭环（D-726/D-727）、以及 2026-10-26 规划未落地债审计与看板状态校准（D-728/D-729）。新增 R01/R02/R35 规则扩写落地与 7 大核心规则闭环、MySQL 章节/草稿/检查双向持久化、真实内网 RAGFlow 连通性网络探针证据归档与关演示全业务链路新冒烟留证（D-740/D-741）。Wave 2 批次（D-746～D-753）、Wave 3 批次（D-756～D-763）与 Wave 4 批次（FE-TECH-DEBT-02 App.tsx 瘦身至 394 行、APP-M2-T022 平台管理员脱敏长任务、BE-COMPLIANCE-RULES-P3 P3 规则扩充至 21 项与导出门禁、AI-DYNAMIC-PROMPT-CONTEXT 自适应 Prompt 预算与指纹、INT-APP-SLIM-ROUTING 路由分层与脱敏联调）（D-766～D-775）经 QA 独立终验签署（D-754/D-764/D-776 PASS）与 PD 产品验收（D-755/D-765/D-777 认可），已获人类 PM 正式批准标为 done。当前共 444 项中 96 done、65 in-review、7 in-progress、228 planned、41 blocked、7 cancelled、0 ready，2026-10-28 逐行统计）。Wave 9 批次（APP-M2-T027、INT-USER-TRANSFER-RBAC-GLUE、BE-USER-MANAGEMENT-TRANSFER、AI-CHAPTER-AUTO-VALIDATION-GATE）与 Wave 10 核心批次（APP-M2-T028 用户角色分配与账号解锁 D-828/D-829、BE-USER-SECURITY-OPS 用户安全运维服务 D-830/D-831、INT-USER-SECURITY-OPS-GLUE 账号安全契约联调 D-832/D-833、AI-OUTLINE-AUTO-REMEDIATION 质检缺陷自动整改建议与局部智能重写引擎 D-834/D-835）经 QA 独立复测终验（D-836 PASS）与 PD 产品验收（D-837 认可），已获人类 PM 正式批准标为 done。
 
+## 技术分册开工（2026-11-03）
+
+[ISSUE-047](../issues/ISSUE-047.md) 已拆成 [TV-M0-T01～T07](tasks/TV-M0.md)。集成目标是 `feat/iss-047-technical-volume-mvp`，不是 main。main 继续维护两册路径。T01～T07 均为 in-review：侧栏收口，知识库改为上传历史标书，技术分册只收三类文件，抽出条款并排成一章目录，矩阵由本地模型判断正偏离、负偏离或无偏离，正文按六段写入同一章，内部稿按招标样表填技术偏离表。没有接通公司 RAGFlow 和本地 Qwen，不标 done。PR #7 只有决定记录，不承载这些产品提交，也不合并。
+
 ## Wave 11 续与看板整治（2026-10-29～10-30）
 
 - 已交付并 in-review：公司 Word 模板、附件扫描件按页插入与敏感水印、解析质量（置信度与原文不可读）；对话助手流式输出、首选失败转备用模型、停止生成；自由问答与敏感项目本地模型排队；粘贴识别；R33/R38 与拟派人员；公司设置保存；导出命名、招标格式要求覆盖模板、一至八级标题与 Markdown 表格；任务与模型对应表。真实 RAGFlow 上验证了 Gemini 与 GLM，修了两类真实模型的输出问题与 MySQL 模型配置不落库的缺陷。DeepSeek v4 在 RAGFlow 中登记的模型名不对，Jiekou 返回 model not found，需用户在 RAGFlow 改名。

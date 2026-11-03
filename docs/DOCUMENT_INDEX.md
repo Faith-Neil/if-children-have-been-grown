@@ -963,12 +963,29 @@
 | D-942 | 2026-11-03 | [服务方案目录制作教程](reference/writing/01-服务方案目录制作教程.md) | 编写方法 | writing-method-1 | 原文 | 技术分册 MVP | 评分点与规格书抽标题、层级和双清单 |
 | D-943 | 2026-11-03 | [技术标响应教程](reference/writing/02-技术标响应教程.md) | 编写方法 | writing-method-1 | 原文 | 技术分册 MVP | 三级标题八股、偏离和检查 |
 | D-944 | 2026-11-03 | [技术分册 MVP](decisions/2026-11-03-technical-volume-mvp.md) | 决策 | tech-volume-mvp-1 | 生效 | ISSUE-047 | 2026-11-03 确认的技术分册路径；代码未改 |
-| D-945 | 2026-11-03 | [ISSUE-047：技术分册 MVP](../issues/ISSUE-047.md) | Issue | tech-volume-mvp-1 | new | ISSUE-047 | 决定已确认，任务未拆，代码未改 |
+| D-945 | 2026-11-03 | [ISSUE-047：技术分册 MVP](../issues/ISSUE-047.md) | Issue | tech-volume-mvp-1 | in-progress | ISSUE-047 | 决定已确认；T01 in-review，T02～T07 planned |
+| D-946 | 2026-11-03 | [TV-M0 任务卡](tasks/TV-M0.md) | 任务 | tv-m0-1 | 当前 | ISSUE-047 | T01～T07 |
+| D-947 | 2026-11-03 | [TV-M0-T01 交付](delivery/TV-M0-T01.md) | 任务交付 | tv-m0-1 | in-review | ISSUE-047 / TV-M0-T01 | 侧栏与新建项目入口 |
+| D-948 | 2026-11-03 | [TV-M0-T01 代码说明](code/TV-M0-T01.md) | 代码说明 | tv-m0-1 | 当前 | ISSUE-047 / TV-M0-T01 | 导航与创建请求 |
+| D-949 | 2026-11-03 | [TV-M0-T02 交付](delivery/TV-M0-T02.md) | 任务交付 | tv-m0-1 | in-review | ISSUE-047 / TV-M0-T02 | 历史标书上传 |
+| D-950 | 2026-11-03 | [TV-M0-T02 代码说明](code/TV-M0-T02.md) | 代码说明 | tv-m0-1 | 当前 | ISSUE-047 / TV-M0-T02 | 知识库页与上传权限 |
+| D-951 | 2026-11-03 | [TV-M0-T03 交付](delivery/TV-M0-T03.md) | 任务交付 | tv-m0-1 | in-review | ISSUE-047 / TV-M0-T03 | 招标文件与辅助文件 |
+| D-952 | 2026-11-03 | [TV-M0-T03 代码说明](code/TV-M0-T03.md) | 代码说明 | tv-m0-1 | 当前 | ISSUE-047 / TV-M0-T03 | 文件类型与再次抽取 |
+| D-953 | 2026-11-03 | [TV-M0-T04 交付](delivery/TV-M0-T04.md) | 任务交付 | tv-m0-1 | in-review | ISSUE-047 / TV-M0-T04 | 技术条款抽取 |
+| D-954 | 2026-11-03 | [TV-M0-T04 代码说明](code/TV-M0-T04.md) | 代码说明 | tv-m0-1 | 当前 | ISSUE-047 / TV-M0-T04 | 主观分拆条与规格书条款 |
+| D-955 | 2026-11-03 | [TV-M0-T05 交付](delivery/TV-M0-T05.md) | 任务交付 | tv-m0-1 | in-review | ISSUE-047 / TV-M0-T05 | 单章服务方案目录 |
+| D-956 | 2026-11-03 | [TV-M0-T05 代码说明](code/TV-M0-T05.md) | 代码说明 | tv-m0-1 | 当前 | ISSUE-047 / TV-M0-T05 | 章内二级三级标题 |
+| D-957 | 2026-11-03 | [TV-M0-T06 交付](delivery/TV-M0-T06.md) | 任务交付 | tv-m0-1 | in-review | ISSUE-047 / TV-M0-T06 | 历史做法与逐条确认 |
+| D-958 | 2026-11-03 | [TV-M0-T06 代码说明](code/TV-M0-T06.md) | 代码说明 | tv-m0-1 | 当前 | ISSUE-047 / TV-M0-T06 | 矩阵响应来源 |
+| D-959 | 2026-11-03 | [TV-M0-T07 交付](delivery/TV-M0-T07.md) | 任务交付 | tv-m0-1 | in-review | ISSUE-047 / TV-M0-T07 | 六段正文与偏离表 |
+| D-960 | 2026-11-03 | [TV-M0-T07 代码说明](code/TV-M0-T07.md) | 代码说明 | tv-m0-1 | 当前 | ISSUE-047 / TV-M0-T07 | 按节生成与内部稿 |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-11-03 | ISSUE-047 | 集成目标改为 `feat/iss-047-technical-volume-mvp`，不合并 main。T01～T07 交付补了分支说明 |
+| 2026-11-03 | ISSUE-047 | T07 交付与代码说明（D-959、D-960）。状态 in-review，不标 done |
 | 2026-11-03 | ISSUE-047 | 确认技术分册 MVP（D-944、D-945）。教程原文为 D-941～D-943。代码未改 |
 | 2026-11-03 | 技术分册 MVP | 收入服务方案目录制作教程与技术标响应教程原文（D-941～D-943），系统尚未按此实现 |
 | 2026-10-30 | ISSUE-045 revision 2 | 按审查整治看板：142 张任务卡状态与看板对齐，8 张改 in-review 并补交付（D-867～D-876），9 张 cancelled，登记工作包 WP-1～7；看板 454 项：96 done、171 in-review、37 in-progress、87 planned、63 cancelled |

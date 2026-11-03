@@ -244,7 +244,9 @@ test('collapsed sidebar expand control opens the menu at 1280/1440/1680 in light
       await expect(sider.first()).not.toHaveClass(/ant-layout-sider-collapsed/);
       await expect.poll(siderWidth).toBeGreaterThan(200);
       await expect(label()).toBeVisible();
-      await expect(page.getByRole('menuitem', { name: '企业资料库' })).toBeVisible();
+      await expect(page.getByRole('menuitem', { name: '知识库' })).toBeVisible();
+      await expect(page.getByRole('menuitem', { name: '企业资料库' })).toHaveCount(0);
+      await expect(page.getByRole('menuitem', { name: '写作档案' })).toHaveCount(0);
       await page.getByRole('button', { name: '退出' }).click();
     }
   }

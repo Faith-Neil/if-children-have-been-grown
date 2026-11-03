@@ -89,7 +89,12 @@ def validate_response(row: dict, explicit: bool = True) -> None:
         return
     if critical(row) and kind == "not_applicable":
         raise DomainError(409, "REQUIREMENT_NOT_READY", "星号或废标条款不能标为不适用；做不到请如实选“偏离”，导出会被阻断。")
-    if explicit and kind in ("deviate", "not_applicable") and not str(row.get("deviation_reason") or row.get("reason") or "").strip():
+    reason = str(row.get("deviation_reason") or row.get("reason") or "").strip()
+    if row.get("technical_clause") and kind == "exceed" and not reason:
+        raise DomainError(422, "REASON_REQUIRED", "正偏离必须写明优在哪一项、优多少。")
+    if row.get("technical_clause") and kind == "deviate" and not reason:
+        raise DomainError(422, "REASON_REQUIRED", "偏离必须写明哪一项做不到。")
+    if explicit and kind in ("deviate", "not_applicable") and not reason and not row.get("technical_clause"):
         raise DomainError(422, "REASON_REQUIRED", "偏离或不适用必须填写说明。")
 
 
@@ -153,6 +158,8 @@ class MatrixMixin(SystemChapterMixin, ParseReviewMixin, ProposedStaffMixin, Expo
             "volume": row.get("volume"), "suggested_volume": default_volume(row, active),
             "volume_confirmed_by": row.get("volume_confirmed_by"), "volume_confirmed_at": row.get("volume_confirmed_at"),
             "is_cross_volume": bool(row.get("is_cross_volume")),
+            "response_origin": row.get("response_origin") or "",
+            "history_filename": row.get("history_filename") or "",
             "response_type": kind, "response_label": RESPONSE_TYPES[kind][0] if kind else "未选择",
             "deviation_label": RESPONSE_TYPES[kind][2] if kind else "", "response": row.get("response", ""),
             "deviation_reason": row.get("deviation_reason") or "", "chapter_id": row.get("chapter_id"),

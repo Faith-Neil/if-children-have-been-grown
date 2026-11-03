@@ -9,7 +9,8 @@ import { projectCan } from './project-team.ts';
 import { useProject } from '../app/context.tsx';
 import { OriginalPreview } from './OriginalPreview.tsx';
 import { AddendumDiffDrawer } from './AddendumDiffDrawer.tsx';
-import { FILE_ROLE_OPTIONS, PARSE_SERVICE_OPTIONS, durationLabel, hasAddendumDiff, replacementOptions, retryBody, roleChangeAllowed, type ParseServiceChoice } from './parse-postprocess-core.ts';
+import { PARSE_SERVICE_OPTIONS, TECHNICAL_UPLOAD_ACCEPT, durationLabel, fileRoleOptions, hasAddendumDiff, hasTenderFile, replacementOptions, retryBody, roleChangeAllowed, sameSourceAlreadyExtracted, type ParseServiceChoice } from './parse-postprocess-core.ts';
+import { volumeMode } from './project-volumes.ts';
 import type { FileRole, Job, TenderFile } from '../shared/types.ts';
 import { JobProgressWithSse } from '../status/JobProgress.tsx';
 import { jobFromStatus, type BackendJobStatus } from '../status/job-progress-sse.ts';
@@ -40,6 +41,27 @@ export function TenderPage() {
     return active ? { id: active.id, initial: jobFromStatus(active) } : null;
   });
   const [parseJobDone, setParseJobDone] = useState(false);
+  const technicalOnly = volumeMode(workspace) === 'technical_only';
+  const roleOptions = fileRoleOptions(technicalOnly);
+  const extracted = sameSourceAlreadyExtracted(workspace.source_fingerprint, workspace.parsed_source_fingerprint);
+  const tenderReady = !technicalOnly || hasTenderFile(workspace.files);
+  const technicalClauses = technicalOnly ? workspace.requirements.filter(item => item.technical_clause) : [];
+  const outline = technicalOnly ? workspace.technical_outline : null;
+  const outlineChapter = outline ? workspace.chapters.find(item => item.id === outline.chapter_id) : undefined;
+
+  const historyOpen = technicalClauses.some(item => item.response_origin === 'history' && item.response_type === 'comply' && item.status !== 'confirmed');
+
+  async function confirmOutline() {
+    if (!outlineChapter) return;
+    await mutate(`/api/v1/projects/${workspace.project.id}/plan`, 'POST', {
+      scope: 'technical',
+      chapters: [{ id: outlineChapter.id, title: outlineChapter.title, volume: 'technical', fact_ids: [], writing_points: '' }],
+    });
+  }
+
+  async function generateVolume(section?: string) {
+    await mutate(`/api/v1/projects/${workspace.project.id}/generate`, 'POST', section ? { section } : {});
+  }
 
   async function removeUpload() {
     if (!removeFile || !removeReason.trim()) {
@@ -102,7 +124,10 @@ export function TenderPage() {
 
   async function parseFinished(job: JobProgressData) {
     await reload().catch(report);
-    if (job.status === 'completed') { setParseJob(null); navigate('parse'); }
+    if (job.status === 'completed') {
+      setParseJob(null);
+      if (!technicalOnly) navigate('parse');
+    }
   }
 
   async function cancelParse(jobId: string) {
@@ -131,22 +156,24 @@ export function TenderPage() {
     <>
       <div className="page-heading">
         <div>
-          <h2>招标文件</h2>
-          <p>上传原件后，提取条款与项目事实。结果需人工逐项核对。</p>
+          <h2>{technicalOnly ? '招标文件与辅助文件' : '招标文件'}</h2>
+          <p>{technicalOnly ? '必须有一份招标文件。技术规范书和其他辅助文件可以不传。' : '上传原件后，提取条款与项目事实。结果需人工逐项核对。'}</p>
         </div>
         <Space>
-          <Button onClick={sample} icon={<DownloadOutlined />}>
-            下载合成示例
-          </Button>
+          {!technicalOnly && (
+            <Button onClick={sample} icon={<DownloadOutlined />}>
+              下载合成示例
+            </Button>
+          )}
           <Button
             type="primary"
             icon={<ReloadOutlined />}
             loading={busy}
-            disabled={!workspace.files.length || !projectCan(workspace, 'prepare_sources') || uploading
+            disabled={!workspace.files.length || !tenderReady || extracted || !projectCan(workspace, 'prepare_sources') || uploading
               || (!!parseJob && !['completed', 'failed', 'cancelled'].includes(parseJob.initial.status) && !parseJobDone)}
             onClick={() => void parse()}
           >
-            解析招标文件
+            {technicalOnly ? '抽取技术条款' : '解析招标文件'}
           </Button>
         </Space>
       </div>
@@ -158,21 +185,64 @@ export function TenderPage() {
             onRetry={projectCan(workspace, 'prepare_sources') ? id => { setParseJobDone(false); void retryParse(id); } : undefined} />
         </Card>
       )}
-      <Alert
-        type="info"
-        showIcon
-        className="page-notice"
-        message="招标文件先在本地提取文字；扫描件、.doc、Excel 与图片交给公司自建 RAGFlow 识别版面与文字"
-        description="页码方式与能力限制随原文显示，解析完成也需要人确认。经 RAGFlow 识别的文件标“RAGFlow 解析中”，解析任务在后台自动取回结果，可离开本页；识别结果请对照原件核对；未连接 RAGFlow 时这些格式会如实提示失败。"
-      />
+      {technicalOnly && workspace.chapters.some(chapter => chapter.needs_regeneration) && (
+        <Alert type="warning" showIcon className="page-notice" message="文件已变动。已有正文保留，各节需要重新生成。" />
+      )}
+      {technicalOnly && workspace.technical_extract_empty && (
+        <Alert type="warning" showIcon className="page-notice" data-testid="technical-extract-empty"
+          message="这批文件里没有抽到技术响应内容，先不进入目录和矩阵。" />
+      )}
+      {technicalOnly && extracted && (
+        <Alert type="info" showIcon className="page-notice" message="这批文件已经抽取过。增加、替换或删除文件后才能再抽取。" />
+      )}
+      {technicalClauses.length > 0 && (
+        <Card size="small" className="page-notice" data-testid="technical-clauses" title={`抽出 ${technicalClauses.length} 条`}>
+          {technicalClauses.map(item => <div key={item.id}>{item.text}</div>)}
+        </Card>
+      )}
+      {outline && (
+        <Card size="small" className="page-notice" data-testid="technical-outline" title={outline.title}
+          extra={<Space>
+            <Button type="primary" data-testid="confirm-technical-outline" disabled={workspace.plan_confirmed || !projectCan(workspace, 'prepare_sources') || busy}
+              onClick={() => void confirmOutline()}>{workspace.plan_confirmed ? '目录已确认' : '确认目录'}</Button>
+            {workspace.plan_confirmed && (
+              <Button type="primary" data-testid="generate-technical-volume" disabled={busy || historyOpen || outlineChapter?.permissions?.generate === false}
+                title={historyOpen ? '有历史依据的无偏离行还没确认' : undefined}
+                onClick={() => void generateVolume()}>生成技术分册</Button>
+            )}
+          </Space>}>
+          {outline.headings.map(item => (
+            <div key={item.number} style={{ paddingLeft: item.level === 3 ? 16 : 0 }}>
+              {item.number} {item.title}
+              {item.level === 3 && workspace.plan_confirmed && (
+                <Button type="link" size="small" data-testid={`regenerate-${item.title}`}
+                  disabled={busy || historyOpen || outlineChapter?.permissions?.generate === false}
+                  onClick={() => void generateVolume(item.title)}>重新生成</Button>
+              )}
+            </div>
+          ))}
+          {(outline.missing ?? []).length > 0 && (
+            <Alert type="warning" showIcon style={{ marginTop: 12 }} message="还有条款没有标题，不能确认目录。" />
+          )}
+        </Card>
+      )}
+      {!technicalOnly && (
+        <Alert
+          type="info"
+          showIcon
+          className="page-notice"
+          message="招标文件先在本地提取文字；扫描件、.doc、Excel 与图片交给公司自建 RAGFlow 识别版面与文字"
+          description="页码方式与能力限制随原文显示，解析完成也需要人确认。经 RAGFlow 识别的文件标“RAGFlow 解析中”，解析任务在后台自动取回结果，可离开本页；识别结果请对照原件核对；未连接 RAGFlow 时这些格式会如实提示失败。"
+        />
+      )}
       <Card>
         <Space style={{ marginBottom: 12 }}>
           <span>本次上传的文件类型</span>
-          <Select<FileRole> value={uploadRole} options={FILE_ROLE_OPTIONS} onChange={setUploadRole} style={{ width: 160 }}
+          <Select<FileRole> value={uploadRole} options={roleOptions} onChange={setUploadRole} style={{ width: 160 }}
             aria-label="上传文件类型" data-testid="upload-role-select" disabled={busy || uploading || !projectCan(workspace, 'prepare_sources')} />
         </Space>
         <Upload.Dragger
-          accept=".txt,.md,.docx,.doc,.pdf,.xls,.xlsx,.png,.jpg,.jpeg"
+          accept={technicalOnly ? TECHNICAL_UPLOAD_ACCEPT : '.txt,.md,.docx,.doc,.pdf,.xls,.xlsx,.png,.jpg,.jpeg'}
           beforeUpload={file => upload(file)}
           showUploadList={false}
           disabled={busy || uploading || !projectCan(workspace, 'prepare_sources')}
@@ -180,8 +250,8 @@ export function TenderPage() {
           <p className="ant-upload-drag-icon">
             <UploadOutlined />
           </p>
-          <p className="ant-upload-text">拖入招标文件、补遗或附件，或点击选择</p>
-          <p className="ant-upload-hint">UTF-8 文本、Word（.docx/.doc）、PDF（含扫描件）、Excel、图片 · 每份不超过 {MAX_UPLOAD_MB}MB</p>
+          <p className="ant-upload-text">{technicalOnly ? '拖入招标文件、技术规范书或其他辅助文件' : '拖入招标文件、补遗或附件，或点击选择'}</p>
+          <p className="ant-upload-hint">{technicalOnly ? `pdf、doc、docx · 每份不超过 ${MAX_UPLOAD_MB}MB` : `UTF-8 文本、Word（.docx/.doc）、PDF（含扫描件）、Excel、图片 · 每份不超过 ${MAX_UPLOAD_MB}MB`}</p>
         </Upload.Dragger>
         <Table
           className="file-table"
@@ -204,7 +274,7 @@ export function TenderPage() {
               title: '类型',
               dataIndex: 'file_role',
               render: (value: FileRole | undefined, item: TenderFile) => (
-                <Select<FileRole> size="small" style={{ width: 120 }} value={value ?? 'tender'} options={FILE_ROLE_OPTIONS}
+                <Select<FileRole> size="small" style={{ width: technicalOnly ? 140 : 120 }} value={value ?? 'tender'} options={roleOptions}
                   aria-label="文件类型" data-testid="file-role-select"
                   disabled={busy || !projectCan(workspace, 'prepare_sources') || !!item.superseded_by}
                   onChange={role => void changeRole(item, role)} />
@@ -259,7 +329,7 @@ export function TenderPage() {
                       <WarningOutlined className="orange" />
                     </Tooltip>
                   )}
-                  {hasAddendumDiff(item) && <a data-testid="addendum-diff-link" onClick={() => setDiffFile(item.id)}>补遗差异</a>}
+                  {!technicalOnly && hasAddendumDiff(item) && <a data-testid="addendum-diff-link" onClick={() => setDiffFile(item.id)}>补遗差异</a>}
                   {replacementOptions(item, workspace.files).length > 0 && projectCan(workspace, 'prepare_sources') && (
                     <Button type="link" size="small" data-testid="supersede-button" disabled={busy}
                       onClick={() => { setSupersede(item); setReplacementId(''); setSupersedeReason(''); }}>设为被替代</Button>

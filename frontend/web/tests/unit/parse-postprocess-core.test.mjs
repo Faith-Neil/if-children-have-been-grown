@@ -2,8 +2,8 @@
 // 它解决什么问题：理由必填、补遗处理不阻断、多位置切换等规则不依赖浏览器即可回归。
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { blockingCount, buildDecision, decisionPath, durationLabel, hasAddendumDiff, mergedLabel, nextSourceIndex,
-  replacementOptions, retryBody, roleChangeAllowed, sourceLabel, visibleRequirements } from '../../src/project/parse-postprocess-core.ts';
+import { blockingCount, buildDecision, decisionPath, durationLabel, fileRoleOptions, hasAddendumDiff, hasTenderFile, mergedLabel, nextSourceIndex,
+  replacementOptions, retryBody, roleChangeAllowed, sameSourceAlreadyExtracted, sourceLabel, visibleRequirements } from '../../src/project/parse-postprocess-core.ts';
 
 test('处理冲突必须写理由，确认“已按补遗处理”除外', () => {
   assert.equal(buildDecision('not_conflict', '  ').error, '请写明处理理由');
@@ -55,6 +55,15 @@ test('文件版本链：可替代的新版、类型切换限制与差异入口',
   assert.equal(roleChangeAllowed(other, 'clarification'), true);
   assert.equal(hasAddendumDiff(other), true);
   assert.equal(hasAddendumDiff(old), false);
+});
+
+test('技术分册只给出三种文件类型，并拦住同一批文件再次抽取', () => {
+  assert.deepEqual(fileRoleOptions(true).map(item => item.label), ['招标文件', '技术规范书', '其他辅助文件']);
+  assert.equal(fileRoleOptions(false).length, 6);
+  assert.equal(hasTenderFile([{ file_role: 'tech_spec' }]), false);
+  assert.equal(hasTenderFile([{ file_role: 'tender', superseded_by: 'new' }, { file_role: 'tender' }]), true);
+  assert.equal(sameSourceAlreadyExtracted('abc', 'abc'), true);
+  assert.equal(sameSourceAlreadyExtracted('abc', ''), false);
 });
 
 test('解析耗时和换服务重试的请求体', () => {

@@ -13,6 +13,8 @@ test('critical rows cannot be not applicable and deviation is labelled as blocki
   assert.equal(responseOptions(false).some(o => o.disabled), false);
   assert.equal(needsReason('deviate'), true);
   assert.equal(needsReason('comply'), false);
+  assert.equal(needsReason('exceed', true), true);
+  assert.equal(needsReason('exceed'), false);
 });
 
 test('attach only appends and skips unusable candidates', () => {

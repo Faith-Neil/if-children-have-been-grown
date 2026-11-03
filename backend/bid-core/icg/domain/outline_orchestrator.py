@@ -94,6 +94,10 @@ class OutlineOrchestratorMixin:
     def plan(self, principal, project_id, payload, expected, key):
         """确认与更新大纲章节规划（增删改、两册约束、事实与要点校验）。"""
         def operation(state, project, workflow):
+            if workflow.get("technical_outline"):
+                from icg.domain.technical_outline import confirm_directory, plan_result
+                chapter = confirm_directory(state, principal, project_id, workflow, now=self.demo._now())
+                return plan_result(state, project_id, workflow, chapter, principal, self._chapter_summary)
             if not workflow["parse_confirmed"]:
                 raise DomainError(409, "PARSE_NOT_CONFIRMED", "请先确认解析结果，再确认写作大纲。")
             from icg.domain.sla import sla_issues

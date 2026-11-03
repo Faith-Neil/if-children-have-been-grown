@@ -75,7 +75,7 @@ export function getRouteTitle(pathname: string): string {
   if (norm === '/' || norm === APP_ROUTES.PROJECTS || norm === APP_ROUTES.WORKBENCH) return '投标项目工作台';
   if (norm === APP_ROUTES.LOGIN) return '系统登录';
   if (norm === APP_ROUTES.LIBRARY) return '企业资料库';
-  if (norm === APP_ROUTES.KNOWLEDGE) return '知识库方案片段';
+  if (norm === APP_ROUTES.KNOWLEDGE) return '知识库';
   if (norm === APP_ROUTES.WRITING_ARCHIVE || norm === APP_ROUTES.WRITING) return '写作档案与风格规范';
   if (norm === APP_ROUTES.ADMIN || norm === APP_ROUTES.ADMIN_RULES) return '企业合规与审计中心';
   if (norm === APP_ROUTES.JOBS) return '后台异步任务中心';

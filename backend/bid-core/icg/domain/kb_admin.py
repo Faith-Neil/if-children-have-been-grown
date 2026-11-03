@@ -29,7 +29,7 @@ SETTING_FIELDS = {
 }
 PROFILE_FIELDS = {"chunk_token_size": int, "questions_top_n": int, "keywords_top_n": int, "extra_heading_patterns": list}
 UPLOAD_SUFFIXES = {
-    "history": (".pdf", ".docx", ".doc", ".xlsx", ".xls", ".csv", ".md", ".txt", ".pptx"),
+    "history": (".pdf", ".docx", ".doc"),
     "certificate": (".pdf", ".png", ".jpg", ".jpeg", ".docx"),
 }
 CERT_FIELD_TO_LIBRARY = {"cert_name": "name", "valid_to": "valid_until"}
@@ -432,8 +432,15 @@ class KbAdminService:
 
     def upload(self, principal: Principal, kind: str, payload: dict[str, Any]) -> dict[str, Any]:
         """上传原件到历史投标或证书数据集，并按 ICG 流程解析。"""
-        require_kb_role(principal, "write")
         self._kind(kind, files_only=True)
+        if kind == "history":
+            if not (_is_super(principal) or _role(principal) in WRITE_ROLES | {"manager", "project_lead"}):
+                raise DomainError(403, "FORBIDDEN", "当前账号无权上传历史标书。")
+            # 上传只追加到已有数据集，不在这里新建。
+            create_dataset = False
+        else:
+            require_kb_role(principal, "write")
+            create_dataset = True
         filename = str(payload.get("filename") or "").strip()
         if not filename or "/" in filename or "\\" in filename:
             raise DomainError(422, "VALIDATION_ERROR", "文件名无效。")
@@ -453,7 +460,12 @@ class KbAdminService:
         user_meta = {str(k)[:64]: str(v)[:500] for k, v in (payload.get("metadata") or {}).items() if str(v).strip()}
         company = principal.user.company_id
         client = self._client(principal)
-        info = self._dataset(principal, kind)
+        try:
+            info = self._dataset(principal, kind, create=create_dataset)
+        except DomainError as exc:
+            if kind == "history" and not create_dataset and getattr(exc, "status", None) == 404:
+                raise DomainError(409, "KNOWLEDGE_BASE_NOT_CONFIGURED", "本公司历史标书数据集尚未配置，请公司管理员先配置。") from None
+            raise
         file_id = new_id("kbfile")
         meta = {**user_meta, "company_id": company, "source_type": SOURCE_FILE, "source_id": file_id,
                 "knowledge_kind": kind}

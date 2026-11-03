@@ -16,8 +16,10 @@ export const KB_KIND_HINT: Record<KbKind, string> = {
   certificate: '上传证书、合同等扫描件，抽取证书名称、编号、发证机构、有效期，可一键生成“待核验”资料草稿。',
 };
 
+export const HISTORY_UPLOAD_ACCEPT = '.pdf,.docx,.doc';
+
 export const KB_UPLOAD_ACCEPT: Record<'history' | 'certificate', string> = {
-  history: '.pdf,.docx,.doc,.xlsx,.xls,.csv,.md,.txt,.pptx',
+  history: HISTORY_UPLOAD_ACCEPT,
   certificate: '.pdf,.png,.jpg,.jpeg,.docx',
 };
 
@@ -28,6 +30,11 @@ const CONNECTION = new Set(['company_admin', 'platform_admin', 'super_admin']);
 export function kbPermissions(role?: string | null) {
   const r = role ?? '';
   return { read: READ.has(r), write: WRITE.has(r), connection: CONNECTION.has(r) };
+}
+
+export function canUploadHistory(role?: string | null) {
+  const r = role ?? '';
+  return WRITE.has(r) || r === 'manager' || r === 'project_lead';
 }
 
 export const kbApi = {

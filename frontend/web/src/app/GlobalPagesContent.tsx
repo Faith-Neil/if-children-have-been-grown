@@ -17,7 +17,6 @@ import {
   LazyJobsPage as JobsPage,
   LazyLibraryPage as LibraryPage,
   LazyPendingPage as PendingPage,
-  LazySnippetLibraryPage as SnippetLibraryPage,
   LazyKnowledgeBaseAdminPage as KnowledgeBaseAdminPage,
   LazyUsersPage as UsersPage,
   LazyWritingArchivePage as WritingArchivePage,
@@ -25,8 +24,6 @@ import {
 import type { Account, ApplicationSession, Evidence, Job, Project, SlaTemplate } from '../shared/types';
 import type { LibraryReadState, LibraryWriteVersion } from '../library/library-review';
 import type { TemplateReadState } from '../library/template-review';
-import { kbPermissions } from '../library/kb-admin-core.ts';
-
 export interface GlobalPagesContentProps {
   nav: string;
   loading: boolean;
@@ -223,29 +220,7 @@ export function GlobalPagesContent({
           )}
 
           {nav === 'knowledge' && (
-            kbPermissions(currentUser?.role).read ? (
-              <Tabs
-                defaultActiveKey="snippets"
-                items={[
-                  {
-                    key: 'snippets',
-                    label: '方案片段',
-                    children: <SnippetLibraryPage token={token} user={currentUser} session={session} />,
-                  },
-                  {
-                    key: 'kb-admin',
-                    label: '知识库管理（RAGFlow）',
-                    children: <KnowledgeBaseAdminPage token={token} role={currentUser?.role} report={report} />,
-                  },
-                ]}
-              />
-            ) : (
-              <SnippetLibraryPage
-                token={token}
-                user={currentUser}
-                session={session}
-              />
-            )
+            <KnowledgeBaseAdminPage historyOnly token={token} role={currentUser?.role} report={report} />
           )}
 
           {nav === 'writing' && (

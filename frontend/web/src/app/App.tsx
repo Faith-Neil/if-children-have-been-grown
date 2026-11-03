@@ -6,7 +6,7 @@
 
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { App as AntApp, Button, Form, Result, Spin } from 'antd';
-import { AppstoreOutlined, BookOutlined, CheckSquareOutlined, DatabaseOutlined, FileTextOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, BookOutlined, CheckSquareOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
 import { ApiError, isRequestFailureCurrent, request, userFacingMessage } from '../shared/api';
 import { deadlineForApi, projectFields } from '../project/project-form';
 import type { Account, ApplicationSession, Evidence, Job, Project, SlaTemplate, Workspace } from '../shared/types';
@@ -24,7 +24,7 @@ import { relatedBidConflict } from '../project/related-bid-core'; import { askRe
 import { AppHeaderActions } from '../shell/AppHeaderActions'; import { AppModals } from '../shell/AppModals';
 import { ProjectWorkspaceContent } from './ProjectWorkspaceContent'; import { GlobalPagesContent } from './GlobalPagesContent';
 
-const navigation = [ { id: 'workbench', name: '工作台', icon: <AppstoreOutlined /> }, { id: 'library', name: '企业资料库', icon: <DatabaseOutlined /> }, { id: 'knowledge', name: '知识库', icon: <BookOutlined /> }, { id: 'writing', name: '写作档案', icon: <FileTextOutlined /> }, { id: 'admin.rules', name: '管理规则（只读）', icon: <SettingOutlined /> } ];
+const navigation = [ { id: 'workbench', name: '工作台', icon: <AppstoreOutlined /> }, { id: 'knowledge', name: '知识库', icon: <BookOutlined /> }, { id: 'admin.rules', name: '管理规则（只读）', icon: <SettingOutlined /> } ];
 
 export default function App() {
   const { message, modal } = AntApp.useApp();
@@ -278,7 +278,7 @@ export default function App() {
     setBusy(true); let createdId: string | null = null;
     try {
       const approved = await loadSession(); requireSessionRoute(approved, 'workbench'); requireSessionAction(approved, 'projects.create');
-      const created = await request<Project>('/api/v1/projects', activeToken.current, 'POST', { name: values.name, volume_mode: values.volume_mode === 'technical_only' ? 'technical_only' : 'both' }); createdId = created.id;
+      const created = await request<Project>('/api/v1/projects', activeToken.current, 'POST', { name: values.name, volume_mode: 'technical_only' }); createdId = created.id;
       const result = await readAuthorizedProject(created.id, 'settings', { session: s => loadSession(activeToken.current, s), workspace: s => request<Workspace>(`/api/v1/projects/${encodeURIComponent(s)}/workspace`, activeToken.current) });
       const basics = projectFields({ tender_number: values.tender_number, sensitive: values.sensitive, deadline: values.deadline }); const basicsPath = `/api/v1/projects/${created.id}`;
       // R19 关联投标冲突（APP-M2-T096）：须填写说明确认无关联关系，取消则不保存招标编号

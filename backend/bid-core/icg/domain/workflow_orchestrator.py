@@ -29,6 +29,8 @@ from icg.domain.generation_orchestrator import GenerationOrchestratorMixin, Gene
 from icg.domain.check_orchestrator import CheckOrchestratorMixin, CheckOrchestrator
 from icg.domain.export_service import ExportServiceMixin
 from icg.domain.volume_finalize import VolumeFinalizeMixin
+from icg.domain.technical_outline import workspace_fields
+from icg.domain.technical_sources import source_fingerprint
 from icg.domain.tender_orchestrator import TenderOrchestratorMixin, TenderOrchestrator
 from icg.domain.library_orchestrator import LibraryOrchestratorMixin, LibraryOrchestrator
 from icg.domain.human_queue import HumanQueueMixin
@@ -259,7 +261,8 @@ class WorkflowService(
                 "assignee_id": chapter.assignee_id,
                 "assignee_name": state.accounts[chapter.assignee_id].name if chapter.assignee_id in state.accounts else None,
                 "permissions": chapter_permissions(state, chapter, user_id) if user_id else {},
-                "requirement_ids": [r["id"] for r in chapter_rows(workflow, chapter.id, chapter.volume)]}
+                "requirement_ids": [r["id"] for r in chapter_rows(workflow, chapter.id, chapter.volume)],
+                "needs_regeneration": chapter.id in (workflow.get("needs_regeneration") or [])}
 
     def _fingerprint(self, state: DemoState, project_id: str) -> str:
         return project_input_fingerprint(state, project_id)
@@ -314,8 +317,11 @@ class WorkflowService(
             "checks": [self._public_check(state, project_id, c) for c in workflow["checks"].values()],
             "exports": [self._public_export(state, project_id, e) for e in workflow["exports"].values()],
             "jobs": [j for j in state.jobs.values() if j["project_id"] == project_id],
+            "source_fingerprint": source_fingerprint(workflow),
+            "parsed_source_fingerprint": workflow.get("parsed_source_fingerprint") or "",
+            "technical_extract_empty": bool(workflow.get("technical_extract_empty")),
             "parse_confirmed": workflow["parse_confirmed"],
-            "plan_confirmed": workflow["parse_confirmed"] and plan_is_current(state, project_id),
+            **workspace_fields(state, project_id, workflow),
             "writing_plan": public_plan(workflow, state, project_id),
             "team": public_team(state, project_id, principal.user.id),
             "permissions": project_permissions(state, project_id, principal.user.id),

@@ -108,7 +108,7 @@ test('getRouteTitle derives informative Chinese titles for all route kinds', () 
   assert.equal(getRouteTitle('/workbench'), '投标项目工作台');
   assert.equal(getRouteTitle('/login'), '系统登录');
   assert.equal(getRouteTitle('/library'), '企业资料库');
-  assert.equal(getRouteTitle('/knowledge'), '知识库方案片段');
+  assert.equal(getRouteTitle('/knowledge'), '知识库');
   assert.equal(getRouteTitle('/writing-archive'), '写作档案与风格规范');
   assert.equal(getRouteTitle('/admin'), '企业合规与审计中心');
   assert.equal(getRouteTitle('/jobs'), '后台异步任务中心');

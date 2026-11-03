@@ -181,12 +181,17 @@ class ParseReviewMixin:
                                   {"requirement_ids": references})
             now = iso_time(self.demo._now())
             confirmed = []
+            technical = [row for row in rows if row.get("technical_clause")]
+            if technical:
+                from icg.domain.technical_matrix import guard_technical_confirm
+                for row in technical:
+                    guard_technical_confirm(workflow, row, batch=True)
             for row in rows:
                 if row["status"] == "pending":
                     row.update(status="confirmed", confirmed_by=principal.user.id, confirmed_by_name=principal.user.name,
                                confirmed_at=now)
                     confirmed.append(row["id"])
-            if confirmed:
+            if confirmed and not technical:
                 workflow["parse_confirmed"] = False
                 workflow["plan_confirmed"] = False
             return {"confirmed_ids": confirmed}

@@ -670,6 +670,13 @@
 | [APP-TECHNICAL-ONLY-BID](tasks/APP-M2.md#app-technical-only-bid) | 只写技术标的项目（不合标） | in-review | — | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-TECHNICAL-ONLY-BID.md` |
 | [FE-KB-BUSINESS-FLOWS](tasks/AI-M0.md#fe-kb-business-flows) | 知识库接入资料库、方案片段与写作输入页面 | in-review | [AI-KB-CONTROL-PLANE](tasks/AI-M0.md#ai-kb-control-plane) | [ISSUE-043](../issues/ISSUE-043.md) | [自测](testing/2026-10-28-wave-12b-verification.md) |
 | [FE-TEST-ORPHANS](tasks/FE-M0.md#fe-test-orphans) | 前端根目录 28 个测试文件从未执行，8 项失败待判定 | in-review | — | [ISSUE-044](../issues/ISSUE-044.md) | `docs/delivery/FE-TEST-ORPHANS.md` |
+| [TV-M0-T01](tasks/TV-M0.md#tv-m0-t01) | 隐藏资料库与写作档案，新建项目固定技术分册 | in-review | — | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T01.md) |
+| [TV-M0-T02](tasks/TV-M0.md#tv-m0-t02) | 知识库只上传历史标书 | in-review | [TV-M0-T01](tasks/TV-M0.md#tv-m0-t01) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T02.md) |
+| [TV-M0-T03](tasks/TV-M0.md#tv-m0-t03) | 招标文件与辅助文件 | in-review | [TV-M0-T01](tasks/TV-M0.md#tv-m0-t01) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T03.md) |
+| [TV-M0-T04](tasks/TV-M0.md#tv-m0-t04) | 按教程抽取技术条款 | in-review | [TV-M0-T03](tasks/TV-M0.md#tv-m0-t03) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T04.md) |
+| [TV-M0-T05](tasks/TV-M0.md#tv-m0-t05) | 单章服务方案目录 | in-review | [TV-M0-T04](tasks/TV-M0.md#tv-m0-t04) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T05.md) |
+| [TV-M0-T06](tasks/TV-M0.md#tv-m0-t06) | 矩阵响应来自历史做法 | in-review | [TV-M0-T04](tasks/TV-M0.md#tv-m0-t04)、[TV-M0-T02](tasks/TV-M0.md#tv-m0-t02) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T06.md) |
+| [TV-M0-T07](tasks/TV-M0.md#tv-m0-t07) | 按节生成正文并导出技术偏离表 | in-review | [TV-M0-T05](tasks/TV-M0.md#tv-m0-t05)、[TV-M0-T06](tasks/TV-M0.md#tv-m0-t06) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T07.md) |
 <!-- task-board:end -->
 
 ## 每次推进的同步顺序

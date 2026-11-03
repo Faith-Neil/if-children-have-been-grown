@@ -3,7 +3,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { datasetWarnings, embeddingChangeWarning, kbApi, kbPermissions, settingsDiff } from '../../src/library/kb-admin-core.ts';
+import { canUploadHistory, datasetWarnings, embeddingChangeWarning, kbApi, kbPermissions, settingsDiff } from '../../src/library/kb-admin-core.ts';
 
 const base = { revision: 3, embedding_model: 'a@x', rerank_id: '', llm_id: '', similarity_threshold: 0.2,
   keywords_weight: 0.7, use_pipelines: true, language: 'Chinese', profiles: {} };
@@ -13,6 +13,10 @@ test('roles match backend gates', () => {
   assert.deepEqual(kbPermissions('company_admin'), { read: true, write: true, connection: true });
   assert.deepEqual(kbPermissions('manager'), { read: true, write: false, connection: false });
   assert.deepEqual(kbPermissions('viewer'), { read: false, write: false, connection: false });
+  assert.equal(canUploadHistory('manager'), true);
+  assert.equal(canUploadHistory('project_lead'), true);
+  assert.equal(canUploadHistory('company_admin'), true);
+  assert.equal(canUploadHistory('viewer'), false);
 });
 
 test('settings diff only sends changed fields and warns on embedding change', () => {

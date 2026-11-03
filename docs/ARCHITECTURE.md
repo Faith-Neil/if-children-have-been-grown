@@ -12,6 +12,8 @@
 | 关联 Issue | ISSUE-007 |
 <!-- governance-baseline:end -->
 
+2026-11-03 技术分册（[ISSUE-047](../issues/ISSUE-047.md)）：新建项目的侧栏不再进入企业资料库和写作档案，创建请求固定 `technical_only`。目录、矩阵、正文和偏离表在集成分支 `feat/iss-047-technical-volume-mvp` 上按 [决定](decisions/2026-11-03-technical-volume-mvp.md) 实现，不合入 main。本文其余结构描述仍是两册。
+
 2026-10-28 Wave 11（[ISSUE-040](../issues/ISSUE-040.md)）：后台新增 `icg/domain/chapter_loop.py`（PRD §5.7.4 章节循环规则：处理路径、停止条件、问题指纹）、`human_queue.py`（人工处理队列）、`volume_review.py`（交叉复核与定稿快照）、`post_process.py`（星号/废标兜底扫描），路由在 `icg/api/chapter_loop.py` 与 `icg/api/volumes.py`。前端对应 `project/ManualQueuePage.tsx`、`VolumeFinalizePanel.tsx`、`OmissionsDrawer.tsx`，纯逻辑在 `project/main-path-core.ts`。已定稿分册的章节写入在后台 `_chapter_writer` 统一拒绝；解锁轮次进入项目输入指纹。持久化边界：MySQL 模式下仅 `volumes`、`volume_reviews`、`volume_epochs`、`human_queue`、`post_process` 五个工作流键写入 `demo_project_workflow_state`（Alembic 0012），其余工作流键仍在进程内存（[ISSUE-041](../issues/ISSUE-041.md)）。
 
 写作输入由共享组装器从账号公司、当前项目与已确认本章方案构造；仅输入本章矩阵、合格证据、选中可选事实及全部必备事实。候选保存实际输入快照及指纹，快照/候选自身不进入指纹；变量先校验，来源或方案改变需重新确认。source_scope为新增实施字段，不表示逐段溯源已完成。

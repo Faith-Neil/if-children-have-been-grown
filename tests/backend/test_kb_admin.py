@@ -38,6 +38,9 @@ def _b64(text: str) -> str:
 
 
 def _upload(client, headers, kind, filename, text, **meta):
+    if kind == "history":
+        ensured = client.post(f"/api/v1/kb-admin/datasets/{kind}/ensure", headers=headers, json={})
+        assert ensured.status_code == 200, ensured.text
     result = client.post(f"/api/v1/kb-admin/datasets/{kind}/documents", headers=headers,
                          json={"filename": filename, "content_base64": _b64(text), "content_type": "text/markdown",
                                "metadata": meta})
@@ -112,7 +115,7 @@ def test_settings_change_updates_pipeline_and_requires_if_match(client, fake):
 
 def test_history_bid_upload_is_reference_only_and_searchable(client, fake):
     admin = login(client, ADMIN)
-    doc = _upload(client, admin, "history", "2023合成农商行运维投标.md",
+    doc = _upload(client, admin, "history", "2023合成农商行运维投标.docx",
                   "第五章 技术方案\n\n一、运维服务体系\n\n采用三级运维服务体系：一线服务台、二线专家、三线原厂。",
                   project_name="合成农商行运维服务", purchaser="合成农商行")
     assert doc["status"] == "synced" and doc["dataset_kind"] == "history"
@@ -136,6 +139,24 @@ def test_history_bid_upload_is_reference_only_and_searchable(client, fake):
     # 删除
     assert client.delete(f"/api/v1/kb-admin/datasets/history/documents/{doc['document_id']}", headers=admin).status_code == 200
     assert doc["document_id"] not in fake.documents
+
+
+def test_manager_appends_history_only_after_dataset_exists(client):
+    def clear_index(state):
+        (state.service_stores.get("kb_index") or {}).pop("alpha", None)
+    client.app.state.service.repository.transaction(clear_index)
+    manager = login(client, "alpha-manager")
+    missing = client.post("/api/v1/kb-admin/datasets/history/documents", headers=manager,
+                          json={"filename": "历史.docx", "content_base64": _b64("第一章 总则\n\n合成历史。")})
+    assert missing.status_code == 409 and missing.json()["code"] == "KNOWLEDGE_BASE_NOT_CONFIGURED", missing.text
+    admin = login(client, ADMIN)
+    assert client.post("/api/v1/kb-admin/datasets/history/ensure", headers=admin, json={}).status_code == 200
+    uploaded = client.post("/api/v1/kb-admin/datasets/history/documents", headers=manager,
+                           json={"filename": "历史.docx", "content_base64": _b64("第一章 总则\n\n合成历史。")})
+    assert uploaded.status_code == 200
+    rejected = client.post("/api/v1/kb-admin/datasets/history/documents", headers=admin,
+                           json={"filename": "历史.md", "content_base64": _b64("x")})
+    assert rejected.status_code == 422 and rejected.json()["code"] == "FILE_TYPE_UNSUPPORTED"
 
 
 def test_upload_validation(client):
@@ -203,18 +224,20 @@ def test_structured_markdown_sections_carry_item_name():
 def test_rebuild_migrates_files_and_resyncs_library(client, fake):
     admin = login(client, ADMIN)
     client.post("/api/v1/kb-admin/pipelines/deploy", headers=admin, json={})
-    doc = _upload(client, admin, "history", "历史.md", "第一章 总则\n\n合成历史内容玄武。")
+    doc = _upload(client, admin, "history", "历史.docx", "第一章 总则\n\n合成历史内容玄武。")
     old = client.get("/api/v1/kb-admin/datasets", headers=admin).json()["items"]
     old_history = next(r for r in old if r["kind"] == "history")["dataset_id"]
     settings = client.get("/api/v1/kb-admin/settings", headers=admin).json()
-    client.put("/api/v1/kb-admin/settings", headers={**admin, "If-Match": str(settings["revision"])},
-               json={"embedding_model": "bge-m3@local@Ollama"})
+    target = "bge-b@local@Ollama" if settings["embedding_model"] == "bge-a@local@Ollama" else "bge-a@local@Ollama"
+    saved = client.put("/api/v1/kb-admin/settings", headers={**admin, "If-Match": str(settings["revision"])},
+                       json={"embedding_model": target})
+    assert saved.status_code == 200, saved.text
     overview = client.get("/api/v1/kb-admin/overview", headers=admin).json()
     assert overview["datasets"]["history"]["rebuild_required"] is True
     rebuilt = client.post("/api/v1/kb-admin/datasets/history/rebuild", headers=admin).json()
-    assert rebuilt["migrated_files"] == 1 and rebuilt["dataset_id"] != old_history
+    assert rebuilt.get("migrated_files") == 1 and rebuilt.get("dataset_id") != old_history, rebuilt
     assert old_history not in fake.datasets
-    assert fake.datasets[rebuilt["dataset_id"]]["embedding_model"] == "bge-m3@local@Ollama"
+    assert fake.datasets[rebuilt["dataset_id"]]["embedding_model"] == target
     client.get("/api/v1/knowledge-base/status?refresh=true", headers=admin)
     hits = client.post("/api/v1/kb-admin/retrieval-test", headers=admin,
                        json={"query": "合成历史内容玄武", "kinds": ["history"]}).json()["items"]

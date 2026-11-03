@@ -49595,6 +49595,19 @@
               }
             ],
             "title": "Chapter Ids"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section",
+            "description": "只重新生成这一节；不填则按顺序写全部可写的节"
           }
         },
         "additionalProperties": false,
@@ -56005,6 +56018,28 @@
             ],
             "title": "Source Stale",
             "description": "重新解析后原句在新文字里找不到，请对照原件核对"
+          },
+          "technical_clause": {
+            "type": "boolean",
+            "title": "Technical Clause",
+            "description": "技术分册按教程抽出的条款；同一件事只有一行",
+            "default": false
+          },
+          "response_origin": {
+            "type": "string",
+            "enum": ["", "history", "model", "retrieval_failed", "draft_failed"],
+            "title": "Response Origin",
+            "default": ""
+          },
+          "history_filename": {
+            "type": "string",
+            "title": "History Filename",
+            "default": ""
+          },
+          "history_quote": {
+            "type": "string",
+            "title": "History Quote",
+            "default": ""
           }
         },
         "additionalProperties": true,
@@ -61222,6 +61257,7 @@
               "REVISION_CONFLICT",
               "ROLLBACK_NOOP",
               "RULES_INCOMPLETE",
+              "SAME_SOURCE_FILES",
               "SECRET_KEY_UNAVAILABLE",
               "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
               "SESSION_ROLE_UNSUPPORTED",
@@ -62426,6 +62462,11 @@
             },
             "type": "object",
             "title": "Permissions"
+          },
+          "needs_regeneration": {
+            "type": "boolean",
+            "title": "Needs Regeneration",
+            "default": false
           }
         },
         "additionalProperties": true,
@@ -62445,6 +62486,76 @@
           "permissions"
         ],
         "title": "WorkflowChapter"
+      },
+      "TechnicalHeading": {
+        "properties": {
+          "level": {
+            "type": "integer",
+            "title": "Level"
+          },
+          "number": {
+            "type": "string",
+            "title": "Number"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "requirement_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requirement Id"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "level",
+          "number",
+          "title"
+        ],
+        "title": "TechnicalHeading"
+      },
+      "TechnicalOutline": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "chapter_id": {
+            "type": "string",
+            "title": "Chapter Id"
+          },
+          "headings": {
+            "items": {
+              "$ref": "#/components/schemas/TechnicalHeading"
+            },
+            "type": "array",
+            "title": "Headings"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing",
+            "description": "还没有三级标题的条款"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "title",
+          "chapter_id",
+          "headings"
+        ],
+        "title": "TechnicalOutline"
       },
       "Workspace": {
         "properties": {
@@ -62568,6 +62679,47 @@
               }
             ],
             "description": "项目状态；cancelled 时只读"
+          },
+          "source_fingerprint": {
+            "type": "string",
+            "title": "Source Fingerprint",
+            "default": ""
+          },
+          "parsed_source_fingerprint": {
+            "type": "string",
+            "title": "Parsed Source Fingerprint",
+            "default": ""
+          },
+          "technical_extract_empty": {
+            "type": "boolean",
+            "title": "Technical Extract Empty",
+            "description": "技术分册这次没有抽出技术条款",
+            "default": false
+          },
+          "technical_outline": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TechnicalOutline"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "技术分册的单章目录；创建时的技术方案不是这份目录"
+          },
+          "technical_deviation_note": {
+            "type": "string",
+            "title": "Technical Deviation Note",
+            "description": "没有偏离表样表时的说明；有样表则为空",
+            "default": ""
+          },
+          "technical_needs_review": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Technical Needs Review",
+            "description": "正文偏离表述和矩阵不一致、或同一指标出现两个数字的小节"
           }
         },
         "additionalProperties": true,
@@ -63384,6 +63536,7 @@
           "REVISION_CONFLICT",
           "ROLLBACK_NOOP",
           "RULES_INCOMPLETE",
+          "SAME_SOURCE_FILES",
           "SLA_COMMITMENT_BLOCKED",
           "SLA_FACT_INVALID",
           "SLA_FACT_READ_ONLY",

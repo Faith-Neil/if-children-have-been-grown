@@ -10,7 +10,7 @@ import {
 import { CloudUploadOutlined, DeploymentUnitOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import { rawUploadPath, request, uploadRaw, uploadTooLarge } from '../shared/api.ts';
 import {
-  KB_KIND_HINT, KB_KIND_LABEL, KB_UPLOAD_ACCEPT, datasetWarnings, embeddingChangeWarning, kbApi, kbPermissions,
+  HISTORY_UPLOAD_ACCEPT, KB_KIND_HINT, KB_KIND_LABEL, KB_UPLOAD_ACCEPT, canUploadHistory, datasetWarnings, embeddingChangeWarning, kbApi, kbPermissions,
   settingsDiff, type KbKind, type KbSearchKind, type KbSettings,
 } from './kb-admin-core.ts';
 import { kbStatusMeta } from './knowledge-base-core.ts';
@@ -21,9 +21,10 @@ export interface KnowledgeBaseAdminPageProps {
   token: string | null;
   role?: string | null;
   report?: (error: unknown) => void;
+  historyOnly?: boolean;
 }
 
-export function KnowledgeBaseAdminPage({ token, role, report }: KnowledgeBaseAdminPageProps) {
+export function KnowledgeBaseAdminPage({ token, role, report, historyOnly = false }: KnowledgeBaseAdminPageProps) {
   const perms = kbPermissions(role);
   const [overview, setOverview] = useState<Row | null>(null);
   const [notice, setNotice] = useState('');
@@ -51,9 +52,12 @@ export function KnowledgeBaseAdminPage({ token, role, report }: KnowledgeBaseAdm
           description="请公司管理员在“知识库配置”中填写内网 RAGFlow 地址与 API Key 并启用。" />
       )}
       {notice && <Alert type="success" showIcon closable style={{ marginBottom: 12 }} message={notice} onClose={() => setNotice('')} />}
-      <Tabs items={[
+      <Tabs items={historyOnly ? [
+        { key: 'history', label: '历史标书', children: <DatasetsTab {...{ call, perms, token, report, setNotice, role }} lockKind="history" /> },
+        ...(perms.connection ? [{ key: 'settings', label: '数据集配置', children: <SettingsTab {...{ call, perms, overview, reload: loadOverview, setNotice }} /> }] : []),
+      ] : [
         { key: 'settings', label: '设置与摄入流程', children: <SettingsTab {...{ call, perms, overview, reload: loadOverview, setNotice }} /> },
-        { key: 'datasets', label: '数据集与文档', children: <DatasetsTab {...{ call, perms, token, report, setNotice }} /> },
+        { key: 'datasets', label: '数据集与文档', children: <DatasetsTab {...{ call, perms, token, report, setNotice, role }} /> },
         { key: 'retrieval', label: '检索试查', children: <RetrievalTab call={call} /> },
         { key: 'audit', label: '操作审计', children: <AuditTab call={call} /> },
       ]} />
@@ -137,10 +141,11 @@ function SettingsTab({ call, perms, overview, reload, setNotice }: {
   );
 }
 
-function DatasetsTab({ call, perms, token, report, setNotice }: {
+function DatasetsTab({ call, perms, token, report, setNotice, role, lockKind }: {
   call: Call; perms: ReturnType<typeof kbPermissions>; token: string | null; report?: (e: unknown) => void; setNotice: (s: string) => void;
+  role?: string | null; lockKind?: KbKind;
 }) {
-  const [kind, setKind] = useState<KbKind>('history');
+  const [kind, setKind] = useState<KbKind>(lockKind ?? 'history');
   const [datasets, setDatasets] = useState<Row[]>([]);
   const [docs, setDocs] = useState<Row[]>([]);
   const [chunksOf, setChunksOf] = useState<Row | null>(null);
@@ -187,13 +192,25 @@ function DatasetsTab({ call, perms, token, report, setNotice }: {
 
   return (
     <Space direction="vertical" style={{ width: '100%' }} size="middle">
+      {kind === 'history' && !info?.dataset_id && (
+        <Alert type="warning" showIcon message="本公司历史标书数据集尚未配置，请公司管理员先配置。未配置时不能上传。" />
+      )}
       <Space wrap>
-        <Select<KbKind> value={kind} onChange={setKind} style={{ width: 260 }}
-          options={(Object.keys(KB_KIND_LABEL) as KbKind[]).map(k => ({ value: k, label: KB_KIND_LABEL[k] }))} />
+        {!lockKind && (
+          <Select<KbKind> value={kind} onChange={setKind} style={{ width: 260 }}
+            options={(Object.keys(KB_KIND_LABEL) as KbKind[]).map(k => ({ value: k, label: KB_KIND_LABEL[k] }))} />
+        )}
         <Button icon={<ReloadOutlined />} onClick={() => void load()}>刷新</Button>
+        {kind === 'history' && !info?.dataset_id && perms.write && (
+          <Button type="primary" loading={busy} onClick={() => void action(kbApi.datasetAction('history', 'ensure'), 'POST', {}, '历史标书数据集已建立。')}>建立历史标书数据集</Button>
+        )}
         {kind !== 'library' && (
-          <Upload accept={KB_UPLOAD_ACCEPT[kind]} showUploadList={false} beforeUpload={file => upload(file)} disabled={!perms.write}>
-            <Button icon={<CloudUploadOutlined />} disabled={!perms.write} loading={busy}>上传原件</Button>
+          <Upload accept={kind === 'history' ? HISTORY_UPLOAD_ACCEPT : KB_UPLOAD_ACCEPT[kind]} showUploadList={false} beforeUpload={file => upload(file)}
+            disabled={kind === 'history' ? !canUploadHistory(role) || !info?.dataset_id : !perms.write}>
+            <Button icon={<CloudUploadOutlined />} loading={busy}
+              disabled={kind === 'history' ? !canUploadHistory(role) || !info?.dataset_id : !perms.write}>
+              {kind === 'history' ? '上传历史标书' : '上传原件'}
+            </Button>
           </Upload>
         )}
         <Popconfirm title="按当前流程重新解析该类全部文档？" onConfirm={() => void action(kbApi.datasetAction(kind, 'reparse'), 'POST', {}, '已开始重新解析。')} disabled={!perms.write || !info?.dataset_id}>

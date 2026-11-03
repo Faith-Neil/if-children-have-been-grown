@@ -12,6 +12,8 @@
 | 关联 Issue | ISSUE-007 |
 <!-- governance-baseline:end -->
 
+2026-11-03 起，新建项目的实施顺序改按 [ISSUE-047](../issues/ISSUE-047.md) 的 [TV-M0](tasks/TV-M0.md)：先入口收口，再历史标书、招标文件、抽取、单章目录、矩阵、正文与技术偏离表。已有两册项目不迁移。
+
 APP-M1-T12/T13的本章方案事实/要点/字数、共享写作输入保护及候选快照页面已本地验收；PR待合入。接下来继续完整片段、人员分配、结构化段落/变量、选区助手与规则，完整父任务不关闭。
 
 T14成员与分册分工、T15逐章分配/独立方案确认已本地验收：项目范围、多账号权限、交接、旧表单并发保护及两册内容通过。T07范围拆分已完成，新增[APP-M2的259张卡](tasks/APP-M2.md)，保留190原WBS子项、13独立产物及56规则子单位；44条规则仍按原36一期完整/3一期简化/5二期执行。当前共412项任务，61done、13in-review、7in-progress、273planned、45blocked、13cancelled、0ready（2026-10-26 拍板 B1~B6 / D0~D5 收口快照）。任务看板是准绳。这组数字在关键里程碑更新。APP-M2-T124 因 T078 与 T114 未满足仍为 blocked。ISSUE-022 为 in-review，只复核 OpenAPI 草案（draft, pending backend review），运行时未接通。不能把任务数量当产品完成率。其中 AI-01 改为 in-review：业务库已决定为 MySQL 8，对话模型由配置页提供，嵌入与向量库用 RAGFlow 自带，生产生成仅内网。ISSUE-026 已写成 8 in-review、49 blocked。本卡新增一卡后 in-review 为 9、blocked 仍为 49。AI-02 与 APP-M2-T008 已由项目经理于 10-12 12:10 在 QA 签署后确认为 done。AI-03 为 in-review。APP-M2-T001 与 APP-M2-T002 已由项目经理在群里确认、QA 签署后标为 done。AI-03 只使用内存检索。REV-M0-T02～T05 已本地验收。

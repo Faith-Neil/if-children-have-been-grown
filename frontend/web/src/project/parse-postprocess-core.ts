@@ -12,6 +12,26 @@ export const FILE_ROLE_OPTIONS: { value: FileRole; label: string }[] = [
   { value: 'attachment', label: '附件' },
 ];
 
+export const TECHNICAL_FILE_ROLE_OPTIONS: { value: FileRole; label: string }[] = [
+  { value: 'tender', label: '招标文件' },
+  { value: 'tech_spec', label: '技术规范书' },
+  { value: 'attachment', label: '其他辅助文件' },
+];
+
+export const TECHNICAL_UPLOAD_ACCEPT = '.pdf,.doc,.docx';
+
+export function fileRoleOptions(technicalOnly: boolean) {
+  return technicalOnly ? TECHNICAL_FILE_ROLE_OPTIONS : FILE_ROLE_OPTIONS;
+}
+
+export function hasTenderFile(files: { file_role?: string | null; superseded_by?: string | null }[]): boolean {
+  return files.some(file => (file.file_role ?? 'tender') === 'tender' && !file.superseded_by);
+}
+
+export function sameSourceAlreadyExtracted(sourceFingerprint?: string, parsedFingerprint?: string): boolean {
+  return Boolean(parsedFingerprint) && parsedFingerprint === sourceFingerprint;
+}
+
 export const PARSE_SERVICE_OPTIONS = [
   { value: 'auto', label: '自动（先本地，取不出再交 RAGFlow）' },
   { value: 'local', label: '只用本地文字提取' },

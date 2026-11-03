@@ -92,7 +92,8 @@ export function responseOptions(critical: boolean) {
   }));
 }
 
-export function needsReason(type?: ResponseType | null): boolean {
+export function needsReason(type?: ResponseType | null, technicalClause = false): boolean {
+  if (technicalClause && (type === 'exceed' || type === 'deviate')) return true;
   return type === 'deviate' || type === 'not_applicable';
 }
 

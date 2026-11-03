@@ -440,6 +440,16 @@ class GenerationOrchestratorMixin:
         )
 
     def generate(self, principal: Principal, project_id: str, payload: dict, expected: str | None, key: str | None):
+        state = self.repository.read()
+        project = state.projects.get(project_id)
+        if project is not None and not project.is_deleted:
+            from icg.domain.technical_sources import technical_only
+            workflow = self._workflow(state, project_id)
+            if technical_only(state, project_id) and workflow.get("technical_outline"):
+                return self._write(
+                    principal, project_id, "chapter.generate", payload, expected, key,
+                    lambda actual, _project, current: self._generate_technical(actual, current, principal, payload),
+                )
         snapshot, previous = self._preflight(principal, project_id, "chapter.generate", payload, expected, key)
         if previous:
             return previous
@@ -516,6 +526,23 @@ class GenerationOrchestratorMixin:
             }
 
         return self._write(principal, project_id, "chapter.generate", payload, expected, key, operation)
+
+    def _generate_technical(self, state, workflow, principal: Principal, payload: dict) -> dict:
+        from icg.domain.technical_volume import write_volume
+        chapter_id = (workflow.get("technical_outline") or {}).get("chapter_id") or ""
+        chapter = state.chapters.get(chapter_id)
+        project_id = chapter.project_id if chapter is not None else ""
+        provider = None
+        if project_id and hasattr(self.demo, "resolve_model_provider"):
+            try:
+                provider = self.demo.resolve_model_provider(state, project_id, "chapter_generation")
+            except Exception:
+                provider = None
+        result = write_volume(state, project_id, workflow, (payload.get("section") or "").strip() or None, provider)
+        message = "技术分册已写入当前正文。" if not result["failed"] else "有的节没有生成成功，这些节保持原样，其他节已写入。"
+        job = self._job(state, project_id, "generate", message)
+        chapter = state.chapters[result["chapter_id"]]
+        return {"job": job, "chapters": [self._chapter_summary(state, workflow, chapter, principal.user.id)]}
 
 
 class GenerationOrchestrator(GenerationOrchestratorMixin):
