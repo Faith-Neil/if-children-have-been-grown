@@ -14,7 +14,7 @@
 | 最后更新日期 | 2026-11-03 |
 | revision | tech-volume-mvp-1 |
 | 关联 Task | [TV-M0-T01～T07](../docs/tasks/TV-M0.md)，均为 in-review |
-| 关联 PR | 不合入 main。[PR #7](https://github.com/Faith-Neil/if-children-have-been-grown/pull/7) 只有决定记录，本轮关闭。产品线在 `feat/iss-047-technical-volume-mvp`。指向 main 的草稿只为触发检查，禁止合并 |
+| 关联 PR | 不合入 main。[PR #7](https://github.com/Faith-Neil/if-children-have-been-grown/pull/7) 只有决定记录，已关闭。产品线在 `feat/iss-047-technical-volume-mvp`。[PR #8](https://github.com/Faith-Neil/if-children-have-been-grown/pull/8) 是指向 main 的草稿，只为触发检查，禁止合并 |
 | 本地验收 | 2026-11-03：`tests/backend/test_technical_sources.py` 12 项在内存仓储通过。未在浏览器点选，未接公司 RAGFlow 与本地 Qwen |
 | 合入 | 不合入 main。集成目标是 `feat/iss-047-technical-volume-mvp` |
 | 发布 | 未发布 |
@@ -78,13 +78,13 @@
 | 2026-11-03 | tech-volume-mvp-1 / in-progress | T06 为 in-review。T07 仍是 planned。不标 done | 本轮实现 |
 | 2026-11-03 | tech-volume-mvp-1 / in-progress | 历史做法不再默认无偏离。本地模型判断正偏离、负偏离或无偏离。不标 done | 本轮更正 |
 | 2026-11-03 | tech-volume-mvp-1 / in-progress | T07 为 in-review。正文六段和样表偏离表已接到导出。不标 done | 本轮实现 |
-| 2026-11-03 | tech-volume-mvp-1 / in-progress | 集成目标改为 `feat/iss-047-technical-volume-mvp`，不合并 main。PR #7 只含决定记录并关闭。T01～T07 仍为 in-review | 本轮分支策略 |
+| 2026-11-03 | tech-volume-mvp-1 / in-progress | 集成目标改为 `feat/iss-047-technical-volume-mvp`，不合并 main。PR #7 已关闭。PR #8 是禁止合并的草稿。T01～T07 仍为 in-review | 本轮分支策略 |
 
 ## 本地验收与后续合入发布
 
 - 本地验收结论与日期：2026-11-03，内存测试通过，不能当作已上线。
 - 验证方式、通过及失败项、未覆盖范围：`tests/backend/test_technical_sources.py` 12 项通过；`export_openapi.py --check` 通过。浏览器未点。公司 RAGFlow 和本地 Qwen 未接。`tests/backend/test_technical_only.py` 3 项失败（仍上传 txt）。治理检查仍有 37 条既有断链。
 - 六份基线同步与互链复核：PRD、路线图、架构只加了指向决定的句子。看板、项目状态、文档索引和本 Issue 已写明集成分支。
-- PR 状态：PR #7 关闭，不合并。产品在 `feat/iss-047-technical-volume-mvp`。指向 main 的草稿 PR 只触发检查，禁止合并。
+- PR 状态：PR #7 已关闭，不合并。产品在 `feat/iss-047-technical-volume-mvp`。[PR #8](https://github.com/Faith-Neil/if-children-have-been-grown/pull/8) 是草稿，只触发检查，禁止合并。
 - 合入提交与日期：不合入 main。
 - 发布版本与日期：未发布。
