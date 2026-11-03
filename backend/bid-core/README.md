@@ -18,7 +18,7 @@
 
 本轮验证环境为Windows和Python 3.12.10；首次安装需要本机已有Python。其他Python版本需另行验证依赖组合。
 
-推荐统一入口：`& .\backend\bid-core\Start-Demo.ps1 -Install`。它会创建Python环境、安装后台依赖、安装前端依赖并构建页面，再启动；后续启动省略`-Install`。首次安装还需要Node.js和pnpm，本轮页面验证使用Node.js 24与pnpm 11.25.0。也可使用下面的分步方法。
+推荐统一入口：`& .\backend\bid-core\Start-Demo.ps1 -Install`。它会创建Python环境、安装后台依赖、安装前端依赖并构建页面，再启动；后续启动省略`-Install`。**L2 验收（MySQL 持久化 + 关演示 UI）** 用 [`Start-L2.ps1`](Start-L2.ps1) 与 [`docs/testing/2026-11-02-l2-manual-acceptance-runbook.md`](../../docs/testing/2026-11-02-l2-manual-acceptance-runbook.md)，勿把本脚本的内存模式当作 L2 留证。首次安装还需要Node.js和pnpm，本轮页面验证使用Node.js 24与pnpm 11.25.0。也可使用下面的分步方法。
 
 ```powershell
 python -m venv .venv

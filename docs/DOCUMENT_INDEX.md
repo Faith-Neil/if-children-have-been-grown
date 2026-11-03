@@ -955,11 +955,22 @@
 | D-934 | 2026-11-02 | [main 合入文档同步](delivery/2026-11-02-doc-sync-main-merge.md) | 任务交付 | doc-sync-1 | 当前 | PR #6 / cfdf5ad | 合入元数据与 testing 回填 |
 | D-935 | 2026-11-02 | [PM 标 done 队列](delivery/2026-11-02-pm-done-queue.md) | 任务交付 | pm-queue-1 | 当前 | T260 / T166 / T020 / T096 | PM Build 计划四卡 done |
 | D-936 | 2026-11-02 | [ISSUE-046 规则单卡交付索引](delivery/2026-11-02-issue-046-rule-card-index.md) | 任务交付 | issue-046-2 | 当前 | ISSUE-046 / APP-M2-T203～T242 | 编号已对齐说明，待逐卡 delivery |
+| D-937 | 2026-11-02 | [L2 验收 PM 拍板](decisions/2026-11-02-l2-acceptance-pm-decisions.md) | 决策 | l2-accept-1 | 生效 | L2 / R38 一期 / APP-M2-T253 | 目标 L2；R38 只 warning；MySQL 人工全链路 |
+| D-938 | 2026-11-02 | [L2 手动全链路验收 Runbook](testing/2026-11-02-l2-manual-acceptance-runbook.md) | 验证 | l2-accept-1 | 当前 | L2 验收 | 持久化启动、主路径步骤、R38 与重启留证 |
+| D-939 | 2026-11-02 | [L2 持久化启动脚本](../backend/bid-core/Start-L2.ps1) | 运维 | l2-accept-1 | 当前 | L2 验收 | MySQL + VITE_DEMO=0 + Alembic；区别于 Start-Demo.ps1 |
+| D-940 | 2026-11-02 | [L2 MVP 冲刺](decisions/2026-11-02-l2-mvp-sprint.md) | 决策 | l2-sprint-1 | 生效 | L2 / WP-4 / WP-5 / WP-2 | G0–G3 门禁与 WP 切片；WP-1 与 L3 不在本冲刺 |
+| D-941 | 2026-11-03 | [服务方案编写教程](reference/writing/README.md) | 编写方法 | writing-method-1 | 原文 | 技术分册 MVP | 目录与响应教程入口；系统尚未按此实现 |
+| D-942 | 2026-11-03 | [服务方案目录制作教程](reference/writing/01-服务方案目录制作教程.md) | 编写方法 | writing-method-1 | 原文 | 技术分册 MVP | 评分点与规格书抽标题、层级和双清单 |
+| D-943 | 2026-11-03 | [技术标响应教程](reference/writing/02-技术标响应教程.md) | 编写方法 | writing-method-1 | 原文 | 技术分册 MVP | 三级标题八股、偏离和检查 |
+| D-944 | 2026-11-03 | [技术分册 MVP](decisions/2026-11-03-technical-volume-mvp.md) | 决策 | tech-volume-mvp-1 | 生效 | ISSUE-047 | 2026-11-03 确认的技术分册路径；代码未改 |
+| D-945 | 2026-11-03 | [ISSUE-047：技术分册 MVP](../issues/ISSUE-047.md) | Issue | tech-volume-mvp-1 | new | ISSUE-047 | 决定已确认，任务未拆，代码未改 |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-11-03 | ISSUE-047 | 确认技术分册 MVP（D-944、D-945）。教程原文为 D-941～D-943。代码未改 |
+| 2026-11-03 | 技术分册 MVP | 收入服务方案目录制作教程与技术标响应教程原文（D-941～D-943），系统尚未按此实现 |
 | 2026-10-30 | ISSUE-045 revision 2 | 按审查整治看板：142 张任务卡状态与看板对齐，8 张改 in-review 并补交付（D-867～D-876），9 张 cancelled，登记工作包 WP-1～7；看板 454 项：96 done、171 in-review、37 in-progress、87 planned、63 cancelled |
 | 2026-10-28 | 产品 / 开发 / Wave 11 | 新建分支 feat/wave-11-main-path（PR #6），交付 APP-M2-T133、APP-M2-T144、APP-M2-T111、AI-REMEDIATION-NO-FABRICATION、BE-WORKFLOW-STATE-PERSIST（均 in-review），登记 ISSUE-039～042、PRD 实施澄清与缺口增量（D-838～D-854）；看板 444 项：96 done、65 in-review、7 in-progress、228 planned、41 blocked、7 cancelled、0 ready |
 | 2026-10-28 | 开发 / Wave 12 | BE-WORKFLOW-DURABILITY 与 AI-KB-RAG-PIPELINE 交付为 in-review，AI-KB-RAG-EVAL in-progress，登记 ISSUE-043（D-855～D-860）；看板 446 项：96 done、67 in-review、8 in-progress、227 planned、41 blocked、7 cancelled、0 ready |
