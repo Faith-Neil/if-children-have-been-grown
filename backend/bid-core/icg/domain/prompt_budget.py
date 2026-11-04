@@ -103,8 +103,9 @@ def check_sensitive_model_gate(state: DemoState, project_id: str, model_config: 
         if cfg_id and cfg_id in state.model_configs:
             cfg = state.model_configs[cfg_id]
         else:
-            from icg.infra.model_config_storage import saved_company_model
-            cfg = saved_company_model(state, project.company_id)
+            company_default_id = f"default-{project.company_id}"
+            if company_default_id in state.model_configs:
+                cfg = state.model_configs[company_default_id]
 
     if cfg is not None:
         is_local = getattr(cfg, "is_local", False)
