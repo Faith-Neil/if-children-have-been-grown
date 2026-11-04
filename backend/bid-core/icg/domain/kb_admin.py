@@ -36,8 +36,8 @@ CERT_FIELD_TO_LIBRARY = {"cert_name": "name", "valid_to": "valid_until"}
 
 
 def _role(principal: Principal) -> str:
-    # 知识库授权按账号登记的标准 RBAC 角色判定，不受登录角色归并影响。
-    return str(principal.user.role or "")
+    from .project_access import normalize_role
+    return normalize_role(principal.user.role)
 
 
 def _is_super(principal: Principal) -> bool:
