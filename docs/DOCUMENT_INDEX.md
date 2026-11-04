@@ -988,14 +988,15 @@
 | D-967 | 2026-11-04 | [OPS-M0-T03 代码说明](code/OPS-M0-T03.md) | 代码说明 | ops-product-start-1 | 当前 | ISSUE-049 / OPS-M0-T03 | Start-Product 与容器入口 |
 | D-968 | 2026-11-04 | [虚拟机 Docker 部署](operations/docker-vm-deployment.md) | 运维 | ops-product-start-1 | 当前 | ISSUE-049 / OPS-M0-T03 | 公司虚拟机步骤。尚未在虚拟机执行 |
 | D-969 | 2026-11-04 | [产品启动脚本](../backend/bid-core/Start-Product.ps1) | 运维 | ops-product-start-1 | 当前 | ISSUE-049 / OPS-M0-T03 | 探测 MySQL 失败则退出 |
-| D-970 | 2026-11-05 | [历史标书与资料库解析设计](superpowers/specs/2026-11-05-history-bid-ingestion-design.md) | 设计 | kb-ingestion-design-1 | 已确认 | ISSUE-050 | 方案为主，对话决定为补充。解析代码未改 |
-| D-972 | 2026-11-05 | [历史标书与资料库解析实现计划](superpowers/plans/2026-11-05-history-bid-ingestion.md) | 计划 | kb-ingestion-plan-1 | 待执行 | ISSUE-050 | 六项任务。尚未执行，未部署 |
-| D-971 | 2026-11-05 | [历史标书与资料库解析](../issues/ISSUE-050.md) | Issue | kb-ingestion-design-1 | new | ISSUE-050 | 设计已登记。未拆任务，未部署 |
+| D-970 | 2026-11-05 | [历史标书与资料库解析设计](superpowers/specs/2026-11-05-history-bid-ingestion-design.md) | 设计 | kb-ingestion-design-1 | 已确认 | ISSUE-050 | 方案为主，对话决定为补充。实现已在本分支，未部署 |
+| D-972 | 2026-11-05 | [历史标书与资料库解析实现计划](superpowers/plans/2026-11-05-history-bid-ingestion.md) | 计划 | kb-ingestion-plan-1 | 已执行 | ISSUE-050 | 六项任务已写入本分支。未部署到 RAGFlow |
+| D-971 | 2026-11-05 | [历史标书与资料库解析](../issues/ISSUE-050.md) | Issue | kb-ingestion-implemented-1 | in-progress | ISSUE-050 | 实现已在本分支。未拆任务卡，未部署 |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-11-05 | ISSUE-050 | 补入设计说明与实现计划文件（D-970、D-972）。实现已在本分支，状态 in-progress，未部署到 RAGFlow |
 | 2026-11-05 | ISSUE-050 | 设计说明已确认，并写入实现计划（D-972）。状态仍为 new，解析代码未改，未部署 |
 | 2026-11-05 | ISSUE-050 | 登记历史标书与资料库解析设计（D-970、D-971）。状态 new，解析代码未改，未部署 |
 | 2026-11-04 | ISSUE-049 | 产品启动改为连接 MySQL，并写入虚拟机 Docker 说明（D-965～D-969）。OPS-M0-T03 为 in-review，虚拟机未部署 |
