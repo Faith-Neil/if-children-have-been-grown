@@ -40,6 +40,7 @@ from .prompt_budget import (
     DynamicPromptContextManager,
     check_sensitive_model_gate,
 )
+from .history_commitment import commitment_notice
 
 VARIABLE_PATTERN = re.compile(r"\{\{([A-Za-z0-9_.:\u4e00-\u9fa5-]+)\}\}")
 CITATION_PATTERN = re.compile(r"\[(证|片|cite)(?::([^\]]+))?\]")
@@ -933,6 +934,27 @@ def format_writing_plan_prompt(snapshot: dict) -> str:
     return "\n".join(lines)
 
 
+def attach_history_commitment_notice(snapshot: dict[str, Any]) -> None:
+    """在写作快照上附加历史承诺未覆盖提示（不写入章节正文）。"""
+    if not snapshot:
+        return
+    notice = commitment_notice(snapshot.get("retrieved_evidence") or [])
+    if notice:
+        snapshot["history_commitment_notice"] = notice
+    else:
+        snapshot.pop("history_commitment_notice", None)
+
+
+def writing_input_snapshot_id(snapshot: dict[str, Any] | None) -> str | None:
+    if not snapshot:
+        return None
+    fingerprint = str(snapshot.get("input_fingerprint") or "").strip()
+    if fingerprint:
+        return fingerprint
+    created = str(snapshot.get("created_at") or "").strip()
+    return created or None
+
+
 def assemble_writing_prompt_plan(
     state: DemoState,
     project_id: str,
@@ -967,6 +989,7 @@ def assemble_writing_prompt_plan(
     service = evidence_service if evidence_service is not None else getattr(state, "evidence_service", None)
     assembled = build_generation_context(state, project_id, chapter, current_time, evidence_service=service)
     snapshot = assembled["input_snapshot"]
+    attach_history_commitment_notice(snapshot)
     plan = snapshot.get("plan", {})
 
     # 自适应 Prompt 动态上下文裁剪与 Token 预算控制
@@ -1047,6 +1070,7 @@ class ChapterGenerationService:
         self.demo = demo
         self.repository = repository or getattr(demo, "repository", None)
         self.evidence_service = evidence_service or getattr(demo, "evidence_service", None)
+        _ensure_history_commitment_integration()
 
     def assemble_writing_prompt_plan(
         self,
@@ -1890,6 +1914,29 @@ class ChapterGenerationService:
             if active_p and getattr(active_p, "is_local", False) is False and getattr(active_p, "is_real_model", None) is not False:
                 raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL", "敏感项目只能使用本地模型配置。")
 
+    def dismiss_history_commitment_notice(
+        self,
+        project_id: str,
+        chapter_id: str,
+        principal: Principal,
+        snapshot_id: str,
+    ) -> dict[str, Any]:
+        """关闭历史承诺提示：按写作快照 id 记录在项目上，同一快照对所有查看者隐藏。"""
+        snapshot_id = str(snapshot_id or "").strip()
+        if not snapshot_id:
+            raise DomainError(422, "VALIDATION_ERROR", "缺少写作快照 id。")
+        state = self.repository.read()
+        chapter = self.demo._chapter(state, principal, chapter_id)
+        if chapter.project_id != project_id:
+            raise DomainError(404, "NOT_FOUND", "章节不属于当前项目。")
+
+        def operation(st: DemoState) -> dict[str, Any]:
+            workflow = st.workflows.setdefault(project_id, {})
+            workflow.setdefault("history_commitment_notice_dismissals", {})[chapter_id] = snapshot_id
+            return {"history_commitment_notice_dismissed_snapshot_id": snapshot_id}
+
+        return self.repository.transaction(operation)
+
     def validate_chapter_content(
         self,
         project_id: str,
@@ -2435,4 +2482,84 @@ def remediate_chapter_candidate(
     )
 
 
+_history_commitment_integration_ready = False
+
+
+def _ensure_history_commitment_integration() -> None:
+    global _history_commitment_integration_ready
+    if _history_commitment_integration_ready:
+        return
+    from icg.domain import generation_context as generation_context_module
+    from icg.domain.workflow_orchestrator import WorkflowOrchestrator
+
+    if getattr(generation_context_module.build_generation_context, "__history_commitment_patched__", False):
+        return
+
+    original_build = generation_context_module.build_generation_context
+
+    def build_generation_context_with_notice(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        result = original_build(*args, **kwargs)
+        attach_history_commitment_notice(result.get("input_snapshot") or {})
+        return result
+
+    build_generation_context_with_notice.__history_commitment_patched__ = True  # type: ignore[attr-defined]
+    generation_context_module.build_generation_context = build_generation_context_with_notice
+
+    if not getattr(WorkflowOrchestrator._chapter_summary, "__history_commitment_patched__", False):
+        original_summary = WorkflowOrchestrator._chapter_summary
+
+        def chapter_summary_with_notice(self, state, workflow, chapter, user_id=None):
+            result = original_summary(self, state, workflow, chapter, user_id)
+            dismissals = workflow.get("history_commitment_notice_dismissals") or {}
+            dismissed = dismissals.get(chapter.id)
+            if dismissed:
+                result["history_commitment_notice_dismissed_snapshot_id"] = dismissed
+            candidate = result.get("candidate")
+            if candidate and candidate.get("input_snapshot"):
+                attach_history_commitment_notice(candidate["input_snapshot"])
+            return result
+
+        chapter_summary_with_notice.__history_commitment_patched__ = True  # type: ignore[attr-defined]
+        WorkflowOrchestrator._chapter_summary = chapter_summary_with_notice
+
+    try:
+        import icg.api.workflow as workflow_api
+    except ImportError:
+        return
+    if getattr(workflow_api.include_workflow_routes, "__history_commitment_patched__", False):
+        return
+
+    original_include = workflow_api.include_workflow_routes
+
+    def include_workflow_routes_with_notice(application, service, current_user, parser):
+        original_include(application, service, current_user, parser)
+        from fastapi import APIRouter, Depends
+
+        router = APIRouter(prefix="/api/v1")
+
+        @router.post(
+            "/projects/{project_id}/chapters/{chapter_id}/history-commitment-notice/dismiss",
+            operation_id="dismissHistoryCommitmentNotice",
+            include_in_schema=False,
+        )
+        def dismiss_history_commitment_notice(
+            project_id: str,
+            chapter_id: str,
+            body: dict | None = None,
+            user: Principal = Depends(current_user),
+        ):
+            payload = body or {}
+            return service.chapter_generation.dismiss_history_commitment_notice(
+                project_id,
+                chapter_id,
+                user,
+                str(payload.get("snapshot_id") or payload.get("input_fingerprint") or ""),
+            )
+
+        application.include_router(router)
+
+    include_workflow_routes_with_notice.__history_commitment_patched__ = True  # type: ignore[attr-defined]
+    workflow_api.include_workflow_routes = include_workflow_routes_with_notice
+
+    _history_commitment_integration_ready = True
 

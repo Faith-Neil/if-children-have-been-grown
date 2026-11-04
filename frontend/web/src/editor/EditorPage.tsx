@@ -84,6 +84,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const [rightTab, setRightTab] = useState('assistant');
   const [savedAt, setSavedAt] = useState('');
   const [notice, setNotice] = useState('');
+  const [historyCommitmentNotice, setHistoryCommitmentNotice] = useState<{ message: string; filenames: string[]; snapshotId: string } | null>(null);
   const [sourceAdvice, setSourceAdvice] = useState(false);
   const [versions, setVersions] = useState<ChapterVersionItem[]>([]);
   const [versionsOpen, setVersionsOpen] = useState(false);
@@ -165,6 +166,11 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const candidateIssue = candidate ? candidateProblem(candidate, workspace.input_fingerprint, chapter?.revision) : null;
   const sources = workspace.requirements.filter(item => item.chapter_id === chapterId || activeChapter?.requirement_ids?.includes(item.id));
   const sourceStale = !!chapter && editFingerprint !== workspace.input_fingerprint;
+  const historyCommitmentDismissedSnapshotId =
+    (activeChapter as { history_commitment_notice_dismissed_snapshot_id?: string | null } | undefined)
+      ?.history_commitment_notice_dismissed_snapshot_id ?? null;
+  const showHistoryCommitmentNotice = !!historyCommitmentNotice
+    && historyCommitmentNotice.snapshotId !== historyCommitmentDismissedSnapshotId;
   const detectedCitations = useMemo(() => extractCitationIds(content), [content]);
 
   const knownCitations = useMemo(() => {
@@ -182,6 +188,42 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   }
 
   useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
+
+  useEffect(() => {
+    if (!chapterId || !token) {
+      setHistoryCommitmentNotice(null);
+      return;
+    }
+    let alive = true;
+    request<WritingInputPreview>(`/api/v1/projects/${workspace.project.id}/chapters/${chapterId}/writing-input`, token)
+      .then(preview => {
+        if (!alive) return;
+        const snapshot = preview.input_snapshot as WritingInputPreview['input_snapshot'] & {
+          history_commitment_notice?: { message: string; filenames: string[] };
+        };
+        const payload = snapshot.history_commitment_notice;
+        const snapshotId = snapshot.input_fingerprint;
+        if (payload?.message && snapshotId) {
+          setHistoryCommitmentNotice({ message: payload.message, filenames: payload.filenames ?? [], snapshotId });
+        } else {
+          setHistoryCommitmentNotice(null);
+        }
+      })
+      .catch(() => { if (alive) setHistoryCommitmentNotice(null); });
+    return () => { alive = false; };
+  }, [chapterId, token, workspace.project.id, workspace.input_fingerprint, workspace.revision]);
+
+  async function dismissHistoryCommitmentNotice() {
+    if (!historyCommitmentNotice || combinedBusy) return;
+    try {
+      await mutate(
+        `/api/v1/projects/${workspace.project.id}/chapters/${chapterId}/history-commitment-notice/dismiss`,
+        'POST',
+        { snapshot_id: historyCommitmentNotice.snapshotId },
+      );
+      await reload();
+    } catch { /* 统一已汇报 */ }
+  }
 
   // 变量节点（APP-M2-T164）：取值与是否有效以后台解析为准；文字停顿后再请求，数据源变化（来源指纹变）时重新解析
   useEffect(() => {
@@ -596,6 +638,24 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
             </div>
             <p className="document-subline">本节编写人 {activeChapter?.assignee_name || '未指定'} · 正文版本 v{chapter.revision} · {sources.length} 条关联要求 · {!canEdit ? '只读，请核对本节分工' : held ? '已取得编辑权' : '只读，请先取得编辑权'}</p>
             <SourceBar kind="evidence" layout="bottom" sourceName={chapter.title} version={chapter.revision} fingerprint={editFingerprint} status={sourceStale ? 'stale' : 'confirmed'} onVerifySource={() => ops.reviewCurrentSources('editor')} />
+
+            {showHistoryCommitmentNotice && historyCommitmentNotice && (
+              <Alert
+                className="editor-notice"
+                type="warning"
+                showIcon
+                data-testid="history-commitment-notice"
+                message={historyCommitmentNotice.message}
+                description={historyCommitmentNotice.filenames.length > 0 ? (
+                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    {historyCommitmentNotice.filenames.map(name => <li key={name}>{name}</li>)}
+                  </ul>
+                ) : undefined}
+                closable
+                onClose={() => void dismissHistoryCommitmentNotice()}
+                style={{ marginBottom: 12 }}
+              />
+            )}
 
             {isReadOnlyView ? (
               <div className="chapter-editor-readonly-view" data-testid="readonly-editor-view">
