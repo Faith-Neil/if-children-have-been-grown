@@ -989,7 +989,6 @@ def assemble_writing_prompt_plan(
     service = evidence_service if evidence_service is not None else getattr(state, "evidence_service", None)
     assembled = build_generation_context(state, project_id, chapter, current_time, evidence_service=service)
     snapshot = assembled["input_snapshot"]
-    attach_history_commitment_notice(snapshot)
     plan = snapshot.get("plan", {})
 
     # 自适应 Prompt 动态上下文裁剪与 Token 预算控制
@@ -1070,7 +1069,6 @@ class ChapterGenerationService:
         self.demo = demo
         self.repository = repository or getattr(demo, "repository", None)
         self.evidence_service = evidence_service or getattr(demo, "evidence_service", None)
-        _ensure_history_commitment_integration()
 
     def assemble_writing_prompt_plan(
         self,
@@ -2480,86 +2478,4 @@ def remediate_chapter_candidate(
         auto_save=auto_save,
         provider=provider,
     )
-
-
-_history_commitment_integration_ready = False
-
-
-def _ensure_history_commitment_integration() -> None:
-    global _history_commitment_integration_ready
-    if _history_commitment_integration_ready:
-        return
-    from icg.domain import generation_context as generation_context_module
-    from icg.domain.workflow_orchestrator import WorkflowOrchestrator
-
-    if getattr(generation_context_module.build_generation_context, "__history_commitment_patched__", False):
-        return
-
-    original_build = generation_context_module.build_generation_context
-
-    def build_generation_context_with_notice(*args: Any, **kwargs: Any) -> dict[str, Any]:
-        result = original_build(*args, **kwargs)
-        attach_history_commitment_notice(result.get("input_snapshot") or {})
-        return result
-
-    build_generation_context_with_notice.__history_commitment_patched__ = True  # type: ignore[attr-defined]
-    generation_context_module.build_generation_context = build_generation_context_with_notice
-
-    if not getattr(WorkflowOrchestrator._chapter_summary, "__history_commitment_patched__", False):
-        original_summary = WorkflowOrchestrator._chapter_summary
-
-        def chapter_summary_with_notice(self, state, workflow, chapter, user_id=None):
-            result = original_summary(self, state, workflow, chapter, user_id)
-            dismissals = workflow.get("history_commitment_notice_dismissals") or {}
-            dismissed = dismissals.get(chapter.id)
-            if dismissed:
-                result["history_commitment_notice_dismissed_snapshot_id"] = dismissed
-            candidate = result.get("candidate")
-            if candidate and candidate.get("input_snapshot"):
-                attach_history_commitment_notice(candidate["input_snapshot"])
-            return result
-
-        chapter_summary_with_notice.__history_commitment_patched__ = True  # type: ignore[attr-defined]
-        WorkflowOrchestrator._chapter_summary = chapter_summary_with_notice
-
-    try:
-        import icg.api.workflow as workflow_api
-    except ImportError:
-        return
-    if getattr(workflow_api.include_workflow_routes, "__history_commitment_patched__", False):
-        return
-
-    original_include = workflow_api.include_workflow_routes
-
-    def include_workflow_routes_with_notice(application, service, current_user, parser):
-        original_include(application, service, current_user, parser)
-        from fastapi import APIRouter, Depends
-
-        router = APIRouter(prefix="/api/v1")
-
-        @router.post(
-            "/projects/{project_id}/chapters/{chapter_id}/history-commitment-notice/dismiss",
-            operation_id="dismissHistoryCommitmentNotice",
-            include_in_schema=False,
-        )
-        def dismiss_history_commitment_notice(
-            project_id: str,
-            chapter_id: str,
-            body: dict | None = None,
-            user: Principal = Depends(current_user),
-        ):
-            payload = body or {}
-            return service.chapter_generation.dismiss_history_commitment_notice(
-                project_id,
-                chapter_id,
-                user,
-                str(payload.get("snapshot_id") or payload.get("input_fingerprint") or ""),
-            )
-
-        application.include_router(router)
-
-    include_workflow_routes_with_notice.__history_commitment_patched__ = True  # type: ignore[attr-defined]
-    workflow_api.include_workflow_routes = include_workflow_routes_with_notice
-
-    _history_commitment_integration_ready = True
 

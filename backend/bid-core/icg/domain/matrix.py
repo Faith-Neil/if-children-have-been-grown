@@ -160,6 +160,7 @@ class MatrixMixin(SystemChapterMixin, ParseReviewMixin, ProposedStaffMixin, Expo
             "is_cross_volume": bool(row.get("is_cross_volume")),
             "response_origin": row.get("response_origin") or "",
             "history_filename": row.get("history_filename") or "",
+            "material_sources": list(row.get("material_sources") or []),
             "response_type": kind, "response_label": RESPONSE_TYPES[kind][0] if kind else "未选择",
             "deviation_label": RESPONSE_TYPES[kind][2] if kind else "", "response": row.get("response", ""),
             "deviation_reason": row.get("deviation_reason") or "", "chapter_id": row.get("chapter_id"),

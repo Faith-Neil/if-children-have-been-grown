@@ -200,9 +200,10 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         if (!alive) return;
         const snapshot = preview.input_snapshot as WritingInputPreview['input_snapshot'] & {
           history_commitment_notice?: { message: string; filenames: string[] };
+          history_commitment_snapshot_id?: string;
         };
         const payload = snapshot.history_commitment_notice;
-        const snapshotId = snapshot.input_fingerprint;
+        const snapshotId = snapshot.history_commitment_snapshot_id;
         if (payload?.message && snapshotId) {
           setHistoryCommitmentNotice({ message: payload.message, filenames: payload.filenames ?? [], snapshotId });
         } else {

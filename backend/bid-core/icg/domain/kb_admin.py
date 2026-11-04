@@ -435,9 +435,9 @@ class KbAdminService:
     def upload(self, principal: Principal, kind: str, payload: dict[str, Any]) -> dict[str, Any]:
         """上传原件到历史投标或证书数据集，并按 ICG 流程解析。"""
         self._kind(kind, files_only=True)
-        if kind == "history":
+        if kind in ("history", "materials"):
             if not (_is_super(principal) or _role(principal) in WRITE_ROLES | {"manager", "project_lead"}):
-                raise DomainError(403, "FORBIDDEN", "当前账号无权上传历史标书。")
+                raise DomainError(403, "FORBIDDEN", "当前账号无权上传历史标书。" if kind == "history" else "当前账号无权上传权威资料。")
             # 上传只追加到已有数据集，不在这里新建。
             create_dataset = False
         else:
@@ -465,8 +465,9 @@ class KbAdminService:
         try:
             info = self._dataset(principal, kind, create=create_dataset)
         except DomainError as exc:
-            if kind == "history" and not create_dataset and getattr(exc, "status", None) == 404:
-                raise DomainError(409, "KNOWLEDGE_BASE_NOT_CONFIGURED", "本公司历史标书数据集尚未配置，请公司管理员先配置。") from None
+            if kind in ("history", "materials") and not create_dataset and getattr(exc, "status", None) == 404:
+                label = "历史标书" if kind == "history" else "权威资料"
+                raise DomainError(409, "KNOWLEDGE_BASE_NOT_CONFIGURED", f"本公司{label}数据集尚未配置，请公司管理员先配置。") from None
             raise
         file_id = new_id("kbfile")
         meta = {**user_meta, "company_id": company, "source_type": SOURCE_FILE, "source_id": file_id,
@@ -609,9 +610,9 @@ class KbAdminService:
             raise DomainError(422, "VALIDATION_ERROR", "请输入试查问题。")
         overrides = {k: payload[k] for k in ("similarity_threshold", "keywords_weight", "rerank_id")
                      if payload.get(k) is not None}
-        kinds = set(payload.get("kinds") or ["evidence", "snippet", "history"])
-        if not kinds <= {"evidence", "snippet", "history"}:
-            raise DomainError(422, "VALIDATION_ERROR", "kinds 只能是 evidence、snippet、history。")
+        kinds = set(payload.get("kinds") or ["history", "materials"])
+        if not kinds <= {"evidence", "snippet", "history", "materials"}:
+            raise DomainError(422, "VALIDATION_ERROR", "kinds 只能是 evidence、snippet、history、materials。")
         limit = max(1, min(int(payload.get("limit") or 8), 20))
         try:
             hits, reason = self.kb.search(principal.user.company_id, query, limit=limit, kinds=kinds,

@@ -9,6 +9,7 @@ import re
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
+from uuid import uuid4
 
 from .domain import DomainError, iso_time
 from .input_snapshot import project_input_fingerprint
@@ -309,6 +310,19 @@ def build_generation_context(state, project_id, chapter, now, evidence_service=N
                 "injected_tender_clauses": workflow.get("injected_tender_clauses", {}).get(chapter.id, []),
                 "omitted_inputs": omitted, "official_content": chapter.content,
                 "previous_chapter": previous_chapter_relay(state, project_id, chapter)}
+    from .history_commitment import commitment_notice
+
+    notice = commitment_notice(snapshot.get("retrieved_evidence") or [])
+    if notice:
+        snapshot["history_commitment_notice"] = notice
+    else:
+        snapshot.pop("history_commitment_notice", None)
+    snapshot["history_commitment_snapshot_id"] = uuid4().hex
+    dismissed = (workflow.get("history_commitment_notice_dismissals") or {}).get(chapter.id)
+    if dismissed:
+        snapshot["history_commitment_notice_dismissed_snapshot_id"] = dismissed
+    else:
+        snapshot.pop("history_commitment_notice_dismissed_snapshot_id", None)
     return {"source_scope": "whole_chapter", "input_snapshot": snapshot, "ready": not issues, "issues": issues}
 
 

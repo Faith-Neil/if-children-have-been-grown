@@ -85,6 +85,22 @@ def include_workflow_routes(application, service, current_user, parser):
     def writing_input(project_id: str, chapter_id: str, user: Principal = Depends(current_user)):
         return workflow.writing_input(user, project_id, chapter_id)
 
+    @router.post(
+        "/projects/{project_id}/chapters/{chapter_id}/history-commitment-notice/dismiss",
+        operation_id="dismissHistoryCommitmentNotice",
+        include_in_schema=False,
+    )
+    def dismiss_history_commitment_notice(
+        project_id: str,
+        chapter_id: str,
+        body: dict[str, Any],
+        user: Principal = Depends(current_user),
+    ):
+        snapshot_id = str((body or {}).get("snapshot_id") or "")
+        return service.chapter_generation.dismiss_history_commitment_notice(
+            project_id, chapter_id, user, snapshot_id
+        )
+
     @router.get("/projects/{project_id}/chapters/{chapter_id}", response_model=ChapterEditDetail,
                 operation_id="getChapterEditDetail")
     def chapter_edit_detail(project_id: str, chapter_id: str, user: Principal = Depends(current_user)):

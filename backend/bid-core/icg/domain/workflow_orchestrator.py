@@ -255,14 +255,18 @@ class WorkflowService(
         candidate = workflow["candidates"].get(chapter.id)
         if candidate:
             candidate = {**candidate, "status": "valid" if candidate.get("input_fingerprint") == self._fingerprint(state, chapter.project_id) else "stale"}
-        return {**self.demo._summary(chapter), "content": chapter.content,
-                "lock": lock_view(state, chapter.lock) if active else None,
-                "candidate": candidate, "writing_input": {**chapter_plan(workflow, chapter.id), "is_current": plan_is_current(state, chapter.project_id, chapter.id)},
-                "assignee_id": chapter.assignee_id,
-                "assignee_name": state.accounts[chapter.assignee_id].name if chapter.assignee_id in state.accounts else None,
-                "permissions": chapter_permissions(state, chapter, user_id) if user_id else {},
-                "requirement_ids": [r["id"] for r in chapter_rows(workflow, chapter.id, chapter.volume)],
-                "needs_regeneration": chapter.id in (workflow.get("needs_regeneration") or [])}
+        dismissed = (workflow.get("history_commitment_notice_dismissals") or {}).get(chapter.id)
+        summary = {**self.demo._summary(chapter), "content": chapter.content,
+                   "lock": lock_view(state, chapter.lock) if active else None,
+                   "candidate": candidate, "writing_input": {**chapter_plan(workflow, chapter.id), "is_current": plan_is_current(state, chapter.project_id, chapter.id)},
+                   "assignee_id": chapter.assignee_id,
+                   "assignee_name": state.accounts[chapter.assignee_id].name if chapter.assignee_id in state.accounts else None,
+                   "permissions": chapter_permissions(state, chapter, user_id) if user_id else {},
+                   "requirement_ids": [r["id"] for r in chapter_rows(workflow, chapter.id, chapter.volume)],
+                   "needs_regeneration": chapter.id in (workflow.get("needs_regeneration") or [])}
+        if dismissed:
+            summary["history_commitment_notice_dismissed_snapshot_id"] = dismissed
+        return summary
 
     def _fingerprint(self, state: DemoState, project_id: str) -> str:
         return project_input_fingerprint(state, project_id)
