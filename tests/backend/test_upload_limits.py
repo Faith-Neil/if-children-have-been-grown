@@ -62,6 +62,9 @@ def test_kb_raw_upload_uses_same_limit(monkeypatch):
     kb.background = False
     with TestClient(app) as test_client:
         headers = {**login(test_client, "alpha-data-admin"), "Content-Type": "application/octet-stream"}
+        # 历史标书上传只追加到已有数据集，先 ensure 再建上限用例。
+        ensured = test_client.post("/api/v1/kb-admin/datasets/history/ensure", headers=login(test_client, "alpha-data-admin"), json={})
+        assert ensured.status_code == 200, ensured.text
         resp = test_client.post("/api/v1/kb-admin/datasets/history/documents/raw",
                                 params={"filename": "2024投标书.docx", "content_type": "application/msword"},
                                 content=b"history bid body", headers=headers)

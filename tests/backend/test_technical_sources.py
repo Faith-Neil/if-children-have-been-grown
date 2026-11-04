@@ -23,7 +23,12 @@ def client():
 
 
 def _docx(text: str) -> bytes:
-    paragraphs = "".join(f"<w:p><w:r><w:t>{line}</w:t></w:r></w:p>" for line in text.split("\n"))
+    from xml.sax.saxutils import escape
+    # WordprocessingML 不允许多数控制字符；换页符改成换行后再切段。
+    cleaned = "".join(ch if ch in "\t\n\r" or ord(ch) >= 32 else "\n" for ch in text)
+    paragraphs = "".join(
+        f"<w:p><w:r><w:t>{escape(line)}</w:t></w:r></w:p>" for line in cleaned.split("\n")
+    )
     document = (
         '<?xml version="1.0" encoding="UTF-8"?>'
         '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'

@@ -6,9 +6,12 @@ import { readFileSync } from 'node:fs';
 
 test('tender upload accepts remote-parsed formats and shows the pending state', () => {
   const page = readFileSync(new URL('../../src/project/TenderTab.tsx', import.meta.url), 'utf8');
-  assert.match(page, /accept="\.txt,\.md,\.docx,\.doc,\.pdf,\.xls,\.xlsx,\.png,\.jpg,\.jpeg"/);
+  assert.match(page, /accept=\{technicalOnly \? TECHNICAL_UPLOAD_ACCEPT : '\.txt,\.md,\.docx,\.doc,\.pdf,\.xls,\.xlsx,\.png,\.jpg,\.jpeg'\}/);
+  assert.match(page, /TECHNICAL_UPLOAD_ACCEPT/);
   assert.match(page, /RAGFlow 解析中/);
   assert.match(page, /\['uploaded', 'failed', 'parsing_remote'\]\.includes\(item\.status\)/);
+  const core = readFileSync(new URL('../../src/project/parse-postprocess-core.ts', import.meta.url), 'utf8');
+  assert.match(core, /export const TECHNICAL_UPLOAD_ACCEPT = '\.pdf,\.doc,\.docx'/);
   const context = readFileSync(new URL('../../src/app/context.tsx', import.meta.url), 'utf8');
   assert.match(context, /ragflow_deepdoc_positions: '按 RAGFlow 版面识别/);
 });
