@@ -9,8 +9,6 @@ import re
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
-from uuid import uuid4
-
 from .domain import DomainError, iso_time
 from .input_snapshot import project_input_fingerprint
 from .sla import TOKEN as SLA_TOKEN, UNIT_ALIASES, public_sla, resolve_variables, sla_facts, sla_issues, unit_code
@@ -317,7 +315,8 @@ def build_generation_context(state, project_id, chapter, now, evidence_service=N
         snapshot["history_commitment_notice"] = notice
     else:
         snapshot.pop("history_commitment_notice", None)
-    snapshot["history_commitment_snapshot_id"] = uuid4().hex
+    candidate = (workflow.get("candidates") or {}).get(chapter.id) or {}
+    snapshot["history_commitment_snapshot_id"] = str(candidate.get("id") or "preview")
     dismissed = (workflow.get("history_commitment_notice_dismissals") or {}).get(chapter.id)
     if dismissed:
         snapshot["history_commitment_notice_dismissed_snapshot_id"] = dismissed
