@@ -38,7 +38,7 @@ def _b64(text: str) -> str:
 
 
 def _upload(client, headers, kind, filename, text, **meta):
-    if kind == "history":
+    if kind in ("history", "materials"):
         ensured = client.post(f"/api/v1/kb-admin/datasets/{kind}/ensure", headers=headers, json={})
         assert ensured.status_code == 200, ensured.text
     result = client.post(f"/api/v1/kb-admin/datasets/{kind}/documents", headers=headers,
@@ -67,7 +67,8 @@ def test_roles_gate_every_write(client):
 def test_deploy_creates_bid_pipelines_and_binds_datasets(client, fake):
     admin = login(client, ADMIN)
     result = client.post("/api/v1/kb-admin/pipelines/deploy", headers=admin, json={}).json()
-    assert set(result["datasets"]) == {"library", "history", "certificate"}
+    assert set(result["datasets"]) == {"history", "materials"}
+    assert len(fake.agents) == 2
     for kind, info in result["datasets"].items():
         assert info["mode"] == "pipeline", info
         dataset = fake.datasets[info["dataset_id"]]
@@ -88,9 +89,14 @@ def test_deploy_creates_bid_pipelines_and_binds_datasets(client, fake):
     assert extractor["questions"]["top_n"] == 0
     assert extractor["keywords"]["top_n"] == 10
     assert "关键词提取专家" in extractor["keywords"]["system_prompt"]
+    materials = fake.agents[result["datasets"]["materials"]["pipeline_id"]]["dsl"]["components"]
+    materials_extractor = next(v for k, v in materials.items() if k.startswith("Extractor"))["obj"]["params"]
+    assert materials_extractor["keywords"]["top_n"] == 10
+    meta_keys = {m["key"] for m in materials_extractor["metadata"]["metadata"]}
+    assert "project_name" not in meta_keys and "bid_date" not in meta_keys
     # 再部署一次：不重复创建
     again = client.post("/api/v1/kb-admin/pipelines/deploy", headers=admin, json={}).json()
-    assert len(fake.agents) == 3 and again["datasets"]["history"]["pipeline_id"] == result["datasets"]["history"]["pipeline_id"]
+    assert len(fake.agents) == 2 and again["datasets"]["history"]["pipeline_id"] == result["datasets"]["history"]["pipeline_id"]
 
 
 def test_settings_change_updates_pipeline_and_requires_if_match(client, fake):
@@ -143,6 +149,9 @@ def test_history_bid_upload_is_reference_only_and_searchable(client, fake):
     assert all(h["source_id"] != doc["source_id"] for h in again["items"])
     listing = client.get("/api/v1/kb-admin/datasets/history/documents", headers=admin).json()
     assert listing["items"][0]["source_type"] == "file" and listing["items"][0]["uploaded_by"] == ADMIN
+    dated = _upload(client, admin, "history", "dated-bid.docx", "第一章 总则\n\n合成 dated 正文。",
+                    submitted_on="2024-03-01")
+    assert fake.documents[dated["document_id"]]["meta_fields"]["bid_date"] == "2024-03-01"
     # 删除
     assert client.delete(f"/api/v1/kb-admin/datasets/history/documents/{doc['document_id']}", headers=admin).status_code == 200
     assert doc["document_id"] not in fake.documents
@@ -180,42 +189,32 @@ def test_upload_validation(client):
 
 
 def test_certificate_extraction_creates_pending_library_draft(client, fake):
-    fake.metadata_extractor = lambda text: {"cert_name": "合成信息安全管理体系认证证书", "cert_no": "HZ-ISMS-0009",
-                                            "issuer": "合成认证中心", "valid_to": "2028-06-30"}
     admin = login(client, ADMIN)
-    doc = _upload(client, admin, "certificate", "iso27001.pdf", "证书扫描件文字：合成信息安全管理体系认证证书")
-    draft = client.post(f"/api/v1/kb-admin/certificates/{doc['document_id']}/library-draft", headers=admin)
-    assert draft.status_code == 200, draft.text
-    item = draft.json()["library_item"]
-    assert item["status"] == "pending" and item["usable_as_evidence"] is False  # 必须人工核对后确认
-    assert item["name"] == "合成信息安全管理体系认证证书" and item["valid_until"] == "2028-06-30"
-    assert "HZ-ISMS-0009" in item["content"] and "须人工核对原件" in item["content"]
-    # 待核验资料不进知识库
-    status = client.get("/api/v1/knowledge-base/status", headers=admin).json()
-    assert all(row["source_id"] != item["id"] for row in status["items"])
+    library = client.post("/api/v1/kb-admin/datasets/library/documents", headers=admin,
+                          json={"filename": "iso27001.pdf", "content_base64": _b64("证书扫描件")})
+    assert library.status_code == 422 and library.json()["code"] == "VALIDATION_ERROR"
 
 
 def test_chunk_review_and_library_documents_are_system_managed(client, fake):
     admin = login(client, ADMIN)
+    client.post("/api/v1/kb-admin/pipelines/deploy", headers=admin, json={})
     revision = client.get("/api/v1/library", headers=admin).json()["revision"]
     created = client.post("/api/v1/library", headers={**admin, "If-Match": str(revision), "Idempotency-Key": str(uuid4())},
                           json={"name": "合成等保三级测评报告", "type": "qualification", "content": "测评结论：符合等保三级。",
                                 "status": "confirmed", "reason": "合成核对。", "valid_until": "2099-01-01"}).json()["item"]
-    entry = next(r for r in client.get("/api/v1/knowledge-base/status", headers=admin).json()["items"]
-                 if r["source_id"] == created["id"])
-    doc_id = entry["document_id"]
-    chunks = client.get(f"/api/v1/kb-admin/datasets/library/documents/{doc_id}/chunks", headers=admin).json()
+    kb_status = client.get("/api/v1/knowledge-base/status", headers=admin).json()
+    assert all(r["source_id"] != created["id"] for r in kb_status["items"])
+    doc = _upload(client, admin, "materials", "测评报告.docx",
+                  "# 合成等保三级测评报告\n\n## 结论\n\n测评结论：符合等保三级。")
+    doc_id = doc["document_id"]
+    chunks = client.get(f"/api/v1/kb-admin/datasets/materials/documents/{doc_id}/chunks", headers=admin).json()
     assert chunks["total"] >= 1 and all("合成等保三级测评报告" in c["content"] or c["content"].startswith("#") for c in chunks["chunks"])
     chunk_id = chunks["chunks"][-1]["id"]
-    blocked = client.patch(f"/api/v1/kb-admin/datasets/library/documents/{doc_id}/chunks/{chunk_id}", headers=admin,
-                           json={"content": "改写"})
-    assert blocked.status_code == 409
-    ok = client.patch(f"/api/v1/kb-admin/datasets/library/documents/{doc_id}/chunks/{chunk_id}", headers=admin,
+    ok = client.patch(f"/api/v1/kb-admin/datasets/materials/documents/{doc_id}/chunks/{chunk_id}", headers=admin,
                       json={"questions": ["投标人须提供网络安全等级保护三级测评报告"], "available": True})
     assert ok.status_code == 200
-    assert client.delete(f"/api/v1/kb-admin/datasets/library/documents/{doc_id}", headers=admin).status_code == 409
-    # 他司文档 id 一律 404
-    other = client.get("/api/v1/kb-admin/datasets/library/documents/not-mine/chunks", headers=admin)
+    assert client.delete(f"/api/v1/kb-admin/datasets/materials/documents/{doc_id}", headers=admin).status_code == 200
+    other = client.get("/api/v1/kb-admin/datasets/materials/documents/not-mine/chunks", headers=admin)
     assert other.status_code == 404
 
 
@@ -253,12 +252,13 @@ def test_rebuild_migrates_files_and_resyncs_library(client, fake):
     assert {"dataset.rebuild", "settings.update", "document.upload", "pipelines.deploy"} <= set(actions)
 
 
-def test_falls_back_to_builtin_parser_when_pipelines_unsupported(client, fake):
+def test_deploy_does_not_bind_builtin_parser_when_pipelines_unsupported(client, fake):
     fake.supports_agents = False
     admin = login(client, ADMIN)
-    result = client.post("/api/v1/kb-admin/pipelines/deploy", headers=admin, json={"kinds": ["library"]}).json()
-    info = result["datasets"]["library"]
-    assert info["mode"] == "builtin" and "摄入流程不可用" in info["warning"]
+    result = client.post("/api/v1/kb-admin/pipelines/deploy", headers=admin, json={})
+    assert result.status_code == 502
+    assert result.json()["code"] == "PIPELINE_UNAVAILABLE"
+    assert fake.datasets == {}
 
 
 def test_dsl_is_deterministic_and_graph_matches_components():

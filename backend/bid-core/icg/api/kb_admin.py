@@ -17,8 +17,8 @@ from icg.domain.kb_admin import KbAdminService
 from icg.domain.schemas import RequestBody, ResponseBody
 from icg.domain.workflow_schemas import v1_error_responses
 
-Kind = Literal["library", "history", "certificate"]
-FileKind = Literal["history", "certificate"]
+Kind = Literal["history", "materials"]
+FileKind = Literal["history", "materials"]
 
 
 class KbAdminResult(ResponseBody):

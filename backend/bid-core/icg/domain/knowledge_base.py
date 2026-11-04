@@ -14,7 +14,10 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Callable, Iterable
 
-from .domain import DemoState, iso_time
+from .domain import DemoState, DomainError, iso_time
+from .errors import ERROR_STATUS
+
+ERROR_STATUS.setdefault("PIPELINE_UNAVAILABLE", 502)
 
 log = logging.getLogger(__name__)
 
@@ -33,11 +36,11 @@ TYPE_LABELS = {
 SNIPPET_STATUS = {STATUS_PARSING: "unsynced", STATUS_SYNCED: "synced", STATUS_FAILED: "failed"}
 SETTINGS_STORE = "kb_settings"
 SOURCE_FILE = "file"
-# 知识类别 → 数据集名后缀与摄入流程。library：本系统资料与片段；history：历史投标文件原件（仅参考）；
-# certificate：资质/证明附件原件（抽取字段辅助录入，不直接参与写作检索）。
-DATASET_KINDS = {"library": "icg-library", "history": "icg-history", "certificate": "icg-certificate"}
-KIND_PROFILE = {"library": "structured", "history": "history_bid", "certificate": "certificate"}
-FILE_KINDS = ("history", "certificate")
+# 知识类别 → 数据集名后缀与摄入流程。history：历史投标文件原件（仅参考）；materials：企业权威资料原件。
+DATASET_KINDS = {"history": "icg-history", "materials": "icg-materials"}
+KIND_PROFILE = {"history": "history_bid", "materials": "materials"}
+FILE_KINDS = ("history", "materials")
+SYNC_STOPPED_MESSAGE = "资料与方案片段不再同步到知识库。"
 SECTION_CHARS = 500  # 结构化资料每节字数上限：一节一块，每块都带资料名称标题
 
 
@@ -397,26 +400,26 @@ class KnowledgeBaseService:
         self._update_index(company_id, save)
         return pipeline_id, changed
 
-    def ensure_dataset(self, client: Any, company_id: str, kind: str = "library", *,
+    def ensure_dataset(self, client: Any, company_id: str, kind: str = "history", *,
                        force_new: bool = False) -> dict[str, Any]:
-        """确保某类知识的数据集存在，并绑定当前 ICG 摄入流程与公司嵌入模型。
-
-        RAGFlow 不支持摄入流程（老版本无画布接口）或流程部署失败时，退回内置 general 解析器并记下原因。
-        """
+        """确保某类知识的数据集存在，并绑定当前 ICG 摄入流程与公司嵌入模型。"""
         state = self.repository.read()
         settings = read_settings(state, company_id)
         index = read_index(state, company_id)
         record = dict(index.get("datasets", {}).get(kind) or {})
-        if kind == "library" and not record.get("dataset_id") and index.get("dataset_id"):
-            record["dataset_id"] = index["dataset_id"]  # 兼容 Wave 12 初版只记了一个 dataset_id
         name = DATASET_KINDS[kind]
-        pipeline_id, pipeline_changed, warning = "", False, ""
-        if settings.get("use_pipelines"):
-            try:
-                pipeline_id, pipeline_changed = self.ensure_pipeline(client, company_id, KIND_PROFILE[kind], settings)
-            except Exception as exc:
-                warning = f"摄入流程不可用，已退回内置解析器：{type(exc).__name__}"
-                log.warning("pipeline unavailable for %s/%s: %s", company_id, kind, type(exc).__name__)
+        pipeline_id, pipeline_changed = "", False
+        if not settings.get("use_pipelines"):
+            raise DomainError(502, "PIPELINE_UNAVAILABLE", "摄入流程不可用，数据集未建立。")
+        try:
+            pipeline_id, pipeline_changed = self.ensure_pipeline(client, company_id, KIND_PROFILE[kind], settings)
+        except DomainError:
+            raise
+        except Exception as exc:
+            log.warning("pipeline unavailable for %s/%s: %s", company_id, kind, type(exc).__name__)
+            raise DomainError(502, "PIPELINE_UNAVAILABLE", "摄入流程不可用，数据集未建立。") from exc
+        if not pipeline_id:
+            raise DomainError(502, "PIPELINE_UNAVAILABLE", "摄入流程不可用，数据集未建立。")
         dataset_id = "" if force_new else record.get("dataset_id", "")
         if dataset_id:
             try:
@@ -430,15 +433,13 @@ class KnowledgeBaseService:
             if found is not None:
                 dataset_id = found.id
                 pipeline_changed = True  # 不知道它绑的是什么，重新绑定一次
-            elif pipeline_id:
+            else:
                 dataset_id = client.create_pipeline_dataset(name, pipeline_id, company_id=company_id,
                                                             embedding_model=settings.get("embedding_model") or None,
                                                             language=settings.get("language") or "Chinese").id
                 pipeline_changed = False
-            else:
-                dataset_id = client.create_dataset(name, company_id=company_id,
-                                                   embedding_model=settings.get("embedding_model") or None).id
         rebound = False
+        warning = ""
         if pipeline_id and (pipeline_changed or record.get("pipeline_id") != pipeline_id):
             # 数据集创建时复制了流程参数；流程更新后要重新绑定，再把新参数应用到已有文档（需重新解析才生效）。
             try:
@@ -447,20 +448,15 @@ class KnowledgeBaseService:
                 rebound = bool(record.get("dataset_id"))
             except Exception as exc:
                 warning = f"数据集重新绑定摄入流程失败：{type(exc).__name__}"
-        info = {"dataset_id": dataset_id, "pipeline_id": pipeline_id, "profile": KIND_PROFILE[kind] if pipeline_id else "",
-                "mode": "pipeline" if pipeline_id else "builtin",
+        info = {"dataset_id": dataset_id, "pipeline_id": pipeline_id, "profile": KIND_PROFILE[kind],
+                "mode": "pipeline",
                 "embedding_model": record.get("embedding_model") or settings.get("embedding_model") or "",
                 "warning": warning, "reparse_required": bool(record.get("reparse_required") or rebound)}
 
         def save(index: dict) -> None:
             index["datasets"][kind] = info
-            if kind == "library":
-                index["dataset_id"] = dataset_id
         self._update_index(company_id, save)
         return info
-
-    def _ensure_dataset(self, client: Any, company_id: str, dataset_id: str) -> str:
-        return self.ensure_dataset(client, company_id, "library")["dataset_id"]
 
     def sync_company(self, company_id: str, *, keys: Iterable[str] | None = None) -> dict[str, Any]:
         """对账一家公司的知识库。keys 给出时只处理这些条目（用于单个片段的即时同步）。"""
@@ -469,86 +465,16 @@ class KnowledgeBaseService:
         if client is None:
             return {"enabled": False, "uploaded": 0, "deleted": 0, "failed": 0, "unchanged": 0,
                     "message": "未配置或未启用 RAGFlow 知识库。"}
-        with self._lock(company_id):
-            state = self.repository.read()
-            index = read_index(state, company_id)
-            wanted = desired_documents(state, company_id)
-            only = set(keys) if keys is not None else None
-            summary = {"enabled": True, "uploaded": 0, "deleted": 0, "failed": 0, "unchanged": 0, "message": ""}
-            try:
-                dataset_id = self._ensure_dataset(client, company_id, index.get("dataset_id", ""))
-            except Exception as exc:
-                self._record(company_id, {}, set(), dataset_id=index.get("dataset_id", ""),
-                             error=f"数据集不可用：{type(exc).__name__}")
-                return {**summary, "enabled": True, "failed": len(wanted), "message": "RAGFlow 数据集不可用，稍后重试。"}
-            if dataset_id != index.get("dataset_id"):
-                index = {**index, "entries": {}}  # 数据集换了，旧文档映射全部失效。
-            entries = index.get("entries", {})
-            updates: dict[str, dict] = {}
-            removed: set[str] = set()
-            previous_pending = list(index.get("pending_deletes") or [])
-            # 全量对账时顺带重试上次没删掉的旧文档。
-            stale_docs: list[str] = list(previous_pending) if only is None else []
-            now = iso_time(self.demo._now())
+        now = iso_time(self.demo._now())
 
-            remote = self._remote_documents(client, dataset_id) if only is None else None
-            if remote is not None:
-                # 漂移修复：索引里有、RAGFlow 里没有（被手工删除）→ 重新上传；
-                # RAGFlow 里有、索引不认识（上传后进程中断等遗留）→ 删除。数据集为本系统专用，删除是安全的。
-                known = {e.get("document_id") for e in entries.values()}
-                missing = {k for k, e in entries.items() if e.get("document_id") not in remote}
-                removed |= {k for k in missing if k not in wanted}
-                entries = {k: e for k, e in entries.items() if k not in missing}
-                stale_docs.extend(sorted(remote - known - set(stale_docs)))
+        def mark(state: DemoState) -> None:
+            index = _company_index(state, company_id)
+            index["sync_message"] = SYNC_STOPPED_MESSAGE
+            index["last_sync_at"] = now
 
-            for key, doc in wanted.items():
-                if only is not None and key not in only:
-                    continue
-                entry = entries.get(key)
-                if entry and entry.get("content_hash") == doc.content_hash and entry.get("status") != STATUS_FAILED:
-                    summary["unchanged"] += 1
-                    continue
-                try:
-                    uploaded = client.upload_document(dataset_id, doc.filename, doc.markdown)
-                    try:
-                        client.update_document(dataset_id, uploaded.id, meta_fields=doc.meta)
-                    except Exception as exc:  # 元数据只用于 RAGFlow 侧筛查，失败不阻断；检索靠索引映射。
-                        log.info("meta update failed for %s: %s", key, type(exc).__name__)
-                    client.trigger_parse(dataset_id, [uploaded.id])
-                    updates[key] = self._entry(doc, uploaded.id, STATUS_PARSING, "", now)
-                    summary["uploaded"] += 1
-                    if entry and entry.get("document_id") and entry["document_id"] != uploaded.id:
-                        stale_docs.append(entry["document_id"])
-                except Exception as exc:
-                    summary["failed"] += 1
-                    failed = self._entry(doc, (entry or {}).get("document_id", ""), STATUS_FAILED,
-                                         f"上传或解析请求失败：{type(exc).__name__}", now)
-                    updates[key] = failed
-
-            for key, entry in entries.items():
-                if key in wanted or (only is not None and key not in only):
-                    continue
-                if entry.get("document_id"):
-                    stale_docs.append(entry["document_id"])
-                removed.add(key)
-
-            pending: list[str] | None = None
-            if stale_docs:
-                try:
-                    client.delete_documents(dataset_id, stale_docs)
-                    summary["deleted"] = len(stale_docs)
-                    if only is None:
-                        pending = []
-                except Exception as exc:
-                    # 删除失败：旧文档仍在 RAGFlow，但已不在索引里，检索按索引过滤，不会被召回；下次全量对账时会再清理。
-                    log.warning("stale document delete failed for %s: %s", company_id, type(exc).__name__)
-                    summary["message"] = "部分旧文档删除失败，已从检索中排除，稍后重试清理。"
-                    pending = sorted(set(previous_pending) | set(stale_docs))
-            self._record(company_id, updates, removed, dataset_id=dataset_id, error="",
-                         pending_deletes=pending, synced_at=now)
-        refreshed = self.refresh_status(company_id)
-        summary["status_counts"] = refreshed.get("counts", {})
-        return summary
+        self.repository.transaction(mark)
+        return {"enabled": True, "uploaded": 0, "deleted": 0, "failed": 0, "unchanged": 0,
+                "message": SYNC_STOPPED_MESSAGE}
 
     @staticmethod
     def _remote_documents(client: Any, dataset_id: str) -> set[str] | None:
@@ -617,6 +543,18 @@ class KnowledgeBaseService:
             refreshed["meta_fields"] = dict(document.meta_fields)
         return refreshed
 
+    @staticmethod
+    def _overlay_submitted_bid_date(client: Any, dataset_id: str, entry: dict, meta_fields: dict[str, Any]) -> dict[str, Any]:
+        submitted = str((entry.get("user_meta") or {}).get("submitted_on") or "").strip()
+        if not submitted or entry.get("dataset_kind") != "history":
+            return meta_fields
+        merged = {**meta_fields, "bid_date": submitted}
+        try:
+            client.update_document(dataset_id, entry["document_id"], meta_fields=merged)
+        except Exception as exc:
+            log.info("bid_date overlay failed for %s: %s", entry.get("key"), type(exc).__name__)
+        return merged
+
     def refresh_status(self, company_id: str) -> dict[str, Any]:
         """向 RAGFlow 查询解析中的文档（资料、片段与上传原件），把完成/失败写回索引。"""
         state = self.repository.read()
@@ -639,6 +577,9 @@ class KnowledgeBaseService:
             if entry.get("status") == STATUS_PARSING and entry.get("document_id") and file_dataset:
                 refreshed = self._refreshed(client, file_dataset, entry, now)
                 if refreshed:
+                    if refreshed.get("status") == STATUS_SYNCED and refreshed.get("meta_fields") is not None:
+                        refreshed["meta_fields"] = self._overlay_submitted_bid_date(
+                            client, file_dataset, entry, refreshed["meta_fields"])
                     file_updates[key] = refreshed
         if updates:
             self._record(company_id, updates, set(), dataset_id=dataset_id, error=index.get("last_error", ""))
@@ -652,15 +593,9 @@ class KnowledgeBaseService:
         wanted = desired_documents(state, company_id)
         entries = index.get("entries", {})
         rows = []
-        for key, doc in wanted.items():
-            entry = entries.get(key)
-            if entry is None:
-                rows.append({"key": key, "source_type": doc.source_type, "source_id": doc.source_id,
-                             "name": doc.name, "item_type": doc.item_type, "revision": doc.revision,
-                             "status": "unsynced", "message": "尚未同步", "chunk_count": 0, "updated_at": None,
-                             "document_id": ""})
-                continue
-            stale = entry.get("content_hash") != doc.content_hash
+        for key, entry in entries.items():
+            doc = wanted.get(key)
+            stale = doc is not None and entry.get("content_hash") != doc.content_hash
             rows.append({k: entry.get(k) for k in ("key", "source_type", "source_id", "name", "item_type",
                                                     "revision", "status", "message", "chunk_count",
                                                     "updated_at", "document_id")}
@@ -670,7 +605,8 @@ class KnowledgeBaseService:
             counts[row["status"]] = counts.get(row["status"], 0) + 1
         return {"enabled": self.client_for(company_id, state) is not None, "dataset_id": index.get("dataset_id", ""),
                 "last_sync_at": index.get("last_sync_at"), "last_error": index.get("last_error", ""),
-                "counts": counts, "items": sorted(rows, key=lambda r: r["key"])}
+                "message": index.get("sync_message", ""), "counts": counts,
+                "items": sorted(rows, key=lambda r: r["key"])}
 
     # ---------- 检索 ----------
 

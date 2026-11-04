@@ -30,14 +30,14 @@ SETTING_FIELDS = {
 PROFILE_FIELDS = {"chunk_token_size": int, "questions_top_n": int, "keywords_top_n": int, "extra_heading_patterns": list}
 UPLOAD_SUFFIXES = {
     "history": (".pdf", ".docx", ".doc"),
-    "certificate": (".pdf", ".png", ".jpg", ".jpeg", ".docx"),
+    "materials": (".pdf", ".docx", ".doc", ".xls", ".xlsx", ".ppt", ".pptx"),
 }
 CERT_FIELD_TO_LIBRARY = {"cert_name": "name", "valid_to": "valid_until"}
 
 
 def _role(principal: Principal) -> str:
-    from .project_access import normalize_role
-    return normalize_role(principal.user.role)
+    # 知识库授权按账号登记的标准 RBAC 角色判定，不受登录角色归并影响。
+    return str(principal.user.role or "")
 
 
 def _is_super(principal: Principal) -> bool:
@@ -259,6 +259,8 @@ class KbAdminService:
             self._kind(kind)
             try:
                 results[kind] = self.kb.ensure_dataset(client, company, kind)
+            except DomainError:
+                raise
             except Exception as exc:
                 raise self._wrap(exc, f"部署 {kind} 知识库") from None
         self._audit(principal, "pipelines.deploy", ",".join(results), {
