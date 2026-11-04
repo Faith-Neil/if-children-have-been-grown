@@ -15,7 +15,7 @@ from icg.app.main import create_app
 from icg.infra.ragflow_pipelines import PROFILES, build_dsl, company_tag, dsl_fingerprint, parse_pipeline_title
 from test_reference_flow import login
 
-ADMIN = "alpha-data-admin"
+ADMIN = "alpha-company-admin"
 
 
 @pytest.fixture()
@@ -50,17 +50,18 @@ def _upload(client, headers, kind, filename, text, **meta):
 
 def test_roles_gate_every_write(client):
     viewer = login(client, "alpha-viewer")
-    assert client.get("/api/v1/kb-admin/overview", headers=viewer).status_code == 403
+    assert client.get("/api/v1/kb-admin/overview", headers=viewer).status_code == 200
     manager = login(client, "alpha-manager")
     assert client.get("/api/v1/kb-admin/overview", headers=manager).status_code == 200
     assert client.post("/api/v1/kb-admin/pipelines/deploy", headers=manager, json={}).status_code == 403
     admin = login(client, ADMIN)
     assert client.post("/api/v1/kb-admin/pipelines/deploy", headers=admin, json={}).status_code == 200
-    # 删除整类数据集与改连接只允许公司管理员
+    # 普通用户不能删除数据集或改连接。公司管理员会进入名称核对。
+    assert client.post("/api/v1/kb-admin/datasets/history/delete", headers=manager, json={"confirm_name": "x"}).status_code == 403
     deleted = client.post("/api/v1/kb-admin/datasets/history/delete", headers=admin, json={"confirm_name": "x"})
-    assert deleted.status_code == 403
+    assert deleted.status_code == 422
     cfg = client.get("/api/v1/ragflow-config", headers=admin).json()
-    put = client.put("/api/v1/ragflow-config", headers={**admin, "If-Match": str(cfg["revision"])}, json={"base_url": "http://x"})
+    put = client.put("/api/v1/ragflow-config", headers={**manager, "If-Match": str(cfg["revision"])}, json={"base_url": "http://x"})
     assert put.status_code == 403
 
 
@@ -78,10 +79,16 @@ def test_deploy_creates_bid_pipelines_and_binds_datasets(client, fake):
     history = fake.agents[result["datasets"]["history"]["pipeline_id"]]["dsl"]["components"]
     chunker = next(v for k, v in history.items() if k.startswith("TitleChunker"))["obj"]["params"]
     assert chunker["include_heading_content"] is True
-    assert any("第[零一二三四五六七八九十百0-9]+章" in e for g in chunker["levels"] for e in g)
+    assert chunker["chunk_token_cap"] == 1100
+    assert chunker["root_chunk_as_heading"] is False
+    assert chunker["hierarchy"] == 3
+    assert any("第[一二三四五六七八九十百]+章\\s*.+" in e for g in chunker["levels"] for e in g)
     extractor = next(v for k, v in history.items() if k.startswith("Extractor"))["obj"]["params"]
-    assert {m["key"] for m in extractor["metadata"]["metadata"]} >= {"project_name", "purchaser", "industry"}
-    assert "招标文件" in extractor["questions"]["system_prompt"]
+    assert {m["key"] for m in extractor["metadata"]["metadata"]} >= {"project_name", "bid_date", "content_role", "technical_domain"}
+    assert "purchaser" not in {m["key"] for m in extractor["metadata"]["metadata"]}
+    assert extractor["questions"]["top_n"] == 0
+    assert extractor["keywords"]["top_n"] == 10
+    assert "关键词提取专家" in extractor["keywords"]["system_prompt"]
     # 再部署一次：不重复创建
     again = client.post("/api/v1/kb-admin/pipelines/deploy", headers=admin, json={}).json()
     assert len(fake.agents) == 3 and again["datasets"]["history"]["pipeline_id"] == result["datasets"]["history"]["pipeline_id"]
@@ -93,7 +100,7 @@ def test_settings_change_updates_pipeline_and_requires_if_match(client, fake):
     settings = client.get("/api/v1/kb-admin/settings", headers=admin).json()
     assert client.put("/api/v1/kb-admin/settings", headers=admin, json={"similarity_threshold": 0.1}).status_code == 428
     body = {"similarity_threshold": 0.12, "keywords_weight": 0.5, "llm_id": "qwen3-32b@local@Ollama",
-            "profiles": {"history_bid": {"questions_top_n": 4, "extra_heading_patterns": ["^附件[0-9]+"]}}}
+            "profiles": {"history_bid": {"keywords_top_n": 10, "extra_heading_patterns": ["^附件[0-9]+"]}}}
     updated = client.put("/api/v1/kb-admin/settings", headers={**admin, "If-Match": str(settings["revision"])}, json=body)
     assert updated.status_code == 200, updated.text
     assert updated.json()["revision"] == settings["revision"] + 1
@@ -105,7 +112,8 @@ def test_settings_change_updates_pipeline_and_requires_if_match(client, fake):
     deployed = client.post("/api/v1/kb-admin/pipelines/deploy", headers=admin, json={"kinds": ["history"]}).json()
     pipeline = fake.agents[deployed["datasets"]["history"]["pipeline_id"]]
     extractor = next(v for k, v in pipeline["dsl"]["components"].items() if k.startswith("Extractor"))["obj"]["params"]
-    assert extractor["questions"]["top_n"] == 4 and extractor["llm_id"] == "qwen3-32b@local@Ollama"
+    assert extractor["keywords"]["top_n"] == 10 and extractor["llm_id"] == "qwen3-32b@local@Ollama"
+    assert extractor["questions"]["top_n"] == 0
     chunker = next(v for k, v in pipeline["dsl"]["components"].items() if k.startswith("TitleChunker"))["obj"]["params"]
     assert chunker["levels"][0] == ["^附件[0-9]+"]
     assert deployed["datasets"]["history"]["reparse_required"] is True
@@ -145,13 +153,12 @@ def test_manager_appends_history_only_after_dataset_exists(client):
     def clear_index(state):
         (state.service_stores.get("kb_index") or {}).pop("alpha", None)
     client.app.state.service.repository.transaction(clear_index)
-    manager = login(client, "alpha-manager")
-    missing = client.post("/api/v1/kb-admin/datasets/history/documents", headers=manager,
+    admin = login(client, ADMIN)
+    missing = client.post("/api/v1/kb-admin/datasets/history/documents", headers=admin,
                           json={"filename": "历史.docx", "content_base64": _b64("第一章 总则\n\n合成历史。")})
     assert missing.status_code == 409 and missing.json()["code"] == "KNOWLEDGE_BASE_NOT_CONFIGURED", missing.text
-    admin = login(client, ADMIN)
     assert client.post("/api/v1/kb-admin/datasets/history/ensure", headers=admin, json={}).status_code == 200
-    uploaded = client.post("/api/v1/kb-admin/datasets/history/documents", headers=manager,
+    uploaded = client.post("/api/v1/kb-admin/datasets/history/documents", headers=admin,
                            json={"filename": "历史.docx", "content_base64": _b64("第一章 总则\n\n合成历史。")})
     assert uploaded.status_code == 200
     rejected = client.post("/api/v1/kb-admin/datasets/history/documents", headers=admin,

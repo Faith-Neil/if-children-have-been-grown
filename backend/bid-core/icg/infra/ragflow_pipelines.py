@@ -59,6 +59,16 @@ BID_HEADING_GROUPS: list[list[str]] = [
      r"^第[零一二三四五六七八九十百0-9]+条"],
 ]
 
+# 用户确认的历史标书/资料库解析方案标题层级（2026-11-05），放在第一组优先匹配。
+SCHEME_HEADING_GROUP: list[str] = [
+    r"^第[一二三四五六七八九十百]+章\s*.+",
+    r"^第[一二三四五六七八九十百]+节\s*.+",
+    r"^[一二三四五六七八九十]+[、．.]\s*.+",
+    r"^\d+(?:\.\d+){1,2}[、．.\s]\s*.+",
+    r"^[（(]\d+[）)]\s*.+",
+    r"^[①②③④⑤⑥⑦⑧⑨⑩].+",
+]
+
 # ---------- 抽取（Extractor）提示词：中文、面向招投标 ----------
 
 QUESTIONS_PROMPT = (
@@ -73,6 +83,35 @@ KEYWORDS_PROMPT = (
 )
 SUMMARY_PROMPT = (
     "你是严谨的投标资料摘要员。用不超过 120 字概括片段内容，只依据原文，不增加任何原文没有的事实或结论，使用原文语言。"
+)
+
+# 2026-11-05 历史标书与资料库关键词提示词（见 docs/superpowers/specs/2026-11-05-history-bid-ingestion-design.md §2.3）
+HISTORY_KEYWORDS_PROMPT = (
+    "你是一名企业技术方案知识库的关键词提取专家。\n\n"
+    "你的任务是从给定的历史投标方案知识片段中提取最具有检索价值的技术关键词。\n\n"
+    "提取规则：\n"
+    "1. 优先提取具体技术名称、技术架构、技术组件、技术方法和实施措施。\n"
+    "2. 保留具有检索价值的专业术语、产品名称、技术标准及关键参数。\n"
+    "3. 关键词必须直接来源于当前文本，不得根据常识补充原文没有的信息。\n"
+    "4. 避免提取“技术方案”“项目建设”“系统功能”等过于宽泛的词语。\n"
+    "5. 对同义词进行适当合并，避免重复。\n"
+    "6. 优先提取能够帮助后续技术方案生成和企业知识检索的关键词。\n"
+    "7. 输出中文关键词短语，不输出解释性段落。\n\n"
+    "提取数量：8～12 个。"
+)
+
+MATERIALS_KEYWORDS_PROMPT = (
+    "你是一名企业技术方案知识库的关键词提取专家。\n\n"
+    "你的任务是从给定的历史投标方案知识片段中提取最具有检索价值的技术关键词。\n\n"
+    "提取规则：\n"
+    "1. 优先提取技术名称、技术参数、标准号和实施措施，不提取投标响应用语。\n"
+    "2. 保留具有检索价值的专业术语、产品名称、技术标准及关键参数。\n"
+    "3. 关键词必须直接来源于当前文本，不得根据常识补充原文没有的信息。\n"
+    "4. 避免提取“技术方案”“项目建设”“系统功能”等过于宽泛的词语。\n"
+    "5. 对同义词进行适当合并，避免重复。\n"
+    "6. 优先提取能够帮助后续技术方案生成和企业知识检索的关键词。\n"
+    "7. 输出中文关键词短语，不输出解释性段落。\n\n"
+    "提取数量：8～12 个。"
 )
 
 
@@ -103,6 +142,7 @@ class PipelineProfile:
     delimiters: tuple[str, ...] = ("\n", "。", "；", "！", "？")
     questions_top_n: int = 0
     keywords_top_n: int = 0
+    keywords_prompt: str = ""
     summary: bool = False
     metadata_fields: tuple[MetadataField, ...] = ()
     filename_embd_weight: float = 0.1
@@ -124,21 +164,88 @@ PROFILES: dict[str, PipelineProfile] = {
     "history_bid": PipelineProfile(
         key="history_bid",
         title="历史投标文件",
-        description="历史投标/响应文件原件（docx/pdf/xlsx）：按投标文件章节层级切块并保留章节路径；表格单独成块；"
-                    "LLM 生成关键词与招标式问法，并抽取项目名称、采购人、行业、投标日期等文档元数据。仅供参考，不作证据。",
+        description="历史投标/响应文件原件（pdf/doc/docx）：按投标文件章节层级切块并保留章节路径；"
+                    "LLM 抽取技术关键词并识别文档类型、章节类型、知识类型、技术领域、内容角色与复用价值，"
+                    "同时抽取项目名称与投标日期。仅供参考，不作证据。",
         knowledge_kind="history",
-        file_formats=("pdf", "docx", "doc", "spreadsheet", "markdown", "text&code", "slides"),
+        file_formats=("pdf", "docx", "doc"),
         chunker="title",
-        heading_groups=BID_HEADING_GROUPS[1:],
+        heading_groups=[SCHEME_HEADING_GROUP] + BID_HEADING_GROUPS[1:],
         hierarchy=3,
-        questions_top_n=2,
-        keywords_top_n=5,
+        questions_top_n=0,
+        keywords_top_n=10,
+        keywords_prompt=HISTORY_KEYWORDS_PROMPT,
         metadata_fields=(
-            MetadataField("project_name", "投标项目名称（原文）"),
-            MetadataField("purchaser", "采购人或招标人名称"),
-            MetadataField("industry", "采购人所属行业，例如银行、政务、医疗、能源、教育"),
-            MetadataField("bid_date", "投标或响应文件日期，格式 YYYY-MM-DD，原文没有则留空"),
-            MetadataField("project_type", "项目类型，例如软件采购、运维服务、系统集成、咨询"),
+            MetadataField("project_name", "原文项目名称；没有则空"),
+            MetadataField("bid_date", "原文日期，格式 YYYY-MM-DD；没有则空"),
+            MetadataField("document_type", "识别文件所属类型。允许值：technical_proposal（技术方案）、"
+                                            "implementation_plan（实施计划）、service_plan（服务计划）、"
+                                            "product_manual（产品手册）、project_case（项目案例）、other（其他）。"),
+            MetadataField("section_type", "识别当前知识片段所属的技术方案章节类型；根据内容选择最贴近的分类，不得仅根据标题判断。"
+                                          "允许值：overall_design（总体设计）、technical_architecture（技术架构）、"
+                                          "system_function（系统功能）、data_security（数据安全）、"
+                                          "network_security（网络安全）、deployment（部署）、implementation（实施）、"
+                                          "training（培训）、operation_maintenance（运维）、quality_assurance（质量保证）、"
+                                          "emergency_plan（应急预案）、project_schedule（项目进度）、"
+                                          "project_team（项目团队）、project_case（项目案例）、other（其他）。"),
+            MetadataField("knowledge_type", "判断内容属于技术方案、技术方法、实施经验、服务流程、标准表述、企业能力描述还是项目案例证据。"
+                                           "允许值：technical_solution（技术方案）、technical_method（技术方法）、"
+                                           "implementation_experience（实施经验）、service_process（服务流程）、"
+                                           "standard_expression（标准表述）、enterprise_capability（企业能力）、"
+                                           "project_case_evidence（项目案例证据）、other（其他）。"),
+            MetadataField("technical_domain", "技术领域，与 section_type 使用同一套取值，按内容选择技术领域。"),
+            MetadataField("content_role", "判断内容的实际来源角色。允许值：bidder_response（投标方响应）、"
+                                          "buyer_requirement（招标方要求）、enterprise_fact（企业事实）、"
+                                          "project_specific_commitment（项目特定承诺）、general_description（通用描述）、"
+                                          "irrelevant_content（无关内容）、unknown（未知）。"
+                                          "历史投标文件中的承诺不能自动等同于企业已经具备的客观能力；"
+                                          "招标要求不能标记为企业技术能力；无法判断时使用 unknown。"),
+            MetadataField("reusability", "判断内容的复用价值。允许值：high（高，通用性强、技术逻辑完整，适合其他项目参考）、"
+                                         "medium（中，具有一定参考价值，需要结合新项目调整）、"
+                                         "low（低，高度依赖原项目背景）、"
+                                         "not_reusable（不可复用，与当前企业技术方案生成无关或不宜复用）。"),
+        ),
+    ),
+    "materials": PipelineProfile(
+        key="materials",
+        title="企业资料库",
+        description="企业权威资料原件（pdf/doc/docx/xls/xlsx/ppt/pptx）：产品说明书、技术参数、企业能力说明、"
+                    "已验收案例、企业技术标准。按章节层级切块，LLM 抽取技术关键词并识别文档类型、章节类型、"
+                    "知识类型、技术领域、内容角色与复用价值。作为事实依据，但不单独作为投标证据。",
+        knowledge_kind="materials",
+        file_formats=("pdf", "docx", "doc", "spreadsheet", "slides"),
+        chunker="title",
+        heading_groups=[SCHEME_HEADING_GROUP] + BID_HEADING_GROUPS[1:],
+        hierarchy=3,
+        questions_top_n=0,
+        keywords_top_n=10,
+        keywords_prompt=MATERIALS_KEYWORDS_PROMPT,
+        metadata_fields=(
+            MetadataField("document_type", "识别文件所属类型。允许值：product_manual（产品手册）、"
+                                            "technical_specification（技术规格）、enterprise_capability（企业能力）、"
+                                            "project_case（项目案例）、technical_standard（技术标准）、other（其他）。"),
+            MetadataField("section_type", "识别当前知识片段所属的技术方案章节类型；根据内容选择最贴近的分类，不得仅根据标题判断。"
+                                          "允许值：overall_design（总体设计）、technical_architecture（技术架构）、"
+                                          "system_function（系统功能）、data_security（数据安全）、"
+                                          "network_security（网络安全）、deployment（部署）、implementation（实施）、"
+                                          "training（培训）、operation_maintenance（运维）、quality_assurance（质量保证）、"
+                                          "emergency_plan（应急预案）、project_schedule（项目进度）、"
+                                          "project_team（项目团队）、project_case（项目案例）、other（其他）。"),
+            MetadataField("knowledge_type", "判断内容属于技术方案、技术方法、实施经验、服务流程、标准表述、企业能力描述还是项目案例证据。"
+                                           "允许值：technical_solution（技术方案）、technical_method（技术方法）、"
+                                           "implementation_experience（实施经验）、service_process（服务流程）、"
+                                           "standard_expression（标准表述）、enterprise_capability（企业能力）、"
+                                           "project_case_evidence（项目案例证据）、other（其他）。"),
+            MetadataField("technical_domain", "技术领域，与 section_type 使用同一套取值，按内容选择技术领域。"),
+            MetadataField("content_role", "判断内容的实际来源角色。允许值：enterprise_fact（企业事实）、"
+                                          "project_case_evidence（项目案例证据）、general_description（通用描述）、"
+                                          "irrelevant_content（无关内容）、unknown（未知）。"
+                                          "不使用 bidder_response、buyer_requirement、project_specific_commitment；"
+                                          "无法判断时使用 unknown。"),
+            MetadataField("reusability", "判断内容的复用价值。允许值：high（高，通用性强、技术逻辑完整，适合其他项目参考）、"
+                                         "medium（中，具有一定参考价值，需要结合新项目调整）、"
+                                         "low（低，高度依赖原项目背景）、"
+                                         "not_reusable（不可复用，与当前企业技术方案生成无关或不宜复用）。"),
         ),
     ),
     "certificate": PipelineProfile(
@@ -238,8 +345,10 @@ def build_dsl(profile: PipelineProfile, options: PipelineOptions | None = None) 
         if opts.extra_heading_patterns:
             groups.insert(0, list(opts.extra_heading_patterns))
         chunker_params = {"hierarchy": profile.hierarchy, "include_heading_content": profile.include_heading_content,
+                          "root_chunk_as_heading": False, "chunk_token_cap": 1100,
                           "levels": groups, "method": "hierarchy", "outputs": copy.deepcopy(_CHUNK_OUTPUTS)}
         chunker_form = {"hierarchy": str(profile.hierarchy), "include_heading_content": profile.include_heading_content,
+                        "root_chunk_as_heading": False, "chunk_token_cap": 1100,
                         "method": "hierarchy", "outputs": copy.deepcopy(_CHUNK_OUTPUTS),
                         "rules": [{"levels": [{"expression": e} for e in g]} for g in groups]}
         chunker_label, chunker_name = "TitleChunker", "Title Chunker_0"
@@ -258,7 +367,7 @@ def build_dsl(profile: PipelineProfile, options: PipelineOptions | None = None) 
         extractor_params = {
             "frequencyPenaltyEnabled": True, "frequency_penalty": 0.7, "llm_id": opts.llm_id,
             "maxTokensEnabled": False, "max_tokens": 512,
-            "keywords": {"system_prompt": KEYWORDS_PROMPT, "top_n": keywords},
+            "keywords": {"system_prompt": profile.keywords_prompt or KEYWORDS_PROMPT, "top_n": keywords},
             "questions": {"system_prompt": QUESTIONS_PROMPT, "top_n": questions},
             "summary": {"enabled": profile.summary, "system_prompt": SUMMARY_PROMPT},
             "metadata": {"built_in_metadata": [], "enabled": bool(profile.metadata_fields),
