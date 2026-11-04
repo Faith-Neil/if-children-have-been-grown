@@ -28,6 +28,8 @@ ISSUE-008 / T16已本地验收，把相同原则用于现有文字资料及公�
 
 当前实施：`frontend/web`正式页面按ICG示例重建，通过同源接口连接`backend/bid-core`；主链路在同一公司隔离与事务存储下扩展文件、条款、矩阵、事实、证据、计划、任务、检查和两册输出。旧后台验收页作为开发工具。数据库、模型、解析器独立替换；实际字段见[接口约定](architecture/icg-reference-contract.md)。正式产品与旧demo分别验收，生产数据库和部署不因本地页面贯通自动完成。
 
+2026-11-04（ISSUE-049）：产品启动改为 [`Start-Product.ps1`](../backend/bid-core/Start-Product.ps1)，未连通 MySQL 时拒绝启动。公司虚拟机的放置见 [Docker 部署说明](operations/docker-vm-deployment.md)：一个 MySQL 8 容器加一个应用容器，应用只绑定虚拟机环回地址，worker 仍为 1。单元测试在未设置连接串时仍可使用内存仓库。该说明不是已经部署到公司虚拟机，也不表示 RAGFlow 或本地模型已经接通。
+
 2026-10-12：ISSUE-011 在既有模型口后增加可显式启用的 OpenAI 兼容对话适配器。项目经理于 10-12 12:10 在 QA 签署后确认，AI-02 为 done，ISSUE-011 为 closed。未打开配置时默认仍是演示替身；调用失败继续返回 502，不改写成演示成功。ISSUE-010 已 closed（user decision, relayed by PM）：业务库为 MySQL 8；对话模型由配置页提供，设计见 [配置驱动的对话模型](architecture/model-config-provider.md)；嵌入与向量库用 RAGFlow 自带能力，设计见 [RAGFlow 检索适配器](architecture/ragflow-retrieval-adapter.md)；生产生成只在内网。两份设计都未实现。内存实现继续用于测试。该适配器不是内网模型已接通。ISSUE-016 已依据 QA 签署 2fe6198（REV-M0-T16）标为 closed，AI-03 为 done。检索口仍只在内存中运行。它不进入 `create_app`，不连接 MySQL，也不连接 RAGFlow。重排使用 RAGFlow 自带的重排器，重排模型在 RAGFlow 内配置（用户 10-12 14:34 确认，见 [内网部署草案](operations/intranet-deployment-plan.md)）。适配器仍未实现。
 
 2026-10-12（ISSUE-005）：`/api/v1` 错误体和 24 小时幂等回执已提交复查。本轮不引入驱动、迁移或表结构，测试仍用内存仓库。状态表不在本文重复。
@@ -171,15 +173,16 @@ admin
 - 投标截止时间
 - 项目负责人
 
-二级导航：
+二级导航（ISSUE-048）：
 
 - 概览
 - 招标文件
-- 响应矩阵
-- 项目事实
-- 章节编写
-- 检查
-- 导出
+- 分析确认
+- 编辑台
+- 检查与导出
+- 项目设置
+
+旧地址 `parse`、`matrix`、`facts`、`manual` 转到分析确认，`checks` 转到检查与导出。
 
 ## 5. 状态管理
 
@@ -367,6 +370,8 @@ taking_over
 回退不覆盖历史版本，而是生成新版本。
 
 ## 12. 权限
+
+登录角色是三个（ISSUE-048）。`platform_admin` 管理公司和用户、平台配置，不打开投标正文、不生成、不导出。`company_admin` 管理本公司普通用户、知识库和本项目规则覆盖，可以建项目、确认分析并导出。`member` 可以新建项目并走完四段，可以查看本公司知识库但不能改；创建者成为该项目负责人。项目内的负责人和编写人记在项目成员上，不是登录角色。旧的集团管理员、资料管理员、项目负责人、投标编写人、审核人和只读成员登录角色收成 `member`。种子账号 `admin` 不再绕过正文隔离。
 
 前端权限分两层：
 

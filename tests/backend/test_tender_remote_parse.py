@@ -174,3 +174,76 @@ def test_real_scanned_tender_from_deepdoc_chunks():
     assert next(r.page for r in rows if "支持手动标注" in r.quote) == 14
     facts = {(f.key, f.value) for f in extract_facts(pages)}
     assert ("招标编号", "GBF2025-1161") in facts and ("采购人", "贵阳银行股份有限公司") in facts
+
+
+def test_word_binary_is_uploaded_as_pdf(monkeypatch):
+    from icg.domain import office_pdf
+    from icg.domain.parsing import ParsedDocument
+    from icg.domain.tender_remote import RemoteOutcome, RemoteTenderParser
+
+    monkeypatch.setattr(office_pdf, "convert_office_to_pdf", lambda data, suffix: b"%PDF-1.4 probe")
+    seen = {}
+
+    class Document:
+        id = "doc-1"
+
+    class Client:
+        def upload_file(self, dataset_id, filename, data, content_type):
+            seen["filename"] = filename
+            seen["type"] = content_type
+            seen["data"] = data
+            return Document()
+
+        def trigger_parse(self, dataset_id, document_ids):
+            return True
+
+    parser = RemoteTenderParser(object())
+    parser.client = lambda company_id: Client()
+    parser.ensure_dataset = lambda client, company_id: "ds-1"
+    parser.poll = lambda company_id, remote, budget=None: RemoteOutcome(
+        "done", document=ParsedDocument(pages=["甲"], pagination="ragflow_deepdoc_positions", warnings=["经 RAGFlow DeepDOC"]))
+    outcome = parser.submit("alpha", "招标.doc", b"\xd0\xcf\x11\xe0rest")
+    assert seen["filename"] == "招标.pdf" and seen["type"] == "application/pdf" and seen["data"].startswith(b"%PDF")
+    assert outcome.document.warnings[0].startswith("原件是 Word")
+
+
+def test_word_conversion_failure_does_not_upload(monkeypatch):
+    from icg.domain import office_pdf
+    from icg.domain.office_pdf import prepare_for_deepdoc
+    from icg.domain.tender_remote import RemoteTenderParser
+
+    assert prepare_for_deepdoc("合成.doc", "不是 Word".encode("utf-8")) is None
+    monkeypatch.setattr(office_pdf, "convert_office_to_pdf", lambda data, suffix: None)
+    parser = RemoteTenderParser(object())
+    parser.client = lambda company_id: object()
+    outcome = parser.submit("alpha", "招标.doc", b"\xd0\xcf\x11\xe0rest")
+    assert outcome.state == "failed" and "PDF" in outcome.message
+
+
+def test_unpositioned_deepdoc_result_is_not_reused(monkeypatch, tmp_path):
+    monkeypatch.setenv("ICG_BLOB_DIR", str(tmp_path))
+    from icg.domain.parsing import ParsedDocument
+    from icg.domain.tender_files import REMOTE_SERVICE, cached, remember
+
+    class State:
+        service_stores: dict = {}
+
+    state = State()
+    digest = "ab" * 32
+    remember(state, "alpha", digest, REMOTE_SERVICE, ParsedDocument(
+        pages=["甲"], pagination="ragflow_deepdoc_positions",
+        warnings=["RAGFlow 未返回版面位置，全部内容按第 1 页处理，页码不可用于定位。"],
+    ), "2026-11-05T00:00:00+00:00")
+    assert cached(state, "alpha", digest, REMOTE_SERVICE) is None
+
+
+def test_remote_parse_in_progress_can_be_resumed(monkeypatch):
+    monkeypatch.setattr("icg.domain.project_access.project_volume_mode", lambda state, project_id: "technical_only")
+    from icg.domain.technical_sources import assert_can_extract, source_fingerprint
+
+    workflow = {"files": {"f1": {
+        "id": "f1", "sha256": "abc", "file_role": "tender", "status": "parsing_remote",
+        "warnings": ["RAGFlow 正在解析（24%）"],
+    }}}
+    workflow["parsed_source_fingerprint"] = source_fingerprint(workflow)
+    assert_can_extract(object(), "project-1", workflow)

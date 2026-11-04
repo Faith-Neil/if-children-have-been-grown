@@ -14,7 +14,7 @@ from .auth_service import is_super_admin
 from .company_settings import company_display_name
 from .domain import DomainError, Principal, iso_time
 from .password_login import company_record, is_platform_account
-from .project_access import ROLE_COMPANY_ADMIN, ROLE_GROUP_ADMIN, ROLE_PLATFORM_ADMIN, normalize_role
+from .project_access import ROLE_COMPANY_ADMIN, ROLE_PLATFORM_ADMIN, normalize_role
 from .schemas import RequestBody, ResponseBody
 
 
@@ -67,15 +67,15 @@ def _summary(state, company_id: str) -> CompanySummary:
 
 
 def list_companies(service, principal: Principal) -> CompanyListResponse:
-    """平台管理员、集团管理员看全部公司（集团管理员只读）；公司管理员只看本公司；其他角色无此页面。"""
+    """平台管理员看全部公司；公司管理员只看本公司。"""
     state = service.repository.read()
     role = normalize_role(principal.user.role)
-    if _platform_admin(principal) or role == ROLE_GROUP_ADMIN:
+    if _platform_admin(principal):
         ids = sorted(known_company_ids(state))
     elif role == ROLE_COMPANY_ADMIN:
         ids = [principal.user.company_id]
     else:
-        raise DomainError(403, "FORBIDDEN", "只有平台管理员、集团管理员和公司管理员可以查看公司管理。")
+        raise DomainError(403, "FORBIDDEN", "只有平台管理员和公司管理员可以查看公司管理。")
     return CompanyListResponse(items=[_summary(state, cid) for cid in ids],
                                can_change_status=_platform_admin(principal))
 

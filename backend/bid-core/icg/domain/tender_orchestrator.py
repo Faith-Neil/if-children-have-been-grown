@@ -369,24 +369,24 @@ class TenderOrchestratorMixin:
                     else:
                         from icg.domain.technical_outline import apply_technical_outline
                         apply_technical_outline(state, project_id, actual)
-                        from icg.domain.technical_matrix import fill_technical_responses
+                from icg.domain.technical_matrix import fill_technical_responses
+                provider = None
+                if hasattr(self.demo, "resolve_model_provider"):
+                    try:
+                        provider = self.demo.resolve_model_provider(state, project_id, "chapter_generation")
+                    except Exception:
                         provider = None
-                        if hasattr(self.demo, "resolve_model_provider"):
-                            try:
-                                provider = self.demo.resolve_model_provider(state, project_id, "chapter_generation")
-                            except Exception:
-                                provider = None
-                        kb = getattr(self.demo, "knowledge_base", None)
-                        search_company = state.projects[project_id].company_id
+                kb = getattr(self.demo, "knowledge_base", None)
+                search_company = state.projects[project_id].company_id
 
-                        def knowledge_search(clause: str, kb=kb, company_id=search_company) -> list[dict]:
-                            if kb is None:
-                                return []
-                            hits, _skip = kb.search(company_id, clause, limit=5, kinds={"history", "materials"})
-                            return [{"score": hit.score, "filename": hit.name, "quote": hit.content,
-                                     "source": hit.dataset_kind} for hit in hits]
+                def knowledge_search(clause: str, kb=kb, company_id=search_company) -> list[dict]:
+                    if kb is None:
+                        return []
+                    hits, _skip = kb.search(company_id, clause, limit=5, kinds={"history", "materials"})
+                    return [{"score": hit.score, "filename": hit.name, "quote": hit.content,
+                             "source": hit.dataset_kind} for hit in hits]
 
-                        fill_technical_responses(state, actual, model=provider, search=knowledge_search)
+                fill_technical_responses(state, actual, model=provider, search=knowledge_search)
             job = self._job(state, project_id, "parse", "真实文字提取完成；条款、事实及引用仍需人工核对。"
                             + (f"后处理：{notes}。" if notes else "")
                             + (f"另有 {len(pending)} 份文件仍在 RAGFlow 解析中。" if pending else ""))
@@ -474,6 +474,9 @@ class TenderOrchestratorMixin:
                     if (shared.project_id != project_id or not requirement.get("is_cross_volume")
                             or shared.volume == payload.get("volume", requirement["volume"])):
                         raise DomainError(409, "CHAPTER_VOLUME_MISMATCH", "只有标为跨分册共用的行能再对应另一分册的章节。")
+            if "response" in payload and (payload.get("response") or "") != (requirement.get("response") or ""):
+                raise DomainError(422, "VALIDATION_ERROR", "响应正文由知识库检索生成，不能手写。标为不适用时只填写理由。")
+            payload.pop("response", None)
             from icg.domain.matrix import apply_response_type, validate_response
             explicit_response = "response_type" in payload
             payload.update(apply_response_type(requirement, payload))
@@ -593,8 +596,9 @@ class TenderOrchestratorMixin:
                 raise DomainError(409, "PARSE_INCOMPLETE", "所有上传文件必须成功解析后才能确认。")
             if not workflow["requirements"]:
                 raise DomainError(409, "REQUIREMENTS_EMPTY", "没有招标条款，不能确认解析。")
-            if any(r["status"] == "pending" for r in workflow["requirements"].values()) or any(f["status"] == "pending" for f in workflow["facts"].values()):
-                raise DomainError(409, "REVIEW_PENDING", "请先逐条确认或填写理由忽略全部条款和事实。")
+            from icg.domain.parse_review import blocking_fact
+            if any(r["status"] == "pending" for r in workflow["requirements"].values()) or any(blocking_fact(f) for f in workflow["facts"].values()):
+                raise DomainError(409, "REVIEW_PENDING", "请先确认条款，并处理废标相关事实和取值冲突。")
             if not any(r["status"] == "confirmed" for r in workflow["requirements"].values()):
                 raise DomainError(409, "CONFIRMED_REQUIREMENTS_EMPTY", "至少需要一条已确认条款。")
             if blocking_conflicts(workflow):

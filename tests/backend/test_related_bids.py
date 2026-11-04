@@ -45,7 +45,7 @@ def test_same_lot_in_another_company_needs_a_reason(client):
     state = client.app.state.service.repository.read()
     notes = [n for n in state.service_stores.get("notifications", {}).get("items", {}).values()
              if n["type"] == "related_bid_conflict"]
-    assert notes and {n["user_id"] for n in notes} == {"alpha-group-admin"}
+    assert notes and {n["user_id"] for n in notes} == {"alpha-company-admin"}
     assert alpha_name in notes[0]["body"] and "甲公司数据库维保项目" not in notes[0]["body"]
 
     # 对方项目同样看到冲突，也只显示公司名称

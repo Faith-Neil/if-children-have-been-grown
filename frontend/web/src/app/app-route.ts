@@ -1,6 +1,6 @@
 // 为什么有这个文件：把页面地址解析成服务端已经允许的导航入口。
 // 它解决什么问题：刷新、深链接和前进后退使用同一套路径，不靠页面内存记住当前位置。
-import { applicationPaths, projectTabs } from './session-navigation.ts';
+import { applicationPaths, canonicalProjectTab, projectTabs } from './session-navigation.ts';
 
 export type HistoryMode = 'push' | 'replace' | 'none';
 
@@ -62,8 +62,8 @@ export function parseAppPath(input: string): AppRoute {
   if (match) {
     const projectId = match[1];
     const tab = match[2];
-    if (projectId && projectId !== '.' && projectId !== '..' && (projectTabs.includes(tab) || tab === 'proposal')) {
-      const actualTab = tab === 'proposal' ? 'editor' : tab;
+    const actualTab = canonicalProjectTab(tab);
+    if (projectId && projectId !== '.' && projectId !== '..' && projectTabs.includes(actualTab)) {
       return { kind: 'project', projectId, tab: actualTab, path: projectPath(projectId, actualTab) };
     }
   }

@@ -43,7 +43,7 @@ export function TenderPage() {
   const [parseJobDone, setParseJobDone] = useState(false);
   const technicalOnly = volumeMode(workspace) === 'technical_only';
   const roleOptions = fileRoleOptions(technicalOnly);
-  const extracted = sameSourceAlreadyExtracted(workspace.source_fingerprint, workspace.parsed_source_fingerprint);
+  const extracted = sameSourceAlreadyExtracted(workspace.source_fingerprint, workspace.parsed_source_fingerprint, workspace.files);
   const tenderReady = !technicalOnly || hasTenderFile(workspace.files);
 
   async function removeUpload() {
@@ -110,7 +110,7 @@ export function TenderPage() {
     if (job.status === 'completed') {
       setParseJob(null);
       // 抽出为空时留在本页；有结果则去解析结果。响应矩阵仍由解析确认进入。
-      if (!next?.technical_extract_empty) navigate('parse');
+      if (!next?.technical_extract_empty) navigate('analyze');
     }
   }
 

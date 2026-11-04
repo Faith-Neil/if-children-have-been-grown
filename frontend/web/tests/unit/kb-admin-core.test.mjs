@@ -12,12 +12,14 @@ const base = { revision: 3, embedding_model: 'a@x', rerank_id: '', llm_id: '', s
   keywords_weight: 0.7, use_pipelines: true, language: 'Chinese', profiles: {} };
 
 test('roles match backend gates', () => {
-  assert.deepEqual(kbPermissions('data_admin'), { read: true, write: true, connection: false });
+  assert.deepEqual(kbPermissions('member'), { read: true, write: false, connection: false });
+  assert.deepEqual(kbPermissions('data_admin'), { read: true, write: false, connection: false });
   assert.deepEqual(kbPermissions('company_admin'), { read: true, write: true, connection: true });
   assert.deepEqual(kbPermissions('manager'), { read: true, write: false, connection: false });
-  assert.deepEqual(kbPermissions('viewer'), { read: false, write: false, connection: false });
-  assert.equal(canUploadHistory('manager'), true);
-  assert.equal(canUploadHistory('project_lead'), true);
+  assert.deepEqual(kbPermissions('viewer'), { read: true, write: false, connection: false });
+  assert.equal(canUploadHistory('manager'), false);
+  assert.equal(canUploadHistory('project_lead'), false);
+  assert.equal(canUploadHistory('member'), false);
   assert.equal(canUploadHistory('company_admin'), true);
   assert.equal(canUploadHistory('viewer'), false);
 });

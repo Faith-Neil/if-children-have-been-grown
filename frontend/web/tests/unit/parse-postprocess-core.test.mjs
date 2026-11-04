@@ -64,6 +64,7 @@ test('技术分册只给出三种文件类型，并拦住同一批文件再次�
   assert.equal(hasTenderFile([{ file_role: 'tender', superseded_by: 'new' }, { file_role: 'tender' }]), true);
   assert.equal(sameSourceAlreadyExtracted('abc', 'abc'), true);
   assert.equal(sameSourceAlreadyExtracted('abc', ''), false);
+  assert.equal(sameSourceAlreadyExtracted('abc', 'abc', [{ warnings: ['RAGFlow 未返回版面位置，全部内容按第 1 页处理'] }]), false);
 });
 
 test('解析耗时和换服务重试的请求体', () => {

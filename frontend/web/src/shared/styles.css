@@ -724,3 +724,11 @@ html,body,#root{font-family:"Noto Sans SC","PingFang SC","Source Han Sans SC","M
 .parse-category button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left}
 .parse-cards .ant-alert{margin:8px 0}
 [data-testid="project-table-card"] .ant-table-cell{word-break:normal;white-space:nowrap}
+
+/* 分析页把解析、矩阵和事实叠在同一页。解析区占一屏并在栏内滚动；整页可以继续往下滚，统计卡不再被裁在视口外面。 */
+.project-content.fullbleed:has(.parse-screen){overflow:auto;display:block}
+.project-content.fullbleed>.parse-screen{height:calc(100vh - 108px);min-height:480px;overflow:hidden}
+.project-content.fullbleed .postprocess-bar{position:static}
+.postprocess-bar>span:first-child{flex:1 1 220px;min-width:0}
+.project-content.fullbleed>.matrix-statistics,.project-content.fullbleed>.matrix-switch,.project-content.fullbleed>.matrix-card,.project-content.fullbleed>.page-heading,.project-content.fullbleed>.page-notice{margin-left:16px;margin-right:16px}
+.matrix-statistics>.ant-col{min-width:148px}

@@ -102,6 +102,16 @@ def review(workflow: dict, facts: list[dict], threshold: float = 0.8) -> dict:
             "gates": gates(workflow, rows, facts, by_id, threshold), "confidence_threshold": threshold}
 
 
+def blocking_fact(fact: dict) -> bool:
+    """只有废标相关、必备，或仍在冲突里的事实挡住确认。其余事实留在分析页里核对。"""
+    if fact.get("status") not in ("pending", "needs_review"):
+        return False
+    if fact.get("required"):
+        return True
+    text = f"{fact.get('key', '')}{fact.get('value', '')}{fact.get('reason', '')}"
+    return any(word in text for word in ("废标", "否决", "无效", "星号", "★"))
+
+
 def gates(workflow: dict, rows: list[dict], facts: list[dict], by_id: dict[str, str], threshold: float = 0.8) -> list[dict]:
     """确认解析结果的前提（§5.2.2 规则 7），与后台 confirm_parse 的核对一致；blocking=False 的只提示。"""
     def pending_in(keys):
@@ -126,7 +136,7 @@ def gates(workflow: dict, rows: list[dict], facts: list[dict], by_id: dict[str, 
         ("DISQUALIFICATION_PENDING", "废标条款待逐条确认", pending_in({"disqualification"}), True),
         ("QUALIFICATION_PENDING", "资格要求待逐条确认", pending_in({"qualification"}), True),
         ("REQUIREMENTS_PENDING", "其他条款待确认", pending_in(set(LABELS) - INDIVIDUAL), True),
-        ("FACTS_PENDING", "项目事实待核对", sum(1 for f in facts if f.get("status") == "pending"), True),
+        ("FACTS_PENDING", "废标相关事实待处理", sum(1 for f in facts if blocking_fact(f)), True),
         ("REQUIREMENTS_EMPTY", "还没有抽取到条款", 0 if rows else 1, True),
         ("UNREADABLE_PENDING", "原文不可读待对照原页补录", unreadable, True),
         ("LOW_CONFIDENCE", f"置信度低于 {threshold:g} 待人工核对（只提示）", low, False),

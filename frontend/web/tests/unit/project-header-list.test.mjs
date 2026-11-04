@@ -106,11 +106,9 @@ test('ProjectHeader: 八角色权限感知与只读成员设置入口拦截', ()
   assert.equal(canAccessProjectSettings('manager'), true);
   assert.equal(canAccessProjectSettings('company_admin'), true);
 
-  // 2. 严厉拦截只读角色、审核角色与一般成员访问设置入口
-  assert.equal(canAccessProjectSettings('viewer'), false);
-  assert.equal(canAccessProjectSettings('readonly'), false);
-  assert.equal(canAccessProjectSettings('auditor'), false);
-  assert.equal(canAccessProjectSettings('group_admin'), false);
+  assert.equal(canAccessProjectSettings('viewer'), true);
+  assert.equal(canAccessProjectSettings('member'), true);
+  assert.equal(canAccessProjectSettings('platform_admin'), false);
   assert.equal(canAccessProjectSettings(null), false);
 
   // 3. 显式自定义权限优先
@@ -119,7 +117,7 @@ test('ProjectHeader: 八角色权限感知与只读成员设置入口拦截', ()
 
   // 4. filterProjectTabs 页签过滤：只读角色自动剔除 settings 页签
   const tabs = [...PROJECT_HEADER_TABS];
-  const readonlyTabs = filterProjectTabs(tabs, null, 'p1', 'viewer');
+  const readonlyTabs = filterProjectTabs(tabs, null, 'p1', 'platform_admin');
   assert.equal(readonlyTabs.some(t => t.key === 'settings'), false);
   assert.equal(readonlyTabs.some(t => t.key === 'overview'), true);
   assert.equal(readonlyTabs.some(t => t.key === 'editor'), true);

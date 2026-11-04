@@ -52,8 +52,28 @@ def assert_can_extract(state: Any, project_id: str, workflow: dict) -> None:
     if not any(role(record) == "tender" for record in files):
         raise DomainError(422, "FILES_REQUIRED", "技术分册必须先上传一份招标文件。")
     saved = workflow.get("parsed_source_fingerprint") or ""
-    if saved and saved == source_fingerprint(workflow):
+    if saved and saved == source_fingerprint(workflow) and not _layout_missing(workflow) and not _remote_in_progress(workflow):
         raise DomainError(409, "SAME_SOURCE_FILES", "这批文件已经抽取过。请先增加、替换或删除文件，再重新抽取。")
+
+
+def _layout_missing(workflow: dict) -> bool:
+    """上次解析没有版面位置时允许再抽取。Word 直接进 RAGFlow 会出现这种情况。"""
+    from icg.domain.tender_files import superseded
+    for record in (workflow.get("files") or {}).values():
+        if superseded(record):
+            continue
+        if any("未返回版面位置" in str(item) for item in (record.get("warnings") or [])):
+            return True
+    return False
+
+
+def _remote_in_progress(workflow: dict) -> bool:
+    """RAGFlow 还在识别时，下一次解析是接着取结果，不是同一批文件的重复抽取。"""
+    from icg.domain.tender_files import superseded
+    return any(
+        not superseded(record) and record.get("status") == "parsing_remote"
+        for record in (workflow.get("files") or {}).values()
+    )
 
 
 def remember_parsed_sources(workflow: dict) -> None:

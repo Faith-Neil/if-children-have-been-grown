@@ -91,7 +91,9 @@ test('scan hit default category and API paths', () => {
 
 test('main path pages are wired instead of placeholders', () => {
   const workspaceContent = readFileSync(new URL('../../src/app/ProjectWorkspaceContent.tsx', import.meta.url), 'utf8');
-  assert.ok(workspaceContent.includes("{tab === 'manual' && <ManualQueuePage />}"));
+  assert.ok(workspaceContent.includes("tab === 'analyze'"));
+  assert.ok(workspaceContent.includes("tab === 'export'"));
+  assert.ok(workspaceContent.includes('<ManualQueuePage'));
   assert.ok(!workspaceContent.includes('PendingPage'));
   const parse = readFileSync(new URL('../../src/project/ParseTab.tsx', import.meta.url), 'utf8');
   assert.ok(!parse.includes('待实现'));

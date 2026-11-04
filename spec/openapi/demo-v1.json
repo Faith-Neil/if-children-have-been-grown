@@ -44196,7 +44196,8 @@
               "project_lead",
               "bid_writer",
               "platform_admin",
-              "group_admin"
+              "group_admin",
+              "member"
             ],
             "title": "Role"
           },
@@ -44413,10 +44414,7 @@
           },
           "role_mode": {
             "type": "string",
-            "enum": [
-              "legacy-demo-compat",
-              "rbac-8roles"
-            ],
+            "const": "rbac-3roles",
             "title": "Role Mode"
           },
           "user": {
@@ -53834,7 +53832,7 @@
       },
       "OutlineHeadingInput": {
         "properties": {
-          "level": { "type": "integer", "minimum": 2, "maximum": 3, "title": "Level" },
+          "level": { "type": "integer", "minimum": 2.0, "maximum": 3.0, "title": "Level" },
           "title": { "type": "string", "minLength": 1, "maxLength": 80, "title": "Title" },
           "requirement_id": {
             "anyOf": [
@@ -56066,7 +56064,7 @@
           },
           "response_origin": {
             "type": "string",
-            "enum": ["", "history", "model", "retrieval_failed", "draft_failed"],
+            "enum": ["", "history", "model", "retrieval_failed", "draft_failed", "no_evidence"],
             "title": "Response Origin",
             "default": ""
           },
@@ -57889,7 +57887,8 @@
               "project_lead",
               "bid_writer",
               "platform_admin",
-              "group_admin"
+              "group_admin",
+              "member"
             ],
             "title": "Role"
           },
@@ -57920,15 +57919,8 @@
               "type": "string",
               "enum": [
                 "platform_admin",
-                "group_admin",
                 "company_admin",
-                "data_admin",
-                "project_lead",
-                "bid_writer",
-                "reviewer",
-                "readonly",
-                "auditor",
-                "viewer"
+                "member"
               ]
             },
             "type": "array",
@@ -57938,15 +57930,8 @@
             "type": "string",
             "enum": [
               "platform_admin",
-              "group_admin",
               "company_admin",
-              "data_admin",
-              "project_lead",
-              "bid_writer",
-              "reviewer",
-              "readonly",
-              "auditor",
-              "viewer"
+              "member"
             ],
             "title": "Primary Role"
           }
@@ -60017,7 +60002,8 @@
               "project_lead",
               "bid_writer",
               "platform_admin",
-              "group_admin"
+              "group_admin",
+              "member"
             ],
             "title": "Company Role"
           }

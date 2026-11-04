@@ -1,5 +1,5 @@
 // 为什么有这个文件：连接导航外壳与真实业务页签，并用路由守卫保持同一套项目状态。
-// 它解决什么问题：顶栏、弹窗、项目工作区与全局页面已抽离，本文件行数保持在 400 以内。
+// 它解决什么问题：顶栏、弹窗、项目工作区与全局页面已抽离，会话与路由仍在这里装配。
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { App as AntApp, Button, Form, Result, Spin } from 'antd';
 import { AppstoreOutlined, BookOutlined, CheckSquareOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
@@ -20,7 +20,7 @@ import { relatedBidConflict } from '../project/related-bid-core'; import { askRe
 import { AppHeaderActions } from '../shell/AppHeaderActions'; import { AppModals } from '../shell/AppModals';
 import { ProjectWorkspaceContent } from './ProjectWorkspaceContent'; import { GlobalPagesContent } from './GlobalPagesContent';
 
-const navigation = [ { id: 'workbench', name: '工作台', icon: <AppstoreOutlined /> }, { id: 'knowledge', name: '知识库', icon: <BookOutlined /> }, { id: 'admin.rules', name: '管理规则（只读）', icon: <SettingOutlined /> } ];
+const navigation = [ { id: 'workbench', name: '工作台', icon: <AppstoreOutlined /> }, { id: 'knowledge', name: '知识库', icon: <BookOutlined /> }, { id: 'admin.rules', name: '管理', icon: <SettingOutlined /> } ];
 
 export default function App() {
   const { message, modal } = AntApp.useApp();

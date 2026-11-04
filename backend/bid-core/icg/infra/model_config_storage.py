@@ -301,36 +301,40 @@ class ProjectModelConfigBindingResponse(ResponseBody):
     model_config_id: str
 
 
+def placeholder_default(config: ModelConfig) -> bool:
+    """系统自动塞进公司的「默认内网模型」，不是管理员添加的配置。"""
+    return (config.id == f"default-{config.company_id}" and config.name == "默认内网模型"
+            and config.model == "qwen2.5-72b" and not config.encrypted_api_key)
+
+
+def saved_company_model(state: Any, company_id: str) -> ModelConfig | None:
+    """没有项目绑定、也没有任务对应表时，用管理员添加的模型。有本地模型时不用非本地的那一份。"""
+    saved = [cfg for cfg in state.model_configs.values()
+             if cfg.company_id == company_id and cfg.provider != "demo" and not placeholder_default(cfg)]
+    if not saved:
+        return None
+    local = [cfg for cfg in saved if cfg.is_local]
+    pool = local or saved
+
+    def added_at(cfg: ModelConfig) -> int:
+        suffix = cfg.id.removeprefix("cfg-")
+        return int(suffix) if suffix.isdigit() else 0
+
+    return max(pool, key=added_at)
+
+
 class ModelConfigService:
     def __init__(self, demo_service: DemoService):
         self.service = demo_service
         self.repository = demo_service.repository
 
-    def _ensure_default_config(self, state: DemoState, company_id: str) -> ModelConfig:
-        config_id = f"default-{company_id}"
-        if config_id not in state.model_configs:
-            state.model_configs[config_id] = ModelConfig(
-                id=config_id,
-                company_id=company_id,
-                name="默认内网模型",
-                provider="openai-compatible",
-                base_url="http://127.0.0.1:8000",
-                model="qwen2.5-72b",
-                is_local=True,
-                allow_sensitive=True,
-                stream_enabled=True,
-                json_mode_enabled=False,
-                revision=1,
-                timeout_seconds=60.0,
-                max_tokens=1024,
-            )
-        return state.model_configs[config_id]
-
     def list(self, principal: Principal) -> dict[str, Any]:
         company_id = principal.user.company_id
 
         def operation(state: DemoState):
-            self._ensure_default_config(state, company_id)
+            for config_id, cfg in list(state.model_configs.items()):
+                if cfg.company_id == company_id and placeholder_default(cfg):
+                    del state.model_configs[config_id]
             items = [
                 cfg.to_public_dict()
                 for cfg in state.model_configs.values()
@@ -344,9 +348,8 @@ class ModelConfigService:
         company_id = principal.user.company_id
 
         def operation(state: DemoState):
-            self._ensure_default_config(state, company_id)
             cfg = state.model_configs.get(config_id)
-            if cfg is None or cfg.company_id != company_id:
+            if cfg is None or cfg.company_id != company_id or placeholder_default(cfg):
                 raise DomainError(404, "NOT_FOUND", "未找到该模型配置。")
             return cfg.to_public_dict()
 
@@ -411,7 +414,6 @@ class ModelConfigService:
         company_id = principal.user.company_id
 
         def operation(state: DemoState):
-            self._ensure_default_config(state, company_id)
             cfg = state.model_configs.get(config_id)
             if cfg is None or cfg.company_id != company_id:
                 raise DomainError(404, "NOT_FOUND", "未找到该模型配置。")
@@ -466,7 +468,6 @@ class ModelConfigService:
         company_id = principal.user.company_id
 
         def get_cfg(state: DemoState) -> ModelConfig:
-            self._ensure_default_config(state, company_id)
             cfg = state.model_configs.get(config_id)
             if cfg is None or cfg.company_id != company_id:
                 raise DomainError(404, "NOT_FOUND", "未找到该模型配置。")
@@ -573,8 +574,10 @@ class ModelConfigService:
             config_id = state.project_model_configs.get(project_id)
             if config_id and config_id in state.model_configs:
                 return state.model_configs[config_id].to_public_dict()
-            default_cfg = self._ensure_default_config(state, company_id)
-            return default_cfg.to_public_dict()
+            chosen = saved_company_model(state, company_id)
+            if chosen is None:
+                raise DomainError(404, "NOT_FOUND", "还没有可用的模型配置。请先添加模型。")
+            return chosen.to_public_dict()
 
         return self.repository.transaction(operation)
 

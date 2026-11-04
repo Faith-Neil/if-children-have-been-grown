@@ -114,12 +114,13 @@ test('getRouteTitle derives informative Chinese titles for all route kinds', () 
   assert.equal(getRouteTitle('/jobs'), '后台异步任务中心');
   assert.equal(getRouteTitle('/projects/proj-001/overview'), '项目概览');
   assert.equal(getRouteTitle('/projects/proj-001/tender'), '招标文件');
-  assert.equal(getRouteTitle('/projects/proj-001/parse'), '解析结果');
-  assert.equal(getRouteTitle('/projects/proj-001/matrix'), '响应矩阵');
+  assert.equal(getRouteTitle('/projects/proj-001/parse'), '分析确认');
+  assert.equal(getRouteTitle('/projects/proj-001/matrix'), '分析确认');
+  assert.equal(getRouteTitle('/projects/proj-001/analyze'), '分析确认');
   assert.equal(getRouteTitle('/projects/proj-001/editor'), '方案编辑台');
   assert.equal(getRouteTitle('/projects/proj-001/editor/chap-1'), '方案编辑台');
-  assert.equal(getRouteTitle('/projects/proj-001/checks'), '合规检查中心');
-  assert.equal(getRouteTitle('/projects/proj-001/export'), '整本导出');
+  assert.equal(getRouteTitle('/projects/proj-001/checks'), '检查与导出');
+  assert.equal(getRouteTitle('/projects/proj-001/export'), '检查与导出');
   assert.equal(getRouteTitle('/some-invalid-path'), '未知页面');
 });
 
@@ -157,8 +158,8 @@ test('parseAppPath accurately parses modern and legacy route paths', () => {
   assert.deepEqual(parseAppPath('/projects/proj-101/matrix'), {
     kind: 'project',
     projectId: 'proj-101',
-    tab: 'matrix',
-    path: '/projects/proj-101/matrix',
+    tab: 'analyze',
+    path: '/projects/proj-101/analyze',
   });
 
   // 5. 生成方案 proposal 别名映射为 editor

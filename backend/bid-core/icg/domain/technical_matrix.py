@@ -155,14 +155,13 @@ def _apply_history(row: dict, clause: str, filename: str, quote: str, model: Any
 
 
 def fill_technical_responses(state: Any, workflow: dict, *, model: Any = None, search: Callable[[str], list[dict]] | None = None) -> None:
-    """抽出条款后填写响应。没有历史数据集时按没有命中处理，不编造出处。"""
-    rows = [row for row in workflow.get("requirements", {}).values() if row.get("technical_clause")]
+    """抽出条款后用知识库检索填写响应。没有命中就留空，不写成无偏离。"""
+    rows = [row for row in workflow.get("requirements", {}).values() if not row.get("merged_into")]
     if not rows:
         workflow["technical_retrieval"] = "done"
         return
     del state
     search = _search_fn or search
-    draft = _draft_fn or local_draft
     workflow["technical_retrieval"] = "running"
     try:
         for row in rows:
@@ -188,23 +187,7 @@ def fill_technical_responses(state: Any, workflow: dict, *, model: Any = None, s
                 _fail(row, "no_evidence")
                 row["material_sources"] = materials
                 continue
-            try:
-                text = (draft(clause) or "").strip()
-            except Exception:
-                _fail(row, "draft_failed")
-                continue
-            if not text:
-                _fail(row, "draft_failed")
-                continue
-            row.update(
-                response=text,
-                response_type="comply",
-                deviation_type="none",
-                response_origin="model",
-                history_filename="",
-                history_quote="",
-                status="pending",
-            )
+            _fail(row, "no_evidence")
     finally:
         workflow["technical_retrieval"] = "done"
 
@@ -216,8 +199,8 @@ def guard_technical_confirm(workflow: dict, row: dict, *, batch: bool) -> None:
     if workflow.get("technical_retrieval") == "running":
         raise DomainError(409, "REQUIREMENT_NOT_READY", "历史标书还在检索，不能确认矩阵。")
     origin = row.get("response_origin") or ""
-    if origin in ("retrieval_failed", "draft_failed"):
-        raise DomainError(409, "REQUIREMENT_NOT_READY", "检索失败或拟写失败的条款不进入正文。",
+    if origin in ("retrieval_failed", "draft_failed", "no_evidence"):
+        raise DomainError(409, "REQUIREMENT_NOT_READY", "没有检索依据、检索失败或拟写失败的条款不进入正文。",
                           {"requirement_ids": [row["id"]]})
     if not str(row.get("response") or "").strip():
         raise DomainError(409, "REQUIREMENT_NOT_READY", "清空的响应不进入正文。", {"requirement_ids": [row["id"]]})

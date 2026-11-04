@@ -232,13 +232,14 @@ export interface BreadcrumbContext {
 export const PROJECT_TAB_LABELS: Record<string, string> = {
   overview: '项目概览',
   tender: '招标文件',
-  parse: '解析结果',
-  matrix: '响应矩阵',
-  facts: '项目事实表',
+  analyze: '分析确认',
+  parse: '分析确认',
+  matrix: '分析确认',
+  facts: '分析确认',
+  manual: '分析确认',
   editor: '编辑台',
-  manual: '人工处理队列',
-  checks: '合规检查',
-  export: '导出递交',
+  export: '检查与导出',
+  checks: '检查与导出',
   settings: '项目设置',
 };
 

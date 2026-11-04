@@ -120,10 +120,12 @@ def record_ack(state: Any, principal: Principal, project: Any, workflow: dict, f
     workflow["related_bid_ack"] = record
     workflow.setdefault("related_bid_history", []).append(record)
     from .notifications import notify
-    group_admins = [a.id for a in state.accounts.values() if normalize_role(a.role) == "group_admin"
-                    and getattr(a, "status", "active") == "active"]
+    other_companies = {c["company_id"] for c in found["companies"]}
+    company_admins = [a.id for a in state.accounts.values()
+                      if normalize_role(a.role) == "company_admin" and a.company_id in other_companies
+                      and getattr(a, "status", "active") == "active"]
     own = _company_name(state, project.company_id)
-    notify(state, group_admins, "related_bid_conflict", "关联投标冲突已确认",
+    notify(state, company_admins, "related_bid_conflict", "关联投标冲突已确认",
            f"{own} 的项目负责人确认与 {'、'.join(record['company_names'])} 无控股、管理关系或单位负责人相同，继续投标；说明：{reason}",
            now=iso_time(now), project_id=project.id, target_id="settings")
     return record

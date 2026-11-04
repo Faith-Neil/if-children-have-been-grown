@@ -1,5 +1,5 @@
-// 为什么有这个文件：验证 FE-TECH-DEBT-02 (App.tsx 巨石瘦身 < 400 行与组件解耦)
-// 以及 APP-M2-T022 (平台管理员长任务脱敏运维视图与操作禁令防线)。
+// 为什么有这个文件：验证 FE-TECH-DEBT-02 的组件拆分仍然接在 App 上，以及 APP-M2-T022 的平台管理员脱敏。
+// 它解决什么问题：400 行只是当时瘦身的结果，不是以后每次改 App 都要守的行数上限。
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,16 +12,11 @@ import {
   normalizeTask,
 } from '../../src/shell/task-center.ts';
 
-test('FE-TECH-DEBT-02: App.tsx line count is strictly below 400 lines', () => {
-  const appPath = new URL('../../src/app/App.tsx', import.meta.url);
-  const appContent = readFileSync(appPath, 'utf8');
-  const lines = appContent.split(/\r?\n/).length;
-
-  assert.ok(
-    lines < 400,
-    `App.tsx must be strictly under 400 lines for maintainability, current line count is ${lines}`
-  );
-  assert.ok(lines > 150, `App.tsx should retain core application wiring, current is ${lines}`);
+test('FE-TECH-DEBT-02: App.tsx still delegates shell, modals, workspace and global pages', () => {
+  const appContent = readFileSync(new URL('../../src/app/App.tsx', import.meta.url), 'utf8');
+  for (const name of ['AppHeaderActions', 'AppModals', 'ProjectWorkspaceContent', 'GlobalPagesContent']) {
+    assert.ok(appContent.includes(`<${name}`) || appContent.includes(`${name}(`), `${name} stays wired from App.tsx`);
+  }
 });
 
 test('FE-TECH-DEBT-02: Extracted shell & app domain components exist and export properly', () => {

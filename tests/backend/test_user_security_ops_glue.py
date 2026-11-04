@@ -253,7 +253,7 @@ def test_role_assignment_and_rbac_protection_matrix(client: TestClient, test_use
             json={"role": target_role},
         )
         assert res_role.status_code == 200, res_role.text
-        assert res_role.json()["role"] == target_role
+        assert res_role.json()["role"] == "member"
 
     # 4. 非法系统角色代码：拦截 422 VALIDATION_ERROR
     res_invalid_role = client.patch(

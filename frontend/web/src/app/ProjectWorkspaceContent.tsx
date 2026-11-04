@@ -62,8 +62,8 @@ export function ProjectWorkspaceContent({
   report,
   navigate,
 }: ProjectWorkspaceContentProps) {
-  const isCompactTab = ['matrix', 'editor', 'checks', 'export'].includes(tab);
-  const isFullbleedTab = ['parse', 'editor'].includes(tab);
+  const isCompactTab = ['analyze', 'editor', 'export'].includes(tab);
+  const isFullbleedTab = ['analyze', 'editor'].includes(tab);
 
   return (
     <>
@@ -106,9 +106,13 @@ export function ProjectWorkspaceContent({
               <>
                 {tab === 'overview' && <OverviewPage />}
                 {tab === 'tender' && <TenderPage />}
-                {tab === 'parse' && <ParsePage />}
-                {tab === 'matrix' && <MatrixPage />}
-                {tab === 'facts' && <FactsPage />}
+                {tab === 'analyze' && (
+                  <>
+                    <ParsePage />
+                    <MatrixPage />
+                    <FactsPage />
+                  </>
+                )}
                 {tab === 'editor' && (
                   <EditorPage
                     key={workspace.project.id}
@@ -120,10 +124,14 @@ export function ProjectWorkspaceContent({
                     }
                   />
                 )}
-                {tab === 'checks' && <ChecksPage />}
-                {tab === 'export' && <ExportPage />}
+                {tab === 'export' && (
+                  <>
+                    <ChecksPage />
+                    <ExportPage />
+                    <ManualQueuePage />
+                  </>
+                )}
                 {tab === 'settings' && <ProjectSettingsPage />}
-                {tab === 'manual' && <ManualQueuePage />}
               </>
             </Suspense>
           </main>

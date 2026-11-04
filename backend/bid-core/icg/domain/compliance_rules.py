@@ -91,6 +91,14 @@ class ComplianceRuleResult:
         return asdict(self)
 
 
+def _project_rule_override(workflow: dict, key: str):
+    """读取已保存的项目规则覆盖。没有这项时返回 None，检查沿用代码里的原判定。"""
+    entry = (workflow.get("rule_overrides") or {}).get(key)
+    if isinstance(entry, dict):
+        return entry.get("value")
+    return None
+
+
 class ComplianceRulesEngine:
     """PRD P0 级合规规则执行引擎（R15、R23、R34、R37）。"""
 
@@ -934,9 +942,12 @@ class ComplianceRulesEngine:
         issues: list[ComplianceRuleIssue] = []
         requirements = workflow.get("requirements", {})
         checked_count = 0
+        skip_service_period = _project_rule_override(workflow, "check_service_period") is False
 
-        # 1. 工期与服务期条款核验
+        # 1. 工期与服务期条款核验。项目明确关闭时跳过，SLA 负偏离仍检查。
         for req_id, req in requirements.items():
+            if skip_service_period:
+                break
             if volume != "all" and req.get("volume") != volume:
                 continue
 
@@ -2103,7 +2114,8 @@ class ComplianceRulesEngine:
 
             # 2. 证明材料挂接核验（社保证明、劳动合同）
             evidence_ids = req.get("evidence_ids") or []
-            needs_evidence = any(w in text for w in ("社保证明", "社保缴纳", "连续缴纳", "劳动合同", "证明材料", "本单位人员"))
+            own_staff_words = ("本单位人员",) if _project_rule_override(workflow, "require_own_staff") is not False else ()
+            needs_evidence = any(w in text for w in ("社保证明", "社保缴纳", "连续缴纳", "劳动合同", "证明材料", *own_staff_words))
             if needs_evidence and not evidence_ids:
                 issues.append(
                     ComplianceRuleIssue(
@@ -2170,6 +2182,44 @@ class ComplianceRulesEngine:
                             requirement_id=req_id,
                             evidence_id=eid,
                             details={"evidence_company": evidence.get("social_security_company"), "project_company": project.company_id},
+                        )
+                    )
+
+                # 项目覆盖的连续缴纳月数。未设置时仍按原文里的断缴说法判断。
+                override_months = (workflow.get("rule_overrides") or {}).get("social_insurance_months") or {}
+                required_months = override_months.get("value")
+                paid_months = evidence.get("social_insurance_months")
+                for override_key, override_entry in (workflow.get("rule_overrides") or {}).items():
+                    if not str(override_key).startswith("proof_valid_days.") or not isinstance(override_entry, dict):
+                        continue
+                    material = str(override_key).split(".", 1)[1]
+                    allowed_days = override_entry.get("value")
+                    age_days = evidence.get("age_days")
+                    if material and material in str(evidence.get("name") or "") and isinstance(allowed_days, int) and isinstance(age_days, int) and age_days > allowed_days:
+                        issues.append(
+                            ComplianceRuleIssue(
+                                id=new_id("issue"),
+                                rule_id="R11",
+                                code="PERSONNEL_SOCIAL_SECURITY_MISMATCH",
+                                severity="blocker",
+                                message=f"人员材料【{evidence.get('name')}】已开具 {age_days} 天，超过本项目允许的 {allowed_days} 天",
+                                requirement_id=req_id,
+                                evidence_id=eid,
+                                details={"material": material, "allowed_days": allowed_days, "age_days": age_days},
+                            )
+                        )
+
+                if isinstance(required_months, int) and isinstance(paid_months, int) and paid_months < required_months:
+                    issues.append(
+                        ComplianceRuleIssue(
+                            id=new_id("issue"),
+                            rule_id="R11",
+                            code="PERSONNEL_SOCIAL_SECURITY_MISMATCH",
+                            severity="blocker",
+                            message=f"人员社保证明【{evidence.get('name')}】连续缴纳 {paid_months} 个月，少于本项目要求的 {required_months} 个月",
+                            requirement_id=req_id,
+                            evidence_id=eid,
+                            details={"required_months": required_months, "paid_months": paid_months},
                         )
                     )
 

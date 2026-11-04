@@ -86,14 +86,9 @@ export function getRouteTitle(pathname: string): string {
       const tabTitles: Record<string, string> = {
         overview: '项目概览',
         tender: '招标文件',
-        parse: '解析结果',
-        matrix: '响应矩阵',
-        facts: '项目事实表',
-        proposal: '生成方案',
+        analyze: '分析确认',
         editor: '方案编辑台',
-        manual: '人工处理队列',
-        checks: '合规检查中心',
-        export: '整本导出',
+        export: '检查与导出',
         settings: '项目设置',
       };
       return tabTitles[route.tab] ?? '项目工作区';

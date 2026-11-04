@@ -115,7 +115,7 @@ export function RuleOverridesCard({ projectId, canEdit, mutate, busy, settings, 
   useEffect(() => { if (settings) setRows(settings.rule_overrides); }, [settings?.revision]);  // eslint-disable-line react-hooks/exhaustive-deps
   const update = (index: number, patch: Partial<RuleOverrideRow>) => setRows(current => current.map((row, i) => (i === index ? { ...row, ...patch } : row)));
   return <div data-testid="rule-overrides-card">
-    <Alert type="info" showIcon style={{ marginBottom: 8 }} message="覆盖值已按项目保存并读回；合规检查引擎尚未读取这些覆盖值，检查结果暂不随之变化（见交付说明）。" />
+    <Alert type="info" showIcon style={{ marginBottom: 8 }} message="覆盖值按本项目保存。人员社保月数、是否要求本单位人员、是否检查服务期，以及证明材料有效天数，会进入该项目的合规检查。" />
     <Table<RuleOverrideRow> size="small" rowKey={(_, index) => String(index)} pagination={false} dataSource={rows} locale={{ emptyText: '没有项目级覆盖' }}
       columns={[
         { title: '规则', render: (_, row, index) => <Input list="rule-presets" style={{ width: 240 }} value={row.rule_key} disabled={!canEdit} aria-label={`规则 ${index + 1}`} onChange={event => update(index, { rule_key: event.target.value })} /> },

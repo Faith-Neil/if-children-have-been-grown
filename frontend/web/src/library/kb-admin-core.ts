@@ -1,6 +1,8 @@
 // 为什么有这个文件：知识库管理页的纯逻辑：角色判定、接口地址、设置表单与提示文案。
 // 它解决什么问题：把“谁能看、谁能改、哪些操作危险”放在一处，页面与测试共用，避免界面和后端口径不一致。
 
+import { normalizeSystemRole } from '../shared/roles.ts';
+
 export type KbKind = 'history' | 'materials';
 export type KbSearchKind = 'history' | 'materials';
 
@@ -94,18 +96,21 @@ export function metadataValueLabel(key: string, value: string): string {
   return label ?? value;
 }
 
-const READ = new Set(['company_admin', 'data_admin', 'manager', 'project_lead', 'platform_admin', 'super_admin']);
-const WRITE = new Set(['company_admin', 'data_admin', 'platform_admin', 'super_admin']);
-const CONNECTION = new Set(['company_admin', 'platform_admin', 'super_admin']);
+const WRITE = new Set(['company_admin', 'platform_admin']);
+const CONNECTION = new Set(['company_admin', 'platform_admin']);
 
 export function kbPermissions(role?: string | null) {
-  const r = role ?? '';
-  return { read: READ.has(r), write: WRITE.has(r), connection: CONNECTION.has(r) };
+  if (!role) return { read: false, write: false, connection: false };
+  const normalized = normalizeSystemRole(role);
+  return {
+    read: normalized === 'member' || normalized === 'company_admin' || normalized === 'platform_admin',
+    write: WRITE.has(normalized),
+    connection: CONNECTION.has(normalized),
+  };
 }
 
 export function canUploadHistory(role?: string | null) {
-  const r = role ?? '';
-  return WRITE.has(r) || r === 'manager' || r === 'project_lead';
+  return kbPermissions(role).write;
 }
 
 export const kbApi = {

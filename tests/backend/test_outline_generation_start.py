@@ -451,7 +451,7 @@ def test_sensitive_project_allows_local_model(generation_env):
 
 
 def test_readonly_roles_interception(generation_env):
-    """验证只读角色（viewer / auditor / group_admin / platform_admin）启动章节生成被拦截。"""
+    """旧登录角色不再因角色只读被拦截。没有项目编写身份时返回 PROJECT_WRITER_REQUIRED。"""
     env = generation_env
 
     # 1. 系统只读角色 viewer
@@ -464,7 +464,7 @@ def test_readonly_roles_interception(generation_env):
     assert exc_info.value.status == 403
     assert exc_info.value.code in ("FORBIDDEN", "PROJECT_WRITER_REQUIRED")
 
-    # 2. 集团管理员 group_admin
+    # 2. 旧集团管理员已是普通用户，但还不是该项目编写人
     state = env["repo"].read()
     state.accounts["user-group-admin"] = type(state.accounts["alpha-manager"])(
         id="user-group-admin", name="集团只读管理员", company_id="alpha", role="group_admin"
@@ -478,7 +478,7 @@ def test_readonly_roles_interception(generation_env):
             group_principal,
         )
     assert exc_info.value.status == 403
-    assert exc_info.value.code == "FORBIDDEN"
+    assert exc_info.value.code == "PROJECT_WRITER_REQUIRED"
 
 
 def test_cross_tenant_isolation(generation_env):

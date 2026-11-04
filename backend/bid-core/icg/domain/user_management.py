@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 from .domain import Account, DemoService, DomainError, Principal, iso_time
 from . import security_audit
 from .auth_service import hash_password, is_super_admin
+from .project_access import ROLE_COMPANY_ADMIN, ROLE_MEMBER, ROLE_NORMALIZATION_MAP, ROLE_PLATFORM_ADMIN, normalize_role
 from .project_access import ROLE_COMPANY_ADMIN, ROLE_NORMALIZATION_MAP, VOLUMES
 
 
@@ -138,8 +139,11 @@ class UserManagementService:
         """调阅用户列表，超管可查全平台或指定公司，企管与其他角色严格隔离在所属企业。"""
         user = principal.user
         target_company = company_id
+        platform = is_super_admin(user) or normalize_role(user.role) == ROLE_PLATFORM_ADMIN
+        if normalize_role(user.role) not in (ROLE_PLATFORM_ADMIN, ROLE_COMPANY_ADMIN) and not is_super_admin(user):
+            raise DomainError(403, "FORBIDDEN", "只有平台管理员或公司管理员可以管理用户。")
 
-        if not is_super_admin(user):
+        if not platform:
             if target_company and target_company != user.company_id:
                 raise DomainError(404, "NOT_FOUND", f"未找到指定企业 {target_company} 或当前账号无权访问。")
             target_company = user.company_id
@@ -171,7 +175,7 @@ class UserManagementService:
         if not acc:
             raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在。")
 
-        if not is_super_admin(user) and acc.company_id != user.company_id:
+        if not (is_super_admin(user) or normalize_role(user.role) == ROLE_PLATFORM_ADMIN) and acc.company_id != user.company_id:
             raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在或当前账号无权访问。")
 
         return account_to_user_model(acc)
@@ -181,12 +185,18 @@ class UserManagementService:
         user = principal.user
 
         # 1. RBAC 与租户隔离门禁
-        if not is_super_admin(user):
+        platform = is_super_admin(user) or normalize_role(user.role) == ROLE_PLATFORM_ADMIN
+        if not platform:
             if request.company_id != user.company_id:
                 raise DomainError(404, "NOT_FOUND", f"未找到指定企业 {request.company_id} 或当前账号无权访问。")
-            norm_role = ROLE_NORMALIZATION_MAP.get(user.role, user.role)
-            if norm_role != ROLE_COMPANY_ADMIN:
+            if normalize_role(user.role) != ROLE_COMPANY_ADMIN:
                 raise DomainError(403, "FORBIDDEN", "只有企业管理员或平台管理员可新增用户。")
+        created = ROLE_NORMALIZATION_MAP.get(request.role)
+        if created not in (ROLE_COMPANY_ADMIN, ROLE_MEMBER):
+            raise DomainError(422, "VALIDATION_ERROR", "只能创建公司管理员或普通用户。")
+        if not platform and created != ROLE_MEMBER:
+            raise DomainError(403, "FORBIDDEN", "公司管理员只能创建本公司的普通用户。")
+        request = request.model_copy(update={"role": created})
 
         # 2. 账号重复冲突校验
         if request.username in self.repository.read().accounts:
@@ -412,7 +422,7 @@ class UserManagementService:
             raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在。")
 
         # 1. 租户隔离与 RBAC 权限校验
-        if not is_super_admin(user):
+        if not (is_super_admin(user) or normalize_role(user.role) == ROLE_PLATFORM_ADMIN):
             if acc.company_id != user.company_id:
                 raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在或当前账号无权访问。")
             norm_role = ROLE_NORMALIZATION_MAP.get(user.role, user.role)
@@ -502,7 +512,7 @@ class UserManagementService:
         if not acc:
             raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在。")
 
-        if not is_super_admin(user):
+        if not (is_super_admin(user) or normalize_role(user.role) == ROLE_PLATFORM_ADMIN):
             if acc.company_id != user.company_id:
                 raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在或当前账号无权访问。")
             norm_role = ROLE_NORMALIZATION_MAP.get(user.role, user.role)
@@ -531,7 +541,7 @@ class UserManagementService:
             raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在。")
 
         # 1. 租户隔离与 RBAC 权限校验
-        if not is_super_admin(user):
+        if not (is_super_admin(user) or normalize_role(user.role) == ROLE_PLATFORM_ADMIN):
             if acc.company_id != user.company_id:
                 raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在或当前账号无权访问。")
             norm_role = ROLE_NORMALIZATION_MAP.get(user.role, user.role)
@@ -584,7 +594,7 @@ class UserManagementService:
             raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在。")
 
         # 1. 租户隔离与 RBAC 权限校验
-        if not is_super_admin(user):
+        if not (is_super_admin(user) or normalize_role(user.role) == ROLE_PLATFORM_ADMIN):
             if acc.company_id != user.company_id:
                 raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在或当前账号无权访问。")
             norm_role = ROLE_NORMALIZATION_MAP.get(user.role, user.role)
@@ -630,7 +640,7 @@ class UserManagementService:
             raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在。")
 
         # 1. 租户隔离与 RBAC 权限校验
-        if not is_super_admin(user):
+        if not (is_super_admin(user) or normalize_role(user.role) == ROLE_PLATFORM_ADMIN):
             if acc.company_id != user.company_id:
                 raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在或当前账号无权访问。")
             norm_role = ROLE_NORMALIZATION_MAP.get(user.role, user.role)
@@ -651,6 +661,11 @@ class UserManagementService:
         # 4. 目标角色合法性校验
         if request.role not in ROLE_NORMALIZATION_MAP:
             raise DomainError(422, "VALIDATION_ERROR", f"角色代码 '{request.role}' 不属于标准系统角色。")
+        assigned = ROLE_NORMALIZATION_MAP[request.role]
+        if assigned not in (ROLE_COMPANY_ADMIN, ROLE_MEMBER):
+            raise DomainError(422, "VALIDATION_ERROR", "只能分配公司管理员或普通用户。")
+        if not (is_super_admin(user) or normalize_role(user.role) == ROLE_PLATFORM_ADMIN) and assigned != ROLE_MEMBER:
+            raise DomainError(403, "FORBIDDEN", "公司管理员只能把用户设为普通用户。")
 
         now_ts = time.time()
 
@@ -658,10 +673,10 @@ class UserManagementService:
             target = st.accounts.get(user_id)
             if not target:
                 raise DomainError(404, "NOT_FOUND", f"用户 {user_id} 不存在。")
-            updated = replace(target, role=request.role, updated_at=now_ts)
+            updated = replace(target, role=assigned, updated_at=now_ts)
             st.accounts[user_id] = updated
             security_audit.record(st, "user.change_role", operator=user.id, target_user_id=user_id,
-                                  old_role=target.role, new_role=request.role)
+                                  old_role=target.role, new_role=assigned)
 
         self.repository.transaction(_do_change_role)
         updated_acc = self.repository.read().accounts[user_id]

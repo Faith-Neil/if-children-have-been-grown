@@ -188,7 +188,7 @@ export function resolveDataPermission(context: DataPermissionContext): DataPermi
       }
 
       // 3.3 项目负责人全项目放行
-      if (member.project_role === 'lead' || normRole === 'project_lead') {
+      if (member.project_role === 'lead') {
         return {
           readOnly: false,
           canEdit: true,

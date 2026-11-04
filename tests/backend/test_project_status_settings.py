@@ -159,6 +159,25 @@ def test_rule_overrides_validate_and_replace_as_a_whole(client):
     assert _call(flow, "PUT", "/rule-overrides", {"overrides": []})["rule_overrides"] == []
 
 
+def test_social_insurance_months_override_changes_r11_and_unset_projects_keep_the_code_rule():
+    from types import SimpleNamespace
+    from icg.domain.compliance_rules import ComplianceRulesEngine
+
+    project = SimpleNamespace(company_id="alpha", deadline="")
+    state = SimpleNamespace(library={"e1": {
+        "company_id": "alpha", "name": "社保证明", "content": "连续缴纳记录",
+        "status": "confirmed", "social_insurance_months": 3,
+    }})
+    requirement = {"id": "r", "text": "须提供社保证明", "volume": "technical", "evidence_ids": ["e1"], "response": "按要求提供"}
+    overridden = ComplianceRulesEngine.check_r11(state, project, {
+        "requirements": {"r": requirement},
+        "rule_overrides": {"social_insurance_months": {"value": 6}},
+    })
+    assert any((item.get("details") or {}).get("required_months") == 6 for item in overridden.issues)
+    untouched = ComplianceRulesEngine.check_r11(state, project, {"requirements": {"r": requirement}, "rule_overrides": {}})
+    assert all((item.get("details") or {}).get("required_months") != 6 for item in untouched.issues)
+
+
 # ------------------------------------------------------------------ T100 分册与完整值
 
 def _volume(volume="technical", **overrides):

@@ -123,6 +123,7 @@ export function canAccessProjectSettings(
   if (customPermissions?.manage_project !== undefined) {
     return customPermissions.manage_project;
   }
+  if (!role || typeof role !== 'string' || !role.trim()) return false;
   const normalized = normalizeSystemRole(role);
   if (!normalized) return false;
   // 只读成员、审核人与外部只读均无权访问项目设置
@@ -138,13 +139,9 @@ export function canAccessProjectSettings(
 export const PROJECT_HEADER_TABS: Array<{ key: string; label: string }> = [
   { key: 'overview', label: '概览' },
   { key: 'tender', label: '招标文件' },
-  { key: 'parse', label: '解析结果' },
-  { key: 'matrix', label: '响应矩阵' },
-  { key: 'facts', label: '项目事实表' },
+  { key: 'analyze', label: '分析' },
   { key: 'editor', label: '编辑台' },
-  { key: 'manual', label: '人工处理队列' },
-  { key: 'checks', label: '合规检查' },
-  { key: 'export', label: '导出' },
+  { key: 'export', label: '检查与导出' },
   { key: 'settings', label: '项目设置' },
 ];
 

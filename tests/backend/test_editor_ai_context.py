@@ -528,18 +528,33 @@ def test_guard_readonly_roles_and_cross_tenant_isolation(editor_setup):
     editor_svc = editor_setup["editor_svc"]
     repo = editor_setup["repo"]
 
-    # 1. 系统只读角色拦截 403
-    for p in (editor_setup["principal_viewer"], editor_setup["principal_auditor"],
-              editor_setup["principal_group_admin"], editor_setup["principal_platform_admin"]):
-        with pytest.raises(DomainError) as exc:
-            editor_svc.chat_editor_context(
-                principal=p,
-                project_id="alpha-project",
-                query="分析章节",
-                chapter_id="alpha-tech",
-            )
-        assert exc.value.status == 403
-        assert exc.value.code == "FORBIDDEN"
+    # 1. 观察员在本项目仍是只读成员。没有项目只读身份的旧角色可以提问。平台管理员仍被拦截。
+    with pytest.raises(DomainError) as viewer_exc:
+        editor_svc.chat_editor_context(
+            principal=editor_setup["principal_viewer"],
+            project_id="alpha-project",
+            query="分析章节",
+            chapter_id="alpha-tech",
+        )
+    assert viewer_exc.value.status == 403
+    assert "项目只读成员" in str(viewer_exc.value)
+    for principal in (editor_setup["principal_auditor"], editor_setup["principal_group_admin"]):
+        result = editor_svc.chat_editor_context(
+            principal=principal,
+            project_id="alpha-project",
+            query="分析章节",
+            chapter_id="alpha-tech",
+        )
+        assert result["scene"]
+    with pytest.raises(DomainError) as exc:
+        editor_svc.chat_editor_context(
+            principal=editor_setup["principal_platform_admin"],
+            project_id="alpha-project",
+            query="分析章节",
+            chapter_id="alpha-tech",
+        )
+    assert exc.value.status == 403
+    assert exc.value.code == "FORBIDDEN"
 
     # 2. 项目只读成员拦截 403
     def set_member_viewer(s):

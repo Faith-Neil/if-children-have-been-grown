@@ -303,7 +303,7 @@ test('deriveBreadcrumbs derives multi-level paths inside project workspace with 
     workspace,
   });
   assert.equal(checkCrumbs.length, 3);
-  assert.equal(checkCrumbs[2].title, '合规检查');
+  assert.equal(checkCrumbs[2].title, '检查与导出');
   assert.equal(checkCrumbs[2].isCurrent, true);
 });
 

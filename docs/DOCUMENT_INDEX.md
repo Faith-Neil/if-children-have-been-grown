@@ -16,9 +16,9 @@
 | 2026-10-26 | 产品 / 验收 / D0~D5 | 登记两轮治理与技术债重构批次产品视角对照验收报告（2026-10-26-pd-review-debt-remediation.md，D-743），PD 对照 PRD v1.8 与数据字典 v1.9，全面书面认可 7 张任务卡，建议 PM 标 done |
 | 2026-10-26 | 质量 / 验收 / D0~D5 | 登记 D0～D5 技术债治理与核心能力建设批次 QA 独立复测与签署报告（2026-10-26-debt-remediation-batch-qa-signoff.md，D-742），覆盖 BE-TECH-DEBT-01、BE-TECH-DEBT-02、FE-REACT-ROUTER、AI-RAGFLOW-KB-SYNC、BE-COMPLIANCE-RULES-P0、REV-SMOKE-001 共 6 张任务卡，后端 42 项专项全过、前端 395 项单测全绿、OpenAPI 100% 一致无 diff，签署通过建议 PM 标 done |
 | D-001 | 2026-10-28 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-038 / BE-TECH-DEBT-01/02；ISSUE-005；ISSUE-010；ISSUE-037；ISSUE-039～042 / Wave 11 | 444项96done、65in-review、7in-progress、228planned、41blocked、7cancelled、0ready（2026-10-28）。Wave 11 五张卡 in-review，新发现 ISSUE-039/041/042。421项72done、60in-review、7in-progress、234planned、41blocked、7cancelled、0ready。Wave 4共5张核心卡正式标done；App.tsx瘦身达标、平台管理员脱敏长任务、P3合规规则扩充至21项、自适应Prompt Token预算全通 |
-| D-002 | 2026-10-28 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-038；ISSUE-005；ISSUE-027；ISSUE-040 | Wave 11 登记人工处理队列、交叉复核、疑似遗漏与持久化边界；维护现行前端实施需求，明确以 PRD v1.8 与字典 v1.9 为准绳；反映 412 项任务与 61 done 进度快照 |
-| D-003 | 2026-10-28 | [前端架构](ARCHITECTURE.md) | 前端架构 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-010；ISSUE-011；ISSUE-016；ISSUE-038；ISSUE-040 | Wave 11 登记人工处理队列、交叉复核、疑似遗漏与持久化边界；现行前端与后端分层架构；react-router 路由与 8 域物理分包；后端 icg/{api,app,domain,infra} 去平铺规范；修复全量目录超链接 |
-| D-004 | 2026-10-26 | [前端路线图](ROADMAP.md) | 计划 | 参考实施入口 / g1.1 | 执行入口 | ISSUE-007 / APP-M1；ISSUE-038；ISSUE-027 | 现行阶段实施路线图，纳入 D0~D5 技术债与产品断环推进顺序，反映 412 项任务全景 |
+| D-002 | 2026-11-04 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-048 / FLOW-3ROLE | 第 9、10 节记下检索生成响应和事实嵌入分析。参考原文不改 |
+| D-003 | 2026-11-04 | [前端架构](ARCHITECTURE.md) | 前端架构 | 参考实施入口 / g1.1 | 实施中 | ISSUE-048 / FLOW-3ROLE | 第 4.2 节项目导航收成四段。第 12 节登录角色收成三个 |
+| D-004 | 2026-11-04 | [前端路线图](ROADMAP.md) | 计划 | 参考实施入口 / g1.1 | 执行入口 | ISSUE-048 / FLOW-3ROLE | 第 3.3、3.4 节记下检索响应和事实嵌入分析 |
 | D-005 | 2026-10-09 | [UX 规范](design/ux.md) | 设计 | 原文 | 参考 | FE-M0-T01 | 从ui/ux.md迁移，无业务内容改写 |
 | D-006 | 2026-10-09 | [产品 PRD v1.8](reference/product/prd-mvp-v1.8.md) | 产品参考 | v1.8 | 供评审 | FE-M0-T01 | 已脱敏原文，不受治理修订覆盖 |
 | D-007 | 2026-10-09 | [资料库字典 v1.9](reference/product/kb-data-dictionary-v1.9.md) | 数据参考 | v1.9 | 供评审 | FE-M0-T01 | 逻辑字典，不是数据库迁移 |
@@ -55,7 +55,7 @@
 | D-038 | 2026-10-09 | [ISSUE-002](../issues/ISSUE-002.md) | Bug | 首轮修复 | 本地验收关闭 | FE-M0-T01 | 锁定后的AI写入保护 |
 | D-039 | 2026-10-09 | [ISSUE-003](../issues/ISSUE-003.md) | 工作流 | g1.0 | 本地验收关闭 | FE-M0-T02 | 用户本轮四项治理要求 |
 | D-040 | 2026-10-10 | [维护约定](../AGENTS.md) | 协作规则 | g1.1 | 当前 | ISSUE-006 / BE-M0-T01 | 合作开发每次开工与收尾的入口 |
-| D-041 | 2026-10-10 | [检查程序](../scripts/check-project-governance.cjs) | 工程代码 | g1.1 | 当前 | BE-M0-T01 | 活动记录检查，排除历史来源、依赖和Python缓存 |
+| D-041 | 2026-11-04 | [检查程序](../scripts/check-project-governance.cjs) | 工程代码 | g1.1 | 当前 | ISSUE-048 / FLOW-3ROLE | 活动记录检查。本地 `.cursor` 计划不计入项目文档 |
 | D-042 | 2026-10-10 | [检查程序回归](../tests/governance/check-project-governance.test.cjs) | 验证代码 | g1.1 | 12项通过 | BE-M0-T01 | 失败/工作区边界及Python依赖排除回归 |
 | D-043 | 2026-10-10 | [Cursor协作规则](../.cursor/rules/project-governance.mdc) | 合作执行 | g1.1 | 当前 | ISSUE-006 / BE-M0-T01 | 对合作开发端始终启用同一流程，不复制异项目模板 |
 | D-044 | 2026-10-09 | [ISSUE-004](../issues/ISSUE-004.md) | 工作流 | g1.1 | 已本地验收 | OPS-M0-T01 / REV-M0-T01 | 用户全工作区范围、合同排除、接手审查 |
@@ -176,7 +176,7 @@
 | D-158 | 2026-10-11 | [资料真实HTTP回归](../tests/backend/test_library_basis.py) | 验证 | library-basis-1 | 13项通过 | ISSUE-008 / APP-M1-T16 | 原版本/重试/幂等/权限及完整仓储无副作用 |
 | D-159 | 2026-10-11 | [模板真实HTTP回归](../tests/backend/test_sla_template_basis.py) | 验证 | library-basis-1 | 6项通过 | ISSUE-008 / APP-M1-T16 | 旧指标数组不能覆盖，明确核对后的请求成功 |
 | D-160 | 2026-10-12 | [共同底座Issue](../issues/ISSUE-009.md) | 实施 | layout-review-1 | closed | ISSUE-009 / APP-M2-T001 | 项目经理在 QA 签署 d55d507 后确认 closed。T001 与 T002 已 done |
-| D-161 | 2026-10-11 | [可信会话与导航契约](architecture/application-session-contract.md) | 契约 | application-foundation-1 | 当前实施 | ISSUE-009 / APP-M2-T001 | 后台身份/资源读取与三演示角色兼容边界 |
+| D-161 | 2026-11-04 | [可信会话与导航契约](architecture/application-session-contract.md) | 契约 | application-foundation-3 | 当前实施 | ISSUE-048 / FLOW-3ROLE | 会话 role_mode 为 rbac-3roles。平台管理员不打开投标正文 |
 | D-162 | 2026-10-12 | [共同底座阶段交付](delivery/APP-M2-T001.md) | 交付 | layout-review-1 | done | ISSUE-009 / APP-M2-T001 | QA REV-M0-T11 签署通过后，项目经理在群里确认，本卡 done |
 | D-163 | 2026-10-12 | [会话与守卫代码解释](code/APP-M2-T001.md) | 说明 | layout-review-1 | in-review | ISSUE-009 / APP-M2-T001 | 顶栏按侧栏宽度留白，展开按钮不再被 logo 挡住 |
 | D-164 | 2026-10-11 | [共同底座阶段验证](testing/2026-10-11-application-session.md) | 验证 | application-foundation-1 | 阶段通过 | ISSUE-009 / APP-M2-T001 | 后台262、前端72、真实会话16、GUI/两册内容；独立复核通过 |
@@ -759,7 +759,7 @@
 | D-741 | 2026-10-26 | [代码说明：真实 RAGFlow 连通性探针、P0 规则扩写与关演示主链路冒烟（D4/D3/REV-SMOKE-001）](code/2026-10-26-product-gap-kb-rules-smoke.md) | 代码说明 | smoke-ragflow-rules-1 | 当前 | ISSUE-007 / ISSUE-038 / ISSUE-037 / ISSUE-005 / REV-SMOKE-001 / BE-COMPLIANCE-RULES-P0 / AI-RAGFLOW-KB-SYNC | 真实 RAGFlow 连通性探针、P0 规则扩写与关演示主链路冒烟代码说明：MySQL 增量快照脏检查时序图、7大 P0 规则执行与导出门禁时序图、关演示 6 步冒烟流转、关键代码实现与专项测试设计 |
 | D-742 | 2026-10-26 | [D0～D5 技术债治理与核心能力建设批次 QA 独立复测与签署报告](testing/2026-10-26-debt-remediation-batch-qa-signoff.md) | 验收签署 | qa-signoff-d0-d5 | 当前 | ISSUE-005 / ISSUE-006 / ISSUE-007 / ISSUE-027 / ISSUE-037 / ISSUE-038 / BE-TECH-DEBT-01 / BE-TECH-DEBT-02 / FE-REACT-ROUTER / AI-RAGFLOW-KB-SYNC / BE-COMPLIANCE-RULES-P0 / REV-SMOKE-001 | QA 独立背靠背复测与终验签署：后端 6 大测试套件 41 passed 1 skipped、前端 395 项单测全绿、TypeScript 编译 0 error、OpenAPI 契约一致性 100% 保持、工程治理检查通过；深度审计双错误体收敛、后端去平铺门面化、React-Router 现代路由与双守卫、RAGFlow 真实物理探针网络诊断留证、7项P0合规规则闭环与关演示模式下真实两册 Word 导出及 64 位 SHA-256 版式指纹留证，终验签署全部 PASS，建议 PM 标 done |
 | D-743 | 2026-10-26 | [2026-10-26 治理与技术债重构批次产品视角对照验收报告（PD 对照）](reviews/2026-10-26-pd-review-debt-remediation.md) | 评审 / 对照 | pd-review-debt-remediation | 当前 | ISSUE-005 / ISSUE-006 / ISSUE-007 / ISSUE-027 / ISSUE-037 / ISSUE-038 / BE-TECH-DEBT-01 / BE-TECH-DEBT-02 / FE-REACT-ROUTER / AI-RAGFLOW-KB-SYNC / BE-COMPLIANCE-RULES-P0 / REV-SMOKE-001 / INT-VOLUME-FINALIZE-GLUE | PD产品验收对照报告：对照 PRD MVP v1.8 与数据字典 v1.9，全面核查关演示模式主链路、规则阻断门禁、知识库防编造与真实网络探针、Word两卷导出与64位SHA-256防篡改指纹，7项任务卡全部真实达成产品意图与质量底线，书面认可建议PM标done |
-| D-744 | 2026-10-26 | [任务卡目录索引](tasks/README.md) | 任务规范 | g1.1 | 当前 | ISSUE-007 / DOC-SYNC-1.1 | 汇总各业务与技术域任务卡定义与导航入口，解决目录超链接失效问题 |
+| D-744 | 2026-11-04 | [任务卡目录索引](tasks/README.md) | 任务规范 | g1.1 | 当前 | ISSUE-048 / FLOW-3ROLE | 补上 FLOW 任务卡入口 |
 | D-745 | 2026-10-26 | [协作模板目录索引](templates/README.md) | 工程治理 | g1.1 | 当前 | ISSUE-007 / DOC-SYNC-1.1 | 汇总任务卡、交付说明与代码解释模板导航，解决模板目录超链接失效问题 |
 | D-746 | 2026-10-26 | [任务交付：EditorPage 巨石二次瘦身与模块解耦（FE-TECH-DEBT-01）](delivery/FE-TECH-DEBT-01.md) | 任务交付 | fe-tech-debt-01-1 | in-review | ISSUE-038 / ISSUE-007 / FE-TECH-DEBT-01 | EditorPage 巨石二次瘦身与模块解耦交付：从 1090 行二次拆解至 497 行，解耦 useEditorLock、useSelectionBubble、useEditorOperations、EditorDiffDrawer、EditorSlaTools 与 EditorAuxiliaryDrawers，全量前端单测 396 项全绿，TypeScript 0 error，工程治理通过，建议 PM 标 done |
 | D-747 | 2026-10-26 | [代码说明：EditorPage 巨石二次瘦身与模块解耦（FE-TECH-DEBT-01）](code/FE-TECH-DEBT-01.md) | 代码说明 | fe-tech-debt-01-1 | 当前 | ISSUE-038 / ISSUE-007 / FE-TECH-DEBT-01 | EditorPage 巨石二次瘦身与模块解耦代码说明：架构分层（editor/ 八域）、锁状态机流程图、划词气泡定位与 AST 契约保护 |
@@ -979,11 +979,27 @@
 | D-958 | 2026-11-03 | [TV-M0-T06 代码说明](code/TV-M0-T06.md) | 代码说明 | tv-m0-1 | 当前 | ISSUE-047 / TV-M0-T06 | 矩阵响应来源 |
 | D-959 | 2026-11-03 | [TV-M0-T07 交付](delivery/TV-M0-T07.md) | 任务交付 | tv-m0-1 | in-review | ISSUE-047 / TV-M0-T07 | 六段正文与偏离表 |
 | D-960 | 2026-11-03 | [TV-M0-T07 代码说明](code/TV-M0-T07.md) | 代码说明 | tv-m0-1 | 当前 | ISSUE-047 / TV-M0-T07 | 按节生成与内部稿 |
+| D-961 | 2026-11-04 | [简化投标主流程](../issues/ISSUE-048.md) | Issue | flow-3role-1 | in-progress | ISSUE-048 / FLOW-3ROLE | 三个登录角色和四段项目路径。不标 done |
+| D-962 | 2026-11-04 | [FLOW-3ROLE 交付](delivery/FLOW-3ROLE.md) | 任务交付 | flow-3role-1 | in-review | ISSUE-048 / FLOW-3ROLE | 前端 598 项通过。真实 MySQL 和浏览器未跑 |
+| D-963 | 2026-11-04 | [FLOW-3ROLE 代码说明](code/FLOW-3ROLE.md) | 代码说明 | flow-3role-1 | 当前 | ISSUE-048 / FLOW-3ROLE | 角色、页签、检索响应和规则覆盖的入口 |
+| D-964 | 2026-11-04 | [FLOW 任务卡](tasks/FLOW.md) | 任务 | flow-3role-1 | in-review | ISSUE-048 / FLOW-3ROLE | 三个登录角色和四段主路径。不标 done |
+| D-965 | 2026-11-04 | [产品启动连接 MySQL](../issues/ISSUE-049.md) | Issue | ops-product-start-1 | in-review | ISSUE-049 / OPS-M0-T03 | 拒绝内存启动。虚拟机未部署 |
+| D-966 | 2026-11-04 | [OPS-M0-T03 交付](delivery/OPS-M0-T03.md) | 任务交付 | ops-product-start-1 | in-review | ISSUE-049 / OPS-M0-T03 | 本机 health 见交付。不标 done |
+| D-967 | 2026-11-04 | [OPS-M0-T03 代码说明](code/OPS-M0-T03.md) | 代码说明 | ops-product-start-1 | 当前 | ISSUE-049 / OPS-M0-T03 | Start-Product 与容器入口 |
+| D-968 | 2026-11-04 | [虚拟机 Docker 部署](operations/docker-vm-deployment.md) | 运维 | ops-product-start-1 | 当前 | ISSUE-049 / OPS-M0-T03 | 公司虚拟机步骤。尚未在虚拟机执行 |
+| D-969 | 2026-11-04 | [产品启动脚本](../backend/bid-core/Start-Product.ps1) | 运维 | ops-product-start-1 | 当前 | ISSUE-049 / OPS-M0-T03 | 探测 MySQL 失败则退出 |
+| D-970 | 2026-11-05 | [历史标书与资料库解析设计](superpowers/specs/2026-11-05-history-bid-ingestion-design.md) | 设计 | kb-ingestion-design-1 | 已确认 | ISSUE-050 | 方案为主，对话决定为补充。解析代码未改 |
+| D-972 | 2026-11-05 | [历史标书与资料库解析实现计划](superpowers/plans/2026-11-05-history-bid-ingestion.md) | 计划 | kb-ingestion-plan-1 | 待执行 | ISSUE-050 | 六项任务。尚未执行，未部署 |
+| D-971 | 2026-11-05 | [历史标书与资料库解析](../issues/ISSUE-050.md) | Issue | kb-ingestion-design-1 | new | ISSUE-050 | 设计已登记。未拆任务，未部署 |
 
 ## 更新记录
 
 | 日期 | 关联 | 更新 |
 |---|---|---|
+| 2026-11-05 | ISSUE-050 | 设计说明已确认，并写入实现计划（D-972）。状态仍为 new，解析代码未改，未部署 |
+| 2026-11-05 | ISSUE-050 | 登记历史标书与资料库解析设计（D-970、D-971）。状态 new，解析代码未改，未部署 |
+| 2026-11-04 | ISSUE-049 | 产品启动改为连接 MySQL，并写入虚拟机 Docker 说明（D-965～D-969）。OPS-M0-T03 为 in-review，虚拟机未部署 |
+| 2026-11-04 | ISSUE-048 | 登记三角色与四段主路径（D-961～D-963）。FLOW-3ROLE 为 in-review，不标 done |
 | 2026-11-03 | ISSUE-047 | 集成目标改为 `feat/iss-047-technical-volume-mvp`，不合并 main。T01～T07 交付补了分支说明 |
 | 2026-11-03 | ISSUE-047 | T07 交付与代码说明（D-959、D-960）。状态 in-review，不标 done |
 | 2026-11-03 | ISSUE-047 | 确认技术分册 MVP（D-944、D-945）。教程原文为 D-941～D-943。代码未改 |

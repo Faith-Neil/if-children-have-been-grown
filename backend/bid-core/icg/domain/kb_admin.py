@@ -20,7 +20,7 @@ from .knowledge_base import (DATASET_KINDS, FILE_KINDS, KIND_PROFILE, SETTINGS_S
 
 AUDIT_STORE = "kb_audit"
 AUDIT_LIMIT = 500
-READ_ROLES = {"company_admin", "data_admin", "manager", "project_lead"}
+READ_ROLES = {"company_admin", "data_admin", "manager", "project_lead", "member"}
 WRITE_ROLES = {"company_admin", "data_admin"}
 CONNECTION_ROLES = {"company_admin"}
 SETTING_FIELDS = {
@@ -46,7 +46,7 @@ def _is_super(principal: Principal) -> bool:
 
 
 def require_kb_role(principal: Principal, level: str = "read") -> None:
-    """read：管理/资料/项目负责角色；write：公司管理员与资料管理员；connection：只有公司管理员。"""
+    """read：公司管理员与普通用户；write：公司管理员与资料管理员；connection：只有公司管理员。"""
     if _is_super(principal):
         return
     allowed = {"read": READ_ROLES, "write": WRITE_ROLES, "connection": CONNECTION_ROLES}[level]

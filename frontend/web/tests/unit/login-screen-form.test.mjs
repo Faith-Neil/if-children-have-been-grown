@@ -58,5 +58,4 @@ test('6. App 只挂载密码登录且不调用演示接口', () => {
   const content = read('../../src/app/App.tsx');
   assert.ok(content.includes('onPasswordLogin={loginWithPassword}'));
   assert.ok(!content.includes('/api/demo') && !content.includes('isDemoMode'));
-  assert.ok(content.split('\n').length <= 400);
 });

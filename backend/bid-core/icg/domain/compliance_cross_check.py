@@ -251,9 +251,8 @@ class ComplianceCrossCheckService:
                 if cfg_id and cfg_id in state.model_configs:
                     cfg = state.model_configs[cfg_id]
                 else:
-                    default_id = f"default-{project.company_id}"
-                    if default_id in state.model_configs:
-                        cfg = state.model_configs[default_id]
+                    from icg.infra.model_config_storage import saved_company_model
+                    cfg = saved_company_model(state, project.company_id)
 
                 if cfg is not None:
                     if not getattr(cfg, "is_local", False) or not getattr(cfg, "allow_sensitive", False):

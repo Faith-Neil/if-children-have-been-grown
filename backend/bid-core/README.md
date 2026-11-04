@@ -18,7 +18,7 @@
 
 本轮验证环境为Windows和Python 3.12.10；首次安装需要本机已有Python。其他Python版本需另行验证依赖组合。
 
-推荐统一入口：`& .\backend\bid-core\Start-Demo.ps1 -Install`。它会创建Python环境、安装后台依赖、安装前端依赖并构建页面，再启动；后续启动省略`-Install`。**L2 验收（MySQL 持久化 + 关演示 UI）** 用 [`Start-L2.ps1`](Start-L2.ps1) 与 [`docs/testing/2026-11-02-l2-manual-acceptance-runbook.md`](../../docs/testing/2026-11-02-l2-manual-acceptance-runbook.md)，勿把本脚本的内存模式当作 L2 留证。首次安装还需要Node.js和pnpm，本轮页面验证使用Node.js 24与pnpm 11.25.0。也可使用下面的分步方法。
+产品入口是 [`Start-Product.ps1`](Start-Product.ps1)。它要求 MySQL 已连通，设置 `ICG_REQUIRE_MYSQL=1`，跑迁移后再启动；连不上库就退出，不改用内存仓库。本机已有 `icg-mysql` 时直接运行该脚本。公司虚拟机用 [Docker 部署说明](../../docs/operations/docker-vm-deployment.md)。`Start-Demo.ps1` 只有显式加上 `-AllowMemory` 才会启动，不能当作产品或验收。L2 人工验收仍可对照 [`Start-L2.ps1`](Start-L2.ps1) 与 [`docs/testing/2026-11-02-l2-manual-acceptance-runbook.md`](../../docs/testing/2026-11-02-l2-manual-acceptance-runbook.md)。首次安装加 `-Install`。页面构建使用 Node.js 24 与 pnpm。
 
 ```powershell
 python -m venv .venv

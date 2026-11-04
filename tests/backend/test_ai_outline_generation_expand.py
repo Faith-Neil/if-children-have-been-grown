@@ -566,7 +566,7 @@ def test_batch_generate_chapters_readonly_role_interception(test_env):
         )
 
     assert exc_info.value.status == 403
-    assert exc_info.value.code == "FORBIDDEN"
+    assert exc_info.value.code == "PROJECT_WRITER_REQUIRED"
 
 
 # 10. 跨租户项目隔离拦截（404 NOT_FOUND）

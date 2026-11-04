@@ -12,7 +12,13 @@ export const applicationPaths: Record<string, string> = {
   workbench: '/workbench', library: '/library', knowledge: '/knowledge', writing: '/writing',
   'admin.rules': '/admin/rules', jobs: '/jobs', notifications: '/notifications',
 };
-export const projectTabs = ['overview', 'tender', 'parse', 'matrix', 'facts', 'editor', 'manual', 'checks', 'export', 'settings'];
+export const projectTabs = ['overview', 'tender', 'analyze', 'editor', 'export', 'settings'];
+const projectTabAlias: Record<string, string> = {
+  parse: 'analyze', matrix: 'analyze', facts: 'analyze', manual: 'analyze', checks: 'export', proposal: 'editor',
+};
+export function canonicalProjectTab(tab: string): string {
+  return projectTabAlias[tab] ?? tab;
+}
 
 function forbidden(message = '你没有该页面的权限，请联系公司管理员。'): never {
   throw new SessionNavigationError(message);
@@ -27,7 +33,7 @@ export function trustedApplicationSession(value: ApplicationSession): Applicatio
 
   if (!value
     || value.auth_mode !== 'authenticated'
-    || value.role_mode !== 'rbac-8roles'
+    || value.role_mode !== 'rbac-3roles'
     || !value.user?.id || !value.user.name || !roleValid
     || !value.user.company_id || !Array.isArray(value.user.roles) || !value.user.roles.length || !value.user.primary_role
     || !scopeValid || value.scope.active_company_id !== value.user.company_id

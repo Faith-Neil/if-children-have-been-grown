@@ -239,7 +239,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   }, [content, chapterId, chapter?.revision, workspace.input_fingerprint, token]);
   const shownVariables = useMemo(() => (nodesMatch(variables, content) ? variables : []), [variables, content]);
   const invalidVariables = shownVariables.filter(item => item.status !== 'valid');
-  function goToSource(source: VariableNode['source']) { navigate(source === 'facts' ? 'facts' : 'matrix'); }
+  function goToSource(_source: VariableNode['source']) { navigate('analyze'); }
 
   useEffect(() => {
     const start = ++epoch.current;
@@ -624,7 +624,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         </div>
 
         <Spin spinning={loading}><div className="editor-scroll">
-          {sourceAdvice && <Alert className="editor-notice" type="warning" showIcon message="取值由数据源决定，助手不能代改" action={<Space><Button size="small" onClick={() => navigate('facts')}>去项目事实表</Button><Button size="small" onClick={() => navigate('matrix')}>去服务承诺矩阵</Button></Space>} closable onClose={() => setSourceAdvice(false)} />}
+          {sourceAdvice && <Alert className="editor-notice" type="warning" showIcon message="取值由数据源决定，助手不能代改" action={<Space><Button size="small" onClick={() => navigate('analyze')}>回到分析</Button><Button size="small" onClick={() => navigate('analyze')}>回到分析里的承诺</Button></Space>} closable onClose={() => setSourceAdvice(false)} />}
           {sourceStale && <Alert className="editor-notice" type="warning" showIcon message={editFingerprint ? '当前文字依据的来源已经变化' : '当前草稿没有记录来源依据'} description="文字和原依据仍保留，不能直接视为采用了最新资料。请核对当前条款、事实和证据，再决定是否使用这些文字。" action={<Button size="small" disabled={combinedBusy} onClick={() => ops.reviewCurrentSources('editor')}>核对最新来源</Button>} />}
           {notice && <Alert className="editor-notice" showIcon type={notice.includes('变化') || notice.includes('失败') || notice.includes('失效') ? 'warning' : 'info'} message={notice} closable onClose={() => setNotice('')} />}
 
@@ -686,7 +686,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
                 )}
                 {invalidVariables.length > 0 && <Alert type="error" showIcon style={{ marginTop: 8 }} data-testid="invalid-variables-notice"
                   message={`${invalidVariables.length} 个变量已失效`} description="新写入的失效变量不能提交；正文原有的失效变量会在检查时拦截导出。取值请到数据源核对。"
-                  action={<Space direction="vertical">{Array.from(new Set(invalidVariables.map(item => item.source))).map(source => <Button key={source} size="small" onClick={() => goToSource(source)}>{source === 'facts' ? '去项目事实表' : '去服务承诺矩阵'}</Button>)}</Space>} />}
+                  action={<Space direction="vertical">{Array.from(new Set(invalidVariables.map(item => item.source))).map(source => <Button key={source} size="small" onClick={() => goToSource(source)}>{source === 'facts' ? '回到分析里的事实' : '回到分析里的承诺'}</Button>)}</Space>} />}
                 {detectedCitations.allIds.length > 0 && (
                   <div className="editor-citation-bar" data-testid="editor-citation-bar" style={{ marginTop: 8, padding: '8px 12px', background: '#f7f8fa', border: '1px solid #e5e6eb', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 12, color: '#4e5969', fontWeight: 500 }}>正文引用依据 ({detectedCitations.allIds.length})：</span>

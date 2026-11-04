@@ -25,11 +25,6 @@ from .generation_context import (
     validate_model_output,
     writing_source_fingerprint,
 )
-from .writing_knowledge_prompt import (
-    HISTORY_HEADING,
-    MATERIALS_HEADING,
-    format_retrieved_knowledge_prompt_lines,
-)
 from .project_access import (
     READONLY_SYSTEM_ROLES,
     ROLE_NORMALIZATION_MAP,
@@ -909,7 +904,24 @@ def format_writing_plan_prompt(snapshot: dict) -> str:
                 lines.append(f"  证据内容摘要：{ev['content']}")
         lines.append("")
 
-    lines.extend(format_retrieved_knowledge_prompt_lines(snapshot.get("retrieved_evidence", [])))
+    # RAGFlow 检索证据切片
+    retrieved = snapshot.get("retrieved_evidence", [])
+    if retrieved:
+        lines.append("【RAGFlow 检索证据候选切片】")
+        for chunk in retrieved:
+            tag = chunk.get("tag", "[片]")
+            chunk_id = chunk.get("chunk_id", chunk.get("id", ""))
+            doc_id = chunk.get("document_id", "")
+            prov_parts = []
+            if chunk_id:
+                prov_parts.append(f"chunk_id: {chunk_id}")
+            if doc_id:
+                prov_parts.append(f"document_id: {doc_id}")
+            prov = f"（{', '.join(prov_parts)}）" if prov_parts else ""
+            ref_notice = "【仅供参考，不得作为正式附着证据】" if chunk.get("reference_only") else ""
+            lines.append(f"{chunk.get('cite_tag') or tag} 检索切片{prov}{ref_notice}：")
+            lines.append(f"  {chunk.get('content', '')}")
+        lines.append("")
 
     # 项目事实与 SLA 变量
     facts = snapshot.get("facts", [])
@@ -979,7 +991,10 @@ def assemble_writing_prompt_plan(
     effective_max_tokens = max_context_tokens
     if effective_max_tokens is None:
         bound_id = state.project_model_configs.get(project_id)
-        cfg = state.model_configs.get(bound_id) if bound_id else state.model_configs.get(f"default-{project.company_id}")
+        cfg = state.model_configs.get(bound_id) if bound_id else None
+        if cfg is None:
+            from icg.infra.model_config_storage import saved_company_model
+            cfg = saved_company_model(state, project.company_id)
         if cfg:
             effective_max_tokens = getattr(cfg, "context_window", None) or getattr(cfg, "max_context_tokens", None)
         if effective_max_tokens is None:
@@ -1039,8 +1054,10 @@ def generation_loop_meta(state: Any, project_id: str, candidate: dict) -> dict:
     snapshot = candidate.get("input_snapshot") or {}
     bound = state.project_model_configs.get(project_id) if hasattr(state, "project_model_configs") else None
     project = state.projects.get(project_id)
-    config_id = bound or (f"default-{project.company_id}" if project is not None else None)
-    config = state.model_configs.get(config_id) if config_id and hasattr(state, "model_configs") else None
+    config = state.model_configs.get(bound) if bound and hasattr(state, "model_configs") else None
+    if config is None and project is not None and hasattr(state, "model_configs"):
+        from icg.infra.model_config_storage import saved_company_model
+        config = saved_company_model(state, project.company_id)
     usage = candidate.get("token_budget_usage") or {}
     if hasattr(usage, "__dict__") and not isinstance(usage, dict):
         usage = vars(usage)
@@ -1896,7 +1913,10 @@ class ChapterGenerationService:
                 raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL", "敏感项目只能使用本地模型配置。")
 
         bound_id = state.project_model_configs.get(project.id)
-        cfg = state.model_configs.get(bound_id) if bound_id else state.model_configs.get(f"default-{project.company_id}")
+        cfg = state.model_configs.get(bound_id) if bound_id else None
+        if cfg is None:
+            from icg.infra.model_config_storage import saved_company_model
+            cfg = saved_company_model(state, project.company_id)
 
         if cfg is not None:
             if not getattr(cfg, "is_local", False) or not getattr(cfg, "allow_sensitive", False):

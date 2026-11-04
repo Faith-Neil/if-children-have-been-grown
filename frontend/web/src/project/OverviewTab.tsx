@@ -44,17 +44,17 @@ export function OverviewPage() {
       done: workspace.parse_confirmed,
     },
     {
-      title: '填回应要点并挂证据',
+      title: '确认检索响应里的高风险项',
       detail: `${workspace.requirements.filter(item => item.status !== 'rejected' && !item.response.trim()).length} 条尚未响应`,
-      tab: 'matrix',
+      tab: 'analyze',
       done:
         workspace.requirements.length > 0 &&
         workspace.requirements.filter(item => item.status !== 'rejected').every(item => item.response.trim()),
     },
     {
-      title: '确认项目事实',
+      title: '处理废标相关事实',
       detail: `${workspace.facts.filter(item => ['pending', 'needs_review'].includes(item.status)).length} 项待核对`,
-      tab: 'facts',
+      tab: 'analyze',
       done: workspace.facts.every(item => !['pending', 'needs_review'].includes(item.status)),
     },
     {

@@ -1,7 +1,8 @@
 # 为什么有这个文件：本地取不出文字的招标文件（扫描件 PDF、.doc、.xls/.xlsx、图片）交给公司自建 RAGFlow 的 DeepDOC 解析。
 # 它解决什么问题：真实招标文件常有扫描页、老版 Word、Excel 评分表；本地 pypdf/docx 解析只能报 OCR_REQUIRED。
 # 做法（见 docs/decisions/2026-10-28-kb-control-plane-and-pipelines.md 第 4 节）：
-# 1. 上传到本公司 `icg-tender` 数据集（部署了 ICG“招标文件”摄入流程则走流程，否则内置 DeepDOC 解析）；
+# 1. Word（.doc / .docx）先转成 PDF。RAGFlow 只对 PDF 使用 DeepDOC；Word 直接上传没有页码位置。
+#    再上传到本公司 `icg-tender` 数据集（部署了 ICG“招标文件”摄入流程则走流程，否则内置 DeepDOC 解析）；
 # 2. 在限定时间内轮询；未完成则文件标为 parsing_remote，下次点“开始解析”接着查，不重复上传；
 # 3. 完成后按分块的版面位置（页码、纵坐标）还原逐页文字，交回原有条款/事实抽取；随后删除 RAGFlow 中的临时文档。
 # 条款抽取仍不依赖向量检索；RAGFlow 只用来“看懂版面、识别文字”。
@@ -252,6 +253,14 @@ class RemoteTenderParser:
         client = self.client(company_id)
         if client is None:
             return RemoteOutcome("failed", message="未连接 RAGFlow：扫描件、.doc、.xls 与图片须经知识库管理中连接的 RAGFlow 解析。")
+        from .office_pdf import prepare_for_deepdoc
+        prepared = prepare_for_deepdoc(filename, data)
+        converted = False
+        if isinstance(prepared, str):
+            return RemoteOutcome("failed", message=prepared)
+        if prepared is not None:
+            filename, data = prepared
+            converted = True
         suffix = PurePosixPath(filename).suffix.lower()
         parts = split_pdf(data, remote_batch_pages()) if suffix == ".pdf" else None
         uploaded: list[dict] = []
@@ -274,9 +283,16 @@ class RemoteTenderParser:
                 self._cleanup(client, {"dataset_id": dataset_id, "document_id": part["document_id"]})
             return RemoteOutcome("failed", message=f"RAGFlow 暂不可用（{type(exc).__name__}），原件仍保留，稍后重试。")
         if uploaded:
-            return self.poll(company_id, {"dataset_id": dataset_id, "document_id": uploaded[0]["document_id"],
-                                          "parts": uploaded})
-        return self.poll(company_id, {"dataset_id": dataset_id, "document_id": document.id})
+            outcome = self.poll(company_id, {"dataset_id": dataset_id, "document_id": uploaded[0]["document_id"],
+                                             "parts": uploaded})
+        else:
+            outcome = self.poll(company_id, {"dataset_id": dataset_id, "document_id": document.id})
+        if converted and outcome.state == "done" and outcome.document is not None:
+            outcome.document.warnings = [
+                "原件是 Word，已转成 PDF 后交 RAGFlow DeepDOC 按版面识别。页码对应转换后的 PDF。",
+                *outcome.document.warnings,
+            ]
+        return outcome
 
     def poll(self, company_id: str, remote: dict, *, budget: float | None = None) -> RemoteOutcome:
         client = self.client(company_id)

@@ -55,9 +55,9 @@ const mockWorkspace = {
 test('table-driven: 8 system roles in project-level data permission', () => {
   const roleCases = [
     { role: 'platform_admin', expectedReadOnly: true, expectedScope: 'project', reasonType: 'role_readonly' },
-    { role: 'group_admin', expectedReadOnly: true, expectedScope: 'project', reasonType: 'role_readonly' },
-    { role: 'auditor', expectedReadOnly: true, expectedScope: 'project', reasonType: 'role_readonly' },
-    { role: 'viewer', expectedReadOnly: true, expectedScope: 'project', reasonType: 'role_readonly' },
+    { role: 'group_admin', expectedReadOnly: true, expectedScope: 'project', reasonType: 'not_member' },
+    { role: 'auditor', expectedReadOnly: true, expectedScope: 'project', reasonType: 'not_member' },
+    { role: 'viewer', expectedReadOnly: true, expectedScope: 'project', reasonType: 'not_member' },
     { role: 'company_admin', expectedReadOnly: false, expectedScope: 'none', reasonType: undefined },
     { role: 'project_lead', expectedReadOnly: false, expectedScope: 'none', reasonType: undefined },
   ];
@@ -74,7 +74,7 @@ test('table-driven: 8 system roles in project-level data permission', () => {
     assert.equal(res.scope, expectedScope, `Role ${role} scope expectation mismatch`);
     if (reasonType) {
       assert.equal(res.reasonType, reasonType, `Role ${role} reasonType mismatch`);
-      assert.ok(res.readOnlyReason?.includes('只读状态'), `Role ${role} reason mismatch`);
+      assert.ok(res.readOnlyReason, `Role ${role} reason mismatch`);
     }
   }
 });

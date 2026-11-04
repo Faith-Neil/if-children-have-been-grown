@@ -392,7 +392,7 @@ class Requirement(ResponseBody):
     amends: str | None = Field(default=None, description="补遗条目修改的原条款")
     source_stale: str | None = Field(default=None, description="重新解析后原句在新文字里找不到，请对照原件核对")
     technical_clause: bool = Field(default=False, description="技术分册按教程抽出的条款；同一件事只有一行")
-    response_origin: Literal["", "history", "model", "retrieval_failed", "draft_failed"] = ""
+    response_origin: Literal["", "history", "model", "retrieval_failed", "draft_failed", "no_evidence"] = ""
     history_filename: str = ""
     history_quote: str = ""
 

@@ -108,7 +108,7 @@ export function ParsePage() {
   async function confirm() {
     try {
       await mutate(`/api/v1/projects/${workspace.project.id}/parse/confirm`, 'POST', {});
-      navigate('matrix');
+      navigate('analyze');
     } catch {
       /* 按后台列出的前提继续处理 */
     }
@@ -222,7 +222,7 @@ export function ParsePage() {
             <button onClick={() => setOmissionsOpen(true)}>
               疑似遗漏 <Badge count={omissions} size="small" />
             </button>
-            <button onClick={() => navigate('facts')}>
+            <button onClick={() => navigate('analyze')}>
               项目事实待核对 <Badge count={pendingFacts} size="small" />
             </button>
             <button data-testid="parse-unreadable-node" onClick={() => setNode({ kind: 'quality', which: 'unreadable' })}>
@@ -245,7 +245,7 @@ export function ParsePage() {
             ))}
           </div>
           {currentCategory && currentCategory.facts > 0 && (
-            <Alert className="page-notice" type="info" showIcon message={`本类另有 ${currentCategory.facts} 条项目事实`} action={<Button size="small" onClick={() => navigate('facts')}>去项目事实表</Button>} />
+            <Alert className="page-notice" type="info" showIcon message={`本类另有 ${currentCategory.facts} 条项目事实`} action={<Button size="small" onClick={() => navigate('analyze')}>看本页事实</Button>} />
           )}
           <div className="parse-card-scroll">
           <Alert

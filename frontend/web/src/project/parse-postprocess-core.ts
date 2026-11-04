@@ -28,7 +28,9 @@ export function hasTenderFile(files: { file_role?: string | null; superseded_by?
   return files.some(file => (file.file_role ?? 'tender') === 'tender' && !file.superseded_by);
 }
 
-export function sameSourceAlreadyExtracted(sourceFingerprint?: string, parsedFingerprint?: string): boolean {
+export function sameSourceAlreadyExtracted(sourceFingerprint?: string, parsedFingerprint?: string,
+  files?: { warnings?: string[] }[]): boolean {
+  if ((files ?? []).some(file => (file.warnings ?? []).some(item => item.includes('未返回版面位置')))) return false;
   return Boolean(parsedFingerprint) && parsedFingerprint === sourceFingerprint;
 }
 

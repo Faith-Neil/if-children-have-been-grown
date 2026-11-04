@@ -271,7 +271,7 @@ def test_history_hit_defaults_to_no_deviation_and_model_rows_confirm_one_by_one(
     assert hit["response_type"] == "exceed" and "正偏离" in hit["response"] and "30" in hit["deviation_reason"]
     assert "《其他项目》" not in hit["response"] and "《其他项目》" not in hit["history_quote"]
     drafted = rows["故障处理"]
-    assert drafted["response_origin"] == "model" and drafted["history_filename"] == ""
+    assert drafted["response_origin"] == "no_evidence" and drafted["response"] == "" and drafted["history_filename"] == ""
     mixed = client.post(
         f"/api/v1/projects/{project_id}/requirements/batch-confirm",
         headers={**headers, "If-Match": str(workspace["revision"]), "Idempotency-Key": str(uuid4())},
@@ -304,7 +304,7 @@ def test_history_hit_defaults_to_no_deviation_and_model_rows_confirm_one_by_one(
         headers={**headers, "If-Match": str(workspace["revision"]), "Idempotency-Key": str(uuid4())},
         json={"status": "confirmed"},
     )
-    assert one.status_code == 200, one.text
+    assert one.status_code == 409 and one.json()["code"] == "REQUIREMENT_NOT_READY"
 
     def broken_search(_query):
         raise RuntimeError("检索中断")
@@ -440,7 +440,7 @@ def test_draft_failure_does_not_write_a_satisfied_response():
         fill_technical_responses(SimpleNamespace(projects={}), workflow)
     finally:
         reset_history_draft(token)
-    assert workflow["requirements"]["r"]["response_origin"] == "draft_failed"
+    assert workflow["requirements"]["r"]["response_origin"] == "no_evidence"
     assert workflow["requirements"]["r"]["response"] == ""
 
 
@@ -467,9 +467,16 @@ def test_section_text_follows_write_order_and_one_section_can_fail():
 
 
 def test_generate_writes_six_parts_without_blocking_internal_export(client):
+    from icg.domain.technical_matrix import bind_deviation_judge, bind_history_search, reset_deviation_judge, reset_history_search
     from icg.domain.technical_volume import bind_section_writer, reset_section_writer, stand_in
     headers = login(client)
-    project_id, workspace = _parse_clause(client, headers, "服务方案中应包含数据库的健康检查、故障处理、标准服务等。")
+    search = bind_history_search(lambda _query: [{"filename": "2023合成.docx", "quote": "按招标要求响应", "score": 0.9}])
+    judge = bind_deviation_judge(lambda clause, _quote: {"deviation": "无偏离", "reason": ""} if any(name in clause for name in ("健康检查", "标准服务")) else {"deviation": "正偏离", "reason": "需要逐条确认"})
+    try:
+        project_id, workspace = _parse_clause(client, headers, "服务方案中应包含数据库的健康检查、故障处理、标准服务等。")
+    finally:
+        reset_history_search(search)
+        reset_deviation_judge(judge)
     early = client.post(
         f"/api/v1/projects/{project_id}/generate",
         headers={**headers, "If-Match": str(workspace["revision"]), "Idempotency-Key": str(uuid4())},
@@ -575,16 +582,24 @@ def test_deviation_table_copies_the_tender_sample(client):
         "只列出偏离项",
     ])
     headers = login(client)
-    project_id, workspace = _parse_clause(client, headers, tender)
+    from icg.domain.technical_matrix import bind_deviation_judge, bind_history_search, reset_deviation_judge, reset_history_search
+    search = bind_history_search(lambda query: [{"filename": "2023合成.docx", "quote": "每30分钟巡检一次" if "健康检查" in query else "按招标要求响应", "score": 0.9}])
+    judge = bind_deviation_judge(lambda clause, _quote: {
+        "deviation": "正偏离",
+        "reason": "每30分钟巡检一次，高于招标要求",
+    } if "健康检查" in clause else {"deviation": "正偏离", "reason": "培训安排待确认"} if "培训" in clause else {"deviation": "无偏离", "reason": ""})
+    try:
+        project_id, workspace = _parse_clause(client, headers, tender)
+    finally:
+        reset_history_search(search)
+        reset_deviation_judge(judge)
     assert workspace["technical_deviation_note"] == ""
     samples = find_samples({"files": {"f": {"file_role": "tender", "pages": [tender]}}})
     assert [item["attachment"] for item in samples] == [False, True]
     assert [item["mode"] for item in samples] == ["all", "deviations"]
     workspace = _confirm_plan(client, headers, project_id)
     rows = {row["text"]: row for row in workspace["requirements"] if row.get("technical_clause")}
-    revision = _patch_requirement(client, headers, project_id, workspace["revision"], rows["健康检查"]["id"], {
-        "response_type": "exceed", "deviation_reason": "巡检频次高于招标要求", "response": "每30分钟巡检一次", "status": "confirmed",
-    })
+    revision = _patch_requirement(client, headers, project_id, workspace["revision"], rows["健康检查"]["id"], {"status": "confirmed"})
     revision = _patch_requirement(client, headers, project_id, revision, rows["故障处理"]["id"], {"status": "confirmed"})
     revision = _patch_requirement(client, headers, project_id, revision, rows["★废标响应时限"]["id"], {"status": "confirmed"})
     filled = {
@@ -605,7 +620,7 @@ def test_deviation_table_copies_the_tender_sample(client):
     fault = next(row for row in inline_rows if row[1] == "故障处理")
     assert fault[3] == "无偏离" and fault[4] == ""
     health = next(row for row in inline_rows if row[1] == "健康检查")
-    assert health[2] == "每30分钟巡检一次" and health[3] == "正偏离" and "高于" in health[4]
+    assert "每30分钟巡检一次" in health[2] and health[3] == "正偏离" and "高于" in health[4]
     deviation_titles = [row[1] for row in table_rows(samples[1], filled)]
     assert "健康检查" in deviation_titles and "★废标响应时限" in deviation_titles and "故障处理" not in deviation_titles
     token = bind_section_writer(lambda title, row: stand_in(title, row))
@@ -636,19 +651,14 @@ def test_deviation_table_copies_the_tender_sample(client):
     extra_xml = _document_xml(extra.content)
     assert "每30分钟巡检一次" in main_xml and "故障处理" in main_xml and "商务偏离表" not in main_xml
     assert "每30分钟巡检一次" in extra_xml and "故障处理" not in extra_xml
-    revision = _patch_requirement(client, headers, project_id, client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()["revision"], rows["健康检查"]["id"], {
-        "response": "每15分钟巡检一次", "status": "confirmed",
-    })
-    changed = client.post(
-        f"/api/v1/projects/{project_id}/exports",
-        headers={**headers, "If-Match": str(revision), "Idempotency-Key": str(uuid4())},
-        json={"check_id": "technical-internal", "kind": "internal", "volume": "technical"},
+    rejected = client.patch(
+        f"/api/v1/projects/{project_id}/requirements/{rows['健康检查']['id']}",
+        headers={**headers, "If-Match": str(client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()["revision"]), "Idempotency-Key": str(uuid4())},
+        json={"response": "每15分钟巡检一次", "status": "confirmed"},
     )
-    assert changed.status_code == 200, changed.text
-    changed_xml = _document_xml(client.get(changed.json()["export"]["volumes"][0]["download_url"], headers=headers).content)
+    assert rejected.status_code == 422 and rejected.json()["code"] == "VALIDATION_ERROR"
     kept = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
     kept_chapter = next(item for item in kept["chapters"] if item["id"] == kept["technical_outline"]["chapter_id"])
-    assert "每15分钟巡检一次" in changed_xml
     assert "每30分钟巡检一次" in kept_chapter["content"]
     locked = client.post(f"/api/chapters/{kept_chapter['id']}/lock", headers=headers, json={})
     assert locked.status_code == 200, locked.text

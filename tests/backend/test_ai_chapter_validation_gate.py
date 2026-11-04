@@ -589,15 +589,13 @@ def test_multitenant_isolation_and_rbac_gates(test_env):
     assert exc_404.value.status == 404
     assert exc_404.value.code == "NOT_FOUND"
 
-    # 只读审计角色调用 -> 403 FORBIDDEN
-    with pytest.raises(DomainError) as exc_403:
-        gen_svc.validate_chapter_content(
-            project_id="alpha-project",
-            chapter_id="ch-tech-01",
-            principal=test_env["auditor"],
-        )
-    assert exc_403.value.status == 403
-    assert exc_403.value.code == "FORBIDDEN"
+    # 旧审核人已是普通用户，可以调用检查
+    audited = gen_svc.validate_chapter_content(
+        project_id="alpha-project",
+        chapter_id="ch-tech-01",
+        principal=test_env["auditor"],
+    )
+    assert "validation_passed" in audited
 
 
 def test_sensitive_project_local_model_gate(test_env):

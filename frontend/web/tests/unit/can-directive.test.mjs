@@ -72,15 +72,14 @@ test('table-driven: 8 roles x project:create permission', () => {
     { role: 'company_admin', expected: true },
     { role: 'manager', expected: true }, // 历史别名
     { role: 'lead', expected: true }, // 历史别名
-    { role: 'bid_writer', expected: false },
-    { role: 'editor', expected: false }, // 历史别名
-    { role: 'data_admin', expected: false },
-    { role: 'group_admin', expected: false },
+    { role: 'bid_writer', expected: true },
+    { role: 'editor', expected: true },
+    { role: 'data_admin', expected: true },
+    { role: 'member', expected: true },
+    { role: 'group_admin', expected: true },
     { role: 'platform_admin', expected: false },
-    { role: 'auditor', expected: false },
-    { role: 'reviewer', expected: false }, // 历史别名
-    { role: 'viewer', expected: false },
-    { role: 'readonly', expected: false }, // 历史别名
+    { role: 'auditor', expected: true },
+    { role: 'viewer', expected: true },
   ];
 
   for (const c of cases) {
@@ -213,9 +212,9 @@ test('volume:finalize, volume:check, volume:unlock permissions', () => {
   assert.equal(can('volume:finalize', 'technical', { role: 'bid_writer', userId: 'user-writer', workspace: mockWorkspace }).allowed, false);
 });
 
-test('id_card:view (查看完整身份证号) strictly limited to company_admin and data_admin', () => {
-  const allowed = ['company_admin', 'data_admin'];
-  const disallowed = ['project_lead', 'bid_writer', 'group_admin', 'platform_admin', 'auditor', 'viewer'];
+test('id_card:view is limited to company_admin', () => {
+  const allowed = ['company_admin'];
+  const disallowed = ['data_admin', 'project_lead', 'bid_writer', 'group_admin', 'platform_admin', 'auditor', 'viewer'];
 
   for (const role of allowed) {
     const res = can('id_card:view', null, { role });
@@ -241,7 +240,7 @@ test('universal readonly safety gate blocks all write operations', () => {
     'partner:upload',
   ];
 
-  const readonlyRoles = ['viewer', 'readonly', 'group_admin', 'auditor', 'reviewer'];
+  const readonlyRoles = ['platform_admin'];
 
   for (const role of readonlyRoles) {
     for (const action of writeActions) {

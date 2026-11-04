@@ -14,7 +14,6 @@ from icg.domain.generation_context import evidence_expired
 from icg.domain.idempotency import lookup, remember
 from icg.domain.project_access import (
     ROLE_COMPANY_ADMIN,
-    ROLE_DATA_ADMIN,
     ROLE_PLATFORM_ADMIN,
     normalize_role,
 )
@@ -30,7 +29,7 @@ class LibraryOrchestratorMixin:
         should_mask = is_platform_admin or bool(masked)
 
         if not should_mask:
-            if norm_role in (ROLE_COMPANY_ADMIN, ROLE_DATA_ADMIN):
+            if norm_role == ROLE_COMPANY_ADMIN:
                 allowed = {p.id for p in state.projects.values() if p.company_id == principal.user.company_id}
             else:
                 allowed = {

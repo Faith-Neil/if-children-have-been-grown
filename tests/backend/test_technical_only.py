@@ -28,7 +28,9 @@ class TechFlow(ProjectFlow):
         self.write("", {"tender_number": "SYNTH-001", "deadline": "2026-12-31T17:00:00+08:00"}, "PATCH")
         # 技术分册只接受 pdf/doc/docx；用合成 docx 承载与原先 txt 相同的条款文字。
         self.upload(_docx(tender or TENDER), "合成招标.docx")
-        assert self.write("/parse", {})["job"]["status"] == "completed"
+        from test_reference_flow import synthetic_history
+        with synthetic_history():
+            assert self.write("/parse", {})["job"]["status"] == "completed"
         for row in self.state()["requirements"]:
             if not row.get("out_of_scope"):
                 self.write("/requirements/" + row["id"], {"status": "confirmed"}, "PATCH")
@@ -49,7 +51,7 @@ class TechFlow(ProjectFlow):
         for row in self.state()["requirements"]:
             if row.get("out_of_scope"):
                 continue
-            self.write("/requirements/" + row["id"], {"chapter_id": chapter["id"], "response": "经核对满足要求。"}, "PATCH")
+            self.write("/requirements/" + row["id"], {"chapter_id": chapter["id"]}, "PATCH")
         # 只确认已有目录，不再传 outline_headings，避免重写正文导致 writing fingerprint 立刻失配。
         self.confirm_plan({
             "scope": "technical",
@@ -65,7 +67,6 @@ class TechFlow(ProjectFlow):
                 self.write("/requirements/" + row["id"], {
                     "status": "confirmed",
                     "chapter_id": chapter["id"],
-                    "response": row.get("response") or "经核对满足要求。",
                 }, "PATCH")
         self.confirm_plan({
             "scope": "technical",
