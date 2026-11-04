@@ -108,6 +108,26 @@ def _fail(row: dict, origin: str) -> None:
                history_filename="", history_quote="", status="pending")
 
 
+def _hit_source(item: dict) -> str:
+    return str(item.get("source") or "history")
+
+
+def _material_sources(hits: list[dict]) -> list[dict]:
+    return [
+        {"filename": str(item.get("filename") or ""), "quote": str(item.get("quote") or "")}
+        for item in hits
+        if _hit_source(item) == "materials"
+    ]
+
+
+def _best_history_hit(hits: list[dict]) -> dict | None:
+    history = [item for item in hits if _hit_source(item) == "history"]
+    if not history:
+        return None
+    history.sort(key=lambda item: float(item.get("score") or 0), reverse=True)
+    return history[0]
+
+
 def _apply_history(row: dict, clause: str, filename: str, quote: str, model: Any) -> None:
     try:
         judgment = judge_deviation(clause, quote, model)
@@ -134,14 +154,14 @@ def _apply_history(row: dict, clause: str, filename: str, quote: str, model: Any
     )
 
 
-def fill_technical_responses(state: Any, workflow: dict, *, model: Any = None) -> None:
+def fill_technical_responses(state: Any, workflow: dict, *, model: Any = None, search: Callable[[str], list[dict]] | None = None) -> None:
     """抽出条款后填写响应。没有历史数据集时按没有命中处理，不编造出处。"""
     rows = [row for row in workflow.get("requirements", {}).values() if row.get("technical_clause")]
     if not rows:
         workflow["technical_retrieval"] = "done"
         return
     del state
-    search = _search_fn
+    search = _search_fn or search
     draft = _draft_fn or local_draft
     workflow["technical_retrieval"] = "running"
     try:
@@ -152,10 +172,21 @@ def fill_technical_responses(state: Any, workflow: dict, *, model: Any = None) -
             except Exception:
                 _fail(row, "retrieval_failed")
                 continue
-            hits.sort(key=lambda item: float(item.get("score") or 0), reverse=True)
-            if hits:
-                best = hits[0]
-                _apply_history(row, clause, str(best.get("filename") or ""), visible_quote(str(best.get("quote") or ""), clause), model)
+            materials = _material_sources(hits)
+            best = _best_history_hit(hits)
+            if best is not None:
+                _apply_history(
+                    row,
+                    clause,
+                    str(best.get("filename") or ""),
+                    visible_quote(str(best.get("quote") or ""), clause),
+                    model,
+                )
+                row["material_sources"] = materials
+                continue
+            if materials:
+                _fail(row, "no_evidence")
+                row["material_sources"] = materials
                 continue
             try:
                 text = (draft(clause) or "").strip()

@@ -324,6 +324,40 @@ def test_history_hit_defaults_to_no_deviation_and_model_rows_confirm_one_by_one(
     assert refused.status_code == 409 and refused.json()["code"] == "REQUIREMENT_NOT_READY"
 
 
+def test_technical_matrix_uses_closest_history_and_keeps_material_sources():
+    from icg.domain.technical_matrix import bind_deviation_judge, fill_technical_responses, reset_deviation_judge
+    workflow = {"requirements": {"r1": {"id": "r1", "text": "数据备份", "merged_into": "", "technical_clause": True}}}
+    def search(_clause):
+        return [
+            {"score": 0.4, "filename": "旧标.docx", "quote": "每日增量备份", "source": "history"},
+            {"score": 0.9, "filename": "说明书.pdf", "quote": "支持增量备份", "source": "materials"},
+            {"score": 0.2, "filename": "更旧.docx", "quote": "每周全量", "source": "history"},
+        ]
+    judge = bind_deviation_judge(lambda _clause, _quote: {"deviation": "无偏离", "reason": ""})
+    try:
+        fill_technical_responses(None, workflow, model=None, search=search)
+    finally:
+        reset_deviation_judge(judge)
+    row = workflow["requirements"]["r1"]
+    assert row["history_filename"] == "旧标.docx"
+    assert row["material_sources"] == [{"filename": "说明书.pdf", "quote": "支持增量备份"}]
+    assert row["response_origin"] == "history"
+
+
+def test_technical_matrix_keeps_material_sources_when_no_history():
+    from icg.domain.technical_matrix import fill_technical_responses
+    workflow = {"requirements": {"r1": {"id": "r1", "text": "数据备份", "merged_into": "", "technical_clause": True}}}
+    def search(_clause):
+        return [
+            {"score": 0.9, "filename": "说明书.pdf", "quote": "支持增量备份", "source": "materials"},
+        ]
+    fill_technical_responses(None, workflow, model=None, search=search)
+    row = workflow["requirements"]["r1"]
+    assert row["response_origin"] == "no_evidence"
+    assert row["history_filename"] == ""
+    assert row["material_sources"] == [{"filename": "说明书.pdf", "quote": "支持增量备份"}]
+
+
 def test_matching_history_stays_no_deviation_and_lower_history_is_negative():
     from icg.domain.technical_matrix import fill_technical_responses, parse_judgment
     assert parse_judgment('{"deviation":"负偏离","reason":"响应时限做不到招标的15分钟"}')["deviation"] == "负偏离"

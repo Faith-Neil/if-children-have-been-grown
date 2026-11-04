@@ -376,7 +376,17 @@ class TenderOrchestratorMixin:
                                 provider = self.demo.resolve_model_provider(state, project_id, "chapter_generation")
                             except Exception:
                                 provider = None
-                        fill_technical_responses(state, actual, model=provider)
+                        kb = getattr(self.demo, "knowledge_base", None)
+                        search_company = state.projects[project_id].company_id
+
+                        def knowledge_search(clause: str, kb=kb, company_id=search_company) -> list[dict]:
+                            if kb is None:
+                                return []
+                            hits, _skip = kb.search(company_id, clause, limit=5, kinds={"history", "materials"})
+                            return [{"score": hit.score, "filename": hit.name, "quote": hit.content,
+                                     "source": hit.dataset_kind} for hit in hits]
+
+                        fill_technical_responses(state, actual, model=provider, search=knowledge_search)
             job = self._job(state, project_id, "parse", "真实文字提取完成；条款、事实及引用仍需人工核对。"
                             + (f"后处理：{notes}。" if notes else "")
                             + (f"另有 {len(pending)} 份文件仍在 RAGFlow 解析中。" if pending else ""))
