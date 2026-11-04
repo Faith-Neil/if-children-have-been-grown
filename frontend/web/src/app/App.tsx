@@ -1,9 +1,5 @@
-// 为什么有这个文件：保留 ICG 示例的导航和项目外壳，连接真实业务页签，并全面接入 React-Router 现代化路由体系。
-// 它解决什么问题：工作台、解析、矩阵、编辑、检查和导出使用同一套项目状态与结构化路由守卫。
-// 架构说明（FE-TECH-DEBT-02）：顶栏操作区（AppHeaderActions）、全局弹窗与抽屉（AppModals）、
-// 项目工作区路由子树（ProjectWorkspaceContent）与全局页面路由子树（GlobalPagesContent）均已独立抽离，
-// 核心行数严格控制在 400 行以内。
-
+// 为什么有这个文件：连接导航外壳与真实业务页签，并用路由守卫保持同一套项目状态。
+// 它解决什么问题：顶栏、弹窗、项目工作区与全局页面已抽离，本文件行数保持在 400 以内。
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { App as AntApp, Button, Form, Result, Spin } from 'antd';
 import { AppstoreOutlined, BookOutlined, CheckSquareOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
@@ -28,7 +24,6 @@ const navigation = [ { id: 'workbench', name: '工作台', icon: <AppstoreOutlin
 
 export default function App() {
   const { message, modal } = AntApp.useApp();
-
   const [sessionBoot, setSessionBoot] = useState(() => {
     try { return Boolean(sessionStorage.getItem('icg.access_token')); } catch { return false; }
   });

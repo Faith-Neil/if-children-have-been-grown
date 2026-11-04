@@ -58,7 +58,8 @@ function contextFor(names) {
   };
   context.modal.confirm = options => { context.confirmations.push(options); };
   context.message.error = value => { context.errors.push(value); };
-  for (const key of ['LibrarySnapshot', 'TemplatesSnapshot', 'Projects', 'Jobs', 'ApplicationSession', 'Token', 'User', 'Workspace', 'EditorDirty', 'CreateOpen', 'TaskDrawer', 'AccessLost', 'Denied', 'DeniedDetails', 'Loading', 'Missing', 'Nav', 'Tab', 'Busy', 'Notice', 'SourceAdvice', 'Lease', 'Versions', 'VersionsOpen']) {
+  context.sessionStorage = { getItem() { return null; }, setItem() {}, removeItem() {} };
+  for (const key of ['SessionBoot', 'LibrarySnapshot', 'TemplatesSnapshot', 'Projects', 'Jobs', 'ApplicationSession', 'Token', 'User', 'Workspace', 'EditorDirty', 'CreateOpen', 'TaskDrawer', 'AccessLost', 'Denied', 'DeniedDetails', 'Loading', 'Missing', 'Nav', 'Tab', 'Busy', 'Notice', 'SourceAdvice', 'Lease', 'Versions', 'VersionsOpen']) {
     context[`set${key}`] = value => {
       const name = key[0].toLowerCase() + key.slice(1);
       context[name] = typeof value === 'function' ? value(context[name]) : value;
