@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 import { Alert, Button, Modal, Progress, Space, Typography, Upload } from 'antd';
 import { ScanOutlined } from '@ant-design/icons';
 import { rawUploadPath, request, uploadRaw, uploadTooLarge } from '../shared/api.ts';
-import { KB_UPLOAD_ACCEPT, kbApi } from './kb-admin-core.ts';
+import { CERTIFICATE_UPLOAD_ACCEPT, kbApi } from './kb-admin-core.ts';
 
 type Phase = 'idle' | 'uploading' | 'parsing' | 'drafting' | 'done' | 'failed';
 const POLL_MS = 4000;
@@ -31,14 +31,14 @@ export function CertificateImport({ token, disabled, onDrafted, wait = ms => new
       const tooLarge = uploadTooLarge(file);
       if (tooLarge) throw new Error(tooLarge);
       const uploaded = await uploadRaw<{ document_id: string; status: string }>(
-        rawUploadPath(`${kbApi.documents('certificate').split('?')[0]}/raw`, { filename: file.name, content_type: file.type }), token, file);
+        rawUploadPath(`${kbApi.certificateDocuments().split('?')[0]}/raw`, { filename: file.name, content_type: file.type }), token, file);
       setPhase('parsing');
       let status = uploaded.status;
       for (let i = 0; status !== 'synced' && i < POLL_LIMIT; i++) {
         if (status === 'failed') break;
         await wait(POLL_MS);
         setPolls(i + 1);
-        const docs = await request<{ items: { document_id: string; status: string; message: string }[] }>(kbApi.documents('certificate'), token);
+        const docs = await request<{ items: { document_id: string; status: string; message: string }[] }>(kbApi.certificateDocuments(), token);
         const row = docs.items.find(d => d.document_id === uploaded.document_id);
         status = row?.status === 'unsynced' ? 'parsing' : (row?.status ?? status);
         if (row?.status === 'failed') { setMessage(row.message || '识别失败'); break; }
@@ -73,7 +73,7 @@ export function CertificateImport({ token, disabled, onDrafted, wait = ms => new
           <Typography.Paragraph type="secondary">
             上传证书、资质或合同的扫描件/照片（PDF、JPG、PNG），系统识别名称、编号、发证机构、持有人和有效期，生成一条“待核验”资料。识别结果可能有误，必须对照原件确认。
           </Typography.Paragraph>
-          <Upload accept={KB_UPLOAD_ACCEPT.certificate} showUploadList={false} beforeUpload={file => run(file)} disabled={busy}>
+          <Upload accept={CERTIFICATE_UPLOAD_ACCEPT} showUploadList={false} beforeUpload={file => run(file)} disabled={busy}>
             <Button type="primary" loading={busy} disabled={busy}>选择文件</Button>
           </Upload>
           {phase !== 'idle' && <Progress percent={percent} status={phase === 'failed' ? 'exception' : phase === 'done' ? 'success' : 'active'} />}
