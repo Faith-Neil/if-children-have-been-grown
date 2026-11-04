@@ -15,7 +15,7 @@ export type MatrixData = { revision: number; volumes: string[]; items: MatrixIte
 export type MatchCandidate = { id?: string; source_id?: string; name: string; type?: string; revision?: number; score: number; attachable: boolean; reason?: string; already_attached?: boolean; basis: string; unavailable?: boolean };
 export type MatchResult = { requirement_id: string; structured: MatchCandidate[]; snippets: MatchCandidate[]; history_reference: MatchCandidate[] };
 
-export type CandidateRoute = 'structured' | 'snippet' | 'history';
+export type CandidateRoute = 'structured' | 'snippet' | 'history' | 'materials';
 export type EvidenceCandidate = {
   route: CandidateRoute; route_label: string; id?: string | null; name?: string | null; version?: number | string | null; source: string;
   score?: number | null; valid_until?: string | null; cite_reason: string; blocked_reason?: string | null; attachable: boolean;
@@ -29,6 +29,7 @@ export type EvidenceCandidates = {
 export const ROUTE_GROUPS: { route: CandidateRoute; title: string }[] = [
   { route: 'structured', title: '资料库规则匹配' },
   { route: 'snippet', title: '知识库片段' },
+  { route: 'materials', title: '资料库（参考）' },
   { route: 'history', title: '历史标书仅参考' },
 ];
 

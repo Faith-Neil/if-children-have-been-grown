@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import base64
 from uuid import uuid4
 
 import pytest
@@ -60,6 +61,26 @@ def _search(client, headers, query, **extra):
     result = client.post("/api/v1/knowledge-base/search", headers=headers, json={"query": query, **extra})
     assert result.status_code == 200, result.text
     return result.json()
+
+
+def _b64(text: str) -> str:
+    return base64.b64encode(text.encode("utf-8")).decode()
+
+
+def _upload_kb_file(client, headers, fake, kind: str, filename: str, text: str, **meta):
+    if kind in ("history", "materials"):
+        ensured = client.post(f"/api/v1/kb-admin/datasets/{kind}/ensure", headers=headers, json={})
+        assert ensured.status_code == 200, ensured.text
+    uploaded = client.post(
+        f"/api/v1/kb-admin/datasets/{kind}/documents",
+        headers=headers,
+        json={"filename": filename, "content_base64": _b64(text), "content_type": "text/markdown", "metadata": meta},
+    )
+    assert uploaded.status_code == 200, uploaded.text
+    fake.finish_parsing()
+    company = _company(client, headers)
+    client.app.state.service.knowledge_base.refresh_status(company)
+    return uploaded.json()
 
 
 def test_confirmed_library_item_is_synced_and_retrievable_by_source_id(client, fake):
@@ -214,6 +235,80 @@ def test_without_ragflow_sync_never_claims_success():
         assert status["enabled"] is False
         assert client.post("/api/v1/knowledge-base/sync", headers=headers).json()["enabled"] is False
         assert _search(client, headers, "任意")["skipped_reason"] == "RAGFlow is not configured"
+
+
+def test_writing_prompt_splits_history_and_materials(client, fake):
+    from icg.domain.chapter_generation import (
+        HISTORY_HEADING,
+        MATERIALS_HEADING,
+        ChapterGenerationService,
+    )
+
+    kb_admin = login(client, "alpha-company-admin")
+    company = _company(client, kb_admin)
+    client.post("/api/v1/kb-admin/pipelines/deploy", headers=kb_admin, json={})
+
+    hist_file = "合成历史投标玄武.docx"
+    mat_file = "合成权威资料青龙.pdf"
+    hist_phrase = "玄武架构HIST4TASK"
+    mat_phrase = "青龙参数MAT4TASK"
+    _upload_kb_file(client, kb_admin, fake, "history", hist_file, f"# 历史方案\n\n{hist_phrase} 优秀技术表述。")
+    _upload_kb_file(client, kb_admin, fake, "materials", mat_file, f"{mat_phrase} 产品技术参数说明。")
+
+    hits, reason = client.app.state.service.knowledge_base.search(company, hist_phrase, limit=5)
+    assert not reason, reason
+    assert any(h.name == hist_file for h in hits)
+    mat_hits, mat_reason = client.app.state.service.knowledge_base.search(company, mat_phrase, limit=5)
+    assert not mat_reason, mat_reason
+    assert any(h.name == mat_file for h in mat_hits)
+
+    repository = client.app.state.service.repository
+    from icg.domain.generation_context import writing_source_fingerprint
+
+    def seed_workflow(state):
+        state.workflows["alpha-project"] = {
+            "parse_confirmed": True,
+            "requirements": {
+                "req-kb-split": {
+                    "id": "req-kb-split",
+                    "volume": "technical",
+                    "category": "technical",
+                    "chapter_id": "alpha-tech",
+                    "text": f"须说明 {hist_phrase} 与 {mat_phrase}",
+                    "response": "经核对响应。",
+                    "status": "confirmed",
+                    "evidence_ids": [],
+                    "source": None,
+                    "volume_confirmed_at": "2026-10-01T00:00:00+00:00",
+                }
+            },
+            "writing_plan": {
+                "chapters": {
+                    "alpha-tech": {"writing_points": hist_phrase, "target_length": 500, "fact_ids": []},
+                }
+            },
+            "knowledge_base_enabled": True,
+            "facts": {},
+        }
+        chapter_plan = state.workflows["alpha-project"]["writing_plan"]["chapters"]["alpha-tech"]
+        chapter_plan["confirmed_at"] = "2026-10-01T00:00:00+00:00"
+        chapter_plan["confirmed_input_fingerprint"] = writing_source_fingerprint(state, "alpha-project", "alpha-tech")
+
+    repository.transaction(seed_workflow)
+
+    service = client.app.state.service
+    chapter_gen = ChapterGenerationService(service, service.repository, service.evidence_service)
+    plan_data = chapter_gen.assemble_writing_prompt_plan("alpha-project", "alpha-tech")
+    prompt = plan_data["prompt"]
+
+    hist_pos = prompt.index(HISTORY_HEADING)
+    mat_pos = prompt.index(MATERIALS_HEADING)
+    assert hist_pos < mat_pos
+    history_block = prompt[hist_pos:mat_pos]
+    assert hist_file in history_block or hist_phrase in history_block
+    assert mat_file not in history_block
+    materials_block = prompt[mat_pos:]
+    assert mat_file in materials_block or mat_phrase in materials_block
 
 
 def test_generation_context_gets_knowledge_candidates_as_pian_not_zheng(client, fake):

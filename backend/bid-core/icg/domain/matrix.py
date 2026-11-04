@@ -196,7 +196,7 @@ class MatrixMixin(SystemChapterMixin, ParseReviewMixin, ProposedStaffMixin, Expo
         """单条条款的三路候选（资料库规则匹配 / 知识库片段 / 历史标书参考），批量匹配与候选查询共用。"""
         library = [i for i in state.library.values() if i.get("company_id") == project.company_id]
         want = _grams(row.get("text"))
-        structured, history = [], []
+        structured, history, materials = [], [], []
         for item in library:
             overlap = len(want & _grams(f"{item.get('name', '')}{item.get('content', '')}")) / max(1, len(want))
             if overlap < 0.12:
@@ -217,13 +217,17 @@ class MatrixMixin(SystemChapterMixin, ParseReviewMixin, ProposedStaffMixin, Expo
                 hits, _skip = kb.search(project.company_id, str(row.get("text", ""))[:300], limit=5, user=principal.user)
                 for hit in hits:
                     public = hit.to_public()
-                    target = history if public.get("reference_only") else snippets
-                    target.append({**public, "attachable": False if public.get("reference_only") else public.get("attachable", False),
-                                   "basis": "公司知识库检索"})
+                    if public.get("dataset_kind") == "materials":
+                        materials.append({**public, "attachable": False, "basis": "公司知识库检索"})
+                    elif public.get("reference_only"):
+                        history.append({**public, "attachable": False, "basis": "公司知识库检索"})
+                    else:
+                        snippets.append({**public, "attachable": public.get("attachable", False), "basis": "公司知识库检索"})
             except Exception:  # 知识库不可用时只给结构化候选，并说明
                 kb_status = "unavailable"
         structured.sort(key=lambda c: (not c["attachable"], -c["score"]))
-        return {"structured": structured[:8], "snippets": snippets, "history": history[:5], "kb_status": kb_status}
+        return {"structured": structured[:8], "snippets": snippets, "history": history[:5],
+                "materials": materials[:5], "kb_status": kb_status}
 
     def match_evidence(self, principal: Principal, project_id: str, requirement_ids: list[str]) -> dict:
         """批量智能匹配：只返回候选与依据，不挂接（PRD §5.3.1 规则 11：结果逐行确认）。"""
@@ -279,6 +283,13 @@ class MatrixMixin(SystemChapterMixin, ParseReviewMixin, ProposedStaffMixin, Expo
                 "valid_until": entry.get("valid_until"), "cite_reason": entry.get("basis") or "",
                 "blocked_reason": "历史标书仅供参考，不能作为证据挂接", "attachable": False, "already_attached": False,
                 "content_preview": entry.get("content_preview") or str(entry.get("content") or "")[:200] or None})
+        for entry in found.get("materials", []):
+            candidates.append({
+                "route": "materials", "route_label": "资料库（参考）", "id": entry.get("source_id"),
+                "name": entry.get("name"), "version": entry.get("revision"), "source": "公司知识库",
+                "score": entry.get("score"), "valid_until": None, "cite_reason": entry.get("basis") or "",
+                "blocked_reason": "资料库参考原件不能作为证据挂接", "attachable": False, "already_attached": False,
+                "content_preview": str(entry.get("content") or "")[:200] or None})
         return {"project_id": project_id, "requirement_id": requirement_id, "revision": project.revision,
                 "kb_status": found["kb_status"], "can_attach": can_attach, "candidates": candidates,
                 "notice": "候选不会自动挂接；片段与历史标书只供查看，只有资料库已确认的规则匹配项可以挂接。"}

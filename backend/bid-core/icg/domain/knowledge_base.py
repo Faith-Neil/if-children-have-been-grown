@@ -106,6 +106,9 @@ class KnowledgeHit:
     chunk_ids: list[str] = field(default_factory=list)
     attachable: bool = False
     reference_only: bool = False
+    dataset_kind: str = ""
+    content_role: str = ""
+    technical_domain: str = ""
 
     @property
     def cite_tag(self) -> str:
@@ -134,6 +137,8 @@ class KnowledgeHit:
             "item_type": self.item_type, "revision": self.revision, "score": round(self.score, 4),
             "content": self.content, "document_id": self.document_id, "chunk_ids": list(self.chunk_ids),
             "attachable": self.attachable, "reference_only": self.reference_only, "cite_tag": self.cite_tag,
+            "dataset_kind": self.dataset_kind, "content_role": self.content_role,
+            "technical_domain": self.technical_domain,
         }
 
 
@@ -616,7 +621,7 @@ class KnowledgeBaseService:
         """返回 (命中, 跳过原因)。
 
         只认索引里已同步的当前文档；每个命中都按 DemoState 实时复核（公司、确认状态、版本、有效期、受限授权），
-        不通过的直接丢弃。kinds 可取 "evidence"（非历史资料）、"snippet"、"history"。
+        不通过的直接丢弃。kinds 可取 "history"、"materials"，以及兼容的 "evidence"、"snippet"。
         """
         if not query or not query.strip():
             return [], "query is empty"
@@ -626,7 +631,7 @@ class KnowledgeBaseService:
             return [], "RAGFlow is not configured"
         index = read_index(state, company_id)
         settings = {**read_settings(state, company_id), **(overrides or {})}
-        wanted_kinds = kinds or {"evidence", "snippet", "history"}
+        wanted_kinds = kinds or {"history", "materials"}
         candidates = list(index.get("entries", {}).values()) + list(index.get("files", {}).values())
         entries = {e["document_id"]: e for e in candidates
                    if e.get("status") == STATUS_SYNCED and e.get("document_id") and e.get("enabled", True)
@@ -663,11 +668,17 @@ class KnowledgeBaseService:
         for group in grouped.values():
             entry, live = group["entry"], group["live"]
             content = "\n…\n".join(c.content.strip() for c in group["chunks"] if c.content.strip())
+            meta_fields = dict(entry.get("meta_fields") or {})
+            user_meta = entry.get("user_meta") or {}
+            content_role = str(meta_fields.get("content_role") or user_meta.get("content_role") or "")
+            technical_domain = str(meta_fields.get("technical_domain") or user_meta.get("technical_domain") or "")
+            dataset_kind = self._entry_dataset_kind(entry)
             hits.append(KnowledgeHit(
                 source_type=entry["source_type"], source_id=entry["source_id"], name=live["name"],
                 item_type=entry["item_type"], revision=entry["revision"], score=group["score"], content=content,
                 document_id=entry["document_id"], chunk_ids=[c.id for c in group["chunks"]],
                 attachable=live["attachable"], reference_only=live["reference_only"],
+                dataset_kind=dataset_kind, content_role=content_role, technical_domain=technical_domain,
             ))
         hits.sort(key=lambda h: (-h.score, h.source_id))
         return hits[:limit], ("" if hits else "zero usable hits")
@@ -680,12 +691,22 @@ class KnowledgeBaseService:
         return (index.get("datasets", {}).get(kind) or {}).get("dataset_id", "")
 
     @staticmethod
+    def _entry_dataset_kind(entry: dict) -> str:
+        if entry.get("source_type") == SOURCE_FILE:
+            return entry.get("dataset_kind") or "history"
+        if entry.get("item_type") == "history":
+            return "history"
+        return "materials"
+
+    @staticmethod
     def _kind(entry: dict) -> str:
         if entry.get("source_type") == SOURCE_FILE:
             return entry.get("dataset_kind") or "history"
         if entry.get("source_type") == SOURCE_SNIPPET:
             return "snippet"
-        return "history" if entry.get("item_type") == "history" else "evidence"
+        if entry.get("item_type") == "history":
+            return "history"
+        return "evidence"
 
     def _live(self, state: DemoState, records: dict, entry: dict, company_id: str, today: Any, user: Any) -> dict | None:
         if entry["source_type"] == SOURCE_FILE:
@@ -750,6 +771,7 @@ class KnowledgeEvidenceService:
                 path, hit.source_id, request.company_id, hit.content, hit.attachable, hit.reference_only,
                 document_id=hit.document_id, chunk_id=hit.source_id, name=hit.name, score=hit.score,
                 source_type=hit.source_type, revision=hit.revision,
+                dataset_kind=hit.dataset_kind, content_role=hit.content_role, technical_domain=hit.technical_domain,
             ))
         return CandidateResult(candidates, [])
 

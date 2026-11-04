@@ -354,6 +354,9 @@ export interface CompanyWritingProfile {
   quality_samples: QualitySample[];
 }
 
+export const HISTORY_KB_HEADING = '历史技术方案参考：过去项目中的优秀技术表述和实施方法。';
+export const MATERIALS_KB_HEADING = '企业权威资料：产品说明书、技术参数、企业实际能力等事实依据。';
+
 export interface RetrievedEvidence {
   id: string;
   path: string;
@@ -367,6 +370,9 @@ export interface RetrievedEvidence {
   content: string;
   attachable: boolean;
   reference_only: boolean;
+  dataset_kind?: string;
+  content_role?: string;
+  technical_domain?: string;
 }
 
 

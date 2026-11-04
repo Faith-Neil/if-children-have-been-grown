@@ -18,6 +18,7 @@ import re
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
+from icg.domain.writing_knowledge_prompt import format_retrieved_knowledge_prompt_lines
 from icg.domain.domain import DemoState, DomainError
 
 
@@ -102,9 +103,8 @@ def check_sensitive_model_gate(state: DemoState, project_id: str, model_config: 
         if cfg_id and cfg_id in state.model_configs:
             cfg = state.model_configs[cfg_id]
         else:
-            company_default_id = f"default-{project.company_id}"
-            if company_default_id in state.model_configs:
-                cfg = state.model_configs[company_default_id]
+            from icg.infra.model_config_storage import saved_company_model
+            cfg = saved_company_model(state, project.company_id)
 
     if cfg is not None:
         is_local = getattr(cfg, "is_local", False)
@@ -355,36 +355,27 @@ class DynamicPromptContextManager:
 
         retrieved_chunks = list(snapshot.get("retrieved_evidence", []))
         if retrieved_chunks and remaining_budget > 0:
-            chunk_block_lines = ["【RAGFlow 检索证据候选切片】"]
-            for rc in retrieved_chunks:
-                rc_id = rc.get("id") or rc.get("chunk_id", "chunk")
-                tag = rc.get("tag", "[片]")
-                chunk_id = rc.get("chunk_id", rc.get("id", ""))
-                doc_id = rc.get("document_id", "")
-                prov_parts = []
-                if chunk_id:
-                    prov_parts.append(f"chunk_id: {chunk_id}")
-                if doc_id:
-                    prov_parts.append(f"document_id: {doc_id}")
-                prov = f"（{', '.join(prov_parts)}）" if prov_parts else ""
-                ref_notice = "【仅供参考，不得作为正式附着证据】" if rc.get("reference_only") else ""
-                rc_text = f"{rc.get('cite_tag') or tag} 检索切片{prov}{ref_notice}：\n  {rc.get('content', '')}"
-                tokens = estimate_tokens(rc_text)
+            chunk_block_lines = format_retrieved_knowledge_prompt_lines(retrieved_chunks)
+            if chunk_block_lines:
+                block_text = "\n".join(chunk_block_lines).strip()
+                tokens = estimate_tokens(block_text)
                 if tokens <= remaining_budget:
-                    chunk_block_lines.append(rc_text)
-                    retained_p4_ids.append(rc_id)
+                    p4_lines.append(block_text)
+                    for rc in retrieved_chunks:
+                        rc_id = rc.get("id") or rc.get("chunk_id", "chunk")
+                        retained_p4_ids.append(rc_id)
                     remaining_budget -= tokens
                     priority_breakdown["priority_4_background_references"] += tokens
                 else:
-                    truncated_items.append({
-                        "id": rc_id,
-                        "category": "ragflow_chunk",
-                        "priority": "P4",
-                        "reason": "dropped_low_priority_due_to_budget",
-                        "original_tokens": tokens,
-                    })
-            chunk_block_lines.append("")
-            p4_lines.extend(chunk_block_lines)
+                    for rc in retrieved_chunks:
+                        rc_id = rc.get("id") or rc.get("chunk_id", "chunk")
+                        truncated_items.append({
+                            "id": rc_id,
+                            "category": "ragflow_chunk",
+                            "priority": "P4",
+                            "reason": "dropped_low_priority_due_to_budget",
+                            "original_tokens": tokens,
+                        })
 
         low_conf_snippets = [
             s for s in snippets_to_consider

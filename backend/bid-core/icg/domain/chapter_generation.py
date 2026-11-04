@@ -25,6 +25,11 @@ from .generation_context import (
     validate_model_output,
     writing_source_fingerprint,
 )
+from .writing_knowledge_prompt import (
+    HISTORY_HEADING,
+    MATERIALS_HEADING,
+    format_retrieved_knowledge_prompt_lines,
+)
 from .project_access import (
     READONLY_SYSTEM_ROLES,
     ROLE_NORMALIZATION_MAP,
@@ -903,24 +908,7 @@ def format_writing_plan_prompt(snapshot: dict) -> str:
                 lines.append(f"  证据内容摘要：{ev['content']}")
         lines.append("")
 
-    # RAGFlow 检索证据切片
-    retrieved = snapshot.get("retrieved_evidence", [])
-    if retrieved:
-        lines.append("【RAGFlow 检索证据候选切片】")
-        for chunk in retrieved:
-            tag = chunk.get("tag", "[片]")
-            chunk_id = chunk.get("chunk_id", chunk.get("id", ""))
-            doc_id = chunk.get("document_id", "")
-            prov_parts = []
-            if chunk_id:
-                prov_parts.append(f"chunk_id: {chunk_id}")
-            if doc_id:
-                prov_parts.append(f"document_id: {doc_id}")
-            prov = f"（{', '.join(prov_parts)}）" if prov_parts else ""
-            ref_notice = "【仅供参考，不得作为正式附着证据】" if chunk.get("reference_only") else ""
-            lines.append(f"{chunk.get('cite_tag') or tag} 检索切片{prov}{ref_notice}：")
-            lines.append(f"  {chunk.get('content', '')}")
-        lines.append("")
+    lines.extend(format_retrieved_knowledge_prompt_lines(snapshot.get("retrieved_evidence", [])))
 
     # 项目事实与 SLA 变量
     facts = snapshot.get("facts", [])

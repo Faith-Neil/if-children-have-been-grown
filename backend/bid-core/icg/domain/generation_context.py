@@ -290,6 +290,9 @@ def build_generation_context(state, project_id, chapter, now, evidence_service=N
                             "content": cand.text,
                             "attachable": cand.attachable,
                             "reference_only": cand.reference_only,
+                            "dataset_kind": getattr(cand, "dataset_kind", "") or "",
+                            "content_role": getattr(cand, "content_role", "") or "",
+                            "technical_domain": getattr(cand, "technical_domain", "") or "",
                         })
             except Exception:
                 retrieved_evidence = []
