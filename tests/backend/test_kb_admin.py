@@ -15,7 +15,7 @@ from icg.app.main import create_app
 from icg.infra.ragflow_pipelines import PROFILES, build_dsl, company_tag, dsl_fingerprint, parse_pipeline_title
 from test_reference_flow import login
 
-ADMIN = "alpha-company-admin"
+ADMIN = "alpha-data-admin"
 
 
 @pytest.fixture()
@@ -50,18 +50,17 @@ def _upload(client, headers, kind, filename, text, **meta):
 
 def test_roles_gate_every_write(client):
     viewer = login(client, "alpha-viewer")
-    assert client.get("/api/v1/kb-admin/overview", headers=viewer).status_code == 200
+    assert client.get("/api/v1/kb-admin/overview", headers=viewer).status_code == 403
     manager = login(client, "alpha-manager")
     assert client.get("/api/v1/kb-admin/overview", headers=manager).status_code == 200
     assert client.post("/api/v1/kb-admin/pipelines/deploy", headers=manager, json={}).status_code == 403
     admin = login(client, ADMIN)
     assert client.post("/api/v1/kb-admin/pipelines/deploy", headers=admin, json={}).status_code == 200
-    # 普通用户不能删除数据集或改连接。公司管理员会进入名称核对。
-    assert client.post("/api/v1/kb-admin/datasets/history/delete", headers=manager, json={"confirm_name": "x"}).status_code == 403
+    # 删除整类数据集与改连接只允许公司管理员
     deleted = client.post("/api/v1/kb-admin/datasets/history/delete", headers=admin, json={"confirm_name": "x"})
-    assert deleted.status_code == 422
+    assert deleted.status_code == 403
     cfg = client.get("/api/v1/ragflow-config", headers=admin).json()
-    put = client.put("/api/v1/ragflow-config", headers={**manager, "If-Match": str(cfg["revision"])}, json={"base_url": "http://x"})
+    put = client.put("/api/v1/ragflow-config", headers={**admin, "If-Match": str(cfg["revision"])}, json={"base_url": "http://x"})
     assert put.status_code == 403
 
 
@@ -153,12 +152,13 @@ def test_manager_appends_history_only_after_dataset_exists(client):
     def clear_index(state):
         (state.service_stores.get("kb_index") or {}).pop("alpha", None)
     client.app.state.service.repository.transaction(clear_index)
-    admin = login(client, ADMIN)
-    missing = client.post("/api/v1/kb-admin/datasets/history/documents", headers=admin,
+    manager = login(client, "alpha-manager")
+    missing = client.post("/api/v1/kb-admin/datasets/history/documents", headers=manager,
                           json={"filename": "历史.docx", "content_base64": _b64("第一章 总则\n\n合成历史。")})
     assert missing.status_code == 409 and missing.json()["code"] == "KNOWLEDGE_BASE_NOT_CONFIGURED", missing.text
+    admin = login(client, ADMIN)
     assert client.post("/api/v1/kb-admin/datasets/history/ensure", headers=admin, json={}).status_code == 200
-    uploaded = client.post("/api/v1/kb-admin/datasets/history/documents", headers=admin,
+    uploaded = client.post("/api/v1/kb-admin/datasets/history/documents", headers=manager,
                            json={"filename": "历史.docx", "content_base64": _b64("第一章 总则\n\n合成历史。")})
     assert uploaded.status_code == 200
     rejected = client.post("/api/v1/kb-admin/datasets/history/documents", headers=admin,
