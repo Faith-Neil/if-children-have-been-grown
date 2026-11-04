@@ -29,6 +29,9 @@ const navigation = [ { id: 'workbench', name: '工作台', icon: <AppstoreOutlin
 export default function App() {
   const { message, modal } = AntApp.useApp();
 
+  const [sessionBoot, setSessionBoot] = useState(() => {
+    try { return Boolean(sessionStorage.getItem('icg.access_token')); } catch { return false; }
+  });
   const [token, setToken] = useState<string | null>(null); const [user, setUser] = useState<Account | null>(null);
   const [pendingChange, setPendingChange] = useState<{ token: string; username: string; policy: PasswordPolicy | null } | null>(null);
   const [applicationSession, setApplicationSession] = useState<ApplicationSession | null>(null); const [denied, setDenied] = useState<string | null>(null);
@@ -61,6 +64,8 @@ export default function App() {
     setProjects([]); setJobs([]);
   }
   function logout() {
+    setSessionBoot(false);
+    sessionStorage.removeItem('icg.access_token');
     epoch.current++; currentSession.current = { company_id: '', account_id: '' }; clearCompanyData();
     dirtyRef.current = false; armedLeave.current = false; displayedPathRef.current = normalizePath(window.location.pathname);
     activeToken.current = null; currentAuthorization.current = null; setApplicationSession(null); setDenied(null);
@@ -154,14 +159,20 @@ export default function App() {
       epoch.current++; clearCompanyData(); currentSession.current = { company_id: '', account_id: '' }; currentAuthorization.current = null; setApplicationSession(null);
       activeToken.current = tokenValue; setWorkspace(null); setAccessLost(false); projectId.current = null;
       const approved = await loadSession(tokenValue);
+      sessionStorage.setItem('icg.access_token', tokenValue);
       setToken(tokenValue); setDenied(null); if (typeof setDeniedDetails === 'function') setDeniedDetails(null); setMissing(null);
       await refreshGlobal(tokenValue, approved);
       followPath(routeAfterLogin(window.location.pathname, sessionHomeRoute(approved)).path, 'replace');
-    } catch (error) { if (isRequestFailureCurrent(error, activeToken.current)) { report(error); logout(); } } finally { setBusy(false); }
+    } catch (error) { if (isRequestFailureCurrent(error, activeToken.current)) { report(error); logout(); } } finally { setSessionBoot(false); setBusy(false); }
   }
   // 须先改密时令牌只用于改密页（APP-M2-T260），改密成功后再按正常登录进入。
   async function loginWithPassword(u: string, p: string) { const r = await passwordLogin(u, p); if (r.mustChangePassword) { setPendingChange({ token: r.token, username: u.trim(), policy: r.policy }); return; } await loginWithToken(r.token); }
   function signOut() { void revokeSession(activeToken.current); logout(); }
+  useEffect(() => {
+    const saved = sessionStorage.getItem('icg.access_token');
+    if (saved && !activeToken.current) void loginWithToken(saved);
+    else setSessionBoot(false);
+  }, []);
   function reportDirty(value: boolean) { if (armedLeave.current) return; dirtyRef.current = value; setEditorDirty(value); }
   function arrived(keepEditor: boolean, path: string) { armedLeave.current = false; displayedPathRef.current = normalizePath(path); if (!keepEditor) { dirtyRef.current = false; setEditorDirty(false); } }
   function writeAddress(path: string, mode: HistoryMode) {
@@ -357,6 +368,7 @@ export default function App() {
   }
 
   const currentRoute = parseAppPath(typeof window !== 'undefined' ? window.location.pathname : '/');
+  if (sessionBoot && (!token || !user)) return <div className="app-boot" role="status">正在进入工作台</div>;
   if (pendingChange) return <PasswordChangeScreen token={pendingChange.token} username={pendingChange.username} policy={pendingChange.policy} onChanged={async () => { const next = pendingChange.token; setPendingChange(null); await loginWithToken(next); }} onCancel={() => { void revokeSession(pendingChange.token); setPendingChange(null); }} />;
   if (!token || !user) return <LoginScreen onPasswordLogin={loginWithPassword} busy={busy} />;
   const menu = [
@@ -368,7 +380,7 @@ export default function App() {
   return (
     <Suspense fallback={<div className="login-screen"><Spin size="large" /></div>}>
       <CanProvider value={{ session: applicationSession, workspace, role: applicationSession?.user.primary_role || applicationSession?.user.role, userId: applicationSession?.user.id }}>
-        <AppShell collapsed={collapsed} onCollapsed={handleCollapseChange} menuPath={menuPath} menu={menu} onNavigate={requestPath} breadcrumbs={breadcrumbs} actions={<AppHeaderActions session={applicationSession} user={user} jobs={jobs} search={search} onSearchChange={setSearch} onSearchSubmit={() => requestPath(globalPath('workbench'))} onOpenTaskDrawer={() => setTaskDrawer(true)} onLogout={() => requestDiscard(signOut)} onOpenModelConfig={() => setModelConfigModalOpen(true)} onOpenRagflowConfig={() => setRagflowConfigModalOpen(true)} token={token} onNavigate={requestPath} />}>
+        <AppShell collapsed={collapsed} onCollapsed={handleCollapseChange} menuPath={menuPath} menu={menu} onNavigate={requestPath} breadcrumbs={breadcrumbs} actions={AppHeaderActions({ session: applicationSession, user, jobs, search, onSearchChange: setSearch, onSearchSubmit: () => requestPath(globalPath('workbench')), onOpenTaskDrawer: () => setTaskDrawer(true), onLogout: () => requestDiscard(signOut), onOpenModelConfig: () => setModelConfigModalOpen(true), onOpenRagflowConfig: () => setRagflowConfigModalOpen(true), token, onNavigate: requestPath })}>
           {missing && <main className="workspace-content"><Result status="404" title="页面不存在" subTitle={`没有与 ${missing} 对应的页面。`} extra={<Button onClick={() => requestPath(globalPath(applicationSession ? sessionHomeRoute(applicationSession) : 'workbench'))}>返回可访问首页</Button>} /></main>}
           {!missing && denied && (
             <main className="workspace-content">

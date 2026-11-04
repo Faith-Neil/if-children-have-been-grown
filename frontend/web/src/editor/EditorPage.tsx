@@ -17,12 +17,12 @@ import { useProject, volumeName } from '../app/context.tsx';
 import type { Candidate, Chapter, Volume, Workspace, WritingInputPreview } from '../shared/types.ts';
 import { candidateProblem } from './writing-input.ts';
 import { acquiredEditingFingerprint, editingContentWrite, loadedEditingFingerprint } from './editing-source.ts';
-import { chapterCan } from '../project/project-team.ts';
-import { AiTag, Cite, SourceBar } from '../library/BusinessTags.tsx';
+import { chapterCan, projectCan } from '../project/project-team.ts';
+import { AiTag, SourceBar } from '../library/BusinessTags.tsx';
 import { ReadonlyBanner } from '../status/StatusViews';
 import { useDataPermission } from '../shell/useDataPermission';
 import { useVolumesStatus, isVolumeFinalized } from '../project/volume-api.ts';
-import { OutlineTreeView } from '../project/OutlineTreeView';
+import { OutlineTreeView, type GeneratedDirectory } from '../project/OutlineTreeView';
 import { ChapterTypeBadge } from '../project/ChapterTypeBadge';
 import { mapChaptersToOutlineNodes, type ChapterOutlineNode } from '../project/outline-tree';
 import { useBreakpoint } from '../shell/responsive';
@@ -463,6 +463,60 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     else confirmLeave();
   }
 
+  const technicalOutline = workspace.technical_outline ?? null;
+  const outlineChapter = technicalOutline ? workspace.chapters.find(item => item.id === technicalOutline.chapter_id) : undefined;
+  const historyBlocked = workspace.requirements.some(item => item.technical_clause && item.response_origin === 'history' && item.response_type === 'comply' && item.status !== 'confirmed');
+
+  async function refreshOutlineChapter() {
+    if (!outlineChapter || chapterId !== outlineChapter.id || dirty) return;
+    const updated = await request<Chapter>(`/api/chapters/${chapterId}`, token);
+    setChapter(updated);
+    setContent(updated.content);
+    setEditFingerprint(loadedEditingFingerprint(updated, workspace.input_fingerprint));
+    sequence.current = updated.draft?.sequence ?? sequence.current;
+  }
+
+  async function saveDirectory(payload: { title: string; headings: Array<{ level: number; title: string; requirement_id: string | null }>; confirm: boolean }) {
+    if (!outlineChapter) return;
+    await mutate(`/api/v1/projects/${workspace.project.id}/plan`, 'POST', {
+      scope: 'technical',
+      chapters: [{ id: outlineChapter.id, title: payload.title.trim() || technicalOutline?.title || outlineChapter.title, volume: 'technical', fact_ids: [], writing_points: '' }],
+      outline_title: payload.title.trim() || technicalOutline?.title,
+      outline_headings: payload.headings.map(item => ({
+        level: item.level === 2 ? 2 : 3,
+        title: item.title.trim(),
+        requirement_id: item.requirement_id ?? null,
+      })),
+      confirm_outline: payload.confirm,
+    });
+    await refreshOutlineChapter().catch(() => undefined);
+  }
+
+  async function generateDirectory(section?: string) {
+    await mutate(`/api/v1/projects/${workspace.project.id}/generate`, 'POST', section ? { section } : {});
+    const target = technicalOutline?.chapter_id;
+    if (target && target !== chapterId) {
+      selectChapter(target, 'technical');
+      return;
+    }
+    await refreshOutlineChapter().catch(() => undefined);
+  }
+
+  const generatedDirectory: GeneratedDirectory | null = technicalOutline && outlineChapter && technicalOutline.headings.length > 0 ? {
+    title: technicalOutline.title,
+    chapterId: technicalOutline.chapter_id,
+    headings: technicalOutline.headings,
+    missing: technicalOutline.missing,
+    confirmed: workspace.plan_confirmed,
+    canPrepare: projectCan(workspace, 'prepare_sources'),
+    canGenerate: outlineChapter.permissions?.generate !== false,
+    historyBlocked,
+    busy: projectBusy,
+    onSave: saveDirectory,
+    onGenerate: generateDirectory,
+    onOpen: () => selectChapter(outlineChapter.id, 'technical'),
+  } : null;
+
   return <>
     <div
       className={`editor-layout ${breakpoint.tier} ${directoryCollapsed ? 'directory-collapsed' : ''} ${assistantCollapsed ? 'assistant-collapsed' : ''}`}
@@ -481,7 +535,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
             <OutlineTreeView
               nodes={outlineNodes}
               activeVolume={volume}
-              onVolumeChange={v => { const nextVol = v as Volume; selectChapter(workspace.chapters.find(c => c.volume === nextVol)?.id || '', nextVol); }}
+              directory={generatedDirectory}
               selectedChapterId={chapterId}
               onSelectChapter={node => selectChapter(node.id, node.volume as Volume)}
               onNavigateToEditor={id => selectChapter(id)}
@@ -523,11 +577,6 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
             {dirty && <Tag color="warning" data-testid="dirty-status-tag" icon={<SaveOutlined />}>未保存修改</Tag>}
             <Button size="small" icon={<SaveOutlined />} onClick={saveDraft} disabled={combinedBusy || !held || !dirty} type={dirty ? "dashed" : "default"} data-testid="toolbar-save-draft-btn">保存草稿{dirty ? ' *' : ''}</Button>
             <Button type="primary" size="small" onClick={commit} disabled={combinedBusy || !held || !chapter} loading={busy}>提交本节</Button>
-            <Tooltip title={assistantCollapsed ? "展开对话助手" : "收起对话助手以扩展编辑区"}>
-              <Button size="small" type="text" icon={assistantCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setAssistantCollapsed(!assistantCollapsed)} data-testid="toggle-assistant-btn">
-                {assistantCollapsed ? '展开助手' : '收起助手'}
-              </Button>
-            </Tooltip>
           </Space>
         </div>
 
@@ -546,7 +595,6 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
               {isCurrentVolumeFinalized ? <Tag color="success" data-testid="editor-volume-finalized-tag">分册已定稿</Tag> : <Tag color="default" data-testid="editor-volume-unfinalized-tag">分册编制中</Tag>}
             </div>
             <p className="document-subline">本节编写人 {activeChapter?.assignee_name || '未指定'} · 正文版本 v{chapter.revision} · {sources.length} 条关联要求 · {!canEdit ? '只读，请核对本节分工' : held ? '已取得编辑权' : '只读，请先取得编辑权'}</p>
-            {sources.length > 0 && <div className="chapter-source-summary"><span className="source-label">招标原文</span><div>{sources.map(item => <p key={item.id}>{item.text} <Cite type="tender" marker={`P.${item.source.page}`} metadata={{ page: item.source.page, quote: item.text, title: '招标原文' }} /></p>)}</div></div>}
             <SourceBar kind="evidence" layout="bottom" sourceName={chapter.title} version={chapter.revision} fingerprint={editFingerprint} status={sourceStale ? 'stale' : 'confirmed'} onVerifySource={() => ops.reviewCurrentSources('editor')} />
 
             {isReadOnlyView ? (
@@ -568,7 +616,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
                 {lockedExcerpts.length > 0 && <Alert type="info" showIcon style={{ marginBottom: 8 }} data-testid="locked-paragraphs-notice"
                   message={`本节有 ${lockedExcerpts.length} 个锁定段落，提交时须原样保留（可以挪位置）`}
                   description={<ul style={{ margin: 0, paddingLeft: 18 }}>{lockedExcerpts.map(item => <li key={item.key}>{item.text}（{item.by}）</li>)}</ul>} />}
-                <Input.TextArea ref={textareaRef} className="chapter-editor" aria-label="章节正文" placeholder="根据招标原文、项目事实和可引用证据编制正文。不要把未经核实的承诺直接写入。" autoSize={{ minRows: 18, maxRows: 35 }} value={content} onSelect={e => { lock.markActivity(); handleTextareaSelect(e); setCursorKey(chapter.content === content ? paragraphAtOffset(content, e.currentTarget.selectionStart, chapter.paragraphs)?.key ?? null : null); }} onKeyDown={lock.markActivity} onMouseDown={lock.markActivity} onScroll={lock.markActivity} onChange={e => { lock.markActivity(); selection.current = { start: e.target.selectionStart, end: e.target.selectionEnd }; setContent(e.target.value); }} readOnly={!held || combinedBusy} />
+                <Input.TextArea ref={textareaRef} className="chapter-editor" aria-label="章节正文" placeholder="编写本节投标响应。" autoSize={{ minRows: 18, maxRows: 35 }} value={content} onSelect={e => { lock.markActivity(); handleTextareaSelect(e); setCursorKey(chapter.content === content ? paragraphAtOffset(content, e.currentTarget.selectionStart, chapter.paragraphs)?.key ?? null : null); }} onKeyDown={lock.markActivity} onMouseDown={lock.markActivity} onScroll={lock.markActivity} onChange={e => { lock.markActivity(); selection.current = { start: e.target.selectionStart, end: e.target.selectionEnd }; setContent(e.target.value); }} readOnly={!held || combinedBusy} />
                 {shownVariables.length > 0 && (
                   <div className="editor-variable-bar" data-testid="editor-variable-bar" style={{ marginTop: 8, padding: '8px 12px', background: '#fffdf5', border: '1px solid #f5e6b8', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 12, color: '#4e5969', fontWeight: 500 }}>正文变量 ({shownVariables.length})：</span>
@@ -612,10 +660,22 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
       </section>
 
       {/* 3. 右侧对话助手与面板 */}
+      {assistantCollapsed ? (
+        <aside className="assistant-collapsed-strip" data-testid="editor-assistant-collapsed-strip">
+          <Tooltip title="展开对话助手" placement="left">
+            <button type="button" className="ant-btn ant-btn-text ant-btn-sm" aria-label="展开助手" onClick={() => setAssistantCollapsed(false)} data-testid="toggle-assistant-btn"><MenuUnfoldOutlined /></button>
+          </Tooltip>
+        </aside>
+      ) : (
       <EditorAssistantPanel
         rightTab={rightTab} setRightTab={setRightTab} candidate={candidate} candidateIssue={candidateIssue} instruction={ops.instruction} setInstruction={ops.setInstruction}
         combinedBusy={combinedBusy} held={held} canEdit={canEdit} canGenerate={canGenerate} chapter={chapter} planCurrent={planCurrent} modified={modified} workspace={workspace}
         chapterId={chapterId} onViewInput={() => ops.setInputOpen(true)} onShowDiff={ops.showDiff} onSuggest={ops.suggest}
+        collapseControl={(
+          <Tooltip title="收起对话助手以扩展编辑区">
+            <button type="button" className="ant-btn ant-btn-text ant-btn-sm" onClick={() => setAssistantCollapsed(true)} data-testid="toggle-assistant-btn"><MenuFoldOutlined /> 收起助手</button>
+          </Tooltip>
+        )}
         selectionTools={
           <SelectionRewritePanel projectId={workspace.project.id} chapter={chapter} content={content} selection={rewriteSelection}
             leaseToken={held && lease ? lease.lease_token : null} canGenerate={canEdit} busy={combinedBusy} token={token}
@@ -625,6 +685,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         issuesPanel={<EditorIssuePanel data={issues.data} loading={issues.loading} error={issues.error} filter={issues.filter} onFilterChange={issues.setFilter}
           activeId={issues.activeId} highlightKey={held ? cursorKey : issues.focusedKey} onLocate={locateIssue} onReload={issues.reload} />}
       />
+      )}
     </div>
 
     {/* 4. 差异对比 Modal */}
@@ -652,8 +713,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     {/* 7. 章节大纲树抽屉 */}
     <Drawer title="章节大纲与目录树" open={outlineDrawerOpen} onClose={() => setOutlineDrawerOpen(false)} width={420} placement="left" data-testid="editor-outline-drawer">
       <OutlineTreeView
-        nodes={outlineNodes} activeVolume={volume}
-        onVolumeChange={v => { const nextVol = v as Volume; selectChapter(workspace.chapters.find(c => c.volume === nextVol)?.id || '', nextVol); }}
+        nodes={outlineNodes} activeVolume={volume} directory={generatedDirectory}
         selectedChapterId={chapterId} onSelectChapter={node => { selectChapter(node.id, node.volume as Volume); setOutlineDrawerOpen(false); }}
         onNavigateToEditor={id => { selectChapter(id); setOutlineDrawerOpen(false); }}
       />

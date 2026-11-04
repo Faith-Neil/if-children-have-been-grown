@@ -150,7 +150,7 @@ export function ParsePage() {
     .join('；');
 
   return (
-    <>
+    <div className="parse-screen">
       <div className="postprocess-bar">
         <span>
           <CheckCircleOutlined className="green" /> 原文抽取 {workspace.requirements.length} 条 · 按章节条目抽取 · 人工核对
@@ -247,6 +247,7 @@ export function ParsePage() {
           {currentCategory && currentCategory.facts > 0 && (
             <Alert className="page-notice" type="info" showIcon message={`本类另有 ${currentCategory.facts} 条项目事实`} action={<Button size="small" onClick={() => navigate('facts')}>去项目事实表</Button>} />
           )}
+          <div className="parse-card-scroll">
           <Alert
             type="info"
             showIcon
@@ -357,6 +358,7 @@ export function ParsePage() {
           ) : (
             <Empty description="还没有抽取条目，请上传并解析招标文件" />
           )}
+          </div>
           <div className="parse-prerequisites">
             确认前提：无待处理冲突与疑似遗漏；要求逐条确认或填写排除理由；项目事实完成核对。
             <Progress
@@ -453,6 +455,6 @@ export function ParsePage() {
           </Form.Item>
         </Form>
       </Modal>
-    </>
+    </div>
   );
 }

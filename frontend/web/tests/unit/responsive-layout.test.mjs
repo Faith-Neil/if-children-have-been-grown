@@ -1,6 +1,6 @@
 // 为什么有这个文件：测试 1280 / 1440 / 1680 断点自适应、侧栏折叠状态持久化记忆与多层级动态面包屑纯逻辑。
 // 它解决什么问题：
-// 1. 验证 1280（紧凑桌面，主内容区 1040px）、1440（标准桌面）、1680（宽屏工作台）各视口临界断点与列数推导；
+// 1. 验证 1280（紧凑桌面）、1440（标准桌面）、1680（宽屏工作台）各视口临界断点与列数推导；主内容区宽度随视口减去侧栏；
 // 2. 验证 localStorage 侧栏持久化状态读写、优雅异常降级与进入项目自动收起策略；
 // 3. 验证长项目名称智能截断与悬停全称保留；
 // 4. 验证 404、全局功能页、项目概览、各业务页签及编辑台分册的多层级面包屑推导与链接回跳属性。
@@ -44,7 +44,7 @@ test('getBreakpointInfo correctly calculates tiers, flags, editorColumns, and co
   assert.equal(subCompact.isWide, false);
   assert.equal(subCompact.isAtLeast1280, false);
   assert.equal(subCompact.editorColumns, 3);
-  assert.equal(subCompact.contentWidth, 1024 - 240);
+  assert.equal(subCompact.contentWidth, 1024 - 64);
 
   // 临界边界: 1279px
   const edgeSub = getBreakpointInfo(1279);
@@ -58,12 +58,12 @@ test('getBreakpointInfo correctly calculates tiers, flags, editorColumns, and co
   assert.equal(compact1280.isAtLeast1280, true);
   assert.equal(compact1280.isAtLeast1440, false);
   assert.equal(compact1280.editorColumns, 3);
-  assert.equal(compact1280.contentWidth, 1040, '1280px guarantees 1040px content without horizontal scroll');
+  assert.equal(compact1280.contentWidth, 1280 - 64);
 
   const compact1366 = getBreakpointInfo(1366);
   assert.equal(compact1366.tier, 'compact');
   assert.equal(compact1366.isCompact, true);
-  assert.equal(compact1366.contentWidth, 1040);
+  assert.equal(compact1366.contentWidth, 1366 - 64);
 
   // 临界边界: 1439px
   const edgeCompact = getBreakpointInfo(1439);
@@ -77,7 +77,7 @@ test('getBreakpointInfo correctly calculates tiers, flags, editorColumns, and co
   assert.equal(standard1440.isAtLeast1440, true);
   assert.equal(standard1440.isAtLeast1680, false);
   assert.equal(standard1440.editorColumns, 3, 'Standard screen uses 3 columns');
-  assert.equal(standard1440.contentWidth, 1200);
+  assert.equal(standard1440.contentWidth, 1440 - 64);
 
   // 临界边界: 1679px
   const edgeStandard = getBreakpointInfo(1679);
@@ -90,7 +90,7 @@ test('getBreakpointInfo correctly calculates tiers, flags, editorColumns, and co
   assert.equal(wide1680.isWide, true);
   assert.equal(wide1680.isAtLeast1680, true);
   assert.equal(wide1680.editorColumns, 4, '1680px workbench expands to 4 columns');
-  assert.equal(wide1680.contentWidth, 1440);
+  assert.equal(wide1680.contentWidth, 1680 - 64);
 
   const wide1920 = getBreakpointInfo(1920);
   assert.equal(wide1920.tier, 'wide');

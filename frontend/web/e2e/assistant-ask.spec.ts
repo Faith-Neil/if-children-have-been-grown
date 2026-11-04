@@ -49,7 +49,7 @@ test('ask without a selection, the answer streams in and can only be copied', as
   await expect(box).toBeVisible();
   const kb = page.getByTestId('assistant-kb-switch');
   if (await kb.isChecked()) await kb.click();
-  await box.getByLabel('向对话助手提问').fill('巡检这一节应该写哪些要点？');
+  await page.getByLabel('向对话助手提问').fill('巡检这一节应该写哪些要点？');
   await page.getByTestId('assistant-ask-btn').click();
   const answer = page.getByTestId('assistant-answer');
   await expect(answer).toContainText(ANSWER.join(''));

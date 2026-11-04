@@ -70,13 +70,18 @@
 .topbar-breadcrumb a:hover { color: #1E4DB7; text-decoration: underline; }
 .topbar-breadcrumb .ant-breadcrumb-separator { color: #86909C; margin: 0 4px; }
 
-/* 1280 / 1440 / 1680 断点自适应与内容区宽度约束（1280 紧凑桌面 1040px 优先表格无横滚） */
+/* 主内容区跟着窗口走，不再锁死 1040 / 1200 / 1440。 */
 .breakpoint-compact .workspace-content,
-.breakpoint-compact .project-content:not(.fullbleed) { max-width: 1040px; margin: 0 auto; width: 100%; }
 .breakpoint-standard .workspace-content,
-.breakpoint-standard .project-content:not(.fullbleed) { max-width: 1200px; margin: 0 auto; width: 100%; }
 .breakpoint-wide .workspace-content,
-.breakpoint-wide .project-content:not(.fullbleed) { max-width: 1440px; margin: 0 auto; width: 100%; }
+.breakpoint-compact .project-content:not(.fullbleed),
+.breakpoint-standard .project-content:not(.fullbleed),
+.breakpoint-wide .project-content:not(.fullbleed) {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  box-sizing: border-box;
+}
 .evidence-group { margin: 16px 0 8px; }
 .evidence-group h4 { margin-bottom: 8px; }
 .evidence-invalid-row > td:first-child { box-shadow: inset 3px 0 0 #D9363E; }
@@ -462,13 +467,21 @@
   grid-template-columns: 44px minmax(500px, 1fr) 412px;
 }
 .editor-layout.assistant-collapsed {
-  grid-template-columns: 280px minmax(700px, 1fr) 0px;
+  grid-template-columns: 280px minmax(700px, 1fr) 44px;
 }
 .editor-layout.assistant-collapsed .editor-right {
   display: none;
 }
 .editor-layout.directory-collapsed.assistant-collapsed {
-  grid-template-columns: 44px minmax(700px, 1fr) 0px;
+  grid-template-columns: 44px minmax(700px, 1fr) 44px;
+}
+.assistant-collapsed-strip {
+  border-left: 1px solid var(--line);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0;
 }
 .chapter-directory-panel {
   border-right: 1px solid var(--line);
@@ -610,3 +623,104 @@
 .paragraph-issue-marker.blocker{background:#d9363e}
 .paragraph-issue-marker.warning{background:#d46b08}
 .rich-paragraph-with-cites p.paragraph-focused{background:#fff7e6;box-shadow:-3px 0 0 #fa8c16;transition:background .3s}
+
+/* 顶栏固定，页面和各栏各自滚动。刷新恢复登录时不先画出登录页。 */
+html,body,#root{height:100%;overflow:hidden}
+.app-boot{min-height:100vh;display:grid;place-items:center;background:#f5f7fa}
+.ant-pro-layout{height:100vh}
+.ant-pro-layout .ant-layout{min-height:0}
+.ant-pro-layout-content{height:calc(100vh - 56px);overflow:hidden;display:flex;flex-direction:column}
+.ant-pro-layout-content>.ant-spin-nested-loading,
+.ant-pro-layout-content>.ant-spin-nested-loading>.ant-spin-container{flex:1;min-height:0;display:flex;flex-direction:column}
+.workspace-content,.project-content{flex:1;min-height:0;overflow:auto}
+.project-content:has(.parse-screen),.project-content:has(.editor-layout),.project-content:has(.checks-layout),.workspace-content:has(.library-layout),.workspace-content:has(.settings-layout){overflow:hidden;display:flex;flex-direction:column}
+.parse-screen{flex:1;min-height:0;display:flex;flex-direction:column}
+.parse-layout{flex:1;min-height:0;height:auto;overflow:hidden;grid-template-columns:minmax(420px,1.2fr) 188px minmax(320px,1fr)}
+.parse-layout>.original-preview,.parse-layout>.parse-category,.parse-layout>.parse-cards{min-height:0;overflow:auto}
+.original-preview{background:#e7ebf2;min-height:0}
+.original-toolbar{background:#fff;color:#1d2129;border-bottom:1px solid var(--line)}
+.original-toolbar .ant-select-selector{background:#fff!important;color:#1d2129!important;border-color:#dcdfe6!important}
+.original-toolbar .ant-select-arrow,.original-toolbar button{color:#4e5969!important}
+.original-paper{max-width:760px;margin:0 auto;border-radius:2px}
+.original-paper h3{font-size:16px;font-weight:600;line-height:1.5;margin:1.15em 0 .35em;text-align:left}
+.original-paper p{margin:0 0 .85em}
+.original-foot{color:#4e5969;background:#fff;border-top:1px solid var(--line)}
+.editor-layout,.checks-layout,.library-layout,.settings-layout{flex:1;min-height:0;height:100%}
+.checks-layout>*,.library-layout>*,.settings-layout>*{min-height:0;overflow:auto}
+.editor-right{overflow:hidden}
+.editor-right .ant-tabs-content-holder,.editor-right .ant-tabs-content,.editor-right .ant-tabs-tabpane{height:100%;min-height:0}
+
+/* Stitch「智标天工」：整页不滚，栏内各自滚动；原文是暖色纸页。 */
+:root{--paper:#FAFAF7;--desk:#F1F5F9;--line:#E2E8F0;--ink:#0B1C30}
+html,body,#root{font-family:"Noto Sans SC","PingFang SC","Source Han Sans SC","Microsoft YaHei",sans-serif}
+.app-boot{background:var(--desk);color:#434655;font-size:14px}
+.postprocess-bar,.page-heading,.project-heading{position:sticky;top:0;z-index:5;background:#fff;flex-shrink:0}
+.postprocess-bar{flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--line)}
+.parse-screen,.editor-layout,.checks-layout,.library-layout,.settings-layout{min-height:0}
+.parse-layout{display:grid;height:100%;overflow:hidden;background:var(--desk);grid-template-columns:minmax(420px,1.15fr) 200px minmax(320px,1fr)}
+.parse-layout>.original-preview,.parse-layout>.parse-category,.parse-layout>.parse-cards{display:flex;flex-direction:column;min-width:0;min-height:0;background:#fff;overscroll-behavior:contain}
+.parse-layout>.parse-category,.parse-layout>.parse-cards,.paper-wrap,.chapter-directory,.editor-scroll,.editor-right .ant-tabs-content-holder,.checks-layout>*,.library-layout>*,.settings-layout>*{overflow:auto;overscroll-behavior:contain;min-height:0}
+.parse-layout>.original-preview{overflow:hidden}
+.paper-wrap{flex:1}
+.original-preview{background:var(--desk)}
+.original-toolbar,.original-foot,.parse-cards-title,.panel-title{flex-shrink:0;background:#fff}
+.original-toolbar,.original-foot{position:sticky;z-index:2}
+.original-toolbar{top:0}
+.original-foot{bottom:0;border-top:1px solid var(--line)}
+.paper-wrap{padding:16px 18px 28px}
+.original-paper{max-width:816px;margin:0 auto 16px;background:var(--paper);border:1px solid var(--line);border-radius:2px;box-shadow:0 1px 3px rgba(15,23,42,.05),0 4px 12px rgba(15,23,42,.03);padding:40px 48px;color:var(--ink);font-size:15px;line-height:26px;overflow-wrap:anywhere}
+.original-paper h3{font-size:16px;line-height:24px;font-weight:600;margin:1.1em 0 .4em}
+.original-paper p{margin:0 0 .85em}
+.original-paper table{width:100%;border-collapse:collapse;margin:0 0 1em;font-size:13px}
+.original-paper td{border:1px solid var(--line);padding:6px 8px;vertical-align:top}
+.original-paper mark{background:#FEF08A;color:#713F12}
+.requirement-card,.parse-cards .ant-card{overflow-wrap:anywhere;word-break:break-word}
+.requirement-card .ant-card-body{overflow-wrap:anywhere}
+.editor-layout{overflow:hidden}
+.chapter-directory,.editor-center,.editor-right{min-height:0;min-width:0;overscroll-behavior:contain}
+.editor-center{display:flex;flex-direction:column;overflow:hidden}
+.editor-toolbar{flex-shrink:0;position:sticky;top:0;z-index:3;background:#fff}
+.editor-right{display:flex;flex-direction:column;height:100%;background:#fff}
+.icg-shell .ant-pro-global-header-header-actions{display:flex;align-items:center;gap:16px}
+.icg-shell .ant-pro-global-header-header-actions-item{display:flex;align-items:center;height:auto;padding:0;line-height:1}
+.icg-shell .ant-pro-global-header-header-actions-hover:hover{background:transparent}
+.topbar-user{display:inline-flex;align-items:center;gap:8px}
+.company-label{display:inline-flex;align-items:center;gap:4px;max-width:none;overflow:visible;white-space:nowrap;color:#4e5969}
+@media(max-width:900px){.company-label,.user-name,.global-search{display:none}}
+.assistant-tabbar{display:flex;align-items:center;flex:0 0 auto;border-bottom:1px solid var(--line)}
+.assistant-tabbar>.ant-tabs{flex:1;min-width:0;height:auto}
+.assistant-tabbar .ant-tabs-nav{margin:0}
+.assistant-tabbar>:last-child{flex-shrink:0;margin-right:4px}
+.editor-right .ant-tabs-content-holder{display:none}
+.editor-right>.ant-tabs .ant-tabs-content-holder{display:none}
+.editor-right .ant-tabs-nav{margin:0;padding:0 10px}
+.assistant-scroll{flex:1;min-height:0;overflow:auto;padding:0}
+.chat-thread{display:flex;flex-direction:column;gap:12px;padding:12px 12px 8px}
+.chat-user{align-self:flex-end;max-width:92%;background:#f1f5f9;color:#0f172a;border-radius:12px;padding:8px 10px;font-size:13px;line-height:1.6;white-space:pre-wrap}
+.chat-assistant{align-self:stretch;font-size:13px;line-height:1.65;color:#0f172a}
+.chat-assistant p,.chat-assistant .suggestion-content{margin:4px 0 8px;white-space:pre-wrap}
+.chat-assistant-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#64748b;font-size:12px}
+.chat-note,.chat-kb-note{margin:0;color:#64748b;font-size:12px;line-height:1.5}
+.rewrite-card{border:0;background:transparent;box-shadow:none}
+.rewrite-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;margin-bottom:8px}
+.chat-session{flex:1 1 0;min-width:0;width:0}
+.rewrite-card blockquote{margin:0;padding:6px 8px;border-left:2px solid #cbd5e1;color:#334155;background:#f8fafc;border-radius:0 6px 6px 0;max-height:72px;overflow:auto}
+.assistant-input{flex-shrink:0;margin:8px;padding:8px 8px 6px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;box-shadow:0 8px 24px rgba(15,23,42,.06)}
+.assistant-input .ant-input{border:0;box-shadow:none;padding:4px 2px;resize:none;background:transparent}
+.assistant-input .ant-input:focus{box-shadow:none}
+.assistant-send{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px}
+.composer-modes{display:flex;gap:2px}
+.composer-modes button,.assistant-input .prompt-chips button{border:0;background:transparent;color:#64748b;font-size:12px;line-height:22px;padding:0 8px;border-radius:999px;cursor:pointer}
+.composer-modes button.active,.assistant-input .prompt-chips button.active{background:#f1f5f9;color:#0f172a}
+.assistant-input .prompt-chips{display:flex;flex-wrap:wrap;gap:2px;margin-bottom:4px}
+.assistant-input .ant-btn-circle{width:28px;height:28px;min-width:28px}
+.editor-layout{height:100%;min-height:0;flex:1}
+.parse-layout{grid-template-columns:minmax(360px,1.25fr) 248px minmax(280px,.9fr)}
+.parse-layout>.parse-cards{overflow:hidden}
+.parse-card-scroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;padding:0 12px 12px}
+.parse-prerequisites{flex-shrink:0;margin-top:0;padding:10px 12px;border-top:1px solid var(--line);background:#fff}
+.parse-category{scrollbar-gutter:stable}
+.parse-category .panel-title,.parse-cards .panel-title{position:sticky;top:0;z-index:2}
+.parse-category button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left}
+.parse-cards .ant-alert{margin:8px 0}
+[data-testid="project-table-card"] .ant-table-cell{word-break:normal;white-space:nowrap}

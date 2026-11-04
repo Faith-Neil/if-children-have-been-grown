@@ -58,63 +58,37 @@ export function AppHeaderActions({
       viewer: '只读成员',
     }[userPrimaryRole ?? ''] ?? '成员';
 
-  return (
-    <>
-      {sessionAllowsRoute(session, 'workbench') && (
-        <Input
-          className="global-search"
-          aria-label="搜索项目名称或资料名称"
-          prefix={<SearchOutlined />}
-          placeholder="搜索项目名称 / 资料名称"
-          value={search}
-          onChange={e => onSearchChange(e.target.value)}
-          suffix={<kbd>Ctrl K</kbd>}
-          onPressEnter={onSearchSubmit}
-        />
-      )}
-
-      {sessionAllowsRoute(session, 'jobs') && (
-        <TaskBadge
-          tasks={jobs}
-          companyId={user.company_id}
-          onClick={onOpenTaskDrawer}
-        />
-      )}
-
-      {sessionAllowsRoute(session, 'notifications') && onNavigate && <NotificationBell token={token} onNavigate={onNavigate} />}
-
-      <span className="company-label">
-        <TeamOutlined /> {companyName(user.company_id)}
-      </span>
-
+  const items: React.ReactElement[] = [];
+  if (sessionAllowsRoute(session, 'workbench')) {
+    items.push(
+      <Input
+        key="search"
+        className="global-search"
+        aria-label="搜索项目名称或资料名称"
+        prefix={<SearchOutlined />}
+        placeholder="搜索项目名称 / 资料名称"
+        value={search}
+        onChange={e => onSearchChange(e.target.value)}
+        suffix={<kbd>Ctrl K</kbd>}
+        onPressEnter={onSearchSubmit}
+      />,
+    );
+  }
+  if (sessionAllowsRoute(session, 'jobs')) {
+    items.push(<TaskBadge key="jobs" tasks={jobs} companyId={user.company_id} onClick={onOpenTaskDrawer} />);
+  }
+  if (sessionAllowsRoute(session, 'notifications') && onNavigate) {
+    items.push(<NotificationBell key="notifications" token={token} onNavigate={onNavigate} />);
+  }
+  items.push(
+    <span className="topbar-user" key="user">
+      <span className="company-label"><TeamOutlined /> {companyName(user.company_id)}</span>
       <span className="user-avatar">{user.name[0]}</span>
-
-      <span className="user-name">
-        {user.name}
-        <small> · {roleDisplayLabel}（演示兼容）</small>
-      </span>
-
-      <Button type="text" size="small" onClick={onLogout}>
-        退出
-      </Button>
-
-      <Button
-        type="text"
-        icon={<SettingOutlined />}
-        aria-label="模型服务配置"
-        onClick={onOpenModelConfig}
-      >
-        模型配置
-      </Button>
-
-      <Button
-        type="text"
-        icon={<DatabaseOutlined />}
-        aria-label="知识库检索配置"
-        onClick={onOpenRagflowConfig}
-      >
-        知识库配置
-      </Button>
-    </>
+      <span className="user-name">{user.name}<small> · {roleDisplayLabel}（演示兼容）</small></span>
+    </span>,
+    <Button key="logout" type="text" size="small" onClick={onLogout}>退出</Button>,
+    <Button key="model" type="text" icon={<SettingOutlined />} aria-label="模型服务配置" onClick={onOpenModelConfig}>模型配置</Button>,
+    <Button key="kb" type="text" icon={<DatabaseOutlined />} aria-label="知识库检索配置" onClick={onOpenRagflowConfig}>知识库配置</Button>,
   );
+  return items;
 }

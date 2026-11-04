@@ -1,6 +1,6 @@
 // 为什么有这个文件：为系统提供 1280 / 1440 / 1680 三大断点自适应计算、侧栏折叠状态持久化记忆与多层级动态面包屑推导纯逻辑。
 // 它解决什么问题：
-// 1. 落实 PRD v1.8 §2.3、§5.12 与设计规范 §3.1、§3.4、§7.3、§9.6 的 1280（紧凑桌面，主内容区 1040px，表格无横滚优先）、1440（标准桌面）、1680（宽屏工作台，四栏编辑台）断点系统；
+// 1. 落实 1280（紧凑桌面）、1440（标准桌面）、1680（宽屏工作台，四栏编辑台）断点；主内容区宽度跟随视口，不再锁死 1040px；
 // 2. 侧栏持久化记忆：进入项目默认自动收起侧边栏以最大化编辑写作宽度，用户手动切换折叠/展开持久化到 localStorage（icg_sidebar_collapsed），刷新或切页保持记忆；
 // 3. 动态层级面包屑：依据当前全局导航或项目页签层级推导面包屑路径，支持长项目名截断展示与悬停全称，上层节点提供点击快速逐级跳转回退，末级呈现纯文本当前页。
 
@@ -36,7 +36,7 @@ export interface BreakpointInfo {
   isAtLeast1680: boolean;
   /** 编辑台推荐列数：< 1680 为 3 栏（目录 + 正文 + 综合右栏）；>= 1680 为 4 栏（目录 + 正文 + 问题来源 + 对话助手） */
   editorColumns: 3 | 4;
-  /** 主内容区预估最大可用宽度（px）：紧凑桌面优先保障 1040px 内容无横滚 */
+  /** 主内容区可用宽度（px）：视口减去收起后的侧栏，随窗口变化 */
   contentWidth: number;
 }
 
@@ -65,17 +65,7 @@ export function getBreakpointInfo(width: number): BreakpointInfo {
 
   const editorColumns: 3 | 4 = isWide ? 4 : 3;
 
-  // 预估主内容区宽度（紧凑桌面 1040px 优先表格无横滚）
-  let contentWidth = 1040;
-  if (isSubCompact) {
-    contentWidth = Math.max(0, safeWidth - 240);
-  } else if (isCompact) {
-    contentWidth = 1040;
-  } else if (isStandard) {
-    contentWidth = 1200;
-  } else {
-    contentWidth = 1440;
-  }
+  const contentWidth = Math.max(320, safeWidth - 64);
 
   return {
     width: safeWidth,

@@ -2,22 +2,16 @@
 // 它解决什么问题：落实 APP-M2-T094，统一展示项目名称、标的金额（集成 MaskedField 脱敏与调阅）、截止倒计时、分册列表与快速导航页签，支持涉密项目横幅展示与八角色权限感知（只读成员无编辑设置入口）。
 
 import React, { useMemo } from 'react';
-import { Alert, Badge, Button, Space, Tag, Tabs, Tooltip } from 'antd';
+import { Alert, Badge, Tag, Tabs } from 'antd';
 import {
   ClockCircleOutlined,
-  ExclamationCircleOutlined,
-  FileTextOutlined,
   LockOutlined,
-  ProjectOutlined,
-  SafetyCertificateOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
-import type { ApplicationSession, Volume, Workspace } from '../shared/types.ts';
-import { companyName, formatTime, volumeName } from '../app/context.tsx';
-import { projectRoleName } from './project-team.ts';
+import type { ApplicationSession, Workspace } from '../shared/types.ts';
+import { companyName, formatTime } from '../app/context.tsx';
 import { MaskedField } from '../admin/MaskedField.tsx';
 import { normalizeSystemRole, READONLY_SYSTEM_ROLES, type SystemRole } from '../shell/route-guard.ts';
-import { projectVolumes, technicalOnly, volumeOptions } from './project-volumes.ts';
 import {
   calculateProjectCountdown,
   formatCurrencyAmount,
@@ -60,7 +54,7 @@ export function ProjectHeader({
   compact = false,
   className = '',
 }: ProjectHeaderProps) {
-  const { project, chapters = [], requirements = [], facts = [], checks = [], team } = workspace;
+  const { project, requirements = [], facts = [], checks = [], team } = workspace;
 
   // 1. 角色解析与权限感知
   const effectiveRole =
@@ -113,9 +107,6 @@ export function ProjectHeader({
     );
   }, [session, project.id, effectiveRole, workspace.permissions]);
 
-  // 6. 分册列表统计
-  const volumes: Volume[] = projectVolumes(workspace);
-
   return (
     <header
       className={`project-header ${compact ? 'compact' : ''} ${className}`}
@@ -134,54 +125,6 @@ export function ProjectHeader({
           style={{ marginBottom: 12, border: '1px solid #ffa39e', background: '#fff1f0' }}
         />
       )}
-
-      {/* 项目主标题与状态栏 */}
-      <div className="project-heading" data-testid="project-heading">
-        <div className="project-title">
-          <ProjectOutlined style={{ color: '#1e4db7', fontSize: 18 }} />
-          <strong title={project.name} data-testid="project-name">
-            {project.name}
-          </strong>
-          <Tag color="geekblue" data-testid="project-role-tag">
-            {projectRoleName(team?.members.find(m => m.user_id === currentUser?.id)?.project_role ?? 'readonly')}
-          </Tag>
-          <Tag color={workspace.parse_confirmed ? 'blue' : 'orange'}>
-            {workspace.parse_confirmed ? '编制中' : '待确认'}
-          </Tag>
-          {project.sensitive && (
-            <Tag color="volcano" icon={<SafetyCertificateOutlined />}>
-              涉密 · 强制本地
-            </Tag>
-          )}
-        </div>
-
-        {/* 分册列表与编制进度 */}
-        <div className="volume-strip" data-testid="volume-strip">
-          {volumes.map(vol => {
-            const volChapters = chapters.filter(c => c.volume === vol);
-            const completedCount = volChapters.filter(c => c.content && c.content.trim()).length;
-            const isFull = volChapters.length > 0 && completedCount === volChapters.length;
-            return (
-              <div
-                key={vol}
-                className="volume-item"
-                data-testid={`volume-item-${vol}`}
-                onClick={() => onNavigateTab('editor')}
-                style={{ cursor: 'pointer' }}
-                title="点击进入编辑台分册"
-              >
-                <b>{volumeName(vol)}</b>
-                <span>
-                  {completedCount}/{volChapters.length} 章
-                </span>
-                <Tag color={isFull ? 'green' : 'blue'}>
-                  {isFull ? '已提交正文' : '编制中'}
-                </Tag>
-              </div>
-            );
-          })}
-        </div>
-      </div>
 
       {/* 项目元数据与核心指标（含标的金额 MaskedField、截止倒计时） */}
       <div className="project-meta" data-testid="project-meta">

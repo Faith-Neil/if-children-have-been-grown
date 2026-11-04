@@ -45,23 +45,6 @@ export function TenderPage() {
   const roleOptions = fileRoleOptions(technicalOnly);
   const extracted = sameSourceAlreadyExtracted(workspace.source_fingerprint, workspace.parsed_source_fingerprint);
   const tenderReady = !technicalOnly || hasTenderFile(workspace.files);
-  const technicalClauses = technicalOnly ? workspace.requirements.filter(item => item.technical_clause) : [];
-  const outline = technicalOnly ? workspace.technical_outline : null;
-  const outlineChapter = outline ? workspace.chapters.find(item => item.id === outline.chapter_id) : undefined;
-
-  const historyOpen = technicalClauses.some(item => item.response_origin === 'history' && item.response_type === 'comply' && item.status !== 'confirmed');
-
-  async function confirmOutline() {
-    if (!outlineChapter) return;
-    await mutate(`/api/v1/projects/${workspace.project.id}/plan`, 'POST', {
-      scope: 'technical',
-      chapters: [{ id: outlineChapter.id, title: outlineChapter.title, volume: 'technical', fact_ids: [], writing_points: '' }],
-    });
-  }
-
-  async function generateVolume(section?: string) {
-    await mutate(`/api/v1/projects/${workspace.project.id}/generate`, 'POST', section ? { section } : {});
-  }
 
   async function removeUpload() {
     if (!removeFile || !removeReason.trim()) {
@@ -123,10 +106,11 @@ export function TenderPage() {
   }
 
   async function parseFinished(job: JobProgressData) {
-    await reload().catch(report);
+    const next = await reload().catch(error => { report(error); return undefined; });
     if (job.status === 'completed') {
       setParseJob(null);
-      if (!technicalOnly) navigate('parse');
+      // 抽出为空时留在本页；有结果则去解析结果。响应矩阵仍由解析确认进入。
+      if (!next?.technical_extract_empty) navigate('parse');
     }
   }
 
@@ -194,37 +178,6 @@ export function TenderPage() {
       )}
       {technicalOnly && extracted && (
         <Alert type="info" showIcon className="page-notice" message="这批文件已经抽取过。增加、替换或删除文件后才能再抽取。" />
-      )}
-      {technicalClauses.length > 0 && (
-        <Card size="small" className="page-notice" data-testid="technical-clauses" title={`抽出 ${technicalClauses.length} 条`}>
-          {technicalClauses.map(item => <div key={item.id}>{item.text}</div>)}
-        </Card>
-      )}
-      {outline && (
-        <Card size="small" className="page-notice" data-testid="technical-outline" title={outline.title}
-          extra={<Space>
-            <Button type="primary" data-testid="confirm-technical-outline" disabled={workspace.plan_confirmed || !projectCan(workspace, 'prepare_sources') || busy}
-              onClick={() => void confirmOutline()}>{workspace.plan_confirmed ? '目录已确认' : '确认目录'}</Button>
-            {workspace.plan_confirmed && (
-              <Button type="primary" data-testid="generate-technical-volume" disabled={busy || historyOpen || outlineChapter?.permissions?.generate === false}
-                title={historyOpen ? '有历史依据的无偏离行还没确认' : undefined}
-                onClick={() => void generateVolume()}>生成技术分册</Button>
-            )}
-          </Space>}>
-          {outline.headings.map(item => (
-            <div key={item.number} style={{ paddingLeft: item.level === 3 ? 16 : 0 }}>
-              {item.number} {item.title}
-              {item.level === 3 && workspace.plan_confirmed && (
-                <Button type="link" size="small" data-testid={`regenerate-${item.title}`}
-                  disabled={busy || historyOpen || outlineChapter?.permissions?.generate === false}
-                  onClick={() => void generateVolume(item.title)}>重新生成</Button>
-              )}
-            </div>
-          ))}
-          {(outline.missing ?? []).length > 0 && (
-            <Alert type="warning" showIcon style={{ marginTop: 12 }} message="还有条款没有标题，不能确认目录。" />
-          )}
-        </Card>
       )}
       {!technicalOnly && (
         <Alert

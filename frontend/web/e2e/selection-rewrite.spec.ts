@@ -73,8 +73,7 @@ test('select a sentence, get three rewrites, replace the selection after confirm
   for (let i = 0; i < PICK.length; i += 1) await page.keyboard.press('Shift+ArrowRight');
   await page.getByTestId('bubble-polish-btn').click();
   await expect(page.getByTestId('rewrite-selection')).toHaveText(PICK);
-  // 模型标识与知识库开关：本用例公司未连接知识库，允许关闭，默认关
-  await expect(page.getByTestId('assistant-model-label')).toHaveText('fake-rewrite · 本地模型');
+  // 知识库开关：本用例公司未连接知识库，允许关闭，默认关
   await expect(page.getByTestId('assistant-kb-switch')).not.toBeChecked();
   await expect(page.getByTestId('assistant-kb-note')).toContainText('无知识库来源');
   await page.getByTestId('rewrite-generate-btn').click();
