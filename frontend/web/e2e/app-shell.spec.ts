@@ -187,8 +187,13 @@ test('reload: dismiss keeps text; autosave keeps it as a personal draft after re
 test('back/forward routing across global and project pages', async ({ page }) => {
   await login(page, '/workbench');
   await expect(page.getByTestId('enter-project-btn-alpha-project')).toBeVisible();
-  await page.locator('.ant-pro-sider a[href="/library"]').click();
-  await expect(page).toHaveURL(/\/library$/);
+  const sider = page.locator('.ant-pro-sider').first();
+  if (await sider.evaluate(element => element.classList.contains('ant-layout-sider-collapsed'))) {
+    await page.getByRole('button', { name: '收起或展开导航' }).click();
+    await expect(sider).not.toHaveClass(/ant-layout-sider-collapsed/);
+  }
+  await page.locator('.ant-pro-sider a[href="/knowledge"]').click();
+  await expect(page).toHaveURL(/\/knowledge$/);
   await page.locator('.ant-pro-sider a[href="/workbench"]').click();
   await expect(page).toHaveURL(/\/workbench$/);
   await page.getByTestId('enter-project-btn-alpha-project').click();
@@ -201,7 +206,7 @@ test('back/forward routing across global and project pages', async ({ page }) =>
   await page.goBack();
   await expect(page).toHaveURL(/\/workbench$/);
   await page.goBack();
-  await expect(page).toHaveURL(/\/library$/);
+  await expect(page).toHaveURL(/\/knowledge$/);
   await page.goForward();
   await page.goForward();
   await page.goForward();
