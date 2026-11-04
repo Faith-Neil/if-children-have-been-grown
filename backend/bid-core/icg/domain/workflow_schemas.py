@@ -161,10 +161,19 @@ class PlannedChapter(RequestBody):
         return values
 
 
+class OutlineHeadingInput(RequestBody):
+    level: int = Field(ge=2, le=3)
+    title: str = Field(min_length=1, max_length=80)
+    requirement_id: str | None = Field(default=None, max_length=80)
+
+
 class PlanRequest(RequestBody):
     chapters: list[PlannedChapter] = Field(min_length=1, max_length=100)
     scope: Literal["all", "technical", "business"] = "all"
     reason: str = Field(default="", max_length=2000)
+    outline_title: str | None = Field(default=None, max_length=80)
+    outline_headings: list[OutlineHeadingInput] | None = None
+    confirm_outline: bool = False
 
 
 class ChapterPlanPatch(RequestBody):

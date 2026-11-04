@@ -90,6 +90,11 @@ def judge_deviation(clause: str, quote: str, model: Any = None) -> dict:
         return parse_judgment(json.dumps(_judge_fn(clause, quote), ensure_ascii=False))
     if model is None or not getattr(model, "is_real_model", False) or getattr(model, "is_local", False) is False:
         raise RuntimeError("没有本地模型，不能判断历史做法是否偏离")
+    url = getattr(model, "base_url", "") or ""
+    if url:
+        from icg.infra.openai_model import is_public_model_url
+        if is_public_model_url(url):
+            raise RuntimeError("本地部署已打开，公网地址不能判断偏离")
     return parse_judgment(model.suggest(JUDGE_SYSTEM, f"本次招标条款：{clause}\n历史做法：{quote}"))
 
 

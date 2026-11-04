@@ -53801,6 +53801,28 @@
             "maxLength": 2000,
             "title": "Reason",
             "default": ""
+          },
+          "outline_title": {
+            "anyOf": [
+              { "type": "string", "maxLength": 80 },
+              { "type": "null" }
+            ],
+            "title": "Outline Title"
+          },
+          "outline_headings": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/OutlineHeadingInput" }
+              },
+              { "type": "null" }
+            ],
+            "title": "Outline Headings"
+          },
+          "confirm_outline": {
+            "type": "boolean",
+            "title": "Confirm Outline",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -53809,6 +53831,23 @@
           "chapters"
         ],
         "title": "PlanRequest"
+      },
+      "OutlineHeadingInput": {
+        "properties": {
+          "level": { "type": "integer", "minimum": 2, "maximum": 3, "title": "Level" },
+          "title": { "type": "string", "minLength": 1, "maxLength": 80, "title": "Title" },
+          "requirement_id": {
+            "anyOf": [
+              { "type": "string", "maxLength": 80 },
+              { "type": "null" }
+            ],
+            "title": "Requirement Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["level", "title"],
+        "title": "OutlineHeadingInput"
       },
       "PlannedChapter": {
         "properties": {

@@ -482,6 +482,17 @@ class ModelConfigService:
         start = time.time()
         ok = True
 
+        if cfg.is_local:
+            from .openai_model import is_public_model_url
+            if is_public_model_url(cfg.base_url):
+                return {
+                    "ok": False,
+                    "provider": cfg.provider,
+                    "model": cfg.model,
+                    "duration_ms": 1,
+                    "message": "本地部署已打开，公网地址不会连接，正文也不会发出去。",
+                }
+
         if cfg.provider == "demo":
             duration_ms = max(1, int((time.time() - start) * 1000))
             return {

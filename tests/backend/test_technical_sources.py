@@ -220,13 +220,13 @@ def test_outline_uses_tender_title_and_blocks_confirm_until_each_clause_has_a_he
     )
     assert saved.status_code == 200, saved.text
     workspace = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
-    assert workspace["plan_confirmed"] is False
-    refused = client.post(
+    assert workspace["plan_confirmed"] is True
+    again = client.post(
         f"/api/v1/projects/{project_id}/plan",
         headers={**headers, "If-Match": str(workspace["revision"]), "Idempotency-Key": str(uuid4())},
         json={"scope": "technical", "chapters": [{"id": chapter["id"], "title": "技术服务方案", "volume": "technical"}]},
     )
-    assert refused.status_code == 409 and refused.json()["code"] == "REQUIREMENT_NOT_READY"
+    assert again.status_code == 200, again.text
 
 
 def _parse_clause(client, headers, text):
@@ -635,3 +635,93 @@ def test_deviation_table_copies_the_tender_sample(client):
     assert reviewed_export.status_code == 200, reviewed_export.text
     reviewed_xml = _document_xml(client.get(reviewed_export.json()["export"]["volumes"][0]["download_url"], headers=headers).content)
     assert "无偏离" in reviewed_xml and "正偏离" in reviewed_xml
+
+
+def test_extract_keeps_service_lines_and_drops_bid_procedure():
+    from icg.domain.technical_clause_extract import extract_technical_clauses
+    pages = ["\n".join([
+        "乙方将提供每季度1次的现场服务。",
+        "1.2.38 开标会记录",
+        "1.2.45 操作系统环境健康检查",
+        "评标委员会成员认真研究招标文件",
+        "1.2.79 | 商务、技术偏离表",
+        "1.2.86 | 招标代理机构 | 联系人",
+        "故障分析报告",
+    ])]
+    texts = [item.text for item in extract_technical_clauses(pages)]
+    assert "现场服务" in "".join(texts)
+    assert any("健康检查" in item for item in texts)
+    assert any("故障分析" in item for item in texts)
+    assert not any("开标" in item or "评标" in item or "招标代理" in item for item in texts)
+
+
+def test_outline_can_be_renamed_reordered_and_relevelled(client):
+    headers = login(client)
+    project_id, workspace = _parse_clause(client, headers, "服务方案中应包含数据库的健康检查、故障处理、培训等。")
+    rows = {row["text"]: row for row in workspace["requirements"] if row.get("technical_clause")}
+    chapter_id = workspace["technical_outline"]["chapter_id"]
+    saved = client.post(
+        f"/api/v1/projects/{project_id}/plan",
+        headers={**headers, "If-Match": str(workspace["revision"]), "Idempotency-Key": str(uuid4())},
+        json={
+            "scope": "technical",
+            "chapters": [{"id": chapter_id, "title": "技术服务方案", "volume": "technical", "fact_ids": [], "writing_points": ""}],
+            "outline_title": "技术服务方案",
+            "confirm_outline": False,
+            "outline_headings": [
+                {"level": 2, "title": "运行维护", "requirement_id": None},
+                {"level": 3, "title": "季度巡检", "requirement_id": rows["健康检查"]["id"]},
+                {"level": 2, "title": "应急处理", "requirement_id": None},
+                {"level": 3, "title": "故障处理", "requirement_id": rows["故障处理"]["id"]},
+                {"level": 3, "title": "培训", "requirement_id": rows["培训"]["id"]},
+            ],
+        },
+    )
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["plan_confirmed"] is False
+    current = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
+    titles = [(item["number"], item["title"]) for item in current["technical_outline"]["headings"]]
+    assert titles == [("1.1", "运行维护"), ("1.1.1", "季度巡检"), ("1.2", "应急处理"), ("1.2.1", "故障处理"), ("1.2.2", "培训")]
+    assert current["technical_outline"]["title"] == "技术服务方案"
+    assert current["plan_confirmed"] is False
+
+
+def test_merged_deviation_table_is_technical_only():
+    from icg.domain.technical_volume import find_samples, table_rows
+    pages = "\n".join([
+        "商务、技术偏离表",
+        "序号|招标文件条目|商务偏离|技术偏离|说明",
+        "逐条响应",
+        "商务偏离表",
+        "序号|商务条款|偏离",
+        "技术偏差表",
+        "序号|招标文件条目|偏离|说明",
+    ])
+    samples = find_samples({"files": {"f": {"file_role": "tender", "pages": [pages]}}})
+    assert [item["title"] for item in samples] == ["商务、技术偏离表", "技术偏差表"]
+    merged = samples[0]
+    workflow = {"technical_outline": {"headings": [
+        {"level": 3, "number": "1.1.1", "title": "健康检查", "requirement_id": "r"},
+    ]}, "requirements": {"r": {
+        "id": "r", "technical_clause": True, "status": "confirmed", "response_origin": "model",
+        "response": "每月巡检", "response_type": "comply", "deviation_reason": "",
+    }}}
+    row = table_rows(merged, workflow)[0]
+    assert row[2] == ""
+    assert row[3] == "无偏离"
+
+
+def test_local_switch_refuses_public_endpoint_without_calling_it():
+    from icg.infra.openai_model import OpenAICompatibleConfig, OpenAICompatibleModelProvider, is_public_model_url
+    assert is_public_model_url("https://api.highwayapi.ai/openai") is True
+    assert is_public_model_url("http://127.0.0.1:8000") is False
+    assert is_public_model_url("http://10.1.2.3:8000") is False
+    model = OpenAICompatibleModelProvider(OpenAICompatibleConfig(
+        base_url="https://api.highwayapi.ai/openai", model="qwen", is_local=True, api_key="x",
+    ))
+    try:
+        model.suggest("写正文", "招标条款")
+    except Exception as error:
+        assert "公网" in str(error)
+    else:
+        raise AssertionError("公网地址不应收到正文")

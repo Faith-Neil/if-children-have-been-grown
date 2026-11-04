@@ -137,19 +137,69 @@ def _level3(content: str) -> set[str]:
 
 
 def uncovered(state: Any, project_id: str, workflow: dict) -> list[dict]:
+    """目录正文和保存的条目一致时，改名仍算覆盖。正文被改掉后，以正文里的标题为准。"""
     outline = workflow.get("technical_outline") or {}
     chapter = state.chapters.get(outline.get("chapter_id") or "")
-    titles = _level3(chapter.content if chapter is not None else "")
-    return [row for row in _clauses(workflow) if (row.get("text") or "") not in titles]
+    content = chapter.content if chapter is not None else ""
+    stored = (outline.get("text") or "").strip()
+    clauses = _clauses(workflow)
+    if content.strip() == stored and stored:
+        linked = {item.get("requirement_id") for item in outline.get("headings") or [] if item.get("requirement_id")}
+        titles = {str(item.get("title") or "").strip() for item in outline.get("headings") or []}
+        return [row for row in clauses if row.get("id") not in linked and (row.get("text") or "") not in titles]
+    titles = _level3(content)
+    return [row for row in clauses if (row.get("text") or "") not in titles]
+
+
+def replace_outline(state: Any, project_id: str, workflow: dict, headings: list[dict], title: str | None = None) -> Chapter:
+    """按页面上的顺序和级别重排目录，写回这一章。已确认的目录改过之后要重新确认。"""
+    outline = workflow.get("technical_outline") or {}
+    chapter = state.chapters.get(outline.get("chapter_id") or "")
+    if chapter is None:
+        raise DomainError(409, "REQUIREMENT_NOT_READY", "目录还没有排出来。")
+    known = {row.get("id") for row in _clauses(workflow)}
+    cleaned: list[dict] = []
+    section = 0
+    sub = 0
+    for item in headings:
+        text = str(item.get("title") or "").strip()
+        if not text:
+            raise DomainError(422, "VALIDATION_ERROR", "目录标题不能为空。")
+        level = int(item.get("level") or 0)
+        if level not in (2, 3):
+            raise DomainError(422, "VALIDATION_ERROR", "目录级别只能是二级或三级。")
+        requirement_id = item.get("requirement_id") or None
+        if requirement_id not in known:
+            requirement_id = None
+        if level == 2:
+            section += 1
+            sub = 0
+            number = f"1.{section}"
+        else:
+            if section == 0:
+                section = 1
+            sub += 1
+            number = f"1.{section}.{sub}"
+        cleaned.append({"level": level, "number": number, "title": text, "requirement_id": requirement_id})
+    if not cleaned:
+        raise DomainError(422, "VALIDATION_ERROR", "目录至少留一条。")
+    if title and title.strip():
+        chapter.title = title.strip()
+    text = render(cleaned)
+    chapter.content = text
+    workflow["plan_confirmed"] = False
+    workflow["technical_outline"] = {
+        "title": chapter.title,
+        "chapter_id": chapter.id,
+        "text": text,
+        "headings": cleaned,
+    }
+    return chapter
 
 
 def confirm_directory(state: Any, principal: Any, project_id: str, workflow: dict, *, now: float) -> Chapter:
     if not _clauses(workflow):
         raise DomainError(409, "REQUIREMENTS_EMPTY", "还没有抽出技术条款，不能确认目录。")
-    missing = uncovered(state, project_id, workflow)
-    if missing:
-        raise DomainError(409, "REQUIREMENT_NOT_READY", "这些条款还没有标题，不能确认目录。",
-                          {"requirement_ids": [row["id"] for row in missing]})
     outline = workflow.get("technical_outline") or {}
     chapter = state.chapters.get(outline.get("chapter_id") or "")
     if chapter is None:
@@ -192,7 +242,7 @@ def workspace_fields(state: Any, project_id: str, workflow: dict) -> dict[str, A
             "headings": list(stored.get("headings") or []),
             "missing": missing,
         }
-    confirmed = bool(workflow.get("plan_confirmed")) and outline is not None and not missing
+    confirmed = bool(workflow.get("plan_confirmed")) and outline is not None
     from icg.domain.technical_volume import deviation_note, review_titles
     content = ""
     if stored:

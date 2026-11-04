@@ -12,7 +12,7 @@ from icg.domain.matrix import critical
 PARTS = ("响应说明", "服务目标", "具体措施", "工作流程", "交付物与记录", "本项目结合点")
 WRITE_ORDER = ("服务内容", "服务方式", "质量管理", "应急", "实施计划", "培训", "保密", "质保")
 HEADING = re.compile(r"^(\d+(?:\.\d+)*)\s+(\S.*)$")
-SAMPLE_TITLE = re.compile(r"技术(?:规格)?偏离表")
+SAMPLE_TITLE = re.compile(r"偏离表|偏差表")
 BOOK = re.compile(r"《[^》]{1,40}》")
 LABEL = {"comply": "无偏离", "exceed": "正偏离", "deviate": "负偏离"}
 TABLE_LABEL = {"comply": "无偏离", "exceed": "正偏离", "deviate": "偏离"}
@@ -59,7 +59,7 @@ def find_samples(workflow: dict) -> list[dict]:
             continue
         lines = _pages(record)
         for index, line in enumerate(lines):
-            if not SAMPLE_TITLE.search(line):
+            if not _deviation_sample(line):
                 continue
             headers = None
             window = []
@@ -84,10 +84,19 @@ def find_samples(workflow: dict) -> list[dict]:
                 "title": line.strip(),
                 "headers": headers,
                 "mode": mode,
+                "scope": "technical" if ("商务" in line and "技术" in line) else "",
                 "attachment": "附件" in line or (index > 0 and "附件" in lines[index - 1]),
                 "file_id": record.get("id") or "",
             })
     return samples
+
+
+def _deviation_sample(line: str) -> bool:
+    """偏离表、偏差表都认。只有商务或报价、没有技术的表跳过。"""
+    if not SAMPLE_TITLE.search(line):
+        return False
+    commercial = "商务" in line or "报价" in line
+    return "技术" in line or not commercial
 
 
 def deviation_note(workflow: dict) -> str:
@@ -105,11 +114,8 @@ def writable(row: dict) -> bool:
 
 
 def assert_ready(state: Any, project_id: str, workflow: dict) -> None:
-    from icg.domain.technical_outline import uncovered
     if not workflow.get("plan_confirmed") or not workflow.get("technical_outline"):
         raise DomainError(409, "REQUIREMENT_NOT_READY", "目录还没确认。")
-    if uncovered(state, project_id, workflow):
-        raise DomainError(409, "REQUIREMENT_NOT_READY", "还有条款没有标题。")
     if workflow.get("technical_retrieval") != "done":
         raise DomainError(409, "REQUIREMENT_NOT_READY", "历史检索还没结束。")
     pending = [
@@ -121,7 +127,13 @@ def assert_ready(state: Any, project_id: str, workflow: dict) -> None:
 
 
 def _local_model(model: Any) -> bool:
-    return bool(model and getattr(model, "is_real_model", False) and getattr(model, "is_local", None) is not False)
+    if not (model and getattr(model, "is_real_model", False) and getattr(model, "is_local", None) is not False):
+        return False
+    url = getattr(model, "base_url", "") or ""
+    if not url:
+        return True
+    from icg.infra.openai_model import is_public_model_url
+    return not is_public_model_url(url)
 
 
 def scrub(text: str, row: dict) -> str:
@@ -194,8 +206,13 @@ def _level3(outline: dict) -> list[dict]:
         elif heading.get("level") == 3:
             grouped.setdefault(current, []).append(heading)
     ordered = []
+    seen = set()
     for name in WRITE_ORDER:
         ordered.extend(grouped.get(name) or [])
+        seen.add(name)
+    for name, items in grouped.items():
+        if name not in seen:
+            ordered.extend(items)
     return ordered
 
 
@@ -301,6 +318,8 @@ def write_volume(state: Any, project_id: str, workflow: dict, section: str | Non
 
 
 def _cell(header: str, heading: dict, row: dict, sample: dict) -> str:
+    if sample.get("scope") == "technical" and "商务" in header and "技术" not in header:
+        return ""
     if "页码" in header:
         return ""
     if "说明" in header or "理由" in header:
