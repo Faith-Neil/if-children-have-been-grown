@@ -3,7 +3,10 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canUploadHistory, datasetWarnings, embeddingChangeWarning, kbApi, kbPermissions, settingsDiff } from '../../src/library/kb-admin-core.ts';
+import {
+  KB_KIND_LABEL, KB_UPLOAD_ACCEPT, canUploadHistory, datasetWarnings, embeddingChangeWarning, kbApi, kbPermissions,
+  metadataValueLabel, settingsDiff,
+} from '../../src/library/kb-admin-core.ts';
 
 const base = { revision: 3, embedding_model: 'a@x', rerank_id: '', llm_id: '', similarity_threshold: 0.2,
   keywords_weight: 0.7, use_pipelines: true, language: 'Chinese', profiles: {} };
@@ -24,6 +27,20 @@ test('settings diff only sends changed fields and warns on embedding change', ()
   assert.deepEqual(diff, { similarity_threshold: 0.15, embedding_model: 'b@y' });
   assert.match(embeddingChangeWarning(base, diff), /重建/);
   assert.equal(embeddingChangeWarning(base, { keywords_weight: 0.5 }), '');
+});
+
+test('knowledge page exposes history and materials only', () => {
+  assert.deepEqual(Object.keys(KB_KIND_LABEL), ['history', 'materials']);
+  assert.equal(KB_KIND_LABEL.history, '历史标书');
+  assert.equal(KB_KIND_LABEL.materials, '资料库');
+  assert.equal(KB_UPLOAD_ACCEPT.materials, '.pdf,.docx,.doc,.xls,.xlsx,.ppt,.pptx');
+  assert.equal(KB_UPLOAD_ACCEPT.history, '.pdf,.docx,.doc');
+});
+
+test('metadata value labels use Chinese display names', () => {
+  assert.equal(metadataValueLabel('content_role', 'bidder_response'), '投标响应');
+  assert.equal(metadataValueLabel('technical_domain', 'data_security'), '数据安全');
+  assert.equal(metadataValueLabel('content_role', 'custom_value'), 'custom_value');
 });
 
 test('dataset warnings and urls', () => {

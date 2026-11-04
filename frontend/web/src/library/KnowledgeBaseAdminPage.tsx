@@ -10,8 +10,8 @@ import {
 import { CloudUploadOutlined, DeploymentUnitOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import { rawUploadPath, request, uploadRaw, uploadTooLarge } from '../shared/api.ts';
 import {
-  HISTORY_UPLOAD_ACCEPT, KB_KIND_HINT, KB_KIND_LABEL, KB_UPLOAD_ACCEPT, canUploadHistory, datasetWarnings, embeddingChangeWarning, kbApi, kbPermissions,
-  settingsDiff, type KbKind, type KbSearchKind, type KbSettings,
+  KB_KIND_HINT, KB_KIND_LABEL, KB_UPLOAD_ACCEPT, canUploadHistory, datasetWarnings, embeddingChangeWarning, kbApi, kbPermissions,
+  metadataValueLabel, settingsDiff, type KbKind, type KbSearchKind, type KbSettings,
 } from './kb-admin-core.ts';
 import { kbStatusMeta } from './knowledge-base-core.ts';
 
@@ -54,6 +54,7 @@ export function KnowledgeBaseAdminPage({ token, role, report, historyOnly = fals
       {notice && <Alert type="success" showIcon closable style={{ marginBottom: 12 }} message={notice} onClose={() => setNotice('')} />}
       <Tabs items={historyOnly ? [
         { key: 'history', label: '历史标书', children: <DatasetsTab {...{ call, perms, token, report, setNotice, role }} lockKind="history" /> },
+        { key: 'materials', label: '资料库', children: <DatasetsTab {...{ call, perms, token, report, setNotice, role }} lockKind="materials" /> },
         ...(perms.connection ? [{ key: 'settings', label: '数据集配置', children: <SettingsTab {...{ call, perms, overview, reload: loadOverview, setNotice }} /> }] : []),
       ] : [
         { key: 'settings', label: '设置与摄入流程', children: <SettingsTab {...{ call, perms, overview, reload: loadOverview, setNotice }} /> },
@@ -123,13 +124,12 @@ function SettingsTab({ call, perms, overview, reload, setNotice }: {
           <Space wrap size="large">
             <Form.Item name="similarity_threshold" label="相似度阈值"><InputNumber min={0} max={1} step={0.05} /></Form.Item>
             <Form.Item name="keywords_weight" label="关键词权重" tooltip="余下为向量权重。"><InputNumber min={0} max={1} step={0.05} /></Form.Item>
-            <Form.Item name="use_pipelines" label="使用 ICG 摄入流程" valuePropName="checked"><Switch /></Form.Item>
           </Space>
         </Form>
       </Card>
       <Card size="small" title="ICG 摄入流程（招投标专用）"
         extra={<Button icon={<DeploymentUnitOutlined />} onClick={() => void deploy()} loading={busy} disabled={!perms.write || !overview.enabled}>部署 / 升级</Button>}>
-        <Table<Row> size="small" rowKey="key" pagination={false} dataSource={pipelines} columns={[
+        <Table<Row> size="small" rowKey="key" pagination={false} dataSource={pipelines.filter(p => p.key === 'history_bid' || p.key === 'materials')} columns={[
           { title: '流程', dataIndex: 'title', width: 200 },
           { title: '说明', dataIndex: 'description' },
           { title: '切块', dataIndex: 'chunker', width: 80, render: v => (v === 'title' ? '按标题' : '按长度') },
@@ -174,7 +174,6 @@ function DatasetsTab({ call, perms, token, report, setNotice, role, lockKind }: 
     return result;
   }
   async function upload(file: File) {
-    if (kind === 'library') return false;
     const tooLarge = uploadTooLarge(file);
     if (tooLarge) { report?.(new Error(tooLarge)); return false; }
     setBusy(true);
@@ -195,6 +194,9 @@ function DatasetsTab({ call, perms, token, report, setNotice, role, lockKind }: 
       {kind === 'history' && !info?.dataset_id && (
         <Alert type="warning" showIcon message="本公司历史标书数据集尚未配置，请公司管理员先配置。未配置时不能上传。" />
       )}
+      {kind === 'materials' && !info?.dataset_id && (
+        <Alert type="warning" showIcon message="本公司资料库数据集尚未配置，请公司管理员先配置。未配置时不能上传。" />
+      )}
       <Space wrap>
         {!lockKind && (
           <Select<KbKind> value={kind} onChange={setKind} style={{ width: 260 }}
@@ -204,15 +206,15 @@ function DatasetsTab({ call, perms, token, report, setNotice, role, lockKind }: 
         {kind === 'history' && !info?.dataset_id && perms.write && (
           <Button type="primary" loading={busy} onClick={() => void action(kbApi.datasetAction('history', 'ensure'), 'POST', {}, '历史标书数据集已建立。')}>建立历史标书数据集</Button>
         )}
-        {kind !== 'library' && (
-          <Upload accept={kind === 'history' ? HISTORY_UPLOAD_ACCEPT : KB_UPLOAD_ACCEPT[kind]} showUploadList={false} beforeUpload={file => upload(file)}
-            disabled={kind === 'history' ? !canUploadHistory(role) || !info?.dataset_id : !perms.write}>
-            <Button icon={<CloudUploadOutlined />} loading={busy}
-              disabled={kind === 'history' ? !canUploadHistory(role) || !info?.dataset_id : !perms.write}>
-              {kind === 'history' ? '上传历史标书' : '上传原件'}
-            </Button>
-          </Upload>
+        {kind === 'materials' && !info?.dataset_id && perms.write && (
+          <Button type="primary" loading={busy} onClick={() => void action(kbApi.datasetAction('materials', 'ensure'), 'POST', {}, '资料库数据集已建立。')}>建立资料库数据集</Button>
         )}
+        <Upload accept={KB_UPLOAD_ACCEPT[kind]} showUploadList={false} beforeUpload={file => upload(file)}
+          disabled={!canUploadHistory(role) || !info?.dataset_id}>
+          <Button icon={<CloudUploadOutlined />} loading={busy} disabled={!canUploadHistory(role) || !info?.dataset_id}>
+            {kind === 'history' ? '上传历史标书' : '上传资料'}
+          </Button>
+        </Upload>
         <Popconfirm title="按当前流程重新解析该类全部文档？" onConfirm={() => void action(kbApi.datasetAction(kind, 'reparse'), 'POST', {}, '已开始重新解析。')} disabled={!perms.write || !info?.dataset_id}>
           <Button disabled={!perms.write || !info?.dataset_id}>全部重新解析</Button>
         </Popconfirm>
@@ -233,18 +235,15 @@ function DatasetsTab({ call, perms, token, report, setNotice, role, lockKind }: 
         { title: '状态', dataIndex: 'status', width: 110, render: v => { const m = kbStatusMeta(v === 'unsynced' ? 'parsing' : v); return <Tag color={m.color}>{m.label}</Tag>; } },
         { title: '分块', dataIndex: 'chunk_count', width: 70 },
         { title: '说明', dataIndex: 'message', width: 160, ellipsis: true, render: (v: string, r) => (r.status === 'failed' ? <Typography.Text type="danger">{v}</Typography.Text> : '') },
-        { title: '元数据', dataIndex: 'meta_fields', ellipsis: true, render: (m: Row) => Object.entries(m || {}).filter(([k]) => !['company_id', 'source_type', 'source_id', 'knowledge_kind'].includes(k)).map(([k, v]) => `${k}=${v}`).join('；') },
+        { title: '元数据', dataIndex: 'meta_fields', ellipsis: true, render: (m: Row) => Object.entries(m || {}).filter(([k]) => !['company_id', 'source_type', 'source_id', 'knowledge_kind'].includes(k)).map(([k, v]) => `${k}=${metadataValueLabel(k, String(v))}`).join('；') },
         { title: '启用', dataIndex: 'enabled', width: 70, render: (v, r) => <Switch size="small" checked={v} disabled={!perms.write} onChange={checked => void action(kbApi.document(kind, r.document_id), 'PATCH', { enabled: checked })} /> },
         { title: '操作', width: 300, render: (_, r) => (
           <Space size={4} wrap>
             <Button size="small" onClick={() => void openChunks(r)}>分块</Button>
             <Button size="small" disabled={!perms.write} onClick={() => void action(`${kbApi.document(kind, r.document_id)}/reparse`, 'POST', {}, '已开始重新解析。')}>重解析</Button>
-            {kind === 'certificate' && <Button size="small" disabled={!perms.write || r.status !== 'synced'} onClick={() => void action(kbApi.certificateDraft(r.document_id), 'POST', {}, '已生成“待核验”资料，请到企业资料库核对原件后确认。')}>生成资料草稿</Button>}
-            {kind !== 'library' && (
-              <Popconfirm title="从知识库删除该原件？" onConfirm={() => void action(kbApi.document(kind, r.document_id), 'DELETE', undefined, '已删除。')}>
-                <Button size="small" danger disabled={!perms.write}>删除</Button>
-              </Popconfirm>
-            )}
+            <Popconfirm title="从知识库删除该原件？" onConfirm={() => void action(kbApi.document(kind, r.document_id), 'DELETE', undefined, '已删除。')}>
+              <Button size="small" danger disabled={!perms.write}>删除</Button>
+            </Popconfirm>
           </Space>
         ) },
       ]} />
@@ -282,9 +281,9 @@ function RetrievalTab({ call }: { call: Call }) {
   }
   return (
     <Space direction="vertical" style={{ width: '100%' }}>
-      <Form form={form} layout="inline" initialValues={{ kinds: ['evidence', 'snippet', 'history'] as KbSearchKind[], limit: 8 }} onFinish={() => void run()}>
+      <Form form={form} layout="inline" initialValues={{ kinds: ['history', 'materials'] as KbSearchKind[], limit: 8 }} onFinish={() => void run()}>
         <Form.Item name="query" style={{ width: 420 }}><Input placeholder="例如：投标人须具备信息安全管理体系认证" /></Form.Item>
-        <Form.Item name="kinds"><Select mode="multiple" style={{ width: 260 }} options={[{ value: 'evidence', label: '资料' }, { value: 'snippet', label: '片段' }, { value: 'history', label: '历史参考' }]} /></Form.Item>
+        <Form.Item name="kinds"><Select mode="multiple" style={{ width: 260 }} options={[{ value: 'history', label: '历史标书' }, { value: 'materials', label: '资料库' }]} /></Form.Item>
         <Form.Item name="similarity_threshold" label="阈值"><InputNumber min={0} max={1} step={0.05} placeholder="默认" /></Form.Item>
         <Form.Item name="keywords_weight" label="关键词权重"><InputNumber min={0} max={1} step={0.05} placeholder="默认" /></Form.Item>
         <Button type="primary" htmlType="submit" icon={<SearchOutlined />} loading={busy}>试查</Button>
