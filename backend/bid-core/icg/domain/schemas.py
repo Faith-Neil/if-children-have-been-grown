@@ -107,7 +107,7 @@ class ResponseBody(BaseModel):
 
 DemoCompanyRole = Literal["editor", "manager", "viewer", "readonly", "reviewer", "auditor",
                           "company_admin", "data_admin", "project_lead", "bid_writer",
-                          "platform_admin", "group_admin"]
+                          "platform_admin", "group_admin", "member"]
 
 
 class AccountResponse(ResponseBody):
@@ -158,8 +158,7 @@ class BrandingResponse(ResponseBody):
     logo_horizontal_url: str | None = None
 
 
-ApplicationRole = Literal["platform_admin", "group_admin", "company_admin", "data_admin",
-                          "project_lead", "bid_writer", "reviewer", "readonly", "auditor", "viewer"]
+ApplicationRole = Literal["platform_admin", "company_admin", "member"]
 
 
 class SessionUserResponse(AccountResponse):
@@ -223,7 +222,7 @@ class SessionProjectAccess(ResponseBody):
 
 class ApplicationSessionResponse(ResponseBody):
     auth_mode: Literal["synthetic-demo", "authenticated"]
-    role_mode: Literal["legacy-demo-compat", "rbac-8roles"]
+    role_mode: Literal["rbac-3roles"]
     user: SessionUserResponse
     scope: SessionScopeResponse
     navigation: list[SessionNavigationResponse]

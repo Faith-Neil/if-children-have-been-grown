@@ -113,29 +113,18 @@ def test_super_admin_session_navigation_and_permissions(client):
     session_data = session_resp.json()
 
     assert session_data["auth_mode"] == "authenticated"
-    assert session_data["role_mode"] == "rbac-8roles"
-    assert session_data["home_path"] == "/workbench"
+    assert session_data["role_mode"] == "rbac-3roles"
+    assert session_data["home_path"] == "/admin/rules"
     assert session_data["scope"]["kind"] == "system"
     assert session_data["scope"]["active_company_id"] == "system"
 
-    # 验证导航包含所有标准业务与管理路由，且全部为 write 权限
-    expected_routes = {
-        "workbench", "library", "knowledge", "writing", "statistics",
-        "admin", "admin.rules", "jobs", "platform", "platform.audit", "platform.jobs"
-    }
     nav_routes = {item["route_id"]: item["access"] for item in session_data["navigation"]}
-    for route in expected_routes:
-        assert route in nav_routes, f"Missing route {route}"
-        assert nav_routes[route] == "write", f"Route {route} expected write access"
-
-    # 验证全局操作动作
-    actions = set(session_data["allowedActions"])
-    required_actions = {
-        "projects.read", "projects.create", "library.read", "library.write",
-        "sla_templates.read", "sla_templates.write", "jobs.read",
-        "platform.write", "admin.write"
-    }
-    assert required_actions.issubset(actions)
+    assert set(nav_routes) == {"admin.rules", "platform", "platform.audit", "jobs", "notifications"}
+    assert "workbench" not in nav_routes
+    assert nav_routes["platform"] == "write"
+    assert "projects.create" not in session_data["allowedActions"]
+    assert "platform.write" in session_data["allowedActions"]
+    assert "admin.write" in session_data["allowedActions"]
 
 
 def test_super_admin_negative_credentials(client):
@@ -192,40 +181,26 @@ def test_normal_account_password_login(client):
 
 
 def test_super_admin_cross_company_access(client):
-    """验证超级管理员能够跨公司穿透访问业务项目（如 alpha-project）并享有全套权限。"""
+    """平台管理员和种子账号 admin 不能打开投标项目正文。"""
     login_resp = client.post(
         "/api/v1/auth/login",
         json={"username": "admin", "password": "X_2026"},
     )
     token = login_resp.json()["access_token"]
 
-    # 查询跨公司项目会话
     resp = client.get(
         "/api/v1/session?project_id=alpha-project",
         headers={"Authorization": f"Bearer {token}"},
     )
-    assert resp.status_code == 200
-    proj_access = resp.json()["project_access"]
-    assert proj_access["id"] == "alpha-project"
+    assert resp.status_code == 404
+    assert resp.json()["code"] == "NOT_FOUND"
 
-    perms = proj_access["permissions"]
-    assert perms["manage_team"] is True
-    assert perms["manage_project"] is True
-    assert perms["manage_structure"] is True
-    assert perms["export_internal"] is True
-    assert perms["check_all"] is True
-    assert "technical" in perms["check_volumes"]
-    assert "business" in perms["check_volumes"]
-    assert "technical" in perms["export_volumes"]
-    assert "business" in perms["export_volumes"]
-    assert "project.export" in proj_access["route_permissions"]
-
-    # 验证能顺利读取工作区
     ws_resp = client.get(
         "/api/v1/projects/alpha-project/workspace",
         headers={"Authorization": f"Bearer {token}"},
     )
-    assert ws_resp.status_code == 200
+    assert ws_resp.status_code == 404
+    assert ws_resp.json()["code"] == "NOT_FOUND"
 
 
 def test_super_admin_in_production_mode(monkeypatch, client):

@@ -161,10 +161,21 @@ class PlannedChapter(RequestBody):
         return values
 
 
+class OutlineHeadingInput(RequestBody):
+    level: int = Field(ge=1, le=4)
+    title: str = Field(min_length=1, max_length=80)
+    requirement_id: str | None = Field(default=None, max_length=80)
+    task_id: str | None = Field(default=None, max_length=80)
+    requirement_ids: list[str] = Field(default_factory=list)
+
+
 class PlanRequest(RequestBody):
     chapters: list[PlannedChapter] = Field(min_length=1, max_length=100)
     scope: Literal["all", "technical", "business"] = "all"
     reason: str = Field(default="", max_length=2000)
+    outline_title: str | None = Field(default=None, max_length=80)
+    outline_headings: list[OutlineHeadingInput] | None = None
+    confirm_outline: bool = False
 
 
 class ChapterPlanPatch(RequestBody):
@@ -198,6 +209,7 @@ class ChapterAssignment(RequestBody):
 
 class GenerateRequest(RequestBody):
     chapter_ids: list[str] | None = None
+    section: str | None = Field(default=None, max_length=500, description="只重新生成这一节；不填则按顺序写全部可写的节")
 
 
 class ProjectCheckRequest(RequestBody):
@@ -381,6 +393,10 @@ class Requirement(ResponseBody):
     superseded_by: str | None = None
     amends: str | None = Field(default=None, description="补遗条目修改的原条款")
     source_stale: str | None = Field(default=None, description="重新解析后原句在新文字里找不到，请对照原件核对")
+    technical_clause: bool = Field(default=False, description="技术分册按教程抽出的条款；同一件事只有一行")
+    response_origin: Literal["", "history", "model", "retrieval_failed", "draft_failed", "no_evidence"] = ""
+    history_filename: str = ""
+    history_quote: str = ""
 
 
 class Fact(ResponseBody):
@@ -608,6 +624,7 @@ class WorkflowChapter(ChapterSummaryResponse):
     assignee_id: str | None
     assignee_name: str | None
     permissions: dict[str, bool]
+    needs_regeneration: bool = False
 
 
 class ParagraphDetail(ResponseBody):
@@ -910,6 +927,79 @@ class LibraryItem(ResponseBody):
     submitted_on: str | None = None
 
 
+class TechnicalHeading(ResponseBody):
+    level: int
+    number: str
+    title: str
+    requirement_id: str | None = None
+    task_id: str | None = None
+    requirement_ids: list[str] = Field(default_factory=list)
+
+
+class TechnicalOutline(ResponseBody):
+    title: str
+    chapter_id: str
+    headings: list[TechnicalHeading]
+    missing: list[str] = Field(default_factory=list, description="还没有挂进目录的条款")
+    plan_validation: dict[str, Any] | None = None
+
+
+class CoverageRow(ResponseBody):
+    requirement_id: str
+    task_id: str
+    text: str
+    risk_level: str = "medium"
+    is_rejection_criterion: bool = False
+    source_page: int | None = None
+    source_filename: str | None = None
+    outline_number: str | None = None
+    outline_title: str | None = None
+    response_status: str = "not_started"
+    generation_status: str = "pending"
+
+
+class ResponseTask(ResponseBody):
+    task_id: str
+    title: str
+    theme: str = ""
+    requirement_ids: list[str] = Field(default_factory=list)
+    response_strategy: str = "point_by_point"
+    response_points: list[str] = Field(default_factory=list)
+    rejection_requirement_ids: list[str] = Field(default_factory=list)
+    generation_status: str = "pending"
+    response_status: str = "not_started"
+    verification_status: str = "unchecked"
+    outline_number: str | None = None
+    chapter_id: str | None = None
+
+
+class TechnicalKbDataset(ResponseBody):
+    name: str
+    configured: bool
+
+
+class TechnicalKbStatus(ResponseBody):
+    history: TechnicalKbDataset
+    material: TechnicalKbDataset
+    missing: list[str] = Field(default_factory=list)
+    ready: bool = False
+
+
+class TechnicalQualityRule(ResponseBody):
+    id: int
+    name: str
+    passed: bool
+    detail: str = ""
+
+
+class TechnicalQuality(ResponseBody):
+    rules: list[TechnicalQualityRule] = Field(default_factory=list)
+    passed: bool = False
+    failed_count: int = 0
+    review_titles: list[str] = Field(default_factory=list)
+    warning: str = Field(default="", description="未达标可见警告；不恢复矩阵闸门，允许内部稿导出")
+
+
 class Workspace(ResponseBody):
     revision: int
     input_fingerprint: str
@@ -925,6 +1015,17 @@ class Workspace(ResponseBody):
     jobs: list[Job]
     parse_confirmed: bool
     plan_confirmed: bool
+    source_fingerprint: str = ""
+    parsed_source_fingerprint: str = ""
+    technical_extract_empty: bool = Field(default=False, description="技术分册这次没有抽出技术条款")
+    technical_outline: TechnicalOutline | None = Field(default=None, description="技术分册的单章目录；创建时的技术方案不是这份目录")
+    technical_deviation_note: str = Field(default="", description="没有偏离表样表时的说明；有样表则为空")
+    technical_needs_review: list[str] = Field(default_factory=list, description="正文偏离表述和矩阵不一致、或同一指标出现两个数字的小节")
+    technical_kb: TechnicalKbStatus | None = Field(default=None, description="企业双库是否齐备")
+    technical_quality: TechnicalQuality | None = Field(default=None, description="质量八条抽检结果")
+    response_tasks: list[ResponseTask] = Field(default_factory=list, description="响应任务（要求→章节映射）")
+    coverage_rows: list[CoverageRow] = Field(default_factory=list, description="覆盖视图五行数据源")
+    plan_validation: dict[str, Any] | None = Field(default=None, description="生成计划确定性校验结果")
     sla: ProjectSla | None = None
     writing_plan: WritingPlan
     team: Team

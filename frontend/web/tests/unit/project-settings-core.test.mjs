@@ -29,7 +29,8 @@ test('页签按权限：没有导出权限不显示导出页签，没有权限�
   assert.equal(filterProjectTabs(tabs, null, 'p1', 'project_lead', { manage_project: true, export_internal: false, export_volumes: ['business'] }).some(t => t.key === 'export'), true);
   assert.equal(tabAllowedByPermissions('export', undefined), true);
   assert.equal(tabAllowedByPermissions('checks', none), true);
-  assert.equal(filterProjectTabs(tabs, null, 'p1', 'viewer', none).some(t => t.key === 'checks'), true);
+  assert.equal(filterProjectTabs(tabs, null, 'p1', 'member', none).some(t => t.key === 'export'), false);
+  assert.equal(filterProjectTabs(tabs, null, 'p1', 'member', none).some(t => t.key === 'analyze'), true);
 });
 
 test('状态按钮：只给出当前状态下合法的变更，取消和结果有必填项', () => {

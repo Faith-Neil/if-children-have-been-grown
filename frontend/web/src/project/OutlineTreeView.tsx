@@ -1,6 +1,6 @@
 // 为什么有这个文件：封装大纲树与章节协同编辑核心组件 OutlineTreeView。
 // 它解决什么问题：
-// 1. 分册（技术/商务）章节树层级与编号展示、章节类型徽标（专项/通用/系统生成等）展示；
+// 1. 按生成顺序展示目录；章节类型徽标（专项/通用/系统生成等）仍在无目录时的章节行上；
 // 2. 章节顺序同级上移/下移调整与大纲树结构重排；
 // 3. 严格落实合规红线门禁：星号条款(★)或废标条款对应章节绝对禁止标记为“不适用”（选项置灰禁用与 Tooltip 提示）；
 // 4. 协同 useDataPermission，非主管分册处于分册级只读模式，拦截任何写操作与排序；
@@ -11,10 +11,8 @@ import {
   Alert,
   Button,
   Card,
-  Dropdown,
   Empty,
-  MenuProps,
-  Radio,
+  Input,
   Select,
   Space,
   Tag,
@@ -24,19 +22,15 @@ import {
 import {
   ArrowDownOutlined,
   ArrowUpOutlined,
-  CheckCircleOutlined,
   EditOutlined,
-  ExclamationCircleOutlined,
   FileDoneOutlined,
-  InfoCircleOutlined,
   LockOutlined,
   StarFilled,
   WarningFilled,
 } from '@ant-design/icons';
-import type { Volume } from '../shared/types.ts';
+import type { TechnicalHeading, Volume } from '../shared/types.ts';
 import {
   canMarkNotApplicable,
-  CHAPTER_TYPES_CONFIG,
   normalizeChapterNumbers,
   reorderNodes,
   validateChapterTypeChange,
@@ -47,12 +41,183 @@ import { ChapterTypeBadge } from './ChapterTypeBadge.tsx';
 import { ValueAddedReasonModal } from './ValueAddedReasonModal.tsx';
 import { useDataPermission } from '../shell/useDataPermission.ts';
 
-const { Text, Paragraph } = Typography;
+const { Text } = Typography;
+
+export type GeneratedDirectory = {
+  title: string;
+  chapterId: string;
+  headings: TechnicalHeading[];
+  missing?: string[];
+  reviewTitles?: string[];
+  chapterContent?: string;
+  confirmed: boolean;
+  canPrepare: boolean;
+  canGenerate: boolean;
+  busy?: boolean;
+  onSave: (payload: {
+    title: string;
+    headings: Array<{
+      level: number;
+      title: string;
+      requirement_id: string | null;
+      task_id?: string | null;
+      requirement_ids?: string[];
+    }>;
+    confirm: boolean;
+  }) => Promise<void>;
+  onGenerate: (section?: string) => Promise<void>;
+  onOpen: () => void;
+  onExport?: () => void;
+  onCoverage?: () => void;
+};
+
+const LEVEL_OPTIONS = [
+  { value: 1, label: '一级' },
+  { value: 2, label: '二级' },
+  { value: 3, label: '三级' },
+  { value: 4, label: '四级' },
+];
+
+function withNumbers(items: TechnicalHeading[]): TechnicalHeading[] {
+  const counters = [0, 0, 0, 0];
+  return items.map(item => {
+    const level = [1, 2, 3, 4].includes(item.level) ? item.level : 2;
+    for (let ancestor = 0; ancestor < level - 1; ancestor += 1) {
+      if (counters[ancestor] === 0) counters[ancestor] = 1;
+    }
+    counters[level - 1] += 1;
+    for (let deeper = level; deeper < 4; deeper += 1) counters[deeper] = 0;
+    const number = counters.slice(0, level).join('.');
+    return { ...item, level, number };
+  });
+}
+
+function DirectoryList({ directory }: { directory: GeneratedDirectory }) {
+  const [titleDraft, setTitleDraft] = useState('');
+  const [draft, setDraft] = useState<TechnicalHeading[] | null>(null);
+  const [query, setQuery] = useState('');
+  const headings = draft ?? directory.headings;
+  const title = titleDraft || directory.title;
+  const locked = directory.confirmed || !directory.canPrepare || !!directory.busy;
+  const numbered = withNumbers(headings);
+  const visible = numbered
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => !query.trim() || item.title.includes(query.trim()) || item.number.includes(query.trim()));
+
+  function edit(next: TechnicalHeading[]) {
+    setDraft(next);
+    if (!titleDraft) setTitleDraft(directory.title);
+  }
+
+  async function save(confirm: boolean) {
+    try {
+      await directory.onSave({
+        title: title.trim() || directory.title,
+        headings: headings.map(item => ({
+          level: [1, 2, 3, 4].includes(item.level) ? item.level : 2,
+          title: item.title.trim(),
+          requirement_id: item.requirement_id ?? null,
+          task_id: item.task_id ?? null,
+          requirement_ids: item.requirement_ids ?? (item.requirement_id ? [item.requirement_id] : []),
+        })),
+        confirm,
+      });
+      setDraft(null);
+      setTitleDraft('');
+    } catch {
+      /* 拒绝时保留正在改的目录 */
+    }
+  }
+
+  return (
+    <div data-testid="generated-directory">
+      <Space wrap style={{ marginBottom: 8 }}>
+        <Button data-testid="save-technical-outline" disabled={locked} onClick={() => void save(false)}>保存目录</Button>
+        <Button
+          type={directory.confirmed ? 'default' : 'primary'}
+          data-testid="confirm-technical-outline"
+          disabled={locked && !directory.confirmed}
+          onClick={() => void save(true)}
+        >
+          {directory.confirmed ? '目录已确认' : '确认目录'}
+        </Button>
+        {directory.confirmed && (
+          <Button type="primary" data-testid="generate-technical-volume"
+            disabled={!!directory.busy || !directory.canGenerate}
+            onClick={() => void directory.onGenerate().catch(() => undefined)}>
+            {directory.busy ? '生成中…' : '开始生成'}
+          </Button>
+        )}
+        {directory.onExport && <Button data-testid="directory-export" onClick={directory.onExport}>导出</Button>}
+        {directory.onCoverage && <Button type="link" data-testid="directory-coverage" onClick={directory.onCoverage}>覆盖视图</Button>}
+        <Button type="link" onClick={directory.onOpen}>打开正文</Button>
+      </Space>
+      <Input
+        allowClear
+        aria-label="搜索目录"
+        data-testid="directory-search"
+        placeholder="搜索目录"
+        value={query}
+        onChange={event => setQuery(event.target.value)}
+        style={{ marginBottom: 8 }}
+      />
+      <Input aria-label="章名" value={title} disabled={directory.confirmed} style={{ marginBottom: 8 }}
+        onChange={event => { setTitleDraft(event.target.value); if (!draft) setDraft(directory.headings.map(item => ({ ...item }))); }} />
+      {visible.map(({ item, index }) => {
+        const status = sectionStatusLabel(directory, item);
+        return (
+        <div key={`${item.requirement_id || 'h'}-${index}`} data-testid="directory-heading" data-level={item.level}
+          style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4, paddingLeft: Math.max(0, (item.level - 1) * 12) }}>
+          <span style={{ width: 64 }} data-testid="chapter-number">{item.number}</span>
+          <Input aria-label="目录标题" value={item.title} disabled={directory.confirmed}
+            onChange={event => edit(headings.map((row, rowIndex) => rowIndex === index ? { ...row, title: event.target.value } : row))} />
+          <Select aria-label="标题级别" value={[1, 2, 3, 4].includes(item.level) ? item.level : 2} disabled={directory.confirmed} style={{ width: 88 }}
+            options={LEVEL_OPTIONS}
+            onChange={level => edit(headings.map((row, rowIndex) => rowIndex === index ? { ...row, level } : row))} />
+          <Button type="text" aria-label="上移" disabled={directory.confirmed || index === 0}
+            onClick={() => edit(headings.map((row, rowIndex) => rowIndex === index - 1 ? headings[index] : rowIndex === index ? headings[index - 1] : row))}>上移</Button>
+          <Button type="text" aria-label="下移" disabled={directory.confirmed || index === headings.length - 1}
+            onClick={() => edit(headings.map((row, rowIndex) => rowIndex === index ? headings[index + 1] : rowIndex === index + 1 ? headings[index] : row))}>下移</Button>
+          <Button type="text" aria-label="去掉" disabled={directory.confirmed || headings.length === 1}
+            onClick={() => edit(headings.filter((_, rowIndex) => rowIndex !== index))}>去掉</Button>
+          {directory.confirmed && !!item.requirement_id && (
+            <Button type="link" size="small" data-testid={`regenerate-${item.title}`}
+              disabled={!!directory.busy || !directory.canGenerate}
+              onClick={() => void directory.onGenerate(item.title).catch(() => undefined)}>重新生成</Button>
+          )}
+          {status && (
+            <Tag color={status === '已生成' ? 'success' : status === '生成中' ? 'processing' : status === '未生成' ? 'default' : 'warning'} data-testid={`status-${item.title}`}>{status}</Tag>
+          )}
+        </div>
+      );})}
+      {(directory.missing ?? []).length > 0 && (
+        <Alert type="warning" showIcon style={{ marginTop: 8 }} message="还有条款没有放进目录。" />
+      )}
+    </div>
+  );
+}
+
+function sectionStatusLabel(directory: GeneratedDirectory, item: TechnicalHeading) {
+  if (!item.requirement_id) return null;
+  if (directory.busy) return '生成中';
+  if ((directory.reviewTitles ?? []).includes(item.title)) return '需核对';
+  const content = directory.chapterContent || '';
+  const marker = `${item.number} ${item.title}`;
+  const lines = content.split(/\r?\n/);
+  const start = lines.findIndex(line => line.trim() === marker);
+  if (start < 0) return content.trim() ? '未生成' : '未生成';
+  const end = lines.findIndex((line, index) => index > start && /^\d+(?:\.\d+)*\s+\S/.test(line.trim()));
+  const body = lines.slice(start + 1, end < 0 ? undefined : end).join('\n').trim();
+  if (!body) return '未生成';
+  if (body === '待补' || body.includes('待补')) return '待补';
+  if (body.includes('需要核对')) return '需核对';
+  return '已生成';
+}
 
 export interface OutlineTreeViewProps {
   nodes: ChapterOutlineNode[];
   activeVolume?: Volume | 'all';
-  onVolumeChange?: (volume: Volume | 'all') => void;
+  directory?: GeneratedDirectory | null;
   onNodesChange?: (nodes: ChapterOutlineNode[]) => void;
   onSelectChapter?: (chapter: ChapterOutlineNode) => void;
   onNavigateToEditor?: (chapterId: string) => void;
@@ -64,7 +229,7 @@ export interface OutlineTreeViewProps {
 export function OutlineTreeView({
   nodes,
   activeVolume = 'technical',
-  onVolumeChange,
+  directory = null,
   onNodesChange,
   onSelectChapter,
   onNavigateToEditor,
@@ -80,25 +245,18 @@ export function OutlineTreeView({
   });
   const canEdit = permission.canEdit;
 
-  // 2. 过滤当前选定分册的章节
-  const filteredNodes = useMemo(() => {
-    let result = nodes;
-    if (activeVolume && activeVolume !== 'all') {
-      result = nodes.filter(n => n.volume === activeVolume);
-    }
-    return normalizeChapterNumbers(result);
-  }, [nodes, activeVolume]);
+  // 2. 按传入顺序展示全部章节，不再按分册切开。已有生成目录时，目录章改由目录行承担。
+  const orderedNodes = useMemo(() => normalizeChapterNumbers(nodes), [nodes]);
+  const directoryShown = Boolean(directory && directory.headings.length > 0);
+  const chapterNodes = directoryShown && directory
+    ? orderedNodes.filter(node => node.id !== directory.chapterId)
+    : orderedNodes;
 
   // 3. 排序操作处理器
   const handleReorder = (chapterId: string, direction: 'up' | 'down') => {
     if (!canEdit) return;
-    const reordered = reorderNodes(filteredNodes, chapterId, direction);
-    const normalized = normalizeChapterNumbers(reordered);
-    if (onNodesChange) {
-      // 合并非当前分册的节点保持不变
-      const otherNodes = nodes.filter(n => activeVolume !== 'all' && n.volume !== activeVolume);
-      onNodesChange([...otherNodes, ...normalized]);
-    }
+    const reordered = reorderNodes(orderedNodes, chapterId, direction);
+    if (onNodesChange) onNodesChange(normalizeChapterNumbers(reordered));
   };
 
   // 4. 修改章节类型处理器
@@ -141,31 +299,11 @@ export function OutlineTreeView({
       data-volume={activeVolume}
       data-can-edit={canEdit ? 'true' : 'false'}
     >
-      {/* 顶栏控制：分册切换与操作指引 */}
-      <div className="icg-outline-toolbar" style={{ marginBottom: 16 }}>
-        <Space style={{ justifyContent: 'space-between', width: '100%', flexWrap: 'wrap' }}>
-          <Space>
-            <span style={{ fontSize: 13, fontWeight: 500, color: '#4e5969' }}>分册视图：</span>
-            <Radio.Group
-              value={activeVolume}
-              onChange={e => onVolumeChange && onVolumeChange(e.target.value)}
-              buttonStyle="solid"
-              size="small"
-              data-testid="volume-switch-group"
-            >
-              <Radio.Button value="technical" data-testid="volume-technical-btn">技术分册</Radio.Button>
-              <Radio.Button value="business" data-testid="volume-business-btn">商务分册</Radio.Button>
-              <Radio.Button value="all" data-testid="volume-all-btn">全部分册</Radio.Button>
-            </Radio.Group>
-          </Space>
-
-          <Space size={12}>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              共 {filteredNodes.length} 个章节
-            </Text>
-          </Space>
-        </Space>
-      </div>
+      {!directoryShown && (
+        <div className="icg-outline-toolbar" style={{ marginBottom: 16 }}>
+          <Text type="secondary" style={{ fontSize: 12 }}>共 {orderedNodes.length} 个章节</Text>
+        </div>
+      )}
 
       {/* 只读警告条（非主管分册或系统只读） */}
       {!canEdit && (
@@ -180,16 +318,16 @@ export function OutlineTreeView({
         />
       )}
 
-      {/* 大纲节点列表 */}
-      {filteredNodes.length === 0 ? (
+      {directoryShown && directory && <DirectoryList directory={directory} />}
+      {chapterNodes.length === 0 && !directoryShown ? (
         <Card>
-          <Empty description="当前分册下暂无章节大纲数据" />
+          <Empty description="暂无章节" />
         </Card>
-      ) : (
-        <div className="icg-outline-nodes-list" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {filteredNodes.map((node, index) => {
+      ) : chapterNodes.length > 0 ? (
+        <div className="icg-outline-nodes-list" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: directoryShown ? 12 : 0 }}>
+          {chapterNodes.map((node, index) => {
             const isFirst = index === 0;
-            const isLast = index === filteredNodes.length - 1;
+            const isLast = index === chapterNodes.length - 1;
             const isSelected = selectedChapterId === node.id;
             const notApplicableCheck = canMarkNotApplicable(node);
             const isNotApplicableDisabled = !notApplicableCheck.allowed;
@@ -372,7 +510,7 @@ export function OutlineTreeView({
             );
           })}
         </div>
-      )}
+      ) : null}
 
       {/* 增值理由弹窗 */}
       <ValueAddedReasonModal

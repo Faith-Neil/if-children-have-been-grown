@@ -39,14 +39,14 @@
 在仓库根目录使用PowerShell运行：
 
 ```powershell
-& .\backend\bid-core\Start-Demo.ps1 -Install
+& .\backend\bid-core\Start-Product.ps1 -Install
 ```
 
-首次安装需要Python、Node.js和pnpm。启动器安装后台依赖、构建 `frontend/web` 页面，再启动本机服务。安装后再次启动可省略`-Install`。打开 [本机产品页面](http://127.0.0.1:8710/)，支持选择合成演示账号或输入 Access Token 凭据登录（可通过 `VITE_DEMO=0` 关闭演示），新建项目并按页面流程操作。
+首次安装需要Python、Node.js和pnpm，并且本机 MySQL 已经在听 3307。启动器连上库、跑迁移，再启动本机服务。连不上库不会改用内存。安装后再次启动可省略`-Install`。打开 [本机产品页面](http://127.0.0.1:8710/)，用账号口令登录。公司虚拟机的放置见 [Docker 部署说明](docs/operations/docker-vm-deployment.md)。
 
 后台提供根页面 `/` 和构建资源 `/assets`，产品页面调用同一个服务的接口。`/api/v1` 作为主接口处理会话、项目、上传、解析确认、矩阵、事实、检查和两册输出；旧 `/api/demo` 端点仅供兼容并标记 Deprecated。旧的简单后台验证页保留在 `/demo`，原静态原型仍可离线打开。
 
-当前可读取UTF-8文本、DOCX和含文字的PDF，扫描PDF需要后续接入文字识别。提取结果必须由人核对，DOCX位置按明确分页符记录，并非最终印刷页码。数据只保存在当前进程，重启清空。
+当前可读取UTF-8文本、DOCX和含文字的PDF，扫描PDF需要后续接入文字识别。提取结果必须由人核对，DOCX位置按明确分页符记录，并非最终印刷页码。产品进程把业务数据写入 MySQL。仍只有一个 worker，后台作业锁在进程内，不能起第二份应用进程。
 
 技术、商务两个Word内部稿已经通过真实页面下载并核对文件包及各册正文。Word页面渲染尚未成功，排版、目录、附件和正式定稿尚未验收；完整规则尚未实现，正式递交版会被后台拒绝。其余页面、结构化编辑、完整业务检查和生产登录均未完成。实际边界见 [运行说明](backend/bid-core/README.md)、[ISSUE-007](issues/ISSUE-007.md) 与 [覆盖清单](docs/testing/icg-coverage.md)。
 

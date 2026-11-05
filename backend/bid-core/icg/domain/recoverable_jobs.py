@@ -149,9 +149,8 @@ class RecoverableJobs:
             if bound_id and bound_id in state.model_configs:
                 active_config = state.model_configs[bound_id]
             else:
-                default_id = f"default-{project.company_id}"
-                if default_id in state.model_configs:
-                    active_config = state.model_configs[default_id]
+                from icg.infra.model_config_storage import saved_company_model
+                active_config = saved_company_model(state, project.company_id)
 
             if active_config is not None:
                 stream_enabled = active_config.stream_enabled
@@ -398,9 +397,8 @@ class RecoverableJobs:
             if bound_id and bound_id in state.model_configs:
                 cfg = state.model_configs[bound_id]
             else:
-                default_id = f"default-{project.company_id}"
-                if default_id in state.model_configs:
-                    cfg = state.model_configs[default_id]
+                from icg.infra.model_config_storage import saved_company_model
+                cfg = saved_company_model(state, project.company_id)
             if cfg is not None:
                 if project.sensitive and (not cfg.is_local or not cfg.allow_sensitive):
                     raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL", "敏感项目只能使用本地模型配置。")

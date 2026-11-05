@@ -161,14 +161,17 @@ test('reload: dismiss keeps text; autosave keeps it as a personal draft after re
   page.once('dialog', d => { void d.accept(); });
   await page.reload();
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
+  // 会话保留在 sessionStorage：刷新后通常仍在编辑台，不必再登；仅在退回登录页时补登。
   const usernameInput = page.getByTestId('login-username-input');
   if (await usernameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
     await usernameInput.fill('alpha-manager');
     await page.getByTestId('login-password-input').fill('X_2026');
     await page.getByTestId('login-submit-button').click();
   } else {
-    await page.getByRole('button', { name: '进入工作台' }).click();
+    const legacyBtn = page.getByRole('button', { name: '进入工作台' });
+    if (await legacyBtn.isVisible({ timeout: 1000 }).catch(() => false)) await legacyBtn.click();
   }
+  await expect(page.getByRole('button', { name: '退出' })).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
   await expect(page.locator('.chapter-editor-unheld-view, textarea.chapter-editor')).toContainText(marker);
   // 草稿只是本人草稿，不是正式正文；用例结束删除，避免影响其他用例
@@ -183,10 +186,17 @@ test('reload: dismiss keeps text; autosave keeps it as a personal draft after re
 
 test('back/forward routing across global and project pages', async ({ page }) => {
   await login(page, '/workbench');
-  await page.locator('.ant-pro-sider a[href="/library"]').click();
-  await expect(page).toHaveURL(/\/library$/);
+  await expect(page.getByTestId('enter-project-btn-alpha-project')).toBeVisible();
+  const sider = page.locator('.ant-pro-sider').first();
+  if (await sider.evaluate(element => element.classList.contains('ant-layout-sider-collapsed'))) {
+    await page.getByRole('button', { name: '收起或展开导航' }).click();
+    await expect(sider).not.toHaveClass(/ant-layout-sider-collapsed/);
+  }
+  await page.locator('.ant-pro-sider a[href="/knowledge"]').click();
+  await expect(page).toHaveURL(/\/knowledge$/);
   await page.locator('.ant-pro-sider a[href="/workbench"]').click();
-  await page.getByRole('button', { name: /进入(项目|工作台)/ }).first().click();
+  await expect(page).toHaveURL(/\/workbench$/);
+  await page.getByTestId('enter-project-btn-alpha-project').click();
   await expect(page).toHaveURL(/\/projects\/alpha-project\/[a-z]+$/);
   const projectUrl = page.url();
   await tab(page, '响应矩阵');
@@ -196,7 +206,7 @@ test('back/forward routing across global and project pages', async ({ page }) =>
   await page.goBack();
   await expect(page).toHaveURL(/\/workbench$/);
   await page.goBack();
-  await expect(page).toHaveURL(/\/library$/);
+  await expect(page).toHaveURL(/\/knowledge$/);
   await page.goForward();
   await page.goForward();
   await page.goForward();
@@ -244,7 +254,9 @@ test('collapsed sidebar expand control opens the menu at 1280/1440/1680 in light
       await expect(sider.first()).not.toHaveClass(/ant-layout-sider-collapsed/);
       await expect.poll(siderWidth).toBeGreaterThan(200);
       await expect(label()).toBeVisible();
-      await expect(page.getByRole('menuitem', { name: '企业资料库' })).toBeVisible();
+      await expect(page.getByRole('menuitem', { name: '知识库' })).toBeVisible();
+      await expect(page.getByRole('menuitem', { name: '企业资料库' })).toHaveCount(0);
+      await expect(page.getByRole('menuitem', { name: '写作档案' })).toHaveCount(0);
       await page.getByRole('button', { name: '退出' }).click();
     }
   }
@@ -292,10 +304,10 @@ test('overview steps, pending mark and editor meta meet 4.5:1', async ({ page })
   const circle = page.locator('.todo-circle').first();
   await expect(circle).toBeVisible();
   expect(await circle.evaluate(read)).toBeGreaterThanOrEqual(4.5);
-  const orangeTags = page.locator('.ant-tag-orange:visible, .ant-tag-gold:visible, .ant-tag-warning:visible');
-  expect(await orangeTags.count()).toBeGreaterThan(0);
-  const orangeRatios = await orangeTags.evaluateAll(readAll);
-  expect(Math.min(...orangeRatios)).toBeGreaterThanOrEqual(4.5);
+  // 项目标题条已去掉分册进度橙标；待确认数字仍用 .orange，作为对比度抽样点。
+  const pendingMark = page.locator('.project-meta b.orange, .project-meta .orange, b.orange').first();
+  await expect(pendingMark).toBeVisible();
+  expect(await pendingMark.evaluate(read)).toBeGreaterThanOrEqual(4.5);
   const steps = page.locator('.ant-steps-icon');
   expect(await steps.count()).toBeGreaterThan(0);
   const stepRatios = await steps.evaluateAll(readAll);

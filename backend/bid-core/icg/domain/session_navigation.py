@@ -18,22 +18,15 @@ from .project_access import (
 
 
 
-# 原8角色的入口矩阵是后续身份适配的共同定义，不代表当前演示身份已经具备这些角色。
-# 写作档案遵循PRD具体矩阵：审核人、只读成员不授予；公司统计独立于项目/集团统计。
+# 三个登录角色的入口。平台管理员不进工作台。普通用户可以建项目并编写。
 ROLE_NAVIGATION = {
-    "platform_admin": (("platform", "write"), ("platform.audit", "read"), ("jobs", "read"), ("notifications", "read")),
-    "group_admin": (("workbench", "read"), ("library", "read"), ("knowledge", "read"),
-                    ("writing", "read"), ("admin", "read"), ("notifications", "read")),
+    "platform_admin": (("admin.rules", "write"), ("platform", "write"), ("platform.audit", "read"),
+                       ("jobs", "read"), ("notifications", "read")),
     "company_admin": (("workbench", "write"), ("library", "write"), ("knowledge", "write"),
-                      ("writing", "write"), ("statistics", "read"), ("admin", "write"), ("jobs", "read"), ("notifications", "read")),
-    "data_admin": (("workbench", "read"), ("library", "write"), ("knowledge", "write"),
-                   ("writing", "read"), ("jobs", "read"), ("notifications", "read")),
-    "project_lead": (("workbench", "write"), ("library", "write"), ("knowledge", "write"),
-                     ("writing", "read"), ("admin.rules", "read"), ("jobs", "read"), ("notifications", "read")),
-    "bid_writer": (("workbench", "read"), ("library", "write"), ("knowledge", "write"),
-                   ("writing", "read"), ("jobs", "read"), ("notifications", "read")),
-    "reviewer": (("workbench", "read"), ("library", "read"), ("knowledge", "read"), ("jobs", "read"), ("notifications", "read")),
-    "readonly": (("workbench", "read"), ("library", "read"), ("knowledge", "read"), ("jobs", "read"), ("notifications", "read")),
+                      ("writing", "write"), ("statistics", "read"), ("admin.rules", "write"),
+                      ("jobs", "read"), ("notifications", "read")),
+    "member": (("workbench", "write"), ("library", "write"), ("knowledge", "read"),
+               ("writing", "read"), ("jobs", "read"), ("notifications", "read")),
 }
 
 NAVIGATION_PATHS = {
@@ -44,7 +37,7 @@ NAVIGATION_PATHS = {
 }
 
 PROJECT_READ_ROUTES = tuple("project." + tab for tab in (
-    "overview", "tender", "parse", "matrix", "facts", "editor", "manual", "checks", "settings"))
+    "overview", "tender", "analyze", "editor", "export", "settings"))
 
 
 def navigation_for_roles(roles: Iterable[str]) -> list[dict]:
@@ -69,52 +62,28 @@ def get_application_session(service, principal: Principal, project_id: str | Non
     if not isinstance(user.company_id, str) or not user.company_id.strip():
         raise DomainError(403, "SESSION_SCOPE_UNSUPPORTED", "当前账号的公司范围尚未接入，请联系管理员。")
 
-    if is_super_admin(user):
-        auth_mode = "authenticated"
-        role_mode = "rbac-8roles"
-        primary_role = "platform_admin"
-        roles = ["platform_admin"]
-        home_path = "/workbench"
-        actions = [
-            "projects.read",
-            "projects.create",
-            "library.read",
-            "library.write",
-            "sla_templates.read",
-            "sla_templates.write",
-            "jobs.read",
-            "platform.write",
-            "admin.write",
-        ]
-        navigation = [{"route_id": route_id, "path": path, "access": "write"} for route_id, path in NAVIGATION_PATHS.items()]
+    if user.role not in ROLE_NORMALIZATION_MAP and not is_super_admin(user):
+        raise DomainError(403, "SESSION_ROLE_UNSUPPORTED", "当前账号角色尚未接入，请联系管理员。")
+    norm_role = "platform_admin" if is_super_admin(user) else normalize_role(user.role)
+    auth_mode = "authenticated"
+    role_mode = "rbac-3roles"
+    primary_role = norm_role
+    roles = [norm_role]
+    home_path = "/admin/rules" if norm_role == "platform_admin" else "/workbench"
+    if norm_role == "platform_admin":
+        actions = ["jobs.read", "platform.write", "admin.write"]
+    elif norm_role == "company_admin":
+        actions = ["projects.read", "projects.create", "library.read", "library.write",
+                   "sla_templates.read", "sla_templates.write", "jobs.read", "admin.write"]
     else:
-        # 所有账号都按正式 8 角色会话处理（旧 manager/editor/viewer 经 ROLE_NORMALIZATION_MAP 归一）。
-        if user.role not in ROLE_NORMALIZATION_MAP:
-            raise DomainError(403, "SESSION_ROLE_UNSUPPORTED", "当前账号角色尚未接入，请联系管理员。")
-        norm_role = normalize_role(user.role)
-        auth_mode = "authenticated"
-        role_mode = "rbac-8roles"
-        primary_role = norm_role
-        roles = [norm_role]
-        nav_role = "reviewer" if norm_role == "auditor" else ("readonly" if norm_role == "viewer" else norm_role)
-        nav_roles = [nav_role]
-        home_path = "/platform" if norm_role == "platform_admin" else "/workbench"
-        if norm_role == "platform_admin":
-            actions = ["jobs.read"]
-        else:
-            actions = ["projects.read", "library.read", "sla_templates.read", "jobs.read"]
-            if norm_role in ("project_lead", "company_admin"):
-                actions.extend(("projects.create", "sla_templates.write", "library.write"))
-            elif norm_role in ("bid_writer", "data_admin"):
-                actions.append("library.write")
-                if norm_role == "data_admin":
-                    actions.append("sla_templates.write")
-        navigation = navigation_for_roles(nav_roles)
+        actions = ["projects.read", "projects.create", "library.read", "library.write",
+                   "sla_templates.read", "jobs.read"]
+    navigation = navigation_for_roles([norm_role])
 
     current = Principal(user, principal.session_token)
     allowed_company_ids = (
-        sorted(list(set([p.company_id for p in state.projects.values()] + [user.company_id])))
-        if is_super_admin(user)
+        sorted({p.company_id for p in state.projects.values()} | {user.company_id})
+        if norm_role == "platform_admin"
         else [user.company_id]
     )
     result = {
@@ -122,7 +91,7 @@ def get_application_session(service, principal: Principal, project_id: str | Non
         "role_mode": role_mode,
         "user": {**{k: v for k, v in asdict(user).items() if k not in ("password_hash", "salt")}, "username": user.id, "display_name": user.display_name or user.name, "roles": roles, "primary_role": primary_role},
         "scope": {
-            "kind": "system" if is_super_admin(user) else "company",
+            "kind": "system" if norm_role == "platform_admin" else "company",
             "active_company_id": user.company_id,
             "allowed_company_ids": allowed_company_ids,
         },
@@ -137,9 +106,9 @@ def get_application_session(service, principal: Principal, project_id: str | Non
         routes = list(PROJECT_READ_ROUTES)
         team = state.project_teams.get(project.id, {})
         user_norm_role = normalize_role(user.role) if user.role in ROLE_NORMALIZATION_MAP else user.role
-        if (is_super_admin(user)
-                or permissions["export_internal"] or permissions["export_volumes"]
-                or (team.get("assembly_owner_id") == user.id and (user.role in ("manager", "editor") or user_norm_role in WRITER_COMPANY_ROLES))):
+        if (norm_role != "platform_admin" and (
+                permissions["export_internal"] or permissions["export_volumes"]
+                or (team.get("assembly_owner_id") == user.id and user_norm_role in WRITER_COMPANY_ROLES))):
             routes.append("project.export")
         result["project_access"] = {
             "id": project.id, "revision": project.revision, "route_permissions": routes,

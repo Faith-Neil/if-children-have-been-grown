@@ -19,8 +19,19 @@ export function OverviewPage() {
   const { workspace, token, navigate } = useProject();
   const { volumes: volumesStatus } = useVolumesStatus(workspace.project.id, token, workspace.revision);
   const { settings } = useProjectSettings(workspace.project.id, token, workspace.revision);
-  const steps = ['建立项目', '上传并解析', '确认与挂证据', '编制两册', '检查与导出'];
-  const current = !workspace.files.length
+  const isTechnicalOnly = technicalOnly(workspace);
+  const steps = isTechnicalOnly
+    ? ['建立项目', '上传自动解析', '确认目录', '生成与导出']
+    : ['建立项目', '上传并解析', '确认与挂证据', '编制两册', '检查与导出'];
+  const current = isTechnicalOnly
+    ? (!workspace.files.length
+      ? 0
+      : !workspace.technical_outline && !workspace.parse_confirmed
+      ? 1
+      : !workspace.plan_confirmed
+      ? 2
+      : 3)
+    : (!workspace.files.length
     ? 0
     : !workspace.parse_confirmed
     ? 1
@@ -28,9 +39,28 @@ export function OverviewPage() {
     ? 2
     : workspace.chapters.some(item => !item.content.trim())
     ? 3
-    : 4;
+    : 4);
 
-  const flowItems = [
+  const flowItems = isTechnicalOnly ? [
+    {
+      title: '上传招标文件',
+      detail: `${workspace.files.length} 个文件；上传后自动解析`,
+      tab: 'tender',
+      done: !!workspace.files.length && !!workspace.parse_confirmed && !workspace.technical_extract_empty,
+    },
+    {
+      title: '确认技术目录',
+      detail: workspace.plan_confirmed ? '目录已确认' : (workspace.technical_outline ? '目录草稿已就绪' : '等待解析拟目录'),
+      tab: 'editor',
+      done: workspace.plan_confirmed,
+    },
+    {
+      title: '生成正文并导出',
+      detail: `${workspace.exports.filter(item => item.status === 'valid').length} 次有效输出`,
+      tab: 'export',
+      done: workspace.exports.some(item => item.status === 'valid'),
+    },
+  ] : [
     {
       title: '上传招标文件与补遗',
       detail: `${workspace.files.length} 个文件`,
@@ -44,17 +74,17 @@ export function OverviewPage() {
       done: workspace.parse_confirmed,
     },
     {
-      title: '填回应要点并挂证据',
+      title: '确认检索响应里的高风险项',
       detail: `${workspace.requirements.filter(item => item.status !== 'rejected' && !item.response.trim()).length} 条尚未响应`,
-      tab: 'matrix',
+      tab: 'analyze',
       done:
         workspace.requirements.length > 0 &&
         workspace.requirements.filter(item => item.status !== 'rejected').every(item => item.response.trim()),
     },
     {
-      title: '确认项目事实',
+      title: '处理废标相关事实',
       detail: `${workspace.facts.filter(item => ['pending', 'needs_review'].includes(item.status)).length} 项待核对`,
-      tab: 'facts',
+      tab: 'analyze',
       done: workspace.facts.every(item => !['pending', 'needs_review'].includes(item.status)),
     },
     {

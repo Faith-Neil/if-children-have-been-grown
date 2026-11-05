@@ -310,26 +310,31 @@ def test_gate_3_sensitive_project_allows_local_model(chat_setup):
 
 
 def test_gate_4_readonly_roles_interception(chat_setup):
-    """门禁 4：只读系统角色（group_admin、viewer、auditor、platform_admin）发起自由提问时，严格阻断抛出 403 FORBIDDEN。"""
+    """平台管理员不能提问。旧登录角色已收成普通用户，同一公司内可以提问。"""
     answer_svc = chat_setup["answer_svc"]
-    readonly_principals = [
+    for role_name, principal in (
         ("viewer", chat_setup["principal_viewer"]),
         ("auditor", chat_setup["principal_auditor"]),
         ("group_admin", chat_setup["principal_group_admin"]),
-        ("platform_admin", chat_setup["principal_platform_admin"]),
-    ]
+    ):
+        result = answer_svc.general_chat(
+            principal=principal,
+            project_id="alpha-project",
+            query="旧角色现在按普通用户提问",
+            knowledge_base_enabled=True,
+        )
+        assert result["reply"], role_name
 
-    for role_name, p in readonly_principals:
-        with pytest.raises(DomainError) as exc_info:
-            answer_svc.general_chat(
-                principal=p,
-                project_id="alpha-project",
-                query="只读角色尝试提问",
-                knowledge_base_enabled=True,
-            )
-        assert exc_info.value.status == 403
-        assert exc_info.value.code == "FORBIDDEN"
-        assert "只读角色不可使用智能助手提问" in str(exc_info.value)
+    with pytest.raises(DomainError) as exc_info:
+        answer_svc.general_chat(
+            principal=chat_setup["principal_platform_admin"],
+            project_id="alpha-project",
+            query="平台管理员尝试提问",
+            knowledge_base_enabled=True,
+        )
+    assert exc_info.value.status == 403
+    assert exc_info.value.code == "FORBIDDEN"
+    assert "只读角色不可使用智能助手提问" in str(exc_info.value)
 
 
 def test_gate_4_project_member_viewer_interception(chat_setup):

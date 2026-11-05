@@ -178,7 +178,7 @@ export function can(
   const member = workspace?.team?.members?.find(m => m.user_id === userId);
   const isLeadInProject = member
     ? member.project_role === 'lead'
-    : (normRole === 'project_lead' || normRole === 'company_admin');
+    : normRole === 'company_admin';
 
   // 3. 通用只读角色拦截
   if (isReadonlyRole(normRole) && isWriteAction(action)) {
@@ -227,7 +227,7 @@ export function can(
   if (action === 'chapter:edit' || action === 'chapter:submit') {
     if (!chapter) {
       // 若无具体章节上下文，判断是否有通用的编写资质
-      if (isLeadInProject || normRole === 'bid_writer') {
+      if (isLeadInProject || normRole === 'member' || normRole === 'company_admin') {
         return { allowed: true, role: normRole, roleLabel };
       }
       return {
@@ -241,7 +241,7 @@ export function can(
 
     if (!workspace) {
       // 无 workspace 保护上下文时降级为角色资质判断
-      if (normRole === 'project_lead' || normRole === 'bid_writer' || normRole === 'company_admin') {
+      if (normRole === 'member' || normRole === 'company_admin') {
         return { allowed: true, role: normRole, roleLabel };
       }
       return {
@@ -294,7 +294,7 @@ export function can(
 
   // 8. 递交版导出：submission:export (PRD v1.5/v1.8: 仅项目负责人可导出递交版，分册负责人仅导出内部稿)
   if (action === 'submission:export') {
-    const isStrictLead = member ? member.project_role === 'lead' : (normRole === 'project_lead');
+    const isStrictLead = member ? member.project_role === 'lead' : false;
     if (isStrictLead) {
       return { allowed: true, role: normRole, roleLabel };
     }
@@ -409,12 +409,12 @@ export function can(
 
   // 13. 查看完整身份证号：id_card:view
   if (action === 'id_card:view') {
-    if (normRole === 'company_admin' || normRole === 'data_admin') {
+    if (normRole === 'company_admin') {
       return { allowed: true, role: normRole, roleLabel };
     }
     return {
       allowed: false,
-      reason: '抱歉，查看完整身份证号码仅限公司管理员与资料管理员。',
+      reason: '抱歉，查看完整身份证号码仅限公司管理员。',
       role: normRole,
       roleLabel,
       code: 'ID_CARD_VIEW_FORBIDDEN',
@@ -423,7 +423,7 @@ export function can(
 
   // 14. 合作伙伴资料上传：partner:upload
   if (action === 'partner:upload') {
-    if (normRole === 'company_admin' || normRole === 'data_admin' || isLeadInProject) {
+    if (normRole === 'company_admin' || isLeadInProject) {
       return { allowed: true, role: normRole, roleLabel };
     }
     return {

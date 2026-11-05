@@ -115,6 +115,9 @@ def test_rbac_editable_permission_matrix_across_8_roles(client: TestClient):
         ("alpha-editor", "bid_writer"),
         ("alpha-company-admin", "company_admin"),
         ("alpha-data-admin", "data_admin"),
+        ("alpha-viewer", "viewer"),
+        ("alpha-auditor", "auditor"),
+        ("alpha-group-admin", "group_admin"),
     ]
     for acc_id, role_name in writable_accounts:
         headers = login(client, acc_id)
@@ -124,11 +127,8 @@ def test_rbac_editable_permission_matrix_across_8_roles(client: TestClient):
         assert fields["project_name"]["editable"] is True, f"{acc_id} ({role_name}) should have project_name editable=True"
         assert fields["status"]["editable"] is False
 
-    # 只读系统角色：所有字段均被自适应封退为 editable=False
+    # 登录角色里只有平台管理员把字段收成不可编辑
     readonly_accounts = [
-        ("alpha-viewer", "viewer"),
-        ("alpha-auditor", "auditor"),
-        ("alpha-group-admin", "group_admin"),
         ("platform-admin", "platform_admin"),
     ]
     for acc_id, role_name in readonly_accounts:

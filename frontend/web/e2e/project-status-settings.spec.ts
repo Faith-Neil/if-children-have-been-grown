@@ -35,10 +35,13 @@ test('settings show partner agreement gaps, manual-edit marks and become read-on
 
   await write('post', '/status', { action: 'cancel', reason: '端到端测试取消' });
   await page.reload();
-  // 登录状态只在内存里，刷新后回到登录页；登录后应落回同一个设置页
-  await page.getByTestId('login-username-input').fill('alpha-manager');
-  await page.getByTestId('login-password-input').fill('X_2026');
-  await page.getByTestId('login-submit-button').click();
+  // 会话在本标签页的 sessionStorage；刷新后仍停留在设置页，不必再登录。
+  const usernameInput = page.getByTestId('login-username-input');
+  if (await usernameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await usernameInput.fill('alpha-manager');
+    await page.getByTestId('login-password-input').fill('X_2026');
+    await page.getByTestId('login-submit-button').click();
+  }
   await expect(page.getByTestId('project-status-tag')).toContainText('已取消');
   await expect(page.getByText('项目已取消，所有设置只读。')).toBeVisible();
   const blocked = await request.patch(base, { headers: { ...auth, 'If-Match': String(await revision()), 'Idempotency-Key': crypto.randomUUID() }, data: { name: '取消后改名' } });

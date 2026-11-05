@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import base64
 from uuid import uuid4
 
 import pytest
@@ -62,23 +63,33 @@ def _search(client, headers, query, **extra):
     return result.json()
 
 
+def _b64(text: str) -> str:
+    return base64.b64encode(text.encode("utf-8")).decode()
+
+
+def _upload_kb_file(client, headers, fake, kind: str, filename: str, text: str, **meta):
+    if kind in ("history", "materials"):
+        ensured = client.post(f"/api/v1/kb-admin/datasets/{kind}/ensure", headers=headers, json={})
+        assert ensured.status_code == 200, ensured.text
+    uploaded = client.post(
+        f"/api/v1/kb-admin/datasets/{kind}/documents",
+        headers=headers,
+        json={"filename": filename, "content_base64": _b64(text), "content_type": "text/markdown", "metadata": meta},
+    )
+    assert uploaded.status_code == 200, uploaded.text
+    fake.finish_parsing()
+    company = _company(client, headers)
+    client.app.state.service.knowledge_base.refresh_status(company)
+    return uploaded.json()
+
+
 def test_confirmed_library_item_is_synced_and_retrievable_by_source_id(client, fake):
     headers = login(client)
     item = _library_write(client, headers, _confirmed("合成信息安全管理体系认证", "合成证书编号 ZX-0001，覆盖运维服务。"))
     entry, status = _entry(client, headers, "library:" + item["id"])
-    assert status["enabled"] is True and status["dataset_id"]
-    assert entry["status"] == "synced" and entry["chunk_count"] > 0
-    ds = fake.datasets[status["dataset_id"]]
-    assert ds["name"] == f"{_company(client, headers)}::icg-library"
-    doc = fake.documents[entry["document_id"]]
-    assert doc["meta_fields"]["source_id"] == item["id"] and doc["meta_fields"]["revision"] == "1"
-
-    found = _search(client, headers, "信息安全管理体系认证证书")
-    hit = next(h for h in found["items"] if h["source_id"] == item["id"])
-    assert hit["cite_tag"] == f"[片:{item['id']}]"
-    assert hit["attachable"] is True and hit["reference_only"] is False
-    retrieval = [c for c in fake.calls if c[1] == "/api/v1/retrieval"][-1][2]
-    assert entry["document_id"] in retrieval["document_ids"]
+    assert entry is None
+    assert fake.datasets == {}
+    assert status["message"] == "资料与方案片段不再同步到知识库。"
 
 
 def test_pending_items_never_enter_the_knowledge_base(client, fake):
@@ -92,40 +103,41 @@ def test_pending_items_never_enter_the_knowledge_base(client, fake):
 def test_revision_change_replaces_document_and_old_version_is_not_recalled(client, fake):
     headers = login(client)
     item = _library_write(client, headers, _confirmed("合成运维人员证书", "旧版正文：合成工程师甲持证。"))
-    first, _ = _entry(client, headers, "library:" + item["id"])
+    assert all(d["meta_fields"].get("source_id") != item["id"] for d in fake.documents.values())
     updated = _library_write(client, headers, {"content": "新版正文：合成工程师乙持证。", "status": "confirmed",
                                                "reason": "合成复核。"}, item["id"])
     assert updated["revision"] == 2
-    second, _ = _entry(client, headers, "library:" + item["id"])
-    assert second["document_id"] != first["document_id"] and second["revision"] == 2
-    assert first["document_id"] not in fake.documents  # 旧版本文档已删除
-    hits = _search(client, headers, "合成工程师持证")["items"]
-    texts = " ".join(h["content"] for h in hits if h["source_id"] == item["id"])
-    assert "新版正文" in texts and "旧版正文" not in texts
+    assert all(d["meta_fields"].get("source_id") != item["id"] for d in fake.documents.values())
+    assert all(h["source_id"] != item["id"] for h in _search(client, headers, "合成工程师持证")["items"])
 
 
 def test_unconfirmed_item_is_removed_and_stale_index_is_filtered_live(client, fake):
     headers = login(client)
     item = _library_write(client, headers, _confirmed("合成撤销资料", "合成撤销正文，含唯一词青鸾。"))
-    entry, _ = _entry(client, headers, "library:" + item["id"])
-    assert _search(client, headers, "青鸾")["items"]
+    assert all(h["source_id"] != item["id"] for h in _search(client, headers, "青鸾")["items"])
+    assert all(d["meta_fields"].get("source_id") != item["id"] for d in fake.documents.values())
 
-    # 索引还没来得及同步时（如后台同步排队中），资料状态已变：检索按 DemoState 实时复核并丢弃。
     repository = client.app.state.service.repository
+    company = _company(client, headers)
+
+    def seed_stale(state):
+        index = state.service_stores.setdefault("kb_index", {}).setdefault(company, {"entries": {}, "files": {}, "datasets": {}})
+        index["entries"]["library:" + item["id"]] = {
+            "key": "library:" + item["id"], "source_type": "library", "source_id": item["id"], "revision": 1,
+            "name": item["name"], "item_type": "qualification", "content_hash": "deadbeef", "document_id": "stale-doc",
+            "status": "synced", "message": "", "chunk_count": 1, "updated_at": "2020-01-01T00:00:00+08:00", "enabled": True,
+        }
+        index["dataset_id"] = "legacy-dataset"
+
+    repository.transaction(seed_stale)
+    fake.documents["stale-doc"] = {"id": "stale-doc", "dataset_id": "legacy-dataset", "name": "stale.md",
+                                   "content": "合成撤销正文，含唯一词青鸾。", "meta_fields": {"source_id": item["id"]},
+                                   "ingestion_status": "COMPLETED", "chunk_count": 1, "chunks": [{"id": "c1", "content": "青鸾"}],
+                                   "enabled": 1, "progress": 1.0, "progress_msg": ""}
+    fake.datasets["legacy-dataset"] = {"id": "legacy-dataset", "name": f"{company}::icg-library", "pipeline_id": ""}
+
     repository.transaction(lambda state: state.library[item["id"]].__setitem__("status", "pending"))
     assert all(h["source_id"] != item["id"] for h in _search(client, headers, "青鸾")["items"])
-    repository.transaction(lambda state: state.library[item["id"]].__setitem__("status", "confirmed"))
-
-    # RAGFlow 删除失败：文档仍在 RAGFlow，但已不在索引里，检索按索引文档过滤，不会召回。
-    fake.fail_deletes = True
-    _library_write(client, headers, {"status": "rejected"}, item["id"])
-    assert entry["document_id"] in fake.documents
-    assert all(h["source_id"] != item["id"] for h in _search(client, headers, "青鸾")["items"])
-    pending = repository.read().service_stores["kb_index"][_company(client, headers)].get("pending_deletes")
-    assert entry["document_id"] in pending
-    fake.fail_deletes = False
-    client.post("/api/v1/knowledge-base/sync", headers=headers)
-    assert entry["document_id"] not in fake.documents
 
 
 def test_expired_items_are_not_indexed():
@@ -144,11 +156,8 @@ def test_expired_items_are_not_indexed():
 def test_history_items_are_reference_only(client, fake):
     headers = login(client)
     item = _library_write(client, headers, {**_confirmed("合成历史标书", "合成历史方案：玄武平台运维。"), "type": "history"})
-    hits = _search(client, headers, "玄武平台运维")["items"]
-    hit = next(h for h in hits if h["source_id"] == item["id"])
-    assert hit["reference_only"] is True and hit["attachable"] is False
-    only_evidence = _search(client, headers, "玄武平台运维", kinds=["evidence"])["items"]
-    assert all(h["source_id"] != item["id"] for h in only_evidence)
+    assert all(d["meta_fields"].get("source_id") != item["id"] for d in fake.documents.values())
+    assert all(h["source_id"] != item["id"] for h in _search(client, headers, "玄武平台运维")["items"])
 
 
 def test_restricted_items_need_permission(client, fake):
@@ -168,43 +177,35 @@ def test_async_parsing_reports_parsing_until_refresh(fake):
         headers = login(client)
         item = _library_write(client, headers, _confirmed("合成异步资料", "合成异步正文。"))
         entry, _ = _entry(client, headers, "library:" + item["id"])
-        assert entry["status"] == "parsing"
+        assert entry is None
+        assert all(d["meta_fields"].get("source_id") != item["id"] for d in fake.documents.values())
         assert all(h["source_id"] != item["id"] for h in _search(client, headers, "合成异步正文")["items"])
-        fake.finish_parsing()
-        refreshed = client.get("/api/v1/knowledge-base/status?refresh=true", headers=headers).json()
-        assert next(r for r in refreshed["items"] if r["key"] == "library:" + item["id"])["status"] == "synced"
 
 
 def test_parse_failure_and_upload_failure_are_recorded_and_retried(client, fake):
     headers = login(client)
     item = _library_write(client, headers, _confirmed("合成解析失败资料", "合成正文 " + FAIL_MARKER))
     entry, status = _entry(client, headers, "library:" + item["id"])
-    assert entry["status"] == "failed" and status["counts"].get("failed", 0) >= 1
+    assert entry is None
+    assert all(d["meta_fields"].get("source_id") != item["id"] for d in fake.documents.values())
 
-    fake.fail_uploads = True
-    other = _library_write(client, headers, _confirmed("合成上传失败资料", "合成上传失败正文。"))  # 保存不受影响
+    other = _library_write(client, headers, _confirmed("合成上传失败资料", "合成上传失败正文。"))
     assert other["status"] == "confirmed"
     failed, _ = _entry(client, headers, "library:" + other["id"])
-    assert failed["status"] == "failed" and "上传" in failed["message"]
-    fake.fail_uploads = False
+    assert failed is None
+    assert all(d["meta_fields"].get("source_id") != other["id"] for d in fake.documents.values())
     result = client.post("/api/v1/knowledge-base/sync", headers=headers).json()
-    assert result["enabled"] is True and result["uploaded"] >= 1
-    retried, _ = _entry(client, headers, "library:" + other["id"])
-    assert retried["status"] == "synced"
+    assert result["enabled"] is True and result["uploaded"] == 0
+    assert result["message"] == "资料与方案片段不再同步到知识库。"
 
 
 def test_full_sync_repairs_drift_between_index_and_ragflow(client, fake):
     headers = login(client)
     item = _library_write(client, headers, _confirmed("合成漂移资料", "合成漂移正文：麒麟平台。"))
-    entry, status = _entry(client, headers, "library:" + item["id"])
-    del fake.documents[entry["document_id"]]  # 有人在 RAGFlow 里手工删了文档
-    orphan = fake.client().upload_document(status["dataset_id"], "orphan.md", "遗留文档")
+    assert all(d["meta_fields"].get("source_id") != item["id"] for d in fake.documents.values())
     result = client.post("/api/v1/knowledge-base/sync", headers=headers).json()
-    assert result["uploaded"] >= 1
-    repaired, _ = _entry(client, headers, "library:" + item["id"])
-    assert repaired["status"] == "synced" and repaired["document_id"] in fake.documents
-    assert orphan.id not in fake.documents
-    assert any(h["source_id"] == item["id"] for h in _search(client, headers, "麒麟平台")["items"])
+    assert result["uploaded"] == 0 and result["message"] == "资料与方案片段不再同步到知识库。"
+    assert all(h["source_id"] != item["id"] for h in _search(client, headers, "麒麟平台")["items"])
 
 
 def test_snippet_publish_sync_reflects_real_status(client, fake):
@@ -218,12 +219,12 @@ def test_snippet_publish_sync_reflects_real_status(client, fake):
                             headers={**headers, "Idempotency-Key": str(uuid4()), "If-Match": "1"}, json={})
     assert published.json()["blocked"] is False
     detail = client.get(f"/api/v1/snippet-publications/{snippet['id']}", headers=headers).json()
-    assert detail["kb_sync_status"] == "synced"  # 发布后自动同步（测试中为同步执行）
+    assert detail["kb_sync_status"] == "unsynced"
     synced = client.post(f"/api/v1/snippet-publications/{snippet['id']}/sync",
                          headers={**headers, "Idempotency-Key": str(uuid4()), "If-Match": "1"}, json={})
-    assert synced.status_code == 200 and synced.json()["synced"] is True
-    hits = _search(client, headers, "白虎巡检流程", kinds=["snippet"])["items"]
-    assert hits and hits[0]["source_type"] == "snippet" and hits[0]["attachable"] is False
+    assert synced.status_code == 200 and synced.json()["synced"] is False
+    assert all(d["meta_fields"].get("source_id") != snippet["id"] for d in fake.documents.values())
+    assert all(h["source_id"] != snippet["id"] for h in _search(client, headers, "白虎巡检流程", kinds=["snippet"])["items"])
 
 
 def test_without_ragflow_sync_never_claims_success():
@@ -236,6 +237,80 @@ def test_without_ragflow_sync_never_claims_success():
         assert _search(client, headers, "任意")["skipped_reason"] == "RAGFlow is not configured"
 
 
+def test_writing_prompt_splits_history_and_materials(client, fake):
+    from icg.domain.chapter_generation import (
+        HISTORY_HEADING,
+        MATERIALS_HEADING,
+        ChapterGenerationService,
+    )
+
+    kb_admin = login(client, "alpha-company-admin")
+    company = _company(client, kb_admin)
+    client.post("/api/v1/kb-admin/pipelines/deploy", headers=kb_admin, json={})
+
+    hist_file = "合成历史投标玄武.docx"
+    mat_file = "合成权威资料青龙.pdf"
+    hist_phrase = "玄武架构HIST4TASK"
+    mat_phrase = "青龙参数MAT4TASK"
+    _upload_kb_file(client, kb_admin, fake, "history", hist_file, f"# 历史方案\n\n{hist_phrase} 优秀技术表述。")
+    _upload_kb_file(client, kb_admin, fake, "materials", mat_file, f"{mat_phrase} 产品技术参数说明。")
+
+    hits, reason = client.app.state.service.knowledge_base.search(company, hist_phrase, limit=5)
+    assert not reason, reason
+    assert any(h.name == hist_file for h in hits)
+    mat_hits, mat_reason = client.app.state.service.knowledge_base.search(company, mat_phrase, limit=5)
+    assert not mat_reason, mat_reason
+    assert any(h.name == mat_file for h in mat_hits)
+
+    repository = client.app.state.service.repository
+    from icg.domain.generation_context import writing_source_fingerprint
+
+    def seed_workflow(state):
+        state.workflows["alpha-project"] = {
+            "parse_confirmed": True,
+            "requirements": {
+                "req-kb-split": {
+                    "id": "req-kb-split",
+                    "volume": "technical",
+                    "category": "technical",
+                    "chapter_id": "alpha-tech",
+                    "text": f"须说明 {hist_phrase} 与 {mat_phrase}",
+                    "response": "经核对响应。",
+                    "status": "confirmed",
+                    "evidence_ids": [],
+                    "source": None,
+                    "volume_confirmed_at": "2026-10-01T00:00:00+00:00",
+                }
+            },
+            "writing_plan": {
+                "chapters": {
+                    "alpha-tech": {"writing_points": hist_phrase, "target_length": 500, "fact_ids": []},
+                }
+            },
+            "knowledge_base_enabled": True,
+            "facts": {},
+        }
+        chapter_plan = state.workflows["alpha-project"]["writing_plan"]["chapters"]["alpha-tech"]
+        chapter_plan["confirmed_at"] = "2026-10-01T00:00:00+00:00"
+        chapter_plan["confirmed_input_fingerprint"] = writing_source_fingerprint(state, "alpha-project", "alpha-tech")
+
+    repository.transaction(seed_workflow)
+
+    service = client.app.state.service
+    chapter_gen = ChapterGenerationService(service, service.repository, service.evidence_service)
+    plan_data = chapter_gen.assemble_writing_prompt_plan("alpha-project", "alpha-tech")
+    prompt = plan_data["prompt"]
+
+    hist_pos = prompt.index(HISTORY_HEADING)
+    mat_pos = prompt.index(MATERIALS_HEADING)
+    assert hist_pos < mat_pos
+    history_block = prompt[hist_pos:mat_pos]
+    assert hist_file in history_block or hist_phrase in history_block
+    assert mat_file not in history_block
+    materials_block = prompt[mat_pos:]
+    assert mat_file in materials_block or mat_phrase in materials_block
+
+
 def test_generation_context_gets_knowledge_candidates_as_pian_not_zheng(client, fake):
     from icg.domain.knowledge_base import KnowledgeEvidenceService
     from icg.infra.retrieval import CandidateRequest
@@ -243,14 +318,13 @@ def test_generation_context_gets_knowledge_candidates_as_pian_not_zheng(client, 
     headers = login(client)
     company = _company(client, headers)
     item = _library_write(client, headers, _confirmed("合成等保三级测评报告", "合成测评结论：符合等保三级要求。"))
+    assert all(d["meta_fields"].get("source_id") != item["id"] for d in fake.documents.values())
     service = client.app.state.service
     assert isinstance(service.evidence_service, KnowledgeEvidenceService)
     result = service.evidence_service.collect(CandidateRequest(company_id=company, query="等保三级测评", library_items=[]))
-    kb_candidates = [c for c in result.candidates if c.path == "B" and c.source_id == item["id"]]
-    assert kb_candidates and kb_candidates[0].name == "合成等保三级测评报告"
+    assert all(c.source_id != item["id"] for c in result.candidates if c.path == "B")
     search_hits = service.evidence_service.search(company, "等保三级测评")
-    assert any(h.id == item["id"] and h.text for h in search_hits)
-    # 其他公司检索不到。
+    assert all(h.id != item["id"] for h in search_hits)
     assert service.evidence_service.search("other-company", "等保三级测评") == []
 
 

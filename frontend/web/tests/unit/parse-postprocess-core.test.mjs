@@ -2,8 +2,8 @@
 // 它解决什么问题：理由必填、补遗处理不阻断、多位置切换等规则不依赖浏览器即可回归。
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { blockingCount, buildDecision, decisionPath, durationLabel, hasAddendumDiff, mergedLabel, nextSourceIndex,
-  replacementOptions, retryBody, roleChangeAllowed, sourceLabel, visibleRequirements } from '../../src/project/parse-postprocess-core.ts';
+import { blockingCount, buildDecision, decisionPath, durationLabel, fileRoleOptions, hasAddendumDiff, hasTenderFile, mergedLabel, nextSourceIndex,
+  replacementOptions, retryBody, roleChangeAllowed, sameSourceAlreadyExtracted, shouldAutoStartTechnicalParse, sourceLabel, visibleRequirements } from '../../src/project/parse-postprocess-core.ts';
 
 test('处理冲突必须写理由，确认“已按补遗处理”除外', () => {
   assert.equal(buildDecision('not_conflict', '  ').error, '请写明处理理由');
@@ -57,9 +57,45 @@ test('文件版本链：可替代的新版、类型切换限制与差异入口',
   assert.equal(hasAddendumDiff(old), false);
 });
 
+test('技术分册只给出三种文件类型，并拦住同一批文件再次抽取', () => {
+  assert.deepEqual(fileRoleOptions(true).map(item => item.label), ['招标文件', '技术规范书', '其他辅助文件']);
+  assert.equal(fileRoleOptions(false).length, 6);
+  assert.equal(hasTenderFile([{ file_role: 'tech_spec' }]), false);
+  assert.equal(hasTenderFile([{ file_role: 'tender', superseded_by: 'new' }, { file_role: 'tender' }]), true);
+  assert.equal(sameSourceAlreadyExtracted('abc', 'abc'), true);
+  assert.equal(sameSourceAlreadyExtracted('abc', ''), false);
+  assert.equal(sameSourceAlreadyExtracted('abc', 'abc', [{ warnings: ['RAGFlow 未返回版面位置，全部内容按第 1 页处理'] }]), false);
+});
+
 test('解析耗时和换服务重试的请求体', () => {
   assert.equal(durationLabel(null), '—');
   assert.equal(durationLabel(350), '350 毫秒');
   assert.equal(durationLabel(2400), '2.4 秒');
   assert.deepEqual(retryBody('ragflow', 'f1'), { file_ids: ['f1'], service: 'ragflow' });
+});
+
+test('技术分册上传后自动解析：有招标文件且未抽过才启动，失败不自动重试', () => {
+  const uploaded = [{ file_role: 'tender', status: 'uploaded' }];
+  assert.equal(shouldAutoStartTechnicalParse({
+    technicalOnly: true, files: uploaded, sourceFingerprint: 'a', parsedFingerprint: '',
+  }), true);
+  assert.equal(shouldAutoStartTechnicalParse({
+    technicalOnly: false, files: uploaded, sourceFingerprint: 'a', parsedFingerprint: '',
+  }), false);
+  assert.equal(shouldAutoStartTechnicalParse({
+    technicalOnly: true, files: [{ file_role: 'tech_spec', status: 'uploaded' }],
+    sourceFingerprint: 'a', parsedFingerprint: '',
+  }), false);
+  assert.equal(shouldAutoStartTechnicalParse({
+    technicalOnly: true, files: [{ file_role: 'tender', status: 'parsed' }],
+    sourceFingerprint: 'a', parsedFingerprint: 'a',
+  }), false);
+  assert.equal(shouldAutoStartTechnicalParse({
+    technicalOnly: true, files: [{ file_role: 'tender', status: 'failed' }],
+    sourceFingerprint: 'a', parsedFingerprint: '',
+  }), false);
+  assert.equal(shouldAutoStartTechnicalParse({
+    technicalOnly: true, files: uploaded, sourceFingerprint: 'a', parsedFingerprint: '',
+    jobs: [{ type: 'parse', status: 'running' }],
+  }), false);
 });

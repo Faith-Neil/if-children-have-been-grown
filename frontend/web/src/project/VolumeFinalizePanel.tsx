@@ -76,7 +76,7 @@ export function VolumeFinalizePanel({ volumes, checkId }: { volumes: VolumeStatu
             ) : actions.finalizeBlockers.length > 0 ? (
               <p className="muted">
                 {actions.finalizeBlockers.join('；')}
-                {(status?.pending_human_issues ?? 0) > 0 && <a onClick={() => navigate('manual')}> 去处理</a>}
+                {(status?.pending_human_issues ?? 0) > 0 && <a onClick={() => navigate('export')}> 去处理</a>}
               </p>
             ) : null}
             {review?.status === 'returned' && review.decision_note && <blockquote>退回意见：{review.decision_note}</blockquote>}

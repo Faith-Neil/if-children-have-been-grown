@@ -4,132 +4,20 @@
 import type { ApplicationSession, Chapter, ProjectRole, Volume, Workspace } from '../shared/types.ts';
 import { parseAppPath, type AppRoute } from '../app/app-route.ts';
 import { projectTabs, sessionAllowsAction, sessionAllowsProjectTab, sessionAllowsRoute } from '../app/session-navigation.ts';
-
-/**
- * PRD v1.8 §2.2 定义的 8 类标准系统角色
- */
-export type SystemRole =
-  | 'platform_admin'
-  | 'group_admin'
-  | 'company_admin'
-  | 'data_admin'
-  | 'project_lead'
-  | 'bid_writer'
-  | 'auditor'
-  | 'viewer';
-
-export const SYSTEM_ROLES: Record<string, SystemRole> = {
-  PLATFORM_ADMIN: 'platform_admin',
-  GROUP_ADMIN: 'group_admin',
-  COMPANY_ADMIN: 'company_admin',
-  DATA_ADMIN: 'data_admin',
-  PROJECT_LEAD: 'project_lead',
-  BID_WRITER: 'bid_writer',
-  AUDITOR: 'auditor',
-  VIEWER: 'viewer',
-} as const;
-
-export const SYSTEM_ROLE_LABELS: Record<SystemRole, string> = {
-  platform_admin: '平台管理员',
-  group_admin: '集团管理员',
-  company_admin: '公司管理员',
-  data_admin: '资料管理员',
-  project_lead: '项目负责人',
-  bid_writer: '投标编写人',
-  auditor: '审核人',
-  viewer: '只读成员',
-};
-
-/**
- * 角色映射别名表，双向向后兼容历史 manager / editor / readonly / reviewer 等
- */
-const ROLE_NORMALIZATION_MAP: Record<string, SystemRole> = {
-  platform_admin: 'platform_admin',
-  group_admin: 'group_admin',
-  company_admin: 'company_admin',
-  data_admin: 'data_admin',
-  project_lead: 'project_lead',
-  lead: 'project_lead',
-  manager: 'project_lead',
-  bid_writer: 'bid_writer',
-  writer: 'bid_writer',
-  editor: 'bid_writer',
-  auditor: 'auditor',
-  reviewer: 'auditor',
-  viewer: 'viewer',
-  readonly: 'viewer',
-};
-
-/**
- * 只读角色集合：阻断一切写操作与创建动作
- */
-export const READONLY_SYSTEM_ROLES = new Set<SystemRole>([
-  'group_admin',
-  'viewer',
-  'auditor',
-  'platform_admin',
-]);
-
-/**
- * 具备新建项目资质的角色
- */
-export const PROJECT_CREATOR_ROLES = new Set<SystemRole>([
-  'project_lead',
-  'company_admin',
-]);
-
-/**
- * 具备项目编写资质的角色
- */
-export const PROJECT_WRITER_ROLES = new Set<SystemRole>([
-  'bid_writer',
-  'project_lead',
-  'company_admin',
-  'data_admin',
-]);
-
-/**
- * 平台管理员禁止访问的业务路由
- */
-export const PLATFORM_ADMIN_FORBIDDEN_ROUTES = new Set<string>([
-  'workbench',
-  'library',
-  'knowledge',
-  'writing',
-]);
-
-/**
- * 将任意角色字符串或角色数组归一化为标准八角色代码
- */
-export function normalizeSystemRole(roleOrRoles?: string | string[] | null): SystemRole {
-  if (!roleOrRoles) return 'viewer';
-  const rawRole = Array.isArray(roleOrRoles) ? roleOrRoles[0] : roleOrRoles;
-  if (!rawRole || typeof rawRole !== 'string') return 'viewer';
-  const clean = rawRole.trim().toLowerCase();
-  return ROLE_NORMALIZATION_MAP[clean] ?? 'viewer';
-}
-
-/**
- * 获取标准角色的中文友好名称
- */
-export function getSystemRoleLabel(roleOrRoles?: string | string[] | null): string {
-  const norm = normalizeSystemRole(roleOrRoles);
-  return SYSTEM_ROLE_LABELS[norm] ?? '只读成员';
-}
-
-/**
- * 判断是否为只读角色
- */
-export function isReadonlyRole(roleOrRoles?: string | string[] | null): boolean {
-  return READONLY_SYSTEM_ROLES.has(normalizeSystemRole(roleOrRoles));
-}
-
-/**
- * 判断是否有权新建项目
- */
-export function canCreateProject(roleOrRoles?: string | string[] | null): boolean {
-  return PROJECT_CREATOR_ROLES.has(normalizeSystemRole(roleOrRoles));
-}
+export {
+  SYSTEM_ROLES,
+  SYSTEM_ROLE_LABELS,
+  READONLY_SYSTEM_ROLES,
+  PROJECT_CREATOR_ROLES,
+  PROJECT_WRITER_ROLES,
+  PLATFORM_ADMIN_FORBIDDEN_ROUTES,
+  normalizeSystemRole,
+  getSystemRoleLabel,
+  isReadonlyRole,
+  canCreateProject,
+  type SystemRole,
+} from '../shared/roles.ts';
+import { PLATFORM_ADMIN_FORBIDDEN_ROUTES, READONLY_SYSTEM_ROLES, SYSTEM_ROLE_LABELS, canCreateProject, isReadonlyRole, normalizeSystemRole, type SystemRole } from '../shared/roles.ts';
 
 /**
  * 细粒度章节编辑鉴权参数
@@ -262,33 +150,6 @@ export function formatForbiddenReason(params: {
 
   if (norm === 'platform_admin') {
     return `抱歉，您当前的角色（${roleLabel}）仅限管理平台级服务、模型与审计，不可访问公司业务数据与投标项目。`;
-  }
-
-  if (norm === 'group_admin') {
-    if (params.action && params.action !== 'read') {
-      return `抱歉，您当前的角色（${roleLabel}）仅具备全站跨公司只读权限，不能执行写操作或创建项目。`;
-    }
-  }
-
-  if (norm === 'viewer' || norm === 'auditor') {
-    if (params.action && params.action !== 'read') {
-      return `抱歉，您当前的角色（${roleLabel}）处于只读状态，无权修改业务数据。`;
-    }
-  }
-
-  if (norm === 'data_admin') {
-    if (params.action === 'create_project' || params.action === 'projects.create') {
-      return `抱歉，您当前的角色（${roleLabel}）专职负责公司资料库与模板维护，无权新建投标项目。`;
-    }
-  }
-
-  if (norm === 'bid_writer') {
-    if (params.action === 'create_project' || params.action === 'projects.create') {
-      return `抱歉，您当前的角色（${roleLabel}）无权新建投标项目，请联系项目负责人或公司管理员办理。`;
-    }
-    if (params.tab === 'settings' || params.path.endsWith('/settings')) {
-      return `抱歉，您当前的角色（${roleLabel}）无权修改项目设置与团队分工，仅项目负责人可操作。`;
-    }
   }
 
   return `抱歉，您当前的角色（${roleLabel}）无权访问此页面（${params.path}），请联系公司管理员。`;

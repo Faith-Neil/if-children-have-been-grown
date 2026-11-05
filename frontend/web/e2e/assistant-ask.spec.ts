@@ -42,14 +42,17 @@ async function seed(request: APIRequestContext) {
 test('ask without a selection, the answer streams in and can only be copied', async ({ page, request }) => {
   const { projectId } = await seed(request);
   await page.goto(`/projects/${projectId}/editor`);
-  await page.getByTestId('login-username-input').fill('alpha-manager');
-  await page.getByTestId('login-password-input').fill('X_2026');
-  await page.getByTestId('login-submit-button').click();
-  const box = page.getByTestId('assistant-ask-box');
-  await expect(box).toBeVisible();
+  const usernameInput = page.getByTestId('login-username-input');
+  if (await usernameInput.isVisible({ timeout: 5000 }).catch(() => false)) {
+    await usernameInput.fill('alpha-manager');
+    await page.getByTestId('login-password-input').fill('X_2026');
+    await page.getByTestId('login-submit-button').click();
+  }
+  await expect(page.getByRole('button', { name: '退出' })).toBeVisible();
   const kb = page.getByTestId('assistant-kb-switch');
+  await expect(kb).toBeVisible();
   if (await kb.isChecked()) await kb.click();
-  await box.getByLabel('向对话助手提问').fill('巡检这一节应该写哪些要点？');
+  await page.getByLabel('向对话助手提问').fill('巡检这一节应该写哪些要点？');
   await page.getByTestId('assistant-ask-btn').click();
   const answer = page.getByTestId('assistant-answer');
   await expect(answer).toContainText(ANSWER.join(''));

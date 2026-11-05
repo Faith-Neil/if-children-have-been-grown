@@ -147,7 +147,7 @@ function HumanQueueView() {
                         {issue.fix_count > 0 && <span className="muted">已自动修正 {issue.fix_count} 次</span>}
                       </Space>
                       <Space>
-                        {needsMaterial(issue) && <Button type="link" size="small" onClick={() => navigate('matrix')}>去补资料</Button>}
+                        {needsMaterial(issue) && <Button type="link" size="small" onClick={() => navigate('analyze')}>去补资料</Button>}
                         <Button type="link" size="small" onClick={() => navigate(editorChapterPath(projectId, group.chapter_id))}>在编辑台修改</Button>
                         {issue.permissions.edit && <Button size="small" disabled={busy} data-testid="queue-edit-paragraph" onClick={() => open('edit', group, issue)}>改写本段</Button>}
                         {issue.permissions.resolve && <Button size="small" type="primary" ghost disabled={busy} onClick={() => open('resolve', group, issue)}>标为已处理</Button>}

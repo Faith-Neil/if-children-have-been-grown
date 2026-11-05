@@ -124,76 +124,46 @@ function createMockWorkspace(overrides = {}) {
 /* 1. 角色标准化与元数据测试                                                */
 /* ========================================================================= */
 
-test('8 standard roles normalization and aliases mapping', () => {
-  const expectedRoles = [
-    'platform_admin',
-    'group_admin',
-    'company_admin',
-    'data_admin',
-    'project_lead',
-    'bid_writer',
-    'auditor',
-    'viewer',
-  ];
-
-  // 1. 标准名称自反映射
-  for (const role of expectedRoles) {
+test('three login roles and legacy aliases', () => {
+  for (const role of ['platform_admin', 'company_admin', 'member']) {
     assert.equal(normalizeSystemRole(role), role);
     assert.ok(SYSTEM_ROLE_LABELS[role], `Role label for ${role} must exist`);
   }
 
-  // 2. 历史与别名映射
-  assert.equal(normalizeSystemRole('manager'), 'project_lead');
-  assert.equal(normalizeSystemRole('lead'), 'project_lead');
-  assert.equal(normalizeSystemRole('editor'), 'bid_writer');
-  assert.equal(normalizeSystemRole('writer'), 'bid_writer');
-  assert.equal(normalizeSystemRole('readonly'), 'viewer');
-  assert.equal(normalizeSystemRole('reviewer'), 'auditor');
+  assert.equal(normalizeSystemRole('manager'), 'member');
+  assert.equal(normalizeSystemRole('lead'), 'member');
+  assert.equal(normalizeSystemRole('editor'), 'member');
+  assert.equal(normalizeSystemRole('writer'), 'member');
+  assert.equal(normalizeSystemRole('readonly'), 'member');
+  assert.equal(normalizeSystemRole('reviewer'), 'member');
+  assert.equal(normalizeSystemRole('project_lead'), 'member');
+  assert.equal(normalizeSystemRole('bid_writer'), 'member');
 
-  // 3. 空值与容错
-  assert.equal(normalizeSystemRole(null), 'viewer');
-  assert.equal(normalizeSystemRole(undefined), 'viewer');
-  assert.equal(normalizeSystemRole(''), 'viewer');
-  assert.equal(normalizeSystemRole('unknown_role'), 'viewer');
+  assert.equal(normalizeSystemRole(null), 'member');
+  assert.equal(normalizeSystemRole(undefined), 'member');
+  assert.equal(normalizeSystemRole(''), 'member');
+  assert.equal(normalizeSystemRole('unknown_role'), 'member');
 
-  // 4. 中文标签
   assert.equal(getSystemRoleLabel('platform_admin'), '平台管理员');
-  assert.equal(getSystemRoleLabel('group_admin'), '集团管理员');
   assert.equal(getSystemRoleLabel('company_admin'), '公司管理员');
-  assert.equal(getSystemRoleLabel('data_admin'), '资料管理员');
-  assert.equal(getSystemRoleLabel('project_lead'), '项目负责人');
-  assert.equal(getSystemRoleLabel('manager'), '项目负责人');
-  assert.equal(getSystemRoleLabel('bid_writer'), '投标编写人');
-  assert.equal(getSystemRoleLabel('editor'), '投标编写人');
-  assert.equal(getSystemRoleLabel('auditor'), '审核人');
-  assert.equal(getSystemRoleLabel('viewer'), '只读成员');
+  assert.equal(getSystemRoleLabel('member'), '普通用户');
+  assert.equal(getSystemRoleLabel('project_lead'), '普通用户');
+  assert.equal(getSystemRoleLabel('bid_writer'), '普通用户');
 });
 
 test('readonly and project creator roles classification', () => {
-  // 只读角色判定
-  assert.equal(isReadonlyRole('group_admin'), true);
-  assert.equal(isReadonlyRole('viewer'), true);
-  assert.equal(isReadonlyRole('readonly'), true);
-  assert.equal(isReadonlyRole('auditor'), true);
   assert.equal(isReadonlyRole('platform_admin'), true);
-
   assert.equal(isReadonlyRole('company_admin'), false);
+  assert.equal(isReadonlyRole('member'), false);
   assert.equal(isReadonlyRole('project_lead'), false);
-  assert.equal(isReadonlyRole('bid_writer'), false);
-  assert.equal(isReadonlyRole('data_admin'), false);
+  assert.equal(isReadonlyRole('viewer'), false);
 
-  // 新建项目资质判定 (仅 project_lead 与 company_admin)
   assert.equal(canCreateProject('project_lead'), true);
   assert.equal(canCreateProject('manager'), true);
   assert.equal(canCreateProject('company_admin'), true);
-
-  assert.equal(canCreateProject('bid_writer'), false);
-  assert.equal(canCreateProject('editor'), false);
-  assert.equal(canCreateProject('data_admin'), false);
-  assert.equal(canCreateProject('group_admin'), false);
-  assert.equal(canCreateProject('viewer'), false);
+  assert.equal(canCreateProject('bid_writer'), true);
+  assert.equal(canCreateProject('member'), true);
   assert.equal(canCreateProject('platform_admin'), false);
-  assert.equal(canCreateProject('auditor'), false);
 });
 
 /* ========================================================================= */
@@ -262,8 +232,8 @@ test('table-driven: 8-role global route permission and blocking matrix', () => {
 /* 3. 写操作与新建项目前置拦截测试                                          */
 /* ========================================================================= */
 
-test('write operations and project creation blocked for non-lead / readonly roles', () => {
-  const disallowedRoles = ['group_admin', 'viewer', 'auditor', 'data_admin', 'bid_writer', 'platform_admin'];
+test('write operations and project creation blocked for platform admin', () => {
+  const disallowedRoles = ['platform_admin'];
 
   for (const role of disallowedRoles) {
     const session = createMockSession(role);
@@ -281,8 +251,7 @@ test('write operations and project creation blocked for non-lead / readonly role
     assert.ok(result.reason.includes(SYSTEM_ROLE_LABELS[role]), 'Reason must include role label');
   }
 
-  // 正例：项目负责人与公司管理员允许新建项目
-  for (const role of ['project_lead', 'company_admin', 'manager']) {
+  for (const role of ['project_lead', 'company_admin', 'manager', 'member', 'bid_writer']) {
     const session = createMockSession(role);
     const result = checkRoutePermission({
       session,
@@ -444,19 +413,11 @@ test('formatForbiddenReason formats informative reasons with role labels', () =>
   assert.ok(platformReason.includes('平台管理员'));
   assert.ok(platformReason.includes('不可访问公司业务数据与投标项目'));
 
-  const groupReason = formatForbiddenReason({
-    role: 'group_admin',
-    path: '/workbench',
-    action: 'projects.create',
-  });
-  assert.ok(groupReason.includes('集团管理员'));
-  assert.ok(groupReason.includes('仅具备全站跨公司只读权限'));
-
-  const writerReason = formatForbiddenReason({
-    role: 'bid_writer',
+  const memberReason = formatForbiddenReason({
+    role: 'member',
     path: '/projects/p1/settings',
     tab: 'settings',
   });
-  assert.ok(writerReason.includes('投标编写人'));
-  assert.ok(writerReason.includes('仅项目负责人可操作'));
+  assert.ok(memberReason.includes('普通用户'));
+  assert.ok(memberReason.includes('/projects/p1/settings'));
 });

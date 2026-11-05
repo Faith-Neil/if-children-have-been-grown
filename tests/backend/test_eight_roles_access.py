@@ -8,14 +8,9 @@ from icg_demo.domain import Account, Chapter, DemoService, DomainError, Principa
 from icg_demo.project_access import (
     LEAD_COMPANY_ROLES,
     READONLY_SYSTEM_ROLES,
-    ROLE_AUDITOR,
-    ROLE_BID_WRITER,
     ROLE_COMPANY_ADMIN,
-    ROLE_DATA_ADMIN,
-    ROLE_GROUP_ADMIN,
+    ROLE_MEMBER,
     ROLE_PLATFORM_ADMIN,
-    ROLE_PROJECT_LEAD,
-    ROLE_VIEWER,
     WRITER_COMPANY_ROLES,
     chapter_edit,
     chapter_structure,
@@ -57,41 +52,25 @@ def create_principal(repo, user_id: str, name: str, company_id: str, role: str) 
 
 
 def test_role_normalization_and_aliases():
-    """验证八角色标准名称及其别名归一化。"""
-    assert normalize_role("manager") == ROLE_PROJECT_LEAD
-    assert normalize_role("project_lead") == ROLE_PROJECT_LEAD
-    assert normalize_role("editor") == ROLE_BID_WRITER
-    assert normalize_role("bid_writer") == ROLE_BID_WRITER
-    assert normalize_role("viewer") == ROLE_VIEWER
-    assert normalize_role("readonly") == ROLE_VIEWER
-    assert normalize_role("auditor") == ROLE_AUDITOR
-    assert normalize_role("reviewer") == ROLE_AUDITOR
+    """旧登录角色收成普通用户，只读集合只留平台管理员。"""
+    for legacy in ("manager", "project_lead", "editor", "bid_writer", "viewer", "readonly", "auditor", "reviewer", "group_admin", "data_admin"):
+        assert normalize_role(legacy) == ROLE_MEMBER
     assert normalize_role("platform_admin") == ROLE_PLATFORM_ADMIN
-    assert normalize_role("group_admin") == ROLE_GROUP_ADMIN
     assert normalize_role("company_admin") == ROLE_COMPANY_ADMIN
-    assert normalize_role("data_admin") == ROLE_DATA_ADMIN
+    assert normalize_role("member") == ROLE_MEMBER
 
-    assert ROLE_GROUP_ADMIN in READONLY_SYSTEM_ROLES
-    assert ROLE_VIEWER in READONLY_SYSTEM_ROLES
-    assert ROLE_AUDITOR in READONLY_SYSTEM_ROLES
-    assert ROLE_PLATFORM_ADMIN in READONLY_SYSTEM_ROLES
-
-    assert ROLE_PROJECT_LEAD in LEAD_COMPANY_ROLES
+    assert READONLY_SYSTEM_ROLES == {ROLE_PLATFORM_ADMIN}
+    assert ROLE_MEMBER in LEAD_COMPANY_ROLES
     assert ROLE_COMPANY_ADMIN in LEAD_COMPANY_ROLES
-
-    assert ROLE_BID_WRITER in WRITER_COMPANY_ROLES
-    assert ROLE_PROJECT_LEAD in WRITER_COMPANY_ROLES
-    assert ROLE_DATA_ADMIN in WRITER_COMPANY_ROLES
+    assert ROLE_MEMBER in WRITER_COMPANY_ROLES
+    assert ROLE_COMPANY_ADMIN in WRITER_COMPANY_ROLES
 
 
 def test_readonly_roles_forbidden_from_library_write(repo, service):
-    """只读系统角色（集团管理员、只读成员、审核人、平台管理员）禁止执行任何写入操作。"""
-    group_admin = create_principal(repo, "grp-admin", "集团总监", "group", "group_admin")
-    viewer = create_principal(repo, "vw-user", "只读专员", "alpha", "viewer")
-    auditor = create_principal(repo, "aud-user", "审核专员", "alpha", "auditor")
+    """平台管理员不能写投标项目。旧只读登录角色已是普通用户，账号级写入不再拦截。"""
     platform_admin = create_principal(repo, "plt-admin", "平台运维", "platform", "platform_admin")
 
-    for p in (group_admin, viewer, auditor, platform_admin):
+    for p in (platform_admin,):
         with pytest.raises(DomainError) as exc:
             service._writer(p)
         assert exc.value.status == 403
@@ -133,17 +112,14 @@ def test_project_create_permissions(repo, service):
     proj3 = service.create_project(mgr_p, "旧经理新建项目")
     assert proj3["company_id"] == "alpha"
 
-    # 无资质角色创建失败 (403 PROJECT_CREATE_FORBIDDEN)
     writer_p = create_principal(repo, "p-writer-create", "编写人", "alpha", "bid_writer")
-    data_p = create_principal(repo, "p-data-create", "资料管理员", "alpha", "data_admin")
-    viewer_p = create_principal(repo, "p-viewer-create", "只读成员", "alpha", "viewer")
-    group_p = create_principal(repo, "p-group-create", "集团管理员", "group", "group_admin")
+    assert service.create_project(writer_p, "普通用户新建项目")["company_id"] == "alpha"
 
-    for p in (writer_p, data_p, viewer_p, group_p):
-        with pytest.raises(DomainError) as exc:
-            service.create_project(p, "违规新建项目")
-        assert exc.value.status == 403
-        assert exc.value.code == "PROJECT_CREATE_FORBIDDEN"
+    platform_p = create_principal(repo, "p-platform-create", "平台管理员", "system", "platform_admin")
+    with pytest.raises(DomainError) as exc:
+        service.create_project(platform_p, "平台管理员不能新建项目")
+    assert exc.value.status == 403
+    assert exc.value.code == "PROJECT_CREATE_FORBIDDEN"
 
 
 def test_volume_lead_isolation_and_cross_volume_rejection(repo, service):
@@ -213,8 +189,10 @@ def test_data_admin_kb_dedicated_and_project_membership_gate(repo, service):
     project_id = "alpha-project"
     tech_chap = s.chapters["alpha-tech"]
 
-    # 1. 资料管理员操作知识库/资料库：通过
-    require_data_admin(s, data_admin)
+    # 旧资料管理员已是普通用户，不能再以资料管理员身份写知识库。
+    with pytest.raises(DomainError) as exc:
+        require_data_admin(s, data_admin)
+    assert exc.value.status == 403
 
     # 2. 未加入项目时：writable 为 False，无法编辑章节
     assert writable(s, project_id, "alpha-data-spec") is False
@@ -326,63 +304,21 @@ def test_team_membership_update_role_eligibility(repo, service):
     ))
     repo.transaction(lambda s: s.project_teams[project_id].__setitem__("assembly_owner_id", "lead-actor"))
 
-    # 1. 尝试提升 viewer 为编写人 -> 422 MEMBER_ROLE_NOT_WRITABLE
-    payload_viewer = {
+    create_principal(repo, "cand-platform", "平台管理员", "alpha", "platform_admin")
+    payload_platform = {
         "members": [
             {"user_id": "lead-actor", "project_role": "lead", "volumes": ["technical", "business"]},
-            {"user_id": "cand-viewer", "project_role": "writer", "volumes": ["technical"]},
+            {"user_id": "cand-platform", "project_role": "writer", "volumes": ["technical"]},
         ],
         "volumes": [{"volume": "technical", "owner_id": "lead-actor"}, {"volume": "business", "owner_id": "lead-actor"}],
         "assembly_owner_id": "lead-actor",
     }
     with pytest.raises(DomainError) as exc:
-        team_svc.update(mgr, project_id, payload_viewer, expected="1", key="key-team-001")
+        team_svc.update(mgr, project_id, payload_platform, expected="1", key="key-team-001")
     assert exc.value.status == 422
     assert exc.value.code == "MEMBER_ROLE_NOT_WRITABLE"
 
-    # 2. 尝试提升 auditor 为负责人 -> 422 MEMBER_ROLE_NOT_WRITABLE
-    payload_auditor = {
-        "members": [
-            {"user_id": "lead-actor", "project_role": "lead", "volumes": ["technical", "business"]},
-            {"user_id": "cand-auditor", "project_role": "writer", "volumes": ["technical"]},
-        ],
-        "volumes": [{"volume": "technical", "owner_id": "lead-actor"}, {"volume": "business", "owner_id": "lead-actor"}],
-        "assembly_owner_id": "lead-actor",
-    }
-    with pytest.raises(DomainError) as exc:
-        team_svc.update(mgr, project_id, payload_auditor, expected="1", key="key-team-002")
-    assert exc.value.status == 422
-    assert exc.value.code == "MEMBER_ROLE_NOT_WRITABLE"
-
-    # 3. 尝试设置 bid_writer 为项目负责人 -> 422 PROJECT_LEAD_COMPANY_ROLE_REQUIRED
-    payload_writer_lead = {
-        "members": [
-            {"user_id": "lead-actor", "project_role": "lead", "volumes": ["technical", "business"]},
-            {"user_id": "cand-writer", "project_role": "lead", "volumes": ["technical", "business"]},
-        ],
-        "volumes": [{"volume": "technical", "owner_id": "lead-actor"}, {"volume": "business", "owner_id": "lead-actor"}],
-        "assembly_owner_id": "lead-actor",
-    }
-    with pytest.raises(DomainError) as exc:
-        team_svc.update(mgr, project_id, payload_writer_lead, expected="1", key="key-team-003")
-    assert exc.value.status == 422
-    assert exc.value.code == "PROJECT_LEAD_COMPANY_ROLE_REQUIRED"
-
-    # 4. 尝试设置 data_admin 为项目负责人 -> 422 PROJECT_LEAD_COMPANY_ROLE_REQUIRED
-    payload_data_lead = {
-        "members": [
-            {"user_id": "lead-actor", "project_role": "lead", "volumes": ["technical", "business"]},
-            {"user_id": "cand-data", "project_role": "lead", "volumes": ["technical", "business"]},
-        ],
-        "volumes": [{"volume": "technical", "owner_id": "lead-actor"}, {"volume": "business", "owner_id": "lead-actor"}],
-        "assembly_owner_id": "lead-actor",
-    }
-    with pytest.raises(DomainError) as exc:
-        team_svc.update(mgr, project_id, payload_data_lead, expected="1", key="key-team-004")
-    assert exc.value.status == 422
-    assert exc.value.code == "PROJECT_LEAD_COMPANY_ROLE_REQUIRED"
-
-    # 5. 合法配置：company_admin 为 lead，cand-writer 与 cand-data 为 writer
+    # 合法配置：普通用户可以担任编写人，公司管理员可以担任负责人。
     payload_valid = {
         "members": [
             {"user_id": "lead-actor", "project_role": "lead", "volumes": ["technical", "business"]},
@@ -418,11 +354,11 @@ def test_require_project_writer_boundary(repo, service):
     # 可写编写人正常通过
     require_project_writer(s, writer, project_id)
 
-    # 只读成员阻断为 403 FORBIDDEN
+    # 项目内只读成员不能写
     with pytest.raises(DomainError) as exc:
         require_project_writer(s, viewer, project_id)
     assert exc.value.status == 403
-    assert exc.value.code == "FORBIDDEN"
+    assert exc.value.code == "PROJECT_WRITER_REQUIRED"
 
     # 集团管理员阻断为 403 FORBIDDEN
     with pytest.raises(DomainError) as exc:

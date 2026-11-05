@@ -4,7 +4,36 @@
 
 # 项目状态
 
-维护日期：2026-10-30（UTC+8）。分支 `feat/opencode-ICG` 位于 tip `4985a9d`（相对 `main` 超前 71 个提交）；Wave 11 在分支 `feat/wave-11-main-path` 开发，经 [PR #6](https://github.com/Faith-Neil/if-children-have-been-grown/pull/6) 并回；初次接手从 `main` 的 `ce064f6` 开始维护；main/xqr分支情况保留2026-10-09核对快照。已补齐 WP-1 独立交付文档（D-696），对齐 RoleMode 枚举，登记整改后结构债务收敛 ISSUE-038（D-697），完成 DOC-SYNC-1（D-698）与 DOC-SYNC-1.1（D-699）活文档实树校准。完成 CI 工作流触发分支修复（D-721）、已签等 PM 清单汇总（D-722）与关演示主链路冒烟留证（D-723）、大模型与 RAGFlow 弹窗配置及实测（D-724/D-725）、规则最小可递交集与分册定稿闸门端到端闭环（D-726/D-727）、以及 2026-10-26 规划未落地债审计与看板状态校准（D-728/D-729）。新增 R01/R02/R35 规则扩写落地与 7 大核心规则闭环、MySQL 章节/草稿/检查双向持久化、真实内网 RAGFlow 连通性网络探针证据归档与关演示全业务链路新冒烟留证（D-740/D-741）。Wave 2 批次（D-746～D-753）、Wave 3 批次（D-756～D-763）与 Wave 4 批次（FE-TECH-DEBT-02 App.tsx 瘦身至 394 行、APP-M2-T022 平台管理员脱敏长任务、BE-COMPLIANCE-RULES-P3 P3 规则扩充至 21 项与导出门禁、AI-DYNAMIC-PROMPT-CONTEXT 自适应 Prompt 预算与指纹、INT-APP-SLIM-ROUTING 路由分层与脱敏联调）（D-766～D-775）经 QA 独立终验签署（D-754/D-764/D-776 PASS）与 PD 产品验收（D-755/D-765/D-777 认可），已获人类 PM 正式批准标为 done。当前共 444 项中 96 done、65 in-review、7 in-progress、228 planned、41 blocked、7 cancelled、0 ready，2026-10-28 逐行统计）。Wave 9 批次（APP-M2-T027、INT-USER-TRANSFER-RBAC-GLUE、BE-USER-MANAGEMENT-TRANSFER、AI-CHAPTER-AUTO-VALIDATION-GATE）与 Wave 10 核心批次（APP-M2-T028 用户角色分配与账号解锁 D-828/D-829、BE-USER-SECURITY-OPS 用户安全运维服务 D-830/D-831、INT-USER-SECURITY-OPS-GLUE 账号安全契约联调 D-832/D-833、AI-OUTLINE-AUTO-REMEDIATION 质检缺陷自动整改建议与局部智能重写引擎 D-834/D-835）经 QA 独立复测终验（D-836 PASS）与 PD 产品验收（D-837 认可），已获人类 PM 正式批准标为 done。
+维护日期：2026-11-05（UTC+8）。
+
+## 历史标书与资料库解析设计（2026-11-05）
+
+[ISSUE-050](../issues/ISSUE-050.md) 记下已确认的解析设计，说明在 [历史标书与资料库解析设计](superpowers/specs/2026-11-05-history-bid-ingestion-design.md)。方案是主规格，对话里的决定只作补充。状态为 new。解析代码未改，本机 RAGFlow 未部署，任务未拆，不标 done。
+
+维护日期原为 2026-10-30 的下文仍是当时的看板叙述。分支 `feat/opencode-ICG` 位于 tip `4985a9d`（相对 `main` 超前 71 个提交）；Wave 11 在分支 `feat/wave-11-main-path` 开发，经 [PR #6](https://github.com/Faith-Neil/if-children-have-been-grown/pull/6) 并回；初次接手从 `main` 的 `ce064f6` 开始维护；main/xqr分支情况保留2026-10-09核对快照。已补齐 WP-1 独立交付文档（D-696），对齐 RoleMode 枚举，登记整改后结构债务收敛 ISSUE-038（D-697），完成 DOC-SYNC-1（D-698）与 DOC-SYNC-1.1（D-699）活文档实树校准。完成 CI 工作流触发分支修复（D-721）、已签等 PM 清单汇总（D-722）与关演示主链路冒烟留证（D-723）、大模型与 RAGFlow 弹窗配置及实测（D-724/D-725）、规则最小可递交集与分册定稿闸门端到端闭环（D-726/D-727）、以及 2026-10-26 规划未落地债审计与看板状态校准（D-728/D-729）。新增 R01/R02/R35 规则扩写落地与 7 大核心规则闭环、MySQL 章节/草稿/检查双向持久化、真实内网 RAGFlow 连通性网络探针证据归档与关演示全业务链路新冒烟留证（D-740/D-741）。Wave 2 批次（D-746～D-753）、Wave 3 批次（D-756～D-763）与 Wave 4 批次（FE-TECH-DEBT-02 App.tsx 瘦身至 394 行、APP-M2-T022 平台管理员脱敏长任务、BE-COMPLIANCE-RULES-P3 P3 规则扩充至 21 项与导出门禁、AI-DYNAMIC-PROMPT-CONTEXT 自适应 Prompt 预算与指纹、INT-APP-SLIM-ROUTING 路由分层与脱敏联调）（D-766～D-775）经 QA 独立终验签署（D-754/D-764/D-776 PASS）与 PD 产品验收（D-755/D-765/D-777 认可），已获人类 PM 正式批准标为 done。当前共 444 项中 96 done、65 in-review、7 in-progress、228 planned、41 blocked、7 cancelled、0 ready，2026-10-28 逐行统计）。Wave 9 批次（APP-M2-T027、INT-USER-TRANSFER-RBAC-GLUE、BE-USER-MANAGEMENT-TRANSFER、AI-CHAPTER-AUTO-VALIDATION-GATE）与 Wave 10 核心批次（APP-M2-T028 用户角色分配与账号解锁 D-828/D-829、BE-USER-SECURITY-OPS 用户安全运维服务 D-830/D-831、INT-USER-SECURITY-OPS-GLUE 账号安全契约联调 D-832/D-833、AI-OUTLINE-AUTO-REMEDIATION 质检缺陷自动整改建议与局部智能重写引擎 D-834/D-835）经 QA 独立复测终验（D-836 PASS）与 PD 产品验收（D-837 认可），已获人类 PM 正式批准标为 done。
+
+## 产品启动改为 MySQL（2026-11-04）
+
+[ISSUE-049](../issues/ISSUE-049.md) / OPS-M0-T03 把本机产品入口改成 `Start-Product.ps1`。连不上 MySQL 就退出。公司虚拟机的步骤在 [Docker 部署说明](operations/docker-vm-deployment.md)：MySQL 8 与一个应用容器，应用只绑定环回地址。说明已入库，虚拟机没有执行。RAGFlow 和本地模型不在这套编排里。任务为 in-review，不标 done。
+
+## 三角色与四段主路径（2026-11-04）
+
+[ISSUE-048](../issues/ISSUE-048.md) 把登录角色收成平台管理员、公司管理员、普通用户，项目页签收成概览、招标文件、分析、编辑台、检查与导出、项目设置。响应正文改由知识库检索生成，没有依据不再写成无偏离。项目事实留在分析页和编辑台。项目规则覆盖里的社保月数、本单位人员、服务期和证明材料有效天数会进入检查。废标红线目录仍不可关闭。普通用户可以查看本公司知识库，不能上传或修改。任务 FLOW-3ROLE 为 in-review，不标 done。关演示且要求 MySQL 的全链路本轮没有在真实库上重跑。
+
+## 技术分册开工（2026-11-03；2026-11-05 最短路径修订）
+
+[ISSUE-047](../issues/ISSUE-047.md) 下午拍板见 [最短主路径](decisions/2026-11-05-technical-volume-shortest-path.md)。集成目标仍是 `feat/iss-047-technical-volume-mvp`，不合 main。PR #8 DO NOT MERGE。
+
+- **工单 0（TV-M0-T00）in-review**：招标临时库强制内网嵌入；真 `.doc` 经本机 RAGFlow DeepDOC 解析成功（16 页 / 61 条款）。未通时不得宣称 MVP 可用——本轮解析主路径已冒烟。
+- **工单 1（TV-M0-T08）in-review**：上传后自动解析→抽取→拟目录；自动 `parse_confirmed`；去掉抽取确认 / 进矩阵主闸门。
+- **工单 2（TV-M0-T09）in-review**：动态 1～4 级目录；删六段/教程六块硬编码；确认目录为生成唯一闸门；矩阵确认不挡。
+- **工单 3（TV-M0-T10）in-review**：覆盖视图；去掉整表确认主路径；页签改称。
+- **工单 4（TV-M0-T11）in-review**：双库 `icg-history` / `icg-material`；节生成强制检索审计；缺库提示。
+- **工单 5（TV-M0-T12）in-review**：质量八条抽检；需核对可见警告；允许导出、不恢复矩阵闸门。
+- **工单 6（TV-M0-T13）in-review**：编辑台主路径条与工具栏白名单；目录搜索与节状态；软锁。
+- **工单 7（TV-M0-T14）in-review**：写作助手问答写作 / 标书修改；初稿后门控。§15 工单 0～7 均已实现待签，不标 done。
+- **ISSUE-051（TV-M0-T15/T16）in-review**：Requirement/ResponseTask 两层；主题目录短标题；覆盖视图五列；去掉事实/冲突主路径；壳层紧凑。需重启 8710 后对旧项目重新解析才能看到新目录结构。
+- T01～T07 仍 in-review：其中「矩阵确认闸门 / 六段硬模板」口径已作废，不标 done。
 
 ## Wave 11 续与看板整治（2026-10-29～10-30）
 
@@ -18,7 +47,7 @@
 - 解析后处理前端（T101、T102、T107、T109、T110）已 in-review：文件类型与版本链、补遗差异、条目合并拆分、冲突并列取值与理由必填；真实 RAGFlow、pytest、tsc、e2e 本机均未运行，以 CI 为准。
 - 章节循环异常中断与重试（T136）、挂证据候选三路显示（T118）已 in-review：循环异常记为“异常中断”，正文与既有问题不动，进度页可重试；条款候选按资料库规则匹配、知识库片段、历史标书三路返回，片段与历史不可挂接。真实模型故障、真实 RAGFlow 未验证，pytest、tsc、e2e 本机均未运行，以 CI 为准。
 - 人工队列单段编辑（T134）、服务承诺“需复核”传播与判定汇总（T122）已 in-review：队列内只改写问题所在一段并留痕，矩阵页显示复核原因与引用章节；T119 仍 in-progress（缺故障等级/服务时段三方值），T120 导出、T211～T213 未动。pytest、tsc、e2e 本机均未运行，以 CI 为准；openapi 需同步（新增 editHumanIssueParagraph、getSlaPropagation）。
-- 项目状态、倒计时与设置（T097～T100）已 in-review：递交/开标/结果/取消流转与取消后只读、倒计时≤3天标红、基本信息“已人工修改”、合作方缺协议标记、拟派人员占用提示、规则覆盖/分册格式/完整值类别保存读回。规则覆盖与分册格式（除递交文件名）、完整值类别尚未被检查与导出读取；后端用例、tsc、e2e 本机未运行，以 CI 为准。
+- 项目状态、倒计时与设置（T097～T100）已 in-review：递交/开标/结果/取消流转与取消后只读、倒计时≤3天标红、基本信息“已人工修改”、合作方缺协议标记、拟派人员占用提示、规则覆盖/分册格式/完整值类别保存读回。规则覆盖中的社保月数、本单位人员、服务期和证明材料有效天数已进入检查；分册格式（除递交文件名）和完整值类别仍只保存；后端用例、tsc、e2e 本机未运行，以 CI 为准。
 - 看板 455 项：96 done、189 in-review、32 in-progress、64 planned、74 cancelled。
 
 ## 看板重定与真实招标文件校准（2026-10-28）

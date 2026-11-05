@@ -107,8 +107,9 @@ test('validateRevealReason enforces mandatory non-empty business explanation', (
 /* ========================================================================= */
 
 test('table-driven: 8 system roles permission on id_card:view', () => {
-  const allowedRoles = ['company_admin', 'data_admin'];
+  const allowedRoles = ['company_admin'];
   const forbiddenRoles = [
+    'data_admin',
     'platform_admin',
     'group_admin',
     'project_lead',
@@ -125,7 +126,7 @@ test('table-driven: 8 system roles permission on id_card:view', () => {
   for (const role of forbiddenRoles) {
     const res = can('id_card:view', undefined, { role });
     assert.equal(res.allowed, false, `Role ${role} should be strictly forbidden from viewing full ID card`);
-    assert.ok(res.reason?.includes('公司管理员与资料管理员'));
+    assert.ok(res.reason?.includes('仅限公司管理员'));
   }
 });
 

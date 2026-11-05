@@ -45,6 +45,24 @@ class SlaFlow:
         return result.json()
 
     def write(self, route, payload, method="POST", expected=200, headers=None):
+        if isinstance(payload, dict) and "response" in payload and "/requirements/" in route:
+            payload = dict(payload)
+            requirement_id = route.rstrip("/").rsplit("/", 1)[-1]
+            repository = self.client.app.state.service.repository
+
+            def change(state):
+                row = state.workflows[self.project_id]["requirements"][requirement_id]
+                if row.get("response") != payload["response"]:
+                    row["response"] = payload["response"]
+                    row["response_origin"] = row.get("response_origin") or "history"
+                    state.workflows[self.project_id]["plan_confirmed"] = False
+                    state.projects[self.project_id].revision += 1
+
+            repository.transaction(change)
+            payload.pop("response")
+            if not payload:
+                assert expected == 200
+                return {"requirement": next(row for row in self.state()["requirements"] if row["id"] == requirement_id)}
         response = self.client.request(method, self.path + route, json=payload,
                                        headers=headers or {**self.headers, "If-Match": str(self.state()["revision"]),
                                                            "Idempotency-Key": str(uuid4())})

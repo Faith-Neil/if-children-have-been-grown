@@ -56,6 +56,8 @@ class TenderOrchestratorMixin:
         role = payload.get("file_role") or "tender"
         if role not in FILE_ROLES:
             raise DomainError(422, "VALIDATION_ERROR", "文件类型无效。", {"fields": {"file_role": "invalid"}})
+        from icg.domain.technical_sources import guard_technical_upload
+        guard_technical_upload(self.repository.read(), project_id, suffix, role)
         from icg.infra.blob_store import put_blob
         blob = put_blob(content)  # 原件写入文件存储，状态里只记摘要
         payload = {"filename": filename, "sha256": blob, "size": len(content), "file_role": role}
@@ -85,6 +87,8 @@ class TenderOrchestratorMixin:
             workflow["files"][identity] = record
             workflow["parse_confirmed"] = False
             workflow["plan_confirmed"] = False
+            from icg.domain.technical_sources import invalidate_after_file_change
+            invalidate_after_file_change(state, project_id, workflow)
             job = self._job(state, project_id, "upload", "原件已保存，尚未解析。")
             return {"file": self._public_file(record), "job": job}
 
@@ -131,6 +135,8 @@ class TenderOrchestratorMixin:
             del workflow["files"][file_id]
             workflow["parse_confirmed"] = False
             workflow["plan_confirmed"] = False
+            from icg.domain.technical_sources import invalidate_after_file_change
+            invalidate_after_file_change(state, project_id, workflow)
             return {"deleted_file_id": file_id}
 
         return self._write(principal, project_id, "file.delete:" + file_id, payload, expected, key,
@@ -141,6 +147,8 @@ class TenderOrchestratorMixin:
         if previous:
             return previous
         workflow = self._workflow(initial, project_id)
+        from icg.domain.technical_sources import assert_can_extract
+        assert_can_extract(initial, project_id, workflow)
         from icg.domain import tender_files
         selected = payload.get("file_ids")
         explicit = selected is not None
@@ -218,6 +226,9 @@ class TenderOrchestratorMixin:
         def operation(state, project, actual):
             actual["parse_confirmed"] = False
             actual["plan_confirmed"] = False
+            from icg.domain.technical_sources import technical_only
+            if technical_only(state, project_id):
+                actual["requirements"] = {key: row for key, row in actual["requirements"].items() if not row.get("technical_clause")}
             now = iso_time(self.demo._now())
             for identity in selected:
                 record = actual["files"][identity]
@@ -234,6 +245,8 @@ class TenderOrchestratorMixin:
                     actual["files"][identity]["status"] = "failed"
                     actual["files"][identity]["warnings"] = [error.message]
                     actual["files"][identity]["parse_finished_at"] = now
+                    # 失败后清掉 remote_parse，避免下次误以为还能接着取回；必须可重试上传。
+                    actual["files"][identity].pop("remote_parse", None)
                 first = next(iter(errors.values()))
                 job = self._job(state, project_id, "parse", "解析未完成，请根据错误重新提供文件或换服务重试。",
                                 {"code": first.code, "message": first.message})
@@ -277,6 +290,11 @@ class TenderOrchestratorMixin:
                      (f.get("source") or {}).get("quote"))
                     for f in actual["facts"].values()
                 }
+                from icg.domain.technical_sources import technical_only
+                if technical_only(state, project_id):
+                    from icg.domain.technical_clause_extract import apply_technical_extract
+                    record["extraction"] = apply_technical_extract(actual, identity, result.pages, new_requirements)
+                    continue
                 from icg.domain.tender_extraction import extract_facts, extract_requirements, is_fact_line
                 for item in extract_facts(result.pages):
                     fact_key_tuple = (item.key, identity, item.page, item.quote)
@@ -342,7 +360,50 @@ class TenderOrchestratorMixin:
                      f"补遗替代原条目 {post['amendments']['superseded']} 条" if post["amendments"]["superseded"] else "",
                      f"补遗未定位原条款 {post['amendments']['unlocated']} 条待人工指定" if post["amendments"]["unlocated"] else ""]
             notes = "；".join(n for n in notes if n)
-            job = self._job(state, project_id, "parse", "真实文字提取完成；条款、事实及引用仍需人工核对。"
+            technical_pipeline = False
+            technical_empty = False
+            if not pending:
+                from icg.domain.technical_sources import remember_parsed_sources, technical_only
+                remember_parsed_sources(actual)
+                if technical_only(state, project_id):
+                    technical_pipeline = True
+                    technical_empty = not any(
+                        row.get("technical_clause") for row in actual["requirements"].values())
+                    actual["technical_extract_empty"] = technical_empty
+                    if technical_empty:
+                        actual.pop("technical_outline", None)
+                        # 抽出为空：停在说明页，不自动当作已确认解析。
+                        actual["parse_confirmed"] = False
+                    else:
+                        from icg.domain.technical_outline import apply_technical_outline
+                        apply_technical_outline(state, project_id, actual)
+                        # 最短路径：抽取确认不再作为用户闸门；解析成功即视为可进目录确认。
+                        actual["parse_confirmed"] = True
+                from icg.domain.technical_matrix import fill_technical_responses
+                provider = None
+                if hasattr(self.demo, "resolve_model_provider"):
+                    try:
+                        provider = self.demo.resolve_model_provider(state, project_id, "chapter_generation")
+                    except Exception:
+                        provider = None
+                kb = getattr(self.demo, "knowledge_base", None)
+                search_company = state.projects[project_id].company_id
+
+                def knowledge_search(clause: str, kb=kb, company_id=search_company) -> list[dict]:
+                    if kb is None:
+                        return []
+                    hits, _skip = kb.search(company_id, clause, limit=5, kinds={"history", "materials"})
+                    return [{"score": hit.score, "filename": hit.name, "quote": hit.content,
+                             "source": hit.dataset_kind} for hit in hits]
+
+                fill_technical_responses(state, actual, model=provider, search=knowledge_search)
+            if technical_pipeline and technical_empty:
+                done_message = "解析完成，但未抽到技术响应内容；请换文件或补充技术规范书后重试。"
+            elif technical_pipeline:
+                done_message = "解析与抽取完成；已拟技术目录草稿，请到编辑台确认目录。"
+            else:
+                done_message = "真实文字提取完成；条款、事实及引用仍需人工核对。"
+            job = self._job(state, project_id, "parse", done_message
                             + (f"后处理：{notes}。" if notes else "")
                             + (f"另有 {len(pending)} 份文件仍在 RAGFlow 解析中。" if pending else ""))
             from icg.domain.parse_decisions import visible
@@ -429,6 +490,9 @@ class TenderOrchestratorMixin:
                     if (shared.project_id != project_id or not requirement.get("is_cross_volume")
                             or shared.volume == payload.get("volume", requirement["volume"])):
                         raise DomainError(409, "CHAPTER_VOLUME_MISMATCH", "只有标为跨分册共用的行能再对应另一分册的章节。")
+            if "response" in payload and (payload.get("response") or "") != (requirement.get("response") or ""):
+                raise DomainError(422, "VALIDATION_ERROR", "响应正文由知识库检索生成，不能手写。标为不适用时只填写理由。")
+            payload.pop("response", None)
             from icg.domain.matrix import apply_response_type, validate_response
             explicit_response = "response_type" in payload
             payload.update(apply_response_type(requirement, payload))
@@ -436,6 +500,10 @@ class TenderOrchestratorMixin:
                 raise DomainError(422, "ASSIGNEE_NOT_WRITABLE", "负责人必须是本项目可以编写的成员。")
             updated = {**requirement, **payload}
             validate_response(updated, explicit_response)
+            touched = any(key in payload and payload[key] != requirement.get(key)
+                          for key in ("response", "response_type", "deviation_type", "deviation_reason"))
+            if requirement.get("technical_clause") and touched and payload.get("status") != "confirmed":
+                updated["status"] = "pending"
             if updated.get("out_of_scope") and updated.get("status") == "confirmed" and requirement.get("out_of_scope"):
                 from icg.domain.project_access import project_volumes
                 if updated.get("volume") not in project_volumes(state, project_id):
@@ -458,9 +526,11 @@ class TenderOrchestratorMixin:
                 updated["reference_status"] = "resolved"
             if text_changed or any(k in payload and payload[k] != requirement[k] for k in ("category", "volume", "status")):
                 workflow["parse_confirmed"] = False
-                workflow["plan_confirmed"] = False
+                if not requirement.get("technical_clause"):
+                    workflow["plan_confirmed"] = False
             if any(k in payload and payload[k] != requirement.get(k) for k in ("chapter_id", "response", "evidence_ids", "shared_chapter_id")):
-                workflow["plan_confirmed"] = False
+                if not requirement.get("technical_clause"):
+                    workflow["plan_confirmed"] = False
             # 分册分流（PRD §5.3.1 规则 8）：项目负责人改分册或对应章节，即确认了这一行的分流；
             # 其他人改分册只算修改建议，这一行回到“待确认”，确认前不进入写作方案。
             routed = any(k in payload and payload[k] is not None for k in ("volume", "chapter_id"))
@@ -475,6 +545,9 @@ class TenderOrchestratorMixin:
             elif updated["status"] != "confirmed":
                 updated.update(confirmed_by=None, confirmed_by_name=None, confirmed_at=None)
             from icg.domain.parse_quality import unresolved_unreadable
+            if updated.get("technical_clause") and updated["status"] == "confirmed":
+                from icg.domain.technical_matrix import guard_technical_confirm
+                guard_technical_confirm(workflow, updated, batch=False)
             if updated["status"] == "confirmed" and unresolved_unreadable(updated):
                 raise DomainError(409, "REQUIREMENT_NOT_READY", "这条原文不可读，请对照原页补录文字后再确认，或填写理由删除。")
             requirement.update(updated)
@@ -539,8 +612,9 @@ class TenderOrchestratorMixin:
                 raise DomainError(409, "PARSE_INCOMPLETE", "所有上传文件必须成功解析后才能确认。")
             if not workflow["requirements"]:
                 raise DomainError(409, "REQUIREMENTS_EMPTY", "没有招标条款，不能确认解析。")
-            if any(r["status"] == "pending" for r in workflow["requirements"].values()) or any(f["status"] == "pending" for f in workflow["facts"].values()):
-                raise DomainError(409, "REVIEW_PENDING", "请先逐条确认或填写理由忽略全部条款和事实。")
+            from icg.domain.parse_review import blocking_fact
+            if any(r["status"] == "pending" for r in workflow["requirements"].values()) or any(blocking_fact(f) for f in workflow["facts"].values()):
+                raise DomainError(409, "REVIEW_PENDING", "请先确认条款，并处理废标相关事实和取值冲突。")
             if not any(r["status"] == "confirmed" for r in workflow["requirements"].values()):
                 raise DomainError(409, "CONFIRMED_REQUIREMENTS_EMPTY", "至少需要一条已确认条款。")
             if blocking_conflicts(workflow):

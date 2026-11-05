@@ -32,6 +32,7 @@ import { ConflictCards } from './ConflictCards.tsx';
 import { OmissionsDrawer } from './OmissionsDrawer.tsx';
 import { MergeSuggestionsDrawer } from './MergeSuggestionsDrawer.tsx';
 import { mergedLabel, nextSourceIndex, sourceLabel, visibleRequirements } from './parse-postprocess-core.ts';
+import { technicalOnly } from './project-volumes.ts';
 import type { Requirement, Source } from '../shared/types.ts';
 import { request } from '../shared/api.ts';
 import { batchCandidates, confidenceLabel, gateCount, gateSummary, lowConfidence, needsReentry, nodeCategory, nodeRows, nodeTitle, threshold, unmetGates, type ParseReview, type TreeNode } from './parse-review-core.ts';
@@ -105,10 +106,13 @@ export function ParsePage() {
     }
   }
 
+  const isTechnicalOnly = technicalOnly(workspace);
+
   async function confirm() {
     try {
       await mutate(`/api/v1/projects/${workspace.project.id}/parse/confirm`, 'POST', {});
-      navigate('matrix');
+      // 技术分册最短路径：条款明细可选核对，确认后回编辑台而不是进矩阵闸门。
+      navigate(isTechnicalOnly ? 'editor' : 'analyze');
     } catch {
       /* 按后台列出的前提继续处理 */
     }
@@ -150,10 +154,11 @@ export function ParsePage() {
     .join('；');
 
   return (
-    <>
+    <div className="parse-screen">
       <div className="postprocess-bar">
         <span>
-          <CheckCircleOutlined className="green" /> 原文抽取 {workspace.requirements.length} 条 · 按章节条目抽取 · 人工核对
+          <CheckCircleOutlined className="green" /> 原文抽取 {workspace.requirements.length} 条 · 按章节条目抽取
+          {isTechnicalOnly ? ' · 可选核对（不挡生成）' : ' · 人工核对'}
           {extractionNote && <span className="muted" data-testid="extraction-summary"> · {extractionNote}</span>}
         </span>
         <Space>
@@ -169,16 +174,22 @@ export function ParsePage() {
           <Button size="small" onClick={() => setReferencesOpen(true)} data-testid="references-button">
             引用未解析 {review ? gateCount(review, 'REFERENCES_UNRESOLVED') : references.length}
           </Button>
-          <Button
-            type="primary"
-            size="small"
-            disabled={busy || !lead || !workspace.requirements.length || !canConfirm}
-            onClick={confirm}
-            data-testid="parse-confirm-button"
-          >
-            {workspace.parse_confirmed ? '已确认解析结果' : '确认解析结果并进入矩阵'}
-          </Button>
-          {review && (
+          {isTechnicalOnly ? (
+            <Button size="small" onClick={() => navigate('editor')} data-testid="parse-to-editor-button">
+              回编辑台确认目录
+            </Button>
+          ) : (
+            <Button
+              type="primary"
+              size="small"
+              disabled={busy || !lead || !workspace.requirements.length || !canConfirm}
+              onClick={confirm}
+              data-testid="parse-confirm-button"
+            >
+              {workspace.parse_confirmed ? '已确认解析结果' : '确认解析结果并进入矩阵'}
+            </Button>
+          )}
+          {!isTechnicalOnly && review && (
             <Tooltip title={unmetGates(review).map(g => `${g.label}：${g.count}`).join('；') || undefined}>
               <span className={unmetGates(review).length ? 'orange' : 'muted'} data-testid="parse-gate-summary">{gateSummary(review)}</span>
             </Tooltip>
@@ -222,7 +233,7 @@ export function ParsePage() {
             <button onClick={() => setOmissionsOpen(true)}>
               疑似遗漏 <Badge count={omissions} size="small" />
             </button>
-            <button onClick={() => navigate('facts')}>
+            <button onClick={() => navigate('analyze')}>
               项目事实待核对 <Badge count={pendingFacts} size="small" />
             </button>
             <button data-testid="parse-unreadable-node" onClick={() => setNode({ kind: 'quality', which: 'unreadable' })}>
@@ -245,8 +256,9 @@ export function ParsePage() {
             ))}
           </div>
           {currentCategory && currentCategory.facts > 0 && (
-            <Alert className="page-notice" type="info" showIcon message={`本类另有 ${currentCategory.facts} 条项目事实`} action={<Button size="small" onClick={() => navigate('facts')}>去项目事实表</Button>} />
+            <Alert className="page-notice" type="info" showIcon message={`本类另有 ${currentCategory.facts} 条项目事实`} action={<Button size="small" onClick={() => navigate('analyze')}>看本页事实</Button>} />
           )}
+          <div className="parse-card-scroll">
           <Alert
             type="info"
             showIcon
@@ -357,6 +369,7 @@ export function ParsePage() {
           ) : (
             <Empty description="还没有抽取条目，请上传并解析招标文件" />
           )}
+          </div>
           <div className="parse-prerequisites">
             确认前提：无待处理冲突与疑似遗漏；要求逐条确认或填写排除理由；项目事实完成核对。
             <Progress
@@ -453,6 +466,6 @@ export function ParsePage() {
           </Form.Item>
         </Form>
       </Modal>
-    </>
+    </div>
   );
 }

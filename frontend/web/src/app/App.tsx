@@ -1,12 +1,8 @@
-// 为什么有这个文件：保留 ICG 示例的导航和项目外壳，连接真实业务页签，并全面接入 React-Router 现代化路由体系。
-// 它解决什么问题：工作台、解析、矩阵、编辑、检查和导出使用同一套项目状态与结构化路由守卫。
-// 架构说明（FE-TECH-DEBT-02）：顶栏操作区（AppHeaderActions）、全局弹窗与抽屉（AppModals）、
-// 项目工作区路由子树（ProjectWorkspaceContent）与全局页面路由子树（GlobalPagesContent）均已独立抽离，
-// 核心行数严格控制在 400 行以内。
-
+// 为什么有这个文件：连接导航外壳与真实业务页签，并用路由守卫保持同一套项目状态。
+// 它解决什么问题：顶栏、弹窗、项目工作区与全局页面已抽离，会话与路由仍在这里装配。
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { App as AntApp, Button, Form, Result, Spin } from 'antd';
-import { AppstoreOutlined, BookOutlined, CheckSquareOutlined, DatabaseOutlined, FileTextOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, BookOutlined, CheckSquareOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
 import { ApiError, isRequestFailureCurrent, request, userFacingMessage } from '../shared/api';
 import { deadlineForApi, projectFields } from '../project/project-form';
 import type { Account, ApplicationSession, Evidence, Job, Project, SlaTemplate, Workspace } from '../shared/types';
@@ -24,11 +20,13 @@ import { relatedBidConflict } from '../project/related-bid-core'; import { askRe
 import { AppHeaderActions } from '../shell/AppHeaderActions'; import { AppModals } from '../shell/AppModals';
 import { ProjectWorkspaceContent } from './ProjectWorkspaceContent'; import { GlobalPagesContent } from './GlobalPagesContent';
 
-const navigation = [ { id: 'workbench', name: '工作台', icon: <AppstoreOutlined /> }, { id: 'library', name: '企业资料库', icon: <DatabaseOutlined /> }, { id: 'knowledge', name: '知识库', icon: <BookOutlined /> }, { id: 'writing', name: '写作档案', icon: <FileTextOutlined /> }, { id: 'admin.rules', name: '管理规则（只读）', icon: <SettingOutlined /> } ];
+const navigation = [ { id: 'workbench', name: '工作台', icon: <AppstoreOutlined /> }, { id: 'knowledge', name: '知识库', icon: <BookOutlined /> }, { id: 'admin.rules', name: '管理', icon: <SettingOutlined /> } ];
 
 export default function App() {
   const { message, modal } = AntApp.useApp();
-
+  const [sessionBoot, setSessionBoot] = useState(() => {
+    try { return Boolean(sessionStorage.getItem('icg.access_token')); } catch { return false; }
+  });
   const [token, setToken] = useState<string | null>(null); const [user, setUser] = useState<Account | null>(null);
   const [pendingChange, setPendingChange] = useState<{ token: string; username: string; policy: PasswordPolicy | null } | null>(null);
   const [applicationSession, setApplicationSession] = useState<ApplicationSession | null>(null); const [denied, setDenied] = useState<string | null>(null);
@@ -61,6 +59,8 @@ export default function App() {
     setProjects([]); setJobs([]);
   }
   function logout() {
+    setSessionBoot(false);
+    sessionStorage.removeItem('icg.access_token');
     epoch.current++; currentSession.current = { company_id: '', account_id: '' }; clearCompanyData();
     dirtyRef.current = false; armedLeave.current = false; displayedPathRef.current = normalizePath(window.location.pathname);
     activeToken.current = null; currentAuthorization.current = null; setApplicationSession(null); setDenied(null);
@@ -154,14 +154,20 @@ export default function App() {
       epoch.current++; clearCompanyData(); currentSession.current = { company_id: '', account_id: '' }; currentAuthorization.current = null; setApplicationSession(null);
       activeToken.current = tokenValue; setWorkspace(null); setAccessLost(false); projectId.current = null;
       const approved = await loadSession(tokenValue);
+      sessionStorage.setItem('icg.access_token', tokenValue);
       setToken(tokenValue); setDenied(null); if (typeof setDeniedDetails === 'function') setDeniedDetails(null); setMissing(null);
       await refreshGlobal(tokenValue, approved);
       followPath(routeAfterLogin(window.location.pathname, sessionHomeRoute(approved)).path, 'replace');
-    } catch (error) { if (isRequestFailureCurrent(error, activeToken.current)) { report(error); logout(); } } finally { setBusy(false); }
+    } catch (error) { if (isRequestFailureCurrent(error, activeToken.current)) { report(error); logout(); } } finally { setSessionBoot(false); setBusy(false); }
   }
   // 须先改密时令牌只用于改密页（APP-M2-T260），改密成功后再按正常登录进入。
   async function loginWithPassword(u: string, p: string) { const r = await passwordLogin(u, p); if (r.mustChangePassword) { setPendingChange({ token: r.token, username: u.trim(), policy: r.policy }); return; } await loginWithToken(r.token); }
   function signOut() { void revokeSession(activeToken.current); logout(); }
+  useEffect(() => {
+    const saved = sessionStorage.getItem('icg.access_token');
+    if (saved && !activeToken.current) void loginWithToken(saved);
+    else setSessionBoot(false);
+  }, []);
   function reportDirty(value: boolean) { if (armedLeave.current) return; dirtyRef.current = value; setEditorDirty(value); }
   function arrived(keepEditor: boolean, path: string) { armedLeave.current = false; displayedPathRef.current = normalizePath(path); if (!keepEditor) { dirtyRef.current = false; setEditorDirty(false); } }
   function writeAddress(path: string, mode: HistoryMode) {
@@ -278,7 +284,7 @@ export default function App() {
     setBusy(true); let createdId: string | null = null;
     try {
       const approved = await loadSession(); requireSessionRoute(approved, 'workbench'); requireSessionAction(approved, 'projects.create');
-      const created = await request<Project>('/api/v1/projects', activeToken.current, 'POST', { name: values.name, volume_mode: values.volume_mode === 'technical_only' ? 'technical_only' : 'both' }); createdId = created.id;
+      const created = await request<Project>('/api/v1/projects', activeToken.current, 'POST', { name: values.name, volume_mode: 'technical_only' }); createdId = created.id;
       const result = await readAuthorizedProject(created.id, 'settings', { session: s => loadSession(activeToken.current, s), workspace: s => request<Workspace>(`/api/v1/projects/${encodeURIComponent(s)}/workspace`, activeToken.current) });
       const basics = projectFields({ tender_number: values.tender_number, sensitive: values.sensitive, deadline: values.deadline }); const basicsPath = `/api/v1/projects/${created.id}`;
       // R19 关联投标冲突（APP-M2-T096）：须填写说明确认无关联关系，取消则不保存招标编号
@@ -357,6 +363,7 @@ export default function App() {
   }
 
   const currentRoute = parseAppPath(typeof window !== 'undefined' ? window.location.pathname : '/');
+  if (sessionBoot && (!token || !user)) return <div className="app-boot" role="status">正在进入工作台</div>;
   if (pendingChange) return <PasswordChangeScreen token={pendingChange.token} username={pendingChange.username} policy={pendingChange.policy} onChanged={async () => { const next = pendingChange.token; setPendingChange(null); await loginWithToken(next); }} onCancel={() => { void revokeSession(pendingChange.token); setPendingChange(null); }} />;
   if (!token || !user) return <LoginScreen onPasswordLogin={loginWithPassword} busy={busy} />;
   const menu = [
@@ -368,7 +375,7 @@ export default function App() {
   return (
     <Suspense fallback={<div className="login-screen"><Spin size="large" /></div>}>
       <CanProvider value={{ session: applicationSession, workspace, role: applicationSession?.user.primary_role || applicationSession?.user.role, userId: applicationSession?.user.id }}>
-        <AppShell collapsed={collapsed} onCollapsed={handleCollapseChange} menuPath={menuPath} menu={menu} onNavigate={requestPath} breadcrumbs={breadcrumbs} actions={<AppHeaderActions session={applicationSession} user={user} jobs={jobs} search={search} onSearchChange={setSearch} onSearchSubmit={() => requestPath(globalPath('workbench'))} onOpenTaskDrawer={() => setTaskDrawer(true)} onLogout={() => requestDiscard(signOut)} onOpenModelConfig={() => setModelConfigModalOpen(true)} onOpenRagflowConfig={() => setRagflowConfigModalOpen(true)} token={token} onNavigate={requestPath} />}>
+        <AppShell collapsed={collapsed} onCollapsed={handleCollapseChange} menuPath={menuPath} menu={menu} onNavigate={requestPath} breadcrumbs={breadcrumbs} actions={AppHeaderActions({ session: applicationSession, user, jobs, search, onSearchChange: setSearch, onSearchSubmit: () => requestPath(globalPath('workbench')), onOpenTaskDrawer: () => setTaskDrawer(true), onLogout: () => requestDiscard(signOut), onOpenModelConfig: () => setModelConfigModalOpen(true), onOpenRagflowConfig: () => setRagflowConfigModalOpen(true), token, onNavigate: requestPath })}>
           {missing && <main className="workspace-content"><Result status="404" title="页面不存在" subTitle={`没有与 ${missing} 对应的页面。`} extra={<Button onClick={() => requestPath(globalPath(applicationSession ? sessionHomeRoute(applicationSession) : 'workbench'))}>返回可访问首页</Button>} /></main>}
           {!missing && denied && (
             <main className="workspace-content">

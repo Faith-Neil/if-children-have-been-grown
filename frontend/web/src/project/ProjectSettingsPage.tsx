@@ -209,7 +209,7 @@ export default function ProjectSettingsPage() {
               token={token} canEdit={canManageProject} revision={workspace.revision} onSaved={reload} />
             <h4 style={{ marginTop: 16 }}>递交版需填完整值的敏感字段</h4>
             <FullValueCard {...groupProps} requirements={workspace.requirements.map(item => ({ id: item.id, text: item.text }))} />
-          </>) : id === 'sla' ? <SlaSummaryCard settings={settings} onOpen={() => navigate('matrix')} /> : <Alert type="info" message="该组完整设置仍待实现" description={ `${title}的原始业务范围继续按任务实施，这里没有可保存的配置。`} showIcon />}
+          </>) : id === 'sla' ? <SlaSummaryCard settings={settings} onOpen={() => navigate('analyze')} /> : <Alert type="info" message="该组完整设置仍待实现" description={ `${title}的原始业务范围继续按任务实施，这里没有可保存的配置。`} showIcon />}
         </Card>)}
       </div>
     </div>

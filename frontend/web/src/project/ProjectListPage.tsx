@@ -263,12 +263,14 @@ export function ProjectListPage({
           rowKey="id"
           dataSource={filteredList}
           pagination={{ pageSize: 8, showTotal: t => `共 ${t} 个项目` }}
+          scroll={{ x: 'max-content' }}
           locale={{ emptyText: <Empty description="暂无符合筛选条件的项目" /> }}
           columns={[
             {
               title: '项目名称',
               dataIndex: 'name',
               key: 'name',
+              ellipsis: true,
               render: (name: string, record: Project) => (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <a

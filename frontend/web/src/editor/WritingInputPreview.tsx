@@ -6,22 +6,39 @@ import { request } from '../shared/api';
 import { formatTime, paginationName, useProject, volumeName } from '../app/context';
 import { displaySlaValue } from '../admin/sla-form';
 import type { Candidate, Source, WritingInputPreview, WritingInputSnapshot } from '../shared/types';
+import { HISTORY_KB_HEADING, MATERIALS_KB_HEADING } from '../shared/types';
 
 function CapturedSource({ source }: { source: Source | null }) {
   return source ? <div className="writing-captured-source"><p className="muted">{source.filename ?? '招标原文'} · 第 {source.page} 页{source.pagination ? ` · ${paginationName(source.pagination)}` : ''}</p><blockquote>{source.quote || '没有摘录文字；需要结合原文人工核对。'}</blockquote></div> : <p className="muted">项目人工确认或服务承诺派生，无招标页码。</p>;
 }
 
-function KnowledgeCandidates({ items }: { items: NonNullable<WritingInputSnapshot['retrieved_evidence']> }) {
-  if (!items.length) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="公司知识库没有命中，或尚未配置知识库" />;
+function retrievedKind(item: NonNullable<WritingInputSnapshot['retrieved_evidence']>[number]): 'history' | 'materials' {
+  if (item.dataset_kind === 'history' || item.dataset_kind === 'materials') return item.dataset_kind;
+  return item.reference_only ? 'history' : 'materials';
+}
+
+function KnowledgeGroup({ heading, items }: { heading: string; items: NonNullable<WritingInputSnapshot['retrieved_evidence']> }) {
+  if (!items.length) return null;
   return <>
-    <Alert showIcon type="info" className="page-notice" message="以下是公司知识库按本章条款检索到的候选"
-      description="模型可以参考并以 [片:编号] 标注出处；它们不是已挂接证据。资质、业绩等要作为正式证据，请到响应矩阵“挂证据”。历史标书只供参考。" />
+    <h4 className="writing-kb-group-heading">{heading}</h4>
     {items.map(item => <Card size="small" key={`${item.path}-${item.id}`} className="source-card" data-testid="knowledge-candidate"
       title={<Space wrap><code>{item.cite_tag || item.tag}</code><b>{item.name || '知识库片段'}</b>
         {item.reference_only ? <Tag color="orange">仅供参考</Tag> : item.attachable ? <Tag color="green">可到矩阵挂为证据</Tag> : <Tag color="blue">写作素材</Tag>}
         {typeof item.score === 'number' && <span className="muted">相关度 {item.score.toFixed(2)}</span>}</Space>}>
       <pre className="writing-evidence-content">{item.content}</pre>
     </Card>)}
+  </>;
+}
+
+function KnowledgeCandidates({ items }: { items: NonNullable<WritingInputSnapshot['retrieved_evidence']> }) {
+  if (!items.length) return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="公司知识库没有命中，或尚未配置知识库" />;
+  const history = items.filter(item => retrievedKind(item) === 'history');
+  const materials = items.filter(item => retrievedKind(item) === 'materials');
+  return <>
+    <Alert showIcon type="info" className="page-notice" message="以下是公司知识库按本章条款检索到的候选"
+      description="模型可以参考并以 [片:编号] 标注出处；它们不是已挂接证据。资质、业绩等要作为正式证据，请到响应矩阵“挂证据”。历史标书只供参考。" />
+    <KnowledgeGroup heading={HISTORY_KB_HEADING} items={history} />
+    <KnowledgeGroup heading={MATERIALS_KB_HEADING} items={materials} />
   </>;
 }
 

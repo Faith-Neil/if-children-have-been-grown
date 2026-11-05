@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
 import re
@@ -87,6 +88,18 @@ def _validate_base_url(base_url: str) -> str:
             or parsed.username or parsed.password or parsed.query or parsed.fragment):
         raise ValueError(f"{_ENV_NAMES['base_url']} must be an absolute http(s) origin without credentials, query, or fragment")
     return base_url.strip().rstrip("/")
+
+
+def is_public_model_url(base_url: str) -> bool:
+    """公网地址。内网 IP、本机和没有点的主机名不算。"""
+    host = (urlsplit(base_url.strip()).hostname or "").lower().rstrip(".")
+    if not host or host in {"localhost", "host.docker.internal"} or host.endswith((".local", ".internal", ".lan")):
+        return False
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return "." in host
+    return not (address.is_private or address.is_loopback or address.is_link_local or address.is_reserved)
 
 
 def chat_completions_url(base_url: str) -> str:
@@ -174,6 +187,8 @@ class OpenAICompatibleModelProvider:
         self._environ = environ
 
     def suggest(self, instruction: str, content: str) -> str:
+        if self.is_local and is_public_model_url(self.base_url):
+            raise ModelCallError("本地部署已打开，公网地址不会接收正文。")
         if not isinstance(instruction, str) or not isinstance(content, str):
             raise ModelCallError("instruction and content must be strings")
         attempts = self._config.retries + 1

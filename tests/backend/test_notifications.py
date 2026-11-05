@@ -122,7 +122,7 @@ def test_library_expiry_sweep_notifies_admins_once_a_day(client):
     items = _list(client, "alpha-company-admin")["items"]
     expiring = [n for n in items if n["type"] == "library_expiring"]
     assert [n["target_id"] for n in expiring] == ["lib-soon"] and "10 天到期" in expiring[0]["body"]
-    assert any(n["type"] == "library_expiring" for n in _list(client, "alpha-data-admin")["items"])
+    assert not any(n["type"] == "library_expiring" for n in _list(client, "alpha-data-admin")["items"])
     assert not any(n["type"] == "library_expiring" for n in _list(client, "alpha-editor")["items"])
     _list(client, "alpha-company-admin")  # 当天再次读取不重复发送
     assert len([n for n in _list(client, "alpha-company-admin")["items"] if n["type"] == "library_expiring"]) == 1

@@ -65,8 +65,9 @@ def test_super_admin_session_retrieval(client: TestClient):
     session = sess_res.json()
 
     assert session["auth_mode"] == "authenticated"
-    assert session["role_mode"] == "rbac-8roles"
-    assert session["home_path"] in ("/platform", "/workbench")
+    assert session["role_mode"] == "rbac-3roles"
+    assert session["home_path"] == "/admin/rules"
+    assert "workbench" not in {item["route_id"] for item in session["navigation"]}
     assert session["user"]["id"] == "admin"
     assert session["user"]["primary_role"] == "platform_admin"
     assert "platform_admin" in session["user"]["roles"]
@@ -151,6 +152,6 @@ def test_standard_account_password_login(client: TestClient):
     assert sess_res.status_code == 200, sess_res.text
     session = sess_res.json()
     assert session["auth_mode"] == "authenticated"
-    assert session["role_mode"] == "rbac-8roles"
+    assert session["role_mode"] == "rbac-3roles"
     assert session["user"]["primary_role"] == "company_admin"
     assert session["home_path"] == "/workbench"

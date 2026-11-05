@@ -1,0 +1,288 @@
+{
+  "started_at": "2026-11-05T17:40:26",
+  "tender": "C:\\Users\\徐佳馨\\xwechat_files\\wxid_pa7w4dqzpwsr22_4002\\msg\\attach\\9e20f478899dc29eb19741386f9343c8\\2026-11\\Rec\\139f784a39cf362f\\F\\1\\昆明航空Oracle数据库一体机软硬件维保和DBA服.doc",
+  "tender_bytes": 504832,
+  "steps": [
+    {
+      "login": 200
+    },
+    {
+      "kb_search": 200,
+      "n": 1,
+      "skip": ""
+    },
+    {
+      "create": 200,
+      "body": "{\"id\":\"project-a7ee826f92fa46a5bf188f4ac1f512f9\",\"name\":\"Kunming-Oracle-E2E-API-1105B\",\"company_id\":\"alpha\",\"revision\":1,\"tender_number\":\"\",\"deadline\":\"\",\"sensitive\":false,\"tender_type\":\"comprehensive\",\"budget_amount_cents\":null,\"deadline_at\":null,\"security_level\":\"internal\",\"industry\":\"it\",\"is_arch"
+    },
+    {
+      "patch": 200
+    },
+    {
+      "upload": 200,
+      "body": "{\"revision\":3,\"file\":{\"id\":\"file-6f6b43e7bc86458b87076614e0687d27\",\"filename\":\"昆明航空Oracle数据库一体机软硬件维保和DBA服.doc\",\"size\":504832,\"sha256\":\"80574428825c84b3c5e78d0ce9b1bf9558b81e663e38a71f76e7828384fe60a1\",\"media_type\":\"application/msword\",\"status\":\"uploaded\",\"page_count\":0,\"pagination\":\"not_parsed\",\"war"
+    },
+    {
+      "parse_jobs": 202,
+      "body": "{\"id\":\"job-1c5d115e40a942228d020a25f7222f21\",\"project_id\":\"project-a7ee826f92fa46a5bf188f4ac1f512f9\",\"type\":\"parse\",\"status\":\"queued\",\"progress\":0,\"message\":\"已排队：解析 1 份招标文件。\",\"created_at\":\"2026-11-05T09:40:31.444383+00:00\",\"completed_at\":null,\"error\":null,\"events\":[],\"recoverable\":true,\"allowed_actions\":[\"cancel\"],\"allowedActions\":[\"cancel\"]}"
+    },
+    {
+      "confirm_plan": 200,
+      "body": "{\"revision\":5,\"chapters\":[{\"id\":\"chapter-5727b2bd0dcf45e6b6857f17ff6e9916\",\"title\":\"服务方案\",\"volume\":\"technical\",\"revision\":1,\"content\":\"1 评分响应\\n1.1 评分响应\\n2 原厂与维保服务\\n2.1 原厂与维保服务\\n3 现场与远程支持\\n3.1 现场与远程支持\\n4 安全与合规\\n4.1 安全与合规\\n5 实施与交付\\n5.1 实施与交付\\n6 规范 2\\n6.1 规范 2\\n7 运维保障与巡检\\n7.1 运维保障与巡检\\n8 性能与容量\\n8.1 提供性能"
+    },
+    {
+      "generate": 200,
+      "seconds": 322.5,
+      "body": "{\"revision\":6,\"deleted_file_id\":null,\"project\":null,\"file\":null,\"job\":{\"id\":\"job-49a487b34ae642ca82732ff75ba522c6\",\"project_id\":\"project-a7ee826f92fa46a5bf188f4ac1f512f9\",\"type\":\"generate\",\"status\":\"completed\",\"progress\":100,\"message\":\"技术分册已写入当前正文。 质量八条未全部通过：1.大纲覆盖与一一响应；7.规范书条款体现；8.扣住项目核心 允许导出，须可见警告。\",\"created_at\":\"2026-11-05T09:50:11.506802+00:00\",\"completed_at\":\"2026-11-05T09:50:11.506802+00:00\""
+    },
+    {
+      "checks": 422,
+      "body": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"请求字段不符合演示接口要求：body.kind\",\"details\":{\"fields\":[\"body.kind\"]},\"traceId\":\"cc86a2c58da8497e8ea657aa4a0e7db7\"}"
+    },
+    {
+      "export": 200,
+      "body": "{\"revision\":7,\"export\":{\"id\":\"export-0f16b2620d0b4452abc2f822d92a94f0\",\"kind\":\"internal\",\"check_id\":\"technical-internal\",\"fingerprint\":\"a04f9e11322913af7c0f9ed4bd49f34fe51b1cf130aa0026a07e5a10e87857e8\",\"created_at\":\"2026-11-05T09:50:12.714185+00:00\",\"excludes_drafts\":true,\"volumes\":[{\"volume\":\"technical\",\"filename\":\"技术分册内部稿.docx\",\"download_url\":\"/api/v1/projects/project-a7ee826f92fa46a5bf188f4ac1f"
+    }
+  ],
+  "blockers": [
+    {
+      "severity": "高",
+      "title": "当前 model=mock",
+      "detail": "分节/大纲 LLM 为替身，正文质量不能当作生产可用"
+    },
+    {
+      "severity": "高",
+      "title": "解析进度约 251s 停在 5%",
+      "detail": "progress_samples 显示 1.0s→251.4s 仍为 5%「正在提取文字与抽取条款」；.doc/RAGFlow 首次 parse 阻塞且轮询也被拉长"
+    },
+    {
+      "severity": "高",
+      "title": "single_process 下任务阻塞 API 轮询",
+      "detail": "解析进行中 GET /jobs 采样间隔被拉到约 250s，进度界面连带假死"
+    },
+    {
+      "severity": "中",
+      "title": "生成完成但质量门未过或含待补提示",
+      "detail": "技术分册已写入当前正文。 质量八条未全部通过：1.大纲覆盖与一一响应；7.规范书条款体现；8.扣住项目核心 允许导出，须可见警告。"
+    },
+    {
+      "severity": "高",
+      "title": "正文大量「待补/需要核对」占位",
+      "detail": "待补=108 需要核对=14"
+    },
+    {
+      "severity": "中",
+      "title": "GET /api/v1/exports/{id}/download 404",
+      "detail": "须用 /projects/{pid}/exports/{id}/technical；本轮后者 200 且 50174 bytes"
+    },
+    {
+      "severity": "中",
+      "title": "检查请求字段/文案",
+      "detail": "误传 body.kind 422；错误文案写「演示接口」；契约字段为 volume"
+    },
+    {
+      "severity": "中",
+      "title": "facts=0 且 parse_confirmed 已为 true",
+      "detail": "解析消息仍提示须人工核对，但工作区 parse_confirmed=true"
+    }
+  ],
+  "progress_samples": [
+    {
+      "i": 0,
+      "elapsed_s": 1.0,
+      "status": "running",
+      "progress": 5,
+      "message": "正在提取文字与抽取条款。"
+    },
+    {
+      "i": 1,
+      "elapsed_s": 251.4,
+      "status": "running",
+      "progress": 5,
+      "message": "正在提取文字与抽取条款。"
+    },
+    {
+      "i": 2,
+      "elapsed_s": 256.8,
+      "status": "completed",
+      "progress": 100,
+      "message": "解析完成：75 条条款、0 项事实，须人工逐项核对后确认。"
+    }
+  ],
+  "health": {
+    "status": "ok",
+    "mode": "development",
+    "repository": "mysql",
+    "model": "mock",
+    "persistent": true,
+    "single_process": true
+  },
+  "project_id": "project-a7ee826f92fa46a5bf188f4ac1f512f9",
+  "parse_job_id": "job-1c5d115e40a942228d020a25f7222f21",
+  "parse_job": {
+    "status": "completed",
+    "progress": 100,
+    "message": "解析完成：75 条条款、0 项事实，须人工逐项核对后确认。",
+    "error": null
+  },
+  "matrix": {
+    "req_total": 75,
+    "origins": {
+      "history": 75
+    },
+    "writable": 75,
+    "response_tasks": 14,
+    "outline_headings": 28,
+    "parse_confirmed": true,
+    "facts": 0
+  },
+  "content_chars": 32453,
+  "content_head": "1 评分响应\n\n1.1 评分响应\n### 评分响应：昆明航空Oracle数据库一体机软硬件\n\n#### 一、响应原则与偏离判定\n\n根据招标文件对“昆明航空Oracle数据库一体机软硬件”技术要求的明文规定，我方严格对照条款进行逐项核查，确认所投产品技术指标、功能特性及服务内容完全符合招标要求。  \n经比对，**无任何偏离**，具体依据如下：\n\n| 招标要求项 | 响应内容 | 是否偏离 | 说明 |\n|------------|----------|----------|------|\n| 数据库产品类型 | Oracle Database Enterprise Edition (DBEE) | 无偏离 | 符合要求，为标准企业级数据库版本 |\n| 集群架构支持 | Real Application Clusters (RAC) | 无偏离 | 支持多节点高可用集群部署，满足业务连续性需求 |\n| 灾备方案支持 | Active Data Guard (ADG) | 无偏离 | 支持实时备库同步，保障数据零丢失与快速切换 |\n| 服务期限 | 三年原厂标准技术服务 | 无偏离 | 提供三年原厂原厂级支持，含远程/现场服务 |\n| 硬件适配性 | 支持主流服务器、存储、网络环境 | 无偏离 | 与现有基础设施兼容，支持无缝集成 |\n\n> 注：所有功能描述、技术指标均未高于或低于招标文件规定，未出现超范围承诺或功能缺失。\n\n---\n\n#### 二、技术响应实施路径与步骤\n\n为确保本项目顺利落地并满足昆明航空长期运行需求，我方制定如下实施步骤，结合历史经验与成熟方法论：\n\n##### 步骤1：需求确认与环境评估\n- 与【待补】项目组协同，完成当前生产环境摸底分析。\n- 包括：现有数据库实例数量、数据量级、峰值负载、网络拓扑、存储架构等。\n- 输出【待补】，用于后续迁移与调优设计。\n\n##### 步骤2：架构设计与部署规划\n| 项目 | 内容说明 |\n|------|----------|\n| 软件部署模式 | 采用 Oracle DBEE + RAC + ADG 架构（双节点集群+主备灾备） |\n| 高可用机制 | RAC 实现节点故障自动切换，避免单点失效 |\n| 灾备机制 | ADG 实现主库实时日志传输，可达到 RPO ≈ 0 |\n| 数据库版本 | Oracle Database 19c Enterprise Edition（符合国家信创推荐版本） |\n| 操作系统适配 | 支持 Red Hat Enterprise Linux / SUSE Linux 等主流平台 |\n| 网络要求 | 专用心跳网络+业务网络分离，确保通信稳定 |\n\n> 历史经验参考：在【待补】项目中，相同架构已支撑百万级并发访问，系统可用性达99.99%。\n\n##### 步骤3：迁移实施与数据校验\n- 采用 Oracle Data Pump + RMAN 备份恢复方式，开展分阶段数据迁移。\n- 实施流程如下：\n  1. 在测试环境完成全量数据迁移与业务验证；\n  2. 制定“停机窗口”预案，控制切换时间窗口≤30分钟；\n  3. 迁移完成后执行一致性校验（MD5比对、表行数核验、事务日志审计）；\n  4. 提交【待补】。\n\n##### 步骤4：性能调优与稳定性验证\n- 针对关键业务应用进行SQL级优化与索引调整；\n- 配置内存参数（SGA、PGA）、并发连接数、I/O调度策略；\n- 通过压力测试工具（如 Oracle SQL Developer Performance Testing）模拟业务高峰场景；\n- 输出【待补】，确保系统在高负载下仍可达标。\n\n##### 步骤5：运维服务支持体系建立\n| 服务内容 | 响应方式 | 服务周期 |\n|----------|----------|----------|\n| 故障响应 | 7×24小时远程支持，重大问题2小时内响应 | 3年 |\n| 定期巡检 | 每月一次系统健康检查（含日志分析、补丁评估） | 3年 |\n| 安全加固 | 提供安全基线检查报告，定期更新补丁策略 | 3年 |\n| 技术培训 | 提供3次现场培训（管理员+开发人员），共8课时 | 3年 |\n\n> 所有服务均依据原厂标准SLA执行，服务等级承诺符合招标文件要求。\n\n---\n\n#### 三、历史实施案例（脱敏框架）\n\n| 项目名称 | 行业 | 项目规模 | 关键技术点 | 成果 |\n|----------|------|------------|-------------|--------|\n| 【待补】航空数据平台升级 | 航空运输 | 单中心双活架构，10TB数据量 | RAC + ADG，迁移时间≤45分钟 | 系统可用性提升至99.999%，故障切换时间＜30秒 |\n| 【待补】金融核心系统重构 | 金融服务 | 500万用户支撑 | DBEE+RAC集群，峰值TPS 8000+ | 支持Q1业务高峰不降级 |\n| 【待补】政务云数据库整合 | 政务行业 | 多租户环境，100+实例 | ADG异地灾备 + 统一管理平台 | 实现同城双中心+异地容灾，达到灾备RPO=0 |\n\n> 上述案例均基于 Oracle DBEE + RAC + ADG 架构实施，具备可复用性与强适配性。\n\n---\n\n#### 四、总结\n\n本次响应完全响应昆明航空对Oracle数据库一体机软硬件的技术要求，所投产品及服务方案具备：\n- 技术先进性：采用行业标杆技术栈，满足未来扩展需求；\n- 实施可行性：结合历史成功经验，保障项目平稳交付；\n- 服务可持续性：提供三年原厂技术服务，全生命周期保障；\n- 无偏离：所有功能、性能、服务条款均与招标文件一致。\n\n**结论：无偏离，完全符合评审标准。**\n需要核对\n\n2 原厂与维保服务\n\n2.1 原厂与维保服务\n### 技术响应正文：原厂与维保服务\n\n#### 一、维保与DBA服务项目响应说明\n\n本",
+  "technical_quality": {
+    "rules": [
+      {
+        "id": 1,
+        "name": "大纲覆盖与一一响应",
+        "passed": false,
+        "detail": "未挂目录条款 61 条"
+      },
+      {
+        "id": 2,
+        "name": "评分得分点有实质段落",
+        "passed": true,
+        "detail": "得分点已写"
+      },
+      {
+        "id": 3,
+        "name": "结合客户实际",
+        "passed": true,
+        "detail": "已体现项目结合"
+      },
+      {
+        "id": 4,
+        "name": "目录层级 1～4 合理",
+        "passed": true,
+        "detail": "层级合法"
+      },
+      {
+        "id": 5,
+        "name": "开收与图文总结",
+        "passed": true,
+        "detail": "薄弱节 0 · 表格行 261"
+      },
+      {
+        "id": 6,
+        "name": "措施可落到招标场景",
+        "passed": true,
+        "detail": "可落地"
+      },
+      {
+        "id": 7,
+        "name": "规范书条款体现",
+        "passed": false,
+        "detail": "规范书条款未进目录"
+      },
+      {
+        "id": 8,
+        "name": "扣住项目核心",
+        "passed": false,
+        "detail": "商务灌水：安全与合规、提供性能调优（不低于2次、提供知识传递、培训服务、提供补丁分析与安装（不低于2次）、运维管理咨询服务"
+      }
+    ],
+    "passed": false,
+    "failed_count": 3,
+    "review_titles": [
+      "人员服务要求",
+      "安全与合规",
+      "提供性能调优（不低于2次",
+      "提供知识传递、培训服务",
+      "提供补丁分析与安装（不低于2次）",
+      "运维管理咨询服务"
+    ],
+    "warning": "质量八条未全部通过：1.大纲覆盖与一一响应；7.规范书条款体现；8.扣住项目核心"
+  },
+  "technical_rag_audit_n": 0,
+  "export": {
+    "revision": 7,
+    "export": {
+      "id": "export-0f16b2620d0b4452abc2f822d92a94f0",
+      "kind": "internal",
+      "check_id": "technical-internal",
+      "fingerprint": "a04f9e11322913af7c0f9ed4bd49f34fe51b1cf130aa0026a07e5a10e87857e8",
+      "created_at": "2026-11-05T09:50:12.714185+00:00",
+      "excludes_drafts": true,
+      "volumes": [
+        {
+          "volume": "technical",
+          "filename": "技术分册内部稿.docx",
+          "download_url": "/api/v1/projects/project-a7ee826f92fa46a5bf188f4ac1f512f9/exports/export-0f16b2620d0b4452abc2f822d92a94f0/technical",
+          "batch_no": "I20261105-001",
+          "docx_sha256": "53aa32d498ab99c3c7cb7667c74573c144840a1d99b4cc499aa0e1e9ec6999b2",
+          "size_bytes": 50174
+        }
+      ],
+      "status": "valid",
+      "batch_no": "I20261105-001",
+      "export_status": "completed",
+      "volume": "technical",
+      "created_by": "alpha-manager",
+      "bound_volumes": {
+        "technical": {
+          "is_finalized": false
+        }
+      },
+      "has_blockers": false,
+      "compliance_notice": "仅供内部评审，不可作为正式递交文件。",
+      "sha256": "0691dcb24671aa907e47e5b598b5bbf2e5980f18ffa0f5f51cf02a508eec8b55",
+      "format_metadata": {
+        "page_size": "A4",
+        "orientation": "portrait",
+        "margins": {
+          "top": 72,
+          "bottom": 72,
+          "left": 72,
+          "right": 72,
+          "top_cm": 2.5,
+          "bottom_cm": 2.5,
+          "left_cm": 2.8,
+          "right_cm": 2.6
+        },
+        "font_family": "SimSun",
+        "fonts": {
+          "cover_title": "方正小标宋",
+          "cover_project": "黑体",
+          "h1": "黑体",
+          "h2": "楷体_GB2312",
+          "h3": "仿宋_GB2312",
+          "body": "仿宋_GB2312",
+          "table": "宋体",
+          "header": "宋体",
+          "toc": "宋体"
+        },
+        "font_sizes_pt": {
+          "cover_title": 22.0,
+          "cover_project": 16.0,
+          "h1": 16.0,
+          "h2": 15.0,
+          "h3": 14.0,
+          "body": 14.0,
+          "table": 10.5,
+          "header": 10.5,
+          "toc": 12.0
+        },
+        "line_spacing": {
+          "body_line_pt": 28.0,
+          "body_first_line_chars": 200,
+          "body_first_line_twips": 560
+        },
+        "h1_align": "center"
+      },
+      "is_submission": false,
+      "volume_mode": "technical_only",
+      "deviation_download_url": "/api/v1/projects/project-a7ee826f92fa46a5bf188f4ac1f512f9/exports/export-0f16b2620d0b4452abc2f822d92a94f0/deviation"
+    }
+  },
+  "saved_docx": "e:\\ICG-CURSOR\\if-children-have-been-grown-1\\docs\\testing\\2026-11-05-kunming-oracle-e2e.docx",
+  "download_bytes": 50174,
+  "finished_at": "2026-11-05T17:50:13"
+}
