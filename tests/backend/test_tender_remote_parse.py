@@ -21,6 +21,8 @@ TENDER_DOC = ("第一章 招标公告\n项目名称：合成扫描件项目\n项
 @pytest.fixture()
 def fake(monkeypatch):
     monkeypatch.setenv("ICG_TENDER_REMOTE_WAIT", "0")
+    # 招标临时数据集必须绑定内网嵌入；测试里用与生产同形的本地模型名。
+    monkeypatch.setenv("ICG_KB_EMBEDDING_MODEL", "bge-m3:latest@qwen@OpenAI-API-Compatible")
     return FakeRagflowV1()
 
 
@@ -105,6 +107,7 @@ def test_doc_file_is_parsed_by_ragflow_and_requirements_keep_page_numbers(wired,
 
 def test_slow_parse_marks_file_pending_and_next_parse_resumes_without_reupload(monkeypatch):
     monkeypatch.setenv("ICG_TENDER_REMOTE_WAIT", "0")
+    monkeypatch.setenv("ICG_KB_EMBEDDING_MODEL", "bge-m3:latest@qwen@OpenAI-API-Compatible")
     fake = FakeRagflowV1(async_parse=True)
     app = create_app()
     kb = app.state.service.knowledge_base
@@ -137,6 +140,31 @@ def test_ragflow_parse_failure_is_reported(wired, fake):
     flow.upload("内容 [[fake-parse-fail]]".encode("utf-8"), "坏扫描.doc")
     error = flow.write("/parse", {}, expected=422)
     assert error["code"] == "OCR_REQUIRED" and "RAGFlow 解析失败" in error["message"]
+
+
+def test_external_embedding_failure_message_is_actionable():
+    from icg.domain.tender_remote import RemoteTenderParser
+    msg = RemoteTenderParser.explain_parse_failure(
+        'Task failed: Tokenizer: encode title: failed to send request: Post "https://api.jiekou.ai/openai/v1/embeddin"')
+    assert "内网" in msg and "jiekou" in msg.lower()
+    assert RemoteTenderParser.embedding_is_external("text-embedding-3-large@BAAI-BGE-M3@Jiekou.AI")
+    assert not RemoteTenderParser.embedding_is_external("bge-m3:latest@qwen@OpenAI-API-Compatible")
+
+
+def test_tender_dataset_is_recreated_when_embedding_mismatches(wired, fake):
+    flow = ProjectFlow(wired)
+    flow.upload(TENDER_DOC.encode("utf-8"), "合成招标.doc")
+    flow.write("/parse", {})
+    dataset = next(d for d in fake.datasets.values() if d["name"].endswith("::icg-tender"))
+    first_id = dataset["id"]
+    assert dataset["embedding_model"] == "bge-m3:latest@qwen@OpenAI-API-Compatible"
+    # 模拟历史脏数据：仍指向外网嵌入
+    dataset["embedding_model"] = "text-embedding-3-large@BAAI-BGE-M3@Jiekou.AI"
+    flow.upload((TENDER_DOC + "\n补一页").encode("utf-8"), "合成招标2.doc")
+    flow.write("/parse", {})
+    remaining = [d for d in fake.datasets.values() if d["name"].endswith("::icg-tender")]
+    assert len(remaining) == 1 and remaining[0]["id"] != first_id
+    assert remaining[0]["embedding_model"] == "bge-m3:latest@qwen@OpenAI-API-Compatible"
 
 
 @pytest.fixture()

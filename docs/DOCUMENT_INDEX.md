@@ -991,6 +991,29 @@
 | D-970 | 2026-11-05 | [历史标书与资料库解析设计](superpowers/specs/2026-11-05-history-bid-ingestion-design.md) | 设计 | kb-ingestion-design-1 | 已确认 | ISSUE-050 | 方案为主，对话决定为补充。实现已在本分支，未部署 |
 | D-972 | 2026-11-05 | [历史标书与资料库解析实现计划](superpowers/plans/2026-11-05-history-bid-ingestion.md) | 计划 | kb-ingestion-plan-1 | 已执行 | ISSUE-050 | 六项任务已写入本分支。未部署到 RAGFlow |
 | D-971 | 2026-11-05 | [历史标书与资料库解析](../issues/ISSUE-050.md) | Issue | kb-ingestion-implemented-1 | in-progress | ISSUE-050 | 实现已在本分支。未拆任务卡，未部署 |
+| D-973 | 2026-11-05 | [技术分册最短主路径](decisions/2026-11-05-technical-volume-shortest-path.md) | 决策 | tech-volume-shortest-1 | 生效 | ISSUE-047 | 下午拍板：仅目录闸门、动态目录、双库现网名、工单 0 解析硬阻塞 |
+| D-974 | 2026-11-05 | [TV-M0-T00 交付](delivery/TV-M0-T00.md) | 任务交付 | tv-m0-wo0 | in-review | ISSUE-047 / TV-M0-T00 | RAGFlow 招标解析打通；真文件冒烟 |
+| D-975 | 2026-11-05 | [TV-M0-T00 代码说明](code/TV-M0-T00.md) | 代码说明 | tv-m0-wo0 | 当前 | ISSUE-047 / TV-M0-T00 | 内网嵌入对齐与数据集重建 |
+| D-976 | 2026-11-05 | [TV-M0-T08 交付](delivery/TV-M0-T08.md) | 任务交付 | tv-m0-wo1 | in-review | ISSUE-047 / TV-M0-T08 | 管道去闸门；自动解析拟目录 |
+| D-977 | 2026-11-05 | [TV-M0-T08 代码说明](code/TV-M0-T08.md) | 代码说明 | tv-m0-wo1 | 当前 | ISSUE-047 / TV-M0-T08 | 自动 parse_confirmed 与上传后启动解析 |
+| D-978 | 2026-11-05 | [TV-M0-T09 交付](delivery/TV-M0-T09.md) | 任务交付 | tv-m0-wo2 | in-review | ISSUE-047 / TV-M0-T09 | 动态目录唯一确认；删六段硬模板 |
+| D-979 | 2026-11-05 | [TV-M0-T09 代码说明](code/TV-M0-T09.md) | 代码说明 | tv-m0-wo2 | 当前 | ISSUE-047 / TV-M0-T09 | 1～4 级 arrange 与去矩阵闸门 |
+| D-980 | 2026-11-05 | [TV-M0-T10 交付](delivery/TV-M0-T10.md) | 任务交付 | tv-m0-wo3 | in-review | ISSUE-047 / TV-M0-T10 | 覆盖视图；矩阵后台化 |
+| D-981 | 2026-11-05 | [TV-M0-T10 代码说明](code/TV-M0-T10.md) | 代码说明 | tv-m0-wo3 | 当前 | ISSUE-047 / TV-M0-T10 | coverageSummary 与页签改称 |
+| D-982 | 2026-11-05 | [TV-M0-T11 交付](delivery/TV-M0-T11.md) | 任务交付 | tv-m0-wo4 | in-review | ISSUE-047 / TV-M0-T11 | 双库 RAG + 审计 |
+| D-983 | 2026-11-05 | [TV-M0-T11 代码说明](code/TV-M0-T11.md) | 代码说明 | tv-m0-wo4 | 当前 | ISSUE-047 / TV-M0-T11 | icg-material 与 technical_rag |
+| D-984 | 2026-11-05 | [TV-M0-T12 交付](delivery/TV-M0-T12.md) | 任务交付 | tv-m0-wo5 | in-review | ISSUE-047 / TV-M0-T12 | 质量八条抽检 |
+| D-985 | 2026-11-05 | [TV-M0-T12 代码说明](code/TV-M0-T12.md) | 代码说明 | tv-m0-wo5 | 当前 | ISSUE-047 / TV-M0-T12 | evaluate_quality 与需核对标记 |
+| D-986 | 2026-11-05 | [TV-M0-T13 交付](delivery/TV-M0-T13.md) | 任务交付 | tv-m0-wo6 | in-review | ISSUE-047 / TV-M0-T13 | 编辑台 UI 精简 |
+| D-987 | 2026-11-05 | [TV-M0-T13 代码说明](code/TV-M0-T13.md) | 代码说明 | tv-m0-wo6 | 当前 | ISSUE-047 / TV-M0-T13 | 主路径条与工具栏白名单 |
+| D-988 | 2026-11-05 | [TV-M0-T14 交付](delivery/TV-M0-T14.md) | 任务交付 | tv-m0-wo7 | in-review | ISSUE-047 / TV-M0-T14 | 写作助手双模式 |
+| D-989 | 2026-11-05 | [TV-M0-T14 代码说明](code/TV-M0-T14.md) | 代码说明 | tv-m0-wo7 | 当前 | ISSUE-047 / TV-M0-T14 | 问答写作 / 标书修改 |
+| D-990 | 2026-11-05 | [Requirement/ResponseTask 决定](decisions/2026-11-05-requirement-response-task.md) | 决定 | req-task | 当前 | ISSUE-051 | 两层矩阵与分析三步 |
+| D-991 | 2026-11-05 | [ISSUE-051：两层响应矩阵](../issues/ISSUE-051.md) | Issue | req-task-1 | in-progress | ISSUE-051 | Requirement/ResponseTask 与实质生成 |
+| D-992 | 2026-11-05 | [TV-M0-T15 交付](delivery/TV-M0-T15.md) | 任务交付 | req-task | in-review | ISSUE-051 / TV-M0-T15 | 两层矩阵 + 实质生成 |
+| D-993 | 2026-11-05 | [TV-M0-T15 代码说明](code/TV-M0-T15.md) | 代码说明 | req-task | 当前 | ISSUE-051 / TV-M0-T15 | technical_response_plan |
+| D-994 | 2026-11-05 | [TV-M0-T16 交付](delivery/TV-M0-T16.md) | 任务交付 | req-task | in-review | ISSUE-051 / TV-M0-T16 | 覆盖视图五列与紧凑壳 |
+| D-995 | 2026-11-05 | [TV-M0-T16 代码说明](code/TV-M0-T16.md) | 代码说明 | req-task | 当前 | ISSUE-051 / TV-M0-T16 | CoverageView |
 
 ## 更新记录
 

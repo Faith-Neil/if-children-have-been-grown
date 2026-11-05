@@ -538,8 +538,15 @@ class GenerationOrchestratorMixin:
                 provider = self.demo.resolve_model_provider(state, project_id, "chapter_generation")
             except Exception:
                 provider = None
-        result = write_volume(state, project_id, workflow, (payload.get("section") or "").strip() or None, provider)
+        knowledge_base = getattr(self.demo, "knowledge_base", None)
+        result = write_volume(
+            state, project_id, workflow, (payload.get("section") or "").strip() or None, provider,
+            knowledge_base=knowledge_base,
+        )
         message = "技术分册已写入当前正文。" if not result["failed"] else "有的节没有生成成功，这些节保持原样，其他节已写入。"
+        quality = result.get("quality") or {}
+        if quality.get("warning"):
+            message = f"{message} {quality['warning']} 允许导出，须可见警告。"
         job = self._job(state, project_id, "generate", message)
         chapter = state.chapters[result["chapter_id"]]
         return {"job": job, "chapters": [self._chapter_summary(state, workflow, chapter, principal.user.id)]}

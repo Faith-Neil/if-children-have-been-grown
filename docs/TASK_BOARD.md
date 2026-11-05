@@ -671,6 +671,16 @@
 | [APP-TECHNICAL-ONLY-BID](tasks/APP-M2.md#app-technical-only-bid) | 只写技术标的项目（不合标） | in-review | — | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-TECHNICAL-ONLY-BID.md` |
 | [FE-KB-BUSINESS-FLOWS](tasks/AI-M0.md#fe-kb-business-flows) | 知识库接入资料库、方案片段与写作输入页面 | in-review | [AI-KB-CONTROL-PLANE](tasks/AI-M0.md#ai-kb-control-plane) | [ISSUE-043](../issues/ISSUE-043.md) | [自测](testing/2026-10-28-wave-12b-verification.md) |
 | [FE-TEST-ORPHANS](tasks/FE-M0.md#fe-test-orphans) | 前端根目录 28 个测试文件从未执行，8 项失败待判定 | in-review | — | [ISSUE-044](../issues/ISSUE-044.md) | `docs/delivery/FE-TEST-ORPHANS.md` |
+| [TV-M0-T00](tasks/TV-M0.md#tv-m0-t00) | RAGFlow 招标解析打通（工单 0 · 最短路径阻塞） | in-review | 知识库内网嵌入已配 | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T00.md) |
+| [TV-M0-T08](tasks/TV-M0.md#tv-m0-t08) | 管道去闸门（工单 1 · 上传后自动解析抽取拟目录） | in-review | [TV-M0-T00](tasks/TV-M0.md#tv-m0-t00) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T08.md) |
+| [TV-M0-T09](tasks/TV-M0.md#tv-m0-t09) | 动态目录唯一确认（工单 2 · 删六段/矩阵闸门） | in-review | [TV-M0-T08](tasks/TV-M0.md#tv-m0-t08) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T09.md) |
+| [TV-M0-T10](tasks/TV-M0.md#tv-m0-t10) | 矩阵后台化 + 覆盖视图（工单 3） | in-review | [TV-M0-T09](tasks/TV-M0.md#tv-m0-t09) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T10.md) |
+| [TV-M0-T11](tasks/TV-M0.md#tv-m0-t11) | 双库 RAG + 审计（工单 4） | in-review | [TV-M0-T10](tasks/TV-M0.md#tv-m0-t10) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T11.md) |
+| [TV-M0-T12](tasks/TV-M0.md#tv-m0-t12) | 一键全文 + 质量八条（工单 5） | in-review | [TV-M0-T11](tasks/TV-M0.md#tv-m0-t11) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T12.md) |
+| [TV-M0-T13](tasks/TV-M0.md#tv-m0-t13) | 编辑台 UI 精简（工单 6） | in-review | [TV-M0-T12](tasks/TV-M0.md#tv-m0-t12) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T13.md) |
+| [TV-M0-T14](tasks/TV-M0.md#tv-m0-t14) | 写作助手双模式（工单 7） | in-review | [TV-M0-T13](tasks/TV-M0.md#tv-m0-t13) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T14.md) |
+| [TV-M0-T15](tasks/TV-M0.md#tv-m0-t15) | Requirement/ResponseTask 两层 + 实质生成 | in-review | [TV-M0-T12](tasks/TV-M0.md#tv-m0-t12) | [ISSUE-051](../issues/ISSUE-051.md) | [交付](delivery/TV-M0-T15.md) |
+| [TV-M0-T16](tasks/TV-M0.md#tv-m0-t16) | 覆盖视图五列 + 去事实冲突 + 壳层紧凑 | in-review | [TV-M0-T15](tasks/TV-M0.md#tv-m0-t15) | [ISSUE-051](../issues/ISSUE-051.md) | [交付](delivery/TV-M0-T16.md) |
 | [TV-M0-T01](tasks/TV-M0.md#tv-m0-t01) | 隐藏资料库与写作档案，新建项目固定技术分册 | in-review | — | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T01.md) |
 | [TV-M0-T02](tasks/TV-M0.md#tv-m0-t02) | 知识库只上传历史标书 | in-review | [TV-M0-T01](tasks/TV-M0.md#tv-m0-t01) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T02.md) |
 | [TV-M0-T03](tasks/TV-M0.md#tv-m0-t03) | 招标文件与辅助文件 | in-review | [TV-M0-T01](tasks/TV-M0.md#tv-m0-t01) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T03.md) |

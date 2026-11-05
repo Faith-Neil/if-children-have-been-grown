@@ -36,12 +36,44 @@ TYPE_LABELS = {
 SNIPPET_STATUS = {STATUS_PARSING: "unsynced", STATUS_SYNCED: "synced", STATUS_FAILED: "failed"}
 SETTINGS_STORE = "kb_settings"
 SOURCE_FILE = "file"
-# 知识类别 → 数据集名后缀与摄入流程。history：历史投标文件原件（仅参考）；materials：企业权威资料原件。
-DATASET_KINDS = {"history": "icg-history", "materials": "icg-materials"}
+# 知识类别 → 默认数据集名后缀与摄入流程。现网拍板：icg-history + icg-material（单数）。
+# 后缀可通过环境变量覆盖；禁止在业务代码硬编码公司汉字前缀。
+_DEFAULT_DATASET_SUFFIX = {"history": "icg-history", "materials": "icg-material"}
+# 查找远端数据集时允许的旧别名（仅解析，不用于新建）。
+_DATASET_SUFFIX_ALIASES = {"materials": ("icg-materials",)}
 KIND_PROFILE = {"history": "history_bid", "materials": "materials"}
 FILE_KINDS = ("history", "materials")
 SYNC_STOPPED_MESSAGE = "资料与方案片段不再同步到知识库。"
 SECTION_CHARS = 500  # 结构化资料每节字数上限：一节一块，每块都带资料名称标题
+
+
+def dataset_suffix(kind: str) -> str:
+    """解析某类知识的数据集后缀（可配置，默认现网名）。"""
+    env_keys = {
+        "history": ("ICG_KB_DATASET_HISTORY", "RAGFLOW_DATASET_HISTORY"),
+        "materials": ("ICG_KB_DATASET_MATERIAL", "RAGFLOW_DATASET_MATERIAL"),
+    }
+    for key in env_keys.get(kind, ()):
+        raw = os.environ.get(key, "").strip()
+        if raw:
+            # 允许写成「全名」或「仅后缀」；取 :: 后一段。
+            return raw.split("::")[-1].strip() or _DEFAULT_DATASET_SUFFIX[kind]
+    return _DEFAULT_DATASET_SUFFIX[kind]
+
+
+def dataset_full_name(company_id: str, kind: str) -> str:
+    return f"{company_id}::{dataset_suffix(kind)}"
+
+
+def dataset_lookup_names(company_id: str, kind: str) -> tuple[str, ...]:
+    """新建用现网名；查找时兼认旧别名（如 icg-materials）。"""
+    primary = dataset_full_name(company_id, kind)
+    aliases = tuple(f"{company_id}::{alias}" for alias in _DATASET_SUFFIX_ALIASES.get(kind, ()))
+    return (primary, *aliases)
+
+
+# 兼容旧导入：键为 kind；取值请用 dataset_suffix(kind)（可随环境变量变化）。
+DATASET_KINDS = dict(_DEFAULT_DATASET_SUFFIX)
 
 
 def default_settings() -> dict[str, Any]:
@@ -55,6 +87,8 @@ def default_settings() -> dict[str, Any]:
         "use_pipelines": os.environ.get("ICG_KB_USE_PIPELINES", "1").strip() != "0",
         "language": "Chinese",
         "profiles": {},
+        "dataset_history": dataset_suffix("history"),
+        "dataset_material": dataset_suffix("materials"),
     }
 
 
@@ -364,10 +398,13 @@ class KnowledgeBaseService:
         settings = settings or read_settings(state, company_id)
         profile = PROFILES[profile_key]
         overrides = (settings.get("profiles") or {}).get(profile_key) or {}
+        questions_override = overrides.get("questions_top_n")
+        if profile.questions_top_n == 0:
+            questions_override = None
         options = PipelineOptions(
             llm_id=settings.get("llm_id") or "",
             chunk_token_size=overrides.get("chunk_token_size"),
-            questions_top_n=overrides.get("questions_top_n"),
+            questions_top_n=questions_override,
             keywords_top_n=overrides.get("keywords_top_n"),
             extra_heading_patterns=tuple(overrides.get("extra_heading_patterns") or ()),
         )
@@ -412,7 +449,7 @@ class KnowledgeBaseService:
         settings = read_settings(state, company_id)
         index = read_index(state, company_id)
         record = dict(index.get("datasets", {}).get(kind) or {})
-        name = DATASET_KINDS[kind]
+        name = dataset_suffix(kind)
         pipeline_id, pipeline_changed = "", False
         if not settings.get("use_pipelines"):
             raise DomainError(502, "PIPELINE_UNAVAILABLE", "摄入流程不可用，数据集未建立。")
@@ -432,12 +469,15 @@ class KnowledgeBaseService:
             except Exception:
                 dataset_id = ""
         if not dataset_id:
-            wanted = f"{company_id}::{name}"
+            wanted_names = set(dataset_lookup_names(company_id, kind))
             found = None if force_new else next(
-                (d for d in client.list_datasets(company_id=company_id, page_size=100) if d.name == wanted), None)
+                (d for d in client.list_datasets(company_id=company_id, page_size=100) if d.name in wanted_names), None)
             if found is not None:
                 dataset_id = found.id
                 pipeline_changed = True  # 不知道它绑的是什么，重新绑定一次
+                if found.name != dataset_full_name(company_id, kind):
+                    log.info("bound %s dataset via alias %s (canonical %s)", kind, found.name,
+                             dataset_full_name(company_id, kind))
             else:
                 dataset_id = client.create_pipeline_dataset(name, pipeline_id, company_id=company_id,
                                                             embedding_model=settings.get("embedding_model") or None,

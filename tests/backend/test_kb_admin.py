@@ -87,7 +87,12 @@ def test_deploy_creates_bid_pipelines_and_binds_datasets(client, fake):
     assert {m["key"] for m in extractor["metadata"]["metadata"]} >= {"project_name", "bid_date", "content_role", "technical_domain"}
     assert "purchaser" not in {m["key"] for m in extractor["metadata"]["metadata"]}
     assert extractor["questions"]["top_n"] == 0
+    assert extractor["questions"]["enabled"] is False
     assert extractor["keywords"]["top_n"] == 10
+    assert "不要用云计算、微服务、容器化" in extractor["keywords"]["system_prompt"]
+    parser = next(v for k, v in history.items() if k.startswith("Parser"))["obj"]["params"]
+    assert parser["docx"]["flatten_media_to_text"] is True
+    assert parser["docx"]["remove_toc"] is True
     assert "关键词提取专家" in extractor["keywords"]["system_prompt"]
     materials = fake.agents[result["datasets"]["materials"]["pipeline_id"]]["dsl"]["components"]
     materials_extractor = next(v for k, v in materials.items() if k.startswith("Extractor"))["obj"]["params"]
@@ -119,6 +124,7 @@ def test_settings_change_updates_pipeline_and_requires_if_match(client, fake):
     extractor = next(v for k, v in pipeline["dsl"]["components"].items() if k.startswith("Extractor"))["obj"]["params"]
     assert extractor["keywords"]["top_n"] == 10 and extractor["llm_id"] == "qwen3-32b@local@Ollama"
     assert extractor["questions"]["top_n"] == 0
+    assert extractor["questions"]["enabled"] is False
     chunker = next(v for k, v in pipeline["dsl"]["components"].items() if k.startswith("TitleChunker"))["obj"]["params"]
     assert chunker["levels"][0] == ["^附件[0-9]+"]
     assert deployed["datasets"]["history"]["reparse_required"] is True

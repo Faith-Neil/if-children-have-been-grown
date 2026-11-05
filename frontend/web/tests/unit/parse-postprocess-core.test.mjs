@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { blockingCount, buildDecision, decisionPath, durationLabel, fileRoleOptions, hasAddendumDiff, hasTenderFile, mergedLabel, nextSourceIndex,
-  replacementOptions, retryBody, roleChangeAllowed, sameSourceAlreadyExtracted, sourceLabel, visibleRequirements } from '../../src/project/parse-postprocess-core.ts';
+  replacementOptions, retryBody, roleChangeAllowed, sameSourceAlreadyExtracted, shouldAutoStartTechnicalParse, sourceLabel, visibleRequirements } from '../../src/project/parse-postprocess-core.ts';
 
 test('处理冲突必须写理由，确认“已按补遗处理”除外', () => {
   assert.equal(buildDecision('not_conflict', '  ').error, '请写明处理理由');
@@ -72,4 +72,30 @@ test('解析耗时和换服务重试的请求体', () => {
   assert.equal(durationLabel(350), '350 毫秒');
   assert.equal(durationLabel(2400), '2.4 秒');
   assert.deepEqual(retryBody('ragflow', 'f1'), { file_ids: ['f1'], service: 'ragflow' });
+});
+
+test('技术分册上传后自动解析：有招标文件且未抽过才启动，失败不自动重试', () => {
+  const uploaded = [{ file_role: 'tender', status: 'uploaded' }];
+  assert.equal(shouldAutoStartTechnicalParse({
+    technicalOnly: true, files: uploaded, sourceFingerprint: 'a', parsedFingerprint: '',
+  }), true);
+  assert.equal(shouldAutoStartTechnicalParse({
+    technicalOnly: false, files: uploaded, sourceFingerprint: 'a', parsedFingerprint: '',
+  }), false);
+  assert.equal(shouldAutoStartTechnicalParse({
+    technicalOnly: true, files: [{ file_role: 'tech_spec', status: 'uploaded' }],
+    sourceFingerprint: 'a', parsedFingerprint: '',
+  }), false);
+  assert.equal(shouldAutoStartTechnicalParse({
+    technicalOnly: true, files: [{ file_role: 'tender', status: 'parsed' }],
+    sourceFingerprint: 'a', parsedFingerprint: 'a',
+  }), false);
+  assert.equal(shouldAutoStartTechnicalParse({
+    technicalOnly: true, files: [{ file_role: 'tender', status: 'failed' }],
+    sourceFingerprint: 'a', parsedFingerprint: '',
+  }), false);
+  assert.equal(shouldAutoStartTechnicalParse({
+    technicalOnly: true, files: uploaded, sourceFingerprint: 'a', parsedFingerprint: '',
+    jobs: [{ type: 'parse', status: 'running' }],
+  }), false);
 });

@@ -15,6 +15,7 @@ from typing import Any
 
 from .domain import DemoState, DomainError, Principal, iso_time, new_id
 from .knowledge_base import (DATASET_KINDS, FILE_KINDS, KIND_PROFILE, SETTINGS_STORE, SOURCE_FILE, STATUS_FAILED,
+                             dataset_full_name, dataset_suffix,
                              STATUS_PARSING, KnowledgeBaseService, _company_index, default_settings, read_index,
                              read_settings)
 
@@ -36,8 +37,12 @@ CERT_FIELD_TO_LIBRARY = {"cert_name": "name", "valid_to": "valid_until"}
 
 
 def _role(principal: Principal) -> str:
+    # 知识库管控保留细角色：资料管理员可写、项目经理可追加历史标书；只读 viewer 不能因三角色归一变成 member。
+    raw = getattr(principal.user, "role", "") or ""
+    if raw in WRITE_ROLES | CONNECTION_ROLES | {"manager", "project_lead", "viewer", "readonly"}:
+        return raw
     from .project_access import normalize_role
-    return normalize_role(principal.user.role)
+    return normalize_role(raw)
 
 
 def _is_super(principal: Principal) -> bool:
@@ -275,10 +280,10 @@ class KbAdminService:
         index = read_index(self.repository.read(), company)
         client = self.kb.client_for(company)
         rows = []
-        for kind, suffix in DATASET_KINDS.items():
+        for kind in DATASET_KINDS:
             info = index.get("datasets", {}).get(kind) or {}
-            row = {"kind": kind, "name": f"{company}::{suffix}", "profile": KIND_PROFILE[kind], **info,
-                   "document_count": None, "chunk_count": None}
+            row = {"kind": kind, "name": dataset_full_name(company, kind), "suffix": dataset_suffix(kind),
+                   "profile": KIND_PROFILE[kind], **info, "document_count": None, "chunk_count": None}
             if client is not None and info.get("dataset_id"):
                 try:
                     raw = client.get_dataset(info["dataset_id"], company_id=company).raw
@@ -377,7 +382,7 @@ class KbAdminService:
         self._kind(kind)
         company = principal.user.company_id
         info = self._dataset(principal, kind, create=False)
-        expected = f"{company}::{DATASET_KINDS[kind]}"
+        expected = dataset_full_name(company, kind)
         if confirm_name != expected:
             raise DomainError(422, "CONFIRMATION_REQUIRED", f"请输入数据集全名 {expected} 以确认删除。")
         try:

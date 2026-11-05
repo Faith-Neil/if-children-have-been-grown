@@ -34,6 +34,23 @@ export function sameSourceAlreadyExtracted(sourceFingerprint?: string, parsedFin
   return Boolean(parsedFingerprint) && parsedFingerprint === sourceFingerprint;
 }
 
+/** 技术分册：上传后是否应自动启动解析（有招标文件、尚未抽过、无进行中任务）。失败不自动重试。 */
+export function shouldAutoStartTechnicalParse(input: {
+  technicalOnly: boolean;
+  files: { file_role?: string | null; superseded_by?: string | null; status?: string; warnings?: string[] }[];
+  sourceFingerprint?: string;
+  parsedFingerprint?: string;
+  jobs?: { type: string; status: string }[];
+}): boolean {
+  if (!input.technicalOnly) return false;
+  if (!hasTenderFile(input.files)) return false;
+  if (sameSourceAlreadyExtracted(input.sourceFingerprint, input.parsedFingerprint, input.files)) return false;
+  if ((input.jobs ?? []).some(job => job.type === 'parse' && ['queued', 'running'].includes(job.status))) return false;
+  if (input.files.some(file => file.status === 'failed' && !file.superseded_by)) return false;
+  return input.files.some(file => !file.superseded_by && ['uploaded', 'parsing_remote'].includes(file.status ?? ''))
+    || Boolean(input.sourceFingerprint && input.sourceFingerprint !== input.parsedFingerprint);
+}
+
 export const PARSE_SERVICE_OPTIONS = [
   { value: 'auto', label: '自动（先本地，取不出再交 RAGFlow）' },
   { value: 'local', label: '只用本地文字提取' },

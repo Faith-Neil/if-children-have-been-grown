@@ -193,18 +193,18 @@ def fill_technical_responses(state: Any, workflow: dict, *, model: Any = None, s
 
 
 def guard_technical_confirm(workflow: dict, row: dict, *, batch: bool) -> None:
-    """检索未结束、失败、清空，以及没有历史做法的整表确认，都不能进正文。"""
+    """可选「标为已确认」时的校验。生成正文与导出不再依赖矩阵确认闸门。"""
     if not row.get("technical_clause"):
         return
     if workflow.get("technical_retrieval") == "running":
-        raise DomainError(409, "REQUIREMENT_NOT_READY", "历史标书还在检索，不能确认矩阵。")
+        raise DomainError(409, "REQUIREMENT_NOT_READY", "历史标书还在检索，稍后再标确认。")
     origin = row.get("response_origin") or ""
     if origin in ("retrieval_failed", "draft_failed", "no_evidence"):
-        raise DomainError(409, "REQUIREMENT_NOT_READY", "没有检索依据、检索失败或拟写失败的条款不进入正文。",
+        raise DomainError(409, "REQUIREMENT_NOT_READY", "没有检索依据、检索失败或拟写失败的条款不能标为已确认。",
                           {"requirement_ids": [row["id"]]})
     if not str(row.get("response") or "").strip():
-        raise DomainError(409, "REQUIREMENT_NOT_READY", "清空的响应不进入正文。", {"requirement_ids": [row["id"]]})
+        raise DomainError(409, "REQUIREMENT_NOT_READY", "清空的响应不能标为已确认。", {"requirement_ids": [row["id"]]})
     from icg.domain.matrix import response_type
     if batch and (origin != "history" or response_type(row) != "comply"):
-        raise DomainError(409, "REQUIREMENT_NOT_READY", "没有历史做法的条款，以及正偏离、偏离，必须逐条确认。",
+        raise DomainError(409, "REQUIREMENT_NOT_READY", "没有历史做法的条款，以及正偏离、偏离，须逐条核对后再标确认。",
                           {"requirement_ids": [row["id"]]})

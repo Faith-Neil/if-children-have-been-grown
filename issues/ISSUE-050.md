@@ -64,6 +64,7 @@
 | 2026-11-05 | kb-ingestion-design-1 / new | 用户确认设计口径。已写设计说明。下一步：用户审阅该文件，通过后再写实现计划 | 对话确认 |
 | 2026-11-05 | kb-ingestion-plan-1 / new | 用户确认设计说明。已写实现计划。管道键定为 materials。尚未执行 | [实现计划](../docs/superpowers/plans/2026-11-05-history-bid-ingestion.md) |
 | 2026-11-05 | kb-ingestion-implemented-1 / in-progress | 计划六段已写入分支，后续提交补上写作路径接线，并把承诺提示的快照 id 固定到当前生成结果。干净检出测试 56 passed、1 skipped。未部署 | 提交 `69f9c07` 至 `19e8e4d` |
+| 2026-11-05 | kb-ingestion-parse-fix-1 / in-progress | 对照四份原件后，表格正文没有进入切块，问法仍被画布打开。工作区已把历史标书和资料库的 PDF、DOC、DOCX 改为表格并入正文、去掉目录，并显式关闭问法。本机 RAGFlow 画布已更新，四份文件已开始重新解析。解析质量尚未复测，未标完成 | 设计说明 §2.1、§2.3 |
 
 ## 本地验收与后续合入发布
 

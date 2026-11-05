@@ -11,11 +11,11 @@
 | 优先级 | P0 |
 | 状态 | in-progress |
 | 登记日期 | 2026-11-03 |
-| 最后更新日期 | 2026-11-03 |
-| revision | tech-volume-mvp-1 |
-| 关联 Task | [TV-M0-T01～T07](../docs/tasks/TV-M0.md)，均为 in-review |
+| 最后更新日期 | 2026-11-05 |
+| revision | tech-volume-shortest-1 |
+| 关联 Task | [TV-M0-T00～T14](../docs/tasks/TV-M0.md)；T00/T08～T14 in-review。下午拍板见 [最短主路径](../docs/decisions/2026-11-05-technical-volume-shortest-path.md) |
 | 关联 PR | 不合入 main。[PR #7](https://github.com/Faith-Neil/if-children-have-been-grown/pull/7) 只有决定记录，已关闭。产品线在 `feat/iss-047-technical-volume-mvp`。[PR #8](https://github.com/Faith-Neil/if-children-have-been-grown/pull/8) 是指向 main 的草稿，只为触发检查，禁止合并 |
-| 本地验收 | 2026-11-03：`tests/backend/test_technical_sources.py` 12 项在内存仓储通过。未在浏览器点选，未接公司 RAGFlow 与本地 Qwen |
+| 本地验收 | 2026-11-05：§15 工单 0～7 均已实现待签；质量八条/双库/编辑台 UI 单测与 lint 绿；OpenAPI check OK。未标 done |
 | 合入 | 不合入 main。集成目标是 `feat/iss-047-technical-volume-mvp` |
 | 发布 | 未发布 |
 | 交付说明 | `docs/delivery/TV-M0-T01.md` 至 `docs/delivery/TV-M0-T07.md` |
@@ -41,6 +41,14 @@
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
+| [TV-M0-T00](../docs/tasks/TV-M0.md#tv-m0-t00) | RAGFlow 招标解析打通（工单 0） | `tender_remote.py`、`tender_orchestrator.py` | 真文件解析成功；失败可见可重试 | in-review |
+| [TV-M0-T08](../docs/tasks/TV-M0.md#tv-m0-t08) | 管道去闸门（工单 1） | `tender_orchestrator.py`、`TenderTab.tsx`、`ParseTab.tsx` | 上传后自动解析拟目录；无抽取/矩阵主闸门 | in-review |
+| [TV-M0-T09](../docs/tasks/TV-M0.md#tv-m0-t09) | 动态目录唯一确认（工单 2） | `technical_outline.py`、`technical_volume.py`、`OutlineTreeView.tsx` | 1～4 级目录；确认目录唯一闸门；删六段硬模板 | in-review |
+| [TV-M0-T10](../docs/tasks/TV-M0.md#tv-m0-t10) | 矩阵后台化 + 覆盖视图（工单 3） | `matrix-core.ts`、`ProjectPages.tsx`、`ProjectHeader.tsx` | 覆盖视图；无整表确认主路径 | in-review |
+| [TV-M0-T11](../docs/tasks/TV-M0.md#tv-m0-t11) | 双库 RAG + 审计（工单 4） | `knowledge_base.py`、`technical_rag.py`、`technical_volume.py` | 双库检索审计；缺库提示 | in-review |
+| [TV-M0-T12](../docs/tasks/TV-M0.md#tv-m0-t12) | 一键全文 + 质量八条（工单 5） | `technical_quality.py`、`EditorPage.tsx` | 八条抽检；需核对警告；可导出 | in-review |
+| [TV-M0-T13](../docs/tasks/TV-M0.md#tv-m0-t13) | 编辑台 UI 精简（工单 6） | `EditorPage.tsx`、`OutlineTreeView.tsx` | 主路径条；工具栏白名单；节状态 | in-review |
+| [TV-M0-T14](../docs/tasks/TV-M0.md#tv-m0-t14) | 写作助手双模式（工单 7） | `EditorAssistantPanel.tsx` | 问答写作 / 标书修改；初稿后门控 | in-review |
 | [TV-M0-T01](../docs/tasks/TV-M0.md#tv-m0-t01) | 隐藏资料库与写作档案，新建项目固定技术分册 | `frontend/web/src/app/App.tsx`、`CreateProjectModal.tsx` | 侧栏与创建请求 | in-review |
 | [TV-M0-T02](../docs/tasks/TV-M0.md#tv-m0-t02) | 知识库只上传历史标书 | `frontend/web/src/library/KnowledgeBaseAdminPage.tsx`、`kb_admin.py` | 历史标书上传 | in-review |
 | [TV-M0-T03](../docs/tasks/TV-M0.md#tv-m0-t03) | 招标文件与辅助文件 | `TenderTab.tsx`、`technical_sources.py` | 三种文件与再次抽取 | in-review |
@@ -78,6 +86,12 @@
 | 2026-11-03 | tech-volume-mvp-1 / in-progress | T06 为 in-review。T07 仍是 planned。不标 done | 本轮实现 |
 | 2026-11-03 | tech-volume-mvp-1 / in-progress | 历史做法不再默认无偏离。本地模型判断正偏离、负偏离或无偏离。不标 done | 本轮更正 |
 | 2026-11-03 | tech-volume-mvp-1 / in-progress | T07 为 in-review。正文六段和样表偏离表已接到导出。不标 done | 本轮实现 |
+| 2026-11-05 | tech-volume-shortest-1 / in-progress | 下午拍板最短路径入库。工单 0：招标临时库强制内网嵌入并重建；真 `.doc` 解析成功。不标 done；T05～T07 六段/矩阵闸门口径作废待工单 1～7 修订 | 本轮实现 |
+| 2026-11-05 | tech-volume-shortest-1 / in-progress | 工单 1（TV-M0-T08）管道去闸门：自动解析拟目录、自动 parse_confirmed、去掉抽取/进矩阵主闸门。不标 done | 本轮实现 |
+| 2026-11-05 | tech-volume-shortest-1 / in-progress | 工单 2（TV-M0-T09）动态目录 1～4 级；删六段/教程六块硬编码；矩阵确认不挡生成。不标 done | 本轮实现 |
+| 2026-11-05 | tech-volume-shortest-1 / in-progress | 工单 3（TV-M0-T10）覆盖视图；去掉整表确认主路径。不标 done | 本轮实现 |
+| 2026-11-05 | tech-volume-shortest-1 / in-progress | 工单 4（TV-M0-T11）双库 RAG + 审计；工单 5（TV-M0-T12）质量八条。不标 done | 本轮实现 |
+| 2026-11-05 | tech-volume-shortest-1 / in-progress | 工单 6（TV-M0-T13）编辑台 UI；工单 7（TV-M0-T14）写作助手双模式。§15 0～7 待签，不标 done | 本轮实现 |
 | 2026-11-03 | tech-volume-mvp-1 / in-progress | 集成目标改为 `feat/iss-047-technical-volume-mvp`，不合并 main。PR #7 已关闭。PR #8 是禁止合并的草稿。T01～T07 仍为 in-review | 本轮分支策略 |
 
 ## 本地验收与后续合入发布

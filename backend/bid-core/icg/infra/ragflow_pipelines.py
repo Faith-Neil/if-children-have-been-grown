@@ -96,8 +96,10 @@ HISTORY_KEYWORDS_PROMPT = (
     "4. 避免提取“技术方案”“项目建设”“系统功能”等过于宽泛的词语。\n"
     "5. 对同义词进行适当合并，避免重复。\n"
     "6. 优先提取能够帮助后续技术方案生成和企业知识检索的关键词。\n"
-    "7. 输出中文关键词短语，不输出解释性段落。\n\n"
-    "提取数量：8～12 个。"
+    "7. 输出中文关键词短语，不输出解释性段落。\n"
+    "8. 每行只写一个关键词，不要加横线，不要把多个词用逗号连成一条。\n"
+    "9. 当前文本里没有技术词时不要输出任何词，不要用云计算、微服务、容器化这类原文没有的词填充。\n\n"
+    "提取数量：8～12 个。原文不足 8 个时按实际数量输出。"
 )
 
 MATERIALS_KEYWORDS_PROMPT = (
@@ -110,8 +112,10 @@ MATERIALS_KEYWORDS_PROMPT = (
     "4. 避免提取“技术方案”“项目建设”“系统功能”等过于宽泛的词语。\n"
     "5. 对同义词进行适当合并，避免重复。\n"
     "6. 优先提取能够帮助后续技术方案生成和企业知识检索的关键词。\n"
-    "7. 输出中文关键词短语，不输出解释性段落。\n\n"
-    "提取数量：8～12 个。"
+    "7. 输出中文关键词短语，不输出解释性段落。\n"
+    "8. 每行只写一个关键词，不要加横线，不要把多个词用逗号连成一条。\n"
+    "9. 当前文本里没有技术名称、参数或标准号时不要输出任何词。\n\n"
+    "提取数量：8～12 个。原文不足 8 个时按实际数量输出。"
 )
 
 
@@ -176,7 +180,8 @@ PROFILES: dict[str, PipelineProfile] = {
         keywords_top_n=10,
         keywords_prompt=HISTORY_KEYWORDS_PROMPT,
         metadata_fields=(
-            MetadataField("project_name", "原文项目名称；没有则空"),
+            MetadataField("project_name", "原文中的项目名称，逐字摘录。原文没有就留空。"
+                                            "不能根据文件名、常识或模板改写，不能输出带 XX 的占位名称。"),
             MetadataField("bid_date", "原文日期，格式 YYYY-MM-DD；没有则空"),
             MetadataField("document_type", "识别文件所属类型。允许值：technical_proposal（技术方案）、"
                                             "implementation_plan（实施计划）、service_plan（服务计划）、"
@@ -199,11 +204,13 @@ PROFILES: dict[str, PipelineProfile] = {
                                           "project_specific_commitment（项目特定承诺）、general_description（通用描述）、"
                                           "irrelevant_content（无关内容）、unknown（未知）。"
                                           "历史投标文件中的承诺不能自动等同于企业已经具备的客观能力；"
-                                          "招标要求不能标记为企业技术能力；无法判断时使用 unknown。"),
+                                          "招标要求不能标记为企业技术能力；无法判断时使用 unknown。"
+                                          "只能返回上面的英文键。service_plan、technical_proposal 是 document_type，不能填进 content_role。"),
             MetadataField("reusability", "判断内容的复用价值。允许值：high（高，通用性强、技术逻辑完整，适合其他项目参考）、"
                                          "medium（中，具有一定参考价值，需要结合新项目调整）、"
                                          "low（低，高度依赖原项目背景）、"
-                                         "not_reusable（不可复用，与当前企业技术方案生成无关或不宜复用）。"),
+                                         "not_reusable（不可复用，与当前企业技术方案生成无关或不宜复用）。"
+                                         "只能返回 high、medium、low、not_reusable 之一，不能返回 other。"),
         ),
     ),
     "materials": PipelineProfile(
@@ -332,11 +339,20 @@ def build_dsl(profile: PipelineProfile, options: PipelineOptions | None = None) 
     tokenizer_id = _node_id("Tokenizer", profile)
 
     # --- Parser ---
-    parser_params: dict[str, Any] = {fmt: copy.deepcopy(_PARSER_SETUPS[fmt]) for fmt in profile.file_formats}
+    # 历史标书和资料库的正文经常写在 Word 表格里。本机 RAGFlow 会把 doc_type=table 的块丢掉，
+    # 所以这两条流程把表格压进正文，让它跟所在小节一起切。目录页不入库。
+    def setup_for(fmt: str) -> dict[str, Any]:
+        setup = copy.deepcopy(_PARSER_SETUPS[fmt])
+        if profile.key in ("history_bid", "materials") and fmt in ("pdf", "docx", "doc"):
+            setup["flatten_media_to_text"] = True
+            setup["remove_toc"] = True
+        return setup
+
+    parser_params: dict[str, Any] = {fmt: setup_for(fmt) for fmt in profile.file_formats}
     parser_params["outputs"] = copy.deepcopy(_PARSER_OUTPUTS)
     parser_params["enable_vision_enhancement"] = False
     parser_form = {"outputs": copy.deepcopy(_PARSER_OUTPUTS), "setups": [
-        {"fileFormat": fmt, **{k: copy.deepcopy(v) for k, v in _PARSER_SETUPS[fmt].items() if k != "suffix"}}
+        {"fileFormat": fmt, **{k: copy.deepcopy(v) for k, v in setup_for(fmt).items() if k != "suffix"}}
         for fmt in profile.file_formats]}
 
     # --- Chunker ---
@@ -368,7 +384,9 @@ def build_dsl(profile: PipelineProfile, options: PipelineOptions | None = None) 
             "frequencyPenaltyEnabled": True, "frequency_penalty": 0.7, "llm_id": opts.llm_id,
             "maxTokensEnabled": False, "max_tokens": 512,
             "keywords": {"system_prompt": profile.keywords_prompt or KEYWORDS_PROMPT, "top_n": keywords},
-            "questions": {"system_prompt": QUESTIONS_PROMPT, "top_n": questions},
+            # enabled 必须显式关掉。只写 top_n=0 时，RAGFlow 保存画布会按默认条数把问法打开。
+            "questions": {"enabled": questions > 0, "system_prompt": QUESTIONS_PROMPT if questions else "",
+                          "top_n": questions},
             "summary": {"enabled": profile.summary, "system_prompt": SUMMARY_PROMPT},
             "metadata": {"built_in_metadata": [], "enabled": bool(profile.metadata_fields),
                          "metadata": [m.to_dict() for m in profile.metadata_fields]},

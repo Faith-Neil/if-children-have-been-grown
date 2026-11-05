@@ -145,6 +145,12 @@ export const PROJECT_HEADER_TABS: Array<{ key: string; label: string }> = [
   { key: 'settings', label: '项目设置' },
 ];
 
+/** 技术分册最短路径：分析页改称覆盖视图（矩阵后台化，可选核对）。 */
+export function projectHeaderTabs(technicalOnlyMode = false): Array<{ key: string; label: string }> {
+  if (!technicalOnlyMode) return PROJECT_HEADER_TABS;
+  return PROJECT_HEADER_TABS.map(tab => (tab.key === 'analyze' ? { ...tab, label: '覆盖视图' } : tab));
+}
+
 export type ProjectTabPermissions = {
   manage_project?: boolean;
   export_internal?: boolean;

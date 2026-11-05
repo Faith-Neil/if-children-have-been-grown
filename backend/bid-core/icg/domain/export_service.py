@@ -311,6 +311,15 @@ class ExportServiceMixin(CheckOrchestratorMixin):
             "batch_no": batch_no,
         }
         render_batch({"technical": document}, [entry])
+        # #region agent log
+        try:
+            import json as _json, time as _time
+            from icg.infra.docx_style import DEFAULT_DOCX_STYLE as _ds
+            open(r"e:\ICG-CURSOR\if-children-have-been-grown-1\.cursor\debug-9900db.log", "a", encoding="utf-8").write(
+                _json.dumps({"sessionId": "9900db", "hypothesisId": "E", "location": "export_service._export_technical_draft", "message": "technical draft exported", "data": {"project_id": project_id, "filename": filename, "content_chars": len(parts.get("markdown") or ""), "has_deviation": bool(parts.get("attachment")), "fonts": {"h1": _ds.h1_font.east_asia, "h2": _ds.h2_font.east_asia, "h3": _ds.h3_font.east_asia, "body": _ds.body_font.east_asia, "body_pt": _ds.body_pt, "line_pt": _ds.body_line_pt, "margins": [_ds.margin_top_cm, _ds.margin_bottom_cm, _ds.margin_left_cm, _ds.margin_right_cm]}}, "timestamp": int(_time.time() * 1000)}, ensure_ascii=False) + "\n")
+        except Exception:
+            pass
+        # #endregion
         documents = {"technical": document}
         deviation_url = None
         if parts["attachment"]:

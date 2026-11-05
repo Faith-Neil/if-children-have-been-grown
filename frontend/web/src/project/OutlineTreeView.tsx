@@ -48,31 +48,46 @@ export type GeneratedDirectory = {
   chapterId: string;
   headings: TechnicalHeading[];
   missing?: string[];
+  reviewTitles?: string[];
+  chapterContent?: string;
   confirmed: boolean;
   canPrepare: boolean;
   canGenerate: boolean;
-  historyBlocked?: boolean;
   busy?: boolean;
-  onSave: (payload: { title: string; headings: Array<{ level: number; title: string; requirement_id: string | null }>; confirm: boolean }) => Promise<void>;
+  onSave: (payload: {
+    title: string;
+    headings: Array<{
+      level: number;
+      title: string;
+      requirement_id: string | null;
+      task_id?: string | null;
+      requirement_ids?: string[];
+    }>;
+    confirm: boolean;
+  }) => Promise<void>;
   onGenerate: (section?: string) => Promise<void>;
   onOpen: () => void;
+  onExport?: () => void;
+  onCoverage?: () => void;
 };
 
+const LEVEL_OPTIONS = [
+  { value: 1, label: '一级' },
+  { value: 2, label: '二级' },
+  { value: 3, label: '三级' },
+  { value: 4, label: '四级' },
+];
+
 function withNumbers(items: TechnicalHeading[]): TechnicalHeading[] {
-  let section = 0;
-  let sub = 0;
+  const counters = [0, 0, 0, 0];
   return items.map(item => {
-    const level = item.level === 2 ? 2 : 3;
-    let number: string;
-    if (level === 2) {
-      section += 1;
-      sub = 0;
-      number = `1.${section}`;
-    } else {
-      if (section === 0) section = 1;
-      sub += 1;
-      number = `1.${section}.${sub}`;
+    const level = [1, 2, 3, 4].includes(item.level) ? item.level : 2;
+    for (let ancestor = 0; ancestor < level - 1; ancestor += 1) {
+      if (counters[ancestor] === 0) counters[ancestor] = 1;
     }
+    counters[level - 1] += 1;
+    for (let deeper = level; deeper < 4; deeper += 1) counters[deeper] = 0;
+    const number = counters.slice(0, level).join('.');
     return { ...item, level, number };
   });
 }
@@ -80,10 +95,14 @@ function withNumbers(items: TechnicalHeading[]): TechnicalHeading[] {
 function DirectoryList({ directory }: { directory: GeneratedDirectory }) {
   const [titleDraft, setTitleDraft] = useState('');
   const [draft, setDraft] = useState<TechnicalHeading[] | null>(null);
+  const [query, setQuery] = useState('');
   const headings = draft ?? directory.headings;
   const title = titleDraft || directory.title;
   const locked = directory.confirmed || !directory.canPrepare || !!directory.busy;
   const numbered = withNumbers(headings);
+  const visible = numbered
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => !query.trim() || item.title.includes(query.trim()) || item.number.includes(query.trim()));
 
   function edit(next: TechnicalHeading[]) {
     setDraft(next);
@@ -95,9 +114,11 @@ function DirectoryList({ directory }: { directory: GeneratedDirectory }) {
       await directory.onSave({
         title: title.trim() || directory.title,
         headings: headings.map(item => ({
-          level: item.level === 2 ? 2 : 3,
+          level: [1, 2, 3, 4].includes(item.level) ? item.level : 2,
           title: item.title.trim(),
           requirement_id: item.requirement_id ?? null,
+          task_id: item.task_id ?? null,
+          requirement_ids: item.requirement_ids ?? (item.requirement_id ? [item.requirement_id] : []),
         })),
         confirm,
       });
@@ -112,27 +133,46 @@ function DirectoryList({ directory }: { directory: GeneratedDirectory }) {
     <div data-testid="generated-directory">
       <Space wrap style={{ marginBottom: 8 }}>
         <Button data-testid="save-technical-outline" disabled={locked} onClick={() => void save(false)}>保存目录</Button>
-        <Button type="primary" data-testid="confirm-technical-outline" disabled={locked} onClick={() => void save(true)}>
+        <Button
+          type={directory.confirmed ? 'default' : 'primary'}
+          data-testid="confirm-technical-outline"
+          disabled={locked && !directory.confirmed}
+          onClick={() => void save(true)}
+        >
           {directory.confirmed ? '目录已确认' : '确认目录'}
         </Button>
         {directory.confirmed && (
           <Button type="primary" data-testid="generate-technical-volume"
-            disabled={!!directory.busy || !!directory.historyBlocked || !directory.canGenerate}
-            title={directory.historyBlocked ? '有历史依据的无偏离行还没确认' : undefined}
-            onClick={() => void directory.onGenerate().catch(() => undefined)}>生成正文</Button>
+            disabled={!!directory.busy || !directory.canGenerate}
+            onClick={() => void directory.onGenerate().catch(() => undefined)}>
+            {directory.busy ? '生成中…' : '开始生成'}
+          </Button>
         )}
+        {directory.onExport && <Button data-testid="directory-export" onClick={directory.onExport}>导出</Button>}
+        {directory.onCoverage && <Button type="link" data-testid="directory-coverage" onClick={directory.onCoverage}>覆盖视图</Button>}
         <Button type="link" onClick={directory.onOpen}>打开正文</Button>
       </Space>
+      <Input
+        allowClear
+        aria-label="搜索目录"
+        data-testid="directory-search"
+        placeholder="搜索目录"
+        value={query}
+        onChange={event => setQuery(event.target.value)}
+        style={{ marginBottom: 8 }}
+      />
       <Input aria-label="章名" value={title} disabled={directory.confirmed} style={{ marginBottom: 8 }}
         onChange={event => { setTitleDraft(event.target.value); if (!draft) setDraft(directory.headings.map(item => ({ ...item }))); }} />
-      {numbered.map((item, index) => (
+      {visible.map(({ item, index }) => {
+        const status = sectionStatusLabel(directory, item);
+        return (
         <div key={`${item.requirement_id || 'h'}-${index}`} data-testid="directory-heading" data-level={item.level}
-          style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4, paddingLeft: item.level === 3 ? 16 : 0 }}>
-          <span style={{ width: 52 }} data-testid="chapter-number">{item.number}</span>
+          style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4, paddingLeft: Math.max(0, (item.level - 1) * 12) }}>
+          <span style={{ width: 64 }} data-testid="chapter-number">{item.number}</span>
           <Input aria-label="目录标题" value={item.title} disabled={directory.confirmed}
             onChange={event => edit(headings.map((row, rowIndex) => rowIndex === index ? { ...row, title: event.target.value } : row))} />
-          <Select aria-label="标题级别" value={item.level === 2 ? 2 : 3} disabled={directory.confirmed} style={{ width: 88 }}
-            options={[{ value: 2, label: '二级' }, { value: 3, label: '三级' }]}
+          <Select aria-label="标题级别" value={[1, 2, 3, 4].includes(item.level) ? item.level : 2} disabled={directory.confirmed} style={{ width: 88 }}
+            options={LEVEL_OPTIONS}
             onChange={level => edit(headings.map((row, rowIndex) => rowIndex === index ? { ...row, level } : row))} />
           <Button type="text" aria-label="上移" disabled={directory.confirmed || index === 0}
             onClick={() => edit(headings.map((row, rowIndex) => rowIndex === index - 1 ? headings[index] : rowIndex === index ? headings[index - 1] : row))}>上移</Button>
@@ -140,18 +180,38 @@ function DirectoryList({ directory }: { directory: GeneratedDirectory }) {
             onClick={() => edit(headings.map((row, rowIndex) => rowIndex === index ? headings[index + 1] : rowIndex === index + 1 ? headings[index] : row))}>下移</Button>
           <Button type="text" aria-label="去掉" disabled={directory.confirmed || headings.length === 1}
             onClick={() => edit(headings.filter((_, rowIndex) => rowIndex !== index))}>去掉</Button>
-          {directory.confirmed && item.level === 3 && (
+          {directory.confirmed && !!item.requirement_id && (
             <Button type="link" size="small" data-testid={`regenerate-${item.title}`}
-              disabled={!!directory.busy || !!directory.historyBlocked || !directory.canGenerate}
+              disabled={!!directory.busy || !directory.canGenerate}
               onClick={() => void directory.onGenerate(item.title).catch(() => undefined)}>重新生成</Button>
           )}
+          {status && (
+            <Tag color={status === '已生成' ? 'success' : status === '生成中' ? 'processing' : status === '未生成' ? 'default' : 'warning'} data-testid={`status-${item.title}`}>{status}</Tag>
+          )}
         </div>
-      ))}
+      );})}
       {(directory.missing ?? []).length > 0 && (
         <Alert type="warning" showIcon style={{ marginTop: 8 }} message="还有条款没有放进目录。" />
       )}
     </div>
   );
+}
+
+function sectionStatusLabel(directory: GeneratedDirectory, item: TechnicalHeading) {
+  if (!item.requirement_id) return null;
+  if (directory.busy) return '生成中';
+  if ((directory.reviewTitles ?? []).includes(item.title)) return '需核对';
+  const content = directory.chapterContent || '';
+  const marker = `${item.number} ${item.title}`;
+  const lines = content.split(/\r?\n/);
+  const start = lines.findIndex(line => line.trim() === marker);
+  if (start < 0) return content.trim() ? '未生成' : '未生成';
+  const end = lines.findIndex((line, index) => index > start && /^\d+(?:\.\d+)*\s+\S/.test(line.trim()));
+  const body = lines.slice(start + 1, end < 0 ? undefined : end).join('\n').trim();
+  if (!body) return '未生成';
+  if (body === '待补' || body.includes('待补')) return '待补';
+  if (body.includes('需要核对')) return '需核对';
+  return '已生成';
 }
 
 export interface OutlineTreeViewProps {

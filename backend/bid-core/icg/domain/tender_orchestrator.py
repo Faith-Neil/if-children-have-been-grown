@@ -245,6 +245,8 @@ class TenderOrchestratorMixin:
                     actual["files"][identity]["status"] = "failed"
                     actual["files"][identity]["warnings"] = [error.message]
                     actual["files"][identity]["parse_finished_at"] = now
+                    # 失败后清掉 remote_parse，避免下次误以为还能接着取回；必须可重试上传。
+                    actual["files"][identity].pop("remote_parse", None)
                 first = next(iter(errors.values()))
                 job = self._job(state, project_id, "parse", "解析未完成，请根据错误重新提供文件或换服务重试。",
                                 {"code": first.code, "message": first.message})
@@ -358,17 +360,25 @@ class TenderOrchestratorMixin:
                      f"补遗替代原条目 {post['amendments']['superseded']} 条" if post["amendments"]["superseded"] else "",
                      f"补遗未定位原条款 {post['amendments']['unlocated']} 条待人工指定" if post["amendments"]["unlocated"] else ""]
             notes = "；".join(n for n in notes if n)
+            technical_pipeline = False
+            technical_empty = False
             if not pending:
                 from icg.domain.technical_sources import remember_parsed_sources, technical_only
                 remember_parsed_sources(actual)
                 if technical_only(state, project_id):
-                    actual["technical_extract_empty"] = not any(
+                    technical_pipeline = True
+                    technical_empty = not any(
                         row.get("technical_clause") for row in actual["requirements"].values())
-                    if actual["technical_extract_empty"]:
+                    actual["technical_extract_empty"] = technical_empty
+                    if technical_empty:
                         actual.pop("technical_outline", None)
+                        # 抽出为空：停在说明页，不自动当作已确认解析。
+                        actual["parse_confirmed"] = False
                     else:
                         from icg.domain.technical_outline import apply_technical_outline
                         apply_technical_outline(state, project_id, actual)
+                        # 最短路径：抽取确认不再作为用户闸门；解析成功即视为可进目录确认。
+                        actual["parse_confirmed"] = True
                 from icg.domain.technical_matrix import fill_technical_responses
                 provider = None
                 if hasattr(self.demo, "resolve_model_provider"):
@@ -387,7 +397,13 @@ class TenderOrchestratorMixin:
                              "source": hit.dataset_kind} for hit in hits]
 
                 fill_technical_responses(state, actual, model=provider, search=knowledge_search)
-            job = self._job(state, project_id, "parse", "真实文字提取完成；条款、事实及引用仍需人工核对。"
+            if technical_pipeline and technical_empty:
+                done_message = "解析完成，但未抽到技术响应内容；请换文件或补充技术规范书后重试。"
+            elif technical_pipeline:
+                done_message = "解析与抽取完成；已拟技术目录草稿，请到编辑台确认目录。"
+            else:
+                done_message = "真实文字提取完成；条款、事实及引用仍需人工核对。"
+            job = self._job(state, project_id, "parse", done_message
                             + (f"后处理：{notes}。" if notes else "")
                             + (f"另有 {len(pending)} 份文件仍在 RAGFlow 解析中。" if pending else ""))
             from icg.domain.parse_decisions import visible

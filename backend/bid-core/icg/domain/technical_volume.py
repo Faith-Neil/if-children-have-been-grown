@@ -9,8 +9,6 @@ from typing import Any, Callable
 from icg.domain.domain import DomainError
 from icg.domain.matrix import critical
 
-PARTS = ("响应说明", "服务目标", "具体措施", "工作流程", "交付物与记录", "本项目结合点")
-WRITE_ORDER = ("服务内容", "服务方式", "质量管理", "应急", "实施计划", "培训", "保密", "质保")
 HEADING = re.compile(r"^(\d+(?:\.\d+)*)\s+(\S.*)$")
 SAMPLE_TITLE = re.compile(r"偏离表|偏差表")
 BOOK = re.compile(r"《[^》]{1,40}》")
@@ -18,7 +16,7 @@ LABEL = {"comply": "无偏离", "exceed": "正偏离", "deviate": "负偏离"}
 TABLE_LABEL = {"comply": "无偏离", "exceed": "正偏离", "deviate": "偏离"}
 NO_SAMPLE = "这份招标文件没有提供偏离表格式。"
 SECTION_SYSTEM = (
-    "只写这一节的六段：响应说明、服务目标、具体措施、工作流程、交付物与记录、本项目结合点。"
+    "按本节挂接的招标要求组织技术响应正文；结构按该节实际需要安排，不要套固定六段模板。"
     "用文字步骤和表格。不要流程图，不要架构图，不要凑页。"
     "偏离表述和数字与给出的矩阵一致。其他客户或其他项目名称写成【待补】。"
     "服务案例只写脱敏框架，不写真实客户、人员、报价或证书。"
@@ -106,24 +104,18 @@ def deviation_note(workflow: dict) -> str:
 
 
 def writable(row: dict) -> bool:
-    if row.get("status") != "confirmed":
-        return False
-    if row.get("response_origin") in ("", "retrieval_failed", "draft_failed"):
+    # 矩阵确认不再是生成闸门；有可写响应即可落节。
+    if row.get("response_origin") in ("", "retrieval_failed", "draft_failed", "no_evidence"):
         return False
     return bool(str(row.get("response") or "").strip())
 
 
 def assert_ready(state: Any, project_id: str, workflow: dict) -> None:
+    """确认目录是进入生成的唯一强制闸门；矩阵确认不挡。"""
     if not workflow.get("plan_confirmed") or not workflow.get("technical_outline"):
         raise DomainError(409, "REQUIREMENT_NOT_READY", "目录还没确认。")
-    if workflow.get("technical_retrieval") != "done":
-        raise DomainError(409, "REQUIREMENT_NOT_READY", "历史检索还没结束。")
-    pending = [
-        row for row in _clauses(workflow)
-        if row.get("response_origin") == "history" and row.get("response_type") == "comply" and row.get("status") != "confirmed"
-    ]
-    if pending:
-        raise DomainError(409, "REQUIREMENT_NOT_READY", "有历史依据的无偏离行还没确认。")
+    if workflow.get("technical_retrieval") == "running":
+        raise DomainError(409, "REQUIREMENT_NOT_READY", "历史检索还在进行，请稍后再生成。")
 
 
 def _local_model(model: Any) -> bool:
@@ -154,66 +146,75 @@ def stand_in(title: str, row: dict) -> str:
     point = str(row.get("response") or "").strip() or "按本次招标条款执行。"
     explain = f"{label}。{reason}" if reason else f"{label}。{point}"
     return "\n".join([
-        "响应说明",
+        f"针对「{title}」的技术响应。",
         explain,
-        "服务目标",
-        f"按本次招标文件完成「{title}」。",
-        "具体措施",
         point,
-        "工作流程",
-        "1. 接收本次要求。",
-        "2. 按响应要点执行。",
-        "3. 留下记录。",
+        "执行步骤：接收本次要求 → 按响应要点执行 → 留下记录。",
         "| 步骤 | 做法 |",
         "| --- | --- |",
         "| 接收 | 按本次条款 |",
         "| 执行 | 按响应要点 |",
         "| 记录 | 留下记录 |",
-        "交付物与记录",
-        "留下本次服务记录。",
-        "本项目结合点",
-        f"只结合本次招标条款「{title}」。服务案例只保留脱敏框架，不写客户名称。",
+        "只结合本次招标条款；服务案例只保留脱敏框架，不写客户名称。",
     ])
 
 
-def _complete(text: str) -> bool:
-    return all(part in text for part in PARTS)
-
-
-def produce_section(title: str, row: dict, model: Any) -> str:
+def produce_section(title: str, row: dict, model: Any, *, knowledge: str = "",
+                    task: dict | None = None, requirements: list[dict] | None = None) -> str:
+    rows = requirements or ([row] if row else [])
+    primary = rows[0] if rows else (row or {})
     if _section_writer is not None:
-        text = _section_writer(title, row)
+        text = _section_writer(title, primary)
     elif _local_model(model):
-        point = str(row.get("response") or "")
-        reason = str(row.get("deviation_reason") or "")
-        label = LABEL.get(row.get("response_type") or "", "无偏离")
-        text = model.suggest(SECTION_SYSTEM, f"小节：{title}\n本次条款：{row.get('text') or ''}\n矩阵：{label}。{reason or point}")
+        req_block = "\n".join(
+            f"- [{item.get('risk_level') or 'medium'}] {item.get('extracted_summary') or item.get('text') or ''}"
+            for item in rows
+        )
+        points = "\n".join(f"- {point}" for point in (task or {}).get("response_points") or [])
+        rejection = [
+            item for item in rows
+            if item.get("is_rejection_criterion") and item.get("requirement_type") != "qualification"
+        ]
+        reject_block = "\n".join(
+            f"- 废标约束：{item.get('extracted_summary') or item.get('text') or ''}" for item in rejection
+        )
+        point = str(primary.get("response") or "")
+        reason = str(primary.get("deviation_reason") or "")
+        label = LABEL.get(primary.get("response_type") or "", "无偏离")
+        user = (
+            f"章节任务：{title}\n"
+            f"必须覆盖的招标要求：\n{req_block or '（无）'}\n"
+            f"响应要点：\n{points or reason or point or '（按要求逐条响应）'}\n"
+            f"项目级/本章废标硬约束：\n{reject_block or '（无技术类废标）'}\n"
+            f"偏离口径：{label}。"
+            + (f"\n\n企业知识检索：\n{knowledge}" if knowledge else "\n\n企业知识检索：无命中；无依据处标【待确认】，禁止编造企业能力。")
+        )
+        text = model.suggest(SECTION_SYSTEM, user)
     else:
-        text = stand_in(title, row)
-    text = scrub(str(text or ""), row)
-    if not _complete(text):
+        text = stand_in(title, primary)
+        if rows and len(rows) > 1:
+            extra = "\n".join(
+                f"针对「{clip}」：按招标要求落实并保留记录。"
+                for item in rows[1:3]
+                for clip in [str(item.get("extracted_summary") or item.get("text") or "")[:40]]
+            )
+            text = f"{text}\n\n{extra}".strip()
+        if knowledge:
+            text = f"{text}\n\n（已参考企业知识库检索结果，正式证据仍须可追溯。）"
+        elif not knowledge:
+            text = f"{text}\n\n【待确认】本节企业知识库无命中依据，具体能力参数须人工核对后补全。"
+    text = scrub(str(text or ""), primary)
+    if len(str(text or "").strip()) < 40:
         raise RuntimeError("本节不完整")
     return text
 
 
-def _level3(outline: dict) -> list[dict]:
-    grouped: dict[str, list[dict]] = {}
-    current = ""
-    for heading in outline.get("headings") or []:
-        if heading.get("level") == 2:
-            current = heading.get("title") or ""
-            grouped.setdefault(current, [])
-        elif heading.get("level") == 3:
-            grouped.setdefault(current, []).append(heading)
-    ordered = []
-    seen = set()
-    for name in WRITE_ORDER:
-        ordered.extend(grouped.get(name) or [])
-        seen.add(name)
-    for name, items in grouped.items():
-        if name not in seen:
-            ordered.extend(items)
-    return ordered
+def _leaves(outline: dict) -> list[dict]:
+    """按确认目录顺序取挂有任务或条款的叶子节点。"""
+    return [
+        heading for heading in outline.get("headings") or []
+        if heading.get("task_id") or heading.get("requirement_id")
+    ]
 
 
 def section_body(content: str, number: str, title: str) -> str:
@@ -248,9 +249,7 @@ def review_titles(workflow: dict, content: str) -> list[str]:
     outline = workflow.get("technical_outline") or {}
     rows = {row.get("id"): row for row in _clauses(workflow)}
     found = []
-    for heading in outline.get("headings") or []:
-        if heading.get("level") != 3:
-            continue
+    for heading in _leaves(outline):
         row = rows.get(heading.get("requirement_id"))
         body = section_body(content, heading.get("number") or "", heading.get("title") or "")
         if row and inconsistent(body, row):
@@ -258,63 +257,114 @@ def review_titles(workflow: dict, content: str) -> list[str]:
     return found
 
 
+def _leaf_key(heading: dict) -> str:
+    return str(heading.get("task_id") or heading.get("requirement_id") or heading.get("number") or "")
+
+
 def _assemble(outline: dict, bodies: dict[str, str], reviews: set[str]) -> str:
     lines: list[str] = []
     for heading in outline.get("headings") or []:
         lines.append(f"{heading['number']} {heading['title']}")
-        if heading.get("level") == 3:
-            body = bodies.get(heading.get("requirement_id") or "") or "待补"
+        key = _leaf_key(heading)
+        if key and (heading.get("task_id") or heading.get("requirement_id")):
+            body = bodies.get(key) or "待补"
             lines.append(body)
-            if heading.get("requirement_id") in reviews and "需要核对" not in body.splitlines():
+            if key in reviews and "需要核对" not in body.splitlines():
                 lines.append("需要核对")
         lines.append("")
     return "\n".join(lines).strip() + "\n"
 
 
-def write_volume(state: Any, project_id: str, workflow: dict, section: str | None, model: Any) -> dict:
-    """按生成顺序写三级标题。目录顺序不改。失败的节保留原正文。"""
+def write_volume(state: Any, project_id: str, workflow: dict, section: str | None, model: Any,
+                 *, knowledge_base: Any = None) -> dict:
+    """按确认目录任务叶子写正文。目录顺序不改。失败的节保留原正文。强制双库检索并记审计。"""
     assert_ready(state, project_id, workflow)
+    from icg.domain.technical_rag import knowledge_prompt_block, retrieve_dual, section_query
     outline = workflow["technical_outline"]
     chapter = state.chapters.get(outline.get("chapter_id") or "")
     if chapter is None:
         raise DomainError(404, "NOT_FOUND", "没有服务方案这一章。")
+    company_id = getattr(state.projects.get(project_id), "company_id", "") or ""
     rows = {row.get("id"): row for row in _clauses(workflow)}
-    headings = _level3(outline)
+    tasks = workflow.get("response_tasks") or {}
+    headings = _leaves(outline)
     if section:
         headings = [item for item in headings if item.get("title") == section]
         if not headings:
             raise DomainError(404, "NOT_FOUND", "没有这一节。")
     current = chapter.content or ""
     bodies = {
-        item.get("requirement_id"): section_body(current, item.get("number") or "", item.get("title") or "")
-        for item in _level3(outline)
+        _leaf_key(item): section_body(current, item.get("number") or "", item.get("title") or "")
+        for item in _leaves(outline)
     }
     failed: list[str] = []
+    audits: list[dict] = []
     for heading in headings:
-        row = rows.get(heading.get("requirement_id"))
-        identity = heading.get("requirement_id") or ""
+        key = _leaf_key(heading)
         title = heading.get("title") or ""
-        if row is None or not writable(row):
-            bodies[identity] = "待补"
+        task = tasks.get(heading.get("task_id") or "") if heading.get("task_id") else None
+        req_ids = list(heading.get("requirement_ids") or [])
+        if not req_ids and heading.get("requirement_id"):
+            req_ids = [heading["requirement_id"]]
+        if task:
+            req_ids = list(task.get("requirement_ids") or req_ids)
+        req_rows = [rows[rid] for rid in req_ids if rid in rows]
+        primary = req_rows[0] if req_rows else rows.get(heading.get("requirement_id"))
+        if primary is None:
+            bodies[key] = "待补\n【待确认】本节未挂接招标要求。"
+            audits.append({"section": title, "task_id": key, "skipped": "no_requirement"})
             continue
+        # 即使矩阵检索失败，仍应用模型/替身写实质框架，缺依据标待确认，禁止整节空「待补」冒充完成。
+        query = section_query(title, primary, task=task, requirements=req_rows)
+        chunks, rag_audit = retrieve_dual(knowledge_base, company_id, query)
+        rag_audit["section"] = title
+        rag_audit["task_id"] = heading.get("task_id")
+        rag_audit["requirement_ids"] = req_ids
+        audits.append(rag_audit)
+        knowledge = knowledge_prompt_block(chunks)
         try:
-            bodies[identity] = produce_section(title, row, model)
+            bodies[key] = produce_section(
+                title, primary, model, knowledge=knowledge, task=task, requirements=req_rows,
+            )
+            if task is not None:
+                task["generation_status"] = "generated"
+                task["response_status"] = "generated" if chunks else "needs_confirm"
         except Exception:
             failed.append(title)
-            if not bodies.get(identity):
-                bodies[identity] = "待补"
-    reviews = {
-        item.get("requirement_id")
-        for item in _level3(outline)
-        if (row := rows.get(item.get("requirement_id"))) and inconsistent(bodies.get(item.get("requirement_id")) or "", row)
-    }
+            if not bodies.get(key):
+                bodies[key] = (
+                    f"【待确认】「{title}」自动生成失败，请按下列要求人工补写。\n"
+                    + "\n".join(f"- {row.get('extracted_summary') or row.get('text') or ''}" for row in req_rows[:8])
+                )
+            if task is not None:
+                task["generation_status"] = "failed"
+                task["response_status"] = "gap"
+    workflow["technical_rag_audit"] = audits[-20:]
+    reviews: set[str] = set()
+    for item in _leaves(outline):
+        ids = list(item.get("requirement_ids") or [])
+        if not ids and item.get("requirement_id"):
+            ids = [item["requirement_id"]]
+        row = rows.get(ids[0]) if ids else None
+        if row and inconsistent(bodies.get(_leaf_key(item)) or "", row):
+            reviews.add(_leaf_key(item))
     chapter.content = _assemble(outline, bodies, reviews)
+    from icg.domain.technical_quality import apply_quality_markers, evaluate_quality
+    quality = evaluate_quality(workflow, chapter.content)
+    chapter.content = apply_quality_markers(chapter.content, quality.get("review_titles") or [], outline)
+    quality = evaluate_quality(workflow, chapter.content)
+    workflow["technical_quality"] = quality
     chapter.revision = int(getattr(chapter, "revision", 1) or 1) + 1
     if not failed and not section:
         workflow["needs_regeneration"] = [
             item for item in (workflow.get("needs_regeneration") or []) if item != chapter.id
         ]
-    return {"failed": failed, "chapter_id": chapter.id}
+    return {
+        "failed": failed,
+        "chapter_id": chapter.id,
+        "rag_audit": audits,
+        "quality": quality,
+    }
 
 
 def _cell(header: str, heading: dict, row: dict, sample: dict) -> str:
@@ -339,9 +389,7 @@ def table_rows(sample: dict, workflow: dict) -> list[list[str]]:
     outline = workflow.get("technical_outline") or {}
     rows = {row.get("id"): row for row in _clauses(workflow)}
     filled = []
-    for heading in outline.get("headings") or []:
-        if heading.get("level") != 3:
-            continue
+    for heading in _leaves(outline):
         row = rows.get(heading.get("requirement_id"))
         if row is None or not writable(row):
             continue

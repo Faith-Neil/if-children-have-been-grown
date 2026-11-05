@@ -20,6 +20,7 @@ import {
 } from './lazy-routes';
 import type { Account, ApplicationSession, Evidence, SlaTemplate, Workspace } from '../shared/types';
 import type { AppRoute } from './app-route';
+import { technicalOnly } from '../project/project-volumes.ts';
 
 export interface ProjectWorkspaceContentProps {
   workspace: Workspace;
@@ -107,11 +108,15 @@ export function ProjectWorkspaceContent({
                 {tab === 'overview' && <OverviewPage />}
                 {tab === 'tender' && <TenderPage />}
                 {tab === 'analyze' && (
-                  <>
-                    <ParsePage />
+                  technicalOnly(workspace) ? (
                     <MatrixPage />
-                    <FactsPage />
-                  </>
+                  ) : (
+                    <>
+                      <ParsePage />
+                      <MatrixPage />
+                      <FactsPage />
+                    </>
+                  )
                 )}
                 {tab === 'editor' && (
                   <EditorPage

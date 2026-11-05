@@ -162,9 +162,11 @@ class PlannedChapter(RequestBody):
 
 
 class OutlineHeadingInput(RequestBody):
-    level: int = Field(ge=2, le=3)
+    level: int = Field(ge=1, le=4)
     title: str = Field(min_length=1, max_length=80)
     requirement_id: str | None = Field(default=None, max_length=80)
+    task_id: str | None = Field(default=None, max_length=80)
+    requirement_ids: list[str] = Field(default_factory=list)
 
 
 class PlanRequest(RequestBody):
@@ -930,13 +932,72 @@ class TechnicalHeading(ResponseBody):
     number: str
     title: str
     requirement_id: str | None = None
+    task_id: str | None = None
+    requirement_ids: list[str] = Field(default_factory=list)
 
 
 class TechnicalOutline(ResponseBody):
     title: str
     chapter_id: str
     headings: list[TechnicalHeading]
-    missing: list[str] = Field(default_factory=list, description="还没有三级标题的条款")
+    missing: list[str] = Field(default_factory=list, description="还没有挂进目录的条款")
+    plan_validation: dict[str, Any] | None = None
+
+
+class CoverageRow(ResponseBody):
+    requirement_id: str
+    task_id: str
+    text: str
+    risk_level: str = "medium"
+    is_rejection_criterion: bool = False
+    source_page: int | None = None
+    source_filename: str | None = None
+    outline_number: str | None = None
+    outline_title: str | None = None
+    response_status: str = "not_started"
+    generation_status: str = "pending"
+
+
+class ResponseTask(ResponseBody):
+    task_id: str
+    title: str
+    theme: str = ""
+    requirement_ids: list[str] = Field(default_factory=list)
+    response_strategy: str = "point_by_point"
+    response_points: list[str] = Field(default_factory=list)
+    rejection_requirement_ids: list[str] = Field(default_factory=list)
+    generation_status: str = "pending"
+    response_status: str = "not_started"
+    verification_status: str = "unchecked"
+    outline_number: str | None = None
+    chapter_id: str | None = None
+
+
+class TechnicalKbDataset(ResponseBody):
+    name: str
+    configured: bool
+
+
+class TechnicalKbStatus(ResponseBody):
+    history: TechnicalKbDataset
+    material: TechnicalKbDataset
+    missing: list[str] = Field(default_factory=list)
+    ready: bool = False
+
+
+class TechnicalQualityRule(ResponseBody):
+    id: int
+    name: str
+    passed: bool
+    detail: str = ""
+
+
+class TechnicalQuality(ResponseBody):
+    rules: list[TechnicalQualityRule] = Field(default_factory=list)
+    passed: bool = False
+    failed_count: int = 0
+    review_titles: list[str] = Field(default_factory=list)
+    warning: str = Field(default="", description="未达标可见警告；不恢复矩阵闸门，允许内部稿导出")
 
 
 class Workspace(ResponseBody):
@@ -960,6 +1021,11 @@ class Workspace(ResponseBody):
     technical_outline: TechnicalOutline | None = Field(default=None, description="技术分册的单章目录；创建时的技术方案不是这份目录")
     technical_deviation_note: str = Field(default="", description="没有偏离表样表时的说明；有样表则为空")
     technical_needs_review: list[str] = Field(default_factory=list, description="正文偏离表述和矩阵不一致、或同一指标出现两个数字的小节")
+    technical_kb: TechnicalKbStatus | None = Field(default=None, description="企业双库是否齐备")
+    technical_quality: TechnicalQuality | None = Field(default=None, description="质量八条抽检结果")
+    response_tasks: list[ResponseTask] = Field(default_factory=list, description="响应任务（要求→章节映射）")
+    coverage_rows: list[CoverageRow] = Field(default_factory=list, description="覆盖视图五行数据源")
+    plan_validation: dict[str, Any] | None = Field(default=None, description="生成计划确定性校验结果")
     sla: ProjectSla | None = None
     writing_plan: WritingPlan
     team: Team

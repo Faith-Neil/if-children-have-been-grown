@@ -3,13 +3,23 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, App as AntApp, Button, Card, Drawer, Empty, Input, Modal, Progress, Space, Spin, Tag, Tooltip } from 'antd';
 import {
+  AlignCenterOutlined,
+  AlignLeftOutlined,
+  AlignRightOutlined,
+  BoldOutlined,
+  FontSizeOutlined,
   HistoryOutlined,
   LockOutlined,
-  SaveOutlined,
-  UnlockOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   BarsOutlined,
+  PictureOutlined,
+  RedoOutlined,
+  SaveOutlined,
+  TableOutlined,
+  UnderlineOutlined,
+  UndoOutlined,
+  UnlockOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons';
 import { ApiError, request } from '../shared/api.ts';
@@ -57,6 +67,8 @@ import { EditorSlaTools } from './EditorSlaTools.tsx';
 import { EditorAuxiliaryDrawers } from './EditorAuxiliaryDrawers.tsx';
 import { useEditorOperations } from './useEditorOperations.ts';
 import { IDLE_SAVE_MS, editorTimings, lockHolderLabel, savedLabel, shouldAutosave, type EditorTimings } from './autosave-core.ts';
+import { wrapTextareaSelection } from './technical-editor-ui.ts';
+import { technicalOnly } from '../project/project-volumes.ts';
 
 export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirtyChange: (dirty: boolean) => void; initialChapterId?: string }) {
   const { workspace, user, token, busy: projectBusy, mutate, reload, report, navigate } = useProject();
@@ -508,7 +520,6 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
 
   const technicalOutline = workspace.technical_outline ?? null;
   const outlineChapter = technicalOutline ? workspace.chapters.find(item => item.id === technicalOutline.chapter_id) : undefined;
-  const historyBlocked = workspace.requirements.some(item => item.technical_clause && item.response_origin === 'history' && item.response_type === 'comply' && item.status !== 'confirmed');
 
   async function refreshOutlineChapter() {
     if (!outlineChapter || chapterId !== outlineChapter.id || dirty) return;
@@ -519,16 +530,28 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     sequence.current = updated.draft?.sequence ?? sequence.current;
   }
 
-  async function saveDirectory(payload: { title: string; headings: Array<{ level: number; title: string; requirement_id: string | null }>; confirm: boolean }) {
+  async function saveDirectory(payload: {
+    title: string;
+    headings: Array<{
+      level: number;
+      title: string;
+      requirement_id: string | null;
+      task_id?: string | null;
+      requirement_ids?: string[];
+    }>;
+    confirm: boolean;
+  }) {
     if (!outlineChapter) return;
     await mutate(`/api/v1/projects/${workspace.project.id}/plan`, 'POST', {
       scope: 'technical',
       chapters: [{ id: outlineChapter.id, title: payload.title.trim() || technicalOutline?.title || outlineChapter.title, volume: 'technical', fact_ids: [], writing_points: '' }],
       outline_title: payload.title.trim() || technicalOutline?.title,
       outline_headings: payload.headings.map(item => ({
-        level: item.level === 2 ? 2 : 3,
+        level: [1, 2, 3, 4].includes(item.level) ? item.level : 2,
         title: item.title.trim(),
         requirement_id: item.requirement_id ?? null,
+        task_id: item.task_id ?? null,
+        requirement_ids: item.requirement_ids ?? (item.requirement_id ? [item.requirement_id] : []),
       })),
       confirm_outline: payload.confirm,
     });
@@ -545,20 +568,35 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     await refreshOutlineChapter().catch(() => undefined);
   }
 
+  const isTechnicalPath = technicalOnly(workspace);
   const generatedDirectory: GeneratedDirectory | null = technicalOutline && outlineChapter && technicalOutline.headings.length > 0 ? {
     title: technicalOutline.title,
     chapterId: technicalOutline.chapter_id,
     headings: technicalOutline.headings,
     missing: technicalOutline.missing,
+    reviewTitles: workspace.technical_needs_review ?? workspace.technical_quality?.review_titles ?? [],
+    chapterContent: outlineChapter.id === chapterId ? content : outlineChapter.content,
     confirmed: workspace.plan_confirmed,
     canPrepare: projectCan(workspace, 'prepare_sources'),
     canGenerate: outlineChapter.permissions?.generate !== false,
-    historyBlocked,
-    busy: projectBusy,
+    busy: projectBusy || busy,
     onSave: saveDirectory,
     onGenerate: generateDirectory,
     onOpen: () => selectChapter(outlineChapter.id, 'technical'),
+    onExport: () => navigate('export'),
+    onCoverage: () => navigate('analyze'),
   } : null;
+
+  function applyFormat(before: string, after = before) {
+    const area = textareaRef.current?.resizableTextArea?.textArea;
+    if (!area || !held) return;
+    const next = wrapTextareaSelection(content, area.selectionStart, area.selectionEnd, before, after);
+    setContent(next.value);
+    requestAnimationFrame(() => {
+      area.focus();
+      area.setSelectionRange(next.start, next.end);
+    });
+  }
 
   return <>
     <div
@@ -599,22 +637,100 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
 
       {/* 2. 中间正文编辑区 */}
       <section className="editor-center" data-testid="editor-center-section">
-        <EditorSlaTools workspace={workspace} factId={ops.factId} setFactId={ops.setFactId} slaKey={ops.slaKey} setSlaKey={ops.setSlaKey} held={held} combinedBusy={combinedBusy} onInsertFact={ops.insertProjectFact} onInsertVariable={ops.insertVariable} />
+        {workspace.technical_kb && !workspace.technical_kb.ready && (
+          <Alert
+            className="editor-notice"
+            type="warning"
+            showIcon
+            data-testid="technical-kb-missing"
+            message="企业知识库未齐备"
+            description={`缺 ${workspace.technical_kb.missing.join(' / ')}。仍可生成，但相关节企业 RAG 为空并标待补，不会静默假成功。`}
+          />
+        )}
+        {workspace.technical_quality && !workspace.technical_quality.passed && (
+          <Alert
+            className="editor-notice"
+            type="warning"
+            showIcon
+            data-testid="technical-quality-warning"
+            message="质量八条未全部通过"
+            description={`${workspace.technical_quality.warning || '部分节需核对'}。不挡内部稿导出；不恢复矩阵确认闸门。`}
+          />
+        )}
+        {!isTechnicalPath && (
+          <EditorSlaTools workspace={workspace} factId={ops.factId} setFactId={ops.setFactId} slaKey={ops.slaKey} setSlaKey={ops.setSlaKey} held={held} combinedBusy={combinedBusy} onInsertFact={ops.insertProjectFact} onInsertVariable={ops.insertVariable} />
+        )}
 
-        <div className="editor-toolbar">
-          <Space size={6}>
+        {isTechnicalPath && generatedDirectory && (
+          <div className="editor-main-path" data-testid="technical-main-path" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+            <Button
+              type={generatedDirectory.confirmed ? 'default' : 'primary'}
+              disabled={generatedDirectory.confirmed || !generatedDirectory.canPrepare || !!generatedDirectory.busy}
+              onClick={() => void generatedDirectory.onSave({
+                title: generatedDirectory.title,
+                headings: generatedDirectory.headings.map(item => ({
+                  level: item.level,
+                  title: item.title,
+                  requirement_id: item.requirement_id ?? null,
+                  task_id: item.task_id ?? null,
+                  requirement_ids: item.requirement_ids ?? (item.requirement_id ? [item.requirement_id] : []),
+                })),
+                confirm: true,
+              })}
+            >{generatedDirectory.confirmed ? '目录已确认' : '确认目录'}</Button>
+            <Button
+              type="primary"
+              data-testid="main-path-generate"
+              disabled={!generatedDirectory.confirmed || !!generatedDirectory.busy || !generatedDirectory.canGenerate}
+              onClick={() => void generateDirectory().catch(() => undefined)}
+            >{generatedDirectory.busy ? '生成中…' : '开始生成'}</Button>
+            <Button data-testid="main-path-export" onClick={() => navigate('export')}>导出</Button>
+            <Button type="link" data-testid="main-path-coverage" onClick={() => navigate('analyze')}>覆盖视图</Button>
+          </div>
+        )}
+
+        <div className="editor-toolbar" data-testid={isTechnicalPath ? 'technical-editor-toolbar' : 'editor-toolbar'}>
+          <Space size={6} wrap>
             {(directoryCollapsed || breakpoint.isSubCompact) && (
               <Tooltip title="展开大纲树"><Button size="small" icon={<BarsOutlined />} onClick={() => setOutlineDrawerOpen(true)} data-testid="toolbar-outline-drawer-btn">大纲</Button></Tooltip>
             )}
-            <Tooltip title="正文格式与选区工具将在结构化编辑器中实现"><Button size="small" disabled>格式</Button></Tooltip>
-            <Button size="small" icon={<HistoryOutlined />} onClick={viewVersions} disabled={combinedBusy || !chapter}>版本</Button>
-            {chapter && !systemKind && <ParagraphLocksBar projectId={workspace.project.id} chapter={chapter} content={content} token={token} canEdit={canEdit && dataPermission.canEdit}
-              busy={combinedBusy} cursor={() => selection.current?.start ?? null} report={report}
-              onChanged={async () => { const latest = await request<Chapter>(`/api/chapters/${chapterId}`, token); setChapter(latest); }} />}
-            <Tooltip title="生成整章候选，不会直接改动正文"><Button size="small" onClick={ops.generate} disabled={combinedBusy || !planCurrent || !canGenerate || !chapter}>生成候选</Button></Tooltip>
+            {isTechnicalPath ? (
+              <>
+                <Tooltip title="撤回（浏览器）"><Button size="small" icon={<UndoOutlined />} onClick={() => document.execCommand('undo')} disabled={!held} /></Tooltip>
+                <Tooltip title="重做（浏览器）"><Button size="small" icon={<RedoOutlined />} onClick={() => document.execCommand('redo')} disabled={!held} /></Tooltip>
+                <Tooltip title="加粗"><Button size="small" icon={<BoldOutlined />} onClick={() => applyFormat('**')} disabled={!held || combinedBusy} data-testid="toolbar-bold" /></Tooltip>
+                <Tooltip title="下划线"><Button size="small" icon={<UnderlineOutlined />} onClick={() => applyFormat('<u>', '</u>')} disabled={!held || combinedBusy} data-testid="toolbar-underline" /></Tooltip>
+                <Tooltip title="字号标记"><Button size="small" icon={<FontSizeOutlined />} onClick={() => applyFormat('【小四】', '')} disabled={!held || combinedBusy} /></Tooltip>
+                <Tooltip title="左对齐"><Button size="small" icon={<AlignLeftOutlined />} onClick={() => applyFormat('\n', '')} disabled={!held || combinedBusy} /></Tooltip>
+                <Tooltip title="居中"><Button size="small" icon={<AlignCenterOutlined />} onClick={() => applyFormat('\n【居中】', '\n')} disabled={!held || combinedBusy} /></Tooltip>
+                <Tooltip title="右对齐"><Button size="small" icon={<AlignRightOutlined />} onClick={() => applyFormat('\n【右对齐】', '\n')} disabled={!held || combinedBusy} /></Tooltip>
+                <Tooltip title="添加表格"><Button size="small" icon={<TableOutlined />} onClick={() => applyFormat('\n| 列1 | 列2 |\n| --- | --- |\n|  |  |\n', '')} disabled={!held || combinedBusy} data-testid="toolbar-table" /></Tooltip>
+                <Tooltip title="添加图片占位"><Button size="small" icon={<PictureOutlined />} onClick={() => applyFormat('\n【图片：说明】\n', '')} disabled={!held || combinedBusy} /></Tooltip>
+                {generatedDirectory?.confirmed && (
+                  <Button type="primary" size="small" data-testid="toolbar-generate"
+                    disabled={!!generatedDirectory.busy || !generatedDirectory.canGenerate}
+                    onClick={() => void generateDirectory().catch(() => undefined)}>开始生成</Button>
+                )}
+                <Tooltip title="版本历史（次级）"><Button size="small" type="text" icon={<HistoryOutlined />} onClick={viewVersions} disabled={combinedBusy || !chapter}>版本</Button></Tooltip>
+              </>
+            ) : (
+              <>
+                <Tooltip title="正文格式与选区工具将在结构化编辑器中实现"><Button size="small" disabled>格式</Button></Tooltip>
+                <Button size="small" icon={<HistoryOutlined />} onClick={viewVersions} disabled={combinedBusy || !chapter}>版本</Button>
+                {chapter && !systemKind && <ParagraphLocksBar projectId={workspace.project.id} chapter={chapter} content={content} token={token} canEdit={canEdit && dataPermission.canEdit}
+                  busy={combinedBusy} cursor={() => selection.current?.start ?? null} report={report}
+                  onChanged={async () => { const latest = await request<Chapter>(`/api/chapters/${chapterId}`, token); setChapter(latest); }} />}
+                <Tooltip title="生成整章候选，不会直接改动正文"><Button size="small" onClick={ops.generate} disabled={combinedBusy || !planCurrent || !canGenerate || !chapter}>生成候选</Button></Tooltip>
+              </>
+            )}
           </Space>
           <Space size={6}>
-            <Tag color={held ? 'green' : canEdit && chapter?.lock ? 'orange' : 'default'} icon={held ? <LockOutlined /> : <UnlockOutlined />}>{!canEdit ? '当前无本节编辑权限' : held ? '本人锁定' : chapter?.lock ? lockHolderLabel(chapter.lock, user?.id) : '未取得编辑权'}</Tag>
+            {!isTechnicalPath && (
+              <Tag color={held ? 'green' : canEdit && chapter?.lock ? 'orange' : 'default'} icon={held ? <LockOutlined /> : <UnlockOutlined />}>{!canEdit ? '当前无本节编辑权限' : held ? '本人锁定' : chapter?.lock ? lockHolderLabel(chapter.lock, user?.id) : '未取得编辑权'}</Tag>
+            )}
+            {isTechnicalPath && !held && canEdit && (
+              <Button size="small" type="link" icon={<LockOutlined />} onClick={() => acquire()} disabled={combinedBusy} data-testid="soft-acquire-btn">取得编辑权</Button>
+            )}
             {savedAt && <span className="saved-at" data-testid="editor-saved-at">{savedAt} 已保存</span>}
             {autosavePaused && held && <Tag color="orange" data-testid="autosave-paused-tag">自动保存已暂停</Tag>}
             {dirty && <Tag color="warning" data-testid="dirty-status-tag" icon={<SaveOutlined />}>未保存修改</Tag>}
@@ -666,8 +782,14 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
               </div>
             ) : !held ? (
               <div className="chapter-editor-unheld-view" data-testid="unheld-editor-view">
-                <Alert type="info" showIcon message="当前未取得本节编辑锁" description="正文以纯文本方式呈现供浏览与校对。如需修改，请点击下方或工具栏的「取得编辑权」。" style={{ marginBottom: 12 }}
-                  action={<Button size="small" type="primary" icon={<LockOutlined />} onClick={() => acquire()} disabled={combinedBusy || !canEdit} data-testid="unheld-acquire-btn">取得编辑权</Button>} />
+                {isTechnicalPath ? (
+                  <p className="muted" data-testid="soft-lock-hint" style={{ marginBottom: 8 }}>
+                    浏览模式 · <Button type="link" size="small" onClick={() => acquire()} disabled={combinedBusy || !canEdit} data-testid="unheld-acquire-btn">取得编辑权后可改</Button>
+                  </p>
+                ) : (
+                  <Alert type="info" showIcon message="当前未取得本节编辑锁" description="正文以纯文本方式呈现供浏览与校对。如需修改，请点击下方或工具栏的「取得编辑权」。" style={{ marginBottom: 12 }}
+                    action={<Button size="small" type="primary" icon={<LockOutlined />} onClick={() => acquire()} disabled={combinedBusy || !canEdit} data-testid="unheld-acquire-btn">取得编辑权</Button>} />
+                )}
                 <div className="chapter-editor-unheld-text" data-testid="unheld-editor-text" onMouseUp={handleContainerMouseUp} style={{ minHeight: 280, padding: 16, background: '#fcfcfd', border: '1px dashed #d9d9d9', borderRadius: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#262626', lineHeight: 1.8, fontSize: 14 }}>
                   {content ? <RichParagraphWithCites content={content} knownCitations={knownCitations} onCiteClick={handleCiteClick} paragraphKeys={paragraphsMatch(chapter.paragraphs, content, chapter.content) ? chapter.paragraphs : undefined} variables={shownVariables} onGoToSource={goToSource} issueMarkers={issues.markers} onIssueMarkerClick={showParagraphIssues} focusedKey={issues.focusedKey} /> : <span className="muted" style={{ color: '#8c8c8c' }}>（本章节暂无正文内容）</span>}
                 </div>
@@ -732,6 +854,9 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         rightTab={rightTab} setRightTab={setRightTab} candidate={candidate} candidateIssue={candidateIssue} instruction={ops.instruction} setInstruction={ops.setInstruction}
         combinedBusy={combinedBusy} held={held} canEdit={canEdit} canGenerate={canGenerate} chapter={chapter} planCurrent={planCurrent} modified={modified} workspace={workspace}
         chapterId={chapterId} onViewInput={() => ops.setInputOpen(true)} onShowDiff={ops.showDiff} onSuggest={ops.suggest}
+        technicalAssistant={isTechnicalPath}
+        generating={!!(projectBusy || busy) && isTechnicalPath}
+        draftReady={!isTechnicalPath || ((outlineChapter?.content || content || '').trim().length > 20)}
         collapseControl={(
           <Tooltip title="收起对话助手以扩展编辑区">
             <button type="button" className="ant-btn ant-btn-text ant-btn-sm" onClick={() => setAssistantCollapsed(true)} data-testid="toggle-assistant-btn"><MenuFoldOutlined /> 收起助手</button>

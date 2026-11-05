@@ -35465,9 +35465,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -35659,9 +35658,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -35853,9 +35851,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -36047,9 +36044,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -36250,9 +36246,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -36443,9 +36438,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -36676,7 +36670,7 @@
             "schema": {
               "enum": [
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -36879,7 +36873,7 @@
             "schema": {
               "enum": [
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -37104,9 +37098,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -37314,9 +37307,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -37516,9 +37508,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -37718,9 +37709,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -37920,9 +37910,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -38163,9 +38152,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -47705,6 +47693,94 @@
         ],
         "title": "Coverage"
       },
+      "CoverageRow": {
+        "properties": {
+          "requirement_id": {
+            "type": "string",
+            "title": "Requirement Id"
+          },
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "risk_level": {
+            "type": "string",
+            "title": "Risk Level",
+            "default": "medium"
+          },
+          "is_rejection_criterion": {
+            "type": "boolean",
+            "title": "Is Rejection Criterion",
+            "default": false
+          },
+          "source_page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Page"
+          },
+          "source_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Filename"
+          },
+          "outline_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outline Number"
+          },
+          "outline_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outline Title"
+          },
+          "response_status": {
+            "type": "string",
+            "title": "Response Status",
+            "default": "not_started"
+          },
+          "generation_status": {
+            "type": "string",
+            "title": "Generation Status",
+            "default": "pending"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "requirement_id",
+          "task_id",
+          "text"
+        ],
+        "title": "CoverageRow"
+      },
       "CreateDictItemRequest": {
         "properties": {
           "type_code": {
@@ -48494,10 +48570,11 @@
             "enum": [
               "structured",
               "snippet",
-              "history"
+              "history",
+              "materials"
             ],
             "title": "Route",
-            "description": "structured 资料库规则匹配 / snippet 知识库片段 / history 历史标书仅参考"
+            "description": "structured 资料库规则匹配 / snippet 知识库片段 / history 历史标书仅参考 / materials 资料库（参考）"
           },
           "route_label": {
             "type": "string",
@@ -50695,9 +50772,8 @@
                 "items": {
                   "type": "string",
                   "enum": [
-                    "library",
                     "history",
-                    "certificate"
+                    "materials"
                   ]
                 },
                 "type": "array"
@@ -50761,7 +50837,8 @@
                   "enum": [
                     "evidence",
                     "snippet",
-                    "history"
+                    "history",
+                    "materials"
                   ]
                 },
                 "type": "array"
@@ -53176,6 +53253,60 @@
         ],
         "title": "OpenResult"
       },
+      "OutlineHeadingInput": {
+        "properties": {
+          "level": {
+            "type": "integer",
+            "maximum": 4.0,
+            "minimum": 1.0,
+            "title": "Level"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "requirement_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requirement Id"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Requirement Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "level",
+          "title"
+        ],
+        "title": "OutlineHeadingInput"
+      },
       "ParagraphDetail": {
         "properties": {
           "id": {
@@ -53802,18 +53933,27 @@
           },
           "outline_title": {
             "anyOf": [
-              { "type": "string", "maxLength": 80 },
-              { "type": "null" }
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
             ],
             "title": "Outline Title"
           },
           "outline_headings": {
             "anyOf": [
               {
-                "type": "array",
-                "items": { "$ref": "#/components/schemas/OutlineHeadingInput" }
+                "items": {
+                  "$ref": "#/components/schemas/OutlineHeadingInput"
+                },
+                "type": "array"
               },
-              { "type": "null" }
+              {
+                "type": "null"
+              }
             ],
             "title": "Outline Headings"
           },
@@ -53829,23 +53969,6 @@
           "chapters"
         ],
         "title": "PlanRequest"
-      },
-      "OutlineHeadingInput": {
-        "properties": {
-          "level": { "type": "integer", "minimum": 2.0, "maximum": 3.0, "title": "Level" },
-          "title": { "type": "string", "minLength": 1, "maxLength": 80, "title": "Title" },
-          "requirement_id": {
-            "anyOf": [
-              { "type": "string", "maxLength": 80 },
-              { "type": "null" }
-            ],
-            "title": "Requirement Id"
-          }
-        },
-        "additionalProperties": false,
-        "type": "object",
-        "required": ["level", "title"],
-        "title": "OutlineHeadingInput"
       },
       "PlannedChapter": {
         "properties": {
@@ -56064,7 +56187,14 @@
           },
           "response_origin": {
             "type": "string",
-            "enum": ["", "history", "model", "retrieval_failed", "draft_failed", "no_evidence"],
+            "enum": [
+              "",
+              "history",
+              "model",
+              "retrieval_failed",
+              "draft_failed",
+              "no_evidence"
+            ],
             "title": "Response Origin",
             "default": ""
           },
@@ -56351,6 +56481,93 @@
           "updated_at"
         ],
         "title": "ResetPasswordResponse"
+      },
+      "ResponseTask": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "theme": {
+            "type": "string",
+            "title": "Theme",
+            "default": ""
+          },
+          "requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Requirement Ids"
+          },
+          "response_strategy": {
+            "type": "string",
+            "title": "Response Strategy",
+            "default": "point_by_point"
+          },
+          "response_points": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Response Points"
+          },
+          "rejection_requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Rejection Requirement Ids"
+          },
+          "generation_status": {
+            "type": "string",
+            "title": "Generation Status",
+            "default": "pending"
+          },
+          "response_status": {
+            "type": "string",
+            "title": "Response Status",
+            "default": "not_started"
+          },
+          "verification_status": {
+            "type": "string",
+            "title": "Verification Status",
+            "default": "unchecked"
+          },
+          "outline_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outline Number"
+          },
+          "chapter_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chapter Id"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "task_id",
+          "title"
+        ],
+        "title": "ResponseTask"
       },
       "Retrieval": {
         "properties": {
@@ -60170,6 +60387,220 @@
         ],
         "title": "TeamUpdate"
       },
+      "TechnicalHeading": {
+        "properties": {
+          "level": {
+            "type": "integer",
+            "title": "Level"
+          },
+          "number": {
+            "type": "string",
+            "title": "Number"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "requirement_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requirement Id"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Requirement Ids"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "level",
+          "number",
+          "title"
+        ],
+        "title": "TechnicalHeading"
+      },
+      "TechnicalKbDataset": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "configured": {
+            "type": "boolean",
+            "title": "Configured"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "name",
+          "configured"
+        ],
+        "title": "TechnicalKbDataset"
+      },
+      "TechnicalKbStatus": {
+        "properties": {
+          "history": {
+            "$ref": "#/components/schemas/TechnicalKbDataset"
+          },
+          "material": {
+            "$ref": "#/components/schemas/TechnicalKbDataset"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing"
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready",
+            "default": false
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "history",
+          "material"
+        ],
+        "title": "TechnicalKbStatus"
+      },
+      "TechnicalOutline": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "chapter_id": {
+            "type": "string",
+            "title": "Chapter Id"
+          },
+          "headings": {
+            "items": {
+              "$ref": "#/components/schemas/TechnicalHeading"
+            },
+            "type": "array",
+            "title": "Headings"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing",
+            "description": "还没有挂进目录的条款"
+          },
+          "plan_validation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Validation"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "title",
+          "chapter_id",
+          "headings"
+        ],
+        "title": "TechnicalOutline"
+      },
+      "TechnicalQuality": {
+        "properties": {
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/TechnicalQualityRule"
+            },
+            "type": "array",
+            "title": "Rules"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed",
+            "default": false
+          },
+          "failed_count": {
+            "type": "integer",
+            "title": "Failed Count",
+            "default": 0
+          },
+          "review_titles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Review Titles"
+          },
+          "warning": {
+            "type": "string",
+            "title": "Warning",
+            "description": "未达标可见警告；不恢复矩阵闸门，允许内部稿导出",
+            "default": ""
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "TechnicalQuality"
+      },
+      "TechnicalQualityRule": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "default": ""
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "passed"
+        ],
+        "title": "TechnicalQualityRule"
+      },
       "TenderFile": {
         "properties": {
           "id": {
@@ -61260,6 +61691,7 @@
               "PDF_ADAPTER_UNAVAILABLE",
               "PDF_ENCRYPTED",
               "PDF_PAGE_LIMIT",
+              "PIPELINE_UNAVAILABLE",
               "PLAN_NOT_CONFIRMED",
               "PLAN_STALE",
               "PROJECT_CANCELLED",
@@ -62512,76 +62944,6 @@
         ],
         "title": "WorkflowChapter"
       },
-      "TechnicalHeading": {
-        "properties": {
-          "level": {
-            "type": "integer",
-            "title": "Level"
-          },
-          "number": {
-            "type": "string",
-            "title": "Number"
-          },
-          "title": {
-            "type": "string",
-            "title": "Title"
-          },
-          "requirement_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Requirement Id"
-          }
-        },
-        "additionalProperties": true,
-        "type": "object",
-        "required": [
-          "level",
-          "number",
-          "title"
-        ],
-        "title": "TechnicalHeading"
-      },
-      "TechnicalOutline": {
-        "properties": {
-          "title": {
-            "type": "string",
-            "title": "Title"
-          },
-          "chapter_id": {
-            "type": "string",
-            "title": "Chapter Id"
-          },
-          "headings": {
-            "items": {
-              "$ref": "#/components/schemas/TechnicalHeading"
-            },
-            "type": "array",
-            "title": "Headings"
-          },
-          "missing": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Missing",
-            "description": "还没有三级标题的条款"
-          }
-        },
-        "additionalProperties": true,
-        "type": "object",
-        "required": [
-          "title",
-          "chapter_id",
-          "headings"
-        ],
-        "title": "TechnicalOutline"
-      },
       "Workspace": {
         "properties": {
           "revision": {
@@ -62663,6 +63025,98 @@
             "type": "boolean",
             "title": "Plan Confirmed"
           },
+          "source_fingerprint": {
+            "type": "string",
+            "title": "Source Fingerprint",
+            "default": ""
+          },
+          "parsed_source_fingerprint": {
+            "type": "string",
+            "title": "Parsed Source Fingerprint",
+            "default": ""
+          },
+          "technical_extract_empty": {
+            "type": "boolean",
+            "title": "Technical Extract Empty",
+            "description": "技术分册这次没有抽出技术条款",
+            "default": false
+          },
+          "technical_outline": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TechnicalOutline"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "技术分册的单章目录；创建时的技术方案不是这份目录"
+          },
+          "technical_deviation_note": {
+            "type": "string",
+            "title": "Technical Deviation Note",
+            "description": "没有偏离表样表时的说明；有样表则为空",
+            "default": ""
+          },
+          "technical_needs_review": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Technical Needs Review",
+            "description": "正文偏离表述和矩阵不一致、或同一指标出现两个数字的小节"
+          },
+          "technical_kb": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TechnicalKbStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "企业双库是否齐备"
+          },
+          "technical_quality": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TechnicalQuality"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "质量八条抽检结果"
+          },
+          "response_tasks": {
+            "items": {
+              "$ref": "#/components/schemas/ResponseTask"
+            },
+            "type": "array",
+            "title": "Response Tasks",
+            "description": "响应任务（要求→章节映射）"
+          },
+          "coverage_rows": {
+            "items": {
+              "$ref": "#/components/schemas/CoverageRow"
+            },
+            "type": "array",
+            "title": "Coverage Rows",
+            "description": "覆盖视图五行数据源"
+          },
+          "plan_validation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Validation",
+            "description": "生成计划确定性校验结果"
+          },
           "sla": {
             "anyOf": [
               {
@@ -62704,47 +63158,6 @@
               }
             ],
             "description": "项目状态；cancelled 时只读"
-          },
-          "source_fingerprint": {
-            "type": "string",
-            "title": "Source Fingerprint",
-            "default": ""
-          },
-          "parsed_source_fingerprint": {
-            "type": "string",
-            "title": "Parsed Source Fingerprint",
-            "default": ""
-          },
-          "technical_extract_empty": {
-            "type": "boolean",
-            "title": "Technical Extract Empty",
-            "description": "技术分册这次没有抽出技术条款",
-            "default": false
-          },
-          "technical_outline": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/TechnicalOutline"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "技术分册的单章目录；创建时的技术方案不是这份目录"
-          },
-          "technical_deviation_note": {
-            "type": "string",
-            "title": "Technical Deviation Note",
-            "description": "没有偏离表样表时的说明；有样表则为空",
-            "default": ""
-          },
-          "technical_needs_review": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Technical Needs Review",
-            "description": "正文偏离表述和矩阵不一致、或同一指标出现两个数字的小节"
           }
         },
         "additionalProperties": true,
@@ -63668,7 +64081,8 @@
           "KNOWLEDGE_BASE_UPSTREAM_ERROR",
           "MODEL_OUTPUT_INVALID",
           "MODEL_UNAVAILABLE",
-          "PARSER_UNAVAILABLE"
+          "PARSER_UNAVAILABLE",
+          "PIPELINE_UNAVAILABLE"
         ],
         "503": [
           "SECRET_KEY_UNAVAILABLE",

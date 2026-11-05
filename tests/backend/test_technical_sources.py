@@ -124,14 +124,20 @@ def test_extract_keeps_scoring_points_and_spec_clauses_on_one_row(client):
     assert parsed.status_code == 200, parsed.text
     workspace = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
     assert workspace["technical_extract_empty"] is False
+    # 工单 1：技术分册解析成功后自动 parse_confirmed，抽取确认不再作为用户闸门。
+    assert workspace["parse_confirmed"] is True
     rows = [row["text"] for row in workspace["requirements"] if row.get("technical_clause")]
     assert "健康检查" in rows and "标准服务" in rows
     assert workspace["technical_outline"]["title"] == "服务方案"
     titles = [item["title"] for item in workspace["technical_outline"]["headings"]]
-    assert titles[:4] == ["服务方式", "标准服务", "服务内容", "健康检查"]
+    # 动态目录：规范编号进「技术规范响应」，评分点进「评分主观分响应」；不再写死教程六块。
+    assert "技术规范响应" in titles and "评分主观分响应" in titles
+    assert "标准服务" in titles and "健康检查" in titles
+    leaves = [item for item in workspace["technical_outline"]["headings"] if item.get("requirement_id")]
+    assert {item["title"] for item in leaves} >= {"标准服务", "健康检查", "故障处理"}
     chapter = next(item for item in workspace["chapters"] if item["volume"] == "technical")
     assert chapter["title"] == "服务方案"
-    assert "1.2.1 健康检查" in chapter["content"]
+    assert "健康检查" in chapter["content"]
 
 
 def test_empty_technical_extract_stops(client):
@@ -149,6 +155,7 @@ def test_empty_technical_extract_stops(client):
     workspace = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
     assert workspace["technical_extract_empty"] is True
     assert workspace["technical_outline"] is None
+    assert workspace["parse_confirmed"] is False
     assert not [row for row in workspace["requirements"] if row.get("technical_clause")]
     assert next(item for item in workspace["chapters"] if item["volume"] == "technical")["title"] == "技术方案"
 
@@ -196,10 +203,10 @@ def test_outline_uses_tender_title_and_blocks_confirm_until_each_clause_has_a_he
     assert parsed.status_code == 200, parsed.text
     workspace = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
     assert workspace["technical_outline"]["title"] == "技术服务方案"
-    titles = [item["title"] for item in workspace["technical_outline"]["headings"] if item["level"] == 3]
-    assert titles == ["健康检查", "故障处理", "培训"]
-    groups = [item["title"] for item in workspace["technical_outline"]["headings"] if item["level"] == 2]
-    assert groups == ["服务内容", "培训"]
+    leaves = [item["title"] for item in workspace["technical_outline"]["headings"] if item.get("requirement_id")]
+    assert leaves == ["健康检查", "故障处理", "培训"]
+    roots = [item["title"] for item in workspace["technical_outline"]["headings"] if item["level"] == 1]
+    assert roots == ["评分主观分响应"]
     chapter = next(item for item in workspace["chapters"] if item["id"] == workspace["technical_outline"]["chapter_id"])
     confirmed = client.post(
         f"/api/v1/projects/{project_id}/plan",
@@ -218,7 +225,7 @@ def test_outline_uses_tender_title_and_blocks_confirm_until_each_clause_has_a_he
         json={
             "lease_token": locked.json()["lease_token"],
             "base_revision": chapter["revision"],
-            "content": chapter["content"].replace("1.2.1 培训\n", ""),
+            "content": chapter["content"].replace("1.3 培训\n", ""),
             "input_fingerprint": workspace["input_fingerprint"],
             "idempotency_key": str(uuid4()),
         },
@@ -461,9 +468,10 @@ def test_section_text_follows_write_order_and_one_section_can_fail():
 
     drafted = produce_section("健康检查", {
         "text": "健康检查", "response": "每30分钟巡检一次", "response_type": "exceed",
-        "deviation_reason": "高于招标要求", "status": "confirmed", "response_origin": "history",
+        "deviation_reason": "高于招标要求", "status": "pending", "response_origin": "history",
     }, PublicModel())
-    assert "响应说明" in drafted and "服务目标" in drafted and "每30分钟" in drafted
+    assert "每30分钟" in drafted and "正偏离" in drafted
+    assert "响应说明" not in drafted  # 不再强制六段硬模板
 
 
 def test_generate_writes_six_parts_without_blocking_internal_export(client):
@@ -504,13 +512,14 @@ def test_generate_writes_six_parts_without_blocking_internal_export(client):
             json={},
         )
         assert generated.status_code == 200, generated.text
-        assert calls == ["健康检查", "标准服务"]
+        # 矩阵确认不再挡生成：有响应的叶子（含正偏离）都会写。
+        assert calls == ["健康检查", "故障处理", "标准服务"]
         workspace = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
         chapter = next(item for item in workspace["chapters"] if item["id"] == workspace["technical_outline"]["chapter_id"])
         assert chapter["content"].index("1.1 ") < chapter["content"].index("1.2 ")
-        assert "响应说明" in chapter["content"] and "交付物与记录" in chapter["content"]
-        assert "待补" in chapter["content"]
-        health = chapter["content"].split("1.2.1 健康检查", 1)[1].split("1.2.2 故障处理", 1)[0]
+        assert "针对「健康检查」的技术响应" in chapter["content"]
+        assert "待补" not in chapter["content"]  # 三条均有响应
+        health = chapter["content"].split("1.1 健康检查", 1)[1].split("1.2 故障处理", 1)[0]
         calls.clear()
 
         def rewrite(title, row):
@@ -561,7 +570,7 @@ def test_generate_writes_six_parts_without_blocking_internal_export(client):
     assert downloaded.status_code == 200, downloaded.text
     xml = _document_xml(downloaded.content)
     assert "Heading1" in xml and "Heading2" in xml
-    assert "响应说明" in xml and "待补" in xml
+    assert "健康检查" in xml and "标准服务" in xml
     assert "技术偏离表" not in xml
     missing = client.get(exported.json()["export"]["volumes"][0]["download_url"].rsplit("/", 1)[0] + "/deviation", headers=headers)
     assert missing.status_code == 404
@@ -615,7 +624,8 @@ def test_deviation_table_copies_the_tender_sample(client):
     filled["requirements"] = {row["id"]: row for row in current["requirements"] if row.get("technical_clause")}
     inline_rows = table_rows(samples[0], filled)
     titles = [row[1] for row in inline_rows]
-    assert "健康检查" in titles and "故障处理" in titles and "★废标响应时限" in titles and "培训" not in titles
+    # 矩阵确认不再挡偏离表：有响应即可入表（培训亦有正偏离响应）。
+    assert "健康检查" in titles and "故障处理" in titles and "★废标响应时限" in titles and "培训" in titles
     assert all(row[-1] == "" for row in inline_rows)
     fault = next(row for row in inline_rows if row[1] == "故障处理")
     assert fault[3] == "无偏离" and fault[4] == ""
@@ -718,19 +728,25 @@ def test_outline_can_be_renamed_reordered_and_relevelled(client):
             "outline_title": "技术服务方案",
             "confirm_outline": False,
             "outline_headings": [
-                {"level": 2, "title": "运行维护", "requirement_id": None},
-                {"level": 3, "title": "季度巡检", "requirement_id": rows["健康检查"]["id"]},
-                {"level": 2, "title": "应急处理", "requirement_id": None},
+                {"level": 1, "title": "运行维护", "requirement_id": None},
+                {"level": 2, "title": "季度巡检", "requirement_id": rows["健康检查"]["id"]},
+                {"level": 1, "title": "应急处理", "requirement_id": None},
                 {"level": 3, "title": "故障处理", "requirement_id": rows["故障处理"]["id"]},
-                {"level": 3, "title": "培训", "requirement_id": rows["培训"]["id"]},
+                {"level": 4, "title": "培训", "requirement_id": rows["培训"]["id"]},
             ],
         },
     )
     assert saved.status_code == 200, saved.text
     assert saved.json()["plan_confirmed"] is False
     current = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
-    titles = [(item["number"], item["title"]) for item in current["technical_outline"]["headings"]]
-    assert titles == [("1.1", "运行维护"), ("1.1.1", "季度巡检"), ("1.2", "应急处理"), ("1.2.1", "故障处理"), ("1.2.2", "培训")]
+    titles = [(item["number"], item["title"], item["level"]) for item in current["technical_outline"]["headings"]]
+    assert titles == [
+        ("1", "运行维护", 1),
+        ("1.1", "季度巡检", 2),
+        ("2", "应急处理", 1),
+        ("2.1.1", "故障处理", 3),
+        ("2.1.1.1", "培训", 4),
+    ]
     assert current["technical_outline"]["title"] == "技术服务方案"
     assert current["plan_confirmed"] is False
 

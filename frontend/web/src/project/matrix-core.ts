@@ -110,3 +110,43 @@ export function selectable(candidate: MatchCandidate): boolean {
 export function routingRows(items: Pick<MatrixItem, 'id' | 'volume' | 'suggested_volume' | 'is_cross_volume'>[], useSuggested: boolean) {
   return items.map(item => ({ id: item.id, volume: useSuggested ? item.suggested_volume : item.volume, is_cross_volume: item.is_cross_volume }));
 }
+
+/** 技术分册覆盖视图摘要：映射/偏离/缺口，不作为生成闸门。 */
+export type CoverageRequirement = {
+  id: string;
+  text: string;
+  technical_clause?: boolean;
+  status?: string;
+  response?: string;
+  response_type?: ResponseType | null;
+  response_origin?: string;
+  chapter_id?: string | null;
+};
+export type CoverageOutline = {
+  headings?: Array<{ requirement_id?: string | null; requirement_ids?: string[]; title?: string }> | null;
+  missing?: string[] | null;
+} | null;
+
+export function coverageSummary(requirements: CoverageRequirement[], outline?: CoverageOutline) {
+  const clauses = requirements.filter(item => item.technical_clause && item.status !== 'rejected');
+  const linked = new Set<string>();
+  for (const item of outline?.headings ?? []) {
+    if (item.requirement_id) linked.add(item.requirement_id);
+    for (const id of item.requirement_ids ?? []) linked.add(id);
+  }
+  const missingIds = new Set(outline?.missing ?? []);
+  const mapped = clauses.filter(item => linked.has(item.id));
+  const gaps = clauses.filter(item => missingIds.has(item.id) || (linked.size > 0 && !linked.has(item.id)));
+  const withResponse = clauses.filter(item => (item.response || '').trim());
+  const deviate = clauses.filter(item => item.response_type === 'deviate' || item.response_type === 'exceed');
+  const noEvidence = clauses.filter(item => ['no_evidence', 'retrieval_failed', 'draft_failed'].includes(item.response_origin || ''));
+  return {
+    total: clauses.length,
+    mapped: mapped.length,
+    gaps: gaps.length,
+    withResponse: withResponse.length,
+    deviate: deviate.length,
+    noEvidence: noEvidence.length,
+    coveragePercent: clauses.length ? Math.round((withResponse.length / clauses.length) * 100) : 0,
+  };
+}

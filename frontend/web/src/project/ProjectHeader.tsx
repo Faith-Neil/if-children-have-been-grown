@@ -17,15 +17,18 @@ import {
   formatCurrencyAmount,
   canAccessProjectSettings,
   PROJECT_HEADER_TABS,
+  projectHeaderTabs,
   filterProjectTabs,
   type CountdownInfo,
 } from './project-header-core.ts';
+import { technicalOnly } from './project-volumes.ts';
 
 export {
   calculateProjectCountdown,
   formatCurrencyAmount,
   canAccessProjectSettings,
   PROJECT_HEADER_TABS,
+  projectHeaderTabs,
   filterProjectTabs,
   type CountdownInfo,
 };
@@ -99,13 +102,13 @@ export function ProjectHeader({
   // 5. 过滤可用页签（八角色感知，只读成员无编辑设置入口）
   const visibleTabs = useMemo(() => {
     return filterProjectTabs(
-      PROJECT_HEADER_TABS,
+      projectHeaderTabs(technicalOnly(workspace)),
       session,
       project.id,
       effectiveRole,
       workspace.permissions
     );
-  }, [session, project.id, effectiveRole, workspace.permissions]);
+  }, [session, project.id, effectiveRole, workspace.permissions, workspace]);
 
   return (
     <header

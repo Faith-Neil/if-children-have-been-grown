@@ -9,9 +9,9 @@ import { projectCan } from './project-team.ts';
 import { useProject } from '../app/context.tsx';
 import { OriginalPreview } from './OriginalPreview.tsx';
 import { AddendumDiffDrawer } from './AddendumDiffDrawer.tsx';
-import { PARSE_SERVICE_OPTIONS, TECHNICAL_UPLOAD_ACCEPT, durationLabel, fileRoleOptions, hasAddendumDiff, hasTenderFile, replacementOptions, retryBody, roleChangeAllowed, sameSourceAlreadyExtracted, type ParseServiceChoice } from './parse-postprocess-core.ts';
+import { PARSE_SERVICE_OPTIONS, TECHNICAL_UPLOAD_ACCEPT, durationLabel, fileRoleOptions, hasAddendumDiff, hasTenderFile, replacementOptions, retryBody, roleChangeAllowed, sameSourceAlreadyExtracted, shouldAutoStartTechnicalParse, type ParseServiceChoice } from './parse-postprocess-core.ts';
 import { volumeMode } from './project-volumes.ts';
-import type { FileRole, Job, TenderFile } from '../shared/types.ts';
+import type { FileRole, Job, TenderFile, Workspace } from '../shared/types.ts';
 import { JobProgressWithSse } from '../status/JobProgress.tsx';
 import { jobFromStatus, type BackendJobStatus } from '../status/job-progress-sse.ts';
 import type { JobProgressData } from '../status/job-progress.ts';
@@ -69,6 +69,7 @@ export function TenderPage() {
       return false;
     }
     setUploading(true);
+    let next: Workspace | undefined;
     try {
       // 二进制直传：大扫描件不先转 base64
       await uploadRaw(rawUploadPath(`/api/v1/projects/${workspace.project.id}/files/raw`, { filename: file.name, file_role: uploadRole }),
@@ -76,8 +77,18 @@ export function TenderPage() {
     } catch (error) {
       report(error);
     } finally {
-      await reload().catch(report);
+      next = await reload().catch(error => { report(error); return undefined; });
       setUploading(false);
+    }
+    // 技术分册：上传成功后自动解析→抽取→拟目录，不再要求用户点「抽取技术条款」。
+    if (next && projectCan(next, 'prepare_sources') && shouldAutoStartTechnicalParse({
+      technicalOnly,
+      files: next.files,
+      sourceFingerprint: next.source_fingerprint,
+      parsedFingerprint: next.parsed_source_fingerprint,
+      jobs: next.jobs,
+    })) {
+      await startParse({}, next.revision);
     }
     return false;
   }
@@ -96,12 +107,21 @@ export function TenderPage() {
     } catch { /* 保留输入 */ }
   }
 
-  async function parse(body: Record<string, unknown> = {}) {
+  async function startParse(body: Record<string, unknown> = {}, revision?: number) {
     try {
-      const job = await mutate(`/api/v1/projects/${workspace.project.id}/parse/jobs`, 'POST', body) as BackendJobStatus;
-      setParseJobDone(false); setParseJob({ id: job.id, initial: jobFromStatus(job) });
-    } catch {
-      /* 保留当前文件列表供重试 */
+      // 上传后立刻自动解析时，必须用 reload 返回的 revision，避免闭包里的旧 If-Match。
+      const job = await request<BackendJobStatus>(
+        `/api/v1/projects/${workspace.project.id}/parse/jobs`,
+        token,
+        'POST',
+        body,
+        revision ?? workspace.revision,
+      );
+      setParseJobDone(false);
+      setParseJob({ id: job.id, initial: jobFromStatus(job) });
+      await reload().catch(report);
+    } catch (error) {
+      report(error);
     }
   }
 
@@ -109,7 +129,11 @@ export function TenderPage() {
     const next = await reload().catch(error => { report(error); return undefined; });
     if (job.status === 'completed') {
       setParseJob(null);
-      // 抽出为空时留在本页；有结果则去解析结果。响应矩阵仍由解析确认进入。
+      if (technicalOnly) {
+        // 抽出为空留本页说明；有目录草稿则进编辑台确认目录（矩阵不再是闸门）。
+        if (!next?.technical_extract_empty && next?.technical_outline) navigate('editor');
+        return;
+      }
       if (!next?.technical_extract_empty) navigate('analyze');
     }
   }
@@ -141,7 +165,9 @@ export function TenderPage() {
       <div className="page-heading">
         <div>
           <h2>{technicalOnly ? '招标文件与辅助文件' : '招标文件'}</h2>
-          <p>{technicalOnly ? '必须有一份招标文件。技术规范书和其他辅助文件可以不传。' : '上传原件后，提取条款与项目事实。结果需人工逐项核对。'}</p>
+          <p>{technicalOnly
+            ? '必须有一份招标文件。上传后自动解析并拟目录；技术规范书和其他辅助文件可以不传。'
+            : '上传原件后，提取条款与项目事实。结果需人工逐项核对。'}</p>
         </div>
         <Space>
           {!technicalOnly && (
@@ -150,14 +176,15 @@ export function TenderPage() {
             </Button>
           )}
           <Button
-            type="primary"
+            type={technicalOnly ? 'default' : 'primary'}
             icon={<ReloadOutlined />}
             loading={busy}
             disabled={!workspace.files.length || !tenderReady || extracted || !projectCan(workspace, 'prepare_sources') || uploading
               || (!!parseJob && !['completed', 'failed', 'cancelled'].includes(parseJob.initial.status) && !parseJobDone)}
-            onClick={() => void parse()}
+            onClick={() => void startParse()}
+            data-testid="parse-start-button"
           >
-            {technicalOnly ? '抽取技术条款' : '解析招标文件'}
+            {technicalOnly ? '重新解析' : '解析招标文件'}
           </Button>
         </Space>
       </div>
@@ -174,10 +201,16 @@ export function TenderPage() {
       )}
       {technicalOnly && workspace.technical_extract_empty && (
         <Alert type="warning" showIcon className="page-notice" data-testid="technical-extract-empty"
-          message="这批文件里没有抽到技术响应内容，先不进入目录和矩阵。" />
+          message="这批文件里没有抽到技术响应内容，先不进入目录。请换文件或补充技术规范书后再上传；系统会自动重新解析。" />
       )}
-      {technicalOnly && extracted && (
-        <Alert type="info" showIcon className="page-notice" message="这批文件已经抽取过。增加、替换或删除文件后才能再抽取。" />
+      {technicalOnly && extracted && workspace.technical_outline && (
+        <Alert type="success" showIcon className="page-notice" data-testid="technical-outline-ready"
+          message="已拟技术目录草稿。"
+          action={<Button size="small" type="link" onClick={() => navigate('editor')}>去确认目录</Button>} />
+      )}
+      {technicalOnly && !extracted && !parseJob && workspace.files.some(file => file.status === 'failed') && (
+        <Alert type="error" showIcon className="page-notice" data-testid="technical-parse-failed"
+          message="解析失败。错误原因见文件行内说明；修好后可点「重新解析」或更换服务重试。" />
       )}
       {!technicalOnly && (
         <Alert
@@ -350,7 +383,7 @@ export function TenderPage() {
           onChange={event => setSupersedeReason(event.target.value)} placeholder="理由（必填），例如重新发布的正式版" />
       </Modal>
       <Modal title="换一个解析服务重试" open={!!retryFile} onCancel={() => setRetryFile(null)} okText="重新解析" cancelText="取消"
-        onOk={() => { if (retryFile) { void parse(retryBody(retryService, retryFile.id)); setRetryFile(null); } }}>
+        onOk={() => { if (retryFile) { void startParse(retryBody(retryService, retryFile.id)); setRetryFile(null); } }}>
         <p>文件：{retryFile?.filename}（当前：{retryFile?.parse_service_label || '尚未解析'}）</p>
         <Select<ParseServiceChoice> style={{ width: '100%' }} value={retryService} options={[...PARSE_SERVICE_OPTIONS]} onChange={setRetryService}
           aria-label="解析服务" data-testid="retry-service-select" />

@@ -33,11 +33,13 @@
 
 `enable_vision_enhancement` 为 false，不为 PDF 填写视觉模型。
 
+本机 RAGFlow v1.0.0-rc2 会把 `doc_type` 为 `table` 的块丢掉，表格里的技术步骤因此进不了切块。历史标书和资料库的 PDF、DOC、DOCX 改为 `flatten_media_to_text` 为 true，并设置 `remove_toc` 为 true。表格文字跟所在小节一起切；一节超过 1100 token 时由标题切块器按句拆开。目录页不入库。
+
 | 格式 | 设置 |
 |---|---|
-| PDF | DeepDOC，`flatten_media_to_text` 为 false，`preprocess` 为 `main_content`，输出 json。保留表格，不把目录当正文重复入库 |
-| DOCX | `flatten_media_to_text` 为 false，输出 json，保留解析器给出的标题、编号和表格行列 |
-| DOC | 输出 json，`preprocess` 为 `main_content` |
+| PDF | DeepDOC，`flatten_media_to_text` 为 true，`preprocess` 为 `main_content`，`remove_toc` 为 true，输出 json |
+| DOCX | `flatten_media_to_text` 为 true，`remove_toc` 为 true，输出 json。标题、编号和表格文字留在同一节 |
+| DOC | 输出 json，`preprocess` 为 `main_content`，`flatten_media_to_text` 为 true，`remove_toc` 为 true |
 | XLS、XLSX、CSV | DeepDOC，输出 html，不把表格压成无行列的纯文本 |
 | PPT、PPTX | DeepDOC |
 
@@ -70,7 +72,7 @@
 
 ### 2.3 关键词
 
-Extractor 的关键词 `top_n` 为 10。提示词仍要求 8～12 个。不开摘要、问法和标签。温度保持现有的 0.1。
+Extractor 的关键词 `top_n` 为 10。提示词仍要求 8～12 个；原文不足 8 个时按实际数量输出，当前文本没有技术词时不输出。每行一个词。不开摘要和标签。问法 `enabled` 为 false 且 `top_n` 为 0，不能只写 0，否则 RAGFlow 保存画布时会按默认条数重新打开问法。温度保持现有的 0.1。
 
 历史标书使用下面的系统提示词：
 

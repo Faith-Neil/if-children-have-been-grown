@@ -34,6 +34,12 @@ MEDIA_TYPES = {
 }
 PAGINATION = "ragflow_deepdoc_positions"
 REMOTE_WARNING = "经 RAGFlow DeepDOC 版面识别（含 OCR）提取文字，页码按版面位置还原；识别可能有误，请对照原件核对。"
+# 招标解析临时数据集必须用公司知识库配置的内网嵌入；外网嵌入会在 Tokenizer 阶段出网失败（B5/B6）。
+_EXTERNAL_EMBEDDING = ("jiekou", "openai.com", "api.openai", "google-gemini", "@gemini")
+MISSING_LOCAL_EMBEDDING = (
+    "知识库未配置本公司内网嵌入模型。请在「知识库配置」选择本地 Embedding（如 bge-m3），"
+    "招标文件解析禁止使用外网嵌入。"
+)
 
 
 def wait_seconds() -> float:
@@ -212,24 +218,78 @@ class RemoteTenderParser:
     def eligible(filename: str, error: DomainError) -> bool:
         return error.code in FALLBACK_CODES and PurePosixPath(filename).suffix.lower() in REMOTE_SUFFIXES
 
+    @staticmethod
+    def embedding_is_external(model_id: str | None) -> bool:
+        text = (model_id or "").strip().lower()
+        if not text:
+            return False
+        # 本公司内网 OpenAI 兼容实例（instance=qwen）不算外网。
+        if "@qwen@openai-api-compatible" in text:
+            return False
+        return any(marker in text for marker in _EXTERNAL_EMBEDDING)
+
+    @staticmethod
+    def explain_parse_failure(progress_msg: str) -> str:
+        """把 RAGFlow 原始 progress_msg 收成可见、可重试的中文说明；禁止静默假成功。"""
+        raw = (progress_msg or "").strip() or "未给出原因"
+        lower = raw.lower()
+        if any(marker in lower for marker in ("jiekou", "openai.com", "api.openai", "failed to send request", "embeddin")):
+            return (
+                f"RAGFlow 解析失败：嵌入/模型请求疑似出网或外网嵌入不可用。"
+                f"请确认知识库嵌入为本公司内网模型后重试。原始原因：{raw[:240]}"
+            )
+        if "q_" in lower and "vec not found" in lower:
+            return (
+                f"RAGFlow 解析失败：数据集嵌入模型与向量库列不一致（曾改过嵌入却未重建）。"
+                f"系统将在下次解析时重建招标临时数据集。原始原因：{raw[:240]}"
+            )
+        return f"RAGFlow 解析失败：{raw[:280]}"
+
+    def resolve_embedding(self, client: Any, settings: dict) -> str:
+        """优先用公司知识库配置的内网嵌入；未配时尝试 RAGFlow 上第一个非外网 embedding。"""
+        configured = (settings.get("embedding_model") or "").strip()
+        if configured and not self.embedding_is_external(configured):
+            return configured
+        try:
+            models = client.list_models(model_type="embedding") or []
+        except Exception:
+            models = []
+        for row in models:
+            model_id = str((row or {}).get("id") or "").strip()
+            if model_id and not self.embedding_is_external(model_id):
+                return model_id
+        raise DomainError(422, "RAGFLOW_EMBEDDING_REQUIRED", MISSING_LOCAL_EMBEDDING)
+
     def ensure_dataset(self, client: Any, company_id: str) -> str:
+        """保证招标临时数据集使用公司配置的内网嵌入；嵌入不一致时删除重建，禁止沿用外网默认嵌入。"""
         from .knowledge_base import read_index, read_settings
         state = self.kb.repository.read()
+        settings = read_settings(state, company_id)
+        embedding = self.resolve_embedding(client, settings)
         record = read_index(state, company_id).get("tender_dataset") or {}
-        dataset_id = record.get("dataset_id", "")
+        dataset_id = str(record.get("dataset_id") or "")
+        pipeline_id, mode = "", "builtin"
+        current = None
         if dataset_id:
             try:
-                client.get_dataset(dataset_id, company_id=company_id)
-                return dataset_id
+                current = client.get_dataset(dataset_id, company_id=company_id)
             except Exception:
-                dataset_id = ""
+                dataset_id, current = "", None
         wanted = f"{company_id}::{TENDER_DATASET}"
-        found = next((d for d in client.list_datasets(company_id=company_id, page_size=100) if d.name == wanted), None)
-        settings = read_settings(state, company_id)
-        pipeline_id, mode = "", "builtin"
-        if found is not None:
-            dataset_id = found.id
-        else:
+        if current is None:
+            found = next((d for d in client.list_datasets(company_id=company_id, page_size=100) if d.name == wanted), None)
+            if found is not None:
+                current, dataset_id = found, found.id
+        if current is not None and getattr(current, "embedding_model", "") != embedding:
+            # 就地改嵌入会让 Infinity 向量列维度对不上（实测 q_1024_vec not found），必须删建。
+            log.warning("tender dataset embedding mismatch for %s: %s -> %s; recreating",
+                        company_id, getattr(current, "embedding_model", ""), embedding)
+            try:
+                client.delete_datasets([dataset_id])
+            except Exception as exc:
+                log.warning("tender dataset delete failed: %s", type(exc).__name__)
+            dataset_id, current = "", None
+        if current is None:
             # 默认内置 DeepDOC：真实扫描件实测按版面位置还原的页码准确（35/35 页）；ICG 招标流程按标题切块后
             # 只还原出 32 页、评分条款页码前移，条款原句无法按页回查。需要时用 ICG_TENDER_USE_PIPELINE=1 打开。
             if os.environ.get("ICG_TENDER_USE_PIPELINE", "0") == "1" and settings.get("use_pipelines"):
@@ -238,15 +298,18 @@ class RemoteTenderParser:
                 except Exception as exc:
                     log.warning("tender pipeline unavailable for %s: %s", company_id, type(exc).__name__)
             if pipeline_id:
-                dataset_id = client.create_pipeline_dataset(TENDER_DATASET, pipeline_id, company_id=company_id,
-                                                            embedding_model=settings.get("embedding_model") or None,
-                                                            language=settings.get("language") or "Chinese").id
+                dataset_id = client.create_pipeline_dataset(
+                    TENDER_DATASET, pipeline_id, company_id=company_id,
+                    embedding_model=embedding, language=settings.get("language") or "Chinese").id
                 mode = "pipeline"
             else:
-                dataset_id = client.create_dataset(TENDER_DATASET, company_id=company_id,
-                                                   embedding_model=settings.get("embedding_model") or None).id
+                dataset_id = client.create_dataset(
+                    TENDER_DATASET, company_id=company_id, embedding_model=embedding).id
         self.kb._update_index(company_id, lambda index: index.__setitem__(
-            "tender_dataset", {"dataset_id": dataset_id, "pipeline_id": pipeline_id, "mode": mode}))
+            "tender_dataset", {
+                "dataset_id": dataset_id, "pipeline_id": pipeline_id, "mode": mode,
+                "embedding_model": embedding,
+            }))
         return dataset_id
 
     def submit(self, company_id: str, filename: str, data: bytes) -> RemoteOutcome:
@@ -277,6 +340,10 @@ class RemoteTenderParser:
             else:
                 document = client.upload_file(dataset_id, filename, data, MEDIA_TYPES.get(suffix, "application/octet-stream"))
                 client.trigger_parse(dataset_id, [document.id])
+        except DomainError as exc:
+            for part in uploaded:
+                self._cleanup(client, {"dataset_id": dataset_id, "document_id": part["document_id"]})
+            return RemoteOutcome("failed", message=exc.message)
         except Exception as exc:
             log.warning("tender remote submit failed for %s: %s", company_id, type(exc).__name__)
             for part in uploaded:
@@ -311,7 +378,7 @@ class RemoteTenderParser:
                 return self._collect(client, remote)
             if status == "failed":
                 self._cleanup(client, remote)
-                return RemoteOutcome("failed", message=f"RAGFlow 解析失败：{(document.progress_msg or '未给出原因')[:200]}")
+                return RemoteOutcome("failed", message=self.explain_parse_failure(document.progress_msg))
             if self.clock() >= deadline:
                 percent = int(round((document.progress or 0) * 100))
                 return RemoteOutcome("pending", remote=remote, message=f"RAGFlow 正在解析（{percent}%）")
@@ -329,8 +396,11 @@ class RemoteTenderParser:
                 if document.sync_status == "failed":
                     for other in parts:
                         self._cleanup(client, {"dataset_id": remote["dataset_id"], "document_id": other["document_id"]})
-                    return RemoteOutcome("failed", message=f"RAGFlow 解析第 {part['first_page']}～{part['last_page']} 页这一批失败："
-                                                           f"{(document.progress_msg or '未给出原因')[:200]}")
+                    detail = self.explain_parse_failure(document.progress_msg)
+                    return RemoteOutcome(
+                        "failed",
+                        message=f"RAGFlow 解析第 {part['first_page']}～{part['last_page']} 页这一批失败：{detail.removeprefix('RAGFlow 解析失败：')}",
+                    )
                 progress.append(1.0 if document.sync_status == "synced" else float(document.progress or 0))
             if all(value >= 1.0 for value in progress):
                 return self._collect_parts(client, remote)
