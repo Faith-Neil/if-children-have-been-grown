@@ -134,10 +134,11 @@ def main():
         lib = c.get("/api/v1/library", headers=mgr).json()
         r = c.post("/api/v1/library", headers={**mgr, "If-Match": str(lib["revision"]), "Idempotency-Key": str(uuid4())}, json={"name": ""})
         check("422 VALIDATION_ERROR 统一错误体", r.status_code == 422 and r.json()["code"] == "VALIDATION_ERROR" and v1_body_ok(r), r.text)
-        viewer = login("alpha-viewer")
-        r = c.post("/api/v1/library", headers={**viewer, "If-Match": str(lib["revision"]), "Idempotency-Key": str(uuid4())},
-                   json={"name": "查看人无权", "type": "qualification", "content": "合成。"})
-        check("403 查看人写资料库", r.status_code == 403 and v1_body_ok(r) and ERROR_STATUS.get(r.json()["code"]) == 403, r.text)
+        # 旧查看人已收成普通用户，可以写本公司资料。仍只读的是平台管理员。
+        readonly = login("platform-admin")
+        r = c.post("/api/v1/library", headers={**readonly, "If-Match": str(lib["revision"]), "Idempotency-Key": str(uuid4())},
+                   json={"name": "平台管理员无权", "type": "qualification", "content": "合成。"})
+        check("403 平台管理员写资料库", r.status_code == 403 and v1_body_ok(r) and r.json().get("code") == "FORBIDDEN" and ERROR_STATUS.get(r.json()["code"]) == 403, r.text)
         r = c.post("/api/v1/library", headers={**mgr, "If-Match": "999999", "Idempotency-Key": str(uuid4())},
                    json={"name": "旧版本", "type": "qualification", "content": "合成。"})
         check("409 过期 If-Match 统一错误体且状态与表一致", r.status_code == 409 and v1_body_ok(r) and ERROR_STATUS.get(r.json()["code"]) == 409, r.text)
