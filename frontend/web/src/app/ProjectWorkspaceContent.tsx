@@ -130,11 +130,11 @@ export function ProjectWorkspaceContent({
                   />
                 )}
                 {tab === 'export' && (
-                  <>
-                    <ChecksPage />
+                  <div className={`check-export-board${technicalOnly(workspace) ? ' technical' : ''}`} data-testid="check-export-board">
                     <ExportPage />
-                    <ManualQueuePage />
-                  </>
+                    {!technicalOnly(workspace) && <ChecksPage />}
+                    {!technicalOnly(workspace) && <div className="check-export-queue"><ManualQueuePage /></div>}
+                  </div>
                 )}
                 {tab === 'settings' && <ProjectSettingsPage />}
               </>

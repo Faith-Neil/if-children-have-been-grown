@@ -285,7 +285,7 @@ export function can(
     }
     return {
       allowed: false,
-      reason: '抱歉，仅项目负责人或本分册负责人有权接管编辑锁。',
+      reason: '抱歉，仅项目负责人或方案负责人有权接管编辑锁。',
       role: normRole,
       roleLabel,
       code: 'LOCK_TAKEOVER_FORBIDDEN',
@@ -331,7 +331,7 @@ export function can(
     }
     return {
       allowed: false,
-      reason: '抱歉，仅项目负责人或本分册负责人有权导出内部稿。',
+      reason: '抱歉，仅项目负责人或方案负责人有权导出内部稿。',
       role: normRole,
       roleLabel,
       code: 'INTERNAL_EXPORT_FORBIDDEN',
@@ -353,7 +353,7 @@ export function can(
     }
     return {
       allowed: false,
-      reason: '抱歉，仅项目负责人或本分册负责人有权发起分册检查与定稿。',
+      reason: '抱歉，仅项目负责人或方案负责人有权发起检查。',
       role: normRole,
       roleLabel,
       code: 'VOLUME_FINALIZE_FORBIDDEN',
@@ -375,7 +375,7 @@ export function can(
     }
     return {
       allowed: false,
-      reason: '抱歉，仅项目负责人或本分册负责人有权解锁分册。',
+      reason: '抱歉，仅项目负责人或方案负责人有权解锁。',
       role: normRole,
       roleLabel,
       code: 'VOLUME_UNLOCK_FORBIDDEN',
@@ -400,7 +400,7 @@ export function can(
     }
     return {
       allowed: false,
-      reason: '抱歉，仅项目负责人、分册负责人或被分配章节的编写人可确认写作方案。',
+      reason: '抱歉，仅项目负责人、方案负责人或被分配章节的编写人可确认写作方案。',
       role: normRole,
       roleLabel,
       code: 'PLAN_CONFIRM_FORBIDDEN',

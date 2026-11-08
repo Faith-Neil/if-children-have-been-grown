@@ -89,42 +89,42 @@ test('getVolumeFinalizeMeta generates compliant badge and label metadata', () =>
   // 单分册已定稿
   const techMeta = getVolumeFinalizeMeta(SAMPLE_VOLUMES_MIXED, 'technical');
   assert.equal(techMeta.isFinalized, true);
-  assert.equal(techMeta.label, '技术分册已定稿');
+  assert.equal(techMeta.label, '技术方案已定稿');
   assert.equal(techMeta.badgeColor, 'success');
   assert.equal(techMeta.finalizedBy, 'lead-usr');
 
   // 单分册未定稿（已解锁）
   const busMeta = getVolumeFinalizeMeta(SAMPLE_VOLUMES_MIXED, 'business');
   assert.equal(busMeta.isFinalized, false);
-  assert.equal(busMeta.label, '商务分册未定稿');
+  assert.equal(busMeta.label, '商务方案未定稿');
   assert.equal(busMeta.badgeColor, 'default');
   assert.equal(busMeta.unlockReason, '核对商务报价与盖章材料');
 
   // 两册全量范围
   const allMixedMeta = getVolumeFinalizeMeta(SAMPLE_VOLUMES_MIXED, 'all');
   assert.equal(allMixedMeta.isFinalized, false);
-  assert.equal(allMixedMeta.label, '分册未全部定稿');
+  assert.equal(allMixedMeta.label, '方案未全部定稿');
   assert.equal(allMixedMeta.badgeColor, 'default');
 
   const allDoneMeta = getVolumeFinalizeMeta(SAMPLE_VOLUMES_ALL_FINALIZED, 'all');
   assert.equal(allDoneMeta.isFinalized, true);
-  assert.equal(allDoneMeta.label, '分册全部定稿');
+  assert.equal(allDoneMeta.label, '方案全部定稿');
   assert.equal(allDoneMeta.badgeColor, 'success');
 });
 
 test('deriveFinalizePremise outputs premise item with tab link and ready state', () => {
   const techPremise = deriveFinalizePremise(SAMPLE_VOLUMES_MIXED, 'technical');
   assert.equal(techPremise.ready, true);
-  assert.ok(techPremise.label.includes('技术分册已定稿锁定'));
+  assert.ok(techPremise.label.includes('技术方案已定稿锁定'));
   assert.equal(techPremise.tab, 'editor');
 
   const busPremise = deriveFinalizePremise(SAMPLE_VOLUMES_MIXED, 'business');
   assert.equal(busPremise.ready, false);
-  assert.ok(busPremise.label.includes('商务分册已定稿锁定'));
+  assert.ok(busPremise.label.includes('商务方案已定稿锁定'));
 
   const allPremise = deriveFinalizePremise(SAMPLE_VOLUMES_MIXED, 'all');
   assert.equal(allPremise.ready, false);
-  assert.ok(allPremise.label.includes('技术与商务两册均已定稿锁定'));
+  assert.ok(allPremise.label.includes('技术方案与商务方案均已定稿锁定'));
 
   const allDonePremise = deriveFinalizePremise(SAMPLE_VOLUMES_ALL_FINALIZED, 'all');
   assert.equal(allDonePremise.ready, true);
@@ -141,7 +141,7 @@ test('canExportSubmission blocks formal submission when volume is not finalized'
     isFinalized: false,
   });
   assert.equal(unfinalizedResult.allowed, false);
-  assert.ok(unfinalizedResult.reason?.includes('尚未完成定稿锁定'));
+  assert.ok(unfinalizedResult.reason?.includes('尚未通过质量门禁'));
 
   // 已定稿时放行
   const finalizedResult = canExportSubmission({

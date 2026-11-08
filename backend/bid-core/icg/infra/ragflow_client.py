@@ -876,6 +876,14 @@ class RagflowRetrievalClient:
                         return [str(v) for v in value if str(v).strip()]
                 return []
             available = raw.get("available", raw.get("available_int", True))
+            meta = raw.get("metadata") or raw.get("meta_fields") or raw.get("meta") or {}
+            if not isinstance(meta, dict):
+                meta = {}
+            # 部分字段也可能平铺在块对象上（RAGFlow Extractor 写入）。
+            for key in ("content_role", "document_type", "reusability", "section_type",
+                        "knowledge_type", "technical_domain", "project_name", "bid_date"):
+                if key not in meta and raw.get(key) not in (None, ""):
+                    meta[key] = raw.get(key)
             chunks.append({
                 "id": str(raw.get("id") or raw.get("chunk_id") or ""),
                 "content": str(raw.get("content") or raw.get("content_with_weight") or ""),
@@ -884,6 +892,7 @@ class RagflowRetrievalClient:
                 "available": str(available).lower() not in ("false", "0"),
                 "doc_type": str(raw.get("doc_type_kwd") or raw.get("doc_type") or ""),
                 "positions": raw.get("positions") if isinstance(raw.get("positions"), list) else [],
+                "metadata": {str(k): str(v) for k, v in meta.items() if str(v).strip()},
             })
         return {"total": int(data.get("total") or len(chunks)), "chunks": chunks}
 

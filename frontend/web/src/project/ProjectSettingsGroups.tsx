@@ -135,7 +135,7 @@ export function RuleOverridesCard({ projectId, canEdit, mutate, busy, settings, 
 }
 
 export function VolumeFormatCard({ projectId, canEdit, mutate, busy, settings, writerNames }: Base & { writerNames: string[] }) {
-  const { saving, save } = useSave(mutate, '分册格式已保存。');
+  const { saving, save } = useSave(mutate, '方案格式已保存。');
   const [rows, setRows] = useState<VolumeSettingRow[]>([]);
   useEffect(() => { if (settings) setRows(settings.volume_settings); }, [settings?.revision]);  // eslint-disable-line react-hooks/exhaustive-deps
   const update = (index: number, patch: Partial<VolumeSettingRow>) => setRows(current => current.map((row, i) => (i === index ? { ...row, ...patch } : row)));
@@ -143,7 +143,7 @@ export function VolumeFormatCard({ projectId, canEdit, mutate, busy, settings, w
     <p className="muted">内部截止时间晚于项目投标截止时间会给警告；递交文件名不得含编写人变量或姓名，导出递交版时优先使用。</p>
     <Table<VolumeSettingRow> size="small" rowKey="volume" pagination={false} dataSource={rows} scroll={{ x: 900 }}
       columns={[
-        { title: '分册', width: 80, render: (_, row) => volumeName(row.volume) },
+        { title: '方案', width: 80, render: (_, row) => volumeName(row.volume) },
         { title: '编制方式', width: 130, render: (_, row, index) => <Select style={{ width: 110 }} disabled={!canEdit} value={row.compile_mode} onChange={value => update(index, { compile_mode: value })} options={[{ value: 'system', label: '系统编制' }, { value: 'external', label: '系统外编制' }]} /> },
         { title: '内部截止时间', width: 200, render: (_, row, index) => <Input placeholder="2026-12-30T17:00" disabled={!canEdit} value={row.internal_deadline ?? ''} onChange={event => update(index, { internal_deadline: event.target.value })} /> },
         { title: '单独密封', width: 90, render: (_, row, index) => <Switch disabled={!canEdit} checked={row.separate_seal} onChange={checked => update(index, { separate_seal: checked })} /> },
@@ -152,7 +152,7 @@ export function VolumeFormatCard({ projectId, canEdit, mutate, busy, settings, w
         { title: '封面模板', width: 150, render: (_, row, index) => <Input disabled={!canEdit} value={row.cover_template ?? ''} onChange={event => update(index, { cover_template: event.target.value })} /> },
         { title: '递交文件名', width: 180, render: (_, row, index) => <Input disabled={!canEdit} value={row.submit_file_name ?? ''} onChange={event => update(index, { submit_file_name: event.target.value })} /> },
       ]} />
-    {canEdit && <Button style={{ marginTop: 8 }} type="primary" loading={saving} disabled={busy || !rows.length} onClick={() => save(projectSubPath(projectId, 'volume-settings'), 'PUT', () => volumeSettingsPayload(rows, writerNames))}>保存分册格式</Button>}
+    {canEdit && <Button style={{ marginTop: 8 }} type="primary" loading={saving} disabled={busy || !rows.length} onClick={() => save(projectSubPath(projectId, 'volume-settings'), 'PUT', () => volumeSettingsPayload(rows, writerNames))}>保存方案格式</Button>}
   </div>;
 }
 

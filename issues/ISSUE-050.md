@@ -11,9 +11,9 @@
 | 优先级 | P0 |
 | 状态 | in-progress |
 | 登记日期 | 2026-11-05 |
-| 最后更新日期 | 2026-11-05 |
-| revision | kb-ingestion-implemented-1 |
-| 关联 Task | 未拆卡。实现按已确认的计划直接落在当前分支，未写入任务看板 |
+| 最后更新日期 | 2026-11-06 |
+| revision | kb-parse-opt-1 |
+| 关联 Task | [AI-HISTORY-BID-PARSE-OPT](../docs/tasks/AI-M0.md#ai-history-bid-parse-opt)、[AI-HISTORY-BID-RAG-EVAL](../docs/tasks/AI-M0.md#ai-history-bid-rag-eval)（均 in-review） |
 | 关联 PR | 未创建 |
 | 本地验收 | 干净检出 `19e8e4d` 上，`test_kb_admin.py`、`test_knowledge_base.py`、`test_technical_sources.py`、`test_history_commitment.py`、`test_outline_generation_start.py` 为 56 passed、1 skipped。未跑全库。未连接 RAGFlow |
 | 合入 | 未合入 |
@@ -36,7 +36,8 @@
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| 未拆卡 | 用户确认设计说明后再拆 | 见设计说明第 6 节 | 设计说明中的六条代码完成条件 | 未建卡 |
+| [AI-HISTORY-BID-PARSE-OPT](../docs/tasks/AI-M0.md#ai-history-bid-parse-opt) | A/B/C/D 四类优化 + 两份脱敏金标真机验收 | `ragflow_pipelines.py`、`knowledge_base.py`、`ragflow_client.py`、`tests/backend/test_history_bid_parse_acceptance.py` | 四类真机单测全过；假服务不算验收 | in-review |
+| [AI-HISTORY-BID-RAG-EVAL](../docs/tasks/AI-M0.md#ai-history-bid-rag-eval) | 五份脱敏标书 Recall@5 / MRR@10 | `scripts/rag_eval_history_bid.py`、`golden_history_bid_v1.json` | 真机报告；假服务不算 | in-review |
 
 ## 验收条目
 
@@ -65,6 +66,9 @@
 | 2026-11-05 | kb-ingestion-plan-1 / new | 用户确认设计说明。已写实现计划。管道键定为 materials。尚未执行 | [实现计划](../docs/superpowers/plans/2026-11-05-history-bid-ingestion.md) |
 | 2026-11-05 | kb-ingestion-implemented-1 / in-progress | 计划六段已写入分支，后续提交补上写作路径接线，并把承诺提示的快照 id 固定到当前生成结果。干净检出测试 56 passed、1 skipped。未部署 | 提交 `69f9c07` 至 `19e8e4d` |
 | 2026-11-05 | kb-ingestion-parse-fix-1 / in-progress | 对照四份原件后，表格正文没有进入切块，问法仍被画布打开。工作区已把历史标书和资料库的 PDF、DOC、DOCX 改为表格并入正文、去掉目录，并显式关闭问法。本机 RAGFlow 画布已更新，四份文件已开始重新解析。解析质量尚未复测，未标完成 | 设计说明 §2.1、§2.3 |
+| 2026-11-06 | kb-parse-opt-1 / in-progress | 用户确认 A/B/C/D 全做且只认真实 RAGFlow 验收；金标两份脱敏 docx 入库。拆卡 AI-HISTORY-BID-PARSE-OPT。标题规则补「6.3Oracle」式数字层级；部署后二次关闭问法；list_chunks 透出 metadata；四类真机验收单测落地 | 金标 `tests/backend/fixtures/history-bid-golden/` |
+| 2026-11-06 | kb-parse-opt-accept-1 / in-review | 本机 RAGFlow 真机四测 4 passed（≈250s）。试查前 refresh_status 修复末份文档 zero hits。卡升 in-review，不标 done | [交付](../docs/delivery/AI-HISTORY-BID-PARSE-OPT.md) |
+| 2026-11-06 | kb-rag-eval-1 / in-review | 五份脱敏金标 + history_bid 真机大盘：5/5 解析成功；Recall@5/MRR@10 报告已写。不改默认阈值。AI-HISTORY-BID-RAG-EVAL in-review | [报告](../docs/testing/rag-eval-history-bid-v1.md) |
 
 ## 本地验收与后续合入发布
 

@@ -4,7 +4,7 @@ import { editorChapterPath } from '../app/app-route.ts';
 import { requestIssueFocus } from '../editor/issue-focus.ts';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, App as AntApp, Badge, Button, Card, Checkbox, Col, Collapse, Descriptions, Drawer, Empty, Form, Input, List, Modal, Progress, Radio, Row, Select, Space, Statistic, Steps, Table, Tabs, Tag, Tooltip, Upload } from 'antd';
-import { CheckCircleOutlined, DownloadOutlined, FileTextOutlined, LinkOutlined, PlusOutlined, ReloadOutlined, SearchOutlined, StopOutlined, UploadOutlined, WarningOutlined } from '@ant-design/icons';
+import { DownloadOutlined, ReloadOutlined, SearchOutlined, StopOutlined } from '@ant-design/icons';
 import { download, encodeFile, request } from '../shared/api';
 import { projectCan, volumeOperationAllowed } from './project-team';
 import { categoryName, formatTime, paginationName, useProject, volumeName } from '../app/context';
@@ -31,12 +31,7 @@ import {
   latestSubmissionWithChecklist,
   responseTracePath,
 } from './export-checks-core';
-import {
-  useVolumesStatus,
-  areAllVolumesFinalized,
-  isVolumeFinalized,
-  deriveFinalizePremise,
-} from './volume-api';
+import { useVolumesStatus } from './volume-api';
 
 const statusName = (value: string) => value === 'confirmed' ? '已确认' : value === 'needs_review' ? '需重新核对' : value === 'rejected' ? '已排除' : '待确认';
 const statusColor = (value: string) => value === 'confirmed' ? 'green' : value === 'rejected' ? 'default' : 'orange';
@@ -48,7 +43,6 @@ import { MatrixMatchDrawer } from './MatrixMatchDrawer';
 import { RISK_COLORS, coverageSummary, fetchMatrix, matrixPaths, needsReason, responseOptions, routingRows, type MatrixData } from './matrix-core';
 import { OriginalPreview } from './OriginalPreview';
 import { ConflictCards } from './ConflictCards';
-import { VolumeFinalizePanel } from './VolumeFinalizePanel';
 import { projectVolumes, technicalOnly, volumeOptions } from './project-volumes';
 import { CoverageView } from './CoverageView.tsx';
 export { OverviewPage } from './OverviewTab';
@@ -138,19 +132,22 @@ export function MatrixPage() {
         { title: '缺证据', value: active.filter(item => /资质|证书|证明|业绩|授权/.test(item.text) && !item.evidence_ids.length).length, color: '#D9363E' },
         { title: '覆盖率', value: `${active.length ? Math.round(responded / active.length * 100) : 0}%`, color: '#1E4DB7' },
       ];
-  return <><Row gutter={12} className="matrix-statistics" data-testid={isTechnicalCoverage ? 'coverage-view-stats' : 'matrix-statistics'}>{stats.map(item => <Col key={item.title} xs={24} sm={12} md={8} lg={6} xl={4}><Card><Statistic title={item.title} value={item.value} valueStyle={{ color: item.color }} /></Card></Col>)}</Row>{isTechnicalCoverage ? <Alert type="info" showIcon className="page-notice" data-testid="coverage-view-notice" message="覆盖视图（可选）" description="查看条款与目录映射、偏离与缺口。不挡「开始生成」与导出；可事后改偏离说明。" action={<Button size="small" type="link" onClick={() => navigate('editor')}>回编辑台</Button>} /> : !workspace.parse_confirmed && <Alert type="warning" showIcon className="page-notice" message="解析结果尚未完整确认" description="先在解析结果处理冲突和待确认条款，避免未经核对的数据进入写作方案。" />}<div className="matrix-switch"><Radio.Group value={kind} optionType="button" buttonStyle="solid" onChange={e => setKind(e.target.value)} options={[{ value: 'requirements', label: '要求矩阵' }, { value: 'sla', label: '服务响应承诺（SLA）' }]} />{kind === 'sla' && <span className="muted">招标要求、我方承诺与公司能力逐项对照。</span>}</div>{kind === 'sla' ? <SlaMatrixPage onLocate={setSource} /> : <Card className="matrix-card" bodyStyle={{ padding: 0 }}><div className="table-toolbar"><Input prefix={<SearchOutlined />} aria-label="搜索要求原文或响应" placeholder="搜索要求原文 / 响应要点" value={search} onChange={e => setSearch(e.target.value)} style={{ width: 280 }} /><Select aria-label="矩阵状态" value={status} onChange={setStatus} options={[{ value: 'all', label: '全部状态' }, { value: 'confirmed', label: '已确认' }, { value: 'pending', label: '待确认' }]} /><Select aria-label="矩阵分册" value={volume} onChange={setVolume} options={technicalOnly(workspace) ? [{ value: 'all', label: '全部（含不在范围的商务条款）' }, { value: 'technical', label: '技术分册' }] : [{ value: 'all', label: '全部分册' }, { value: 'technical', label: '技术分册' }, { value: 'business', label: '商务分册' }]} /><Tooltip title={selected.length ? '' : '先勾选要匹配的行'}><Button data-testid="matrix-match-button" disabled={!selected.length || busy} onClick={() => setMatchIds(selected)}>智能匹配证据{selected.length ? `（${selected.length}）` : ''}</Button></Tooltip>{isLead && <Button data-testid="matrix-routing-button" disabled={!selected.length || busy} onClick={() => void confirmRouting(false)}>确认分流</Button>}{isLead && !technicalOnly(workspace) && <Button disabled={!selected.length || busy} onClick={() => void confirmRouting(true)}>按建议分流并确认</Button>}<Button data-testid="matrix-excel-button" icon={<DownloadOutlined />} onClick={() => download(matrixPaths.excel(workspace.project.id), token, `matrix-${workspace.project.id}.xlsx`).catch(report)}>导出 Excel</Button>{!isTechnicalCoverage && technicalOnly(workspace) && <Button data-testid="technical-history-confirm" disabled={!historyPending.length || busy} onClick={() => void confirmHistory()}>确认历史做法</Button>}</div><Table rowKey="id" size="small" pagination={{ pageSize: 10 }} scroll={{ x: 1240 }} dataSource={rows} rowSelection={{ selectedRowKeys: selected, onChange: keys => setSelected(keys as string[]) }} rowClassName={item => [item.status === 'pending' || !item.response.trim() ? 'risk-row' : '', item.evidence_ids.some(id => evidenceInvalid(library.find(value => value.id === id), workspace.project.deadline)) ? 'evidence-invalid-row' : ''].filter(Boolean).join(' ')} columns={[{ title: '#', width: 40, render: (_, __, index) => index + 1 }, { title: '要求原文', dataIndex: 'text', width: 270, render: (value: string, item: Requirement) => <><div>{value}</div><SourceLink source={item.source} onClick={setSource} /></> }, { title: '类别 / 性质', width: 105, render: (_, item) => <Tag color={['qualification', 'star', 'disqualification'].includes(item.category) ? 'purple' : 'blue'}>{categoryName(item.category)}</Tag> }, { title: '归属分册', dataIndex: 'volume', width: 110, render: (value: string, item: Requirement) => { const m = matrixById.get(item.id); return <>{volumeName(value)}{m && !m.volume_confirmed_at && <div className="muted">建议：{volumeName(m.suggested_volume)} · 待确认</div>}{m?.is_cross_volume && <Tag>跨分册共用</Tag>}</>; } }, { title: '响应方式', width: 110, render: (_, item) => { const m = matrixById.get(item.id); return m?.response_type ? <><Tag color={m.response_type === 'deviate' ? 'red' : m.response_type === 'exceed' ? 'blue' : m.response_type === 'not_applicable' ? 'default' : 'green'}>{m.response_label}</Tag><div className="muted">{m.deviation_label}</div></> : <span className="muted">未选择</span>; } }, { title: '响应要点', dataIndex: 'response', width: 220, render: (value: string, item: Requirement) => <><div>{value || <span className="orange">未填写</span>}</div>{item.response_origin === 'history' && <div className="muted">{item.history_filename}</div>}{(item.material_sources ?? []).map(src => <div className="muted" key={src.filename}>{src.filename}</div>)}{item.response_origin === 'model' && <div className="muted">待逐条确认</div>}{item.response_origin === 'retrieval_failed' && <div className="muted">检索失败</div>}{item.response_origin === 'draft_failed' && <div className="muted">拟写失败</div>}</> }, { title: '对应章节', width: 150, render: (_, item) => workspace.chapters.find(chapter => chapter.id === item.chapter_id)?.title ?? <span className="orange">未分配</span> }, { title: '证据', width: 220, render: (_, item) => <>{item.evidence_ids.length ? item.evidence_ids.map(id => { const evidence = library.find(value => value.id === id); const invalid = evidenceInvalid(evidence, workspace.project.deadline); return <p className={invalid ? 'red' : ''} key={id}>{evidence?.name ?? '资料已不可见'}{evidence ? ` · v${evidence.revision ?? '—'}` : ''}{invalid && <Tag color="red">证据失效</Tag>}</p>; }) : <span className="muted">尚未挂接</span>}<Button type="link" size="small" disabled={!item.permissions?.response || busy} onClick={() => openEvidence(item)}>挂证据</Button></> }, { title: '风险（证据失效见证据列）', width: 150, render: (_, item) => <>{(matrixById.get(item.id)?.risk_flags ?? []).map((flag, index) => flag === 'evidence_invalid' ? null : <Tag key={flag} color={RISK_COLORS[flag]} data-testid="matrix-risk">{matrixById.get(item.id)?.risk_labels[index]}</Tag>)}</> }, { title: '状态 / 操作', width: 130, render: (_, item) => <><Tag color={statusColor(item.status)}>{statusName(item.status)}</Tag>{matrixById.get(item.id)?.assignee_name && <div className="muted">负责人：{matrixById.get(item.id)?.assignee_name}</div>}<p><Button type="link" size="small" disabled={busy || !item.permissions?.response} onClick={() => { setEdit(item); form.setFieldsValue({ ...item, response_type: matrixById.get(item.id)?.response_type ?? undefined, deviation_reason: matrixById.get(item.id)?.deviation_reason ?? '', assignee_id: matrixById.get(item.id)?.assignee_id ?? undefined }); }}>编辑响应</Button></p></> }]} /></Card>}<EvidenceDrawer open={!!evidenceItem} requirement={evidenceItem} library={library} deadline={workspace.project.deadline} selectedIds={evidenceIds} openedIds={openedEvidence?.ids ?? []} canWrite={workspace.requirements.find(item => item.id === evidenceItem?.id)?.permissions?.response === true} busy={busy} stale={evidenceStale} onClose={closeEvidence} onSelected={setEvidenceIds} onSave={() => { void saveEvidence(); }} onRefresh={() => { void refreshEvidence(); }} onSupplement={() => navigate('/library')} /><Drawer title="要求来源 · 招标原文" open={!!source} onClose={() => setSource(null)} width={760}><OriginalPreview source={source} /></Drawer><MatrixMatchDrawer ids={matchIds} onClose={() => setMatchIds([])} /><Modal title="编辑响应与分册分流" open={!!edit} onCancel={() => setEdit(null)} onOk={save} cancelText="取消" confirmLoading={busy} okText="保存" okButtonProps={{ disabled: !edit?.permissions?.response }}><Alert type="info" message={edit?.text} /><Form form={form} layout="vertical" disabled={busy || !edit?.permissions?.response} style={{ marginTop: 16 }}><Form.Item name="response_type" label="响应方式" extra={edit && matrixById.get(edit.id)?.critical ? '星号/废标条款不能选不适用；如实选偏离会阻断导出' : '满足=无偏离，优于=正偏离，偏离=负偏离'}><Select allowClear options={responseOptions(!!(edit && matrixById.get(edit.id)?.critical))} /></Form.Item>{needsReason(editType, !!edit?.technical_clause) && <Form.Item name="deviation_reason" label="偏离 / 不适用说明" rules={[{ required: true, whitespace: true, message: edit?.technical_clause && editType === 'exceed' ? '正偏离必须写明优在哪一项、优多少' : '偏离或不适用必须填写说明' }]}><Input.TextArea rows={2} /></Form.Item>}<Form.Item name="assignee_id" label="本行负责人"><Select allowClear options={(workspace.team?.members ?? []).filter(m => m.project_role !== 'readonly').map(m => ({ value: m.user_id, label: m.name ?? m.user_id }))} /></Form.Item><Form.Item label="检索响应"><Input.TextArea rows={4} value={edit?.response || (edit?.response_origin === 'no_evidence' ? '知识库没有依据，待确认' : '')} readOnly /></Form.Item><Form.Item name="volume" label="归属分册"><Select disabled={!edit?.permissions?.route} options={volumeOptions(workspace)} /></Form.Item><Form.Item name="chapter_id" label="对应章节"><Select disabled={!edit?.permissions?.route} allowClear options={workspace.chapters.map(item => ({ value: item.id, label: `${volumeName(item.volume)} · ${item.title}` }))} /></Form.Item>{edit && matrixById.get(edit.id)?.is_cross_volume && <Form.Item name="shared_chapter_id" label="另一分册对应章节（跨分册共用）" extra="跨分册共用的行在两个分册的写作方案中都能选到，两册引用同一份项目事实"><Select data-testid="matrix-shared-chapter" disabled={!edit?.permissions?.route} allowClear options={workspace.chapters.filter(item => item.volume !== edit.volume).map(item => ({ value: item.id, label: `${volumeName(item.volume)} · ${item.title}` }))} /></Form.Item>}{!isTechnicalCoverage && <Form.Item name="status" label="人工确认"><Select disabled={!edit?.permissions?.route} options={[{ value: 'pending', label: '待确认' }, { value: 'confirmed', label: '已确认' }]} /></Form.Item>}<Form.Item name="reason" label="说明"><Input.TextArea rows={2} /></Form.Item></Form></Modal></>;
+  return <><Row gutter={12} className="matrix-statistics" data-testid={isTechnicalCoverage ? 'coverage-view-stats' : 'matrix-statistics'}>{stats.map(item => <Col key={item.title} xs={24} sm={12} md={8} lg={6} xl={4}><Card><Statistic title={item.title} value={item.value} valueStyle={{ color: item.color }} /></Card></Col>)}</Row>{isTechnicalCoverage ? <Alert type="info" showIcon className="page-notice" data-testid="coverage-view-notice" message="覆盖视图（可选）" description="查看条款与目录映射、偏离与缺口。不挡「开始生成」与导出；可事后改偏离说明。" action={<Button size="small" type="link" onClick={() => navigate('editor')}>回编辑台</Button>} /> : !workspace.parse_confirmed && <Alert type="warning" showIcon className="page-notice" message="解析结果尚未完整确认" description="先在解析结果处理冲突和待确认条款，避免未经核对的数据进入写作方案。" />}<div className="matrix-switch"><Radio.Group value={kind} optionType="button" buttonStyle="solid" onChange={e => setKind(e.target.value)} options={[{ value: 'requirements', label: '要求矩阵' }, { value: 'sla', label: '服务响应承诺（SLA）' }]} />{kind === 'sla' && <span className="muted">招标要求、我方承诺与公司能力逐项对照。</span>}</div>{kind === 'sla' ? <SlaMatrixPage onLocate={setSource} /> : <Card className="matrix-card" bodyStyle={{ padding: 0 }}><div className="table-toolbar"><Input prefix={<SearchOutlined />} aria-label="搜索要求原文或响应" placeholder="搜索要求原文 / 响应要点" value={search} onChange={e => setSearch(e.target.value)} style={{ width: 280 }} /><Select aria-label="矩阵状态" value={status} onChange={setStatus} options={[{ value: 'all', label: '全部状态' }, { value: 'confirmed', label: '已确认' }, { value: 'pending', label: '待确认' }]} /><Select aria-label="矩阵方案" value={volume} onChange={setVolume} options={technicalOnly(workspace) ? [{ value: 'all', label: '全部（含不在范围的商务条款）' }, { value: 'technical', label: '技术方案' }] : [{ value: 'all', label: '全部方案' }, { value: 'technical', label: '技术方案' }, { value: 'business', label: '商务方案' }]} /><Tooltip title={selected.length ? '' : '先勾选要匹配的行'}><Button data-testid="matrix-match-button" disabled={!selected.length || busy} onClick={() => setMatchIds(selected)}>智能匹配证据{selected.length ? `（${selected.length}）` : ''}</Button></Tooltip>{isLead && <Button data-testid="matrix-routing-button" disabled={!selected.length || busy} onClick={() => void confirmRouting(false)}>确认分流</Button>}{isLead && !technicalOnly(workspace) && <Button disabled={!selected.length || busy} onClick={() => void confirmRouting(true)}>按建议分流并确认</Button>}<Button data-testid="matrix-excel-button" icon={<DownloadOutlined />} onClick={() => download(matrixPaths.excel(workspace.project.id), token, `matrix-${workspace.project.id}.xlsx`).catch(report)}>导出 Excel</Button>{!isTechnicalCoverage && technicalOnly(workspace) && <Button data-testid="technical-history-confirm" disabled={!historyPending.length || busy} onClick={() => void confirmHistory()}>确认历史做法</Button>}</div><Table rowKey="id" size="small" pagination={{ pageSize: 10 }} scroll={{ x: 1240 }} dataSource={rows} rowSelection={{ selectedRowKeys: selected, onChange: keys => setSelected(keys as string[]) }} rowClassName={item => [item.status === 'pending' || !item.response.trim() ? 'risk-row' : '', item.evidence_ids.some(id => evidenceInvalid(library.find(value => value.id === id), workspace.project.deadline)) ? 'evidence-invalid-row' : ''].filter(Boolean).join(' ')} columns={[{ title: '#', width: 40, render: (_, __, index) => index + 1 }, { title: '要求原文', dataIndex: 'text', width: 270, render: (value: string, item: Requirement) => <><div>{value}</div><SourceLink source={item.source} onClick={setSource} /></> }, { title: '类别 / 性质', width: 105, render: (_, item) => <Tag color={['qualification', 'star', 'disqualification'].includes(item.category) ? 'purple' : 'blue'}>{categoryName(item.category)}</Tag> }, { title: '归属', dataIndex: 'volume', width: 110, render: (value: string, item: Requirement) => { const m = matrixById.get(item.id); return <>{volumeName(value)}{m && !m.volume_confirmed_at && <div className="muted">建议：{volumeName(m.suggested_volume)} · 待确认</div>}{m?.is_cross_volume && <Tag>跨方案共用</Tag>}</>; } }, { title: '响应方式', width: 110, render: (_, item) => { const m = matrixById.get(item.id); return m?.response_type ? <><Tag color={m.response_type === 'deviate' ? 'red' : m.response_type === 'exceed' ? 'blue' : m.response_type === 'not_applicable' ? 'default' : 'green'}>{m.response_label}</Tag><div className="muted">{m.deviation_label}</div></> : <span className="muted">未选择</span>; } }, { title: '响应要点', dataIndex: 'response', width: 220, render: (value: string, item: Requirement) => <><div>{value || <span className="orange">未填写</span>}</div>{item.response_origin === 'history' && <div className="muted">{item.history_filename}</div>}{(item.material_sources ?? []).map(src => <div className="muted" key={src.filename}>{src.filename}</div>)}{item.response_origin === 'model' && <div className="muted">待逐条确认</div>}{item.response_origin === 'retrieval_failed' && <div className="muted">检索失败</div>}{item.response_origin === 'draft_failed' && <div className="muted">拟写失败</div>}</> }, { title: '对应章节', width: 150, render: (_, item) => workspace.chapters.find(chapter => chapter.id === item.chapter_id)?.title ?? <span className="orange">未分配</span> }, { title: '证据', width: 220, render: (_, item) => <>{item.evidence_ids.length ? item.evidence_ids.map(id => { const evidence = library.find(value => value.id === id); const invalid = evidenceInvalid(evidence, workspace.project.deadline); return <p className={invalid ? 'red' : ''} key={id}>{evidence?.name ?? '资料已不可见'}{evidence ? ` · v${evidence.revision ?? '—'}` : ''}{invalid && <Tag color="red">证据失效</Tag>}</p>; }) : <span className="muted">尚未挂接</span>}<Button type="link" size="small" disabled={!item.permissions?.response || busy} onClick={() => openEvidence(item)}>挂证据</Button></> }, { title: '风险（证据失效见证据列）', width: 150, render: (_, item) => <>{(matrixById.get(item.id)?.risk_flags ?? []).map((flag, index) => flag === 'evidence_invalid' ? null : <Tag key={flag} color={RISK_COLORS[flag]} data-testid="matrix-risk">{matrixById.get(item.id)?.risk_labels[index]}</Tag>)}</> }, { title: '状态 / 操作', width: 130, render: (_, item) => <><Tag color={statusColor(item.status)}>{statusName(item.status)}</Tag>{matrixById.get(item.id)?.assignee_name && <div className="muted">负责人：{matrixById.get(item.id)?.assignee_name}</div>}<p><Button type="link" size="small" disabled={busy || !item.permissions?.response} onClick={() => { setEdit(item); form.setFieldsValue({ ...item, response_type: matrixById.get(item.id)?.response_type ?? undefined, deviation_reason: matrixById.get(item.id)?.deviation_reason ?? '', assignee_id: matrixById.get(item.id)?.assignee_id ?? undefined }); }}>编辑响应</Button></p></> }]} /></Card>}<EvidenceDrawer open={!!evidenceItem} requirement={evidenceItem} library={library} deadline={workspace.project.deadline} selectedIds={evidenceIds} openedIds={openedEvidence?.ids ?? []} canWrite={workspace.requirements.find(item => item.id === evidenceItem?.id)?.permissions?.response === true} busy={busy} stale={evidenceStale} onClose={closeEvidence} onSelected={setEvidenceIds} onSave={() => { void saveEvidence(); }} onRefresh={() => { void refreshEvidence(); }} onSupplement={() => navigate('/library')} /><Drawer title="要求来源 · 招标原文" open={!!source} onClose={() => setSource(null)} width={760}><OriginalPreview source={source} /></Drawer><MatrixMatchDrawer ids={matchIds} onClose={() => setMatchIds([])} /><Modal title="编辑响应与方案分流" open={!!edit} onCancel={() => setEdit(null)} onOk={save} cancelText="取消" confirmLoading={busy} okText="保存" okButtonProps={{ disabled: !edit?.permissions?.response }}><Alert type="info" message={edit?.text} /><Form form={form} layout="vertical" disabled={busy || !edit?.permissions?.response} style={{ marginTop: 16 }}><Form.Item name="response_type" label="响应方式" extra={edit && matrixById.get(edit.id)?.critical ? '星号/废标条款不能选不适用；如实选偏离会阻断导出' : '满足=无偏离，优于=正偏离，偏离=负偏离'}><Select allowClear options={responseOptions(!!(edit && matrixById.get(edit.id)?.critical))} /></Form.Item>{needsReason(editType, !!edit?.technical_clause) && <Form.Item name="deviation_reason" label="偏离 / 不适用说明" rules={[{ required: true, whitespace: true, message: edit?.technical_clause && editType === 'exceed' ? '正偏离必须写明优在哪一项、优多少' : '偏离或不适用必须填写说明' }]}><Input.TextArea rows={2} /></Form.Item>}<Form.Item name="assignee_id" label="本行负责人"><Select allowClear options={(workspace.team?.members ?? []).filter(m => m.project_role !== 'readonly').map(m => ({ value: m.user_id, label: m.name ?? m.user_id }))} /></Form.Item><Form.Item label="检索响应"><Input.TextArea rows={4} value={edit?.response || (edit?.response_origin === 'no_evidence' ? '知识库没有依据，待确认' : '')} readOnly /></Form.Item><Form.Item name="volume" label="归属"><Select disabled={!edit?.permissions?.route} options={volumeOptions(workspace)} /></Form.Item><Form.Item name="chapter_id" label="对应章节"><Select disabled={!edit?.permissions?.route} allowClear options={workspace.chapters.map(item => ({ value: item.id, label: `${volumeName(item.volume)} · ${item.title}` }))} /></Form.Item>{edit && matrixById.get(edit.id)?.is_cross_volume && <Form.Item name="shared_chapter_id" label="另一方案对应章节（跨方案共用）" extra="跨方案共用的行在两个方案的写作方案中都能选到，两处引用同一份项目事实"><Select data-testid="matrix-shared-chapter" disabled={!edit?.permissions?.route} allowClear options={workspace.chapters.filter(item => item.volume !== edit.volume).map(item => ({ value: item.id, label: `${volumeName(item.volume)} · ${item.title}` }))} /></Form.Item>}{!isTechnicalCoverage && <Form.Item name="status" label="人工确认"><Select disabled={!edit?.permissions?.route} options={[{ value: 'pending', label: '待确认' }, { value: 'confirmed', label: '已确认' }]} /></Form.Item>}<Form.Item name="reason" label="说明"><Input.TextArea rows={2} /></Form.Item></Form></Modal></>;
 }
 
 export { FactsPage } from './FactsTab';
 
 export function ChecksPage() {
   const { workspace, busy, user, mutate, navigate } = useProject();
-  const [volume, setVolume] = useState<Volume | 'all'>(projectCan(workspace, 'check_all') ? 'all' : workspace.permissions?.check_volumes[0] ?? 'all');
+  const technical = technicalOnly(workspace);
+  const [volume, setVolume] = useState<Volume | 'all'>(technical ? 'technical' : projectCan(workspace, 'check_all') ? 'all' : workspace.permissions?.check_volumes[0] ?? 'all');
   const [severity, setSeverity] = useState('all');
   const [selectedId, setSelectedId] = useState('');
   const [source, setSource] = useState<Source | null>(null);
   const check = workspace.checks.find(item => item.id === selectedId) ?? workspace.checks.slice().reverse().find(item => item.volume === volume) ?? workspace.checks[workspace.checks.length - 1];
-  const issues = check?.issues.filter(item => severity === 'all' || (severity === 'blocker' ? isBlocker(item.severity) : item.severity === severity)) ?? [];
+  const issues = (check?.issues.filter(item => severity === 'all' || (severity === 'blocker' ? isBlocker(item.severity) : item.severity === severity)) ?? [])
+    .slice()
+    .sort((a, b) => Number(isBlocker(b.severity)) - Number(isBlocker(a.severity)));
   const blockerSummary = deriveBlockerSummary(check, workspace.chapters);
   const isLead = projectCan(workspace, 'manage_project');
   const [releasing, setReleasing] = useState<CheckIssue | null>(null);
@@ -177,6 +174,12 @@ export function ChecksPage() {
     }
   }
 
+  useEffect(() => {
+    const onRun = () => { void run(); };
+    window.addEventListener('icg-run-check', onRun);
+    return () => window.removeEventListener('icg-run-check', onRun);
+  });
+
   function locate(item: CheckIssue) {
     const requirement = workspace.requirements.find(value => value.id === item.requirement_id);
     if (requirement) setSource(requirement.source);
@@ -189,28 +192,7 @@ export function ChecksPage() {
 
   return (
     <>
-      <div className="checks-toolbar">
-        <Radio.Group
-          value={volume}
-          onChange={e => { setVolume(e.target.value); setSelectedId(''); }}
-          optionType="button"
-          options={[
-            { value: 'technical', label: '技术分册检查' },
-            ...(technicalOnly(workspace) ? [] : [{ value: 'business', label: '商务分册检查' }]),
-            { value: 'all', label: technicalOnly(workspace) ? '技术标全文检查' : '全文检查' },
-          ]}
-        />
-        <Button
-          type="primary"
-          icon={<ReloadOutlined />}
-          onClick={run}
-          loading={busy}
-          disabled={!volumeOperationAllowed(workspace, 'check', volume)}
-        >
-          运行{volumeName(volume)}检查
-        </Button>
-      </div>
-
+      <section className="check-export-issues">
       {blockerSummary.hasBlockers && (
         <Alert
           className="blocker-alert-banner"
@@ -218,79 +200,62 @@ export function ChecksPage() {
           type="error"
           showIcon
           icon={<StopOutlined />}
-          style={{ marginBottom: 16 }}
-          message={
-            <div style={{ fontWeight: 600 }}>
-              合规检查红线阻断（共 {blockerSummary.totalBlockers} 项）：正式递交版导出已被系统锁定禁止！
-            </div>
-          }
+          style={{ marginBottom: 12 }}
+          message={`阻断 ${blockerSummary.totalBlockers} 项，递交版已锁定`}
           description={
-            <div>
-              <p style={{ margin: '4px 0 8px', fontSize: 13, color: '#4e5969' }}>
-                检测到星号条款未覆盖、废标条款无证据支撑或关键事实前后矛盾等阻断性缺陷。根据红线门禁规则，正式递交前必须在正文或矩阵中清零阻断项。
-              </p>
-              <div data-testid="blocker-chapters-list" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 500, color: '#1d2129' }}>受阻章节 / 位置：</span>
-                {blockerSummary.blockedChapters.map(ch => (
-                  <Tag
-                    key={ch.chapterId}
-                    color="error"
-                    style={{ cursor: ch.chapterId !== 'global_non_chapter' ? 'pointer' : 'default', padding: '2px 8px' }}
-                    onClick={() => {
-                      if (ch.chapterId && ch.chapterId !== 'global_non_chapter') {
-                        navigate(editorChapterPath(workspace.project.id, ch.chapterId));
-                      }
-                    }}
-                  >
-                    {ch.chapterTitle} ({ch.blockerCount} 项)
-                  </Tag>
-                ))}
-              </div>
+            <div data-testid="blocker-chapters-list" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+              {blockerSummary.blockedChapters.map(ch => (
+                <Tag
+                  key={ch.chapterId}
+                  color="error"
+                  style={{ cursor: ch.chapterId !== 'global_non_chapter' ? 'pointer' : 'default', padding: '2px 8px' }}
+                  onClick={() => {
+                    if (ch.chapterId && ch.chapterId !== 'global_non_chapter') {
+                      navigate(editorChapterPath(workspace.project.id, ch.chapterId));
+                    }
+                  }}
+                >
+                  {ch.chapterTitle} ({ch.blockerCount} 项)
+                </Tag>
+              ))}
             </div>
           }
         />
       )}
 
-      {check ? (
-        <Alert
-          type={check.status === 'stale' ? 'warning' : check.passed ? 'success' : 'error'}
-          showIcon
-          className="check-result"
-          message={
-            check.status === 'stale'
-              ? '检查已过期：项目或证据已变化，请重新检查'
-              : check.passed
-              ? '当前已实现规则通过'
-              : `有问题：${check.issues.filter(item => isBlocker(item.severity)).length} 个阻断 · ${check.issues.filter(item => item.severity === 'warning' && !item.released).length} 个未放行警告 · 待处理 ${unreleasedCount(check.issues)} 项`
-          }
-          description={`检查批次 ${check.id.slice(-10)} · ${formatTime(check.created_at)} · 只检查已提交正文，不包含未提交草稿`}
+      <div className="check-issue-filters">
+        {!technical && (
+          <Radio.Group
+            size="small"
+            optionType="button"
+            value={volume}
+            onChange={e => { setVolume(e.target.value); setSelectedId(''); }}
+            options={[
+              { value: 'technical', label: '技术方案' },
+              { value: 'business', label: '商务方案' },
+              { value: 'all', label: '全文' },
+            ]}
+          />
+        )}
+        <Radio.Group
+          size="small"
+          optionType="button"
+          value={severity}
+          onChange={e => setSeverity(e.target.value)}
+          options={[
+            { value: 'all', label: `全部 ${check?.issues.length ?? 0}` },
+            { value: 'blocker', label: `阻断 ${check?.issues.filter(item => isBlocker(item.severity)).length ?? 0}` },
+            { value: 'warning', label: `警告 ${check?.issues.filter(item => item.severity === 'warning').length ?? 0}` },
+            { value: 'info', label: `提示 ${check?.issues.filter(item => item.severity === 'info').length ?? 0}` },
+          ]}
         />
-      ) : (
-        <Alert className="page-notice" type="info" showIcon message="还没有检查结果，请先提交正文，再运行检查" />
-      )}
-
-      <div className="checks-layout">
-        <Card className="rule-filter" title="按级别 / 规则" size="small">
-          <button className={severity === 'all' ? 'active' : ''} onClick={() => setSeverity('all')}>
-            全部问题 <span>{check?.issues.length ?? 0}</span>
-          </button>
-          {['blocker', 'warning', 'info'].map(value => (
-            <button className={severity === value ? 'active' : ''} key={value} onClick={() => setSeverity(value)}>
-              <Tag color={value === 'blocker' ? 'red' : value === 'warning' ? 'orange' : 'blue'}>
-                {value === 'blocker' ? '阻断' : value === 'warning' ? '警告' : '提示'}
-              </Tag>
-              <span>{check?.issues.filter(item => (value === 'blocker' ? isBlocker(item.severity) : item.severity === value)).length ?? 0}</span>
-            </button>
-          ))}
-          {check?.coverage && (
-            <div className="coverage-box">
-              <b>实际规则覆盖</b>
-              <p>流程条件已实现 {check.coverage.implemented_rules.length} 项</p>
-              <p>待补能力组 {check.coverage.unimplemented_rules.length} 组</p>
-              <Tag color="orange">尚非完整业务合规检查</Tag>
-            </div>
-          )}
-        </Card>
+        {check && (
+          <span className="muted">
+            {check.status === 'stale' ? '检查已过期' : check.passed ? '当前规则通过' : `待处理 ${unreleasedCount(check.issues)}`}
+            {' · '}{formatTime(check.created_at)}
+          </span>
+        )}
+      </div>
 
         <Card className="issue-card" bodyStyle={{ padding: 0 }}>
           <Tabs
@@ -306,6 +271,8 @@ export function ChecksPage() {
                     size="small"
                     pagination={false}
                     dataSource={issues}
+                    locale={{ emptyText: '还没有检查结果' }}
+                    onRow={item => ({ onClick: () => locate(item), style: { cursor: 'pointer' } })}
                     rowClassName={item => (isBlocker(item.severity) ? 'risk-row' : '')}
                     columns={[
                       {
@@ -374,7 +341,7 @@ export function ChecksPage() {
                     dataSource={workspace.checks.slice().reverse()}
                     pagination={false}
                     columns={[
-                      { title: '分册', dataIndex: 'volume', render: volumeName },
+                      { title: '方案', dataIndex: 'volume', render: volumeName },
                       { title: '时间', dataIndex: 'created_at', render: formatTime },
                       {
                         title: '结果',
@@ -408,10 +375,10 @@ export function ChecksPage() {
                   </div>
                 ),
               },
-            ]}
+            ].filter(item => !technical || item.key === 'issues')}
           />
         </Card>
-      </div>
+      </section>
       <Drawer title="问题依据 · 招标原文" open={!!source} onClose={() => setSource(null)} width={760}>
         <OriginalPreview source={source} />
       </Drawer>
@@ -450,18 +417,12 @@ function MergeChecklistCard() {
   const { workspace, token, report } = useProject();
   const latest = latestSubmissionWithChecklist(workspace.exports);
   const checklist = latest?.merge_checklist;
-  if (technicalOnly(workspace)) {
-    return (
-      <Card title="合标核对清单" data-testid="merge-checklist-card">
-        <Alert type="info" showIcon message="本项目只写技术标，不需要合标" description="递交版只生成一份技术标 Word；商务/资格条款已标为不在本项目范围，在解析结果中仍可查看原文。" />
-      </Card>
-    );
-  }
+  if (technicalOnly(workspace)) return null;
   if (!latest || !checklist) {
     return (
       <Card title="合标核对清单" data-testid="merge-checklist-card">
         <Alert type="info" showIcon message="导出递交版时会同时生成合标核对清单（Excel）"
-          description="清单列出合标时须人工核对的 9 类事项：分册与文件、页码与目录、评审索引表、两本之间的一致性结论、偏离表与点对点应答、密封份数装订、签章、暗标、文件命名。" />
+          description="清单列出合标时须人工核对的 9 类事项：方案与文件、页码与目录、评审索引表、两本之间的一致性结论、偏离表与点对点应答、密封份数装订、签章、暗标、文件命名。" />
       </Card>
     );
   }
@@ -476,7 +437,7 @@ function MergeChecklistCard() {
         </Button>
       }
     >
-      {stale && <Alert type="warning" showIcon style={{ marginBottom: 8 }} message="已过期：分册已解锁或正文已改动，清单仅供追溯" />}
+      {stale && <Alert type="warning" showIcon style={{ marginBottom: 8 }} message="已过期：方案已解锁或正文已改动，清单仅供追溯" />}
       <div className="muted" style={{ marginBottom: 8 }}>批次 {latest.id.slice(-10)} · {formatTime(checklist.generated_at)} · 依据全文检查 {checklist.check_id?.slice(-10)}</div>
       <Collapse
         size="small"
@@ -505,11 +466,10 @@ function MergeChecklistCard() {
 }
 
 export function ExportPage() {
-  const { workspace, token, user, busy, mutate, report, navigate } = useProject();
-  const [kind, setKind] = useState('internal');
-  const [volume, setVolume] = useState<Volume | 'all'>(projectCan(workspace, 'export_internal') ? 'all' : workspace.permissions?.export_volumes[0] ?? 'all');
+  const { workspace, token, user, busy, mutate, report } = useProject();
+  const technical = technicalOnly(workspace);
+  const [volume, setVolume] = useState<Volume | 'all'>(technical ? 'technical' : projectCan(workspace, 'export_internal') ? 'all' : workspace.permissions?.export_volumes[0] ?? 'all');
   const [checkId, setCheckId] = useState('');
-  // 模板与选项（PRD §5.9.1 主要元素 5）：本公司 Word 模板或平台默认、是否插入附件扫描件、敏感附件水印文字
   const [companyTemplate, setCompanyTemplate] = useState<WordTemplate | null>(null);
   const [templateChoice, setTemplateChoice] = useState<TemplateChoice | null>(null);
   const [insertAttachments, setInsertAttachments] = useState(true);
@@ -522,46 +482,42 @@ export function ExportPage() {
     return () => { alive = false; };
   }, [workspace.project.company_id, token]);
   const template = templateChoice ?? defaultTemplateChoice(companyTemplate);
-  const { volumes: volumesStatus } = useVolumesStatus(workspace.project.id, token, workspace.revision);
-  const allFinalized = areAllVolumesFinalized(volumesStatus);
-  const isCurrentVolumeFinalized = volume === 'all'
-    ? allFinalized
-    : isVolumeFinalized(volumesStatus, volume);
+  useVolumesStatus(workspace.project.id, token, workspace.revision);
   const validChecks = workspace.checks.filter(item => item.volume === volume && item.passed && item.status !== 'stale');
   const check = validChecks.find(item => item.id === checkId) ?? validChecks[validChecks.length - 1];
   const full = (volume === 'all' ? projectVolumes(workspace) : [volume]).every(
     v => workspace.chapters.some(item => item.volume === v && item.content.trim()) && workspace.chapters.filter(item => item.volume === v).every(item => item.content.trim())
   );
-
-  // 计算当前分册最新检查是否有阻断性红线缺陷
   const latestCheckForVolume = workspace.checks.slice().reverse().find(item => item.volume === volume) ?? check;
   const blockerSummary = deriveBlockerSummary(latestCheckForVolume, workspace.chapters);
   const hasBlockers = blockerSummary.hasBlockers;
-
-  const isSubmission = kind === 'submission';
   const submissionCheck = canExportSubmission({
     hasBlockers,
     blockerCount: blockerSummary.totalBlockers,
     fullContent: full,
     hasPassedCheck: !!check && check.passed,
     parseConfirmed: workspace.parse_confirmed,
-    userCanExport: volumeOperationAllowed(workspace, 'export', volume),
-    isFinalized: isCurrentVolumeFinalized,
+    userCanExport: volumeOperationAllowed(workspace, 'export', technical ? 'technical' : volume),
+    isFinalized: true,
   });
-
-  const technicalDraft = technicalOnly(workspace) && !isSubmission;
-  const isButtonDisabled = busy || (isSubmission
-    ? !submissionCheck.allowed
-    : technicalDraft
-      ? !volumeOperationAllowed(workspace, 'export', 'technical')
-      : (!volumeOperationAllowed(workspace, 'export', volume) || !full || !workspace.parse_confirmed));
-  const buttonTooltip = isSubmission && !submissionCheck.allowed
-    ? (submissionCheck.reason || `存在 ${blockerSummary.totalBlockers} 项阻断性合规缺陷，禁止导出递交版`)
+  const canSubmit = projectCan(workspace, 'manage_project');
+  const internalDisabled = busy || (technical
+    ? !volumeOperationAllowed(workspace, 'export', 'technical')
+    : (!volumeOperationAllowed(workspace, 'export', volume) || !full || !workspace.parse_confirmed));
+  const submissionDisabled = busy || !canSubmit || !submissionCheck.allowed;
+  const internalReason = !internalDisabled || busy ? ''
+    : (technical || !volumeOperationAllowed(workspace, 'export', volume)) ? '没有导出权限'
+    : !workspace.parse_confirmed ? '解析结果未确认'
+    : !full ? '正文未齐'
     : '';
+  const submissionReason = !submissionDisabled || busy ? ''
+    : !canSubmit ? '没有递交版权限'
+    : (submissionCheck.reason || `阻断 ${blockerSummary.totalBlockers} 项`);
+  const checkVolume: Volume | 'all' = technical ? 'technical' : (projectCan(workspace, 'check_all') ? 'all' : volume);
 
-  async function create() {
-    if (isSubmission && !submissionCheck.allowed) return;
-    if (technicalDraft) {
+  async function create(nextKind: 'internal' | 'submission') {
+    if (nextKind === 'submission' && !submissionCheck.allowed) return;
+    if (technical && nextKind === 'internal') {
       if (!volumeOperationAllowed(workspace, 'export', 'technical')) return;
       try {
         await mutate(`/api/v1/projects/${workspace.project.id}/exports`, 'POST',
@@ -574,370 +530,181 @@ export function ExportPage() {
     if (!check || !volumeOperationAllowed(workspace, 'export', volume)) return;
     try {
       await mutate(`/api/v1/projects/${workspace.project.id}/exports`, 'POST',
-        exportRequestBody(check.id, kind, volume, { template, insertAttachments, watermark: attachmentWatermark }));
+        exportRequestBody(check.id, nextKind, volume, { template, insertAttachments, watermark: attachmentWatermark }));
     } catch {
-      /* 后台再次核对完整分册、角色和检查 */
+      /* 后台再次核对完整方案、角色和检查 */
     }
   }
 
-  const premiseItems = technicalOnly(workspace) ? [
-    { label: '目录已确认', ready: workspace.plan_confirmed, tab: 'tender' },
-    { label: '服务方案已写入正文', ready: workspace.chapters.some(item => item.volume === 'technical' && item.content.includes('响应说明')), tab: 'editor' },
-  ] : [
-    { label: '解析结果已人工确认', ready: workspace.parse_confirmed, tab: 'parse' },
-    { label: volume === 'all' ? '技术、商务两册均有完整已提交正文' : `${volumeName(volume)}有完整已提交正文`, ready: full, tab: 'editor' },
-    { label: `${volumeName(volume)}有效检查通过当前已实现规则`, ready: !!check && check.passed, tab: 'checks' },
-    { label: '合规红线门禁：无阻断性缺陷（Blocker 清零）', ready: !hasBlockers, tab: 'checks' },
-    deriveFinalizePremise(volumesStatus, volume),
-  ];
-
   return (
     <>
-      <div className="page-heading">
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h2>导出{volume === 'all' ? (technicalOnly(workspace) ? '技术标' : '技术、商务两册合订') : volumeName(volume)}</h2>
-            {isCurrentVolumeFinalized ? (
-              <Tag color="success" data-testid="export-finalized-badge">
-                {volume === 'all' ? '分册全部定稿' : `${volumeName(volume)}已定稿`}
-              </Tag>
-            ) : (
-              <Tag color="default" data-testid="export-unfinalized-badge">
-                {volume === 'all' ? '分册未全部定稿' : `${volumeName(volume)}未定稿`}
-              </Tag>
-            )}
-          </div>
-          <p>{technicalOnly(workspace) ? '导出技术分册内部稿。待补和需要核对仍可导出。' : '项目负责人生成两册，分册负责人生成本册；合标负责人只下载已生成文件。输出取已提交正文，不使用个人草稿。'}</p>
-        </div>
+      <div className="check-export-toolbar">
+        {!technical && (
+          <Button
+            icon={<ReloadOutlined />}
+            loading={busy}
+            disabled={!volumeOperationAllowed(workspace, 'check', checkVolume)}
+            onClick={() => window.dispatchEvent(new Event('icg-run-check'))}
+          >
+            运行检查
+          </Button>
+        )}
+        <Button
+          type="primary"
+          icon={<DownloadOutlined />}
+          data-testid="export-generate-btn"
+          disabled={internalDisabled}
+          loading={busy}
+          onClick={() => void create('internal')}
+        >
+          导出内部稿
+        </Button>
+        {!technical && (
+          <Button
+            data-testid="export-submission-btn"
+            disabled={submissionDisabled}
+            loading={busy}
+            onClick={() => void create('submission')}
+          >
+            导出递交版
+          </Button>
+        )}
+        {!technical && (internalReason || submissionReason) && (
+          <span className="muted">{[internalReason && `内部稿：${internalReason}`, submissionReason && `递交版：${submissionReason}`].filter(Boolean).join(' · ')}</span>
+        )}
+        {technical && internalReason && <span className="muted">内部稿：{internalReason}</span>}
       </div>
-      {technicalOnly(workspace) && workspace.technical_deviation_note && (
-        <Alert type="warning" showIcon data-testid="technical-deviation-note" style={{ marginBottom: 12 }} message={workspace.technical_deviation_note} />
-      )}
-      {technicalOnly(workspace) && (workspace.technical_needs_review?.length ?? 0) > 0 && (
-        <Alert type="warning" showIcon data-testid="technical-needs-review" style={{ marginBottom: 12 }}
-          message={`需要核对：${workspace.technical_needs_review?.join('、')}`} />
-      )}
-      {technicalOnly(workspace) && workspace.technical_quality && !workspace.technical_quality.passed && (
-        <Alert type="warning" showIcon style={{ marginBottom: 12 }} data-testid="technical-quality-export-warning"
-          message={workspace.technical_quality.warning || '质量八条未全部通过'}
-          description="允许导出内部稿，须人工核对标「需核对」的节；不恢复矩阵确认闸门。" />
-      )}
-      <Row gutter={16}>
-        <Col span={15}>
-          <Card title="导出前提" className="stack-card">
-            <List
-              dataSource={premiseItems}
-              renderItem={item => (
-                <List.Item actions={[<a onClick={() => navigate(item.tab)}>前往查看</a>]}>
-                  <Space>
-                    {item.ready ? <CheckCircleOutlined className="green" /> : <WarningOutlined className="orange" />}
-                    {item.label}
-                  </Space>
-                </List.Item>
-              )}
-            />
-          </Card>
-          <VolumeFinalizePanel volumes={volumesStatus} />
-          <Card title="导出选项">
-            <Form layout="vertical">
-              <Form.Item label="生成范围">
-                <Radio.Group
-                  aria-label="导出分册范围"
-                  data-testid="export-volume-radio"
-                  value={volume}
-                  onChange={event => {
-                    setVolume(event.target.value);
-                    setCheckId('');
-                  }}
-                  options={technicalOnly(workspace) ? [
-                    { value: 'all', label: '技术标（本项目只写技术标）', disabled: !volumeOperationAllowed(workspace, 'export', 'all') },
-                  ] : [
-                    { value: 'all', label: '技术、商务两册合订', disabled: !volumeOperationAllowed(workspace, 'export', 'all') },
-                    { value: 'technical', label: '技术分册', disabled: !volumeOperationAllowed(workspace, 'export', 'technical') },
-                    { value: 'business', label: '商务分册', disabled: !volumeOperationAllowed(workspace, 'export', 'business') },
-                  ]}
-                />
-              </Form.Item>
-              <Form.Item label="类型">
-                <Radio.Group
-                  data-testid="export-kind-radio"
-                  value={kind}
-                  onChange={e => setKind(e.target.value)}
-                >
-                  <Radio value="internal">内部评审稿</Radio>
-                  {projectCan(workspace, 'manage_project') && (
-                    <Radio value="submission">正式递交版（盖章版式）</Radio>
-                  )}
-                </Radio.Group>
-              </Form.Item>
-              <Form.Item label="Word 模板">
-                <Select data-testid="export-template-select" value={template} onChange={setTemplateChoice}
-                  options={templateOptions(companyTemplate)} />
-              </Form.Item>
-              <Form.Item label="附件扫描件">
-                <Space direction="vertical" style={{ width: '100%' }}>
-                  <Checkbox data-testid="export-insert-attachments" checked={insertAttachments}
-                    onChange={event => setInsertAttachments(event.target.checked)}>
-                    插入条款挂接资料的扫描件（按资料里设定的页码范围）
-                  </Checkbox>
-                  <Input data-testid="export-attachment-watermark" disabled={!insertAttachments} maxLength={60}
-                    value={attachmentWatermark} onChange={event => setAttachmentWatermark(event.target.value)}
-                    addonBefore="敏感附件水印" placeholder={`仅用于${workspace.project.name}投标`} />
-                </Space>
-              </Form.Item>
-              <Form.Item label="检查批次">
-                <Select
-                  value={check?.id}
-                  placeholder="请先运行当前范围的有效检查"
-                  onChange={setCheckId}
-                  options={validChecks.map(item => ({
-                    value: item.id,
-                    label: `${formatTime(item.created_at)} · ${volumeName(item.volume)}检查`,
-                  }))}
-                />
-              </Form.Item>
-              {hasBlockers && (
-                <Alert
-                  type="error"
-                  showIcon
-                  className="export-blocker-warning"
-                  data-testid="export-blocker-warning"
-                  style={{ marginBottom: 16 }}
-                  message={`存在 ${blockerSummary.totalBlockers} 项阻断性合规红线缺陷！正式递交版已锁定`}
-                  description={
-                    <div>
-                      <p style={{ margin: '4px 0', fontSize: 13 }}>
-                        受阻章节：{blockerSummary.blockedChapters.map(c => c.chapterTitle).join('、') || '整册合规检查'}
-                      </p>
-                      <p style={{ margin: 0, fontSize: 12, color: '#8c8c8c' }}>
-                        根据红线门禁规范，存在废标条款无证据支撑或星号条款未覆盖时，系统强行锁定递交版导出。仅允许导出「内部评审稿」供团队人工复核。
-                      </p>
-                    </div>
-                  }
-                />
-              )}
-              <Alert
-                type={kind === 'submission' ? (hasBlockers ? 'error' : 'warning') : 'info'}
-                showIcon
-                message={kind === 'submission' ? '正式递交版 · 红线合规盖章版式' : '内部评审稿 · 供人工复核'}
-                description={
-                  kind === 'submission'
-                    ? hasBlockers
-                      ? '当前分册存在阻断性合规缺陷，递交版已被锁定禁止导出！请先消除阻断项。'
-                      : '导出文件将应用正式盖章与递交格式，不包含内部草稿与演示水印。需项目负责人确认所有合规条款无误。'
-                    : '封面与页眉标明“内部评审稿”，作者属性留空。会按当前掩码规则处理高敏数字，但仍需人工复核格式与内容。'
-                }
-              />
-              <Tooltip title={buttonTooltip} placement="top">
-                <span style={{ display: 'inline-block', marginTop: 20 }}>
-                  <Button
-                    type="primary"
-                    icon={<DownloadOutlined />}
-                    disabled={isButtonDisabled}
-                    loading={busy}
-                    onClick={create}
-                    data-testid="export-generate-btn"
-                    style={{
-                      backgroundColor: isSubmission && !isButtonDisabled ? '#52c41a' : undefined,
-                      borderColor: isSubmission && !isButtonDisabled ? '#52c41a' : undefined,
-                    }}
-                  >
-                    {isSubmission
-                      ? `生成${volume === 'all' ? (technicalOnly(workspace) ? '技术标' : '两册合订') : volumeName(volume)}正式递交版`
-                      : technicalOnly(workspace) ? '导出技术分册内部稿' : `生成${volume === 'all' ? '两册合订' : volumeName(volume)}内部评审稿`}
-                  </Button>
-                </span>
-              </Tooltip>
-            </Form>
-          </Card>
-        </Col>
-        <Col span={9}>
-          <MergeChecklistCard />
-        </Col>
-      </Row>
-      <Card
-        title="导出历史"
-        className="page-notice"
-        style={{ marginTop: 16 }}
-        extra={
-          <Tooltip title="内部用：每条条款的文件页码、响应、章节段落、证据版本、负责人与确认人；不进入投标文件，任何时候可导出">
-            <Button size="small" icon={<DownloadOutlined />} data-testid="response-trace-btn"
+      <aside className="check-export-side">
+        {technical && workspace.technical_quality && !workspace.technical_quality.passed && (
+          <Alert type="warning" showIcon data-testid="technical-quality-export-warning" message={workspace.technical_quality.warning || '质量八条未全部通过'} />
+        )}
+        {technical && (workspace.technical_needs_review?.length ?? 0) > 0 && (
+          <Alert type="warning" showIcon data-testid="technical-needs-review" message={`需要核对：${workspace.technical_needs_review?.join('、')}`} />
+        )}
+        {technical && workspace.technical_deviation_note && (
+          <Alert type="warning" showIcon data-testid="technical-deviation-note" message={workspace.technical_deviation_note} />
+        )}
+        {!technical && hasBlockers && (
+          <Alert
+            type="error"
+            showIcon
+            className="export-blocker-warning"
+            data-testid="export-blocker-warning"
+            message={`阻断 ${blockerSummary.totalBlockers} 项，递交版已锁定`}
+          />
+        )}
+        <Card
+          size="small"
+          title="导出记录"
+          extra={!technical ? (
+            <Button size="small" type="link" icon={<DownloadOutlined />} data-testid="response-trace-btn"
               onClick={() => download(responseTracePath(workspace.project.id, volume), token, `response-trace-${volume}.xlsx`).catch(report)}>
               响应追溯表
             </Button>
-          </Tooltip>
-        }
-      >
-        <Table
-          rowKey="id"
-          size="small"
-          data-testid="export-history-table"
-          dataSource={workspace.exports.slice().reverse()}
-          pagination={false}
-          columns={[
-            {
-              title: '批次号',
-              dataIndex: 'id',
-              key: 'id',
-              width: 140,
-              render: (_: string, item) => (
-                <Tooltip title={`导出记录 ${item.id}`}>
-                  <span data-testid="export-history-id" style={{ fontFamily: 'monospace', fontSize: 12 }}>
-                    {exportBatchLabel(item)}
-                  </span>
-                </Tooltip>
-              ),
-            },
-            {
-              title: '生成时间',
-              dataIndex: 'created_at',
-              key: 'created_at',
-              width: 110,
-              render: formatTime,
-            },
-            {
-              title: '操作人',
-              key: 'operator',
-              width: 90,
-              render: (_, item) => (
-                <span style={{ fontSize: 12 }}>{item.created_by || item.operator_name || user.name || user.id}</span>
-              ),
-            },
-            {
-              title: '分册范围',
-              key: 'volume',
-              width: 120,
-              render: (_, item) => (
-                <span style={{ fontSize: 12 }}>
-                  {getExportVolumeLabel(item.volume || (item.volumes.length > 1 ? 'all' : item.volumes[0]?.volume || 'all'))}
-                </span>
-              ),
-            },
-            {
-              title: '类型',
-              dataIndex: 'kind',
-              key: 'kind',
-              width: 110,
-              render: (val: string) => {
-                const meta = getExportKindMeta(val);
-                return <Tag color={meta.tagColor}>{meta.label}</Tag>;
-              },
-            },
-            {
-              title: '模板与附件',
-              key: 'assets',
-              width: 150,
-              render: (_, item) => {
-                const attached = item.volumes.reduce((sum, v) => sum + (v.attachments?.length ?? 0), 0);
-                const skipped = item.volumes.flatMap(v => v.skipped_attachments ?? []);
-                return (
-                  <Space direction="vertical" size={0} style={{ fontSize: 12 }}>
-                    <span>{templateSourceLabel(item.volumes[0]?.template)}</span>
-                    <span>{attached ? `附件 ${attached} 份` : '无附件'}</span>
-                    {skipped.length > 0 && (
-                      <Tooltip title={skipped.map(s => `${s.name}：${s.reason}`).join('；')}>
-                        <span className="orange">跳过 {skipped.length} 份</span>
-                      </Tooltip>
-                    )}
-                  </Space>
-                );
-              },
-            },
-            {
-              title: '文件大小',
-              key: 'file_size',
-              width: 90,
-              render: (_, item) => {
-                const bytes = item.file_size ?? item.size_bytes ?? item.volumes.reduce((sum, v) => sum + (v.size_bytes ?? v.file_size ?? 0), 0);
-                return <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{formatFileSize(bytes)}</span>;
-              },
-            },
-            {
-              title: '版式指纹 (SHA256)',
-              key: 'fingerprint',
-              width: 150,
-              render: (_, item) => {
-                const hash = item.volumes?.[0]?.docx_sha256 || item.sha256 || item.volumes?.[0]?.sha256;
-                const meta = formatSha256Fingerprint(hash);
-                return (
-                  <Tooltip title={`完整指纹: ${meta.full}`}>
-                    <span
-                      data-testid="export-fingerprint"
-                      style={{ fontFamily: 'monospace', fontSize: 11, cursor: 'pointer', color: '#1677ff' }}
-                    >
-                      {meta.short}
-                    </span>
+          ) : null}
+        >
+          <div data-testid="export-history-table">
+            {workspace.exports.length === 0 && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="还没有导出记录" />}
+            {workspace.exports.slice().reverse().map(item => {
+              const meta = getExportKindMeta(item.kind);
+              const hash = item.volumes?.[0]?.docx_sha256 || item.sha256 || item.volumes?.[0]?.sha256;
+              const finger = formatSha256Fingerprint(hash);
+              const bytes = item.file_size ?? item.size_bytes ?? item.volumes.reduce((sum, v) => sum + (v.size_bytes ?? v.file_size ?? 0), 0);
+              const tech = item.volumes.find(v => v.volume === 'technical');
+              const comm = item.volumes.find(v => v.volume === 'business');
+              const status = exportStatusMeta(item.status);
+              return (
+                <div key={item.id} className="export-history-row">
+                  <Tooltip title={`导出记录 ${item.id}`}>
+                    <span data-testid="export-history-id">{exportBatchLabel(item)}</span>
                   </Tooltip>
-                );
-              },
-            },
-            {
-              title: '状态',
-              dataIndex: 'status',
-              key: 'status',
-              width: 110,
-              render: (val: string, item) => {
-                const meta = exportStatusMeta(val);
-                const tag = <Tag color={meta.color} data-testid="export-status">{meta.label}</Tag>;
-                return item.error_message ? <Tooltip title={item.error_message}>{tag}</Tooltip> : tag;
-              },
-            },
-            {
-              title: '分册下载',
-              key: 'downloads',
-              render: (_, item) => {
-                const tech = item.volumes.find(v => v.volume === 'technical');
-                const comm = item.volumes.find(v => v.volume === 'business');
-                return (
-                  <Space size={8}>
-                    {tech ? (
-                      <Button
-                        size="small"
-                        type="link"
-                        data-testid="export-download-btn"
-                        onClick={() => download(tech.download_url, token, tech.filename).catch(report)}
-                      >
-                        技术 Word{item.status === 'stale' ? '（已过期）' : ''}
-                      </Button>
-                    ) : null}
-                    {comm ? (
-                      <Button
-                        size="small"
-                        type="link"
-                        data-testid="export-download-btn"
-                        onClick={() => download(comm.download_url, token, comm.filename).catch(report)}
-                      >
-                        商务 Word{item.status === 'stale' ? '（已过期）' : ''}
-                      </Button>
-                    ) : null}
-                    {item.deviation_download_url ? (
-                      <Button
-                        size="small"
-                        type="link"
-                        data-testid="export-deviation-btn"
-                        onClick={() => download(item.deviation_download_url as string, token, '技术偏离表.docx').catch(report)}
-                      >
-                        技术偏离表
-                      </Button>
-                    ) : null}
-                    {item.merge_checklist_url ? (
-                      <Button
-                        size="small"
-                        type="link"
-                        data-testid="export-checklist-btn"
-                        onClick={() => download(item.merge_checklist_url as string, token, checklistFilename(item.id)).catch(report)}
-                      >
-                        合标清单{item.status !== 'valid' ? '（已过期）' : ''}
-                      </Button>
-                    ) : null}
-                    {!tech && !comm && <span className="muted" data-testid="export-no-files">{item.status === 'failed' ? item.error_message : '未生成分册文件'}</span>}
+                  <Tag color={meta.tagColor}>{meta.label}</Tag>
+                  <span className="muted">{formatTime(item.created_at)}</span>
+                  <span className="muted">{getExportVolumeLabel(item.volume || (item.volumes.length > 1 ? 'all' : item.volumes[0]?.volume || 'all'))}</span>
+                  <span className="muted">{formatFileSize(bytes)}</span>
+                  <Tooltip title={item.error_message || `完整指纹: ${finger.full}`}>
+                    <Tag color={status.color} data-testid="export-status">{status.label}</Tag>
+                  </Tooltip>
+                  <Tooltip title={`完整指纹: ${finger.full}`}>
+                    <span data-testid="export-fingerprint">{finger.short}</span>
+                  </Tooltip>
+                  {tech ? (
+                    <Button size="small" type="link" data-testid="export-download-btn" onClick={() => download(tech.download_url, token, tech.filename).catch(report)}>
+                      下载{item.status === 'stale' ? '（已过期）' : ''}
+                    </Button>
+                  ) : null}
+                  {comm ? (
+                    <Button size="small" type="link" data-testid="export-download-btn" onClick={() => download(comm.download_url, token, comm.filename).catch(report)}>
+                      商务{item.status === 'stale' ? '（已过期）' : ''}
+                    </Button>
+                  ) : null}
+                  {item.deviation_download_url ? (
+                    <Button size="small" type="link" data-testid="export-deviation-btn" onClick={() => download(item.deviation_download_url as string, token, '技术偏离表.docx').catch(report)}>
+                      技术偏离表
+                    </Button>
+                  ) : null}
+                  {item.merge_checklist_url ? (
+                    <Button size="small" type="link" data-testid="export-checklist-btn" onClick={() => download(item.merge_checklist_url as string, token, checklistFilename(item.id)).catch(report)}>
+                      合标清单{item.status !== 'valid' ? '（已过期）' : ''}
+                    </Button>
+                  ) : null}
+                  {!tech && !comm && <span className="muted" data-testid="export-no-files">{item.status === 'failed' ? item.error_message : '未生成方案文件'}</span>}
+                  <span className="muted">{item.created_by || item.operator_name || user.name || user.id}</span>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+        <Collapse
+          items={[{
+            key: 'options',
+            label: '导出选项',
+            children: (
+              <Form layout="vertical">
+                {!technical && (
+                  <Form.Item label="生成范围">
+                    <Radio.Group
+                      aria-label="导出方案范围"
+                      data-testid="export-volume-radio"
+                      value={volume}
+                      onChange={event => { setVolume(event.target.value); setCheckId(''); }}
+                      options={[
+                        { value: 'all', label: '技术方案与商务方案合订', disabled: !volumeOperationAllowed(workspace, 'export', 'all') },
+                        { value: 'technical', label: '技术方案', disabled: !volumeOperationAllowed(workspace, 'export', 'technical') },
+                        { value: 'business', label: '商务方案', disabled: !volumeOperationAllowed(workspace, 'export', 'business') },
+                      ]}
+                    />
+                  </Form.Item>
+                )}
+                <Form.Item label="Word 模板">
+                  <Select data-testid="export-template-select" value={template} onChange={setTemplateChoice} options={templateOptions(companyTemplate)} />
+                </Form.Item>
+                <Form.Item label="附件扫描件">
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <Checkbox data-testid="export-insert-attachments" checked={insertAttachments} onChange={event => setInsertAttachments(event.target.checked)}>
+                      插入条款挂接资料的扫描件
+                    </Checkbox>
+                    <Input data-testid="export-attachment-watermark" disabled={!insertAttachments} maxLength={60}
+                      value={attachmentWatermark} onChange={event => setAttachmentWatermark(event.target.value)}
+                      addonBefore="水印" placeholder={`仅用于${workspace.project.name}投标`} />
                   </Space>
-                );
-              },
-            },
-          ]}
+                </Form.Item>
+                {!technical && (
+                  <Form.Item label="检查批次">
+                    <Select
+                      value={check?.id}
+                      placeholder="请先运行当前范围的有效检查"
+                      onChange={setCheckId}
+                      options={validChecks.map(item => ({ value: item.id, label: `${formatTime(item.created_at)} · ${volumeName(item.volume)}检查` }))}
+                    />
+                  </Form.Item>
+                )}
+              </Form>
+            ),
+          }]}
         />
-      </Card>
+        <MergeChecklistCard />
+      </aside>
     </>
   );
 }

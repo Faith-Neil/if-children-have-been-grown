@@ -1,6 +1,7 @@
 # 为什么有这个文件：把可测试的业务服务接到真实 HTTP 接口和本地操作页面。
 # 它解决什么问题：标准应用工厂、统一中间件、错误处理与领域路由挂载装配。
 
+import logging
 import os
 import sys
 from pathlib import Path
@@ -129,7 +130,7 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     @application.exception_handler(RequestValidationError)
     async def invalid_request(request: Request, error: RequestValidationError):
         fields = sorted({".".join(str(part) for part in item["loc"]) for item in error.errors()})
-        message = "请求字段不符合演示接口要求：" + "、".join(fields)
+        message = "请求字段不符合接口要求：" + "、".join(fields)
         return error_response(request, 422, "VALIDATION_ERROR", message, details={"fields": fields})
 
     @application.exception_handler(HTTPException)
@@ -139,7 +140,13 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
 
     @application.exception_handler(Exception)
     async def unexpected_error(request: Request, error: Exception):
-        return error_response(request, 500, "INTERNAL_ERROR", "演示服务暂时失败，请凭请求编号核对日志。")
+        logging.getLogger("icg").exception(
+            "request %s failed: %s %s",
+            getattr(request.state, "request_id", ""),
+            request.method,
+            request.url.path,
+        )
+        return error_response(request, 500, "INTERNAL_ERROR", "服务暂时失败，请凭请求编号核对日志。")
 
     def current_user(request: Request, authorization: Annotated[str | None, Header()] = None) -> Principal:
         scheme, _, token = (authorization or "").partition(" ")

@@ -12,7 +12,7 @@
 | 关联 Issue | ISSUE-007 |
 <!-- governance-baseline:end -->
 
-2026-11-03 技术分册收口（[ISSUE-047](../issues/ISSUE-047.md)）：新建项目只做技术分册，口径见 [技术分册 MVP](decisions/2026-11-03-technical-volume-mvp.md)。下文仍保留原两册描述，实现以该决定为准。已有两册项目不迁移。
+2026-11-08 **仅技术标产品**（[决策](decisions/2026-11-08-tech-bid-only-product.md)）：本仓库活动实现只覆盖技术方案编制与导出；商务分册、两册合订、合标分工等 PRD v1.8 两册叙述不再作为开发验收依据。2026-11-03 技术分册 MVP（[ISSUE-047](../issues/ISSUE-047.md)）仍是流程细节来源；`docs/reference/product/` 保留 v1.8 原文供对照。
 
 2026-10-28 Wave 11（[ISSUE-040](../issues/ISSUE-040.md)、[ISSUE-039](../issues/ISSUE-039.md)）：§22 人工处理队列、§23 分册检查中的交叉复核与定稿、§8 解析后处理中的疑似遗漏已有真实页面与后台，均为 in-review。项目经理对原 PRD v1.8 不明确处作出的实施口径（模型修正安全复核、编写人定义、复核绑定正文快照、解锁即过期、覆盖判定、未跑循环章节的定稿条件、占位符范围）见 [PRD 实施澄清](decisions/2026-10-28-prd-amendments-wave11.md)；原文不改。章节生成进度页（§13）仍未做。
 
@@ -26,7 +26,7 @@ ISSUE-009 / APP-M2-T001按原角色矩阵补可信会话与导航、原布局及
 
 ISSUE-008 / APP-M1-T16已本地验收现有文字资料及公司SLA模板弹窗保护：刷新后台版本不能把旧内容/指标数组视为已核对，冲突保留填写，新旧并列确认后才载入最新依据；保存仍核对实际读取的原公司版本。该修复不代表完整资料确认/审核/受限授权或完整模板已交付。
 
-当前目标：以ICG示例布局、操作流程和交接清单为依据，按PRD v1.8/字典v1.9贯通项目→解析确认→矩阵→编辑→检查→技术/商务两册输出，再补其余页面。模型和数据库保留替换接口。旧正文是较早前端视图，不优先于ICG目标；实际范围见[实施约定](architecture/icg-reference-contract.md)，差异见[独立记录](decisions/icg-reference-deviations.md)。ISSUE-007推进产品，ISSUE-005继续生产门禁；不以小demo替代完整示例。
+当前目标：以 ICG 示例布局与 [技术分册 MVP](decisions/2026-11-03-technical-volume-mvp.md) 为主路径，贯通项目→招标文件抽取→矩阵→编辑台（纸面）→导出技术方案；商务分册输出不在范围内。模型和数据库保留替换接口。旧正文是较早前端视图，不优先于ICG目标；实际范围见[实施约定](architecture/icg-reference-contract.md)，差异见[独立记录](decisions/icg-reference-deviations.md)。ISSUE-007推进产品，ISSUE-005继续生产门禁；不以小demo替代完整示例。
 
 > 本文档为前端产品需求说明，基于[《智能投标系统 第一期（MVP）PRD v1.8》](reference/product/prd-mvp-v1.8.md)与[《企业投标资料库数据字典 v1.9》](reference/product/kb-data-dictionary-v1.9.md)整理，并补充前端信息架构、交互和页面级要求。项目经理规定后续开发以这两份为准。
 

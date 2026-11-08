@@ -101,9 +101,9 @@ export function getSeverityMeta(severity?: ForbiddenWordSeverity | null): {
  * 分册中文名称
  */
 export function getVolumeLabel(volume?: Volume | string | null): string {
-  if (volume === 'technical') return '技术分册';
-  if (volume === 'business') return '商务分册';
-  return '通用分册';
+  if (volume === 'technical') return '技术方案';
+  if (volume === 'business') return '商务方案';
+  return '通用方案';
 }
 
 /**

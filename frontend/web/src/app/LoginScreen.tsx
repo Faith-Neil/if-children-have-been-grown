@@ -4,6 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Button, Card, Input } from 'antd';
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
+import { BrandMark } from '../shared/BrandMark.tsx';
 import { fetchBranding, validateLoginForm, formatLoginErrorMessage, type Branding } from './login-auth-core.ts';
 
 export interface LoginScreenProps {
@@ -45,9 +46,8 @@ export function LoginScreen({ onPasswordLogin, busy = false, errorMessage: exter
       <section className="login-brand">
         {branding?.logo_horizontal_url
           ? <img className="brand-logo" src={branding.logo_horizontal_url} alt="" data-testid="login-brand-logo" />
-          : <div className="brand-square">标</div>}
+          : <BrandMark />}
         <h1 data-testid="login-product-name">{branding?.product_name || '智能投标系统'}</h1>
-        <p>让原文、证据和正文在同一处对齐</p>
         <div className="login-foot">
           ICG · 生产级投标工作台
         </div>

@@ -207,7 +207,7 @@ Extractor 的关键词 `top_n` 为 10。提示词仍要求 8～12 个；原文�
 
 - 待审核、已审核、推荐引用、禁止复用。这些状态以后由管理员维护，不由模型填写。
 - 自动重解析，以及把本机 RAGFlow 的切块迁到虚拟机。
-- 用五份真实标书计算 Recall@5 和 MRR@10。那是部署到真实 RAGFlow 之后的检索验收，不属于本设计的代码完成条件。
+- ~~用五份真实标书计算 Recall@5 和 MRR@10。~~ **已做（2026-11-06）**：见 [rag-eval-history-bid-v1.md](../../testing/rag-eval-history-bid-v1.md) 与任务 AI-HISTORY-BID-RAG-EVAL；假服务不算验收。
 
 ## 6. 代码完成时要证明的事
 
@@ -221,3 +221,12 @@ Extractor 的关键词 `top_n` 为 10。提示词仍要求 8～12 个；原文�
 6. 技术分册矩阵在有历史命中时仍用最相近的历史片段判断偏离，并把资料库命中记在同一行的另一组出处。
 
 真实 RAGFlow 上的解析质量和检索质量，等用户明确要求部署后再做。代码测试通过不等于生产解析已经验收。
+
+## 补充（2026-11-06 · AI-HISTORY-BID-PARSE-OPT）
+
+本补充覆盖方案正文冲突处。
+
+1. **标题规则**：数字层级允许 `6.3Oracle…`、`1.定期…`（数字后直接接字母/汉字，不强制空白或顿号）。表达式见 `SCHEME_HEADING_GROUP`。
+2. **问法关闭**：部署后必须再读远端画布；若 `questions.enabled` 仍为 true 或 `top_n>0`，强制重写 DSL。
+3. **真机最小验收**：只认 `ICG_RUN_REAL_RAGFLOW_TESTS=1` 下的四类单测（切块/抽取分类/检索/整管）。金标两份脱敏 docx 见 `tests/backend/fixtures/history-bid-golden/`。假 RAGFlow 绿测不计入解析质量验收。
+4. **试查对账**：检索试查前刷新本地索引状态，避免远端已 DONE、本地仍 parsing 导致 zero hits。

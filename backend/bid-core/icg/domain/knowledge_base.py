@@ -303,6 +303,18 @@ def read_index(state: DemoState, company_id: str) -> dict:
     return {"datasets": {}, "pipelines": {}, "files": {}, **index}
 
 
+def _pipeline_questions_enabled(dsl: dict[str, Any]) -> bool:
+    """远端画布 Extractor 的问法是否仍处于打开状态。"""
+    for node in (dsl or {}).get("components", {}).values():
+        obj = (node or {}).get("obj") or {}
+        if obj.get("component_name") != "Extractor":
+            continue
+        questions = ((obj.get("params") or {}).get("questions") or {})
+        if questions.get("enabled") or int(questions.get("top_n") or 0) > 0:
+            return True
+    return False
+
+
 class KnowledgeBaseService:
     """资料 → RAGFlow 文档的同步与检索。
 
@@ -431,6 +443,15 @@ class KnowledgeBaseService:
                 pipeline_id = str(client.create_agent(title, dsl, description=f"[{company_id}] {profile.description}",
                                                       canvas_category="dataflow_canvas")["id"])
             changed = True
+        # RAGFlow 保存画布有时会按默认条数重开问法；历史标书/资料库部署后必须再核一次并强制关掉。
+        if pipeline_id and profile_key in ("history_bid", "materials"):
+            try:
+                live = client.get_agent(pipeline_id)
+                if _pipeline_questions_enabled(live.get("dsl") or {}):
+                    client.update_agent(pipeline_id, dsl=dsl, title=title)
+                    changed = True
+            except Exception:
+                pass
         now = iso_time(self.demo._now())
 
         def save(index: dict) -> None:

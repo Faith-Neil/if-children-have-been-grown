@@ -270,6 +270,7 @@ def confirm_directory(state: Any, principal: Any, project_id: str, workflow: dic
         "confirmation_pending": False,
     }
     workflow["plan_confirmed"] = True
+    workflow["outline_revision"] = int(workflow.get("outline_revision") or 0) + 1
     workflow["writing_plan"] = {
         "confirmed_by": principal.user.id,
         "confirmed_by_name": principal.user.name,

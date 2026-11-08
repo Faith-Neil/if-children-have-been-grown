@@ -1,13 +1,12 @@
 // 为什么有这个文件：提取项目工作区「概览」页签（OverviewPage）。
-// 它解决什么问题：解耦步骤流程、待办清单、分册进度与最近导出展示，精简 ProjectPages 巨石单体。
+// 它解决什么问题：解耦步骤流程、待办清单、技术方案进度与最近导出展示，精简 ProjectPages 巨石单体。
 
 import React from 'react';
 import { exportStatusMeta, getExportKindMeta } from './export-checks-core.ts';
 import { Button, Card, Col, Collapse, Empty, List, Progress, Row, Steps, Tag } from 'antd';
 import { CheckCircleOutlined } from '@ant-design/icons';
 import { formatTime, useProject, volumeName } from '../app/context.tsx';
-import { useVolumesStatus, isVolumeFinalized } from './volume-api.ts';
-import { projectVolumes, technicalOnly, volumeOptions } from './project-volumes.ts';
+import { projectVolumes, technicalOnly } from './project-volumes.ts';
 import { useProjectSettings } from './ProjectSettingsGroups.tsx';
 import { mergeTodoItems } from './project-settings-core.ts';
 
@@ -17,12 +16,11 @@ export function ClockCircleSymbol() {
 
 export function OverviewPage() {
   const { workspace, token, navigate } = useProject();
-  const { volumes: volumesStatus } = useVolumesStatus(workspace.project.id, token, workspace.revision);
   const { settings } = useProjectSettings(workspace.project.id, token, workspace.revision);
   const isTechnicalOnly = technicalOnly(workspace);
   const steps = isTechnicalOnly
     ? ['建立项目', '上传自动解析', '确认目录', '生成与导出']
-    : ['建立项目', '上传并解析', '确认与挂证据', '编制两册', '检查与导出'];
+    : ['建立项目', '上传并解析', '确认与挂证据', '编制方案', '检查与导出'];
   const current = isTechnicalOnly
     ? (!workspace.files.length
       ? 0
@@ -88,7 +86,7 @@ export function OverviewPage() {
       done: workspace.facts.every(item => !['pending', 'needs_review'].includes(item.status)),
     },
     {
-      title: '编制技术与商务两册',
+      title: '编制技术方案正文',
       detail: `${workspace.chapters.filter(item => item.content.trim()).length} / ${workspace.chapters.length} 章有已提交正文`,
       tab: 'editor',
       done: workspace.chapters.every(item => item.content.trim()),
@@ -100,7 +98,7 @@ export function OverviewPage() {
       done: workspace.exports.some(item => item.status === 'valid'),
     },
   ];
-  // 后台给出的待办（合作方缺协议、分册无负责人、内部截止临近、拟派人员占用等），每项可一键跳转
+  // 后台给出的待办（合作方缺协议、无负责人、内部截止临近、拟派人员占用等），每项可一键跳转
   const pendingItems = mergeTodoItems(flowItems, settings?.todos ?? []);
   const status = workspace.project_status;
 
@@ -128,18 +126,13 @@ export function OverviewPage() {
           </Card>
         </Col>
         <Col span={8}>
-          <Card title="分册进度" className="stack-card">
+          <Card title="技术方案进度" className="stack-card" data-testid="overview-plan-progress">
             {projectVolumes(workspace).map(volume => {
               const chapters = workspace.chapters.filter(item => item.volume === volume);
               return (
                 <div key={volume} className="volume-progress">
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                     <b>{volumeName(volume)}</b>
-                    {isVolumeFinalized(volumesStatus, volume) ? (
-                      <Tag color="success" data-testid={`volume-${volume}-finalized-badge`}>已定稿</Tag>
-                    ) : (
-                      <Tag color="default" data-testid={`volume-${volume}-unfinalized-badge`}>编制中</Tag>
-                    )}
                   </div>
                   <Progress
                     percent={

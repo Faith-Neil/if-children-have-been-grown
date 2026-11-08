@@ -838,7 +838,7 @@ class JobStatus(BaseModel):
 class CheckIssue(ResponseBody):
     id: str
     code: str
-    severity: Literal["blocking", "warning", "blocker"]
+    severity: Literal["blocking", "warning", "blocker", "info"]
     message: str
     requirement_id: str | None = None
     chapter_id: str | None = None

@@ -32,7 +32,7 @@ export function CreateProjectModal({
       okButtonProps={{ disabled: !canCreate }}
       width={600}
     >
-      <Form form={form} layout="vertical" initialValues={{ sensitive: false, volume_mode: 'technical_only' }}>
+      <Form form={form} layout="vertical" initialValues={{ sensitive: false }}>
         <Form.Item
           name="name"
           label="项目名称"

@@ -10,6 +10,14 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
+| D-1003 | 2026-11-06 | [去掉分册模式 UI](delivery/2026-11-06-remove-volume-mode-ui.md) | 改码说明 | ui-1 | 待 PM 复验 | ISSUE-047 | 新建/设置/导出去 volume_mode 选择；技术方案文案；未合 PR |
+| D-996 | 2026-11-06 | [AI-HISTORY-BID-PARSE-OPT 交付](delivery/AI-HISTORY-BID-PARSE-OPT.md) | 任务交付 | parse-opt-1 | in-review | ISSUE-050 / AI-HISTORY-BID-PARSE-OPT | 四类真机验收 4 passed；假服务不算质量验收 |
+| D-997 | 2026-11-06 | [AI-HISTORY-BID-PARSE-OPT 代码说明](code/AI-HISTORY-BID-PARSE-OPT.md) | 代码 | parse-opt-1 | 当前 | ISSUE-050 / AI-HISTORY-BID-PARSE-OPT | 标题规则、关问法二次校验、试查 refresh、list_chunks metadata |
+| D-998 | 2026-11-06 | [历史标书金标夹具](../tests/backend/fixtures/history-bid-golden/manifest.json) | 验证夹具 | v2 | 当前 | ISSUE-050 | 两份脱敏 docx + 期望标记；只服务真机验收 |
+| D-999 | 2026-11-05 | [昆明 Oracle e2e 阻断记录](testing/2026-11-05-kunming-oracle-e2e-blockers.md) | 验证 | snapshot | 当前 | ISSUE-047 | 既有联调阻断纪要补登记，避免治理检查漏索引 |
+| D-1000 | 2026-11-06 | [历史标书 RAG 大盘报告](testing/rag-eval-history-bid-v1.md) | 验证 | golden-history-bid-v1 | 当前 | ISSUE-050 / AI-HISTORY-BID-RAG-EVAL | 真机 Recall@5/MRR@10；5/5 解析成功 |
+| D-1001 | 2026-11-06 | [AI-HISTORY-BID-RAG-EVAL 交付](delivery/AI-HISTORY-BID-RAG-EVAL.md) | 任务交付 | rag-eval-1 | in-review | ISSUE-050 | 五份金标大盘交付 |
+| D-1002 | 2026-11-06 | [AI-HISTORY-BID-RAG-EVAL 代码说明](code/AI-HISTORY-BID-RAG-EVAL.md) | 代码 | rag-eval-1 | 当前 | ISSUE-050 | rag_eval_history_bid.py 入口 |
 | 2026-10-27 | 任务看板 / PM 标 done | 依据 QA 独立终验签署报告（D-776）与 PD 产品视角验收报告（D-777），人类 PM 确认将 FE-TECH-DEBT-02、APP-M2-T022、BE-COMPLIANCE-RULES-P3、AI-DYNAMIC-PROMPT-CONTEXT、INT-APP-SLIM-ROUTING 共 5 张任务卡在 TASK_BOARD 与相应任务卡文件中正式标为 done，看板推进至 72 done、60 in-review |
 | 2026-10-27 | 任务看板 / PM 标 done | 依据 QA 独立签署报告（D-754 / D-764）与 PD 产品视角验收报告（D-755 / D-765），人类 PM 确认将 FE-TECH-DEBT-01、BE-COMPLIANCE-RULES-P1、AI-COMPLIANCE-CROSS-CHECK、INT-MODEL-CONFIG-MODAL、APP-M2-T021、BE-COMPLIANCE-RULES-P2、AI-SNIPPET-RETRIEVAL-MATCH、INT-TASK-CENTER-GLUE 共 8 张任务卡在 TASK_BOARD 与相应任务卡文件中正式标为 done，看板推进至 67 done、60 in-review |
 | 2026-10-26 | 任务看板 / PM 标 done | 依据 QA 独立终验签署报告（D-742）与 PD 产品视角对照验收报告（D-743），人类 PM 确认将 BE-TECH-DEBT-01、BE-TECH-DEBT-02、FE-REACT-ROUTER、AI-RAGFLOW-KB-SYNC、BE-COMPLIANCE-RULES-P0、REV-SMOKE-001、INT-VOLUME-FINALIZE-GLUE 共 7 张任务卡在 TASK_BOARD 与相应任务卡/Issue中正式标为 done，看板推进至 61 done、13 in-review |

@@ -619,6 +619,11 @@ class KbAdminService:
         if not kinds <= {"evidence", "snippet", "history", "materials"}:
             raise DomainError(422, "VALIDATION_ERROR", "kinds 只能是 evidence、snippet、history、materials。")
         limit = max(1, min(int(payload.get("limit") or 8), 20))
+        # 远端已解析完成但本地索引仍为 parsing 时，试查会得到 zero hits；先对账状态。
+        try:
+            self.kb.refresh_status(principal.user.company_id)
+        except Exception:
+            pass
         try:
             hits, reason = self.kb.search(principal.user.company_id, query, limit=limit, kinds=kinds,
                                           user=principal.user, overrides=overrides)

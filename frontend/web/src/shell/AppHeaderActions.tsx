@@ -84,7 +84,7 @@ export function AppHeaderActions({
     <span className="topbar-user" key="user">
       <span className="company-label"><TeamOutlined /> {companyName(user.company_id)}</span>
       <span className="user-avatar">{user.name[0]}</span>
-      <span className="user-name">{user.name}<small> · {roleDisplayLabel}（演示兼容）</small></span>
+      <span className="user-name">{user.name}<small> · {roleDisplayLabel}</small></span>
     </span>,
     <Button key="logout" type="text" size="small" onClick={onLogout}>退出</Button>,
     <Button key="model" type="text" icon={<SettingOutlined />} aria-label="模型服务配置" onClick={onOpenModelConfig}>模型配置</Button>,

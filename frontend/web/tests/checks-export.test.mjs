@@ -2,7 +2,7 @@
 // 它解决什么问题：
 // 1. 验证 export-checks-core.ts 的导出与契约签名；
 // 2. 验证 ChecksPage 中阻断横幅 blocker-alert-banner 与受阻章节列表 blocker-chapters-list 的挂载；
-// 3. 验证 ExportPage 中导出前提、阻断告警 export-blocker-warning、生成按钮 export-generate-btn、导出历史表格与 SHA256 指纹展示契约。
+// 3. 验证 ExportPage 顶栏导出、阻断告警 export-blocker-warning、生成按钮 export-generate-btn、导出记录与 SHA256 指纹展示契约。
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -61,15 +61,11 @@ test('ProjectPages.tsx ChecksPage integrates blocker alert banner and chapters l
 test('ProjectPages.tsx ExportPage integrates blocker redline gate, options, and history table', () => {
   const { content } = parseSource('../src/project/ProjectPages.tsx');
 
-  // 1. 验证导出前提中包含合规红线门禁检查
-  assert.ok(
-    content.includes('合规红线门禁：无阻断性缺陷（Blocker 清零）'),
-    'ExportPage premises must check zero blockers'
-  );
-
-  // 2. 验证分册范围与类型单选
-  assert.ok(content.includes('data-testid="export-volume-radio"'), 'ExportPage must declare export-volume-radio');
-  assert.ok(content.includes('data-testid="export-kind-radio"'), 'ExportPage must declare export-kind-radio');
+  assert.ok(!content.includes('导出前提'), '导出前提清单已收进按钮禁用条件');
+  assert.ok(content.includes('运行检查'), '顶栏保留运行检查');
+  assert.ok(content.includes('导出递交版'), '顶栏保留导出递交版');
+  assert.ok(content.includes('导出选项'), '模板与附件收在导出选项');
+  assert.ok(content.includes('data-testid="export-volume-radio"'), '非技术方案路径仍保留方案范围');
 
   // 3. 验证阻断警告横幅与递交版禁用按钮
   assert.ok(content.includes('data-testid="export-blocker-warning"'), 'ExportPage must declare export-blocker-warning');

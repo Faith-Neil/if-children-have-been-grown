@@ -1,0 +1,36 @@
+{
+  "version": 3,
+  "acceptance": "real-ragflow-only",
+  "documents": [
+    {
+      "id": "leshan",
+      "fixture": "leshan-oracle-response.docx",
+      "sha256": "c3e20b960e69373bae786a4fe4e1df08dec4c1bf089fc5e047a9c67f77532107",
+      "original_name": "乐山市人民医院ORACLE数据库维保等采购项目响应文件-杨小英_v1.0(2).docx"
+    },
+    {
+      "id": "gansu",
+      "fixture": "gansu-nongxin-tech-response.docx",
+      "sha256": "7ea87bc2b1b06d3bd9e1925debffeba626fa8805c663dc0dbdc354668a426769",
+      "original_name": "技术响应文件-杨明禹.docx"
+    },
+    {
+      "id": "lutianhua",
+      "fixture": "lutianhua-db-ops-v2.3.docx",
+      "sha256": "e8df67079c4e10aa2614c743a6a8fcc6954a2b62b8d74d1f316e8127941adaa5",
+      "original_name": "泸天化有限责任公司数据库运维服务项目技术方案-任登科(V2.3).docx"
+    },
+    {
+      "id": "guiyang2025",
+      "fixture": "guiyang-bank-platform-2025.docx",
+      "sha256": "825c2451d815c8c3db36c759fd2ae24da476263392491bc87a1a0295d4a4a4fe",
+      "original_name": "融科-投标文件-2025年贵阳银行基础软件平台维保(3).docx"
+    },
+    {
+      "id": "guiyang2024",
+      "fixture": "guiyang-bank-xinchuang-2024.docx",
+      "sha256": "eceb519b02563d5bfd05ec30d295c36dd9c834a19d5165d685e453832faab3a6",
+      "original_name": "融科响应文件-贵阳银行2024年信创基础软件采购项目(2).docx"
+    }
+  ]
+}

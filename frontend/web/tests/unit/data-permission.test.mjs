@@ -118,7 +118,7 @@ test('project team member role restrictions: readonly member and non-member', ()
 });
 
 test('table-driven: volume lead cross-volume division of labor', () => {
-  // 1. 技术分册负责人访问技术分册 -> 放行
+  // 1. 技术方案负责人访问技术方案 -> 放行
   const techLeadInTech = resolveDataPermission({
     role: 'bid_writer',
     userId: 'user-vol-tech',
@@ -129,7 +129,7 @@ test('table-driven: volume lead cross-volume division of labor', () => {
   assert.equal(techLeadInTech.canEdit, true);
   assert.equal(techLeadInTech.scope, 'none');
 
-  // 2. 技术分册负责人访问商务分册 -> volume 级只读拦截
+  // 2. 技术方案负责人访问商务方案 -> volume 级只读拦截
   const techLeadInBiz = resolveDataPermission({
     role: 'bid_writer',
     userId: 'user-vol-tech',
@@ -139,11 +139,11 @@ test('table-driven: volume lead cross-volume division of labor', () => {
   assert.equal(techLeadInBiz.readOnly, true);
   assert.equal(techLeadInBiz.canEdit, false);
   assert.equal(techLeadInBiz.scope, 'volume');
-  assert.equal(techLeadInBiz.scopeName, '商务分册');
+  assert.equal(techLeadInBiz.scopeName, '商务方案');
   assert.equal(techLeadInBiz.reasonType, 'wrong_volume');
-  assert.ok(techLeadInBiz.readOnlyReason?.includes('您当前是【技术分册】负责人，在【商务分册】中处于只读浏览状态'));
+  assert.ok(techLeadInBiz.readOnlyReason?.includes('您当前是【技术方案】负责人，在【商务方案】中处于只读浏览状态'));
 
-  // 3. 商务分册负责人访问商务分册 -> 放行
+  // 3. 商务方案负责人访问商务方案 -> 放行
   const bizLeadInBiz = resolveDataPermission({
     role: 'bid_writer',
     userId: 'user-vol-biz',
@@ -153,7 +153,7 @@ test('table-driven: volume lead cross-volume division of labor', () => {
   assert.equal(bizLeadInBiz.readOnly, false);
   assert.equal(bizLeadInBiz.canEdit, true);
 
-  // 4. 商务分册负责人访问技术分册 -> volume 级只读拦截
+  // 4. 商务方案负责人访问技术方案 -> volume 级只读拦截
   const bizLeadInTech = resolveDataPermission({
     role: 'bid_writer',
     userId: 'user-vol-biz',
@@ -163,9 +163,9 @@ test('table-driven: volume lead cross-volume division of labor', () => {
   assert.equal(bizLeadInTech.readOnly, true);
   assert.equal(bizLeadInTech.canEdit, false);
   assert.equal(bizLeadInTech.scope, 'volume');
-  assert.equal(bizLeadInTech.scopeName, '技术分册');
+  assert.equal(bizLeadInTech.scopeName, '技术方案');
   assert.equal(bizLeadInTech.reasonType, 'wrong_volume');
-  assert.ok(bizLeadInTech.readOnlyReason?.includes('您当前是【商务分册】负责人，在【技术分册】中处于只读浏览状态'));
+  assert.ok(bizLeadInTech.readOnlyReason?.includes('您当前是【商务方案】负责人，在【技术方案】中处于只读浏览状态'));
 });
 
 test('table-driven: chapter-level assignment division of labor for bid writers', () => {
@@ -196,7 +196,7 @@ test('table-driven: chapter-level assignment division of labor for bid writers',
   assert.equal(unassignedChapterRes.reasonType, 'not_assigned');
   assert.ok(unassignedChapterRes.readOnlyReason?.includes('本章节【系统性能指标】未分配给您'));
 
-  // 3. 编写人未分配商务分册，进入商务分册章节 -> volume 级只读拦截
+  // 3. 编写人未分配商务方案，进入商务方案章节 -> volume 级只读拦截
   const wrongVolumeChapterRes = resolveDataPermission({
     role: 'bid_writer',
     userId: 'user-writer',
@@ -206,13 +206,13 @@ test('table-driven: chapter-level assignment division of labor for bid writers',
   assert.equal(wrongVolumeChapterRes.readOnly, true);
   assert.equal(wrongVolumeChapterRes.canEdit, false);
   assert.equal(wrongVolumeChapterRes.scope, 'volume');
-  assert.equal(wrongVolumeChapterRes.scopeName, '商务分册');
+  assert.equal(wrongVolumeChapterRes.scopeName, '商务方案');
   assert.equal(wrongVolumeChapterRes.reasonType, 'wrong_volume');
-  assert.ok(wrongVolumeChapterRes.readOnlyReason?.includes('您未被分配参与【商务分册】'));
+  assert.ok(wrongVolumeChapterRes.readOnlyReason?.includes('您未被分配参与【商务方案】'));
 });
 
 test('volume lead has full chapter edit rights within their own volume', () => {
-  // 技术分册负责人访问属于技术分册但分配给其他编写人的章节（ch-tech-1）
+  // 技术方案负责人访问属于技术方案但分配给其他编写人的章节（ch-tech-1）
   const volumeLeadChapterRes = resolveDataPermission({
     role: 'bid_writer',
     userId: 'user-vol-tech',
@@ -225,13 +225,13 @@ test('volume lead has full chapter edit rights within their own volume', () => {
 });
 
 test('helper functions contract: getVolumeDisplayName and getScopeLabel', () => {
-  assert.equal(getVolumeDisplayName('technical'), '技术分册');
-  assert.equal(getVolumeDisplayName('business'), '商务分册');
-  assert.equal(getVolumeDisplayName('all'), '全部分册');
-  assert.equal(getVolumeDisplayName(null), '全部分册');
+  assert.equal(getVolumeDisplayName('technical'), '技术方案');
+  assert.equal(getVolumeDisplayName('business'), '商务方案');
+  assert.equal(getVolumeDisplayName('all'), '全部方案');
+  assert.equal(getVolumeDisplayName(null), '全部方案');
 
   assert.equal(getScopeLabel('project'), '全项目');
-  assert.equal(getScopeLabel('volume'), '分册');
+  assert.equal(getScopeLabel('volume'), '方案');
   assert.equal(getScopeLabel('chapter'), '章节');
   assert.equal(getScopeLabel('none'), '无限制');
 });

@@ -3,7 +3,7 @@
 
 import { NotificationsPage } from '../notifications/NotificationsPage';
 import React, { Suspense } from 'react';
-import { Alert, Button, Spin, Tabs } from 'antd';
+import { Button, Spin, Tabs } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { Can } from '../shell/Can';
 import { ProjectListPage } from '../project/ProjectListPage';
@@ -50,6 +50,7 @@ export interface GlobalPagesContentProps {
   jobs: Job[];
   createButton?: React.ReactNode;
   onOpenProject: (id: string, tab?: string) => void;
+  onDeleteProject?: (id: string) => Promise<void> | void;
   onOpenCreateProject?: () => void;
   onRequestPath: (path: string) => void;
   onRetryJob: (jobId: string) => Promise<void>;
@@ -76,6 +77,7 @@ export function GlobalPagesContent({
   jobs,
   createButton,
   onOpenProject,
+  onDeleteProject,
   onOpenCreateProject,
   onRequestPath,
   onRetryJob,
@@ -110,15 +112,9 @@ export function GlobalPagesContent({
             <ProjectListPage
               projects={projects}
               onOpenProject={onOpenProject}
+              onDeleteProject={onDeleteProject}
               session={session}
               currentUser={currentUser}
-            />
-            <Alert
-              className="page-notice"
-              type="info"
-              message="先贯通示例主链路"
-              description="新建项目后，依次上传招标文件、确认解析、补响应与证据、编制两册章节、检查并下载内部稿。演示建议需要人工确认，不能直接作为正式承诺。"
-              showIcon
             />
           </>
         )}

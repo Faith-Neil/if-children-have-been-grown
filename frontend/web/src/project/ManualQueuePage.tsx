@@ -127,8 +127,8 @@ function HumanQueueView() {
               extra={
                 <Space>
                   <span className="muted">{loopLine(group)}</span>
-                  {group.volume_finalized && <Tag>分册已定稿</Tag>}
-                  <Tooltip title={group.can_recheck ? '' : group.volume_finalized ? '分册已定稿，须先解锁' : '只有本节负责人或项目负责人可以重新检查'}>
+                  {group.volume_finalized && <Tag>方案已定稿</Tag>}
+                  <Tooltip title={group.can_recheck ? '' : group.volume_finalized ? '方案已定稿，须先解锁' : '只有本节负责人或项目负责人可以重新检查'}>
                     <Button size="small" disabled={busy || !group.can_recheck} onClick={() => void recheck(group)}>重新检查</Button>
                   </Tooltip>
                 </Space>

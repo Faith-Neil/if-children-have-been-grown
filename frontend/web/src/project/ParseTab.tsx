@@ -436,13 +436,8 @@ export function ParsePage() {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="volume" label="归属分册">
-                <Select
-                  options={[
-                    { value: 'technical', label: '技术分册' },
-                    { value: 'business', label: '商务分册' },
-                  ]}
-                />
+              <Form.Item name="volume" label="归属">
+                <Select options={[{ value: 'technical', label: '技术方案' }]} />
               </Form.Item>
             </Col>
           </Row>

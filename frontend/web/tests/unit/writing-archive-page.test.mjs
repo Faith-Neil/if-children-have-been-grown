@@ -60,9 +60,9 @@ test('getSeverityMeta: 违规严重度级别映射', () => {
 });
 
 test('getVolumeLabel: 分册友好名称映射', () => {
-  assert.equal(getVolumeLabel('technical'), '技术分册');
-  assert.equal(getVolumeLabel('business'), '商务分册');
-  assert.equal(getVolumeLabel(null), '通用分册');
+  assert.equal(getVolumeLabel('technical'), '技术方案');
+  assert.equal(getVolumeLabel('business'), '商务方案');
+  assert.equal(getVolumeLabel(null), '通用方案');
 });
 
 /* ========================================================================= */

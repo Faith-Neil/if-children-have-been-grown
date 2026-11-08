@@ -171,26 +171,28 @@ export function ProjectHeader({
           )}
         </span>
 
-        <span>
-          响应覆盖率：<b>{coveragePercent}%</b>
-        </span>
-
-        <span>
-          {latestCheck?.status === 'stale' ? (
-            <span className="orange">检查需重新运行</span>
-          ) : latestCheck ? (
-            <>
-              检查阻断：
-              <b className={blockerCount > 0 ? 'red' : 'green'}>{blockerCount}</b>
-            </>
-          ) : (
-            '尚未检查'
-          )}
-        </span>
-
-        <span>
-          待确认：<b className="orange">{pendingCount}</b>
-        </span>
+        {!technicalOnly(workspace) && (
+          <>
+            <span>
+              响应覆盖率：<b>{coveragePercent}%</b>
+            </span>
+            <span>
+              {latestCheck?.status === 'stale' ? (
+                <span className="orange">检查需重新运行</span>
+              ) : latestCheck ? (
+                <>
+                  检查阻断：
+                  <b className={blockerCount > 0 ? 'red' : 'green'}>{blockerCount}</b>
+                </>
+              ) : (
+                '尚未检查'
+              )}
+            </span>
+            <span>
+              待确认：<b className="orange">{pendingCount}</b>
+            </span>
+          </>
+        )}
       </div>
 
       {/* 快速导航页签（八角色感知过滤，无设置入口时隐藏） */}
@@ -205,7 +207,7 @@ export function ProjectHeader({
                 <span>
                   {item.label} <Badge count={workspace.human_queue_pending ?? 0} size="small" />
                 </span>
-              ) : item.key === 'checks' && blockerCount > 0 ? (
+              ) : item.key === 'checks' && blockerCount > 0 && !technicalOnly(workspace) ? (
                 <span>
                   {item.label} <Badge count={blockerCount} size="small" style={{ backgroundColor: '#d9363e' }} />
                 </span>

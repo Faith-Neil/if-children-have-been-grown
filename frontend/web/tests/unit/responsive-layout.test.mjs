@@ -291,8 +291,8 @@ test('deriveBreadcrumbs derives multi-level paths inside project workspace with 
   assert.equal(volumeCrumbs[1].path, '/projects/proj-001/overview');
   assert.equal(volumeCrumbs[2].title, '编辑台');
   assert.equal(volumeCrumbs[2].path, '/projects/proj-001/editor');
-  assert.equal(volumeCrumbs[3].title, '技术分册');
-  assert.equal(volumeCrumbs[3].fullTitle, '编辑台 · 技术分册');
+  assert.equal(volumeCrumbs[3].title, '技术方案');
+  assert.equal(volumeCrumbs[3].fullTitle, '编辑台 · 技术方案');
   assert.equal(volumeCrumbs[3].isCurrent, true);
   assert.equal(volumeCrumbs[3].path, undefined);
 

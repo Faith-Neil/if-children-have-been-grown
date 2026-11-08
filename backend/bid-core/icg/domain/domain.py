@@ -783,6 +783,21 @@ class DemoService:
             return res
         return self.repository.transaction(operation)
 
+    def delete_project(self, principal: Principal, project_id: str) -> dict:
+        from .project_access import lead, project_volume_mode
+
+        def operation(state: DemoState):
+            project = self._project(state, principal, project_id)
+            if not lead(state, project_id, principal.user.id):
+                raise DomainError(403, "FORBIDDEN", "只有项目负责人可以删除项目。")
+            project.is_deleted = True
+            project.revision += 1
+            project.updated_by = principal.user.id
+            project.updated_at = self._now()
+            return {**self._project_response(project), "volume_mode": project_volume_mode(state, project_id)}
+
+        return self.repository.transaction(operation)
+
     def chapters(self, principal: Principal, project_id: str) -> dict:
         state = self.repository.read()
         self._project(state, principal, project_id)

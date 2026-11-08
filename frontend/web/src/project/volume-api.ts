@@ -129,7 +129,7 @@ export function getVolumeFinalizeMeta(
     const allDone = areAllVolumesFinalized(volumes);
     return {
       isFinalized: allDone,
-      label: allDone ? '分册全部定稿' : '分册未全部定稿',
+      label: allDone ? '方案全部定稿' : '方案未全部定稿',
       badgeColor: allDone ? 'success' : 'default',
       finalizedBy: null,
       finalizedAt: null,
@@ -139,7 +139,7 @@ export function getVolumeFinalizeMeta(
 
   const vol = volumes?.find(v => v.volume_id === volumeId);
   const isDone = Boolean(vol?.is_finalized);
-  const name = volumeId === 'technical' ? '技术分册' : volumeId === 'business' ? '商务分册' : '分册';
+  const name = volumeId === 'technical' ? '技术方案' : volumeId === 'business' ? '商务方案' : '方案';
   return {
     isFinalized: isDone,
     label: isDone ? `${name}已定稿` : `${name}未定稿`,
@@ -159,9 +159,9 @@ export function deriveFinalizePremise(
 ): { label: string; ready: boolean; tab: string } {
   const isAll = volume === 'all';
   const ready = isAll ? areAllVolumesFinalized(volumes) : isVolumeFinalized(volumes, volume);
-  const volLabel = volume === 'technical' ? '技术分册' : volume === 'business' ? '商务分册' : '分册';
+  const volLabel = volume === 'technical' ? '技术方案' : volume === 'business' ? '商务方案' : '方案';
   return {
-    label: isAll ? '分册定稿门禁：技术与商务两册均已定稿锁定' : `分册定稿门禁：${volLabel}已定稿锁定`,
+    label: isAll ? '方案定稿门禁：技术方案与商务方案均已定稿锁定' : `方案定稿门禁：${volLabel}已定稿锁定`,
     ready,
     tab: 'editor',
   };

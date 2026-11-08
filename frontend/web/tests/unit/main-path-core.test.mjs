@@ -102,7 +102,14 @@ test('main path pages are wired instead of placeholders', () => {
     .split('\n').filter(line => !line.trim().startsWith('//')).join('\n');
   assert.ok(!/批量|全部排除|全部新增/.test(drawer), '疑似遗漏不提供批量处理');
   const exportPage = readFileSync(new URL('../../src/project/ProjectPages.tsx', import.meta.url), 'utf8');
-  assert.ok(exportPage.includes('<VolumeFinalizePanel volumes={volumesStatus} />'));
+  assert.ok(!exportPage.includes('VolumeFinalizePanel'));
+  assert.ok(!exportPage.includes('只写技术标'));
+  assert.ok(exportPage.includes('check-export-toolbar'));
+  assert.ok(!exportPage.includes('导出前提'));
+  const settings = readFileSync(new URL('../../src/project/ProjectSettingsPage.tsx', import.meta.url), 'utf8');
+  assert.ok(settings.includes('label: \'更多\''));
+  assert.ok(!settings.includes('settings-anchor'));
+  assert.ok(!settings.includes('项目角色决定本项目职责'));
 });
 
 test('single paragraph edit pre-check and payload follow the backend contract', () => {

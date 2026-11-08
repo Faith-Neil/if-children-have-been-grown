@@ -22,7 +22,7 @@ export function ExportNamingCard({ projectId, projectName, tenderNumber, token, 
   }, [projectId, token]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!current) return null;
-  const sample = { 编写人: '张三', 版本: 'V1.0', 日期: '20260115', 项目名称: projectName, 分册名称: '技术分册', 招标编号: tenderNumber || 'ZB-2026-001' };
+  const sample = { 编写人: '张三', 版本: 'V1.0', 日期: '20260115', 项目名称: projectName, 分册名称: '技术方案', 招标编号: tenderNumber || 'ZB-2026-001' };
   const internalIssues = namingProblems(internal, 'internal', current.variables);
   const submitIssues = namingProblems(submit, 'submission', current.variables);
 

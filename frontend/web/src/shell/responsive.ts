@@ -271,7 +271,7 @@ export function formatProjectShortName(name: string, maxLength = 16): string {
  * 规则（符合 PRD v1.8 §3.4，最多 4 级）：
  * 1. 404 页面：工作台 > 页面不存在（末级纯文本）；
  * 2. 项目内页面：工作台（可回跳） > [项目简称]（可回跳概览） > 当前页签（如编辑台，末级纯文本）；
- *    若在编辑台且指定分册，支持推导至第 4 级：工作台 > [项目] > 编辑台 > 技术/商务分册；
+ *    若在编辑台且指定分册，支持推导至第 4 级：工作台 > [项目] > 编辑台 > 技术/商务方案；
  * 3. 全局页面：工作台（若是其他全局页，第一级工作台可跳） > 当前全局功能页（末级纯文本）。
  */
 export function deriveBreadcrumbs(context: BreadcrumbContext = {}): BreadcrumbItemData[] {
@@ -338,7 +338,7 @@ export function deriveBreadcrumbs(context: BreadcrumbContext = {}): BreadcrumbIt
 
     // 若在编辑台并提供了分册信息
     if (tab === 'editor' && volume) {
-      const volumeLabel = volume === 'technical' ? '技术分册' : volume === 'business' ? '商务分册' : volume;
+      const volumeLabel = volume === 'technical' ? '技术方案' : volume === 'business' ? '商务方案' : volume;
       items.push({
         key: 'tab-editor',
         title: '编辑台',

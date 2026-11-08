@@ -83,6 +83,8 @@ def test_deploy_creates_bid_pipelines_and_binds_datasets(client, fake):
     assert chunker["root_chunk_as_heading"] is False
     assert chunker["hierarchy"] == 3
     assert any("第[一二三四五六七八九十百]+章\\s*.+" in e for g in chunker["levels"] for e in g)
+    # 真实样例「6.3Oracle…」：数字层级后可直接接字母/汉字
+    assert any("(?=[A-Za-z" in e or "A-Za-z\\u4e00" in e for g in chunker["levels"] for e in g)
     extractor = next(v for k, v in history.items() if k.startswith("Extractor"))["obj"]["params"]
     assert {m["key"] for m in extractor["metadata"]["metadata"]} >= {"project_name", "bid_date", "content_role", "technical_domain"}
     assert "purchaser" not in {m["key"] for m in extractor["metadata"]["metadata"]}

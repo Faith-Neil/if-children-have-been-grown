@@ -87,17 +87,17 @@ export function checkChapterEditPermission(params: ChapterEditGuardParams): Chap
   }
 
   if (chapter.assignee_id === userId && !member.volumes.includes(chapter.volume)) {
-    const volName = chapter.volume === 'technical' ? '技术分册' : '商务分册';
+    const volName = chapter.volume === 'technical' ? '技术方案' : '商务方案';
     return {
       allowed: false,
-      reason: `抱歉，您未分配参与${volName}，无权编辑本分册章节。`,
+      reason: `抱歉，您未分配参与${volName}，无权编辑本章节。`,
       reasonType: 'wrong_volume',
     };
   }
 
   return {
     allowed: false,
-    reason: `抱歉，您当前未被分配负责章节【${chapter.id}】，仅被分配编写人或分册负责人可编辑。`,
+    reason: `抱歉，您当前未被分配负责章节【${chapter.id}】，仅被分配编写人或方案负责人可编辑。`,
     reasonType: 'not_assigned',
   };
 }

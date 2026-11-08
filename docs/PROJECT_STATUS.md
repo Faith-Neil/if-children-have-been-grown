@@ -6,9 +6,17 @@
 
 维护日期：2026-11-05（UTC+8）。
 
+## 历史标书 Recall@5 / MRR@10 大盘（2026-11-06）
+
+[ISSUE-050](../issues/ISSUE-050.md) / [AI-HISTORY-BID-RAG-EVAL](tasks/AI-M0.md#ai-history-bid-rag-eval) in-review：五份脱敏金标经 `history_bid` 真机评测，5/5 解析成功；报告 [rag-eval-history-bid-v1.md](testing/rag-eval-history-bid-v1.md)。0.45/0.3 召回高、负例误召 0.8；0.45/0.5 负例误召 0、同义召回下降。不改默认阈值，不标 done。
+
+## 历史标书解析四类优化与真实验收（2026-11-06）
+
+[ISSUE-050](../issues/ISSUE-050.md) / [AI-HISTORY-BID-PARSE-OPT](tasks/AI-M0.md#ai-history-bid-parse-opt) 已 in-review：标题规则、部署后关问法、试查前 refresh_status；金标脱敏 docx；真机四测 4 passed。假 RAGFlow 不算验收。不标 done。设计补充见 [历史标书与资料库解析设计](superpowers/specs/2026-11-05-history-bid-ingestion-design.md) 文末。
+
 ## 历史标书与资料库解析设计（2026-11-05）
 
-[ISSUE-050](../issues/ISSUE-050.md) 记下已确认的解析设计，说明在 [历史标书与资料库解析设计](superpowers/specs/2026-11-05-history-bid-ingestion-design.md)。方案是主规格，对话里的决定只作补充。状态为 new。解析代码未改，本机 RAGFlow 未部署，任务未拆，不标 done。
+[ISSUE-050](../issues/ISSUE-050.md) 记下已确认的解析设计，说明在 [历史标书与资料库解析设计](superpowers/specs/2026-11-05-history-bid-ingestion-design.md)。方案是主规格，对话里的决定只作补充。后续实现与真机验收见上节。
 
 维护日期原为 2026-10-30 的下文仍是当时的看板叙述。分支 `feat/opencode-ICG` 位于 tip `4985a9d`（相对 `main` 超前 71 个提交）；Wave 11 在分支 `feat/wave-11-main-path` 开发，经 [PR #6](https://github.com/Faith-Neil/if-children-have-been-grown/pull/6) 并回；初次接手从 `main` 的 `ce064f6` 开始维护；main/xqr分支情况保留2026-10-09核对快照。已补齐 WP-1 独立交付文档（D-696），对齐 RoleMode 枚举，登记整改后结构债务收敛 ISSUE-038（D-697），完成 DOC-SYNC-1（D-698）与 DOC-SYNC-1.1（D-699）活文档实树校准。完成 CI 工作流触发分支修复（D-721）、已签等 PM 清单汇总（D-722）与关演示主链路冒烟留证（D-723）、大模型与 RAGFlow 弹窗配置及实测（D-724/D-725）、规则最小可递交集与分册定稿闸门端到端闭环（D-726/D-727）、以及 2026-10-26 规划未落地债审计与看板状态校准（D-728/D-729）。新增 R01/R02/R35 规则扩写落地与 7 大核心规则闭环、MySQL 章节/草稿/检查双向持久化、真实内网 RAGFlow 连通性网络探针证据归档与关演示全业务链路新冒烟留证（D-740/D-741）。Wave 2 批次（D-746～D-753）、Wave 3 批次（D-756～D-763）与 Wave 4 批次（FE-TECH-DEBT-02 App.tsx 瘦身至 394 行、APP-M2-T022 平台管理员脱敏长任务、BE-COMPLIANCE-RULES-P3 P3 规则扩充至 21 项与导出门禁、AI-DYNAMIC-PROMPT-CONTEXT 自适应 Prompt 预算与指纹、INT-APP-SLIM-ROUTING 路由分层与脱敏联调）（D-766～D-775）经 QA 独立终验签署（D-754/D-764/D-776 PASS）与 PD 产品验收（D-755/D-765/D-777 认可），已获人类 PM 正式批准标为 done。当前共 444 项中 96 done、65 in-review、7 in-progress、228 planned、41 blocked、7 cancelled、0 ready，2026-10-28 逐行统计）。Wave 9 批次（APP-M2-T027、INT-USER-TRANSFER-RBAC-GLUE、BE-USER-MANAGEMENT-TRANSFER、AI-CHAPTER-AUTO-VALIDATION-GATE）与 Wave 10 核心批次（APP-M2-T028 用户角色分配与账号解锁 D-828/D-829、BE-USER-SECURITY-OPS 用户安全运维服务 D-830/D-831、INT-USER-SECURITY-OPS-GLUE 账号安全契约联调 D-832/D-833、AI-OUTLINE-AUTO-REMEDIATION 质检缺陷自动整改建议与局部智能重写引擎 D-834/D-835）经 QA 独立复测终验（D-836 PASS）与 PD 产品验收（D-837 认可），已获人类 PM 正式批准标为 done。
 

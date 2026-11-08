@@ -12,7 +12,7 @@ export type ProjectContextValue = {
 };
 export const ProjectContext = createContext<ProjectContextValue | null>(null);
 export function useProject() { const value = useContext(ProjectContext); if (!value) throw new Error('项目未加载'); return value; }
-export const volumeName = (value: string) => value === 'technical' ? '技术分册' : value === 'business' ? '商务分册' : '全部分册';
+export const volumeName = (value: string) => value === 'technical' ? '技术方案' : value === 'business' ? '商务方案' : '全部方案';
 export const roleName = (value: string) => value === 'manager' ? '公司经理账号' : value === 'viewer' ? '公司只读账号' : '公司编写账号';
 export const companyName = (value: string) => value === 'alpha' ? '华东数智科技有限公司（合成）' : '远山信息技术有限公司（合成）';
 export const formatTime = (value?: string | null) => value ? new Date(value).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }) : '未设置';
