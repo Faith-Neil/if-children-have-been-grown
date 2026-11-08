@@ -19,20 +19,15 @@ function getEditorSource() {
 test('EditorPage AST: 正文编辑区三态权限守卫（只读态、未持锁态、持锁编辑态）', () => {
   const { source } = getEditorSource();
 
-  // 1. 只读态守卫：isReadOnlyView 触发 readonly-editor-view
-  assert.ok(source.includes('data-testid="readonly-editor-view"'), '必须包含 readonly-editor-view 测试标识');
-  assert.ok(source.includes('data-testid="readonly-editor-text"'), '必须包含 readonly-editor-text 测试标识');
+  // 1. 只读态用横幅，正文仍是纸面
+  assert.ok(source.includes('<ReadonlyBanner'), '只读态必须提示横幅');
+  assert.ok(source.includes('<PaperEditor'), '正文必须是纸面编辑器');
 
-  // 2. 未持锁态守卫：!held 触发 unheld-editor-view，优雅纯文本且附带取得编辑权引导
-  assert.ok(source.includes('data-testid="unheld-editor-view"'), '必须包含 unheld-editor-view 测试标识');
-  assert.ok(source.includes('data-testid="unheld-editor-text"'), '必须包含 unheld-editor-text 测试标识');
+  // 2. 未持锁时给出取得编辑权，持锁后纸面可改
+  assert.ok(source.includes('unheld-editor-view'), '必须包含 unheld-editor-view 测试标识');
   assert.ok(source.includes('data-testid="unheld-acquire-btn"'), '必须包含 unheld-acquire-btn 取得编辑权按钮');
-
-  // 3. 结构三态分支验证：isReadOnlyView ? ... : !held ? ... : ...
-  assert.ok(
-    source.includes('isReadOnlyView ?') && source.includes(': !held ?'),
-    '必须严格按 isReadOnlyView -> !held -> Input.TextArea 三态进行分支控制'
-  );
+  assert.ok(source.includes('paper-editor-held'), '持锁后纸面容器必须可识别');
+  assert.ok(source.includes('editable={held && !combinedBusy}'), '只有持锁且不忙时纸面可编辑');
 });
 
 test('EditorPage AST: 实时字数统计与目标符合诊断指标', () => {

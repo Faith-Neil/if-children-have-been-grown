@@ -11,6 +11,9 @@
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
 | D-1003 | 2026-11-06 | [去掉分册模式 UI](delivery/2026-11-06-remove-volume-mode-ui.md) | 改码说明 | ui-1 | 待 PM 复验 | ISSUE-047 | 新建/设置/导出去 volume_mode 选择；技术方案文案；未合 PR |
+| D-1004 | 2026-11-08 | [仅技术标产品范围](decisions/2026-11-08-tech-bid-only-product.md) | 决策 | scope-1 | 已确认 | ISSUE-047 | 产品只做技术方案；编辑台统一纸面；商务分册入口不再恢复 |
+| D-1005 | 2026-11-06 | [去分册后真服务生成验收](delivery/2026-11-06-generate-e2e-after-volume-remove.md) | 验证 | snapshot | 当前 | ISSUE-047 | 本地 Qwen 生成任务完成的分层记录；health.model 仍为 mock |
+| D-1006 | 2026-11-08 | [仅技术标收口交付](delivery/2026-11-08-tech-bid-only-purge.md) | 改码说明 | scope-1 | 待 PM 复验 | ISSUE-047 | 固定 technical_only；去掉商务方案选项与 TextArea 正文路径 |
 | D-996 | 2026-11-06 | [AI-HISTORY-BID-PARSE-OPT 交付](delivery/AI-HISTORY-BID-PARSE-OPT.md) | 任务交付 | parse-opt-1 | in-review | ISSUE-050 / AI-HISTORY-BID-PARSE-OPT | 四类真机验收 4 passed；假服务不算质量验收 |
 | D-997 | 2026-11-06 | [AI-HISTORY-BID-PARSE-OPT 代码说明](code/AI-HISTORY-BID-PARSE-OPT.md) | 代码 | parse-opt-1 | 当前 | ISSUE-050 / AI-HISTORY-BID-PARSE-OPT | 标题规则、关问法二次校验、试查 refresh、list_chunks metadata |
 | D-998 | 2026-11-06 | [历史标书金标夹具](../tests/backend/fixtures/history-bid-golden/manifest.json) | 验证夹具 | v2 | 当前 | ISSUE-050 | 两份脱敏 docx + 期望标记；只服务真机验收 |

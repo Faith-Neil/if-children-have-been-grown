@@ -95,13 +95,9 @@ test('EditorPage.tsx switches to semantic document text rather than disabled inp
   // 3. 验证只读态呈现 ReadonlyBanner
   assert.ok(content.includes('<ReadonlyBanner'), 'EditorPage must render ReadonlyBanner on readonly view');
 
-  // 4. 验证只读态直接渲染纯文本排版容器，可编辑态才渲染 Input.TextArea
-  assert.ok(content.includes('className="chapter-editor-readonly-view"'), 'EditorPage must render readonly view container');
-  assert.ok(content.includes('data-testid="readonly-editor-text"'), 'EditorPage must mark readonly editor text element');
-  assert.ok(
-    content.includes('{isReadOnlyView ? ('),
-    'EditorPage must branch between readonly text view and Input.TextArea control'
-  );
+  // 4. 只读态用横幅说明，正文统一走纸面编辑器
+  assert.ok(content.includes('<PaperEditor'), 'EditorPage must render the paper editor');
+  assert.ok(content.includes('editable={held && !combinedBusy}'), 'Paper editor is editable only while the lease is held');
 });
 
 test('MetadataForm.tsx supports readOnly pure text view and suppresses submit footer', () => {

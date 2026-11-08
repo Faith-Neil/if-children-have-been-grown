@@ -66,8 +66,6 @@ test('4. EditorPage.tsx 抽屉与只读态向后兼容契约', () => {
   // 大纲树抽屉
   assert.ok(content.includes('data-testid="editor-outline-drawer"'), 'must include editor-outline-drawer testid');
 
-  // 严格保留已有的只读视图 testid
-  assert.ok(content.includes('data-testid="readonly-editor-view"'), 'must retain readonly-editor-view testid');
-  assert.ok(content.includes('data-testid="readonly-editor-text"'), 'must retain readonly-editor-text testid');
+  assert.ok(content.includes('<PaperEditor'), 'readonly and editing share the paper editor');
   assert.ok(content.includes('ReadonlyBanner'), 'must render ReadonlyBanner on readonly view');
 });
