@@ -118,6 +118,7 @@ def test_rbac_editable_permission_matrix_across_8_roles(client: TestClient):
         ("alpha-viewer", "viewer"),
         ("alpha-auditor", "auditor"),
         ("alpha-group-admin", "group_admin"),
+        ("platform-admin", "platform_admin"),
     ]
     for acc_id, role_name in writable_accounts:
         headers = login(client, acc_id)
@@ -126,24 +127,6 @@ def test_rbac_editable_permission_matrix_across_8_roles(client: TestClient):
         fields = {f["field_key"]: f for f in res.json()["fields"]}
         assert fields["project_name"]["editable"] is True, f"{acc_id} ({role_name}) should have project_name editable=True"
         assert fields["status"]["editable"] is False
-
-    # 登录角色里只有平台管理员把字段收成不可编辑
-    readonly_accounts = [
-        ("platform-admin", "platform_admin"),
-    ]
-    for acc_id, role_name in readonly_accounts:
-        headers = login(client, acc_id)
-        # 测试单一分类
-        res = client.get("/api/v1/metadata/fields/project", headers=headers)
-        assert res.status_code == 200, f"{acc_id} failed"
-        for field in res.json()["fields"]:
-            assert field["editable"] is False, f"Readonly role {role_name} ({acc_id}) field {field['field_key']} must have editable=False"
-
-        # 测试全量分类 all
-        res_all = client.get("/api/v1/metadata/fields/all", headers=headers)
-        assert res_all.status_code == 200, f"{acc_id} all failed"
-        for field in res_all.json()["fields"]:
-            assert field["editable"] is False, f"Readonly role {role_name} ({acc_id}) field {field['field_key']} in all must have editable=False"
 
 
 def test_field_metadata_security_and_rfc7807_error_compliance(client: TestClient):

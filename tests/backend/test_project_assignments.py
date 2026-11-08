@@ -398,7 +398,9 @@ def test_company_role_downgrade_during_model_call_is_rechecked(setup, operation)
             "Idempotency-Key": str(uuid4())}, json={"chapter_ids": [chapters["business"]]})
     else:
         response = client.post("/api/chapters/" + chapters["business"] + "/suggestions", headers=actor, json={"instruction": "改善文字"})
-    assert response.status_code == 404
+    # 平台管理员可以继续写。角色写进项目输入指纹，调用中途改角色必须丢掉这次结果，不能当成 404 藏起来。
+    assert response.status_code == 409
+    assert response.json()["code"] == "VERSION_CONFLICT"
     assert repository.read().workflows[flow.id]["candidates"].get(chapters["business"]) is None
 
 

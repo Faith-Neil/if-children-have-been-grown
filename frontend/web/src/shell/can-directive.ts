@@ -440,7 +440,7 @@ export function can(
 
   // 15. 合规规则配置：rules:configure
   if (action === 'rules:configure') {
-    if (normRole === 'platform_admin' || normRole === 'company_admin') {
+    if (normRole === 'company_admin') {
       return { allowed: true, role: normRole, roleLabel };
     }
     return {
