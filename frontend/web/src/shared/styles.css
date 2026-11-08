@@ -38,7 +38,7 @@
 .writing-source-controls { margin-bottom: 14px; }
 
 /* 项目设置保留左锚点和右侧分组表单，人员表与底部保存条同属当前项目。 */
-.settings-members-layout { align-items: start; padding-bottom: 70px; }
+.settings-members-layout { align-items: start; }
 .settings-members-layout .settings-anchor { position: sticky; top: 78px; }
 .settings-groups { min-width: 0; }
 .settings-groups > .ant-card, .settings-groups > .ant-form > .ant-card { scroll-margin-top: 92px; }
@@ -816,6 +816,13 @@ html,body,#root{font-family:"Noto Sans SC","PingFang SC","Source Han Sans SC","M
 .project-model-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
 .settings-layout.settings-members-layout { display: block; }
 .settings-groups { display: flex; flex-direction: column; gap: 12px; }
+/* 项目设置的滚动条在 .project-content。内层若再变成滚动容器并 contain，滚轮到不了外层。 */
+.project-content .settings-layout,
+.project-content .settings-groups {
+  height: auto;
+  overflow: visible;
+  overscroll-behavior: auto;
+}
 @media (max-width: 960px) {
   .check-export-board { grid-template-columns: 1fr; }
   .check-export-issues, .check-export-side { grid-column: 1; grid-row: auto; }

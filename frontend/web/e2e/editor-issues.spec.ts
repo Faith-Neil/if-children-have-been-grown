@@ -58,7 +58,7 @@ test('issues are marked on paragraphs, listed in the side panel and located both
   await expect(panel.getByTestId('issue-item')).toContainText('无法提供');
 
   // 持锁编辑时定位：编辑框选中整段
-  await page.getByTestId('unheld-acquire-btn').click();
+  await expect(page.getByTestId('paper-editor-held')).toBeVisible();
   await expect(page.getByRole('button', { name: '释放编辑权' })).toBeVisible();
   await expect(paper(page)).toContainText('无法提供');
   await panel.getByTestId('issue-locate').click();

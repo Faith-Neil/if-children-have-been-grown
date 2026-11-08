@@ -31,7 +31,7 @@ test('compare paragraphs with an older version and roll back to it', async ({ pa
   await page.getByTestId('login-username-input').fill('alpha-manager');
   await page.getByTestId('login-password-input').fill('X_2026');
   await page.getByTestId('login-submit-button').click();
-  await page.getByTestId('unheld-acquire-btn').click();
+  await expect(page.getByTestId('paper-editor-held')).toBeVisible();
   await expect(paper(page)).toContainText('驻场工程师一名');
   await expect(paper(page)).toContainText('应急演练每季度一次');
 

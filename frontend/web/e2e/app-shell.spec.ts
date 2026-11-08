@@ -33,22 +33,12 @@ async function tab(page: Page, name: string) {
 
 async function dirtyEditor(page: Page) {
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
-  const lease = page.getByRole('button', { name: '取得编辑权' }).first();
-  const held = page.getByRole('button', { name: '释放编辑权' });
   const conflict = page.getByRole('dialog', { name: /版本冲突/ });
   if (await conflict.isVisible().catch(() => false)) {
     await page.getByRole('button', { name: /放弃本地/ }).click();
     await expect(conflict).toHaveCount(0);
   }
-  await expect(lease.or(held)).toBeVisible();
-  const takeover = page.getByRole('button', { name: '填写理由接管' });
-  if (await takeover.isVisible()) {
-    // 前一个用例的浏览器会话仍持有编辑权；按产品流程填写理由接管，不绕过后台。
-    await takeover.click();
-    await page.getByLabel('接管理由').fill('E2E用例切换会话，合成数据');
-    await page.getByRole('button', { name: '填写理由并接管' }).click();
-  } else if (await lease.isVisible()) await lease.click();
-  await expect(page.getByRole('button', { name: '释放编辑权' })).toBeVisible();
+  await expect(page.getByTestId('paper-editor-held')).toBeVisible();
   const box = paper(page);
   await box.click();
   await page.keyboard.press('Control+End');

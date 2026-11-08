@@ -97,7 +97,7 @@ test('EditorPage.tsx switches to semantic document text rather than disabled inp
 
   // 4. 只读态用横幅说明，正文统一走纸面编辑器
   assert.ok(content.includes('<PaperEditor'), 'EditorPage must render the paper editor');
-  assert.ok(content.includes('editable={held && !combinedBusy}'), 'Paper editor is editable only while the lease is held');
+  assert.ok(content.includes('editable={canEdit && !combinedBusy}'), 'Paper editor is editable when the user can edit this chapter');
 });
 
 test('MetadataForm.tsx supports readOnly pure text view and suppresses submit footer', () => {

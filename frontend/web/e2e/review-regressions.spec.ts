@@ -19,26 +19,16 @@ async function loginManager(page: Page) {
     await page.getByRole('button', { name: '进入工作台', exact: true }).click();
   }
   await expect(page.getByRole('button', { name: '退出', exact: true })).toBeVisible();
-  await expect(page.locator('.chapter-editor-unheld-view')).toBeVisible();
+  await expect(page.getByTestId('paper-editor-held')).toBeVisible();
 }
 
 async function dirtyEditor(page: Page) {
-  // 图标参与可访问名称（实际 DOM 为“lock 取得编辑权”）；沿用既有用例的文字匹配。
-  const acquire = page.getByRole('button', { name: '取得编辑权' }).first();
-  const held = page.getByRole('button', { name: '释放编辑权' });
   const conflict = page.getByRole('dialog', { name: /版本冲突/ });
   if (await conflict.isVisible().catch(() => false)) {
     await page.getByRole('button', { name: /放弃本地/ }).click();
     await expect(conflict).toHaveCount(0);
   }
-  await expect(acquire.or(held)).toBeVisible();
-  const takeover = page.getByRole('button', { name: '填写理由接管', exact: true });
-  if (await takeover.isVisible()) {
-    await takeover.click();
-    await page.getByLabel('接管理由').fill('复核用例接手上一合成浏览器会话的编辑权');
-    await page.getByRole('button', { name: '填写理由并接管', exact: true }).click();
-  } else if (await acquire.isVisible()) await acquire.click();
-  await expect(held).toBeVisible();
+  await expect(page.getByTestId('paper-editor-held')).toBeVisible();
   const box = paper(page);
   await box.click(); await page.keyboard.press('Control+End'); await page.keyboard.type(marker);
   await expect(box).toContainText(marker);

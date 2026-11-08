@@ -64,7 +64,7 @@ test('select a sentence, get three rewrites, replace the selection after confirm
   await page.getByTestId('login-username-input').fill('alpha-manager');
   await page.getByTestId('login-password-input').fill('X_2026');
   await page.getByTestId('login-submit-button').click();
-  await page.getByTestId('unheld-acquire-btn').click();
+  await expect(page.getByTestId('paper-editor-held')).toBeVisible();
   const box = paper(page);
   await expect(box).toContainText(BODY);
   // 像用户一样用键盘选中“每月安排巡检”

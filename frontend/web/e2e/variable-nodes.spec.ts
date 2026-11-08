@@ -45,7 +45,7 @@ test('variables show the confirmed value; a new unknown variable is refused on c
   await expect(chip).toContainText(fact.value.replace(/\s+/g, '').slice(0, 2));
   await expect(page.getByTestId('unheld-editor-text')).not.toContainText('{{fact:');
 
-  await page.getByTestId('unheld-acquire-btn').click();
+  await expect(page.getByTestId('paper-editor-held')).toBeVisible();
   await expect(paper(page)).toContainText(`{{fact:${fact.id}}}`);
   await expect(page.getByTestId('editor-variable-bar').getByTestId('variable-node')).toHaveAttribute('data-status', 'valid');
 

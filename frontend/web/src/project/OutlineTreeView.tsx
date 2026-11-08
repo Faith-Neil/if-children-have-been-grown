@@ -1,6 +1,6 @@
 // 为什么有这个文件：封装大纲树与章节协同编辑核心组件 OutlineTreeView。
 // 它解决什么问题：
-// 1. 按生成顺序展示目录；章节类型徽标（专项/通用/系统生成等）仍在无目录时的章节行上；
+// 1. 目录行只显示序号和标题；没有生成目录时，章节同样按这一行展示；
 // 2. 目录用拖放调整顺序和 1～4 级，双击改名称；
 // 3. 严格落实合规红线门禁：星号条款(★)或废标条款对应章节绝对禁止标记为“不适用”（选项置灰禁用与 Tooltip 提示）；
 // 4. 协同 useDataPermission，非主管分册处于分册级只读模式，拦截任何写操作与排序；
@@ -293,6 +293,8 @@ export interface OutlineTreeViewProps {
   onSelectChapter?: (chapter: ChapterOutlineNode) => void;
   onNavigateToEditor?: (chapterId: string) => void;
   selectedChapterId?: string | null;
+  /** 编辑台目录：只显示序号和标题，不铺章节卡片。 */
+  plain?: boolean;
   className?: string;
   style?: CSSProperties;
 }
@@ -305,6 +307,7 @@ export function OutlineTreeView({
   onSelectChapter,
   onNavigateToEditor,
   selectedChapterId,
+  plain = false,
   className = '',
   style,
 }: OutlineTreeViewProps) {
@@ -370,14 +373,14 @@ export function OutlineTreeView({
       data-volume={activeVolume}
       data-can-edit={canEdit ? 'true' : 'false'}
     >
-      {!directoryShown && (
+      {!directoryShown && !plain && (
         <div className="icg-outline-toolbar" style={{ marginBottom: 16 }}>
           <Text type="secondary" style={{ fontSize: 12 }}>共 {orderedNodes.length} 个章节</Text>
         </div>
       )}
 
       {/* 只读警告条（非主管分册或系统只读） */}
-      {!canEdit && !directoryShown && (
+      {!canEdit && !directoryShown && !plain && (
         <Alert
           type="warning"
           showIcon
@@ -390,11 +393,31 @@ export function OutlineTreeView({
       )}
 
       {directoryShown && directory && <DirectoryList directory={directory} />}
+      {plain && !directoryShown && chapterNodes.length > 0 && (
+        <div className="wps-outline" data-testid="chapter-directory-list">
+          {chapterNodes.map(node => {
+            const number = node.chapterNumber || `${node.orderIndex}`;
+            const selected = selectedChapterId === node.id;
+            return (
+              <div
+                key={node.id}
+                className={`wps-outline-row${selected ? ' is-selected' : ''}`}
+                data-testid="chapter-directory-row"
+                data-chapter-id={node.id}
+                onClick={() => onSelectChapter?.(node)}
+              >
+                <button type="button" className="wps-outline-twist" tabIndex={-1} aria-hidden />
+                <span className="wps-outline-label" data-testid="chapter-number">{outlineText(number, node.title)}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
       {chapterNodes.length === 0 && !directoryShown ? (
         <Card>
           <Empty description="暂无章节" />
         </Card>
-      ) : chapterNodes.length > 0 && !directoryShown ? (
+      ) : chapterNodes.length > 0 && !directoryShown && !plain ? (
         <div className="icg-outline-nodes-list" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: directoryShown ? 12 : 0 }}>
           {chapterNodes.map((node, index) => {
             const isFirst = index === 0;

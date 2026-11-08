@@ -66,7 +66,7 @@ export function selectionProblem(committed: string, current: string, text: strin
   if (!text.trim()) return '请先在正文中选中要修改的文字';
   if (text.length > MAX_SELECTION) return `一次最多选 ${MAX_SELECTION} 字，请缩小选区`;
   if (current !== committed) return '正文有未提交的修改：先提交本节，再请对话助手改写选区';
-  if (!locateSelection(committed, text, start, end)) return '选中的文字在本节出现多处或跨越了引用标记，请在编辑框中取得编辑权后重新选择';
+  if (!locateSelection(committed, text, start, end)) return '选中的文字在本节出现多处或跨越了引用标记，请在编辑框中重新选择';
   return null;
 }
 

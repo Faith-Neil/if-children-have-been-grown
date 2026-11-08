@@ -27,7 +27,7 @@ test('lock a paragraph, a commit that changes it is refused, then unlock', async
   await page.getByTestId('login-username-input').fill('alpha-manager');
   await page.getByTestId('login-password-input').fill('X_2026');
   await page.getByTestId('login-submit-button').click();
-  await page.getByTestId('unheld-acquire-btn').click();
+  await expect(page.getByTestId('paper-editor-held')).toBeVisible();
   await expect(paper(page)).toContainText(LOCKED);
   // 光标放进要锁的段落
   await paper(page).getByText(LOCKED).click();
