@@ -316,7 +316,11 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     if (!isRevisionConflict(error)) return false;
     try {
       const latest = await request<Chapter>(`/api/chapters/${chapterId}`, token);
-      setConflict({ localContent: content, remoteContent: latest.content, remoteRevision: latest.revision, baseRevision: chapter?.revision ?? 0, target });
+      if (!chapter || latest.revision === chapter.revision) {
+        sequence.current = latest.draft?.sequence ?? sequence.current;
+        return false;
+      }
+      setConflict({ localContent: content, remoteContent: latest.content, remoteRevision: latest.revision, baseRevision: chapter.revision, target });
       return true;
     } catch (e) {
       report(e); setNotice('后台正文或草稿已变化，本次写入未成功。请核对最新版本。'); return false;
@@ -349,7 +353,15 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     if (!canEdit || combinedBusy) return;
     await run(async () => {
       const start = epoch.current;
-      await lock.acquireLock(reason);
+      try {
+        await lock.acquireLock(reason);
+      } catch (error) {
+        // 上一页关掉后锁还在本人名下。负责人不能无理由接管，但回到自己的锁不应挡住自动保存。
+        if (!(silent && error instanceof ApiError && error.code === 'TAKEOVER_REASON_REQUIRED')) throw error;
+        const holder = chapter?.lock?.owner_id ?? (await request<Chapter>(`/api/chapters/${chapterId}`, token).catch(() => null))?.lock?.owner_id;
+        if (holder !== user?.id) throw error;
+        await lock.acquireLock('同一账号回到本节');
+      }
       if (start !== epoch.current) return;
       const latest = await request<Chapter>(`/api/chapters/${chapterId}`, token);
       if (start !== epoch.current) return;
@@ -377,6 +389,12 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         setSavedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false })); setAutosavePaused(false);
         setNotice('草稿已保存，尚未进入正式正文和导出。');
       } catch (error) {
+        if (start !== epoch.current) return;
+        if (error instanceof ApiError && error.code === 'DRAFT_SEQUENCE_CONFLICT') {
+          const latest = await request<Chapter>(`/api/chapters/${chapterId}`, token).catch(() => null);
+          if (latest?.draft && start === epoch.current) sequence.current = latest.draft.sequence;
+          return;
+        }
         if (isRevisionConflict(error) && (await handleRevisionConflict(error, 'draft'))) return;
         throw error;
       }
@@ -385,28 +403,38 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
 
   // 自动保存（APP-M2-T172）：停止输入 2 秒后、以及每隔公司设置的间隔，把手改保存为本人草稿；不提交为版本、不进入导出。
   // 失败时暂停自动保存并保留页面文字（来源变化、版本冲突按原规则提示），手动保存或提交成功后恢复。
-  async function autoSaveDraft(): Promise<boolean> {
+  async function autoSaveDraft(allowSequenceRetry = true): Promise<boolean> {
     if (!chapter || !lease || !canEdit) return false;
     if (!shouldAutosave({ held, dirty, saving: autosaving.current, paused: autosavePaused, busy: combinedBusy })) return !dirty;
     autosaving.current = true;
     const start = epoch.current;
+    let outcome: boolean | 'retry' = false;
     try {
       const value = await request<NonNullable<Chapter['draft']>>(`/api/chapters/${chapterId}/draft`, token, 'PUT', {
         lease_token: lease.lease_token, base_revision: chapter.revision, sequence: ++sequence.current, ...editingContentWrite(content, editFingerprint ?? workspace.input_fingerprint),
       });
-      if (start !== epoch.current) return false;
-      setChapter(prev => (prev ? { ...prev, draft: value } : prev)); setEditFingerprint(value.input_fingerprint ?? null);
-      setSavedAt(savedLabel(new Date(), true));
-      return true;
+      if (start === epoch.current) {
+        setChapter(prev => (prev ? { ...prev, draft: value } : prev)); setEditFingerprint(value.input_fingerprint ?? null);
+        setSavedAt(savedLabel(new Date(), true));
+        outcome = true;
+      }
     } catch (error) {
-      setAutosavePaused(true);
-      if (isRevisionConflict(error) && (await handleRevisionConflict(error, 'draft'))) return false;
-      localError(error);
-      setNotice(current => current || '自动保存暂停：本次没有保存成功，文字仍在页面。请处理提示后手动保存草稿，成功后会恢复自动保存。');
-      return false;
+      if (start === epoch.current && error instanceof ApiError && error.code === 'DRAFT_SEQUENCE_CONFLICT') {
+        const latest = await request<Chapter>(`/api/chapters/${chapterId}`, token).catch(() => null);
+        if (latest?.draft && start === epoch.current) sequence.current = latest.draft.sequence;
+        outcome = allowSequenceRetry ? 'retry' : false;
+      } else if (start === epoch.current) {
+        setAutosavePaused(true);
+        if (!(isRevisionConflict(error) && (await handleRevisionConflict(error, 'draft')))) {
+          localError(error);
+          setNotice(current => current || '自动保存暂停：本次没有保存成功，文字仍在页面。请处理提示后手动保存草稿，成功后会恢复自动保存。');
+        }
+      }
     } finally {
       autosaving.current = false;
     }
+    if (outcome === 'retry' && start === epoch.current) return autoSaveDraft(false);
+    return outcome === true;
   }
   const autoSaveRef = useRef(autoSaveDraft);
   autoSaveRef.current = autoSaveDraft;
@@ -702,14 +730,14 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
               />
             )}
 
-            {!held && (
+            {(issues.markers.size > 0 || (!held && shownVariables.length > 0)) && (
               <div data-testid="unheld-editor-text">
                 {[...issues.markers.entries()].map(([key, marker]) => (
                   <p key={key} data-paragraph-key={key} className={issues.focusedKey === key ? 'paragraph-focused' : ''}>
                     <button type="button" data-testid="paragraph-issue-marker" onClick={() => showParagraphIssues(key)}>{marker.count}</button>
                   </p>
                 ))}
-                {shownVariables.map(node => <VariableChip key={`${node.kind}-${node.ref}-${node.start}`} node={node} onGoToSource={goToSource} />)}
+                {!held && shownVariables.map(node => <VariableChip key={`${node.kind}-${node.ref}-${node.start}`} node={node} onGoToSource={goToSource} />)}
               </div>
             )}
             {held && chapter && canEdit && (

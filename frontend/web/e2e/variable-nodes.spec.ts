@@ -40,14 +40,11 @@ test('variables show the confirmed value; a new unknown variable is refused on c
   await page.getByTestId('login-password-input').fill('X_2026');
   await page.getByTestId('login-submit-button').click();
 
-  const chip = page.getByTestId('unheld-editor-text').getByTestId('variable-node');
+  await expect(page.getByTestId('paper-editor-held')).toBeVisible();
+  const chip = page.getByTestId('editor-variable-bar').getByTestId('variable-node');
   await expect(chip).toHaveAttribute('data-status', 'valid');
   await expect(chip).toContainText(fact.value.replace(/\s+/g, '').slice(0, 2));
-  await expect(page.getByTestId('unheld-editor-text')).not.toContainText('{{fact:');
-
-  await expect(page.getByTestId('paper-editor-held')).toBeVisible();
   await expect(paper(page)).toContainText(`{{fact:${fact.id}}}`);
-  await expect(page.getByTestId('editor-variable-bar').getByTestId('variable-node')).toHaveAttribute('data-status', 'valid');
 
   await replacePaper(page, `${body}\n另有 {{fact:not-a-fact}} 项。`);
   await expect(page.getByTestId('invalid-variables-notice')).toContainText('1 个变量已失效');

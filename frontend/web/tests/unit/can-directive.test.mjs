@@ -212,8 +212,8 @@ test('volume:finalize, volume:check, volume:unlock permissions', () => {
   assert.equal(can('volume:finalize', 'technical', { role: 'bid_writer', userId: 'user-writer', workspace: mockWorkspace }).allowed, false);
 });
 
-test('id_card:view is limited to company_admin', () => {
-  const allowed = ['company_admin'];
+test('id_card:view is limited to company_admin and platform_admin', () => {
+  const allowed = ['company_admin', 'platform_admin'];
   const disallowed = ['data_admin', 'project_lead', 'bid_writer', 'group_admin', 'auditor', 'viewer'];
 
   for (const role of allowed) {

@@ -20,13 +20,18 @@ async function loginManager(page: Page) {
   }
   await expect(page.getByRole('button', { name: '退出', exact: true })).toBeVisible();
   await expect(page.getByTestId('paper-editor-held')).toBeVisible();
+  const conflict = page.getByTestId('conflict-discard-btn');
+  if (await conflict.waitFor({ state: 'visible', timeout: 1_500 }).then(() => true).catch(() => false)) {
+    await conflict.click();
+    await expect(conflict).toBeHidden();
+  }
 }
 
 async function dirtyEditor(page: Page) {
-  const conflict = page.getByRole('dialog', { name: /版本冲突/ });
-  if (await conflict.isVisible().catch(() => false)) {
-    await page.getByRole('button', { name: /放弃本地/ }).click();
-    await expect(conflict).toHaveCount(0);
+  const conflict = page.getByTestId('conflict-discard-btn');
+  if (await conflict.waitFor({ state: 'visible', timeout: 1_500 }).then(() => true).catch(() => false)) {
+    await conflict.click();
+    await expect(conflict).toBeHidden();
   }
   await expect(page.getByTestId('paper-editor-held')).toBeVisible();
   const box = paper(page);

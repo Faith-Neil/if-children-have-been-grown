@@ -33,10 +33,10 @@ async function tab(page: Page, name: string) {
 
 async function dirtyEditor(page: Page) {
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
-  const conflict = page.getByRole('dialog', { name: /版本冲突/ });
-  if (await conflict.isVisible().catch(() => false)) {
-    await page.getByRole('button', { name: /放弃本地/ }).click();
-    await expect(conflict).toHaveCount(0);
+  const conflict = page.getByTestId('conflict-discard-btn');
+  if (await conflict.waitFor({ state: 'visible', timeout: 1_500 }).then(() => true).catch(() => false)) {
+    await conflict.click();
+    await expect(conflict).toBeHidden();
   }
   await expect(page.getByTestId('paper-editor-held')).toBeVisible();
   const box = paper(page);
@@ -125,10 +125,21 @@ test('browser forward: confirm leaves to next page', async ({ page }) => {
   await expect(page).toHaveURL(/\/projects\/alpha-project\/export$/);
 });
 
+async function keepDirty(page: Page) {
+  // 停止输入约 2 秒会自动保存，离开保护随之消失。下一步导航前再输入，保持未保存。
+  const box = paper(page);
+  await box.click();
+  await page.keyboard.press('Control+End');
+  await page.keyboard.type('。');
+  await expect(page.getByTestId('dirty-status-tag')).toBeVisible();
+  return box;
+}
+
 test('forward history remains after cancelling a forward', async ({ page }) => {
   await editorWithHistory(page);
   await page.goForward();
   await cancelLeave(page);
+  await keepDirty(page);
   await page.goForward();
   await expect(dialog(page)).toBeVisible({ timeout: 3_000 });
 });
@@ -137,6 +148,7 @@ test('back after a cancelled forward confirms to the previous page', async ({ pa
   await editorWithHistory(page);
   await page.goForward();
   await cancelLeave(page);
+  await keepDirty(page);
   await page.goBack();
   await expect(dialog(page)).toBeVisible();
   await page.getByRole('button', { name: '离开页面' }).click();
@@ -153,7 +165,7 @@ test('reload: dismiss keeps text; autosave keeps it as a personal draft after re
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
   await expect(box).toContainText(marker);
   // 停止输入后自动保存为本人草稿（PRD §5.11.9，APP-M2-T172）：之后刷新不再丢字
-  await expect(page.getByTestId('editor-saved-at')).toContainText('自动');
+  await expect(page.getByTestId('editor-saved-at')).toContainText('自动', { timeout: 15_000 });
   page.once('dialog', d => { void d.accept(); });
   await page.reload();
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
@@ -169,7 +181,7 @@ test('reload: dismiss keeps text; autosave keeps it as a personal draft after re
   }
   await expect(page.getByRole('button', { name: '退出' })).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
-  await expect(page.locator('.chapter-editor-unheld-view, textarea.chapter-editor')).toContainText(marker);
+  await expect(paper(page)).toContainText(marker);
   // 草稿只是本人草稿，不是正式正文；用例结束删除，避免影响其他用例
   const auth = { Authorization: `Bearer ${(await (await request.post('/api/v1/auth/login', { data: { username: 'alpha-manager', password: 'X_2026' } })).json()).access_token}` };
   const workspace = await (await request.get('/api/v1/projects/alpha-project/workspace', { headers: auth })).json();
