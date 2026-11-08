@@ -1442,6 +1442,129 @@
           }
         }
       },
+      "delete": {
+        "summary": "Delete V1 Project",
+        "operationId": "deleteV1Project",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "请求字段验证失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "后端演示服务异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      },
       "patch": {
         "summary": "Patch Project",
         "operationId": "patchProject",
@@ -46251,7 +46374,8 @@
             "enum": [
               "blocking",
               "warning",
-              "blocker"
+              "blocker",
+              "info"
             ],
             "title": "Severity"
           },

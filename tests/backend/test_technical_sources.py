@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import base64
+import re
 from io import BytesIO
 from types import SimpleNamespace
 from uuid import uuid4
@@ -127,17 +128,17 @@ def test_extract_keeps_scoring_points_and_spec_clauses_on_one_row(client):
     # 工单 1：技术分册解析成功后自动 parse_confirmed，抽取确认不再作为用户闸门。
     assert workspace["parse_confirmed"] is True
     rows = [row["text"] for row in workspace["requirements"] if row.get("technical_clause")]
-    assert "健康检查" in rows and "标准服务" in rows
+    assert "健康检查" in rows and "标准服务" in rows and "故障处理" in rows
     assert workspace["technical_outline"]["title"] == "服务方案"
     titles = [item["title"] for item in workspace["technical_outline"]["headings"]]
-    # 动态目录：规范编号进「技术规范响应」，评分点进「评分主观分响应」；不再写死教程六块。
-    assert "技术规范响应" in titles and "评分主观分响应" in titles
-    assert "标准服务" in titles and "健康检查" in titles
+    # 主题目录：规范编号单独成主题，健康检查与故障处理并进「运维保障与巡检」。
+    assert "规范 2.3.1" in titles and "标准服务" in titles and "运维保障与巡检" in titles
+    assert "技术规范响应" not in titles and "评分主观分响应" not in titles
     leaves = [item for item in workspace["technical_outline"]["headings"] if item.get("requirement_id")]
-    assert {item["title"] for item in leaves} >= {"标准服务", "健康检查", "故障处理"}
+    assert {item["title"] for item in leaves} >= {"标准服务", "运维保障与巡检"}
     chapter = next(item for item in workspace["chapters"] if item["volume"] == "technical")
     assert chapter["title"] == "服务方案"
-    assert "健康检查" in chapter["content"]
+    assert "运维保障与巡检" in chapter["content"] and "标准服务" in chapter["content"]
 
 
 def test_empty_technical_extract_stops(client):
@@ -204,9 +205,9 @@ def test_outline_uses_tender_title_and_blocks_confirm_until_each_clause_has_a_he
     workspace = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
     assert workspace["technical_outline"]["title"] == "技术服务方案"
     leaves = [item["title"] for item in workspace["technical_outline"]["headings"] if item.get("requirement_id")]
-    assert leaves == ["健康检查", "故障处理", "培训"]
+    assert leaves == ["运维保障与巡检", "培训"]
     roots = [item["title"] for item in workspace["technical_outline"]["headings"] if item["level"] == 1]
-    assert roots == ["评分主观分响应"]
+    assert roots == ["运维保障与巡检", "验收与培训"]
     chapter = next(item for item in workspace["chapters"] if item["id"] == workspace["technical_outline"]["chapter_id"])
     confirmed = client.post(
         f"/api/v1/projects/{project_id}/plan",
@@ -225,7 +226,7 @@ def test_outline_uses_tender_title_and_blocks_confirm_until_each_clause_has_a_he
         json={
             "lease_token": locked.json()["lease_token"],
             "base_revision": chapter["revision"],
-            "content": chapter["content"].replace("1.3 培训\n", ""),
+            "content": chapter["content"].replace("2.1 培训\n", ""),
             "input_fingerprint": workspace["input_fingerprint"],
             "idempotency_key": str(uuid4()),
         },
@@ -435,6 +436,10 @@ def _document_xml(content: bytes) -> str:
         return archive.read("word/document.xml").decode("utf-8")
 
 
+def _docx_text(content: bytes) -> str:
+    return "".join(re.findall(r"<w:t[^>]*>([^<]*)</w:t>", _document_xml(content)))
+
+
 def test_draft_failure_does_not_write_a_satisfied_response():
     from icg.domain.technical_matrix import bind_history_draft, fill_technical_responses, reset_history_draft
     workflow = {"requirements": {"r": {"id": "r", "text": "健康检查", "technical_clause": True, "status": "pending"}}}
@@ -512,19 +517,19 @@ def test_generate_writes_six_parts_without_blocking_internal_export(client):
             json={},
         )
         assert generated.status_code == 200, generated.text
-        # 矩阵确认不再挡生成：有响应的叶子（含正偏离）都会写。
-        assert calls == ["健康检查", "故障处理", "标准服务"]
+        # 健康检查与故障处理并成一节，标准服务单独成节。
+        assert calls == ["运维保障与巡检", "标准服务"]
         workspace = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
         chapter = next(item for item in workspace["chapters"] if item["id"] == workspace["technical_outline"]["chapter_id"])
-        assert chapter["content"].index("1.1 ") < chapter["content"].index("1.2 ")
-        assert "针对「健康检查」的技术响应" in chapter["content"]
-        assert "待补" not in chapter["content"]  # 三条均有响应
-        health = chapter["content"].split("1.1 健康检查", 1)[1].split("1.2 故障处理", 1)[0]
+        assert chapter["content"].index("1.1 ") < chapter["content"].index("2.1 ")
+        assert "针对「运维保障与巡检」的技术响应" in chapter["content"]
+        assert "待补" not in chapter["content"]
+        health = chapter["content"].split("1.1 运维保障与巡检", 1)[1].split("2 综合技术响应", 1)[0]
         calls.clear()
 
         def rewrite(title, row):
             calls.append(title)
-            if title == "健康检查":
+            if title == "运维保障与巡检":
                 raise RuntimeError("这一节失败")
             return stand_in(title, row) + "\n本节已重写"
         reset_section_writer(token)
@@ -570,7 +575,7 @@ def test_generate_writes_six_parts_without_blocking_internal_export(client):
     assert downloaded.status_code == 200, downloaded.text
     xml = _document_xml(downloaded.content)
     assert "Heading1" in xml and "Heading2" in xml
-    assert "健康检查" in xml and "标准服务" in xml
+    assert "运维保障与巡检" in xml and "标准服务" in xml
     assert "技术偏离表" not in xml
     missing = client.get(exported.json()["export"]["volumes"][0]["download_url"].rsplit("/", 1)[0] + "/deviation", headers=headers)
     assert missing.status_code == 404
@@ -624,15 +629,14 @@ def test_deviation_table_copies_the_tender_sample(client):
     filled["requirements"] = {row["id"]: row for row in current["requirements"] if row.get("technical_clause")}
     inline_rows = table_rows(samples[0], filled)
     titles = [row[1] for row in inline_rows]
-    # 矩阵确认不再挡偏离表：有响应即可入表（培训亦有正偏离响应）。
-    assert "健康检查" in titles and "故障处理" in titles and "★废标响应时限" in titles and "培训" in titles
+    # 健康检查与故障处理并成「运维保障与巡检」一行，其余条款仍各占一行。
+    assert "运维保障与巡检" in titles and "★废标响应时限" in titles and "培训" in titles
+    assert "故障处理" not in titles and "健康检查" not in titles
     assert all(row[-1] == "" for row in inline_rows)
-    fault = next(row for row in inline_rows if row[1] == "故障处理")
-    assert fault[3] == "无偏离" and fault[4] == ""
-    health = next(row for row in inline_rows if row[1] == "健康检查")
+    health = next(row for row in inline_rows if row[1] == "运维保障与巡检")
     assert "每30分钟巡检一次" in health[2] and health[3] == "正偏离" and "高于" in health[4]
     deviation_titles = [row[1] for row in table_rows(samples[1], filled)]
-    assert "健康检查" in deviation_titles and "★废标响应时限" in deviation_titles and "故障处理" not in deviation_titles
+    assert "运维保障与巡检" in deviation_titles and "培训" in deviation_titles and "故障处理" not in deviation_titles
     token = bind_section_writer(lambda title, row: stand_in(title, row))
     try:
         generated = client.post(
@@ -657,10 +661,10 @@ def test_deviation_table_copies_the_tender_sample(client):
     main = client.get(body["volumes"][0]["download_url"], headers=headers)
     extra = client.get(body["deviation_download_url"], headers=headers)
     assert main.status_code == 200 and extra.status_code == 200
-    main_xml = _document_xml(main.content)
-    extra_xml = _document_xml(extra.content)
-    assert "每30分钟巡检一次" in main_xml and "故障处理" in main_xml and "商务偏离表" not in main_xml
-    assert "每30分钟巡检一次" in extra_xml and "故障处理" not in extra_xml
+    main_text = _docx_text(main.content)
+    extra_text = _docx_text(extra.content)
+    assert "每30分钟巡检一次" in main_text and "运维保障与巡检" in main_text and "商务偏离表" not in main_text
+    assert "每30分钟巡检一次" in extra_text and "运维保障与巡检" in extra_text
     rejected = client.patch(
         f"/api/v1/projects/{project_id}/requirements/{rows['健康检查']['id']}",
         headers={**headers, "If-Match": str(client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()["revision"]), "Idempotency-Key": str(uuid4())},
@@ -685,7 +689,7 @@ def test_deviation_table_copies_the_tender_sample(client):
     )
     assert saved.status_code == 200, saved.text
     reviewed = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
-    assert "健康检查" in reviewed["technical_needs_review"]
+    assert "运维保障与巡检" in reviewed["technical_needs_review"]
     reviewed_export = client.post(
         f"/api/v1/projects/{project_id}/exports",
         headers={**headers, "If-Match": str(reviewed["revision"]), "Idempotency-Key": str(uuid4())},

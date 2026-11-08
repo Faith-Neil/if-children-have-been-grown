@@ -126,7 +126,7 @@ def _frozen_status() -> dict[str, int]:
                        # 导出批次中某个分册生成失败，整批作废 (APP-M2-T202 / PRD v1.8 §5.9.1 异常)
                        "EXPORT_FAILED"))
     _bind(table, 502, ("MODEL_UNAVAILABLE", "MODEL_OUTPUT_INVALID", "PARSER_UNAVAILABLE",
-                       "KNOWLEDGE_BASE_UPSTREAM_ERROR"))
+                       "KNOWLEDGE_BASE_UPSTREAM_ERROR", "PIPELINE_UNAVAILABLE"))
     # SECRET_KEY_UNAVAILABLE 不是瞬时故障：客户端不得自动重试，服务端不得发送 Retry-After。
     # 与 MODEL_UNAVAILABLE 相同。实现 ISSUE-024 时再断言响应没有该头。
     _bind(table, 503, ("UI_NOT_READY", "SECRET_KEY_UNAVAILABLE"))

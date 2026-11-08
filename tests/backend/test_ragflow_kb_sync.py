@@ -245,18 +245,14 @@ def test_service_sync_knowledge_base_published_snippet(client, fake_ragflow_fixt
     published_item = pub_res.json()["item"]
     assert published_item["kb_sync_status"] == "unsynced"
 
-    # 2. 调用 sync_knowledge_base 将方案片段摄入至对应公司的 RAGFlow 知识库
+    # 旧的资料/方案片段整库同步已停止：不能把未上传的片段记成已同步。
     sync_result = config_service.sync_knowledge_base(p_alpha, snippet["id"])
-    assert sync_result["synced"] is True
-    assert sync_result["kb_sync_status"] == "synced"
-    assert sync_result["dataset_id"].startswith("ds-") or sync_result["dataset_id"].startswith("dataset-")
-    assert sync_result["document_id"].startswith("doc-")
-    assert sync_result["run"] == "DONE"
+    assert sync_result["synced"] is False
+    assert sync_result["kb_sync_status"] == "unsynced"
 
-    # 3. 验证片段发布存储记录中的 kb_sync_status 已被同步更新为 synced
     detail_res = client.get(f"/api/v1/snippet-publications/{snippet['id']}", headers=headers)
     assert detail_res.status_code == 200
-    assert detail_res.json()["kb_sync_status"] == "synced"
+    assert detail_res.json()["kb_sync_status"] == "unsynced"
 
 
 def test_service_sync_knowledge_base_with_sync_fail_marker(client, fake_ragflow_fixture):
@@ -290,14 +286,13 @@ def test_service_sync_knowledge_base_with_sync_fail_marker(client, fake_ragflow_
         json={},
     )
 
-    # 同步含有 [[sync-fail]] 的片段
+    # 同步已停止，拒绝标记不会被送去解析，也不能记成失败或已同步。
     sync_result = config_service.sync_knowledge_base(p_alpha, snippet["id"])
     assert sync_result["synced"] is False
-    assert sync_result["kb_sync_status"] == "failed"
+    assert sync_result["kb_sync_status"] == "unsynced"
 
-    # 验证存储中状态也更新为 failed
     detail_res = client.get(f"/api/v1/snippet-publications/{snippet['id']}", headers=headers)
-    assert detail_res.json()["kb_sync_status"] == "failed"
+    assert detail_res.json()["kb_sync_status"] == "unsynced"
 
 
 def test_service_sync_knowledge_base_graceful_degradation_on_http_error(client, fake_ragflow_fixture):

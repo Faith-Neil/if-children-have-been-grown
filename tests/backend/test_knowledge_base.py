@@ -238,11 +238,8 @@ def test_without_ragflow_sync_never_claims_success():
 
 
 def test_writing_prompt_splits_history_and_materials(client, fake):
-    from icg.domain.chapter_generation import (
-        HISTORY_HEADING,
-        MATERIALS_HEADING,
-        ChapterGenerationService,
-    )
+    from icg.domain.chapter_generation import ChapterGenerationService
+    from icg.domain.writing_knowledge_prompt import HISTORY_HEADING, MATERIALS_HEADING
 
     kb_admin = login(client, "alpha-company-admin")
     company = _company(client, kb_admin)
