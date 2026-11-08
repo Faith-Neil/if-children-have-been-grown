@@ -66,8 +66,8 @@ def test_super_admin_session_retrieval(client: TestClient):
 
     assert session["auth_mode"] == "authenticated"
     assert session["role_mode"] == "rbac-3roles"
-    assert session["home_path"] == "/admin/rules"
-    assert "workbench" not in {item["route_id"] for item in session["navigation"]}
+    assert session["home_path"] == "/workbench"
+    assert "workbench" in {item["route_id"] for item in session["navigation"]}
     assert session["user"]["id"] == "admin"
     assert session["user"]["primary_role"] == "platform_admin"
     assert "platform_admin" in session["user"]["roles"]

@@ -137,8 +137,9 @@ export default function App() {
     if (!companyReadSessionMatches({ epoch: start, company_id: company, account_id: account }, { epoch: epoch.current, ...currentSession.current })) return;
     if (currentAuthorization.current !== approved) return;
     setProjects(results.projects?.projects ?? []);
-    setLibrarySnapshot(results.library ? { company_id: company, ...results.library } : { company_id: '', items: [], revision: 0 });
-    setTemplatesSnapshot(results.templates ? { company_id: company, ...results.templates } : { company_id: '', items: [], revision: 0 });
+    const crossCompany = (approved.user.primary_role || approved.user.role) === 'platform_admin';
+    setLibrarySnapshot(results.library ? { company_id: company, ...results.library, cross_company: crossCompany } : { company_id: '', items: [], revision: 0 });
+    setTemplatesSnapshot(results.templates ? { company_id: company, ...results.templates, cross_company: crossCompany } : { company_id: '', items: [], revision: 0 });
     setJobs(results.jobs?.jobs ?? []);
   }
   async function deleteProject(id: string) {
@@ -272,7 +273,8 @@ export default function App() {
     if (currentSession.current.account_id !== user.id || currentSession.current.company_id !== user.company_id) throw new Error('当前读取窗口属于另一个登录账号，原填写未替换，请重新打开资料。');
     const start = epoch.current; const company = user.company_id;
     const result = await readSessionCollection(approved, 'library.read', () => request<CompanyCollectionSnapshot<Evidence>>('/api/v1/library', token), () => currentAuthorization.current === approved && companyReadSessionMatches({ epoch: start, company_id: company, account_id: user.id }, { epoch: epoch.current, ...currentSession.current }));
-    setLibrarySnapshot({ company_id: company, items: result.items, revision: result.revision }); return { company_id: company, revision: result.revision, items: result.items };
+    const crossCompany = (approved.user.primary_role || approved.user.role) === 'platform_admin';
+    setLibrarySnapshot({ company_id: company, items: result.items, revision: result.revision, cross_company: crossCompany }); return { company_id: company, revision: result.revision, items: result.items, cross_company: crossCompany };
   }
   async function readSlaTemplates(): Promise<TemplateReadState> {
     if (!token || !user) throw new Error('请先登录再读取公司模板。');
@@ -280,7 +282,8 @@ export default function App() {
     if (currentSession.current.account_id !== user.id || currentSession.current.company_id !== user.company_id) throw new Error('当前读取窗口属于另一个登录账号，原填写未替换，请重新打开模板。');
     const start = epoch.current; const company = user.company_id;
     const result = await readSessionCollection(approved, 'sla_templates.read', () => request<CompanyCollectionSnapshot<SlaTemplate>>('/api/v1/sla/templates', token), () => currentAuthorization.current === approved && companyReadSessionMatches({ epoch: start, company_id: company, account_id: user.id }, { epoch: epoch.current, ...currentSession.current }));
-    setTemplatesSnapshot({ company_id: company, items: result.items, revision: result.revision }); return { company_id: company, revision: result.revision, items: result.items };
+    const crossCompany = (approved.user.primary_role || approved.user.role) === 'platform_admin';
+    setTemplatesSnapshot({ company_id: company, items: result.items, revision: result.revision, cross_company: crossCompany }); return { company_id: company, revision: result.revision, items: result.items, cross_company: crossCompany };
   }
   async function createProject() {
     if (busy) return;

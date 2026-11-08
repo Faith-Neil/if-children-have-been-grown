@@ -19,17 +19,37 @@ from icg.domain.project_access import (
 )
 
 
+def _job_for_response(job: dict) -> dict:
+    """任务列表按接口约定返回字符串时间，并保留步骤说明。"""
+    item = dict(job)
+    for key in ("created_at", "completed_at", "updated_at"):
+        value = item.get(key)
+        if isinstance(value, datetime):
+            item[key] = value.isoformat()
+    if not item.get("type"):
+        item["type"] = item.get("job_type") or "generation"
+    if not item.get("message") and item.get("step_name"):
+        item["message"] = item["step_name"]
+    status = item.get("status") or "pending"
+    if status == "pending":
+        item["status"] = "queued"
+    return item
+
+
 class LibraryOrchestratorMixin:
     """企业资料库与后台任务领域编排 Mixin。"""
 
     def jobs(self, principal: Principal, masked: bool = False) -> dict:
         state = self.repository.read()
+        from icg.domain.project_access import is_platform_super
         norm_role = normalize_role(principal.user.role)
-        is_platform_admin = (norm_role == ROLE_PLATFORM_ADMIN)
-        should_mask = is_platform_admin or bool(masked)
+        is_platform_admin = is_platform_super(principal.user) or norm_role == ROLE_PLATFORM_ADMIN
+        should_mask = bool(masked) and not is_platform_admin
 
         if not should_mask:
-            if norm_role == ROLE_COMPANY_ADMIN:
+            if is_platform_admin:
+                allowed = {p.id for p in state.projects.values()}
+            elif norm_role == ROLE_COMPANY_ADMIN:
                 allowed = {p.id for p in state.projects.values() if p.company_id == principal.user.company_id}
             else:
                 allowed = {
@@ -37,7 +57,16 @@ class LibraryOrchestratorMixin:
                     if p.company_id == principal.user.company_id
                     and principal.user.id in state.project_teams.get(p.id, {}).get("members", {})
                 }
-            return {"jobs": [j for j in state.jobs.values() if j.get("project_id") in allowed]}
+            visible = [_job_for_response(j) for j in state.jobs.values() if j.get("project_id") in allowed]
+            if is_platform_admin:
+                seen = {item["id"] for item in visible}
+                extra = list(state.recoverable_jobs.values()) + list(getattr(state, "_job_records", {}).values())
+                for job in extra:
+                    if job.get("id") in seen or job.get("project_id") not in allowed:
+                        continue
+                    visible.append(_job_for_response(job))
+                    seen.add(job.get("id"))
+            return {"jobs": visible}
 
         all_jobs_dict = {}
         for j in state.jobs.values():
@@ -204,20 +233,27 @@ class LibraryOrchestratorMixin:
             raise DomainError(409, "EVIDENCE_EXPIRED", "证据不能覆盖投标截止时间。")
 
     def library(self, principal: Principal) -> dict:
+        from icg.domain.project_access import is_platform_super
         state = self.repository.read()
+        see_all = is_platform_super(principal.user)
         return {
             "revision": state.library_revisions.get(principal.user.company_id, 1),
             "items": [
                 self._public_library(item)
                 for item in state.library.values()
-                if item["company_id"] == principal.user.company_id
+                if see_all or item["company_id"] == principal.user.company_id
             ],
         }
 
     def write_library(self, principal: Principal, payload: dict, expected: str | None, key: str | None, item_id: str | None = None) -> dict:
+        from icg.domain.project_access import is_platform_super
         self.demo._writer(principal)
         key = self._idempotency(key)
         company = principal.user.company_id
+        if item_id and is_platform_super(principal.user):
+            existing = self.repository.read().library.get(item_id)
+            if existing:
+                company = existing["company_id"]
         scope_id = "library:" + company
         action = "library.update:" + item_id if item_id else "library.create"
         request_fingerprint = self._request_hash(action, payload, expected)

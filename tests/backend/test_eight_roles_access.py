@@ -59,27 +59,19 @@ def test_role_normalization_and_aliases():
     assert normalize_role("company_admin") == ROLE_COMPANY_ADMIN
     assert normalize_role("member") == ROLE_MEMBER
 
-    assert READONLY_SYSTEM_ROLES == {ROLE_PLATFORM_ADMIN}
+    assert READONLY_SYSTEM_ROLES == set()
+    assert ROLE_PLATFORM_ADMIN in LEAD_COMPANY_ROLES
     assert ROLE_MEMBER in LEAD_COMPANY_ROLES
     assert ROLE_COMPANY_ADMIN in LEAD_COMPANY_ROLES
     assert ROLE_MEMBER in WRITER_COMPANY_ROLES
     assert ROLE_COMPANY_ADMIN in WRITER_COMPANY_ROLES
 
 
-def test_readonly_roles_forbidden_from_library_write(repo, service):
-    """平台管理员不能写投标项目。旧只读登录角色已是普通用户，账号级写入不再拦截。"""
+def test_platform_admin_can_write(repo, service):
+    """平台超级管理员可以写，不再被只读门禁拦住。"""
     platform_admin = create_principal(repo, "plt-admin", "平台运维", "platform", "platform_admin")
-
-    for p in (platform_admin,):
-        with pytest.raises(DomainError) as exc:
-            service._writer(p)
-        assert exc.value.status == 403
-        assert exc.value.code == "FORBIDDEN"
-
-        with pytest.raises(DomainError) as exc:
-            ensure_not_readonly(p)
-        assert exc.value.status == 403
-        assert exc.value.code == "FORBIDDEN"
+    service._writer(platform_admin)
+    ensure_not_readonly(platform_admin)
 
 
 def test_writable_roles_permitted_by_writer_guard(repo, service):
@@ -116,10 +108,8 @@ def test_project_create_permissions(repo, service):
     assert service.create_project(writer_p, "普通用户新建项目")["company_id"] == "alpha"
 
     platform_p = create_principal(repo, "p-platform-create", "平台管理员", "system", "platform_admin")
-    with pytest.raises(DomainError) as exc:
-        service.create_project(platform_p, "平台管理员不能新建项目")
-    assert exc.value.status == 403
-    assert exc.value.code == "PROJECT_CREATE_FORBIDDEN"
+    created = service.create_project(platform_p, "平台管理员新建项目")
+    assert created["company_id"] == "system"
 
 
 def test_volume_lead_isolation_and_cross_volume_rejection(repo, service):
@@ -313,10 +303,9 @@ def test_team_membership_update_role_eligibility(repo, service):
         "volumes": [{"volume": "technical", "owner_id": "lead-actor"}, {"volume": "business", "owner_id": "lead-actor"}],
         "assembly_owner_id": "lead-actor",
     }
-    with pytest.raises(DomainError) as exc:
-        team_svc.update(mgr, project_id, payload_platform, expected="1", key="key-team-001")
-    assert exc.value.status == 422
-    assert exc.value.code == "MEMBER_ROLE_NOT_WRITABLE"
+    updated = team_svc.update(mgr, project_id, payload_platform, expected="1", key="key-team-001")
+    roles = {item["user_id"]: item["project_role"] for item in updated["team"]["members"]}
+    assert roles["cand-platform"] == "writer"
 
     # 合法配置：普通用户可以担任编写人，公司管理员可以担任负责人。
     payload_valid = {
@@ -330,7 +319,7 @@ def test_team_membership_update_role_eligibility(repo, service):
         "volumes": [{"volume": "technical", "owner_id": "cand-writer"}, {"volume": "business", "owner_id": "cand-data"}],
         "assembly_owner_id": "lead-actor",
     }
-    res = team_svc.update(mgr, project_id, payload_valid, expected="1", key="key-team-005")
+    res = team_svc.update(mgr, project_id, payload_valid, expected=str(updated["revision"]), key="key-team-005")
     assert len(res["team"]["members"]) == 5
 
 

@@ -369,7 +369,8 @@ export function TaskCenterDrawer({
   onCancel,
   width = 460,
 }: TaskCenterDrawerProps) {
-  const isPlatform = Boolean(masked || isPlatformAdminRole(role));
+  const isPlatform = Boolean(masked);
+  const scopeCompany = isPlatformAdminRole(role) ? undefined : companyId;
 
   const {
     counts,
@@ -378,7 +379,7 @@ export function TaskCenterDrawer({
     filteredTasks,
   } = useTaskBadge({
     tasks,
-    companyId,
+    companyId: scopeCompany,
     initialFilter: 'all',
     initialOpen: open,
   });

@@ -24,6 +24,7 @@ from icg.domain.domain import (
 from icg.domain.generation_context import evidence_expired
 from icg.domain.project_access import (
     VOLUMES,
+    is_platform_super,
     lead,
     writable,
 )
@@ -5245,7 +5246,7 @@ class ComplianceRulesMixin:
         workflow = self._workflow(state, project_id)
 
         # 跨租户强隔离校验
-        if project.company_id != principal.user.company_id:
+        if project.company_id != principal.user.company_id and not is_platform_super(principal.user):
             raise DomainError(404, "NOT_FOUND", "项目不存在或不属于当前企业空间。")
 
         from icg.domain.project_access import in_scope_workflow, rule_scope

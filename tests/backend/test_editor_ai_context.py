@@ -546,15 +546,13 @@ def test_guard_readonly_roles_and_cross_tenant_isolation(editor_setup):
             chapter_id="alpha-tech",
         )
         assert result["scene"]
-    with pytest.raises(DomainError) as exc:
-        editor_svc.chat_editor_context(
-            principal=editor_setup["principal_platform_admin"],
-            project_id="alpha-project",
-            query="分析章节",
-            chapter_id="alpha-tech",
-        )
-    assert exc.value.status == 403
-    assert exc.value.code == "FORBIDDEN"
+    platform_result = editor_svc.chat_editor_context(
+        principal=editor_setup["principal_platform_admin"],
+        project_id="alpha-project",
+        query="分析章节",
+        chapter_id="alpha-tech",
+    )
+    assert platform_result["scene"]
 
     # 2. 项目只读成员拦截 403
     def set_member_viewer(s):

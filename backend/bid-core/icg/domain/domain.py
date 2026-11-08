@@ -633,23 +633,25 @@ class DemoService:
 
     @staticmethod
     def _writer(principal: Principal) -> None:
-        from icg.domain.auth_service import is_super_admin
-        from .project_access import normalize_role, READONLY_SYSTEM_ROLES
+        from .project_access import is_platform_super, normalize_role, READONLY_SYSTEM_ROLES
+        if is_platform_super(principal):
+            return
         role = normalize_role(principal.user.role)
-        if is_super_admin(principal) or role in READONLY_SYSTEM_ROLES or role not in ("member", "company_admin"):
+        if role in READONLY_SYSTEM_ROLES or role not in ("member", "company_admin", "platform_admin"):
             raise DomainError(403, "FORBIDDEN", "当前账号只能查看，不能执行此操作。")
 
     @staticmethod
     def _project(state: DemoState, principal: Principal, project_id: str) -> Project:
-        from .project_access import member
+        from .project_access import is_platform_super, member
         project = state.projects.get(project_id)
         account = state.accounts.get(principal.user.id)
         if project is None or project.is_deleted or account is None:
             raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
-        from icg.domain.auth_service import is_super_admin
         from icg.domain.project_access import normalize_role
-        if is_super_admin(principal) or normalize_role(account.role) == "platform_admin":
-            raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
+        if is_platform_super(account):
+            if state.sessions.get(principal.session_token) != account.id:
+                raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
+            return project
         same_company = project.company_id == account.company_id
         company_admin = same_company and normalize_role(account.role) == "company_admin"
         if (not same_company
@@ -724,11 +726,13 @@ class DemoService:
 
     def projects(self, principal: Principal) -> dict:
         state = self.repository.read()
-        from .project_access import member
+        from .project_access import is_platform_super, member
+        superuser = is_platform_super(principal.user)
         return {"projects": [self._project_response(project) for project in state.projects.values()
-                             if project.company_id == principal.user.company_id
-                             and member(state, project.id, principal.user.id)
-                             and not project.is_deleted]}
+                             if not project.is_deleted and (
+                                 superuser
+                                 or (project.company_id == principal.user.company_id
+                                     and member(state, project.id, principal.user.id)))]}
 
     def project(self, principal: Principal, project_id: str) -> dict:
         state = self.repository.read()

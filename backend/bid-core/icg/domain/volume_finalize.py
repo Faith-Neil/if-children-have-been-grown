@@ -13,7 +13,7 @@ import time
 from typing import Any
 
 from icg.domain.domain import DemoState, DomainError, Principal, Project, iso_time, new_id
-from icg.domain.project_access import VOLUMES, normalize_role, lead, project_volumes, volume_owner
+from icg.domain.project_access import VOLUMES, is_platform_super, normalize_role, lead, project_volumes, volume_owner
 from icg.domain.export_service import ExportServiceMixin
 from icg.domain.volume_review import pending_human_issues, public_review, require_cross_review, reset_review_on_unlock
 
@@ -40,7 +40,7 @@ def is_chapter_locked(chapter: Any, now: float) -> bool:
 
 def check_finalize_permissions(state: DemoState, principal: Principal, project: Project, volume_id: str | None = None) -> None:
     """权限校验：项目负责人、公司管理员或本分册负责人（PRD v1.8 §2.3）。跨租户 404，其它角色 403。"""
-    if project.company_id != principal.user.company_id:
+    if project.company_id != principal.user.company_id and not is_platform_super(principal.user):
         raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
 
     norm_role = normalize_role(principal.user.role)

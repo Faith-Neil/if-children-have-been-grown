@@ -18,10 +18,12 @@ from .project_access import (
 
 
 
-# 三个登录角色的入口。平台管理员不进工作台。普通用户可以建项目并编写。
+# 三个登录角色的入口。平台超级管理员进入全部界面，并且都可以写。
 ROLE_NAVIGATION = {
-    "platform_admin": (("admin.rules", "write"), ("platform", "write"), ("platform.audit", "read"),
-                       ("jobs", "read"), ("notifications", "read")),
+    "platform_admin": (("workbench", "write"), ("library", "write"), ("knowledge", "write"),
+                       ("writing", "write"), ("statistics", "read"), ("admin", "write"),
+                       ("admin.rules", "write"), ("jobs", "write"), ("notifications", "read"),
+                       ("platform", "write"), ("platform.audit", "write"), ("platform.jobs", "write")),
     "company_admin": (("workbench", "write"), ("library", "write"), ("knowledge", "write"),
                       ("writing", "write"), ("statistics", "read"), ("admin.rules", "write"),
                       ("jobs", "read"), ("notifications", "read")),
@@ -69,9 +71,10 @@ def get_application_session(service, principal: Principal, project_id: str | Non
     role_mode = "rbac-3roles"
     primary_role = norm_role
     roles = [norm_role]
-    home_path = "/admin/rules" if norm_role == "platform_admin" else "/workbench"
+    home_path = "/workbench"
     if norm_role == "platform_admin":
-        actions = ["jobs.read", "platform.write", "admin.write"]
+        actions = ["projects.read", "projects.create", "library.read", "library.write",
+                   "sla_templates.read", "sla_templates.write", "jobs.read", "admin.write", "platform.write"]
     elif norm_role == "company_admin":
         actions = ["projects.read", "projects.create", "library.read", "library.write",
                    "sla_templates.read", "sla_templates.write", "jobs.read", "admin.write"]

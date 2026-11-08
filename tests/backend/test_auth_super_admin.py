@@ -114,15 +114,15 @@ def test_super_admin_session_navigation_and_permissions(client):
 
     assert session_data["auth_mode"] == "authenticated"
     assert session_data["role_mode"] == "rbac-3roles"
-    assert session_data["home_path"] == "/admin/rules"
+    assert session_data["home_path"] == "/workbench"
     assert session_data["scope"]["kind"] == "system"
     assert session_data["scope"]["active_company_id"] == "system"
 
     nav_routes = {item["route_id"]: item["access"] for item in session_data["navigation"]}
-    assert set(nav_routes) == {"admin.rules", "platform", "platform.audit", "jobs", "notifications"}
-    assert "workbench" not in nav_routes
+    assert {"workbench", "library", "knowledge", "writing", "admin.rules", "platform", "jobs"} <= set(nav_routes)
+    assert nav_routes["workbench"] == "write"
     assert nav_routes["platform"] == "write"
-    assert "projects.create" not in session_data["allowedActions"]
+    assert "projects.create" in session_data["allowedActions"]
     assert "platform.write" in session_data["allowedActions"]
     assert "admin.write" in session_data["allowedActions"]
 
@@ -181,7 +181,7 @@ def test_normal_account_password_login(client):
 
 
 def test_super_admin_cross_company_access(client):
-    """平台管理员和种子账号 admin 不能打开投标项目正文。"""
+    """平台超级管理员可以打开其他公司的投标项目。"""
     login_resp = client.post(
         "/api/v1/auth/login",
         json={"username": "admin", "password": "X_2026"},
@@ -192,15 +192,15 @@ def test_super_admin_cross_company_access(client):
         "/api/v1/session?project_id=alpha-project",
         headers={"Authorization": f"Bearer {token}"},
     )
-    assert resp.status_code == 404
-    assert resp.json()["code"] == "NOT_FOUND"
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["project_access"]["id"] == "alpha-project"
 
     ws_resp = client.get(
         "/api/v1/projects/alpha-project/workspace",
         headers={"Authorization": f"Bearer {token}"},
     )
-    assert ws_resp.status_code == 404
-    assert ws_resp.json()["code"] == "NOT_FOUND"
+    assert ws_resp.status_code == 200, ws_resp.text
+    assert ws_resp.json()["project"]["id"] == "alpha-project"
 
 
 def test_super_admin_in_production_mode(monkeypatch, client):

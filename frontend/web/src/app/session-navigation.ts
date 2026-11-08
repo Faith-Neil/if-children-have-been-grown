@@ -91,8 +91,11 @@ export function requireProjectTab(session: ApplicationSession | null, projectId:
 // 新会话先收紧已显示的权限；不改正文、草稿、分工或表单依据。
 // 会话没有逐条款权限，旧条款先冻结，只有本次 workspace GET 才能恢复它们。
 export function workspaceWithSessionPermissions(workspace: Workspace, session: ApplicationSession, freshRequirements = false): Workspace {
-  const access = session.scope.active_company_id === workspace.project.company_id
+  const platformAdmin = session.user.primary_role === 'platform_admin' || session.user.role === 'platform_admin';
+  const sameCompany = platformAdmin || session.scope.active_company_id === workspace.project.company_id;
+  const access = sameCompany
     && sessionAllowsRoute(session, 'workbench') && session.project_access?.id === workspace.project.id ? session.project_access : undefined;
+  if (platformAdmin && !access) return workspace;
   const projectFlags = ['manage_team', 'manage_project', 'manage_structure', 'prepare_sources', 'manage_sla', 'edit_facts', 'confirm_facts', 'check_all', 'export_internal'] as const;
   const permissions = Object.fromEntries(projectFlags.map(key => [key, workspace.permissions?.[key] === true && access?.permissions?.[key] === true])) as Pick<ProjectPermissions, typeof projectFlags[number]>;
   const chapterFlags = ['edit', 'confirm_plan', 'generate', 'manage_structure', 'assign', 'takeover'] as const;

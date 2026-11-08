@@ -49,21 +49,22 @@ test('roles.ts: three login roles and legacy aliases', () => {
 });
 
 test('roles.ts: permission sets for the three login roles', () => {
-  assert.ok(isReadonlyRole('platform_admin'));
+  assert.ok(!isReadonlyRole('platform_admin'));
   assert.ok(!isReadonlyRole('member'));
   assert.ok(!isReadonlyRole('company_admin'));
   assert.ok(!isReadonlyRole('project_lead'));
 
   assert.ok(PROJECT_CREATOR_ROLES.has('member'));
   assert.ok(PROJECT_CREATOR_ROLES.has('company_admin'));
-  assert.ok(!PROJECT_CREATOR_ROLES.has('platform_admin'));
+  assert.ok(PROJECT_CREATOR_ROLES.has('platform_admin'));
 
   assert.ok(PROJECT_WRITER_ROLES.has('member'));
   assert.ok(PROJECT_WRITER_ROLES.has('company_admin'));
+  assert.ok(PROJECT_WRITER_ROLES.has('platform_admin'));
   assert.ok(LEAD_COMPANY_ROLES.has('member'));
+  assert.ok(LEAD_COMPANY_ROLES.has('platform_admin'));
 
-  assert.ok(PLATFORM_ADMIN_FORBIDDEN_ROUTES.has('workbench'));
-  assert.ok(PLATFORM_ADMIN_FORBIDDEN_ROUTES.has('library'));
+  assert.equal(PLATFORM_ADMIN_FORBIDDEN_ROUTES.size, 0);
 });
 
 test('codes.ts: data dictionary v1.9 single-source codes', () => {

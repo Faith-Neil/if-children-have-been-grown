@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .domain import Chapter, DemoState, DomainError, Lease, Principal, Project, iso_time, new_id
+from .project_access import is_platform_super
 from .generation_context import evidence_expired, project_facts
 
 
@@ -308,7 +309,7 @@ class AnswerCardService:
                              route: RouteDecision) -> AnswerCard:
         state: DemoState = self.demo.repository.read()
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        if project is None or (project.company_id != principal.user.company_id and not is_platform_super(principal.user)):
             raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
 
         workflow = state.workflows.get(project_id, {})
@@ -703,7 +704,7 @@ class AnswerCardService:
 
         def operation(state: DemoState) -> dict[str, Any]:
             project = state.projects.get(project_id)
-            if project is None or project.company_id != principal.user.company_id:
+            if project is None or (project.company_id != principal.user.company_id and not is_platform_super(principal.user)):
                 raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
 
             chapter = state.chapters.get(chapter_id)
@@ -912,7 +913,7 @@ class AnswerCardService:
 
         state: DemoState = self.demo.repository.read()
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        if project is None or (project.company_id != principal.user.company_id and not is_platform_super(principal.user)):
             raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
 
         # 检查项目级只读分工

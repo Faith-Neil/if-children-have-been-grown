@@ -39,25 +39,20 @@ export const ROLE_NORMALIZATION_MAP: Record<string, SystemRole> = {
   readonly: 'member',
 };
 
-/** 平台管理员不能写投标项目。 */
-export const READONLY_SYSTEM_ROLES = new Set<SystemRole>(['platform_admin']);
+/** 平台超级管理员可读写全部界面，不再列入只读。 */
+export const READONLY_SYSTEM_ROLES = new Set<SystemRole>();
 
-/** 普通用户和公司管理员可以新建项目。 */
-export const PROJECT_CREATOR_ROLES = new Set<SystemRole>(['member', 'company_admin']);
+/** 三个登录角色都可以新建项目。 */
+export const PROJECT_CREATOR_ROLES = new Set<SystemRole>(['member', 'company_admin', 'platform_admin']);
 
-export const PROJECT_WRITER_ROLES = new Set<SystemRole>(['member', 'company_admin']);
+export const PROJECT_WRITER_ROLES = new Set<SystemRole>(['member', 'company_admin', 'platform_admin']);
 
-export const LEAD_COMPANY_ROLES = new Set<SystemRole>(['member', 'company_admin']);
+export const LEAD_COMPANY_ROLES = new Set<SystemRole>(['member', 'company_admin', 'platform_admin']);
 
-/** 平台管理员不进入投标业务页。 */
-export const PLATFORM_ADMIN_FORBIDDEN_ROUTES = new Set<string>([
-  'workbench',
-  'library',
-  'knowledge',
-  'writing',
-]);
+/** 平台超级管理员可以进入全部业务页。 */
+export const PLATFORM_ADMIN_FORBIDDEN_ROUTES = new Set<string>();
 
-/** 普通用户和公司管理员可以新建项目。平台管理员不可以。 */
+/** 三个登录角色都可以新建项目。 */
 export function canCreateProject(roleOrRoles?: string | string[] | null): boolean {
   return PROJECT_CREATOR_ROLES.has(normalizeSystemRole(roleOrRoles));
 }

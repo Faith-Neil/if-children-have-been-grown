@@ -34,19 +34,19 @@ ROLE_NORMALIZATION_MAP = {
     "readonly": ROLE_MEMBER,
 }
 
-# 平台管理员不能写投标项目。普通用户是否可写由项目成员身份决定。
-READONLY_SYSTEM_ROLES = {
-    ROLE_PLATFORM_ADMIN,
-}
+# 平台超级管理员可读写全部界面。普通用户是否可写由项目成员身份决定。
+READONLY_SYSTEM_ROLES: set[str] = set()
 
 LEAD_COMPANY_ROLES = {
     ROLE_MEMBER,
     ROLE_COMPANY_ADMIN,
+    ROLE_PLATFORM_ADMIN,
 }
 
 WRITER_COMPANY_ROLES = {
     ROLE_MEMBER,
     ROLE_COMPANY_ADMIN,
+    ROLE_PLATFORM_ADMIN,
 }
 
 
@@ -108,16 +108,30 @@ def member(state, project_id, user_id):
     return state.project_teams.get(project_id, {}).get("members", {}).get(user_id)
 
 
-def _blocks_project(account) -> bool:
+def is_platform_super(account) -> bool:
+    """平台超级管理员（admin 账号或 platform_admin）可以读写全部公司的全部内容。"""
     if account is None:
+        return False
+    user = getattr(account, "user", account)
+    if is_super_admin(user):
         return True
-    return is_super_admin(account) or normalize_role(account.role) == ROLE_PLATFORM_ADMIN
+    return normalize_role(getattr(user, "role", "") or "") == ROLE_PLATFORM_ADMIN
+
+
+def foreign_company(project, principal) -> bool:
+    """项目不存在，或调用者属于另一家公司且不是平台超级管理员。"""
+    if project is None:
+        return True
+    user = getattr(principal, "user", principal)
+    if is_platform_super(user):
+        return False
+    return getattr(project, "company_id", None) != getattr(user, "company_id", None)
 
 
 def writable(state, project_id, user_id):
     account, membership = state.accounts.get(user_id), member(state, project_id, user_id)
-    if _blocks_project(account):
-        return False
+    if is_platform_super(account):
+        return project_id in state.projects
     if not (account and membership and account.company_id == state.projects[project_id].company_id):
         return False
     if membership.get("project_role") == "readonly":
@@ -130,8 +144,8 @@ def writable(state, project_id, user_id):
 
 def lead(state, project_id, user_id):
     account = state.accounts.get(user_id)
-    if _blocks_project(account):
-        return False
+    if is_platform_super(account):
+        return project_id in state.projects
     project = state.projects.get(project_id)
     if account and project and normalize_role(account.role) == ROLE_COMPANY_ADMIN and account.company_id == project.company_id:
         return True
@@ -140,8 +154,8 @@ def lead(state, project_id, user_id):
 
 
 def volume_owner(state, project_id, volume, user_id):
-    if _blocks_project(state.accounts.get(user_id)):
-        return False
+    if is_platform_super(state.accounts.get(user_id)):
+        return project_id in state.projects and volume in project_volumes(state, project_id)
     m = member(state, project_id, user_id)
     return (writable(state, project_id, user_id)
             and m is not None
@@ -150,8 +164,8 @@ def volume_owner(state, project_id, volume, user_id):
 
 
 def chapter_edit(state, chapter, user_id):
-    if _blocks_project(state.accounts.get(user_id)):
-        return False
+    if is_platform_super(state.accounts.get(user_id)):
+        return chapter.project_id in state.projects
     m = member(state, chapter.project_id, user_id)
     if not (writable(state, chapter.project_id, user_id) and m is not None):
         return False
@@ -163,75 +177,73 @@ def chapter_edit(state, chapter, user_id):
 
 
 def chapter_structure(state, chapter, user_id):
-    if _blocks_project(state.accounts.get(user_id)):
-        return False
+    if is_platform_super(state.accounts.get(user_id)):
+        return chapter.project_id in state.projects
     return lead(state, chapter.project_id, user_id) or volume_owner(state, chapter.project_id, chapter.volume, user_id)
 
 
 def require_same_company(state, principal, project_id):
     project = state.projects.get(project_id)
-    if project is None or _blocks_project(principal.user):
+    if project is None:
         raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
+    if is_platform_super(principal.user):
+        return
     if principal.user.company_id != project.company_id:
         raise DomainError(403, "FORBIDDEN", "无权跨公司访问其他公司的项目。")
 
 
 def ensure_not_readonly(principal):
-    if _blocks_project(principal.user):
-        raise DomainError(403, "FORBIDDEN", "平台管理员不参与投标项目。")
+    if is_platform_super(principal.user):
+        return
     norm = normalize_role(principal.user.role)
     if norm in READONLY_SYSTEM_ROLES:
         raise DomainError(403, "FORBIDDEN", "只读角色不能执行修改操作。")
 
 
 def require_lead(state, principal, project_id):
-    if _blocks_project(principal.user):
-        raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
     project = state.projects.get(project_id)
+    if project is None:
+        raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
+    if is_platform_super(principal.user):
+        return
     if project and principal.user.company_id and principal.user.company_id != project.company_id:
         raise DomainError(403, "FORBIDDEN", "无权跨公司操作其他公司的投标项目。")
-    norm = normalize_role(principal.user.role)
-    if norm == ROLE_PLATFORM_ADMIN:
-        raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
     if not lead(state, project_id, principal.user.id):
         raise DomainError(403, "PROJECT_LEAD_REQUIRED", "此操作须由本项目负责人办理，公司的经理身份不能代替项目分工。")
 
 
 def require_chapter(state, principal, chapter):
-    if _blocks_project(principal.user):
-        raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
     project = state.projects.get(chapter.project_id)
+    if project is None:
+        raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
+    if is_platform_super(principal.user):
+        return
     if project and principal.user.company_id and principal.user.company_id != project.company_id:
         raise DomainError(403, "FORBIDDEN", "无权跨公司操作其他公司的章节。")
-    norm = normalize_role(principal.user.role)
-    if norm == ROLE_PLATFORM_ADMIN:
-        raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
     if not chapter_edit(state, chapter, principal.user.id):
         raise DomainError(403, "CHAPTER_EDITOR_REQUIRED", "只有本项目负责人、本册负责人或本节编写人可以编辑、确认或生成本节。")
 
 
 def require_volume_owner(state, principal, project_id, volume):
-    if _blocks_project(principal.user):
-        raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
     project = state.projects.get(project_id)
+    if project is None:
+        raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
+    if is_platform_super(principal.user):
+        return
     if project and principal.user.company_id and principal.user.company_id != project.company_id:
         raise DomainError(403, "FORBIDDEN", "无权跨公司操作其他公司的分册。")
-    norm = normalize_role(principal.user.role)
-    if norm == ROLE_PLATFORM_ADMIN:
-        raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
     if not (lead(state, project_id, principal.user.id) or volume_owner(state, project_id, volume, principal.user.id)):
         raise DomainError(403, "VOLUME_OWNER_REQUIRED", "只能调整和批量确认自己负责的分册。")
 
 
 def require_project_writer(state, principal, project_id):
-    if _blocks_project(principal.user):
-        raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
     project = state.projects.get(project_id)
+    if project is None:
+        raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
+    if is_platform_super(principal.user):
+        return
     if project and principal.user.company_id and principal.user.company_id != project.company_id:
         raise DomainError(403, "FORBIDDEN", "无权跨公司操作其他公司的投标项目。")
-    norm = normalize_role(principal.user.role)
-    if norm == ROLE_PLATFORM_ADMIN:
-        raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
     if not writable(state, project_id, principal.user.id):
         raise DomainError(403, "PROJECT_WRITER_REQUIRED", "当前公司角色和项目角色只允许查看，不能办理此操作。")
 
@@ -244,20 +256,21 @@ def require_data_admin(state, principal):
 
 
 def chapter_permissions(state, chapter, user_id):
-    if _blocks_project(state.accounts.get(user_id)):
-        return {"edit": False, "confirm_plan": False, "generate": False,
-                "manage_structure": False, "assign": False, "takeover": False}
+    if is_platform_super(state.accounts.get(user_id)):
+        return {"edit": True, "confirm_plan": True, "generate": True,
+                "manage_structure": True, "assign": True, "takeover": True}
     edit, structure = chapter_edit(state, chapter, user_id), chapter_structure(state, chapter, user_id)
     return {"edit": edit, "confirm_plan": edit, "generate": edit,
             "manage_structure": structure, "assign": structure, "takeover": structure}
 
 
 def project_permissions(state, project_id, user_id):
-    if _blocks_project(state.accounts.get(user_id)):
-        return {"manage_team": False, "manage_project": False, "manage_structure": False,
-                "prepare_sources": False, "manage_sla": False, "confirm_facts": False,
-                "edit_facts": False, "check_all": False, "export_internal": False,
-                "check_volumes": [], "export_volumes": []}
+    if is_platform_super(state.accounts.get(user_id)):
+        volumes = list(project_volumes(state, project_id))
+        return {"manage_team": True, "manage_project": True, "manage_structure": True,
+                "prepare_sources": True, "manage_sla": True, "confirm_facts": True,
+                "edit_facts": True, "check_all": True, "export_internal": True,
+                "check_volumes": volumes, "export_volumes": volumes}
     is_lead = lead(state, project_id, user_id)
     volumes = [v for v in project_volumes(state, project_id) if is_lead or volume_owner(state, project_id, v, user_id)]
     return {"manage_team": is_lead, "manage_project": is_lead, "manage_structure": is_lead,

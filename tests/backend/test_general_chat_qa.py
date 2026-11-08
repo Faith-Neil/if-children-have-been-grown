@@ -325,16 +325,13 @@ def test_gate_4_readonly_roles_interception(chat_setup):
         )
         assert result["reply"], role_name
 
-    with pytest.raises(DomainError) as exc_info:
-        answer_svc.general_chat(
-            principal=chat_setup["principal_platform_admin"],
-            project_id="alpha-project",
-            query="平台管理员尝试提问",
-            knowledge_base_enabled=True,
-        )
-    assert exc_info.value.status == 403
-    assert exc_info.value.code == "FORBIDDEN"
-    assert "只读角色不可使用智能助手提问" in str(exc_info.value)
+    platform_result = answer_svc.general_chat(
+        principal=chat_setup["principal_platform_admin"],
+        project_id="alpha-project",
+        query="平台管理员尝试提问",
+        knowledge_base_enabled=True,
+    )
+    assert platform_result["reply"]
 
 
 def test_gate_4_project_member_viewer_interception(chat_setup):

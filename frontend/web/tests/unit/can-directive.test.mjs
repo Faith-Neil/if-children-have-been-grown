@@ -77,7 +77,7 @@ test('table-driven: 8 roles x project:create permission', () => {
     { role: 'data_admin', expected: true },
     { role: 'member', expected: true },
     { role: 'group_admin', expected: true },
-    { role: 'platform_admin', expected: false },
+    { role: 'platform_admin', expected: true },
     { role: 'auditor', expected: true },
     { role: 'viewer', expected: true },
   ];
@@ -94,7 +94,7 @@ test('table-driven: 8 roles x project:create permission', () => {
 test('table-driven: 8 roles x project:confirm / parse:confirm / matrix:confirm', () => {
   // 仅项目负责人（及公司管理员）可确认，编写人与只读角色一律阻断
   const allowedRoles = ['project_lead', 'company_admin', 'manager', 'lead'];
-  const disallowedRoles = ['bid_writer', 'editor', 'data_admin', 'group_admin', 'platform_admin', 'auditor', 'viewer', 'readonly'];
+  const disallowedRoles = ['bid_writer', 'editor', 'data_admin', 'group_admin', 'auditor', 'viewer', 'readonly'];
 
   for (const role of allowedRoles) {
     const res = can('project:confirm', null, { role, workspace: mockWorkspace, userId: 'user-lead' });
@@ -120,7 +120,7 @@ test('table-driven: 8 roles x submission:export (递交版 Word 导出) strictly
     // 只读角色与管理员不能导出递交版
     { role: 'group_admin', userId: 'user-group', expected: false },
     { role: 'viewer', userId: 'user-readonly', expected: false },
-    { role: 'platform_admin', userId: 'user-plat', expected: false },
+    { role: 'platform_admin', userId: 'user-plat', expected: true },
     { role: 'data_admin', userId: 'user-data', expected: false },
     { role: 'auditor', userId: 'user-audit', expected: false },
   ];
@@ -214,7 +214,7 @@ test('volume:finalize, volume:check, volume:unlock permissions', () => {
 
 test('id_card:view is limited to company_admin', () => {
   const allowed = ['company_admin'];
-  const disallowed = ['data_admin', 'project_lead', 'bid_writer', 'group_admin', 'platform_admin', 'auditor', 'viewer'];
+  const disallowed = ['data_admin', 'project_lead', 'bid_writer', 'group_admin', 'auditor', 'viewer'];
 
   for (const role of allowed) {
     const res = can('id_card:view', null, { role });
@@ -228,7 +228,7 @@ test('id_card:view is limited to company_admin', () => {
   }
 });
 
-test('universal readonly safety gate blocks all write operations', () => {
+test('platform admin can perform write operations', () => {
   const writeActions = [
     'project:create',
     'project:confirm',
@@ -240,13 +240,8 @@ test('universal readonly safety gate blocks all write operations', () => {
     'partner:upload',
   ];
 
-  const readonlyRoles = ['platform_admin'];
-
-  for (const role of readonlyRoles) {
-    for (const action of writeActions) {
-      const res = can(action, null, { role });
-      assert.equal(res.allowed, false, `Role ${role} must be blocked from write action ${action}`);
-      assert.equal(res.code, 'READONLY_FORBIDDEN');
-    }
+  for (const action of writeActions) {
+    const res = can(action, null, { role: 'platform_admin' });
+    assert.equal(res.allowed, true, `platform_admin must be allowed to ${action}`);
   }
 });

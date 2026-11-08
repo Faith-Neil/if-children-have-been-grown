@@ -28,6 +28,7 @@ from .generation_context import (
 from .project_access import (
     READONLY_SYSTEM_ROLES,
     ROLE_NORMALIZATION_MAP,
+    foreign_company,
     writable,
 )
 from .prompt_budget import (
@@ -1413,7 +1414,7 @@ class ChapterGenerationService:
             raise DomainError(403, "FORBIDDEN", "只读角色不可启动章节生成。")
 
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        if foreign_company(project, principal):
             raise DomainError(404, "NOT_FOUND", "项目不存在或不属于当前公司。")
 
         if not writable(state, project_id, principal.user.id):
@@ -1530,7 +1531,7 @@ class ChapterGenerationService:
             raise DomainError(403, "FORBIDDEN", "只读角色不可启动章节生成流水线。")
 
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        if foreign_company(project, principal):
             raise DomainError(404, "NOT_FOUND", "项目不存在或不属于当前公司。")
 
         if not writable(state, project_id, principal.user.id):
@@ -1893,7 +1894,7 @@ class ChapterGenerationService:
             raise DomainError(403, "FORBIDDEN", "只读角色不可启动章节生成。")
 
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        if foreign_company(project, principal):
             raise DomainError(404, "NOT_FOUND", "项目不存在或不属于当前公司。")
 
         chapter = state.chapters.get(chapter_id)
@@ -1973,7 +1974,7 @@ class ChapterGenerationService:
 
         # 租户与项目隔离（404）
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        if foreign_company(project, principal):
             raise DomainError(404, "NOT_FOUND", "项目不存在或不属于当前公司。")
 
         chapter = state.chapters.get(chapter_id)
@@ -2052,7 +2053,7 @@ class ChapterGenerationService:
 
         # 门禁 2：租户与项目隔离（404）
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        if foreign_company(project, principal):
             raise DomainError(404, "NOT_FOUND", "项目不存在或不属于当前公司。")
 
         chapter = state.chapters.get(chapter_id)

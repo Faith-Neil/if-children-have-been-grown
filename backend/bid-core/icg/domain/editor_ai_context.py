@@ -20,7 +20,7 @@ from typing import Any
 
 from .domain import Chapter, DemoState, DomainError, Lease, Principal, Project, iso_time
 from .generation_context import evidence_expired, project_facts
-from .project_access import READONLY_SYSTEM_ROLES, ROLE_NORMALIZATION_MAP, require_chapter
+from .project_access import READONLY_SYSTEM_ROLES, ROLE_NORMALIZATION_MAP, foreign_company, is_platform_super, require_chapter
 
 
 def decompose_chapter_paragraphs(content: str, selected_text: str | None = None) -> list[dict[str, Any]]:
@@ -445,8 +445,9 @@ class EditorAIContextService:
         state: DemoState = self.demo.repository.read()
 
         # 门禁 2：租户与项目隔离
+        from .project_access import is_platform_super
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        if project is None or (project.company_id != principal.user.company_id and not is_platform_super(principal.user)):
             raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
 
         # 检查项目级只读分工
@@ -634,7 +635,7 @@ class EditorAIContextService:
         def operation(state: DemoState):
             # 门禁 2：租户与项目隔离
             project = state.projects.get(project_id)
-            if project is None or project.company_id != principal.user.company_id:
+            if foreign_company(project, principal):
                 raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
 
             team = state.project_teams.get(project_id, {})
@@ -643,7 +644,7 @@ class EditorAIContextService:
             if user_member and user_member.get("project_role") in ("viewer", "readonly"):
                 raise DomainError(403, "FORBIDDEN", "项目只读成员无权修改章节正文。")
 
-            if principal.user.id not in members and norm_role != "company_admin":
+            if principal.user.id not in members and norm_role != "company_admin" and not is_platform_super(principal.user):
                 raise DomainError(403, "FORBIDDEN", "您不是本项目成员，无权修改正文。")
 
             chapter = state.chapters.get(chapter_id)

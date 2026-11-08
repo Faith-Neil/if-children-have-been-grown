@@ -114,9 +114,9 @@ def test_smoke_step1_eight_roles_session_retrieval(non_demo_env):
 
         nav_routes = {item["route_id"] for item in data["navigation"]}
         if role == "platform_admin":
-            assert nav_routes == {"admin.rules", "platform", "platform.audit", "jobs", "notifications"}
-            assert "projects.create" not in data["allowedActions"]
-            assert "workbench" not in nav_routes
+            assert {"workbench", "library", "knowledge", "writing", "admin.rules", "jobs"} <= nav_routes
+            assert "projects.create" in data["allowedActions"]
+            assert data["home_path"] == "/workbench"
         elif role == "company_admin":
             assert {"workbench", "library", "admin.rules", "statistics"} <= nav_routes
             assert "projects.create" in data["allowedActions"]

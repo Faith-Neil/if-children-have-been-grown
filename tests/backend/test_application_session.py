@@ -201,11 +201,11 @@ def test_revoked_token_or_account_is_rejected_on_next_request(setup, remove_acco
     assert response.status_code == 401
 
 
-def test_three_role_navigation_definition_does_not_grant_platform_business_access():
+def test_three_role_navigation_definition_gives_platform_admin_every_entry():
     assert set(ROLE_NAVIGATION) == {"platform_admin", "company_admin", "member"}
-    platform = {item["route_id"] for item in navigation_for_roles(["platform_admin"])}
-    assert platform == {"admin.rules", "platform", "platform.audit", "jobs", "notifications"}
-    assert "workbench" not in platform and "library" not in platform
+    platform = {item["route_id"]: item["access"] for item in navigation_for_roles(["platform_admin"])}
+    assert {"workbench", "library", "knowledge", "writing", "admin.rules", "jobs"} <= set(platform)
+    assert platform["workbench"] == "write" and platform["library"] == "write"
     member = {item["route_id"]: item["access"] for item in navigation_for_roles(["member"])}
     assert member["writing"] == "read" and "admin.rules" not in member and "platform" not in member
     company = {item["route_id"]: item["access"] for item in navigation_for_roles(["company_admin"])}

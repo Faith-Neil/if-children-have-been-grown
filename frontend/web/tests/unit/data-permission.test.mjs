@@ -54,7 +54,7 @@ const mockWorkspace = {
 
 test('table-driven: 8 system roles in project-level data permission', () => {
   const roleCases = [
-    { role: 'platform_admin', expectedReadOnly: true, expectedScope: 'project', reasonType: 'role_readonly' },
+    { role: 'platform_admin', expectedReadOnly: false, expectedScope: 'none', reasonType: undefined },
     { role: 'group_admin', expectedReadOnly: true, expectedScope: 'project', reasonType: 'not_member' },
     { role: 'auditor', expectedReadOnly: true, expectedScope: 'project', reasonType: 'not_member' },
     { role: 'viewer', expectedReadOnly: true, expectedScope: 'project', reasonType: 'not_member' },

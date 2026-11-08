@@ -17,7 +17,7 @@ from icg.domain.generation_context import build_generation_context, chapter_plan
 from icg.domain.project_access import (
     VOLUMES, project_volume_mode, writable, lead, volume_owner, require_lead, require_chapter,
     chapter_structure, chapter_edit, chapter_permissions, project_permissions,
-    public_team, normalize_role,
+    public_team, is_platform_super, normalize_role,
 )
 from icg.domain.outline_plan import OutlinePlanService
 from icg.domain.answer_card import AnswerCardService
@@ -184,7 +184,7 @@ class WorkflowService(
         name, _, resource_id = action.partition(":")
         if name in ("volume.finalize", "volume.unlock", "check.release"):
             project = state.projects.get(project_id)
-            if project and project.company_id != principal.user.company_id:
+            if project and project.company_id != principal.user.company_id and not is_platform_super(principal.user):
                 raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
             norm_role = normalize_role(principal.user.role)
             if norm_role == "company_admin":

@@ -94,7 +94,7 @@ export function GlobalPagesContent({
             <div className="page-heading">
               <div>
                 <h2>投标项目工作台</h2>
-                <p>先看风险，再看进度。这里只列出你已经加入的本公司项目。</p>
+                <p>{userRole === 'platform_admin' ? '全部公司的投标项目都在这里。' : '先看风险，再看进度。这里只列出你已经加入的本公司项目。'}</p>
               </div>
               {createButton ?? (
                 <Can perform="project:create">

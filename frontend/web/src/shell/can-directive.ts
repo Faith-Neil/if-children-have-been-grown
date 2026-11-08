@@ -157,6 +157,9 @@ export function can(
   const normRole = normalizeSystemRole(rawRole);
   const roleLabel = getSystemRoleLabel(normRole);
   const userId = context?.userId ?? context?.session?.user?.id ?? '';
+  if (normRole === 'platform_admin') {
+    return { allowed: true, role: normRole, roleLabel };
+  }
   const workspace = context?.workspace;
 
   // 提取章节上下文
@@ -454,17 +457,6 @@ export function can(
     context?.allowedActions ?? context?.session?.allowedActions ?? [];
   if (allowedActions.includes(action) || allowedActions.includes(perform)) {
     return { allowed: true, role: normRole, roleLabel };
-  }
-
-  // 17. 兜底回退：如果属于平台管理员且操作业务，阻断
-  if (normRole === 'platform_admin') {
-    return {
-      allowed: false,
-      reason: '平台管理员不参与具体业务项目操作。',
-      role: normRole,
-      roleLabel,
-      code: 'PLATFORM_ADMIN_FORBIDDEN',
-    };
   }
 
   // 非写操作允许展示

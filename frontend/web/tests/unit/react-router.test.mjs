@@ -208,34 +208,28 @@ test('routeAfterLogin redirects from login or root to user home path, preserves 
 // 3. 路由守卫（AuthGuard & RoutePermission）权限矩阵测试
 // ----------------------------------------------------
 
-test('AuthGuard blocks platform_admin from business data routes', () => {
+test('AuthGuard lets platform_admin open business routes', () => {
   const adminSession = createSession('platform_admin', {
-    home_path: '/admin/rules',
+    home_path: '/workbench',
   });
 
-  // 访问工作台应被阻断
   const checkWorkbench = checkRoutePermission({
     session: adminSession,
     targetPath: '/projects',
   });
-  assert.equal(checkWorkbench.allowed, false);
-  assert.equal(checkWorkbench.code, 'ROLE_FORBIDDEN');
+  assert.equal(checkWorkbench.allowed, true);
 
-  // 访问企业资料库应被阻断
   const checkLibrary = checkRoutePermission({
     session: adminSession,
     targetPath: '/library',
   });
-  assert.equal(checkLibrary.allowed, false);
-  assert.equal(checkLibrary.code, 'ROLE_FORBIDDEN');
+  assert.equal(checkLibrary.allowed, true);
 
-  // 访问项目工作区应被阻断
   const checkProject = checkRoutePermission({
     session: adminSession,
     targetPath: '/projects/proj-001/overview',
   });
-  assert.equal(checkProject.allowed, false);
-  assert.equal(checkProject.code, 'ROLE_FORBIDDEN');
+  assert.equal(checkProject.allowed, true);
 });
 
 test('AuthGuard allows project_lead and bid_writer to access legitimate routes', () => {

@@ -122,8 +122,20 @@ export function resolveDataPermission(context: DataPermissionContext): DataPermi
     targetVolume = targetChapter.volume;
   }
 
+  // 平台超级管理员可读写全项目，不因未加入项目团队而变成只读。
+  if (normRole === 'platform_admin') {
+    return {
+      readOnly: false,
+      canEdit: true,
+      scope: 'none',
+      scopeName: '平台管理员',
+      role: normRole,
+      roleLabel,
+    };
+  }
+
   // =========================================================================
-  // 规则 1：系统级只读角色（集团管理员、只读成员、审计员、平台管理员）
+  // 规则 1：系统级只读角色
   // =========================================================================
   if (isReadonlyRole(normRole)) {
     return {

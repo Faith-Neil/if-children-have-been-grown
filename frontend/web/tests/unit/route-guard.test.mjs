@@ -152,7 +152,7 @@ test('three login roles and legacy aliases', () => {
 });
 
 test('readonly and project creator roles classification', () => {
-  assert.equal(isReadonlyRole('platform_admin'), true);
+  assert.equal(isReadonlyRole('platform_admin'), false);
   assert.equal(isReadonlyRole('company_admin'), false);
   assert.equal(isReadonlyRole('member'), false);
   assert.equal(isReadonlyRole('project_lead'), false);
@@ -163,7 +163,7 @@ test('readonly and project creator roles classification', () => {
   assert.equal(canCreateProject('company_admin'), true);
   assert.equal(canCreateProject('bid_writer'), true);
   assert.equal(canCreateProject('member'), true);
-  assert.equal(canCreateProject('platform_admin'), false);
+  assert.equal(canCreateProject('platform_admin'), true);
 });
 
 /* ========================================================================= */
@@ -173,10 +173,10 @@ test('readonly and project creator roles classification', () => {
 test('table-driven: 8-role global route permission and blocking matrix', () => {
   const testMatrix = [
     // 角色 | 目标路由 | 预期是否允许 | 预期错误码 | 建议动作
-    { role: 'platform_admin', path: '/workbench', allowed: false, code: 'ROLE_FORBIDDEN', action: 'switch_role' },
-    { role: 'platform_admin', path: '/library', allowed: false, code: 'ROLE_FORBIDDEN', action: 'switch_role' },
-    { role: 'platform_admin', path: '/knowledge', allowed: false, code: 'ROLE_FORBIDDEN', action: 'switch_role' },
-    { role: 'platform_admin', path: '/writing', allowed: false, code: 'ROLE_FORBIDDEN', action: 'switch_role' },
+    { role: 'platform_admin', path: '/workbench', allowed: true },
+    { role: 'platform_admin', path: '/library', allowed: true },
+    { role: 'platform_admin', path: '/knowledge', allowed: true },
+    { role: 'platform_admin', path: '/writing', allowed: true },
     { role: 'platform_admin', path: '/admin/rules', allowed: true },
     { role: 'platform_admin', path: '/jobs', allowed: true },
 
@@ -232,26 +232,8 @@ test('table-driven: 8-role global route permission and blocking matrix', () => {
 /* 3. 写操作与新建项目前置拦截测试                                          */
 /* ========================================================================= */
 
-test('write operations and project creation blocked for platform admin', () => {
-  const disallowedRoles = ['platform_admin'];
-
-  for (const role of disallowedRoles) {
-    const session = createMockSession(role);
-    const result = checkRoutePermission({
-      session,
-      targetPath: '/workbench',
-      action: 'projects.create',
-    });
-
-    assert.equal(result.allowed, false, `Role ${role} must not be allowed to create project`);
-    assert.ok(
-      result.code === 'READONLY_FORBIDDEN' || result.code === 'ROLE_FORBIDDEN',
-      `Expected error code for ${role}`
-    );
-    assert.ok(result.reason.includes(SYSTEM_ROLE_LABELS[role]), 'Reason must include role label');
-  }
-
-  for (const role of ['project_lead', 'company_admin', 'manager', 'member', 'bid_writer']) {
+test('write operations and project creation allowed for platform admin', () => {
+  for (const role of ['platform_admin', 'project_lead', 'company_admin', 'manager', 'member', 'bid_writer']) {
     const session = createMockSession(role);
     const result = checkRoutePermission({
       session,
@@ -371,9 +353,10 @@ test('pre-flight blocking guarantees zero backend API calls on forbidden routes'
     return new Response(JSON.stringify({ error: 'should not be called' }), { status: 500 });
   });
 
-  const session = createMockSession('platform_admin');
+  const session = createMockSession('member', {
+    navigation: [],
+  });
 
-  // 平台管理员尝试访问业务工作台
   const guardResult = checkRoutePermission({
     session,
     targetPath: '/workbench',
@@ -411,7 +394,7 @@ test('formatForbiddenReason formats informative reasons with role labels', () =>
     path: '/workbench',
   });
   assert.ok(platformReason.includes('平台管理员'));
-  assert.ok(platformReason.includes('不可访问公司业务数据与投标项目'));
+  assert.ok(platformReason.includes('无权访问此页面'));
 
   const memberReason = formatForbiddenReason({
     role: 'member',
