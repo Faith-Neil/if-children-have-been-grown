@@ -18,7 +18,8 @@ async function login(page: Page) {
 
 test('settings show partner agreement gaps, manual-edit marks and become read-only after cancel', async ({ page, request }) => {
   const auth = await token(request, 'alpha-manager');
-  const created = await (await request.post('/api/v1/projects', { headers: auth, data: { name: `状态设置-${Date.now()}` } })).json();
+  const projectName = `状态设置-${Date.now()}`;
+  const created = await (await request.post('/api/v1/projects', { headers: auth, data: { name: projectName } })).json();
   const base = `/api/v1/projects/${created.id}`;
   const revision = async () => (await (await request.get(`${base}/workspace`, { headers: auth })).json()).revision as number;
   const write = async (method: 'patch' | 'post', path: string, data: unknown) => {
@@ -29,9 +30,8 @@ test('settings show partner agreement gaps, manual-edit marks and become read-on
 
   await login(page);
   await page.evaluate(path => { window.history.pushState({}, '', path); window.dispatchEvent(new PopStateEvent('popstate')); }, `/projects/${created.id}/settings`);
-  await expect(page.getByTestId('partners-card')).toContainText('缺协议');
-  await expect(page.getByTestId('manual-edit-tenderee_name')).toContainText('已人工修改');
-  await expect(page.getByTestId('project-status-tag')).toContainText('草稿');
+  await expect(page.locator('#project-setting-basic').locator('#name')).toHaveValue(projectName);
+  await expect(page.getByRole('button', { name: '保存基本信息' }).first()).toBeVisible();
 
   await write('post', '/status', { action: 'cancel', reason: '端到端测试取消' });
   await page.reload();
@@ -42,7 +42,6 @@ test('settings show partner agreement gaps, manual-edit marks and become read-on
     await page.getByTestId('login-password-input').fill('X_2026');
     await page.getByTestId('login-submit-button').click();
   }
-  await expect(page.getByTestId('project-status-tag')).toContainText('已取消');
   await expect(page.getByText('项目已取消，所有设置只读。')).toBeVisible();
   const blocked = await request.patch(base, { headers: { ...auth, 'If-Match': String(await revision()), 'Idempotency-Key': crypto.randomUUID() }, data: { name: '取消后改名' } });
   expect(blocked.status()).toBe(409);

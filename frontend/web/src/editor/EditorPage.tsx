@@ -44,12 +44,11 @@ import { EditorAssistantPanel } from './EditorAssistantPanel.tsx';
 import { SelectionRewritePanel, type RewriteSelection } from './SelectionRewritePanel.tsx';
 import { pasteNotice, type PastedParagraph } from './paste-notice.ts';
 import { paragraphAtOffset, paragraphsMatch } from './paragraph-keys.ts';
-import type { TextAreaRef } from 'antd/es/input/TextArea';
 import { EditorIssuePanel } from './EditorIssuePanel.tsx';
 import { useChapterIssues } from './useChapterIssues.ts';
 import { canSelectInEditor, lineRangeOffsets, type ChapterIssue } from './chapter-issues-core.ts';
 import { ParagraphLocksBar } from './ParagraphLocksBar.tsx';
-import { VARIABLE_ERROR_CODES, mayHaveVariables, nodesMatch, resolveVariables, type VariableNode } from './variable-nodes.ts';
+import { VARIABLE_ERROR_CODES, mayHaveVariables, nodesMatch, resolveVariables, sourceLabel, type VariableNode } from './variable-nodes.ts';
 import { VariableChip } from './VariableChip.tsx';
 import type { ApplyResult } from './selection-rewrite-core.ts';
 import { EditorDiffDrawer, type ChapterVersionItem } from './EditorDiffDrawer.tsx';
@@ -97,7 +96,6 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const [autosavePaused, setAutosavePaused] = useState(false);
   const [variables, setVariables] = useState<VariableNode[]>([]);
   const [cursorKey, setCursorKey] = useState<string | null>(null);
-  const textareaRef = useRef<TextAreaRef>(null);
   const paperRef = useRef<PaperEditorHandle>(null);
   const autosaving = useRef(false);
 
@@ -269,20 +267,20 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     issues.setActiveId(item.id);
     if (!item.paragraph_key || item.line_start === null || item.line_end === null || !chapter) return;
     issues.setFocusedKey(item.paragraph_key);
-    const box = textareaRef.current?.resizableTextArea?.textArea;
-    if (held && box) {
+    if (held) {
       if (!canSelectInEditor(item, content, chapter.content)) { setNotice('编辑中的文字与已提交正文不同，段落位置可能已变化；提交本节后再定位。'); return; }
       const range = lineRangeOffsets(content, item.line_start, item.line_end);
       if (!range) return;
-      box.focus(); box.setSelectionRange(range.start, range.end); selection.current = range;
-      box.scrollTop = Math.max(0, item.line_start * 29 - 60); box.scrollIntoView({ block: 'nearest' });
+      const phrase = content.slice(range.start, range.end);
+      paperRef.current?.selectText(phrase);
+      selection.current = range;
+      document.querySelector('[data-testid="paper-editor"]')?.scrollIntoView({ block: 'nearest' });
       return;
     }
     const key = item.paragraph_key;
     window.requestAnimationFrame(() => {
-      const target = document.querySelector(`.rich-paragraph-with-cites p[data-paragraph-key="${CSS.escape(key)}"]`);
+      const target = document.querySelector(`[data-testid="unheld-editor-text"] p[data-paragraph-key="${CSS.escape(key)}"]`);
       if (target) target.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      else setNotice('正文显示的是未提交的草稿，段落位置可能已变化；提交本节后再定位。');
     });
   }
   useEffect(() => {
@@ -700,7 +698,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
           {sourceStale && <Alert className="editor-notice" type="warning" showIcon message={editFingerprint ? '当前文字依据的来源已经变化' : '当前草稿没有记录来源依据'} description="文字和原依据仍保留，不能直接视为采用了最新资料。请核对当前条款、事实和证据，再决定是否使用这些文字。" action={<Button size="small" disabled={combinedBusy} onClick={() => ops.reviewCurrentSources('editor')}>核对最新来源</Button>} />}
           {notice && <Alert className="editor-notice" showIcon type={notice.includes('变化') || notice.includes('失败') || notice.includes('失效') ? 'warning' : 'info'} message={notice} closable onClose={() => setNotice('')} />}
 
-          {chapter ? <article className="editor-chapter-shell" ref={editorWrapperRef} style={{ position: 'relative' }}>
+          {chapter ? <article className="editor-chapter-shell" ref={editorWrapperRef} style={{ position: 'relative' }} onMouseUp={handleContainerMouseUp}>
             <SelectionBubble visible={selectionBubble.visible} position={selectionBubble.position} selectedText={selectionBubble.text} onPolish={handleBubblePolish} onComplianceQa={handleBubbleComplianceQa} onClear={handleBubbleClear} />
             {systemKind && activeChapter && <SystemChapterPanel chapterId={activeChapter.id} canGenerate={chapterCan(activeChapter, 'edit') && dataPermission.canEdit} />}
             {isReadOnlyView && !systemKind && <ReadonlyBanner banner reason={dataPermission.readOnlyReason || '当前章节处于只读浏览状态'} scope={dataPermission.scopeName || activeChapter?.title || volumeName(chapter.volume)} roleName={dataPermission.roleLabel} style={{ marginBottom: 16 }} />}
@@ -729,6 +727,38 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
               />
             )}
 
+            {!held && (
+              <div data-testid="unheld-editor-text">
+                {[...issues.markers.entries()].map(([key, marker]) => (
+                  <p key={key} data-paragraph-key={key} className={issues.focusedKey === key ? 'paragraph-focused' : ''}>
+                    <button type="button" data-testid="paragraph-issue-marker" onClick={() => showParagraphIssues(key)}>{marker.count}</button>
+                  </p>
+                ))}
+                {shownVariables.map(node => <VariableChip key={`${node.kind}-${node.ref}-${node.start}`} node={node} onGoToSource={goToSource} />)}
+              </div>
+            )}
+            {held && chapter && canEdit && (
+              <ParagraphLocksBar
+                projectId={workspace.project.id}
+                chapter={chapter}
+                content={content}
+                token={token}
+                canEdit={canEdit}
+                busy={combinedBusy}
+                cursor={() => paperRef.current?.caretOffset() ?? null}
+                onChanged={async () => { setChapter(await request<Chapter>(`/api/chapters/${chapterId}`, token)); }}
+                report={report}
+              />
+            )}
+            {held && shownVariables.length > 0 && (
+              <div data-testid="editor-variable-bar">
+                {shownVariables.map(node => <VariableChip key={`${node.kind}-${node.ref}-${node.start}`} node={node} onGoToSource={goToSource} />)}
+              </div>
+            )}
+            {invalidVariables.length > 0 && (
+              <Alert data-testid="invalid-variables-notice" type="warning" showIcon message={`${invalidVariables.length} 个变量已失效`}
+                action={<Button size="small" onClick={() => goToSource(invalidVariables[0].source)}>{sourceLabel(invalidVariables[0].source)}</Button>} />
+            )}
             <div className={held ? 'chapter-editor-editable-wrapper' : 'chapter-editor-unheld-view'} data-testid={held ? 'paper-editor-held' : 'unheld-editor-view'}>
               {!held && canEdit && (
                 <p className="muted" data-testid="soft-lock-hint" style={{ marginBottom: 8 }}>
@@ -742,6 +772,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
                 generating={!!(projectBusy || busy)}
                 onChange={value => { lock.markActivity(); setContent(value); }}
                 onActivity={() => lock.markActivity()}
+                onSelection={range => { selection.current = range ? { start: range.start, end: range.end } : null; }}
               />
             </div>
 

@@ -36,17 +36,9 @@ test('tender page shows role, version and parse service columns', async ({ page,
   await expect(page.getByTestId('retry-service-button').first()).toBeVisible();
 });
 
-test('parse page conflict drawer requires a reason before deciding', async ({ page, request }) => {
+test('technical coverage does not open the old merge drawer', async ({ page, request }) => {
   const id = await seed(request);
-  await login(page, `/projects/${id}/parse`);
-  await expect(page.getByTestId('merge-button')).toBeVisible();
-  await page.getByRole('button', { name: /冲突待选定/ }).first().click();
-  // 按确定的冲突类型取卡：同一文件内“服务期限”12个月与24个月是待处理的字段取值冲突，不依赖列表顺序。
-  const first = page.getByTestId('conflict-card').filter({ hasText: '服务期限' }).and(page.locator('[data-status="pending"]'));
-  await expect(first).toHaveCount(1);
-  await expect(first).toContainText('字段取值不同');
-  await expect(first.getByTestId('conflict-values')).toBeVisible();
-  await expect(first.getByTestId('conflict-not-conflict')).toBeVisible();
-  await first.getByTestId('conflict-not-conflict').click();
-  await expect(first.getByRole('alert')).toContainText('理由');
+  await login(page, `/projects/${id}/analyze`);
+  await expect(page.getByTestId('coverage-view')).toBeVisible();
+  await expect(page.getByTestId('merge-button')).toHaveCount(0);
 });

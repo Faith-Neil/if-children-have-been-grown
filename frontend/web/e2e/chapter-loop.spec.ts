@@ -28,35 +28,18 @@ async function login(page: Page, username: string, path: string) {
   await expect(page.getByRole('button', { name: '退出' })).toBeVisible();
 }
 
-test('project lead rechecks a chapter and reads its round timeline', async ({ page, request }) => {
+test('technical project does not put chapter-loop progress in the project tabs', async ({ page, request }) => {
   await freeChapterLock(request, 'alpha-tech');
-  await login(page, 'alpha-manager', '/projects/alpha-project/manual');
-  await page.getByRole('tab', { name: '章节循环进度' }).click();
-  const table = page.getByTestId('chapter-loop-table');
-  await expect(table.locator('tbody tr').first()).toBeVisible();
-
-  const row = table.locator('tbody tr').filter({ has: page.getByRole('button', { name: '重新检查', disabled: false }) }).first();
-  await expect(row).toBeVisible();
-  const responded = page.waitForResponse(r => r.url().includes('/loop/recheck'));
-  await row.getByRole('button', { name: '重新检查' }).click();
-  expect((await responded).status()).toBe(200);
-  await expect(row.getByRole('button', { name: '轮次时间线' })).toBeEnabled();
-  await expect(row).toContainText('第 1 次');
-
-  await row.getByRole('button', { name: '轮次时间线' }).click();
-  const timeline = page.getByTestId('chapter-loop-timeline');
-  await expect(timeline.getByTestId('chapter-loop-entry')).toHaveCount(1);
-  await expect(timeline).toContainText('重新检查');
-  await expect(timeline).toContainText('未调用模型');
-  await expect(timeline).toContainText('实际输入');
-  await expect(timeline.getByTestId('chapter-loop-round').first()).toContainText('第 1 轮');
-  await expect(timeline.locator('.ant-alert')).toHaveCount(1); // 前章摘要接力提示（可用/缺失/第一章三者之一）
+  await login(page, 'alpha-manager', '/projects/alpha-project/editor');
+  await expect(page.getByRole('tab', { name: '章节循环进度' })).toHaveCount(0);
+  await expect(page.getByTestId('paper-editor')).toBeVisible();
+  await page.getByRole('tab', { name: '覆盖视图' }).click();
+  await expect(page.getByTestId('coverage-view')).toBeVisible();
 });
 
-test('read-only account sees loop progress but cannot recheck', async ({ page }) => {
-  await login(page, 'alpha-viewer', '/projects/alpha-project/manual');
-  await page.getByRole('tab', { name: '章节循环进度' }).click();
-  const table = page.getByTestId('chapter-loop-table');
-  await expect(table.locator('tbody tr').first()).toBeVisible();
-  await expect(table.getByRole('button', { name: '重新检查', disabled: false })).toHaveCount(0);
+test('read-only account can open the technical project without a recheck button', async ({ page }) => {
+  await login(page, 'alpha-viewer', '/projects/alpha-project/editor');
+  await expect(page.getByRole('tab', { name: '章节循环进度' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '重新检查' })).toHaveCount(0);
+  await expect(page.getByTestId('paper-editor')).toBeVisible();
 });

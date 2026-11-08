@@ -22,6 +22,6 @@ test('project lead creates a technical-only project without a business volume', 
   await expect(page.getByTestId('project-header')).not.toContainText('商务分册');
   const projectPath = page.url().replace(/\/tender$/, '');
   await page.evaluate(path => { window.history.pushState({}, '', path); window.dispatchEvent(new PopStateEvent('popstate')); }, `${new URL(projectPath).pathname}/export`);
-  await expect(page.getByTestId('merge-checklist-card')).toContainText('本项目只写技术标，不需要合标');
+  await expect(page.getByTestId('merge-checklist-card')).toHaveCount(0);
   await expect(page.getByText('技术、商务两册合订')).toHaveCount(0);
 });

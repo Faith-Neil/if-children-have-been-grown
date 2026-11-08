@@ -1,6 +1,7 @@
 // 为什么有这个文件：在真实浏览器验证APP-M2-T001的布局断点、地址路由和未保存离开保护。
 // 它解决什么问题：纯函数测试不能证明浏览器返回、刷新和弹窗确实保留地址与文字；只用合成账号和内存数据。
 import { expect, test, type Page } from '@playwright/test';
+import { paper } from './paper.ts';
 import { mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -34,6 +35,11 @@ async function dirtyEditor(page: Page) {
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
   const lease = page.getByRole('button', { name: '取得编辑权' }).first();
   const held = page.getByRole('button', { name: '释放编辑权' });
+  const conflict = page.getByRole('dialog', { name: /版本冲突/ });
+  if (await conflict.isVisible().catch(() => false)) {
+    await page.getByRole('button', { name: /放弃本地/ }).click();
+    await expect(conflict).toHaveCount(0);
+  }
   await expect(lease.or(held)).toBeVisible();
   const takeover = page.getByRole('button', { name: '填写理由接管' });
   if (await takeover.isVisible()) {
@@ -43,11 +49,11 @@ async function dirtyEditor(page: Page) {
     await page.getByRole('button', { name: '填写理由并接管' }).click();
   } else if (await lease.isVisible()) await lease.click();
   await expect(page.getByRole('button', { name: '释放编辑权' })).toBeVisible();
-  const box = page.locator('textarea.chapter-editor');
+  const box = paper(page);
   await box.click();
-  await page.keyboard.press('End');
+  await page.keyboard.press('Control+End');
   await page.keyboard.type(marker);
-  await expect(box).toHaveValue(new RegExp(marker));
+  await expect(box).toContainText(marker);
   return box;
 }
 
@@ -83,7 +89,7 @@ test('in-app navigation: cancel keeps URL/page/text, confirm leaves', async ({ p
   await expect(dialog(page)).toBeVisible();
   await cancelLeave(page);
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
-  await expect(box).toHaveValue(new RegExp(marker));
+  await expect(box).toContainText(marker);
   await tab(page, '概览');
   await page.getByRole('button', { name: '离开页面' }).click();
   await expect(page).toHaveURL(/\/projects\/alpha-project\/overview$/);
@@ -105,7 +111,7 @@ test('browser back: cancel keeps state, confirm leaves to previous page', async 
   await expect(dialog(page)).toBeVisible();
   await cancelLeave(page);
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
-  await expect(box).toHaveValue(new RegExp(marker));
+  await expect(box).toContainText(marker);
   await page.goBack();
   await expect(dialog(page)).toBeVisible();
   await page.getByRole('button', { name: '离开页面' }).click();
@@ -118,7 +124,7 @@ test('browser forward: cancel keeps URL/page/text', async ({ page }) => {
   await expect(dialog(page)).toBeVisible();
   await cancelLeave(page);
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
-  await expect(box).toHaveValue(new RegExp(marker));
+  await expect(box).toContainText(marker);
 });
 
 test('browser forward: confirm leaves to next page', async ({ page }) => {
@@ -155,7 +161,7 @@ test('reload: dismiss keeps text; autosave keeps it as a personal draft after re
   await page.reload({ timeout: 5_000 }).catch(() => undefined);
   expect(seen).toBe(1);
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
-  await expect(box).toHaveValue(new RegExp(marker));
+  await expect(box).toContainText(marker);
   // 停止输入后自动保存为本人草稿（PRD §5.11.9，APP-M2-T172）：之后刷新不再丢字
   await expect(page.getByTestId('editor-saved-at')).toContainText('自动');
   page.once('dialog', d => { void d.accept(); });
@@ -199,8 +205,8 @@ test('back/forward routing across global and project pages', async ({ page }) =>
   await page.getByTestId('enter-project-btn-alpha-project').click();
   await expect(page).toHaveURL(/\/projects\/alpha-project\/[a-z]+$/);
   const projectUrl = page.url();
-  await tab(page, '响应矩阵');
-  await expect(page).toHaveURL(/\/matrix$/);
+  await tab(page, '覆盖视图');
+  await expect(page).toHaveURL(/\/analyze$/);
   await page.goBack();
   await expect(page).toHaveURL(projectUrl);
   await page.goBack();
@@ -210,8 +216,8 @@ test('back/forward routing across global and project pages', async ({ page }) =>
   await page.goForward();
   await page.goForward();
   await page.goForward();
-  await expect(page).toHaveURL(/\/matrix$/);
-  await expect(page.getByRole('tab', { name: '响应矩阵', selected: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/analyze$/);
+  await expect(page.getByRole('tab', { name: '覆盖视图', selected: true })).toBeVisible();
 });
 
 test('light content keeps readable card backgrounds', async ({ page }) => {
@@ -304,8 +310,7 @@ test('overview steps, pending mark and editor meta meet 4.5:1', async ({ page })
   const circle = page.locator('.todo-circle').first();
   await expect(circle).toBeVisible();
   expect(await circle.evaluate(read)).toBeGreaterThanOrEqual(4.5);
-  // 项目标题条已去掉分册进度橙标；待确认数字仍用 .orange，作为对比度抽样点。
-  const pendingMark = page.locator('.project-meta b.orange, .project-meta .orange, b.orange').first();
+  const pendingMark = page.locator('.ant-steps-item-title').first();
   await expect(pendingMark).toBeVisible();
   expect(await pendingMark.evaluate(read)).toBeGreaterThanOrEqual(4.5);
   const steps = page.locator('.ant-steps-icon');

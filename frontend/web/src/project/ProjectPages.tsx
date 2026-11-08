@@ -596,12 +596,12 @@ export function ExportPage() {
         <Card
           size="small"
           title="导出记录"
-          extra={!technical ? (
+          extra={(
             <Button size="small" type="link" icon={<DownloadOutlined />} data-testid="response-trace-btn"
               onClick={() => download(responseTracePath(workspace.project.id, volume), token, `response-trace-${volume}.xlsx`).catch(report)}>
               响应追溯表
             </Button>
-          ) : null}
+          )}
         >
           <div data-testid="export-history-table">
             {workspace.exports.length === 0 && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="还没有导出记录" />}

@@ -24,6 +24,8 @@ export interface PaperEditorHandle {
   ordered: () => void;
   table: () => void;
   insertParagraph: (text: string) => void;
+  caretOffset: () => number | null;
+  selectText: (phrase: string) => boolean;
 }
 
 interface Props {
@@ -32,15 +34,23 @@ interface Props {
   generating: boolean;
   onChange: (markdown: string) => void;
   onActivity?: () => void;
+  onSelection?: (range: { start: number; end: number; text: string } | null) => void;
 }
 
-export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEditor({ markdown, editable, generating, onChange, onActivity }, ref) {
+function markdownOffset(doc: { cut: (from: number, to: number) => { toJSON: () => PaperNode } }, pos: number) {
+  if (pos <= 0) return 0;
+  return docToMarkdown(doc.cut(0, pos).toJSON()).length;
+}
+
+export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEditor({ markdown, editable, generating, onChange, onActivity, onSelection }, ref) {
   const incoming = useRef(markdown);
   incoming.current = markdown;
   const changeRef = useRef(onChange);
   const activityRef = useRef(onActivity);
+  const selectionRef = useRef(onSelection);
   changeRef.current = onChange;
   activityRef.current = onActivity;
+  selectionRef.current = onSelection;
   const sheetRef = useRef<HTMLDivElement>(null);
   const [pageCount, setPageCount] = useState(1);
   const syncPageLayout = useCallback(() => {
@@ -87,12 +97,36 @@ export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEd
   }, [editor, markdown]);
 
   useEffect(() => {
+    const node = sheetRef.current;
+    if (!node || !editor) return;
+    const apply = (event: Event) => {
+      const text = (event as CustomEvent<string>).detail;
+      if (typeof text !== 'string') return;
+      editor.commands.setContent(markdownToDoc(text), true);
+    };
+    node.addEventListener('icg-set-markdown', apply);
+    return () => node.removeEventListener('icg-set-markdown', apply);
+  }, [editor]);
+
+  useEffect(() => {
     if (!editor) return;
     const run = () => requestAnimationFrame(syncPageLayout);
     run();
+    const reportSelection = () => {
+      const { from, to } = editor.state.selection;
+      if (from === to) {
+        selectionRef.current?.(null);
+        return;
+      }
+      const text = editor.state.doc.textBetween(from, to, '\n');
+      selectionRef.current?.(text
+        ? { start: markdownOffset(editor.state.doc, from), end: markdownOffset(editor.state.doc, to), text }
+        : null);
+    };
     editor.on('create', run);
     editor.on('update', run);
     editor.on('transaction', run);
+    editor.on('selectionUpdate', reportSelection);
     const surface = sheetRef.current?.querySelector('.paper-surface') as HTMLElement | null;
     const ro = surface ? new ResizeObserver(run) : null;
     if (surface && ro) ro.observe(surface);
@@ -100,6 +134,7 @@ export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEd
       editor.off('create', run);
       editor.off('update', run);
       editor.off('transaction', run);
+      editor.off('selectionUpdate', reportSelection);
       ro?.disconnect();
     };
   }, [editor, syncPageLayout]);
@@ -115,6 +150,20 @@ export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEd
     ordered: () => { editor?.chain().focus().toggleOrderedList().run(); },
     table: () => { editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(); },
     insertParagraph: text => { editor?.chain().focus().insertContent({ type: 'paragraph', content: [{ type: 'text', text }] }).run(); },
+    caretOffset: () => (editor ? markdownOffset(editor.state.doc, editor.state.selection.from) : null),
+    selectText: phrase => {
+      if (!editor || !phrase) return false;
+      let found: { from: number; to: number } | null = null;
+      editor.state.doc.descendants((node, pos) => {
+        if (found || !node.isText || !node.text) return;
+        const index = node.text.indexOf(phrase);
+        if (index < 0) return;
+        found = { from: pos + index, to: pos + index + phrase.length };
+      });
+      if (!found) return false;
+      editor.chain().focus().setTextSelection(found).run();
+      return true;
+    },
   }), [editor]);
 
   return (

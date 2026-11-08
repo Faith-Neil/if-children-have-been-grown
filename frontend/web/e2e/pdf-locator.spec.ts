@@ -41,11 +41,10 @@ test('clicking a clause source jumps to its page in the original PDF and highlig
     const url = new URL(item.url());
     if (!['127.0.0.1', 'localhost'].includes(url.hostname) && url.protocol.startsWith('http')) external.push(item.url());
   });
-  await login(page, `/projects/${projectId}/parse`);
-  await expect(page.locator('.original-paper').first()).toBeVisible();
-  const card = page.locator('.requirement-card', { hasText: '视为无效投标' });
-  await card.locator('.source-link').click();
-  await expect(page.locator('#doc-page-2.original-paper.is-current')).toBeVisible();
-  await expect(page.locator('.original-paper.is-current mark')).toContainText('视为无效投标');
+  await login(page, `/projects/${projectId}/tender`);
+  await page.getByText('查看原文').click();
+  await expect(page.locator('#doc-page-1')).toContainText('招标公告');
+  await expect(page.locator('#doc-page-2')).toContainText('视为无效投标');
+  await expect(page.locator('.original-foot')).toContainText('共 2 页');
   expect(external).toEqual([]);
 });

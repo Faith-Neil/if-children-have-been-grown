@@ -5,6 +5,7 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { expect, test, type APIRequestContext } from '@playwright/test';
+import { paper } from './paper.ts';
 
 const BODY = '技术方案：每月安排巡检，报告由负责人复核。';
 const PICK = '每月安排巡检';
@@ -64,8 +65,8 @@ test('select a sentence, get three rewrites, replace the selection after confirm
   await page.getByTestId('login-password-input').fill('X_2026');
   await page.getByTestId('login-submit-button').click();
   await page.getByTestId('unheld-acquire-btn').click();
-  const box = page.locator('textarea.chapter-editor');
-  await expect(box).toHaveValue(BODY);
+  const box = paper(page);
+  await expect(box).toContainText(BODY);
   // 像用户一样用键盘选中“每月安排巡检”
   await box.click();
   await page.keyboard.press('ControlOrMeta+Home');
@@ -84,7 +85,7 @@ test('select a sentence, get three rewrites, replace the selection after confirm
   await expect(page.getByTestId('rewrite-diff').locator('ins')).not.toHaveCount(0);
   await expect(page.getByTestId('rewrite-diff').locator('del')).not.toHaveCount(0);
   await page.getByTestId('rewrite-confirm-btn').click();
-  await expect(box).toHaveValue('技术方案：每月开展一次例行巡检，报告由负责人复核。');
+  await expect(box).toContainText('技术方案：每月开展一次例行巡检，报告由负责人复核。');
   await expect(page.getByTestId('rewrite-recheck')).toContainText('对话助手替换');
   // 本次提问与写入已记入本人会话
   await page.getByTestId('assistant-session-history').getByText('会话记录').click();
