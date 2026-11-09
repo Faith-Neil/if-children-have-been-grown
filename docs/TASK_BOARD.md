@@ -691,6 +691,10 @@
 | [TV-M0-T06](tasks/TV-M0.md#tv-m0-t06) | 矩阵响应来自历史做法 | in-review | [TV-M0-T04](tasks/TV-M0.md#tv-m0-t04)、[TV-M0-T02](tasks/TV-M0.md#tv-m0-t02) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T06.md) |
 | [TV-M0-T07](tasks/TV-M0.md#tv-m0-t07) | 按节生成正文并导出技术偏离表 | in-review | [TV-M0-T05](tasks/TV-M0.md#tv-m0-t05)、[TV-M0-T06](tasks/TV-M0.md#tv-m0-t06) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T07.md) |
 | [FLOW-3ROLE](tasks/FLOW.md#flow-3role) | 三个登录角色和四段主路径 | in-review | — | [ISSUE-048](../issues/ISSUE-048.md) | [交付](delivery/FLOW-3ROLE.md) |
+| [ADMIN-PROVISION-T01](tasks/ADMIN-PROVISION.md#admin-provision-t01) | 后端开通公司与可选强制改密 | in-review | — | [ISSUE-052](../issues/ISSUE-052.md) | [交付](delivery/ADMIN-PROVISION-T01.md) |
+| [ADMIN-PROVISION-T02](tasks/ADMIN-PROVISION.md#admin-provision-t02) | 顶栏去公司名与新建公司弹窗 | in-review | [ADMIN-PROVISION-T01](tasks/ADMIN-PROVISION.md#admin-provision-t01) | [ISSUE-052](../issues/ISSUE-052.md) | [交付](delivery/ADMIN-PROVISION-T02.md) |
+| [ADMIN-PROVISION-T03](tasks/ADMIN-PROVISION.md#admin-provision-t03) | 公司详情路由与加人 | in-review | T01、T02 | [ISSUE-052](../issues/ISSUE-052.md) | [交付](delivery/ADMIN-PROVISION-T03.md) |
+| [ADMIN-PROVISION-T04](tasks/ADMIN-PROVISION.md#admin-provision-t04) | 项目与双库隔离回归 | in-review | T01 | [ISSUE-052](../issues/ISSUE-052.md) | [交付](delivery/ADMIN-PROVISION-T04.md) |
 <!-- task-board:end -->
 
 ## 每次推进的同步顺序

@@ -10,6 +10,18 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
+| D-1007 | 2026-11-09 | [公司开通与账号归属设计](superpowers/specs/2026-11-09-company-provisioning-design.md) | 设计 | company-provision-1 | 已确认 | ISSUE-052 | 方案 1：公司页→详情管人；项目与双库按公司隔离 |
+| D-1008 | 2026-11-09 | [ISSUE-052：公司开通与账号归属](../issues/ISSUE-052.md) | Issue | company-provision-1 | in-progress | ISSUE-052 | 平台管理员开通公司+首个管理员；点进公司管人 |
+| D-1009 | 2026-11-09 | [公司开通与账号归属实现计划](superpowers/plans/2026-11-09-company-provisioning.md) | 计划 | company-provision-1 | 已执行 | ISSUE-052 | 七项实现任务已落地；卡 in-review |
+| D-1010 | 2026-11-09 | [ADMIN-PROVISION 任务卡](tasks/ADMIN-PROVISION.md) | 任务 | company-provision-1 | in-review | ISSUE-052 | T01～T04 |
+| D-1011 | 2026-11-09 | [ADMIN-PROVISION-T01 交付](delivery/ADMIN-PROVISION-T01.md) | 任务交付 | company-provision-1 | in-review | ISSUE-052 / T01 | POST /companies |
+| D-1012 | 2026-11-09 | [ADMIN-PROVISION-T01 代码说明](code/ADMIN-PROVISION-T01.md) | 代码说明 | company-provision-1 | 当前 | ISSUE-052 / T01 | create_company |
+| D-1013 | 2026-11-09 | [ADMIN-PROVISION-T02 交付](delivery/ADMIN-PROVISION-T02.md) | 任务交付 | company-provision-1 | in-review | ISSUE-052 / T02 | 顶栏与新建弹窗 |
+| D-1014 | 2026-11-09 | [ADMIN-PROVISION-T02 代码说明](code/ADMIN-PROVISION-T02.md) | 代码说明 | company-provision-1 | 当前 | ISSUE-052 / T02 | company-provision-core |
+| D-1015 | 2026-11-09 | [ADMIN-PROVISION-T03 交付](delivery/ADMIN-PROVISION-T03.md) | 任务交付 | company-provision-1 | in-review | ISSUE-052 / T03 | 公司详情 |
+| D-1016 | 2026-11-09 | [ADMIN-PROVISION-T03 代码说明](code/ADMIN-PROVISION-T03.md) | 代码说明 | company-provision-1 | 当前 | ISSUE-052 / T03 | CompanyDetailPage |
+| D-1017 | 2026-11-09 | [ADMIN-PROVISION-T04 交付](delivery/ADMIN-PROVISION-T04.md) | 任务交付 | company-provision-1 | in-review | ISSUE-052 / T04 | 隔离回归 |
+| D-1018 | 2026-11-09 | [ADMIN-PROVISION-T04 代码说明](code/ADMIN-PROVISION-T04.md) | 代码说明 | company-provision-1 | 当前 | ISSUE-052 / T04 | 测试锁行为 |
 | D-1003 | 2026-11-06 | [去掉分册模式 UI](delivery/2026-11-06-remove-volume-mode-ui.md) | 改码说明 | ui-1 | 待 PM 复验 | ISSUE-047 | 新建/设置/导出去 volume_mode 选择；技术方案文案；未合 PR |
 | D-1004 | 2026-11-08 | [仅技术标产品范围](decisions/2026-11-08-tech-bid-only-product.md) | 决策 | scope-1 | 已确认 | ISSUE-047 | 产品只做技术方案；编辑台统一纸面；商务分册入口不再恢复 |
 | D-1005 | 2026-11-06 | [去分册后真服务生成验收](delivery/2026-11-06-generate-e2e-after-volume-remove.md) | 验证 | snapshot | 当前 | ISSUE-047 | 本地 Qwen 生成任务完成的分层记录；health.model 仍为 mock |
