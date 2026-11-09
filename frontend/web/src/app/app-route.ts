@@ -8,8 +8,13 @@ export type AppRoute =
   | { kind: 'home'; path: '/' }
   | { kind: 'login'; path: '/login' }
   | { kind: 'global'; routeId: string; path: string }
+  | { kind: 'company_detail'; companyId: string; path: string }
   | { kind: 'project'; projectId: string; tab: string; path: string; chapterId?: string }
   | { kind: 'unknown'; path: string };
+
+export function companyDetailPath(companyId: string): string {
+  return `/admin/companies/${encodeURIComponent(companyId)}`;
+}
 
 const globalRouteByPath = new Map(Object.entries(applicationPaths).map(([routeId, path]) => [path, routeId]));
 // 兼容现代 RESTful 路由与规范别名
@@ -47,6 +52,14 @@ export function parseAppPath(input: string): AppRoute {
   const routeId = globalRouteByPath.get(path);
   if (routeId) return { kind: 'global', routeId, path };
 
+  const companyDetailMatch = /^\/admin\/companies\/([^/]+)$/.exec(path);
+  if (companyDetailMatch) {
+    const companyId = companyDetailMatch[1];
+    if (companyId && companyId !== '.' && companyId !== '..') {
+      return { kind: 'company_detail', companyId, path: companyDetailPath(companyId) };
+    }
+  }
+
   // 1. 匹配深度章节编辑器：/projects/:projectId/editor/:chapterId
   const editorMatch = /^\/projects\/([^/]+)\/editor\/([^/]+)$/.exec(path);
   if (editorMatch) {
@@ -82,6 +95,7 @@ export function parseAppPath(input: string): AppRoute {
 
 export function menuPathFor(route: AppRoute): string {
   if (route.kind === 'global') return route.path;
+  if (route.kind === 'company_detail') return applicationPaths['admin.rules'];
   return applicationPaths.workbench;
 }
 

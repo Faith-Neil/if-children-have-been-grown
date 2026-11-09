@@ -38,6 +38,7 @@ export default function App() {
   const { items: library, revision: libraryRevision } = activeLibrary; const { items: slaTemplates, revision: slaTemplatesRevision } = activeTemplates;
   const [jobs, setJobs] = useState<Job[]>([]); const [busy, setBusy] = useState(false); const [loading, setLoading] = useState(false);
   const [nav, setNav] = useState('workbench'); const [tab, setTab] = useState('overview');
+  const [companyDetailId, setCompanyDetailId] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<boolean>(() => resolveInitialSidebarCollapsed({ isInProject: (typeof window !== 'undefined' ? window.location.pathname : '/').startsWith('/projects/'), storedValue: readStoredSidebarCollapsed(), defaultGlobalCollapsed: true }));
   function handleCollapseChange(nextCollapsed: boolean) { setCollapsed(nextCollapsed); writeStoredSidebarCollapsed(nextCollapsed); }
   const [missing, setMissing] = useState<string | null>(null); const [search, setSearch] = useState('');
@@ -200,9 +201,10 @@ export default function App() {
         setLoading(false); arrived(false, pathname); return;
       }
     }
-    if (route.kind === 'project') { if (projectId.current === route.projectId && workspace) loadTab(route.tab, mode); else void openProject(route.projectId, route.tab, mode); return; }
-    if (route.kind === 'global') { loadNav(route.routeId, mode); return; }
-    if (route.kind === 'home') { loadNav(currentAuthorization.current ? sessionHomeRoute(currentAuthorization.current) : 'workbench', mode === 'none' ? 'replace' : mode); return; }
+    if (route.kind === 'project') { setCompanyDetailId(null); if (projectId.current === route.projectId && workspace) loadTab(route.tab, mode); else void openProject(route.projectId, route.tab, mode); return; }
+    if (route.kind === 'company_detail') { loadCompanyDetail(route.companyId, route.path, mode); return; }
+    if (route.kind === 'global') { setCompanyDetailId(null); loadNav(route.routeId, mode); return; }
+    if (route.kind === 'home') { setCompanyDetailId(null); loadNav(currentAuthorization.current ? sessionHomeRoute(currentAuthorization.current) : 'workbench', mode === 'none' ? 'replace' : mode); return; }
     showMissing(route.path, mode);
   }
   const followRef = useRef(followPath);
@@ -316,7 +318,7 @@ export default function App() {
     writeAddress(targetPath, mode); const start = ++epoch.current; setLoading(true); setMissing(null);
     void (async () => {
       const approved = await loadSession(); requireSessionRoute(approved, value); if (start !== epoch.current) return;
-      setNav(value); setWorkspace(null); setAccessLost(false); projectId.current = null; setDenied(null); arrived(false, targetPath);
+      setCompanyDetailId(null); setNav(value); setWorkspace(null); setAccessLost(false); projectId.current = null; setDenied(null); arrived(false, targetPath);
       await refreshGlobal(activeToken.current, approved);
     })().catch(error => {
       if (start === epoch.current && isRequestFailureCurrent(error, activeToken.current)) {
@@ -327,6 +329,27 @@ export default function App() {
           setWorkspace(previous => previous ? freezeWorkspace(previous) : previous); setDenied(formattedReason);
           if (typeof setDeniedDetails === 'function') setDeniedDetails({ role: typeof normalizeSystemRole === 'function' ? normalizeSystemRole(userRole) : undefined, roleLabel: typeof getSystemRoleLabel === 'function' ? getSystemRoleLabel(userRole) : undefined, path: targetPath, reason: formattedReason });
         }
+        report(error);
+      }
+    }).finally(() => { if (start === epoch.current || !activeToken.current) setLoading(false); });
+  }
+  function loadCompanyDetail(companyId: string, targetPath: string, mode: HistoryMode = 'push') {
+    if (typeof checkRoutePermission === 'function' && currentAuthorization.current) {
+      const guard = checkRoutePermission({ session: currentAuthorization.current, targetPath });
+      if (!guard.allowed && guard.code !== 'UNAUTHENTICATED') {
+        writeAddress(targetPath, mode); setDenied(guard.reason || '抱歉，您无权访问此页面。');
+        if (typeof setDeniedDetails === 'function') setDeniedDetails({ role: guard.role, roleLabel: guard.roleLabel, path: targetPath, reason: guard.reason });
+        setLoading(false); arrived(false, targetPath); return;
+      }
+    }
+    writeAddress(targetPath, mode); const start = ++epoch.current; setLoading(true); setMissing(null);
+    void (async () => {
+      const approved = await loadSession(); requireSessionRoute(approved, 'admin.rules'); if (start !== epoch.current) return;
+      setCompanyDetailId(companyId); setNav('admin.rules'); setWorkspace(null); setAccessLost(false); projectId.current = null; setDenied(null); arrived(false, targetPath);
+      await refreshGlobal(activeToken.current, approved);
+    })().catch(error => {
+      if (start === epoch.current && isRequestFailureCurrent(error, activeToken.current)) {
+        armedLeave.current = false;
         report(error);
       }
     }).finally(() => { if (start === epoch.current || !activeToken.current) setLoading(false); });
@@ -368,8 +391,8 @@ export default function App() {
     }).finally(() => { if (start === epoch.current || !activeToken.current) setLoading(false); });
   }
   function navigate(value: string) {
-    const route = value.startsWith('/') ? parseAppPath(value) : null; if (route?.kind === 'global') { requestPath(route.path); return; }
-    if (route?.kind === 'project') { requestPath(value); return; }
+    const route = value.startsWith('/') ? parseAppPath(value) : null;
+    if (route?.kind === 'global' || route?.kind === 'company_detail' || route?.kind === 'project') { requestPath(route.path); return; }
     const id = projectId.current; if (!id) { setDenied('对象已不存在或你没有查看该页面的权限。'); return; } requestPath(projectPath(id, value));
   }
 
@@ -399,7 +422,7 @@ export default function App() {
             <ProjectWorkspaceContent workspace={workspace} tab={tab} loading={loading} accessLost={accessLost} session={applicationSession} currentUser={user} token={token || ''} library={library} slaTemplates={slaTemplates} busy={busy} currentRoute={currentRoute} onNavigateTab={navigate} onDirtyChange={reportDirty} onBackToWorkbench={() => requestPath(globalPath('workbench'))} mutate={mutate} reload={reload} report={report} navigate={navigate} />
           )}
           {!missing && !denied && (!workspace || nav !== 'workbench') && (
-            <GlobalPagesContent nav={nav} loading={loading} projects={projects} session={applicationSession} currentUser={user} busy={busy} search={search} token={token} createButton={<Can perform="project:create"><Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} disabled={busy || !sessionAllowsAction(applicationSession, 'projects.create')}>新建项目</Button></Can>} library={library} libraryRevision={libraryRevision} slaTemplates={slaTemplates} slaTemplatesRevision={slaTemplatesRevision} readLibrary={readLibrary} readSlaTemplates={readSlaTemplates} libraryMutate={libraryMutate} jobs={jobs} onOpenProject={openProject} onDeleteProject={id => deleteProject(id).catch(report)} onOpenCreateProject={() => setCreateOpen(true)} onRequestPath={requestPath} onRetryJob={handleRetryJob} onCancelJob={handleCancelJob} report={report} />
+            <GlobalPagesContent nav={nav} companyDetailId={companyDetailId} loading={loading} projects={projects} session={applicationSession} currentUser={user} busy={busy} search={search} token={token} createButton={<Can perform="project:create"><Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} disabled={busy || !sessionAllowsAction(applicationSession, 'projects.create')}>新建项目</Button></Can>} library={library} libraryRevision={libraryRevision} slaTemplates={slaTemplates} slaTemplatesRevision={slaTemplatesRevision} readLibrary={readLibrary} readSlaTemplates={readSlaTemplates} libraryMutate={libraryMutate} jobs={jobs} onOpenProject={openProject} onDeleteProject={id => deleteProject(id).catch(report)} onOpenCreateProject={() => setCreateOpen(true)} onRequestPath={requestPath} onRetryJob={handleRetryJob} onCancelJob={handleCancelJob} report={report} />
           )}
           <AppModals createOpen={createOpen} onCloseCreate={() => setCreateOpen(false)} onCreateProject={createProject} createBusy={busy} createForm={createForm} session={applicationSession} taskDrawerOpen={taskDrawer} onCloseTaskDrawer={() => setTaskDrawer(false)} jobs={jobs} user={user} onViewAllJobs={() => { setTaskDrawer(false); requestPath(globalPath('jobs')); }} onNavigateJob={task => { setTaskDrawer(false); if (task.projectId) requestPath(projectPath(task.projectId, task.type === 'parse' ? 'parse' : 'editor')); }} onRetryJob={handleRetryJob} onCancelJob={handleCancelJob} modelConfigModalOpen={modelConfigModalOpen} onCloseModelConfig={() => setModelConfigModalOpen(false)} token={token} workspace={workspace} ragflowConfigModalOpen={ragflowConfigModalOpen} onCloseRagflowConfig={() => setRagflowConfigModalOpen(false)} />
         </AppShell>

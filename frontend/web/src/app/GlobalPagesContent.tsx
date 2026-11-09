@@ -12,6 +12,7 @@ import { projectPath } from './app-route';
 import {
   LazyAuditLogPage as AuditLogPage,
   LazyCompanyManagePage as CompanyManagePage,
+  LazyCompanyDetailPage as CompanyDetailPage,
   LazyCompanySettingsPage as CompanySettingsPage,
   LazyDictConfigPage as DictConfigPage,
   LazyJobsPage as JobsPage,
@@ -26,6 +27,7 @@ import type { LibraryReadState, LibraryWriteVersion } from '../library/library-r
 import type { TemplateReadState } from '../library/template-review';
 export interface GlobalPagesContentProps {
   nav: string;
+  companyDetailId?: string | null;
   loading: boolean;
   projects: Project[];
   session: ApplicationSession | null;
@@ -60,6 +62,7 @@ export interface GlobalPagesContentProps {
 
 export function GlobalPagesContent({
   nav,
+  companyDetailId = null,
   loading,
   projects,
   session,
@@ -152,7 +155,17 @@ export function GlobalPagesContent({
             />
           )}
 
-          {nav === 'admin.rules' && (
+          {nav === 'admin.rules' && companyDetailId && (
+            <CompanyDetailPage
+              companyId={companyDetailId}
+              session={session}
+              currentUser={currentUser}
+              token={token}
+              onBack={() => onRequestPath('/admin')}
+            />
+          )}
+
+          {nav === 'admin.rules' && !companyDetailId && (
             <Tabs
               defaultActiveKey="audit"
               items={[

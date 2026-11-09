@@ -39,3 +39,12 @@ test('create company form requires name, admin username, name, password', () => 
 test('companyDetailPath encodes company id', () => {
   assert.equal(companyDetailPath('co-abcd1234'), '/admin/companies/co-abcd1234');
 });
+
+test('parseAppPath recognizes company detail', async () => {
+  const { parseAppPath } = await import('../../src/app/app-route.ts');
+  const route = parseAppPath('/admin/companies/co-abcd1234');
+  assert.equal(route.kind, 'company_detail');
+  if (route.kind === 'company_detail') {
+    assert.equal(route.companyId, 'co-abcd1234');
+  }
+});

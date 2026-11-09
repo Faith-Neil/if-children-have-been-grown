@@ -196,6 +196,33 @@ export function checkRoutePermission(params: RoutePermissionCheckParams): RouteP
     return { allowed: true, role: normRole, roleLabel };
   }
 
+  // 3.5 公司详情挂在管理入口下（ISSUE-052）：需能进 admin.rules；公司管理员仅本公司
+  if (route.kind === 'company_detail') {
+    if (!sessionAllowsRoute(session, 'admin.rules')) {
+      return {
+        allowed: false,
+        code: 'ROLE_FORBIDDEN',
+        role: normRole,
+        roleLabel,
+        reason: formatForbiddenReason({ role: normRole, path: targetPath, action }),
+        contextInfo: { path: targetPath, roleName: roleLabel },
+        suggestedAction: 'switch_role',
+      };
+    }
+    if (normRole === 'company_admin' && route.companyId !== session.user.company_id) {
+      return {
+        allowed: false,
+        code: 'ROUTE_NOT_FOUND',
+        role: normRole,
+        roleLabel,
+        reason: '未找到该公司。',
+        contextInfo: { path: targetPath, roleName: roleLabel },
+        suggestedAction: 'back_workbench',
+      };
+    }
+    return { allowed: true, role: normRole, roleLabel };
+  }
+
   // 4. 全局页面守卫 (/workbench, /library, /jobs, /knowledge, /writing, /admin/rules)
   if (route.kind === 'global') {
     // 4.1 会话导航声明准入校验
