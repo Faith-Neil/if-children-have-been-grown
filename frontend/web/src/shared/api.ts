@@ -80,10 +80,26 @@ function isChapterVersionWrite(path: string, method: string) {
   return /^\/api\/chapters\/[^/]+\/versions$/.test(bare);
 }
 
+/** 幂等键。http://内网IP 不是安全上下文时 crypto.randomUUID 不可用，需回退，否则登录会变成「无法连接服务器」。 */
+export function newIdempotencyKey(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    try {
+      return crypto.randomUUID();
+    } catch {
+      // 非安全上下文会抛错，走下方回退
+    }
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 function chapterVersionPayload(body: unknown) {
   const source = body && typeof body === 'object' && !Array.isArray(body) ? { ...(body as Record<string, unknown>) } : {};
   const supplied = source.idempotency_key;
-  const key = typeof supplied === 'string' && supplied ? supplied : crypto.randomUUID();
+  const key = typeof supplied === 'string' && supplied ? supplied : newIdempotencyKey();
   source.idempotency_key = key;
   return { key, body: source };
 }
@@ -91,7 +107,7 @@ function chapterVersionPayload(body: unknown) {
 export async function request<T>(path: string, token: string | null, method = 'GET', body?: unknown, revision?: number, wait: (ms: number) => Promise<void> = defaultWait): Promise<T> {
   const version = isChapterVersionWrite(path, method) ? chapterVersionPayload(body) : undefined;
   const outbound = version ? version.body : body;
-  const idempotencyKey = version?.key ?? (method !== 'GET' && path.startsWith('/api/v1/') ? crypto.randomUUID() : undefined);
+  const idempotencyKey = version?.key ?? (method !== 'GET' && path.startsWith('/api/v1/') ? newIdempotencyKey() : undefined);
   const allowRetry = method === 'GET' || idempotencyKey !== undefined;
   return runAttempts(async () => {
     const headers: Record<string, string> = {};
@@ -178,7 +194,7 @@ export function rawUploadPath(path: string, params: Record<string, string>): str
 
 // 大文件二进制直传：请求体就是文件本身，不先转 base64（100MB 文件不再在浏览器里拼出 134MB 字符串）。
 export async function uploadRaw<T>(path: string, token: string | null, file: Blob, revision?: number, method: 'POST' | 'PUT' = 'POST'): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/octet-stream', 'Idempotency-Key': crypto.randomUUID() };
+  const headers: Record<string, string> = { 'Content-Type': 'application/octet-stream', 'Idempotency-Key': newIdempotencyKey() };
   if (token) headers.Authorization = `Bearer ${token}`;
   if (revision !== undefined) headers['If-Match'] = String(revision);
   const response = await fetch(path, { method, headers, body: file, cache: 'no-store' });

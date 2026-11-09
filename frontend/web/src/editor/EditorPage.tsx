@@ -15,7 +15,7 @@ import {
   UndoOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons';
-import { ApiError, request } from '../shared/api.ts';
+import { ApiError, newIdempotencyKey, request } from '../shared/api.ts';
 import { useProject, volumeName } from '../app/context.tsx';
 import type { Candidate, Chapter, Volume, Workspace, WritingInputPreview } from '../shared/types.ts';
 import { candidateProblem } from './writing-input.ts';
@@ -456,7 +456,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
       const start = epoch.current;
       try {
         const committed = await request<{ paste_detected?: PastedParagraph[] | null }>(`/api/chapters/${chapterId}/versions`, token, 'POST', {
-          lease_token: active.lease_token, base_revision: chapter.revision, ...editingContentWrite(content, editFingerprint ?? workspace.input_fingerprint), idempotency_key: crypto.randomUUID(),
+          lease_token: active.lease_token, base_revision: chapter.revision, ...editingContentWrite(content, editFingerprint ?? workspace.input_fingerprint), idempotency_key: newIdempotencyKey(),
         });
         const updated = await request<Chapter>(`/api/chapters/${chapterId}`, token);
         const current = await request<Workspace>(`/api/v1/projects/${workspace.project.id}/workspace`, token);
