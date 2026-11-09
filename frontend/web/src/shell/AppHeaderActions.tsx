@@ -11,9 +11,9 @@ import {
 } from '@ant-design/icons';
 import { companyName } from '../app/context';
 import { sessionAllowsRoute } from '../app/session-navigation';
-import { globalPath } from '../app/app-route';
 import { TaskBadge } from './TaskBadge';
 import { NotificationBell } from '../notifications/NotificationBell';
+import { shouldShowCompanyLabel } from '../admin/company-provision-core';
 import type { Account, ApplicationSession, Job } from '../shared/types';
 
 export interface AppHeaderActionsProps {
@@ -80,9 +80,12 @@ export function AppHeaderActions({
   if (sessionAllowsRoute(session, 'notifications') && onNavigate) {
     items.push(<NotificationBell key="notifications" token={token} onNavigate={onNavigate} />);
   }
+  const showCompany = shouldShowCompanyLabel(userPrimaryRole || user.role);
   items.push(
     <span className="topbar-user" key="user">
-      <span className="company-label"><TeamOutlined /> {companyName(user.company_id)}</span>
+      {showCompany ? (
+        <span className="company-label"><TeamOutlined /> {companyName(user.company_id)}</span>
+      ) : null}
       <span className="user-avatar">{user.name[0]}</span>
       <span className="user-name">{user.name}<small> · {roleDisplayLabel}</small></span>
     </span>,
