@@ -89,3 +89,34 @@ def test_create_company_must_change_password_false_allows_work(client: TestClien
         headers={"Authorization": "Bearer " + logged.json()["access_token"]},
     )
     assert projects.status_code == 200, projects.text
+
+
+def test_create_user_respects_must_change_password_false(client: TestClient):
+    admin = login(client, "platform-admin")
+    created_co = client.post("/api/v1/companies", headers=admin, json={
+        "name": "合成改密可选公司",
+        "admin_username": "opt-admin",
+        "admin_name": "管",
+        "admin_password": "Init_Pass_2026",
+        "must_change_password": False,
+    })
+    assert created_co.status_code == 201, created_co.text
+    cid = created_co.json()["company"]["id"]
+    res = client.post("/api/v1/users", headers=admin, json={
+        "username": "opt-member",
+        "name": "员",
+        "company_id": cid,
+        "role": "member",
+        "password": "Init_Pass_2026",
+        "must_change_password": False,
+    })
+    assert res.status_code in (200, 201), res.text
+    assert res.json()["must_change_password"] is False
+    login_res = client.post("/api/v1/auth/login", json={"username": "opt-member", "password": "Init_Pass_2026"})
+    assert login_res.status_code == 200, login_res.text
+    assert login_res.json()["must_change_password"] is False
+    projects = client.get(
+        "/api/v1/projects",
+        headers={"Authorization": "Bearer " + login_res.json()["access_token"]},
+    )
+    assert projects.status_code == 200, projects.text

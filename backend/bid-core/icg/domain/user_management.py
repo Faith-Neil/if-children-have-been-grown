@@ -47,6 +47,7 @@ class CreateUserRequest(BaseModel):
     role: str = Field(description="分配的标准系统角色")
     password: str = Field(description="初始登录密码")
     display_name: str | None = Field(default=None, description="展示昵称")
+    must_change_password: bool = Field(default=True, description="新建后是否须本人改密")
 
 
 class UpdateUserRequest(BaseModel):
@@ -225,8 +226,8 @@ class UserManagementService:
             status="active",
             created_at=now_ts,
             updated_at=now_ts,
-            # 管理员设定的初始密码，本人首次登录须先改密（PRD §5.12.1 验收④）
-            must_change_password=True,
+            # 管理员设定的初始密码；是否强制改密由请求决定，缺省 true（PRD §5.12.1 / ISSUE-052）
+            must_change_password=bool(request.must_change_password),
         )
 
         self.repository.transaction(lambda state: state.accounts.__setitem__(new_acc.id, new_acc))
