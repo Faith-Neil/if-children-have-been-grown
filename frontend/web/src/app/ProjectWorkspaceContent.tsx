@@ -74,6 +74,7 @@ export function ProjectWorkspaceContent({
         onNavigateTab={onNavigateTab}
         session={session}
         currentUser={currentUser}
+        token={token}
         compact={isCompactTab}
       />
 

@@ -2,6 +2,7 @@
 // 它解决什么问题：每个项目页签更新后读取同一后台状态，避免各页假数据。
 import { createContext, useContext } from 'react';
 import type { Account, Evidence, SlaTemplate, Workspace } from '../shared/types';
+import { resolveCompanyDisplayName } from '../admin/company-provision-core';
 
 export type ProjectContextValue = {
   workspace: Workspace; token: string; user: Account; busy: boolean; library: Evidence[]; slaTemplates: SlaTemplate[];
@@ -14,7 +15,10 @@ export const ProjectContext = createContext<ProjectContextValue | null>(null);
 export function useProject() { const value = useContext(ProjectContext); if (!value) throw new Error('项目未加载'); return value; }
 export const volumeName = (value: string) => value === 'technical' ? '技术方案' : value === 'business' ? '商务方案' : '全部方案';
 export const roleName = (value: string) => value === 'manager' ? '公司经理账号' : value === 'viewer' ? '公司只读账号' : '公司编写账号';
-export const companyName = (value: string) => value === 'alpha' ? '华东数智科技有限公司（合成）' : '远山信息技术有限公司（合成）';
+
+/** 展示公司名：优先用后台返回的显示名；仅演示种子账号保留合成别名。 */
+export const companyName = (value: string, displayName?: string | null) =>
+  resolveCompanyDisplayName(value, displayName);
 export const formatTime = (value?: string | null) => value ? new Date(value).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }) : '未设置';
 export const categoryName = (value: string) => ({ mandatory: '必需条款', qualification: '资格要求', technical: '技术服务', commercial: '商务要求', business: '商务要求', sla: 'SLA 要求', star: '星号条款', disqualification: '废标条款', score: '评分要点', other: '其他要求', scoring: '评分要点' }[value] ?? value);
 

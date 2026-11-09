@@ -7,6 +7,15 @@ export function shouldShowCompanyLabel(role?: string | null): boolean {
   return normalizeSystemRole(role) !== 'platform_admin';
 }
 
+/** 展示公司名：优先后台显示名；仅 alpha/beta 保留合成别名。 */
+export function resolveCompanyDisplayName(companyId: string, displayName?: string | null): string {
+  const named = (displayName || '').trim();
+  if (named) return named;
+  if (companyId === 'alpha') return '华东数智科技有限公司（合成）';
+  if (companyId === 'beta') return '远山信息技术有限公司（合成）';
+  return companyId || '未命名公司';
+}
+
 export interface CreateCompanyFormValues {
   name: string;
   admin_username: string;

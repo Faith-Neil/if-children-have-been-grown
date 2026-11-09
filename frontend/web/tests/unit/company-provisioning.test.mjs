@@ -6,12 +6,20 @@ import {
   shouldShowCompanyLabel,
   validateCreateCompanyForm,
   companyDetailPath,
+  resolveCompanyDisplayName,
 } from '../../src/admin/company-provision-core.ts';
 
 test('platform_admin does not show company label', () => {
   assert.equal(shouldShowCompanyLabel('platform_admin'), false);
   assert.equal(shouldShowCompanyLabel('company_admin'), true);
   assert.equal(shouldShowCompanyLabel('member'), true);
+});
+
+test('resolveCompanyDisplayName prefers API display name over demo aliases', () => {
+  assert.equal(resolveCompanyDisplayName('co-abcd1234', '融科智联'), '融科智联');
+  assert.equal(resolveCompanyDisplayName('alpha'), '华东数智科技有限公司（合成）');
+  assert.equal(resolveCompanyDisplayName('beta'), '远山信息技术有限公司（合成）');
+  assert.equal(resolveCompanyDisplayName('co-abcd1234'), 'co-abcd1234');
 });
 
 test('create company form requires name, admin username, name, password', () => {

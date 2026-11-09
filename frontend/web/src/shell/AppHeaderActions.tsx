@@ -29,6 +29,8 @@ export interface AppHeaderActionsProps {
   onOpenRagflowConfig: () => void;
   token?: string | null;
   onNavigate?: (path: string) => void;
+  /** 后台企业设置中的公司显示名；缺省时回退演示别名或 company_id */
+  companyDisplayName?: string | null;
 }
 
 export function AppHeaderActions({
@@ -44,6 +46,7 @@ export function AppHeaderActions({
   onOpenRagflowConfig,
   token = null,
   onNavigate,
+  companyDisplayName = null,
 }: AppHeaderActionsProps) {
   const userPrimaryRole = session?.user?.primary_role;
   const roleDisplayLabel =
@@ -84,7 +87,9 @@ export function AppHeaderActions({
   items.push(
     <span className="topbar-user" key="user">
       {showCompany ? (
-        <span className="company-label"><TeamOutlined /> {companyName(user.company_id)}</span>
+        <span className="company-label" data-testid="header-company-label">
+          <TeamOutlined /> {companyName(user.company_id, companyDisplayName)}
+        </span>
       ) : null}
       <span className="user-avatar">{user.name[0]}</span>
       <span className="user-name">{user.name}<small> · {roleDisplayLabel}</small></span>

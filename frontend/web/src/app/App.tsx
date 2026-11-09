@@ -19,6 +19,8 @@ import { PasswordChangeScreen } from './PasswordChangeScreen';
 import { relatedBidConflict } from '../project/related-bid-core'; import { askRelatedBidReason } from '../project/RelatedBidPrompt';
 import { AppHeaderActions } from '../shell/AppHeaderActions'; import { AppModals } from '../shell/AppModals';
 import { ProjectWorkspaceContent } from './ProjectWorkspaceContent'; import { GlobalPagesContent } from './GlobalPagesContent';
+import { fetchCompanySettings } from '../admin/company-settings-api';
+import { shouldShowCompanyLabel } from '../admin/company-provision-core';
 
 const navigation = [ { id: 'workbench', name: '工作台', icon: <AppstoreOutlined /> }, { id: 'knowledge', name: '知识库', icon: <BookOutlined /> }, { id: 'admin.rules', name: '管理', icon: <SettingOutlined /> } ];
 
@@ -39,6 +41,7 @@ export default function App() {
   const [jobs, setJobs] = useState<Job[]>([]); const [busy, setBusy] = useState(false); const [loading, setLoading] = useState(false);
   const [nav, setNav] = useState('workbench'); const [tab, setTab] = useState('overview');
   const [companyDetailId, setCompanyDetailId] = useState<string | null>(null);
+  const [companyDisplayName, setCompanyDisplayName] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<boolean>(() => resolveInitialSidebarCollapsed({ isInProject: (typeof window !== 'undefined' ? window.location.pathname : '/').startsWith('/projects/'), storedValue: readStoredSidebarCollapsed(), defaultGlobalCollapsed: true }));
   function handleCollapseChange(nextCollapsed: boolean) { setCollapsed(nextCollapsed); writeStoredSidebarCollapsed(nextCollapsed); }
   const [missing, setMissing] = useState<string | null>(null); const [search, setSearch] = useState('');
@@ -57,8 +60,26 @@ export default function App() {
   function clearCompanyData() {
     setLibrarySnapshot({ company_id: '', items: [], revision: 0 }); setTemplatesSnapshot({ company_id: '', items: [], revision: 0 });
     currentLibrary.current = { company_id: '', revision: 0, account_id: '' }; currentTemplates.current = { company_id: '', revision: 0, account_id: '' };
-    setProjects([]); setJobs([]);
+    setProjects([]); setJobs([]); setCompanyDisplayName(null);
   }
+
+  useEffect(() => {
+    const companyId = user?.company_id;
+    const role = applicationSession?.user?.primary_role || user?.role;
+    if (!token || !companyId || !shouldShowCompanyLabel(role)) {
+      setCompanyDisplayName(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchCompanySettings(companyId, token)
+      .then(settings => {
+        if (!cancelled) setCompanyDisplayName(settings.company_name || null);
+      })
+      .catch(() => {
+        if (!cancelled) setCompanyDisplayName(null);
+      });
+    return () => { cancelled = true; };
+  }, [token, user?.company_id, applicationSession?.user?.primary_role, user?.role]);
   function logout() {
     setSessionBoot(false);
     sessionStorage.removeItem('icg.access_token');
@@ -409,7 +430,7 @@ export default function App() {
   return (
     <Suspense fallback={<div className="login-screen"><Spin size="large" /></div>}>
       <CanProvider value={{ session: applicationSession, workspace, role: applicationSession?.user.primary_role || applicationSession?.user.role, userId: applicationSession?.user.id }}>
-        <AppShell collapsed={collapsed} onCollapsed={handleCollapseChange} menuPath={menuPath} menu={menu} onNavigate={requestPath} breadcrumbs={breadcrumbs} actions={AppHeaderActions({ session: applicationSession, user, jobs, search, onSearchChange: setSearch, onSearchSubmit: () => requestPath(globalPath('workbench')), onOpenTaskDrawer: () => setTaskDrawer(true), onLogout: () => requestDiscard(signOut), onOpenModelConfig: () => setModelConfigModalOpen(true), onOpenRagflowConfig: () => setRagflowConfigModalOpen(true), token, onNavigate: requestPath })}>
+        <AppShell collapsed={collapsed} onCollapsed={handleCollapseChange} menuPath={menuPath} menu={menu} onNavigate={requestPath} breadcrumbs={breadcrumbs} actions={AppHeaderActions({ session: applicationSession, user, jobs, search, onSearchChange: setSearch, onSearchSubmit: () => requestPath(globalPath('workbench')), onOpenTaskDrawer: () => setTaskDrawer(true), onLogout: () => requestDiscard(signOut), onOpenModelConfig: () => setModelConfigModalOpen(true), onOpenRagflowConfig: () => setRagflowConfigModalOpen(true), token, onNavigate: requestPath, companyDisplayName })}>
           {missing && <main className="workspace-content"><Result status="404" title="页面不存在" subTitle={`没有与 ${missing} 对应的页面。`} extra={<Button onClick={() => requestPath(globalPath(applicationSession ? sessionHomeRoute(applicationSession) : 'workbench'))}>返回可访问首页</Button>} /></main>}
           {!missing && denied && (
             <main className="workspace-content">

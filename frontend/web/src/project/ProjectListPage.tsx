@@ -38,6 +38,7 @@ import {
 import type { ApplicationSession, Project } from '../shared/types.ts';
 import { companyName, formatTime } from '../app/context.tsx';
 import { MaskedField } from '../admin/MaskedField.tsx';
+import { useCompanyDisplayName } from '../admin/use-company-display-name.ts';
 import { calculateProjectCountdown, formatCurrencyAmount } from './ProjectHeader.tsx';
 import { normalizeSystemRole, READONLY_SYSTEM_ROLES, type SystemRole } from '../shell/route-guard.ts';
 
@@ -70,6 +71,7 @@ export interface ProjectListPageProps {
   session?: ApplicationSession | null;
   currentUser?: { id: string; name: string; company_id: string } | null;
   userRole?: string;
+  token?: string | null;
   onRefresh?: () => void;
   className?: string;
 }
@@ -84,6 +86,7 @@ export function ProjectListPage({
   session = null,
   currentUser = null,
   userRole,
+  token = null,
   className = '',
 }: ProjectListPageProps) {
   // 1. 筛选条件状态
@@ -93,6 +96,8 @@ export function ProjectListPage({
 
   // 2. 元数据抽屉状态
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const drawerCompanyId = selectedProject?.company_id || currentUser?.company_id || null;
+  const companyDisplayName = useCompanyDisplayName(drawerCompanyId, token);
 
   // 3. 权限判断
   const effectiveRole =
@@ -441,7 +446,7 @@ export function ProjectListPage({
                 {selectedProject.tender_number || '未填写'}
               </Descriptions.Item>
               <Descriptions.Item label="投标主体">
-                {companyName(selectedProject.company_id || currentUser?.company_id || 'alpha')}
+                {companyName(selectedProject.company_id || currentUser?.company_id || 'alpha', companyDisplayName)}
               </Descriptions.Item>
               <Descriptions.Item label="涉密属性">
                 {selectedProject.sensitive ? (

@@ -11,6 +11,7 @@ import {
 import type { ApplicationSession, Workspace } from '../shared/types.ts';
 import { companyName, formatTime } from '../app/context.tsx';
 import { MaskedField } from '../admin/MaskedField.tsx';
+import { useCompanyDisplayName } from '../admin/use-company-display-name.ts';
 import { normalizeSystemRole, READONLY_SYSTEM_ROLES, type SystemRole } from '../shell/route-guard.ts';
 import {
   calculateProjectCountdown,
@@ -40,6 +41,7 @@ export interface ProjectHeaderProps {
   session?: ApplicationSession | null;
   currentUser?: { id: string; name: string; company_id: string } | null;
   userRole?: string;
+  token?: string | null;
   compact?: boolean;
   className?: string;
 }
@@ -54,10 +56,13 @@ export function ProjectHeader({
   session = null,
   currentUser = null,
   userRole,
+  token = null,
   compact = false,
   className = '',
 }: ProjectHeaderProps) {
   const { project, requirements = [], facts = [], checks = [], team } = workspace;
+  const companyId = currentUser?.company_id || project.company_id;
+  const companyDisplayName = useCompanyDisplayName(companyId, token);
 
   // 1. 角色解析与权限感知
   const effectiveRole =
@@ -134,9 +139,9 @@ export function ProjectHeader({
         <span>
           招标编号：<b>{project.tender_number || '未填写'}</b>
         </span>
-        {currentUser?.company_id && (
+        {companyId && (
           <span>
-            投标主体：{companyName(currentUser.company_id)}
+            投标主体：{companyName(companyId, companyDisplayName)}
           </span>
         )}
 

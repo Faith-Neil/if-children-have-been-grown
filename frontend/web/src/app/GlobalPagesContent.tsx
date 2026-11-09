@@ -118,6 +118,7 @@ export function GlobalPagesContent({
               onDeleteProject={onDeleteProject}
               session={session}
               currentUser={currentUser}
+              token={token}
             />
           </>
         )}
