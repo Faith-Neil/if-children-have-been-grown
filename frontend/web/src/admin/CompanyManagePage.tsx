@@ -1,15 +1,19 @@
-// 为什么有这个文件：A-01 公司管理（PRD v1.8 §5.10.1；APP-M2-T026，APP-M2-T260 验收③）。
-// 它解决什么问题：原页面用写死的示例公司（信用代码、法人、人数都是编的），停用只改页面状态却提示“已阻断登录”。
-// 现在列表与状态都来自 /api/v1/companies；只有平台管理员能停用或启用，停用须输入完整公司名称，后台使该公司账号无法登录。
-// 公司的密码策略、编辑锁等参数在“企业设置”页维护（company-settings-sync.ts），这里不重复一份表单。
+// 为什么有这个文件：A-01 公司管理（PRD v1.8 §5.10.1；APP-M2-T026，APP-M2-T260 验收③；ISSUE-052）。
+// 它解决什么问题：列表与启停来自 /api/v1/companies；平台管理员可同弹窗开通公司并创建首个管理员；点进公司进入详情管人。
 
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, App as AntApp, Button, Input, Modal, Space, Table, Tag, Typography } from 'antd';
-import { DatabaseOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { Alert, App as AntApp, Button, Checkbox, Form, Input, Modal, Space, Table, Tag, Typography } from 'antd';
+import { DatabaseOutlined, PlusOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { Account, ApplicationSession } from '../shared/types';
 import { request, userFacingMessage } from '../shared/api';
 import { listCompanies, updateCompanyStatus, validateDisableConfirmation, type CompanyList, type CompanySummary } from './company-manage-core';
+import {
+  companyDetailPath,
+  createCompany,
+  validateCreateCompanyForm,
+  type CreateCompanyFormValues,
+} from './company-provision-core';
 import { ModelConfigModal } from './ModelConfigModal';
 import { RagflowConfigModal } from './RagflowConfigModal';
 import { normalizeSystemRole } from '../shell/route-guard';
@@ -20,6 +24,7 @@ interface CompanyManagePageProps {
   session?: ApplicationSession | null;
   currentUser?: Account | null;
   token?: string | null;
+  onNavigate?: (path: string) => void;
 }
 
 function changedAt(row: CompanySummary): string {
@@ -28,7 +33,7 @@ function changedAt(row: CompanySummary): string {
   return row.status_changed_by ? `${when} · ${row.status_changed_by}` : when;
 }
 
-export function CompanyManagePage({ session, currentUser, token }: CompanyManagePageProps) {
+export function CompanyManagePage({ session, currentUser, token, onNavigate }: CompanyManagePageProps) {
   const { message } = AntApp.useApp();
   const [list, setList] = useState<CompanyList | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,8 +42,12 @@ export function CompanyManagePage({ session, currentUser, token }: CompanyManage
   const [working, setWorking] = useState<string | null>(null);
   const [modelOpen, setModelOpen] = useState(false);
   const [ragflowOpen, setRagflowOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createForm] = Form.useForm<CreateCompanyFormValues>();
   const role = normalizeSystemRole(session?.user?.primary_role || currentUser?.role);
   const canConfigureServices = role === 'platform_admin' || role === 'company_admin';
+  const canCreateCompany = role === 'platform_admin';
 
   const load = useCallback(async () => {
     if (!token) return;
@@ -68,9 +77,45 @@ export function CompanyManagePage({ session, currentUser, token }: CompanyManage
     }
   }
 
+  async function submitCreate() {
+    if (!token) return;
+    const values = await createForm.validateFields();
+    const payload: CreateCompanyFormValues = {
+      name: values.name,
+      admin_username: values.admin_username,
+      admin_name: values.admin_name,
+      admin_password: values.admin_password,
+      admin_display_name: values.admin_display_name,
+      must_change_password: values.must_change_password !== false,
+    };
+    const local = validateCreateCompanyForm(payload);
+    if (!local.valid) {
+      message.error(local.issues[0]?.message || '请完整填写');
+      return;
+    }
+    setCreating(true);
+    try {
+      const created = await createCompany(request, token, payload);
+      message.success(`已开通 ${created.company.name}（${created.company.id}），管理员 ${created.admin.id}`);
+      setCreateOpen(false);
+      createForm.resetFields();
+      await load();
+    } catch (err) {
+      message.error(userFacingMessage(err));
+    } finally {
+      setCreating(false);
+    }
+  }
+
   const columns: ColumnsType<CompanySummary> = [
     { title: '公司', key: 'name', render: (_: unknown, row: CompanySummary) => (
-      <Space direction="vertical" size={0}><Text strong>{row.name}</Text><Text type="secondary" style={{ fontSize: 12 }}>{row.id}</Text></Space>
+      <Space direction="vertical" size={0}>
+        {onNavigate
+          ? <Button type="link" style={{ padding: 0, height: 'auto' }} data-testid={`company-open-${row.id}`}
+              onClick={() => onNavigate(companyDetailPath(row.id))}><Text strong>{row.name}</Text></Button>
+          : <Text strong>{row.name}</Text>}
+        <Text type="secondary" style={{ fontSize: 12 }}>{row.id}</Text>
+      </Space>
     ) },
     { title: '状态', key: 'status', width: 100, render: (_: unknown, row: CompanySummary) => (
       <Tag color={row.status === 'active' ? 'success' : 'error'} data-testid={`company-status-${row.id}`}>{row.status === 'active' ? '启用' : '已停用'}</Tag>
@@ -89,12 +134,21 @@ export function CompanyManagePage({ session, currentUser, token }: CompanyManage
     <div className="company-manage-page" style={{ paddingBottom: 32 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Title level={4} style={{ margin: 0 }}>公司管理</Title>
-        {canConfigureServices && (
-          <Space wrap>
-            <Button data-testid="open-model-config-modal-btn" icon={<ThunderboltOutlined />} onClick={() => setModelOpen(true)}>模型配置</Button>
-            <Button data-testid="open-ragflow-config-modal-btn" icon={<DatabaseOutlined />} onClick={() => setRagflowOpen(true)}>知识库服务</Button>
-          </Space>
-        )}
+        <Space wrap>
+          {canCreateCompany && (
+            <Button type="primary" icon={<PlusOutlined />} data-testid="company-create-open"
+              onClick={() => {
+                createForm.setFieldsValue({ must_change_password: true });
+                setCreateOpen(true);
+              }}>新建公司</Button>
+          )}
+          {canConfigureServices && (
+            <>
+              <Button data-testid="open-model-config-modal-btn" icon={<ThunderboltOutlined />} onClick={() => setModelOpen(true)}>模型配置</Button>
+              <Button data-testid="open-ragflow-config-modal-btn" icon={<DatabaseOutlined />} onClick={() => setRagflowOpen(true)}>知识库服务</Button>
+            </>
+          )}
+        </Space>
       </div>
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} action={<Button size="small" onClick={() => void load()}>重试</Button>} />}
       <Table<CompanySummary> rowKey="id" size="middle" loading={!list && !error} dataSource={list?.items ?? []}
@@ -109,6 +163,31 @@ export function CompanyManagePage({ session, currentUser, token }: CompanyManage
         ]}>
         <Alert type="warning" showIcon message="停用后该公司所有账号立即退出且不能登录；资料、项目与审计记录保留，可再次启用。" style={{ marginBottom: 12 }} />
         <Input placeholder={target?.name} value={confirmName} onChange={event => setConfirmName(event.target.value)} data-testid="company-disable-name-input" />
+      </Modal>
+
+      <Modal title="新建公司" open={createOpen} onCancel={() => { setCreateOpen(false); createForm.resetFields(); }}
+        okText="开通" confirmLoading={creating} onOk={() => void submitCreate()}
+        okButtonProps={{ 'data-testid': 'company-create-submit' } as never} destroyOnClose>
+        <Form form={createForm} layout="vertical" initialValues={{ must_change_password: true }}>
+          <Form.Item name="name" label="公司显示名" rules={[{ required: true, message: '请填写公司显示名' }]}>
+            <Input data-testid="company-create-name" />
+          </Form.Item>
+          <Form.Item name="admin_username" label="管理员用户名" rules={[{ required: true, message: '请填写管理员用户名' }]}>
+            <Input data-testid="company-create-admin-username" autoComplete="off" />
+          </Form.Item>
+          <Form.Item name="admin_name" label="管理员姓名" rules={[{ required: true, message: '请填写管理员姓名' }]}>
+            <Input data-testid="company-create-admin-name" />
+          </Form.Item>
+          <Form.Item name="admin_display_name" label="管理员显示名">
+            <Input data-testid="company-create-admin-display-name" />
+          </Form.Item>
+          <Form.Item name="admin_password" label="初始密码" rules={[{ required: true, message: '请填写初始密码' }]}>
+            <Input.Password data-testid="company-create-admin-password" autoComplete="new-password" />
+          </Form.Item>
+          <Form.Item name="must_change_password" valuePropName="checked">
+            <Checkbox data-testid="company-create-must-change">首次登录强制改密</Checkbox>
+          </Form.Item>
+        </Form>
       </Modal>
 
       <ModelConfigModal open={modelOpen} onClose={() => setModelOpen(false)} session={session} />

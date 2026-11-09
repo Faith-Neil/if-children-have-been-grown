@@ -175,6 +175,7 @@ export function GlobalPagesContent({
                       session={session}
                       currentUser={currentUser}
                       token={token}
+                      onNavigate={onRequestPath}
                     />
                   ),
                 },
