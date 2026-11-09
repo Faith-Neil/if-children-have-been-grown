@@ -72,6 +72,8 @@ def _frozen_status() -> dict[str, int]:
         "DICT_ITEM_IN_USE", "DICT_CODE_DUPLICATED",
         # 用户管理停用前资产转交门禁 (APP-M2-T027 / PRD v1.8 §5.10.1)
         "USER_TRANSFER_REQUIRED",
+        # 平台开通公司时显示名冲突 (ISSUE-052)
+        "COMPANY_NAME_DUPLICATED",
         # 章节循环与人工处理队列、分册交叉复核与定稿 (Wave 11 / PRD v1.8 §5.7.4、§5.7.7、§5.8.5)
         "HUMAN_ISSUE_NOT_PENDING", "HUMAN_ISSUE_STALE", "HUMAN_ISSUES_PENDING", "BLOCKER_NOT_REJECTABLE",
         "VOLUME_FINALIZED", "CHAPTER_CONTENT_EMPTY", "CROSS_REVIEW_REQUIRED", "CROSS_REVIEWER_IS_EDITOR",

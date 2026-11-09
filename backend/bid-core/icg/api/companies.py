@@ -7,7 +7,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from icg.domain import company_registry
-from icg.domain.company_registry import CompanyListResponse, CompanySummary, UpdateCompanyStatusRequest
+from icg.domain.company_registry import (
+    CompanyListResponse,
+    CompanySummary,
+    CreateCompanyRequest,
+    CreateCompanyResponse,
+    UpdateCompanyStatusRequest,
+)
 from icg.domain.domain import DemoService, Principal
 from icg.domain.company_settings import (
     CompanySettingsModel,
@@ -25,7 +31,7 @@ def include_company_routes(application, service: DemoService, current_user) -> N
     settings_service.repository = service.repository
     setattr(service, "company_settings_service", settings_service)
 
-    router = APIRouter(prefix="/api/v1", responses=v1_error_responses(401, 403, 404, 422, 500))
+    router = APIRouter(prefix="/api/v1", responses=v1_error_responses(401, 403, 404, 409, 422, 500))
 
     @router.get(
         "/companies/{company_id}/settings",
@@ -59,6 +65,19 @@ def include_company_routes(application, service: DemoService, current_user) -> N
     )
     def list_companies(user: Principal = Depends(current_user)):
         return company_registry.list_companies(service, user)
+
+    @router.post(
+        "/companies",
+        response_model=CreateCompanyResponse,
+        status_code=201,
+        operation_id="createCompany",
+        summary="开通公司并创建首个公司管理员",
+        description="仅平台管理员。同一事务写入公司记录、显示名与首个 company_admin；"
+                    "company_id 自动生成（co- + 8 位十六进制）。显示名冲突 409 COMPANY_NAME_DUPLICATED。",
+        tags=["companies"],
+    )
+    def create_company_endpoint(body: CreateCompanyRequest, user: Principal = Depends(current_user)):
+        return company_registry.create_company(service, user, body)
 
     @router.post(
         "/companies/{company_id}/status",
