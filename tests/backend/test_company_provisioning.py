@@ -91,6 +91,32 @@ def test_create_company_must_change_password_false_allows_work(client: TestClien
     assert projects.status_code == 200, projects.text
 
 
+def test_two_provisioned_companies_cannot_see_each_others_projects(client: TestClient):
+    admin = login(client, "platform-admin")
+    a = client.post("/api/v1/companies", headers=admin, json={
+        "name": "隔离公司甲", "admin_username": "iso-a-admin", "admin_name": "甲",
+        "admin_password": "Init_Pass_2026", "must_change_password": False,
+    })
+    assert a.status_code == 201, a.text
+    b = client.post("/api/v1/companies", headers=admin, json={
+        "name": "隔离公司乙", "admin_username": "iso-b-admin", "admin_name": "乙",
+        "admin_password": "Init_Pass_2026", "must_change_password": False,
+    })
+    assert b.status_code == 201, b.text
+    token_a = client.post("/api/v1/auth/login", json={"username": "iso-a-admin", "password": "Init_Pass_2026"}).json()["access_token"]
+    token_b = client.post("/api/v1/auth/login", json={"username": "iso-b-admin", "password": "Init_Pass_2026"}).json()["access_token"]
+    created = client.post("/api/v1/projects", headers={"Authorization": f"Bearer {token_a}"},
+                          json={"name": "甲公司机密项目"})
+    assert created.status_code in (200, 201), created.text
+    pid = created.json()["id"]
+    list_b = client.get("/api/v1/projects", headers={"Authorization": f"Bearer {token_b}"})
+    assert list_b.status_code == 200, list_b.text
+    projects = list_b.json().get("projects", [])
+    assert all(p["id"] != pid for p in projects)
+    other = client.get(f"/api/v1/projects/{pid}", headers={"Authorization": f"Bearer {token_b}"})
+    assert other.status_code == 404
+
+
 def test_create_user_respects_must_change_password_false(client: TestClient):
     admin = login(client, "platform-admin")
     created_co = client.post("/api/v1/companies", headers=admin, json={
