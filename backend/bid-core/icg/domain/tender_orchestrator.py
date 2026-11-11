@@ -253,6 +253,12 @@ class TenderOrchestratorMixin:
                 return {"job": job}
             new_requirements: set[str] = set()
             new_facts: set[str] = set()
+            provider = None
+            if hasattr(self.demo, "resolve_model_provider"):
+                try:
+                    provider = self.demo.resolve_model_provider(state, project_id, "chapter_generation")
+                except Exception:
+                    provider = None
             for identity, result in parsed.items():
                 record = actual["files"][identity]
                 record.update(
@@ -293,7 +299,9 @@ class TenderOrchestratorMixin:
                 from icg.domain.technical_sources import technical_only
                 if technical_only(state, project_id):
                     from icg.domain.technical_clause_extract import apply_technical_extract
-                    record["extraction"] = apply_technical_extract(actual, identity, result.pages, new_requirements)
+                    record["extraction"] = apply_technical_extract(
+                        actual, identity, result.pages, new_requirements, model=provider,
+                    )
                     continue
                 from icg.domain.tender_extraction import extract_facts, extract_requirements, is_fact_line
                 for item in extract_facts(result.pages):
@@ -376,16 +384,10 @@ class TenderOrchestratorMixin:
                         actual["parse_confirmed"] = False
                     else:
                         from icg.domain.technical_outline import apply_technical_outline
-                        apply_technical_outline(state, project_id, actual)
+                        apply_technical_outline(state, project_id, actual, model=provider)
                         # 最短路径：抽取确认不再作为用户闸门；解析成功即视为可进目录确认。
                         actual["parse_confirmed"] = True
                 from icg.domain.technical_matrix import fill_technical_responses
-                provider = None
-                if hasattr(self.demo, "resolve_model_provider"):
-                    try:
-                        provider = self.demo.resolve_model_provider(state, project_id, "chapter_generation")
-                    except Exception:
-                        provider = None
                 kb = getattr(self.demo, "knowledge_base", None)
                 search_company = state.projects[project_id].company_id
 

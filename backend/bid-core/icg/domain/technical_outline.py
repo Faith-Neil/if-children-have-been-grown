@@ -143,8 +143,18 @@ def _chapter(state: Any, project_id: str, title: str) -> Chapter:
     return chapter
 
 
-def apply_technical_outline(state: Any, project_id: str, workflow: dict) -> None:
+def apply_technical_outline(state: Any, project_id: str, workflow: dict, model=None) -> None:
     """抽出条款后建 ResponseTask + 主题目录草稿。已写的正文不覆盖。"""
+    if model is not None:
+        workflow["tree_model"] = model
+    try:
+        _fill_technical_outline(state, project_id, workflow)
+    finally:
+        # 工作流整份进 JSON。模型对象留下去时，MySQL 编码会抛 TypeError。
+        workflow.pop("tree_model", None)
+
+
+def _fill_technical_outline(state: Any, project_id: str, workflow: dict) -> None:
     rows = _clauses(workflow)
     if not rows:
         workflow.pop("technical_outline", None)
