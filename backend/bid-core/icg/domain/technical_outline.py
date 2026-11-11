@@ -287,6 +287,45 @@ def confirm_directory(state: Any, principal: Any, project_id: str, workflow: dic
     return chapter
 
 
+def public_rag_audit(workflow: dict) -> list[dict]:
+    return [item for item in (workflow.get("technical_rag_audit") or []) if isinstance(item, dict)]
+
+
+def public_tender_index(raw: Any) -> dict[str, Any] | None:
+    """工作区只带索引名和片数。页正文留在 workflow，不进响应。"""
+    if not isinstance(raw, dict):
+        return None
+    chunks = raw.get("chunks") if isinstance(raw.get("chunks"), list) else []
+    count = raw.get("chunk_count")
+    if not isinstance(count, int) or isinstance(count, bool):
+        count = len(chunks)
+    return {
+        "backend": str(raw.get("backend") or ""),
+        "dataset_name": str(raw.get("dataset_name") or ""),
+        "chunk_count": count,
+        "skip_reason": str(raw.get("skip_reason") or ""),
+    }
+
+
+def writer_model_label(stored: Any) -> dict[str, Any] | None:
+    """读出名称和本地/真实标记。不把 provider 写回 workflow。"""
+    if isinstance(stored, dict):
+        name = str(stored.get("name") or stored.get("model") or "").strip()
+        is_real = stored.get("is_real", stored.get("is_real_model", False))
+        is_local = stored.get("is_local", stored.get("is_local_model", False))
+    elif stored is None:
+        return None
+    else:
+        name = str(
+            getattr(stored, "display_name", "") or getattr(stored, "model", "") or getattr(stored, "name", "") or ""
+        ).strip()
+        is_real = bool(getattr(stored, "is_real_model", False) or getattr(stored, "is_real", False))
+        is_local = bool(getattr(stored, "is_local", False) or getattr(stored, "is_local_model", False))
+    if not name:
+        return None
+    return {"name": name, "is_real": bool(is_real), "is_local": bool(is_local)}
+
+
 def workspace_fields(state: Any, project_id: str, workflow: dict) -> dict[str, Any]:
     from icg.domain.technical_sources import technical_only
     if not technical_only(state, project_id):
@@ -328,11 +367,14 @@ def workspace_fields(state: Any, project_id: str, workflow: dict) -> dict[str, A
         "technical_outline": outline,
         "technical_deviation_note": deviation_note(workflow) if stored else "",
         "technical_needs_review": review,
-        "technical_kb": dataset_presence(state, company_id),
+        "technical_kb": dataset_presence(state, company_id, workflow),
         "technical_quality": quality,
         "response_tasks": list((workflow.get("response_tasks") or {}).values()) if stored else [],
         "coverage_rows": coverage_rows(workflow, outline) if stored else [],
         "plan_validation": (stored or {}).get("plan_validation") or workflow.get("plan_validation"),
+        "technical_rag_audit": public_rag_audit(workflow),
+        "tender_index": public_tender_index(workflow.get("tender_index")),
+        "writer_model": writer_model_label(workflow.get("writer_model")),
     }
 
 

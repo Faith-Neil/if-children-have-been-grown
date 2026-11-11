@@ -642,6 +642,17 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
             description={`缺 ${workspace.technical_kb.missing.join(' / ')}。仍可生成，但相关节企业 RAG 为空并标待补，不会静默假成功。`}
           />
         )}
+        {workspace.writer_model?.name && (
+          <div className="muted" data-testid="writer-model-status" style={{ marginBottom: 8 }}>
+            正文模型 {workspace.writer_model.name}
+            {workspace.writer_model.is_real
+              ? (workspace.writer_model.is_local ? ' · 本地真实' : ' · 真实')
+              : ' · 替身'}
+            {workspace.tender_index?.chunk_count
+              ? ` · 本标 ${workspace.tender_index.chunk_count} 片`
+              : ''}
+          </div>
+        )}
         {generatedDirectory && (
           <div className="editor-main-path" data-testid="technical-main-path" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
             <Button
