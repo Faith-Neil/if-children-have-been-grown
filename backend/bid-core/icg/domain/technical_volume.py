@@ -277,9 +277,9 @@ def _assemble(outline: dict, bodies: dict[str, str], reviews: set[str]) -> str:
 
 def write_volume(state: Any, project_id: str, workflow: dict, section: str | None, model: Any,
                  *, knowledge_base: Any = None) -> dict:
-    """按确认目录任务叶子写正文。目录顺序不改。失败的节保留原正文。强制双库检索并记审计。"""
+    """按确认目录任务叶子写正文。目录顺序不改。失败的节保留原正文。先检索本标，公司库只作可引用证据，并记审计。"""
     assert_ready(state, project_id, workflow)
-    from icg.domain.technical_rag import knowledge_prompt_block, retrieve_dual, section_query
+    from icg.domain.technical_rag import knowledge_prompt_block, retrieve_for_section, section_query
     outline = workflow["technical_outline"]
     chapter = state.chapters.get(outline.get("chapter_id") or "")
     if chapter is None:
@@ -316,7 +316,7 @@ def write_volume(state: Any, project_id: str, workflow: dict, section: str | Non
             continue
         # 即使矩阵检索失败，仍应用模型/替身写实质框架，缺依据标待确认，禁止整节空「待补」冒充完成。
         query = section_query(title, primary, task=task, requirements=req_rows)
-        chunks, rag_audit = retrieve_dual(knowledge_base, company_id, query)
+        chunks, rag_audit = retrieve_for_section(knowledge_base, company_id, query, workflow)
         rag_audit["section"] = title
         rag_audit["task_id"] = heading.get("task_id")
         rag_audit["requirement_ids"] = req_ids
