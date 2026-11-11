@@ -521,10 +521,10 @@ def test_generate_writes_six_parts_without_blocking_internal_export(client):
         assert calls == ["运维保障与巡检", "标准服务"]
         workspace = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
         chapter = next(item for item in workspace["chapters"] if item["id"] == workspace["technical_outline"]["chapter_id"])
-        assert chapter["content"].index("1.1 ") < chapter["content"].index("2.1 ")
+        assert chapter["content"].index("1 运维保障与巡检") < chapter["content"].index("2.1 ")
         assert "针对「运维保障与巡检」的技术响应" in chapter["content"]
         assert "待补" not in chapter["content"]
-        health = chapter["content"].split("1.1 运维保障与巡检", 1)[1].split("2 综合技术响应", 1)[0]
+        health = chapter["content"].split("1 运维保障与巡检", 1)[1].split("2 综合技术响应", 1)[0]
         calls.clear()
 
         def rewrite(title, row):

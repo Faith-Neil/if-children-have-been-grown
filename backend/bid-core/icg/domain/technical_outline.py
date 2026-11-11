@@ -70,6 +70,9 @@ def assign_numbers(items: list[dict]) -> list[dict]:
             "requirement_id": item.get("requirement_id"),
             "task_id": item.get("task_id"),
             "requirement_ids": list(item.get("requirement_ids") or ([] if not item.get("requirement_id") else [item["requirement_id"]])),
+            "score_refs": list(item.get("score_refs") or []),
+            "mount_ids": list(item.get("mount_ids") or []),
+            "constraint_ids": list(item.get("constraint_ids") or []),
         })
     return cleaned
 
@@ -162,7 +165,7 @@ def _fill_technical_outline(state: Any, project_id: str, workflow: dict) -> None
         return
     title = detect_title(workflow)
     from icg.domain.technical_response_plan import apply_response_plan
-    plan = apply_response_plan(workflow)
+    plan = apply_response_plan(workflow, model=workflow.get("tree_model"))
     headings = plan["headings"]
     text = render(headings)
     chapter = _chapter(state, project_id, title)
