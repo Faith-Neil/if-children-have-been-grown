@@ -126,10 +126,45 @@ def collect_chapter_citations(
                 })
                 seen_ids.add(ev_id)
 
-    # 2. 知识库检索候选切片 [片]（知识库开启且有检索服务时触发）
+    # 2. 本标切片 [标]（把 knowledge_base 客户端传给 retrieve_tender；无客户端时走本地页索引）
+    search_query = query.strip() or (project.name + " " + chapter_id)
+    try:
+        from icg.domain.technical_tender_index import retrieve_tender
+        kb = None
+        if evidence_service is not None:
+            kb = getattr(evidence_service, "knowledge_base", None) or getattr(evidence_service, "kb", None)
+            if kb is None and hasattr(evidence_service, "client_for"):
+                kb = evidence_service
+        tender_hits, _audit = retrieve_tender(
+            workflow, search_query, kb=kb, company_id=project.company_id, limit=5,
+        )
+        for chunk in tender_hits:
+            cid = chunk.get("chunk_id") or chunk.get("id") or ""
+            if not cid or cid in seen_ids:
+                continue
+            ctext = chunk.get("content") or ""
+            cname = chunk.get("name") or "本标切片"
+            fp_payload = f"tender:{cid}:{cname}:{ctext[:64]}"
+            fingerprint = hashlib.sha256(fp_payload.encode("utf-8")).hexdigest()[:16]
+            citations.append({
+                "id": cid,
+                "name": cname,
+                "type": "tender",
+                "tag": chunk.get("cite_tag") or "[标]",
+                "source_type": "tender",
+                "revision": 1,
+                "valid_until": None,
+                "content": ctext,
+                "fingerprint": fingerprint,
+                "page": chunk.get("page"),
+            })
+            seen_ids.add(cid)
+    except Exception:
+        pass
+
+    # 3. 知识库检索候选切片 [片]（知识库开启且有检索服务时触发）
     if knowledge_base_enabled and evidence_service is not None:
         try:
-            search_query = query.strip() or (project.name + " " + chapter_id)
             cands = evidence_service.search(project.company_id, search_query)
             for c in (cands or [])[:5]:
                 cid = getattr(c, "id", None) or getattr(c, "chunk_id", str(c))

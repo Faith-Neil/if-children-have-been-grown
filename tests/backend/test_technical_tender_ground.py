@@ -130,6 +130,48 @@ def test_retrieve_refuses_company_dataset_backend():
     assert audit["skip_reason"] == "refused company dataset"
 
 
+def test_rewrite_prompt_includes_tender_slice():
+    from types import SimpleNamespace
+
+    from icg.domain.selection_rewrite import SelectionRewriteService
+    from icg.domain.technical_tender_index import index_current_tender
+
+    class Demo:
+        knowledge_base = None
+
+    service = SelectionRewriteService(Demo())
+    workflow = {"files": {"f1": {"pages": ["本标要求数据库巡检每月一次并出具报告"]}}}
+    index_current_tender(workflow)
+    principal = SimpleNamespace(user=SimpleNamespace(id="u1"))
+    hits, retrieval = service._retrieve(
+        principal, "alpha", "运维保障与巡检", "每月巡检", "", workflow, company_kb=False,
+    )
+    assert hits and hits[0]["source_type"] == "tender"
+    assert hits[0]["cite_tag"].startswith("[标:")
+    assert retrieval["tender_hits"] >= 1
+    user = SelectionRewriteService._user_content(
+        "运维保障与巡检", ["每月巡检"], [], "", "每月巡检", "", "", hits=hits,
+    )
+    assert "本标优先" in user
+    assert hits[0]["cite_tag"] in user
+    assert "数据库巡检" in user
+
+
+def test_editor_context_cites_tender_slices():
+    from types import SimpleNamespace
+
+    from icg.domain.editor_ai_context import collect_chapter_citations
+    from icg.domain.technical_tender_index import index_current_tender
+
+    workflow = {"files": {"f1": {"pages": ["本标要求数据库巡检每月一次"]}}, "requirements": {}}
+    index_current_tender(workflow)
+    state = SimpleNamespace(workflows={"p1": workflow}, library={})
+    project = SimpleNamespace(id="p1", company_id="alpha", name="合成项目")
+    citations = collect_chapter_citations(state, project, "c1", query="巡检", knowledge_base_enabled=False)
+    assert any(item.get("source_type") == "tender" for item in citations)
+    assert any(str(item.get("tag") or "").startswith("[标") for item in citations)
+
+
 def test_workspace_fields_expose_audit(monkeypatch):
     from icg.domain.technical_outline import workspace_fields
     from icg.domain.workflow_schemas import (
