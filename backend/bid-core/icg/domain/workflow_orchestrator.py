@@ -32,7 +32,7 @@ from icg.domain.volume_finalize import VolumeFinalizeMixin
 from icg.domain.technical_outline import workspace_fields
 from icg.domain.technical_sources import source_fingerprint
 from icg.domain.tender_orchestrator import TenderOrchestratorMixin, TenderOrchestrator
-from icg.domain.library_orchestrator import LibraryOrchestratorMixin, LibraryOrchestrator
+from icg.domain.library_orchestrator import LibraryOrchestrator, LibraryOrchestratorMixin, visible_job_summaries
 from icg.domain.human_queue import HumanQueueMixin
 from icg.domain.volume_review import VolumeReviewMixin
 from icg.domain.post_process import OmissionMixin, suspected
@@ -320,7 +320,7 @@ class WorkflowService(
             "chapters": chapters,
             "checks": [self._public_check(state, project_id, c) for c in workflow["checks"].values()],
             "exports": [self._public_export(state, project_id, e) for e in workflow["exports"].values()],
-            "jobs": [j for j in state.jobs.values() if j["project_id"] == project_id],
+            "jobs": visible_job_summaries(state, {project_id}),
             "source_fingerprint": source_fingerprint(workflow),
             "parsed_source_fingerprint": workflow.get("parsed_source_fingerprint") or "",
             "technical_extract_empty": bool(workflow.get("technical_extract_empty")),

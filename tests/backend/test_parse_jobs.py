@@ -2,6 +2,7 @@
 # 它解决什么问题：启动即返回 202 与任务；后台按原解析流程执行并写进度事件；RAGFlow 仍在识别时反复取回直到完成或等满上限；
 # 事件流在任务进行中保持连接并推送新事件；取消、重试、权限与重复启动行为如实。
 
+import threading
 import time
 from uuid import uuid4
 
@@ -62,6 +63,63 @@ def test_parse_job_runs_in_background_and_reports_events(client):
     assert stream.status_code == 200 and stream.headers["content-type"].startswith("text/event-stream")
     assert f"id: {body['id']}:1\n" not in stream.text and f"id: {body['id']}:2\n" in stream.text
     assert "event: job.completed" in stream.text
+
+
+def test_outer_parse_stays_listed_after_inner_sync_job_is_dropped(client):
+    """工作区能看到运行中的解析时，任务列表也要能看到；丢掉同步记录不能带走外层任务。"""
+    flow = _uploaded(client)
+    runner = client.app.state.parse_job_runner
+    gate = threading.Event()
+    entered = threading.Event()
+    original = runner._parse_once
+
+    def blocked(principal, project_id, payload):
+        entered.set()
+        assert gate.wait(timeout=20), "parse was not released"
+        return original(principal, project_id, payload)
+
+    runner._parse_once = blocked
+    try:
+        started = _start(flow)
+        assert started.status_code == 202, started.text
+        job_id = started.json()["id"]
+        assert entered.wait(timeout=10), "parse did not reach the background call"
+
+        def parse_ids(jobs):
+            return {job["id"] for job in jobs if job["id"] == job_id}
+
+        assert job_id in parse_ids(flow.state()["jobs"])
+        listed = client.get("/api/v1/jobs", headers=flow.headers)
+        assert listed.status_code == 200, listed.text
+        assert job_id in parse_ids(listed.json()["jobs"])
+
+        runner.repository.transaction(lambda state: state.jobs.pop(job_id, None))
+        assert job_id in parse_ids(flow.state()["jobs"])
+        listed = client.get("/api/v1/jobs", headers=flow.headers)
+        assert listed.status_code == 200, listed.text
+        row = next(job for job in listed.json()["jobs"] if job["id"] == job_id)
+        assert row["status"] == "running" and row["recoverable"] is False and row["type"] == "parse"
+
+        admin = client.get("/api/v1/jobs", headers=login(client, "platform-admin"))
+        assert admin.status_code == 200, admin.text
+        assert job_id in {job["id"] for job in admin.json()["jobs"]}
+
+        inner_id = "job-inner-sync-only"
+        def plant(state):
+            state.jobs[inner_id] = {
+                "id": inner_id, "project_id": flow.id, "type": "parse", "status": "completed",
+                "progress": 100, "message": "同步解析记录", "created_at": "2026-11-12T00:00:00+00:00",
+                "completed_at": "2026-11-12T00:00:00+00:00", "error": None, "recoverable": False,
+            }
+
+        runner.repository.transaction(plant)
+        runner._drop_inner_job({"job": {"id": inner_id}})
+        runner._drop_inner_job({"job": {"id": job_id}})
+        listed_ids = {job["id"] for job in client.get("/api/v1/jobs", headers=flow.headers).json()["jobs"]}
+        assert inner_id not in listed_ids
+        assert job_id in listed_ids
+    finally:
+        gate.set()
 
 
 def test_remote_parse_is_fetched_repeatedly_and_the_stream_stays_open(client, monkeypatch):

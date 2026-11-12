@@ -36,6 +36,57 @@ def _job_for_response(job: dict) -> dict:
     return item
 
 
+# 列表接口只公开这些字段。可恢复任务上的事件、模型快照不能进任务中心响应。
+_SUMMARY_KEYS = ("id", "project_id", "type", "status", "progress", "message", "created_at", "completed_at", "error")
+
+
+def _summary_job(job: dict) -> dict:
+    """把同步任务和外层可恢复任务收成同一份列表摘要。recoverable 在列表里固定为 false。"""
+    item = _job_for_response(job)
+    summary = {key: item.get(key) for key in _SUMMARY_KEYS}
+    summary["recoverable"] = False
+    if not isinstance(summary.get("type"), str) or not summary["type"]:
+        summary["type"] = "generation"
+    if not isinstance(summary.get("message"), str):
+        summary["message"] = "" if summary.get("message") is None else str(summary["message"])
+    if not isinstance(summary.get("status"), str) or not summary["status"]:
+        summary["status"] = "queued"
+    created = summary.get("created_at")
+    summary["created_at"] = created if isinstance(created, str) else ("" if created is None else str(created))
+    completed = summary.get("completed_at")
+    if completed is not None and not isinstance(completed, str):
+        summary["completed_at"] = str(completed)
+    progress = summary.get("progress")
+    if isinstance(progress, bool) or not isinstance(progress, int):
+        summary["progress"] = int(progress) if isinstance(progress, float) else 0
+    error = summary.get("error")
+    if not (isinstance(error, dict) and isinstance(error.get("code"), str) and isinstance(error.get("message"), str)):
+        summary["error"] = None
+    step_name = item.get("step_name")
+    if isinstance(step_name, str):
+        summary["step_name"] = step_name
+    return summary
+
+
+def visible_job_summaries(state, project_ids: set[str]) -> list[dict]:
+    """工作区和 GET /api/v1/jobs 共用。
+
+    同步任务在前。解析后台会丢掉内层同步记录；外层任务仍在 recoverable_jobs，这里补回列表。
+    """
+    visible = []
+    seen: set[str] = set()
+    records = getattr(state, "_job_records", {})
+    buckets = (state.jobs.values(), state.recoverable_jobs.values(), records.values())
+    for bucket in buckets:
+        for job in bucket:
+            job_id = job.get("id")
+            if not job_id or job_id in seen or job.get("project_id") not in project_ids:
+                continue
+            seen.add(job_id)
+            visible.append(_summary_job(job))
+    return visible
+
+
 class LibraryOrchestratorMixin:
     """企业资料库与后台任务领域编排 Mixin。"""
 
@@ -57,16 +108,7 @@ class LibraryOrchestratorMixin:
                     if p.company_id == principal.user.company_id
                     and principal.user.id in state.project_teams.get(p.id, {}).get("members", {})
                 }
-            visible = [_job_for_response(j) for j in state.jobs.values() if j.get("project_id") in allowed]
-            if is_platform_admin:
-                seen = {item["id"] for item in visible}
-                extra = list(state.recoverable_jobs.values()) + list(getattr(state, "_job_records", {}).values())
-                for job in extra:
-                    if job.get("id") in seen or job.get("project_id") not in allowed:
-                        continue
-                    visible.append(_job_for_response(job))
-                    seen.add(job.get("id"))
-            return {"jobs": visible}
+            return {"jobs": visible_job_summaries(state, allowed)}
 
         all_jobs_dict = {}
         for j in state.jobs.values():
