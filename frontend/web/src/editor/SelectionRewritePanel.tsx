@@ -226,7 +226,12 @@ export function SelectionRewritePanel({ projectId, chapter, content, selection, 
               {sample.warnings.map(text => <Alert key={text} type="warning" showIcon message={text} style={{ marginBottom: 6 }} />)}
               {sample.sources.length ? (
                 <ul className="rewrite-sources" data-testid="rewrite-sources">
-                  {sample.sources.map(src => <li key={src.cite_tag}><Tag>{src.cite_tag}</Tag>{src.name}（v{src.revision}）</li>)}
+                  {sample.sources.map(src => (
+                    <li key={src.cite_tag}>
+                      <Tag color={src.source_type === 'tender' || src.cite_tag.startsWith('[标:') ? 'blue' : undefined}>{src.cite_tag}</Tag>
+                      {src.name}{src.revision ? `（v${src.revision}）` : ''}
+                    </li>
+                  ))}
                 </ul>
               ) : <p className="muted">无知识库来源</p>}
               <Space wrap>

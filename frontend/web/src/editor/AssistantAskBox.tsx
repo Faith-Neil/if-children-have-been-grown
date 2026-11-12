@@ -92,7 +92,14 @@ export function AssistantAskBox({ projectId, chapterId, token, knowledgeBase, se
           <p>{answer?.answer ?? state.draft}</p>
           {(answer?.warnings ?? []).map(text => <Alert key={text} type="warning" showIcon message={text} style={{ marginBottom: 6 }} />)}
           {answer && (answer.sources?.length ? (
-            <ul className="rewrite-sources">{answer.sources.map(src => <li key={src.cite_tag}><Tag>{src.cite_tag}</Tag>{src.name}（v{src.revision}）</li>)}</ul>
+            <ul className="rewrite-sources">
+              {answer.sources.map(src => (
+                <li key={src.cite_tag}>
+                  <Tag color={src.cite_tag.startsWith('[标:') ? 'blue' : undefined}>{src.cite_tag}</Tag>
+                  {src.name}{src.revision ? `（v${src.revision}）` : ''}
+                </li>
+              ))}
+            </ul>
           ) : <p className="muted">无知识库来源</p>)}
         </div>
       )}

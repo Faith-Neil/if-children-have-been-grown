@@ -63,7 +63,13 @@ def build_local_index(workflow: dict) -> dict[str, Any]:
 
 
 def _tokens(text: str) -> set[str]:
-    return set(TOKEN.findall(text or ""))
+    """字面检索用词：英文/数字整词 + 汉字滑动二元组（避免「巡检」被切成「库巡」「检每」）。"""
+    raw = text or ""
+    found = set(TOKEN.findall(raw))
+    chars = re.findall(r"[\u4e00-\u9fff]", raw)
+    for index in range(len(chars) - 1):
+        found.add(chars[index] + chars[index + 1])
+    return found
 
 
 def _lexical(chunks: list[dict], query: str, *, limit: int = 8) -> list[dict]:
