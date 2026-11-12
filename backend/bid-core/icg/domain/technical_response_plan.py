@@ -7,6 +7,7 @@ import re
 from typing import Any
 
 from icg.domain.domain import new_id
+from icg.domain.technical_clause_role import assign_clause_role
 
 THEME_RULES: list[tuple[str, tuple[str, ...]]] = [
     ("运维保障与巡检", ("巡检", "健康检查", "例行", "故障", "宕机", "监控")),
@@ -123,18 +124,26 @@ def build_response_tasks(rows: list[dict]) -> list[dict]:
             title = short_chapter_title(members[0].get("extracted_summary") or members[0].get("text") or theme, fallback=theme)
         else:
             title = theme
+        for item in members:
+            item["clause_role"] = assign_clause_role(item)
         tech_rejection = [
             item["id"] for item in members
             if item.get("is_rejection_criterion") and item.get("requirement_type") not in ("qualification",)
         ]
+        constraint_ids = [item["id"] for item in members if item.get("clause_role") == "rejection_constraint"]
         tasks.append({
             "task_id": new_id("task"),
             "title": title,
             "theme": theme,
             "requirement_ids": [item["id"] for item in members],
             "response_strategy": "point_by_point",
-            "response_points": [item.get("extracted_summary") or clip_summary(item.get("text") or "") for item in members],
+            "response_points": [
+                item.get("extracted_summary") or clip_summary(item.get("text") or "")
+                for item in members
+                if item.get("clause_role") != "rejection_constraint"
+            ],
             "rejection_requirement_ids": tech_rejection,
+            "constraint_ids": constraint_ids,
             "generation_status": "pending",
             "response_status": "not_started",
             "verification_status": "unchecked",
@@ -144,36 +153,75 @@ def build_response_tasks(rows: list[dict]) -> list[dict]:
     return tasks
 
 
-def arrange_from_tasks(tasks: list[dict]) -> list[dict]:
-    """主题一级 + 任务叶子；标题不用条款原文。"""
+def _fold_constraint_only_tasks(tasks: list[dict], requirements: list[dict]) -> list[dict]:
+    """纯废标任务不成章，约束并进最近的有挂载任务。"""
+    from icg.domain.technical_clause_role import assign_clause_role
+
+    by_id = {row["id"]: row for row in requirements if row.get("id")}
+    kept: list[dict] = []
+    pending: list[dict] = []
+
+    def absorb(host: dict, other: dict) -> None:
+        host["requirement_ids"] = list(dict.fromkeys([
+            *(host.get("requirement_ids") or []),
+            *(other.get("requirement_ids") or []),
+        ]))
+        host["constraint_ids"] = list(dict.fromkeys([
+            *(host.get("constraint_ids") or []),
+            *(other.get("constraint_ids") or []),
+            *(other.get("requirement_ids") or []),
+        ]))
+        host["rejection_requirement_ids"] = list(dict.fromkeys([
+            *(host.get("rejection_requirement_ids") or []),
+            *(other.get("rejection_requirement_ids") or []),
+        ]))
+
+    for task in tasks:
+        mounts = [
+            rid for rid in (task.get("requirement_ids") or [])
+            if assign_clause_role(by_id.get(rid) or {"id": rid, "text": ""}) != "rejection_constraint"
+        ]
+        if not mounts:
+            pending.append(task)
+            continue
+        for other in pending:
+            absorb(task, other)
+        pending = []
+        kept.append(task)
+    if pending and kept:
+        for other in pending:
+            absorb(kept[-1], other)
+    elif pending:
+        # 整卷只有废标时仍保留一行，避免任务列表被掏空。
+        kept.extend(pending)
+    return kept
+
+
+def arrange_from_tasks(tasks: list[dict], workflow: dict | None = None, model=None) -> list[dict]:
+    """归纳要点后编目录。评分项名不再做一级标题。"""
     if not tasks:
         return []
-    by_theme: dict[str, list[dict]] = {}
-    for task in tasks:
-        by_theme.setdefault(task.get("theme") or "综合技术响应", []).append(task)
-    drafted: list[dict] = []
-    for theme, group in by_theme.items():
-        drafted.append({"level": 1, "title": theme, "requirement_id": None, "task_id": None})
-        for task in group:
-            drafted.append({
-                "level": 2,
-                "title": task["title"],
-                "requirement_id": (task.get("requirement_ids") or [None])[0],
-                "task_id": task["task_id"],
-                "requirement_ids": list(task.get("requirement_ids") or []),
-            })
-    from icg.domain.technical_outline import assign_numbers
-    numbered = assign_numbers(drafted)
-    id_to_number = {row["task_id"]: row["number"] for row in numbered if row.get("task_id")}
-    for task in tasks:
-        task["outline_number"] = id_to_number.get(task["task_id"])
+    from icg.domain.technical_chapter_tree import build_chapter_tree
+    reqs = list((workflow or {}).get("requirements", {}).values()) if workflow else []
+    folded = _fold_constraint_only_tasks(list(tasks), reqs)
+    tasks[:] = folded
+    numbered, rewritten = build_chapter_tree(tasks, workflow or {}, model=model)
+    tasks[:] = rewritten
     return numbered
 
 
 def validate_plan(requirements: list[dict], tasks: list[dict], headings: list[dict]) -> dict[str, Any]:
     """确定性计划校验；不通过则 callers 可回退重建任务。"""
     req_ids = {row["id"] for row in requirements if row.get("technical_clause") and row.get("status") != "rejected"}
-    mapped = {rid for task in tasks for rid in (task.get("requirement_ids") or [])}
+    mapped = {
+        rid
+        for task in tasks
+        for rid in (
+            *(task.get("requirement_ids") or []),
+            *(task.get("constraint_ids") or []),
+            *(task.get("rejection_requirement_ids") or []),
+        )
+    }
     unmapped = sorted(req_ids - mapped)
     leaf_tasks = {row.get("task_id") for row in headings if row.get("task_id")}
     orphan_tasks = [task["task_id"] for task in tasks if task["task_id"] not in leaf_tasks]
@@ -202,6 +250,8 @@ def validate_plan(requirements: list[dict], tasks: list[dict], headings: list[di
         issues.append(f"空任务 {len(empty_tasks)} 个")
     if duplicates:
         issues.append(f"重复章节标题 {len(duplicates)} 个")
+    from icg.domain.technical_chapter_tree import tree_issues
+    issues.extend(tree_issues(headings, requirements, tasks))
     return {
         "passed": not issues,
         "issues": issues,
@@ -211,36 +261,24 @@ def validate_plan(requirements: list[dict], tasks: list[dict], headings: list[di
     }
 
 
-def apply_response_plan(workflow: dict) -> dict[str, Any]:
+def apply_response_plan(workflow: dict, model=None) -> dict[str, Any]:
     """从当前技术条款建任务与主题目录；写回 workflow。"""
     rows = [
         enrich_requirement(row)
         for row in (workflow.get("requirements") or {}).values()
         if row.get("technical_clause") and row.get("status") != "rejected"
     ]
+    tree_model = model or workflow.get("tree_model")
     tasks = build_response_tasks(rows)
-    headings = arrange_from_tasks(tasks)
+    headings = arrange_from_tasks(tasks, workflow, model=tree_model)
     check = validate_plan(rows, tasks, headings)
     if not check["passed"]:
-        # 回退：每条要求单独成任务，避免合并导致漏挂。
-        solo = []
-        for row in rows:
-            solo.append({
-                "task_id": new_id("task"),
-                "title": short_chapter_title(row.get("extracted_summary") or row.get("text") or "技术响应"),
-                "theme": _theme_for(row),
-                "requirement_ids": [row["id"]],
-                "response_strategy": "point_by_point",
-                "response_points": [row.get("extracted_summary") or clip_summary(row.get("text") or "")],
-                "rejection_requirement_ids": [row["id"]] if row.get("is_rejection_criterion") and row.get("requirement_type") != "qualification" else [],
-                "generation_status": "pending",
-                "response_status": "not_started",
-                "verification_status": "unchecked",
-                "outline_number": None,
-                "chapter_id": None,
-            })
-        tasks = solo
-        headings = arrange_from_tasks(tasks)
+        headings = arrange_from_tasks(tasks, workflow, model=tree_model)
+        check = validate_plan(rows, tasks, headings)
+    if not check["passed"]:
+        for task in tasks:
+            task["theme"] = ""
+        headings = arrange_from_tasks(tasks, workflow, model=tree_model)
         check = validate_plan(rows, tasks, headings)
     workflow["response_tasks"] = {task["task_id"]: task for task in tasks}
     workflow["plan_validation"] = check
@@ -264,6 +302,7 @@ def coverage_rows(workflow: dict, outline: dict | None = None) -> list[dict]:
                 "text": req.get("extracted_summary") or req.get("text") or "",
                 "risk_level": req.get("risk_level") or "medium",
                 "is_rejection_criterion": bool(req.get("is_rejection_criterion")),
+                "clause_role": req.get("clause_role") or "response_mount",
                 "source_page": source.get("page"),
                 "source_filename": source.get("filename") or source.get("file_name"),
                 "outline_number": heading.get("number") or task.get("outline_number"),
