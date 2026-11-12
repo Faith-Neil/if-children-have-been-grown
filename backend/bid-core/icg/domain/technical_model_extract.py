@@ -68,7 +68,11 @@ def _chunks(pages: list[str], *, limit: int = 2400) -> list[tuple[int, str]]:
     return packed
 
 
-def extract_with_model(pages: list[str], model: Any) -> dict[str, Any]:
+def _is_timeout(exc: BaseException) -> bool:
+    return "timeout" in f"{type(exc).__name__} {exc}".lower()
+
+
+def extract_with_model(pages: list[str], model: Any, on_chunk=None) -> dict[str, Any]:
     """按页/块调用本地模型。失败的块跳过，不把空结果当成已读完整份标。"""
     result: dict[str, Any] = {
         "who": "",
@@ -79,16 +83,27 @@ def extract_with_model(pages: list[str], model: Any) -> dict[str, Any]:
         "items": [],
         "pages_read": 0,
         "skip_reason": "",
+        "timeout_count": 0,
+        "chunks_attempted": 0,
+        "extract_degraded": False,
     }
     if not usable_local_model(model):
         result["skip_reason"] = "no local model"
         return result
     seen: set[str] = set()
-    for page_no, blob in _chunks(pages):
+    chunks = _chunks(pages)
+    total = len(chunks)
+    timeouts = 0
+    result["chunks_attempted"] = total
+    for index, (page_no, blob) in enumerate(chunks, start=1):
+        if on_chunk is not None:
+            on_chunk(index, total)
         try:
             raw = model.suggest(EXTRACT_SYSTEM, f"页码 {page_no}：\n{blob[:8000]}")
             payload = _parse_payload(str(raw or ""))
         except Exception as exc:
+            if _is_timeout(exc):
+                timeouts += 1
             if not result["skip_reason"]:
                 result["skip_reason"] = type(exc).__name__
             continue
@@ -127,6 +142,8 @@ def extract_with_model(pages: list[str], model: Any) -> dict[str, Any]:
                 "kind": kind,
                 "role": role,
             })
+    result["timeout_count"] = timeouts
+    result["extract_degraded"] = total > 0 and timeouts * 2 > total
     if not result["items"] and not result["skip_reason"]:
         result["skip_reason"] = "model returned no items"
     return result
@@ -178,9 +195,21 @@ def absorb_model_facts(workflow: dict, payload: dict[str, Any]) -> None:
         line = str(title).strip()
         if line and line not in order:
             order.append(line)
+    previous = workflow.get("technical_extract_model") or {}
+    timeout_count = int(previous.get("timeout_count") or 0) + int(payload.get("timeout_count") or 0)
+    chunks_attempted = int(previous.get("chunks_attempted") or 0) + int(payload.get("chunks_attempted") or 0)
+    pages_read = int(previous.get("pages_read") or 0) + int(payload.get("pages_read") or 0)
+    degraded = bool(previous.get("extract_degraded")) or bool(payload.get("extract_degraded"))
+    if chunks_attempted and timeout_count * 2 > chunks_attempted:
+        degraded = True
     workflow["technical_extract_model"] = {
-        "used": bool(payload.get("items")),
-        "pages_read": int(payload.get("pages_read") or 0),
-        "skip_reason": payload.get("skip_reason") or "",
-        "item_count": len(payload.get("items") or []),
+        "used": bool(payload.get("items")) or bool(previous.get("used")),
+        "pages_read": pages_read,
+        "skip_reason": payload.get("skip_reason") or previous.get("skip_reason") or "",
+        "item_count": int(previous.get("item_count") or 0) + len(payload.get("items") or []),
+        "timeout_count": timeout_count,
+        "chunks_attempted": chunks_attempted,
+        "extract_degraded": degraded,
     }
+    workflow["extract_degraded"] = degraded
+    workflow["extract_timeout_count"] = timeout_count

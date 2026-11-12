@@ -173,6 +173,117 @@ def test_fail_orphans_on_wire_marks_stale_running_jobs(client):
     assert orphan["status"] == "failed" and orphan["error"]["code"] == "PARSER_INTERRUPTED"
 
 
+def _technical_job(client, model):
+    from test_reference_flow import login
+    from test_technical_sources import _docx, _project, _upload
+
+    service = client.app.state.service
+    monkeypatch = _technical_job.monkeypatch
+    monkeypatch.setattr(service, "resolve_model_provider", lambda *args, **kwargs: model)
+    headers = login(client)
+    project_id, revision = _project(client, headers)
+    uploaded = _upload(
+        client, headers, project_id, revision, "招标.docx",
+        content=_docx("服务方案中应包含数据库巡检。"),
+    )
+    assert uploaded.status_code == 200, uploaded.text
+    workspace = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
+    started = client.post(
+        f"/api/v1/projects/{project_id}/parse/jobs",
+        json={},
+        headers={**headers, "If-Match": str(workspace["revision"]), "Idempotency-Key": str(uuid4())},
+    )
+    assert started.status_code == 202, started.text
+    job = _wait_project(client, headers, started.json()["id"])
+    state = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
+    return job, state
+
+
+def _wait_project(client, headers, job_id, timeout=30):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        job = client.get(f"/api/v1/jobs/{job_id}", headers=headers).json()
+        if job["status"] in ("completed", "failed", "cancelled"):
+            return job
+        time.sleep(0.05)
+    raise AssertionError(f"job {job_id} did not finish: {job}")
+
+
+class _StageModel:
+    is_real_model = True
+    is_local = True
+    base_url = "http://127.0.0.1:11434"
+    messages: list[str] = []
+
+    def __init__(self, repository):
+        self.repository = repository
+        self.messages = []
+
+    def suggest(self, system, user):
+        for job in self.repository.read().recoverable_jobs.values():
+            if job.get("type") == "parse" and job.get("status") == "running":
+                self.messages.append(job.get("message") or "")
+        system = system or ""
+        if "编排技术服务方案目录" in system:
+            return '[{"level":1,"title":"运维保障与巡检","mount_ids":[]}]'
+        if "response_mount" in system:
+            return '{"items":[{"role":"response_mount","text":"数据库巡检","quote":"数据库巡检","kind":"scoring"}]}'
+        return "按招标要求写巡检步骤。"
+
+
+class _TimeoutModel:
+    is_real_model = True
+    is_local = True
+    base_url = "http://127.0.0.1:11434"
+
+    def suggest(self, system, user):
+        from icg.infra.openai_model import RetryableModelError
+        system = system or ""
+        if "编排技术服务方案目录" in system or "response_mount" in system:
+            raise RetryableModelError("timeout")
+        return "按招标要求写巡检步骤。"
+
+
+def test_stage_message_names_extract_after_deepdoc_and_tree():
+    from icg.domain.tender_orchestrator import parse_stage_message
+
+    assert parse_stage_message("extract", recognized=True) == "DeepDoc 已完成，正在抽取条款。"
+    chunk = parse_stage_message("extract", recognized=True, index=2, total=9)
+    assert chunk == "DeepDoc 已完成，正在抽取条款（第 2/9 块）。"
+    assert parse_stage_message("tree") == "正在编排目录。"
+    assert "DeepDoc" not in parse_stage_message("extract")
+
+
+def test_extract_and_tree_stages_replace_the_running_message(client, monkeypatch):
+    _technical_job.monkeypatch = monkeypatch
+    model = _StageModel(client.app.state.service.repository)
+    job, _state = _technical_job(client, model)
+    assert job["status"] == "completed", job
+    assert job.get("error") in (None, {})
+    progress = [event["payload"]["message"] for event in job["events"] if event["type"] == "job.progress"]
+    assert any("正在抽取条款" in message for message in progress)
+    assert any("编排目录" in message for message in progress)
+    assert any("正在抽取条款" in message for message in model.messages)
+    assert any("编排目录" in message for message in model.messages)
+
+
+def test_extract_mass_timeout_completes_degraded_not_clean(client, monkeypatch):
+    _technical_job.monkeypatch = monkeypatch
+    job, state = _technical_job(client, _TimeoutModel())
+    assert job["status"] == "completed", job
+    assert job["error"]["code"] == "EXTRACT_DEGRADED"
+    assert "降质" in job["message"]
+    assert "解析完成：" not in job["message"]
+    completed = job["events"][-1]
+    assert completed["type"] == "job.completed"
+    assert completed["payload"]["error"] == "EXTRACT_DEGRADED"
+    assert state["extract_degraded"] is True
+    assert state["extract_timeout_count"] >= 1
+    if state.get("technical_outline"):
+        assert state["technical_outline"]["outline_source"] == "rule_fallback"
+        assert state["tree_model_failed"] is True
+
+
 def test_health_exposes_effective_model(client):
     health = client.get("/health").json()
     assert health["model"] in ("mock", "real")

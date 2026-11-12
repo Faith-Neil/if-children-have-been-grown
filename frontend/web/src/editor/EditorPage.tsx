@@ -21,6 +21,7 @@ import type { Candidate, Chapter, Volume, Workspace, WritingInputPreview } from 
 import { candidateProblem } from './writing-input.ts';
 import { acquiredEditingFingerprint, editingContentWrite, loadedEditingFingerprint } from './editing-source.ts';
 import { chapterCan, projectCan } from '../project/project-team.ts';
+import { parseHonesty } from '../project/parse-honesty.ts';
 import { AiTag } from '../library/BusinessTags.tsx';
 import { ReadonlyBanner } from '../status/StatusViews';
 import { useDataPermission } from '../shell/useDataPermission';
@@ -516,6 +517,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   }
 
   const technicalOutline = workspace.technical_outline ?? null;
+  const honesty = parseHonesty(workspace);
   const outlineChapter = technicalOutline ? workspace.chapters.find(item => item.id === technicalOutline.chapter_id) : undefined;
 
   async function refreshOutlineChapter() {
@@ -632,6 +634,16 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
 
       {/* 2. 中间正文编辑区 */}
       <section className="editor-center" data-testid="editor-center-section">
+        {honesty.degraded && (
+          <Alert
+            className="editor-notice"
+            type="warning"
+            showIcon
+            data-testid="parse-honesty-warning"
+            message="解析结果不完整"
+            description={honesty.text}
+          />
+        )}
         {workspace.technical_kb && !workspace.technical_kb.ready && (
           <Alert
             className="editor-notice"

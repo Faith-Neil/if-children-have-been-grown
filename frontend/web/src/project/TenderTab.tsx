@@ -15,6 +15,7 @@ import type { FileRole, Job, TenderFile, Workspace } from '../shared/types.ts';
 import { JobProgressWithSse } from '../status/JobProgress.tsx';
 import { jobFromStatus, type BackendJobStatus } from '../status/job-progress-sse.ts';
 import type { JobProgressData } from '../status/job-progress.ts';
+import { parseHonesty } from './parse-honesty.ts';
 
 /** 页面打开时仍在进行的解析任务（后台任务在任务列表里留有摘要）。 */
 export function activeParseJob(jobs: Job[] | undefined): Job | undefined {
@@ -42,6 +43,7 @@ export function TenderPage() {
   });
   const [parseJobDone, setParseJobDone] = useState(false);
   const technicalOnly = volumeMode(workspace) === 'technical_only';
+  const honesty = parseHonesty(workspace);
   const roleOptions = fileRoleOptions(technicalOnly);
   const extracted = sameSourceAlreadyExtracted(workspace.source_fingerprint, workspace.parsed_source_fingerprint, workspace.files);
   const tenderReady = !technicalOnly || hasTenderFile(workspace.files);
@@ -203,10 +205,14 @@ export function TenderPage() {
         <Alert type="warning" showIcon className="page-notice" data-testid="technical-extract-empty"
           message="这批文件里没有抽到技术响应内容，先不进入目录。请换文件或补充技术规范书后再上传；系统会自动重新解析。" />
       )}
-      {technicalOnly && extracted && workspace.technical_outline && (
+      {technicalOnly && extracted && workspace.technical_outline && !honesty.degraded && (
         <Alert type="success" showIcon className="page-notice" data-testid="technical-outline-ready"
           message="已拟技术目录草稿。"
           action={<Button size="small" type="link" onClick={() => navigate('editor')}>去确认目录</Button>} />
+      )}
+      {technicalOnly && honesty.degraded && (
+        <Alert type="warning" showIcon className="page-notice" data-testid="parse-honesty-warning"
+          message="解析结果不完整" description={honesty.text} />
       )}
       {technicalOnly && !extracted && !parseJob && workspace.files.some(file => file.status === 'failed') && (
         <Alert type="error" showIcon className="page-notice" data-testid="technical-parse-failed"

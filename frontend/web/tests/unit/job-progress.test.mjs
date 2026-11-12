@@ -30,6 +30,12 @@ test('1. 状态机与状态元信息映射 (resolveJobStatusMeta)', () => {
   assert.equal(completed.text, '已完成');
   assert.equal(completed.badgeStatus, 'success');
   assert.equal(completed.progressStatus, 'success');
+  const degraded = resolveJobStatusMeta('completed', 'EXTRACT_DEGRADED');
+  assert.equal(degraded.text, '完成但降质');
+  assert.equal(degraded.badgeStatus, 'warning');
+  assert.notEqual(degraded.badgeStatus, 'success');
+  const treeFallback = resolveJobStatusMeta('completed', 'TREE_MODEL_FAILED');
+  assert.equal(treeFallback.badgeStatus, 'warning');
 
   const failed = resolveJobStatusMeta('failed');
   assert.equal(failed.text, '执行失败');

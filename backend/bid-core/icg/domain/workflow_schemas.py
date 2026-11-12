@@ -751,7 +751,8 @@ class CompletedPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
     status: Literal["completed"]
     completed_at: str
-    error: None
+    error: str | None
+    message: str | None = None
 
 
 class FailedPayload(BaseModel):
@@ -942,6 +943,8 @@ class TechnicalOutline(ResponseBody):
     headings: list[TechnicalHeading]
     missing: list[str] = Field(default_factory=list, description="还没有挂进目录的条款")
     plan_validation: dict[str, Any] | None = None
+    outline_source: str = Field(default="", description="model、rule 或 rule_fallback")
+    tree_model_failed: bool = Field(default=False, description="编排目录的模型失败后用了规则替身")
 
 
 class CoverageRow(ResponseBody):
@@ -1052,6 +1055,11 @@ class Workspace(ResponseBody):
     source_fingerprint: str = ""
     parsed_source_fingerprint: str = ""
     technical_extract_empty: bool = Field(default=False, description="技术分册这次没有抽出技术条款")
+    extract_degraded: bool = Field(default=False, description="抽取条款超过一半的块超时，结果不是完整抽取")
+    extract_timeout_count: int = Field(default=0, description="抽取条款超时的块数")
+    extract_pages_read: int = Field(default=0, description="抽取条款成功读完的块数")
+    outline_source: str = Field(default="", description="目录来源：model、rule 或 rule_fallback")
+    tree_model_failed: bool = Field(default=False, description="编排目录的模型失败，目录为规则兜底")
     technical_outline: TechnicalOutline | None = Field(default=None, description="技术分册的单章目录；创建时的技术方案不是这份目录")
     technical_deviation_note: str = Field(default="", description="没有偏离表样表时的说明；有样表则为空")
     technical_needs_review: list[str] = Field(default_factory=list, description="正文偏离表述和矩阵不一致、或同一指标出现两个数字的小节")

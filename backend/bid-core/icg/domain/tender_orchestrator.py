@@ -20,6 +20,16 @@ from icg.infra.blob_store import file_bytes
 TITLE_LINE = re.compile(r"^\s*(招标文件)?(补遗|澄清|答疑|更正)(文件|通知|公告|函|说明)?\s*[（(]?\s*第?\s*[0-9一二三四五六七八九十]*\s*号?\s*[)）]?\s*$")
 
 
+def parse_stage_message(stage: str, *, recognized: bool = False, index: int = 0, total: int = 0) -> str:
+    """任务进度文案。DeepDoc 结束后必须离开「RAGFlow 正在识别」。"""
+    if stage == "tree":
+        return "正在编排目录。"
+    prefix = "DeepDoc 已完成，" if recognized else ""
+    if total:
+        return f"{prefix}正在抽取条款（第 {index}/{total} 块）。"
+    return f"{prefix}正在抽取条款。"
+
+
 def out_of_scope_fields(state, project_id, volume):
     """只写技术标：商务/资格条款由他人负责，标为不在本项目范围（忽略并写明理由），仍保留原文可查。"""
     from icg.domain.project_access import project_volumes
@@ -142,7 +152,7 @@ class TenderOrchestratorMixin:
         return self._write(principal, project_id, "file.delete:" + file_id, payload, expected, key,
                            operation, {"file_id": file_id, "reason": reason})
 
-    def parse(self, principal: Principal, project_id: str, payload: dict, expected: str | None, key: str | None):
+    def parse(self, principal: Principal, project_id: str, payload: dict, expected: str | None, key: str | None, on_stage=None):
         initial, previous = self._preflight(principal, project_id, "parse.run", payload, expected, key)
         if previous:
             return previous
@@ -235,8 +245,20 @@ class TenderOrchestratorMixin:
                     provider = None
             from icg.domain.technical_model_extract import extract_with_model, usable_local_model
             if usable_local_model(provider):
+                saw_deepdoc = bool(recognized)
+                if on_stage is not None:
+                    on_stage("extract", parse_stage_message("extract", recognized=saw_deepdoc), 0)
+
+                def announce(index, total, saw_deepdoc=saw_deepdoc):
+                    if on_stage is not None and total:
+                        on_stage(
+                            "extract",
+                            parse_stage_message("extract", recognized=saw_deepdoc, index=index, total=total),
+                            index / total,
+                        )
+
                 for identity, result in parsed.items():
-                    model_payloads[identity] = extract_with_model(result.pages, provider)
+                    model_payloads[identity] = extract_with_model(result.pages, provider, on_chunk=announce)
 
         fill_matrix_after = [False]
         index_tender_after = [False]
@@ -244,6 +266,10 @@ class TenderOrchestratorMixin:
         def operation(state, project, actual):
             actual["parse_confirmed"] = False
             actual["plan_confirmed"] = False
+            if parsed:
+                actual["extract_degraded"] = False
+                actual["extract_timeout_count"] = 0
+                actual.pop("technical_extract_model", None)
             from icg.domain.technical_sources import technical_only
             if technical_only(state, project_id):
                 actual["requirements"] = {key: row for key, row in actual["requirements"].items() if not row.get("technical_clause")}
@@ -434,6 +460,9 @@ class TenderOrchestratorMixin:
                               {"job_id": result["job"]["id"], "revision": result["revision"]})
         if fill_matrix_after[0]:
             self._fill_technical_matrix_unlocked(principal, project_id, provider)
+            from icg.domain.technical_model_extract import usable_local_model
+            if on_stage is not None and usable_local_model(provider):
+                on_stage("tree", parse_stage_message("tree"), 1)
             self._refresh_technical_outline_unlocked(principal, project_id, provider)
             refreshed = self.repository.read()
             workflow = refreshed.workflows.get(project_id) or {}
@@ -490,7 +519,9 @@ class TenderOrchestratorMixin:
             draft.pop("tree_model", None)
         headings = plan.get("headings") or []
         tasks = plan.get("tasks") or []
-        if not headings:
+        source = draft.get("outline_source") or ""
+        failed = bool(draft.get("tree_model_failed"))
+        if not headings and not failed:
             return
         from icg.domain.technical_outline import detect_title, render
 
@@ -499,6 +530,14 @@ class TenderOrchestratorMixin:
 
         def write_outline(state, project, actual):
             from icg.domain.technical_outline import _chapter
+            actual["outline_source"] = source or actual.get("outline_source") or "rule"
+            actual["tree_model_failed"] = failed
+            if not headings:
+                outline = actual.get("technical_outline")
+                if isinstance(outline, dict):
+                    outline["outline_source"] = actual["outline_source"]
+                    outline["tree_model_failed"] = failed
+                return {"ok": True}
             actual["response_tasks"] = {task["task_id"]: task for task in tasks}
             actual["plan_validation"] = plan.get("validation")
             chapter = _chapter(state, project_id, title)
@@ -519,6 +558,8 @@ class TenderOrchestratorMixin:
                 "text": text,
                 "headings": headings,
                 "plan_validation": plan.get("validation"),
+                "outline_source": actual["outline_source"],
+                "tree_model_failed": failed,
             }
             return {"ok": True}
 
