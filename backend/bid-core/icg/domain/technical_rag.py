@@ -32,8 +32,8 @@ def section_query(title: str, row: dict | None = None, *, task: dict | None = No
     return " ".join(part for part in parts if part)
 
 
-def dataset_presence(state: Any, company_id: str) -> dict[str, Any]:
-    """编辑台提示用：两库是否已配置（有 dataset_id）。展示解析后的全名。"""
+def dataset_presence(state: Any, company_id: str, workflow: dict | None = None) -> dict[str, Any]:
+    """编辑台提示用：公司双库是否已配置，以及本标索引是否已建。"""
     index = read_index(state, company_id) if state is not None else {}
     datasets = index.get("datasets") or {}
     history_name = dataset_full_name(company_id, "history")
@@ -45,9 +45,21 @@ def dataset_presence(state: Any, company_id: str) -> dict[str, Any]:
         missing.append(history_name)
     if not material_ok:
         missing.append(material_name)
+    tender = (workflow or {}).get("tender_index") if isinstance(workflow, dict) else None
+    tender = tender if isinstance(tender, dict) else {}
+    chunks = tender.get("chunks") if isinstance(tender.get("chunks"), list) else []
+    count = tender.get("chunk_count")
+    if not isinstance(count, int) or isinstance(count, bool):
+        count = len(chunks)
+    tender_ok = bool(tender.get("dataset_id") or count or chunks)
     return {
         "history": {"name": history_name, "configured": history_ok},
         "material": {"name": material_name, "configured": material_ok},
+        "tender": {
+            "name": str(tender.get("dataset_name") or ""),
+            "configured": tender_ok,
+            "backend": str(tender.get("backend") or ""),
+        },
         "missing": missing,
         "ready": not missing,
     }

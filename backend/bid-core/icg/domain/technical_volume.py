@@ -340,6 +340,19 @@ def write_volume(state: Any, project_id: str, workflow: dict, section: str | Non
                 task["generation_status"] = "failed"
                 task["response_status"] = "gap"
     workflow["technical_rag_audit"] = audits[-20:]
+    if model is not None:
+        name = str(
+            getattr(model, "display_name", "")
+            or getattr(model, "model", "")
+            or getattr(model, "name", "")
+            or ""
+        ).strip()
+        if name:
+            workflow["writer_model"] = {
+                "name": name,
+                "is_real": bool(getattr(model, "is_real_model", False) or getattr(model, "is_real", False)),
+                "is_local": bool(getattr(model, "is_local", False) or getattr(model, "is_local_model", False)),
+            }
     reviews: set[str] = set()
     for item in _leaves(outline):
         ids = list(item.get("requirement_ids") or [])
