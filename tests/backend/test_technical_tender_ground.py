@@ -95,3 +95,32 @@ def test_outline_accepts_model_and_drops_it_before_return():
     workflow = {"requirements": {}}
     apply_technical_outline(None, "p", workflow, model=_LocalModel())
     assert "tree_model" not in workflow
+
+
+def test_apply_extract_accepts_precomputed_payload_without_model_io():
+    class Boom(_LocalModel):
+        def suggest(self, *_args):
+            raise AssertionError("事务内不得再调模型")
+
+    payload = {
+        "who": "昆明航空",
+        "what": "运维",
+        "period": "",
+        "sla": "15分钟响应",
+        "format_order": [],
+        "items": [
+            {"role": "response_mount", "text": "须承诺提供7*24小时在线及15分钟响应服务",
+             "quote": "须承诺提供7*24小时在线及15分钟响应服务", "page": 5, "kind": "scoring"},
+        ],
+        "pages_read": 1,
+        "skip_reason": "",
+    }
+    workflow = {"requirements": {}, "technical_sidecars": {"format_lines": [], "rejection_lines": []}}
+    apply_technical_extract(
+        workflow, "f1", ["须承诺提供7*24小时在线及15分钟响应服务"], set(),
+        model=Boom(), model_payload=payload,
+    )
+    texts = {row["text"] for row in workflow["requirements"].values()}
+    assert "须承诺提供7*24小时在线及15分钟响应服务" in texts
+    assert workflow["technical_facts"]["客户名"] == "昆明航空"
+
