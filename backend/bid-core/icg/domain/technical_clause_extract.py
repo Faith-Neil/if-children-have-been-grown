@@ -22,6 +22,9 @@ DROP = re.compile(
     r"资金落实|最高投标限价|招标公告|投标截止|开标一览|投标人须知|合同授予|标包|"
     r"中标通知|投标预备|否决其投标|评分标准|分值构成"
 )
+FORMAT_HEAD = re.compile(r"投标文件格式|响应文件组成|编制顺序|按以下顺序编制")
+NUMBERED_CHILD = re.compile(r"^(?:\d+(?:\.\d+)*|[一二三四五六七八九十]+)[、.．]")
+REJECT_LINE = re.compile(r"废标|否决")
 SERVICE = re.compile(
     r"服务|维保|巡检|故障|监控|备份|恢复|升级|补丁|优化|性能|培训|应急|保密|质保|保修|"
     r"值守|整改|交付|现场|健康|数据库|中间件|操作系统|虚拟化|可用性|安全|知识|验收|"
@@ -37,6 +40,8 @@ class TechnicalClause:
     kind: str
     number: str = ""
     sources: list[dict] = field(default_factory=list)
+    extract_source: str = ""
+    role: str = "response_mount"
 
     def __post_init__(self) -> None:
         if not self.sources:
@@ -110,6 +115,31 @@ def split_subjective(line: str) -> list[str]:
     return points if len(points) >= 2 else []
 
 
+def capture_pre_drop_lines(pages: list[str]) -> dict[str, list[str]]:
+    """在 DROP 生效前抄下格式行和废标行。返回的条款列表不因此增加。"""
+    format_lines: list[str] = []
+    rejection_lines: list[str] = []
+    collecting = False
+    for text in pages:
+        for raw in str(text).splitlines():
+            line = raw.strip()
+            if not line:
+                continue
+            if FORMAT_HEAD.search(line):
+                collecting = True
+                if line not in format_lines:
+                    format_lines.append(line)
+            elif collecting:
+                if NUMBERED_CHILD.search(line) or SPEC_LINE.match(line):
+                    if line not in format_lines:
+                        format_lines.append(line)
+                else:
+                    collecting = False
+            if REJECT_LINE.search(line) and DROP.search(line) and line not in rejection_lines:
+                rejection_lines.append(line)
+    return {"format_lines": format_lines, "rejection_lines": rejection_lines}
+
+
 def extract_technical_clauses(pages: list[str]) -> list[TechnicalClause]:
     lines: list[tuple[int, str]] = []
     for page_no, text in enumerate(pages, start=1):
@@ -170,13 +200,68 @@ def _merge(clauses: list[TechnicalClause]) -> list[TechnicalClause]:
     return merged
 
 
-def apply_technical_extract(workflow: dict, file_id: str, pages: list[str], new_ids: set[str]) -> dict:
-    """把抽出的条款写入矩阵。同一件事已有一行时，只追加来源，不另起一行。"""
-    clauses = extract_technical_clauses(pages)
+def _remember_extract(row: dict, clause: TechnicalClause) -> None:
+    if not clause.extract_source or row.get("extract_source"):
+        return
+    row["extract_source"] = clause.extract_source
+    row["page"] = clause.page
+
+
+def apply_technical_extract(
+    workflow: dict,
+    file_id: str,
+    pages: list[str],
+    new_ids: set[str],
+    model=None,
+    *,
+    model_payload: dict | None = None,
+) -> dict:
+    """把抽出的条款写入矩阵。同一件事已有一行时，只追加来源，不另起一行。
+
+    model_payload：事务外预跑 extract_with_model 的结果。传入后本函数不再调模型，
+    避免长耗时 Ollama 占住 MemoryRepository 全局 RLock 卡住登录。
+    """
+    # technical_model_extract 在模块顶层引用本文件的条款类型，这里延后导入以免循环。
+    from icg.domain.technical_model_extract import (
+        absorb_model_facts,
+        clauses_from_model,
+        extract_with_model,
+        miss_patch,
+        usable_local_model,
+    )
+
+    regex_clauses = extract_technical_clauses(pages)
+    fresh = capture_pre_drop_lines(pages)
+    sidecar = workflow.setdefault("technical_sidecars", {"format_lines": [], "rejection_lines": []})
+    for key in ("format_lines", "rejection_lines"):
+        bucket = sidecar.setdefault(key, [])
+        for line in fresh[key]:
+            if line not in bucket:
+                bucket.append(line)
+    payload = model_payload
+    if payload is None and usable_local_model(model):
+        payload = extract_with_model(pages, model)
+    if payload is not None:
+        absorb_model_facts(workflow, payload)
+        model_clauses = clauses_from_model(payload)
+        mounts = []
+        rejection = sidecar.setdefault("rejection_lines", [])
+        for clause in model_clauses:
+            if clause.role == "rejection_constraint":
+                line = (clause.quote or clause.text).strip()
+                if line and line not in rejection:
+                    rejection.append(line)
+                continue
+            mounts.append(clause)
+        clauses = mounts + miss_patch(regex_clauses, model_clauses)
+    else:
+        clauses = regex_clauses
     index = {row.get("matter_key"): row for row in workflow["requirements"].values() if row.get("technical_clause")}
     for clause in clauses:
         key = _matter_key(clause.text)
         source = {"file_id": file_id, "page": clause.page, "quote": clause.quote, "kind": clause.kind}
+        if clause.extract_source:
+            source["extract_source"] = clause.extract_source
         hit = next((row for matter, row in index.items() if _same(str(matter), key)), None)
         if hit is not None:
             sources = hit.setdefault("sources", [])
@@ -185,6 +270,7 @@ def apply_technical_extract(workflow: dict, file_id: str, pages: list[str], new_
             if clause.kind == "scoring" and hit.get("section_kind") != "scoring":
                 hit["text"] = clause.text
                 hit["section_kind"] = "scoring"
+            _remember_extract(hit, clause)
             continue
         row = {
             "id": new_id("req"),
@@ -206,6 +292,7 @@ def apply_technical_extract(workflow: dict, file_id: str, pages: list[str], new_
             "technical_clause": True,
             "matter_key": key,
         }
+        _remember_extract(row, clause)
         workflow["requirements"][row["id"]] = row
         index[key] = row
         new_ids.add(row["id"])

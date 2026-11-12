@@ -70,6 +70,9 @@ def assign_numbers(items: list[dict]) -> list[dict]:
             "requirement_id": item.get("requirement_id"),
             "task_id": item.get("task_id"),
             "requirement_ids": list(item.get("requirement_ids") or ([] if not item.get("requirement_id") else [item["requirement_id"]])),
+            "score_refs": list(item.get("score_refs") or []),
+            "mount_ids": list(item.get("mount_ids") or []),
+            "constraint_ids": list(item.get("constraint_ids") or []),
         })
     return cleaned
 
@@ -143,8 +146,18 @@ def _chapter(state: Any, project_id: str, title: str) -> Chapter:
     return chapter
 
 
-def apply_technical_outline(state: Any, project_id: str, workflow: dict) -> None:
+def apply_technical_outline(state: Any, project_id: str, workflow: dict, model=None) -> None:
     """抽出条款后建 ResponseTask + 主题目录草稿。已写的正文不覆盖。"""
+    if model is not None:
+        workflow["tree_model"] = model
+    try:
+        _fill_technical_outline(state, project_id, workflow)
+    finally:
+        # 工作流整份进 JSON。模型对象留下去时，MySQL 编码会抛 TypeError。
+        workflow.pop("tree_model", None)
+
+
+def _fill_technical_outline(state: Any, project_id: str, workflow: dict) -> None:
     rows = _clauses(workflow)
     if not rows:
         workflow.pop("technical_outline", None)
@@ -152,7 +165,7 @@ def apply_technical_outline(state: Any, project_id: str, workflow: dict) -> None
         return
     title = detect_title(workflow)
     from icg.domain.technical_response_plan import apply_response_plan
-    plan = apply_response_plan(workflow)
+    plan = apply_response_plan(workflow, model=workflow.get("tree_model"))
     headings = plan["headings"]
     text = render(headings)
     chapter = _chapter(state, project_id, title)
