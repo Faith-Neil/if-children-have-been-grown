@@ -189,3 +189,217 @@ def test_produce_section_mounts_points_skips_global_sla_and_marks_empty_knowledg
     assert "7*24小时响应" in later
     assert "历史技术方案参考：每月巡检记录模板" in later
     assert "无命中" not in later
+
+
+def _tender_chunk() -> dict:
+    return {
+        "dataset_kind": "tender",
+        "cite_tag": "[标:0fc36992]",
+        "name": "本标切片",
+        "content": "一般故障，恢复时间不超过2个小时。",
+        "chunk_id": "0fc36992",
+        "document_id": "doc-tender",
+    }
+
+
+def test_tender_block_is_project_fact_and_missing_capability_is_unconfirmed():
+    from icg.domain.writing_knowledge_prompt import format_retrieved_knowledge_prompt_lines
+
+    prompt = "\n".join(format_retrieved_knowledge_prompt_lines([_tender_chunk()]))
+    assert "[标:0fc36992]" in prompt
+    assert "一般故障，恢复时间不超过2个小时。" in prompt
+    assert "项目事实" in prompt
+    assert "改写" in prompt
+    assert "只陈述" not in prompt
+    assert "企业知识检索" not in prompt
+    assert "【待确认】" in prompt
+    assert "能力" in prompt
+    assert "不要写成【待补】" in prompt
+
+
+def test_company_evidence_omits_capability_gap():
+    from icg.domain.writing_knowledge_prompt import format_retrieved_knowledge_prompt_lines
+
+    prompt = "\n".join(format_retrieved_knowledge_prompt_lines([
+        _tender_chunk(),
+        {
+            "dataset_kind": "history",
+            "cite_tag": "[片:h1]",
+            "content": "我司巡检每月一次并留记录",
+            "reference_only": True,
+            "chunk_id": "h1",
+        },
+        {
+            "dataset_kind": "materials",
+            "cite_tag": "[证:m1]",
+            "content": "到场时限2小时见产品说明",
+            "chunk_id": "m1",
+        },
+    ]))
+    assert "项目事实" in prompt
+    assert "改写" in prompt
+    assert "[标:0fc36992]" in prompt
+    assert prompt.index("一般故障，恢复时间不超过2个小时。") < prompt.index("我司巡检每月一次并留记录")
+    assert prompt.index("我司巡检每月一次并留记录") < prompt.index("到场时限2小时见产品说明")
+    assert "【待确认】" not in prompt
+
+
+def test_section_prompt_forbids_paraphrasing_tender_and_blanket_placeholders():
+    from icg.domain.technical_volume import produce_section
+    from icg.domain.writing_knowledge_prompt import format_retrieved_knowledge_prompt_lines
+
+    class Model:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:9"
+        system = ""
+        user = ""
+
+        def suggest(self, system, user):
+            self.system = system
+            self.user = user
+            return "针对「运维保障与巡检」按既有巡检制度执行，每月一次并留下运行记录。过程记录供验收核对。"
+
+    model = Model()
+    knowledge = "\n".join(format_retrieved_knowledge_prompt_lines([_tender_chunk()]))
+    produce_section(
+        "运维保障与巡检",
+        {"text": "日常巡检", "response": "按招标执行", "response_type": "comply"},
+        model,
+        knowledge=knowledge,
+    )
+    assert "依据检索块写可追溯句子" not in model.system
+    assert "无命中标【待确认】" not in model.system
+    assert "其他客户或其他项目名称写成【待补】" not in model.system
+    assert "改写" in model.system
+    assert "不要写成【待补】" in model.system
+    assert "[标:" in model.system
+    assert "企业知识检索" not in model.user
+    assert "[标:0fc36992]" in model.user
+    assert "【待确认】" in model.user
+    assert "能力" in model.user
+
+    empty = Model()
+    produce_section(
+        "运维保障与巡检",
+        {"text": "日常巡检", "response": "按招标执行", "response_type": "comply"},
+        empty,
+        knowledge="",
+    )
+    assert "企业知识检索" not in empty.user
+    assert "【待确认】" in empty.user
+    assert "能力" in empty.user
+
+
+def test_stand_in_does_not_treat_tender_slices_as_company_evidence():
+    from icg.domain.technical_volume import produce_section
+    from icg.domain.writing_knowledge_prompt import format_retrieved_knowledge_prompt_lines
+
+    class Model:
+        is_real_model = False
+
+    knowledge = "\n".join(format_retrieved_knowledge_prompt_lines([_tender_chunk()]))
+    text = produce_section(
+        "总体方案",
+        {"text": "日常巡检", "response": "按招标执行", "response_type": "comply"},
+        Model(),
+        knowledge=knowledge,
+    )
+    assert "已参考企业知识库" not in text
+    assert "【待确认】" in text
+
+
+def test_tender_only_retrieval_marks_section_needs_confirm():
+    from icg.domain.technical_volume import write_volume
+
+    class Kb:
+        def search(self, company_id, query, *, limit=4, kinds=None):
+            return [], ""
+
+    class Model:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:9"
+        system = ""
+        user = ""
+
+        def suggest(self, system, user):
+            self.system = system
+            self.user = user
+            return "针对「总体方案」按既有巡检制度写步骤，每月一次并留下运行记录。过程记录供验收核对。"
+
+    clause = "每月巡检数据库并出具报告"
+    workflow = {
+        "plan_confirmed": True,
+        "technical_outline": {
+            "chapter_id": "c1",
+            "headings": [{
+                "level": 1, "number": "1", "title": "总体方案",
+                "task_id": "t1", "requirement_id": "r1", "requirement_ids": ["r1"],
+            }],
+        },
+        "requirements": {
+            "r1": {
+                "id": "r1", "technical_clause": True, "text": clause,
+                "status": "confirmed", "section_kind": "scoring",
+            },
+        },
+        "response_tasks": {"t1": {"task_id": "t1", "requirement_ids": ["r1"], "response_points": [clause]}},
+        "files": {"f1": {"pages": [f"本标要求{clause}。一般故障恢复不超过2小时。"]}},
+    }
+    model = Model()
+    result = write_volume(
+        SimpleNamespace(
+            chapters={"c1": SimpleNamespace(id="c1", content="", revision=1)},
+            projects={"p": SimpleNamespace(id="p", name="合成项目", company_id="alpha")},
+        ),
+        "p",
+        workflow,
+        None,
+        model,
+        knowledge_base=Kb(),
+    )
+    assert result["failed"] == []
+    assert workflow["response_tasks"]["t1"]["response_status"] == "needs_confirm"
+    assert workflow["technical_rag_audit"][0]["tender_hits"] >= 1
+    assert workflow["technical_rag_audit"][0]["history_hits"] == 0
+    assert workflow["technical_rag_audit"][0]["material_hits"] == 0
+    assert "企业知识检索" not in model.user
+    assert "项目事实" in model.user
+    assert "[标:p" in model.user
+    assert "【待确认】" in model.user
+    assert "改写" in model.system
+
+
+def test_company_chunks_stay_when_tender_fills_the_window():
+    from icg.domain.technical_rag import knowledge_prompt_block, retrieve_for_section
+
+    class Hit:
+        def __init__(self, kind):
+            self.source_id = kind
+            self.name = kind
+            self.content = f"公司{kind}证据"
+            self.score = 0.4
+            self.dataset_kind = kind
+            self.reference_only = kind == "history"
+            self.document_id = "d"
+            self.chunk_ids = [f"chunk-{kind}"]
+            self.cite_tag = f"[片:{kind}]"
+
+    class Kb:
+        def search(self, company_id, query, *, limit=4, kinds=None):
+            kind = next(iter(kinds or {"history"}))
+            return [Hit(kind)], ""
+
+    pages = [f"数据库巡检每月一次，第{index}页" for index in range(1, 6)]
+    chunks, audit = retrieve_for_section(
+        Kb(), "alpha", "数据库巡检", {"files": {"f1": {"pages": pages}}}, limit=2,
+    )
+    assert audit["tender_hits"] >= 2
+    assert audit["history_hits"] == 1
+    kinds = [item.get("dataset_kind") for item in chunks]
+    assert "tender" in kinds
+    assert "history" in kinds or "materials" in kinds
+    prompt = knowledge_prompt_block(chunks)
+    assert "公司history证据" in prompt or "公司materials证据" in prompt
+    assert "【待确认】" not in prompt
