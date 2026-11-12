@@ -207,8 +207,20 @@ def _remember_extract(row: dict, clause: TechnicalClause) -> None:
     row["page"] = clause.page
 
 
-def apply_technical_extract(workflow: dict, file_id: str, pages: list[str], new_ids: set[str], model=None) -> dict:
-    """把抽出的条款写入矩阵。同一件事已有一行时，只追加来源，不另起一行。"""
+def apply_technical_extract(
+    workflow: dict,
+    file_id: str,
+    pages: list[str],
+    new_ids: set[str],
+    model=None,
+    *,
+    model_payload: dict | None = None,
+) -> dict:
+    """把抽出的条款写入矩阵。同一件事已有一行时，只追加来源，不另起一行。
+
+    model_payload：事务外预跑 extract_with_model 的结果。传入后本函数不再调模型，
+    避免长耗时 Ollama 占住 MemoryRepository 全局 RLock 卡住登录。
+    """
     # technical_model_extract 在模块顶层引用本文件的条款类型，这里延后导入以免循环。
     from icg.domain.technical_model_extract import (
         absorb_model_facts,
@@ -226,8 +238,10 @@ def apply_technical_extract(workflow: dict, file_id: str, pages: list[str], new_
         for line in fresh[key]:
             if line not in bucket:
                 bucket.append(line)
-    if usable_local_model(model):
+    payload = model_payload
+    if payload is None and usable_local_model(model):
         payload = extract_with_model(pages, model)
+    if payload is not None:
         absorb_model_facts(workflow, payload)
         model_clauses = clauses_from_model(payload)
         mounts = []
