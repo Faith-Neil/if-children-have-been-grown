@@ -160,11 +160,13 @@ def test_tree_rejects_same_title_personnel_and_duplicate_mount():
         {"level": 1, "number": "1", "title": "备份恢复与容灾方案", "requirement_ids": ["a", "a"], "score_refs": []},
         {"level": 2, "number": "1.1", "title": "备份恢复与容灾方案", "requirement_ids": [], "score_refs": []},
         {"level": 1, "number": "2", "title": "人员配置", "requirement_ids": [], "score_refs": []},
+        {"level": 1, "number": "3", "title": "规范 2方案", "requirement_ids": [], "score_refs": []},
     ]
     issues = tree_issues(headings, [{"id": "a", "section_kind": "scoring", "status": "confirmed"}], [])
     assert any("同名嵌套" in item for item in issues)
     assert any("人员或商务标题" in item for item in issues)
     assert any("重复挂载" in item for item in issues)
+    assert any("占位拼接标题" in item for item in issues)
 
 
 def test_validate_plan_flags_unmapped():

@@ -35,11 +35,17 @@ def strip_heading_number(text: str) -> str:
     return NUMBER_PREFIX.sub("", (text or "").strip()).strip()
 
 
+PLACEHOLDER_TITLE = re.compile(r"^(?:规范\s*[\d.]+方案|.+方案方案)$")
+
+
 def _scheme_title(name: str) -> str:
+    """仅保留兼容导出；目录替身不再用它硬拼「规范 N方案」。"""
     title = strip_heading_number(name)
     if not title or title in BANNED_TITLES:
         return ""
     if any(word in title for word in PERSONNEL_WORDS):
+        return ""
+    if PLACEHOLDER_TITLE.match(title):
         return ""
     if title.endswith(SCHEME_TAIL):
         return title
@@ -374,6 +380,8 @@ def tree_issues(headings: list[dict], requirements: list[dict], tasks: list[dict
             issues.append(f"禁用标题 {title}")
         if any(word in title for word in PERSONNEL_WORDS):
             issues.append(f"人员或商务标题 {title}")
+        if PLACEHOLDER_TITLE.match(title):
+            issues.append(f"占位拼接标题 {title}")
         # 短名条款（≤16）允许作章名；拦住把长条款原文直接贴成标题。
         if title in clause_text and len(title) > 16:
             issues.append(f"照抄要点 {title}")
