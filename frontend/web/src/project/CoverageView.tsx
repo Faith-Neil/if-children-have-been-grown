@@ -6,6 +6,7 @@ import { Alert, Button, Card, Input, Table, Tag } from 'antd';
 import { useProject } from '../app/context.tsx';
 import type { CoverageRow, TechnicalRagAuditRow } from '../shared/types.ts';
 import { auditSearchLine, auditTopKinds, tenderIndexLine, writerModelLine } from './coverage-audit.ts';
+import { parseHonesty } from './parse-honesty.ts';
 
 const RISK_LABEL: Record<string, string> = {
   critical: '废标风险',
@@ -39,6 +40,7 @@ export function CoverageView() {
   }, [workspace.coverage_rows, search]);
 
   const validation = workspace.plan_validation;
+  const honesty = parseHonesty(workspace);
   const audits = (workspace.technical_rag_audit ?? []) as TechnicalRagAuditRow[];
   const indexLine = tenderIndexLine(workspace.tender_index);
   const modelLine = writerModelLine(workspace.writer_model);
@@ -67,6 +69,16 @@ export function CoverageView() {
         description="招标要求 → 响应任务 → 目标章节。不挡「开始生成」与导出。"
         action={<Button size="small" type="link" onClick={() => navigate('editor')}>回编辑台</Button>}
       />
+      {honesty.degraded && (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 8 }}
+          data-testid="parse-honesty-warning"
+          message="解析结果不完整"
+          description={honesty.text}
+        />
+      )}
       {validation && validation.passed === false && (
         <Alert
           type="warning"

@@ -154,8 +154,19 @@ export function applyJobEvent(job: JobProgressData, event: BackendJobEvent): Job
     }
     case 'job.progress':
       return { ...job, percent: typeof payload.progress === 'number' ? payload.progress : job.percent, description: payload.message ?? job.description };
-    case 'job.completed':
-      return { ...job, status: 'completed', percent: 100, finishedAt: payload.completed_at ?? job.finishedAt, allowedActions: [] };
+    case 'job.completed': {
+      const degraded = typeof payload.error === 'string' && payload.error ? payload.error : undefined;
+      return {
+        ...job,
+        status: 'completed',
+        percent: 100,
+        description: typeof payload.message === 'string' && payload.message ? payload.message : job.description,
+        errorCode: degraded,
+        errorMessage: degraded ? (typeof payload.message === 'string' ? payload.message : job.description) : undefined,
+        finishedAt: payload.completed_at ?? job.finishedAt,
+        allowedActions: [],
+      };
+    }
     case 'job.failed':
       return { ...job, status: 'failed', percent: 100, errorCode: typeof payload.error === 'string' ? payload.error : job.errorCode,
         errorMessage: job.errorMessage ?? job.description, finishedAt: payload.completed_at ?? job.finishedAt, allowedActions: ['retry'] };

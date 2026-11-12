@@ -298,6 +298,8 @@ export type TechnicalOutline = {
   headings: TechnicalHeading[];
   missing?: string[];
   plan_validation?: PlanValidation | null;
+  outline_source?: string;
+  tree_model_failed?: boolean;
 };
 export type CoverageRow = {
   requirement_id: string;
@@ -371,7 +373,7 @@ export type TechnicalQuality = {
   review_titles: string[];
   warning: string;
 };
-export type Workspace = { revision: number; input_fingerprint: string; source_fingerprint?: string; parsed_source_fingerprint?: string; technical_extract_empty?: boolean; technical_outline?: TechnicalOutline | null; technical_deviation_note?: string; technical_needs_review?: string[]; technical_kb?: TechnicalKbStatus | null; technical_quality?: TechnicalQuality | null; response_tasks?: ResponseTask[]; coverage_rows?: CoverageRow[]; plan_validation?: PlanValidation | null; technical_rag_audit?: TechnicalRagAuditRow[]; tender_index?: TenderIndexStatus | null; writer_model?: WriterModelStatus | null; project: Project; stage: string; files: TenderFile[]; requirements: Requirement[]; facts: Fact[]; conflicts: Conflict[]; chapters: Chapter[]; checks: Check[]; exports: Export[]; jobs: Job[]; parse_confirmed: boolean; plan_confirmed: boolean; sla?: ProjectSla | null; writing_plan?: WritingPlan; team?: ProjectTeam; permissions?: ProjectPermissions; volumes?: VolumeStatus[]; human_queue_pending?: number; omissions_pending?: number; project_status?: { status: string; label: string; read_only: boolean; registered: boolean; result?: string | null; result_label?: string | null; history: Array<Record<string, unknown>> } };
+export type Workspace = { revision: number; input_fingerprint: string; source_fingerprint?: string; parsed_source_fingerprint?: string; technical_extract_empty?: boolean; extract_degraded?: boolean; extract_timeout_count?: number; extract_pages_read?: number; outline_source?: string; tree_model_failed?: boolean; technical_outline?: TechnicalOutline | null; technical_deviation_note?: string; technical_needs_review?: string[]; technical_kb?: TechnicalKbStatus | null; technical_quality?: TechnicalQuality | null; response_tasks?: ResponseTask[]; coverage_rows?: CoverageRow[]; plan_validation?: PlanValidation | null; technical_rag_audit?: TechnicalRagAuditRow[]; tender_index?: TenderIndexStatus | null; writer_model?: WriterModelStatus | null; project: Project; stage: string; files: TenderFile[]; requirements: Requirement[]; facts: Fact[]; conflicts: Conflict[]; chapters: Chapter[]; checks: Check[]; exports: Export[]; jobs: Job[]; parse_confirmed: boolean; plan_confirmed: boolean; sla?: ProjectSla | null; writing_plan?: WritingPlan; team?: ProjectTeam; permissions?: ProjectPermissions; volumes?: VolumeStatus[]; human_queue_pending?: number; omissions_pending?: number; project_status?: { status: string; label: string; read_only: boolean; registered: boolean; result?: string | null; result_label?: string | null; history: Array<Record<string, unknown>> } };
 
 export type SnippetSyncStatus = 'synced' | 'unsynced' | 'failed' | 'sync_failed' | string;
 export type SnippetPublication = {

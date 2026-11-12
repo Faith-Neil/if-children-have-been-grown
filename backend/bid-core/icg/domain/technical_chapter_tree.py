@@ -285,6 +285,7 @@ def stand_in_chapter_tree(tasks: list[dict], reqs: dict[str, dict]) -> list[dict
 def compose_tree_with_model(
     tasks: list[dict], reqs: dict[str, dict], workflow: dict, model: Any,
 ) -> list[dict] | None:
+    workflow.pop("_tree_call_failed", None)
     if not _usable_tree_model(model):
         return None
     points = summarize_points(tasks, reqs)
@@ -300,8 +301,10 @@ def compose_tree_with_model(
         raw = model.suggest(TREE_SYSTEM, user)
         items = _parse_tree_payload(str(raw or ""))
     except Exception:
+        workflow["_tree_call_failed"] = True
         return None
     if not items:
+        workflow["_tree_call_failed"] = True
         return None
     by_id = {item["id"]: item["task"] for item in points if item.get("id")}
     nodes: list[dict] = []
@@ -329,6 +332,9 @@ def compose_tree_with_model(
             _fill_leaf(node, combined, reqs)
             node["_task"] = combined
         nodes.append(node)
+    if not nodes:
+        workflow["_tree_call_failed"] = True
+        return None
     leftover = [item["task"] for item in points if item.get("id") and item["id"] not in used]
     if leftover:
         host = next((node for node in nodes if node.get("title") == "总体方案"), None)
@@ -369,6 +375,7 @@ def build_chapter_tree(tasks: list[dict], workflow: dict | None = None, model: A
     # tree_model 仅在同一次 outline 调用内临时存在，禁止持久化进 MySQL。
     model = model or workflow.get("tree_model")
     nodes = compose_tree_with_model(tasks, reqs, workflow, model)
+    failed = bool(workflow.pop("_tree_call_failed", False))
     used_model = bool(nodes)
     if not nodes:
         nodes = stand_in_chapter_tree(tasks, reqs)
@@ -379,6 +386,17 @@ def build_chapter_tree(tasks: list[dict], workflow: dict | None = None, model: A
     if hard and used_model:
         nodes = stand_in_chapter_tree(tasks, reqs)
         numbered, rewritten = _finish_tree(nodes)
+        used_model = False
+        failed = True
+    if used_model:
+        workflow["outline_source"] = "model"
+        workflow["tree_model_failed"] = False
+    elif failed:
+        workflow["outline_source"] = "rule_fallback"
+        workflow["tree_model_failed"] = True
+    else:
+        workflow["outline_source"] = "rule"
+        workflow["tree_model_failed"] = False
     return numbered, rewritten
 
 

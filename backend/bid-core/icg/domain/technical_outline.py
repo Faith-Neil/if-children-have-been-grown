@@ -190,6 +190,8 @@ def _fill_technical_outline(state: Any, project_id: str, workflow: dict) -> None
         "text": text,
         "headings": headings,
         "plan_validation": plan["validation"],
+        "outline_source": workflow.get("outline_source") or "rule",
+        "tree_model_failed": bool(workflow.get("tree_model_failed")),
     }
 
 
@@ -258,11 +260,14 @@ def replace_outline(state: Any, project_id: str, workflow: dict, headings: list[
     text = render(cleaned)
     chapter.content = text
     workflow["plan_confirmed"] = False
+    previous = workflow.get("technical_outline") or {}
     workflow["technical_outline"] = {
         "title": chapter.title,
         "chapter_id": chapter.id,
         "text": text,
         "headings": cleaned,
+        "outline_source": previous.get("outline_source") or workflow.get("outline_source") or "",
+        "tree_model_failed": bool(previous.get("tree_model_failed") or workflow.get("tree_model_failed")),
     }
     return chapter
 
@@ -347,6 +352,11 @@ def workspace_fields(state: Any, project_id: str, workflow: dict) -> dict[str, A
             "technical_outline": None,
             "technical_deviation_note": "",
             "technical_needs_review": [],
+            "extract_degraded": False,
+            "extract_timeout_count": 0,
+            "extract_pages_read": 0,
+            "outline_source": "",
+            "tree_model_failed": False,
         }
     stored = workflow.get("technical_outline")
     outline = None
@@ -358,6 +368,8 @@ def workspace_fields(state: Any, project_id: str, workflow: dict) -> dict[str, A
             "chapter_id": stored.get("chapter_id") or "",
             "headings": list(stored.get("headings") or []),
             "missing": missing,
+            "outline_source": stored.get("outline_source") or workflow.get("outline_source") or "",
+            "tree_model_failed": bool(stored.get("tree_model_failed") or workflow.get("tree_model_failed")),
         }
     confirmed = bool(workflow.get("plan_confirmed")) and outline is not None
     from icg.domain.technical_volume import deviation_note, review_titles
@@ -388,6 +400,11 @@ def workspace_fields(state: Any, project_id: str, workflow: dict) -> dict[str, A
         "technical_rag_audit": public_rag_audit(workflow),
         "tender_index": public_tender_index(workflow.get("tender_index")),
         "writer_model": writer_model_label(workflow.get("writer_model")),
+        "extract_degraded": bool(workflow.get("extract_degraded")),
+        "extract_timeout_count": int(workflow.get("extract_timeout_count") or 0),
+        "extract_pages_read": int((workflow.get("technical_extract_model") or {}).get("pages_read") or 0),
+        "outline_source": (stored or {}).get("outline_source") or workflow.get("outline_source") or "",
+        "tree_model_failed": bool((stored or {}).get("tree_model_failed") or workflow.get("tree_model_failed")),
     }
 
 
