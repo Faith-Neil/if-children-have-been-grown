@@ -129,3 +129,52 @@ def test_parse_job_permissions(client):
     job = _start(flow).json()
     assert client.get(f"/api/v1/jobs/{job['id']}", headers=login(client, "beta-manager")).status_code == 404
     _wait(flow, job["id"])
+
+
+def test_orphan_running_parse_job_is_failed_so_restart_can_reparse(client, monkeypatch):
+    """进程崩溃后遗留的 running 任务：再次 start 应收口并开新任务，而不是永远返回僵尸。"""
+    flow = _uploaded(client)
+    runner = client.app.state.parse_job_runner
+    monkeypatch.setattr(runner, "_pending_files", lambda project_id, payload: ["file-remote"])
+    first = _start(flow).json()
+    _wait(flow, first["id"], statuses=("running",))
+    with runner._lock:
+        runner._running.discard(first["id"])  # 模拟进程/线程丢失
+    again = _start(flow)
+    assert again.status_code == 202, again.text
+    body = again.json()
+    assert body["id"] != first["id"]
+    orphan = client.get(f"/api/v1/jobs/{first['id']}", headers=flow.headers).json()
+    assert orphan["status"] == "failed"
+    assert orphan["error"]["code"] == "PARSER_INTERRUPTED"
+    client.post(f"/api/v1/jobs/{body['id']}/cancel", headers={**flow.headers, "Idempotency-Key": str(uuid4())})
+
+
+def test_fail_orphans_on_wire_marks_stale_running_jobs(client):
+    flow = _uploaded(client)
+    runner = client.app.state.parse_job_runner
+    now = "2026-11-12T00:00:00+08:00"
+    stale_id = "job-stale-orphan"
+
+    def plant(state):
+        job = {"id": stale_id, "project_id": flow.id, "type": "parse", "status": "running", "progress": 5,
+               "message": "后台任务处理中", "created_at": now, "completed_at": None, "error": None,
+               "events": [], "recoverable": True, "live": True, "created_by": "alpha-manager",
+               "file_ids": None, "service": "auto"}
+        state.recoverable_jobs[stale_id] = job
+        state.jobs[stale_id] = {
+            key: job.get(key) for key in ("id", "project_id", "type", "status", "progress", "message",
+                                          "created_at", "completed_at", "error")
+        } | {"recoverable": False}
+
+    runner.repository.transaction(plant)
+    assert runner.fail_orphans() >= 1
+    orphan = client.get(f"/api/v1/jobs/{stale_id}", headers=flow.headers).json()
+    assert orphan["status"] == "failed" and orphan["error"]["code"] == "PARSER_INTERRUPTED"
+
+
+def test_health_exposes_effective_model(client):
+    health = client.get("/health").json()
+    assert health["model"] in ("mock", "real")
+    assert health["effective_model"] in ("mock", "real", "company_real")
+    assert "effective_model" in health

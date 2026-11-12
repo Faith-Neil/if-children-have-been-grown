@@ -46,8 +46,10 @@ def main() -> None:
     health = c.get(f"{BASE}/health").json()
     data["health"] = health
     print("health", health, flush=True)
-    if health.get("model") == "mock":
-        note(data, "高", "当前 model=mock", "分节/大纲 LLM 为替身，正文质量不能当作生产可用")
+    if health.get("effective_model", health.get("model")) == "mock":
+        note(data, "高", "当前 effective_model=mock", "分节/大纲 LLM 为替身，正文质量不能当作生产可用")
+    elif health.get("model") == "mock" and health.get("effective_model") == "company_real":
+        note(data, "中", "进程 model=mock 但公司已配真实模型", "以 effective_model=company_real 为准，勿只看 model")
     if not health.get("persistent"):
         note(data, "高", "非持久化仓储", str(health))
 

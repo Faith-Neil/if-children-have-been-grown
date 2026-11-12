@@ -562,6 +562,7 @@ def include_recoverable_routes(application, workflow, current_user):
     from .parse_jobs import ParseJobRunner
     jobs = RecoverableJobs(workflow)
     parse_runner = ParseJobRunner(workflow, jobs)
+    parse_runner.fail_orphans()
     jobs.runners["parse"] = parse_runner
     application.state.parse_job_runner = parse_runner
     router = APIRouter(prefix="/api/v1")
