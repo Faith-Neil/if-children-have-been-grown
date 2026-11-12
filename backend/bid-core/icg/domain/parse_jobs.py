@@ -38,8 +38,14 @@ def _mirror(job: dict) -> dict:
                                           "created_at", "completed_at", "error")} | {"recoverable": False}
 
 
+ORPHAN_MESSAGE = "解析进程已重启或任务线程丢失，原任务中断；请重新开始解析。"
+ORPHAN_ERROR = {"code": "PARSER_INTERRUPTED", "message": ORPHAN_MESSAGE}
+
+
 class ParseJobRunner:
-    """每个进程一个；部署为单进程（/health 的 single_process）。"""
+    """每个进程一个；部署为单进程（/health 的 single_process）。
+    长耗时解析只在本类线程池里跑，不占 FastAPI 请求线程；进程崩溃留下的
+    running/queued 任务在启动时与再次 start 时收口为 failed，避免 UI 卡死。"""
 
     def __init__(self, workflow: Any, jobs: Any) -> None:
         self.workflow = workflow
@@ -49,6 +55,36 @@ class ParseJobRunner:
         self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="parse-job")
         self._running: set[str] = set()
         self._lock = threading.Lock()
+
+    def fail_orphans(self) -> int:
+        """进程接线时调用：上一进程留下的非终态 parse 任务一律标失败。"""
+        count = 0
+
+        def operation(state):
+            nonlocal count
+            for job in list(state.recoverable_jobs.values()):
+                if job.get("type") != "parse" or job.get("status") in TERMINAL:
+                    continue
+                self._fail_orphan_job(state, job)
+                count += 1
+            return count
+
+        self.repository.transaction(operation)
+        return count
+
+    def _fail_orphan_job(self, state, job: dict) -> None:
+        previous = job["status"]
+        now = iso_time(self.demo._now())
+        job.update(status="failed", progress=100, message=ORPHAN_MESSAGE,
+                   completed_at=now, error=dict(ORPHAN_ERROR))
+        self.jobs._append(job, "job.status_changed", payload={"from": previous, "to": "failed"})
+        self.jobs._append(job, "job.failed",
+                          payload={"status": "failed", "completed_at": now, "error": ORPHAN_ERROR["code"]})
+        state.jobs[job["id"]] = _mirror(job)
+
+    def _is_live(self, job_id: str) -> bool:
+        with self._lock:
+            return job_id in self._running
 
     # ------------------------------------------------------------ 启动
 
@@ -66,7 +102,10 @@ class ParseJobRunner:
                            if j.get("project_id") == project_id and j.get("type") == "parse"
                            and j.get("status") not in TERMINAL), None)
             if active is not None:
-                return self._public(active)  # 同一项目只跑一个解析任务，重复点击回到原任务
+                if self._is_live(active["id"]):
+                    return self._public(active)  # 同一项目只跑一个解析任务，重复点击回到原任务
+                # 进程崩溃或线程丢失后的僵尸任务：收口后允许重新开跑
+                self._fail_orphan_job(state, active)
             self.workflow._version(project.revision, expected)
             workflow = state.workflows.get(project_id) or {}
             files = workflow.get("files") or {}

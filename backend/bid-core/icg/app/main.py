@@ -162,9 +162,20 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     def health():
         from icg.domain.domain import _production_mode
         repository_mode = getattr(service.repository, "mode", "injected")
+        process_model = "real" if getattr(service.model_provider, "is_real_model", False) else "mock"
+        # model=进程内置提供方；effective_model=含公司/项目已保存的真实模型配置，避免运维误判。
+        effective_model = process_model
+        if effective_model == "mock":
+            try:
+                configs = getattr(service.repository.read(), "model_configs", {}) or {}
+                if any(getattr(cfg, "provider", "demo") != "demo" for cfg in configs.values()):
+                    effective_model = "company_real"
+            except Exception:
+                pass
         return {"status": "ok", "mode": "production" if _production_mode() else "development",
                 "repository": repository_mode,
-                "model": "real" if getattr(service.model_provider, "is_real_model", False) else "mock",
+                "model": process_model,
+                "effective_model": effective_model,
                 "persistent": repository_mode == "mysql",
                 # 后台作业执行与知识库同步锁仍在进程内，部署时只能起一个应用进程。
                 "single_process": True}
