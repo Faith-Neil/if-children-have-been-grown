@@ -1,7 +1,13 @@
 # 为什么有这个文件：核对两层矩阵、主题目录短标题与计划校验。
 from __future__ import annotations
 
-from icg.domain.technical_chapter_tree import BACKBONE_BACK, BACKBONE_FRONT, detect_format_lock, tree_issues
+from icg.domain.technical_chapter_tree import (
+    BACKBONE_BACK,
+    BACKBONE_FRONT,
+    build_chapter_tree,
+    detect_format_lock,
+    tree_issues,
+)
 from icg.domain.technical_response_plan import (
     apply_response_plan,
     short_chapter_title,
@@ -131,6 +137,69 @@ def test_model_tree_survives_unindexed_score_soft_issue():
     titles = [item["title"] for item in headings]
     assert "运维保障与巡检" in titles
     assert not any(str(title).startswith("规范") for title in titles)
+
+
+def _mount_task():
+    tasks = [{
+        "task_id": "t1", "theme": "巡检", "title": "巡检",
+        "requirement_ids": ["r1"],
+        "response_points": ["每月巡检"], "constraint_ids": [], "rejection_requirement_ids": [],
+    }]
+    workflow = {
+        "requirements": {
+            "r1": {
+                "id": "r1", "text": "每月巡检", "section_kind": "scoring",
+                "technical_clause": True, "status": "confirmed",
+            },
+        }
+    }
+    return tasks, workflow
+
+
+def test_tree_model_timeout_labels_rule_fallback():
+    from icg.infra.openai_model import RetryableModelError
+
+    class Boom:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:11434"
+
+        def suggest(self, system, user):
+            raise RetryableModelError("timeout")
+
+    tasks, workflow = _mount_task()
+    headings, _rewritten = build_chapter_tree(tasks, workflow, model=Boom())
+    assert headings
+    assert workflow["outline_source"] == "rule_fallback"
+    assert workflow["tree_model_failed"] is True
+
+
+def test_tree_model_success_labels_model_source():
+    import json
+
+    class Local:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:11434"
+
+        def suggest(self, system, user):
+            return json.dumps([
+                {"level": 1, "title": "运维保障与巡检", "mount_ids": ["r1"]},
+            ], ensure_ascii=False)
+
+    tasks, workflow = _mount_task()
+    headings, _rewritten = build_chapter_tree(tasks, workflow, model=Local())
+    assert any(item["title"] == "运维保障与巡检" for item in headings)
+    assert workflow["outline_source"] == "model"
+    assert workflow["tree_model_failed"] is False
+
+
+def test_tree_without_model_is_rule_not_a_failure():
+    tasks, workflow = _mount_task()
+    headings, _rewritten = build_chapter_tree(tasks, workflow, model=None)
+    assert headings
+    assert workflow["outline_source"] == "rule"
+    assert workflow["tree_model_failed"] is False
 
 
 def test_stand_in_never_uses_spec_number_as_chapter_title():

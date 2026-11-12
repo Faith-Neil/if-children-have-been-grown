@@ -41,6 +41,52 @@ class _LocalModel:
         }"""
 
 
+def _long_pages(count: int) -> list[str]:
+    return ["巡检服务" + ("页" * 2400) for _ in range(count)]
+
+
+class _CountingModel:
+    is_real_model = True
+    is_local = True
+    base_url = "http://127.0.0.1:11434"
+
+    def __init__(self, fail_after: int):
+        self.fail_after = fail_after
+        self.calls = 0
+
+    def suggest(self, system, user):
+        self.calls += 1
+        if self.calls > self.fail_after:
+            from icg.infra.openai_model import RetryableModelError
+            raise RetryableModelError("timeout")
+        return """{"items":[{"role":"response_mount","text":"巡检服务","quote":"巡检","kind":"scoring"}]}"""
+
+
+def test_extract_mass_timeout_is_degraded_and_keeps_read_pages():
+    payload = extract_with_model(_long_pages(4), _CountingModel(fail_after=1))
+    assert payload["chunks_attempted"] == 4
+    assert payload["pages_read"] == 1
+    assert payload["timeout_count"] == 3
+    assert payload["extract_degraded"] is True
+    assert payload["items"]
+
+
+def test_extract_minority_timeout_is_not_degraded():
+    payload = extract_with_model(_long_pages(4), _CountingModel(fail_after=3))
+    assert payload["timeout_count"] == 1
+    assert payload["pages_read"] == 3
+    assert payload["extract_degraded"] is False
+
+
+def test_apply_extract_records_mass_timeout_on_workflow():
+    workflow = {"requirements": {}, "technical_sidecars": {"format_lines": [], "rejection_lines": []}}
+    apply_technical_extract(workflow, "f1", _long_pages(4), set(), model=_CountingModel(fail_after=1))
+    assert workflow["extract_degraded"] is True
+    assert workflow["extract_timeout_count"] == 3
+    assert workflow["technical_extract_model"]["pages_read"] == 1
+    assert workflow["technical_extract_model"]["timeout_count"] == 3
+
+
 def test_model_extract_reads_who_and_period_not_only_short_lines():
     pages = [
         "招标人：德阳市人民医院\n采购信息系统运维服务。合同履行期限三十六个日历月。\n"
