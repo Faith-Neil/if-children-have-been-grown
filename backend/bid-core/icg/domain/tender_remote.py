@@ -18,6 +18,8 @@ from dataclasses import dataclass
 from pathlib import PurePosixPath
 from typing import Any
 
+from icg.infra.ragflow_client import _audit_ragflow_io as _audit_ragflow
+
 from .domain import DomainError
 from .parsing import BATCH_PAGES, ParsedDocument, batch_ranges
 
@@ -315,11 +317,13 @@ class RemoteTenderParser:
     def submit(self, company_id: str, filename: str, data: bytes) -> RemoteOutcome:
         client = self.client(company_id)
         if client is None:
+            _audit_ragflow("submit_skip", {"company_id": company_id, "filename": filename, "reason": "no_client"})
             return RemoteOutcome("failed", message="未连接 RAGFlow：扫描件、.doc、.xls 与图片须经知识库管理中连接的 RAGFlow 解析。")
         from .office_pdf import prepare_for_deepdoc
         prepared = prepare_for_deepdoc(filename, data)
         converted = False
         if isinstance(prepared, str):
+            _audit_ragflow("submit_fail", {"company_id": company_id, "filename": filename, "reason": prepared})
             return RemoteOutcome("failed", message=prepared)
         if prepared is not None:
             filename, data = prepared
@@ -328,6 +332,10 @@ class RemoteTenderParser:
         parts = split_pdf(data, remote_batch_pages()) if suffix == ".pdf" else None
         uploaded: list[dict] = []
         dataset_id = ""
+        _audit_ragflow("submit_start", {
+            "company_id": company_id, "filename": filename, "bytes": len(data),
+            "converted_to_pdf": converted, "suffix": suffix, "pdf_parts": len(parts or []),
+        })
         try:
             dataset_id = self.ensure_dataset(client, company_id)
             if parts:
@@ -340,14 +348,21 @@ class RemoteTenderParser:
             else:
                 document = client.upload_file(dataset_id, filename, data, MEDIA_TYPES.get(suffix, "application/octet-stream"))
                 client.trigger_parse(dataset_id, [document.id])
+            _audit_ragflow("submit_uploaded", {
+                "company_id": company_id, "dataset_id": dataset_id,
+                "document_ids": [p["document_id"] for p in uploaded] if uploaded else [document.id],
+                "parts": uploaded or None,
+            })
         except DomainError as exc:
             for part in uploaded:
                 self._cleanup(client, {"dataset_id": dataset_id, "document_id": part["document_id"]})
+            _audit_ragflow("submit_fail", {"company_id": company_id, "error": exc.message})
             return RemoteOutcome("failed", message=exc.message)
         except Exception as exc:
             log.warning("tender remote submit failed for %s: %s", company_id, type(exc).__name__)
             for part in uploaded:
                 self._cleanup(client, {"dataset_id": dataset_id, "document_id": part["document_id"]})
+            _audit_ragflow("submit_fail", {"company_id": company_id, "error": type(exc).__name__})
             return RemoteOutcome("failed", message=f"RAGFlow 暂不可用（{type(exc).__name__}），原件仍保留，稍后重试。")
         if uploaded:
             outcome = self.poll(company_id, {"dataset_id": dataset_id, "document_id": uploaded[0]["document_id"],
@@ -359,6 +374,11 @@ class RemoteTenderParser:
                 "原件是 Word，已转成 PDF 后交 RAGFlow DeepDOC 按版面识别。页码对应转换后的 PDF。",
                 *outcome.document.warnings,
             ]
+        pages = len(outcome.document.pages) if outcome.document is not None else 0
+        _audit_ragflow("submit_done", {
+            "company_id": company_id, "state": outcome.state, "pages": pages,
+            "message": (outcome.message or "")[:500],
+        })
         return outcome
 
     def poll(self, company_id: str, remote: dict, *, budget: float | None = None) -> RemoteOutcome:
