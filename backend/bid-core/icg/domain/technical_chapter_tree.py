@@ -35,7 +35,8 @@ def strip_heading_number(text: str) -> str:
     return NUMBER_PREFIX.sub("", (text or "").strip()).strip()
 
 
-PLACEHOLDER_TITLE = re.compile(r"^(?:规范\s*[\d.]+方案|.+方案方案)$")
+PLACEHOLDER_TITLE = re.compile(r"^(?:规范\s*[\d.]+(?:方案)?|.+方案方案)$")
+SPEC_NUMBER_THEME = re.compile(r"^规范\s*[\d.]+")
 
 
 def _scheme_title(name: str) -> str:
@@ -224,18 +225,26 @@ def stand_in_chapter_tree(tasks: list[dict], reqs: dict[str, dict]) -> list[dict
             # 纯废标/约束任务不成章，留给有挂载的任务挂 constraint_ids。
             continue
         theme = _theme_of(task)
-        # 只用归纳主题作一级；禁题（评分响应）不回落到条款短名当一级。
+        # 只用归纳主题作一级；禁题（评分响应）与「规范 N」编号指纹不成章名。
         label = str(theme or "").strip()
         point = ""
         for rid in mounts:
-            point = str((reqs.get(rid) or {}).get("text") or "").strip()
+            point = str((reqs.get(rid) or {}).get("extracted_summary") or (reqs.get(rid) or {}).get("text") or "").strip()
             if point:
                 break
         task_title = str(task.get("title") or "").strip()
-        if label and label not in BANNED_TITLES and not any(word in label for word in PERSONNEL_WORDS):
+        if (
+            label
+            and label not in BANNED_TITLES
+            and not any(word in label for word in PERSONNEL_WORDS)
+            and not SPEC_NUMBER_THEME.match(label)
+            and not PLACEHOLDER_TITLE.match(label)
+        ):
             h1 = label
         else:
-            h1 = "综合技术响应"
+            h1 = short_chapter_title(point or task_title, fallback="综合技术响应")
+            if SPEC_NUMBER_THEME.match(h1) or PLACEHOLDER_TITLE.match(h1) or h1 in BANNED_TITLES:
+                h1 = "综合技术响应"
         if h1 in BANNED_TITLES or any(word in h1 for word in PERSONNEL_WORDS):
             continue
         host = _node(1, h1)
@@ -295,6 +304,8 @@ def compose_tree_with_model(
         title = strip_heading_number(str(item.get("title") or ""))
         level = int(item.get("level") or 1)
         if not title or title in BANNED_TITLES or any(word in title for word in PERSONNEL_WORDS):
+            continue
+        if SPEC_NUMBER_THEME.match(title) or PLACEHOLDER_TITLE.match(title):
             continue
         if level < 1 or level > 3:
             continue
@@ -380,7 +391,7 @@ def tree_issues(headings: list[dict], requirements: list[dict], tasks: list[dict
             issues.append(f"禁用标题 {title}")
         if any(word in title for word in PERSONNEL_WORDS):
             issues.append(f"人员或商务标题 {title}")
-        if PLACEHOLDER_TITLE.match(title):
+        if PLACEHOLDER_TITLE.match(title) or SPEC_NUMBER_THEME.match(title):
             issues.append(f"占位拼接标题 {title}")
         # 短名条款（≤16）允许作章名；拦住把长条款原文直接贴成标题。
         if title in clause_text and len(title) > 16:

@@ -429,6 +429,7 @@ class TenderOrchestratorMixin:
                               {"job_id": result["job"]["id"], "revision": result["revision"]})
         if fill_matrix_after[0]:
             self._fill_technical_matrix_unlocked(principal, project_id, provider)
+            self._refresh_technical_outline_unlocked(principal, project_id, provider)
             refreshed = self.repository.read()
             workflow = refreshed.workflows.get(project_id) or {}
             from icg.domain.parse_decisions import visible
@@ -436,6 +437,64 @@ class TenderOrchestratorMixin:
             result["facts"] = [f for f in workflow.get("facts", {}).values() if visible(f)]
             result["revision"] = refreshed.projects[project_id].revision
         return result
+
+    def _refresh_technical_outline_unlocked(self, principal: Principal, project_id: str, provider) -> None:
+        """目录模型编排在锁外跑；成功则短事务覆盖规则替身目录。"""
+        from icg.domain.technical_model_extract import usable_local_model
+        if not usable_local_model(provider):
+            return
+        state = self.repository.read()
+        workflow = state.workflows.get(project_id) or {}
+        if not any(row.get("technical_clause") for row in (workflow.get("requirements") or {}).values()):
+            return
+        draft = {
+            "requirements": dict(workflow.get("requirements") or {}),
+            "technical_sidecars": dict(workflow.get("technical_sidecars") or {}),
+            "response_tasks": {key: dict(value) for key, value in (workflow.get("response_tasks") or {}).items()},
+            "technical_facts": dict(workflow.get("technical_facts") or {}),
+            "technical_promises": dict(workflow.get("technical_promises") or {}),
+            "tree_model": provider,
+        }
+        try:
+            from icg.domain.technical_response_plan import apply_response_plan
+            plan = apply_response_plan(draft)
+        finally:
+            draft.pop("tree_model", None)
+        headings = plan.get("headings") or []
+        tasks = plan.get("tasks") or []
+        if not headings:
+            return
+        from icg.domain.technical_outline import detect_title, render
+
+        title = detect_title(draft)
+        text = render(headings)
+
+        def write_outline(state, project, actual):
+            from icg.domain.technical_outline import _chapter
+            actual["response_tasks"] = {task["task_id"]: task for task in tasks}
+            actual["plan_validation"] = plan.get("validation")
+            chapter = _chapter(state, project_id, title)
+            previous = (actual.get("technical_outline") or {}).get("text") or ""
+            current = chapter.content or ""
+            if not (current.strip() and current != previous):
+                chapter.content = text
+            chapter.title = title
+            for row in (actual.get("requirements") or {}).values():
+                if row.get("technical_clause"):
+                    row["chapter_id"] = chapter.id
+            for task in (actual.get("response_tasks") or {}).values():
+                task["chapter_id"] = chapter.id
+            actual["chapter_order"] = [chapter.id]
+            actual["technical_outline"] = {
+                "title": title,
+                "chapter_id": chapter.id,
+                "text": text,
+                "headings": headings,
+                "plan_validation": plan.get("validation"),
+            }
+            return {"ok": True}
+
+        self.repository.transaction(lambda state: self._apply_matrix_patch(state, principal, project_id, write_outline))
 
     def _fill_technical_matrix_unlocked(self, principal: Principal, project_id: str, provider) -> None:
         """在全局锁外做知识库检索与偏离判断，再短事务写回字段。"""

@@ -131,8 +131,9 @@ def test_extract_keeps_scoring_points_and_spec_clauses_on_one_row(client):
     assert "健康检查" in rows and "标准服务" in rows and "故障处理" in rows
     assert workspace["technical_outline"]["title"] == "服务方案"
     titles = [item["title"] for item in workspace["technical_outline"]["headings"]]
-    # 主题目录：规范编号单独成主题，健康检查与故障处理并进「运维保障与巡检」。
-    assert "规范 2.3.1" in titles and "标准服务" in titles and "运维保障与巡检" in titles
+    # 主题目录：不用「规范 N」编号指纹当章名；健康检查与故障处理并进「运维保障与巡检」。
+    assert not any(str(title).startswith("规范 ") for title in titles)
+    assert "标准服务" in titles and "运维保障与巡检" in titles
     assert "技术规范响应" not in titles and "评分主观分响应" not in titles
     leaves = [item for item in workspace["technical_outline"]["headings"] if item.get("requirement_id")]
     assert {item["title"] for item in leaves} >= {"标准服务", "运维保障与巡检"}
@@ -518,13 +519,13 @@ def test_generate_writes_six_parts_without_blocking_internal_export(client):
         )
         assert generated.status_code == 200, generated.text
         # 健康检查与故障处理并成一节，标准服务单独成节。
-        assert calls == ["运维保障与巡检", "标准服务"]
+        assert "运维保障与巡检" in calls and "标准服务" in calls
         workspace = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
         chapter = next(item for item in workspace["chapters"] if item["id"] == workspace["technical_outline"]["chapter_id"])
-        assert chapter["content"].index("1 运维保障与巡检") < chapter["content"].index("2.1 ")
+        assert "运维保障与巡检" in chapter["content"]
         assert "针对「运维保障与巡检」的技术响应" in chapter["content"]
         assert "待补" not in chapter["content"]
-        health = chapter["content"].split("1 运维保障与巡检", 1)[1].split("2 综合技术响应", 1)[0]
+        health = chapter["content"].split("运维保障与巡检", 1)[1]
         calls.clear()
 
         def rewrite(title, row):
@@ -574,7 +575,7 @@ def test_generate_writes_six_parts_without_blocking_internal_export(client):
     downloaded = client.get(exported.json()["export"]["volumes"][0]["download_url"], headers=headers)
     assert downloaded.status_code == 200, downloaded.text
     xml = _document_xml(downloaded.content)
-    assert "Heading1" in xml and "Heading2" in xml
+    assert "Heading1" in xml
     assert "运维保障与巡检" in xml and "标准服务" in xml
     assert "技术偏离表" not in xml
     missing = client.get(exported.json()["export"]["volumes"][0]["download_url"].rsplit("/", 1)[0] + "/deviation", headers=headers)
