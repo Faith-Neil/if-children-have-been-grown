@@ -223,6 +223,23 @@ class TenderOrchestratorMixin:
             else:
                 errors[identity] = DomainError(422, "OCR_REQUIRED", outcome.message)
 
+        # 模型抽取在事务外跑：Mysql→Memory 全局 RLock 持锁期间 login 会排队超时。
+        from icg.domain.technical_sources import technical_only as _technical_only
+        model_payloads: dict[str, dict] = {}
+        provider = None
+        if _technical_only(initial, project_id) and parsed:
+            if hasattr(self.demo, "resolve_model_provider"):
+                try:
+                    provider = self.demo.resolve_model_provider(initial, project_id, "chapter_generation")
+                except Exception:
+                    provider = None
+            from icg.domain.technical_model_extract import extract_with_model, usable_local_model
+            if usable_local_model(provider):
+                for identity, result in parsed.items():
+                    model_payloads[identity] = extract_with_model(result.pages, provider)
+
+        fill_matrix_after = [False]
+
         def operation(state, project, actual):
             actual["parse_confirmed"] = False
             actual["plan_confirmed"] = False
@@ -253,12 +270,6 @@ class TenderOrchestratorMixin:
                 return {"job": job}
             new_requirements: set[str] = set()
             new_facts: set[str] = set()
-            provider = None
-            if hasattr(self.demo, "resolve_model_provider"):
-                try:
-                    provider = self.demo.resolve_model_provider(state, project_id, "chapter_generation")
-                except Exception:
-                    provider = None
             for identity, result in parsed.items():
                 record = actual["files"][identity]
                 record.update(
@@ -300,7 +311,8 @@ class TenderOrchestratorMixin:
                 if technical_only(state, project_id):
                     from icg.domain.technical_clause_extract import apply_technical_extract
                     record["extraction"] = apply_technical_extract(
-                        actual, identity, result.pages, new_requirements, model=provider,
+                        actual, identity, result.pages, new_requirements,
+                        model_payload=model_payloads.get(identity),
                     )
                     continue
                 from icg.domain.tender_extraction import extract_facts, extract_requirements, is_fact_line
@@ -384,21 +396,14 @@ class TenderOrchestratorMixin:
                         actual["parse_confirmed"] = False
                     else:
                         from icg.domain.technical_outline import apply_technical_outline
-                        apply_technical_outline(state, project_id, actual, model=provider)
+                        # 目录编排的模型调用若存在，也应在事务外；此处只落规则/预计算结果。
+                        apply_technical_outline(state, project_id, actual, model=None)
                         # 最短路径：抽取确认不再作为用户闸门；解析成功即视为可进目录确认。
                         actual["parse_confirmed"] = True
-                from icg.domain.technical_matrix import fill_technical_responses
-                kb = getattr(self.demo, "knowledge_base", None)
-                search_company = state.projects[project_id].company_id
-
-                def knowledge_search(clause: str, kb=kb, company_id=search_company) -> list[dict]:
-                    if kb is None:
-                        return []
-                    hits, _skip = kb.search(company_id, clause, limit=5, kinds={"history", "materials"})
-                    return [{"score": hit.score, "filename": hit.name, "quote": hit.content,
-                             "source": hit.dataset_kind} for hit in hits]
-
-                fill_technical_responses(state, actual, model=provider, search=knowledge_search)
+                # 矩阵检索与偏离判断改到事务外，避免 RAG/模型 IO 再占 RLock。
+                actual["technical_retrieval"] = "pending"
+                if not pending and not technical_empty:
+                    fill_matrix_after[0] = True
             if technical_pipeline and technical_empty:
                 done_message = "解析完成，但未抽到技术响应内容；请换文件或补充技术规范书后重试。"
             elif technical_pipeline:
@@ -422,7 +427,71 @@ class TenderOrchestratorMixin:
             error = result["job"]["error"]
             raise DomainError(status_for(error["code"]), error["code"], error["message"],
                               {"job_id": result["job"]["id"], "revision": result["revision"]})
+        if fill_matrix_after[0]:
+            self._fill_technical_matrix_unlocked(principal, project_id, provider)
+            refreshed = self.repository.read()
+            workflow = refreshed.workflows.get(project_id) or {}
+            from icg.domain.parse_decisions import visible
+            result["requirements"] = [r for r in workflow.get("requirements", {}).values() if visible(r)]
+            result["facts"] = [f for f in workflow.get("facts", {}).values() if visible(f)]
+            result["revision"] = refreshed.projects[project_id].revision
         return result
+
+    def _fill_technical_matrix_unlocked(self, principal: Principal, project_id: str, provider) -> None:
+        """在全局锁外做知识库检索与偏离判断，再短事务写回字段。"""
+        from icg.domain.technical_matrix import fill_technical_responses
+
+        state = self.repository.read()
+        workflow = state.workflows.get(project_id) or {}
+        rows = {
+            rid: dict(row)
+            for rid, row in (workflow.get("requirements") or {}).items()
+            if not row.get("merged_into")
+        }
+        if not rows:
+            return
+        kb = getattr(self.demo, "knowledge_base", None)
+        company_id = state.projects[project_id].company_id
+
+        def knowledge_search(clause: str, kb=kb, company_id=company_id) -> list[dict]:
+            if kb is None:
+                return []
+            hits, _skip = kb.search(company_id, clause, limit=5, kinds={"history", "materials"})
+            return [{"score": hit.score, "filename": hit.name, "quote": hit.content,
+                     "source": hit.dataset_kind} for hit in hits]
+
+        draft = {"requirements": rows, "technical_retrieval": "running"}
+        fill_technical_responses(None, draft, model=provider, search=knowledge_search)
+        patch_fields = (
+            "response", "response_type", "deviation_type", "deviation_reason",
+            "response_origin", "history_filename", "history_quote", "status",
+            "material_sources",
+        )
+        patches = {
+            rid: {key: row[key] for key in patch_fields if key in row}
+            for rid, row in rows.items()
+        }
+        retrieval = draft.get("technical_retrieval") or "done"
+
+        def apply_patches(state, project, actual):
+            for rid, patch in patches.items():
+                target = actual["requirements"].get(rid)
+                if target is not None:
+                    target.update(patch)
+            actual["technical_retrieval"] = retrieval
+            return {"ok": True}
+
+        # 内部跟进写：不走 parse.run 幂等键，避免与主解析回放冲突。
+        self.repository.transaction(lambda state: self._apply_matrix_patch(state, principal, project_id, apply_patches))
+
+    def _apply_matrix_patch(self, state, principal: Principal, project_id: str, mutator):
+        project = self.demo._project(state, principal, project_id)
+        from icg.domain.project_lifecycle import ensure_not_cancelled
+        ensure_not_cancelled(state, project_id)
+        workflow = self._workflow(state, project_id, create=False)
+        result = mutator(state, project, workflow)
+        project.revision += 1
+        return {"revision": project.revision, **(result or {})}
 
     @staticmethod
     def _mark_stale(workflow: dict, file_id: str, pages: list[str], fresh: set[tuple[int, str]]) -> None:
