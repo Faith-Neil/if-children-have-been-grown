@@ -97,9 +97,7 @@ def _theme_for(row: dict) -> str:
     for name, words in THEME_RULES:
         if any(word in text for word in words):
             return name
-    path = row.get("section_path") or []
-    if path:
-        return f"规范 {path[0]}"
+    # 条款编号不是投标章名；「规范 10」会在替身里拼成「规范 10方案」。
     if row.get("section_kind") == "scoring":
         return "评分响应"
     return "综合技术响应"

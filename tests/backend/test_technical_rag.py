@@ -136,3 +136,56 @@ def test_write_volume_puts_tender_block_before_company():
     assert prompt.index(HISTORY_HEADING) < prompt.index(MATERIALS_HEADING)
     assert "本标要求每月巡检数据库并出具报告" in prompt
     assert "公司history证据" in prompt
+    assert "每月巡检数据库并出具报告" in prompt
+
+
+def test_produce_section_mounts_points_skips_global_sla_and_marks_empty_knowledge():
+    from icg.domain.technical_volume import produce_section
+
+    class Model:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:9"
+        prompts: list[str] = []
+
+        def suggest(self, system, user):
+            self.prompts.append(user)
+            return (
+                "针对「备份恢复与容灾方案」按招标要求写备份策略，每日全量备份并留下恢复演练记录，"
+                "演练记录供验收核对。"
+            )
+
+    model = Model()
+    produce_section(
+        "备份恢复与容灾方案",
+        {
+            "text": "每日全量备份", "response": "按招标执行", "response_type": "comply",
+            "extracted_summary": "每日全量备份",
+        },
+        model,
+        knowledge="",
+        task={"response_points": ["每日全量备份", "7*24小时响应"]},
+        requirements=[{
+            "extracted_summary": "每日全量备份", "text": "每日全量备份", "risk_level": "high",
+        }],
+        workflow={"technical_promises": {"响应时限": "7*24小时响应"}},
+    )
+    prompt = model.prompts[0]
+    assert "响应要点" in prompt
+    assert "每日全量备份" in prompt
+    assert "7*24" not in prompt
+    assert "【待确认】" in prompt
+
+    produce_section(
+        "运维保障与巡检",
+        {"text": "每月巡检", "response": "按招标执行", "response_type": "comply"},
+        model,
+        knowledge="历史技术方案参考：每月巡检记录模板",
+        task={"response_points": ["每月巡检", "7*24小时响应"]},
+        requirements=[{"extracted_summary": "每月巡检", "text": "每月巡检"}],
+        workflow={"technical_promises": {"响应时限": "7*24小时响应"}},
+    )
+    later = model.prompts[-1]
+    assert "7*24小时响应" in later
+    assert "历史技术方案参考：每月巡检记录模板" in later
+    assert "无命中" not in later

@@ -311,6 +311,31 @@ def test_thinking_sse_with_empty_content_uses_reasoning_json():
     assert json.loads(text) == payload
 
 
+def test_thinking_prefers_trailing_tree_array_over_earlier_object():
+    from icg.infra.openai_model import _assistant_text
+
+    tree = [{"level": 1, "title": "运维保障与巡检", "mount_ids": ["r1"]}]
+    reasoning = (
+        "先列一个草稿对象 {\"title\": \"规范 2方案\", \"level\": 1}\n"
+        "最终目录：\n" + json.dumps(tree, ensure_ascii=False)
+    )
+    body = _sse_lines(
+        {"reasoning": reasoning},
+        {"content": ""},
+    )
+    response = httpx.Response(200, headers={"content-type": "text/event-stream"}, content=body)
+    text = _assistant_text(response)
+    assert json.loads(text) == tree
+
+
+def test_jsonish_keeps_extract_object_not_inner_array():
+    from icg.infra.openai_model import _jsonish_payload
+
+    payload = {"items": [{"role": "response_mount", "text": "每月巡检", "kind": "scoring"}]}
+    thought = "整理条款后输出：\n" + json.dumps(payload, ensure_ascii=False)
+    assert json.loads(_jsonish_payload(thought)) == payload
+
+
 def test_thinking_message_uses_reasoning_when_content_blank():
     from icg.infra.openai_model import _assistant_text
 

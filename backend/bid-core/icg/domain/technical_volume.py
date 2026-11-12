@@ -17,10 +17,15 @@ TABLE_LABEL = {"comply": "无偏离", "exceed": "正偏离", "deviate": "偏离"
 NO_SAMPLE = "这份招标文件没有提供偏离表格式。"
 SECTION_SYSTEM = (
     "按本节挂接的招标要求组织技术响应正文；结构按该节实际需要安排，不要套固定六段模板。"
+    "只写本节挂载的响应要点，写进该节标题下。"
+    "项目级时限或 SLA 仅当本节要点涉及该承诺时写入，禁止每节复述同一段。"
+    "依据检索块写可追溯句子；无命中标【待确认】，禁止编造企业能力。"
     "用文字步骤和表格。不要流程图，不要架构图，不要凑页。"
     "偏离表述和数字与给出的矩阵一致。其他客户或其他项目名称写成【待补】。"
     "服务案例只写脱敏框架，不写真实客户、人员、报价或证书。"
 )
+SLA_HINT = re.compile(r"7\s*[×*xX]\s*24|响应时限|到场时限|故障响应")
+SLA_TITLES = ("运维", "巡检", "故障", "保障", "响应", "服务级别")
 
 _section_writer: Callable[..., str] | None = None
 
@@ -159,8 +164,26 @@ def stand_in(title: str, row: dict) -> str:
     ])
 
 
+def _section_points(title: str, task: dict | None, workflow: dict | None) -> list[str]:
+    """本节响应要点。项目级 SLA 只留给运维/故障类章节，避免每节粘同一段时限。"""
+    raw = [str(point).strip() for point in (task or {}).get("response_points") or [] if str(point).strip()]
+    promises = {
+        str(value).strip()
+        for value in ((workflow or {}).get("technical_promises") or {}).values()
+        if str(value).strip()
+    }
+    title_ok = any(word in (title or "") for word in SLA_TITLES)
+    kept: list[str] = []
+    for point in raw:
+        if not title_ok and (point in promises or SLA_HINT.search(point)):
+            continue
+        kept.append(point)
+    return kept
+
+
 def produce_section(title: str, row: dict, model: Any, *, knowledge: str = "",
-                    task: dict | None = None, requirements: list[dict] | None = None) -> str:
+                    task: dict | None = None, requirements: list[dict] | None = None,
+                    workflow: dict | None = None) -> str:
     rows = requirements or ([row] if row else [])
     primary = rows[0] if rows else (row or {})
     if _section_writer is not None:
@@ -170,7 +193,7 @@ def produce_section(title: str, row: dict, model: Any, *, knowledge: str = "",
             f"- [{item.get('risk_level') or 'medium'}] {item.get('extracted_summary') or item.get('text') or ''}"
             for item in rows
         )
-        points = "\n".join(f"- {point}" for point in (task or {}).get("response_points") or [])
+        points = "\n".join(f"- {point}" for point in _section_points(title, task, workflow))
         rejection = [
             item for item in rows
             if item.get("is_rejection_criterion") and item.get("requirement_type") != "qualification"
@@ -325,6 +348,7 @@ def write_volume(state: Any, project_id: str, workflow: dict, section: str | Non
         try:
             bodies[key] = produce_section(
                 title, primary, model, knowledge=knowledge, task=task, requirements=req_rows,
+                workflow=workflow,
             )
             if task is not None:
                 task["generation_status"] = "generated"
