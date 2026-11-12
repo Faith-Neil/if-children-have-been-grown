@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from icg.domain.technical_rag import retrieve_for_section
 from icg.domain.technical_tender_index import (
     FORBIDDEN_KINDS,
@@ -127,6 +129,7 @@ def test_retrieve_refuses_company_dataset_backend():
     assert audit["tender_searched"] is False
     assert audit["skip_reason"] == "refused company dataset"
 
+
 def test_rewrite_prompt_includes_tender_slice():
     from types import SimpleNamespace
 
@@ -167,3 +170,71 @@ def test_editor_context_cites_tender_slices():
     citations = collect_chapter_citations(state, project, "c1", query="巡检", knowledge_base_enabled=False)
     assert any(item.get("source_type") == "tender" for item in citations)
     assert any(str(item.get("tag") or "").startswith("[标") for item in citations)
+
+
+def test_workspace_fields_expose_audit(monkeypatch):
+    from icg.domain.technical_outline import workspace_fields
+    from icg.domain.workflow_schemas import (
+        TechnicalKbStatus,
+        TechnicalRagAuditRow,
+        TenderIndexStatus,
+        WriterModelStatus,
+    )
+
+    class Provider:
+        display_name = "mock-writer"
+        is_real_model = False
+        is_local = False
+
+    state = SimpleNamespace(
+        projects={"p1": SimpleNamespace(company_id="alpha")},
+        chapters={},
+        service_stores={"kb_index": {}},
+    )
+    provider = Provider()
+    workflow = {
+        "technical_outline": {"chapter_id": "c1", "title": "服务方案", "headings": []},
+        "plan_confirmed": True,
+        "parse_confirmed": True,
+        "technical_rag_audit": [{
+            "query": "巡检",
+            "section": "技术服务方案",
+            "tender_searched": True,
+            "tender_hits": 2,
+            "history_searched": True,
+            "material_searched": True,
+            "history_hits": 1,
+            "material_hits": 0,
+            "tender_dataset": "workflow.pages",
+            "skip_reason": "",
+            "top": [{"name": "本标第1页", "dataset_kind": "tender", "score": 2}],
+        }],
+        "tender_index": {
+            "backend": "local",
+            "dataset_name": "workflow.pages",
+            "chunk_count": 3,
+            "skip_reason": "",
+            "chunks": [{"id": "p1", "text": "招标页正文不应出现在工作区"}],
+        },
+        "writer_model": {"name": "qwen", "is_real": True, "is_local": True},
+    }
+    monkeypatch.setattr("icg.domain.technical_sources.technical_only", lambda *args, **kwargs: True)
+    fields = workspace_fields(state, "p1", workflow)
+    assert fields["technical_rag_audit"][0]["tender_hits"] == 2
+    assert fields["technical_rag_audit"][0]["query"] == "巡检"
+    assert fields["tender_index"]["backend"] == "local"
+    assert fields["tender_index"]["chunk_count"] == 3
+    assert "chunks" not in fields["tender_index"]
+    assert "招标页正文" not in str(fields["tender_index"])
+    assert fields["writer_model"]["name"] == "qwen"
+    assert fields["technical_kb"]["tender"]["configured"] is True
+    assert fields["technical_kb"]["tender"]["name"] == "workflow.pages"
+    TechnicalRagAuditRow.model_validate(fields["technical_rag_audit"][0])
+    TenderIndexStatus.model_validate(fields["tender_index"])
+    WriterModelStatus.model_validate(fields["writer_model"])
+    TechnicalKbStatus.model_validate(fields["technical_kb"])
+
+    workflow["writer_model"] = provider
+    labeled = workspace_fields(state, "p1", workflow)
+    assert labeled["writer_model"] == {"name": "mock-writer", "is_real": False, "is_local": False}
+    assert workflow["writer_model"] is provider

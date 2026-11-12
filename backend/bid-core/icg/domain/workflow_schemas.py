@@ -978,11 +978,45 @@ class TechnicalKbDataset(ResponseBody):
     configured: bool
 
 
+class TenderDatasetStatus(ResponseBody):
+    name: str = ""
+    configured: bool = False
+    backend: str = ""
+
+
 class TechnicalKbStatus(ResponseBody):
     history: TechnicalKbDataset
     material: TechnicalKbDataset
+    tender: TenderDatasetStatus | None = None
     missing: list[str] = Field(default_factory=list)
     ready: bool = False
+
+
+class TenderIndexStatus(ResponseBody):
+    backend: str = ""
+    dataset_name: str = ""
+    chunk_count: int = 0
+    skip_reason: str = ""
+
+
+class WriterModelStatus(ResponseBody):
+    name: str
+    is_real: bool = False
+    is_local: bool = False
+
+
+class TechnicalRagAuditRow(ResponseBody):
+    query: str = ""
+    section: str = ""
+    tender_searched: bool = False
+    tender_hits: int = 0
+    tender_dataset: str = ""
+    history_searched: bool = False
+    material_searched: bool = False
+    history_hits: int = 0
+    material_hits: int = 0
+    skip_reason: str = ""
+    top: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class TechnicalQualityRule(ResponseBody):
@@ -1026,6 +1060,9 @@ class Workspace(ResponseBody):
     response_tasks: list[ResponseTask] = Field(default_factory=list, description="响应任务（要求→章节映射）")
     coverage_rows: list[CoverageRow] = Field(default_factory=list, description="覆盖视图五行数据源")
     plan_validation: dict[str, Any] | None = Field(default=None, description="生成计划确定性校验结果")
+    technical_rag_audit: list[TechnicalRagAuditRow] = Field(default_factory=list, description="分节检索审计")
+    tender_index: TenderIndexStatus | None = Field(default=None, description="本标索引状态，不含页正文")
+    writer_model: WriterModelStatus | None = Field(default=None, description="正文模型名称与本地/真实标记")
     sla: ProjectSla | None = None
     writing_plan: WritingPlan
     team: Team
