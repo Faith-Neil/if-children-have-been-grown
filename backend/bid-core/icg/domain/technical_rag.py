@@ -1,12 +1,16 @@
-# 为什么有这个文件：技术分册节生成强制查 history + material 双库，并留下可审计记录。
-# 它解决什么问题：禁止只搜章节标题、禁止缺库静默假成功；查询与命中统计集中在一处。
+# 为什么有这个文件：技术分册节生成先查本标切片，再查公司 history 与 materials，并留下可审计记录。
+# 它解决什么问题：禁止只搜章节标题、禁止把招标页写进公司库、禁止缺库静默假成功。
 
 from __future__ import annotations
 
 from typing import Any
 
 from icg.domain.knowledge_base import dataset_full_name, read_index
-from icg.domain.writing_knowledge_prompt import format_retrieved_knowledge_prompt_lines
+from icg.domain.technical_tender_index import retrieve_tender
+from icg.domain.writing_knowledge_prompt import (
+    format_retrieved_knowledge_prompt_lines,
+    retrieved_chunk_dataset_kind,
+)
 
 
 def section_query(title: str, row: dict | None = None, *, task: dict | None = None, requirements: list[dict] | None = None) -> str:
@@ -28,8 +32,8 @@ def section_query(title: str, row: dict | None = None, *, task: dict | None = No
     return " ".join(part for part in parts if part)
 
 
-def dataset_presence(state: Any, company_id: str) -> dict[str, Any]:
-    """编辑台提示用：两库是否已配置（有 dataset_id）。展示解析后的全名。"""
+def dataset_presence(state: Any, company_id: str, workflow: dict | None = None) -> dict[str, Any]:
+    """编辑台提示用：公司双库是否已配置，以及本标索引是否已建。"""
     index = read_index(state, company_id) if state is not None else {}
     datasets = index.get("datasets") or {}
     history_name = dataset_full_name(company_id, "history")
@@ -41,9 +45,21 @@ def dataset_presence(state: Any, company_id: str) -> dict[str, Any]:
         missing.append(history_name)
     if not material_ok:
         missing.append(material_name)
+    tender = (workflow or {}).get("tender_index") if isinstance(workflow, dict) else None
+    tender = tender if isinstance(tender, dict) else {}
+    chunks = tender.get("chunks") if isinstance(tender.get("chunks"), list) else []
+    count = tender.get("chunk_count")
+    if not isinstance(count, int) or isinstance(count, bool):
+        count = len(chunks)
+    tender_ok = bool(tender.get("dataset_id") or count or chunks)
     return {
         "history": {"name": history_name, "configured": history_ok},
         "material": {"name": material_name, "configured": material_ok},
+        "tender": {
+            "name": str(tender.get("dataset_name") or ""),
+            "configured": tender_ok,
+            "backend": str(tender.get("backend") or ""),
+        },
         "missing": missing,
         "ready": not missing,
     }
@@ -95,3 +111,43 @@ def retrieve_dual(kb: Any, company_id: str, query: str, *, limit: int = 8) -> tu
 def knowledge_prompt_block(chunks: list[dict]) -> str:
     lines = format_retrieved_knowledge_prompt_lines(chunks)
     return "\n".join(lines).strip()
+
+
+def retrieve_for_section(
+    kb: Any, company_id: str, query: str, workflow: dict | None = None, *, limit: int = 8,
+) -> tuple[list[dict], dict]:
+    """先检索本标切片，再检索公司双库。审计同时记录两路是否搜过、命中和数据集名。"""
+    tender_hits, tender_audit = retrieve_tender(
+        workflow or {}, query, kb=kb, company_id=company_id, limit=limit,
+    )
+    company_hits, company_audit = retrieve_dual(kb, company_id, query, limit=limit)
+    merged: list[dict] = []
+    seen: set[str] = set()
+    for chunk in [*tender_hits, *company_hits]:
+        cid = str(chunk.get("chunk_id") or chunk.get("id") or "")
+        if cid and cid in seen:
+            continue
+        if cid:
+            seen.add(cid)
+        merged.append(chunk)
+    audit = {
+        "query": query,
+        "tender_searched": bool(tender_audit.get("tender_searched")),
+        "tender_hits": int(tender_audit.get("tender_hits") or 0),
+        "tender_dataset": tender_audit.get("tender_dataset") or "",
+        "tender_backend": tender_audit.get("tender_backend") or "",
+        "history_searched": bool(company_audit.get("history_searched")),
+        "material_searched": bool(company_audit.get("material_searched")),
+        "history_hits": int(company_audit.get("history_hits") or 0),
+        "material_hits": int(company_audit.get("material_hits") or 0),
+        "skip_reason": tender_audit.get("skip_reason") or company_audit.get("skip_reason") or "",
+        "top": [
+            {
+                "name": item.get("name"),
+                "dataset_kind": retrieved_chunk_dataset_kind(item),
+                "score": item.get("score"),
+            }
+            for item in merged[:8]
+        ],
+    }
+    return merged[:limit], audit

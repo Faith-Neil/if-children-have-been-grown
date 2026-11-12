@@ -4,7 +4,8 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, Button, Card, Input, Table, Tag } from 'antd';
 import { useProject } from '../app/context.tsx';
-import type { CoverageRow } from '../shared/types.ts';
+import type { CoverageRow, TechnicalRagAuditRow } from '../shared/types.ts';
+import { auditSearchLine, auditTopKinds, tenderIndexLine, writerModelLine } from './coverage-audit.ts';
 
 const RISK_LABEL: Record<string, string> = {
   critical: '废标风险',
@@ -38,6 +39,9 @@ export function CoverageView() {
   }, [workspace.coverage_rows, search]);
 
   const validation = workspace.plan_validation;
+  const audits = (workspace.technical_rag_audit ?? []) as TechnicalRagAuditRow[];
+  const indexLine = tenderIndexLine(workspace.tender_index);
+  const modelLine = writerModelLine(workspace.writer_model);
   const stats = {
     total: rows.length,
     rejection: rows.filter(row => row.is_rejection_criterion).length,
@@ -72,6 +76,44 @@ export function CoverageView() {
           message="生成计划校验未全部通过"
           description={(validation.issues || []).join('；')}
         />
+      )}
+      {(indexLine || modelLine) && (
+        <div data-testid="coverage-retrieval-meta" className="muted" style={{ marginBottom: 8 }}>
+          {[indexLine, modelLine].filter(Boolean).join(' ｜ ')}
+        </div>
+      )}
+      {audits.length > 0 && (
+        <Card size="small" styles={{ body: { padding: 0 } }} style={{ marginBottom: 8 }} data-testid="coverage-rag-audit">
+          <Table
+            rowKey={(row, index) => `${row.section || 's'}-${row.query || 'q'}-${index}`}
+            size="small"
+            pagination={false}
+            dataSource={audits}
+            columns={[
+              {
+                title: '节',
+                dataIndex: 'section',
+                width: 160,
+                render: (value: string) => value || '—',
+              },
+              {
+                title: '查询',
+                dataIndex: 'query',
+                render: (value: string) => value || '—',
+              },
+              {
+                title: '命中',
+                width: 220,
+                render: (_, row) => auditSearchLine(row),
+              },
+              {
+                title: '库别',
+                width: 120,
+                render: (_, row) => auditTopKinds(row) || '—',
+              },
+            ]}
+          />
+        </Card>
       )}
       <Card size="small" styles={{ body: { padding: 0 } }}>
         <div style={{ padding: 8 }}>

@@ -5,14 +5,17 @@ from __future__ import annotations
 
 from typing import Any
 
+TENDER_HEADING = "本标招标原文：只陈述这份招标里出现的业主、系统、期限和条款。"
 HISTORY_HEADING = "历史技术方案参考：过去项目中的优秀技术表述和实施方法。"
 MATERIALS_HEADING = "企业权威资料：产品说明书、技术参数、企业实际能力等事实依据。"
 
 
 def retrieved_chunk_dataset_kind(chunk: dict[str, Any]) -> str:
     kind = str(chunk.get("dataset_kind") or "").strip()
-    if kind in ("history", "materials"):
+    if kind in ("tender", "history", "materials"):
         return kind
+    if str(chunk.get("cite_tag") or "").startswith("[标:"):
+        return "tender"
     return "history" if chunk.get("reference_only") else "materials"
 
 
@@ -38,9 +41,15 @@ def _retrieved_chunk_prompt_lines(chunk: dict[str, Any]) -> list[str]:
 def format_retrieved_knowledge_prompt_lines(retrieved: list[dict[str, Any]]) -> list[str]:
     if not retrieved:
         return []
+    tender = [chunk for chunk in retrieved if retrieved_chunk_dataset_kind(chunk) == "tender"]
     history = [chunk for chunk in retrieved if retrieved_chunk_dataset_kind(chunk) == "history"]
     materials = [chunk for chunk in retrieved if retrieved_chunk_dataset_kind(chunk) == "materials"]
     lines: list[str] = []
+    if tender:
+        lines.append(TENDER_HEADING)
+        for chunk in tender:
+            lines.extend(_retrieved_chunk_prompt_lines(chunk))
+        lines.append("")
     if history:
         lines.append(HISTORY_HEADING)
         for chunk in history:

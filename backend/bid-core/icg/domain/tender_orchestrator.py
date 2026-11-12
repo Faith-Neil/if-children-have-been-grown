@@ -396,6 +396,11 @@ class TenderOrchestratorMixin:
                         actual["parse_confirmed"] = False
                     else:
                         from icg.domain.technical_outline import apply_technical_outline
+                        from icg.domain.technical_tender_index import index_current_tender
+                        kb = getattr(self.demo, "knowledge_base", None)
+                        index_current_tender(
+                            actual, kb=kb, company_id=company_id, project_id=project_id,
+                        )
                         # 目录编排的模型调用若存在，也应在事务外；此处只落规则/预计算结果。
                         apply_technical_outline(state, project_id, actual, model=None)
                         # 最短路径：抽取确认不再作为用户闸门；解析成功即视为可进目录确认。
