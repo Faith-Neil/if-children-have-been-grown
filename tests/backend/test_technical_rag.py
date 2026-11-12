@@ -369,3 +369,37 @@ def test_tender_only_retrieval_marks_section_needs_confirm():
     assert "[标:p" in model.user
     assert "【待确认】" in model.user
     assert "改写" in model.system
+
+
+def test_company_chunks_stay_when_tender_fills_the_window():
+    from icg.domain.technical_rag import knowledge_prompt_block, retrieve_for_section
+
+    class Hit:
+        def __init__(self, kind):
+            self.source_id = kind
+            self.name = kind
+            self.content = f"公司{kind}证据"
+            self.score = 0.4
+            self.dataset_kind = kind
+            self.reference_only = kind == "history"
+            self.document_id = "d"
+            self.chunk_ids = [f"chunk-{kind}"]
+            self.cite_tag = f"[片:{kind}]"
+
+    class Kb:
+        def search(self, company_id, query, *, limit=4, kinds=None):
+            kind = next(iter(kinds or {"history"}))
+            return [Hit(kind)], ""
+
+    pages = [f"数据库巡检每月一次，第{index}页" for index in range(1, 6)]
+    chunks, audit = retrieve_for_section(
+        Kb(), "alpha", "数据库巡检", {"files": {"f1": {"pages": pages}}}, limit=2,
+    )
+    assert audit["tender_hits"] >= 2
+    assert audit["history_hits"] == 1
+    kinds = [item.get("dataset_kind") for item in chunks]
+    assert "tender" in kinds
+    assert "history" in kinds or "materials" in kinds
+    prompt = knowledge_prompt_block(chunks)
+    assert "公司history证据" in prompt or "公司materials证据" in prompt
+    assert "【待确认】" not in prompt
