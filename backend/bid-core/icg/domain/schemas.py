@@ -395,6 +395,7 @@ class HealthResponse(ResponseBody):
     mode: str
     repository: str
     model: str
+    effective_model: str
     persistent: bool
     single_process: bool
 

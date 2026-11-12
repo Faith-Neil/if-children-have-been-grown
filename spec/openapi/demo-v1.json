@@ -50172,6 +50172,10 @@
             "type": "string",
             "title": "Model"
           },
+          "effective_model": {
+            "type": "string",
+            "title": "Effective Model"
+          },
           "persistent": {
             "type": "boolean",
             "title": "Persistent"
@@ -50188,6 +50192,7 @@
           "mode",
           "repository",
           "model",
+          "effective_model",
           "persistent",
           "single_process"
         ],
