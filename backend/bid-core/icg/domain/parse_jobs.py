@@ -256,10 +256,18 @@ class ParseJobRunner:
         raise DomainError(409, "VERSION_CONFLICT", "解析期间项目被反复修改，请稍后重试。")
 
     def _drop_inner_job(self, result: dict) -> None:
-        """每次调用原解析会记一条同步解析任务；后台任务已代表这次解析，任务列表里不重复显示。"""
+        """每次调用原解析会记一条同步解析任务。外层可恢复任务已代表这次解析，不能从列表里删掉。"""
         inner = (result.get("job") or {}).get("id")
-        if inner:
-            self.repository.transaction(lambda state: state.jobs.pop(inner, None))
+        if not inner:
+            return
+
+        def operation(state):
+            if inner in state.recoverable_jobs:
+                return None
+            state.jobs.pop(inner, None)
+            return None
+
+        self.repository.transaction(operation)
 
     def _pending_files(self, project_id: str, payload: dict) -> list[str]:
         files = (self.repository.read().workflows.get(project_id) or {}).get("files") or {}
