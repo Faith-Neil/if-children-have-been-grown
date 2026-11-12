@@ -8,6 +8,7 @@ from typing import Any, Callable
 
 from icg.domain.domain import DomainError
 from icg.domain.matrix import critical
+from icg.domain.writing_knowledge_prompt import CAPABILITY_GAP_LINE, HISTORY_HEADING, MATERIALS_HEADING
 
 HEADING = re.compile(r"^(\d+(?:\.\d+)*)\s+(\S.*)$")
 SAMPLE_TITLE = re.compile(r"偏离表|偏差表")
@@ -19,9 +20,12 @@ SECTION_SYSTEM = (
     "按本节挂接的招标要求组织技术响应正文；结构按该节实际需要安排，不要套固定六段模板。"
     "只写本节挂载的响应要点，写进该节标题下。"
     "项目级时限或 SLA 仅当本节要点涉及该承诺时写入，禁止每节复述同一段。"
-    "依据检索块写可追溯句子；无命中标【待确认】，禁止编造企业能力。"
+    "本标项目事实只用来认清业主、系统、期限和约束，禁止把招标原文复述或改写成正文。"
+    "约束句保留对应 [标:]。"
+    "能力、人员、流程和案例只依据企业历史标书或权威资料；这两类无命中时只把能力句标【待确认】，禁止用招标切片编造我方能力。"
     "用文字步骤和表格。不要流程图，不要架构图，不要凑页。"
-    "偏离表述和数字与给出的矩阵一致。其他客户或其他项目名称写成【待补】。"
+    "偏离表述和数字与给出的矩阵一致。"
+    "历史材料中的其他客户名或其他项目名写成【待补】。本标业主、系统名、期限和 SLA 不要写成【待补】。"
     "服务案例只写脱敏框架，不写真实客户、人员、报价或证书。"
 )
 SLA_HINT = re.compile(r"7\s*[×*xX]\s*24|响应时限|到场时限|故障响应")
@@ -204,13 +208,13 @@ def produce_section(title: str, row: dict, model: Any, *, knowledge: str = "",
         point = str(primary.get("response") or "")
         reason = str(primary.get("deviation_reason") or "")
         label = LABEL.get(primary.get("response_type") or "", "无偏离")
+        evidence = knowledge or CAPABILITY_GAP_LINE
         user = (
             f"章节任务：{title}\n"
             f"必须覆盖的招标要求：\n{req_block or '（无）'}\n"
             f"响应要点：\n{points or reason or point or '（按要求逐条响应）'}\n"
             f"项目级/本章废标硬约束：\n{reject_block or '（无技术类废标）'}\n"
-            f"偏离口径：{label}。"
-            + (f"\n\n企业知识检索：\n{knowledge}" if knowledge else "\n\n企业知识检索：无命中；无依据处标【待确认】，禁止编造企业能力。")
+            f"偏离口径：{label}。\n\n{evidence}"
         )
         text = model.suggest(SECTION_SYSTEM, user)
     else:
@@ -222,10 +226,11 @@ def produce_section(title: str, row: dict, model: Any, *, knowledge: str = "",
                 for clip in [str(item.get("extracted_summary") or item.get("text") or "")[:40]]
             )
             text = f"{text}\n\n{extra}".strip()
-        if knowledge:
-            text = f"{text}\n\n（已参考企业知识库检索结果，正式证据仍须可追溯。）"
-        elif not knowledge:
-            text = f"{text}\n\n【待确认】本节企业知识库无命中依据，具体能力参数须人工核对后补全。"
+        has_company = HISTORY_HEADING in (knowledge or "") or MATERIALS_HEADING in (knowledge or "")
+        if has_company:
+            text = f"{text}\n\n（已参考企业历史标书或权威资料，正式证据仍须可追溯。）"
+        else:
+            text = f"{text}\n\n【待确认】本节缺少企业能力依据，能力参数须人工核对，不得用招标原文代替。"
     text = scrub(str(text or ""), primary)
     if len(str(text or "").strip()) < 40:
         raise RuntimeError("本节不完整")
@@ -352,7 +357,8 @@ def write_volume(state: Any, project_id: str, workflow: dict, section: str | Non
             )
             if task is not None:
                 task["generation_status"] = "generated"
-                task["response_status"] = "generated" if chunks else "needs_confirm"
+                company_hits = int(rag_audit.get("history_hits") or 0) + int(rag_audit.get("material_hits") or 0)
+                task["response_status"] = "generated" if company_hits else "needs_confirm"
         except Exception:
             failed.append(title)
             if not bodies.get(key):

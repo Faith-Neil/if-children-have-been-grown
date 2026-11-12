@@ -116,14 +116,19 @@ def knowledge_prompt_block(chunks: list[dict]) -> str:
 def retrieve_for_section(
     kb: Any, company_id: str, query: str, workflow: dict | None = None, *, limit: int = 8,
 ) -> tuple[list[dict], dict]:
-    """先检索本标切片，再检索公司双库。审计同时记录两路是否搜过、命中和数据集名。"""
+    """先检索本标切片，再检索公司双库。两路都有命中时给企业证据留窗口，本标切片不能占满 limit。"""
     tender_hits, tender_audit = retrieve_tender(
         workflow or {}, query, kb=kb, company_id=company_id, limit=limit,
     )
     company_hits, company_audit = retrieve_dual(kb, company_id, query, limit=limit)
+    if tender_hits and company_hits and limit >= 2:
+        company_slots = min(len(company_hits), max(limit // 2, 1))
+    else:
+        company_slots = min(len(company_hits), limit)
+    tender_slots = min(len(tender_hits), max(limit - company_slots, 0))
     merged: list[dict] = []
     seen: set[str] = set()
-    for chunk in [*tender_hits, *company_hits]:
+    for chunk in [*tender_hits[:tender_slots], *company_hits[:company_slots]]:
         cid = str(chunk.get("chunk_id") or chunk.get("id") or "")
         if cid and cid in seen:
             continue
