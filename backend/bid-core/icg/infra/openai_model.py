@@ -405,7 +405,11 @@ def raise_upstream_error(text: str) -> None:
 
 
 def _jsonish_payload(text: str) -> str | None:
-    """从 thinking 长文里抠出最后一段 JSON 对象或数组，供抽取/编目录解析。"""
+    """从 thinking 长文里抠出最后一段顶层 JSON（对象或数组）。
+
+    只认能解析的完整值，丢掉嵌套在对象里的数组、数组里的对象。
+    thinking 前文常有举例 `{...}`，目录 JSON 是文末数组，所以同级里取最后一段。
+    """
     raw = (text or "").strip()
     if not raw:
         return None
@@ -413,15 +417,34 @@ def _jsonish_payload(text: str) -> str | None:
         fenced = raw.split("```", 2)[1]
         raw = fenced[4:] if fenced.startswith("json") else fenced
         raw = raw.strip()
-    candidates: list[tuple[int, str]] = []
-    for opener, closer in (("{", "}"), ("[", "]")):
-        start, end = raw.find(opener), raw.rfind(closer)
-        if start >= 0 and end > start:
-            candidates.append((start, raw[start:end + 1]))
-    if not candidates:
+    decoder = json.JSONDecoder()
+    found: list[tuple[int, int, str]] = []
+    index = 0
+    while index < len(raw):
+        if raw[index] not in "{[":
+            index += 1
+            continue
+        try:
+            obj, end = decoder.raw_decode(raw, index)
+        except json.JSONDecodeError:
+            index += 1
+            continue
+        if isinstance(obj, (dict, list)):
+            found.append((index, end, raw[index:end]))
+        index = end if end > index else index + 1
+    if not found:
         return None
-    candidates.sort(key=lambda item: item[0])
-    return candidates[0][1]
+    top = [
+        (start, end, slice_)
+        for start, end, slice_ in found
+        if not any(other_start < start and end <= other_end
+                   for other_start, other_end, _ in found
+                   if (other_start, other_end) != (start, end))
+    ]
+    if not top:
+        return None
+    top.sort(key=lambda item: item[0])
+    return top[-1][2]
 
 
 def _prefer_assistant_body(content: str, reasoning: str) -> str:

@@ -96,6 +96,63 @@ def test_format_lock_two_mixed_children_under_format_heading():
     assert locked == ["项目理解", "总体方案"]
 
 
+def test_model_tree_survives_unindexed_score_soft_issue():
+    import json
+    from icg.domain.technical_chapter_tree import build_chapter_tree
+
+    class Local:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:11434"
+
+        def suggest(self, system, user):
+            return json.dumps([
+                {"level": 1, "title": "运维保障与巡检", "mount_ids": ["r1"]},
+            ], ensure_ascii=False)
+
+    tasks = [{
+        "task_id": "t1", "theme": "巡检", "title": "巡检",
+        "requirement_ids": ["r1"],
+        "response_points": ["每月巡检"], "constraint_ids": [], "rejection_requirement_ids": [],
+    }]
+    workflow = {
+        "requirements": {
+            "r1": {
+                "id": "r1", "text": "每月巡检", "section_kind": "scoring",
+                "technical_clause": True, "status": "confirmed",
+            },
+            "r2": {
+                "id": "r2", "text": "故障两小时内恢复", "section_kind": "scoring",
+                "technical_clause": True, "status": "confirmed",
+            },
+        }
+    }
+    headings, _rewritten = build_chapter_tree(tasks, workflow, model=Local())
+    titles = [item["title"] for item in headings]
+    assert "运维保障与巡检" in titles
+    assert not any(str(title).startswith("规范") for title in titles)
+
+
+def test_stand_in_never_uses_spec_number_as_chapter_title():
+    from icg.domain.technical_chapter_tree import stand_in_chapter_tree
+
+    tasks = [{
+        "task_id": "t1", "theme": "规范 10", "title": "规范 10方案",
+        "requirement_ids": ["r1"],
+        "response_points": ["7x24"], "constraint_ids": [], "rejection_requirement_ids": [],
+    }]
+    reqs = {
+        "r1": {
+            "id": "r1", "text": "须承诺提供7*24小时在线及15分钟响应服务",
+            "section_kind": "spec", "section_path": ["10"], "technical_clause": True,
+        },
+    }
+    titles = [item["title"] for item in stand_in_chapter_tree(tasks, reqs)]
+    assert titles
+    assert not any(str(title).startswith("规范") for title in titles)
+    assert not any("方案方案" in str(title) for title in titles)
+
+
 def test_stand_in_tree_is_honest_mount_list_not_theme_buckets():
     from icg.domain.technical_chapter_tree import stand_in_chapter_tree
 

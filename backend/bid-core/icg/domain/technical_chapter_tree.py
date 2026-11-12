@@ -37,6 +37,7 @@ def strip_heading_number(text: str) -> str:
 
 PLACEHOLDER_TITLE = re.compile(r"^(?:规范\s*[\d.]+(?:方案)?|.+方案方案)$")
 SPEC_NUMBER_THEME = re.compile(r"^规范\s*[\d.]+")
+SPEC_NUMBER_COMPACT = re.compile(r"^规范[\d.]+")
 
 
 def _scheme_title(name: str) -> str:
@@ -243,7 +244,12 @@ def stand_in_chapter_tree(tasks: list[dict], reqs: dict[str, dict]) -> list[dict
             h1 = label
         else:
             h1 = short_chapter_title(point or task_title, fallback="综合技术响应")
-            if SPEC_NUMBER_THEME.match(h1) or PLACEHOLDER_TITLE.match(h1) or h1 in BANNED_TITLES:
+            if (
+                SPEC_NUMBER_THEME.match(h1)
+                or SPEC_NUMBER_COMPACT.match(h1)
+                or PLACEHOLDER_TITLE.match(h1)
+                or h1 in BANNED_TITLES
+            ):
                 h1 = "综合技术响应"
         if h1 in BANNED_TITLES or any(word in h1 for word in PERSONNEL_WORDS):
             continue
@@ -305,7 +311,7 @@ def compose_tree_with_model(
         level = int(item.get("level") or 1)
         if not title or title in BANNED_TITLES or any(word in title for word in PERSONNEL_WORDS):
             continue
-        if SPEC_NUMBER_THEME.match(title) or PLACEHOLDER_TITLE.match(title):
+        if SPEC_NUMBER_THEME.match(title) or SPEC_NUMBER_COMPACT.match(title) or PLACEHOLDER_TITLE.match(title):
             continue
         if level < 1 or level > 3:
             continue
@@ -363,11 +369,14 @@ def build_chapter_tree(tasks: list[dict], workflow: dict | None = None, model: A
     # tree_model 仅在同一次 outline 调用内临时存在，禁止持久化进 MySQL。
     model = model or workflow.get("tree_model")
     nodes = compose_tree_with_model(tasks, reqs, workflow, model)
+    used_model = bool(nodes)
     if not nodes:
         nodes = stand_in_chapter_tree(tasks, reqs)
     numbered, rewritten = _finish_tree(nodes)
     issues = tree_issues(numbered, list(reqs.values()), rewritten)
-    if issues:
+    # 模型树仅在结构非法时回落替身；「评分点未索引」等软问题不整树作废，否则又变成规范N指纹。
+    hard = [item for item in issues if not item.startswith("评分点未索引")]
+    if hard and used_model:
         nodes = stand_in_chapter_tree(tasks, reqs)
         numbered, rewritten = _finish_tree(nodes)
     return numbered, rewritten
@@ -391,7 +400,7 @@ def tree_issues(headings: list[dict], requirements: list[dict], tasks: list[dict
             issues.append(f"禁用标题 {title}")
         if any(word in title for word in PERSONNEL_WORDS):
             issues.append(f"人员或商务标题 {title}")
-        if PLACEHOLDER_TITLE.match(title) or SPEC_NUMBER_THEME.match(title):
+        if PLACEHOLDER_TITLE.match(title) or SPEC_NUMBER_THEME.match(title) or SPEC_NUMBER_COMPACT.match(title):
             issues.append(f"占位拼接标题 {title}")
         # 短名条款（≤16）允许作章名；拦住把长条款原文直接贴成标题。
         if title in clause_text and len(title) > 16:

@@ -239,6 +239,7 @@ class TenderOrchestratorMixin:
                     model_payloads[identity] = extract_with_model(result.pages, provider)
 
         fill_matrix_after = [False]
+        index_tender_after = [False]
 
         def operation(state, project, actual):
             actual["parse_confirmed"] = False
@@ -396,15 +397,14 @@ class TenderOrchestratorMixin:
                         actual["parse_confirmed"] = False
                     else:
                         from icg.domain.technical_outline import apply_technical_outline
-                        from icg.domain.technical_tender_index import index_current_tender
-                        kb = getattr(self.demo, "knowledge_base", None)
-                        index_current_tender(
-                            actual, kb=kb, company_id=company_id, project_id=project_id,
-                        )
+                        from icg.domain.technical_tender_index import build_local_index
+                        # 本标页本地索引可在锁内算；RAGFlow 上传放到事务外，避免再占 RLock。
+                        build_local_index(actual)
                         # 目录编排的模型调用若存在，也应在事务外；此处只落规则/预计算结果。
                         apply_technical_outline(state, project_id, actual, model=None)
                         # 最短路径：抽取确认不再作为用户闸门；解析成功即视为可进目录确认。
                         actual["parse_confirmed"] = True
+                        index_tender_after[0] = True
                 # 矩阵检索与偏离判断改到事务外，避免 RAG/模型 IO 再占 RLock。
                 actual["technical_retrieval"] = "pending"
                 if not pending and not technical_empty:
@@ -441,7 +441,30 @@ class TenderOrchestratorMixin:
             result["requirements"] = [r for r in workflow.get("requirements", {}).values() if visible(r)]
             result["facts"] = [f for f in workflow.get("facts", {}).values() if visible(f)]
             result["revision"] = refreshed.projects[project_id].revision
+        if index_tender_after[0]:
+            self._index_tender_unlocked(principal, project_id)
         return result
+
+    def _index_tender_unlocked(self, principal: Principal, project_id: str) -> None:
+        """本标 RAGFlow 上传在锁外跑；短事务只写回索引元数据。"""
+        state = self.repository.read()
+        workflow = state.workflows.get(project_id) or {}
+        kb = getattr(self.demo, "knowledge_base", None)
+        company_id = state.projects[project_id].company_id
+        draft = {
+            "files": dict(workflow.get("files") or {}),
+            "tender_index": workflow.get("tender_index"),
+        }
+        from icg.domain.technical_tender_index import index_current_tender
+        index = index_current_tender(draft, kb=kb, company_id=company_id, project_id=project_id)
+
+        def write_index(state, project, actual):
+            actual["tender_index"] = index
+            return {"ok": True}
+
+        self.repository.transaction(
+            lambda state: self._apply_matrix_patch(state, principal, project_id, write_index)
+        )
 
     def _refresh_technical_outline_unlocked(self, principal: Principal, project_id: str, provider) -> None:
         """目录模型编排在锁外跑；成功则短事务覆盖规则替身目录。"""
