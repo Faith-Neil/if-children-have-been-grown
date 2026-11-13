@@ -127,8 +127,8 @@ function HumanQueueView() {
               extra={
                 <Space>
                   <span className="muted">{loopLine(group)}</span>
-                  {group.volume_finalized && <Tag>分册已定稿</Tag>}
-                  <Tooltip title={group.can_recheck ? '' : group.volume_finalized ? '分册已定稿，须先解锁' : '只有本节负责人或项目负责人可以重新检查'}>
+                  {group.volume_finalized && <Tag>方案已定稿</Tag>}
+                  <Tooltip title={group.can_recheck ? '' : group.volume_finalized ? '方案已定稿，须先解锁' : '只有本节负责人或项目负责人可以重新检查'}>
                     <Button size="small" disabled={busy || !group.can_recheck} onClick={() => void recheck(group)}>重新检查</Button>
                   </Tooltip>
                 </Space>
@@ -147,7 +147,7 @@ function HumanQueueView() {
                         {issue.fix_count > 0 && <span className="muted">已自动修正 {issue.fix_count} 次</span>}
                       </Space>
                       <Space>
-                        {needsMaterial(issue) && <Button type="link" size="small" onClick={() => navigate('matrix')}>去补资料</Button>}
+                        {needsMaterial(issue) && <Button type="link" size="small" onClick={() => navigate('analyze')}>去补资料</Button>}
                         <Button type="link" size="small" onClick={() => navigate(editorChapterPath(projectId, group.chapter_id))}>在编辑台修改</Button>
                         {issue.permissions.edit && <Button size="small" disabled={busy} data-testid="queue-edit-paragraph" onClick={() => open('edit', group, issue)}>改写本段</Button>}
                         {issue.permissions.resolve && <Button size="small" type="primary" ghost disabled={busy} onClick={() => open('resolve', group, issue)}>标为已处理</Button>}

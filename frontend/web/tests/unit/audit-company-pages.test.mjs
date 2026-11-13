@@ -294,16 +294,14 @@ test('APP-M2-T026: 权限感知判定：区分集团管理员、公司管理员�
   assert.equal(companyAdminRes.canViewAudit, true);
   assert.equal(companyAdminRes.roleLabel, '公司管理员');
 
-  // 7.2 集团管理员 (group_admin): 跨公司查看，严禁编辑任何公司配置，非公司管理员隐藏管理按钮
-  const groupAdminRes = canManageCompanySettings({
+  const formerGroupAdmin = canManageCompanySettings({
     role: 'group_admin',
     targetCompanyId: 'alpha',
     userCompanyId: 'grp-01',
   });
-  assert.equal(groupAdminRes.canEdit, false);
-  assert.equal(groupAdminRes.canDisable, false);
-  assert.equal(groupAdminRes.canViewAudit, true);
-  assert.match(groupAdminRes.readOnlyNotice || '', /集团管理员.*全局监管/);
+  assert.equal(formerGroupAdmin.canEdit, false);
+  assert.equal(formerGroupAdmin.canDisable, false);
+  assert.equal(formerGroupAdmin.canViewAudit, false);
 
   // 7.3 平台管理员 (platform_admin): 具备开通与停用公司的最高管理权限
   const platformAdminRes = canManageCompanySettings({

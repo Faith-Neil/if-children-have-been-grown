@@ -1,6 +1,6 @@
 // 为什么有这个文件：把页面地址解析成服务端已经允许的导航入口。
 // 它解决什么问题：刷新、深链接和前进后退使用同一套路径，不靠页面内存记住当前位置。
-import { applicationPaths, projectTabs } from './session-navigation.ts';
+import { applicationPaths, canonicalProjectTab, projectTabs } from './session-navigation.ts';
 
 export type HistoryMode = 'push' | 'replace' | 'none';
 
@@ -8,8 +8,13 @@ export type AppRoute =
   | { kind: 'home'; path: '/' }
   | { kind: 'login'; path: '/login' }
   | { kind: 'global'; routeId: string; path: string }
+  | { kind: 'company_detail'; companyId: string; path: string }
   | { kind: 'project'; projectId: string; tab: string; path: string; chapterId?: string }
   | { kind: 'unknown'; path: string };
+
+export function companyDetailPath(companyId: string): string {
+  return `/admin/companies/${encodeURIComponent(companyId)}`;
+}
 
 const globalRouteByPath = new Map(Object.entries(applicationPaths).map(([routeId, path]) => [path, routeId]));
 // 兼容现代 RESTful 路由与规范别名
@@ -47,6 +52,14 @@ export function parseAppPath(input: string): AppRoute {
   const routeId = globalRouteByPath.get(path);
   if (routeId) return { kind: 'global', routeId, path };
 
+  const companyDetailMatch = /^\/admin\/companies\/([^/]+)$/.exec(path);
+  if (companyDetailMatch) {
+    const companyId = companyDetailMatch[1];
+    if (companyId && companyId !== '.' && companyId !== '..') {
+      return { kind: 'company_detail', companyId, path: companyDetailPath(companyId) };
+    }
+  }
+
   // 1. 匹配深度章节编辑器：/projects/:projectId/editor/:chapterId
   const editorMatch = /^\/projects\/([^/]+)\/editor\/([^/]+)$/.exec(path);
   if (editorMatch) {
@@ -62,8 +75,8 @@ export function parseAppPath(input: string): AppRoute {
   if (match) {
     const projectId = match[1];
     const tab = match[2];
-    if (projectId && projectId !== '.' && projectId !== '..' && (projectTabs.includes(tab) || tab === 'proposal')) {
-      const actualTab = tab === 'proposal' ? 'editor' : tab;
+    const actualTab = canonicalProjectTab(tab);
+    if (projectId && projectId !== '.' && projectId !== '..' && projectTabs.includes(actualTab)) {
       return { kind: 'project', projectId, tab: actualTab, path: projectPath(projectId, actualTab) };
     }
   }
@@ -82,6 +95,7 @@ export function parseAppPath(input: string): AppRoute {
 
 export function menuPathFor(route: AppRoute): string {
   if (route.kind === 'global') return route.path;
+  if (route.kind === 'company_detail') return applicationPaths['admin.rules'];
   return applicationPaths.workbench;
 }
 

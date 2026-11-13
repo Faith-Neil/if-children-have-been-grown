@@ -102,7 +102,7 @@ export function ChapterLoopPage() {
               { title: '操作', key: 'actions', width: 260, render: (_, row) => (
                 <Space size={4} wrap>
                   <Button type="link" size="small" disabled={!row.loop} onClick={() => setOpenId(row.chapter_id)}>轮次时间线</Button>
-                  <Tooltip title={row.can_recheck ? '' : row.volume_finalized ? '分册已定稿，须先解锁' : !row.has_content ? '本节还没有正文' : '只有本节负责人或项目负责人可以重新检查'}>
+                  <Tooltip title={row.can_recheck ? '' : row.volume_finalized ? '方案已定稿，须先解锁' : !row.has_content ? '本节还没有正文' : '只有本节负责人或项目负责人可以重新检查'}>
                     <Button size="small" type={row.loop?.status === 'interrupted' ? 'primary' : 'default'} data-testid={`chapter-loop-recheck-${row.chapter_id}`}
                       disabled={busy || !row.can_recheck} onClick={() => void recheck(row)}>{retryLabel(row.loop)}</Button>
                   </Tooltip>

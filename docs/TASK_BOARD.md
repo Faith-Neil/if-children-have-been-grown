@@ -10,11 +10,11 @@
 
 ## 当前基线（2026-10-28 按代码实况重定，2026-10-30 整治，[ISSUE-045](../issues/ISSUE-045.md)）
 
-项目 455 项：done 100、in-review 185、in-progress 32、planned 64、blocked 0、cancelled 74、ready 0。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
+2026-10-30 整治时为 455 项：done 100、in-review 185、in-progress 32、planned 64、blocked 0、cancelled 74、ready 0。2026-11-04 看板表为 464 项，其中 FLOW-3ROLE 与 OPS-M0-T03 为 in-review。这些数量不是产品完成率。状态括号内“2026-10-28 重定”说明依据；不把任何卡直接标 done，done 仍需专属交付文档与用户验收。这些数量不是产品完成率。
 
 | 能力 | 实况 | 主要缺口 |
 |---|---|---|
-| 账号与权限 | 生产口令登录、8 角色 RBAC、数据权限只读态；首次登录与重置后强制改密（后端拦截）、按公司规则校验新密码、统一失败提示、锁定到期自动解锁、停用公司拒绝登录、退出即作废令牌（T260）；账号与公司安全事件单独持久化 | 品牌页（T033/T034，登录页已读品牌接口）；平台设置页（锁定时长现用部署变量）；A-06 审计日志页仍是页面内示例；OIDC/Keycloak 已按 PM 决定取消 |
+| 账号与权限 | 生产口令登录、三个登录角色（ISSUE-048，in-review）；首次登录与重置后强制改密（后端拦截）、按公司规则校验新密码、统一失败提示、锁定到期自动解锁、停用公司拒绝登录、退出即作废令牌（T260）；账号与公司安全事件单独持久化 | 品牌页（T033/T034，登录页已读品牌接口）；平台设置页（锁定时长现用部署变量）；A-06 审计日志页仍是页面内示例；OIDC/Keycloak 已按 PM 决定取消。参考原文八角色不改 |
 | 持久化 | 项目工作流、账号、资料库、知识库索引写入 MySQL 8（Alembic 0012） | 旧 `/api/projects`、`/api/chapters` 路由仍在（BE-M0-T09） |
 | 招标解析 | 解析作为后台任务运行，页面经事件流实时显示进度、断线改为轮询，RAGFlow 识别中的文件自动反复取回（T020）；PDF/Word 文字提取，扫描件/.doc/Excel/图片经 RAGFlow DeepDOC；响应矩阵含响应方式、风险、批量匹配、分流确认与 Excel；按章节与条目抽取条款，适配真实招标文件版式（展平表格、段内（1）…（8）、否决/无效/废标）；事实含前附表；条目置信度（公司阈值高亮）与“原文不可读”须补录 | 手工框选新增条目；条款合并拆分（T109）；按标题分块的模型抽取（规则 1，现为规则抽取） |
 | 知识库 | 每公司三类数据集、ICG 摄入流程、管控接口与管理页、检索带片号引用；内置解析评测定默认阈值 | 流程模式评测；历史标书批量导入（T080/T081） |
@@ -32,7 +32,7 @@
 | WP-1 编辑台结构化正文 | T137～T139、T160～T190 | T160、T169、T171、T189、T190、T137、T138、T139（AntV G2） | 段落键、段落锁定、版本对比与回退、变量节点、问题标注与侧栏联动已有（T161、T163、T164、T174、T175 in-review；T166 done），编辑中的正文仍是纯文本框 |
 | WP-2 资料库 | T046～T079 | T046～T068、T070～T075、T077 中未完成的 30 张 | 列表/详情按通用字段渲染，`field_metadata.kb_record` 的各类别字段与 `MetadataTable`/`MetadataForm` 没接入页面；★ 字段重确认、受限资料转交、人员/授权/业绩分类页、Excel 导入 |
 | WP-3 写作规范后台 | T080～T093 | 13 张 | 历史标书导入、章节模板、术语句式、任务卡与提示词模板、审查清单、风格样例 |
-| WP-4 项目与解析 | T094～T117 | 无（T097～T100 已 in-review） | 项目状态与取消只读、设置分组已有；规则覆盖、分册格式（除递交文件名）、完整值类别只保存未被检查与导出读取；项目列表状态筛选与统计卡、分册增删未做 |
+| WP-4 项目与解析 | T094～T117 | 无（T097～T100 已 in-review） | 项目状态与取消只读、设置分组已有；规则覆盖中的社保月数、本单位人员、服务期和证明有效天数已进入检查（ISSUE-048）；分册格式（除递交文件名）和完整值类别只保存；项目列表状态筛选与统计卡、分册增删未做 |
 | WP-5 矩阵、SLA 与章节循环 | T118～T136、T211～T213 | 10 张 | 证据三路候选、SLA 判定与承诺函、需复核传播、R09 子范围、循环异常重试 |
 | WP-6 检查、规则、导出、看板与管理 | T011、T033～T044、T140～T159、T191～T259 中未完成的 | 34 张 | 规则编号对齐（ISSUE-046）；导出、检查仍是同步请求；R25 实际文件残留检查（T231）；R43/R44；暗标；品牌页；集团视图 |
 | WP-7 评审边界 | FE-M0-T03 | 1 张 | 评审系统与前端来源边界说明 |
@@ -200,7 +200,7 @@
 | [FE-M6 协作](tasks/FE-M6.md) | ROADMAP Phase 7；一期可延后范围 | 4 | 0/4 | 后续范围确认后按负责人、评论、引用等具体依赖推进，彼此无需整阶段串行。 |
 | [FE-M7 效率](tasks/FE-M7.md) | ROADMAP Phase 8；一期可延后范围 | 4 | 0/4 | 可选效率增强按相关模块依赖推进，不是一期发布前置。 |
 | [FE-M8 发布门禁](tasks/FE-M8.md) | ROADMAP §11 MVP Cut Line、§13 Gate A/B/C；贯穿发布 Milestone 1～5 | 3 | 3 cancelled（superseded-by-APP-M2，ISSUE-045） | 发布验证覆盖一期必需任务；无需等待可选 FE-M6/FE-M7。 |
-| [OPS-M0 工作区运维](tasks/OPS-M0.md) | ISSUE-004工作区同步；ISSUE-017内网部署草案 | 2 | 2/2 | T01同步已验收。T02 已由用户 10-12 14:34 确认，标为 done，未部署。多副本仍 blocked 在 ISSUE-018。 |
+| [OPS-M0 工作区运维](tasks/OPS-M0.md) | ISSUE-004工作区同步；ISSUE-017内网部署草案；ISSUE-049 产品启动 | 3 | 2/3 | T01同步已验收。T02 已由用户 10-12 14:34 确认，标为 done，未部署。T03 为 in-review，本机改连 MySQL，虚拟机未部署。多副本仍 blocked 在 ISSUE-018。 |
 | [REV-M0 接手审查](tasks/REV-M0.md) | ISSUE-004目录与业务/技术审查；ISSUE-013 QA复跑；ISSUE-015 T06计划；ISSUE-013 签署；ISSUE-019 E2E、T001签署；ISSUE-034 最新分支复核 | 36 | 26/36 | 审查/brief交付完成，设计决定留ISSUE-005；QA复跑、T06计划及贯通冒烟/Word渲染完成。T22 为 T114 冲突刷新 QA，已 done。T23 与 T24 已 done。T06、T08、T25、T26、T27、T28、T29、T30、T31、T32、T33、T34、T35、T36 为 in-review。T32～T35 为 tip 90b2334 上 T04/T05/T16/T18 QA签署；T36 为 tip 0cb6c38 上 T06 QA签署，不标 done。 |
 | [BE-M0 后端链路](tasks/BE-M0.md) | ISSUE-006本地后端demo；ISSUE-005契约卡；ISSUE-018实施中；ISSUE-023已关闭；ISSUE-025托管MySQL作业；ISSUE-027版式；ISSUE-031错误码名字；ISSUE-032编辑锁对齐；ISSUE-033挂证据规则；ISSUE-035项目表对齐；ISSUE-021排队 | 19 | 10/19 | T01～T03已验收。T02与T03由项目经理于 10-12 12:28 在 QA 签署后确认。T08与T10由项目经理在 QA 签署 98c5129 后确认，标为 done；T04 与 T05 为 in-review（QA REV-M0-T32/T33 已签，等 PM），T06 为 in-review（QA REV-M0-T36 tip `0cb6c38` 已签，等 PM），T07 为 in-review；T09 planned。T11 回执与会话已依据 QA 5e4a627，PM 确认 REV-M0-T28 标为 done。T12 编辑租约已依据 QA ae6fd10，PM 15:32 确认 done。T13 项目聚合已依据 QA ae38ec3，PM 17:16 确认 done。T14 已依据 QA 签署 b20b844 标为 done。T15 Word 默认版式已由项目经理于 18:01 确认 done。用户已在 Word/WPS 目视确认。ISSUE-027 已 closed。T16 错误码名字为 in-review（QA REV-M0-T34 已签，等 PM）。T17 编辑锁对齐字典为 planned。T18 证据挂接规则为 in-review（QA REV-M0-T35 已签，等 PM）。T19 项目表对齐字典为 planned。ISSUE-005 仍 in-progress。ISSUE-023 已 closed。 |
 | [APP-M1 示例实现](tasks/APP-M1.md) | ISSUE-007示例与后台联调；ISSUE-008资料保护 | 16 | 9 done / 7 cancelled | T07及T09～16已本地验收；T01～T06、T08 随演示外壳删除标 cancelled（ISSUE-045）。 |
@@ -276,6 +276,7 @@
 | [FE-M8-T03](tasks/FE-M8.md#fe-m8-t03) | 版本发布与交付资料封版 | cancelled（superseded-by-APP-M2，2026-10-28 重定，见 ISSUE-045） | [FE-M8-T01](tasks/FE-M8.md#fe-m8-t01)、[FE-M8-T02](tasks/FE-M8.md#fe-m8-t02)、[FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | — | `docs/delivery/FE-M8-T03.md` |
 | [OPS-M0-T01](tasks/OPS-M0.md#ops-m0-t01) | 全工作区云端同步 | done | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | [ISSUE-004](../issues/ISSUE-004.md) | [交付](delivery/OPS-M0-T01.md) |
 | [OPS-M0-T02](tasks/OPS-M0.md#ops-m0-t02) | 内网部署草案 | done | [BE-M0-T01](tasks/BE-M0.md#be-m0-t01) | [ISSUE-017](../issues/ISSUE-017.md) | [交付](delivery/OPS-M0-T02.md) |
+| [OPS-M0-T03](tasks/OPS-M0.md#ops-m0-t03) | 产品启动连接 MySQL | in-review | [OPS-M0-T02](tasks/OPS-M0.md#ops-m0-t02) | [ISSUE-049](../issues/ISSUE-049.md) | [交付](delivery/OPS-M0-T03.md) |
 | [REV-M0-T01](tasks/REV-M0.md#rev-m0-t01) | 目录、业务与技术审查及brief | done | [FE-M0-T02](tasks/FE-M0.md#fe-m0-t02) | [ISSUE-004](../issues/ISSUE-004.md) | [交付](delivery/REV-M0-T01.md) |
 | [REV-M0-T02](tasks/REV-M0.md#rev-m0-t02) | QA独立复跑与会话真实HTTP复核入库 | done | [APP-M2-T001](tasks/APP-M2.md#app-m2-t001) | [ISSUE-013](../issues/ISSUE-013.md) | [交付](delivery/REV-M0-T02.md) |
 | [REV-M0-T03](tasks/REV-M0.md#rev-m0-t03) | APP-M1-T06端到端验收计划 | done | [APP-M1-T06](tasks/APP-M1.md#app-m1-t06) | [ISSUE-015](../issues/ISSUE-015.md) | [交付](delivery/REV-M0-T03.md) |
@@ -663,6 +664,8 @@
 | [AI-KB-RAG-PIPELINE](tasks/AI-M0.md#ai-kb-rag-pipeline) | 公司知识库同步（对账、改版/撤销/过期删除、漂移修复）与索引过滤、实时复核检索接入生产链路（Wave 12） | in-review | [AI-RAGFLOW-KB-SYNC](tasks/AI-M0.md#ai-ragflow-kb-sync)、[BE-WORKFLOW-DURABILITY](tasks/BE-M0.md#be-workflow-durability) | [ISSUE-043](../issues/ISSUE-043.md) | [交付](delivery/AI-KB-RAG-PIPELINE.md) |
 | [AI-KB-RAG-EVAL](tasks/AI-M0.md#ai-kb-rag-eval) | 知识库检索质量评测与调参（合成金标集、真实 RAGFlow 内置解析与流程模式均已实测） | in-review | [AI-KB-RAG-PIPELINE](tasks/AI-M0.md#ai-kb-rag-pipeline) | [ISSUE-043](../issues/ISSUE-043.md) | `docs/testing/rag-eval-golden-v1.md` |
 | [AI-KB-CONTROL-PLANE](tasks/AI-M0.md#ai-kb-control-plane) | 知识库管控接口（/api/v1/kb-admin）与招投标专用 RAGFlow 摄入流程（结构化资料/历史投标/证书/招标文件） | in-review | [AI-KB-RAG-PIPELINE](tasks/AI-M0.md#ai-kb-rag-pipeline) | [ISSUE-043](../issues/ISSUE-043.md) | [技术决定](decisions/2026-10-28-kb-control-plane-and-pipelines.md) |
+| [AI-HISTORY-BID-PARSE-OPT](tasks/AI-M0.md#ai-history-bid-parse-opt) | 历史标书解析管道四类优化与真实验收（切块/抽取分类/检索/整管；金标两份脱敏 docx） | in-review（2026-11-06：真机四测 4 passed；建议 QA/PD 后 PM done） | [AI-KB-CONTROL-PLANE](tasks/AI-M0.md#ai-kb-control-plane) | [ISSUE-050](../issues/ISSUE-050.md) | [交付](delivery/AI-HISTORY-BID-PARSE-OPT.md) |
+| [AI-HISTORY-BID-RAG-EVAL](tasks/AI-M0.md#ai-history-bid-rag-eval) | 历史标书 Recall@5 / MRR@10 真机大盘（五份脱敏金标 + history_bid） | in-review（2026-11-06：5/5 解析成功；报告已出；不改默认阈值） | [AI-HISTORY-BID-PARSE-OPT](tasks/AI-M0.md#ai-history-bid-parse-opt) | [ISSUE-050](../issues/ISSUE-050.md) | [交付](delivery/AI-HISTORY-BID-RAG-EVAL.md) |
 | [BE-AUTH-PRODUCTION-ONLY](tasks/BE-M0.md#be-auth-production-only) | 去掉演示入口与三角色兼容，只保留生产认证（用户 2026-10-28 决定） | in-review | — | [ISSUE-005](../issues/ISSUE-005.md) | [自测](testing/2026-10-28-wave-12b-verification.md) |
 | [AI-TENDER-STRUCTURED-EXTRACTION](tasks/AI-M0.md#ai-tender-structured-extraction) | 招标条款按章节与条目抽取（不再逐行成条款） | in-review | — | [ISSUE-007](../issues/ISSUE-007.md) | [自测](testing/2026-10-28-wave-12b-verification.md) |
 | [AI-TENDER-DEEPDOC-PARSE](tasks/AI-M0.md#ai-tender-deepdoc-parse) | 扫描件、.doc、Excel、图片招标文件经 RAGFlow DeepDOC 解析 | in-review | AI-TENDER-STRUCTURED-EXTRACTION | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/AI-TENDER-DEEPDOC-PARSE.md` |
@@ -670,6 +673,28 @@
 | [APP-TECHNICAL-ONLY-BID](tasks/APP-M2.md#app-technical-only-bid) | 只写技术标的项目（不合标） | in-review | — | [ISSUE-007](../issues/ISSUE-007.md) | `docs/delivery/APP-TECHNICAL-ONLY-BID.md` |
 | [FE-KB-BUSINESS-FLOWS](tasks/AI-M0.md#fe-kb-business-flows) | 知识库接入资料库、方案片段与写作输入页面 | in-review | [AI-KB-CONTROL-PLANE](tasks/AI-M0.md#ai-kb-control-plane) | [ISSUE-043](../issues/ISSUE-043.md) | [自测](testing/2026-10-28-wave-12b-verification.md) |
 | [FE-TEST-ORPHANS](tasks/FE-M0.md#fe-test-orphans) | 前端根目录 28 个测试文件从未执行，8 项失败待判定 | in-review | — | [ISSUE-044](../issues/ISSUE-044.md) | `docs/delivery/FE-TEST-ORPHANS.md` |
+| [TV-M0-T00](tasks/TV-M0.md#tv-m0-t00) | RAGFlow 招标解析打通（工单 0 · 最短路径阻塞） | in-review | 知识库内网嵌入已配 | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T00.md) |
+| [TV-M0-T08](tasks/TV-M0.md#tv-m0-t08) | 管道去闸门（工单 1 · 上传后自动解析抽取拟目录） | in-review | [TV-M0-T00](tasks/TV-M0.md#tv-m0-t00) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T08.md) |
+| [TV-M0-T09](tasks/TV-M0.md#tv-m0-t09) | 动态目录唯一确认（工单 2 · 删六段/矩阵闸门） | in-review | [TV-M0-T08](tasks/TV-M0.md#tv-m0-t08) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T09.md) |
+| [TV-M0-T10](tasks/TV-M0.md#tv-m0-t10) | 矩阵后台化 + 覆盖视图（工单 3） | in-review | [TV-M0-T09](tasks/TV-M0.md#tv-m0-t09) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T10.md) |
+| [TV-M0-T11](tasks/TV-M0.md#tv-m0-t11) | 双库 RAG + 审计（工单 4） | in-review | [TV-M0-T10](tasks/TV-M0.md#tv-m0-t10) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T11.md) |
+| [TV-M0-T12](tasks/TV-M0.md#tv-m0-t12) | 一键全文 + 质量八条（工单 5） | in-review | [TV-M0-T11](tasks/TV-M0.md#tv-m0-t11) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T12.md) |
+| [TV-M0-T13](tasks/TV-M0.md#tv-m0-t13) | 编辑台 UI 精简（工单 6） | in-review | [TV-M0-T12](tasks/TV-M0.md#tv-m0-t12) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T13.md) |
+| [TV-M0-T14](tasks/TV-M0.md#tv-m0-t14) | 写作助手双模式（工单 7） | in-review | [TV-M0-T13](tasks/TV-M0.md#tv-m0-t13) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T14.md) |
+| [TV-M0-T15](tasks/TV-M0.md#tv-m0-t15) | Requirement/ResponseTask 两层 + 实质生成 | in-review | [TV-M0-T12](tasks/TV-M0.md#tv-m0-t12) | [ISSUE-051](../issues/ISSUE-051.md) | [交付](delivery/TV-M0-T15.md) |
+| [TV-M0-T16](tasks/TV-M0.md#tv-m0-t16) | 覆盖视图五列 + 去事实冲突 + 壳层紧凑 | in-review | [TV-M0-T15](tasks/TV-M0.md#tv-m0-t15) | [ISSUE-051](../issues/ISSUE-051.md) | [交付](delivery/TV-M0-T16.md) |
+| [TV-M0-T01](tasks/TV-M0.md#tv-m0-t01) | 隐藏资料库与写作档案，新建项目固定技术分册 | in-review | — | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T01.md) |
+| [TV-M0-T02](tasks/TV-M0.md#tv-m0-t02) | 知识库只上传历史标书 | in-review | [TV-M0-T01](tasks/TV-M0.md#tv-m0-t01) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T02.md) |
+| [TV-M0-T03](tasks/TV-M0.md#tv-m0-t03) | 招标文件与辅助文件 | in-review | [TV-M0-T01](tasks/TV-M0.md#tv-m0-t01) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T03.md) |
+| [TV-M0-T04](tasks/TV-M0.md#tv-m0-t04) | 按教程抽取技术条款 | in-review | [TV-M0-T03](tasks/TV-M0.md#tv-m0-t03) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T04.md) |
+| [TV-M0-T05](tasks/TV-M0.md#tv-m0-t05) | 单章服务方案目录 | in-review | [TV-M0-T04](tasks/TV-M0.md#tv-m0-t04) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T05.md) |
+| [TV-M0-T06](tasks/TV-M0.md#tv-m0-t06) | 矩阵响应来自历史做法 | in-review | [TV-M0-T04](tasks/TV-M0.md#tv-m0-t04)、[TV-M0-T02](tasks/TV-M0.md#tv-m0-t02) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T06.md) |
+| [TV-M0-T07](tasks/TV-M0.md#tv-m0-t07) | 按节生成正文并导出技术偏离表 | in-review | [TV-M0-T05](tasks/TV-M0.md#tv-m0-t05)、[TV-M0-T06](tasks/TV-M0.md#tv-m0-t06) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T07.md) |
+| [FLOW-3ROLE](tasks/FLOW.md#flow-3role) | 三个登录角色和四段主路径 | in-review | — | [ISSUE-048](../issues/ISSUE-048.md) | [交付](delivery/FLOW-3ROLE.md) |
+| [ADMIN-PROVISION-T01](tasks/ADMIN-PROVISION.md#admin-provision-t01) | 后端开通公司与可选强制改密 | in-review | — | [ISSUE-052](../issues/ISSUE-052.md) | [交付](delivery/ADMIN-PROVISION-T01.md) |
+| [ADMIN-PROVISION-T02](tasks/ADMIN-PROVISION.md#admin-provision-t02) | 顶栏去公司名与新建公司弹窗 | in-review | [ADMIN-PROVISION-T01](tasks/ADMIN-PROVISION.md#admin-provision-t01) | [ISSUE-052](../issues/ISSUE-052.md) | [交付](delivery/ADMIN-PROVISION-T02.md) |
+| [ADMIN-PROVISION-T03](tasks/ADMIN-PROVISION.md#admin-provision-t03) | 公司详情路由与加人 | in-review | T01、T02 | [ISSUE-052](../issues/ISSUE-052.md) | [交付](delivery/ADMIN-PROVISION-T03.md) |
+| [ADMIN-PROVISION-T04](tasks/ADMIN-PROVISION.md#admin-provision-t04) | 项目与双库隔离回归 | in-review | T01 | [ISSUE-052](../issues/ISSUE-052.md) | [交付](delivery/ADMIN-PROVISION-T04.md) |
 <!-- task-board:end -->
 
 ## 每次推进的同步顺序

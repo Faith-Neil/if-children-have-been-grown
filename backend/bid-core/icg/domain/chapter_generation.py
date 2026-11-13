@@ -28,6 +28,7 @@ from .generation_context import (
 from .project_access import (
     READONLY_SYSTEM_ROLES,
     ROLE_NORMALIZATION_MAP,
+    foreign_company,
     writable,
 )
 from .prompt_budget import (
@@ -35,6 +36,7 @@ from .prompt_budget import (
     DynamicPromptContextManager,
     check_sensitive_model_gate,
 )
+from .history_commitment import commitment_notice
 
 VARIABLE_PATTERN = re.compile(r"\{\{([A-Za-z0-9_.:\u4e00-\u9fa5-]+)\}\}")
 CITATION_PATTERN = re.compile(r"\[(证|片|cite)(?::([^\]]+))?\]")
@@ -945,6 +947,27 @@ def format_writing_plan_prompt(snapshot: dict) -> str:
     return "\n".join(lines)
 
 
+def attach_history_commitment_notice(snapshot: dict[str, Any]) -> None:
+    """在写作快照上附加历史承诺未覆盖提示（不写入章节正文）。"""
+    if not snapshot:
+        return
+    notice = commitment_notice(snapshot.get("retrieved_evidence") or [])
+    if notice:
+        snapshot["history_commitment_notice"] = notice
+    else:
+        snapshot.pop("history_commitment_notice", None)
+
+
+def writing_input_snapshot_id(snapshot: dict[str, Any] | None) -> str | None:
+    if not snapshot:
+        return None
+    fingerprint = str(snapshot.get("input_fingerprint") or "").strip()
+    if fingerprint:
+        return fingerprint
+    created = str(snapshot.get("created_at") or "").strip()
+    return created or None
+
+
 def assemble_writing_prompt_plan(
     state: DemoState,
     project_id: str,
@@ -969,7 +992,10 @@ def assemble_writing_prompt_plan(
     effective_max_tokens = max_context_tokens
     if effective_max_tokens is None:
         bound_id = state.project_model_configs.get(project_id)
-        cfg = state.model_configs.get(bound_id) if bound_id else state.model_configs.get(f"default-{project.company_id}")
+        cfg = state.model_configs.get(bound_id) if bound_id else None
+        if cfg is None:
+            from icg.infra.model_config_storage import saved_company_model
+            cfg = saved_company_model(state, project.company_id)
         if cfg:
             effective_max_tokens = getattr(cfg, "context_window", None) or getattr(cfg, "max_context_tokens", None)
         if effective_max_tokens is None:
@@ -1029,8 +1055,10 @@ def generation_loop_meta(state: Any, project_id: str, candidate: dict) -> dict:
     snapshot = candidate.get("input_snapshot") or {}
     bound = state.project_model_configs.get(project_id) if hasattr(state, "project_model_configs") else None
     project = state.projects.get(project_id)
-    config_id = bound or (f"default-{project.company_id}" if project is not None else None)
-    config = state.model_configs.get(config_id) if config_id and hasattr(state, "model_configs") else None
+    config = state.model_configs.get(bound) if bound and hasattr(state, "model_configs") else None
+    if config is None and project is not None and hasattr(state, "model_configs"):
+        from icg.infra.model_config_storage import saved_company_model
+        config = saved_company_model(state, project.company_id)
     usage = candidate.get("token_budget_usage") or {}
     if hasattr(usage, "__dict__") and not isinstance(usage, dict):
         usage = vars(usage)
@@ -1386,7 +1414,7 @@ class ChapterGenerationService:
             raise DomainError(403, "FORBIDDEN", "只读角色不可启动章节生成。")
 
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        if foreign_company(project, principal):
             raise DomainError(404, "NOT_FOUND", "项目不存在或不属于当前公司。")
 
         if not writable(state, project_id, principal.user.id):
@@ -1503,7 +1531,7 @@ class ChapterGenerationService:
             raise DomainError(403, "FORBIDDEN", "只读角色不可启动章节生成流水线。")
 
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        if foreign_company(project, principal):
             raise DomainError(404, "NOT_FOUND", "项目不存在或不属于当前公司。")
 
         if not writable(state, project_id, principal.user.id):
@@ -1866,7 +1894,7 @@ class ChapterGenerationService:
             raise DomainError(403, "FORBIDDEN", "只读角色不可启动章节生成。")
 
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        if foreign_company(project, principal):
             raise DomainError(404, "NOT_FOUND", "项目不存在或不属于当前公司。")
 
         chapter = state.chapters.get(chapter_id)
@@ -1886,7 +1914,10 @@ class ChapterGenerationService:
                 raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL", "敏感项目只能使用本地模型配置。")
 
         bound_id = state.project_model_configs.get(project.id)
-        cfg = state.model_configs.get(bound_id) if bound_id else state.model_configs.get(f"default-{project.company_id}")
+        cfg = state.model_configs.get(bound_id) if bound_id else None
+        if cfg is None:
+            from icg.infra.model_config_storage import saved_company_model
+            cfg = saved_company_model(state, project.company_id)
 
         if cfg is not None:
             if not getattr(cfg, "is_local", False) or not getattr(cfg, "allow_sensitive", False):
@@ -1901,6 +1932,29 @@ class ChapterGenerationService:
             active_p = resolved_p or getattr(self.demo, "model_provider", None)
             if active_p and getattr(active_p, "is_local", False) is False and getattr(active_p, "is_real_model", None) is not False:
                 raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL", "敏感项目只能使用本地模型配置。")
+
+    def dismiss_history_commitment_notice(
+        self,
+        project_id: str,
+        chapter_id: str,
+        principal: Principal,
+        snapshot_id: str,
+    ) -> dict[str, Any]:
+        """关闭历史承诺提示：按写作快照 id 记录在项目上，同一快照对所有查看者隐藏。"""
+        snapshot_id = str(snapshot_id or "").strip()
+        if not snapshot_id:
+            raise DomainError(422, "VALIDATION_ERROR", "缺少写作快照 id。")
+        state = self.repository.read()
+        chapter = self.demo._chapter(state, principal, chapter_id)
+        if chapter.project_id != project_id:
+            raise DomainError(404, "NOT_FOUND", "章节不属于当前项目。")
+
+        def operation(st: DemoState) -> dict[str, Any]:
+            workflow = st.workflows.setdefault(project_id, {})
+            workflow.setdefault("history_commitment_notice_dismissals", {})[chapter_id] = snapshot_id
+            return {"history_commitment_notice_dismissed_snapshot_id": snapshot_id}
+
+        return self.repository.transaction(operation)
 
     def validate_chapter_content(
         self,
@@ -1920,7 +1974,7 @@ class ChapterGenerationService:
 
         # 租户与项目隔离（404）
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        if foreign_company(project, principal):
             raise DomainError(404, "NOT_FOUND", "项目不存在或不属于当前公司。")
 
         chapter = state.chapters.get(chapter_id)
@@ -1999,7 +2053,7 @@ class ChapterGenerationService:
 
         # 门禁 2：租户与项目隔离（404）
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        if foreign_company(project, principal):
             raise DomainError(404, "NOT_FOUND", "项目不存在或不属于当前公司。")
 
         chapter = state.chapters.get(chapter_id)
@@ -2445,6 +2499,4 @@ def remediate_chapter_candidate(
         auto_save=auto_save,
         provider=provider,
     )
-
-
 

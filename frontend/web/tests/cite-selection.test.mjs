@@ -89,28 +89,13 @@ test('SelectionBubble.tsx exports SelectionBubble with all action buttons and te
   assert.ok(content.includes('data-testid="bubble-clear-btn"'), 'Must declare bubble-clear-btn');
 });
 
-test('EditorPage.tsx mounts SelectionBubble, RichParagraphWithCites and editor-citation-bar', () => {
+test('EditorPage.tsx mounts SelectionBubble on the paper editor', () => {
   const { content } = parseSource('../src/editor/EditorPage.tsx');
 
-  // 1. 验证关键组件导入
-  assert.ok(content.includes("from './CiteCapsule'"), 'Must import CiteCapsule');
   assert.ok(content.includes("from './SelectionBubble'"), 'Must import SelectionBubble');
   assert.ok(content.includes("from './cite-capsule'"), 'Must import cite-capsule');
-
-  // 2. 验证挂载 SelectionBubble
   assert.ok(content.includes('<SelectionBubble'), 'Must render SelectionBubble');
-
-  // 3. 验证在 readonly 和 unheld 视图中挂载 RichParagraphWithCites
-  assert.ok(
-    content.includes('<RichParagraphWithCites'),
-    'Must render RichParagraphWithCites'
-  );
-
-  // 4. 验证在可编辑视图中提供引用条
-  assert.ok(
-    content.includes('data-testid="editor-citation-bar"'),
-    'Must provide editor-citation-bar'
-  );
+  assert.ok(content.includes('<PaperEditor'), 'Must render the paper editor');
 
   // 5. 验证选区事件监听与联动方法挂接
   assert.ok(content.includes('handleContainerMouseUp'), 'Must bind handleContainerMouseUp');

@@ -1,7 +1,7 @@
 // 为什么有这个文件：落实 APP-M2-T027 与 APP-M2-T028 (A-02 用户与角色管理、新增、角色分配、锁定/解锁与重置密码表单)。
 // 它解决什么问题：呈现多租户用户与 8 大标准 RBAC 角色列表、新增用户及公司密码策略即时强校验、停用前业务资产强制转交抽屉（交接约束 M1-P10-F2 未转交阻断停用）、角色分配变更（M1-P10-F3）、管理员重置密码、账号安全锁定与解锁（user_status=locked 显示解锁），践行 Layout First 交互设计规范。
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   App as AntApp,
@@ -44,7 +44,8 @@ import {
   UserSwitchOutlined,
 } from '@ant-design/icons';
 import type { Account, ApplicationSession } from '../shared/types.ts';
-import { SYSTEM_ROLE_LABELS, type SystemRole } from '../shared/roles.ts';
+import { getSystemRoleLabel, normalizeSystemRole, SYSTEM_ROLE_LABELS, type SystemRole } from '../shared/roles.ts';
+import { request } from '../shared/api.ts';
 import {
   checkUserManagementPermission,
   DEFAULT_COMPANY_PASSWORD_POLICY,
@@ -87,6 +88,31 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
   const currentCompanyId = currentUser?.company_id || session?.scope.active_company_id || 'alpha';
   const permission = useMemo(() => checkUserManagementPermission(currentRole), [currentRole]);
   const isPlatformAdmin = permission.role === 'platform_admin';
+  const assignableRoles: SystemRole[] = isPlatformAdmin ? ['company_admin', 'member'] : ['member'];
+
+  useEffect(() => {
+    if (!permission.canOperate) return;
+    let token: string | null = null;
+    try { token = sessionStorage.getItem('icg.access_token'); } catch { token = null; }
+    if (!token) return;
+    let cancelled = false;
+    request<{ items: Array<{ id: string; name: string; display_name?: string; company_id: string; role: string; status: string; created_at?: string | null }> }>('/api/v1/users', token)
+      .then(data => {
+        if (cancelled) return;
+        setUsers((data.items || []).map(item => ({
+          id: item.id,
+          username: item.id,
+          name: item.display_name || item.name,
+          role: normalizeSystemRole(item.role),
+          company_id: item.company_id,
+          status: item.status === 'disabled' ? 'disabled' : 'active',
+          created_at: item.created_at || '',
+          assigned_assets: { active_projects: [], active_chapters: [], kb_items: [] },
+        })));
+      })
+      .catch(() => { /* 接口失败时保留当前列表，避免把管理页变成空白。 */ });
+    return () => { cancelled = true; };
+  }, [permission.canOperate]);
 
   // 2. 用户状态集与公司密码策略
   const [users, setUsers] = useState<UserItem[]>(INITIAL_USERS);
@@ -176,22 +202,32 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
         return;
       }
 
-      const newUser: UserItem = {
-        id: `u_${Date.now()}`,
+      const role = assignableRoles.includes(values.role) ? values.role : 'member';
+      let token: string | null = null;
+      try { token = sessionStorage.getItem('icg.access_token'); } catch { token = null; }
+      if (!token) {
+        message.error('登录已失效，请重新登录后再创建用户。');
+        return;
+      }
+      const created = await request<{ id: string; name: string; display_name?: string; company_id: string; role: string; status: string; created_at?: string | null }>('/api/v1/users', token, 'POST', {
         username: values.username.trim(),
         name: values.name.trim(),
-        role: values.role,
         company_id: isPlatformAdmin ? values.company_id || currentCompanyId : currentCompanyId,
-        status: 'active',
-        created_at: new Date().toISOString().replace('T', ' ').substring(0, 19),
-        assigned_assets: {
-          active_projects: [],
-          active_chapters: [],
-          kb_items: [],
-        },
+        role,
+        password: values.password,
+        display_name: values.name.trim(),
+      });
+      const newUser: UserItem = {
+        id: created.id,
+        username: created.id,
+        name: created.display_name || created.name,
+        role: normalizeSystemRole(created.role),
+        company_id: created.company_id,
+        status: created.status === 'disabled' ? 'disabled' : 'active',
+        created_at: created.created_at || '',
+        assigned_assets: { active_projects: [], active_chapters: [], kb_items: [] },
       };
-
-      setUsers(prev => [newUser, ...prev]);
+      setUsers(prev => [newUser, ...prev.filter(item => item.id !== newUser.id)]);
       message.success(`成功创建用户 "${newUser.name} (${newUser.username})"`);
       setIsAddModalOpen(false);
       addForm.resetFields();
@@ -288,7 +324,7 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
     }
 
     setRoleModalUser(user);
-    roleForm.setFieldsValue({ role: user.role });
+    roleForm.setFieldsValue({ role: normalizeSystemRole(user.role) });
     setRoleWarning(null);
     setIsRoleModalOpen(true);
   };
@@ -320,9 +356,16 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
         return;
       }
 
-      const { updatedUsers, updatedUser } = executeRoleAssignment(users, roleModalUser.id, values.role);
+      let token: string | null = null;
+      try { token = sessionStorage.getItem('icg.access_token'); } catch { token = null; }
+      if (!token) {
+        message.error('登录已失效，请重新登录后再调整角色。');
+        return;
+      }
+      const updated = await request<{ id: string; role: string; name: string; display_name?: string }>('/api/v1/users/' + roleModalUser.id + '/role', token, 'PATCH', { role: values.role });
+      const { updatedUsers, updatedUser } = executeRoleAssignment(users, roleModalUser.id, normalizeSystemRole(updated.role));
       setUsers(updatedUsers);
-      message.success(`已成功将用户 "${updatedUser.name}" 的系统角色调整为 "${SYSTEM_ROLE_LABELS[updatedUser.role]}"。`);
+      message.success(`已成功将用户 "${updatedUser.name}" 的系统角色调整为 "${SYSTEM_ROLE_LABELS[normalizeSystemRole(updatedUser.role)]}"。`);
       setIsRoleModalOpen(false);
       setRoleModalUser(null);
     } catch {
@@ -658,7 +701,7 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
               onClick={() => {
                 addForm.resetFields();
                 addForm.setFieldsValue({
-                  role: 'bid_writer',
+                  role: 'member',
                   company_id: currentCompanyId,
                 });
                 setFormPasswordValue('');
@@ -837,9 +880,9 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
                 rules={[{ required: true, message: '请选择角色' }]}
               >
                 <Select data-testid="user-form-role">
-                  {Object.entries(SYSTEM_ROLE_LABELS).map(([code, label]) => (
+                  {assignableRoles.map(code => (
                     <Select.Option key={code} value={code}>
-                      {label}
+                      {SYSTEM_ROLE_LABELS[code]}
                     </Select.Option>
                   ))}
                 </Select>
@@ -945,7 +988,7 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
               <Descriptions.Item label="账号">{roleModalUser.username}</Descriptions.Item>
               <Descriptions.Item label="姓名">{roleModalUser.name}</Descriptions.Item>
               <Descriptions.Item label="当前角色">
-                <Tag color="blue">{SYSTEM_ROLE_LABELS[roleModalUser.role] || roleModalUser.role}</Tag>
+                <Tag color="blue">{getSystemRoleLabel(roleModalUser.role)}</Tag>
               </Descriptions.Item>
               <Descriptions.Item label="所属企业">{roleModalUser.company_id.toUpperCase()}</Descriptions.Item>
             </Descriptions>
@@ -969,15 +1012,11 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
                 rules={[{ required: true, message: '请选择目标角色' }]}
               >
                 <Select onChange={handleRoleSelectChange} data-testid="role-select">
-                  {Object.entries(SYSTEM_ROLE_LABELS).map(([code, label]) => {
-                    const isRestrictedForCompanyAdmin =
-                      !isPlatformAdmin && (code === 'platform_admin' || code === 'group_admin');
-                    return (
-                      <Select.Option key={code} value={code} disabled={isRestrictedForCompanyAdmin}>
-                        {label} {isRestrictedForCompanyAdmin ? '(仅平台超管可分配)' : ''}
-                      </Select.Option>
-                    );
-                  })}
+                  {assignableRoles.map(code => (
+                    <Select.Option key={code} value={code}>
+                      {SYSTEM_ROLE_LABELS[code]}
+                    </Select.Option>
+                  ))}
                 </Select>
               </Form.Item>
             </Form>
@@ -1106,7 +1145,7 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
               <Descriptions.Item label="账号">{handoverSourceUser.username}</Descriptions.Item>
               <Descriptions.Item label="姓名">{handoverSourceUser.name}</Descriptions.Item>
               <Descriptions.Item label="系统角色">
-                {SYSTEM_ROLE_LABELS[handoverSourceUser.role] || handoverSourceUser.role}
+                {getSystemRoleLabel(handoverSourceUser.role)}
               </Descriptions.Item>
               <Descriptions.Item label="所属企业">{handoverSourceUser.company_id.toUpperCase()}</Descriptions.Item>
             </Descriptions>
@@ -1188,7 +1227,7 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
               >
                 {eligibleHandoverTargets.map(target => (
                   <Select.Option key={target.id} value={target.id}>
-                    {target.name} ({target.username}) - {SYSTEM_ROLE_LABELS[target.role]}
+                    {target.name} ({target.username}) - {getSystemRoleLabel(target.role)}
                   </Select.Option>
                 ))}
               </Select>

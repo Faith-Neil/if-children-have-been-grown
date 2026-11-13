@@ -1442,6 +1442,129 @@
           }
         }
       },
+      "delete": {
+        "summary": "Delete V1 Project",
+        "operationId": "deleteV1Project",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "请求字段验证失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "后端演示服务异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      },
       "patch": {
         "summary": "Patch Project",
         "operationId": "patchProject",
@@ -29435,6 +29558,21 @@
                 "$ref": "#/components/headers/X-Request-ID"
               }
             }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
           }
         }
       },
@@ -29572,6 +29710,21 @@
                 "$ref": "#/components/headers/X-Request-ID"
               }
             }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
           }
         }
       }
@@ -29680,6 +29833,164 @@
           },
           "404": {
             "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "companies"
+        ],
+        "summary": "开通公司并创建首个公司管理员",
+        "description": "仅平台管理员。同一事务写入公司记录、显示名与首个 company_admin；company_id 自动生成（co- + 8 位十六进制）。显示名冲突 409 COMPANY_NAME_DUPLICATED。",
+        "operationId": "createCompany",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCompanyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateCompanyResponse"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
             "content": {
               "application/json": {
                 "schema": {
@@ -29819,6 +30130,21 @@
           },
           "404": {
             "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
             "content": {
               "application/json": {
                 "schema": {
@@ -35465,9 +35791,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -35659,9 +35984,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -35853,9 +36177,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -36047,9 +36370,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -36250,9 +36572,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -36443,9 +36764,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -36676,7 +36996,7 @@
             "schema": {
               "enum": [
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -36879,7 +37199,7 @@
             "schema": {
               "enum": [
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -37104,9 +37424,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -37314,9 +37633,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -37516,9 +37834,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -37718,9 +38035,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -37920,9 +38236,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -38163,9 +38478,8 @@
             "required": true,
             "schema": {
               "enum": [
-                "library",
                 "history",
-                "certificate"
+                "materials"
               ],
               "type": "string",
               "title": "Kind"
@@ -44196,7 +44510,8 @@
               "project_lead",
               "bid_writer",
               "platform_admin",
-              "group_admin"
+              "group_admin",
+              "member"
             ],
             "title": "Role"
           },
@@ -44413,10 +44728,7 @@
           },
           "role_mode": {
             "type": "string",
-            "enum": [
-              "legacy-demo-compat",
-              "rbac-8roles"
-            ],
+            "const": "rbac-3roles",
             "title": "Role Mode"
           },
           "user": {
@@ -46265,7 +46577,8 @@
             "enum": [
               "blocking",
               "warning",
-              "blocker"
+              "blocker",
+              "info"
             ],
             "title": "Severity"
           },
@@ -47707,6 +48020,171 @@
         ],
         "title": "Coverage"
       },
+      "CoverageRow": {
+        "properties": {
+          "requirement_id": {
+            "type": "string",
+            "title": "Requirement Id"
+          },
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "risk_level": {
+            "type": "string",
+            "title": "Risk Level",
+            "default": "medium"
+          },
+          "is_rejection_criterion": {
+            "type": "boolean",
+            "title": "Is Rejection Criterion",
+            "default": false
+          },
+          "source_page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Page"
+          },
+          "source_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Filename"
+          },
+          "outline_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outline Number"
+          },
+          "outline_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outline Title"
+          },
+          "response_status": {
+            "type": "string",
+            "title": "Response Status",
+            "default": "not_started"
+          },
+          "generation_status": {
+            "type": "string",
+            "title": "Generation Status",
+            "default": "pending"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "requirement_id",
+          "task_id",
+          "text"
+        ],
+        "title": "CoverageRow"
+      },
+      "CreateCompanyRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "description": "公司显示名"
+          },
+          "admin_username": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Admin Username",
+            "description": "首个公司管理员登录账号"
+          },
+          "admin_name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Admin Name",
+            "description": "首个公司管理员姓名"
+          },
+          "admin_password": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Admin Password",
+            "description": "首个公司管理员初始密码"
+          },
+          "admin_display_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 100
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Display Name",
+            "description": "首个公司管理员显示名"
+          },
+          "must_change_password": {
+            "type": "boolean",
+            "title": "Must Change Password",
+            "description": "首个管理员首次登录是否强制改密",
+            "default": true
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "admin_username",
+          "admin_name",
+          "admin_password"
+        ],
+        "title": "CreateCompanyRequest"
+      },
+      "CreateCompanyResponse": {
+        "properties": {
+          "company": {
+            "$ref": "#/components/schemas/CompanySummary"
+          },
+          "admin": {
+            "$ref": "#/components/schemas/UserModel"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "company",
+          "admin"
+        ],
+        "title": "CreateCompanyResponse"
+      },
       "CreateDictItemRequest": {
         "properties": {
           "type_code": {
@@ -47796,6 +48274,12 @@
             ],
             "title": "Display Name",
             "description": "展示昵称"
+          },
+          "must_change_password": {
+            "type": "boolean",
+            "title": "Must Change Password",
+            "description": "新建后是否须本人改密",
+            "default": true
           }
         },
         "type": "object",
@@ -48496,10 +48980,11 @@
             "enum": [
               "structured",
               "snippet",
-              "history"
+              "history",
+              "materials"
             ],
             "title": "Route",
-            "description": "structured 资料库规则匹配 / snippet 知识库片段 / history 历史标书仅参考"
+            "description": "structured 资料库规则匹配 / snippet 知识库片段 / history 历史标书仅参考 / materials 资料库（参考）"
           },
           "route_label": {
             "type": "string",
@@ -49595,6 +50080,19 @@
               }
             ],
             "title": "Chapter Ids"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section",
+            "description": "只重新生成这一节；不填则按顺序写全部可写的节"
           }
         },
         "additionalProperties": false,
@@ -49674,6 +50172,10 @@
             "type": "string",
             "title": "Model"
           },
+          "effective_model": {
+            "type": "string",
+            "title": "Effective Model"
+          },
           "persistent": {
             "type": "boolean",
             "title": "Persistent"
@@ -49690,6 +50192,7 @@
           "mode",
           "repository",
           "model",
+          "effective_model",
           "persistent",
           "single_process"
         ],
@@ -50684,9 +51187,8 @@
                 "items": {
                   "type": "string",
                   "enum": [
-                    "library",
                     "history",
-                    "certificate"
+                    "materials"
                   ]
                 },
                 "type": "array"
@@ -50750,7 +51252,8 @@
                   "enum": [
                     "evidence",
                     "snippet",
-                    "history"
+                    "history",
+                    "materials"
                   ]
                 },
                 "type": "array"
@@ -53165,6 +53668,60 @@
         ],
         "title": "OpenResult"
       },
+      "OutlineHeadingInput": {
+        "properties": {
+          "level": {
+            "type": "integer",
+            "maximum": 4.0,
+            "minimum": 1.0,
+            "title": "Level"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "requirement_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requirement Id"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Requirement Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "level",
+          "title"
+        ],
+        "title": "OutlineHeadingInput"
+      },
       "ParagraphDetail": {
         "properties": {
           "id": {
@@ -53788,6 +54345,37 @@
             "maxLength": 2000,
             "title": "Reason",
             "default": ""
+          },
+          "outline_title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outline Title"
+          },
+          "outline_headings": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/OutlineHeadingInput"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outline Headings"
+          },
+          "confirm_outline": {
+            "type": "boolean",
+            "title": "Confirm Outline",
+            "default": false
           }
         },
         "additionalProperties": false,
@@ -56005,6 +56593,35 @@
             ],
             "title": "Source Stale",
             "description": "重新解析后原句在新文字里找不到，请对照原件核对"
+          },
+          "technical_clause": {
+            "type": "boolean",
+            "title": "Technical Clause",
+            "description": "技术分册按教程抽出的条款；同一件事只有一行",
+            "default": false
+          },
+          "response_origin": {
+            "type": "string",
+            "enum": [
+              "",
+              "history",
+              "model",
+              "retrieval_failed",
+              "draft_failed",
+              "no_evidence"
+            ],
+            "title": "Response Origin",
+            "default": ""
+          },
+          "history_filename": {
+            "type": "string",
+            "title": "History Filename",
+            "default": ""
+          },
+          "history_quote": {
+            "type": "string",
+            "title": "History Quote",
+            "default": ""
           }
         },
         "additionalProperties": true,
@@ -56279,6 +56896,93 @@
           "updated_at"
         ],
         "title": "ResetPasswordResponse"
+      },
+      "ResponseTask": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "theme": {
+            "type": "string",
+            "title": "Theme",
+            "default": ""
+          },
+          "requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Requirement Ids"
+          },
+          "response_strategy": {
+            "type": "string",
+            "title": "Response Strategy",
+            "default": "point_by_point"
+          },
+          "response_points": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Response Points"
+          },
+          "rejection_requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Rejection Requirement Ids"
+          },
+          "generation_status": {
+            "type": "string",
+            "title": "Generation Status",
+            "default": "pending"
+          },
+          "response_status": {
+            "type": "string",
+            "title": "Response Status",
+            "default": "not_started"
+          },
+          "verification_status": {
+            "type": "string",
+            "title": "Verification Status",
+            "default": "unchecked"
+          },
+          "outline_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outline Number"
+          },
+          "chapter_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chapter Id"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "task_id",
+          "title"
+        ],
+        "title": "ResponseTask"
       },
       "Retrieval": {
         "properties": {
@@ -57815,7 +58519,8 @@
               "project_lead",
               "bid_writer",
               "platform_admin",
-              "group_admin"
+              "group_admin",
+              "member"
             ],
             "title": "Role"
           },
@@ -57846,15 +58551,8 @@
               "type": "string",
               "enum": [
                 "platform_admin",
-                "group_admin",
                 "company_admin",
-                "data_admin",
-                "project_lead",
-                "bid_writer",
-                "reviewer",
-                "readonly",
-                "auditor",
-                "viewer"
+                "member"
               ]
             },
             "type": "array",
@@ -57864,15 +58562,8 @@
             "type": "string",
             "enum": [
               "platform_admin",
-              "group_admin",
               "company_admin",
-              "data_admin",
-              "project_lead",
-              "bid_writer",
-              "reviewer",
-              "readonly",
-              "auditor",
-              "viewer"
+              "member"
             ],
             "title": "Primary Role"
           }
@@ -59943,7 +60634,8 @@
               "project_lead",
               "bid_writer",
               "platform_admin",
-              "group_admin"
+              "group_admin",
+              "member"
             ],
             "title": "Company Role"
           }
@@ -60109,6 +60801,220 @@
           "assembly_owner_id"
         ],
         "title": "TeamUpdate"
+      },
+      "TechnicalHeading": {
+        "properties": {
+          "level": {
+            "type": "integer",
+            "title": "Level"
+          },
+          "number": {
+            "type": "string",
+            "title": "Number"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "requirement_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requirement Id"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "requirement_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Requirement Ids"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "level",
+          "number",
+          "title"
+        ],
+        "title": "TechnicalHeading"
+      },
+      "TechnicalKbDataset": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "configured": {
+            "type": "boolean",
+            "title": "Configured"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "name",
+          "configured"
+        ],
+        "title": "TechnicalKbDataset"
+      },
+      "TechnicalKbStatus": {
+        "properties": {
+          "history": {
+            "$ref": "#/components/schemas/TechnicalKbDataset"
+          },
+          "material": {
+            "$ref": "#/components/schemas/TechnicalKbDataset"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing"
+          },
+          "ready": {
+            "type": "boolean",
+            "title": "Ready",
+            "default": false
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "history",
+          "material"
+        ],
+        "title": "TechnicalKbStatus"
+      },
+      "TechnicalOutline": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "chapter_id": {
+            "type": "string",
+            "title": "Chapter Id"
+          },
+          "headings": {
+            "items": {
+              "$ref": "#/components/schemas/TechnicalHeading"
+            },
+            "type": "array",
+            "title": "Headings"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing",
+            "description": "还没有挂进目录的条款"
+          },
+          "plan_validation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Validation"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "title",
+          "chapter_id",
+          "headings"
+        ],
+        "title": "TechnicalOutline"
+      },
+      "TechnicalQuality": {
+        "properties": {
+          "rules": {
+            "items": {
+              "$ref": "#/components/schemas/TechnicalQualityRule"
+            },
+            "type": "array",
+            "title": "Rules"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed",
+            "default": false
+          },
+          "failed_count": {
+            "type": "integer",
+            "title": "Failed Count",
+            "default": 0
+          },
+          "review_titles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Review Titles"
+          },
+          "warning": {
+            "type": "string",
+            "title": "Warning",
+            "description": "未达标可见警告；不恢复矩阵闸门，允许内部稿导出",
+            "default": ""
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "TechnicalQuality"
+      },
+      "TechnicalQualityRule": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "passed": {
+            "type": "boolean",
+            "title": "Passed"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "default": ""
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "passed"
+        ],
+        "title": "TechnicalQualityRule"
       },
       "TenderFile": {
         "properties": {
@@ -61092,6 +61998,7 @@
               "CHECK_FAILED",
               "CHECK_STALE",
               "COMPANY_DISABLED",
+              "COMPANY_NAME_DUPLICATED",
               "CONFIRMATION_REQUIRED",
               "CONFIRMED_REQUIREMENTS_EMPTY",
               "CONFLICTS_PENDING",
@@ -61200,6 +62107,7 @@
               "PDF_ADAPTER_UNAVAILABLE",
               "PDF_ENCRYPTED",
               "PDF_PAGE_LIMIT",
+              "PIPELINE_UNAVAILABLE",
               "PLAN_NOT_CONFIRMED",
               "PLAN_STALE",
               "PROJECT_CANCELLED",
@@ -61222,6 +62130,7 @@
               "REVISION_CONFLICT",
               "ROLLBACK_NOOP",
               "RULES_INCOMPLETE",
+              "SAME_SOURCE_FILES",
               "SECRET_KEY_UNAVAILABLE",
               "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
               "SESSION_ROLE_UNSUPPORTED",
@@ -62426,6 +63335,11 @@
             },
             "type": "object",
             "title": "Permissions"
+          },
+          "needs_regeneration": {
+            "type": "boolean",
+            "title": "Needs Regeneration",
+            "default": false
           }
         },
         "additionalProperties": true,
@@ -62526,6 +63440,98 @@
           "plan_confirmed": {
             "type": "boolean",
             "title": "Plan Confirmed"
+          },
+          "source_fingerprint": {
+            "type": "string",
+            "title": "Source Fingerprint",
+            "default": ""
+          },
+          "parsed_source_fingerprint": {
+            "type": "string",
+            "title": "Parsed Source Fingerprint",
+            "default": ""
+          },
+          "technical_extract_empty": {
+            "type": "boolean",
+            "title": "Technical Extract Empty",
+            "description": "技术分册这次没有抽出技术条款",
+            "default": false
+          },
+          "technical_outline": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TechnicalOutline"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "技术分册的单章目录；创建时的技术方案不是这份目录"
+          },
+          "technical_deviation_note": {
+            "type": "string",
+            "title": "Technical Deviation Note",
+            "description": "没有偏离表样表时的说明；有样表则为空",
+            "default": ""
+          },
+          "technical_needs_review": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Technical Needs Review",
+            "description": "正文偏离表述和矩阵不一致、或同一指标出现两个数字的小节"
+          },
+          "technical_kb": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TechnicalKbStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "企业双库是否齐备"
+          },
+          "technical_quality": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TechnicalQuality"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "质量八条抽检结果"
+          },
+          "response_tasks": {
+            "items": {
+              "$ref": "#/components/schemas/ResponseTask"
+            },
+            "type": "array",
+            "title": "Response Tasks",
+            "description": "响应任务（要求→章节映射）"
+          },
+          "coverage_rows": {
+            "items": {
+              "$ref": "#/components/schemas/CoverageRow"
+            },
+            "type": "array",
+            "title": "Coverage Rows",
+            "description": "覆盖视图五行数据源"
+          },
+          "plan_validation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Validation",
+            "description": "生成计划确定性校验结果"
           },
           "sla": {
             "anyOf": [
@@ -63320,6 +64326,7 @@
           "CHAPTER_VOLUME_MISMATCH",
           "CHECK_FAILED",
           "CHECK_STALE",
+          "COMPANY_NAME_DUPLICATED",
           "CONFIRMED_REQUIREMENTS_EMPTY",
           "CONFLICTS_PENDING",
           "CONFLICT_SELECTION_INVALID",
@@ -63384,6 +64391,7 @@
           "REVISION_CONFLICT",
           "ROLLBACK_NOOP",
           "RULES_INCOMPLETE",
+          "SAME_SOURCE_FILES",
           "SLA_COMMITMENT_BLOCKED",
           "SLA_FACT_INVALID",
           "SLA_FACT_READ_ONLY",
@@ -63490,7 +64498,8 @@
           "KNOWLEDGE_BASE_UPSTREAM_ERROR",
           "MODEL_OUTPUT_INVALID",
           "MODEL_UNAVAILABLE",
-          "PARSER_UNAVAILABLE"
+          "PARSER_UNAVAILABLE",
+          "PIPELINE_UNAVAILABLE"
         ],
         "503": [
           "SECRET_KEY_UNAVAILABLE",

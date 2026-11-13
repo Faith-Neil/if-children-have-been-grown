@@ -123,10 +123,18 @@ class MemorySnippetPublicationStore:
 
             return self._repository.transaction(apply)
 
-    def list(self, company_id: str) -> list:
+    def list(self, company_id: str | None) -> list:
         with self._lock:
-            items = [_public(item) for item in self.records.values() if item["company_id"] == company_id]
+            items = [
+                _public(item) for item in self.records.values()
+                if company_id is None or item["company_id"] == company_id
+            ]
         return sorted(items, key=lambda item: item["id"])
+
+    def company_of(self, snippet_id: str) -> str | None:
+        with self._lock:
+            record = self.records.get(snippet_id)
+            return record["company_id"] if record else None
 
     def get(self, company_id: str, snippet_id: str) -> dict:
         with self._lock:
@@ -249,11 +257,21 @@ class SnippetPublicationService:
         self._writer = writer
         self.knowledge_base = knowledge_base
 
+    def _company(self, principal, snippet_id: str | None = None) -> str:
+        from icg.domain.project_access import is_platform_super
+        if snippet_id and is_platform_super(principal.user):
+            found = self.store.company_of(snippet_id)
+            if found:
+                return found
+        return principal.user.company_id
+
     def list(self, principal) -> dict:
-        return {"items": self.store.list(principal.user.company_id)}
+        from icg.domain.project_access import is_platform_super
+        company_id = None if is_platform_super(principal.user) else principal.user.company_id
+        return {"items": self.store.list(company_id)}
 
     def get(self, principal, snippet_id: str) -> dict:
-        return self.store.get(principal.user.company_id, snippet_id)
+        return self.store.get(self._company(principal, snippet_id), snippet_id)
 
     def create(self, principal, payload: dict, key: str | None, if_match: str | None) -> dict:
         self._writer(principal)
@@ -264,25 +282,27 @@ class SnippetPublicationService:
         self._writer(principal)
         validate_key(key)
         expected = _expected_revision(if_match)
+        company_id = self._company(principal, snippet_id)
         return self._receipt(principal, "snippet.save:" + snippet_id, payload, if_match, key,
                              lambda: self.store.save_draft(
-                                 principal.user.company_id, snippet_id, payload, expected))
+                                 company_id, snippet_id, payload, expected))
 
     def publish(self, principal, snippet_id: str, payload: dict, if_match: str | None, key: str | None) -> dict:
         self._writer(principal)
         validate_key(key)
         expected = _expected_revision(if_match)
+        company_id = self._company(principal, snippet_id)
         result = self._receipt(principal, "snippet.publish:" + snippet_id, payload, if_match, key,
-                               lambda: self.store.publish(principal.user.company_id, snippet_id, expected))
+                               lambda: self.store.publish(company_id, snippet_id, expected))
         if not result.get("blocked") and self.knowledge_base is not None:
-            self.knowledge_base.schedule(principal.user.company_id)
+            self.knowledge_base.schedule(company_id)
         return result
 
     def sync(self, principal, snippet_id: str, payload: dict, if_match: str | None, key: str | None) -> dict:
         self._writer(principal)
         validate_key(key)
         expected = _expected_revision(if_match)
-        company_id = principal.user.company_id
+        company_id = self._company(principal, snippet_id)
         kb_status = None
         current = self.store.get(company_id, snippet_id)
         if current["published_revision"] == expected and expected > 0 and self.knowledge_base is not None \

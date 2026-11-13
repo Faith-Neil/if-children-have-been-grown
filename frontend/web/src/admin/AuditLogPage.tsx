@@ -222,7 +222,7 @@ export function AuditLogPage({
                   章节: {record.lock_chapter_id || record.target_id}
                 </Text>
                 {record.lock_volume && (
-                  <Tag color="blue">{record.lock_volume === 'technical' ? '技术分册' : '商务分册'}</Tag>
+                  <Tag color="blue">{record.lock_volume === 'technical' ? '技术方案' : '商务方案'}</Tag>
                 )}
               </Space>
               {record.lock_takeover_reason && (
@@ -597,8 +597,8 @@ export function AuditLogPage({
                   <Descriptions.Item label="章节编号">
                     <Text strong>{selectedEntry.lock_chapter_id || selectedEntry.target_id}</Text>
                   </Descriptions.Item>
-                  <Descriptions.Item label="所属分册">
-                    <Tag color="blue">{selectedEntry.lock_volume === 'technical' ? '技术分册' : '商务分册'}</Tag>
+                  <Descriptions.Item label="所属方案">
+                    <Tag color="blue">{selectedEntry.lock_volume === 'technical' ? '技术方案' : '商务方案'}</Tag>
                   </Descriptions.Item>
                   {selectedEntry.lock_takeover_reason && (
                     <Descriptions.Item label="强制接管理由">

@@ -112,6 +112,19 @@ test('4. 后台任务状态与事件换成页面进度数据', () => {
   assert.deepEqual([failed.status, failed.errorCode, failed.allowedActions], ['failed', 'PARSER_UNAVAILABLE', ['retry']]);
   const failedStatus = jobFromStatus({ id: 'job-2', type: 'parse', status: 'failed', progress: 100, message: 'x', error: { code: 'INTERNAL_ERROR', message: '中断' } });
   assert.deepEqual([failedStatus.errorCode, failedStatus.errorMessage], ['INTERNAL_ERROR', '中断']);
+  const degraded = applyJobEvent(progress, {
+    seq: 4, id: 'job-1:4', type: 'job.completed',
+    payload: { status: 'completed', completed_at: 't', error: 'EXTRACT_DEGRADED', message: '解析结束，结果降质。' },
+  });
+  assert.equal(degraded.status, 'completed');
+  assert.equal(degraded.errorCode, 'EXTRACT_DEGRADED');
+  assert.match(degraded.description, /降质/);
+  const clean = applyJobEvent(progress, {
+    seq: 5, id: 'job-1:5', type: 'job.completed',
+    payload: { status: 'completed', completed_at: 't', error: null, message: '解析完成：1 条条款。' },
+  });
+  assert.equal(clean.errorCode, undefined);
+  assert.match(clean.description, /解析完成/);
   assert.deepEqual(splitSseBuffer('id: a\ndata: 1\n\nid: b\nda'), { complete: 'id: a\ndata: 1\n\n', rest: 'id: b\nda' });
 });
 

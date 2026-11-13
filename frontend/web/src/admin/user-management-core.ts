@@ -33,7 +33,7 @@ export interface UserItem {
   id: string;
   username: string;
   name: string;
-  role: SystemRole;
+  role: string;
   company_id: string;
   status: UserStatus;
   email?: string;
@@ -411,9 +411,13 @@ export function validateRoleAssignment(
     return { valid: false, message: '当前操作者无权变更用户角色' };
   }
 
-  // 3. 公司管理员不可将用户提权为平台管理员或集团管理员
-  if (normalizedOperator === 'company_admin' && (newRole === 'platform_admin' || newRole === 'group_admin')) {
-    return { valid: false, message: '公司管理员无权分配平台级或集团级管理角色' };
+  if (newRole === 'platform_admin') {
+    return { valid: false, message: '不能通过用户管理分配平台管理员' };
+  }
+
+  // 3. 公司管理员只能分配本公司普通用户
+  if (normalizedOperator === 'company_admin' && newRole !== 'member') {
+    return { valid: false, message: '公司管理员只能分配普通用户' };
   }
 
   // 4. 新角色与原角色相同
@@ -424,11 +428,7 @@ export function validateRoleAssignment(
   // 5. 提示警告：若原为 project_lead 且持有未完结项目，变更为非负责人角色时给出友好告警
   let warning: string | undefined;
   const activeCount = sourceUser.assigned_assets?.active_projects?.length ?? 0;
-  if (
-    sourceUser.role === 'project_lead' &&
-    newRole !== 'project_lead' &&
-    activeCount > 0
-  ) {
+  if (sourceUser.role === 'project_lead' && activeCount > 0) {
     warning = `该用户当前担任 ${activeCount} 个项目的总负责人，变更角色后已有项目资产仍保留，建议及时进行团队调整或资产交接。`;
   }
 

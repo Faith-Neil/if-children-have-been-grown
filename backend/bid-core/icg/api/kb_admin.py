@@ -17,8 +17,8 @@ from icg.domain.kb_admin import KbAdminService
 from icg.domain.schemas import RequestBody, ResponseBody
 from icg.domain.workflow_schemas import v1_error_responses
 
-Kind = Literal["library", "history", "certificate"]
-FileKind = Literal["history", "certificate"]
+Kind = Literal["history", "materials"]
+FileKind = Literal["history", "materials"]
 
 
 class KbAdminResult(ResponseBody):
@@ -72,7 +72,7 @@ class KbChunkPatch(RequestBody):
 
 class KbRetrievalTest(RequestBody):
     query: str = Field(min_length=1, max_length=2000)
-    kinds: list[Literal["evidence", "snippet", "history"]] | None = None
+    kinds: list[Literal["evidence", "snippet", "history", "materials"]] | None = None
     limit: int = Field(default=8, ge=1, le=20)
     similarity_threshold: float | None = Field(default=None, ge=0, le=1)
     keywords_weight: float | None = Field(default=None, ge=0, le=1)

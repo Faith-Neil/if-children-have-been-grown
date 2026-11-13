@@ -1,12 +1,8 @@
-// 为什么有这个文件：保留 ICG 示例的导航和项目外壳，连接真实业务页签，并全面接入 React-Router 现代化路由体系。
-// 它解决什么问题：工作台、解析、矩阵、编辑、检查和导出使用同一套项目状态与结构化路由守卫。
-// 架构说明（FE-TECH-DEBT-02）：顶栏操作区（AppHeaderActions）、全局弹窗与抽屉（AppModals）、
-// 项目工作区路由子树（ProjectWorkspaceContent）与全局页面路由子树（GlobalPagesContent）均已独立抽离，
-// 核心行数严格控制在 400 行以内。
-
+// 为什么有这个文件：连接导航外壳与真实业务页签，并用路由守卫保持同一套项目状态。
+// 它解决什么问题：顶栏、弹窗、项目工作区与全局页面已抽离，会话与路由仍在这里装配。
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { App as AntApp, Button, Form, Result, Spin } from 'antd';
-import { AppstoreOutlined, BookOutlined, CheckSquareOutlined, DatabaseOutlined, FileTextOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, BookOutlined, CheckSquareOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
 import { ApiError, isRequestFailureCurrent, request, userFacingMessage } from '../shared/api';
 import { deadlineForApi, projectFields } from '../project/project-form';
 import type { Account, ApplicationSession, Evidence, Job, Project, SlaTemplate, Workspace } from '../shared/types';
@@ -23,12 +19,16 @@ import { PasswordChangeScreen } from './PasswordChangeScreen';
 import { relatedBidConflict } from '../project/related-bid-core'; import { askRelatedBidReason } from '../project/RelatedBidPrompt';
 import { AppHeaderActions } from '../shell/AppHeaderActions'; import { AppModals } from '../shell/AppModals';
 import { ProjectWorkspaceContent } from './ProjectWorkspaceContent'; import { GlobalPagesContent } from './GlobalPagesContent';
+import { fetchCompanySettings } from '../admin/company-settings-api';
+import { shouldShowCompanyLabel } from '../admin/company-provision-core';
 
-const navigation = [ { id: 'workbench', name: '工作台', icon: <AppstoreOutlined /> }, { id: 'library', name: '企业资料库', icon: <DatabaseOutlined /> }, { id: 'knowledge', name: '知识库', icon: <BookOutlined /> }, { id: 'writing', name: '写作档案', icon: <FileTextOutlined /> }, { id: 'admin.rules', name: '管理规则（只读）', icon: <SettingOutlined /> } ];
+const navigation = [ { id: 'workbench', name: '工作台', icon: <AppstoreOutlined /> }, { id: 'knowledge', name: '知识库', icon: <BookOutlined /> }, { id: 'admin.rules', name: '管理', icon: <SettingOutlined /> } ];
 
 export default function App() {
   const { message, modal } = AntApp.useApp();
-
+  const [sessionBoot, setSessionBoot] = useState(() => {
+    try { return Boolean(sessionStorage.getItem('icg.access_token')); } catch { return false; }
+  });
   const [token, setToken] = useState<string | null>(null); const [user, setUser] = useState<Account | null>(null);
   const [pendingChange, setPendingChange] = useState<{ token: string; username: string; policy: PasswordPolicy | null } | null>(null);
   const [applicationSession, setApplicationSession] = useState<ApplicationSession | null>(null); const [denied, setDenied] = useState<string | null>(null);
@@ -40,6 +40,8 @@ export default function App() {
   const { items: library, revision: libraryRevision } = activeLibrary; const { items: slaTemplates, revision: slaTemplatesRevision } = activeTemplates;
   const [jobs, setJobs] = useState<Job[]>([]); const [busy, setBusy] = useState(false); const [loading, setLoading] = useState(false);
   const [nav, setNav] = useState('workbench'); const [tab, setTab] = useState('overview');
+  const [companyDetailId, setCompanyDetailId] = useState<string | null>(null);
+  const [companyDisplayName, setCompanyDisplayName] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<boolean>(() => resolveInitialSidebarCollapsed({ isInProject: (typeof window !== 'undefined' ? window.location.pathname : '/').startsWith('/projects/'), storedValue: readStoredSidebarCollapsed(), defaultGlobalCollapsed: true }));
   function handleCollapseChange(nextCollapsed: boolean) { setCollapsed(nextCollapsed); writeStoredSidebarCollapsed(nextCollapsed); }
   const [missing, setMissing] = useState<string | null>(null); const [search, setSearch] = useState('');
@@ -58,9 +60,29 @@ export default function App() {
   function clearCompanyData() {
     setLibrarySnapshot({ company_id: '', items: [], revision: 0 }); setTemplatesSnapshot({ company_id: '', items: [], revision: 0 });
     currentLibrary.current = { company_id: '', revision: 0, account_id: '' }; currentTemplates.current = { company_id: '', revision: 0, account_id: '' };
-    setProjects([]); setJobs([]);
+    setProjects([]); setJobs([]); setCompanyDisplayName(null);
   }
+
+  useEffect(() => {
+    const companyId = user?.company_id;
+    const role = applicationSession?.user?.primary_role || user?.role;
+    if (!token || !companyId || !shouldShowCompanyLabel(role)) {
+      setCompanyDisplayName(null);
+      return;
+    }
+    let cancelled = false;
+    void fetchCompanySettings(companyId, token)
+      .then(settings => {
+        if (!cancelled) setCompanyDisplayName(settings.company_name || null);
+      })
+      .catch(() => {
+        if (!cancelled) setCompanyDisplayName(null);
+      });
+    return () => { cancelled = true; };
+  }, [token, user?.company_id, applicationSession?.user?.primary_role, user?.role]);
   function logout() {
+    setSessionBoot(false);
+    sessionStorage.removeItem('icg.access_token');
     epoch.current++; currentSession.current = { company_id: '', account_id: '' }; clearCompanyData();
     dirtyRef.current = false; armedLeave.current = false; displayedPathRef.current = normalizePath(window.location.pathname);
     activeToken.current = null; currentAuthorization.current = null; setApplicationSession(null); setDenied(null);
@@ -137,9 +159,17 @@ export default function App() {
     if (!companyReadSessionMatches({ epoch: start, company_id: company, account_id: account }, { epoch: epoch.current, ...currentSession.current })) return;
     if (currentAuthorization.current !== approved) return;
     setProjects(results.projects?.projects ?? []);
-    setLibrarySnapshot(results.library ? { company_id: company, ...results.library } : { company_id: '', items: [], revision: 0 });
-    setTemplatesSnapshot(results.templates ? { company_id: company, ...results.templates } : { company_id: '', items: [], revision: 0 });
+    const crossCompany = (approved.user.primary_role || approved.user.role) === 'platform_admin';
+    setLibrarySnapshot(results.library ? { company_id: company, ...results.library, cross_company: crossCompany } : { company_id: '', items: [], revision: 0 });
+    setTemplatesSnapshot(results.templates ? { company_id: company, ...results.templates, cross_company: crossCompany } : { company_id: '', items: [], revision: 0 });
     setJobs(results.jobs?.jobs ?? []);
+  }
+  async function deleteProject(id: string) {
+    if (!token) return;
+    await request(`/api/v1/projects/${encodeURIComponent(id)}`, token, 'DELETE');
+    if (projectId.current === id) { projectId.current = null; setWorkspace(null); setTab('overview'); }
+    message.success('项目已从工作台删除');
+    await refreshGlobal();
   }
   async function handleCancelJob(jobId: string) {
     try { if (token) await request(`/api/v1/jobs/${encodeURIComponent(jobId)}/cancel`, token, 'POST'); setJobs(prev => prev.map(j => (j.id === jobId ? { ...j, status: 'cancelled' } : j))); message.success('已取消后台任务'); } catch (err) { report(err); }
@@ -154,14 +184,20 @@ export default function App() {
       epoch.current++; clearCompanyData(); currentSession.current = { company_id: '', account_id: '' }; currentAuthorization.current = null; setApplicationSession(null);
       activeToken.current = tokenValue; setWorkspace(null); setAccessLost(false); projectId.current = null;
       const approved = await loadSession(tokenValue);
+      sessionStorage.setItem('icg.access_token', tokenValue);
       setToken(tokenValue); setDenied(null); if (typeof setDeniedDetails === 'function') setDeniedDetails(null); setMissing(null);
       await refreshGlobal(tokenValue, approved);
       followPath(routeAfterLogin(window.location.pathname, sessionHomeRoute(approved)).path, 'replace');
-    } catch (error) { if (isRequestFailureCurrent(error, activeToken.current)) { report(error); logout(); } } finally { setBusy(false); }
+    } catch (error) { if (isRequestFailureCurrent(error, activeToken.current)) { report(error); logout(); } } finally { setSessionBoot(false); setBusy(false); }
   }
   // 须先改密时令牌只用于改密页（APP-M2-T260），改密成功后再按正常登录进入。
   async function loginWithPassword(u: string, p: string) { const r = await passwordLogin(u, p); if (r.mustChangePassword) { setPendingChange({ token: r.token, username: u.trim(), policy: r.policy }); return; } await loginWithToken(r.token); }
   function signOut() { void revokeSession(activeToken.current); logout(); }
+  useEffect(() => {
+    const saved = sessionStorage.getItem('icg.access_token');
+    if (saved && !activeToken.current) void loginWithToken(saved);
+    else setSessionBoot(false);
+  }, []);
   function reportDirty(value: boolean) { if (armedLeave.current) return; dirtyRef.current = value; setEditorDirty(value); }
   function arrived(keepEditor: boolean, path: string) { armedLeave.current = false; displayedPathRef.current = normalizePath(path); if (!keepEditor) { dirtyRef.current = false; setEditorDirty(false); } }
   function writeAddress(path: string, mode: HistoryMode) {
@@ -186,9 +222,10 @@ export default function App() {
         setLoading(false); arrived(false, pathname); return;
       }
     }
-    if (route.kind === 'project') { if (projectId.current === route.projectId && workspace) loadTab(route.tab, mode); else void openProject(route.projectId, route.tab, mode); return; }
-    if (route.kind === 'global') { loadNav(route.routeId, mode); return; }
-    if (route.kind === 'home') { loadNav(currentAuthorization.current ? sessionHomeRoute(currentAuthorization.current) : 'workbench', mode === 'none' ? 'replace' : mode); return; }
+    if (route.kind === 'project') { setCompanyDetailId(null); if (projectId.current === route.projectId && workspace) loadTab(route.tab, mode); else void openProject(route.projectId, route.tab, mode); return; }
+    if (route.kind === 'company_detail') { loadCompanyDetail(route.companyId, route.path, mode); return; }
+    if (route.kind === 'global') { setCompanyDetailId(null); loadNav(route.routeId, mode); return; }
+    if (route.kind === 'home') { setCompanyDetailId(null); loadNav(currentAuthorization.current ? sessionHomeRoute(currentAuthorization.current) : 'workbench', mode === 'none' ? 'replace' : mode); return; }
     showMissing(route.path, mode);
   }
   const followRef = useRef(followPath);
@@ -259,7 +296,8 @@ export default function App() {
     if (currentSession.current.account_id !== user.id || currentSession.current.company_id !== user.company_id) throw new Error('当前读取窗口属于另一个登录账号，原填写未替换，请重新打开资料。');
     const start = epoch.current; const company = user.company_id;
     const result = await readSessionCollection(approved, 'library.read', () => request<CompanyCollectionSnapshot<Evidence>>('/api/v1/library', token), () => currentAuthorization.current === approved && companyReadSessionMatches({ epoch: start, company_id: company, account_id: user.id }, { epoch: epoch.current, ...currentSession.current }));
-    setLibrarySnapshot({ company_id: company, items: result.items, revision: result.revision }); return { company_id: company, revision: result.revision, items: result.items };
+    const crossCompany = (approved.user.primary_role || approved.user.role) === 'platform_admin';
+    setLibrarySnapshot({ company_id: company, items: result.items, revision: result.revision, cross_company: crossCompany }); return { company_id: company, revision: result.revision, items: result.items, cross_company: crossCompany };
   }
   async function readSlaTemplates(): Promise<TemplateReadState> {
     if (!token || !user) throw new Error('请先登录再读取公司模板。');
@@ -267,7 +305,8 @@ export default function App() {
     if (currentSession.current.account_id !== user.id || currentSession.current.company_id !== user.company_id) throw new Error('当前读取窗口属于另一个登录账号，原填写未替换，请重新打开模板。');
     const start = epoch.current; const company = user.company_id;
     const result = await readSessionCollection(approved, 'sla_templates.read', () => request<CompanyCollectionSnapshot<SlaTemplate>>('/api/v1/sla/templates', token), () => currentAuthorization.current === approved && companyReadSessionMatches({ epoch: start, company_id: company, account_id: user.id }, { epoch: epoch.current, ...currentSession.current }));
-    setTemplatesSnapshot({ company_id: company, items: result.items, revision: result.revision }); return { company_id: company, revision: result.revision, items: result.items };
+    const crossCompany = (approved.user.primary_role || approved.user.role) === 'platform_admin';
+    setTemplatesSnapshot({ company_id: company, items: result.items, revision: result.revision, cross_company: crossCompany }); return { company_id: company, revision: result.revision, items: result.items, cross_company: crossCompany };
   }
   async function createProject() {
     if (busy) return;
@@ -278,7 +317,8 @@ export default function App() {
     setBusy(true); let createdId: string | null = null;
     try {
       const approved = await loadSession(); requireSessionRoute(approved, 'workbench'); requireSessionAction(approved, 'projects.create');
-      const created = await request<Project>('/api/v1/projects', activeToken.current, 'POST', { name: values.name, volume_mode: values.volume_mode === 'technical_only' ? 'technical_only' : 'both' }); createdId = created.id;
+      // API 兼容：后端仍要 volume_mode 时写死技术方案路径，不向用户暴露选择。
+      const created = await request<Project>('/api/v1/projects', activeToken.current, 'POST', { name: values.name, volume_mode: 'technical_only' }); createdId = created.id;
       const result = await readAuthorizedProject(created.id, 'settings', { session: s => loadSession(activeToken.current, s), workspace: s => request<Workspace>(`/api/v1/projects/${encodeURIComponent(s)}/workspace`, activeToken.current) });
       const basics = projectFields({ tender_number: values.tender_number, sensitive: values.sensitive, deadline: values.deadline }); const basicsPath = `/api/v1/projects/${created.id}`;
       // R19 关联投标冲突（APP-M2-T096）：须填写说明确认无关联关系，取消则不保存招标编号
@@ -299,7 +339,7 @@ export default function App() {
     writeAddress(targetPath, mode); const start = ++epoch.current; setLoading(true); setMissing(null);
     void (async () => {
       const approved = await loadSession(); requireSessionRoute(approved, value); if (start !== epoch.current) return;
-      setNav(value); setWorkspace(null); setAccessLost(false); projectId.current = null; setDenied(null); arrived(false, targetPath);
+      setCompanyDetailId(null); setNav(value); setWorkspace(null); setAccessLost(false); projectId.current = null; setDenied(null); arrived(false, targetPath);
       await refreshGlobal(activeToken.current, approved);
     })().catch(error => {
       if (start === epoch.current && isRequestFailureCurrent(error, activeToken.current)) {
@@ -310,6 +350,27 @@ export default function App() {
           setWorkspace(previous => previous ? freezeWorkspace(previous) : previous); setDenied(formattedReason);
           if (typeof setDeniedDetails === 'function') setDeniedDetails({ role: typeof normalizeSystemRole === 'function' ? normalizeSystemRole(userRole) : undefined, roleLabel: typeof getSystemRoleLabel === 'function' ? getSystemRoleLabel(userRole) : undefined, path: targetPath, reason: formattedReason });
         }
+        report(error);
+      }
+    }).finally(() => { if (start === epoch.current || !activeToken.current) setLoading(false); });
+  }
+  function loadCompanyDetail(companyId: string, targetPath: string, mode: HistoryMode = 'push') {
+    if (typeof checkRoutePermission === 'function' && currentAuthorization.current) {
+      const guard = checkRoutePermission({ session: currentAuthorization.current, targetPath });
+      if (!guard.allowed && guard.code !== 'UNAUTHENTICATED') {
+        writeAddress(targetPath, mode); setDenied(guard.reason || '抱歉，您无权访问此页面。');
+        if (typeof setDeniedDetails === 'function') setDeniedDetails({ role: guard.role, roleLabel: guard.roleLabel, path: targetPath, reason: guard.reason });
+        setLoading(false); arrived(false, targetPath); return;
+      }
+    }
+    writeAddress(targetPath, mode); const start = ++epoch.current; setLoading(true); setMissing(null);
+    void (async () => {
+      const approved = await loadSession(); requireSessionRoute(approved, 'admin.rules'); if (start !== epoch.current) return;
+      setCompanyDetailId(companyId); setNav('admin.rules'); setWorkspace(null); setAccessLost(false); projectId.current = null; setDenied(null); arrived(false, targetPath);
+      await refreshGlobal(activeToken.current, approved);
+    })().catch(error => {
+      if (start === epoch.current && isRequestFailureCurrent(error, activeToken.current)) {
+        armedLeave.current = false;
         report(error);
       }
     }).finally(() => { if (start === epoch.current || !activeToken.current) setLoading(false); });
@@ -351,12 +412,13 @@ export default function App() {
     }).finally(() => { if (start === epoch.current || !activeToken.current) setLoading(false); });
   }
   function navigate(value: string) {
-    const route = value.startsWith('/') ? parseAppPath(value) : null; if (route?.kind === 'global') { requestPath(route.path); return; }
-    if (route?.kind === 'project') { requestPath(value); return; }
+    const route = value.startsWith('/') ? parseAppPath(value) : null;
+    if (route?.kind === 'global' || route?.kind === 'company_detail' || route?.kind === 'project') { requestPath(route.path); return; }
     const id = projectId.current; if (!id) { setDenied('对象已不存在或你没有查看该页面的权限。'); return; } requestPath(projectPath(id, value));
   }
 
   const currentRoute = parseAppPath(typeof window !== 'undefined' ? window.location.pathname : '/');
+  if (sessionBoot && (!token || !user)) return <div className="app-boot" role="status">正在进入工作台</div>;
   if (pendingChange) return <PasswordChangeScreen token={pendingChange.token} username={pendingChange.username} policy={pendingChange.policy} onChanged={async () => { const next = pendingChange.token; setPendingChange(null); await loginWithToken(next); }} onCancel={() => { void revokeSession(pendingChange.token); setPendingChange(null); }} />;
   if (!token || !user) return <LoginScreen onPasswordLogin={loginWithPassword} busy={busy} />;
   const menu = [
@@ -368,7 +430,7 @@ export default function App() {
   return (
     <Suspense fallback={<div className="login-screen"><Spin size="large" /></div>}>
       <CanProvider value={{ session: applicationSession, workspace, role: applicationSession?.user.primary_role || applicationSession?.user.role, userId: applicationSession?.user.id }}>
-        <AppShell collapsed={collapsed} onCollapsed={handleCollapseChange} menuPath={menuPath} menu={menu} onNavigate={requestPath} breadcrumbs={breadcrumbs} actions={<AppHeaderActions session={applicationSession} user={user} jobs={jobs} search={search} onSearchChange={setSearch} onSearchSubmit={() => requestPath(globalPath('workbench'))} onOpenTaskDrawer={() => setTaskDrawer(true)} onLogout={() => requestDiscard(signOut)} onOpenModelConfig={() => setModelConfigModalOpen(true)} onOpenRagflowConfig={() => setRagflowConfigModalOpen(true)} token={token} onNavigate={requestPath} />}>
+        <AppShell collapsed={collapsed} onCollapsed={handleCollapseChange} menuPath={menuPath} menu={menu} onNavigate={requestPath} breadcrumbs={breadcrumbs} actions={AppHeaderActions({ session: applicationSession, user, jobs, search, onSearchChange: setSearch, onSearchSubmit: () => requestPath(globalPath('workbench')), onOpenTaskDrawer: () => setTaskDrawer(true), onLogout: () => requestDiscard(signOut), onOpenModelConfig: () => setModelConfigModalOpen(true), onOpenRagflowConfig: () => setRagflowConfigModalOpen(true), token, onNavigate: requestPath, companyDisplayName })}>
           {missing && <main className="workspace-content"><Result status="404" title="页面不存在" subTitle={`没有与 ${missing} 对应的页面。`} extra={<Button onClick={() => requestPath(globalPath(applicationSession ? sessionHomeRoute(applicationSession) : 'workbench'))}>返回可访问首页</Button>} /></main>}
           {!missing && denied && (
             <main className="workspace-content">
@@ -381,7 +443,7 @@ export default function App() {
             <ProjectWorkspaceContent workspace={workspace} tab={tab} loading={loading} accessLost={accessLost} session={applicationSession} currentUser={user} token={token || ''} library={library} slaTemplates={slaTemplates} busy={busy} currentRoute={currentRoute} onNavigateTab={navigate} onDirtyChange={reportDirty} onBackToWorkbench={() => requestPath(globalPath('workbench'))} mutate={mutate} reload={reload} report={report} navigate={navigate} />
           )}
           {!missing && !denied && (!workspace || nav !== 'workbench') && (
-            <GlobalPagesContent nav={nav} loading={loading} projects={projects} session={applicationSession} currentUser={user} busy={busy} search={search} token={token} createButton={<Can perform="project:create"><Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} disabled={busy || !sessionAllowsAction(applicationSession, 'projects.create')}>新建项目</Button></Can>} library={library} libraryRevision={libraryRevision} slaTemplates={slaTemplates} slaTemplatesRevision={slaTemplatesRevision} readLibrary={readLibrary} readSlaTemplates={readSlaTemplates} libraryMutate={libraryMutate} jobs={jobs} onOpenProject={openProject} onOpenCreateProject={() => setCreateOpen(true)} onRequestPath={requestPath} onRetryJob={handleRetryJob} onCancelJob={handleCancelJob} report={report} />
+            <GlobalPagesContent nav={nav} companyDetailId={companyDetailId} loading={loading} projects={projects} session={applicationSession} currentUser={user} busy={busy} search={search} token={token} createButton={<Can perform="project:create"><Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)} disabled={busy || !sessionAllowsAction(applicationSession, 'projects.create')}>新建项目</Button></Can>} library={library} libraryRevision={libraryRevision} slaTemplates={slaTemplates} slaTemplatesRevision={slaTemplatesRevision} readLibrary={readLibrary} readSlaTemplates={readSlaTemplates} libraryMutate={libraryMutate} jobs={jobs} onOpenProject={openProject} onDeleteProject={id => deleteProject(id).catch(report)} onOpenCreateProject={() => setCreateOpen(true)} onRequestPath={requestPath} onRetryJob={handleRetryJob} onCancelJob={handleCancelJob} report={report} />
           )}
           <AppModals createOpen={createOpen} onCloseCreate={() => setCreateOpen(false)} onCreateProject={createProject} createBusy={busy} createForm={createForm} session={applicationSession} taskDrawerOpen={taskDrawer} onCloseTaskDrawer={() => setTaskDrawer(false)} jobs={jobs} user={user} onViewAllJobs={() => { setTaskDrawer(false); requestPath(globalPath('jobs')); }} onNavigateJob={task => { setTaskDrawer(false); if (task.projectId) requestPath(projectPath(task.projectId, task.type === 'parse' ? 'parse' : 'editor')); }} onRetryJob={handleRetryJob} onCancelJob={handleCancelJob} modelConfigModalOpen={modelConfigModalOpen} onCloseModelConfig={() => setModelConfigModalOpen(false)} token={token} workspace={workspace} ragflowConfigModalOpen={ragflowConfigModalOpen} onCloseRagflowConfig={() => setRagflowConfigModalOpen(false)} />
         </AppShell>

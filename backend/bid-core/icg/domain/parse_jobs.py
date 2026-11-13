@@ -38,8 +38,33 @@ def _mirror(job: dict) -> dict:
                                           "created_at", "completed_at", "error")} | {"recoverable": False}
 
 
+ORPHAN_MESSAGE = "解析进程已重启或任务线程丢失，原任务中断；请重新开始解析。"
+ORPHAN_ERROR = {"code": "PARSER_INTERRUPTED", "message": ORPHAN_MESSAGE}
+
+
+def completion_for(requirements: int, facts: int, signal: dict) -> tuple[str, str, dict | None]:
+    """抽取大面积超时或目录模型失败时，完成态必须带降质码，不能写成干净的解析完成。"""
+    extract_degraded = bool(signal.get("extract_degraded"))
+    tree_failed = bool(signal.get("tree_model_failed"))
+    if not extract_degraded and not tree_failed:
+        message = f"解析完成：{requirements} 条条款、{facts} 项事实，须人工逐项核对后确认。"
+        return "completed", message, None
+    timeout_count = int(signal.get("timeout_count") or 0)
+    pages_read = int(signal.get("pages_read") or 0)
+    parts = ["解析结束，结果降质。"]
+    if extract_degraded:
+        parts.append(f"抽取条款有 {timeout_count} 块超时，只读完 {pages_read} 块，不能当作完整抽取。")
+    if tree_failed:
+        parts.append("编排目录的模型失败，目录是规则兜底。")
+    message = "".join(parts)
+    code = "EXTRACT_DEGRADED" if extract_degraded else "TREE_MODEL_FAILED"
+    return "completed", message, {"code": code, "message": message}
+
+
 class ParseJobRunner:
-    """每个进程一个；部署为单进程（/health 的 single_process）。"""
+    """每个进程一个；部署为单进程（/health 的 single_process）。
+    长耗时解析只在本类线程池里跑，不占 FastAPI 请求线程；进程崩溃留下的
+    running/queued 任务在启动时与再次 start 时收口为 failed，避免 UI 卡死。"""
 
     def __init__(self, workflow: Any, jobs: Any) -> None:
         self.workflow = workflow
@@ -49,6 +74,36 @@ class ParseJobRunner:
         self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="parse-job")
         self._running: set[str] = set()
         self._lock = threading.Lock()
+
+    def fail_orphans(self) -> int:
+        """进程接线时调用：上一进程留下的非终态 parse 任务一律标失败。"""
+        count = 0
+
+        def operation(state):
+            nonlocal count
+            for job in list(state.recoverable_jobs.values()):
+                if job.get("type") != "parse" or job.get("status") in TERMINAL:
+                    continue
+                self._fail_orphan_job(state, job)
+                count += 1
+            return count
+
+        self.repository.transaction(operation)
+        return count
+
+    def _fail_orphan_job(self, state, job: dict) -> None:
+        previous = job["status"]
+        now = iso_time(self.demo._now())
+        job.update(status="failed", progress=100, message=ORPHAN_MESSAGE,
+                   completed_at=now, error=dict(ORPHAN_ERROR))
+        self.jobs._append(job, "job.status_changed", payload={"from": previous, "to": "failed"})
+        self.jobs._append(job, "job.failed",
+                          payload={"status": "failed", "completed_at": now, "error": ORPHAN_ERROR["code"]})
+        state.jobs[job["id"]] = _mirror(job)
+
+    def _is_live(self, job_id: str) -> bool:
+        with self._lock:
+            return job_id in self._running
 
     # ------------------------------------------------------------ 启动
 
@@ -66,7 +121,10 @@ class ParseJobRunner:
                            if j.get("project_id") == project_id and j.get("type") == "parse"
                            and j.get("status") not in TERMINAL), None)
             if active is not None:
-                return self._public(active)  # 同一项目只跑一个解析任务，重复点击回到原任务
+                if self._is_live(active["id"]):
+                    return self._public(active)  # 同一项目只跑一个解析任务，重复点击回到原任务
+                # 进程崩溃或线程丢失后的僵尸任务：收口后允许重新开跑
+                self._fail_orphan_job(state, active)
             self.workflow._version(project.revision, expected)
             workflow = state.workflows.get(project_id) or {}
             files = workflow.get("files") or {}
@@ -136,7 +194,10 @@ class ParseJobRunner:
             self.jobs._append(job, "job.status_changed", payload={"from": previous, "to": status})
             if status == "completed":
                 self.jobs._append(job, "job.progress", payload={"progress": 100, "message": message})
-                self.jobs._append(job, "job.completed", payload={"status": "completed", "completed_at": now, "error": None})
+                self.jobs._append(job, "job.completed", payload={
+                    "status": "completed", "completed_at": now,
+                    "error": (error or {}).get("code"), "message": message,
+                })
             else:
                 self.jobs._append(job, "job.failed", payload={"status": "failed", "completed_at": now,
                                                                "error": (error or {}).get("code", "INTERNAL_ERROR")})
@@ -181,7 +242,7 @@ class ParseJobRunner:
                 return  # 已取消
             attempt += 1
             try:
-                result = self._parse_once(principal, project_id, payload)
+                result = self._parse_once(principal, project_id, payload, job_id)
             except DomainError as error:
                 self._drop_inner_job({"job": {"id": (error.details or {}).get("job_id")}})
                 self._finish(job_id, "failed", error.message, {"code": error.code, "message": error.message})
@@ -191,8 +252,8 @@ class ParseJobRunner:
             if not pending:
                 requirements = len(result.get("requirements") or [])
                 facts = len(result.get("facts") or [])
-                self._finish(job_id, "completed",
-                             f"解析完成：{requirements} 条条款、{facts} 项事实，须人工逐项核对后确认。")
+                status, message, error = completion_for(requirements, facts, self._honesty(project_id))
+                self._finish(job_id, status, message, error)
                 return
             waited = time.monotonic() - started
             if waited >= max_wait_seconds():
@@ -205,22 +266,59 @@ class ParseJobRunner:
                            f"RAGFlow 正在识别 {len(pending)} 份文件的版面与文字（已等待 {int(waited)} 秒，第 {attempt} 次取回）。")
             time.sleep(poll_seconds())
 
-    def _parse_once(self, principal: Principal, project_id: str, payload: dict) -> dict:
+    def _on_stage(self, job_id: str, stage: str, message: str, fraction: float = 0.0) -> None:
+        if stage == "tree":
+            progress = 96
+        else:
+            bounded = min(1.0, max(0.0, float(fraction or 0)))
+            progress = 30 + int(bounded * 62)
+        self._progress(job_id, progress, message)
+
+    def _honesty(self, project_id: str) -> dict:
+        workflow = self.repository.read().workflows.get(project_id) or {}
+        model = workflow.get("technical_extract_model") or {}
+        outline = workflow.get("technical_outline") or {}
+        return {
+            "extract_degraded": bool(workflow.get("extract_degraded")),
+            "timeout_count": int(workflow.get("extract_timeout_count") or model.get("timeout_count") or 0),
+            "pages_read": int(model.get("pages_read") or 0),
+            "tree_model_failed": bool(outline.get("tree_model_failed") or workflow.get("tree_model_failed")),
+            "outline_source": outline.get("outline_source") or workflow.get("outline_source") or "",
+        }
+
+    def _parse_once(self, principal: Principal, project_id: str, payload: dict, job_id: str | None = None) -> dict:
         """按当前项目版本调用一次原解析；期间别人改了项目（版本冲突）时用新版本重试。"""
+        bound_job = job_id
+
+        def on_stage(stage, message, fraction=0.0):
+            if bound_job:
+                self._on_stage(bound_job, stage, message, fraction)
+
         for _ in range(3):
             revision = self.repository.read().projects[project_id].revision
             try:
-                return self.workflow.parse(principal, project_id, dict(payload), str(revision), new_id("parse-job-call"))
+                return self.workflow.parse(
+                    principal, project_id, dict(payload), str(revision), new_id("parse-job-call"),
+                    on_stage=on_stage,
+                )
             except DomainError as error:
                 if error.code != "VERSION_CONFLICT":
                     raise
         raise DomainError(409, "VERSION_CONFLICT", "解析期间项目被反复修改，请稍后重试。")
 
     def _drop_inner_job(self, result: dict) -> None:
-        """每次调用原解析会记一条同步解析任务；后台任务已代表这次解析，任务列表里不重复显示。"""
+        """每次调用原解析会记一条同步解析任务。外层可恢复任务已代表这次解析，不能从列表里删掉。"""
         inner = (result.get("job") or {}).get("id")
-        if inner:
-            self.repository.transaction(lambda state: state.jobs.pop(inner, None))
+        if not inner:
+            return
+
+        def operation(state):
+            if inner in state.recoverable_jobs:
+                return None
+            state.jobs.pop(inner, None)
+            return None
+
+        self.repository.transaction(operation)
 
     def _pending_files(self, project_id: str, payload: dict) -> list[str]:
         files = (self.repository.read().workflows.get(project_id) or {}).get("files") or {}

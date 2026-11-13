@@ -1,5 +1,4 @@
 // 为什么有这个文件：在真实浏览器里使用响应矩阵：风险列、批量智能匹配抽屉与 Excel 导出（APP-M2-T112～T117）。
-import { readFileSync } from 'node:fs';
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 
 const TENDER = '合成招标文件：矩阵验收\n招标编号：E2E-MATRIX\n★技术要求：每月完成巡检并提交报告。\n商务要求：提供有效企业资质证明。';
@@ -31,22 +30,12 @@ async function login(page: Page, username: string, path: string) {
   await expect(page.getByRole('button', { name: '退出' })).toBeVisible();
 }
 
-test('lead selects rows, opens smart matching and exports the matrix Excel', async ({ page, request }) => {
+test('lead opens the coverage view after the tender is parsed', async ({ page, request }) => {
   const projectId = await seedProject(request);
-  await login(page, 'alpha-manager', `/projects/${projectId}/matrix`);
-  await expect(page.getByTestId('matrix-risk').first()).toBeVisible();
-  await page.locator('.matrix-card tr.ant-table-row').first().locator('.ant-checkbox').click();
-  await expect(page.getByTestId('matrix-match-button')).toBeEnabled();
-  await page.getByTestId('matrix-match-button').click();
-  await expect(page.getByTestId('matrix-match-row').first()).toBeVisible();
-  await expect(page.getByText('候选不会自动挂接')).toBeVisible();
-  const row = page.getByTestId('matrix-match-row').first();
-  await expect(row.getByTestId('matrix-group-structured')).toContainText('资料库规则匹配');
-  await expect(row.getByTestId('matrix-group-snippet')).toContainText('知识库片段');
-  await expect(row.getByTestId('matrix-group-history')).toContainText('历史标书仅参考');
-  await page.keyboard.press('Escape');
-  const waiting = page.waitForEvent('download');
-  await page.getByTestId('matrix-excel-button').click();
-  const file = await waiting;
-  expect(readFileSync(await file.path()).subarray(0, 2).toString()).toBe('PK');
+  await login(page, 'alpha-manager', `/projects/${projectId}/tender`);
+  await expect(page.getByRole('cell', { name: '已解析' })).toBeVisible();
+  await page.getByRole('tab', { name: '覆盖视图' }).click();
+  await expect(page.getByTestId('coverage-view')).toBeVisible();
+  await expect(page.getByTestId('coverage-view-notice')).toContainText('不挡');
+  await expect(page.getByRole('button', { name: '挂证据' })).toHaveCount(0);
 });

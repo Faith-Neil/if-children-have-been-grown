@@ -13,7 +13,7 @@ from typing import Any, Callable
 
 from .domain import Chapter, DemoService, DemoState, DomainError, Principal, Project, iso_time, new_id
 from .generation_context import chapter_plan, writing_source_fingerprint
-from .project_access import READONLY_SYSTEM_ROLES, lead, member, normalize_role, volume_owner, writable
+from .project_access import READONLY_SYSTEM_ROLES, foreign_company, is_platform_super, lead, member, normalize_role, volume_owner, writable
 from .outline_auto_tree import (
     AutoTreeBuildEngine,
     check_tree_finalization_readiness,
@@ -187,7 +187,7 @@ class OutlinePlanService:
 
         def transaction_operation(state: DemoState) -> dict[str, Any]:
             project = state.projects.get(project_id)
-            if project is None or project.company_id != principal.user.company_id:
+            if foreign_company(project, principal):
                 raise DomainError(404, "NOT_FOUND", "项目不存在或当前公司无权访问。")
 
             workflow = state.workflows.setdefault(project_id, {})
@@ -199,9 +199,9 @@ class OutlinePlanService:
                 raise DomainError(403, "FORBIDDEN", "只读角色无权修改或确认大纲方案。")
 
             user_member = member(state, project_id, principal.user.id)
-            if user_member is None:
+            if user_member is None and not is_platform_super(principal.user):
                 raise DomainError(403, "FORBIDDEN", "非本项目成员无权操作大纲方案。")
-            if user_member.get("project_role") == "readonly":
+            if user_member is not None and user_member.get("project_role") == "readonly":
                 raise DomainError(403, "FORBIDDEN", "项目只读成员无权确认大纲方案。")
 
             is_project_lead = lead(state, project_id, principal.user.id)
@@ -381,7 +381,7 @@ class OutlinePlanService:
         def transaction_operation(state: DemoState) -> dict[str, Any]:
             # 1. 租户隔离校验
             project = state.projects.get(project_id)
-            if project is None or project.company_id != principal.user.company_id:
+            if foreign_company(project, principal):
                 raise DomainError(404, "NOT_FOUND", "项目不存在或当前公司无权访问。")
 
             # 2. 权限校验
@@ -390,9 +390,9 @@ class OutlinePlanService:
                 raise DomainError(403, "FORBIDDEN", "只读角色无权构建或规划大纲树。")
 
             user_member = member(state, project_id, principal.user.id)
-            if user_member is None:
+            if user_member is None and not is_platform_super(principal.user):
                 raise DomainError(403, "FORBIDDEN", "非本项目成员无权操作大纲方案。")
-            if user_member.get("project_role") == "readonly":
+            if user_member is not None and user_member.get("project_role") == "readonly":
                 raise DomainError(403, "FORBIDDEN", "项目只读成员无权构建或规划大纲树。")
 
             # 3. 涉密项目硬门禁检查
@@ -581,7 +581,7 @@ class OutlinePlanService:
         def transaction_operation(state: DemoState) -> dict[str, Any]:
             # 1. 租户隔离校验
             project = state.projects.get(project_id)
-            if project is None or project.company_id != principal.user.company_id:
+            if foreign_company(project, principal):
                 raise DomainError(404, "NOT_FOUND", "项目不存在或当前公司无权访问。")
 
             # 2. 权限校验
@@ -590,9 +590,9 @@ class OutlinePlanService:
                 raise DomainError(403, "FORBIDDEN", "只读角色无权计算或调整大纲分值权重。")
 
             user_member = member(state, project_id, principal.user.id)
-            if user_member is None:
+            if user_member is None and not is_platform_super(principal.user):
                 raise DomainError(403, "FORBIDDEN", "非本项目成员无权操作大纲方案。")
-            if user_member.get("project_role") == "readonly":
+            if user_member is not None and user_member.get("project_role") == "readonly":
                 raise DomainError(403, "FORBIDDEN", "项目只读成员无权计算或调整大纲分值权重。")
 
             # 3. 涉密项目本地模型门禁
@@ -703,7 +703,7 @@ class OutlinePlanService:
 
         state = self.repository.read()
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        if foreign_company(project, principal):
             raise DomainError(404, "NOT_FOUND", "项目不存在或当前公司无权访问。")
 
         workflow = state.workflows.get(project_id, {})

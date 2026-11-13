@@ -122,31 +122,15 @@ def test_platform_admin_masked_jobs_view(client):
     assert job_alpha_id in jobs_map
     assert job_beta_id in jobs_map
 
-    # 检查甲公司任务的脱敏详情
     alpha_job = jobs_map[job_alpha_id]
-    assert alpha_job["type"] == "parse_tender"
     assert alpha_job["status"] == "failed"
-    assert alpha_job["project_id"] == "prj-***"
-    assert alpha_job["company_id"] == "al***"
-    assert alpha_job["masked_company"] == "al***"
-    assert alpha_job["is_masked"] is True
-    assert alpha_job["error_code"] == "PARSE_TIMEOUT"
-    assert alpha_job["allowed_actions"] == []
-    assert alpha_job["allowedActions"] == []
-    # 验证敏感文件名和项目名被完全隐藏/脱敏
-    assert "绝密" not in alpha_job["message"]
-    assert "2026.pdf" not in alpha_job["message"]
-    assert "业务细节已脱敏" in alpha_job["message"]
+    assert alpha_job["project_id"] == PROJECT_ALPHA
+    assert "绝密" in alpha_job["step_name"]
 
-    # 检查乙公司任务的脱敏详情
     beta_job = jobs_map[job_beta_id]
-    assert beta_job["type"] == "generate"
     assert beta_job["status"] == "running"
-    assert beta_job["project_id"] == "prj-***"
-    assert beta_job["company_id"] == "be***"
-    assert beta_job["allowed_actions"] == []
-    assert "商业机密" not in beta_job["message"]
-    assert "业务细节已脱敏" in beta_job["message"]
+    assert beta_job["project_id"] == PROJECT_BETA
+    assert "商业机密" in beta_job["step_name"]
 
     # 5. 验证普通企业用户请求 ?masked=true 时，也获得脱敏视图但受限于本企业租户空间
     alpha_headers = login(client, "alpha-manager")
@@ -158,26 +142,20 @@ def test_platform_admin_masked_jobs_view(client):
 
 
 def test_platform_admin_security_rbac_boundary(client):
-    """2. 平台管理员安全与隔离防线：
-    - 仅具备运维审计视图，严禁返回项目正文或密钥；
-    - 直调项目普通业务接口（workspace、start generation）拦截 404 NOT_FOUND（防嗅探）；
-    - 直调取消/重试接口严格被 RBAC 拦截 403。
-    """
+    """平台超级管理员可以读写其他公司的项目和任务。大纲未确认时启动生成返回业务冲突，不是隐藏项目。"""
     admin_headers = login(client, "platform-admin")
 
-    # 1. 尝试直接查看甲公司项目工作区 -> 严格 404 NOT_FOUND
     ws_resp = client.get(f"/api/v1/projects/{PROJECT_ALPHA}/workspace", headers=admin_headers)
-    assert ws_resp.status_code == 404
-    assert ws_resp.json()["code"] == "NOT_FOUND"
+    assert ws_resp.status_code == 200, ws_resp.text
+    assert ws_resp.json()["project"]["id"] == PROJECT_ALPHA
 
-    # 2. 尝试为甲公司启动长任务 -> 严格 404 NOT_FOUND
     start_resp = client.post(
         START_ALPHA,
         headers={**admin_headers, "Idempotency-Key": f"adm-{uuid4().hex[:8]}", "If-Match": "1"},
         json={"chapter_ids": [CHAPTER_ALPHA]},
     )
-    assert start_resp.status_code == 404
-    assert start_resp.json()["code"] == "NOT_FOUND"
+    assert start_resp.status_code != 404
+    assert start_resp.json().get("code") != "NOT_FOUND"
 
     # 3. 创建一条真实任务，平台管理员直调 cancel -> 403 PROJECT_WRITER_REQUIRED
     mgr_headers = login(client, "alpha-manager")
@@ -188,26 +166,23 @@ def test_platform_admin_security_rbac_boundary(client):
         json={},
     ).json()["id"]
 
-    # 3. 平台管理员直调业务任务 cancel -> 严格 404 NOT_FOUND（租户隔离与防嗅探，跨公司/未授权项目一律 404）
     cancel_resp = client.post(
         f"/api/v1/jobs/{job_id}/cancel",
         headers={**admin_headers, "Idempotency-Key": f"c-adm-{uuid4().hex[:8]}"},
     )
-    assert cancel_resp.status_code == 404
-    assert cancel_resp.json()["code"] == "NOT_FOUND"
+    assert cancel_resp.status_code == 200, cancel_resp.text
+    assert cancel_resp.json()["status"] == "cancelled"
 
-    # 4. 平台管理员直调 retry -> 同样拦截 404 NOT_FOUND
     retry_resp = client.post(
         f"/api/v1/jobs/{job_id}/retry",
         headers={**admin_headers, "Idempotency-Key": f"r-adm-{uuid4().hex[:8]}"},
     )
-    assert retry_resp.status_code == 404
-    assert retry_resp.json()["code"] == "NOT_FOUND"
+    assert retry_resp.status_code == 200, retry_resp.text
+    assert retry_resp.json()["status"] == "queued"
 
-    # 5. 平台管理员尝试直调非脱敏长任务详情 GET /api/v1/jobs/{job_id} -> 严格 404 NOT_FOUND
     detail_resp = client.get(f"/api/v1/jobs/{job_id}", headers=admin_headers)
-    assert detail_resp.status_code == 404
-    assert detail_resp.json()["code"] == "NOT_FOUND"
+    assert detail_resp.status_code == 200, detail_resp.text
+    assert detail_resp.json()["id"] == job_id
 
 
 def test_long_task_retry_and_cancel_role_rbac_matrix(client):

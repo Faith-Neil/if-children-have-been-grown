@@ -8,14 +8,32 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
 import re
+import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable, Mapping
 from urllib.parse import urlsplit
 
 import httpx
+
+
+def _audit_model_io(kind: str, record: dict[str, Any]) -> None:
+    """临时落盘模型请求/响应（ICG_AUDIT_IO_DIR）。未设置则无操作。勿把密钥写入仓库。"""
+    root = (os.environ.get("ICG_AUDIT_IO_DIR") or "").strip()
+    if not root:
+        return
+    try:
+        path = Path(root)
+        path.mkdir(parents=True, exist_ok=True)
+        line = {"ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "kind": kind, **record}
+        with (path / "model-io.jsonl").open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(line, ensure_ascii=False) + "\n")
+    except OSError:
+        return
 
 
 class ModelCallError(Exception):
@@ -87,6 +105,18 @@ def _validate_base_url(base_url: str) -> str:
             or parsed.username or parsed.password or parsed.query or parsed.fragment):
         raise ValueError(f"{_ENV_NAMES['base_url']} must be an absolute http(s) origin without credentials, query, or fragment")
     return base_url.strip().rstrip("/")
+
+
+def is_public_model_url(base_url: str) -> bool:
+    """公网地址。内网 IP、本机和没有点的主机名不算。"""
+    host = (urlsplit(base_url.strip()).hostname or "").lower().rstrip(".")
+    if not host or host in {"localhost", "host.docker.internal"} or host.endswith((".local", ".internal", ".lan")):
+        return False
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return "." in host
+    return not (address.is_private or address.is_loopback or address.is_link_local or address.is_reserved)
 
 
 def chat_completions_url(base_url: str) -> str:
@@ -174,6 +204,8 @@ class OpenAICompatibleModelProvider:
         self._environ = environ
 
     def suggest(self, instruction: str, content: str) -> str:
+        if self.is_local and is_public_model_url(self.base_url):
+            raise ModelCallError("本地部署已打开，公网地址不会接收正文。")
         if not isinstance(instruction, str) or not isinstance(content, str):
             raise ModelCallError("instruction and content must be strings")
         attempts = self._config.retries + 1
@@ -207,14 +239,34 @@ class OpenAICompatibleModelProvider:
         }
         if self._config.json_mode_enabled:
             payload["response_format"] = {"type": "json_object"}
+        url = self._config.chat_completions_url
+        _audit_model_io("request", {
+            "url": url,
+            "model": self._config.model,
+            "max_tokens": self._config.max_tokens,
+            "stream": self._config.stream_enabled,
+            "system_chars": len(instruction or ""),
+            "user_chars": len(content or ""),
+            "system": instruction,
+            "user": content,
+        })
         try:
             with httpx.Client(transport=self._transport, timeout=self._config.timeout_seconds,
                               follow_redirects=False, trust_env=False) as client:
-                response = client.post(self._config.chat_completions_url, headers=headers, json=payload)
+                response = client.post(url, headers=headers, json=payload)
         except httpx.TimeoutException:
+            _audit_model_io("error", {"url": url, "error": "timeout"})
             raise RetryableModelError("timeout") from None
-        except httpx.TransportError:
+        except httpx.TransportError as exc:
+            _audit_model_io("error", {"url": url, "error": "transport", "detail": type(exc).__name__})
             raise RetryableModelError("transport") from None
+        raw_body = response.text
+        _audit_model_io("response", {
+            "url": url,
+            "status": response.status_code,
+            "body_chars": len(raw_body or ""),
+            "body": raw_body[:200000],
+        })
         if response.status_code in _RETRYABLE_STATUS:
             raise RetryableModelError(f"HTTP {response.status_code}")
         if response.status_code != 200:
@@ -254,6 +306,7 @@ class OpenAICompatibleModelProvider:
             "max_tokens": self._config.max_tokens, "stream": True,
         }
         collected: list[str] = []
+        reasoning_collected: list[str] = []
         pending_error: list[str] = []
         last_raw, skipped_last, doubled = [None], [False], [False]
         try:
@@ -286,7 +339,14 @@ class OpenAICompatibleModelProvider:
                         choices = chunk.get("choices") if isinstance(chunk, dict) else None
                         if not (isinstance(choices, list) and choices and isinstance(choices[0], dict)):
                             continue
-                        piece = (choices[0].get("delta") or {}).get("content")
+                        delta = choices[0].get("delta") or {}
+                        if not isinstance(delta, dict):
+                            continue
+                        for key in ("reasoning_content", "reasoning"):
+                            thought = delta.get(key)
+                            if isinstance(thought, str) and thought:
+                                reasoning_collected.append(thought)
+                        piece = delta.get("content")
                         if not isinstance(piece, str) or not piece:
                             continue
                         # 实测 RAGFlow 转发 Gemini 时每块连发两次：头一次出现较长（≥4 字）的连续重复块即认定为“双发”流，
@@ -319,10 +379,12 @@ class OpenAICompatibleModelProvider:
             raise_upstream_error(text)  # 以“**ERROR**”开头必然抛出；只差前缀的短文本（如“**”）当正文
             on_delta(text)
             return text
-        text = "".join(collected)
+        text = _prefer_assistant_body("".join(collected), "".join(reasoning_collected))
         if not text.strip():
             # 实测：上游限流时 RAGFlow 流式只回一个空的结束块；按上游暂时不可用处理，可改用备用模型
             raise RetryableModelError("empty stream")
+        if not collected and text:
+            on_delta(text)
         return text
 
 
@@ -342,30 +404,113 @@ def raise_upstream_error(text: str) -> None:
     raise ModelCallError("upstream error")
 
 
+def _jsonish_payload(text: str) -> str | None:
+    """从 thinking 长文里抠出最后一段顶层 JSON（对象或数组）。
+
+    只认能解析的完整值，丢掉嵌套在对象里的数组、数组里的对象。
+    thinking 前文常有举例 `{...}`，目录 JSON 是文末数组，所以同级里取最后一段。
+    """
+    raw = (text or "").strip()
+    if not raw:
+        return None
+    if "```" in raw:
+        fenced = raw.split("```", 2)[1]
+        raw = fenced[4:] if fenced.startswith("json") else fenced
+        raw = raw.strip()
+    decoder = json.JSONDecoder()
+    found: list[tuple[int, int, str]] = []
+    index = 0
+    while index < len(raw):
+        if raw[index] not in "{[":
+            index += 1
+            continue
+        try:
+            obj, end = decoder.raw_decode(raw, index)
+        except json.JSONDecodeError:
+            index += 1
+            continue
+        if isinstance(obj, (dict, list)):
+            found.append((index, end, raw[index:end]))
+        index = end if end > index else index + 1
+    if not found:
+        return None
+    top = [
+        (start, end, slice_)
+        for start, end, slice_ in found
+        if not any(other_start < start and end <= other_end
+                   for other_start, other_end, _ in found
+                   if (other_start, other_end) != (start, end))
+    ]
+    if not top:
+        return None
+    top.sort(key=lambda item: item[0])
+    return top[-1][2]
+
+
+def _prefer_assistant_body(content: str, reasoning: str) -> str:
+    """优先正式 content；content 空时用 reasoning 里的 JSON 或全文。thinking 模型常见只吐 reasoning。"""
+    if (content or "").strip():
+        return content
+    thought = (reasoning or "").strip()
+    if not thought:
+        return ""
+    payload = _jsonish_payload(thought)
+    return payload or thought
+
+
+def _delta_text(delta: dict, key: str) -> str:
+    value = delta.get(key)
+    return value if isinstance(value, str) else ""
+
+
+def _sse_assistant_body(raw_text: str) -> str:
+    content_parts: list[str] = []
+    reasoning_parts: list[str] = []
+    for line in (raw_text or "").splitlines():
+        line = line.strip()
+        if not line or not line.startswith("data:"):
+            continue
+        chunk_str = line[5:].strip()
+        if chunk_str == "[DONE]":
+            break
+        try:
+            chunk = json.loads(chunk_str)
+        except Exception:
+            continue
+        choices = chunk.get("choices") if isinstance(chunk, dict) else None
+        if not (isinstance(choices, list) and choices and isinstance(choices[0], dict)):
+            continue
+        delta = choices[0].get("delta") or {}
+        if not isinstance(delta, dict):
+            continue
+        piece = _delta_text(delta, "content")
+        if piece:
+            content_parts.append(piece)
+        for key in ("reasoning_content", "reasoning"):
+            thought = _delta_text(delta, key)
+            if thought:
+                reasoning_parts.append(thought)
+    return _prefer_assistant_body("".join(content_parts), "".join(reasoning_parts))
+
+
+def _message_assistant_body(message: dict) -> str:
+    content = message.get("content") if isinstance(message.get("content"), str) else ""
+    reasoning = ""
+    for key in ("reasoning_content", "reasoning"):
+        value = message.get(key)
+        if isinstance(value, str) and value.strip():
+            reasoning = value
+            break
+    return _prefer_assistant_body(content, reasoning)
+
+
 def _assistant_text(response: httpx.Response) -> str:
     content_type = response.headers.get("content-type", "")
     raw_text = response.text
     if "text/event-stream" in content_type or raw_text.startswith("data:"):
-        collected = []
-        for line in raw_text.splitlines():
-            line = line.strip()
-            if not line or not line.startswith("data:"):
-                continue
-            chunk_str = line[5:].strip()
-            if chunk_str == "[DONE]":
-                break
-            try:
-                chunk = json.loads(chunk_str)
-                choices = chunk.get("choices")
-                if isinstance(choices, list) and choices and isinstance(choices[0], dict):
-                    delta = choices[0].get("delta", {})
-                    content = delta.get("content")
-                    if content and isinstance(content, str):
-                        collected.append(content)
-            except Exception:
-                continue
-        if collected:
-            return "".join(collected)
+        text = _sse_assistant_body(raw_text)
+        if text.strip():
+            return text
     try:
         body = response.json()
     except ValueError:
@@ -381,8 +526,8 @@ def _assistant_text(response: httpx.Response) -> str:
     message = choices[0].get("message")
     if not isinstance(message, dict):
         raise ModelCallError("missing assistant content")
-    text = message.get("content")
-    if not isinstance(text, str) or not text.strip():
+    text = _message_assistant_body(message)
+    if not text.strip():
         raise ModelCallError("missing assistant content")
     return text
 

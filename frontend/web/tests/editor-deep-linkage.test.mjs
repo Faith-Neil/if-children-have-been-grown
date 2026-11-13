@@ -52,12 +52,12 @@ test('3. EditorPage.tsx 渲染布局容器与测试属性契约', () => {
   assert.ok(content.includes('data-testid="editor-center-section"'), 'must include editor-center-section testid');
   assert.ok(content.includes('data-testid="editor-directory-collapsed-strip"'), 'must include collapsed strip testid');
 
-  // 折叠与展开交互按钮契约
+  // 折叠与展开交互按钮契约：收起后左右各保留一个展开按钮
   assert.ok(content.includes('data-testid="collapse-outline-btn"'), 'must include collapse-outline-btn testid');
   assert.ok(content.includes('data-testid="expand-outline-btn"'), 'must include expand-outline-btn testid');
-  assert.ok(content.includes('data-testid="open-outline-drawer-btn"'), 'must include open-outline-drawer-btn testid');
   assert.ok(content.includes('data-testid="toggle-assistant-btn"'), 'must include toggle-assistant-btn testid');
-  assert.ok(content.includes('data-testid="toolbar-outline-drawer-btn"'), 'must include toolbar-outline-drawer-btn testid');
+  assert.equal(content.includes('data-testid="open-outline-drawer-btn"'), false, 'must not keep duplicate outline drawer btn');
+  assert.equal(content.includes('data-testid="toolbar-outline-drawer-btn"'), false, 'must not keep duplicate toolbar outline btn');
 });
 
 test('4. EditorPage.tsx 抽屉与只读态向后兼容契约', () => {
@@ -66,8 +66,6 @@ test('4. EditorPage.tsx 抽屉与只读态向后兼容契约', () => {
   // 大纲树抽屉
   assert.ok(content.includes('data-testid="editor-outline-drawer"'), 'must include editor-outline-drawer testid');
 
-  // 严格保留已有的只读视图 testid
-  assert.ok(content.includes('data-testid="readonly-editor-view"'), 'must retain readonly-editor-view testid');
-  assert.ok(content.includes('data-testid="readonly-editor-text"'), 'must retain readonly-editor-text testid');
+  assert.ok(content.includes('<PaperEditor'), 'readonly and editing share the paper editor');
   assert.ok(content.includes('ReadonlyBanner'), 'must render ReadonlyBanner on readonly view');
 });

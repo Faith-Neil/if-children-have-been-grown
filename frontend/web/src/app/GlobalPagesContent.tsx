@@ -3,7 +3,7 @@
 
 import { NotificationsPage } from '../notifications/NotificationsPage';
 import React, { Suspense } from 'react';
-import { Alert, Button, Spin, Tabs } from 'antd';
+import { Button, Spin, Tabs } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { Can } from '../shell/Can';
 import { ProjectListPage } from '../project/ProjectListPage';
@@ -12,12 +12,12 @@ import { projectPath } from './app-route';
 import {
   LazyAuditLogPage as AuditLogPage,
   LazyCompanyManagePage as CompanyManagePage,
+  LazyCompanyDetailPage as CompanyDetailPage,
   LazyCompanySettingsPage as CompanySettingsPage,
   LazyDictConfigPage as DictConfigPage,
   LazyJobsPage as JobsPage,
   LazyLibraryPage as LibraryPage,
   LazyPendingPage as PendingPage,
-  LazySnippetLibraryPage as SnippetLibraryPage,
   LazyKnowledgeBaseAdminPage as KnowledgeBaseAdminPage,
   LazyUsersPage as UsersPage,
   LazyWritingArchivePage as WritingArchivePage,
@@ -25,10 +25,9 @@ import {
 import type { Account, ApplicationSession, Evidence, Job, Project, SlaTemplate } from '../shared/types';
 import type { LibraryReadState, LibraryWriteVersion } from '../library/library-review';
 import type { TemplateReadState } from '../library/template-review';
-import { kbPermissions } from '../library/kb-admin-core.ts';
-
 export interface GlobalPagesContentProps {
   nav: string;
+  companyDetailId?: string | null;
   loading: boolean;
   projects: Project[];
   session: ApplicationSession | null;
@@ -53,6 +52,7 @@ export interface GlobalPagesContentProps {
   jobs: Job[];
   createButton?: React.ReactNode;
   onOpenProject: (id: string, tab?: string) => void;
+  onDeleteProject?: (id: string) => Promise<void> | void;
   onOpenCreateProject?: () => void;
   onRequestPath: (path: string) => void;
   onRetryJob: (jobId: string) => Promise<void>;
@@ -62,6 +62,7 @@ export interface GlobalPagesContentProps {
 
 export function GlobalPagesContent({
   nav,
+  companyDetailId = null,
   loading,
   projects,
   session,
@@ -79,6 +80,7 @@ export function GlobalPagesContent({
   jobs,
   createButton,
   onOpenProject,
+  onDeleteProject,
   onOpenCreateProject,
   onRequestPath,
   onRetryJob,
@@ -95,7 +97,7 @@ export function GlobalPagesContent({
             <div className="page-heading">
               <div>
                 <h2>投标项目工作台</h2>
-                <p>先看风险，再看进度。这里只列出你已经加入的本公司项目。</p>
+                <p>{userRole === 'platform_admin' ? '全部公司的投标项目都在这里。' : '先看风险，再看进度。这里只列出你已经加入的本公司项目。'}</p>
               </div>
               {createButton ?? (
                 <Can perform="project:create">
@@ -113,15 +115,10 @@ export function GlobalPagesContent({
             <ProjectListPage
               projects={projects}
               onOpenProject={onOpenProject}
+              onDeleteProject={onDeleteProject}
               session={session}
               currentUser={currentUser}
-            />
-            <Alert
-              className="page-notice"
-              type="info"
-              message="先贯通示例主链路"
-              description="新建项目后，依次上传招标文件、确认解析、补响应与证据、编制两册章节、检查并下载内部稿。演示建议需要人工确认，不能直接作为正式承诺。"
-              showIcon
+              token={token}
             />
           </>
         )}
@@ -159,7 +156,17 @@ export function GlobalPagesContent({
             />
           )}
 
-          {nav === 'admin.rules' && (
+          {nav === 'admin.rules' && companyDetailId && (
+            <CompanyDetailPage
+              companyId={companyDetailId}
+              session={session}
+              currentUser={currentUser}
+              token={token}
+              onBack={() => onRequestPath('/admin')}
+            />
+          )}
+
+          {nav === 'admin.rules' && !companyDetailId && (
             <Tabs
               defaultActiveKey="audit"
               items={[
@@ -182,6 +189,7 @@ export function GlobalPagesContent({
                       session={session}
                       currentUser={currentUser}
                       token={token}
+                      onNavigate={onRequestPath}
                     />
                   ),
                 },
@@ -223,29 +231,7 @@ export function GlobalPagesContent({
           )}
 
           {nav === 'knowledge' && (
-            kbPermissions(currentUser?.role).read ? (
-              <Tabs
-                defaultActiveKey="snippets"
-                items={[
-                  {
-                    key: 'snippets',
-                    label: '方案片段',
-                    children: <SnippetLibraryPage token={token} user={currentUser} session={session} />,
-                  },
-                  {
-                    key: 'kb-admin',
-                    label: '知识库管理（RAGFlow）',
-                    children: <KnowledgeBaseAdminPage token={token} role={currentUser?.role} report={report} />,
-                  },
-                ]}
-              />
-            ) : (
-              <SnippetLibraryPage
-                token={token}
-                user={currentUser}
-                session={session}
-              />
-            )
+            <KnowledgeBaseAdminPage historyOnly token={token} role={currentUser?.role} report={report} />
           )}
 
           {nav === 'writing' && (

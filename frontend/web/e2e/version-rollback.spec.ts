@@ -1,6 +1,7 @@
 // 为什么有这个文件：在真实浏览器里走一遍版本对比与回退（APP-M2-T175）：打开版本历史 → 逐段对比 → 回退到旧版本 →
 // 生成新版本、修改方式记“版本回退”，历史保留。用例自己建项目，不改动其他用例共用的示例项目。
 import { expect, test, type APIRequestContext } from '@playwright/test';
+import { paper } from './paper.ts';
 
 const V1 = '运维服务方案\n\n驻场工程师两名，七乘二十四小时值守。';
 const V2 = '运维服务方案\n\n驻场工程师一名，七乘二十四小时值守。\n\n应急演练每季度一次。';
@@ -30,8 +31,9 @@ test('compare paragraphs with an older version and roll back to it', async ({ pa
   await page.getByTestId('login-username-input').fill('alpha-manager');
   await page.getByTestId('login-password-input').fill('X_2026');
   await page.getByTestId('login-submit-button').click();
-  await page.getByTestId('unheld-acquire-btn').click();
-  await expect(page.locator('textarea.chapter-editor')).toHaveValue(V2);
+  await expect(page.getByTestId('paper-editor-held')).toBeVisible();
+  await expect(paper(page)).toContainText('驻场工程师一名');
+  await expect(paper(page)).toContainText('应急演练每季度一次');
 
   await page.getByRole('button', { name: '版本' }).click();
   await page.getByText('逐段对比', { exact: true }).click();
@@ -40,7 +42,8 @@ test('compare paragraphs with an older version and roll back to it', async ({ pa
 
   await page.getByTestId(`rollback-btn-${revision - 1}`).click();
   await page.getByRole('button', { name: '确认回退' }).click();
-  await expect(page.locator('textarea.chapter-editor')).toHaveValue(V1);
+  await expect(paper(page)).toContainText('驻场工程师两名');
+  await expect(paper(page)).not.toContainText('应急演练每季度一次');
   await expect(page.getByText(`已回退到 v${revision - 1}，生成新版本 v${revision + 1}`)).toBeVisible();
 
   const history = await (await request.get(`/api/chapters/${chapterId}/versions`, { headers: auth })).json();

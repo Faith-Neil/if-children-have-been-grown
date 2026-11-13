@@ -1,6 +1,7 @@
 // 为什么有这个文件：在真实浏览器里走一遍段落锁定（APP-M2-T163）：光标放进一段 → 锁定 → 改动这段提交被拒 →
 // 只改别的段提交成功 → 解除锁定。用例自己建项目，不改动其他用例共用的示例项目。
 import { expect, test, type APIRequestContext } from '@playwright/test';
+import { paper, replacePaper } from './paper.ts';
 
 const LOCKED = '本项目提供七乘二十四小时驻场运维。';
 const BODY = `运维服务方案\n\n${LOCKED}\n\n巡检每月一次。`;
@@ -26,13 +27,10 @@ test('lock a paragraph, a commit that changes it is refused, then unlock', async
   await page.getByTestId('login-username-input').fill('alpha-manager');
   await page.getByTestId('login-password-input').fill('X_2026');
   await page.getByTestId('login-submit-button').click();
-  await page.getByTestId('unheld-acquire-btn').click();
-  const box = page.locator('textarea.chapter-editor');
-  await expect(box).toHaveValue(BODY);
+  await expect(page.getByTestId('paper-editor-held')).toBeVisible();
+  await expect(paper(page)).toContainText(LOCKED);
   // 光标放进要锁的段落
-  await box.click();
-  await page.keyboard.press('ControlOrMeta+Home');
-  for (let i = 0; i < BODY.indexOf(LOCKED) + 3; i += 1) await page.keyboard.press('ArrowRight');
+  await paper(page).getByText(LOCKED).click();
   await page.getByTestId('paragraph-lock-btn').hover();
   await expect(page.getByTestId('paragraph-lock-btn')).toHaveText('锁定光标所在段落');
   await page.getByTestId('paragraph-lock-btn').click();
@@ -40,14 +38,14 @@ test('lock a paragraph, a commit that changes it is refused, then unlock', async
   await expect(page.getByTestId('locked-paragraphs-notice')).toContainText(LOCKED);
 
   // 改动锁定段落后提交：后台拒绝，正文不变
-  await box.fill(BODY.replace('驻场运维', '远程运维'));
+  await replacePaper(page, BODY.replace('驻场运维', '远程运维'));
   await page.getByRole('button', { name: '提交本节' }).click();
   await expect(page.getByTestId('editor-center-section').getByText(/改动或删除了 1 个已锁定段落/)).toBeVisible();
   const kept = await (await request.get(`/api/chapters/${chapterId}`, { headers: auth })).json();
   expect(kept.content).toBe(BODY);
 
   // 只改别的段落：可以提交
-  await box.fill(BODY.replace('每月一次', '每两周一次'));
+  await replacePaper(page, BODY.replace('每月一次', '每两周一次'));
   await page.getByRole('button', { name: '提交本节' }).click();
   await expect(page.getByText(/已提交正文 v/)).toBeVisible();
 

@@ -14,7 +14,7 @@ async function login(page: Page, username: string, path: string) {
 
 test('project lead downloads the internal response trace Excel', async ({ page }) => {
   await login(page, 'alpha-manager', '/projects/alpha-project/export');
-  await expect(page.getByTestId('merge-checklist-card')).toContainText('导出递交版时会同时生成合标核对清单');
+  await expect(page.getByTestId('merge-checklist-card')).toHaveCount(0);
   const waiting = page.waitForEvent('download');
   await page.getByTestId('response-trace-btn').click();
   const file = await waiting;

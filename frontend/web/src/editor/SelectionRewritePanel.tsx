@@ -8,13 +8,12 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Button, Card, Collapse, Empty, Input, Modal, Select, Space, Spin, Switch, Tag, Tooltip } from 'antd';
-import { EditOutlined } from '@ant-design/icons';
 import { ApiError, request, streamEvents } from '../shared/api.ts';
 import type { Chapter } from '../shared/types.ts';
 import { AssistantAskBox } from './AssistantAskBox.tsx';
 import {
   ACTION_LABEL, EMPTY_STREAM, REWRITE_MODES, assistantPaths, defaultKnowledgeBase, diffText, fallbackNotice, isAbort, knowledgeBaseNote,
-  locateSelection, modelLabel, pendingCount, previewWrite, reduceStream, relocation, rewritePath, selectionProblem,
+  locateSelection, pendingCount, previewWrite, reduceStream, relocation, rewritePath, selectionProblem,
   type ApplyResult, type AssistantPolicy, type RewriteAction, type RewriteBatch, type RewriteMode, type RewriteSample,
   type SessionDetail, type SessionSummary, type StreamState,
 } from './selection-rewrite-core.ts';
@@ -33,12 +32,14 @@ export interface SelectionRewritePanelProps {
   onApplied: (result: ApplyResult) => Promise<void>;
   onClear: () => void;
   report: (error: unknown) => void;
+  askDraft?: string;
+  askNonce?: number;
 }
 
 type Pending = { sample: RewriteSample; action: RewriteAction; confirmStart?: number; moved?: boolean };
 const NEW_SESSION = '__new__';
 
-export function SelectionRewritePanel({ projectId, chapter, content, selection, leaseToken, canGenerate, busy, token, onApplied, onClear, report }: SelectionRewritePanelProps) {
+export function SelectionRewritePanel({ projectId, chapter, content, selection, leaseToken, canGenerate, busy, token, onApplied, onClear, report, askDraft = '', askNonce = 0 }: SelectionRewritePanelProps) {
   const [mode, setMode] = useState<RewriteMode>('rewrite');
   const [instruction, setInstruction] = useState('');
   const [count, setCount] = useState(3);
@@ -142,34 +143,29 @@ export function SelectionRewritePanel({ projectId, chapter, content, selection, 
   const shown = live ? live.samples : batch?.samples ?? [];
   const dropped = live ? live.dropped : batch?.dropped ?? [];
   return (
-    <Card size="small" className="rewrite-card" data-testid="selection-rewrite-panel" title={<Space><EditOutlined />选区改写</Space>}
-      extra={selection ? <Button size="small" type="link" onClick={onClear}>清除选区</Button> : null}>
+    <div className="rewrite-card" data-testid="selection-rewrite-panel">
       <div className="rewrite-toolbar">
-        <Tag color={policy?.is_real_model ? 'purple' : 'default'} data-testid="assistant-model-label">{modelLabel(policy) || '读取模型…'}</Tag>
+        <Select size="small" aria-label="会话" className="chat-session" value={sessionId} onChange={setSessionId}
+          options={[{ value: NEW_SESSION, label: '新会话' }, ...sessions.map(item => ({
+            value: item.id, label: `${item.title}${item.title.length >= 24 ? '…' : ''}${item.owner_name ? ` · ${item.owner_name}` : ''}`,
+          }))]} />
         <Space size={4}>
           <span>知识库</span>
           <Switch size="small" aria-label="知识库" data-testid="assistant-kb-switch" checked={knowledgeBase}
             disabled={!policy || !policy.allow_kb_off || disabled} onChange={setKnowledgeBase} />
         </Space>
+        {selection && <Button size="small" type="link" onClick={onClear}>清除选区</Button>}
       </div>
-      <p className="muted" data-testid="assistant-kb-note">{knowledgeBaseNote(policy, knowledgeBase)}</p>
+      <p className="chat-kb-note" data-testid="assistant-kb-note">{knowledgeBaseNote(policy, knowledgeBase)}</p>
       {policy && !policy.enabled && <Alert type="info" showIcon message="本公司已关闭对话助手" />}
-      <Space size={4} style={{ marginBottom: 8 }} wrap>
-        <Select size="small" aria-label="会话" style={{ minWidth: 200 }} value={sessionId} onChange={setSessionId}
-          options={[{ value: NEW_SESSION, label: '新会话' }, ...sessions.map(item => ({
-            value: item.id, label: `${item.title}${item.title.length >= 24 ? '…' : ''}${item.owner_name ? ` · ${item.owner_name}` : ''}`,
-          }))]} />
-        {history && <span className="muted">{history.message_count} 条记录{history.read_only ? ' · 只读' : ''}</span>}
-      </Space>
       {history && history.messages.length > 0 && <SessionHistory detail={history} />}
-      {!selection ? (
-        <>
-          <p className="muted">在正文中选中一段文字，点浮动按钮“问对话助手”，可得到 3～5 种写法；不选中时可以直接提问。</p>
-          <AssistantAskBox projectId={projectId} chapterId={chapter.id} token={token} knowledgeBase={knowledgeBase}
-            sessionId={sessionId === NEW_SESSION ? null : sessionId} disabled={disabled || !policy?.enabled}
-            onAnswered={id => { void loadSessions(id ?? undefined); }} />
-        </>
-      ) : (
+      {chapter && (
+        <AssistantAskBox projectId={projectId} chapterId={chapter.id} token={token} knowledgeBase={knowledgeBase}
+          sessionId={sessionId === NEW_SESSION ? null : sessionId} disabled={disabled || !policy?.enabled}
+          hideComposer externalDraft={askDraft} submitNonce={askNonce}
+          onAnswered={id => { void loadSessions(id ?? undefined); }} />
+      )}
+      {selection && (
         <>
           <blockquote data-testid="rewrite-selection">{selection.text.length > 200 ? `${selection.text.slice(0, 200)}…` : selection.text}</blockquote>
           <span className="muted">已选 {selection.text.length} 字</span>
@@ -230,7 +226,12 @@ export function SelectionRewritePanel({ projectId, chapter, content, selection, 
               {sample.warnings.map(text => <Alert key={text} type="warning" showIcon message={text} style={{ marginBottom: 6 }} />)}
               {sample.sources.length ? (
                 <ul className="rewrite-sources" data-testid="rewrite-sources">
-                  {sample.sources.map(src => <li key={src.cite_tag}><Tag>{src.cite_tag}</Tag>{src.name}（v{src.revision}）</li>)}
+                  {sample.sources.map(src => (
+                    <li key={src.cite_tag}>
+                      <Tag color={src.source_type === 'tender' || src.cite_tag.startsWith('[标:') ? 'blue' : undefined}>{src.cite_tag}</Tag>
+                      {src.name}{src.revision ? `（v${src.revision}）` : ''}
+                    </li>
+                  ))}
                 </ul>
               ) : <p className="muted">无知识库来源</p>}
               <Space wrap>
@@ -249,7 +250,7 @@ export function SelectionRewritePanel({ projectId, chapter, content, selection, 
         </div>
       )}
       <WriteConfirm batch={batch} pending={pending} committed={committed} working={working} onCancel={() => setPending(null)} onConfirm={confirm} />
-    </Card>
+    </div>
   );
 }
 

@@ -202,7 +202,7 @@ test('getExportKindMeta and getExportVolumeLabel return standard ICG labels', ()
   assert.equal(internalMeta.isSubmission, false);
   assert.equal(internalMeta.tagColor, 'blue');
 
-  assert.equal(getExportVolumeLabel('technical'), '技术分册');
-  assert.equal(getExportVolumeLabel('business'), '商务分册');
-  assert.equal(getExportVolumeLabel('all'), '技术、商务两册合订');
+  assert.equal(getExportVolumeLabel('technical'), '技术方案');
+  assert.equal(getExportVolumeLabel('business'), '商务方案');
+  assert.equal(getExportVolumeLabel('all'), '技术方案与商务方案合订');
 });

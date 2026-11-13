@@ -449,7 +449,7 @@ class DemoService:
         )
 
     def resolve_model_provider(self, state: DemoState, project_id: str, task: str | None = None) -> ModelProvider:
-        """项目单独绑定的模型 → 本公司任务与模型对应表（APP-M2-T040）→ 本公司默认模型 → 进程内置模型。"""
+        """项目单独绑定的模型 → 本公司任务与模型对应表 → 管理员添加的模型 → 进程内置模型。"""
         bound_id = state.project_model_configs.get(project_id)
         cfg = None
         route_backup = None
@@ -464,12 +464,9 @@ class DemoService:
                 if project.sensitive and (not cfg.is_local or not cfg.allow_sensitive):
                     raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
                                       "敏感项目只能使用本地模型：任务与模型对应表里该任务的首选模型不是允许处理敏感数据的本地模型。")
-        if cfg is None:
-            project = state.projects.get(project_id)
-            if project:
-                default_id = f"default-{project.company_id}"
-                if default_id in state.model_configs:
-                    cfg = state.model_configs[default_id]
+        if cfg is None and project is not None:
+            from icg.infra.model_config_storage import saved_company_model
+            cfg = saved_company_model(state, project.company_id)
         if cfg is not None:
             from icg.infra.model_config_storage import provider_from_model_config, usable_fallback
             provider = provider_from_model_config(cfg, transport=self.model_transport, default_provider=self.model_provider)
@@ -636,29 +633,30 @@ class DemoService:
 
     @staticmethod
     def _writer(principal: Principal) -> None:
-        from icg.domain.auth_service import is_super_admin
-        if is_super_admin(principal):
+        from .project_access import is_platform_super, normalize_role, READONLY_SYSTEM_ROLES
+        if is_platform_super(principal):
             return
-        from .project_access import normalize_role, READONLY_SYSTEM_ROLES
         role = normalize_role(principal.user.role)
-        if role in READONLY_SYSTEM_ROLES or role not in (
-            "editor", "manager", "company_admin", "data_admin", "project_lead", "bid_writer"
-        ):
+        if role in READONLY_SYSTEM_ROLES or role not in ("member", "company_admin", "platform_admin"):
             raise DomainError(403, "FORBIDDEN", "当前账号只能查看，不能执行此操作。")
 
     @staticmethod
     def _project(state: DemoState, principal: Principal, project_id: str) -> Project:
-        from .project_access import member
+        from .project_access import is_platform_super, member
         project = state.projects.get(project_id)
         account = state.accounts.get(principal.user.id)
         if project is None or project.is_deleted or account is None:
             raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
-        from icg.domain.auth_service import is_super_admin
-        if is_super_admin(principal):
+        from icg.domain.project_access import normalize_role
+        if is_platform_super(account):
+            if state.sessions.get(principal.session_token) != account.id:
+                raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
             return project
-        if (project.company_id != account.company_id
+        same_company = project.company_id == account.company_id
+        company_admin = same_company and normalize_role(account.role) == "company_admin"
+        if (not same_company
                 or state.sessions.get(principal.session_token) != account.id
-                or member(state, project_id, account.id) is None):
+                or (member(state, project_id, account.id) is None and not company_admin)):
             raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
         return project
 
@@ -685,9 +683,8 @@ class DemoService:
             if bound_id and bound_id in state.model_configs:
                 cfg = state.model_configs[bound_id]
             else:
-                default_id = f"default-{project.company_id}"
-                if default_id in state.model_configs:
-                    cfg = state.model_configs[default_id]
+                from icg.infra.model_config_storage import saved_company_model
+                cfg = saved_company_model(state, project.company_id)
 
         if cfg is not None:
             if project.sensitive and (not cfg.is_local or not cfg.allow_sensitive):
@@ -729,11 +726,13 @@ class DemoService:
 
     def projects(self, principal: Principal) -> dict:
         state = self.repository.read()
-        from .project_access import member
+        from .project_access import is_platform_super, member
+        superuser = is_platform_super(principal.user)
         return {"projects": [self._project_response(project) for project in state.projects.values()
-                             if project.company_id == principal.user.company_id
-                             and member(state, project.id, principal.user.id)
-                             and not project.is_deleted]}
+                             if not project.is_deleted and (
+                                 superuser
+                                 or (project.company_id == principal.user.company_id
+                                     and member(state, project.id, principal.user.id)))]}
 
     def project(self, principal: Principal, project_id: str) -> dict:
         state = self.repository.read()
@@ -758,7 +757,7 @@ class DemoService:
             if (actual is None
                     or normalize_role(actual.role) not in LEAD_COMPANY_ROLES
                     or state.sessions.get(principal.session_token) != actual.id):
-                raise DomainError(403, "PROJECT_CREATE_FORBIDDEN", "普通编写人不能新建项目，请由公司项目经理建立并邀请成员。")
+                raise DomainError(403, "PROJECT_CREATE_FORBIDDEN", "当前账号不能新建投标项目。")
             now_ts = self._now()
             project = Project(
                 id=new_id("project"),
@@ -786,6 +785,21 @@ class DemoService:
             if key:
                 remember(state, scope_id, principal.user.id, key, req_fp, res, self._now())
             return res
+        return self.repository.transaction(operation)
+
+    def delete_project(self, principal: Principal, project_id: str) -> dict:
+        from .project_access import lead, project_volume_mode
+
+        def operation(state: DemoState):
+            project = self._project(state, principal, project_id)
+            if not lead(state, project_id, principal.user.id):
+                raise DomainError(403, "FORBIDDEN", "只有项目负责人可以删除项目。")
+            project.is_deleted = True
+            project.revision += 1
+            project.updated_by = principal.user.id
+            project.updated_at = self._now()
+            return {**self._project_response(project), "volume_mode": project_volume_mode(state, project_id)}
+
         return self.repository.transaction(operation)
 
     def chapters(self, principal: Principal, project_id: str) -> dict:

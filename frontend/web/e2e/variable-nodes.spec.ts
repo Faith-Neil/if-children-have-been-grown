@@ -1,6 +1,7 @@
 // 为什么有这个文件：在真实浏览器里走一遍变量节点（APP-M2-T164）：已确认事实的变量按取值带底色显示 →
 // 编辑时变量栏列出取值 → 写入不存在的变量提交被拒，正文不变，提示去数据源。用例自己建项目，不改动共用的示例项目。
 import { expect, test, type APIRequestContext } from '@playwright/test';
+import { paper, replacePaper } from './paper.ts';
 
 const TENDER = '合成招标文件：变量节点验收\n招标编号：E2E-VAR\n服务期限：12个月\n第三章 技术要求\n1. 提供7×24小时驻场服务。\n';
 
@@ -39,17 +40,13 @@ test('variables show the confirmed value; a new unknown variable is refused on c
   await page.getByTestId('login-password-input').fill('X_2026');
   await page.getByTestId('login-submit-button').click();
 
-  const chip = page.getByTestId('unheld-editor-text').getByTestId('variable-node');
+  await expect(page.getByTestId('paper-editor-held')).toBeVisible();
+  const chip = page.getByTestId('editor-variable-bar').getByTestId('variable-node');
   await expect(chip).toHaveAttribute('data-status', 'valid');
   await expect(chip).toContainText(fact.value.replace(/\s+/g, '').slice(0, 2));
-  await expect(page.getByTestId('unheld-editor-text')).not.toContainText('{{fact:');
+  await expect(paper(page)).toContainText(`{{fact:${fact.id}}}`);
 
-  await page.getByTestId('unheld-acquire-btn').click();
-  const box = page.locator('textarea.chapter-editor');
-  await expect(box).toHaveValue(body);
-  await expect(page.getByTestId('editor-variable-bar').getByTestId('variable-node')).toHaveAttribute('data-status', 'valid');
-
-  await box.fill(`${body}\n另有 {{fact:not-a-fact}} 项。`);
+  await replacePaper(page, `${body}\n另有 {{fact:not-a-fact}} 项。`);
   await expect(page.getByTestId('invalid-variables-notice')).toContainText('1 个变量已失效');
   await page.getByRole('button', { name: '提交本节' }).click();
   await expect(page.getByTestId('editor-center-section').getByText(/写入了 1 个失效变量/)).toBeVisible();

@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .domain import Chapter, DemoState, DomainError, Lease, Principal, Project, iso_time, new_id
+from .project_access import is_platform_super
 from .generation_context import evidence_expired, project_facts
 
 
@@ -308,7 +309,7 @@ class AnswerCardService:
                              route: RouteDecision) -> AnswerCard:
         state: DemoState = self.demo.repository.read()
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        if project is None or (project.company_id != principal.user.company_id and not is_platform_super(principal.user)):
             raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
 
         workflow = state.workflows.get(project_id, {})
@@ -703,7 +704,7 @@ class AnswerCardService:
 
         def operation(state: DemoState) -> dict[str, Any]:
             project = state.projects.get(project_id)
-            if project is None or project.company_id != principal.user.company_id:
+            if project is None or (project.company_id != principal.user.company_id and not is_platform_super(principal.user)):
                 raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
 
             chapter = state.chapters.get(chapter_id)
@@ -884,8 +885,8 @@ class AnswerCardService:
                并在回答中保持常驻说明“知识库已关闭，未查询公司资料库”，绝不编造虚假的公司资质或业绩数据；
         门禁 3（敏感项目模型隔离）：若当前项目为敏感项目（sensitive=True 或 is_sensitive=True），
                必须强制使用本地模型运行时；企图绑定或调用云端模型时，严格触发 403 SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL；
-        门禁 4（只读角色提问拦截）：只读角色（group_admin、viewer、auditor、platform_admin）尝试发起自由提问时，
-               统一拦截拒绝（抛出 403 FORBIDDEN）。
+        门禁 4（只读角色提问拦截）：平台管理员尝试发起自由提问时拦截（403 FORBIDDEN）。
+               旧登录角色已收成普通用户，不再因登录角色被拦截。
         """
         # 若指定了编辑台选中文本、显式场景或注入条款，转由 EditorAIContextService 进行深度上下文联动
         if chapter_id and (selected_text is not None or scene is not None or injected_tender_clauses is not None):
@@ -912,7 +913,7 @@ class AnswerCardService:
 
         state: DemoState = self.demo.repository.read()
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        if project is None or (project.company_id != principal.user.company_id and not is_platform_super(principal.user)):
             raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
 
         # 检查项目级只读分工
@@ -930,9 +931,8 @@ class AnswerCardService:
             if bound_id and bound_id in state.model_configs:
                 cfg = state.model_configs[bound_id]
             else:
-                default_id = f"default-{project.company_id}"
-                if default_id in state.model_configs:
-                    cfg = state.model_configs[default_id]
+                from icg.infra.model_config_storage import saved_company_model
+                cfg = saved_company_model(state, project.company_id)
 
             if cfg is not None:
                 if not getattr(cfg, "is_local", False) or not getattr(cfg, "allow_sensitive", False):

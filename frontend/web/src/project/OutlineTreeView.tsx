@@ -1,20 +1,17 @@
 // 为什么有这个文件：封装大纲树与章节协同编辑核心组件 OutlineTreeView。
 // 它解决什么问题：
-// 1. 分册（技术/商务）章节树层级与编号展示、章节类型徽标（专项/通用/系统生成等）展示；
-// 2. 章节顺序同级上移/下移调整与大纲树结构重排；
+// 1. 目录行只显示序号和标题；没有生成目录时，章节同样按这一行展示；
+// 2. 目录用拖放调整顺序和 1～4 级，双击改名称；
 // 3. 严格落实合规红线门禁：星号条款(★)或废标条款对应章节绝对禁止标记为“不适用”（选项置灰禁用与 Tooltip 提示）；
 // 4. 协同 useDataPermission，非主管分册处于分册级只读模式，拦截任何写操作与排序；
 // 5. 增值理由弹窗编辑与编辑台章节选择跳转联动。
 
-import React, { useMemo, useState, type CSSProperties } from 'react';
+import React, { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
   Alert,
   Button,
   Card,
-  Dropdown,
   Empty,
-  MenuProps,
-  Radio,
   Select,
   Space,
   Tag,
@@ -24,19 +21,21 @@ import {
 import {
   ArrowDownOutlined,
   ArrowUpOutlined,
-  CheckCircleOutlined,
+  CaretDownOutlined,
+  CaretRightOutlined,
+  DownOutlined,
   EditOutlined,
-  ExclamationCircleOutlined,
   FileDoneOutlined,
-  InfoCircleOutlined,
   LockOutlined,
+  MinusOutlined,
+  PlusOutlined,
   StarFilled,
+  UpOutlined,
   WarningFilled,
 } from '@ant-design/icons';
-import type { Volume } from '../shared/types.ts';
+import type { TechnicalHeading, Volume } from '../shared/types.ts';
 import {
   canMarkNotApplicable,
-  CHAPTER_TYPES_CONFIG,
   normalizeChapterNumbers,
   reorderNodes,
   validateChapterTypeChange,
@@ -46,17 +45,256 @@ import {
 import { ChapterTypeBadge } from './ChapterTypeBadge.tsx';
 import { ValueAddedReasonModal } from './ValueAddedReasonModal.tsx';
 import { useDataPermission } from '../shell/useDataPermission.ts';
+import { blockEnd, moveOutline } from './directory-order.ts';
 
-const { Text, Paragraph } = Typography;
+const { Text } = Typography;
+
+export type GeneratedDirectory = {
+  title: string;
+  chapterId: string;
+  headings: TechnicalHeading[];
+  missing?: string[];
+  reviewTitles?: string[];
+  chapterContent?: string;
+  confirmed: boolean;
+  canPrepare: boolean;
+  canGenerate: boolean;
+  busy?: boolean;
+  onSave: (payload: {
+    title: string;
+    headings: Array<{
+      level: number;
+      title: string;
+      requirement_id: string | null;
+      task_id?: string | null;
+      requirement_ids?: string[];
+    }>;
+    confirm: boolean;
+  }) => Promise<void>;
+  onGenerate: (section?: string) => Promise<void>;
+  onOpen: () => void;
+  onExport?: () => void;
+  onCoverage?: () => void;
+};
+
+function withNumbers(items: TechnicalHeading[]): TechnicalHeading[] {
+  const counters = [0, 0, 0, 0];
+  return items.map(item => {
+    const level = [1, 2, 3, 4].includes(item.level) ? item.level : 2;
+    for (let ancestor = 0; ancestor < level - 1; ancestor += 1) {
+      if (counters[ancestor] === 0) counters[ancestor] = 1;
+    }
+    counters[level - 1] += 1;
+    for (let deeper = level; deeper < 4; deeper += 1) counters[deeper] = 0;
+    const number = counters.slice(0, level).join('.');
+    return { ...item, level, number };
+  });
+}
+
+function outlineText(number: string, title: string) {
+  return number.includes('.') ? `${number} ${title}` : `${number}. ${title}`;
+}
+
+function titleFromOutline(value: string, number: string) {
+  const text = value.trim();
+  const dotted = number.includes('.') ? `${number} ` : `${number}.`;
+  if (text.startsWith(dotted)) return text.slice(dotted.length).trim();
+  if (text.startsWith(`${number} `) || text.startsWith(`${number}.`)) return text.slice(number.length).replace(/^[\s.]+/, '');
+  return text;
+}
+
+function headingHidden(items: TechnicalHeading[], index: number, folded: Set<number>) {
+  let depth = items[index].level;
+  for (let cursor = index - 1; cursor >= 0; cursor -= 1) {
+    if (items[cursor].level < depth) {
+      if (folded.has(cursor)) return true;
+      depth = items[cursor].level;
+    }
+  }
+  return false;
+}
+
+function DirectoryList({ directory }: { directory: GeneratedDirectory }) {
+  const [draft, setDraft] = useState<TechnicalHeading[] | null>(null);
+  const [editing, setEditing] = useState<number | null>(null);
+  const [selected, setSelected] = useState(0);
+  const [folded, setFolded] = useState<Set<number>>(new Set());
+  const [dropAt, setDropAt] = useState<number | null>(null);
+  const dragFrom = useRef<{ index: number; x: number; level: number } | null>(null);
+  const savedKey = useRef('');
+  const headings = draft ?? directory.headings;
+  const blocked = !directory.canPrepare || !!directory.busy;
+  const numbered = withNumbers(headings);
+  const current = numbered[Math.min(selected, Math.max(0, numbered.length - 1))];
+
+  useEffect(() => {
+    const key = directory.headings.map(item => `${item.level}\t${item.title}`).join('\n');
+    if (savedKey.current && key === savedKey.current) {
+      savedKey.current = '';
+      setDraft(null);
+    }
+  }, [directory.headings]);
+
+  function payload(next: TechnicalHeading[]) {
+    return next.map(item => ({
+      level: [1, 2, 3, 4].includes(item.level) ? item.level : 2,
+      title: item.title.trim(),
+      requirement_id: item.requirement_id ?? null,
+      task_id: item.task_id ?? null,
+      requirement_ids: item.requirement_ids ?? (item.requirement_id ? [item.requirement_id] : []),
+    }));
+  }
+
+  async function persist(next: TechnicalHeading[]) {
+    const stamp = (items: TechnicalHeading[]) => items.map(item => `${item.level}\t${item.title}`).join('\n');
+    if (stamp(next) === stamp(headings)) return;
+    setDraft(next);
+    const key = next.map(item => `${item.level}\t${item.title.trim()}`).join('\n');
+    savedKey.current = key;
+    try {
+      await directory.onSave({ title: directory.title, headings: payload(next), confirm: directory.confirmed });
+    } catch {
+      savedKey.current = '';
+    }
+  }
+
+  function onDragStart(index: number, event: React.DragEvent) {
+    dragFrom.current = { index, x: event.clientX, level: headings[index].level };
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', String(index));
+  }
+
+  function onDragOver(index: number, event: React.DragEvent) {
+    if (!dragFrom.current) return;
+    event.preventDefault();
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    setDropAt(event.clientY > rect.top + rect.height / 2 ? index + 1 : index);
+  }
+
+  function onDrop(event: React.DragEvent) {
+    event.preventDefault();
+    const origin = dragFrom.current;
+    dragFrom.current = null;
+    const target = dropAt;
+    setDropAt(null);
+    if (!origin || target === null || blocked) return;
+    const shift = Math.round((event.clientX - origin.x) / 24);
+    const next = moveOutline(headings, origin.index, target, origin.level + shift);
+    const movedTo = target > origin.index ? target - (blockEnd(headings, origin.index) - origin.index) : target;
+    setSelected(Math.max(0, Math.min(next.length - 1, movedTo)));
+    void persist(next);
+  }
+
+  function finishEdit(index: number, value: string) {
+    setEditing(null);
+    const title = titleFromOutline(value, numbered[index]?.number ?? '');
+    if (!title || title === headings[index]?.title) return;
+    void persist(headings.map((row, rowIndex) => rowIndex === index ? { ...row, title } : row));
+  }
+
+  function changeLevel(delta: number) {
+    if (!current || blocked) return;
+    const index = numbered.indexOf(current);
+    void persist(moveOutline(headings, index, index, current.level + delta));
+  }
+
+  function addHeading() {
+    if (!current || blocked) return;
+    const index = numbered.indexOf(current);
+    const at = blockEnd(headings, index);
+    const next = headings.map(item => ({ ...item }));
+    next.splice(at, 0, { level: current.level, number: '', title: '未命名', requirement_id: null, task_id: null, requirement_ids: [] });
+    setSelected(at);
+    setEditing(at);
+    void persist(next);
+  }
+
+  function removeHeading() {
+    if (!current || blocked || headings.length <= 1) return;
+    const index = numbered.indexOf(current);
+    const next = headings.filter((_, rowIndex) => rowIndex !== index);
+    setSelected(Math.max(0, index - 1));
+    void persist(next);
+  }
+
+  return (
+    <div className="wps-outline" data-testid="generated-directory" onDragEnd={() => { dragFrom.current = null; setDropAt(null); }}>
+      <div className="wps-outline-tools">
+        <button type="button" aria-label="降级" disabled={blocked || !current} onClick={() => changeLevel(1)}><DownOutlined /></button>
+        <button type="button" aria-label="升级" disabled={blocked || !current} onClick={() => changeLevel(-1)}><UpOutlined /></button>
+        <button type="button" aria-label="增加" disabled={blocked || !current} onClick={addHeading}><PlusOutlined /></button>
+        <button type="button" aria-label="删除" disabled={blocked || !current || headings.length <= 1} onClick={removeHeading}><MinusOutlined /></button>
+      </div>
+      {numbered.map((item, index) => {
+        if (headingHidden(numbered, index, folded)) return null;
+        const shownLevel = [1, 2, 3, 4].includes(item.level) ? item.level : 2;
+        const children = index + 1 < numbered.length && numbered[index + 1].level > item.level;
+        const label = outlineText(item.number, item.title);
+        return (
+          <div
+            key={`${item.requirement_id || 'h'}-${index}`}
+            className={`wps-outline-row${selected === index ? ' is-selected' : ''}${dropAt === index ? ' is-over-before' : ''}${dropAt === numbered.length && index === numbered.length - 1 ? ' is-over-after' : ''}`}
+            data-testid="directory-heading"
+            data-level={shownLevel}
+            draggable={!blocked && editing !== index}
+            style={{ paddingLeft: (shownLevel - 1) * 16 }}
+            onClick={() => setSelected(index)}
+            onDragStart={event => onDragStart(index, event)}
+            onDragOver={event => onDragOver(index, event)}
+            onDrop={onDrop}
+          >
+            <button
+              type="button"
+              className="wps-outline-twist"
+              aria-label={children ? (folded.has(index) ? '展开' : '折叠') : undefined}
+              aria-hidden={children ? undefined : true}
+              tabIndex={children ? 0 : -1}
+              onClick={event => {
+                event.stopPropagation();
+                if (!children) return;
+                setFolded(currentFolded => {
+                  const next = new Set(currentFolded);
+                  if (next.has(index)) next.delete(index);
+                  else next.add(index);
+                  return next;
+                });
+              }}
+            >
+              {children ? (folded.has(index) ? <CaretRightOutlined /> : <CaretDownOutlined />) : null}
+            </button>
+            {editing === index ? (
+              <input
+                autoFocus
+                className="wps-outline-editor"
+                aria-label="目录标题"
+                defaultValue={label}
+                onClick={event => event.stopPropagation()}
+                onBlur={event => finishEdit(index, event.target.value)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter') event.currentTarget.blur();
+                  if (event.key === 'Escape') setEditing(null);
+                }}
+              />
+            ) : (
+              <span className="wps-outline-label" data-testid="chapter-number" onDoubleClick={event => { event.stopPropagation(); if (!blocked) setEditing(index); }}>{label}</span>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export interface OutlineTreeViewProps {
   nodes: ChapterOutlineNode[];
   activeVolume?: Volume | 'all';
-  onVolumeChange?: (volume: Volume | 'all') => void;
+  directory?: GeneratedDirectory | null;
   onNodesChange?: (nodes: ChapterOutlineNode[]) => void;
   onSelectChapter?: (chapter: ChapterOutlineNode) => void;
   onNavigateToEditor?: (chapterId: string) => void;
   selectedChapterId?: string | null;
+  /** 编辑台目录：只显示序号和标题，不铺章节卡片。 */
+  plain?: boolean;
   className?: string;
   style?: CSSProperties;
 }
@@ -64,11 +302,12 @@ export interface OutlineTreeViewProps {
 export function OutlineTreeView({
   nodes,
   activeVolume = 'technical',
-  onVolumeChange,
+  directory = null,
   onNodesChange,
   onSelectChapter,
   onNavigateToEditor,
   selectedChapterId,
+  plain = false,
   className = '',
   style,
 }: OutlineTreeViewProps) {
@@ -80,25 +319,18 @@ export function OutlineTreeView({
   });
   const canEdit = permission.canEdit;
 
-  // 2. 过滤当前选定分册的章节
-  const filteredNodes = useMemo(() => {
-    let result = nodes;
-    if (activeVolume && activeVolume !== 'all') {
-      result = nodes.filter(n => n.volume === activeVolume);
-    }
-    return normalizeChapterNumbers(result);
-  }, [nodes, activeVolume]);
+  // 2. 按传入顺序展示全部章节，不再按分册切开。已有生成目录时，目录章改由目录行承担。
+  const orderedNodes = useMemo(() => normalizeChapterNumbers(nodes), [nodes]);
+  const directoryShown = Boolean(directory && directory.headings.length > 0);
+  const chapterNodes = directoryShown && directory
+    ? orderedNodes.filter(node => node.id !== directory.chapterId)
+    : orderedNodes;
 
   // 3. 排序操作处理器
   const handleReorder = (chapterId: string, direction: 'up' | 'down') => {
     if (!canEdit) return;
-    const reordered = reorderNodes(filteredNodes, chapterId, direction);
-    const normalized = normalizeChapterNumbers(reordered);
-    if (onNodesChange) {
-      // 合并非当前分册的节点保持不变
-      const otherNodes = nodes.filter(n => activeVolume !== 'all' && n.volume !== activeVolume);
-      onNodesChange([...otherNodes, ...normalized]);
-    }
+    const reordered = reorderNodes(orderedNodes, chapterId, direction);
+    if (onNodesChange) onNodesChange(normalizeChapterNumbers(reordered));
   };
 
   // 4. 修改章节类型处理器
@@ -141,55 +373,55 @@ export function OutlineTreeView({
       data-volume={activeVolume}
       data-can-edit={canEdit ? 'true' : 'false'}
     >
-      {/* 顶栏控制：分册切换与操作指引 */}
-      <div className="icg-outline-toolbar" style={{ marginBottom: 16 }}>
-        <Space style={{ justifyContent: 'space-between', width: '100%', flexWrap: 'wrap' }}>
-          <Space>
-            <span style={{ fontSize: 13, fontWeight: 500, color: '#4e5969' }}>分册视图：</span>
-            <Radio.Group
-              value={activeVolume}
-              onChange={e => onVolumeChange && onVolumeChange(e.target.value)}
-              buttonStyle="solid"
-              size="small"
-              data-testid="volume-switch-group"
-            >
-              <Radio.Button value="technical" data-testid="volume-technical-btn">技术分册</Radio.Button>
-              <Radio.Button value="business" data-testid="volume-business-btn">商务分册</Radio.Button>
-              <Radio.Button value="all" data-testid="volume-all-btn">全部分册</Radio.Button>
-            </Radio.Group>
-          </Space>
-
-          <Space size={12}>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              共 {filteredNodes.length} 个章节
-            </Text>
-          </Space>
-        </Space>
-      </div>
+      {!directoryShown && !plain && (
+        <div className="icg-outline-toolbar" style={{ marginBottom: 16 }}>
+          <Text type="secondary" style={{ fontSize: 12 }}>共 {orderedNodes.length} 个章节</Text>
+        </div>
+      )}
 
       {/* 只读警告条（非主管分册或系统只读） */}
-      {!canEdit && (
+      {!canEdit && !directoryShown && !plain && (
         <Alert
           type="warning"
           showIcon
           icon={<LockOutlined />}
-          message="分册只读模式"
-          description={permission.readOnlyReason || '当前处于非主管分册只读模式，仅供查阅，不可修改大纲顺序、章节类型或增值理由。'}
+          message="方案只读模式"
+          description={permission.readOnlyReason || '当前处于非主管方案只读模式，仅供查阅，不可修改大纲顺序、章节类型或增值理由。'}
           style={{ marginBottom: 14 }}
           data-testid="readonly-notice-banner"
         />
       )}
 
-      {/* 大纲节点列表 */}
-      {filteredNodes.length === 0 ? (
+      {directoryShown && directory && <DirectoryList directory={directory} />}
+      {plain && !directoryShown && chapterNodes.length > 0 && (
+        <div className="wps-outline" data-testid="chapter-directory-list">
+          {chapterNodes.map(node => {
+            const number = node.chapterNumber || `${node.orderIndex}`;
+            const selected = selectedChapterId === node.id;
+            return (
+              <div
+                key={node.id}
+                className={`wps-outline-row${selected ? ' is-selected' : ''}`}
+                data-testid="chapter-directory-row"
+                data-chapter-id={node.id}
+                onClick={() => onSelectChapter?.(node)}
+              >
+                <button type="button" className="wps-outline-twist" tabIndex={-1} aria-hidden />
+                <span className="wps-outline-label" data-testid="chapter-number">{outlineText(number, node.title)}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {chapterNodes.length === 0 && !directoryShown ? (
         <Card>
-          <Empty description="当前分册下暂无章节大纲数据" />
+          <Empty description="暂无章节" />
         </Card>
-      ) : (
-        <div className="icg-outline-nodes-list" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {filteredNodes.map((node, index) => {
+      ) : chapterNodes.length > 0 && !directoryShown && !plain ? (
+        <div className="icg-outline-nodes-list" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: directoryShown ? 12 : 0 }}>
+          {chapterNodes.map((node, index) => {
             const isFirst = index === 0;
-            const isLast = index === filteredNodes.length - 1;
+            const isLast = index === chapterNodes.length - 1;
             const isSelected = selectedChapterId === node.id;
             const notApplicableCheck = canMarkNotApplicable(node);
             const isNotApplicableDisabled = !notApplicableCheck.allowed;
@@ -372,7 +604,7 @@ export function OutlineTreeView({
             );
           })}
         </div>
-      )}
+      ) : null}
 
       {/* 增值理由弹窗 */}
       <ValueAddedReasonModal

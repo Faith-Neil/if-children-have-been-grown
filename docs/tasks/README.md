@@ -10,5 +10,6 @@
 | [BE-M0.md](BE-M0.md) | 后端最小可运行链路、架构解耦与合规规则 | ISSUE-005, ISSUE-006, ISSUE-038 |
 | [FE-M0.md](FE-M0.md) | 前端基线与基础工程、React-Router 与资料域组件 | ISSUE-007, ISSUE-038 |
 | [FE-M1.md](FE-M1.md) ~ [FE-M8.md](FE-M8.md) | 前端各业务阶段实施历史任务 | Phase 1 ~ 8 |
-| [OPS-M0.md](OPS-M0.md) | 工作区运维与内网部署草案 | ISSUE-017 |
+| [OPS-M0.md](OPS-M0.md) | 工作区运维、内网部署草案与产品启动 | ISSUE-017、ISSUE-049 |
 | [REV-M0.md](REV-M0.md) | 接手审查、QA 签署与端到端冒烟验证 | ISSUE-013, REV-SMOKE-001 |
+| [FLOW.md](FLOW.md) | 三个登录角色和四段主路径 | ISSUE-048 |

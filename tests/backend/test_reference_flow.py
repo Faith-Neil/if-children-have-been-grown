@@ -2,6 +2,7 @@
 # 它解决什么问题：防止接口表面接通，却遗漏人工确认、证据、公司隔离、旧检查失效和两册内容正确性。
 
 import base64
+from contextlib import contextmanager
 from io import BytesIO
 import hashlib
 from uuid import uuid4
@@ -14,6 +15,9 @@ from fastapi.testclient import TestClient
 from pypdf import PdfWriter
 from pypdf.generic import DictionaryObject, NameObject, DecodedStreamObject
 
+from icg.domain.technical_matrix import (
+    bind_deviation_judge, bind_history_search, reset_deviation_judge, reset_history_search,
+)
 from icg_demo.main import create_app
 from icg_demo.parsing import LocalTextParser
 from icg_demo.domain import DomainError
@@ -33,6 +37,20 @@ def login(client, account="alpha-manager"):
     result = client.post("/api/v1/auth/login", json={"username": account, "password": "X_2026"})
     assert result.status_code == 200, result.text
     return {"Authorization": "Bearer " + result.json()["access_token"]}
+
+
+@contextmanager
+def synthetic_history():
+    """解析期间用一条合成历史做法填写响应，不再手写响应正文。"""
+    previous_search = bind_history_search(
+        lambda _clause: [{"score": 1, "filename": "合成历史标书.docx", "quote": "经核对满足要求。"}])
+    previous_judge = bind_deviation_judge(
+        lambda _clause, _quote: {"deviation": "无偏离", "reason": "经核对满足要求。"})
+    try:
+        yield
+    finally:
+        reset_history_search(previous_search)
+        reset_deviation_judge(previous_judge)
 
 
 class ProjectFlow:
@@ -59,11 +77,34 @@ class ProjectFlow:
         return result.json()
 
     def write(self, path, data, method="POST", expected=200, headers=None):
+        if isinstance(data, dict) and "response" in data and "/requirements/" in path:
+            data = dict(data)
+            requirement_id = path.rstrip("/").rsplit("/", 1)[-1]
+            self.store_retrieved_response(requirement_id, data.pop("response"))
+            if not data:
+                assert expected == 200
+                return {"requirement": next(row for row in self.state()["requirements"] if row["id"] == requirement_id)}
         version = self.state()["revision"]
         result = self.client.request(method, self.path + path, json=data,
                                      headers=headers or {**self.headers, "If-Match": str(version), "Idempotency-Key": str(uuid4())})
         assert result.status_code == expected, result.text
         return result.json()
+
+    def store_retrieved_response(self, requirement_id, response):
+        """模拟检索已经写入的响应。公开接口不接受手写正文。"""
+        repository = self.client.app.state.service.repository
+
+        def change(state):
+            workflow = state.workflows[self.id]
+            row = workflow["requirements"][requirement_id]
+            if row.get("response") == response:
+                return
+            row["response"] = response
+            row["response_origin"] = row.get("response_origin") or "history"
+            workflow["plan_confirmed"] = False
+            state.projects[self.id].revision += 1
+
+        repository.transaction(change)
 
     def upload(self, content=TENDER.encode(), filename="合成招标.txt"):
         return self.write("/files", {"filename": filename, "content_base64": base64.b64encode(content).decode()})["file"]
@@ -73,7 +114,8 @@ class ProjectFlow:
         self.write("", {"tender_number": "SYNTH-001", "deadline": "2026-12-31T17:00:00+08:00",
                         "related_bid_reason": "合成测试：两家公司无控股、管理关系"}, "PATCH")
         self.upload(tender.encode())
-        result = self.write("/parse", {})
+        with synthetic_history():
+            result = self.write("/parse", {})
         assert result["job"]["status"] == "completed"
         for row in self.state()["requirements"]:
             self.write("/requirements/" + row["id"], {"status": "confirmed"}, "PATCH")
@@ -113,7 +155,7 @@ class ProjectFlow:
         evidence = self.library()
         for row in self.state()["requirements"]:
             chapter = next(c for c in chapters if c["volume"] == row["volume"])
-            self.write("/requirements/" + row["id"], {"chapter_id": chapter["id"], "response": "经核对满足要求。",
+            self.write("/requirements/" + row["id"], {"chapter_id": chapter["id"],
                        "evidence_ids": [evidence["id"]] if row["volume"] == "business" else []}, "PATCH")
         self.confirm_plan({"chapters": [{"id": c["id"], "title": c["title"], "volume": c["volume"]} for c in chapters]})
         for chapter in self.state()["chapters"]:
@@ -255,7 +297,8 @@ def test_input_change_invalidates_check_and_export_download(client, change):
     if change == "project":
         flow.write("", {"name": "新项目名称"}, "PATCH")
     elif change == "requirement":
-        flow.write("/requirements/" + state["requirements"][0]["id"], {"response": "更新后的响应"}, "PATCH")
+        flow.write("/requirements/" + state["requirements"][0]["id"],
+                   {"text": state["requirements"][0]["text"] + "（补遗）"}, "PATCH")
     elif change == "fact":
         flow.write("/facts/" + state["facts"][0]["id"], {"value": "另一个招标编号"}, "PATCH")
     elif change == "evidence":

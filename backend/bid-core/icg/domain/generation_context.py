@@ -9,7 +9,6 @@ import re
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
-
 from .domain import DomainError, iso_time
 from .input_snapshot import project_input_fingerprint
 from .sla import TOKEN as SLA_TOKEN, UNIT_ALIASES, public_sla, resolve_variables, sla_facts, sla_issues, unit_code
@@ -290,6 +289,9 @@ def build_generation_context(state, project_id, chapter, now, evidence_service=N
                             "content": cand.text,
                             "attachable": cand.attachable,
                             "reference_only": cand.reference_only,
+                            "dataset_kind": getattr(cand, "dataset_kind", "") or "",
+                            "content_role": getattr(cand, "content_role", "") or "",
+                            "technical_domain": getattr(cand, "technical_domain", "") or "",
                         })
             except Exception:
                 retrieved_evidence = []
@@ -306,6 +308,20 @@ def build_generation_context(state, project_id, chapter, now, evidence_service=N
                 "injected_tender_clauses": workflow.get("injected_tender_clauses", {}).get(chapter.id, []),
                 "omitted_inputs": omitted, "official_content": chapter.content,
                 "previous_chapter": previous_chapter_relay(state, project_id, chapter)}
+    from .history_commitment import commitment_notice
+
+    notice = commitment_notice(snapshot.get("retrieved_evidence") or [])
+    if notice:
+        snapshot["history_commitment_notice"] = notice
+    else:
+        snapshot.pop("history_commitment_notice", None)
+    candidate = (workflow.get("candidates") or {}).get(chapter.id) or {}
+    snapshot["history_commitment_snapshot_id"] = str(candidate.get("id") or "preview")
+    dismissed = (workflow.get("history_commitment_notice_dismissals") or {}).get(chapter.id)
+    if dismissed:
+        snapshot["history_commitment_notice_dismissed_snapshot_id"] = dismissed
+    else:
+        snapshot.pop("history_commitment_notice_dismissed_snapshot_id", None)
     return {"source_scope": "whole_chapter", "input_snapshot": snapshot, "ready": not issues, "issues": issues}
 
 

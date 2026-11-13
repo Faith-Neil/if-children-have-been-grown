@@ -35,7 +35,8 @@ class Block:
 
 
 def runs(text: str) -> list[tuple[str, bool]]:
-    """“**加粗**”拆成加粗片段；单个 * 包着的强调和 `代码` 去掉符号保留文字。"""
+    """“**加粗**”拆成加粗片段；单个 * 包着的强调和 `代码` 去掉符号保留文字。`<u>` 只留给编辑台，导出时去掉标签。"""
+    text = re.sub(r"</?u>", "", text, flags=re.IGNORECASE)
     text = _LEFTOVER.sub(lambda m: m.group(1) or m.group(2), text)
     out, last = [], 0
     for match in _BOLD.finditer(text):

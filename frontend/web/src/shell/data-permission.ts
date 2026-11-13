@@ -50,7 +50,7 @@ export interface DataPermissionResult {
   canEdit: boolean;
   /** 只读作用域范围（'project' | 'volume' | 'chapter' | 'none'） */
   scope: DataPermissionScope;
-  /** 作用域中文名称（如“全项目”、“技术分册”、“第1章 综述”） */
+  /** 作用域中文名称（如“全项目”、“技术方案”、“第1章 综述”） */
   scopeName: string;
   /** 只读时的中文友好解释文案 */
   readOnlyReason?: string;
@@ -66,9 +66,9 @@ export interface DataPermissionResult {
  * 分册名称转换辅助函数
  */
 export function getVolumeDisplayName(volume?: Volume | string | null): string {
-  if (volume === 'technical') return '技术分册';
-  if (volume === 'business') return '商务分册';
-  return '全部分册';
+  if (volume === 'technical') return '技术方案';
+  if (volume === 'business') return '商务方案';
+  return '全部方案';
 }
 
 /**
@@ -79,7 +79,7 @@ export function getScopeLabel(scope: DataPermissionScope): string {
     case 'project':
       return '全项目';
     case 'volume':
-      return '分册';
+      return '方案';
     case 'chapter':
       return '章节';
     default:
@@ -122,8 +122,20 @@ export function resolveDataPermission(context: DataPermissionContext): DataPermi
     targetVolume = targetChapter.volume;
   }
 
+  // 平台超级管理员可读写全项目，不因未加入项目团队而变成只读。
+  if (normRole === 'platform_admin') {
+    return {
+      readOnly: false,
+      canEdit: true,
+      scope: 'none',
+      scopeName: '平台管理员',
+      role: normRole,
+      roleLabel,
+    };
+  }
+
   // =========================================================================
-  // 规则 1：系统级只读角色（集团管理员、只读成员、审计员、平台管理员）
+  // 规则 1：系统级只读角色
   // =========================================================================
   if (isReadonlyRole(normRole)) {
     return {
@@ -188,7 +200,7 @@ export function resolveDataPermission(context: DataPermissionContext): DataPermi
       }
 
       // 3.3 项目负责人全项目放行
-      if (member.project_role === 'lead' || normRole === 'project_lead') {
+      if (member.project_role === 'lead') {
         return {
           readOnly: false,
           canEdit: true,

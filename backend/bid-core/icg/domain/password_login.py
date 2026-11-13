@@ -17,7 +17,7 @@ from .company_settings import (
     PLATFORM_PASSWORD_MIN_LENGTH_UPPER_BOUND,
 )
 from .domain import DomainError, Principal
-from .project_access import ROLE_GROUP_ADMIN, ROLE_PLATFORM_ADMIN, normalize_role
+from .project_access import ROLE_PLATFORM_ADMIN, normalize_role
 
 # PRD §5.12.1 业务规则 2：不区分“账号不存在”和“密码错误”。账号停用也用同一句（T260 卡）。
 LOGIN_FAILED_MESSAGE = "账号或密码错误，请核实后重试。"
@@ -55,7 +55,7 @@ def company_disabled(state: Any, company_id: str) -> bool:
 def is_platform_account(account: Any) -> bool:
     """平台管理员、集团管理员等平台级账号按平台默认密码规则执行（PRD §5.12.1 规则 3）。"""
     role = normalize_role(getattr(account, "role", "") or "")
-    return getattr(account, "company_id", "") in ("", "system") or role in (ROLE_PLATFORM_ADMIN, ROLE_GROUP_ADMIN)
+    return getattr(account, "company_id", "") in ("", "system") or role == ROLE_PLATFORM_ADMIN
 
 
 def _bounded(value: Any, lower: int, upper: int) -> int:

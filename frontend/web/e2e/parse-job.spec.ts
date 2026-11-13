@@ -28,10 +28,10 @@ test('parsing runs as a background job and lands on the parse results', async ({
   const projectId = await seed(request);
   await open(page, projectId);
   const started = page.waitForResponse(r => r.url().endsWith('/parse/jobs') && r.request().method() === 'POST');
-  await page.getByRole('button', { name: '解析招标文件' }).click();
+  await page.getByRole('button', { name: '重新解析' }).click();
   expect((await started).status()).toBe(202);
-  await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/parse$`), { timeout: 15_000 });
-  await expect(page.getByText(/原文抽取 [1-9]\d* 条/)).toBeVisible();
+  await expect(page.getByRole('cell', { name: '已解析' })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText('查看原文')).toBeVisible();
 });
 
 test('when the event stream drops the page says so and finishes by polling', async ({ page, request }) => {
@@ -42,7 +42,7 @@ test('when the event stream drops the page says so and finishes by polling', asy
     await route.continue();
   });
   await open(page, projectId);
-  await page.getByRole('button', { name: '解析招标文件' }).click();
+  await page.getByRole('button', { name: '重新解析' }).click();
   await expect(page.getByTestId('parse-job-card').getByTestId('job-stream-fallback-tag')).toBeVisible({ timeout: 20_000 });
-  await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/parse$`), { timeout: 20_000 });
+  await expect(page.getByRole('cell', { name: '已解析' })).toBeVisible({ timeout: 20_000 });
 });

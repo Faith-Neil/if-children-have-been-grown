@@ -145,8 +145,12 @@ export interface JobProgressData {
  */
 export function resolveProgressStrokeColor(
   status: JobStatus,
-  isAi: boolean
+  isAi: boolean,
+  errorCode?: string | null,
 ): string {
+  if (status === 'completed' && (errorCode === 'EXTRACT_DEGRADED' || errorCode === 'TREE_MODEL_FAILED')) {
+    return JOB_PROGRESS_COLORS.pending;
+  }
   switch (status) {
     case 'failed':
       return JOB_PROGRESS_COLORS.error;
@@ -228,7 +232,16 @@ export interface JobStatusMeta {
 /**
  * 状态元信息解析纯函数
  */
-export function resolveJobStatusMeta(status: JobStatus): JobStatusMeta {
+export function resolveJobStatusMeta(status: JobStatus, errorCode?: string | null): JobStatusMeta {
+  if (status === 'completed' && (errorCode === 'EXTRACT_DEGRADED' || errorCode === 'TREE_MODEL_FAILED')) {
+    return {
+      status: 'completed',
+      text: '完成但降质',
+      badgeStatus: 'warning',
+      progressStatus: 'normal',
+      color: JOB_PROGRESS_COLORS.pending,
+    };
+  }
   switch (status) {
     case 'pending':
       return {

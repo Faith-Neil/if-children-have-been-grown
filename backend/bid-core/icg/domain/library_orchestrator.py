@@ -14,10 +14,77 @@ from icg.domain.generation_context import evidence_expired
 from icg.domain.idempotency import lookup, remember
 from icg.domain.project_access import (
     ROLE_COMPANY_ADMIN,
-    ROLE_DATA_ADMIN,
     ROLE_PLATFORM_ADMIN,
     normalize_role,
 )
+
+
+def _job_for_response(job: dict) -> dict:
+    """任务列表按接口约定返回字符串时间，并保留步骤说明。"""
+    item = dict(job)
+    for key in ("created_at", "completed_at", "updated_at"):
+        value = item.get(key)
+        if isinstance(value, datetime):
+            item[key] = value.isoformat()
+    if not item.get("type"):
+        item["type"] = item.get("job_type") or "generation"
+    if not item.get("message") and item.get("step_name"):
+        item["message"] = item["step_name"]
+    status = item.get("status") or "pending"
+    if status == "pending":
+        item["status"] = "queued"
+    return item
+
+
+# 列表接口只公开这些字段。可恢复任务上的事件、模型快照不能进任务中心响应。
+_SUMMARY_KEYS = ("id", "project_id", "type", "status", "progress", "message", "created_at", "completed_at", "error")
+
+
+def _summary_job(job: dict) -> dict:
+    """把同步任务和外层可恢复任务收成同一份列表摘要。recoverable 在列表里固定为 false。"""
+    item = _job_for_response(job)
+    summary = {key: item.get(key) for key in _SUMMARY_KEYS}
+    summary["recoverable"] = False
+    if not isinstance(summary.get("type"), str) or not summary["type"]:
+        summary["type"] = "generation"
+    if not isinstance(summary.get("message"), str):
+        summary["message"] = "" if summary.get("message") is None else str(summary["message"])
+    if not isinstance(summary.get("status"), str) or not summary["status"]:
+        summary["status"] = "queued"
+    created = summary.get("created_at")
+    summary["created_at"] = created if isinstance(created, str) else ("" if created is None else str(created))
+    completed = summary.get("completed_at")
+    if completed is not None and not isinstance(completed, str):
+        summary["completed_at"] = str(completed)
+    progress = summary.get("progress")
+    if isinstance(progress, bool) or not isinstance(progress, int):
+        summary["progress"] = int(progress) if isinstance(progress, float) else 0
+    error = summary.get("error")
+    if not (isinstance(error, dict) and isinstance(error.get("code"), str) and isinstance(error.get("message"), str)):
+        summary["error"] = None
+    step_name = item.get("step_name")
+    if isinstance(step_name, str):
+        summary["step_name"] = step_name
+    return summary
+
+
+def visible_job_summaries(state, project_ids: set[str]) -> list[dict]:
+    """工作区和 GET /api/v1/jobs 共用。
+
+    同步任务在前。解析后台会丢掉内层同步记录；外层任务仍在 recoverable_jobs，这里补回列表。
+    """
+    visible = []
+    seen: set[str] = set()
+    records = getattr(state, "_job_records", {})
+    buckets = (state.jobs.values(), state.recoverable_jobs.values(), records.values())
+    for bucket in buckets:
+        for job in bucket:
+            job_id = job.get("id")
+            if not job_id or job_id in seen or job.get("project_id") not in project_ids:
+                continue
+            seen.add(job_id)
+            visible.append(_summary_job(job))
+    return visible
 
 
 class LibraryOrchestratorMixin:
@@ -25,12 +92,15 @@ class LibraryOrchestratorMixin:
 
     def jobs(self, principal: Principal, masked: bool = False) -> dict:
         state = self.repository.read()
+        from icg.domain.project_access import is_platform_super
         norm_role = normalize_role(principal.user.role)
-        is_platform_admin = (norm_role == ROLE_PLATFORM_ADMIN)
-        should_mask = is_platform_admin or bool(masked)
+        is_platform_admin = is_platform_super(principal.user) or norm_role == ROLE_PLATFORM_ADMIN
+        should_mask = bool(masked) and not is_platform_admin
 
         if not should_mask:
-            if norm_role in (ROLE_COMPANY_ADMIN, ROLE_DATA_ADMIN):
+            if is_platform_admin:
+                allowed = {p.id for p in state.projects.values()}
+            elif norm_role == ROLE_COMPANY_ADMIN:
                 allowed = {p.id for p in state.projects.values() if p.company_id == principal.user.company_id}
             else:
                 allowed = {
@@ -38,7 +108,7 @@ class LibraryOrchestratorMixin:
                     if p.company_id == principal.user.company_id
                     and principal.user.id in state.project_teams.get(p.id, {}).get("members", {})
                 }
-            return {"jobs": [j for j in state.jobs.values() if j.get("project_id") in allowed]}
+            return {"jobs": visible_job_summaries(state, allowed)}
 
         all_jobs_dict = {}
         for j in state.jobs.values():
@@ -205,20 +275,27 @@ class LibraryOrchestratorMixin:
             raise DomainError(409, "EVIDENCE_EXPIRED", "证据不能覆盖投标截止时间。")
 
     def library(self, principal: Principal) -> dict:
+        from icg.domain.project_access import is_platform_super
         state = self.repository.read()
+        see_all = is_platform_super(principal.user)
         return {
             "revision": state.library_revisions.get(principal.user.company_id, 1),
             "items": [
                 self._public_library(item)
                 for item in state.library.values()
-                if item["company_id"] == principal.user.company_id
+                if see_all or item["company_id"] == principal.user.company_id
             ],
         }
 
     def write_library(self, principal: Principal, payload: dict, expected: str | None, key: str | None, item_id: str | None = None) -> dict:
+        from icg.domain.project_access import is_platform_super
         self.demo._writer(principal)
         key = self._idempotency(key)
         company = principal.user.company_id
+        if item_id and is_platform_super(principal.user):
+            existing = self.repository.read().library.get(item_id)
+            if existing:
+                company = existing["company_id"]
         scope_id = "library:" + company
         action = "library.update:" + item_id if item_id else "library.create"
         request_fingerprint = self._request_hash(action, payload, expected)

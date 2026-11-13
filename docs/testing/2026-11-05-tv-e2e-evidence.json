@@ -1,0 +1,626 @@
+{
+  "steps": [
+    {
+      "bind_model": 200,
+      "body": {
+        "tasks": [
+          {
+            "task": "chapter_generation",
+            "name": "章节长文写作（含定位修正、整章建议）",
+            "local_only": false,
+            "primary_config_id": "cfg-1793612923808",
+            "fallback_config_id": null
+          },
+          {
+            "task": "assistant_qa",
+            "name": "对话助手问答",
+            "local_only": false,
+            "primary_config_id": "cfg-1793612923808",
+            "fallback_config_id": null
+          },
+          {
+            "task": "assistant_suggest",
+            "name": "对话助手修改样例",
+            "local_only": false,
+            "primary_config_id": "cfg-1793612923808",
+            "fallback_config_id": null
+          }
+        ],
+        "revision": 1,
+        "updated_by": "alpha-company-admin",
+        "updated_at": "2026-11-05T08:02:01.624272+00:00"
+      }
+    },
+    {
+      "ensure_history": 200,
+      "text": "{\"dataset_id\":\"3b53be8db79d4d84833492d764fd7fea\",\"pipeline_id\":\"d3c55d0090be44b284bfb2be84f7a258\",\"profile\":\"history_bid\",\"mode\":\"pipeline\",\"embedding_model\":\"bge-m3:latest@qwen@OpenAI-API-Compatible\",\"warning\":\"\",\"reparse_required\":false}"
+    },
+    {
+      "ensure_materials": 200,
+      "text": "{\"dataset_id\":\"05234534e2db433ab7b34797742fcea8\",\"pipeline_id\":\"086f9a4b8f1e4ad099060ad1d0b8f628\",\"profile\":\"materials\",\"mode\":\"pipeline\",\"embedding_model\":\"bge-m3:latest@qwen@OpenAI-API-Compatible\",\"warning\":\"\",\"reparse_required\":false}"
+    },
+    {
+      "history_upload": "乐山市人民医院Oracle数据库技术响应文件-蔡海鹏_V1.4.docx",
+      "status": 200,
+      "body": "{\"key\":\"file:kbfile-3bf022d5b36c403da73c3e6bb0ecc40f\",\"source_type\":\"file\",\"source_id\":\"kbfile-3bf022d5b36c403da73c3e6bb0ecc40f\",\"dataset_kind\":\"history\",\"company_id\":\"alpha\",\"name\":\"乐山市人民医院Oracle数据库技术响应文件-蔡海鹏_V1.4.docx\",\"item_type\":\"history\",\"revision\":1,\"document_id\":\"0be1143438354245a5e940e004f3e0d9\",\"status\":\"parsing\",\"message\":\"\",\"chunk_count\":0,\"content_type\":\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\"size\":2733518,\"enabled\":true,\"user_meta\":{},\"uploaded_by\""
+    },
+    {
+      "history_upload": "乐山市人民医院ORACLE数据库维保等采购项目技术响应文件--任登科V2.3(2).docx",
+      "status": 200,
+      "body": "{\"key\":\"file:kbfile-c102369a06ab4764aefcb274c4160333\",\"source_type\":\"file\",\"source_id\":\"kbfile-c102369a06ab4764aefcb274c4160333\",\"dataset_kind\":\"history\",\"company_id\":\"alpha\",\"name\":\"乐山市人民医院ORACLE数据库维保等采购项目技术响应文件--任登科V2.3(2).docx\",\"item_type\":\"history\",\"revision\":1,\"document_id\":\"58ea9540b0bc427da174d61ab0321fbf\",\"status\":\"parsing\",\"message\":\"\",\"chunk_count\":0,\"content_type\":\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\"size\":5312423,\"enabled\":true,\"user_meta\":{},\"up"
+    },
+    {
+      "history_upload": "甘肃农信2025-2027年数据库产品升级服务技术服务方案V2.8-(主标)任登科.docx",
+      "status": 200,
+      "body": "{\"key\":\"file:kbfile-b56d7fc88c644a80b22aa6472a0a75ca\",\"source_type\":\"file\",\"source_id\":\"kbfile-b56d7fc88c644a80b22aa6472a0a75ca\",\"dataset_kind\":\"history\",\"company_id\":\"alpha\",\"name\":\"甘肃农信2025-2027年数据库产品升级服务技术服务方案V2.8-(主标)任登科.docx\",\"item_type\":\"history\",\"revision\":1,\"document_id\":\"8fea1cb33e824e17a99d41f2a9bcb455\",\"status\":\"parsing\",\"message\":\"\",\"chunk_count\":0,\"content_type\":\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\"size\":10176367,\"enabled\":true,\"user_meta\":{},\"u"
+    },
+    {
+      "material_upload": "融科AI智能运维管理平台产品简介(简版)V1.0.docx",
+      "status": 200,
+      "body": "{\"key\":\"file:kbfile-65f187f4988f48a781b082e79ea59997\",\"source_type\":\"file\",\"source_id\":\"kbfile-65f187f4988f48a781b082e79ea59997\",\"dataset_kind\":\"materials\",\"company_id\":\"alpha\",\"name\":\"融科AI智能运维管理平台产品简介(简版)V1.0.docx\",\"item_type\":\"materials\",\"revision\":1,\"document_id\":\"34b4e9a4f8fd46f68901376cd13e819d\",\"status\":\"parsing\",\"message\":\"\",\"chunk_count\":0,\"content_type\":\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\"size\":152071,\"enabled\":true,\"user_meta\":{},\"uploaded_by\":\"al"
+    },
+    {
+      "create": 422,
+      "body": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"请求字段不符合演示接口要求：body.sensitive、body.tender_number\",\"details\":{\"fields\":[\"body.sensitive\",\"body.tender_number\"]},\"traceId\":\"a3f6f0bf22bd40558d6c7e66a8b283dc\"}"
+    },
+    {
+      "patch": 200
+    },
+    {
+      "tender_upload": 422,
+      "body": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"请求字段不符合演示接口要求：body\",\"details\":{\"fields\":[\"body\"]},\"traceId\":\"7573890b1d92446e82077a28f988cc8e\"}"
+    },
+    {
+      "tender_upload": 200,
+      "body": "{\"revision\":3,\"file\":{\"id\":\"file-0d101a338e4e4bec89b63e0ce3c32afe\",\"filename\":\"昆明航空Oracle数据库一体机软硬件维保和DBA服.doc\",\"size\":504832,\"sha256\":\"80574428825c84b3c5e78d0ce9b1bf9558b81e663e38a71f76e7828384fe60a1\",\"media_type\":\"application/msword\",\"status\":\"uploaded\",\"page_count\":0,\"pagination\":\"not_parsed\",\"warnings\":[],\"download_url\":\"/api/v1/projects/project-87155d2134154f66b4af8d6c8a140392/files/file-0d101"
+    },
+    {
+      "parse": 202,
+      "body": "{\"id\":\"job-ec6859fe2be34e2abc6b982d4173c3e6\",\"project_id\":\"project-87155d2134154f66b4af8d6c8a140392\",\"type\":\"parse\",\"status\":\"queued\",\"progress\":0,\"message\":\"已排队：解析 1 份招标文件。\",\"created_at\":\"2026-11-05T08:07:30.695198+00:00\",\"completed_at\":null,\"error\":null,\"events\":[],\"recoverable\":true,\"allowed_actions\":[\"cancel\"],\"allowedActions\":[\"cancel\"]}"
+    },
+    {
+      "confirm": 200,
+      "body": "{\"revision\":5,\"chapters\":[{\"id\":\"chapter-84372a16d9d44edb971554ffecee0086\",\"title\":\"服务方案\",\"volume\":\"technical\",\"revision\":1,\"content\":\"1 技术规范响应\\n1.1 保密\\n1.2 xadata数据库一体机维保服务\\n1.3 重要系统的数据库服务已部署在Or\\n1.4 服务商为用户提供现场技术支持服务：\\n1.5 如违反一级故障响应标准，乙方\\n1.6 三、 昆航DBA服务需求\\n1.7 Oracle Exadata一体机原厂维保需求\\n1.8 服务商为用户提供7*\\n1.9 式：本合同为服务合同，因此在合同\\n1.10 如违反二级故障响应标准，乙方\\n1.11 提供数据库系统方案设计和实施（不低于2次）\\n1.12 7*24小时服务在线，15 分钟\\n1.1"
+    },
+    {
+      "generate": 200,
+      "body": "{\"revision\":6,\"deleted_file_id\":null,\"project\":null,\"file\":null,\"job\":{\"id\":\"job-a263f7efd2014e98a423a5ae15f4ee63\",\"project_id\":\"project-87155d2134154f66b4af8d6c8a140392\",\"type\":\"generate\",\"status\":\"completed\",\"progress\":100,\"message\":\"技术分册已写入当前正文。 质量八条未全部通过：2.评分得分点有实质段落；3.结合客户实际；5.开收与图文总结；6.措施可落到招标场景 允许导出，须可见警告。\",\"created_at\":\"2026-11-05T08:09:35.893125+00:00\",\"completed_at\":\"2026-11-05T08:09:35.893125+00:00\",\"error\":null,\"recoverable\":false,\"duration_ms\":null,\"company_id\":null,\"masked_company\""
+    },
+    {
+      "export": 405,
+      "body": "{\"code\":\"HTTP_ERROR\",\"message\":\"请求不能执行。\",\"details\":{},\"traceId\":\"f86e4dc8fada4fa8812586814e1c5afc\"}"
+    },
+    {
+      "search_after_rerank_clear": 422,
+      "n": 0,
+      "skip": null
+    },
+    {
+      "reparse": 409,
+      "body": "{\"code\":\"SAME_SOURCE_FILES\",\"message\":\"这批文件已经抽取过。请先增加、替换或删除文件，再重新抽取。\",\"details\":{},\"traceId\":\"eda0f7982bbb4274a32736a2ea599d96\"}"
+    },
+    {
+      "search_v2": 200,
+      "n": 0,
+      "skip": "检索失败：RagflowBusinessError"
+    },
+    {
+      "search_v2": 200,
+      "n": 1,
+      "skip": "",
+      "note": "kb-admin retrieval-test history+materials"
+    },
+    {
+      "create2": 422,
+      "body": "{\"code\":\"VALIDATION_ERROR\",\"message\":\"请求字段不符合演示接口要求：body.volume_mode\",\"details\":{\"fields\":[\"body.volume_mode\"]},\"traceId\":\"b68ecab89b18499db40dad75ee33ad2e\"}"
+    },
+    {
+      "search_after_rerank_clear": 422,
+      "n": 0,
+      "skip": null
+    },
+    {
+      "reparse": 409,
+      "body": "{\"code\":\"SAME_SOURCE_FILES\",\"message\":\"这批文件已经抽取过。请先增加、替换或删除文件，再重新抽取。\",\"details\":{},\"traceId\":\"f88d39a5a23745c2bf7dc0e593a0a9a3\"}"
+    },
+    {
+      "regenerate": 200,
+      "body": "{\"revision\":7,\"deleted_file_id\":null,\"project\":null,\"file\":null,\"job\":{\"id\":\"job-9a0b116302a74479976cf0a53d52c59b\",\"project_id\":\"project-87155d2134154f66b4af8d6c8a140392\",\"type\":\"generate\",\"status\":\"completed\",\"progress\":100,\"message\":\"技术分册已写入当前正文。 质量八条未全部通过：2.评分得分点有实质段落；3.结合客户实际；5.开收与图文总结；6.措施可落到招标场景 允许导出，须可见警告。\",\"created_at\":\"2026-11-05T08:43:01.463559+00:00\",\"completed_at\":\"2026-11-05T08:43:01.463559+00:00\",\"error\":null,\"recoverable\":false,\"duration_ms\":null,\"company_id\":null,\"masked_company\""
+    },
+    {
+      "export_internal": 200,
+      "body": "{\"revision\":8,\"export\":{\"id\":\"export-777fa2b340d24ff8a2f46c1eb58a8453\",\"kind\":\"internal\",\"check_id\":\"technical-internal\",\"fingerprint\":\"d4e37e986bac11f87c2c1730a25dd416dc54b0aab0ccb0d435ff243438bf1513\",\"created_at\":\"2026-11-05T08:43:02.494146+00:00\",\"excludes_drafts\":true,\"volumes\":[{\"volume\":\"technical\",\"filename\":\"技术分册内部稿.docx\",\"download_url\":\"/api/v1/projects/project-87155d2134154f66b4af8d6c8a1"
+    }
+  ],
+  "bugs": [
+    "API quirk: POST /projects rejects tender_number/sensitive/deadline",
+    "tender upload fail 422: {\"code\":\"VALIDATION_ERROR\",\"message\":\"请求字段不符合演示接口要求：body\",\"details\":{\"fields\":[\"body\"]},\"traceId\":\"7573890b1d92446e82077a28f988cc8e\"}",
+    "search still broken: 200 {\"items\":[],\"skipped_reason\":\"检索失败：RagflowBusinessError\"}",
+    "create fail: {\"code\":\"VALIDATION_ERROR\",\"message\":\"请求字段不符合演示接口要求：body.volume_mode\",\"details\":{\"fields\":[\"body.volume_mode\"]},\"traceId\":\"b68ecab89b18499db40dad75ee33ad2e\"}",
+    "BUG: RAGFlow rerank dengcao/bge-reranker-v2-m3 vLLM 404 → 全矩阵 retrieval_failed；已临时清空 rerank_id",
+    "BUG: knowledge-base/search 默认 kinds=evidence+snippet+history 混数据集触发 RagflowBusinessError；history 单独可检索",
+    "BUG: settings.rerank_id=\"\" 经 (settings.get or self.rerank_id) 仍可能回落",
+    "BUG: POST /projects 拒 tender_number/sensitive；volume_mode 须 technical_only",
+    "BUG: 技术分册 generate 同步写 75 节占满单 worker；parse 内 fill_technical 同步调模型同样堵死 API",
+    "BUG: 首次生成因 writable=0 全文写成「待补/需要核对」仍标 job completed",
+    "BUG: export 缺 check_id 422；正确为 check_id=technical-internal",
+    "CI PR#8 @60b9166: frontend/e2e/backend fail；governance+backend-mysql pass",
+    "matrix writable=0 (non-blocking; continue generate)"
+  ],
+  "history_ok": [
+    "乐山市人民医院Oracle数据库技术响应文件-蔡海鹏_V1.4.docx",
+    "乐山市人民医院ORACLE数据库维保等采购项目技术响应文件--任登科V2.3(2).docx",
+    "甘肃农信2025-2027年数据库产品升级服务技术服务方案V2.8-(主标)任登科.docx"
+  ],
+  "project_id": "project-87155d2134154f66b4af8d6c8a140392",
+  "parse_job": {
+    "status": "completed",
+    "progress": 100,
+    "message": "解析完成：75 条条款、0 项事实，须人工逐项核对后确认。",
+    "error": null
+  },
+  "after_parse": {
+    "req_count": 75,
+    "heading_count": 77,
+    "parse_confirmed": true,
+    "plan_confirmed": false,
+    "technical_extract_empty": false,
+    "technical_kb": {
+      "history": {
+        "name": "alpha::icg-history",
+        "configured": true
+      },
+      "material": {
+        "name": "alpha::icg-material",
+        "configured": true
+      },
+      "missing": [],
+      "ready": true
+    },
+    "sample_headings": [
+      {
+        "level": 1,
+        "number": "1",
+        "title": "技术规范响应",
+        "requirement_id": null
+      },
+      {
+        "level": 2,
+        "number": "1.1",
+        "title": "保密",
+        "requirement_id": "req-5acc1af124bd4778b07a8c050376246a"
+      },
+      {
+        "level": 2,
+        "number": "1.2",
+        "title": "xadata数据库一体机维保服务",
+        "requirement_id": "req-d2635cb95c7249baa9e14464d09e2cfd"
+      },
+      {
+        "level": 2,
+        "number": "1.3",
+        "title": " 重要系统的数据库服务已部署在Or",
+        "requirement_id": "req-bdb218a58e83461b8e13cb8f7955a1c6"
+      },
+      {
+        "level": 2,
+        "number": "1.4",
+        "title": "服务商为用户提供现场技术支持服务：",
+        "requirement_id": "req-12d1d31a0fa048fa8880d9bfd53ebb96"
+      },
+      {
+        "level": 2,
+        "number": "1.5",
+        "title": "如违反一级故障响应标准，乙方",
+        "requirement_id": "req-faeeb554f75947148db32bfb48e11217"
+      },
+      {
+        "level": 2,
+        "number": "1.6",
+        "title": "三、 昆航DBA服务需求",
+        "requirement_id": "req-f6fa259b87cf413397c135702c0eafa8"
+      },
+      {
+        "level": 2,
+        "number": "1.7",
+        "title": "Oracle Exadata一体机原厂维保需求",
+        "requirement_id": "req-11461091ecc7419087b144b67ada60be"
+      },
+      {
+        "level": 2,
+        "number": "1.8",
+        "title": "服务商为用户提供7*",
+        "requirement_id": "req-45100f6c615b4292bcd65d401c970853"
+      },
+      {
+        "level": 2,
+        "number": "1.9",
+        "title": "式：本合同为服务合同，因此在合同",
+        "requirement_id": "req-ed8d5f8ca07f4d678c104f0526e9f77d"
+      },
+      {
+        "level": 2,
+        "number": "1.10",
+        "title": "如违反二级故障响应标准，乙方",
+        "requirement_id": "req-9308bbf663ac4f929af6fad1a8826696"
+      },
+      {
+        "level": 2,
+        "number": "1.11",
+        "title": "提供数据库系统方案设计和实施（不低于2次）",
+        "requirement_id": "req-0b84ff6e58244a34b553bc7b216ebb9b"
+      }
+    ]
+  },
+  "generate_job": {
+    "status": "completed",
+    "progress": 100,
+    "message": "后台任务处理中",
+    "error": null
+  },
+  "technical_quality": {
+    "rules": [
+      {
+        "id": 1,
+        "name": "大纲覆盖与一一响应",
+        "passed": true,
+        "detail": "挂接完整"
+      },
+      {
+        "id": 2,
+        "name": "评分得分点有实质段落",
+        "passed": false,
+        "detail": "薄弱：xadata数据库一体机维保服务、三、 昆航DBA服务需求、ata一体机操作系统的日常故障处理、ata一体机故障硬件的免费更换服、一级故障：(系统宕机)立即电话支持"
+      },
+      {
+        "id": 3,
+        "name": "结合客户实际",
+        "passed": false,
+        "detail": "缺结合：保密、xadata数据库一体机维保服务、重要系统的数据库服务已部署在Or、服务商为用户提供现场技术支持服务：、如违反一级故障响应标准，乙方"
+      },
+      {
+        "id": 4,
+        "name": "目录层级 1～4 合理",
+        "passed": true,
+        "detail": "层级合法"
+      },
+      {
+        "id": 5,
+        "name": "开收与图文总结",
+        "passed": false,
+        "detail": "薄弱节 75 · 表格行 0"
+      },
+      {
+        "id": 6,
+        "name": "措施可落到招标场景",
+        "passed": false,
+        "detail": "偏套话：保密、xadata数据库一体机维保服务、重要系统的数据库服务已部署在Or、服务商为用户提供现场技术支持服务：、如违反一级故障响应标准，乙方"
+      },
+      {
+        "id": 7,
+        "name": "规范书条款体现",
+        "passed": true,
+        "detail": "规范书映射无大面积缺口"
+      },
+      {
+        "id": 8,
+        "name": "扣住项目核心",
+        "passed": true,
+        "detail": "未跑题"
+      }
+    ],
+    "passed": false,
+    "failed_count": 4,
+    "review_titles": [
+      "(5) 我方不得将项目相关信息泄露给第三方，否则",
+      ") 原厂服务其他条款明细参照",
+      "3 补丁安装等）处理过程证明材料",
+      "4）方案服务得分 （满分100分",
+      "7*24小时服务在线，15 分钟",
+      "DBA服务",
+      "DBA服务运维为主要内容",
+      "Oracle Exadata一体机原厂维保需求",
+      "Oracle数据库一体机软硬件维保",
+      "acle原厂服务授权函原件",
+      "ata一体机操作系统的日常故障处理",
+      "ata一体机故障硬件的免费更换服",
+      "a一体机原厂维保需求合计7项，具",
+      "xadata数据库一体机维保服务",
+      "一级故障：(系统宕机)立即电话支持",
+      "三、 昆航DBA服务需求",
+      "三级故障：（系统能够启动",
+      "业务连续性具有更高的要求。自2018年增加数 据库运维管理外包服务以来",
+      "二级故障：系统不能完好地运行",
+      "人员服务要求",
+      "仅受到有限的影响或未受到 严重影响）接到服务请求后15分钟内回电话",
+      "件维护、固件升级和 关联软件支持",
+      "但仍可运行）接到服务请求后15分 钟内回电话",
+      "体机的每季度巡检并提交巡检报告",
+      "保密",
+      "做相应的服务计 划",
+      "包括但不限于提供给昆航的服务团队组 织架构",
+      "十一、方案服务评分对照表",
+      "升级微码",
+      "升级操作系统",
+      "合计30分 对昆航Oracle Exadata数据库一体机软硬 件维保服务",
+      "同时借助该项目逐渐培养昆航的DBA团队",
+      "后，才能派驻至昆明航空有限公司进行维保服务",
+      "和国招投标法实施条例》及合同约定",
+      "固件升级 原厂维保",
+      "在2小时之内到达现场",
+      "外包提供7*24小时的故障应急处置",
+      "套数据库",
+      "如违反一级故障响应标准，乙方",
+      "如违反二级故障响应标准，乙方",
+      "安全性",
+      "导致的设备、数据库、应用或者网络故",
+      "应急响应",
+      "式：本合同为服务合同，因此在合同",
+      "息中心供应商安全协议书》协议内容",
+      "接到服务请求后40分钟内到达现 场",
+      "提 | 维保周期12个月 （2020.12.14-2021.12 .31",
+      "提供性能调优（不低于2次",
+      "提供拟派技术团队两年内数据库问题 （不限于集群管理",
+      "提供数据库巡检服务（每季度）",
+      "提供数据库系统方案设计和实施（不低于2次）",
+      "提供知识传递、培训服务",
+      "提供补丁分析与安装（不低于2次）",
+      "方案",
+      "无重保驻场服务",
+      "昆明航空Oracle数据库一体机软硬件",
+      "服务商为用户提供7*",
+      "服务商为用户提供现场技术支持服务：",
+      "服务方案",
+      "期限内完成并交付全部项目建设工作",
+      "权重A2） | 方案服务评分 (满分100分): 最终得分为F2×A2",
+      "标活动中应当保密的情况和资料，不",
+      "根据故障级别提供60分钟",
+      "生产系统对于 数据库的稳定性",
+      "目前公司使用数据库整体情况如下表：",
+      "硬件维保标准服务",
+      "维保和DBA服务项目",
+      "维保服务",
+      "质量以标准的软硬件维保",
+      "运维管理咨询服务",
+      "重保（时长由重保时限决定）驻场服务 1（含）-3次",
+      "重要系统的数据库服务已部署在Or",
+      "针对DBA服务人员，在签订合同",
+      "降低了因数据库故障等紧急情况带来数据丢失和业务中 断的风险",
+      "项目建设目标将覆盖以下服务范围："
+    ],
+    "warning": "质量八条未全部通过：2.评分得分点有实质段落；3.结合客户实际；5.开收与图文总结；6.措施可落到招标场景"
+  },
+  "technical_needs_review": [
+    "(5) 我方不得将项目相关信息泄露给第三方，否则",
+    ") 原厂服务其他条款明细参照",
+    "3 补丁安装等）处理过程证明材料",
+    "4）方案服务得分 （满分100分",
+    "7*24小时服务在线，15 分钟",
+    "DBA服务",
+    "DBA服务运维为主要内容",
+    "Oracle Exadata一体机原厂维保需求",
+    "Oracle数据库一体机软硬件维保",
+    "acle原厂服务授权函原件",
+    "ata一体机操作系统的日常故障处理",
+    "ata一体机故障硬件的免费更换服",
+    "a一体机原厂维保需求合计7项，具",
+    "xadata数据库一体机维保服务",
+    "一级故障：(系统宕机)立即电话支持",
+    "三、 昆航DBA服务需求",
+    "三级故障：（系统能够启动",
+    "业务连续性具有更高的要求。自2018年增加数 据库运维管理外包服务以来",
+    "二级故障：系统不能完好地运行",
+    "人员服务要求",
+    "仅受到有限的影响或未受到 严重影响）接到服务请求后15分钟内回电话",
+    "件维护、固件升级和 关联软件支持",
+    "但仍可运行）接到服务请求后15分 钟内回电话",
+    "体机的每季度巡检并提交巡检报告",
+    "保密",
+    "做相应的服务计 划",
+    "包括但不限于提供给昆航的服务团队组 织架构",
+    "十一、方案服务评分对照表",
+    "升级微码",
+    "升级操作系统",
+    "合计30分 对昆航Oracle Exadata数据库一体机软硬 件维保服务",
+    "同时借助该项目逐渐培养昆航的DBA团队",
+    "后，才能派驻至昆明航空有限公司进行维保服务",
+    "和国招投标法实施条例》及合同约定",
+    "固件升级 原厂维保",
+    "在2小时之内到达现场",
+    "外包提供7*24小时的故障应急处置",
+    "套数据库",
+    "如违反一级故障响应标准，乙方",
+    "如违反二级故障响应标准，乙方",
+    "安全性",
+    "导致的设备、数据库、应用或者网络故",
+    "应急响应",
+    "式：本合同为服务合同，因此在合同",
+    "息中心供应商安全协议书》协议内容",
+    "接到服务请求后40分钟内到达现 场",
+    "提 | 维保周期12个月 （2020.12.14-2021.12 .31",
+    "提供性能调优（不低于2次",
+    "提供拟派技术团队两年内数据库问题 （不限于集群管理",
+    "提供数据库巡检服务（每季度）",
+    "提供数据库系统方案设计和实施（不低于2次）",
+    "提供知识传递、培训服务",
+    "提供补丁分析与安装（不低于2次）",
+    "方案",
+    "无重保驻场服务",
+    "昆明航空Oracle数据库一体机软硬件",
+    "服务商为用户提供7*",
+    "服务商为用户提供现场技术支持服务：",
+    "服务方案",
+    "期限内完成并交付全部项目建设工作",
+    "权重A2） | 方案服务评分 (满分100分): 最终得分为F2×A2",
+    "标活动中应当保密的情况和资料，不",
+    "根据故障级别提供60分钟",
+    "生产系统对于 数据库的稳定性",
+    "目前公司使用数据库整体情况如下表：",
+    "硬件维保标准服务",
+    "维保和DBA服务项目",
+    "维保服务",
+    "质量以标准的软硬件维保",
+    "运维管理咨询服务",
+    "重保（时长由重保时限决定）驻场服务 1（含）-3次",
+    "重要系统的数据库服务已部署在Or",
+    "针对DBA服务人员，在签订合同",
+    "降低了因数据库故障等紧急情况带来数据丢失和业务中 断的风险",
+    "项目建设目标将覆盖以下服务范围："
+  ],
+  "technical_kb": {
+    "history": {
+      "name": "alpha::icg-history",
+      "configured": true
+    },
+    "material": {
+      "name": "alpha::icg-material",
+      "configured": true
+    },
+    "missing": [],
+    "ready": true
+  },
+  "content_chars": 2266,
+  "content_head": "1 技术规范响应\n\n1.1 保密\n待补\n\n需要核对\n1.2 xadata数据库一体机维保服务\n待补\n\n需要核对\n1.3 重要系统的数据库服务已部署在Or\n待补\n\n需要核对\n1.4 服务商为用户提供现场技术支持服务：\n待补\n\n需要核对\n1.5 如违反一级故障响应标准，乙方\n待补\n\n需要核对\n1.6 三、 昆航DBA服务需求\n待补\n\n需要核对\n1.7 Oracle Exadata一体机原厂维保需求\n待补\n\n需要核对\n1.8 服务商为用户提供7*\n待补\n\n需要核对\n1.9 式：本合同为服务合同，因此在合同\n待补\n\n需要核对\n1.10 如违反二级故障响应标准，乙方\n待补\n\n需要核对\n1.11 提供数据库系统方案设计和实施（不低于2次）\n待补\n\n需要核对\n1.12 7*24小时服务在线，15 分钟\n待补\n\n需要核对\n1.13 人员服务要求\n待补\n\n需要核对\n1.14 根据故障级别提供60分钟\n待补\n\n需要核对\n1.15 息中心供应商安全协议书》协议内容\n待补\n\n需要核对\n1.16 提供性能调优（不低于2次\n待补\n\n需要核对\n1.17 导致的设备、数据库、应用或者网络故\n待补\n\n需要核对\n1.17.1 和国招投标法实施条例》及合同约定\n待补\n\n需要核对\n1.18 提供数据库巡检服务（每季度）\n待补\n\n需要核对\n1.19 提供知识传递、培训服务\n待补\n\n需要核对\n1.20 提供补丁分析与安装（不低于2次）\n待补\n\n需要核对\n1.21 运维管理咨询服务\n待补\n\n需要核对\n2 评分主观分响应\n\n2.1 ata一体机操作系统的日常故障处理\n待补\n\n需要核对\n2.2 ata一体机故障硬件的免费更换服\n待补\n\n需要核对\n2.3 一级故障：(系统宕机)立即电话支持\n待补\n\n需要核对\n2.4 三级故障：（系统能够启动\n待补\n\n需要核对\n2.5 二级故障：系统不能完好地运行\n待补\n\n需要核对\n2.6 外包提供7*24小时的故障应急处置\n待补\n\n需要核对\n2.7 降低了因数据库故障等紧急情况带来数据丢失和业务中 断的风险\n待补\n\n需要核对\n2.8 体机的每季度巡检并提交巡检报告\n待补\n\n需要核对\n2.9 件维护、固件升级和 关联软件支持\n待补\n\n需要核对\n2.10 升级微码\n待补\n\n需要核对\n2.11 升级操作系统\n待补\n\n需要核对\n2.12 固件升级 原厂维保\n待补\n\n需要核对\n2.13 (5) 我方不得将项目相关信息泄露给第三方，否则\n待补\n\n需要核对\n2.14 ) 原厂服务其他条款明细参照\n待补\n\n需要核对\n2.15 3 补丁安装等）处理过程证明材料\n待补\n\n需要核对\n2.16 4）方案服务得分 （满分100分\n待补\n\n需要核对\n2.17 DBA服务\n待补\n\n需要核对\n2.18 DBA服务运维为主要内容\n待补\n\n需要核对\n2.19 Oracle数据库一体机软硬件维保\n待补\n\n需要核对\n2.20 acle原厂服务授权函原件\n待补\n\n需要核对\n2.21 a一体机原厂维保需求合计7项，具\n待补\n\n需要核对\n2.22 业务连续性具有更高的要求。自2018年增加数 据库运维管理外包服务以来\n待补\n\n需要核对\n2.23 仅受到有限的影响或未受到 严重影响）接到服务请求后15分钟内回电话\n待补\n\n需要核对\n2.24 但仍可运行）接到服务请求后15分 钟内回电话\n待补\n\n需要核对\n2.25 做相应的服务计 划\n待补\n\n需要核对\n2.26 包括但不限于提供给昆航的服务团队组 织架构\n待补\n\n需要核对\n2.27 十一、方案服务评分对照表\n待补\n\n需要核对\n2.28 合计30分 对昆航Oracle Exadata数据库一体机软硬 件维保服务\n待补\n\n需要核对\n2.29 同时借助该项目逐渐培养昆航的DBA团队\n待补\n\n需要核对\n2.30 后，才能派驻至昆明航空有限公司进行维保服务\n待补\n\n需要核对\n2.31 在2小时之内到达现场\n待补\n\n需要核对\n2.32 套数据库\n待补\n\n需要核对\n2.33 安全性\n待补\n\n需要核对\n2.34 应急响应\n待补\n\n需要核对\n2.35 接到服务请求后40分钟内到达现 场\n待补\n\n需要核对\n2.36 提 | 维保周期12个月 （2020.12.14-2021.12 .31\n待补\n\n需要核对\n2.37 提供拟派技术团队两年内数据库问题 （不限于集群管理\n待补\n\n需要核对\n2.38 方案\n待补\n\n需要核对\n2.39 无重保驻场服务\n待补\n\n需要核对\n2.40 昆明航空Oracle数据库一体机软硬件\n待补\n\n需要核对\n2.41 服务方案\n待补\n\n需要核对\n2.42 期限内完成并交付全部项目建设工作\n待补\n\n需要核对\n2.43 权重A2） | 方案服务评分 (满分100分): 最终得分为F2×A2\n待补\n\n需要核对\n2.44 标活动中应当保密的情况和资料，不\n待补\n\n需要核对\n2.45 生产系统对于 数据库的稳定性\n待补\n\n需要核对\n2.46 目前公司使用数据库整体情况如下表：\n待补\n\n需要核对\n2.47 硬件维保标准服务\n待补\n\n需要核对\n2.48 维保和DBA服务项目\n待补\n\n需要核对\n2.49 维保服务\n待补\n\n需要核对\n2.50 质量以标准的软硬件维保\n待补\n\n需要核对\n2.51 重保（时长由重保时限决定）驻场服务 1（含）-3次\n待补\n\n需要核对\n2.52 针对DBA服务人员，在签订合同\n待补\n\n需要核对\n2.53 项目建设目标将覆盖以下服务范围：\n待补\n需要核对\n",
+  "content_has_table": true,
+  "model_configs": {
+    "items": [
+      {
+        "id": "cfg-1793612923808",
+        "name": "qwen3:30b",
+        "provider": "openai-compatible",
+        "base_url": "http://192.168.0.246:11434/v1",
+        "model": "qwen3:30b-a3b-instruct-2507-q4_K_M",
+        "is_local": true,
+        "allow_sensitive": true,
+        "stream_enabled": true,
+        "json_mode_enabled": false,
+        "revision": 6,
+        "has_api_key": true,
+        "api_key_masked": "sk-***16d2",
+        "timeout_seconds": 60.0,
+        "max_tokens": 16384,
+        "fallback_config_id": null
+      },
+      {
+        "id": "cfg-1793613564954",
+        "name": "JIEKOU",
+        "provider": "openai-compatible",
+        "base_url": "https://api.highwayapi.ai/openai",
+        "model": "meta-llama/llama-4-maverick-17b-128e-instruct-fp8",
+        "is_local": false,
+        "allow_sensitive": true,
+        "stream_enabled": true,
+        "json_mode_enabled": false,
+        "revision": 3,
+        "has_api_key": true,
+        "api_key_masked": "sk_***s5aQ",
+        "timeout_seconds": 60.0,
+        "max_tokens": 16384,
+        "fallback_config_id": null
+      }
+    ]
+  },
+  "project_id_v2": "project-4d01219d994743cf908bb48341d61a2f",
+  "reparse_job": {
+    "status": "skipped",
+    "message": "SAME_SOURCE_FILES"
+  },
+  "matrix_after_reparse": {
+    "origins": {
+      "retrieval_failed": 75
+    },
+    "writable": 0,
+    "total": 75
+  },
+  "matrix_samples": [],
+  "generate_job2": {
+    "status": "completed",
+    "progress": 100,
+    "message": "后台任务处理中",
+    "error": null
+  },
+  "technical_rag_audit": null,
+  "export": {
+    "revision": 8,
+    "export": {
+      "id": "export-777fa2b340d24ff8a2f46c1eb58a8453",
+      "kind": "internal",
+      "check_id": "technical-internal",
+      "fingerprint": "d4e37e986bac11f87c2c1730a25dd416dc54b0aab0ccb0d435ff243438bf1513",
+      "created_at": "2026-11-05T08:43:02.494146+00:00",
+      "excludes_drafts": true,
+      "volumes": [
+        {
+          "volume": "technical",
+          "filename": "技术分册内部稿.docx",
+          "download_url": "/api/v1/projects/project-87155d2134154f66b4af8d6c8a140392/exports/export-777fa2b340d24ff8a2f46c1eb58a8453/technical",
+          "batch_no": "I20261105-001",
+          "docx_sha256": "36731029e6e4a39fce32c5a8089ccec2b63cfe4e64ca38a91626f61c626ccc16",
+          "size_bytes": 13079
+        }
+      ],
+      "status": "valid",
+      "batch_no": "I20261105-001",
+      "export_status": "completed",
+      "volume": "technical",
+      "created_by": "alpha-company-admin",
+      "bound_volumes": {
+        "technical": {
+          "is_finalized": false
+        }
+      },
+      "has_blockers": false,
+      "compliance_notice": "仅供内部评审，不可作为正式递交文件。",
+      "sha256": "68b4a55b424c7de6579f1120a43f09fe99ac9ad4a48658940e312be784ac8782",
+      "format_metadata": {
+        "page_size": "A4",
+        "orientation": "portrait",
+        "margins": {
+          "top": 72,
+          "bottom": 72,
+          "left": 72,
+          "right": 72,
+          "top_cm": 2.5,
+          "bottom_cm": 2.5,
+          "left_cm": 2.8,
+          "right_cm": 2.6
+        },
+        "font_family": "SimSun",
+        "fonts": {
+          "cover_title": "方正小标宋",
+          "cover_project": "黑体",
+          "h1": "黑体",
+          "h2": "楷体_GB2312",
+          "h3": "仿宋_GB2312",
+          "body": "仿宋_GB2312",
+          "table": "宋体",
+          "header": "宋体",
+          "toc": "宋体"
+        },
+        "font_sizes_pt": {
+          "cover_title": 22.0,
+          "cover_project": 16.0,
+          "h1": 16.0,
+          "h2": 15.0,
+          "h3": 14.0,
+          "body": 14.0,
+          "table": 10.5,
+          "header": 10.5,
+          "toc": 12.0
+        },
+        "line_spacing": {
+          "body_line_pt": 28.0,
+          "body_first_line_chars": 200,
+          "body_first_line_twips": 560
+        },
+        "h1_align": "center"
+      },
+      "is_submission": false,
+      "volume_mode": "technical_only",
+      "deviation_download_url": "/api/v1/projects/project-87155d2134154f66b4af8d6c8a140392/exports/export-777fa2b340d24ff8a2f46c1eb58a8453/deviation"
+    }
+  },
+  "download_status": 200,
+  "download_bytes": 13079,
+  "saved_docx": "e:\\ICG-CURSOR\\if-children-have-been-grown-1\\docs\\testing\\2026-11-05-tv-e2e-evidence.docx"
+}

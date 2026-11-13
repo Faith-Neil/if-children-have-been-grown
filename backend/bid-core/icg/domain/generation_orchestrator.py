@@ -440,6 +440,13 @@ class GenerationOrchestratorMixin:
         )
 
     def generate(self, principal: Principal, project_id: str, payload: dict, expected: str | None, key: str | None):
+        state = self.repository.read()
+        project = state.projects.get(project_id)
+        if project is not None and not project.is_deleted:
+            from icg.domain.technical_sources import technical_only
+            workflow = self._workflow(state, project_id)
+            if technical_only(state, project_id) and workflow.get("technical_outline"):
+                return self._generate_technical_unlocked(principal, project_id, payload, expected, key)
         snapshot, previous = self._preflight(principal, project_id, "chapter.generate", payload, expected, key)
         if previous:
             return previous
@@ -516,6 +523,65 @@ class GenerationOrchestratorMixin:
             }
 
         return self._write(principal, project_id, "chapter.generate", payload, expected, key, operation)
+
+    def _generate_technical_unlocked(self, principal: Principal, project_id: str, payload: dict,
+                                     expected: str | None, key: str | None) -> dict:
+        """检索与按节写正文在锁外跑；短事务只写回章节与任务状态。"""
+        snapshot, previous = self._preflight(principal, project_id, "chapter.generate", payload, expected, key)
+        if previous:
+            return previous
+        workflow = self._workflow(snapshot, project_id)
+        drafted = self._draft_technical_volume(snapshot, workflow, principal, payload)
+
+        def operation(state, project, actual):
+            return self._apply_technical_volume(state, actual, principal, drafted)
+
+        return self._write(principal, project_id, "chapter.generate", payload, expected, key, operation)
+
+    def _draft_technical_volume(self, state, workflow, principal: Principal, payload: dict) -> dict:
+        from icg.domain.technical_volume import write_volume
+        chapter_id = (workflow.get("technical_outline") or {}).get("chapter_id") or ""
+        chapter = state.chapters.get(chapter_id)
+        project_id = chapter.project_id if chapter is not None else ""
+        provider = None
+        if project_id and hasattr(self.demo, "resolve_model_provider"):
+            try:
+                provider = self.demo.resolve_model_provider(state, project_id, "chapter_generation")
+            except Exception:
+                provider = None
+        knowledge_base = getattr(self.demo, "knowledge_base", None)
+        result = write_volume(
+            state, project_id, workflow, (payload.get("section") or "").strip() or None, provider,
+            knowledge_base=knowledge_base,
+        )
+        drafted_chapter = state.chapters[result["chapter_id"]]
+        return {
+            "result": result,
+            "content": drafted_chapter.content,
+            "revision": drafted_chapter.revision,
+            "response_tasks": workflow.get("response_tasks"),
+            "technical_rag_audit": workflow.get("technical_rag_audit"),
+            "technical_quality": workflow.get("technical_quality"),
+            "writer_model": workflow.get("writer_model"),
+            "needs_regeneration": workflow.get("needs_regeneration"),
+        }
+
+    def _apply_technical_volume(self, state, actual, principal: Principal, drafted: dict) -> dict:
+        result = drafted["result"]
+        chapter = state.chapters.get(result["chapter_id"])
+        if chapter is None:
+            raise DomainError(404, "NOT_FOUND", "没有服务方案这一章。")
+        chapter.content = drafted["content"]
+        chapter.revision = drafted["revision"]
+        for key in ("response_tasks", "technical_rag_audit", "technical_quality", "writer_model", "needs_regeneration"):
+            if drafted.get(key) is not None:
+                actual[key] = drafted[key]
+        message = "技术分册已写入当前正文。" if not result["failed"] else "有的节没有生成成功，这些节保持原样，其他节已写入。"
+        quality = result.get("quality") or {}
+        if quality.get("warning"):
+            message = f"{message} {quality['warning']} 允许导出，须可见警告。"
+        job = self._job(state, chapter.project_id, "generate", message)
+        return {"job": job, "chapters": [self._chapter_summary(state, actual, chapter, principal.user.id)]}
 
 
 class GenerationOrchestrator(GenerationOrchestratorMixin):

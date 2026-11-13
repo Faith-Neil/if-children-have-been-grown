@@ -72,6 +72,8 @@ def _frozen_status() -> dict[str, int]:
         "DICT_ITEM_IN_USE", "DICT_CODE_DUPLICATED",
         # 用户管理停用前资产转交门禁 (APP-M2-T027 / PRD v1.8 §5.10.1)
         "USER_TRANSFER_REQUIRED",
+        # 平台开通公司时显示名冲突 (ISSUE-052)
+        "COMPANY_NAME_DUPLICATED",
         # 章节循环与人工处理队列、分册交叉复核与定稿 (Wave 11 / PRD v1.8 §5.7.4、§5.7.7、§5.8.5)
         "HUMAN_ISSUE_NOT_PENDING", "HUMAN_ISSUE_STALE", "HUMAN_ISSUES_PENDING", "BLOCKER_NOT_REJECTABLE",
         "VOLUME_FINALIZED", "CHAPTER_CONTENT_EMPTY", "CROSS_REVIEW_REQUIRED", "CROSS_REVIEWER_IS_EDITOR",
@@ -88,6 +90,7 @@ def _frozen_status() -> dict[str, int]:
         # 解析决策与文件版本链 (Wave 11 / WP-4)：合并拆分、文件角色与替代
         "REQUIREMENT_MERGED", "REQUIREMENT_SUPERSEDED", "NOT_MERGED", "REQUIREMENT_VALUES_DIFFER",
         "REQUIREMENT_IN_USE", "FILE_ROLE_MISMATCH", "FILE_ALREADY_SUPERSEDED", "FILE_ALREADY_PARSED",
+        "SAME_SOURCE_FILES",
         # 项目状态流转与取消后只读 (APP-M2-T097 / PRD v1.8 §4.3、§5.1.3)
         "INVALID_STATUS_TRANSITION", "PROJECT_CANCELLED",
     ))
@@ -125,7 +128,7 @@ def _frozen_status() -> dict[str, int]:
                        # 导出批次中某个分册生成失败，整批作废 (APP-M2-T202 / PRD v1.8 §5.9.1 异常)
                        "EXPORT_FAILED"))
     _bind(table, 502, ("MODEL_UNAVAILABLE", "MODEL_OUTPUT_INVALID", "PARSER_UNAVAILABLE",
-                       "KNOWLEDGE_BASE_UPSTREAM_ERROR"))
+                       "KNOWLEDGE_BASE_UPSTREAM_ERROR", "PIPELINE_UNAVAILABLE"))
     # SECRET_KEY_UNAVAILABLE 不是瞬时故障：客户端不得自动重试，服务端不得发送 Retry-After。
     # 与 MODEL_UNAVAILABLE 相同。实现 ISSUE-024 时再断言响应没有该头。
     _bind(table, 503, ("UI_NOT_READY", "SECRET_KEY_UNAVAILABLE"))

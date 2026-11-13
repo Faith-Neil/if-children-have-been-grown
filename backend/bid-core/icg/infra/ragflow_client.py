@@ -7,11 +7,42 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Mapping
 from urllib.parse import urlsplit
 
 import httpx
+
+
+def _audit_file_summary(files: Any) -> list[dict[str, Any]] | None:
+    if not isinstance(files, dict):
+        return None
+    summary = []
+    for key, item in files.items():
+        name, size = "", 0
+        if isinstance(item, tuple) and item:
+            name = str(item[0])
+            blob = item[1] if len(item) > 1 else b""
+            size = len(blob) if isinstance(blob, (bytes, bytearray)) else 0
+        summary.append({"field": str(key), "name": name, "bytes": size})
+    return summary or None
+
+
+def _audit_ragflow_io(kind: str, record: dict[str, Any]) -> None:
+    root = (os.environ.get("ICG_AUDIT_IO_DIR") or "").strip()
+    if not root:
+        return
+    try:
+        path = Path(root)
+        path.mkdir(parents=True, exist_ok=True)
+        line = {"ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "kind": kind, **record}
+        with (path / "ragflow-io.jsonl").open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(line, ensure_ascii=False) + "\n")
+    except OSError:
+        return
+
 
 RETRIEVAL_SUFFIX = "/api/v1/retrieval"
 HEALTH_SUFFIX = "/api/v1/system/healthz"
@@ -295,6 +326,16 @@ class RagflowRetrievalClient:
         if json_body is not None and files is None:
             headers["Content-Type"] = "application/json"
 
+        audit_request: dict[str, Any] = {"method": method.upper(), "url": url}
+        if params:
+            audit_request["params"] = params
+        if json_body is not None:
+            audit_request["json"] = json_body
+        file_summary = _audit_file_summary(files)
+        if file_summary:
+            audit_request["files"] = file_summary
+        _audit_ragflow_io("request", audit_request)
+
         try:
             # trust_env=False：内网 RAGFlow 请求不能被系统代理/VPN 劫持（AGENTS.md 内网隔离红线）。
             with httpx.Client(
@@ -313,9 +354,22 @@ class RagflowRetrievalClient:
                 else:
                     raise ValueError(f"unsupported HTTP method: {method}")
         except httpx.TimeoutException:
+            _audit_ragflow_io("error", {"method": method.upper(), "url": url, "error": "timeout"})
             raise RagflowTimeoutError(f"{method} request timed out") from None
         except httpx.TransportError as exc:
+            _audit_ragflow_io("error", {
+                "method": method.upper(), "url": url, "error": "transport", "detail": type(exc).__name__,
+            })
             raise RagflowConnectionError(f"{method} transport error: {type(exc).__name__}") from None
+
+        raw_body = response.text
+        _audit_ragflow_io("response", {
+            "method": method.upper(),
+            "url": url,
+            "status": response.status_code,
+            "body_chars": len(raw_body or ""),
+            "body": (raw_body or "")[:200000],
+        })
 
         if response.status_code != 200:
             error_msg = ""
@@ -876,6 +930,14 @@ class RagflowRetrievalClient:
                         return [str(v) for v in value if str(v).strip()]
                 return []
             available = raw.get("available", raw.get("available_int", True))
+            meta = raw.get("metadata") or raw.get("meta_fields") or raw.get("meta") or {}
+            if not isinstance(meta, dict):
+                meta = {}
+            # 部分字段也可能平铺在块对象上（RAGFlow Extractor 写入）。
+            for key in ("content_role", "document_type", "reusability", "section_type",
+                        "knowledge_type", "technical_domain", "project_name", "bid_date"):
+                if key not in meta and raw.get(key) not in (None, ""):
+                    meta[key] = raw.get(key)
             chunks.append({
                 "id": str(raw.get("id") or raw.get("chunk_id") or ""),
                 "content": str(raw.get("content") or raw.get("content_with_weight") or ""),
@@ -884,6 +946,7 @@ class RagflowRetrievalClient:
                 "available": str(available).lower() not in ("false", "0"),
                 "doc_type": str(raw.get("doc_type_kwd") or raw.get("doc_type") or ""),
                 "positions": raw.get("positions") if isinstance(raw.get("positions"), list) else [],
+                "metadata": {str(k): str(v) for k, v in meta.items() if str(v).strip()},
             })
         return {"total": int(data.get("total") or len(chunks)), "chunks": chunks}
 

@@ -20,7 +20,7 @@ from typing import Any
 
 from .domain import Chapter, DemoState, DomainError, Lease, Principal, Project, iso_time
 from .generation_context import evidence_expired, project_facts
-from .project_access import READONLY_SYSTEM_ROLES, ROLE_NORMALIZATION_MAP, require_chapter
+from .project_access import READONLY_SYSTEM_ROLES, ROLE_NORMALIZATION_MAP, foreign_company, is_platform_super, require_chapter
 
 
 def decompose_chapter_paragraphs(content: str, selected_text: str | None = None) -> list[dict[str, Any]]:
@@ -126,10 +126,45 @@ def collect_chapter_citations(
                 })
                 seen_ids.add(ev_id)
 
-    # 2. 知识库检索候选切片 [片]（知识库开启且有检索服务时触发）
+    # 2. 本标切片 [标]（把 knowledge_base 客户端传给 retrieve_tender；无客户端时走本地页索引）
+    search_query = query.strip() or (project.name + " " + chapter_id)
+    try:
+        from icg.domain.technical_tender_index import retrieve_tender
+        kb = None
+        if evidence_service is not None:
+            kb = getattr(evidence_service, "knowledge_base", None) or getattr(evidence_service, "kb", None)
+            if kb is None and hasattr(evidence_service, "client_for"):
+                kb = evidence_service
+        tender_hits, _audit = retrieve_tender(
+            workflow, search_query, kb=kb, company_id=project.company_id, limit=5,
+        )
+        for chunk in tender_hits:
+            cid = chunk.get("chunk_id") or chunk.get("id") or ""
+            if not cid or cid in seen_ids:
+                continue
+            ctext = chunk.get("content") or ""
+            cname = chunk.get("name") or "本标切片"
+            fp_payload = f"tender:{cid}:{cname}:{ctext[:64]}"
+            fingerprint = hashlib.sha256(fp_payload.encode("utf-8")).hexdigest()[:16]
+            citations.append({
+                "id": cid,
+                "name": cname,
+                "type": "tender",
+                "tag": chunk.get("cite_tag") or "[标]",
+                "source_type": "tender",
+                "revision": 1,
+                "valid_until": None,
+                "content": ctext,
+                "fingerprint": fingerprint,
+                "page": chunk.get("page"),
+            })
+            seen_ids.add(cid)
+    except Exception:
+        pass
+
+    # 3. 知识库检索候选切片 [片]（知识库开启且有检索服务时触发）
     if knowledge_base_enabled and evidence_service is not None:
         try:
-            search_query = query.strip() or (project.name + " " + chapter_id)
             cands = evidence_service.search(project.company_id, search_query)
             for c in (cands or [])[:5]:
                 cid = getattr(c, "id", None) or getattr(c, "chunk_id", str(c))
@@ -445,8 +480,9 @@ class EditorAIContextService:
         state: DemoState = self.demo.repository.read()
 
         # 门禁 2：租户与项目隔离
+        from .project_access import is_platform_super
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        if project is None or (project.company_id != principal.user.company_id and not is_platform_super(principal.user)):
             raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
 
         # 检查项目级只读分工
@@ -469,9 +505,8 @@ class EditorAIContextService:
             if bound_id and bound_id in state.model_configs:
                 cfg = state.model_configs[bound_id]
             else:
-                default_id = f"default-{project.company_id}"
-                if default_id in state.model_configs:
-                    cfg = state.model_configs[default_id]
+                from icg.infra.model_config_storage import saved_company_model
+                cfg = saved_company_model(state, project.company_id)
 
             if cfg is not None:
                 if not getattr(cfg, "is_local", False) or not getattr(cfg, "allow_sensitive", False):
@@ -635,7 +670,7 @@ class EditorAIContextService:
         def operation(state: DemoState):
             # 门禁 2：租户与项目隔离
             project = state.projects.get(project_id)
-            if project is None or project.company_id != principal.user.company_id:
+            if foreign_company(project, principal):
                 raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
 
             team = state.project_teams.get(project_id, {})
@@ -644,7 +679,7 @@ class EditorAIContextService:
             if user_member and user_member.get("project_role") in ("viewer", "readonly"):
                 raise DomainError(403, "FORBIDDEN", "项目只读成员无权修改章节正文。")
 
-            if principal.user.id not in members and norm_role != "company_admin":
+            if principal.user.id not in members and norm_role != "company_admin" and not is_platform_super(principal.user):
                 raise DomainError(403, "FORBIDDEN", "您不是本项目成员，无权修改正文。")
 
             chapter = state.chapters.get(chapter_id)
@@ -659,9 +694,8 @@ class EditorAIContextService:
                 if bound_id and bound_id in state.model_configs:
                     cfg = state.model_configs[bound_id]
                 else:
-                    default_id = f"default-{project.company_id}"
-                    if default_id in state.model_configs:
-                        cfg = state.model_configs[default_id]
+                    from icg.infra.model_config_storage import saved_company_model
+                    cfg = saved_company_model(state, project.company_id)
 
                 if cfg is not None:
                     if not getattr(cfg, "is_local", False) or not getattr(cfg, "allow_sensitive", False):

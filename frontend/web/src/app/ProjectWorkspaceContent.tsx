@@ -20,6 +20,7 @@ import {
 } from './lazy-routes';
 import type { Account, ApplicationSession, Evidence, SlaTemplate, Workspace } from '../shared/types';
 import type { AppRoute } from './app-route';
+import { technicalOnly } from '../project/project-volumes.ts';
 
 export interface ProjectWorkspaceContentProps {
   workspace: Workspace;
@@ -62,8 +63,8 @@ export function ProjectWorkspaceContent({
   report,
   navigate,
 }: ProjectWorkspaceContentProps) {
-  const isCompactTab = ['matrix', 'editor', 'checks', 'export'].includes(tab);
-  const isFullbleedTab = ['parse', 'editor'].includes(tab);
+  const isCompactTab = ['analyze', 'editor', 'export'].includes(tab);
+  const isFullbleedTab = ['analyze', 'editor'].includes(tab);
 
   return (
     <>
@@ -73,6 +74,7 @@ export function ProjectWorkspaceContent({
         onNavigateTab={onNavigateTab}
         session={session}
         currentUser={currentUser}
+        token={token}
         compact={isCompactTab}
       />
 
@@ -106,9 +108,17 @@ export function ProjectWorkspaceContent({
               <>
                 {tab === 'overview' && <OverviewPage />}
                 {tab === 'tender' && <TenderPage />}
-                {tab === 'parse' && <ParsePage />}
-                {tab === 'matrix' && <MatrixPage />}
-                {tab === 'facts' && <FactsPage />}
+                {tab === 'analyze' && (
+                  technicalOnly(workspace) ? (
+                    <MatrixPage />
+                  ) : (
+                    <>
+                      <ParsePage />
+                      <MatrixPage />
+                      <FactsPage />
+                    </>
+                  )
+                )}
                 {tab === 'editor' && (
                   <EditorPage
                     key={workspace.project.id}
@@ -120,10 +130,14 @@ export function ProjectWorkspaceContent({
                     }
                   />
                 )}
-                {tab === 'checks' && <ChecksPage />}
-                {tab === 'export' && <ExportPage />}
+                {tab === 'export' && (
+                  <div className={`check-export-board${technicalOnly(workspace) ? ' technical' : ''}`} data-testid="check-export-board">
+                    <ExportPage />
+                    {!technicalOnly(workspace) && <ChecksPage />}
+                    {!technicalOnly(workspace) && <div className="check-export-queue"><ManualQueuePage /></div>}
+                  </div>
+                )}
                 {tab === 'settings' && <ProjectSettingsPage />}
-                {tab === 'manual' && <ManualQueuePage />}
               </>
             </Suspense>
           </main>

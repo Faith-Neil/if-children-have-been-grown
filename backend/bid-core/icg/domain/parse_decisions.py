@@ -650,7 +650,12 @@ class ParseDecisionMixin:
                 raise DomainError(404, "NOT_FOUND", "未找到本项目文件。")
             if record.get("status") == "parsed" and tender_files.amending(record) != (role in tender_files.AMENDING_ROLES):
                 raise DomainError(409, "FILE_ALREADY_PARSED", "已解析的文件不能在“补遗/澄清”与其他类型之间切换；请重新上传并选对类型。")
+            from icg.domain.technical_sources import TECHNICAL_ROLES, invalidate_after_file_change, technical_only
+            if technical_only(state, project_id) and role not in TECHNICAL_ROLES:
+                raise DomainError(422, "VALIDATION_ERROR", "技术分册的文件类型只能是招标文件、技术规范书或其他辅助文件。",
+                                  {"fields": {"file_role": "invalid"}})
             record["file_role"] = role
+            invalidate_after_file_change(state, project_id, workflow)
             return {"file": self._public_file(record)}
 
         return self._write(principal, project_id, "file.role:" + file_id, payload, expected, key, operation,
@@ -696,6 +701,8 @@ class ParseDecisionMixin:
             refresh_fact_conflicts(workflow, now)
             workflow["parse_confirmed"] = False
             workflow["plan_confirmed"] = False
+            from icg.domain.technical_sources import invalidate_after_file_change
+            invalidate_after_file_change(state, project_id, workflow)
             return {"file": self._public_file(old), "replacement": self._public_file(new), "rechecks": rechecks}
 
         return self._write(principal, project_id, "file.supersede:" + file_id, payload, expected, key, operation,

@@ -1,7 +1,10 @@
 # 为什么有这个文件：统一安装、构建和启动同一套ICG产品页面与后台。
 # 它解决什么问题：避免前端没构建、环境不一致，或误把开发验证页当产品入口。
-param([int]$Port = 8710, [switch]$Install)
+param([int]$Port = 8710, [switch]$Install, [switch]$AllowMemory)
 $ErrorActionPreference = 'Stop'
+if (-not $AllowMemory) {
+    throw 'Start-Demo.ps1 keeps data in memory. Use Start-Product.ps1 for MySQL. Pass -AllowMemory only when a memory process is intentional.'
+}
 if ($Port -lt 1024 -or $Port -gt 65535) { throw 'Port must be between 1024 and 65535' }
 $workspacePath = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $demoPythonPath = Join-Path $workspacePath '.venv\Scripts\python.exe'

@@ -49,3 +49,26 @@
 - [x] MySQL 8 与 RAGFlow 分开写。嵌入、向量库和重排都记为 RAGFlow 自带，在 RAGFlow 内配置。ISSUE-010 正文不在本卡修改。
 - [x] 用户 10-12 14:34 确认，本卡标为 done。
 - [x] 真实内网、MySQL 和迁移工具的独立验收不由本草案代替。
+
+<a id="ops-m0-t03"></a>
+
+## OPS-M0-T03 · 产品启动连接 MySQL
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 本机改入口并写虚拟机说明 |
+| 关联Issue | [ISSUE-049](../../issues/ISSUE-049.md) |
+| 依赖 | [OPS-M0-T02](OPS-M0.md#ops-m0-t02) 的内网放置约束。业务库仍是 MySQL 8 |
+| 来源 | 用户要求停止内存启动，连上数据库，并留下公司虚拟机的 Docker 说明 |
+| 完成时交付 | [专属交付](../delivery/OPS-M0-T03.md) |
+| 代码解释 | [代码说明](../code/OPS-M0-T03.md) |
+
+范围：本机产品进程只在 MySQL 探测通过后启动。虚拟机用一份 compose 放置 MySQL 8 和应用镜像。不部署到虚拟机，不接入 RAGFlow 或本地模型，不增加应用副本。
+
+可验证验收：
+
+- [x] `Start-Product.ps1` 在库不可达时退出。
+- [x] 本机 `/health` 为 `repository=mysql` 且 `persistent=true`。
+- [x] [部署说明](../operations/docker-vm-deployment.md) 写明密钥在虚拟机的 `deploy/.env`、健康检查、备份和单进程。
+- [x] 说明写明虚拟机尚未执行 compose。

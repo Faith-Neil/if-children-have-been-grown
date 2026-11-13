@@ -9,11 +9,13 @@ import { projectCan } from './project-team.ts';
 import { useProject } from '../app/context.tsx';
 import { OriginalPreview } from './OriginalPreview.tsx';
 import { AddendumDiffDrawer } from './AddendumDiffDrawer.tsx';
-import { FILE_ROLE_OPTIONS, PARSE_SERVICE_OPTIONS, durationLabel, hasAddendumDiff, replacementOptions, retryBody, roleChangeAllowed, type ParseServiceChoice } from './parse-postprocess-core.ts';
-import type { FileRole, Job, TenderFile } from '../shared/types.ts';
+import { PARSE_SERVICE_OPTIONS, TECHNICAL_UPLOAD_ACCEPT, durationLabel, fileRoleOptions, hasAddendumDiff, hasTenderFile, replacementOptions, retryBody, roleChangeAllowed, sameSourceAlreadyExtracted, shouldAutoStartTechnicalParse, type ParseServiceChoice } from './parse-postprocess-core.ts';
+import { volumeMode } from './project-volumes.ts';
+import type { FileRole, Job, TenderFile, Workspace } from '../shared/types.ts';
 import { JobProgressWithSse } from '../status/JobProgress.tsx';
 import { jobFromStatus, type BackendJobStatus } from '../status/job-progress-sse.ts';
 import type { JobProgressData } from '../status/job-progress.ts';
+import { parseHonesty } from './parse-honesty.ts';
 
 /** 页面打开时仍在进行的解析任务（后台任务在任务列表里留有摘要）。 */
 export function activeParseJob(jobs: Job[] | undefined): Job | undefined {
@@ -40,6 +42,11 @@ export function TenderPage() {
     return active ? { id: active.id, initial: jobFromStatus(active) } : null;
   });
   const [parseJobDone, setParseJobDone] = useState(false);
+  const technicalOnly = volumeMode(workspace) === 'technical_only';
+  const honesty = parseHonesty(workspace);
+  const roleOptions = fileRoleOptions(technicalOnly);
+  const extracted = sameSourceAlreadyExtracted(workspace.source_fingerprint, workspace.parsed_source_fingerprint, workspace.files);
+  const tenderReady = !technicalOnly || hasTenderFile(workspace.files);
 
   async function removeUpload() {
     if (!removeFile || !removeReason.trim()) {
@@ -64,6 +71,7 @@ export function TenderPage() {
       return false;
     }
     setUploading(true);
+    let next: Workspace | undefined;
     try {
       // 二进制直传：大扫描件不先转 base64
       await uploadRaw(rawUploadPath(`/api/v1/projects/${workspace.project.id}/files/raw`, { filename: file.name, file_role: uploadRole }),
@@ -71,8 +79,18 @@ export function TenderPage() {
     } catch (error) {
       report(error);
     } finally {
-      await reload().catch(report);
+      next = await reload().catch(error => { report(error); return undefined; });
       setUploading(false);
+    }
+    // 技术分册：上传成功后自动解析→抽取→拟目录，不再要求用户点「抽取技术条款」。
+    if (next && projectCan(next, 'prepare_sources') && shouldAutoStartTechnicalParse({
+      technicalOnly,
+      files: next.files,
+      sourceFingerprint: next.source_fingerprint,
+      parsedFingerprint: next.parsed_source_fingerprint,
+      jobs: next.jobs,
+    })) {
+      await startParse({}, next.revision);
     }
     return false;
   }
@@ -91,22 +109,57 @@ export function TenderPage() {
     } catch { /* 保留输入 */ }
   }
 
-  async function parse(body: Record<string, unknown> = {}) {
+  async function startParse(body: Record<string, unknown> = {}, revision?: number) {
     try {
-      const job = await mutate(`/api/v1/projects/${workspace.project.id}/parse/jobs`, 'POST', body) as BackendJobStatus;
-      setParseJobDone(false); setParseJob({ id: job.id, initial: jobFromStatus(job) });
-    } catch {
-      /* 保留当前文件列表供重试 */
+      // 上传后立刻自动解析时，必须用 reload 返回的 revision，避免闭包里的旧 If-Match。
+      const job = await request<BackendJobStatus>(
+        `/api/v1/projects/${workspace.project.id}/parse/jobs`,
+        token,
+        'POST',
+        body,
+        revision ?? workspace.revision,
+      );
+      setParseJobDone(false);
+      setParseJob({ id: job.id, initial: jobFromStatus(job) });
+      await reload().catch(report);
+    } catch (error) {
+      report(error);
     }
   }
 
   async function parseFinished(job: JobProgressData) {
-    await reload().catch(report);
-    if (job.status === 'completed') { setParseJob(null); navigate('parse'); }
+    const next = await reload().catch(error => { report(error); return undefined; });
+    if (job.status === 'completed') {
+      setParseJob(null);
+      if (technicalOnly) {
+        // 抽出为空留本页说明；有目录草稿则进编辑台确认目录（矩阵不再是闸门）。
+        if (!next?.technical_extract_empty && next?.technical_outline) navigate('editor');
+        return;
+      }
+      if (!next?.technical_extract_empty) navigate('analyze');
+    }
   }
 
   async function cancelParse(jobId: string) {
-    try { await request(`/api/v1/jobs/${encodeURIComponent(jobId)}/cancel`, token, 'POST'); } catch (error) { report(error); }
+    // 先本地标已取消，再打接口；否则 cancel 占锁挂起时进度卡像完全没反应。
+    setParseJob(prev => {
+      if (!prev || prev.id !== jobId) return prev;
+      return {
+        id: jobId,
+        initial: {
+          ...prev.initial,
+          status: 'cancelled',
+          finishedAt: new Date().toISOString(),
+          allowedActions: ['retry'],
+          description: '已取消',
+        },
+      };
+    });
+    setParseJobDone(true);
+    try {
+      const job = await request<BackendJobStatus>(`/api/v1/jobs/${encodeURIComponent(jobId)}/cancel`, token, 'POST');
+      setParseJob({ id: `${job.id}`, initial: jobFromStatus(job) });
+    } catch (error) { report(error); }
   }
 
   async function retryParse(jobId: string) {
@@ -131,22 +184,27 @@ export function TenderPage() {
     <>
       <div className="page-heading">
         <div>
-          <h2>招标文件</h2>
-          <p>上传原件后，提取条款与项目事实。结果需人工逐项核对。</p>
+          <h2>{technicalOnly ? '招标文件与辅助文件' : '招标文件'}</h2>
+          <p>{technicalOnly
+            ? '必须有一份招标文件。上传后自动解析并拟目录；技术规范书和其他辅助文件可以不传。'
+            : '上传原件后，提取条款与项目事实。结果需人工逐项核对。'}</p>
         </div>
         <Space>
-          <Button onClick={sample} icon={<DownloadOutlined />}>
-            下载合成示例
-          </Button>
+          {!technicalOnly && (
+            <Button onClick={sample} icon={<DownloadOutlined />}>
+              下载合成示例
+            </Button>
+          )}
           <Button
-            type="primary"
+            type={technicalOnly ? 'default' : 'primary'}
             icon={<ReloadOutlined />}
             loading={busy}
-            disabled={!workspace.files.length || !projectCan(workspace, 'prepare_sources') || uploading
+            disabled={!workspace.files.length || !tenderReady || extracted || !projectCan(workspace, 'prepare_sources') || uploading
               || (!!parseJob && !['completed', 'failed', 'cancelled'].includes(parseJob.initial.status) && !parseJobDone)}
-            onClick={() => void parse()}
+            onClick={() => void startParse()}
+            data-testid="parse-start-button"
           >
-            解析招标文件
+            {technicalOnly ? '重新解析' : '解析招标文件'}
           </Button>
         </Space>
       </div>
@@ -158,21 +216,43 @@ export function TenderPage() {
             onRetry={projectCan(workspace, 'prepare_sources') ? id => { setParseJobDone(false); void retryParse(id); } : undefined} />
         </Card>
       )}
-      <Alert
-        type="info"
-        showIcon
-        className="page-notice"
-        message="招标文件先在本地提取文字；扫描件、.doc、Excel 与图片交给公司自建 RAGFlow 识别版面与文字"
-        description="页码方式与能力限制随原文显示，解析完成也需要人确认。经 RAGFlow 识别的文件标“RAGFlow 解析中”，解析任务在后台自动取回结果，可离开本页；识别结果请对照原件核对；未连接 RAGFlow 时这些格式会如实提示失败。"
-      />
+      {technicalOnly && workspace.chapters.some(chapter => chapter.needs_regeneration) && (
+        <Alert type="warning" showIcon className="page-notice" message="文件已变动。已有正文保留，各节需要重新生成。" />
+      )}
+      {technicalOnly && workspace.technical_extract_empty && (
+        <Alert type="warning" showIcon className="page-notice" data-testid="technical-extract-empty"
+          message="这批文件里没有抽到技术响应内容，先不进入目录。请换文件或补充技术规范书后再上传；系统会自动重新解析。" />
+      )}
+      {technicalOnly && extracted && workspace.technical_outline && !honesty.degraded && (
+        <Alert type="success" showIcon className="page-notice" data-testid="technical-outline-ready"
+          message="已拟技术目录草稿。"
+          action={<Button size="small" type="link" onClick={() => navigate('editor')}>去确认目录</Button>} />
+      )}
+      {technicalOnly && honesty.degraded && (
+        <Alert type="warning" showIcon className="page-notice" data-testid="parse-honesty-warning"
+          message="解析结果不完整" description={honesty.text} />
+      )}
+      {technicalOnly && !extracted && !parseJob && workspace.files.some(file => file.status === 'failed') && (
+        <Alert type="error" showIcon className="page-notice" data-testid="technical-parse-failed"
+          message="解析失败。错误原因见文件行内说明；修好后可点「重新解析」或更换服务重试。" />
+      )}
+      {!technicalOnly && (
+        <Alert
+          type="info"
+          showIcon
+          className="page-notice"
+          message="招标文件先在本地提取文字；扫描件、.doc、Excel 与图片交给公司自建 RAGFlow 识别版面与文字"
+          description="页码方式与能力限制随原文显示，解析完成也需要人确认。经 RAGFlow 识别的文件标“RAGFlow 解析中”，解析任务在后台自动取回结果，可离开本页；识别结果请对照原件核对；未连接 RAGFlow 时这些格式会如实提示失败。"
+        />
+      )}
       <Card>
         <Space style={{ marginBottom: 12 }}>
           <span>本次上传的文件类型</span>
-          <Select<FileRole> value={uploadRole} options={FILE_ROLE_OPTIONS} onChange={setUploadRole} style={{ width: 160 }}
+          <Select<FileRole> value={uploadRole} options={roleOptions} onChange={setUploadRole} style={{ width: 160 }}
             aria-label="上传文件类型" data-testid="upload-role-select" disabled={busy || uploading || !projectCan(workspace, 'prepare_sources')} />
         </Space>
         <Upload.Dragger
-          accept=".txt,.md,.docx,.doc,.pdf,.xls,.xlsx,.png,.jpg,.jpeg"
+          accept={technicalOnly ? TECHNICAL_UPLOAD_ACCEPT : '.txt,.md,.docx,.doc,.pdf,.xls,.xlsx,.png,.jpg,.jpeg'}
           beforeUpload={file => upload(file)}
           showUploadList={false}
           disabled={busy || uploading || !projectCan(workspace, 'prepare_sources')}
@@ -180,8 +260,8 @@ export function TenderPage() {
           <p className="ant-upload-drag-icon">
             <UploadOutlined />
           </p>
-          <p className="ant-upload-text">拖入招标文件、补遗或附件，或点击选择</p>
-          <p className="ant-upload-hint">UTF-8 文本、Word（.docx/.doc）、PDF（含扫描件）、Excel、图片 · 每份不超过 {MAX_UPLOAD_MB}MB</p>
+          <p className="ant-upload-text">{technicalOnly ? '拖入招标文件、技术规范书或其他辅助文件' : '拖入招标文件、补遗或附件，或点击选择'}</p>
+          <p className="ant-upload-hint">{technicalOnly ? `pdf、doc、docx · 每份不超过 ${MAX_UPLOAD_MB}MB` : `UTF-8 文本、Word（.docx/.doc）、PDF（含扫描件）、Excel、图片 · 每份不超过 ${MAX_UPLOAD_MB}MB`}</p>
         </Upload.Dragger>
         <Table
           className="file-table"
@@ -204,7 +284,7 @@ export function TenderPage() {
               title: '类型',
               dataIndex: 'file_role',
               render: (value: FileRole | undefined, item: TenderFile) => (
-                <Select<FileRole> size="small" style={{ width: 120 }} value={value ?? 'tender'} options={FILE_ROLE_OPTIONS}
+                <Select<FileRole> size="small" style={{ width: technicalOnly ? 140 : 120 }} value={value ?? 'tender'} options={roleOptions}
                   aria-label="文件类型" data-testid="file-role-select"
                   disabled={busy || !projectCan(workspace, 'prepare_sources') || !!item.superseded_by}
                   onChange={role => void changeRole(item, role)} />
@@ -259,7 +339,7 @@ export function TenderPage() {
                       <WarningOutlined className="orange" />
                     </Tooltip>
                   )}
-                  {hasAddendumDiff(item) && <a data-testid="addendum-diff-link" onClick={() => setDiffFile(item.id)}>补遗差异</a>}
+                  {!technicalOnly && hasAddendumDiff(item) && <a data-testid="addendum-diff-link" onClick={() => setDiffFile(item.id)}>补遗差异</a>}
                   {replacementOptions(item, workspace.files).length > 0 && projectCan(workspace, 'prepare_sources') && (
                     <Button type="link" size="small" data-testid="supersede-button" disabled={busy}
                       onClick={() => { setSupersede(item); setReplacementId(''); setSupersedeReason(''); }}>设为被替代</Button>
@@ -327,7 +407,7 @@ export function TenderPage() {
           onChange={event => setSupersedeReason(event.target.value)} placeholder="理由（必填），例如重新发布的正式版" />
       </Modal>
       <Modal title="换一个解析服务重试" open={!!retryFile} onCancel={() => setRetryFile(null)} okText="重新解析" cancelText="取消"
-        onOk={() => { if (retryFile) { void parse(retryBody(retryService, retryFile.id)); setRetryFile(null); } }}>
+        onOk={() => { if (retryFile) { void startParse(retryBody(retryService, retryFile.id)); setRetryFile(null); } }}>
         <p>文件：{retryFile?.filename}（当前：{retryFile?.parse_service_label || '尚未解析'}）</p>
         <Select<ParseServiceChoice> style={{ width: '100%' }} value={retryService} options={[...PARSE_SERVICE_OPTIONS]} onChange={setRetryService}
           aria-label="解析服务" data-testid="retry-service-select" />

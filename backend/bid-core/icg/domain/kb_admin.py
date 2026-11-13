@@ -15,12 +15,13 @@ from typing import Any
 
 from .domain import DemoState, DomainError, Principal, iso_time, new_id
 from .knowledge_base import (DATASET_KINDS, FILE_KINDS, KIND_PROFILE, SETTINGS_STORE, SOURCE_FILE, STATUS_FAILED,
+                             dataset_full_name, dataset_suffix,
                              STATUS_PARSING, KnowledgeBaseService, _company_index, default_settings, read_index,
                              read_settings)
 
 AUDIT_STORE = "kb_audit"
 AUDIT_LIMIT = 500
-READ_ROLES = {"company_admin", "data_admin", "manager", "project_lead"}
+READ_ROLES = {"company_admin", "data_admin", "manager", "project_lead", "member"}
 WRITE_ROLES = {"company_admin", "data_admin"}
 CONNECTION_ROLES = {"company_admin"}
 SETTING_FIELDS = {
@@ -29,15 +30,19 @@ SETTING_FIELDS = {
 }
 PROFILE_FIELDS = {"chunk_token_size": int, "questions_top_n": int, "keywords_top_n": int, "extra_heading_patterns": list}
 UPLOAD_SUFFIXES = {
-    "history": (".pdf", ".docx", ".doc", ".xlsx", ".xls", ".csv", ".md", ".txt", ".pptx"),
-    "certificate": (".pdf", ".png", ".jpg", ".jpeg", ".docx"),
+    "history": (".pdf", ".docx", ".doc"),
+    "materials": (".pdf", ".docx", ".doc", ".xls", ".xlsx", ".ppt", ".pptx"),
 }
 CERT_FIELD_TO_LIBRARY = {"cert_name": "name", "valid_to": "valid_until"}
 
 
 def _role(principal: Principal) -> str:
+    # 知识库管控保留细角色：资料管理员可写、项目经理可追加历史标书；只读 viewer 不能因三角色归一变成 member。
+    raw = getattr(principal.user, "role", "") or ""
+    if raw in WRITE_ROLES | CONNECTION_ROLES | {"manager", "project_lead", "viewer", "readonly"}:
+        return raw
     from .project_access import normalize_role
-    return normalize_role(principal.user.role)
+    return normalize_role(raw)
 
 
 def _is_super(principal: Principal) -> bool:
@@ -46,7 +51,7 @@ def _is_super(principal: Principal) -> bool:
 
 
 def require_kb_role(principal: Principal, level: str = "read") -> None:
-    """read：管理/资料/项目负责角色；write：公司管理员与资料管理员；connection：只有公司管理员。"""
+    """read：公司管理员与普通用户；write：公司管理员与资料管理员；connection：只有公司管理员。"""
     if _is_super(principal):
         return
     allowed = {"read": READ_ROLES, "write": WRITE_ROLES, "connection": CONNECTION_ROLES}[level]
@@ -259,6 +264,8 @@ class KbAdminService:
             self._kind(kind)
             try:
                 results[kind] = self.kb.ensure_dataset(client, company, kind)
+            except DomainError:
+                raise
             except Exception as exc:
                 raise self._wrap(exc, f"部署 {kind} 知识库") from None
         self._audit(principal, "pipelines.deploy", ",".join(results), {
@@ -273,10 +280,10 @@ class KbAdminService:
         index = read_index(self.repository.read(), company)
         client = self.kb.client_for(company)
         rows = []
-        for kind, suffix in DATASET_KINDS.items():
+        for kind in DATASET_KINDS:
             info = index.get("datasets", {}).get(kind) or {}
-            row = {"kind": kind, "name": f"{company}::{suffix}", "profile": KIND_PROFILE[kind], **info,
-                   "document_count": None, "chunk_count": None}
+            row = {"kind": kind, "name": dataset_full_name(company, kind), "suffix": dataset_suffix(kind),
+                   "profile": KIND_PROFILE[kind], **info, "document_count": None, "chunk_count": None}
             if client is not None and info.get("dataset_id"):
                 try:
                     raw = client.get_dataset(info["dataset_id"], company_id=company).raw
@@ -375,7 +382,7 @@ class KbAdminService:
         self._kind(kind)
         company = principal.user.company_id
         info = self._dataset(principal, kind, create=False)
-        expected = f"{company}::{DATASET_KINDS[kind]}"
+        expected = dataset_full_name(company, kind)
         if confirm_name != expected:
             raise DomainError(422, "CONFIRMATION_REQUIRED", f"请输入数据集全名 {expected} 以确认删除。")
         try:
@@ -432,8 +439,15 @@ class KbAdminService:
 
     def upload(self, principal: Principal, kind: str, payload: dict[str, Any]) -> dict[str, Any]:
         """上传原件到历史投标或证书数据集，并按 ICG 流程解析。"""
-        require_kb_role(principal, "write")
         self._kind(kind, files_only=True)
+        if kind in ("history", "materials"):
+            if not (_is_super(principal) or _role(principal) in WRITE_ROLES | {"manager", "project_lead"}):
+                raise DomainError(403, "FORBIDDEN", "当前账号无权上传历史标书。" if kind == "history" else "当前账号无权上传权威资料。")
+            # 上传只追加到已有数据集，不在这里新建。
+            create_dataset = False
+        else:
+            require_kb_role(principal, "write")
+            create_dataset = True
         filename = str(payload.get("filename") or "").strip()
         if not filename or "/" in filename or "\\" in filename:
             raise DomainError(422, "VALIDATION_ERROR", "文件名无效。")
@@ -453,7 +467,13 @@ class KbAdminService:
         user_meta = {str(k)[:64]: str(v)[:500] for k, v in (payload.get("metadata") or {}).items() if str(v).strip()}
         company = principal.user.company_id
         client = self._client(principal)
-        info = self._dataset(principal, kind)
+        try:
+            info = self._dataset(principal, kind, create=create_dataset)
+        except DomainError as exc:
+            if kind in ("history", "materials") and not create_dataset and getattr(exc, "status", None) == 404:
+                label = "历史标书" if kind == "history" else "权威资料"
+                raise DomainError(409, "KNOWLEDGE_BASE_NOT_CONFIGURED", f"本公司{label}数据集尚未配置，请公司管理员先配置。") from None
+            raise
         file_id = new_id("kbfile")
         meta = {**user_meta, "company_id": company, "source_type": SOURCE_FILE, "source_id": file_id,
                 "knowledge_kind": kind}
@@ -595,10 +615,15 @@ class KbAdminService:
             raise DomainError(422, "VALIDATION_ERROR", "请输入试查问题。")
         overrides = {k: payload[k] for k in ("similarity_threshold", "keywords_weight", "rerank_id")
                      if payload.get(k) is not None}
-        kinds = set(payload.get("kinds") or ["evidence", "snippet", "history"])
-        if not kinds <= {"evidence", "snippet", "history"}:
-            raise DomainError(422, "VALIDATION_ERROR", "kinds 只能是 evidence、snippet、history。")
+        kinds = set(payload.get("kinds") or ["history", "materials"])
+        if not kinds <= {"evidence", "snippet", "history", "materials"}:
+            raise DomainError(422, "VALIDATION_ERROR", "kinds 只能是 evidence、snippet、history、materials。")
         limit = max(1, min(int(payload.get("limit") or 8), 20))
+        # 远端已解析完成但本地索引仍为 parsing 时，试查会得到 zero hits；先对账状态。
+        try:
+            self.kb.refresh_status(principal.user.company_id)
+        except Exception:
+            pass
         try:
             hits, reason = self.kb.search(principal.user.company_id, query, limit=limit, kinds=kinds,
                                           user=principal.user, overrides=overrides)

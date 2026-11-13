@@ -157,6 +157,9 @@ export function can(
   const normRole = normalizeSystemRole(rawRole);
   const roleLabel = getSystemRoleLabel(normRole);
   const userId = context?.userId ?? context?.session?.user?.id ?? '';
+  if (normRole === 'platform_admin') {
+    return { allowed: true, role: normRole, roleLabel };
+  }
   const workspace = context?.workspace;
 
   // 提取章节上下文
@@ -178,7 +181,7 @@ export function can(
   const member = workspace?.team?.members?.find(m => m.user_id === userId);
   const isLeadInProject = member
     ? member.project_role === 'lead'
-    : (normRole === 'project_lead' || normRole === 'company_admin');
+    : normRole === 'company_admin';
 
   // 3. 通用只读角色拦截
   if (isReadonlyRole(normRole) && isWriteAction(action)) {
@@ -227,7 +230,7 @@ export function can(
   if (action === 'chapter:edit' || action === 'chapter:submit') {
     if (!chapter) {
       // 若无具体章节上下文，判断是否有通用的编写资质
-      if (isLeadInProject || normRole === 'bid_writer') {
+      if (isLeadInProject || normRole === 'member' || normRole === 'company_admin') {
         return { allowed: true, role: normRole, roleLabel };
       }
       return {
@@ -241,7 +244,7 @@ export function can(
 
     if (!workspace) {
       // 无 workspace 保护上下文时降级为角色资质判断
-      if (normRole === 'project_lead' || normRole === 'bid_writer' || normRole === 'company_admin') {
+      if (normRole === 'member' || normRole === 'company_admin') {
         return { allowed: true, role: normRole, roleLabel };
       }
       return {
@@ -285,7 +288,7 @@ export function can(
     }
     return {
       allowed: false,
-      reason: '抱歉，仅项目负责人或本分册负责人有权接管编辑锁。',
+      reason: '抱歉，仅项目负责人或方案负责人有权接管编辑锁。',
       role: normRole,
       roleLabel,
       code: 'LOCK_TAKEOVER_FORBIDDEN',
@@ -294,7 +297,7 @@ export function can(
 
   // 8. 递交版导出：submission:export (PRD v1.5/v1.8: 仅项目负责人可导出递交版，分册负责人仅导出内部稿)
   if (action === 'submission:export') {
-    const isStrictLead = member ? member.project_role === 'lead' : (normRole === 'project_lead');
+    const isStrictLead = member ? member.project_role === 'lead' : false;
     if (isStrictLead) {
       return { allowed: true, role: normRole, roleLabel };
     }
@@ -331,7 +334,7 @@ export function can(
     }
     return {
       allowed: false,
-      reason: '抱歉，仅项目负责人或本分册负责人有权导出内部稿。',
+      reason: '抱歉，仅项目负责人或方案负责人有权导出内部稿。',
       role: normRole,
       roleLabel,
       code: 'INTERNAL_EXPORT_FORBIDDEN',
@@ -353,7 +356,7 @@ export function can(
     }
     return {
       allowed: false,
-      reason: '抱歉，仅项目负责人或本分册负责人有权发起分册检查与定稿。',
+      reason: '抱歉，仅项目负责人或方案负责人有权发起检查。',
       role: normRole,
       roleLabel,
       code: 'VOLUME_FINALIZE_FORBIDDEN',
@@ -375,7 +378,7 @@ export function can(
     }
     return {
       allowed: false,
-      reason: '抱歉，仅项目负责人或本分册负责人有权解锁分册。',
+      reason: '抱歉，仅项目负责人或方案负责人有权解锁。',
       role: normRole,
       roleLabel,
       code: 'VOLUME_UNLOCK_FORBIDDEN',
@@ -400,7 +403,7 @@ export function can(
     }
     return {
       allowed: false,
-      reason: '抱歉，仅项目负责人、分册负责人或被分配章节的编写人可确认写作方案。',
+      reason: '抱歉，仅项目负责人、方案负责人或被分配章节的编写人可确认写作方案。',
       role: normRole,
       roleLabel,
       code: 'PLAN_CONFIRM_FORBIDDEN',
@@ -409,12 +412,12 @@ export function can(
 
   // 13. 查看完整身份证号：id_card:view
   if (action === 'id_card:view') {
-    if (normRole === 'company_admin' || normRole === 'data_admin') {
+    if (normRole === 'company_admin') {
       return { allowed: true, role: normRole, roleLabel };
     }
     return {
       allowed: false,
-      reason: '抱歉，查看完整身份证号码仅限公司管理员与资料管理员。',
+      reason: '抱歉，查看完整身份证号码仅限公司管理员。',
       role: normRole,
       roleLabel,
       code: 'ID_CARD_VIEW_FORBIDDEN',
@@ -423,7 +426,7 @@ export function can(
 
   // 14. 合作伙伴资料上传：partner:upload
   if (action === 'partner:upload') {
-    if (normRole === 'company_admin' || normRole === 'data_admin' || isLeadInProject) {
+    if (normRole === 'company_admin' || isLeadInProject) {
       return { allowed: true, role: normRole, roleLabel };
     }
     return {
@@ -437,7 +440,7 @@ export function can(
 
   // 15. 合规规则配置：rules:configure
   if (action === 'rules:configure') {
-    if (normRole === 'platform_admin' || normRole === 'company_admin') {
+    if (normRole === 'company_admin') {
       return { allowed: true, role: normRole, roleLabel };
     }
     return {
@@ -454,17 +457,6 @@ export function can(
     context?.allowedActions ?? context?.session?.allowedActions ?? [];
   if (allowedActions.includes(action) || allowedActions.includes(perform)) {
     return { allowed: true, role: normRole, roleLabel };
-  }
-
-  // 17. 兜底回退：如果属于平台管理员且操作业务，阻断
-  if (normRole === 'platform_admin') {
-    return {
-      allowed: false,
-      reason: '平台管理员不参与具体业务项目操作。',
-      role: normRole,
-      roleLabel,
-      code: 'PLATFORM_ADMIN_FORBIDDEN',
-    };
   }
 
   // 非写操作允许展示

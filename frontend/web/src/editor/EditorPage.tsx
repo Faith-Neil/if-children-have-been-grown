@@ -1,28 +1,32 @@
 // 为什么有这个文件：保留示例的章节目录、正文和助手三栏编辑流程。
 // 它解决什么问题：编辑权、旧草稿、正式版本与建议确认都以后台实际校验为准。
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, App as AntApp, Button, Card, Drawer, Empty, Input, Modal, Progress, Space, Spin, Tag, Tooltip } from 'antd';
+import { Alert, App as AntApp, Button, Card, Drawer, Empty, Modal, Progress, Space, Spin, Tag, Tooltip } from 'antd';
 import {
+  BoldOutlined,
   HistoryOutlined,
-  LockOutlined,
-  SaveOutlined,
-  UnlockOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  BarsOutlined,
+  PictureOutlined,
+  RedoOutlined,
+  SaveOutlined,
+  TableOutlined,
+  UnderlineOutlined,
+  UndoOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons';
-import { ApiError, request } from '../shared/api.ts';
+import { ApiError, newIdempotencyKey, request } from '../shared/api.ts';
 import { useProject, volumeName } from '../app/context.tsx';
 import type { Candidate, Chapter, Volume, Workspace, WritingInputPreview } from '../shared/types.ts';
 import { candidateProblem } from './writing-input.ts';
 import { acquiredEditingFingerprint, editingContentWrite, loadedEditingFingerprint } from './editing-source.ts';
-import { chapterCan } from '../project/project-team.ts';
-import { AiTag, Cite, SourceBar } from '../library/BusinessTags.tsx';
+import { chapterCan, projectCan } from '../project/project-team.ts';
+import { parseHonesty } from '../project/parse-honesty.ts';
+import { AiTag } from '../library/BusinessTags.tsx';
 import { ReadonlyBanner } from '../status/StatusViews';
 import { useDataPermission } from '../shell/useDataPermission';
-import { useVolumesStatus, isVolumeFinalized } from '../project/volume-api.ts';
-import { OutlineTreeView } from '../project/OutlineTreeView';
+import { OutlineTreeView, type GeneratedDirectory } from '../project/OutlineTreeView';
+import { PaperEditor, type PaperEditorHandle } from './PaperEditor';
 import { ChapterTypeBadge } from '../project/ChapterTypeBadge';
 import { mapChaptersToOutlineNodes, type ChapterOutlineNode } from '../project/outline-tree';
 import { useBreakpoint } from '../shell/responsive';
@@ -39,12 +43,11 @@ import { EditorAssistantPanel } from './EditorAssistantPanel.tsx';
 import { SelectionRewritePanel, type RewriteSelection } from './SelectionRewritePanel.tsx';
 import { pasteNotice, type PastedParagraph } from './paste-notice.ts';
 import { paragraphAtOffset, paragraphsMatch } from './paragraph-keys.ts';
-import type { TextAreaRef } from 'antd/es/input/TextArea';
 import { EditorIssuePanel } from './EditorIssuePanel.tsx';
 import { useChapterIssues } from './useChapterIssues.ts';
 import { canSelectInEditor, lineRangeOffsets, type ChapterIssue } from './chapter-issues-core.ts';
 import { ParagraphLocksBar } from './ParagraphLocksBar.tsx';
-import { VARIABLE_ERROR_CODES, mayHaveVariables, nodesMatch, resolveVariables, type VariableNode } from './variable-nodes.ts';
+import { VARIABLE_ERROR_CODES, mayHaveVariables, nodesMatch, resolveVariables, sourceLabel, type VariableNode } from './variable-nodes.ts';
 import { VariableChip } from './VariableChip.tsx';
 import type { ApplyResult } from './selection-rewrite-core.ts';
 import { EditorDiffDrawer, type ChapterVersionItem } from './EditorDiffDrawer.tsx';
@@ -53,7 +56,6 @@ import { useEditorLock, type Lease } from './useEditorLock.ts';
 import { SystemChapterPanel } from '../project/SystemChapterPanel.tsx';
 import { systemChapterKind } from '../project/system-chapter-core.ts';
 import { useSelectionBubble } from './useSelectionBubble.ts';
-import { EditorSlaTools } from './EditorSlaTools.tsx';
 import { EditorAuxiliaryDrawers } from './EditorAuxiliaryDrawers.tsx';
 import { useEditorOperations } from './useEditorOperations.ts';
 import { IDLE_SAVE_MS, editorTimings, lockHolderLabel, savedLabel, shouldAutosave, type EditorTimings } from './autosave-core.ts';
@@ -75,8 +77,6 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   }, [initialChapterId, workspace.chapters]);
 
   const [chapter, setChapter] = useState<Chapter | null>(null);
-  const { volumes: volumesStatus } = useVolumesStatus(workspace.project.id, token, workspace.revision);
-  const isCurrentVolumeFinalized = isVolumeFinalized(volumesStatus, chapter?.volume);
   const [content, setContent] = useState('');
   const [editFingerprint, setEditFingerprint] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -84,6 +84,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const [rightTab, setRightTab] = useState('assistant');
   const [savedAt, setSavedAt] = useState('');
   const [notice, setNotice] = useState('');
+  const [historyCommitmentNotice, setHistoryCommitmentNotice] = useState<{ message: string; filenames: string[]; snapshotId: string } | null>(null);
   const [sourceAdvice, setSourceAdvice] = useState(false);
   const [versions, setVersions] = useState<ChapterVersionItem[]>([]);
   const [versionsOpen, setVersionsOpen] = useState(false);
@@ -94,7 +95,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const [autosavePaused, setAutosavePaused] = useState(false);
   const [variables, setVariables] = useState<VariableNode[]>([]);
   const [cursorKey, setCursorKey] = useState<string | null>(null);
-  const textareaRef = useRef<TextAreaRef>(null);
+  const paperRef = useRef<PaperEditorHandle>(null);
   const autosaving = useRef(false);
 
   const epoch = useRef(0);
@@ -164,7 +165,11 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const candidate = ops.suggestion ?? activeChapter?.candidate ?? null;
   const candidateIssue = candidate ? candidateProblem(candidate, workspace.input_fingerprint, chapter?.revision) : null;
   const sources = workspace.requirements.filter(item => item.chapter_id === chapterId || activeChapter?.requirement_ids?.includes(item.id));
-  const sourceStale = !!chapter && editFingerprint !== workspace.input_fingerprint;
+  const historyCommitmentDismissedSnapshotId =
+    (activeChapter as { history_commitment_notice_dismissed_snapshot_id?: string | null } | undefined)
+      ?.history_commitment_notice_dismissed_snapshot_id ?? null;
+  const showHistoryCommitmentNotice = !!historyCommitmentNotice
+    && historyCommitmentNotice.snapshotId !== historyCommitmentDismissedSnapshotId;
   const detectedCitations = useMemo(() => extractCitationIds(content), [content]);
 
   const knownCitations = useMemo(() => {
@@ -183,6 +188,43 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
 
   useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
 
+  useEffect(() => {
+    if (!chapterId || !token) {
+      setHistoryCommitmentNotice(null);
+      return;
+    }
+    let alive = true;
+    request<WritingInputPreview>(`/api/v1/projects/${workspace.project.id}/chapters/${chapterId}/writing-input`, token)
+      .then(preview => {
+        if (!alive) return;
+        const snapshot = preview.input_snapshot as WritingInputPreview['input_snapshot'] & {
+          history_commitment_notice?: { message: string; filenames: string[] };
+          history_commitment_snapshot_id?: string;
+        };
+        const payload = snapshot.history_commitment_notice;
+        const snapshotId = snapshot.history_commitment_snapshot_id;
+        if (payload?.message && snapshotId) {
+          setHistoryCommitmentNotice({ message: payload.message, filenames: payload.filenames ?? [], snapshotId });
+        } else {
+          setHistoryCommitmentNotice(null);
+        }
+      })
+      .catch(() => { if (alive) setHistoryCommitmentNotice(null); });
+    return () => { alive = false; };
+  }, [chapterId, token, workspace.project.id, workspace.input_fingerprint, workspace.revision]);
+
+  async function dismissHistoryCommitmentNotice() {
+    if (!historyCommitmentNotice || combinedBusy) return;
+    try {
+      await mutate(
+        `/api/v1/projects/${workspace.project.id}/chapters/${chapterId}/history-commitment-notice/dismiss`,
+        'POST',
+        { snapshot_id: historyCommitmentNotice.snapshotId },
+      );
+      await reload();
+    } catch { /* 统一已汇报 */ }
+  }
+
   // 变量节点（APP-M2-T164）：取值与是否有效以后台解析为准；文字停顿后再请求，数据源变化（来源指纹变）时重新解析
   useEffect(() => {
     if (!chapterId || !chapter || !mayHaveVariables(content)) { setVariables([]); return; }
@@ -196,7 +238,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   }, [content, chapterId, chapter?.revision, workspace.input_fingerprint, token]);
   const shownVariables = useMemo(() => (nodesMatch(variables, content) ? variables : []), [variables, content]);
   const invalidVariables = shownVariables.filter(item => item.status !== 'valid');
-  function goToSource(source: VariableNode['source']) { navigate(source === 'facts' ? 'facts' : 'matrix'); }
+  function goToSource(_source: VariableNode['source']) { navigate('analyze'); }
 
   useEffect(() => {
     const start = ++epoch.current;
@@ -216,6 +258,10 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     }).catch(error => { if (start === epoch.current) report(error); }).finally(() => { if (start === epoch.current) setLoading(false); });
     return () => { ++epoch.current; void lock.releaseLock(chapterId).catch(() => undefined); };
   }, [chapterId, token]);
+  useEffect(() => {
+    if (!chapter || !canEdit || held || loading) return;
+    void acquire(null, true);
+  }, [chapter?.id, canEdit, held, loading]);
 
   // 问题标注与侧栏联动（APP-M2-T166）：问题按段落键定位；正文段落标问题数，点标记只看这一段的问题
   const issues = useChapterIssues({ projectId: workspace.project.id, chapterId, token, revision: chapter?.revision, projectRevision: workspace.revision });
@@ -223,20 +269,20 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     issues.setActiveId(item.id);
     if (!item.paragraph_key || item.line_start === null || item.line_end === null || !chapter) return;
     issues.setFocusedKey(item.paragraph_key);
-    const box = textareaRef.current?.resizableTextArea?.textArea;
-    if (held && box) {
+    if (held) {
       if (!canSelectInEditor(item, content, chapter.content)) { setNotice('编辑中的文字与已提交正文不同，段落位置可能已变化；提交本节后再定位。'); return; }
       const range = lineRangeOffsets(content, item.line_start, item.line_end);
       if (!range) return;
-      box.focus(); box.setSelectionRange(range.start, range.end); selection.current = range;
-      box.scrollTop = Math.max(0, item.line_start * 29 - 60); box.scrollIntoView({ block: 'nearest' });
+      const phrase = content.slice(range.start, range.end);
+      paperRef.current?.selectText(phrase);
+      selection.current = range;
+      document.querySelector('[data-testid="paper-editor"]')?.scrollIntoView({ block: 'nearest' });
       return;
     }
     const key = item.paragraph_key;
     window.requestAnimationFrame(() => {
-      const target = document.querySelector(`.rich-paragraph-with-cites p[data-paragraph-key="${CSS.escape(key)}"]`);
+      const target = document.querySelector(`[data-testid="unheld-editor-text"] p[data-paragraph-key="${CSS.escape(key)}"]`);
       if (target) target.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      else setNotice('正文显示的是未提交的草稿，段落位置可能已变化；提交本节后再定位。');
     });
   }
   useEffect(() => {
@@ -250,7 +296,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   function localError(error: unknown) {
     report(error);
     if (error instanceof ApiError && ['INPUT_FINGERPRINT_REQUIRED', 'INPUT_FINGERPRINT_STALE'].includes(error.code)) {
-      setNotice(error.code === 'INPUT_FINGERPRINT_REQUIRED' ? '这份文字尚未记录来源依据，文字仍保留。请核对最新来源，再保存或提交。' : '条款、事实、证据或写作方案已经变化，本次保存或提交未成功，文字和原依据仍保留。请核对最新来源后再写入。');
+      setNotice('这次没有写入。页面上的文字还在，请再保存一次。');
       void reload().catch(report); return;
     }
     if (error instanceof ApiError && error.code === 'FACT_SOURCE_CHANGE_REQUIRED') { setSourceAdvice(true); setNotice(error.message); return; }
@@ -261,7 +307,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
       setNotice('本次操作没有权限，当前文字保留在页面。请核对最新项目成员和章节分工；个人草稿不会转送给其他人。');
       void reload().catch(report); return;
     }
-    if (error instanceof ApiError && error.status === 423) { currentLease.current = null; setLease(null); setNotice('编辑权已失效，当前文字仍在页面。请重新取得编辑权，避免覆盖其他人。'); }
+    if (error instanceof ApiError && error.status === 423) { currentLease.current = null; setLease(null); void acquire(null, true); }
     if (typeof isRevisionConflict === 'function' && isRevisionConflict(error)) {
       if (typeof handleRevisionConflict === 'function') void handleRevisionConflict(error, 'draft');
     }
@@ -271,7 +317,11 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     if (!isRevisionConflict(error)) return false;
     try {
       const latest = await request<Chapter>(`/api/chapters/${chapterId}`, token);
-      setConflict({ localContent: content, remoteContent: latest.content, remoteRevision: latest.revision, baseRevision: chapter?.revision ?? 0, target });
+      if (!chapter || latest.revision === chapter.revision) {
+        sequence.current = latest.draft?.sequence ?? sequence.current;
+        return false;
+      }
+      setConflict({ localContent: content, remoteContent: latest.content, remoteRevision: latest.revision, baseRevision: chapter.revision, target });
       return true;
     } catch (e) {
       report(e); setNotice('后台正文或草稿已变化，本次写入未成功。请核对最新版本。'); return false;
@@ -282,13 +332,13 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     if (!conflict || !chapter) return;
     const resolved = resolveConflictChoice(action, conflict);
     if (action === 'overwrite') {
-      if (!lease || !held) { setNotice('保留本地覆盖前请先取得编辑权。'); return; }
+      if (!lease || !held) { setNotice('正在接通本节，请稍后再保存。'); return; }
       await run(async () => {
         const latest = await request<Chapter>(`/api/chapters/${chapterId}`, token);
         const updated = { ...latest, revision: conflict.remoteRevision };
         setChapter(updated);
         const value = await request<NonNullable<Chapter['draft']>>(`/api/chapters/${chapterId}/draft`, token, 'PUT', {
-          lease_token: lease.lease_token, base_revision: conflict.remoteRevision, sequence: ++sequence.current, ...editingContentWrite(conflict.localContent, editFingerprint),
+          lease_token: lease.lease_token, base_revision: conflict.remoteRevision, sequence: ++sequence.current, ...editingContentWrite(conflict.localContent, editFingerprint ?? workspace.input_fingerprint),
         });
         setChapter({ ...updated, draft: value }); setEditFingerprint(value.input_fingerprint ?? null);
         setSavedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false }));
@@ -300,60 +350,52 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     }
   }
 
-  async function acquire(reason: string | null = null) {
+  async function acquire(reason: string | null = null, silent = false) {
     if (!canEdit || combinedBusy) return;
     await run(async () => {
       const start = epoch.current;
-      const result = await lock.acquireLock(reason);
+      try {
+        await lock.acquireLock(reason);
+      } catch (error) {
+        // 上一页关掉后锁还在本人名下。负责人不能无理由接管，但回到自己的锁不应挡住自动保存。
+        if (!(silent && error instanceof ApiError && error.code === 'TAKEOVER_REASON_REQUIRED')) throw error;
+        const holder = chapter?.lock?.owner_id ?? (await request<Chapter>(`/api/chapters/${chapterId}`, token).catch(() => null))?.lock?.owner_id;
+        if (holder !== user?.id) throw error;
+        await lock.acquireLock('同一账号回到本节');
+      }
       if (start !== epoch.current) return;
       const latest = await request<Chapter>(`/api/chapters/${chapterId}`, token);
       if (start !== epoch.current) return;
       if (chapter && latest.revision !== chapter.revision && modified) {
-        setNotice('取得编辑权时发现新版本。当前文字未被清除，请先查看最新版本，核对后再编辑。');
+        if (!silent) setNotice('正文已有新版本。当前文字仍在页面，请先看最新版本再决定是否覆盖。');
         await lock.releaseLock(); return;
       }
       setChapter(latest); sequence.current = latest.draft?.sequence ?? sequence.current;
       if (!modified) setContent(latest.draft?.base_revision === latest.revision ? latest.draft.content : latest.content);
-      setEditFingerprint(acquiredEditingFingerprint(editFingerprint, latest, modified));
-      setNotice('已取得编辑权。其他账号会被后台阻止写入。');
-    });
-  }
-
-  function takeover() {
-    let reason = '';
-    modal.confirm({
-      title: '说明接管编辑的理由',
-      content: <Input.TextArea aria-label="接管理由" placeholder="接管会使原编辑人的凭据失效，原因将留在操作记录中" onChange={e => { reason = e.target.value; }} />,
-      okText: '填写理由并接管',
-      onOk: async () => { if (!reason.trim()) throw new Error('请填写接管理由'); await acquire(reason); },
-    });
-  }
-
-  async function release() {
-    if (dirty) await autoSaveRef.current();
-    await run(async () => {
-      if (!lease) return;
-      const before = chapter?.revision ?? 0;
-      await lock.releaseLock();
-      const latest = await request<Chapter>(`/api/chapters/${chapterId}`, token);
-      setChapter(latest);
-      if (latest.revision > before) { setContent(latest.content); setNotice(`已释放编辑权；已保存的草稿已自动提交为 v${latest.revision}。`); await reload(); }
+      setEditFingerprint(acquiredEditingFingerprint(editFingerprint, latest, modified) ?? workspace.input_fingerprint);
     });
   }
 
   async function saveDraft() {
-    if (!chapter || !lease || !canEdit) return;
+    if (!chapter || !canEdit) return;
     await run(async () => {
+      const active = lease ?? await lock.acquireLock(null);
       const start = epoch.current;
       try {
         const value = await request<NonNullable<Chapter['draft']>>(`/api/chapters/${chapterId}/draft`, token, 'PUT', {
-          lease_token: lease.lease_token, base_revision: chapter.revision, sequence: ++sequence.current, ...editingContentWrite(content, editFingerprint),
+          lease_token: active.lease_token, base_revision: chapter.revision, sequence: ++sequence.current, ...editingContentWrite(content, editFingerprint ?? workspace.input_fingerprint),
         });
         if (start !== epoch.current) return;
         setChapter({ ...chapter, draft: value }); setEditFingerprint(value.input_fingerprint ?? null);
         setSavedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false })); setAutosavePaused(false);
-        setNotice('个人草稿及对应来源依据已保存；尚未进入正式正文和导出。');
+        setNotice('草稿已保存，尚未进入正式正文和导出。');
       } catch (error) {
+        if (start !== epoch.current) return;
+        if (error instanceof ApiError && error.code === 'DRAFT_SEQUENCE_CONFLICT') {
+          const latest = await request<Chapter>(`/api/chapters/${chapterId}`, token).catch(() => null);
+          if (latest?.draft && start === epoch.current) sequence.current = latest.draft.sequence;
+          return;
+        }
         if (isRevisionConflict(error) && (await handleRevisionConflict(error, 'draft'))) return;
         throw error;
       }
@@ -362,28 +404,38 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
 
   // 自动保存（APP-M2-T172）：停止输入 2 秒后、以及每隔公司设置的间隔，把手改保存为本人草稿；不提交为版本、不进入导出。
   // 失败时暂停自动保存并保留页面文字（来源变化、版本冲突按原规则提示），手动保存或提交成功后恢复。
-  async function autoSaveDraft(): Promise<boolean> {
+  async function autoSaveDraft(allowSequenceRetry = true): Promise<boolean> {
     if (!chapter || !lease || !canEdit) return false;
     if (!shouldAutosave({ held, dirty, saving: autosaving.current, paused: autosavePaused, busy: combinedBusy })) return !dirty;
     autosaving.current = true;
     const start = epoch.current;
+    let outcome: boolean | 'retry' = false;
     try {
       const value = await request<NonNullable<Chapter['draft']>>(`/api/chapters/${chapterId}/draft`, token, 'PUT', {
-        lease_token: lease.lease_token, base_revision: chapter.revision, sequence: ++sequence.current, ...editingContentWrite(content, editFingerprint),
+        lease_token: lease.lease_token, base_revision: chapter.revision, sequence: ++sequence.current, ...editingContentWrite(content, editFingerprint ?? workspace.input_fingerprint),
       });
-      if (start !== epoch.current) return false;
-      setChapter(prev => (prev ? { ...prev, draft: value } : prev)); setEditFingerprint(value.input_fingerprint ?? null);
-      setSavedAt(savedLabel(new Date(), true));
-      return true;
+      if (start === epoch.current) {
+        setChapter(prev => (prev ? { ...prev, draft: value } : prev)); setEditFingerprint(value.input_fingerprint ?? null);
+        setSavedAt(savedLabel(new Date(), true));
+        outcome = true;
+      }
     } catch (error) {
-      setAutosavePaused(true);
-      if (isRevisionConflict(error) && (await handleRevisionConflict(error, 'draft'))) return false;
-      localError(error);
-      setNotice(current => current || '自动保存暂停：本次没有保存成功，文字仍在页面。请处理提示后手动保存草稿，成功后会恢复自动保存。');
-      return false;
+      if (start === epoch.current && error instanceof ApiError && error.code === 'DRAFT_SEQUENCE_CONFLICT') {
+        const latest = await request<Chapter>(`/api/chapters/${chapterId}`, token).catch(() => null);
+        if (latest?.draft && start === epoch.current) sequence.current = latest.draft.sequence;
+        outcome = allowSequenceRetry ? 'retry' : false;
+      } else if (start === epoch.current) {
+        setAutosavePaused(true);
+        if (!(isRevisionConflict(error) && (await handleRevisionConflict(error, 'draft')))) {
+          localError(error);
+          setNotice(current => current || '自动保存暂停：本次没有保存成功，文字仍在页面。请处理提示后手动保存草稿，成功后会恢复自动保存。');
+        }
+      }
     } finally {
       autosaving.current = false;
     }
+    if (outcome === 'retry' && start === epoch.current) return autoSaveDraft(false);
+    return outcome === true;
   }
   const autoSaveRef = useRef(autoSaveDraft);
   autoSaveRef.current = autoSaveDraft;
@@ -399,12 +451,13 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   }, [held, autosavePaused, timings.autosaveMs]);
 
   async function commit() {
-    if (!chapter || !lease || !canEdit) return;
+    if (!chapter || !canEdit) return;
     await run(async () => {
+      const active = lease ?? await lock.acquireLock(null);
       const start = epoch.current;
       try {
         const committed = await request<{ paste_detected?: PastedParagraph[] | null }>(`/api/chapters/${chapterId}/versions`, token, 'POST', {
-          lease_token: lease.lease_token, base_revision: chapter.revision, ...editingContentWrite(content, editFingerprint), idempotency_key: crypto.randomUUID(),
+          lease_token: active.lease_token, base_revision: chapter.revision, ...editingContentWrite(content, editFingerprint ?? workspace.input_fingerprint), idempotency_key: newIdempotencyKey(),
         });
         const updated = await request<Chapter>(`/api/chapters/${chapterId}`, token);
         const current = await request<Workspace>(`/api/v1/projects/${workspace.project.id}/workspace`, token);
@@ -463,6 +516,75 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     else confirmLeave();
   }
 
+  const technicalOutline = workspace.technical_outline ?? null;
+  const honesty = parseHonesty(workspace);
+  const outlineChapter = technicalOutline ? workspace.chapters.find(item => item.id === technicalOutline.chapter_id) : undefined;
+
+  async function refreshOutlineChapter() {
+    if (!outlineChapter || chapterId !== outlineChapter.id || dirty) return;
+    const updated = await request<Chapter>(`/api/chapters/${chapterId}`, token);
+    setChapter(updated);
+    setContent(updated.content);
+    setEditFingerprint(loadedEditingFingerprint(updated, workspace.input_fingerprint));
+    sequence.current = updated.draft?.sequence ?? sequence.current;
+  }
+
+  async function saveDirectory(payload: {
+    title: string;
+    headings: Array<{
+      level: number;
+      title: string;
+      requirement_id: string | null;
+      task_id?: string | null;
+      requirement_ids?: string[];
+    }>;
+    confirm: boolean;
+  }) {
+    if (!outlineChapter) return;
+    await mutate(`/api/v1/projects/${workspace.project.id}/plan`, 'POST', {
+      scope: 'technical',
+      chapters: [{ id: outlineChapter.id, title: payload.title.trim() || technicalOutline?.title || outlineChapter.title, volume: 'technical', fact_ids: [], writing_points: '' }],
+      outline_title: payload.title.trim() || technicalOutline?.title,
+      outline_headings: payload.headings.map(item => ({
+        level: [1, 2, 3, 4].includes(item.level) ? item.level : 2,
+        title: item.title.trim(),
+        requirement_id: item.requirement_id ?? null,
+        task_id: item.task_id ?? null,
+        requirement_ids: item.requirement_ids ?? (item.requirement_id ? [item.requirement_id] : []),
+      })),
+      confirm_outline: payload.confirm,
+    });
+    await refreshOutlineChapter().catch(() => undefined);
+  }
+
+  async function generateDirectory(section?: string) {
+    await mutate(`/api/v1/projects/${workspace.project.id}/generate`, 'POST', section ? { section } : {});
+    const target = technicalOutline?.chapter_id;
+    if (target && target !== chapterId) {
+      selectChapter(target, 'technical');
+      return;
+    }
+    await refreshOutlineChapter().catch(() => undefined);
+  }
+
+  const generatedDirectory: GeneratedDirectory | null = technicalOutline && outlineChapter && technicalOutline.headings.length > 0 ? {
+    title: technicalOutline.title,
+    chapterId: technicalOutline.chapter_id,
+    headings: technicalOutline.headings,
+    missing: technicalOutline.missing,
+    reviewTitles: workspace.technical_needs_review ?? workspace.technical_quality?.review_titles ?? [],
+    chapterContent: outlineChapter.id === chapterId ? content : outlineChapter.content,
+    confirmed: workspace.plan_confirmed,
+    canPrepare: projectCan(workspace, 'prepare_sources'),
+    canGenerate: outlineChapter.permissions?.generate !== false,
+    busy: projectBusy || busy,
+    onSave: saveDirectory,
+    onGenerate: generateDirectory,
+    onOpen: () => selectChapter(outlineChapter.id, 'technical'),
+    onExport: () => navigate('export'),
+    onCoverage: () => navigate('analyze'),
+  } : null;
+
   return <>
     <div
       className={`editor-layout ${breakpoint.tier} ${directoryCollapsed ? 'directory-collapsed' : ''} ${assistantCollapsed ? 'assistant-collapsed' : ''}`}
@@ -472,120 +594,208 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     >
       {/* 1. 左侧章节大纲树面板 */}
       {!directoryCollapsed && !breakpoint.isSubCompact ? (
-        <aside className="chapter-directory chapter-directory-panel" data-testid="editor-directory-panel">
-          <div className="directory-panel-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 4px', borderBottom: '1px solid #e8ebf0', marginBottom: 8 }}>
-            <Space size={6}><UnorderedListOutlined style={{ color: '#1e4db7' }} /><span style={{ fontWeight: 600, fontSize: 13, color: '#1d2129' }}>章节大纲树</span></Space>
+        <aside className="chapter-directory chapter-directory-panel is-wps" data-testid="editor-directory-panel">
+          <div className="directory-panel-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '6px 4px', borderBottom: 'none', marginBottom: 0 }}>
             <Tooltip title="收起大纲面板以扩大编辑区"><Button size="small" type="text" icon={<MenuFoldOutlined />} onClick={() => setDirectoryCollapsed(true)} data-testid="collapse-outline-btn" /></Tooltip>
           </div>
           <div className="directory-tree-scroll" style={{ flex: 1, overflow: 'auto' }}>
             <OutlineTreeView
               nodes={outlineNodes}
               activeVolume={volume}
-              onVolumeChange={v => { const nextVol = v as Volume; selectChapter(workspace.chapters.find(c => c.volume === nextVol)?.id || '', nextVol); }}
+              directory={generatedDirectory}
+              plain
               selectedChapterId={chapterId}
               onSelectChapter={node => selectChapter(node.id, node.volume as Volume)}
               onNavigateToEditor={id => selectChapter(id)}
             />
           </div>
-          <div className="directory-bottom" style={{ marginTop: 'auto', paddingTop: 12 }}>
+          {!generatedDirectory && <div className="directory-bottom" style={{ marginTop: 'auto', paddingTop: 12 }}>
             <Button block size="small" onClick={() => ops.setPlanOpen(true)} disabled={combinedBusy || !workspace.parse_confirmed} data-testid="editor-open-plan-btn">写作方案与大纲确认</Button>
             <p className="muted" style={{ fontSize: 11, margin: '6px 0 0' }}>已确认方案 {workspace.chapters.filter(item => item.writing_input?.is_current).length} / {workspace.chapters.length} 节；每节独立办理</p>
-          </div>
+          </div>}
         </aside>
       ) : (
         <aside className="chapter-directory-collapsed-strip" data-testid="editor-directory-collapsed-strip">
-          <Tooltip title="展开大纲树" placement="right"><Button size="small" type="text" icon={<MenuUnfoldOutlined />} onClick={() => { if (breakpoint.isSubCompact) setOutlineDrawerOpen(true); else setDirectoryCollapsed(false); }} data-testid="expand-outline-btn" /></Tooltip>
-          <Tooltip title="以抽屉查看大纲树" placement="right"><Button size="small" type="text" icon={<BarsOutlined />} onClick={() => setOutlineDrawerOpen(true)} data-testid="open-outline-drawer-btn" /></Tooltip>
-          <span style={{ writingMode: 'vertical-rl', fontSize: 12, color: '#4e5969', letterSpacing: 2, marginTop: 8 }}>大纲目录</span>
+          <Tooltip title="展开大纲树" placement="right">
+            <Button
+              size="small"
+              type="text"
+              icon={<MenuUnfoldOutlined />}
+              aria-label="展开大纲"
+              onClick={() => {
+                if (breakpoint.isSubCompact) setOutlineDrawerOpen(true);
+                else setDirectoryCollapsed(false);
+              }}
+              data-testid="expand-outline-btn"
+            />
+          </Tooltip>
         </aside>
       )}
 
       {/* 2. 中间正文编辑区 */}
       <section className="editor-center" data-testid="editor-center-section">
-        <EditorSlaTools workspace={workspace} factId={ops.factId} setFactId={ops.setFactId} slaKey={ops.slaKey} setSlaKey={ops.setSlaKey} held={held} combinedBusy={combinedBusy} onInsertFact={ops.insertProjectFact} onInsertVariable={ops.insertVariable} />
+        {honesty.degraded && (
+          <Alert
+            className="editor-notice"
+            type="warning"
+            showIcon
+            data-testid="parse-honesty-warning"
+            message="解析结果不完整"
+            description={honesty.text}
+          />
+        )}
+        {workspace.technical_kb && !workspace.technical_kb.ready && (
+          <Alert
+            className="editor-notice"
+            type="warning"
+            showIcon
+            data-testid="technical-kb-missing"
+            message="企业知识库未齐备"
+            description={`缺 ${workspace.technical_kb.missing.join(' / ')}。仍可生成，但相关节企业 RAG 为空并标待补，不会静默假成功。`}
+          />
+        )}
+        {workspace.writer_model?.name && (
+          <div className="muted" data-testid="writer-model-status" style={{ marginBottom: 8 }}>
+            正文模型 {workspace.writer_model.name}
+            {workspace.writer_model.is_real
+              ? (workspace.writer_model.is_local ? ' · 本地真实' : ' · 真实')
+              : ' · 替身'}
+            {workspace.tender_index?.chunk_count
+              ? ` · 本标 ${workspace.tender_index.chunk_count} 片`
+              : ''}
+          </div>
+        )}
+        {generatedDirectory && (
+          <div className="editor-main-path" data-testid="technical-main-path" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+            <Button
+              type={generatedDirectory.confirmed ? 'default' : 'primary'}
+              disabled={generatedDirectory.confirmed || !generatedDirectory.canPrepare || !!generatedDirectory.busy}
+              onClick={() => void generatedDirectory.onSave({
+                title: generatedDirectory.title,
+                headings: generatedDirectory.headings.map(item => ({
+                  level: item.level,
+                  title: item.title,
+                  requirement_id: item.requirement_id ?? null,
+                  task_id: item.task_id ?? null,
+                  requirement_ids: item.requirement_ids ?? (item.requirement_id ? [item.requirement_id] : []),
+                })),
+                confirm: true,
+              })}
+            >{generatedDirectory.confirmed ? '目录已确认' : '确认目录'}</Button>
+            <Button
+              type="primary"
+              data-testid="main-path-generate"
+              disabled={!generatedDirectory.confirmed || !!generatedDirectory.busy || !generatedDirectory.canGenerate}
+              onClick={() => void generateDirectory().catch(() => undefined)}
+            >{generatedDirectory.busy ? '生成中…' : '开始生成'}</Button>
+            <Button data-testid="main-path-export" onClick={() => navigate('export')}>导出</Button>
+            <Button type="link" data-testid="main-path-coverage" onClick={() => navigate('analyze')}>覆盖视图</Button>
+          </div>
+        )}
 
-        <div className="editor-toolbar">
-          <Space size={6}>
-            {(directoryCollapsed || breakpoint.isSubCompact) && (
-              <Tooltip title="展开大纲树"><Button size="small" icon={<BarsOutlined />} onClick={() => setOutlineDrawerOpen(true)} data-testid="toolbar-outline-drawer-btn">大纲</Button></Tooltip>
+        <div className="editor-toolbar" data-testid="technical-editor-toolbar">
+          <Space size={6} wrap>
+            <Tooltip title="撤回"><Button size="small" icon={<UndoOutlined />} onClick={() => paperRef.current?.undo()} disabled={!canEdit} /></Tooltip>
+            <Tooltip title="重做"><Button size="small" icon={<RedoOutlined />} onClick={() => paperRef.current?.redo()} disabled={!canEdit} /></Tooltip>
+            <Tooltip title="标题"><Button size="small" onClick={() => paperRef.current?.heading(2)} disabled={!canEdit || combinedBusy}>标题</Button></Tooltip>
+            <Tooltip title="正文"><Button size="small" onClick={() => paperRef.current?.paragraph()} disabled={!canEdit || combinedBusy}>正文</Button></Tooltip>
+            <Tooltip title="加粗"><Button size="small" icon={<BoldOutlined />} onClick={() => paperRef.current?.bold()} disabled={!canEdit || combinedBusy} data-testid="toolbar-bold" /></Tooltip>
+            <Tooltip title="下划线"><Button size="small" icon={<UnderlineOutlined />} onClick={() => paperRef.current?.underline()} disabled={!canEdit || combinedBusy} data-testid="toolbar-underline" /></Tooltip>
+            <Tooltip title="项目符号"><Button size="small" icon={<UnorderedListOutlined />} onClick={() => paperRef.current?.bullet()} disabled={!canEdit || combinedBusy} /></Tooltip>
+            <Tooltip title="编号"><Button size="small" onClick={() => paperRef.current?.ordered()} disabled={!canEdit || combinedBusy}>1.</Button></Tooltip>
+            <Tooltip title="表格"><Button size="small" icon={<TableOutlined />} onClick={() => paperRef.current?.table()} disabled={!canEdit || combinedBusy} data-testid="toolbar-table" /></Tooltip>
+            <Tooltip title="图片说明"><Button size="small" icon={<PictureOutlined />} onClick={() => paperRef.current?.insertParagraph('（图：请替换为示意图）')} disabled={!canEdit || combinedBusy} /></Tooltip>
+            {generatedDirectory?.confirmed && (
+              <Button type="primary" size="small" data-testid="toolbar-generate"
+                disabled={!!generatedDirectory.busy || !generatedDirectory.canGenerate}
+                onClick={() => void generateDirectory().catch(() => undefined)}>开始生成</Button>
             )}
-            <Tooltip title="正文格式与选区工具将在结构化编辑器中实现"><Button size="small" disabled>格式</Button></Tooltip>
-            <Button size="small" icon={<HistoryOutlined />} onClick={viewVersions} disabled={combinedBusy || !chapter}>版本</Button>
-            {chapter && !systemKind && <ParagraphLocksBar projectId={workspace.project.id} chapter={chapter} content={content} token={token} canEdit={canEdit && dataPermission.canEdit}
-              busy={combinedBusy} cursor={() => selection.current?.start ?? null} report={report}
-              onChanged={async () => { const latest = await request<Chapter>(`/api/chapters/${chapterId}`, token); setChapter(latest); }} />}
-            <Tooltip title="生成整章候选，不会直接改动正文"><Button size="small" onClick={ops.generate} disabled={combinedBusy || !planCurrent || !canGenerate || !chapter}>生成候选</Button></Tooltip>
+            <Tooltip title="版本历史（次级）"><Button size="small" type="text" icon={<HistoryOutlined />} onClick={viewVersions} disabled={combinedBusy || !chapter}>版本</Button></Tooltip>
           </Space>
           <Space size={6}>
-            <Tag color={held ? 'green' : canEdit && chapter?.lock ? 'orange' : 'default'} icon={held ? <LockOutlined /> : <UnlockOutlined />}>{!canEdit ? '当前无本节编辑权限' : held ? '本人锁定' : chapter?.lock ? lockHolderLabel(chapter.lock, user?.id) : '未取得编辑权'}</Tag>
             {savedAt && <span className="saved-at" data-testid="editor-saved-at">{savedAt} 已保存</span>}
             {autosavePaused && held && <Tag color="orange" data-testid="autosave-paused-tag">自动保存已暂停</Tag>}
             {dirty && <Tag color="warning" data-testid="dirty-status-tag" icon={<SaveOutlined />}>未保存修改</Tag>}
-            <Button size="small" icon={<SaveOutlined />} onClick={saveDraft} disabled={combinedBusy || !held || !dirty} type={dirty ? "dashed" : "default"} data-testid="toolbar-save-draft-btn">保存草稿{dirty ? ' *' : ''}</Button>
-            <Button type="primary" size="small" onClick={commit} disabled={combinedBusy || !held || !chapter} loading={busy}>提交本节</Button>
-            <Tooltip title={assistantCollapsed ? "展开对话助手" : "收起对话助手以扩展编辑区"}>
-              <Button size="small" type="text" icon={assistantCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setAssistantCollapsed(!assistantCollapsed)} data-testid="toggle-assistant-btn">
-                {assistantCollapsed ? '展开助手' : '收起助手'}
-              </Button>
-            </Tooltip>
+            <Button size="small" icon={<SaveOutlined />} onClick={saveDraft} disabled={combinedBusy || !canEdit || !dirty} type={dirty ? "dashed" : "default"} data-testid="toolbar-save-draft-btn">保存草稿{dirty ? ' *' : ''}</Button>
+            <Button type="primary" size="small" onClick={commit} disabled={combinedBusy || !canEdit || !chapter} loading={busy}>提交本节</Button>
           </Space>
         </div>
 
         <Spin spinning={loading}><div className="editor-scroll">
-          {sourceAdvice && <Alert className="editor-notice" type="warning" showIcon message="取值由数据源决定，助手不能代改" action={<Space><Button size="small" onClick={() => navigate('facts')}>去项目事实表</Button><Button size="small" onClick={() => navigate('matrix')}>去服务承诺矩阵</Button></Space>} closable onClose={() => setSourceAdvice(false)} />}
-          {sourceStale && <Alert className="editor-notice" type="warning" showIcon message={editFingerprint ? '当前文字依据的来源已经变化' : '当前草稿没有记录来源依据'} description="文字和原依据仍保留，不能直接视为采用了最新资料。请核对当前条款、事实和证据，再决定是否使用这些文字。" action={<Button size="small" disabled={combinedBusy} onClick={() => ops.reviewCurrentSources('editor')}>核对最新来源</Button>} />}
+          {sourceAdvice && <Alert className="editor-notice" type="warning" showIcon message="取值由数据源决定，助手不能代改" action={<Space><Button size="small" onClick={() => navigate('analyze')}>回到分析</Button><Button size="small" onClick={() => navigate('analyze')}>回到分析里的承诺</Button></Space>} closable onClose={() => setSourceAdvice(false)} />}
           {notice && <Alert className="editor-notice" showIcon type={notice.includes('变化') || notice.includes('失败') || notice.includes('失效') ? 'warning' : 'info'} message={notice} closable onClose={() => setNotice('')} />}
 
-          {chapter ? <article className="document-paper" ref={editorWrapperRef} style={{ position: 'relative' }}>
+          {chapter ? <article className="editor-chapter-shell" ref={editorWrapperRef} style={{ position: 'relative' }} onMouseUp={handleContainerMouseUp}>
             <SelectionBubble visible={selectionBubble.visible} position={selectionBubble.position} selectedText={selectionBubble.text} onPolish={handleBubblePolish} onComplianceQa={handleBubbleComplianceQa} onClear={handleBubbleClear} />
             {systemKind && activeChapter && <SystemChapterPanel chapterId={activeChapter.id} canGenerate={chapterCan(activeChapter, 'edit') && dataPermission.canEdit} />}
             {isReadOnlyView && !systemKind && <ReadonlyBanner banner reason={dataPermission.readOnlyReason || '当前章节处于只读浏览状态'} scope={dataPermission.scopeName || activeChapter?.title || volumeName(chapter.volume)} roleName={dataPermission.roleLabel} style={{ marginBottom: 16 }} />}
             <div className="document-heading">
               <h2>{chapter.title}</h2>
               <Tag>{volumeName(chapter.volume)}</Tag>
-              {isCurrentVolumeFinalized ? <Tag color="success" data-testid="editor-volume-finalized-tag">分册已定稿</Tag> : <Tag color="default" data-testid="editor-volume-unfinalized-tag">分册编制中</Tag>}
             </div>
-            <p className="document-subline">本节编写人 {activeChapter?.assignee_name || '未指定'} · 正文版本 v{chapter.revision} · {sources.length} 条关联要求 · {!canEdit ? '只读，请核对本节分工' : held ? '已取得编辑权' : '只读，请先取得编辑权'}</p>
-            {sources.length > 0 && <div className="chapter-source-summary"><span className="source-label">招标原文</span><div>{sources.map(item => <p key={item.id}>{item.text} <Cite type="tender" marker={`P.${item.source.page}`} metadata={{ page: item.source.page, quote: item.text, title: '招标原文' }} /></p>)}</div></div>}
-            <SourceBar kind="evidence" layout="bottom" sourceName={chapter.title} version={chapter.revision} fingerprint={editFingerprint} status={sourceStale ? 'stale' : 'confirmed'} onVerifySource={() => ops.reviewCurrentSources('editor')} />
+            <p className="document-subline">本节编写人 {activeChapter?.assignee_name || '未指定'} · 正文版本 v{chapter.revision}</p>
 
-            {isReadOnlyView ? (
-              <div className="chapter-editor-readonly-view" data-testid="readonly-editor-view">
-                <div className="chapter-editor-readonly-text" data-testid="readonly-editor-text" onMouseUp={handleContainerMouseUp} style={{ minHeight: 280, padding: 16, background: '#fafafa', border: '1px solid #e5e6eb', borderRadius: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#1d2129', lineHeight: 1.8, fontSize: 14 }}>
-                  {content ? <RichParagraphWithCites content={content} knownCitations={knownCitations} onCiteClick={handleCiteClick} paragraphKeys={paragraphsMatch(chapter.paragraphs, content, chapter.content) ? chapter.paragraphs : undefined} variables={shownVariables} onGoToSource={goToSource} issueMarkers={issues.markers} onIssueMarkerClick={showParagraphIssues} focusedKey={issues.focusedKey} /> : <span className="muted" style={{ color: '#86909c' }}>（本章节暂无已提交正文）</span>}
-                </div>
-              </div>
-            ) : !held ? (
-              <div className="chapter-editor-unheld-view" data-testid="unheld-editor-view">
-                <Alert type="info" showIcon message="当前未取得本节编辑锁" description="正文以纯文本方式呈现供浏览与校对。如需修改，请点击下方或工具栏的「取得编辑权」。" style={{ marginBottom: 12 }}
-                  action={<Button size="small" type="primary" icon={<LockOutlined />} onClick={() => acquire()} disabled={combinedBusy || !canEdit} data-testid="unheld-acquire-btn">取得编辑权</Button>} />
-                <div className="chapter-editor-unheld-text" data-testid="unheld-editor-text" onMouseUp={handleContainerMouseUp} style={{ minHeight: 280, padding: 16, background: '#fcfcfd', border: '1px dashed #d9d9d9', borderRadius: 4, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#262626', lineHeight: 1.8, fontSize: 14 }}>
-                  {content ? <RichParagraphWithCites content={content} knownCitations={knownCitations} onCiteClick={handleCiteClick} paragraphKeys={paragraphsMatch(chapter.paragraphs, content, chapter.content) ? chapter.paragraphs : undefined} variables={shownVariables} onGoToSource={goToSource} issueMarkers={issues.markers} onIssueMarkerClick={showParagraphIssues} focusedKey={issues.focusedKey} /> : <span className="muted" style={{ color: '#8c8c8c' }}>（本章节暂无正文内容）</span>}
-                </div>
-              </div>
-            ) : (
-              <div className="chapter-editor-editable-wrapper" style={{ position: 'relative' }}>
-                {lockedExcerpts.length > 0 && <Alert type="info" showIcon style={{ marginBottom: 8 }} data-testid="locked-paragraphs-notice"
-                  message={`本节有 ${lockedExcerpts.length} 个锁定段落，提交时须原样保留（可以挪位置）`}
-                  description={<ul style={{ margin: 0, paddingLeft: 18 }}>{lockedExcerpts.map(item => <li key={item.key}>{item.text}（{item.by}）</li>)}</ul>} />}
-                <Input.TextArea ref={textareaRef} className="chapter-editor" aria-label="章节正文" placeholder="根据招标原文、项目事实和可引用证据编制正文。不要把未经核实的承诺直接写入。" autoSize={{ minRows: 18, maxRows: 35 }} value={content} onSelect={e => { lock.markActivity(); handleTextareaSelect(e); setCursorKey(chapter.content === content ? paragraphAtOffset(content, e.currentTarget.selectionStart, chapter.paragraphs)?.key ?? null : null); }} onKeyDown={lock.markActivity} onMouseDown={lock.markActivity} onScroll={lock.markActivity} onChange={e => { lock.markActivity(); selection.current = { start: e.target.selectionStart, end: e.target.selectionEnd }; setContent(e.target.value); }} readOnly={!held || combinedBusy} />
-                {shownVariables.length > 0 && (
-                  <div className="editor-variable-bar" data-testid="editor-variable-bar" style={{ marginTop: 8, padding: '8px 12px', background: '#fffdf5', border: '1px solid #f5e6b8', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 12, color: '#4e5969', fontWeight: 500 }}>正文变量 ({shownVariables.length})：</span>
-                    {shownVariables.map(item => <VariableChip key={`${item.start}-${item.token}`} node={item} onGoToSource={goToSource} />)}
-                  </div>
-                )}
-                {invalidVariables.length > 0 && <Alert type="error" showIcon style={{ marginTop: 8 }} data-testid="invalid-variables-notice"
-                  message={`${invalidVariables.length} 个变量已失效`} description="新写入的失效变量不能提交；正文原有的失效变量会在检查时拦截导出。取值请到数据源核对。"
-                  action={<Space direction="vertical">{Array.from(new Set(invalidVariables.map(item => item.source))).map(source => <Button key={source} size="small" onClick={() => goToSource(source)}>{source === 'facts' ? '去项目事实表' : '去服务承诺矩阵'}</Button>)}</Space>} />}
-                {detectedCitations.allIds.length > 0 && (
-                  <div className="editor-citation-bar" data-testid="editor-citation-bar" style={{ marginTop: 8, padding: '8px 12px', background: '#f7f8fa', border: '1px solid #e5e6eb', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 12, color: '#4e5969', fontWeight: 500 }}>正文引用依据 ({detectedCitations.allIds.length})：</span>
-                    {detectedCitations.allIds.map(id => (<CiteCapsule key={id} id={id} type={detectedCitations.snippetIds.includes(id) ? 'snippet' : 'evidence'} meta={knownCitations[id]} onHighlightInSources={handleCiteClick} />))}
-                  </div>
-                )}
+            {showHistoryCommitmentNotice && historyCommitmentNotice && (
+              <Alert
+                className="editor-notice"
+                type="warning"
+                showIcon
+                data-testid="history-commitment-notice"
+                message={historyCommitmentNotice.message}
+                description={historyCommitmentNotice.filenames.length > 0 ? (
+                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    {historyCommitmentNotice.filenames.map(name => <li key={name}>{name}</li>)}
+                  </ul>
+                ) : undefined}
+                closable
+                onClose={() => void dismissHistoryCommitmentNotice()}
+                style={{ marginBottom: 12 }}
+              />
+            )}
+
+            {(issues.markers.size > 0 || (!held && shownVariables.length > 0)) && (
+              <div data-testid="unheld-editor-text">
+                {[...issues.markers.entries()].map(([key, marker]) => (
+                  <p key={key} data-paragraph-key={key} className={issues.focusedKey === key ? 'paragraph-focused' : ''}>
+                    <button type="button" data-testid="paragraph-issue-marker" onClick={() => showParagraphIssues(key)}>{marker.count}</button>
+                  </p>
+                ))}
+                {!held && shownVariables.map(node => <VariableChip key={`${node.kind}-${node.ref}-${node.start}`} node={node} onGoToSource={goToSource} />)}
               </div>
             )}
+            {held && chapter && canEdit && (
+              <ParagraphLocksBar
+                projectId={workspace.project.id}
+                chapter={chapter}
+                content={content}
+                token={token}
+                canEdit={canEdit}
+                busy={combinedBusy}
+                cursor={() => paperRef.current?.caretOffset() ?? null}
+                onChanged={async () => { setChapter(await request<Chapter>(`/api/chapters/${chapterId}`, token)); }}
+                report={report}
+              />
+            )}
+            {held && shownVariables.length > 0 && (
+              <div data-testid="editor-variable-bar">
+                {shownVariables.map(node => <VariableChip key={`${node.kind}-${node.ref}-${node.start}`} node={node} onGoToSource={goToSource} />)}
+              </div>
+            )}
+            {invalidVariables.length > 0 && (
+              <Alert data-testid="invalid-variables-notice" type="warning" showIcon message={`${invalidVariables.length} 个变量已失效`}
+                action={<Button size="small" onClick={() => goToSource(invalidVariables[0].source)}>{sourceLabel(invalidVariables[0].source)}</Button>} />
+            )}
+            <div className={canEdit ? 'chapter-editor-editable-wrapper' : 'chapter-editor-unheld-view'} data-testid={canEdit ? 'paper-editor-held' : 'unheld-editor-view'}>
+              <PaperEditor
+                ref={paperRef}
+                markdown={content}
+                editable={canEdit && !combinedBusy}
+                generating={!!(projectBusy || busy)}
+                onChange={value => { lock.markActivity(); setContent(value); }}
+                onActivity={() => lock.markActivity()}
+                onSelection={range => { selection.current = range ? { start: range.start, end: range.end } : null; }}
+              />
+            </div>
 
             <div className="document-footer">
               <div className="document-footer-metrics" data-testid="editor-word-count" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -599,23 +809,50 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
               </div>
               <Space>
                 <Button size="small" onClick={ops.keepLocalText} disabled={!content}>保留当前文字到本地</Button>
-                <Button size="small" type={dirty && held ? 'primary' : 'default'} icon={<SaveOutlined />} onClick={saveDraft} disabled={combinedBusy || !held || !dirty} data-testid="save-draft-btn">保存草稿{dirty ? ' *' : ''}</Button>
-                {held ? <Button size="small" onClick={release} disabled={combinedBusy}>释放编辑权</Button> : <Button size="small" type="primary" icon={<LockOutlined />} onClick={() => acquire()} disabled={combinedBusy || !canEdit || isCurrentVolumeFinalized} title={isCurrentVolumeFinalized ? "当前分册已定稿锁定，如需修改请先解锁定稿" : undefined}>取得编辑权</Button>}
-                {!held && chapter.lock && chapterCan(activeChapter, 'takeover') && <Button size="small" danger onClick={takeover} disabled={combinedBusy}>填写理由接管</Button>}
+                <Button size="small" type={dirty && canEdit ? 'primary' : 'default'} icon={<SaveOutlined />} onClick={saveDraft} disabled={combinedBusy || !canEdit || !dirty} data-testid="save-draft-btn">保存草稿{dirty ? ' *' : ''}</Button>
               </Space>
             </div>
             {chapter.draft && <Button size="small" danger disabled={combinedBusy} onClick={ops.deleteOwnDraft}>明确删除本人已保存草稿</Button>}
             {chapter.draft && chapter.draft.base_revision !== chapter.revision && <Card size="small" title={`旧草稿（基于 v${chapter.draft.base_revision}，未自动覆盖）`}
               extra={<Button size="small" disabled={combinedBusy || !held} onClick={() => ops.reviewRecovery({ title: `旧草稿 v${chapter.draft!.base_revision}`, content: chapter.draft!.content, source_kind: 'draft', input_fingerprint: chapter.draft!.input_fingerprint ?? null })}>核对并恢复</Button>} className="old-draft"><pre>{chapter.draft.content}</pre></Card>}
-          </article> : <Empty description="当前分册没有可编辑章节" />}
+          </article> : <Empty description="当前没有可编辑章节" />}
         </div></Spin>
       </section>
 
       {/* 3. 右侧对话助手与面板 */}
+      {assistantCollapsed ? (
+        <aside className="assistant-collapsed-strip" data-testid="editor-assistant-collapsed-strip">
+          <Tooltip title="展开对话助手" placement="left">
+            <Button
+              size="small"
+              type="text"
+              icon={<MenuUnfoldOutlined />}
+              aria-label="展开助手"
+              onClick={() => setAssistantCollapsed(false)}
+              data-testid="toggle-assistant-btn"
+            />
+          </Tooltip>
+        </aside>
+      ) : (
       <EditorAssistantPanel
         rightTab={rightTab} setRightTab={setRightTab} candidate={candidate} candidateIssue={candidateIssue} instruction={ops.instruction} setInstruction={ops.setInstruction}
         combinedBusy={combinedBusy} held={held} canEdit={canEdit} canGenerate={canGenerate} chapter={chapter} planCurrent={planCurrent} modified={modified} workspace={workspace}
         chapterId={chapterId} onViewInput={() => ops.setInputOpen(true)} onShowDiff={ops.showDiff} onSuggest={ops.suggest}
+        technicalAssistant
+        generating={!!(projectBusy || busy)}
+        draftReady={(outlineChapter?.content || content || '').trim().length > 20}
+        collapseControl={(
+          <Tooltip title="收起对话助手以扩展编辑区">
+            <Button
+              size="small"
+              type="text"
+              icon={<MenuFoldOutlined />}
+              aria-label="收起助手"
+              onClick={() => setAssistantCollapsed(true)}
+              data-testid="toggle-assistant-btn"
+            />
+          </Tooltip>
+        )}
         selectionTools={
           <SelectionRewritePanel projectId={workspace.project.id} chapter={chapter} content={content} selection={rewriteSelection}
             leaseToken={held && lease ? lease.lease_token : null} canGenerate={canEdit} busy={combinedBusy} token={token}
@@ -625,6 +862,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         issuesPanel={<EditorIssuePanel data={issues.data} loading={issues.loading} error={issues.error} filter={issues.filter} onFilterChange={issues.setFilter}
           activeId={issues.activeId} highlightKey={held ? cursorKey : issues.focusedKey} onLocate={locateIssue} onReload={issues.reload} />}
       />
+      )}
     </div>
 
     {/* 4. 差异对比 Modal */}
@@ -652,8 +890,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     {/* 7. 章节大纲树抽屉 */}
     <Drawer title="章节大纲与目录树" open={outlineDrawerOpen} onClose={() => setOutlineDrawerOpen(false)} width={420} placement="left" data-testid="editor-outline-drawer">
       <OutlineTreeView
-        nodes={outlineNodes} activeVolume={volume}
-        onVolumeChange={v => { const nextVol = v as Volume; selectChapter(workspace.chapters.find(c => c.volume === nextVol)?.id || '', nextVol); }}
+        nodes={outlineNodes} activeVolume={volume} directory={generatedDirectory} plain
         selectedChapterId={chapterId} onSelectChapter={node => { selectChapter(node.id, node.volume as Volume); setOutlineDrawerOpen(false); }}
         onNavigateToEditor={id => { selectChapter(id); setOutlineDrawerOpen(false); }}
       />

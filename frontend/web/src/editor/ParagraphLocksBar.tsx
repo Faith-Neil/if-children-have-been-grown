@@ -46,6 +46,7 @@ export function ParagraphLocksBar(props: {
 
   return (
     <Space size={4} data-testid="paragraph-locks-bar" onMouseEnter={() => setTick(t => t + 1)}>
+      {locks.length > 0 && <span data-testid="locked-paragraphs-notice">{locks.map(item => item.excerpt).join('；')}</span>}
       <Tooltip title={action.reason}>
         <Button size="small" icon={<LockOutlined />} disabled={!action.enabled || working || busy} data-testid="paragraph-lock-btn"
           onClick={() => paragraph && void run(() => request(base, token, 'POST', { paragraph_key: paragraph.key, base_revision: chapter.revision }))}>

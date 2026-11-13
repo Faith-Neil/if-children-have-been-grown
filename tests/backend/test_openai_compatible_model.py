@@ -288,6 +288,85 @@ def test_real_model_tests_skip_unless_the_flag_is_exactly_one(monkeypatch):
     assert real_model_skip_reason() is None
 
 
+def _sse_lines(*deltas: dict) -> bytes:
+    parts = []
+    for delta in deltas:
+        parts.append("data: " + json.dumps({"choices": [{"delta": delta}]}, ensure_ascii=False))
+    parts.append("data: [DONE]")
+    return ("\n".join(parts) + "\n").encode("utf-8")
+
+
+def test_thinking_sse_with_empty_content_uses_reasoning_json():
+    from icg.infra.openai_model import _assistant_text
+
+    payload = {"items": [{"role": "response_mount", "text": "每月巡检", "kind": "scoring"}]}
+    body = _sse_lines(
+        {"reasoning": "先看条款…"},
+        {"reasoning_content": "再整理 JSON。"},
+        {"reasoning": "最终输出：\n" + json.dumps(payload, ensure_ascii=False)},
+        {"content": ""},
+    )
+    response = httpx.Response(200, headers={"content-type": "text/event-stream"}, content=body)
+    text = _assistant_text(response)
+    assert json.loads(text) == payload
+
+
+def test_thinking_prefers_trailing_tree_array_over_earlier_object():
+    from icg.infra.openai_model import _assistant_text
+
+    tree = [{"level": 1, "title": "运维保障与巡检", "mount_ids": ["r1"]}]
+    reasoning = (
+        "先列一个草稿对象 {\"title\": \"规范 2方案\", \"level\": 1}\n"
+        "最终目录：\n" + json.dumps(tree, ensure_ascii=False)
+    )
+    body = _sse_lines(
+        {"reasoning": reasoning},
+        {"content": ""},
+    )
+    response = httpx.Response(200, headers={"content-type": "text/event-stream"}, content=body)
+    text = _assistant_text(response)
+    assert json.loads(text) == tree
+
+
+def test_jsonish_keeps_extract_object_not_inner_array():
+    from icg.infra.openai_model import _jsonish_payload
+
+    payload = {"items": [{"role": "response_mount", "text": "每月巡检", "kind": "scoring"}]}
+    thought = "整理条款后输出：\n" + json.dumps(payload, ensure_ascii=False)
+    assert json.loads(_jsonish_payload(thought)) == payload
+
+
+def test_thinking_message_uses_reasoning_when_content_blank():
+    from icg.infra.openai_model import _assistant_text
+
+    payload = [{"level": 1, "title": "运维保障与巡检", "mount_ids": ["r1"]}]
+    response = httpx.Response(200, json={
+        "choices": [{
+            "message": {
+                "role": "assistant",
+                "content": "   ",
+                "reasoning": "目录如下\n" + json.dumps(payload, ensure_ascii=False),
+            },
+        }],
+    })
+    assert json.loads(_assistant_text(response)) == payload
+
+
+def test_content_still_wins_over_reasoning():
+    from icg.infra.openai_model import _assistant_text
+
+    response = httpx.Response(200, json={
+        "choices": [{
+            "message": {
+                "role": "assistant",
+                "content": '{"ok":true}',
+                "reasoning": '{"ok":false}',
+            },
+        }],
+    })
+    assert _assistant_text(response) == '{"ok":true}'
+
+
 @pytest.mark.live_model
 def test_real_openai_compatible_endpoint_when_opted_in():
     selected = openai_provider_from_environment()

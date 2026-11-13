@@ -44,12 +44,12 @@ export function teamPayload(values: TeamFormValues, accounts: Pick<Account, 'id'
   for (const member of members) {
     const account = accounts.find(item => item.id === member.user_id);
     if (!account) throw new Error('请从后台给出的同公司候选账号中选择成员。');
-    if (member.project_role === 'lead' && account.role !== 'manager') throw new Error('本项目负责人必须使用公司经理账号；公司编写账号可以负责分册或章节。');
+    if (member.project_role === 'lead' && account.role !== 'manager') throw new Error('本项目负责人必须使用公司经理账号；公司编写账号可以负责方案或章节。');
     if (account.role === 'viewer' && member.project_role !== 'readonly') throw new Error('公司只读账号只能作为项目只读成员。');
   }
   const volumes = active.map(volume => {
     const owner = values[`${volume}_owner_id`] || null;
-    if (owner && !eligibleOwners(members, accounts, volume).some(member => member.user_id === owner)) throw new Error(`${volume === 'technical' ? '技术' : '商务'}分册负责人必须是参与本册且可以编写的项目成员。`);
+    if (owner && !eligibleOwners(members, accounts, volume).some(member => member.user_id === owner)) throw new Error(`${volume === 'technical' ? '技术' : '商务'}方案负责人必须是参与本方案且可以编写的项目成员。`);
     return { volume, owner_id: owner };
   });
   const assembly = values.assembly_owner_id || null;

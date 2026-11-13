@@ -103,13 +103,13 @@ test('validateRevealReason enforces mandatory non-empty business explanation', (
 });
 
 /* ========================================================================= */
-/* 3. 权限控制断言：仅公司管理员与资料管理员可查看完整高敏身份证号           */
+/* 3. 权限控制断言：公司管理员与平台超级管理员可查看完整高敏身份证号         */
 /* ========================================================================= */
 
 test('table-driven: 8 system roles permission on id_card:view', () => {
-  const allowedRoles = ['company_admin', 'data_admin'];
+  const allowedRoles = ['company_admin', 'platform_admin'];
   const forbiddenRoles = [
-    'platform_admin',
+    'data_admin',
     'group_admin',
     'project_lead',
     'bid_writer',
@@ -125,7 +125,7 @@ test('table-driven: 8 system roles permission on id_card:view', () => {
   for (const role of forbiddenRoles) {
     const res = can('id_card:view', undefined, { role });
     assert.equal(res.allowed, false, `Role ${role} should be strictly forbidden from viewing full ID card`);
-    assert.ok(res.reason?.includes('公司管理员与资料管理员'));
+    assert.ok(res.reason?.includes('仅限公司管理员'));
   }
 });
 

@@ -21,6 +21,7 @@ from fastapi.testclient import TestClient
 from icg_demo.adapters import MemoryRepository, seed_state
 from icg_demo.domain import Account, DemoService, Principal
 from icg_demo.main import create_app
+from test_reference_flow import synthetic_history
 from icg_demo.ports import ModelProvider
 
 
@@ -98,18 +99,6 @@ def test_smoke_step1_eight_roles_session_retrieval(non_demo_env):
     assert unauth.json()["code"] == "UNAUTHENTICATED"
     assert "traceId" in unauth.json()
 
-    # 2. 8 角色正式会话结构校验
-    expected_nav_keys = {
-        "project_lead": {"workbench", "library", "knowledge", "writing", "admin.rules", "jobs", "notifications"},
-        "bid_writer": {"workbench", "library", "knowledge", "writing", "jobs", "notifications"},
-        "company_admin": {"workbench", "library", "knowledge", "writing", "statistics", "admin", "jobs", "notifications"},
-        "data_admin": {"workbench", "library", "knowledge", "writing", "jobs", "notifications"},
-        "auditor": {"workbench", "library", "knowledge", "jobs", "notifications"},
-        "viewer": {"workbench", "library", "knowledge", "jobs", "notifications"},
-        "group_admin": {"workbench", "library", "knowledge", "writing", "admin", "notifications"},
-        "platform_admin": {"platform", "platform.audit", "jobs", "notifications"},
-    }
-
     for role, token in tokens.items():
         headers = {"Authorization": f"Bearer {token}"}
         resp = client.get("/api/v1/session", headers=headers)
@@ -117,25 +106,26 @@ def test_smoke_step1_eight_roles_session_retrieval(non_demo_env):
         data = resp.json()
 
         assert data["auth_mode"] == "authenticated"
-        assert data["role_mode"] == "rbac-8roles"
-        assert data["user"]["primary_role"] == role
-        assert data["user"]["roles"] == [role]
-        assert data["scope"]["kind"] == "company"
+        assert data["role_mode"] == "rbac-3roles"
+        primary = "platform_admin" if role == "platform_admin" else "company_admin" if role == "company_admin" else "member"
+        assert data["user"]["primary_role"] == primary
+        assert data["user"]["roles"] == [primary]
+        assert data["scope"]["kind"] == ("system" if role == "platform_admin" else "company")
 
-        # 校验各角色导航
         nav_routes = {item["route_id"] for item in data["navigation"]}
-        assert nav_routes == expected_nav_keys[role], f"Navigation mismatch for {role}"
-
-        # 校验项目创建动作权限
-        if role in ("project_lead", "company_admin"):
+        if role == "platform_admin":
+            assert {"workbench", "library", "knowledge", "writing", "admin.rules", "jobs"} <= nav_routes
+            assert "projects.create" in data["allowedActions"]
+            assert data["home_path"] == "/workbench"
+        elif role == "company_admin":
+            assert {"workbench", "library", "admin.rules", "statistics"} <= nav_routes
             assert "projects.create" in data["allowedActions"]
             assert "library.write" in data["allowedActions"]
-        elif role in ("bid_writer", "data_admin"):
-            assert "projects.create" not in data["allowedActions"]
-            assert "library.write" in data["allowedActions"]
         else:
-            assert "projects.create" not in data["allowedActions"]
-            assert "library.write" not in data["allowedActions"]
+            assert nav_routes == {"workbench", "library", "knowledge", "writing", "jobs", "notifications"}
+            assert "projects.create" in data["allowedActions"]
+            assert "library.write" in data["allowedActions"]
+            assert "admin.rules" not in nav_routes
 
 
 def test_smoke_full_pipeline_steps_2_to_6(non_demo_env):
@@ -154,14 +144,13 @@ def test_smoke_full_pipeline_steps_2_to_6(non_demo_env):
     # =========================================================================
     # Step 2: 项目创建 (POST /api/v1/projects) & 权限/属性配置
     # =========================================================================
-    # 2.1 编写人无权新建项目 (403 PROJECT_CREATE_FORBIDDEN)
+    # 2.1 普通用户可以新建项目
     resp_writer_create = client.post(
         "/api/v1/projects",
-        json={"name": "编写人违规项目"},
+        json={"name": "编写人新建项目"},
         headers=writer_headers,
     )
-    assert resp_writer_create.status_code == 403
-    assert resp_writer_create.json()["code"] == "PROJECT_CREATE_FORBIDDEN"
+    assert resp_writer_create.status_code == 200, resp_writer_create.text
 
     # 2.2 项目负责人成功新建项目
     proj_name = "关演示全流程冒烟测试标书"
@@ -229,11 +218,12 @@ def test_smoke_full_pipeline_steps_2_to_6(non_demo_env):
 
     # 3.2 发起解析
     rev = client.get(f"/api/v1/projects/{project_id}/workspace", headers=lead_headers).json()["revision"]
-    resp_parse = client.post(
-        f"/api/v1/projects/{project_id}/parse",
-        json={"file_ids": [file_id]},
-        headers={**lead_headers, "If-Match": str(rev), "Idempotency-Key": str(uuid4())},
-    )
+    with synthetic_history():
+        resp_parse = client.post(
+            f"/api/v1/projects/{project_id}/parse",
+            json={"file_ids": [file_id]},
+            headers={**lead_headers, "If-Match": str(rev), "Idempotency-Key": str(uuid4())},
+        )
     assert resp_parse.status_code == 200
     assert resp_parse.json()["job"]["status"] == "completed"
 
@@ -305,7 +295,6 @@ def test_smoke_full_pipeline_steps_2_to_6(non_demo_env):
             f"/api/v1/projects/{project_id}/requirements/{req['id']}",
             json={
                 "chapter_id": target_chap,
-                "response": "经专家团队技术评估与论证，完全响应并优于招标指标要求。",
                 "evidence_ids": [evidence_id] if req["volume"] == "business" else [],
                 "reason": "矩阵逐项对齐",
             },
@@ -444,13 +433,20 @@ def test_smoke_full_pipeline_steps_2_to_6(non_demo_env):
     ws = client.get(f"/api/v1/projects/{project_id}/workspace", headers=lead_headers).json()
     r0 = ws["requirements"][0]
     rev = ws["revision"]
+    def clear_response(state):
+        row = state.workflows[project_id]["requirements"][r0["id"]]
+        row["response"] = ""
+        row["response_origin"] = "no_evidence"
+        state.projects[project_id].revision += 1
+
+    repo.transaction(clear_response)
+    rev = client.get(f"/api/v1/projects/{project_id}/workspace", headers=lead_headers).json()["revision"]
     client.patch(
         f"/api/v1/projects/{project_id}/requirements/{r0['id']}",
         json={
             "text": "废标红线条款：投标总价不得超过最高限价，且必须提供原始授权。",
             "category": "disqualification",
             "status": "confirmed",
-            "response": "",  # 空响应触发 blocker
             "reason": "注入废标门禁测试用例",
         },
         headers={**lead_headers, "If-Match": str(rev), "Idempotency-Key": str(uuid4())},

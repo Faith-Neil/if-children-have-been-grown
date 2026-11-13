@@ -141,7 +141,7 @@ export interface VolumeListResponse {
   volumes: VolumeStatus[];
 }
 export type AuthMode = 'authenticated';
-export type RoleMode = 'rbac-8roles';
+export type RoleMode = 'rbac-3roles';
 export type AccountRole = SystemRole | 'editor' | 'manager' | 'viewer' | 'readonly' | 'reviewer' | 'writer' | 'lead';
 export type Account = { id: string; name: string; company_id: string; role: AccountRole };
 // 支持合成演示模式与正式八角色会话；导航与动作采用后台返回值。
@@ -181,7 +181,7 @@ export type ProjectTeam = { volume_mode?: VolumeMode;
 export type ProjectPermissions = { manage_team: boolean; manage_project: boolean; manage_structure: boolean; prepare_sources: boolean; manage_sla: boolean; edit_facts: boolean; confirm_facts: boolean; check_all: boolean; export_internal: boolean; check_volumes: Volume[]; export_volumes: Volume[] };
 export type ChapterPermissions = { edit: boolean; confirm_plan: boolean; generate: boolean; manage_structure: boolean; assign: boolean; takeover: boolean };
 export type Source = { file_id: string; page: number; quote: string; filename?: string; sha256?: string; pagination?: string };
-export type Requirement = { id: string; text: string; category: string; volume: Volume; chapter_id: string | null; status: 'pending' | 'confirmed' | 'rejected'; response: string; reason: string; evidence_ids: string[]; source: Source; permissions?: { edit: boolean; response: boolean; route: boolean }; proof_requirements?: string; section_path?: string[]; section_kind?: string; score?: number | null; volume_confirmed_at?: string | null; is_cross_volume?: boolean; shared_chapter_id?: string | null; references?: string[]; reference_status?: 'none' | 'unresolved' | 'resolved'; manually_edited?: boolean; out_of_scope?: boolean; confidence?: number | null; unreadable?: boolean; unreadable_reason?: string; merge_status?: 'independent' | 'primary' | 'merged' | null; merged_ids?: string[]; sources?: RequirementSource[]; importance?: string | null; effective_status?: 'effective' | 'superseded' | null; superseded_by?: string | null; amends?: string | null; source_stale?: string | null };
+export type Requirement = { id: string; text: string; category: string; volume: Volume; chapter_id: string | null; status: 'pending' | 'confirmed' | 'rejected'; response: string; reason: string; evidence_ids: string[]; source: Source; technical_clause?: boolean; response_origin?: '' | 'history' | 'model' | 'retrieval_failed' | 'draft_failed' | 'no_evidence'; response_type?: 'comply' | 'exceed' | 'deviate' | 'not_applicable' | null; history_filename?: string; history_quote?: string; material_sources?: { filename: string; quote: string }[]; permissions?: { edit: boolean; response: boolean; route: boolean }; proof_requirements?: string; section_path?: string[]; section_kind?: string; score?: number | null; volume_confirmed_at?: string | null; is_cross_volume?: boolean; shared_chapter_id?: string | null; references?: string[]; reference_status?: 'none' | 'unresolved' | 'resolved'; manually_edited?: boolean; out_of_scope?: boolean; confidence?: number | null; unreadable?: boolean; unreadable_reason?: string; merge_status?: 'independent' | 'primary' | 'merged' | null; merged_ids?: string[]; sources?: RequirementSource[]; importance?: string | null; effective_status?: 'effective' | 'superseded' | null; superseded_by?: string | null; amends?: string | null; source_stale?: string | null };
 export type RequirementSource = { file_id?: string; page?: number; quote?: string; requirement_id?: string; filename?: string };
 export type Fact = { id: string; key: string; value: string; status: 'pending' | 'confirmed' | 'rejected' | 'needs_review'; reason: string; source: Source | null; source_type?: string; sla_var_key?: string; unit?: string; required?: boolean; confidence?: number | null; unreadable?: boolean; unreadable_reason?: string; manually_edited?: boolean };
 export type SlaScalar = string | number | null;
@@ -220,7 +220,7 @@ export type WritingInputSnapshot = {
 };
 export type WritingInputPreview = { source_scope: 'whole_chapter'; input_snapshot: WritingInputSnapshot; ready: boolean; issues: { code: string; message: string }[] };
 export type Candidate = { id?: string; content: string; base_revision: number; input_fingerprint: string; provider: string; is_real_model: boolean; source_scope?: 'whole_chapter' | null; input_snapshot?: WritingInputSnapshot | null; status?: 'valid' | 'stale' };
-export type Chapter = { id: string; title: string; volume: Volume; revision: number; content: string; lock: { owner_id: string; owner_name?: string | null; expires_at: string } | null; paragraphs?: ParagraphKey[]; draft?: { sequence: number; content: string; base_revision: number; input_fingerprint?: string | null } | null; candidate?: Candidate | null; requirement_ids?: string[]; writing_input?: ChapterWritingInput; assignee_id?: string | null; assignee_name?: string | null; permissions?: ChapterPermissions };
+export type Chapter = { id: string; title: string; volume: Volume; revision: number; content: string; needs_regeneration?: boolean; lock: { owner_id: string; owner_name?: string | null; expires_at: string } | null; paragraphs?: ParagraphKey[]; draft?: { sequence: number; content: string; base_revision: number; input_fingerprint?: string | null } | null; candidate?: Candidate | null; requirement_ids?: string[]; writing_input?: ChapterWritingInput; assignee_id?: string | null; assignee_name?: string | null; permissions?: ChapterPermissions };
 export type CheckRelease = { reason: string; by: string; by_name?: string; at: string; decision?: 'keep' | 'accept' };
 export type CheckIssue = {
   id: string; code: string; severity: string; message: string; requirement_id?: string; chapter_id?: string; evidence_id?: string;
@@ -256,6 +256,8 @@ export type Export = {
   size_bytes?: number;
   sha256?: string;
   fingerprint?: string;
+  deviation_download_url?: string;
+  compliance_notice?: string | null;
 };
 export type Job = { id: string; project_id: string; type: string; status: string; progress: number; message: string; created_at: string; completed_at: string; error: { code: string; message: string } | null; recoverable: boolean };
 export type EvidenceAttachment = {
@@ -282,7 +284,96 @@ export type Evidence = {
   last_modified_by?: string;
   created_at?: string;
 };
-export type Workspace = { revision: number; input_fingerprint: string; project: Project; stage: string; files: TenderFile[]; requirements: Requirement[]; facts: Fact[]; conflicts: Conflict[]; chapters: Chapter[]; checks: Check[]; exports: Export[]; jobs: Job[]; parse_confirmed: boolean; plan_confirmed: boolean; sla?: ProjectSla | null; writing_plan?: WritingPlan; team?: ProjectTeam; permissions?: ProjectPermissions; volumes?: VolumeStatus[]; human_queue_pending?: number; omissions_pending?: number; project_status?: { status: string; label: string; read_only: boolean; registered: boolean; result?: string | null; result_label?: string | null; history: Array<Record<string, unknown>> } };
+export type TechnicalHeading = {
+  level: number;
+  number: string;
+  title: string;
+  requirement_id?: string | null;
+  task_id?: string | null;
+  requirement_ids?: string[];
+};
+export type TechnicalOutline = {
+  title: string;
+  chapter_id: string;
+  headings: TechnicalHeading[];
+  missing?: string[];
+  plan_validation?: PlanValidation | null;
+  outline_source?: string;
+  tree_model_failed?: boolean;
+};
+export type CoverageRow = {
+  requirement_id: string;
+  task_id: string;
+  text: string;
+  risk_level: string;
+  is_rejection_criterion: boolean;
+  source_page?: number | null;
+  source_filename?: string | null;
+  outline_number?: string | null;
+  outline_title?: string | null;
+  response_status: string;
+  generation_status: string;
+};
+export type ResponseTask = {
+  task_id: string;
+  title: string;
+  theme?: string;
+  requirement_ids: string[];
+  response_strategy?: string;
+  response_points?: string[];
+  rejection_requirement_ids?: string[];
+  generation_status?: string;
+  response_status?: string;
+  verification_status?: string;
+  outline_number?: string | null;
+  chapter_id?: string | null;
+};
+export type PlanValidation = {
+  passed?: boolean;
+  issues?: string[];
+  unmapped_requirement_ids?: string[];
+  missing_rejection_ids?: string[];
+  duplicate_titles?: string[];
+};
+export type TechnicalKbStatus = {
+  history: { name: string; configured: boolean };
+  material: { name: string; configured: boolean };
+  tender?: { name: string; configured: boolean; backend?: string };
+  missing: string[];
+  ready: boolean;
+};
+export type TechnicalRagAuditRow = {
+  query?: string;
+  section?: string;
+  tender_searched?: boolean;
+  tender_hits?: number;
+  tender_dataset?: string;
+  history_searched?: boolean;
+  material_searched?: boolean;
+  history_hits?: number;
+  material_hits?: number;
+  skip_reason?: string;
+  top?: Array<{ name?: string; dataset_kind?: string; score?: number }>;
+};
+export type TenderIndexStatus = {
+  backend?: string;
+  dataset_name?: string;
+  chunk_count?: number;
+  skip_reason?: string;
+};
+export type WriterModelStatus = {
+  name: string;
+  is_real?: boolean;
+  is_local?: boolean;
+};
+export type TechnicalQuality = {
+  rules: Array<{ id: number; name: string; passed: boolean; detail?: string }>;
+  passed: boolean;
+  failed_count: number;
+  review_titles: string[];
+  warning: string;
+};
+export type Workspace = { revision: number; input_fingerprint: string; source_fingerprint?: string; parsed_source_fingerprint?: string; technical_extract_empty?: boolean; extract_degraded?: boolean; extract_timeout_count?: number; extract_pages_read?: number; outline_source?: string; tree_model_failed?: boolean; technical_outline?: TechnicalOutline | null; technical_deviation_note?: string; technical_needs_review?: string[]; technical_kb?: TechnicalKbStatus | null; technical_quality?: TechnicalQuality | null; response_tasks?: ResponseTask[]; coverage_rows?: CoverageRow[]; plan_validation?: PlanValidation | null; technical_rag_audit?: TechnicalRagAuditRow[]; tender_index?: TenderIndexStatus | null; writer_model?: WriterModelStatus | null; project: Project; stage: string; files: TenderFile[]; requirements: Requirement[]; facts: Fact[]; conflicts: Conflict[]; chapters: Chapter[]; checks: Check[]; exports: Export[]; jobs: Job[]; parse_confirmed: boolean; plan_confirmed: boolean; sla?: ProjectSla | null; writing_plan?: WritingPlan; team?: ProjectTeam; permissions?: ProjectPermissions; volumes?: VolumeStatus[]; human_queue_pending?: number; omissions_pending?: number; project_status?: { status: string; label: string; read_only: boolean; registered: boolean; result?: string | null; result_label?: string | null; history: Array<Record<string, unknown>> } };
 
 export type SnippetSyncStatus = 'synced' | 'unsynced' | 'failed' | 'sync_failed' | string;
 export type SnippetPublication = {
@@ -350,6 +441,9 @@ export interface CompanyWritingProfile {
   quality_samples: QualitySample[];
 }
 
+export const HISTORY_KB_HEADING = '历史技术方案参考：过去项目中的优秀技术表述和实施方法。';
+export const MATERIALS_KB_HEADING = '企业权威资料：产品说明书、技术参数、企业实际能力等事实依据。';
+
 export interface RetrievedEvidence {
   id: string;
   path: string;
@@ -363,6 +457,9 @@ export interface RetrievedEvidence {
   content: string;
   attachable: boolean;
   reference_only: boolean;
+  dataset_kind?: string;
+  content_role?: string;
+  technical_domain?: string;
 }
 
 

@@ -16,17 +16,12 @@ test('project lead creates a technical-only project without a business volume', 
   await page.getByRole('button', { name: /新建项目/ }).first().click();
   const dialog = page.getByRole('dialog', { name: '新建投标项目' });
   await dialog.getByLabel('项目名称').fill(`只写技术标-${Date.now()}`);
-  // 对话框打开动画期间的点击可能落空：确认已选中再提交，否则会按默认“两册”建项目
-  const technicalOnly = dialog.getByRole('radio', { name: '只写技术标（不合标）' });
-  await expect(async () => {
-    await dialog.getByText('只写技术标（不合标）').click();
-    await expect(technicalOnly).toBeChecked({ timeout: 1000 });
-  }).toPass({ timeout: 10_000 });
+  // 新建弹窗默认 volume_mode=technical_only，不再展示分册单选。
   await dialog.getByRole('button', { name: '创建并上传招标文件' }).click();
   await expect(page).toHaveURL(/\/projects\/[^/]+\/tender$/);
   await expect(page.getByTestId('project-header')).not.toContainText('商务分册');
   const projectPath = page.url().replace(/\/tender$/, '');
   await page.evaluate(path => { window.history.pushState({}, '', path); window.dispatchEvent(new PopStateEvent('popstate')); }, `${new URL(projectPath).pathname}/export`);
-  await expect(page.getByTestId('merge-checklist-card')).toContainText('本项目只写技术标，不需要合标');
+  await expect(page.getByTestId('merge-checklist-card')).toHaveCount(0);
   await expect(page.getByText('技术、商务两册合订')).toHaveCount(0);
 });

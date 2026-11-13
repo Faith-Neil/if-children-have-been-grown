@@ -16,7 +16,7 @@ const deliveryFields = ['任务ID', '代码解释', '验收', '项目进度'];
 const taskStates = ['planned', 'ready', 'in-progress', 'in-review', 'done', 'blocked', 'cancelled'];
 const issueStates = ['new', 'triaged', 'ready', 'in-progress', 'in-review', 'closed', 'blocked'];
 const issueTypes = new Set(['change', 'version', 'bug', 'workflow', 'decision']);
-const ignoredDirectories = new Set(['.git', 'node_modules', 'dist', 'build', '.cache', '.venv', '.pytest_cache', '__pycache__']);
+const ignoredDirectories = new Set(['.git', '.cursor', 'node_modules', 'dist', 'build', '.cache', '.venv', '.pytest_cache', '__pycache__']);
 // Source snapshots retain historical references; private customer roots are outside the project scope.
 const excludedSourceRoots = new Set(['ICG']);
 

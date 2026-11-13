@@ -27,9 +27,10 @@ test('row tones flag not-run and manual items for human review', () => {
 test('export page no longer hard-codes the checklist and offers the Excel download', () => {
   const page = readFileSync(new URL('../../src/project/ProjectPages.tsx', import.meta.url), 'utf8');
   assert.doesNotMatch(page, /资格材料是否按本项目要求归册/);
+  assert.doesNotMatch(page, /导出前提/);
   assert.match(page, /<MergeChecklistCard \/>/);
   assert.match(page, /export-checklist-btn/);
-  assert.match(page, /已过期：分册已解锁或正文已改动/);
+  assert.match(page, /已过期：方案已解锁或正文已改动/);
 });
 
 test('response trace path keeps the selected volume', () => {
