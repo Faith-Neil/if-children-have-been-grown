@@ -141,7 +141,12 @@ export function TenderPage() {
   }
 
   async function cancelParse(jobId: string) {
-    try { await request(`/api/v1/jobs/${encodeURIComponent(jobId)}/cancel`, token, 'POST'); } catch (error) { report(error); }
+    // 取消成功后立刻用响应刷新进度卡；不能只等 SSE，否则解析占锁或流卡住时界面像没反应。
+    try {
+      const job = await request<BackendJobStatus>(`/api/v1/jobs/${encodeURIComponent(jobId)}/cancel`, token, 'POST');
+      setParseJob({ id: `${job.id}`, initial: jobFromStatus(job) });
+      setParseJobDone(true);
+    } catch (error) { report(error); }
   }
 
   async function retryParse(jobId: string) {
