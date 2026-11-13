@@ -141,11 +141,24 @@ export function TenderPage() {
   }
 
   async function cancelParse(jobId: string) {
-    // 取消成功后立刻用响应刷新进度卡；不能只等 SSE，否则解析占锁或流卡住时界面像没反应。
+    // 先本地标已取消，再打接口；否则 cancel 占锁挂起时进度卡像完全没反应。
+    setParseJob(prev => {
+      if (!prev || prev.id !== jobId) return prev;
+      return {
+        id: jobId,
+        initial: {
+          ...prev.initial,
+          status: 'cancelled',
+          finishedAt: new Date().toISOString(),
+          allowedActions: ['retry'],
+          description: '已取消',
+        },
+      };
+    });
+    setParseJobDone(true);
     try {
       const job = await request<BackendJobStatus>(`/api/v1/jobs/${encodeURIComponent(jobId)}/cancel`, token, 'POST');
       setParseJob({ id: `${job.id}`, initial: jobFromStatus(job) });
-      setParseJobDone(true);
     } catch (error) { report(error); }
   }
 
