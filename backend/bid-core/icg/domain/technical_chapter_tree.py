@@ -106,6 +106,67 @@ def _theme_of(task: dict) -> str:
     return theme
 
 
+def _usable_chapter_label(label: str) -> str:
+    text = str(label or "").strip()
+    if (
+        text
+        and text not in BANNED_TITLES
+        and not any(word in text for word in PERSONNEL_WORDS)
+        and not SPEC_NUMBER_THEME.match(text)
+        and not PLACEHOLDER_TITLE.match(text)
+    ):
+        return text
+    return ""
+
+
+def _title_copies_point(title: str, point: str) -> bool:
+    """章名等于要点，或是长要点被截下来的开头。"""
+    title = title.strip()
+    point = point.strip()
+    if not title or not point:
+        return False
+    if title == point:
+        return True
+    return len(point) > 16 and len(title) > 16 and point.startswith(title)
+
+
+def _scheme_heading(theme: str, point: str) -> str:
+    """照抄要点时改成可用主题；否则用短标题加服务方案写法，不编规范编号。"""
+    usable = _usable_chapter_label(theme)
+    if usable and not _title_copies_point(usable, point):
+        return usable
+    from icg.domain.technical_response_plan import short_chapter_title
+
+    short = short_chapter_title(point, fallback="综合技术响应")
+    schemed = _scheme_title(short)
+    if schemed and not _title_copies_point(schemed, point):
+        return schemed
+    return "综合技术响应"
+
+
+def _heading_for_model_title(title: str, mount_ids: list[str], points: list[dict]) -> str:
+    ordered: list[dict] = []
+    seen: set[str] = set()
+    by_id = {str(item.get("id")): item for item in points if item.get("id")}
+    for rid in mount_ids:
+        item = by_id.get(rid)
+        if item is not None and rid not in seen:
+            ordered.append(item)
+            seen.add(rid)
+    for item in points:
+        key = str(item.get("id") or "")
+        if key in seen:
+            continue
+        ordered.append(item)
+        if key:
+            seen.add(key)
+    for item in ordered:
+        point = str(item.get("point") or "")
+        if _title_copies_point(title, point):
+            return _scheme_heading(str(item.get("theme") or ""), point)
+    return title
+
+
 def _node(level: int, title: str, **extra: Any) -> dict:
     return {
         "level": level,
@@ -227,20 +288,14 @@ def stand_in_chapter_tree(tasks: list[dict], reqs: dict[str, dict]) -> list[dict
             continue
         theme = _theme_of(task)
         # 只用归纳主题作一级；禁题（评分响应）与「规范 N」编号指纹不成章名。
-        label = str(theme or "").strip()
+        label = _usable_chapter_label(theme)
         point = ""
         for rid in mounts:
             point = str((reqs.get(rid) or {}).get("extracted_summary") or (reqs.get(rid) or {}).get("text") or "").strip()
             if point:
                 break
         task_title = str(task.get("title") or "").strip()
-        if (
-            label
-            and label not in BANNED_TITLES
-            and not any(word in label for word in PERSONNEL_WORDS)
-            and not SPEC_NUMBER_THEME.match(label)
-            and not PLACEHOLDER_TITLE.match(label)
-        ):
+        if label:
             h1 = label
         else:
             h1 = short_chapter_title(point or task_title, fallback="综合技术响应")
@@ -312,13 +367,15 @@ def compose_tree_with_model(
     for item in items:
         title = strip_heading_number(str(item.get("title") or ""))
         level = int(item.get("level") or 1)
+        raw_mounts = [str(rid) for rid in (item.get("mount_ids") or [])]
+        title = _heading_for_model_title(title, raw_mounts, points)
         if not title or title in BANNED_TITLES or any(word in title for word in PERSONNEL_WORDS):
             continue
         if SPEC_NUMBER_THEME.match(title) or SPEC_NUMBER_COMPACT.match(title) or PLACEHOLDER_TITLE.match(title):
             continue
         if level < 1 or level > 3:
             continue
-        mount_ids = [str(rid) for rid in (item.get("mount_ids") or []) if str(rid) in by_id and str(rid) not in used]
+        mount_ids = [rid for rid in raw_mounts if rid in by_id and rid not in used]
         node = _node(level, title, mount_ids=mount_ids)
         if mount_ids:
             group = []

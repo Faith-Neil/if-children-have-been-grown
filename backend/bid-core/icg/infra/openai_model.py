@@ -260,18 +260,33 @@ class OpenAICompatibleModelProvider:
         except httpx.TransportError as exc:
             _audit_model_io("error", {"url": url, "error": "transport", "detail": type(exc).__name__})
             raise RetryableModelError("transport") from None
-        raw_body = response.text
-        _audit_model_io("response", {
+        raw_body = response.text or ""
+        record: dict[str, Any] = {
             "url": url,
             "status": response.status_code,
-            "body_chars": len(raw_body or ""),
+            "body_chars": len(raw_body),
             "body": raw_body[:200000],
-        })
+        }
+        if len(raw_body) > 200000:
+            record["truncated"] = True
+        assistant: str | None = None
+        parse_error: ModelCallError | None = None
+        if response.status_code == 200:
+            try:
+                assistant = _assistant_text(response)
+            except ModelCallError as exc:
+                parse_error = exc
+        if assistant is not None:
+            record["assistant"] = assistant
+            record["assistant_chars"] = len(assistant)
+        _audit_model_io("response", record)
         if response.status_code in _RETRYABLE_STATUS:
             raise RetryableModelError(f"HTTP {response.status_code}")
         if response.status_code != 200:
             raise ModelCallError(f"HTTP {response.status_code}")
-        text = _assistant_text(response)
+        if parse_error is not None:
+            raise parse_error
+        text = assistant or ""
         raise_upstream_error(text)
         return text
 
