@@ -583,3 +583,181 @@ def test_tree_alias_parse_keeps_real_ids_from_messy_json():
     assert other_id not in model.user
     assert "m1\t" in model.user
     assert "m2\t" in model.user
+
+
+KUNMING5_TREE_ASSISTANT = r"""
+[
+{"level": 1, "title": "服务方案概述与目标", "mount_ids": []},
+{"level": 2, "title": "服务背景与建设目标规划", "mount_ids": ["m87","m84","m85"]},
+{"level": 2, "title": "实施计划与交付承诺要求", "mount_ids": ["m71","m69","m65"]},
+{"level": 2, "title": "技术配置与评分对照说明", "mount_ids": ["m76","m83","m4"], []},
+{"level": 2, "title": "实施交付承诺要求", "mount_ids": ["m1", "m2", "m3", ["m2,""m50], ["m9, [m10] "43", "44", "w96", w88, m89"], m92"]},
+{"level": 1, "title": "原厂维保与硬件保障体系", "mount_ids": []},
+{"level": 2, "title": "原厂授权与资质要求", "mount_ids": ["m11","m12","m16","m29","m80"]},
+{"level": 2, "title": "软硬件维保周期标准", "mount_ids": ["m13","w14",""15","m21","m22","m27]},
+{"level": 2, "title": "Exadata一体机维保服务规范", "mount_ids": ["m17","m18","m19","m20","m23","m24","m26"]},
+{"level": 2, "title": "备件更换与硬件维护机制", "mount_ids": ["m30","m40","w52]}, {level": "DBA运维与巡检管理，"mount_ids": []},
+{"level": 1, "title": "DBA运维与巡检保障", "mount_ids": []},
+{"level": 2, "title": "驻场人员资质与管理体系", "mount_ids": ["m54","m55","m57,""58","w94"}, {"W0], [63"],
+{"level": 1, "title": "系统架构优化与容量规划保障", "mount_ids": []},
+{"level": 2, "title": "业务护航与系统方案实施", "mount_ids": ["m68","m70"]},
+{"level": 2, "title": "性能调优与关键业务护航", "mount_ids": ['"m72","m73","w86]}, {level: "安全合规与验收培训，"mount_ids": },
+{"level": 2, "title": "保密协议与安全规范落实", "mount_ids": ["m109","m110","m11", w112"],
+{"level": 2, "title": "验收标准与知识转移流程", "mount_ids": ["m60","m61","m62","w113"]}
+]
+"""
+
+
+def test_kunming5_shredded_tree_keeps_titled_levels_and_m_codes():
+    from icg.domain.technical_chapter_tree import _parse_tree_payload
+
+    items = _parse_tree_payload(KUNMING5_TREE_ASSISTANT)
+    titles = [item["title"] for item in items]
+    assert len(items) >= 12
+    assert "软硬件维保周期标准" in titles
+    assert "保密协议与安全规范落实" in titles
+    assert "验收标准与知识转移流程" in titles
+    assert "DBA运维与巡检保障" in titles
+    assert "DBA运维与巡检管理，" not in titles
+    assert "安全合规与验收培训，" not in titles
+
+    def mounts(title):
+        return next(item["mount_ids"] for item in items if item["title"] == title)
+
+    soft = mounts("软硬件维保周期标准")
+    assert "m13" in soft and "m21" in soft and "m27" in soft
+    assert "w14" not in soft
+    assert all(code.startswith("m") and code[1:].isdigit() for code in soft)
+    delivered = mounts("实施交付承诺要求")
+    assert "m1" in delivered and "m50" in delivered and "m92" in delivered
+    assert "w96" not in delivered
+    assert "m109" in mounts("保密协议与安全规范落实")
+    assert "m60" in mounts("验收标准与知识转移流程")
+    assert "w113" not in mounts("验收标准与知识转移流程")
+
+
+def test_personnel_heading_does_not_discard_the_model_tree():
+    import json
+    from icg.domain.technical_chapter_tree import build_chapter_tree
+
+    class Local:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:11434"
+
+        def suggest(self, system, user):
+            return json.dumps([
+                {"level": 1, "title": "运维保障与巡检", "mount_ids": []},
+                {"level": 2, "title": "运维保障与巡检", "mount_ids": ["m1"]},
+                {"level": 1, "title": "人员配置", "mount_ids": []},
+                {"level": 1, "title": "备份恢复与容灾", "mount_ids": []},
+                {"level": 2, "title": "备份切换步骤", "mount_ids": ["m2"]},
+            ], ensure_ascii=False)
+
+    tasks = [
+        {
+            "task_id": "t1", "theme": "运维保障与巡检", "title": "运维保障与巡检",
+            "requirement_ids": ["r1"], "response_points": ["每月巡检"],
+            "constraint_ids": [], "rejection_requirement_ids": [],
+        },
+        {
+            "task_id": "t2", "theme": "备份恢复与容灾", "title": "备份恢复与容灾",
+            "requirement_ids": ["r2"], "response_points": ["备份切换"],
+            "constraint_ids": [], "rejection_requirement_ids": [],
+        },
+    ]
+    workflow = {
+        "requirements": {
+            "r1": {
+                "id": "r1", "text": "每月巡检数据库并出具报告",
+                "section_kind": "scoring", "technical_clause": True, "status": "confirmed",
+            },
+            "r2": {
+                "id": "r2", "text": "提供备份恢复与容灾切换",
+                "section_kind": "scoring", "technical_clause": True, "status": "confirmed",
+            },
+        }
+    }
+    headings, _rewritten = build_chapter_tree(tasks, workflow, model=Local())
+    titles = [item["title"] for item in headings]
+    assert workflow["outline_source"] == "model"
+    assert "运维保障与巡检" in titles
+    assert "备份切换步骤" in titles
+    assert all("人员" not in title for title in titles)
+
+
+def test_stand_in_multi_mount_theme_splits_level_two():
+    from icg.domain.technical_chapter_tree import stand_in_chapter_tree
+
+    tasks = [{
+        "task_id": "t1", "theme": "运维保障与巡检", "title": "运维保障与巡检",
+        "requirement_ids": ["r1", "r2"],
+        "response_points": ["每月巡检", "故障到场"],
+        "constraint_ids": [], "rejection_requirement_ids": [],
+    }]
+    reqs = {
+        "r1": {"id": "r1", "text": "每月巡检", "section_kind": "scoring", "technical_clause": True},
+        "r2": {"id": "r2", "text": "故障到场", "section_kind": "scoring", "technical_clause": True},
+    }
+    nodes = stand_in_chapter_tree(tasks, reqs)
+    levels = {node["level"] for node in nodes}
+    assert 1 in levels and 2 in levels
+    host = next(node for node in nodes if node["level"] == 1 and node["title"] == "运维保障与巡检")
+    assert not host.get("requirement_ids")
+    child_titles = {node["title"] for node in nodes if node["level"] == 2}
+    assert "每月巡检" in child_titles
+    assert "故障到场" in child_titles
+    mapped = {rid for node in nodes for rid in (node.get("requirement_ids") or [])}
+    assert mapped == {"r1", "r2"}
+
+
+def test_flat_model_chapters_become_theme_hosts_with_children():
+    import json
+    from icg.domain.technical_chapter_tree import TREE_SYSTEM, build_chapter_tree
+
+    class Local:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:11434"
+
+        def suggest(self, system, user):
+            return json.dumps([
+                {"level": 1, "title": "月度巡检安排", "mount_ids": ["m1"]},
+                {"level": 1, "title": "故障到场处理", "mount_ids": ["m2"]},
+                {"level": 1, "title": "备份切换步骤", "mount_ids": ["m3"]},
+                {"level": 1, "title": "容灾演练安排", "mount_ids": ["m4"]},
+            ], ensure_ascii=False)
+
+    tasks = [
+        {
+            "task_id": "t1", "theme": "运维保障与巡检", "title": "运维保障与巡检",
+            "requirement_ids": ["r1", "r2"], "response_points": ["每月巡检", "故障到场"],
+            "constraint_ids": [], "rejection_requirement_ids": [],
+        },
+        {
+            "task_id": "t2", "theme": "备份恢复与容灾", "title": "备份恢复与容灾",
+            "requirement_ids": ["r3", "r4"], "response_points": ["备份切换", "容灾演练"],
+            "constraint_ids": [], "rejection_requirement_ids": [],
+        },
+    ]
+    workflow = {
+        "requirements": {
+            "r1": {"id": "r1", "text": "每月巡检", "section_kind": "scoring", "technical_clause": True, "status": "confirmed"},
+            "r2": {"id": "r2", "text": "故障到场", "section_kind": "scoring", "technical_clause": True, "status": "confirmed"},
+            "r3": {"id": "r3", "text": "备份切换", "section_kind": "scoring", "technical_clause": True, "status": "confirmed"},
+            "r4": {"id": "r4", "text": "容灾演练", "section_kind": "scoring", "technical_clause": True, "status": "confirmed"},
+        }
+    }
+    headings, _rewritten = build_chapter_tree(tasks, workflow, model=Local())
+    titles = [item["title"] for item in headings]
+    levels = {item["level"] for item in headings}
+    assert 1 in levels and 2 in levels
+    assert workflow["outline_source"] == "model"
+    assert "运维保障与巡检" in titles
+    assert "备份恢复与容灾" in titles
+    assert "月度巡检安排" in titles
+    assert "容灾演练安排" in titles
+    hosts = [item for item in headings if item["title"] in ("运维保障与巡检", "备份恢复与容灾")]
+    assert hosts and all(item["level"] == 1 and not item.get("requirement_ids") for item in hosts)
+    assert "m12" in TREE_SYSTEM
+    assert "一级" in TREE_SYSTEM
