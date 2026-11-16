@@ -402,6 +402,63 @@ def test_bid_packaging_is_constraint_and_not_a_tree_mount():
     assert all("注册资金" not in item["point"] for item in points)
 
 
+def test_stand_in_keeps_requirement_ids_when_title_would_be_personnel():
+    from icg.domain.technical_chapter_tree import stand_in_chapter_tree
+
+    tasks = [{
+        "task_id": "t1", "theme": "人员配置", "title": "人员配置",
+        "requirement_ids": ["r1"], "response_points": ["每月巡检数据库并出具报告"],
+        "constraint_ids": [], "rejection_requirement_ids": [],
+    }]
+    reqs = {
+        "r1": {
+            "id": "r1", "text": "每月巡检数据库并出具报告",
+            "section_kind": "scoring", "technical_clause": True,
+        },
+    }
+    nodes = stand_in_chapter_tree(tasks, reqs)
+    from icg.domain.technical_chapter_tree import _finish_tree
+    _, rewritten = _finish_tree(nodes)
+    mapped = {rid for task in rewritten for rid in (task.get("requirement_ids") or [])}
+    assert "r1" in mapped
+    assert all("人员" not in str(node.get("title") or "") for node in nodes)
+
+
+def test_stand_in_parks_constraint_only_tasks_so_ids_stay_mapped():
+    from icg.domain.technical_chapter_tree import _finish_tree, stand_in_chapter_tree
+
+    tasks = [
+        {
+            "task_id": "t1", "theme": "运维保障与巡检", "title": "运维保障与巡检",
+            "requirement_ids": ["r1"], "response_points": ["每月巡检"],
+            "constraint_ids": [], "rejection_requirement_ids": [],
+        },
+        {
+            "task_id": "t2", "theme": "综合技术响应", "title": "注册资金约束",
+            "requirement_ids": ["r2"], "response_points": [],
+            "constraint_ids": ["r2"], "rejection_requirement_ids": [],
+        },
+    ]
+    reqs = {
+        "r1": {"id": "r1", "text": "每月巡检", "section_kind": "scoring", "technical_clause": True},
+        "r2": {
+            "id": "r2", "text": "注册资金不少于五百万元人民币",
+            "section_kind": "scoring", "technical_clause": True, "category": "disqualification",
+        },
+    }
+    nodes = stand_in_chapter_tree(tasks, reqs)
+    _, rewritten = _finish_tree(nodes)
+    mapped = {
+        rid
+        for task in rewritten
+        for rid in (
+            *(task.get("requirement_ids") or []),
+            *(task.get("constraint_ids") or []),
+        )
+    }
+    assert mapped >= {"r1", "r2"}
+
+
 def test_apply_response_plan_keeps_themes_when_validation_misses():
     import json
 

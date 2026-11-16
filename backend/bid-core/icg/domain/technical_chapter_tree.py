@@ -276,15 +276,34 @@ def summarize_points(tasks: list[dict], reqs: dict[str, dict]) -> list[dict]:
     return rows
 
 
+def _merge_tasks_onto_host(host: dict, source_tasks: list[dict], reqs: dict[str, dict]) -> None:
+    """把要求 id 并进已有叶子任务，避免跳过或覆盖时丢掉映射。"""
+    sources: list[dict] = []
+    prior = host.get("_task")
+    if prior:
+        sources.append(prior)
+    for task in source_tasks:
+        if task not in sources:
+            sources.append(task)
+    if not sources:
+        return
+    title = str(host.get("title") or sources[0].get("title") or "总体方案")
+    combined = _combined_task(title, title, sources, reqs)
+    _fill_leaf(host, combined, reqs)
+    host["_task"] = combined
+
+
 def stand_in_chapter_tree(tasks: list[dict], reqs: dict[str, dict]) -> list[dict]:
     """无可用模型时按任务列目录。一任务一主题章，单条挂载时二级用短标题。不插空的项目理解。"""
     from icg.domain.technical_response_plan import short_chapter_title
 
     nodes: list[dict] = []
+    deferred: list[dict] = []
     for task in tasks:
         mounts = [rid for rid in (task.get("requirement_ids") or []) if _is_mount(reqs.get(rid) or {})]
         if not mounts:
-            # 纯废标/约束任务不成章，留给有挂载的任务挂 constraint_ids。
+            # 纯约束不成章，但要求 id 必须并进活着的任务，否则 plan_validation 未映射钉死。
+            deferred.append(task)
             continue
         theme = _theme_of(task)
         # 只用归纳主题作一级；禁题（评分响应）与「规范 N」编号指纹不成章名。
@@ -306,8 +325,9 @@ def stand_in_chapter_tree(tasks: list[dict], reqs: dict[str, dict]) -> list[dict
                 or h1 in BANNED_TITLES
             ):
                 h1 = "综合技术响应"
+        # 人员/禁用词不得当章名，改挂「综合技术响应」，不能整任务丢掉 requirement_ids。
         if h1 in BANNED_TITLES or any(word in h1 for word in PERSONNEL_WORDS):
-            continue
+            h1 = "综合技术响应"
         host = _node(1, h1)
         short = ""
         if len(mounts) == 1:
@@ -334,6 +354,12 @@ def stand_in_chapter_tree(tasks: list[dict], reqs: dict[str, dict]) -> list[dict
             _fill_leaf(host, combined, reqs)
             host["_task"] = combined
             nodes.append(host)
+    if deferred:
+        host = next((node for node in nodes if node.get("_task")), None)
+        if host is None:
+            host = _node(1, "总体方案")
+            nodes.append(host)
+        _merge_tasks_onto_host(host, deferred, reqs)
     return nodes
 
 
@@ -398,9 +424,8 @@ def compose_tree_with_model(
         if host is None:
             host = _node(1, "总体方案")
             nodes.append(host)
-        extra = _combined_task(host["title"], host["title"], leftover, reqs)
-        _fill_leaf(host, extra, reqs)
-        host["_task"] = extra
+        # 与已有「总体方案」任务合并，禁止覆盖导致原先 mount 从 response_tasks 消失。
+        _merge_tasks_onto_host(host, leftover, reqs)
     if not any(int(node.get("level") or 0) == 1 and node.get("title") == "项目理解" for node in nodes):
         nodes.insert(0, _node(1, "项目理解"))
     return nodes or None
