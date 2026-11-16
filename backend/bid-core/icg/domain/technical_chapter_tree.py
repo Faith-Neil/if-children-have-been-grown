@@ -874,7 +874,27 @@ def compose_tree_with_model(
         else:
             workflow["_tree_shape_rejected"] = True
             return None
-    leftover = [item["task"] for item in points if item.get("id") and item["id"] not in used]
+    # 只把还没挂上的编号并进总体方案。整任务并进去会把已挂编号再记一次，触发重复挂载并整树回退。
+    buckets: list[list] = []
+    index_by_task: dict[int, int] = {}
+    for item in points:
+        rid = item.get("id")
+        task = item.get("task")
+        if not rid or rid in used or not task:
+            continue
+        key = id(task)
+        slot = index_by_task.get(key)
+        if slot is None:
+            index_by_task[key] = len(buckets)
+            buckets.append([task, []])
+            slot = index_by_task[key]
+        if rid not in buckets[slot][1]:
+            buckets[slot][1].append(rid)
+    leftover = []
+    for task, unused in buckets:
+        narrowed = dict(task)
+        narrowed["requirement_ids"] = list(unused)
+        leftover.append(narrowed)
     if leftover:
         host = next((node for node in nodes if node.get("title") == "总体方案"), None)
         if host is None:
