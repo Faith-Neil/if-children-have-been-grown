@@ -113,7 +113,7 @@ def test_model_tree_survives_unindexed_score_soft_issue():
 
         def suggest(self, system, user):
             return json.dumps([
-                {"level": 1, "title": "运维保障与巡检", "mount_ids": ["r1"]},
+                {"level": 1, "title": "运维保障与巡检", "mount_ids": ["m1"]},
             ], ensure_ascii=False)
 
     tasks = [{
@@ -184,7 +184,7 @@ def test_tree_model_success_labels_model_source():
 
         def suggest(self, system, user):
             return json.dumps([
-                {"level": 1, "title": "运维保障与巡检", "mount_ids": ["r1"]},
+                {"level": 1, "title": "运维保障与巡检", "mount_ids": ["m1"]},
             ], ensure_ascii=False)
 
     tasks, workflow = _mount_task()
@@ -318,7 +318,7 @@ def test_model_title_equal_to_long_clause_is_not_the_outline_title():
 
         def suggest(self, system, user):
             return json.dumps([
-                {"level": 1, "title": clause, "mount_ids": ["r1"]},
+                {"level": 1, "title": clause, "mount_ids": ["m1"]},
             ], ensure_ascii=False)
 
     tasks = [{
@@ -352,7 +352,7 @@ def test_model_title_that_starts_a_long_clause_is_not_left_as_the_heading():
 
         def suggest(self, system, user):
             return json.dumps([
-                {"level": 1, "title": prefix, "mount_ids": ["r1"]},
+                {"level": 1, "title": prefix, "mount_ids": ["m1"]},
             ], ensure_ascii=False)
 
     tasks = [{
@@ -473,7 +473,7 @@ def test_apply_response_plan_keeps_themes_when_validation_misses():
         def suggest(self, system, user):
             self.calls += 1
             return json.dumps([
-                {"level": 1, "title": "人员配置", "mount_ids": ["r1"]},
+                {"level": 1, "title": "人员配置", "mount_ids": ["m1"]},
             ], ensure_ascii=False)
 
     workflow = {
@@ -496,3 +496,83 @@ def test_apply_response_plan_keeps_themes_when_validation_misses():
     assert "" not in themes
     assert "运维保障与巡检" in themes
     assert spy.calls == 1
+
+
+def test_tree_alias_parse_keeps_real_ids_from_messy_json():
+    """昆明目录回复的围栏、注释、null 和截断不得把整树打回规则替身。"""
+    from icg.domain.technical_chapter_tree import compose_tree_with_model
+
+    real_id = "req-" + ("a" * 32)
+    other_id = "req-" + ("b" * 32)
+    fixture = """```json
+[
+  {
+    "level": 1,
+    "title": "第一章 现场与远程支持",
+    "mount_ids": null
+  },
+  {
+    "level": 2,
+    "title": "第一节 巡检服务方案",
+    "mount_ids": [
+      "m1" // truncated req note
+    ]
+  },
+  {
+    "level": 2,
+    "title": "第二节 截断未闭合",
+    "mount_ids": ["m2"
+"""
+
+    class Local:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:11434"
+
+        def suggest(self, system, user):
+            self.system = system
+            self.user = user
+            return fixture
+
+    tasks = [{
+        "task_id": "t1",
+        "theme": "运维保障与巡检",
+        "title": "运维保障与巡检",
+        "requirement_ids": [real_id, other_id],
+        "response_points": ["每月巡检"],
+        "constraint_ids": [],
+        "rejection_requirement_ids": [],
+    }]
+    reqs = {
+        real_id: {
+            "id": real_id,
+            "text": "每月巡检数据库并出具报告",
+            "section_kind": "scoring",
+            "technical_clause": True,
+            "status": "confirmed",
+        },
+        other_id: {
+            "id": other_id,
+            "text": "提供现场到达支持",
+            "section_kind": "spec",
+            "technical_clause": True,
+            "status": "confirmed",
+        },
+    }
+    model = Local()
+    nodes = compose_tree_with_model(tasks, reqs, {}, model)
+    assert nodes
+    titles = [node["title"] for node in nodes]
+    assert "现场与远程支持" in titles
+    assert "巡检服务方案" in titles
+    assert "截断未闭合" not in titles
+    assert all(not str(title).startswith("第") for title in titles)
+    leaf = next(node for node in nodes if node["title"] == "巡检服务方案")
+    assert real_id in (leaf.get("requirement_ids") or [])
+    assert other_id not in (leaf.get("requirement_ids") or [])
+    parked = next(node for node in nodes if other_id in (node.get("requirement_ids") or []))
+    assert parked["title"] == "总体方案"
+    assert real_id not in model.user
+    assert other_id not in model.user
+    assert "m1\t" in model.user
+    assert "m2\t" in model.user
