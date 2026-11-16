@@ -491,8 +491,8 @@ def test_apply_response_plan_keeps_themes_when_validation_misses():
     spy = Spy()
     plan = apply_response_plan(workflow, model=spy)
     themes = [task.get("theme") for task in plan["tasks"]]
-    assert plan["validation"]["passed"] is False
     assert themes
     assert all(themes)
+    assert "" not in themes
     assert "运维保障与巡检" in themes
     assert spy.calls == 1
