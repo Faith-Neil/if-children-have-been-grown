@@ -761,3 +761,50 @@ def test_flat_model_chapters_become_theme_hosts_with_children():
     assert hosts and all(item["level"] == 1 and not item.get("requirement_ids") for item in hosts)
     assert "m12" in TREE_SYSTEM
     assert "一级" in TREE_SYSTEM
+
+
+def test_partial_theme_mount_keeps_model_tree():
+    import json
+    from icg.domain.technical_chapter_tree import build_chapter_tree
+
+    class Local:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:11434"
+
+        def suggest(self, system, user):
+            return json.dumps([
+                {"level": 1, "title": "运维保障与巡检", "mount_ids": []},
+                {"level": 2, "title": "月度巡检安排", "mount_ids": ["m1"]},
+                {"level": 1, "title": "备份恢复与容灾", "mount_ids": []},
+                {"level": 2, "title": "备份切换步骤", "mount_ids": ["m3"]},
+            ], ensure_ascii=False)
+
+    tasks = [
+        {
+            "task_id": "t1", "theme": "运维保障与巡检", "title": "运维保障与巡检",
+            "requirement_ids": ["r1", "r2"], "response_points": ["每月巡检", "故障到场"],
+            "constraint_ids": [], "rejection_requirement_ids": [],
+        },
+        {
+            "task_id": "t2", "theme": "备份恢复与容灾", "title": "备份恢复与容灾",
+            "requirement_ids": ["r3", "r4"], "response_points": ["备份切换", "容灾演练"],
+            "constraint_ids": [], "rejection_requirement_ids": [],
+        },
+    ]
+    workflow = {
+        "requirements": {
+            "r1": {"id": "r1", "text": "每月巡检", "section_kind": "scoring", "technical_clause": True, "status": "confirmed"},
+            "r2": {"id": "r2", "text": "故障到场", "section_kind": "scoring", "technical_clause": True, "status": "confirmed"},
+            "r3": {"id": "r3", "text": "备份切换", "section_kind": "scoring", "technical_clause": True, "status": "confirmed"},
+            "r4": {"id": "r4", "text": "容灾演练", "section_kind": "scoring", "technical_clause": True, "status": "confirmed"},
+        }
+    }
+    headings, _rewritten = build_chapter_tree(tasks, workflow, model=Local())
+    titles = [item["title"] for item in headings]
+    assert workflow["outline_source"] == "model"
+    assert "月度巡检安排" in titles
+    assert "备份切换步骤" in titles
+    r1_owners = [item["title"] for item in headings if "r1" in (item.get("requirement_ids") or [])]
+    assert r1_owners == ["月度巡检安排"]
+    assert any("r2" in (item.get("requirement_ids") or []) for item in headings)
