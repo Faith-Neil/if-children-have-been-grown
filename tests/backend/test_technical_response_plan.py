@@ -519,6 +519,11 @@ def test_tree_alias_parse_keeps_real_ids_from_messy_json():
     ]
   },
   {
+    "level": 3,
+    "title": "1.1.1 核心保障方案",
+    "mount_ids": []
+  },
+  {
     "level": 2,
     "title": "第二节 截断未闭合",
     "mount_ids": ["m2"
@@ -565,6 +570,8 @@ def test_tree_alias_parse_keeps_real_ids_from_messy_json():
     titles = [node["title"] for node in nodes]
     assert "现场与远程支持" in titles
     assert "巡检服务方案" in titles
+    assert "核心保障方案" in titles
+    assert "1 核心保障方案" not in titles
     assert "截断未闭合" not in titles
     assert all(not str(title).startswith("第") for title in titles)
     leaf = next(node for node in nodes if node["title"] == "巡检服务方案")

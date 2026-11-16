@@ -16,13 +16,23 @@ BANNED_TITLES = frozenset({
 })
 PERSONNEL_WORDS = ("人员", "团队", "资质", "证书", "商务")
 SCHEME_TAIL = ("方案", "措施", "体系", "计划", "预案")
-NUMBER_PREFIX = re.compile(r"^(?:\d+(?:\.\d+)*|[一二三四五六七八九十]+)[、.．]\s*")
+NUMBER_PREFIX = re.compile(
+    r"^(?:"
+    r"\d+(?:\.\d+)*[、.．](?!\d)\s*"
+    r"|\d+(?:\.\d+)*\s+"
+    r"|[一二三四五六七八九十]+[、.．]\s*"
+    r")"
+)
+CHAPTER_PREFIX = re.compile(r"^第[\d一二三四五六七八九十百]+[章节篇][、.．\s]*")
 ORDER_PHRASE = re.compile(r"按以下顺序编制|应按以下顺序|按下列顺序")
 TREE_SYSTEM = (
-    "根据归纳后的响应要点编排技术服务方案目录。输出 JSON 数组，每项含 level(1-3)、title、mount_ids。"
-    "章名用常规服务方案写法，禁止照抄要点原文，禁止一条要点单独成章。"
+    "根据归纳后的响应要点编排技术服务方案目录。"
+    "只输出 JSON 数组，不要 markdown 代码围栏，不要写 // 注释。"
+    "每项含 level(1-3)、title、mount_ids。"
+    "mount_ids 必须是代号字符串数组。非叶子用 []，不要写 null。只能使用提示列表里的代号。"
+    "title 用服务方案名称，不要带「第N章」或「第N节」前缀，禁止照抄要点原文，禁止一条要点单独成章。"
     "禁用标题：评分响应、评分应答、投标响应、技术响应正文、响应说明、本章内容、总结。"
-    "废标不是章。人员、证书、商务不成章。父子标题不得相同。每个 mount_id 恰好挂到一个叶子。"
+    "废标不是章。人员、证书、商务不成章。父子标题不得相同。每个代号恰好挂到一个叶子。"
     "若提示里给出招标编制顺序，只作参考，可增删改章名并调整先后，不必照抄清单。"
 )
 
@@ -32,7 +42,12 @@ BACKBONE_BACK = ("难点与对策", "质量保证", "进度资源", "风险应�
 
 
 def strip_heading_number(text: str) -> str:
-    return NUMBER_PREFIX.sub("", (text or "").strip()).strip()
+    cleaned = (text or "").strip()
+    while True:
+        nxt = CHAPTER_PREFIX.sub("", NUMBER_PREFIX.sub("", cleaned)).strip()
+        if nxt == cleaned:
+            return cleaned
+        cleaned = nxt
 
 
 PLACEHOLDER_TITLE = re.compile(r"^(?:规范\s*[\d.]+(?:方案)?|.+方案方案)$")
@@ -242,16 +257,144 @@ def _usable_tree_model(model: Any) -> bool:
     return not is_public_model_url(url)
 
 
-def _parse_tree_payload(text: str) -> list[dict]:
-    raw = (text or "").strip()
-    if "```" in raw:
-        fenced = raw.split("```", 2)[1]
-        raw = fenced[4:] if fenced.startswith("json") else fenced
-    start, end = raw.find("["), raw.rfind("]")
-    if start < 0 or end < 0:
+def _strip_code_fence(raw: str) -> str:
+    if "```" not in raw:
+        return raw
+    body = raw.split("```", 2)[1]
+    stripped = body.lstrip()
+    if stripped[:4].lower() == "json" and (len(stripped) == 4 or stripped[4] in "\r\n \t"):
+        return stripped[4:]
+    return body
+
+
+def _strip_js_comments(raw: str) -> str:
+    out: list[str] = []
+    index = 0
+    in_string = False
+    escaped = False
+    while index < len(raw):
+        char = raw[index]
+        if in_string:
+            out.append(char)
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            index += 1
+            continue
+        if char == '"':
+            in_string = True
+            out.append(char)
+            index += 1
+            continue
+        if char == "/" and index + 1 < len(raw) and raw[index + 1] == "/":
+            while index < len(raw) and raw[index] not in "\r\n":
+                index += 1
+            continue
+        out.append(char)
+        index += 1
+    return "".join(out)
+
+
+def _normalize_tree_item(item: dict) -> dict:
+    mounts = item.get("mount_ids")
+    if not isinstance(mounts, list):
+        mounts = []
+    cleaned = dict(item)
+    cleaned["mount_ids"] = [entry for entry in mounts if isinstance(entry, str) and entry]
+    return cleaned
+
+
+def _closed_object_dicts(body: str) -> list[dict]:
+    """截断的尾巴丢掉，不补一个半截节点。"""
+    found: list[dict] = []
+    index = 0
+    in_string = False
+    escaped = False
+    brace = 0
+    start: int | None = None
+    while index < len(body):
+        char = body[index]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            index += 1
+            continue
+        if char == '"':
+            in_string = True
+            index += 1
+            continue
+        if char == "{":
+            if brace == 0:
+                start = index
+            brace += 1
+        elif char == "}" and brace:
+            brace -= 1
+            if brace == 0 and start is not None:
+                try:
+                    item = json.loads(body[start:index + 1])
+                except json.JSONDecodeError:
+                    item = None
+                if isinstance(item, dict):
+                    found.append(item)
+                start = None
+        index += 1
+    return found
+
+
+def _load_json_array(raw: str) -> list:
+    start = raw.find("[")
+    if start < 0:
         return []
-    data = json.loads(raw[start:end + 1])
-    return data if isinstance(data, list) else []
+    body = raw[start:]
+    end = body.rfind("]")
+    if end > 0:
+        try:
+            data = json.loads(body[:end + 1])
+        except json.JSONDecodeError:
+            data = None
+        if isinstance(data, list):
+            return data
+    return _closed_object_dicts(body)
+
+
+def _parse_tree_payload(text: str) -> list[dict]:
+    raw = _strip_js_comments(_strip_code_fence((text or "").strip()))
+    raw = re.sub(r'("mount_ids"\s*:\s*)null\b', r"\1[]", raw)
+    data = _load_json_array(raw)
+    return [_normalize_tree_item(item) for item in data if isinstance(item, dict)]
+
+
+def _prompt_aliases(points: list[dict]) -> tuple[list[str], dict[str, str]]:
+    lines: list[str] = []
+    alias_to_id: dict[str, str] = {}
+    for item in points:
+        rid = str(item.get("id") or "")
+        if not rid:
+            continue
+        alias = f"m{len(lines) + 1}"
+        alias_to_id[alias] = rid
+        theme = item.get("theme") or "综合"
+        point = str(item.get("point") or "")[:80]
+        lines.append(f"{alias}\t{theme}\t{point}")
+    return lines, alias_to_id
+
+
+def _ids_for_aliases(tokens: list, alias_to_id: dict[str, str]) -> list[str]:
+    mapped: list[str] = []
+    for token in tokens:
+        if not isinstance(token, str):
+            continue
+        rid = alias_to_id.get(token)
+        if rid and rid not in mapped:
+            mapped.append(rid)
+    return mapped
 
 
 def summarize_points(tasks: list[dict], reqs: dict[str, dict]) -> list[dict]:
@@ -370,12 +513,12 @@ def compose_tree_with_model(
     if not _usable_tree_model(model):
         return None
     points = summarize_points(tasks, reqs)
-    lines = [f"{item['id']}\t{item['theme'] or '综合'}\t{item['point'][:80]}" for item in points if item.get("id")]
+    lines, alias_to_id = _prompt_aliases(points)
     if not lines:
         return None
     sidecar = workflow.get("technical_sidecars") or {}
     order = detect_format_lock(sidecar.get("format_lines"))
-    user = "归纳后的响应要点（id、主题、摘要）：\n" + "\n".join(lines)
+    user = "归纳后的响应要点（代号、主题、摘要）：\n" + "\n".join(lines)
     if order:
         user += "\n招标编制顺序（仅参考，不必照抄）：" + "、".join(order)
     try:
@@ -393,7 +536,7 @@ def compose_tree_with_model(
     for item in items:
         title = strip_heading_number(str(item.get("title") or ""))
         level = int(item.get("level") or 1)
-        raw_mounts = [str(rid) for rid in (item.get("mount_ids") or [])]
+        raw_mounts = _ids_for_aliases(item.get("mount_ids") or [], alias_to_id)
         title = _heading_for_model_title(title, raw_mounts, points)
         if not title or title in BANNED_TITLES or any(word in title for word in PERSONNEL_WORDS):
             continue
