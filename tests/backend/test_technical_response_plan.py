@@ -302,3 +302,140 @@ def test_validate_plan_flags_unmapped():
     result = validate_plan(reqs, tasks, headings)
     assert result["passed"] is False
     assert result["unmapped_requirement_ids"] == ["a"]
+
+
+def test_model_title_equal_to_long_clause_is_not_the_outline_title():
+    import json
+    from icg.domain.technical_chapter_tree import compose_tree_with_model
+
+    clause = "投标人须承诺提供数据库每月巡检并在两小时内到达现场处理故障且出具书面报告"
+    assert len(clause) > 16
+
+    class Local:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:11434"
+
+        def suggest(self, system, user):
+            return json.dumps([
+                {"level": 1, "title": clause, "mount_ids": ["r1"]},
+            ], ensure_ascii=False)
+
+    tasks = [{
+        "task_id": "t1", "theme": "运维保障与巡检", "title": "运维保障与巡检",
+        "requirement_ids": ["r1"],
+        "response_points": ["每月巡检"], "constraint_ids": [], "rejection_requirement_ids": [],
+    }]
+    reqs = {
+        "r1": {
+            "id": "r1", "text": clause, "extracted_summary": clause,
+            "section_kind": "scoring", "technical_clause": True, "status": "confirmed",
+        },
+    }
+    nodes = compose_tree_with_model(tasks, reqs, {}, Local())
+    titles = [node["title"] for node in nodes or []]
+    assert "运维保障与巡检" in titles
+    assert all(title == "项目理解" or (clause not in title and not clause.startswith(title)) for title in titles)
+
+
+def test_model_title_that_starts_a_long_clause_is_not_left_as_the_heading():
+    import json
+    from icg.domain.technical_chapter_tree import compose_tree_with_model
+
+    clause = "数据库每月巡检并在故障发生后两小时内到达现场处理且提交书面记录"
+    prefix = clause[:20]
+
+    class Local:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:11434"
+
+        def suggest(self, system, user):
+            return json.dumps([
+                {"level": 1, "title": prefix, "mount_ids": ["r1"]},
+            ], ensure_ascii=False)
+
+    tasks = [{
+        "task_id": "t1", "theme": "规范 10", "title": "规范 10",
+        "requirement_ids": ["r1"],
+        "response_points": ["每月巡检"], "constraint_ids": [], "rejection_requirement_ids": [],
+    }]
+    reqs = {
+        "r1": {
+            "id": "r1", "text": clause, "extracted_summary": clause,
+            "section_kind": "spec", "technical_clause": True, "status": "confirmed",
+        },
+    }
+    nodes = compose_tree_with_model(tasks, reqs, {}, Local())
+    titles = [node["title"] for node in nodes or []]
+    assert titles
+    assert prefix not in titles
+    assert all(not str(title).startswith("规范") for title in titles)
+    assert all(clause not in title and not clause.startswith(title) for title in titles)
+
+
+def test_bid_packaging_is_constraint_and_not_a_tree_mount():
+    from icg.domain.technical_chapter_tree import summarize_points
+    from icg.domain.technical_clause_role import assign_clause_role
+
+    packaging = "投标人注册资金不低于1000万元并提交社保缴纳证明"
+    row = {"id": "pack", "text": packaging, "technical_clause": True, "status": "confirmed"}
+    assert assign_clause_role(row) == "rejection_constraint"
+    assert assign_clause_role({"id": "old", "text": "出现废标条件时否决其投标"}) == "rejection_constraint"
+    tasks = [{
+        "task_id": "t1",
+        "theme": "运维保障与巡检",
+        "requirement_ids": ["pack", "svc"],
+        "response_points": ["每月巡检数据库并出具报告"],
+        "constraint_ids": [],
+        "rejection_requirement_ids": [],
+    }]
+    reqs = {
+        "pack": row,
+        "svc": {
+            "id": "svc", "text": "每月巡检数据库并出具报告",
+            "technical_clause": True, "status": "confirmed", "section_kind": "scoring",
+        },
+    }
+    points = summarize_points(tasks, reqs)
+    assert [item["id"] for item in points] == ["svc"]
+    assert all("注册资金" not in item["point"] for item in points)
+
+
+def test_apply_response_plan_keeps_themes_when_validation_misses():
+    import json
+
+    class Spy:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:11434"
+
+        def __init__(self):
+            self.calls = 0
+
+        def suggest(self, system, user):
+            self.calls += 1
+            return json.dumps([
+                {"level": 1, "title": "人员配置", "mount_ids": ["r1"]},
+            ], ensure_ascii=False)
+
+    workflow = {
+        "requirements": {
+            "r1": {
+                "id": "r1", "text": "每月巡检数据库并出具报告",
+                "technical_clause": True, "status": "confirmed", "section_kind": "scoring",
+            },
+            "r2": {
+                "id": "r2", "text": "拟派项目人员不少于三名",
+                "technical_clause": True, "status": "confirmed", "section_kind": "scoring",
+            },
+        }
+    }
+    spy = Spy()
+    plan = apply_response_plan(workflow, model=spy)
+    themes = [task.get("theme") for task in plan["tasks"]]
+    assert plan["validation"]["passed"] is False
+    assert themes
+    assert all(themes)
+    assert "运维保障与巡检" in themes
+    assert spy.calls == 1

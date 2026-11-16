@@ -352,6 +352,32 @@ def test_thinking_message_uses_reasoning_when_content_blank():
     assert json.loads(_assistant_text(response)) == payload
 
 
+def test_audit_keeps_full_assistant_when_sse_body_exceeds_cap(tmp_path, monkeypatch):
+    monkeypatch.setenv("ICG_AUDIT_IO_DIR", str(tmp_path))
+    tree = [{"level": 1, "title": "运维保障与巡检方案", "mount_ids": ["r1"]}]
+    planted = json.dumps(tree, ensure_ascii=False)
+    body = _sse_lines({"reasoning": "理" * 210_000}, {"content": planted})
+    assert len(body) > 200_000
+
+    def handler(request, index):
+        return httpx.Response(200, headers={"content-type": "text/event-stream"}, content=body)
+
+    model, _calls = provider(handler)
+    assert planted in model.suggest("编排目录", "要点")
+    rows = [
+        json.loads(line)
+        for line in (tmp_path / "model-io.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    response = next(row for row in rows if row.get("kind") == "response")
+    assert planted in response["assistant"]
+    assert response["assistant_chars"] == len(response["assistant"])
+    assert response["body_chars"] > 200_000
+    assert len(response["body"]) <= 200_000
+    assert planted not in response["body"]
+    assert response["truncated"] is True
+
+
 def test_content_still_wins_over_reasoning():
     from icg.infra.openai_model import _assistant_text
 
