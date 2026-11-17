@@ -808,3 +808,92 @@ def test_partial_theme_mount_keeps_model_tree():
     r1_owners = [item["title"] for item in headings if "r1" in (item.get("requirement_ids") or [])]
     assert r1_owners == ["月度巡检安排"]
     assert any("r2" in (item.get("requirement_ids") or []) for item in headings)
+
+
+def _long_clauses():
+    return {
+        "r1": "系统日常巡检应用维护及优化完善并按月提交运行报告",
+        "r2": "数据备份恢复检测差错修正及故障后的数据回退步骤",
+        "r3": "每年开展一至两次健康巡检并提交优化建议与整改清单",
+        "r4": "提供全天远程支持与故障到场并在时限内恢复业务",
+    }
+
+
+def _clause_workflow(texts: dict[str, str]):
+    return {
+        "requirements": {
+            rid: {
+                "id": rid,
+                "text": text,
+                "section_kind": "scoring",
+                "technical_clause": True,
+                "status": "confirmed",
+            }
+            for rid, text in texts.items()
+        }
+    }
+
+
+def test_single_quoted_tree_payload_stays_model_outline():
+    class Local:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:11434"
+
+        def suggest(self, system, user):
+            return (
+                "[\n"
+                "{'level': 1, 'title': '运维保障方案', 'mount_ids': []},\n"
+                "{'level': 2, 'title': '日常巡检服务', 'mount_ids': ['m1', 'm2']},\n"
+                "{'level': 1, 'title': '备份恢复方案', 'mount_ids': []},\n"
+                "{'level': 2, 'title': '备份演练安排', 'mount_ids': ['m3', 'm4']}\n"
+                "]"
+            )
+
+    texts = _long_clauses()
+    tasks = [{
+        "task_id": "t1",
+        "theme": "运维保障与巡检",
+        "title": "运维保障与巡检",
+        "requirement_ids": list(texts),
+        "response_points": list(texts.values()),
+        "constraint_ids": [],
+        "rejection_requirement_ids": [],
+    }]
+    workflow = _clause_workflow(texts)
+    headings, _rewritten = build_chapter_tree(tasks, workflow, model=Local())
+    titles = [item["title"] for item in headings]
+    assert workflow["outline_source"] == "model"
+    assert workflow["tree_model_failed"] is False
+    assert "日常巡检服务" in titles
+    assert "备份演练安排" in titles
+    assert all("…" not in title for title in titles)
+    mounted = {rid for item in headings for rid in (item.get("requirement_ids") or [])}
+    assert mounted == set(texts)
+
+
+def test_unusable_tree_payload_does_not_clip_each_clause():
+    class Local:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:11434"
+
+        def suggest(self, system, user):
+            return "我先说明目录思路，稍后再给 JSON。"
+
+    texts = _long_clauses()
+    tasks = [{
+        "task_id": "t1",
+        "theme": "运维保障与巡检",
+        "title": "运维保障与巡检",
+        "requirement_ids": list(texts),
+        "response_points": list(texts.values()),
+        "constraint_ids": [],
+        "rejection_requirement_ids": [],
+    }]
+    workflow = _clause_workflow(texts)
+    headings, _rewritten = build_chapter_tree(tasks, workflow, model=Local())
+    titles = [item["title"] for item in headings]
+    assert workflow["outline_source"] == "rule_fallback"
+    assert all("…" not in title for title in titles)
+    assert len(headings) < len(texts)
