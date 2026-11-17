@@ -4,7 +4,12 @@
 import { newIdempotencyKey, streamEvents } from '../shared/api.ts';
 import type { TechnicalHeading } from '../shared/types.ts';
 
-export type SectionPhase = 'writing' | 'done' | 'failed' | 'cancelled';
+export type SectionPhase = 'queued' | 'writing' | 'done' | 'failed' | 'cancelled';
+
+/** 已扇出、尚未轮到模型的节。 */
+export const SECTION_QUEUED_HINT = '排队等待中…';
+/** 模型已开写、还没吐出第一个字。 */
+export const SECTION_WAITING_HINT = '正在等待模型…';
 
 export type SectionSlot = {
   id: string;
@@ -39,7 +44,7 @@ export type SectionEvent =
   | { event: 'volume.cancelled' }
   | { event: 'volume.failed'; message: string };
 
-const LIVE_PHASE: ReadonlySet<SectionPhase> = new Set(['writing', 'done', 'failed']);
+const LIVE_PHASE: ReadonlySet<SectionPhase> = new Set(['queued', 'writing', 'done', 'failed']);
 
 export function emptyVolumeStream(): VolumeStreamState {
   return {
@@ -156,22 +161,67 @@ function slot(state: VolumeStreamState, id: string, patch: Partial<SectionSlot> 
   };
 }
 
+function sectionBody(current: SectionSlot): string {
+  if (current.text) return current.text;
+  if (current.phase === 'failed' && current.message) return current.message;
+  if (current.phase === 'queued') return SECTION_QUEUED_HINT;
+  if (current.phase === 'writing') return SECTION_WAITING_HINT;
+  return '';
+}
+
+/** 生成过程中的短状态，给顶栏提示用。 */
+export function streamProgressNotice(state: VolumeStreamState, headings: TechnicalHeading[]): string {
+  const titleOf = (id: string) => {
+    const current = state.sections[id];
+    if (current?.title?.trim()) return current.title.trim();
+    const heading = headings.find(item => leafKey(item) === id);
+    return heading ? `${heading.number} ${heading.title}`.trim() : id;
+  };
+  const writing = state.order.filter(id => state.sections[id]?.phase === 'writing');
+  const queued = state.order.filter(id => state.sections[id]?.phase === 'queued');
+  const done = state.order.filter(id => state.sections[id]?.phase === 'done').length;
+  const total = state.order.length;
+  const parts: string[] = [];
+  if (total > 0) parts.push(`已完成 ${done}/${total} 节`);
+  if (writing.length > 0) {
+    const names = writing.map(titleOf).slice(0, 3).join('、');
+    const more = writing.length > 3 ? `等 ${writing.length} 节` : names;
+    parts.push(writing.length > 3 ? `正在写：${more}` : `正在写：${names}`);
+  }
+  if (queued.length > 0) parts.push(`排队 ${queued.length} 节`);
+  return parts.join(' · ') || '正在生成…';
+}
+
 export function applySectionEvent(state: VolumeStreamState, event: SectionEvent): VolumeStreamState {
   if (state.phase === 'done' || state.phase === 'cancelled' || state.phase === 'failed') return state;
   switch (event.event) {
-    case 'sections.fanout':
-      return { ...state, phase: 'streaming', concurrency: event.concurrency, order: event.section_ids.slice() };
+    case 'sections.fanout': {
+      let next: VolumeStreamState = {
+        ...state,
+        phase: 'streaming',
+        concurrency: event.concurrency,
+        order: event.section_ids.slice(),
+      };
+      for (const id of event.section_ids) {
+        const previous = next.sections[id];
+        if (previous && previous.phase !== 'cancelled' && previous.phase !== 'queued') continue;
+        next = slot(next, id, { phase: 'queued', text: '', title: previous?.title ?? '' });
+      }
+      return next;
+    }
     case 'section.started': {
       const previous = state.sections[event.section_id];
-      if (previous && previous.phase !== 'cancelled') return state;
-      return slot(state, event.section_id, { phase: 'writing', text: '', title: event.title });
+      if (previous && previous.phase !== 'cancelled' && previous.phase !== 'queued') return state;
+      return slot(state, event.section_id, { phase: 'writing', text: '', title: event.title || previous?.title });
     }
     case 'section.delta': {
       const previous = state.sections[event.section_id];
-      if (previous && previous.phase !== 'writing') return state;
+      // 排队节收到首包时直接开写；已完成/失败/取消的增量丢掉。
+      if (previous && previous.phase !== 'writing' && previous.phase !== 'queued') return state;
+      const base = previous?.phase === 'writing' ? previous.text : '';
       return slot(state, event.section_id, {
         phase: 'writing',
-        text: `${previous?.text ?? ''}${event.text}`,
+        text: `${base}${event.text}`,
         title: previous?.title,
       });
     }
@@ -222,8 +272,8 @@ function buildFromHeadings(headings: TechnicalHeading[], sections: Record<string
     if (isLeaf(heading)) {
       const current = liveSlot(sections, heading);
       if (current) {
-        if (current.text) lines.push(current.text);
-        else if (current.phase === 'failed' && current.message) lines.push(current.message);
+        const body = sectionBody(current);
+        if (body) lines.push(body);
       } else {
         lines.push('待补');
       }
@@ -255,7 +305,7 @@ export function assembleVolume(headings: TechnicalHeading[], baseContent: string
     for (const other of markers) {
       if (other.index > item.index) end = Math.min(end, other.index);
     }
-    const body = current.phase === 'failed' && !current.text && current.message ? current.message : current.text;
+    const body = sectionBody(current);
     const bodyLines = body === '' ? [] : body.replace(/\r\n/g, '\n').split('\n');
     if (end < next.length && bodyLines[bodyLines.length - 1] !== '') bodyLines.push('');
     next.splice(item.index + 1, end - item.index - 1, ...bodyLines);

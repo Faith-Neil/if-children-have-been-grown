@@ -50,7 +50,7 @@ import { ParagraphLocksBar } from './ParagraphLocksBar.tsx';
 import { VARIABLE_ERROR_CODES, mayHaveVariables, nodesMatch, resolveVariables, sourceLabel, type VariableNode } from './variable-nodes.ts';
 import { VariableChip } from './VariableChip.tsx';
 import { isAbort, type ApplyResult } from './selection-rewrite-core.ts';
-import { runSectionVolumeStream } from './section-stream.ts';
+import { runSectionVolumeStream, streamProgressNotice } from './section-stream.ts';
 import { createTextReveal, streamFailureNotice, volumeStreamChrome, type TextReveal } from './text-reveal.ts';
 import { EditorDiffDrawer, type ChapterVersionItem } from './EditorDiffDrawer.tsx';
 import { extractCitationIds, type CiteKind, type CitationMeta } from './cite-capsule';
@@ -621,7 +621,12 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         headings: technicalOutline.headings,
         baseContent: base,
         signal: controller.signal,
-        onText: markdown => reveal.push(markdown),
+        onText: (markdown, state) => {
+          reveal.push(markdown);
+          if (streamRun.current === runId && technicalOutline) {
+            setNotice(streamProgressNotice(state, technicalOutline.headings));
+          }
+        },
       });
       if (streamRun.current === runId && outcome?.phase === 'done' && !controller.signal.aborted && !revealHalted.current) {
         await reveal.settled();

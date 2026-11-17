@@ -9,6 +9,9 @@ import {
   leafKey,
   parseSectionEvent,
   runSectionVolumeStream,
+  SECTION_QUEUED_HINT,
+  SECTION_WAITING_HINT,
+  streamProgressNotice,
   technicalVolumeStreamPath,
 } from '../../src/editor/section-stream.ts';
 
@@ -76,6 +79,30 @@ test('cancelled section keeps its old body', () => {
   const shown = assembleVolume(headings, base, state.sections);
   assert.match(shown, /1\.1 巡检\n旧巡检\n/);
   assert.match(shown, /1\.2 主机\n新主机\n/);
+});
+
+test('fanout shows queued hint and started shows waiting until first delta', () => {
+  let state = applySectionEvent(emptyVolumeStream(), {
+    event: 'sections.fanout',
+    concurrency: 1,
+    section_ids: ['t-inspect', 't-host'],
+  });
+  let shown = assembleVolume(headings, base, state.sections);
+  assert.match(shown, new RegExp(`1\\.1 巡检\\n${SECTION_QUEUED_HINT}`));
+  assert.match(shown, new RegExp(`1\\.2 主机\\n${SECTION_QUEUED_HINT}`));
+  assert.match(streamProgressNotice(state, headings), /排队 2 节/);
+
+  state = applySectionEvent(state, { event: 'section.started', section_id: 't-inspect', title: '巡检' });
+  shown = assembleVolume(headings, base, state.sections);
+  assert.match(shown, new RegExp(`1\\.1 巡检\\n${SECTION_WAITING_HINT}`));
+  assert.match(shown, new RegExp(`1\\.2 主机\\n${SECTION_QUEUED_HINT}`));
+  assert.match(streamProgressNotice(state, headings), /正在写：巡检/);
+  assert.match(streamProgressNotice(state, headings), /排队 1 节/);
+
+  state = applySectionEvent(state, { event: 'section.delta', section_id: 't-inspect', text: '正文' });
+  shown = assembleVolume(headings, base, state.sections);
+  assert.match(shown, /1\.1 巡检\n正文\n/);
+  assert.equal(shown.includes(SECTION_WAITING_HINT), false);
 });
 
 test('coalescer keeps sections apart and merges repeats', () => {
