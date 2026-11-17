@@ -227,7 +227,8 @@ def format_section_sse(event: dict) -> str:
 
 
 def _model_streams(model: Any) -> bool:
-    return callable(getattr(model, "stream_suggest", None)) and bool(getattr(model, "stream_enabled", False))
+    """节流只要模型提供 stream_suggest 就逐段输出。stream_enabled 只约束普通 suggest 的请求体，from_env 默认为假，不能挡住这一路。"""
+    return callable(getattr(model, "stream_suggest", None))
 
 
 def _cancelled(cancel: Any) -> bool:
@@ -241,7 +242,7 @@ def _stop_if_cancelled(cancel: Any) -> None:
 
 
 def _complete_section(model: Any, user: str, *, on_delta: Callable[[str], None] | None, cancel: Any) -> str:
-    """有 on_delta 且模型能流式时走 stream_suggest；否则仍整段 suggest。"""
+    """有 on_delta 且模型提供 stream_suggest 时逐段输出；没有该方法时仍整段 suggest 再回调一次。"""
     if on_delta is not None and _model_streams(model):
         from icg.infra.model_fallback import call_model
 

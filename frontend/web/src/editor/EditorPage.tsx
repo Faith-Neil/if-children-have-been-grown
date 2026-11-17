@@ -51,6 +51,7 @@ import { VARIABLE_ERROR_CODES, mayHaveVariables, nodesMatch, resolveVariables, s
 import { VariableChip } from './VariableChip.tsx';
 import { isAbort, type ApplyResult } from './selection-rewrite-core.ts';
 import { runSectionVolumeStream } from './section-stream.ts';
+import { createTextReveal, streamFailureNotice, volumeStreamChrome, type TextReveal } from './text-reveal.ts';
 import { EditorDiffDrawer, type ChapterVersionItem } from './EditorDiffDrawer.tsx';
 import { extractCitationIds, type CiteKind, type CitationMeta } from './cite-capsule';
 import { useEditorLock, type Lease } from './useEditorLock.ts';
@@ -82,6 +83,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const [editFingerprint, setEditFingerprint] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [streaming, setStreaming] = useState(false);
+  const [streamFailed, setStreamFailed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [rightTab, setRightTab] = useState('assistant');
   const [savedAt, setSavedAt] = useState('');
@@ -101,6 +103,8 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const autosaving = useRef(false);
   const streamLive = useRef(false);
   const streamAbort = useRef<AbortController | null>(null);
+  const revealRef = useRef<TextReveal | null>(null);
+  const revealHalted = useRef(false);
   const streamRun = useRef(0);
   const streamChapterId = useRef('');
 
@@ -249,6 +253,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   useEffect(() => () => {
     streamRun.current += 1;
     streamLive.current = false;
+    revealRef.current?.cancel();
     streamAbort.current?.abort();
   }, []);
 
@@ -578,6 +583,8 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   }
 
   function stopDirectoryStream() {
+    revealHalted.current = true;
+    revealRef.current?.cancel();
     streamAbort.current?.abort();
   }
 
@@ -589,6 +596,12 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     const controller = new AbortController();
     streamAbort.current = controller;
     streamChapterId.current = target;
+    revealHalted.current = false;
+    setStreamFailed(false);
+    const reveal = createTextReveal(markdown => {
+      if (streamRun.current === runId) setContent(markdown);
+    });
+    revealRef.current = reveal;
     streamLive.current = true;
     setStreaming(true);
     if (target !== chapterId) {
@@ -598,6 +611,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     }
     let outcome: Awaited<ReturnType<typeof runSectionVolumeStream>> | null = null;
     let stopped = false;
+    let requestError = '';
     try {
       outcome = await runSectionVolumeStream({
         projectId: workspace.project.id,
@@ -607,19 +621,29 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         headings: technicalOutline.headings,
         baseContent: base,
         signal: controller.signal,
-        onText: markdown => {
-          if (streamRun.current === runId) setContent(markdown);
-        },
+        onText: markdown => reveal.push(markdown),
       });
+      if (streamRun.current === runId && outcome?.phase === 'done' && !controller.signal.aborted && !revealHalted.current) {
+        await reveal.settled();
+      } else {
+        reveal.cancel();
+      }
     } catch (error) {
+      reveal.cancel();
       if (isAbort(error)) stopped = true;
-      else report(error);
+      else {
+        requestError = error instanceof Error ? error.message : '生成请求失败';
+        setStreamFailed(true);
+        setNotice(streamFailureNotice(requestError));
+        report(error);
+      }
     } finally {
       if (streamAbort.current === controller) streamAbort.current = null;
     }
     if (streamRun.current !== runId) return;
+    const userStopped = stopped || controller.signal.aborted || revealHalted.current;
     try {
-      if (outcome?.phase === 'done') {
+      if (outcome?.phase === 'done' && !requestError) {
         const updated = await request<Chapter>(`/api/chapters/${target}`, token);
         if (streamRun.current !== runId) return;
         setChapter(updated);
@@ -630,10 +654,16 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         if (streamRun.current !== runId) return;
         const missed = outcome.failed.length > 0 ? `有 ${outcome.failed.length} 节需要补写。` : '';
         setNotice(outcome.replay ? '这次生成已经完成，没有重复写入。' : `正文已写入。${missed}`.trim());
+        setStreamFailed(false);
+      } else if (requestError) {
+        setContent(base);
       } else {
         setContent(base);
-        if (stopped || outcome?.phase === 'cancelled') setNotice('已停止。这次生成没有写入章节。');
-        else setNotice(outcome?.message || '生成没有完成，章节保持原样。');
+        if (userStopped || outcome?.phase === 'cancelled') setNotice('已停止。这次生成没有写入章节。');
+        else {
+          setStreamFailed(true);
+          setNotice(streamFailureNotice(outcome?.message || '生成没有完成，章节保持原样。'));
+        }
       }
     } catch (error) {
       if (streamRun.current === runId) {
@@ -642,11 +672,18 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
       }
     } finally {
       if (streamRun.current === runId) {
+        revealRef.current = null;
         streamLive.current = false;
         setStreaming(false);
       }
     }
   }
+
+  const streamChrome = volumeStreamChrome({
+    streaming,
+    busy: !!(projectBusy || busy),
+    streamFailed,
+  });
 
   const generatedDirectory: GeneratedDirectory | null = technicalOutline && outlineChapter && technicalOutline.headings.length > 0 ? {
     title: technicalOutline.title,
@@ -772,7 +809,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
                 if (streaming) stopDirectoryStream();
                 else void generateDirectory().catch(() => undefined);
               }}
-            >{streaming ? '停止' : (generatedDirectory.busy ? '生成中…' : '开始生成')}</Button>
+            >{streamChrome.label}</Button>
             <Button data-testid="main-path-export" onClick={() => navigate('export')}>导出</Button>
             <Button type="link" data-testid="main-path-coverage" onClick={() => navigate('analyze')}>覆盖视图</Button>
           </div>
@@ -878,7 +915,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
                 ref={paperRef}
                 markdown={content}
                 editable={canEdit && !combinedBusy}
-                generating={!!(projectBusy || busy) && !streaming}
+                generating={streamChrome.paperWait}
                 onChange={value => { lock.markActivity(); setContent(value); }}
                 onActivity={() => lock.markActivity()}
                 onSelection={range => { selection.current = range ? { start: range.start, end: range.end } : null; }}
@@ -927,7 +964,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         combinedBusy={combinedBusy} held={held} canEdit={canEdit} canGenerate={canGenerate} chapter={chapter} planCurrent={planCurrent} modified={modified} workspace={workspace}
         chapterId={chapterId} onViewInput={() => ops.setInputOpen(true)} onShowDiff={ops.showDiff} onSuggest={ops.suggest}
         technicalAssistant
-        generating={!!(projectBusy || busy)}
+        generating={streamChrome.paperWait}
         draftReady={(outlineChapter?.content || content || '').trim().length > 20}
         collapseControl={(
           <Tooltip title="收起对话助手以扩展编辑区">

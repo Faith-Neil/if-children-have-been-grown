@@ -60,15 +60,15 @@ def failure_text(error: BaseException) -> str:
 
 def call_model(provider: Any, system: str, user: str, *, on_delta: Callable[[str], None] | None = None,
                on_reset: Callable[[str, str], None] | None = None, cancel: Any = None) -> ModelCall:
-    """调用主模型；健康类失败且配置了 provider.fallback 时改用备用模型。on_reset(备用模型名, 原因) 在切换时调用。"""
+    """调用主模型；健康类失败且配置了 provider.fallback 时改用备用模型。on_reset(备用模型名, 原因) 在切换时调用。
+    调用方传入 on_delta 且当前模型有 stream_suggest 时逐段输出，不看 stream_enabled。"""
     chain = [getattr(provider, "primary", provider)]
     fallback = getattr(provider, "fallback", None)
     if fallback is not None:
         chain.append(fallback)
     reason = ""
     for index, current in enumerate(chain):
-        streaming = on_delta is not None and callable(getattr(current, "stream_suggest", None)) \
-            and bool(getattr(current, "stream_enabled", False))
+        streaming = on_delta is not None and callable(getattr(current, "stream_suggest", None))
         try:
             if streaming:
                 text = current.stream_suggest(system, user, on_delta=on_delta, cancel=cancel)
