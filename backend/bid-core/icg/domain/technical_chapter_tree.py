@@ -58,6 +58,16 @@ SPEC_NUMBER_THEME = re.compile(r"^规范\s*[\d.]+")
 SPEC_NUMBER_COMPACT = re.compile(r"^规范[\d.]+")
 
 
+def _plain_title(text: str, fallback: str) -> str:
+    """短标题可以当章名。截断号「…」是 clip 留下的残片，不能进目录。"""
+    from icg.domain.technical_response_plan import short_chapter_title
+
+    short = short_chapter_title(text or "", fallback=fallback)
+    if not short or "…" in short:
+        return fallback
+    return short
+
+
 def _scheme_title(name: str) -> str:
     """仅保留兼容导出；目录替身不再用它硬拼「规范 N方案」。"""
     title = strip_heading_number(name)
@@ -153,9 +163,7 @@ def _scheme_heading(theme: str, point: str) -> str:
     usable = _usable_chapter_label(theme)
     if usable and not _title_copies_point(usable, point):
         return usable
-    from icg.domain.technical_response_plan import short_chapter_title
-
-    short = short_chapter_title(point, fallback="综合技术响应")
+    short = _plain_title(point, "综合技术响应")
     schemed = _scheme_title(short)
     if schemed and not _title_copies_point(schemed, point):
         return schemed
@@ -302,9 +310,9 @@ def _strip_js_comments(raw: str) -> str:
 
 
 _M_CODE = re.compile(r"m\d+")
-_OBJECT_HEAD = re.compile(r'\{\s*"?(?:level|title)"?\s*:')
-_TITLE_FIELD = re.compile(r'"title"\s*:\s*"([^"]*)"')
-_LEVEL_FIELD = re.compile(r'"level"\s*:\s*(\d+)')
+_OBJECT_HEAD = re.compile(r"""\{\s*['"]?(?:level|title)['"]?\s*:""")
+_TITLE_FIELD = re.compile(r"""['"]title['"]\s*:\s*['"]([^'"]*)['"]""")
+_LEVEL_FIELD = re.compile(r"""['"]?level['"]?\s*:\s*['"]?(\d+)""")
 
 
 def _m_codes(blob: str) -> list[str]:
@@ -506,15 +514,13 @@ def _merge_tasks_onto_host(host: dict, source_tasks: list[dict], reqs: dict[str,
 
 def _chapters_for_mounts(task: dict, h1: str, mounts: list[str], reqs: dict[str, dict]) -> list[dict]:
     """多条挂载时一级只留主题，每条短标题单独做二级。"""
-    from icg.domain.technical_response_plan import short_chapter_title
-
     host = _node(1, h1)
     groups: list[list] = []
     held: list[str] = []
     for rid in mounts:
         row = reqs.get(rid) or {}
         point = str(row.get("extracted_summary") or row.get("text") or "").strip()
-        short = short_chapter_title(point or str(task.get("title") or "") or h1, fallback=h1)
+        short = _plain_title(point or str(task.get("title") or "") or h1, h1)
         # 整句要点即使未超过 16 字也不是章名；几个字的短名可以。
         copies_long_clause = bool(point) and short == point and len(point) > 8
         if (
@@ -563,8 +569,6 @@ def _chapters_for_mounts(task: dict, h1: str, mounts: list[str], reqs: dict[str,
 
 def stand_in_chapter_tree(tasks: list[dict], reqs: dict[str, dict]) -> list[dict]:
     """无可用模型时按任务列目录。多条挂载时一级只作主题，二级用短标题。不插空的项目理解。"""
-    from icg.domain.technical_response_plan import short_chapter_title
-
     nodes: list[dict] = []
     deferred: list[dict] = []
     for task in tasks:
@@ -585,7 +589,7 @@ def stand_in_chapter_tree(tasks: list[dict], reqs: dict[str, dict]) -> list[dict
         if label:
             h1 = label
         else:
-            h1 = short_chapter_title(point or task_title, fallback="综合技术响应")
+            h1 = _plain_title(point or task_title, "综合技术响应")
             if (
                 SPEC_NUMBER_THEME.match(h1)
                 or SPEC_NUMBER_COMPACT.match(h1)
@@ -602,7 +606,7 @@ def stand_in_chapter_tree(tasks: list[dict], reqs: dict[str, dict]) -> list[dict
         host = _node(1, h1)
         short = ""
         if len(mounts) == 1:
-            short = short_chapter_title(point or task_title or h1, fallback=h1)
+            short = _plain_title(point or task_title or h1, h1)
         # 长条款原文不得当二级章名；已是短名（含规范编号下的条款名）可以。
         copies_long_clause = bool(point) and short == point and len(point) > 16
         use_child = (
@@ -677,8 +681,6 @@ def _theme_label(node: dict, by_id: dict[str, dict]) -> str:
 
 
 def _child_under_theme(leaf: dict, theme: str, by_id: dict[str, dict]) -> dict:
-    from icg.domain.technical_response_plan import short_chapter_title
-
     title = str(leaf.get("title") or "").strip() or theme
     if title == theme:
         point = ""
@@ -686,7 +688,7 @@ def _child_under_theme(leaf: dict, theme: str, by_id: dict[str, dict]) -> dict:
             point = str((by_id.get(str(rid)) or {}).get("point") or "").strip()
             if point:
                 break
-        title = short_chapter_title(point, fallback="服务内容") if point else "服务内容"
+        title = _plain_title(point, "服务内容") if point else "服务内容"
         if title == theme:
             title = "服务内容"
     child = dict(leaf)
