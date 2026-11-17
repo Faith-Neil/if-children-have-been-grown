@@ -128,6 +128,38 @@ def test_empty_index_adopts_history_materials_and_search_returns_them():
     assert set(again["files"]) == set(index["files"])
 
 
+def test_bare_filename_in_history_dataset_is_searched_and_not_relisted():
+    bare_name = "甘肃农信2025-2027年数据库产品升级服务技术服务方案V2.8-(主标)任登科.docx"
+    client = ListingClient(
+        [RagflowDataset(id=HISTORY_DATASET, name=f"{COMPANY}::icg-history", company_id=COMPANY)],
+        {
+            HISTORY_DATASET: [
+                _doc(HISTORY_DOC, HISTORY_DATASET, bare_name, bare_name),
+                _doc(SCHEME_DOC, HISTORY_DATASET, "片段.md", "scheme/片段.md"),
+            ],
+        },
+        {HISTORY_DOC: HISTORY_TEXT},
+    )
+    kb = _service(client)
+    hits, audit = retrieve_dual(kb, COMPANY, "三级运维服务体系")
+    assert audit["history_hits"] >= 1
+    assert any(HISTORY_TEXT in hit["content"] for hit in hits)
+    assert any(hit["dataset_kind"] == "history" and hit["reference_only"] is True for hit in hits)
+    assert client.list_calls == [COMPANY]
+
+    index = read_index(kb.repository.read(), COMPANY)
+    files = list(index["files"].values())
+    by_doc = {entry["document_id"]: entry for entry in files}
+    assert index["entries"] == {}
+    assert set(by_doc) == {HISTORY_DOC}
+    assert by_doc[HISTORY_DOC]["source_type"] == "file"
+    assert by_doc[HISTORY_DOC]["dataset_kind"] == "history"
+    assert SCHEME_DOC not in by_doc
+
+    retrieve_dual(kb, COMPANY, "三级运维服务体系")
+    assert client.list_calls == [COMPANY]
+
+
 def test_tenant_mismatch_does_not_adopt_unmanaged_documents():
     client = ListingClient(
         [RagflowDataset(id=FOREIGN_DATASET, name="beta::icg-history", company_id="beta")],
