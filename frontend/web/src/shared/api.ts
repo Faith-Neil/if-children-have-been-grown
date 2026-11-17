@@ -134,12 +134,20 @@ export async function download(path: string, token: string, filename: string, wa
 }
 
 /** 读取服务端事件流（text/event-stream）：每条事件交给 onEvent；开始前失败按统一错误抛出。不自动重试（生成会重复调用模型）。
- * signal 中止即断开连接，服务端随之停止生成、不保存（“停止”按钮）；中止时抛出 name 为 AbortError 的错误。 */
+ * 用 fetch 带 Authorization，不用浏览器 EventSource（它不能加登录头）。
+ * signal 中止即断开连接，服务端随之停止生成、不保存（“停止”按钮）；中止时抛出 name 为 AbortError 的错误。
+ * extraHeaders 留给 If-Match、Idempotency-Key；Authorization 与 Content-Type 仍由这里写上。 */
 export async function streamEvents(path: string, token: string, body: unknown, onEvent: (event: Record<string, unknown>) => void,
-  signal?: AbortSignal): Promise<void> {
+  signal?: AbortSignal, extraHeaders?: Record<string, string>): Promise<void> {
+  const headers: Record<string, string> = {
+    Accept: 'text/event-stream',
+    ...extraHeaders,
+    'Content-Type': 'application/json',
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
   const response = await fetch(path, {
     method: 'POST', cache: 'no-store', signal,
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'text/event-stream' },
+    headers,
     body: JSON.stringify(body),
   }).catch(error => rememberFailureSession(error, token));
   if (!response.ok) throw rememberFailureSession(apiFailure(response.status, await readJson(response), response.headers.get('X-Request-ID') ?? undefined), token);

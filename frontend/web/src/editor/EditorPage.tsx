@@ -49,7 +49,8 @@ import { canSelectInEditor, lineRangeOffsets, type ChapterIssue } from './chapte
 import { ParagraphLocksBar } from './ParagraphLocksBar.tsx';
 import { VARIABLE_ERROR_CODES, mayHaveVariables, nodesMatch, resolveVariables, sourceLabel, type VariableNode } from './variable-nodes.ts';
 import { VariableChip } from './VariableChip.tsx';
-import type { ApplyResult } from './selection-rewrite-core.ts';
+import { isAbort, type ApplyResult } from './selection-rewrite-core.ts';
+import { runSectionVolumeStream } from './section-stream.ts';
 import { EditorDiffDrawer, type ChapterVersionItem } from './EditorDiffDrawer.tsx';
 import { extractCitationIds, type CiteKind, type CitationMeta } from './cite-capsule';
 import { useEditorLock, type Lease } from './useEditorLock.ts';
@@ -80,6 +81,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const [content, setContent] = useState('');
   const [editFingerprint, setEditFingerprint] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [streaming, setStreaming] = useState(false);
   const [loading, setLoading] = useState(false);
   const [rightTab, setRightTab] = useState('assistant');
   const [savedAt, setSavedAt] = useState('');
@@ -97,6 +99,10 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const [cursorKey, setCursorKey] = useState<string | null>(null);
   const paperRef = useRef<PaperEditorHandle>(null);
   const autosaving = useRef(false);
+  const streamLive = useRef(false);
+  const streamAbort = useRef<AbortController | null>(null);
+  const streamRun = useRef(0);
+  const streamChapterId = useRef('');
 
   const epoch = useRef(0);
   const sequence = useRef(0);
@@ -115,7 +121,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const canEdit = chapterCan(activeChapter, 'edit') && dataPermission.canEdit && !systemKind;
   const isReadOnlyView = !canEdit || dataPermission.readOnly;
   const canGenerate = chapterCan(activeChapter, 'generate') && dataPermission.canEdit;
-  const combinedBusy = busy || projectBusy || loading;
+  const combinedBusy = busy || projectBusy || loading || streaming;
   const planCurrent = activeChapter?.writing_input?.is_current === true;
 
   // 1. 租约与心跳续期 Hook
@@ -157,8 +163,8 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     epoch, sequence, selection, setSavedAt, setNotice, run, reload, mutate, report, modal,
   });
 
-  const dirty = chapter ? content !== (chapter.draft?.base_revision === chapter.revision ? chapter.draft.content : chapter.content) : false;
-  const modified = chapter ? content !== chapter.content : false;
+  const dirty = !streaming && chapter ? content !== (chapter.draft?.base_revision === chapter.revision ? chapter.draft.content : chapter.content) : false;
+  const modified = !streaming && chapter ? content !== chapter.content : false;
   const targetLength = activeChapter?.writing_input?.target_length ?? chapter?.writing_input?.target_length ?? null;
   const wordCountInfo = useMemo(() => calculateWordCount(content, targetLength), [content, targetLength]);
   const outlineNodes = useMemo(() => mapChaptersToOutlineNodes(workspace.chapters, workspace.requirements), [workspace.chapters, workspace.requirements]);
@@ -240,16 +246,26 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const invalidVariables = shownVariables.filter(item => item.status !== 'valid');
   function goToSource(_source: VariableNode['source']) { navigate('analyze'); }
 
+  useEffect(() => () => {
+    streamRun.current += 1;
+    streamLive.current = false;
+    streamAbort.current?.abort();
+  }, []);
+
   useEffect(() => {
     const start = ++epoch.current;
-    setChapter(null); setContent(''); setEditFingerprint(null); selection.current = null; setRewriteSelection(null);
-    lock.clearLease(); ops.resetChapterStates(); setSavedAt(''); setNotice(''); onDirtyChange(false); setAutosavePaused(false);
+    const keepLive = streamLive.current;
+    if (!keepLive) {
+      setChapter(null); setContent(''); setEditFingerprint(null); selection.current = null; setRewriteSelection(null);
+      lock.clearLease(); ops.resetChapterStates(); setSavedAt(''); setNotice(''); onDirtyChange(false); setAutosavePaused(false);
+    }
     if (!chapterId) return;
-    setLoading(true);
+    if (!keepLive) setLoading(true);
     request<Chapter>(`/api/chapters/${chapterId}`, token).then(data => {
       if (start !== epoch.current) return;
       setChapter(data); sequence.current = data.draft?.sequence ?? 0;
       setEditFingerprint(loadedEditingFingerprint(data, workspace.input_fingerprint));
+      if (streamLive.current) return;
       if (data.draft && data.draft.base_revision !== data.revision) {
         setContent(data.content); setNotice('存在基于旧版本的个人草稿。当前先展示新版本正文，旧草稿没有自动覆盖。');
       } else {
@@ -509,6 +525,10 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   }
 
   function selectChapter(id: string, nextVolume?: Volume) {
+    if (streamLive.current && id !== streamChapterId.current) {
+      setNotice('正在生成，停止后再切换章节。');
+      return;
+    }
     const action = () => { if (nextVolume) setVolume(nextVolume); setChapterId(id); };
     const confirmLeave = () => modal.confirm({ title: '当前章节还有未保存文字', content: '自动保存没有成功。先保存草稿或提交本节，才能保证这些文字不丢失。', okText: '离开当前章节', cancelText: '继续编辑', onOk: action });
     if (!dirty) action();
@@ -557,14 +577,75 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     await refreshOutlineChapter().catch(() => undefined);
   }
 
+  function stopDirectoryStream() {
+    streamAbort.current?.abort();
+  }
+
   async function generateDirectory(section?: string) {
-    await mutate(`/api/v1/projects/${workspace.project.id}/generate`, 'POST', section ? { section } : {});
-    const target = technicalOutline?.chapter_id;
-    if (target && target !== chapterId) {
-      selectChapter(target, 'technical');
-      return;
+    if (streamLive.current || !token || !technicalOutline || !outlineChapter) return;
+    const target = technicalOutline.chapter_id;
+    const base = outlineChapter.id === chapterId ? content : (outlineChapter.content || '');
+    const runId = ++streamRun.current;
+    const controller = new AbortController();
+    streamAbort.current = controller;
+    streamChapterId.current = target;
+    streamLive.current = true;
+    setStreaming(true);
+    if (target !== chapterId) {
+      setVolume('technical');
+      setChapterId(target);
+      setContent(base);
     }
-    await refreshOutlineChapter().catch(() => undefined);
+    let outcome: Awaited<ReturnType<typeof runSectionVolumeStream>> | null = null;
+    let stopped = false;
+    try {
+      outcome = await runSectionVolumeStream({
+        projectId: workspace.project.id,
+        token,
+        revision: workspace.revision,
+        section,
+        headings: technicalOutline.headings,
+        baseContent: base,
+        signal: controller.signal,
+        onText: markdown => {
+          if (streamRun.current === runId) setContent(markdown);
+        },
+      });
+    } catch (error) {
+      if (isAbort(error)) stopped = true;
+      else report(error);
+    } finally {
+      if (streamAbort.current === controller) streamAbort.current = null;
+    }
+    if (streamRun.current !== runId) return;
+    try {
+      if (outcome?.phase === 'done') {
+        const updated = await request<Chapter>(`/api/chapters/${target}`, token);
+        if (streamRun.current !== runId) return;
+        setChapter(updated);
+        setContent(updated.content);
+        setEditFingerprint(loadedEditingFingerprint(updated, workspace.input_fingerprint));
+        sequence.current = updated.draft?.sequence ?? sequence.current;
+        await reload().catch(() => undefined);
+        if (streamRun.current !== runId) return;
+        const missed = outcome.failed.length > 0 ? `有 ${outcome.failed.length} 节需要补写。` : '';
+        setNotice(outcome.replay ? '这次生成已经完成，没有重复写入。' : `正文已写入。${missed}`.trim());
+      } else {
+        setContent(base);
+        if (stopped || outcome?.phase === 'cancelled') setNotice('已停止。这次生成没有写入章节。');
+        else setNotice(outcome?.message || '生成没有完成，章节保持原样。');
+      }
+    } catch (error) {
+      if (streamRun.current === runId) {
+        report(error);
+        setNotice('生成已结束，页面没有刷新到已保存正文。');
+      }
+    } finally {
+      if (streamRun.current === runId) {
+        streamLive.current = false;
+        setStreaming(false);
+      }
+    }
   }
 
   const generatedDirectory: GeneratedDirectory | null = technicalOutline && outlineChapter && technicalOutline.headings.length > 0 ? {
@@ -577,7 +658,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     confirmed: workspace.plan_confirmed,
     canPrepare: projectCan(workspace, 'prepare_sources'),
     canGenerate: outlineChapter.permissions?.generate !== false,
-    busy: projectBusy || busy,
+    busy: projectBusy || busy || streaming,
     onSave: saveDirectory,
     onGenerate: generateDirectory,
     onOpen: () => selectChapter(outlineChapter.id, 'technical'),
@@ -684,10 +765,14 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
             >{generatedDirectory.confirmed ? '目录已确认' : '确认目录'}</Button>
             <Button
               type="primary"
-              data-testid="main-path-generate"
-              disabled={!generatedDirectory.confirmed || !!generatedDirectory.busy || !generatedDirectory.canGenerate}
-              onClick={() => void generateDirectory().catch(() => undefined)}
-            >{generatedDirectory.busy ? '生成中…' : '开始生成'}</Button>
+              danger={streaming}
+              data-testid={streaming ? 'main-path-stop' : 'main-path-generate'}
+              disabled={streaming ? false : (!generatedDirectory.confirmed || !!generatedDirectory.busy || !generatedDirectory.canGenerate)}
+              onClick={() => {
+                if (streaming) stopDirectoryStream();
+                else void generateDirectory().catch(() => undefined);
+              }}
+            >{streaming ? '停止' : (generatedDirectory.busy ? '生成中…' : '开始生成')}</Button>
             <Button data-testid="main-path-export" onClick={() => navigate('export')}>导出</Button>
             <Button type="link" data-testid="main-path-coverage" onClick={() => navigate('analyze')}>覆盖视图</Button>
           </div>
@@ -706,9 +791,12 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
             <Tooltip title="表格"><Button size="small" icon={<TableOutlined />} onClick={() => paperRef.current?.table()} disabled={!canEdit || combinedBusy} data-testid="toolbar-table" /></Tooltip>
             <Tooltip title="图片说明"><Button size="small" icon={<PictureOutlined />} onClick={() => paperRef.current?.insertParagraph('（图：请替换为示意图）')} disabled={!canEdit || combinedBusy} /></Tooltip>
             {generatedDirectory?.confirmed && (
-              <Button type="primary" size="small" data-testid="toolbar-generate"
-                disabled={!!generatedDirectory.busy || !generatedDirectory.canGenerate}
-                onClick={() => void generateDirectory().catch(() => undefined)}>开始生成</Button>
+              <Button type="primary" size="small" danger={streaming} data-testid={streaming ? 'toolbar-stop' : 'toolbar-generate'}
+                disabled={streaming ? false : (!!generatedDirectory.busy || !generatedDirectory.canGenerate)}
+                onClick={() => {
+                  if (streaming) stopDirectoryStream();
+                  else void generateDirectory().catch(() => undefined);
+                }}>{streaming ? '停止' : '开始生成'}</Button>
             )}
             <Tooltip title="版本历史（次级）"><Button size="small" type="text" icon={<HistoryOutlined />} onClick={viewVersions} disabled={combinedBusy || !chapter}>版本</Button></Tooltip>
           </Space>
@@ -790,7 +878,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
                 ref={paperRef}
                 markdown={content}
                 editable={canEdit && !combinedBusy}
-                generating={!!(projectBusy || busy)}
+                generating={!!(projectBusy || busy) && !streaming}
                 onChange={value => { lock.markActivity(); setContent(value); }}
                 onActivity={() => lock.markActivity()}
                 onSelection={range => { selection.current = range ? { start: range.start, end: range.end } : null; }}
