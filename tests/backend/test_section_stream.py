@@ -1,7 +1,8 @@
 # 为什么有这个文件：核对技术节流式生成（PR5）。
 # 它解决什么问题：假模型分多段吐字时，正文等于各段拼接；取消后这一节不改原文；
 # SSE 帧带 section_id 和本次新增文字；多节并行时同时进行的模型调用不超过 3。
-# 非流式仍只走 suggest。编辑台逐字展示不在这里。
+# 未订阅增量时仍只走 suggest。订阅了 on_delta 时，即使 stream_enabled 为假也走 stream_suggest。
+# 编辑台逐字展示不在这里。
 
 from __future__ import annotations
 
@@ -115,6 +116,43 @@ def test_produce_section_relays_deltas_and_still_suggests_when_not_streaming():
     fallback.suggest = lambda system, user: BODY
     assert produce_section("运维保障与巡检", row, fallback, on_delta=once.append) == BODY
     assert once == [BODY]
+
+
+def test_on_delta_uses_stream_suggest_even_when_stream_disabled():
+    """stream_enabled 默认为假时，只要调用方要增量且模型有 stream_suggest，就逐段吐字，不整段 suggest。"""
+    from icg.domain.technical_volume import produce_section
+    from icg.infra.model_fallback import call_model
+
+    row = {"text": "每月巡检", "response": "按招标执行", "response_type": "comply"}
+    model = _local(stream_enabled=False)
+    seen = []
+
+    def stream_suggest(instruction, content, *, on_delta, cancel=None):
+        for piece in PIECES:
+            on_delta(piece)
+        return BODY
+
+    model.stream_suggest = stream_suggest
+    model.suggest = lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("on_delta 时不应整段 suggest"))
+    text = produce_section("运维保障与巡检", row, model, on_delta=seen.append)
+    assert text == BODY and seen == list(PIECES)
+
+    class Gated:
+        stream_enabled = False
+        is_local = True
+        model = "qwen-local"
+
+        def suggest(self, system, user):
+            raise AssertionError("call_model 在 on_delta 时不应整段 suggest")
+
+        def stream_suggest(self, instruction, content, *, on_delta, cancel=None):
+            on_delta("甲")
+            on_delta("乙")
+            return "甲乙"
+
+    pieces = []
+    result = call_model(Gated(), "系统", "用户", on_delta=pieces.append)
+    assert result.text == "甲乙" and pieces == ["甲", "乙"]
 
 
 def test_produce_section_cancel_stops_the_rest_of_the_stream():

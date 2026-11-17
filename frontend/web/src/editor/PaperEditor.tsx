@@ -93,7 +93,17 @@ export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEd
     if (!editor) return;
     const current = docToMarkdown(editor.getJSON() as PaperNode);
     if (sameMarkdown(current, markdown)) return;
+    const scroller = sheetRef.current?.closest('.editor-scroll');
+    const top = scroller instanceof HTMLElement ? scroller.scrollTop : 0;
+    const pin = scroller instanceof HTMLElement
+      && scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 24;
     editor.commands.setContent(markdownToDoc(markdown), false);
+    if (!(scroller instanceof HTMLElement)) return;
+    const restore = () => {
+      scroller.scrollTop = pin ? scroller.scrollHeight : top;
+    };
+    restore();
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(restore);
   }, [editor, markdown]);
 
   useEffect(() => {
