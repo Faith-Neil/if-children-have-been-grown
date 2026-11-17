@@ -19,6 +19,11 @@ _BID_PACKAGING_MARKERS = (
 )
 
 
+def is_bid_packaging(text: str) -> bool:
+    """注册资金、失信、装订等投标包装。不新增第三种条款角色。"""
+    return any(marker in str(text or "") for marker in _BID_PACKAGING_MARKERS)
+
+
 def assign_clause_role(row: dict) -> str:
     """返回 response_mount 或 rejection_constraint。
 
@@ -33,7 +38,7 @@ def assign_clause_role(row: dict) -> str:
         row.get("category") == "disqualification"
         or "否决" in text
         or "废标条件" in text
-        or any(marker in text for marker in _BID_PACKAGING_MARKERS)
+        or is_bid_packaging(text)
     ):
         return "rejection_constraint"
     return "response_mount"

@@ -8,6 +8,8 @@ from typing import Any, Callable
 
 from icg.domain.domain import DomainError
 from icg.domain.matrix import critical
+from icg.domain.technical_clause_extract import _matter_key, _same
+from icg.domain.technical_clause_role import is_bid_packaging
 from icg.domain.writing_knowledge_prompt import CAPABILITY_GAP_LINE, HISTORY_HEADING, MATERIALS_HEADING
 
 HEADING = re.compile(r"^(\d+(?:\.\d+)*)\s+(\S.*)$")
@@ -27,9 +29,13 @@ SECTION_SYSTEM = (
     "偏离表述和数字与给出的矩阵一致。"
     "历史材料中的其他客户名或其他项目名写成【待补】。本标业主、系统名、期限和 SLA 不要写成【待补】。"
     "服务案例只写脱敏框架，不写真实客户、人员、报价或证书。"
+    "废标硬约束必须遵守，不得改写成能力表述。"
 )
 SLA_HINT = re.compile(r"7\s*[×*xX]\s*24|响应时限|到场时限|故障响应")
 SLA_TITLES = ("运维", "巡检", "故障", "保障", "响应", "服务级别")
+_REJECTION_WORD = re.compile(r"废标|否决|无效")
+# 每节只带有限条项目级废标，避免把整份商务否决清单贴进每一节。
+_PROJECT_REJECTION_CAP = 8
 
 _section_writer: Callable[..., str] | None = None
 
@@ -185,6 +191,70 @@ def _section_points(title: str, task: dict | None, workflow: dict | None) -> lis
     return kept
 
 
+def _shown_clause(item: dict) -> str:
+    return str(item.get("extracted_summary") or item.get("text") or "").strip()
+
+
+def _pure_packaging_text(text: str) -> bool:
+    """仅包装词、且不含废标/否决/无效时才算纯包装。装订+否决仍走硬约束。"""
+    blob = str(text or "")
+    return bool(blob) and is_bid_packaging(blob) and _REJECTION_WORD.search(blob) is None
+
+
+def _row_is_packaging(item: dict) -> bool:
+    blob = f"{item.get('text') or ''} {item.get('extracted_summary') or ''}".strip()
+    return _pure_packaging_text(blob)
+
+
+def _section_hard(item: dict) -> bool:
+    if item.get("is_rejection_criterion") and item.get("requirement_type") != "qualification":
+        return True
+    return item.get("clause_role") == "rejection_constraint" and not _row_is_packaging(item)
+
+
+def _keep_matter(text: str, seen: list[str]) -> bool:
+    key = _matter_key(text)
+    if key and any(_same(key, item) for item in seen):
+        return False
+    if key:
+        seen.append(key)
+    return True
+
+
+def _prompt_constraints(rows: list[dict], workflow: dict | None) -> tuple[list[str], list[str], list[str]]:
+    """返回项目废标、本章废标、包装风险三条清单。"""
+    section: list[str] = []
+    seen: list[str] = []
+    packaging: list[str] = []
+    packed: list[str] = []
+    for item in rows:
+        text = _shown_clause(item)
+        if not text:
+            continue
+        if _row_is_packaging(item) and _keep_matter(text, packed):
+            packaging.append(text)
+        if _section_hard(item) and _keep_matter(text, seen):
+            section.append(text)
+    project: list[str] = []
+    sidecar = ((workflow or {}).get("technical_sidecars") or {}).get("rejection_lines") or []
+    for raw in sidecar:
+        text = str(raw or "").strip()
+        if not text:
+            continue
+        if _pure_packaging_text(text):
+            if _keep_matter(text, packed):
+                packaging.append(text)
+            continue
+        if _REJECTION_WORD.search(text) is None:
+            continue
+        if not _keep_matter(text, seen):
+            continue
+        project.append(text)
+        if len(project) >= _PROJECT_REJECTION_CAP:
+            break
+    return project, section, packaging
+
+
 def produce_section(title: str, row: dict, model: Any, *, knowledge: str = "",
                     task: dict | None = None, requirements: list[dict] | None = None,
                     workflow: dict | None = None) -> str:
@@ -193,18 +263,16 @@ def produce_section(title: str, row: dict, model: Any, *, knowledge: str = "",
     if _section_writer is not None:
         text = _section_writer(title, primary)
     elif _local_model(model):
+        cover = [item for item in rows if not _row_is_packaging(item)]
         req_block = "\n".join(
-            f"- [{item.get('risk_level') or 'medium'}] {item.get('extracted_summary') or item.get('text') or ''}"
-            for item in rows
+            f"- [{item.get('risk_level') or 'medium'}] {_shown_clause(item)}"
+            for item in cover
         )
         points = "\n".join(f"- {point}" for point in _section_points(title, task, workflow))
-        rejection = [
-            item for item in rows
-            if item.get("is_rejection_criterion") and item.get("requirement_type") != "qualification"
-        ]
-        reject_block = "\n".join(
-            f"- 废标约束：{item.get('extracted_summary') or item.get('text') or ''}" for item in rejection
-        )
+        project, section, packaging = _prompt_constraints(rows, workflow)
+        project_block = "\n".join(f"- 废标约束：{line}" for line in project)
+        section_block = "\n".join(f"- 废标约束：{line}" for line in section)
+        pack_block = "\n".join(f"- 包装风险：{line}" for line in packaging)
         point = str(primary.get("response") or "")
         reason = str(primary.get("deviation_reason") or "")
         label = LABEL.get(primary.get("response_type") or "", "无偏离")
@@ -213,7 +281,9 @@ def produce_section(title: str, row: dict, model: Any, *, knowledge: str = "",
             f"章节任务：{title}\n"
             f"必须覆盖的招标要求：\n{req_block or '（无）'}\n"
             f"响应要点：\n{points or reason or point or '（按要求逐条响应）'}\n"
-            f"项目级/本章废标硬约束：\n{reject_block or '（无技术类废标）'}\n"
+            f"项目废标硬约束：\n{project_block or '（无）'}\n"
+            f"本章废标硬约束：\n{section_block or '（无技术类废标）'}\n"
+            f"包装风险提示：\n{pack_block or '（无）'}\n"
             f"偏离口径：{label}。\n\n{evidence}"
         )
         text = model.suggest(SECTION_SYSTEM, user)

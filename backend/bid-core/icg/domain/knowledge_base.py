@@ -43,6 +43,8 @@ _DEFAULT_DATASET_SUFFIX = {"history": "icg-history", "materials": "icg-material"
 _DATASET_SUFFIX_ALIASES = {"materials": ("icg-materials",)}
 KIND_PROFILE = {"history": "history_bid", "materials": "materials"}
 FILE_KINDS = ("history", "materials")
+# 只登记这两个目录前缀下的原件。方案片段没有对应前缀，不能写进 entries。
+_UNMANAGED_FILE_PREFIXES = (("history/", "history"), ("materials/", "materials"))
 SYNC_STOPPED_MESSAGE = "资料与方案片段不再同步到知识库。"
 SECTION_CHARS = 500  # 结构化资料每节字数上限：一节一块，每块都带资料名称标题
 
@@ -63,6 +65,65 @@ def dataset_suffix(kind: str) -> str:
 
 def dataset_full_name(company_id: str, kind: str) -> str:
     return f"{company_id}::{dataset_suffix(kind)}"
+
+
+def unmanaged_file_kind(document: Any) -> str | None:
+    """文档路径以 history/ 或 materials/ 开头时返回类别。其他路径（含方案片段）不登记。"""
+    raw = getattr(document, "raw", None) or {}
+    candidates: list[str] = []
+    if isinstance(raw, dict):
+        for key in ("location", "path", "name"):
+            value = raw.get(key)
+            if isinstance(value, str) and value.strip():
+                candidates.append(value.strip())
+    name = str(getattr(document, "name", "") or "").strip()
+    if name:
+        candidates.append(name)
+    for text in candidates:
+        normalized = text.replace("\\", "/").strip()
+        while normalized.startswith("./"):
+            normalized = normalized[2:]
+        normalized = normalized.lstrip("/")
+        for prefix, kind in _UNMANAGED_FILE_PREFIXES:
+            if normalized.startswith(prefix):
+                return kind
+    return None
+
+
+def dataset_owned_by_company(name: str, company_id: str) -> bool:
+    """数据集全名的 :: 前一段必须等于 company_id。"""
+    company = (company_id or "").strip()
+    dataset_name = (name or "").strip()
+    if not company or "::" not in dataset_name:
+        return False
+    owner, _, _suffix = dataset_name.partition("::")
+    return owner == company
+
+
+def _document_ready_for_adopt(document: Any) -> bool:
+    if not str(getattr(document, "id", "") or "").strip():
+        return False
+    if getattr(document, "sync_status", "") != "synced":
+        return False
+    if int(getattr(document, "chunk_count", 0) or 0) <= 0:
+        return False
+    raw = getattr(document, "raw", None) or {}
+    if isinstance(raw, dict) and str(raw.get("enabled", 1)) in {"0", "False", "false"}:
+        return False
+    return True
+
+
+def _iter_dataset_documents(client: Any, dataset_id: str) -> Iterable[Any]:
+    """分页列出数据集文档。列举失败则停在该数据集，不把失败当成空库。"""
+    for page in range(1, 201):
+        try:
+            batch = list(client.list_documents(dataset_id, page=page, page_size=100) or [])
+        except Exception as exc:
+            log.info("unmanaged document list failed for %s: %s", dataset_id, type(exc).__name__)
+            return
+        yield from batch
+        if len(batch) < 100:
+            return
 
 
 def dataset_lookup_names(company_id: str, kind: str) -> tuple[str, ...]:
@@ -674,6 +735,59 @@ class KnowledgeBaseService:
                 "message": index.get("sync_message", ""), "counts": counts,
                 "items": sorted(rows, key=lambda r: r["key"])}
 
+    def _adopt_unmanaged_files(self, company_id: str, client: Any) -> int:
+        """把本公司数据集里 history/、materials/ 下已解析、尚未入索引的原件写入 files。
+
+        客户端来自 client_for，沿用其 trust_env=False，这里不另建连接。只写 files，不写 entries。
+        """
+        try:
+            datasets = list(client.list_datasets(company_id=company_id, page_size=100) or [])
+        except Exception as exc:
+            log.info("unmanaged file adopt skipped for %s: %s", company_id, type(exc).__name__)
+            return 0
+        found: list[tuple[str, Any, str]] = []
+        for dataset in datasets:
+            dataset_id = str(getattr(dataset, "id", "") or "").strip()
+            name = str(getattr(dataset, "name", "") or "")
+            if not dataset_id or not dataset_owned_by_company(name, company_id):
+                continue
+            for document in _iter_dataset_documents(client, dataset_id):
+                kind = unmanaged_file_kind(document)
+                if kind not in FILE_KINDS or not _document_ready_for_adopt(document):
+                    continue
+                found.append((dataset_id, document, kind))
+        if not found:
+            return 0
+        now = iso_time(self.demo._now())
+
+        def apply(index: dict) -> int:
+            files = index.setdefault("files", {})
+            datasets_index = index.setdefault("datasets", {})
+            known = {str(entry.get("document_id") or "") for entry in files.values()}
+            added = 0
+            for dataset_id, document, kind in found:
+                slot = datasets_index.get(kind)
+                if not isinstance(slot, dict):
+                    slot = {}
+                    datasets_index[kind] = slot
+                if not slot.get("dataset_id"):
+                    slot["dataset_id"] = dataset_id
+                document_id = str(document.id)
+                if document_id in known:
+                    continue
+                key = f"{SOURCE_FILE}:{document_id}"
+                files[key] = {
+                    "key": key, "source_type": SOURCE_FILE, "source_id": document_id, "dataset_kind": kind,
+                    "company_id": company_id, "name": str(document.name or document_id), "item_type": kind,
+                    "revision": 1, "document_id": document_id, "status": STATUS_SYNCED, "message": "",
+                    "chunk_count": int(document.chunk_count or 0), "enabled": True, "updated_at": now,
+                }
+                known.add(document_id)
+                added += 1
+            return added
+
+        return self._update_index(company_id, apply)
+
     # ---------- 检索 ----------
 
     def search(self, company_id: str, query: str, *, limit: int = 6, kinds: set[str] | None = None,
@@ -693,11 +807,22 @@ class KnowledgeBaseService:
         index = read_index(state, company_id)
         settings = {**read_settings(state, company_id), **(overrides or {})}
         wanted_kinds = kinds or {"history", "materials"}
-        candidates = list(index.get("entries", {}).values()) + list(index.get("files", {}).values())
-        entries = {e["document_id"]: e for e in candidates
-                   if e.get("status") == STATUS_SYNCED and e.get("document_id") and e.get("enabled", True)
-                   and self._kind(e) in wanted_kinds}
-        dataset_ids = sorted({self._dataset_of(index, e) for e in entries.values()} - {""})
+
+        def ready(current: dict) -> tuple[dict, list[str]]:
+            pool = list(current.get("entries", {}).values()) + list(current.get("files", {}).values())
+            chosen = {row["document_id"]: row for row in pool
+                      if row.get("status") == STATUS_SYNCED and row.get("document_id") and row.get("enabled", True)
+                      and self._kind(row) in wanted_kinds}
+            ids = sorted({self._dataset_of(current, row) for row in chosen.values()} - {""})
+            return chosen, ids
+
+        entries, dataset_ids = ready(index)
+        # entries 与 files 都空时，先登记 RAGFlow 里已有的 history/、materials/ 原件，再走原检索。
+        if (not dataset_ids or not entries) and not index.get("entries") and not index.get("files"):
+            self._adopt_unmanaged_files(company_id, client)
+            state = self.repository.read()
+            index = read_index(state, company_id)
+            entries, dataset_ids = ready(index)
         if not dataset_ids or not entries:
             return [], "knowledge base has no synced documents"
         result = client.retrieve(
