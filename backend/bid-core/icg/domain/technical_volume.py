@@ -3,7 +3,10 @@
 
 from __future__ import annotations
 
+import json
 import re
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable
 
 from icg.domain.domain import DomainError
@@ -32,6 +35,30 @@ SECTION_SYSTEM = (
 )
 SLA_HINT = re.compile(r"7\s*[×*xX]\s*24|响应时限|到场时限|故障响应")
 SLA_TITLES = ("运维", "巡检", "故障", "保障", "响应", "服务级别")
+
+# 节流事件。SSE 一帧是 `event: <event>` 加一行 `data:` JSON，两边的 event 相同。
+# section_id 是目录叶子的 task_id，否则 requirement_id，否则编号。
+# sections.fanout    concurrency（同时生成的上限，不是本次节数）、section_ids
+# section.started    section_id、title
+# section.delta      section_id、text（本次新增，不是累计全文）
+# section.done       section_id、text（scrub 之后要落盘的整节正文）
+# section.failed     section_id、message
+# section.cancelled  section_id（这一节不改原文）
+# volume.done        chapter_id、revision、failed、replay（重放没有 delta）
+# volume.cancelled   断开或取消后整次不写入章节
+# volume.failed      message
+SECTION_STREAM_CONCURRENCY = 3
+_SECTION_EVENTS = (
+    "sections.fanout",
+    "section.started",
+    "section.delta",
+    "section.done",
+    "section.failed",
+    "section.cancelled",
+    "volume.done",
+    "volume.cancelled",
+    "volume.failed",
+)
 
 _section_writer: Callable[..., str] | None = None
 
@@ -191,11 +218,52 @@ def _shown_clause(item: dict) -> str:
     return str(item.get("extracted_summary") or item.get("text") or "").strip()
 
 
+def format_section_sse(event: dict) -> str:
+    """把一节事件写成 SSE 帧。未知 event 直接拒绝，避免把别的 JSON 冒充节流。"""
+    kind = str(event.get("event") or "")
+    if kind not in _SECTION_EVENTS:
+        raise ValueError(kind)
+    return f"event: {kind}\ndata: {json.dumps(event, ensure_ascii=False)}\n\n"
+
+
+def _model_streams(model: Any) -> bool:
+    return callable(getattr(model, "stream_suggest", None)) and bool(getattr(model, "stream_enabled", False))
+
+
+def _cancelled(cancel: Any) -> bool:
+    return cancel is not None and cancel.is_set()
+
+
+def _stop_if_cancelled(cancel: Any) -> None:
+    if _cancelled(cancel):
+        from icg.infra.openai_model import ModelCancelled
+        raise ModelCancelled("cancelled")
+
+
+def _complete_section(model: Any, user: str, *, on_delta: Callable[[str], None] | None, cancel: Any) -> str:
+    """有 on_delta 且模型能流式时走 stream_suggest；否则仍整段 suggest。"""
+    if on_delta is not None and _model_streams(model):
+        from icg.infra.model_fallback import call_model
+
+        def guard(piece: str) -> None:
+            _stop_if_cancelled(cancel)
+            on_delta(piece)
+
+        return call_model(model, SECTION_SYSTEM, user, on_delta=guard, cancel=cancel).text
+    text = model.suggest(SECTION_SYSTEM, user)
+    _stop_if_cancelled(cancel)
+    if on_delta is not None:
+        on_delta(text)
+    return text
+
+
 def produce_section(title: str, row: dict, model: Any, *, knowledge: str = "",
                     task: dict | None = None, requirements: list[dict] | None = None,
-                    workflow: dict | None = None) -> str:
+                    workflow: dict | None = None, on_delta: Callable[[str], None] | None = None,
+                    cancel: Any = None) -> str:
     rows = requirements or ([row] if row else [])
     primary = rows[0] if rows else (row or {})
+    emitted = False
     if _section_writer is not None:
         text = _section_writer(title, primary)
     elif _local_model(model):
@@ -222,7 +290,8 @@ def produce_section(title: str, row: dict, model: Any, *, knowledge: str = "",
             f"包装风险提示：\n{pack_block or '（无）'}\n"
             f"偏离口径：{label}。\n\n{evidence}"
         )
-        text = model.suggest(SECTION_SYSTEM, user)
+        text = _complete_section(model, user, on_delta=on_delta, cancel=cancel)
+        emitted = on_delta is not None
     else:
         text = stand_in(title, primary)
         if rows and len(rows) > 1:
@@ -237,6 +306,9 @@ def produce_section(title: str, row: dict, model: Any, *, knowledge: str = "",
             text = f"{text}\n\n（已参考企业历史标书或权威资料，正式证据仍须可追溯。）"
         else:
             text = f"{text}\n\n【待确认】本节缺少企业能力依据，能力参数须人工核对，不得用招标原文代替。"
+    if on_delta is not None and not emitted:
+        _stop_if_cancelled(cancel)
+        on_delta(text)
     text = scrub(str(text or ""), primary)
     if len(str(text or "").strip()) < 40:
         raise RuntimeError("本节不完整")
@@ -309,11 +381,110 @@ def _assemble(outline: dict, bodies: dict[str, str], reviews: set[str]) -> str:
     return "\n".join(lines).strip() + "\n"
 
 
-def write_volume(state: Any, project_id: str, workflow: dict, section: str | None, model: Any,
-                 *, knowledge_base: Any = None) -> dict:
-    """按确认目录任务叶子写正文。目录顺序不改。失败的节保留原正文。先检索本标，公司库只作可引用证据，并记审计。"""
-    assert_ready(state, project_id, workflow)
+def _apply_one(patch: dict, bodies: dict[str, str], failed: list[str], audits: list[dict]) -> None:
+    if patch.get("cancelled"):
+        if patch.get("audit"):
+            audits.append(patch["audit"])
+        return
+    if patch.get("audit") is not None:
+        audits.append(patch["audit"])
+    if patch.get("skipped") or patch.get("failed"):
+        if patch.get("failed"):
+            failed.append(patch["title"])
+            if not bodies.get(patch["key"]):
+                bodies[patch["key"]] = patch["body"]
+        else:
+            bodies[patch["key"]] = patch["body"]
+    else:
+        bodies[patch["key"]] = patch["body"]
+    task = patch.get("task")
+    if isinstance(task, dict) and patch.get("task_patch"):
+        task.update(patch["task_patch"])
+
+
+def _draft_one(heading: dict, rows: dict, tasks: dict, model: Any, workflow: dict, knowledge_base: Any,
+               company_id: str, emit: Callable[[dict], None] | None, cancel: Any) -> dict:
+    """写一节。只返回这一节的正文和任务补丁，不改共享的 bodies。"""
     from icg.domain.technical_rag import knowledge_prompt_block, retrieve_for_section, section_query
+    from icg.infra.openai_model import ModelCancelled
+
+    key = _leaf_key(heading)
+    title = heading.get("title") or ""
+    if emit is not None and _cancelled(cancel):
+        emit({"event": "section.cancelled", "section_id": key})
+        return {"key": key, "title": title, "cancelled": True}
+    if emit is not None:
+        emit({"event": "section.started", "section_id": key, "title": title})
+    task = tasks.get(heading.get("task_id") or "") if heading.get("task_id") else None
+    req_ids = list(heading.get("requirement_ids") or [])
+    if not req_ids and heading.get("requirement_id"):
+        req_ids = [heading["requirement_id"]]
+    if task:
+        req_ids = list(task.get("requirement_ids") or req_ids)
+    req_rows = [rows[rid] for rid in req_ids if rid in rows]
+    primary = req_rows[0] if req_rows else rows.get(heading.get("requirement_id"))
+    if primary is None:
+        body = "待补\n【待确认】本节未挂接招标要求。"
+        if emit is not None:
+            emit({"event": "section.done", "section_id": key, "text": body})
+        return {
+            "key": key, "title": title, "body": body, "skipped": True,
+            "audit": {"section": title, "task_id": key, "skipped": "no_requirement"},
+        }
+    # 即使矩阵检索失败，仍用模型或替身写实质框架，缺依据标待确认，禁止整节空「待补」冒充完成。
+    query = section_query(title, primary, task=task, requirements=req_rows)
+    chunks, rag_audit = retrieve_for_section(knowledge_base, company_id, query, workflow)
+    rag_audit["section"] = title
+    rag_audit["task_id"] = heading.get("task_id")
+    rag_audit["requirement_ids"] = req_ids
+    knowledge = knowledge_prompt_block(chunks)
+
+    def on_delta(piece: str) -> None:
+        _stop_if_cancelled(cancel)
+        if emit is not None:
+            emit({"event": "section.delta", "section_id": key, "text": piece})
+
+    try:
+        body = produce_section(
+            title, primary, model, knowledge=knowledge, task=task, requirements=req_rows,
+            workflow=workflow, on_delta=on_delta if emit is not None else None,
+            cancel=cancel if emit is not None else None,
+        )
+    except ModelCancelled:
+        if emit is not None:
+            emit({"event": "section.cancelled", "section_id": key})
+        return {"key": key, "title": title, "cancelled": True, "audit": rag_audit}
+    except Exception:
+        if emit is not None:
+            emit({"event": "section.failed", "section_id": key, "message": "本节生成失败"})
+        fallback = (
+            f"【待确认】「{title}」自动生成失败，请按下列要求人工补写。\n"
+            + "\n".join(f"- {row.get('extracted_summary') or row.get('text') or ''}" for row in req_rows[:8])
+        )
+        return {
+            "key": key, "title": title, "failed": True, "body": fallback, "audit": rag_audit,
+            "task": task,
+            "task_patch": {"generation_status": "failed", "response_status": "gap"} if task is not None else None,
+        }
+    if emit is not None:
+        emit({"event": "section.done", "section_id": key, "text": body})
+    company_hits = int(rag_audit.get("history_hits") or 0) + int(rag_audit.get("material_hits") or 0)
+    return {
+        "key": key, "title": title, "body": body, "audit": rag_audit, "task": task,
+        "task_patch": {
+            "generation_status": "generated",
+            "response_status": "generated" if company_hits else "needs_confirm",
+        } if task is not None else None,
+    }
+
+
+def write_volume(state: Any, project_id: str, workflow: dict, section: str | None, model: Any,
+                 *, knowledge_base: Any = None, on_event: Callable[[dict], None] | None = None,
+                 cancel: Any = None) -> dict:
+    """按确认目录任务叶子写正文。目录顺序不改。失败的节保留原正文。先检索本标，公司库只作可引用证据，并记审计。
+    on_event 收到节流事件。多节同时生成时，进行中的模型调用不超过 SECTION_STREAM_CONCURRENCY。
+    cancel 置位后，还没写完的节保留原正文。"""
+    assert_ready(state, project_id, workflow)
     outline = workflow["technical_outline"]
     chapter = state.chapters.get(outline.get("chapter_id") or "")
     if chapter is None:
@@ -333,48 +504,40 @@ def write_volume(state: Any, project_id: str, workflow: dict, section: str | Non
     }
     failed: list[str] = []
     audits: list[dict] = []
-    for heading in headings:
-        key = _leaf_key(heading)
-        title = heading.get("title") or ""
-        task = tasks.get(heading.get("task_id") or "") if heading.get("task_id") else None
-        req_ids = list(heading.get("requirement_ids") or [])
-        if not req_ids and heading.get("requirement_id"):
-            req_ids = [heading["requirement_id"]]
-        if task:
-            req_ids = list(task.get("requirement_ids") or req_ids)
-        req_rows = [rows[rid] for rid in req_ids if rid in rows]
-        primary = req_rows[0] if req_rows else rows.get(heading.get("requirement_id"))
-        if primary is None:
-            bodies[key] = "待补\n【待确认】本节未挂接招标要求。"
-            audits.append({"section": title, "task_id": key, "skipped": "no_requirement"})
-            continue
-        # 即使矩阵检索失败，仍应用模型/替身写实质框架，缺依据标待确认，禁止整节空「待补」冒充完成。
-        query = section_query(title, primary, task=task, requirements=req_rows)
-        chunks, rag_audit = retrieve_for_section(knowledge_base, company_id, query, workflow)
-        rag_audit["section"] = title
-        rag_audit["task_id"] = heading.get("task_id")
-        rag_audit["requirement_ids"] = req_ids
-        audits.append(rag_audit)
-        knowledge = knowledge_prompt_block(chunks)
-        try:
-            bodies[key] = produce_section(
-                title, primary, model, knowledge=knowledge, task=task, requirements=req_rows,
-                workflow=workflow,
-            )
-            if task is not None:
-                task["generation_status"] = "generated"
-                company_hits = int(rag_audit.get("history_hits") or 0) + int(rag_audit.get("material_hits") or 0)
-                task["response_status"] = "generated" if company_hits else "needs_confirm"
-        except Exception:
-            failed.append(title)
-            if not bodies.get(key):
-                bodies[key] = (
-                    f"【待确认】「{title}」自动生成失败，请按下列要求人工补写。\n"
-                    + "\n".join(f"- {row.get('extracted_summary') or row.get('text') or ''}" for row in req_rows[:8])
-                )
-            if task is not None:
-                task["generation_status"] = "failed"
-                task["response_status"] = "gap"
+    emit_lock = threading.Lock()
+
+    def emit(event: dict) -> None:
+        if on_event is None:
+            return
+        with emit_lock:
+            on_event(event)
+
+    if on_event is not None and headings:
+        emit({
+            "event": "sections.fanout",
+            "concurrency": SECTION_STREAM_CONCURRENCY,
+            "section_ids": [_leaf_key(item) for item in headings],
+        })
+
+    def draft(heading: dict) -> dict:
+        listener = emit if on_event is not None else None
+        return _draft_one(
+            heading, rows, tasks, model, workflow, knowledge_base, company_id, listener, cancel,
+        )
+
+    if on_event is not None and len(headings) > 1:
+        cap = min(SECTION_STREAM_CONCURRENCY, len(headings))
+        with ThreadPoolExecutor(max_workers=cap) as pool:
+            futures = [pool.submit(draft, heading) for heading in headings]
+            drafted: dict[str, dict] = {}
+            for future in as_completed(futures):
+                patch = future.result()
+                drafted[patch["key"]] = patch
+        patches = [drafted[_leaf_key(item)] for item in headings]
+    else:
+        patches = [draft(heading) for heading in headings]
+    for patch in patches:
+        _apply_one(patch, bodies, failed, audits)
     workflow["technical_rag_audit"] = audits[-20:]
     if model is not None:
         name = str(
