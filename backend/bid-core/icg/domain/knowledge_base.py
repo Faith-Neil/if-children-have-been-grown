@@ -43,7 +43,7 @@ _DEFAULT_DATASET_SUFFIX = {"history": "icg-history", "materials": "icg-material"
 _DATASET_SUFFIX_ALIASES = {"materials": ("icg-materials",)}
 KIND_PROFILE = {"history": "history_bid", "materials": "materials"}
 FILE_KINDS = ("history", "materials")
-# 只登记这两个目录前缀下的原件。方案片段没有对应前缀，不能写进 entries。
+# 目录前缀优先。没有目录的上传按数据集查找名归类。其他目录（含方案片段）不写 entries，也不写 files。
 _UNMANAGED_FILE_PREFIXES = (("history/", "history"), ("materials/", "materials"))
 SYNC_STOPPED_MESSAGE = "资料与方案片段不再同步到知识库。"
 SECTION_CHARS = 500  # 结构化资料每节字数上限：一节一块，每块都带资料名称标题
@@ -67,8 +67,8 @@ def dataset_full_name(company_id: str, kind: str) -> str:
     return f"{company_id}::{dataset_suffix(kind)}"
 
 
-def unmanaged_file_kind(document: Any) -> str | None:
-    """文档路径以 history/ 或 materials/ 开头时返回类别。其他路径（含方案片段）不登记。"""
+def unmanaged_file_kind(document: Any, *, dataset_kind: str | None = None) -> str | None:
+    """路径前缀命中时返回类别。没有目录的文件名按 dataset_kind 归类，其他目录不登记。"""
     raw = getattr(document, "raw", None) or {}
     candidates: list[str] = []
     if isinstance(raw, dict):
@@ -79,15 +79,21 @@ def unmanaged_file_kind(document: Any) -> str | None:
     name = str(getattr(document, "name", "") or "").strip()
     if name:
         candidates.append(name)
+    normalized_paths: list[str] = []
     for text in candidates:
         normalized = text.replace("\\", "/").strip()
         while normalized.startswith("./"):
             normalized = normalized[2:]
-        normalized = normalized.lstrip("/")
+        normalized_paths.append(normalized.lstrip("/"))
+    for normalized in normalized_paths:
         for prefix, kind in _UNMANAGED_FILE_PREFIXES:
             if normalized.startswith(prefix):
                 return kind
-    return None
+    if dataset_kind not in FILE_KINDS or not normalized_paths:
+        return None
+    if any("/" in normalized for normalized in normalized_paths):
+        return None
+    return dataset_kind
 
 
 def dataset_owned_by_company(name: str, company_id: str) -> bool:
@@ -736,8 +742,9 @@ class KnowledgeBaseService:
                 "items": sorted(rows, key=lambda r: r["key"])}
 
     def _adopt_unmanaged_files(self, company_id: str, client: Any) -> int:
-        """把本公司数据集里 history/、materials/ 下已解析、尚未入索引的原件写入 files。
+        """把本公司 history、materials 数据集里已解析、尚未入索引的原件写入 files。
 
+        路径前缀仍可用。RAGFlow 只给出文件名时，按数据集查找名归类。
         客户端来自 client_for，沿用其 trust_env=False，这里不另建连接。只写 files，不写 entries。
         """
         try:
@@ -751,8 +758,9 @@ class KnowledgeBaseService:
             name = str(getattr(dataset, "name", "") or "")
             if not dataset_id or not dataset_owned_by_company(name, company_id):
                 continue
+            owned_kind = next((kind for kind in FILE_KINDS if name in dataset_lookup_names(company_id, kind)), None)
             for document in _iter_dataset_documents(client, dataset_id):
-                kind = unmanaged_file_kind(document)
+                kind = unmanaged_file_kind(document, dataset_kind=owned_kind)
                 if kind not in FILE_KINDS or not _document_ready_for_adopt(document):
                     continue
                 found.append((dataset_id, document, kind))
@@ -817,7 +825,7 @@ class KnowledgeBaseService:
             return chosen, ids
 
         entries, dataset_ids = ready(index)
-        # entries 与 files 都空时，先登记 RAGFlow 里已有的 history/、materials/ 原件，再走原检索。
+        # entries 与 files 都空时，先登记本公司 history、materials 数据集里已解析的原件，再走原检索。
         if (not dataset_ids or not entries) and not index.get("entries") and not index.get("files"):
             self._adopt_unmanaged_files(company_id, client)
             state = self.repository.read()
