@@ -400,6 +400,7 @@ def workspace_fields(state: Any, project_id: str, workflow: dict) -> dict[str, A
         "technical_rag_audit": public_rag_audit(workflow),
         "tender_index": public_tender_index(workflow.get("tender_index")),
         "writer_model": writer_model_label(workflow.get("writer_model")),
+        "constraint_check": workflow.get("constraint_check"),
         "extract_degraded": bool(workflow.get("extract_degraded")),
         "extract_timeout_count": int(workflow.get("extract_timeout_count") or 0),
         "extract_pages_read": int((workflow.get("technical_extract_model") or {}).get("pages_read") or 0),
