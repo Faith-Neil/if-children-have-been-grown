@@ -195,8 +195,15 @@ def _shown_clause(item: dict) -> str:
     return str(item.get("extracted_summary") or item.get("text") or "").strip()
 
 
+def _pure_packaging_text(text: str) -> bool:
+    """仅包装词、且不含废标/否决/无效时才算纯包装。装订+否决仍走硬约束。"""
+    blob = str(text or "")
+    return bool(blob) and is_bid_packaging(blob) and _REJECTION_WORD.search(blob) is None
+
+
 def _row_is_packaging(item: dict) -> bool:
-    return is_bid_packaging(str(item.get("text") or "")) or is_bid_packaging(str(item.get("extracted_summary") or ""))
+    blob = f"{item.get('text') or ''} {item.get('extracted_summary') or ''}".strip()
+    return _pure_packaging_text(blob)
 
 
 def _section_hard(item: dict) -> bool:
@@ -234,7 +241,7 @@ def _prompt_constraints(rows: list[dict], workflow: dict | None) -> tuple[list[s
         text = str(raw or "").strip()
         if not text:
             continue
-        if is_bid_packaging(text):
+        if _pure_packaging_text(text):
             if _keep_matter(text, packed):
                 packaging.append(text)
             continue

@@ -103,6 +103,7 @@ def test_packaging_rows_are_risk_tips_not_must_cover():
         workflow={"technical_sidecars": {"rejection_lines": [
             "被列入失信被执行人名单的，否决其投标",
             "正本一份、副本四份",
+            "未按装订要求编制的投标文件将被否决",
         ]}},
     )
     cover = _slice(user, "必须覆盖的招标要求：", "响应要点：")
@@ -112,9 +113,10 @@ def test_packaging_rows_are_risk_tips_not_must_cover():
     assert "每月巡检数据库并出具报告" in cover
     assert "装订" not in cover
     assert "未按要求装订" in tips
-    assert "失信" in tips
     assert "正本" in tips
-    assert "失信" not in project
+    assert "失信" not in tips
+    assert "被列入失信被执行人名单的，否决其投标" in project
+    assert "未按装订要求编制的投标文件将被否决" in project
     assert "装订" not in section
     assert "失信" not in section
 
