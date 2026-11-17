@@ -403,6 +403,41 @@ def write_volume(state: Any, project_id: str, workflow: dict, section: str | Non
     chapter.content = apply_quality_markers(chapter.content, quality.get("review_titles") or [], outline)
     quality = evaluate_quality(workflow, chapter.content)
     workflow["technical_quality"] = quality
+    check_sections = []
+    for item in _leaves(outline):
+        key = _leaf_key(item)
+        task = tasks.get(item.get("task_id") or "") if item.get("task_id") else None
+        req_ids = list(item.get("requirement_ids") or [])
+        if not req_ids and item.get("requirement_id"):
+            req_ids = [item["requirement_id"]]
+        if isinstance(task, dict):
+            req_ids = list(task.get("requirement_ids") or req_ids)
+        check_sections.append({
+            "key": key,
+            "title": item.get("title") or "",
+            "body": bodies.get(key) or "",
+            "task": task if isinstance(task, dict) else None,
+            "rows": [rows[rid] for rid in req_ids if rid in rows],
+        })
+    from icg.domain.technical_constraint_check import evaluate_volume
+    checked = evaluate_volume(workflow, check_sections)
+    workflow["constraint_check"] = {
+        "status": checked["status"],
+        "missing": checked["missing"],
+        "conflicts": checked["conflicts"],
+        "notice": checked["notice"],
+    }
+    for item in check_sections:
+        task = item["task"]
+        if not isinstance(task, dict):
+            continue
+        view = checked["sections"].get(item["key"]) or {}
+        task["constraint_check"] = {
+            "status": view.get("status") or "passed",
+            "missing": view.get("missing") or [],
+            "conflicts": view.get("conflicts") or [],
+            "notice": view.get("notice") or "",
+        }
     chapter.revision = int(getattr(chapter, "revision", 1) or 1) + 1
     if not failed and not section:
         workflow["needs_regeneration"] = [
@@ -413,6 +448,7 @@ def write_volume(state: Any, project_id: str, workflow: dict, section: str | Non
         "chapter_id": chapter.id,
         "rag_audit": audits,
         "quality": quality,
+        "constraint_check": workflow.get("constraint_check"),
     }
 
 

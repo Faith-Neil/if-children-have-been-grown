@@ -564,6 +564,7 @@ class GenerationOrchestratorMixin:
             "technical_quality": workflow.get("technical_quality"),
             "writer_model": workflow.get("writer_model"),
             "needs_regeneration": workflow.get("needs_regeneration"),
+            "constraint_check": workflow.get("constraint_check"),
         }
 
     def _apply_technical_volume(self, state, actual, principal: Principal, drafted: dict) -> dict:
@@ -573,13 +574,15 @@ class GenerationOrchestratorMixin:
             raise DomainError(404, "NOT_FOUND", "没有服务方案这一章。")
         chapter.content = drafted["content"]
         chapter.revision = drafted["revision"]
-        for key in ("response_tasks", "technical_rag_audit", "technical_quality", "writer_model", "needs_regeneration"):
+        for key in ("response_tasks", "technical_rag_audit", "technical_quality", "writer_model", "needs_regeneration", "constraint_check"):
             if drafted.get(key) is not None:
                 actual[key] = drafted[key]
         message = "技术分册已写入当前正文。" if not result["failed"] else "有的节没有生成成功，这些节保持原样，其他节已写入。"
         quality = result.get("quality") or {}
         if quality.get("warning"):
             message = f"{message} {quality['warning']} 允许导出，须可见警告。"
+        from icg.domain.technical_constraint_check import completion_message
+        message = completion_message(message, result.get("constraint_check"))
         job = self._job(state, chapter.project_id, "generate", message)
         return {"job": job, "chapters": [self._chapter_summary(state, actual, chapter, principal.user.id)]}
 

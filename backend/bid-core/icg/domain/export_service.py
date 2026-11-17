@@ -228,6 +228,8 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                     if is_internal_review else None
                 )
             )
+            from icg.domain.technical_constraint_check import completion_message
+            compliance_notice = completion_message(compliance_notice, workflow.get("constraint_check"))
             record = {
                 "id": identity,
                 "kind": payload["kind"],
@@ -264,7 +266,7 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                             else "两个独立 Word 正式递交版已生成" if scope == "all" else "本册 Word 正式递交版已生成") + "；已完成责任人定稿与门禁核验。"
             else:
                 job_desc = ("两个独立 Word 内部稿已生成" if scope == "all" else "本册 Word 内部稿已生成") + "；只含已提交正文。"
-            self._job(state, project_id, "export", job_desc)
+            self._job(state, project_id, "export", completion_message(job_desc, workflow.get("constraint_check")))
             return {"export": self._public_export(state, project_id, record)}
 
         result = self._write(principal, project_id, "project.export", payload, expected, key, operation)
@@ -277,6 +279,7 @@ class ExportServiceMixin(CheckOrchestratorMixin):
     def _export_technical_draft(self, state, project, workflow, principal: Principal, project_id: str, payload: dict) -> dict:
         from icg.domain.company_settings import company_display_name
         from icg.domain.export_batch import _render, next_batch_no, render_batch, volume_bindings
+        from icg.domain.technical_constraint_check import completion_message
         from icg.domain.technical_volume import export_parts
         from icg.infra.blob_store import put_blob
 
@@ -338,7 +341,10 @@ class ExportServiceMixin(CheckOrchestratorMixin):
             "volumes": [entry],
             "documents": documents,
             "has_blockers": False,
-            "compliance_notice": parts["note"] or "仅供内部评审，不可作为正式递交文件。",
+            "compliance_notice": completion_message(
+                parts["note"] or "仅供内部评审，不可作为正式递交文件。",
+                workflow.get("constraint_check"),
+            ),
             "sha256": content_sha,
             "format_metadata": WORD_DEFAULT_FORMAT_METADATA,
             "is_submission": False,
@@ -352,7 +358,10 @@ class ExportServiceMixin(CheckOrchestratorMixin):
         if deviation_url:
             record["deviation_download_url"] = deviation_url
         workflow["exports"][identity] = record
-        self._job(state, project_id, "export", "技术分册内部稿已生成。待补、偏离和需要核对不阻止这份内部稿。")
+        self._job(
+            state, project_id, "export",
+            completion_message("技术分册内部稿已生成。待补、偏离和需要核对不阻止这份内部稿。", workflow.get("constraint_check")),
+        )
         return {"export": self._public_export(state, project_id, record)}
 
     def _render_override(self) -> dict:
