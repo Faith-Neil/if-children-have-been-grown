@@ -66,6 +66,9 @@ if (-not $env:ICG_SECRET_KEY) {
 }
 $env:ICG_ENV = $IcgEnv
 $env:ICG_ALLOW_DEMO_LOGIN = '0'
+if (-not $env:ICG_AUDIT_IO_DIR) {
+    $env:ICG_AUDIT_IO_DIR = Join-Path $workspacePath '.audit'
+}
 if ($IcgEnv -eq 'production' -and -not $env:ICG_ADMIN_INITIAL_PASSWORD) {
     throw 'ICG_ENV=production requires ICG_ADMIN_INITIAL_PASSWORD outside the repository.'
 }

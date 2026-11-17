@@ -270,13 +270,8 @@ def apply_response_plan(workflow: dict, model=None) -> dict[str, Any]:
     tasks = build_response_tasks(rows)
     headings = arrange_from_tasks(tasks, workflow, model=tree_model)
     check = validate_plan(rows, tasks, headings)
-    if not check["passed"]:
-        headings = arrange_from_tasks(tasks, workflow, model=tree_model)
-        check = validate_plan(rows, tasks, headings)
-    if not check["passed"]:
-        for task in tasks:
-            task["theme"] = ""
-        headings = arrange_from_tasks(tasks, workflow, model=tree_model)
+    if not check["passed"] and tree_model is not None:
+        headings = arrange_from_tasks(tasks, workflow, model=None)
         check = validate_plan(rows, tasks, headings)
     workflow["response_tasks"] = {task["task_id"]: task for task in tasks}
     workflow["plan_validation"] = check

@@ -38,7 +38,7 @@ def test_quality_flags_thin_scoring_and_commercial_noise():
 1.1 巡检方案
 待补
 1.2 主机可用性
-本节约营业执照与投标保证金材料说明。
+本节约营业执照与投标保证金材料说明，不替代主机可用性技术响应。以下文字仅作商务材料罗列。
 """
     result = evaluate_quality(_workflow(), content)
     assert result["passed"] is False
@@ -88,3 +88,48 @@ def test_apply_quality_markers_appends_once():
     assert once.count("需要核对") == 1
     twice = apply_quality_markers(once, ["巡检方案"], outline)
     assert twice.count("需要核对") == 1
+
+
+def test_quality_outline_shell_counts_listed_ids_and_defers_body_rules():
+    headings = [
+        {"level": 1, "number": "1", "title": "运维保障", "requirement_id": None, "requirement_ids": []},
+        {
+            "level": 2,
+            "number": "1.1",
+            "title": "巡检与主机",
+            "requirement_id": "r1",
+            "requirement_ids": ["r2"],
+            "mount_ids": ["r3"],
+            "constraint_ids": ["r4"],
+        },
+    ]
+    requirements = {
+        "r1": {
+            "id": "r1", "text": "每月巡检数据库并出具报告", "status": "confirmed",
+            "technical_clause": True, "section_kind": "scoring",
+        },
+        "r2": {
+            "id": "r2", "text": "技术规格书主机可用性指标", "status": "confirmed",
+            "technical_clause": True, "section_kind": "spec",
+        },
+        "r3": {
+            "id": "r3", "text": "故障两小时内到达现场", "status": "confirmed",
+            "technical_clause": True, "section_kind": "scoring",
+        },
+        "r4": {
+            "id": "r4", "text": "不得转包关键运维", "status": "confirmed",
+            "technical_clause": True, "section_kind": "spec",
+        },
+    }
+    content = "1 运维保障\n1.1 巡检与主机\n"
+    result = evaluate_quality(_workflow(headings=headings, requirements=requirements), content)
+    by_id = {rule["id"]: rule for rule in result["rules"]}
+    assert by_id[1]["passed"] is True
+    assert by_id[1]["detail"] == "挂接完整"
+    for rule_id in (2, 3, 5, 6, 8):
+        assert by_id[rule_id]["passed"] is True
+        assert by_id[rule_id]["detail"] == "待生成正文后再检"
+    assert by_id[4]["passed"] is True
+    assert by_id[7]["passed"] is True
+    assert by_id[7]["detail"] != "待生成正文后再检"
+    assert result["review_titles"] == []
