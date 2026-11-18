@@ -166,13 +166,7 @@ def deviate_section_rows(req_rows: list[dict], chunks: list[dict], model: Any) -
     return response_types
 
 
-def _apply_history(row: dict, clause: str, filename: str, quote: str, model: Any) -> None:
-    try:
-        judgment = judge_deviation(clause, quote, model)
-    except Exception:
-        _fail(row, "draft_failed")
-        row.update(history_filename=filename, history_quote=quote)
-        return
+def _write_history(row: dict, clause: str, filename: str, quote: str, judgment: dict) -> None:
     kind, deviation_type = KINDS[judgment["deviation"]]
     reason = judgment["reason"]
     if kind != "comply" and not reason:
@@ -192,6 +186,61 @@ def _apply_history(row: dict, clause: str, filename: str, quote: str, model: Any
     )
 
 
+def _apply_history(row: dict, clause: str, filename: str, quote: str, model: Any) -> None:
+    try:
+        judgment = judge_deviation(clause, quote, model)
+    except Exception:
+        _fail(row, "draft_failed")
+        row.update(history_filename=filename, history_quote=quote)
+        return
+    _write_history(row, clause, filename, quote, judgment)
+
+
+def _task_groups(workflow: dict, rows: list[dict]) -> list[list[dict]]:
+    """同一响应任务的条款共享一次偏离判断。没有任务的条款仍各判一次。"""
+    stored = workflow.get("response_tasks") or {}
+    ordered = list(stored.values()) if isinstance(stored, dict) else list(stored)
+    by_id: dict[str, dict] = {}
+    for row in rows:
+        rid = str(row.get("id") or "")
+        if rid and rid not in by_id:
+            by_id[rid] = row
+    groups: list[list[dict]] = []
+    seen: set[int] = set()
+    for task in ordered:
+        if not isinstance(task, dict):
+            continue
+        members: list[dict] = []
+        for rid in task.get("requirement_ids") or []:
+            row = by_id.get(str(rid))
+            if row is None or id(row) in seen:
+                continue
+            seen.add(id(row))
+            members.append(row)
+        if members:
+            groups.append(members)
+    for row in rows:
+        if id(row) not in seen:
+            groups.append([row])
+    return groups
+
+
+def _best_task_quote(pending: list[tuple[dict, str, list[dict], dict | None]]) -> tuple[str, str, str] | None:
+    chosen: tuple[float, str, str, str] | None = None
+    for _row, clause, _materials, hit in pending:
+        if not hit:
+            continue
+        quote = visible_quote(str(hit.get("quote") or ""), clause)
+        if not quote.strip():
+            continue
+        score = float(hit.get("score") or 0)
+        if chosen is None or score > chosen[0]:
+            chosen = (score, str(hit.get("filename") or ""), quote, clause)
+    if chosen is None:
+        return None
+    return chosen[1], chosen[2], chosen[3]
+
+
 def fill_technical_responses(state: Any, workflow: dict, *, model: Any = None, search: Callable[[str], list[dict]] | None = None) -> None:
     """抽出条款后用知识库检索填写响应。没有命中就留空，不写成无偏离。"""
     rows = [row for row in workflow.get("requirements", {}).values() if not row.get("merged_into")]
@@ -202,30 +251,43 @@ def fill_technical_responses(state: Any, workflow: dict, *, model: Any = None, s
     search = _search_fn or search
     workflow["technical_retrieval"] = "running"
     try:
-        for row in rows:
-            clause = row.get("text") or ""
-            try:
-                hits = list(search(clause) if search else [])
-            except Exception:
-                _fail(row, "retrieval_failed")
-                continue
-            materials = _material_sources(hits)
-            best = _best_history_hit(hits)
-            if best is not None:
-                _apply_history(
-                    row,
-                    clause,
-                    str(best.get("filename") or ""),
-                    visible_quote(str(best.get("quote") or ""), clause),
-                    model,
-                )
-                row["material_sources"] = materials
-                continue
-            if materials:
+        for group in _task_groups(workflow, rows):
+            pending: list[tuple[dict, str, list[dict], dict | None]] = []
+            for row in group:
+                if row.get("response_type"):
+                    continue
+                clause = row.get("text") or ""
+                try:
+                    hits = list(search(clause) if search else [])
+                except Exception:
+                    _fail(row, "retrieval_failed")
+                    continue
+                pending.append((row, clause, _material_sources(hits), _best_history_hit(hits)))
+            picked = _best_task_quote(pending)
+            judgment = None
+            judge_failed = False
+            filename, quote = "", ""
+            if picked is not None:
+                filename, quote, source_clause = picked
+                try:
+                    judgment = judge_deviation(source_clause, quote, model)
+                except Exception:
+                    judge_failed = True
+            for row, clause, materials, _hit in pending:
+                if judgment is not None:
+                    _write_history(row, clause, filename, quote, judgment)
+                    row["material_sources"] = materials
+                    continue
+                if judge_failed:
+                    _fail(row, "draft_failed")
+                    row.update(history_filename=filename, history_quote=quote)
+                    row["material_sources"] = materials
+                    continue
+                if materials:
+                    _fail(row, "no_evidence")
+                    row["material_sources"] = materials
+                    continue
                 _fail(row, "no_evidence")
-                row["material_sources"] = materials
-                continue
-            _fail(row, "no_evidence")
     finally:
         workflow["technical_retrieval"] = "done"
 

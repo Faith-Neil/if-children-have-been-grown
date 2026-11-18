@@ -333,6 +333,57 @@ def test_history_hit_defaults_to_no_deviation_and_model_rows_confirm_one_by_one(
     assert refused.status_code == 409 and refused.json()["code"] == "REQUIREMENT_NOT_READY"
 
 
+def test_fill_technical_responses_judges_once_per_task():
+    from icg.domain.technical_matrix import bind_deviation_judge, fill_technical_responses, reset_deviation_judge
+
+    workflow = {
+        "requirements": {
+            "r1": {"id": "r1", "text": "每月巡检", "technical_clause": True},
+            "r2": {"id": "r2", "text": "故障响应", "technical_clause": True},
+            "r3": {"id": "r3", "text": "备份日检", "technical_clause": True, "response_type": "comply", "response": "已确认"},
+            "r4": {"id": "r4", "text": "恢复演练", "technical_clause": True},
+        },
+        "response_tasks": {
+            "t1": {"task_id": "t1", "requirement_ids": ["r1", "r2"]},
+            "t2": {"task_id": "t2", "requirement_ids": ["r3", "r4"]},
+        },
+    }
+    quotes = {
+        "每月巡检": {"score": 0.95, "filename": "高分.docx", "quote": "每周巡检一次", "source": "history"},
+        "故障响应": {"score": 0.40, "filename": "低分.docx", "quote": "每天巡检一次", "source": "history"},
+        "备份日检": {"score": 0.20, "filename": "备份低.docx", "quote": "每月备份", "source": "history"},
+        "恢复演练": {"score": 0.70, "filename": "备份高.docx", "quote": "每季演练", "source": "history"},
+    }
+
+    def search(clause):
+        return [quotes[clause]]
+
+    seen = []
+
+    def judge(_clause, quote):
+        seen.append(quote)
+        if quote == "每周巡检一次":
+            return {"deviation": "负偏离", "reason": "历史是每周，低于招标的每月。"}
+        return {"deviation": "正偏离", "reason": "历史演练频次高于招标。"}
+
+    token = bind_deviation_judge(judge)
+    try:
+        fill_technical_responses(None, workflow, search=search)
+    finally:
+        reset_deviation_judge(token)
+    assert seen == ["每周巡检一次", "每季演练"]
+    assert len(seen) == 2
+    shared = workflow["requirements"]["r1"]
+    sibling = workflow["requirements"]["r2"]
+    assert shared["response_type"] == "deviate" and sibling["response_type"] == "deviate"
+    assert shared["history_quote"] == "每周巡检一次" and sibling["history_quote"] == "每周巡检一次"
+    assert workflow["requirements"]["r4"]["response_type"] == "exceed"
+    assert workflow["requirements"]["r4"]["history_quote"] == "每季演练"
+    assert workflow["requirements"]["r3"]["response_type"] == "comply"
+    assert workflow["requirements"]["r3"]["response"] == "已确认"
+    assert "history_quote" not in workflow["requirements"]["r3"]
+
+
 def test_technical_matrix_uses_closest_history_and_keeps_material_sources():
     from icg.domain.technical_matrix import bind_deviation_judge, fill_technical_responses, reset_deviation_judge
     workflow = {"requirements": {"r1": {"id": "r1", "text": "数据备份", "merged_into": "", "technical_clause": True}}}

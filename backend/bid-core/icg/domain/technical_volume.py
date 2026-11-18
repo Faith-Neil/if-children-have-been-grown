@@ -467,7 +467,7 @@ def _draft_one(heading: dict, rows: dict, tasks: dict, model: Any, workflow: dic
 
     patch_task({"generation_status": "generating", "stage": "retrieve"})
     # 即使矩阵检索失败，仍用模型或替身写实质框架，缺依据标待确认，禁止整节空「待补」冒充完成。
-    query = section_query(title, primary, task=task, requirements=req_rows)
+    query = section_query(title)
     chunks, rag_audit = retrieve_for_section(knowledge_base, company_id, query, workflow)
     rag_audit["section"] = title
     rag_audit["task_id"] = heading.get("task_id")
