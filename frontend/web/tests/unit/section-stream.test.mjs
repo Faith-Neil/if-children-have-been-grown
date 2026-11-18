@@ -167,6 +167,52 @@ test('stream paints each section once per frame and sends auth', async context =
   assert.equal(last.includes('旧巡检'), false);
 });
 
+test('resubscribing reads the session by job id and marks the backlog before live', async context => {
+  const bodies = [
+    frame({ event: 'session.started', job_id: 'job-7' }),
+    frame({ event: 'sections.fanout', concurrency: 3, section_ids: ['t-inspect', 't-host'] }),
+    frame({ event: 'section.delta', section_id: 't-inspect', text: '已写' }),
+    frame({ event: 'session.live' }),
+    frame({ event: 'section.delta', section_id: 't-inspect', text: '新字' }),
+    frame({ event: 'section.done', section_id: 't-inspect', text: '已写新字' }),
+    frame({ event: 'section.done', section_id: 't-host', text: '乙' }),
+    frame({ event: 'volume.done', chapter_id: 'ch-1', revision: 9, failed: [], replay: false }),
+  ].join('');
+  context.mock.method(globalThis, 'fetch', async (path, options) => {
+    assert.equal(path, '/api/v1/jobs/job-7/section-events');
+    assert.equal(options.method, 'GET');
+    assert.equal(options.body, undefined);
+    assert.equal(options.headers.Authorization, 'Bearer synthetic-session');
+    assert.equal(options.headers['If-Match'], undefined);
+    assert.equal(options.headers['Idempotency-Key'], undefined);
+    return sseResponse(bodies);
+  });
+  const paints = [];
+  const outcome = await runSectionVolumeStream({
+    projectId: 'proj',
+    token: 'synthetic-session',
+    jobId: 'job-7',
+    headings,
+    baseContent: base,
+    signal: new AbortController().signal,
+    schedule: run => { run(); },
+    onText: (markdown, state) => { paints.push({ markdown, live: state.live, jobId: state.jobId }); },
+  });
+  assert.equal(outcome.phase, 'done');
+  assert.equal(outcome.jobId, 'job-7');
+  const backlog = paints.find(item => item.markdown.includes('1.1 巡检\n已写\n'));
+  assert.equal(backlog.live, false);
+  const live = paints.find(item => item.markdown.includes('已写新字'));
+  assert.equal(live.live, true);
+  assert.ok(paints.every(item => item.jobId === 'job-7'));
+});
+
+test('session events are parsed and others still dropped', () => {
+  assert.deepEqual(parseSectionEvent({ event: 'session.started', job_id: 'job-1' }), { event: 'session.started', job_id: 'job-1' });
+  assert.equal(parseSectionEvent({ event: 'session.started' }), null);
+  assert.deepEqual(parseSectionEvent({ event: 'session.live' }), { event: 'session.live' });
+});
+
 test('abort rejects and does not finish the volume', async context => {
   const controller = new AbortController();
   context.mock.method(globalThis, 'fetch', async (_path, options) => {
