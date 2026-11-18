@@ -27,18 +27,20 @@ LABEL = {"comply": "无偏离", "exceed": "正偏离", "deviate": "负偏离"}
 TABLE_LABEL = {"comply": "无偏离", "exceed": "正偏离", "deviate": "偏离"}
 NO_SAMPLE = "这份招标文件没有提供偏离表格式。"
 SECTION_SYSTEM = (
-    "按本节挂接的招标要求组织技术响应正文；结构按该节实际需要安排，不要套固定六段模板。"
-    "只写本节挂载的响应要点，写进该节标题下。"
-    "项目级时限或 SLA 仅当本节要点涉及该承诺时写入，禁止每节复述同一段。"
-    "本标项目事实只用来认清业主、系统、期限和约束，禁止把招标原文复述或改写成正文。"
-    "约束句保留对应 [标:]。"
-    "能力、人员、流程和案例只依据企业历史标书或权威资料；这两类无命中时只把能力句标【待确认】，禁止用招标切片编造我方能力。"
-    "用文字步骤和表格。不要流程图，不要架构图，不要凑页。"
-    "偏离表述和数字与给出的矩阵一致。"
-    "历史命中只作写法参考。本标业主、系统、SLA 和期限以招标与项目事实为准，优先于历史材料。"
-    "外项目业主名或系统名写成【待补】或省略。本标业主、系统名、期限和 SLA 不要写成【待补】。"
-    "服务案例只写脱敏框架，不写真实客户、人员、报价或证书。"
+    "按服务方案写本节，一节只写五段：服务内容、服务频率、服务模式、实施步骤、交付物。"
+    "实施步骤写本标这套系统如何被服务。历史材料只作写法参考，不能把别的项目写成正在服务的系统。"
+    "本标业主、系统、期限和 SLA 以招标与项目事实为准。"
+    "禁止把招标原文复述或改写成正文。约束句保留对应 [标:]。"
+    "正文不写偏离标签，偏离只留在偏离表。"
+    "正文不写保证金、报价、营业执照。"
+    "只有缺少人员或到场证据的句子才标【待确认】，每节最多两处。"
+    "禁止用【待补】铺满一节，本标事实不要写成【待补】。"
     "废标硬约束必须遵守，不得改写成能力表述。"
+    "示例：服务内容：为乐山市人民医院的医院信息系统做数据库巡检和故障恢复。"
+    "服务频率：每个工作日远程巡检一次，每月到院复核一次并出记录。"
+    "服务模式：远程值守，故障时由工程师到场处理。"
+    "实施步骤：先核对本标系统告警和备份，再按既有恢复方法拉起业务，最后把记录交给信息科值班员。"
+    "交付物：巡检记录、故障闭环单和月度运行报告。"
 )
 SLA_HINT = re.compile(r"7\s*[×*xX]\s*24|响应时限|到场时限|故障响应")
 SLA_TITLES = ("运维", "巡检", "故障", "保障", "响应", "服务级别")
@@ -299,7 +301,6 @@ def produce_section(title: str, row: dict, model: Any, *, knowledge: str = "",
         pack_block = "\n".join(f"- 包装风险：{line}" for line in graded.tips)
         point = str(primary.get("response") or "")
         reason = str(primary.get("deviation_reason") or "")
-        label = LABEL.get(primary.get("response_type") or "", "无偏离")
         evidence = knowledge or CAPABILITY_GAP_LINE
         user = (
             f"章节任务：{title}\n"
@@ -308,7 +309,7 @@ def produce_section(title: str, row: dict, model: Any, *, knowledge: str = "",
             f"项目废标硬约束：\n{project_block or '（无）'}\n"
             f"本章废标硬约束：\n{section_block or '（无技术类废标）'}\n"
             f"包装风险提示：\n{pack_block or '（无）'}\n"
-            f"偏离口径：{label}。\n\n{evidence}"
+            f"偏离口径：正文不写偏离标签。\n\n{evidence}"
         )
         text = _complete_section(model, user, on_delta=on_delta, cancel=cancel)
         emitted = on_delta is not None

@@ -11,6 +11,7 @@ from typing import Any
 from icg.domain.domain import new_id
 from icg.domain.technical_clause_extract import FORMAT_HEAD, NUMBERED_CHILD, SPEC_LINE
 from icg.domain.technical_clause_role import assign_clause_role
+from icg.domain.technical_response_plan import NON_SERVICE_SECTION_KINDS
 
 BANNED_TITLES = frozenset({
     "评分响应", "评分应答", "投标响应", "技术响应正文", "响应说明", "本章内容", "总结",
@@ -64,6 +65,19 @@ def strip_heading_number(text: str) -> str:
 PLACEHOLDER_TITLE = re.compile(r"^(?:规范\s*[\d.]+(?:方案)?|.+方案方案)$")
 SPEC_NUMBER_THEME = re.compile(r"^规范\s*[\d.]+")
 SPEC_NUMBER_COMPACT = re.compile(r"^规范[\d.]+")
+_DIRTY_HEADING = re.compile(r"(?:任务|内容)\.\d+")
+_DIRTY_MARKS = ("¥", "违法", "保证金", "营业执照")
+
+
+def clean_heading(title: str) -> str | None:
+    text = str(title or "").strip()
+    if len(text) < 4 or text.startswith((")", "）")):
+        return None
+    if any(mark in text for mark in _DIRTY_MARKS):
+        return None
+    if _DIRTY_HEADING.search(text):
+        return None
+    return text
 
 
 def _plain_title(text: str, fallback: str) -> str:
@@ -132,6 +146,8 @@ def detect_format_lock(lines: list[str] | None) -> list[str]:
 
 
 def _is_mount(row: dict) -> bool:
+    if row.get("section_kind") in NON_SERVICE_SECTION_KINDS:
+        return False
     return assign_clause_role(row) != "rejection_constraint"
 
 
@@ -448,7 +464,26 @@ def _load_json_array(raw: str) -> list:
     return _closed_object_dicts(body)
 
 
+def _jsonish_empty_array(text: str) -> bool:
+    """模型给出的目录本身是空数组时算解析失败。对象内部的 mount_ids: [] 不算。"""
+    from icg.infra.openai_model import _jsonish_payload
+
+    payload = _jsonish_payload(text or "")
+    if not payload:
+        return False
+    try:
+        data = json.loads(payload)
+    except json.JSONDecodeError:
+        return False
+    if data != []:
+        return False
+    body = _strip_js_comments(_strip_code_fence((text or "").strip())).strip()
+    return body.endswith(payload.strip())
+
+
 def _parse_tree_payload(text: str) -> list[dict]:
+    if _jsonish_empty_array(text):
+        return []
     raw = _strip_js_comments(_strip_code_fence((text or "").strip()))
     raw = re.sub(r'("mount_ids"\s*:\s*)null\b', r"\1[]", raw)
     data = _load_json_array(raw)
@@ -643,7 +678,36 @@ def stand_in_chapter_tree(tasks: list[dict], reqs: dict[str, dict]) -> list[dict
             host = _node(1, "总体方案")
             nodes.append(host)
         _merge_tasks_onto_host(host, deferred, reqs)
-    return nodes
+    return _fold_dirty_leaves(nodes, reqs)
+
+
+def _fold_dirty_leaves(nodes: list[dict], reqs: dict[str, dict]) -> list[dict]:
+    """规则目录不留下脏章名。要求并进上一片服务叶子；没有上一片就留在任务上，不进目录。"""
+    leaves = {index for index in range(len(nodes)) if not _has_child(nodes, index)}
+    kept: list[dict] = []
+    orphans: list[dict] = []
+    for index, node in enumerate(nodes):
+        if index in leaves and clean_heading(str(node.get("title") or "")) is None:
+            task = node.get("_task")
+            previous = next((item for item in reversed(kept) if item.get("_task")), None)
+            if previous is not None and task is not None:
+                _merge_tasks_onto_host(previous, [task], reqs)
+            elif task is not None:
+                orphans.append(task)
+            continue
+        kept.append(node)
+    visible = [
+        node for index, node in enumerate(kept)
+        if _has_child(kept, index) or node.get("_task") or node.get("mount_ids") or node.get("requirement_ids")
+    ]
+    for task in orphans:
+        visible.append({
+            "level": 1,
+            "title": str(task.get("title") or "服务事项"),
+            "_task": task,
+            "_hidden": True,
+        })
+    return visible
 
 
 def _has_child(nodes: list[dict], index: int) -> bool:
@@ -923,13 +987,17 @@ def compose_tree_with_model(
 
 def _finish_tree(nodes: list[dict]) -> tuple[list[dict], list[dict]]:
     rewritten: list[dict] = []
+    visible: list[dict] = []
     for node in nodes:
         task = node.pop("_task", None)
+        hidden = bool(node.pop("_hidden", False))
         if task:
             rewritten.append(task)
             task.pop("_mount_ids", None)
+        if not hidden:
+            visible.append(node)
     from icg.domain.technical_outline import assign_numbers
-    numbered = assign_numbers(nodes)
+    numbered = assign_numbers(visible)
     id_to_number = {row["task_id"]: row["number"] for row in numbered if row.get("task_id")}
     for task in rewritten:
         task["outline_number"] = id_to_number.get(task["task_id"])
