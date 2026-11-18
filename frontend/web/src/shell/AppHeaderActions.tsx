@@ -14,6 +14,8 @@ import { sessionAllowsRoute } from '../app/session-navigation';
 import { TaskBadge } from './TaskBadge';
 import { NotificationBell } from '../notifications/NotificationBell';
 import { shouldShowCompanyLabel } from '../admin/company-provision-core';
+import { GenerationSessionBar } from '../status/GenerationSessionBar';
+import { activeVolumeSession } from '../status/generation-session';
 import type { Account, ApplicationSession, Job } from '../shared/types';
 
 export interface AppHeaderActionsProps {
@@ -31,6 +33,10 @@ export interface AppHeaderActionsProps {
   onNavigate?: (path: string) => void;
   /** 后台企业设置中的公司显示名；缺省时回退演示别名或 company_id */
   companyDisplayName?: string | null;
+  /** 技术卷生成会话：停止、点开回编辑台、结束后刷新。缺省时顶栏不显示会话。 */
+  onStopSession?: (jobId: string) => Promise<void> | void;
+  onOpenSession?: (session: Job) => void;
+  onSessionSettled?: () => void;
 }
 
 export function AppHeaderActions({
@@ -47,6 +53,9 @@ export function AppHeaderActions({
   token = null,
   onNavigate,
   companyDisplayName = null,
+  onStopSession,
+  onOpenSession,
+  onSessionSettled,
 }: AppHeaderActionsProps) {
   const userPrimaryRole = session?.user?.primary_role;
   const roleDisplayLabel =
@@ -62,6 +71,19 @@ export function AppHeaderActions({
     }[userPrimaryRole ?? ''] ?? '成员';
 
   const items: React.ReactElement[] = [];
+  const volumeSession = activeVolumeSession(jobs);
+  if (volumeSession && onStopSession && onOpenSession) {
+    items.push(
+      <GenerationSessionBar
+        key={`generation-${volumeSession.id}`}
+        session={volumeSession}
+        token={token}
+        onOpen={onOpenSession}
+        onStop={onStopSession}
+        onSettled={() => onSessionSettled?.()}
+      />,
+    );
+  }
   if (sessionAllowsRoute(session, 'workbench')) {
     items.push(
       <Input

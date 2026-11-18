@@ -12,6 +12,8 @@ export type RevealClock = {
 
 export type TextReveal = {
   push(target: string): void;
+  /** 直接显示到 target，不逐字（重新订阅时的积压）。 */
+  jump(target: string): void;
   cancel(): void;
   /** 纸面追上最新全文，或已经被取消。 */
   settled(): Promise<void>;
@@ -92,6 +94,12 @@ export function createTextReveal(
       }
       if (!pending) pending = new Promise(resolve => { settle = resolve; });
       ensure();
+    },
+    jump(next: string) {
+      if (stopped) return;
+      target = next;
+      paint(next);
+      finishIfCaught();
     },
     cancel() {
       stopped = true;

@@ -51,6 +51,7 @@ import { VARIABLE_ERROR_CODES, mayHaveVariables, nodesMatch, resolveVariables, s
 import { VariableChip } from './VariableChip.tsx';
 import { isAbort, type ApplyResult } from './selection-rewrite-core.ts';
 import { runSectionVolumeStream, streamProgressNotice } from './section-stream.ts';
+import { activeVolumeSession } from '../status/generation-session.ts';
 import { createTextReveal, streamFailureNotice, volumeStreamChrome, type TextReveal } from './text-reveal.ts';
 import { EditorDiffDrawer, type ChapterVersionItem } from './EditorDiffDrawer.tsx';
 import { extractCitationIds, type CiteKind, type CitationMeta } from './cite-capsule';
@@ -107,6 +108,8 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const revealHalted = useRef(false);
   const streamRun = useRef(0);
   const streamChapterId = useRef('');
+  const streamJob = useRef('');
+  const stopRequested = useRef(false);
 
   const epoch = useRef(0);
   const sequence = useRef(0);
@@ -582,20 +585,40 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     await refreshOutlineChapter().catch(() => undefined);
   }
 
+  function cancelSession(jobId: string) {
+    void request(`/api/v1/jobs/${encodeURIComponent(jobId)}/cancel`, token, 'POST').catch(() => undefined);
+  }
+
+  // 停止取消服务端会话，订阅留着等 volume.cancelled；会话编号还没到时先记下，到了立即取消
   function stopDirectoryStream() {
     revealHalted.current = true;
     revealRef.current?.cancel();
-    streamAbort.current?.abort();
+    if (streamJob.current) cancelSession(streamJob.current);
+    else stopRequested.current = true;
   }
 
-  async function generateDirectory(section?: string) {
+  function generateDirectory(section?: string) {
+    return runDirectoryStream({ section });
+  }
+
+  // 离开编辑台只断订阅，会话仍在服务端跑；回来时接上同一会话
+  const liveSession = activeVolumeSession(workspace.jobs, workspace.project.id);
+  useEffect(() => {
+    if (!liveSession || streamLive.current || streamJob.current === liveSession.id) return;
+    void runDirectoryStream({ jobId: liveSession.id }).catch(() => undefined);
+  }, [liveSession?.id, !!technicalOutline, !!outlineChapter]);
+
+  async function runDirectoryStream(source: { section?: string; jobId?: string }) {
     if (streamLive.current || !token || !technicalOutline || !outlineChapter) return;
+    const section = source.section;
     const target = technicalOutline.chapter_id;
-    const base = outlineChapter.id === chapterId ? content : (outlineChapter.content || '');
+    const base = !source.jobId && outlineChapter.id === chapterId ? content : (outlineChapter.content || '');
     const runId = ++streamRun.current;
     const controller = new AbortController();
     streamAbort.current = controller;
     streamChapterId.current = target;
+    streamJob.current = source.jobId ?? '';
+    stopRequested.current = false;
     revealHalted.current = false;
     setStreamFailed(false);
     const reveal = createTextReveal(markdown => {
@@ -617,12 +640,19 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         projectId: workspace.project.id,
         token,
         revision: workspace.revision,
+        jobId: source.jobId,
         section,
         headings: technicalOutline.headings,
         baseContent: base,
         signal: controller.signal,
         onText: (markdown, state) => {
-          reveal.push(markdown);
+          if (state.jobId && streamJob.current !== state.jobId) {
+            streamJob.current = state.jobId;
+            if (stopRequested.current) cancelSession(state.jobId);
+            else void reload().catch(() => undefined);
+          }
+          if (state.live) reveal.push(markdown);
+          else reveal.jump(markdown);
           if (streamRun.current === runId && technicalOutline) {
             setNotice(streamProgressNotice(state, technicalOutline.headings));
           }
