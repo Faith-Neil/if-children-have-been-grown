@@ -390,6 +390,11 @@ export default function App() {
       const nextCollapsed = onEnterProjectCollapse(collapsed, typeof readStoredSidebarCollapsed === 'function' ? readStoredSidebarCollapsed() : null);
       if (nextCollapsed !== collapsed) setCollapsed(nextCollapsed);
     }
+    if (workspace && workspace.project.id === id) {
+      writeAddress(targetPath, mode); setMissing(null); setTab(value); setNav('workbench'); setDenied(null);
+      if (typeof setDeniedDetails === 'function') setDeniedDetails(null);
+      arrived(value === 'editor', targetPath); return;
+    }
     writeAddress(targetPath, mode); const start = ++epoch.current; setLoading(true); setMissing(null);
     void (async () => {
       const result = await readAuthorizedProject(id, value, {
