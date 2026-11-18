@@ -152,7 +152,7 @@ class TenderOrchestratorMixin:
         return self._write(principal, project_id, "file.delete:" + file_id, payload, expected, key,
                            operation, {"file_id": file_id, "reason": reason})
 
-    def parse(self, principal: Principal, project_id: str, payload: dict, expected: str | None, key: str | None, on_stage=None):
+    def parse(self, principal: Principal, project_id: str, payload: dict, expected: str | None, key: str | None, on_stage=None, on_outline_ready=None):
         initial, previous = self._preflight(principal, project_id, "parse.run", payload, expected, key)
         if previous:
             return previous
@@ -459,20 +459,28 @@ class TenderOrchestratorMixin:
             raise DomainError(status_for(error["code"]), error["code"], error["message"],
                               {"job_id": result["job"]["id"], "revision": result["revision"]})
         if fill_matrix_after[0]:
-            self._fill_technical_matrix_unlocked(principal, project_id, provider)
             from icg.domain.technical_model_extract import usable_local_model
             if on_stage is not None and usable_local_model(provider):
                 on_stage("tree", parse_stage_message("tree"), 1)
+            # 目录只依赖抽取结果，先于矩阵检索落定：解析作业在目录就绪时收口，不被逐条检索拖住
             self._refresh_technical_outline_unlocked(principal, project_id, provider)
-            refreshed = self.repository.read()
-            workflow = refreshed.workflows.get(project_id) or {}
-            from icg.domain.parse_decisions import visible
-            result["requirements"] = [r for r in workflow.get("requirements", {}).values() if visible(r)]
-            result["facts"] = [f for f in workflow.get("facts", {}).values() if visible(f)]
-            result["revision"] = refreshed.projects[project_id].revision
+            self._refresh_parse_result(result, project_id)
+        if on_outline_ready is not None and (fill_matrix_after[0] or index_tender_after[0]):
+            on_outline_ready(result)
+        if fill_matrix_after[0]:
+            self._fill_technical_matrix_unlocked(principal, project_id, provider)
+            self._refresh_parse_result(result, project_id)
         if index_tender_after[0]:
             self._index_tender_unlocked(principal, project_id)
         return result
+
+    def _refresh_parse_result(self, result: dict, project_id: str) -> None:
+        refreshed = self.repository.read()
+        workflow = refreshed.workflows.get(project_id) or {}
+        from icg.domain.parse_decisions import visible
+        result["requirements"] = [r for r in workflow.get("requirements", {}).values() if visible(r)]
+        result["facts"] = [f for f in workflow.get("facts", {}).values() if visible(f)]
+        result["revision"] = refreshed.projects[project_id].revision
 
     def _index_tender_unlocked(self, principal: Principal, project_id: str) -> None:
         """本标 RAGFlow 上传在锁外跑；短事务只写回索引元数据。"""

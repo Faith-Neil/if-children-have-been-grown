@@ -241,19 +241,19 @@ class ParseJobRunner:
             if self._status(job_id) != "running":
                 return  # 已取消
             attempt += 1
+            settled: list[list[str]] = []
+
+            def outline_ready(result, settled=settled):
+                settled.append(self._settle(job_id, project_id, payload, result))
+
             try:
-                result = self._parse_once(principal, project_id, payload, job_id)
+                result = self._parse_once(principal, project_id, payload, job_id, outline_ready)
             except DomainError as error:
                 self._drop_inner_job({"job": {"id": (error.details or {}).get("job_id")}})
                 self._finish(job_id, "failed", error.message, {"code": error.code, "message": error.message})
                 return
-            self._drop_inner_job(result)
-            pending = self._pending_files(project_id, payload)
+            pending = settled[0] if settled else self._settle(job_id, project_id, payload, result)
             if not pending:
-                requirements = len(result.get("requirements") or [])
-                facts = len(result.get("facts") or [])
-                status, message, error = completion_for(requirements, facts, self._honesty(project_id))
-                self._finish(job_id, status, message, error)
                 return
             waited = time.monotonic() - started
             if waited >= max_wait_seconds():
@@ -265,6 +265,18 @@ class ParseJobRunner:
             self._progress(job_id, 10 + int(share * 80),
                            f"RAGFlow 正在识别 {len(pending)} 份文件的版面与文字（已等待 {int(waited)} 秒，第 {attempt} 次取回）。")
             time.sleep(poll_seconds())
+
+    def _settle(self, job_id: str, project_id: str, payload: dict, result: dict) -> list[str]:
+        """抽取与目录都落库、没有待取回文件时收口为完成；返回仍在 RAGFlow 识别的文件。
+        矩阵检索、本标索引在目录就绪之后才跑，不计入解析作业。"""
+        self._drop_inner_job(result)
+        pending = self._pending_files(project_id, payload)
+        if not pending:
+            requirements = len(result.get("requirements") or [])
+            facts = len(result.get("facts") or [])
+            status, message, error = completion_for(requirements, facts, self._honesty(project_id))
+            self._finish(job_id, status, message, error)
+        return pending
 
     def _on_stage(self, job_id: str, stage: str, message: str, fraction: float = 0.0) -> None:
         if stage == "tree":
@@ -286,7 +298,8 @@ class ParseJobRunner:
             "outline_source": outline.get("outline_source") or workflow.get("outline_source") or "",
         }
 
-    def _parse_once(self, principal: Principal, project_id: str, payload: dict, job_id: str | None = None) -> dict:
+    def _parse_once(self, principal: Principal, project_id: str, payload: dict, job_id: str | None = None,
+                    on_outline_ready=None) -> dict:
         """按当前项目版本调用一次原解析；期间别人改了项目（版本冲突）时用新版本重试。"""
         bound_job = job_id
 
@@ -299,7 +312,7 @@ class ParseJobRunner:
             try:
                 return self.workflow.parse(
                     principal, project_id, dict(payload), str(revision), new_id("parse-job-call"),
-                    on_stage=on_stage,
+                    on_stage=on_stage, on_outline_ready=on_outline_ready,
                 )
             except DomainError as error:
                 if error.code != "VERSION_CONFLICT":
