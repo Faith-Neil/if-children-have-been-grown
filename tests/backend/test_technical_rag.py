@@ -1,5 +1,5 @@
 # 为什么有这个文件：核对技术分册双库名解析、检索 Query 与缺库提示。
-# 它解决什么问题：防止再写回 icg-materials 复数旧名或只搜章节标题。
+# 它解决什么问题：防止再写回 icg-materials 复数旧名，并防止把招标原文拼进检索词。
 
 from __future__ import annotations
 
@@ -22,11 +22,28 @@ def test_material_suffix_is_singular_and_configurable(monkeypatch):
     assert dataset_full_name("alpha", "materials") == "alpha::custom-material"
 
 
-def test_section_query_includes_clause_not_title_only():
+def test_section_query_uses_title_words_not_requirement_text():
     query = section_query("健康检查", {"text": "每月巡检数据库", "response": "按招标执行"})
-    assert "健康检查" in query and "每月巡检数据库" in query
-    assert "检索目标" in query
-    assert query != "健康检查"
+    assert query == "健康检查"
+    assert "每月巡检数据库" not in query
+    assert "检索目标" not in query
+
+
+def test_section_query_for_database_inspection_omits_requirement_text():
+    requirement = "乙方须在故障后15分钟到场并每月提交数据库巡检报告不少于四份。" * 4
+    query = section_query(
+        "数据库巡检",
+        {"text": requirement, "extracted_summary": requirement, "response": requirement},
+        task={"theme": requirement, "response_points": [requirement, requirement]},
+        requirements=[{"text": requirement, "extracted_summary": requirement, "response": requirement}],
+    )
+    assert requirement not in query
+    assert "乙方须在故障后15分钟到场" not in query
+    assert "检索目标" not in query
+    assert query == "数据库巡检"
+    punctuated = section_query("数据库巡检、备份恢复、故障响应、容灾切换")
+    assert punctuated == "数据库巡检、备份恢复、故障响应、容灾切换 数据库巡检 备份恢复 故障响应"
+    assert section_query("1、巡检、A、备份") == "1、巡检、A、备份 巡检 备份"
 
 
 def test_dataset_presence_lists_missing_full_names():
@@ -118,7 +135,7 @@ def test_write_volume_puts_tender_block_before_company():
             },
         },
         "response_tasks": {"t1": {"task_id": "t1", "requirement_ids": ["r1"], "response_points": [clause]}},
-        "files": {"f1": {"pages": [f"本标要求{clause}"]}},
+        "files": {"f1": {"pages": [f"总体方案。本标要求{clause}"]}},
     }
     model = Model()
     result = write_volume(state, "p", workflow, None, model, knowledge_base=Kb())
@@ -382,7 +399,7 @@ def test_tender_only_retrieval_marks_section_needs_confirm():
             },
         },
         "response_tasks": {"t1": {"task_id": "t1", "requirement_ids": ["r1"], "response_points": [clause]}},
-        "files": {"f1": {"pages": [f"本标要求{clause}。一般故障恢复不超过2小时。"]}},
+        "files": {"f1": {"pages": [f"总体方案。本标要求{clause}。一般故障恢复不超过2小时。"]}},
     }
     model = Model()
     result = write_volume(
@@ -552,3 +569,55 @@ def test_history_reference_drops_foreign_names_and_keeps_hits():
     assert "乐山医院" not in body
     assert "重庆市渝北区中医院" in body
     assert "每月巡检" in body
+
+
+def test_prompt_keeps_top_three_history_chunks_at_400_chars():
+    from icg.domain.technical_rag import knowledge_prompt_block, retrieve_for_section
+
+    class Hit:
+        def __init__(self, name, content, score, kind):
+            self.source_id = name
+            self.name = name
+            self.content = content
+            self.score = score
+            self.dataset_kind = kind
+            self.reference_only = kind == "history"
+            self.document_id = "d"
+            self.chunk_ids = [name]
+            self.cite_tag = f"[片:{name}]"
+
+    history = []
+    for index, score in enumerate((0.10, 0.90, 0.50, 0.20, 0.80)):
+        name = f"h{index}"
+        history.append(Hit(name, f"H{index}:" + ("文" * 500) + f":H{index}END", score, "history"))
+    material_text = "料" * 500
+    material = Hit("mat", material_text, 0.99, "materials")
+
+    class Kb:
+        def search(self, company_id, query, *, limit=4, kinds=None):
+            kind = next(iter(kinds or {"history"}))
+            if kind == "history":
+                return history, ""
+            if kind == "materials":
+                return [material], ""
+            return [], ""
+
+    tender_text = "数据库巡检" + ("标" * 500)
+    chunks, audit = retrieve_for_section(
+        Kb(),
+        "alpha",
+        "数据库巡检",
+        {"files": {"f1": {"pages": [tender_text]}}},
+        limit=12,
+    )
+    assert audit["history_hits"] == 5
+    prompt = knowledge_prompt_block(chunks, {})
+    assert "[片:h1]" in prompt and "[片:h4]" in prompt and "[片:h2]" in prompt
+    assert "[片:h0]" not in prompt and "[片:h3]" not in prompt
+    assert ":H1END" not in prompt and ":H4END" not in prompt and ":H2END" not in prompt
+    for line in prompt.splitlines():
+        body = line.strip()
+        if body.startswith("H") and "文" in body:
+            assert len(body) <= 400
+    assert tender_text in prompt
+    assert material_text in prompt

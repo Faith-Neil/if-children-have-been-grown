@@ -60,7 +60,12 @@ class ListingClient:
 
     def retrieve(self, question: str, dataset_ids: list[str], **kwargs) -> RagflowRetrievalResult:
         document_ids = [doc_id for doc_id in (kwargs.get("document_ids") or []) if doc_id]
-        self.retrieve_calls.append({"question": question, "dataset_ids": list(dataset_ids), "document_ids": document_ids})
+        self.retrieve_calls.append({
+            "question": question,
+            "dataset_ids": list(dataset_ids),
+            "document_ids": document_ids,
+            "rerank_id": kwargs.get("rerank_id"),
+        })
         allowed = set(document_ids)
         chunks = [
             RagflowChunk(id=f"chunk-{doc_id}", content=self.texts[doc_id], document_id=doc_id,
@@ -158,6 +163,14 @@ def test_bare_filename_in_history_dataset_is_searched_and_not_relisted():
 
     retrieve_dual(kb, COMPANY, "三级运维服务体系")
     assert client.list_calls == [COMPANY]
+
+
+def test_search_passes_icg_kb_rerank_id_to_retrieve(monkeypatch):
+    monkeypatch.setenv("ICG_KB_RERANK_ID", "bge-reranker-v2-m3")
+    client, kb = _alpha_bundle()
+    kb.search(COMPANY, "三级运维服务体系", kinds={"history"})
+    assert client.retrieve_calls
+    assert client.retrieve_calls[0]["rerank_id"] == "bge-reranker-v2-m3"
 
 
 def test_tenant_mismatch_does_not_adopt_unmanaged_documents():
