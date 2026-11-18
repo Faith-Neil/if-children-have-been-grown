@@ -25,6 +25,7 @@ TYPE_MAP = {
     "scoring": "technical_service",
     "spec": "technical_parameter",
 }
+NON_SERVICE_SECTION_KINDS = frozenset({"business", "qualification"})
 
 RISK_WORDS = ("废标", "无效", "否决", "必须", "应当", "★", "*")
 
@@ -112,6 +113,8 @@ def build_response_tasks(rows: list[dict]) -> list[dict]:
         if row.get("requirement_type") == "qualification" and not row.get("technical_clause"):
             continue
         if row.get("volume") == "business" and not row.get("technical_clause"):
+            continue
+        if row.get("section_kind") in NON_SERVICE_SECTION_KINDS:
             continue
         theme = _theme_for(row)
         buckets.setdefault(theme, []).append(row)
@@ -210,7 +213,12 @@ def arrange_from_tasks(tasks: list[dict], workflow: dict | None = None, model=No
 
 def validate_plan(requirements: list[dict], tasks: list[dict], headings: list[dict]) -> dict[str, Any]:
     """确定性计划校验；不通过则 callers 可回退重建任务。"""
-    req_ids = {row["id"] for row in requirements if row.get("technical_clause") and row.get("status") != "rejected"}
+    req_ids = {
+        row["id"] for row in requirements
+        if row.get("technical_clause")
+        and row.get("status") != "rejected"
+        and row.get("section_kind") not in NON_SERVICE_SECTION_KINDS
+    }
     mapped = {
         rid
         for task in tasks
