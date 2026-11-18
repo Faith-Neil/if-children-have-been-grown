@@ -12,7 +12,13 @@ from typing import Any, Callable
 from icg.domain.domain import DomainError
 from icg.domain.matrix import critical
 from icg.domain.technical_constraint_context import build_constraint_context, row_is_non_tech
-from icg.domain.writing_knowledge_prompt import CAPABILITY_GAP_LINE, HISTORY_HEADING, MATERIALS_HEADING
+from icg.domain.writing_knowledge_prompt import (
+    CAPABILITY_GAP_LINE,
+    HISTORY_HEADING,
+    MATERIALS_HEADING,
+    history_foreign_names,
+    mask_foreign_names,
+)
 
 HEADING = re.compile(r"^(\d+(?:\.\d+)*)\s+(\S.*)$")
 SAMPLE_TITLE = re.compile(r"偏离表|偏差表")
@@ -29,7 +35,8 @@ SECTION_SYSTEM = (
     "能力、人员、流程和案例只依据企业历史标书或权威资料；这两类无命中时只把能力句标【待确认】，禁止用招标切片编造我方能力。"
     "用文字步骤和表格。不要流程图，不要架构图，不要凑页。"
     "偏离表述和数字与给出的矩阵一致。"
-    "历史材料中的其他客户名或其他项目名写成【待补】。本标业主、系统名、期限和 SLA 不要写成【待补】。"
+    "历史命中只作写法参考。本标业主、系统、SLA 和期限以招标与项目事实为准，优先于历史材料。"
+    "外项目业主名或系统名写成【待补】或省略。本标业主、系统名、期限和 SLA 不要写成【待补】。"
     "服务案例只写脱敏框架，不写真实客户、人员、报价或证书。"
     "废标硬约束必须遵守，不得改写成能力表述。"
 )
@@ -261,7 +268,7 @@ def _complete_section(model: Any, user: str, *, on_delta: Callable[[str], None] 
 def produce_section(title: str, row: dict, model: Any, *, knowledge: str = "",
                     task: dict | None = None, requirements: list[dict] | None = None,
                     workflow: dict | None = None, on_delta: Callable[[str], None] | None = None,
-                    cancel: Any = None) -> str:
+                    cancel: Any = None, foreign_names: list[str] | None = None) -> str:
     rows = requirements or ([row] if row else [])
     primary = rows[0] if rows else (row or {})
     emitted = False
@@ -311,6 +318,8 @@ def produce_section(title: str, row: dict, model: Any, *, knowledge: str = "",
         _stop_if_cancelled(cancel)
         on_delta(text)
     text = scrub(str(text or ""), primary)
+    if foreign_names:
+        text = mask_foreign_names(text, foreign_names)
     if len(str(text or "").strip()) < 40:
         raise RuntimeError("本节不完整")
     return text
@@ -438,7 +447,8 @@ def _draft_one(heading: dict, rows: dict, tasks: dict, model: Any, workflow: dic
     rag_audit["section"] = title
     rag_audit["task_id"] = heading.get("task_id")
     rag_audit["requirement_ids"] = req_ids
-    knowledge = knowledge_prompt_block(chunks)
+    foreign_names = history_foreign_names(chunks, workflow)
+    knowledge = knowledge_prompt_block(chunks, workflow)
 
     def on_delta(piece: str) -> None:
         _stop_if_cancelled(cancel)
@@ -449,7 +459,7 @@ def _draft_one(heading: dict, rows: dict, tasks: dict, model: Any, workflow: dic
         body = produce_section(
             title, primary, model, knowledge=knowledge, task=task, requirements=req_rows,
             workflow=workflow, on_delta=on_delta if emit is not None else None,
-            cancel=cancel if emit is not None else None,
+            cancel=cancel if emit is not None else None, foreign_names=foreign_names,
         )
     except ModelCancelled:
         if emit is not None:
