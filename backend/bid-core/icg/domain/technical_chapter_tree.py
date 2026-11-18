@@ -39,6 +39,14 @@ TREE_SYSTEM = (
     "若提示里给出招标编制顺序，只作参考，可增删改章名并调整先后，不必照抄清单。"
 )
 
+# outline_reason：目录不是模型编的时候，界面要能读到原因。
+TREE_CALL_FAILED = "模型编排目录超时或调用失败，已用规则目录。"
+TREE_UNPARSEABLE = "模型返回的目录无法解析，已用规则目录。"
+TREE_REJECTED = "模型编的目录结构不合格，已用规则目录。"
+TREE_NO_MODEL = "未调用模型编排目录（没有可用的本地写作模型），目录按规则编排。"
+TREE_NO_POINTS = "未调用模型编排目录（没有可归纳的响应要点），目录按规则编排。"
+TREE_PENDING = "模型正在编排目录，当前是规则草稿。"
+
 # 兼容旧测试引用；目录不再强制输出这六章。
 BACKBONE_FRONT = ("项目理解", "总体方案")
 BACKBONE_BACK = ("难点与对策", "质量保证", "进度资源", "风险应对")
@@ -816,8 +824,7 @@ def _without_dropped(nodes: list[dict], drop: set[int], reqs: dict[str, dict]) -
 def compose_tree_with_model(
     tasks: list[dict], reqs: dict[str, dict], workflow: dict, model: Any,
 ) -> list[dict] | None:
-    workflow.pop("_tree_call_failed", None)
-    workflow.pop("_tree_shape_rejected", None)
+    workflow.pop("_tree_failure", None)
     if not _usable_tree_model(model):
         return None
     points = summarize_points(tasks, reqs)
@@ -831,12 +838,15 @@ def compose_tree_with_model(
         user += "\n招标编制顺序（仅参考，不必照抄）：" + "、".join(order)
     try:
         raw = model.suggest(TREE_SYSTEM, user)
+    except Exception:
+        workflow["_tree_failure"] = TREE_CALL_FAILED
+        return None
+    try:
         items = _parse_tree_payload(str(raw or ""))
     except Exception:
-        workflow["_tree_call_failed"] = True
-        return None
+        items = None
     if not items:
-        workflow["_tree_call_failed"] = True
+        workflow["_tree_failure"] = TREE_UNPARSEABLE
         return None
     by_id = {item["id"]: item["task"] for item in points if item.get("id")}
     nodes: list[dict] = []
@@ -867,14 +877,14 @@ def compose_tree_with_model(
             node["_task"] = combined
         nodes.append(node)
     if not nodes:
-        workflow["_tree_call_failed"] = True
+        workflow["_tree_failure"] = TREE_REJECTED
         return None
     if _too_flat(nodes):
         reshaped = _reshape_flat_leaves(nodes, points)
         if _hosted_parent_count(reshaped) >= 2:
             nodes = reshaped
         else:
-            workflow["_tree_shape_rejected"] = True
+            workflow["_tree_failure"] = TREE_REJECTED
             return None
     # 只把还没挂上的编号并进总体方案。整任务并进去会把已挂编号再记一次，触发重复挂载并整树回退。
     buckets: list[list] = []
@@ -935,12 +945,9 @@ def build_chapter_tree(tasks: list[dict], workflow: dict | None = None, model: A
     # tree_model 仅在同一次 outline 调用内临时存在，禁止持久化进 MySQL。
     model = model or workflow.get("tree_model")
     nodes = compose_tree_with_model(tasks, reqs, workflow, model)
-    failed = bool(workflow.pop("_tree_call_failed", False))
-    shape_rejected = bool(workflow.pop("_tree_shape_rejected", False))
-    used_model = bool(nodes) and not shape_rejected
+    failure = workflow.pop("_tree_failure", "")
+    used_model = bool(nodes)
     if not used_model:
-        if shape_rejected:
-            failed = True
         nodes = stand_in_chapter_tree(tasks, reqs)
     preview = copy.deepcopy(nodes)
     numbered, rewritten = _finish_tree(preview)
@@ -958,16 +965,19 @@ def build_chapter_tree(tasks: list[dict], workflow: dict | None = None, model: A
             nodes = stand_in_chapter_tree(tasks, reqs)
             numbered, rewritten = _finish_tree(nodes)
             used_model = False
-            failed = True
+            failure = TREE_REJECTED
     if used_model:
         workflow["outline_source"] = "model"
         workflow["tree_model_failed"] = False
-    elif failed:
+        workflow["outline_reason"] = ""
+    elif failure:
         workflow["outline_source"] = "rule_fallback"
         workflow["tree_model_failed"] = True
+        workflow["outline_reason"] = failure
     else:
         workflow["outline_source"] = "rule"
         workflow["tree_model_failed"] = False
+        workflow["outline_reason"] = TREE_NO_POINTS if _usable_tree_model(model) else TREE_NO_MODEL
     return numbered, rewritten
 
 

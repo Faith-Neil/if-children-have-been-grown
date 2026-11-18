@@ -7,7 +7,8 @@ export type ParseHonestyInput = {
   extract_pages_read?: number;
   outline_source?: string;
   tree_model_failed?: boolean;
-  technical_outline?: { outline_source?: string; tree_model_failed?: boolean } | null;
+  outline_reason?: string;
+  technical_outline?: { outline_source?: string; tree_model_failed?: boolean; outline_reason?: string } | null;
 };
 
 export function parseHonesty(input: ParseHonestyInput): { degraded: boolean; text: string } {
@@ -18,12 +19,15 @@ export function parseHonesty(input: ParseHonestyInput): { degraded: boolean; tex
     lines.push(`抽取降质：${timeouts} 块超时，只读完 ${read} 块。`);
   }
   const source = input.outline_source || input.technical_outline?.outline_source || '';
+  const reason = input.technical_outline?.outline_reason || input.outline_reason || '';
   const treeFailed = Boolean(
     input.tree_model_failed
     || input.technical_outline?.tree_model_failed
     || source === 'rule_fallback',
   );
-  if (treeFailed) {
+  if (source !== 'model' && reason) {
+    lines.push(reason);
+  } else if (treeFailed) {
     lines.push('目录是规则兜底，模型编排目录失败。');
   }
   return { degraded: lines.length > 0, text: lines.join('') };

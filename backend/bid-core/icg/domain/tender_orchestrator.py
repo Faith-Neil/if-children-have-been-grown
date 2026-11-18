@@ -428,6 +428,11 @@ class TenderOrchestratorMixin:
                         build_local_index(actual)
                         # 目录编排的模型调用若存在，也应在事务外；此处只落规则/预计算结果。
                         apply_technical_outline(state, project_id, actual, model=None)
+                        from icg.domain.technical_chapter_tree import TREE_PENDING
+                        from icg.domain.technical_model_extract import usable_local_model
+                        if usable_local_model(provider) and actual.get("technical_outline"):
+                            actual["outline_reason"] = TREE_PENDING
+                            actual["technical_outline"]["outline_reason"] = TREE_PENDING
                         # 最短路径：抽取确认不再作为用户闸门；解析成功即视为可进目录确认。
                         actual["parse_confirmed"] = True
                         index_tender_after[0] = True
@@ -529,8 +534,7 @@ class TenderOrchestratorMixin:
         tasks = plan.get("tasks") or []
         source = draft.get("outline_source") or ""
         failed = bool(draft.get("tree_model_failed"))
-        if not headings and not failed:
-            return
+        reason = draft.get("outline_reason") or ""
         from icg.domain.technical_outline import detect_title, render
 
         title = detect_title(draft)
@@ -540,11 +544,14 @@ class TenderOrchestratorMixin:
             from icg.domain.technical_outline import _chapter
             actual["outline_source"] = source or actual.get("outline_source") or "rule"
             actual["tree_model_failed"] = failed
+            # 覆盖解析时写下的「正在编排」草稿说明。
+            actual["outline_reason"] = reason
             if not headings:
                 outline = actual.get("technical_outline")
                 if isinstance(outline, dict):
                     outline["outline_source"] = actual["outline_source"]
                     outline["tree_model_failed"] = failed
+                    outline["outline_reason"] = reason
                 return {"ok": True}
             actual["response_tasks"] = {task["task_id"]: task for task in tasks}
             actual["plan_validation"] = plan.get("validation")
@@ -568,6 +575,7 @@ class TenderOrchestratorMixin:
                 "plan_validation": plan.get("validation"),
                 "outline_source": actual["outline_source"],
                 "tree_model_failed": failed,
+                "outline_reason": reason,
             }
             return {"ok": True}
 

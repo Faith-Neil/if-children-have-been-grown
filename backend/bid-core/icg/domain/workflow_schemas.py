@@ -945,6 +945,7 @@ class TechnicalOutline(ResponseBody):
     plan_validation: dict[str, Any] | None = None
     outline_source: str = Field(default="", description="model、rule 或 rule_fallback")
     tree_model_failed: bool = Field(default=False, description="编排目录的模型失败后用了规则替身")
+    outline_reason: str = Field(default="", description="目录不是模型编的原因；模型目录为空")
 
 
 class CoverageRow(ResponseBody):
@@ -1060,6 +1061,7 @@ class Workspace(ResponseBody):
     extract_pages_read: int = Field(default=0, description="抽取条款成功读完的块数")
     outline_source: str = Field(default="", description="目录来源：model、rule 或 rule_fallback")
     tree_model_failed: bool = Field(default=False, description="编排目录的模型失败，目录为规则兜底")
+    outline_reason: str = Field(default="", description="目录不是模型编的原因：模型编排中、未调用或失败；模型目录为空")
     technical_outline: TechnicalOutline | None = Field(default=None, description="技术分册的单章目录；创建时的技术方案不是这份目录")
     technical_deviation_note: str = Field(default="", description="没有偏离表样表时的说明；有样表则为空")
     technical_needs_review: list[str] = Field(default_factory=list, description="正文偏离表述和矩阵不一致、或同一指标出现两个数字的小节")
