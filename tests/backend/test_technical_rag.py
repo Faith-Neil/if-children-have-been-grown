@@ -291,6 +291,43 @@ def test_section_prompt_forbids_paraphrasing_tender_and_blanket_placeholders():
     assert "能力" in empty.user
 
 
+def test_section_prompt_is_a_service_plan_without_deviation_labels():
+    from icg.domain.technical_volume import produce_section
+
+    class Model:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:9"
+        system = ""
+        user = ""
+
+        def suggest(self, system, user):
+            self.system = system
+            self.user = user
+            return (
+                "服务内容：为乐山市人民医院的医院信息系统做数据库巡检。"
+                "服务频率：每个工作日一次。服务模式：远程值守，故障到场。"
+                "实施步骤：先看告警，再恢复，最后留记录。交付物：巡检记录。"
+            )
+
+    model = Model()
+    produce_section(
+        "数据库巡检",
+        {"text": "数据库巡检", "response": "按月巡检", "response_type": "comply"},
+        model,
+        knowledge="",
+    )
+    for heading in ("服务内容", "服务频率", "服务模式", "实施步骤", "交付物"):
+        assert heading in model.system
+    assert "无偏离" not in model.system
+    assert "正偏离" not in model.system
+    assert "负偏离" not in model.system
+    assert "偏离表述" not in model.system
+    assert "偏离口径：无偏离" not in model.user
+    assert "偏离口径：正偏离" not in model.user
+    assert "偏离口径：负偏离" not in model.user
+
+
 def test_stand_in_does_not_treat_tender_slices_as_company_evidence():
     from icg.domain.technical_volume import produce_section
     from icg.domain.writing_knowledge_prompt import format_retrieved_knowledge_prompt_lines

@@ -901,3 +901,112 @@ def test_unusable_tree_payload_does_not_clip_each_clause():
     assert "无法解析" in workflow["outline_reason"]
     assert all("…" not in title for title in titles)
     assert len(headings) < len(texts)
+
+
+def test_clean_heading_drops_dirty_fragments_and_keeps_service_names():
+    from icg.domain.technical_chapter_tree import clean_heading
+
+    assert clean_heading("运维任务.8") is None
+    assert clean_heading(")，年度服务费为¥元") is None
+    assert clean_heading("数据库巡检") == "数据库巡检"
+
+
+def test_rule_tree_folds_dirty_leaf_into_the_previous_service_leaf():
+    from icg.domain.technical_chapter_tree import stand_in_chapter_tree
+
+    tasks = [{
+        "task_id": "t1",
+        "theme": "运维保障与巡检",
+        "title": "运维保障与巡检",
+        "requirement_ids": ["clean", "dirty"],
+        "response_points": ["数据库巡检", "运维任务.8"],
+        "constraint_ids": [],
+        "rejection_requirement_ids": [],
+    }]
+    reqs = {
+        "clean": {
+            "id": "clean", "text": "数据库巡检",
+            "section_kind": "scoring", "technical_clause": True,
+        },
+        "dirty": {
+            "id": "dirty", "text": "运维任务.8",
+            "section_kind": "scoring", "technical_clause": True,
+        },
+    }
+    nodes = stand_in_chapter_tree(tasks, reqs)
+    leaves = [node for node in nodes if node.get("mount_ids")]
+    assert [node.get("title") for node in leaves] == ["数据库巡检"]
+    assert set(leaves[0]["mount_ids"]) == {"clean", "dirty"}
+    assert all(node.get("title") != "运维任务.8" for node in nodes)
+
+
+def test_business_and_qualification_kinds_are_not_technical_leaves():
+    from icg.domain.technical_chapter_tree import stand_in_chapter_tree
+    from icg.domain.technical_response_plan import build_response_tasks, validate_plan
+
+    rows = [
+        {"id": "svc", "text": "数据库巡检", "section_kind": "scoring", "technical_clause": True, "status": "confirmed"},
+        {"id": "biz", "text": "提交营业执照", "section_kind": "business", "technical_clause": True, "status": "confirmed"},
+        {"id": "qual", "text": "提交资格审查资料", "section_kind": "qualification", "technical_clause": True, "status": "confirmed"},
+    ]
+    tasks = build_response_tasks([dict(row) for row in rows])
+    mapped = {rid for task in tasks for rid in task.get("requirement_ids") or []}
+    assert "svc" in mapped
+    assert "biz" not in mapped and "qual" not in mapped
+    check = validate_plan(rows, tasks, [])
+    assert "biz" not in check["unmapped_requirement_ids"]
+    assert "qual" not in check["unmapped_requirement_ids"]
+
+    tree_tasks = [{
+        "task_id": "t1",
+        "theme": "运维保障与巡检",
+        "title": "运维保障与巡检",
+        "requirement_ids": ["svc", "biz", "qual"],
+        "response_points": ["数据库巡检", "提交营业执照", "提交资格审查资料"],
+        "constraint_ids": [],
+        "rejection_requirement_ids": [],
+    }]
+    reqs = {row["id"]: row for row in rows}
+    nodes = stand_in_chapter_tree(tree_tasks, reqs)
+    mounted = {rid for node in nodes for rid in (node.get("mount_ids") or [])}
+    assert mounted == {"svc"}
+    assert all("营业执照" not in str(node.get("title")) for node in nodes)
+    assert all("资格" not in str(node.get("title")) for node in nodes)
+
+
+def test_bare_empty_tree_array_is_rule_fallback():
+    class Local:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:11434"
+
+        def __init__(self, payload):
+            self.payload = payload
+
+        def suggest(self, system, user):
+            return self.payload
+
+    tasks = [{
+        "task_id": "t1",
+        "theme": "运维保障与巡检",
+        "title": "运维保障与巡检",
+        "requirement_ids": ["r1"],
+        "response_points": ["数据库巡检"],
+        "constraint_ids": [],
+        "rejection_requirement_ids": [],
+    }]
+    reqs = {
+        "r1": {"id": "r1", "text": "数据库巡检", "section_kind": "scoring", "technical_clause": True},
+    }
+
+    def run(payload):
+        workflow = {"requirements": reqs}
+        build_chapter_tree(tasks, workflow, model=Local(payload))
+        return workflow
+
+    bare = run("[]")
+    assert bare["outline_source"] == "rule_fallback"
+    assert "无法解析" in bare["outline_reason"]
+    mixed = run('[{"level":1,"title":"假章","mount_ids":["m1"]}]\n[]')
+    assert mixed["outline_source"] == "rule_fallback"
+    assert "无法解析" in mixed["outline_reason"]
