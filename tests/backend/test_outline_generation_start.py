@@ -8,6 +8,7 @@
 import time
 import pytest
 
+from icg.domain.writing_knowledge_prompt import HISTORY_HEADING
 from icg_demo.adapters import MemoryRepository, seed_state
 from icg_demo.chapter_generation import (
     ChapterGenerationService,
@@ -288,7 +289,7 @@ def test_assemble_writing_prompt_plan_context_complete(generation_env):
     assert "QA-2024-9001" in prompt
 
     # 6. 历史技术方案参考在前；无 dataset_kind 且 reference_only 的切片归入历史段
-    assert "历史技术方案参考：过去项目中的优秀技术表述和实施方法。" in prompt
+    assert HISTORY_HEADING in prompt
     assert "[片:chunk-bge-001] 检索切片（chunk_id: chunk-bge-001, document_id: doc-ragflow-tech-kb-01）" in prompt
     assert "三地两中心灾备体系" in prompt
 

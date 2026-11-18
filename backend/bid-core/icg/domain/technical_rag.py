@@ -1,5 +1,6 @@
 # 为什么有这个文件：技术分册节生成先查本标切片，再查公司 history 与 materials，并留下可审计记录。
 # 它解决什么问题：禁止只搜章节标题、禁止把招标页写进公司库、禁止缺库静默假成功。
+# 含外项目专名的历史命中在截断前降权。history_hits 仍按检索条数计。
 
 from __future__ import annotations
 
@@ -9,6 +10,7 @@ from icg.domain.knowledge_base import dataset_full_name, read_index
 from icg.domain.technical_tender_index import retrieve_tender
 from icg.domain.writing_knowledge_prompt import (
     format_retrieved_knowledge_prompt_lines,
+    history_foreign_names,
     retrieved_chunk_dataset_kind,
 )
 
@@ -108,9 +110,30 @@ def retrieve_dual(kb: Any, company_id: str, query: str, *, limit: int = 8) -> tu
     return chunks[:limit], audit
 
 
-def knowledge_prompt_block(chunks: list[dict]) -> str:
-    lines = format_retrieved_knowledge_prompt_lines(chunks)
+def knowledge_prompt_block(chunks: list[dict], workflow: dict | None = None) -> str:
+    lines = format_retrieved_knowledge_prompt_lines(chunks, workflow)
     return "\n".join(lines).strip()
+
+
+def _demote_foreign_history(
+    company_hits: list[dict], tender_hits: list[dict], workflow: dict | None,
+) -> list[dict]:
+    """外项目专名只降权，不从命中里删掉。"""
+    foreign = history_foreign_names([*tender_hits, *company_hits], workflow)
+    if not foreign:
+        return company_hits
+    ranked: list[dict] = []
+    for chunk in company_hits:
+        if retrieved_chunk_dataset_kind(chunk) != "history":
+            ranked.append(chunk)
+            continue
+        blob = f"{chunk.get('name') or ''} {chunk.get('content') or ''}"
+        if any(name in blob for name in foreign):
+            ranked.append({**chunk, "score": float(chunk.get("score") or 0) - 1.0})
+        else:
+            ranked.append(chunk)
+    ranked.sort(key=lambda item: (-float(item.get("score") or 0), str(item.get("name") or "")))
+    return ranked
 
 
 def retrieve_for_section(
@@ -121,6 +144,7 @@ def retrieve_for_section(
         workflow or {}, query, kb=kb, company_id=company_id, limit=limit,
     )
     company_hits, company_audit = retrieve_dual(kb, company_id, query, limit=limit)
+    company_hits = _demote_foreign_history(company_hits, tender_hits, workflow)
     if tender_hits and company_hits and limit >= 2:
         company_slots = min(len(company_hits), max(limit // 2, 1))
     else:
