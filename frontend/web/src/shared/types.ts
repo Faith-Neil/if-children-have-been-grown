@@ -314,6 +314,7 @@ export type CoverageRow = {
   outline_title?: string | null;
   response_status: string;
   generation_status: string;
+  response_type?: 'comply' | 'exceed' | 'deviate' | 'not_applicable' | null;
 };
 export type ResponseTask = {
   task_id: string;

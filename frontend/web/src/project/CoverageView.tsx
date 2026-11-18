@@ -1,11 +1,18 @@
 // 为什么有这个文件：技术分册覆盖视图（五列），对齐 Requirement→ResponseTask 架构。
 // 它解决什么问题：去掉归属分册/证据等两册噪音列；点行跳编辑台对应节。
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Card, Input, Table, Tag } from 'antd';
 import { useProject } from '../app/context.tsx';
+import { streamEvents } from '../shared/api.ts';
 import type { CoverageRow, TechnicalRagAuditRow } from '../shared/types.ts';
+import { technicalVolumeSessionPath } from '../editor/section-stream.ts';
+import { activeVolumeSession } from '../status/generation-session.ts';
 import { auditSearchLine, auditTopKinds, tenderIndexLine, writerModelLine } from './coverage-audit.ts';
+import {
+  coverageLabel, coverageState, coverageStats, mergeTaskPatch, parseTaskPatched, patchRows,
+  type CoveragePatches,
+} from './coverage-live.ts';
 import { parseHonesty } from './parse-honesty.ts';
 
 const RISK_LABEL: Record<string, string> = {
@@ -15,49 +22,81 @@ const RISK_LABEL: Record<string, string> = {
   low: '低',
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  not_started: '未生成',
-  pending: '未生成',
-  generated: '已生成',
-  needs_confirm: '待确认',
-  confirmed: '已确认',
-  gap: '存在缺口',
-  not_applicable: '不适用',
-};
+const ENDED = new Set(['volume.done', 'volume.cancelled', 'volume.failed']);
+
+function stateColor(row: CoverageRow): string {
+  const state = coverageState(row);
+  if (state === 'failed') return 'error';
+  if (state === 'generating') return 'processing';
+  if (state === 'pending') return 'default';
+  if (row.response_type === 'deviate') return 'orange';
+  if (row.response_type === 'exceed') return 'blue';
+  return 'success';
+}
+
+/** 订阅进行中的技术卷生成会话，按 task.patched 累积行补丁；会话结束后由工作区刷新接手。 */
+function useSessionPatches(): CoveragePatches {
+  const { workspace, token, reload } = useProject();
+  const sessionId = activeVolumeSession(workspace.jobs, workspace.project.id)?.id ?? '';
+  const [live, setLive] = useState<{ sessionId: string; patches: CoveragePatches }>({ sessionId: '', patches: {} });
+  useEffect(() => {
+    if (!sessionId || !token) return;
+    const controller = new AbortController();
+    let patches: CoveragePatches = {};
+    setLive({ sessionId, patches });
+    void streamEvents(technicalVolumeSessionPath(sessionId), token, undefined, raw => {
+      const patch = parseTaskPatched(raw);
+      if (patch) {
+        const next = mergeTaskPatch(patches, patch);
+        if (next !== patches) {
+          patches = next;
+          setLive({ sessionId, patches });
+        }
+        return;
+      }
+      const name = (raw as { event?: unknown }).event;
+      if (typeof name !== 'string' || !ENDED.has(name)) return;
+      if (name !== 'volume.done') setLive({ sessionId, patches: {} });
+      void reload().catch(() => undefined);
+    }, controller.signal).catch(() => undefined);
+    return () => controller.abort();
+  }, [sessionId, token]);
+  return live.sessionId === sessionId ? live.patches : {};
+}
 
 export function CoverageView() {
   const { workspace, navigate } = useProject();
   const [search, setSearch] = useState('');
+  const patches = useSessionPatches();
+  const allRows = useMemo(
+    () => patchRows((workspace.coverage_rows ?? []) as CoverageRow[], patches),
+    [workspace.coverage_rows, patches],
+  );
   const rows = useMemo(() => {
-    const source = (workspace.coverage_rows ?? []) as CoverageRow[];
     const q = search.trim();
-    if (!q) return source;
-    return source.filter(row =>
+    if (!q) return allRows;
+    return allRows.filter(row =>
       row.text.includes(q)
       || (row.outline_title || '').includes(q)
       || (row.outline_number || '').includes(q),
     );
-  }, [workspace.coverage_rows, search]);
+  }, [allRows, search]);
 
   const validation = workspace.plan_validation;
   const honesty = parseHonesty(workspace);
   const audits = (workspace.technical_rag_audit ?? []) as TechnicalRagAuditRow[];
   const indexLine = tenderIndexLine(workspace.tender_index);
   const modelLine = writerModelLine(workspace.writer_model);
-  const stats = {
-    total: rows.length,
-    rejection: rows.filter(row => row.is_rejection_criterion).length,
-    generated: rows.filter(row => ['generated', 'confirmed', 'needs_confirm'].includes(row.response_status)).length,
-    gaps: rows.filter(row => row.response_status === 'gap' || row.generation_status === 'failed').length,
-  };
+  const stats = coverageStats(rows);
 
   return (
     <div data-testid="coverage-view">
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
         <Card size="small"><span className="muted">要求 </span><strong>{stats.total}</strong></Card>
         <Card size="small"><span className="muted">废标相关 </span><strong>{stats.rejection}</strong></Card>
-        <Card size="small"><span className="muted">已生成 </span><strong>{stats.generated}</strong></Card>
-        <Card size="small"><span className="muted">缺口 </span><strong>{stats.gaps}</strong></Card>
+        <Card size="small"><span className="muted">已响应 </span><strong data-testid="coverage-stat-responded">{stats.responded}</strong></Card>
+        <Card size="small"><span className="muted">生成中 </span><strong data-testid="coverage-stat-generating">{stats.generating}</strong></Card>
+        <Card size="small"><span className="muted">失败 </span><strong data-testid="coverage-stat-failed">{stats.failed}</strong></Card>
       </div>
       <Alert
         type="info"
@@ -191,9 +230,13 @@ export function CoverageView() {
             },
             {
               title: '响应状态',
-              dataIndex: 'response_status',
-              width: 110,
-              render: (value: string) => STATUS_LABEL[value] || value,
+              width: 150,
+              render: (_, row) => (
+                <span data-testid={`coverage-state-${row.requirement_id}`}>
+                  <Tag color={stateColor(row)}>{coverageLabel(row)}</Tag>
+                  {row.response_status === 'needs_confirm' && <Tag color="gold">待确认</Tag>}
+                </span>
+              ),
             },
           ]}
         />
