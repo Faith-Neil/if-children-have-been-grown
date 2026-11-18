@@ -266,12 +266,19 @@ def test_session_patches_each_task_from_generating_to_responded(client):
 
     for task_id in tasks:
         patches = [item for item in events if item["event"] == "task.patched" and item["task_id"] == task_id]
-        assert [item["generation_status"] for item in patches] == ["generating", "generated"]
+        status_patches = [item for item in patches if item.get("generation_status")]
+        assert [item["generation_status"] for item in status_patches] == ["generating", "generated"]
+        stage_order = [item["stage"] for item in patches if item.get("stage")]
+        assert stage_order[:3] == ["retrieve", "deviate", "write_section"]
         done_at = next(index for index, item in enumerate(events)
                        if item["event"] == "section.done" and item["section_id"] == task_id)
-        assert events.index(patches[0]) < done_at < events.index(patches[1])
-    started = next(item for item in events if item["event"] == "task.patched" and item["task_id"] == exceed["task_id"])
-    assert started["response_types"][exceed["requirement_id"]] == "exceed"
+        generating = next(item for item in status_patches if item["generation_status"] == "generating")
+        generated = next(item for item in status_patches if item["generation_status"] == "generated")
+        assert events.index(generating) < done_at < events.index(generated)
+    exceed_patches = [item for item in events
+                      if item["event"] == "task.patched" and item["task_id"] == exceed["task_id"]]
+    deviate = next(item for item in exceed_patches if item.get("stage") == "deviate")
+    assert deviate["response_types"][exceed["requirement_id"]] == "exceed"
 
     saved = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()["coverage_rows"]
     assert {row["generation_status"] for row in saved} == {"generated"}

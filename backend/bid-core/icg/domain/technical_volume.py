@@ -56,8 +56,8 @@ SLA_TITLES = ("运维", "巡检", "故障", "保障", "响应", "服务级别")
 # volume.failed      message
 # session.started    job_id（生成会话的任务编号，订阅从这里开始重放）
 # session.live       之前的事件是重放的积压，之后是实时事件
-# task.patched       task_id、generation_status（generating/generated/failed），可带 response_status、
-#                    response_types（requirement_id → comply/exceed/deviate/not_applicable）；覆盖视图按任务合并
+# task.patched       task_id、generation_status（generating/generated/failed），可带 stage（retrieve/deviate/write_section）、
+#                    section_title、response_status、response_types（requirement_id → comply/exceed/deviate/not_applicable）；覆盖视图按任务合并
 SECTION_STREAM_CONCURRENCY = 3
 _SECTION_EVENTS = (
     "session.started",
@@ -257,6 +257,8 @@ def _stop_if_cancelled(cancel: Any) -> None:
 
 def _complete_section(model: Any, user: str, *, on_delta: Callable[[str], None] | None, cancel: Any) -> str:
     """有 on_delta 且模型提供 stream_suggest 时逐段输出；没有该方法时仍整段 suggest 再回调一次。"""
+    from icg.infra.openai_model import AuditIoLabel
+
     if on_delta is not None and _model_streams(model):
         from icg.infra.model_fallback import call_model
 
@@ -264,8 +266,10 @@ def _complete_section(model: Any, user: str, *, on_delta: Callable[[str], None] 
             _stop_if_cancelled(cancel)
             on_delta(piece)
 
-        return call_model(model, SECTION_SYSTEM, user, on_delta=guard, cancel=cancel).text
-    text = model.suggest(SECTION_SYSTEM, user)
+        with AuditIoLabel("SECTION"):
+            return call_model(model, SECTION_SYSTEM, user, on_delta=guard, cancel=cancel).text
+    with AuditIoLabel("SECTION"):
+        text = model.suggest(SECTION_SYSTEM, user)
     _stop_if_cancelled(cancel)
     if on_delta is not None:
         on_delta(text)
@@ -450,20 +454,39 @@ def _draft_one(heading: dict, rows: dict, tasks: dict, model: Any, workflow: dic
         }
     def patch_task(change: dict | None) -> None:
         if emit is not None and task is not None and change:
-            emit({"event": "task.patched", "task_id": heading["task_id"], **change})
+            emit({"event": "task.patched", "task_id": heading["task_id"], "section_title": title, **change})
 
-    patch_task({
-        "generation_status": "generating",
-        "response_types": {row["id"]: row["response_type"] for row in req_rows if row.get("response_type")},
-    })
+    def response_type_map() -> dict[str, str]:
+        return {
+            str(row["id"]): str(row["response_type"])
+            for row in req_rows
+            if row.get("id") and row.get("response_type")
+        }
+
+    patch_task({"generation_status": "generating", "stage": "retrieve"})
     # 即使矩阵检索失败，仍用模型或替身写实质框架，缺依据标待确认，禁止整节空「待补」冒充完成。
     query = section_query(title, primary, task=task, requirements=req_rows)
     chunks, rag_audit = retrieve_for_section(knowledge_base, company_id, query, workflow)
     rag_audit["section"] = title
     rag_audit["task_id"] = heading.get("task_id")
     rag_audit["requirement_ids"] = req_ids
+    rag_audit["stage"] = "retrieve"
+    if _cancelled(cancel):
+        if emit is not None:
+            emit({"event": "section.cancelled", "section_id": key})
+        return {"key": key, "title": title, "cancelled": True, "audit": rag_audit}
+
+    from icg.domain.technical_matrix import deviate_section_rows
+    from icg.domain.technical_section_stages import forbid_silent_deviate_only
+
+    response_types = deviate_section_rows(req_rows, chunks, model)
+    patch_task({"stage": "deviate", "response_types": response_types})
+    forbid_silent_deviate_only("write_section")
+
     foreign_names = history_foreign_names(chunks, workflow)
     knowledge = knowledge_prompt_block(chunks, workflow)
+
+    patch_task({"stage": "write_section", "response_types": response_type_map()})
 
     def on_delta(piece: str) -> None:
         _stop_if_cancelled(cancel)

@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import contextvars
 import ipaddress
 import json
 import os
@@ -20,6 +21,24 @@ from urllib.parse import urlsplit
 
 import httpx
 
+_audit_io_label: contextvars.ContextVar[str | None] = contextvars.ContextVar("audit_io_label", default=None)
+
+
+class AuditIoLabel:
+    """为 model-io 审计行打上业务标签（如 DEVIATION、SECTION）。"""
+
+    def __init__(self, label: str | None) -> None:
+        self._label = label
+        self._token: contextvars.Token[str | None] | None = None
+
+    def __enter__(self) -> "AuditIoLabel":
+        self._token = _audit_io_label.set(self._label)
+        return self
+
+    def __exit__(self, *_exc: object) -> None:
+        if self._token is not None:
+            _audit_io_label.reset(self._token)
+
 
 def _audit_model_io(kind: str, record: dict[str, Any]) -> None:
     """临时落盘模型请求/响应（ICG_AUDIT_IO_DIR）。未设置则无操作。勿把密钥写入仓库。"""
@@ -29,6 +48,9 @@ def _audit_model_io(kind: str, record: dict[str, Any]) -> None:
     try:
         path = Path(root)
         path.mkdir(parents=True, exist_ok=True)
+        label = _audit_io_label.get()
+        if label and "label" not in record:
+            record = {**record, "label": label}
         line = {"ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "kind": kind, **record}
         with (path / "model-io.jsonl").open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(line, ensure_ascii=False) + "\n")
