@@ -1,9 +1,10 @@
 # 为什么有这个文件：技术分册节生成先查本标切片，再查公司 history 与 materials，并留下可审计记录。
-# 它解决什么问题：禁止只搜章节标题、禁止把招标页写进公司库、禁止缺库静默假成功。
-# 含外项目专名的历史命中在截断前降权。history_hits 仍按检索条数计。
+# 它解决什么问题：检索词只用节标题，禁止把招标原文写进 query，禁止把招标页写进公司库，禁止缺库静默假成功。
+# 含外项目专名的历史命中在截断前降权。history_hits 仍按检索条数计。Prompt 里的 history 只留最高分 3 条，每条正文最多 400 字。
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from icg.domain.knowledge_base import dataset_full_name, read_index
@@ -16,22 +17,19 @@ from icg.domain.writing_knowledge_prompt import (
 
 
 def section_query(title: str, row: dict | None = None, *, task: dict | None = None, requirements: list[dict] | None = None) -> str:
-    """Query = 章节任务 + 招标要求 + 检索目标；禁止只搜标题。"""
-    parts = [title.strip()]
-    if task:
-        points = task.get("response_points") or []
-        parts.extend(str(point)[:100] for point in points[:6] if point)
-        parts.append(str(task.get("theme") or ""))
-    rows = requirements or ([row] if row else [])
-    for item in rows[:8]:
-        clause = str(item.get("extracted_summary") or item.get("text") or "").strip()
-        if clause:
-            parts.append(clause[:120])
-        point = str(item.get("response") or "").strip()
-        if point and point not in clause:
-            parts.append(point[:80])
-    parts.append("检索目标：企业历史技术方案 实施措施 流程 交付 巡检 故障响应 容灾")
-    return " ".join(part for part in parts if part)
+    """节标题，再加上标题里至多 3 个不少于 2 字的词。招标原文不进入检索词。"""
+    del row, task, requirements
+    heading = str(title or "").strip()
+    words: list[str] = []
+    for token in re.findall(r"[0-9A-Za-z]{2,}|[\u4e00-\u9fff]{2,}", heading):
+        if token == heading or token in words:
+            continue
+        words.append(token)
+        if len(words) == 3:
+            break
+    if not words:
+        return heading
+    return f"{heading} {' '.join(words)}"
 
 
 def dataset_presence(state: Any, company_id: str, workflow: dict | None = None) -> dict[str, Any]:
@@ -110,8 +108,27 @@ def retrieve_dual(kb: Any, company_id: str, query: str, *, limit: int = 8) -> tu
     return chunks[:limit], audit
 
 
+_HISTORY_PROMPT_KEEP = 3
+_HISTORY_PROMPT_CHARS = 400
+
+
+def _chunks_for_prompt(chunks: list[dict]) -> list[dict]:
+    """Prompt 只带最高分的 3 条 history，每条正文截到 400 字。招标切片和资料原样保留。"""
+    history = [item for item in chunks if retrieved_chunk_dataset_kind(item) == "history"]
+    others = [item for item in chunks if retrieved_chunk_dataset_kind(item) != "history"]
+    ranked = sorted(history, key=lambda item: float(item.get("score") or 0), reverse=True)
+    kept: list[dict] = []
+    for item in ranked[:_HISTORY_PROMPT_KEEP]:
+        content = str(item.get("content") or "")
+        if len(content) <= _HISTORY_PROMPT_CHARS:
+            kept.append(item)
+            continue
+        kept.append({**item, "content": content[:_HISTORY_PROMPT_CHARS]})
+    return [*others, *kept]
+
+
 def knowledge_prompt_block(chunks: list[dict], workflow: dict | None = None) -> str:
-    lines = format_retrieved_knowledge_prompt_lines(chunks, workflow)
+    lines = format_retrieved_knowledge_prompt_lines(_chunks_for_prompt(chunks), workflow)
     return "\n".join(lines).strip()
 
 

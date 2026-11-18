@@ -604,7 +604,17 @@ class TenderOrchestratorMixin:
             return [{"score": hit.score, "filename": hit.name, "quote": hit.content,
                      "source": hit.dataset_kind} for hit in hits]
 
-        draft = {"requirements": rows, "technical_retrieval": "running"}
+        stored_tasks = workflow.get("response_tasks") or {}
+        task_copy = {}
+        if isinstance(stored_tasks, dict):
+            task_copy = {
+                key: dict(value) for key, value in stored_tasks.items() if isinstance(value, dict)
+            }
+        draft = {
+            "requirements": rows,
+            "technical_retrieval": "running",
+            "response_tasks": task_copy,
+        }
         fill_technical_responses(None, draft, model=provider, search=knowledge_search)
         patch_fields = (
             "response", "response_type", "deviation_type", "deviation_reason",
