@@ -40,11 +40,10 @@ class _Backlog:
             self.cond.notify_all()
 
 
-def _tally_message(tally: dict) -> str:
-    message = f"已完成 {tally['done']}/{tally['total']} 节"
-    if tally["failed"]:
-        message += f"，{tally['failed']} 节失败"
-    return message
+def _tally_message(tally: dict, *, stage: str | None = None, title: str | None = None) -> str:
+    from .technical_section_stages import stage_progress_message
+
+    return stage_progress_message(tally, stage=stage, title=title)
 
 
 class TechnicalVolumeSessions:
@@ -55,6 +54,7 @@ class TechnicalVolumeSessions:
         self.repository = workflow.repository
         self._backlogs: dict[str, _Backlog] = {}
         self._latest: dict[str, str] = {}
+        self._live_stage: dict[str, dict[str, str]] = {}
         self._lock = threading.Lock()
 
     # ------------------------------------------------------------ 启动与停止
@@ -172,6 +172,7 @@ class TechnicalVolumeSessions:
     def _run(self, job_id: str, prepared: dict, backlog: _Backlog) -> None:
         tally = {"done": 0, "total": 0, "failed": 0}
         ended = False
+        self._live_stage[job_id] = {}
         self._update(job_id, self._begin)
         try:
             for event in self.workflow.iter_technical_stream(prepared, backlog.cancel):
@@ -213,12 +214,24 @@ class TechnicalVolumeSessions:
         elif kind == "volume.failed":
             self._finish(job_id, "failed", str(event.get("message") or "生成失败"), tally, error="GENERATION_FAILED")
             return True
+        elif kind == "section.started":
+            live = self._live_stage.setdefault(job_id, {})
+            if event.get("title"):
+                live["title"] = str(event["title"])
+            live["stage"] = "retrieve"
+        elif kind == "task.patched" and event.get("stage"):
+            live = self._live_stage.setdefault(job_id, {})
+            live["stage"] = str(event["stage"])
+            if event.get("section_title"):
+                live["title"] = str(event["section_title"])
         else:
             return False
         self._progress(job_id, tally)
         return False
 
     def _progress(self, job_id: str, tally: dict) -> None:
+        live = self._live_stage.get(job_id) or {}
+
         def change(state, job):
             if job["status"] in TERMINAL:
                 return
@@ -226,7 +239,7 @@ class TechnicalVolumeSessions:
             share = settled / tally["total"] if tally["total"] else 0.0
             job["sections"] = dict(tally)
             job["progress"] = max(job.get("progress", 0), min(95, 5 + int(share * 90)))
-            job["message"] = _tally_message(tally)
+            job["message"] = _tally_message(tally, stage=live.get("stage"), title=live.get("title"))
             self.jobs._append(job, "job.progress", payload={"progress": job["progress"], "message": job["message"]})
         self._update(job_id, change)
 

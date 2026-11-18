@@ -90,12 +90,14 @@ def judge_deviation(clause: str, quote: str, model: Any = None) -> dict:
         return parse_judgment(json.dumps(_judge_fn(clause, quote), ensure_ascii=False))
     if model is None or not getattr(model, "is_real_model", False) or getattr(model, "is_local", False) is False:
         raise RuntimeError("没有本地模型，不能判断历史做法是否偏离")
+    from icg.infra.openai_model import AuditIoLabel, is_public_model_url
+
     url = getattr(model, "base_url", "") or ""
-    if url:
-        from icg.infra.openai_model import is_public_model_url
-        if is_public_model_url(url):
-            raise RuntimeError("本地部署已打开，公网地址不能判断偏离")
-    return parse_judgment(model.suggest(JUDGE_SYSTEM, f"本次招标条款：{clause}\n历史做法：{quote}"))
+    if url and is_public_model_url(url):
+        raise RuntimeError("本地部署已打开，公网地址不能判断偏离")
+    payload = f"本次招标条款：{clause}\n历史做法：{quote}"
+    with AuditIoLabel("DEVIATION"):
+        return parse_judgment(model.suggest(JUDGE_SYSTEM, payload))
 
 
 def local_draft(clause: str) -> str:
@@ -126,6 +128,42 @@ def _best_history_hit(hits: list[dict]) -> dict | None:
         return None
     history.sort(key=lambda item: float(item.get("score") or 0), reverse=True)
     return history[0]
+
+
+def _pick_history_quote(chunks: list[dict], clause: str) -> tuple[str, str] | None:
+    """从本节检索结果里取最高分历史片段，供偏离判断。"""
+    from icg.domain.technical_rag import retrieved_chunk_dataset_kind
+
+    history = [item for item in chunks if retrieved_chunk_dataset_kind(item) == "history"]
+    if not history:
+        return None
+    history.sort(key=lambda item: float(item.get("score") or 0), reverse=True)
+    best = history[0]
+    filename = str(best.get("name") or best.get("filename") or "")
+    quote = visible_quote(str(best.get("content") or best.get("quote") or ""), clause)
+    if not quote.strip():
+        return None
+    return filename, quote
+
+
+def deviate_section_rows(req_rows: list[dict], chunks: list[dict], model: Any) -> dict[str, str]:
+    """本节偏离判定。已有 response_type 的行保留；否则对历史命中判偏离。调用方必须接着进入 write_section。"""
+    response_types: dict[str, str] = {}
+    for row in req_rows:
+        rid = str(row.get("id") or "")
+        if not rid:
+            continue
+        if row.get("response_type"):
+            response_types[rid] = str(row["response_type"])
+            continue
+        picked = _pick_history_quote(chunks, str(row.get("text") or ""))
+        if picked is None:
+            continue
+        filename, quote = picked
+        _apply_history(row, str(row.get("text") or ""), filename, quote, model)
+        if row.get("response_type"):
+            response_types[rid] = str(row["response_type"])
+    return response_types
 
 
 def _apply_history(row: dict, clause: str, filename: str, quote: str, model: Any) -> None:
