@@ -56,6 +56,8 @@ SLA_TITLES = ("运维", "巡检", "故障", "保障", "响应", "服务级别")
 # volume.failed      message
 # session.started    job_id（生成会话的任务编号，订阅从这里开始重放）
 # session.live       之前的事件是重放的积压，之后是实时事件
+# task.patched       task_id、generation_status（generating/generated/failed），可带 response_status、
+#                    response_types（requirement_id → comply/exceed/deviate/not_applicable）；覆盖视图按任务合并
 SECTION_STREAM_CONCURRENCY = 3
 _SECTION_EVENTS = (
     "session.started",
@@ -69,6 +71,7 @@ _SECTION_EVENTS = (
     "volume.done",
     "volume.cancelled",
     "volume.failed",
+    "task.patched",
 )
 
 _section_writer: Callable[..., str] | None = None
@@ -445,6 +448,14 @@ def _draft_one(heading: dict, rows: dict, tasks: dict, model: Any, workflow: dic
             "key": key, "title": title, "body": body, "skipped": True,
             "audit": {"section": title, "task_id": key, "skipped": "no_requirement"},
         }
+    def patch_task(change: dict | None) -> None:
+        if emit is not None and task is not None and change:
+            emit({"event": "task.patched", "task_id": heading["task_id"], **change})
+
+    patch_task({
+        "generation_status": "generating",
+        "response_types": {row["id"]: row["response_type"] for row in req_rows if row.get("response_type")},
+    })
     # 即使矩阵检索失败，仍用模型或替身写实质框架，缺依据标待确认，禁止整节空「待补」冒充完成。
     query = section_query(title, primary, task=task, requirements=req_rows)
     chunks, rag_audit = retrieve_for_section(knowledge_base, company_id, query, workflow)
@@ -476,21 +487,21 @@ def _draft_one(heading: dict, rows: dict, tasks: dict, model: Any, workflow: dic
             f"【待确认】「{title}」自动生成失败，请按下列要求人工补写。\n"
             + "\n".join(f"- {row.get('extracted_summary') or row.get('text') or ''}" for row in req_rows[:8])
         )
+        task_patch = {"generation_status": "failed", "response_status": "gap"} if task is not None else None
+        patch_task(task_patch)
         return {
             "key": key, "title": title, "failed": True, "body": fallback, "audit": rag_audit,
-            "task": task,
-            "task_patch": {"generation_status": "failed", "response_status": "gap"} if task is not None else None,
+            "task": task, "task_patch": task_patch,
         }
     if emit is not None:
         emit({"event": "section.done", "section_id": key, "text": body})
     company_hits = int(rag_audit.get("history_hits") or 0) + int(rag_audit.get("material_hits") or 0)
-    return {
-        "key": key, "title": title, "body": body, "audit": rag_audit, "task": task,
-        "task_patch": {
-            "generation_status": "generated",
-            "response_status": "generated" if company_hits else "needs_confirm",
-        } if task is not None else None,
-    }
+    task_patch = {
+        "generation_status": "generated",
+        "response_status": "generated" if company_hits else "needs_confirm",
+    } if task is not None else None
+    patch_task(task_patch)
+    return {"key": key, "title": title, "body": body, "audit": rag_audit, "task": task, "task_patch": task_patch}
 
 
 def write_volume(state: Any, project_id: str, workflow: dict, section: str | None, model: Any,

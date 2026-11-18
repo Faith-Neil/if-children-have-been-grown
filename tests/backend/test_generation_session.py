@@ -83,6 +83,17 @@ def _start(client, headers, project_id, workspace, sink: list):
     return worker
 
 
+def _finish(worker: threading.Thread, sink: list, *, timeout: float = 30):
+    """等流式响应落盘。知识库不可用时检索会拖慢整卷，10 秒不够。"""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if sink and not worker.is_alive():
+            return sink[-1]
+        time.sleep(0.05)
+    worker.join(0)
+    raise AssertionError(f"stream unfinished alive={worker.is_alive()} responses={len(sink)}")
+
+
 def _active_session(client, headers, project_id, timeout=10):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -122,8 +133,7 @@ def test_generation_registers_a_session_job_with_section_progress(client):
     assert live["allowed_actions"] == ["cancel"]
 
     model.gate.set()
-    worker.join(10)
-    events = _frames(responses[0].text)
+    events = _frames(_finish(worker, responses).text)
     assert events[0] == {"event": "session.started", "job_id": running["id"]}
     assert events[-1]["event"] == "volume.done"
 
@@ -146,7 +156,7 @@ def test_dropping_the_subscription_does_not_cancel_the_session(client):
     subscription.close()
 
     model.gate.set()
-    worker.join(10)
+    _finish(worker, responses)
     done = _wait_status(client, headers, job["id"], {"completed", "cancelled", "failed"})
     assert done["status"] == "completed"
     chapter = _chapter(client, headers, project_id, workspace["technical_outline"]["chapter_id"])
@@ -165,9 +175,8 @@ def test_stop_cancels_the_session_and_keeps_the_chapter(client):
     cancelled = client.post(f"/api/v1/jobs/{job['id']}/cancel",
                             headers={**headers, "Idempotency-Key": str(uuid4())})
     assert cancelled.status_code == 200, cancelled.text
-    worker.join(10)
+    assert _frames(_finish(worker, responses).text)[-1]["event"] == "volume.cancelled"
     assert not worker.is_alive()
-    assert _frames(responses[0].text)[-1]["event"] == "volume.cancelled"
 
     final = client.get(f"/api/v1/jobs/{job['id']}", headers=headers).json()
     assert final["status"] == "cancelled" and final["allowed_actions"] == []
@@ -192,8 +201,8 @@ def test_resubscribing_replays_the_section_backlog_then_follows_live(client):
     follower.start()
     time.sleep(0.3)
     model.gate.set()
-    follower.join(10)
-    worker.join(10)
+    _finish(follower, resumed)
+    _finish(worker, responses)
 
     events = _frames(resumed[0].text)
     names = [item["event"] for item in events]
@@ -217,8 +226,8 @@ def test_starting_again_while_running_attaches_to_the_same_session(client):
     again = _start(client, headers, project_id, workspace, second)
     time.sleep(0.3)
     model.gate.set()
-    worker.join(10)
-    again.join(10)
+    _finish(worker, first)
+    _finish(again, second)
     assert _frames(first[0].text)[0]["job_id"] == job["id"]
     assert _frames(second[0].text)[0]["job_id"] == job["id"]
     sessions = [item for item in client.get("/api/v1/jobs", headers=headers).json()["jobs"]
@@ -226,17 +235,59 @@ def test_starting_again_while_running_attaches_to_the_same_session(client):
     assert len(sessions) == 1
 
 
+def test_session_patches_each_task_from_generating_to_responded(client):
+    from icg.domain.technical_matrix import bind_deviation_judge, bind_history_search, reset_deviation_judge, reset_history_search
+    headers = login(client)
+    search = bind_history_search(lambda query: [
+        {"filename": "2023合成.docx", "quote": "健康检查每30分钟一次", "score": 0.9},
+    ] if "健康检查" in query else [])
+    judge = bind_deviation_judge(lambda _clause, quote: {
+        "deviation": "正偏离", "reason": "历史巡检为每30分钟一次。",
+    } if "30" in quote else {"deviation": "无偏离", "reason": ""})
+    try:
+        project_id, _ = _parse_clause(client, headers, "服务方案中应包含数据库的健康检查、故障处理、标准服务等。")
+    finally:
+        reset_history_search(search)
+        reset_deviation_judge(judge)
+    workspace = _confirm_plan(client, headers, project_id)
+    model = GatedModel()
+    client.app.state.workflow.demo.resolve_model_provider = lambda *_args, **_kwargs: model
+    rows = workspace["coverage_rows"]
+    exceed = next(row for row in rows if row["text"] == "健康检查")
+    assert exceed["response_type"] == "exceed"
+
+    responses: list = []
+    worker = _start(client, headers, project_id, workspace, responses)
+    assert model.started.wait(10)
+    model.gate.set()
+    events = _frames(_finish(worker, responses).text)
+    tasks = {row["task_id"] for row in rows}
+    assert len(tasks) >= 3
+
+    for task_id in tasks:
+        patches = [item for item in events if item["event"] == "task.patched" and item["task_id"] == task_id]
+        assert [item["generation_status"] for item in patches] == ["generating", "generated"]
+        done_at = next(index for index, item in enumerate(events)
+                       if item["event"] == "section.done" and item["section_id"] == task_id)
+        assert events.index(patches[0]) < done_at < events.index(patches[1])
+    started = next(item for item in events if item["event"] == "task.patched" and item["task_id"] == exceed["task_id"])
+    assert started["response_types"][exceed["requirement_id"]] == "exceed"
+
+    saved = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()["coverage_rows"]
+    assert {row["generation_status"] for row in saved} == {"generated"}
+
+
 def test_superseded_session_reports_its_end_state_without_backlog(client):
     headers, project_id, workspace, model = _ready(client)
     model.gate.set()
     responses: list = []
-    _start(client, headers, project_id, workspace, responses).join(10)
-    older = _frames(responses[0].text)[0]["job_id"]
+    first = _start(client, headers, project_id, workspace, responses)
+    older = _frames(_finish(first, responses).text)[0]["job_id"]
     _wait_status(client, headers, older, {"completed"})
 
     workspace = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
-    _start(client, headers, project_id, workspace, responses).join(10)
-    newer = _frames(responses[1].text)[0]["job_id"]
+    second = _start(client, headers, project_id, workspace, responses)
+    newer = _frames(_finish(second, responses).text)[0]["job_id"]
     assert newer != older
 
     replay = _frames(client.get(f"/api/v1/jobs/{older}/section-events", headers=headers).text)
