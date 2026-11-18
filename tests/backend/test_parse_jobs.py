@@ -325,6 +325,33 @@ def test_extract_and_tree_stages_replace_the_running_message(client, monkeypatch
     assert any("编排目录" in message for message in model.messages)
 
 
+def test_job_completes_once_outline_is_ready_while_matrix_retrieval_still_runs(client, monkeypatch):
+    """抽取完、目录落库后作业就是 completed 100%；矩阵历史检索在后面慢慢跑，不能让作业停在 92%。"""
+    _technical_job.monkeypatch = monkeypatch
+    service = client.app.state.service
+    original = service.knowledge_base.search
+    entered = threading.Event()
+    gate = threading.Event()
+
+    def slow_matrix_search(company_id, query, *args, **kwargs):
+        if kwargs.get("kinds") == {"history", "materials"}:
+            entered.set()
+            assert gate.wait(timeout=30), "matrix retrieval was not released"
+        return original(company_id, query, *args, **kwargs)
+
+    monkeypatch.setattr(service.knowledge_base, "search", slow_matrix_search)
+    try:
+        job, state = _technical_job(client, _StageModel(service.repository))
+        assert entered.is_set(), "matrix retrieval never started"
+        assert not gate.is_set()
+        assert job["status"] == "completed" and job["progress"] == 100, job
+        assert job["events"][-1]["type"] == "job.completed"
+        assert state["technical_outline"]["headings"]
+        assert state["parse_confirmed"] is True
+    finally:
+        gate.set()
+
+
 def test_extract_mass_timeout_completes_degraded_not_clean(client, monkeypatch):
     _technical_job.monkeypatch = monkeypatch
     job, state = _technical_job(client, _TimeoutModel())
