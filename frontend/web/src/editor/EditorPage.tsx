@@ -110,6 +110,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const streamChapterId = useRef('');
   const streamJob = useRef('');
   const stopRequested = useRef(false);
+  const settledJob = useRef('');
 
   const epoch = useRef(0);
   const sequence = useRef(0);
@@ -604,7 +605,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   // 离开编辑台只断订阅，会话仍在服务端跑；回来时接上同一会话
   const liveSession = activeVolumeSession(workspace.jobs, workspace.project.id);
   useEffect(() => {
-    if (!liveSession || streamLive.current || streamJob.current === liveSession.id) return;
+    if (!liveSession || streamLive.current || settledJob.current === liveSession.id) return;
     void runDirectoryStream({ jobId: liveSession.id }).catch(() => undefined);
   }, [liveSession?.id, !!technicalOutline, !!outlineChapter]);
 
@@ -707,6 +708,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
       }
     } finally {
       if (streamRun.current === runId) {
+        settledJob.current = streamJob.current;
         revealRef.current = null;
         streamLive.current = false;
         setStreaming(false);
