@@ -403,3 +403,115 @@ def test_company_chunks_stay_when_tender_fills_the_window():
     prompt = knowledge_prompt_block(chunks)
     assert "公司history证据" in prompt or "公司materials证据" in prompt
     assert "【待确认】" not in prompt
+
+
+def test_history_reference_drops_foreign_names_and_keeps_hits():
+    """历史命中仍计数，但提示词和正文不得抄入外项目业主或系统专名。"""
+    from icg.domain.technical_volume import write_volume
+
+    class Hit:
+        def __init__(self, kind, name, content, score):
+            self.source_id = name
+            self.name = name
+            self.content = content
+            self.score = score
+            self.dataset_kind = kind
+            self.reference_only = kind == "history"
+            self.document_id = "d"
+            self.chunk_ids = [name]
+            self.cite_tag = f"[片:{name}]"
+
+    leak = Hit(
+        "history",
+        "甘肃农信核心系统运维方案",
+        "甘肃农信核心系统每月巡检一次并留记录。乐山医院的容灾切换按季度演练。"
+        "重庆市渝北区中医院沿用每月巡检一次并留记录。",
+        0.99,
+    )
+    clean = Hit(
+        "history",
+        "巡检手册",
+        "按运行手册做增量备份并核对校验和，留下演练记录。",
+        0.40,
+    )
+    material = Hit("materials", "产品说明", "到场时限见产品说明，巡检留记录。", 0.50)
+
+    class Kb:
+        def search(self, company_id, query, *, limit=4, kinds=None):
+            kind = next(iter(kinds or {"history"}))
+            if kind == "history":
+                return [leak, clean], ""
+            return [material], ""
+
+    class Model:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:9"
+        system = ""
+        user = ""
+
+        def suggest(self, system, user):
+            self.system = system
+            self.user = user
+            return (
+                "针对「总体方案」参照甘肃农信与乐山医院每月巡检一次并留下运行记录。"
+                "重庆市渝北区中医院按7×24小时响应。过程记录供验收核对。"
+            )
+
+    clause = "每月巡检数据库并出具报告"
+    workflow = {
+        "plan_confirmed": True,
+        "facts": {
+            "f-owner": {
+                "id": "f-owner", "key": "采购人", "value": "重庆市渝北区中医院", "status": "confirmed",
+            },
+            "f-name": {
+                "id": "f-name", "key": "项目名称", "value": "渝北区区域医疗信息系统运维", "status": "confirmed",
+            },
+            "f-period": {
+                "id": "f-period", "key": "服务期限", "value": "3年", "status": "confirmed",
+            },
+        },
+        "technical_outline": {
+            "chapter_id": "c1",
+            "headings": [{
+                "level": 1, "number": "1", "title": "总体方案",
+                "task_id": "t1", "requirement_id": "r1", "requirement_ids": ["r1"],
+            }],
+        },
+        "requirements": {
+            "r1": {
+                "id": "r1", "technical_clause": True, "text": clause,
+                "status": "confirmed", "section_kind": "scoring",
+            },
+        },
+        "response_tasks": {
+            "t1": {"task_id": "t1", "requirement_ids": ["r1"], "response_points": [clause]},
+        },
+        "files": {"f1": {"pages": [f"采购人：重庆市渝北区中医院。本标要求{clause}。服务期限3年。"]}},
+    }
+    chapter = SimpleNamespace(id="c1", content="", revision=1)
+    state = SimpleNamespace(
+        chapters={"c1": chapter},
+        projects={"p": SimpleNamespace(id="p", name="渝北区区域医疗信息系统运维", company_id="alpha")},
+    )
+    model = Model()
+    result = write_volume(state, "p", workflow, None, model, knowledge_base=Kb())
+    assert result["failed"] == []
+    audit = workflow["technical_rag_audit"][0]
+    assert audit["history_hits"] == 2
+    prompt = model.user
+    assert "甘肃农信" not in prompt
+    assert "乐山医院" not in prompt
+    assert "每月巡检一次并留记录" in prompt
+    assert "重庆市渝北区中医院沿用每月巡检" in prompt
+    assert "不得作为正式附着证据" in prompt
+    assert "只借鉴写法" in prompt
+    assert prompt.index("增量备份") < prompt.index("容灾切换")
+    assert "只作写法参考" in model.system
+    assert "以招标与项目事实为准" in model.system
+    body = chapter.content
+    assert "甘肃农信" not in body
+    assert "乐山医院" not in body
+    assert "重庆市渝北区中医院" in body
+    assert "每月巡检" in body
