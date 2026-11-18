@@ -369,6 +369,81 @@ def test_extract_mass_timeout_completes_degraded_not_clean(client, monkeypatch):
         assert state["tree_model_failed"] is True
 
 
+class _TreeModel(_StageModel):
+    """抽取正常；编目录时返回给定内容或抛错，并记下 TREE 请求次数。"""
+
+    def __init__(self, repository, tree):
+        super().__init__(repository)
+        self.tree = tree
+        self.tree_calls = 0
+        self.entered = threading.Event()
+        self.gate = threading.Event()
+        self.gate.set()
+
+    def suggest(self, system, user):
+        if "编排技术服务方案目录" not in (system or ""):
+            return super().suggest(system, user)
+        self.tree_calls += 1
+        self.entered.set()
+        assert self.gate.wait(timeout=30), "TREE was not released"
+        if isinstance(self.tree, Exception):
+            raise self.tree
+        return self.tree
+
+
+SINGLE_QUOTED_TREE = (
+    "[{'level': 1, 'title': '运维保障', 'mount_ids': []},"
+    " {'level': 2, 'title': '数据库巡检服务', 'mount_ids': ['m1']}]"
+)
+
+
+def test_usable_model_schedules_tree_and_rule_draft_is_labelled_while_it_runs(client, monkeypatch):
+    """有可用本地模型时必须发 TREE；TREE 返回前目录只是规则草稿，工作区要说明原因，不能像已定稿的规则目录。"""
+    _technical_job.monkeypatch = monkeypatch
+    service = client.app.state.service
+    model = _TreeModel(service.repository, SINGLE_QUOTED_TREE)
+    model.gate.clear()
+    seen: dict = {}
+
+    def watch():
+        assert model.entered.wait(timeout=30), "TREE was never requested"
+        workflow = service.repository.read().workflows
+        project_id = next(pid for pid, wf in workflow.items() if wf.get("technical_outline"))
+        seen.update(workflow[project_id])
+        model.gate.set()
+
+    watcher = threading.Thread(target=watch)
+    watcher.start()
+    try:
+        job, state = _technical_job(client, model)
+    finally:
+        model.gate.set()
+        watcher.join(timeout=30)
+    assert model.tree_calls == 1
+    assert seen["outline_source"] != "model"
+    assert "正在编排" in seen["outline_reason"]
+    assert "正在编排" in seen["technical_outline"]["outline_reason"]
+    assert job["status"] == "completed" and job.get("error") in (None, {}), job
+    assert state["outline_source"] == "model"
+    assert state["technical_outline"]["outline_source"] == "model"
+    assert state["outline_reason"] == ""
+    assert "数据库巡检服务" in [item["title"] for item in state["technical_outline"]["headings"]]
+
+
+def test_tree_timeout_falls_back_to_rule_with_a_reason(client, monkeypatch):
+    from icg.infra.openai_model import RetryableModelError
+
+    _technical_job.monkeypatch = monkeypatch
+    model = _TreeModel(client.app.state.service.repository, RetryableModelError("timeout"))
+    job, state = _technical_job(client, model)
+    assert model.tree_calls >= 1
+    assert job["status"] == "completed" and job["error"]["code"] == "TREE_MODEL_FAILED", job
+    assert state["outline_source"] == "rule_fallback"
+    assert state["tree_model_failed"] is True
+    assert "超时" in state["outline_reason"]
+    assert "超时" in state["technical_outline"]["outline_reason"]
+
+
 def test_health_exposes_effective_model(client):
     health = client.get("/health").json()
     assert health["model"] in ("mock", "real")
