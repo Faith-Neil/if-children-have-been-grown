@@ -256,8 +256,7 @@ def _stop_if_cancelled(cancel: Any) -> None:
 
 
 def _complete_section(model: Any, user: str, *, on_delta: Callable[[str], None] | None, cancel: Any) -> str:
-    """有 on_delta 且模型提供 stream_suggest 时逐段输出；没有该方法时仍整段 suggest 再回调一次。"""
-    from icg.infra.openai_model import AuditIoLabel
+    from icg.infra.openai_model import SECTION_CALL, AuditIoLabel, call_with_profile
 
     if on_delta is not None and _model_streams(model):
         from icg.infra.model_fallback import call_model
@@ -267,9 +266,11 @@ def _complete_section(model: Any, user: str, *, on_delta: Callable[[str], None] 
             on_delta(piece)
 
         with AuditIoLabel("SECTION"):
-            return call_model(model, SECTION_SYSTEM, user, on_delta=guard, cancel=cancel).text
+            return call_model(
+                model, SECTION_SYSTEM, user, on_delta=guard, cancel=cancel, profile=SECTION_CALL,
+            ).text
     with AuditIoLabel("SECTION"):
-        text = model.suggest(SECTION_SYSTEM, user)
+        text = call_with_profile(model.suggest, SECTION_SYSTEM, user, profile=SECTION_CALL)
     _stop_if_cancelled(cancel)
     if on_delta is not None:
         on_delta(text)
@@ -476,11 +477,9 @@ def _draft_one(heading: dict, rows: dict, tasks: dict, model: Any, workflow: dic
             emit({"event": "section.cancelled", "section_id": key})
         return {"key": key, "title": title, "cancelled": True, "audit": rag_audit}
 
-    from icg.domain.technical_matrix import deviate_section_rows
     from icg.domain.technical_section_stages import forbid_silent_deviate_only
 
-    response_types = deviate_section_rows(req_rows, chunks, model)
-    patch_task({"stage": "deviate", "response_types": response_types})
+    patch_task({"stage": "deviate", "response_types": response_type_map()})
     forbid_silent_deviate_only("write_section")
 
     foreign_names = history_foreign_names(chunks, workflow)

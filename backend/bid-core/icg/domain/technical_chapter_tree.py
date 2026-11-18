@@ -836,8 +836,10 @@ def compose_tree_with_model(
     user = "归纳后的响应要点（代号、主题、摘要）：\n" + "\n".join(lines)
     if order:
         user += "\n招标编制顺序（仅参考，不必照抄）：" + "、".join(order)
+    from icg.infra.openai_model import JSON_CALL, call_with_profile
+
     try:
-        raw = model.suggest(TREE_SYSTEM, user)
+        raw = call_with_profile(model.suggest, TREE_SYSTEM, user, profile=JSON_CALL)
     except Exception:
         workflow["_tree_failure"] = TREE_CALL_FAILED
         return None

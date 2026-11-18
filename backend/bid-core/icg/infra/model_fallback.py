@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from .openai_model import ModelCancelled, RetryableModelError
+from .openai_model import ModelCallProfile, ModelCancelled, RetryableModelError, call_with_profile
 
 
 @dataclass(frozen=True)
@@ -59,7 +59,8 @@ def failure_text(error: BaseException) -> str:
 
 
 def call_model(provider: Any, system: str, user: str, *, on_delta: Callable[[str], None] | None = None,
-               on_reset: Callable[[str, str], None] | None = None, cancel: Any = None) -> ModelCall:
+               on_reset: Callable[[str, str], None] | None = None, cancel: Any = None,
+               profile: ModelCallProfile | None = None) -> ModelCall:
     """调用主模型；健康类失败且配置了 provider.fallback 时改用备用模型。on_reset(备用模型名, 原因) 在切换时调用。
     调用方传入 on_delta 且当前模型有 stream_suggest 时逐段输出，不看 stream_enabled。"""
     chain = [getattr(provider, "primary", provider)]
@@ -71,9 +72,11 @@ def call_model(provider: Any, system: str, user: str, *, on_delta: Callable[[str
         streaming = on_delta is not None and callable(getattr(current, "stream_suggest", None))
         try:
             if streaming:
-                text = current.stream_suggest(system, user, on_delta=on_delta, cancel=cancel)
+                text = call_with_profile(
+                    current.stream_suggest, system, user, on_delta=on_delta, cancel=cancel, profile=profile,
+                )
             else:
-                text = current.suggest(system, user)
+                text = call_with_profile(current.suggest, system, user, profile=profile)
                 if cancel is not None and cancel.is_set():
                     raise ModelCancelled("cancelled")
         except Exception as error:
@@ -99,6 +102,6 @@ class WithFallback:
     def __getattr__(self, name: str) -> Any:
         return getattr(self.primary, name)
 
-    def suggest(self, instruction: str, content: str) -> str:
-        self.last_call = call_model(self, instruction, content)
+    def suggest(self, instruction: str, content: str, *, profile: ModelCallProfile | None = None) -> str:
+        self.last_call = call_model(self, instruction, content, profile=profile)
         return self.last_call.text
