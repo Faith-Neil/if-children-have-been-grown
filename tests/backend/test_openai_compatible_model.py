@@ -378,6 +378,105 @@ def test_audit_keeps_full_assistant_when_sse_body_exceeds_cap(tmp_path, monkeypa
     assert response["truncated"] is True
 
 
+def test_profiles_disable_thinking_and_default_suggest_does_not():
+    from icg.infra.openai_model import JSON_CALL, SECTION_CALL
+
+    bodies = []
+
+    def handler(request, index):
+        bodies.append(json.loads(request.content.decode()))
+        return success_body("ok")
+
+    model, _calls = provider(handler, max_tokens=1024)
+    assert model.suggest("系统", "用户") == "ok"
+    assert model.suggest("系统", "用户", profile=JSON_CALL) == "ok"
+    assert model.suggest("系统", "用户", profile=SECTION_CALL) == "ok"
+
+    plain, json_body, section_body = bodies
+    assert "think" not in plain and "chat_template_kwargs" not in plain
+    assert plain["max_tokens"] == 1024
+    assert json_body["think"] is False
+    assert json_body["chat_template_kwargs"] == {"enable_thinking": False}
+    assert json_body["max_tokens"] == 256
+    assert json_body["response_format"] == {"type": "json_object"}
+    assert section_body["think"] is False
+    assert section_body["chat_template_kwargs"] == {"enable_thinking": False}
+    assert section_body["max_tokens"] == 1200
+    assert "response_format" not in section_body
+
+
+def test_section_stream_audits_section_label(tmp_path, monkeypatch):
+    from icg.infra.openai_model import SECTION_CALL
+
+    monkeypatch.setenv("ICG_AUDIT_IO_DIR", str(tmp_path))
+    body = _sse_lines({"content": "针对巡检的正文足够长，留下执行记录。"})
+
+    def handler(request, index):
+        payload = json.loads(request.content.decode())
+        assert payload["think"] is False
+        assert payload["chat_template_kwargs"] == {"enable_thinking": False}
+        assert payload["stream"] is True
+        assert payload["max_tokens"] == 1200
+        return httpx.Response(200, headers={"content-type": "text/event-stream"}, content=body)
+
+    model, _calls = provider(handler)
+    text = model.stream_suggest("系统", "用户", on_delta=lambda _piece: None, profile=SECTION_CALL)
+    assert "巡检" in text
+    rows = [
+        json.loads(line)
+        for line in (tmp_path / "model-io.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert any(row.get("kind") == "request" and row.get("label") == "SECTION" for row in rows)
+    assert any(row.get("kind") == "response" and row.get("label") == "SECTION" for row in rows)
+
+
+def test_deviation_judge_sends_json_profile():
+    from icg.domain.technical_matrix import judge_deviation
+
+    bodies = []
+
+    def handler(request, index):
+        bodies.append(json.loads(request.content.decode()))
+        return success_body('{"deviation":"无偏离","reason":""}')
+
+    model, _calls = provider(handler, max_tokens=1024)
+    assert judge_deviation("每月巡检", "每月巡检一次", model)["deviation"] == "无偏离"
+    assert bodies[0]["think"] is False
+    assert bodies[0]["chat_template_kwargs"] == {"enable_thinking": False}
+    assert bodies[0]["max_tokens"] == 256
+    assert bodies[0]["response_format"] == {"type": "json_object"}
+
+
+def test_produce_section_stream_sends_section_profile(tmp_path, monkeypatch):
+    from icg.domain.technical_volume import produce_section
+
+    monkeypatch.setenv("ICG_AUDIT_IO_DIR", str(tmp_path))
+    prose = "按招标要求编写本节正文并留下执行记录。" * 3
+    bodies = []
+
+    def handler(request, index):
+        bodies.append(json.loads(request.content.decode()))
+        return httpx.Response(
+            200, headers={"content-type": "text/event-stream"}, content=_sse_lines({"content": prose}),
+        )
+
+    model, _calls = provider(handler, max_tokens=1024)
+    row = {"text": "每月巡检", "response": "按招标执行", "response_type": "comply"}
+    assert produce_section("运维保障与巡检", row, model, on_delta=lambda _piece: None) == prose
+    assert bodies[0]["think"] is False
+    assert bodies[0]["chat_template_kwargs"] == {"enable_thinking": False}
+    assert bodies[0]["max_tokens"] == 1200
+    assert bodies[0]["stream"] is True
+    assert "response_format" not in bodies[0]
+    rows = [
+        json.loads(line)
+        for line in (tmp_path / "model-io.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert any(row.get("kind") == "request" and row.get("label") == "SECTION" for row in rows)
+
+
 def test_content_still_wins_over_reasoning():
     from icg.infra.openai_model import _assistant_text
 
