@@ -36,6 +36,10 @@ test('lead opens the coverage view after the tender is parsed', async ({ page, r
   await expect(page.getByRole('cell', { name: '已解析' })).toBeVisible();
   await page.getByRole('tab', { name: '覆盖视图' }).click();
   await expect(page.getByTestId('coverage-view')).toBeVisible();
-  await expect(page.getByTestId('coverage-view-notice')).toContainText('不挡');
+  await expect(page.getByTestId('coverage-stat-responded')).toBeVisible();
+  await expect(page.getByTestId('coverage-stat-generating')).toBeVisible();
+  await expect(page.getByTestId('coverage-stat-failed')).toBeVisible();
+  await expect(page.getByTestId('coverage-view-notice')).toHaveCount(0);
+  await expect(page.getByTestId('coverage-rag-audit')).toHaveCount(0);
   await expect(page.getByRole('button', { name: '挂证据' })).toHaveCount(0);
 });

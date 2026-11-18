@@ -5,10 +5,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Card, Input, Table, Tag } from 'antd';
 import { useProject } from '../app/context.tsx';
 import { streamEvents } from '../shared/api.ts';
-import type { CoverageRow, TechnicalRagAuditRow } from '../shared/types.ts';
+import type { CoverageRow } from '../shared/types.ts';
 import { technicalVolumeSessionPath } from '../editor/section-stream.ts';
 import { activeVolumeSession } from '../status/generation-session.ts';
-import { auditSearchLine, auditTopKinds, tenderIndexLine, writerModelLine } from './coverage-audit.ts';
 import {
   coverageLabel, coverageState, coverageStats, mergeTaskPatch, parseTaskPatched, patchRows,
   type CoveragePatches,
@@ -84,30 +83,15 @@ export function CoverageView() {
 
   const validation = workspace.plan_validation;
   const honesty = parseHonesty(workspace);
-  const audits = (workspace.technical_rag_audit ?? []) as TechnicalRagAuditRow[];
-  const indexLine = tenderIndexLine(workspace.tender_index);
-  const modelLine = writerModelLine(workspace.writer_model);
   const stats = coverageStats(rows);
 
   return (
     <div data-testid="coverage-view">
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
-        <Card size="small"><span className="muted">要求 </span><strong>{stats.total}</strong></Card>
-        <Card size="small"><span className="muted">废标相关 </span><strong>{stats.rejection}</strong></Card>
         <Card size="small"><span className="muted">已响应 </span><strong data-testid="coverage-stat-responded">{stats.responded}</strong></Card>
         <Card size="small"><span className="muted">生成中 </span><strong data-testid="coverage-stat-generating">{stats.generating}</strong></Card>
         <Card size="small"><span className="muted">失败 </span><strong data-testid="coverage-stat-failed">{stats.failed}</strong></Card>
       </div>
-      <Alert
-        type="info"
-        showIcon
-        className="page-notice"
-        data-testid="coverage-view-notice"
-        style={{ marginBottom: 8 }}
-        message="覆盖视图（可选）"
-        description="招标要求 → 响应任务 → 目标章节。不挡「开始生成」与导出。"
-        action={<Button size="small" type="link" onClick={() => navigate('editor')}>回编辑台</Button>}
-      />
       {honesty.degraded && (
         <Alert
           type="warning"
@@ -127,44 +111,6 @@ export function CoverageView() {
           message="生成计划校验未全部通过"
           description={(validation.issues || []).join('；')}
         />
-      )}
-      {(indexLine || modelLine) && (
-        <div data-testid="coverage-retrieval-meta" className="muted" style={{ marginBottom: 8 }}>
-          {[indexLine, modelLine].filter(Boolean).join(' ｜ ')}
-        </div>
-      )}
-      {audits.length > 0 && (
-        <Card size="small" styles={{ body: { padding: 0 } }} style={{ marginBottom: 8 }} data-testid="coverage-rag-audit">
-          <Table
-            rowKey={(row, index) => `${row.section || 's'}-${row.query || 'q'}-${index}`}
-            size="small"
-            pagination={false}
-            dataSource={audits}
-            columns={[
-              {
-                title: '节',
-                dataIndex: 'section',
-                width: 160,
-                render: (value: string) => value || '—',
-              },
-              {
-                title: '查询',
-                dataIndex: 'query',
-                render: (value: string) => value || '—',
-              },
-              {
-                title: '命中',
-                width: 220,
-                render: (_, row) => auditSearchLine(row),
-              },
-              {
-                title: '库别',
-                width: 120,
-                render: (_, row) => auditTopKinds(row) || '—',
-              },
-            ]}
-          />
-        </Card>
       )}
       <Card size="small" styles={{ body: { padding: 0 } }}>
         <div style={{ padding: 8 }}>
