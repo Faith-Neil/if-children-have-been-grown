@@ -192,6 +192,7 @@ def _fill_technical_outline(state: Any, project_id: str, workflow: dict) -> None
         "plan_validation": plan["validation"],
         "outline_source": workflow.get("outline_source") or "rule",
         "tree_model_failed": bool(workflow.get("tree_model_failed")),
+        "outline_reason": workflow.get("outline_reason") or "",
     }
 
 
@@ -268,6 +269,7 @@ def replace_outline(state: Any, project_id: str, workflow: dict, headings: list[
         "headings": cleaned,
         "outline_source": previous.get("outline_source") or workflow.get("outline_source") or "",
         "tree_model_failed": bool(previous.get("tree_model_failed") or workflow.get("tree_model_failed")),
+        "outline_reason": previous.get("outline_reason") or workflow.get("outline_reason") or "",
     }
     return chapter
 
@@ -357,6 +359,7 @@ def workspace_fields(state: Any, project_id: str, workflow: dict) -> dict[str, A
             "extract_pages_read": 0,
             "outline_source": "",
             "tree_model_failed": False,
+            "outline_reason": "",
         }
     stored = workflow.get("technical_outline")
     outline = None
@@ -370,6 +373,7 @@ def workspace_fields(state: Any, project_id: str, workflow: dict) -> dict[str, A
             "missing": missing,
             "outline_source": stored.get("outline_source") or workflow.get("outline_source") or "",
             "tree_model_failed": bool(stored.get("tree_model_failed") or workflow.get("tree_model_failed")),
+            "outline_reason": stored.get("outline_reason") or workflow.get("outline_reason") or "",
         }
     confirmed = bool(workflow.get("plan_confirmed")) and outline is not None
     from icg.domain.technical_volume import deviation_note, review_titles
@@ -406,6 +410,7 @@ def workspace_fields(state: Any, project_id: str, workflow: dict) -> dict[str, A
         "extract_pages_read": int((workflow.get("technical_extract_model") or {}).get("pages_read") or 0),
         "outline_source": (stored or {}).get("outline_source") or workflow.get("outline_source") or "",
         "tree_model_failed": bool((stored or {}).get("tree_model_failed") or workflow.get("tree_model_failed")),
+        "outline_reason": (stored or {}).get("outline_reason") or workflow.get("outline_reason") or "",
     }
 
 

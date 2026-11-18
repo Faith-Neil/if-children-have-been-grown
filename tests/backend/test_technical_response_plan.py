@@ -172,6 +172,7 @@ def test_tree_model_timeout_labels_rule_fallback():
     assert headings
     assert workflow["outline_source"] == "rule_fallback"
     assert workflow["tree_model_failed"] is True
+    assert "超时" in workflow["outline_reason"]
 
 
 def test_tree_model_success_labels_model_source():
@@ -192,6 +193,7 @@ def test_tree_model_success_labels_model_source():
     assert any(item["title"] == "运维保障与巡检" for item in headings)
     assert workflow["outline_source"] == "model"
     assert workflow["tree_model_failed"] is False
+    assert workflow["outline_reason"] == ""
 
 
 def test_tree_without_model_is_rule_not_a_failure():
@@ -200,6 +202,7 @@ def test_tree_without_model_is_rule_not_a_failure():
     assert headings
     assert workflow["outline_source"] == "rule"
     assert workflow["tree_model_failed"] is False
+    assert "未调用模型" in workflow["outline_reason"]
 
 
 def test_stand_in_never_uses_spec_number_as_chapter_title():
@@ -895,5 +898,6 @@ def test_unusable_tree_payload_does_not_clip_each_clause():
     headings, _rewritten = build_chapter_tree(tasks, workflow, model=Local())
     titles = [item["title"] for item in headings]
     assert workflow["outline_source"] == "rule_fallback"
+    assert "无法解析" in workflow["outline_reason"]
     assert all("…" not in title for title in titles)
     assert len(headings) < len(texts)

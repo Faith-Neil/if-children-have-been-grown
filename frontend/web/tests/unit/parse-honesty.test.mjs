@@ -22,3 +22,17 @@ test('抽取超时和目录兜底都写进可见说明', () => {
   assert.match(result.text, /只读完 8 块/);
   assert.match(result.text, /规则兜底/);
 });
+
+test('规则目录带原因时把原因写出来', () => {
+  const result = parseHonesty({
+    outline_source: 'rule',
+    technical_outline: { outline_source: 'rule', outline_reason: '模型正在编排目录，当前是规则草稿。' },
+  });
+  assert.equal(result.degraded, true);
+  assert.equal(result.text, '模型正在编排目录，当前是规则草稿。');
+});
+
+test('模型目录不显示残留原因', () => {
+  const result = parseHonesty({ outline_source: 'model', outline_reason: '模型正在编排目录，当前是规则草稿。' });
+  assert.equal(result.degraded, false);
+});
