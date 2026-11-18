@@ -226,6 +226,49 @@ def test_starting_again_while_running_attaches_to_the_same_session(client):
     assert len(sessions) == 1
 
 
+def test_session_patches_each_task_from_generating_to_responded(client):
+    from icg.domain.technical_matrix import bind_deviation_judge, bind_history_search, reset_deviation_judge, reset_history_search
+    headers = login(client)
+    search = bind_history_search(lambda query: [
+        {"filename": "2023合成.docx", "quote": "健康检查每30分钟一次", "score": 0.9},
+    ] if "健康检查" in query else [])
+    judge = bind_deviation_judge(lambda _clause, quote: {
+        "deviation": "正偏离", "reason": "历史巡检为每30分钟一次。",
+    } if "30" in quote else {"deviation": "无偏离", "reason": ""})
+    try:
+        project_id, _ = _parse_clause(client, headers, "服务方案中应包含数据库的健康检查、故障处理、标准服务等。")
+    finally:
+        reset_history_search(search)
+        reset_deviation_judge(judge)
+    workspace = _confirm_plan(client, headers, project_id)
+    model = GatedModel()
+    client.app.state.workflow.demo.resolve_model_provider = lambda *_args, **_kwargs: model
+    rows = workspace["coverage_rows"]
+    exceed = next(row for row in rows if row["text"] == "健康检查")
+    assert exceed["response_type"] == "exceed"
+
+    responses: list = []
+    worker = _start(client, headers, project_id, workspace, responses)
+    assert model.started.wait(10)
+    model.gate.set()
+    worker.join(10)
+    events = _frames(responses[0].text)
+    tasks = {row["task_id"] for row in rows}
+    assert len(tasks) >= 3
+
+    for task_id in tasks:
+        patches = [item for item in events if item["event"] == "task.patched" and item["task_id"] == task_id]
+        assert [item["generation_status"] for item in patches] == ["generating", "generated"]
+        done_at = next(index for index, item in enumerate(events)
+                       if item["event"] == "section.done" and item["section_id"] == task_id)
+        assert events.index(patches[0]) < done_at < events.index(patches[1])
+    started = next(item for item in events if item["event"] == "task.patched" and item["task_id"] == exceed["task_id"])
+    assert started["response_types"][exceed["requirement_id"]] == "exceed"
+
+    saved = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()["coverage_rows"]
+    assert {row["generation_status"] for row in saved} == {"generated"}
+
+
 def test_superseded_session_reports_its_end_state_without_backlog(client):
     headers, project_id, workspace, model = _ready(client)
     model.gate.set()

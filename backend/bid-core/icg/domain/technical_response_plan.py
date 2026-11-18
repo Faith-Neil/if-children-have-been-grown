@@ -302,5 +302,6 @@ def coverage_rows(workflow: dict, outline: dict | None = None) -> list[dict]:
                 "outline_title": heading.get("title") or task.get("title"),
                 "response_status": task.get("response_status") or "not_started",
                 "generation_status": task.get("generation_status") or "pending",
+                "response_type": req.get("response_type") or None,
             })
     return rows

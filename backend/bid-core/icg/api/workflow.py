@@ -47,6 +47,8 @@ STREAM_SECTION_DESCRIPTION = (
     "section.done 的 text 是这一节要落盘的全文。section.failed 带 message。section.cancelled 表示这一节不改原文。"
     "volume.done 带 chapter_id、revision、failed、replay。replay 为 true 时是同一 Idempotency-Key 的重放，没有 delta。"
     "volume.cancelled 表示取消后本次没有写入章节。volume.failed 带 message。"
+    "task.patched 带 task_id、generation_status（generating、generated、failed），可带 response_status 与 "
+    "response_types（requirement_id 到 comply、exceed、deviate、not_applicable）；同一任务按到达顺序合并，供覆盖视图实时更新行。"
     "权限、If-Match 和 Idempotency-Key 与 generateProject 相同。核对失败在推送前按 HTTP 状态返回。"
     "生成登记为后台任务（type=technical_volume，sections 为已完成 done/total 节），第一条事件 session.started 带 job_id；"
     "同一项目已有进行中的会话时回到该会话，先重放积压再发 session.live。断开连接只结束订阅，不取消生成；"

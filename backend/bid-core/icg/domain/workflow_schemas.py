@@ -969,6 +969,7 @@ class CoverageRow(ResponseBody):
     outline_title: str | None = None
     response_status: str = "not_started"
     generation_status: str = "pending"
+    response_type: Literal["comply", "exceed", "deviate", "not_applicable"] | None = None
 
 
 class ResponseTask(ResponseBody):
