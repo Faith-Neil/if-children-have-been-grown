@@ -1,5 +1,6 @@
 // 为什么有这个文件：技术分册按节流式写入编辑台。
-// 它解决什么问题：多节同时出字时各自累加，停止时断开连接，界面按帧合并高频增量。
+// 它解决什么问题：多节同时出字时各自累加，界面按帧合并高频增量。
+// 生成是服务端会话：断开只停订阅；重新订阅时先重放积压（live 为假），session.live 之后才是实时增量。
 
 import { newIdempotencyKey, streamEvents } from '../shared/api.ts';
 import type { TechnicalHeading } from '../shared/types.ts';
@@ -31,9 +32,15 @@ export type VolumeStreamState = {
   failed: string[];
   message: string;
   replay: boolean;
+  /** 生成会话的任务编号，停止时用它取消。 */
+  jobId: string;
+  /** 积压已重放完，之后的增量是实时的。 */
+  live: boolean;
 };
 
 export type SectionEvent =
+  | { event: 'session.started'; job_id: string }
+  | { event: 'session.live' }
   | { event: 'sections.fanout'; concurrency: number; section_ids: string[] }
   | { event: 'section.started'; section_id: string; title: string }
   | { event: 'section.delta'; section_id: string; text: string }
@@ -57,6 +64,8 @@ export function emptyVolumeStream(): VolumeStreamState {
     failed: [],
     message: '',
     replay: false,
+    jobId: '',
+    live: false,
   };
 }
 
@@ -70,6 +79,10 @@ export function leafKey(heading: Pick<TechnicalHeading, 'task_id' | 'requirement
 
 export function technicalVolumeStreamPath(projectId: string): string {
   return `/api/v1/projects/${encodeURIComponent(projectId)}/technical-volume/stream`;
+}
+
+export function technicalVolumeSessionPath(jobId: string): string {
+  return `/api/v1/jobs/${encodeURIComponent(jobId)}/section-events`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -96,6 +109,11 @@ export function parseSectionEvent(raw: unknown): SectionEvent | null {
   if (!isRecord(raw)) return null;
   const name = readString(raw, 'event');
   if (!name) return null;
+  if (name === 'session.started') {
+    const jobId = readString(raw, 'job_id');
+    return jobId ? { event: 'session.started', job_id: jobId } : null;
+  }
+  if (name === 'session.live') return { event: 'session.live' };
   if (name === 'sections.fanout') {
     const sectionIds = readStringList(raw.section_ids);
     if (!sectionIds) return null;
@@ -195,6 +213,10 @@ export function streamProgressNotice(state: VolumeStreamState, headings: Technic
 export function applySectionEvent(state: VolumeStreamState, event: SectionEvent): VolumeStreamState {
   if (state.phase === 'done' || state.phase === 'cancelled' || state.phase === 'failed') return state;
   switch (event.event) {
+    case 'session.started':
+      return { ...state, jobId: event.job_id };
+    case 'session.live':
+      return { ...state, live: true };
     case 'sections.fanout': {
       let next: VolumeStreamState = {
         ...state,
@@ -337,10 +359,12 @@ function defaultSchedule(run: () => void): number {
   return 0;
 }
 
+/** 给了 jobId 就重新订阅这个生成会话；否则按 revision 与 section 开始生成。 */
 export async function runSectionVolumeStream(input: {
   projectId: string;
   token: string;
-  revision: number;
+  revision?: number;
+  jobId?: string;
   section?: string;
   headings: TechnicalHeading[];
   baseContent: string;
@@ -379,8 +403,15 @@ export async function runSectionVolumeStream(input: {
     frame = schedule(flush) || 0;
   };
 
+  const target = input.jobId
+    ? { path: technicalVolumeSessionPath(input.jobId), body: undefined, headers: undefined }
+    : {
+      path: technicalVolumeStreamPath(input.projectId),
+      body: input.section ? { section: input.section } : {},
+      headers: { 'If-Match': String(input.revision), 'Idempotency-Key': newIdempotencyKey() },
+    };
   try {
-    await streamEvents(technicalVolumeStreamPath(input.projectId), input.token, input.section ? { section: input.section } : {}, raw => {
+    await streamEvents(target.path, input.token, target.body, raw => {
       if (closed || input.signal.aborted) return;
       const parsed = parseSectionEvent(raw);
       if (!parsed) return;
@@ -396,10 +427,7 @@ export async function runSectionVolumeStream(input: {
       if (closed || input.signal.aborted) return;
       state = applySectionEvent(state, parsed);
       publish();
-    }, input.signal, {
-      'If-Match': String(input.revision),
-      'Idempotency-Key': newIdempotencyKey(),
-    });
+    }, input.signal, target.headers);
   } finally {
     if (!input.signal.aborted) flush();
     closed = true;

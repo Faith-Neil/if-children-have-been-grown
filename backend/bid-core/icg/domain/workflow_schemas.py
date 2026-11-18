@@ -817,6 +817,14 @@ JobEvent = Annotated[
 ]
 
 
+class SectionTally(BaseModel):
+    """技术卷生成会话的节计数：已写完、失败与本次总节数。"""
+    model_config = ConfigDict(extra="forbid")
+    done: int = Field(ge=0)
+    total: int = Field(ge=0)
+    failed: int = Field(ge=0)
+
+
 class JobStatus(BaseModel):
     """独立的任务状态，不继承已实现的 Job。由 BE-M0-T06 实现。"""
 
@@ -834,6 +842,7 @@ class JobStatus(BaseModel):
     recoverable: bool
     allowed_actions: list[str] | None = None
     allowedActions: list[str] | None = None
+    sections: SectionTally | None = Field(default=None, description="仅 technical_volume 任务：已完成 done/total 节，failed 为失败节数。")
 
 
 class CheckIssue(ResponseBody):

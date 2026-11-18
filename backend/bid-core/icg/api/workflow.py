@@ -1,7 +1,6 @@
 # 为什么有这个文件：将示例主流程的页面请求接到真实业务服务。
 # 它解决什么问题：统一版本和重复请求保护，提供可核对的 OpenAPI 与带登录授权的原件、两册下载。
 
-import threading
 from typing import Any, Literal
 from urllib.parse import quote
 
@@ -47,8 +46,11 @@ STREAM_SECTION_DESCRIPTION = (
     "section.started 带 section_id 和 title。section.delta 的 text 是本次新增，不是累计全文。"
     "section.done 的 text 是这一节要落盘的全文。section.failed 带 message。section.cancelled 表示这一节不改原文。"
     "volume.done 带 chapter_id、revision、failed、replay。replay 为 true 时是同一 Idempotency-Key 的重放，没有 delta。"
-    "volume.cancelled 表示断开或取消后本次没有写入章节。volume.failed 带 message。"
+    "volume.cancelled 表示取消后本次没有写入章节。volume.failed 带 message。"
     "权限、If-Match 和 Idempotency-Key 与 generateProject 相同。核对失败在推送前按 HTTP 状态返回。"
+    "生成登记为后台任务（type=technical_volume，sections 为已完成 done/total 节），第一条事件 session.started 带 job_id；"
+    "同一项目已有进行中的会话时回到该会话，先重放积压再发 session.live。断开连接只结束订阅，不取消生成；"
+    "停止用 cancelJob，重新订阅用 streamTechnicalVolumeSession。"
 )
 
 
@@ -384,19 +386,19 @@ def include_workflow_routes(application, service, current_user, parser):
         prepared = await run_in_threadpool(
             workflow.prepare_technical_stream, user, project_id, body.model_dump(), if_match, idempotency_key,
         )
-        cancel = threading.Event()
-        iterator = workflow.iter_technical_stream(prepared, cancel)
+        if prepared.get("previous"):
+            frames = (format_section_sse(event) for event in workflow.iter_technical_stream(prepared))
+        else:
+            sessions = request.app.state.volume_sessions
+            frames = sessions.frames(await run_in_threadpool(sessions.start, prepared))
 
         async def events():
-            # 断开连接即置位 cancel：模型停下，本次不写入章节
-            try:
-                async for event in iterate_in_threadpool(iterator):
-                    if await request.is_disconnected():
-                        cancel.set()
-                        break
-                    yield format_section_sse(event)
-            finally:
-                cancel.set()
+            # 断开只结束本次订阅：会话在后台继续，停止走 cancelJob
+            async for frame in iterate_in_threadpool(frames):
+                if await request.is_disconnected():
+                    break
+                if frame:
+                    yield frame
 
         return StreamingResponse(events(), media_type="text/event-stream", headers={"X-Accel-Buffering": "no"})
 

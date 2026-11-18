@@ -16035,7 +16035,7 @@
     "/api/v1/projects/{project_id}/technical-volume/stream": {
       "post": {
         "summary": "按节流式生成技术分册",
-        "description": "按确认目录逐节生成技术正文，以 text/event-stream 推送。事件名与 data JSON 的 event 相同。sections.fanout 的 concurrency 是同时生成的上限（3），section_ids 是本次叶子 id（task_id，否则 requirement_id，否则编号）。section.started 带 section_id 和 title。section.delta 的 text 是本次新增，不是累计全文。section.done 的 text 是这一节要落盘的全文。section.failed 带 message。section.cancelled 表示这一节不改原文。volume.done 带 chapter_id、revision、failed、replay。replay 为 true 时是同一 Idempotency-Key 的重放，没有 delta。volume.cancelled 表示断开或取消后本次没有写入章节。volume.failed 带 message。权限、If-Match 和 Idempotency-Key 与 generateProject 相同。核对失败在推送前按 HTTP 状态返回。",
+        "description": "按确认目录逐节生成技术正文，以 text/event-stream 推送。事件名与 data JSON 的 event 相同。sections.fanout 的 concurrency 是同时生成的上限（3），section_ids 是本次叶子 id（task_id，否则 requirement_id，否则编号）。section.started 带 section_id 和 title。section.delta 的 text 是本次新增，不是累计全文。section.done 的 text 是这一节要落盘的全文。section.failed 带 message。section.cancelled 表示这一节不改原文。volume.done 带 chapter_id、revision、failed、replay。replay 为 true 时是同一 Idempotency-Key 的重放，没有 delta。volume.cancelled 表示取消后本次没有写入章节。volume.failed 带 message。权限、If-Match 和 Idempotency-Key 与 generateProject 相同。核对失败在推送前按 HTTP 状态返回。生成登记为后台任务（type=technical_volume，sections 为已完成 done/total 节），第一条事件 session.started 带 job_id；同一项目已有进行中的会话时回到该会话，先重放积压再发 session.live。断开连接只结束订阅，不取消生成；停止用 cancelJob，重新订阅用 streamTechnicalVolumeSession。",
         "operationId": "streamTechnicalVolume",
         "parameters": [
           {
@@ -23798,6 +23798,117 @@
         "responses": {
           "200": {
             "description": "text/event-stream。id 为 <job_id>:<seq>。",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "服务内部错误。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{job_id}/section-events": {
+      "get": {
+        "summary": "Stream Technical Volume Session",
+        "description": "重新订阅技术卷生成会话（type=technical_volume）的节流事件。先重放本次会话的全部积压事件，再发 session.live，之后跟随实时事件，整卷结束（volume.done / volume.cancelled / volume.failed）后关闭。断开只结束本次订阅，不取消会话；停止生成用 cancelJob。积压已不在本进程时只补一条与任务终态一致的结束事件。不是技术卷会话或无权查看时返回 404 NOT_FOUND。",
+        "operationId": "streamTechnicalVolumeSession",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "text/event-stream，事件同 streamTechnicalVolume。",
             "content": {
               "text/event-stream": {
                 "schema": {
@@ -47294,8 +47405,26 @@
             "title": "Completed At"
           },
           "error": {
-            "type": "null",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Error"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Message"
           }
         },
         "additionalProperties": false,
@@ -51335,6 +51464,17 @@
               }
             ],
             "title": "Allowedactions"
+          },
+          "sections": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SectionTally"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "仅 technical_volume 任务：已完成 done/total 节，failed 为失败节数。"
           }
         },
         "additionalProperties": false,
@@ -58028,6 +58168,34 @@
         ],
         "title": "ScanSummary"
       },
+      "SectionTally": {
+        "properties": {
+          "done": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Done"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total"
+          },
+          "failed": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Failed"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "done",
+          "total",
+          "failed"
+        ],
+        "title": "SectionTally",
+        "description": "技术卷生成会话的节计数：已写完、失败与本次总节数。"
+      },
       "SelectionApplyRequest": {
         "properties": {
           "lease_token": {
@@ -61160,6 +61328,16 @@
           "material": {
             "$ref": "#/components/schemas/TechnicalKbDataset"
           },
+          "tender": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TenderDatasetStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "missing": {
             "items": {
               "type": "string"
@@ -61217,6 +61395,24 @@
               }
             ],
             "title": "Plan Validation"
+          },
+          "outline_source": {
+            "type": "string",
+            "title": "Outline Source",
+            "description": "model、rule 或 rule_fallback",
+            "default": ""
+          },
+          "tree_model_failed": {
+            "type": "boolean",
+            "title": "Tree Model Failed",
+            "description": "编排目录的模型失败后用了规则替身",
+            "default": false
+          },
+          "outline_reason": {
+            "type": "string",
+            "title": "Outline Reason",
+            "description": "目录不是模型编的原因；模型目录为空",
+            "default": ""
           }
         },
         "additionalProperties": true,
@@ -61293,6 +61489,93 @@
           "passed"
         ],
         "title": "TechnicalQualityRule"
+      },
+      "TechnicalRagAuditRow": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query",
+            "default": ""
+          },
+          "section": {
+            "type": "string",
+            "title": "Section",
+            "default": ""
+          },
+          "tender_searched": {
+            "type": "boolean",
+            "title": "Tender Searched",
+            "default": false
+          },
+          "tender_hits": {
+            "type": "integer",
+            "title": "Tender Hits",
+            "default": 0
+          },
+          "tender_dataset": {
+            "type": "string",
+            "title": "Tender Dataset",
+            "default": ""
+          },
+          "history_searched": {
+            "type": "boolean",
+            "title": "History Searched",
+            "default": false
+          },
+          "material_searched": {
+            "type": "boolean",
+            "title": "Material Searched",
+            "default": false
+          },
+          "history_hits": {
+            "type": "integer",
+            "title": "History Hits",
+            "default": 0
+          },
+          "material_hits": {
+            "type": "integer",
+            "title": "Material Hits",
+            "default": 0
+          },
+          "skip_reason": {
+            "type": "string",
+            "title": "Skip Reason",
+            "default": ""
+          },
+          "top": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Top"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "TechnicalRagAuditRow"
+      },
+      "TenderDatasetStatus": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "default": ""
+          },
+          "configured": {
+            "type": "boolean",
+            "title": "Configured",
+            "default": false
+          },
+          "backend": {
+            "type": "string",
+            "title": "Backend",
+            "default": ""
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "TenderDatasetStatus"
       },
       "TenderFile": {
         "properties": {
@@ -61518,6 +61801,33 @@
           "download_url"
         ],
         "title": "TenderFile"
+      },
+      "TenderIndexStatus": {
+        "properties": {
+          "backend": {
+            "type": "string",
+            "title": "Backend",
+            "default": ""
+          },
+          "dataset_name": {
+            "type": "string",
+            "title": "Dataset Name",
+            "default": ""
+          },
+          "chunk_count": {
+            "type": "integer",
+            "title": "Chunk Count",
+            "default": 0
+          },
+          "skip_reason": {
+            "type": "string",
+            "title": "Skip Reason",
+            "default": ""
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "TenderIndexStatus"
       },
       "TextRegion": {
         "properties": {
@@ -63735,6 +64045,42 @@
             "description": "技术分册这次没有抽出技术条款",
             "default": false
           },
+          "extract_degraded": {
+            "type": "boolean",
+            "title": "Extract Degraded",
+            "description": "抽取条款超过一半的块超时，结果不是完整抽取",
+            "default": false
+          },
+          "extract_timeout_count": {
+            "type": "integer",
+            "title": "Extract Timeout Count",
+            "description": "抽取条款超时的块数",
+            "default": 0
+          },
+          "extract_pages_read": {
+            "type": "integer",
+            "title": "Extract Pages Read",
+            "description": "抽取条款成功读完的块数",
+            "default": 0
+          },
+          "outline_source": {
+            "type": "string",
+            "title": "Outline Source",
+            "description": "目录来源：model、rule 或 rule_fallback",
+            "default": ""
+          },
+          "tree_model_failed": {
+            "type": "boolean",
+            "title": "Tree Model Failed",
+            "description": "编排目录的模型失败，目录为规则兜底",
+            "default": false
+          },
+          "outline_reason": {
+            "type": "string",
+            "title": "Outline Reason",
+            "description": "目录不是模型编的原因：模型编排中、未调用或失败；模型目录为空",
+            "default": ""
+          },
           "technical_outline": {
             "anyOf": [
               {
@@ -63811,6 +64157,36 @@
             "title": "Plan Validation",
             "description": "生成计划确定性校验结果"
           },
+          "technical_rag_audit": {
+            "items": {
+              "$ref": "#/components/schemas/TechnicalRagAuditRow"
+            },
+            "type": "array",
+            "title": "Technical Rag Audit",
+            "description": "分节检索审计"
+          },
+          "tender_index": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TenderIndexStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "本标索引状态，不含页正文"
+          },
+          "writer_model": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WriterModelStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "正文模型名称与本地/真实标记"
+          },
           "sla": {
             "anyOf": [
               {
@@ -63876,6 +64252,30 @@
           "permissions"
         ],
         "title": "Workspace"
+      },
+      "WriterModelStatus": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "is_real": {
+            "type": "boolean",
+            "title": "Is Real",
+            "default": false
+          },
+          "is_local": {
+            "type": "boolean",
+            "title": "Is Local",
+            "default": false
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "WriterModelStatus"
       },
       "WritingEvidence": {
         "properties": {

@@ -54,8 +54,12 @@ SLA_TITLES = ("运维", "巡检", "故障", "保障", "响应", "服务级别")
 # volume.done        chapter_id、revision、failed、replay（重放没有 delta）
 # volume.cancelled   断开或取消后整次不写入章节
 # volume.failed      message
+# session.started    job_id（生成会话的任务编号，订阅从这里开始重放）
+# session.live       之前的事件是重放的积压，之后是实时事件
 SECTION_STREAM_CONCURRENCY = 3
 _SECTION_EVENTS = (
+    "session.started",
+    "session.live",
     "sections.fanout",
     "section.started",
     "section.delta",

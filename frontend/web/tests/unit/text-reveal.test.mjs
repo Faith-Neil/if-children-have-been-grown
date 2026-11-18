@@ -95,3 +95,16 @@ test('the generate button says stop while the stream is live and hides the paper
   assert.equal(streamFailureNotice('连接被拒绝'), '生成失败：连接被拒绝');
   assert.equal(streamFailureNotice(''), '生成失败：生成请求失败');
 });
+
+test('jump shows the backlog at once and later pushes drip from there', async () => {
+  const paints = [];
+  const clock = manualClock();
+  const reveal = createTextReveal(text => paints.push(text), clock);
+  reveal.jump(CHAPTER);
+  assert.equal(paints.at(-1), CHAPTER);
+  await reveal.settled();
+  reveal.push(`${CHAPTER}新`);
+  assert.equal(paints.at(-1), CHAPTER);
+  clock.advance(50);
+  assert.equal(paints.at(-1), `${CHAPTER}新`);
+});
