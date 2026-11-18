@@ -90,6 +90,8 @@ def extract_with_model(pages: list[str], model: Any, on_chunk=None) -> dict[str,
     if not usable_local_model(model):
         result["skip_reason"] = "no local model"
         return result
+    from icg.infra.openai_model import JSON_CALL, call_with_profile
+
     seen: set[str] = set()
     chunks = _chunks(pages)
     total = len(chunks)
@@ -99,7 +101,7 @@ def extract_with_model(pages: list[str], model: Any, on_chunk=None) -> dict[str,
         if on_chunk is not None:
             on_chunk(index, total)
         try:
-            raw = model.suggest(EXTRACT_SYSTEM, f"页码 {page_no}：\n{blob[:8000]}")
+            raw = call_with_profile(model.suggest, EXTRACT_SYSTEM, f"页码 {page_no}：\n{blob[:8000]}", profile=JSON_CALL)
             payload = _parse_payload(str(raw or ""))
         except Exception as exc:
             if _is_timeout(exc):

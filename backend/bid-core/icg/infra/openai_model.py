@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import contextvars
+import inspect
 import ipaddress
 import json
 import os
@@ -206,6 +207,65 @@ class OpenAICompatibleConfig:
         return chat_completions_url(self.base_url)
 
 
+@dataclass(frozen=True)
+class ModelCallProfile:
+    enable_thinking: bool
+    max_tokens: int
+    timeout_seconds: float
+    json_mode: bool
+
+
+JSON_CALL = ModelCallProfile(enable_thinking=False, max_tokens=256, timeout_seconds=20, json_mode=True)
+SECTION_CALL = ModelCallProfile(enable_thinking=False, max_tokens=1200, timeout_seconds=90, json_mode=False)
+
+
+def chat_payload(config: OpenAICompatibleConfig, instruction: str, content: str, *,
+                 stream: bool, profile: ModelCallProfile | None, json_mode: bool) -> tuple[dict[str, Any], float]:
+    if profile is None:
+        max_tokens = config.max_tokens
+        timeout = config.timeout_seconds
+    else:
+        max_tokens = profile.max_tokens
+        timeout = profile.timeout_seconds
+    payload: dict[str, Any] = {
+        "model": config.model,
+        "messages": [
+            {"role": "system", "content": instruction},
+            {"role": "user", "content": content},
+        ],
+        "max_tokens": max_tokens,
+        "stream": stream,
+    }
+    if json_mode:
+        payload["response_format"] = {"type": "json_object"}
+    if profile is not None and profile.enable_thinking is False:
+        payload["think"] = False
+        payload["chat_template_kwargs"] = {"enable_thinking": False}
+    return payload, timeout
+
+
+def _accepts_profile(fn: Callable[..., Any]) -> bool:
+    try:
+        parameters = inspect.signature(fn).parameters
+    except (TypeError, ValueError):
+        return False
+    if "profile" in parameters:
+        return True
+    return any(item.kind is inspect.Parameter.VAR_KEYWORD for item in parameters.values())
+
+
+def call_with_profile(fn: Callable[..., Any], /, *args: Any, profile: ModelCallProfile | None = None, **kwargs: Any) -> Any:
+    if profile is not None and _accepts_profile(fn):
+        return fn(*args, profile=profile, **kwargs)
+    return fn(*args, **kwargs)
+
+
+def _audit_profiled(profile: ModelCallProfile | None, kind: str, record: dict[str, Any]) -> None:
+    if profile is SECTION_CALL and "label" not in record:
+        record = {**record, "label": "SECTION"}
+    _audit_model_io(kind, record)
+
+
 class OpenAICompatibleModelProvider:
     """OpenAI 兼容 chat completions。支持从环境变量或配置快照动态组装请求参数。"""
 
@@ -225,7 +285,7 @@ class OpenAICompatibleModelProvider:
         self._transport = transport
         self._environ = environ
 
-    def suggest(self, instruction: str, content: str) -> str:
+    def suggest(self, instruction: str, content: str, *, profile: ModelCallProfile | None = None) -> str:
         if self.is_local and is_public_model_url(self.base_url):
             raise ModelCallError("本地部署已打开，公网地址不会接收正文。")
         if not isinstance(instruction, str) or not isinstance(content, str):
@@ -234,7 +294,7 @@ class OpenAICompatibleModelProvider:
         last_error: ModelCallError | None = None
         for _ in range(attempts):
             try:
-                return self._once(instruction, content)
+                return self._once(instruction, content, profile)
             except RetryableModelError as error:
                 last_error = error
         raise ModelCallError("openai-compatible model call failed") from last_error
@@ -245,42 +305,36 @@ class OpenAICompatibleModelProvider:
         source = os.environ if self._environ is None else self._environ
         return source.get(self._config.api_key_env, "").strip() if self._config.api_key_env else ""
 
-    def _once(self, instruction: str, content: str) -> str:
+    def _once(self, instruction: str, content: str, profile: ModelCallProfile | None = None) -> str:
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
         api_key = self._api_key()
         if api_key:
             headers["Authorization"] = "Bearer " + api_key
-        payload: dict[str, Any] = {
-            "model": self._config.model,
-            "messages": [
-                {"role": "system", "content": instruction},
-                {"role": "user", "content": content},
-            ],
-            "max_tokens": self._config.max_tokens,
-            "stream": self._config.stream_enabled,
-        }
-        if self._config.json_mode_enabled:
-            payload["response_format"] = {"type": "json_object"}
+        json_mode = self._config.json_mode_enabled if profile is None else profile.json_mode
+        payload, timeout = chat_payload(
+            self._config, instruction, content, stream=self._config.stream_enabled,
+            profile=profile, json_mode=json_mode,
+        )
         url = self._config.chat_completions_url
-        _audit_model_io("request", {
+        _audit_profiled(profile, "request", {
             "url": url,
             "model": self._config.model,
-            "max_tokens": self._config.max_tokens,
-            "stream": self._config.stream_enabled,
+            "max_tokens": payload["max_tokens"],
+            "stream": payload["stream"],
             "system_chars": len(instruction or ""),
             "user_chars": len(content or ""),
             "system": instruction,
             "user": content,
         })
         try:
-            with httpx.Client(transport=self._transport, timeout=self._config.timeout_seconds,
+            with httpx.Client(transport=self._transport, timeout=timeout,
                               follow_redirects=False, trust_env=False) as client:
                 response = client.post(url, headers=headers, json=payload)
         except httpx.TimeoutException:
-            _audit_model_io("error", {"url": url, "error": "timeout"})
+            _audit_profiled(profile, "error", {"url": url, "error": "timeout"})
             raise RetryableModelError("timeout") from None
         except httpx.TransportError as exc:
-            _audit_model_io("error", {"url": url, "error": "transport", "detail": type(exc).__name__})
+            _audit_profiled(profile, "error", {"url": url, "error": "transport", "detail": type(exc).__name__})
             raise RetryableModelError("transport") from None
         raw_body = response.text or ""
         record: dict[str, Any] = {
@@ -301,7 +355,7 @@ class OpenAICompatibleModelProvider:
         if assistant is not None:
             record["assistant"] = assistant
             record["assistant_chars"] = len(assistant)
-        _audit_model_io("response", record)
+        _audit_profiled(profile, "response", record)
         if response.status_code in _RETRYABLE_STATUS:
             raise RetryableModelError(f"HTTP {response.status_code}")
         if response.status_code != 200:
@@ -313,7 +367,7 @@ class OpenAICompatibleModelProvider:
         return text
 
     def stream_suggest(self, instruction: str, content: str, *, on_delta: Callable[[str], None],
-                       cancel: Any = None) -> str:
+                       cancel: Any = None, profile: ModelCallProfile | None = None) -> str:
         """流式调用：每收到一段文字就交给 on_delta；cancel（threading.Event）置位即停止并抛 ModelCancelled。
         接口不支持流式时（返回普通 JSON）整段交给 on_delta 一次。"""
         attempts = self._config.retries + 1
@@ -325,38 +379,60 @@ class OpenAICompatibleModelProvider:
                 emitted[0] = True
                 on_delta(text)
             try:
-                return self._stream_once(instruction, content, relay, cancel)
+                return self._stream_once(instruction, content, relay, cancel, profile)
             except RetryableModelError as error:
                 if emitted[0]:
                     raise ModelCallError("openai-compatible stream broke after partial output") from error
                 last_error = error
         raise ModelCallError("openai-compatible model call failed") from last_error
 
-    def _stream_once(self, instruction: str, content: str, on_delta: Callable[[str], None], cancel: Any) -> str:
+    def _stream_once(self, instruction: str, content: str, on_delta: Callable[[str], None], cancel: Any,
+                     profile: ModelCallProfile | None = None) -> str:
         headers = {"Content-Type": "application/json", "Accept": "text/event-stream"}
         api_key = self._api_key()
         if api_key:
             headers["Authorization"] = "Bearer " + api_key
-        payload: dict[str, Any] = {
+        json_mode = False if profile is None else profile.json_mode
+        payload, timeout = chat_payload(
+            self._config, instruction, content, stream=True, profile=profile, json_mode=json_mode,
+        )
+        url = self._config.chat_completions_url
+        _audit_profiled(profile, "request", {
+            "url": url,
             "model": self._config.model,
-            "messages": [{"role": "system", "content": instruction}, {"role": "user", "content": content}],
-            "max_tokens": self._config.max_tokens, "stream": True,
-        }
+            "max_tokens": payload["max_tokens"],
+            "stream": True,
+            "system_chars": len(instruction or ""),
+            "user_chars": len(content or ""),
+            "system": instruction,
+            "user": content,
+        })
         collected: list[str] = []
         reasoning_collected: list[str] = []
         pending_error: list[str] = []
         last_raw, skipped_last, doubled = [None], [False], [False]
+
+        def record_response(status: int, assistant: str | None = None) -> None:
+            record: dict[str, Any] = {"url": url, "status": status}
+            if assistant is not None:
+                record["assistant"] = assistant
+                record["assistant_chars"] = len(assistant)
+            _audit_profiled(profile, "response", record)
+
         try:
-            with httpx.Client(transport=self._transport, timeout=self._config.timeout_seconds,
+            with httpx.Client(transport=self._transport, timeout=timeout,
                               follow_redirects=False, trust_env=False) as client:
-                with client.stream("POST", self._config.chat_completions_url, headers=headers, json=payload) as response:
+                with client.stream("POST", url, headers=headers, json=payload) as response:
                     if response.status_code in _RETRYABLE_STATUS:
+                        record_response(response.status_code)
                         raise RetryableModelError(f"HTTP {response.status_code}")
                     if response.status_code != 200:
+                        record_response(response.status_code)
                         raise ModelCallError(f"HTTP {response.status_code}")
                     if "text/event-stream" not in response.headers.get("content-type", ""):
                         response.read()
                         text = _assistant_text(response)
+                        record_response(response.status_code, text)
                         raise_upstream_error(text)
                         on_delta(text)
                         return text
@@ -408,20 +484,25 @@ class OpenAICompatibleModelProvider:
                         collected.append(piece)
                         on_delta(piece)
         except httpx.TimeoutException:
+            _audit_profiled(profile, "error", {"url": url, "error": "timeout"})
             raise RetryableModelError("timeout") from None
-        except httpx.TransportError:
+        except httpx.TransportError as exc:
+            _audit_profiled(profile, "error", {"url": url, "error": "transport", "detail": type(exc).__name__})
             raise RetryableModelError("transport") from None
         if pending_error:
             text = "".join(pending_error)
+            record_response(200, text)
             raise_upstream_error(text)  # 以“**ERROR**”开头必然抛出；只差前缀的短文本（如“**”）当正文
             on_delta(text)
             return text
         text = _prefer_assistant_body("".join(collected), "".join(reasoning_collected))
         if not text.strip():
             # 实测：上游限流时 RAGFlow 流式只回一个空的结束块；按上游暂时不可用处理，可改用备用模型
+            record_response(200, text)
             raise RetryableModelError("empty stream")
         if not collected and text:
             on_delta(text)
+        record_response(200, text)
         return text
 
 

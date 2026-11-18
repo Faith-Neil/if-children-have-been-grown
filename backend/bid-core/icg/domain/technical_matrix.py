@@ -90,14 +90,14 @@ def judge_deviation(clause: str, quote: str, model: Any = None) -> dict:
         return parse_judgment(json.dumps(_judge_fn(clause, quote), ensure_ascii=False))
     if model is None or not getattr(model, "is_real_model", False) or getattr(model, "is_local", False) is False:
         raise RuntimeError("没有本地模型，不能判断历史做法是否偏离")
-    from icg.infra.openai_model import AuditIoLabel, is_public_model_url
+    from icg.infra.openai_model import AuditIoLabel, JSON_CALL, call_with_profile, is_public_model_url
 
     url = getattr(model, "base_url", "") or ""
     if url and is_public_model_url(url):
         raise RuntimeError("本地部署已打开，公网地址不能判断偏离")
     payload = f"本次招标条款：{clause}\n历史做法：{quote}"
     with AuditIoLabel("DEVIATION"):
-        return parse_judgment(model.suggest(JUDGE_SYSTEM, payload))
+        return parse_judgment(call_with_profile(model.suggest, JUDGE_SYSTEM, payload, profile=JSON_CALL))
 
 
 def local_draft(clause: str) -> str:
