@@ -240,7 +240,7 @@ class TenderOrchestratorMixin:
         if _technical_only(initial, project_id) and parsed:
             if hasattr(self.demo, "resolve_model_provider"):
                 try:
-                    provider = self.demo.resolve_model_provider(initial, project_id, "chapter_generation")
+                    provider = self.demo.resolve_model_provider(initial, project_id, "technical_structure")
                 except Exception:
                     provider = None
             from icg.domain.technical_model_extract import extract_with_model, usable_local_model

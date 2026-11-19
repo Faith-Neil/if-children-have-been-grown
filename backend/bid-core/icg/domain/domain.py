@@ -449,14 +449,22 @@ class DemoService:
         )
 
     def resolve_model_provider(self, state: DemoState, project_id: str, task: str | None = None) -> ModelProvider:
-        """项目单独绑定的模型 → 本公司任务与模型对应表 → 管理员添加的模型 → 进程内置模型。"""
+        """章节长文：项目绑定优先，再看任务表。目录抽取与偏离：任务表 technical_structure 优先于项目绑定。"""
         bound_id = state.project_model_configs.get(project_id)
         cfg = None
         route_backup = None
         project = state.projects.get(project_id)
-        if bound_id and bound_id in state.model_configs:
+        if project is not None and task == "technical_structure":
+            from .task_model_routes import resolve as resolve_route
+            routed = resolve_route(state, project.company_id, task)
+            if routed is not None:
+                cfg, route_backup = routed
+                if project.sensitive and (not cfg.is_local or not cfg.allow_sensitive):
+                    raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
+                                      "敏感项目只能使用本地模型：任务与模型对应表里该任务的首选模型不是允许处理敏感数据的本地模型。")
+        if cfg is None and bound_id and bound_id in state.model_configs:
             cfg = state.model_configs[bound_id]
-        elif project is not None and task:
+        elif cfg is None and project is not None and task:
             from .task_model_routes import resolve as resolve_route
             routed = resolve_route(state, project.company_id, task)
             if routed is not None:
