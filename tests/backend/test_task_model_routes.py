@@ -24,9 +24,10 @@ def routed():
     with TestClient(create_app(model_transport=httpx.MockTransport(handler))) as client:
         admin = login(client, "alpha-company-admin")
         for ident, host, local in (("local-a", "down.local", True), ("local-b", "local-b.local", True), ("cloud-c", "cloud.example", False)):
-            assert client.post("/api/v1/model-configs", headers=admin, json={
+            created = client.post("/api/v1/model-configs", headers=admin, json={
                 "id": ident, "base_url": f"http://{host}", "model": ident, "is_local": local, "allow_sensitive": local,
-                "stream_enabled": False}).status_code == 200
+                "stream_enabled": False})
+            assert created.status_code in (200, 409), created.text
         yield client, admin, calls
 
 
@@ -50,7 +51,9 @@ def test_invalid_routes_are_refused(routed, primary, fallback, message):
 def test_only_company_admin_saves_and_revision_is_checked(routed):
     client, admin, _ = routed
     listed = client.get("/api/v1/task-model-routes", headers=admin).json()
-    assert {t["task"] for t in listed["tasks"]} == {"chapter_generation", "assistant_qa", "assistant_suggest"}
+    assert {t["task"] for t in listed["tasks"]} == {
+        "chapter_generation", "technical_structure", "assistant_qa", "assistant_suggest",
+    }
     assert _put(client, login(client, "alpha-manager"), []).status_code == 403
     ok = _put(client, admin, [{"task": "assistant_suggest", "primary_config_id": "cloud-c", "fallback_config_id": "local-b"}], 0)
     assert ok.status_code == 200 and ok.json()["revision"] == 1
@@ -78,3 +81,19 @@ def test_unbound_projects_follow_the_route_and_fall_back_to_its_backup(routed):
         "base_revision": chapter["revision"], "start": start, "end": start + 6, "selected_text": "每月安排巡检",
         "knowledge_base_enabled": False, "count": 3})
     assert refused.status_code == 403 and refused.json()["code"] == "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL"
+
+
+def test_structure_route_beats_the_project_writer(routed):
+    """项目绑了写作模型时，目录抽取与偏离仍走任务表里的小模型。"""
+    client, admin, _calls = routed
+    assert _put(client, admin, [{"task": "technical_structure", "primary_config_id": "local-b", "fallback_config_id": None}]).status_code == 200
+    cloud = _put(client, admin, [{"task": "technical_structure", "primary_config_id": "cloud-c", "fallback_config_id": None}])
+    assert cloud.status_code == 422 and "只能使用本地模型" in cloud.json()["message"]
+    assert _put(client, admin, [{"task": "technical_structure", "primary_config_id": "local-b", "fallback_config_id": None}]).status_code == 200
+    flow = ProjectFlow(client).ready()
+    assert client.post(f"/api/v1/projects/{flow.id}/model-config", headers=flow.headers, json={"model_config_id": "local-a"}).status_code == 200
+    state = client.app.state.service.repository.read()
+    structure = client.app.state.service.resolve_model_provider(state, flow.id, "technical_structure")
+    writer = client.app.state.service.resolve_model_provider(state, flow.id, "chapter_generation")
+    assert structure.model == "local-b"
+    assert writer.model == "local-a"
