@@ -1,13 +1,14 @@
-// 为什么有这个文件：项目设置页只编辑项目基本信息，人员分工不在这里改。
-// 它解决什么问题：基本信息仍走原保存接口；页面由外层内容区滚动，滚轮不会被内层空滚动容器吃掉。
+// 为什么有这个文件：项目设置页编辑项目基本信息，并单独指定目录、抽取与偏离所用的模型。
+// 它解决什么问题：基本信息仍走原保存接口；目录模型走公司任务路由 technical_structure，与项目写作模型分开。
 import { useEffect, useState } from 'react';
 import { Alert, App as AntApp, Button, Card, Col, Collapse, Form, Input, Row, Select, Space, Tag } from 'antd';
 import { basicInfoFields, deadlineForForm, projectBasis, projectFields } from './project-form';
 import { useProject } from '../app/context';
 import { projectCan, projectRoleName } from './project-team';
-import { request } from '../shared/api';
+import { request, userFacingMessage } from '../shared/api';
 import { ModelConfigModal } from '../admin/ModelConfigModal';
-import { modelConfigAccess } from '../admin/model-config-core.ts';
+import { modelConfigAccess, type ModelConfigItem } from '../admin/model-config-core.ts';
+import { structureModelOptions, structureRouteBody, type StructureRoutes } from './structure-model-route.ts';
 import { technicalOnly } from './project-volumes.ts';
 import { ExportNamingCard } from './ExportNamingCard';
 import { relatedBidConflict } from './related-bid-core';
@@ -19,6 +20,9 @@ export default function ProjectSettingsPage() {
   const { workspace, token, user, busy, mutate, reload, report, navigate } = useProject();
   const [projectModel, setProjectModel] = useState<{ id: string; name: string; model: string; is_local: boolean; allow_sensitive: boolean } | null>(null);
   const [modelModalOpen, setModelModalOpen] = useState(false);
+  const [structureRoutes, setStructureRoutes] = useState<StructureRoutes | null>(null);
+  const [structureConfigs, setStructureConfigs] = useState<ModelConfigItem[]>([]);
+  const [structureSaving, setStructureSaving] = useState(false);
 
   const loadProjectModel = async () => {
     try {
@@ -32,9 +36,23 @@ export default function ProjectSettingsPage() {
     }
   };
 
+  const loadStructureRoute = async () => {
+    try {
+      const [routes, configs] = await Promise.all([
+        request<StructureRoutes>('/api/v1/task-model-routes', token),
+        request<{ items: ModelConfigItem[] }>('/api/v1/model-configs', token),
+      ]);
+      setStructureRoutes(routes);
+      setStructureConfigs(configs.items ?? []);
+    } catch {
+      // 对应表读不到时不挡项目基本信息
+    }
+  };
+
   useEffect(() => {
     if (workspace.project.id) {
       loadProjectModel();
+      loadStructureRoute();
     }
   }, [workspace.project.id, token]);
   const { modal, message } = AntApp.useApp();
@@ -45,6 +63,24 @@ export default function ProjectSettingsPage() {
   const readOnly = workspace.project_status?.read_only === true;  // 项目取消后只读（PRD 5.1.3）
   const leadCan = projectCan(workspace, 'manage_project');
   const canManageProject = leadCan && !readOnly;
+  const canChooseStructure = modelConfigAccess(user?.role, canManageProject).canManage && !readOnly;
+  const structurePrimary = structureRoutes?.tasks.find(row => row.task === 'technical_structure')?.primary_config_id ?? undefined;
+  async function saveStructureModel(configId: string | null) {
+    if (!canChooseStructure || !structureRoutes || structureSaving) return;
+    const body = structureRouteBody(structureRoutes, configId);
+    setStructureSaving(true);
+    try {
+      const saved = await request<StructureRoutes>(
+        '/api/v1/task-model-routes', token, 'PUT', { routes: body.routes }, body.revision,
+      );
+      setStructureRoutes(saved);
+      message.success('目录、抽取与偏离的模型已保存');
+    } catch (error) {
+      message.error(userFacingMessage(error));
+    } finally {
+      setStructureSaving(false);
+    }
+  }
   const { settings } = useProjectSettings(workspace.project.id, token, workspace.revision);
   const nameOf = (id: string) => team?.members.find(member => member.user_id === id)?.name ?? id;
   const editNote = (field: string) => { const note = manualEditNote(settings?.manual_edits, field, nameOf); return note ? <Tag color="gold" data-testid={`manual-edit-${field}`}>{note}</Tag> : undefined; };
@@ -108,6 +144,21 @@ export default function ProjectSettingsPage() {
               projectSensitive={Boolean(workspace.project.sensitive)}
               {...modelConfigAccess(user?.role, canManageProject)}
               onBound={() => { loadProjectModel(); }}
+            />
+          </div>
+          <div data-testid="structure-model-route" className="project-model-row">
+            <span>目录、抽取与偏离</span>
+            <Select
+              aria-label="目录、抽取与偏离"
+              data-testid="structure-model-select"
+              style={{ minWidth: 320 }}
+              placeholder="未指定"
+              disabled={!canChooseStructure || !structureRoutes || structureSaving}
+              loading={structureSaving}
+              value={structurePrimary}
+              options={structureModelOptions(structureConfigs)}
+              onChange={value => { void saveStructureModel(value ?? null); }}
+              allowClear
             />
           </div>
         </Card>

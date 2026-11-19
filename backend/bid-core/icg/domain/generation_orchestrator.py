@@ -613,10 +613,21 @@ class GenerationOrchestratorMixin:
                     "needs_regeneration": workflow.get("needs_regeneration"),
                     "constraint_check": workflow.get("constraint_check"),
                 }
-                saved = self._write(
-                    principal, project_id, "chapter.generate", payload, prepared["expected"], prepared["key"],
-                    lambda state, project, actual: self._apply_technical_volume(state, actual, principal, drafted),
-                )
+                def live_revision() -> str:
+                    return str(self.repository.read().projects[project_id].revision)
+
+                def commit_volume(expected: str) -> dict:
+                    return self._write(
+                        principal, project_id, "chapter.generate", payload, expected, prepared["key"],
+                        lambda state, project, actual: self._apply_technical_volume(state, actual, principal, drafted),
+                    )
+
+                try:
+                    saved = commit_volume(live_revision())
+                except DomainError as error:
+                    if error.code != "VERSION_CONFLICT":
+                        raise
+                    saved = commit_volume(live_revision())
                 inbox.put({
                     "event": "volume.done", "replay": False, "chapter_id": result["chapter_id"],
                     "revision": saved.get("revision"), "failed": list(result.get("failed") or []),
