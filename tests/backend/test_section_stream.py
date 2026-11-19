@@ -316,6 +316,46 @@ def client():
         yield actual
 
 
+def test_thinking_process_is_cut_before_the_section_is_stored():
+    from icg.domain.technical_volume import write_volume
+
+    service = "服务内容\n每月开展数据库巡检，按招标要求留下运行记录供验收核对，过程可追溯。本节完成。"
+    frequency = "服务频率\n每月一次巡检，按招标要求留下运行记录供验收核对，过程可追溯。本节完成。"
+    state, workflow, chapter = _volume(["巡检方案", "服务频次"])
+    events = []
+    model = _local()
+
+    def suggest(system, user):
+        title = user.split("章节任务：", 1)[1].split("\n", 1)[0]
+        if title == "服务频次":
+            return "Thinking Process:\n先排频率再写正文。\n" + frequency
+        return "Thinking Process:\n先对照条款再起草，这一段不是正文。\n" + service
+
+    model.suggest = suggest
+    result = write_volume(state, "p", workflow, None, model, on_event=events.append)
+    done = {
+        item["section_id"]: item["text"]
+        for item in events
+        if item["event"] == "section.done"
+    }
+    assert done["t1"].startswith("服务内容")
+    assert done["t2"].startswith("服务频率")
+    assert "Thinking Process" not in chapter.content
+    assert service.split("\n", 1)[1] in chapter.content
+    assert frequency.split("\n", 1)[1] in chapter.content
+    assert result["failed"] == []
+
+    only = "Thinking Process:\n" + ("模型一直在比较条款，没有写出服务正文。" * 3)
+    empty_state, empty_workflow, empty_chapter = _volume(["巡检方案"])
+    empty_events = []
+    empty_model = _local()
+    empty_model.suggest = lambda system, user: only
+    failed = write_volume(empty_state, "p", empty_workflow, None, empty_model, on_event=empty_events.append)
+    assert "Thinking Process" not in empty_chapter.content
+    assert not any(item["event"] == "section.done" for item in empty_events)
+    assert failed["failed"] == ["巡检方案"]
+
+
 def test_technical_volume_stream_persists_the_same_text_as_the_deltas(client):
     headers = login(client)
     project_id, workspace = _parse_clause(client, headers, "服务方案中应包含数据库的健康检查、故障处理、标准服务等。")

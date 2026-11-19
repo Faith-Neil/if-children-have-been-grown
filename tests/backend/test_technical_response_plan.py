@@ -908,6 +908,10 @@ def test_clean_heading_drops_dirty_fragments_and_keeps_service_names():
 
     assert clean_heading("运维任务.8") is None
     assert clean_heading(")，年度服务费为¥元") is None
+    assert clean_heading("|采用数据库") is None
+    assert clean_heading(")年度服务费") is None
+    assert clean_heading("）成果的所有权") is None
+    assert clean_heading("成果的所有权和知识产权归甲方所有") is None
     assert clean_heading("数据库巡检") == "数据库巡检"
 
 

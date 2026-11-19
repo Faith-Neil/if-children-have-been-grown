@@ -284,6 +284,23 @@ def test_session_patches_each_task_from_generating_to_responded(client):
     assert {row["generation_status"] for row in saved} == {"generated"}
 
 
+def test_generation_writes_the_chapter_after_the_project_revision_moves(client):
+    headers, project_id, workspace, model = _ready(client)
+    responses: list = []
+    worker = _start(client, headers, project_id, workspace, responses)
+    assert model.started.wait(10)
+
+    def bump(state):
+        state.projects[project_id].revision += 1
+
+    client.app.state.workflow.repository.transaction(bump)
+    model.gate.set()
+    events = _frames(_finish(worker, responses).text)
+    assert events[-1]["event"] == "volume.done"
+    chapter = _chapter(client, headers, project_id, workspace["technical_outline"]["chapter_id"])
+    assert SUFFIX in chapter["content"]
+
+
 def test_superseded_session_reports_its_end_state_without_backlog(client):
     headers, project_id, workspace, model = _ready(client)
     model.gate.set()
