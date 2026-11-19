@@ -71,9 +71,11 @@ _DIRTY_MARKS = ("¥", "违法", "保证金", "营业执照")
 
 def clean_heading(title: str) -> str | None:
     text = str(title or "").strip()
-    if len(text) < 4 or text.startswith((")", "）")):
+    if len(text) < 4 or text.startswith(("|", ")", "）")):
         return None
     if any(mark in text for mark in _DIRTY_MARKS):
+        return None
+    if any(word in text for word in ("知识产权", "甲方所有")):
         return None
     if _DIRTY_HEADING.search(text):
         return None

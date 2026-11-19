@@ -279,6 +279,23 @@ def _complete_section(model: Any, user: str, *, on_delta: Callable[[str], None] 
     return text
 
 
+def strip_model_thinking(text: str) -> str:
+    raw = str(text or "")
+    marker = "Thinking Process:"
+    at = raw.find(marker)
+    if at < 0:
+        return raw
+    rest = raw[at + len(marker):]
+    found = []
+    for head in ("服务内容", "服务频率"):
+        pos = rest.find(head)
+        if pos >= 0:
+            found.append(pos)
+    if not found:
+        return ""
+    return rest[min(found):]
+
+
 def produce_section(title: str, row: dict, model: Any, *, knowledge: str = "",
                     task: dict | None = None, requirements: list[dict] | None = None,
                     workflow: dict | None = None, on_delta: Callable[[str], None] | None = None,
@@ -333,6 +350,7 @@ def produce_section(title: str, row: dict, model: Any, *, knowledge: str = "",
     text = scrub(str(text or ""), primary)
     if foreign_names:
         text = mask_foreign_names(text, foreign_names)
+    text = strip_model_thinking(text)
     if len(str(text or "").strip()) < 40:
         raise RuntimeError("本节不完整")
     return text
