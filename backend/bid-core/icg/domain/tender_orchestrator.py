@@ -526,8 +526,8 @@ class TenderOrchestratorMixin:
             "tree_model": provider,
         }
         try:
-            from icg.domain.technical_response_plan import apply_response_plan
-            plan = apply_response_plan(draft)
+            from icg.domain.technical_digest_outline import plan_technical_outline
+            plan = plan_technical_outline(draft)
         finally:
             draft.pop("tree_model", None)
         headings = plan.get("headings") or []
@@ -555,6 +555,12 @@ class TenderOrchestratorMixin:
                 return {"ok": True}
             actual["response_tasks"] = {task["task_id"]: task for task in tasks}
             actual["plan_validation"] = plan.get("validation")
+            if draft.get("tender_digest"):
+                actual["tender_digest"] = draft["tender_digest"]
+                draft_rows = draft.get("requirements") or {}
+                for rid, row in (actual.get("requirements") or {}).items():
+                    if (draft_rows.get(rid) or {}).get("digest_id"):
+                        row["digest_id"] = draft_rows[rid]["digest_id"]
             chapter = _chapter(state, project_id, title)
             previous = (actual.get("technical_outline") or {}).get("text") or ""
             current = chapter.content or ""

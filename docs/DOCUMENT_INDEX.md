@@ -11,6 +11,11 @@
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
 | D-1007 | 2026-11-09 | [公司开通与账号归属设计](superpowers/specs/2026-11-09-company-provisioning-design.md) | 设计 | company-provision-1 | 已确认 | ISSUE-052 | 方案 1：公司页→详情管人；项目与双库按公司隔离 |
+| D-1019 | 2026-11-20 | [ISSUE-053：技术服务方案精简主路径](../issues/ISSUE-053.md) | Issue | tech-plan-simplified-1 | in-progress | ISSUE-053 | 三张清单、挂要点目录、双库正文、覆盖视图合一 |
+| D-1020 | 2026-11-20 | [技术服务方案精简主路径设计](decisions/2026-11-20-technical-plan-simplified.md) | 决策 | tech-plan-simplified-1 | 待用户确认 | ISSUE-053 | 三张清单、目录、覆盖视图与 RAG 字段、质量八条、写作助手 |
+| D-1021 | 2026-11-20 | [角色与功能审计](reviews/2026-11-20-role-feature-audit.md) | 评审 | tech-plan-simplified-1 | 当前 | ISSUE-053 | 三角色 + 项目只读；空壳、重复与死入口 |
+| D-1022 | 2026-11-20 | [TV-M0-T17 交付](delivery/TV-M0-T17.md) | 任务交付 | req-task | in-review | ISSUE-053 / TV-M0-T17 | 三张清单与清单拟目录 |
+| D-1023 | 2026-11-20 | [TV-M0-T17 代码说明](code/TV-M0-T17.md) | 代码说明 | req-task | 当前 | ISSUE-053 / TV-M0-T17 | tender_digest 与目录编排 |
 | D-1008 | 2026-11-09 | [ISSUE-052：公司开通与账号归属](../issues/ISSUE-052.md) | Issue | company-provision-1 | in-progress | ISSUE-052 | 平台管理员开通公司+首个管理员；点进公司管人 |
 | D-1009 | 2026-11-09 | [公司开通与账号归属实现计划](superpowers/plans/2026-11-09-company-provisioning.md) | 计划 | company-provision-1 | 已执行 | ISSUE-052 | 七项实现任务已落地；卡 in-review |
 | D-1010 | 2026-11-09 | [ADMIN-PROVISION 任务卡](tasks/ADMIN-PROVISION.md) | 任务 | company-provision-1 | in-review | ISSUE-052 | T01～T04 |

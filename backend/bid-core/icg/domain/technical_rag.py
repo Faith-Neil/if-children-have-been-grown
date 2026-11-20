@@ -16,9 +16,16 @@ from icg.domain.writing_knowledge_prompt import (
 )
 
 
-def section_query(title: str, row: dict | None = None, *, task: dict | None = None, requirements: list[dict] | None = None) -> str:
-    """节标题，再加上标题里至多 3 个不少于 2 字的词。招标原文不进入检索词。"""
+def section_query(title: str, row: dict | None = None, *, task: dict | None = None,
+                  requirements: list[dict] | None = None, points: list[str] | None = None) -> str:
+    """节标题，再加上标题里至多 3 个不少于 2 字的词，以及至多 2 条挂载要点。招标原文不进入检索词。"""
     del row, task, requirements
+    base = _title_query(title)
+    extra = [str(point).strip()[:20] for point in (points or []) if str(point or "").strip()][:2]
+    return " ".join([base, *extra]).strip() if extra else base
+
+
+def _title_query(title: str) -> str:
     heading = str(title or "").strip()
     words: list[str] = []
     for token in re.findall(r"[0-9A-Za-z]{2,}|[\u4e00-\u9fff]{2,}", heading):
