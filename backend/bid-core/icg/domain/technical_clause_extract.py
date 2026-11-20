@@ -42,6 +42,7 @@ class TechnicalClause:
     sources: list[dict] = field(default_factory=list)
     extract_source: str = ""
     role: str = "response_mount"
+    extra: dict = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not self.sources:
@@ -207,6 +208,16 @@ def _remember_extract(row: dict, clause: TechnicalClause) -> None:
     row["page"] = clause.page
 
 
+def _remember_scoring(row: dict, clause: TechnicalClause) -> None:
+    """模型三张清单里的评分项、分值、评分标准与★标记，挂到要求行上供清单与目录使用。"""
+    for key in ("score_item", "criteria", "star"):
+        value = clause.extra.get(key)
+        if value not in (None, "") and not row.get(key):
+            row[key] = value
+    if clause.extra.get("score") is not None and row.get("score") is None:
+        row["score"] = clause.extra["score"]
+
+
 def apply_technical_extract(
     workflow: dict,
     file_id: str,
@@ -251,6 +262,12 @@ def apply_technical_extract(
                 line = (clause.quote or clause.text).strip()
                 if line and line not in rejection:
                     rejection.append(line)
+                items = sidecar.setdefault("rejection_items", [])
+                if line and not any(item.get("quote") == line for item in items):
+                    items.append({
+                        "text": clause.text, "quote": line, "page": clause.page,
+                        "file_id": file_id, "category": clause.extra.get("category") or "",
+                    })
                 continue
             mounts.append(clause)
         clauses = mounts + miss_patch(regex_clauses, model_clauses)
@@ -271,6 +288,7 @@ def apply_technical_extract(
                 hit["text"] = clause.text
                 hit["section_kind"] = "scoring"
             _remember_extract(hit, clause)
+            _remember_scoring(hit, clause)
             continue
         row = {
             "id": new_id("req"),
@@ -293,6 +311,7 @@ def apply_technical_extract(
             "matter_key": key,
         }
         _remember_extract(row, clause)
+        _remember_scoring(row, clause)
         workflow["requirements"][row["id"]] = row
         index[key] = row
         new_ids.add(row["id"])
