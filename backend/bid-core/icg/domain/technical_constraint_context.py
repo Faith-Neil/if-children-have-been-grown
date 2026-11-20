@@ -3,17 +3,15 @@
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 
 from icg.domain.technical_clause_extract import _matter_key, _same
-from icg.domain.technical_clause_role import is_bid_packaging
+from icg.domain.technical_clause_role import classify_constraint, is_bid_packaging, is_section_constraint_row
 
 # 风险提示只留开头，长截图的后半段不进本节提示。
 _TIP_CLIP = 160
 _TIP_CAP = 8
 _PROJECT_CAP = 8
-_REJECTION_WORD = re.compile(r"废标|否决|无效")
 _NON_TECH_MARKERS = (
     "信用中国",
     "资格",
@@ -57,7 +55,7 @@ def build_constraint_context(
     workflow: dict | None,
     task: dict | None = None,
 ) -> ConstraintContext:
-    """组装本节提示用的三条清单。有任务挂载且能对上原文时，项目硬约束只留相关子集。"""
+    """组装本节提示用的三条清单。只注入 tech_hard；非技术进提示；说不清的不进正文。"""
     section: list[str] = []
     tips: list[str] = []
     seen: list[str] = []
@@ -66,20 +64,27 @@ def build_constraint_context(
         text = _shown(item)
         if not text:
             continue
-        if row_is_non_tech(item):
+        classified = classify_constraint(text, item)
+        if classified["kind"] == "non_tech_risk":
             _add_tip(tips, tipped, text)
             continue
-        if _section_hard(item) and _keep_matter(text, seen):
+        if (
+            classified["kind"] == "tech_hard"
+            and classified["level"] in ("L0", "L1")
+            and is_section_constraint_row(item)
+            and _keep_matter(text, seen)
+        ):
             section.append(text)
     candidates: list[str] = []
     for raw in _sidecar_lines(workflow):
         text = str(raw or "").strip()
         if not text:
             continue
-        if text_is_non_tech(text):
+        classified = classify_constraint(text)
+        if classified["kind"] == "non_tech_risk":
             _add_tip(tips, tipped, text)
             continue
-        if _REJECTION_WORD.search(text) is None:
+        if classified["kind"] != "tech_hard" or classified["level"] not in ("L0", "L1"):
             continue
         if not _keep_matter(text, seen):
             continue
@@ -90,12 +95,6 @@ def build_constraint_context(
 
 def _shown(item: dict) -> str:
     return str(item.get("extracted_summary") or item.get("text") or "").strip()
-
-
-def _section_hard(item: dict) -> bool:
-    if item.get("is_rejection_criterion") and item.get("requirement_type") != "qualification":
-        return True
-    return item.get("clause_role") == "rejection_constraint"
 
 
 def _sidecar_lines(workflow: dict | None) -> list:
