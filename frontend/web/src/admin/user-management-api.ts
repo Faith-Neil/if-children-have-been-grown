@@ -15,6 +15,7 @@ export interface ApiUserModel {
   status: 'active' | 'disabled' | 'locked';
   is_locked?: boolean;
   failed_login_attempts?: number;
+  must_change_password?: boolean;
   created_at?: string | null;
   updated_at?: string | null;
 }
@@ -31,6 +32,7 @@ export interface ApiCreateUserRequest {
   role: string;
   password: string;
   display_name?: string | null;
+  must_change_password?: boolean;
 }
 
 export interface ApiUpdateUserRequest {

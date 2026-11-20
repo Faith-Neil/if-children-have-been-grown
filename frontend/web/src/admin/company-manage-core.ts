@@ -194,20 +194,7 @@ export function canManageCompanySettings(params: {
     };
   }
 
-  // 3. 集团管理员：跨公司只读监管，严禁编辑与停用
-  if (normRole === 'group_admin') {
-    return {
-      canEdit: false,
-      canDisable: false,
-      canViewAudit: true,
-      canToggleStatus: false,
-      role: normRole,
-      roleLabel,
-      readOnlyNotice: '当前以【集团管理员】视角浏览各公司租户合规配置。您具备全局监管审阅权限，但不可直接修改具体公司的参数。',
-    };
-  }
-
-  // 4. 其他只读或业务角色（viewer, bid_writer, auditor 等）
+  // 3. 普通用户不进入公司管理
   return {
     canEdit: false,
     canDisable: false,

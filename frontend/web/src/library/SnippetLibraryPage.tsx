@@ -108,7 +108,10 @@ export function SnippetLibraryPage({
   initialSnippets,
   onSelectSnippet,
 }: SnippetLibraryPageProps) {
-  const companyId = user?.company_id ?? session?.scope?.active_company_id ?? 'alpha';
+  const loginRole = user?.role || session?.user?.primary_role || session?.user?.role;
+  const companyId = loginRole === 'platform_admin'
+    ? undefined
+    : (user?.company_id ?? session?.scope?.active_company_id ?? 'alpha');
 
   const [snippets, setSnippets] = useState<SnippetPublication[]>(() => initialSnippets ?? []);
   const [loading, setLoading] = useState(false);

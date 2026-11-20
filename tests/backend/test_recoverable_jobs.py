@@ -98,7 +98,8 @@ def test_start_returns_202_and_sync_generate_stays_separate(client):
 
     listed = client.get("/api/v1/jobs", headers=headers)
     assert listed.status_code == 200
-    assert body["id"] not in {item["id"] for item in listed.json()["jobs"]}
+    listed_job = next(item for item in listed.json()["jobs"] if item["id"] == body["id"])
+    assert listed_job["type"] == "generate" and listed_job["recoverable"] is False
 
     sync = client.post(f"/api/v1/projects/{PROJECT}/generate", headers=headers, json={})
     assert sync.status_code != 202

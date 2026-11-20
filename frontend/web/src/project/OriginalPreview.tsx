@@ -3,16 +3,50 @@
 // PDF 默认显示原件本身并在原件上高亮条款原句（APP-M2-T103），可切换到识别文字对照。
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Empty, Segmented, Select, Tooltip } from 'antd';
+import { Button, Empty, Select, Tooltip } from 'antd';
 import { DownloadOutlined, FileTextOutlined } from '@ant-design/icons';
 import { download, request } from '../shared/api.ts';
 import { paginationName, useProject } from '../app/context.tsx';
 import type { Preview, Source } from '../shared/types.ts';
-import { PdfLocator } from './PdfLocator.tsx';
-import { isPdf, type TextRegion } from './pdf-locator-core.ts';
 
-const NO_REGIONS: TextRegion[] = [];
-type ViewMode = 'original' | 'text';
+function markQuote(line: string, quote: string) {
+  if (!quote || !line.includes(quote)) return line;
+  const index = line.indexOf(quote);
+  return <>{line.slice(0, index)}<mark>{quote}</mark>{line.slice(index + quote.length)}</>;
+}
+
+function DocumentHtml({ text, quote }: { text: string; quote: string }) {
+  const lines = text.split(/\n+/).map(line => line.trim()).filter(Boolean);
+  if (!lines.length) return <p>这一页没有识别出文字。</p>;
+  const blocks: React.ReactNode[] = [];
+  let table: string[][] = [];
+  function flushTable() {
+    if (!table.length) return;
+    const rows = table;
+    table = [];
+    blocks.push(
+      <table key={`t-${blocks.length}`}>
+        <tbody>
+          {rows.map((cells, rowIndex) => (
+            <tr key={rowIndex}>{cells.map((cell, cellIndex) => <td key={cellIndex}>{markQuote(cell, quote)}</td>)}</tr>
+          ))}
+        </tbody>
+      </table>,
+    );
+  }
+  lines.forEach(line => {
+    if (line.includes('|') && line.split('|').filter(Boolean).length >= 2) {
+      table.push(line.split('|').map(cell => cell.trim()).filter(Boolean));
+      return;
+    }
+    flushTable();
+    const heading = line.length <= 48 && /^(第[0-9一二三四五六七八九十百]+[章节篇条]|[0-9]+(?:\.[0-9]+){0,3}[\s.、])/.test(line);
+    const body = markQuote(line, quote);
+    blocks.push(heading ? <h3 key={blocks.length}>{body}</h3> : <p key={blocks.length}>{body}</p>);
+  });
+  flushTable();
+  return <>{blocks}</>;
+}
 
 export interface OriginalPreviewProps {
   source: Source | null;
@@ -23,8 +57,7 @@ export function OriginalPreview({ source }: OriginalPreviewProps) {
   const [preview, setPreview] = useState<Preview | null>(null);
   const [fileId, setFileId] = useState(source?.file_id || workspace.files[0]?.id || '');
   const [page, setPage] = useState(source?.page || 1);
-  const [mode, setMode] = useState<ViewMode>('original');
-  const [pdfPages, setPdfPages] = useState(0);
+  const paperRef = useRef<HTMLDivElement>(null);
   const requestEpoch = useRef(0);
 
   useEffect(() => {
@@ -47,15 +80,17 @@ export function OriginalPreview({ source }: OriginalPreviewProps) {
       });
   }, [fileId, workspace.project.id, workspace.files.find(file => file.id === fileId)?.status]);
 
-  const originalText = preview?.pages.find(item => item.page === page)?.text ?? '';
-  const quote = source?.file_id === fileId && source.page === page ? source.quote : '';
-  const index = quote ? originalText.indexOf(quote) : -1;
+  const quote = source?.file_id === fileId ? source.quote : '';
   const file = workspace.files.find(item => item.id === fileId);
-  const showPdf = isPdf(file) && mode === 'original' && !!token;
-  const regions = preview?.pages.find(item => item.page === page)?.regions ?? NO_REGIONS;
-  const pageOptions = preview?.pages.length
-    ? preview.pages.map(item => item.page)
-    : Array.from({ length: Math.max(1, pdfPages) }, (_, index) => index + 1);
+  const pages = preview?.pages ?? [];
+  const pageOptions = pages.length ? pages.map(item => item.page) : [1];
+
+  useEffect(() => {
+    const root = paperRef.current;
+    const target = root?.querySelector<HTMLElement>(`#doc-page-${page}`);
+    if (!root || !target) return;
+    root.scrollTo({ top: Math.max(0, target.offsetTop - 12) });
+  }, [page, preview?.filename]);
 
   return (
     <div className="original-preview">
@@ -68,7 +103,6 @@ export function OriginalPreview({ source }: OriginalPreviewProps) {
           onChange={value => {
             setFileId(value);
             setPage(1);
-            setPdfPages(0);
           }}
           options={workspace.files.map(item => ({ value: item.id, label: item.filename }))}
         />
@@ -79,15 +113,6 @@ export function OriginalPreview({ source }: OriginalPreviewProps) {
           onChange={setPage}
           options={pageOptions.map(value => ({ value, label: `第 ${value} 页` }))}
         />
-        {isPdf(file) && (
-          <Segmented
-            size="small"
-            aria-label="原文显示方式"
-            value={mode}
-            onChange={value => setMode(value as ViewMode)}
-            options={[{ value: 'original', label: '原件' }, { value: 'text', label: '识别文字' }]}
-          />
-        )}
         {file && (
           <Tooltip title="下载实际上传原件">
             <Button
@@ -100,37 +125,20 @@ export function OriginalPreview({ source }: OriginalPreviewProps) {
           </Tooltip>
         )}
       </div>
-      <div className="paper-wrap">
-        {showPdf && file ? (
-          <PdfLocator
-            fileUrl={file.download_url}
-            token={token}
-            page={page}
-            quote={source?.file_id === fileId && source.page === page ? source.quote : ''}
-            regions={regions}
-            onPageCount={setPdfPages}
-          />
-        ) : preview ? (
-          <article className="original-paper">
-            <h4>{preview.filename}</h4>
-            {index >= 0 ? (
-              <p>
-                {originalText.slice(0, index)}
-                <mark>{quote}</mark>
-                {originalText.slice(index + quote.length)}
-              </p>
-            ) : (
-              <p>{originalText}</p>
-            )}
-            <div className="page-number">— {page} —</div>
-          </article>
+      <div className="paper-wrap" ref={paperRef}>
+        {preview && pages.length ? (
+          pages.map(item => (
+            <article key={item.page} id={`doc-page-${item.page}`} className={`original-paper${item.page === page ? ' is-current' : ''}`}>
+              <DocumentHtml text={item.text} quote={item.page === source?.page && source?.file_id === fileId ? quote : ''} />
+            </article>
+          ))
         ) : (
           <Empty description={file ? '请先解析文件，再查看原文与条款位置' : '还没有上传招标文件'} />
         )}
       </div>
       {preview && (
         <div className="original-foot">
-          页码方式：{paginationName(preview.pagination)}
+          第 {page} 页 / 共 {pages.length || 1} 页 · {paginationName(preview.pagination)}
           {preview.warnings.length > 0 && ` · ${preview.warnings.join('；')}`}
         </div>
       )}

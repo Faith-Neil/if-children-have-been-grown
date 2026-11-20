@@ -1,5 +1,5 @@
-// 为什么有这个文件：验证“只写技术标”项目在前端只出现技术分册（用户 2026-10-29 要求，不一定要合标）。
-// 它解决什么问题：定稿判断、团队提交、筛选项与导出页原先都写死技术+商务两册。
+// 为什么有这个文件：验证技术方案路径兼容层（API volume_mode）与创建请求写死。
+// 它解决什么问题：产品取消分册模式选择后，前端仍按后端字段隐藏商务路径入口。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -7,12 +7,13 @@ import { projectVolumes, technicalOnly, volumeMode, volumeOptions } from '../../
 import { areAllVolumesFinalized } from '../../src/project/volume-api.ts';
 import { teamPayload } from '../../src/project/project-team.ts';
 
-test('volume mode comes from the project, falling back to the team, default both', () => {
-  assert.equal(volumeMode(null), 'both');
+test('product is technical-bid only regardless of legacy volume_mode', () => {
+  assert.equal(volumeMode(null), 'technical_only');
+  assert.equal(volumeMode({ project: { volume_mode: 'both' } }), 'technical_only');
   assert.deepEqual(projectVolumes({ project: { volume_mode: 'technical_only' } }), ['technical']);
-  assert.equal(technicalOnly({ team: { volume_mode: 'technical_only' } }), true);
-  assert.deepEqual(volumeOptions({ project: { volume_mode: 'technical_only' } }, true), [{ value: 'technical', label: '技术分册' }]);
-  assert.equal(volumeOptions({}, true).length, 3);
+  assert.deepEqual(projectVolumes({ project: { volume_mode: 'both' } }), ['technical']);
+  assert.equal(technicalOnly({ team: { volume_mode: 'both' } }), true);
+  assert.deepEqual(volumeOptions(null, true), [{ value: 'technical', label: '技术方案' }]);
 });
 
 test('finalized means every volume the backend returned is finalized', () => {
@@ -24,13 +25,21 @@ test('finalized means every volume the backend returned is finalized', () => {
 test('team payload for a technical-only project sends one owner row', () => {
   const accounts = [{ id: 'm', role: 'manager' }, { id: 'w', role: 'editor' }];
   const payload = teamPayload({ members: [{ user_id: 'm', project_role: 'lead', volumes: [] }, { user_id: 'w', project_role: 'writer', volumes: ['technical', 'business'] }],
-    technical_owner_id: 'm', business_owner_id: 'w', assembly_owner_id: null, reason: '只写技术标' }, accounts, ['technical']);
+    technical_owner_id: 'm', business_owner_id: 'w', assembly_owner_id: null, reason: '技术方案路径' }, accounts, ['technical']);
   assert.deepEqual(payload.volumes, [{ volume: 'technical', owner_id: 'm' }]);
   assert.deepEqual(payload.members.map(m => m.volumes), [['technical'], ['technical']]);
 });
 
-test('create modal offers the technical-only choice and export page explains no merge', () => {
-  assert.match(readFileSync(new URL('../../src/project/CreateProjectModal.tsx', import.meta.url), 'utf8'), /volume_mode/);
-  assert.match(readFileSync(new URL('../../src/project/ProjectPages.tsx', import.meta.url), 'utf8'), /本项目只写技术标，不需要合标/);
-  assert.match(readFileSync(new URL('../../src/app/App.tsx', import.meta.url), 'utf8'), /volume_mode: values\.volume_mode === 'technical_only'/);
+test('create modal has no volume_mode control; App hardcodes technical_only for API', () => {
+  const modal = readFileSync(new URL('../../src/project/CreateProjectModal.tsx', import.meta.url), 'utf8');
+  assert.doesNotMatch(modal, /volume_mode/);
+  assert.doesNotMatch(modal, /volume-mode-radio/);
+  assert.doesNotMatch(modal, /只写技术标|技术\+商务|分册模式/);
+  const pages = readFileSync(new URL('../../src/project/ProjectPages.tsx', import.meta.url), 'utf8');
+  assert.match(pages, /导出内部稿/);
+  assert.doesNotMatch(pages, /导出前提/);
+  assert.doesNotMatch(pages, /VolumeFinalizePanel/);
+  assert.doesNotMatch(pages, /只写技术标/);
+  assert.match(readFileSync(new URL('../../src/app/App.tsx', import.meta.url), 'utf8'), /volume_mode: 'technical_only'/);
+  assert.doesNotMatch(readFileSync(new URL('../../src/app/App.tsx', import.meta.url), 'utf8'), /企业资料库|写作档案/);
 });

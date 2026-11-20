@@ -4,7 +4,7 @@
 // 2. 验证 BreadcrumbNav 组件声明了无障碍导航容器（aria-label="面包屑导航"）与末级纯文本页签（aria-current="page"）；
 // 3. 验证 AppShell 响应式集成 useBreakpoint 并声明 breakpoint-* 样式类与 data-breakpoint 属性；
 // 4. 验证 App.tsx 状态流无缝串联侧栏 localStorage 记忆、进入项目自动收起策略与动态面包屑渲染；
-// 5. 验证 styles.css 包含 1040px 紧凑桌面内容区约束与面包屑样式声明。
+// 5. 验证 styles.css 的主内容区随窗口变宽，并保留面包屑样式声明。
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -102,9 +102,10 @@ test('App.tsx initializes and persists sidebar collapsed state and supplies dyna
   assert.match(appSource, /breadcrumbs=\{breadcrumbs\}/, 'passes breadcrumbs to AppShell');
 });
 
-test('styles.css defines compact desktop 1040px width rules and breadcrumb styles', () => {
+test('styles.css lets the workbench fill the window and keeps breadcrumb styles', () => {
   assert.match(cssSource, /\.topbar-breadcrumb-nav/, 'styles breadcrumb nav');
   assert.match(cssSource, /\.breadcrumb-leaf/, 'styles breadcrumb leaf');
   assert.match(cssSource, /\.breakpoint-compact\s+\.workspace-content/, 'defines compact desktop content width');
-  assert.match(cssSource, /max-width:\s*1040px/, 'enforces 1040px budget to prevent horizontal scrolling');
+  assert.match(cssSource, /max-width:\s*none/, 'content width follows the window');
+  assert.doesNotMatch(cssSource, /max-width:\s*1040px/);
 });

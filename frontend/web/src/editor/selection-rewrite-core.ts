@@ -66,7 +66,7 @@ export function selectionProblem(committed: string, current: string, text: strin
   if (!text.trim()) return '请先在正文中选中要修改的文字';
   if (text.length > MAX_SELECTION) return `一次最多选 ${MAX_SELECTION} 字，请缩小选区`;
   if (current !== committed) return '正文有未提交的修改：先提交本节，再请对话助手改写选区';
-  if (!locateSelection(committed, text, start, end)) return '选中的文字在本节出现多处或跨越了引用标记，请在编辑框中取得编辑权后重新选择';
+  if (!locateSelection(committed, text, start, end)) return '选中的文字在本节出现多处或跨越了引用标记，请在编辑框中重新选择';
   return null;
 }
 
@@ -155,7 +155,9 @@ export function knowledgeBaseNote(policy: AssistantPolicy | null, on: boolean): 
   if (!policy) return '';
   if (on && !policy.knowledge_base_connected) return '本公司知识库尚未连接，打开后无法检索';
   if (!policy.allow_kb_off) return '本公司要求使用知识库，不能关闭';
-  return on ? '只检索本公司知识库和资料库，样例必须附引用' : '不检索知识库，样例标“无知识库来源”';
+  return on
+    ? '先检索本标，再检索本公司知识库；样例必须附引用'
+    : '公司库关闭时仍检索本标；无命中则样例标“无知识库来源”';
 }
 
 export function modelLabel(policy: AssistantPolicy | null): string {

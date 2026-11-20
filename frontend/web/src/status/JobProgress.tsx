@@ -126,13 +126,14 @@ export function JobProgress({
   const [copied, setCopied] = useState(false);
 
   const isAi = isAiJob(job.jobType, job.isAi);
-  const statusMeta = resolveJobStatusMeta(job.status);
+  const degraded = job.status === 'completed' && (job.errorCode === 'EXTRACT_DEGRADED' || job.errorCode === 'TREE_MODEL_FAILED');
+  const statusMeta = resolveJobStatusMeta(job.status, job.errorCode);
   const percent = deriveJobProgress({
     status: job.status,
     explicitPercent: job.percent,
     steps: job.steps,
   });
-  const strokeColor = resolveProgressStrokeColor(job.status, isAi);
+  const strokeColor = resolveProgressStrokeColor(job.status, isAi, job.errorCode);
 
   const handleCopyTraceId = async () => {
     if (!job.traceId) return;
@@ -163,6 +164,7 @@ export function JobProgress({
       data-testid="job-progress"
       data-job-id={job.jobId}
       data-job-status={job.status}
+      data-job-degraded={degraded ? 'true' : 'false'}
       data-is-ai={isAi ? 'true' : 'false'}
     >
       {/* 1. 任务头部信息 */}

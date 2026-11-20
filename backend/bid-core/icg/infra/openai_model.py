@@ -8,14 +8,55 @@
 
 from __future__ import annotations
 
+import contextvars
+import inspect
+import ipaddress
 import json
 import os
 import re
+import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable, Mapping
 from urllib.parse import urlsplit
 
 import httpx
+
+_audit_io_label: contextvars.ContextVar[str | None] = contextvars.ContextVar("audit_io_label", default=None)
+
+
+class AuditIoLabel:
+    """为 model-io 审计行打上业务标签（如 DEVIATION、SECTION）。"""
+
+    def __init__(self, label: str | None) -> None:
+        self._label = label
+        self._token: contextvars.Token[str | None] | None = None
+
+    def __enter__(self) -> "AuditIoLabel":
+        self._token = _audit_io_label.set(self._label)
+        return self
+
+    def __exit__(self, *_exc: object) -> None:
+        if self._token is not None:
+            _audit_io_label.reset(self._token)
+
+
+def _audit_model_io(kind: str, record: dict[str, Any]) -> None:
+    """临时落盘模型请求/响应（ICG_AUDIT_IO_DIR）。未设置则无操作。勿把密钥写入仓库。"""
+    root = (os.environ.get("ICG_AUDIT_IO_DIR") or "").strip()
+    if not root:
+        return
+    try:
+        path = Path(root)
+        path.mkdir(parents=True, exist_ok=True)
+        label = _audit_io_label.get()
+        if label and "label" not in record:
+            record = {**record, "label": label}
+        line = {"ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "kind": kind, **record}
+        with (path / "model-io.jsonl").open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(line, ensure_ascii=False) + "\n")
+    except OSError:
+        return
 
 
 class ModelCallError(Exception):
@@ -89,6 +130,18 @@ def _validate_base_url(base_url: str) -> str:
     return base_url.strip().rstrip("/")
 
 
+def is_public_model_url(base_url: str) -> bool:
+    """公网地址。内网 IP、本机和没有点的主机名不算。"""
+    host = (urlsplit(base_url.strip()).hostname or "").lower().rstrip(".")
+    if not host or host in {"localhost", "host.docker.internal"} or host.endswith((".local", ".internal", ".lan")):
+        return False
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return "." in host
+    return not (address.is_private or address.is_loopback or address.is_link_local or address.is_reserved)
+
+
 def chat_completions_url(base_url: str) -> str:
     """模型地址 → 对话接口地址。支持三种常见填法：只填服务根地址（补 /v1/chat/completions）；
     填到 /v1 或 RAGFlow 对话助手的 /api/v1/openai/{助手 ID}（补 /chat/completions）；已填完整接口地址（原样使用）。"""
@@ -154,6 +207,67 @@ class OpenAICompatibleConfig:
         return chat_completions_url(self.base_url)
 
 
+@dataclass(frozen=True)
+class ModelCallProfile:
+    enable_thinking: bool
+    max_tokens: int
+    timeout_seconds: float
+    json_mode: bool
+
+
+JSON_CALL = ModelCallProfile(enable_thinking=False, max_tokens=256, timeout_seconds=20, json_mode=True)
+# 36 个要点的目录 JSON 大约 700 字。256 会把 nodes 截成空数组，抽取和偏离仍用 JSON_CALL。
+TREE_CALL = ModelCallProfile(enable_thinking=False, max_tokens=2000, timeout_seconds=60, json_mode=True)
+SECTION_CALL = ModelCallProfile(enable_thinking=False, max_tokens=1200, timeout_seconds=90, json_mode=False)
+
+
+def chat_payload(config: OpenAICompatibleConfig, instruction: str, content: str, *,
+                 stream: bool, profile: ModelCallProfile | None, json_mode: bool) -> tuple[dict[str, Any], float]:
+    if profile is None:
+        max_tokens = config.max_tokens
+        timeout = config.timeout_seconds
+    else:
+        max_tokens = profile.max_tokens
+        timeout = profile.timeout_seconds
+    payload: dict[str, Any] = {
+        "model": config.model,
+        "messages": [
+            {"role": "system", "content": instruction},
+            {"role": "user", "content": content},
+        ],
+        "max_tokens": max_tokens,
+        "stream": stream,
+    }
+    if json_mode:
+        payload["response_format"] = {"type": "json_object"}
+    if profile is not None and profile.enable_thinking is False:
+        payload["think"] = False
+        payload["chat_template_kwargs"] = {"enable_thinking": False}
+    return payload, timeout
+
+
+def _accepts_profile(fn: Callable[..., Any]) -> bool:
+    try:
+        parameters = inspect.signature(fn).parameters
+    except (TypeError, ValueError):
+        return False
+    if "profile" in parameters:
+        return True
+    return any(item.kind is inspect.Parameter.VAR_KEYWORD for item in parameters.values())
+
+
+def call_with_profile(fn: Callable[..., Any], /, *args: Any, profile: ModelCallProfile | None = None, **kwargs: Any) -> Any:
+    if profile is not None and _accepts_profile(fn):
+        return fn(*args, profile=profile, **kwargs)
+    return fn(*args, **kwargs)
+
+
+def _audit_profiled(profile: ModelCallProfile | None, kind: str, record: dict[str, Any]) -> None:
+    if profile is SECTION_CALL and "label" not in record:
+        record = {**record, "label": "SECTION"}
+    _audit_model_io(kind, record)
+
+
 class OpenAICompatibleModelProvider:
     """OpenAI 兼容 chat completions。支持从环境变量或配置快照动态组装请求参数。"""
 
@@ -173,14 +287,16 @@ class OpenAICompatibleModelProvider:
         self._transport = transport
         self._environ = environ
 
-    def suggest(self, instruction: str, content: str) -> str:
+    def suggest(self, instruction: str, content: str, *, profile: ModelCallProfile | None = None) -> str:
+        if self.is_local and is_public_model_url(self.base_url):
+            raise ModelCallError("本地部署已打开，公网地址不会接收正文。")
         if not isinstance(instruction, str) or not isinstance(content, str):
             raise ModelCallError("instruction and content must be strings")
         attempts = self._config.retries + 1
         last_error: ModelCallError | None = None
         for _ in range(attempts):
             try:
-                return self._once(instruction, content)
+                return self._once(instruction, content, profile)
             except RetryableModelError as error:
                 last_error = error
         raise ModelCallError("openai-compatible model call failed") from last_error
@@ -191,40 +307,69 @@ class OpenAICompatibleModelProvider:
         source = os.environ if self._environ is None else self._environ
         return source.get(self._config.api_key_env, "").strip() if self._config.api_key_env else ""
 
-    def _once(self, instruction: str, content: str) -> str:
+    def _once(self, instruction: str, content: str, profile: ModelCallProfile | None = None) -> str:
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
         api_key = self._api_key()
         if api_key:
             headers["Authorization"] = "Bearer " + api_key
-        payload: dict[str, Any] = {
+        json_mode = self._config.json_mode_enabled if profile is None else profile.json_mode
+        payload, timeout = chat_payload(
+            self._config, instruction, content, stream=self._config.stream_enabled,
+            profile=profile, json_mode=json_mode,
+        )
+        url = self._config.chat_completions_url
+        _audit_profiled(profile, "request", {
+            "url": url,
             "model": self._config.model,
-            "messages": [
-                {"role": "system", "content": instruction},
-                {"role": "user", "content": content},
-            ],
-            "max_tokens": self._config.max_tokens,
-            "stream": self._config.stream_enabled,
-        }
-        if self._config.json_mode_enabled:
-            payload["response_format"] = {"type": "json_object"}
+            "max_tokens": payload["max_tokens"],
+            "stream": payload["stream"],
+            "system_chars": len(instruction or ""),
+            "user_chars": len(content or ""),
+            "system": instruction,
+            "user": content,
+        })
         try:
-            with httpx.Client(transport=self._transport, timeout=self._config.timeout_seconds,
+            with httpx.Client(transport=self._transport, timeout=timeout,
                               follow_redirects=False, trust_env=False) as client:
-                response = client.post(self._config.chat_completions_url, headers=headers, json=payload)
+                response = client.post(url, headers=headers, json=payload)
         except httpx.TimeoutException:
+            _audit_profiled(profile, "error", {"url": url, "error": "timeout"})
             raise RetryableModelError("timeout") from None
-        except httpx.TransportError:
+        except httpx.TransportError as exc:
+            _audit_profiled(profile, "error", {"url": url, "error": "transport", "detail": type(exc).__name__})
             raise RetryableModelError("transport") from None
+        raw_body = response.text or ""
+        record: dict[str, Any] = {
+            "url": url,
+            "status": response.status_code,
+            "body_chars": len(raw_body),
+            "body": raw_body[:200000],
+        }
+        if len(raw_body) > 200000:
+            record["truncated"] = True
+        assistant: str | None = None
+        parse_error: ModelCallError | None = None
+        if response.status_code == 200:
+            try:
+                assistant = _assistant_text(response)
+            except ModelCallError as exc:
+                parse_error = exc
+        if assistant is not None:
+            record["assistant"] = assistant
+            record["assistant_chars"] = len(assistant)
+        _audit_profiled(profile, "response", record)
         if response.status_code in _RETRYABLE_STATUS:
             raise RetryableModelError(f"HTTP {response.status_code}")
         if response.status_code != 200:
             raise ModelCallError(f"HTTP {response.status_code}")
-        text = _assistant_text(response)
+        if parse_error is not None:
+            raise parse_error
+        text = assistant or ""
         raise_upstream_error(text)
         return text
 
     def stream_suggest(self, instruction: str, content: str, *, on_delta: Callable[[str], None],
-                       cancel: Any = None) -> str:
+                       cancel: Any = None, profile: ModelCallProfile | None = None) -> str:
         """流式调用：每收到一段文字就交给 on_delta；cancel（threading.Event）置位即停止并抛 ModelCancelled。
         接口不支持流式时（返回普通 JSON）整段交给 on_delta 一次。"""
         attempts = self._config.retries + 1
@@ -236,37 +381,60 @@ class OpenAICompatibleModelProvider:
                 emitted[0] = True
                 on_delta(text)
             try:
-                return self._stream_once(instruction, content, relay, cancel)
+                return self._stream_once(instruction, content, relay, cancel, profile)
             except RetryableModelError as error:
                 if emitted[0]:
                     raise ModelCallError("openai-compatible stream broke after partial output") from error
                 last_error = error
         raise ModelCallError("openai-compatible model call failed") from last_error
 
-    def _stream_once(self, instruction: str, content: str, on_delta: Callable[[str], None], cancel: Any) -> str:
+    def _stream_once(self, instruction: str, content: str, on_delta: Callable[[str], None], cancel: Any,
+                     profile: ModelCallProfile | None = None) -> str:
         headers = {"Content-Type": "application/json", "Accept": "text/event-stream"}
         api_key = self._api_key()
         if api_key:
             headers["Authorization"] = "Bearer " + api_key
-        payload: dict[str, Any] = {
+        json_mode = False if profile is None else profile.json_mode
+        payload, timeout = chat_payload(
+            self._config, instruction, content, stream=True, profile=profile, json_mode=json_mode,
+        )
+        url = self._config.chat_completions_url
+        _audit_profiled(profile, "request", {
+            "url": url,
             "model": self._config.model,
-            "messages": [{"role": "system", "content": instruction}, {"role": "user", "content": content}],
-            "max_tokens": self._config.max_tokens, "stream": True,
-        }
+            "max_tokens": payload["max_tokens"],
+            "stream": True,
+            "system_chars": len(instruction or ""),
+            "user_chars": len(content or ""),
+            "system": instruction,
+            "user": content,
+        })
         collected: list[str] = []
+        reasoning_collected: list[str] = []
         pending_error: list[str] = []
         last_raw, skipped_last, doubled = [None], [False], [False]
+
+        def record_response(status: int, assistant: str | None = None) -> None:
+            record: dict[str, Any] = {"url": url, "status": status}
+            if assistant is not None:
+                record["assistant"] = assistant
+                record["assistant_chars"] = len(assistant)
+            _audit_profiled(profile, "response", record)
+
         try:
-            with httpx.Client(transport=self._transport, timeout=self._config.timeout_seconds,
+            with httpx.Client(transport=self._transport, timeout=timeout,
                               follow_redirects=False, trust_env=False) as client:
-                with client.stream("POST", self._config.chat_completions_url, headers=headers, json=payload) as response:
+                with client.stream("POST", url, headers=headers, json=payload) as response:
                     if response.status_code in _RETRYABLE_STATUS:
+                        record_response(response.status_code)
                         raise RetryableModelError(f"HTTP {response.status_code}")
                     if response.status_code != 200:
+                        record_response(response.status_code)
                         raise ModelCallError(f"HTTP {response.status_code}")
                     if "text/event-stream" not in response.headers.get("content-type", ""):
                         response.read()
                         text = _assistant_text(response)
+                        record_response(response.status_code, text)
                         raise_upstream_error(text)
                         on_delta(text)
                         return text
@@ -286,7 +454,14 @@ class OpenAICompatibleModelProvider:
                         choices = chunk.get("choices") if isinstance(chunk, dict) else None
                         if not (isinstance(choices, list) and choices and isinstance(choices[0], dict)):
                             continue
-                        piece = (choices[0].get("delta") or {}).get("content")
+                        delta = choices[0].get("delta") or {}
+                        if not isinstance(delta, dict):
+                            continue
+                        for key in ("reasoning_content", "reasoning"):
+                            thought = delta.get(key)
+                            if isinstance(thought, str) and thought:
+                                reasoning_collected.append(thought)
+                        piece = delta.get("content")
                         if not isinstance(piece, str) or not piece:
                             continue
                         # 实测 RAGFlow 转发 Gemini 时每块连发两次：头一次出现较长（≥4 字）的连续重复块即认定为“双发”流，
@@ -311,18 +486,25 @@ class OpenAICompatibleModelProvider:
                         collected.append(piece)
                         on_delta(piece)
         except httpx.TimeoutException:
+            _audit_profiled(profile, "error", {"url": url, "error": "timeout"})
             raise RetryableModelError("timeout") from None
-        except httpx.TransportError:
+        except httpx.TransportError as exc:
+            _audit_profiled(profile, "error", {"url": url, "error": "transport", "detail": type(exc).__name__})
             raise RetryableModelError("transport") from None
         if pending_error:
             text = "".join(pending_error)
+            record_response(200, text)
             raise_upstream_error(text)  # 以“**ERROR**”开头必然抛出；只差前缀的短文本（如“**”）当正文
             on_delta(text)
             return text
-        text = "".join(collected)
+        text = _prefer_assistant_body("".join(collected), "".join(reasoning_collected))
         if not text.strip():
             # 实测：上游限流时 RAGFlow 流式只回一个空的结束块；按上游暂时不可用处理，可改用备用模型
+            record_response(200, text)
             raise RetryableModelError("empty stream")
+        if not collected and text:
+            on_delta(text)
+        record_response(200, text)
         return text
 
 
@@ -342,30 +524,113 @@ def raise_upstream_error(text: str) -> None:
     raise ModelCallError("upstream error")
 
 
+def _jsonish_payload(text: str) -> str | None:
+    """从 thinking 长文里抠出最后一段顶层 JSON（对象或数组）。
+
+    只认能解析的完整值，丢掉嵌套在对象里的数组、数组里的对象。
+    thinking 前文常有举例 `{...}`，目录 JSON 是文末数组，所以同级里取最后一段。
+    """
+    raw = (text or "").strip()
+    if not raw:
+        return None
+    if "```" in raw:
+        fenced = raw.split("```", 2)[1]
+        raw = fenced[4:] if fenced.startswith("json") else fenced
+        raw = raw.strip()
+    decoder = json.JSONDecoder()
+    found: list[tuple[int, int, str]] = []
+    index = 0
+    while index < len(raw):
+        if raw[index] not in "{[":
+            index += 1
+            continue
+        try:
+            obj, end = decoder.raw_decode(raw, index)
+        except json.JSONDecodeError:
+            index += 1
+            continue
+        if isinstance(obj, (dict, list)):
+            found.append((index, end, raw[index:end]))
+        index = end if end > index else index + 1
+    if not found:
+        return None
+    top = [
+        (start, end, slice_)
+        for start, end, slice_ in found
+        if not any(other_start < start and end <= other_end
+                   for other_start, other_end, _ in found
+                   if (other_start, other_end) != (start, end))
+    ]
+    if not top:
+        return None
+    top.sort(key=lambda item: item[0])
+    return top[-1][2]
+
+
+def _prefer_assistant_body(content: str, reasoning: str) -> str:
+    """优先正式 content；content 空时用 reasoning 里的 JSON 或全文。thinking 模型常见只吐 reasoning。"""
+    if (content or "").strip():
+        return content
+    thought = (reasoning or "").strip()
+    if not thought:
+        return ""
+    payload = _jsonish_payload(thought)
+    return payload or thought
+
+
+def _delta_text(delta: dict, key: str) -> str:
+    value = delta.get(key)
+    return value if isinstance(value, str) else ""
+
+
+def _sse_assistant_body(raw_text: str) -> str:
+    content_parts: list[str] = []
+    reasoning_parts: list[str] = []
+    for line in (raw_text or "").splitlines():
+        line = line.strip()
+        if not line or not line.startswith("data:"):
+            continue
+        chunk_str = line[5:].strip()
+        if chunk_str == "[DONE]":
+            break
+        try:
+            chunk = json.loads(chunk_str)
+        except Exception:
+            continue
+        choices = chunk.get("choices") if isinstance(chunk, dict) else None
+        if not (isinstance(choices, list) and choices and isinstance(choices[0], dict)):
+            continue
+        delta = choices[0].get("delta") or {}
+        if not isinstance(delta, dict):
+            continue
+        piece = _delta_text(delta, "content")
+        if piece:
+            content_parts.append(piece)
+        for key in ("reasoning_content", "reasoning"):
+            thought = _delta_text(delta, key)
+            if thought:
+                reasoning_parts.append(thought)
+    return _prefer_assistant_body("".join(content_parts), "".join(reasoning_parts))
+
+
+def _message_assistant_body(message: dict) -> str:
+    content = message.get("content") if isinstance(message.get("content"), str) else ""
+    reasoning = ""
+    for key in ("reasoning_content", "reasoning"):
+        value = message.get(key)
+        if isinstance(value, str) and value.strip():
+            reasoning = value
+            break
+    return _prefer_assistant_body(content, reasoning)
+
+
 def _assistant_text(response: httpx.Response) -> str:
     content_type = response.headers.get("content-type", "")
     raw_text = response.text
     if "text/event-stream" in content_type or raw_text.startswith("data:"):
-        collected = []
-        for line in raw_text.splitlines():
-            line = line.strip()
-            if not line or not line.startswith("data:"):
-                continue
-            chunk_str = line[5:].strip()
-            if chunk_str == "[DONE]":
-                break
-            try:
-                chunk = json.loads(chunk_str)
-                choices = chunk.get("choices")
-                if isinstance(choices, list) and choices and isinstance(choices[0], dict):
-                    delta = choices[0].get("delta", {})
-                    content = delta.get("content")
-                    if content and isinstance(content, str):
-                        collected.append(content)
-            except Exception:
-                continue
-        if collected:
-            return "".join(collected)
+        text = _sse_assistant_body(raw_text)
+        if text.strip():
+            return text
     try:
         body = response.json()
     except ValueError:
@@ -381,8 +646,8 @@ def _assistant_text(response: httpx.Response) -> str:
     message = choices[0].get("message")
     if not isinstance(message, dict):
         raise ModelCallError("missing assistant content")
-    text = message.get("content")
-    if not isinstance(text, str) or not text.strip():
+    text = _message_assistant_body(message)
+    if not text.strip():
         raise ModelCallError("missing assistant content")
     return text
 

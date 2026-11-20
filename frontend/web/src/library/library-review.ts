@@ -2,13 +2,13 @@
 // 它解决什么问题：刷新资料库不能让旧表单覆盖他人的新资料；核对期间再次变化也保留原填写。
 import type { Evidence } from '../shared/types';
 
-export type LibraryReadState = { company_id: string; revision: number; items: Evidence[] };
+export type LibraryReadState = { company_id: string; revision: number; items: Evidence[]; cross_company?: boolean };
 export type LibraryReader = () => Promise<LibraryReadState>;
 export type LibraryWriteVersion = { company_id: string; revision: number };
 export type LibraryMutation = (path: string, method: string, body: unknown, expectedRevision?: LibraryWriteVersion) => Promise<unknown>;
 export type LibraryReviewBasis = LibraryWriteVersion & { item_id: string | null; item_basis: string | null; item: Evidence | null };
 export type CompanyCollectionSnapshot<T> = { revision: number; items: T[] };
-export type CompanyOwnedSnapshot<T> = CompanyCollectionSnapshot<T> & { company_id: string };
+export type CompanyOwnedSnapshot<T> = CompanyCollectionSnapshot<T> & { company_id: string; cross_company?: boolean };
 export type CompanyReadSession = { company_id: string; account_id: string; epoch: number };
 
 export function companyReadSessionMatches(start: CompanyReadSession, current: CompanyReadSession): boolean {
@@ -25,6 +25,10 @@ export async function readCompanyCollections<L, T>(company: string, readLibrary:
   return { library: { company_id: company, items: library.items, revision: library.revision }, templates: { company_id: company, items: templates.items, revision: templates.revision } };
 }
 
+function sameTenant(itemCompany: string | null | undefined, current: { company_id: string; cross_company?: boolean }): boolean {
+  return !itemCompany || itemCompany === current.company_id || Boolean(current.cross_company);
+}
+
 function validVersion(version: LibraryWriteVersion): boolean {
   return !!version.company_id && Number.isSafeInteger(version.revision) && version.revision > 0;
 }
@@ -39,7 +43,7 @@ export function captureLibraryReview(current: LibraryReadState, itemId: string |
   if (!validVersion(current)) throw new Error('尚未读取有效的公司资料库版本，请重新读取后再核对。');
   const item = itemId ? current.items.find(value => value.id === itemId) : null;
   if (itemId && !item) throw new Error('这条资料已不在当前可见列表中，当前填写仍保留，不能载入或保存。');
-  if (item?.company_id && item.company_id !== current.company_id) throw new Error('这条资料不属于当前公司，不能载入或保存。');
+  if (item?.company_id && !sameTenant(item.company_id, current)) throw new Error('这条资料不属于当前公司，不能载入或保存。');
   return { company_id: current.company_id, revision: current.revision, item_id: itemId,
     item_basis: item ? libraryItemBasis(item) : null, item: item ? { ...item } : null };
 }
@@ -49,7 +53,7 @@ export function libraryReviewProblem(basis: LibraryReviewBasis | null, current: 
   if (basis.company_id !== current.company_id) return '当前公司已变化，原公司表单不能保存到另一家公司。当前填写仍保留。';
   if (basis.item_id) {
     const item = current.items.find(value => value.id === basis.item_id);
-    if (!item || item.company_id && item.company_id !== current.company_id) return '这条资料已不可见或不属于当前公司，当前填写仍保留，不能继续保存。';
+    if (!item || item.company_id && !sameTenant(item.company_id, current)) return '这条资料已不可见或不属于当前公司，当前填写仍保留，不能继续保存。';
     if (basis.item_basis !== libraryItemBasis(item)) return '后台这条资料已更新，当前填写仍保留。请核对原版、你的填写和后台新版，再明确载入最新资料。';
   }
   if (basis.revision !== current.revision) return '公司资料库版本已更新，当前填写仍保留。即使这条资料未变，也请明确核对最新公司版本后再保存。';

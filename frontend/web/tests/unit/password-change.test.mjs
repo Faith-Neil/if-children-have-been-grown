@@ -66,7 +66,7 @@ test('5. App 在须改密时显示改密页，不调用 loginWithToken', () => {
   const app = read('../../src/app/App.tsx');
   assert.match(app, /if \(r\.mustChangePassword\) \{ setPendingChange\(/);
   assert.match(app, /if \(pendingChange\) return <PasswordChangeScreen/);
-  assert.match(app, /onLogout=\{\(\) => requestDiscard\(signOut\)\}/);
+  assert.match(app, /onLogout: \(\) => requestDiscard\(signOut\)/);
   const screen = read('../../src/app/PasswordChangeScreen.tsx');
   for (const id of ['password-old-input', 'password-new-input', 'password-confirm-input', 'password-change-submit', 'password-policy-text']) {
     assert.ok(screen.includes(`data-testid="${id}"`), id);

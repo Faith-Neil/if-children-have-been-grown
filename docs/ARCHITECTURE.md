@@ -12,6 +12,8 @@
 | 关联 Issue | ISSUE-007 |
 <!-- governance-baseline:end -->
 
+2026-11-03 技术分册（[ISSUE-047](../issues/ISSUE-047.md)）：新建项目的侧栏不再进入企业资料库和写作档案，创建请求固定 `technical_only`。目录、矩阵、正文和偏离表在集成分支 `feat/iss-047-technical-volume-mvp` 上按 [决定](decisions/2026-11-03-technical-volume-mvp.md) 实现，不合入 main。本文其余结构描述仍是两册。
+
 2026-10-28 Wave 11（[ISSUE-040](../issues/ISSUE-040.md)）：后台新增 `icg/domain/chapter_loop.py`（PRD §5.7.4 章节循环规则：处理路径、停止条件、问题指纹）、`human_queue.py`（人工处理队列）、`volume_review.py`（交叉复核与定稿快照）、`post_process.py`（星号/废标兜底扫描），路由在 `icg/api/chapter_loop.py` 与 `icg/api/volumes.py`。前端对应 `project/ManualQueuePage.tsx`、`VolumeFinalizePanel.tsx`、`OmissionsDrawer.tsx`，纯逻辑在 `project/main-path-core.ts`。已定稿分册的章节写入在后台 `_chapter_writer` 统一拒绝；解锁轮次进入项目输入指纹。持久化边界：MySQL 模式下仅 `volumes`、`volume_reviews`、`volume_epochs`、`human_queue`、`post_process` 五个工作流键写入 `demo_project_workflow_state`（Alembic 0012），其余工作流键仍在进程内存（[ISSUE-041](../issues/ISSUE-041.md)）。
 
 写作输入由共享组装器从账号公司、当前项目与已确认本章方案构造；仅输入本章矩阵、合格证据、选中可选事实及全部必备事实。候选保存实际输入快照及指纹，快照/候选自身不进入指纹；变量先校验，来源或方案改变需重新确认。source_scope为新增实施字段，不表示逐段溯源已完成。
@@ -25,6 +27,8 @@ ISSUE-009 / APP-M2-T001增加[可信会话与导航契约](architecture/applicat
 ISSUE-008 / T16已本地验收，把相同原则用于现有文字资料及公司SLA模板表单：原公司版本、公司和完整记录内容构成已读依据，后台刷新只更新当前状态；保存传原版本，核对载入时真实重读最新状态。两个集合各自保存对应GET版本，不能混用并行读取的版本；完整集合供核验，搜索只过滤显示。完整ACL、确认审核和附件治理尚未因此实现。
 
 当前实施：`frontend/web`正式页面按ICG示例重建，通过同源接口连接`backend/bid-core`；主链路在同一公司隔离与事务存储下扩展文件、条款、矩阵、事实、证据、计划、任务、检查和两册输出。旧后台验收页作为开发工具。数据库、模型、解析器独立替换；实际字段见[接口约定](architecture/icg-reference-contract.md)。正式产品与旧demo分别验收，生产数据库和部署不因本地页面贯通自动完成。
+
+2026-11-04（ISSUE-049）：产品启动改为 [`Start-Product.ps1`](../backend/bid-core/Start-Product.ps1)，未连通 MySQL 时拒绝启动。公司虚拟机的放置见 [Docker 部署说明](operations/docker-vm-deployment.md)：一个 MySQL 8 容器加一个应用容器，应用只绑定虚拟机环回地址，worker 仍为 1。单元测试在未设置连接串时仍可使用内存仓库。该说明不是已经部署到公司虚拟机，也不表示 RAGFlow 或本地模型已经接通。
 
 2026-10-12：ISSUE-011 在既有模型口后增加可显式启用的 OpenAI 兼容对话适配器。项目经理于 10-12 12:10 在 QA 签署后确认，AI-02 为 done，ISSUE-011 为 closed。未打开配置时默认仍是演示替身；调用失败继续返回 502，不改写成演示成功。ISSUE-010 已 closed（user decision, relayed by PM）：业务库为 MySQL 8；对话模型由配置页提供，设计见 [配置驱动的对话模型](architecture/model-config-provider.md)；嵌入与向量库用 RAGFlow 自带能力，设计见 [RAGFlow 检索适配器](architecture/ragflow-retrieval-adapter.md)；生产生成只在内网。两份设计都未实现。内存实现继续用于测试。该适配器不是内网模型已接通。ISSUE-016 已依据 QA 签署 2fe6198（REV-M0-T16）标为 closed，AI-03 为 done。检索口仍只在内存中运行。它不进入 `create_app`，不连接 MySQL，也不连接 RAGFlow。重排使用 RAGFlow 自带的重排器，重排模型在 RAGFlow 内配置（用户 10-12 14:34 确认，见 [内网部署草案](operations/intranet-deployment-plan.md)）。适配器仍未实现。
 
@@ -169,15 +173,16 @@ admin
 - 投标截止时间
 - 项目负责人
 
-二级导航：
+二级导航（ISSUE-048）：
 
 - 概览
 - 招标文件
-- 响应矩阵
-- 项目事实
-- 章节编写
-- 检查
-- 导出
+- 分析确认
+- 编辑台
+- 检查与导出
+- 项目设置
+
+旧地址 `parse`、`matrix`、`facts`、`manual` 转到分析确认，`checks` 转到检查与导出。
 
 ## 5. 状态管理
 
@@ -365,6 +370,8 @@ taking_over
 回退不覆盖历史版本，而是生成新版本。
 
 ## 12. 权限
+
+登录角色是三个（ISSUE-048）。`platform_admin` 管理公司和用户、平台配置，不打开投标正文、不生成、不导出。`company_admin` 管理本公司普通用户、知识库和本项目规则覆盖，可以建项目、确认分析并导出。`member` 可以新建项目并走完四段，可以查看本公司知识库但不能改；创建者成为该项目负责人。项目内的负责人和编写人记在项目成员上，不是登录角色。旧的集团管理员、资料管理员、项目负责人、投标编写人、审核人和只读成员登录角色收成 `member`。种子账号 `admin` 不再绕过正文隔离。
 
 前端权限分两层：
 

@@ -575,7 +575,7 @@ def test_batch_pipeline_rbac_permission_gate(test_env):
             principal=viewer,
         )
     assert exc_info.value.status == 403
-    assert exc_info.value.code == "FORBIDDEN"
+    assert exc_info.value.code == "PROJECT_WRITER_REQUIRED"
 
 
 # ==================== 8. 涉密项目本地模型硬门禁 ====================

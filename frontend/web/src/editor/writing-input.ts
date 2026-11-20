@@ -122,5 +122,5 @@ export function insertFactToken(content: string, start: number, end: number, fac
 export function planRequirementText(workspace: Pick<Workspace, 'requirements' | 'chapters'>, chapterId: string): string {
   const chapter = workspace.chapters.find(item => item.id === chapterId);
   const rows = workspace.requirements.filter(requirement => requirement.chapter_id === chapterId || chapter?.requirement_ids?.includes(requirement.id));
-  return rows.map(requirement => `${requirement.text}${requirement.volume_confirmed_at ? '' : '（分流待确认，确认前不进入写作方案）'}${requirement.chapter_id !== chapterId ? '（跨分册共用）' : ''}`).join('；') || '本节未映射条款';
+  return rows.map(requirement => `${requirement.text}${requirement.volume_confirmed_at ? '' : '（分流待确认，确认前不进入写作方案）'}${requirement.chapter_id !== chapterId ? '（跨方案共用）' : ''}`).join('；') || '本节未映射条款';
 }

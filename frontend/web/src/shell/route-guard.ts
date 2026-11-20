@@ -4,132 +4,20 @@
 import type { ApplicationSession, Chapter, ProjectRole, Volume, Workspace } from '../shared/types.ts';
 import { parseAppPath, type AppRoute } from '../app/app-route.ts';
 import { projectTabs, sessionAllowsAction, sessionAllowsProjectTab, sessionAllowsRoute } from '../app/session-navigation.ts';
-
-/**
- * PRD v1.8 §2.2 定义的 8 类标准系统角色
- */
-export type SystemRole =
-  | 'platform_admin'
-  | 'group_admin'
-  | 'company_admin'
-  | 'data_admin'
-  | 'project_lead'
-  | 'bid_writer'
-  | 'auditor'
-  | 'viewer';
-
-export const SYSTEM_ROLES: Record<string, SystemRole> = {
-  PLATFORM_ADMIN: 'platform_admin',
-  GROUP_ADMIN: 'group_admin',
-  COMPANY_ADMIN: 'company_admin',
-  DATA_ADMIN: 'data_admin',
-  PROJECT_LEAD: 'project_lead',
-  BID_WRITER: 'bid_writer',
-  AUDITOR: 'auditor',
-  VIEWER: 'viewer',
-} as const;
-
-export const SYSTEM_ROLE_LABELS: Record<SystemRole, string> = {
-  platform_admin: '平台管理员',
-  group_admin: '集团管理员',
-  company_admin: '公司管理员',
-  data_admin: '资料管理员',
-  project_lead: '项目负责人',
-  bid_writer: '投标编写人',
-  auditor: '审核人',
-  viewer: '只读成员',
-};
-
-/**
- * 角色映射别名表，双向向后兼容历史 manager / editor / readonly / reviewer 等
- */
-const ROLE_NORMALIZATION_MAP: Record<string, SystemRole> = {
-  platform_admin: 'platform_admin',
-  group_admin: 'group_admin',
-  company_admin: 'company_admin',
-  data_admin: 'data_admin',
-  project_lead: 'project_lead',
-  lead: 'project_lead',
-  manager: 'project_lead',
-  bid_writer: 'bid_writer',
-  writer: 'bid_writer',
-  editor: 'bid_writer',
-  auditor: 'auditor',
-  reviewer: 'auditor',
-  viewer: 'viewer',
-  readonly: 'viewer',
-};
-
-/**
- * 只读角色集合：阻断一切写操作与创建动作
- */
-export const READONLY_SYSTEM_ROLES = new Set<SystemRole>([
-  'group_admin',
-  'viewer',
-  'auditor',
-  'platform_admin',
-]);
-
-/**
- * 具备新建项目资质的角色
- */
-export const PROJECT_CREATOR_ROLES = new Set<SystemRole>([
-  'project_lead',
-  'company_admin',
-]);
-
-/**
- * 具备项目编写资质的角色
- */
-export const PROJECT_WRITER_ROLES = new Set<SystemRole>([
-  'bid_writer',
-  'project_lead',
-  'company_admin',
-  'data_admin',
-]);
-
-/**
- * 平台管理员禁止访问的业务路由
- */
-export const PLATFORM_ADMIN_FORBIDDEN_ROUTES = new Set<string>([
-  'workbench',
-  'library',
-  'knowledge',
-  'writing',
-]);
-
-/**
- * 将任意角色字符串或角色数组归一化为标准八角色代码
- */
-export function normalizeSystemRole(roleOrRoles?: string | string[] | null): SystemRole {
-  if (!roleOrRoles) return 'viewer';
-  const rawRole = Array.isArray(roleOrRoles) ? roleOrRoles[0] : roleOrRoles;
-  if (!rawRole || typeof rawRole !== 'string') return 'viewer';
-  const clean = rawRole.trim().toLowerCase();
-  return ROLE_NORMALIZATION_MAP[clean] ?? 'viewer';
-}
-
-/**
- * 获取标准角色的中文友好名称
- */
-export function getSystemRoleLabel(roleOrRoles?: string | string[] | null): string {
-  const norm = normalizeSystemRole(roleOrRoles);
-  return SYSTEM_ROLE_LABELS[norm] ?? '只读成员';
-}
-
-/**
- * 判断是否为只读角色
- */
-export function isReadonlyRole(roleOrRoles?: string | string[] | null): boolean {
-  return READONLY_SYSTEM_ROLES.has(normalizeSystemRole(roleOrRoles));
-}
-
-/**
- * 判断是否有权新建项目
- */
-export function canCreateProject(roleOrRoles?: string | string[] | null): boolean {
-  return PROJECT_CREATOR_ROLES.has(normalizeSystemRole(roleOrRoles));
-}
+export {
+  SYSTEM_ROLES,
+  SYSTEM_ROLE_LABELS,
+  READONLY_SYSTEM_ROLES,
+  PROJECT_CREATOR_ROLES,
+  PROJECT_WRITER_ROLES,
+  PLATFORM_ADMIN_FORBIDDEN_ROUTES,
+  normalizeSystemRole,
+  getSystemRoleLabel,
+  isReadonlyRole,
+  canCreateProject,
+  type SystemRole,
+} from '../shared/roles.ts';
+import { READONLY_SYSTEM_ROLES, SYSTEM_ROLE_LABELS, canCreateProject, isReadonlyRole, normalizeSystemRole, type SystemRole } from '../shared/roles.ts';
 
 /**
  * 细粒度章节编辑鉴权参数
@@ -154,6 +42,10 @@ export function checkChapterEditPermission(params: ChapterEditGuardParams): Chap
   const { role, userId, chapter, workspace } = params;
   const norm = normalizeSystemRole(role);
   const roleLabel = SYSTEM_ROLE_LABELS[norm];
+
+  if (norm === 'platform_admin') {
+    return { allowed: true };
+  }
 
   if (READONLY_SYSTEM_ROLES.has(norm)) {
     return {
@@ -199,17 +91,17 @@ export function checkChapterEditPermission(params: ChapterEditGuardParams): Chap
   }
 
   if (chapter.assignee_id === userId && !member.volumes.includes(chapter.volume)) {
-    const volName = chapter.volume === 'technical' ? '技术分册' : '商务分册';
+    const volName = chapter.volume === 'technical' ? '技术方案' : '商务方案';
     return {
       allowed: false,
-      reason: `抱歉，您未分配参与${volName}，无权编辑本分册章节。`,
+      reason: `抱歉，您未分配参与${volName}，无权编辑本章节。`,
       reasonType: 'wrong_volume',
     };
   }
 
   return {
     allowed: false,
-    reason: `抱歉，您当前未被分配负责章节【${chapter.id}】，仅被分配编写人或分册负责人可编辑。`,
+    reason: `抱歉，您当前未被分配负责章节【${chapter.id}】，仅被分配编写人或方案负责人可编辑。`,
     reasonType: 'not_assigned',
   };
 }
@@ -260,37 +152,6 @@ export function formatForbiddenReason(params: {
     return `抱歉，您当前的角色（${roleLabel}）无权访问：${params.serverMessage}`;
   }
 
-  if (norm === 'platform_admin') {
-    return `抱歉，您当前的角色（${roleLabel}）仅限管理平台级服务、模型与审计，不可访问公司业务数据与投标项目。`;
-  }
-
-  if (norm === 'group_admin') {
-    if (params.action && params.action !== 'read') {
-      return `抱歉，您当前的角色（${roleLabel}）仅具备全站跨公司只读权限，不能执行写操作或创建项目。`;
-    }
-  }
-
-  if (norm === 'viewer' || norm === 'auditor') {
-    if (params.action && params.action !== 'read') {
-      return `抱歉，您当前的角色（${roleLabel}）处于只读状态，无权修改业务数据。`;
-    }
-  }
-
-  if (norm === 'data_admin') {
-    if (params.action === 'create_project' || params.action === 'projects.create') {
-      return `抱歉，您当前的角色（${roleLabel}）专职负责公司资料库与模板维护，无权新建投标项目。`;
-    }
-  }
-
-  if (norm === 'bid_writer') {
-    if (params.action === 'create_project' || params.action === 'projects.create') {
-      return `抱歉，您当前的角色（${roleLabel}）无权新建投标项目，请联系项目负责人或公司管理员办理。`;
-    }
-    if (params.tab === 'settings' || params.path.endsWith('/settings')) {
-      return `抱歉，您当前的角色（${roleLabel}）无权修改项目设置与团队分工，仅项目负责人可操作。`;
-    }
-  }
-
   return `抱歉，您当前的角色（${roleLabel}）无权访问此页面（${params.path}），请联系公司管理员。`;
 }
 
@@ -335,23 +196,36 @@ export function checkRoutePermission(params: RoutePermissionCheckParams): RouteP
     return { allowed: true, role: normRole, roleLabel };
   }
 
-  // 4. 全局页面守卫 (/workbench, /library, /jobs, /knowledge, /writing, /admin/rules)
-  if (route.kind === 'global') {
-    // 4.1 平台管理员隔离：不得访问业务数据页面
-    if (normRole === 'platform_admin' && PLATFORM_ADMIN_FORBIDDEN_ROUTES.has(route.routeId)) {
-      const reason = formatForbiddenReason({ role: normRole, path: targetPath, action });
+  // 3.5 公司详情挂在管理入口下（ISSUE-052）：需能进 admin.rules；公司管理员仅本公司
+  if (route.kind === 'company_detail') {
+    if (!sessionAllowsRoute(session, 'admin.rules')) {
       return {
         allowed: false,
         code: 'ROLE_FORBIDDEN',
         role: normRole,
         roleLabel,
-        reason,
+        reason: formatForbiddenReason({ role: normRole, path: targetPath, action }),
         contextInfo: { path: targetPath, roleName: roleLabel },
         suggestedAction: 'switch_role',
       };
     }
+    if (normRole === 'company_admin' && route.companyId !== session.user.company_id) {
+      return {
+        allowed: false,
+        code: 'ROUTE_NOT_FOUND',
+        role: normRole,
+        roleLabel,
+        reason: '未找到该公司。',
+        contextInfo: { path: targetPath, roleName: roleLabel },
+        suggestedAction: 'back_workbench',
+      };
+    }
+    return { allowed: true, role: normRole, roleLabel };
+  }
 
-    // 4.2 会话导航声明准入校验
+  // 4. 全局页面守卫 (/workbench, /library, /jobs, /knowledge, /writing, /admin/rules)
+  if (route.kind === 'global') {
+    // 4.1 会话导航声明准入校验
     if (!sessionAllowsRoute(session, route.routeId)) {
       const reason = formatForbiddenReason({ role: normRole, path: targetPath, action });
       return {
@@ -396,21 +270,8 @@ export function checkRoutePermission(params: RoutePermissionCheckParams): RouteP
 
   // 5. 项目工作区路由守卫 (/projects/:projectId/:tab)
   if (route.kind === 'project') {
-    // 5.1 平台管理员阻断：完全禁止访问项目业务数据
-    if (normRole === 'platform_admin') {
-      return {
-        allowed: false,
-        code: 'ROLE_FORBIDDEN',
-        role: normRole,
-        roleLabel,
-        reason: '抱歉，平台管理员不可访问项目业务内容与标书详情。',
-        contextInfo: { path: targetPath, roleName: roleLabel },
-        suggestedAction: 'switch_role',
-      };
-    }
-
-    // 5.2 跨公司数据隔离核验 (若工作区已加载)
-    if (workspace && workspace.project && workspace.project.company_id !== session.scope.active_company_id) {
+    // 5.1 跨公司数据隔离核验。平台超级管理员可以进入任何公司的项目。
+    if (normRole !== 'platform_admin' && workspace && workspace.project && workspace.project.company_id !== session.scope.active_company_id) {
       return {
         allowed: false,
         code: 'SCOPE_FORBIDDEN',

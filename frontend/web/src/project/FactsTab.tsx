@@ -48,7 +48,7 @@ export function FactsPage() {
     <>
       <div className="page-heading">
         <div>
-          <h2>项目事实表</h2>
+          <h2>项目事实</h2>
           <p>统一项目口径；服务承诺直接引用矩阵里的取值，修改后必须重新核对。</p>
         </div>
       </div>
@@ -91,7 +91,7 @@ export function FactsPage() {
                 <>
                   {item.source_type === 'sla' && (
                     <p>
-                      <a onClick={() => navigate('matrix')}>引用服务承诺矩阵（值只读）</a>
+                      <a onClick={() => navigate('analyze')}>引用服务承诺矩阵（值只读）</a>
                     </p>
                   )}
                   <SourceLink source={item.source} onClick={setSource} />

@@ -1,5 +1,5 @@
 // 为什么有这个文件：封装完善的项目列表与多维筛选页（ProjectListPage）。
-// 它解决什么问题：落实 APP-M2-T095，提供状态（筹备中/编写中/审核中/已完成）、涉密属性、分册状态多维筛选，列表项支持一键进入项目工作台和查看项目元数据抽屉（集成 MaskedField 脱敏展示与倒计时提醒）。
+// 它解决什么问题：落实 APP-M2-T095，提供状态与涉密属性筛选，列表项支持一键进入项目工作台和查看项目元数据抽屉（集成 MaskedField 脱敏展示与倒计时提醒）。
 
 import React, { useMemo, useState } from 'react';
 import {
@@ -13,6 +13,7 @@ import {
   Drawer,
   Empty,
   Input,
+  Modal,
   Progress,
   Radio,
   Row,
@@ -26,6 +27,7 @@ import {
 import {
   ClockCircleOutlined,
   EyeOutlined,
+  DeleteOutlined,
   FolderOpenOutlined,
   InfoCircleOutlined,
   LockOutlined,
@@ -33,9 +35,10 @@ import {
   SafetyCertificateOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
-import type { ApplicationSession, Project, Volume } from '../shared/types.ts';
-import { companyName, formatTime, volumeName } from '../app/context.tsx';
+import type { ApplicationSession, Project } from '../shared/types.ts';
+import { companyName, formatTime } from '../app/context.tsx';
 import { MaskedField } from '../admin/MaskedField.tsx';
+import { useCompanyDisplayName } from '../admin/use-company-display-name.ts';
 import { calculateProjectCountdown, formatCurrencyAmount } from './ProjectHeader.tsx';
 import { normalizeSystemRole, READONLY_SYSTEM_ROLES, type SystemRole } from '../shell/route-guard.ts';
 
@@ -64,9 +67,11 @@ export {
 export interface ProjectListPageProps {
   projects: Project[];
   onOpenProject: (projectId: string) => void;
+  onDeleteProject?: (projectId: string) => Promise<void> | void;
   session?: ApplicationSession | null;
   currentUser?: { id: string; name: string; company_id: string } | null;
   userRole?: string;
+  token?: string | null;
   onRefresh?: () => void;
   className?: string;
 }
@@ -77,19 +82,22 @@ export interface ProjectListPageProps {
 export function ProjectListPage({
   projects,
   onOpenProject,
+  onDeleteProject,
   session = null,
   currentUser = null,
   userRole,
+  token = null,
   className = '',
 }: ProjectListPageProps) {
   // 1. 筛选条件状态
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState<ProjectStatusKey>('all');
   const [sensitive, setSensitive] = useState<SensitiveFilterKey>('all');
-  const [volumeStatus, setVolumeStatus] = useState<VolumeStatusFilterKey>('all');
 
   // 2. 元数据抽屉状态
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const drawerCompanyId = selectedProject?.company_id || currentUser?.company_id || null;
+  const companyDisplayName = useCompanyDisplayName(drawerCompanyId, token);
 
   // 3. 权限判断
   const effectiveRole =
@@ -106,9 +114,9 @@ export function ProjectListPage({
       keyword,
       status,
       sensitive,
-      volumeStatus,
+      volumeStatus: 'all',
     });
-  }, [projects, keyword, status, sensitive, volumeStatus]);
+  }, [projects, keyword, status, sensitive]);
 
   // 5. 统计卡片指标
   const statistics = useMemo(() => {
@@ -172,8 +180,7 @@ export function ProjectListPage({
         data-testid="project-filter-card"
       >
         <Row gutter={[16, 12]} align="middle">
-          {/* 关键字搜索 */}
-          <Col xs={24} sm={12} md={6}>
+          <Col xs={24} sm={12} md={8}>
             <Input
               prefix={<SearchOutlined style={{ color: '#8c8c8c' }} />}
               placeholder="搜索项目名称 / 招标编号"
@@ -185,8 +192,7 @@ export function ProjectListPage({
             />
           </Col>
 
-          {/* 状态筛选 */}
-          <Col xs={24} sm={12} md={6}>
+          <Col xs={24} sm={12} md={8}>
             <Space direction="horizontal" size={6} style={{ width: '100%' }}>
               <span style={{ fontSize: 13, color: '#4e5969', whiteSpace: 'nowrap' }}>状态:</span>
               <Select
@@ -206,8 +212,7 @@ export function ProjectListPage({
             </Space>
           </Col>
 
-          {/* 涉密属性筛选 */}
-          <Col xs={24} sm={12} md={6}>
+          <Col xs={24} sm={12} md={8}>
             <Space direction="horizontal" size={6} style={{ width: '100%' }}>
               <span style={{ fontSize: 13, color: '#4e5969', whiteSpace: 'nowrap' }}>属性:</span>
               <Select
@@ -220,26 +225,6 @@ export function ProjectListPage({
                   { value: 'all', label: '全部属性' },
                   { value: 'sensitive', label: '涉密项目 (本地)' },
                   { value: 'normal', label: '普通项目' },
-                ]}
-              />
-            </Space>
-          </Col>
-
-          {/* 分册状态筛选 */}
-          <Col xs={24} sm={12} md={6}>
-            <Space direction="horizontal" size={6} style={{ width: '100%' }}>
-              <span style={{ fontSize: 13, color: '#4e5969', whiteSpace: 'nowrap' }}>分册:</span>
-              <Select
-                value={volumeStatus}
-                onChange={setVolumeStatus}
-                style={{ width: '100%', minWidth: 130 }}
-                aria-label="按分册状态筛选"
-                data-testid="volume-status-filter-select"
-                options={[
-                  { value: 'all', label: '全部分册状态' },
-                  { value: 'technical_pending', label: '技术分册待写' },
-                  { value: 'business_pending', label: '商务分册待写' },
-                  { value: 'both_done', label: '两册已提交完成' },
                 ]}
               />
             </Space>
@@ -263,12 +248,14 @@ export function ProjectListPage({
           rowKey="id"
           dataSource={filteredList}
           pagination={{ pageSize: 8, showTotal: t => `共 ${t} 个项目` }}
+          scroll={{ x: 'max-content' }}
           locale={{ emptyText: <Empty description="暂无符合筛选条件的项目" /> }}
           columns={[
             {
               title: '项目名称',
               dataIndex: 'name',
               key: 'name',
+              ellipsis: true,
               render: (name: string, record: Project) => (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <a
@@ -354,24 +341,6 @@ export function ProjectListPage({
               },
             },
             {
-              title: '分册进度',
-              key: 'volumes',
-              width: 150,
-              render: (_: unknown, record: Project) => {
-                const vStatus = deriveVolumeStatus(record);
-                return (
-                  <Space size={4}>
-                    <Tag color={vStatus.technical === 'completed' ? 'green' : 'blue'}>
-                      技: {vStatus.technical === 'completed' ? '已提交' : '编写中'}
-                    </Tag>
-                    <Tag color={vStatus.business === 'completed' ? 'green' : 'blue'}>
-                      商: {vStatus.business === 'completed' ? '已提交' : '编写中'}
-                    </Tag>
-                  </Space>
-                );
-              },
-            },
-            {
               title: '操作',
               key: 'actions',
               width: 170,
@@ -394,6 +363,25 @@ export function ProjectListPage({
                   >
                     元数据
                   </Button>
+                  {onDeleteProject && !isReadonlyMember && (
+                    <Button
+                      type="link"
+                      size="small"
+                      danger
+                      icon={<DeleteOutlined />}
+                      data-testid={`delete-project-btn-${record.id}`}
+                      onClick={() => Modal.confirm({
+                        title: `删除「${record.name}」`,
+                        content: '删除后不再出现在工作台。',
+                        okText: '删除',
+                        okButtonProps: { danger: true },
+                        cancelText: '取消',
+                        onOk: () => onDeleteProject(record.id),
+                      })}
+                    >
+                      删除
+                    </Button>
+                  )}
                 </Space>
               ),
             },
@@ -458,7 +446,7 @@ export function ProjectListPage({
                 {selectedProject.tender_number || '未填写'}
               </Descriptions.Item>
               <Descriptions.Item label="投标主体">
-                {companyName(selectedProject.company_id || currentUser?.company_id || 'alpha')}
+                {companyName(selectedProject.company_id || currentUser?.company_id || 'alpha', companyDisplayName)}
               </Descriptions.Item>
               <Descriptions.Item label="涉密属性">
                 {selectedProject.sensitive ? (
@@ -507,20 +495,6 @@ export function ProjectListPage({
               </Descriptions.Item>
             </Descriptions>
 
-            <Divider style={{ margin: '16px 0' }} />
-
-            <Descriptions title="分册编制概览" column={1} bordered size="small">
-              <Descriptions.Item label="技术分册 (Technical)">
-                <Tag color={selectedProject.volumes_status?.technical === 'completed' ? 'green' : 'blue'}>
-                  {selectedProject.volumes_status?.technical === 'completed' ? '已提交正式稿' : '编写中'}
-                </Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="商务分册 (Business)">
-                <Tag color={selectedProject.volumes_status?.business === 'completed' ? 'green' : 'blue'}>
-                  {selectedProject.volumes_status?.business === 'completed' ? '已提交正式稿' : '编写中'}
-                </Tag>
-              </Descriptions.Item>
-            </Descriptions>
           </div>
         )}
       </Drawer>

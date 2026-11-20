@@ -34,8 +34,8 @@ test('team payload preserves explicit owners and requires safe roles, unique mem
   assert.deepEqual(payload.volumes, [{ volume: 'technical', owner_id: 'tech' }, { volume: 'business', owner_id: 'biz' }]);
   assert.equal(payload.assembly_owner_id, 'biz');
   assert.equal(payload.reason, values.reason.trim());
-  assert.throws(() => teamPayload({ ...values, technical_owner_id: 'biz' }, accounts), /参与本册/);
-  assert.throws(() => teamPayload({ ...values, technical_owner_id: 'read' }, accounts), /参与本册/);
+  assert.throws(() => teamPayload({ ...values, technical_owner_id: 'biz' }, accounts), /参与本方案/);
+  assert.throws(() => teamPayload({ ...values, technical_owner_id: 'read' }, accounts), /参与本方案/);
   assert.throws(() => teamPayload({ ...values, assembly_owner_id: 'read' }, accounts), /可以编写/);
   assert.throws(() => teamPayload({ ...values, reason: '   ' }, accounts), /交接安排/);
   assert.throws(() => teamPayload({ ...values, members: members.slice(1) }, accounts), /至少保留/);
@@ -43,7 +43,7 @@ test('team payload preserves explicit owners and requires safe roles, unique mem
   assert.throws(() => teamPayload({ ...values, members: [...members, { user_id: 'unknown', project_role: 'writer', volumes: ['technical'] }] }, accounts), /同公司/);
   assert.throws(() => teamPayload({ ...values, members: members.map(member => member.user_id === 'read' ? { ...member, project_role: 'writer' } : member) }, accounts), /只读/);
   assert.throws(() => teamPayload({ ...values, members: members.map(member => member.user_id === 'tech' ? { ...member, project_role: 'lead' } : member) }, accounts), /公司经理/);
-  assert.throws(() => teamPayload({ ...values, members: members.map(member => member.user_id === 'tech' ? { ...member, volumes: [] } : member) }, accounts), /参与本册/);
+  assert.throws(() => teamPayload({ ...values, members: members.map(member => member.user_id === 'tech' ? { ...member, volumes: [] } : member) }, accounts), /参与本方案/);
 });
 
 test('optional participation can remain empty without granting volume owner or assignee rights', () => {

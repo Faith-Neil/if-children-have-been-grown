@@ -1,0 +1,9 @@
+.git
+.venv
+**/.venv
+**/node_modules
+frontend/web/dist
+backend/bid-core/data
+**/.env
+deploy/.env
+.cursor

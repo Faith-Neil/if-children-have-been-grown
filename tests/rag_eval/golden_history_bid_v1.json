@@ -1,0 +1,76 @@
+{
+  "version": "golden-history-bid-v1",
+  "note": "五份脱敏历史标书原件（docx）。relevant 为文档 id。查询短语均摘自原文，禁止臆造。评测只认真实 RAGFlow + history_bid 管道。",
+  "fixture_dir": "tests/backend/fixtures/history-bid-golden",
+  "documents": [
+    {
+      "id": "leshan",
+      "fixture": "leshan-oracle-response.docx",
+      "name": "乐山医院 Oracle 维保响应"
+    },
+    {
+      "id": "gansu",
+      "fixture": "gansu-nongxin-tech-response.docx",
+      "name": "甘肃农信数据库产品升级技术响应"
+    },
+    {
+      "id": "lutianhua",
+      "fixture": "lutianhua-db-ops-v2.3.docx",
+      "name": "泸天化数据库运维技术方案"
+    },
+    {
+      "id": "guiyang2025",
+      "fixture": "guiyang-bank-platform-2025.docx",
+      "name": "贵阳银行2025基础软件平台维保投标"
+    },
+    {
+      "id": "guiyang2024",
+      "fixture": "guiyang-bank-xinchuang-2024.docx",
+      "name": "贵阳银行2024信创基础软件采购响应"
+    }
+  ],
+  "queries": [
+    {"q": "季度深度巡检 HIS LIS PACS", "relevant": ["leshan"], "kind": "literal"},
+    {"q": "Oracle OEM优化工具安装配置", "relevant": ["leshan"], "kind": "literal"},
+    {"q": "每季度对HIS、LIS、PACS数据库作一次现场巡检", "relevant": ["leshan"], "kind": "literal"},
+    {"q": "医院 Oracle 数据库按季度到场巡检怎么做", "relevant": ["leshan"], "kind": "paraphrase"},
+    {"q": "OEM 原生优化分析工具如何给招标人安装", "relevant": ["leshan"], "kind": "paraphrase"},
+    {"q": "7×24小时故障响应 15分钟电话联系", "relevant": ["leshan"], "kind": "literal"},
+
+    {"q": "Real Application Clusters RAC", "relevant": ["gansu"], "kind": "literal"},
+    {"q": "Active Data Guard ADG", "relevant": ["gansu"], "kind": "literal"},
+    {"q": "MY ORACLE SUPPORT", "relevant": ["gansu"], "kind": "literal"},
+    {"q": "Database Enterprise Edition DBEE", "relevant": ["gansu"], "kind": "literal"},
+    {"q": "Oracle RAC 与 ADG 如何满足单位采购", "relevant": ["gansu"], "kind": "paraphrase"},
+    {"q": "官方电子支持平台 MOS 接入服务", "relevant": ["gansu"], "kind": "paraphrase"},
+
+    {"q": "泸天化集团数据库运维保障", "relevant": ["lutianhua"], "kind": "literal"},
+    {"q": "RMAN备份 0级备份 归档日志", "relevant": ["lutianhua"], "kind": "literal"},
+    {"q": "MySQL数据库SQL审核工具Yearning", "relevant": ["lutianhua"], "kind": "literal"},
+    {"q": "融科小e监控软件 日常自动巡检", "relevant": ["lutianhua"], "kind": "literal"},
+    {"q": "工作日每天对数据库作0级备份", "relevant": ["lutianhua"], "kind": "literal"},
+    {"q": "泸天化项目如何做 RMAN 备份与恢复演练", "relevant": ["lutianhua"], "kind": "paraphrase"},
+    {"q": "用 Yearning 做 MySQL SQL 审核", "relevant": ["lutianhua"], "kind": "paraphrase"},
+
+    {"q": "2025年贵阳银行基础软件平台维保", "relevant": ["guiyang2025"], "kind": "literal"},
+    {"q": "P52011520250008VU", "relevant": ["guiyang2025"], "kind": "literal"},
+    {"q": "ORACLE原厂全球解决方案中心 SSC 高级服务包", "relevant": ["guiyang2025"], "kind": "literal"},
+    {"q": "服务期限 2025年11月16日—2026年11月15日", "relevant": ["guiyang2025"], "kind": "literal"},
+    {"q": "贵阳银行基础平台软件一年维保服务期如何约定", "relevant": ["guiyang2025"], "kind": "paraphrase"},
+    {"q": "ORACLE SSC 高级服务包投标报价条目", "relevant": ["guiyang2025"], "kind": "paraphrase"},
+
+    {"q": "贵阳银行2024年信创基础软件采购", "relevant": ["guiyang2024"], "kind": "literal"},
+    {"q": "YGCQ-QC-2024-10-521-公", "relevant": ["guiyang2024"], "kind": "literal"},
+    {"q": "国产数据库品牌技术认证证书 达梦 人大金仓", "relevant": ["guiyang2024"], "kind": "literal"},
+    {"q": "信创中间件品牌技术认证证书", "relevant": ["guiyang2024"], "kind": "literal"},
+    {"q": "信创操作系统品牌技术认证", "relevant": ["guiyang2024"], "kind": "literal"},
+    {"q": "投标人需提供几种国产数据库认证", "relevant": ["guiyang2024"], "kind": "paraphrase"},
+    {"q": "信创基础软件采购评分中的中间件认证要求", "relevant": ["guiyang2024"], "kind": "paraphrase"},
+
+    {"q": "建筑工程施工总承包一级资质", "relevant": [], "kind": "negative"},
+    {"q": "食品经营许可证", "relevant": [], "kind": "negative"},
+    {"q": "注册结构工程师人员证书", "relevant": [], "kind": "negative"},
+    {"q": "桥梁隧道施工业绩", "relevant": [], "kind": "negative"},
+    {"q": "医疗器械经营许可证", "relevant": [], "kind": "negative"}
+  ]
+}

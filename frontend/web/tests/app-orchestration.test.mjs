@@ -31,11 +31,11 @@ assert.ok(historyEffect, 'the actual App history effect is exercised');
 const permissions = { manage_team: false, manage_project: false, manage_structure: false, prepare_sources: false, manage_sla: false, edit_facts: false, confirm_facts: false, check_all: false, export_internal: false, check_volumes: [], export_volumes: [] };
 const account = { id: 'alpha-editor', name: '合成编写人', company_id: 'alpha', role: 'editor', roles: ['bid_writer'], primary_role: 'bid_writer' };
 const session = () => ({
-  auth_mode: 'authenticated', role_mode: 'rbac-8roles', user: account,
+  auth_mode: 'authenticated', role_mode: 'rbac-3roles', user: account,
   scope: { kind: 'company', active_company_id: 'alpha', allowed_company_ids: ['alpha'] },
   navigation: [{ route_id: 'workbench', path: '/workbench', access: 'read' }, { route_id: 'library', path: '/library', access: 'write' }],
   allowedActions: ['projects.read', 'library.read', 'sla_templates.read'], home_path: '/workbench', session: { expires_at: null, renew_supported: false },
-  project_access: { id: 'p-one', revision: 1, route_permissions: ['project.editor', 'project.matrix'], permissions, chapters: [] },
+  project_access: { id: 'p-one', revision: 1, route_permissions: ['project.editor', 'project.analyze'], permissions, chapters: [] },
 });
 const workspace = () => ({ project: { id: 'p-one', company_id: 'alpha', name: '合成项目' }, revision: 1, permissions, chapters: [], requirements: [], facts: [], checks: [] });
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { resolve, promise }; };
@@ -58,7 +58,8 @@ function contextFor(names) {
   };
   context.modal.confirm = options => { context.confirmations.push(options); };
   context.message.error = value => { context.errors.push(value); };
-  for (const key of ['LibrarySnapshot', 'TemplatesSnapshot', 'Projects', 'Jobs', 'ApplicationSession', 'Token', 'User', 'Workspace', 'EditorDirty', 'CreateOpen', 'TaskDrawer', 'AccessLost', 'Denied', 'DeniedDetails', 'Loading', 'Missing', 'Nav', 'Tab', 'Busy', 'Notice', 'SourceAdvice', 'Lease', 'Versions', 'VersionsOpen']) {
+  context.sessionStorage = { getItem() { return null; }, setItem() {}, removeItem() {} };
+  for (const key of ['SessionBoot', 'LibrarySnapshot', 'TemplatesSnapshot', 'Projects', 'Jobs', 'ApplicationSession', 'Token', 'User', 'Workspace', 'EditorDirty', 'CreateOpen', 'TaskDrawer', 'AccessLost', 'Denied', 'DeniedDetails', 'Loading', 'Missing', 'Nav', 'Tab', 'Busy', 'Notice', 'SourceAdvice', 'Lease', 'Versions', 'VersionsOpen']) {
     context[`set${key}`] = value => {
       const name = key[0].toLowerCase() + key.slice(1);
       context[name] = typeof value === 'function' ? value(context[name]) : value;
@@ -138,7 +139,7 @@ for (const status of [500, 403]) test(`a failed ${status} page load retains dirt
   context.loadSession = async () => { const approved = session(); context.currentAuthorization.current = approved; return approved; };
   context.request = async () => { if (failure) throw new api.ApiError(status, 'WORKSPACE_FAILED', '合成工作区读取失败'); return workspace(); };
   context.logout = () => {};
-  const target = '/projects/p-one/matrix';
+  const target = '/projects/p-one/analyze';
   context.requestPath(target); assert.equal(context.confirmations.length, 1); context.confirmations[0].onOk(); await settle();
   assert.equal(context.tab, 'editor'); assert.equal(context.dirtyRef.current, true); assert.equal(context.armedLeave.current, false);
   assert.equal(context.window.location.pathname, target);
@@ -146,7 +147,7 @@ for (const status of [500, 403]) test(`a failed ${status} page load retains dirt
   assert.equal(context.confirmations.length, 2); assert.equal(context.tab, 'editor'); assert.equal(context.dirtyRef.current, true);
   context.confirmations[1].onCancel?.(); assert.equal(context.tab, 'editor');
   context.requestPath(target); context.confirmations[2].onOk(); await settle();
-  assert.equal(context.tab, 'matrix'); assert.equal(context.dirtyRef.current, false);
+  assert.equal(context.tab, 'analyze'); assert.equal(context.dirtyRef.current, false);
   assert.equal(context.window.history.entries.length, 2); assert.equal(context.indexRef.current, 1);
 });
 
@@ -155,7 +156,7 @@ test('after a failed push, back to the retained editor and canceled forward pres
   context.loadSession = async () => { const approved = session(); context.currentAuthorization.current = approved; return approved; };
   context.request = async () => { if (failure) throw new api.ApiError(500, 'WORKSPACE_FAILED', '合成读取失败'); return workspace(); };
   context.logout = () => {}; context.attachHistory();
-  context.requestPath('/projects/p-one/matrix'); context.confirmations[0].onOk(); await settle();
+  context.requestPath('/projects/p-one/analyze'); context.confirmations[0].onOk(); await settle();
   failure = false; context.window.history.go(-1); await settle();
   assert.equal(context.window.location.pathname, '/projects/p-one/editor'); assert.equal(context.confirmations.length, 1);
   assert.equal(context.indexRef.current, 0); assert.equal(context.tab, 'editor'); assert.equal(context.dirtyRef.current, true);
@@ -165,7 +166,7 @@ test('after a failed push, back to the retained editor and canceled forward pres
   context.window.history.go(1); await settle(); assert.equal(context.confirmations.length, 3);
   context.confirmations[2].onOk(); await settle();
   assert.equal(context.window.history.position, 1); assert.equal(context.indexRef.current, 1);
-  assert.equal(context.tab, 'matrix'); assert.equal(context.dirtyRef.current, false); assert.equal(context.window.history.entries.length, 2);
+  assert.equal(context.tab, 'analyze'); assert.equal(context.dirtyRef.current, false); assert.equal(context.window.history.entries.length, 2);
 });
 
 test('a confirmed forward that fails keeps the displayed editor and its next retry remains guarded', async () => {
@@ -173,17 +174,17 @@ test('a confirmed forward that fails keeps the displayed editor and its next ret
   context.loadSession = async () => { const approved = session(); context.currentAuthorization.current = approved; return approved; };
   context.request = async () => { if (failure) throw new api.ApiError(500, 'WORKSPACE_FAILED', '合成前进读取失败'); return workspace(); };
   context.logout = () => {}; context.attachHistory();
-  context.requestPath('/projects/p-one/matrix'); context.confirmations[0].onOk(); await settle();
+  context.requestPath('/projects/p-one/analyze'); context.confirmations[0].onOk(); await settle();
   failure = false; context.window.history.go(-1); await settle();
   failure = true; context.window.history.go(1); await settle(); context.confirmations[1].onOk(); await settle();
   assert.equal(context.window.history.position, 1); assert.equal(context.indexRef.current, 1);
   assert.equal(context.tab, 'editor'); assert.equal(context.dirtyRef.current, true); assert.equal(context.displayedPathRef.current, '/projects/p-one/editor');
-  context.requestPath('/projects/p-one/matrix'); assert.equal(context.confirmations.length, 3); context.confirmations[2].onCancel?.();
+  context.requestPath('/projects/p-one/analyze'); assert.equal(context.confirmations.length, 3); context.confirmations[2].onCancel?.();
   assert.equal(context.tab, 'editor'); assert.equal(context.dirtyRef.current, true); assert.equal(context.window.history.entries.length, 2);
   failure = false; context.window.history.go(-1); await settle();
   assert.equal(context.window.history.position, 0); assert.equal(context.indexRef.current, 0); assert.equal(context.confirmations.length, 3);
   context.window.history.go(1); await settle(); context.confirmations[3].onOk(); await settle();
-  assert.equal(context.tab, 'matrix'); assert.equal(context.dirtyRef.current, false); assert.equal(context.window.history.entries.length, 2);
+  assert.equal(context.tab, 'analyze'); assert.equal(context.dirtyRef.current, false); assert.equal(context.window.history.entries.length, 2);
 });
 
 test('an old mutation 403 cannot reload or freeze the new account project', async t => {

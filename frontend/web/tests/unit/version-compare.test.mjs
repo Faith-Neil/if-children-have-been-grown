@@ -28,7 +28,7 @@ test('version mode labels and rollback blockers', () => {
   assert.equal(versionModeLabel({ ...older, source: 'chapter_loop' }), '章节循环修正');
   assert.equal(versionModeLabel(older), '手改');
   assert.equal(rollbackBlocker({ held: true, isCurrent: false, dirty: false, system: false }), null);
-  assert.match(rollbackBlocker({ held: false, isCurrent: false, dirty: false, system: false }), /编辑权/);
+  assert.match(rollbackBlocker({ held: false, isCurrent: false, dirty: false, system: false }), /接通/);
   assert.match(rollbackBlocker({ held: true, isCurrent: false, dirty: true, system: false }), /未提交/);
   assert.match(rollbackBlocker({ held: true, isCurrent: false, dirty: false, system: true }), /系统生成/);
 });

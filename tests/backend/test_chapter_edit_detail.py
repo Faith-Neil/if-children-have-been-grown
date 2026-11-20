@@ -197,7 +197,7 @@ def test_eight_roles_read_only_viewer_can_get_but_cannot_write(client: TestClien
     # 2. 只读角色试图取得编辑锁 -> 403 FORBIDDEN 拦截
     lock_attempt = client.post("/api/v1/chapters/alpha-tech/lock", headers=viewer_headers, json={"takeover_reason": None})
     assert lock_attempt.status_code == 403
-    assert lock_attempt.json()["code"] == "FORBIDDEN"
+    assert lock_attempt.json()["code"] == "CHAPTER_EDITOR_REQUIRED"
 
 
 def test_stored_structured_paragraphs_takes_precedence(client: TestClient):

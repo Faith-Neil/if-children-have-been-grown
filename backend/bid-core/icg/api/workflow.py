@@ -5,6 +5,8 @@ from typing import Any, Literal
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Header, Query, Request, Response
+from fastapi.concurrency import iterate_in_threadpool
+from fastapi.responses import StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
 from icg.api.raw_upload import RAW_BODY_DOC, read_limited_body
@@ -36,6 +38,23 @@ from icg.domain.workflow_schemas import (BatchConfirmRequest, ParseReview, Check
                                AcceptAiSuggestionRequest, ComplianceCrossCheckRequest,
                                ComplianceCrossCheckResponse, SnippetMatchRequest,
                                SnippetMatchResponse, BatchGenerateChaptersRequest)
+
+
+STREAM_SECTION_DESCRIPTION = (
+    "按确认目录逐节生成技术正文，以 text/event-stream 推送。事件名与 data JSON 的 event 相同。"
+    "sections.fanout 的 concurrency 是同时生成的上限（3），section_ids 是本次叶子 id（task_id，否则 requirement_id，否则编号）。"
+    "section.started 带 section_id 和 title。section.delta 的 text 是本次新增，不是累计全文。"
+    "section.done 的 text 是这一节要落盘的全文。section.failed 带 message。section.cancelled 表示这一节不改原文。"
+    "volume.done 带 chapter_id、revision、failed、replay。replay 为 true 时是同一 Idempotency-Key 的重放，没有 delta。"
+    "volume.cancelled 表示取消后本次没有写入章节。volume.failed 带 message。"
+    "task.patched 带 task_id、generation_status（generating、generated、failed），可带 stage（retrieve、deviate、write_section）、"
+    "section_title、response_status 与 response_types（requirement_id 到 comply、exceed、deviate、not_applicable）；"
+    "同一任务按到达顺序合并，供覆盖视图实时更新行。"
+    "权限、If-Match 和 Idempotency-Key 与 generateProject 相同。核对失败在推送前按 HTTP 状态返回。"
+    "生成登记为后台任务（type=technical_volume，sections 为已完成 done/total 节），第一条事件 session.started 带 job_id；"
+    "同一项目已有进行中的会话时回到该会话，先重放积压再发 session.live。断开连接只结束订阅，不取消生成；"
+    "停止用 cancelJob，重新订阅用 streamTechnicalVolumeSession。"
+)
 
 
 def include_workflow_routes(application, service, current_user, parser):
@@ -84,6 +103,22 @@ def include_workflow_routes(application, service, current_user, parser):
                 operation_id="getWritingInput")
     def writing_input(project_id: str, chapter_id: str, user: Principal = Depends(current_user)):
         return workflow.writing_input(user, project_id, chapter_id)
+
+    @router.post(
+        "/projects/{project_id}/chapters/{chapter_id}/history-commitment-notice/dismiss",
+        operation_id="dismissHistoryCommitmentNotice",
+        include_in_schema=False,
+    )
+    def dismiss_history_commitment_notice(
+        project_id: str,
+        chapter_id: str,
+        body: dict[str, Any],
+        user: Principal = Depends(current_user),
+    ):
+        snapshot_id = str((body or {}).get("snapshot_id") or "")
+        return service.chapter_generation.dismiss_history_commitment_notice(
+            project_id, chapter_id, user, snapshot_id
+        )
 
     @router.get("/projects/{project_id}/chapters/{chapter_id}", response_model=ChapterEditDetail,
                 operation_id="getChapterEditDetail")
@@ -339,6 +374,36 @@ def include_workflow_routes(application, service, current_user, parser):
     def generate(project_id: str, body: GenerateRequest, user: Principal = Depends(current_user),
                  if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.generate(user, project_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/technical-volume/stream", response_class=StreamingResponse,
+                 operation_id="streamTechnicalVolume", summary="按节流式生成技术分册",
+                 description=STREAM_SECTION_DESCRIPTION,
+                 responses={200: {"description": "text/event-stream",
+                                  "content": {"text/event-stream": {"schema": {"type": "string"}}}}})
+    async def stream_technical(project_id: str, body: GenerateRequest, request: Request,
+                               user: Principal = Depends(current_user),
+                               if_match: str | None = Header(default=None),
+                               idempotency_key: str | None = Header(default=None, alias="Idempotency-Key",
+                                                                    description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        from icg.domain.technical_volume import format_section_sse
+        prepared = await run_in_threadpool(
+            workflow.prepare_technical_stream, user, project_id, body.model_dump(), if_match, idempotency_key,
+        )
+        if prepared.get("previous"):
+            frames = (format_section_sse(event) for event in workflow.iter_technical_stream(prepared))
+        else:
+            sessions = request.app.state.volume_sessions
+            frames = sessions.frames(await run_in_threadpool(sessions.start, prepared))
+
+        async def events():
+            # 断开只结束本次订阅：会话在后台继续，停止走 cancelJob
+            async for frame in iterate_in_threadpool(frames):
+                if await request.is_disconnected():
+                    break
+                if frame:
+                    yield frame
+
+        return StreamingResponse(events(), media_type="text/event-stream", headers={"X-Accel-Buffering": "no"})
 
     @router.get("/projects/{project_id}/chapters/{chapter_id}/system", operation_id="previewSystemChapter", response_model=dict[str, Any],
                 summary="系统生成章节预览（点对点应答/评审索引/偏离表/年度服务计划/证明材料清单）")

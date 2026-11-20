@@ -60,3 +60,8 @@ def include_project_routes(application, service: DemoService, current_user) -> N
                      responses=v1_error_responses(401, 404))
     def get_v1_project(project_id: str, user: User):
         return service.project(user, project_id)
+
+    @application.delete("/api/v1/projects/{project_id}", response_model=ProjectResponse, operation_id="deleteV1Project",
+                        responses=v1_error_responses(401, 403, 404))
+    def delete_v1_project(project_id: str, user: User):
+        return service.delete_project(user, project_id)

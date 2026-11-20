@@ -1,7 +1,7 @@
 // 为什么有这个文件：提取正文划词选择与 AI 交互气泡状态机（useSelectionBubble）。
 // 它解决什么问题：解耦选区坐标计算、浮动气泡可见性、润色与合规问答派发及选区清理，降低 EditorPage 行数。
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export interface SelectionBubbleState {
   visible: boolean;
@@ -81,6 +81,31 @@ export function useSelectionBubble({
     onComplianceQa(selectedText);
     setSelectionBubble(prev => ({ ...prev, visible: false }));
   };
+
+  // 键盘划选不会触发 mouseup；选区落在正文里时同样打开气泡。
+  useEffect(() => {
+    const show = () => {
+      const root = editorWrapperRef.current;
+      const winSel = window.getSelection();
+      if (!root || !winSel?.anchorNode || !root.contains(winSel.anchorNode)) return;
+      const selText = winSel.toString() || '';
+      if (!selText.trim()) return;
+      const range = winSel.rangeCount ? winSel.getRangeAt(0) : null;
+      const rect = range?.getBoundingClientRect();
+      const wrapperRect = root.getBoundingClientRect();
+      if (!rect || !wrapperRect || rect.width + rect.height <= 0) return;
+      setSelectionBubble({
+        visible: true,
+        position: {
+          top: Math.max(10, rect.top - wrapperRect.top - 8),
+          left: Math.max(16, rect.left - wrapperRect.left + rect.width / 2),
+        },
+        text: selText,
+      });
+    };
+    document.addEventListener('selectionchange', show);
+    return () => document.removeEventListener('selectionchange', show);
+  }, []);
 
   // 5. 气泡清理与取消选区
   const handleBubbleClear = () => {

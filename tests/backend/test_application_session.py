@@ -27,12 +27,12 @@ def login(client, identity="alpha-manager"):
 
 
 @pytest.mark.parametrize("identity,role,routes,actions", [
-    ("alpha-manager", "project_lead", {"workbench", "library", "knowledge", "writing", "admin.rules", "jobs", "notifications"},
-     {"projects.read", "library.read", "sla_templates.read", "jobs.read", "library.write", "projects.create", "sla_templates.write"}),
-    ("alpha-editor", "bid_writer", {"workbench", "library", "knowledge", "writing", "jobs", "notifications"},
-     {"projects.read", "library.read", "sla_templates.read", "jobs.read", "library.write"}),
-    ("alpha-viewer", "viewer", {"workbench", "library", "knowledge", "jobs", "notifications"},
-     {"projects.read", "library.read", "sla_templates.read", "jobs.read"}),
+    ("alpha-manager", "member", {"workbench", "library", "knowledge", "writing", "jobs", "notifications"},
+     {"projects.read", "projects.create", "library.read", "library.write", "sla_templates.read", "jobs.read"}),
+    ("alpha-editor", "member", {"workbench", "library", "knowledge", "writing", "jobs", "notifications"},
+     {"projects.read", "projects.create", "library.read", "library.write", "sla_templates.read", "jobs.read"}),
+    ("alpha-viewer", "member", {"workbench", "library", "knowledge", "writing", "jobs", "notifications"},
+     {"projects.read", "projects.create", "library.read", "library.write", "sla_templates.read", "jobs.read"}),
 ])
 def test_session_returns_only_server_identity_and_explicit_compat_mode(setup, identity, role, routes, actions):
     client, repository = setup
@@ -42,7 +42,7 @@ def test_session_returns_only_server_identity_and_explicit_compat_mode(setup, id
     assert response.status_code == 200, response.text
     data = response.json()
     assert data["auth_mode"] == "authenticated"
-    assert data["role_mode"] == "rbac-8roles"
+    assert data["role_mode"] == "rbac-3roles"
     assert data["user"]["id"] == identity
     assert data["user"]["role"] == before.accounts[identity].role
     assert data["user"]["roles"] == [role]
@@ -152,13 +152,11 @@ def test_session_reloads_changed_role_and_ignores_the_old_principal(setup):
     response = client.get("/api/v1/session?project_id=alpha-project", headers=headers)
     assert response.status_code == 200, response.text
     data = response.json()
-    assert data["user"]["roles"] == ["viewer"]
-    assert "projects.create" not in data["allowedActions"]
+    assert data["user"]["roles"] == ["member"]
+    assert data["user"]["role"] == "viewer"
+    assert "projects.create" in data["allowedActions"]
     assert "admin.rules" not in {item["route_id"] for item in data["navigation"]}
-    assert not data["project_access"]["permissions"]["manage_team"]
-    assert all(not chapter["permissions"]["edit"] for chapter in data["project_access"]["chapters"])
-    assert "project.export" not in data["project_access"]["route_permissions"]
-    assert get_application_session(service, stale)["user"]["roles"] == ["viewer"]
+    assert get_application_session(service, stale)["user"]["roles"] == ["member"]
 
 
 def test_removed_membership_is_denied_with_existing_token(setup):
@@ -203,17 +201,15 @@ def test_revoked_token_or_account_is_rejected_on_next_request(setup, remove_acco
     assert response.status_code == 401
 
 
-def test_original_eight_role_navigation_definition_is_explicit_and_does_not_grant_platform_business_access():
-    assert set(ROLE_NAVIGATION) == {"platform_admin", "group_admin", "company_admin", "data_admin",
-                                    "project_lead", "bid_writer", "reviewer", "readonly"}
-    platform = {item["route_id"] for item in navigation_for_roles(["platform_admin"])}
-    assert platform == {"platform", "platform.audit", "jobs", "notifications"}  # 站内提醒人人都有（PRD §5.12.2）
-    for role in ("readonly", "reviewer"):
-        routes = {item["route_id"] for item in navigation_for_roles([role])}
-        assert "writing" not in routes and "admin" not in routes and "platform" not in routes
-    assert all(item["access"] == "read" for item in navigation_for_roles(["group_admin"]))
-    union = {item["route_id"]: item["access"] for item in navigation_for_roles(["bid_writer", "company_admin"])}
-    assert union["writing"] == "write" and union["admin"] == "write"
+def test_three_role_navigation_definition_gives_platform_admin_every_entry():
+    assert set(ROLE_NAVIGATION) == {"platform_admin", "company_admin", "member"}
+    platform = {item["route_id"]: item["access"] for item in navigation_for_roles(["platform_admin"])}
+    assert {"workbench", "library", "knowledge", "writing", "admin.rules", "jobs"} <= set(platform)
+    assert platform["workbench"] == "write" and platform["library"] == "write"
+    member = {item["route_id"]: item["access"] for item in navigation_for_roles(["member"])}
+    assert member["writing"] == "read" and "admin.rules" not in member and "platform" not in member
+    company = {item["route_id"]: item["access"] for item in navigation_for_roles(["company_admin"])}
+    assert company["writing"] == "write" and company["admin.rules"] == "write"
     with pytest.raises(Exception) as raised:
         navigation_for_roles(["invented_admin"])
     assert raised.value.status == 403
@@ -255,13 +251,13 @@ def test_product_paths_serve_the_shell_and_unknown_api_stays_json(setup):
 
 
 @pytest.mark.parametrize("identity,role,writable", [
-    ("alpha-company-admin", "company_admin", True), ("alpha-data-admin", "data_admin", True),
-    ("alpha-auditor", "auditor", False),
+    ("alpha-company-admin", "company_admin", True), ("alpha-data-admin", "member", True),
+    ("alpha-auditor", "member", True),
 ])
-def test_eight_role_accounts_get_production_sessions(setup, identity, role, writable):
+def test_legacy_accounts_get_three_role_sessions(setup, identity, role, writable):
     client, _ = setup
     data = client.get("/api/v1/session", headers=login(client, identity)).json()
-    assert data["auth_mode"] == "authenticated" and data["role_mode"] == "rbac-8roles"
+    assert data["auth_mode"] == "authenticated" and data["role_mode"] == "rbac-3roles"
     assert data["user"]["primary_role"] == role
     assert ("library.write" in data["allowedActions"]) is writable
 

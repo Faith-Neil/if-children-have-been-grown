@@ -38,7 +38,7 @@ def test_export_uses_the_tender_format(client):
     evidence = flow.library()
     for row in flow.state()["requirements"]:
         chapter = next(c for c in chapters if c["volume"] == row["volume"])
-        flow.write("/requirements/" + row["id"], {"chapter_id": chapter["id"], "response": "经核对满足要求。",
+        flow.write("/requirements/" + row["id"], {"chapter_id": chapter["id"],
                    "evidence_ids": [evidence["id"]] if row["volume"] == "business" else []}, "PATCH")
     flow.confirm_plan({"chapters": [{"id": c["id"], "title": c["title"], "volume": c["volume"]} for c in chapters]})
     for chapter in flow.state()["chapters"]:

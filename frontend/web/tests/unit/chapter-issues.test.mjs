@@ -63,7 +63,7 @@ test('4. 检查页带来的定位只对目标章节生效一次', () => {
   assert.equal(takeIssueFocus('c-1'), null);
 });
 
-test('5. 页面接线：问题页签用新清单，正文段落带标记，检查页定位进入章节', async () => {
+test('5. 页面接线：问题页签用新清单，正文用纸面，检查页定位进入章节', async () => {
   const calls = [];
   await core.fetchChapterIssues('p 1', 'c/2', 'tok', async (p, t) => { calls.push([p, t]); return {}; });
   assert.deepEqual(calls, [['/api/v1/projects/p%201/chapters/c%2F2/issues', 'tok']]);
@@ -71,8 +71,8 @@ test('5. 页面接线：问题页签用新清单，正文段落带标记，检�
   assert.ok(panel.includes("{rightTab === 'issues' && issuesPanel}"));
   assert.ok(!panel.includes('workspace.checks[workspace.checks.length - 1]'));
   const page = read('../../src/editor/EditorPage.tsx');
-  assert.equal((page.match(/issueMarkers=\{issues\.markers\}/g) ?? []).length, 2);
-  assert.ok(page.includes('ref={textareaRef}'));
+  assert.ok(page.includes('<PaperEditor'));
+  assert.ok(page.includes('lock.markActivity()'));
   const renderer = read('../../src/editor/CiteCapsule.tsx');
   assert.ok(renderer.includes('data-testid="paragraph-issue-marker"') && renderer.includes("'paragraph-focused'"));
   const checks = read('../../src/project/ProjectPages.tsx');

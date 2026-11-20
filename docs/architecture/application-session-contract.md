@@ -4,7 +4,7 @@
 
 # 应用会话与导航契约
 
-维护日期：2026-10-22；版本：application-foundation-2（DOC-SYNC-1 与 WP-6 会话演进）。关联 ISSUE-009 / WP-6。会话身份规则是本契约的主体；系统已实现正式凭据认证、八角色单源收口与演示模式关闸。实际接口说明从后台代码自动化导出到 `spec/openapi/demo-v1.json` 并受 CI 门禁保障。
+维护日期：2026-11-04；版本：application-foundation-3（ISSUE-048 三角色）。关联 ISSUE-009 / WP-6 / ISSUE-048。会话身份规则是本契约的主体。参考原文 PRD v1.8 的八角色不改写。活动会话改为三个登录角色。实际接口说明从后台代码自动化导出到 `spec/openapi/demo-v1.json`。
 
 ## 当前阶段入口
 
@@ -13,35 +13,31 @@
 响应：演示身份模式、当前账号、公司范围、原PRD角色映射、服务端允许的导航入口和动作、默认首页，以及会话续期是否可用。选项目时返回最小项目权限，不带正文、证据内容或任何人的草稿。当前演示会话没有真实到期/续期机制，明确返回`expires_at: null`、`renew_supported: false`，不能假设OIDC已接入。
 
 系统支持两种运行与认证模式，可通过环境变量与配置解耦：
-1. **演示模式（默认或 `VITE_DEMO=1`）**：支持演示账号快速登录，会话返回 `auth_mode: "synthetic-demo"` 与 `role_mode: "legacy-demo-compat"`；历史三角色映射为标准角色（`manager → project_lead`、`editor → bid_writer`、`viewer → viewer`）。
-2. **正式认证模式（`VITE_DEMO=0`）**：前端登录页仅展示正式 Access Token 凭据输入框；后端支持正式会话凭据核验，返回 `auth_mode: "authenticated"` 与 `role_mode: "rbac-8roles"`。在生产环境（`ICG_REQUIRE_MYSQL=1`）下，后端强行阻断演示账号登录。
-3. **八角色权威单源**：前端单一事实源收口至 `frontend/web/src/shared/roles.ts`（包含 `platform_admin`、`group_admin`、`company_admin`、`data_admin`、`project_lead`、`bid_writer`、`auditor`、`viewer` 8 大角色及其权限集），并通过 `shared/codes.ts` 单源驱动状态字典。
-4. **枚举一致性对齐说明**：经 WP-6 / 本轮治理收敛，前端 `RoleMode`、后端 `schemas.py` 与 OpenAPI 契约均统一为严格一致的 `["legacy-demo-compat", "rbac-8roles"]`，移除了历史过渡遗留的 `standard` 别名。
+1. **演示模式（`VITE_DEMO=1`）**：支持演示账号快速登录。正式会话仍返回 `auth_mode: "authenticated"` 与 `role_mode: "rbac-3roles"`。
+2. **正式认证模式（`VITE_DEMO` 未设置或为 0）**：登录走 Access Token。会话返回 `auth_mode: "authenticated"` 与 `role_mode: "rbac-3roles"`。生产环境（`ICG_REQUIRE_MYSQL=1`）阻断演示账号登录。
+3. **三个登录角色**：单源在 `frontend/web/src/shared/roles.ts` 与 `backend/bid-core/icg/domain/project_access.py`。登录角色是 `platform_admin`、`company_admin`、`member`。旧登录角色和别名收成 `member`。项目负责人是项目成员身份。
+4. **枚举**：`role_mode` 为 `rbac-3roles`。`ApplicationRole` 为上述三个登录角色。账号上保存的历史角色码仍可出现在 `user.role`，`primary_role` 使用归一化后的登录角色。
 
 | 返回字段 | 契约取值与说明 |
 |---|---|
 | `auth_mode` | `"synthetic-demo" | "authenticated"`，标识是合成演示会话还是正式凭据认证会话 |
-| `role_mode` | `"legacy-demo-compat" | "rbac-8roles"`，标识是旧三角色兼容还是标准 8 角色 RBAC 模型 |
+| `role_mode` | `"rbac-3roles"`，三个登录角色 |
 | `user` | 包含 `id`, `name`, `company_id`, `role`, `roles`, `primary_role`；响应不带令牌敏感信息 |
 | `scope` | `kind: company`、`active_company_id`、`allowed_company_ids`，只含身份实际所属公司 |
 | `navigation` | `route_id`、`path`、`access: read/write`；页面还检查入口与路径是否匹配 |
 | `allowedActions` | 当前粗粒度读写动作；导航与动作同时允许才读取对应公司数据 |
-| `home_path` | 当前`/workbench`。`/` 登录后进入该首页；已登记的全局路径和项目页签按地址打开 |
+| `home_path` | 平台管理员为 `/admin/rules`，其余为 `/workbench` |
 | `session` | `expires_at: null`、`renew_supported: false` |
 | `project_access`（可选） | 项目`id`、`revision`、`route_permissions`、项目`permissions`和章节`id/volume/permissions`；不含正文、证据或草稿 |
 
 ### 角色模型与权限说明
 
-在 **8 角色 RBAC 模型（`role_mode: rbac-8roles`，现行权威）** 下，各角色权限严格按 `frontend/web/src/shared/roles.ts` 规定的细粒度权限集与 `backend/bid-core/` 对应的业务守卫核验：
-- `platform_admin` / `group_admin` / `company_admin`：具备不同层级的组织治理、审计日志与配置权限；
-- `data_admin`：具备全量资料库读写、敏感字段解密查看与规则配置权限；
-- `project_lead`：具备项目创建、成员分工、章节分配、流程流转及审批权限；
-- `bid_writer`：具备分配章节的在线编写、AI 生成、批注与资料引用权限；
-- `auditor`：具备只读合规审查与审计记录权限；
-- `viewer`：具备获准项目的只读浏览权限。
+在 **三个登录角色（`role_mode: rbac-3roles`）** 下：
+- `platform_admin`：管理公司、用户和平台配置。打开投标项目正文、生成和导出得到 404。种子账号 `admin` 同样不能打开正文。
+- `company_admin`：管理本公司普通用户、知识库和本项目规则覆盖。可以建项目、确认分析并导出。不能建立平台管理员或其他公司管理员，也不能列出别的公司用户。
+- `member`：可以新建项目并完成上传、分析、编辑、导出。创建者成为该项目负责人。编写范围由项目成员身份决定。可以查看本公司知识库，不能上传、停用、删除或修改连接。
 
-在 **演示兼容模式（`role_mode: legacy-demo-compat`，向后兼容）** 下：
-旧版三种账号均可读取获准的项目、资料、服务模板和任务；`editor` / `manager` 保留旧资料写权限，`manager` 保留项目创建和服务模板写权限。`manager` 映射至 `project_lead`（仅限 `admin.rules` 只读，无跨租户管理入口）；`editor` 映射至 `bid_writer`；`viewer` 保持只读。所有导出与操作均按后台当前会话及资源权限计算。
+旧登录角色 `group_admin`、`data_admin`、`project_lead`、`bid_writer`、`auditor`、`viewer` 以及别名 `manager`、`editor`、`reviewer`、`readonly` 收成 `member`。没有公司归属的集团管理员仍因公司范围为空而不能进项目。参考原文的八角色定义不改。
 
 ## 失败与范围
 

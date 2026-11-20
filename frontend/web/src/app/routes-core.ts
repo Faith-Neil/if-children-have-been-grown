@@ -75,7 +75,7 @@ export function getRouteTitle(pathname: string): string {
   if (norm === '/' || norm === APP_ROUTES.PROJECTS || norm === APP_ROUTES.WORKBENCH) return '投标项目工作台';
   if (norm === APP_ROUTES.LOGIN) return '系统登录';
   if (norm === APP_ROUTES.LIBRARY) return '企业资料库';
-  if (norm === APP_ROUTES.KNOWLEDGE) return '知识库方案片段';
+  if (norm === APP_ROUTES.KNOWLEDGE) return '知识库';
   if (norm === APP_ROUTES.WRITING_ARCHIVE || norm === APP_ROUTES.WRITING) return '写作档案与风格规范';
   if (norm === APP_ROUTES.ADMIN || norm === APP_ROUTES.ADMIN_RULES) return '企业合规与审计中心';
   if (norm === APP_ROUTES.JOBS) return '后台异步任务中心';
@@ -86,14 +86,9 @@ export function getRouteTitle(pathname: string): string {
       const tabTitles: Record<string, string> = {
         overview: '项目概览',
         tender: '招标文件',
-        parse: '解析结果',
-        matrix: '响应矩阵',
-        facts: '项目事实表',
-        proposal: '生成方案',
+        analyze: '分析确认',
         editor: '方案编辑台',
-        manual: '人工处理队列',
-        checks: '合规检查中心',
-        export: '整本导出',
+        export: '检查与导出',
         settings: '项目设置',
       };
       return tabTitles[route.tab] ?? '项目工作区';

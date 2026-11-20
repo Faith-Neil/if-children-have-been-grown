@@ -256,7 +256,7 @@ def test_role_update_super_admin_protection_and_cannot_demote_self(client: TestC
         json={"role": "project_lead"},
     )
     assert res_role1.status_code == 200
-    assert res_role1.json()["role"] == "project_lead"
+    assert res_role1.json()["role"] == "member"
 
     # 2. 传入非法角色代码 -> 422 VALIDATION_ERROR
     res_invalid = client.patch(
@@ -301,4 +301,4 @@ def test_role_update_super_admin_protection_and_cannot_demote_self(client: TestC
         json={"role": "auditor"},
     )
     assert res_super_change.status_code == 200
-    assert res_super_change.json()["role"] == "auditor"
+    assert res_super_change.json()["role"] == "member"

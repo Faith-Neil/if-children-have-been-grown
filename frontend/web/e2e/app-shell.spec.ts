@@ -1,6 +1,7 @@
 // 为什么有这个文件：在真实浏览器验证APP-M2-T001的布局断点、地址路由和未保存离开保护。
 // 它解决什么问题：纯函数测试不能证明浏览器返回、刷新和弹窗确实保留地址与文字；只用合成账号和内存数据。
 import { expect, test, type Page } from '@playwright/test';
+import { paper } from './paper.ts';
 import { mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -32,22 +33,17 @@ async function tab(page: Page, name: string) {
 
 async function dirtyEditor(page: Page) {
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
-  const lease = page.getByRole('button', { name: '取得编辑权' }).first();
-  const held = page.getByRole('button', { name: '释放编辑权' });
-  await expect(lease.or(held)).toBeVisible();
-  const takeover = page.getByRole('button', { name: '填写理由接管' });
-  if (await takeover.isVisible()) {
-    // 前一个用例的浏览器会话仍持有编辑权；按产品流程填写理由接管，不绕过后台。
-    await takeover.click();
-    await page.getByLabel('接管理由').fill('E2E用例切换会话，合成数据');
-    await page.getByRole('button', { name: '填写理由并接管' }).click();
-  } else if (await lease.isVisible()) await lease.click();
-  await expect(page.getByRole('button', { name: '释放编辑权' })).toBeVisible();
-  const box = page.locator('textarea.chapter-editor');
+  const conflict = page.getByTestId('conflict-discard-btn');
+  if (await conflict.waitFor({ state: 'visible', timeout: 1_500 }).then(() => true).catch(() => false)) {
+    await conflict.click();
+    await expect(conflict).toBeHidden();
+  }
+  await expect(page.getByTestId('paper-editor-held')).toBeVisible();
+  const box = paper(page);
   await box.click();
-  await page.keyboard.press('End');
+  await page.keyboard.press('Control+End');
   await page.keyboard.type(marker);
-  await expect(box).toHaveValue(new RegExp(marker));
+  await expect(box).toContainText(marker);
   return box;
 }
 
@@ -83,7 +79,7 @@ test('in-app navigation: cancel keeps URL/page/text, confirm leaves', async ({ p
   await expect(dialog(page)).toBeVisible();
   await cancelLeave(page);
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
-  await expect(box).toHaveValue(new RegExp(marker));
+  await expect(box).toContainText(marker);
   await tab(page, '概览');
   await page.getByRole('button', { name: '离开页面' }).click();
   await expect(page).toHaveURL(/\/projects\/alpha-project\/overview$/);
@@ -105,7 +101,7 @@ test('browser back: cancel keeps state, confirm leaves to previous page', async 
   await expect(dialog(page)).toBeVisible();
   await cancelLeave(page);
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
-  await expect(box).toHaveValue(new RegExp(marker));
+  await expect(box).toContainText(marker);
   await page.goBack();
   await expect(dialog(page)).toBeVisible();
   await page.getByRole('button', { name: '离开页面' }).click();
@@ -118,7 +114,7 @@ test('browser forward: cancel keeps URL/page/text', async ({ page }) => {
   await expect(dialog(page)).toBeVisible();
   await cancelLeave(page);
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
-  await expect(box).toHaveValue(new RegExp(marker));
+  await expect(box).toContainText(marker);
 });
 
 test('browser forward: confirm leaves to next page', async ({ page }) => {
@@ -129,10 +125,21 @@ test('browser forward: confirm leaves to next page', async ({ page }) => {
   await expect(page).toHaveURL(/\/projects\/alpha-project\/export$/);
 });
 
+async function keepDirty(page: Page) {
+  // 停止输入约 2 秒会自动保存，离开保护随之消失。下一步导航前再输入，保持未保存。
+  const box = paper(page);
+  await box.click();
+  await page.keyboard.press('Control+End');
+  await page.keyboard.type('。');
+  await expect(page.getByTestId('dirty-status-tag')).toBeVisible();
+  return box;
+}
+
 test('forward history remains after cancelling a forward', async ({ page }) => {
   await editorWithHistory(page);
   await page.goForward();
   await cancelLeave(page);
+  await keepDirty(page);
   await page.goForward();
   await expect(dialog(page)).toBeVisible({ timeout: 3_000 });
 });
@@ -141,6 +148,7 @@ test('back after a cancelled forward confirms to the previous page', async ({ pa
   await editorWithHistory(page);
   await page.goForward();
   await cancelLeave(page);
+  await keepDirty(page);
   await page.goBack();
   await expect(dialog(page)).toBeVisible();
   await page.getByRole('button', { name: '离开页面' }).click();
@@ -155,22 +163,25 @@ test('reload: dismiss keeps text; autosave keeps it as a personal draft after re
   await page.reload({ timeout: 5_000 }).catch(() => undefined);
   expect(seen).toBe(1);
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
-  await expect(box).toHaveValue(new RegExp(marker));
+  await expect(box).toContainText(marker);
   // 停止输入后自动保存为本人草稿（PRD §5.11.9，APP-M2-T172）：之后刷新不再丢字
-  await expect(page.getByTestId('editor-saved-at')).toContainText('自动');
+  await expect(page.getByTestId('editor-saved-at')).toContainText('自动', { timeout: 15_000 });
   page.once('dialog', d => { void d.accept(); });
   await page.reload();
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
+  // 会话保留在 sessionStorage：刷新后通常仍在编辑台，不必再登；仅在退回登录页时补登。
   const usernameInput = page.getByTestId('login-username-input');
   if (await usernameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
     await usernameInput.fill('alpha-manager');
     await page.getByTestId('login-password-input').fill('X_2026');
     await page.getByTestId('login-submit-button').click();
   } else {
-    await page.getByRole('button', { name: '进入工作台' }).click();
+    const legacyBtn = page.getByRole('button', { name: '进入工作台' });
+    if (await legacyBtn.isVisible({ timeout: 1000 }).catch(() => false)) await legacyBtn.click();
   }
+  await expect(page.getByRole('button', { name: '退出' })).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`${editor}$`));
-  await expect(page.locator('.chapter-editor-unheld-view, textarea.chapter-editor')).toContainText(marker);
+  await expect(paper(page)).toContainText(marker);
   // 草稿只是本人草稿，不是正式正文；用例结束删除，避免影响其他用例
   const auth = { Authorization: `Bearer ${(await (await request.post('/api/v1/auth/login', { data: { username: 'alpha-manager', password: 'X_2026' } })).json()).access_token}` };
   const workspace = await (await request.get('/api/v1/projects/alpha-project/workspace', { headers: auth })).json();
@@ -183,25 +194,32 @@ test('reload: dismiss keeps text; autosave keeps it as a personal draft after re
 
 test('back/forward routing across global and project pages', async ({ page }) => {
   await login(page, '/workbench');
-  await page.locator('.ant-pro-sider a[href="/library"]').click();
-  await expect(page).toHaveURL(/\/library$/);
+  await expect(page.getByTestId('enter-project-btn-alpha-project')).toBeVisible();
+  const sider = page.locator('.ant-pro-sider').first();
+  if (await sider.evaluate(element => element.classList.contains('ant-layout-sider-collapsed'))) {
+    await page.getByRole('button', { name: '收起或展开导航' }).click();
+    await expect(sider).not.toHaveClass(/ant-layout-sider-collapsed/);
+  }
+  await page.locator('.ant-pro-sider a[href="/knowledge"]').click();
+  await expect(page).toHaveURL(/\/knowledge$/);
   await page.locator('.ant-pro-sider a[href="/workbench"]').click();
-  await page.getByRole('button', { name: /进入(项目|工作台)/ }).first().click();
+  await expect(page).toHaveURL(/\/workbench$/);
+  await page.getByTestId('enter-project-btn-alpha-project').click();
   await expect(page).toHaveURL(/\/projects\/alpha-project\/[a-z]+$/);
   const projectUrl = page.url();
-  await tab(page, '响应矩阵');
-  await expect(page).toHaveURL(/\/matrix$/);
+  await tab(page, '覆盖视图');
+  await expect(page).toHaveURL(/\/analyze$/);
   await page.goBack();
   await expect(page).toHaveURL(projectUrl);
   await page.goBack();
   await expect(page).toHaveURL(/\/workbench$/);
   await page.goBack();
-  await expect(page).toHaveURL(/\/library$/);
+  await expect(page).toHaveURL(/\/knowledge$/);
   await page.goForward();
   await page.goForward();
   await page.goForward();
-  await expect(page).toHaveURL(/\/matrix$/);
-  await expect(page.getByRole('tab', { name: '响应矩阵', selected: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/analyze$/);
+  await expect(page.getByRole('tab', { name: '覆盖视图', selected: true })).toBeVisible();
 });
 
 test('light content keeps readable card backgrounds', async ({ page }) => {
@@ -244,7 +262,9 @@ test('collapsed sidebar expand control opens the menu at 1280/1440/1680 in light
       await expect(sider.first()).not.toHaveClass(/ant-layout-sider-collapsed/);
       await expect.poll(siderWidth).toBeGreaterThan(200);
       await expect(label()).toBeVisible();
-      await expect(page.getByRole('menuitem', { name: '企业资料库' })).toBeVisible();
+      await expect(page.getByRole('menuitem', { name: '知识库' })).toBeVisible();
+      await expect(page.getByRole('menuitem', { name: '企业资料库' })).toHaveCount(0);
+      await expect(page.getByRole('menuitem', { name: '写作档案' })).toHaveCount(0);
       await page.getByRole('button', { name: '退出' }).click();
     }
   }
@@ -292,10 +312,9 @@ test('overview steps, pending mark and editor meta meet 4.5:1', async ({ page })
   const circle = page.locator('.todo-circle').first();
   await expect(circle).toBeVisible();
   expect(await circle.evaluate(read)).toBeGreaterThanOrEqual(4.5);
-  const orangeTags = page.locator('.ant-tag-orange:visible, .ant-tag-gold:visible, .ant-tag-warning:visible');
-  expect(await orangeTags.count()).toBeGreaterThan(0);
-  const orangeRatios = await orangeTags.evaluateAll(readAll);
-  expect(Math.min(...orangeRatios)).toBeGreaterThanOrEqual(4.5);
+  const pendingMark = page.locator('.ant-steps-item-title').first();
+  await expect(pendingMark).toBeVisible();
+  expect(await pendingMark.evaluate(read)).toBeGreaterThanOrEqual(4.5);
   const steps = page.locator('.ant-steps-icon');
   expect(await steps.count()).toBeGreaterThan(0);
   const stepRatios = await steps.evaluateAll(readAll);

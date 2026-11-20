@@ -25,10 +25,13 @@ test('uploadRaw sends the file itself as the body with revision and idempotency 
   await assert.rejects(uploadRaw('/x', 'tok', blob), error => error.status === 413);
 });
 
-test('all three upload screens use the raw channel', () => {
-  for (const file of ['project/TenderTab.tsx', 'library/KnowledgeBaseAdminPage.tsx', 'library/CertificateImport.tsx']) {
+test('tender and knowledge uploads use the raw channel; certificate import stays off', () => {
+  for (const file of ['project/TenderTab.tsx', 'library/KnowledgeBaseAdminPage.tsx']) {
     const source = readFileSync(new URL(`../../src/${file}`, import.meta.url), 'utf8');
     assert.match(source, /uploadRaw/, file);
     assert.doesNotMatch(source, /content_base64/, file);
   }
+  const retired = readFileSync(new URL('../../src/library/CertificateImport.tsx', import.meta.url), 'utf8');
+  assert.match(retired, /证书附件识别已停用/);
+  assert.doesNotMatch(retired, /uploadRaw|content_base64/);
 });

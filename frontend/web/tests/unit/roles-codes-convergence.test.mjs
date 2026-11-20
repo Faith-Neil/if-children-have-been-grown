@@ -34,60 +34,37 @@ import {
   SessionNavigationError,
 } from '../../src/app/session-navigation.ts';
 
-test('roles.ts: single source of truth for 8 standard roles and labels', () => {
-  const expectedRoles = [
-    'platform_admin',
-    'group_admin',
-    'company_admin',
-    'data_admin',
-    'project_lead',
-    'bid_writer',
-    'auditor',
-    'viewer',
-  ];
-
-  for (const role of expectedRoles) {
+test('roles.ts: three login roles and legacy aliases', () => {
+  for (const role of ['platform_admin', 'company_admin', 'member']) {
     assert.ok(isKnownRole(role), `Role ${role} must be recognized`);
     assert.equal(normalizeSystemRole(role), role);
     assert.ok(SYSTEM_ROLE_LABELS[role], `Role ${role} must have a Chinese label`);
   }
+  assert.equal(Object.keys(SYSTEM_ROLES).length, 3);
 
-  // 历史别名双向归一化
-  assert.equal(normalizeSystemRole('manager'), 'project_lead');
-  assert.equal(normalizeSystemRole('editor'), 'bid_writer');
-  assert.equal(normalizeSystemRole('readonly'), 'viewer');
-  assert.equal(normalizeSystemRole('reviewer'), 'auditor');
-  assert.equal(normalizeSystemRole('writer'), 'bid_writer');
-  assert.equal(normalizeSystemRole('lead'), 'project_lead');
+  for (const legacy of ['group_admin', 'data_admin', 'project_lead', 'bid_writer', 'auditor', 'viewer', 'manager', 'editor', 'readonly', 'reviewer']) {
+    assert.ok(isKnownRole(legacy));
+    assert.equal(normalizeSystemRole(legacy), 'member');
+  }
 });
 
-test('roles.ts: permission sets align with PRD v1.8 §2.2 / §2.3', () => {
-  // 只读系统角色集合
-  assert.ok(isReadonlyRole('group_admin'));
-  assert.ok(isReadonlyRole('viewer'));
-  assert.ok(isReadonlyRole('auditor'));
-  assert.ok(isReadonlyRole('platform_admin'));
-  assert.ok(!isReadonlyRole('project_lead'));
-  assert.ok(!isReadonlyRole('bid_writer'));
+test('roles.ts: permission sets for the three login roles', () => {
+  assert.ok(!isReadonlyRole('platform_admin'));
+  assert.ok(!isReadonlyRole('member'));
   assert.ok(!isReadonlyRole('company_admin'));
-  assert.ok(!isReadonlyRole('data_admin'));
+  assert.ok(!isReadonlyRole('project_lead'));
 
-  // 新建项目资质
-  assert.ok(PROJECT_CREATOR_ROLES.has('project_lead'));
+  assert.ok(PROJECT_CREATOR_ROLES.has('member'));
   assert.ok(PROJECT_CREATOR_ROLES.has('company_admin'));
-  assert.ok(!PROJECT_CREATOR_ROLES.has('viewer'));
-  assert.ok(!PROJECT_CREATOR_ROLES.has('bid_writer'));
+  assert.ok(PROJECT_CREATOR_ROLES.has('platform_admin'));
 
-  // 编写资质
-  assert.ok(PROJECT_WRITER_ROLES.has('bid_writer'));
-  assert.ok(PROJECT_WRITER_ROLES.has('project_lead'));
+  assert.ok(PROJECT_WRITER_ROLES.has('member'));
   assert.ok(PROJECT_WRITER_ROLES.has('company_admin'));
-  assert.ok(PROJECT_WRITER_ROLES.has('data_admin'));
-  assert.ok(!PROJECT_WRITER_ROLES.has('viewer'));
+  assert.ok(PROJECT_WRITER_ROLES.has('platform_admin'));
+  assert.ok(LEAD_COMPANY_ROLES.has('member'));
+  assert.ok(LEAD_COMPANY_ROLES.has('platform_admin'));
 
-  // 平台管理员业务隔离
-  assert.ok(PLATFORM_ADMIN_FORBIDDEN_ROUTES.has('workbench'));
-  assert.ok(PLATFORM_ADMIN_FORBIDDEN_ROUTES.has('library'));
+  assert.equal(PLATFORM_ADMIN_FORBIDDEN_ROUTES.size, 0);
 });
 
 test('codes.ts: data dictionary v1.9 single-source codes', () => {
@@ -117,10 +94,10 @@ test('codes.ts: data dictionary v1.9 single-source codes', () => {
   assert.equal(ERROR_CODES.CONFLICT, 'CONFLICT');
 });
 
-test('session-navigation: supports authentic rbac-8roles session verification', () => {
+test('session-navigation: supports authentic rbac-3roles session verification', () => {
   const authenticSession = {
     auth_mode: 'authenticated',
-    role_mode: 'rbac-8roles',
+    role_mode: 'rbac-3roles',
     user: {
       id: 'corp-admin-01',
       name: '公司管理员真实账号',
@@ -147,7 +124,7 @@ test('session-navigation: supports authentic rbac-8roles session verification', 
   // 正式会话通过信任核验
   const verified = trustedApplicationSession(authenticSession);
   assert.equal(verified.auth_mode, 'authenticated');
-  assert.equal(verified.role_mode, 'rbac-8roles');
+  assert.equal(verified.role_mode, 'rbac-3roles');
   assert.equal(verified.user.primary_role, 'company_admin');
 
   // 非法角色被拒绝

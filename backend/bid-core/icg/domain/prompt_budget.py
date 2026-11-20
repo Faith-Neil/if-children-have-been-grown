@@ -18,6 +18,12 @@ import re
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
+from icg.domain.writing_knowledge_prompt import (
+    HISTORY_HEADING,
+    MATERIALS_HEADING,
+    _retrieved_chunk_prompt_lines,
+    retrieved_chunk_dataset_kind,
+)
 from icg.domain.domain import DemoState, DomainError
 
 
@@ -355,23 +361,22 @@ class DynamicPromptContextManager:
 
         retrieved_chunks = list(snapshot.get("retrieved_evidence", []))
         if retrieved_chunks and remaining_budget > 0:
-            chunk_block_lines = ["【RAGFlow 检索证据候选切片】"]
-            for rc in retrieved_chunks:
-                rc_id = rc.get("id") or rc.get("chunk_id", "chunk")
-                tag = rc.get("tag", "[片]")
-                chunk_id = rc.get("chunk_id", rc.get("id", ""))
-                doc_id = rc.get("document_id", "")
-                prov_parts = []
-                if chunk_id:
-                    prov_parts.append(f"chunk_id: {chunk_id}")
-                if doc_id:
-                    prov_parts.append(f"document_id: {doc_id}")
-                prov = f"（{', '.join(prov_parts)}）" if prov_parts else ""
-                ref_notice = "【仅供参考，不得作为正式附着证据】" if rc.get("reference_only") else ""
-                rc_text = f"{rc.get('cite_tag') or tag} 检索切片{prov}{ref_notice}：\n  {rc.get('content', '')}"
-                tokens = estimate_tokens(rc_text)
+            history_hits = [chunk for chunk in retrieved_chunks if retrieved_chunk_dataset_kind(chunk) == "history"]
+            materials_hits = [chunk for chunk in retrieved_chunks if retrieved_chunk_dataset_kind(chunk) == "materials"]
+            chunk_block_lines: list[str] = []
+            history_heading_emitted = False
+            materials_heading_emitted = False
+
+            for chunk in history_hits:
+                hit_lines = _retrieved_chunk_prompt_lines(chunk)
+                block_lines = ([HISTORY_HEADING] + hit_lines) if not history_heading_emitted else hit_lines
+                block_text = "\n".join(block_lines)
+                tokens = estimate_tokens(block_text)
+                rc_id = chunk.get("id") or chunk.get("chunk_id", "chunk")
                 if tokens <= remaining_budget:
-                    chunk_block_lines.append(rc_text)
+                    chunk_block_lines.extend(block_lines)
+                    if not history_heading_emitted:
+                        history_heading_emitted = True
                     retained_p4_ids.append(rc_id)
                     remaining_budget -= tokens
                     priority_breakdown["priority_4_background_references"] += tokens
@@ -383,8 +388,31 @@ class DynamicPromptContextManager:
                         "reason": "dropped_low_priority_due_to_budget",
                         "original_tokens": tokens,
                     })
-            chunk_block_lines.append("")
-            p4_lines.extend(chunk_block_lines)
+
+            for chunk in materials_hits:
+                hit_lines = _retrieved_chunk_prompt_lines(chunk)
+                block_lines = ([MATERIALS_HEADING] + hit_lines) if not materials_heading_emitted else hit_lines
+                block_text = "\n".join(block_lines)
+                tokens = estimate_tokens(block_text)
+                rc_id = chunk.get("id") or chunk.get("chunk_id", "chunk")
+                if tokens <= remaining_budget:
+                    chunk_block_lines.extend(block_lines)
+                    if not materials_heading_emitted:
+                        materials_heading_emitted = True
+                    retained_p4_ids.append(rc_id)
+                    remaining_budget -= tokens
+                    priority_breakdown["priority_4_background_references"] += tokens
+                else:
+                    truncated_items.append({
+                        "id": rc_id,
+                        "category": "ragflow_chunk",
+                        "priority": "P4",
+                        "reason": "dropped_low_priority_due_to_budget",
+                        "original_tokens": tokens,
+                    })
+
+            if chunk_block_lines:
+                p4_lines.append("\n".join(chunk_block_lines).strip())
 
         low_conf_snippets = [
             s for s in snippets_to_consider

@@ -37,19 +37,13 @@ async function login(page: Page, username: string, projectId: string) {
   await expect(page.getByRole('button', { name: '退出' })).toBeVisible();
 }
 
-test('project lead rewrites only the flagged paragraph from the queue', async ({ page, request }) => {
+test('flagged paragraph stays in the paper; the old queue tab is not on the technical path', async ({ page, request }) => {
   const { projectId, chapterId, auth } = await seed(request);
   await login(page, 'alpha-manager', projectId);
-  const issue = page.getByTestId('manual-queue-issue').filter({ hasText: '第 2 段' }).first();
-  await expect(issue).toBeVisible();
-  await issue.getByTestId('queue-edit-paragraph').click();
-  const text = page.getByTestId('queue-edit-text');
-  await expect(text).toHaveValue(PLACEHOLDER);
-  await text.fill(REPLACEMENT);
-  const responded = page.waitForResponse(r => r.url().includes('/human-queue/issues/') && r.url().endsWith('/edit'));
-  await page.getByRole('button', { name: '保存本段并标为已处理' }).click();
-  expect((await responded).status()).toBe(200);
-
+  await expect(page.getByRole('tab', { name: '章节循环进度' })).toHaveCount(0);
+  await page.getByRole('tab', { name: '编辑台' }).click();
+  await expect(page.getByTestId('paper-editor')).toContainText(PLACEHOLDER);
   const chapter = await (await request.get(`/api/chapters/${chapterId}`, { headers: auth })).json();
-  expect(chapter.content).toBe(`运维服务方案\n${REPLACEMENT}\n巡检每月一次。`);
+  expect(chapter.content).toContain(PLACEHOLDER);
+  expect(chapter.content).not.toContain(REPLACEMENT);
 });

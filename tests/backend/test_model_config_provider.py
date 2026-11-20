@@ -181,20 +181,25 @@ def test_runtime_switch_project_bound_config(client, fake_openai_chat, secret_ke
 
 
 def test_runtime_switch_company_default_config(client, fake_openai_chat, secret_key):
-    """未单独绑定的项目自动继承公司默认配置，并动态调用默认模型。"""
+    """未单独绑定的项目使用管理员添加的模型，不使用自动生成的默认内网模型。"""
     headers = login(client, "alpha-manager")
-    # 更新公司默认配置 default-alpha 指向 fake_openai_chat
-    update_res = client.put(
-        "/api/v1/model-configs/default-alpha",
-        headers={**login(client, "alpha-company-admin"), "If-Match": "1"},
+    created = client.post(
+        "/api/v1/model-configs",
+        headers=login(client, "alpha-company-admin"),
         json={
+            "name": "公司添加的模型",
+            "provider": "openai-compatible",
             "base_url": fake_openai_chat.base_url,
             "model": "qwen2.5-default-company",
             "api_key": "sk-company-default-key",
+            "is_local": True,
             "stream_enabled": True,
         },
     )
-    assert update_res.status_code == 200
+    assert created.status_code == 200, created.text
+    listed = client.get("/api/v1/model-configs", headers=login(client, "alpha-company-admin"))
+    assert listed.status_code == 200
+    assert all(item["name"] != "默认内网模型" for item in listed.json()["items"])
 
     # 创建新项目（不显式绑定）
     proj_res = client.post("/api/projects", headers=headers, json={"name": "默认继承项目"})

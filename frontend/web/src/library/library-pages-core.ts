@@ -281,7 +281,7 @@ export function canManageLibrary(userRole: string | undefined | null): boolean {
     return false;
   }
   // 公司管理员与资料管理员具备全量维护权限
-  return normalized === 'company_admin' || normalized === 'data_admin' || normalized === 'project_lead';
+  return normalized === 'company_admin';
 }
 
 /**
@@ -295,7 +295,7 @@ export function canRevealSensitiveField(userRole: string | undefined | null): bo
     return true;
   }
   const normalized = normalizeSystemRole(userRole);
-  return normalized === 'company_admin' || normalized === 'data_admin';
+  return normalized === 'company_admin';
 }
 
 export interface AttachmentSecurityCheck {

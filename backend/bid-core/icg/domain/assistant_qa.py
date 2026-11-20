@@ -18,7 +18,7 @@ from .domain import DemoState, DomainError, Principal, iso_time, new_id
 
 MAX_QUESTION = 1000
 MAX_ANSWER = 3000
-CITE = re.compile(r"\[片:[^\]]+\]")
+CITE = re.compile(r"\[(?:片|标):[^\]]+\]")
 
 
 def _system_prompt(knowledge_base: bool) -> str:
@@ -30,7 +30,10 @@ def _system_prompt(knowledge_base: bool) -> str:
         "3. 回答简明，不超过 600 字。",
     ]
     if knowledge_base:
-        lines.append("4. 用到【可引用的资料】时，在句末原样写上它的标记（如 [片:lib-1]），只能用列出的标记。")
+        lines.append(
+            "4. 用到【可引用的资料】时，优先引用本标 [标:…] 标记，在句末原样写上它的标记"
+            "（如 [标:p1] 或 [片:lib-1]），只能用列出的标记。"
+        )
     return "\n".join(lines)
 
 
@@ -41,7 +44,10 @@ def _user_content(title: str, requirements: list[str], facts: list[dict], hits: 
     if facts:
         lines += ["【已确认的项目事实】", *[f"- {f['key']}：{f['value']}{f.get('unit') or ''}" for f in facts[:12]]]
     if hits:
-        lines += ["【可引用的资料】", *[f"- {h['cite_tag']} {h['name']}（v{h['revision']}）：{h['content'][:300]}" for h in hits]]
+        lines += [
+            "【可引用的资料】（本标优先，其次本公司知识库）",
+            *[f"- {h['cite_tag']} {h['name']}（v{h.get('revision') or 1}）：{h['content'][:300]}" for h in hits],
+        ]
     if history:
         lines += ["【本会话之前的问答】", *history]
     lines.append(f"【问题】{question}")
@@ -120,11 +126,20 @@ class AssistantQAService:
         if not getattr(provider, "is_real_model", False):
             raise DomainError(502, "MODEL_UNAVAILABLE", "尚未接入真实大模型：对话助手不提供模拟回答。请公司管理员在“模型配置”中接入模型后再试。")
         facts, requirements = self.rewrite._sources(state, project_id, chapter_id, workflow)
-        hits, retrieval = [], {"status": "off", "message": "知识库已关闭，未查询本公司资料库。"}
-        if kb_on:
-            hits, retrieval = self.rewrite._retrieve(principal, project.company_id, chapter.title, question, "")
-        return {**base, "card": None, "provider": provider, "hits": hits, "retrieval": retrieval,
-                "system": _system_prompt(kb_on), "user_content": _user_content(chapter.title, requirements, facts, hits, history, question)}
+        hits, retrieval = self.rewrite._retrieve(
+            principal, project.company_id, chapter.title, question, "", workflow, company_kb=kb_on,
+        )
+        grounded = bool(hits)
+        return {
+            **base,
+            "card": None,
+            "provider": provider,
+            "hits": hits,
+            "retrieval": retrieval,
+            "grounded": grounded,
+            "system": _system_prompt(grounded),
+            "user_content": _user_content(chapter.title, requirements, facts, hits, history, question),
+        }
 
     def stream(self, prepared: dict, cancel: Any = None):
         """事件：started →（card）或 delta / fallback / queued → answer → done；知识库无结果时不调用模型。"""

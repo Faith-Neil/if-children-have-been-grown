@@ -131,7 +131,7 @@ export function EditorAuxiliaryDrawers({
           showIcon
           type="warning"
           message="这一步只更新本次文字的写作依据，不会修改原文、事实、服务承诺或正式正文"
-          description="先取得编辑权再确认。确认期间如果来源或正文又有变化，仍会拒绝更新；确认后也须人工修订，再保存草稿或提交。"
+          description="确认期间如果正文又有变化，仍会拒绝更新；确认后也须人工修订，再保存草稿或提交。"
         />
         {sourceReview && (
           <WritingInputPreviewContent

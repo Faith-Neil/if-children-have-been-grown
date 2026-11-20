@@ -499,7 +499,7 @@ export function ModelConfigModal({
                   name="is_local"
                   label="本地私有化部署"
                   valuePropName="checked"
-                  tooltip="涉密及敏感标书项目强制只能选用标记为本地私有化部署的模型"
+                  tooltip="打开后只连接内网地址，公网地址测不通，正文也不会发出去。关掉后，公网地址可以测试连通。"
                 >
                   <Switch checkedChildren="本地部署" unCheckedChildren="公网云端" />
                 </Form.Item>

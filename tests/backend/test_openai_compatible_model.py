@@ -288,6 +288,210 @@ def test_real_model_tests_skip_unless_the_flag_is_exactly_one(monkeypatch):
     assert real_model_skip_reason() is None
 
 
+def _sse_lines(*deltas: dict) -> bytes:
+    parts = []
+    for delta in deltas:
+        parts.append("data: " + json.dumps({"choices": [{"delta": delta}]}, ensure_ascii=False))
+    parts.append("data: [DONE]")
+    return ("\n".join(parts) + "\n").encode("utf-8")
+
+
+def test_thinking_sse_with_empty_content_uses_reasoning_json():
+    from icg.infra.openai_model import _assistant_text
+
+    payload = {"items": [{"role": "response_mount", "text": "每月巡检", "kind": "scoring"}]}
+    body = _sse_lines(
+        {"reasoning": "先看条款…"},
+        {"reasoning_content": "再整理 JSON。"},
+        {"reasoning": "最终输出：\n" + json.dumps(payload, ensure_ascii=False)},
+        {"content": ""},
+    )
+    response = httpx.Response(200, headers={"content-type": "text/event-stream"}, content=body)
+    text = _assistant_text(response)
+    assert json.loads(text) == payload
+
+
+def test_thinking_prefers_trailing_tree_array_over_earlier_object():
+    from icg.infra.openai_model import _assistant_text
+
+    tree = [{"level": 1, "title": "运维保障与巡检", "mount_ids": ["r1"]}]
+    reasoning = (
+        "先列一个草稿对象 {\"title\": \"规范 2方案\", \"level\": 1}\n"
+        "最终目录：\n" + json.dumps(tree, ensure_ascii=False)
+    )
+    body = _sse_lines(
+        {"reasoning": reasoning},
+        {"content": ""},
+    )
+    response = httpx.Response(200, headers={"content-type": "text/event-stream"}, content=body)
+    text = _assistant_text(response)
+    assert json.loads(text) == tree
+
+
+def test_jsonish_keeps_extract_object_not_inner_array():
+    from icg.infra.openai_model import _jsonish_payload
+
+    payload = {"items": [{"role": "response_mount", "text": "每月巡检", "kind": "scoring"}]}
+    thought = "整理条款后输出：\n" + json.dumps(payload, ensure_ascii=False)
+    assert json.loads(_jsonish_payload(thought)) == payload
+
+
+def test_thinking_message_uses_reasoning_when_content_blank():
+    from icg.infra.openai_model import _assistant_text
+
+    payload = [{"level": 1, "title": "运维保障与巡检", "mount_ids": ["r1"]}]
+    response = httpx.Response(200, json={
+        "choices": [{
+            "message": {
+                "role": "assistant",
+                "content": "   ",
+                "reasoning": "目录如下\n" + json.dumps(payload, ensure_ascii=False),
+            },
+        }],
+    })
+    assert json.loads(_assistant_text(response)) == payload
+
+
+def test_audit_keeps_full_assistant_when_sse_body_exceeds_cap(tmp_path, monkeypatch):
+    monkeypatch.setenv("ICG_AUDIT_IO_DIR", str(tmp_path))
+    tree = [{"level": 1, "title": "运维保障与巡检方案", "mount_ids": ["r1"]}]
+    planted = json.dumps(tree, ensure_ascii=False)
+    body = _sse_lines({"reasoning": "理" * 210_000}, {"content": planted})
+    assert len(body) > 200_000
+
+    def handler(request, index):
+        return httpx.Response(200, headers={"content-type": "text/event-stream"}, content=body)
+
+    model, _calls = provider(handler)
+    assert planted in model.suggest("编排目录", "要点")
+    rows = [
+        json.loads(line)
+        for line in (tmp_path / "model-io.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    response = next(row for row in rows if row.get("kind") == "response")
+    assert planted in response["assistant"]
+    assert response["assistant_chars"] == len(response["assistant"])
+    assert response["body_chars"] > 200_000
+    assert len(response["body"]) <= 200_000
+    assert planted not in response["body"]
+    assert response["truncated"] is True
+
+
+def test_profiles_disable_thinking_and_default_suggest_does_not():
+    from icg.infra.openai_model import JSON_CALL, SECTION_CALL
+
+    bodies = []
+
+    def handler(request, index):
+        bodies.append(json.loads(request.content.decode()))
+        return success_body("ok")
+
+    model, _calls = provider(handler, max_tokens=1024)
+    assert model.suggest("系统", "用户") == "ok"
+    assert model.suggest("系统", "用户", profile=JSON_CALL) == "ok"
+    assert model.suggest("系统", "用户", profile=SECTION_CALL) == "ok"
+
+    plain, json_body, section_body = bodies
+    assert "think" not in plain and "chat_template_kwargs" not in plain
+    assert plain["max_tokens"] == 1024
+    assert json_body["think"] is False
+    assert json_body["chat_template_kwargs"] == {"enable_thinking": False}
+    assert json_body["max_tokens"] == 256
+    assert json_body["response_format"] == {"type": "json_object"}
+    assert section_body["think"] is False
+    assert section_body["chat_template_kwargs"] == {"enable_thinking": False}
+    assert section_body["max_tokens"] == 1200
+    assert "response_format" not in section_body
+
+
+def test_section_stream_audits_section_label(tmp_path, monkeypatch):
+    from icg.infra.openai_model import SECTION_CALL
+
+    monkeypatch.setenv("ICG_AUDIT_IO_DIR", str(tmp_path))
+    body = _sse_lines({"content": "针对巡检的正文足够长，留下执行记录。"})
+
+    def handler(request, index):
+        payload = json.loads(request.content.decode())
+        assert payload["think"] is False
+        assert payload["chat_template_kwargs"] == {"enable_thinking": False}
+        assert payload["stream"] is True
+        assert payload["max_tokens"] == 1200
+        return httpx.Response(200, headers={"content-type": "text/event-stream"}, content=body)
+
+    model, _calls = provider(handler)
+    text = model.stream_suggest("系统", "用户", on_delta=lambda _piece: None, profile=SECTION_CALL)
+    assert "巡检" in text
+    rows = [
+        json.loads(line)
+        for line in (tmp_path / "model-io.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert any(row.get("kind") == "request" and row.get("label") == "SECTION" for row in rows)
+    assert any(row.get("kind") == "response" and row.get("label") == "SECTION" for row in rows)
+
+
+def test_deviation_judge_sends_json_profile():
+    from icg.domain.technical_matrix import judge_deviation
+
+    bodies = []
+
+    def handler(request, index):
+        bodies.append(json.loads(request.content.decode()))
+        return success_body('{"deviation":"无偏离","reason":""}')
+
+    model, _calls = provider(handler, max_tokens=1024)
+    assert judge_deviation("每月巡检", "每月巡检一次", model)["deviation"] == "无偏离"
+    assert bodies[0]["think"] is False
+    assert bodies[0]["chat_template_kwargs"] == {"enable_thinking": False}
+    assert bodies[0]["max_tokens"] == 256
+    assert bodies[0]["response_format"] == {"type": "json_object"}
+
+
+def test_produce_section_stream_sends_section_profile(tmp_path, monkeypatch):
+    from icg.domain.technical_volume import produce_section
+
+    monkeypatch.setenv("ICG_AUDIT_IO_DIR", str(tmp_path))
+    prose = "按招标要求编写本节正文并留下执行记录。" * 3
+    bodies = []
+
+    def handler(request, index):
+        bodies.append(json.loads(request.content.decode()))
+        return httpx.Response(
+            200, headers={"content-type": "text/event-stream"}, content=_sse_lines({"content": prose}),
+        )
+
+    model, _calls = provider(handler, max_tokens=1024)
+    row = {"text": "每月巡检", "response": "按招标执行", "response_type": "comply"}
+    assert produce_section("运维保障与巡检", row, model, on_delta=lambda _piece: None) == prose
+    assert bodies[0]["think"] is False
+    assert bodies[0]["chat_template_kwargs"] == {"enable_thinking": False}
+    assert bodies[0]["max_tokens"] == 1200
+    assert bodies[0]["stream"] is True
+    assert "response_format" not in bodies[0]
+    rows = [
+        json.loads(line)
+        for line in (tmp_path / "model-io.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert any(row.get("kind") == "request" and row.get("label") == "SECTION" for row in rows)
+
+
+def test_content_still_wins_over_reasoning():
+    from icg.infra.openai_model import _assistant_text
+
+    response = httpx.Response(200, json={
+        "choices": [{
+            "message": {
+                "role": "assistant",
+                "content": '{"ok":true}',
+                "reasoning": '{"ok":false}',
+            },
+        }],
+    })
+    assert _assistant_text(response) == '{"ok":true}'
+
+
 @pytest.mark.live_model
 def test_real_openai_compatible_endpoint_when_opted_in():
     selected = openai_provider_from_environment()

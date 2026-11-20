@@ -45,14 +45,15 @@ export function JobsPage({
   masked,
 }: JobsPageProps) {
   const [filter, setFilter] = useState<TaskFilterKey>('all');
-  const isPlatform = Boolean(masked || isPlatformAdminRole(role));
+  const isPlatform = Boolean(masked);
+  const scopeCompany = isPlatformAdminRole(role) ? undefined : companyId;
 
   const rawTasks: TaskItem[] = jobs.map(j => normalizeTask(j));
   const normalizedTasks: TaskItem[] = isPlatform
     ? rawTasks.map(t => maskTaskForPlatformAdmin(t))
     : rawTasks;
-  const counts = computeTaskCounts(normalizedTasks, companyId);
-  const filtered = filterTasks(normalizedTasks, filter, { companyId });
+  const counts = computeTaskCounts(normalizedTasks, scopeCompany);
+  const filtered = filterTasks(normalizedTasks, filter, { companyId: scopeCompany });
 
   const tabItems = [
     {
@@ -94,7 +95,7 @@ export function JobsPage({
       <div className="page-heading">
         <div>
           <h2>后台任务中心</h2>
-          <p>集中查看与管理当前公司的异步任务运行进度与处理结果。</p>
+          <p>{isPlatformAdminRole(role) ? '全部公司的后台任务都在这里。' : '集中查看与管理当前公司的异步任务运行进度与处理结果。'}</p>
         </div>
         {isPlatform && (
           <Tag color="default" data-testid="platform-admin-badge">

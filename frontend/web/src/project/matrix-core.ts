@@ -15,7 +15,7 @@ export type MatrixData = { revision: number; volumes: string[]; items: MatrixIte
 export type MatchCandidate = { id?: string; source_id?: string; name: string; type?: string; revision?: number; score: number; attachable: boolean; reason?: string; already_attached?: boolean; basis: string; unavailable?: boolean };
 export type MatchResult = { requirement_id: string; structured: MatchCandidate[]; snippets: MatchCandidate[]; history_reference: MatchCandidate[] };
 
-export type CandidateRoute = 'structured' | 'snippet' | 'history';
+export type CandidateRoute = 'structured' | 'snippet' | 'history' | 'materials';
 export type EvidenceCandidate = {
   route: CandidateRoute; route_label: string; id?: string | null; name?: string | null; version?: number | string | null; source: string;
   score?: number | null; valid_until?: string | null; cite_reason: string; blocked_reason?: string | null; attachable: boolean;
@@ -29,6 +29,7 @@ export type EvidenceCandidates = {
 export const ROUTE_GROUPS: { route: CandidateRoute; title: string }[] = [
   { route: 'structured', title: '资料库规则匹配' },
   { route: 'snippet', title: '知识库片段' },
+  { route: 'materials', title: '资料库（参考）' },
   { route: 'history', title: '历史标书仅参考' },
 ];
 
@@ -92,7 +93,8 @@ export function responseOptions(critical: boolean) {
   }));
 }
 
-export function needsReason(type?: ResponseType | null): boolean {
+export function needsReason(type?: ResponseType | null, technicalClause = false): boolean {
+  if (technicalClause && (type === 'exceed' || type === 'deviate')) return true;
   return type === 'deviate' || type === 'not_applicable';
 }
 
@@ -107,4 +109,44 @@ export function selectable(candidate: MatchCandidate): boolean {
 
 export function routingRows(items: Pick<MatrixItem, 'id' | 'volume' | 'suggested_volume' | 'is_cross_volume'>[], useSuggested: boolean) {
   return items.map(item => ({ id: item.id, volume: useSuggested ? item.suggested_volume : item.volume, is_cross_volume: item.is_cross_volume }));
+}
+
+/** 技术分册覆盖视图摘要：映射/偏离/缺口，不作为生成闸门。 */
+export type CoverageRequirement = {
+  id: string;
+  text: string;
+  technical_clause?: boolean;
+  status?: string;
+  response?: string;
+  response_type?: ResponseType | null;
+  response_origin?: string;
+  chapter_id?: string | null;
+};
+export type CoverageOutline = {
+  headings?: Array<{ requirement_id?: string | null; requirement_ids?: string[]; title?: string }> | null;
+  missing?: string[] | null;
+} | null;
+
+export function coverageSummary(requirements: CoverageRequirement[], outline?: CoverageOutline) {
+  const clauses = requirements.filter(item => item.technical_clause && item.status !== 'rejected');
+  const linked = new Set<string>();
+  for (const item of outline?.headings ?? []) {
+    if (item.requirement_id) linked.add(item.requirement_id);
+    for (const id of item.requirement_ids ?? []) linked.add(id);
+  }
+  const missingIds = new Set(outline?.missing ?? []);
+  const mapped = clauses.filter(item => linked.has(item.id));
+  const gaps = clauses.filter(item => missingIds.has(item.id) || (linked.size > 0 && !linked.has(item.id)));
+  const withResponse = clauses.filter(item => (item.response || '').trim());
+  const deviate = clauses.filter(item => item.response_type === 'deviate' || item.response_type === 'exceed');
+  const noEvidence = clauses.filter(item => ['no_evidence', 'retrieval_failed', 'draft_failed'].includes(item.response_origin || ''));
+  return {
+    total: clauses.length,
+    mapped: mapped.length,
+    gaps: gaps.length,
+    withResponse: withResponse.length,
+    deviate: deviate.length,
+    noEvidence: noEvidence.length,
+    coveragePercent: clauses.length ? Math.round((withResponse.length / clauses.length) * 100) : 0,
+  };
 }

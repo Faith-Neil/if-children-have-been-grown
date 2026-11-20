@@ -15,7 +15,8 @@ from icg.domain.workflow_schemas import v1_error_responses
 
 
 class EvidenceCandidate(ResponseBody):
-    route: Literal["structured", "snippet", "history"] = Field(description="structured 资料库规则匹配 / snippet 知识库片段 / history 历史标书仅参考")
+    route: Literal["structured", "snippet", "history", "materials"] = Field(
+        description="structured 资料库规则匹配 / snippet 知识库片段 / history 历史标书仅参考 / materials 资料库（参考）")
     route_label: str
     id: str | None = None
     name: str | None = None

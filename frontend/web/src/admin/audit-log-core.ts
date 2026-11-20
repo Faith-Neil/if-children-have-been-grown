@@ -219,7 +219,7 @@ export function getAuditActionMeta(action: AuditActionType): {
         label: '项目状态流转',
         category: 'project',
         color: 'default',
-        description: '变更项目或分册编制阶段状态',
+        description: '变更项目或方案编制阶段状态',
       };
     case 'evidence.modify':
       return {

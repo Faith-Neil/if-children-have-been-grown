@@ -2,6 +2,7 @@
 // 重新检查查出两段问题 → 正文段落标问题数 → 问题页签列出、定位到段落高亮 → 点段落标记只看这一段 →
 // 取得编辑权后定位，编辑框选中整段。用例自己建项目，不改动共用的示例项目。
 import { expect, test, type APIRequestContext } from '@playwright/test';
+import { paper } from './paper.ts';
 
 const TENDER = '合成招标文件：问题联动验收\n招标编号：E2E-ISSUE\n第三章 技术要求\n1. 提供7×24小时驻场服务。\n';
 const BODY = ['第一段：每月安排巡检并提交巡检报告。', '', '第二段：我司无法提供全天候驻场。', '第三段：项目业绩见【待补：同类业绩】。'].join('\n');
@@ -56,11 +57,9 @@ test('issues are marked on paragraphs, listed in the side panel and located both
   await expect(panel.getByTestId('issue-item')).toHaveCount(1);
   await expect(panel.getByTestId('issue-item')).toContainText('无法提供');
 
-  // 持锁编辑时定位：编辑框选中整段
-  await page.getByTestId('unheld-acquire-btn').click();
-  const box = page.locator('textarea.chapter-editor');
-  await expect(box).toHaveValue(BODY);
+  // 编辑台打开即可写，定位时编辑框选中整段
+  await expect(page.getByTestId('paper-editor-held')).toBeVisible();
+  await expect(paper(page)).toContainText('无法提供');
   await panel.getByTestId('issue-locate').click();
-  const selected = await box.evaluate((el: HTMLTextAreaElement) => el.value.slice(el.selectionStart, el.selectionEnd));
-  expect(selected).toBe('第二段：我司无法提供全天候驻场。');
+  await expect.poll(() => page.evaluate(() => window.getSelection()?.toString() ?? '')).toBe('第二段：我司无法提供全天候驻场。');
 });
