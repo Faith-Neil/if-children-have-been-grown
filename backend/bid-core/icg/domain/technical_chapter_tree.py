@@ -29,7 +29,7 @@ CHAPTER_PREFIX = re.compile(r"^第[\d一二三四五六七八九十百]+[章节�
 ORDER_PHRASE = re.compile(r"按以下顺序编制|应按以下顺序|按下列顺序")
 TREE_SYSTEM = (
     "根据归纳后的响应要点编排技术服务方案目录。"
-    "只输出 JSON 数组，不要 markdown 代码围栏，不要写 // 注释。"
+    "只输出 {\"nodes\":[...]}，不要 markdown 代码围栏，不要写 // 注释。"
     "每项含 level(1-3)、title、mount_ids。每个对象单独一条，不要把两个对象粘在一起。"
     "先排若干一级服务章，每章下面写多个二级，必要时再写三级。"
     "mount_ids 只挂在叶子（二级或三级）上，一级章用 []。"
@@ -67,11 +67,18 @@ SPEC_NUMBER_THEME = re.compile(r"^规范\s*[\d.]+")
 SPEC_NUMBER_COMPACT = re.compile(r"^规范[\d.]+")
 _DIRTY_HEADING = re.compile(r"(?:任务|内容)\.\d+")
 _DIRTY_MARKS = ("¥", "违法", "保证金", "营业执照")
+_PAGE_CRUMB = re.compile(r"第\s*\d+\s*页|[.．]\s*\d+\s*$")
+
+
+def _unbalanced_paren(text: str) -> bool:
+    return text.count("（") != text.count("）") or text.count("(") != text.count(")")
 
 
 def clean_heading(title: str) -> str | None:
     text = str(title or "").strip()
     if len(text) < 4 or text.startswith(("|", ")", "）")):
+        return None
+    if _unbalanced_paren(text) or _PAGE_CRUMB.search(text):
         return None
     if any(mark in text for mark in _DIRTY_MARKS):
         return None
@@ -182,6 +189,33 @@ def _title_copies_point(title: str, point: str) -> bool:
     if title == point:
         return True
     return len(point) > 16 and len(title) > 16 and point.startswith(title)
+
+
+def _title_copies_any(title: str, points: list[dict]) -> bool:
+    for item in points:
+        if _title_copies_point(title, str(item.get("point") or "")):
+            return True
+    return False
+
+
+def _keep_model_title(title: str, points: list[dict]) -> str | None:
+    """能当服务章名才留下。未闭合括号、页码碎片和照抄要点丢掉。"""
+    text = str(title or "").strip()
+    if not text or _title_copies_any(text, points):
+        return None
+    cleaned = clean_heading(text)
+    if cleaned:
+        return cleaned
+    # 规则目录用 clean_heading 挡「知识产权」条款。模型给出的服务章名只含这个词时仍可用。
+    if _unbalanced_paren(text) or _PAGE_CRUMB.search(text):
+        return None
+    if len(text) < 4 or text.startswith(("|", ")", "）")):
+        return None
+    if any(mark in text for mark in _DIRTY_MARKS) or _DIRTY_HEADING.search(text):
+        return None
+    if "知识产权" in text or "甲方所有" in text:
+        return text
+    return None
 
 
 def _scheme_heading(theme: str, point: str) -> str:
@@ -483,12 +517,28 @@ def _jsonish_empty_array(text: str) -> bool:
     return body.endswith(payload.strip())
 
 
+def _nodes_field(raw: str) -> list | None:
+    """对象形态优先读 nodes。裸数组仍走后面的抢救。"""
+    start = raw.find("{")
+    bracket = raw.find("[")
+    if start < 0 or (bracket != -1 and bracket < start):
+        return None
+    try:
+        data, _end = json.JSONDecoder().raw_decode(raw[start:])
+    except json.JSONDecodeError:
+        return None
+    if isinstance(data, dict) and isinstance(data.get("nodes"), list):
+        return data["nodes"]
+    return None
+
+
 def _parse_tree_payload(text: str) -> list[dict]:
     if _jsonish_empty_array(text):
         return []
     raw = _strip_js_comments(_strip_code_fence((text or "").strip()))
     raw = re.sub(r'("mount_ids"\s*:\s*)null\b', r"\1[]", raw)
-    data = _load_json_array(raw)
+    wrapped = _nodes_field(raw)
+    data = wrapped if wrapped is not None else _load_json_array(raw)
     return [_normalize_tree_item(item) for item in data if isinstance(item, dict)]
 
 
@@ -887,6 +937,132 @@ def _without_dropped(nodes: list[dict], drop: set[int], reqs: dict[str, dict]) -
     return kept
 
 
+def _hard_tree_faults(nodes: list[dict], expected_ids, points: list[dict] | None = None) -> set[str]:
+    """硬伤：一级挂载、重复代号、残句章名、缺代号。只有缺代号可以并进「其他服务」。"""
+    points = points or []
+    faults: set[str] = set()
+    seen: list[str] = []
+    for node in nodes:
+        level = int(node.get("level") or 0)
+        mounts = [str(rid) for rid in (node.get("mount_ids") or []) if rid]
+        if level <= 1 and mounts:
+            faults.add("l1_mount")
+        for rid in mounts:
+            if rid in seen:
+                faults.add("duplicate")
+            else:
+                seen.append(rid)
+        if _keep_model_title(str(node.get("title") or ""), points) is None:
+            faults.add("bad_title")
+    mounted = set(seen)
+    if any(str(rid) not in mounted for rid in expected_ids):
+        faults.add("missing")
+    return faults
+
+
+def _missing_ids(nodes: list[dict], expected_ids) -> list[str]:
+    mounted = {str(rid) for node in nodes for rid in (node.get("mount_ids") or []) if rid}
+    missing: list[str] = []
+    for rid in expected_ids:
+        key = str(rid)
+        if key not in mounted and key not in missing:
+            missing.append(key)
+    return missing
+
+
+def _merge_missing_into_other_service(nodes: list[dict], missing_ids: list[str]) -> list[dict]:
+    """漏挂的代号并进最后一个一级章下面的二级叶子「其他服务」。没有一级章则原样返回。"""
+    if not missing_ids:
+        return nodes
+    copied = [{"level": int(node.get("level") or 1), "title": node.get("title"), "mount_ids": list(node.get("mount_ids") or [])} for node in nodes]
+    hosts = [index for index, node in enumerate(copied) if int(node.get("level") or 0) == 1]
+    if not hosts:
+        return copied
+    leaf = next((node for node in copied if node.get("title") == "其他服务" and int(node.get("level") or 0) >= 2), None)
+    if leaf is None:
+        leaf = {"level": 2, "title": "其他服务", "mount_ids": []}
+        insert_at = hosts[-1] + 1
+        while insert_at < len(copied) and int(copied[insert_at].get("level") or 1) > 1:
+            insert_at += 1
+        copied.insert(insert_at, leaf)
+    for rid in missing_ids:
+        if rid not in leaf["mount_ids"]:
+            leaf["mount_ids"].append(rid)
+    return copied
+
+
+def _screen_model_nodes(items: list[dict], expected_ids, points: list[dict] | None = None) -> list[dict] | None:
+    """解析后的节点做硬校验。只缺代号时并进「其他服务」，其余硬伤整树放弃。"""
+    points = points or []
+    kept: list[dict] = []
+    for item in items:
+        title = strip_heading_number(str(item.get("title") or ""))
+        try:
+            level = int(item.get("level") or 1)
+        except (TypeError, ValueError):
+            continue
+        mounts: list[str] = []
+        for rid in item.get("mount_ids") or []:
+            if isinstance(rid, str) and rid and rid not in mounts:
+                mounts.append(rid)
+        title = _heading_for_model_title(title, mounts, points)
+        # 整章是人员或商务才丢掉。「知识管理与人员培训」仍是服务章。
+        if not title or title in BANNED_TITLES or title.startswith(PERSONNEL_WORDS):
+            continue
+        if SPEC_NUMBER_THEME.match(title) or SPEC_NUMBER_COMPACT.match(title) or PLACEHOLDER_TITLE.match(title):
+            continue
+        if level < 1 or level > 3:
+            continue
+        usable = _keep_model_title(title, points)
+        if usable is None:
+            # 一级章挂着代号不能假装没这章，否则会把整树倒进「其他服务」。
+            if level == 1 and mounts:
+                kept.append({"level": 1, "title": title, "mount_ids": mounts})
+            continue
+        kept.append({"level": level, "title": usable, "mount_ids": mounts})
+    if not kept:
+        return None
+    if _too_flat(kept):
+        reshaped = _reshape_flat_leaves(kept, points)
+        if _hosted_parent_count(reshaped) < 2:
+            return None
+        kept = [
+            {"level": int(node.get("level") or 1), "title": node.get("title"), "mount_ids": list(node.get("mount_ids") or [])}
+            for node in reshaped
+        ]
+    faults = _hard_tree_faults(kept, expected_ids, points)
+    if faults - {"missing"}:
+        return None
+    if "missing" in faults:
+        if not any(int(node.get("level") or 0) == 1 for node in kept):
+            return None
+        kept = _merge_missing_into_other_service(kept, _missing_ids(kept, expected_ids))
+        if _hard_tree_faults(kept, expected_ids, points):
+            return None
+    return kept
+
+
+def _attach_mount_tasks(nodes: list[dict], points: list[dict], reqs: dict[str, dict]) -> list[dict]:
+    by_id = {item["id"]: item["task"] for item in points if item.get("id") and item.get("task")}
+    attached: list[dict] = []
+    for item in nodes:
+        mount_ids = [rid for rid in (item.get("mount_ids") or []) if rid in by_id]
+        title = str(item.get("title") or "")
+        node = _node(int(item.get("level") or 1), title, mount_ids=mount_ids)
+        if mount_ids:
+            group = []
+            for rid in mount_ids:
+                task = by_id[rid]
+                if task not in group:
+                    group.append(task)
+            combined = _combined_task(title, title, group, reqs)
+            combined["_mount_ids"] = [rid for rid in mount_ids if _is_mount(reqs.get(rid) or {})]
+            _fill_leaf(node, combined, reqs)
+            node["_task"] = combined
+        attached.append(node)
+    return attached
+
+
 def compose_tree_with_model(
     tasks: list[dict], reqs: dict[str, dict], workflow: dict, model: Any,
 ) -> list[dict] | None:
@@ -902,10 +1078,10 @@ def compose_tree_with_model(
     user = "归纳后的响应要点（代号、主题、摘要）：\n" + "\n".join(lines)
     if order:
         user += "\n招标编制顺序（仅参考，不必照抄）：" + "、".join(order)
-    from icg.infra.openai_model import JSON_CALL, call_with_profile
+    from icg.infra.openai_model import TREE_CALL, call_with_profile
 
     try:
-        raw = call_with_profile(model.suggest, TREE_SYSTEM, user, profile=JSON_CALL)
+        raw = call_with_profile(model.suggest, TREE_SYSTEM, user, profile=TREE_CALL)
     except Exception:
         workflow["_tree_failure"] = TREE_CALL_FAILED
         return None
@@ -916,75 +1092,20 @@ def compose_tree_with_model(
     if not items:
         workflow["_tree_failure"] = TREE_UNPARSEABLE
         return None
-    by_id = {item["id"]: item["task"] for item in points if item.get("id")}
-    nodes: list[dict] = []
-    used: set[str] = set()
-    for item in items:
-        title = strip_heading_number(str(item.get("title") or ""))
-        level = int(item.get("level") or 1)
-        raw_mounts = _ids_for_aliases(item.get("mount_ids") or [], alias_to_id)
-        title = _heading_for_model_title(title, raw_mounts, points)
-        if not title or title in BANNED_TITLES or any(word in title for word in PERSONNEL_WORDS):
-            continue
-        if SPEC_NUMBER_THEME.match(title) or SPEC_NUMBER_COMPACT.match(title) or PLACEHOLDER_TITLE.match(title):
-            continue
-        if level < 1 or level > 3:
-            continue
-        mount_ids = [rid for rid in raw_mounts if rid in by_id and rid not in used]
-        node = _node(level, title, mount_ids=mount_ids)
-        if mount_ids:
-            group = []
-            for rid in mount_ids:
-                used.add(rid)
-                task = by_id[rid]
-                if task not in group:
-                    group.append(task)
-            combined = _combined_task(title, title, group, reqs)
-            combined["_mount_ids"] = [rid for rid in mount_ids if _is_mount(reqs.get(rid) or {})]
-            _fill_leaf(node, combined, reqs)
-            node["_task"] = combined
-        nodes.append(node)
-    if not nodes:
+    prepared = [
+        {
+            "level": item.get("level") or 1,
+            "title": str(item.get("title") or ""),
+            "mount_ids": _ids_for_aliases(item.get("mount_ids") or [], alias_to_id),
+        }
+        for item in items
+    ]
+    expected = [item["id"] for item in points if item.get("id")]
+    screened = _screen_model_nodes(prepared, expected, points)
+    if not screened:
         workflow["_tree_failure"] = TREE_REJECTED
         return None
-    if _too_flat(nodes):
-        reshaped = _reshape_flat_leaves(nodes, points)
-        if _hosted_parent_count(reshaped) >= 2:
-            nodes = reshaped
-        else:
-            workflow["_tree_failure"] = TREE_REJECTED
-            return None
-    # 只把还没挂上的编号并进总体方案。整任务并进去会把已挂编号再记一次，触发重复挂载并整树回退。
-    buckets: list[list] = []
-    index_by_task: dict[int, int] = {}
-    for item in points:
-        rid = item.get("id")
-        task = item.get("task")
-        if not rid or rid in used or not task:
-            continue
-        key = id(task)
-        slot = index_by_task.get(key)
-        if slot is None:
-            index_by_task[key] = len(buckets)
-            buckets.append([task, []])
-            slot = index_by_task[key]
-        if rid not in buckets[slot][1]:
-            buckets[slot][1].append(rid)
-    leftover = []
-    for task, unused in buckets:
-        narrowed = dict(task)
-        narrowed["requirement_ids"] = list(unused)
-        leftover.append(narrowed)
-    if leftover:
-        host = next((node for node in nodes if node.get("title") == "总体方案"), None)
-        if host is None:
-            host = _node(1, "总体方案")
-            nodes.append(host)
-        # 与已有「总体方案」任务合并，禁止覆盖导致原先 mount 从 response_tasks 消失。
-        _merge_tasks_onto_host(host, leftover, reqs)
-    if not any(int(node.get("level") or 0) == 1 and node.get("title") == "项目理解" for node in nodes):
-        nodes.insert(0, _node(1, "项目理解"))
-    return nodes or None
+    return _attach_mount_tasks(screened, points, reqs) or None
 
 
 def _finish_tree(nodes: list[dict]) -> tuple[list[dict], list[dict]]:

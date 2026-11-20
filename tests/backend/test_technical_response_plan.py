@@ -112,9 +112,12 @@ def test_model_tree_survives_unindexed_score_soft_issue():
         base_url = "http://127.0.0.1:11434"
 
         def suggest(self, system, user):
-            return json.dumps([
-                {"level": 1, "title": "运维保障与巡检", "mount_ids": ["m1"]},
-            ], ensure_ascii=False)
+            return json.dumps({
+                "nodes": [
+                    {"level": 1, "title": "运维保障与巡检", "mount_ids": []},
+                    {"level": 2, "title": "月度巡检安排", "mount_ids": ["m1"]},
+                ],
+            }, ensure_ascii=False)
 
     tasks = [{
         "task_id": "t1", "theme": "巡检", "title": "巡检",
@@ -135,6 +138,7 @@ def test_model_tree_survives_unindexed_score_soft_issue():
     }
     headings, _rewritten = build_chapter_tree(tasks, workflow, model=Local())
     titles = [item["title"] for item in headings]
+    assert workflow["outline_source"] == "model"
     assert "运维保障与巡检" in titles
     assert not any(str(title).startswith("规范") for title in titles)
 
@@ -183,14 +187,19 @@ def test_tree_model_success_labels_model_source():
         is_local = True
         base_url = "http://127.0.0.1:11434"
 
-        def suggest(self, system, user):
-            return json.dumps([
-                {"level": 1, "title": "运维保障与巡检", "mount_ids": ["m1"]},
-            ], ensure_ascii=False)
+        def suggest(self, system, user, profile=None):
+            return json.dumps({
+                "nodes": [
+                    {"level": 1, "title": "运维保障与巡检", "mount_ids": []},
+                    {"level": 2, "title": "月度巡检安排", "mount_ids": ["m1"]},
+                ],
+            }, ensure_ascii=False)
 
     tasks, workflow = _mount_task()
     headings, _rewritten = build_chapter_tree(tasks, workflow, model=Local())
     assert any(item["title"] == "运维保障与巡检" for item in headings)
+    assert any(item["level"] == 2 and "r1" in (item.get("requirement_ids") or []) for item in headings)
+    assert all(not item.get("requirement_ids") for item in headings if item.get("level") == 1)
     assert workflow["outline_source"] == "model"
     assert workflow["tree_model_failed"] is False
     assert workflow["outline_reason"] == ""
@@ -309,7 +318,6 @@ def test_validate_plan_flags_unmapped():
 
 def test_model_title_equal_to_long_clause_is_not_the_outline_title():
     import json
-    from icg.domain.technical_chapter_tree import compose_tree_with_model
 
     clause = "投标人须承诺提供数据库每月巡检并在两小时内到达现场处理故障且出具书面报告"
     assert len(clause) > 16
@@ -335,15 +343,17 @@ def test_model_title_equal_to_long_clause_is_not_the_outline_title():
             "section_kind": "scoring", "technical_clause": True, "status": "confirmed",
         },
     }
-    nodes = compose_tree_with_model(tasks, reqs, {}, Local())
-    titles = [node["title"] for node in nodes or []]
-    assert "运维保障与巡检" in titles
-    assert all(title == "项目理解" or (clause not in title and not clause.startswith(title)) for title in titles)
+    workflow = {"requirements": reqs}
+    headings, _rewritten = build_chapter_tree(tasks, workflow, model=Local())
+    titles = [node["title"] for node in headings]
+    assert workflow["outline_source"] == "rule_fallback"
+    assert "不合格" in workflow["outline_reason"]
+    assert titles
+    assert all(clause not in title and not clause.startswith(title) for title in titles)
 
 
 def test_model_title_that_starts_a_long_clause_is_not_left_as_the_heading():
     import json
-    from icg.domain.technical_chapter_tree import compose_tree_with_model
 
     clause = "数据库每月巡检并在故障发生后两小时内到达现场处理且提交书面记录"
     prefix = clause[:20]
@@ -369,8 +379,10 @@ def test_model_title_that_starts_a_long_clause_is_not_left_as_the_heading():
             "section_kind": "spec", "technical_clause": True, "status": "confirmed",
         },
     }
-    nodes = compose_tree_with_model(tasks, reqs, {}, Local())
-    titles = [node["title"] for node in nodes or []]
+    workflow = {"requirements": reqs}
+    headings, _rewritten = build_chapter_tree(tasks, workflow, model=Local())
+    titles = [node["title"] for node in headings]
+    assert workflow["outline_source"] == "rule_fallback"
     assert titles
     assert prefix not in titles
     assert all(not str(title).startswith("规范") for title in titles)
@@ -581,7 +593,8 @@ def test_tree_alias_parse_keeps_real_ids_from_messy_json():
     assert real_id in (leaf.get("requirement_ids") or [])
     assert other_id not in (leaf.get("requirement_ids") or [])
     parked = next(node for node in nodes if other_id in (node.get("requirement_ids") or []))
-    assert parked["title"] == "总体方案"
+    assert parked["title"] == "其他服务"
+    assert parked["level"] == 2
     assert real_id not in model.user
     assert other_id not in model.user
     assert "m1\t" in model.user
@@ -913,6 +926,10 @@ def test_clean_heading_drops_dirty_fragments_and_keeps_service_names():
     assert clean_heading("）成果的所有权") is None
     assert clean_heading("成果的所有权和知识产权归甲方所有") is None
     assert clean_heading("数据库巡检") == "数据库巡检"
+    assert clean_heading("运维项目情况介绍（五") is None
+    assert clean_heading("运维服务要求 . 8") is None
+    assert clean_heading("巡检") is None
+    assert clean_heading("数据库巡检（月度）") == "数据库巡检（月度）"
 
 
 def test_rule_tree_folds_dirty_leaf_into_the_previous_service_leaf():
@@ -1014,3 +1031,191 @@ def test_bare_empty_tree_array_is_rule_fallback():
     mixed = run('[{"level":1,"title":"假章","mount_ids":["m1"]}]\n[]')
     assert mixed["outline_source"] == "rule_fallback"
     assert "无法解析" in mixed["outline_reason"]
+
+
+class _OnceModel:
+    """第二次 suggest 直接失败，用来卡住重试。"""
+
+    is_real_model = True
+    is_local = True
+    base_url = "http://127.0.0.1:11434"
+
+    def __init__(self, payload):
+        self.payload = payload
+        self.calls = 0
+        self.profile = None
+
+    def suggest(self, system, user, profile=None):
+        self.calls += 1
+        if self.calls > 1:
+            raise AssertionError("suggest called twice")
+        self.profile = profile
+        return self.payload
+
+
+def _scoring_task(ids: list[str], texts: dict[str, str], theme: str = "运维保障与巡检"):
+    tasks = [{
+        "task_id": "t1",
+        "theme": theme,
+        "title": theme,
+        "requirement_ids": ids,
+        "response_points": [texts[rid] for rid in ids],
+        "constraint_ids": [],
+        "rejection_requirement_ids": [],
+    }]
+    workflow = {
+        "requirements": {
+            rid: {
+                "id": rid,
+                "text": texts[rid],
+                "section_kind": "scoring",
+                "technical_clause": True,
+                "status": "confirmed",
+            }
+            for rid in ids
+        }
+    }
+    return tasks, workflow
+
+
+def test_nodes_object_mounts_every_scoring_id_once():
+    import json
+    from icg.infra.openai_model import JSON_CALL, TREE_CALL
+
+    texts = {
+        "r1": "每月完成数据库巡检并提交运行报告",
+        "r2": "故障发生后两小时内到达现场处置",
+    }
+    payload = {
+        "nodes": [
+            {"level": 1, "title": "运维保障与巡检", "mount_ids": []},
+            {"level": 2, "title": "月度巡检安排", "mount_ids": ["m1"]},
+            {"level": 1, "title": "故障响应服务", "mount_ids": []},
+            {"level": 2, "title": "到场处置安排", "mount_ids": ["m2"]},
+        ]
+    }
+    model = _OnceModel(json.dumps(payload, ensure_ascii=False))
+    tasks, workflow = _scoring_task(["r1", "r2"], texts)
+    headings, _rewritten = build_chapter_tree(tasks, workflow, model=model)
+    assert model.calls == 1
+    assert model.profile is TREE_CALL
+    assert model.profile.max_tokens == 2000
+    assert JSON_CALL.max_tokens == 256
+    assert workflow["outline_source"] == "model"
+    owners = {}
+    for item in headings:
+        if item.get("level") == 1:
+            assert not item.get("requirement_ids")
+        for rid in item.get("requirement_ids") or []:
+            assert rid not in owners
+            owners[rid] = item["title"]
+    assert owners == {"r1": "月度巡检安排", "r2": "到场处置安排"}
+
+
+def test_missing_seven_of_thirty_six_land_on_other_service():
+    import json
+
+    ids = [f"r{i:02d}" for i in range(1, 37)]
+    texts = {rid: f"服务事项{rid}需要按月巡检并留下记录" for rid in ids}
+    missing = {"m1", "m2", "m3", "m7", "m18", "m20", "m23"}
+    mounted = [f"m{i}" for i in range(1, 37) if f"m{i}" not in missing]
+    payload = {
+        "nodes": [
+            {"level": 1, "title": "运维服务总体要求", "mount_ids": []},
+            {"level": 2, "title": "现场运维服务", "mount_ids": mounted},
+        ]
+    }
+    model = _OnceModel(json.dumps(payload, ensure_ascii=False))
+    tasks, workflow = _scoring_task(ids, texts, theme="运维保障")
+    headings, _rewritten = build_chapter_tree(tasks, workflow, model=model)
+    assert model.calls == 1
+    assert workflow["outline_source"] == "model"
+    owners = {}
+    for item in headings:
+        if item.get("level") == 1:
+            assert not item.get("requirement_ids")
+        for rid in item.get("requirement_ids") or []:
+            assert rid not in owners
+            owners[rid] = item["title"]
+    assert set(owners) == set(ids)
+    missed_ids = {f"r{i:02d}" for i in (1, 2, 3, 7, 18, 20, 23)}
+    assert {rid for rid, title in owners.items() if title == "其他服务"} == missed_ids
+
+
+def test_prose_empty_and_bare_array_call_suggest_once():
+    texts = {"r1": "每月完成数据库巡检并提交运行报告"}
+    tasks, _base = _scoring_task(["r1"], texts)
+    for payload in ("我先说明目录思路，稍后再给 JSON。", "", "[]"):
+        model = _OnceModel(payload)
+        workflow = {
+            "requirements": {
+                "r1": {
+                    "id": "r1",
+                    "text": texts["r1"],
+                    "section_kind": "scoring",
+                    "technical_clause": True,
+                    "status": "confirmed",
+                }
+            }
+        }
+        build_chapter_tree(tasks, workflow, model=model)
+        assert model.calls == 1
+        assert workflow["outline_source"] == "rule_fallback"
+        assert "无法解析" in workflow["outline_reason"]
+
+
+def test_level_one_mounts_and_duplicates_fall_back_once():
+    import json
+
+    texts = {
+        "r1": "每月完成数据库巡检并提交运行报告",
+        "r2": "故障发生后两小时内到达现场处置",
+    }
+    payload = {
+        "nodes": [
+            {"level": 1, "title": "运维服务总体要求", "mount_ids": ["m1", "m2"]},
+            {"level": 2, "title": "巡检服务安排", "mount_ids": ["m1"]},
+        ]
+    }
+    model = _OnceModel(json.dumps(payload, ensure_ascii=False))
+    tasks, workflow = _scoring_task(["r1", "r2"], texts)
+    headings, _rewritten = build_chapter_tree(tasks, workflow, model=model)
+    assert model.calls == 1
+    assert workflow["outline_source"] == "rule_fallback"
+    assert "不合格" in workflow["outline_reason"]
+    titles = [item["title"] for item in headings]
+    assert "运维服务总体要求" not in titles
+
+
+def test_copied_and_unclosed_titles_are_not_chapter_names():
+    import json
+
+    clause = "数据库每月巡检并在故障发生后两小时内到达现场处理且提交书面记录"
+    prefix = clause[:20]
+    open_title = "运维项目情况介绍（五"
+    page_title = "运维服务要求 . 8"
+    texts = {
+        "r1": clause,
+        "r2": "提供现场技术支持并留下服务记录",
+        "r3": "按约定周期完成数据备份与恢复演练",
+    }
+    payload = {
+        "nodes": [
+            {"level": 1, "title": "运行保障方案", "mount_ids": []},
+            {"level": 2, "title": prefix, "mount_ids": ["m1"]},
+            {"level": 2, "title": open_title, "mount_ids": ["m2"]},
+            {"level": 2, "title": page_title, "mount_ids": ["m3"]},
+        ]
+    }
+    model = _OnceModel(json.dumps(payload, ensure_ascii=False))
+    tasks, workflow = _scoring_task(["r1", "r2", "r3"], texts, theme="运维保障与巡检")
+    headings, _rewritten = build_chapter_tree(tasks, workflow, model=model)
+    assert model.calls == 1
+    titles = [item["title"] for item in headings]
+    assert prefix not in titles
+    assert open_title not in titles
+    assert page_title not in titles
+    assert all(not title.endswith("（") for title in titles)
+    mounted = {rid for item in headings for rid in (item.get("requirement_ids") or [])}
+    assert mounted == {"r1", "r2", "r3"}
+    assert workflow["outline_source"] == "model"

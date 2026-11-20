@@ -216,6 +216,8 @@ class ModelCallProfile:
 
 
 JSON_CALL = ModelCallProfile(enable_thinking=False, max_tokens=256, timeout_seconds=20, json_mode=True)
+# 36 个要点的目录 JSON 大约 700 字。256 会把 nodes 截成空数组，抽取和偏离仍用 JSON_CALL。
+TREE_CALL = ModelCallProfile(enable_thinking=False, max_tokens=2000, timeout_seconds=60, json_mode=True)
 SECTION_CALL = ModelCallProfile(enable_thinking=False, max_tokens=1200, timeout_seconds=90, json_mode=False)
 
 
