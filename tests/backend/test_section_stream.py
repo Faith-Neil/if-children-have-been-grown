@@ -192,7 +192,7 @@ def test_write_volume_streams_each_section_and_keeps_suggest_for_the_whole_chapt
     model = _local()
 
     def stream_suggest(instruction, content, *, on_delta, cancel=None):
-        title = content.split("章节任务：", 1)[1].split("\n", 1)[0]
+        title = content.split("标题：", 1)[1].split("\n", 1)[0]
         text = f"针对「{title}」{SUFFIX}"
         on_delta(text[:8])
         on_delta(text[8:])
@@ -273,7 +273,7 @@ def test_parallel_sections_stay_within_the_concurrency_cap():
 
     def stream_suggest(instruction, content, *, on_delta, cancel=None):
         nonlocal current, peak
-        title = content.split("章节任务：", 1)[1].split("\n", 1)[0]
+        title = content.split("标题：", 1)[1].split("\n", 1)[0]
         with lock:
             current += 1
             peak = max(peak, current)
@@ -326,10 +326,10 @@ def test_thinking_process_is_cut_before_the_section_is_stored():
     model = _local()
 
     def suggest(system, user):
-        title = user.split("章节任务：", 1)[1].split("\n", 1)[0]
+        title = user.split("标题：", 1)[1].split("\n", 1)[0]
         if title == "服务频次":
-            return "Thinking Process:\n先排频率再写正文。\n" + frequency
-        return "Thinking Process:\n先对照条款再起草，这一段不是正文。\n" + service
+            return "Thinking Process:\n先排频率再写正文。\n\n" + frequency
+        return "Thinking Process:\n先对照条款再起草，这一段不是正文。\n\n" + service
 
     model.suggest = suggest
     result = write_volume(state, "p", workflow, None, model, on_event=events.append)
@@ -345,7 +345,7 @@ def test_thinking_process_is_cut_before_the_section_is_stored():
     assert frequency.split("\n", 1)[1] in chapter.content
     assert result["failed"] == []
 
-    only = "Thinking Process:\n" + ("模型一直在比较条款，没有写出服务正文。" * 3)
+    only = "Thinking Process:\n"
     empty_state, empty_workflow, empty_chapter = _volume(["巡检方案"])
     empty_events = []
     empty_model = _local()

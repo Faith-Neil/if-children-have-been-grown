@@ -25,7 +25,7 @@ class _Local:
 
 
 def _slice(prompt: str, start: str, end: str) -> str:
-    marker = f"\n{start}\n"
+    marker = f"{start}\n"
     assert marker in prompt
     body = prompt.split(marker, 1)[1]
     return body.split(f"\n{end}", 1)[0]
@@ -70,8 +70,8 @@ def test_sidecar_rejection_lines_are_prompt_hard_constraints():
             "废标条件：未提交巡检记录则否决其投标",
         ]}},
     )
-    project = _slice(user, "项目废标硬约束：", "本章废标硬约束：")
-    section = _slice(user, "本章废标硬约束：", "包装风险提示：")
+    project = _slice(user, "项目级约束", "本章任务")
+    section = _slice(user, "本章硬约束：", "招标原文")
     assert "一般故障未在2小时内恢复的，作废标处理" in project
     assert "技术方案缺项的投标无效" in project
     assert user.count("未提交巡检记录则否决其投标") == 1
@@ -106,17 +106,16 @@ def test_packaging_rows_are_risk_tips_not_must_cover():
             "未按装订要求编制的投标文件将被否决",
         ]}},
     )
-    cover = _slice(user, "必须覆盖的招标要求：", "响应要点：")
-    project = _slice(user, "项目废标硬约束：", "本章废标硬约束：")
-    section = _slice(user, "本章废标硬约束：", "包装风险提示：")
-    tips = _slice(user, "包装风险提示：", "偏离口径：")
+    cover = _slice(user, "招标原文", "知识库")
+    project = _slice(user, "项目级约束", "本章任务")
+    section = _slice(user, "本章硬约束：", "招标原文")
     assert "每月巡检数据库并出具报告" in cover
     assert "装订" not in cover
     assert "失信" not in cover
-    assert "未按要求装订" in tips
-    assert "正本" in tips
-    assert "被列入失信被执行人名单的，否决其投标" in tips
-    assert "未按装订要求编制的投标文件将被否决" in tips
+    assert "未按要求装订" not in user
+    assert "正本" not in user
+    assert "被列入失信被执行人名单的，否决其投标" not in user
+    assert "未按装订要求编制的投标文件将被否决" not in user
     assert "被列入失信被执行人名单的，否决其投标" not in project
     assert "未按装订要求编制的投标文件将被否决" not in project
     assert "装订" not in section
@@ -145,13 +144,12 @@ def test_empty_sidecar_states_no_section_rejection():
         ],
         workflow={"technical_sidecars": {"format_lines": [], "rejection_lines": []}},
     )
-    cover = _slice(user, "必须覆盖的招标要求：", "响应要点：")
-    section = _slice(user, "本章废标硬约束：", "包装风险提示：")
-    tips = _slice(user, "包装风险提示：", "偏离口径：")
+    cover = _slice(user, "招标原文", "知识库")
+    section = _slice(user, "本章硬约束：", "招标原文")
     assert "每月巡检数据库并出具报告" in cover
     assert "具备信息系统集成资质" not in cover
-    assert "具备信息系统集成资质" in tips
-    assert "（无技术类废标）" in section
+    assert "具备信息系统集成资质" not in user
+    assert "（无）" in section
     assert "废标约束：" not in section
 
 
@@ -169,7 +167,7 @@ def test_project_rejection_lines_are_deduped_then_capped():
         }],
         workflow={"technical_sidecars": {"rejection_lines": lines}},
     )
-    project = _slice(user, "项目废标硬约束：", "本章废标硬约束：")
+    project = _slice(user, "项目级约束", "本章任务")
     assert project.count("条款1不满足则作废标处理") == 1
     assert "条款8不满足则作废标处理" in project
     assert "条款9不满足则作废标处理" not in project
@@ -188,7 +186,7 @@ def test_unclear_line_stays_out_of_the_body_prompt():
         workflow={"technical_sidecars": {"rejection_lines": [vague]}},
     )
     assert vague not in user
-    project = _slice(user, "项目废标硬约束：", "本章废标硬约束：")
+    project = _slice(user, "项目级约束", "本章任务")
     assert "（无）" in project
 
 
@@ -217,7 +215,9 @@ def _credit_line(batch: int) -> str:
 
 
 def _rejection_block(user: str) -> str:
-    return "\n".join(line for line in user.splitlines() if "废标约束：" in line)
+    project = _slice(user, "项目级约束", "本章任务")
+    section = _slice(user, "本章硬约束：", "招标原文")
+    return f"{project}\n{section}"
 
 
 def test_chongqing_credit_duplicates_stay_out_of_rejection_block():
@@ -256,10 +256,9 @@ def test_chongqing_credit_duplicates_stay_out_of_rejection_block():
         ],
         workflow={"technical_sidecars": {"rejection_lines": sidecar}},
     )
-    project = _slice(user, "项目废标硬约束：", "本章废标硬约束：")
-    section = _slice(user, "本章废标硬约束：", "包装风险提示：")
-    tips = _slice(user, "包装风险提示：", "偏离口径：")
-    cover = _slice(user, "必须覆盖的招标要求：", "响应要点：")
+    project = _slice(user, "项目级约束", "本章任务")
+    section = _slice(user, "本章硬约束：", "招标原文")
+    cover = _slice(user, "招标原文", "知识库")
     block = _rejection_block(user)
     assert len(block) <= 1500, f"废标块 {len(block)} 字符，朴素全文 {len(naive)}，user {len(user)}"
     assert len(block) * 5 <= len(naive) * 2, f"废标块 {len(block)} 未比朴素全文 {len(naive)} 短 60%"
@@ -267,10 +266,10 @@ def test_chongqing_credit_duplicates_stay_out_of_rejection_block():
     assert "信用中国" not in section
     assert "专属尾注" not in project
     assert "专属尾注" not in section
-    assert "信用中国" in tips
+    assert "信用中国" not in user
     assert "专属尾注" not in user
-    assert "未按装订要求编制的投标文件将被否决" in tips
-    assert "被列入失信被执行人名单的，否决其投标" in tips
+    assert "未按装订要求编制的投标文件将被否决" not in user
+    assert "被列入失信被执行人名单的，否决其投标" not in user
     assert "一般故障未在2小时内恢复的，作废标处理" in project
     assert "技术方案缺项的投标无效" in project
     assert "关键设备故障超过4小时未恢复作废标处理" in section
@@ -306,7 +305,7 @@ def test_task_linkage_prefers_relevant_project_rejection():
             "technical_sidecars": {"rejection_lines": [*unrelated, linked]},
         },
     )
-    project = _slice(user, "项目废标硬约束：", "本章废标硬约束：")
+    project = _slice(user, "项目级约束", "本章任务")
     assert linked in project
     assert "机房指标1不满足则作废标处理" not in project
     assert "机房指标8不满足则作废标处理" not in project

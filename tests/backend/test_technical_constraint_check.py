@@ -316,6 +316,12 @@ def test_fixture_claim_does_not_flip_status():
         [_section("t1", "响应", "不承诺7×24小时远程响应。已响应。已满足废标。")],
     )
     assert still["status"] == "failed"
+    phrase = evaluate_volume(
+        _workflow([_REMOTE]),
+        [_section("t1", "响应", "不承诺7×24小时远程响应。已响应废标。")],
+    )
+    assert phrase["status"] == "failed"
+    assert phrase["sections"]["t1"]["status"] == "failed"
 
 
 def test_unclear_absence_does_not_fail_or_ask():

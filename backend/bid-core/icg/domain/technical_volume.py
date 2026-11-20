@@ -27,20 +27,19 @@ LABEL = {"comply": "无偏离", "exceed": "正偏离", "deviate": "负偏离"}
 TABLE_LABEL = {"comply": "无偏离", "exceed": "正偏离", "deviate": "偏离"}
 NO_SAMPLE = "这份招标文件没有提供偏离表格式。"
 SECTION_SYSTEM = (
-    "按服务方案写本节，一节只写五段：服务内容、服务频率、服务模式、实施步骤、交付物。"
-    "实施步骤写本标这套系统如何被服务。历史材料只作写法参考，不能把别的项目写成正在服务的系统。"
+    "按服务方案写本节，每节按自己的事情写，不要套同一张卡片。"
+    "禁止把「服务内容」「服务频率」「服务模式」「实施步骤」「交付物」当作必写的五段标题。"
+    "一级章写本项目要解决什么、下面几节各管什么，并点出业主和系统名。"
+    "叶子节写具体做法，并给出一张 markdown 表，列名是事项、周期、交付。"
+    "正文写出「本项目」，并写明业主与系统。没有依据时不要编造业主、系统或参数。"
+    "历史材料只作写法参考，不能把别的项目写成正在服务的系统。"
     "本标业主、系统、期限和 SLA 以招标与项目事实为准。"
     "禁止把招标原文复述或改写成正文。约束句保留对应 [标:]。"
+    "本标事实不要写成【待补】。"
     "正文不写偏离标签，偏离只留在偏离表。"
-    "正文不写保证金、报价、营业执照。"
-    "只有缺少人员或到场证据的句子才标【待确认】，每节最多两处。"
-    "禁止用【待补】铺满一节，本标事实不要写成【待补】。"
-    "废标硬约束必须遵守，不得改写成能力表述。"
-    "示例：服务内容：为乐山市人民医院的医院信息系统做数据库巡检和故障恢复。"
-    "服务频率：每个工作日远程巡检一次，每月到院复核一次并出记录。"
-    "服务模式：远程值守，故障时由工程师到场处理。"
-    "实施步骤：先核对本标系统告警和备份，再按既有恢复方法拉起业务，最后把记录交给信息科值班员。"
-    "交付物：巡检记录、故障闭环单和月度运行报告。"
+    "正文不写保证金、信用中国、否决投标，也不写报价和营业执照。"
+    "没有依据的能力、人员、参数标【待确认】，禁止虚构参数。"
+    "废标硬约束必须遵守，不得改写成能力表述，也不得写成已响应废标。"
 )
 SLA_HINT = re.compile(r"7\s*[×*xX]\s*24|响应时限|到场时限|故障响应")
 SLA_TITLES = ("运维", "巡检", "故障", "保障", "响应", "服务级别")
@@ -280,20 +279,94 @@ def _complete_section(model: Any, user: str, *, on_delta: Callable[[str], None] 
 
 
 def strip_model_thinking(text: str) -> str:
+    """去掉 Thinking Process 前缀。空行后的段落是正文；没有空行就从第一行非空文字开始。不用五段标题当起点。"""
     raw = str(text or "")
     marker = "Thinking Process:"
     at = raw.find(marker)
     if at < 0:
         return raw
     rest = raw[at + len(marker):]
-    found = []
-    for head in ("服务内容", "服务频率"):
-        pos = rest.find(head)
-        if pos >= 0:
-            found.append(pos)
-    if not found:
-        return ""
-    return rest[min(found):]
+    parts = re.split(r"\n[ \t]*\n", rest, maxsplit=1)
+    if len(parts) == 2 and parts[1].strip():
+        return parts[1].lstrip()
+    lines = rest.splitlines()
+    while lines and not lines[0].strip():
+        lines.pop(0)
+    return "\n".join(lines)
+
+
+def _bullet_block(lines: list[str]) -> str:
+    kept = [str(line).strip() for line in lines if str(line).strip()]
+    if not kept:
+        return "（无）"
+    return "\n".join(f"- {line}" for line in kept)
+
+
+def _requirement_ids(rows: list[dict], task: dict | None) -> list[str]:
+    found: list[str] = []
+    for item in rows:
+        rid = str(item.get("id") or "").strip()
+        if rid and rid not in found:
+            found.append(rid)
+    for rid in (task or {}).get("requirement_ids") or []:
+        text = str(rid or "").strip()
+        if text and text not in found:
+            found.append(text)
+    return found
+
+
+def _tender_rows(rows: list[dict]) -> list[dict]:
+    """招标原文只留要写的技术句。废标全文和商务包装不进这一块。"""
+    kept: list[dict] = []
+    for item in rows:
+        if row_is_non_tech(item):
+            continue
+        if item.get("is_rejection_criterion"):
+            continue
+        if item.get("clause_role") == "rejection_constraint":
+            continue
+        if item.get("requirement_type") in ("rejection_item", "other_constraint"):
+            continue
+        kept.append(item)
+    return kept
+
+
+def _section_user(title: str, rows: list[dict], task: dict | None, workflow: dict | None,
+                  knowledge: str) -> str:
+    """五块固定标签，空块写（无），不删标签。"""
+    cover = _tender_rows(rows)
+    graded = build_constraint_context(rows, workflow, task)
+    ids = _requirement_ids(rows, task)
+    points = _section_points(title, task, workflow)
+    tender = _bullet_block(
+        f"[{item.get('risk_level') or 'medium'}] {_shown_clause(item)}" for item in cover
+    )
+    evidence = knowledge.strip() if str(knowledge or "").strip() else CAPABILITY_GAP_LINE
+    task_body = "\n".join([
+        f"标题：{title}",
+        "要求编号：" + ("、".join(ids) if ids else "（无）"),
+        "挂载要点：",
+        _bullet_block(points),
+        "本章硬约束：",
+        _bullet_block(list(graded.section)),
+    ])
+    rules = (
+        "不虚构能力、参数或资质。没有依据时标待确认。"
+        "不得把废标写成已响应废标。"
+        "正文不写偏离标签。"
+    )
+    return "\n".join([
+        "项目级约束",
+        _bullet_block(list(graded.project)),
+        "本章任务",
+        task_body,
+        "招标原文",
+        tender,
+        "知识库",
+        evidence,
+        "生成规则",
+        rules,
+    ])
 
 
 def produce_section(title: str, row: dict, model: Any, *, knowledge: str = "",
@@ -306,28 +379,7 @@ def produce_section(title: str, row: dict, model: Any, *, knowledge: str = "",
     if _section_writer is not None:
         text = _section_writer(title, primary)
     elif _local_model(model):
-        cover = [item for item in rows if not row_is_non_tech(item)]
-        req_block = "\n".join(
-            f"- [{item.get('risk_level') or 'medium'}] {_shown_clause(item)}"
-            for item in cover
-        )
-        points = "\n".join(f"- {point}" for point in _section_points(title, task, workflow))
-        graded = build_constraint_context(rows, workflow, task)
-        project_block = "\n".join(f"- 废标约束：{line}" for line in graded.project)
-        section_block = "\n".join(f"- 废标约束：{line}" for line in graded.section)
-        pack_block = "\n".join(f"- 包装风险：{line}" for line in graded.tips)
-        point = str(primary.get("response") or "")
-        reason = str(primary.get("deviation_reason") or "")
-        evidence = knowledge or CAPABILITY_GAP_LINE
-        user = (
-            f"章节任务：{title}\n"
-            f"必须覆盖的招标要求：\n{req_block or '（无）'}\n"
-            f"响应要点：\n{points or reason or point or '（按要求逐条响应）'}\n"
-            f"项目废标硬约束：\n{project_block or '（无）'}\n"
-            f"本章废标硬约束：\n{section_block or '（无技术类废标）'}\n"
-            f"包装风险提示：\n{pack_block or '（无）'}\n"
-            f"偏离口径：正文不写偏离标签。\n\n{evidence}"
-        )
+        user = _section_user(title, rows, task, workflow, knowledge)
         text = _complete_section(model, user, on_delta=on_delta, cancel=cancel)
         emitted = on_delta is not None
     else:

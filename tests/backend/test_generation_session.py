@@ -39,7 +39,7 @@ class GatedModel:
 
     def stream_suggest(self, instruction, content, *, on_delta, cancel=None):
         from icg.infra.openai_model import ModelCancelled
-        title = content.split("章节任务：", 1)[1].split("\n", 1)[0]
+        title = content.split("标题：", 1)[1].split("\n", 1)[0]
         text = f"针对「{title}」{SUFFIX}"
         on_delta(text[:6])
         self.started.set()

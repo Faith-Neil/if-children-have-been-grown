@@ -188,7 +188,7 @@ def test_produce_section_mounts_points_skips_global_sla_and_marks_empty_knowledg
         workflow={"technical_promises": {"响应时限": "7*24小时响应"}},
     )
     prompt = model.prompts[0]
-    assert "响应要点" in prompt
+    assert "挂载要点" in prompt
     assert "每日全量备份" in prompt
     assert "7*24" not in prompt
     assert "【待确认】" in prompt
@@ -334,8 +334,16 @@ def test_section_prompt_is_a_service_plan_without_deviation_labels():
         model,
         knowledge="",
     )
-    for heading in ("服务内容", "服务频率", "服务模式", "实施步骤", "交付物"):
-        assert heading in model.system
+    assert "一节只写五段" not in model.system
+    assert "必写的五段标题" in model.system
+    assert "本项目" in model.system
+    assert "事项" in model.system and "周期" in model.system and "交付" in model.system
+    assert "保证金" in model.system and "信用中国" in model.system and "否决投标" in model.system
+    assert "已响应废标" in model.system
+    labels = ("项目级约束", "本章任务", "招标原文", "知识库", "生成规则")
+    positions = [model.user.index(label) for label in labels]
+    assert positions == sorted(positions)
+    assert "（无）" in model.user
     assert "无偏离" not in model.system
     assert "正偏离" not in model.system
     assert "负偏离" not in model.system
@@ -343,6 +351,19 @@ def test_section_prompt_is_a_service_plan_without_deviation_labels():
     assert "偏离口径：无偏离" not in model.user
     assert "偏离口径：正偏离" not in model.user
     assert "偏离口径：负偏离" not in model.user
+
+
+def test_strip_model_thinking_keeps_prose_without_five_heads():
+    from icg.domain.technical_volume import strip_model_thinking
+
+    prose = "本项目按月巡检数据库并留下运行记录，过程供验收核对。"
+    assert strip_model_thinking(f"Thinking Process:\n{prose}") == prose
+    separated = strip_model_thinking(
+        "Thinking Process:\n先对照条款，这一段不是正文。\n\n" + prose
+    )
+    assert separated == prose
+    assert "服务内容" not in separated
+    assert strip_model_thinking("Thinking Process:\n") == ""
 
 
 def test_stand_in_does_not_treat_tender_slices_as_company_evidence():

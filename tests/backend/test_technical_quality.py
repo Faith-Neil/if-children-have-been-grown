@@ -133,3 +133,31 @@ def test_quality_outline_shell_counts_listed_ids_and_defers_body_rules():
     assert by_id[7]["passed"] is True
     assert by_id[7]["detail"] != "待生成正文后再检"
     assert result["review_titles"] == []
+
+
+def test_quality_rules_3_5_6_pass_for_project_table_leaf():
+    headings = [
+        {"level": 2, "number": "1.1", "title": "巡检方案", "requirement_id": "r1"},
+    ]
+    requirements = {
+        "r1": {
+            "id": "r1", "text": "每月巡检数据库并出具报告", "status": "confirmed",
+            "technical_clause": True, "section_kind": "scoring",
+            "response_type": "comply", "response": "按招标执行",
+        },
+    }
+    content = (
+        "1.1 巡检方案\n"
+        "本项目按业主机房的系统巡检节奏落实数据库检查，并留下可核对的记录。\n"
+        "现场做法写在下表。\n"
+        "| 事项 | 周期 | 交付 |\n"
+        "| --- | --- | --- |\n"
+        "| 数据库巡检 | 每月 | 巡检记录 |\n"
+    )
+    result = evaluate_quality(_workflow(headings=headings, requirements=requirements), content)
+    by_id = {rule["id"]: rule for rule in result["rules"]}
+    assert by_id[3]["passed"] is True
+    assert by_id[5]["passed"] is True
+    assert by_id[6]["passed"] is True
+    assert "表格行" in by_id[5]["detail"]
+    assert "##" not in content
