@@ -48,14 +48,46 @@ def problems(state: DemoState, company_id: str, task: str, primary_id: str | Non
     return found
 
 
+def _bound_model(state: DemoState, company_id: str, config_id: str | None) -> tuple[str | None, str | None]:
+    """返回（配置显示名, 实际 model 字符串）；id 无效或不属本公司时两边都是 None。"""
+    if not config_id:
+        return None, None
+    cfg = state.model_configs.get(config_id)
+    if cfg is None or cfg.company_id != company_id:
+        return None, None
+    return cfg.name, cfg.model
+
+
 def public(state: DemoState, company_id: str) -> dict:
     saved = (state.service_stores.get(STORE) or {}).get(company_id) or {}
     current = saved.get("routes") or {}
-    return {"tasks": [{"task": code, "name": name, "local_only": local_only,
-                       "primary_config_id": (current.get(code) or {}).get("primary_config_id"),
-                       "fallback_config_id": (current.get(code) or {}).get("fallback_config_id")}
-                      for code, (name, local_only) in TASKS.items()],
-            "revision": saved.get("revision", 0), "updated_by": saved.get("updated_by"), "updated_at": saved.get("updated_at")}
+    tasks = []
+    for code, (name, local_only) in TASKS.items():
+        row = current.get(code) or {}
+        primary_id = row.get("primary_config_id")
+        fallback_id = row.get("fallback_config_id")
+        primary_name, primary_model = _bound_model(state, company_id, primary_id)
+        fallback_name, fallback_model = _bound_model(state, company_id, fallback_id)
+        # 填了首选 id，但配置已删或不属于本公司。界面要能标出失效，不能只显示一串 id。
+        primary_missing = bool(primary_id) and primary_model is None
+        tasks.append({
+            "task": code,
+            "name": name,
+            "local_only": local_only,
+            "primary_config_id": primary_id,
+            "fallback_config_id": fallback_id,
+            "primary_name": primary_name,
+            "primary_model": primary_model,
+            "fallback_name": fallback_name,
+            "fallback_model": fallback_model,
+            "primary_missing": primary_missing,
+        })
+    return {
+        "tasks": tasks,
+        "revision": saved.get("revision", 0),
+        "updated_by": saved.get("updated_by"),
+        "updated_at": saved.get("updated_at"),
+    }
 
 
 def resolve(state: DemoState, company_id: str, task: str | None) -> tuple[Any, Any] | None:

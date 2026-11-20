@@ -279,6 +279,37 @@ def test_format_order_is_soft_reference_in_tree_prompt():
     assert "保持相对顺序" not in model.system
 
 
+def test_empty_tree_records_resolved_model_and_does_not_retry():
+    from icg.domain.technical_chapter_tree import TREE_UNPARSEABLE, compose_tree_with_model
+
+    class Answer:
+        model = "qwen3:30b-fallback"
+
+    class Model:
+        model = "qwen3.5:9b"
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:11434/v1"
+        calls = 0
+
+        def suggest(self, _system, _user):
+            self.calls += 1
+            self.last_call = Answer()
+            return "[]"
+
+    model = Model()
+    tasks = [{
+        "task_id": "t1", "theme": "巡检", "requirement_ids": ["r1"],
+        "response_points": ["每月巡检"], "constraint_ids": [], "rejection_requirement_ids": [],
+    }]
+    reqs = {"r1": {"id": "r1", "text": "每月巡检", "section_kind": "scoring", "technical_clause": True}}
+    workflow: dict = {}
+    assert compose_tree_with_model(tasks, reqs, workflow, model) is None
+    assert model.calls == 1
+    assert workflow["technical_structure_model"] == "qwen3:30b-fallback"
+    assert workflow["_tree_failure"] == TREE_UNPARSEABLE
+
+
 def test_format_lock_order_phrase():
     locked = detect_format_lock(["应按以下顺序编制", "一、项目理解", "二、总体方案"])
     assert locked == ["项目理解", "总体方案"]
@@ -912,6 +943,14 @@ def test_clean_heading_drops_dirty_fragments_and_keeps_service_names():
     assert clean_heading(")年度服务费") is None
     assert clean_heading("）成果的所有权") is None
     assert clean_heading("成果的所有权和知识产权归甲方所有") is None
+    assert clean_heading("*24小时服务在线，15分钟") is None
+    assert clean_heading("件维护、固件升级和关联软件支持") is None
+    assert clean_heading("套数据库") is None
+    assert clean_heading("方案服务评分对照表") is None
+    assert clean_heading("需求19") is None
+    assert clean_heading("3.2.1") is None
+    # 尾号服务需求是要点残片，不能当章名；干净服务名仍保留。
+    assert clean_heading("昆航DBA服务需求19") is None
     assert clean_heading("数据库巡检") == "数据库巡检"
 
 
@@ -1014,3 +1053,66 @@ def test_bare_empty_tree_array_is_rule_fallback():
     mixed = run('[{"level":1,"title":"假章","mount_ids":["m1"]}]\n[]')
     assert mixed["outline_source"] == "rule_fallback"
     assert "无法解析" in mixed["outline_reason"]
+
+
+def test_empty_tree_does_not_retry_fallback():
+    class Primary:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:11434"
+        model = "primary-empty"
+        calls = 0
+
+        def suggest(self, system, user, profile=None):
+            self.calls += 1
+            return "[]"
+
+    class Backup:
+        model = "backup-tree"
+        calls = 0
+
+        def suggest(self, system, user, profile=None):
+            self.calls += 1
+            return '[{"level":1,"title":"数据库巡检方案","mount_ids":["m1"]}]'
+
+    primary = Primary()
+    backup = Backup()
+    primary.fallback = backup
+    tasks = [{
+        "task_id": "t1",
+        "theme": "运维保障与巡检",
+        "title": "运维保障与巡检",
+        "requirement_ids": ["r1"],
+        "response_points": ["数据库巡检"],
+        "constraint_ids": [],
+        "rejection_requirement_ids": [],
+    }]
+    reqs = {
+        "r1": {"id": "r1", "text": "数据库巡检", "section_kind": "scoring", "technical_clause": True},
+    }
+    workflow = {"requirements": reqs}
+    _headings, _rewritten = build_chapter_tree(tasks, workflow, model=primary)
+    assert primary.calls == 1 and backup.calls == 0
+    assert workflow["outline_source"] == "rule_fallback"
+    assert workflow["technical_structure_model"] == "primary-empty"
+    assert "无法解析" in workflow["outline_reason"]
+
+
+def test_stand_in_rejects_score_table_as_chapter():
+    from icg.domain.technical_chapter_tree import stand_in_chapter_tree
+
+    tasks = [{
+        "task_id": "t1",
+        "theme": "方案服务评分对照表",
+        "title": "方案服务评分对照表",
+        "requirement_ids": ["r1"],
+        "response_points": ["数据库巡检"],
+        "constraint_ids": [],
+        "rejection_requirement_ids": [],
+    }]
+    reqs = {
+        "r1": {"id": "r1", "text": "数据库巡检", "section_kind": "scoring", "technical_clause": True},
+    }
+    nodes = stand_in_chapter_tree(tasks, reqs)
+    assert all("评分对照" not in str(node.get("title") or "") for node in nodes)
+    assert any(node.get("title") == "数据库巡检" for node in nodes)

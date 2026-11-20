@@ -501,7 +501,9 @@ def _draft_one(heading: dict, rows: dict, tasks: dict, model: Any, workflow: dic
     patch_task({"stage": "deviate", "response_types": response_type_map()})
     forbid_silent_deviate_only("write_section")
 
-    foreign_names = history_foreign_names(chunks, workflow)
+    foreign_names = [name for name in (rag_audit.get("foreign_names") or []) if name]
+    if not foreign_names:
+        foreign_names = history_foreign_names(chunks, workflow)
     knowledge = knowledge_prompt_block(chunks, workflow)
 
     patch_task({"stage": "write_section", "response_types": response_type_map()})

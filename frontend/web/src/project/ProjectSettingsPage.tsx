@@ -8,7 +8,7 @@ import { projectCan, projectRoleName } from './project-team';
 import { request, userFacingMessage } from '../shared/api';
 import { ModelConfigModal } from '../admin/ModelConfigModal';
 import { modelConfigAccess, type ModelConfigItem } from '../admin/model-config-core.ts';
-import { structureModelOptions, structureRouteBody, type StructureRoutes } from './structure-model-route.ts';
+import { structureEffectiveLabel, structureModelOptions, structureRouteBody, type StructureRoutes } from './structure-model-route.ts';
 import { technicalOnly } from './project-volumes.ts';
 import { ExportNamingCard } from './ExportNamingCard';
 import { relatedBidConflict } from './related-bid-core';
@@ -130,10 +130,21 @@ export default function ProjectSettingsPage() {
           </Form>
         </Card>
           <div data-testid="project-model-config-panel" className="project-model-row">
-            <Space>
-              <span data-testid="project-current-model-name">{projectModel ? `${projectModel.name} (${projectModel.model})` : '默认全局模型'}</span>
-              {projectModel?.is_local ? <Tag color="cyan">本地模型</Tag> : <Tag>未单独绑定</Tag>}
-              {workspace.project.sensitive && <Tag color="orange" data-testid="project-sensitive-badge">涉密</Tag>}
+            <Space direction="vertical" size={2}>
+              <Space>
+                <span data-testid="project-current-model-name">{(() => {
+                  if (projectModel) return `${projectModel.name} (${projectModel.model})`;
+                  // 未单独绑定时写作走公司任务表 chapter_generation，不是含糊的「默认全局」
+                  const row = structureRoutes?.tasks.find(item => item.task === 'chapter_generation');
+                  const cfg = structureConfigs.find(item => item.id === row?.primary_config_id);
+                  const model = row?.primary_model || cfg?.model;
+                  const name = row?.primary_name || cfg?.name;
+                  if (model) return name && name !== model ? `${name} · ${model}（任务表）` : `${model}（任务表）`;
+                  return '未指定写作模型（将回退本公司默认）';
+                })()}</span>
+                {projectModel?.is_local ? <Tag color="cyan">本地模型</Tag> : projectModel ? <Tag>项目绑定</Tag> : <Tag>任务表</Tag>}
+                {workspace.project.sensitive && <Tag color="orange" data-testid="project-sensitive-badge">涉密</Tag>}
+              </Space>
             </Space>
             <Button data-testid="open-model-config-btn" onClick={() => setModelModalOpen(true)}>配置项目模型</Button>
             <ModelConfigModal
@@ -147,19 +158,24 @@ export default function ProjectSettingsPage() {
             />
           </div>
           <div data-testid="structure-model-route" className="project-model-row">
-            <span>目录、抽取与偏离</span>
-            <Select
-              aria-label="目录、抽取与偏离"
-              data-testid="structure-model-select"
-              style={{ minWidth: 320 }}
-              placeholder="未指定"
-              disabled={!canChooseStructure || !structureRoutes || structureSaving}
-              loading={structureSaving}
-              value={structurePrimary}
-              options={structureModelOptions(structureConfigs)}
-              onChange={value => { void saveStructureModel(value ?? null); }}
-              allowClear
-            />
+            <span>目录、抽取与偏离（公司任务表，非项目写作模型）</span>
+            <div>
+              <Select
+                aria-label="目录、抽取与偏离"
+                data-testid="structure-model-select"
+                style={{ minWidth: 320 }}
+                placeholder="未指定"
+                disabled={!canChooseStructure || !structureRoutes || structureSaving}
+                loading={structureSaving}
+                value={structurePrimary}
+                options={structureModelOptions(structureConfigs)}
+                onChange={value => { void saveStructureModel(value ?? null); }}
+                allowClear
+              />
+              <div data-testid="structure-model-bound" style={{ marginTop: 4, fontSize: 12, opacity: 0.75 }}>
+                已保存：{structureEffectiveLabel(structureRoutes?.tasks.find(item => item.task === 'technical_structure'))}
+              </div>
+            </div>
           </div>
         </Card>
         {!technicalOnly(workspace) && <Collapse items={[{

@@ -18,6 +18,11 @@ class TaskModelRoute(ResponseBody):
     local_only: bool = Field(description="该任务只能使用本地模型")
     primary_config_id: str | None = None
     fallback_config_id: str | None = None
+    primary_name: str | None = Field(default=None, description="首选配置显示名；与库内绑定一致")
+    primary_model: str | None = Field(default=None, description="首选实际 model 字符串；UI 用此核对改绑是否生效")
+    fallback_name: str | None = Field(default=None, description="备用配置显示名")
+    fallback_model: str | None = Field(default=None, description="备用实际 model 字符串")
+    primary_missing: bool = Field(default=False, description="首选配置 id 已填写，但配置不存在或不属于本公司")
 
 
 class TaskModelRoutes(ResponseBody):

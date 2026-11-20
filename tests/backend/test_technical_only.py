@@ -31,6 +31,21 @@ class TechFlow(ProjectFlow):
         from test_reference_flow import synthetic_history
         with synthetic_history():
             assert self.write("/parse", {})["job"]["status"] == "completed"
+            # 偏离判断在目录确认后才跑，确认条款前先确认目录。
+            state = self.state()
+            outline = state.get("technical_outline") or {}
+            chapter = next(item for item in state["chapters"] if item["id"] == outline.get("chapter_id"))
+            self.confirm_plan({
+                "scope": "technical",
+                "chapters": [{
+                    "id": chapter["id"],
+                    "title": chapter["title"],
+                    "volume": "technical",
+                    "fact_ids": [],
+                    "writing_points": "",
+                }],
+                "confirm_outline": True,
+            })
         for row in self.state()["requirements"]:
             if not row.get("out_of_scope"):
                 self.write("/requirements/" + row["id"], {"status": "confirmed"}, "PATCH")

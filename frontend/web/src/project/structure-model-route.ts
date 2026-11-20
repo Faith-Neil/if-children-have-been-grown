@@ -5,6 +5,9 @@ export type StructureRouteTask = {
   task: string;
   primary_config_id: string | null;
   fallback_config_id: string | null;
+  primary_name?: string | null;
+  primary_model?: string | null;
+  primary_missing?: boolean;
 };
 
 export type StructureRoutes = {
@@ -36,6 +39,13 @@ export function structureModelLabel(config: { name: string; model: string; base_
   return host ? `${config.name} (${config.model}) ${host}` : `${config.name} (${config.model})`;
 }
 
+/** 目录任务已保存的实际模型。与任务表同一口径：模型字符串、未指定、配置失效。 */
+export function structureEffectiveLabel(row: StructureRouteTask | null | undefined): string {
+  if (!row) return '未指定';
+  if (row.primary_missing || (row.primary_config_id && !row.primary_model)) return '配置失效';
+  return row.primary_model || '未指定';
+}
+
 export function structureModelOptions(configs: StructureModel[]) {
   return configs
     .filter(item => item.provider !== 'demo' && item.is_local)
@@ -57,4 +67,21 @@ export function structureRouteBody(current: StructureRoutes, primaryId: string |
       return { task: row.task, primary_config_id: primaryId, fallback_config_id: fallback };
     }),
   };
+}
+
+/** 优先用接口展开的 primary_model，与运行时 resolve 一致。 */
+export function structureBoundLabel(
+  routes: StructureRoutes | null | undefined,
+  configs: StructureModel[],
+): string {
+  const row = routes?.tasks.find(item => item.task === 'technical_structure');
+  const primaryId = row?.primary_config_id ?? null;
+  if (row?.primary_model) {
+    const name = row.primary_name;
+    if (name && name !== row.primary_model) return `${name} · ${row.primary_model}`;
+    return row.primary_model;
+  }
+  const cfg = configs.find(item => item.id === primaryId);
+  if (!cfg) return primaryId || '未指定';
+  return cfg.model || cfg.name || primaryId || '未指定';
 }

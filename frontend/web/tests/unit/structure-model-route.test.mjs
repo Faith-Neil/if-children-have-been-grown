@@ -3,7 +3,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { structureModelOptions, structureRouteBody } from '../../src/project/structure-model-route.ts';
+import { structureBoundLabel, structureEffectiveLabel, structureModelOptions, structureRouteBody } from '../../src/project/structure-model-route.ts';
 
 test('目录模型选项带上主机，保存只改目录任务', () => {
   const options = structureModelOptions([
@@ -32,4 +32,26 @@ test('目录模型选项带上主机，保存只改目录任务', () => {
     { task: 'technical_structure', primary_config_id: 'nine', fallback_config_id: 'spare' },
     { task: 'assistant_qa', primary_config_id: null, fallback_config_id: null },
   ]);
+});
+
+test('structureBoundLabel prefers server primary_model', () => {
+  const label = structureBoundLabel({
+    revision: 1,
+    tasks: [{
+      task: 'technical_structure',
+      primary_config_id: 'cfg-9b',
+      fallback_config_id: null,
+      primary_name: '目录九号',
+      primary_model: 'qwen3.5:9b',
+    }],
+  }, [{ id: 'cfg-9b', name: '目录九号', model: 'should-not-win', provider: 'openai', is_local: true, base_url: 'http://x' }]);
+  assert.equal(label, '目录九号 · qwen3.5:9b');
+});
+
+test('structureEffectiveLabel shows the saved model or a stale id', () => {
+  const base = { task: 'technical_structure', fallback_config_id: null };
+  assert.equal(structureEffectiveLabel({ ...base, primary_config_id: 'cfg-9b', primary_model: 'qwen3.5:9b' }), 'qwen3.5:9b');
+  assert.equal(structureEffectiveLabel({ ...base, primary_config_id: null }), '未指定');
+  assert.equal(structureEffectiveLabel({ ...base, primary_config_id: 'cfg-gone', primary_missing: true }), '配置失效');
+  assert.equal(structureEffectiveLabel(undefined), '未指定');
 });

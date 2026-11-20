@@ -1,6 +1,6 @@
 # 为什么有这个文件：技术分册节生成先查本标切片，再查公司 history 与 materials，并留下可审计记录。
 # 它解决什么问题：检索词只用节标题，禁止把招标原文写进 query，禁止把招标页写进公司库，禁止缺库静默假成功。
-# 含外项目专名的历史命中在截断前降权。history_hits 仍按检索条数计。Prompt 里的 history 只留最高分 3 条，每条正文最多 400 字。
+# 含外项目专名的历史命中不进入返回列表。history_hits 仍按检索条数计。Prompt 里的 history 只留最高分 3 条，每条正文最多 400 字。
 
 from __future__ import annotations
 
@@ -134,23 +134,21 @@ def knowledge_prompt_block(chunks: list[dict], workflow: dict | None = None) -> 
 
 def _demote_foreign_history(
     company_hits: list[dict], tender_hits: list[dict], workflow: dict | None,
-) -> list[dict]:
-    """外项目专名只降权，不从命中里删掉。"""
+) -> tuple[list[dict], list[str]]:
+    """含外项目专名的历史切片不返回。招标切片和资料原样保留。专名留给正文遮蔽。"""
     foreign = history_foreign_names([*tender_hits, *company_hits], workflow)
     if not foreign:
-        return company_hits
-    ranked: list[dict] = []
+        return company_hits, []
+    kept: list[dict] = []
     for chunk in company_hits:
         if retrieved_chunk_dataset_kind(chunk) != "history":
-            ranked.append(chunk)
+            kept.append(chunk)
             continue
         blob = f"{chunk.get('name') or ''} {chunk.get('content') or ''}"
         if any(name in blob for name in foreign):
-            ranked.append({**chunk, "score": float(chunk.get("score") or 0) - 1.0})
-        else:
-            ranked.append(chunk)
-    ranked.sort(key=lambda item: (-float(item.get("score") or 0), str(item.get("name") or "")))
-    return ranked
+            continue
+        kept.append(chunk)
+    return kept, foreign
 
 
 def retrieve_for_section(
@@ -161,7 +159,7 @@ def retrieve_for_section(
         workflow or {}, query, kb=kb, company_id=company_id, limit=limit,
     )
     company_hits, company_audit = retrieve_dual(kb, company_id, query, limit=limit)
-    company_hits = _demote_foreign_history(company_hits, tender_hits, workflow)
+    company_hits, foreign_names = _demote_foreign_history(company_hits, tender_hits, workflow)
     if tender_hits and company_hits and limit >= 2:
         company_slots = min(len(company_hits), max(limit // 2, 1))
     else:
@@ -187,6 +185,7 @@ def retrieve_for_section(
         "history_hits": int(company_audit.get("history_hits") or 0),
         "material_hits": int(company_audit.get("material_hits") or 0),
         "skip_reason": tender_audit.get("skip_reason") or company_audit.get("skip_reason") or "",
+        "foreign_names": foreign_names,
         "top": [
             {
                 "name": item.get("name"),

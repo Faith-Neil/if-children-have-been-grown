@@ -24,6 +24,7 @@ _BOILER = (
 
 _FAILED = "废标技术约束未在正文覆盖，不能视为已全部响应。"
 _CONFIRM = "同一事项的承诺互相矛盾，须人工确认，不能视为已全部响应。"
+_INCOMPLETE = "未抽出技术废标约束，不能视为已全部响应。"
 
 
 def notice_for(check: dict | None) -> str:
@@ -33,6 +34,8 @@ def notice_for(check: dict | None) -> str:
         return _FAILED
     if status == "needs_confirm":
         return _CONFIRM
+    if status == "incomplete":
+        return _INCOMPLETE
     return ""
 
 
@@ -77,7 +80,9 @@ def evaluate_volume(workflow: dict | None, sections: list[dict] | None) -> dict:
         for item in owned[key]:
             _add(missing, item)
     conflicts = _conflicts(_unique([*l0_lines, *all_l1]), sections)
-    status = _status(missing, conflicts)
+    # 抽取留下空的 facts，又没有技术废标可对，不能记成通过。没写 facts 的调用仍按原规则。
+    bare = not l0_lines and not all_l1 and _facts_empty(workflow)
+    status = "incomplete" if bare else _status(missing, conflicts)
     views: dict[str, dict] = {}
     for section in sections:
         key = str(section.get("key") or "")
@@ -87,6 +92,8 @@ def evaluate_volume(workflow: dict | None, sections: list[dict] | None) -> dict:
             view_status = "failed"
         elif fought:
             view_status = "needs_confirm"
+        elif bare:
+            view_status = "incomplete"
         else:
             view_status = "passed"
         view = {"status": view_status, "missing": owned.get(key) or [], "conflicts": fought}
@@ -95,6 +102,16 @@ def evaluate_volume(workflow: dict | None, sections: list[dict] | None) -> dict:
     result = {"status": status, "missing": missing, "conflicts": conflicts, "sections": views}
     result["notice"] = notice_for(result)
     return result
+
+
+def _facts_empty(workflow: dict | None) -> bool:
+    """facts 字段在且为空，才算抽取没给出项目事实。"""
+    if not isinstance(workflow, dict) or "facts" not in workflow:
+        return False
+    facts = workflow.get("facts")
+    if isinstance(facts, (dict, list)):
+        return len(facts) == 0
+    return not facts
 
 
 def _status(missing: list[dict], conflicts: list[dict]) -> str:

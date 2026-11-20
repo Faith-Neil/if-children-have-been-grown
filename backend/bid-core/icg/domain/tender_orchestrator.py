@@ -262,6 +262,8 @@ class TenderOrchestratorMixin:
 
         fill_matrix_after = [False]
         index_tender_after = [False]
+        # 技术分册：偏离判断等到目录确认；双册没有这条确认，解析后仍填写。
+        defer_technical_deviation = [False]
 
         def operation(state, project, actual):
             actual["parse_confirmed"] = False
@@ -436,8 +438,10 @@ class TenderOrchestratorMixin:
                         # 最短路径：抽取确认不再作为用户闸门；解析成功即视为可进目录确认。
                         actual["parse_confirmed"] = True
                         index_tender_after[0] = True
-                # 矩阵检索与偏离判断改到事务外，避免 RAG/模型 IO 再占 RLock。
+                # 解析先标待检索。技术分册的偏离判断等到目录确认；双册没有这条确认，解析后仍填写。
                 actual["technical_retrieval"] = "pending"
+                if technical_pipeline and not technical_empty:
+                    defer_technical_deviation[0] = True
                 if not pending and not technical_empty:
                     fill_matrix_after[0] = True
             if technical_pipeline and technical_empty:
@@ -472,7 +476,7 @@ class TenderOrchestratorMixin:
             self._refresh_parse_result(result, project_id)
         if on_outline_ready is not None and (fill_matrix_after[0] or index_tender_after[0]):
             on_outline_ready(result)
-        if fill_matrix_after[0]:
+        if fill_matrix_after[0] and not defer_technical_deviation[0]:
             self._fill_technical_matrix_unlocked(principal, project_id, provider)
             self._refresh_parse_result(result, project_id)
         if index_tender_after[0]:
@@ -546,6 +550,9 @@ class TenderOrchestratorMixin:
             actual["tree_model_failed"] = failed
             # 覆盖解析时写下的「正在编排」草稿说明。
             actual["outline_reason"] = reason
+            named = str(draft.get("technical_structure_model") or "").strip()
+            if named:
+                actual["technical_structure_model"] = named
             if not headings:
                 outline = actual.get("technical_outline")
                 if isinstance(outline, dict):
@@ -581,12 +588,29 @@ class TenderOrchestratorMixin:
 
         self.repository.transaction(lambda state: self._apply_matrix_patch(state, principal, project_id, write_outline))
 
+    def _fill_confirmed_technical_matrix(self, principal: Principal, project_id: str) -> None:
+        """目录已确认且检索仍 pending 时，才做历史检索和偏离判断。"""
+        state = self.repository.read()
+        workflow = state.workflows.get(project_id) or {}
+        if not workflow.get("plan_confirmed") or workflow.get("technical_retrieval") != "pending":
+            return
+        provider = None
+        resolver = getattr(self.demo, "resolve_model_provider", None)
+        if resolver is not None:
+            try:
+                provider = resolver(state, project_id, "technical_structure")
+            except Exception:
+                provider = None
+        self._fill_technical_matrix_unlocked(principal, project_id, provider)
+
     def _fill_technical_matrix_unlocked(self, principal: Principal, project_id: str, provider) -> None:
-        """在全局锁外做知识库检索与偏离判断，再短事务写回字段。"""
+        """在全局锁外做知识库检索与偏离判断，再短事务写回字段。技术目录未确认时不判断偏离。"""
         from icg.domain.technical_matrix import fill_technical_responses
 
         state = self.repository.read()
         workflow = state.workflows.get(project_id) or {}
+        if workflow.get("technical_outline") and not workflow.get("plan_confirmed"):
+            return
         rows = {
             rid: dict(row)
             for rid, row in (workflow.get("requirements") or {}).items()

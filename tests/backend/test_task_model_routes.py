@@ -3,6 +3,7 @@
 # 没有单独绑定模型的项目，各任务按对应表取首选与备用，主模型失败时改用表里的备用；敏感项目首选不是本地时拒绝。
 
 import json
+from dataclasses import replace
 
 import httpx
 import pytest
@@ -57,13 +58,64 @@ def test_only_company_admin_saves_and_revision_is_checked(routed):
     assert _put(client, login(client, "alpha-manager"), []).status_code == 403
     ok = _put(client, admin, [{"task": "assistant_suggest", "primary_config_id": "cloud-c", "fallback_config_id": "local-b"}], 0)
     assert ok.status_code == 200 and ok.json()["revision"] == 1
+    suggest = next(t for t in ok.json()["tasks"] if t["task"] == "assistant_suggest")
+    assert suggest["primary_config_id"] == "cloud-c"
+    assert suggest["primary_model"] == "cloud-c"
+    assert suggest["primary_name"] == "默认模型配置"
+    assert suggest["fallback_model"] == "local-b"
+    assert suggest["fallback_name"] == "默认模型配置"
+    assert suggest["primary_missing"] is False
+    chapter = next(t for t in ok.json()["tasks"] if t["task"] == "chapter_generation")
+    assert chapter["primary_model"] is None and chapter["primary_missing"] is False
     assert _put(client, admin, [], 0).status_code == 409
+
+
+def test_missing_or_foreign_primary_is_flagged(routed):
+    """配置被删掉或属于别的公司时，GET 仍带回 id，并标明失效、模型字符串为空。"""
+    client, admin, _ = routed
+
+    def plant(state):
+        cfg = state.model_configs["local-b"]
+        company = cfg.company_id
+        state.model_configs["other-co"] = replace(cfg, id="other-co", company_id="beta", model="qwen-other", name="别的公司")
+        bucket = state.service_stores.setdefault("task_model_routes", {}).setdefault(company, {"routes": {}, "revision": 0})
+        routes = dict(bucket.get("routes") or {})
+        routes["technical_structure"] = {"primary_config_id": "cfg-missing", "fallback_config_id": None}
+        routes["assistant_qa"] = {"primary_config_id": "other-co", "fallback_config_id": None}
+        routes["chapter_generation"] = {"primary_config_id": "local-b", "fallback_config_id": "local-a"}
+        bucket["routes"] = routes
+        return None
+
+    client.app.state.service.repository.transaction(plant)
+    body = client.get("/api/v1/task-model-routes", headers=admin).json()
+    by_task = {item["task"]: item for item in body["tasks"]}
+    missing = by_task["technical_structure"]
+    assert missing["primary_config_id"] == "cfg-missing"
+    assert missing["primary_model"] is None and missing["primary_name"] is None
+    assert missing["primary_missing"] is True
+    foreign = by_task["assistant_qa"]
+    assert foreign["primary_missing"] is True and foreign["primary_model"] is None
+    kept = by_task["chapter_generation"]
+    assert kept["primary_missing"] is False
+    assert kept["primary_model"] == "local-b" and kept["primary_name"] == "默认模型配置"
+    assert kept["fallback_model"] == "local-a" and kept["fallback_name"] == "默认模型配置"
 
 
 def test_unbound_projects_follow_the_route_and_fall_back_to_its_backup(routed):
     client, admin, calls = routed
     assert _put(client, admin, [{"task": "assistant_suggest", "primary_config_id": "local-a", "fallback_config_id": "local-b"}]).status_code == 200
     flow = ProjectFlow(client).ready()
+
+    # 本用例只验任务表备用切换；清掉本标页，避免关知识库时仍因本标命中而强制引用。
+    def clear_tender(state):
+        workflow = state.workflows[flow.id]
+        for record in (workflow.get("files") or {}).values():
+            if isinstance(record, dict):
+                record["pages"] = []
+        workflow["tender_index"] = None
+        return None
+
+    client.app.state.service.repository.transaction(clear_tender)
     chapter = next(c for c in flow.state()["chapters"] if c["volume"] == "technical")
     start = chapter["content"].index("每月安排巡检")
     resp = client.post(f"{flow.path}/chapters/{chapter['id']}/selection-rewrites/stream", headers=flow.headers, json={
@@ -71,7 +123,7 @@ def test_unbound_projects_follow_the_route_and_fall_back_to_its_backup(routed):
         "knowledge_base_enabled": False, "count": 3})
     events = [json.loads(b.split("data: ", 1)[1]) for b in resp.text.split("\n\n") if "data: " in b]
     assert events[0]["model"] == "local-a" and events[0]["fallback_model"] == "local-b"
-    batch = events[-1]["batch"]
+    batch = next(item["batch"] for item in reversed(events) if "batch" in item)
     assert {s["model"] for s in batch["samples"]} == {"local-b"} and "cloud.example" not in calls
 
     _put(client, admin, [{"task": "assistant_suggest", "primary_config_id": "cloud-c", "fallback_config_id": None}])

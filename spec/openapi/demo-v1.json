@@ -16035,7 +16035,7 @@
     "/api/v1/projects/{project_id}/technical-volume/stream": {
       "post": {
         "summary": "按节流式生成技术分册",
-        "description": "按确认目录逐节生成技术正文，以 text/event-stream 推送。事件名与 data JSON 的 event 相同。sections.fanout 的 concurrency 是同时生成的上限（3），section_ids 是本次叶子 id（task_id，否则 requirement_id，否则编号）。section.started 带 section_id 和 title。section.delta 的 text 是本次新增，不是累计全文。section.done 的 text 是这一节要落盘的全文。section.failed 带 message。section.cancelled 表示这一节不改原文。volume.done 带 chapter_id、revision、failed、replay。replay 为 true 时是同一 Idempotency-Key 的重放，没有 delta。volume.cancelled 表示取消后本次没有写入章节。volume.failed 带 message。task.patched 带 task_id、generation_status（generating、generated、failed），可带 response_status 与 response_types（requirement_id 到 comply、exceed、deviate、not_applicable）；同一任务按到达顺序合并，供覆盖视图实时更新行。权限、If-Match 和 Idempotency-Key 与 generateProject 相同。核对失败在推送前按 HTTP 状态返回。生成登记为后台任务（type=technical_volume，sections 为已完成 done/total 节），第一条事件 session.started 带 job_id；同一项目已有进行中的会话时回到该会话，先重放积压再发 session.live。断开连接只结束订阅，不取消生成；停止用 cancelJob，重新订阅用 streamTechnicalVolumeSession。",
+        "description": "按确认目录逐节生成技术正文，以 text/event-stream 推送。事件名与 data JSON 的 event 相同。sections.fanout 的 concurrency 是同时生成的上限（3），section_ids 是本次叶子 id（task_id，否则 requirement_id，否则编号）。section.started 带 section_id 和 title。section.delta 的 text 是本次新增，不是累计全文。section.done 的 text 是这一节要落盘的全文。section.failed 带 message。section.cancelled 表示这一节不改原文。volume.done 带 chapter_id、revision、failed、replay。replay 为 true 时是同一 Idempotency-Key 的重放，没有 delta。volume.cancelled 表示取消后本次没有写入章节。volume.failed 带 message。task.patched 带 task_id、generation_status（generating、generated、failed），可带 stage（retrieve、deviate、write_section）、section_title、response_status 与 response_types（requirement_id 到 comply、exceed、deviate、not_applicable）；同一任务按到达顺序合并，供覆盖视图实时更新行。权限、If-Match 和 Idempotency-Key 与 generateProject 相同。核对失败在推送前按 HTTP 状态返回。生成登记为后台任务（type=technical_volume，sections 为已完成 done/total 节），第一条事件 session.started 带 job_id；同一项目已有进行中的会话时回到该会话，先重放积压再发 session.live。断开连接只结束订阅，不取消生成；停止用 cancelJob，重新订阅用 streamTechnicalVolumeSession。",
         "operationId": "streamTechnicalVolume",
         "parameters": [
           {
@@ -60874,6 +60874,60 @@
               }
             ],
             "title": "Fallback Config Id"
+          },
+          "primary_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Name",
+            "description": "首选配置显示名；与库内绑定一致"
+          },
+          "primary_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Primary Model",
+            "description": "首选实际 model 字符串；UI 用此核对改绑是否生效"
+          },
+          "fallback_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback Name",
+            "description": "备用配置显示名"
+          },
+          "fallback_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback Model",
+            "description": "备用实际 model 字符串"
+          },
+          "primary_missing": {
+            "type": "boolean",
+            "title": "Primary Missing",
+            "description": "首选配置 id 已填写，但配置不存在或不属于本公司",
+            "default": false
           }
         },
         "additionalProperties": true,

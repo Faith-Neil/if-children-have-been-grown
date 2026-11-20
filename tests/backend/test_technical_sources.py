@@ -270,7 +270,10 @@ def test_history_hit_defaults_to_no_deviation_and_model_rows_confirm_one_by_one(
         "reason": "历史巡检为每30分钟一次，高于本次招标没有写明间隔的要求。",
     } if "30" in quote else {"deviation": "无偏离", "reason": ""})
     try:
-        project_id, workspace = _parse_clause(client, headers, "服务方案中应包含数据库的健康检查、故障处理等。")
+        project_id, parsed = _parse_clause(client, headers, "服务方案中应包含数据库的健康检查、故障处理等。")
+        early = {row["text"]: row for row in parsed["requirements"] if row.get("technical_clause")}
+        assert not early["健康检查"].get("response_origin")
+        workspace = _confirm_plan(client, headers, project_id)
     finally:
         reset_history_search(search)
         reset_deviation_judge(judge)
@@ -320,7 +323,8 @@ def test_history_hit_defaults_to_no_deviation_and_model_rows_confirm_one_by_one(
 
     failed_search = bind_history_search(broken_search)
     try:
-        failed_id, failed_workspace = _parse_clause(client, headers, "服务方案中应包含数据库的健康检查、故障处理等。")
+        failed_id, _parsed = _parse_clause(client, headers, "服务方案中应包含数据库的健康检查、故障处理等。")
+        failed_workspace = _confirm_plan(client, headers, failed_id)
     finally:
         reset_history_search(failed_search)
     failed = next(row for row in failed_workspace["requirements"] if row.get("technical_clause"))
@@ -418,9 +422,20 @@ def test_technical_matrix_keeps_material_sources_when_no_history():
     assert row["material_sources"] == [{"filename": "说明书.pdf", "quote": "支持增量备份"}]
 
 
+def test_parse_judgment_rejects_pipe_echo():
+    from icg.domain.technical_matrix import JUDGE_SYSTEM, parse_judgment
+
+    assert '"deviation":"无偏离"' in JUDGE_SYSTEM
+    assert "无偏离|正偏离|负偏离" not in JUDGE_SYSTEM
+    with pytest.raises(ValueError):
+        parse_judgment('{"deviation":"无偏离|正偏离|负偏离","reason":"把枚举原样回声"}')
+    assert parse_judgment('{"deviation":"无偏离","reason":"正好符合"}')["deviation"] == "无偏离"
+
+
 def test_matching_history_stays_no_deviation_and_lower_history_is_negative():
     from icg.domain.technical_matrix import fill_technical_responses, parse_judgment
     assert parse_judgment('{"deviation":"负偏离","reason":"响应时限做不到招标的15分钟"}')["deviation"] == "负偏离"
+    assert parse_judgment('{"deviation":" 无偏离 ","reason":"正好符合"}')["deviation"] == "无偏离"
     workflow = {"requirements": {
         "same": {"id": "same", "text": "每月巡检一次", "technical_clause": True, "status": "pending"},
         "lower": {"id": "lower", "text": "故障15分钟内响应", "technical_clause": True, "status": "pending"},
@@ -539,16 +554,16 @@ def test_generate_writes_six_parts_without_blocking_internal_export(client):
     judge = bind_deviation_judge(lambda clause, _quote: {"deviation": "无偏离", "reason": ""} if any(name in clause for name in ("健康检查", "标准服务")) else {"deviation": "正偏离", "reason": "需要逐条确认"})
     try:
         project_id, workspace = _parse_clause(client, headers, "服务方案中应包含数据库的健康检查、故障处理、标准服务等。")
-    finally:
-        reset_history_search(search)
-        reset_deviation_judge(judge)
-    early = client.post(
+        early = client.post(
         f"/api/v1/projects/{project_id}/generate",
         headers={**headers, "If-Match": str(workspace["revision"]), "Idempotency-Key": str(uuid4())},
         json={},
     )
-    assert early.status_code == 409 and early.json()["code"] == "REQUIREMENT_NOT_READY"
-    workspace = _confirm_plan(client, headers, project_id)
+        assert early.status_code == 409 and early.json()["code"] == "REQUIREMENT_NOT_READY"
+        workspace = _confirm_plan(client, headers, project_id)
+    finally:
+        reset_history_search(search)
+        reset_deviation_judge(judge)
     chapter = next(item for item in workspace["chapters"] if item["id"] == workspace["technical_outline"]["chapter_id"])
     assert "响应说明" not in chapter["content"]
     rows = {row["text"]: row for row in workspace["requirements"] if row.get("technical_clause")}
@@ -656,14 +671,14 @@ def test_deviation_table_copies_the_tender_sample(client):
     } if "健康检查" in clause else {"deviation": "正偏离", "reason": "培训安排待确认"} if "培训" in clause else {"deviation": "无偏离", "reason": ""})
     try:
         project_id, workspace = _parse_clause(client, headers, tender)
+        assert workspace["technical_deviation_note"] == ""
+        samples = find_samples({"files": {"f": {"file_role": "tender", "pages": [tender]}}})
+        assert [item["attachment"] for item in samples] == [False, True]
+        assert [item["mode"] for item in samples] == ["all", "deviations"]
+        workspace = _confirm_plan(client, headers, project_id)
     finally:
         reset_history_search(search)
         reset_deviation_judge(judge)
-    assert workspace["technical_deviation_note"] == ""
-    samples = find_samples({"files": {"f": {"file_role": "tender", "pages": [tender]}}})
-    assert [item["attachment"] for item in samples] == [False, True]
-    assert [item["mode"] for item in samples] == ["all", "deviations"]
-    workspace = _confirm_plan(client, headers, project_id)
     rows = {row["text"]: row for row in workspace["requirements"] if row.get("technical_clause")}
     revision = _patch_requirement(client, headers, project_id, workspace["revision"], rows["健康检查"]["id"], {"status": "confirmed"})
     revision = _patch_requirement(client, headers, project_id, revision, rows["故障处理"]["id"], {"status": "confirmed"})

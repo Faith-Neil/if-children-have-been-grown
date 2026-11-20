@@ -67,17 +67,42 @@ SPEC_NUMBER_THEME = re.compile(r"^规范\s*[\d.]+")
 SPEC_NUMBER_COMPACT = re.compile(r"^规范[\d.]+")
 _DIRTY_HEADING = re.compile(r"(?:任务|内容)\.\d+")
 _DIRTY_MARKS = ("¥", "违法", "保证金", "营业执照")
+# 「软件/硬件/文件」「一套」被从中间切开后，残句以这些字开头。
+_MID_WORD_START = ("件", "套")
+_REQ_NUMBER_ONLY = re.compile(
+    r"^(?:第\s*)?\d+(?:\.\d+)*(?:\s*(?:条|项|款))?$|^(?:需求|条款)\s*\d+$"
+)
+# 「…服务需求19」这类带尾号的要点残片，不能当章名。
+_REQ_TAIL_NUMBER = re.compile(r"(?:服务)?需求\s*\d+\s*$")
+_PAGE_CRUMB = re.compile(r"第\s*\d+\s*页|[.．]\s*\d+\s*$")
+
+
+def _unbalanced_paren(text: str) -> bool:
+    return text.count("（") != text.count("）") or text.count("(") != text.count(")")
 
 
 def clean_heading(title: str) -> str | None:
     text = str(title or "").strip()
-    if len(text) < 4 or text.startswith(("|", ")", "）")):
+    # 允许「培训」等两字服务名；脏残片靠开头字符与编号规则挡。
+    if (
+        len(text) < 2
+        or text.startswith(("|", ")", "）", "*", "＊", "，", "。", "、", "；", "："))
+        or text.startswith(_MID_WORD_START)
+    ):
+        return None
+    if "|" in text or "  " in text or "。" in text[:-1]:
+        return None
+    if _REQ_NUMBER_ONLY.match(text) or _REQ_TAIL_NUMBER.search(text):
         return None
     if any(mark in text for mark in _DIRTY_MARKS):
         return None
     if any(word in text for word in ("知识产权", "甲方所有")):
         return None
+    if "评分对照" in text or text.endswith("对照表"):
+        return None
     if _DIRTY_HEADING.search(text):
+        return None
+    if _unbalanced_paren(text) or _PAGE_CRUMB.search(text):
         return None
     return text
 
@@ -282,6 +307,16 @@ def _fill_leaf(node: dict, task: dict, reqs: dict[str, dict]) -> None:
     node["score_refs"] = scoring
     node["constraint_ids"] = constraints
     node["mount_ids"] = mounts
+
+
+def _note_structure_model(workflow: dict, model: Any) -> None:
+    """记下这次目录编排实际用的模型名，供排查 TREE 空数组。"""
+    last = getattr(model, "last_call", None)
+    name = str(getattr(last, "model", "") or "").strip() if last is not None else ""
+    if not name:
+        name = str(getattr(model, "model", "") or "").strip()
+    if name:
+        workflow["technical_structure_model"] = name
 
 
 def _usable_tree_model(model: Any) -> bool:
@@ -557,8 +592,18 @@ def _merge_tasks_onto_host(host: dict, source_tasks: list[dict], reqs: dict[str,
     host["_task"] = combined
 
 
+def _theme_keyword_leaf(h1: str, short: str) -> bool:
+    """短标题只是主题词（如「健康检查」）时并进主题章，不单独成二级。"""
+    from icg.domain.technical_response_plan import THEME_RULES
+
+    for name, words in THEME_RULES:
+        if name == h1 and any(word in short for word in words):
+            return True
+    return False
+
+
 def _chapters_for_mounts(task: dict, h1: str, mounts: list[str], reqs: dict[str, dict]) -> list[dict]:
-    """多条挂载时一级只留主题，每条短标题单独做二级。"""
+    """多条挂载时一级只留主题；主题词要点并进主题叶，其它短标题单独做二级。"""
     host = _node(1, h1)
     groups: list[list] = []
     held: list[str] = []
@@ -570,9 +615,11 @@ def _chapters_for_mounts(task: dict, h1: str, mounts: list[str], reqs: dict[str,
         copies_long_clause = bool(point) and short == point and len(point) > 8
         if (
             not short
+            or clean_heading(short) is None
             or short == h1
             or copies_long_clause
             or short in BANNED_TITLES
+            or _theme_keyword_leaf(h1, short)
             or any(word in short for word in PERSONNEL_WORDS)
         ):
             held.append(rid)
@@ -645,6 +692,10 @@ def stand_in_chapter_tree(tasks: list[dict], reqs: dict[str, dict]) -> list[dict
         # 人员/禁用词不得当章名，改挂「综合技术响应」，不能整任务丢掉 requirement_ids。
         if h1 in BANNED_TITLES or any(word in h1 for word in PERSONNEL_WORDS):
             h1 = "综合技术响应"
+        # 主题本身是残句或评分对照表时，改用还能当章名的短标题。
+        if clean_heading(h1) is None:
+            replacement = _plain_title(point or task_title, "综合技术响应")
+            h1 = replacement if clean_heading(replacement) is not None else "综合技术响应"
         if len(mounts) > 1:
             nodes.extend(_chapters_for_mounts(task, h1, mounts, reqs))
             continue
@@ -660,6 +711,7 @@ def stand_in_chapter_tree(tasks: list[dict], reqs: dict[str, dict]) -> list[dict
             and short != h1
             and not copies_long_clause
             and short not in BANNED_TITLES
+            and clean_heading(short) is not None
             and not any(word in short for word in PERSONNEL_WORDS)
         )
         if use_child:
@@ -887,6 +939,24 @@ def _without_dropped(nodes: list[dict], drop: set[int], reqs: dict[str, dict]) -
     return kept
 
 
+def _suggest_tree(workflow: dict, model: Any, user: str) -> str:
+    """目录编排一次调用。审计行带 TREE，请求体里仍有模型名。"""
+    from icg.infra.openai_model import AuditIoLabel, JSON_CALL, call_with_profile
+
+    _note_structure_model(workflow, model)
+    with AuditIoLabel("TREE"):
+        text = call_with_profile(model.suggest, TREE_SYSTEM, user, profile=JSON_CALL)
+    _note_structure_model(workflow, model)
+    return str(text or "")
+
+
+def _tree_items(raw: str) -> list[dict] | None:
+    try:
+        return _parse_tree_payload(raw)
+    except Exception:
+        return None
+
+
 def compose_tree_with_model(
     tasks: list[dict], reqs: dict[str, dict], workflow: dict, model: Any,
 ) -> list[dict] | None:
@@ -902,17 +972,14 @@ def compose_tree_with_model(
     user = "归纳后的响应要点（代号、主题、摘要）：\n" + "\n".join(lines)
     if order:
         user += "\n招标编制顺序（仅参考，不必照抄）：" + "、".join(order)
-    from icg.infra.openai_model import JSON_CALL, call_with_profile
-
     try:
-        raw = call_with_profile(model.suggest, TREE_SYSTEM, user, profile=JSON_CALL)
+        raw = _suggest_tree(workflow, model, user)
     except Exception:
         workflow["_tree_failure"] = TREE_CALL_FAILED
         return None
-    try:
-        items = _parse_tree_payload(str(raw or ""))
-    except Exception:
-        items = None
+    items = _tree_items(raw)
+    # 空数组或无法解析记 TREE_UNPARSEABLE，改走规则目录。
+    # 健康类失败已由 WithFallback 在 suggest 内换备用模型，这里不再为 [] 再请求一次。
     if not items:
         workflow["_tree_failure"] = TREE_UNPARSEABLE
         return None

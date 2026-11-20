@@ -57,8 +57,10 @@ def test_explicit_cite_covers_l0():
 
 
 def test_non_tech_tip_does_not_require_a_body_response():
+    workflow = _workflow([_TIP])
+    workflow["facts"] = {"f1": {"key": "采购人", "value": "重庆市渝北区中医院", "status": "confirmed"}}
     result = evaluate_volume(
-        _workflow([_TIP]),
+        workflow,
         [_section("t1", "巡检", _GENERIC)],
     )
     assert result["status"] == "passed"
@@ -67,8 +69,10 @@ def test_non_tech_tip_does_not_require_a_body_response():
 
 
 def test_qualification_row_is_not_a_section_requirement():
+    workflow = _workflow([])
+    workflow["facts"] = {"f1": {"key": "采购人", "value": "重庆市渝北区中医院", "status": "confirmed"}}
     result = evaluate_volume(
-        _workflow([]),
+        workflow,
         [_section("t1", "巡检", _GENERIC, rows=[{
             "text": "具备信息系统集成资质",
             "extracted_summary": "具备信息系统集成资质",
@@ -167,6 +171,29 @@ def test_seeded_responded_status_does_not_flip_the_check():
     assert "不能视为已全部响应" in result["notice"]
 
 
+def test_empty_extract_is_incomplete_not_passed():
+    workflow = _workflow([])
+    workflow["facts"] = []
+    result = evaluate_volume(
+        workflow,
+        [_section("t1", "巡检", _GENERIC)],
+    )
+    assert result["status"] == "incomplete"
+    assert result["missing"] == []
+    assert result["conflicts"] == []
+    assert "不能视为已全部响应" in result["notice"]
+    assert "未抽出技术废标约束" in result["notice"]
+    assert result["sections"]["t1"]["status"] == "incomplete"
+    text = completion_message("技术分册已写入当前正文。", result)
+    assert text.startswith("技术分册已写入当前正文。")
+    assert "不能视为已全部响应" in text
+    covered = evaluate_volume(
+        {**_workflow([_L0]), "facts": []},
+        [_section("t1", "备份", "承诺备份窗口在2小时内完成，并留下备份记录供验收核对。")],
+    )
+    assert covered["status"] == "passed"
+
+
 def test_completion_message_rejects_a_false_all_clear():
     text = completion_message("技术分册已写入当前正文。", {
         "status": "failed",
@@ -230,3 +257,49 @@ def test_write_volume_stores_failed_check_when_model_claims_responded():
     assert task["constraint_check"]["status"] == "failed"
     assert task["response_status"] != "已响应"
     assert "失信" not in json.dumps(workflow["constraint_check"]["missing"], ensure_ascii=False)
+
+
+def test_write_volume_stores_incomplete_when_extract_left_no_facts():
+    from icg.domain.technical_volume import write_volume
+
+    class Model:
+        is_real_model = True
+        is_local = True
+        base_url = "http://127.0.0.1:9"
+
+        def suggest(self, system, user):
+            return _GENERIC
+
+    chapter = SimpleNamespace(id="c1", content="", revision=1)
+    state = SimpleNamespace(
+        chapters={"c1": chapter},
+        projects={"p": SimpleNamespace(id="p", name="合成项目", company_id="alpha")},
+    )
+    task = {"task_id": "t1", "requirement_ids": ["r1"], "response_points": ["每月巡检"]}
+    workflow = {
+        "plan_confirmed": True,
+        "facts": [],
+        "technical_outline": {
+            "chapter_id": "c1",
+            "headings": [{
+                "level": 1, "number": "1", "title": "巡检",
+                "task_id": "t1", "requirement_id": "r1", "requirement_ids": ["r1"],
+            }],
+        },
+        "requirements": {
+            "r1": {
+                "id": "r1",
+                "technical_clause": True,
+                "text": "每月巡检数据库并出具报告",
+                "status": "confirmed",
+            },
+        },
+        "response_tasks": {"t1": task},
+        "technical_sidecars": {"rejection_lines": []},
+        "files": {},
+    }
+    result = write_volume(state, "p", workflow, None, Model())
+    assert result["constraint_check"]["status"] == "incomplete"
+    assert workflow["constraint_check"]["status"] == "incomplete"
+    assert task["constraint_check"]["status"] == "incomplete"
+    assert "未抽出技术废标约束" in workflow["constraint_check"]["notice"]

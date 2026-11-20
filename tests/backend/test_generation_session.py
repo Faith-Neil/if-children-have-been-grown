@@ -246,10 +246,10 @@ def test_session_patches_each_task_from_generating_to_responded(client):
     } if "30" in quote else {"deviation": "无偏离", "reason": ""})
     try:
         project_id, _ = _parse_clause(client, headers, "服务方案中应包含数据库的健康检查、故障处理、标准服务等。")
+        workspace = _confirm_plan(client, headers, project_id)
     finally:
         reset_history_search(search)
         reset_deviation_judge(judge)
-    workspace = _confirm_plan(client, headers, project_id)
     model = GatedModel()
     client.app.state.workflow.demo.resolve_model_provider = lambda *_args, **_kwargs: model
     rows = workspace["coverage_rows"]

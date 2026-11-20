@@ -18,7 +18,8 @@ KINDS = {
 }
 JUDGE_SYSTEM = (
     "你只判断历史做法相对本次招标条款是更高、更低，还是正好符合。"
-    "只输出一行 JSON：{\"deviation\":\"无偏离|正偏离|负偏离\",\"reason\":\"...\"}。"
+    "deviation 只能取无偏离、正偏离、负偏离中的一个，不要用竖线把三个值连在一起。"
+    "只输出一行 JSON，例如 {\"deviation\":\"无偏离\",\"reason\":\"正好符合本次招标条款\"}。"
     "高于招标要求是正偏离，低于招标要求是负偏离，正好符合才是无偏离。"
     "正偏离要写明优在哪一项、优多少。负偏离要写明哪一项做不到。"
     "不要编造项目名称、报价、人员和证书。"
@@ -78,8 +79,9 @@ def parse_judgment(text: str) -> dict:
     if matched is None:
         raise ValueError("模型没有给出偏离判断")
     data = json.loads(matched.group(0))
-    deviation = str(data.get("deviation") or "")
-    if deviation not in KINDS:
+    deviation = str(data.get("deviation") or "").strip()
+    # 模型常把提示里的枚举原样回声。竖线不是合法取值，不能落成偏离结论。
+    if "|" in deviation or deviation not in KINDS:
         raise ValueError("偏离判断只能是无偏离、正偏离或负偏离")
     return {"deviation": deviation, "reason": str(data.get("reason") or "").strip()}
 

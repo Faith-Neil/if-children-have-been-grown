@@ -459,8 +459,85 @@ def test_company_chunks_stay_when_tender_fills_the_window():
     assert "【待确认】" not in prompt
 
 
+def test_foreign_history_is_left_out_and_mask_does_not_write_placeholder():
+    """外项目历史切片不进入返回列表。资料和本标保留。遮蔽专名时不写入【待补】。"""
+    from icg.domain.technical_rag import knowledge_prompt_block, retrieve_for_section
+    from icg.domain.writing_knowledge_prompt import (
+        HISTORY_HEADING,
+        format_retrieved_knowledge_prompt_lines,
+        mask_foreign_names,
+    )
+
+    masked = mask_foreign_names("甘肃农信每月巡检一次并留记录", ["甘肃农信"])
+    assert masked == "每月巡检一次并留记录"
+    assert "【待补】" not in masked
+    assert "写成【待补】或省略" not in HISTORY_HEADING
+    assert "不要写成【待补】" in HISTORY_HEADING
+
+    rendered = "\n".join(format_retrieved_knowledge_prompt_lines([
+        {
+            "dataset_kind": "tender",
+            "cite_tag": "[标:km]",
+            "content": "采购人：昆明航空有限公司。数据库巡检每月一次。",
+            "chunk_id": "t",
+        },
+        {
+            "dataset_kind": "history",
+            "content": "甘肃农信每月巡检一次并留记录。",
+            "reference_only": True,
+            "chunk_id": "h",
+        },
+        {
+            "dataset_kind": "materials",
+            "content": "甘肃农信产品参数见说明书。",
+            "chunk_id": "m",
+        },
+    ], {"facts": {"f": {"key": "采购人", "value": "昆明航空有限公司", "status": "confirmed"}}}))
+    history_body = next(line for line in rendered.splitlines() if "每月巡检一次并留记录" in line)
+    assert "甘肃农信" not in history_body
+    assert "【待补】" not in history_body
+    assert "甘肃农信产品参数见说明书" in rendered
+    assert "昆明航空有限公司" in rendered
+
+    class Hit:
+        def __init__(self, kind, name, content):
+            self.source_id = name
+            self.name = name
+            self.content = content
+            self.score = 0.9
+            self.dataset_kind = kind
+            self.reference_only = kind == "history"
+            self.document_id = "d"
+            self.chunk_ids = [name]
+            self.cite_tag = f"[片:{name}]"
+
+    class Kb:
+        def search(self, company_id, query, *, limit=4, kinds=None):
+            kind = next(iter(kinds or {"history"}))
+            if kind == "history":
+                return [
+                    Hit("history", "甘肃农信方案", "甘肃农信核心系统每月巡检一次。"),
+                    Hit("history", "巡检手册", "按运行手册做增量备份并留下演练记录。"),
+                ], ""
+            return [Hit("materials", "产品说明", "甘肃农信产品参数见说明书。")], ""
+
+    workflow = {"files": {"f1": {"pages": ["数据库巡检。采购人：昆明航空有限公司。"]}}}
+    chunks, audit = retrieve_for_section(Kb(), "alpha", "数据库巡检", workflow, limit=8)
+    blob = " ".join(f"{item.get('name') or ''} {item.get('content') or ''}" for item in chunks)
+    assert "甘肃农信方案" not in blob
+    assert "甘肃农信核心系统" not in blob
+    assert "增量备份" in blob
+    assert "甘肃农信产品参数见说明书" in blob
+    assert any(item.get("dataset_kind") == "tender" for item in chunks)
+    assert audit["history_hits"] == 2
+    prompt = knowledge_prompt_block(chunks, workflow)
+    assert "甘肃农信核心系统" not in prompt
+    assert "增量备份" in prompt
+    assert "甘肃农信产品参数见说明书" in prompt
+
+
 def test_history_reference_drops_foreign_names_and_keeps_hits():
-    """历史命中仍计数，但提示词和正文不得抄入外项目业主或系统专名。"""
+    """历史检索条数仍计数。外项目历史切片不进提示词，正文也不留专名或【待补】。"""
     from icg.domain.technical_volume import write_volume
 
     class Hit:
@@ -542,7 +619,7 @@ def test_history_reference_drops_foreign_names_and_keeps_hits():
         "response_tasks": {
             "t1": {"task_id": "t1", "requirement_ids": ["r1"], "response_points": [clause]},
         },
-        "files": {"f1": {"pages": [f"采购人：重庆市渝北区中医院。本标要求{clause}。服务期限3年。"]}},
+        "files": {"f1": {"pages": [f"总体方案。采购人：重庆市渝北区中医院。本标要求{clause}。服务期限3年。"]}},
     }
     chapter = SimpleNamespace(id="c1", content="", revision=1)
     state = SimpleNamespace(
@@ -557,16 +634,20 @@ def test_history_reference_drops_foreign_names_and_keeps_hits():
     prompt = model.user
     assert "甘肃农信" not in prompt
     assert "乐山医院" not in prompt
-    assert "每月巡检一次并留记录" in prompt
-    assert "重庆市渝北区中医院沿用每月巡检" in prompt
+    assert "【待补】" not in prompt.split("不要写成【待补】")[-1]
+    assert "增量备份" in prompt
+    assert "到场时限见产品说明" in prompt
+    assert "重庆市渝北区中医院" in prompt
+    assert "沿用每月巡检" not in prompt
     assert "不得作为正式附着证据" in prompt
     assert "只借鉴写法" in prompt
-    assert prompt.index("增量备份") < prompt.index("容灾切换")
+    assert "不要写成【待补】" in prompt
     assert "只作写法参考" in model.system
     assert "以招标与项目事实为准" in model.system
     body = chapter.content
     assert "甘肃农信" not in body
     assert "乐山医院" not in body
+    assert "【待补】" not in body
     assert "重庆市渝北区中医院" in body
     assert "每月巡检" in body
 

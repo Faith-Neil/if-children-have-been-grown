@@ -197,7 +197,11 @@ class OutlineOrchestratorMixin:
                 require_ready(build_generation_context(state, project_id, chapter, self.demo._now()))
             return {"plan_confirmed": plan_is_current(state, project_id), "writing_plan": public_plan(workflow, state, project_id),
                     "chapters": [self._chapter_summary(state, workflow, c, principal.user.id) for c in retained]}
-        return self._write(principal, project_id, "plan.confirm", payload, expected, key, operation)
+        result = self._write(principal, project_id, "plan.confirm", payload, expected, key, operation)
+        fill = getattr(self, "_fill_confirmed_technical_matrix", None)
+        if fill is not None and result.get("plan_confirmed"):
+            fill(principal, project_id)
+        return result
 
     def _confirm_chapter_plan(self, state, principal, project_id, chapter, workflow):
         if not writable(state, project_id, state.project_teams[project_id]["owners"].get(chapter.volume)):
