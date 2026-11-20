@@ -1,18 +1,18 @@
-# 为什么有这个文件：正文写完后，用字符串规则核对技术废标有没有被写到。
-# 它解决什么问题：模型自己写「已响应」不能把状态改成通过；信用中国这类提示不要求写进正文。
+# 为什么有这个文件：正文写完后，用字符串规则核对技术废标有没有被写反。
+# 它解决什么问题：缺席不算未响应；否定、放宽或前后承诺冲突才拦住导出。模型写「已响应」不改状态。
 
 from __future__ import annotations
 
 import re
 
 from icg.domain.technical_clause_extract import _matter_key, _same
-from icg.domain.technical_constraint_context import row_is_non_tech, text_is_non_tech
+from icg.domain.technical_clause_role import classify_constraint
 
-_REJECTION_WORD = re.compile(r"废标|否决|无效")
-_CITE = re.compile(r"\[标:([^\]】]{2,80})\]")
 _SENTENCE = re.compile(r"[^。！？\n]+")
 _MEASURE = re.compile(r"(\d+)\s*(小时|分钟|天|次)")
 _NEG = re.compile(r"不承诺|不予承诺|不保证|无法保证|不做|不提供")
+_WORK_HOURS = re.compile(r"工作时间|下一工作日|工作日")
+_TIME_UNIT = {"分钟": 1, "小时": 60, "天": 60 * 24}
 # 这些套话在每条废标里都会出现，不能拿来判断某一条已经写进正文。
 _BOILER = (
     "不满足则作废标处理",
@@ -46,34 +46,24 @@ def completion_message(base: str | None, check: dict | None) -> str | None:
 
 
 def evaluate_volume(workflow: dict | None, sections: list[dict] | None) -> dict:
-    """卷级 L0 要在某一节正文里出现；本节 L1 和挂到本节的 L0 必须出现在这一节。"""
+    """技术硬约束只查有没有被否定或放宽。没写到不算缺失。前后承诺不一致则待确认。"""
     sections = list(sections or [])
     l0_lines = _l0_lines(workflow)
-    l1_by_key: dict[str, list[str]] = {}
     all_l1: list[str] = []
     for section in sections:
-        lines = _l1_lines(section.get("rows") or [])
-        l1_by_key[str(section.get("key") or "")] = lines
-        all_l1.extend(lines)
+        all_l1.extend(_l1_lines(section.get("rows") or []))
+    catalog = _catalog(l0_lines, all_l1)
     missing: list[dict] = []
-    for line in l0_lines:
-        if not _checkable(line):
-            continue
-        if any(_addresses(line, section.get("body") or "") for section in sections):
-            continue
-        _add(missing, {"level": "L0", "text": line, "section": ""})
     owned: dict[str, list[dict]] = {}
     for section in sections:
         key = str(section.get("key") or "")
         title = str(section.get("title") or "")
         body = section.get("body") or ""
         owned[key] = []
-        for line in l1_by_key.get(key) or []:
-            if _checkable(line) and not _addresses(line, body):
-                _add(owned[key], {"level": "L1", "text": line, "section": title})
-        for line in _linked_l0(section.get("task"), workflow, l0_lines):
-            if _checkable(line) and not _addresses(line, body):
-                _add(owned[key], {"level": "L0", "text": line, "section": title})
+        for line, level in catalog:
+            if not _violates(line, body):
+                continue
+            _add(owned[key], {"level": level, "text": line, "section": title})
         for item in owned[key]:
             _add(missing, item)
     conflicts = _conflicts(_unique([*l0_lines, *all_l1]), sections)
@@ -123,13 +113,28 @@ def _unique(lines: list[str]) -> list[str]:
     return kept
 
 
+def _catalog(l0_lines: list[str], l1_lines: list[str]) -> list[tuple[str, str]]:
+    """同一句只查一次。侧车 L0 优先于本章 L1。"""
+    catalog: list[tuple[str, str]] = [(line, "L0") for line in l0_lines]
+    seen = set(l0_lines)
+    for line in l1_lines:
+        if line in seen:
+            continue
+        seen.add(line)
+        catalog.append((line, "L1"))
+    return catalog
+
+
 def _l0_lines(workflow: dict | None) -> list[str]:
     kept: list[str] = []
     seen: list[str] = []
     raw_lines = ((workflow or {}).get("technical_sidecars") or {}).get("rejection_lines") or []
     for raw in raw_lines:
         text = str(raw or "").strip()
-        if not text or text_is_non_tech(text) or _REJECTION_WORD.search(text) is None:
+        if not text:
+            continue
+        classified = classify_constraint(text)
+        if classified["kind"] != "tech_hard" or classified["level"] not in ("L0", "L1"):
             continue
         key = _matter_key(text)
         if key and any(_same(key, item) for item in seen):
@@ -144,15 +149,13 @@ def _l1_lines(rows: list[dict]) -> list[str]:
     kept: list[str] = []
     seen: list[str] = []
     for item in rows or []:
-        if not isinstance(item, dict) or row_is_non_tech(item):
-            continue
-        hard = (
-            bool(item.get("is_rejection_criterion")) and item.get("requirement_type") != "qualification"
-        ) or item.get("clause_role") == "rejection_constraint"
-        if not hard:
+        if not isinstance(item, dict):
             continue
         text = str(item.get("extracted_summary") or item.get("text") or "").strip()
         if not text:
+            continue
+        classified = classify_constraint(text, item)
+        if classified["kind"] != "tech_hard" or classified["level"] != "L1":
             continue
         key = _matter_key(text)
         if key and any(_same(key, item_key) for item_key in seen):
@@ -161,40 +164,6 @@ def _l1_lines(rows: list[dict]) -> list[str]:
             seen.append(key)
         kept.append(text)
     return kept
-
-
-def _linked_l0(task: dict | None, workflow: dict | None, l0_lines: list[str]) -> list[str]:
-    if not isinstance(task, dict):
-        return []
-    ids = [
-        *(task.get("rejection_requirement_ids") or []),
-        *(task.get("constraint_ids") or []),
-    ]
-    if not ids:
-        return []
-    requirements = (workflow or {}).get("requirements") or {}
-    if not isinstance(requirements, dict):
-        return []
-    linked: list[str] = []
-    for rid in ids:
-        row = requirements.get(rid)
-        if not isinstance(row, dict) or row_is_non_tech(row):
-            continue
-        text = str(row.get("extracted_summary") or row.get("text") or "").strip()
-        if text:
-            linked.append(text)
-    if not linked:
-        return []
-    kept: list[str] = []
-    for line in l0_lines:
-        key = _matter_key(line)
-        if any(_same(key, _matter_key(text)) for text in linked):
-            kept.append(line)
-    return kept
-
-
-def _checkable(line: str) -> bool:
-    return bool(_grams(line))
 
 
 def _boiler(fragment: str) -> bool:
@@ -213,14 +182,45 @@ def _grams(text: str) -> list[str]:
     return found
 
 
-def _addresses(constraint: str, body: str) -> bool:
-    """四字事项片段，或 [标:] 引用与事项键重叠。正文里的「已响应」三个字本身不算覆盖。"""
-    text = body or ""
-    key = _matter_key(constraint)
-    for cite in _CITE.findall(text):
-        if _same(_matter_key(cite), key):
+def _violates(constraint: str, body: str) -> bool:
+    """事项被否定，或时限被放宽成工作时间、下一工作日，或写成更长的时限。"""
+    grams = _grams(constraint)
+    if not grams:
+        return False
+    for sentence in _SENTENCE.findall(body or ""):
+        if not any(fragment in sentence for fragment in grams):
+            continue
+        if _NEG.search(sentence) or _WORK_HOURS.search(sentence):
             return True
-    return any(fragment in text for fragment in _grams(constraint))
+        if _weaker_measure(constraint, sentence):
+            return True
+    return False
+
+
+def _weaker_measure(constraint: str, sentence: str) -> bool:
+    """同一事项上，正文给出的最短时限仍长于约束，或次数少于约束。"""
+    constraint_times = _time_minutes(constraint)
+    sentence_times = _time_minutes(sentence)
+    if constraint_times and sentence_times and min(sentence_times) > min(constraint_times):
+        return True
+    constraint_counts = _counts(constraint)
+    sentence_counts = _counts(sentence)
+    if constraint_counts and sentence_counts and min(sentence_counts) < min(constraint_counts):
+        return True
+    return False
+
+
+def _time_minutes(text: str) -> list[int]:
+    found: list[int] = []
+    for number, unit in _MEASURE.findall(text or ""):
+        scale = _TIME_UNIT.get(unit)
+        if scale:
+            found.append(int(number) * scale)
+    return found
+
+
+def _counts(text: str) -> list[int]:
+    return [int(number) for number, unit in _MEASURE.findall(text or "") if unit == "次"]
 
 
 def _promise_token(sentence: str) -> str | None:

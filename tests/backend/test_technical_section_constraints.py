@@ -175,6 +175,23 @@ def test_project_rejection_lines_are_deduped_then_capped():
     assert "条款9不满足则作废标处理" not in project
 
 
+def test_unclear_line_stays_out_of_the_body_prompt():
+    model = _Local()
+    vague = "按采购人另行通知办理"
+    user = _write(
+        model,
+        row={"text": "每月巡检数据库并出具报告", "response": "按招标执行", "response_type": "comply"},
+        requirements=[{
+            "text": "每月巡检数据库并出具报告",
+            "extracted_summary": "每月巡检数据库并出具报告",
+        }],
+        workflow={"technical_sidecars": {"rejection_lines": [vague]}},
+    )
+    assert vague not in user
+    project = _slice(user, "项目废标硬约束：", "本章废标硬约束：")
+    assert "（无）" in project
+
+
 def test_is_bid_packaging_uses_existing_markers():
     from icg.domain.technical_clause_role import assign_clause_role, is_bid_packaging
 
