@@ -181,6 +181,8 @@ def test_seeded_responded_status_does_not_flip_the_check():
     assert result["status"] == "failed"
     assert result["notice"]
     assert "废标已全部响应" not in result["notice"]
+    assert "未在正文覆盖" not in result["notice"]
+    assert "写反或放宽" in result["notice"]
     assert "不能视为已全部响应" in result["notice"]
 
 
