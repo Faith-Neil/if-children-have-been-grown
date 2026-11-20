@@ -342,13 +342,19 @@ def _section_user(title: str, rows: list[dict], task: dict | None, workflow: dic
         f"[{item.get('risk_level') or 'medium'}] {_shown_clause(item)}" for item in cover
     )
     evidence = knowledge.strip() if str(knowledge or "").strip() else CAPABILITY_GAP_LINE
+    from icg.domain.technical_digest import rejection_lines, scoring_criteria
+
     task_body = "\n".join([
         f"标题：{title}",
         "要求编号：" + ("、".join(ids) if ids else "（无）"),
         "挂载要点：",
         _bullet_block(points),
+        "评分标准：",
+        _bullet_block(scoring_criteria(rows)),
         "本章硬约束：",
         _bullet_block(list(graded.section)),
+        "废标清单（全文不得违反）：",
+        _bullet_block(rejection_lines(workflow)),
     ])
     rules = (
         "不虚构能力、参数或资质。没有依据时标待确认。"
@@ -537,7 +543,7 @@ def _draft_one(heading: dict, rows: dict, tasks: dict, model: Any, workflow: dic
 
     patch_task({"generation_status": "generating", "stage": "retrieve"})
     # 即使矩阵检索失败，仍用模型或替身写实质框架，缺依据标待确认，禁止整节空「待补」冒充完成。
-    query = section_query(title)
+    query = section_query(title, points=list((task or {}).get("response_points") or []))
     chunks, rag_audit = retrieve_for_section(knowledge_base, company_id, query, workflow)
     rag_audit["section"] = title
     rag_audit["task_id"] = heading.get("task_id")

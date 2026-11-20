@@ -164,8 +164,8 @@ def _fill_technical_outline(state: Any, project_id: str, workflow: dict) -> None
         workflow.pop("response_tasks", None)
         return
     title = detect_title(workflow)
-    from icg.domain.technical_response_plan import apply_response_plan
-    plan = apply_response_plan(workflow, model=workflow.get("tree_model"))
+    from icg.domain.technical_digest_outline import plan_technical_outline
+    plan = plan_technical_outline(workflow, model=workflow.get("tree_model"))
     headings = plan["headings"]
     text = render(headings)
     chapter = _chapter(state, project_id, title)
