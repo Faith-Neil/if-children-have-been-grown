@@ -51,13 +51,15 @@ def _title(raw: Any) -> str:
 
 def _points(raw: Any, index: dict[str, list[str]]) -> list[dict]:
     found = []
-    for item in raw or []:
+    for item in raw if isinstance(raw, list) else []:
         if isinstance(item, str):
             item = {"text": item, "refs": []}
         if not isinstance(item, dict):
             continue
         text = str(item.get("text") or "").strip()[:60]
-        refs = [re.sub(r"\s", "", str(ref).upper()) for ref in item.get("refs") or []]
+        raw_refs = item.get("refs")
+        raw_refs = raw_refs if isinstance(raw_refs, list) else [raw_refs] if raw_refs else []
+        refs = [re.sub(r"\s", "", str(ref).upper()) for ref in raw_refs]
         refs = [ref for ref in refs if ref in index]
         if text and refs:
             found.append({"text": text, "refs": refs})
@@ -66,7 +68,7 @@ def _points(raw: Any, index: dict[str, list[str]]) -> list[dict]:
 
 def _normalize(nodes: list, index: dict[str, list[str]]) -> list[dict]:
     out: list[dict] = []
-    for node in nodes or []:
+    for node in nodes if isinstance(nodes, list) else []:
         if not isinstance(node, dict):
             continue
         title = _title(node.get("title"))
@@ -178,7 +180,10 @@ def outline_from_digest(workflow: dict, digest: dict, model: Any) -> dict[str, A
         except Exception:
             continue
         payload = _parse_payload(str(raw or ""))
-        plan = build_from_nodes(workflow, digest, payload.get("nodes") or payload.get("outline") or [])
+        try:
+            plan = build_from_nodes(workflow, digest, payload.get("nodes") or payload.get("outline") or [])
+        except (TypeError, ValueError, KeyError, AttributeError):
+            plan = None
         if plan is not None:
             return plan
     return None
@@ -195,7 +200,12 @@ def plan_technical_outline(workflow: dict, model: Any = None) -> dict[str, Any]:
         return apply_response_plan(workflow, model=model)
     plan = outline_from_digest(workflow, digest, model)
     if plan is None:
-        plan = apply_response_plan(workflow, model=None)
+        held = workflow.pop("tree_model", None)
+        try:
+            plan = apply_response_plan(workflow, model=None)
+        finally:
+            if held is not None:
+                workflow["tree_model"] = held
         workflow["outline_source"] = "rule_fallback"
         workflow["tree_model_failed"] = True
         workflow["outline_reason"] = MODEL_FAILED
