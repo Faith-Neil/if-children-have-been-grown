@@ -291,9 +291,12 @@ def coverage_rows(workflow: dict, outline: dict | None = None) -> list[dict]:
     outline = outline or workflow.get("technical_outline") or {}
     headings = {item.get("task_id"): item for item in (outline.get("headings") or []) if item.get("task_id")}
     reqs = workflow.get("requirements") or {}
+    review = set((workflow.get("technical_quality") or {}).get("review_titles") or [])
     rows = []
     for task in (workflow.get("response_tasks") or {}).values():
         heading = headings.get(task["task_id"]) or {}
+        title = heading.get("title") or task.get("title")
+        reasons = confirm_reasons(task, title in review)
         for rid in task.get("requirement_ids") or []:
             req = reqs.get(rid) or {}
             source = req.get("source") or {}
@@ -311,5 +314,33 @@ def coverage_rows(workflow: dict, outline: dict | None = None) -> list[dict]:
                 "response_status": task.get("response_status") or "not_started",
                 "generation_status": task.get("generation_status") or "pending",
                 "response_type": req.get("response_type") or None,
+                "digest_id": req.get("digest_id") or "",
+                "kind": "scoring" if req.get("section_kind") == "scoring" else "tech",
+                "score_item": req.get("score_item") or "",
+                "score": req.get("score") if isinstance(req.get("score"), (int, float)) else None,
+                "rag": task.get("rag"),
+                "confirm_reasons": reasons,
+                "failure_reason": task.get("failure_reason") or "",
+                "confirmed_at": task.get("confirmed_at"),
+                "retryable": task.get("generation_status") in ("failed", "generated"),
             })
     return rows
+
+
+def confirm_reasons(task: dict, quality_review: bool) -> list[str]:
+    """这一节为什么要人工确认；已人工确认或还没生成的节不提示。"""
+    if task.get("response_status") == "confirmed":
+        return []
+    if task.get("generation_status") == "failed":
+        return ["生成失败"]
+    if task.get("generation_status") != "generated":
+        return []
+    reasons = []
+    if (task.get("rag") or {}).get("status", "hit") != "hit" or task.get("response_status") == "needs_confirm":
+        reasons.append("知识库无依据")
+    check = task.get("constraint_check") or {}
+    if check.get("missing") or check.get("conflicts"):
+        reasons.append("废标约束待核")
+    if quality_review:
+        reasons.append("质量八条未达标")
+    return reasons

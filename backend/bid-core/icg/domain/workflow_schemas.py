@@ -970,6 +970,15 @@ class CoverageRow(ResponseBody):
     response_status: str = "not_started"
     generation_status: str = "pending"
     response_type: Literal["comply", "exceed", "deviate", "not_applicable"] | None = None
+    digest_id: str = Field(default="", description="清单编号：T-01 技术需求、S-01-1 评分要点")
+    kind: Literal["tech", "scoring"] = "tech"
+    score_item: str = ""
+    score: float | None = None
+    rag: dict[str, Any] | None = Field(default=None, description="本节检索摘要：status(hit/empty/skipped/failed)、query、history_hits、material_hits、tender_hits、top、error、searched_at")
+    confirm_reasons: list[str] = Field(default_factory=list, description="需要人工确认的原因")
+    failure_reason: str = ""
+    confirmed_at: str | None = None
+    retryable: bool = False
 
 
 class ResponseTask(ResponseBody):
@@ -985,6 +994,10 @@ class ResponseTask(ResponseBody):
     verification_status: str = "unchecked"
     outline_number: str | None = None
     chapter_id: str | None = None
+    rag: dict[str, Any] | None = None
+    failure_reason: str = ""
+    confirmed_by: str | None = None
+    confirmed_at: str | None = None
 
 
 class TechnicalKbDataset(ResponseBody):
@@ -1079,6 +1092,7 @@ class Workspace(ResponseBody):
     technical_quality: TechnicalQuality | None = Field(default=None, description="质量八条抽检结果")
     response_tasks: list[ResponseTask] = Field(default_factory=list, description="响应任务（要求→章节映射）")
     coverage_rows: list[CoverageRow] = Field(default_factory=list, description="覆盖视图五行数据源")
+    tender_digest: dict[str, Any] | None = Field(default=None, description="三张清单：tech、scoring、rejection，带编号与原文页码")
     plan_validation: dict[str, Any] | None = Field(default=None, description="生成计划确定性校验结果")
     technical_rag_audit: list[TechnicalRagAuditRow] = Field(default_factory=list, description="分节检索审计")
     tender_index: TenderIndexStatus | None = Field(default=None, description="本标索引状态，不含页正文")

@@ -400,6 +400,7 @@ def workspace_fields(state: Any, project_id: str, workflow: dict) -> dict[str, A
         "technical_quality": quality,
         "response_tasks": list((workflow.get("response_tasks") or {}).values()) if stored else [],
         "coverage_rows": coverage_rows(workflow, outline) if stored else [],
+        "tender_digest": workflow.get("tender_digest"),
         "plan_validation": (stored or {}).get("plan_validation") or workflow.get("plan_validation"),
         "technical_rag_audit": public_rag_audit(workflow),
         "tender_index": public_tender_index(workflow.get("tender_index")),

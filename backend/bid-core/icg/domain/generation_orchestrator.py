@@ -559,6 +559,21 @@ class GenerationOrchestratorMixin:
             "key": key, "principal": principal, "project_id": project_id,
         }
 
+    def confirm_technical_task(self, principal: Principal, project_id: str, task_id: str, payload: dict,
+                               expected: str | None, key: str | None) -> dict:
+        """人工确认一节。只认已生成的节；项目只读成员在 _authorize 被拒。"""
+        def operation(state, project, workflow):
+            task = (workflow.get("response_tasks") or {}).get(task_id)
+            if task is None:
+                raise DomainError(404, "NOT_FOUND", "没有这一节。")
+            if task.get("generation_status") != "generated":
+                raise DomainError(409, "SECTION_NOT_GENERATED", "这一节还没生成成功，不能确认。")
+            task.update(response_status="confirmed", confirmed_by=principal.user.id,
+                        confirmed_at=iso_time(self.demo._now()))
+            return {}
+
+        return self._write(principal, project_id, f"technical_task.confirm:{task_id}", payload, expected, key, operation)
+
     def iter_technical_stream(self, prepared: dict, cancel: Any = None):
         """先推节级 delta，整次完成后才写入章节。cancel 置位或断开后不写入。"""
         import queue

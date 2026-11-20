@@ -501,10 +501,15 @@ def _apply_one(patch: dict, bodies: dict[str, str], failed: list[str], audits: l
         task.update(patch["task_patch"])
 
 
+def _now_iso() -> str:
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
 def _draft_one(heading: dict, rows: dict, tasks: dict, model: Any, workflow: dict, knowledge_base: Any,
                company_id: str, emit: Callable[[dict], None] | None, cancel: Any) -> dict:
     """写一节。只返回这一节的正文和任务补丁，不改共享的 bodies。"""
-    from icg.domain.technical_rag import knowledge_prompt_block, retrieve_for_section, section_query
+    from icg.domain.technical_rag import knowledge_prompt_block, rag_summary, retrieve_for_section, section_query
     from icg.infra.openai_model import ModelCancelled
 
     key = _leaf_key(heading)
@@ -586,7 +591,10 @@ def _draft_one(heading: dict, rows: dict, tasks: dict, model: Any, workflow: dic
             f"【待确认】「{title}」自动生成失败，请按下列要求人工补写。\n"
             + "\n".join(f"- {row.get('extracted_summary') or row.get('text') or ''}" for row in req_rows[:8])
         )
-        task_patch = {"generation_status": "failed", "response_status": "gap"} if task is not None else None
+        task_patch = {
+            "generation_status": "failed", "response_status": "gap", "rag": rag_summary(rag_audit, searched_at=_now_iso()),
+            "failure_reason": "模型生成失败，可单节重试。",
+        } if task is not None else None
         patch_task(task_patch)
         return {
             "key": key, "title": title, "failed": True, "body": fallback, "audit": rag_audit,
@@ -598,6 +606,8 @@ def _draft_one(heading: dict, rows: dict, tasks: dict, model: Any, workflow: dic
     task_patch = {
         "generation_status": "generated",
         "response_status": "generated" if company_hits else "needs_confirm",
+        "rag": rag_summary(rag_audit, searched_at=_now_iso()), "failure_reason": "",
+        "confirmed_by": None, "confirmed_at": None,
     } if task is not None else None
     patch_task(task_patch)
     return {"key": key, "title": title, "body": body, "audit": rag_audit, "task": task, "task_patch": task_patch}
