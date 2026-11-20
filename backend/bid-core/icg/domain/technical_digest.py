@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 NON_SERVICE_SECTION_KINDS = frozenset({"business", "qualification"})
-REJECTION_LIMIT = 40
 
 
 def _rows(workflow: dict) -> list[dict]:
@@ -35,7 +34,7 @@ def _rejections(workflow: dict) -> list[dict]:
         if text and text not in seen:
             seen.add(text)
             items.append({"text": text[:80], "quote": text, "page": None, "category": ""})
-    return items[:REJECTION_LIMIT]
+    return items
 
 
 def build_digest(workflow: dict) -> dict[str, Any]:
@@ -95,7 +94,7 @@ def digest_index(digest: dict) -> dict[str, list[str]]:
     return index
 
 
-def rejection_lines(workflow: dict | None, *, limit: int = 30) -> list[str]:
+def rejection_lines(workflow: dict | None, *, limit: int | None = None) -> list[str]:
     digest = (workflow or {}).get("tender_digest") or {}
     return [
         f"{item['id']} {item['text']}" for item in (digest.get("rejection") or [])[:limit] if item.get("text")
