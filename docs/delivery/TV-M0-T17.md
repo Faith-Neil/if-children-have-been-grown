@@ -17,7 +17,7 @@
 
 ## 验收
 
-- `python3 -m pytest tests/backend/test_technical_digest.py`：5 passed。
+- `python3 -m pytest tests/backend/test_technical_digest.py`：9 passed（含评审修复：重复条目合并评分信息、畸形目录回落、回落不再调模型、废标清单不截断）。
 - `pytest tests/backend -k "technical or tender or outline or volume or coverage"`：313 passed，4 failed；同 4 例在改动前的分支上同样失败（`test_technical_sources.py` 旧主题目录断言），非本次引入。
 - 限制：只用假模型；真实内网 Qwen / RAGFlow 未验证。
 
