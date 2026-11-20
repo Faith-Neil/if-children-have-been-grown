@@ -932,7 +932,32 @@ def _without_dropped(nodes: list[dict], drop: set[int], reqs: dict[str, dict]) -
             continue
         kept.append(node)
     if pending and kept:
-        host = next((node for node in reversed(kept) if node.get("_task")), kept[-1])
+        # 删章后的挂载只并进叶子，避免把代号送回一级章。
+        host = next(
+            (
+                node for node in reversed(kept)
+                if node.get("_task") and int(node.get("level") or 0) >= 2
+            ),
+            None,
+        )
+        if host is None:
+            hosts = [index for index, node in enumerate(kept) if int(node.get("level") or 0) == 1]
+            if not hosts:
+                return kept
+            leaf = next(
+                (
+                    node for node in kept
+                    if node.get("title") == "其他服务" and int(node.get("level") or 0) >= 2
+                ),
+                None,
+            )
+            if leaf is None:
+                leaf = _node(2, "其他服务")
+                insert_at = hosts[-1] + 1
+                while insert_at < len(kept) and int(kept[insert_at].get("level") or 1) > 1:
+                    insert_at += 1
+                kept.insert(insert_at, leaf)
+            host = leaf
         _merge_tasks_onto_host(host, pending, reqs)
     return kept
 
@@ -1152,8 +1177,29 @@ def build_chapter_tree(tasks: list[dict], workflow: dict | None = None, model: A
         drop = set() if other or not (titles or nested) else _drop_indexes(numbered, titles, nested)
         kept = _without_dropped(nodes, drop, reqs) if drop else []
         if drop and _worth_keeping(kept):
-            nodes = kept
-            numbered, rewritten = _finish_tree(nodes)
+            # 事后删章仍可能把代号并回一级；再跑一次硬校验，过不了就替身。
+            expected = [
+                rid
+                for task in tasks
+                for rid in (task.get("requirement_ids") or [])
+                if _is_mount(reqs.get(rid) or {})
+            ]
+            screened = [
+                {
+                    "level": int(node.get("level") or 1),
+                    "title": node.get("title"),
+                    "mount_ids": list(node.get("mount_ids") or node.get("requirement_ids") or []),
+                }
+                for node in kept
+            ]
+            if _hard_tree_faults(screened, expected):
+                nodes = stand_in_chapter_tree(tasks, reqs)
+                numbered, rewritten = _finish_tree(nodes)
+                used_model = False
+                failure = TREE_REJECTED
+            else:
+                nodes = kept
+                numbered, rewritten = _finish_tree(nodes)
         else:
             nodes = stand_in_chapter_tree(tasks, reqs)
             numbered, rewritten = _finish_tree(nodes)
