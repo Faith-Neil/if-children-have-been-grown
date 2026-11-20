@@ -103,3 +103,39 @@ def test_section_prompt_carries_scoring_and_rejection_list():
     user = _section_user("应急保障", rows, {"response_points": ["应急预案"]}, workflow, "")
     assert "运维方案（10 分）：方案完整得10分" in user
     assert "R-01 未按要求提供服务方案的投标无效" in user
+
+
+def test_extract_merges_scoring_meta_into_duplicate_requirement():
+    reply = json.dumps({
+        "requirements": [{"text": "季度健康检查并出具报告", "quote": "季度健康检查"}],
+        "scoring": [{"item": "健康检查", "score": 8, "criteria": "季度检查得8分", "points": ["季度健康检查并出具报告"]}],
+    }, ensure_ascii=False)
+    payload = extract_with_model(["第一页"], FakeModel([reply]))
+    assert len(payload["items"]) == 1
+    item = payload["items"][0]
+    assert (item["kind"], item["score_item"], item["score"], item["criteria"]) == ("scoring", "健康检查", 8.0, "季度检查得8分")
+    assert (payload["requirement_count"], payload["scoring_count"]) == (0, 1)
+
+
+def test_malformed_outline_reply_falls_back_without_raising():
+    workflow = _workflow()
+    model = FakeModel(['{"nodes": 1}', json.dumps({"nodes": [{"level": 1, "title": "巡检", "points": [{"text": "巡检", "refs": 5}]}]})])
+    plan = plan_technical_outline(workflow, model)
+    assert workflow["outline_source"] == "rule_fallback" and plan["headings"]
+
+
+def test_rule_fallback_does_not_call_tree_model_again():
+    workflow = _workflow()
+    model = FakeModel([RuntimeError("boom"), RuntimeError("boom")])
+    workflow["tree_model"] = model
+    plan_technical_outline(workflow)
+    assert len(model.calls) == 2 and workflow["tree_model"] is model
+    assert workflow["outline_source"] == "rule_fallback"
+
+
+def test_rejection_lines_keep_every_condition():
+    workflow = _workflow()
+    workflow["technical_sidecars"]["rejection_lines"] = [f"第{index}条废标条件" for index in range(1, 61)]
+    build_digest(workflow)
+    lines = rejection_lines(workflow)
+    assert len(lines) == 60 and lines[-1] == "R-60 第60条废标条件"
