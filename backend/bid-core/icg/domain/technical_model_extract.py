@@ -77,6 +77,19 @@ def _payload_items(payload: dict) -> list[dict]:
     return found
 
 
+def _merge_duplicate(entry: dict, item: dict, result: dict) -> None:
+    """同一事项在需求和评分里各出现一次时，保留一条并补上评分项名、分值与评分标准。"""
+    if entry["role"] != "response_mount" or str(item.get("role") or "response_mount") != "response_mount":
+        return
+    if item.get("kind") == "scoring" and entry["kind"] != "scoring":
+        result[LIST_OF_ROLE[("response_mount", entry["kind"])]] -= 1
+        result[LIST_OF_ROLE[("response_mount", "scoring")]] += 1
+        entry["kind"] = "scoring"
+    for key in EXTRA_KEYS:
+        if entry.get(key) in (None, "") and item.get(key) not in (None, ""):
+            entry[key] = item[key]
+
+
 def usable_local_model(model: Any) -> bool:
     if not (model and getattr(model, "is_real_model", False) and getattr(model, "is_local", None) is not False):
         return False
@@ -150,7 +163,7 @@ def extract_with_model(pages: list[str], model: Any, on_chunk=None) -> dict[str,
         return result
     from icg.infra.openai_model import EXTRACT_CALL, call_with_profile
 
-    seen: set[str] = set()
+    seen: dict[str, dict] = {}
     chunks = _chunks(pages)
     total = len(chunks)
     timeouts = 0
@@ -184,9 +197,12 @@ def extract_with_model(pages: list[str], model: Any, on_chunk=None) -> dict[str,
             if not text:
                 continue
             key = _matter_key(text)
-            if not key or any(_same(key, existing) for existing in seen):
+            if not key:
                 continue
-            seen.add(key)
+            existing = next((entry for old, entry in seen.items() if _same(key, old)), None)
+            if existing is not None:
+                _merge_duplicate(existing, item, result)
+                continue
             role = str(item.get("role") or "response_mount").strip()
             if role not in ("response_mount", "rejection_constraint"):
                 role = "response_mount"
@@ -202,6 +218,7 @@ def extract_with_model(pages: list[str], model: Any, on_chunk=None) -> dict[str,
             }
             entry.update({key: item[key] for key in EXTRA_KEYS if item.get(key) not in (None, "")})
             result["items"].append(entry)
+            seen[key] = entry
             result[LIST_OF_ROLE[(role, kind)]] += 1
     result["timeout_count"] = timeouts
     result["extract_degraded"] = total > 0 and timeouts * 2 > total
