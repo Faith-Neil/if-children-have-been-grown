@@ -2,14 +2,14 @@
 // 它解决什么问题：去掉归属分册/证据等两册噪音列；点行跳编辑台对应节。
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Input, Table, Tag } from 'antd';
+import { Alert, Button, Card, Collapse, Input, Popover, Table, Tag } from 'antd';
 import { useProject } from '../app/context.tsx';
-import { streamEvents } from '../shared/api.ts';
-import type { CoverageRow } from '../shared/types.ts';
-import { technicalVolumeSessionPath } from '../editor/section-stream.ts';
+import { newIdempotencyKey, streamEvents } from '../shared/api.ts';
+import type { CoverageRag, CoverageRow } from '../shared/types.ts';
+import { technicalVolumeSessionPath, technicalVolumeStreamPath } from '../editor/section-stream.ts';
 import { activeVolumeSession } from '../status/generation-session.ts';
 import {
-  coverageLabel, coverageState, coverageStats, mergeTaskPatch, parseTaskPatched, patchRows,
+  coverageLabel, coverageState, coverageStats, mergeTaskPatch, parseTaskPatched, patchRows, ragLabel,
   type CoveragePatches,
 } from './coverage-live.ts';
 import { parseHonesty } from './parse-honesty.ts';
@@ -63,8 +63,50 @@ function useSessionPatches(): CoveragePatches {
   return live.sessionId === sessionId ? live.patches : {};
 }
 
+function RagCell({ rag }: { rag?: CoverageRag | null }) {
+  const color = rag?.status === 'hit' ? 'green' : rag?.status === 'failed' ? 'red' : 'default';
+  const detail = rag ? (
+    <div style={{ maxWidth: 360 }}>
+      <div className="muted">检索词：{rag.query || '—'}</div>
+      {(rag.top ?? []).map((item, index) => (
+        <div key={index}>{item.dataset_kind === 'material' ? '资料库' : item.dataset_kind === 'history' ? '历史标书' : '本标'} · {item.name || '未命名'}</div>
+      ))}
+      {rag.searched_at && <div className="muted">{rag.searched_at}</div>}
+    </div>
+  ) : null;
+  const tag = <Tag color={color}>{ragLabel(rag)}</Tag>;
+  return detail ? <Popover content={detail} title="知识库检索">{tag}</Popover> : tag;
+}
+
 export function CoverageView() {
-  const { workspace, navigate } = useProject();
+  const { workspace, navigate, token, mutate, reload, report, busy } = useProject();
+  const [running, setRunning] = useState('');
+  const chapterId = workspace.technical_outline?.chapter_id;
+  const canWrite = workspace.chapters.find(item => item.id === chapterId)?.permissions?.generate === true;
+  const rejections = workspace.tender_digest?.rejection ?? [];
+
+  async function retry(row: CoverageRow) {
+    if (!row.outline_title) return;
+    setRunning(row.task_id);
+    try {
+      await streamEvents(technicalVolumeStreamPath(workspace.project.id), token, { section: row.outline_title }, () => undefined,
+        undefined, { 'If-Match': String(workspace.revision), 'Idempotency-Key': newIdempotencyKey() });
+      await reload();
+    } catch (error) {
+      report(error);
+    } finally {
+      setRunning('');
+    }
+  }
+
+  async function confirm(row: CoverageRow) {
+    try {
+      await mutate(`/api/v1/projects/${workspace.project.id}/technical-tasks/${encodeURIComponent(row.task_id)}/confirm`, 'POST', {});
+    } catch (error) {
+      report(error);
+    }
+  }
+
   const [search, setSearch] = useState('');
   const patches = useSessionPatches();
   const allRows = useMemo(
@@ -91,6 +133,7 @@ export function CoverageView() {
         <Card size="small"><span className="muted">已响应 </span><strong data-testid="coverage-stat-responded">{stats.responded}</strong></Card>
         <Card size="small"><span className="muted">生成中 </span><strong data-testid="coverage-stat-generating">{stats.generating}</strong></Card>
         <Card size="small"><span className="muted">失败 </span><strong data-testid="coverage-stat-failed">{stats.failed}</strong></Card>
+        <Card size="small"><span className="muted">待人工确认 </span><strong data-testid="coverage-stat-confirm">{stats.confirm}</strong></Card>
       </div>
       {honesty.degraded && (
         <Alert
@@ -110,6 +153,24 @@ export function CoverageView() {
           data-testid="plan-validation-warning"
           message="生成计划校验未全部通过"
           description={(validation.issues || []).join('；')}
+        />
+      )}
+      {rejections.length > 0 && (
+        <Collapse
+          size="small"
+          style={{ marginBottom: 8 }}
+          data-testid="coverage-rejections"
+          items={[{
+            key: 'rejection',
+            label: `废标清单（${rejections.length}，正文硬约束）`,
+            children: rejections.map(item => (
+              <div key={item.id}>
+                <Tag color="red">{item.id}</Tag>{item.text}
+                {item.category && <Tag>{item.category}</Tag>}
+                {item.page != null && <span className="muted"> p.{item.page}</span>}
+              </div>
+            )),
+          }]}
         />
       )}
       <Card size="small" styles={{ body: { padding: 0 } }}>
@@ -140,7 +201,10 @@ export function CoverageView() {
               width: 360,
               render: (value: string, row) => (
                 <>
-                  <div>{value}</div>
+                  <div>{row.digest_id && <Tag>{row.digest_id}</Tag>}{value}</div>
+                  {row.kind === 'scoring' && row.score_item && (
+                    <Tag color="blue">{row.score_item}{row.score != null ? ` ${row.score}分` : ''}</Tag>
+                  )}
                   {row.is_rejection_criterion && <Tag color="red">废标相关</Tag>}
                 </>
               ),
@@ -180,9 +244,33 @@ export function CoverageView() {
               render: (_, row) => (
                 <span data-testid={`coverage-state-${row.requirement_id}`}>
                   <Tag color={stateColor(row)}>{coverageLabel(row)}</Tag>
-                  {row.response_status === 'needs_confirm' && <Tag color="gold">待确认</Tag>}
+                  {row.response_status === 'confirmed' && <Tag color="green">已人工确认</Tag>}
+                  {row.failure_reason && <div className="muted">{row.failure_reason}</div>}
+                  {canWrite && coverageState(row) === 'failed' && (
+                    <Button size="small" type="link" loading={running === row.task_id} disabled={busy || !!running}
+                      data-testid={`coverage-retry-${row.requirement_id}`}
+                      onClick={event => { event.stopPropagation(); void retry(row); }}>重试本节</Button>
+                  )}
                 </span>
               ),
+            },
+            {
+              title: '知识库检索',
+              width: 150,
+              render: (_, row) => <span data-testid={`coverage-rag-${row.requirement_id}`}><RagCell rag={row.rag} /></span>,
+            },
+            {
+              title: '人工确认',
+              width: 170,
+              render: (_, row) => (row.confirm_reasons ?? []).length ? (
+                <span data-testid={`coverage-confirm-${row.requirement_id}`}>
+                  {(row.confirm_reasons ?? []).map(reason => <Tag key={reason} color="gold">{reason}</Tag>)}
+                  {canWrite && coverageState(row) === 'responded' && (
+                    <Button size="small" type="link" disabled={busy}
+                      onClick={event => { event.stopPropagation(); void confirm(row); }}>确认</Button>
+                  )}
+                </span>
+              ) : null,
             },
           ]}
         />

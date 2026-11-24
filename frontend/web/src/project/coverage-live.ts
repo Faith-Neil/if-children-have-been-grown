@@ -1,7 +1,7 @@
 // 为什么有这个文件：覆盖视图在技术卷生成会话中按 task.patched 实时更新行状态。
 // 它解决什么问题：行状态不必等整卷写完再刷新；同一补丁重放多次结果不变，已结束的节不会被迟到的「生成中」改回去。
 
-import type { CoverageRow } from '../shared/types.ts';
+import type { CoverageRag, CoverageRow } from '../shared/types.ts';
 
 export type GenerationStatus = 'pending' | 'generating' | 'generated' | 'failed';
 export type ResponseType = NonNullable<CoverageRow['response_type']>;
@@ -11,6 +11,8 @@ export type TaskPatch = {
   generation_status?: GenerationStatus;
   response_status?: string;
   response_types?: Record<string, ResponseType>;
+  rag?: CoverageRag;
+  failure_reason?: string;
 };
 export type TaskPatched = TaskPatch & { task_id: string; generation_status: GenerationStatus };
 export type CoveragePatches = Readonly<Record<string, TaskPatch>>;
@@ -35,6 +37,12 @@ const RESPONDED: ReadonlySet<string> = new Set(['generated', 'needs_confirm', 'c
 
 function isGenerationStatus(value: unknown): value is GenerationStatus {
   return typeof value === 'string' && value in RANK;
+}
+
+function isRag(value: unknown): value is CoverageRag {
+  if (typeof value !== 'object' || value === null) return false;
+  const status = (value as { status?: unknown }).status;
+  return status === 'hit' || status === 'empty' || status === 'skipped' || status === 'failed';
 }
 
 function isResponseType(value: unknown): value is ResponseType {
@@ -62,6 +70,8 @@ export function parseTaskPatched(raw: unknown): TaskPatched | null {
   if (!isGenerationStatus(record.generation_status)) return null;
   const patch: TaskPatched = { task_id: record.task_id, generation_status: record.generation_status };
   if (typeof record.response_status === 'string') patch.response_status = record.response_status;
+  if (typeof record.failure_reason === 'string') patch.failure_reason = record.failure_reason;
+  if (isRag(record.rag)) patch.rag = record.rag;
   if (typeof record.response_types === 'object' && record.response_types !== null) {
     const types: Record<string, ResponseType> = {};
     for (const [id, value] of Object.entries(record.response_types)) {
@@ -81,10 +91,14 @@ export function mergeTaskPatch(patches: CoveragePatches, event: TaskPatched): Co
     ...previous,
     generation_status: event.generation_status,
     ...(event.response_status !== undefined ? { response_status: event.response_status } : {}),
+    ...(event.rag ? { rag: event.rag } : {}),
+    ...(event.failure_reason !== undefined ? { failure_reason: event.failure_reason } : {}),
     ...(event.response_types ? { response_types: { ...previous.response_types, ...event.response_types } } : {}),
   };
   const same = next.generation_status === previous.generation_status
     && next.response_status === previous.response_status
+    && next.rag === previous.rag
+    && next.failure_reason === previous.failure_reason
     && JSON.stringify(next.response_types) === JSON.stringify(previous.response_types);
   return same ? patches : { ...patches, [event.task_id]: next };
 }
@@ -100,14 +114,27 @@ export function patchRows(rows: CoverageRow[], patches: CoveragePatches): Covera
       generation_status: patch.generation_status ?? row.generation_status,
       response_status: patch.response_status ?? row.response_status,
       response_type: patch.response_types?.[row.requirement_id] ?? row.response_type,
+      rag: patch.rag ?? row.rag,
+      failure_reason: patch.failure_reason ?? row.failure_reason,
+      retryable: patch.generation_status === 'failed' || patch.generation_status === 'generated' ? true : row.retryable,
     };
   });
 }
 
+const RAG_LABEL: Record<CoverageRag['status'], string> = { hit: '有依据', empty: '无命中', skipped: '未检索', failed: '检索失败' };
+
+/** 检索列文案：历史 n · 资料 n；没检索时给原因。 */
+export function ragLabel(rag: CoverageRag | null | undefined): string {
+  if (!rag) return '未检索';
+  if (rag.status === 'hit' || rag.status === 'empty') return `历史 ${rag.history_hits} · 资料 ${rag.material_hits}`;
+  return rag.error ? `${RAG_LABEL[rag.status]}（${rag.error}）` : RAG_LABEL[rag.status];
+}
+
 export function coverageStats(rows: CoverageRow[]) {
-  const stats = { total: rows.length, rejection: 0, responded: 0, generating: 0, failed: 0 };
+  const stats = { total: rows.length, rejection: 0, responded: 0, generating: 0, failed: 0, confirm: 0 };
   for (const row of rows) {
     if (row.is_rejection_criterion) stats.rejection += 1;
+    if ((row.confirm_reasons ?? []).length) stats.confirm += 1;
     const state = coverageState(row);
     if (state !== 'pending') stats[state] += 1;
   }
