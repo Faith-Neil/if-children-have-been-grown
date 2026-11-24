@@ -184,3 +184,8 @@ def test_manual_edit_after_confirm_voids_the_confirmation():
     edited = coverage_rows(workflow, outline, "1.1 巡检\n改过的正文\n")[0]
     assert edited["response_status"] == "generated" and edited["confirmed_at"] is None
     assert edited["confirm_reasons"] == ["确认后正文已修改"]
+    numbered = {**task, "confirmed_hash": body_hash("原正文\n24 小时内处理")}
+    workflow["response_tasks"] = {"k1": numbered}
+    assert coverage_rows(workflow, outline, "1.1 巡检\n原正文\n24 小时内处理\n")[0]["response_status"] == "confirmed"
+    assert coverage_rows(workflow, outline, "1.1 巡检\n原正文\n12 小时内处理\n")[0]["response_status"] == "generated"
+    assert coverage_rows(workflow, outline, "原正文\n24 小时内处理\n")[0]["response_status"] == "generated"

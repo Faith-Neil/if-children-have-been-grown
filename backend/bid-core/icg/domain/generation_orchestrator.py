@@ -582,12 +582,13 @@ class GenerationOrchestratorMixin:
                 raise DomainError(404, "NOT_FOUND", "没有这一节。")
             if task.get("generation_status") != "generated":
                 raise DomainError(409, "SECTION_NOT_GENERATED", "这一节还没生成成功，不能确认。")
-            from icg.domain.technical_response_plan import body_hash
-            from icg.domain.technical_volume import section_body
+            from icg.domain.technical_response_plan import body_hash, confirm_text
 
             outline = workflow.get("technical_outline") or {}
             heading = next((item for item in outline.get("headings") or [] if item.get("task_id") == task_id), {})
-            body = section_body(chapter.content or "", heading.get("number") or "", heading.get("title") or "")
+            body = confirm_text(chapter.content or "", outline, heading)
+            if body is None:
+                raise DomainError(409, "REVISION_CONFLICT", "正文里找不到这一节的标题，不能确认。请恢复标题或重新生成这一节。")
             before = task.get("pre_confirm_status") if task.get("response_status") == "confirmed" else task.get("response_status")
             task.update(response_status="confirmed", confirmed_by=principal.user.id,
                         confirmed_at=iso_time(self.demo._now()), pre_confirm_status=before,

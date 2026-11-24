@@ -291,14 +291,24 @@ def body_hash(body: str) -> str:
     return hashlib.sha256((body or "").strip().encode("utf-8")).hexdigest()
 
 
-def effective_task(task: dict, heading: dict, content: str | None) -> dict:
-    """确认后这一节正文被人改过，确认作废，回到确认前状态并提示重新确认。"""
+def confirm_text(content: str, outline: dict, heading: dict) -> str | None:
+    """确认指纹用的本节全文：从本节标题到下一个目录标题为止（数字开头的正文行也算在内）。找不到标题返回 None。"""
+    markers = {f"{item.get('number')} {item.get('title')}" for item in outline.get("headings") or []}
+    lines = (content or "").splitlines()
+    marker = f"{heading.get('number')} {heading.get('title')}"
+    start = next((i + 1 for i, line in enumerate(lines) if line.strip() == marker), None)
+    if start is None:
+        return None
+    end = next((i for i in range(start, len(lines)) if lines[i].strip() in markers), len(lines))
+    return "\n".join(lines[start:end]).strip()
+
+
+def effective_task(task: dict, heading: dict, content: str | None, outline: dict | None = None) -> dict:
+    """确认后这一节正文被人改过或标题被删，确认作废，回到确认前状态并提示重新确认。"""
     if task.get("response_status") != "confirmed" or not task.get("confirmed_hash") or content is None:
         return task
-    from icg.domain.technical_volume import section_body
-
-    body = section_body(content, heading.get("number") or "", heading.get("title") or "")
-    if body_hash(body) == task["confirmed_hash"]:
+    text = confirm_text(content, outline or {}, heading)
+    if text is not None and body_hash(text) == task["confirmed_hash"]:
         return task
     return {**task, "response_status": task.get("pre_confirm_status") or "generated",
             "confirmed_at": None, "edited_after_confirm": True}
@@ -313,7 +323,7 @@ def coverage_rows(workflow: dict, outline: dict | None = None, content: str | No
     rows = []
     for task in (workflow.get("response_tasks") or {}).values():
         heading = headings.get(task["task_id"]) or {}
-        task = effective_task(task, heading, content)
+        task = effective_task(task, heading, content, outline)
         title = heading.get("title") or task.get("title")
         reasons = confirm_reasons(task, title in review)
         for rid in task.get("requirement_ids") or []:
