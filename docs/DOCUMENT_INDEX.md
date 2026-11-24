@@ -16,6 +16,8 @@
 | D-1021 | 2026-11-20 | [角色与功能审计](reviews/2026-11-20-role-feature-audit.md) | 评审 | tech-plan-simplified-1 | 当前 | ISSUE-053 | 三角色 + 项目只读；空壳、重复与死入口 |
 | D-1022 | 2026-11-20 | [TV-M0-T17 交付](delivery/TV-M0-T17.md) | 任务交付 | req-task | in-review | ISSUE-053 / TV-M0-T17 | 三张清单与清单拟目录 |
 | D-1023 | 2026-11-20 | [TV-M0-T17 代码说明](code/TV-M0-T17.md) | 代码说明 | req-task | 当前 | ISSUE-053 / TV-M0-T17 | tender_digest 与目录编排 |
+| D-1024 | 2026-11-24 | [TV-M0-T18 交付](delivery/TV-M0-T18.md) | 任务交付 | req-task | in-review | ISSUE-053 / TV-M0-T18 | 覆盖视图检索摘要、确认与重试 |
+| D-1025 | 2026-11-24 | [TV-M0-T18 代码说明](code/TV-M0-T18.md) | 代码说明 | req-task | 当前 | ISSUE-053 / TV-M0-T18 | 覆盖行字段与确认接口 |
 | D-1008 | 2026-11-09 | [ISSUE-052：公司开通与账号归属](../issues/ISSUE-052.md) | Issue | company-provision-1 | in-progress | ISSUE-052 | 平台管理员开通公司+首个管理员；点进公司管人 |
 | D-1009 | 2026-11-09 | [公司开通与账号归属实现计划](superpowers/plans/2026-11-09-company-provisioning.md) | 计划 | company-provision-1 | 已执行 | ISSUE-052 | 七项实现任务已落地；卡 in-review |
 | D-1010 | 2026-11-09 | [ADMIN-PROVISION 任务卡](tasks/ADMIN-PROVISION.md) | 任务 | company-provision-1 | in-review | ISSUE-052 | T01～T04 |

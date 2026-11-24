@@ -352,3 +352,18 @@
 范围：模型抽取输出三张清单；`tender_digest` 编号 T/S/R；一次模型调用拟 1～4 级目录并挂要点，漏挂补入「其他服务承诺」，失败回落规则目录；正文提示加评分标准与全部废标清单；检索词加挂载要点；两库都检索。
 
 验收：`tests/backend/test_technical_digest.py` 通过；技术相关后端用例无新增失败。
+
+
+## TV-M0-T18 · 覆盖视图即矩阵：检索摘要、人工确认、单节重试
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 关联 Issue | [ISSUE-053](../../issues/ISSUE-053.md) |
+| 依赖 | [TV-M0-T17](TV-M0.md#tv-m0-t17) |
+| 完成时交付 | docs/delivery/TV-M0-T18.md |
+| 代码解释 | docs/code/TV-M0-T18.md |
+
+范围：覆盖行带清单编号、评分项与分值、本节检索摘要（两库命中、前 3 条来源、状态与原因）、人工确认原因、失败原因；新增 `POST /api/v1/projects/{project_id}/technical-tasks/{task_id}/confirm`；失败节在覆盖视图单节重试（复用流式接口 `section`）；展示废标清单。
+
+验收：`tests/backend/test_technical_coverage_view.py`、`frontend/web/tests/unit/coverage-live.test.mjs` 通过；项目只读成员确认与重试均 403；OpenAPI `--check` 一致。
