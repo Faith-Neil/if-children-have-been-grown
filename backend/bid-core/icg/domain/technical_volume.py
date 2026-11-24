@@ -466,6 +466,12 @@ def _leaf_key(heading: dict) -> str:
     return str(heading.get("task_id") or heading.get("requirement_id") or heading.get("number") or "")
 
 
+def select_section(headings: list[dict], section: str) -> list[dict]:
+    """section 先按节键（任务编号）匹配，同名小节不会被一起重写；匹配不到再按标题。"""
+    by_key = [item for item in headings if _leaf_key(item) == section]
+    return by_key or [item for item in headings if item.get("title") == section]
+
+
 def _assemble(outline: dict, bodies: dict[str, str], reviews: set[str]) -> str:
     lines: list[str] = []
     for heading in outline.get("headings") or []:
@@ -629,7 +635,7 @@ def write_volume(state: Any, project_id: str, workflow: dict, section: str | Non
     tasks = workflow.get("response_tasks") or {}
     headings = _leaves(outline)
     if section:
-        headings = [item for item in headings if item.get("title") == section]
+        headings = select_section(headings, section)
         if not headings:
             raise DomainError(404, "NOT_FOUND", "没有这一节。")
     current = chapter.content or ""
@@ -742,6 +748,7 @@ def write_volume(state: Any, project_id: str, workflow: dict, section: str | Non
             item for item in (workflow.get("needs_regeneration") or []) if item != chapter.id
         ]
     return {
+        "task_ids": [item["task_id"] for item in headings if item.get("task_id")],
         "failed": failed,
         "chapter_id": chapter.id,
         "rag_audit": audits,

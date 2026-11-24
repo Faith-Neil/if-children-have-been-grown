@@ -90,7 +90,7 @@ export function CoverageView() {
     if (!row.outline_title) return;
     setRunning(row.task_id);
     try {
-      await streamEvents(technicalVolumeStreamPath(workspace.project.id), token, { section: row.outline_title }, () => undefined,
+      await streamEvents(technicalVolumeStreamPath(workspace.project.id), token, { section: row.task_id || row.outline_title }, () => undefined,
         undefined, { 'If-Match': String(workspace.revision), 'Idempotency-Key': newIdempotencyKey() });
       await reload();
     } catch (error) {

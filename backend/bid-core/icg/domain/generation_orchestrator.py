@@ -542,7 +542,7 @@ class GenerationOrchestratorMixin:
                                  expected: str | None, key: str | None) -> dict:
         """推送开始前的核对。失败按 HTTP 状态抛出，不进事件流。"""
         from icg.domain.technical_sources import technical_only
-        from icg.domain.technical_volume import _leaves, assert_ready
+        from icg.domain.technical_volume import _leaves, assert_ready, select_section
 
         snapshot, previous = self._preflight(principal, project_id, "chapter.generate", payload, expected, key)
         if previous:
@@ -552,7 +552,7 @@ class GenerationOrchestratorMixin:
             raise DomainError(409, "REQUIREMENT_NOT_READY", "目录还没确认。")
         assert_ready(snapshot, project_id, workflow)
         section = (payload.get("section") or "").strip()
-        if section and not any(item.get("title") == section for item in _leaves(workflow["technical_outline"])):
+        if section and not select_section(_leaves(workflow["technical_outline"]), section):
             raise DomainError(404, "NOT_FOUND", "没有这一节。")
         return {
             "snapshot": snapshot, "workflow": workflow, "payload": payload, "expected": expected,
@@ -561,8 +561,12 @@ class GenerationOrchestratorMixin:
 
     def confirm_technical_task(self, principal: Principal, project_id: str, task_id: str, payload: dict,
                                expected: str | None, key: str | None) -> dict:
-        """人工确认一节。只认已生成的节；项目只读成员在 _authorize 被拒。"""
+        """人工确认一节。只认已生成的节；项目只读成员在 _authorize 被拒，没有本章编辑权的成员在这里被拒。"""
         def operation(state, project, workflow):
+            chapter = state.chapters.get((workflow.get("technical_outline") or {}).get("chapter_id") or "")
+            if chapter is None:
+                raise DomainError(404, "NOT_FOUND", "没有服务方案这一章。")
+            require_chapter(state, principal, chapter)
             task = (workflow.get("response_tasks") or {}).get(task_id)
             if task is None:
                 raise DomainError(404, "NOT_FOUND", "没有这一节。")
@@ -696,9 +700,16 @@ class GenerationOrchestratorMixin:
             raise DomainError(404, "NOT_FOUND", "没有服务方案这一章。")
         chapter.content = drafted["content"]
         chapter.revision = drafted["revision"]
+        live_tasks = dict(actual.get("response_tasks") or {})
         for key in ("response_tasks", "technical_rag_audit", "technical_quality", "writer_model", "needs_regeneration", "constraint_check"):
             if drafted.get(key) is not None:
                 actual[key] = drafted[key]
+        touched = result.get("task_ids")
+        if touched is not None and drafted.get("response_tasks") is not None:
+            # 只换本次重写过的节；生成期间别的节被人工确认，不被生成前的快照冲掉。
+            merged = dict(live_tasks)
+            merged.update({tid: drafted["response_tasks"][tid] for tid in touched if tid in drafted["response_tasks"]})
+            actual["response_tasks"] = merged
         message = "技术分册已写入当前正文。" if not result["failed"] else "有的节没有生成成功，这些节保持原样，其他节已写入。"
         quality = result.get("quality") or {}
         if quality.get("warning"):

@@ -91,3 +91,59 @@ def test_readonly_project_member_cannot_confirm(client):
         "section": workspace["coverage_rows"][0]["outline_title"]}, headers={
         **reader, "If-Match": str(workspace["revision"]), "Idempotency-Key": str(uuid4())})
     assert retry.status_code == 403, retry.text
+
+
+def test_writer_without_chapter_edit_cannot_confirm(client):
+    headers, project_id, _events = _generate(client)
+    workspace = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
+    team = client.put(f"/api/v1/projects/{project_id}/team", headers={
+        **headers, "If-Match": str(workspace["revision"]), "Idempotency-Key": str(uuid4())}, json={
+        "members": [{"user_id": "alpha-manager", "project_role": "lead", "volumes": ["technical"]},
+                    {"user_id": "alpha-editor", "project_role": "writer", "volumes": []}],
+        "volumes": [{"volume": "technical", "owner_id": "alpha-manager"}], "assembly_owner_id": "alpha-manager"})
+    assert team.status_code == 200, team.text
+    writer = login(client, "alpha-editor")
+    workspace = client.get(f"/api/v1/projects/{project_id}/workspace", headers=writer).json()
+    task_id = workspace["coverage_rows"][0]["task_id"]
+    denied = client.post(f"/api/v1/projects/{project_id}/technical-tasks/{task_id}/confirm", json={}, headers={
+        **writer, "If-Match": str(workspace["revision"]), "Idempotency-Key": str(uuid4())})
+    assert denied.status_code == 403, denied.text
+
+
+def test_select_section_prefers_key_over_shared_title():
+    from icg.domain.technical_volume import select_section
+    headings = [{"title": "保障措施", "task_id": "k1"}, {"title": "保障措施", "task_id": "k2"}, {"title": "应急", "number": "2.1"}]
+    assert select_section(headings, "k2") == [headings[1]]
+    assert len(select_section(headings, "保障措施")) == 2
+    assert select_section(headings, "应急") == [headings[2]]
+    assert select_section(headings, "nope") == []
+
+
+def test_retry_keeps_confirmation_made_while_it_runs(client):
+    import threading
+
+    from test_generation_session import GatedModel
+
+    headers, project_id, _events = _generate(client)
+    workspace = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
+    rows = {row["task_id"]: row for row in workspace["coverage_rows"]}
+    assert len(rows) >= 2
+    kept, retried = list(rows.values())[:2]
+    model = GatedModel()
+    client.app.state.workflow.demo.resolve_model_provider = lambda *_a, **_k: model
+    sink: list = []
+    worker = threading.Thread(target=lambda: sink.append(client.post(
+        f"/api/v1/projects/{project_id}/technical-volume/stream", json={"section": retried["task_id"]},
+        headers={**headers, "If-Match": str(workspace["revision"]), "Idempotency-Key": str(uuid4())})), daemon=True)
+    worker.start()
+    assert model.started.wait(10)
+    live = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
+    confirmed = client.post(f"/api/v1/projects/{project_id}/technical-tasks/{kept['task_id']}/confirm", json={},
+                            headers={**headers, "If-Match": str(live["revision"]), "Idempotency-Key": str(uuid4())})
+    assert confirmed.status_code == 200, confirmed.text
+    model.gate.set()
+    worker.join(30)
+    assert sink and sink[0].status_code == 200
+    after = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
+    mine = [item for item in after["coverage_rows"] if item["task_id"] == kept["task_id"]]
+    assert mine and all(item["confirmed_at"] for item in mine)
