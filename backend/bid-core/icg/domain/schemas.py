@@ -164,6 +164,7 @@ ApplicationRole = Literal["platform_admin", "company_admin", "member"]
 class SessionUserResponse(AccountResponse):
     roles: list[ApplicationRole]
     primary_role: ApplicationRole
+    leads_project: bool = False
 
 
 class SessionScopeResponse(ResponseBody):

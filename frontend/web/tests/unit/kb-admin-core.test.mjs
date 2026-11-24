@@ -21,6 +21,8 @@ test('roles match backend gates', () => {
   assert.equal(canUploadHistory('project_lead'), false);
   assert.equal(canUploadHistory('member'), false);
   assert.equal(canUploadHistory('company_admin'), true);
+  assert.equal(canUploadHistory('member', true), true);
+  assert.equal(canUploadHistory('member', true, 'materials'), false);
   assert.equal(canUploadHistory('viewer'), false);
 });
 

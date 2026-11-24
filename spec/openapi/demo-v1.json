@@ -59642,6 +59642,11 @@
               "member"
             ],
             "title": "Primary Role"
+          },
+          "leads_project": {
+            "type": "boolean",
+            "title": "Leads Project",
+            "default": false
           }
         },
         "additionalProperties": true,

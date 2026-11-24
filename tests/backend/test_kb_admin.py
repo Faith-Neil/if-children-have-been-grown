@@ -277,3 +277,24 @@ def test_dsl_is_deterministic_and_graph_matches_components():
         assert node_ids == set(first["components"])
         edges = {(e["source"], e["target"]) for e in first["graph"]["edges"]}
         assert edges == {(k, d) for k, v in first["components"].items() for d in v["downstream"]}
+
+
+def test_project_lead_appends_history_only_while_leading_a_live_project(client):
+    admin = login(client, ADMIN)
+    for kind in ("history", "materials"):
+        assert client.post(f"/api/v1/kb-admin/datasets/{kind}/ensure", headers=admin, json={}).status_code == 200
+    member = login(client, "alpha-auditor")
+    body = {"filename": "lead.docx", "content_base64": _b64("第一章 总则\n\n合成负责人追加的历史正文。"), "content_type": "text/markdown", "metadata": {}}
+    assert client.post("/api/v1/kb-admin/datasets/history/documents", headers=member, json=body).status_code == 403
+    project = client.post("/api/v1/projects", headers=member, json={"name": "负责人追加历史标书"}).json()
+    session = client.get("/api/v1/session", headers=member).json()
+    assert session["user"]["leads_project"] is True and "sla_templates.write" in session["allowedActions"]
+    appended = client.post("/api/v1/kb-admin/datasets/history/documents", headers=member, json=body)
+    assert appended.status_code == 200, appended.text
+    # 权威资料只由公司管理员维护
+    assert client.post("/api/v1/kb-admin/datasets/materials/documents", headers=member, json=body).status_code == 403
+    deleted = client.delete(f"/api/v1/projects/{project['id']}", headers={**member, "If-Match": str(project["revision"])})
+    assert deleted.status_code == 200, deleted.text
+    assert client.post("/api/v1/kb-admin/datasets/history/documents", headers=member, json=body).status_code == 403
+    session = client.get("/api/v1/session", headers=member).json()
+    assert session["user"]["leads_project"] is False and "sla_templates.write" not in session["allowedActions"]

@@ -81,6 +81,10 @@ def get_application_session(service, principal: Principal, project_id: str | Non
     else:
         actions = ["projects.read", "projects.create", "library.read", "library.write",
                    "sla_templates.read", "jobs.read"]
+    from .project_access import leads_any_project
+    leads_project = leads_any_project(state, user)
+    if leads_project and "sla_templates.write" not in actions:
+        actions.insert(actions.index("sla_templates.read") + 1, "sla_templates.write")
     navigation = navigation_for_roles([norm_role])
 
     current = Principal(user, principal.session_token)
@@ -92,7 +96,7 @@ def get_application_session(service, principal: Principal, project_id: str | Non
     result = {
         "auth_mode": auth_mode,
         "role_mode": role_mode,
-        "user": {**{k: v for k, v in asdict(user).items() if k not in ("password_hash", "salt")}, "username": user.id, "display_name": user.display_name or user.name, "roles": roles, "primary_role": primary_role},
+        "user": {**{k: v for k, v in asdict(user).items() if k not in ("password_hash", "salt")}, "username": user.id, "display_name": user.display_name or user.name, "roles": roles, "primary_role": primary_role, "leads_project": leads_project},
         "scope": {
             "kind": "system" if norm_role == "platform_admin" else "company",
             "active_company_id": user.company_id,
