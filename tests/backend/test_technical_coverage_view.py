@@ -189,3 +189,6 @@ def test_manual_edit_after_confirm_voids_the_confirmation():
     assert coverage_rows(workflow, outline, "1.1 巡检\n原正文\n24 小时内处理\n")[0]["response_status"] == "confirmed"
     assert coverage_rows(workflow, outline, "1.1 巡检\n原正文\n12 小时内处理\n")[0]["response_status"] == "generated"
     assert coverage_rows(workflow, outline, "原正文\n24 小时内处理\n")[0]["response_status"] == "generated"
+    two = {"headings": [*outline["headings"], {"number": "1.2", "title": "应急", "task_id": "k2"}]}
+    assert coverage_rows(workflow, two, "1.1 巡检\n原正文\n24 小时内处理\n需要核对\n1.2 应急改名\n别的\n")[0][
+        "response_status"] == "confirmed"
