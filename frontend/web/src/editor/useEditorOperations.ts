@@ -118,6 +118,9 @@ export function useEditorOperations({
   const apply = async () => {
     if (!chapter || !lease || !held || !diff || candidateProblem(diff, workspace.input_fingerprint, chapter.revision) || !reviewed) return;
     await run(async () => {
+      if (diff.source_scope === 'section' && content !== chapter.content) {
+        throw new Error('编辑区有未保存的修改，请先保存或撤销，再写入本节候选。');
+      }
       const start = epoch.current;
       const latest = await request<Workspace>(`/api/v1/projects/${workspace.project.id}/workspace`, token);
       if (start !== epoch.current) return;
