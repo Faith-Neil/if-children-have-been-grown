@@ -1003,7 +1003,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         combinedBusy={combinedBusy} held={held} canEdit={canEdit} canGenerate={canGenerate} chapter={chapter} planCurrent={planCurrent} modified={modified} workspace={workspace}
         chapterId={chapterId} onViewInput={() => ops.setInputOpen(true)} onShowDiff={ops.showDiff} onSuggest={ops.suggest}
         technicalAssistant
-        sections={sectionsOf(technicalOutline)} section={techSection} setSection={setTechSection}
+        sections={chapterId === technicalOutline?.chapter_id ? sectionsOf(technicalOutline) : []} section={techSection} setSection={setTechSection}
         onSuggestSection={() => void ops.suggestSection(techSection)}
         generating={streamChrome.paperWait}
         draftReady={(outlineChapter?.content || content || '').trim().length > 20}
