@@ -117,3 +117,33 @@ def test_select_section_prefers_key_over_shared_title():
     assert len(select_section(headings, "保障措施")) == 2
     assert select_section(headings, "应急") == [headings[2]]
     assert select_section(headings, "nope") == []
+
+
+def test_retry_keeps_confirmation_made_while_it_runs(client):
+    import threading
+
+    from test_generation_session import GatedModel
+
+    headers, project_id, _events = _generate(client)
+    workspace = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
+    rows = {row["task_id"]: row for row in workspace["coverage_rows"]}
+    assert len(rows) >= 2
+    kept, retried = list(rows.values())[:2]
+    model = GatedModel()
+    client.app.state.workflow.demo.resolve_model_provider = lambda *_a, **_k: model
+    sink: list = []
+    worker = threading.Thread(target=lambda: sink.append(client.post(
+        f"/api/v1/projects/{project_id}/technical-volume/stream", json={"section": retried["task_id"]},
+        headers={**headers, "If-Match": str(workspace["revision"]), "Idempotency-Key": str(uuid4())})), daemon=True)
+    worker.start()
+    assert model.started.wait(10)
+    live = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
+    confirmed = client.post(f"/api/v1/projects/{project_id}/technical-tasks/{kept['task_id']}/confirm", json={},
+                            headers={**headers, "If-Match": str(live["revision"]), "Idempotency-Key": str(uuid4())})
+    assert confirmed.status_code == 200, confirmed.text
+    model.gate.set()
+    worker.join(30)
+    assert sink and sink[0].status_code == 200
+    after = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
+    mine = [item for item in after["coverage_rows"] if item["task_id"] == kept["task_id"]]
+    assert mine and all(item["confirmed_at"] for item in mine)

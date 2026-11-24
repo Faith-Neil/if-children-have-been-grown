@@ -748,6 +748,7 @@ def write_volume(state: Any, project_id: str, workflow: dict, section: str | Non
             item for item in (workflow.get("needs_regeneration") or []) if item != chapter.id
         ]
     return {
+        "task_ids": [item["task_id"] for item in headings if item.get("task_id")],
         "failed": failed,
         "chapter_id": chapter.id,
         "rag_audit": audits,

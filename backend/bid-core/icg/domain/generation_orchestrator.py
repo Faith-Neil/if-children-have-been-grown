@@ -700,9 +700,16 @@ class GenerationOrchestratorMixin:
             raise DomainError(404, "NOT_FOUND", "没有服务方案这一章。")
         chapter.content = drafted["content"]
         chapter.revision = drafted["revision"]
+        live_tasks = dict(actual.get("response_tasks") or {})
         for key in ("response_tasks", "technical_rag_audit", "technical_quality", "writer_model", "needs_regeneration", "constraint_check"):
             if drafted.get(key) is not None:
                 actual[key] = drafted[key]
+        touched = result.get("task_ids")
+        if touched is not None and drafted.get("response_tasks") is not None:
+            # 只换本次重写过的节；生成期间别的节被人工确认，不被生成前的快照冲掉。
+            merged = dict(live_tasks)
+            merged.update({tid: drafted["response_tasks"][tid] for tid in touched if tid in drafted["response_tasks"]})
+            actual["response_tasks"] = merged
         message = "技术分册已写入当前正文。" if not result["failed"] else "有的节没有生成成功，这些节保持原样，其他节已写入。"
         quality = result.get("quality") or {}
         if quality.get("warning"):
