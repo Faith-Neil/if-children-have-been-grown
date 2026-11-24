@@ -20,6 +20,8 @@
 | D-1025 | 2026-11-24 | [TV-M0-T18 代码说明](code/TV-M0-T18.md) | 代码说明 | req-task | 当前 | ISSUE-053 / TV-M0-T18 | 覆盖行字段与确认接口 |
 | D-1026 | 2026-11-24 | [TV-M0-T19 交付](delivery/TV-M0-T19.md) | 任务交付 | req-task | in-review | ISSUE-053 / TV-M0-T19 | 写作助手按节问答与修改 |
 | D-1027 | 2026-11-24 | [TV-M0-T19 代码说明](code/TV-M0-T19.md) | 代码说明 | req-task | 当前 | ISSUE-053 / TV-M0-T19 | 按节上下文、候选与预检 |
+| D-1030 | 2026-11-24 | [TV-M0-T21 交付](delivery/TV-M0-T21.md) | 任务交付 | req-task | in-review | ISSUE-053 / TV-M0-T21 | 候选数字预检与按小节会话 |
+| D-1031 | 2026-11-24 | [TV-M0-T21 代码说明](code/TV-M0-T21.md) | 代码说明 | req-task | 当前 | ISSUE-053 / TV-M0-T21 | 数字预检与会话小节键 |
 | D-1008 | 2026-11-09 | [ISSUE-052：公司开通与账号归属](../issues/ISSUE-052.md) | Issue | company-provision-1 | in-progress | ISSUE-052 | 平台管理员开通公司+首个管理员；点进公司管人 |
 | D-1009 | 2026-11-09 | [公司开通与账号归属实现计划](superpowers/plans/2026-11-09-company-provisioning.md) | 计划 | company-provision-1 | 已执行 | ISSUE-052 | 七项实现任务已落地；卡 in-review |
 | D-1010 | 2026-11-09 | [ADMIN-PROVISION 任务卡](tasks/ADMIN-PROVISION.md) | 任务 | company-provision-1 | in-review | ISSUE-052 | T01～T04 |

@@ -30,7 +30,7 @@ export type AssistantPolicy = {
   is_real_model: boolean; is_local_model: boolean; sensitive_project: boolean; knowledge_base_connected: boolean;
   fallback_model?: string | null; streaming?: boolean;
 };
-export type SessionSummary = { id: string; chapter_id: string; owner_id: string; owner_name: string; title: string; updated_at: string; message_count: number };
+export type SessionSummary = { id: string; chapter_id: string; owner_id: string; owner_name: string; title: string; updated_at: string; message_count: number; section_key?: string | null; section_title?: string | null };
 export type SessionMessage = {
   id: string; role: 'user' | 'assistant'; kind: 'selection_request' | 'samples' | 'applied' | 'question' | 'answer'; created_at: string;
   question?: string; answer?: string | null; route?: string;
