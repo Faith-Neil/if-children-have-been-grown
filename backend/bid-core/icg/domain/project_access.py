@@ -16,6 +16,8 @@ ROLE_COMPANY_ADMIN = "company_admin"
 ROLE_MEMBER = "member"
 
 # 旧登录角色收成普通用户。集团管理员若没有公司，会话仍因公司范围为空而进不了项目。
+LOGIN_ROLES = (ROLE_PLATFORM_ADMIN, ROLE_COMPANY_ADMIN, ROLE_MEMBER)
+
 ROLE_NORMALIZATION_MAP = {
     "platform_admin": ROLE_PLATFORM_ADMIN,
     "company_admin": ROLE_COMPANY_ADMIN,
@@ -128,13 +130,34 @@ def foreign_company(project, principal) -> bool:
     return getattr(project, "company_id", None) != getattr(user, "company_id", None)
 
 
+# 项目只读成员；viewer 是旧数据里的只读写法。
+READONLY_PROJECT_ROLES = ("readonly", "viewer")
+
+
+def readonly_member(membership) -> bool:
+    return bool(membership) and membership.get("project_role") in READONLY_PROJECT_ROLES
+
+
+def leads_any_project(state, user) -> bool:
+    """公司管理员，或在本公司任一项目任负责人的用户。"""
+    if is_platform_super(user):
+        return True
+    if user is None:
+        return False
+    if normalize_role(user.role) == ROLE_COMPANY_ADMIN:
+        return True
+    return any(project.company_id == user.company_id
+               and member(state, project_id, user.id) and member(state, project_id, user.id).get("project_role") == "lead"
+               for project_id, project in state.projects.items())
+
+
 def writable(state, project_id, user_id):
     account, membership = state.accounts.get(user_id), member(state, project_id, user_id)
     if is_platform_super(account):
         return project_id in state.projects
     if not (account and membership and account.company_id == state.projects[project_id].company_id):
         return False
-    if membership.get("project_role") == "readonly":
+    if readonly_member(membership):
         return False
     norm = normalize_role(account.role)
     if norm == ROLE_COMPANY_ADMIN:
@@ -192,12 +215,12 @@ def require_same_company(state, principal, project_id):
         raise DomainError(403, "FORBIDDEN", "无权跨公司访问其他公司的项目。")
 
 
-def ensure_not_readonly(principal):
+def ensure_not_readonly(principal, state=None, project_id=None):
+    """项目只读成员不能写。登录角色没有只读，只读只看项目角色。"""
     if is_platform_super(principal.user):
         return
-    norm = normalize_role(principal.user.role)
-    if norm in READONLY_SYSTEM_ROLES:
-        raise DomainError(403, "FORBIDDEN", "只读角色不能执行修改操作。")
+    if state is not None and project_id and readonly_member(member(state, project_id, principal.user.id)):
+        raise DomainError(403, "FORBIDDEN", "项目只读成员不能执行修改操作。")
 
 
 def require_lead(state, principal, project_id):

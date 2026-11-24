@@ -18,6 +18,7 @@ import json
 import re
 from typing import Any
 
+from .project_access import readonly_member
 from .domain import Chapter, DemoState, DomainError, Lease, Principal, Project, iso_time
 from .generation_context import evidence_expired, project_facts
 from .project_access import READONLY_SYSTEM_ROLES, ROLE_NORMALIZATION_MAP, foreign_company, is_platform_super, require_chapter
@@ -489,7 +490,7 @@ class EditorAIContextService:
         team = state.project_teams.get(project_id, {})
         members = team.get("members", {})
         user_member = members.get(principal.user.id)
-        if user_member and user_member.get("project_role") in ("viewer", "readonly"):
+        if readonly_member(user_member):
             raise DomainError(403, "FORBIDDEN", "项目只读成员不可使用智能助手提问。")
 
         # 章节归属隔离
@@ -676,7 +677,7 @@ class EditorAIContextService:
             team = state.project_teams.get(project_id, {})
             members = team.get("members", {})
             user_member = members.get(principal.user.id)
-            if user_member and user_member.get("project_role") in ("viewer", "readonly"):
+            if readonly_member(user_member):
                 raise DomainError(403, "FORBIDDEN", "项目只读成员无权修改章节正文。")
 
             if principal.user.id not in members and norm_role != "company_admin" and not is_platform_super(principal.user):

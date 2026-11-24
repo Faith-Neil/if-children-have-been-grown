@@ -140,13 +140,12 @@ export function validateCompanyComplianceSettings(
 }
 
 /**
- * 权限感知判定：区分集团管理员、公司管理员、平台管理员与只读人员
+ * 权限感知判定：区分平台管理员、公司管理员与普通用户
  *
  * 权限矩阵规则：
  * 1. platform_admin (平台管理员): 可管理全部公司、开通与停用（停用需二次确认）；
  * 2. company_admin (公司管理员): 仅可管理与编辑本公司的基本信息与安全合规参数；不能停用自身公司；
- * 3. group_admin (集团管理员): 跨公司查看各租户基本信息与合规概览，但严禁修改配置或停用公司（非公司管理员隐藏管理按钮）；
- * 4. viewer / 其他角色: 纯只读展示，彻底隐藏所有编辑与敏感管理按钮。
+ * 3. member (普通用户): 纯只读展示，隐藏所有编辑与敏感管理按钮。
  */
 export function canManageCompanySettings(params: {
   role?: string | string[] | null;

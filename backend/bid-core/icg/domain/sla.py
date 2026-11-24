@@ -253,9 +253,12 @@ class SlaService:
         self.demo = workflow.demo
         self.repository = workflow.repository
 
-    @staticmethod
-    def manager(principal):
-        if principal.user.role != "manager":
+    def manager(self, principal, project_id=None, state=None):
+        """有项目时看本项目负责人；公司模板看公司管理员或本公司任一项目负责人。"""
+        from .project_access import lead, leads_any_project
+        state = state if state is not None else self.repository.read()
+        allowed = lead(state, project_id, principal.user.id) if project_id else leads_any_project(state, principal.user)
+        if not allowed:
             raise DomainError(403, "SLA_MANAGER_REQUIRED", "服务承诺维护和必备事实确认仅限本公司项目负责人。")
 
     def propagation(self, principal, project_id):
@@ -350,7 +353,7 @@ class SlaService:
         return self.repository.transaction(operation)
 
     def _write(self, principal, project_id, action, payload, expected, key, operation):
-        self.manager(principal)
+        self.manager(principal, project_id)
         def wrapped(state, project, workflow):
             old = deepcopy(workflow.get("sla"))
             result = operation(state, project, workflow)
@@ -481,7 +484,7 @@ class SlaService:
         return self._write(principal, project_id, "sla.value.review:" + var_key, payload, expected, key, operation)
 
     def confirm_fact(self, state, principal, project_id, workflow, var_key, payload):
-        self.manager(principal)
+        self.manager(principal, project_id, state)
         saved, template = self._saved(state, project_id, workflow, var_key)
         if "value" in payload:
             raise DomainError(409, "SLA_FACT_READ_ONLY", "此事实引用服务承诺矩阵，请到来源修改取值。")

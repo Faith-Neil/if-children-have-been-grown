@@ -21,8 +21,8 @@ from .knowledge_base import (DATASET_KINDS, FILE_KINDS, KIND_PROFILE, SETTINGS_S
 
 AUDIT_STORE = "kb_audit"
 AUDIT_LIMIT = 500
-READ_ROLES = {"company_admin", "data_admin", "manager", "project_lead", "member"}
-WRITE_ROLES = {"company_admin", "data_admin"}
+READ_ROLES = {"company_admin", "member"}
+WRITE_ROLES = {"company_admin"}
 CONNECTION_ROLES = {"company_admin"}
 SETTING_FIELDS = {
     "embedding_model": str, "rerank_id": str, "llm_id": str, "similarity_threshold": float,
@@ -37,12 +37,8 @@ CERT_FIELD_TO_LIBRARY = {"cert_name": "name", "valid_to": "valid_until"}
 
 
 def _role(principal: Principal) -> str:
-    # 知识库管控保留细角色：资料管理员可写、项目经理可追加历史标书；只读 viewer 不能因三角色归一变成 member。
-    raw = getattr(principal.user, "role", "") or ""
-    if raw in WRITE_ROLES | CONNECTION_ROLES | {"manager", "project_lead", "viewer", "readonly"}:
-        return raw
     from .project_access import normalize_role
-    return normalize_role(raw)
+    return normalize_role(getattr(principal.user, "role", "") or "")
 
 
 def _is_super(principal: Principal) -> bool:
@@ -51,7 +47,7 @@ def _is_super(principal: Principal) -> bool:
 
 
 def require_kb_role(principal: Principal, level: str = "read") -> None:
-    """read：公司管理员与普通用户；write：公司管理员与资料管理员；connection：只有公司管理员。"""
+    """read：公司管理员与普通用户；write 与 connection：只有公司管理员。"""
     if _is_super(principal):
         return
     allowed = {"read": READ_ROLES, "write": WRITE_ROLES, "connection": CONNECTION_ROLES}[level]
@@ -441,7 +437,8 @@ class KbAdminService:
         """上传原件到历史投标或证书数据集，并按 ICG 流程解析。"""
         self._kind(kind, files_only=True)
         if kind in ("history", "materials"):
-            if not (_is_super(principal) or _role(principal) in WRITE_ROLES | {"manager", "project_lead"}):
+            from .project_access import leads_any_project
+            if not leads_any_project(self.repository.read(), principal.user):
                 raise DomainError(403, "FORBIDDEN", "当前账号无权上传历史标书。" if kind == "history" else "当前账号无权上传权威资料。")
             # 上传只追加到已有数据集，不在这里新建。
             create_dataset = False

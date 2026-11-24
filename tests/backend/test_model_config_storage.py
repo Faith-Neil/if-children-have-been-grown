@@ -456,7 +456,7 @@ def test_only_company_admin_manages_configs_and_only_lead_or_admin_binds_project
     admin = login(client, "alpha-company-admin")
     created = client.post("/api/v1/model-configs", headers=admin, json={"id": "cfg-guard", "name": "内网模型", "base_url": "http://10.0.0.8:8000"})
     assert created.status_code == 200, created.text
-    for account in ("alpha-manager", "alpha-editor", "alpha-viewer", "alpha-data-admin"):
+    for account in ("alpha-manager", "alpha-editor", "alpha-viewer", "alpha-auditor"):
         headers = login(client, account)
         assert client.post("/api/v1/model-configs", headers=headers, json={"id": f"cfg-{account}", "base_url": "http://evil.example"}).status_code == 403
         assert client.put("/api/v1/model-configs/cfg-guard", headers={**headers, "If-Match": "1"}, json={"base_url": "http://evil.example"}).status_code == 403

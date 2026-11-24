@@ -1225,7 +1225,7 @@ class FieldMetadataService:
         from .project_access import ROLE_NORMALIZATION_MAP, READONLY_SYSTEM_ROLES
 
         canonical_category = self.resolve_category(category)
-        user_role = getattr(principal.user, "role", "viewer") if principal and principal.user else "viewer"
+        user_role = getattr(principal.user, "role", "member") if principal and principal.user else "member"
         norm_role = ROLE_NORMALIZATION_MAP.get(user_role, user_role)
         is_readonly = norm_role in READONLY_SYSTEM_ROLES
 

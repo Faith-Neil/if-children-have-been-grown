@@ -310,10 +310,12 @@ def test_gate_3_sensitive_project_allows_local_model(chat_setup):
 
 
 def test_gate_4_readonly_roles_interception(chat_setup):
-    """平台管理员不能提问。旧登录角色已收成普通用户，同一公司内可以提问。"""
+    """旧登录角色已收成普通用户，同一公司内可以提问；项目只读成员不能提问。"""
     answer_svc = chat_setup["answer_svc"]
+    with pytest.raises(DomainError):
+        answer_svc.general_chat(principal=chat_setup["principal_viewer"], project_id="alpha-project",
+                                query="只读成员提问", knowledge_base_enabled=True)
     for role_name, principal in (
-        ("viewer", chat_setup["principal_viewer"]),
         ("auditor", chat_setup["principal_auditor"]),
         ("group_admin", chat_setup["principal_group_admin"]),
     ):

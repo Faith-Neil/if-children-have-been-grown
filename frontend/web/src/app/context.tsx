@@ -1,5 +1,6 @@
 // 为什么有这个文件：共享当前项目和经过权限校验的操作入口。
 // 它解决什么问题：每个项目页签更新后读取同一后台状态，避免各页假数据。
+import { getSystemRoleLabel } from '../shared/roles';
 import { createContext, useContext } from 'react';
 import type { Account, Evidence, SlaTemplate, Workspace } from '../shared/types';
 import { resolveCompanyDisplayName } from '../admin/company-provision-core';
@@ -14,7 +15,7 @@ export type ProjectContextValue = {
 export const ProjectContext = createContext<ProjectContextValue | null>(null);
 export function useProject() { const value = useContext(ProjectContext); if (!value) throw new Error('项目未加载'); return value; }
 export const volumeName = (value: string) => value === 'technical' ? '技术方案' : value === 'business' ? '商务方案' : '全部方案';
-export const roleName = (value: string) => value === 'manager' ? '公司经理账号' : value === 'viewer' ? '公司只读账号' : '公司编写账号';
+export const roleName = (value: string) => getSystemRoleLabel(value);
 
 /** 展示公司名：优先用后台返回的显示名；仅演示种子账号保留合成别名。 */
 export const companyName = (value: string, displayName?: string | null) =>

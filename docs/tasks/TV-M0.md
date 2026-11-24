@@ -383,3 +383,19 @@
 范围：技术分册写作助手去掉固定文案，按所选小节工作。问答走现有流式接口，带本节挂载要点、评分标准、废标清单与三库检索；新增 `POST /api/v1/projects/{project_id}/technical-sections/rewrite` 按节生成修改候选（不写入），候选带废标约束预检与来源；写入沿用差异预览、编辑锁与版本校验。快捷指令五条；覆盖视图「目标章节」跳到编辑台并预填小节与修改要求。
 
 验收：`tests/backend/test_technical_assistant.py`、`frontend/web/tests/unit/technical-assistant.test.mjs` 通过；项目只读成员按节修改 403；未接真实模型 502；OpenAPI `--check` 一致。
+
+<a id="tv-m0-t20"></a>
+
+## TV-M0-T20 · 三角色权限收口与项目只读写拒绝核查
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 关联 Issue | [ISSUE-053](../../issues/ISSUE-053.md) |
+| 依赖 | [TV-M0-T19](TV-M0.md#tv-m0-t19) |
+| 完成时交付 | docs/delivery/TV-M0-T20.md |
+| 代码解释 | docs/code/TV-M0-T20.md |
+
+范围：登录角色只认平台管理员、公司管理员、普通用户；旧角色名（`data_admin`、`group_admin`、`manager`、`viewer`、`auditor` 等）只在归一化入口兼容，业务授权不再按旧原值判断。只读只看项目角色 `readonly`（旧数据 `viewer` 同义），`ensure_not_readonly()` 按项目成员判断。演示账号改为三角色命名。逐个调用 `/api/v1` 项目写接口核查项目只读成员都被后端拒绝。
+
+验收：`tests/backend/test_readonly_member_writes.py` 通过（项目只读成员调用全部项目写接口均 403，解除段落锁 403）；受影响的知识库、SLA、通知、字典、会话、模型配置、问答测试按新角色语义通过；前端 lint 通过、全量失败集合不新增；OpenAPI `--check` 一致。

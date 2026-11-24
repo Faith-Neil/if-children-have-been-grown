@@ -483,7 +483,7 @@ class UserManagementService:
         now_ts = time.time()
         new_name = request.name if request.name is not None else acc.name
         new_display = request.display_name if request.display_name is not None else acc.display_name
-        new_role = request.role if request.role is not None else acc.role
+        new_role = ROLE_NORMALIZATION_MAP[request.role] if request.role is not None else acc.role
         new_status = request.status if request.status is not None else getattr(acc, "status", "active")
 
         # 用 replace 保留锁定状态、失败次数、须改密标记等未在本请求里的字段；

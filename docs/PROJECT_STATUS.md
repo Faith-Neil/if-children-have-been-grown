@@ -10,6 +10,8 @@
 
 [ISSUE-053](../issues/ISSUE-053.md) / TV-M0-T17 为 in-review：读标出三张清单（技术需求 / 评分规则 / 废标），模型一次拟目录并挂要点，正文提示带评分标准与全部废标清单，两库都检索。只用假模型验证；覆盖视图（B）与写作助手（C）待设计确认。不标 done。
 
+TV-M0-T20 为 in-review：登录角色只认平台管理员、公司管理员、普通用户，旧角色名只在归一化入口兼容；只读只看项目角色 `readonly`，`/api/v1` 项目写接口逐个核查项目只读成员均被后端拒绝；演示账号改三角色命名。只用合成数据与模型替身验证。
+
 ## 公司开通与账号归属（2026-11-09）
 
 [ISSUE-052](../issues/ISSUE-052.md) / ADMIN-PROVISION-T01～T04 均为 in-review：平台管理员可 `POST /api/v1/companies` 开通公司并建首个管理员；顶栏隐藏公司名；`/admin/companies/:id` 管人；项目与双库 `${company_id}::` 隔离有回归测试。浏览器与真实 MySQL/RAGFlow 未跑。不标 done。不合并 PR #8。

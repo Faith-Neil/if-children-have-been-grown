@@ -49,19 +49,19 @@ def _upload(client, headers, kind, filename, text, **meta):
 
 
 def test_roles_gate_every_write(client):
-    viewer = login(client, "alpha-viewer")
-    assert client.get("/api/v1/kb-admin/overview", headers=viewer).status_code == 403
-    manager = login(client, "alpha-manager")
-    assert client.get("/api/v1/kb-admin/overview", headers=manager).status_code == 200
-    assert client.post("/api/v1/kb-admin/pipelines/deploy", headers=manager, json={}).status_code == 403
+    # 普通用户（含项目只读成员）可看不可改；写、删除整类数据集、改连接只允许公司管理员
+    for account in ("alpha-viewer", "alpha-manager"):
+        member = login(client, account)
+        assert client.get("/api/v1/kb-admin/overview", headers=member).status_code == 200
+        assert client.post("/api/v1/kb-admin/pipelines/deploy", headers=member, json={}).status_code == 403
+        deleted = client.post("/api/v1/kb-admin/datasets/history/delete", headers=member, json={"confirm_name": "x"})
+        assert deleted.status_code == 403
+        cfg = client.get("/api/v1/ragflow-config", headers=member)
+        revision = str(cfg.json().get("revision", 1)) if cfg.status_code == 200 else "1"
+        put = client.put("/api/v1/ragflow-config", headers={**member, "If-Match": revision}, json={"base_url": "http://x"})
+        assert put.status_code == 403
     admin = login(client, ADMIN)
     assert client.post("/api/v1/kb-admin/pipelines/deploy", headers=admin, json={}).status_code == 200
-    # 删除整类数据集与改连接只允许公司管理员
-    deleted = client.post("/api/v1/kb-admin/datasets/history/delete", headers=admin, json={"confirm_name": "x"})
-    assert deleted.status_code == 403
-    cfg = client.get("/api/v1/ragflow-config", headers=admin).json()
-    put = client.put("/api/v1/ragflow-config", headers={**admin, "If-Match": str(cfg["revision"])}, json={"base_url": "http://x"})
-    assert put.status_code == 403
 
 
 def test_deploy_creates_bid_pipelines_and_binds_datasets(client, fake):

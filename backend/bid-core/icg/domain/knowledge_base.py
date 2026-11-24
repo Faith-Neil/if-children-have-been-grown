@@ -930,7 +930,8 @@ class KnowledgeBaseService:
     def _restricted_allowed(state: DemoState, item: dict, user: Any) -> bool:
         if user is None:
             return False
-        if getattr(user, "role", "") in ("company_admin", "data_admin"):
+        from .project_access import ROLE_COMPANY_ADMIN, normalize_role
+        if normalize_role(getattr(user, "role", "")) == ROLE_COMPANY_ADMIN:
             return True
         return any(row.get("ref_type") == "library" and row.get("ref_id") == item["id"]
                    and row.get("user_id") == getattr(user, "id", None) for row in state.resource_acl)

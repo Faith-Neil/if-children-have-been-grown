@@ -134,7 +134,7 @@ export function LibraryPage({
   const [form] = Form.useForm();
 
   // 2. 权限判定
-  const userRole = user?.role || 'viewer';
+  const userRole = user?.role || 'member';
   const hasManageRight = canManageLibrary(userRole);
   const hasRevealRight = canRevealSensitiveField(userRole);
 

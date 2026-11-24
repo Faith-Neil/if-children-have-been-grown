@@ -798,7 +798,7 @@ class TenderOrchestratorMixin:
                                   {"merged_into": fact["merged_into"]})
             if fact.get("effective_status") == "superseded" and payload.get("status") not in (None, "rejected"):
                 raise DomainError(409, "REQUIREMENT_SUPERSEDED", "这项取值已被补遗替代；如替代有误，请在“冲突待选定”中撤销替代。")
-            if fact.get("required") and principal.user.role != "manager":
+            if fact.get("required") and not lead(state, project_id, principal.user.id):
                 raise DomainError(403, "FACT_MANAGER_REQUIRED", "必备事实的维护和确认仅限本公司项目负责人。")
             if any(v is None for v in payload.values()):
                 raise DomainError(422, "INVALID_FACT", "事实字段不能设为空值。")

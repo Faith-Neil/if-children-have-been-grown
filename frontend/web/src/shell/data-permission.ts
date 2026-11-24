@@ -91,7 +91,7 @@ export function getScopeLabel(scope: DataPermissionScope): string {
  * 核心算法：多粒度数据权限判定
  *
  * 遵循严格优先级层级：
- * 1. 角色级只读（group_admin, viewer, auditor, platform_admin）-> scope: 'project'
+ * 1. 平台管理员跨公司只看 -> scope: 'project'（登录角色只有三种，没有角色级只读）
  * 2. 项目成员资格与项目角色只读 -> scope: 'project'
  * 3. 项目负责人（project_lead）/ 公司管理员（company_admin）-> 放行全项目/全分册/全章节
  * 4. 分册负责人（volume_lead）-> 主管分册全放行；进入非主管分册 -> scope: 'volume' 只读

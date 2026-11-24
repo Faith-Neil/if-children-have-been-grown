@@ -251,7 +251,7 @@ def test_product_paths_serve_the_shell_and_unknown_api_stays_json(setup):
 
 
 @pytest.mark.parametrize("identity,role,writable", [
-    ("alpha-company-admin", "company_admin", True), ("alpha-data-admin", "member", True),
+    ("alpha-company-admin", "company_admin", True), ("alpha-data-admin", "company_admin", True),
     ("alpha-auditor", "member", True),
 ])
 def test_legacy_accounts_get_three_role_sessions(setup, identity, role, writable):

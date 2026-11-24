@@ -203,13 +203,13 @@ class DictConfigService:
         """角色权限门禁：仅平台管理员与公司管理员具备字典写操作权限，写作者与审计员严格只读"""
         if not principal or not principal.user:
             raise DomainError(401, "UNAUTHENTICATED", "未登录或会话凭据已失效。")
-        user_role = getattr(principal.user, "role", "viewer")
+        user_role = getattr(principal.user, "role", "member")
         norm_role = ROLE_NORMALIZATION_MAP.get(user_role, user_role)
         if norm_role not in ("platform_admin", "company_admin"):
             raise DomainError(
                 403,
                 "FORBIDDEN",
-                f"当前用户身份为【{user_role}】，仅拥有字典配置调阅权限；新建、修改、启停用与删除操作仅限平台管理员或公司管理员执行。",
+                f"当前用户身份为【{norm_role}】，仅拥有字典配置调阅权限；新建、修改、启停用与删除操作仅限平台管理员或公司管理员执行。",
             )
 
     def _get_tenant_company_id(self, principal: Principal) -> str | None:
@@ -220,7 +220,7 @@ class DictConfigService:
     def list_dict_types(self, principal: Principal) -> DictTypeListResponse:
         """调阅所有字典类型及当前有效统计"""
         company_id = self._get_tenant_company_id(principal)
-        norm_role = "viewer"
+        norm_role = "member"
         if principal and principal.user:
             norm_role = ROLE_NORMALIZATION_MAP.get(principal.user.role, principal.user.role)
 
@@ -261,7 +261,7 @@ class DictConfigService:
             raise DomainError(404, "NOT_FOUND", f"未找到指定的字典类型：{type_code}。")
 
         company_id = self._get_tenant_company_id(principal)
-        norm_role = "viewer"
+        norm_role = "member"
         if principal and principal.user:
             norm_role = ROLE_NORMALIZATION_MAP.get(principal.user.role, principal.user.role)
 
