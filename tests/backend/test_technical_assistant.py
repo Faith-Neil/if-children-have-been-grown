@@ -111,6 +111,16 @@ def test_candidate_numbers_checked_before_apply():
     assert grounded["status"] == "passed"
     from_fact = number_check(context, "配备 6 名工程师。", original, "", [], [{"value": "6", "unit": "名"}])
     assert from_fact["status"] == "passed"
+    per = number_check(context, "每年巡检 2 次/月，30 自然日内整改。", "每年巡检 2 次/年，15 自然日内整改。", "", [], [])
+    assert per["unsupported"] == ["2次/月", "30自然日"]
+
+
+def test_label_free_rewrite_is_not_flagged_when_original_is_label_free_too():
+    from icg.domain.technical_assistant import number_check
+    row = {"id": "R-1", "response_type": "no_deviation", "text": "2 小时到场"}
+    original = "接到报修后 2 小时到场。"
+    result = number_check({"rows": [row]}, "接到报修后 2 小时内到场处理。", original, "", [], [])
+    assert result["mismatched_requirements"] == []
 
 
 def test_rewrite_candidate_carries_number_check(client):

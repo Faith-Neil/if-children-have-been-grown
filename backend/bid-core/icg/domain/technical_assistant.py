@@ -99,11 +99,13 @@ def precheck(workflow: dict, context: dict, body: str, content: str = "") -> dic
     }
 
 
-COMMITMENT = re.compile(r"(\d+(?:\.\d+)?)\s*(分钟|小时|个工作日|工作日|天|日|周|个月|月|年|%|％|人|名|次|台|套)")
+COMMITMENT = re.compile(
+    r"(\d+(?:\.\d+)?)\s*(分钟|小时|个工作日|工作日|自然日|天|日|周|个月|月|年|%|％|人|名|次|台|套)"
+    r"(?:\s*[/／]\s*(季度|年|月|周|天|日))?")
 
 
 def _commitments(text: str) -> set[str]:
-    return {f"{number}{unit.replace('％', '%')}" for number, unit in COMMITMENT.findall(text or "")}
+    return {f"{number}{unit.replace('％', '%')}{'/' + per if per else ''}" for number, unit, per in COMMITMENT.findall(text or "")}
 
 
 def number_check(context: dict, body: str, original: str, content: str, chunks: list[dict], facts: list[dict]) -> dict[str, Any]:
@@ -111,7 +113,9 @@ def number_check(context: dict, body: str, original: str, content: str, chunks: 
     候选里带单位的承诺数字须在本节原文、本章其他正文、需求与评分、挂载要点、已确认事实或检索片段里出现过。"""
     from icg.domain.technical_volume import inconsistent
 
-    mismatched = [str(row.get("id") or "") for row in context.get("rows") or [] if inconsistent(body, row)]
+    # 只报改写新引入的不一致：原文已不一致（如按提示不写偏离标签）时不算候选的问题
+    mismatched = [str(row.get("id") or "") for row in context.get("rows") or []
+                  if inconsistent(body, row) and not inconsistent(original, row)]
     pool = " ".join([
         original or "", content or "",
         *[f"{row.get('text') or ''} {row.get('response') or ''}" for row in context.get("rows") or []],
