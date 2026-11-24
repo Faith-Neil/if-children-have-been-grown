@@ -108,6 +108,14 @@ class AssistantQAService:
         if not kb_on and not policy["allow_kb_off"]:
             raise DomainError(422, "VALIDATION_ERROR", "本公司要求对话助手使用知识库，不能关闭。")
         workflow = state.workflows.get(project_id) or {}
+        section_ctx = None
+        section = (payload.get("section") or "").strip()
+        if section and (workflow.get("technical_outline") or {}).get("chapter_id") == chapter_id:
+            from .technical_assistant import section_context
+            from .technical_volume import _leaf_key
+            section_ctx = section_context(workflow, section)
+        section_ref = ({"key": _leaf_key(section_ctx["heading"]), "title": section_ctx["heading"].get("title") or ""}
+                       if section_ctx else None)
         session_id = payload.get("session_id")
         history: list[str] = []
         if session_id:
@@ -115,10 +123,13 @@ class AssistantQAService:
             session = readable_session(state, principal, project_id, session_id)
             if session["owner_id"] != principal.user.id or session["chapter_id"] != chapter_id:
                 raise DomainError(403, "FORBIDDEN", "只能在本人本章的会话中继续提问。")
+            if session.get("section_key") != (section_ref or {}).get("key"):
+                raise DomainError(403, "FORBIDDEN", "这段会话属于别的小节，请新开会话或切回原小节。")
             history = [f"- 问：{m['question'][:200]} → 答：{(m.get('answer') or '')[:300]}"
                        for m in session["messages"] if m["kind"] == "answer"][-2:]
         base = {"principal": principal, "project_id": project_id, "chapter_id": chapter_id, "chapter_title": chapter.title,
-                "question": question, "kb_on": kb_on, "session_id": session_id, "sensitive": bool(project.sensitive)}
+                "question": question, "kb_on": kb_on, "session_id": session_id, "sensitive": bool(project.sensitive),
+                "section": section_ref}
         route = resolve_assistant_query_route(question, kb_on)
         if route.query_route == "direct_query":
             from .answer_card import AnswerCardService
@@ -130,11 +141,6 @@ class AssistantQAService:
         if not getattr(provider, "is_real_model", False):
             raise DomainError(502, "MODEL_UNAVAILABLE", "尚未接入真实大模型：对话助手不提供模拟回答。请公司管理员在“模型配置”中接入模型后再试。")
         facts, requirements = self.rewrite._sources(state, project_id, chapter_id, workflow)
-        section_ctx = None
-        section = (payload.get("section") or "").strip()
-        if section and (workflow.get("technical_outline") or {}).get("chapter_id") == chapter_id:
-            from .technical_assistant import section_context
-            section_ctx = section_context(workflow, section)
         scope = (" ".join([section_ctx["heading"].get("title") or "", *section_ctx["points"][:2]])
                  if section_ctx else chapter.title)
         hits, retrieval = self.rewrite._retrieve(
@@ -242,7 +248,8 @@ class AssistantQAService:
             from .assistant_sessions import record_question
             chapter = self.demo._chapter(state, principal, prepared["chapter_id"])
             flow = state.workflows.setdefault(prepared["project_id"], {})
-            record["session_id"] = record_question(flow, principal, chapter, record, prepared["session_id"], now)
+            record["session_id"] = record_question(flow, principal, chapter, record, prepared["session_id"], now,
+                                                prepared.get("section"))
             self.demo._audit(state, principal, chapter, "assistant.question",
                              {"answer_id": record["id"], "route": record["route"], "knowledge_base_enabled": prepared["kb_on"],
                               "model": record.get("model"), "is_fallback": record.get("is_fallback", False)})

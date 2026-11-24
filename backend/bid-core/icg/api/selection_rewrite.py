@@ -36,7 +36,7 @@ class SelectionRewriteRequest(RequestBody):
 class AssistantQuestionRequest(RequestBody):
     question: str = Field(min_length=1, max_length=1000, description="不选中正文时的自由提问")
     knowledge_base_enabled: bool | None = Field(default=None, description="知识库开关；不传取公司默认值")
-    session_id: str | None = Field(default=None, max_length=120, description="接着本人本章的会话提问")
+    session_id: str | None = Field(default=None, max_length=120, description="接着本人本章同一小节的会话提问")
     section: str | None = Field(default=None, max_length=200, description="技术服务方案：当前小节标题，回答带本节要点、评分标准与废标清单")
 
 
@@ -52,6 +52,12 @@ class SectionPrecheck(ResponseBody):
     notice: str = ""
 
 
+class SectionNumberCheck(ResponseBody):
+    status: str = Field(description="passed / needs_confirm；needs_confirm 时须人工核对后才能写入")
+    mismatched_requirements: list[str] = Field(default_factory=list, description="偏离类型或数字与需求原文不一致的需求编号")
+    unsupported: list[str] = Field(default_factory=list, description="候选新出现、在原文/需求/要点/事实/检索片段里都找不到的承诺数字")
+
+
 class TechnicalSectionCandidate(ResponseBody):
     content: str = Field(description="整章正文（仅本节换成候选），经差异预览后由编辑台在编辑锁下写入")
     section: str
@@ -65,6 +71,7 @@ class TechnicalSectionCandidate(ResponseBody):
     rag: dict[str, Any] = Field(default_factory=dict, description="本次检索摘要，字段同覆盖视图 rag")
     sources: list[dict[str, Any]] = Field(default_factory=list)
     precheck: SectionPrecheck
+    numbers: SectionNumberCheck
 
 
 class RewriteSource(ResponseBody):
@@ -214,6 +221,8 @@ class SessionSummary(ResponseBody):
     created_at: str
     updated_at: str
     message_count: int
+    section_key: str | None = Field(default=None, description="技术服务方案小节键（任务编号）；不按小节的会话为空")
+    section_title: str | None = None
 
 
 class SessionList(ResponseBody):
@@ -296,9 +305,9 @@ def include_selection_rewrite_routes(application, service: DemoService, current_
         return rewrite.policy(user, project_id, chapter_id)
 
     @router.get("/assistant-sessions", response_model=SessionList, operation_id="listAssistantSessions",
-                summary="本章的对话助手会话", description="本人只看自己的会话；项目负责人和本公司公司管理员可看全部。")
-    def sessions(project_id: str, chapter_id: str, user: Principal = Depends(current_user)):
-        return list_sessions(service, user, project_id, chapter_id)
+                summary="本章的对话助手会话", description="本人只看自己的会话；项目负责人和本公司公司管理员可看全部。传 section 时只列该小节的会话。")
+    def sessions(project_id: str, chapter_id: str, section: str | None = None, user: Principal = Depends(current_user)):
+        return list_sessions(service, user, project_id, chapter_id, section)
 
     @router.post("/selection-rewrites/{batch_id}/apply", response_model=SelectionApplyResult,
                  operation_id="applySelectionRewrite", summary="把选定样例替换选中内容或插在其后",

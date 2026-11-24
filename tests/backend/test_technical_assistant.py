@@ -97,3 +97,69 @@ def test_rewrite_respects_company_assistant_switch(client, monkeypatch):
     denied = client.post(f"/api/v1/projects/{project_id}/technical-sections/rewrite",
                          json={"section": title, "instruction": "改"}, headers=headers)
     assert denied.status_code == 403, denied.text
+
+
+def test_candidate_numbers_checked_before_apply():
+    from icg.domain.technical_assistant import number_check
+    context = {"rows": [], "points": ["7×24 小时响应"], "criteria": ["2 小时到场得 5 分"]}
+    original = "接到报修后 2 小时到场，季度巡检 1 次。"
+    passed = number_check(context, "接到报修后 2 小时内到场处理。", original, "", [], [])
+    assert passed == {"status": "passed", "mismatched_requirements": [], "unsupported": []}
+    flagged = number_check(context, "接到报修后 30 分钟到场，配备 6 名工程师。", original, "", [], [])
+    assert flagged["status"] == "needs_confirm" and flagged["unsupported"] == ["30分钟", "6名"]
+    grounded = number_check(context, "配备 6 名工程师。", original, "", [{"content": "历史项目配备 6 名驻场工程师"}], [])
+    assert grounded["status"] == "passed"
+    from_fact = number_check(context, "配备 6 名工程师。", original, "", [], [{"value": "6", "unit": "名"}])
+    assert from_fact["status"] == "passed"
+
+
+def test_rewrite_candidate_carries_number_check(client):
+    headers, project_id, _events = _generate(client)
+    _workspace, title = _first_section(client, headers, project_id)
+
+    class NumberModel(RewriteModel):
+        def suggest(self, *_args, **_kwargs):
+            return NEW_BODY + "故障 15 分钟响应，现场配备 9 名工程师。"
+
+    client.app.state.workflow.demo.resolve_model_provider = lambda *_a, **_k: NumberModel()
+    response = client.post(f"/api/v1/projects/{project_id}/technical-sections/rewrite",
+                           json={"section": title, "instruction": "加承诺"}, headers=headers)
+    assert response.status_code == 200, response.text
+    numbers = response.json()["numbers"]
+    assert numbers["status"] == "needs_confirm" and {"15分钟", "9名"} <= set(numbers["unsupported"])
+
+
+def test_question_sessions_are_kept_per_section(client):
+    from icg.domain.assistant_qa import AssistantQAService
+    from icg.domain.assistant_sessions import list_sessions, record_question
+    from icg.domain.domain import DomainError, Principal
+
+    headers, project_id, _events = _generate(client)
+    workspace = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
+    rows = workspace["coverage_rows"]
+    first, second = rows[0], next(row for row in rows if row["task_id"] != rows[0]["task_id"])
+    chapter_id = workspace["technical_outline"]["chapter_id"]
+    demo = client.app.state.workflow.demo
+    state = demo.repository.read()
+    token = headers["Authorization"].split(" ", 1)[1]
+    principal = Principal(state.accounts[state.sessions[token]], token)
+    record = {"question": "这节怎么写", "knowledge_base_enabled": True, "route": "model", "answer": "答"}
+
+    def write(state):
+        chapter = state.chapters[chapter_id]
+        flow = state.workflows.setdefault(project_id, {})
+        return record_question(flow, principal, chapter, record, None, "2026-11-24T00:00:00Z",
+                               {"key": first["task_id"], "title": first["outline_title"]})
+
+    session_id = demo.repository.transaction(write)
+    listed = list_sessions(demo, principal, project_id, chapter_id, first["task_id"])["sessions"]
+    assert [item["id"] for item in listed] == [session_id] and listed[0]["section_title"] == first["outline_title"]
+    assert list_sessions(demo, principal, project_id, chapter_id, second["task_id"])["sessions"] == []
+
+    qa = AssistantQAService(demo, client.app.state.selection_rewrite)
+    with pytest.raises(DomainError) as other:
+        qa.prepare(principal, project_id, chapter_id, {"question": "续问", "session_id": session_id, "section": second["task_id"]})
+    assert other.value.status == 403 and "别的小节" in other.value.message
+    with pytest.raises(DomainError) as same:
+        qa.prepare(principal, project_id, chapter_id, {"question": "续问", "session_id": session_id, "section": first["task_id"]})
+    assert same.value.code != "FORBIDDEN"  # 同一小节通过会话校验，后面才因未接知识库/模型停下

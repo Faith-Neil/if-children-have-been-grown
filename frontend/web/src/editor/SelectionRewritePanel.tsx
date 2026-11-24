@@ -11,6 +11,7 @@ import { Alert, Button, Card, Collapse, Empty, Input, Modal, Select, Space, Spin
 import { ApiError, request, streamEvents } from '../shared/api.ts';
 import type { Chapter } from '../shared/types.ts';
 import { AssistantAskBox } from './AssistantAskBox.tsx';
+import { sessionsForSection } from './technical-assistant.ts';
 import {
   ACTION_LABEL, EMPTY_STREAM, REWRITE_MODES, assistantPaths, defaultKnowledgeBase, diffText, fallbackNotice, isAbort, knowledgeBaseNote,
   locateSelection, pendingCount, previewWrite, reduceStream, relocation, rewritePath, selectionProblem,
@@ -82,6 +83,8 @@ export function SelectionRewritePanel({ projectId, chapter, content, selection, 
   }, [chapter?.id, token]);
 
   // 换了选区才清空上一组样例；写入后选区被清除时保留结果与复查提示
+  useEffect(() => { setSessionId(NEW_SESSION); }, [askSection]);
+
   useEffect(() => { if (selection) { setBatch(null); setResult(null); setInvalid(''); setLive(null); } }, [selection?.text, selection?.start]);
 
   useEffect(() => {
@@ -147,7 +150,7 @@ export function SelectionRewritePanel({ projectId, chapter, content, selection, 
     <div className="rewrite-card" data-testid="selection-rewrite-panel">
       <div className="rewrite-toolbar">
         <Select size="small" aria-label="会话" className="chat-session" value={sessionId} onChange={setSessionId}
-          options={[{ value: NEW_SESSION, label: '新会话' }, ...sessions.map(item => ({
+          options={[{ value: NEW_SESSION, label: '新会话' }, ...sessionsForSection(sessions, askSection).map(item => ({
             value: item.id, label: `${item.title}${item.title.length >= 24 ? '…' : ''}${item.owner_name ? ` · ${item.owner_name}` : ''}`,
           }))]} />
         <Space size={4}>

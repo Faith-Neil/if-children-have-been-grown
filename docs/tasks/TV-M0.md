@@ -383,3 +383,19 @@
 范围：技术分册写作助手去掉固定文案，按所选小节工作。问答走现有流式接口，带本节挂载要点、评分标准、废标清单与三库检索；新增 `POST /api/v1/projects/{project_id}/technical-sections/rewrite` 按节生成修改候选（不写入），候选带废标约束预检与来源；写入沿用差异预览、编辑锁与版本校验。快捷指令五条；覆盖视图「目标章节」跳到编辑台并预填小节与修改要求。
 
 验收：`tests/backend/test_technical_assistant.py`、`frontend/web/tests/unit/technical-assistant.test.mjs` 通过；项目只读成员按节修改 403；未接真实模型 502；OpenAPI `--check` 一致。
+
+<a id="tv-m0-t21"></a>
+
+## TV-M0-T21 · 修改候选数字预检与问答按小节分会话
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 关联 Issue | [ISSUE-053](../../issues/ISSUE-053.md) |
+| 依赖 | [TV-M0-T19](TV-M0.md#tv-m0-t19) |
+| 完成时交付 | docs/delivery/TV-M0-T21.md |
+| 代码解释 | docs/code/TV-M0-T21.md |
+
+范围：按节修改候选在写入前查数字：本节需求的偏离类型与数字口径沿用写入后的同一条规则；候选里带单位的承诺数字须在本节原文、本章其他正文、需求与评分、挂载要点、已确认事实或检索片段里出现过，否则标「需核对」，人工勾选已核对后才能写入。自由提问在技术服务方案里按小节分会话：会话记小节键与标题，续问只能在同一小节，会话列表按小节过滤；回答仍只可复制。
+
+验收：`tests/backend/test_technical_assistant.py` 通过（数字预检、候选带数字结果、按小节分会话与跨小节续问 403）；`frontend/web/tests/unit/technical-assistant.test.mjs` 通过；前端 lint 通过；OpenAPI `--check` 一致。

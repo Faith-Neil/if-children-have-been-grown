@@ -1,6 +1,7 @@
 # 为什么有这个文件：编辑台对话助手的会话留痕（PRD v1.8 §5.11.2 会话列表、§5.11.11 留痕与隔离；APP-M2-T176）。
 # 它解决什么问题：
-# 1. 每次选区提问（选区、修改方式、要求、知识库开关、检索结果、样例）和每次写入都追加到本人本章的会话里，只追加不改；
+# 1. 自由提问在技术服务方案里按小节分会话（section_key），续问只带同一小节的上下文；
+# 2. 每次选区提问（选区、修改方式、要求、知识库开关、检索结果、样例）和每次写入都追加到本人本章的会话里，只追加不改；
 # 2. 同一会话里接着提要求时，把这段文字之前的要求与样例交给模型，用户可以说“再短一点”；
 # 3. 自由提问的问题与回答也记入同一会话（APP-M2-T179）；会话只有本人、项目负责人和本公司公司管理员能看；继续提问只能本人。会话存在项目工作流里，随项目持久化。
 
@@ -77,22 +78,25 @@ def record_request(workflow: dict, principal: Principal, chapter: Any, batch: di
     return session["id"]
 
 
-def _session(workflow: dict, principal: Principal, chapter: Any, session_id: str | None, title: str, now: str) -> dict:
+def _session(workflow: dict, principal: Principal, chapter: Any, session_id: str | None, title: str, now: str,
+             section: dict | None = None) -> dict:
     sessions = _sessions(workflow)
     session = sessions.get(session_id) if session_id else None
     if session is None:
         session = {"id": new_id("session"), "project_id": chapter.project_id, "chapter_id": chapter.id,
                    "chapter_title": chapter.title, "owner_id": principal.user.id, "owner_name": principal.user.name,
-                   "title": title[:24], "created_at": now, "updated_at": now, "messages": []}
+                   "title": title[:24], "created_at": now, "updated_at": now, "messages": [],
+                   "section_key": (section or {}).get("key"), "section_title": (section or {}).get("title")}
         sessions[session["id"]] = session
         for old in sorted(sessions.values(), key=lambda item: item["updated_at"])[:-MAX_SESSIONS]:
             sessions.pop(old["id"], None)
     return session
 
 
-def record_question(workflow: dict, principal: Principal, chapter: Any, record: dict, session_id: str | None, now: str) -> str:
-    """自由提问（APP-M2-T179）：问题与回答（或答案卡、无检索结果）追加到本人本章会话。"""
-    session = _session(workflow, principal, chapter, session_id, record["question"], now)
+def record_question(workflow: dict, principal: Principal, chapter: Any, record: dict, session_id: str | None, now: str,
+                    section: dict | None = None) -> str:
+    """自由提问（APP-M2-T179）：问题与回答（或答案卡、无检索结果）追加到本人本章会话；技术服务方案按小节分会话。"""
+    session = _session(workflow, principal, chapter, session_id, record["question"], now, section)
     session["messages"].append({"id": new_id("msg"), "role": "user", "kind": "question", "created_at": now,
                                 "question": record["question"], "knowledge_base_enabled": record["knowledge_base_enabled"]})
     session["messages"].append({"id": new_id("msg"), "role": "assistant", "kind": "answer", "created_at": now,
@@ -119,15 +123,18 @@ def record_apply(workflow: dict, session_id: str, operation: dict) -> None:
 
 def summary(session: dict) -> dict:
     return {key: session[key] for key in ("id", "chapter_id", "chapter_title", "owner_id", "owner_name", "title",
-                                          "created_at", "updated_at")} | {"message_count": len(session["messages"])}
+                                          "created_at", "updated_at")} | {
+        "message_count": len(session["messages"]),
+        "section_key": session.get("section_key"), "section_title": session.get("section_title")}
 
 
-def list_sessions(demo: Any, principal: Principal, project_id: str, chapter_id: str | None) -> dict:
+def list_sessions(demo: Any, principal: Principal, project_id: str, chapter_id: str | None, section: str | None = None) -> dict:
     state = demo.repository.read()
     if not _company_admin(state, principal, project_id):
         demo._project(state, principal, project_id)  # 其他人须是项目成员
     sessions = (state.workflows.get(project_id) or {}).get("assistant_sessions", {}).values()
     visible = [summary(s) for s in sessions if (chapter_id is None or s["chapter_id"] == chapter_id)
+               and (section is None or s.get("section_key") == section)
                and can_read(state, principal, project_id, s)]
     return {"sessions": sorted(visible, key=lambda item: item["updated_at"], reverse=True)}
 
