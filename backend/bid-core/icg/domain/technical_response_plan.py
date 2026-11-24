@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 from typing import Any
 
@@ -286,8 +287,25 @@ def apply_response_plan(workflow: dict, model=None) -> dict[str, Any]:
     return {"tasks": tasks, "headings": headings, "validation": check}
 
 
-def coverage_rows(workflow: dict, outline: dict | None = None) -> list[dict]:
-    """覆盖视图五列数据。"""
+def body_hash(body: str) -> str:
+    return hashlib.sha256((body or "").strip().encode("utf-8")).hexdigest()
+
+
+def effective_task(task: dict, heading: dict, content: str | None) -> dict:
+    """确认后这一节正文被人改过，确认作废，回到确认前状态并提示重新确认。"""
+    if task.get("response_status") != "confirmed" or not task.get("confirmed_hash") or content is None:
+        return task
+    from icg.domain.technical_volume import section_body
+
+    body = section_body(content, heading.get("number") or "", heading.get("title") or "")
+    if body_hash(body) == task["confirmed_hash"]:
+        return task
+    return {**task, "response_status": task.get("pre_confirm_status") or "generated",
+            "confirmed_at": None, "edited_after_confirm": True}
+
+
+def coverage_rows(workflow: dict, outline: dict | None = None, content: str | None = None) -> list[dict]:
+    """覆盖视图五列数据。content 为服务方案当前正文，用来判断确认后是否被改过。"""
     outline = outline or workflow.get("technical_outline") or {}
     headings = {item.get("task_id"): item for item in (outline.get("headings") or []) if item.get("task_id")}
     reqs = workflow.get("requirements") or {}
@@ -295,6 +313,7 @@ def coverage_rows(workflow: dict, outline: dict | None = None) -> list[dict]:
     rows = []
     for task in (workflow.get("response_tasks") or {}).values():
         heading = headings.get(task["task_id"]) or {}
+        task = effective_task(task, heading, content)
         title = heading.get("title") or task.get("title")
         reasons = confirm_reasons(task, title in review)
         for rid in task.get("requirement_ids") or []:
@@ -335,7 +354,7 @@ def confirm_reasons(task: dict, quality_review: bool) -> list[str]:
         return ["生成失败"]
     if task.get("generation_status") != "generated":
         return []
-    reasons = []
+    reasons = ["确认后正文已修改"] if task.get("edited_after_confirm") else []
     if (task.get("rag") or {}).get("status", "hit") != "hit" or task.get("response_status") == "needs_confirm":
         reasons.append("知识库无依据")
     check = task.get("constraint_check") or {}
