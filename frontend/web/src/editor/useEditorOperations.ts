@@ -7,6 +7,7 @@ import type { Candidate, Chapter, Volume, Workspace, WritingInputPreview } from 
 import { recoveryWrite } from './editor-recovery.ts';
 import type { RecoveryChoice } from './RecoveryReview.tsx';
 import { candidateProblem, insertFactToken } from './writing-input.ts';
+import { sectionRewritePath } from './technical-assistant.ts';
 import { insertSlaMeasurement } from '../admin/sla-form.ts';
 import { editingContentWrite, recoveryEditingFingerprint, reviewedEditingFingerprint } from './editing-source.ts';
 import type { Lease } from './useEditorLock.ts';
@@ -86,6 +87,15 @@ export function useEditorOperations({
     await run(async () => {
       const start = epoch.current;
       const value = await request<Candidate>(`/api/chapters/${chapterId}/suggestions`, token, 'POST', { instruction });
+      if (start === epoch.current) setSuggestion(value);
+    });
+  };
+
+  const suggestSection = async (section: string) => {
+    if (!canGenerate || !section || combinedBusy) return;
+    await run(async () => {
+      const start = epoch.current;
+      const value = await request<Candidate>(sectionRewritePath(workspace.project.id), token, 'POST', { section, instruction });
       if (start === epoch.current) setSuggestion(value);
     });
   };
@@ -269,6 +279,7 @@ export function useEditorOperations({
     sourceReview, setSourceReview,
     sourceReviewed, setSourceReviewed,
     suggest,
+    suggestSection,
     generate,
     showDiff,
     apply,

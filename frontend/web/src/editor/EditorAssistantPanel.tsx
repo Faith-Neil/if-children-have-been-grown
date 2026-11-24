@@ -1,8 +1,9 @@
 // 为什么有这个文件：提取编辑台右侧助手面板组件（EditorAssistantPanel）。
 // 它解决什么问题：解耦对话助手、整章候选建议、合规问题提示与写作来源面板，降低 EditorPage 行数。
 
-import React, { useState } from 'react';
-import { Alert, Button, Input, Space, Tabs, Tag } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Alert, Button, Input, Select, Space, Tabs, Tag } from 'antd';
+import { TECH_CHIPS, takePrefill } from './technical-assistant.ts';
 import { ArrowUpOutlined } from '@ant-design/icons';
 import { AiTag } from '../library/BusinessTags.tsx';
 import { WritingSources } from './WritingInputPreview.tsx';
@@ -39,6 +40,11 @@ export interface EditorAssistantPanelProps {
   generating?: boolean;
   /** 标书修改模式：直接改文档前可预览候选 */
   technicalAssistant?: boolean;
+  /** 技术分册：确认目录里的小节，问答与修改的作用域 */
+  sections?: string[];
+  section?: string;
+  setSection?: (value: string) => void;
+  onSuggestSection?: () => void;
 }
 
 const ASK_CHIPS = ['修改具体表述', '调整责任承诺', '补充客户结合段', '这一节依据是什么'];
@@ -70,21 +76,34 @@ export function EditorAssistantPanel({
   draftReady = true,
   generating = false,
   technicalAssistant = false,
+  sections = [],
+  section = '',
+  setSection,
+  onSuggestSection,
 }: EditorAssistantPanelProps) {
   const [composer, setComposer] = useState<'ask' | 'chapter'>('ask');
   const [askDraft, setAskDraft] = useState('');
   const [askNonce, setAskNonce] = useState(0);
-  const [askLog, setAskLog] = useState<Array<{ q: string; a: string }>>([]);
   const pendingAsk = React.useRef('');
   const asking = composer === 'ask';
   const draft = asking ? askDraft : instruction;
   const setDraft = asking ? setAskDraft : setInstruction;
   const assistantLocked = technicalAssistant && (generating || !draftReady);
+  const sectionMode = technicalAssistant && sections.length > 0;
+  useEffect(() => {
+    if (!technicalAssistant) return;
+    const prefill = takePrefill(workspace.project.id);
+    if (!prefill) return;
+    setSection?.(prefill.section);
+    setInstruction(prefill.instruction);
+    setComposer('chapter');
+  }, [workspace.project.id, technicalAssistant]);
   const sendDisabled = assistantLocked || (asking
     ? !askDraft.trim()
-    : combinedBusy || !canGenerate || !chapter || !planCurrent || !instruction.trim() || modified || (technicalAssistant && !held));
+    : combinedBusy || !canGenerate || !chapter || !instruction.trim() || modified || (technicalAssistant && !held)
+      || (sectionMode ? !section : !planCurrent));
   const tools = React.isValidElement(selectionTools)
-    ? React.cloneElement(selectionTools as React.ReactElement<{ askDraft?: string; askNonce?: number }>, { askDraft: pendingAsk.current, askNonce })
+    ? React.cloneElement(selectionTools as React.ReactElement<{ askDraft?: string; askNonce?: number; askSection?: string }>, { askDraft: pendingAsk.current, askNonce, askSection: sectionMode ? section : undefined })
     : selectionTools;
   function send() {
     if (sendDisabled) return;
@@ -93,15 +112,10 @@ export function EditorAssistantPanel({
       pendingAsk.current = question;
       setAskNonce(value => value + 1);
       setAskDraft('');
-      if (technicalAssistant) {
-        setAskLog(prev => [...prev, {
-          q: question,
-          a: '问答写作仅给出建议，不会直接改文档。请结合本章与双库依据人工采纳。',
-        }].slice(-8));
-      }
-    } else onSuggest();
+    } else if (sectionMode && onSuggestSection) onSuggestSection();
+    else onSuggest();
   }
-  const chips = asking ? ASK_CHIPS : EDIT_CHIPS;
+  const chips = sectionMode && !asking ? TECH_CHIPS.map(item => item.label) : asking ? ASK_CHIPS : EDIT_CHIPS;
   return (
     <aside className="editor-right" data-testid="editor-assistant-panel">
       <div className="assistant-tabbar">
@@ -130,24 +144,43 @@ export function EditorAssistantPanel({
                 description={generating ? '正文生成完成后可使用写作助手。' : '请先「开始生成」完成初稿，再使用写作助手。'}
               />
             )}
+            {sectionMode && (
+              <Select
+                size="small"
+                style={{ width: '100%', marginBottom: 8 }}
+                placeholder="选择小节"
+                aria-label="写作助手作用小节"
+                data-testid="assistant-section"
+                value={section || undefined}
+                onChange={value => setSection?.(value)}
+                options={sections.map(title => ({ value: title, label: title }))}
+                disabled={assistantLocked}
+              />
+            )}
             {tools}
             {workspace.project.sensitive && <p className="chat-note">敏感项目，只使用本地服务。</p>}
-            {technicalAssistant && askLog.map((item, index) => (
-              <div key={`${item.q}-${index}`} className="chat-assistant" data-testid="ask-log-item">
-                <div className="chat-assistant-meta"><span>问答写作</span></div>
-                <p><strong>问：</strong>{item.q}</p>
-                <p>{item.a}</p>
-              </div>
-            ))}
             {candidate && (
               <div className="chat-assistant">
                 <div className="chat-assistant-meta">
                   <AiTag variant={candidate.is_real_model ? 'model' : 'demo'} />
-                  <span>{technicalAssistant ? '标书修改 · 预览' : `整章 · 基于 v${candidate.base_revision}`}</span>
-                  {technicalAssistant && <Tag color="purple">内测</Tag>}
+                  <span>{candidate.section ? `修改 · ${candidate.section}` : technicalAssistant ? '标书修改 · 预览' : `整章 · 基于 v${candidate.base_revision}`}</span>
                 </div>
                 {candidateIssue && <Alert type="warning" showIcon message={candidateIssue} />}
-                <p>{candidate.content}</p>
+                {candidate.precheck && candidate.precheck.status !== 'passed' && (
+                  <Alert
+                    type={candidate.precheck.status === 'failed' ? 'error' : 'warning'}
+                    showIcon
+                    data-testid="candidate-precheck"
+                    message={candidate.precheck.status === 'failed' ? '候选违反废标或硬约束，写入前请修改' : '候选承诺与其他内容不一致，请核对'}
+                    description={<ul>{[...candidate.precheck.missing, ...candidate.precheck.conflicts].map(text => <li key={text}>{text}</li>)}</ul>}
+                  />
+                )}
+                <p>{candidate.section_body ?? candidate.content}</p>
+                {candidate.sources && (candidate.sources.length ? (
+                  <ul className="rewrite-sources">
+                    {candidate.sources.map(src => <li key={`${src.dataset_kind}-${src.name}`}><Tag>{src.dataset_kind === 'history' ? '历史标书' : src.dataset_kind === 'materials' || src.dataset_kind === 'material' ? '资料库' : '本标'}</Tag>{src.name}</li>)}
+                  </ul>
+                ) : <p className="muted">无知识库来源</p>)}
                 <Space wrap>
                   <Button size="small" type="link" onClick={onViewInput}>查看来源</Button>
                   <Button size="small" type="primary" disabled={combinedBusy || !held || !chapter || !!candidateIssue} onClick={() => onShowDiff(candidate)}>
@@ -170,8 +203,9 @@ export function EditorAssistantPanel({
                 type="button"
                 disabled={assistantLocked}
                 onClick={() => {
+                  const quick = sectionMode ? TECH_CHIPS.find(item => item.label === text) : undefined;
                   if (asking) setAskDraft(text);
-                  else setInstruction(`${text}：结合本章与双库依据，不新增未经证实的承诺。`);
+                  else setInstruction(quick ? quick.instruction : `${text}：结合本章与双库依据，不新增未经证实的承诺。`);
                 }}
               >{text}</button>
             ))}
@@ -205,9 +239,9 @@ export function EditorAssistantPanel({
               onClick={send}
             />
           </div>
-          {composer === 'chapter' && technicalAssistant && <span className="chat-note">标书修改会生成可预览候选，确认后再写入；改后节可标「已助手修订」。</span>}
+          {composer === 'chapter' && technicalAssistant && <span className="chat-note">{sectionMode ? '只改所选小节；候选先做废标检查，预览差异后再写入。' : '标书修改会生成可预览候选，确认后再写入。'}</span>}
           {composer === 'chapter' && modified && <span className="chat-note">先提交本节，再请求修改建议。</span>}
-          {composer === 'chapter' && !planCurrent && <span className="chat-note">先确认目录，再请求修改建议。</span>}
+          {composer === 'chapter' && !sectionMode && !planCurrent && <span className="chat-note">先确认目录，再请求修改建议。</span>}
         </div>
       )}
     </aside>

@@ -219,7 +219,8 @@ export type WritingInputSnapshot = {
   official_content: string;
 };
 export type WritingInputPreview = { source_scope: 'whole_chapter'; input_snapshot: WritingInputSnapshot; ready: boolean; issues: { code: string; message: string }[] };
-export type Candidate = { id?: string; content: string; base_revision: number; input_fingerprint: string; provider: string; is_real_model: boolean; source_scope?: 'whole_chapter' | null; input_snapshot?: WritingInputSnapshot | null; status?: 'valid' | 'stale' };
+export type SectionPrecheck = { status: string; missing: string[]; conflicts: string[]; notice?: string };
+export type Candidate = { id?: string; content: string; base_revision: number; input_fingerprint: string; provider: string; is_real_model: boolean; source_scope?: 'whole_chapter' | 'section' | null; section?: string; section_body?: string; original_body?: string; precheck?: SectionPrecheck; rag?: CoverageRag; sources?: { name: string; dataset_kind: string; score: number }[]; input_snapshot?: WritingInputSnapshot | null; status?: 'valid' | 'stale' };
 export type Chapter = { id: string; title: string; volume: Volume; revision: number; content: string; needs_regeneration?: boolean; lock: { owner_id: string; owner_name?: string | null; expires_at: string } | null; paragraphs?: ParagraphKey[]; draft?: { sequence: number; content: string; base_revision: number; input_fingerprint?: string | null } | null; candidate?: Candidate | null; requirement_ids?: string[]; writing_input?: ChapterWritingInput; assignee_id?: string | null; assignee_name?: string | null; permissions?: ChapterPermissions };
 export type CheckRelease = { reason: string; by: string; by_name?: string; at: string; decision?: 'keep' | 'accept' };
 export type CheckIssue = {
