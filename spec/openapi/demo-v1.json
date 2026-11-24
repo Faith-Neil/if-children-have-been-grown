@@ -50875,7 +50875,7 @@
               }
             ],
             "title": "Section",
-            "description": "只重新生成这一节；不填则按顺序写全部可写的节"
+            "description": "只重新生成这一节：节键（任务编号）或标题，节键优先；不填则按顺序写全部可写的节"
           }
         },
         "additionalProperties": false,

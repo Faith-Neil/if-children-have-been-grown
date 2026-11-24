@@ -108,3 +108,12 @@ def test_writer_without_chapter_edit_cannot_confirm(client):
     denied = client.post(f"/api/v1/projects/{project_id}/technical-tasks/{task_id}/confirm", json={}, headers={
         **writer, "If-Match": str(workspace["revision"]), "Idempotency-Key": str(uuid4())})
     assert denied.status_code == 403, denied.text
+
+
+def test_select_section_prefers_key_over_shared_title():
+    from icg.domain.technical_volume import select_section
+    headings = [{"title": "保障措施", "task_id": "k1"}, {"title": "保障措施", "task_id": "k2"}, {"title": "应急", "number": "2.1"}]
+    assert select_section(headings, "k2") == [headings[1]]
+    assert len(select_section(headings, "保障措施")) == 2
+    assert select_section(headings, "应急") == [headings[2]]
+    assert select_section(headings, "nope") == []

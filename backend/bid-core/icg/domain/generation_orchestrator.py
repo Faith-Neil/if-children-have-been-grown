@@ -542,7 +542,7 @@ class GenerationOrchestratorMixin:
                                  expected: str | None, key: str | None) -> dict:
         """推送开始前的核对。失败按 HTTP 状态抛出，不进事件流。"""
         from icg.domain.technical_sources import technical_only
-        from icg.domain.technical_volume import _leaves, assert_ready
+        from icg.domain.technical_volume import _leaves, assert_ready, select_section
 
         snapshot, previous = self._preflight(principal, project_id, "chapter.generate", payload, expected, key)
         if previous:
@@ -552,7 +552,7 @@ class GenerationOrchestratorMixin:
             raise DomainError(409, "REQUIREMENT_NOT_READY", "目录还没确认。")
         assert_ready(snapshot, project_id, workflow)
         section = (payload.get("section") or "").strip()
-        if section and not any(item.get("title") == section for item in _leaves(workflow["technical_outline"])):
+        if section and not select_section(_leaves(workflow["technical_outline"]), section):
             raise DomainError(404, "NOT_FOUND", "没有这一节。")
         return {
             "snapshot": snapshot, "workflow": workflow, "payload": payload, "expected": expected,

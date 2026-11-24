@@ -209,7 +209,7 @@ class ChapterAssignment(RequestBody):
 
 class GenerateRequest(RequestBody):
     chapter_ids: list[str] | None = None
-    section: str | None = Field(default=None, max_length=500, description="只重新生成这一节；不填则按顺序写全部可写的节")
+    section: str | None = Field(default=None, max_length=500, description="只重新生成这一节：节键（任务编号）或标题，节键优先；不填则按顺序写全部可写的节")
 
 
 class ProjectCheckRequest(RequestBody):
