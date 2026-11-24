@@ -12,11 +12,10 @@ REWRITE_RULES = (
 
 
 def section_heading(workflow: dict, title: str) -> dict | None:
-    from icg.domain.technical_volume import _leaves
+    from icg.domain.technical_volume import _leaves, select_section
 
-    outline = workflow.get("technical_outline") or {}
-    wanted = (title or "").strip()
-    return next((item for item in _leaves(outline) if (item.get("title") or "").strip() == wanted), None)
+    hits = select_section(_leaves(workflow.get("technical_outline") or {}), (title or "").strip())
+    return hits[0] if hits else None
 
 
 def section_context(workflow: dict, title: str) -> dict[str, Any] | None:
@@ -105,9 +104,9 @@ class TechnicalSectionAssistant:
         from icg.domain.technical_volume import SECTION_SYSTEM, section_body, strip_model_thinking
         from icg.infra.openai_model import SECTION_CALL, AuditIoLabel, call_with_profile
 
-        title = (payload.get("section") or "").strip()
+        section = (payload.get("section") or "").strip()
         instruction = (payload.get("instruction") or "").strip()
-        if not title or not instruction:
+        if not section or not instruction:
             raise DomainError(422, "VALIDATION_ERROR", "请选择小节并填写修改要求。")
         state = self.demo.repository.read()
         project = self.demo._project(state, principal, project_id)
@@ -119,9 +118,10 @@ class TechnicalSectionAssistant:
         if chapter is None or chapter.project_id != project_id:
             raise DomainError(404, "NOT_FOUND", "没有服务方案这一章。")
         self.demo._chapter_writer(state, principal, chapter)
-        context = section_context(workflow, title)
+        context = section_context(workflow, section)
         if context is None:
             raise DomainError(404, "NOT_FOUND", "没有这一节。")
+        title = context["heading"].get("title") or ""
         original = section_body(chapter.content or "", context["heading"].get("number") or "", title)
         if not original.strip():
             raise DomainError(409, "REQUIREMENT_NOT_READY", "本节还没有正文，请先生成。")

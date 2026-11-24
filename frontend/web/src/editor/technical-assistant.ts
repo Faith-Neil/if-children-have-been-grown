@@ -13,11 +13,19 @@ export const TECH_CHIPS: { label: string; instruction: string }[] = [
 export const sectionRewritePath = (projectId: string) =>
   `/api/v1/projects/${encodeURIComponent(projectId)}/technical-sections/rewrite`;
 
-export function sectionsOf(outline: TechnicalOutline | null | undefined): string[] {
-  const titles = (outline?.headings ?? [])
-    .filter(item => item.task_id || item.requirement_id)
-    .map(item => item.title);
-  return [...new Set(titles)];
+export type SectionOption = { key: string; label: string };
+
+/** key 与后端节键一致（任务编号优先），同名小节各占一项。 */
+export function sectionsOf(outline: TechnicalOutline | null | undefined): SectionOption[] {
+  const seen = new Set<string>();
+  const out: SectionOption[] = [];
+  for (const item of outline?.headings ?? []) {
+    const key = item.task_id || item.requirement_id;
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push({ key, label: [item.number, item.title].filter(Boolean).join(' ') });
+  }
+  return out;
 }
 
 export type AssistantPrefill = { section: string; instruction: string };

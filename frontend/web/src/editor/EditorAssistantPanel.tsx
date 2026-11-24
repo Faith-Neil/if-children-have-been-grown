@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Alert, Button, Input, Select, Space, Tabs, Tag } from 'antd';
-import { TECH_CHIPS, takePrefill } from './technical-assistant.ts';
+import { TECH_CHIPS, takePrefill, type SectionOption } from './technical-assistant.ts';
 import { ArrowUpOutlined } from '@ant-design/icons';
 import { AiTag } from '../library/BusinessTags.tsx';
 import { WritingSources } from './WritingInputPreview.tsx';
@@ -41,7 +41,7 @@ export interface EditorAssistantPanelProps {
   /** 标书修改模式：直接改文档前可预览候选 */
   technicalAssistant?: boolean;
   /** 技术分册：确认目录里的小节，问答与修改的作用域 */
-  sections?: string[];
+  sections?: SectionOption[];
   section?: string;
   setSection?: (value: string) => void;
   onSuggestSection?: () => void;
@@ -153,7 +153,7 @@ export function EditorAssistantPanel({
                 data-testid="assistant-section"
                 value={section || undefined}
                 onChange={value => setSection?.(value)}
-                options={sections.map(title => ({ value: title, label: title }))}
+                options={sections.map(item => ({ value: item.key, label: item.label }))}
                 disabled={assistantLocked}
               />
             )}

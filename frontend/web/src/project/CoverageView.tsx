@@ -236,7 +236,7 @@ export function CoverageView() {
               render: (_, row) => (
                 <Button type="link" size="small" onClick={event => {
                   event.stopPropagation();
-                  if (row.outline_title) storePrefill(workspace.project.id, { section: row.outline_title, instruction: coverageInstruction(row) });
+                  if (row.outline_title) storePrefill(workspace.project.id, { section: row.task_id || row.outline_title, instruction: coverageInstruction(row) });
                   navigate('editor');
                 }}>
                   {[row.outline_number, row.outline_title].filter(Boolean).join(' ') || '未挂目录'}

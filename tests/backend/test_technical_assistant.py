@@ -63,6 +63,10 @@ def test_rewrite_section_returns_checked_candidate(client):
               and body["original_body"] not in line]
     assert all(line in body["content"] for line in others)
 
+    task_id = workspace["coverage_rows"][0]["task_id"]
+    by_key = client.post(path, json={"section": task_id, "instruction": "补充季度健康检查"}, headers=headers)
+    assert by_key.status_code == 200 and by_key.json()["section"] == title, by_key.text
+
     missing = client.post(path, json={"section": "不存在的节", "instruction": "改"}, headers=headers)
     assert missing.status_code == 404
 

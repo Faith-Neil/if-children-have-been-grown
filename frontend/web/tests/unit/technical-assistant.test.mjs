@@ -7,14 +7,16 @@ function memory() {
   return { getItem: key => data.get(key) ?? null, setItem: (key, value) => data.set(key, value), removeItem: key => data.delete(key) };
 }
 
-test('sectionsOf keeps only leaf sections with a task or requirement, once each', () => {
+test('sectionsOf keys sections by task so same-title sections stay separate', () => {
   const outline = { title: 't', chapter_id: 'c', headings: [
     { level: 1, number: '1', title: '服务内容' },
     { level: 2, number: '1.1', title: '健康检查', task_id: 'k1' },
     { level: 2, number: '1.2', title: '应急响应', requirement_id: 'r1' },
     { level: 2, number: '1.3', title: '健康检查', task_id: 'k2' },
   ] };
-  assert.deepEqual(sectionsOf(outline), ['健康检查', '应急响应']);
+  assert.deepEqual(sectionsOf(outline), [
+    { key: 'k1', label: '1.1 健康检查' }, { key: 'r1', label: '1.2 应急响应' }, { key: 'k2', label: '1.3 健康检查' },
+  ]);
   assert.deepEqual(sectionsOf(null), []);
 });
 
