@@ -147,3 +147,16 @@ def test_retry_keeps_confirmation_made_while_it_runs(client):
     after = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
     mine = [item for item in after["coverage_rows"] if item["task_id"] == kept["task_id"]]
     assert mine and all(item["confirmed_at"] for item in mine)
+
+
+def test_volume_merge_refreshes_constraint_check_of_untouched_tasks():
+    from icg.domain.generation_orchestrator import merge_volume_tasks
+
+    live = {"k1": {"confirmed_at": "t", "constraint_check": {"status": "needs_confirm"}},
+            "k2": {"generation_status": "failed"}}
+    fresh = {"k1": {"constraint_check": {"status": "passed"}},
+             "k2": {"generation_status": "generated", "constraint_check": {"status": "passed"}}}
+    tasks = merge_volume_tasks(live, fresh, ["k2"])
+    assert tasks["k1"] == {"confirmed_at": "t", "constraint_check": {"status": "passed"}}
+    assert tasks["k2"]["generation_status"] == "generated"
+    assert live["k1"]["constraint_check"]["status"] == "needs_confirm"

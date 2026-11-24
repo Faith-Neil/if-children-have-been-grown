@@ -64,6 +64,16 @@ from icg.domain.prompt_budget import (
 )
 
 
+def merge_volume_tasks(live: dict, fresh: dict, touched: list[str]) -> dict:
+    """只换本次重写过的节，生成期间别的节的人工确认不被快照冲掉；废标检查覆盖全部小节，没重写的节也换成本次结果。"""
+    merged = {tid: dict(task) for tid, task in live.items()}
+    for tid, task in merged.items():
+        if isinstance(fresh.get(tid), dict) and "constraint_check" in fresh[tid]:
+            task["constraint_check"] = fresh[tid]["constraint_check"]
+    merged.update({tid: fresh[tid] for tid in touched if tid in fresh})
+    return merged
+
+
 class GenerationOrchestratorMixin:
     """章节生成与 AI 伴写领域编排 Mixin。"""
 
@@ -706,10 +716,7 @@ class GenerationOrchestratorMixin:
                 actual[key] = drafted[key]
         touched = result.get("task_ids")
         if touched is not None and drafted.get("response_tasks") is not None:
-            # 只换本次重写过的节；生成期间别的节被人工确认，不被生成前的快照冲掉。
-            merged = dict(live_tasks)
-            merged.update({tid: drafted["response_tasks"][tid] for tid in touched if tid in drafted["response_tasks"]})
-            actual["response_tasks"] = merged
+            actual["response_tasks"] = merge_volume_tasks(live_tasks, drafted["response_tasks"], touched)
         message = "技术分册已写入当前正文。" if not result["failed"] else "有的节没有生成成功，这些节保持原样，其他节已写入。"
         quality = result.get("quality") or {}
         if quality.get("warning"):
