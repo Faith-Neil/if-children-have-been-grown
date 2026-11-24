@@ -5,7 +5,7 @@
 
 import json
 import threading
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.concurrency import iterate_in_threadpool, run_in_threadpool
@@ -37,6 +37,34 @@ class AssistantQuestionRequest(RequestBody):
     question: str = Field(min_length=1, max_length=1000, description="不选中正文时的自由提问")
     knowledge_base_enabled: bool | None = Field(default=None, description="知识库开关；不传取公司默认值")
     session_id: str | None = Field(default=None, max_length=120, description="接着本人本章的会话提问")
+    section: str | None = Field(default=None, max_length=200, description="技术服务方案：当前小节标题，回答带本节要点、评分标准与废标清单")
+
+
+class TechnicalSectionRewriteRequest(RequestBody):
+    section: str = Field(min_length=1, max_length=200, description="确认目录中的小节标题")
+    instruction: str = Field(min_length=1, max_length=2000, description="修改要求")
+
+
+class SectionPrecheck(ResponseBody):
+    status: str = Field(description="passed / needs_confirm / failed")
+    missing: list[str] = Field(default_factory=list, description="候选违反或放宽的废标/硬约束")
+    conflicts: list[str] = Field(default_factory=list, description="与其他承诺不一致的条目")
+    notice: str = ""
+
+
+class TechnicalSectionCandidate(ResponseBody):
+    content: str = Field(description="整章正文（仅本节换成候选），经差异预览后由编辑台在编辑锁下写入")
+    section: str
+    section_body: str
+    original_body: str
+    base_revision: int
+    input_fingerprint: str
+    provider: str
+    is_real_model: bool
+    source_scope: str = "section"
+    rag: dict[str, Any] = Field(default_factory=dict, description="本次检索摘要，字段同覆盖视图 rag")
+    sources: list[dict[str, Any]] = Field(default_factory=list)
+    precheck: SectionPrecheck
 
 
 class RewriteSource(ResponseBody):
@@ -293,5 +321,17 @@ def include_selection_rewrite_routes(application, service: DemoService, current_
                         summary="对话助手会话详情（只追加的消息记录）")
     def session(project_id: str, session_id: str, user: Principal = Depends(current_user)):
         return session_detail(service, user, project_id, session_id)
+
+    from icg.domain.technical_assistant import TechnicalSectionAssistant
+    section_assistant = TechnicalSectionAssistant(service, rewrite)
+
+    @project_router.post("/technical-sections/rewrite", response_model=TechnicalSectionCandidate,
+                         operation_id="rewriteTechnicalSection", summary="写作助手：按节生成修改候选（不写入）",
+                         responses=v1_error_responses(401, 403, 404, 409, 422, 502),
+                         description="上下文为本节挂载要点、评分标准、全部废标清单及本标、历史标书、资料库检索结果；"
+                                     "候选先跑废标约束检查（precheck）。只返回候选，写入走编辑锁与差异预览。项目只读成员 403；"
+                                     "未接入真实模型 502 MODEL_UNAVAILABLE。")
+    def rewrite_section(project_id: str, body: TechnicalSectionRewriteRequest, user: Principal = Depends(current_user)):
+        return section_assistant.rewrite(user, project_id, body.model_dump())
 
     application.include_router(project_router)

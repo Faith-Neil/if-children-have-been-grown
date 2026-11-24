@@ -37,8 +37,12 @@ def _system_prompt(knowledge_base: bool) -> str:
     return "\n".join(lines)
 
 
-def _user_content(title: str, requirements: list[str], facts: list[dict], hits: list[dict], history: list[str], question: str) -> str:
+def _user_content(title: str, requirements: list[str], facts: list[dict], hits: list[dict], history: list[str], question: str,
+                  section: dict | None = None) -> str:
     lines = [f"【章节】{title}"]
+    if section:
+        from .technical_assistant import context_block
+        lines.append(context_block(section))
     if requirements:
         lines += ["【本章回应的招标要求】", *[f"- {text[:200]}" for text in requirements[:6]]]
     if facts:
@@ -126,8 +130,15 @@ class AssistantQAService:
         if not getattr(provider, "is_real_model", False):
             raise DomainError(502, "MODEL_UNAVAILABLE", "尚未接入真实大模型：对话助手不提供模拟回答。请公司管理员在“模型配置”中接入模型后再试。")
         facts, requirements = self.rewrite._sources(state, project_id, chapter_id, workflow)
+        section_ctx = None
+        section = (payload.get("section") or "").strip()
+        if section and (workflow.get("technical_outline") or {}).get("chapter_id") == chapter_id:
+            from .technical_assistant import section_context
+            section_ctx = section_context(workflow, section)
+        scope = (" ".join([section_ctx["heading"].get("title") or "", *section_ctx["points"][:2]])
+                 if section_ctx else chapter.title)
         hits, retrieval = self.rewrite._retrieve(
-            principal, project.company_id, chapter.title, question, "", workflow, company_kb=kb_on,
+            principal, project.company_id, scope, question, "", workflow, company_kb=kb_on,
         )
         grounded = bool(hits)
         return {
@@ -138,7 +149,7 @@ class AssistantQAService:
             "retrieval": retrieval,
             "grounded": grounded,
             "system": _system_prompt(grounded),
-            "user_content": _user_content(chapter.title, requirements, facts, hits, history, question),
+            "user_content": _user_content(chapter.title, requirements, facts, hits, history, question, section_ctx),
         }
 
     def stream(self, prepared: dict, cancel: Any = None):

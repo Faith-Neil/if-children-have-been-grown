@@ -40,6 +40,7 @@ import {
 import { CiteCapsule, RichParagraphWithCites } from './CiteCapsule';
 import { SelectionBubble } from './SelectionBubble';
 import { EditorAssistantPanel } from './EditorAssistantPanel.tsx';
+import { sectionsOf } from './technical-assistant.ts';
 import { SelectionRewritePanel, type RewriteSelection } from './SelectionRewritePanel.tsx';
 import { pasteNotice, type PastedParagraph } from './paste-notice.ts';
 import { paragraphAtOffset, paragraphsMatch } from './paragraph-keys.ts';
@@ -70,6 +71,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const [directoryCollapsed, setDirectoryCollapsed] = useState(false);
   const [assistantCollapsed, setAssistantCollapsed] = useState(false);
   const [outlineDrawerOpen, setOutlineDrawerOpen] = useState(false);
+  const [techSection, setTechSection] = useState('');
   const [volume, setVolume] = useState<Volume>('technical');
   const [chapterId, setChapterId] = useState(() => {
     if (initialChapterId && workspace.chapters.some(item => item.id === initialChapterId)) return initialChapterId;
@@ -1001,6 +1003,8 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         combinedBusy={combinedBusy} held={held} canEdit={canEdit} canGenerate={canGenerate} chapter={chapter} planCurrent={planCurrent} modified={modified} workspace={workspace}
         chapterId={chapterId} onViewInput={() => ops.setInputOpen(true)} onShowDiff={ops.showDiff} onSuggest={ops.suggest}
         technicalAssistant
+        sections={chapterId === technicalOutline?.chapter_id ? sectionsOf(technicalOutline) : []} section={techSection} setSection={setTechSection}
+        onSuggestSection={() => void ops.suggestSection(techSection)}
         generating={streamChrome.paperWait}
         draftReady={(outlineChapter?.content || content || '').trim().length > 20}
         collapseControl={(

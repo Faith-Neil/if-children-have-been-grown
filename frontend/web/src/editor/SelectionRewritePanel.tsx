@@ -34,12 +34,13 @@ export interface SelectionRewritePanelProps {
   report: (error: unknown) => void;
   askDraft?: string;
   askNonce?: number;
+  askSection?: string;
 }
 
 type Pending = { sample: RewriteSample; action: RewriteAction; confirmStart?: number; moved?: boolean };
 const NEW_SESSION = '__new__';
 
-export function SelectionRewritePanel({ projectId, chapter, content, selection, leaseToken, canGenerate, busy, token, onApplied, onClear, report, askDraft = '', askNonce = 0 }: SelectionRewritePanelProps) {
+export function SelectionRewritePanel({ projectId, chapter, content, selection, leaseToken, canGenerate, busy, token, onApplied, onClear, report, askDraft = '', askNonce = 0, askSection }: SelectionRewritePanelProps) {
   const [mode, setMode] = useState<RewriteMode>('rewrite');
   const [instruction, setInstruction] = useState('');
   const [count, setCount] = useState(3);
@@ -162,7 +163,7 @@ export function SelectionRewritePanel({ projectId, chapter, content, selection, 
       {chapter && (
         <AssistantAskBox projectId={projectId} chapterId={chapter.id} token={token} knowledgeBase={knowledgeBase}
           sessionId={sessionId === NEW_SESSION ? null : sessionId} disabled={disabled || !policy?.enabled}
-          hideComposer externalDraft={askDraft} submitNonce={askNonce}
+          hideComposer externalDraft={askDraft} submitNonce={askNonce} section={askSection}
           onAnswered={id => { void loadSessions(id ?? undefined); }} />
       )}
       {selection && (

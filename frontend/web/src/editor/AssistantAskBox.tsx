@@ -16,9 +16,11 @@ type Props = {
   hideComposer?: boolean;
   externalDraft?: string;
   submitNonce?: number;
+  /** 技术分册当前小节：回答带本节要点、评分标准与废标清单 */
+  section?: string;
 };
 
-export function AssistantAskBox({ projectId, chapterId, token, knowledgeBase, sessionId, disabled, onAnswered, hideComposer = false, externalDraft = '', submitNonce = 0 }: Props) {
+export function AssistantAskBox({ projectId, chapterId, token, knowledgeBase, sessionId, disabled, onAnswered, hideComposer = false, externalDraft = '', submitNonce = 0, section }: Props) {
   const { message } = AntApp.useApp();
   const [question, setQuestion] = useState('');
   const [lastAsked, setLastAsked] = useState('');
@@ -34,7 +36,7 @@ export function AssistantAskBox({ projectId, chapterId, token, knowledgeBase, se
     setState({ ...EMPTY_ASK, working: true });
     try {
       await streamEvents(askPath(projectId, chapterId), token, {
-        question: text, knowledge_base_enabled: knowledgeBase, ...(sessionId ? { session_id: sessionId } : {}),
+        question: text, knowledge_base_enabled: knowledgeBase, ...(sessionId ? { session_id: sessionId } : {}), ...(section ? { section } : {}),
       }, event => {
         if (event.event === 'error') throw new ApiError(Number(event.status) || 502, String(event.code), String(event.message));
         setState(current => reduceAsk(current, event));

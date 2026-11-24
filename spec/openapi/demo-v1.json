@@ -41475,6 +41475,172 @@
         }
       }
     },
+    "/api/v1/projects/{project_id}/technical-sections/rewrite": {
+      "post": {
+        "summary": "写作助手：按节生成修改候选（不写入）",
+        "description": "上下文为本节挂载要点、评分标准、全部废标清单及本标、历史标书、资料库检索结果；候选先跑废标约束检查（precheck）。只返回候选，写入走编辑锁与差异预览。项目只读成员 403；未接入真实模型 502 MODEL_UNAVAILABLE。",
+        "operationId": "rewriteTechnicalSection",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TechnicalSectionRewriteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TechnicalSectionCandidate"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "422": {
+            "description": "字段或请求内容校验失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "500": {
+            "description": "后端演示服务异常",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "401": {
+            "description": "未登录或演示会话失效。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "403": {
+            "description": "无权限或缺少所需角色。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "404": {
+            "description": "资源不存在或当前公司无权访问。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "409": {
+            "description": "版本、状态或来源冲突。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          },
+          "502": {
+            "description": "下游解析或模型失败。响应体为 code、message、details、traceId，traceId 与响应头 X-Request-ID 相同。code 与 HTTP 状态的唯一对应见 components.x-error-status。",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/V1Error"
+                }
+              }
+            },
+            "headers": {
+              "X-Request-ID": {
+                "$ref": "#/components/headers/X-Request-ID"
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/notifications": {
       "get": {
         "summary": "本人的站内提醒",
@@ -45566,6 +45732,19 @@
             ],
             "title": "Session Id",
             "description": "接着本人本章的会话提问"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section",
+            "description": "技术服务方案：当前小节标题，回答带本节要点、评分标准与废标清单"
           }
         },
         "additionalProperties": false,
@@ -58583,6 +58762,42 @@
         ],
         "title": "ScanSummary"
       },
+      "SectionPrecheck": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "passed / needs_confirm / failed"
+          },
+          "missing": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing",
+            "description": "候选违反或放宽的废标/硬约束"
+          },
+          "conflicts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Conflicts",
+            "description": "与其他承诺不一致的条目"
+          },
+          "notice": {
+            "type": "string",
+            "title": "Notice",
+            "default": ""
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "SectionPrecheck"
+      },
       "SectionTally": {
         "properties": {
           "done": {
@@ -61969,6 +62184,104 @@
         "additionalProperties": true,
         "type": "object",
         "title": "TechnicalRagAuditRow"
+      },
+      "TechnicalSectionCandidate": {
+        "properties": {
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "整章正文（仅本节换成候选），经差异预览后由编辑台在编辑锁下写入"
+          },
+          "section": {
+            "type": "string",
+            "title": "Section"
+          },
+          "section_body": {
+            "type": "string",
+            "title": "Section Body"
+          },
+          "original_body": {
+            "type": "string",
+            "title": "Original Body"
+          },
+          "base_revision": {
+            "type": "integer",
+            "title": "Base Revision"
+          },
+          "input_fingerprint": {
+            "type": "string",
+            "title": "Input Fingerprint"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "is_real_model": {
+            "type": "boolean",
+            "title": "Is Real Model"
+          },
+          "source_scope": {
+            "type": "string",
+            "title": "Source Scope",
+            "default": "section"
+          },
+          "rag": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Rag",
+            "description": "本次检索摘要，字段同覆盖视图 rag"
+          },
+          "sources": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "precheck": {
+            "$ref": "#/components/schemas/SectionPrecheck"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "content",
+          "section",
+          "section_body",
+          "original_body",
+          "base_revision",
+          "input_fingerprint",
+          "provider",
+          "is_real_model",
+          "precheck"
+        ],
+        "title": "TechnicalSectionCandidate"
+      },
+      "TechnicalSectionRewriteRequest": {
+        "properties": {
+          "section": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Section",
+            "description": "确认目录中的小节标题"
+          },
+          "instruction": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Instruction",
+            "description": "修改要求"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "section",
+          "instruction"
+        ],
+        "title": "TechnicalSectionRewriteRequest"
       },
       "TenderDatasetStatus": {
         "properties": {

@@ -7,6 +7,7 @@ import { useProject } from '../app/context.tsx';
 import { newIdempotencyKey, streamEvents } from '../shared/api.ts';
 import type { CoverageRag, CoverageRow } from '../shared/types.ts';
 import { technicalVolumeSessionPath, technicalVolumeStreamPath } from '../editor/section-stream.ts';
+import { coverageInstruction, storePrefill } from '../editor/technical-assistant.ts';
 import { activeVolumeSession } from '../status/generation-session.ts';
 import {
   coverageLabel, coverageState, coverageStats, mergeTaskPatch, parseTaskPatched, patchRows, ragLabel,
@@ -233,7 +234,11 @@ export function CoverageView() {
               title: '目标章节',
               width: 180,
               render: (_, row) => (
-                <Button type="link" size="small" onClick={event => { event.stopPropagation(); navigate('editor'); }}>
+                <Button type="link" size="small" onClick={event => {
+                  event.stopPropagation();
+                  if (row.outline_title) storePrefill(workspace.project.id, { section: row.task_id || row.outline_title, instruction: coverageInstruction(row) });
+                  navigate('editor');
+                }}>
                   {[row.outline_number, row.outline_title].filter(Boolean).join(' ') || '未挂目录'}
                 </Button>
               ),
