@@ -292,16 +292,23 @@ def body_hash(body: str) -> str:
 
 
 def confirm_text(content: str, outline: dict, heading: dict) -> str | None:
-    """确认指纹用的本节全文：从本节标题到下一个目录编号开头的行为止（标题改名也认，其余数字开头的正文行算在内），
-    不含自动加的「需要核对」。找不到标题返回 None。"""
-    numbers = {str(item.get("number")) for item in outline.get("headings") or [] if item.get("number")}
+    """确认指纹用的本节全文：从本节标题到下一节标题为止，不含自动加的「需要核对」。找不到标题返回 None。
+    下一节标题原样在就以它为界；被改名时才退到以下一节编号开头的行，数字开头的正文段落不会截断本节。"""
+    heads = outline.get("headings") or []
+    markers = {f"{item.get('number')} {item.get('title')}" for item in heads}
+    index = next((i for i, item in enumerate(heads) if item.get("number") == heading.get("number")
+                  and item.get("title") == heading.get("title")), None)
+    following = heads[index + 1] if index is not None and index + 1 < len(heads) else None
     lines = (content or "").splitlines()
     marker = f"{heading.get('number')} {heading.get('title')}"
     start = next((i + 1 for i, line in enumerate(lines) if line.strip() == marker), None)
     if start is None:
         return None
-    end = next((i for i in range(start, len(lines))
-                if (lines[i].strip().split(maxsplit=1) or [""])[0] in numbers), len(lines))
+    rest = range(start, len(lines))
+    end = next((i for i in rest if lines[i].strip() in markers), len(lines))
+    if following and not any(lines[i].strip() == f"{following.get('number')} {following.get('title')}" for i in rest):
+        renamed = str(following.get("number"))
+        end = min(end, next((i for i in rest if (lines[i].strip().split(maxsplit=1) or [""])[0] == renamed), end))
     return "\n".join(line for line in lines[start:end] if line.strip() != "需要核对").strip()
 
 

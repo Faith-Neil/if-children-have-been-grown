@@ -192,3 +192,9 @@ def test_manual_edit_after_confirm_voids_the_confirmation():
     two = {"headings": [*outline["headings"], {"number": "1.2", "title": "应急", "task_id": "k2"}]}
     assert coverage_rows(workflow, two, "1.1 巡检\n原正文\n24 小时内处理\n需要核对\n1.2 应急改名\n别的\n")[0][
         "response_status"] == "confirmed"
+    para = {**task, "confirmed_hash": body_hash("原正文\n1.2 项条款逐条落实")}
+    workflow["response_tasks"] = {"k1": para}
+    assert coverage_rows(workflow, two, "1.1 巡检\n原正文\n1.2 项条款逐条落实\n1.2 应急\n别的\n")[0][
+        "response_status"] == "confirmed"
+    assert coverage_rows(workflow, two, "1.1 巡检\n原正文\n1.2 项条款逐条落实\n加一行\n1.2 应急\n")[0][
+        "response_status"] == "generated"
