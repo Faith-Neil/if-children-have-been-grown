@@ -19,6 +19,7 @@
 ## 验收证据
 
 - `tests/backend/test_technical_assistant.py`：4 passed；`tests/backend/test_assistant_questions.py`、`test_selection_rewrite.py` 通过。
+- `test_assistant_kb_sessions.py`、`test_assistant_streaming.py` 有 4 项失败，改动前的代码上同样失败，非本次引入。
 - `frontend/web/tests/unit/technical-assistant.test.mjs`：3 passed；前端全量失败集合与改动前相同（9 项既有失败）；`pnpm lint` 通过。
 - `export_openapi.py --check` 一致；治理检查通过。
 - 只用模型替身验证；未连内网 Qwen / RAGFlow，界面未做浏览器验收。
