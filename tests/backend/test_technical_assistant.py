@@ -81,3 +81,15 @@ def test_readonly_member_cannot_rewrite(client):
     denied = client.post(f"/api/v1/projects/{project_id}/technical-sections/rewrite",
                          json={"section": title, "instruction": "改"}, headers=reader)
     assert denied.status_code == 403, denied.text
+
+
+def test_rewrite_respects_company_assistant_switch(client, monkeypatch):
+    from icg.domain.selection_rewrite import SelectionRewriteService
+
+    headers, project_id, _events = _generate(client)
+    _workspace, title = _first_section(client, headers, project_id)
+    client.app.state.workflow.demo.resolve_model_provider = lambda *_a, **_k: RewriteModel()
+    monkeypatch.setattr(SelectionRewriteService, "_policy", staticmethod(lambda *_a: {"enabled": False}))
+    denied = client.post(f"/api/v1/projects/{project_id}/technical-sections/rewrite",
+                         json={"section": title, "instruction": "改"}, headers=headers)
+    assert denied.status_code == 403, denied.text

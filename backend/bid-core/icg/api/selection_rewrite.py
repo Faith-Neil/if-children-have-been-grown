@@ -323,7 +323,7 @@ def include_selection_rewrite_routes(application, service: DemoService, current_
         return session_detail(service, user, project_id, session_id)
 
     from icg.domain.technical_assistant import TechnicalSectionAssistant
-    section_assistant = TechnicalSectionAssistant(service)
+    section_assistant = TechnicalSectionAssistant(service, rewrite)
 
     @project_router.post("/technical-sections/rewrite", response_model=TechnicalSectionCandidate,
                          operation_id="rewriteTechnicalSection", summary="写作助手：按节生成修改候选（不写入）",

@@ -95,8 +95,9 @@ def _sources(chunks: list[dict]) -> list[dict]:
 
 
 class TechnicalSectionAssistant:
-    def __init__(self, demo: Any) -> None:
+    def __init__(self, demo: Any, rewrite: Any = None) -> None:
         self.demo = demo
+        self.rewrite = rewrite
 
     def rewrite(self, principal: Any, project_id: str, payload: dict) -> dict:
         from icg.domain.input_snapshot import project_input_fingerprint
@@ -110,6 +111,8 @@ class TechnicalSectionAssistant:
             raise DomainError(422, "VALIDATION_ERROR", "请选择小节并填写修改要求。")
         state = self.demo.repository.read()
         project = self.demo._project(state, principal, project_id)
+        if self.rewrite is not None and not self.rewrite._policy(state, project.company_id)["enabled"]:
+            raise DomainError(403, "FORBIDDEN", "本公司已关闭对话助手。")
         workflow = state.workflows.get(project_id) or {}
         outline = workflow.get("technical_outline") or {}
         chapter = state.chapters.get(outline.get("chapter_id") or "")
