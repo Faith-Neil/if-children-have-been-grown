@@ -146,7 +146,7 @@ def leads_any_project(state, user) -> bool:
         return False
     if normalize_role(user.role) == ROLE_COMPANY_ADMIN:
         return True
-    return any(project.company_id == user.company_id
+    return any(project.company_id == user.company_id and not getattr(project, "is_deleted", False)
                and member(state, project_id, user.id) and member(state, project_id, user.id).get("project_role") == "lead"
                for project_id, project in state.projects.items())
 
