@@ -292,15 +292,17 @@ def body_hash(body: str) -> str:
 
 
 def confirm_text(content: str, outline: dict, heading: dict) -> str | None:
-    """确认指纹用的本节全文：从本节标题到下一个目录标题为止（数字开头的正文行也算在内）。找不到标题返回 None。"""
-    markers = {f"{item.get('number')} {item.get('title')}" for item in outline.get("headings") or []}
+    """确认指纹用的本节全文：从本节标题到下一个目录编号开头的行为止（标题改名也认，其余数字开头的正文行算在内），
+    不含自动加的「需要核对」。找不到标题返回 None。"""
+    numbers = {str(item.get("number")) for item in outline.get("headings") or [] if item.get("number")}
     lines = (content or "").splitlines()
     marker = f"{heading.get('number')} {heading.get('title')}"
     start = next((i + 1 for i, line in enumerate(lines) if line.strip() == marker), None)
     if start is None:
         return None
-    end = next((i for i in range(start, len(lines)) if lines[i].strip() in markers), len(lines))
-    return "\n".join(lines[start:end]).strip()
+    end = next((i for i in range(start, len(lines))
+                if (lines[i].strip().split(maxsplit=1) or [""])[0] in numbers), len(lines))
+    return "\n".join(line for line in lines[start:end] if line.strip() != "需要核对").strip()
 
 
 def effective_task(task: dict, heading: dict, content: str | None, outline: dict | None = None) -> dict:
