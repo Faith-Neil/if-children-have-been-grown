@@ -70,13 +70,26 @@ def splice_section(content: str, number: str, title: str, body: str) -> str:
     return "\n".join(merged).rstrip("\n") + "\n"
 
 
-def precheck(workflow: dict, context: dict, body: str) -> dict[str, Any]:
-    """候选写入前跑废标约束检查。"""
+def precheck(workflow: dict, context: dict, body: str, content: str = "") -> dict[str, Any]:
+    """候选写入前跑废标约束检查：全部小节一起检查（本节换成候选），挂在别处的硬约束也算。"""
     from icg.domain.technical_constraint_check import evaluate_volume
+    from icg.domain.technical_volume import _clauses, _leaf_key, _leaves, section_body
 
-    title = context["heading"].get("title") or ""
-    result = evaluate_volume(workflow, [{"key": "candidate", "title": title, "body": body, "rows": context["rows"]}])
-    view = (result.get("sections") or {}).get("candidate") or {}
+    rows = {row.get("id"): row for row in _clauses(workflow)}
+    tasks = workflow.get("response_tasks") or {}
+    target = _leaf_key(context["heading"])
+    sections = []
+    for item in _leaves(workflow.get("technical_outline") or {}):
+        key = _leaf_key(item)
+        task = tasks.get(item.get("task_id") or "")
+        ids = list((task or {}).get("requirement_ids") or item.get("requirement_ids") or [])
+        if not ids and item.get("requirement_id"):
+            ids = [item["requirement_id"]]
+        text = body if key == target else section_body(content, item.get("number") or "", item.get("title") or "")
+        sections.append({"key": key, "title": item.get("title") or "", "body": text,
+                         "task": task if isinstance(task, dict) else None, "rows": [rows[i] for i in ids if i in rows]})
+    result = evaluate_volume(workflow, sections)
+    view = (result.get("sections") or {}).get(target) or {}
     return {
         "status": view.get("status") or "passed",
         "missing": [item.get("text") or "" for item in view.get("missing") or []],
@@ -167,5 +180,5 @@ class TechnicalSectionAssistant:
             "source_scope": "section",
             "rag": rag_summary(audit),
             "sources": _sources(chunks),
-            "precheck": precheck(workflow, context, body),
+            "precheck": precheck(workflow, context, body, latest.content or ""),
         }
