@@ -111,11 +111,17 @@ def _commitments(text: str) -> set[str]:
 def number_check(context: dict, body: str, original: str, content: str, chunks: list[dict], facts: list[dict]) -> dict[str, Any]:
     """候选写入前查数字：本节需求的偏离与数字口径沿用写入后的同一条规则（technical_volume.inconsistent）；
     候选里带单位的承诺数字须在本节原文、本章其他正文、需求与评分、挂载要点、已确认事实或检索片段里出现过。"""
-    from icg.domain.technical_volume import inconsistent
+    from icg.domain.technical_volume import LABEL, inconsistent
 
-    # 只报改写新引入的不一致：原文已不一致（如按提示不写偏离标签）时不算候选的问题
+    def wrong_label(text: str, row: dict) -> bool:
+        label = LABEL.get(row.get("response_type") or "")
+        head = (text or "").split("服务目标", 1)[0]
+        return bool(label) and any(name in head and name != label for name in ("无偏离", "正偏离", "负偏离"))
+
+    # 只报改写新引入的不一致：原文已不一致（如按提示不写偏离标签）时不算候选的问题；写错偏离标签总要报
     mismatched = [str(row.get("id") or "") for row in context.get("rows") or []
-                  if inconsistent(body, row) and not inconsistent(original, row)]
+                  if (inconsistent(body, row) and not inconsistent(original, row))
+                  or (wrong_label(body, row) and not wrong_label(original, row))]
     pool = " ".join([
         original or "", content or "",
         *[f"{row.get('text') or ''} {row.get('response') or ''}" for row in context.get("rows") or []],

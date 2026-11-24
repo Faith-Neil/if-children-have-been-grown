@@ -117,10 +117,12 @@ def test_candidate_numbers_checked_before_apply():
 
 def test_label_free_rewrite_is_not_flagged_when_original_is_label_free_too():
     from icg.domain.technical_assistant import number_check
-    row = {"id": "R-1", "response_type": "no_deviation", "text": "2 小时到场"}
+    row = {"id": "R-1", "response_type": "comply", "text": "2 小时到场"}
     original = "接到报修后 2 小时到场。"
     result = number_check({"rows": [row]}, "接到报修后 2 小时内到场处理。", original, "", [], [])
     assert result["mismatched_requirements"] == []
+    wrong = number_check({"rows": [row]}, "负偏离。接到报修后 2 小时内到场处理。", original, "", [], [])
+    assert wrong["mismatched_requirements"] == ["R-1"]
 
 
 def test_rewrite_candidate_carries_number_check(client):
