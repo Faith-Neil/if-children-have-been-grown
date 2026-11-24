@@ -91,3 +91,20 @@ def test_readonly_project_member_cannot_confirm(client):
         "section": workspace["coverage_rows"][0]["outline_title"]}, headers={
         **reader, "If-Match": str(workspace["revision"]), "Idempotency-Key": str(uuid4())})
     assert retry.status_code == 403, retry.text
+
+
+def test_writer_without_chapter_edit_cannot_confirm(client):
+    headers, project_id, _events = _generate(client)
+    workspace = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers).json()
+    team = client.put(f"/api/v1/projects/{project_id}/team", headers={
+        **headers, "If-Match": str(workspace["revision"]), "Idempotency-Key": str(uuid4())}, json={
+        "members": [{"user_id": "alpha-manager", "project_role": "lead", "volumes": ["technical"]},
+                    {"user_id": "alpha-editor", "project_role": "writer", "volumes": []}],
+        "volumes": [{"volume": "technical", "owner_id": "alpha-manager"}], "assembly_owner_id": "alpha-manager"})
+    assert team.status_code == 200, team.text
+    writer = login(client, "alpha-editor")
+    workspace = client.get(f"/api/v1/projects/{project_id}/workspace", headers=writer).json()
+    task_id = workspace["coverage_rows"][0]["task_id"]
+    denied = client.post(f"/api/v1/projects/{project_id}/technical-tasks/{task_id}/confirm", json={}, headers={
+        **writer, "If-Match": str(workspace["revision"]), "Idempotency-Key": str(uuid4())})
+    assert denied.status_code == 403, denied.text

@@ -561,8 +561,12 @@ class GenerationOrchestratorMixin:
 
     def confirm_technical_task(self, principal: Principal, project_id: str, task_id: str, payload: dict,
                                expected: str | None, key: str | None) -> dict:
-        """人工确认一节。只认已生成的节；项目只读成员在 _authorize 被拒。"""
+        """人工确认一节。只认已生成的节；项目只读成员在 _authorize 被拒，没有本章编辑权的成员在这里被拒。"""
         def operation(state, project, workflow):
+            chapter = state.chapters.get((workflow.get("technical_outline") or {}).get("chapter_id") or "")
+            if chapter is None:
+                raise DomainError(404, "NOT_FOUND", "没有服务方案这一章。")
+            require_chapter(state, principal, chapter)
             task = (workflow.get("response_tasks") or {}).get(task_id)
             if task is None:
                 raise DomainError(404, "NOT_FOUND", "没有这一节。")
