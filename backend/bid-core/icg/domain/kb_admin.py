@@ -436,10 +436,15 @@ class KbAdminService:
     def upload(self, principal: Principal, kind: str, payload: dict[str, Any]) -> dict[str, Any]:
         """上传原件到历史投标或证书数据集，并按 ICG 流程解析。"""
         self._kind(kind, files_only=True)
-        if kind in ("history", "materials"):
+        if kind == "history":
+            # 历史标书可由公司管理员或任一项目负责人追加；权威资料只由公司管理员维护。
             from .project_access import leads_any_project
             if not leads_any_project(self.repository.read(), principal.user):
-                raise DomainError(403, "FORBIDDEN", "当前账号无权上传历史标书。" if kind == "history" else "当前账号无权上传权威资料。")
+                raise DomainError(403, "FORBIDDEN", "当前账号无权上传历史标书。")
+            create_dataset = False
+        elif kind == "materials":
+            if not (_is_super(principal) or _role(principal) in WRITE_ROLES):
+                raise DomainError(403, "FORBIDDEN", "当前账号无权上传权威资料。")
             # 上传只追加到已有数据集，不在这里新建。
             create_dataset = False
         else:
