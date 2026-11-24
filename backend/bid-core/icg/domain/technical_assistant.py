@@ -108,6 +108,9 @@ def _commitments(text: str) -> set[str]:
     return {f"{number}{unit.replace('％', '%')}{'/' + per if per else ''}" for number, unit, per in COMMITMENT.findall(text or "")}
 
 
+NEGATED_LABEL = re.compile(r"(?:不|未|没有|无)(?:会|产生|出现|存在|发生|构成)?(?:正偏离|负偏离)")
+
+
 def number_check(context: dict, body: str, original: str, content: str, chunks: list[dict], facts: list[dict]) -> dict[str, Any]:
     """候选写入前查数字：本节需求的偏离与数字口径沿用写入后的同一条规则（technical_volume.inconsistent）；
     候选里带单位的承诺数字须在本节原文、本章其他正文、需求与评分、挂载要点、已确认事实或检索片段里出现过。"""
@@ -115,7 +118,7 @@ def number_check(context: dict, body: str, original: str, content: str, chunks: 
 
     def wrong_label(text: str, row: dict) -> bool:
         label = LABEL.get(row.get("response_type") or "")
-        head = (text or "").split("服务目标", 1)[0]
+        head = NEGATED_LABEL.sub("", (text or "").split("服务目标", 1)[0])
         return bool(label) and any(name in head and name != label for name in ("无偏离", "正偏离", "负偏离"))
 
     # 只报改写新引入的不一致：原文已不一致（如按提示不写偏离标签）时不算候选的问题；写错偏离标签总要报

@@ -123,6 +123,8 @@ def test_label_free_rewrite_is_not_flagged_when_original_is_label_free_too():
     assert result["mismatched_requirements"] == []
     wrong = number_check({"rows": [row]}, "负偏离。接到报修后 2 小时内到场处理。", original, "", [], [])
     assert wrong["mismatched_requirements"] == ["R-1"]
+    negated = number_check({"rows": [row]}, "接到报修后 2 小时内到场处理，不产生负偏离。", original, "", [], [])
+    assert negated["mismatched_requirements"] == []
 
 
 def test_rewrite_candidate_carries_number_check(client):
