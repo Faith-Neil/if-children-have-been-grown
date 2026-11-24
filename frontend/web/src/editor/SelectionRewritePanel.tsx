@@ -165,7 +165,7 @@ export function SelectionRewritePanel({ projectId, chapter, content, selection, 
       {history && history.messages.length > 0 && <SessionHistory detail={history} />}
       {chapter && (
         <AssistantAskBox projectId={projectId} chapterId={chapter.id} token={token} knowledgeBase={knowledgeBase}
-          sessionId={sessionId === NEW_SESSION ? null : sessionId} disabled={disabled || !policy?.enabled}
+          sessionId={sessionsForSection(sessions, askSection).some(item => item.id === sessionId) ? sessionId : null} disabled={disabled || !policy?.enabled}
           hideComposer externalDraft={askDraft} submitNonce={askNonce} section={askSection}
           onAnswered={id => { void loadSessions(id ?? undefined); }} />
       )}
