@@ -27,8 +27,9 @@ def login(client, identity="alpha-manager"):
 
 
 @pytest.mark.parametrize("identity,role,routes,actions", [
+    # alpha-manager 是 alpha-project 负责人，可维护公司服务承诺模板
     ("alpha-manager", "member", {"workbench", "library", "knowledge", "writing", "jobs", "notifications"},
-     {"projects.read", "projects.create", "library.read", "library.write", "sla_templates.read", "jobs.read"}),
+     {"projects.read", "projects.create", "library.read", "library.write", "sla_templates.read", "sla_templates.write", "jobs.read"}),
     ("alpha-editor", "member", {"workbench", "library", "knowledge", "writing", "jobs", "notifications"},
      {"projects.read", "projects.create", "library.read", "library.write", "sla_templates.read", "jobs.read"}),
     ("alpha-viewer", "member", {"workbench", "library", "knowledge", "writing", "jobs", "notifications"},
@@ -251,7 +252,7 @@ def test_product_paths_serve_the_shell_and_unknown_api_stays_json(setup):
 
 
 @pytest.mark.parametrize("identity,role,writable", [
-    ("alpha-company-admin", "company_admin", True), ("alpha-data-admin", "member", True),
+    ("alpha-company-admin", "company_admin", True), ("alpha-data-admin", "company_admin", True),
     ("alpha-auditor", "member", True),
 ])
 def test_legacy_accounts_get_three_role_sessions(setup, identity, role, writable):

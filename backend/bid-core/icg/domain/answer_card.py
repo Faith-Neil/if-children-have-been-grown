@@ -920,7 +920,8 @@ class AnswerCardService:
         team = state.project_teams.get(project_id, {})
         members = team.get("members", {})
         user_member = members.get(principal.user.id)
-        if user_member and user_member.get("project_role") == "viewer":
+        from .project_access import readonly_member
+        if readonly_member(user_member):
             raise DomainError(403, "FORBIDDEN", "项目只读成员不可使用智能助手提问。")
 
         # 门禁 3：敏感项目模型隔离强校验

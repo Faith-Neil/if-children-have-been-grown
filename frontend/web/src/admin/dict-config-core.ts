@@ -69,14 +69,9 @@ export function checkDictPermission(role?: string | null): DictPermissionResult 
   const isCompanyAdmin = normRole === 'company_admin';
   const canEdit = isPlatformAdmin || isCompanyAdmin;
 
-  let roleLabel = '只读人员';
+  let roleLabel = '普通用户 (只读)';
   if (isPlatformAdmin) roleLabel = '平台管理员';
   else if (isCompanyAdmin) roleLabel = '公司管理员';
-  else if (normRole === 'group_admin') roleLabel = '集团管理员 (只读)';
-  else if (normRole === 'project_lead') roleLabel = '项目负责人 (只读)';
-  else if (normRole === 'bid_writer') roleLabel = '标书编写人 (只读)';
-  else if (normRole === 'auditor') roleLabel = '合规审计员 (只读)';
-  else if (normRole === 'data_admin') roleLabel = '数据管理员 (只读)';
 
   const noticeText = canEdit
     ? '您具备字典参数管理权限。注意：已在生产业务中使用的状态代码只能停用，不可直接删除。'

@@ -143,7 +143,7 @@ export interface VolumeListResponse {
 export type AuthMode = 'authenticated';
 export type RoleMode = 'rbac-3roles';
 export type AccountRole = SystemRole | 'editor' | 'manager' | 'viewer' | 'readonly' | 'reviewer' | 'writer' | 'lead';
-export type Account = { id: string; name: string; company_id: string; role: AccountRole };
+export type Account = { id: string; name: string; company_id: string; role: AccountRole; leads_project?: boolean };
 // 支持合成演示模式与正式八角色会话；导航与动作采用后台返回值。
 export type ApplicationSession = {
   auth_mode: AuthMode; role_mode: RoleMode;

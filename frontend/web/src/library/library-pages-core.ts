@@ -7,7 +7,7 @@
 // 5. 附件槽位防篡改 SHA256 指纹与安全防线验证。
 
 import type { Evidence, EvidenceAttachment } from '../shared/types.ts';
-import { normalizeSystemRole, READONLY_SYSTEM_ROLES, type SystemRole } from '../shell/route-guard.ts';
+import { normalizeSystemRole } from '../shell/route-guard.ts';
 export { maskSensitiveValue, DEFAULT_MASK_RULES } from '../admin/sensitive-mask.ts';
 
 export type LibraryCategoryKey =
@@ -266,36 +266,22 @@ export function filterEvidenceList(
 }
 
 /**
- * 纯函数：PRD §2.3 八角色企业资料库管理权限判定
+ * 纯函数：企业资料库维护只给本公司管理员（资料按公司版本号写入）。
  */
 export function canManageLibrary(userRole: string | undefined | null): boolean {
   if (!userRole) return false;
-  const clean = userRole.trim().toLowerCase();
-  if (['admin', 'company_admin', 'data_admin', 'project_lead', 'bidding_manager', 'legal_reviewer', 'quality_auditor', 'hr_specialist'].includes(clean)) {
-    return true;
-  }
+  if (userRole.trim().toLowerCase() === 'admin') return true;
   const normalized = normalizeSystemRole(userRole);
-  if (!normalized) return false;
-  // 只读成员、外部审核人员以及普通观察员阻断写操作
-  if (READONLY_SYSTEM_ROLES.has(normalized as SystemRole)) {
-    return false;
-  }
-  // 公司管理员与资料管理员具备全量维护权限
   return normalized === 'company_admin';
 }
 
 /**
- * 纯函数：PRD §2.3 / §5.4.5 高敏个人身份信息（身份证、银行卡）完整值调阅权限白名单
- * 仅限公司管理员（company_admin）与资料管理员（data_admin）及审计法务合规白名单
+ * 纯函数：高敏个人身份信息（身份证、银行卡）完整值只给公司管理员调阅（与后端受限资料判断一致）。
  */
 export function canRevealSensitiveField(userRole: string | undefined | null): boolean {
   if (!userRole) return false;
-  const clean = userRole.trim().toLowerCase();
-  if (['admin', 'company_admin', 'data_admin', 'legal_reviewer', 'hr_specialist', 'auditor'].includes(clean)) {
-    return true;
-  }
-  const normalized = normalizeSystemRole(userRole);
-  return normalized === 'company_admin';
+  if (userRole.trim().toLowerCase() === 'admin') return true;
+  return normalizeSystemRole(userRole) === 'company_admin';
 }
 
 export interface AttachmentSecurityCheck {

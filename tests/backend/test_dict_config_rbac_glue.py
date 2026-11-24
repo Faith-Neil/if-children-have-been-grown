@@ -186,7 +186,6 @@ def test_role_rbac_write_forbidden_403(client: TestClient):
         ("alpha-viewer", "viewer"),
         ("alpha-auditor", "auditor"),
         ("alpha-group-admin", "group_admin"),
-        ("alpha-data-admin", "data_admin"),
     ]
 
     for acc_id, role_name in non_admin_accounts:

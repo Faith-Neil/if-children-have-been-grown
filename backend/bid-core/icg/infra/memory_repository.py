@@ -35,18 +35,18 @@ def seed_state() -> DemoState:
     state.accounts[admin.id] = admin
 
     for user in (
-        Account("alpha-editor", "甲公司编写人（合成）", "alpha", "editor", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司编写人（合成）"),
-        Account("alpha-manager", "甲公司项目经理（合成）", "alpha", "manager", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司项目经理（合成）"),
-        Account("alpha-viewer", "甲公司查看人（合成）", "alpha", "viewer", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司查看人（合成）"),
-        Account("beta-editor", "乙公司编写人（合成）", "beta", "editor", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="乙公司编写人（合成）"),
-        Account("alpha-tech", "甲公司技术编写人（合成）", "alpha", "editor", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司技术编写人（合成）"),
-        Account("alpha-business", "甲公司商务编写人（合成）", "alpha", "editor", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司商务编写人（合成）"),
-        Account("alpha-outsider-manager", "甲公司其他项目经理（合成）", "alpha", "manager", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司其他项目经理（合成）"),
-        Account("beta-manager", "乙公司项目经理（合成）", "beta", "manager", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="乙公司项目经理（合成）"),
+        Account("alpha-editor", "甲公司编写人（合成）", "alpha", "member", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司编写人（合成）"),
+        Account("alpha-manager", "甲公司项目经理（合成）", "alpha", "member", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司项目经理（合成）"),
+        Account("alpha-viewer", "甲公司用户·本项目只读（合成）", "alpha", "member", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司用户·本项目只读（合成）"),
+        Account("beta-editor", "乙公司编写人（合成）", "beta", "member", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="乙公司编写人（合成）"),
+        Account("alpha-tech", "甲公司技术编写人（合成）", "alpha", "member", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司技术编写人（合成）"),
+        Account("alpha-business", "甲公司商务编写人（合成）", "alpha", "member", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司商务编写人（合成）"),
+        Account("alpha-outsider-manager", "甲公司其他项目经理（合成）", "alpha", "member", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司其他项目经理（合成）"),
+        Account("beta-manager", "乙公司项目经理（合成）", "beta", "member", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="乙公司项目经理（合成）"),
         Account("alpha-company-admin", "甲公司管理员（合成）", "alpha", "company_admin", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司管理员（合成）"),
-        Account("alpha-data-admin", "甲公司资料管理员（合成）", "alpha", "data_admin", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司资料管理员（合成）"),
-        Account("alpha-auditor", "甲公司审核人（合成）", "alpha", "auditor", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司审核人（合成）"),
-        Account("alpha-group-admin", "集团管理员（合成）", "group", "group_admin", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="集团管理员（合成）"),
+        Account("alpha-data-admin", "甲公司第二管理员（合成）", "alpha", "company_admin", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司第二管理员（合成）"),
+        Account("alpha-auditor", "甲公司用户·未进项目（合成）", "alpha", "member", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="甲公司用户·未进项目（合成）"),
+        Account("alpha-group-admin", "集团公司用户（合成）", "group", "member", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="集团公司用户（合成）"),
         Account("platform-admin", "平台运维管理员（合成）", "system", "platform_admin", _DEMO_ONLY=True, password_hash=default_hash, salt=default_salt, display_name="平台运维管理员（合成）"),
     ):
         state.accounts[user.id] = user

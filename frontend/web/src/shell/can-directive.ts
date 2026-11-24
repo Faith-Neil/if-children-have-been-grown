@@ -153,7 +153,7 @@ export function can(
     context?.role ??
     context?.session?.user?.primary_role ??
     context?.session?.user?.role ??
-    'viewer';
+    'member';
   const normRole = normalizeSystemRole(rawRole);
   const roleLabel = getSystemRoleLabel(normRole);
   const userId = context?.userId ?? context?.session?.user?.id ?? '';

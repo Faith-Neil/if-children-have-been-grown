@@ -109,8 +109,9 @@ export function kbPermissions(role?: string | null) {
   };
 }
 
-export function canUploadHistory(role?: string | null) {
-  return kbPermissions(role).write;
+/** 历史标书：公司管理员或任一项目负责人可追加；资料库只给公司管理员。 */
+export function canUploadHistory(role?: string | null, leadsProject = false, kind: KbKind = 'history') {
+  return kbPermissions(role).write || (kind === 'history' && leadsProject);
 }
 
 export const kbApi = {

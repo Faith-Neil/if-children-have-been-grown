@@ -44,7 +44,7 @@ def create_template(client, actor, *, with_second=False):
 
 
 def test_stale_30_minute_form_is_rejected_and_explicit_review_preserves_90_minutes(client):
-    first, second = login(client, "alpha-manager"), login(client, "alpha-outsider-manager")
+    first, second = login(client, "alpha-manager"), login(client, "alpha-company-admin")
     created, old_form = create_template(client, first)
     path = TEMPLATE_PATH + "/" + created["id"]
 
@@ -92,7 +92,7 @@ def test_stale_30_minute_form_is_rejected_and_explicit_review_preserves_90_minut
 
 @pytest.mark.parametrize("change", ["values", "added_variable", "removed_variable"])
 def test_old_complete_variable_array_cannot_overwrite_new_values_additions_or_removals(client, change):
-    first, second = login(client, "alpha-manager"), login(client, "alpha-outsider-manager")
+    first, second = login(client, "alpha-manager"), login(client, "alpha-company-admin")
     created, old_form = create_template(client, first, with_second=True)
     path = TEMPLATE_PATH + "/" + created["id"]
     old_listing = read_templates(client, first)

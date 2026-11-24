@@ -253,7 +253,8 @@ class LibraryOrchestratorMixin:
 
     @staticmethod
     def _restricted_allowed(state: Any, principal: Principal, evidence: dict) -> bool:
-        if principal.user.role in ("company_admin", "data_admin"):
+        from .project_access import ROLE_COMPANY_ADMIN, normalize_role
+        if normalize_role(principal.user.role) == ROLE_COMPANY_ADMIN:
             return True
         company_id = principal.user.company_id
         return any(

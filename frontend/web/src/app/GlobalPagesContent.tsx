@@ -231,7 +231,7 @@ export function GlobalPagesContent({
           )}
 
           {nav === 'knowledge' && (
-            <KnowledgeBaseAdminPage historyOnly token={token} role={currentUser?.role} report={report} />
+            <KnowledgeBaseAdminPage historyOnly token={token} role={currentUser?.role} leadsProject={currentUser?.leads_project} report={report} />
           )}
 
           {nav === 'writing' && (

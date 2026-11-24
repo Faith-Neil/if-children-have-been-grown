@@ -51,7 +51,7 @@ def _company_of(state: DemoState, user_id: str) -> str | None:
     account = state.accounts.get(user_id)
     if account is None:
         return None
-    if normalize_role(account.role) in ("group_admin", "platform_admin") or account.company_id in ("system", "group"):
+    if normalize_role(account.role) == "platform_admin" or account.company_id in ("system", "group"):
         return None
     return account.company_id
 
@@ -123,7 +123,7 @@ def sweep_library_expiry(state: DemoState, company_id: str, now_ts: float) -> No
         return
     store["sweeps"][company_id] = key
     admins = [a.id for a in state.accounts.values() if a.company_id == company_id
-              and normalize_role(a.role) in ("company_admin", "data_admin")]
+              and normalize_role(a.role) == "company_admin"]
     now = iso_time(now_ts)
     for item in state.library.values():
         if item.get("company_id") != company_id or item.get("status") != "confirmed" or item.get("is_long_term"):

@@ -14,6 +14,7 @@ import re
 import threading
 from typing import Any
 
+from .project_access import readonly_member
 from .domain import DemoState, DomainError, Principal, iso_time, new_id
 
 MAX_QUESTION = 1000
@@ -98,7 +99,7 @@ class AssistantQAService:
             raise DomainError(404, "NOT_FOUND", "未找到有权访问的章节。")
         project = self.demo._project(state, principal, project_id)
         team = (state.project_teams.get(project_id) or {}).get("members", {})
-        if (team.get(principal.user.id) or {}).get("project_role") in ("viewer", "readonly"):
+        if readonly_member(team.get(principal.user.id)):
             raise DomainError(403, "FORBIDDEN", "项目只读成员不能使用对话助手提问。")
         policy = self.rewrite._policy(state, project.company_id)
         if not policy["enabled"]:

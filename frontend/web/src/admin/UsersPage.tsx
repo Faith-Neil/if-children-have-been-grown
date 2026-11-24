@@ -491,11 +491,7 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
         const colorMap: Record<string, string> = {
           platform_admin: 'magenta',
           company_admin: 'geekblue',
-          project_lead: 'blue',
-          bid_writer: 'cyan',
-          auditor: 'green',
-          data_admin: 'gold',
-          viewer: 'default',
+          member: 'blue',
         };
         return <Tag color={colorMap[role] || 'blue'}>{label}</Tag>;
       },

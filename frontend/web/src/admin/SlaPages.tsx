@@ -5,6 +5,7 @@ import { Alert, App as AntApp, Button, Card, Col, Descriptions, Empty, Form, Inp
 import { DownloadOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { download } from '../shared/api';
 import { projectCan } from '../project/project-team';
+import { normalizeSystemRole } from '../shell/route-guard';
 import { SlaPropagationPanel } from './SlaPropagationPanel';
 import { formatTime, useProject } from '../app/context';
 import { displaySlaValue, slaScalar, slaVariablePayload, slaUnits, slaGroups } from './sla-form';
@@ -20,6 +21,12 @@ const blankVariable = (): SlaVariable => ({ var_key: '', label: '', group: 'resp
 const judgmentColors: Record<SlaRow['judgment'], string> = { satisfied: 'green', not_satisfied: 'red', exceeds_capability: 'orange', missing: 'default', manual: 'purple', not_required: 'blue', unquantified: 'gold' };
 const factLabel = (status: string) => status === 'confirmed' ? '已逐项确认' : status === 'needs_review' ? '需重新核对' : '尚未确认';
 
+// 公司模板：公司管理员或本公司任一项目负责人可维护（与后端一致）。
+function canWriteTemplates(user: Account) {
+  const role = normalizeSystemRole(user.role);
+  return role === 'company_admin' || role === 'platform_admin' || !!user.leads_project;
+}
+
 type TemplateProps = { items: SlaTemplate[]; revision: number; read: TemplateReader; globalSearch?: string; user: Account; busy: boolean; mutate: LibraryMutation; report: (error: unknown) => void };
 
 export function SlaTemplatesPage({ items, revision, read, globalSearch = '', user, busy, mutate, report }: TemplateProps) {
@@ -29,12 +36,12 @@ export function SlaTemplatesPage({ items, revision, read, globalSearch = '', use
   const [reviewBasis, setReviewBasis] = useState<TemplateReviewBasis | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const [form] = Form.useForm();
-  const canWrite = user.role === 'manager';
+  const canWrite = canWriteTemplates(user);
   const editorSession = useRef(0);
   const latest = useRef({ company_id: user.company_id, revision, items, user, busy: busy || reviewing });
   latest.current = { company_id: user.company_id, revision, items, user, busy: busy || reviewing };
   const reviewProblem = open ? templateReviewProblem(reviewBasis, latest.current) : null;
-  const canSave = () => latest.current.user.role === 'manager' && !latest.current.busy;
+  const canSave = () => canWriteTemplates(latest.current.user) && !latest.current.busy;
   function loadForm(item: SlaTemplate | null) {
     form.resetFields();
     form.setFieldsValue(item ? { ...copyTemplate(item), reason: '' } : { name: '', version_no: '1.0', edition: 'standard', service_hours: 'h5x8', status: 'pending', body_text: '', reason: '', variables: [blankVariable()] });

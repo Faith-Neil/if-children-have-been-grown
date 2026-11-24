@@ -100,12 +100,12 @@ test('2. 降级项目负责人时的进行中项目强预警提示', () => {
   assert.match(demoteZhang.warning, /该用户当前担任 2 个项目的总负责人/);
   assert.match(demoteZhang.warning, /建议及时进行团队调整或资产交接/);
 
-  // 王雪 (auditor) 0 项项目，变更为 viewer 时不应有项目预警
+  // 王雪（普通用户）0 项项目，升为公司管理员时不应有项目预警
   const wang = INITIAL_USERS.find(u => u.username === 'auditor_wang');
   assert.ok(wang);
   const changeWang = validateRoleAssignment({
     sourceUser: wang,
-    newRole: 'member',
+    newRole: 'company_admin',
     operatorRole: 'platform_admin',
   });
   assert.equal(changeWang.valid, true);

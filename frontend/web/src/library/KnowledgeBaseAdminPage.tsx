@@ -20,11 +20,12 @@ type Row = Record<string, any>;
 export interface KnowledgeBaseAdminPageProps {
   token: string | null;
   role?: string | null;
+  leadsProject?: boolean;
   report?: (error: unknown) => void;
   historyOnly?: boolean;
 }
 
-export function KnowledgeBaseAdminPage({ token, role, report, historyOnly = false }: KnowledgeBaseAdminPageProps) {
+export function KnowledgeBaseAdminPage({ token, role, leadsProject = false, report, historyOnly = false }: KnowledgeBaseAdminPageProps) {
   const perms = kbPermissions(role);
   const [overview, setOverview] = useState<Row | null>(null);
   const [notice, setNotice] = useState('');
@@ -53,12 +54,12 @@ export function KnowledgeBaseAdminPage({ token, role, report, historyOnly = fals
       )}
       {notice && <Alert type="success" showIcon closable style={{ marginBottom: 12 }} message={notice} onClose={() => setNotice('')} />}
       <Tabs items={historyOnly ? [
-        { key: 'history', label: '历史标书', children: <DatasetsTab {...{ call, perms, token, report, setNotice, role }} lockKind="history" /> },
-        { key: 'materials', label: '资料库', children: <DatasetsTab {...{ call, perms, token, report, setNotice, role }} lockKind="materials" /> },
+        { key: 'history', label: '历史标书', children: <DatasetsTab {...{ call, perms, token, report, setNotice, role, leadsProject }} lockKind="history" /> },
+        { key: 'materials', label: '资料库', children: <DatasetsTab {...{ call, perms, token, report, setNotice, role, leadsProject }} lockKind="materials" /> },
         ...(perms.connection ? [{ key: 'settings', label: '数据集配置', children: <SettingsTab {...{ call, perms, overview, reload: loadOverview, setNotice }} /> }] : []),
       ] : [
         { key: 'settings', label: '设置与摄入流程', children: <SettingsTab {...{ call, perms, overview, reload: loadOverview, setNotice }} /> },
-        { key: 'datasets', label: '数据集与文档', children: <DatasetsTab {...{ call, perms, token, report, setNotice, role }} /> },
+        { key: 'datasets', label: '数据集与文档', children: <DatasetsTab {...{ call, perms, token, report, setNotice, role, leadsProject }} /> },
         { key: 'retrieval', label: '检索试查', children: <RetrievalTab call={call} /> },
         { key: 'audit', label: '操作审计', children: <AuditTab call={call} /> },
       ]} />
@@ -141,9 +142,9 @@ function SettingsTab({ call, perms, overview, reload, setNotice }: {
   );
 }
 
-function DatasetsTab({ call, perms, token, report, setNotice, role, lockKind }: {
+function DatasetsTab({ call, perms, token, report, setNotice, role, leadsProject = false, lockKind }: {
   call: Call; perms: ReturnType<typeof kbPermissions>; token: string | null; report?: (e: unknown) => void; setNotice: (s: string) => void;
-  role?: string | null; lockKind?: KbKind;
+  role?: string | null; leadsProject?: boolean; lockKind?: KbKind;
 }) {
   const [kind, setKind] = useState<KbKind>(lockKind ?? 'history');
   const [datasets, setDatasets] = useState<Row[]>([]);
@@ -210,8 +211,8 @@ function DatasetsTab({ call, perms, token, report, setNotice, role, lockKind }: 
           <Button type="primary" loading={busy} onClick={() => void action(kbApi.datasetAction('materials', 'ensure'), 'POST', {}, '资料库数据集已建立。')}>建立资料库数据集</Button>
         )}
         <Upload accept={KB_UPLOAD_ACCEPT[kind]} showUploadList={false} beforeUpload={file => upload(file)}
-          disabled={!canUploadHistory(role) || !info?.dataset_id}>
-          <Button icon={<CloudUploadOutlined />} loading={busy} disabled={!canUploadHistory(role) || !info?.dataset_id}>
+          disabled={!canUploadHistory(role, leadsProject, kind) || !info?.dataset_id}>
+          <Button icon={<CloudUploadOutlined />} loading={busy} disabled={!canUploadHistory(role, leadsProject, kind) || !info?.dataset_id}>
             {kind === 'history' ? '上传历史标书' : '上传资料'}
           </Button>
         </Upload>

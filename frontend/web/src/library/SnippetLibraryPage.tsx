@@ -55,6 +55,7 @@ import {
 } from './snippet-library-core.ts';
 import { EmptyState } from '../status/StatusViews.tsx';
 import { request } from '../shared/api.ts';
+import { PROJECT_WRITER_ROLES, normalizeSystemRole } from '../shared/roles.ts';
 import { SnippetEditorDrawer } from './SnippetEditorDrawer.tsx';
 
 const { Text, Paragraph, Title } = Typography;
@@ -127,7 +128,7 @@ export function SnippetLibraryPage({
 
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [editing, setEditing] = useState<SnippetPublication | null | undefined>(undefined); // undefined=关闭，null=新建
-  const canWrite = ['editor', 'manager', 'bid_writer', 'project_lead', 'company_admin', 'data_admin', 'platform_admin'].includes(user?.role ?? '');
+  const canWrite = PROJECT_WRITER_ROLES.has(normalizeSystemRole(user?.role));
   function upsertSnippet(item: SnippetPublication) {
     setSnippets(prev => (prev.some(row => row.id === item.id) ? prev.map(row => (row.id === item.id ? item : row)) : [item, ...prev]));
   }

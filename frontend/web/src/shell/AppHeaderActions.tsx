@@ -10,6 +10,7 @@ import {
   TeamOutlined,
 } from '@ant-design/icons';
 import { companyName } from '../app/context';
+import { getSystemRoleLabel } from '../shared/roles';
 import { sessionAllowsRoute } from '../app/session-navigation';
 import { TaskBadge } from './TaskBadge';
 import { NotificationBell } from '../notifications/NotificationBell';
@@ -58,17 +59,7 @@ export function AppHeaderActions({
   onSessionSettled,
 }: AppHeaderActionsProps) {
   const userPrimaryRole = session?.user?.primary_role;
-  const roleDisplayLabel =
-    {
-      platform_admin: '平台管理员',
-      group_admin: '集团管理员',
-      company_admin: '公司管理员',
-      data_admin: '资料管理员',
-      project_lead: '项目负责人',
-      bid_writer: '投标编写人',
-      auditor: '审核人',
-      viewer: '只读成员',
-    }[userPrimaryRole ?? ''] ?? '成员';
+  const roleDisplayLabel = getSystemRoleLabel(userPrimaryRole);
 
   const items: React.ReactElement[] = [];
   const volumeSession = activeVolumeSession(jobs);
