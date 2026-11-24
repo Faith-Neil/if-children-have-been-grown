@@ -70,5 +70,20 @@ test('stats count responded, generating and failed rows', () => {
     row({ generation_status: 'failed' }),
     row({ is_rejection_criterion: true }),
   ];
-  assert.deepEqual(coverageStats(rows), { total: 4, rejection: 1, responded: 1, generating: 1, failed: 1 });
+  assert.deepEqual(coverageStats(rows), { total: 4, rejection: 1, responded: 1, generating: 1, failed: 1, confirm: 0 });
+});
+
+test('task patches carry RAG summary and failure reason onto rows', async () => {
+  const { ragLabel } = await import('../../src/project/coverage-live.ts');
+  const rag = { status: 'hit', query: '健康检查', history_hits: 2, material_hits: 1 };
+  const patch = parseTaskPatched({ event: 'task.patched', task_id: 't1', generation_status: 'generated', rag, failure_reason: '' });
+  assert.deepEqual(patch.rag, rag);
+  assert.equal(parseTaskPatched({ event: 'task.patched', task_id: 't1', generation_status: 'failed', rag: { status: 'x' } }).rag, undefined);
+  const [patched] = patchRows([row()], mergeTaskPatch({}, patch));
+  assert.equal(patched.rag, rag);
+  assert.equal(patched.retryable, true);
+  assert.equal(ragLabel(rag), '历史 2 · 资料 1');
+  assert.equal(ragLabel({ status: 'failed', query: '', history_hits: 0, material_hits: 0, error: 'ReadTimeout' }), '检索失败（ReadTimeout）');
+  assert.equal(ragLabel(null), '未检索');
+  assert.equal(coverageStats([row({ confirm_reasons: ['知识库无依据'] })]).confirm, 1);
 });

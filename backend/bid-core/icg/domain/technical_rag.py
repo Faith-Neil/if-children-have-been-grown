@@ -160,6 +160,30 @@ def _demote_foreign_history(
     return ranked
 
 
+def rag_summary(audit: dict | None, *, searched_at: str = "") -> dict[str, Any]:
+    """覆盖视图用的单节检索摘要：两库命中数、前 3 条来源、状态与原因。"""
+    audit = audit or {}
+    history = int(audit.get("history_hits") or 0)
+    material = int(audit.get("material_hits") or 0)
+    searched = bool(audit.get("history_searched") or audit.get("material_searched"))
+    error = str(audit.get("skip_reason") or "")
+    if history + material:
+        status = "hit"
+    elif searched:
+        status = "empty"
+    else:
+        status = "skipped" if not error else "failed"
+    return {
+        "status": status, "query": str(audit.get("query") or ""), "history_hits": history,
+        "material_hits": material, "tender_hits": int(audit.get("tender_hits") or 0), "error": error,
+        "top": [
+            {"name": item.get("name"), "dataset_kind": item.get("dataset_kind"), "score": item.get("score")}
+            for item in (audit.get("top") or [])[:3] if isinstance(item, dict)
+        ],
+        "searched_at": searched_at,
+    }
+
+
 def retrieve_for_section(
     kb: Any, company_id: str, query: str, workflow: dict | None = None, *, limit: int = 8,
 ) -> tuple[list[dict], dict]:

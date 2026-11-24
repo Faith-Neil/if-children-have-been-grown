@@ -466,6 +466,23 @@ def _leaf_key(heading: dict) -> str:
     return str(heading.get("task_id") or heading.get("requirement_id") or heading.get("number") or "")
 
 
+def select_section(headings: list[dict], section: str) -> list[dict]:
+    """section 先按节键（任务编号）匹配，同名小节不会被一起重写；匹配不到再按标题。"""
+    by_key = [item for item in headings if _leaf_key(item) == section]
+    return by_key or [item for item in headings if item.get("title") == section]
+
+
+def preamble(content: str, outline: dict) -> str:
+    """第一个目录标题之前的引言；正文里还没有目录标题时返回空串。"""
+    first = next(iter(outline.get("headings") or []), None)
+    if not first:
+        return ""
+    marker = f"{first.get('number')} {first.get('title')}"
+    lines = (content or "").splitlines()
+    index = next((i for i, line in enumerate(lines) if line.strip() == marker), None)
+    return "\n".join(lines[:index]).strip() if index else ""
+
+
 def _assemble(outline: dict, bodies: dict[str, str], reviews: set[str]) -> str:
     lines: list[str] = []
     for heading in outline.get("headings") or []:
@@ -501,10 +518,15 @@ def _apply_one(patch: dict, bodies: dict[str, str], failed: list[str], audits: l
         task.update(patch["task_patch"])
 
 
+def _now_iso() -> str:
+    from datetime import datetime, timezone
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
 def _draft_one(heading: dict, rows: dict, tasks: dict, model: Any, workflow: dict, knowledge_base: Any,
                company_id: str, emit: Callable[[dict], None] | None, cancel: Any) -> dict:
     """写一节。只返回这一节的正文和任务补丁，不改共享的 bodies。"""
-    from icg.domain.technical_rag import knowledge_prompt_block, retrieve_for_section, section_query
+    from icg.domain.technical_rag import knowledge_prompt_block, rag_summary, retrieve_for_section, section_query
     from icg.infra.openai_model import ModelCancelled
 
     key = _leaf_key(heading)
@@ -586,7 +608,10 @@ def _draft_one(heading: dict, rows: dict, tasks: dict, model: Any, workflow: dic
             f"【待确认】「{title}」自动生成失败，请按下列要求人工补写。\n"
             + "\n".join(f"- {row.get('extracted_summary') or row.get('text') or ''}" for row in req_rows[:8])
         )
-        task_patch = {"generation_status": "failed", "response_status": "gap"} if task is not None else None
+        task_patch = {
+            "generation_status": "failed", "response_status": "gap", "rag": rag_summary(rag_audit, searched_at=_now_iso()),
+            "failure_reason": "模型生成失败，可单节重试。",
+        } if task is not None else None
         patch_task(task_patch)
         return {
             "key": key, "title": title, "failed": True, "body": fallback, "audit": rag_audit,
@@ -598,6 +623,8 @@ def _draft_one(heading: dict, rows: dict, tasks: dict, model: Any, workflow: dic
     task_patch = {
         "generation_status": "generated",
         "response_status": "generated" if company_hits else "needs_confirm",
+        "rag": rag_summary(rag_audit, searched_at=_now_iso()), "failure_reason": "",
+        "confirmed_by": None, "confirmed_at": None,
     } if task is not None else None
     patch_task(task_patch)
     return {"key": key, "title": title, "body": body, "audit": rag_audit, "task": task, "task_patch": task_patch}
@@ -619,7 +646,7 @@ def write_volume(state: Any, project_id: str, workflow: dict, section: str | Non
     tasks = workflow.get("response_tasks") or {}
     headings = _leaves(outline)
     if section:
-        headings = [item for item in headings if item.get("title") == section]
+        headings = select_section(headings, section)
         if not headings:
             raise DomainError(404, "NOT_FOUND", "没有这一节。")
     current = chapter.content or ""
@@ -685,7 +712,8 @@ def write_volume(state: Any, project_id: str, workflow: dict, section: str | Non
         row = rows.get(ids[0]) if ids else None
         if row and inconsistent(bodies.get(_leaf_key(item)) or "", row):
             reviews.add(_leaf_key(item))
-    chapter.content = _assemble(outline, bodies, reviews)
+    intro = preamble(current, outline)
+    chapter.content = (f"{intro}\n\n" if intro else "") + _assemble(outline, bodies, reviews)
     from icg.domain.technical_quality import apply_quality_markers, evaluate_quality
     quality = evaluate_quality(workflow, chapter.content)
     chapter.content = apply_quality_markers(chapter.content, quality.get("review_titles") or [], outline)
@@ -732,6 +760,7 @@ def write_volume(state: Any, project_id: str, workflow: dict, section: str | Non
             item for item in (workflow.get("needs_regeneration") or []) if item != chapter.id
         ]
     return {
+        "task_ids": [item["task_id"] for item in headings if item.get("task_id")],
         "failed": failed,
         "chapter_id": chapter.id,
         "rag_audit": audits,

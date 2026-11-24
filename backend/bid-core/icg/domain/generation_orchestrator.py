@@ -64,6 +64,16 @@ from icg.domain.prompt_budget import (
 )
 
 
+def merge_volume_tasks(live: dict, fresh: dict, touched: list[str]) -> dict:
+    """只换本次重写过的节，生成期间别的节的人工确认不被快照冲掉；废标检查覆盖全部小节，没重写的节也换成本次结果。"""
+    merged = {tid: dict(task) for tid, task in live.items()}
+    for tid, task in merged.items():
+        if isinstance(fresh.get(tid), dict) and "constraint_check" in fresh[tid]:
+            task["constraint_check"] = fresh[tid]["constraint_check"]
+    merged.update({tid: fresh[tid] for tid in touched if tid in fresh})
+    return merged
+
+
 class GenerationOrchestratorMixin:
     """章节生成与 AI 伴写领域编排 Mixin。"""
 
@@ -542,7 +552,7 @@ class GenerationOrchestratorMixin:
                                  expected: str | None, key: str | None) -> dict:
         """推送开始前的核对。失败按 HTTP 状态抛出，不进事件流。"""
         from icg.domain.technical_sources import technical_only
-        from icg.domain.technical_volume import _leaves, assert_ready
+        from icg.domain.technical_volume import _leaves, assert_ready, select_section
 
         snapshot, previous = self._preflight(principal, project_id, "chapter.generate", payload, expected, key)
         if previous:
@@ -552,12 +562,40 @@ class GenerationOrchestratorMixin:
             raise DomainError(409, "REQUIREMENT_NOT_READY", "目录还没确认。")
         assert_ready(snapshot, project_id, workflow)
         section = (payload.get("section") or "").strip()
-        if section and not any(item.get("title") == section for item in _leaves(workflow["technical_outline"])):
+        if section and not select_section(_leaves(workflow["technical_outline"]), section):
             raise DomainError(404, "NOT_FOUND", "没有这一节。")
         return {
             "snapshot": snapshot, "workflow": workflow, "payload": payload, "expected": expected,
             "key": key, "principal": principal, "project_id": project_id,
         }
+
+    def confirm_technical_task(self, principal: Principal, project_id: str, task_id: str, payload: dict,
+                               expected: str | None, key: str | None) -> dict:
+        """人工确认一节。只认已生成的节；项目只读成员在 _authorize 被拒，没有本章编辑权的成员在这里被拒。"""
+        def operation(state, project, workflow):
+            chapter = state.chapters.get((workflow.get("technical_outline") or {}).get("chapter_id") or "")
+            if chapter is None:
+                raise DomainError(404, "NOT_FOUND", "没有服务方案这一章。")
+            require_chapter(state, principal, chapter)
+            task = (workflow.get("response_tasks") or {}).get(task_id)
+            if task is None:
+                raise DomainError(404, "NOT_FOUND", "没有这一节。")
+            if task.get("generation_status") != "generated":
+                raise DomainError(409, "SECTION_NOT_GENERATED", "这一节还没生成成功，不能确认。")
+            from icg.domain.technical_response_plan import body_hash, confirm_text
+
+            outline = workflow.get("technical_outline") or {}
+            heading = next((item for item in outline.get("headings") or [] if item.get("task_id") == task_id), {})
+            body = confirm_text(chapter.content or "", outline, heading)
+            if body is None:
+                raise DomainError(409, "REVISION_CONFLICT", "正文里找不到这一节的标题，不能确认。请恢复标题或重新生成这一节。")
+            before = task.get("pre_confirm_status") if task.get("response_status") == "confirmed" else task.get("response_status")
+            task.update(response_status="confirmed", confirmed_by=principal.user.id,
+                        confirmed_at=iso_time(self.demo._now()), pre_confirm_status=before,
+                        confirmed_hash=body_hash(body))
+            return {}
+
+        return self._write(principal, project_id, f"technical_task.confirm:{task_id}", payload, expected, key, operation)
 
     def iter_technical_stream(self, prepared: dict, cancel: Any = None):
         """先推节级 delta，整次完成后才写入章节。cancel 置位或断开后不写入。"""
@@ -681,9 +719,13 @@ class GenerationOrchestratorMixin:
             raise DomainError(404, "NOT_FOUND", "没有服务方案这一章。")
         chapter.content = drafted["content"]
         chapter.revision = drafted["revision"]
+        live_tasks = dict(actual.get("response_tasks") or {})
         for key in ("response_tasks", "technical_rag_audit", "technical_quality", "writer_model", "needs_regeneration", "constraint_check"):
             if drafted.get(key) is not None:
                 actual[key] = drafted[key]
+        touched = result.get("task_ids")
+        if touched is not None and drafted.get("response_tasks") is not None:
+            actual["response_tasks"] = merge_volume_tasks(live_tasks, drafted["response_tasks"], touched)
         message = "技术分册已写入当前正文。" if not result["failed"] else "有的节没有生成成功，这些节保持原样，其他节已写入。"
         quality = result.get("quality") or {}
         if quality.get("warning"):

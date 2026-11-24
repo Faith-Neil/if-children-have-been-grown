@@ -315,7 +315,28 @@ export type CoverageRow = {
   response_status: string;
   generation_status: string;
   response_type?: 'comply' | 'exceed' | 'deviate' | 'not_applicable' | null;
+  digest_id?: string;
+  kind?: 'tech' | 'scoring';
+  score_item?: string;
+  score?: number | null;
+  rag?: CoverageRag | null;
+  confirm_reasons?: string[];
+  failure_reason?: string;
+  confirmed_at?: string | null;
+  retryable?: boolean;
 };
+export type CoverageRag = {
+  status: 'hit' | 'empty' | 'skipped' | 'failed';
+  query: string;
+  history_hits: number;
+  material_hits: number;
+  tender_hits?: number;
+  error?: string;
+  top?: { name?: string | null; dataset_kind?: string | null; score?: number | null }[];
+  searched_at?: string;
+};
+export type DigestRejection = { id: string; text: string; quote?: string; page?: number | null; category?: string };
+export type TenderDigest = { source?: string; tech?: { id: string; text: string }[]; scoring?: { id: string; item: string; score?: number | null }[]; rejection?: DigestRejection[] };
 export type ResponseTask = {
   task_id: string;
   title: string;
@@ -375,7 +396,7 @@ export type TechnicalQuality = {
   review_titles: string[];
   warning: string;
 };
-export type Workspace = { revision: number; input_fingerprint: string; source_fingerprint?: string; parsed_source_fingerprint?: string; technical_extract_empty?: boolean; extract_degraded?: boolean; extract_timeout_count?: number; extract_pages_read?: number; outline_source?: string; tree_model_failed?: boolean; outline_reason?: string; technical_outline?: TechnicalOutline | null; technical_deviation_note?: string; technical_needs_review?: string[]; technical_kb?: TechnicalKbStatus | null; technical_quality?: TechnicalQuality | null; response_tasks?: ResponseTask[]; coverage_rows?: CoverageRow[]; plan_validation?: PlanValidation | null; technical_rag_audit?: TechnicalRagAuditRow[]; tender_index?: TenderIndexStatus | null; writer_model?: WriterModelStatus | null; project: Project; stage: string; files: TenderFile[]; requirements: Requirement[]; facts: Fact[]; conflicts: Conflict[]; chapters: Chapter[]; checks: Check[]; exports: Export[]; jobs: Job[]; parse_confirmed: boolean; plan_confirmed: boolean; sla?: ProjectSla | null; writing_plan?: WritingPlan; team?: ProjectTeam; permissions?: ProjectPermissions; volumes?: VolumeStatus[]; human_queue_pending?: number; omissions_pending?: number; project_status?: { status: string; label: string; read_only: boolean; registered: boolean; result?: string | null; result_label?: string | null; history: Array<Record<string, unknown>> } };
+export type Workspace = { revision: number; input_fingerprint: string; source_fingerprint?: string; parsed_source_fingerprint?: string; technical_extract_empty?: boolean; extract_degraded?: boolean; extract_timeout_count?: number; extract_pages_read?: number; outline_source?: string; tree_model_failed?: boolean; outline_reason?: string; technical_outline?: TechnicalOutline | null; technical_deviation_note?: string; technical_needs_review?: string[]; technical_kb?: TechnicalKbStatus | null; technical_quality?: TechnicalQuality | null; response_tasks?: ResponseTask[]; coverage_rows?: CoverageRow[]; tender_digest?: TenderDigest | null; plan_validation?: PlanValidation | null; technical_rag_audit?: TechnicalRagAuditRow[]; tender_index?: TenderIndexStatus | null; writer_model?: WriterModelStatus | null; project: Project; stage: string; files: TenderFile[]; requirements: Requirement[]; facts: Fact[]; conflicts: Conflict[]; chapters: Chapter[]; checks: Check[]; exports: Export[]; jobs: Job[]; parse_confirmed: boolean; plan_confirmed: boolean; sla?: ProjectSla | null; writing_plan?: WritingPlan; team?: ProjectTeam; permissions?: ProjectPermissions; volumes?: VolumeStatus[]; human_queue_pending?: number; omissions_pending?: number; project_status?: { status: string; label: string; read_only: boolean; registered: boolean; result?: string | null; result_label?: string | null; history: Array<Record<string, unknown>> } };
 
 export type SnippetSyncStatus = 'synced' | 'unsynced' | 'failed' | 'sync_failed' | string;
 export type SnippetPublication = {

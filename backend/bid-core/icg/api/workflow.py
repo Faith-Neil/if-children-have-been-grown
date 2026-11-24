@@ -405,6 +405,14 @@ def include_workflow_routes(application, service, current_user, parser):
 
         return StreamingResponse(events(), media_type="text/event-stream", headers={"X-Accel-Buffering": "no"})
 
+    @router.post("/projects/{project_id}/technical-tasks/{task_id}/confirm", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="confirmTechnicalTask", summary="人工确认技术方案一节")
+    def confirm_technical_task(project_id: str, task_id: str, body: EmptyRequest, user: Principal = Depends(current_user),
+                               if_match: str | None = Header(default=None),
+                               idempotency_key: str | None = Header(default=None, alias="Idempotency-Key",
+                                                                    description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.confirm_technical_task(user, project_id, task_id, body.model_dump(), if_match, idempotency_key)
+
     @router.get("/projects/{project_id}/chapters/{chapter_id}/system", operation_id="previewSystemChapter", response_model=dict[str, Any],
                 summary="系统生成章节预览（点对点应答/评审索引/偏离表/年度服务计划/证明材料清单）")
     def system_preview(project_id: str, chapter_id: str, user: Principal = Depends(current_user)):

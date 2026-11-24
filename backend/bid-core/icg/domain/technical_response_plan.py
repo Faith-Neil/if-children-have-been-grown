@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 from typing import Any
 
@@ -286,14 +287,54 @@ def apply_response_plan(workflow: dict, model=None) -> dict[str, Any]:
     return {"tasks": tasks, "headings": headings, "validation": check}
 
 
-def coverage_rows(workflow: dict, outline: dict | None = None) -> list[dict]:
-    """覆盖视图五列数据。"""
+def body_hash(body: str) -> str:
+    return hashlib.sha256((body or "").strip().encode("utf-8")).hexdigest()
+
+
+def confirm_text(content: str, outline: dict, heading: dict) -> str | None:
+    """确认指纹用的本节全文：从本节标题到下一节标题为止，不含自动加的「需要核对」。找不到标题返回 None。
+    下一节标题原样在就以它为界；被改名时才退到以下一节编号开头的行，数字开头的正文段落不会截断本节。"""
+    heads = outline.get("headings") or []
+    markers = {f"{item.get('number')} {item.get('title')}" for item in heads}
+    index = next((i for i, item in enumerate(heads) if item.get("number") == heading.get("number")
+                  and item.get("title") == heading.get("title")), None)
+    following = heads[index + 1] if index is not None and index + 1 < len(heads) else None
+    lines = (content or "").splitlines()
+    marker = f"{heading.get('number')} {heading.get('title')}"
+    start = next((i + 1 for i, line in enumerate(lines) if line.strip() == marker), None)
+    if start is None:
+        return None
+    rest = range(start, len(lines))
+    end = next((i for i in rest if lines[i].strip() in markers), len(lines))
+    if following and not any(lines[i].strip() == f"{following.get('number')} {following.get('title')}" for i in rest):
+        renamed = str(following.get("number"))
+        end = min(end, next((i for i in rest if (lines[i].strip().split(maxsplit=1) or [""])[0] == renamed), end))
+    return "\n".join(line for line in lines[start:end] if line.strip() != "需要核对").strip()
+
+
+def effective_task(task: dict, heading: dict, content: str | None, outline: dict | None = None) -> dict:
+    """确认后这一节正文被人改过或标题被删，确认作废，回到确认前状态并提示重新确认。"""
+    if task.get("response_status") != "confirmed" or not task.get("confirmed_hash") or content is None:
+        return task
+    text = confirm_text(content, outline or {}, heading)
+    if text is not None and body_hash(text) == task["confirmed_hash"]:
+        return task
+    return {**task, "response_status": task.get("pre_confirm_status") or "generated",
+            "confirmed_at": None, "edited_after_confirm": True}
+
+
+def coverage_rows(workflow: dict, outline: dict | None = None, content: str | None = None) -> list[dict]:
+    """覆盖视图五列数据。content 为服务方案当前正文，用来判断确认后是否被改过。"""
     outline = outline or workflow.get("technical_outline") or {}
     headings = {item.get("task_id"): item for item in (outline.get("headings") or []) if item.get("task_id")}
     reqs = workflow.get("requirements") or {}
+    review = set((workflow.get("technical_quality") or {}).get("review_titles") or [])
     rows = []
     for task in (workflow.get("response_tasks") or {}).values():
         heading = headings.get(task["task_id"]) or {}
+        task = effective_task(task, heading, content, outline)
+        title = heading.get("title") or task.get("title")
+        reasons = confirm_reasons(task, title in review)
         for rid in task.get("requirement_ids") or []:
             req = reqs.get(rid) or {}
             source = req.get("source") or {}
@@ -311,5 +352,33 @@ def coverage_rows(workflow: dict, outline: dict | None = None) -> list[dict]:
                 "response_status": task.get("response_status") or "not_started",
                 "generation_status": task.get("generation_status") or "pending",
                 "response_type": req.get("response_type") or None,
+                "digest_id": req.get("digest_id") or "",
+                "kind": "scoring" if req.get("section_kind") == "scoring" else "tech",
+                "score_item": req.get("score_item") or "",
+                "score": req.get("score") if isinstance(req.get("score"), (int, float)) else None,
+                "rag": task.get("rag"),
+                "confirm_reasons": reasons,
+                "failure_reason": task.get("failure_reason") or "",
+                "confirmed_at": task.get("confirmed_at"),
+                "retryable": task.get("generation_status") in ("failed", "generated"),
             })
     return rows
+
+
+def confirm_reasons(task: dict, quality_review: bool) -> list[str]:
+    """这一节为什么要人工确认；已人工确认或还没生成的节不提示。"""
+    if task.get("response_status") == "confirmed":
+        return []
+    if task.get("generation_status") == "failed":
+        return ["生成失败"]
+    if task.get("generation_status") != "generated":
+        return []
+    reasons = ["确认后正文已修改"] if task.get("edited_after_confirm") else []
+    if (task.get("rag") or {}).get("status", "hit") != "hit" or task.get("response_status") == "needs_confirm":
+        reasons.append("知识库无依据")
+    check = task.get("constraint_check") or {}
+    if check.get("missing") or check.get("conflicts"):
+        reasons.append("废标约束待核")
+    if quality_review:
+        reasons.append("质量八条未达标")
+    return reasons
