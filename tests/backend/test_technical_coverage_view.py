@@ -160,3 +160,12 @@ def test_volume_merge_refreshes_constraint_check_of_untouched_tasks():
     assert tasks["k1"] == {"confirmed_at": "t", "constraint_check": {"status": "passed"}}
     assert tasks["k2"]["generation_status"] == "generated"
     assert live["k1"]["constraint_check"]["status"] == "needs_confirm"
+
+
+def test_preamble_keeps_text_before_the_first_heading():
+    from icg.domain.technical_volume import preamble
+
+    outline = {"headings": [{"number": "1", "title": "总体方案"}]}
+    assert preamble("本章说明\n手写引言\n1 总体方案\n正文", outline) == "本章说明\n手写引言"
+    assert preamble("1 总体方案\n正文", outline) == ""
+    assert preamble("占位，还没生成", outline) == ""
