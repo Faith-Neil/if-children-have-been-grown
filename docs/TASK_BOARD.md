@@ -685,6 +685,7 @@
 | [TV-M0-T16](tasks/TV-M0.md#tv-m0-t16) | 覆盖视图五列 + 去事实冲突 + 壳层紧凑 | in-review | [TV-M0-T15](tasks/TV-M0.md#tv-m0-t15) | [ISSUE-051](../issues/ISSUE-051.md) | [交付](delivery/TV-M0-T16.md) |
 | [TV-M0-T17](tasks/TV-M0.md#tv-m0-t17) | 三张清单 + 清单拟目录挂要点 + 正文废标约束 | in-review | [TV-M0-T16](tasks/TV-M0.md#tv-m0-t16) | [ISSUE-053](../issues/ISSUE-053.md) | [交付](delivery/TV-M0-T17.md) |
 | [TV-M0-T18](tasks/TV-M0.md#tv-m0-t18) | 覆盖视图即矩阵：检索摘要、人工确认、单节重试 | in-review | [TV-M0-T17](tasks/TV-M0.md#tv-m0-t17) | [ISSUE-053](../issues/ISSUE-053.md) | [交付](delivery/TV-M0-T18.md) |
+| [TV-M0-T19](tasks/TV-M0.md#tv-m0-t19) | 写作助手按节问答与按节修改 | in-review | [TV-M0-T18](tasks/TV-M0.md#tv-m0-t18) | [ISSUE-053](../issues/ISSUE-053.md) | [交付](delivery/TV-M0-T19.md) |
 | [TV-M0-T01](tasks/TV-M0.md#tv-m0-t01) | 隐藏资料库与写作档案，新建项目固定技术分册 | in-review | — | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T01.md) |
 | [TV-M0-T02](tasks/TV-M0.md#tv-m0-t02) | 知识库只上传历史标书 | in-review | [TV-M0-T01](tasks/TV-M0.md#tv-m0-t01) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T02.md) |
 | [TV-M0-T03](tasks/TV-M0.md#tv-m0-t03) | 招标文件与辅助文件 | in-review | [TV-M0-T01](tasks/TV-M0.md#tv-m0-t01) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T03.md) |
