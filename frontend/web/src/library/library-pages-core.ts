@@ -266,13 +266,13 @@ export function filterEvidenceList(
 }
 
 /**
- * 纯函数：企业资料库维护只给公司管理员与平台管理员（与后端知识库写权限一致）。
+ * 纯函数：企业资料库维护只给本公司管理员（资料按公司版本号写入）。
  */
 export function canManageLibrary(userRole: string | undefined | null): boolean {
   if (!userRole) return false;
   if (userRole.trim().toLowerCase() === 'admin') return true;
   const normalized = normalizeSystemRole(userRole);
-  return normalized === 'company_admin' || normalized === 'platform_admin';
+  return normalized === 'company_admin';
 }
 
 /**

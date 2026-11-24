@@ -185,7 +185,7 @@ test('RBAC controls library management permissions', () => {
   // Can manage
   assert.equal(canManageLibrary('admin'), true);
   assert.equal(canManageLibrary('company_admin'), true);
-  assert.equal(canManageLibrary('platform_admin'), true);
+  assert.equal(canManageLibrary('platform_admin'), false);
 
   // Cannot manage: 普通用户与旧角色名都按普通用户
   assert.equal(canManageLibrary('member'), false);
