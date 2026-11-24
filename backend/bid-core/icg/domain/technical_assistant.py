@@ -108,7 +108,7 @@ def _commitments(text: str) -> set[str]:
     return {f"{number}{unit.replace('％', '%')}{'/' + per if per else ''}" for number, unit, per in COMMITMENT.findall(text or "")}
 
 
-NEGATED_LABEL = re.compile(r"(?:不|未|没有|无)(?:会|产生|出现|存在|发生|构成)?(?:正偏离|负偏离)")
+NEGATED_LABEL = re.compile(r"(?:不|未|没有|无)(?:会|产生|出现|存在|发生|构成)*(?:正偏离|负偏离)")
 
 
 def number_check(context: dict, body: str, original: str, content: str, chunks: list[dict], facts: list[dict]) -> dict[str, Any]:
