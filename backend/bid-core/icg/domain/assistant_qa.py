@@ -135,7 +135,8 @@ class AssistantQAService:
         if section and (workflow.get("technical_outline") or {}).get("chapter_id") == chapter_id:
             from .technical_assistant import section_context
             section_ctx = section_context(workflow, section)
-        scope = " ".join([section, *section_ctx["points"][:2]]) if section_ctx else chapter.title
+        scope = (" ".join([section_ctx["heading"].get("title") or "", *section_ctx["points"][:2]])
+                 if section_ctx else chapter.title)
         hits, retrieval = self.rewrite._retrieve(
             principal, project.company_id, scope, question, "", workflow, company_kb=kb_on,
         )
