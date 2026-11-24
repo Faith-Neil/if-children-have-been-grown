@@ -13,7 +13,7 @@
 | 登记日期 | 2026-11-20 |
 | 最后更新日期 | 2026-11-20 |
 | revision | tech-plan-simplified-1 |
-| 关联 Task | [TV-M0-T17](../docs/tasks/TV-M0.md#tv-m0-t17)、[TV-M0-T18](../docs/tasks/TV-M0.md#tv-m0-t18)、[TV-M0-T19](../docs/tasks/TV-M0.md#tv-m0-t19)、[TV-M0-T20](../docs/tasks/TV-M0.md#tv-m0-t20) |
+| 关联 Task | [TV-M0-T17](../docs/tasks/TV-M0.md#tv-m0-t17)、[TV-M0-T18](../docs/tasks/TV-M0.md#tv-m0-t18)、[TV-M0-T19](../docs/tasks/TV-M0.md#tv-m0-t19)、[TV-M0-T20](../docs/tasks/TV-M0.md#tv-m0-t20)、[TV-M0-T21](../docs/tasks/TV-M0.md#tv-m0-t21) |
 | 关联 PR | 目标分支 `feat/iss-047-technical-volume-mvp`，不合 main |
 | 本地验收 | 假模型后端单测；真实内网 Qwen / RAGFlow 未跑 |
 | 合入 | 未合入 |
@@ -31,6 +31,7 @@
 - B 覆盖视图字段、单节重试、人工确认、RAG 明细：[TV-M0-T18](../docs/tasks/TV-M0.md#tv-m0-t18)。
 - C 写作助手补全：[TV-M0-T19](../docs/tasks/TV-M0.md#tv-m0-t19)。
 - D 三角色权限收口、演示账号改名、项目只读写拒绝核查：[TV-M0-T20](../docs/tasks/TV-M0.md#tv-m0-t20)。
+- E 修改候选数字预检、问答按小节分会话：[TV-M0-T21](../docs/tasks/TV-M0.md#tv-m0-t21)。
 
 ## 影响核对
 

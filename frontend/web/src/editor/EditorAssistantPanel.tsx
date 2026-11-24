@@ -2,8 +2,8 @@
 // 它解决什么问题：解耦对话助手、整章候选建议、合规问题提示与写作来源面板，降低 EditorPage 行数。
 
 import React, { useEffect, useState } from 'react';
-import { Alert, Button, Input, Select, Space, Tabs, Tag } from 'antd';
-import { TECH_CHIPS, takePrefill, type SectionOption } from './technical-assistant.ts';
+import { Alert, Button, Checkbox, Input, Select, Space, Tabs, Tag } from 'antd';
+import { numberIssues, TECH_CHIPS, takePrefill, type SectionOption } from './technical-assistant.ts';
 import { ArrowUpOutlined } from '@ant-design/icons';
 import { AiTag } from '../library/BusinessTags.tsx';
 import { WritingSources } from './WritingInputPreview.tsx';
@@ -85,6 +85,10 @@ export function EditorAssistantPanel({
   const [askDraft, setAskDraft] = useState('');
   const [askNonce, setAskNonce] = useState(0);
   const pendingAsk = React.useRef('');
+  const [numbersChecked, setNumbersChecked] = useState(false);
+  useEffect(() => setNumbersChecked(false), [candidate]);
+  const numberLines = numberIssues(candidate?.numbers);
+  const numbersPending = candidate?.numbers?.status === 'needs_confirm' && !numbersChecked;
   const asking = composer === 'ask';
   const draft = asking ? askDraft : instruction;
   const setDraft = asking ? setAskDraft : setInstruction;
@@ -175,6 +179,18 @@ export function EditorAssistantPanel({
                     description={<ul>{[...candidate.precheck.missing, ...candidate.precheck.conflicts].map(text => <li key={text}>{text}</li>)}</ul>}
                   />
                 )}
+                {numberLines.length > 0 && (
+                  <Alert
+                    type="warning"
+                    showIcon
+                    data-testid="candidate-numbers"
+                    message="候选里的数字需要核对"
+                    description={<>
+                      <ul>{numberLines.map(text => <li key={text}>{text}</li>)}</ul>
+                      <Checkbox checked={numbersChecked} onChange={event => setNumbersChecked(event.target.checked)}>已核对，数字有依据</Checkbox>
+                    </>}
+                  />
+                )}
                 <p>{candidate.section_body ?? candidate.content}</p>
                 {candidate.sources && (candidate.sources.length ? (
                   <ul className="rewrite-sources">
@@ -183,7 +199,7 @@ export function EditorAssistantPanel({
                 ) : <p className="muted">无知识库来源</p>)}
                 <Space wrap>
                   <Button size="small" type="link" onClick={onViewInput}>查看来源</Button>
-                  <Button size="small" type="primary" disabled={combinedBusy || !held || !chapter || !!candidateIssue} onClick={() => onShowDiff(candidate)}>
+                  <Button size="small" type="primary" disabled={combinedBusy || !held || !chapter || !!candidateIssue || numbersPending} onClick={() => onShowDiff(candidate)}>
                     {technicalAssistant ? '预览后写入' : '写入'}
                   </Button>
                 </Space>

@@ -399,3 +399,19 @@
 范围：登录角色只认平台管理员、公司管理员、普通用户；旧角色名（`data_admin`、`group_admin`、`manager`、`viewer`、`auditor` 等）只在归一化入口兼容，业务授权不再按旧原值判断。只读只看项目角色 `readonly`（旧数据 `viewer` 同义），`ensure_not_readonly()` 按项目成员判断。演示账号改为三角色命名。逐个调用 `/api/v1` 项目写接口核查项目只读成员都被后端拒绝。
 
 验收：`tests/backend/test_readonly_member_writes.py` 通过（项目只读成员调用全部项目写接口均 403，解除段落锁 403）；受影响的知识库、SLA、通知、字典、会话、模型配置、问答测试按新角色语义通过；前端 lint 通过、全量失败集合不新增；OpenAPI `--check` 一致。
+
+<a id="tv-m0-t21"></a>
+
+## TV-M0-T21 · 修改候选数字预检与问答按小节分会话
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 关联 Issue | [ISSUE-053](../../issues/ISSUE-053.md) |
+| 依赖 | [TV-M0-T19](TV-M0.md#tv-m0-t19) |
+| 完成时交付 | docs/delivery/TV-M0-T21.md |
+| 代码解释 | docs/code/TV-M0-T21.md |
+
+范围：按节修改候选在写入前查数字：本节需求的偏离类型与数字口径沿用写入后的同一条规则；候选里带单位的承诺数字须在本节原文、本章其他正文、需求与评分、挂载要点、已确认事实或检索片段里出现过，否则标「需核对」，人工勾选已核对后才能写入。自由提问在技术服务方案里按小节分会话：会话记小节键与标题，续问只能在同一小节，会话列表按小节过滤；回答仍只可复制。
+
+验收：`tests/backend/test_technical_assistant.py` 通过（数字预检、候选带数字结果、按小节分会话与跨小节续问 403）；`frontend/web/tests/unit/technical-assistant.test.mjs` 通过；前端 lint 通过；OpenAPI `--check` 一致。

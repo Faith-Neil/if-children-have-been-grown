@@ -40741,7 +40741,7 @@
     "/api/v1/projects/{project_id}/chapters/{chapter_id}/assistant-sessions": {
       "get": {
         "summary": "本章的对话助手会话",
-        "description": "本人只看自己的会话；项目负责人和本公司公司管理员可看全部。",
+        "description": "本人只看自己的会话；项目负责人和本公司公司管理员可看全部。传 section 时只列该小节的会话。",
         "operationId": "listAssistantSessions",
         "parameters": [
           {
@@ -40760,6 +40760,22 @@
             "schema": {
               "type": "string",
               "title": "Chapter Id"
+            }
+          },
+          {
+            "name": "section",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Section"
             }
           },
           {
@@ -45731,7 +45747,7 @@
               }
             ],
             "title": "Session Id",
-            "description": "接着本人本章的会话提问"
+            "description": "接着本人本章同一小节的会话提问"
           },
           "section": {
             "anyOf": [
@@ -58762,6 +58778,37 @@
         ],
         "title": "ScanSummary"
       },
+      "SectionNumberCheck": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "passed / needs_confirm；needs_confirm 时须人工核对后才能写入"
+          },
+          "mismatched_requirements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Mismatched Requirements",
+            "description": "偏离类型或数字与需求原文不一致的需求编号"
+          },
+          "unsupported": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unsupported",
+            "description": "候选新出现、在原文/需求/要点/事实/检索片段里都找不到的承诺数字"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "SectionNumberCheck"
+      },
       "SectionPrecheck": {
         "properties": {
           "status": {
@@ -59261,6 +59308,29 @@
             "type": "integer",
             "title": "Message Count"
           },
+          "section_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Key",
+            "description": "技术服务方案小节键（任务编号）；不按小节的会话为空"
+          },
+          "section_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Title"
+          },
           "messages": {
             "items": {
               "additionalProperties": true,
@@ -59550,6 +59620,29 @@
           "message_count": {
             "type": "integer",
             "title": "Message Count"
+          },
+          "section_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Key",
+            "description": "技术服务方案小节键（任务编号）；不按小节的会话为空"
+          },
+          "section_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Title"
           }
         },
         "additionalProperties": true,
@@ -62246,6 +62339,9 @@
           },
           "precheck": {
             "$ref": "#/components/schemas/SectionPrecheck"
+          },
+          "numbers": {
+            "$ref": "#/components/schemas/SectionNumberCheck"
           }
         },
         "additionalProperties": true,
@@ -62259,7 +62355,8 @@
           "input_fingerprint",
           "provider",
           "is_real_model",
-          "precheck"
+          "precheck",
+          "numbers"
         ],
         "title": "TechnicalSectionCandidate"
       },

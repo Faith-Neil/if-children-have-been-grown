@@ -51,3 +51,17 @@ export function coverageInstruction(row: { text: string; generation_status?: str
   if (row.generation_status === 'failed') return '本节生成失败，请按挂载要点补写本节正文。';
   return `补齐要点：「${row.text.slice(0, 80)}」，写清做法与交付物，不新增未经证实的承诺。`;
 }
+
+/** 技术服务方案按小节分会话：选了小节只列这一节的会话，没选只列不按小节的会话。 */
+export function sessionsForSection<T extends { section_key?: string | null }>(sessions: T[], section: string | undefined): T[] {
+  return sessions.filter(item => (item.section_key ?? '') === (section ?? ''));
+}
+
+/** 候选数字须人工核对时的提示行。 */
+export function numberIssues(check: { mismatched_requirements: string[]; unsupported: string[] } | undefined): string[] {
+  if (!check) return [];
+  return [
+    ...check.mismatched_requirements.map(id => `${id} 的偏离类型或数字与需求原文不一致`),
+    ...check.unsupported.map(value => `「${value}」在原文、需求、要点、事实和检索片段里都找不到`),
+  ];
+}
