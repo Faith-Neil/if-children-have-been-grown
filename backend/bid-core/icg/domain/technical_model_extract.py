@@ -12,14 +12,82 @@ EXTRACT_SYSTEM = (
     "你在读一份招标文件的一页或一块原文。只根据这一块输出 JSON，不要解释。"
     "字段：who（招标人/业主）、what（要采购或运维什么）、period（服务期/维保期原文）、"
     "sla（故障响应或到场时限）、format_order（编制顺序一级标题数组）、"
-    "items（数组，每项 role、text、quote、kind）。"
-    "role 只能是 response_mount 或 rejection_constraint。"
-    "response_mount 是投标人必须在技术方案里回应的服务、指标、工作内容；"
-    "rejection_constraint 是废标、否决、无效条件，不要当成要单独成章回答的服务项。"
-    "kind 为 scoring 或 spec。text 是不超过 40 字的要点，quote 是原文短句。"
+    "requirements（技术需求清单：数组，每项 text、quote、star）、"
+    "scoring（评分规则清单：数组，每项 item、score、criteria、points、quote）、"
+    "rejections（废标清单：数组，每项 text、quote、category）。"
+    "requirements 是投标人必须在技术方案里回应的服务、指标、工作内容；star 为 true 表示带★或实质性条款。"
+    "scoring 只收技术评分（技术方案、服务方案等主观分），不收报价、资质、业绩分；"
+    "item 是评分项名称，score 是分值数字（原文没有写 null），criteria 是评分标准原文，"
+    "points 是评委据以给分的得分要点数组，每条不超过 30 字。"
+    "rejections 是废标、否决、无效投标条件，category 只能是 技术、资格、商务、格式 之一，不要当成要单独成章回答的服务项。"
+    "text 是不超过 40 字的要点，quote 是原文短句。"
     "表格单元格、换行拆开的句子也要读。没有的字段用空字符串或空数组。"
     "禁止编造本页没有的业主、系统名、期限和分值。"
 )
+
+
+EXTRA_KEYS = ("score_item", "score", "criteria", "star", "category")
+LIST_OF_ROLE = {
+    ("response_mount", "spec"): "requirement_count",
+    ("response_mount", "scoring"): "scoring_count",
+    ("rejection_constraint", "spec"): "rejection_count",
+    ("rejection_constraint", "scoring"): "rejection_count",
+}
+
+
+def _score(value: Any) -> float | None:
+    try:
+        number = float(str(value).strip().rstrip("分"))
+    except (TypeError, ValueError):
+        return None
+    return number if number > 0 else None
+
+
+def _payload_items(payload: dict) -> list[dict]:
+    """三张清单摊平成统一条目；旧格式 items 照收，便于替身与历史缓存。"""
+    found: list[dict] = [item for item in payload.get("items") or [] if isinstance(item, dict)]
+    for item in payload.get("requirements") or []:
+        if isinstance(item, dict):
+            found.append({
+                "text": item.get("text"), "quote": item.get("quote"), "kind": "spec",
+                "role": "response_mount", "star": bool(item.get("star")) or None,
+            })
+    for rule in payload.get("scoring") or []:
+        if not isinstance(rule, dict):
+            continue
+        name = str(rule.get("item") or "").strip()
+        points = [str(point).strip() for point in rule.get("points") or [] if str(point or "").strip()]
+        meta = {
+            "score_item": name, "score": _score(rule.get("score")),
+            "criteria": str(rule.get("criteria") or "").strip()[:400],
+        }
+        for point in points or [name]:
+            found.append({
+                "text": point, "quote": rule.get("quote") or rule.get("criteria"),
+                "kind": "scoring", "role": "response_mount", **meta,
+            })
+    for item in payload.get("rejections") or []:
+        if isinstance(item, dict):
+            category = str(item.get("category") or "").strip()
+            found.append({
+                "text": item.get("text"), "quote": item.get("quote"), "kind": "spec",
+                "role": "rejection_constraint",
+                "category": category if category in ("技术", "资格", "商务", "格式") else "",
+            })
+    return found
+
+
+def _merge_duplicate(entry: dict, item: dict, result: dict) -> None:
+    """同一事项在需求和评分里各出现一次时，保留一条并补上评分项名、分值与评分标准。"""
+    if entry["role"] != "response_mount" or str(item.get("role") or "response_mount") != "response_mount":
+        return
+    if item.get("kind") == "scoring" and entry["kind"] != "scoring":
+        result[LIST_OF_ROLE[("response_mount", entry["kind"])]] -= 1
+        result[LIST_OF_ROLE[("response_mount", "scoring")]] += 1
+        entry["kind"] = "scoring"
+    for key in EXTRA_KEYS:
+        if entry.get(key) in (None, "") and item.get(key) not in (None, ""):
+            entry[key] = item[key]
 
 
 def usable_local_model(model: Any) -> bool:
@@ -86,13 +154,16 @@ def extract_with_model(pages: list[str], model: Any, on_chunk=None) -> dict[str,
         "timeout_count": 0,
         "chunks_attempted": 0,
         "extract_degraded": False,
+        "requirement_count": 0,
+        "scoring_count": 0,
+        "rejection_count": 0,
     }
     if not usable_local_model(model):
         result["skip_reason"] = "no local model"
         return result
-    from icg.infra.openai_model import JSON_CALL, call_with_profile
+    from icg.infra.openai_model import EXTRACT_CALL, call_with_profile
 
-    seen: set[str] = set()
+    seen: dict[str, dict] = {}
     chunks = _chunks(pages)
     total = len(chunks)
     timeouts = 0
@@ -101,7 +172,7 @@ def extract_with_model(pages: list[str], model: Any, on_chunk=None) -> dict[str,
         if on_chunk is not None:
             on_chunk(index, total)
         try:
-            raw = call_with_profile(model.suggest, EXTRACT_SYSTEM, f"页码 {page_no}：\n{blob[:8000]}", profile=JSON_CALL)
+            raw = call_with_profile(model.suggest, EXTRACT_SYSTEM, f"页码 {page_no}：\n{blob[:8000]}", profile=EXTRACT_CALL)
             payload = _parse_payload(str(raw or ""))
         except Exception as exc:
             if _is_timeout(exc):
@@ -120,30 +191,35 @@ def extract_with_model(pages: list[str], model: Any, on_chunk=None) -> dict[str,
             name = str(title or "").strip()
             if name and name not in result["format_order"]:
                 result["format_order"].append(name)
-        for item in payload.get("items") or []:
-            if not isinstance(item, dict):
-                continue
+        for item in _payload_items(payload):
             text = str(item.get("text") or "").strip()
             quote = str(item.get("quote") or text).strip()
             if not text:
                 continue
             key = _matter_key(text)
-            if not key or any(_same(key, existing) for existing in seen):
+            if not key:
                 continue
-            seen.add(key)
+            existing = next((entry for old, entry in seen.items() if _same(key, old)), None)
+            if existing is not None:
+                _merge_duplicate(existing, item, result)
+                continue
             role = str(item.get("role") or "response_mount").strip()
             if role not in ("response_mount", "rejection_constraint"):
                 role = "response_mount"
             kind = str(item.get("kind") or "scoring").strip()
             if kind not in ("scoring", "spec"):
                 kind = "scoring"
-            result["items"].append({
+            entry = {
                 "text": text[:80],
                 "quote": quote[:400],
                 "page": page_no,
                 "kind": kind,
                 "role": role,
-            })
+            }
+            entry.update({key: item[key] for key in EXTRA_KEYS if item.get(key) not in (None, "")})
+            result["items"].append(entry)
+            seen[key] = entry
+            result[LIST_OF_ROLE[(role, kind)]] += 1
     result["timeout_count"] = timeouts
     result["extract_degraded"] = total > 0 and timeouts * 2 > total
     if not result["items"] and not result["skip_reason"]:
@@ -161,6 +237,7 @@ def clauses_from_model(payload: dict[str, Any]) -> list[TechnicalClause]:
             kind=item.get("kind") or "scoring",
             extract_source="model",
             role=item.get("role") or "response_mount",
+            extra={key: item[key] for key in EXTRA_KEYS if item.get(key) not in (None, "")},
         ))
     return found
 
@@ -209,6 +286,10 @@ def absorb_model_facts(workflow: dict, payload: dict[str, Any]) -> None:
         "pages_read": pages_read,
         "skip_reason": payload.get("skip_reason") or previous.get("skip_reason") or "",
         "item_count": int(previous.get("item_count") or 0) + len(payload.get("items") or []),
+        **{
+            key: int(previous.get(key) or 0) + int(payload.get(key) or 0)
+            for key in ("requirement_count", "scoring_count", "rejection_count")
+        },
         "timeout_count": timeout_count,
         "chunks_attempted": chunks_attempted,
         "extract_degraded": degraded,
