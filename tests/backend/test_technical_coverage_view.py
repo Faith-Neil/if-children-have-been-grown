@@ -169,3 +169,18 @@ def test_preamble_keeps_text_before_the_first_heading():
     assert preamble("本章说明\n手写引言\n1 总体方案\n正文", outline) == "本章说明\n手写引言"
     assert preamble("1 总体方案\n正文", outline) == ""
     assert preamble("占位，还没生成", outline) == ""
+
+
+def test_manual_edit_after_confirm_voids_the_confirmation():
+    from icg.domain.technical_response_plan import body_hash, coverage_rows
+
+    task = {"task_id": "k1", "requirement_ids": ["r1"], "generation_status": "generated", "rag": {"status": "hit"},
+            "response_status": "confirmed", "pre_confirm_status": "generated", "confirmed_at": "t",
+            "confirmed_hash": body_hash("原正文")}
+    workflow = {"response_tasks": {"k1": task}, "requirements": {"r1": {"text": "要求"}}}
+    outline = {"headings": [{"number": "1.1", "title": "巡检", "task_id": "k1"}]}
+    same = coverage_rows(workflow, outline, "1.1 巡检\n原正文\n")[0]
+    assert same["response_status"] == "confirmed" and same["confirm_reasons"] == []
+    edited = coverage_rows(workflow, outline, "1.1 巡检\n改过的正文\n")[0]
+    assert edited["response_status"] == "generated" and edited["confirmed_at"] is None
+    assert edited["confirm_reasons"] == ["确认后正文已修改"]
