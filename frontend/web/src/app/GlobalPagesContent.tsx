@@ -2,6 +2,7 @@
 // 它解决什么问题：将工作台项目列表、企业资料库、后台任务中心、规则与管理、知识库、写作档案等全局页面路由分支从 App.tsx 中解耦。
 
 import { NotificationsPage } from '../notifications/NotificationsPage';
+import { PlatformSecurityPage } from '../admin/PlatformSecurityPage';
 import React, { Suspense } from 'react';
 import { Button, Spin, Tabs } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
@@ -14,7 +15,6 @@ import {
   LazyCompanyManagePage as CompanyManagePage,
   LazyCompanyDetailPage as CompanyDetailPage,
   LazyCompanySettingsPage as CompanySettingsPage,
-  LazyDictConfigPage as DictConfigPage,
   LazyJobsPage as JobsPage,
   LazyLibraryPage as LibraryPage,
   LazyPendingPage as PendingPage,
@@ -171,63 +171,43 @@ export function GlobalPagesContent({
 
           {nav === 'admin.rules' && !companyDetailId && (
             <Tabs
-              defaultActiveKey="audit"
-              items={[
+              defaultActiveKey={userRole === 'platform_admin' ? 'companies' : 'members'}
+              items={userRole === 'platform_admin' ? [
                 {
-                  key: 'audit',
-                  label: 'A-06 审计日志中心',
-                  children: (
-                    <AuditLogPage
-                      session={session}
-                      user={currentUser}
-                      onNavigate={onRequestPath}
-                    />
-                  ),
-                },
-                {
-                  key: 'company',
-                  label: 'A-01 公司管理',
-                  children: (
-                    <CompanyManagePage
-                      session={session}
-                      currentUser={currentUser}
-                      token={token}
-                      onNavigate={onRequestPath}
-                    />
-                  ),
+                  key: 'companies',
+                  label: '公司管理',
+                  children: <CompanyManagePage session={session} currentUser={currentUser} token={token} onNavigate={onRequestPath} />,
                 },
                 {
                   key: 'users',
-                  label: 'A-02 用户与角色',
-                  children: (
-                    <UsersPage
-                      session={session}
-                      currentUser={currentUser}
-                      onNavigate={onRequestPath}
-                    />
-                  ),
+                  label: '用户与角色',
+                  children: <UsersPage session={session} currentUser={currentUser} onNavigate={onRequestPath} />,
                 },
                 {
-                  key: 'dict',
-                  label: 'A-03 字典配置',
-                  children: (
-                    <DictConfigPage
-                      session={session}
-                      currentUser={currentUser}
-                      onNavigate={onRequestPath}
-                    />
-                  ),
+                  key: 'security',
+                  label: '平台安全策略',
+                  children: <PlatformSecurityPage token={token} />,
+                },
+                {
+                  key: 'audit',
+                  label: '全局审计日志',
+                  children: <AuditLogPage session={session} user={currentUser} token={token} onNavigate={onRequestPath} />,
+                },
+              ] : [
+                {
+                  key: 'members',
+                  label: '成员管理',
+                  children: <UsersPage session={session} currentUser={currentUser} onNavigate={onRequestPath} />,
                 },
                 {
                   key: 'settings',
-                  label: 'A-05 扩展字段与公司设置',
-                  children: (
-                    <CompanySettingsPage
-                      session={session}
-                      currentUser={currentUser}
-                      token={token}
-                    />
-                  ),
+                  label: '公司设置',
+                  children: <CompanySettingsPage session={session} currentUser={currentUser} token={token} />,
+                },
+                {
+                  key: 'audit',
+                  label: '本公司审计日志',
+                  children: <AuditLogPage session={session} user={currentUser} token={token} onNavigate={onRequestPath} />,
                 },
               ]}
             />

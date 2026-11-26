@@ -6,8 +6,8 @@
 - 文档登记：[D-789](../DOCUMENT_INDEX.md)
 - 日期：2026-10-27
 - 代码路径：
-  - [frontend/web/src/admin/dict-config-core.ts](../../frontend/web/src/admin/dict-config-core.ts)
-  - [frontend/web/src/admin/DictConfigPage.tsx](../../frontend/web/src/admin/DictConfigPage.tsx)
+  - [frontend/web/src/admin/dict-config-core.ts](../../issues/ISSUE-056.md)
+  - [frontend/web/src/admin/DictConfigPage.tsx](../../issues/ISSUE-056.md)
   - [frontend/web/src/app/route-loaders.ts](../../frontend/web/src/app/route-loaders.ts)
   - [frontend/web/src/app/lazy-routes.tsx](../../frontend/web/src/app/lazy-routes.tsx)
   - [frontend/web/src/app/GlobalPagesContent.tsx](../../frontend/web/src/app/GlobalPagesContent.tsx)

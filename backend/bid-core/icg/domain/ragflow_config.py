@@ -6,7 +6,7 @@ from __future__ import annotations
 import os
 import re
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Mapping
 
 import httpx
@@ -99,6 +99,17 @@ class RagflowConfigService:
                 revision=1,
             )
         return state.ragflow_configs[company_id]
+
+    def _effective_connection_config(self, state: DemoState, company_id: str) -> RagflowCompanyConfig:
+        """运行时连接配置：平台管理员的 system 配置是引擎端点与密钥的全局真相源；
+        数据集列表仍保留在公司配置上，避免跨租户共用 dataset_ids。"""
+        tenant = self._ensure_company_config(state, company_id)
+        if company_id == "system":
+            return tenant
+        platform = (getattr(state, "ragflow_configs", {}) or {}).get("system")
+        if platform is None:
+            return tenant
+        return replace(platform, company_id=company_id, dataset_ids=list(tenant.dataset_ids))
 
     def _public_payload(self, state: DemoState, cfg: RagflowCompanyConfig, company_id: str) -> dict[str, Any]:
         """配置响应附占位检测与已部署真实 Dataset ID 建议，方便管理员回填替换 dataset-*-01 占位。"""
@@ -249,7 +260,7 @@ class RagflowConfigService:
         company_id = principal.user.company_id
 
         def get_cfg(state: DemoState) -> RagflowCompanyConfig:
-            return self._ensure_company_config(state, company_id)
+            return self._effective_connection_config(state, company_id)
 
         cfg = self.repository.transaction(get_cfg)
         plain_key = ""

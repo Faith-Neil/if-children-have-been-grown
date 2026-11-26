@@ -9,7 +9,6 @@ let supportModule: ReturnType<typeof importSupportPages> | undefined;
 let libraryModule: ReturnType<typeof importLibraryPages> | undefined;
 let auditModule: ReturnType<typeof importAuditLogPage> | undefined;
 let companyModule: ReturnType<typeof importCompanyManagePage> | undefined;
-let dictConfigModule: ReturnType<typeof importDictConfigPage> | undefined;
 let companySettingsModule: ReturnType<typeof importCompanySettingsPage> | undefined;
 let usersModule: ReturnType<typeof importUsersPage> | undefined;
 let snippetLibraryModule: ReturnType<typeof importSnippetLibraryPage> | undefined;
@@ -23,7 +22,6 @@ function importSupportPages() { return import('./SupportPages.tsx'); }
 function importLibraryPages() { return import('../library/LibraryPages.tsx'); }
 function importAuditLogPage() { return import('../admin/AuditLogPage.tsx'); }
 function importCompanyManagePage() { return import('../admin/CompanyManagePage.tsx'); }
-function importDictConfigPage() { return import('../admin/DictConfigPage.tsx'); }
 function importCompanySettingsPage() { return import('../admin/CompanySettingsPage.tsx'); }
 function importUsersPage() { return import('../admin/UsersPage.tsx'); }
 function importSnippetLibraryPage() { return import('../library/SnippetLibraryPage.tsx'); }
@@ -37,7 +35,6 @@ export function loadSupportPages() { supportModule ??= importSupportPages(); ret
 export function loadLibraryPages() { libraryModule ??= importLibraryPages(); return libraryModule; }
 export function loadAuditLog() { auditModule ??= importAuditLogPage(); return auditModule; }
 export function loadCompanyManage() { companyModule ??= importCompanyManagePage(); return companyModule; }
-export function loadDictConfig() { dictConfigModule ??= importDictConfigPage(); return dictConfigModule; }
 export function loadCompanySettings() { companySettingsModule ??= importCompanySettingsPage(); return companySettingsModule; }
 export function loadUsersPage() { usersModule ??= importUsersPage(); return usersModule; }
 export function loadSnippetLibraryPage() { snippetLibraryModule ??= importSnippetLibraryPage(); return snippetLibraryModule; }

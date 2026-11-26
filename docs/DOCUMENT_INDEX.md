@@ -10,6 +10,15 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
+| D-1061 | 2026-11-27 | [ISSUE-056：双管理员权限隔离、后台模块精简与任务中心核实](../issues/ISSUE-056.md) | Issue | admin-rbac-cleanup-r1 | in-progress | ISSUE-056 | 双管理员权限隔离、后台模块精简与任务中心核实 |
+| D-1062 | 2026-11-27 | [ADMIN-RBAC-PLATFORM-SPLIT 交付](delivery/ADMIN-RBAC-PLATFORM-SPLIT.md) | 交付说明 | admin-rbac-cleanup-r1 | in-progress | ISSUE-056 / ADMIN-RBAC-PLATFORM-SPLIT | 平台安全策略、真实审计与后台分家进行中证据 |
+| D-1063 | 2026-11-27 | [ADMIN-RBAC-PLATFORM-SPLIT 代码说明](code/ADMIN-RBAC-PLATFORM-SPLIT.md) | 代码说明 | admin-rbac-cleanup-r1 | 当前 | ISSUE-056 / ADMIN-RBAC-PLATFORM-SPLIT | 安全策略与审计实现 |
+| D-1064 | 2026-11-27 | [ADMIN-SETTINGS-CLEANUP 交付](delivery/ADMIN-SETTINGS-CLEANUP.md) | 交付说明 | admin-rbac-cleanup-r1 | in-progress | ISSUE-056 / ADMIN-SETTINGS-CLEANUP | 字典下线与公司设置收口进行中证据 |
+| D-1065 | 2026-11-27 | [ADMIN-SETTINGS-CLEANUP 代码说明](code/ADMIN-SETTINGS-CLEANUP.md) | 代码说明 | admin-rbac-cleanup-r1 | 当前 | ISSUE-056 / ADMIN-SETTINGS-CLEANUP | 设置裁剪说明 |
+| D-1066 | 2026-11-27 | [ADMIN-MODEL-CONFIG-CLEANUP 交付](delivery/ADMIN-MODEL-CONFIG-CLEANUP.md) | 交付说明 | admin-rbac-cleanup-r1 | in-progress | ISSUE-056 / ADMIN-MODEL-CONFIG-CLEANUP | 模型配置收口待继续 |
+| D-1067 | 2026-11-27 | [ADMIN-MODEL-CONFIG-CLEANUP 代码说明](code/ADMIN-MODEL-CONFIG-CLEANUP.md) | 代码说明 | admin-rbac-cleanup-r1 | 当前 | ISSUE-056 / ADMIN-MODEL-CONFIG-CLEANUP | 模型配置收口待继续 |
+| D-1068 | 2026-11-27 | [ADMIN-TASKCENTER-JOBS 交付](delivery/ADMIN-TASKCENTER-JOBS.md) | 交付说明 | admin-rbac-cleanup-r1 | in-progress | ISSUE-056 / ADMIN-TASKCENTER-JOBS | 任务中心持久化补齐进行中证据 |
+| D-1069 | 2026-11-27 | [ADMIN-TASKCENTER-JOBS 代码说明](code/ADMIN-TASKCENTER-JOBS.md) | 代码说明 | admin-rbac-cleanup-r1 | 当前 | ISSUE-056 / ADMIN-TASKCENTER-JOBS | demo_job 补齐说明 |
 | D-1051 | 2026-11-26 | [ISSUE-055：全站性能根治、隔离与四库 .doc 补齐、公司服务器部署底座](../issues/ISSUE-055.md) | Issue | perf-isolation-deploy-r1 | in-review | ISSUE-055 | 高频接口 MySQL 作用域读取、项目列表分页、招标隔离、.doc 转换与三机部署底座 |
 | D-1057 | 2026-11-27 | [BE-PERF-HOTPATH-MYSQL 代码说明](code/BE-PERF-HOTPATH-MYSQL.md) | 代码说明 | perf-isolation-deploy-r1 | in-review | ISSUE-055 / BE-PERF-HOTPATH-MYSQL | 热路径作用域读取实现 |
 | D-1058 | 2026-11-27 | [BE-PROJECT-LIST-PAGING 代码说明](code/BE-PROJECT-LIST-PAGING.md) | 代码说明 | perf-isolation-deploy-r1 | in-review | ISSUE-055 / BE-PROJECT-LIST-PAGING | 项目分页实现 |

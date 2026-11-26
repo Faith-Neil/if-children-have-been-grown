@@ -46,7 +46,6 @@ class CompanySettingsModel(BaseModel):
     password_min_length: int = Field(default=8, description="密码最少位数（默认8，只能调严 >= 8）")
     password_min_char_classes: int = Field(default=3, description="至少包含的字符类别数（默认3类，只能调严 3～4）")
     max_login_attempts: int = Field(default=5, description="连续登录失败锁定次数（默认5，只能调严 <= 5）")
-    session_timeout_minutes: int = Field(default=120, description="会话超时时长（分钟，范围 30～480）")
     # 编辑锁与自动保存参数 (PRD §5.11.9 / §6.9)
     edit_lock_timeout_minutes: int = Field(default=30, description="编辑锁超时时间（分钟，上限 60，只能调严 <= 60）")
     edit_lock_heartbeat_seconds: int = Field(default=60, description="编辑锁心跳间隔（秒，范围 15～120）")
@@ -57,39 +56,26 @@ class CompanySettingsModel(BaseModel):
     assistant_enabled: bool = Field(default=True, description="是否启用对话助手")
     assistant_kb_default: bool = Field(default=True, description="新会话中知识库开关默认值")
     assistant_allow_kb_off: bool = Field(default=True, description="是否允许用户关闭知识库")
-    model_review_enabled: bool = Field(default=True, description="是否启用章节模型评审")
     # 查重与合规 (PRD §5.8.3 / §5.10.4)
-    dup_min_chars: int = Field(default=8, description="查重连续相同字数阈值")
-    dup_history_months: int = Field(default=24, description="查重历史标书比对年限（月）")
     # 招标解析 (PRD §5.2.2 规则 2：低于阈值的条目高亮提示人工核对)
     parse_confidence_threshold: float = Field(default=0.8, description="解析置信度高亮阈值（0.5～0.99，示例 0.8）")
     assistant_paste_match_ratio: float = Field(default=0.8, description="粘贴识别重合比例（0.5～1.0）：达到时该段来源记为对话助手撰写")
     # 审计与扩展
     updated_at: str | None = Field(default=None, description="最后更新时间（ISO 8601）")
     updated_by: str | None = Field(default=None, description="最后更新人账号ID")
-    custom_settings: dict[str, Any] = Field(default_factory=dict, description="企业扩展键值配置")
 
 
 class UpdateCompanySettingsRequest(BaseModel):
     company_name: str | None = Field(default=None, description="企业名称")
-    password_min_length: int | None = Field(default=None, description="密码最少位数（只能调严 >= 8，上限 32）")
-    password_min_char_classes: int | None = Field(default=None, description="至少包含的字符类别数（只能调严 3～4）")
-    max_login_attempts: int | None = Field(default=None, description="连续登录失败锁定次数（只能调严 <= 5，下限 1）")
-    session_timeout_minutes: int | None = Field(default=None, description="会话超时时长（分钟，范围 30～480）")
     edit_lock_timeout_minutes: int | None = Field(default=None, description="编辑锁超时时间（分钟，只能调严 <= 60，下限 6）")
     edit_lock_heartbeat_seconds: int | None = Field(default=None, description="编辑锁心跳间隔（秒，范围 15～120）")
     editor_autosave_seconds: int | None = Field(default=None, description="自动保存间隔（秒，范围 5～60）")
-    loop_max_rounds: int | None = Field(default=None, description="章节生成最大循环轮数（只能调严 <= 5，下限 1）")
     assistant_suggestion_count: int | None = Field(default=None, description="修改样例条数（范围 3～5）")
     assistant_enabled: bool | None = Field(default=None, description="是否启用对话助手")
     assistant_kb_default: bool | None = Field(default=None, description="新会话中知识库开关默认值")
     assistant_allow_kb_off: bool | None = Field(default=None, description="是否允许用户关闭知识库")
-    model_review_enabled: bool | None = Field(default=None, description="是否启用章节模型评审")
-    dup_min_chars: int | None = Field(default=None, description="查重连续相同字数阈值")
-    dup_history_months: int | None = Field(default=None, description="查重历史标书比对年限（月）")
     parse_confidence_threshold: float | None = Field(default=None, description="解析置信度高亮阈值（0.5～0.99）")
     assistant_paste_match_ratio: float | None = Field(default=None, description="粘贴识别重合比例（0.5～1.0）")
-    custom_settings: dict[str, Any] | None = Field(default=None, description="企业扩展键值配置")
 
 
 def parse_confidence_threshold(state, company_id: str) -> float:

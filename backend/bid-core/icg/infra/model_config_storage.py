@@ -311,6 +311,9 @@ def saved_company_model(state: Any, company_id: str) -> ModelConfig | None:
     """没有项目绑定、也没有任务对应表时，用管理员添加的模型。有本地模型时不用非本地的那一份。"""
     saved = [cfg for cfg in state.model_configs.values()
              if cfg.company_id == company_id and cfg.provider != "demo" and not placeholder_default(cfg)]
+    if not saved and company_id != "system":
+        saved = [cfg for cfg in state.model_configs.values()
+                 if cfg.company_id == "system" and cfg.provider != "demo" and not placeholder_default(cfg)]
     if not saved:
         return None
     local = [cfg for cfg in saved if cfg.is_local]
@@ -548,8 +551,10 @@ class ModelConfigService:
             from icg.domain.auth_service import is_super_admin
             from icg.domain.project_access import lead, normalize_role
             project = state.projects.get(project_id)
-            admin = (project is not None and not project.is_deleted and project.company_id == company_id
-                     and (is_super_admin(principal) or normalize_role(principal.user.role) == "company_admin"))
+            role = normalize_role(principal.user.role)
+            platform = is_super_admin(principal) or role == "platform_admin"
+            admin = (project is not None and not project.is_deleted
+                     and (platform or (project.company_id == company_id and role == "company_admin")))
             if not admin:
                 project = self.service._project(state, principal, project_id)
                 if not lead(state, project_id, principal.user.id):

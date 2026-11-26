@@ -11,6 +11,8 @@ from icg.api.library import include_snippet_routes
 from icg.api.model_configs import include_model_config_routes
 from icg.api.field_metadata import include_field_metadata_routes
 from icg.api.companies import include_company_routes
+from icg.api.platform import include_platform_routes
+from icg.api.audit import include_audit_routes
 from icg.api.users import include_user_routes
 from icg.api.chapter_loop import include_chapter_loop_routes
 from icg.api.evidence_candidates import include_evidence_candidate_routes
@@ -63,6 +65,8 @@ __all__ = [
     "include_model_config_routes",
     "include_field_metadata_routes",
     "include_company_routes",
+    "include_platform_routes",
+    "include_audit_routes",
     "include_user_routes",
     "include_chapter_loop_routes",
     "include_evidence_candidate_routes",

@@ -9,48 +9,30 @@ import { request, ApiError } from '../shared/api.ts';
 export interface ApiCompanySettings {
   company_id: string;
   company_name: string;
-  password_min_length: number;
-  password_min_char_classes: number;
-  max_login_attempts: number;
-  session_timeout_minutes: number;
   edit_lock_timeout_minutes: number;
   edit_lock_heartbeat_seconds: number;
   editor_autosave_seconds: number;
-  loop_max_rounds: number;
   assistant_suggestion_count: number;
   assistant_enabled: boolean;
   assistant_kb_default: boolean;
   assistant_allow_kb_off: boolean;
-  model_review_enabled: boolean;
-  dup_min_chars: number;
-  dup_history_months: number;
   parse_confidence_threshold?: number;
   assistant_paste_match_ratio?: number;
   updated_at?: string | null;
   updated_by?: string | null;
-  custom_settings?: Record<string, unknown>;
 }
 
 export interface ApiUpdateCompanySettingsPayload {
   company_name?: string;
-  password_min_length?: number;
-  password_min_char_classes?: number;
-  max_login_attempts?: number;
-  session_timeout_minutes?: number;
   edit_lock_timeout_minutes?: number;
   edit_lock_heartbeat_seconds?: number;
   editor_autosave_seconds?: number;
-  loop_max_rounds?: number;
   assistant_suggestion_count?: number;
   assistant_enabled?: boolean;
   assistant_kb_default?: boolean;
   assistant_allow_kb_off?: boolean;
-  model_review_enabled?: boolean;
-  dup_min_chars?: number;
-  dup_history_months?: number;
   parse_confidence_threshold?: number;
   assistant_paste_match_ratio?: number;
-  custom_settings?: Record<string, unknown>;
 }
 
 /**

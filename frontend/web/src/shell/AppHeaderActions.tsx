@@ -108,8 +108,10 @@ export function AppHeaderActions({
       <span className="user-name">{user.name}<small> · {roleDisplayLabel}</small></span>
     </span>,
     <Button key="logout" type="text" size="small" onClick={onLogout}>退出</Button>,
-    <Button key="model" type="text" icon={<SettingOutlined />} aria-label="模型服务配置" onClick={onOpenModelConfig}>模型配置</Button>,
-    <Button key="kb" type="text" icon={<DatabaseOutlined />} aria-label="知识库检索配置" onClick={onOpenRagflowConfig}>知识库配置</Button>,
+    ...(userPrimaryRole === 'platform_admin' ? [
+      <Button key="model" type="text" icon={<SettingOutlined />} aria-label="模型服务配置" onClick={onOpenModelConfig}>模型配置</Button>,
+      <Button key="kb" type="text" icon={<DatabaseOutlined />} aria-label="知识库检索配置" onClick={onOpenRagflowConfig}>知识库配置</Button>,
+    ] : []),
   );
   return items;
 }

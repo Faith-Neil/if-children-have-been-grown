@@ -206,6 +206,8 @@ def read_auth_state(repository: Any, token: str) -> DemoState:
         state.sessions[token] = user_id
         apply_entry(connection, state, "account", user_id)
         apply_entry(connection, state, "service_store", "companies")
+        apply_entry(connection, state, "service_store", "platform_security")
+        apply_entry(connection, state, "service_store", "session_times")
     return state
 
 

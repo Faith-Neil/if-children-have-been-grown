@@ -89,6 +89,14 @@ class TechnicalVolumeSessions:
             job_id, fresh = self.repository.transaction(operation)
             if not fresh:
                 return job_id
+            if getattr(self.repository, "mode", "") != "memory" and hasattr(self.repository, "save_job"):
+                created = self.repository.read().recoverable_jobs.get(job_id) or {}
+                self.repository.save_job({
+                    "id": job_id, "job_type": KIND, "project_id": project_id,
+                    "status": created.get("status", "queued"), "progress": int(created.get("progress") or 0),
+                    "step_name": created.get("message"), "created_by": principal.user.id,
+                    "created_at": created.get("created_at"), "recoverable": True,
+                })
             backlog = _Backlog(job_id)
             superseded = self._latest.get(project_id)
             if superseded:
@@ -98,6 +106,18 @@ class TechnicalVolumeSessions:
         threading.Thread(target=self._run, args=(job_id, prepared, backlog), daemon=True,
                          name="technical-volume").start()
         return job_id
+
+    def _sync_job_row(self, job_id: str) -> None:
+        if getattr(self.repository, "mode", "") == "memory" or not hasattr(self.repository, "update_job_progress"):
+            return
+        job = self.repository.read().recoverable_jobs.get(job_id) or {}
+        if not job:
+            return
+        self.repository.update_job_progress(
+            job_id, int(job.get("progress") or 0), status=job.get("status"),
+            step_name=job.get("message"), error_json=job.get("error"),
+            result_json={"sections": job.get("sections")} if job.get("sections") else None,
+        )
 
     def cancel(self, job_id: str) -> None:
         """cancelJob 已把任务记为取消；这里让模型停下，本次不写入。"""
@@ -155,6 +175,7 @@ class TechnicalVolumeSessions:
             return dict(job)
 
         job = self.repository.transaction(operation)
+        self._sync_job_row(job_id)
         events: list[dict] = [{"event": "session.started", "job_id": job_id}, {"event": "session.live"}]
         if job is None:
             return events
@@ -283,3 +304,4 @@ class TechnicalVolumeSessions:
             change(state, job)
             state.jobs[job_id] = _mirror(job)
         self.repository.transaction(operation)
+        self._sync_job_row(job_id)

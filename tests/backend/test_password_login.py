@@ -31,7 +31,7 @@ def test_new_account_must_change_password_before_any_business_call(client: TestC
     assert body["must_change_password"] is True
     policy_keys = ("min_length", "min_char_classes", "char_classes", "scope")
     assert {k: body["password_policy"][k] for k in policy_keys} == {
-        "min_length": 8, "min_char_classes": 3, "char_classes": ["大写字母", "小写字母", "数字", "符号"], "scope": "company"}
+        "min_length": 8, "min_char_classes": 3, "char_classes": ["大写字母", "小写字母", "数字", "符号"], "scope": "platform"}
     headers = _bearer(body["access_token"])
 
     # 改密前直接调业务接口被拒（后端判定，不靠页面跳转）
