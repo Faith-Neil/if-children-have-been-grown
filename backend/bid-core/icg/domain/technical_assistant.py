@@ -184,7 +184,10 @@ class TechnicalSectionAssistant:
         fingerprint = project_input_fingerprint(state, project_id)
         base_revision = chapter.revision
         query = section_query(title, points=context["points"][:2])
-        chunks, audit = retrieve_for_section(getattr(self.demo, "knowledge_base", None), project.company_id, query, workflow)
+        chunks, audit = retrieve_for_section(
+            getattr(self.demo, "knowledge_base", None), project.company_id, query, workflow,
+            breadcrumb=title, points=context["points"][:2],
+        )
         user = "\n".join([
             context_block(context),
             "【知识库】", knowledge_prompt_block(chunks, workflow) or "（无命中）",

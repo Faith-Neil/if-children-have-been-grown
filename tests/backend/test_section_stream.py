@@ -184,9 +184,10 @@ def test_produce_section_cancel_stops_the_rest_of_the_stream():
     assert seen == [PIECES[0]]
 
 
-def test_write_volume_streams_each_section_and_keeps_suggest_for_the_whole_chapter():
+def test_write_volume_streams_each_section_and_keeps_suggest_for_the_whole_chapter(monkeypatch):
     from icg.domain.technical_volume import write_volume
 
+    monkeypatch.setenv("ICG_SECTION_CONCURRENCY", "3")
     state, workflow, chapter = _volume(["总体说明", "巡检方案"])
     events = []
     model = _local()
@@ -260,11 +261,20 @@ def test_write_volume_cancel_leaves_the_previous_section_body():
     assert workflow["response_tasks"]["t1"].get("generation_status") != "failed"
 
 
-def test_parallel_sections_stay_within_the_concurrency_cap():
+def test_parallel_sections_stay_within_the_concurrency_cap(monkeypatch):
     from icg.domain.technical_volume import write_volume
 
+    monkeypatch.setenv("ICG_SECTION_CONCURRENCY", "3")
     titles = ["总体说明", "巡检方案", "故障处理", "备份恢复"]
     state, workflow, chapter = _volume(titles)
+    # 一级章间串行、章内并发：四节挂到同一个一级章下才会并发推进
+    workflow["technical_outline"]["headings"] = [
+        {"level": 1, "number": "1", "title": "服务方案"},
+        *[
+            {**h, "level": 2, "number": f"1.{index}"}
+            for index, h in enumerate(workflow["technical_outline"]["headings"], start=1)
+        ],
+    ]
     gate = threading.Event()
     lock = threading.Lock()
     current = 0

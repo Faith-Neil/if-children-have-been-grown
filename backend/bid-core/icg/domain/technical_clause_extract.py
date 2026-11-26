@@ -238,6 +238,7 @@ def apply_technical_extract(
         clauses_from_model,
         extract_with_model,
         miss_patch,
+        resolve_chunk_id,
         usable_local_model,
     )
 
@@ -264,9 +265,11 @@ def apply_technical_extract(
                     rejection.append(line)
                 items = sidecar.setdefault("rejection_items", [])
                 if line and not any(item.get("quote") == line for item in items):
+                    chunk_id = resolve_chunk_id(workflow, file_id, pages, clause.page, line)
                     items.append({
                         "text": clause.text, "quote": line, "page": clause.page,
-                        "file_id": file_id, "category": clause.extra.get("category") or "",
+                        "file_id": file_id, "chunk_id": chunk_id,
+                        "category": clause.extra.get("category") or "",
                     })
                 continue
             mounts.append(clause)
@@ -276,7 +279,11 @@ def apply_technical_extract(
     index = {row.get("matter_key"): row for row in workflow["requirements"].values() if row.get("technical_clause")}
     for clause in clauses:
         key = _matter_key(clause.text)
-        source = {"file_id": file_id, "page": clause.page, "quote": clause.quote, "kind": clause.kind}
+        chunk_id = resolve_chunk_id(workflow, file_id, pages, clause.page, clause.quote)
+        source = {
+            "file_id": file_id, "page": clause.page, "quote": clause.quote,
+            "kind": clause.kind, "chunk_id": chunk_id,
+        }
         if clause.extract_source:
             source["extract_source"] = clause.extract_source
         hit = next((row for matter, row in index.items() if _same(str(matter), key)), None)
@@ -300,7 +307,7 @@ def apply_technical_extract(
             "response": "",
             "reason": "",
             "evidence_ids": [],
-            "source": {"file_id": file_id, "page": clause.page, "quote": clause.quote},
+            "source": {"file_id": file_id, "page": clause.page, "quote": clause.quote, "chunk_id": chunk_id},
             "sources": [source],
             "references": [],
             "reference_status": "none",

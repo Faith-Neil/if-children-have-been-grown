@@ -43,8 +43,84 @@ def text_is_non_tech(text: str) -> bool:
     return any(marker in blob for marker in _NON_TECH_MARKERS)
 
 
+# 商务/报价/格式包装类条款硬标记：命中即商务卷条款，硬拦截不得进技术目录树与技术偏离表。
+# 注意保持保守：服务期/质保期/SLA/运维 是技术条款，词表不得误伤。
+_BUSINESS_MARKERS = (
+    "投标报价",
+    "报价一览表",
+    "基准价",
+    "币种",
+    "人民币",
+    "投标文件格式",
+    "装订",
+    "盖章",
+    "密封",
+    "签字或盖章",
+    "付款方式",
+    "付款条件",
+    "发票",
+    "税率",
+    "商务业绩",
+    "投标保证金",
+    "保证金",
+    "联合体投标",
+    "联合体",
+    "转包",
+    "分包",
+    "投标文件份数",
+    "正本",
+    "副本",
+    "报名材料",
+    "报名条件",
+    "资格条件",
+    "投标有效期",
+    "开标一览",
+    "报价得分",
+    "价格分",
+    # 招标人义务 / 程序格式 / 文件制作递交：不属于技术方案正文。
+    "投标文件制作",
+    "书写或打印",
+    "不褪色",
+    "涂改",
+    "行间插字",
+    "按时递交",
+    "逾期送达",
+    "送达指定地点",
+    "递交时间和地点",
+    "出席开标",
+    "开标会议",
+    "开标程序",
+    "成交结果",
+    "结果公示",
+    "采购公告",
+    "评标办法",
+    "前附表审核",
+    "电子文件",
+    "纸质文件",
+    "书面文件与电子文件",
+    "最不利原则",
+    "投标文件内容",
+    "投标文件原件",
+)
+
+
+def is_business_clause_text(text: str) -> bool:
+    blob = str(text or "")
+    if not blob:
+        return False
+    return any(marker in blob for marker in _BUSINESS_MARKERS)
+
+
+def is_business_clause(item: dict) -> bool:
+    """商务卷条款判定：报价/币种/格式/装订/付款类。技术 SLA 与运维条款不得命中。"""
+    blob = f"{item.get('text') or ''} {item.get('extracted_summary') or ''} {item.get('score_item') or ''}"
+    return is_business_clause_text(blob)
+
+
 def row_is_non_tech(item: dict) -> bool:
     if item.get("requirement_type") == "qualification":
+        return True
+    if is_business_clause(item):
         return True
     blob = f"{item.get('text') or ''} {item.get('extracted_summary') or ''}"
     return text_is_non_tech(blob)

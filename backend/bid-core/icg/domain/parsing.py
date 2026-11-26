@@ -87,22 +87,84 @@ class LocalTextParser:
         except (BadZipFile, ElementTree.ParseError, KeyError, RuntimeError) as error:
             raise DomainError(422, "INVALID_DOCX", "无法读取 DOCX 文件结构。") from error
         pages = [""]
-        for paragraph in root.iter(namespace + "p"):
-            for element in paragraph.iter():
-                if element.tag == namespace + "t":
-                    pages[-1] += element.text or ""
-                elif element.tag == namespace + "tab":
-                    pages[-1] += "\t"
-                elif element.tag == namespace + "br":
-                    if element.attrib.get(namespace + "type") == "page":
-                        pages.append("")
-                    else:
-                        pages[-1] += "\n"
-            pages[-1] += "\n"
+        body = root.find(namespace + "body")
+        nodes = list(body) if body is not None else list(root)
+        for child in nodes:
+            if child.tag == namespace + "p":
+                self._append_docx_paragraph(child, pages, namespace)
+            elif child.tag == namespace + "tbl":
+                table_text = self._extract_docx_table(child, namespace)
+                if table_text:
+                    pages[-1] += table_text + "\n"
+            else:
+                for paragraph in child.iter(namespace + "p"):
+                    self._append_docx_paragraph(paragraph, pages, namespace)
         for page in pages:
             self._validate_text(page)
         return self._nonempty(ParsedDocument(pages, "explicit_docx_breaks_only",
                                              ["DOCX 页码仅按明确分页符定位；未经过 Word 排版，不代表最终印刷页码。"] ))
+
+    @staticmethod
+    def _append_docx_paragraph(paragraph: ElementTree.Element, pages: list[str], namespace: str) -> None:
+        for element in paragraph.iter():
+            if element.tag == namespace + "t":
+                pages[-1] += element.text or ""
+            elif element.tag == namespace + "tab":
+                pages[-1] += "\t"
+            elif element.tag == namespace + "br":
+                if element.attrib.get(namespace + "type") == "page":
+                    pages.append("")
+                else:
+                    pages[-1] += "\n"
+        pages[-1] += "\n"
+
+    @classmethod
+    def _extract_docx_table(cls, tbl: ElementTree.Element, namespace: str) -> str:
+        """还原 DOCX 表格行列结构，并向下填充 vMerge 纵向合并单元格、展开 gridSpan 横向合并。"""
+        vmerge_carry: dict[int, str] = {}
+        rendered_rows: list[str] = []
+        for tr in tbl.findall(namespace + "tr"):
+            col_idx = 0
+            cells_out: list[str] = []
+            for tc in tr.findall(namespace + "tc"):
+                tc_pr = tc.find(namespace + "tcPr")
+                span = 1
+                vmerge_continue = False
+                vmerge_present = False
+                if tc_pr is not None:
+                    grid_span = tc_pr.find(namespace + "gridSpan")
+                    if grid_span is not None:
+                        raw_span = grid_span.attrib.get(namespace + "val") or grid_span.attrib.get("val") or "1"
+                        try:
+                            span = max(1, int(raw_span))
+                        except ValueError:
+                            span = 1
+                    vmerge = tc_pr.find(namespace + "vMerge")
+                    if vmerge is not None:
+                        vmerge_present = True
+                        val = vmerge.attrib.get(namespace + "val") or vmerge.attrib.get("val") or ""
+                        vmerge_continue = val != "restart"
+                parts: list[str] = []
+                for p in tc.findall(namespace + "p"):
+                    buf = "".join(el.text or "" for el in p.iter() if el.tag == namespace + "t").strip()
+                    if buf:
+                        parts.append(buf)
+                cell_text = " ".join(parts).strip()
+                if vmerge_continue and not cell_text and col_idx in vmerge_carry:
+                    cell_text = vmerge_carry[col_idx]
+                for offset in range(span):
+                    target_col = col_idx + offset
+                    if vmerge_present:
+                        vmerge_carry[target_col] = cell_text
+                    else:
+                        vmerge_carry.pop(target_col, None)
+                    cells_out.append(cell_text)
+                col_idx += span
+            while cells_out and not cells_out[-1]:
+                cells_out.pop()
+            if any(cells_out):
+                rendered_rows.append(" | ".join(cells_out))
+        return "\n".join(rendered_rows)
 
     def _pdf(self, content: bytes) -> ParsedDocument:
         try:

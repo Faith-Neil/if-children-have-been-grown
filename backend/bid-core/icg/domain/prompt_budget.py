@@ -302,7 +302,7 @@ class DynamicPromptContextManager:
             req_block_lines = ["【招标文件条款与响应要求】"]
             for req in reqs:
                 req_id = req.get("id", "req")
-                resp_text = req.get("response", "").strip() or "【待补】请填写经核对的响应"
+                resp_text = req.get("response", "").strip() or "[待人工补充：经核对的响应]"
                 req_text = f"• 条款：{req.get('text', '')}\n  响应：{resp_text}"
                 if any(w in req.get("text", "") for w in ("资质", "证书", "证明", "业绩", "授权")) and not req.get("evidence_ids"):
                     req_text += "\n  注意：本条款缺少已核对证据，不得编造证明材料。"

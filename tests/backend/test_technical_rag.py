@@ -190,8 +190,10 @@ def test_produce_section_mounts_points_skips_global_sla_and_marks_empty_knowledg
     prompt = model.prompts[0]
     assert "挂载要点" in prompt
     assert "每日全量备份" in prompt
-    assert "7*24" not in prompt
-    assert "【待确认】" in prompt
+    # 项目级 SLA 不再挂进本节「挂载要点」块；但全局项目事实表作为全书统一口径允许携带 sla_response
+    mounted_block = prompt.split("挂载要点：", 1)[1].split("评分标准：", 1)[0]
+    assert "7*24" not in mounted_block
+    assert "[待人工补充：" in prompt
 
     produce_section(
         "运维保障与巡检",
@@ -229,9 +231,9 @@ def test_tender_block_is_project_fact_and_missing_capability_is_unconfirmed():
     assert "改写" in prompt
     assert "只陈述" not in prompt
     assert "企业知识检索" not in prompt
-    assert "【待确认】" in prompt
+    assert "[待人工补充：" in prompt
     assert "能力" in prompt
-    assert "不要写成【待补】" in prompt
+    assert "不得用占位符代替" in prompt
 
 
 def test_company_evidence_omits_capability_gap():
@@ -258,7 +260,7 @@ def test_company_evidence_omits_capability_gap():
     assert "[标:0fc36992]" in prompt
     assert prompt.index("一般故障，恢复时间不超过2个小时。") < prompt.index("我司巡检每月一次并留记录")
     assert prompt.index("我司巡检每月一次并留记录") < prompt.index("到场时限2小时见产品说明")
-    assert "【待确认】" not in prompt
+    assert "[待人工补充：" not in prompt
 
 
 def test_section_prompt_forbids_paraphrasing_tender_and_blanket_placeholders():
@@ -289,11 +291,11 @@ def test_section_prompt_forbids_paraphrasing_tender_and_blanket_placeholders():
     assert "无命中标【待确认】" not in model.system
     assert "其他客户或其他项目名称写成【待补】" not in model.system
     assert "改写" in model.system
-    assert "不要写成【待补】" in model.system
+    assert "严禁挖成【待补】" in model.system
     assert "[标:" in model.system
     assert "企业知识检索" not in model.user
     assert "[标:0fc36992]" in model.user
-    assert "【待确认】" in model.user
+    assert "[待人工补充：" in model.user
     assert "能力" in model.user
 
     empty = Model()
@@ -304,7 +306,7 @@ def test_section_prompt_forbids_paraphrasing_tender_and_blanket_placeholders():
         knowledge="",
     )
     assert "企业知识检索" not in empty.user
-    assert "【待确认】" in empty.user
+    assert "[待人工补充：" in empty.user
     assert "能力" in empty.user
 
 
@@ -381,7 +383,7 @@ def test_stand_in_does_not_treat_tender_slices_as_company_evidence():
         knowledge=knowledge,
     )
     assert "已参考企业知识库" not in text
-    assert "【待确认】" in text
+    assert "[待人工补充：" in text
 
 
 def test_tender_only_retrieval_marks_section_needs_confirm():
@@ -442,7 +444,7 @@ def test_tender_only_retrieval_marks_section_needs_confirm():
     assert "企业知识检索" not in model.user
     assert "项目事实" in model.user
     assert "[标:p" in model.user
-    assert "【待确认】" in model.user
+    assert "[待人工补充：" in model.user
     assert "改写" in model.system
 
 
@@ -477,7 +479,7 @@ def test_company_chunks_stay_when_tender_fills_the_window():
     assert "history" in kinds or "materials" in kinds
     prompt = knowledge_prompt_block(chunks)
     assert "公司history证据" in prompt or "公司materials证据" in prompt
-    assert "【待确认】" not in prompt
+    assert "[待人工补充：" not in prompt
 
 
 def test_history_reference_drops_foreign_names_and_keeps_hits():

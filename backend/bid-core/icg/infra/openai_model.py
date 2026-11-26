@@ -219,8 +219,12 @@ JSON_CALL = ModelCallProfile(enable_thinking=False, max_tokens=256, timeout_seco
 # 36 个要点的目录 JSON 大约 700 字。256 会把 nodes 截成空数组，抽取和偏离仍用 JSON_CALL。
 # 三张清单（需求 / 评分 / 废标）一块约 600～900 字 JSON，256 会截断。
 EXTRACT_CALL = ModelCallProfile(enable_thinking=False, max_tokens=1200, timeout_seconds=60, json_mode=True)
-TREE_CALL = ModelCallProfile(enable_thinking=False, max_tokens=2000, timeout_seconds=60, json_mode=True)
-SECTION_CALL = ModelCallProfile(enable_thinking=False, max_tokens=1200, timeout_seconds=90, json_mode=False)
+TREE_CALL = ModelCallProfile(enable_thinking=False, max_tokens=8192, timeout_seconds=300, json_mode=True)
+SECTION_CALL = ModelCallProfile(enable_thinking=False, max_tokens=2048, timeout_seconds=120, json_mode=False)
+# 按章节权重分档（真机实测 max_tokens=1200 把 21/30 节在 1600~1850 字拦腰截断）：
+# 高分核心节 4096、普通支撑节 2048（默认）、简明承诺节 1200。
+SECTION_CORE_CALL = ModelCallProfile(enable_thinking=False, max_tokens=4096, timeout_seconds=180, json_mode=False)
+SECTION_BRIEF_CALL = ModelCallProfile(enable_thinking=False, max_tokens=1200, timeout_seconds=90, json_mode=False)
 
 
 def chat_payload(config: OpenAICompatibleConfig, instruction: str, content: str, *,
@@ -288,6 +292,7 @@ class OpenAICompatibleModelProvider:
         self.max_tokens = config.max_tokens
         self._transport = transport
         self._environ = environ
+        self.last_finish_reason = ""
 
     def suggest(self, instruction: str, content: str, *, profile: ModelCallProfile | None = None) -> str:
         if self.is_local and is_public_model_url(self.base_url):
@@ -353,12 +358,18 @@ class OpenAICompatibleModelProvider:
         parse_error: ModelCallError | None = None
         if response.status_code == 200:
             try:
+                self.last_finish_reason = _finish_reason_from_body(response.json())
+            except ValueError:
+                self.last_finish_reason = ""
+            try:
                 assistant = _assistant_text(response)
             except ModelCallError as exc:
                 parse_error = exc
         if assistant is not None:
             record["assistant"] = assistant
             record["assistant_chars"] = len(assistant)
+        if self.last_finish_reason:
+            record["finish_reason"] = self.last_finish_reason
         _audit_profiled(profile, "response", record)
         if response.status_code in _RETRYABLE_STATUS:
             raise RetryableModelError(f"HTTP {response.status_code}")
@@ -421,6 +432,8 @@ class OpenAICompatibleModelProvider:
             if assistant is not None:
                 record["assistant"] = assistant
                 record["assistant_chars"] = len(assistant)
+            if self.last_finish_reason:
+                record["finish_reason"] = self.last_finish_reason
             _audit_profiled(profile, "response", record)
 
         try:
@@ -435,6 +448,10 @@ class OpenAICompatibleModelProvider:
                         raise ModelCallError(f"HTTP {response.status_code}")
                     if "text/event-stream" not in response.headers.get("content-type", ""):
                         response.read()
+                        try:
+                            self.last_finish_reason = _finish_reason_from_body(response.json())
+                        except ValueError:
+                            self.last_finish_reason = ""
                         text = _assistant_text(response)
                         record_response(response.status_code, text)
                         raise_upstream_error(text)
@@ -456,6 +473,8 @@ class OpenAICompatibleModelProvider:
                         choices = chunk.get("choices") if isinstance(chunk, dict) else None
                         if not (isinstance(choices, list) and choices and isinstance(choices[0], dict)):
                             continue
+                        if choices[0].get("finish_reason"):
+                            self.last_finish_reason = str(choices[0].get("finish_reason") or "")
                         delta = choices[0].get("delta") or {}
                         if not isinstance(delta, dict):
                             continue
@@ -613,6 +632,13 @@ def _sse_assistant_body(raw_text: str) -> str:
             if thought:
                 reasoning_parts.append(thought)
     return _prefer_assistant_body("".join(content_parts), "".join(reasoning_parts))
+
+
+def _finish_reason_from_body(body: Any) -> str:
+    choices = body.get("choices") if isinstance(body, dict) else None
+    if isinstance(choices, list) and choices and isinstance(choices[0], dict):
+        return str(choices[0].get("finish_reason") or "")
+    return ""
 
 
 def _message_assistant_body(message: dict) -> str:

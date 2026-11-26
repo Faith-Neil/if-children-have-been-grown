@@ -169,6 +169,24 @@ class OutlineHeadingInput(RequestBody):
     requirement_ids: list[str] = Field(default_factory=list)
 
 
+class GlobalFactSheetUpdate(RequestBody):
+    project_name: str | None = Field(default=None, max_length=300)
+    client_name: str | None = Field(default=None, max_length=300)
+    service_period: str | None = Field(default=None, max_length=300)
+    warranty_period: str | None = Field(default=None, max_length=300)
+    sla_response: str | None = Field(default=None, max_length=300)
+    on_site_staff: str | None = Field(default=None, max_length=300)
+    project_manager: str | None = Field(default=None, max_length=300)
+    target_models: list[str] | None = Field(default=None, max_length=30)
+    tech_route: str | None = Field(default=None, max_length=300)
+    sla_terms: dict[str, str] | None = Field(default=None, description="合同与 SLA 分级硬参数（故障响应/到场/修复/服务期）")
+    asset_profile: dict[str, str] | None = Field(default=None, description="甲方真实资产画像（设备/系统/数据库分布）")
+    scoring_decisions: dict[str, str] | None = Field(default=None, description="评分加分项决策（巡检频次/延保/驻场）")
+    service_modules: list[dict[str, str]] | None = Field(default=None, description="分服务模块周期与范围，如原厂维保12个月、DBA服务6个月")
+    asset_inventory: list[dict[str, str]] | None = Field(default=None, description="异构资产明细表（类别/数据库类型/数量）")
+    scoring_rules: list[dict[str, str]] | None = Field(default=None, description="招标评分表逐项真实规则与投标决策")
+
+
 class PlanRequest(RequestBody):
     chapters: list[PlannedChapter] = Field(min_length=1, max_length=100)
     scope: Literal["all", "technical", "business"] = "all"
@@ -176,6 +194,9 @@ class PlanRequest(RequestBody):
     outline_title: str | None = Field(default=None, max_length=80)
     outline_headings: list[OutlineHeadingInput] | None = None
     confirm_outline: bool = False
+    allow_unassigned: bool = Field(default=False, description="未挂载池非空时显式确认忽略")
+    auto_mount_unassigned: bool = Field(default=False, description="未挂载池非空时自动归入「其他服务承诺」并确认")
+    global_fact_sheet: GlobalFactSheetUpdate | None = Field(default=None, description="确认目录前同步保存的全局项目事实表")
 
 
 class ChapterPlanPatch(RequestBody):
@@ -946,11 +967,41 @@ class TechnicalHeading(ResponseBody):
     requirement_ids: list[str] = Field(default_factory=list)
 
 
+class UnassignedRequirementItem(ResponseBody):
+    requirement_id: str
+    digest_id: str = ""
+    kind: Literal["tech", "scoring"] = "tech"
+    text: str = ""
+    score_item: str = ""
+    score: float | None = None
+    source_page: int | None = None
+
+
+class GlobalFactSheet(ResponseBody):
+    project_name: str = ""
+    client_name: str = ""
+    service_period: str = ""
+    warranty_period: str = ""
+    sla_response: str = ""
+    on_site_staff: str = ""
+    project_manager: str = ""
+    target_models: list[str] = Field(default_factory=list)
+    tech_route: str = ""
+    sla_terms: dict[str, str] | None = None
+    asset_profile: dict[str, str] | None = None
+    scoring_decisions: dict[str, str] | None = None
+    service_modules: list[dict[str, str]] | None = None
+    asset_inventory: list[dict[str, str]] | None = None
+    scoring_rules: list[dict[str, str]] | None = None
+    frozen_at: str | None = None
+
+
 class TechnicalOutline(ResponseBody):
     title: str
     chapter_id: str
     headings: list[TechnicalHeading]
     missing: list[str] = Field(default_factory=list, description="还没有挂进目录的条款")
+    unassigned_requirements: list[UnassignedRequirementItem] = Field(default_factory=list, description="未挂载池：删除或未分配到章节的评分点与技术要求")
     plan_validation: dict[str, Any] | None = None
     outline_source: str = Field(default="", description="model、rule 或 rule_fallback")
     tree_model_failed: bool = Field(default=False, description="编排目录的模型失败后用了规则替身")
@@ -1086,6 +1137,7 @@ class Workspace(ResponseBody):
     tree_model_failed: bool = Field(default=False, description="编排目录的模型失败，目录为规则兜底")
     outline_reason: str = Field(default="", description="目录不是模型编的原因：模型编排中、未调用或失败；模型目录为空")
     technical_outline: TechnicalOutline | None = Field(default=None, description="技术分册的单章目录；创建时的技术方案不是这份目录")
+    global_fact_sheet: GlobalFactSheet | None = Field(default=None, description="全书统一口径的全局项目事实表")
     technical_deviation_note: str = Field(default="", description="没有偏离表样表时的说明；有样表则为空")
     technical_needs_review: list[str] = Field(default_factory=list, description="正文偏离表述和矩阵不一致、或同一指标出现两个数字的小节")
     technical_kb: TechnicalKbStatus | None = Field(default=None, description="企业双库是否齐备")
@@ -1150,6 +1202,7 @@ class MutationResult(ResponseBody):
     parse_confirmed: bool | None = None
     plan_confirmed: bool | None = None
     writing_plan: WritingPlan | None = None
+    global_fact_sheet: GlobalFactSheet | None = None
     team: Team | None = None
     chapter: WorkflowChapter | None = None
     item: dict[str, Any] | None = Field(default=None, description="拆分后的主条目（条款或事实）")

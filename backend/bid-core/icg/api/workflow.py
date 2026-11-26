@@ -4,7 +4,7 @@
 from typing import Any, Literal
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Header, Query, Request, Response
+from fastapi import APIRouter, Body, Depends, Header, Query, Request, Response
 from fastapi.concurrency import iterate_in_threadpool
 from fastapi.responses import StreamingResponse
 from starlette.concurrency import run_in_threadpool
@@ -28,7 +28,7 @@ from icg.domain.idempotency import IDEMPOTENCY_HEADER_DESCRIPTION
 from icg.domain.workflow_schemas import (AddendumDiff, ConflictDecision, ConflictList, FileRole, FileRoleUpdate, FileSupersede,
                                ItemSplit, MergeDismiss, PostProcessSummary, RequirementMerge)
 from icg.domain.workflow_schemas import (BatchConfirmRequest, ParseReview, CheckList, ConflictPatch, FactPatch, FileDelete, FilePreview, FileUpload,
-                               GenerateRequest, JobsList, LibraryCreate, LibraryList,
+                               GenerateRequest, GlobalFactSheetUpdate, JobsList, LibraryCreate, LibraryList,
                                LibraryPatch, LibraryResult, MutationResult, ParseRequest,
                                PlanRequest, CheckReleaseRequest, MatrixMatchRequest, MatrixRoutingRequest, MergeChecklistResponse, ProjectCheckRequest, ProjectExportRequest,
                                ProjectPatch, RelatedBidAck, RelatedBidStatus, ProposedStaffResult, ProposedStaffUpdate, ExportSettings, ExportSettingsUpdate, RequirementPatch, Workspace, WritingInputPreview,
@@ -370,6 +370,20 @@ def include_workflow_routes(application, service, current_user, parser):
              if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.plan(user, project_id, body.model_dump(exclude_unset=True), if_match, idempotency_key)
 
+    @router.put("/projects/{project_id}/global-fact-sheet", response_model=MutationResult,
+                response_model_exclude_none=True, operation_id="saveGlobalFactSheet",
+                summary="保存全书统一的全局项目事实表（Global Fact Sheet）")
+    def save_global_fact_sheet(
+        project_id: str,
+        body: GlobalFactSheetUpdate,
+        user: Principal = Depends(current_user),
+        if_match: str | None = Header(default=None),
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION),
+    ):
+        return workflow.save_global_fact_sheet(
+            user, project_id, body.model_dump(exclude_unset=True), if_match, idempotency_key,
+        )
+
     @router.post("/projects/{project_id}/generate", response_model=MutationResult, operation_id="generateProject")
     def generate(project_id: str, body: GenerateRequest, user: Principal = Depends(current_user),
                  if_match: str | None = Header(default=None), idempotency_key: str | None = Header(default=None, alias="Idempotency-Key", description=IDEMPOTENCY_HEADER_DESCRIPTION)):
@@ -412,6 +426,15 @@ def include_workflow_routes(application, service, current_user, parser):
                                idempotency_key: str | None = Header(default=None, alias="Idempotency-Key",
                                                                     description=IDEMPOTENCY_HEADER_DESCRIPTION)):
         return workflow.confirm_technical_task(user, project_id, task_id, body.model_dump(), if_match, idempotency_key)
+
+    @router.post("/projects/{project_id}/technical-tasks/{task_id}/verify-warnings/dismiss", response_model=MutationResult,
+                 response_model_exclude_none=True, operation_id="dismissTechnicalTaskVerifyWarnings", summary="人工消警核验警示（核对无误后清除待复核红标，原文留档）")
+    def dismiss_technical_task_verify_warnings(project_id: str, task_id: str, body: dict = Body(default={}),
+                                               user: Principal = Depends(current_user),
+                                               if_match: str | None = Header(default=None),
+                                               idempotency_key: str | None = Header(default=None, alias="Idempotency-Key",
+                                                                                  description=IDEMPOTENCY_HEADER_DESCRIPTION)):
+        return workflow.dismiss_technical_task_warnings(user, project_id, task_id, body or {}, if_match, idempotency_key)
 
     @router.get("/projects/{project_id}/chapters/{chapter_id}/system", operation_id="previewSystemChapter", response_model=dict[str, Any],
                 summary="系统生成章节预览（点对点应答/评审索引/偏离表/年度服务计划/证明材料清单）")
@@ -738,6 +761,19 @@ def include_workflow_routes(application, service, current_user, parser):
             principal=user,
             project_id=project_id,
             options=options,
+        )
+
+    @router.post(
+        "/projects/{project_id}/technical-outline/rebuild-model",
+        include_in_schema=False,
+    )
+    def rebuild_technical_outline_model_endpoint(
+        project_id: str,
+        user: Principal = Depends(current_user),
+    ):
+        return workflow.rebuild_technical_outline_model(
+            principal=user,
+            project_id=project_id,
         )
 
     @router.post(

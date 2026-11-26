@@ -365,11 +365,11 @@ def render_model_input(snapshot):
              "写作要点：" + (snapshot["plan"]["writing_points"] or "未补充"),
              "字数目标（人工参考）：" + str(snapshot["plan"]["target_length"] or "未指定")]
     for row in snapshot["requirements"]:
-        lines += ["招标要求：" + row["text"], "响应：" + (row["response"].strip() or "【待补】请填写经核对的响应")]
+        lines += ["招标要求：" + row["text"], "响应：" + (row["response"].strip() or "[待人工补充：经核对的响应]")]
         if any(word in row["text"] for word in ("资质", "证书", "证明", "业绩", "授权")) and not row["evidence_ids"]:
-            lines.append("【待补】本条款缺少已核对证据，不得编造证明。")
+            lines.append("[待人工补充：已核对证据] 本条款缺少已核对证据，不得编造证明。")
     if not snapshot["requirements"]:
-        lines.append("【待补】请先在响应矩阵关联本章节条款。")
+        lines.append("[待人工补充：响应矩阵章节关联] 请先在响应矩阵关联本章节条款。")
     if snapshot.get("injected_tender_clauses"):
         lines.append("以下为用户主动注入的招标文件特定条款约束：")
         for cl in snapshot["injected_tender_clauses"]:

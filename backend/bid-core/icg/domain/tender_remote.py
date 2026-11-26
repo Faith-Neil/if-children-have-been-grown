@@ -51,11 +51,90 @@ def wait_seconds() -> float:
         return 60.0
 
 
+from html.parser import HTMLParser
+
+
+class _HtmlTableGridParser(HTMLParser):
+    """将 HTML <table> 解析为二维网格，展开 rowspan / colspan，避免跨行评分大项丢失。"""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.rows: list[list[str]] = []
+        self._spans: dict[tuple[int, int], str] = {}
+        self._row_idx = -1
+        self._col_idx = 0
+        self._in_cell = False
+        self._cell_buf: list[str] = []
+        self._rowspan = 1
+        self._colspan = 1
+
+    def _advance_spanned(self, current: list[str]) -> None:
+        while (self._row_idx, self._col_idx) in self._spans:
+            current.append(self._spans.pop((self._row_idx, self._col_idx)))
+            self._col_idx += 1
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        lower = tag.lower()
+        if lower == "tr":
+            self._row_idx += 1
+            self._col_idx = 0
+            self.rows.append([])
+            self._advance_spanned(self.rows[-1])
+        elif lower in ("td", "th") and self.rows:
+            attr_map = {k.lower(): (v or "") for k, v in attrs}
+            try:
+                self._rowspan = max(1, int(attr_map.get("rowspan") or 1))
+            except ValueError:
+                self._rowspan = 1
+            try:
+                self._colspan = max(1, int(attr_map.get("colspan") or 1))
+            except ValueError:
+                self._colspan = 1
+            self._in_cell = True
+            self._cell_buf = []
+        elif lower == "br" and self._in_cell:
+            self._cell_buf.append(" ")
+
+    def handle_endtag(self, tag: str) -> None:
+        lower = tag.lower()
+        if lower in ("td", "th") and self._in_cell and self.rows:
+            self._in_cell = False
+            value = re.sub(r"\s+", " ", "".join(self._cell_buf)).strip()
+            current = self.rows[-1]
+            self._advance_spanned(current)
+            start_col = self._col_idx
+            for c_off in range(self._colspan):
+                current.append(value)
+                for r_off in range(1, self._rowspan):
+                    self._spans[(self._row_idx + r_off, start_col + c_off)] = value
+            self._col_idx += self._colspan
+            self._advance_spanned(current)
+        elif lower == "tr" and self.rows:
+            self._advance_spanned(self.rows[-1])
+
+    def handle_data(self, data: str) -> None:
+        if self._in_cell:
+            self._cell_buf.append(data)
+
+
+def _render_html_table(match: re.Match) -> str:
+    parser = _HtmlTableGridParser()
+    parser.feed(html.unescape(match.group(0)))
+    lines: list[str] = []
+    for row in parser.rows:
+        while row and not row[-1]:
+            row.pop()
+        if any(cell for cell in row):
+            lines.append(" | ".join(row).strip())
+    return "\n" + "\n".join(lines) + "\n"
+
+
 def html_to_text(text: str) -> str:
-    """DeepDOC 把表格输出成 HTML：行转换行、单元格用“ | ”分隔，其余标签去掉。"""
+    """DeepDOC 把表格输出成 HTML：展开合并单元格后行转换行、单元格用“ | ”分隔，其余标签去掉。"""
     if "<" not in text:
         return text
-    value = re.sub(r"(?i)</tr\s*>", "\n", text)
+    value = re.sub(r"(?is)<table\b[^>]*>.*?</table>", _render_html_table, text)
+    value = re.sub(r"(?i)</tr\s*>", "\n", value)
     value = re.sub(r"(?i)</t[dh]\s*>", " | ", value)
     value = re.sub(r"(?i)<br\s*/?>", "\n", value)
     value = re.sub(r"<[^>]+>", "", value)

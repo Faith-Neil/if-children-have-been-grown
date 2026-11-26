@@ -308,6 +308,44 @@ class FakeRagflowV1:
             return self._ok(None)
         return httpx.Response(405)
 
+    @staticmethod
+    def _matches_meta(meta: dict[str, Any], cond: dict[str, Any] | None) -> bool:
+        if not cond or not isinstance(cond, dict):
+            return True
+        conditions = cond.get("conditions")
+        if not isinstance(conditions, list) or not conditions:
+            return True
+        logic = str(cond.get("logic") or "and").lower()
+
+        def eval_one(item: dict[str, Any]) -> bool:
+            name = str(item.get("name") or "")
+            op = str(item.get("comparison_operator") or "is").lower()
+            expected = item.get("value")
+            actual = meta.get(name)
+            actual_str = "" if actual is None else str(actual)
+            if op in ("is", "=", "=="):
+                return actual_str == str(expected or "")
+            if op in ("not is", "!=", "is not"):
+                return actual_str != str(expected or "")
+            if op == "contains":
+                # 真机 RAGFlow 1.0 语义：contains 是精确元素/全串匹配，不是子串包含
+                if isinstance(actual, list):
+                    return str(expected or "") in [str(x) for x in actual]
+                return actual_str == str(expected or "")
+            if op == "not contains":
+                if isinstance(actual, list):
+                    return str(expected or "") not in [str(x) for x in actual]
+                return actual_str != str(expected or "")
+            if op == "in":
+                vals = expected if isinstance(expected, list) else [p.strip() for p in str(expected or "").split(",")]
+                return actual_str in [str(v) for v in vals]
+            return True
+
+        results = [eval_one(c) for c in conditions if isinstance(c, dict)]
+        if not results:
+            return True
+        return any(results) if logic == "or" else all(results)
+
     def _retrieval(self, body: dict) -> httpx.Response:
         if self.fail_retrieval:
             return httpx.Response(500, json={"message": "synthetic retrieval failure"})
@@ -315,11 +353,14 @@ class FakeRagflowV1:
         datasets = set(body.get("dataset_ids") or [])
         doc_filter = set(body.get("document_ids") or [])
         threshold = float(body.get("similarity_threshold", 0.2))
+        meta_cond = body.get("metadata_condition")
         chunks = []
         for doc in self.documents.values():
             if doc["dataset_id"] not in datasets or (doc_filter and doc["id"] not in doc_filter):
                 continue
             if doc["ingestion_status"] != "COMPLETED" or not doc["enabled"]:
+                continue
+            if not self._matches_meta(doc.get("meta_fields") or {}, meta_cond):
                 continue
             for chunk in doc["chunks"]:
                 if not chunk.get("available", True):

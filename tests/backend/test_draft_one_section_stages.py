@@ -14,7 +14,7 @@ from icg.domain.technical_volume import bind_section_writer, reset_section_write
 def stub_env(monkeypatch):
   collected: list[dict] = []
 
-  def fake_retrieve(_kb, _company, _query, _workflow, *, limit=8):
+  def fake_retrieve(_kb, _company, _query, _workflow, *, limit=8, **_extra):
       return [{"name": "历史.docx", "content": "每30分钟健康检查", "dataset_kind": "history", "score": 0.9}], {
           "query": _query, "history_hits": 1, "material_hits": 0, "tender_hits": 0,
       }

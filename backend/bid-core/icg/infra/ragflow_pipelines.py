@@ -143,6 +143,7 @@ class PipelineProfile:
     heading_groups: list[list[str]] = field(default_factory=list)
     hierarchy: int = 3
     include_heading_content: bool = True
+    chunk_token_cap: int = 1100
     chunk_token_size: int = 512
     overlapped_percent: int = 0
     delimiters: tuple[str, ...] = ("\n", "。", "；", "！", "？")
@@ -185,6 +186,10 @@ PROFILES: dict[str, PipelineProfile] = {
             MetadataField("project_name", "原文中的项目名称，逐字摘录。原文没有就留空。"
                                             "不能根据文件名、常识或模板改写，不能输出带 XX 的占位名称。"),
             MetadataField("bid_date", "原文日期，格式 YYYY-MM-DD；没有则空"),
+            MetadataField("industry", "所属行业（如金融、医疗、政务、能源、运营商、教育、通用），无法判断写 other"),
+            MetadataField("project_type", "项目类型（如数据库运维、系统集成、安全服务、软件开发、云平台维保、other）"),
+            MetadataField("is_winner", "是否中标：true / false / unknown"),
+            MetadataField("year", "投标年份四位数字 YYYY；原文没有则空"),
             MetadataField("document_type", "识别文件所属类型。允许值：technical_proposal（技术方案）、"
                                             "implementation_plan（实施计划）、service_plan（服务计划）、"
                                             "product_manual（产品手册）、project_case（项目案例）、other（其他）。"),
@@ -255,6 +260,73 @@ PROFILES: dict[str, PipelineProfile] = {
                                          "medium（中，具有一定参考价值，需要结合新项目调整）、"
                                          "low（低，高度依赖原项目背景）、"
                                          "not_reusable（不可复用，与当前企业技术方案生成无关或不宜复用）。"),
+        ),
+    ),
+    "manuals": PipelineProfile(
+        key="manuals",
+        title="资料库：文档与运维手册",
+        description="标准操作手册、运维 SOP、升级回滚指南（pdf/docx/doc/md）：按章节层级切块并保留完整面包屑路径，"
+                    "表格压入所在小节防断连，抽取适用产品线、型号与版本号。",
+        knowledge_kind="manuals",
+        file_formats=("pdf", "docx", "doc", "markdown", "text&code"),
+        chunker="title",
+        heading_groups=[BID_HEADING_GROUPS[0], SCHEME_HEADING_GROUP] + BID_HEADING_GROUPS[1:],
+        hierarchy=3,
+        chunk_token_cap=800,
+        questions_top_n=0,
+        keywords_top_n=8,
+        keywords_prompt=MATERIALS_KEYWORDS_PROMPT,
+        metadata_fields=(
+            MetadataField("doc_type", "固定填 manual"),
+            MetadataField("product_line", "所属产品线名称，原文没有则空"),
+            MetadataField("model", "适用产品或系统型号，原文没有则空"),
+            MetadataField("version", "手册或软件版本号，原文没有则空"),
+            MetadataField("section_type", "所属方案模块：deployment / implementation / training / operation_maintenance / emergency_plan / data_security / other"),
+            MetadataField("reusability", "复用价值：high / medium / low / not_reusable"),
+        ),
+    ),
+    "fault_cases": PipelineProfile(
+        key="fault_cases",
+        title="资料库：故障案例库",
+        description="历史故障排查案例、Excel/CSV 台账与问答库：台账入库前带表头逐行拆块，开启自动衍生问法（Auto-question）与关键词，"
+                    "弥合具体报错码与招标书『突发宕机应急预案』之间的语义鸿沟。",
+        knowledge_kind="fault_cases",
+        file_formats=("pdf", "docx", "doc", "spreadsheet", "markdown", "text&code"),
+        chunker="title",
+        heading_groups=[BID_HEADING_GROUPS[0], SCHEME_HEADING_GROUP] + BID_HEADING_GROUPS[1:],
+        hierarchy=3,
+        chunk_token_cap=700,
+        questions_top_n=3,
+        keywords_top_n=8,
+        keywords_prompt=MATERIALS_KEYWORDS_PROMPT,
+        metadata_fields=(
+            MetadataField("doc_type", "固定填 fault_case"),
+            MetadataField("product_model", "故障涉及的设备或系统型号，原文没有则空"),
+            MetadataField("fault_category", "故障分类：network / hardware / database / middleware / os / software / security / other"),
+            MetadataField("severity", "故障等级：critical / major / minor / unknown"),
+            MetadataField("section_type", "所属方案模块：emergency_plan / operation_maintenance / data_security / other"),
+        ),
+    ),
+    "products": PipelineProfile(
+        key="products",
+        title="资料库：产品手册与参数",
+        description="产品白皮书、技术规格书与多型号对比参数表：参数大表入库前带表头按型号拆块，块上限收紧至 640 token 防止跨型号混切，"
+                    "抽取品牌、产品名与精确型号供检索时锁定。",
+        knowledge_kind="products",
+        file_formats=("pdf", "docx", "doc", "spreadsheet", "slides", "markdown", "text&code"),
+        chunker="title",
+        heading_groups=[BID_HEADING_GROUPS[0], SCHEME_HEADING_GROUP] + BID_HEADING_GROUPS[1:],
+        hierarchy=3,
+        chunk_token_cap=640,
+        questions_top_n=0,
+        keywords_top_n=10,
+        keywords_prompt=MATERIALS_KEYWORDS_PROMPT,
+        metadata_fields=(
+            MetadataField("doc_type", "固定填 product_spec"),
+            MetadataField("brand", "厂商或品牌名称，原文没有则空"),
+            MetadataField("product_name", "产品名称，原文没有则空"),
+            MetadataField("model", "精确型号，严禁合并无关型号；原文没有则空"),
+            MetadataField("section_type", "所属方案模块：technical_architecture / system_function / deployment / operation_maintenance / other"),
         ),
     ),
     "certificate": PipelineProfile(
@@ -345,7 +417,7 @@ def build_dsl(profile: PipelineProfile, options: PipelineOptions | None = None) 
     # 所以这两条流程把表格压进正文，让它跟所在小节一起切。目录页不入库。
     def setup_for(fmt: str) -> dict[str, Any]:
         setup = copy.deepcopy(_PARSER_SETUPS[fmt])
-        if profile.key in ("history_bid", "materials") and fmt in ("pdf", "docx", "doc"):
+        if profile.key in ("history_bid", "materials", "manuals", "fault_cases", "products") and fmt in ("pdf", "docx", "doc"):
             setup["flatten_media_to_text"] = True
             setup["remove_toc"] = True
         return setup
@@ -362,11 +434,12 @@ def build_dsl(profile: PipelineProfile, options: PipelineOptions | None = None) 
         groups = [list(g) for g in profile.heading_groups]
         if opts.extra_heading_patterns:
             groups.insert(0, list(opts.extra_heading_patterns))
+        cap = int(opts.chunk_token_size or profile.chunk_token_cap or 1100)
         chunker_params = {"hierarchy": profile.hierarchy, "include_heading_content": profile.include_heading_content,
-                          "root_chunk_as_heading": False, "chunk_token_cap": 1100,
+                          "root_chunk_as_heading": False, "chunk_token_cap": cap,
                           "levels": groups, "method": "hierarchy", "outputs": copy.deepcopy(_CHUNK_OUTPUTS)}
         chunker_form = {"hierarchy": str(profile.hierarchy), "include_heading_content": profile.include_heading_content,
-                        "root_chunk_as_heading": False, "chunk_token_cap": 1100,
+                        "root_chunk_as_heading": False, "chunk_token_cap": cap,
                         "method": "hierarchy", "outputs": copy.deepcopy(_CHUNK_OUTPUTS),
                         "rules": [{"levels": [{"expression": e} for e in g]} for g in groups]}
         chunker_label, chunker_name = "TitleChunker", "Title Chunker_0"

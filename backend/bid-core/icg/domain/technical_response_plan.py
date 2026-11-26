@@ -105,6 +105,19 @@ def _theme_for(row: dict) -> str:
     return "综合技术响应"
 
 
+def _fragment_clause(text: str) -> bool:
+    """评分档位断句碎片：以括号/顿号开头、半个动宾词组、超短无谓语——不得独立成节。"""
+    import re as _re
+    blob = str(text or "").strip()
+    if not blob:
+        return True
+    if blob.startswith(("（", "(", "、", "，", ",", "-", "—")):
+        return True
+    if len(blob) <= 10 and not _re.search(r"(提供|执行|完成|响应|支持|服务|保障|实施|提交|满足)", blob):
+        return True
+    return False
+
+
 def build_response_tasks(rows: list[dict]) -> list[dict]:
     """多条要求可合并进同一主题任务；任务标题是短章节名。"""
     buckets: dict[str, list[dict]] = {}
@@ -270,11 +283,15 @@ def validate_plan(requirements: list[dict], tasks: list[dict], headings: list[di
 
 def apply_response_plan(workflow: dict, model=None) -> dict[str, Any]:
     """从当前技术条款建任务与主题目录；写回 workflow。"""
-    rows = [
-        enrich_requirement(row)
-        for row in (workflow.get("requirements") or {}).values()
-        if row.get("technical_clause") and row.get("status") != "rejected"
-    ]
+    from icg.domain.technical_constraint_context import is_business_clause
+    rows = []
+    for row in (workflow.get("requirements") or {}).values():
+        if not row.get("technical_clause") or row.get("status") == "rejected":
+            continue
+        if is_business_clause(row):
+            row["clause_volume"] = "business"
+            continue
+        rows.append(enrich_requirement(row))
     tree_model = model or workflow.get("tree_model")
     tasks = build_response_tasks(rows)
     headings = arrange_from_tasks(tasks, workflow, model=tree_model)
@@ -358,6 +375,8 @@ def coverage_rows(workflow: dict, outline: dict | None = None, content: str | No
                 "score": req.get("score") if isinstance(req.get("score"), (int, float)) else None,
                 "rag": task.get("rag"),
                 "confirm_reasons": reasons,
+                "verify_warnings": [w for w in (task.get("verify_warnings") or []) if w not in set(task.get("dismissed_warnings") or [])],
+                "dismissed_warnings_count": len(task.get("dismissed_warnings") or []),
                 "failure_reason": task.get("failure_reason") or "",
                 "confirmed_at": task.get("confirmed_at"),
                 "retryable": task.get("generation_status") in ("failed", "generated"),
@@ -379,6 +398,9 @@ def confirm_reasons(task: dict, quality_review: bool) -> list[str]:
     check = task.get("constraint_check") or {}
     if check.get("missing") or check.get("conflicts"):
         reasons.append("废标约束待核")
+    active_warnings = [w for w in (task.get("verify_warnings") or []) if w not in set(task.get("dismissed_warnings") or [])]
+    if active_warnings:
+        reasons.append("后置核验待复核")
     if quality_review:
         reasons.append("质量八条未达标")
     return reasons

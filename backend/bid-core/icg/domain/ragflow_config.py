@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Any, Mapping
@@ -25,6 +26,13 @@ from icg.infra.ragflow_client import (
     RagflowRetrievalClient,
     ragflow_run_to_kb_sync_status,
 )
+
+# RAGFlow 真实 Dataset ID 是 32 位十六进制；“dataset-alpha-01 / dataset-{company}-01”是应用侧占位值
+_REAL_DATASET_ID = re.compile(r"^[0-9a-f]{32}$", re.IGNORECASE)
+
+
+def _is_real_dataset_id(value: str) -> bool:
+    return bool(_REAL_DATASET_ID.match(str(value or "").strip()))
 
 
 @dataclass
@@ -92,12 +100,28 @@ class RagflowConfigService:
             )
         return state.ragflow_configs[company_id]
 
+    def _public_payload(self, state: DemoState, cfg: RagflowCompanyConfig, company_id: str) -> dict[str, Any]:
+        """配置响应附占位检测与已部署真实 Dataset ID 建议，方便管理员回填替换 dataset-*-01 占位。"""
+        from icg.domain.knowledge_base import read_index
+        payload = cfg.to_public_dict()
+        payload["placeholder_dataset_ids"] = [d for d in cfg.dataset_ids if not _is_real_dataset_id(d)]
+        suggested: list[str] = []
+        try:
+            for info in (read_index(state, company_id).get("datasets") or {}).values():
+                ds = str((info or {}).get("dataset_id") or "")
+                if ds and ds not in suggested:
+                    suggested.append(ds)
+        except Exception:
+            pass
+        payload["suggested_dataset_ids"] = suggested
+        return payload
+
     def get(self, principal: Principal) -> dict[str, Any]:
         company_id = principal.user.company_id
 
         def operation(state: DemoState):
             cfg = self._ensure_company_config(state, company_id)
-            return cfg.to_public_dict()
+            return self._public_payload(state, cfg, company_id)
 
         return self.repository.transaction(operation)
 
@@ -154,7 +178,7 @@ class RagflowConfigService:
 
             # 4. 递增 revision
             cfg.revision += 1
-            return cfg.to_public_dict()
+            return self._public_payload(state, cfg, company_id)
 
         return self.repository.transaction(operation)
 

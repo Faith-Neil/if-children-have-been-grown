@@ -14,7 +14,8 @@ from copy import deepcopy
 from typing import Any
 
 from .domain import DemoState, DomainError, Principal, iso_time, new_id
-from .knowledge_base import (DATASET_KINDS, FILE_KINDS, KIND_PROFILE, SETTINGS_STORE, SOURCE_FILE, STATUS_FAILED,
+from .knowledge_base import (DATASET_KINDS, DEFAULT_DEPLOY_KINDS, FILE_KINDS, KIND_PROFILE, MATERIAL_SUBKINDS,
+                             SETTINGS_STORE, SOURCE_FILE, STATUS_FAILED,
                              dataset_full_name, dataset_suffix,
                              STATUS_PARSING, KnowledgeBaseService, _company_index, default_settings, read_index,
                              read_settings)
@@ -31,7 +32,10 @@ SETTING_FIELDS = {
 PROFILE_FIELDS = {"chunk_token_size": int, "questions_top_n": int, "keywords_top_n": int, "extra_heading_patterns": list}
 UPLOAD_SUFFIXES = {
     "history": (".pdf", ".docx", ".doc"),
-    "materials": (".pdf", ".docx", ".doc", ".xls", ".xlsx", ".ppt", ".pptx"),
+    "materials": (".pdf", ".docx", ".doc", ".xls", ".xlsx", ".csv", ".ppt", ".pptx", ".md", ".txt"),
+    "manuals": (".pdf", ".docx", ".doc", ".md", ".txt"),
+    "fault_cases": (".pdf", ".docx", ".doc", ".xls", ".xlsx", ".csv", ".md", ".txt"),
+    "products": (".pdf", ".docx", ".doc", ".xls", ".xlsx", ".csv", ".ppt", ".pptx", ".md", ".txt"),
 }
 CERT_FIELD_TO_LIBRARY = {"cert_name": "name", "valid_to": "valid_until"}
 
@@ -256,7 +260,7 @@ class KbAdminService:
         client = self._client(principal)
         company = principal.user.company_id
         results = {}
-        for kind in kinds or list(DATASET_KINDS):
+        for kind in kinds or list(DEFAULT_DEPLOY_KINDS):
             self._kind(kind)
             try:
                 results[kind] = self.kb.ensure_dataset(client, company, kind)
@@ -434,7 +438,7 @@ class KbAdminService:
         return {"kind": kind, "items": items, "page": page}
 
     def upload(self, principal: Principal, kind: str, payload: dict[str, Any]) -> dict[str, Any]:
-        """上传原件到历史投标或证书数据集，并按 ICG 流程解析。"""
+        """上传原件到历史投标或资料子库数据集，执行去实体化或表格带表头拆行预处理后触发 ICG 流程解析。"""
         self._kind(kind, files_only=True)
         if kind == "history":
             # 历史标书可由公司管理员或任一项目负责人追加；权威资料只由公司管理员维护。
@@ -442,11 +446,11 @@ class KbAdminService:
             if not leads_any_project(self.repository.read(), principal.user):
                 raise DomainError(403, "FORBIDDEN", "当前账号无权上传历史标书。")
             create_dataset = False
-        elif kind == "materials":
+        elif kind in ("materials", *MATERIAL_SUBKINDS):
             if not (_is_super(principal) or _role(principal) in WRITE_ROLES):
                 raise DomainError(403, "FORBIDDEN", "当前账号无权上传权威资料。")
-            # 上传只追加到已有数据集，不在这里新建。
-            create_dataset = False
+            # 三类新物理子库若管理员尚未手动点建立，上传时自动建库绑定专属管道；旧 materials 保持原门禁语义
+            create_dataset = kind in MATERIAL_SUBKINDS
         else:
             require_kb_role(principal, "write")
             create_dataset = True
@@ -467,6 +471,22 @@ class KbAdminService:
         if len(data) > max_upload_bytes():
             raise DomainError(413, "FILE_SIZE_LIMIT", too_large_message())
         user_meta = {str(k)[:64]: str(v)[:500] for k, v in (payload.get("metadata") or {}).items() if str(v).strip()}
+        content_type = str(payload.get("content_type") or "")
+
+        from icg.domain.kb_preprocess import preprocess_history_upload, preprocess_material_upload
+
+        deferred_scrub = False
+        upload_name = filename
+        if kind == "history":
+            data, scrub_info = preprocess_history_upload(filename, data, user_meta)
+            deferred_scrub = bool(scrub_info.get("deferred_chunk_scrub"))
+        else:
+            upload_name, data, content_type, auto_meta = preprocess_material_upload(
+                filename, data, kind, content_type=content_type, user_meta=user_meta,
+            )
+            for mk, mv in auto_meta.items():
+                user_meta.setdefault(mk, mv)
+
         company = principal.user.company_id
         client = self._client(principal)
         try:
@@ -480,7 +500,7 @@ class KbAdminService:
         meta = {**user_meta, "company_id": company, "source_type": SOURCE_FILE, "source_id": file_id,
                 "knowledge_kind": kind}
         try:
-            doc = client.upload_file(info["dataset_id"], filename, data, str(payload.get("content_type") or ""))
+            doc = client.upload_file(info["dataset_id"], upload_name, data, content_type)
             client.update_document(info["dataset_id"], doc.id, meta_fields=meta)
             client.trigger_parse(info["dataset_id"], [doc.id])
         except Exception as exc:
@@ -489,7 +509,8 @@ class KbAdminService:
         entry = {"key": f"{SOURCE_FILE}:{file_id}", "source_type": SOURCE_FILE, "source_id": file_id,
                  "dataset_kind": kind, "company_id": company, "name": filename, "item_type": kind, "revision": 1,
                  "document_id": doc.id, "status": STATUS_PARSING, "message": "", "chunk_count": 0,
-                 "content_type": str(payload.get("content_type") or ""), "size": len(data), "enabled": True,
+                 "content_type": content_type, "size": len(data), "enabled": True,
+                 "deferred_chunk_scrub": deferred_scrub,
                  "user_meta": user_meta, "uploaded_by": principal.user.id, "updated_at": now}
         self.kb._update_index(company, lambda idx: idx["files"].__setitem__(entry["key"], entry))
         self._audit(principal, "document.upload", entry["key"], {"kind": kind, "name": filename, "size": len(data)})
@@ -618,9 +639,11 @@ class KbAdminService:
         overrides = {k: payload[k] for k in ("similarity_threshold", "keywords_weight", "rerank_id")
                      if payload.get(k) is not None}
         kinds = set(payload.get("kinds") or ["history", "materials"])
-        if not kinds <= {"evidence", "snippet", "history", "materials"}:
-            raise DomainError(422, "VALIDATION_ERROR", "kinds 只能是 evidence、snippet、history、materials。")
+        allowed_kinds = {"evidence", "snippet", "history", "materials", *MATERIAL_SUBKINDS}
+        if not kinds <= allowed_kinds:
+            raise DomainError(422, "VALIDATION_ERROR", "kinds 包含不支持的知识库类别。")
         limit = max(1, min(int(payload.get("limit") or 8), 20))
+        meta_cond = payload.get("metadata_condition") if isinstance(payload.get("metadata_condition"), dict) else None
         # 远端已解析完成但本地索引仍为 parsing 时，试查会得到 zero hits；先对账状态。
         try:
             self.kb.refresh_status(principal.user.company_id)
@@ -628,7 +651,7 @@ class KbAdminService:
             pass
         try:
             hits, reason = self.kb.search(principal.user.company_id, query, limit=limit, kinds=kinds,
-                                          user=principal.user, overrides=overrides)
+                                          user=principal.user, overrides=overrides, metadata_condition=meta_cond)
         except Exception as exc:
             raise self._wrap(exc, "检索试查") from None
         return {"query": query, "parameters": {**self._public_settings(read_settings(self.repository.read(),

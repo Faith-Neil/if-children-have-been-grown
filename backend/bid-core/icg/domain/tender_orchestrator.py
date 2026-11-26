@@ -9,6 +9,7 @@ from __future__ import annotations
 import base64
 import binascii
 import hashlib
+import os
 import re
 from pathlib import PurePosixPath
 from typing import Any
@@ -207,6 +208,25 @@ class TenderOrchestratorMixin:
                 if service == "ragflow":
                     outcome = remote_parser.submit(company_id, record["filename"], file_bytes(record))
                     used[identity] = tender_files.REMOTE_SERVICE
+                elif (
+                    service == "auto"
+                    and os.environ.get("ICG_TENDER_PREFER_DEEPDOC", "").strip() == "1"
+                    and PurePosixPath(record["filename"]).suffix.lower() in (".pdf", ".docx")
+                    and getattr(remote_parser, "kb", None) is not None
+                    and remote_parser.kb.enabled(company_id)
+                ):
+                    outcome = remote_parser.submit(company_id, record["filename"], file_bytes(record))
+                    if outcome.state in ("done", "pending"):
+                        used[identity] = tender_files.REMOTE_SERVICE
+                    else:
+                        try:
+                            parsed[identity] = self.parser.parse(record["filename"], file_bytes(record))
+                            used[identity] = tender_files.LOCAL_SERVICE
+                            timing[identity] = int((monotonic() - clock) * 1000)
+                            continue
+                        except DomainError as error:
+                            errors[identity] = error
+                            continue
                 else:
                     try:
                         parsed[identity] = self.parser.parse(record["filename"], file_bytes(record))
@@ -237,12 +257,18 @@ class TenderOrchestratorMixin:
         from icg.domain.technical_sources import technical_only as _technical_only
         model_payloads: dict[str, dict] = {}
         provider = None
+        model_resolution_error = ""
         if _technical_only(initial, project_id) and parsed:
             if hasattr(self.demo, "resolve_model_provider"):
                 try:
                     provider = self.demo.resolve_model_provider(initial, project_id, "technical_structure")
-                except Exception:
+                except DomainError:
+                    raise  # 敏感项目模型硬约束等安全语义必须向上抛，不得静默吞掉
+                except Exception as exc:
+                    # 配置类失败（如密钥解密失败 SECRET_KEY_UNAVAILABLE）不阻断解析，
+                    # 但必须把原因显式落盘，杜绝“看似解析成功实则静默降级为规则抽取”。
                     provider = None
+                    model_resolution_error = f"{type(exc).__name__}: {str(exc).strip()[:200]}"
             from icg.domain.technical_model_extract import extract_with_model, usable_local_model
             if usable_local_model(provider):
                 saw_deepdoc = bool(recognized)
@@ -270,6 +296,10 @@ class TenderOrchestratorMixin:
                 actual["extract_degraded"] = False
                 actual["extract_timeout_count"] = 0
                 actual.pop("technical_extract_model", None)
+                if model_resolution_error:
+                    actual["technical_model_error"] = model_resolution_error
+                else:
+                    actual.pop("technical_model_error", None)
             from icg.domain.technical_sources import technical_only
             if technical_only(state, project_id):
                 actual["requirements"] = {key: row for key, row in actual["requirements"].items() if not row.get("technical_clause")}
@@ -586,6 +616,49 @@ class TenderOrchestratorMixin:
             return {"ok": True}
 
         self.repository.transaction(lambda state: self._apply_matrix_patch(state, principal, project_id, write_outline))
+
+    def rebuild_technical_outline_model(self, principal: Principal, project_id: str) -> dict:
+        """用当前三张清单重跑真实本地模型目录编排。
+
+        供解析后人工重触发/终审修复使用：不重抽招标条款、不清空正文；
+        正文按章节号/标题由后续生成流程单向迁移，失败时明确返回 rule_fallback。
+        """
+        from icg.domain.technical_model_extract import usable_local_model
+        state = self.repository.read()
+        from icg.domain.project_access import ROLE_COMPANY_ADMIN, is_platform_super, normalize_role
+        account = state.accounts.get(principal.user.id)
+        project = state.projects.get(project_id)
+        is_admin = bool(
+            account and project and (
+                is_platform_super(account)
+                or (normalize_role(account.role) == ROLE_COMPANY_ADMIN and account.company_id == project.company_id)
+            )
+        )
+        if not is_admin:
+            raise DomainError(403, "FORBIDDEN", "只有本平台管理员或本公司管理员可以重跑模型目录。")
+        workflow = state.workflows.get(project_id) or {}
+        if not workflow.get("technical_outline"):
+            raise DomainError(409, "TECHNICAL_OUTLINE_MISSING", "当前项目还没有技术服务方案目录。")
+        try:
+            provider = self.demo.resolve_model_provider(state, project_id, "technical_structure")
+        except DomainError:
+            raise
+        except Exception as exc:
+            raise DomainError(502, "MODEL_CONFIG_UNAVAILABLE", f"模型配置不可用：{type(exc).__name__}。")
+        if not usable_local_model(provider):
+            raise DomainError(409, "TECHNICAL_OUTLINE_MODEL_UNAVAILABLE", "真实本地模型不可用，不能重跑模型目录。")
+        self._refresh_technical_outline_unlocked(principal, project_id, provider)
+        refreshed = self.repository.read()
+        actual = refreshed.workflows.get(project_id) or {}
+        outline = actual.get("technical_outline") or {}
+        return {
+            "ok": not bool(actual.get("tree_model_failed")),
+            "revision": refreshed.projects[project_id].revision,
+            "outline_source": actual.get("outline_source") or outline.get("outline_source") or "",
+            "tree_model_failed": bool(actual.get("tree_model_failed") or outline.get("tree_model_failed")),
+            "outline_reason": actual.get("outline_reason") or outline.get("outline_reason") or "",
+            "headings": len(outline.get("headings") or []),
+        }
 
     def _fill_technical_matrix_unlocked(self, principal: Principal, project_id: str, provider) -> None:
         """在全局锁外做知识库检索与偏离判断，再短事务写回字段。"""

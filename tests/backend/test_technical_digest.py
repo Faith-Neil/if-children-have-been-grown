@@ -102,7 +102,9 @@ def test_section_prompt_carries_scoring_and_rejection_list():
     rows = [workflow["requirements"]["r2"]]
     user = _section_user("应急保障", rows, {"response_points": ["应急预案"]}, workflow, "")
     assert "运维方案（10 分）：方案完整得10分" in user
-    assert "R-01 未按要求提供服务方案的投标无效" in user
+    # 技术废标按 L0 全局约束注入「项目级约束」，不再以 R-编号全量清单灌入每节
+    assert "未按要求提供服务方案的投标无效" in user
+    assert "废标清单（全文不得违反）" not in user
 
 
 def test_extract_merges_scoring_meta_into_duplicate_requirement():

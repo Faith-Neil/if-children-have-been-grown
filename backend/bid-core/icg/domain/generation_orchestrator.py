@@ -597,6 +597,36 @@ class GenerationOrchestratorMixin:
 
         return self._write(principal, project_id, f"technical_task.confirm:{task_id}", payload, expected, key, operation)
 
+    def dismiss_technical_task_warnings(self, principal: Principal, project_id: str, task_id: str, payload: dict,
+                                        expected: str | None, key: str | None) -> dict:
+        """核验警示人工消警：规则核验存在合理噪声（如"每月/1个月内"语境数字），
+        用户核对无误后把指定警示（或全部）标记为已忽略，覆盖视图不再显示待复核红标。
+        警示原文留档在 dismissed_warnings 审计，不是删除证据。"""
+        def operation(state, project, workflow):
+            chapter = state.chapters.get((workflow.get("technical_outline") or {}).get("chapter_id") or "")
+            if chapter is None:
+                raise DomainError(404, "NOT_FOUND", "没有服务方案这一章。")
+            require_chapter(state, principal, chapter)
+            task = (workflow.get("response_tasks") or {}).get(task_id)
+            if task is None:
+                raise DomainError(404, "NOT_FOUND", "没有这一节。")
+            current = list(task.get("verify_warnings") or [])
+            if not current:
+                raise DomainError(409, "NO_WARNINGS", "这一节没有待复核的核验警示。")
+            requested = [str(w) for w in (payload.get("warnings") or []) if str(w).strip()]
+            targets = requested or current
+            unknown = [w for w in targets if w not in current]
+            if unknown:
+                raise DomainError(422, "VALIDATION_ERROR", "部分警示不存在或已被忽略。")
+            dismissed = list(task.get("dismissed_warnings") or [])
+            dismissed.extend(w for w in targets if w not in dismissed)
+            task["dismissed_warnings"] = dismissed
+            task["dismissed_warnings_by"] = principal.user.id
+            task["dismissed_warnings_at"] = iso_time(self.demo._now())
+            return {}
+
+        return self._write(principal, project_id, f"technical_task.dismiss_warnings:{task_id}", payload, expected, key, operation)
+
     def iter_technical_stream(self, prepared: dict, cancel: Any = None):
         """先推节级 delta，整次完成后才写入章节。cancel 置位或断开后不写入。"""
         import queue
@@ -650,6 +680,8 @@ class GenerationOrchestratorMixin:
                     "writer_model": workflow.get("writer_model"),
                     "needs_regeneration": workflow.get("needs_regeneration"),
                     "constraint_check": workflow.get("constraint_check"),
+                    "chapter_summaries": workflow.get("chapter_summaries"),
+                    "technical_verify": workflow.get("technical_verify"),
                 }
                 def live_revision() -> str:
                     return str(self.repository.read().projects[project_id].revision)
@@ -710,6 +742,8 @@ class GenerationOrchestratorMixin:
             "writer_model": workflow.get("writer_model"),
             "needs_regeneration": workflow.get("needs_regeneration"),
             "constraint_check": workflow.get("constraint_check"),
+            "chapter_summaries": workflow.get("chapter_summaries"),
+            "technical_verify": workflow.get("technical_verify"),
         }
 
     def _apply_technical_volume(self, state, actual, principal: Principal, drafted: dict) -> dict:
@@ -720,7 +754,7 @@ class GenerationOrchestratorMixin:
         chapter.content = drafted["content"]
         chapter.revision = drafted["revision"]
         live_tasks = dict(actual.get("response_tasks") or {})
-        for key in ("response_tasks", "technical_rag_audit", "technical_quality", "writer_model", "needs_regeneration", "constraint_check"):
+        for key in ("response_tasks", "technical_rag_audit", "technical_quality", "writer_model", "needs_regeneration", "constraint_check", "chapter_summaries", "technical_verify"):
             if drafted.get(key) is not None:
                 actual[key] = drafted[key]
         touched = result.get("task_ids")
