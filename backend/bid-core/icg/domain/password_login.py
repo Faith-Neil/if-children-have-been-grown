@@ -65,21 +65,14 @@ def _bounded(value: Any, lower: int, upper: int) -> int:
 
 
 def policy_for(state: Any, account: Any) -> dict:
-    """当前适用的密码规则：公司账号取本公司安全设置（不低于平台默认），平台级账号取平台默认。"""
-    if is_platform_account(account):
-        min_length, min_classes, scope = PLATFORM_PASSWORD_MIN_LENGTH_LOWER_BOUND, PLATFORM_PASSWORD_CHAR_CLASSES_LOWER_BOUND, "platform"
-    else:
-        stored = (state.service_stores.get("company_settings") or {}).get(account.company_id) or {}
-        min_length = _bounded(stored.get("password_min_length"), PLATFORM_PASSWORD_MIN_LENGTH_LOWER_BOUND,
-                              PLATFORM_PASSWORD_MIN_LENGTH_UPPER_BOUND)
-        min_classes = _bounded(stored.get("password_min_char_classes"), PLATFORM_PASSWORD_CHAR_CLASSES_LOWER_BOUND,
-                               PLATFORM_PASSWORD_CHAR_CLASSES_UPPER_BOUND)
-        scope = "company"
+    """当前适用的密码规则：ISSUE-056 后全平台统一取平台管理员安全策略。"""
+    from .platform_security import policy_for_state
+    configured = policy_for_state(state)
     return {
-        "min_length": min_length,
-        "min_char_classes": min_classes,
+        "min_length": configured.password_min_length,
+        "min_char_classes": configured.password_min_char_classes,
         "char_classes": [label for _key, label in CHAR_CLASS_LABELS],
-        "scope": scope,
+        "scope": "platform",
     }
 
 
@@ -95,9 +88,8 @@ def require_strong_password(state: Any, account: Any, password: str, *, field: s
 
 
 def max_login_failures(state: Any, account: Any) -> int:
-    stored = (state.service_stores.get("company_settings") or {}).get(getattr(account, "company_id", "")) or {}
-    value = stored.get("max_login_attempts")
-    return value if isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 5 else 5
+    from .platform_security import policy_for_state
+    return policy_for_state(state).max_login_attempts
 
 
 def lock_expired(account: Any, now: float) -> bool:
@@ -159,6 +151,8 @@ def logout(service: Any, principal: Principal) -> dict:
     def write(s: Any) -> dict:
         if s.sessions.get(principal.session_token) == principal.user.id:
             del s.sessions[principal.session_token]
+            from .platform_security import forget_session
+            forget_session(s, principal.session_token)
             _audit(s, "user.logout", principal.user.id)
         return {"success": True}
 

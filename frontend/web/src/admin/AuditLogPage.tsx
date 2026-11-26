@@ -1,7 +1,7 @@
 // 为什么有这个文件：落实 APP-M2-T157 (A-06 审计日志页) 与 PRD v1.8 §5.10.6、§6.7、§7.3。
 // 它解决什么问题：集中展示敏感数据调阅、章节独占编辑锁抢占/释放、模型密钥变更及云端调用审计日志，提供多维检索与只读不可篡改安全防护。
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Badge,
@@ -39,9 +39,9 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import type { Account, ApplicationSession } from '../shared/types.ts';
+import { request } from '../shared/api.ts';
 import {
   computeAuditSummaryStats,
-  DEFAULT_AUDIT_LOGS,
   filterAuditLogs,
   formatMaskedKeyFingerprint,
   formatMonospaceTime,
@@ -62,6 +62,7 @@ export interface AuditLogPageProps {
   initialProjectId?: string;
   onNavigate?: (path: string) => void;
   logs?: AuditLogEntry[];
+  token?: string | null;
 }
 
 export function AuditLogPage({
@@ -69,9 +70,31 @@ export function AuditLogPage({
   user,
   initialProjectId,
   logs: propLogs,
+  token = null,
 }: AuditLogPageProps) {
   // 1. 数据与状态
-  const allLogs = useMemo(() => propLogs || DEFAULT_AUDIT_LOGS, [propLogs]);
+  const [apiLogs, setApiLogs] = useState<AuditLogEntry[]>([]);
+  useEffect(() => {
+    if (propLogs || !token) return;
+    request<{ items: Array<Record<string, any>> }>('/api/v1/audit-logs', token, 'GET')
+      .then(data => setApiLogs((data.items || []).map(item => ({
+        id: item.id,
+        occurred_at: item.at,
+        user_id: item.user_id || item.operator || 'system',
+        user_name: item.user_id || item.operator || 'system',
+        company_id: item.company_id || '',
+        action: item.action,
+        action_label: item.action,
+        category: 'project',
+        target_type: 'system',
+        target_id: item.target_user_id || item.user_id || item.company_id || item.id,
+        detail: item.details || {},
+        result: item.action?.includes('failed') ? 'failed' : 'success',
+        ip: '-',
+      }))))
+      .catch(() => setApiLogs([]));
+  }, [propLogs, token]);
+  const allLogs = useMemo(() => propLogs || apiLogs, [propLogs, apiLogs]);
 
   const [categoryFilter, setCategoryFilter] = useState<AuditCategory>('all');
   const [actionFilter, setActionFilter] = useState<string>('all');

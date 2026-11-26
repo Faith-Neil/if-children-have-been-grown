@@ -148,6 +148,12 @@ class ParseJobRunner:
             return body
 
         body = self.repository.transaction(operation)
+        if hasattr(self.repository, "save_job"):
+            self.repository.save_job({
+                "id": body["id"], "job_type": "parse", "project_id": body["project_id"],
+                "status": body["status"], "progress": body["progress"], "step_name": body["message"],
+                "created_by": principal.user.id, "created_at": body["created_at"], "recoverable": True,
+            })
         self.submit(body["id"], principal)
         return body
 
@@ -173,7 +179,14 @@ class ParseJobRunner:
             change(state, job)
             state.jobs[job_id] = _mirror(job)
             return dict(job)
-        return self.repository.transaction(operation)
+        updated = self.repository.transaction(operation)
+        if updated is not None and hasattr(self.repository, "update_job_progress"):
+            self.repository.update_job_progress(
+                job_id, int(updated.get("progress") or 0), status=updated.get("status"),
+                step_name=updated.get("message"), error_json=updated.get("error"),
+                result_json={"sections": updated.get("sections")} if updated.get("sections") else None,
+            )
+        return updated
 
     def _progress(self, job_id: str, progress: int, message: str) -> dict | None:
         def change(state, job):

@@ -615,6 +615,8 @@ class DemoService:
                 u = s.accounts[username]
             token = secrets.token_urlsafe(32)
             s.sessions[token] = u.id
+            from icg.domain.platform_security import remember_session
+            remember_session(s, token, now)
             security_audit.record(s, "user.login", operator=u.id, user_id=u.id)
             user_data = asdict(u)
             for secret in ("password_hash", "salt", "_DEMO_ONLY"):
@@ -639,6 +641,14 @@ class DemoService:
             raise DomainError(401, "UNAUTHENTICATED", "当前账号已被停用。")
         if getattr(user, "is_locked", False):
             raise DomainError(401, "UNAUTHENTICATED", "当前账号已被锁定。")
+        from icg.domain.platform_security import session_expired
+        if session_expired(state, token):
+            def expire_session(s: DemoState):
+                s.sessions.pop(token, None)
+                from icg.domain.platform_security import forget_session
+                forget_session(s, token)
+            self.repository.transaction(expire_session)
+            raise DomainError(401, "UNAUTHENTICATED", "登录已过期，请重新登录。")
         from icg.domain.password_login import company_disabled
         if company_disabled(state, user.company_id):
             raise DomainError(401, "UNAUTHENTICATED", "所属公司已停用。")

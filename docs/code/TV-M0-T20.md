@@ -13,7 +13,7 @@
 | [sla.py](../../backend/bid-core/icg/domain/sla.py)、[tender_orchestrator.py](../../backend/bid-core/icg/domain/tender_orchestrator.py) | 不再要求登录角色 `manager`：项目内看本项目负责人，公司模板看公司管理员或任一项目负责人 |
 | [session_navigation.py](../../backend/bid-core/icg/domain/session_navigation.py)、[schemas.py](../../backend/bid-core/icg/domain/schemas.py) | 会话用户带 `leads_project`；任一项目负责人的普通用户多一个 `sla_templates.write` 动作 |
 | [SlaPages.tsx](../../frontend/web/src/admin/SlaPages.tsx)、[kb-admin-core.ts](../../frontend/web/src/library/kb-admin-core.ts)、[KnowledgeBaseAdminPage.tsx](../../frontend/web/src/library/KnowledgeBaseAdminPage.tsx) | 服务承诺模板编辑看公司管理员或 `leads_project`；历史标书上传按钮对项目负责人可用，资料库上传仍只给公司管理员 |
-| [dict_config.py](../../backend/bid-core/icg/domain/dict_config.py)、[field_metadata.py](../../backend/bid-core/icg/domain/field_metadata.py) | 缺省角色由 `viewer` 改为 `member` |
+| [dict_config.py](../../issues/ISSUE-056.md)、[field_metadata.py](../../backend/bid-core/icg/domain/field_metadata.py) | 缺省角色由 `viewer` 改为 `member` |
 | [user_management.py](../../backend/bid-core/icg/domain/user_management.py) | 旧角色名仍可作输入，改角色时也按三角色归一后保存 |
 | [memory_repository.py](../../backend/bid-core/icg/infra/memory_repository.py) | 演示账号改三角色命名：只读演示 = 普通用户 + 项目 `readonly`；原资料管理员改为第二公司管理员 |
 | [roles.ts](../../frontend/web/src/shared/roles.ts) 调用方 | 顶栏、字典页、资料库、方案片段、权限指令、用户管理去掉旧角色标签与白名单 |

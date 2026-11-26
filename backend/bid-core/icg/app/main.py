@@ -40,6 +40,8 @@ from icg.api import (
     include_ragflow_routes,
     include_field_metadata_routes,
     include_company_routes,
+    include_platform_routes,
+    include_audit_routes,
     include_user_routes,
     include_chapter_loop_routes,
     include_evidence_candidate_routes,
@@ -204,6 +206,8 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
     include_ragflow_routes(application, service, current_user)
     include_field_metadata_routes(application, service, current_user)
     include_company_routes(application, service, current_user)
+    include_platform_routes(application, service, current_user)
+    include_audit_routes(application, service, current_user)
     include_user_routes(application, service, current_user)
     include_chapter_loop_routes(application, service, current_user)
     include_evidence_candidate_routes(application, service, current_user)

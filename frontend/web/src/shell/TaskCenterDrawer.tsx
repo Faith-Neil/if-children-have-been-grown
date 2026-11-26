@@ -163,7 +163,7 @@ export function TaskCenterCard({
           )}
           {isMasked && task.companyId && (
             <Tag style={{ margin: 0, fontSize: 11 }} data-testid="task-company-tag">
-              租户: {task.companyId}
+              所属公司: {task.companyId}
             </Tag>
           )}
         </div>
