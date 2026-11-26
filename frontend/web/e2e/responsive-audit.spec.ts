@@ -47,10 +47,10 @@ test('core pages are clean at 1920/1440/1280/960', async ({ page }) => {
       const consoleProblems: string[] = [];
       const listener = (msg: { type(): string; text(): string }) => {
         const text = msg.text();
-        if ((msg.type() === 'error' && !/status of 409/.test(text)) || /deprecated|deprecation|Warning: /.test(text)) consoleProblems.push(text);
+        if (msg.type() === 'error' || /deprecated|deprecation|Warning: /.test(text)) consoleProblems.push(text);
       };
       page.on('console', listener);
-      await page.goto(path);
+      await page.evaluate(next => { window.history.pushState({}, '', next); window.dispatchEvent(new PopStateEvent('popstate')); }, path);
       await page.waitForLoadState('networkidle').catch(() => undefined);
       await page.waitForTimeout(700);
       const geometry = await page.evaluate(() => {
