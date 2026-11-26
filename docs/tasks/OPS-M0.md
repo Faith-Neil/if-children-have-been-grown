@@ -72,3 +72,26 @@
 - [x] 本机 `/health` 为 `repository=mysql` 且 `persistent=true`。
 - [x] [部署说明](../operations/docker-vm-deployment.md) 写明密钥在虚拟机的 `deploy/.env`、健康检查、备份和单进程。
 - [x] 说明写明虚拟机尚未执行 compose。
+
+
+<a id="ops-m0-t04"></a>
+
+## OPS-M0-T04 · 公司三机内网生产部署底座
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | ready |
+| 估算 | 3小时 |
+| 关联Issue | [ISSUE-055](../../issues/ISSUE-055.md) |
+| 依赖 | [OPS-M0-T03](OPS-M0.md#ops-m0-t03)；BE/AI 本轮配置要求 |
+| 来源 | 用户 2026-11-26 第 4 步要求 |
+| 完成时交付 | `docs/delivery/OPS-M0-T04.md` |
+| 代码解释 | `docs/code/OPS-M0-T04.md` |
+
+范围：面向「MySQL 服务器 + RAGFlow 服务器 + 应用服务器」三机架构补齐 `deploy/`：Dockerfile 安装 `libreoffice-writer` headless 与中文字体包；compose 与 `.env.example` 固化单 worker、`ICG_REQUIRE_MYSQL=1`、`ICG_SECTION_CONCURRENCY=2`、内网 HTTP 客户端 `trust_env=False`、外部 MySQL/RAGFlow 连接配置与健康检查；`deploy/README.md` 写三机上线步骤、迁移命令、LibreOffice 转换探针命令、RAGFlow 四库初始化自检清单。
+
+可验证验收：
+
+- [ ] Dockerfile/compose/env/README 与实际启动入口一致，不引入 Redis、不增加 worker。
+- [ ] `.doc/.docx` 转 PDF 的 Linux 依赖和中文字体明确安装。
+- [ ] 上线步骤含迁移、健康检查、转换探针、四库初始化自检与密钥不入库要求。

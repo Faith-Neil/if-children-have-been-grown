@@ -1611,3 +1611,26 @@
 - [x] 金标五份夹具与 golden_history_bid_v1.json
 - [x] scripts/rag_eval_history_bid.py --live 跑通并写报告
 - [x] 交付与 ISSUE-050 同步；不标 done（等 QA/PD/PM）
+
+
+<a id="ai-tender-isolation-doc"></a>
+
+## AI-TENDER-ISOLATION-DOC · 招标检索项目隔离与四库 .doc 转换补齐
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | ready |
+| 估算 | 3小时 |
+| 关联 Issue | [ISSUE-055](../../issues/ISSUE-055.md) |
+| 依赖 | 第 0 步核实 `technical_tender_index.py` 是否传本项目 `document_ids` |
+| 来源 | 用户 2026-11-26 第 3 步要求 |
+| 完成时交付 | `docs/delivery/AI-TENDER-ISOLATION-DOC.md` |
+| 代码解释 | `docs/code/AI-TENDER-ISOLATION-DOC.md` |
+
+范围：核实并兜死复用 `${company_id}::tender` 时的检索过滤，所有查询共享招标数据集的路径必须强制传当前项目 `document_ids`；补同公司 A/B 两项目绝不串检索单测。`kb_admin.py` 接受 `.doc` 上传时接入 `office_pdf.py` 的 LibreOffice headless 转换（兼容 Linux 服务器），转为 DeepDoc 支持格式后再推 RAGFlow，并补调用链单测；不得在生产 RAGFlow 留测试脏文档。
+
+可验证验收：
+
+- [ ] 单测证明同公司 A/B 项目招标检索绝不串 `document_ids`。
+- [ ] `.doc` 上传转换调用链单测通过，失败时如实报错不静默上传原文件。
+- [ ] 真机或聚焦回归证据明确区分 Mock 与真实服务。

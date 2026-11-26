@@ -10,6 +10,7 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
+| D-1051 | 2026-11-26 | [ISSUE-055：全站性能根治、隔离与四库 .doc 补齐、公司服务器部署底座](../issues/ISSUE-055.md) | Issue | perf-isolation-deploy-r1 | in-progress | ISSUE-055 | 高频接口 MySQL 作用域读取、项目列表分页、招标隔离、.doc 转换与三机部署底座 |
 | D-1007 | 2026-11-09 | [公司开通与账号归属设计](superpowers/specs/2026-11-09-company-provisioning-design.md) | 设计 | company-provision-1 | 已确认 | ISSUE-052 | 方案 1：公司页→详情管人；项目与双库按公司隔离 |
 | D-1019 | 2026-11-20 | [ISSUE-053：技术服务方案精简主路径](../issues/ISSUE-053.md) | Issue | tech-plan-simplified-1 | in-progress | ISSUE-053 | 三张清单、挂要点目录、双库正文、覆盖视图合一 |
 | D-1020 | 2026-11-20 | [技术服务方案精简主路径设计](decisions/2026-11-20-technical-plan-simplified.md) | 决策 | tech-plan-simplified-1 | 待用户确认 | ISSUE-053 | 三张清单、目录、覆盖视图与 RAG 字段、质量八条、写作助手 |
