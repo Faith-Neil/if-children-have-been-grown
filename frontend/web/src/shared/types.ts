@@ -170,6 +170,23 @@ export type Project = {
   volumes_status?: { technical?: string; business?: string };
   description?: string;
   created_at?: string;
+  updated_at?: string;
+  last_accessed_at?: string | null;
+};
+
+export type ProjectListQuery = {
+  page: number;
+  page_size: number;
+  sort?: 'last_accessed_at' | 'updated_at' | 'created_at';
+  keyword?: string;
+  status?: string;
+};
+
+export type ProjectListResult = {
+  projects: Project[];
+  total?: number;
+  page?: number | null;
+  page_size?: number | null;
 };
 export type ProjectRole = 'lead' | 'writer' | 'readonly';
 export type ProjectMember = { user_id: string; name: string; company_role: Account['role']; project_role: ProjectRole; volumes: Volume[] };

@@ -2,7 +2,7 @@
 # 它解决什么问题：按领域拆分 API，提供项目查询、新建与详情查询接口（支持 legacy 与 v1 契约）。
 
 from typing import Annotated
-from fastapi import Depends, Header
+from fastapi import Depends, Header, Query
 
 from icg.domain.domain import DemoService, Principal
 from icg.domain.idempotency import IDEMPOTENCY_HEADER_DESCRIPTION
@@ -46,9 +46,15 @@ def include_project_routes(application, service: DemoService, current_user) -> N
         return service.create_project(user, body.name, idempotency_key=idempotency_key, volume_mode=body.volume_mode)
 
     @application.get("/api/v1/projects", response_model=ProjectListResponse, operation_id="listV1Projects",
-                     responses=v1_error_responses(401))
-    def list_v1_projects(user: User):
-        return service.projects(user)
+                     responses=v1_error_responses(401, 422))
+    def list_v1_projects(user: User,
+                         page: Annotated[int | None, Query(ge=1)] = None,
+                         page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+                         sort: Annotated[str, Query(pattern="^(last_accessed_at|updated_at|created_at)$")] = "last_accessed_at",
+                         keyword: Annotated[str, Query(max_length=200)] = "",
+                         status: Annotated[str, Query(pattern="^(|preparing|writing|reviewing|completed)$")] = ""):
+        return service.projects(user, page=page, page_size=page_size, sort=sort,
+                                keyword=keyword, status=status)
 
     @application.post("/api/v1/projects", response_model=ProjectResponse, operation_id="createV1Project",
                       responses=v1_error_responses(401, 403, 409, 428))

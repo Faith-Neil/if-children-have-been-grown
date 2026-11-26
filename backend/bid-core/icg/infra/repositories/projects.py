@@ -22,7 +22,7 @@ def project_snapshot(state: DemoState) -> dict:
             project.deadline_at, project.security_level, project.industry,
             bool(project.is_archived), project.created_by, project.created_at,
             project.updated_by, project.updated_at, (int(project.record_version) if project.record_version is not None else 1),
-            bool(project.is_deleted),
+            bool(project.is_deleted), project.last_accessed_at, getattr(project, "status", "preparing"),
         )
         for project in state.projects.values()
     }
@@ -70,11 +70,14 @@ def save_projects(
                 is_archived, created_by, created_at, updated_by, updated_at,
                 record_version, is_deleted,
             ) = current[:18]
+            last_accessed_at = current[18] if len(current) >= 19 else None
+            status = current[19] if len(current) >= 20 else "preparing"
         else:
             name, company_id, revision, tender_number, deadline, sensitive = current[:6]
             tender_type, budget_amount_cents, deadline_at, security_level, industry = "comprehensive", 0, None, "internal", "it"
             is_archived, created_by, created_at, updated_by, updated_at = False, "", None, "", None
             record_version, is_deleted = 1, False
+            last_accessed_at, status = None, "preparing"
 
         payload = {
             "id": project_id,
@@ -96,6 +99,8 @@ def save_projects(
             "updated_at": to_utc_naive(updated_at),
             "record_version": int(record_version) if record_version is not None else 1,
             "is_deleted": 1 if is_deleted else 0,
+            "last_accessed_at": to_utc_naive(last_accessed_at),
+            "status": status or "preparing",
         }
         if not loaded:
             try:
@@ -104,10 +109,10 @@ def save_projects(
                         "INSERT INTO demo_project "
                         "(id, name, company_id, revision, tender_number, deadline, is_sensitive, "
                         "tender_type, budget_amount_cents, deadline_at, security_level, industry, is_archived, "
-                        "created_by, created_at, updated_by, updated_at, record_version, is_deleted) "
+                        "created_by, created_at, updated_by, updated_at, record_version, is_deleted, last_accessed_at, status) "
                         "VALUES (:id, :name, :company_id, :revision, :tender_number, :deadline, :is_sensitive, "
                         ":tender_type, :budget_amount_cents, :deadline_at, :security_level, :industry, :is_archived, "
-                        ":created_by, :created_at, :updated_by, :updated_at, :record_version, :is_deleted)"
+                        ":created_by, :created_at, :updated_by, :updated_at, :record_version, :is_deleted, :last_accessed_at, :status)"
                     ),
                     payload,
                 )
@@ -131,7 +136,8 @@ def save_projects(
                         "deadline_at = :deadline_at, security_level = :security_level, industry = :industry, "
                         "is_archived = :is_archived, created_by = :created_by, created_at = :created_at, "
                         "updated_by = :updated_by, updated_at = :updated_at, "
-                        "record_version = :record_version, is_deleted = :is_deleted "
+                        "record_version = :record_version, is_deleted = :is_deleted, "
+                        "last_accessed_at = :last_accessed_at, status = :status "
                         "WHERE id = :id AND revision = :expected"
                     ),
                     {**payload, "expected": expected},

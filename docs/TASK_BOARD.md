@@ -709,6 +709,10 @@
 | [ADMIN-PROVISION-T02](tasks/ADMIN-PROVISION.md#admin-provision-t02) | 顶栏去公司名与新建公司弹窗 | in-review | [ADMIN-PROVISION-T01](tasks/ADMIN-PROVISION.md#admin-provision-t01) | [ISSUE-052](../issues/ISSUE-052.md) | [交付](delivery/ADMIN-PROVISION-T02.md) |
 | [ADMIN-PROVISION-T03](tasks/ADMIN-PROVISION.md#admin-provision-t03) | 公司详情路由与加人 | in-review | T01、T02 | [ISSUE-052](../issues/ISSUE-052.md) | [交付](delivery/ADMIN-PROVISION-T03.md) |
 | [ADMIN-PROVISION-T04](tasks/ADMIN-PROVISION.md#admin-provision-t04) | 项目与双库隔离回归 | in-review | T01 | [ISSUE-052](../issues/ISSUE-052.md) | [交付](delivery/ADMIN-PROVISION-T04.md) |
+| [BE-PERF-HOTPATH-MYSQL](tasks/BE-M0.md#be-perf-hotpath-mysql) | 高频接口 MySQL 作用域读取与索引根治 | in-review | 真实 MySQL 可达；先采集改前基准 | [ISSUE-055](../issues/ISSUE-055.md) | [交付](delivery/BE-PERF-HOTPATH-MYSQL.md) |
+| [BE-PROJECT-LIST-PAGING](tasks/BE-M0.md#be-project-list-paging) | 项目工作台服务端排序筛选分页与访问时间 | in-review | [BE-PERF-HOTPATH-MYSQL](tasks/BE-M0.md#be-perf-hotpath-mysql) | [ISSUE-055](../issues/ISSUE-055.md) | [交付](delivery/BE-PROJECT-LIST-PAGING.md) |
+| [AI-TENDER-ISOLATION-DOC](tasks/AI-M0.md#ai-tender-isolation-doc) | 招标检索项目隔离与四库 .doc 转换补齐 | in-review | 第 0 步核实结果 | [ISSUE-055](../issues/ISSUE-055.md) | [交付](delivery/AI-TENDER-ISOLATION-DOC.md) |
+| [OPS-M0-T04](tasks/OPS-M0.md#ops-m0-t04) | 公司三机内网生产部署底座 | in-review | [OPS-M0-T03](tasks/OPS-M0.md#ops-m0-t03) | [ISSUE-055](../issues/ISSUE-055.md) | [交付](delivery/OPS-M0-T04.md) |
 <!-- task-board:end -->
 
 ## 每次推进的同步顺序

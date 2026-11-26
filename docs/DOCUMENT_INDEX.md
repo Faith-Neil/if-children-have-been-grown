@@ -10,6 +10,16 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
+| D-1051 | 2026-11-26 | [ISSUE-055：全站性能根治、隔离与四库 .doc 补齐、公司服务器部署底座](../issues/ISSUE-055.md) | Issue | perf-isolation-deploy-r1 | in-review | ISSUE-055 | 高频接口 MySQL 作用域读取、项目列表分页、招标隔离、.doc 转换与三机部署底座 |
+| D-1057 | 2026-11-27 | [BE-PERF-HOTPATH-MYSQL 代码说明](code/BE-PERF-HOTPATH-MYSQL.md) | 代码说明 | perf-isolation-deploy-r1 | in-review | ISSUE-055 / BE-PERF-HOTPATH-MYSQL | 热路径作用域读取实现 |
+| D-1058 | 2026-11-27 | [BE-PROJECT-LIST-PAGING 代码说明](code/BE-PROJECT-LIST-PAGING.md) | 代码说明 | perf-isolation-deploy-r1 | in-review | ISSUE-055 / BE-PROJECT-LIST-PAGING | 项目分页实现 |
+| D-1059 | 2026-11-27 | [AI-TENDER-ISOLATION-DOC 代码说明](code/AI-TENDER-ISOLATION-DOC.md) | 代码说明 | perf-isolation-deploy-r1 | in-review | ISSUE-055 / AI-TENDER-ISOLATION-DOC | 隔离与转换实现 |
+| D-1060 | 2026-11-27 | [OPS-M0-T04 代码说明](code/OPS-M0-T04.md) | 代码说明 | perf-isolation-deploy-r1 | in-review | ISSUE-055 / OPS-M0-T04 | 部署底座实现 |
+| D-1052 | 2026-11-27 | [BE-PERF-HOTPATH-MYSQL 交付说明](delivery/BE-PERF-HOTPATH-MYSQL.md) | 交付说明 | perf-isolation-deploy-r1 | in-review | ISSUE-055 / BE-PERF-HOTPATH-MYSQL | 高频接口作用域读取、索引与改前改后性能证据 |
+| D-1053 | 2026-11-27 | [BE-PROJECT-LIST-PAGING 交付说明](delivery/BE-PROJECT-LIST-PAGING.md) | 交付说明 | perf-isolation-deploy-r1 | in-review | ISSUE-055 / BE-PROJECT-LIST-PAGING | 项目列表服务端分页排序筛选与访问时间 |
+| D-1054 | 2026-11-27 | [AI-TENDER-ISOLATION-DOC 交付说明](delivery/AI-TENDER-ISOLATION-DOC.md) | 交付说明 | perf-isolation-deploy-r1 | in-review | ISSUE-055 / AI-TENDER-ISOLATION-DOC | 招标 document_ids 隔离与 .doc 转换链 |
+| D-1055 | 2026-11-27 | [OPS-M0-T04 交付说明](delivery/OPS-M0-T04.md) | 交付说明 | perf-isolation-deploy-r1 | in-review | ISSUE-055 / OPS-M0-T04 | 三机内网生产部署底座 |
+| D-1056 | 2026-11-27 | [deploy/README.md](../deploy/README.md) | 运维文档 | perf-isolation-deploy-r1 | in-review | ISSUE-055 / OPS-M0-T04 | 三机上线步骤、迁移、探针与四库自检 |
 | D-1007 | 2026-11-09 | [公司开通与账号归属设计](superpowers/specs/2026-11-09-company-provisioning-design.md) | 设计 | company-provision-1 | 已确认 | ISSUE-052 | 方案 1：公司页→详情管人；项目与双库按公司隔离 |
 | D-1019 | 2026-11-20 | [ISSUE-053：技术服务方案精简主路径](../issues/ISSUE-053.md) | Issue | tech-plan-simplified-1 | in-progress | ISSUE-053 | 三张清单、挂要点目录、双库正文、覆盖视图合一 |
 | D-1020 | 2026-11-20 | [技术服务方案精简主路径设计](decisions/2026-11-20-technical-plan-simplified.md) | 决策 | tech-plan-simplified-1 | 待用户确认 | ISSUE-053 | 三张清单、目录、覆盖视图与 RAG 字段、质量八条、写作助手 |

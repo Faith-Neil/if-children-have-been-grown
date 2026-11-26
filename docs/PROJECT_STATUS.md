@@ -6,6 +6,11 @@
 
 维护日期：2026-11-26（UTC+8）。
 
+
+## 全站性能根治、隔离与部署底座（2026-11-26）
+
+[ISSUE-055](../issues/ISSUE-055.md) 已登记并开工：BE-PERF-HOTPATH-MYSQL、BE-PROJECT-LIST-PAGING、AI-TENDER-ISOLATION-DOC、OPS-M0-T04 均为 in-review。本轮必须先采集真实 MySQL 改前基线，再实施会话/仓储/索引、项目列表分页排序、招标检索隔离、四库 `.doc` 转换与三机部署底座；不引入 Redis，不合并 PR，不标 done。
+
 ## 技术服务方案精简主路径（2026-11-20）
 
 [ISSUE-053](../issues/ISSUE-053.md) / TV-M0-T17 为 in-review：读标出三张清单（技术需求 / 评分规则 / 废标），模型一次拟目录并挂要点，正文提示带评分标准与全部废标清单，两库都检索。只用假模型验证；覆盖视图（B）与写作助手（C）待设计确认。不标 done。

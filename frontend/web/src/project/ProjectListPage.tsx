@@ -1,7 +1,7 @@
 // 为什么有这个文件：封装完善的项目列表与多维筛选页（ProjectListPage）。
 // 它解决什么问题：落实 APP-M2-T095，提供状态与涉密属性筛选，列表项支持一键进入项目工作台和查看项目元数据抽屉（集成 MaskedField 脱敏展示与倒计时提醒）。
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { App, Alert, Badge, Button, Card, Col, Descriptions, Divider, Drawer, Empty, Input, Modal, Progress, Radio, Row, Select, Space, Statistic, Table, Tag, Tooltip } from 'antd';
 import {
   ClockCircleOutlined,
@@ -14,7 +14,7 @@ import {
   SafetyCertificateOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
-import type { ApplicationSession, Project } from '../shared/types.ts';
+import type { ApplicationSession, Project, ProjectListQuery, ProjectListResult } from '../shared/types.ts';
 import { companyName, formatTime } from '../app/context.tsx';
 import { MaskedField } from '../admin/MaskedField.tsx';
 import { useCompanyDisplayName } from '../admin/use-company-display-name.ts';
@@ -45,6 +45,7 @@ export {
 
 export interface ProjectListPageProps {
   projects: Project[];
+  onQueryProjects?: (query: ProjectListQuery) => Promise<ProjectListResult>;
   onOpenProject: (projectId: string) => void;
   onDeleteProject?: (projectId: string) => Promise<void> | void;
   session?: ApplicationSession | null;
@@ -60,6 +61,7 @@ export interface ProjectListPageProps {
  */
 export function ProjectListPage({
   projects,
+  onQueryProjects,
   onOpenProject,
   onDeleteProject,
   session = null,
@@ -73,6 +75,35 @@ export function ProjectListPage({
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState<ProjectStatusKey>('all');
   const [sensitive, setSensitive] = useState<SensitiveFilterKey>('all');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
+  const [serverProjects, setServerProjects] = useState<Project[]>([]);
+  const [serverTotal, setServerTotal] = useState(0);
+  const queryRef = useRef(onQueryProjects);
+  queryRef.current = onQueryProjects;
+  const serverMode = Boolean(onQueryProjects);
+
+  useEffect(() => {
+    const query = queryRef.current;
+    if (!query) return;
+    let current = true;
+    void query({
+      page,
+      page_size: pageSize,
+      sort: 'last_accessed_at',
+      keyword,
+      status: status === 'all' ? '' : status,
+    }).then(result => {
+      if (!current) return;
+      setServerProjects(result.projects || []);
+      setServerTotal(typeof result.total === 'number' ? result.total : (result.projects || []).length);
+    }).catch(() => {
+      if (!current) return;
+      setServerProjects([]);
+      setServerTotal(0);
+    });
+    return () => { current = false; };
+  }, [keyword, status, page, pageSize, serverMode]);
 
   // 2. 元数据抽屉状态
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -88,15 +119,19 @@ export function ProjectListPage({
   const normalizedRole = normalizeSystemRole(effectiveRole);
   const isReadonlyMember = READONLY_SYSTEM_ROLES.has(normalizedRole as SystemRole);
 
-  // 4. 执行筛选
+  // 4. 执行筛选。服务端模式由后台完成关键字/状态筛选、排序和分页；本页只追加涉密属性过滤。
   const filteredList = useMemo(() => {
+    if (serverMode) {
+      return filterProjectList(serverProjects, { sensitive, volumeStatus: 'all' });
+    }
     return filterProjectList(projects, {
       keyword,
       status,
       sensitive,
       volumeStatus: 'all',
     });
-  }, [projects, keyword, status, sensitive]);
+  }, [projects, serverProjects, serverMode, keyword, status, sensitive]);
+  const displayedTotal = serverMode ? serverTotal : filteredList.length;
 
   // 5. 统计卡片指标
   const statistics = useMemo(() => {
@@ -165,7 +200,7 @@ export function ProjectListPage({
               prefix={<SearchOutlined style={{ color: '#8c8c8c' }} />}
               placeholder="搜索项目名称 / 招标编号"
               value={keyword}
-              onChange={e => setKeyword(e.target.value)}
+              onChange={e => { setKeyword(e.target.value); setPage(1); }}
               allowClear
               aria-label="项目搜索关键字"
               data-testid="project-search-input"
@@ -177,7 +212,7 @@ export function ProjectListPage({
               <span style={{ fontSize: 13, color: '#4e5969', whiteSpace: 'nowrap' }}>状态:</span>
               <Select
                 value={status}
-                onChange={setStatus}
+                onChange={value => { setStatus(value); setPage(1); }}
                 style={{ width: '100%', minWidth: 120 }}
                 aria-label="按状态筛选"
                 data-testid="status-filter-select"
@@ -217,7 +252,7 @@ export function ProjectListPage({
         title={
           <Space>
             <span>我参与的投标项目</span>
-            <Tag color="blue">{filteredList.length} 个</Tag>
+            <Tag color="blue">{displayedTotal} 个</Tag>
           </Space>
         }
         styles={{ body: { padding: 0 } }}
@@ -227,7 +262,18 @@ export function ProjectListPage({
           size="middle"
           rowKey="id"
           dataSource={filteredList}
-          pagination={{ pageSize: 8, showTotal: t => `共 ${t} 个项目` }}
+          pagination={serverMode ? {
+            current: page,
+            pageSize,
+            total: serverTotal,
+            showSizeChanger: true,
+            showTotal: t => `共 ${t} 个项目`,
+          } : { pageSize: 8, showTotal: t => `共 ${t} 个项目` }}
+          onChange={(pagination) => {
+            if (!serverMode) return;
+            setPage(pagination.current || 1);
+            setPageSize(pagination.pageSize || 8);
+          }}
           scroll={{ x: 'max-content' }}
           locale={{ emptyText: <Empty description="暂无符合筛选条件的项目" /> }}
           columns={[

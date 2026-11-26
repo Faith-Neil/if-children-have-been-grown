@@ -116,7 +116,10 @@ class CompanySettingsService:
     def _store(self) -> dict[str, CompanySettingsModel]:
         if self.repository is None:
             return self._local
-        stored = self.repository.read().service_stores.get("company_settings") or {}
+        if hasattr(self.repository, "read_service_store"):
+            stored = self.repository.read_service_store("company_settings") or {}
+        else:
+            stored = self.repository.read().service_stores.get("company_settings") or {}
         return {cid: CompanySettingsModel(**data) for cid, data in stored.items()}
 
     def _save(self, company_id: str, model: CompanySettingsModel) -> None:

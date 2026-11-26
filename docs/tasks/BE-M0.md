@@ -952,3 +952,50 @@
 
 上限统一由 `ICG_MAX_UPLOAD_MB`（默认 100）决定，招标文件、知识库原件、证书附件共用。新增 `POST /projects/{id}/files/raw` 与 `POST /kb-admin/datasets/{kind}/documents/raw`：请求体为文件字节，边读边计数，超限 413。招标原件改存内容寻址文件存储（`ICG_BLOB_DIR`，默认 `backend/bid-core/data/blobs`，生产须指向持久磁盘并纳入备份），业务状态只记摘要，避免 100MB 原件超过 MySQL 单包上限。RAGFlow 上传按文件大小放宽超时。测试 `tests/backend/test_upload_limits.py`、`frontend/web/tests/unit/raw-upload.test.mjs`。
 
+
+
+<a id="be-perf-hotpath-mysql"></a>
+
+## BE-PERF-HOTPATH-MYSQL · 高频接口 MySQL 作用域读取与索引根治
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 4小时 |
+| 关联 Issue | [ISSUE-055](../../issues/ISSUE-055.md) |
+| 依赖 | 真实 MySQL 可达；先采集改前基准 |
+| 来源 | 用户 2026-11-26 第 0/1 步要求 |
+| 完成时交付 | `docs/delivery/BE-PERF-HOTPATH-MYSQL.md` |
+| 代码解释 | `docs/code/BE-PERF-HOTPATH-MYSQL.md` |
+
+范围：记录改前四个高频接口耗时与查询行为；修复 `/api/v1/session` 在 `async def` 中同步调用完整仓储快照的问题；为会话、项目列表、公司设置、单项目读取提供 MySQL 按作用域精确查询，严禁在列表页、设置页、鉴权接口加载全部章节正文与历史版本；盘点并补齐 `demo_project`、`demo_chapter`、`demo_chapter_version`、`demo_state_entry` 二级索引迁移，在真实 MySQL 实跑 `alembic upgrade head`。
+
+可验证验收：
+
+- [x] 改前/改后四接口毫秒级对比写入交付与 PR。
+- [x] 会话与鉴权路径不扫描全部 `demo_chapter` / `demo_chapter_version` / 全量项目快照。
+- [x] Alembic 迁移在真实 MySQL 实跑通过，索引存在性有证据。
+- [x] 聚焦回归含 `mysql_gate` 与受影响仓储测试。
+
+<a id="be-project-list-paging"></a>
+
+## BE-PROJECT-LIST-PAGING · 项目工作台服务端排序筛选分页与访问时间
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 估算 | 3小时 |
+| 关联 Issue | [ISSUE-055](../../issues/ISSUE-055.md) |
+| 依赖 | [BE-PERF-HOTPATH-MYSQL](BE-M0.md#be-perf-hotpath-mysql) |
+| 来源 | 用户 2026-11-26 第 2 步要求 |
+| 完成时交付 | `docs/delivery/BE-PROJECT-LIST-PAGING.md` |
+| 代码解释 | `docs/code/BE-PROJECT-LIST-PAGING.md` |
+
+范围：`Project` schema 与 `demo_project` 表新增 `last_accessed_at`；进入项目详情/编辑台/生成/导出时更新；`GET /api/v1/projects` 支持 `page`、`page_size`、`sort=last_accessed_at|updated_at|created_at`（默认 `last_accessed_at` 倒序）、`keyword`、`status`，裁剪列表不需要的章节正文与冗长大快照字段并保持向后兼容；必要时同步前端调用与 OpenAPI。
+
+可验证验收：
+
+- [x] 默认按最近访问倒序，分页、关键字与状态筛选有后端单测。
+- [x] 进入项目详情/编辑台/生成/导出会更新 `last_accessed_at`。
+- [x] 旧客户端不传参数时响应主体仍含 `projects` 列表。
+- [x] `export_openapi.py --check` 与前端 `tsc -b --noEmit` 通过。

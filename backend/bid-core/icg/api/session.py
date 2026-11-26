@@ -103,9 +103,9 @@ def include_session_routes(application, service: DemoService, current_user) -> N
     @application.get("/api/v1/session", response_model=ApplicationSessionResponse,
                      response_model_exclude_unset=True, operation_id="getSession",
                      responses=v1_error_responses(401, 403, 404, 422, 500))
-    async def get_session(request: Request, user: User,
-                          project_id: Annotated[str | None, Query(min_length=1, max_length=100)] = None):
+    def get_session(request: Request, user: User,
+                    project_id: Annotated[str | None, Query(min_length=1, max_length=100)] = None):
         if (set(request.query_params) - {"project_id"}
-                or len(request.query_params.getlist("project_id")) > 1 or await request.body()):
+                or len(request.query_params.getlist("project_id")) > 1 or request.headers.get("content-length") not in (None, "0")):
             raise DomainError(422, "INVALID_SESSION_INPUT", "会话只接受可选的项目ID，公司与角色范围由后台身份决定。")
         return get_application_session(service, user, project_id)
