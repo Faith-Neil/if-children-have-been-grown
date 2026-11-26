@@ -36,7 +36,7 @@ function manualClock() {
   };
 }
 
-test('a large delta drips about sixty characters per second and stays a prefix', () => {
+test('a large delta drips at a soft seventy-two characters per second and stays a prefix', () => {
   const paints = [];
   const clock = manualClock();
   const reveal = createTextReveal(text => paints.push(text), clock);
@@ -73,25 +73,16 @@ test('cancel stops the drip and a later push continues from the shown prefix', (
   clock2.advance(1000);
   assert.equal(continued.at(-1), '巡'.repeat(9));
   again.push('巡'.repeat(40));
-  clock2.advance(500);
+  clock2.advance(250);
   const next = continued.at(-1);
   assert.equal(next.startsWith('巡'.repeat(9)), true);
   assert.equal(next.length > 9 && next.length < 40, true);
 });
 
 test('the generate button says stop while the stream is live, and ordinary busy never fakes writing', () => {
-  assert.deepEqual(volumeStreamChrome({ streaming: true, busy: true, streamFailed: false }), {
-    label: '停止',
-    paperWait: true,
-  });
-  assert.deepEqual(volumeStreamChrome({ streaming: false, busy: true, streamFailed: true }), {
-    label: '开始生成',
-    paperWait: false,
-  });
-  assert.deepEqual(volumeStreamChrome({ streaming: false, busy: true, streamFailed: false }), {
-    label: '生成中…',
-    paperWait: false,
-  });
+  assert.deepEqual(volumeStreamChrome({ streaming: true, busy: true, streamFailed: false }), { label: '停止' });
+  assert.deepEqual(volumeStreamChrome({ streaming: false, busy: true, streamFailed: true }), { label: '开始生成' });
+  assert.deepEqual(volumeStreamChrome({ streaming: false, busy: true, streamFailed: false }), { label: '生成中…' });
   assert.equal(streamFailureNotice('连接被拒绝'), '生成失败：连接被拒绝');
   assert.equal(streamFailureNotice(''), '生成失败：生成请求失败');
 });

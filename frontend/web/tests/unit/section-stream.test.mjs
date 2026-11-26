@@ -233,3 +233,24 @@ test('abort rejects and does not finish the volume', async context => {
   assert.equal(controller.signal.aborted, true);
   assert.deepEqual(paints, []);
 });
+
+test('task patched stages are parsed, retained, and mapped to the active writing section', async () => {
+  const { activeStreamStage, hasVisibleStreamText, streamingStageLabel } = await import('../../src/editor/section-stream.ts');
+  assert.deepEqual(parseSectionEvent({ event: 'task.patched', task_id: 't-inspect', stage: 'retrieve' }), {
+    event: 'task.patched',
+    task_id: 't-inspect',
+    stage: 'retrieve',
+  });
+  let state = applySectionEvent(emptyVolumeStream(), { event: 'sections.fanout', concurrency: 2, section_ids: ['t-inspect', 't-host'] });
+  state = applySectionEvent(state, { event: 'section.started', section_id: 't-inspect', title: '巡检' });
+  state = applySectionEvent(state, { event: 'task.patched', task_id: 't-inspect', stage: 'retrieve' });
+  assert.equal(activeStreamStage(state), 'retrieve');
+  assert.equal(hasVisibleStreamText(state), false);
+  state = applySectionEvent(state, { event: 'task.patched', task_id: 't-inspect', stage: 'write_section' });
+  state = applySectionEvent(state, { event: 'section.delta', section_id: 't-inspect', text: '正文' });
+  assert.equal(activeStreamStage(state), 'write_section');
+  assert.equal(hasVisibleStreamText(state), true);
+  assert.equal(streamingStageLabel('retrieve'), '正在检索招标与知识库资料…');
+  assert.equal(streamingStageLabel('deviate'), '正在核对偏离要求…');
+  assert.equal(streamingStageLabel('write_section'), '正在撰写本节正文…');
+});

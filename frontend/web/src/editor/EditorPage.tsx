@@ -51,7 +51,7 @@ import { ParagraphLocksBar } from './ParagraphLocksBar.tsx';
 import { VARIABLE_ERROR_CODES, mayHaveVariables, nodesMatch, resolveVariables, sourceLabel, type VariableNode } from './variable-nodes.ts';
 import { VariableChip } from './VariableChip.tsx';
 import { isAbort, type ApplyResult } from './selection-rewrite-core.ts';
-import { runSectionVolumeStream, streamProgressNotice } from './section-stream.ts';
+import { activeStreamStage, hasVisibleStreamText, runSectionVolumeStream, streamProgressNotice } from './section-stream.ts';
 import { activeVolumeSession } from '../status/generation-session.ts';
 import { createTextReveal, streamFailureNotice, volumeStreamChrome, type TextReveal } from './text-reveal.ts';
 import { EditorDiffDrawer, type ChapterVersionItem } from './EditorDiffDrawer.tsx';
@@ -90,6 +90,9 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const [busy, setBusy] = useState(false);
   const [streaming, setStreaming] = useState(false);
   const [streamFailed, setStreamFailed] = useState(false);
+  const [streamStage, setStreamStage] = useState<'' | 'retrieve' | 'deviate' | 'write_section' | 'unknown'>('');
+  const [streamHasText, setStreamHasText] = useState(false);
+  const [streamFinishing, setStreamFinishing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [rightTab, setRightTab] = useState('assistant');
   const [savedAt, setSavedAt] = useState('');
@@ -652,6 +655,9 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     stopRequested.current = false;
     revealHalted.current = false;
     setStreamFailed(false);
+    setStreamStage('');
+    setStreamHasText(false);
+    setStreamFinishing(false);
     const reveal = createTextReveal(markdown => {
       if (streamRun.current === runId) setContent(markdown);
     });
@@ -684,6 +690,10 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
           }
           if (state.live) reveal.push(markdown);
           else reveal.jump(markdown);
+          if (streamRun.current === runId) {
+            setStreamStage(activeStreamStage(state));
+            setStreamHasText(hasVisibleStreamText(state));
+          }
           if (streamRun.current === runId && technicalOutline) {
             setNotice(streamProgressNotice(state, technicalOutline.headings));
           }
@@ -721,6 +731,8 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         const missed = outcome.failed.length > 0 ? `有 ${outcome.failed.length} 节需要补写。` : '';
         setNotice(outcome.replay ? '这次生成已经完成，没有重复写入。' : `正文已写入。${missed}`.trim());
         setStreamFailed(false);
+        setStreamFinishing(true);
+        await new Promise(resolve => window.setTimeout(resolve, 240));
       } else if (requestError) {
         setContent(base);
       } else {
@@ -742,6 +754,9 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         revealRef.current = null;
         streamLive.current = false;
         setStreaming(false);
+        setStreamStage('');
+        setStreamHasText(false);
+        setStreamFinishing(false);
       }
     }
   }
@@ -1012,7 +1027,10 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
                 ref={paperRef}
                 markdown={content}
                 editable={canEdit && !combinedBusy}
-                generating={streamChrome.paperWait}
+                generating={streaming}
+                streamStage={streamStage}
+                streamFinishing={streamFinishing}
+                waitingForFirstText={streaming && !streamHasText}
                 onChange={value => { lock.markActivity(); setContent(value); }}
                 onActivity={() => lock.markActivity()}
                 onSelection={range => { selection.current = range ? { start: range.start, end: range.end } : null; }}
@@ -1063,7 +1081,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         technicalAssistant
         sections={chapterId === technicalOutline?.chapter_id ? sectionsOf(technicalOutline) : []} section={techSection} setSection={setTechSection}
         onSuggestSection={() => void ops.suggestSection(techSection)}
-        generating={streamChrome.paperWait}
+        generating={streaming}
         draftReady={(outlineChapter?.content || content || '').trim().length > 20}
         collapseControl={(
           <Tooltip title="收起对话助手以扩展编辑区">

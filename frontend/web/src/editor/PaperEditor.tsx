@@ -1,7 +1,7 @@
 // 为什么有这个文件：技术方案正文在编辑台里按纸面排版，而不是展示 Markdown 源码。
 // 它解决什么问题：标题、加粗、列表和表格可以直接改；保存时写回章节原有的 Markdown 字段。
 
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -12,6 +12,7 @@ import TableCell from '@tiptap/extension-table-cell';
 import Placeholder from '@tiptap/extension-placeholder';
 import { docToMarkdown, markdownToDoc, sameMarkdown, type PaperNode } from './paper-markdown';
 import { estimatePaperPageCount, paperStackMinHeight } from './paper-pagination';
+import { StreamingPaperView, type StreamingStage } from './StreamingPaperView';
 
 export interface PaperEditorHandle {
   undo: () => void;
@@ -32,6 +33,9 @@ interface Props {
   markdown: string;
   editable: boolean;
   generating: boolean;
+  streamStage?: StreamingStage;
+  streamFinishing?: boolean;
+  waitingForFirstText?: boolean;
   onChange: (markdown: string) => void;
   onActivity?: () => void;
   onSelection?: (range: { start: number; end: number; text: string } | null) => void;
@@ -42,7 +46,7 @@ function markdownOffset(doc: { cut: (from: number, to: number) => { toJSON: () =
   return docToMarkdown(doc.cut(0, pos).toJSON()).length;
 }
 
-export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEditor({ markdown, editable, generating, onChange, onActivity, onSelection }, ref) {
+export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEditor({ markdown, editable, generating, streamStage = '', streamFinishing = false, waitingForFirstText = false, onChange, onActivity, onSelection }, ref) {
   const incoming = useRef(markdown);
   incoming.current = markdown;
   const changeRef = useRef(onChange);
@@ -53,9 +57,11 @@ export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEd
   selectionRef.current = onSelection;
   const sheetRef = useRef<HTMLDivElement>(null);
   const [pageCount, setPageCount] = useState(1);
+  const [awayFromBottom, setAwayFromBottom] = useState(false);
+  const stickToBottom = useRef(true);
   const syncPageLayout = useCallback(() => {
     const sheet = sheetRef.current;
-    const surface = sheet?.querySelector('.paper-surface') as HTMLElement | null;
+    const surface = (sheet?.querySelector('.paper-streaming-view') ?? sheet?.querySelector('.paper-surface')) as HTMLElement | null;
     if (!surface || !sheet) return;
     const pages = estimatePaperPageCount(surface.scrollHeight);
     setPageCount(pages);
@@ -89,8 +95,9 @@ export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEd
     editor?.setEditable(editable && !generating);
   }, [editor, editable, generating]);
 
-  useEffect(() => {
-    if (!editor) return;
+  // 流式期间不重建 ProseMirror；完成交接时在绘制前一次性写入正式正文并恢复滚动位置。
+  useLayoutEffect(() => {
+    if (!editor || generating) return;
     const current = docToMarkdown(editor.getJSON() as PaperNode);
     if (sameMarkdown(current, markdown)) return;
     const scroller = sheetRef.current?.closest('.editor-scroll');
@@ -104,7 +111,42 @@ export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEd
     };
     restore();
     if (typeof requestAnimationFrame === 'function') requestAnimationFrame(restore);
-  }, [editor, markdown]);
+  }, [editor, markdown, generating]);
+
+  // 只在用户仍贴近底部时跟随流式增长；用户主动上翻后绝不强行拉回。
+  useEffect(() => {
+    const scroller = sheetRef.current?.closest('.editor-scroll');
+    if (!(scroller instanceof HTMLElement)) return;
+    const onScroll = () => {
+      const nearBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 24;
+      stickToBottom.current = nearBottom;
+      setAwayFromBottom(!nearBottom);
+    };
+    onScroll();
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+    return () => scroller.removeEventListener('scroll', onScroll);
+  }, [editor]);
+
+  useEffect(() => {
+    if (!generating) {
+      setAwayFromBottom(false);
+      return;
+    }
+    syncPageLayout();
+    if (!stickToBottom.current) return;
+    const scroller = sheetRef.current?.closest('.editor-scroll');
+    if (!(scroller instanceof HTMLElement)) return;
+    const pin = () => { scroller.scrollTop = scroller.scrollHeight; };
+    pin();
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(pin);
+  }, [markdown, generating, syncPageLayout]);
+
+  const scrollBackToBottom = useCallback(() => {
+    const scroller = sheetRef.current?.closest('.editor-scroll');
+    if (!(scroller instanceof HTMLElement)) return;
+    stickToBottom.current = true;
+    scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' });
+  }, []);
 
   useEffect(() => {
     const node = sheetRef.current;
@@ -184,20 +226,15 @@ export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEd
         data-page-count={pageCount}
         ref={sheetRef}
       >
-        <EditorContent editor={editor} />
+        <div className={generating ? 'paper-editor-hidden' : undefined} aria-hidden={generating || undefined}>
+          <EditorContent editor={editor} />
+        </div>
+        {generating && <StreamingPaperView markdown={markdown} stage={streamStage} waitingForFirstText={waitingForFirstText} cursorEnding={streamFinishing} />}
         <span className="paper-page-indicator" data-testid="paper-page-indicator">共 {pageCount} 页</span>
-        {generating && (
-          <div className="paper-wait" data-testid="paper-generating" aria-live="polite">
-            <div className="paper-wait-title" />
-            <div className="paper-wait-line w-full" />
-            <div className="paper-wait-line w-long" />
-            <div className="paper-wait-line w-mid" />
-            <div className="paper-wait-line w-long" />
-            <div className="paper-wait-line w-short" />
-            <span className="paper-wait-label">AI 正在撰写…</span>
-          </div>
-        )}
       </div>
+      {generating && awayFromBottom && <div className="stream-scroll-dock">
+        <button type="button" className="stream-back-bottom" data-testid="stream-back-to-bottom" onClick={scrollBackToBottom}>回到底部</button>
+      </div>}
     </div>
   );
 });

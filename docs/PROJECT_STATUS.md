@@ -11,7 +11,7 @@
 
 [ISSUE-057](../issues/ISSUE-057.md) 已按用户验收收口：PR #54 已合入 main（e978638），四张 FE-UX 任务卡 done，Issue closed；未发布。全量前端单测的既有失败已在 PR #54 如实记录，不冒充通过。
 
-[ISSUE-058](../issues/ISSUE-058.md) 已登记开工：`FE-UX-STREAMING-RENDER` 为 in-progress，`FE-UX-STREAMING-MARKDOWN`、`FE-UX-STREAMING-HANDOFF`、`FE-UX-STREAMING-VERIFICATION` 为 ready。本轮实施编辑台 Gemini 风格柔和流式输出体验；完成后最高 in-review，不标 done。
+[ISSUE-058](../issues/ISSUE-058.md) 已进入 in-review：四张 FE-UX-STREAMING 任务卡完成实施与聚焦验证；tsc、生产构建、流式单测 21 passed、Playwright 模拟 SSE 2 passed 通过。前端全量单测 647 passed / 14 failed，失败为既有陈旧契约，未冒充通过；不标 done。
 
 ## 全站性能根治、隔离与部署底座（2026-11-26）
 
