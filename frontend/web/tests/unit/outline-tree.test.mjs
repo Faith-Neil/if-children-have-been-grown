@@ -11,6 +11,9 @@ import {
   normalizeChapterNumbers,
   validateValueAddedReason,
   getChapterTypeMeta,
+  mountedCount,
+  mountRequirementToHeading,
+  unmountRequirementFromHeading,
   CHAPTER_TYPES_CONFIG,
 } from '../../src/project/outline-tree.ts';
 
@@ -155,3 +158,22 @@ test('7. 增值理由校验 (validateValueAddedReason)', () => {
   assert.equal(result.valid, false);
   assert.ok(result.error?.includes('500'));
 });
+
+test('8. 未挂载池评分点挂入与解挂纯逻辑 (mountRequirementToHeading / unmountRequirementFromHeading)', () => {
+  const initial = [
+    { level: 1, number: '1', title: '运维方案', requirement_id: null, requirement_ids: [] },
+    { level: 2, number: '1.1', title: '日常巡检', requirement_id: 'r1', requirement_ids: ['r1'] },
+  ];
+  assert.equal(mountedCount(initial[0]), 0);
+  assert.equal(mountedCount(initial[1]), 1);
+
+  const mounted = mountRequirementToHeading(initial, 1, 'r2');
+  assert.deepEqual(mounted[1].requirement_ids, ['r1', 'r2']);
+  assert.equal(mounted[1].requirement_id, 'r1');
+  assert.equal(mountedCount(mounted[1]), 2);
+
+  const unmounted = unmountRequirementFromHeading(mounted, 1, 'r1');
+  assert.deepEqual(unmounted[1].requirement_ids, ['r2']);
+  assert.equal(unmounted[1].requirement_id, 'r2');
+});
+

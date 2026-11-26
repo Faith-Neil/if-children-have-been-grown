@@ -83,6 +83,10 @@ test('task patches carry RAG summary and failure reason onto rows', async () => 
   assert.equal(patched.rag, rag);
   assert.equal(patched.retryable, true);
   assert.equal(ragLabel(rag), '历史 2 · 资料 1');
+  assert.equal(
+    ragLabel({ status: 'hit', query: '故障应急', history_hits: 1, material_hits: 4, product_hits: 1, manual_hits: 2, fault_case_hits: 1 }),
+    '历史 1 · 资料 4(产1/手2/案1)',
+  );
   assert.equal(ragLabel({ status: 'failed', query: '', history_hits: 0, material_hits: 0, error: 'ReadTimeout' }), '检索失败（ReadTimeout）');
   assert.equal(ragLabel(null), '未检索');
   assert.equal(coverageStats([row({ confirm_reasons: ['知识库无依据'] })]).confirm, 1);

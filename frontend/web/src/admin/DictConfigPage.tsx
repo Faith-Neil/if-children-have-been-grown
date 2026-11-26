@@ -7,32 +7,7 @@
 // 5. 遵循 Layout First 克制原则，以清晰的卡片分栏、表格与操作反馈表达功能。
 
 import React, { useMemo, useState } from 'react';
-import {
-  Alert,
-  App as AntApp,
-  Badge,
-  Button,
-  Card,
-  Col,
-  Descriptions,
-  Divider,
-  Drawer,
-  Empty,
-  Input,
-  Modal,
-  Popconfirm,
-  Radio,
-  Row,
-  Select,
-  Space,
-  Statistic,
-  Switch,
-  Table,
-  Tabs,
-  Tag,
-  Tooltip,
-  Typography,
-} from 'antd';
+import { Alert, App as AntApp, Badge, Button, Card, Col, Descriptions, Divider, Drawer, Empty, Input, Modal, Popconfirm, Radio, Row, Select, Space, Statistic, Switch, Table, Tabs, Tag, Tooltip, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   CheckCircleOutlined,
@@ -72,12 +47,15 @@ export const DictConfigPage: React.FC<DictConfigPageProps> = ({
   session,
   currentUser,
 }) => {
-  const { message } = AntApp.useApp?.() ?? {
+  const { message, modal } = AntApp.useApp?.() ?? {
     message: {
       success: (msg: string) => console.log('success:', msg),
       error: (msg: string) => console.error('error:', msg),
       info: (msg: string) => console.log('info:', msg),
       warning: (msg: string) => console.warn('warning:', msg),
+    },
+    modal: {
+      warning: (opts: unknown) => console.warn('modal:', opts),
     },
   };
 
@@ -141,7 +119,7 @@ export const DictConfigPage: React.FC<DictConfigPageProps> = ({
   const handleAttemptHardDelete = (item: DictItem) => {
     const check = validateCodeDeactivation(item);
     if (!check.canHardDelete) {
-      Modal.warning({
+      modal.warning({
         title: '不可删除受保护代码',
         icon: <ExclamationCircleOutlined style={{ color: '#d9363e' }} />,
         content: (
@@ -336,7 +314,7 @@ export const DictConfigPage: React.FC<DictConfigPageProps> = ({
       {/* 顶部概览与角色身份标识 */}
       <Card
         style={{ marginBottom: 16, borderRadius: 8 }}
-        bodyStyle={{ padding: '16px 20px' }}
+        styles={{ body: { padding: '16px 20px' } }}
       >
         <Row justify="space-between" align="middle" gutter={[16, 16]}>
           <Col xs={24} md={14}>
@@ -400,7 +378,7 @@ export const DictConfigPage: React.FC<DictConfigPageProps> = ({
       />
 
       {/* 主工作区卡片 */}
-      <Card style={{ borderRadius: 8 }} bodyStyle={{ padding: '16px 20px' }}>
+      <Card style={{ borderRadius: 8 }} styles={{ body: { padding: '16px 20px' } }}>
         {/* 顶部过滤控制条 */}
         <Row justify="space-between" align="middle" gutter={[16, 16]} style={{ marginBottom: 16 }}>
           <Col xs={24} sm={12} md={8}>

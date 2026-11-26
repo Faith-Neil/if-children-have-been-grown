@@ -2,30 +2,7 @@
 // 它解决什么问题：呈现多租户用户与 8 大标准 RBAC 角色列表、新增用户及公司密码策略即时强校验、停用前业务资产强制转交抽屉（交接约束 M1-P10-F2 未转交阻断停用）、角色分配变更（M1-P10-F3）、管理员重置密码、账号安全锁定与解锁（user_status=locked 显示解锁），践行 Layout First 交互设计规范。
 
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  App as AntApp,
-  Badge,
-  Button,
-  Card,
-  Col,
-  Descriptions,
-  Divider,
-  Drawer,
-  Form,
-  Input,
-  InputNumber,
-  List,
-  Modal,
-  Popconfirm,
-  Row,
-  Select,
-  Space,
-  Statistic,
-  Table,
-  Tag,
-  Typography,
-} from 'antd';
+import { Alert, App as AntApp, Badge, Button, Card, Col, Descriptions, Divider, Drawer, Form, Input, InputNumber, List, Modal, Popconfirm, Row, Select, Space, Statistic, Table, Tag, Typography } from 'antd';
 import {
   CheckCircleOutlined,
   ExclamationCircleOutlined,
@@ -755,7 +732,7 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
       )}
 
       {/* 筛选与检索工具栏 (Layout First) */}
-      <Card data-testid="user-filter-bar" style={{ marginBottom: 16 }} bodyStyle={{ padding: '12px 24px' }}>
+      <Card data-testid="user-filter-bar" style={{ marginBottom: 16 }} styles={{ body: { padding: '12px 24px' } }}>
         <Row gutter={[16, 12]} align="middle">
           <Col xs={24} sm={8} md={6}>
             <Input
@@ -828,7 +805,7 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
       </Card>
 
       {/* 用户列表 Table */}
-      <Card bodyStyle={{ padding: 0 }}>
+      <Card styles={{ body: { padding: 0 } }}>
         <Table
           rowKey="id"
           dataSource={filteredUsers}
@@ -847,7 +824,7 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
         okText="确认创建"
         cancelText="取消"
         data-testid="user-add-modal"
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={addForm} layout="vertical" preserve={false}>
           <Form.Item
@@ -976,7 +953,7 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
         cancelText="取消"
         data-testid="user-role-modal"
         okButtonProps={{ 'data-testid': 'role-confirm-btn' } as any}
-        destroyOnClose
+        destroyOnHidden
       >
         {roleModalUser && (
           <div>
@@ -1030,7 +1007,7 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
         cancelText="取消"
         data-testid="user-reset-pwd-modal"
         okButtonProps={{ 'data-testid': 'reset-pwd-submit-btn' } as any}
-        destroyOnClose
+        destroyOnHidden
       >
         <Alert
           type="info"

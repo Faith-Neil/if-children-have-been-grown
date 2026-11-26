@@ -108,6 +108,17 @@ export function CoverageView() {
     }
   }
 
+  async function dismissWarnings(row: CoverageRow) {
+    try {
+      await mutate(
+        `/api/v1/projects/${workspace.project.id}/technical-tasks/${encodeURIComponent(row.task_id)}/verify-warnings/dismiss`,
+        'POST', { warnings: row.verify_warnings ?? [] },
+      );
+    } catch (error) {
+      report(error);
+    }
+  }
+
   const [search, setSearch] = useState('');
   const patches = useSessionPatches();
   const allRows = useMemo(
@@ -270,6 +281,24 @@ export function CoverageView() {
               render: (_, row) => (row.confirm_reasons ?? []).length ? (
                 <span data-testid={`coverage-confirm-${row.requirement_id}`}>
                   {(row.confirm_reasons ?? []).map(reason => <Tag key={reason} color="gold">{reason}</Tag>)}
+                  {canWrite && (row.verify_warnings ?? []).length > 0 && (
+                    <Popover
+                      title="核验警示明细"
+                      content={(
+                        <div style={{ maxWidth: 420 }}>
+                          {(row.verify_warnings ?? []).map(w => <div key={w} style={{ marginBottom: 6 }}>{w}</div>)
+                          }
+                          <Button size="small" type="primary" disabled={busy}
+                            data-testid={`coverage-dismiss-${row.requirement_id}`}
+                            onClick={event => { event.stopPropagation(); void dismissWarnings(row); }}>已核无误，消除警示</Button>
+                        </div>
+                      )}
+                    >
+                      <Button size="small" type="link" disabled={busy}
+                        data-testid={`coverage-warnings-${row.requirement_id}`}
+                        onClick={event => event.stopPropagation()}>消警</Button>
+                    </Popover>
+                  )}
                   {canWrite && coverageState(row) === 'responded' && (
                     <Button size="small" type="link" disabled={busy}
                       onClick={event => { event.stopPropagation(); void confirm(row); }}>确认</Button>

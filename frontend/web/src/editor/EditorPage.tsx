@@ -1,7 +1,7 @@
 // 为什么有这个文件：保留示例的章节目录、正文和助手三栏编辑流程。
 // 它解决什么问题：编辑权、旧草稿、正式版本与建议确认都以后台实际校验为准。
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, App as AntApp, Button, Card, Drawer, Empty, Modal, Progress, Space, Spin, Tag, Tooltip } from 'antd';
+import { Alert, App as AntApp, Button, Card, Drawer, Empty, Form, Input, Modal, Progress, Space, Spin, Tag, Tooltip } from 'antd';
 import {
   BoldOutlined,
   HistoryOutlined,
@@ -69,6 +69,9 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const { modal } = AntApp.useApp();
   const breakpoint = useBreakpoint();
   const [directoryCollapsed, setDirectoryCollapsed] = useState(false);
+  const [unassignedModalOpen, setUnassignedModalOpen] = useState(false);
+  const [factSheetOpen, setFactSheetOpen] = useState(false);
+  const [factSheetForm] = Form.useForm();
   const [assistantCollapsed, setAssistantCollapsed] = useState(false);
   const [outlineDrawerOpen, setOutlineDrawerOpen] = useState(false);
   const [techSection, setTechSection] = useState('');
@@ -570,6 +573,8 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
       requirement_ids?: string[];
     }>;
     confirm: boolean;
+    allow_unassigned?: boolean;
+    auto_mount_unassigned?: boolean;
   }) {
     if (!outlineChapter) return;
     await mutate(`/api/v1/projects/${workspace.project.id}/plan`, 'POST', {
@@ -584,8 +589,31 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         requirement_ids: item.requirement_ids ?? (item.requirement_id ? [item.requirement_id] : []),
       })),
       confirm_outline: payload.confirm,
+      allow_unassigned: !!payload.allow_unassigned,
+      auto_mount_unassigned: !!payload.auto_mount_unassigned,
     });
     await refreshOutlineChapter().catch(() => undefined);
+  }
+
+  async function saveFactSheet() {
+    const values = await factSheetForm.validateFields();
+    const rawModels = String(values.target_models_text ?? '')
+      .replace(/，/g, ',')
+      .split(',')
+      .map(part => part.trim())
+      .filter(Boolean);
+    await mutate(`/api/v1/projects/${workspace.project.id}/global-fact-sheet`, 'PUT', {
+      project_name: values.project_name ?? '',
+      client_name: values.client_name ?? '',
+      service_period: values.service_period ?? '',
+      warranty_period: values.warranty_period ?? '',
+      sla_response: values.sla_response ?? '',
+      on_site_staff: values.on_site_staff ?? '',
+      project_manager: values.project_manager ?? '',
+      target_models: rawModels,
+      tech_route: values.tech_route ?? '',
+    });
+    setFactSheetOpen(false);
   }
 
   function cancelSession(jobId: string) {
@@ -729,6 +757,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     chapterId: technicalOutline.chapter_id,
     headings: technicalOutline.headings,
     missing: technicalOutline.missing,
+    unassigned: technicalOutline.unassigned_requirements ?? [],
     reviewTitles: workspace.technical_needs_review ?? workspace.technical_quality?.review_titles ?? [],
     chapterContent: outlineChapter.id === chapterId ? content : outlineChapter.content,
     confirmed: workspace.plan_confirmed,
@@ -827,18 +856,42 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
             <Button
               type={generatedDirectory.confirmed ? 'default' : 'primary'}
               disabled={generatedDirectory.confirmed || !generatedDirectory.canPrepare || !!generatedDirectory.busy}
-              onClick={() => void generatedDirectory.onSave({
-                title: generatedDirectory.title,
-                headings: generatedDirectory.headings.map(item => ({
-                  level: item.level,
-                  title: item.title,
-                  requirement_id: item.requirement_id ?? null,
-                  task_id: item.task_id ?? null,
-                  requirement_ids: item.requirement_ids ?? (item.requirement_id ? [item.requirement_id] : []),
-                })),
-                confirm: true,
-              })}
+              onClick={() => {
+                if ((generatedDirectory.unassigned?.length ?? 0) > 0) {
+                  setUnassignedModalOpen(true);
+                  return;
+                }
+                void generatedDirectory.onSave({
+                  title: generatedDirectory.title,
+                  headings: generatedDirectory.headings.map(item => ({
+                    level: item.level,
+                    title: item.title,
+                    requirement_id: item.requirement_id ?? null,
+                    task_id: item.task_id ?? null,
+                    requirement_ids: item.requirement_ids ?? (item.requirement_id ? [item.requirement_id] : []),
+                  })),
+                  confirm: true,
+                });
+              }}
             >{generatedDirectory.confirmed ? '目录已确认' : '确认目录'}</Button>
+            <Button
+              data-testid="main-path-fact-sheet"
+              onClick={() => {
+                const sheet = workspace.global_fact_sheet;
+                factSheetForm.setFieldsValue({
+                  project_name: sheet?.project_name ?? workspace.project.name ?? '',
+                  client_name: sheet?.client_name ?? '',
+                  service_period: sheet?.service_period ?? '',
+                  warranty_period: sheet?.warranty_period ?? '',
+                  sla_response: sheet?.sla_response ?? '',
+                  on_site_staff: sheet?.on_site_staff ?? '',
+                  project_manager: sheet?.project_manager ?? '',
+                  target_models_text: (sheet?.target_models ?? []).join(', '),
+                  tech_route: sheet?.tech_route ?? '',
+                });
+                setFactSheetOpen(true);
+              }}
+            >全局事实表</Button>
             <Button
               type="primary"
               danger={streaming}
@@ -1084,5 +1137,105 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
       </div>
       <p className="muted" style={{ marginTop: 12, fontSize: 12 }}>说明：「保留本地修改」将使用最新版本号覆盖并保存为您个人的草稿；「放弃本地」将使用远程最新正文替换当前编辑器内容。</p>
     </Modal>
+
+    {/* 9. 未挂载评分点/要求强提醒弹窗 */}
+    <Modal
+      title="未挂载池尚有未响应评分点"
+      open={unassignedModalOpen}
+      onCancel={() => setUnassignedModalOpen(false)}
+      width={620}
+      data-testid="unassigned-warning-modal"
+      footer={
+        <Space>
+          <Button onClick={() => setUnassignedModalOpen(false)}>返回目录挂载</Button>
+          <Button
+            danger
+            disabled={!!generatedDirectory?.busy}
+            onClick={() => {
+              if (!generatedDirectory) return;
+              setUnassignedModalOpen(false);
+              void generatedDirectory.onSave({
+                title: generatedDirectory.title,
+                headings: generatedDirectory.headings.map(item => ({
+                  level: item.level,
+                  title: item.title,
+                  requirement_id: item.requirement_id ?? null,
+                  task_id: item.task_id ?? null,
+                  requirement_ids: item.requirement_ids ?? (item.requirement_id ? [item.requirement_id] : []),
+                })),
+                confirm: true,
+                allow_unassigned: true,
+              });
+            }}
+          >
+            仍强制确认
+          </Button>
+          <Button
+            type="primary"
+            disabled={!!generatedDirectory?.busy}
+            onClick={() => {
+              if (!generatedDirectory) return;
+              setUnassignedModalOpen(false);
+              void generatedDirectory.onSave({
+                title: generatedDirectory.title,
+                headings: generatedDirectory.headings.map(item => ({
+                  level: item.level,
+                  title: item.title,
+                  requirement_id: item.requirement_id ?? null,
+                  task_id: item.task_id ?? null,
+                  requirement_ids: item.requirement_ids ?? (item.requirement_id ? [item.requirement_id] : []),
+                })),
+                confirm: true,
+                auto_mount_unassigned: true,
+              });
+            }}
+          >
+            自动归入「其他服务承诺」并确认
+          </Button>
+        </Space>
+      }
+    >
+      <Alert
+        type="warning"
+        showIcon
+        style={{ marginBottom: 12 }}
+        message={`当前还有 ${generatedDirectory?.unassigned?.length ?? 0} 条评分点或技术要求未挂载到目录，直接生成将导致漏响应。`}
+      />
+      <div style={{ maxHeight: 240, overflowY: 'auto', border: '1px solid #f0f0f0', borderRadius: 6, padding: '8px 12px' }}>
+        {(generatedDirectory?.unassigned ?? []).map(item => (
+          <div key={item.requirement_id} style={{ padding: '4px 0', borderBottom: '1px dashed #f5f5f5', fontSize: 13 }}>
+            <Tag color={item.kind === 'scoring' ? 'gold' : 'blue'}>{item.digest_id || (item.kind === 'scoring' ? '评分点' : '技术要求')}</Tag>
+            {typeof item.score === 'number' && <Tag color="red">{item.score} 分</Tag>}
+            <span>{item.text}</span>
+          </div>
+        ))}
+      </div>
+    </Modal>
+
+    {/* 10. 全局项目事实表（Global Fact Sheet）核对抽屉 */}
+    <Drawer
+      title="全局项目事实表（全书统一口径）"
+      open={factSheetOpen}
+      onClose={() => setFactSheetOpen(false)}
+      width={460}
+      data-testid="global-fact-sheet-drawer"
+      extra={
+        <Button type="primary" size="small" disabled={!canEdit || combinedBusy} onClick={() => void saveFactSheet()}>
+          保存事实表
+        </Button>
+      }
+    >
+      <Form form={factSheetForm} layout="vertical" disabled={!canEdit || combinedBusy}>
+        <Form.Item name="project_name" label="项目名称"><Input placeholder="招标项目全称" /></Form.Item>
+        <Form.Item name="client_name" label="采购人 / 甲方名称"><Input placeholder="业主单位全称" /></Form.Item>
+        <Form.Item name="service_period" label="服务期 / 工期"><Input placeholder="如：自合同签订之日起 3 年" /></Form.Item>
+        <Form.Item name="warranty_period" label="质保期"><Input placeholder="如：验收合格后 1 年免费质保" /></Form.Item>
+        <Form.Item name="sla_response" label="核心 SLA 响应标准"><Input placeholder="如：7×24小时，15分钟响应，2小时到场" /></Form.Item>
+        <Form.Item name="on_site_staff" label="驻场人数与要求"><Input placeholder="如：常驻现场工程师不少于 2 人" /></Form.Item>
+        <Form.Item name="project_manager" label="拟派项目经理"><Input placeholder="项目经理姓名/资质" /></Form.Item>
+        <Form.Item name="target_models_text" label="核心投标/运维型号（逗号分隔）"><Input placeholder="如：OceanBase-V4, Model-X800" /></Form.Item>
+        <Form.Item name="tech_route" label="总体技术路线"><Input.TextArea rows={3} placeholder="全书统一遵循的架构或运维路线" /></Form.Item>
+      </Form>
+    </Drawer>
   </>;
 }

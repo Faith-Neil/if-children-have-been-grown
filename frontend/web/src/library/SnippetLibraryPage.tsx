@@ -381,7 +381,7 @@ export function SnippetLibraryPage({
       </div>
 
       {/* 检索与操作条 */}
-      <Card bodyStyle={{ padding: 16 }} style={{ marginBottom: 16 }}>
+      <Card styles={{ body: { padding: 16 } }} style={{ marginBottom: 16 }}>
         <Row gutter={[16, 12]} align="middle">
           <Col xs={24} sm={10} md={8}>
             <Input
@@ -441,7 +441,7 @@ export function SnippetLibraryPage({
       {/* 主数据列表 */}
       {loadError && <Alert type="error" showIcon style={{ marginBottom: 12 }} message={loadError} data-testid="snippet-load-error" />}
       {syncNotice && <Alert type={syncNotice.type} showIcon closable style={{ marginBottom: 12 }} message={syncNotice.text} onClose={() => setSyncNotice(null)} />}
-      <Card bodyStyle={{ padding: 0 }}>
+      <Card styles={{ body: { padding: 0 } }}>
         <Spin spinning={loading}>
           {filteredSnippets.length === 0 ? (
             <div style={{ padding: '48px 16px' }}>

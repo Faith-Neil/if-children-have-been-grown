@@ -33,9 +33,11 @@ import {
   UpOutlined,
   WarningFilled,
 } from '@ant-design/icons';
-import type { TechnicalHeading, Volume } from '../shared/types.ts';
+import type { TechnicalHeading, UnassignedRequirementItem, Volume } from '../shared/types.ts';
 import {
   canMarkNotApplicable,
+  mountedCount,
+  mountRequirementToHeading,
   normalizeChapterNumbers,
   reorderNodes,
   validateChapterTypeChange,
@@ -54,6 +56,7 @@ export type GeneratedDirectory = {
   chapterId: string;
   headings: TechnicalHeading[];
   missing?: string[];
+  unassigned?: UnassignedRequirementItem[];
   reviewTitles?: string[];
   chapterContent?: string;
   confirmed: boolean;
@@ -70,6 +73,8 @@ export type GeneratedDirectory = {
       requirement_ids?: string[];
     }>;
     confirm: boolean;
+    allow_unassigned?: boolean;
+    auto_mount_unassigned?: boolean;
   }) => Promise<void>;
   onGenerate: (section?: string) => Promise<void>;
   onOpen: () => void;
@@ -127,8 +132,13 @@ function DirectoryList({ directory }: { directory: GeneratedDirectory }) {
   const numbered = withNumbers(headings);
   const current = numbered[Math.min(selected, Math.max(0, numbered.length - 1))];
 
+  const stampOf = (items: TechnicalHeading[]) =>
+    items
+      .map(item => `${item.level}\t${item.title.trim()}\t${(item.requirement_ids ?? (item.requirement_id ? [item.requirement_id] : [])).join(',')}`)
+      .join('\n');
+
   useEffect(() => {
-    const key = directory.headings.map(item => `${item.level}\t${item.title}`).join('\n');
+    const key = stampOf(directory.headings);
     if (savedKey.current && key === savedKey.current) {
       savedKey.current = '';
       setDraft(null);
@@ -146,13 +156,12 @@ function DirectoryList({ directory }: { directory: GeneratedDirectory }) {
   }
 
   async function persist(next: TechnicalHeading[]) {
-    const stamp = (items: TechnicalHeading[]) => items.map(item => `${item.level}\t${item.title}`).join('\n');
-    if (stamp(next) === stamp(headings)) return;
+    if (stampOf(next) === stampOf(headings)) return;
     setDraft(next);
-    const key = next.map(item => `${item.level}\t${item.title.trim()}`).join('\n');
+    const key = stampOf(next);
     savedKey.current = key;
     try {
-      await directory.onSave({ title: directory.title, headings: payload(next), confirm: directory.confirmed });
+      await directory.onSave({ title: directory.title, headings: payload(next), confirm: false });
     } catch {
       savedKey.current = '';
     }
@@ -217,6 +226,15 @@ function DirectoryList({ directory }: { directory: GeneratedDirectory }) {
     void persist(next);
   }
 
+  function mountFromPool(requirementId: string) {
+    if (!current || blocked) return;
+    const targetIndex = numbered.indexOf(current);
+    if (targetIndex < 0) return;
+    void persist(mountRequirementToHeading(headings, targetIndex, requirementId));
+  }
+
+  const unassigned = directory.unassigned ?? [];
+
   return (
     <div className="wps-outline" data-testid="generated-directory" onDragEnd={() => { dragFrom.current = null; setDropAt(null); }}>
       <div className="wps-outline-tools">
@@ -225,6 +243,41 @@ function DirectoryList({ directory }: { directory: GeneratedDirectory }) {
         <button type="button" aria-label="增加" disabled={blocked || !current} onClick={addHeading}><PlusOutlined /></button>
         <button type="button" aria-label="删除" disabled={blocked || !current || headings.length <= 1} onClick={removeHeading}><MinusOutlined /></button>
       </div>
+      {unassigned.length > 0 && (
+        <div
+          data-testid="unassigned-pool"
+          style={{ margin: '6px 8px 8px', padding: '8px 10px', background: '#fffbe6', border: '1px solid #ffe58f', borderRadius: 6 }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <Text strong style={{ fontSize: 12, color: '#ad6800' }}>未挂载池 ({unassigned.length})</Text>
+            {current && <Text type="secondary" style={{ fontSize: 11 }}>目标：{current.number} {current.title}</Text>}
+          </div>
+          <div style={{ maxHeight: 140, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {unassigned.map(item => (
+              <div
+                key={item.requirement_id}
+                data-testid="unassigned-pool-item"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, fontSize: 12 }}
+              >
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={item.text}>
+                  {item.digest_id ? `[${item.digest_id}] ` : ''}
+                  {typeof item.score === 'number' ? `(${item.score}分) ` : ''}
+                  {item.text}
+                </span>
+                <Button
+                  size="small"
+                  type="link"
+                  disabled={blocked || !current}
+                  style={{ padding: 0, height: 'auto', fontSize: 12 }}
+                  onClick={() => mountFromPool(item.requirement_id)}
+                >
+                  挂入本节
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {numbered.map((item, index) => {
         if (headingHidden(numbered, index, folded)) return null;
         const shownLevel = [1, 2, 3, 4].includes(item.level) ? item.level : 2;
@@ -276,7 +329,12 @@ function DirectoryList({ directory }: { directory: GeneratedDirectory }) {
                 }}
               />
             ) : (
-              <span className="wps-outline-label" data-testid="chapter-number" onDoubleClick={event => { event.stopPropagation(); if (!blocked) setEditing(index); }}>{label}</span>
+              <span className="wps-outline-label" data-testid="chapter-number" onDoubleClick={event => { event.stopPropagation(); if (!blocked) setEditing(index); }}>
+                {label}
+                {mountedCount(item) > 0 && (
+                  <Tag style={{ marginLeft: 6, fontSize: 11, lineHeight: '16px', padding: '0 4px' }}>{mountedCount(item)}</Tag>
+                )}
+              </span>
             )}
           </div>
         );

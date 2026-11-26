@@ -2,24 +2,7 @@
 // 它解决什么问题：支持租户直连真实 RAGFlow 知识库（/api/v1/ragflow-config），配置 Base URL、API Key、Dataset IDs 并一键执行健康检测与连通性测试。
 
 import React, { useEffect, useState } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  Col,
-  Divider,
-  Form,
-  Input,
-  InputNumber,
-  Modal,
-  Row,
-  Space,
-  Spin,
-  Switch,
-  Tag,
-  Typography,
-  message,
-} from 'antd';
+import { Alert, App, Button, Card, Col, Divider, Form, Input, InputNumber, Modal, Row, Space, Spin, Switch, Tag, Typography } from 'antd';
 import {
   ApiOutlined,
   CheckCircleOutlined,
@@ -54,6 +37,7 @@ export function RagflowConfigModal({
   token = null,
   session = null,
 }: RagflowConfigModalProps) {
+  const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [config, setConfig] = useState<RagflowConfigData | null>(null);
   const [form] = Form.useForm();
@@ -222,7 +206,7 @@ export function RagflowConfigModal({
           </Space>
         </div>
       }
-      destroyOnClose
+      destroyOnHidden
     >
       <div data-testid="ragflow-config-modal" style={{ paddingTop: 8 }}>
         {/* 服务状态与刷新 */}
@@ -257,6 +241,43 @@ export function RagflowConfigModal({
             showIcon
             message={testResult.ok ? '服务连通正常' : '连通性检查未通过'}
             description={testResult.message}
+          />
+        )}
+
+        {/* 占位 Dataset ID 告警与已部署真实 ID 回填 */}
+        {(config?.placeholder_dataset_ids?.length ?? 0) > 0 && (
+          <Alert
+            style={{ marginBottom: 16 }}
+            type="warning"
+            showIcon
+            message="Dataset IDs 仍为占位值"
+            description={
+              <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                <Text type="secondary">
+                  {`「${config!.placeholder_dataset_ids!.join('」「')}」是应用侧占位标识，未指向真实 RAGFlow 数据集，检索将空召回。`}
+                </Text>
+                {(config?.suggested_dataset_ids?.length ?? 0) > 0 && (
+                  <Space wrap size={4}>
+                    <Text type="secondary">已部署数据集：</Text>
+                    {config!.suggested_dataset_ids!.map(ds => (
+                      <Tag
+                        key={ds}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => {
+                          const current = String(form.getFieldValue('dataset_ids') || '')
+                            .split(/[,，\n]/)
+                            .map(d => d.trim())
+                            .filter(d => d && !/^dataset-/.test(d));
+                          form.setFieldsValue({ dataset_ids: [...current, ds].join(', ') });
+                        }}
+                      >
+                        {ds}
+                      </Tag>
+                    ))}
+                  </Space>
+                )}
+              </Space>
+            }
           />
         )}
 
@@ -301,7 +322,10 @@ export function RagflowConfigModal({
                   label="检索超时时间 (秒)"
                   rules={[{ required: true }]}
                 >
-                  <InputNumber min={5} max={300} style={{ width: '100%' }} addonAfter="秒" />
+                  <Space.Compact style={{ width: '100%' }}>
+                    <InputNumber min={5} max={300} style={{ width: '100%' }} />
+                    <span className="ant-input-group-addon" style={{ padding: '0 11px', display: 'flex', alignItems: 'center', border: '1px solid #d9d9d9', borderLeft: 0, background: '#fafafa', borderRadius: '0 6px 6px 0' }}>秒</span>
+                  </Space.Compact>
                 </Form.Item>
               </Col>
               <Col span={12}>

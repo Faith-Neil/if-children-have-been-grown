@@ -4,7 +4,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  KB_KIND_LABEL, KB_UPLOAD_ACCEPT, canUploadHistory, datasetWarnings, embeddingChangeWarning, kbApi, kbPermissions,
+  FOUR_KB_DEPLOY_KINDS, KB_KIND_LABEL, KB_UPLOAD_ACCEPT, MATERIAL_SUBKIND_LABEL,
+  canUploadHistory, datasetWarnings, embeddingChangeWarning, kbApi, kbPermissions,
   metadataValueLabel, settingsDiff,
 } from '../../src/library/kb-admin-core.ts';
 
@@ -52,4 +53,6 @@ test('dataset warnings and urls', () => {
   assert.deepEqual(datasetWarnings({ mode: 'pipeline', rebuild_required: true, reparse_required: true }),
     ['嵌入模型已更换，需要重建', '摄入流程已更新，已有文档需重新解析']);
   assert.equal(kbApi.chunk('history', 'd 1', 'c'), '/api/v1/kb-admin/datasets/history/documents/d%201/chunks/c');
+  assert.deepEqual(FOUR_KB_DEPLOY_KINDS, ['history', 'manuals', 'fault_cases', 'products']);
+  assert.equal(MATERIAL_SUBKIND_LABEL.products, '产品手册/参数');
 });

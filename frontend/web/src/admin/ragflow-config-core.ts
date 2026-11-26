@@ -7,6 +7,8 @@ export interface RagflowConfigData {
   has_api_key: boolean;
   api_key_masked?: string | null;
   dataset_ids: string[];
+  placeholder_dataset_ids?: string[];
+  suggested_dataset_ids?: string[];
   timeout_seconds: number;
   is_enabled: boolean;
   revision: number;

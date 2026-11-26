@@ -144,7 +144,7 @@ export function CompanyDetailPage({ companyId, session, currentUser, token, onBa
 
       <Modal title="添加账号" open={addOpen} onCancel={() => { setAddOpen(false); form.resetFields(); }}
         okText="添加" confirmLoading={saving} onOk={() => void submitAdd()}
-        okButtonProps={{ 'data-testid': 'company-detail-add-submit' } as never} destroyOnClose>
+        okButtonProps={{ 'data-testid': 'company-detail-add-submit' } as never} destroyOnHidden>
         <Form form={form} layout="vertical" initialValues={{ role: 'member', must_change_password: true }}>
           <Form.Item name="username" label="用户名" rules={[{ required: true, message: '请填写用户名' }]}>
             <Input data-testid="company-detail-username" autoComplete="off" />

@@ -2,26 +2,7 @@
 // 它解决什么问题：支持查看、切换、新建与编辑租户大模型端点（/api/v1/model-configs），校验敏感项目本地模型标记，提供连通性测试与乐观锁防覆盖。
 
 import React, { useEffect, useState } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  Col,
-  Divider,
-  Form,
-  Input,
-  InputNumber,
-  Modal,
-  Radio,
-  Row,
-  Select,
-  Space,
-  Spin,
-  Switch,
-  Tag,
-  Typography,
-  message,
-} from 'antd';
+import { App, Alert, Button, Card, Col, Divider, Form, Input, Modal, Radio, Row, Select, Space, Spin, Switch, Tag, Typography } from 'antd';
 import {
   ApiOutlined,
   CheckCircleOutlined,
@@ -40,6 +21,7 @@ import {
   type ModelConfigItem,
   buildModelUpdatePayload,
 } from './model-config-core.ts';
+import { UnitInputNumber } from '../shared/UnitInputNumber.tsx';
 
 const { Text, Title } = Typography;
 
@@ -70,6 +52,7 @@ export function ModelConfigModal({
   canManage = false,
   canBind = false,
 }: ModelConfigModalProps) {
+  const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [configs, setConfigs] = useState<ModelConfigItem[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
@@ -353,7 +336,7 @@ export function ModelConfigModal({
           </Space>
         </div>
       }
-      destroyOnClose
+      destroyOnHidden
     >
       <div data-testid="model-config-modal" style={{ paddingTop: 8 }}>
         {/* 配置选择栏 */}
@@ -540,7 +523,7 @@ export function ModelConfigModal({
                   label="超时时间 (秒)"
                   rules={[{ required: true }]}
                 >
-                  <InputNumber min={5} max={600} style={{ width: '100%' }} addonAfter="秒" />
+                  <UnitInputNumber unit="秒" min={5} max={600} style={{ width: '100%' }} />
                 </Form.Item>
               </Col>
               <Col span={12}>
@@ -549,7 +532,7 @@ export function ModelConfigModal({
                   label="最大输出 Token (Max Tokens)"
                   rules={[{ required: true }]}
                 >
-                  <InputNumber min={128} max={32768} style={{ width: '100%' }} addonAfter="Tokens" />
+                  <UnitInputNumber unit="Tokens" min={128} max={32768} style={{ width: '100%' }} />
                 </Form.Item>
               </Col>
             </Row>

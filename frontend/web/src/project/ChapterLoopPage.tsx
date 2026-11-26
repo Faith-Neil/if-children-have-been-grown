@@ -146,7 +146,7 @@ function ChapterLoopTimeline({ projectId, token, chapterId, revision, onClose }:
 
   const loops = detail ? timelineLoops(detail) : [];
   return (
-    <Drawer open={!!chapterId} onClose={onClose} width={640} title={detail ? `轮次时间线 · ${detail.title}` : '轮次时间线'} destroyOnClose>
+    <Drawer open={!!chapterId} onClose={onClose} width={640} title={detail ? `轮次时间线 · ${detail.title}` : '轮次时间线'} destroyOnHidden>
       {failed && <Alert type="error" showIcon message="读取失败" description={failed} action={<Button size="small" onClick={() => void load()}>重试</Button>} />}
       <Spin spinning={loading}>
         {detail && !loops.length && <Empty description="本节还没有运行过章节循环" />}

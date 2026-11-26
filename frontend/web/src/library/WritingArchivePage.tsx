@@ -250,7 +250,7 @@ export function WritingArchivePage({ user, session }: WritingArchivePageProps) {
       </div>
 
       {/* 主 Tabs 分区 */}
-      <Card bodyStyle={{ padding: '8px 16px 20px' }}>
+      <Card styles={{ body: { padding: '8px 16px 20px' } }}>
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}

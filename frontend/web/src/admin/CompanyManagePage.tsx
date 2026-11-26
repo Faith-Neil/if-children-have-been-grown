@@ -167,7 +167,7 @@ export function CompanyManagePage({ session, currentUser, token, onNavigate }: C
 
       <Modal title="新建公司" open={createOpen} onCancel={() => { setCreateOpen(false); createForm.resetFields(); }}
         okText="开通" confirmLoading={creating} onOk={() => void submitCreate()}
-        okButtonProps={{ 'data-testid': 'company-create-submit' } as never} destroyOnClose>
+        okButtonProps={{ 'data-testid': 'company-create-submit' } as never} destroyOnHidden>
         <Form form={createForm} layout="vertical" initialValues={{ must_change_password: true }}>
           <Form.Item name="name" label="公司显示名" rules={[{ required: true, message: '请填写公司显示名' }]}>
             <Input data-testid="company-create-name" />

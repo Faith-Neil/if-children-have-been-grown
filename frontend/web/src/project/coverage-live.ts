@@ -123,10 +123,17 @@ export function patchRows(rows: CoverageRow[], patches: CoveragePatches): Covera
 
 const RAG_LABEL: Record<CoverageRag['status'], string> = { hit: '有依据', empty: '无命中', skipped: '未检索', failed: '检索失败' };
 
-/** 检索列文案：历史 n · 资料 n；没检索时给原因。 */
+/** 检索列文案：历史 n · 资料 n（有四库细分命中时附 产/手/案）；没检索时给原因。 */
 export function ragLabel(rag: CoverageRag | null | undefined): string {
   if (!rag) return '未检索';
-  if (rag.status === 'hit' || rag.status === 'empty') return `历史 ${rag.history_hits} · 资料 ${rag.material_hits}`;
+  if (rag.status === 'hit' || rag.status === 'empty') {
+    const parts: string[] = [];
+    if (rag.product_hits) parts.push(`产${rag.product_hits}`);
+    if (rag.manual_hits) parts.push(`手${rag.manual_hits}`);
+    if (rag.fault_case_hits) parts.push(`案${rag.fault_case_hits}`);
+    const detail = parts.length > 0 ? `(${parts.join('/')})` : '';
+    return `历史 ${rag.history_hits} · 资料 ${rag.material_hits}${detail}`;
+  }
   return rag.error ? `${RAG_LABEL[rag.status]}（${rag.error}）` : RAG_LABEL[rag.status];
 }
 

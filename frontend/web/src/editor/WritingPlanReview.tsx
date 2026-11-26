@@ -1,13 +1,14 @@
 // 为什么有这个文件：让本节编写人、分册负责人和项目负责人按各自范围保存及确认写作方案。
 // 它解决什么问题：已确认的一章可以单独生成，另一册尚未确认不会挡住本章；调整人员和大纲都有明确边界。
 import { useEffect, useRef, useState } from 'react';
-import { Alert, App as AntApp, Button, Card, Form, Input, InputNumber, Modal, Select, Space, Tag } from 'antd';
+import { Alert, App as AntApp, Button, Card, Form, Input, Modal, Select, Space, Tag } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { formatTime, useProject, volumeName } from '../app/context';
 import { displaySlaValue } from '../admin/sla-form';
 import { advancePlanReviewRow, capturePlanReviewBasis, chapterPlanChanged, chapterPlanPayload, chapterStructureChanged, planRequirementText, planReviewRowProblem, planReviewScopeProblem, writingPlanPayload, writingPlanRowBasis, writingPlanRows, type WritingPlanReviewBasis, type WritingPlanRow } from './writing-input';
 import type { Chapter } from '../shared/types';
 import { assignmentCandidates, chapterCan, planScopes, type PlanScope } from '../project/project-team';
+import { UnitInputNumber } from '../shared/UnitInputNumber.tsx';
 
 export default function WritingPlanReview({ open, onClose, chapterId }: { open: boolean; onClose: () => void; chapterId?: string }) {
   const { workspace, user, library, slaTemplates, busy, mutate, report } = useProject();
@@ -158,7 +159,7 @@ export default function WritingPlanReview({ open, onClose, chapterId }: { open: 
             <div className="plan-row"><Form.Item name={[field.name, 'assignee_id']} label="本节编写人" style={{ flex: 1 }} extra={chapter?.assignee_name ? `当前已保存：${chapter.assignee_name}` : '未指定本节编写人'}><Select aria-label={`章节 ${field.name + 1} 的编写人`} disabled={!assignable || busy} allowClear placeholder="选择参与本册的编写人" options={assignmentCandidates(workspace.team?.members ?? [], row?.volume ?? 'technical').map(member => ({ value: member.user_id, label: member.name }))} /></Form.Item>{chapter && <Button style={{ marginTop: 30 }} disabled={!assignable || busy || !!rowProblem || (row?.assignee_id ?? null) === (chapter.assignee_id ?? null)} onClick={() => saveAssignee(field.name)}>说明交接并保存编写人</Button>}</div>
             <Form.Item name={[field.name, 'fact_ids']} label="本章可选事实" extra="只采用本章选中且已确认的事实；必备事实已自动加入。"><Select disabled={!editable || busy} mode="multiple" allowClear placeholder="选择本章需要引用的项目事实" optionFilterProp="label" options={optionalFacts.map(fact => ({ value: fact.id, label: `${fact.key} · ${displaySlaValue(fact.value, fact.unit)}${fact.status === 'confirmed' ? '' : '（待核对）'}`, disabled: fact.status !== 'confirmed' }))} /></Form.Item>
             <Form.Item name={[field.name, 'writing_points']} label="写作要点" extra="说明怎样回应要求，不能在这里修改已确认事实或服务承诺。"><Input.TextArea disabled={!editable || busy} rows={3} maxLength={5000} placeholder="例如：先说明工作步骤，再列出质量核对方式和交付清单" /></Form.Item>
-            <Form.Item name={[field.name, 'target_length']} label="字数目标" rules={[{ type: 'integer', min: 1, max: 100000, message: '填写 1 至 100000 的整数，或留空' }]} extra="留空不设目标，不能用字数代替质量验收。"><InputNumber disabled={!editable || busy} min={1} max={100000} precision={0} style={{ width: 180 }} placeholder="不设目标" addonAfter="字" /></Form.Item>
+            <Form.Item name={[field.name, 'target_length']} label="字数目标" rules={[{ type: 'integer', min: 1, max: 100000, message: '填写 1 至 100000 的整数，或留空' }]} extra="留空不设目标，不能用字数代替质量验收。"><UnitInputNumber unit="字" disabled={!editable || busy} min={1} max={100000} precision={0} style={{ width: 180 }} placeholder="不设目标" /></Form.Item>
             {chapter?.writing_input?.confirmed_at && <p className="muted">上次本节确认：{chapter.writing_input.confirmed_by_name ?? chapter.writing_input.confirmed_by} · {formatTime(chapter.writing_input.confirmed_at)}{current ? '' : ' · 已需重新核对'}</p>}
             {chapter ? <Space wrap><Button disabled={!editable || busy || !!rowProblem || !workspace.parse_confirmed} onClick={() => saveOne(field.name)}>保存本节方案</Button><Button type="primary" disabled={!editable || busy || !!rowProblem || pending || structurePending || !workspace.parse_confirmed} onClick={() => confirmOne(field.name)}>确认本节方案</Button>{pending && <span className="muted">本节事实、要点或字数有修改，请先保存再确认。</span>}{structurePending && <span className="muted">名称、方案或编写人尚未保存；请保存大纲或人员交接后再确认。</span>}{!editable && <span className="muted">当前账号可查看，本节由指定编写人或负责人办理。</span>}</Space> : <span className="muted">{row?.id ? '本节已不在当前后台章节中，先核对并载入最新范围方案。' : '新章节由选定范围负责人统一保存并确认。'}</span>}
           </Card>;

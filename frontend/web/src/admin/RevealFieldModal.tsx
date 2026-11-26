@@ -2,7 +2,7 @@
 // 它解决什么问题：落实 PRD v1.8 §5.4.5 与 §2.3 的高敏字段调阅合规要求，强制校验“查看原因（必填项且不可为空白）”，出示审计告警，并在调阅后提供临时展示、一键复制与遮蔽功能，杜绝明文写入 storage 或 URL。
 
 import React, { useState, useEffect } from 'react';
-import { Modal, Alert, Input, Form, Button, Space, message, Tag } from 'antd';
+import { App, Modal, Alert, Input, Form, Button, Space, Tag } from 'antd';
 import {
   SafetyCertificateOutlined,
   CopyOutlined,
@@ -54,6 +54,7 @@ export function RevealFieldModal({
   title,
   minReasonLength = 5,
 }: RevealFieldModalProps) {
+  const { message } = App.useApp();
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -163,7 +164,7 @@ export function RevealFieldModal({
       }
       open={open}
       onCancel={handleClose}
-      destroyOnClose
+      destroyOnHidden
       footer={
         revealedValue ? (
           <Space>

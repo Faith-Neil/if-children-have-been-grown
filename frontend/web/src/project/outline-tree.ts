@@ -5,7 +5,7 @@
 // 3. 规范专项方案、通用方案、系统生成、封面目录与不适用 5 类章节类型元信息；
 // 4. 纯逻辑脱离 DOM 实现，确保全面单元测试覆盖。
 
-import type { Volume } from '../shared/types.ts';
+import type { TechnicalHeading, Volume } from '../shared/types.ts';
 
 /**
  * PRD v1.8 §5.7.2 规定的 5 类核心章节类型
@@ -296,4 +296,60 @@ export function mapChaptersToOutlineNodes(
     };
   });
 }
+
+/**
+ * 统计单个目录节点已挂载的评分点/要求数量
+ */
+export function mountedCount(heading: Pick<TechnicalHeading, 'requirement_id' | 'requirement_ids'>): number {
+  const ids = heading.requirement_ids && heading.requirement_ids.length > 0
+    ? heading.requirement_ids
+    : heading.requirement_id ? [heading.requirement_id] : [];
+  return new Set(ids.filter(Boolean)).size;
+}
+
+/**
+ * 将未挂载池中的评分点/技术要求挂入指定目录节点（自动去重并避免同一要求重复挂在多处）
+ */
+export function mountRequirementToHeading(
+  headings: TechnicalHeading[],
+  targetIndex: number,
+  requirementId: string
+): TechnicalHeading[] {
+  if (!requirementId || targetIndex < 0 || targetIndex >= headings.length) return headings;
+  return headings.map((item, idx) => {
+    const base = item.requirement_ids && item.requirement_ids.length > 0
+      ? [...item.requirement_ids]
+      : item.requirement_id ? [item.requirement_id] : [];
+    if (idx !== targetIndex) return item;
+    if (!base.includes(requirementId)) base.push(requirementId);
+    return {
+      ...item,
+      requirement_id: base[0] ?? null,
+      requirement_ids: base,
+    };
+  });
+}
+
+/**
+ * 从目录节点解挂某条要求，使其退回未挂载池
+ */
+export function unmountRequirementFromHeading(
+  headings: TechnicalHeading[],
+  targetIndex: number,
+  requirementId: string
+): TechnicalHeading[] {
+  if (!requirementId || targetIndex < 0 || targetIndex >= headings.length) return headings;
+  return headings.map((item, idx) => {
+    if (idx !== targetIndex) return item;
+    const base = item.requirement_ids && item.requirement_ids.length > 0
+      ? item.requirement_ids.filter(id => id !== requirementId)
+      : item.requirement_id && item.requirement_id !== requirementId ? [item.requirement_id] : [];
+    return {
+      ...item,
+      requirement_id: base[0] ?? null,
+      requirement_ids: base,
+    };
+  });
+}
+
 

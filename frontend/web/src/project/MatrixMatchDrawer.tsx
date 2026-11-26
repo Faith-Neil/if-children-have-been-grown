@@ -30,7 +30,7 @@ export function MatrixMatchDrawer({ ids, onClose }: { ids: string[]; onClose: ()
   }
 
   return (
-    <Drawer open={ids.length > 0} onClose={onClose} width={720} title={`智能匹配证据 · ${ids.length} 行`} destroyOnClose>
+    <Drawer open={ids.length > 0} onClose={onClose} width={720} title={`智能匹配证据 · ${ids.length} 行`} destroyOnHidden>
       {results?.[0] && <Alert type="info" showIcon className="stack-card" message={results[0].notice} />}
       <Spin spinning={!results}>
         {results?.map(result => {

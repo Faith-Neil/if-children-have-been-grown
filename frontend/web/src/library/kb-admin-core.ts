@@ -4,16 +4,30 @@
 import { normalizeSystemRole } from '../shared/roles.ts';
 
 export type KbKind = 'history' | 'materials';
-export type KbSearchKind = 'history' | 'materials';
+export type MaterialSubKind = 'manuals' | 'fault_cases' | 'products' | 'materials';
+export type KbPhysicalKind = KbKind | 'manuals' | 'fault_cases' | 'products';
+export type KbSearchKind = KbPhysicalKind;
 
 export const KB_KIND_LABEL: Record<KbKind, string> = {
   history: '历史标书',
   materials: '资料库',
 };
 
-export const KB_KIND_HINT: Record<KbKind, string> = {
-  history: '上传历史投标/响应文件原件，按投标文件章节切块并抽取项目名称、投标日期等元数据。检索结果只作参考，不能挂为证据。',
-  materials: '上传企业权威资料原件（产品说明书、技术参数、企业能力说明等），按章节切块并抽取文档类型与内容角色。作为事实依据，但不单独作为投标证据。',
+export const MATERIAL_SUBKIND_LABEL: Record<MaterialSubKind, string> = {
+  manuals: '文档/运维手册',
+  fault_cases: '故障案例',
+  products: '产品手册/参数',
+  materials: '综合资料（兼容库）',
+};
+
+export const FOUR_KB_DEPLOY_KINDS: KbPhysicalKind[] = ['history', 'manuals', 'fault_cases', 'products'];
+
+export const KB_KIND_HINT: Record<KbPhysicalKind, string> = {
+  history: '上传历史投标/响应文件原件（入库前自动去实体化脱敏旧甲方、旧项目名、编号与金额）。检索结果仅作行文结构参考，严禁照抄实体数据。',
+  materials: '兼容历史已上传的综合企业资料库，建议新资料按「文档/运维手册、故障案例、产品手册/参数」分库投递。',
+  manuals: '上传运维手册、操作指南与标准 SOP（pdf/docx/doc/md），按章节层级切块并保留面包屑路径。',
+  fault_cases: '上传故障案例文档或 Excel/CSV 台账（自动带表头逐行切块并衍生招标式应急问法）。',
+  products: '上传产品白皮书、规格书或多型号对比参数表（对比表自动带表头按型号拆块，杜绝跨型号参数混用）。',
 };
 
 export const HISTORY_UPLOAD_ACCEPT = '.pdf,.docx,.doc';
@@ -21,6 +35,14 @@ export const HISTORY_UPLOAD_ACCEPT = '.pdf,.docx,.doc';
 export const KB_UPLOAD_ACCEPT: Record<KbKind, string> = {
   history: HISTORY_UPLOAD_ACCEPT,
   materials: '.pdf,.docx,.doc,.xls,.xlsx,.ppt,.pptx',
+};
+
+export const PHYSICAL_UPLOAD_ACCEPT: Record<KbPhysicalKind, string> = {
+  history: HISTORY_UPLOAD_ACCEPT,
+  materials: '.pdf,.docx,.doc,.xls,.xlsx,.csv,.ppt,.pptx,.md,.txt',
+  manuals: '.pdf,.docx,.doc,.md,.txt',
+  fault_cases: '.pdf,.docx,.doc,.xls,.xlsx,.csv,.md,.txt',
+  products: '.pdf,.docx,.doc,.xls,.xlsx,.csv,.ppt,.pptx,.md,.txt',
 };
 
 const SECTION_TYPE_LABELS: Record<string, string> = {
@@ -110,7 +132,7 @@ export function kbPermissions(role?: string | null) {
 }
 
 /** 历史标书：公司管理员或任一项目负责人可追加；资料库只给公司管理员。 */
-export function canUploadHistory(role?: string | null, leadsProject = false, kind: KbKind = 'history') {
+export function canUploadHistory(role?: string | null, leadsProject = false, kind: KbPhysicalKind = 'history') {
   return kbPermissions(role).write || (kind === 'history' && leadsProject);
 }
 
@@ -123,12 +145,12 @@ export const kbApi = {
   datasets: '/api/v1/kb-admin/datasets',
   retrieval: '/api/v1/kb-admin/retrieval-test',
   audit: '/api/v1/kb-admin/audit?limit=100',
-  documents: (kind: KbKind, page = 1) => `/api/v1/kb-admin/datasets/${kind}/documents?page=${page}&page_size=30`,
-  document: (kind: KbKind, id: string) => `/api/v1/kb-admin/datasets/${kind}/documents/${encodeURIComponent(id)}`,
-  chunks: (kind: KbKind, id: string) => `/api/v1/kb-admin/datasets/${kind}/documents/${encodeURIComponent(id)}/chunks?page_size=50`,
-  chunk: (kind: KbKind, id: string, chunk: string) =>
+  documents: (kind: KbPhysicalKind, page = 1) => `/api/v1/kb-admin/datasets/${kind}/documents?page=${page}&page_size=30`,
+  document: (kind: KbPhysicalKind, id: string) => `/api/v1/kb-admin/datasets/${kind}/documents/${encodeURIComponent(id)}`,
+  chunks: (kind: KbPhysicalKind, id: string) => `/api/v1/kb-admin/datasets/${kind}/documents/${encodeURIComponent(id)}/chunks?page_size=50`,
+  chunk: (kind: KbPhysicalKind, id: string, chunk: string) =>
     `/api/v1/kb-admin/datasets/${kind}/documents/${encodeURIComponent(id)}/chunks/${encodeURIComponent(chunk)}`,
-  datasetAction: (kind: KbKind, action: 'ensure' | 'reparse' | 'rebuild') => `/api/v1/kb-admin/datasets/${kind}/${action}`,
+  datasetAction: (kind: KbPhysicalKind, action: 'ensure' | 'reparse' | 'rebuild') => `/api/v1/kb-admin/datasets/${kind}/${action}`,
   certificateDraft: (id: string) => `/api/v1/kb-admin/certificates/${encodeURIComponent(id)}/library-draft`,
   certificateDocuments: (page = 1) => `/api/v1/kb-admin/datasets/certificate/documents?page=${page}&page_size=30`,
 };

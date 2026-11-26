@@ -5,7 +5,7 @@
 // 3. 页面卸载时自动注销事件监听，防止内存泄露。
 
 import { useEffect, useCallback } from 'react';
-import { Modal } from 'antd';
+import { App } from 'antd';
 import { FORM_LEAVE_COPY, applyBeforeUnloadEvent } from './form-interactions';
 
 export interface UseUnsavedPromptOptions {
@@ -37,6 +37,7 @@ export function useUnsavedPrompt({
   copy = FORM_LEAVE_COPY,
   onConfirmLeave,
 }: UseUnsavedPromptOptions): UseUnsavedPromptReturn {
+  const { modal } = App.useApp();
   const isPromptActive = isDirty && enabled;
 
   // 1. 浏览器原生 beforeunload 拦截（防止直接关闭标签页或刷新）
@@ -63,7 +64,7 @@ export function useUnsavedPrompt({
         return;
       }
 
-      Modal.confirm({
+      modal.confirm({
         title: copy.title || FORM_LEAVE_COPY.title,
         content: copy.content || FORM_LEAVE_COPY.content,
         okText: copy.okText || FORM_LEAVE_COPY.okText,

@@ -10,8 +10,9 @@ import {
 import { CloudUploadOutlined, DeploymentUnitOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import { rawUploadPath, request, uploadRaw, uploadTooLarge } from '../shared/api.ts';
 import {
-  KB_KIND_HINT, KB_KIND_LABEL, KB_UPLOAD_ACCEPT, canUploadHistory, datasetWarnings, embeddingChangeWarning, kbApi, kbPermissions,
-  metadataValueLabel, settingsDiff, type KbKind, type KbSearchKind, type KbSettings,
+  FOUR_KB_DEPLOY_KINDS, KB_KIND_HINT, KB_KIND_LABEL, MATERIAL_SUBKIND_LABEL, PHYSICAL_UPLOAD_ACCEPT,
+  canUploadHistory, datasetWarnings, embeddingChangeWarning, kbApi, kbPermissions,
+  metadataValueLabel, settingsDiff, type KbKind, type KbPhysicalKind, type KbSearchKind, type KbSettings, type MaterialSubKind,
 } from './kb-admin-core.ts';
 import { kbStatusMeta } from './knowledge-base-core.ts';
 
@@ -101,11 +102,12 @@ function SettingsTab({ call, perms, overview, reload, setNotice }: {
   }
   async function deploy() {
     setBusy(true);
-    const result = await call<Row>(kbApi.deploy, 'POST', {});
+    const result = await call<Row>(kbApi.deploy, 'POST', { kinds: FOUR_KB_DEPLOY_KINDS });
     setBusy(false);
-    if (result) { setNotice('摄入流程已部署并绑定数据集。已有文档需在“数据集与文档”中重新解析才按新流程切块。'); await load(); await reload(); }
+    if (result) { setNotice('四库专属摄入流程已部署并绑定数据集。已有文档需在“数据集与文档”中重新解析才按新流程切块。'); await load(); await reload(); }
   }
   const options = (rows: Row[]) => rows.map(m => ({ value: m.id, label: `${m.name}（${m.provider}）` }));
+  const visibleProfiles = new Set(['history_bid', 'manuals', 'fault_cases', 'products', 'materials']);
 
   return (
     <Space direction="vertical" style={{ width: '100%' }} size="middle">
@@ -128,9 +130,9 @@ function SettingsTab({ call, perms, overview, reload, setNotice }: {
           </Space>
         </Form>
       </Card>
-      <Card size="small" title="ICG 摄入流程（招投标专用）"
-        extra={<Button icon={<DeploymentUnitOutlined />} onClick={() => void deploy()} loading={busy} disabled={!perms.write || !overview.enabled}>部署 / 升级</Button>}>
-        <Table<Row> size="small" rowKey="key" pagination={false} dataSource={pipelines.filter(p => p.key === 'history_bid' || p.key === 'materials')} columns={[
+      <Card size="small" title="ICG 摄入流程（四库招投标专用）"
+        extra={<Button icon={<DeploymentUnitOutlined />} onClick={() => void deploy()} loading={busy} disabled={!perms.write || !overview.enabled}>部署 / 升级四库</Button>}>
+        <Table<Row> size="small" rowKey="key" pagination={false} dataSource={pipelines.filter(p => visibleProfiles.has(p.key))} columns={[
           { title: '流程', dataIndex: 'title', width: 200 },
           { title: '说明', dataIndex: 'description' },
           { title: '切块', dataIndex: 'chunker', width: 80, render: v => (v === 'title' ? '按标题' : '按长度') },
@@ -146,7 +148,10 @@ function DatasetsTab({ call, perms, token, report, setNotice, role, leadsProject
   call: Call; perms: ReturnType<typeof kbPermissions>; token: string | null; report?: (e: unknown) => void; setNotice: (s: string) => void;
   role?: string | null; leadsProject?: boolean; lockKind?: KbKind;
 }) {
-  const [kind, setKind] = useState<KbKind>(lockKind ?? 'history');
+  const [topKind, setTopKind] = useState<KbKind>(lockKind ?? 'history');
+  const [subKind, setSubKind] = useState<MaterialSubKind>('manuals');
+  const [uploadModel, setUploadModel] = useState('');
+  const kind: KbPhysicalKind = (lockKind ?? topKind) === 'history' ? 'history' : subKind;
   const [datasets, setDatasets] = useState<Row[]>([]);
   const [docs, setDocs] = useState<Row[]>([]);
   const [chunksOf, setChunksOf] = useState<Row | null>(null);
@@ -179,8 +184,10 @@ function DatasetsTab({ call, perms, token, report, setNotice, role, leadsProject
     if (tooLarge) { report?.(new Error(tooLarge)); return false; }
     setBusy(true);
     try {
-      await uploadRaw(rawUploadPath(`${kbApi.documents(kind).split('?')[0]}/raw`, { filename: file.name, content_type: file.type }), token, file);
-      setNotice(`已上传并开始解析：${file.name}`);
+      const params: Record<string, string> = { filename: file.name, content_type: file.type };
+      if (kind !== 'history' && uploadModel.trim()) params.model = uploadModel.trim();
+      await uploadRaw(rawUploadPath(`${kbApi.documents(kind).split('?')[0]}/raw`, params), token, file);
+      setNotice(`已上传并预处理入库：${file.name}`);
       await load();
     } catch (error) { report?.(error); } finally { setBusy(false); }
     return false;
@@ -190,30 +197,48 @@ function DatasetsTab({ call, perms, token, report, setNotice, role, leadsProject
     setChunks((await call<{ chunks: Row[] }>(kbApi.chunks(kind, doc.document_id)))?.chunks ?? []);
   }
 
+  const isHistory = kind === 'history';
+  const kindDisplay = isHistory ? '历史标书' : MATERIAL_SUBKIND_LABEL[subKind];
+
   return (
     <Space direction="vertical" style={{ width: '100%' }} size="middle">
-      {kind === 'history' && !info?.dataset_id && (
-        <Alert type="warning" showIcon message="本公司历史标书数据集尚未配置，请公司管理员先配置。未配置时不能上传。" />
-      )}
-      {kind === 'materials' && !info?.dataset_id && (
-        <Alert type="warning" showIcon message="本公司资料库数据集尚未配置，请公司管理员先配置。未配置时不能上传。" />
+      {!info?.dataset_id && (
+        <Alert type="warning" showIcon message={`本公司「${kindDisplay}」数据集尚未建立，请公司管理员点击下方建立。`} />
       )}
       <Space wrap>
         {!lockKind && (
-          <Select<KbKind> value={kind} onChange={setKind} style={{ width: 260 }}
+          <Select<KbKind> value={topKind} onChange={setTopKind} style={{ width: 150 }}
             options={(Object.keys(KB_KIND_LABEL) as KbKind[]).map(k => ({ value: k, label: KB_KIND_LABEL[k] }))} />
         )}
+        {!isHistory && (
+          <Select<MaterialSubKind>
+            data-testid="kb-material-subkind"
+            value={subKind}
+            onChange={setSubKind}
+            style={{ width: 200 }}
+            options={(Object.keys(MATERIAL_SUBKIND_LABEL) as MaterialSubKind[]).map(k => ({ value: k, label: MATERIAL_SUBKIND_LABEL[k] }))}
+          />
+        )}
         <Button icon={<ReloadOutlined />} onClick={() => void load()}>刷新</Button>
-        {kind === 'history' && !info?.dataset_id && perms.write && (
-          <Button type="primary" loading={busy} onClick={() => void action(kbApi.datasetAction('history', 'ensure'), 'POST', {}, '历史标书数据集已建立。')}>建立历史标书数据集</Button>
+        {!info?.dataset_id && perms.write && (
+          <Button type="primary" loading={busy} onClick={() => void action(kbApi.datasetAction(kind, 'ensure'), 'POST', {}, `${kindDisplay}数据集已建立。`)}>
+            建立{kindDisplay}数据集
+          </Button>
         )}
-        {kind === 'materials' && !info?.dataset_id && perms.write && (
-          <Button type="primary" loading={busy} onClick={() => void action(kbApi.datasetAction('materials', 'ensure'), 'POST', {}, '资料库数据集已建立。')}>建立资料库数据集</Button>
+        {!isHistory && (
+          <Input
+            size="middle"
+            allowClear
+            value={uploadModel}
+            onChange={e => setUploadModel(e.target.value)}
+            placeholder="适用型号（可选，如 Model-X800）"
+            style={{ width: 220 }}
+          />
         )}
-        <Upload accept={KB_UPLOAD_ACCEPT[kind]} showUploadList={false} beforeUpload={file => upload(file)}
-          disabled={!canUploadHistory(role, leadsProject, kind) || !info?.dataset_id}>
-          <Button icon={<CloudUploadOutlined />} loading={busy} disabled={!canUploadHistory(role, leadsProject, kind) || !info?.dataset_id}>
-            {kind === 'history' ? '上传历史标书' : '上传资料'}
+        <Upload accept={PHYSICAL_UPLOAD_ACCEPT[kind]} showUploadList={false} beforeUpload={file => upload(file)}
+          disabled={!canUploadHistory(role, leadsProject, kind) || (!info?.dataset_id && (kind === 'history' || kind === 'materials'))}>
+          <Button icon={<CloudUploadOutlined />} loading={busy} disabled={!canUploadHistory(role, leadsProject, kind) || (!info?.dataset_id && (kind === 'history' || kind === 'materials'))}>
+            {isHistory ? '上传历史标书（自动脱敏）' : `上传${kindDisplay}`}
           </Button>
         </Upload>
         <Popconfirm title="按当前流程重新解析该类全部文档？" onConfirm={() => void action(kbApi.datasetAction(kind, 'reparse'), 'POST', {}, '已开始重新解析。')} disabled={!perms.write || !info?.dataset_id}>
@@ -283,8 +308,14 @@ function RetrievalTab({ call }: { call: Call }) {
   return (
     <Space direction="vertical" style={{ width: '100%' }}>
       <Form form={form} layout="inline" initialValues={{ kinds: ['history', 'materials'] as KbSearchKind[], limit: 8 }} onFinish={() => void run()}>
-        <Form.Item name="query" style={{ width: 420 }}><Input placeholder="例如：投标人须具备信息安全管理体系认证" /></Form.Item>
-        <Form.Item name="kinds"><Select mode="multiple" style={{ width: 260 }} options={[{ value: 'history', label: '历史标书' }, { value: 'materials', label: '资料库' }]} /></Form.Item>
+        <Form.Item name="query" style={{ width: 420 }}><Input placeholder="例如：Model-X800 双活故障切换步骤" /></Form.Item>
+        <Form.Item name="kinds"><Select mode="multiple" style={{ width: 280 }} options={[
+          { value: 'history', label: '历史标书' },
+          { value: 'manuals', label: '运维手册' },
+          { value: 'fault_cases', label: '故障案例' },
+          { value: 'products', label: '产品参数' },
+          { value: 'materials', label: '全部资料库' },
+        ]} /></Form.Item>
         <Form.Item name="similarity_threshold" label="阈值"><InputNumber min={0} max={1} step={0.05} placeholder="默认" /></Form.Item>
         <Form.Item name="keywords_weight" label="关键词权重"><InputNumber min={0} max={1} step={0.05} placeholder="默认" /></Form.Item>
         <Button type="primary" htmlType="submit" icon={<SearchOutlined />} loading={busy}>试查</Button>

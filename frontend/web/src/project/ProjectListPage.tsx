@@ -2,28 +2,7 @@
 // 它解决什么问题：落实 APP-M2-T095，提供状态与涉密属性筛选，列表项支持一键进入项目工作台和查看项目元数据抽屉（集成 MaskedField 脱敏展示与倒计时提醒）。
 
 import React, { useMemo, useState } from 'react';
-import {
-  Alert,
-  Badge,
-  Button,
-  Card,
-  Col,
-  Descriptions,
-  Divider,
-  Drawer,
-  Empty,
-  Input,
-  Modal,
-  Progress,
-  Radio,
-  Row,
-  Select,
-  Space,
-  Statistic,
-  Table,
-  Tag,
-  Tooltip,
-} from 'antd';
+import { App, Alert, Badge, Button, Card, Col, Descriptions, Divider, Drawer, Empty, Input, Modal, Progress, Radio, Row, Select, Space, Statistic, Table, Tag, Tooltip } from 'antd';
 import {
   ClockCircleOutlined,
   EyeOutlined,
@@ -89,6 +68,7 @@ export function ProjectListPage({
   token = null,
   className = '',
 }: ProjectListPageProps) {
+  const { modal } = App.useApp();
   // 1. 筛选条件状态
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState<ProjectStatusKey>('all');
@@ -176,7 +156,7 @@ export function ProjectListPage({
         size="small"
         className="project-filter-card"
         style={{ marginBottom: 16 }}
-        bodyStyle={{ padding: '12px 16px' }}
+        styles={{ body: { padding: '12px 16px' } }}
         data-testid="project-filter-card"
       >
         <Row gutter={[16, 12]} align="middle">
@@ -240,7 +220,7 @@ export function ProjectListPage({
             <Tag color="blue">{filteredList.length} 个</Tag>
           </Space>
         }
-        bodyStyle={{ padding: 0 }}
+        styles={{ body: { padding: 0 } }}
         data-testid="project-table-card"
       >
         <Table<Project>
@@ -370,7 +350,7 @@ export function ProjectListPage({
                       danger
                       icon={<DeleteOutlined />}
                       data-testid={`delete-project-btn-${record.id}`}
-                      onClick={() => Modal.confirm({
+                      onClick={() => modal.confirm({
                         title: `删除「${record.name}」`,
                         content: '删除后不再出现在工作台。',
                         okText: '删除',
