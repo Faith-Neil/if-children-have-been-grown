@@ -71,6 +71,20 @@ def occupancy_conflicts(state: Any, project: Any, workflow: dict) -> list[dict]:
     return found
 
 
+def list_status(workflow: dict, stage: str) -> str:
+    """项目列表用的轻量状态缓存：筹备/编写/审核/完成，由登记表或工作台阶段推导。"""
+    saved = (workflow.get("project_status") or {}).get("status")
+    if saved == "ended":
+        return "completed"
+    if saved in ("exported", "submitted", "opened", "cancelled"):
+        return "reviewing" if saved != "cancelled" else "completed"
+    if saved == "compiling" or stage in ("matrix", "writing"):
+        return "writing"
+    if saved == "exported" or stage == "exported":
+        return "reviewing"
+    return "preparing"
+
+
 class ProjectLifecycleMixin:
     """挂在 WorkflowService 上：项目状态流转（动作名 project.update:status，仅项目负责人）。"""
 

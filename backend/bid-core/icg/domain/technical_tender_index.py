@@ -13,6 +13,11 @@ TOKEN = re.compile(r"[\u4e00-\u9fff]{2}|[A-Za-z0-9]{2,}")
 FORBIDDEN_KINDS = frozenset({"history", "materials", "library", "snippet"})
 
 
+class DomainErrorFreeIsolation(Exception):
+    """内部哨兵：缺少本标 document_id 时禁止跨文档检索，调用方统一降级到本地索引。"""
+
+
+
 def project_dataset_suffix(project_id: str) -> str:
     slug = re.sub(r"[^A-Za-z0-9_-]+", "-", project_id).strip("-") or "project"
     return f"project-tender-{slug[:48]}"
@@ -168,7 +173,15 @@ def retrieve_tender(workflow: dict, query: str, *, kb: Any = None, company_id: s
             state = kb.repository.read() if getattr(kb, "repository", None) else None
             client = kb.client_for(company_id, state) if hasattr(kb, "client_for") else None
             if client is not None:
-                result = client.retrieve(question=(query or "")[:2000], dataset_ids=[dataset_id], page_size=max(limit, 8))
+                document_id = str(index.get("document_id") or "").strip()
+                # 项目级 dataset 本身已隔离；再强制绑定本标当前 document_id，防止重建索引后
+                # 同项目旧文档或异常进入同 dataset 的其他文档被召回。document_id 为空时宁可走本地索引。
+                if not document_id:
+                    raise DomainErrorFreeIsolation()
+                result = client.retrieve(
+                    question=(query or "")[:2000], dataset_ids=[dataset_id], document_ids=[document_id],
+                    page_size=max(limit, 8),
+                )
                 audit["tender_searched"] = True
                 for chunk in (getattr(result, "chunks", None) or [])[:limit]:
                     hits.append({

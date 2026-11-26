@@ -253,11 +253,19 @@ class ProjectResponse(ResponseBody):
     updated_at: str | None = None
     record_version: int = 1
     is_deleted: bool = False
+    last_accessed_at: str | None = None
+    status: str = "preparing"
     volume_mode: Literal["both", "technical_only"] = "both"
 
 
 class ProjectListResponse(ResponseBody):
     projects: list[ProjectResponse]
+    total: int | None = None
+    page: int | None = None
+    page_size: int | None = None
+    sort: str | None = None
+    keyword: str | None = None
+    status: str | None = None
 
 
 class ChapterSummaryResponse(ResponseBody):

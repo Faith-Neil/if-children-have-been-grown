@@ -14,6 +14,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.gzip import GZipMiddleware
 from starlette.exceptions import HTTPException
 
 from icg.infra.adapters import DemoModelProvider, build_docx
@@ -90,6 +91,7 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
                           docs_url=None, redoc_url=None,
                           responses=error_responses(422, 500))
     application.state.service = service
+    application.add_middleware(GZipMiddleware, minimum_size=4096)
 
 
     product_directory = Path(__file__).resolve().parents[4] / "frontend" / "web" / "dist"

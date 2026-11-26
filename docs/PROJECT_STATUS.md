@@ -9,7 +9,7 @@
 
 ## 全站性能根治、隔离与部署底座（2026-11-26）
 
-[ISSUE-055](../issues/ISSUE-055.md) 已登记并开工：BE-PERF-HOTPATH-MYSQL 为 in-progress，BE-PROJECT-LIST-PAGING、AI-TENDER-ISOLATION-DOC、OPS-M0-T04 为 ready。本轮必须先采集真实 MySQL 改前基线，再实施会话/仓储/索引、项目列表分页排序、招标检索隔离、四库 `.doc` 转换与三机部署底座；不引入 Redis，不合并 PR，不标 done。
+[ISSUE-055](../issues/ISSUE-055.md) 已登记并开工：BE-PERF-HOTPATH-MYSQL、BE-PROJECT-LIST-PAGING、AI-TENDER-ISOLATION-DOC、OPS-M0-T04 均为 in-review。本轮必须先采集真实 MySQL 改前基线，再实施会话/仓储/索引、项目列表分页排序、招标检索隔离、四库 `.doc` 转换与三机部署底座；不引入 Redis，不合并 PR，不标 done。
 
 ## 技术服务方案精简主路径（2026-11-20）
 

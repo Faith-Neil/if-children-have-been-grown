@@ -298,3 +298,33 @@ def test_project_lead_appends_history_only_while_leading_a_live_project(client):
     assert client.post("/api/v1/kb-admin/datasets/history/documents", headers=member, json=body).status_code == 403
     session = client.get("/api/v1/session", headers=member).json()
     assert session["user"]["leads_project"] is False and "sla_templates.write" not in session["allowedActions"]
+
+
+
+def test_doc_upload_is_converted_before_ragflow_upload(client, fake, monkeypatch):
+    """四库 .doc 上传必须先走 LibreOffice/Word 转 PDF，再把转换件推给 RAGFlow DeepDOC。"""
+    import icg.domain.office_pdf as office_pdf
+
+    seen = {}
+
+    def converted(filename, data):
+        seen["input"] = (filename, data[:4])
+        return ("合成资料.pdf", b"%PDF-1.4" + bytes([10]) + b"converted")
+
+    monkeypatch.setattr(office_pdf, "prepare_for_deepdoc", converted)
+    admin = login(client, ADMIN)
+    ensured = client.post("/api/v1/kb-admin/datasets/materials/ensure", headers=admin, json={})
+    assert ensured.status_code == 200, ensured.text
+    ole_bytes = bytes([0xD0, 0xCF, 0x11, 0xE0]) + b"legacy-doc"
+    ole_doc = base64.b64encode(ole_bytes).decode()
+    result = client.post("/api/v1/kb-admin/datasets/materials/documents", headers=admin,
+                         json={"filename": "合成资料.doc", "content_base64": ole_doc,
+                               "content_type": "application/msword"})
+    assert result.status_code == 200, result.text
+    body = result.json()
+    assert seen["input"] == ("合成资料.doc", bytes([0xD0, 0xCF, 0x11, 0xE0]))
+    remote = fake.documents[body["document_id"]]
+    assert remote["name"] == "合成资料.pdf"
+    assert remote["content"] == "%PDF-1.4\nconverted"
+    assert remote["meta_fields"]["converted_from"] == "doc"
+    assert remote["meta_fields"]["original_filename"] == "合成资料.doc"

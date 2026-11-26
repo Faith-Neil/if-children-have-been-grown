@@ -101,6 +101,8 @@ class Project:
     updated_at: float | None = None
     record_version: int = 1
     is_deleted: bool = False
+    last_accessed_at: float | None = None
+    status: str = "preparing"
 
     @property
     def is_sensitive(self) -> bool:
@@ -626,7 +628,10 @@ class DemoService:
         return self.repository.transaction(record_success)
 
     def authenticate(self, token: str) -> Principal:
-        state = self.repository.read()
+        if hasattr(self.repository, "read_auth_state"):
+            state = self.repository.read_auth_state(token)
+        else:
+            state = self.repository.read()
         user = state.accounts.get(state.sessions.get(token, ""))
         if user is None:
             raise DomainError(401, "UNAUTHENTICATED", "登录已失效，请重新登录。")
@@ -730,21 +735,60 @@ class DemoService:
             data["created_at"] = iso_time(data["created_at"])
         if isinstance(data.get("updated_at"), (int, float)):
             data["updated_at"] = iso_time(data["updated_at"])
+        if isinstance(data.get("last_accessed_at"), (int, float)):
+            data["last_accessed_at"] = iso_time(data["last_accessed_at"])
         return data
 
-    def projects(self, principal: Principal) -> dict:
-        state = self.repository.read()
+    def projects(self, principal: Principal, *, page: int | None = None, page_size: int = 20,
+                 sort: str = "last_accessed_at", keyword: str = "", status: str = "") -> dict:
         from .project_access import is_platform_super, member
+        if hasattr(self.repository, "list_project_summaries"):
+            return self.repository.list_project_summaries(
+                principal.user, page=page, page_size=page_size, sort=sort,
+                keyword=keyword, status=status, response=self._project_response,
+            )
+        state = self.repository.read()
         superuser = is_platform_super(principal.user)
-        return {"projects": [self._project_response(project) for project in state.projects.values()
-                             if not project.is_deleted and (
-                                 superuser
-                                 or (project.company_id == principal.user.company_id
-                                     and member(state, project.id, principal.user.id)))]}
+        rows = [project for project in state.projects.values()
+                if not project.is_deleted and (
+                    superuser
+                    or (project.company_id == principal.user.company_id
+                        and member(state, project.id, principal.user.id)))]
+        needle = (keyword or "").strip().lower()
+        if needle:
+            rows = [project for project in rows if needle in (project.name or "").lower()
+                    or needle in (project.tender_number or "").lower()]
+        if status:
+            rows = [project for project in rows if getattr(project, "status", "preparing") == status]
+        key = sort if sort in ("last_accessed_at", "updated_at", "created_at") else "last_accessed_at"
+        rows.sort(key=lambda project: getattr(project, key, None) or 0, reverse=True)
+        total = len(rows)
+        if page is not None:
+            size = max(1, min(int(page_size or 20), 100))
+            start = (max(1, int(page)) - 1) * size
+            rows = rows[start:start + size]
+        else:
+            size = page_size
+        return {"projects": [self._project_response(project) for project in rows],
+                "total": total, "page": page, "page_size": size, "sort": key,
+                "keyword": keyword or "", "status": status or ""}
+
+    def touch_project_access(self, project: Project, status: str | None = None) -> None:
+        now = self._now()
+        project.last_accessed_at = now
+        if status:
+            project.status = status
+        if hasattr(self.repository, "touch_project_access"):
+            self.repository.touch_project_access(project.id, now, status=status)
 
     def project(self, principal: Principal, project_id: str) -> dict:
-        state = self.repository.read()
-        return self._project_response(self._project(state, principal, project_id))
+        if hasattr(self.repository, "read_project_brief_state"):
+            state = self.repository.read_project_brief_state(project_id, principal)
+        else:
+            state = self.repository.read()
+        project = self._project(state, principal, project_id)
+        self.touch_project_access(project)
+        return self._project_response(project)
 
     def create_project(self, principal: Principal, name: str, *,
                        idempotency_key: str | None = None, volume_mode: str = "both") -> dict:

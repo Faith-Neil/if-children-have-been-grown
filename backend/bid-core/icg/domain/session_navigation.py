@@ -57,7 +57,11 @@ def navigation_for_roles(roles: Iterable[str]) -> list[dict]:
 
 def get_application_session(service, principal: Principal, project_id: str | None = None) -> dict:
     # 与项目权限计算共用同一份真实仓储快照，不使用登录响应或传入Principal的旧账号内容。
-    state = service.repository.read()
+    # MySQL 热路径按会话作用域精确读项目/团队元数据；内存仓储继续走多态 read()。
+    if hasattr(service.repository, "read_session_state"):
+        state = service.repository.read_session_state(principal, project_id)
+    else:
+        state = service.repository.read()
     user = state.accounts.get(state.sessions.get(principal.session_token, ""))
     if user is None:
         raise DomainError(401, "UNAUTHENTICATED", "请先登录。")

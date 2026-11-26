@@ -16,6 +16,8 @@ def project_input_fingerprint(state: DemoState, project_id: str) -> str:
     workflow = state.workflows.get(project_id, {})
     project = asdict(state.projects[project_id])
     project.pop("revision")  # 记录检查、候选本身不改变用于写作的输入。
+    project.pop("last_accessed_at", None)  # 列表访问时间只是查看行为，不参与写作输入指纹。
+    project.pop("status", None)  # 列表状态缓存由工作流推导，不作为额外输入源参与指纹。
     positions = {identity: index for index, identity in enumerate(workflow.get("chapter_order", []))}
     chapters = sorted((c for c in state.chapters.values() if c.project_id == project_id),
                       key=lambda chapter: positions.get(chapter.id, len(positions)))

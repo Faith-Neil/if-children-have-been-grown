@@ -36,7 +36,7 @@ from icg.domain.library_orchestrator import LibraryOrchestrator, LibraryOrchestr
 from icg.domain.human_queue import HumanQueueMixin
 from icg.domain.volume_review import VolumeReviewMixin
 from icg.domain.post_process import OmissionMixin, suspected
-from icg.domain.project_lifecycle import current_status, ensure_not_cancelled
+from icg.domain.project_lifecycle import current_status, ensure_not_cancelled, list_status
 
 SAMPLE_TENDER: bytes = b""
 
@@ -169,6 +169,8 @@ class WorkflowService(
             self._version(project.revision, expected)
             workflow = self._workflow(state, project_id, create=True)
             result = operation(state, project, workflow)
+            project.last_accessed_at = self.demo._now()
+            project.status = list_status(workflow, self.workspace_stage(state, project_id, workflow))
             project.revision += 1
             self._audit(state, principal, project_id, action, audit_details)
             result = {"revision": project.revision, **result}
@@ -273,6 +275,16 @@ class WorkflowService(
 
     def _public_check(self, state: DemoState, project_id: str, check: dict) -> dict:
         result = dict(check)
+        # 工作台只需要平铺 issues；规则内嵌 issues 与平铺清单重复，万次问题时会把工作台载荷放大数倍。
+        # 保留规则级结论与统计，检查页仍从 check.issues 读取完整问题明细；运行检查接口的原始返回不受影响。
+        public_rules = []
+        for rule in result.get("rules") or []:
+            item = dict(rule)
+            nested = item.pop("issues", None) or []
+            item["issue_count"] = len(nested)
+            public_rules.append(item)
+        if public_rules:
+            result["rules"] = public_rules
         if check["fingerprint"] != self._fingerprint(state, project_id):
             result["status"] = "stale"
         return result
@@ -299,11 +311,15 @@ class WorkflowService(
         return job
 
     def workspace(self, principal: Principal, project_id: str) -> dict:
-        state = self.repository.read()
+        if hasattr(self.repository, "read_project_state"):
+            state = self.repository.read_project_state(project_id, principal)
+        else:
+            state = self.repository.read()
         project = self.demo._project(state, principal, project_id)
         workflow = self._workflow(state, project_id)
         chapters = [self._chapter_summary(state, workflow, c, principal.user.id) for c in self._ordered_chapters(state, project_id, workflow)]
         stage = self.workspace_stage(state, project_id, workflow)
+        self.demo.touch_project_access(project, list_status(workflow, stage))
         return {
             "revision": project.revision, "input_fingerprint": self._fingerprint(state, project_id),
             "project": {**asdict(project), "volume_mode": project_volume_mode(state, project_id)}, "stage": stage,

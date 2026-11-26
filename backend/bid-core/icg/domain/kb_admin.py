@@ -11,6 +11,7 @@ from __future__ import annotations
 import base64
 import binascii
 from copy import deepcopy
+from pathlib import PurePosixPath
 from typing import Any
 
 from .domain import DemoState, DomainError, Principal, iso_time, new_id
@@ -486,6 +487,19 @@ class KbAdminService:
             )
             for mk, mv in auto_meta.items():
                 user_meta.setdefault(mk, mv)
+
+        # 真实 .doc/.docx 先经 LibreOffice/本机 Word 转 PDF，再交给 RAGFlow DeepDOC；
+        # 否则 Word 只能抽出文字流，丢失页码与版面位置。历史标书已在上方完成去实体化预处理。
+        from icg.domain.office_pdf import prepare_for_deepdoc
+        prepared = prepare_for_deepdoc(upload_name, data)
+        if isinstance(prepared, str):
+            raise DomainError(422, "FILE_CONVERSION_FAILED", prepared)
+        if prepared is not None:
+            original_name = upload_name
+            upload_name, data = prepared
+            content_type = "application/pdf"
+            user_meta.setdefault("original_filename", original_name)
+            user_meta.setdefault("converted_from", PurePosixPath(original_name).suffix.lower().lstrip("."))
 
         company = principal.user.company_id
         client = self._client(principal)

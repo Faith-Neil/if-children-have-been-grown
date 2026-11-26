@@ -80,7 +80,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | ready |
+| 状态 | in-review |
 | 估算 | 3小时 |
 | 关联Issue | [ISSUE-055](../../issues/ISSUE-055.md) |
 | 依赖 | [OPS-M0-T03](OPS-M0.md#ops-m0-t03)；BE/AI 本轮配置要求 |
@@ -92,6 +92,6 @@
 
 可验证验收：
 
-- [ ] Dockerfile/compose/env/README 与实际启动入口一致，不引入 Redis、不增加 worker。
-- [ ] `.doc/.docx` 转 PDF 的 Linux 依赖和中文字体明确安装。
-- [ ] 上线步骤含迁移、健康检查、转换探针、四库初始化自检与密钥不入库要求。
+- [x] Dockerfile/compose/env/README 与实际启动入口一致，不引入 Redis、不增加 worker。
+- [x] `.doc/.docx` 转 PDF 的 Linux 依赖和中文字体明确安装。
+- [x] 上线步骤含迁移、健康检查、转换探针、四库初始化自检与密钥不入库要求。

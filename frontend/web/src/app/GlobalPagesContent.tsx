@@ -22,7 +22,7 @@ import {
   LazyUsersPage as UsersPage,
   LazyWritingArchivePage as WritingArchivePage,
 } from './lazy-routes';
-import type { Account, ApplicationSession, Evidence, Job, Project, SlaTemplate } from '../shared/types';
+import type { Account, ApplicationSession, Evidence, Job, Project, ProjectListQuery, ProjectListResult, SlaTemplate } from '../shared/types';
 import type { LibraryReadState, LibraryWriteVersion } from '../library/library-review';
 import type { TemplateReadState } from '../library/template-review';
 export interface GlobalPagesContentProps {
@@ -30,6 +30,7 @@ export interface GlobalPagesContentProps {
   companyDetailId?: string | null;
   loading: boolean;
   projects: Project[];
+  onQueryProjects?: (query: ProjectListQuery) => Promise<ProjectListResult>;
   session: ApplicationSession | null;
   currentUser: Account;
   busy: boolean;
@@ -65,6 +66,7 @@ export function GlobalPagesContent({
   companyDetailId = null,
   loading,
   projects,
+  onQueryProjects,
   session,
   currentUser,
   busy,
@@ -114,6 +116,7 @@ export function GlobalPagesContent({
             </div>
             <ProjectListPage
               projects={projects}
+              onQueryProjects={onQueryProjects}
               onOpenProject={onOpenProject}
               onDeleteProject={onDeleteProject}
               session={session}

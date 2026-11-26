@@ -37,6 +37,7 @@ from icg.infra.repositories.jobs import (
 from icg.infra.repositories.projects import project_snapshot, team_snapshot, save_projects
 from icg.infra.repositories.model_config import save_model_configs
 from icg.infra.repositories.state_entries import StateEntryStore, snapshot as entry_snapshot
+from icg.infra.repositories import hot_reads
 
 T = TypeVar("T")
 
@@ -95,6 +96,64 @@ class MysqlConnectionRepository:
                     raise
                 self._engine = engine
             return self._engine
+
+    def read_auth_state(self, token: str) -> DemoState:
+        return hot_reads.read_auth_state(self, token)
+
+    def read_session_state(self, principal: Any, project_id: str | None = None) -> DemoState:
+        return hot_reads.read_session_state(self, principal, project_id)
+
+    def read_project_brief_state(self, project_id: str, principal: Any) -> DemoState:
+        return hot_reads.read_project_brief_state(self, project_id, principal)
+
+    def read_project_state(self, project_id: str, principal: Any) -> DemoState:
+        return hot_reads.read_project_state(self, project_id, principal)
+
+    def read_service_store(self, entry_id: str) -> dict:
+        return hot_reads.read_service_store(self, entry_id)
+
+    def touch_project_access(self, project_id: str, accessed_at: float, *, status: str | None = None) -> None:
+        with self.engine.begin() as connection:
+            available = hot_reads.project_column_names(self, connection)
+            assignments = []
+            params: dict[str, Any] = {"id": project_id}
+            if "last_accessed_at" in available:
+                assignments.append("last_accessed_at = :accessed_at")
+                params["accessed_at"] = utc_naive(accessed_at)
+            if status and "status" in available:
+                assignments.append("status = :status")
+                params["status"] = status
+            if assignments:
+                connection.execute(text("UPDATE demo_project SET " + ", ".join(assignments) + " WHERE id = :id"), params)
+
+    def list_project_summaries(self, user: Any, *, page: int | None, page_size: int,
+                               sort: str, keyword: str, status: str, response: Any) -> dict:
+        state = DemoState()
+        with self.engine.begin() as connection:
+            hot_reads.load_projects(connection, self, state)
+        from icg.domain.project_access import is_platform_super, member
+        superuser = is_platform_super(user)
+        rows = [project for project in state.projects.values()
+                if not project.is_deleted and (
+                    superuser or (project.company_id == user.company_id
+                                  and member(state, project.id, user.id)))]
+        needle = (keyword or "").strip().lower()
+        if needle:
+            rows = [project for project in rows if needle in (project.name or "").lower()
+                    or needle in (project.tender_number or "").lower()]
+        if status:
+            rows = [project for project in rows if project.status == status]
+        key = sort if sort in ("last_accessed_at", "updated_at", "created_at") else "last_accessed_at"
+        rows.sort(key=lambda project: getattr(project, key, None) or 0, reverse=True)
+        total = len(rows)
+        if page is not None:
+            size = max(1, min(int(page_size or 20), 100))
+            start = (max(1, int(page)) - 1) * size
+            rows = rows[start:start + size]
+        else:
+            size = page_size
+        return {"projects": [response(project) for project in rows], "total": total,
+                "page": page, "page_size": size, "sort": key, "keyword": keyword or "", "status": status or ""}
 
     def read_chapter(self, chapter_id: str) -> dict | None:
         return read_chapter(self.engine, chapter_id)
@@ -292,7 +351,7 @@ class MysqlConnectionRepository:
                 projects = connection.execute(text(
                     "SELECT id, name, company_id, revision, tender_number, deadline, is_sensitive, "
                     "tender_type, budget_amount_cents, deadline_at, security_level, industry, is_archived, "
-                    "created_by, created_at, updated_by, updated_at, record_version, is_deleted "
+                    "created_by, created_at, updated_by, updated_at, record_version, is_deleted, last_accessed_at, status "
                     "FROM demo_project"
                 )).all()
                 has_full_project_schema = True
@@ -321,7 +380,8 @@ class MysqlConnectionRepository:
             for (
                 project_id, name, company_id, revision, tender_number, deadline, sensitive,
                 tender_type, budget_amount_cents, deadline_at, security_level, industry, is_archived,
-                created_by, created_at, updated_by, updated_at, record_version, is_deleted
+                created_by, created_at, updated_by, updated_at, record_version, is_deleted,
+                last_accessed_at, status
             ) in projects:
                 state.projects[project_id] = Project(
                     id=project_id,
@@ -343,6 +403,8 @@ class MysqlConnectionRepository:
                     updated_at=parse_db_timestamp(updated_at),
                     record_version=int(record_version) if record_version is not None else 1,
                     is_deleted=bool(is_deleted),
+                    last_accessed_at=parse_db_timestamp(last_accessed_at),
+                    status=status or "preparing",
                 )
         else:
             for project_id, name, company_id, revision, tender_number, deadline, sensitive in projects:

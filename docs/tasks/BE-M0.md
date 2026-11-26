@@ -960,7 +960,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-progress |
+| 状态 | in-review |
 | 估算 | 4小时 |
 | 关联 Issue | [ISSUE-055](../../issues/ISSUE-055.md) |
 | 依赖 | 真实 MySQL 可达；先采集改前基准 |
@@ -972,10 +972,10 @@
 
 可验证验收：
 
-- [ ] 改前/改后四接口毫秒级对比写入交付与 PR。
-- [ ] 会话与鉴权路径不扫描全部 `demo_chapter` / `demo_chapter_version` / 全量项目快照。
-- [ ] Alembic 迁移在真实 MySQL 实跑通过，索引存在性有证据。
-- [ ] 聚焦回归含 `mysql_gate` 与受影响仓储测试。
+- [x] 改前/改后四接口毫秒级对比写入交付与 PR。
+- [x] 会话与鉴权路径不扫描全部 `demo_chapter` / `demo_chapter_version` / 全量项目快照。
+- [x] Alembic 迁移在真实 MySQL 实跑通过，索引存在性有证据。
+- [x] 聚焦回归含 `mysql_gate` 与受影响仓储测试。
 
 <a id="be-project-list-paging"></a>
 
@@ -983,7 +983,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | ready |
+| 状态 | in-review |
 | 估算 | 3小时 |
 | 关联 Issue | [ISSUE-055](../../issues/ISSUE-055.md) |
 | 依赖 | [BE-PERF-HOTPATH-MYSQL](BE-M0.md#be-perf-hotpath-mysql) |
@@ -995,7 +995,7 @@
 
 可验证验收：
 
-- [ ] 默认按最近访问倒序，分页、关键字与状态筛选有后端单测。
-- [ ] 进入项目详情/编辑台/生成/导出会更新 `last_accessed_at`。
-- [ ] 旧客户端不传参数时响应主体仍含 `projects` 列表。
-- [ ] `export_openapi.py --check` 与前端 `tsc -b --noEmit` 通过。
+- [x] 默认按最近访问倒序，分页、关键字与状态筛选有后端单测。
+- [x] 进入项目详情/编辑台/生成/导出会更新 `last_accessed_at`。
+- [x] 旧客户端不传参数时响应主体仍含 `projects` 列表。
+- [x] `export_openapi.py --check` 与前端 `tsc -b --noEmit` 通过。

@@ -403,3 +403,56 @@ def test_workspace_fields_expose_audit(monkeypatch):
     assert labeled["writer_model"] == {"name": "mock-writer", "is_real": False, "is_local": False}
     assert workflow["writer_model"] is provider
 
+
+
+def test_retrieve_tender_forces_current_document_ids():
+    """同公司 A/B 两标即使共用项目 dataset，检索也必须只带本标 document_id。"""
+    from types import SimpleNamespace
+
+    calls = []
+
+    class Client:
+        def retrieve(self, **kwargs):
+            calls.append(kwargs)
+            rows = [
+                SimpleNamespace(id="chunk-a", content="A 标数据库巡检条款", similarity=0.9, document_id="doc-a"),
+                SimpleNamespace(id="chunk-b", content="B 标数据库巡检条款", similarity=0.95, document_id="doc-b"),
+            ]
+            allowed = set(kwargs.get("document_ids") or [])
+            return SimpleNamespace(chunks=[row for row in rows if row.document_id in allowed])
+
+    class KB:
+        repository = None
+
+        @staticmethod
+        def client_for(company_id, state=None):
+            return Client()
+
+    workflow = {"tender_index": {"backend": "ragflow", "dataset_id": "ds-project", "document_id": "doc-a", "chunks": []}}
+    hits, audit = retrieve_tender(workflow, "数据库巡检", kb=KB(), company_id="alpha")
+    assert calls and calls[0]["document_ids"] == ["doc-a"]
+    assert [hit["document_id"] for hit in hits] == ["doc-a"]
+    assert all("B 标" not in hit["content"] for hit in hits)
+    assert audit["tender_searched"] is True
+
+
+def test_retrieve_tender_without_document_id_never_queries_remote():
+    """缺 document_id 时不许扫整个 dataset；降级本地索引，从根上避免串标。"""
+    class Client:
+        def retrieve(self, **kwargs):
+            raise AssertionError("remote retrieval must not run")
+
+    class KB:
+        repository = None
+
+        @staticmethod
+        def client_for(company_id, state=None):
+            return Client()
+
+    workflow = {"tender_index": {
+        "backend": "ragflow", "dataset_id": "ds-project", "document_id": "",
+        "chunks": [{"text": "本标本地索引：数据库巡检每月一次", "page": 3}],
+    }}
+    hits, audit = retrieve_tender(workflow, "数据库巡检", kb=KB(), company_id="alpha")
+    assert hits and "本标本地索引" in hits[0]["content"]
+    assert audit["skip_reason"] in ("DomainErrorFreeIsolation", "") or audit["tender_hits"] == len(hits)

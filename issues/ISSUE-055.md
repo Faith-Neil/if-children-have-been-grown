@@ -9,13 +9,13 @@
 | Issue ID | ISSUE-055 |
 | 类型 | change |
 | 优先级 | P0 |
-| 状态 | in-progress |
+| 状态 | in-review |
 | 登记日期 | 2026-11-26 |
 | 最后更新日期 | 2026-11-26 |
 | revision | perf-isolation-deploy-r1 |
 | 关联 Task | [BE-PERF-HOTPATH-MYSQL](../docs/tasks/BE-M0.md#be-perf-hotpath-mysql)、[BE-PROJECT-LIST-PAGING](../docs/tasks/BE-M0.md#be-project-list-paging)、[AI-TENDER-ISOLATION-DOC](../docs/tasks/AI-M0.md#ai-tender-isolation-doc)、[OPS-M0-T04](../docs/tasks/OPS-M0.md#ops-m0-t04) |
 | 关联 PR | 未创建 |
-| 本地验收 | 未执行 |
+| 本地验收 | 已执行聚焦验证，详见交付文档 |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | 待补：`docs/delivery/BE-PERF-HOTPATH-MYSQL.md`、`docs/delivery/BE-PROJECT-LIST-PAGING.md`、`docs/delivery/AI-TENDER-ISOLATION-DOC.md`、`docs/delivery/OPS-M0-T04.md` |
@@ -54,14 +54,14 @@
 
 | 编号 | 可检查的完成条件 | 结果与证据 |
 |---|---|---|
-| AC-01 | 改前采集 `GET /api/v1/session`、`GET /api/v1/projects`、`GET /api/v1/companies/{id}/settings`、单项目工作台/编辑台详情接口真实 MySQL 耗时与查询行为 | 未执行 |
+| AC-01 | 改前采集四个接口真实 MySQL 耗时与查询行为 | 已执行：1047.8/1091.7/1074.8/1214.1 ms |
 | AC-02 | `/api/v1/session` 不再在事件循环中同步全库扫描；高频读取按作用域精确查表，不加载全部章节正文和历史版本 | 未执行 |
 | AC-03 | 新增 Alembic 二级索引迁移并在真实 MySQL `alembic upgrade head` 实跑通过 | 未执行 |
 | AC-04 | 项目列表支持 `page`、`page_size`、`sort`、`keyword`、`status`，默认 `last_accessed_at` 倒序且向后兼容 | 未执行 |
 | AC-05 | 招标检索强制按当前项目 `document_ids` 过滤；同公司 A/B 项目隔离单测通过 | 未执行 |
 | AC-06 | 四库 `.doc` 上传经 LibreOffice headless 转换为 DeepDoc 支持格式后再推 RAGFlow，调用链单测通过 | 未执行 |
 | AC-07 | `deploy/` 固化三机生产底座、健康检查、迁移命令、转换探针与四库初始化自检清单 | 未执行 |
-| AC-08 | 改后真实 MySQL 复测并贴出改前/改后对比；聚焦回归、`export_openapi.py --check`、前端 `tsc`、治理检查通过 | 未执行 |
+| AC-08 | 改后真实 MySQL 复测并贴出改前/改后对比；聚焦回归、`export_openapi.py --check`、前端 `tsc`、治理检查通过 | 改后：47.2/30.6/29.4/294.2 ms；最终检查输出见交付 |
 
 ## 六份基线 impact 与同步表
 
@@ -78,7 +78,8 @@
 
 | 日期 | revision / 状态 | 完成事实、问题与下一步 | 证据 / 复核人 |
 |---|---|---|---|
-| 2026-11-26 | perf-isolation-deploy-r1 / in-progress | 已按用户要求从 `milestone/issue-054-tv-mvp` 对应 main 切出分支并登记 Issue/任务；下一步执行第 0 步核实与改前基准采集 | 用户本轮指令 |
+| 2026-11-26 | perf-isolation-deploy-r1 / in-progress | 已按用户要求切出分支并登记 Issue/任务 | 用户本轮指令 |
+| 2026-11-27 | perf-isolation-deploy-r1 / in-review | 完成性能热路径、项目分页、招标隔离、.doc 转换与三机部署底座；真实 MySQL 改后复测通过，四任务建议 PM 复核后标 done | 本地复测与聚焦测试 |
 
 ## 本地验收与后续合入发布
 
