@@ -96,8 +96,7 @@ def forget_session(state: Any, token: str) -> None:
 def session_expired(state: Any, token: str, now: float | None = None) -> bool:
     started = session_times(state).get(token)
     if not isinstance(started, (int, float)):
-        # 迁移前旧会话没有签发时间：不突然踢出，补记后按新策略计时。
-        remember_session(state, token, now if now is not None else time.time())
-        return False
+        # 迁移前旧会话没有可信签发时间；按过期处理并要求重新登录，不能留下绕过窗口。
+        return True
     minutes = policy_for_state(state).session_timeout_minutes
     return float(now if now is not None else time.time()) - float(started) > minutes * 60

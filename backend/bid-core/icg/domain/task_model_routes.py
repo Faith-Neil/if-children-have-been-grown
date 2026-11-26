@@ -59,17 +59,19 @@ def public(state: DemoState, company_id: str) -> dict:
 
 
 def resolve(state: DemoState, company_id: str, task: str | None) -> tuple[Any, Any] | None:
-    """（首选配置，备用配置或 None）；该任务没配首选时返回 None。"""
+    """（首选配置，备用配置或 None）；公司级覆盖优先，平台 system 全局对应表兜底。"""
     if not task:
         return None
-    route = routes(state, company_id).get(task) or {}
-    primary = state.model_configs.get(route.get("primary_config_id") or "")
-    if primary is None or primary.company_id != company_id:
-        return None
-    fallback = state.model_configs.get(route.get("fallback_config_id") or "")
-    if fallback is not None and problems(state, company_id, task, primary.id, fallback.id):
-        fallback = None  # 配置事后被改得不合规时不用
-    return primary, fallback
+    for scope in (company_id, "system"):
+        route = routes(state, scope).get(task) or {}
+        primary = state.model_configs.get(route.get("primary_config_id") or "")
+        if primary is None or primary.company_id != scope:
+            continue
+        fallback = state.model_configs.get(route.get("fallback_config_id") or "")
+        if fallback is not None and problems(state, scope, task, primary.id, fallback.id):
+            fallback = None  # 配置事后被改得不合规时不用
+        return primary, fallback
+    return None
 
 
 class TaskModelRouteService:

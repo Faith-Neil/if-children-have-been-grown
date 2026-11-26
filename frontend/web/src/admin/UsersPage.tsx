@@ -649,7 +649,7 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
         title={
           <Space>
             <UserOutlined />
-            <span>A-02 用户与角色管理</span>
+            <span>用户与角色管理</span>
             <Tag color={permission.canOperate ? 'green' : 'orange'} data-testid="user-permission-tag">
               {permission.roleLabel} · {permission.canOperate ? '读写管理' : '纯只读'}
             </Tag>
@@ -657,16 +657,6 @@ export function UsersPage({ session, currentUser }: UsersPageProps) {
         }
         extra={
           <Space>
-            <Button
-              icon={<SafetyCertificateOutlined />}
-              onClick={() => {
-                policyForm.setFieldsValue(passwordPolicy);
-                setIsPolicyDrawerOpen(true);
-              }}
-              data-testid="user-security-policy-btn"
-            >
-              账号安全策略
-            </Button>
             <Button
               type="primary"
               icon={<UserAddOutlined />}

@@ -21,7 +21,6 @@ import {
   type ModelConfigItem,
   buildModelUpdatePayload,
 } from './model-config-core.ts';
-import { UnitInputNumber } from '../shared/UnitInputNumber.tsx';
 
 const { Text, Title } = Typography;
 
@@ -129,8 +128,6 @@ export function ModelConfigModal({
         allow_sensitive: true,
         stream_enabled: true,
         json_mode_enabled: false,
-        timeout_seconds: 60,
-        max_tokens: 2048,
       });
     } else if (activeConfig) {
       form.setFieldsValue({
@@ -144,8 +141,6 @@ export function ModelConfigModal({
         allow_sensitive: activeConfig.allow_sensitive,
         stream_enabled: activeConfig.stream_enabled,
         json_mode_enabled: activeConfig.json_mode_enabled,
-        timeout_seconds: activeConfig.timeout_seconds,
-        max_tokens: activeConfig.max_tokens,
         fallback_config_id: activeConfig.fallback_config_id ?? undefined,
       });
     }
@@ -198,8 +193,6 @@ export function ModelConfigModal({
           allow_sensitive: Boolean(values.allow_sensitive),
           stream_enabled: Boolean(values.stream_enabled),
           json_mode_enabled: Boolean(values.json_mode_enabled),
-          timeout_seconds: Number(values.timeout_seconds),
-          max_tokens: Number(values.max_tokens),
           fallback_config_id: values.fallback_config_id ?? '',
         };
         if (values.id) payload.id = values.id;
@@ -220,8 +213,6 @@ export function ModelConfigModal({
           allow_sensitive: Boolean(values.allow_sensitive),
           stream_enabled: Boolean(values.stream_enabled),
           json_mode_enabled: Boolean(values.json_mode_enabled),
-          timeout_seconds: Number(values.timeout_seconds),
-          max_tokens: Number(values.max_tokens),
           fallback_config_id: values.fallback_config_id ?? '',
         };
         // 密钥传参语义：若与掩码一致则传回掩码（保持不变）；若输入新内容则传入加密
@@ -516,26 +507,13 @@ export function ModelConfigModal({
               </Col>
             </Row>
 
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item
-                  name="timeout_seconds"
-                  label="超时时间 (秒)"
-                  rules={[{ required: true }]}
-                >
-                  <UnitInputNumber unit="秒" min={5} max={600} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="max_tokens"
-                  label="最大输出 Token (Max Tokens)"
-                  rules={[{ required: true }]}
-                >
-                  <UnitInputNumber unit="Tokens" min={128} max={32768} style={{ width: '100%' }} />
-                </Form.Item>
-              </Col>
-            </Row>
+            <Alert
+              type="info"
+              showIcon
+              message="生成超时与输出长度由系统按章节类型自动分档"
+              description="管理员只需维护模型服务地址、模型名、密钥与部署属性；温度、超时和输出长度不作为连接配置手工调整。"
+              style={{ marginBottom: 16 }}
+            />
 
             <Form.Item noStyle shouldUpdate={(prev, next) => prev.is_local !== next.is_local}>
               {() => (

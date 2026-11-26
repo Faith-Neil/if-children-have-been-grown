@@ -1,15 +1,15 @@
-# ADMIN-RBAC-PLATFORM-SPLIT 交付说明（进行中）
+# ADMIN-TASKCENTER-JOBS 交付说明
 
 ## 实际修改
-- 新增 `/api/v1/platform/security-settings`，平台管理员读写全局密码、锁定、会话策略；公司管理员 403。
-- 新增 `/api/v1/audit-logs` 真实审计查询；平台管理员全局，公司管理员强制本公司。
-- 后台管理页按角色分家，移除 A 编号与字典配置入口；审计页改读真实 API。
-- 安全策略接入登录、改密、用户创建/重置与会话鉴权；密码规则 scope 统一为 platform。
+- 解析与技术卷生成以独立 `parse` / `technical_volume` 类型写入 demo_job，并同步进度、状态、步骤、错误与节计数。
+- 解析取消/失败重试同步 demo_job；技术卷可取消，因其不能安全续写而明确禁止原样 retry。
 
 ## 验证
-- `pytest tests/backend/test_admin_rbac_security_cleanup.py -q`：2 passed。
+- `pytest tests/backend/test_admin_rbac_security_cleanup.py -q`：8 passed，覆盖平台接口 403、跨租户用户/审计隔离、弱密码、登录锁定、会话过期、解析/技术卷任务 demo_job 进度与取消/重试语义。
+- `pytest tests/backend/test_parse_jobs.py tests/backend/test_generation_session.py -q`：23 passed，用时 38.29s；此前组合卡死根因是测试替身的模型目录提示词契约过期及后台线程等待，已修正并稳定收尾。
+- 聚焦回归 `test_admin_rbac_security_cleanup.py + test_generation_session.py + test_parse_jobs.py + mysql_gate + technical_rag + technical_digest + TV-M0-T28/T29/T30`：109 passed，用时 80.76s。
 - `pnpm --dir frontend/web exec tsc -b --noEmit`：通过。
 - `ICG_ALLOW_MEMORY=1 python backend/bid-core/export_openapi.py --check`：通过。
 
-## 未完成/限制
-- 本交付为进行中证据，不建议 PM 标 done；模型配置假开关清理与任务中心完整回归仍需继续。
+## 状态
+- 任务进入 in-review；按治理纪律仍建议 QA/PD 复核后由 PM 标 done，不合并 PR。

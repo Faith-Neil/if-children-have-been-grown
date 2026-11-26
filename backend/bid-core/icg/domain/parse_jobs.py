@@ -42,6 +42,11 @@ ORPHAN_MESSAGE = "解析进程已重启或任务线程丢失，原任务中断�
 ORPHAN_ERROR = {"code": "PARSER_INTERRUPTED", "message": ORPHAN_MESSAGE}
 
 
+def _syncs_job_table(repository: Any) -> bool:
+    """demo_job 是 MySQL 表；内存单测仓储没有该表，额外全态事务会拖慢后台线程启动。"""
+    return hasattr(repository, "save_job") and getattr(repository, "mode", "") != "memory"
+
+
 def completion_for(requirements: int, facts: int, signal: dict) -> tuple[str, str, dict | None]:
     """抽取大面积超时或目录模型失败时，完成态必须带降质码，不能写成干净的解析完成。"""
     extract_degraded = bool(signal.get("extract_degraded"))
@@ -148,7 +153,7 @@ class ParseJobRunner:
             return body
 
         body = self.repository.transaction(operation)
-        if hasattr(self.repository, "save_job"):
+        if _syncs_job_table(self.repository):
             self.repository.save_job({
                 "id": body["id"], "job_type": "parse", "project_id": body["project_id"],
                 "status": body["status"], "progress": body["progress"], "step_name": body["message"],
@@ -180,7 +185,7 @@ class ParseJobRunner:
             state.jobs[job_id] = _mirror(job)
             return dict(job)
         updated = self.repository.transaction(operation)
-        if updated is not None and hasattr(self.repository, "update_job_progress"):
+        if updated is not None and _syncs_job_table(self.repository) and hasattr(self.repository, "update_job_progress"):
             self.repository.update_job_progress(
                 job_id, int(updated.get("progress") or 0), status=updated.get("status"),
                 step_name=updated.get("message"), error_json=updated.get("error"),

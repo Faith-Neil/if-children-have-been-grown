@@ -73,7 +73,7 @@ def test_outer_parse_stays_listed_after_inner_sync_job_is_dropped(client):
     entered = threading.Event()
     original = runner._parse_once
 
-    def blocked(principal, project_id, payload):
+    def blocked(principal, project_id, payload, *args):
         entered.set()
         assert gate.wait(timeout=20), "parse was not released"
         return original(principal, project_id, payload)
@@ -147,6 +147,12 @@ def test_remote_parse_is_fetched_repeatedly_and_the_stream_stays_open(client, mo
 def test_waiting_too_long_fails_then_retry_continues(client, monkeypatch):
     monkeypatch.setenv("ICG_PARSE_JOB_MAX_WAIT_SECONDS", "1")
     flow = _uploaded(client)
+    repository = client.app.state.service.repository
+    updates = []
+    monkeypatch.setattr(repository, "mode", "mysql", raising=False)
+    monkeypatch.setattr(repository, "save_job", lambda data, **kwargs: True)
+    monkeypatch.setattr(repository, "update_job_progress",
+                        lambda job_id, progress, **kwargs: updates.append({"id": job_id, "progress": progress, **kwargs}) or True)
     runner = client.app.state.parse_job_runner
     original = runner._pending_files
     monkeypatch.setattr(runner, "_pending_files", lambda project_id, payload: ["file-remote"])
@@ -154,15 +160,23 @@ def test_waiting_too_long_fails_then_retry_continues(client, monkeypatch):
     failed = _wait(flow, body["id"])
     assert failed["status"] == "failed" and failed["error"]["code"] == "PARSER_UNAVAILABLE"
     assert failed["allowedActions"] == ["retry"] and failed["events"][-1]["type"] == "job.failed"
+    assert any(row["id"] == body["id"] and row.get("status") == "failed" for row in updates)
 
     monkeypatch.setattr(runner, "_pending_files", original)
     retried = client.post(f"/api/v1/jobs/{body['id']}/retry", headers={**flow.headers, "Idempotency-Key": str(uuid4())})
     assert retried.status_code == 200, retried.text
     assert _wait(flow, body["id"])["status"] == "completed"
+    assert any(row["id"] == body["id"] and row.get("status") == "completed" and row["progress"] == 100 for row in updates)
 
 
 def test_cancel_stops_the_job_and_duplicate_start_returns_the_running_job(client, monkeypatch):
     flow = _uploaded(client)
+    repository = client.app.state.service.repository
+    updates = []
+    monkeypatch.setattr(repository, "mode", "mysql", raising=False)
+    monkeypatch.setattr(repository, "save_job", lambda data, **kwargs: True)
+    monkeypatch.setattr(repository, "update_job_progress",
+                        lambda job_id, progress, **kwargs: updates.append({"id": job_id, "progress": progress, **kwargs}) or True)
     runner = client.app.state.parse_job_runner
     monkeypatch.setattr(runner, "_pending_files", lambda project_id, payload: ["file-remote"])
     first = _start(flow).json()
@@ -174,6 +188,7 @@ def test_cancel_stops_the_job_and_duplicate_start_returns_the_running_job(client
     time.sleep(0.3)
     job = client.get(f"/api/v1/jobs/{first['id']}", headers=flow.headers).json()
     assert job["status"] == "cancelled" and job["events"][-1]["type"] == "job.cancelled"
+    assert any(row["id"] == first["id"] and row.get("status") == "cancelled" for row in updates)
 
 
 def test_parse_job_permissions(client):
@@ -267,6 +282,19 @@ def _wait_project(client, headers, job_id, timeout=30):
     raise AssertionError(f"job {job_id} did not finish: {job}")
 
 
+def _outline_tree_json(user: str, title: str = "运维保障与巡检") -> str:
+    """按当前三张清单目录契约构造合成模型返回；refs 必须真实来自提示。"""
+    import json as _json
+    import re as _re
+    refs = []
+    for ref in _re.findall(r"[TS]-\d+(?:-\d+)?", user or ""):
+        if ref not in refs:
+            refs.append(ref)
+    return _json.dumps({"nodes": [{"level": 1, "title": title, "points": [
+        {"text": "数据库巡检", "refs": refs or ["T-01"]}
+    ]}]}, ensure_ascii=False)
+
+
 class _StageModel:
     is_real_model = True
     is_local = True
@@ -282,8 +310,8 @@ class _StageModel:
             if job.get("type") == "parse" and job.get("status") == "running":
                 self.messages.append(job.get("message") or "")
         system = system or ""
-        if "编排技术服务方案目录" in system:
-            return '[{"level":1,"title":"运维保障与巡检","mount_ids":[]}]'
+        if "编排技术服务方案目录" in system or "你在为技术服务方案拟目录" in system:
+            return _outline_tree_json(user)
         if "response_mount" in system:
             return '{"items":[{"role":"response_mount","text":"数据库巡检","quote":"数据库巡检","kind":"scoring"}]}'
         return "按招标要求写巡检步骤。"
@@ -297,7 +325,7 @@ class _TimeoutModel:
     def suggest(self, system, user):
         from icg.infra.openai_model import RetryableModelError
         system = system or ""
-        if "编排技术服务方案目录" in system or "response_mount" in system:
+        if "你在读一份招标文件" in system or "编排技术服务方案目录" in system or "你在为技术服务方案拟目录" in system or "response_mount" in system:
             raise RetryableModelError("timeout")
         return "按招标要求写巡检步骤。"
 
@@ -381,13 +409,15 @@ class _TreeModel(_StageModel):
         self.gate.set()
 
     def suggest(self, system, user):
-        if "编排技术服务方案目录" not in (system or ""):
+        if "编排技术服务方案目录" not in (system or "") and "你在为技术服务方案拟目录" not in (system or ""):
             return super().suggest(system, user)
         self.tree_calls += 1
         self.entered.set()
         assert self.gate.wait(timeout=30), "TREE was not released"
         if isinstance(self.tree, Exception):
             raise self.tree
+        if self.tree is SINGLE_QUOTED_TREE:
+            return _outline_tree_json(user, title="数据库巡检服务")
         return self.tree
 
 

@@ -70,7 +70,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-progress |
+| 状态 | in-review |
 | 估算 | 4小时 |
 | 关联 Issue | [ISSUE-056](../../issues/ISSUE-056.md) |
 | 依赖 | 第 0 步后台 API RBAC 与租户隔离核查 |
@@ -92,7 +92,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | ready |
+| 状态 | in-review |
 | 估算 | 4小时 |
 | 关联 Issue | [ISSUE-056](../../issues/ISSUE-056.md) |
 | 依赖 | 公司设置字段消费清单 |
@@ -114,7 +114,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | ready |
+| 状态 | in-review |
 | 估算 | 2小时 |
 | 关联 Issue | [ISSUE-056](../../issues/ISSUE-056.md) |
 | 依赖 | `openai_model.py` 分档参数核实 |
@@ -135,7 +135,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | ready |
+| 状态 | in-review |
 | 估算 | 3小时 |
 | 关联 Issue | [ISSUE-056](../../issues/ISSUE-056.md) |
 | 依赖 | `volume_sessions` / `recoverable_jobs` / `demo_job` 现状核查 |

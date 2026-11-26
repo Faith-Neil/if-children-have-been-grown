@@ -174,10 +174,12 @@ def outline_from_digest(workflow: dict, digest: dict, model: Any) -> dict[str, A
     from icg.infra.openai_model import TREE_CALL, call_with_profile
 
     user = outline_user(workflow, digest)
+    workflow.pop("_outline_model_error", None)
     for _ in range(2):
         try:
             raw = call_with_profile(model.suggest, OUTLINE_SYSTEM, user, profile=TREE_CALL)
-        except Exception:
+        except Exception as exc:
+            workflow["_outline_model_error"] = str(exc) or type(exc).__name__
             continue
         payload = _parse_payload(str(raw or ""))
         try:
@@ -208,7 +210,10 @@ def plan_technical_outline(workflow: dict, model: Any = None) -> dict[str, Any]:
                 workflow["tree_model"] = held
         workflow["outline_source"] = "rule_fallback"
         workflow["tree_model_failed"] = True
-        workflow["outline_reason"] = MODEL_FAILED
+        detail = str(workflow.pop("_outline_model_error", "") or "").strip()
+        if "timeout" in detail.lower() or "timed out" in detail.lower():
+            detail = "超时"
+        workflow["outline_reason"] = f"模型拟目录失败（{detail}），已用规则目录。" if detail else MODEL_FAILED
         return plan
     workflow["response_tasks"] = {task["task_id"]: task for task in plan["tasks"]}
     workflow["plan_validation"] = plan["validation"]

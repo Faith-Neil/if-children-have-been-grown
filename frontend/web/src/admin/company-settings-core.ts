@@ -133,7 +133,7 @@ export const PLATFORM_SETTING_BOUNDS: Record<string, SettingBoundMeta> = {
     default: 30,
     tightenDirection: 'lower',
     unit: '分钟',
-    label: '编辑锁租约时长',
+    label: '编辑锁时长',
     description: '编辑锁闲置最大超时时长',
   },
   max_login_attempts: {

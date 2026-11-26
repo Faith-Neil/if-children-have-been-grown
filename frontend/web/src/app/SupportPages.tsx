@@ -150,7 +150,7 @@ export function JobsPage({
                       <Tag color="default" style={{ margin: 0, fontSize: 11 }}>脱敏</Tag>
                     )}
                     {isPlatform && item.companyId && (
-                      <Tag style={{ margin: 0, fontSize: 11 }}>租户: {item.companyId}</Tag>
+                      <Tag style={{ margin: 0, fontSize: 11 }}>公司: {item.companyId}</Tag>
                     )}
                   </Space>
                   {item.projectName && (

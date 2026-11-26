@@ -89,7 +89,7 @@ class TechnicalVolumeSessions:
             job_id, fresh = self.repository.transaction(operation)
             if not fresh:
                 return job_id
-            if hasattr(self.repository, "save_job"):
+            if getattr(self.repository, "mode", "") != "memory" and hasattr(self.repository, "save_job"):
                 created = self.repository.read().recoverable_jobs.get(job_id) or {}
                 self.repository.save_job({
                     "id": job_id, "job_type": KIND, "project_id": project_id,
@@ -108,7 +108,7 @@ class TechnicalVolumeSessions:
         return job_id
 
     def _sync_job_row(self, job_id: str) -> None:
-        if not hasattr(self.repository, "update_job_progress"):
+        if getattr(self.repository, "mode", "") == "memory" or not hasattr(self.repository, "update_job_progress"):
             return
         job = self.repository.read().recoverable_jobs.get(job_id) or {}
         if not job:
@@ -175,6 +175,7 @@ class TechnicalVolumeSessions:
             return dict(job)
 
         job = self.repository.transaction(operation)
+        self._sync_job_row(job_id)
         events: list[dict] = [{"event": "session.started", "job_id": job_id}, {"event": "session.live"}]
         if job is None:
             return events
@@ -303,3 +304,4 @@ class TechnicalVolumeSessions:
             change(state, job)
             state.jobs[job_id] = _mirror(job)
         self.repository.transaction(operation)
+        self._sync_job_row(job_id)
