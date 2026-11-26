@@ -24,6 +24,25 @@
 | D-1029 | 2026-11-24 | [TV-M0-T20 代码说明](code/TV-M0-T20.md) | 代码说明 | req-task | 当前 | ISSUE-053 / TV-M0-T20 | 旧角色判断清理与只读拒绝 |
 | D-1030 | 2026-11-24 | [TV-M0-T21 交付](delivery/TV-M0-T21.md) | 任务交付 | req-task | in-review | ISSUE-053 / TV-M0-T21 | 候选数字预检与按小节会话 |
 | D-1031 | 2026-11-24 | [TV-M0-T21 代码说明](code/TV-M0-T21.md) | 代码说明 | req-task | 当前 | ISSUE-053 / TV-M0-T21 | 数字预检与会话小节键 |
+| D-1032 | 2026-11-25 | [ISSUE-054：技术卷全链路质量升级与 RAGFlow 四库协同](../issues/ISSUE-054.md) | Issue | tech-volume-quality-v2 | in-progress | ISSUE-054 | 表格保真解析、目录未挂载池、全局事实表、物理四库脱敏与隔离生成核验 |
+| D-1033 | 2026-11-25 | [TV-M0-T22 交付](delivery/TV-M0-T22.md) | 任务交付 | req-task | in-review | ISSUE-054 / TV-M0-T22 | 解析表格保真与跨页续表锚点 |
+| D-1034 | 2026-11-25 | [TV-M0-T22 代码说明](code/TV-M0-T22.md) | 代码说明 | req-task | 当前 | ISSUE-054 / TV-M0-T22 | DeepDOC/本地表格还原与窗口页锚 |
+| D-1035 | 2026-11-25 | [TV-M0-T23 交付](delivery/TV-M0-T23.md) | 任务交付 | req-task | in-review | ISSUE-054 / TV-M0-T23 | 未挂载池与全局项目事实表 |
+| D-1036 | 2026-11-25 | [TV-M0-T23 代码说明](code/TV-M0-T23.md) | 代码说明 | req-task | 当前 | ISSUE-054 / TV-M0-T23 | 孤儿需求退回与事实表冻结 |
+| D-1037 | 2026-11-25 | [TV-M0-T24 交付](delivery/TV-M0-T24.md) | 任务交付 | req-task | in-review | ISSUE-054 / TV-M0-T24 | 四物理库、入库脱敏与带表头拆行 |
+| D-1038 | 2026-11-25 | [TV-M0-T24 代码说明](code/TV-M0-T24.md) | 代码说明 | req-task | 当前 | ISSUE-054 / TV-M0-T24 | 四套 DSL 与 kb_preprocess |
+| D-1039 | 2026-11-25 | [TV-M0-T25 交付](delivery/TV-M0-T25.md) | 任务交付 | req-task | in-review | ISSUE-054 / TV-M0-T25 | 意图拆解、并发配额召回与 metadata 过滤 |
+| D-1040 | 2026-11-25 | [TV-M0-T25 代码说明](code/TV-M0-T25.md) | 代码说明 | req-task | 当前 | ISSUE-054 / TV-M0-T25 | query_plan 与 retrieve_dual 路由 |
+| D-1041 | 2026-11-25 | [TV-M0-T26 交付](delivery/TV-M0-T26.md) | 任务交付 | req-task | in-review | ISSUE-054 / TV-M0-T26 | 五段隔离 Prompt、章间摘要与后置核验器 |
+| D-1042 | 2026-11-25 | [TV-M0-T26 代码说明](code/TV-M0-T26.md) | 代码说明 | req-task | 当前 | ISSUE-054 / TV-M0-T26 | verifier 与章调度 |
+| D-1043 | 2026-11-26 | [TV-M0-T27 交付](delivery/TV-M0-T27.md) | 任务交付 | req-task | in-review | ISSUE-054 / TV-M0-T27 | 真机加固五项与端到端验收修复 |
+| D-1044 | 2026-11-26 | [TV-M0-T27 代码说明](code/TV-M0-T27.md) | 代码说明 | req-task | 当前 | ISSUE-054 / TV-M0-T27 | 密钥/静默吞错/持久化/核验降噪 |
+| D-1045 | 2026-11-26 | [TV-M0-T28 交付](delivery/TV-M0-T28.md) | 任务交付 | req-task | in-progress | ISSUE-054 / TV-M0-T28 | 导出净化、偏离表兜底、防截断续写与最终真机闭环 |
+| D-1046 | 2026-11-26 | [TV-M0-T28 代码说明](code/TV-M0-T28.md) | 代码说明 | req-task | 当前 | ISSUE-054 / TV-M0-T28 | sanitizer、样表、续写、审计与数据库门禁 |
+| D-1047 | 2026-11-26 | [TV-M0-T29 交付](delivery/TV-M0-T29.md) | 任务交付 | req-task | done | ISSUE-054 / TV-M0-T29 | 偏离表精准响应、程序条款拦截与导出审计精修 |
+| D-1048 | 2026-11-26 | [TV-M0-T29 代码说明](code/TV-M0-T29.md) | 代码说明 | req-task | 当前 | ISSUE-054 / TV-M0-T29 | 条款响应提炼、fact sheet、导出净化与追溯映射 |
+| D-1049 | 2026-11-26 | [TV-M0-T30 交付](delivery/TV-M0-T30.md) | 任务交付 | req-task | done | ISSUE-054 / TV-M0-T30 | 偏离表兜底池按章批量语义提炼 |
+| D-1050 | 2026-11-26 | [TV-M0-T30 代码说明](code/TV-M0-T30.md) | 代码说明 | req-task | 当前 | ISSUE-054 / TV-M0-T30 | 兜底池分组、批量 JSON、校验与回落 |
 | D-1008 | 2026-11-09 | [ISSUE-052：公司开通与账号归属](../issues/ISSUE-052.md) | Issue | company-provision-1 | in-progress | ISSUE-052 | 平台管理员开通公司+首个管理员；点进公司管人 |
 | D-1009 | 2026-11-09 | [公司开通与账号归属实现计划](superpowers/plans/2026-11-09-company-provisioning.md) | 计划 | company-provision-1 | 已执行 | ISSUE-052 | 七项实现任务已落地；卡 in-review |
 | D-1010 | 2026-11-09 | [ADMIN-PROVISION 任务卡](tasks/ADMIN-PROVISION.md) | 任务 | company-provision-1 | in-review | ISSUE-052 | T01～T04 |

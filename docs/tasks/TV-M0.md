@@ -415,3 +415,146 @@
 范围：按节修改候选在写入前查数字：本节需求的偏离类型与数字口径沿用写入后的同一条规则；候选里带单位的承诺数字须在本节原文、本章其他正文、需求与评分、挂载要点、已确认事实或检索片段里出现过，否则标「需核对」，人工勾选已核对后才能写入。自由提问在技术服务方案里按小节分会话：会话记小节键与标题，续问只能在同一小节，会话列表按小节过滤；回答仍只可复制。
 
 验收：`tests/backend/test_technical_assistant.py` 通过（数字预检、候选带数字结果、按小节分会话与跨小节续问 403）；`frontend/web/tests/unit/technical-assistant.test.mjs` 通过；前端 lint 通过；OpenAPI `--check` 一致。
+
+<a id="tv-m0-t22"></a>
+
+## TV-M0-T22 · 招标文件解析表格保真与跨页续表切分优化
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 关联 Issue | [ISSUE-054](../../issues/ISSUE-054.md) |
+| 依赖 | [TV-M0-T17](TV-M0.md#tv-m0-t17) |
+| 完成时交付 | `docs/delivery/TV-M0-T22.md` |
+| 代码解释 | `docs/code/TV-M0-T22.md` |
+
+范围：DeepDOC HTML 表格与本地 DOCX 表格还原为标准 Markdown 表格，识别跨页续表自动补齐表头行；已启用内网 RAGFlow 时技术标 PDF 可优先走 DeepDOC 版面识别；`technical_model_extract` 改为携带 `[第 P 页]` 页锚、不硬切表格行的重叠窗口扫描，强制保留精确页码、原文 `quote` 与本标 `chunk_id` 锚点。
+
+验收：跨页评分表切分与表头承接单测通过；精确页码与 `chunk_id` 溯源回填单测通过；既有解析回归无新增失败。
+
+<a id="tv-m0-t23"></a>
+
+## TV-M0-T23 · 目录编辑“未挂载池”防丢机制与全局项目事实表
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 关联 Issue | [ISSUE-054](../../issues/ISSUE-054.md) |
+| 依赖 | [TV-M0-T22](TV-M0.md#tv-m0-t22) |
+| 完成时交付 | `docs/delivery/TV-M0-T23.md` |
+| 代码解释 | `docs/code/TV-M0-T23.md` |
+
+范围：`replace_outline` 同步维护 `response_tasks` 与 `unassigned_requirements`（未挂载池），删除章节或非叶化不静默丢失评分点，支持重挂与一键归入兜底节；`confirm_directory` 对未挂载池非空且未显式放行返回 `409 UNASSIGNED_REQUIREMENTS`；新增 `Global Fact Sheet`（项目名、甲方名、服务期、质保期、SLA、驻场人数、项目经理、核心产品型号列表、技术路线）在目录确认阶段核对冻结；前端补齐未挂载池、确认强提醒弹窗与全局事实表编辑抽屉。
+
+验收：后端目录防丢与事实表接口单测通过；前端单元与 lint 通过；OpenAPI `--check` 一致。
+
+<a id="tv-m0-t24"></a>
+
+## TV-M0-T24 · RAGFlow 底层物理 4 库管道、入库脱敏与参数表带表头拆行
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 关联 Issue | [ISSUE-054](../../issues/ISSUE-054.md) |
+| 依赖 | [TV-M0-T23](TV-M0.md#tv-m0-t23) |
+| 完成时交付 | `docs/delivery/TV-M0-T24.md` |
+| 代码解释 | `docs/code/TV-M0-T24.md` |
+
+范围：前端保持「历史标书 / 资料库」双主入口，资料库内分「运维手册 / 故障案例 / 产品参数」三子库，底层管理 `${company_id}::icg-history / icg-manuals / icg-fault-cases / icg-products` 四套专属画布 DSL 与 Metadata（保留旧 `icg-material` 只读兜底）；历史标书入库前做去实体化脱敏；多型号参数表与 Excel/CSV 台账入库前做带表头拆行 Markdown 化并注入行级型号元数据。
+
+验收：四套画布 DSL、入库脱敏与参数表拆行单测通过；前端 `kb-admin` 单测与 lint 通过；OpenAPI `--check` 一致。
+
+<a id="tv-m0-t25"></a>
+
+## TV-M0-T25 · 检索意图拆解、四库并发配额召回与 Metadata 强过滤
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 关联 Issue | [ISSUE-054](../../issues/ISSUE-054.md) |
+| 依赖 | [TV-M0-T24](TV-M0.md#tv-m0-t24) |
+| 完成时交付 | `docs/delivery/TV-M0-T25.md` |
+| 代码解释 | `docs/code/TV-M0-T25.md` |
+
+范围：打通 `knowledge_base.py:search` 的 `metadata_condition` 与多切片保留；新增 `technical_query_plan` 基于节路径、挂载评分点与目标型号拆解差异化检索子 Query（模型失败回落规则）；并发执行本标补充召回 + 四子库按配额召回（本标 ~20%、资料三子库 ~55%、历史标书 ~25%），覆盖视图展示子库命中明细。
+
+验收：意图拆解、`metadata_condition` 过滤与配额截断单测通过；前端覆盖视图检索文案测试通过。
+
+<a id="tv-m0-t26"></a>
+
+## TV-M0-T26 · 五段多源隔离 Prompt、废标分级、章间串行摘要与后置核验器
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 关联 Issue | [ISSUE-054](../../issues/ISSUE-054.md) |
+| 依赖 | [TV-M0-T25](TV-M0.md#tv-m0-t25) |
+| 完成时交付 | `docs/delivery/TV-M0-T26.md` |
+| 代码解释 | `docs/code/TV-M0-T26.md` |
+
+范围：移除单节全量废标灌入改为 `L0 + 关联 L1`；落地五段式多源隔离 Prompt（全局项目事实 JSON / 路径+相邻防重+前文摘要 / 本节原文+满分评分细则+关联红线 / 资料库事实源 / 历史标书写法参考）；`write_volume` 按一级章串行推进并生成 `running_summary`、章内保持并发流式输出；新增 `technical_verifier` 执行防串标全实体扫描、全局事实表冲突比对与高分评分节实质响应复核，写入覆盖视图确认原因。
+
+验收：隔离 Prompt、章间摘要调度与防串标/合规核验器单测通过；本机真机 Qwen + RAGFlow 冒烟通过。
+
+<a id="tv-m0-t27"></a>
+
+## TV-M0-T27 · 真机高危加固五项与端到端真机验收修复
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-review |
+| 关联 Issue | [ISSUE-054](../../issues/ISSUE-054.md) |
+| 依赖 | [TV-M0-T26](TV-M0.md#tv-m0-t26) |
+| 完成时交付 | `docs/delivery/TV-M0-T27.md` |
+| 代码解释 | `docs/code/TV-M0-T27.md` |
+
+范围：真机五项加固——metadata_condition 零命中逐级放宽阶梯（型号变体 OR → doc_type 级 → 不过滤，history 排他永不放宽）；历史标书脱敏白名单（内置厂商品牌词 + bidder_name/deid_allow，不误伤我方实体，DOCX 标题层级保持）；轻调用不透传思考参数核验 + `ICG_SECTION_CONCURRENCY` 章内并发可配（默认 2）；核验器国家部委/标准机构白名单与自否定语境过滤；ragflow 配置占位 dataset_ids 检测与建议回填 + 一键真机冒烟脚本。端到端真机验收（真实 RAGFlow + 本地 Qwen 30B）驱动修复——模型/RAGFlow 密钥 SECRET 轮换失配恢复、解析路径模型解析失败静默吞错改为 `technical_model_error` 显式落盘 + 安全 DomainError 上抛、`contains` 非子串语义对齐（型号过滤改 `is` 精确匹配 + 变体阶梯）、history 排他改应用侧确定性执行（真机 `not is` 行为不可靠）、核验器单位感知数字抓取与评分点分片匹配消除假阳性、`chapter_summaries` 工作区透出、antd 废弃告警清理。
+
+验收：五项加固专项测试通过；真机端到端（建项 → ragflow 索引 → 模型抽取/目录 → 事实表冻结 → 流式生成 → 核验）走通，覆盖视图四库命中细分、脱敏双兜底、事实一致性可见。
+<a id="tv-m0-t28"></a>
+
+## TV-M0-T28 · 导出净化、偏离表兜底、防截断续写与最终真机闭环
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 关联 Issue | [ISSUE-054](../../issues/ISSUE-054.md) |
+| 依赖 | [TV-M0-T27](TV-M0.md#tv-m0-t27) |
+| 完成时交付 | `docs/delivery/TV-M0-T28.md` |
+| 代码解释 | `docs/code/TV-M0-T28.md` |
+
+范围：终审收口五项定向修复——统一 `【待补】` 提示词与确定性后处理边界（常规交付物直接命名，真实私有事实缺口用 `[待人工补充：具体项]`）；扩充商务/资格/格式条款网关，拦截联合体、转包分包、投标文件份数、报名材料、资格条件、投标有效期、保证金等非技术卷内容；偏离表样表识别兼容「偏离说明表」并在无样表时使用标准 5 列兜底模板稳定导出 `技术偏离表.docx`；修复本地 Qwen `finish_reason` 透出与 comma/顿号/未闭合标点结尾的自动续写；补齐检索审计 query、陈旧 document_id 自愈提示与非测试环境缺 `ICG_DATABASE_URL` 启动硬失败。最终用昆明航空 Oracle 维保 `.docx` 项目执行全量生成与主流程导出闭环。
+
+验收：`tests/backend/test_tv_m0_t28_export_deviation.py` 与受影响后端测试通过；本项目目录为真实模型树且商务条款零泄漏；`history` 路生成期 `status=ok`、`post_filter_hits>0` 且 `query` 非空；正文、偏离表、追溯表串标扫描零命中；`technical.docx` 零截断、零脏标记/Markdown 源码残留、`【待补】` 回归合理低位；`技术偏离表.docx` 与 `response-trace-technical.xlsx` 完整产出且第一人称、核心项零负偏离。开发者最高标 in-review，不标 done。
+
+
+<a id="tv-m0-t29"></a>
+
+## TV-M0-T29 · 偏离表精准响应、程序条款拦截与导出审计精修
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 关联 Issue | [ISSUE-054](../../issues/ISSUE-054.md) |
+| 依赖 | [TV-M0-T28](TV-M0.md#tv-m0-t28) |
+| 完成时交付 | `docs/delivery/TV-M0-T29.md` |
+| 代码解释 | `docs/code/TV-M0-T29.md` |
+
+范围：根据 PM 对 `.audit/final-round-v2/` 三件套的拆包复核，精修五项业务质量与导出细节：偏离表按条款精准提炼响应并清洗断句碎片；继续拦截打印、涂改、送达、开标出席、成交公示、电子/纸质一致等招标人义务与程序格式条款；增强 Global Fact Sheet 对分模块服务周期、异构资产明细、评分加分决策与当前年份基准的表达和注入；清除 Markdown 引用前缀、内部 T/S 编号、空括号与缺宾语搭配，处理非首节“本项目…”八股开篇；追溯表精准回填章节与分节知识来源，并把子库为空错误拆到分路审计字段。
+
+验收：聚焦单测通过；昆明航空 Oracle 维保项目局部重跑并重新导出后，偏离表按标准化条款去重且无“我司一、”病句、页码列串台、硬截断残句、评分公式/付款协定/表名噪点，程序格式条款不进入技术正文/偏离表，正文无 `> `、内部 T/S 编号、空括号与跨节 SLA/人数/年限冲突，追溯表章节精确到真实叶子节且知识来源按节命中填充，顶层 `rag.error` 不再因子库为空误报。导出层不得硬编码单项目业务事实；一致性由 Global Fact Sheet 与 Verifier 动态检出。开发者最高标 in-review，不标 done。
+
+## TV-M0-T30 · 偏离表兜底池按章批量语义提炼
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | done |
+| 关联 Issue | [ISSUE-054](../../issues/ISSUE-054.md) |
+| 依赖 | [TV-M0-T29](TV-M0.md#tv-m0-t29) |
+| 完成时交付 | `docs/delivery/TV-M0-T30.md` |
+| 代码解释 | `docs/code/TV-M0-T30.md` |
+
+范围：保持规则提取器为主干，仅将未命中精确句、落入通用兜底模板的偏离表条款收入兜底池；按所属章节分组，每章 1 次本地 Qwen 批量 JSON 调用；Prompt 传入本章正文、Global Fact Sheet 与兜底条款列表，按条输出 50～110 字第一人称正式投标响应；对模型结果执行外实体、历史做法、负偏离与完整句边界校验，失败单条回落确定性兜底。
+
+验收：聚焦单测覆盖技术/服务类与违约/赔偿/保密类提炼、校验失败回落与零串标；昆明航空 Oracle 维保项目不重新生成正文，仅重导偏离表，通用兜底行显著下降或清零，导出耗时增加控制在 20 秒以内。开发者最高标 in-review，不标 done。
+

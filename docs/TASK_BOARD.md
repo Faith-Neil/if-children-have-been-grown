@@ -688,6 +688,15 @@
 | [TV-M0-T19](tasks/TV-M0.md#tv-m0-t19) | 写作助手按节问答与按节修改 | in-review | [TV-M0-T18](tasks/TV-M0.md#tv-m0-t18) | [ISSUE-053](../issues/ISSUE-053.md) | [交付](delivery/TV-M0-T19.md) |
 | [TV-M0-T20](tasks/TV-M0.md#tv-m0-t20) | 三角色权限收口与项目只读写拒绝核查 | in-review | [TV-M0-T19](tasks/TV-M0.md#tv-m0-t19) | [ISSUE-053](../issues/ISSUE-053.md) | [交付](delivery/TV-M0-T20.md) |
 | [TV-M0-T21](tasks/TV-M0.md#tv-m0-t21) | 修改候选数字预检与问答按小节分会话 | in-review | [TV-M0-T19](tasks/TV-M0.md#tv-m0-t19) | [ISSUE-053](../issues/ISSUE-053.md) | [交付](delivery/TV-M0-T21.md) |
+| [TV-M0-T22](tasks/TV-M0.md#tv-m0-t22) | 招标文件解析表格保真与跨页续表切分优化 | in-review | [TV-M0-T17](tasks/TV-M0.md#tv-m0-t17) | [ISSUE-054](../issues/ISSUE-054.md) | `docs/delivery/TV-M0-T22.md` |
+| [TV-M0-T23](tasks/TV-M0.md#tv-m0-t23) | 目录编辑“未挂载池”防丢机制与全局项目事实表 | in-review | [TV-M0-T22](tasks/TV-M0.md#tv-m0-t22) | [ISSUE-054](../issues/ISSUE-054.md) | `docs/delivery/TV-M0-T23.md` |
+| [TV-M0-T24](tasks/TV-M0.md#tv-m0-t24) | RAGFlow 底层物理 4 库管道、入库脱敏与参数表带表头拆行 | in-review | [TV-M0-T23](tasks/TV-M0.md#tv-m0-t23) | [ISSUE-054](../issues/ISSUE-054.md) | `docs/delivery/TV-M0-T24.md` |
+| [TV-M0-T25](tasks/TV-M0.md#tv-m0-t25) | 检索意图拆解、四库并发配额召回与 Metadata 强过滤 | in-review | [TV-M0-T24](tasks/TV-M0.md#tv-m0-t24) | [ISSUE-054](../issues/ISSUE-054.md) | `docs/delivery/TV-M0-T25.md` |
+| [TV-M0-T26](tasks/TV-M0.md#tv-m0-t26) | 五段多源隔离 Prompt、废标分级、章间串行摘要与后置核验器 | in-review | [TV-M0-T25](tasks/TV-M0.md#tv-m0-t25) | [ISSUE-054](../issues/ISSUE-054.md) | `docs/delivery/TV-M0-T26.md` |
+| [TV-M0-T27](tasks/TV-M0.md#tv-m0-t27) | 真机高危加固五项与端到端真机验收修复 | in-review | [TV-M0-T26](tasks/TV-M0.md#tv-m0-t26) | [ISSUE-054](../issues/ISSUE-054.md) | `docs/delivery/TV-M0-T27.md` |
+| [TV-M0-T28](tasks/TV-M0.md#tv-m0-t28) | 导出净化、偏离表兜底、防截断续写与最终真机闭环 | done | [TV-M0-T27](tasks/TV-M0.md#tv-m0-t27) | [ISSUE-054](../issues/ISSUE-054.md) | [交付](delivery/TV-M0-T28.md) |
+| [TV-M0-T29](tasks/TV-M0.md#tv-m0-t29) | 偏离表精准响应、程序条款拦截与导出审计精修 | done | [TV-M0-T28](tasks/TV-M0.md#tv-m0-t28) | [ISSUE-054](../issues/ISSUE-054.md) | [交付](delivery/TV-M0-T29.md) |
+| [TV-M0-T30](tasks/TV-M0.md#tv-m0-t30) | 偏离表兜底池按章批量语义提炼 | done | [TV-M0-T29](tasks/TV-M0.md#tv-m0-t29) | [ISSUE-054](../issues/ISSUE-054.md) | [交付](delivery/TV-M0-T30.md) |
 | [TV-M0-T01](tasks/TV-M0.md#tv-m0-t01) | 隐藏资料库与写作档案，新建项目固定技术分册 | in-review | — | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T01.md) |
 | [TV-M0-T02](tasks/TV-M0.md#tv-m0-t02) | 知识库只上传历史标书 | in-review | [TV-M0-T01](tasks/TV-M0.md#tv-m0-t01) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T02.md) |
 | [TV-M0-T03](tasks/TV-M0.md#tv-m0-t03) | 招标文件与辅助文件 | in-review | [TV-M0-T01](tasks/TV-M0.md#tv-m0-t01) | [ISSUE-047](../issues/ISSUE-047.md) | [交付](delivery/TV-M0-T03.md) |
