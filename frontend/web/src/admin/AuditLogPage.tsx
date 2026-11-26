@@ -545,7 +545,7 @@ export function AuditLogPage({
           </Space>
         }
         placement="right"
-        width={560}
+        width="min(560px, 92vw)"
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
       >

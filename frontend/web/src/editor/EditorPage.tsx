@@ -1,7 +1,7 @@
 // 为什么有这个文件：保留示例的章节目录、正文和助手三栏编辑流程。
 // 它解决什么问题：编辑权、旧草稿、正式版本与建议确认都以后台实际校验为准。
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, App as AntApp, Button, Card, Drawer, Empty, Form, Input, Modal, Progress, Space, Spin, Tag, Tooltip } from 'antd';
+import { Alert, App as AntApp, Button, Card, Drawer, Empty, Form, Input, Modal, Progress, Skeleton, Space, Tag, Tooltip } from 'antd';
 import {
   BoldOutlined,
   HistoryOutlined,
@@ -938,11 +938,16 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
           </Space>
         </div>
 
-        <Spin spinning={loading}><div className="editor-scroll">
+        <div className="editor-scroll">
           {sourceAdvice && <Alert className="editor-notice" type="warning" showIcon message="取值由数据源决定，助手不能代改" action={<Space><Button size="small" onClick={() => navigate('analyze')}>回到分析</Button><Button size="small" onClick={() => navigate('analyze')}>回到分析里的承诺</Button></Space>} closable onClose={() => setSourceAdvice(false)} />}
           {notice && <Alert className="editor-notice" showIcon type={notice.includes('变化') || notice.includes('失败') || notice.includes('失效') ? 'warning' : 'info'} message={notice} closable onClose={() => setNotice('')} />}
 
-          {chapter ? <article className="editor-chapter-shell" ref={editorWrapperRef} style={{ position: 'relative' }} onMouseUp={handleContainerMouseUp}>
+          {loading && !chapter ? (
+            <div className="chapter-loading-skeleton" data-testid="chapter-loading-skeleton" aria-live="polite">
+              <Skeleton active title={{ width: '38%' }} paragraph={{ rows: 8, width: ['92%', '96%', '88%', '94%', '76%', '90%', '64%', '82%'] }} />
+              <span className="muted">正在加载章节内容…</span>
+            </div>
+          ) : chapter ? <article className="editor-chapter-shell" ref={editorWrapperRef} style={{ position: 'relative' }} onMouseUp={handleContainerMouseUp}>
             <SelectionBubble visible={selectionBubble.visible} position={selectionBubble.position} selectedText={selectionBubble.text} onPolish={handleBubblePolish} onComplianceQa={handleBubbleComplianceQa} onClear={handleBubbleClear} />
             {systemKind && activeChapter && <SystemChapterPanel chapterId={activeChapter.id} canGenerate={chapterCan(activeChapter, 'edit') && dataPermission.canEdit} />}
             {isReadOnlyView && !systemKind && <ReadonlyBanner banner reason={dataPermission.readOnlyReason || '当前章节处于只读浏览状态'} scope={dataPermission.scopeName || activeChapter?.title || volumeName(chapter.volume)} roleName={dataPermission.roleLabel} style={{ marginBottom: 16 }} />}
@@ -1033,7 +1038,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
             {chapter.draft && chapter.draft.base_revision !== chapter.revision && <Card size="small" title={`旧草稿（基于 v${chapter.draft.base_revision}，未自动覆盖）`}
               extra={<Button size="small" disabled={combinedBusy || !held} onClick={() => ops.reviewRecovery({ title: `旧草稿 v${chapter.draft!.base_revision}`, content: chapter.draft!.content, source_kind: 'draft', input_fingerprint: chapter.draft!.input_fingerprint ?? null })}>核对并恢复</Button>} className="old-draft"><pre>{chapter.draft.content}</pre></Card>}
           </article> : <Empty description="当前没有可编辑章节" />}
-        </div></Spin>
+        </div>
       </section>
 
       {/* 3. 右侧对话助手与面板 */}
@@ -1085,7 +1090,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     </div>
 
     {/* 4. 差异对比 Modal */}
-    <Modal title="写入确认 · 整章建议差异" cancelText="放弃这次写入" width={960} open={!!ops.diff} onCancel={() => ops.setDiff(null)} onOk={ops.apply} okText="确认写入当前草稿"
+    <Modal title="写入确认 · 整章建议差异" cancelText="放弃这次写入" width="min(960px, 92vw)" open={!!ops.diff} onCancel={() => ops.setDiff(null)} onOk={ops.apply} okText="确认写入当前草稿"
       okButtonProps={{ disabled: !held || combinedBusy || !ops.reviewed || !chapter || !ops.diff || !!candidateProblem(ops.diff, workspace.input_fingerprint, chapter.revision) }}>
       <div className="diff-description"><AiTag variant={ops.diff?.is_real_model ? 'model' : 'demo'} />将替换当前整章编辑内容；保存草稿不会提交正文，提交本节后才用于检查和导出。</div>
       <div className="diff-columns"><div><h4>当前内容</h4><pre className="diff-before">{content || '（空正文）'}</pre></div><div><h4>建议写入</h4><pre className="diff-after">{ops.diff?.content}</pre></div></div>
@@ -1107,7 +1112,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     />
 
     {/* 7. 章节大纲树抽屉 */}
-    <Drawer title="章节大纲与目录树" open={outlineDrawerOpen} onClose={() => setOutlineDrawerOpen(false)} width={420} placement="left" data-testid="editor-outline-drawer">
+    <Drawer title="章节大纲与目录树" open={outlineDrawerOpen} onClose={() => setOutlineDrawerOpen(false)} width="min(420px, 92vw)" placement="left" data-testid="editor-outline-drawer">
       <OutlineTreeView
         nodes={outlineNodes} activeVolume={volume} directory={generatedDirectory} plain
         selectedChapterId={chapterId} onSelectChapter={node => { selectChapter(node.id, node.volume as Volume); setOutlineDrawerOpen(false); }}
@@ -1115,16 +1120,16 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
       />
     </Drawer>
 
-    {/* 8. OCC 409 版本冲突检测与合并弹窗 */}
+    {/* 8. 正文版本冲突检测与合并弹窗 */}
     <Modal
-      title="409 版本冲突 · 内容已被其他成员修改" open={!!conflict} onCancel={() => setConflict(null)} width={880} data-testid="conflict-resolution-modal"
+      title="正文已被其他成员更新" open={!!conflict} onCancel={() => setConflict(null)} width="min(880px, 92vw)" data-testid="conflict-resolution-modal"
       footer={<Space>
         <Button onClick={() => setConflict(null)} data-testid="conflict-cancel-btn">稍后处理</Button>
         <Button danger onClick={() => applyConflictResolution('discard')} data-testid="conflict-discard-btn">放弃本地，采用远程最新 (v{conflict?.remoteRevision})</Button>
         <Button type="primary" onClick={() => applyConflictResolution('overwrite')} disabled={!held || combinedBusy} data-testid="conflict-overwrite-btn">保留本地修改并覆盖保存 (推进至 v{conflict?.remoteRevision})</Button>
       </Space>}
     >
-      <Alert type="warning" showIcon message="检测到正文版本冲突 (OCC 409)" description={`您在保存草稿或提交时基于 v${conflict?.baseRevision}，但当前服务器已被更新为 v${conflict?.remoteRevision}。请对比双方内容后选择合并决策：`} style={{ marginBottom: 16 }} />
+      <Alert type="warning" showIcon message="正文已被其他成员更新" description={`您正在编辑的是 v${conflict?.baseRevision}，服务器最新内容是 v${conflict?.remoteRevision}。请先对比两边内容，再选择保留哪一份。`} style={{ marginBottom: 16 }} />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         <div>
           <h4 style={{ marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><span>您的本地内容（待保存）</span><Tag color="blue">本地</Tag></h4>
@@ -1143,7 +1148,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
       title="未挂载池尚有未响应评分点"
       open={unassignedModalOpen}
       onCancel={() => setUnassignedModalOpen(false)}
-      width={620}
+      width="min(620px, 92vw)"
       data-testid="unassigned-warning-modal"
       footer={
         <Space>

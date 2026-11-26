@@ -137,6 +137,19 @@ export function ragLabel(rag: CoverageRag | null | undefined): string {
   return rag.error ? `${RAG_LABEL[rag.status]}（${rag.error}）` : RAG_LABEL[rag.status];
 }
 
+/** 后端失败原因的白话转译：界面只告诉用户发生了什么、下一步怎么处理。 */
+export function failureReasonLabel(reason: string | null | undefined): string {
+  const code = String(reason || '').trim();
+  const table: Record<string, string> = {
+    filtered_empty: '知识库没有筛到可用依据，请先检查本项目招标文件或补充知识库资料',
+    rule_fallback: '模型目录编排不可用，系统先按规则生成；请检查模型服务后重试',
+    placeholder_dataset: '知识库数据集还是占位配置，请先到知识库管理完成真实数据集配置',
+    model_unavailable: '模型服务暂时不可用，请检查模型配置后重试',
+    timeout: '生成超时，请稍后重试或拆小本节范围',
+  };
+  return table[code] || (code ? '本节生成没有完成，请查看任务中心错误信息后重试' : '');
+}
+
 export function coverageStats(rows: CoverageRow[]) {
   const stats = { total: rows.length, rejection: 0, responded: 0, generating: 0, failed: 0, confirm: 0 };
   for (const row of rows) {

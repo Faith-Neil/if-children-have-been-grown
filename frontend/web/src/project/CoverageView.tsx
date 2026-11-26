@@ -2,7 +2,7 @@
 // 它解决什么问题：去掉归属分册/证据等两册噪音列；点行跳编辑台对应节。
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Collapse, Input, Popover, Table, Tag } from 'antd';
+import { Alert, Button, Card, Collapse, Input, Popover, Table, Tag, Tooltip } from 'antd';
 import { useProject } from '../app/context.tsx';
 import { newIdempotencyKey, streamEvents } from '../shared/api.ts';
 import type { CoverageRag, CoverageRow } from '../shared/types.ts';
@@ -10,7 +10,7 @@ import { technicalVolumeSessionPath, technicalVolumeStreamPath } from '../editor
 import { coverageInstruction, storePrefill } from '../editor/technical-assistant.ts';
 import { activeVolumeSession } from '../status/generation-session.ts';
 import {
-  coverageLabel, coverageState, coverageStats, mergeTaskPatch, parseTaskPatched, patchRows, ragLabel,
+  coverageLabel, coverageState, coverageStats, failureReasonLabel, mergeTaskPatch, parseTaskPatched, patchRows, ragLabel,
   type CoveragePatches,
 } from './coverage-live.ts';
 import { parseHonesty } from './parse-honesty.ts';
@@ -155,6 +155,7 @@ export function CoverageView() {
           data-testid="parse-honesty-warning"
           message="解析结果不完整"
           description={honesty.text}
+          action={<Button size="small" onClick={() => navigate('parse')}>回到解析核对</Button>}
         />
       )}
       {validation && validation.passed === false && (
@@ -165,6 +166,7 @@ export function CoverageView() {
           data-testid="plan-validation-warning"
           message="生成计划校验未全部通过"
           description={(validation.issues || []).join('；')}
+          action={<Button size="small" onClick={() => navigate('editor')}>去目录挂载</Button>}
         />
       )}
       {rejections.length > 0 && (
@@ -192,7 +194,7 @@ export function CoverageView() {
             placeholder="搜索要求 / 章节"
             value={search}
             onChange={event => setSearch(event.target.value)}
-            style={{ width: 280 }}
+            style={{ width: 'min(320px, 100%)' }}
             data-testid="coverage-search"
           />
         </div>
@@ -200,6 +202,7 @@ export function CoverageView() {
           rowKey={row => `${row.task_id}-${row.requirement_id}`}
           size="small"
           pagination={{ pageSize: 12, size: 'small' }}
+          scroll={{ x: 1080 }}
           dataSource={rows}
           onRow={row => ({
             style: { cursor: 'pointer' },
@@ -210,10 +213,11 @@ export function CoverageView() {
             {
               title: '招标要求',
               dataIndex: 'text',
-              width: 360,
+              width: 320,
+              ellipsis: true,
               render: (value: string, row) => (
                 <>
-                  <div>{row.digest_id && <Tag>{row.digest_id}</Tag>}{value}</div>
+                  <Tooltip title={value} placement="topLeft"><div className="coverage-cell-text">{value}</div></Tooltip>
                   {row.kind === 'scoring' && row.score_item && (
                     <Tag color="blue">{row.score_item}{row.score != null ? ` ${row.score}分` : ''}</Tag>
                   )}
@@ -261,7 +265,7 @@ export function CoverageView() {
                 <span data-testid={`coverage-state-${row.requirement_id}`}>
                   <Tag color={stateColor(row)}>{coverageLabel(row)}</Tag>
                   {row.response_status === 'confirmed' && <Tag color="green">已人工确认</Tag>}
-                  {row.failure_reason && <div className="muted">{row.failure_reason}</div>}
+                  {row.failure_reason && <div className="muted coverage-failure-reason">{failureReasonLabel(row.failure_reason)}</div>}
                   {canWrite && coverageState(row) === 'failed' && (
                     <Button size="small" type="link" loading={running === row.task_id} disabled={busy || !!running}
                       data-testid={`coverage-retry-${row.requirement_id}`}

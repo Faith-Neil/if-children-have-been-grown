@@ -713,10 +713,14 @@
 | [BE-PROJECT-LIST-PAGING](tasks/BE-M0.md#be-project-list-paging) | 项目工作台服务端排序筛选分页与访问时间 | in-review | [BE-PERF-HOTPATH-MYSQL](tasks/BE-M0.md#be-perf-hotpath-mysql) | [ISSUE-055](../issues/ISSUE-055.md) | [交付](delivery/BE-PROJECT-LIST-PAGING.md) |
 | [AI-TENDER-ISOLATION-DOC](tasks/AI-M0.md#ai-tender-isolation-doc) | 招标检索项目隔离与四库 .doc 转换补齐 | in-review | 第 0 步核实结果 | [ISSUE-055](../issues/ISSUE-055.md) | [交付](delivery/AI-TENDER-ISOLATION-DOC.md) |
 | [OPS-M0-T04](tasks/OPS-M0.md#ops-m0-t04) | 公司三机内网生产部署底座 | in-review | [OPS-M0-T03](tasks/OPS-M0.md#ops-m0-t03) | [ISSUE-055](../issues/ISSUE-055.md) | [交付](delivery/OPS-M0-T04.md) |
-| [ADMIN-RBAC-PLATFORM-SPLIT](tasks/ADMIN-PROVISION.md#admin-rbac-platform-split) | 双管理员后台权限分家与纯净后台 | in-review | 第 0 步核查 | [ISSUE-056](../issues/ISSUE-056.md) | `docs/delivery/ADMIN-RBAC-PLATFORM-SPLIT.md` |
-| [ADMIN-SETTINGS-CLEANUP](tasks/ADMIN-PROVISION.md#admin-settings-cleanup) | 字典下线与公司设置/安全策略收口 | in-review | 消费清单 | [ISSUE-056](../issues/ISSUE-056.md) | `docs/delivery/ADMIN-SETTINGS-CLEANUP.md` |
-| [ADMIN-MODEL-CONFIG-CLEANUP](tasks/ADMIN-PROVISION.md#admin-model-config-cleanup) | 平台模型配置真实生效项收口 | in-review | 分档参数核实 | [ISSUE-056](../issues/ISSUE-056.md) | `docs/delivery/ADMIN-MODEL-CONFIG-CLEANUP.md` |
-| [ADMIN-TASKCENTER-JOBS](tasks/ADMIN-PROVISION.md#admin-taskcenter-jobs) | 生成/解析任务中心链路核实补齐 | in-review | 任务链路核查 | [ISSUE-056](../issues/ISSUE-056.md) | `docs/delivery/ADMIN-TASKCENTER-JOBS.md` |
+| [ADMIN-RBAC-PLATFORM-SPLIT](tasks/ADMIN-PROVISION.md#admin-rbac-platform-split) | 双管理员后台权限分家与纯净后台 | done | 第 0 步核查 | [ISSUE-056](../issues/ISSUE-056.md) | [交付](delivery/ADMIN-RBAC-PLATFORM-SPLIT.md) |
+| [ADMIN-SETTINGS-CLEANUP](tasks/ADMIN-PROVISION.md#admin-settings-cleanup) | 字典下线与公司设置/安全策略收口 | done | 消费清单 | [ISSUE-056](../issues/ISSUE-056.md) | [交付](delivery/ADMIN-SETTINGS-CLEANUP.md) |
+| [ADMIN-MODEL-CONFIG-CLEANUP](tasks/ADMIN-PROVISION.md#admin-model-config-cleanup) | 平台模型配置真实生效项收口 | done | 分档参数核实 | [ISSUE-056](../issues/ISSUE-056.md) | [交付](delivery/ADMIN-MODEL-CONFIG-CLEANUP.md) |
+| [ADMIN-TASKCENTER-JOBS](tasks/ADMIN-PROVISION.md#admin-taskcenter-jobs) | 生成/解析任务中心链路核实补齐 | done | 任务链路核查 | [ISSUE-056](../issues/ISSUE-056.md) | [交付](delivery/ADMIN-TASKCENTER-JOBS.md) |
+| [FE-UX-MAINFLOW-COPY](tasks/FE-UX.md#fe-ux-mainflow-copy) | 主链路体验修复与大白话转译 | ready | PR #52/#53 已合入 | [ISSUE-057](../issues/ISSUE-057.md) | [交付](delivery/FE-UX-MAINFLOW-COPY.md) |
+| [FE-UX-VISUAL-TOKENS](tasks/FE-UX.md#fe-ux-visual-tokens) | 统一视觉 Token 与轻量动效 | ready | 设计 token 现状盘点 | [ISSUE-057](../issues/ISSUE-057.md) | [交付](delivery/FE-UX-VISUAL-TOKENS.md) |
+| [FE-UX-RESPONSIVE-LAYOUT](tasks/FE-UX.md#fe-ux-responsive-layout) | 多分辨率布局错位重构 | ready | FE-UX-VISUAL-TOKENS | [ISSUE-057](../issues/ISSUE-057.md) | [交付](delivery/FE-UX-RESPONSIVE-LAYOUT.md) |
+| [FE-UX-PLAYWRIGHT-VIEWPORTS](tasks/FE-UX.md#fe-ux-playwright-viewports) | 四视口 Playwright 巡检与截图自修 | ready | 前三卡初版 | [ISSUE-057](../issues/ISSUE-057.md) | [交付](delivery/FE-UX-PLAYWRIGHT-VIEWPORTS.md) |
 <!-- task-board:end -->
 
 ## 每次推进的同步顺序

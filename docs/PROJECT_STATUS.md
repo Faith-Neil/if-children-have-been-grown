@@ -9,6 +9,8 @@
 
 ISSUE-056 已进入 in-review：四项后台收口任务均完成实施与聚焦验证（109 passed），PR #53 已更新但未合并；按治理纪律等待 QA/PD 复核与 PM 标 done。
 
+ISSUE-057 已登记开工：前端主链路体验、视觉 Token、响应式与四视口 Playwright 巡检四张卡 ready；本轮不合并 PR，不标 done。
+
 [ISSUE-056](../issues/ISSUE-056.md) 已登记并开工：`ADMIN-RBAC-PLATFORM-SPLIT` 为 in-progress，其余后台收口任务为 ready。本轮先完成后台 API RBAC/租户隔离与任务中心链路核查，再实施字典下线、公司设置与模型配置精简、双管理员菜单分家；PR 不合并，不标 done。
 
 ## 全站性能根治、隔离与部署底座（2026-11-26）

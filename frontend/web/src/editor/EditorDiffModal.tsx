@@ -24,7 +24,7 @@ export function EditorDiffModal({
     <Modal
       title="编写确认 · 差异对比"
       cancelText="关闭"
-      width={960}
+      width="min(960px, 92vw)"
       open={!!diff}
       onCancel={onClose}
       footer={null}

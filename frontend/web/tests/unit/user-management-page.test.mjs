@@ -311,7 +311,7 @@ test('8. UsersPage.tsx 与 GlobalPagesContent.tsx AST 静态契约断言', () =>
   assert.match(usersPageContent, /data-testid="user-management-overview"/);
   assert.match(usersPageContent, /data-testid="user-permission-tag"/);
   assert.match(usersPageContent, /data-testid="user-add-btn"/);
-  assert.match(usersPageContent, /data-testid="user-security-policy-btn"/);
+  assert.doesNotMatch(usersPageContent, /data-testid="user-security-policy-btn"/);
   assert.match(usersPageContent, /data-testid="user-filter-bar"/);
   assert.match(usersPageContent, /data-testid="user-table"/);
   assert.match(usersPageContent, /data-testid="user-add-modal"/);
@@ -325,6 +325,7 @@ test('8. UsersPage.tsx 与 GlobalPagesContent.tsx AST 静态契约断言', () =>
   const globalPagesPath = path.resolve(REPO_ROOT, 'frontend/web/src/app/GlobalPagesContent.tsx');
   const globalContent = fs.readFileSync(globalPagesPath, 'utf-8');
   assert.match(globalContent, /key: 'users'/);
-  assert.match(globalContent, /label: 'A-02 用户与角色'/);
+  assert.match(globalContent, /label: '用户与角色'/);
+  assert.doesNotMatch(globalContent, /A-02 用户与角色/);
   assert.match(globalContent, /<UsersPage/);
 });

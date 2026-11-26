@@ -79,10 +79,10 @@ test('cancel stops the drip and a later push continues from the shown prefix', (
   assert.equal(next.length > 9 && next.length < 40, true);
 });
 
-test('the generate button says stop while the stream is live and hides the paper wait after a stream failure', () => {
+test('the generate button says stop while the stream is live, and ordinary busy never fakes writing', () => {
   assert.deepEqual(volumeStreamChrome({ streaming: true, busy: true, streamFailed: false }), {
     label: '停止',
-    paperWait: false,
+    paperWait: true,
   });
   assert.deepEqual(volumeStreamChrome({ streaming: false, busy: true, streamFailed: true }), {
     label: '开始生成',
@@ -90,7 +90,7 @@ test('the generate button says stop while the stream is live and hides the paper
   });
   assert.deepEqual(volumeStreamChrome({ streaming: false, busy: true, streamFailed: false }), {
     label: '生成中…',
-    paperWait: true,
+    paperWait: false,
   });
   assert.equal(streamFailureNotice('连接被拒绝'), '生成失败：连接被拒绝');
   assert.equal(streamFailureNotice(''), '生成失败：生成请求失败');

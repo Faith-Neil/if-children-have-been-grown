@@ -194,7 +194,7 @@ export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEd
             <div className="paper-wait-line w-mid" />
             <div className="paper-wait-line w-long" />
             <div className="paper-wait-line w-short" />
-            <span className="paper-wait-label">正在撰写</span>
+            <span className="paper-wait-label">AI 正在撰写…</span>
           </div>
         )}
       </div>

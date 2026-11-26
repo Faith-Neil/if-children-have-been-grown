@@ -74,6 +74,7 @@ export function ProjectListPage({
   // 1. 筛选条件状态
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState<ProjectStatusKey>('all');
+  const [sort, setSort] = useState<'last_accessed_at' | 'updated_at' | 'created_at'>('last_accessed_at');
   const [sensitive, setSensitive] = useState<SensitiveFilterKey>('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(8);
@@ -90,7 +91,7 @@ export function ProjectListPage({
     void query({
       page,
       page_size: pageSize,
-      sort: 'last_accessed_at',
+      sort,
       keyword,
       status: status === 'all' ? '' : status,
     }).then(result => {
@@ -103,7 +104,7 @@ export function ProjectListPage({
       setServerTotal(0);
     });
     return () => { current = false; };
-  }, [keyword, status, page, pageSize, serverMode]);
+  }, [keyword, status, sort, page, pageSize, serverMode]);
 
   // 2. 元数据抽屉状态
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -150,12 +151,12 @@ export function ProjectListPage({
     <div className={`project-list-page ${className}`} data-testid="project-list-page">
       {/* 顶部统计卡片栏 */}
       <Row gutter={16} className="summary-row" style={{ marginBottom: 16 }}>
-        <Col span={6}>
+        <Col xs={24} sm={12} lg={6}>
           <Card size="small" data-testid="stat-total-projects">
             <Statistic title="全部项目" value={statistics.total} prefix={<ProjectOutlined />} />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={24} sm={12} lg={6}>
           <Card size="small" data-testid="stat-writing-projects">
             <Statistic
               title="编写中项目"
@@ -164,7 +165,7 @@ export function ProjectListPage({
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={24} sm={12} lg={6}>
           <Card size="small" data-testid="stat-urgent-projects">
             <Statistic
               title="临期紧急项目 (≤3天)"
@@ -174,7 +175,7 @@ export function ProjectListPage({
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={24} sm={12} lg={6}>
           <Card size="small" data-testid="stat-sensitive-projects">
             <Statistic
               title="涉密安全项目"
@@ -195,7 +196,7 @@ export function ProjectListPage({
         data-testid="project-filter-card"
       >
         <Row gutter={[16, 12]} align="middle">
-          <Col xs={24} sm={12} md={8}>
+          <Col xs={24} sm={12} xl={6}>
             <Input
               prefix={<SearchOutlined style={{ color: '#8c8c8c' }} />}
               placeholder="搜索项目名称 / 招标编号"
@@ -207,7 +208,7 @@ export function ProjectListPage({
             />
           </Col>
 
-          <Col xs={24} sm={12} md={8}>
+          <Col xs={24} sm={12} xl={6}>
             <Space direction="horizontal" size={6} style={{ width: '100%' }}>
               <span style={{ fontSize: 13, color: '#4e5969', whiteSpace: 'nowrap' }}>状态:</span>
               <Select
@@ -227,7 +228,25 @@ export function ProjectListPage({
             </Space>
           </Col>
 
-          <Col xs={24} sm={12} md={8}>
+          <Col xs={24} sm={12} xl={6}>
+            <Space direction="horizontal" size={6} style={{ width: '100%' }}>
+              <span style={{ fontSize: 13, color: '#4e5969', whiteSpace: 'nowrap' }}>排序:</span>
+              <Select
+                value={sort}
+                onChange={value => { setSort(value); setPage(1); }}
+                style={{ width: '100%', minWidth: 132 }}
+                aria-label="项目排序方式"
+                data-testid="project-sort-select"
+                options={[
+                  { value: 'last_accessed_at', label: '最近使用' },
+                  { value: 'updated_at', label: '最近更新' },
+                  { value: 'created_at', label: '创建时间' },
+                ]}
+              />
+            </Space>
+          </Col>
+
+          <Col xs={24} sm={12} xl={6}>
             <Space direction="horizontal" size={6} style={{ width: '100%' }}>
               <span style={{ fontSize: 13, color: '#4e5969', whiteSpace: 'nowrap' }}>属性:</span>
               <Select
@@ -369,9 +388,9 @@ export function ProjectListPage({
             {
               title: '操作',
               key: 'actions',
-              width: 170,
+              width: 210,
               render: (_: unknown, record: Project) => (
-                <Space size={8}>
+                <Space size={6} wrap>
                   <Button
                     type="primary"
                     size="small"
@@ -430,7 +449,7 @@ export function ProjectListPage({
         }
         open={!!selectedProject}
         onClose={() => setSelectedProject(null)}
-        width={560}
+        width="min(560px, 92vw)"
         extra={
           selectedProject && (
             <Button

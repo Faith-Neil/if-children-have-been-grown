@@ -284,7 +284,7 @@ export function ModelConfigModal({
           <Tag color="blue">OpenAI 兼容</Tag>
         </Space>
       }
-      width={760}
+      width="min(760px, 92vw)"
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Space>
