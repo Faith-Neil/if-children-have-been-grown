@@ -181,7 +181,7 @@ export function RagflowConfigModal({
           <Tag color="cyan">Infiniflow RAGFlow</Tag>
         </Space>
       }
-      width={720}
+      width="min(720px, 92vw)"
       footer={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Button

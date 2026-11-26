@@ -1,5 +1,15 @@
 # ADMIN-RBAC-PLATFORM-SPLIT 交付说明
 
+<!-- task-delivery:start -->
+| 项目 | 记录 |
+|---|---|
+| 任务ID | ADMIN-RBAC-PLATFORM-SPLIT |
+| 代码解释 | [代码说明](../code/ADMIN-RBAC-PLATFORM-SPLIT.md) |
+| 验收 | `test_admin_rbac_security_cleanup.py` 8 passed；聚焦回归 109 passed；tsc、OpenAPI 与治理检查通过；用户已验收并合并 PR #53 |
+| 项目进度 | done。用户验收 PR #53 后按指令收口；未发布 |
+<!-- task-delivery:end -->
+
+
 ## 实际修改
 - 平台安全策略、真实审计 API、双管理员后台分家已落地；公司管理员访问平台安全/模型/RAGFlow 接口返回 403。
 - 用户列表与审计日志按 company_id 隔离；界面去除外露 A 编号、租户等研发黑话。

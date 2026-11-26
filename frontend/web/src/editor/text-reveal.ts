@@ -122,11 +122,11 @@ export function createTextReveal(
   };
 }
 
-/** 流式进行时按钮是「停止」、纸面不盖撰写骨架；流式失败后也不要再扮成旧的整篇生成。 */
+/** 只有真实活跃的技术卷 SSE 会话才允许出现“AI 正在撰写”；普通加载、保存或刷新绝不能误显撰写态。 */
 export function volumeStreamChrome(input: { streaming: boolean; busy: boolean; streamFailed: boolean }): VolumeStreamChrome {
-  if (input.streaming) return { label: '停止', paperWait: false };
+  if (input.streaming) return { label: '停止', paperWait: true };
   if (input.streamFailed) return { label: '开始生成', paperWait: false };
-  if (input.busy) return { label: '生成中…', paperWait: true };
+  if (input.busy) return { label: '生成中…', paperWait: false };
   return { label: '开始生成', paperWait: false };
 }
 

@@ -1,5 +1,15 @@
 # ADMIN-TASKCENTER-JOBS 交付说明
 
+<!-- task-delivery:start -->
+| 项目 | 记录 |
+|---|---|
+| 任务ID | ADMIN-TASKCENTER-JOBS |
+| 代码解释 | [代码说明](../code/ADMIN-TASKCENTER-JOBS.md) |
+| 验收 | `test_admin_rbac_security_cleanup.py` 8 passed；聚焦回归 109 passed；tsc、OpenAPI 与治理检查通过；用户已验收并合并 PR #53 |
+| 项目进度 | done。用户验收 PR #53 后按指令收口；未发布 |
+<!-- task-delivery:end -->
+
+
 ## 实际修改
 - 解析与技术卷生成以独立 `parse` / `technical_volume` 类型写入 demo_job，并同步进度、状态、步骤、错误与节计数。
 - 解析取消/失败重试同步 demo_job；技术卷可取消，因其不能安全续写而明确禁止原样 retry。

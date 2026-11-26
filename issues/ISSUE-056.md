@@ -9,14 +9,14 @@
 | Issue ID | ISSUE-056 |
 | 类型 | change |
 | 优先级 | P0 |
-| 状态 | in-progress |
+| 状态 | closed |
 | 登记日期 | 2026-11-27 |
 | 最后更新日期 | 2026-11-27 |
 | revision | admin-rbac-cleanup-r1 |
 | 关联 Task | [ADMIN-RBAC-PLATFORM-SPLIT](../docs/tasks/ADMIN-PROVISION.md#admin-rbac-platform-split)、[ADMIN-SETTINGS-CLEANUP](../docs/tasks/ADMIN-PROVISION.md#admin-settings-cleanup)、[ADMIN-MODEL-CONFIG-CLEANUP](../docs/tasks/ADMIN-PROVISION.md#admin-model-config-cleanup)、[ADMIN-TASKCENTER-JOBS](../docs/tasks/ADMIN-PROVISION.md#admin-taskcenter-jobs) |
-| 关联 PR | 未创建 |
-| 本地验收 | 未执行 |
-| 合入 | 未合入 |
+| 关联 PR | PR #53 |
+| 本地验收 | 通过：聚焦回归 109 passed，前端 tsc/OpenAPI/治理检查通过 |
+| 合入 | 已合入 main：3280708 |
 | 发布 | 未发布 |
 | 交付说明 | 待补：对应 `docs/delivery/` |
 | 代码 / 流程解释 | 待补：对应 `docs/code/` |
@@ -71,6 +71,8 @@
 | 2026-11-27 | admin-rbac-cleanup-r1 / in-progress | 已从最新 main 切出 `feat/iss-056-admin-rbac-cleanup` 并登记 Issue/任务；下一步执行第 0 步核查 | 用户本轮指令 |
 
 ## 本地验收与后续合入发布
+
+- 2026-11-27：PR #53 用户验收并合入 main（3280708）；四张任务卡按用户指令收口为 done，Issue closed，未发布。
 
 - 本地验收结论与日期：待执行。
 - 验证方式、通过及失败项、未覆盖范围：待填写。

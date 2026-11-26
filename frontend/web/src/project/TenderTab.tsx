@@ -415,7 +415,7 @@ export function TenderPage() {
       <AddendumDiffDrawer fileId={diffFile} onClose={() => setDiffFile('')} />
       <Drawer
         title="实际招标原文"
-        width={760}
+        width="min(760px, 92vw)"
         open={!!selectedFile}
         onClose={() => setSelectedFile('')}
       >

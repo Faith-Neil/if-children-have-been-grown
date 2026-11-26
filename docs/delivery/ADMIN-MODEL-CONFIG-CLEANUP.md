@@ -1,5 +1,15 @@
 # ADMIN-MODEL-CONFIG-CLEANUP 交付说明
 
+<!-- task-delivery:start -->
+| 项目 | 记录 |
+|---|---|
+| 任务ID | ADMIN-MODEL-CONFIG-CLEANUP |
+| 代码解释 | [代码说明](../code/ADMIN-MODEL-CONFIG-CLEANUP.md) |
+| 验收 | `test_admin_rbac_security_cleanup.py` 8 passed；聚焦回归 109 passed；tsc、OpenAPI 与治理检查通过；用户已验收并合并 PR #53 |
+| 项目进度 | done。用户验收 PR #53 后按指令收口；未发布 |
+<!-- task-delivery:end -->
+
+
 ## 实际修改
 - 模型配置弹窗移除 temperature、timeout、max_tokens 假开关，保留连接、模型名、密钥、本地/涉密属性、连通性测试与绑定。
 - 平台 system 任务模型路由可作为公司运行时兜底，项目绑定仍执行敏感项目本地模型门禁。

@@ -1,5 +1,15 @@
 # ADMIN-SETTINGS-CLEANUP 交付说明
 
+<!-- task-delivery:start -->
+| 项目 | 记录 |
+|---|---|
+| 任务ID | ADMIN-SETTINGS-CLEANUP |
+| 代码解释 | [代码说明](../code/ADMIN-SETTINGS-CLEANUP.md) |
+| 验收 | `test_admin_rbac_security_cleanup.py` 8 passed；聚焦回归 109 passed；tsc、OpenAPI 与治理检查通过；用户已验收并合并 PR #53 |
+| 项目进度 | done。用户验收 PR #53 后按指令收口；未发布 |
+<!-- task-delivery:end -->
+
+
 ## 实际修改
 - 字典配置页与 `/metadata/dict/*` 接口下线；公司设置只保留真实生效的划词助手、粘贴识别、解析阈值。
 - 密码、登录锁定、会话有效期收口为平台安全策略并由后端强制。

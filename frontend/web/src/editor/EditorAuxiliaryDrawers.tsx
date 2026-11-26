@@ -67,7 +67,7 @@ export function EditorAuxiliaryDrawers({
         title="当次写作输入 · 候选历史快照"
         open={inputOpen}
         onClose={onCloseInput}
-        width={760}
+        width="min(760px, 92vw)"
       >
         {candidateIssue ? (
           <Alert
@@ -98,7 +98,7 @@ export function EditorAuxiliaryDrawers({
         title="核对最新来源 · 更新这次文字的写作依据"
         open={!!sourceReview}
         onClose={onCloseSourceReview}
-        width={760}
+        width="min(760px, 92vw)"
         zIndex={1200}
         footer={
           <Space wrap>
