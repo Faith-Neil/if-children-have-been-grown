@@ -90,7 +90,7 @@
 - **UI 与界面设计克制（Layout First）**：Avoid unnecessary secondary labels and descriptions. Let the layout do the explaining. 避免在 UI 设计与组件开发时堆砌莫名其妙的次级标签、徽标或说明文字，杜绝将界面做成说明书；依靠清晰的视觉层级、布局与交互流自然表达意图。
 - **API 接口收敛与废弃生命周期**：新接口只加 `/api/v1`；`/api/demo` 路径已标为 deprecated，严格落实 RFC 8594 标准在响应头注入 `Sunset: Sun, 15 Nov 2026 00:00:00 GMT` 与 `Deprecation: true`，只读兼容至 2026-11-15 窗口期，之后予以清理下线；严禁再向旧 demo 路径添加新端点。
 - **前端测试权威收口**：前端唯一权威测试套件位于 `frontend/web/tests/`（含 `unit/`，通过 `pnpm --dir frontend/web test` 运行）。根目录 `tests/frontend/` 仅保留兼容历史文档引用的轻量级转发壳（re-export），严禁在此新增或扩展第三套测试目录，严禁在 `tests/frontend/` 中编写实际业务测试逻辑。
-- **持久化门禁**：生产配置、CI 工作流与关演示端到端冒烟强制 `ICG_REQUIRE_MYSQL=1`；章节正文（demo_chapter）、历史版本（demo_chapter_version）与检查结果（demo_check）全部纳入统一 MySQL 事务落盘；仅在未开启门禁的纯本地开发或显式单元测试环境下允许使用内存仓储，生产路径与强制门禁下严禁静默回落到内存仓储。
+- **持久化门禁**：生产配置、CI 工作流与关演示端到端冒烟强制 `ICG_REQUIRE_MYSQL=1`；章节正文（demo_chapter）、历史版本（demo_chapter_version）与检查结果（demo_check）全部纳入统一 MySQL 事务落盘；仅在未开启门禁的纯本地开发或显式单元测试环境下允许使用内存仓储，生产路径与强制门禁下严禁静默回落到内存仓储；非显式单元测试环境缺失 `ICG_DATABASE_URL` 时，启动必须直接报错退出。
 - **默认演示关闭**：前端 `VITE_DEMO` 未设置时默认为 `false`（走真实账号与标准 RBAC 8 角色会话），仅在显式配置 `VITE_DEMO=1` 或 `true` 时开启演示快捷登录。
 - **内网物理隔离与外部模型零外泄红线（Airgap Boundary）**：用户明确拍板（决策 B5/B6），客户招标文件、投标正文、Prompt 组装内容、事实与方案片段，严禁发往任何公网外部服务或公有云大模型；生产环境严格限定内网私有化部署：MySQL 8 + 内网本地 Qwen + 自建私有 RAGFlow；后端针对内网服务（RAGFlow、本地大模型）的 HTTP 客户端必须显式设置 `trust_env=False`，防止操作系统透明代理（如 VPN）拦截或劫持内网请求。
 - **离线 CI 门禁与真实生产依赖隔离**：托管 CI 环境物理断开公司内网，严禁在 CI 中尝试连接内网真实服务；真实连通性测试必须通过显式环境变量（`ICG_RUN_REAL_RAGFLOW_TESTS=1`、`ICG_RUN_REAL_MODEL_TESTS=1`）门控；在假服务/Mock 服务下测绿，绝不能伪造或声称生产环境对接已完成；受阻时必须诚实记录依赖 blocked。
@@ -124,6 +124,7 @@
    - **不可靠算子禁用**：真实 RAGFlow 的 `contains` 非子串匹配、`not is` 负向过滤不可靠；型号过滤必须走“精确 → 变体 OR → `doc_type` 级 → 无过滤”放宽阶梯，排他规则一律在应用侧执行（且 `history` 库防串标排他作为安全底线永不放宽，配合超额召回防滤空）。
    - **分路可观测性**：多路检索审计必须为每一路强制记录 `query`（非空校验）、`status`（`ok/empty/filtered_empty/error`）、`raw_hits`、`post_filter_hits`、`top_score`、`error_detail`。
    - **租户与脏数据隔离**：测试/合成文档（如 `Model-X800` 等）必须与生产知识库租户物理隔离；存在占位 `dataset_id` 时必须显性告警。
+   - **陈旧 `document_id` 同步检测**：知识库同步或检索层必须校验本端索引引用的远端 `document_id` 是否仍存在；重建 Dataset 后若出现批量失效引用，必须显性告警并触发重映射/自愈提示，严禁静默归零后继续生成。
 
 2. **本地 Qwen 30B 推理约束**
    - 章节生成并发度必须通过 `ICG_SECTION_CONCURRENCY` 可配，默认不超过 `2`，防止打满本地推理队列导致意图拆解/摘要超时降级。
@@ -171,5 +172,8 @@
 - **项目事实一致性的唯一正确链路**：
   - **生成前**：所有 SLA 时限、服务周期、团队人数、资产清单、评分决策、基准年份统一维护在 `Global Fact Sheet`，动态注入生成 Prompt。
   - **生成后**：由 `technical_verifier.py` 动态读取当前项目的 `Global Fact Sheet` 执行跨节事实比对，检出冲突后落入 `verify_warnings` 告警或触发对应章节局部重写，绝不在导出层静默硬改。
+- **偏离表 LLM 兜底缓存防毒**：
+  - `technical_deviation_llm_cache` 只有在同一指纹下全部兜底条款都通过门禁后才允许写入；任一单条失败、超短、外实体、负偏离或未支撑绝对化承诺时，严禁把部分结果包装成完成态缓存，防止错误响应在后续导出中被永久复用。
+  - 缓存命中审计必须区分本次 `calls=0` 与原始 `cached_calls`；模型、正文、Fact Sheet 或 Prompt 指纹变化后必须失效重算。
 - **单测门禁**：
   - `export_sanitizer` 相关单元测试禁止断言具体业务数字/年限/机构名的硬编码改写；业务一致性测试必须通过构造不同的 `Global Fact Sheet` 动态输入来验证。
