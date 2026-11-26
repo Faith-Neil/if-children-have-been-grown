@@ -14,7 +14,7 @@
 | 最后更新日期 | 2026-11-27 |
 | revision | frontend-ux-streaming-r1 |
 | 关联 Task | [FE-UX-STREAMING-RENDER](../docs/tasks/FE-UX.md#fe-ux-streaming-render)、[FE-UX-STREAMING-MARKDOWN](../docs/tasks/FE-UX.md#fe-ux-streaming-markdown)、[FE-UX-STREAMING-HANDOFF](../docs/tasks/FE-UX.md#fe-ux-streaming-handoff)、[FE-UX-STREAMING-VERIFICATION](../docs/tasks/FE-UX.md#fe-ux-streaming-verification) |
-| 关联 PR | 未创建 |
+| 关联 PR | [PR #55](https://github.com/Faith-Neil/if-children-have-been-grown/pull/55) 已创建，未合入 |
 | 本地验收 | 通过：tsc、生产构建、流式单测 21 passed、Playwright 模拟 SSE 2 passed；全量前端单测 647 passed / 14 failed（既有失败如实记录） |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
@@ -50,7 +50,7 @@
 | AC-03 | live 揭示速率柔和（65～80 字/秒）；新 chunk 稳定 key 渐显，旧片段不重挂载；呼吸光标结束淡出 | 通过；速率 72 字/秒，chunk key 单测稳定，光标 220ms 淡出 |
 | AC-04 | 未闭合 `**`、`<u>`、孤立 `#`、未成型表格不裸露或撑跳；表格分隔行到达后平滑展开 | 通过；streaming-markdown 单测与浏览器表格占位/正式表格证据 |
 | AC-05 | 保留 24px 钉底和用户上翻不拉回；离开底部显示“回到底部”；完成后 scrollTop 不跳动、无白屏闪烁 | 通过；Playwright 验证上翻按钮、点击回底与最终交接 |
-| AC-06 | 单元测试、TypeScript、生产构建、Playwright SSE 场景与治理检查按真实结果记录；PR 创建但不合并 | 通过/待 PR：tsc、build、聚焦单测与 SSE 验收通过；全量单测 647 passed / 14 failed 为既有失败；PR 待创建 |
+| AC-06 | 单元测试、TypeScript、生产构建、Playwright SSE 场景与治理检查按真实结果记录；PR 创建但不合并 | 通过：tsc、build、聚焦单测与 SSE 验收通过；全量单测 647 passed / 14 failed 为既有失败；PR #55 已创建且未合入 |
 
 ## 六份基线 impact 与同步表
 
@@ -75,6 +75,6 @@
 - 本地验收结论与日期：2026-11-27 通过聚焦验收；完整前端单测仍有 14 条既有失败，不作为本 Issue 通过证据。
 - 验证方式、通过及失败项、未覆盖范围：tsc/build 通过；流式聚焦单测 21 passed；Playwright 模拟 SSE 2 passed；全量前端单测 647 passed / 14 failed（既有 app-orchestration/evidence-orchestration/company-settings/dict-config 契约失败）；未做真实模型/RAGFlow 验收。
 - 六份基线同步与互链复核：已执行。
-- PR 状态：未创建。
+- PR 状态：[PR #55](https://github.com/Faith-Neil/if-children-have-been-grown/pull/55) 已创建，未合入。
 - 合入提交与日期：未合入。
 - 发布版本与日期：未发布。
