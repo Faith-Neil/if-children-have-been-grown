@@ -220,7 +220,8 @@ export function normalizeTask(
 
   // 步骤推导
   const steps = raw.steps || [];
-  let currentStepTitle = raw.currentStepTitle;
+  const stepName = typeof raw.step_name === 'string' ? raw.step_name : typeof raw.stepName === 'string' ? raw.stepName : undefined;
+  let currentStepTitle = raw.currentStepTitle || stepName;
   if (!currentStepTitle) {
     if (raw.currentStepKey && steps.length > 0) {
       const found = steps.find(s => s.key === raw.currentStepKey);
@@ -272,7 +273,7 @@ export function normalizeTask(
     status,
     progress,
     currentStepTitle,
-    message: raw.message || raw.description,
+    message: raw.message || stepName || raw.description,
     createdAt,
     completedAt,
     durationMs,

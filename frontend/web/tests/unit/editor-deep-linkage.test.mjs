@@ -100,21 +100,21 @@ test('4. 响应式断点与编辑台列数派生（APP-M2-T160）', () => {
   assert.equal(wideInfo.tier, 'wide');
   assert.equal(wideInfo.isWide, true);
   assert.equal(wideInfo.editorColumns, 4);
-  assert.equal(wideInfo.contentWidth, 1440);
+  assert.equal(wideInfo.contentWidth, 1920 - 64);
 
   // 2. 标准桌面 1440px ~ 1679px：3 栏布局
   const standardInfo = getBreakpointInfo(1440);
   assert.equal(standardInfo.tier, 'standard');
   assert.equal(standardInfo.isStandard, true);
   assert.equal(standardInfo.editorColumns, 3);
-  assert.equal(standardInfo.contentWidth, 1200);
+  assert.equal(standardInfo.contentWidth, 1440 - 64);
 
-  // 3. 紧凑桌面 1280px ~ 1439px：紧凑 3 栏，保障 1040px 无横向滚动
+  // 3. 紧凑桌面 1280px ~ 1439px：紧凑 3 栏，内容区随窗口变宽
   const compactInfo = getBreakpointInfo(1280);
   assert.equal(compactInfo.tier, 'compact');
   assert.equal(compactInfo.isCompact, true);
   assert.equal(compactInfo.editorColumns, 3);
-  assert.equal(compactInfo.contentWidth, 1040);
+  assert.equal(compactInfo.contentWidth, 1280 - 64);
 
   // 4. 超窄视口 < 1280px：sub-compact 状态，支持侧边栏折叠与抽屉
   const subCompactInfo = getBreakpointInfo(1024);

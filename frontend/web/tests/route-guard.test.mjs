@@ -14,23 +14,13 @@ function parseSource(path) {
   };
 }
 
-test('route-guard.ts exports all 8 roles, normalization, predicates, and guards', () => {
-  const { content, tree } = parseSource('../src/shell/route-guard.ts');
-
-  // 1. 验证 8 角色枚举与元数据存在
-  const requiredRoleKeys = [
-    'platform_admin',
-    'group_admin',
-    'company_admin',
-    'data_admin',
-    'project_lead',
-    'bid_writer',
-    'auditor',
-    'viewer',
-  ];
-  for (const role of requiredRoleKeys) {
-    assert.ok(content.includes(`'${role}'`), `route-guard.ts must define role '${role}'`);
+test('route-guard.ts exports the three login roles, normalization, predicates, and guards', () => {
+  const { tree } = parseSource('../src/shell/route-guard.ts');
+  const roles = parseSource('../src/shared/roles.ts').content;
+  for (const role of ['platform_admin', 'company_admin', 'member']) {
+    assert.ok(roles.includes(`'${role}'`), `roles.ts must define role '${role}'`);
   }
+  assert.ok(roles.includes("group_admin: 'member'"));
 
   // 2. 导出符号核查
   const exportedIdentifiers = new Set();
@@ -42,6 +32,9 @@ test('route-guard.ts exports all 8 roles, normalization, predicates, and guards'
       for (const decl of node.declarationList.declarations) {
         if (ts.isIdentifier(decl.name)) exportedIdentifiers.add(decl.name.text);
       }
+    }
+    if (ts.isExportDeclaration(node) && node.exportClause && ts.isNamedExports(node.exportClause)) {
+      for (const element of node.exportClause.elements) exportedIdentifiers.add(element.name.text);
     }
   });
 

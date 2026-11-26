@@ -67,7 +67,7 @@ export function useEditorLock({
         const minutes = expiryWarning(activeLease.expires_at, Date.now());
         if (minutes !== null && warned.current !== activeLease.expires_at) {
           warned.current = activeLease.expires_at;
-          setNotice(`长时间没有操作，编辑权将在约 ${minutes} 分钟后自动释放；释放时已保存的草稿会自动提交为一个版本。继续编辑即可保持编辑权。`);
+          setNotice(`长时间没有操作，约 ${minutes} 分钟后已保存的草稿会自动提交为一个版本。继续编辑即可。`);
         }
         return;
       }
@@ -87,7 +87,7 @@ export function useEditorLock({
         if (start === epoch.current && activeLease.lease_token === currentLease.current?.lease_token) {
           currentLease.current = null;
           setLease(null);
-          setNotice('编辑权续期失败，文字已保留在当前页面。请重新取得编辑权后核对版本再保存。');
+          setNotice('编辑连接中断，文字还在页面上。');
           report(error);
           if (error instanceof ApiError && [403, 404].includes(error.status)) {
             void reload().catch(report);

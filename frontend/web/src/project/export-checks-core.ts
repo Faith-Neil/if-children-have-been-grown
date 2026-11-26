@@ -128,7 +128,7 @@ export function canExportSubmission(options: {
     return { allowed: false, reason: '当前范围正文尚未全部提交完成' };
   }
   if (!options.hasPassedCheck) {
-    return { allowed: false, reason: '当前分册尚未运行有效检查或检查未通过' };
+    return { allowed: false, reason: '当前方案尚未运行有效检查或检查未通过' };
   }
   if (options.hasBlockers) {
     const count = options.blockerCount || 1;
@@ -138,7 +138,7 @@ export function canExportSubmission(options: {
     };
   }
   if (options.isFinalized === false) {
-    return { allowed: false, reason: '分册尚未完成定稿锁定，禁止导出正式递交版' };
+    return { allowed: false, reason: '方案尚未通过质量门禁，禁止导出正式递交版' };
   }
   return { allowed: true, reason: null };
 }
@@ -207,9 +207,9 @@ export function getExportKindMeta(kind: string): {
  * 分册范围中文文案
  */
 export function getExportVolumeLabel(volume?: Volume | 'all' | string): string {
-  if (volume === 'technical') return '技术分册';
-  if (volume === 'business') return '商务分册';
-  return '技术、商务两册合订';
+  if (volume === 'technical') return '技术方案';
+  if (volume === 'business') return '商务方案';
+  return '技术方案与商务方案合订';
 }
 
 

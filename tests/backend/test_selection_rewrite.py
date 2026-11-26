@@ -28,7 +28,13 @@ class ScriptedModel:
 
     def suggest(self, system, user):
         self.calls.append((system, user))
-        return next(text for label, text in self.replies.items() if label in system or self._hint(label) in system)
+        text = next(reply for label, reply in self.replies.items() if label in system or self._hint(label) in system)
+        # 本标命中时预检要求至少一条 [标:…]；从提示里抄一个真实标记。
+        import re
+        cite = re.search(r"\[标:[^\]]+\]", user or "")
+        if cite and "至少引用" in (system or ""):
+            text = f"{text}{cite.group(0)}"
+        return text
 
     @staticmethod
     def _hint(label):
@@ -83,15 +89,20 @@ def test_samples_are_generated_from_the_selection_only_and_prechecked(client, mo
     assert f"【选中的文字】\n{SENTENCE}" in user and "只修改用户选中的那段文字" in system
     assert "商务正文验收标记" not in user  # 别的章节不进模型
     texts = {s["style_label"]: s for s in batch["samples"]}
-    assert texts["严谨规范"]["text"] == "每月开展一次例行巡检"          # 去掉“以下是…：”
-    assert texts["简洁精炼"]["text"] == "每月巡检"                       # 去掉 Markdown
+    assert texts["严谨规范"]["text"].startswith("每月开展一次例行巡检")  # 去掉“以下是…：”；本标命中时可附 [标:…]
+    assert texts["简洁精炼"]["text"].startswith("每月巡检")              # 去掉 Markdown
     assert "【待补：数值来源】" in texts["突出响应"]["text"] and texts["突出响应"]["warnings"]
     assert "条理分明" not in texts and "平实易读" not in texts
     reasons = " ".join(d["reason"] for d in batch["dropped"])
     assert "手机号" in reasons and "合并" in reasons
-    assert batch["knowledge_base_enabled"] is False and "无知识库来源" in batch["source_note"]
-    assert batch["retrieval"]["status"] == "off" and batch["session_id"]
-    assert all(s["status"] == "proposed" and s["sources"] == [] for s in batch["samples"])
+    assert batch["knowledge_base_enabled"] is False and batch["session_id"]
+    # 公司库关闭时仍可命中本标；有命中则样例应挂 [标:…] 来源。
+    if batch["retrieval"]["status"] == "found":
+        assert all(s["status"] == "proposed" and s["sources"] for s in batch["samples"])
+        assert any(src["cite_tag"].startswith("[标:") for s in batch["samples"] for src in s["sources"])
+    else:
+        assert "无知识库来源" in batch["source_note"]
+        assert all(s["status"] == "proposed" and s["sources"] == [] for s in batch["samples"])
 
 
 def test_replace_writes_only_the_selection_as_a_new_version_with_an_edit_record(client):
@@ -101,12 +112,16 @@ def test_replace_writes_only_the_selection_as_a_new_version_with_an_edit_record(
     sample = next(s for s in batch["samples"] if s["style_label"] == "严谨规范")
     lease = _lease(flow, chapter["id"])
     result = _apply(flow, chapter["id"], batch, sample, lease)
-    expected = chapter["content"].replace(SENTENCE, "每月开展一次例行巡检", 1)
+    expected = chapter["content"].replace(SENTENCE, sample["text"], 1)
     assert result["content"] == expected and result["revision"] == chapter["revision"] + 1
     operation = result["operation"]
     assert operation["edit_mode"] == "assistant_replace" and operation["edit_mode_label"] == "对话助手替换"
     assert operation["base_revision"] == chapter["revision"] and operation["result_revision"] == result["revision"]
-    assert operation["original_text"] == SENTENCE and operation["source_note"] == "无知识库来源"
+    assert operation["original_text"] == SENTENCE
+    if sample["sources"]:
+        assert operation["source_note"] != "无知识库来源" or "[标:" in sample["text"]
+    else:
+        assert operation["source_note"] == "无知识库来源"
     assert operation["recheck"]["scope"] == "changed_paragraphs"
     assert {s["status"] for s in result["batch"]["samples"]} == {"adopted", "not_adopted"}
     listed = client.get(f"{flow.path}/chapters/{chapter['id']}/edit-operations", headers=flow.headers).json()["operations"]

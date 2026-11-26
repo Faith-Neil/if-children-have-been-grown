@@ -21,7 +21,7 @@ def test_trace_lists_every_requirement_with_full_columns(client):
     assert len(body) == len(reqs)
     by_text = {r[1]: r for r in body}
     first = by_text[reqs[0]["text"]]
-    assert first[2] == "合成招标.txt" and first[3] and first[5] == "经核对满足要求。"
+    assert first[2] == "合成招标.txt" and first[3] and first[5] == "无偏离。经核对满足要求。"
     assert first[12] == "甲公司项目经理（合成）" and first[13] == "已确认"
     business = next(r for r in body if r[6] == "商务分册")
     assert "合成企业资质（v1）" in business[9]

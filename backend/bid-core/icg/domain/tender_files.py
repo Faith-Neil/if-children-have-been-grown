@@ -83,6 +83,9 @@ def cached(state: Any, company_id: str, sha256: str, service: tuple[str, str]):
     document = ParsedDocument(pages=data["pages"], pagination=data["pagination"], warnings=data.get("warnings") or [],
                               regions=data.get("regions") or [])
     document.batches = data.get("batches") or []  # type: ignore[attr-defined]
+    # 没有版面位置的结果不能复用：那是 Word 没走 DeepDOC 时整份挤在第 1 页，再解析应重新识别。
+    if any("未返回版面位置" in str(item) for item in document.warnings):
+        return None
     return document, entry
 
 

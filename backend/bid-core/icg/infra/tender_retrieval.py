@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from icg.domain.domain import Chapter, DemoState, DomainError, Principal, Project, new_id
-from icg.domain.project_access import chapter_edit, lead, normalize_role, require_same_company, READONLY_SYSTEM_ROLES
+from icg.domain.project_access import chapter_edit, foreign_company, lead, normalize_role, require_same_company, READONLY_SYSTEM_ROLES
 
 
 CLAUSE_NUMBER_REGEX = re.compile(
@@ -326,7 +326,7 @@ class TenderRetrievalService:
         """设置本项目招标文件轻量索引检索开关。需项目成员写权限。"""
         def operation(state: DemoState):
             project = state.projects.get(project_id)
-            if project is None or project.company_id != principal.user.company_id:
+            if foreign_company(project, principal):
                 raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
             require_same_company(state, principal, project_id)
             from icg.domain.project_access import writable
@@ -452,7 +452,7 @@ class TenderRetrievalService:
         """
         state: DemoState = self.repository.read()
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        if foreign_company(project, principal):
             raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
 
         # 检查项目成员身份
@@ -578,7 +578,7 @@ class TenderRetrievalService:
         """
         def operation(state: DemoState):
             project = state.projects.get(project_id)
-            if project is None or project.company_id != principal.user.company_id:
+            if foreign_company(project, principal):
                 raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
 
             chapter = state.chapters.get(chapter_id)
@@ -658,7 +658,7 @@ class TenderRetrievalService:
     def get_injected_clauses(self, principal: Principal, project_id: str, chapter_id: str) -> list[dict[str, Any]]:
         state: DemoState = self.repository.read()
         project = state.projects.get(project_id)
-        if project is None or project.company_id != principal.user.company_id:
+        if foreign_company(project, principal):
             raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
         chapter = state.chapters.get(chapter_id)
         if chapter is None or chapter.project_id != project_id:
@@ -669,7 +669,7 @@ class TenderRetrievalService:
     def clear_injected_clauses(self, principal: Principal, project_id: str, chapter_id: str) -> bool:
         def operation(state: DemoState):
             project = state.projects.get(project_id)
-            if project is None or project.company_id != principal.user.company_id:
+            if foreign_company(project, principal):
                 raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
             chapter = state.chapters.get(chapter_id)
             if chapter is None or chapter.project_id != project_id:

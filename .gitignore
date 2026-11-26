@@ -31,6 +31,7 @@ coverage/
 *.tsbuildinfo
 
 # 运行数据与临时输出
+.audit/
 runtime/
 data/local/
 .cache/

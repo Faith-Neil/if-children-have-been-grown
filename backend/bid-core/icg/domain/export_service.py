@@ -86,6 +86,9 @@ class ExportServiceMixin(CheckOrchestratorMixin):
 
     def export(self, principal: Principal, project_id: str, payload: dict, expected: str | None, key: str | None):
         def operation(state, project, workflow):
+            from icg.domain.technical_sources import technical_only as is_technical_only
+            if payload.get("kind") != "submission" and is_technical_only(state, project_id) and workflow.get("technical_outline"):
+                return self._export_technical_draft(state, project, workflow, principal, project_id, payload)
             check = workflow["checks"].get(payload["check_id"])
             if check is None:
                 raise DomainError(404, "NOT_FOUND", "未找到本项目检查批次。")
@@ -225,6 +228,8 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                     if is_internal_review else None
                 )
             )
+            from icg.domain.technical_constraint_check import completion_message
+            compliance_notice = completion_message(compliance_notice, workflow.get("constraint_check"))
             record = {
                 "id": identity,
                 "kind": payload["kind"],
@@ -261,7 +266,7 @@ class ExportServiceMixin(CheckOrchestratorMixin):
                             else "两个独立 Word 正式递交版已生成" if scope == "all" else "本册 Word 正式递交版已生成") + "；已完成责任人定稿与门禁核验。"
             else:
                 job_desc = ("两个独立 Word 内部稿已生成" if scope == "all" else "本册 Word 内部稿已生成") + "；只含已提交正文。"
-            self._job(state, project_id, "export", job_desc)
+            self._job(state, project_id, "export", completion_message(job_desc, workflow.get("constraint_check")))
             return {"export": self._public_export(state, project_id, record)}
 
         result = self._write(principal, project_id, "project.export", payload, expected, key, operation)
@@ -270,6 +275,101 @@ class ExportServiceMixin(CheckOrchestratorMixin):
             raise DomainError(500, "EXPORT_FAILED", exported["error_message"],
                               {"export_id": exported["id"], "batch_no": exported["batch_no"], "revision": result.get("revision")})
         return result
+
+    def _export_technical_draft(self, state, project, workflow, principal: Principal, project_id: str, payload: dict) -> dict:
+        from icg.domain.company_settings import company_display_name
+        from icg.domain.export_batch import _render, next_batch_no, render_batch, volume_bindings
+        from icg.domain.technical_constraint_check import completion_message
+        from icg.domain.technical_volume import export_parts
+        from icg.infra.blob_store import put_blob
+
+        outline = workflow["technical_outline"]
+        chapter = state.chapters.get(outline.get("chapter_id") or "")
+        if chapter is None or not (chapter.content or "").strip():
+            raise DomainError(409, "REQUIREMENT_NOT_READY", "还没有可导出的技术分册正文。")
+        provider = None
+        if hasattr(self.demo, "resolve_model_provider"):
+            try:
+                provider = self.demo.resolve_model_provider(state, project_id, "chapter_generation")
+            except Exception:
+                # 偏离表 LLM 兜底是增强项；模型路由不可用时仍保持确定性导出主干。
+                provider = None
+        parts = export_parts(workflow, chapter.title or outline.get("title") or "服务方案", chapter.content, model=provider)
+        now = self.demo._now()
+        batch_no = next_batch_no(workflow, payload.get("kind") or "internal", datetime.fromtimestamp(now, SHANGHAI))
+        identity = new_id("export")
+        filename = "技术分册内部稿.docx"
+        cover = {
+            "kind": payload.get("kind") or "internal",
+            "volume_name": "技术分册",
+            "tender_number": project.tender_number,
+            "bidder": company_display_name(state, project.company_id),
+            "dark_bid": False,
+            "date": datetime.fromtimestamp(now, SHANGHAI).strftime("%Y年%m月%d日").replace("年0", "年").replace("月0", "月"),
+        }
+        document = {
+            "title": chapter.title or "服务方案",
+            "project_name": self._mask(project.name),
+            "content": parts["markdown"],
+            "cover": cover,
+            "attachments": [],
+        }
+        entry = {
+            "volume": "technical",
+            "filename": filename,
+            "download_url": f"/api/v1/projects/{project_id}/exports/{identity}/technical",
+            "batch_no": batch_no,
+        }
+        render_batch({"technical": document}, [entry])
+        # #region agent log
+        try:
+            import json as _json, time as _time
+            from icg.infra.docx_style import DEFAULT_DOCX_STYLE as _ds
+            open(r"e:\ICG-CURSOR\if-children-have-been-grown-1\.cursor\debug-9900db.log", "a", encoding="utf-8").write(
+                _json.dumps({"sessionId": "9900db", "hypothesisId": "E", "location": "export_service._export_technical_draft", "message": "technical draft exported", "data": {"project_id": project_id, "filename": filename, "content_chars": len(parts.get("markdown") or ""), "has_deviation": bool(parts.get("attachment")), "fonts": {"h1": _ds.h1_font.east_asia, "h2": _ds.h2_font.east_asia, "h3": _ds.h3_font.east_asia, "body": _ds.body_font.east_asia, "body_pt": _ds.body_pt, "line_pt": _ds.body_line_pt, "margins": [_ds.margin_top_cm, _ds.margin_bottom_cm, _ds.margin_left_cm, _ds.margin_right_cm]}}, "timestamp": int(_time.time() * 1000)}, ensure_ascii=False) + "\n")
+        except Exception:
+            pass
+        # #endregion
+        documents = {"technical": document}
+        deviation_url = None
+        if parts["attachment"]:
+            attached = {**document, "title": "技术偏离表", "content": parts["attachment"]}
+            data = _render("deviation", attached, "技术偏离表.docx")
+            documents["deviation"] = {**attached, "filename": "技术偏离表.docx", "blob": put_blob(data)}
+            deviation_url = f"/api/v1/projects/{project_id}/exports/{identity}/deviation"
+        content_sha = hashlib.sha256(parts["markdown"].encode("utf-8")).hexdigest()
+        record = {
+            "id": identity,
+            "kind": payload.get("kind") or "internal",
+            "check_id": payload.get("check_id") or "technical-internal",
+            "fingerprint": self._fingerprint(state, project_id),
+            "created_at": iso_time(now),
+            "excludes_drafts": True,
+            "volumes": [entry],
+            "documents": documents,
+            "has_blockers": False,
+            "compliance_notice": completion_message(
+                parts["note"] or "仅供内部评审，不可作为正式递交文件。",
+                workflow.get("constraint_check"),
+            ),
+            "sha256": content_sha,
+            "format_metadata": WORD_DEFAULT_FORMAT_METADATA,
+            "is_submission": False,
+            "batch_no": batch_no,
+            "export_status": "completed",
+            "volume": "technical",
+            "created_by": principal.user.id,
+            "bound_volumes": volume_bindings(workflow, ["technical"]),
+            "volume_mode": "technical_only",
+        }
+        if deviation_url:
+            record["deviation_download_url"] = deviation_url
+        workflow["exports"][identity] = record
+        self._job(
+            state, project_id, "export",
+            completion_message("技术分册内部稿已生成。待补、偏离和需要核对不阻止这份内部稿。", workflow.get("constraint_check")),
+        )
+        return {"export": self._public_export(state, project_id, record)}
 
     def _render_override(self) -> dict:
         """测试可替换分册生成函数以模拟某册失败；生产使用默认 Word 生成。"""
@@ -280,13 +380,25 @@ class ExportServiceMixin(CheckOrchestratorMixin):
         def operation(state):
             self.demo._project(state, principal, project_id)
             record = self._workflow(state, project_id)["exports"].get(export_id)
-            if record is None or volume not in ("technical", "business"):
+            if record is None or volume not in ("technical", "business", "deviation"):
                 raise DomainError(404, "NOT_FOUND", "未找到有权访问的分册文件。")
             if record["kind"] == "submission" and not lead(state, project_id, principal.user.id):
                 raise DomainError(403, "SUBMISSION_FORBIDDEN", "递交版下载仅限项目经理。")
             if record.get("export_status") == "failed":
                 raise DomainError(404, "NOT_FOUND", "该批次生成失败，没有可下载的分册文件。")
             stale = record["fingerprint"] != self._fingerprint(state, project_id)
+            if volume == "deviation":
+                extra = (record.get("documents") or {}).get("deviation")
+                if not extra:
+                    raise DomainError(404, "NOT_FOUND", "本次导出没有单独的偏离表文件。")
+                self._audit(state, principal, project_id, "project-export.download",
+                            {"export_id": export_id, "volume": volume, "batch_no": record.get("batch_no"), "stale": stale})
+                document = {**extra, "filename": extra.get("filename") or "技术偏离表.docx", "stale": stale,
+                            "batch_no": record.get("batch_no")}
+                if extra.get("blob"):
+                    from icg.infra.blob_store import get_blob
+                    document["content_bytes"] = get_blob(extra["blob"])
+                return document
             entry = next((v for v in record["volumes"] if v["volume"] == volume), None)
             if entry is None:
                 raise DomainError(404, "NOT_FOUND", "本次导出不包含该分册。")

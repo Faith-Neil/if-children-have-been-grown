@@ -449,7 +449,7 @@ export const REQUIREMENTS_MATRIX_SCHEMA: TableMeta = {
     },
     {
       key: 'volume',
-      label: '归属分册',
+      label: '归属',
       secondaryLabel: 'volume_scope',
       dataType: 'text',
       width: 90,

@@ -184,12 +184,12 @@ test('filterEvidenceList filters by category, status, and multi-field keywords',
 test('RBAC controls library management permissions', () => {
   // Can manage
   assert.equal(canManageLibrary('admin'), true);
-  assert.equal(canManageLibrary('bidding_manager'), true);
-  assert.equal(canManageLibrary('legal_reviewer'), true);
-  assert.equal(canManageLibrary('quality_auditor'), true);
-  assert.equal(canManageLibrary('hr_specialist'), true);
+  assert.equal(canManageLibrary('company_admin'), true);
+  assert.equal(canManageLibrary('platform_admin'), false);
 
-  // Cannot manage
+  // Cannot manage: 普通用户与旧角色名都按普通用户
+  assert.equal(canManageLibrary('member'), false);
+  assert.equal(canManageLibrary('data_admin'), false);
   assert.equal(canManageLibrary('viewer'), false);
   assert.equal(canManageLibrary('bidder'), false);
   assert.equal(canManageLibrary('guest'), false);
@@ -199,9 +199,9 @@ test('RBAC controls library management permissions', () => {
 test('RBAC controls sensitive field reveal whitelist and masking', () => {
   // Whitelist to unmask sensitive personal records
   assert.equal(canRevealSensitiveField('admin'), true);
-  assert.equal(canRevealSensitiveField('legal_reviewer'), true);
-  assert.equal(canRevealSensitiveField('hr_specialist'), true);
-  assert.equal(canRevealSensitiveField('auditor'), true);
+  assert.equal(canRevealSensitiveField('company_admin'), true);
+  assert.equal(canRevealSensitiveField('auditor'), false);
+  assert.equal(canRevealSensitiveField('data_admin'), false);
 
   // Non-whitelisted roles MUST see masked fields
   assert.equal(canRevealSensitiveField('viewer'), false);

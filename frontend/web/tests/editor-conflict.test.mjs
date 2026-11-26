@@ -2,7 +2,7 @@
 // 它解决什么问题：
 // 1. 验证 EditorPage 组件源码中存在字数统计（editor-word-count / word-count-progress / word-count-status-tag）完整标记与展示逻辑；
 // 2. 验证脏状态标签（dirty-status-tag）与保存草稿按钮高亮状态（save-draft-btn / toolbar-save-draft-btn）；
-// 3. 验证只读态与未持锁纯文本视图（readonly-editor-view / unheld-editor-view / unheld-acquire-btn）的三态守卫；
+// 3. 验证只读态横幅与可编辑纸面；编辑台不再要求先点取得编辑权；
 // 4. 验证 OCC 409 冲突弹窗（conflict-resolution-modal / conflict-overwrite-btn / conflict-discard-btn / conflict-cancel-btn）契约。
 
 import test from 'node:test';
@@ -19,20 +19,16 @@ function getEditorSource() {
 test('EditorPage AST: 正文编辑区三态权限守卫（只读态、未持锁态、持锁编辑态）', () => {
   const { source } = getEditorSource();
 
-  // 1. 只读态守卫：isReadOnlyView 触发 readonly-editor-view
-  assert.ok(source.includes('data-testid="readonly-editor-view"'), '必须包含 readonly-editor-view 测试标识');
-  assert.ok(source.includes('data-testid="readonly-editor-text"'), '必须包含 readonly-editor-text 测试标识');
+  // 1. 只读态用横幅，正文仍是纸面
+  assert.ok(source.includes('<ReadonlyBanner'), '只读态必须提示横幅');
+  assert.ok(source.includes('<PaperEditor'), '正文必须是纸面编辑器');
 
-  // 2. 未持锁态守卫：!held 触发 unheld-editor-view，优雅纯文本且附带取得编辑权引导
-  assert.ok(source.includes('data-testid="unheld-editor-view"'), '必须包含 unheld-editor-view 测试标识');
-  assert.ok(source.includes('data-testid="unheld-editor-text"'), '必须包含 unheld-editor-text 测试标识');
-  assert.ok(source.includes('data-testid="unheld-acquire-btn"'), '必须包含 unheld-acquire-btn 取得编辑权按钮');
-
-  // 3. 结构三态分支验证：isReadOnlyView ? ... : !held ? ... : ...
-  assert.ok(
-    source.includes('isReadOnlyView ?') && source.includes(': !held ?'),
-    '必须严格按 isReadOnlyView -> !held -> Input.TextArea 三态进行分支控制'
-  );
+  // 2. 有编辑权限时纸面直接可改，不再出现取得编辑权按钮
+  assert.ok(source.includes('unheld-editor-view'), '无编辑权限时仍使用 unheld-editor-view');
+  assert.ok(!source.includes('data-testid="unheld-acquire-btn"'), '编辑台不再放置取得编辑权按钮');
+  assert.ok(!source.includes('取得编辑权'), '编辑台不再提示取得编辑权');
+  assert.ok(source.includes('paper-editor-held'), '可编辑纸面容器必须可识别');
+  assert.ok(source.includes('editable={canEdit && !combinedBusy}'), '有编辑权限且不忙时纸面可编辑');
 });
 
 test('EditorPage AST: 实时字数统计与目标符合诊断指标', () => {
@@ -70,8 +66,8 @@ test('EditorPage AST: 脏状态检测与保存草稿按钮高亮', () => {
 
   // 3. 按钮高亮条件判断：仅当 dirty 且 held 时为 primary
   assert.ok(
-    source.includes("type={dirty && held ? 'primary' : 'default'}"),
-    '保存草稿按钮必须在 dirty && held 时呈现 primary 高亮'
+    source.includes("type={dirty && canEdit ? 'primary' : 'default'}"),
+    '保存草稿按钮必须在 dirty && canEdit 时呈现 primary 高亮'
   );
 });
 

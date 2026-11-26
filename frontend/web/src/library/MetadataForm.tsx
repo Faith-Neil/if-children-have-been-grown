@@ -43,6 +43,7 @@ import {
   type ModifiedStarredField,
 } from './metadata-form';
 import { FormActionFooter } from '../shared/FormActionFooter';
+import { UnitInputNumber } from '../shared/UnitInputNumber.tsx';
 import {
   detectDirtyFields,
   mapServerFieldErrors,
@@ -342,11 +343,18 @@ export function MetadataForm<T extends Record<string, any> = Record<string, any>
               field.data_type === 'number' ||
               field.data_type === 'integer'
             ) {
-              inputControl = (
+              inputControl = field.unit ? (
+                <UnitInputNumber
+                  unit={field.unit}
+                  style={{ width: '100%' }}
+                  placeholder={field.placeholder}
+                  disabled={controlDisabled}
+                  data-testid={`input-${field.field_key}`}
+                />
+              ) : (
                 <InputNumber
                   style={{ width: '100%' }}
                   placeholder={field.placeholder}
-                  addonAfter={field.unit}
                   disabled={controlDisabled}
                   data-testid={`input-${field.field_key}`}
                 />

@@ -1,0 +1,48 @@
+# 为什么有这个文件：在公司虚拟机上用一份编排同时拉起 MySQL 8 和产品进程。
+# 它解决什么问题：避免手写容器参数时漏掉字符集、健康检查或数据库门禁。
+# 口令只放在虚拟机上的 deploy/.env，不放进本文件。本机若已有名为 icg-mysql 的库，改用 Start-Product.ps1，不要在同一台机器再起这一套。
+name: icg
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: icg
+      MYSQL_USER: icg
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD in deploy/.env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in deploy/.env}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - icg-mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uicg -p$$MYSQL_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks:
+      - icg
+  icg:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      ICG_DATABASE_URL: mysql+pymysql://icg:${MYSQL_PASSWORD}@mysql:3306/icg?charset=utf8mb4
+      ICG_REQUIRE_MYSQL: "1"
+      ICG_ENV: ${ICG_ENV:-production}
+      ICG_ALLOW_DEMO_LOGIN: "0"
+      ICG_SECRET_KEY: ${ICG_SECRET_KEY:?set ICG_SECRET_KEY in deploy/.env}
+      ICG_ADMIN_INITIAL_PASSWORD: ${ICG_ADMIN_INITIAL_PASSWORD:?set ICG_ADMIN_INITIAL_PASSWORD in deploy/.env}
+    ports:
+      - "127.0.0.1:8710:8710"
+    networks:
+      - icg
+networks:
+  icg:
+volumes:
+  icg-mysql:

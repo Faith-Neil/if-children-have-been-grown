@@ -19,27 +19,14 @@ async function seed(request: APIRequestContext) {
   return id;
 }
 
-test('parse page: original · category tree · cards, with gated confirmation', async ({ page, request }) => {
+test('parsed tender opens the editor so the directory can be confirmed', async ({ page, request }) => {
   const id = await seed(request);
-  await page.goto(`/projects/${id}/parse`);
+  await page.goto(`/projects/${id}/tender`);
   await page.getByTestId('login-username-input').fill('alpha-manager');
   await page.getByTestId('login-password-input').fill('X_2026');
   await page.getByTestId('login-submit-button').click();
-  await expect(page.getByTestId('parse-tree-category')).toHaveCount(10);
-  // 从左到右：原文预览、分类树、条目卡片
-  const boxes = await Promise.all(['.original-preview', '.parse-category', '.parse-cards'].map(s => page.locator(s).boundingBox()));
-  expect(boxes[0]!.x < boxes[1]!.x && boxes[1]!.x < boxes[2]!.x).toBeTruthy();
-  await expect(page.getByTestId('parse-confirm-button')).toBeDisabled();
-  await expect(page.getByTestId('parse-gate-summary')).toContainText('还差');
-  await page.locator('[data-category="star"]').click();
-  await expect(page.getByTestId('parse-individual-only')).toBeVisible();
-  await expect(page.getByTestId('parse-batch-confirm')).toHaveCount(0);
-  await page.locator('[data-category="scoring"]').click();
-  await expect(page.getByTestId('parse-tree-group').first()).toContainText('要点');
-  await page.locator('[data-category="technical"]').click();
-  const batch = page.getByTestId('parse-batch-confirm');
-  await expect(batch).toContainText(/确认本类 [1-9]/);
-  await batch.click();
-  await expect(batch).toContainText('确认本类 0 条');
-  await expect(page.locator('.parse-cards .requirement-card').first()).toContainText('已确认');
+  await expect(page.getByRole('cell', { name: 'tender.txt' })).toBeVisible();
+  await expect(page.getByRole('cell', { name: '已解析' })).toBeVisible();
+  await page.getByRole('tab', { name: '覆盖视图' }).click();
+  await expect(page.getByTestId('coverage-view')).toBeVisible();
 });

@@ -7,6 +7,7 @@ import type { Candidate, Chapter, Volume, Workspace, WritingInputPreview } from 
 import { recoveryWrite } from './editor-recovery.ts';
 import type { RecoveryChoice } from './RecoveryReview.tsx';
 import { candidateProblem, insertFactToken } from './writing-input.ts';
+import { sectionRewritePath } from './technical-assistant.ts';
 import { insertSlaMeasurement } from '../admin/sla-form.ts';
 import { editingContentWrite, recoveryEditingFingerprint, reviewedEditingFingerprint } from './editing-source.ts';
 import type { Lease } from './useEditorLock.ts';
@@ -90,6 +91,15 @@ export function useEditorOperations({
     });
   };
 
+  const suggestSection = async (section: string) => {
+    if (!canGenerate || !section || combinedBusy) return;
+    await run(async () => {
+      const start = epoch.current;
+      const value = await request<Candidate>(sectionRewritePath(workspace.project.id), token, 'POST', { section, instruction });
+      if (start === epoch.current) setSuggestion(value);
+    });
+  };
+
   const generate = async () => {
     if (!canGenerate || !planCurrent || combinedBusy) return;
     try {
@@ -108,6 +118,9 @@ export function useEditorOperations({
   const apply = async () => {
     if (!chapter || !lease || !held || !diff || candidateProblem(diff, workspace.input_fingerprint, chapter.revision) || !reviewed) return;
     await run(async () => {
+      if (diff.source_scope === 'section' && content !== chapter.content) {
+        throw new Error('编辑区有未保存的修改，请先保存或撤销，再写入本节候选。');
+      }
       const start = epoch.current;
       const latest = await request<Workspace>(`/api/v1/projects/${workspace.project.id}/workspace`, token);
       if (start !== epoch.current) return;
@@ -269,6 +282,7 @@ export function useEditorOperations({
     sourceReview, setSourceReview,
     sourceReviewed, setSourceReviewed,
     suggest,
+    suggestSection,
     generate,
     showDiff,
     apply,

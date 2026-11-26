@@ -32,12 +32,14 @@ def run_checks(base_url):
     def check(name, ok, detail=""):
         results.append({"name": name, "pass": bool(ok), "detail": detail})
 
-    for account, role in {"alpha-manager": "project_lead", "alpha-editor": "bid_writer", "alpha-viewer": "viewer"}.items():
+    member_nav = ["jobs", "knowledge", "library", "notifications", "workbench", "writing"]
+    for account in ("alpha-manager", "alpha-editor", "alpha-viewer"):
         response = client.get("/api/v1/session", headers=login(account))
         data = response.json()
         nav = sorted(item["route_id"] for item in data.get("navigation", []))
-        check(f"session {account} -> {role}", response.status_code == 200 and data["user"]["primary_role"] == role
-              and not any("company" in n or "platform" in n for n in nav), f"{response.status_code} {nav}")
+        # 种子账号的 manager / editor / viewer 都归入三角色里的 member。
+        check(f"session {account} -> member", response.status_code == 200 and data["user"]["primary_role"] == "member"
+              and data.get("role_mode") == "rbac-3roles" and nav == member_nav, f"{response.status_code} {nav}")
     manager = login("alpha-manager")
     for account in ("alpha-manager", "alpha-viewer"):
         response = client.get("/api/v1/session", params={"project_id": "alpha-project"}, headers=login(account))

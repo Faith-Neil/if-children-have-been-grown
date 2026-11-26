@@ -85,6 +85,12 @@ def mysql_gate() -> MysqlGate:
     return MysqlGate("pass", "database connection ok")
 
 
+def test_runtime_allows_memory() -> bool:
+    """仅 pytest/显式单测开关允许内存仓储；普通 uvicorn 启动不静默降级。"""
+    import sys
+    return bool(os.environ.get("PYTEST_CURRENT_TEST") or "pytest" in sys.modules or os.environ.get("ICG_ALLOW_MEMORY") == "1")
+
+
 def repository_from_environment():
     """根据环境变量创建合适的持久化仓储。生产或强制要求时，严禁静默回退到内存。
     本地未设置 ICG_DATABASE_URL 时回退至 MemoryRepository 仅供开发与显式单元测试使用；
@@ -94,6 +100,8 @@ def repository_from_environment():
     if not url:
         if mysql_required():
             raise RuntimeError("ICG_REQUIRE_MYSQL=1 but ICG_DATABASE_URL is missing")
+        if not test_runtime_allows_memory():
+            raise RuntimeError("ICG_DATABASE_URL is required outside explicit unit tests; refusing memory repository")
         from icg.infra.memory_repository import MemoryRepository
         return MemoryRepository()
     from icg.infra.repositories.mysql_repository import MysqlConnectionRepository

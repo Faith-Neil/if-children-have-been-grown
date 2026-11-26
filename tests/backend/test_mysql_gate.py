@@ -82,12 +82,18 @@ def test_gate_fails_when_url_is_set_but_database_unreachable(monkeypatch):
     assert "secret" not in gate.reason
 
 
-def test_create_app_does_not_connect_when_the_url_is_set(monkeypatch):
-    monkeypatch.setenv("ICG_DATABASE_URL", "mysql+pymysql://user:secret@127.0.0.1:1/icg_demo")
-    application = create_app()
-    repository = application.state.service.repository
-    assert repository.mode == "mysql"
-    assert repository._engine is None
+def test_create_app_without_url_fails_outside_test_runtime():
+    import subprocess, sys
+    code = "from icg_demo.main import create_app; create_app()"
+    env = dict(os.environ)
+    env.pop("ICG_DATABASE_URL", None)
+    env.pop("ICG_REQUIRE_MYSQL", None)
+    env.pop("PYTEST_CURRENT_TEST", None)
+    env["PYTHONPATH"] = str(ROOT / "backend" / "bid-core")
+    result = subprocess.run([sys.executable, "-c", code], cwd=ROOT, env=env, capture_output=True, text=True, check=False)
+    assert result.returncode != 0
+    assert "ICG_DATABASE_URL is required outside explicit unit tests" in (result.stdout + result.stderr)
+    assert "memory repository" in (result.stdout + result.stderr)
 
 
 def test_required_unreachable_database_fails_fast_without_a_collection_error():

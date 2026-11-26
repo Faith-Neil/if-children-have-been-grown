@@ -14,6 +14,7 @@ from copy import deepcopy
 from typing import Any
 
 from icg.domain.domain import DemoState, DomainError, Principal, iso_time
+from icg.domain.project_access import is_platform_super
 from icg.domain.generation_context import chapter_plan, project_facts
 from icg.infra.retrieval import SnippetCandidateMatch, SnippetRecord, SnippetRetriever
 
@@ -224,7 +225,7 @@ class SnippetRetrievalService:
         project = state.projects.get(project_id)
         if project is None:
             raise DomainError(404, "NOT_FOUND", "项目不存在。")
-        if project.company_id != principal.user.company_id:
+        if project.company_id != principal.user.company_id and not is_platform_super(principal.user):
             raise DomainError(404, "NOT_FOUND", "当前账号无权访问跨租户项目。")
 
         # 2. 敏感项目本地模型门禁

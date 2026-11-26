@@ -13,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Sequence
 
 from .domain import DemoService, DemoState, DomainError, Principal, iso_time, new_id
+from .project_access import foreign_company, is_platform_super
 
 SHANGHAI = timezone(timedelta(hours=8))
 from .workflow_schemas import (
@@ -230,13 +231,13 @@ class ComplianceCrossCheckService:
         def operation(state: DemoState):
             # 门禁 1：租户与项目隔离
             project = state.projects.get(project_id)
-            if project is None or project.company_id != principal.user.company_id:
+            if foreign_company(project, principal):
                 raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
 
             team = state.project_teams.get(project_id, {})
             members = team.get("members", {})
             norm_role = principal.user.role
-            if principal.user.id not in members and norm_role not in ("company_admin", "admin"):
+            if principal.user.id not in members and norm_role not in ("company_admin", "admin") and not is_platform_super(principal.user):
                 raise DomainError(403, "FORBIDDEN", "您不是本项目成员，无权发起合规交叉核验。")
 
             chapter = state.chapters.get(chapter_id)
@@ -251,9 +252,8 @@ class ComplianceCrossCheckService:
                 if cfg_id and cfg_id in state.model_configs:
                     cfg = state.model_configs[cfg_id]
                 else:
-                    default_id = f"default-{project.company_id}"
-                    if default_id in state.model_configs:
-                        cfg = state.model_configs[default_id]
+                    from icg.infra.model_config_storage import saved_company_model
+                    cfg = saved_company_model(state, project.company_id)
 
                 if cfg is not None:
                     if not getattr(cfg, "is_local", False) or not getattr(cfg, "allow_sensitive", False):

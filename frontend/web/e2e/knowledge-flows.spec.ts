@@ -12,7 +12,15 @@ async function login(page: Page, username: string, path = '/knowledge') {
   await expect(page.getByRole('button', { name: '退出' })).toBeVisible();
 }
 
+test('knowledge page is the historical bid upload, not the snippet library', async ({ page }) => {
+  await login(page, 'alpha-data-admin');
+  await expect(page.getByTestId('kb-admin-page')).toBeVisible();
+  await expect(page.getByRole('tab', { name: '历史标书' })).toBeVisible();
+  await expect(page.getByTestId('snippet-create-button')).toHaveCount(0);
+});
+
 test('data admin creates, fixes and publishes a snippet', async ({ page }) => {
+  test.skip(true, '方案片段不再作为知识库页主路径，页面文件仍保留。');
   await login(page, 'alpha-data-admin');
   await page.getByTestId('snippet-create-button').click();
   const drawer = page.getByRole('dialog', { name: '新建方案片段' });
@@ -46,6 +54,5 @@ test('library form uses backend categories and the knowledge base admin page is 
   await expect(page.getByTestId('knowledge-base-panel')).toContainText('尚未配置知识库');
 
   await page.evaluate(() => { window.history.pushState({}, '', '/knowledge'); window.dispatchEvent(new PopStateEvent('popstate')); });
-  await page.getByText('知识库管理（RAGFlow）', { exact: true }).click();
   await expect(page.getByTestId('kb-admin-page')).toContainText('尚未连接 RAGFlow');
 });

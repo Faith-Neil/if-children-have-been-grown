@@ -110,9 +110,10 @@ test('MetadataForm dispatches appropriate control components based on field data
   assert.match(text, /<Input\.TextArea/, 'renders Input.TextArea for textarea or object');
   assert.match(text, /rows=\{3\}/, 'specifies default 3 rows');
 
-  // 2. 数值型：InputNumber 带单位后缀
+  // 2. 数值型：InputNumber（带单位时走 UnitInputNumber 单位后缀）
   assert.match(text, /<InputNumber/, 'renders InputNumber for numeric fields');
-  assert.match(text, /addonAfter=\{field\.unit\}/, 'passes unit as addonAfter');
+  assert.match(text, /<UnitInputNumber/, 'renders UnitInputNumber when unit is present');
+  assert.match(text, /unit=\{field\.unit\}/, 'passes unit as UnitInputNumber unit');
 
   // 3. 日期与日期时间：Input type="date" / type="datetime-local"（避免 dayjs 绑定异常）
   assert.match(text, /type="date"/, 'renders native date input for date fields');

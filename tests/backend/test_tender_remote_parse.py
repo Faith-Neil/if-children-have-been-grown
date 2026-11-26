@@ -21,6 +21,8 @@ TENDER_DOC = ("第一章 招标公告\n项目名称：合成扫描件项目\n项
 @pytest.fixture()
 def fake(monkeypatch):
     monkeypatch.setenv("ICG_TENDER_REMOTE_WAIT", "0")
+    # 招标临时数据集必须绑定内网嵌入；测试里用与生产同形的本地模型名。
+    monkeypatch.setenv("ICG_KB_EMBEDDING_MODEL", "bge-m3:latest@qwen@OpenAI-API-Compatible")
     return FakeRagflowV1()
 
 
@@ -105,6 +107,7 @@ def test_doc_file_is_parsed_by_ragflow_and_requirements_keep_page_numbers(wired,
 
 def test_slow_parse_marks_file_pending_and_next_parse_resumes_without_reupload(monkeypatch):
     monkeypatch.setenv("ICG_TENDER_REMOTE_WAIT", "0")
+    monkeypatch.setenv("ICG_KB_EMBEDDING_MODEL", "bge-m3:latest@qwen@OpenAI-API-Compatible")
     fake = FakeRagflowV1(async_parse=True)
     app = create_app()
     kb = app.state.service.knowledge_base
@@ -137,6 +140,31 @@ def test_ragflow_parse_failure_is_reported(wired, fake):
     flow.upload("内容 [[fake-parse-fail]]".encode("utf-8"), "坏扫描.doc")
     error = flow.write("/parse", {}, expected=422)
     assert error["code"] == "OCR_REQUIRED" and "RAGFlow 解析失败" in error["message"]
+
+
+def test_external_embedding_failure_message_is_actionable():
+    from icg.domain.tender_remote import RemoteTenderParser
+    msg = RemoteTenderParser.explain_parse_failure(
+        'Task failed: Tokenizer: encode title: failed to send request: Post "https://api.jiekou.ai/openai/v1/embeddin"')
+    assert "内网" in msg and "jiekou" in msg.lower()
+    assert RemoteTenderParser.embedding_is_external("text-embedding-3-large@BAAI-BGE-M3@Jiekou.AI")
+    assert not RemoteTenderParser.embedding_is_external("bge-m3:latest@qwen@OpenAI-API-Compatible")
+
+
+def test_tender_dataset_is_recreated_when_embedding_mismatches(wired, fake):
+    flow = ProjectFlow(wired)
+    flow.upload(TENDER_DOC.encode("utf-8"), "合成招标.doc")
+    flow.write("/parse", {})
+    dataset = next(d for d in fake.datasets.values() if d["name"].endswith("::icg-tender"))
+    first_id = dataset["id"]
+    assert dataset["embedding_model"] == "bge-m3:latest@qwen@OpenAI-API-Compatible"
+    # 模拟历史脏数据：仍指向外网嵌入
+    dataset["embedding_model"] = "text-embedding-3-large@BAAI-BGE-M3@Jiekou.AI"
+    flow.upload((TENDER_DOC + "\n补一页").encode("utf-8"), "合成招标2.doc")
+    flow.write("/parse", {})
+    remaining = [d for d in fake.datasets.values() if d["name"].endswith("::icg-tender")]
+    assert len(remaining) == 1 and remaining[0]["id"] != first_id
+    assert remaining[0]["embedding_model"] == "bge-m3:latest@qwen@OpenAI-API-Compatible"
 
 
 @pytest.fixture()
@@ -174,3 +202,76 @@ def test_real_scanned_tender_from_deepdoc_chunks():
     assert next(r.page for r in rows if "支持手动标注" in r.quote) == 14
     facts = {(f.key, f.value) for f in extract_facts(pages)}
     assert ("招标编号", "GBF2025-1161") in facts and ("采购人", "贵阳银行股份有限公司") in facts
+
+
+def test_word_binary_is_uploaded_as_pdf(monkeypatch):
+    from icg.domain import office_pdf
+    from icg.domain.parsing import ParsedDocument
+    from icg.domain.tender_remote import RemoteOutcome, RemoteTenderParser
+
+    monkeypatch.setattr(office_pdf, "convert_office_to_pdf", lambda data, suffix: b"%PDF-1.4 probe")
+    seen = {}
+
+    class Document:
+        id = "doc-1"
+
+    class Client:
+        def upload_file(self, dataset_id, filename, data, content_type):
+            seen["filename"] = filename
+            seen["type"] = content_type
+            seen["data"] = data
+            return Document()
+
+        def trigger_parse(self, dataset_id, document_ids):
+            return True
+
+    parser = RemoteTenderParser(object())
+    parser.client = lambda company_id: Client()
+    parser.ensure_dataset = lambda client, company_id: "ds-1"
+    parser.poll = lambda company_id, remote, budget=None: RemoteOutcome(
+        "done", document=ParsedDocument(pages=["甲"], pagination="ragflow_deepdoc_positions", warnings=["经 RAGFlow DeepDOC"]))
+    outcome = parser.submit("alpha", "招标.doc", b"\xd0\xcf\x11\xe0rest")
+    assert seen["filename"] == "招标.pdf" and seen["type"] == "application/pdf" and seen["data"].startswith(b"%PDF")
+    assert outcome.document.warnings[0].startswith("原件是 Word")
+
+
+def test_word_conversion_failure_does_not_upload(monkeypatch):
+    from icg.domain import office_pdf
+    from icg.domain.office_pdf import prepare_for_deepdoc
+    from icg.domain.tender_remote import RemoteTenderParser
+
+    assert prepare_for_deepdoc("合成.doc", "不是 Word".encode("utf-8")) is None
+    monkeypatch.setattr(office_pdf, "convert_office_to_pdf", lambda data, suffix: None)
+    parser = RemoteTenderParser(object())
+    parser.client = lambda company_id: object()
+    outcome = parser.submit("alpha", "招标.doc", b"\xd0\xcf\x11\xe0rest")
+    assert outcome.state == "failed" and "PDF" in outcome.message
+
+
+def test_unpositioned_deepdoc_result_is_not_reused(monkeypatch, tmp_path):
+    monkeypatch.setenv("ICG_BLOB_DIR", str(tmp_path))
+    from icg.domain.parsing import ParsedDocument
+    from icg.domain.tender_files import REMOTE_SERVICE, cached, remember
+
+    class State:
+        service_stores: dict = {}
+
+    state = State()
+    digest = "ab" * 32
+    remember(state, "alpha", digest, REMOTE_SERVICE, ParsedDocument(
+        pages=["甲"], pagination="ragflow_deepdoc_positions",
+        warnings=["RAGFlow 未返回版面位置，全部内容按第 1 页处理，页码不可用于定位。"],
+    ), "2026-11-05T00:00:00+00:00")
+    assert cached(state, "alpha", digest, REMOTE_SERVICE) is None
+
+
+def test_remote_parse_in_progress_can_be_resumed(monkeypatch):
+    monkeypatch.setattr("icg.domain.project_access.project_volume_mode", lambda state, project_id: "technical_only")
+    from icg.domain.technical_sources import assert_can_extract, source_fingerprint
+
+    workflow = {"files": {"f1": {
+        "id": "f1", "sha256": "abc", "file_role": "tender", "status": "parsing_remote",
+        "warnings": ["RAGFlow 正在解析（24%）"],
+    }}}
+    workflow["parsed_source_fingerprint"] = source_fingerprint(workflow)
+    assert_can_extract(object(), "project-1", workflow)

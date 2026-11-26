@@ -42,7 +42,7 @@ DEFAULT_COUNT, MIN_COUNT, MAX_COUNT = 3, 3, 5
 MAX_SELECTION = 2000
 KEEP_BATCHES = 50
 
-TOKEN = re.compile(r"\{\{(?:fact|sla):[^}]+\}\}|\[(?:证|片|cite):[^\]]+\]")
+TOKEN = re.compile(r"\{\{(?:fact|sla):[^}]+\}\}|\[(?:证|片|标|cite):[^\]]+\]")
 NUMBER = re.compile(r"(?<![A-Za-z0-9.{])\d+(?:\.\d+)?(?:\s*(?:%|％|个|名|人|小时|分钟|天|日|月|年|次|项|套|台|万元|元|万|kg|KG|GB|TB|MB))?")
 LIST_MARKER = re.compile(r"^\s*\d+(?:\.\d+)*[.、)）]\s*")
 SENSITIVE = [
@@ -132,7 +132,7 @@ def _replace_unsourced_numbers(text: str, known: set[str]) -> tuple[str, list[st
     return "\n".join(lines), unknown
 
 
-CITE = re.compile(r"\[(?:证|片|cite):[^\]]+\]")
+CITE = re.compile(r"\[(?:证|片|标|cite):[^\]]+\]")
 
 
 def precheck(sample: str, selection: str, action_scope: str, known: set[str],
@@ -342,41 +342,124 @@ class SelectionRewriteService:
         if not getattr(provider, "is_real_model", False):
             raise DomainError(502, "MODEL_UNAVAILABLE",
                               "尚未接入真实大模型：选区改写不提供模拟样例。请公司管理员在“模型配置”中接入模型后再试。")
-        hits, retrieval = ([], {"status": "off", "message": "知识库已关闭，未检索本公司资料；样例标“无知识库来源”。"})
-        if kb_on:
-            hits, retrieval = self._retrieve(principal, project.company_id, chapter.title, selected, instruction)
+        hits, retrieval = self._retrieve(
+            principal, project.company_id, chapter.title, selected, instruction, workflow, company_kb=kb_on,
+        )
         before, paragraph, after = _neighbours(content, start, end)
         known = _known_numbers(selected, paragraph, *requirements, *(f"{f['value']}" for f in facts),
                                *(hit["content"] for hit in hits))
+        grounded = bool(hits)
         return {
             "principal": principal, "project_id": project_id, "chapter_id": chapter_id, "chapter_title": chapter.title,
             "base_revision": chapter.revision, "start": start, "end": end, "selected": selected, "mode": mode,
             "instruction": instruction, "count": count, "kb_on": kb_on, "hits": hits, "retrieval": retrieval,
-            "known": known, "provider": provider, "session_id": session_id, "sensitive": bool(project.sensitive),
+            "grounded": grounded, "known": known, "provider": provider, "session_id": session_id,
+            "sensitive": bool(project.sensitive),
             "fact_tokens": {f["variable_token"] for f in facts},
             "user_content": self._user_content(chapter.title, requirements, facts, before, selected, after, instruction,
                                                hits=hits, history=history),
         }
 
-    def _retrieve(self, principal: Principal, company_id: str, title: str, selected: str, instruction: str):
+    def _retrieve(
+        self,
+        principal: Principal,
+        company_id: str,
+        title: str,
+        selected: str,
+        instruction: str,
+        workflow: dict | None = None,
+        *,
+        company_kb: bool = True,
+    ):
+        """先检索本标切片，公司库可选。始终把 knowledge_base 客户端传给 retrieve_tender。"""
+        from icg.domain.technical_tender_index import retrieve_tender
+
         kb = getattr(self.demo, "knowledge_base", None)
-        if kb is None:
-            raise DomainError(409, "KNOWLEDGE_BASE_NOT_CONFIGURED", "本公司知识库尚未连接；可关闭知识库后重试（样例将标“无知识库来源”）。")
         query = " ".join(part for part in (title, selected, instruction) if part)[:500]
-        try:
-            raw, reason = kb.search(company_id, query, limit=5, user=principal.user)
-        except Exception as error:
-            raise DomainError(502, "KNOWLEDGE_BASE_UPSTREAM_ERROR", "知识库检索暂时不可用，可稍后重试或关闭知识库后重试。") from error
-        if reason == "RAGFlow is not configured":
-            raise DomainError(409, "KNOWLEDGE_BASE_NOT_CONFIGURED", "本公司知识库尚未连接；可关闭知识库后重试（样例将标“无知识库来源”）。")
-        hits = [{"cite_tag": hit.cite_tag, "source_id": hit.source_id, "source_type": hit.source_type, "name": hit.name,
-                 "item_type": hit.item_type, "revision": hit.revision, "score": round(float(hit.score), 4),
-                 "content": hit.content[:600], "document_id": hit.document_id, "chunk_ids": list(hit.chunk_ids)}
-                for hit in raw if not hit.reference_only]
-        if not hits:
-            return [], {"status": "empty", "message": "本公司知识库和资料库中没有找到相关内容。可以关闭知识库后重试（样例将标“无知识库来源”），"
-                                                       "或去资料库、方案片段库补充资料。"}
-        return hits, {"status": "found", "message": f"检索到 {len(hits)} 条本公司资料，样例须至少引用 1 条。", "count": len(hits)}
+        hits: list[dict] = []
+        tender_hits, tender_audit = retrieve_tender(
+            workflow or {}, query, kb=kb, company_id=company_id, limit=5,
+        )
+        for chunk in tender_hits:
+            hits.append({
+                "cite_tag": chunk.get("cite_tag") or f"[标:{(chunk.get('chunk_id') or chunk.get('id') or '')[:8]}]",
+                "source_id": chunk.get("chunk_id") or chunk.get("id") or "",
+                "source_type": "tender",
+                "name": chunk.get("name") or "本标切片",
+                "item_type": "tender",
+                "revision": 1,
+                "score": round(float(chunk.get("score") or 0), 4),
+                "content": (chunk.get("content") or "")[:600],
+                "document_id": chunk.get("document_id") or "",
+                "chunk_ids": [chunk.get("chunk_id") or chunk.get("id") or ""],
+                "dataset_kind": "tender",
+                "page": chunk.get("page"),
+            })
+        company_count = 0
+        if company_kb:
+            if kb is None:
+                raise DomainError(
+                    409, "KNOWLEDGE_BASE_NOT_CONFIGURED",
+                    "本公司知识库尚未连接；可关闭知识库后重试（样例将标“无知识库来源”）。",
+                )
+            try:
+                raw, reason = kb.search(company_id, query, limit=5, user=principal.user)
+            except Exception as error:
+                raise DomainError(
+                    502, "KNOWLEDGE_BASE_UPSTREAM_ERROR",
+                    "知识库检索暂时不可用，可稍后重试或关闭知识库后重试。",
+                ) from error
+            if reason == "RAGFlow is not configured":
+                raise DomainError(
+                    409, "KNOWLEDGE_BASE_NOT_CONFIGURED",
+                    "本公司知识库尚未连接；可关闭知识库后重试（样例将标“无知识库来源”）。",
+                )
+            for hit in raw:
+                if hit.reference_only:
+                    continue
+                company_count += 1
+                hits.append({
+                    "cite_tag": hit.cite_tag,
+                    "source_id": hit.source_id,
+                    "source_type": hit.source_type,
+                    "name": hit.name,
+                    "item_type": hit.item_type,
+                    "revision": hit.revision,
+                    "score": round(float(hit.score), 4),
+                    "content": hit.content[:600],
+                    "document_id": hit.document_id,
+                    "chunk_ids": list(hit.chunk_ids),
+                    "dataset_kind": getattr(hit, "dataset_kind", "") or "company",
+                })
+        tender_n = int(tender_audit.get("tender_hits") or 0)
+        if hits:
+            parts = []
+            if tender_n:
+                parts.append(f"本标 {tender_n} 条")
+            if company_count:
+                parts.append(f"公司库 {company_count} 条")
+            return hits, {
+                "status": "found",
+                "message": f"检索到 {'、'.join(parts)}，样例须至少引用 1 条。",
+                "count": len(hits),
+                "tender_hits": tender_n,
+                "company_hits": company_count,
+                "tender_searched": bool(tender_audit.get("tender_searched")),
+            }
+        if not company_kb:
+            return [], {
+                "status": "off",
+                "message": "知识库已关闭；本标也无命中。样例标“无知识库来源”。",
+                "tender_searched": bool(tender_audit.get("tender_searched")),
+                "skip_reason": tender_audit.get("skip_reason") or "",
+            }
+        return [], {
+            "status": "empty",
+            "message": "本标与本公司知识库都没有找到相关内容。可以关闭知识库后重试（样例将标“无知识库来源”），"
+                       "或去资料库、方案片段库补充资料。",
+            "tender_searched": bool(tender_audit.get("tender_searched")),
+            "skip_reason": tender_audit.get("skip_reason") or "",
+        }
 
     def stream(self, prepared: dict, cancel: Any = None):
         """逐条产出事件：started → delta（逐字）/ fallback（改用备用模型）→ sample / dropped（按完成先后）→ done；
@@ -390,7 +473,8 @@ class SelectionRewriteService:
         provider, mode = prepared["provider"], prepared["mode"]
         styles = STYLES[:prepared["count"]]
         hits = prepared["hits"]
-        allowed = {hit["cite_tag"] for hit in hits} if prepared["kb_on"] else None
+        grounded = bool(prepared.get("grounded")) or bool(hits)
+        allowed = {hit["cite_tag"] for hit in hits} if grounded else None
         backup = getattr(provider, "fallback", None)
         yield {"event": "started", "styles": [label for _, label, _ in styles], "retrieval": prepared["retrieval"],
                "knowledge_base_enabled": prepared["kb_on"], "model": model_name(provider),
@@ -405,7 +489,7 @@ class SelectionRewriteService:
         def work(style):
             from icg.infra.model_fallback import degradable
             key, label, hint = style
-            system = self._system_prompt(MODES[mode], hint, knowledge_base=prepared["kb_on"])
+            system = self._system_prompt(MODES[mode], hint, knowledge_base=grounded)
             waited, attempt = 0.0, 0
             while True:
                 try:
@@ -559,14 +643,17 @@ class SelectionRewriteService:
             "你是投标文件编写助手，只修改用户选中的那段文字。",
             f"修改方式：{mode[0]}——{mode[1]}。写法：{style_hint}。",
             "必须遵守：",
-            "1. 形如 {{fact:…}}、{{sla:…}} 的变量和形如 [证:…]、[片:…] 的证据标记原样保留，不得改写、删除或换成数字；",
+            "1. 形如 {{fact:…}}、{{sla:…}} 的变量和形如 [证:…]、[片:…]、[标:…] 的证据标记原样保留，不得改写、删除或换成数字；",
             "2. 不新增原文、招标要求、项目事实" + ("和【可引用的资料】" if knowledge_base else "") + "中没有的数字、型号、人员、案例、客户名称和承诺；",
             "3. 不写“以下是”“希望对你有帮助”等对话语气，不用 Markdown 符号、标题和分隔线；",
             "4. 只输出修改后的这段正文，不加标题、引号和解释；篇幅与原文相近" + ("（扩写不超过原文的 2 倍）" if mode[0] == "扩写" else "") + "；",
             "5. 【前文】【后文】只用来理解上下文，不要复述，也不要改写整章；招标要求只用来把握响应重点。",
         ]
         if knowledge_base:
-            lines.append("6. 至少引用 1 条【可引用的资料】：在用到该资料的句子末尾原样写上它的标记（例如 [片:lib-1]），只能用列出的标记。")
+            lines.append(
+                "6. 至少引用 1 条【可引用的资料】：优先引用本标 [标:…] 标记；"
+                "在用到该资料的句子末尾原样写上它的标记（例如 [标:p1] 或 [片:lib-1]），只能用列出的标记。"
+            )
         return "\n".join(lines)
 
     @staticmethod
@@ -579,8 +666,11 @@ class SelectionRewriteService:
             lines.append("【已确认的项目事实（正文中用变量表示）】")
             lines += [f"- {f['key']}：{f['value']}{f.get('unit') or ''}（变量 {f['variable_token']}）" for f in facts[:12]]
         if hits:
-            lines.append("【可引用的资料】（本公司知识库检索结果，只能引用这里列出的标记）")
-            lines += [f"- {hit['cite_tag']} {hit['name']}（v{hit['revision']}）：{hit['content'][:300]}" for hit in hits]
+            lines.append("【可引用的资料】（本标优先，其次本公司知识库；只能引用这里列出的标记）")
+            lines += [
+                f"- {hit['cite_tag']} {hit['name']}（v{hit.get('revision') or 1}）：{hit['content'][:300]}"
+                for hit in hits
+            ]
         if before:
             lines.append(f"【前文】{before[:400]}")
         lines.append(f"【选中的文字】\n{selected}")

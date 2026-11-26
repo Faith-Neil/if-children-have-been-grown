@@ -91,9 +91,41 @@ class OutlineOrchestratorMixin:
             principal=principal,
         )
 
+    def save_global_fact_sheet(self, principal, project_id, payload, expected, key):
+        """保存项目全局事实表（Global Fact Sheet）。"""
+        def operation(state, project, workflow):
+            from icg.domain.technical_fact_sheet import update_global_fact_sheet
+            sheet = update_global_fact_sheet(state, project_id, workflow, payload)
+            return {"global_fact_sheet": sheet}
+
+        return self._write(principal, project_id, "global_fact_sheet.update", payload, expected, key, operation)
+
     def plan(self, principal, project_id, payload, expected, key):
         """确认与更新大纲章节规划（增删改、两册约束、事实与要点校验）。"""
         def operation(state, project, workflow):
+            if workflow.get("technical_outline"):
+                from icg.domain.technical_outline import confirm_directory, plan_result, replace_outline
+                if isinstance(payload.get("global_fact_sheet"), dict):
+                    from icg.domain.technical_fact_sheet import update_global_fact_sheet
+                    update_global_fact_sheet(state, project_id, workflow, payload["global_fact_sheet"])
+                chapter = state.chapters.get((workflow.get("technical_outline") or {}).get("chapter_id") or "")
+                if payload.get("outline_headings") is not None:
+                    chapter = replace_outline(
+                        state, project_id, workflow, payload["outline_headings"], payload.get("outline_title"),
+                    )
+                if payload.get("outline_headings") is None or payload.get("confirm_outline"):
+                    chapter = confirm_directory(
+                        state,
+                        principal,
+                        project_id,
+                        workflow,
+                        now=self.demo._now(),
+                        allow_unassigned=bool(payload.get("allow_unassigned")),
+                        auto_mount_unassigned=bool(payload.get("auto_mount_unassigned")),
+                    )
+                result = plan_result(state, project_id, workflow, chapter, principal, self._chapter_summary)
+                result["plan_confirmed"] = bool(workflow.get("plan_confirmed"))
+                return result
             if not workflow["parse_confirmed"]:
                 raise DomainError(409, "PARSE_NOT_CONFIRMED", "请先确认解析结果，再确认写作大纲。")
             from icg.domain.sla import sla_issues

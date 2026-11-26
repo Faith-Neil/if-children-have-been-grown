@@ -50,13 +50,18 @@ test('boxes in PDF points scale to canvas pixels and corners normalise', () => {
   assert.match(locateMessage('原句', 2), /已在原件上高亮/);
 });
 
-test('PDF.js and its worker are bundled locally and loaded only when a PDF is opened', () => {
+test('PDF.js and its worker are bundled locally for the optional PdfLocator module', () => {
   const locator = readFileSync(new URL('../../src/project/PdfLocator.tsx', import.meta.url), 'utf8');
-  const preview = readFileSync(new URL('../../src/project/OriginalPreview.tsx', import.meta.url), 'utf8');
   assert.match(locator, /import\('pdfjs-dist'\)/);
   assert.match(locator, /import\('pdfjs-dist\/build\/pdf\.worker\.min\.mjs\?url'\)/);
   assert.doesNotMatch(locator, /https?:\/\//);
   assert.doesNotMatch(locator, /^import .* from 'pdfjs-dist'/m);
-  assert.match(preview, /<PdfLocator/);
-  assert.match(preview, /识别文字/);
+});
+
+test('OriginalPreview renders HTML paper with quote marks, not PdfLocator', () => {
+  const preview = readFileSync(new URL('../../src/project/OriginalPreview.tsx', import.meta.url), 'utf8');
+  assert.match(preview, /function DocumentHtml/);
+  assert.match(preview, /className=\{`original-paper/);
+  assert.match(preview, /<mark>\{quote\}<\/mark>/);
+  assert.doesNotMatch(preview, /<PdfLocator/);
 });

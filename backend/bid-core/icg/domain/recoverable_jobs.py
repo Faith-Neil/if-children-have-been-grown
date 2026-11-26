@@ -26,7 +26,7 @@ from .workflow_schemas import (
 PUBLIC_FIELDS = (
     "id", "project_id", "type", "status", "progress", "message",
     "created_at", "completed_at", "error", "events", "recoverable",
-    "allowed_actions", "allowedActions",
+    "allowed_actions", "allowedActions", "sections",
 )
 TERMINAL = {"completed", "failed", "cancelled"}
 
@@ -66,6 +66,12 @@ PARSE_JOB_DESCRIPTION = (
     "权限与 parseFiles 相同（项目负责人）；If-Match 为项目版本；同一项目已有进行中的解析任务时返回该任务。"
     "进度经 streamJobEvents 推送：job.status_changed、job.progress、job.completed / job.failed / job.cancelled。"
 )
+SECTION_EVENTS_DESCRIPTION = (
+    "重新订阅技术卷生成会话（type=technical_volume）的节流事件。先重放本次会话的全部积压事件，"
+    "再发 session.live，之后跟随实时事件，整卷结束（volume.done / volume.cancelled / volume.failed）后关闭。"
+    "断开只结束本次订阅，不取消会话；停止生成用 cancelJob。积压已不在本进程时只补一条与任务终态一致的结束事件。"
+    "不是技术卷会话或无权查看时返回 404 NOT_FOUND。"
+)
 CANCEL_DESCRIPTION = (
     "取消后的任务状态。已经结束的任务返回 409 VERSION_CONFLICT。"
     "缺少或格式不符的 Idempotency-Key 返回 428 IDEMPOTENCY_KEY_REQUIRED。"
@@ -85,7 +91,7 @@ def _public(job: dict) -> dict:
     status = job.get("status")
     if status in ("queued", "running", "pending"):
         actions = ["cancel"]
-    elif status in ("failed", "cancelled"):
+    elif status in ("failed", "cancelled") and job.get("retryable", True):
         actions = ["retry"]
     else:
         actions = []
@@ -149,9 +155,8 @@ class RecoverableJobs:
             if bound_id and bound_id in state.model_configs:
                 active_config = state.model_configs[bound_id]
             else:
-                default_id = f"default-{project.company_id}"
-                if default_id in state.model_configs:
-                    active_config = state.model_configs[default_id]
+                from icg.infra.model_config_storage import saved_company_model
+                active_config = saved_company_model(state, project.company_id)
 
             if active_config is not None:
                 stream_enabled = active_config.stream_enabled
@@ -294,7 +299,11 @@ class RecoverableJobs:
             body = _public(job)
             remember(state, job["project_id"], principal.user.id, key, request_fingerprint, body, self.demo._now())
             return body
-        return self.repository.transaction(operation)
+        body = self.repository.transaction(operation)
+        stop = getattr(self.runners.get(body.get("type")), "cancel", None)
+        if stop is not None:
+            stop(job_id)
+        return body
 
     def retry(self, principal, job_id: str, key: str | None) -> dict:
         key = validate_key(key)
@@ -314,6 +323,8 @@ class RecoverableJobs:
 
             if job["status"] not in ("failed", "cancelled"):
                 raise DomainError(409, "VERSION_CONFLICT", "只有失败或已取消的任务可以重试。")
+            if not job.get("retryable", True):
+                raise DomainError(409, "VERSION_CONFLICT", "这类任务不能原样重试，请重新开始。")
 
             previous = job["status"]
             now = iso_time(self.demo._now())
@@ -398,9 +409,8 @@ class RecoverableJobs:
             if bound_id and bound_id in state.model_configs:
                 cfg = state.model_configs[bound_id]
             else:
-                default_id = f"default-{project.company_id}"
-                if default_id in state.model_configs:
-                    cfg = state.model_configs[default_id]
+                from icg.infra.model_config_storage import saved_company_model
+                cfg = saved_company_model(state, project.company_id)
             if cfg is not None:
                 if project.sensitive and (not cfg.is_local or not cfg.allow_sensitive):
                     raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL", "敏感项目只能使用本地模型配置。")
@@ -564,8 +574,13 @@ def include_recoverable_routes(application, workflow, current_user):
     from .parse_jobs import ParseJobRunner
     jobs = RecoverableJobs(workflow)
     parse_runner = ParseJobRunner(workflow, jobs)
+    parse_runner.fail_orphans()
     jobs.runners["parse"] = parse_runner
     application.state.parse_job_runner = parse_runner
+    from .technical_volume_sessions import KIND as VOLUME_KIND, TechnicalVolumeSessions
+    volume_sessions = TechnicalVolumeSessions(workflow, jobs)
+    jobs.runners[VOLUME_KIND] = volume_sessions
+    application.state.volume_sessions = volume_sessions
     router = APIRouter(prefix="/api/v1")
     start_errors = v1_error_responses(401, 403, 404, 409, 422, 428, 500, 502, 423, 503)
     start_errors[503] = {
@@ -629,6 +644,18 @@ def include_recoverable_routes(application, workflow, current_user):
                           last_event_id: str | None = Header(default=None, alias="Last-Event-ID")):
         return StreamingResponse(jobs.stream(user, job_id, last_event_id), media_type="text/event-stream",
                                  headers={"X-Accel-Buffering": "no"})
+
+    @router.get("/jobs/{job_id}/section-events", operation_id="streamTechnicalVolumeSession",
+                description=SECTION_EVENTS_DESCRIPTION, summary="Stream Technical Volume Session",
+                response_class=StreamingResponse,
+                responses={200: {"description": "text/event-stream，事件同 streamTechnicalVolume。",
+                                 "content": {"text/event-stream": {"schema": {"type": "string"}}}},
+                           **v1_error_responses(401, 404, 422, 500)})
+    def stream_section_events(job_id: str, user=Depends(current_user)):
+        if jobs.get(user, job_id).get("type") != VOLUME_KIND:
+            raise DomainError(404, "NOT_FOUND", "未找到有权访问的生成会话。")
+        frames = (frame for frame in volume_sessions.frames(job_id) if frame)
+        return StreamingResponse(frames, media_type="text/event-stream", headers={"X-Accel-Buffering": "no"})
 
     @router.post("/jobs/{job_id}/cancel", response_model=JobStatus, operation_id="cancelJob",
                  description=CANCEL_DESCRIPTION, summary="Cancel Job",

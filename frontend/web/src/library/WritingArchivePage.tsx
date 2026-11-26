@@ -250,7 +250,7 @@ export function WritingArchivePage({ user, session }: WritingArchivePageProps) {
       </div>
 
       {/* 主 Tabs 分区 */}
-      <Card bodyStyle={{ padding: '8px 16px 20px' }}>
+      <Card styles={{ body: { padding: '8px 16px 20px' } }}>
         <Tabs
           activeKey={activeTab}
           onChange={setActiveTab}
@@ -472,11 +472,7 @@ export function WritingArchivePage({ user, session }: WritingArchivePageProps) {
                         style={{ width: '100%' }}
                         value={sampleVolume}
                         onChange={setSampleVolume}
-                        options={[
-                          { value: 'all', label: '全部两册' },
-                          { value: 'technical', label: '技术分册' },
-                          { value: 'business', label: '商务分册' },
-                        ]}
+                        options={[{ value: 'technical', label: '技术方案' }]}
                       />
                     </Col>
                     <Col xs={12} sm={6} md={11} style={{ textAlign: 'right' }}>
@@ -492,7 +488,7 @@ export function WritingArchivePage({ user, session }: WritingArchivePageProps) {
                       mode="search"
                       searchKeyword={sampleSearch}
                       title="未检索到匹配的标杆样章"
-                      description="请尝试调整搜索词或分册筛选条件。"
+                      description="请尝试调整搜索词或方案筛选条件。"
                       actionText="清空筛选"
                       onAction={() => {
                         setSampleSearch('');

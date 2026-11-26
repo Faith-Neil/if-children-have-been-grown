@@ -50,7 +50,7 @@ export interface DataPermissionResult {
   canEdit: boolean;
   /** 只读作用域范围（'project' | 'volume' | 'chapter' | 'none'） */
   scope: DataPermissionScope;
-  /** 作用域中文名称（如“全项目”、“技术分册”、“第1章 综述”） */
+  /** 作用域中文名称（如“全项目”、“技术方案”、“第1章 综述”） */
   scopeName: string;
   /** 只读时的中文友好解释文案 */
   readOnlyReason?: string;
@@ -66,9 +66,9 @@ export interface DataPermissionResult {
  * 分册名称转换辅助函数
  */
 export function getVolumeDisplayName(volume?: Volume | string | null): string {
-  if (volume === 'technical') return '技术分册';
-  if (volume === 'business') return '商务分册';
-  return '全部分册';
+  if (volume === 'technical') return '技术方案';
+  if (volume === 'business') return '商务方案';
+  return '全部方案';
 }
 
 /**
@@ -79,7 +79,7 @@ export function getScopeLabel(scope: DataPermissionScope): string {
     case 'project':
       return '全项目';
     case 'volume':
-      return '分册';
+      return '方案';
     case 'chapter':
       return '章节';
     default:
@@ -91,7 +91,7 @@ export function getScopeLabel(scope: DataPermissionScope): string {
  * 核心算法：多粒度数据权限判定
  *
  * 遵循严格优先级层级：
- * 1. 角色级只读（group_admin, viewer, auditor, platform_admin）-> scope: 'project'
+ * 1. 平台管理员跨公司只看 -> scope: 'project'（登录角色只有三种，没有角色级只读）
  * 2. 项目成员资格与项目角色只读 -> scope: 'project'
  * 3. 项目负责人（project_lead）/ 公司管理员（company_admin）-> 放行全项目/全分册/全章节
  * 4. 分册负责人（volume_lead）-> 主管分册全放行；进入非主管分册 -> scope: 'volume' 只读
@@ -122,8 +122,20 @@ export function resolveDataPermission(context: DataPermissionContext): DataPermi
     targetVolume = targetChapter.volume;
   }
 
+  // 平台超级管理员可读写全项目，不因未加入项目团队而变成只读。
+  if (normRole === 'platform_admin') {
+    return {
+      readOnly: false,
+      canEdit: true,
+      scope: 'none',
+      scopeName: '平台管理员',
+      role: normRole,
+      roleLabel,
+    };
+  }
+
   // =========================================================================
-  // 规则 1：系统级只读角色（集团管理员、只读成员、审计员、平台管理员）
+  // 规则 1：系统级只读角色
   // =========================================================================
   if (isReadonlyRole(normRole)) {
     return {
@@ -188,7 +200,7 @@ export function resolveDataPermission(context: DataPermissionContext): DataPermi
       }
 
       // 3.3 项目负责人全项目放行
-      if (member.project_role === 'lead' || normRole === 'project_lead') {
+      if (member.project_role === 'lead') {
         return {
           readOnly: false,
           canEdit: true,

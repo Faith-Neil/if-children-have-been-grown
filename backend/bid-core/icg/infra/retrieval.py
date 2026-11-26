@@ -114,6 +114,9 @@ class EvidenceCandidate:
     score: float = 0.0
     source_type: str = ""
     revision: int = 0
+    dataset_kind: str = ""
+    content_role: str = ""
+    technical_domain: str = ""
 
     @property
     def id(self) -> str:

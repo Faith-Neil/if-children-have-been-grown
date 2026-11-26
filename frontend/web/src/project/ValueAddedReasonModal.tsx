@@ -77,7 +77,7 @@ export function ValueAddedReasonModal({
       open={open}
       onCancel={onCancel}
       width={640}
-      destroyOnClose
+      destroyOnHidden
       footer={[
         <Button key="cancel" onClick={onCancel}>
           取消

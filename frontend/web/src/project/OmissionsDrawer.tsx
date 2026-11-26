@@ -86,8 +86,8 @@ export function OmissionsDrawer({ open, onClose, onLocate }: { open: boolean; on
               <Form.Item name="category" label="类别" rules={[{ required: true }]}>
                 <Radio.Group options={[{ value: 'star', label: '星号条款' }, { value: 'disqualification', label: '废标条款' }]} />
               </Form.Item>
-              <Form.Item name="volume" label="归属分册" rules={[{ required: true }]}>
-                <Select options={[{ value: 'technical', label: '技术分册' }, { value: 'business', label: '商务分册' }]} />
+              <Form.Item name="volume" label="归属" rules={[{ required: true }]}>
+                <Select options={[{ value: 'technical', label: '技术方案' }]} />
               </Form.Item>
               <Form.Item name="text" label="条款原文" rules={[{ required: true, whitespace: true }]}>
                 <Input.TextArea rows={3} />

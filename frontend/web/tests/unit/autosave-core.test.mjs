@@ -38,7 +38,7 @@ test('the editor saves before switching chapters and the lock heartbeat is activ
   const page = readFileSync(new URL('../../src/editor/EditorPage.tsx', import.meta.url), 'utf8');
   const lock = readFileSync(new URL('../../src/editor/useEditorLock.ts', import.meta.url), 'utf8');
   assert.match(page, /autoSaveRef\.current\(\)\.then/);
-  assert.match(page, /onKeyDown=\{lock\.markActivity\}/);
+  assert.match(page, /lock\.markActivity\(\)/);
   assert.match(lock, /shouldHeartbeat\(lastActivity\.current, lastHeartbeat\.current\)/);
   assert.doesNotMatch(lock, /30_000\);/);
 });

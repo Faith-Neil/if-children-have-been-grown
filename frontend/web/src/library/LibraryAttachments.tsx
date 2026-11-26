@@ -130,7 +130,7 @@ export function LibraryAttachments({ itemId, token, canEdit }: Props) {
             ),
           },
           {
-            title: <Tooltip title="附件上有公司名称或标志；暗标分册不插入">带公司标识</Tooltip>, key: 'identity', width: 92,
+            title: <Tooltip title="附件上有公司名称或标志；暗标方案不插入">带公司标识</Tooltip>, key: 'identity', width: 92,
             render: (_: unknown, item) => (
               <Switch size="small" checked={item.shows_identity} disabled={!canEdit} aria-label="带公司标识"
                 onChange={value => void patch(item, { shows_identity: value })} />

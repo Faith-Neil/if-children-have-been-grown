@@ -12,6 +12,45 @@ export const FILE_ROLE_OPTIONS: { value: FileRole; label: string }[] = [
   { value: 'attachment', label: '附件' },
 ];
 
+export const TECHNICAL_FILE_ROLE_OPTIONS: { value: FileRole; label: string }[] = [
+  { value: 'tender', label: '招标文件' },
+  { value: 'tech_spec', label: '技术规范书' },
+  { value: 'attachment', label: '其他辅助文件' },
+];
+
+export const TECHNICAL_UPLOAD_ACCEPT = '.pdf,.doc,.docx';
+
+export function fileRoleOptions(technicalOnly: boolean) {
+  return technicalOnly ? TECHNICAL_FILE_ROLE_OPTIONS : FILE_ROLE_OPTIONS;
+}
+
+export function hasTenderFile(files: { file_role?: string | null; superseded_by?: string | null }[]): boolean {
+  return files.some(file => (file.file_role ?? 'tender') === 'tender' && !file.superseded_by);
+}
+
+export function sameSourceAlreadyExtracted(sourceFingerprint?: string, parsedFingerprint?: string,
+  files?: { warnings?: string[] }[]): boolean {
+  if ((files ?? []).some(file => (file.warnings ?? []).some(item => item.includes('未返回版面位置')))) return false;
+  return Boolean(parsedFingerprint) && parsedFingerprint === sourceFingerprint;
+}
+
+/** 技术分册：上传后是否应自动启动解析（有招标文件、尚未抽过、无进行中任务）。失败不自动重试。 */
+export function shouldAutoStartTechnicalParse(input: {
+  technicalOnly: boolean;
+  files: { file_role?: string | null; superseded_by?: string | null; status?: string; warnings?: string[] }[];
+  sourceFingerprint?: string;
+  parsedFingerprint?: string;
+  jobs?: { type: string; status: string }[];
+}): boolean {
+  if (!input.technicalOnly) return false;
+  if (!hasTenderFile(input.files)) return false;
+  if (sameSourceAlreadyExtracted(input.sourceFingerprint, input.parsedFingerprint, input.files)) return false;
+  if ((input.jobs ?? []).some(job => job.type === 'parse' && ['queued', 'running'].includes(job.status))) return false;
+  if (input.files.some(file => file.status === 'failed' && !file.superseded_by)) return false;
+  return input.files.some(file => !file.superseded_by && ['uploaded', 'parsing_remote'].includes(file.status ?? ''))
+    || Boolean(input.sourceFingerprint && input.sourceFingerprint !== input.parsedFingerprint);
+}
+
 export const PARSE_SERVICE_OPTIONS = [
   { value: 'auto', label: '自动（先本地，取不出再交 RAGFlow）' },
   { value: 'local', label: '只用本地文字提取' },

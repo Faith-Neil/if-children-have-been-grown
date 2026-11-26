@@ -6,27 +6,7 @@
 // 4. 精细化适配 8 大标准 RBAC 角色权限，提供管理员可控保存与普通成员只读态。
 
 import React, { useEffect, useState, useMemo } from 'react';
-import {
-  Alert,
-  Badge,
-  Button,
-  Card,
-  Col,
-  Divider,
-  Form,
-  Input,
-  InputNumber,
-  Modal,
-  Row,
-  Select,
-  Space,
-  Switch,
-  Table,
-  Tabs,
-  Tag,
-  Typography,
-  message,
-} from 'antd';
+import { App, Alert, Badge, Button, Card, Col, Divider, Form, Input, InputNumber, Modal, Row, Select, Space, Switch, Table, Tabs, Tag, Typography } from 'antd';
 import {
   SafetyCertificateOutlined,
   EditOutlined,
@@ -54,6 +34,7 @@ import { TaskModelRoutesCard } from './TaskModelRoutesCard.tsx';
 import { fetchCompanySettings, updateCompanySettings } from './company-settings-api.ts';
 import { settingsFromApi, settingsPayload } from './company-settings-sync.ts';
 import { userFacingMessage } from '../shared/api.ts';
+import { UnitInputNumber } from '../shared/UnitInputNumber.tsx';
 
 const { Text, Paragraph } = Typography;
 
@@ -65,6 +46,7 @@ export interface CompanySettingsPageProps {
 }
 
 export function CompanySettingsPage({ session, currentUser, currentRole: explicitRole, token }: CompanySettingsPageProps) {
+  const { message, modal } = App.useApp();
   const activeRole = explicitRole || session?.user?.primary_role || session?.user?.role || currentUser?.primary_role || currentUser?.role || 'company_admin';
   const permission = useMemo(() => checkCompanySettingsPermission(activeRole), [activeRole]);
 
@@ -123,7 +105,7 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
 
   // 恢复默认
   const handleReset = () => {
-    Modal.confirm({
+    modal.confirm({
       title: '确认恢复默认设置？',
       content: '恢复后将重置账号安全、编辑锁与大纲预算为平台初始基线值。',
       okText: '确认重置',
@@ -244,7 +226,7 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
       {/* 顶部概览指标与角色徽标 */}
       <Card
         style={{ marginBottom: 16 }}
-        bodyStyle={{ padding: '16px 24px' }}
+        styles={{ body: { padding: '16px 24px' } }}
         data-testid="company-settings-overview"
       >
         <Row justify="space-between" align="middle" gutter={[16, 16]}>
@@ -330,7 +312,7 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
       )}
 
       {/* 主表单与分组配置 Tabs */}
-      <Card bodyStyle={{ padding: '8px 24px 24px' }}>
+      <Card styles={{ body: { padding: '8px 24px 24px' } }}>
         <Tabs
           defaultActiveKey="security"
           data-testid="company-settings-tabs"
@@ -355,13 +337,12 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
                           </Space>
                         }
                       >
-                        <InputNumber
+                        <UnitInputNumber unit="位"
                           min={PLATFORM_SETTING_BOUNDS.password_min_length.min}
                           max={PLATFORM_SETTING_BOUNDS.password_min_length.max}
                           value={settings.password_min_length}
                           disabled={!permission.canEdit}
                           onChange={val => updateField('password_min_length', val || 8)}
-                          addonAfter="位"
                           style={{ width: '100%' }}
                           data-testid="input-password-min-length"
                         />
@@ -377,13 +358,12 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
                           </Space>
                         }
                       >
-                        <InputNumber
+                        <UnitInputNumber unit="类"
                           min={PLATFORM_SETTING_BOUNDS.password_min_char_classes.min}
                           max={PLATFORM_SETTING_BOUNDS.password_min_char_classes.max}
                           value={settings.password_min_char_classes}
                           disabled={!permission.canEdit}
                           onChange={val => updateField('password_min_char_classes', val || 3)}
-                          addonAfter="类"
                           style={{ width: '100%' }}
                           data-testid="input-password-min-char-classes"
                         />
@@ -394,13 +374,12 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
                         label="连续登录失败锁定次数"
                         extra={<Text type="secondary">平台上限 5 次，公司只能调严</Text>}
                       >
-                        <InputNumber
+                        <UnitInputNumber unit="次"
                           min={PLATFORM_SETTING_BOUNDS.max_login_attempts.min}
                           max={PLATFORM_SETTING_BOUNDS.max_login_attempts.max}
                           value={settings.max_login_attempts}
                           disabled={!permission.canEdit}
                           onChange={val => updateField('max_login_attempts', val || 5)}
-                          addonAfter="次"
                           style={{ width: '100%' }}
                           data-testid="input-max-login-attempts"
                         />
@@ -411,13 +390,12 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
                         label="会话闲置登出超时"
                         extra={<Text type="secondary">长时间无操作自动锁定会话保护数据</Text>}
                       >
-                        <InputNumber
+                        <UnitInputNumber unit="分钟"
                           min={PLATFORM_SETTING_BOUNDS.session_timeout_minutes.min}
                           max={PLATFORM_SETTING_BOUNDS.session_timeout_minutes.max}
                           value={settings.session_timeout_minutes}
                           disabled={!permission.canEdit}
                           onChange={val => updateField('session_timeout_minutes', val || 120)}
-                          addonAfter="分钟"
                           style={{ width: '100%' }}
                           data-testid="input-session-timeout"
                         />
@@ -449,13 +427,12 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
                         label="自动保存间隔"
                         extra={<Text type="secondary">范围 5~60 秒，须 &lt;= 心跳</Text>}
                       >
-                        <InputNumber
+                        <UnitInputNumber unit="秒"
                           min={PLATFORM_SETTING_BOUNDS.editor_autosave_seconds.min}
                           max={PLATFORM_SETTING_BOUNDS.editor_autosave_seconds.max}
                           value={settings.editor_autosave_seconds}
                           disabled={!permission.canEdit}
                           onChange={val => updateField('editor_autosave_seconds', val || 10)}
-                          addonAfter="秒"
                           style={{ width: '100%' }}
                           data-testid="input-editor-autosave"
                         />
@@ -466,13 +443,12 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
                         label="排他锁心跳间隔"
                         extra={<Text type="secondary">范围 15~120 秒</Text>}
                       >
-                        <InputNumber
+                        <UnitInputNumber unit="秒"
                           min={PLATFORM_SETTING_BOUNDS.edit_lock_heartbeat_seconds.min}
                           max={PLATFORM_SETTING_BOUNDS.edit_lock_heartbeat_seconds.max}
                           value={settings.edit_lock_heartbeat_seconds}
                           disabled={!permission.canEdit}
                           onChange={val => updateField('edit_lock_heartbeat_seconds', val || 60)}
-                          addonAfter="秒"
                           style={{ width: '100%' }}
                           data-testid="input-edit-lock-heartbeat"
                         />
@@ -483,13 +459,12 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
                         label="排他锁超时时长"
                         extra={<Text type="secondary">范围 6~60 分钟</Text>}
                       >
-                        <InputNumber
+                        <UnitInputNumber unit="分钟"
                           min={PLATFORM_SETTING_BOUNDS.edit_lock_timeout_minutes.min}
                           max={PLATFORM_SETTING_BOUNDS.edit_lock_timeout_minutes.max}
                           value={settings.edit_lock_timeout_minutes}
                           disabled={!permission.canEdit}
                           onChange={val => updateField('edit_lock_timeout_minutes', val || 30)}
-                          addonAfter="分钟"
                           style={{ width: '100%' }}
                           data-testid="input-edit-lock-timeout"
                         />
@@ -592,8 +567,8 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
                     </Col>
                     <Col span={8}>
                       <Form.Item label="修改样例条数" extra={<Text type="secondary">3~5 条</Text>}>
-                        <InputNumber min={3} max={5} value={settings.assistant_suggestion_count} disabled={!permission.canEdit}
-                          onChange={val => updateField('assistant_suggestion_count', val || 3)} addonAfter="条" style={{ width: '100%' }}
+                        <UnitInputNumber unit="条" min={3} max={5} value={settings.assistant_suggestion_count} disabled={!permission.canEdit}
+                          onChange={val => updateField('assistant_suggestion_count', val || 3)} style={{ width: '100%' }}
                           data-testid="input-assistant-count" />
                       </Form.Item>
                     </Col>
@@ -613,15 +588,15 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
                     </Col>
                     <Col span={8}>
                       <Form.Item label="查重连续相同字数" extra={<Text type="secondary">本公司查重判定的连续字数</Text>}>
-                        <InputNumber min={5} max={50} value={settings.dup_min_chars} disabled={!permission.canEdit}
-                          onChange={val => updateField('dup_min_chars', val || 8)} addonAfter="字" style={{ width: '100%' }}
+                        <UnitInputNumber unit="字" min={5} max={50} value={settings.dup_min_chars} disabled={!permission.canEdit}
+                          onChange={val => updateField('dup_min_chars', val || 8)} style={{ width: '100%' }}
                           data-testid="input-dup-min-chars" />
                       </Form.Item>
                     </Col>
                     <Col span={8}>
                       <Form.Item label="查重历史年限">
-                        <InputNumber min={1} max={120} value={settings.dup_history_months} disabled={!permission.canEdit}
-                          onChange={val => updateField('dup_history_months', val || 24)} addonAfter="月" style={{ width: '100%' }}
+                        <UnitInputNumber unit="月" min={1} max={120} value={settings.dup_history_months} disabled={!permission.canEdit}
+                          onChange={val => updateField('dup_history_months', val || 24)} style={{ width: '100%' }}
                           data-testid="input-dup-history-months" />
                       </Form.Item>
                     </Col>
@@ -657,13 +632,12 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
                         label="大纲规划层级上限"
                         extra={<Text type="secondary">支持 2~5 级（卷-章-节-小节）</Text>}
                       >
-                        <InputNumber
+                        <UnitInputNumber unit="级"
                           min={PLATFORM_SETTING_BOUNDS.outline_max_depth.min}
                           max={PLATFORM_SETTING_BOUNDS.outline_max_depth.max}
                           value={settings.outline_max_depth}
                           disabled={!permission.canEdit}
                           onChange={val => updateField('outline_max_depth', val || 4)}
-                          addonAfter="级"
                           style={{ width: '100%' }}
                           data-testid="input-outline-max-depth"
                         />
@@ -675,14 +649,13 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
                         label="章节默认基准篇幅"
                         extra={<Text type="secondary">单节写作方案目标字数</Text>}
                       >
-                        <InputNumber
+                        <UnitInputNumber unit="字"
                           min={PLATFORM_SETTING_BOUNDS.outline_target_words_default.min}
                           max={PLATFORM_SETTING_BOUNDS.outline_target_words_default.max}
                           step={500}
                           value={settings.outline_target_words_default}
                           disabled={!permission.canEdit}
                           onChange={val => updateField('outline_target_words_default', val || 3000)}
-                          addonAfter="字"
                           style={{ width: '100%' }}
                           data-testid="input-outline-target-words"
                         />
@@ -694,14 +667,13 @@ export function CompanySettingsPage({ session, currentUser, currentRole: explici
                         label="单章 AI 上下文预算"
                         extra={<Text type="secondary">检索增强与 Prompt Token 上限</Text>}
                       >
-                        <InputNumber
+                        <UnitInputNumber unit="Token"
                           min={PLATFORM_SETTING_BOUNDS.ai_token_budget_per_chapter.min}
                           max={PLATFORM_SETTING_BOUNDS.ai_token_budget_per_chapter.max}
                           step={1024}
                           value={settings.ai_token_budget_per_chapter}
                           disabled={!permission.canEdit}
                           onChange={val => updateField('ai_token_budget_per_chapter', val || 16384)}
-                          addonAfter="Token"
                           style={{ width: '100%' }}
                           data-testid="input-ai-token-budget"
                         />

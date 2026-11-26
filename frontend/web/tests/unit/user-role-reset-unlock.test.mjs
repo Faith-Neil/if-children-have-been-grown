@@ -42,7 +42,7 @@ test('1. 角色分配安全校验：超管保护、企业管理员越权提权�
   const sameRes = validateRoleAssignment({
     sourceUser: zhang,
     newRole: 'project_lead',
-    operatorRole: 'company_admin',
+    operatorRole: 'platform_admin',
   });
   assert.equal(sameRes.valid, false);
   assert.match(sameRes.message || '', /用户已具备该系统角色/);
@@ -65,7 +65,7 @@ test('1. 角色分配安全校验：超管保护、企业管理员越权提权�
     operatorRole: 'company_admin',
   });
   assert.equal(escalatePlatform.valid, false);
-  assert.match(escalatePlatform.message || '', /公司管理员无权分配平台级或集团级管理角色/);
+  assert.match(escalatePlatform.message || '', /不能通过用户管理分配平台管理员/);
 
   const escalateGroup = validateRoleAssignment({
     sourceUser: li,
@@ -73,7 +73,7 @@ test('1. 角色分配安全校验：超管保护、企业管理员越权提权�
     operatorRole: 'company_admin',
   });
   assert.equal(escalateGroup.valid, false);
-  assert.match(escalateGroup.message || '', /公司管理员无权分配平台级或集团级管理角色/);
+  assert.match(escalateGroup.message || '', /公司管理员只能分配普通用户/);
 
   // 1.5 平台超管可以分配任何角色
   const platformCanAssign = validateRoleAssignment({
@@ -92,21 +92,21 @@ test('2. 降级项目负责人时的进行中项目强预警提示', () => {
 
   const demoteZhang = validateRoleAssignment({
     sourceUser: zhang,
-    newRole: 'bid_writer',
-    operatorRole: 'company_admin',
+    newRole: 'member',
+    operatorRole: 'platform_admin',
   });
   assert.equal(demoteZhang.valid, true);
   assert.ok(demoteZhang.warning);
   assert.match(demoteZhang.warning, /该用户当前担任 2 个项目的总负责人/);
   assert.match(demoteZhang.warning, /建议及时进行团队调整或资产交接/);
 
-  // 王雪 (auditor) 0 项项目，变更为 viewer 时不应有项目预警
+  // 王雪（普通用户）0 项项目，升为公司管理员时不应有项目预警
   const wang = INITIAL_USERS.find(u => u.username === 'auditor_wang');
   assert.ok(wang);
   const changeWang = validateRoleAssignment({
     sourceUser: wang,
-    newRole: 'viewer',
-    operatorRole: 'company_admin',
+    newRole: 'company_admin',
+    operatorRole: 'platform_admin',
   });
   assert.equal(changeWang.valid, true);
   assert.equal(changeWang.warning, undefined);

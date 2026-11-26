@@ -648,7 +648,7 @@ def test_multi_tenant_and_rbac_isolation_on_remediation(test_env):
             content="[P1] 只读内容",
         )
     assert exc_viewer.value.status == 403
-    assert exc_viewer.value.code == "FORBIDDEN"
+    assert exc_viewer.value.code == "PROJECT_WRITER_REQUIRED"
 
     with pytest.raises(DomainError) as exc_auditor:
         service.remediate_chapter_candidate(
@@ -658,7 +658,7 @@ def test_multi_tenant_and_rbac_isolation_on_remediation(test_env):
             content="[P1] 审计只读内容",
         )
     assert exc_auditor.value.status == 403
-    assert exc_auditor.value.code == "FORBIDDEN"
+    assert exc_auditor.value.code == "PROJECT_WRITER_REQUIRED"
 
 
 def test_http_api_remediate_candidate_endpoint(test_env):

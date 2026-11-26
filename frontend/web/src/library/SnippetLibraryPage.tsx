@@ -55,6 +55,7 @@ import {
 } from './snippet-library-core.ts';
 import { EmptyState } from '../status/StatusViews.tsx';
 import { request } from '../shared/api.ts';
+import { PROJECT_WRITER_ROLES, normalizeSystemRole } from '../shared/roles.ts';
 import { SnippetEditorDrawer } from './SnippetEditorDrawer.tsx';
 
 const { Text, Paragraph, Title } = Typography;
@@ -108,7 +109,10 @@ export function SnippetLibraryPage({
   initialSnippets,
   onSelectSnippet,
 }: SnippetLibraryPageProps) {
-  const companyId = user?.company_id ?? session?.scope?.active_company_id ?? 'alpha';
+  const loginRole = user?.role || session?.user?.primary_role || session?.user?.role;
+  const companyId = loginRole === 'platform_admin'
+    ? undefined
+    : (user?.company_id ?? session?.scope?.active_company_id ?? 'alpha');
 
   const [snippets, setSnippets] = useState<SnippetPublication[]>(() => initialSnippets ?? []);
   const [loading, setLoading] = useState(false);
@@ -124,7 +128,7 @@ export function SnippetLibraryPage({
 
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [editing, setEditing] = useState<SnippetPublication | null | undefined>(undefined); // undefined=关闭，null=新建
-  const canWrite = ['editor', 'manager', 'bid_writer', 'project_lead', 'company_admin', 'data_admin', 'platform_admin'].includes(user?.role ?? '');
+  const canWrite = PROJECT_WRITER_ROLES.has(normalizeSystemRole(user?.role));
   function upsertSnippet(item: SnippetPublication) {
     setSnippets(prev => (prev.some(row => row.id === item.id) ? prev.map(row => (row.id === item.id ? item : row)) : [item, ...prev]));
   }
@@ -377,7 +381,7 @@ export function SnippetLibraryPage({
       </div>
 
       {/* 检索与操作条 */}
-      <Card bodyStyle={{ padding: 16 }} style={{ marginBottom: 16 }}>
+      <Card styles={{ body: { padding: 16 } }} style={{ marginBottom: 16 }}>
         <Row gutter={[16, 12]} align="middle">
           <Col xs={24} sm={10} md={8}>
             <Input
@@ -437,7 +441,7 @@ export function SnippetLibraryPage({
       {/* 主数据列表 */}
       {loadError && <Alert type="error" showIcon style={{ marginBottom: 12 }} message={loadError} data-testid="snippet-load-error" />}
       {syncNotice && <Alert type={syncNotice.type} showIcon closable style={{ marginBottom: 12 }} message={syncNotice.text} onClose={() => setSyncNotice(null)} />}
-      <Card bodyStyle={{ padding: 0 }}>
+      <Card styles={{ body: { padding: 0 } }}>
         <Spin spinning={loading}>
           {filteredSnippets.length === 0 ? (
             <div style={{ padding: '48px 16px' }}>

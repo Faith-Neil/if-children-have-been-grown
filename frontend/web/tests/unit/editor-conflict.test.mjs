@@ -159,6 +159,7 @@ test('isRevisionConflict: 多形态 409 OCC 乐观锁冲突识别', () => {
   assert.equal(isRevisionConflict({ message: '版本冲突，请拉取最新章节' }), true);
 
   // 4. 非冲突错误应返回 false
+  assert.equal(isRevisionConflict(new ApiError(409, 'DRAFT_SEQUENCE_CONFLICT', '较旧的草稿请求不能覆盖较新的草稿。')), false);
   assert.equal(isRevisionConflict(new ApiError(403, 'FORBIDDEN', '无权操作')), false);
   assert.equal(isRevisionConflict(new ApiError(404, 'NOT_FOUND', '章节不存在')), false);
   assert.equal(isRevisionConflict(new ApiError(500, 'SERVER_ERROR', '服务器内部错误')), false);

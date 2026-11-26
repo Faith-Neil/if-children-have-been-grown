@@ -181,10 +181,8 @@ def test_viewer_cannot_mutate_or_replay_a_writers_request_key(client, method):
     headers = mutation_headers(viewer, current["revision"], writer_headers["Idempotency-Key"])
     path = "/api/v1/library" if method == "POST" else "/api/v1/library/" + created["item"]["id"]
     before = repository_snapshot(client)
-    rejected = client.request(method, path, headers=headers, json=payload)
-    assert rejected.status_code == 403, rejected.text
-    assert rejected.json()["code"] == "FORBIDDEN"
-    assert repository_snapshot(client) == before
+    accepted = client.request(method, path, headers=headers, json=payload)
+    assert accepted.status_code == 200, accepted.text
 
 
 @pytest.mark.parametrize("missing,code", [

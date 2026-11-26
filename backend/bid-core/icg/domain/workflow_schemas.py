@@ -161,10 +161,42 @@ class PlannedChapter(RequestBody):
         return values
 
 
+class OutlineHeadingInput(RequestBody):
+    level: int = Field(ge=1, le=4)
+    title: str = Field(min_length=1, max_length=80)
+    requirement_id: str | None = Field(default=None, max_length=80)
+    task_id: str | None = Field(default=None, max_length=80)
+    requirement_ids: list[str] = Field(default_factory=list)
+
+
+class GlobalFactSheetUpdate(RequestBody):
+    project_name: str | None = Field(default=None, max_length=300)
+    client_name: str | None = Field(default=None, max_length=300)
+    service_period: str | None = Field(default=None, max_length=300)
+    warranty_period: str | None = Field(default=None, max_length=300)
+    sla_response: str | None = Field(default=None, max_length=300)
+    on_site_staff: str | None = Field(default=None, max_length=300)
+    project_manager: str | None = Field(default=None, max_length=300)
+    target_models: list[str] | None = Field(default=None, max_length=30)
+    tech_route: str | None = Field(default=None, max_length=300)
+    sla_terms: dict[str, str] | None = Field(default=None, description="合同与 SLA 分级硬参数（故障响应/到场/修复/服务期）")
+    asset_profile: dict[str, str] | None = Field(default=None, description="甲方真实资产画像（设备/系统/数据库分布）")
+    scoring_decisions: dict[str, str] | None = Field(default=None, description="评分加分项决策（巡检频次/延保/驻场）")
+    service_modules: list[dict[str, str]] | None = Field(default=None, description="分服务模块周期与范围，如原厂维保12个月、DBA服务6个月")
+    asset_inventory: list[dict[str, str]] | None = Field(default=None, description="异构资产明细表（类别/数据库类型/数量）")
+    scoring_rules: list[dict[str, str]] | None = Field(default=None, description="招标评分表逐项真实规则与投标决策")
+
+
 class PlanRequest(RequestBody):
     chapters: list[PlannedChapter] = Field(min_length=1, max_length=100)
     scope: Literal["all", "technical", "business"] = "all"
     reason: str = Field(default="", max_length=2000)
+    outline_title: str | None = Field(default=None, max_length=80)
+    outline_headings: list[OutlineHeadingInput] | None = None
+    confirm_outline: bool = False
+    allow_unassigned: bool = Field(default=False, description="未挂载池非空时显式确认忽略")
+    auto_mount_unassigned: bool = Field(default=False, description="未挂载池非空时自动归入「其他服务承诺」并确认")
+    global_fact_sheet: GlobalFactSheetUpdate | None = Field(default=None, description="确认目录前同步保存的全局项目事实表")
 
 
 class ChapterPlanPatch(RequestBody):
@@ -198,6 +230,7 @@ class ChapterAssignment(RequestBody):
 
 class GenerateRequest(RequestBody):
     chapter_ids: list[str] | None = None
+    section: str | None = Field(default=None, max_length=500, description="只重新生成这一节：节键（任务编号）或标题，节键优先；不填则按顺序写全部可写的节")
 
 
 class ProjectCheckRequest(RequestBody):
@@ -381,6 +414,10 @@ class Requirement(ResponseBody):
     superseded_by: str | None = None
     amends: str | None = Field(default=None, description="补遗条目修改的原条款")
     source_stale: str | None = Field(default=None, description="重新解析后原句在新文字里找不到，请对照原件核对")
+    technical_clause: bool = Field(default=False, description="技术分册按教程抽出的条款；同一件事只有一行")
+    response_origin: Literal["", "history", "model", "retrieval_failed", "draft_failed", "no_evidence"] = ""
+    history_filename: str = ""
+    history_quote: str = ""
 
 
 class Fact(ResponseBody):
@@ -608,6 +645,7 @@ class WorkflowChapter(ChapterSummaryResponse):
     assignee_id: str | None
     assignee_name: str | None
     permissions: dict[str, bool]
+    needs_regeneration: bool = False
 
 
 class ParagraphDetail(ResponseBody):
@@ -734,7 +772,8 @@ class CompletedPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
     status: Literal["completed"]
     completed_at: str
-    error: None
+    error: str | None
+    message: str | None = None
 
 
 class FailedPayload(BaseModel):
@@ -799,6 +838,14 @@ JobEvent = Annotated[
 ]
 
 
+class SectionTally(BaseModel):
+    """技术卷生成会话的节计数：已写完、失败与本次总节数。"""
+    model_config = ConfigDict(extra="forbid")
+    done: int = Field(ge=0)
+    total: int = Field(ge=0)
+    failed: int = Field(ge=0)
+
+
 class JobStatus(BaseModel):
     """独立的任务状态，不继承已实现的 Job。由 BE-M0-T06 实现。"""
 
@@ -816,12 +863,13 @@ class JobStatus(BaseModel):
     recoverable: bool
     allowed_actions: list[str] | None = None
     allowedActions: list[str] | None = None
+    sections: SectionTally | None = Field(default=None, description="仅 technical_volume 任务：已完成 done/total 节，failed 为失败节数。")
 
 
 class CheckIssue(ResponseBody):
     id: str
     code: str
-    severity: Literal["blocking", "warning", "blocker"]
+    severity: Literal["blocking", "warning", "blocker", "info"]
     message: str
     requirement_id: str | None = None
     chapter_id: str | None = None
@@ -910,6 +958,160 @@ class LibraryItem(ResponseBody):
     submitted_on: str | None = None
 
 
+class TechnicalHeading(ResponseBody):
+    level: int
+    number: str
+    title: str
+    requirement_id: str | None = None
+    task_id: str | None = None
+    requirement_ids: list[str] = Field(default_factory=list)
+
+
+class UnassignedRequirementItem(ResponseBody):
+    requirement_id: str
+    digest_id: str = ""
+    kind: Literal["tech", "scoring"] = "tech"
+    text: str = ""
+    score_item: str = ""
+    score: float | None = None
+    source_page: int | None = None
+
+
+class GlobalFactSheet(ResponseBody):
+    project_name: str = ""
+    client_name: str = ""
+    service_period: str = ""
+    warranty_period: str = ""
+    sla_response: str = ""
+    on_site_staff: str = ""
+    project_manager: str = ""
+    target_models: list[str] = Field(default_factory=list)
+    tech_route: str = ""
+    sla_terms: dict[str, str] | None = None
+    asset_profile: dict[str, str] | None = None
+    scoring_decisions: dict[str, str] | None = None
+    service_modules: list[dict[str, str]] | None = None
+    asset_inventory: list[dict[str, str]] | None = None
+    scoring_rules: list[dict[str, str]] | None = None
+    frozen_at: str | None = None
+
+
+class TechnicalOutline(ResponseBody):
+    title: str
+    chapter_id: str
+    headings: list[TechnicalHeading]
+    missing: list[str] = Field(default_factory=list, description="还没有挂进目录的条款")
+    unassigned_requirements: list[UnassignedRequirementItem] = Field(default_factory=list, description="未挂载池：删除或未分配到章节的评分点与技术要求")
+    plan_validation: dict[str, Any] | None = None
+    outline_source: str = Field(default="", description="model、rule 或 rule_fallback")
+    tree_model_failed: bool = Field(default=False, description="编排目录的模型失败后用了规则替身")
+    outline_reason: str = Field(default="", description="目录不是模型编的原因；模型目录为空")
+
+
+class CoverageRow(ResponseBody):
+    requirement_id: str
+    task_id: str
+    text: str
+    risk_level: str = "medium"
+    is_rejection_criterion: bool = False
+    source_page: int | None = None
+    source_filename: str | None = None
+    outline_number: str | None = None
+    outline_title: str | None = None
+    response_status: str = "not_started"
+    generation_status: str = "pending"
+    response_type: Literal["comply", "exceed", "deviate", "not_applicable"] | None = None
+    digest_id: str = Field(default="", description="清单编号：T-01 技术需求、S-01-1 评分要点")
+    kind: Literal["tech", "scoring"] = "tech"
+    score_item: str = ""
+    score: float | None = None
+    rag: dict[str, Any] | None = Field(default=None, description="本节检索摘要：status(hit/empty/skipped/failed)、query、history_hits、material_hits、tender_hits、top、error、searched_at")
+    confirm_reasons: list[str] = Field(default_factory=list, description="需要人工确认的原因")
+    failure_reason: str = ""
+    confirmed_at: str | None = None
+    retryable: bool = False
+
+
+class ResponseTask(ResponseBody):
+    task_id: str
+    title: str
+    theme: str = ""
+    requirement_ids: list[str] = Field(default_factory=list)
+    response_strategy: str = "point_by_point"
+    response_points: list[str] = Field(default_factory=list)
+    rejection_requirement_ids: list[str] = Field(default_factory=list)
+    generation_status: str = "pending"
+    response_status: str = "not_started"
+    verification_status: str = "unchecked"
+    outline_number: str | None = None
+    chapter_id: str | None = None
+    rag: dict[str, Any] | None = None
+    failure_reason: str = ""
+    confirmed_by: str | None = None
+    confirmed_at: str | None = None
+
+
+class TechnicalKbDataset(ResponseBody):
+    name: str
+    configured: bool
+
+
+class TenderDatasetStatus(ResponseBody):
+    name: str = ""
+    configured: bool = False
+    backend: str = ""
+
+
+class TechnicalKbStatus(ResponseBody):
+    history: TechnicalKbDataset
+    material: TechnicalKbDataset
+    tender: TenderDatasetStatus | None = None
+    missing: list[str] = Field(default_factory=list)
+    ready: bool = False
+
+
+class TenderIndexStatus(ResponseBody):
+    backend: str = ""
+    dataset_name: str = ""
+    chunk_count: int = 0
+    skip_reason: str = ""
+
+
+class WriterModelStatus(ResponseBody):
+    name: str
+    is_real: bool = False
+    is_local: bool = False
+
+
+class TechnicalRagAuditRow(ResponseBody):
+    query: str = ""
+    section: str = ""
+    tender_searched: bool = False
+    tender_hits: int = 0
+    tender_dataset: str = ""
+    history_searched: bool = False
+    material_searched: bool = False
+    history_hits: int = 0
+    material_hits: int = 0
+    skip_reason: str = ""
+    top: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class TechnicalQualityRule(ResponseBody):
+    id: int
+    name: str
+    passed: bool
+    detail: str = ""
+
+
+class TechnicalQuality(ResponseBody):
+    rules: list[TechnicalQualityRule] = Field(default_factory=list)
+    passed: bool = False
+    failed_count: int = 0
+    review_titles: list[str] = Field(default_factory=list)
+    warning: str = Field(default="", description="未达标可见警告；不恢复矩阵闸门，允许内部稿导出")
+
+
 class Workspace(ResponseBody):
     revision: int
     input_fingerprint: str
@@ -925,6 +1127,28 @@ class Workspace(ResponseBody):
     jobs: list[Job]
     parse_confirmed: bool
     plan_confirmed: bool
+    source_fingerprint: str = ""
+    parsed_source_fingerprint: str = ""
+    technical_extract_empty: bool = Field(default=False, description="技术分册这次没有抽出技术条款")
+    extract_degraded: bool = Field(default=False, description="抽取条款超过一半的块超时，结果不是完整抽取")
+    extract_timeout_count: int = Field(default=0, description="抽取条款超时的块数")
+    extract_pages_read: int = Field(default=0, description="抽取条款成功读完的块数")
+    outline_source: str = Field(default="", description="目录来源：model、rule 或 rule_fallback")
+    tree_model_failed: bool = Field(default=False, description="编排目录的模型失败，目录为规则兜底")
+    outline_reason: str = Field(default="", description="目录不是模型编的原因：模型编排中、未调用或失败；模型目录为空")
+    technical_outline: TechnicalOutline | None = Field(default=None, description="技术分册的单章目录；创建时的技术方案不是这份目录")
+    global_fact_sheet: GlobalFactSheet | None = Field(default=None, description="全书统一口径的全局项目事实表")
+    technical_deviation_note: str = Field(default="", description="没有偏离表样表时的说明；有样表则为空")
+    technical_needs_review: list[str] = Field(default_factory=list, description="正文偏离表述和矩阵不一致、或同一指标出现两个数字的小节")
+    technical_kb: TechnicalKbStatus | None = Field(default=None, description="企业双库是否齐备")
+    technical_quality: TechnicalQuality | None = Field(default=None, description="质量八条抽检结果")
+    response_tasks: list[ResponseTask] = Field(default_factory=list, description="响应任务（要求→章节映射）")
+    coverage_rows: list[CoverageRow] = Field(default_factory=list, description="覆盖视图五行数据源")
+    tender_digest: dict[str, Any] | None = Field(default=None, description="三张清单：tech、scoring、rejection，带编号与原文页码")
+    plan_validation: dict[str, Any] | None = Field(default=None, description="生成计划确定性校验结果")
+    technical_rag_audit: list[TechnicalRagAuditRow] = Field(default_factory=list, description="分节检索审计")
+    tender_index: TenderIndexStatus | None = Field(default=None, description="本标索引状态，不含页正文")
+    writer_model: WriterModelStatus | None = Field(default=None, description="正文模型名称与本地/真实标记")
     sla: ProjectSla | None = None
     writing_plan: WritingPlan
     team: Team
@@ -978,6 +1202,7 @@ class MutationResult(ResponseBody):
     parse_confirmed: bool | None = None
     plan_confirmed: bool | None = None
     writing_plan: WritingPlan | None = None
+    global_fact_sheet: GlobalFactSheet | None = None
     team: Team | None = None
     chapter: WorkflowChapter | None = None
     item: dict[str, Any] | None = Field(default=None, description="拆分后的主条目（条款或事实）")

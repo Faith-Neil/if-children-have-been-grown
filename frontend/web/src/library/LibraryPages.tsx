@@ -134,7 +134,7 @@ export function LibraryPage({
   const [form] = Form.useForm();
 
   // 2. 权限判定
-  const userRole = user?.role || 'viewer';
+  const userRole = user?.role || 'member';
   const hasManageRight = canManageLibrary(userRole);
   const hasRevealRight = canRevealSensitiveField(userRole);
 
@@ -375,7 +375,7 @@ export function LibraryPage({
         {/* 右侧核心表格与多维筛选 */}
         <div className="library-main-panel">
           {activeCategory === 'sla_templates' ? (
-            <Card className="library-table" bodyStyle={{ padding: 16 }}>
+            <Card className="library-table" styles={{ body: { padding: 16 } }}>
               <SlaTemplatesPage
                 items={templates}
                 revision={templatesRevision}
@@ -390,7 +390,7 @@ export function LibraryPage({
           ) : (
             <Card
               className="library-table"
-              bodyStyle={{ padding: 0 }}
+              styles={{ body: { padding: 0 } }}
               title={
                 <Space>
                   <FileDoneOutlined style={{ color: '#1e4db7' }} />

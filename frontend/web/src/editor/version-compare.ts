@@ -76,7 +76,7 @@ export function versionModeLabel(version: VersionRecord): string {
 /** 能否回退到该版本：须持锁、不是当前版本、没有未提交修改。 */
 export function rollbackBlocker(params: { held: boolean; isCurrent: boolean; dirty: boolean; system: boolean }): string | null {
   if (params.system) return '系统生成章节不能回退，请到数据源修改后重新生成';
-  if (!params.held) return '先取得编辑权';
+  if (!params.held) return '本节还在接通，请稍后再回退';
   if (params.isCurrent) return '这就是当前版本';
   if (params.dirty) return '有未提交的修改，先提交或放弃草稿';
   return null;

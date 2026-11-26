@@ -45,7 +45,7 @@ export function VolumeFinalizePanel({ volumes, checkId }: { volumes: VolumeStatu
   }
 
   return (
-    <Card title="分册定稿" className="stack-card" data-testid="volume-finalize-panel">
+    <Card title="方案定稿" className="stack-card" data-testid="volume-finalize-panel">
       {projectVolumes(workspace).map(volume => {
         const status = volumes.find(item => item.volume_id === volume);
         const actions = volumeActions(status, workspace, user.id, volume);
@@ -76,7 +76,7 @@ export function VolumeFinalizePanel({ volumes, checkId }: { volumes: VolumeStatu
             ) : actions.finalizeBlockers.length > 0 ? (
               <p className="muted">
                 {actions.finalizeBlockers.join('；')}
-                {(status?.pending_human_issues ?? 0) > 0 && <a onClick={() => navigate('manual')}> 去处理</a>}
+                {(status?.pending_human_issues ?? 0) > 0 && <a onClick={() => navigate('export')}> 去处理</a>}
               </p>
             ) : null}
             {review?.status === 'returned' && review.decision_note && <blockquote>退回意见：{review.decision_note}</blockquote>}
@@ -85,7 +85,7 @@ export function VolumeFinalizePanel({ volumes, checkId }: { volumes: VolumeStatu
       })}
       <Modal
         open={!!dialog}
-        title={dialog ? `${volumeName(dialog.volume)} · ${dialog.kind === 'assign' ? '指定交叉复核人' : dialog.kind === 'confirm' ? '交叉复核' : '解锁分册'}` : ''}
+        title={dialog ? `${volumeName(dialog.volume)} · ${dialog.kind === 'assign' ? '指定交叉复核人' : dialog.kind === 'confirm' ? '交叉复核' : '解锁方案'}` : ''}
         okText={dialog?.kind === 'unlock' ? '确认解锁' : '确定'}
         cancelText="取消"
         onCancel={() => setDialog(null)}
@@ -94,7 +94,7 @@ export function VolumeFinalizePanel({ volumes, checkId }: { volumes: VolumeStatu
       >
         <Form form={form} layout="vertical">
           {dialog?.kind === 'assign' && (
-            <Form.Item name="reviewer_id" label="复核人（不能是本分册编写人）" rules={[{ required: true, message: '请选择复核人' }]}>
+            <Form.Item name="reviewer_id" label="复核人（不能是本方案编写人）" rules={[{ required: true, message: '请选择复核人' }]}>
               <Select options={reviewerCandidates(workspace.team, dialog.volume)} />
             </Form.Item>
           )}

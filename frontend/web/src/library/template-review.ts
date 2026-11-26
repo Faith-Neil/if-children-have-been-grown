@@ -3,7 +3,7 @@
 import type { SlaTemplate } from '../shared/types';
 import type { LibraryWriteVersion } from './library-review';
 
-export type TemplateReadState = LibraryWriteVersion & { items: SlaTemplate[] };
+export type TemplateReadState = LibraryWriteVersion & { items: SlaTemplate[]; cross_company?: boolean };
 export type TemplateReader = () => Promise<TemplateReadState>;
 export type TemplateReviewBasis = LibraryWriteVersion & { template_id: string | null; template_basis: string | null; template: SlaTemplate | null };
 
@@ -29,7 +29,7 @@ export function captureTemplateReview(current: TemplateReadState, templateId: st
   if (!validVersion(current)) throw new Error('尚未读取有效的公司模板版本，请重新读取后再核对。');
   const item = templateId ? current.items.find(value => value.id === templateId) : null;
   if (templateId && !item) throw new Error('这份模板已不可见，当前填写仍保留，不能载入或保存。');
-  if (item && item.company_id !== current.company_id) throw new Error('这份模板不属于当前公司，不能载入或保存。');
+  if (item && item.company_id !== current.company_id && !current.cross_company) throw new Error('这份模板不属于当前公司，不能载入或保存。');
   return { company_id: current.company_id, revision: current.revision, template_id: templateId,
     template_basis: item ? templateItemBasis(item) : null, template: item ? copyTemplate(item) : null };
 }
@@ -39,7 +39,7 @@ export function templateReviewProblem(basis: TemplateReviewBasis | null, current
   if (basis.company_id !== current.company_id) return '当前公司已变化，原模板不能保存到另一家公司。当前填写仍保留。';
   if (basis.template_id) {
     const item = current.items.find(value => value.id === basis.template_id);
-    if (!item || item.company_id !== current.company_id) return '这份模板已不可见或不属于当前公司，当前填写仍保留，不能继续保存。';
+    if (!item || (item.company_id !== current.company_id && !current.cross_company)) return '这份模板已不可见或不属于当前公司，当前填写仍保留，不能继续保存。';
     if (templateItemBasis(item) !== basis.template_basis) return '后台这份服务模板或指标已更新，当前填写仍保留。请核对原模板、你的填写和后台新版，再明确载入。';
   }
   if (basis.revision !== current.revision) return '模板读取版本已更新，当前填写仍保留。请明确核对当前模板版本后再保存。';

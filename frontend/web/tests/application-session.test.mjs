@@ -8,7 +8,7 @@ import { chapterCan, projectCan } from '../src/project/project-team.ts';
 import { companyReadSessionMatches } from '../src/library/library-review.ts';
 
 const session = (change = {}) => ({
-  auth_mode: 'authenticated', role_mode: 'rbac-8roles',
+  auth_mode: 'authenticated', role_mode: 'rbac-3roles',
   user: { id: 'alpha-manager', name: '合成经理', company_id: 'alpha', role: 'manager', roles: ['project_lead'], primary_role: 'project_lead' },
   scope: { kind: 'company', active_company_id: 'alpha', allowed_company_ids: ['alpha'] },
   navigation: [{ route_id: 'workbench', path: '/workbench', access: 'write' }, { route_id: 'library', path: '/library', access: 'write' }, { route_id: 'jobs', path: '/jobs', access: 'read' }],

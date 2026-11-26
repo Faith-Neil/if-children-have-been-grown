@@ -17,7 +17,7 @@ from icg.domain.generation_context import build_generation_context, chapter_plan
 from icg.domain.project_access import (
     VOLUMES, project_volume_mode, writable, lead, volume_owner, require_lead, require_chapter,
     chapter_structure, chapter_edit, chapter_permissions, project_permissions,
-    public_team, normalize_role,
+    public_team, is_platform_super, normalize_role,
 )
 from icg.domain.outline_plan import OutlinePlanService
 from icg.domain.answer_card import AnswerCardService
@@ -29,8 +29,10 @@ from icg.domain.generation_orchestrator import GenerationOrchestratorMixin, Gene
 from icg.domain.check_orchestrator import CheckOrchestratorMixin, CheckOrchestrator
 from icg.domain.export_service import ExportServiceMixin
 from icg.domain.volume_finalize import VolumeFinalizeMixin
+from icg.domain.technical_outline import workspace_fields
+from icg.domain.technical_sources import source_fingerprint
 from icg.domain.tender_orchestrator import TenderOrchestratorMixin, TenderOrchestrator
-from icg.domain.library_orchestrator import LibraryOrchestratorMixin, LibraryOrchestrator
+from icg.domain.library_orchestrator import LibraryOrchestrator, LibraryOrchestratorMixin, visible_job_summaries
 from icg.domain.human_queue import HumanQueueMixin
 from icg.domain.volume_review import VolumeReviewMixin
 from icg.domain.post_process import OmissionMixin, suspected
@@ -182,7 +184,7 @@ class WorkflowService(
         name, _, resource_id = action.partition(":")
         if name in ("volume.finalize", "volume.unlock", "check.release"):
             project = state.projects.get(project_id)
-            if project and project.company_id != principal.user.company_id:
+            if project and project.company_id != principal.user.company_id and not is_platform_super(principal.user):
                 raise DomainError(404, "NOT_FOUND", "未找到有权访问的项目。")
             norm_role = normalize_role(principal.user.role)
             if norm_role == "company_admin":
@@ -253,13 +255,18 @@ class WorkflowService(
         candidate = workflow["candidates"].get(chapter.id)
         if candidate:
             candidate = {**candidate, "status": "valid" if candidate.get("input_fingerprint") == self._fingerprint(state, chapter.project_id) else "stale"}
-        return {**self.demo._summary(chapter), "content": chapter.content,
-                "lock": lock_view(state, chapter.lock) if active else None,
-                "candidate": candidate, "writing_input": {**chapter_plan(workflow, chapter.id), "is_current": plan_is_current(state, chapter.project_id, chapter.id)},
-                "assignee_id": chapter.assignee_id,
-                "assignee_name": state.accounts[chapter.assignee_id].name if chapter.assignee_id in state.accounts else None,
-                "permissions": chapter_permissions(state, chapter, user_id) if user_id else {},
-                "requirement_ids": [r["id"] for r in chapter_rows(workflow, chapter.id, chapter.volume)]}
+        dismissed = (workflow.get("history_commitment_notice_dismissals") or {}).get(chapter.id)
+        summary = {**self.demo._summary(chapter), "content": chapter.content,
+                   "lock": lock_view(state, chapter.lock) if active else None,
+                   "candidate": candidate, "writing_input": {**chapter_plan(workflow, chapter.id), "is_current": plan_is_current(state, chapter.project_id, chapter.id)},
+                   "assignee_id": chapter.assignee_id,
+                   "assignee_name": state.accounts[chapter.assignee_id].name if chapter.assignee_id in state.accounts else None,
+                   "permissions": chapter_permissions(state, chapter, user_id) if user_id else {},
+                   "requirement_ids": [r["id"] for r in chapter_rows(workflow, chapter.id, chapter.volume)],
+                   "needs_regeneration": chapter.id in (workflow.get("needs_regeneration") or [])}
+        if dismissed:
+            summary["history_commitment_notice_dismissed_snapshot_id"] = dismissed
+        return summary
 
     def _fingerprint(self, state: DemoState, project_id: str) -> str:
         return project_input_fingerprint(state, project_id)
@@ -313,9 +320,12 @@ class WorkflowService(
             "chapters": chapters,
             "checks": [self._public_check(state, project_id, c) for c in workflow["checks"].values()],
             "exports": [self._public_export(state, project_id, e) for e in workflow["exports"].values()],
-            "jobs": [j for j in state.jobs.values() if j["project_id"] == project_id],
+            "jobs": visible_job_summaries(state, {project_id}),
+            "source_fingerprint": source_fingerprint(workflow),
+            "parsed_source_fingerprint": workflow.get("parsed_source_fingerprint") or "",
+            "technical_extract_empty": bool(workflow.get("technical_extract_empty")),
             "parse_confirmed": workflow["parse_confirmed"],
-            "plan_confirmed": workflow["parse_confirmed"] and plan_is_current(state, project_id),
+            **workspace_fields(state, project_id, workflow),
             "writing_plan": public_plan(workflow, state, project_id),
             "team": public_team(state, project_id, principal.user.id),
             "permissions": project_permissions(state, project_id, principal.user.id),

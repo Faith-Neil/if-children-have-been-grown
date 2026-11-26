@@ -14,11 +14,12 @@ import re
 import threading
 from typing import Any
 
+from .project_access import readonly_member
 from .domain import DemoState, DomainError, Principal, iso_time, new_id
 
 MAX_QUESTION = 1000
 MAX_ANSWER = 3000
-CITE = re.compile(r"\[片:[^\]]+\]")
+CITE = re.compile(r"\[(?:片|标):[^\]]+\]")
 
 
 def _system_prompt(knowledge_base: bool) -> str:
@@ -30,18 +31,28 @@ def _system_prompt(knowledge_base: bool) -> str:
         "3. 回答简明，不超过 600 字。",
     ]
     if knowledge_base:
-        lines.append("4. 用到【可引用的资料】时，在句末原样写上它的标记（如 [片:lib-1]），只能用列出的标记。")
+        lines.append(
+            "4. 用到【可引用的资料】时，优先引用本标 [标:…] 标记，在句末原样写上它的标记"
+            "（如 [标:p1] 或 [片:lib-1]），只能用列出的标记。"
+        )
     return "\n".join(lines)
 
 
-def _user_content(title: str, requirements: list[str], facts: list[dict], hits: list[dict], history: list[str], question: str) -> str:
+def _user_content(title: str, requirements: list[str], facts: list[dict], hits: list[dict], history: list[str], question: str,
+                  section: dict | None = None) -> str:
     lines = [f"【章节】{title}"]
+    if section:
+        from .technical_assistant import context_block
+        lines.append(context_block(section))
     if requirements:
         lines += ["【本章回应的招标要求】", *[f"- {text[:200]}" for text in requirements[:6]]]
     if facts:
         lines += ["【已确认的项目事实】", *[f"- {f['key']}：{f['value']}{f.get('unit') or ''}" for f in facts[:12]]]
     if hits:
-        lines += ["【可引用的资料】", *[f"- {h['cite_tag']} {h['name']}（v{h['revision']}）：{h['content'][:300]}" for h in hits]]
+        lines += [
+            "【可引用的资料】（本标优先，其次本公司知识库）",
+            *[f"- {h['cite_tag']} {h['name']}（v{h.get('revision') or 1}）：{h['content'][:300]}" for h in hits],
+        ]
     if history:
         lines += ["【本会话之前的问答】", *history]
     lines.append(f"【问题】{question}")
@@ -88,7 +99,7 @@ class AssistantQAService:
             raise DomainError(404, "NOT_FOUND", "未找到有权访问的章节。")
         project = self.demo._project(state, principal, project_id)
         team = (state.project_teams.get(project_id) or {}).get("members", {})
-        if (team.get(principal.user.id) or {}).get("project_role") in ("viewer", "readonly"):
+        if readonly_member(team.get(principal.user.id)):
             raise DomainError(403, "FORBIDDEN", "项目只读成员不能使用对话助手提问。")
         policy = self.rewrite._policy(state, project.company_id)
         if not policy["enabled"]:
@@ -98,6 +109,14 @@ class AssistantQAService:
         if not kb_on and not policy["allow_kb_off"]:
             raise DomainError(422, "VALIDATION_ERROR", "本公司要求对话助手使用知识库，不能关闭。")
         workflow = state.workflows.get(project_id) or {}
+        section_ctx = None
+        section = (payload.get("section") or "").strip()
+        if section and (workflow.get("technical_outline") or {}).get("chapter_id") == chapter_id:
+            from .technical_assistant import section_context
+            from .technical_volume import _leaf_key
+            section_ctx = section_context(workflow, section)
+        section_ref = ({"key": _leaf_key(section_ctx["heading"]), "title": section_ctx["heading"].get("title") or ""}
+                       if section_ctx else None)
         session_id = payload.get("session_id")
         history: list[str] = []
         if session_id:
@@ -105,10 +124,13 @@ class AssistantQAService:
             session = readable_session(state, principal, project_id, session_id)
             if session["owner_id"] != principal.user.id or session["chapter_id"] != chapter_id:
                 raise DomainError(403, "FORBIDDEN", "只能在本人本章的会话中继续提问。")
+            if session.get("section_key") != (section_ref or {}).get("key"):
+                raise DomainError(403, "FORBIDDEN", "这段会话属于别的小节，请新开会话或切回原小节。")
             history = [f"- 问：{m['question'][:200]} → 答：{(m.get('answer') or '')[:300]}"
                        for m in session["messages"] if m["kind"] == "answer"][-2:]
         base = {"principal": principal, "project_id": project_id, "chapter_id": chapter_id, "chapter_title": chapter.title,
-                "question": question, "kb_on": kb_on, "session_id": session_id, "sensitive": bool(project.sensitive)}
+                "question": question, "kb_on": kb_on, "session_id": session_id, "sensitive": bool(project.sensitive),
+                "section": section_ref}
         route = resolve_assistant_query_route(question, kb_on)
         if route.query_route == "direct_query":
             from .answer_card import AnswerCardService
@@ -120,11 +142,22 @@ class AssistantQAService:
         if not getattr(provider, "is_real_model", False):
             raise DomainError(502, "MODEL_UNAVAILABLE", "尚未接入真实大模型：对话助手不提供模拟回答。请公司管理员在“模型配置”中接入模型后再试。")
         facts, requirements = self.rewrite._sources(state, project_id, chapter_id, workflow)
-        hits, retrieval = [], {"status": "off", "message": "知识库已关闭，未查询本公司资料库。"}
-        if kb_on:
-            hits, retrieval = self.rewrite._retrieve(principal, project.company_id, chapter.title, question, "")
-        return {**base, "card": None, "provider": provider, "hits": hits, "retrieval": retrieval,
-                "system": _system_prompt(kb_on), "user_content": _user_content(chapter.title, requirements, facts, hits, history, question)}
+        scope = (" ".join([section_ctx["heading"].get("title") or "", *section_ctx["points"][:2]])
+                 if section_ctx else chapter.title)
+        hits, retrieval = self.rewrite._retrieve(
+            principal, project.company_id, scope, question, "", workflow, company_kb=kb_on,
+        )
+        grounded = bool(hits)
+        return {
+            **base,
+            "card": None,
+            "provider": provider,
+            "hits": hits,
+            "retrieval": retrieval,
+            "grounded": grounded,
+            "system": _system_prompt(grounded),
+            "user_content": _user_content(chapter.title, requirements, facts, hits, history, question, section_ctx),
+        }
 
     def stream(self, prepared: dict, cancel: Any = None):
         """事件：started →（card）或 delta / fallback / queued → answer → done；知识库无结果时不调用模型。"""
@@ -216,7 +249,8 @@ class AssistantQAService:
             from .assistant_sessions import record_question
             chapter = self.demo._chapter(state, principal, prepared["chapter_id"])
             flow = state.workflows.setdefault(prepared["project_id"], {})
-            record["session_id"] = record_question(flow, principal, chapter, record, prepared["session_id"], now)
+            record["session_id"] = record_question(flow, principal, chapter, record, prepared["session_id"], now,
+                                                prepared.get("section"))
             self.demo._audit(state, principal, chapter, "assistant.question",
                              {"answer_id": record["id"], "route": record["route"], "knowledge_base_enabled": prepared["kb_on"],
                               "model": record.get("model"), "is_fallback": record.get("is_fallback", False)})

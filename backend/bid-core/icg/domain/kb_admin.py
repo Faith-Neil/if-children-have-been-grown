@@ -14,14 +14,16 @@ from copy import deepcopy
 from typing import Any
 
 from .domain import DemoState, DomainError, Principal, iso_time, new_id
-from .knowledge_base import (DATASET_KINDS, FILE_KINDS, KIND_PROFILE, SETTINGS_STORE, SOURCE_FILE, STATUS_FAILED,
+from .knowledge_base import (DATASET_KINDS, DEFAULT_DEPLOY_KINDS, FILE_KINDS, KIND_PROFILE, MATERIAL_SUBKINDS,
+                             SETTINGS_STORE, SOURCE_FILE, STATUS_FAILED,
+                             dataset_full_name, dataset_suffix,
                              STATUS_PARSING, KnowledgeBaseService, _company_index, default_settings, read_index,
                              read_settings)
 
 AUDIT_STORE = "kb_audit"
 AUDIT_LIMIT = 500
-READ_ROLES = {"company_admin", "data_admin", "manager", "project_lead"}
-WRITE_ROLES = {"company_admin", "data_admin"}
+READ_ROLES = {"company_admin", "member"}
+WRITE_ROLES = {"company_admin"}
 CONNECTION_ROLES = {"company_admin"}
 SETTING_FIELDS = {
     "embedding_model": str, "rerank_id": str, "llm_id": str, "similarity_threshold": float,
@@ -29,15 +31,18 @@ SETTING_FIELDS = {
 }
 PROFILE_FIELDS = {"chunk_token_size": int, "questions_top_n": int, "keywords_top_n": int, "extra_heading_patterns": list}
 UPLOAD_SUFFIXES = {
-    "history": (".pdf", ".docx", ".doc", ".xlsx", ".xls", ".csv", ".md", ".txt", ".pptx"),
-    "certificate": (".pdf", ".png", ".jpg", ".jpeg", ".docx"),
+    "history": (".pdf", ".docx", ".doc"),
+    "materials": (".pdf", ".docx", ".doc", ".xls", ".xlsx", ".csv", ".ppt", ".pptx", ".md", ".txt"),
+    "manuals": (".pdf", ".docx", ".doc", ".md", ".txt"),
+    "fault_cases": (".pdf", ".docx", ".doc", ".xls", ".xlsx", ".csv", ".md", ".txt"),
+    "products": (".pdf", ".docx", ".doc", ".xls", ".xlsx", ".csv", ".ppt", ".pptx", ".md", ".txt"),
 }
 CERT_FIELD_TO_LIBRARY = {"cert_name": "name", "valid_to": "valid_until"}
 
 
 def _role(principal: Principal) -> str:
     from .project_access import normalize_role
-    return normalize_role(principal.user.role)
+    return normalize_role(getattr(principal.user, "role", "") or "")
 
 
 def _is_super(principal: Principal) -> bool:
@@ -46,7 +51,7 @@ def _is_super(principal: Principal) -> bool:
 
 
 def require_kb_role(principal: Principal, level: str = "read") -> None:
-    """read：管理/资料/项目负责角色；write：公司管理员与资料管理员；connection：只有公司管理员。"""
+    """read：公司管理员与普通用户；write 与 connection：只有公司管理员。"""
     if _is_super(principal):
         return
     allowed = {"read": READ_ROLES, "write": WRITE_ROLES, "connection": CONNECTION_ROLES}[level]
@@ -255,10 +260,12 @@ class KbAdminService:
         client = self._client(principal)
         company = principal.user.company_id
         results = {}
-        for kind in kinds or list(DATASET_KINDS):
+        for kind in kinds or list(DEFAULT_DEPLOY_KINDS):
             self._kind(kind)
             try:
                 results[kind] = self.kb.ensure_dataset(client, company, kind)
+            except DomainError:
+                raise
             except Exception as exc:
                 raise self._wrap(exc, f"部署 {kind} 知识库") from None
         self._audit(principal, "pipelines.deploy", ",".join(results), {
@@ -273,10 +280,10 @@ class KbAdminService:
         index = read_index(self.repository.read(), company)
         client = self.kb.client_for(company)
         rows = []
-        for kind, suffix in DATASET_KINDS.items():
+        for kind in DATASET_KINDS:
             info = index.get("datasets", {}).get(kind) or {}
-            row = {"kind": kind, "name": f"{company}::{suffix}", "profile": KIND_PROFILE[kind], **info,
-                   "document_count": None, "chunk_count": None}
+            row = {"kind": kind, "name": dataset_full_name(company, kind), "suffix": dataset_suffix(kind),
+                   "profile": KIND_PROFILE[kind], **info, "document_count": None, "chunk_count": None}
             if client is not None and info.get("dataset_id"):
                 try:
                     raw = client.get_dataset(info["dataset_id"], company_id=company).raw
@@ -375,7 +382,7 @@ class KbAdminService:
         self._kind(kind)
         company = principal.user.company_id
         info = self._dataset(principal, kind, create=False)
-        expected = f"{company}::{DATASET_KINDS[kind]}"
+        expected = dataset_full_name(company, kind)
         if confirm_name != expected:
             raise DomainError(422, "CONFIRMATION_REQUIRED", f"请输入数据集全名 {expected} 以确认删除。")
         try:
@@ -431,9 +438,22 @@ class KbAdminService:
         return {"kind": kind, "items": items, "page": page}
 
     def upload(self, principal: Principal, kind: str, payload: dict[str, Any]) -> dict[str, Any]:
-        """上传原件到历史投标或证书数据集，并按 ICG 流程解析。"""
-        require_kb_role(principal, "write")
+        """上传原件到历史投标或资料子库数据集，执行去实体化或表格带表头拆行预处理后触发 ICG 流程解析。"""
         self._kind(kind, files_only=True)
+        if kind == "history":
+            # 历史标书可由公司管理员或任一项目负责人追加；权威资料只由公司管理员维护。
+            from .project_access import leads_any_project
+            if not leads_any_project(self.repository.read(), principal.user):
+                raise DomainError(403, "FORBIDDEN", "当前账号无权上传历史标书。")
+            create_dataset = False
+        elif kind in ("materials", *MATERIAL_SUBKINDS):
+            if not (_is_super(principal) or _role(principal) in WRITE_ROLES):
+                raise DomainError(403, "FORBIDDEN", "当前账号无权上传权威资料。")
+            # 三类新物理子库若管理员尚未手动点建立，上传时自动建库绑定专属管道；旧 materials 保持原门禁语义
+            create_dataset = kind in MATERIAL_SUBKINDS
+        else:
+            require_kb_role(principal, "write")
+            create_dataset = True
         filename = str(payload.get("filename") or "").strip()
         if not filename or "/" in filename or "\\" in filename:
             raise DomainError(422, "VALIDATION_ERROR", "文件名无效。")
@@ -451,14 +471,36 @@ class KbAdminService:
         if len(data) > max_upload_bytes():
             raise DomainError(413, "FILE_SIZE_LIMIT", too_large_message())
         user_meta = {str(k)[:64]: str(v)[:500] for k, v in (payload.get("metadata") or {}).items() if str(v).strip()}
+        content_type = str(payload.get("content_type") or "")
+
+        from icg.domain.kb_preprocess import preprocess_history_upload, preprocess_material_upload
+
+        deferred_scrub = False
+        upload_name = filename
+        if kind == "history":
+            data, scrub_info = preprocess_history_upload(filename, data, user_meta)
+            deferred_scrub = bool(scrub_info.get("deferred_chunk_scrub"))
+        else:
+            upload_name, data, content_type, auto_meta = preprocess_material_upload(
+                filename, data, kind, content_type=content_type, user_meta=user_meta,
+            )
+            for mk, mv in auto_meta.items():
+                user_meta.setdefault(mk, mv)
+
         company = principal.user.company_id
         client = self._client(principal)
-        info = self._dataset(principal, kind)
+        try:
+            info = self._dataset(principal, kind, create=create_dataset)
+        except DomainError as exc:
+            if kind in ("history", "materials") and not create_dataset and getattr(exc, "status", None) == 404:
+                label = "历史标书" if kind == "history" else "权威资料"
+                raise DomainError(409, "KNOWLEDGE_BASE_NOT_CONFIGURED", f"本公司{label}数据集尚未配置，请公司管理员先配置。") from None
+            raise
         file_id = new_id("kbfile")
         meta = {**user_meta, "company_id": company, "source_type": SOURCE_FILE, "source_id": file_id,
                 "knowledge_kind": kind}
         try:
-            doc = client.upload_file(info["dataset_id"], filename, data, str(payload.get("content_type") or ""))
+            doc = client.upload_file(info["dataset_id"], upload_name, data, content_type)
             client.update_document(info["dataset_id"], doc.id, meta_fields=meta)
             client.trigger_parse(info["dataset_id"], [doc.id])
         except Exception as exc:
@@ -467,7 +509,8 @@ class KbAdminService:
         entry = {"key": f"{SOURCE_FILE}:{file_id}", "source_type": SOURCE_FILE, "source_id": file_id,
                  "dataset_kind": kind, "company_id": company, "name": filename, "item_type": kind, "revision": 1,
                  "document_id": doc.id, "status": STATUS_PARSING, "message": "", "chunk_count": 0,
-                 "content_type": str(payload.get("content_type") or ""), "size": len(data), "enabled": True,
+                 "content_type": content_type, "size": len(data), "enabled": True,
+                 "deferred_chunk_scrub": deferred_scrub,
                  "user_meta": user_meta, "uploaded_by": principal.user.id, "updated_at": now}
         self.kb._update_index(company, lambda idx: idx["files"].__setitem__(entry["key"], entry))
         self._audit(principal, "document.upload", entry["key"], {"kind": kind, "name": filename, "size": len(data)})
@@ -595,13 +638,20 @@ class KbAdminService:
             raise DomainError(422, "VALIDATION_ERROR", "请输入试查问题。")
         overrides = {k: payload[k] for k in ("similarity_threshold", "keywords_weight", "rerank_id")
                      if payload.get(k) is not None}
-        kinds = set(payload.get("kinds") or ["evidence", "snippet", "history"])
-        if not kinds <= {"evidence", "snippet", "history"}:
-            raise DomainError(422, "VALIDATION_ERROR", "kinds 只能是 evidence、snippet、history。")
+        kinds = set(payload.get("kinds") or ["history", "materials"])
+        allowed_kinds = {"evidence", "snippet", "history", "materials", *MATERIAL_SUBKINDS}
+        if not kinds <= allowed_kinds:
+            raise DomainError(422, "VALIDATION_ERROR", "kinds 包含不支持的知识库类别。")
         limit = max(1, min(int(payload.get("limit") or 8), 20))
+        meta_cond = payload.get("metadata_condition") if isinstance(payload.get("metadata_condition"), dict) else None
+        # 远端已解析完成但本地索引仍为 parsing 时，试查会得到 zero hits；先对账状态。
+        try:
+            self.kb.refresh_status(principal.user.company_id)
+        except Exception:
+            pass
         try:
             hits, reason = self.kb.search(principal.user.company_id, query, limit=limit, kinds=kinds,
-                                          user=principal.user, overrides=overrides)
+                                          user=principal.user, overrides=overrides, metadata_condition=meta_cond)
         except Exception as exc:
             raise self._wrap(exc, "检索试查") from None
         return {"query": query, "parameters": {**self._public_settings(read_settings(self.repository.read(),

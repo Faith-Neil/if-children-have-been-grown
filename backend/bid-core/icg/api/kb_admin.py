@@ -17,8 +17,8 @@ from icg.domain.kb_admin import KbAdminService
 from icg.domain.schemas import RequestBody, ResponseBody
 from icg.domain.workflow_schemas import v1_error_responses
 
-Kind = Literal["library", "history", "certificate"]
-FileKind = Literal["history", "certificate"]
+Kind = Literal["history", "materials", "manuals", "fault_cases", "products"]
+FileKind = Literal["history", "materials", "manuals", "fault_cases", "products"]
 
 
 class KbAdminResult(ResponseBody):
@@ -72,11 +72,12 @@ class KbChunkPatch(RequestBody):
 
 class KbRetrievalTest(RequestBody):
     query: str = Field(min_length=1, max_length=2000)
-    kinds: list[Literal["evidence", "snippet", "history"]] | None = None
+    kinds: list[Literal["evidence", "snippet", "history", "materials", "manuals", "fault_cases", "products"]] | None = None
     limit: int = Field(default=8, ge=1, le=20)
     similarity_threshold: float | None = Field(default=None, ge=0, le=1)
     keywords_weight: float | None = Field(default=None, ge=0, le=1)
     rerank_id: str | None = Field(default=None, max_length=255)
+    metadata_condition: dict[str, Any] | None = None
 
 
 def _revision(if_match: str | None) -> int:
@@ -173,12 +174,24 @@ def include_kb_admin_routes(application, service: DemoService, current_user) -> 
 
     @router.post("/datasets/{kind}/documents/raw", response_model=R, operation_id="uploadKbDocumentRaw",
                  summary="上传知识库原件（二进制）", openapi_extra=RAW_BODY_DOC,
-                 description="请求体为文件原始字节；filename、content_type 放在查询参数。大小上限见 ICG_MAX_UPLOAD_MB（默认 100MB）。")
+                 description="请求体为文件原始字节；filename、content_type 与可选元数据放在查询参数。大小上限见 ICG_MAX_UPLOAD_MB（默认 100MB）。")
     async def upload_raw(kind: FileKind, request: Request, filename: str = Query(min_length=1, max_length=200),
-                         content_type: str = Query(default="", max_length=200), user: Principal = Depends(current_user)):
+                         content_type: str = Query(default="", max_length=200),
+                         model: str = Query(default="", max_length=120),
+                         product_line: str = Query(default="", max_length=120),
+                         fault_category: str = Query(default="", max_length=120),
+                         user: Principal = Depends(current_user)):
         data = await read_limited_body(request)
+        meta: dict[str, str] = {}
+        if model.strip():
+            meta["product_model" if kind == "fault_cases" else "model"] = model.strip()
+        if product_line.strip():
+            meta["product_line"] = product_line.strip()
+        if fault_category.strip():
+            meta["fault_category"] = fault_category.strip()
         return await run_in_threadpool(admin.upload, user, kind,
-                                       {"filename": filename, "content_bytes": data, "content_type": content_type})
+                                       {"filename": filename, "content_bytes": data, "content_type": content_type,
+                                        "metadata": meta})
 
     @router.patch("/datasets/{kind}/documents/{document_id}", response_model=R, operation_id="patchKbDocument")
     def patch_document(kind: Kind, document_id: str, body: KbDocumentPatch, user: Principal = Depends(current_user)):

@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { Alert, Button, Card, Input } from 'antd';
 import { LockOutlined } from '@ant-design/icons';
 import { ApiError } from '../shared/api.ts';
+import { BrandMark } from '../shared/BrandMark.tsx';
 import { changeOwnPassword, type PasswordPolicy } from './login-auth-core.ts';
 import { checkPasswordChange, DEFAULT_POLICY, passwordProblems, policyText } from './password-change-core.ts';
 
@@ -49,7 +50,7 @@ export function PasswordChangeScreen({ token, username, policy, productName = 'æ
   return (
     <div className="login-screen">
       <section className="login-brand">
-        <div className="brand-square">æ ‡</div>
+        <BrandMark />
         <h1>{productName}</h1>
       </section>
       <section className="login-main">

@@ -5,6 +5,7 @@ import { Alert, App as AntApp, Button, Card, Col, Descriptions, Empty, Form, Inp
 import { DownloadOutlined, FileTextOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import { download } from '../shared/api';
 import { projectCan } from '../project/project-team';
+import { normalizeSystemRole } from '../shell/route-guard';
 import { SlaPropagationPanel } from './SlaPropagationPanel';
 import { formatTime, useProject } from '../app/context';
 import { displaySlaValue, slaScalar, slaVariablePayload, slaUnits, slaGroups } from './sla-form';
@@ -20,6 +21,12 @@ const blankVariable = (): SlaVariable => ({ var_key: '', label: '', group: 'resp
 const judgmentColors: Record<SlaRow['judgment'], string> = { satisfied: 'green', not_satisfied: 'red', exceeds_capability: 'orange', missing: 'default', manual: 'purple', not_required: 'blue', unquantified: 'gold' };
 const factLabel = (status: string) => status === 'confirmed' ? '已逐项确认' : status === 'needs_review' ? '需重新核对' : '尚未确认';
 
+// 公司模板：公司管理员或本公司任一项目负责人可维护（与后端一致）。
+function canWriteTemplates(user: Account) {
+  const role = normalizeSystemRole(user.role);
+  return role === 'company_admin' || role === 'platform_admin' || !!user.leads_project;
+}
+
 type TemplateProps = { items: SlaTemplate[]; revision: number; read: TemplateReader; globalSearch?: string; user: Account; busy: boolean; mutate: LibraryMutation; report: (error: unknown) => void };
 
 export function SlaTemplatesPage({ items, revision, read, globalSearch = '', user, busy, mutate, report }: TemplateProps) {
@@ -29,12 +36,12 @@ export function SlaTemplatesPage({ items, revision, read, globalSearch = '', use
   const [reviewBasis, setReviewBasis] = useState<TemplateReviewBasis | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const [form] = Form.useForm();
-  const canWrite = user.role === 'manager';
+  const canWrite = canWriteTemplates(user);
   const editorSession = useRef(0);
   const latest = useRef({ company_id: user.company_id, revision, items, user, busy: busy || reviewing });
   latest.current = { company_id: user.company_id, revision, items, user, busy: busy || reviewing };
   const reviewProblem = open ? templateReviewProblem(reviewBasis, latest.current) : null;
-  const canSave = () => latest.current.user.role === 'manager' && !latest.current.busy;
+  const canSave = () => canWriteTemplates(latest.current.user) && !latest.current.busy;
   function loadForm(item: SlaTemplate | null) {
     form.resetFields();
     form.setFieldsValue(item ? { ...copyTemplate(item), reason: '' } : { name: '', version_no: '1.0', edition: 'standard', service_hours: 'h5x8', status: 'pending', body_text: '', reason: '', variables: [blankVariable()] });
@@ -185,10 +192,10 @@ export function SlaMatrixPage({ onLocate }: { onLocate: (source: Source) => void
       <Table rowKey="var_key" size="small" scroll={{ x: 1240 }} pagination={false} dataSource={sla.rows} rowClassName={row => ['not_satisfied', 'missing'].includes(row.judgment) || row.source_stale ? 'risk-row' : ''} columns={[
         { title: '指标 / 比较方式', width: 185, render: (_, row) => <><b>{row.label}</b><p className="muted">{slaGroups.find(item => item.value === row.group)?.label || row.group} · {directions.find(item => item.value === row.compare_direction)?.label}</p><small className="muted">{row.var_key}</small></> },
         { title: '招标要求值 / 来源', width: 215, render: (_, row) => <>{displaySlaValue(row.tender_required_value, row.tender_unit, row.requirement_id ? '原文未量化' : '未登记招标要求')}{row.source ? <p><a onClick={() => onLocate(row.source!)}><FileTextOutlined /> 第{row.source.page}页</a></p> : <p className="muted">未绑定原文</p>}{row.source_stale && <Tag color="red">原文已变化，需重新核对</Tag>}</> },
-        { title: '我方承诺值', width: 150, render: (_, row) => <>{displaySlaValue(row.project_value, row.project_unit)}<p><Button type="link" size="small" disabled={busy || !canWrite || sla.template_stale} onClick={() => editRow(row)}>核对 / 修改</Button></p></> },
+        { title: '我方承诺值', width: 150, render: (_, row) => <>{displaySlaValue(row.project_value, row.project_unit)}{row.project_value == null || row.project_value === '' ? <Tag>待确认</Tag> : null}</> },
         { title: '公司能力极限', width: 150, render: (_, row) => <>{displaySlaValue(row.best_committable_value, row.unit, '未提供依据')}<p className="muted">取自公司模板</p></> },
         { title: '后台判定 / 负责人核对', width: 290, render: (_, row) => <><Tag color={judgmentColors[row.judgment]}>{row.judgment_label}</Tag><p>{row.message}</p>{row.review ? <p className="muted">已留痕：{row.review.reason}<br />{formatTime(row.review.at)}</p> : ['exceeds_capability', 'manual', 'unquantified', 'not_required'].includes(row.judgment) ? <Button type="link" size="small" disabled={busy || !canWrite || sla.template_stale || row.source_stale} onClick={() => reviewRow(row)}>说明依据并核对风险</Button> : null}</> },
-        { title: '事实确认 / 正文变量', width: 225, render: (_, row) => <><Tag color={row.fact_status === 'confirmed' ? 'green' : 'orange'}>{factLabel(row.fact_status)}</Tag><p><Button type="link" size="small" onClick={() => navigate('facts')}>去事实表逐项确认</Button></p><code>{row.variable_token}</code></> },
+        { title: '事实确认 / 正文变量', width: 225, render: (_, row) => <><Tag color={row.fact_status === 'confirmed' ? 'green' : 'orange'}>{factLabel(row.fact_status)}</Tag><p><Button type="link" size="small" onClick={() => navigate('analyze')}>去事实表逐项确认</Button></p><code>{row.variable_token}</code></> },
       ]} />
     </>}
     <Modal title={sla?.template_id === templateId ? '刷新当前服务模板' : '选用服务模板'} open={templateOpen} onCancel={() => { if (!busy) setTemplateOpen(false); }} onOk={applyTemplate} confirmLoading={busy} okText="确认选用" cancelText="取消">

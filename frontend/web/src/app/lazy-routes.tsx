@@ -19,6 +19,7 @@ export const LazyJobsPage = lazy(() => loadSupportPages().then(module => ({ defa
 export const LazyPendingPage = lazy(() => loadSupportPages().then(module => ({ default: module.PendingPage })));
 export const LazyAuditLogPage = lazy(() => loadAuditLog().then(module => ({ default: module.AuditLogPage })));
 export const LazyCompanyManagePage = lazy(() => loadCompanyManage().then(module => ({ default: module.CompanyManagePage })));
+export const LazyCompanyDetailPage = lazy(() => import('../admin/CompanyDetailPage.tsx').then(module => ({ default: module.CompanyDetailPage })));
 export const LazyDictConfigPage = lazy(() => loadDictConfig().then(module => ({ default: module.DictConfigPage })));
 export const LazyCompanySettingsPage = lazy(() => loadCompanySettings().then(module => ({ default: module.CompanySettingsPage })));
 export const LazyUsersPage = lazy(() => loadUsersPage().then(module => ({ default: module.UsersPage })));

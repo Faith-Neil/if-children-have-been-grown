@@ -65,7 +65,8 @@ test('useUnsavedPrompt implements beforeunload listener and modal confirm naviga
   assert.match(text, /applyBeforeUnloadEvent\(true, event\)/, 'applies beforeunload event logic');
 
   // 2. 模态拦截确认
-  assert.match(text, /Modal\.confirm\(/, 'invokes Ant Design Modal.confirm for in-app navigation');
+  assert.match(text, /modal\.confirm\(/, 'invokes context-bound modal.confirm for in-app navigation');
+  assert.match(text, /App\.useApp\(\)/, 'obtains modal via App.useApp context');
   assert.match(text, /FORM_LEAVE_COPY\.title/, 'uses standard leave prompt title');
   assert.match(text, /FORM_LEAVE_COPY\.content/, 'uses standard leave prompt content');
   assert.match(text, /okButtonProps:\s*\{\s*danger:\s*true\s*\}/, 'sets danger style for abandon action');

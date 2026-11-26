@@ -164,7 +164,7 @@ class ParagraphLockService:
         def operation(state: DemoState):
             chapter, workflow = self._load(state, principal, project_id, chapter_id, write=True)
             from .project_access import ensure_not_readonly, lead
-            ensure_not_readonly(principal)
+            ensure_not_readonly(principal, state, project_id)
             store = _store(workflow, chapter_id)
             current = {item["paragraph_key"]: item for item in public_locks(state, chapter, workflow, principal.user.id)}
             target = current.get(paragraph_key)
