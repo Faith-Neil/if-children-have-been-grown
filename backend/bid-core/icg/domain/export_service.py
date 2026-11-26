@@ -287,7 +287,14 @@ class ExportServiceMixin(CheckOrchestratorMixin):
         chapter = state.chapters.get(outline.get("chapter_id") or "")
         if chapter is None or not (chapter.content or "").strip():
             raise DomainError(409, "REQUIREMENT_NOT_READY", "还没有可导出的技术分册正文。")
-        parts = export_parts(workflow, chapter.title or outline.get("title") or "服务方案", chapter.content)
+        provider = None
+        if hasattr(self.demo, "resolve_model_provider"):
+            try:
+                provider = self.demo.resolve_model_provider(state, project_id, "chapter_generation")
+            except Exception:
+                # 偏离表 LLM 兜底是增强项；模型路由不可用时仍保持确定性导出主干。
+                provider = None
+        parts = export_parts(workflow, chapter.title or outline.get("title") or "服务方案", chapter.content, model=provider)
         now = self.demo._now()
         batch_no = next_batch_no(workflow, payload.get("kind") or "internal", datetime.fromtimestamp(now, SHANGHAI))
         identity = new_id("export")

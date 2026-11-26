@@ -9,6 +9,7 @@ import re
 from typing import Any
 
 from .scope_rules import BREAK, normalize
+from .export_sanitizer import normalize_markdown_noise
 
 VOLUME_NAMES = {"technical": "技术分册", "business": "商务分册"}
 CATEGORY_NAMES = {"mandatory": "实质性条款", "qualification": "资格要求", "technical": "技术服务", "business": "商务要求",
@@ -40,20 +41,64 @@ def best_paragraph(content: str, query: str) -> tuple[int | None, str]:
     return (best, best_text) if best_score >= 0.2 else (None, "")
 
 
+def requirement_heading_map(workflow: dict) -> dict[str, dict]:
+    """招标条款 → 技术目录叶子节。响应追溯表必须落到 1～12 节，而不是全填唯一章对象。"""
+    outline = workflow.get("technical_outline") or {}
+    mapping: dict[str, dict] = {}
+    for heading in outline.get("headings") or []:
+        if not (heading.get("task_id") or heading.get("requirement_id")):
+            continue
+        rids = list(heading.get("requirement_ids") or [])
+        if not rids and heading.get("requirement_id"):
+            rids = [heading.get("requirement_id")]
+        for rid in rids:
+            if rid and rid not in mapping:
+                mapping[str(rid)] = heading
+    return mapping
+
+
+def audit_for_requirement(workflow: dict, requirement_id: str, heading: dict | None) -> dict:
+    """按条款/任务找生成期实际检索审计；不能把其他节的命中来源贴到每一行。"""
+    rid = str(requirement_id or "")
+    task_id = str((heading or {}).get("task_id") or "")
+    for entry in workflow.get("technical_rag_audit") or []:
+        if task_id and str(entry.get("task_id") or "") == task_id:
+            return entry
+        if rid and rid in [str(x) for x in (entry.get("requirement_ids") or [])]:
+            return entry
+    return {}
+
+
 def build_trace_rows(state: Any, project: Any, workflow: dict, volumes: set[str]) -> list[list[object]]:
     files = workflow.get("files") or {}
     chapters = {c.id: c for c in state.chapters.values() if c.project_id == project.id}
     order = {cid: i + 1 for i, cid in enumerate(workflow.get("chapter_order") or [])}
+    heading_by_requirement = requirement_heading_map(workflow)
     owners = (state.project_teams.get(project.id) or {}).get("owners", {})
     names = {aid: a.name for aid, a in state.accounts.items()}
     rows: list[list[object]] = []
     requirements = sorted((workflow.get("requirements") or {}).values(),
                           key=lambda r: (r.get("volume", ""), (r.get("source") or {}).get("page") or 0))
-    for number, req in enumerate((r for r in requirements if r.get("volume") in volumes), start=1):
+    from icg.domain.technical_constraint_context import row_is_non_tech
+    eligible = (
+        r for r in requirements
+        if r.get("volume") in volumes and r.get("status") != "rejected" and not row_is_non_tech(r)
+    )
+    for number, req in enumerate(eligible, start=1):
         source = req.get("source") or {}
         file = files.get(source.get("file_id")) or {}
         chapter = chapters.get(req.get("chapter_id"))
-        paragraph, text = best_paragraph(chapter.content if chapter else "", f"{req.get('text', '')}{req.get('response', '')}")
+        heading = heading_by_requirement.get(str(req.get("id") or "")) or {}
+        chapter_content = chapter.content if chapter else ""
+        scoped_content = chapter_content
+        if heading and chapter_content:
+            from icg.domain.technical_volume import section_body
+            scoped_content = section_body(
+                chapter_content,
+                str(heading.get("number") or ""),
+                str(heading.get("title") or ""),
+            ) or chapter_content
+        paragraph, text = best_paragraph(scoped_content, f"{req.get('text', '')}{req.get('response', '')}")
         evidence = []
         for eid in req.get("evidence_ids") or []:
             item = state.library.get(eid) or {}
@@ -61,22 +106,58 @@ def build_trace_rows(state: Any, project: Any, workflow: dict, volumes: set[str]
         snippets = sorted({ref for kind, ref in _CITATION.findall(text) if kind == "片" and ref})
         cited = sorted({ref for kind, ref in _CITATION.findall(text) if kind == "证" and ref})
         owner_id = (chapter.assignee_id if chapter and chapter.assignee_id else owners.get(req.get("volume")))
-        rows.append([
+        owner_name = names.get(owner_id, owner_id or "")
+        if "合成" in owner_name:
+            owner_name = ""
+        # 响应列与偏离表同一套“单条条款→小节/句子”精准提炼，避免章首句批量复制。
+        if chapter_content and heading:
+            from icg.domain.technical_volume import _content_response
+            response_text = _content_response(chapter_content, heading, req)
+        elif text:
+            first = re.split(r"[。；;\n]", normalize_markdown_noise(text.strip()))[0].strip()
+            response_text = ("我司" + first if first and not first.startswith(("我", "本")) else first)[:160]
+        else:
+            response_text = "待生成后回填"
+        # 知识片段来源：正文引用优先；缺失时从生成期检索审计按章节回填真实知识文档名
+        knowledge = "、".join(snippets)
+        if not knowledge:
+            audit_refs: list[str] = []
+            entry = audit_for_requirement(workflow, str(req.get("id") or ""), heading)
+            for hit in (entry.get("top") or [])[:6]:
+                # 历史标书只作为内部知识来源，文件名常含其他业主/厂商；追溯表展示已脱敏类别。
+                # 本标切片是检索输入不是知识来源；materials/history 为 0 的节不得凭空填产品名。
+                kind = str((hit or {}).get("dataset_kind") or "")
+                if kind == "tender":
+                    continue
+                if kind == "materials" and not int(entry.get("material_hits") or 0):
+                    continue
+                if kind == "history" and not int(entry.get("history_hits") or 0):
+                    continue
+                name = "历史标书参考（已脱敏）" if kind == "history" else str((hit or {}).get("name") or "").strip()
+                if name and name not in audit_refs:
+                    audit_refs.append(name)
+            knowledge = "、".join(audit_refs[:4])
+        row_values = [
             number,
             str(req.get("text", "")),
             file.get("filename") or "招标文件",
             source.get("page") or "",
             CATEGORY_NAMES.get(req.get("category"), req.get("category") or ""),
-            str(req.get("response", "")),
+            response_text,
             VOLUME_NAMES.get(req.get("volume"), req.get("volume") or ""),
-            (f"{order.get(chapter.id, '')} {chapter.title}".strip() if chapter else "未对应章节"),
+            (f"{heading.get('number', '')} {heading.get('title', '')}".strip() if heading else (f"{order.get(chapter.id, '')} {chapter.title}".strip() if chapter else "未对应章节")),
             paragraph or "",
             "；".join(evidence) + (f"；正文引用 [证] {', '.join(cited)}" if cited else ""),
-            "、".join(snippets),
-            names.get(owner_id, owner_id or ""),
+            knowledge,
+            owner_name,
             req.get("confirmed_by_name") or "",
             STATUS_NAMES.get(req.get("status"), req.get("status") or ""),
-        ])
+        ]
+        foreign = list(workflow.get("foreign_entity_names") or [])
+        if foreign:
+            from icg.domain.writing_knowledge_prompt import mask_foreign_names
+            row_values = [mask_foreign_names(str(v), foreign) if isinstance(v, str) else v for v in row_values]
+        rows.append(row_values)
     return rows
 
 
