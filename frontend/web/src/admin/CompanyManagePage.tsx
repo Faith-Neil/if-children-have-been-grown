@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, App as AntApp, Button, Checkbox, Form, Input, Modal, Space, Table, Tag, Typography } from 'antd';
-import { DatabaseOutlined, PlusOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { Account, ApplicationSession } from '../shared/types';
 import { request, userFacingMessage } from '../shared/api';
@@ -14,8 +14,6 @@ import {
   validateCreateCompanyForm,
   type CreateCompanyFormValues,
 } from './company-provision-core';
-import { ModelConfigModal } from './ModelConfigModal';
-import { RagflowConfigModal } from './RagflowConfigModal';
 import { normalizeSystemRole } from '../shell/route-guard';
 
 const { Title, Text } = Typography;
@@ -40,13 +38,10 @@ export function CompanyManagePage({ session, currentUser, token, onNavigate }: C
   const [target, setTarget] = useState<CompanySummary | null>(null);
   const [confirmName, setConfirmName] = useState('');
   const [working, setWorking] = useState<string | null>(null);
-  const [modelOpen, setModelOpen] = useState(false);
-  const [ragflowOpen, setRagflowOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createForm] = Form.useForm<CreateCompanyFormValues>();
   const role = normalizeSystemRole(session?.user?.primary_role || currentUser?.role);
-  const canConfigureServices = role === 'platform_admin' || role === 'company_admin';
   const canCreateCompany = role === 'platform_admin';
 
   const load = useCallback(async () => {
@@ -142,12 +137,6 @@ export function CompanyManagePage({ session, currentUser, token, onNavigate }: C
                 setCreateOpen(true);
               }}>新建公司</Button>
           )}
-          {canConfigureServices && (
-            <>
-              <Button data-testid="open-model-config-modal-btn" icon={<ThunderboltOutlined />} onClick={() => setModelOpen(true)}>模型配置</Button>
-              <Button data-testid="open-ragflow-config-modal-btn" icon={<DatabaseOutlined />} onClick={() => setRagflowOpen(true)}>知识库服务</Button>
-            </>
-          )}
         </Space>
       </div>
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} action={<Button size="small" onClick={() => void load()}>重试</Button>} />}
@@ -190,8 +179,7 @@ export function CompanyManagePage({ session, currentUser, token, onNavigate }: C
         </Form>
       </Modal>
 
-      <ModelConfigModal open={modelOpen} onClose={() => setModelOpen(false)} session={session} />
-      <RagflowConfigModal open={ragflowOpen} onClose={() => setRagflowOpen(false)} session={session} />
+
     </div>
   );
 }

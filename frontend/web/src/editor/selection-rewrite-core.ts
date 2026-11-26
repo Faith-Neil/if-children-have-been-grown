@@ -157,7 +157,7 @@ export function knowledgeBaseNote(policy: AssistantPolicy | null, on: boolean): 
   if (!policy.allow_kb_off) return '本公司要求使用知识库，不能关闭';
   return on
     ? '先检索本标，再检索本公司知识库；样例必须附引用'
-    : '公司库关闭时仍检索本标；无命中则样例标“无知识库来源”';
+    : '公司库关闭时仍检索本标；无命中则明确标注“无知识库来源”';
 }
 
 export function modelLabel(policy: AssistantPolicy | null): string {

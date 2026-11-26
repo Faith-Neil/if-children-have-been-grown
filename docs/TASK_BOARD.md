@@ -717,10 +717,14 @@
 | [ADMIN-SETTINGS-CLEANUP](tasks/ADMIN-PROVISION.md#admin-settings-cleanup) | 字典下线与公司设置/安全策略收口 | done | 消费清单 | [ISSUE-056](../issues/ISSUE-056.md) | [交付](delivery/ADMIN-SETTINGS-CLEANUP.md) |
 | [ADMIN-MODEL-CONFIG-CLEANUP](tasks/ADMIN-PROVISION.md#admin-model-config-cleanup) | 平台模型配置真实生效项收口 | done | 分档参数核实 | [ISSUE-056](../issues/ISSUE-056.md) | [交付](delivery/ADMIN-MODEL-CONFIG-CLEANUP.md) |
 | [ADMIN-TASKCENTER-JOBS](tasks/ADMIN-PROVISION.md#admin-taskcenter-jobs) | 生成/解析任务中心链路核实补齐 | done | 任务链路核查 | [ISSUE-056](../issues/ISSUE-056.md) | [交付](delivery/ADMIN-TASKCENTER-JOBS.md) |
-| [FE-UX-MAINFLOW-COPY](tasks/FE-UX.md#fe-ux-mainflow-copy) | 主链路体验修复与大白话转译 | ready | PR #52/#53 已合入 | [ISSUE-057](../issues/ISSUE-057.md) | [交付](delivery/FE-UX-MAINFLOW-COPY.md) |
-| [FE-UX-VISUAL-TOKENS](tasks/FE-UX.md#fe-ux-visual-tokens) | 统一视觉 Token 与轻量动效 | ready | 设计 token 现状盘点 | [ISSUE-057](../issues/ISSUE-057.md) | [交付](delivery/FE-UX-VISUAL-TOKENS.md) |
-| [FE-UX-RESPONSIVE-LAYOUT](tasks/FE-UX.md#fe-ux-responsive-layout) | 多分辨率布局错位重构 | ready | FE-UX-VISUAL-TOKENS | [ISSUE-057](../issues/ISSUE-057.md) | [交付](delivery/FE-UX-RESPONSIVE-LAYOUT.md) |
-| [FE-UX-PLAYWRIGHT-VIEWPORTS](tasks/FE-UX.md#fe-ux-playwright-viewports) | 四视口 Playwright 巡检与截图自修 | ready | 前三卡初版 | [ISSUE-057](../issues/ISSUE-057.md) | [交付](delivery/FE-UX-PLAYWRIGHT-VIEWPORTS.md) |
+| [FE-UX-MAINFLOW-COPY](tasks/FE-UX.md#fe-ux-mainflow-copy) | 主链路体验修复与大白话转译 | done | PR #52/#53 已合入 | [ISSUE-057](../issues/ISSUE-057.md) | [交付](delivery/FE-UX-MAINFLOW-COPY.md) |
+| [FE-UX-VISUAL-TOKENS](tasks/FE-UX.md#fe-ux-visual-tokens) | 统一视觉 Token 与轻量动效 | done | 设计 token 现状盘点 | [ISSUE-057](../issues/ISSUE-057.md) | [交付](delivery/FE-UX-VISUAL-TOKENS.md) |
+| [FE-UX-RESPONSIVE-LAYOUT](tasks/FE-UX.md#fe-ux-responsive-layout) | 多分辨率布局错位重构 | done | FE-UX-VISUAL-TOKENS | [ISSUE-057](../issues/ISSUE-057.md) | [交付](delivery/FE-UX-RESPONSIVE-LAYOUT.md) |
+| [FE-UX-PLAYWRIGHT-VIEWPORTS](tasks/FE-UX.md#fe-ux-playwright-viewports) | 四视口 Playwright 巡检与截图自修 | done | 前三卡初版 | [ISSUE-057](../issues/ISSUE-057.md) | [交付](delivery/FE-UX-PLAYWRIGHT-VIEWPORTS.md) |
+| [FE-UX-STREAMING-RENDER](tasks/FE-UX.md#fe-ux-streaming-render) | 流式阶段胶囊与专属渲染画布 | in-progress | ISSUE-057 已合入 | [ISSUE-058](../issues/ISSUE-058.md) | `docs/delivery/FE-UX-STREAMING-RENDER.md` |
+| [FE-UX-STREAMING-MARKDOWN](tasks/FE-UX.md#fe-ux-streaming-markdown) | 流式安全 Markdown 中间态 | ready | FE-UX-STREAMING-RENDER | [ISSUE-058](../issues/ISSUE-058.md) | `docs/delivery/FE-UX-STREAMING-MARKDOWN.md` |
+| [FE-UX-STREAMING-HANDOFF](tasks/FE-UX.md#fe-ux-streaming-handoff) | 智能跟随滚动与完成无缝交接 | ready | FE-UX-STREAMING-RENDER、FE-UX-STREAMING-MARKDOWN | [ISSUE-058](../issues/ISSUE-058.md) | `docs/delivery/FE-UX-STREAMING-HANDOFF.md` |
+| [FE-UX-STREAMING-VERIFICATION](tasks/FE-UX.md#fe-ux-streaming-verification) | 流式单元测试与 Playwright SSE 验收 | ready | 前三张流式体验卡初版 | [ISSUE-058](../issues/ISSUE-058.md) | `docs/delivery/FE-UX-STREAMING-VERIFICATION.md` |
 <!-- task-board:end -->
 
 ## 每次推进的同步顺序

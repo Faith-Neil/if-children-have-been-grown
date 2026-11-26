@@ -10,7 +10,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 5小时 |
 | 关联 Issue | [ISSUE-057](../../issues/ISSUE-057.md) |
 | 依赖 | PR #52 项目列表服务端排序筛选；PR #53 后台权限收口 |
@@ -27,7 +27,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 4小时 |
 | 关联 Issue | [ISSUE-057](../../issues/ISSUE-057.md) |
 | 依赖 | FE-UX-MAINFLOW-COPY 可并行 |
@@ -44,7 +44,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 6小时 |
 | 关联 Issue | [ISSUE-057](../../issues/ISSUE-057.md) |
 | 依赖 | FE-UX-VISUAL-TOKENS |
@@ -61,7 +61,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 4小时 |
 | 关联 Issue | [ISSUE-057](../../issues/ISSUE-057.md) |
 | 依赖 | 前三张卡完成初版 |
@@ -71,3 +71,71 @@
 范围：headless Chromium 覆盖工作台、项目覆盖视图、编辑台、知识库、平台/公司后台；1920×1080、1440×900、1280×720、960×720；横向溢出、交互元素遮挡、Console 错误和 Antd deprecation 检测；截图自审迭代。
 
 验收：四视口程序化检测全部通过，关键截图留档并在 PR 描述引用。
+
+<a id="fe-ux-streaming-render"></a>
+
+## FE-UX-STREAMING-RENDER · 流式阶段胶囊与专属渲染画布
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | in-progress |
+| 估算 | 4小时 |
+| 关联 Issue | [ISSUE-058](../../issues/ISSUE-058.md) |
+| 依赖 | ISSUE-057 已合入 main |
+| 完成时交付 | `docs/delivery/FE-UX-STREAMING-RENDER.md` |
+| 代码解释 | `docs/code/FE-UX-STREAMING-RENDER.md` |
+
+范围：移除 `.paper-wait` 不透明遮罩；等待首字显示 AI 阶段呼吸胶囊与 shimmer 骨架；首字后切换 `StreamingPaperView`，与 TipTap 共用纸面排版；实现稳定 key 的柔和渐显 chunk 与呼吸光标。
+
+验收：`retrieve` / `deviate` / `write_section` 文案正确；无遮罩盖字；旧片段不重挂载；兼容 `prefers-reduced-motion`。
+
+<a id="fe-ux-streaming-markdown"></a>
+
+## FE-UX-STREAMING-MARKDOWN · 流式安全 Markdown 中间态
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | ready |
+| 估算 | 3小时 |
+| 关联 Issue | [ISSUE-058](../../issues/ISSUE-058.md) |
+| 依赖 | FE-UX-STREAMING-RENDER |
+| 完成时交付 | `docs/delivery/FE-UX-STREAMING-MARKDOWN.md` |
+| 代码解释 | `docs/code/FE-UX-STREAMING-MARKDOWN.md` |
+
+范围：新增 `frontend/web/src/editor/streaming-markdown.ts` 纯函数，处理尾部未闭合 `**`、`<u>`、孤立 `#` 与未成型表格；未成型表格以柔和微光占位过渡。
+
+验收：未闭合加粗/下划线不裸露原始符号；表格分隔行到达前不整块跳动；孤立 `#` 暂缓渲染；单元测试覆盖中间态与正式态。
+
+<a id="fe-ux-streaming-handoff"></a>
+
+## FE-UX-STREAMING-HANDOFF · 智能跟随滚动与完成无缝交接
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | ready |
+| 估算 | 4小时 |
+| 关联 Issue | [ISSUE-058](../../issues/ISSUE-058.md) |
+| 依赖 | FE-UX-STREAMING-RENDER、FE-UX-STREAMING-MARKDOWN |
+| 完成时交付 | `docs/delivery/FE-UX-STREAMING-HANDOFF.md` |
+| 代码解释 | `docs/code/FE-UX-STREAMING-HANDOFF.md` |
+
+范围：保留 24px 自动钉底与用户上翻不拉回；离开底部显示半透明“回到底部”；`volume.done` 且 reveal settled 后静默写入 TipTap 并恢复 scrollTop；取消/失败回滚过渡清晰。
+
+验收：长文滚动不强行拉回；点击回到底部平滑回底；完成后无白屏闪烁、整页回弹或 scrollTop 跳动；取消/失败正文回滚且提示明确。
+
+<a id="fe-ux-streaming-verification"></a>
+
+## FE-UX-STREAMING-VERIFICATION · 流式单元测试与 Playwright SSE 验收
+
+| 字段 | 内容 |
+|---|---|
+| 状态 | ready |
+| 估算 | 4小时 |
+| 关联 Issue | [ISSUE-058](../../issues/ISSUE-058.md) |
+| 依赖 | 前三张流式体验卡完成初版 |
+| 完成时交付 | `docs/delivery/FE-UX-STREAMING-VERIFICATION.md` |
+| 代码解释 | `docs/code/FE-UX-STREAMING-VERIFICATION.md` |
+
+范围：补齐 streaming-markdown、chunk key、text-reveal 速率与阶段映射单测；新增 Playwright SSE 模拟流验证普通段落、加粗、表格、长文滚动、完成收口、取消/失败提示。
+
+验收：前端权威测试、TypeScript、生产构建、Playwright 流式场景与治理检查按实际结果记录；不伪造真机模型验收。
