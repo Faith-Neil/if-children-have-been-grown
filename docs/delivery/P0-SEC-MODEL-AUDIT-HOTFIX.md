@@ -4,7 +4,7 @@
 
 | 项 | 内容 |
 |---|---|
-| 状态 | in-review；建议 PM 复核后标 done |
+| 状态 | done；用户（人类 PM）已按 PR #56 合入指示收口 |
 | Issue | [ISSUE-059](../../issues/ISSUE-059.md) |
 | 任务卡 | [P0-HOTFIX](../tasks/P0-HOTFIX.md#p0-sec-model-audit-hotfix) |
 | 代码说明 | [P0-SEC-MODEL-AUDIT-HOTFIX](../code/P0-SEC-MODEL-AUDIT-HOTFIX.md) |
@@ -16,15 +16,15 @@
 | 任务ID | P0-SEC-MODEL-AUDIT-HOTFIX |
 | 代码解释 | [代码说明](../code/P0-SEC-MODEL-AUDIT-HOTFIX.md) |
 | 验收 | 后端 `tests/backend/test_issue059_model_security.py` 15 passed、`tests/backend/test_issue059_audit_rbac.py` 6 passed；前端 `frontend/web/tests/unit/platform-security-settings.test.mjs` 7 例全绿；`export_openapi.py --check` 契约一致。真实模型连通性未在本轮验证（`ICG_RUN_REAL_*` 门控）。 |
-| 项目进度 | in-review；建议 PM 复核后标 done。ISSUE-059 四张止血卡全部实施完成进入 in-review，等待 QA 签署 + PD 产品验收 + 人类 PM 确认；未创建 PR，未合入，未发布。 |
+| 项目进度 | done。2026-11-28 用户（人类 PM）确认 PR #56 已合入 main（f18708c）并指示 ISSUE-059 收口：本卡标 done，Issue 标 closed；未发布。QA/PD 独立签署未执行，按 PM 明确指示作为例外收口；真实服务/容器等未验证局限仍以验证登记为准。 |
 <!-- task-delivery:end -->
 
 ## 关联与状态
 
 - 日期、里程碑、Issue、任务卡：2026-11-27；P0 止血（无里程碑变更）；[ISSUE-059](../../issues/ISSUE-059.md)；[P0-HOTFIX 任务卡](../tasks/P0-HOTFIX.md#p0-sec-model-audit-hotfix)。
-- 分支、提交、PR：分支 `feat/iss-059-p0-security-export-deploy-hotfix`；PR 未创建。
+- 分支、提交、PR：分支 `feat/iss-059-p0-security-export-deploy-hotfix`；PR #56 已合入 main（f18708c）。
 - 本地验收状态：聚焦单测通过（见验收结果）；真实模型端到端未验证。
-- 合入 / 发布状态：未合入、未发布。
+- 合入 / 发布状态：已合入 main（f18708c）、未发布。
 
 ## 完成内容与变更文件
 
@@ -54,7 +54,7 @@
 
 ## 项目进度
 
-in-review；建议 PM 复核后标 done。ISSUE-059 四张止血卡（P0-SEC-MODEL-AUDIT-HOTFIX、P0-EXPORT-STATE-HOTFIX、P0-CONFIG-KB-HOTFIX、P0-DEPLOY-HOTFIX）全部实施完成并进入 in-review；下一步为 QA 独立签署、PD 产品验收与人类 PM 确认。本卡不标 done。
+done。2026-11-28 用户（人类 PM）确认 PR #56 已合入 main（f18708c）并指示 ISSUE-059 收口：本卡标 done，Issue 标 closed；未发布。QA/PD 独立签署未执行，按 PM 明确指示作为例外收口；真实服务/容器等未验证局限仍以验证登记为准。
 
 ## 文档与 Issue 同步
 
@@ -64,7 +64,7 @@ in-review；建议 PM 复核后标 done。ISSUE-059 四张止血卡（P0-SEC-MOD
 | ROADMAP | 无影响：不改变里程碑顺序，属当前主链路阻断止血 |
 | ARCHITECTURE | 有影响：模型兜底安全边界（按 URL 判定公网端点）与审计授权边界收紧；ISSUE-059 六份基线同步表已登记「待处理」，由后续架构对齐任务或 PM 复核时落实正文 |
 | Issue 看板/详情 | 已同步：ISSUE-059 验收条目 AC-01～AC-03 更新为实证，处理记录追加一行 |
-| TASK_BOARD / PROJECT_STATUS | 已同步：看板本卡 in-review 并链接本交付；PROJECT_STATUS P0 段落同步四卡 in-review |
+| TASK_BOARD / PROJECT_STATUS | 已同步：看板本卡 done 并链接本交付；PROJECT_STATUS P0 段落同步四卡 done |
 | DOCUMENT_INDEX | 已登记：本交付与代码说明条目（D-1098 / D-1102） |
 
 ## 风险与后续
@@ -95,3 +95,7 @@ PM 正式驳回第一轮对公司管理员放开模型/RAGFlow 配置写权限�
 ## 第五轮补充
 
 公网备用模型改为直接丢弃，不再误阻断健康内网主模型；公网主模型 403 拦截保持不变，并有请求级回归证明没有流量发往公网备用端点。最终后端聚焦回归 252 passed、12 skipped、0 failed，11 个 MySQL 标记用例在 3407 隔离合成库补跑通过。
+
+## 收口记录（2026-11-28）
+
+PR #56 已合入 main（f18708c）。用户（人类 PM）明确指示 ISSUE-059 收口，本卡状态同步为 done；未发布。QA/PD 独立签署未执行，按 PM 明确指示作为例外收口；本文与验证登记中列明的真实 RAGFlow/真实模型/真实浏览器/真实容器编排未验证局限继续保留，不因收口而消除。

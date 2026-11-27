@@ -6,7 +6,7 @@
 
 日期：2026-11-27。关联 [ISSUE-059](../../issues/ISSUE-059.md)。分支 `feat/iss-059-p0-security-export-deploy-hotfix`。
 
-四张卡均为 in-review（2026-11-27 实施完成提交复核）。最高只能到 in-review，严禁标 done；done 须 QA 签署 + PD 产品验收 + 人类 PM 最终确认。涉密零外泄、多租户强隔离与 `RULES_INCOMPLETE` / `CHECK_BLOCKER_EXISTS` 导出门禁底线不得因止血修复削弱。四卡交付与代码说明见 `docs/delivery/` 与 `docs/code/` 同名文档，验证口径登记于 [iss-059-p0-hotfix-verification](../testing/iss-059-p0-hotfix-verification.md)。
+四张卡均为 done（2026-11-28 用户/人类 PM 按 PR #56 合入结果指示收口）。本轮为 PM 明确指示的例外收口：QA/PD 独立签署未执行，真实服务与真实容器编排未验证局限仍以验证登记为准。涉密零外泄、多租户强隔离与 `RULES_INCOMPLETE` / `CHECK_BLOCKER_EXISTS` 导出门禁底线不得因止血修复削弱。四卡交付与代码说明见 `docs/delivery/` 与 `docs/code/` 同名文档，验证口径登记于 [iss-059-p0-hotfix-verification](../testing/iss-059-p0-hotfix-verification.md)。
 
 <a id="p0-sec-model-audit-hotfix"></a>
 
@@ -14,7 +14,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 4小时 |
 | 关联 Issue | [ISSUE-059](../../issues/ISSUE-059.md) |
 | 依赖 | — |
@@ -38,7 +38,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 4小时 |
 | 关联 Issue | [ISSUE-059](../../issues/ISSUE-059.md) |
 | 依赖 | — |
@@ -61,7 +61,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 4小时 |
 | 关联 Issue | [ISSUE-059](../../issues/ISSUE-059.md) |
 | 依赖 | — |
@@ -84,7 +84,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 3小时 |
 | 关联 Issue | [ISSUE-059](../../issues/ISSUE-059.md) |
 | 依赖 | — |
@@ -99,3 +99,7 @@
 - [ ] 健康检查判据与实际启动入口一致：正常容器 healthy、非持久化或异常容器 unhealthy。（探针目标 `/health` 与 `persistent=true` 判据一致性、python 单行语法与 compose YAML 已静态验证；真实容器内 healthy/unhealthy 状态翻转未在目标机执行，留待 QA/部署复核）
 - [x] compose 端口默认 `127.0.0.1` 绑定；`deploy/README.md` 写明反代 HTTPS 暴露步骤、密钥不入库与显式放开方式。
 - [x] 不引入 Redis、不增加 worker，与既有三机部署底座一致。
+
+## PM 收口记录
+
+2026-11-28：PR #56 已合入 main（f18708c），用户（人类 PM）指示 ISSUE-059 与四张任务卡收口为 closed / done；未发布。真实 RAGFlow/真实模型/真实浏览器/真实容器编排未验证局限不消除，留待后续部署或专项复核。
