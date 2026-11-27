@@ -222,6 +222,8 @@ admin
 
 编辑器状态要与后端草稿自动保存解耦。
 
+技术卷流式生成采用“生成态只读画布 + 完成态编辑器”的双层交接：SSE 积压仍立即重放，实时增量经 `createDeltaCoalescer` 合并后由 `TextReveal` 柔和追赶；生成期间 `StreamingPaperView` 复用纸面排版并安全渲染中间态 Markdown，TipTap 实例只保留不重建。`volume.done` 且揭示追上后，服务端落盘正文在绘制前一次性写回 TipTap，并恢复滚动位置。该设计只改变前端展示节奏，不改变后端 SSE 契约。
+
 ## 6. 编辑器架构
 
 建议编辑器拆成：

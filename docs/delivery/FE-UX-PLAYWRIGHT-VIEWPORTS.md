@@ -6,7 +6,7 @@
 | 任务ID | FE-UX-PLAYWRIGHT-VIEWPORTS |
 | 代码解释 | [代码说明](../code/FE-UX-PLAYWRIGHT-VIEWPORTS.md) |
 | 验收 | tsc 与生产构建已通过；四视口 Playwright 巡检复跑 1 passed（31.0s）；已改用 SPA 内导航并移除 409 过滤，编辑台不再产生锁接管 409；tsc 与生产构建通过；前端全量单测存在既有 app-orchestration/company-settings/dict-config 陈旧或测试替身失败，未冒充通过 |
-| 项目进度 | in-review。不得标 done，待 QA/PD/PM 验收 |
+| 项目进度 | done。用户验收 PR #54 后按指令收口，ISSUE-057 closed；未发布 |
 <!-- task-delivery:end -->
 
 ## 实际修改

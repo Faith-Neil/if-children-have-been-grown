@@ -1,7 +1,7 @@
 // 为什么有这个文件：技术方案正文在编辑台里按纸面排版，而不是展示 Markdown 源码。
 // 它解决什么问题：标题、加粗、列表和表格可以直接改；保存时写回章节原有的 Markdown 字段。
 
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -12,6 +12,7 @@ import TableCell from '@tiptap/extension-table-cell';
 import Placeholder from '@tiptap/extension-placeholder';
 import { docToMarkdown, markdownToDoc, sameMarkdown, type PaperNode } from './paper-markdown';
 import { estimatePaperPageCount, paperStackMinHeight } from './paper-pagination';
+import { StreamingPaperView, type StreamingStage } from './StreamingPaperView';
 
 export interface PaperEditorHandle {
   undo: () => void;
@@ -32,6 +33,9 @@ interface Props {
   markdown: string;
   editable: boolean;
   generating: boolean;
+  streamStage?: StreamingStage;
+  streamFinishing?: boolean;
+  waitingForFirstText?: boolean;
   onChange: (markdown: string) => void;
   onActivity?: () => void;
   onSelection?: (range: { start: number; end: number; text: string } | null) => void;
@@ -42,7 +46,7 @@ function markdownOffset(doc: { cut: (from: number, to: number) => { toJSON: () =
   return docToMarkdown(doc.cut(0, pos).toJSON()).length;
 }
 
-export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEditor({ markdown, editable, generating, onChange, onActivity, onSelection }, ref) {
+export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEditor({ markdown, editable, generating, streamStage = '', streamFinishing = false, waitingForFirstText = false, onChange, onActivity, onSelection }, ref) {
   const incoming = useRef(markdown);
   incoming.current = markdown;
   const changeRef = useRef(onChange);
@@ -53,9 +57,14 @@ export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEd
   selectionRef.current = onSelection;
   const sheetRef = useRef<HTMLDivElement>(null);
   const [pageCount, setPageCount] = useState(1);
+  // 流式跟随的对象是活跃光标而不是整篇文档底部：多节标书写靠前章节时，写作位置在文档中部。
+  const [followPaused, setFollowPaused] = useState(false);
+  const autoFollow = useRef(true);
+  const expectedScrollTop = useRef<number | null>(null);
+  const followAnimation = useRef(0);
   const syncPageLayout = useCallback(() => {
     const sheet = sheetRef.current;
-    const surface = sheet?.querySelector('.paper-surface') as HTMLElement | null;
+    const surface = (sheet?.querySelector('.paper-streaming-view') ?? sheet?.querySelector('.paper-surface')) as HTMLElement | null;
     if (!surface || !sheet) return;
     const pages = estimatePaperPageCount(surface.scrollHeight);
     setPageCount(pages);
@@ -89,22 +98,122 @@ export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEd
     editor?.setEditable(editable && !generating);
   }, [editor, editable, generating]);
 
-  useEffect(() => {
-    if (!editor) return;
+  // 流式期间不重建 ProseMirror；完成交接时在绘制前一次性写入正式正文并恢复滚动位置。
+  useLayoutEffect(() => {
+    if (!editor || generating) return;
     const current = docToMarkdown(editor.getJSON() as PaperNode);
     if (sameMarkdown(current, markdown)) return;
     const scroller = sheetRef.current?.closest('.editor-scroll');
     const top = scroller instanceof HTMLElement ? scroller.scrollTop : 0;
-    const pin = scroller instanceof HTMLElement
-      && scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 24;
     editor.commands.setContent(markdownToDoc(markdown), false);
     if (!(scroller instanceof HTMLElement)) return;
     const restore = () => {
-      scroller.scrollTop = pin ? scroller.scrollHeight : top;
+      scroller.scrollTop = top;
     };
     restore();
     if (typeof requestAnimationFrame === 'function') requestAnimationFrame(restore);
-  }, [editor, markdown]);
+  }, [editor, markdown, generating]);
+
+  // 流式开始默认跟随活跃光标；用户手动滚动离开生成区即暂停，点「定位到正在撰写」恢复。
+  useEffect(() => {
+    if (generating) {
+      autoFollow.current = true;
+      setFollowPaused(false);
+      expectedScrollTop.current = null;
+    }
+    return () => cancelAnimationFrame(followAnimation.current);
+  }, [generating]);
+
+  useEffect(() => {
+    if (!generating) return;
+    const scroller = sheetRef.current?.closest('.editor-scroll');
+    if (!(scroller instanceof HTMLElement)) return;
+    // 会话开始且容器就绪即初始化预期滚动基准，不等写作光标出现；
+    // 否则等待首字期间用户拖动滚动条会被误判偏差之外的“无基线”情况，无法暂停跟随。
+    if (expectedScrollTop.current === null) expectedScrollTop.current = scroller.scrollTop;
+    const pause = () => {
+      if (!autoFollow.current) return;
+      autoFollow.current = false;
+      cancelAnimationFrame(followAnimation.current);
+      setFollowPaused(true);
+    };
+    const onWheel = (event: WheelEvent) => {
+      // 只有滚轮方向能实际移动视口才暂停；页顶向上滚轮不动视口，不算离开生成区。
+      const canScrollUp = event.deltaY < 0 && scroller.scrollTop > 0;
+      const canScrollDown = event.deltaY > 0 && scroller.scrollTop + scroller.clientHeight < scroller.scrollHeight - 2;
+      if (canScrollUp || canScrollDown) pause();
+    };
+    const onScroll = () => {
+      // 程序化滚动总会落在预期位置；出现偏差说明是用户拖动滚动条或键盘滚动。
+      const expected = expectedScrollTop.current;
+      if (expected !== null && Math.abs(scroller.scrollTop - expected) > 2) pause();
+    };
+    scroller.addEventListener('wheel', onWheel, { passive: true });
+    scroller.addEventListener('touchmove', pause, { passive: true });
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      scroller.removeEventListener('wheel', onWheel);
+      scroller.removeEventListener('touchmove', pause);
+      scroller.removeEventListener('scroll', onScroll);
+    };
+  }, [generating, editor]);
+
+  // 每次文本生长时把活跃光标钳制在视口 65%~75% 舒适带内；增量小步即时滚动，视觉上自然平滑。
+  useEffect(() => {
+    if (!generating) return;
+    syncPageLayout();
+    if (!autoFollow.current) return;
+    const scroller = sheetRef.current?.closest('.editor-scroll');
+    if (!(scroller instanceof HTMLElement)) return;
+    const caret = sheetRef.current?.querySelector('.stream-cursor');
+    if (!(caret instanceof HTMLElement)) return;
+    const pin = () => {
+      // rAF 排队的回调可能晚于用户上翻暂停执行，必须重新确认跟随仍开启，否则会把视口拽回生成区。
+      if (!autoFollow.current) return;
+      const caretRect = caret.getBoundingClientRect();
+      const rect = scroller.getBoundingClientRect();
+      const bandTop = rect.top + scroller.clientHeight * 0.65;
+      const bandBottom = rect.top + scroller.clientHeight * 0.75;
+      let delta = 0;
+      if (caretRect.bottom > bandBottom) delta = caretRect.bottom - bandBottom;
+      else if (caretRect.top < bandTop) delta = caretRect.top - bandTop;
+      if (Math.abs(delta) > 1) scroller.scrollTop += delta;
+      expectedScrollTop.current = scroller.scrollTop;
+    };
+    pin();
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(pin);
+  }, [markdown, generating, syncPageLayout]);
+
+  const scrollToWriting = useCallback(() => {
+    const scroller = sheetRef.current?.closest('.editor-scroll');
+    if (!(scroller instanceof HTMLElement)) return;
+    autoFollow.current = true;
+    setFollowPaused(false);
+    const caret = sheetRef.current?.querySelector('.stream-cursor');
+    if (!(caret instanceof HTMLElement)) return;
+    const rect = scroller.getBoundingClientRect();
+    const caretRect = caret.getBoundingClientRect();
+    const target = scroller.scrollTop + caretRect.top - (rect.top + scroller.clientHeight * 0.7);
+    cancelAnimationFrame(followAnimation.current);
+    const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced || Math.abs(target - scroller.scrollTop) < 2) {
+      scroller.scrollTop = target;
+      expectedScrollTop.current = scroller.scrollTop;
+      return;
+    }
+    const start = scroller.scrollTop;
+    const distance = target - start;
+    const clock = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    const started = clock();
+    const step = () => {
+      if (!autoFollow.current) return;
+      const progress = Math.min(1, (clock() - started) / 260);
+      scroller.scrollTop = start + distance * (1 - Math.pow(1 - progress, 3));
+      expectedScrollTop.current = scroller.scrollTop;
+      if (progress < 1) followAnimation.current = requestAnimationFrame(step);
+    };
+    followAnimation.current = requestAnimationFrame(step);
+  }, []);
 
   useEffect(() => {
     const node = sheetRef.current;
@@ -184,20 +293,15 @@ export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEd
         data-page-count={pageCount}
         ref={sheetRef}
       >
-        <EditorContent editor={editor} />
+        <div className={generating ? 'paper-editor-hidden' : undefined} aria-hidden={generating || undefined}>
+          <EditorContent editor={editor} />
+        </div>
+        {generating && <StreamingPaperView markdown={markdown} stage={streamStage} waitingForFirstText={waitingForFirstText} cursorEnding={streamFinishing} />}
         <span className="paper-page-indicator" data-testid="paper-page-indicator">共 {pageCount} 页</span>
-        {generating && (
-          <div className="paper-wait" data-testid="paper-generating" aria-live="polite">
-            <div className="paper-wait-title" />
-            <div className="paper-wait-line w-full" />
-            <div className="paper-wait-line w-long" />
-            <div className="paper-wait-line w-mid" />
-            <div className="paper-wait-line w-long" />
-            <div className="paper-wait-line w-short" />
-            <span className="paper-wait-label">AI 正在撰写…</span>
-          </div>
-        )}
       </div>
+      {generating && followPaused && <div className="stream-scroll-dock">
+        <button type="button" className="stream-back-bottom" data-testid="stream-locate-writing" onClick={scrollToWriting}>定位到正在撰写</button>
+      </div>}
     </div>
   );
 });

@@ -36,6 +36,10 @@ export type VolumeStreamState = {
   jobId: string;
   /** 积压已重放完，之后的增量是实时的。 */
   live: boolean;
+  /** 后端 task.patched 汇报的最新生成阶段。 */
+  stages: Record<string, string>;
+  /** task.patched 的到达序（最新在末尾）。并发节交错汇报时，阶段胶囊按事件时间而非扇出顺序取。 */
+  stageOrder: string[];
 };
 
 export type SectionEvent =
@@ -47,6 +51,7 @@ export type SectionEvent =
   | { event: 'section.done'; section_id: string; text: string }
   | { event: 'section.failed'; section_id: string; message: string }
   | { event: 'section.cancelled'; section_id: string }
+  | { event: 'task.patched'; task_id: string; stage: string }
   | { event: 'volume.done'; chapter_id: string; revision: number | null; failed: string[]; replay: boolean }
   | { event: 'volume.cancelled' }
   | { event: 'volume.failed'; message: string };
@@ -66,6 +71,8 @@ export function emptyVolumeStream(): VolumeStreamState {
     replay: false,
     jobId: '',
     live: false,
+    stages: {},
+    stageOrder: [],
   };
 }
 
@@ -147,6 +154,12 @@ export function parseSectionEvent(raw: unknown): SectionEvent | null {
     if (!sectionId) return null;
     return { event: 'section.cancelled', section_id: sectionId };
   }
+  if (name === 'task.patched') {
+    const taskId = readString(raw, 'task_id');
+    const stage = readString(raw, 'stage');
+    if (!taskId || !stage) return null;
+    return { event: 'task.patched', task_id: taskId, stage };
+  }
   if (name === 'volume.done') {
     const failed = readStringList(raw.failed) ?? [];
     const revision = typeof raw.revision === 'number' ? raw.revision : null;
@@ -210,6 +223,38 @@ export function streamProgressNotice(state: VolumeStreamState, headings: Technic
   return parts.join(' · ') || '正在生成…';
 }
 
+export type StreamStageName = 'retrieve' | 'deviate' | 'write_section' | 'unknown' | '';
+
+function normalizeStage(value: string | undefined): StreamStageName {
+  if (value === 'retrieve' || value === 'deviate' || value === 'write_section') return value;
+  return value ? 'unknown' : '';
+}
+
+/** 多节并发时按 task.patched 事件到达序取阶段：优先最近汇报且仍在写作的节；都没有写作节则取最近一次汇报。 */
+export function activeStreamStage(state: VolumeStreamState): StreamStageName {
+  for (let index = state.stageOrder.length - 1; index >= 0; index -= 1) {
+    const id = state.stageOrder[index];
+    if (state.sections[id]?.phase === 'writing' && state.stages[id]) return normalizeStage(state.stages[id]);
+  }
+  const latest = state.stageOrder[state.stageOrder.length - 1];
+  return normalizeStage(latest ? state.stages[latest] : undefined);
+}
+
+/** 是否有任何活跃/完成节已经吐出正文；用于区分阶段呼吸胶囊和首字后的文字画布。 */
+export function hasVisibleStreamText(state: VolumeStreamState): boolean {
+  return state.order.some(id => {
+    const current = state.sections[id];
+    return Boolean(current && current.phase !== 'cancelled' && current.text.trim());
+  });
+}
+
+export function streamingStageLabel(stage: StreamStageName): string {
+  if (stage === 'retrieve') return '正在检索招标与知识库资料…';
+  if (stage === 'deviate') return '正在核对偏离要求…';
+  if (stage === 'write_section') return '正在撰写本节正文…';
+  return '正在准备生成…';
+}
+
 export function applySectionEvent(state: VolumeStreamState, event: SectionEvent): VolumeStreamState {
   if (state.phase === 'done' || state.phase === 'cancelled' || state.phase === 'failed') return state;
   switch (event.event) {
@@ -257,6 +302,11 @@ export function applySectionEvent(state: VolumeStreamState, event: SectionEvent)
       });
     case 'section.cancelled':
       return slot(state, event.section_id, { phase: 'cancelled', text: '' });
+    case 'task.patched': {
+      const order = state.stageOrder.filter(id => id !== event.task_id);
+      order.push(event.task_id);
+      return { ...state, stages: { ...state.stages, [event.task_id]: event.stage }, stageOrder: order };
+    }
     case 'volume.done':
       return {
         ...state,

@@ -10,16 +10,26 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
-| D-1072 | 2026-11-27 | [FE-UX-MAINFLOW-COPY 交付](delivery/FE-UX-MAINFLOW-COPY.md) | 交付 | frontend-ux-visual-responsive-r1 | in-review | ISSUE-057 / FE-UX-MAINFLOW-COPY | 前端体验视觉响应式交付记录 |
-| D-1082 | 2026-11-27 | [FE-UX-MAINFLOW-COPY 代码说明](code/FE-UX-MAINFLOW-COPY.md) | 代码 | frontend-ux-visual-responsive-r1 | in-review | ISSUE-057 / FE-UX-MAINFLOW-COPY | 前端体验视觉响应式代码说明 |
-| D-1073 | 2026-11-27 | [FE-UX-VISUAL-TOKENS 交付](delivery/FE-UX-VISUAL-TOKENS.md) | 交付 | frontend-ux-visual-responsive-r1 | in-review | ISSUE-057 / FE-UX-VISUAL-TOKENS | 前端体验视觉响应式交付记录 |
-| D-1083 | 2026-11-27 | [FE-UX-VISUAL-TOKENS 代码说明](code/FE-UX-VISUAL-TOKENS.md) | 代码 | frontend-ux-visual-responsive-r1 | in-review | ISSUE-057 / FE-UX-VISUAL-TOKENS | 前端体验视觉响应式代码说明 |
-| D-1074 | 2026-11-27 | [FE-UX-RESPONSIVE-LAYOUT 交付](delivery/FE-UX-RESPONSIVE-LAYOUT.md) | 交付 | frontend-ux-visual-responsive-r1 | in-review | ISSUE-057 / FE-UX-RESPONSIVE-LAYOUT | 前端体验视觉响应式交付记录 |
-| D-1084 | 2026-11-27 | [FE-UX-RESPONSIVE-LAYOUT 代码说明](code/FE-UX-RESPONSIVE-LAYOUT.md) | 代码 | frontend-ux-visual-responsive-r1 | in-review | ISSUE-057 / FE-UX-RESPONSIVE-LAYOUT | 前端体验视觉响应式代码说明 |
-| D-1075 | 2026-11-27 | [FE-UX-PLAYWRIGHT-VIEWPORTS 交付](delivery/FE-UX-PLAYWRIGHT-VIEWPORTS.md) | 交付 | frontend-ux-visual-responsive-r1 | in-review | ISSUE-057 / FE-UX-PLAYWRIGHT-VIEWPORTS | 前端体验视觉响应式交付记录 |
-| D-1085 | 2026-11-27 | [FE-UX-PLAYWRIGHT-VIEWPORTS 代码说明](code/FE-UX-PLAYWRIGHT-VIEWPORTS.md) | 代码 | frontend-ux-visual-responsive-r1 | in-review | ISSUE-057 / FE-UX-PLAYWRIGHT-VIEWPORTS | 前端体验视觉响应式代码说明 |
-| D-1070 | 2026-11-27 | [ISSUE-057：前端主链路体验修复、现代视觉与动效升级、多分辨率响应式精修](../issues/ISSUE-057.md) | Issue | frontend-ux-visual-responsive-r1 | in-progress | ISSUE-057 | 前端体验、视觉 Token、响应式与四视口巡检 |
-| D-1071 | 2026-11-27 | [FE-UX 任务卡](tasks/FE-UX.md) | 任务 | frontend-ux-visual-responsive-r1 | ready | ISSUE-057 | FE-UX-MAINFLOW-COPY～FE-UX-PLAYWRIGHT-VIEWPORTS |
+| D-1072 | 2026-11-27 | [FE-UX-MAINFLOW-COPY 交付](delivery/FE-UX-MAINFLOW-COPY.md) | 交付 | frontend-ux-visual-responsive-r1 | done | ISSUE-057 / FE-UX-MAINFLOW-COPY | 前端体验视觉响应式交付记录 |
+| D-1082 | 2026-11-27 | [FE-UX-MAINFLOW-COPY 代码说明](code/FE-UX-MAINFLOW-COPY.md) | 代码 | frontend-ux-visual-responsive-r1 | 当前 | ISSUE-057 / FE-UX-MAINFLOW-COPY | 前端体验视觉响应式代码说明 |
+| D-1073 | 2026-11-27 | [FE-UX-VISUAL-TOKENS 交付](delivery/FE-UX-VISUAL-TOKENS.md) | 交付 | frontend-ux-visual-responsive-r1 | done | ISSUE-057 / FE-UX-VISUAL-TOKENS | 前端体验视觉响应式交付记录 |
+| D-1083 | 2026-11-27 | [FE-UX-VISUAL-TOKENS 代码说明](code/FE-UX-VISUAL-TOKENS.md) | 代码 | frontend-ux-visual-responsive-r1 | 当前 | ISSUE-057 / FE-UX-VISUAL-TOKENS | 前端体验视觉响应式代码说明 |
+| D-1074 | 2026-11-27 | [FE-UX-RESPONSIVE-LAYOUT 交付](delivery/FE-UX-RESPONSIVE-LAYOUT.md) | 交付 | frontend-ux-visual-responsive-r1 | done | ISSUE-057 / FE-UX-RESPONSIVE-LAYOUT | 前端体验视觉响应式交付记录 |
+| D-1084 | 2026-11-27 | [FE-UX-RESPONSIVE-LAYOUT 代码说明](code/FE-UX-RESPONSIVE-LAYOUT.md) | 代码 | frontend-ux-visual-responsive-r1 | 当前 | ISSUE-057 / FE-UX-RESPONSIVE-LAYOUT | 前端体验视觉响应式代码说明 |
+| D-1075 | 2026-11-27 | [FE-UX-PLAYWRIGHT-VIEWPORTS 交付](delivery/FE-UX-PLAYWRIGHT-VIEWPORTS.md) | 交付 | frontend-ux-visual-responsive-r1 | done | ISSUE-057 / FE-UX-PLAYWRIGHT-VIEWPORTS | 前端体验视觉响应式交付记录 |
+| D-1085 | 2026-11-27 | [FE-UX-PLAYWRIGHT-VIEWPORTS 代码说明](code/FE-UX-PLAYWRIGHT-VIEWPORTS.md) | 代码 | frontend-ux-visual-responsive-r1 | 当前 | ISSUE-057 / FE-UX-PLAYWRIGHT-VIEWPORTS | 前端体验视觉响应式代码说明 |
+| D-1086 | 2026-11-27 | [ISSUE-058：编辑台 Gemini 风格柔和流式输出体验升级](../issues/ISSUE-058.md) | Issue | frontend-ux-streaming-r1 | in-review | ISSUE-058 | 流式阶段胶囊、专属渲染画布、安全 Markdown、滚动交接与 SSE 验收 |
+| D-1087 | 2026-11-27 | [FE-UX-STREAMING-RENDER 交付](delivery/FE-UX-STREAMING-RENDER.md) | 交付 | frontend-ux-streaming-r1 | in-review | ISSUE-058 / FE-UX-STREAMING-RENDER | 流式渲染画布交付记录 |
+| D-1088 | 2026-11-27 | [FE-UX-STREAMING-RENDER 代码说明](code/FE-UX-STREAMING-RENDER.md) | 代码 | frontend-ux-streaming-r1 | 当前 | ISSUE-058 / FE-UX-STREAMING-RENDER | 流式渲染画布代码说明 |
+| D-1089 | 2026-11-27 | [FE-UX-STREAMING-MARKDOWN 交付](delivery/FE-UX-STREAMING-MARKDOWN.md) | 交付 | frontend-ux-streaming-r1 | in-review | ISSUE-058 / FE-UX-STREAMING-MARKDOWN | 流式安全 Markdown 交付记录 |
+| D-1090 | 2026-11-27 | [FE-UX-STREAMING-MARKDOWN 代码说明](code/FE-UX-STREAMING-MARKDOWN.md) | 代码 | frontend-ux-streaming-r1 | 当前 | ISSUE-058 / FE-UX-STREAMING-MARKDOWN | 流式安全 Markdown 代码说明 |
+| D-1091 | 2026-11-27 | [FE-UX-STREAMING-HANDOFF 交付](delivery/FE-UX-STREAMING-HANDOFF.md) | 交付 | frontend-ux-streaming-r1 | in-review | ISSUE-058 / FE-UX-STREAMING-HANDOFF | 滚动与完成交接交付记录 |
+| D-1092 | 2026-11-27 | [FE-UX-STREAMING-HANDOFF 代码说明](code/FE-UX-STREAMING-HANDOFF.md) | 代码 | frontend-ux-streaming-r1 | 当前 | ISSUE-058 / FE-UX-STREAMING-HANDOFF | 滚动与完成交接代码说明 |
+| D-1093 | 2026-11-27 | [FE-UX-STREAMING-VERIFICATION 交付](delivery/FE-UX-STREAMING-VERIFICATION.md) | 交付 | frontend-ux-streaming-r1 | in-review | ISSUE-058 / FE-UX-STREAMING-VERIFICATION | 流式测试验收交付记录 |
+| D-1094 | 2026-11-27 | [FE-UX-STREAMING-VERIFICATION 代码说明](code/FE-UX-STREAMING-VERIFICATION.md) | 代码 | frontend-ux-streaming-r1 | 当前 | ISSUE-058 / FE-UX-STREAMING-VERIFICATION | 流式测试验收代码说明 |
+| D-1095 | 2026-11-27 | [流式编辑体验验收留档](testing/FE-UX-STREAMING-VERIFICATION-2026-11-27.md) | 验证 | frontend-ux-streaming-r1 | 当前 | ISSUE-058 / FE-UX-STREAMING-* | 滚动跟随/单列表格/阶段时序修复后全量复跑口径 |
+| D-1070 | 2026-11-27 | [ISSUE-057：前端主链路体验修复、现代视觉与动效升级、多分辨率响应式精修](../issues/ISSUE-057.md) | Issue | frontend-ux-visual-responsive-r1 | closed | ISSUE-057 | 前端体验、视觉 Token、响应式与四视口巡检 |
+| D-1071 | 2026-11-27 | [FE-UX 任务卡](tasks/FE-UX.md) | 任务 | frontend-ux-streaming-r1 | in-review | ISSUE-057 / ISSUE-058 | FE-UX-MAINFLOW-COPY～FE-UX-PLAYWRIGHT-VIEWPORTS done；FE-UX-STREAMING-RENDER～FE-UX-STREAMING-VERIFICATION in-review |
 | D-1061 | 2026-11-27 | [ISSUE-056：双管理员权限隔离、后台模块精简与任务中心核实](../issues/ISSUE-056.md) | Issue | admin-rbac-cleanup-r1 | closed | ISSUE-056 | 双管理员权限隔离、后台模块精简与任务中心核实 |
 | D-1062 | 2026-11-27 | [ADMIN-RBAC-PLATFORM-SPLIT 交付](delivery/ADMIN-RBAC-PLATFORM-SPLIT.md) | 交付说明 | admin-rbac-cleanup-r1 | done | ISSUE-056 / ADMIN-RBAC-PLATFORM-SPLIT | 平台安全策略、真实审计与后台分家进行中证据 |
 | D-1063 | 2026-11-27 | [ADMIN-RBAC-PLATFORM-SPLIT 代码说明](code/ADMIN-RBAC-PLATFORM-SPLIT.md) | 代码说明 | admin-rbac-cleanup-r1 | 当前 | ISSUE-056 / ADMIN-RBAC-PLATFORM-SPLIT | 安全策略与审计实现 |
@@ -101,7 +111,7 @@
 | 2026-10-26 | 质量 / 验收 / D0~D5 | 登记 D0～D5 技术债治理与核心能力建设批次 QA 独立复测与签署报告（2026-10-26-debt-remediation-batch-qa-signoff.md，D-742），覆盖 BE-TECH-DEBT-01、BE-TECH-DEBT-02、FE-REACT-ROUTER、AI-RAGFLOW-KB-SYNC、BE-COMPLIANCE-RULES-P0、REV-SMOKE-001 共 6 张任务卡，后端 42 项专项全过、前端 395 项单测全绿、OpenAPI 100% 一致无 diff，签署通过建议 PM 标 done |
 | D-001 | 2026-10-28 | [项目状态](PROJECT_STATUS.md) | 项目 | g1.1 | 当前 | ISSUE-007 / APP-M1；ISSUE-038 / BE-TECH-DEBT-01/02；ISSUE-005；ISSUE-010；ISSUE-037；ISSUE-039～042 / Wave 11 | 444项96done、65in-review、7in-progress、228planned、41blocked、7cancelled、0ready（2026-10-28）。Wave 11 五张卡 in-review，新发现 ISSUE-039/041/042。421项72done、60in-review、7in-progress、234planned、41blocked、7cancelled、0ready。Wave 4共5张核心卡正式标done；App.tsx瘦身达标、平台管理员脱敏长任务、P3合规规则扩充至21项、自适应Prompt Token预算全通 |
 | D-002 | 2026-11-04 | [前端 PRD](PRD.md) | 前端需求 | 参考实施入口 / g1.1 | 实施中 | ISSUE-007 / APP-M1；ISSUE-048 / FLOW-3ROLE | 第 9、10 节记下检索生成响应和事实嵌入分析。参考原文不改 |
-| D-003 | 2026-11-04 | [前端架构](ARCHITECTURE.md) | 前端架构 | 参考实施入口 / g1.1 | 实施中 | ISSUE-048 / FLOW-3ROLE | 第 4.2 节项目导航收成四段。第 12 节登录角色收成三个 |
+| D-003 | 2026-11-27 | [前端架构](ARCHITECTURE.md) | 前端架构 | 参考实施入口 / frontend-ux-streaming-r1 | 实施中 | ISSUE-048 / FLOW-3ROLE / ISSUE-058 | 第 4.2 节项目导航收成四段；第 5.3 节补充流式画布与编辑器交接 |
 | D-004 | 2026-11-04 | [前端路线图](ROADMAP.md) | 计划 | 参考实施入口 / g1.1 | 执行入口 | ISSUE-048 / FLOW-3ROLE | 第 3.3、3.4 节记下检索响应和事实嵌入分析 |
 | D-005 | 2026-10-09 | [UX 规范](design/ux.md) | 设计 | 原文 | 参考 | FE-M0-T01 | 从ui/ux.md迁移，无业务内容改写 |
 | D-006 | 2026-10-09 | [产品 PRD v1.8](reference/product/prd-mvp-v1.8.md) | 产品参考 | v1.8 | 供评审 | FE-M0-T01 | 已脱敏原文，不受治理修订覆盖 |

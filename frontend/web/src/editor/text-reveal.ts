@@ -1,7 +1,7 @@
 // 为什么有这个文件：技术卷的增量经常一次送来一整段。
-// 它解决什么问题：纸面按大约每秒 60 个汉字逐字长出，点停止后不再往下写。
+// 它解决什么问题：纸面按柔和流畅的速度逐字长出，点停止后不再往下写。
 
-export const REVEAL_CHARS_PER_SECOND = 60;
+export const REVEAL_CHARS_PER_SECOND = 72;
 const TICK_MS = 50;
 
 export type RevealClock = {
@@ -21,7 +21,6 @@ export type TextReveal = {
 
 export type VolumeStreamChrome = {
   label: '停止' | '生成中…' | '开始生成';
-  paperWait: boolean;
 };
 
 function browserClock(): RevealClock {
@@ -124,10 +123,10 @@ export function createTextReveal(
 
 /** 只有真实活跃的技术卷 SSE 会话才允许出现“AI 正在撰写”；普通加载、保存或刷新绝不能误显撰写态。 */
 export function volumeStreamChrome(input: { streaming: boolean; busy: boolean; streamFailed: boolean }): VolumeStreamChrome {
-  if (input.streaming) return { label: '停止', paperWait: true };
-  if (input.streamFailed) return { label: '开始生成', paperWait: false };
-  if (input.busy) return { label: '生成中…', paperWait: false };
-  return { label: '开始生成', paperWait: false };
+  if (input.streaming) return { label: '停止' };
+  if (input.streamFailed) return { label: '开始生成' };
+  if (input.busy) return { label: '生成中…' };
+  return { label: '开始生成' };
 }
 
 export function streamFailureNotice(message: string): string {
