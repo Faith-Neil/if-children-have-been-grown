@@ -196,8 +196,8 @@ def test_sensitive_project_resolves_compliant_local_binding(secret_key, fake_ope
     assert fake_openai_chat.calls[-1].header("Authorization") == "Bearer sk-ok"
 
 
-def test_non_sensitive_project_may_use_cloud_config(secret_key):
-    """非涉密项目不禁云端配置（产品明确支持），收紧只针对涉密项目。"""
+def test_non_sensitive_project_cannot_use_public_cloud_config(secret_key):
+    """CWE-200（第三轮 PM 裁定）：无论项目是否涉密，公网端点模型运行时解析一律拦截。"""
     service = _service()
 
     def op(s):
@@ -206,8 +206,12 @@ def test_non_sensitive_project_may_use_cloud_config(secret_key):
         s.project_model_configs["open-proj"] = "cfg-cloud"
 
     service.repository.transaction(op)
-    provider = _resolve(service, "open-proj")
-    assert getattr(provider, "is_real_model", False) is True  # 不抛错即通过
+    from icg.domain.domain import DomainError
+    try:
+        _resolve(service, "open-proj")
+        raise AssertionError("公网端点必须被拦截")
+    except DomainError as error:
+        assert error.code == "PUBLIC_MODEL_ENDPOINT_FORBIDDEN", error.code
 
 
 # ---------------------------------------------------------------------------
