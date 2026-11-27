@@ -38,6 +38,8 @@ export type VolumeStreamState = {
   live: boolean;
   /** 后端 task.patched 汇报的最新生成阶段。 */
   stages: Record<string, string>;
+  /** task.patched 的到达序（最新在末尾）。并发节交错汇报时，阶段胶囊按事件时间而非扇出顺序取。 */
+  stageOrder: string[];
 };
 
 export type SectionEvent =
@@ -70,6 +72,7 @@ export function emptyVolumeStream(): VolumeStreamState {
     jobId: '',
     live: false,
     stages: {},
+    stageOrder: [],
   };
 }
 
@@ -227,14 +230,14 @@ function normalizeStage(value: string | undefined): StreamStageName {
   return value ? 'unknown' : '';
 }
 
-/** 多节并发时优先取仍在写作的节的最新阶段；没有写作节则取最近一次 task.patched。 */
+/** 多节并发时按 task.patched 事件到达序取阶段：优先最近汇报且仍在写作的节；都没有写作节则取最近一次汇报。 */
 export function activeStreamStage(state: VolumeStreamState): StreamStageName {
-  for (let index = state.order.length - 1; index >= 0; index -= 1) {
-    const id = state.order[index];
+  for (let index = state.stageOrder.length - 1; index >= 0; index -= 1) {
+    const id = state.stageOrder[index];
     if (state.sections[id]?.phase === 'writing' && state.stages[id]) return normalizeStage(state.stages[id]);
   }
-  const values = Object.values(state.stages);
-  return normalizeStage(values[values.length - 1]);
+  const latest = state.stageOrder[state.stageOrder.length - 1];
+  return normalizeStage(latest ? state.stages[latest] : undefined);
 }
 
 /** 是否有任何活跃/完成节已经吐出正文；用于区分阶段呼吸胶囊和首字后的文字画布。 */
@@ -299,8 +302,11 @@ export function applySectionEvent(state: VolumeStreamState, event: SectionEvent)
       });
     case 'section.cancelled':
       return slot(state, event.section_id, { phase: 'cancelled', text: '' });
-    case 'task.patched':
-      return { ...state, stages: { ...state.stages, [event.task_id]: event.stage } };
+    case 'task.patched': {
+      const order = state.stageOrder.filter(id => id !== event.task_id);
+      order.push(event.task_id);
+      return { ...state, stages: { ...state.stages, [event.task_id]: event.stage }, stageOrder: order };
+    }
     case 'volume.done':
       return {
         ...state,

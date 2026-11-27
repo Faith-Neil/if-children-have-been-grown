@@ -79,12 +79,19 @@ function tableCells(line: string): string[] {
 }
 
 function isTableRule(line: string): boolean {
-  return /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line.trim());
+  // 流式中间态宽松判定：整行只含管道/短横/冒号/空白、至少一个管道且有一段 3 个以上短横。
+  // 规则行只会越打越长，单调有效不回头，表格不会因第二列短横打到一半而在「表格/占位」间震荡；
+  // 列数始终由表头决定，提前成型不产生结构跳动。单列 `| --- |` 与最终 paper-markdown 口径一致。
+  const trimmed = line.trim();
+  if (!trimmed.includes('|')) return false;
+  if (!/^[\s|:-]+$/.test(trimmed)) return false;
+  return /-{3,}/.test(trimmed);
 }
 
 function isTableLine(line: string): boolean {
-  const trimmed = line.trim();
-  return trimmed.startsWith('|') && tableCells(trimmed).length >= 2;
+  // 流式期间凡以 `|` 开头的行都按表格中间态对待：单列表格、尚未打出收尾管道的
+  // 半截行都先进入占位，不把原始管道符号裸露给用户。中文正文极少以管道开头。
+  return line.trim().startsWith('|');
 }
 
 function isPartialTableRule(line: string): boolean {
@@ -95,16 +102,26 @@ function blockText(nodes: StreamInlineNode[]): string {
   return nodes.map(node => node.text).join('');
 }
 
+export type TrackedStreamingParse = {
+  blocks: StreamBlock[];
+  /** 每个块对应的源文起始行号，与 blocks 平行；用于把字符偏移映射回所属块。 */
+  blockLines: number[];
+};
+
 /** 把完整但可能未收尾的流式 Markdown 分成稳定块；已稳定块和活跃尾部由调用方按数组末尾判断。 */
-export function parseStreamingMarkdown(markdown: string): StreamBlock[] {
+export function parseStreamingMarkdownTracked(markdown: string): TrackedStreamingParse {
   const lines = markdown.replace(/\r\n/g, '\n').split('\n');
   const blocks: StreamBlock[] = [];
+  const blockLines: number[] = [];
+  let startLine = 0;
   const push = (block: StreamBlockSeed) => {
     blocks.push({ ...block, id: `stream-block-${blocks.length}` } as StreamBlock);
+    blockLines.push(startLine);
   };
   let index = 0;
   let pendingTableRule = false;
   while (index < lines.length) {
+    startLine = index;
     const raw = lines[index];
     const line = raw.trim();
     if (pendingTableRule && line && isPartialTableRule(line)) {
@@ -162,7 +179,46 @@ export function parseStreamingMarkdown(markdown: string): StreamBlock[] {
     push({ type: 'paragraph', nodes: parseStreamingInline(raw.trim()) });
     index += 1;
   }
-  return blocks;
+  return { blocks, blockLines };
+}
+
+/** 把完整但可能未收尾的流式 Markdown 分成稳定块；已稳定块和活跃尾部由调用方按数组末尾判断。 */
+export function parseStreamingMarkdown(markdown: string): StreamBlock[] {
+  return parseStreamingMarkdownTracked(markdown).blocks;
+}
+
+/** 源文字符偏移所属的行号（0 起）。 */
+export function lineIndexAtOffset(markdown: string, offset: number): number {
+  let line = 0;
+  const end = Math.min(offset, markdown.length);
+  for (let position = 0; position < end; position += 1) {
+    if (markdown[position] === '\n') line += 1;
+  }
+  return line;
+}
+
+/** 起始行号不超过给定行的最后一个块；用于把文本增长位置映射回渲染块。 */
+export function blockIndexAtLine(blockLines: number[], line: number): number {
+  let found = -1;
+  for (let index = 0; index < blockLines.length; index += 1) {
+    if (blockLines[index] <= line) found = index;
+    else break;
+  }
+  return found;
+}
+
+/** 文本增长前沿的行号：最长公共前后缀夹出变化区，取变化区末尾字符所在行。
+ * 多节并发时变化区横跨多节，前沿落在较靠下的写作位置；纯收缩（回滚/交接）不算增长。 */
+export function growthFrontierLine(prev: string, next: string): number | null {
+  if (prev === next) return null;
+  const minLength = Math.min(prev.length, next.length);
+  let prefix = 0;
+  while (prefix < minLength && prev[prefix] === next[prefix]) prefix += 1;
+  let suffix = 0;
+  while (suffix < minLength - prefix && prev[prev.length - 1 - suffix] === next[next.length - 1 - suffix]) suffix += 1;
+  const end = next.length - suffix;
+  if (end <= prefix) return null;
+  return lineIndexAtOffset(next, end - 1);
 }
 
 /** 活跃尾部行内片段按固定窗口切片；key 只依赖起点，追加文本时旧 key 不变。 */

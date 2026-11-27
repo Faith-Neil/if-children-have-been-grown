@@ -15,12 +15,12 @@
 | revision | frontend-ux-streaming-r1 |
 | 关联 Task | [FE-UX-STREAMING-RENDER](../docs/tasks/FE-UX.md#fe-ux-streaming-render)、[FE-UX-STREAMING-MARKDOWN](../docs/tasks/FE-UX.md#fe-ux-streaming-markdown)、[FE-UX-STREAMING-HANDOFF](../docs/tasks/FE-UX.md#fe-ux-streaming-handoff)、[FE-UX-STREAMING-VERIFICATION](../docs/tasks/FE-UX.md#fe-ux-streaming-verification) |
 | 关联 PR | [PR #55](https://github.com/Faith-Neil/if-children-have-been-grown/pull/55) 已创建，未合入 |
-| 本地验收 | 通过：tsc、生产构建、流式单测 21 passed、Playwright 模拟 SSE 2 passed；全量前端单测 647 passed / 14 failed（既有失败如实记录） |
+| 本地验收 | 通过：tsc、生产构建、流式聚焦单测 27 passed、Playwright 模拟 SSE 2 passed（24.4s，含 Devin Review 四项修复后复跑）；全量前端单测 647 passed / 14 failed（既有失败如实记录） |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
 | 交付说明 | [RENDER](../docs/delivery/FE-UX-STREAMING-RENDER.md)、[MARKDOWN](../docs/delivery/FE-UX-STREAMING-MARKDOWN.md)、[HANDOFF](../docs/delivery/FE-UX-STREAMING-HANDOFF.md)、[VERIFICATION](../docs/delivery/FE-UX-STREAMING-VERIFICATION.md) |
 | 代码 / 流程解释 | [RENDER](../docs/code/FE-UX-STREAMING-RENDER.md)、[MARKDOWN](../docs/code/FE-UX-STREAMING-MARKDOWN.md)、[HANDOFF](../docs/code/FE-UX-STREAMING-HANDOFF.md)、[VERIFICATION](../docs/code/FE-UX-STREAMING-VERIFICATION.md) |
-| 验证记录 | [FE-UX-STREAMING-VERIFICATION](../docs/delivery/FE-UX-STREAMING-VERIFICATION.md)；Playwright 模拟 SSE 2 passed（24.1s） |
+| 验证记录 | [FE-UX-STREAMING-VERIFICATION](../docs/delivery/FE-UX-STREAMING-VERIFICATION.md)；Playwright 模拟 SSE 2 passed（24.4s） |
 
 ## 现象与证据
 
@@ -49,8 +49,8 @@
 | AC-02 | 首字后切换 StreamingPaperView；流式期间不每个 tick 整棵重建 ProseMirror；交接零位移 | 通过；流式期间 TipTap 隐藏且不重建，完成时绘制前一次性写回 |
 | AC-03 | live 揭示速率柔和（65～80 字/秒）；新 chunk 稳定 key 渐显，旧片段不重挂载；呼吸光标结束淡出 | 通过；速率 72 字/秒，chunk key 单测稳定，光标 220ms 淡出 |
 | AC-04 | 未闭合 `**`、`<u>`、孤立 `#`、未成型表格不裸露或撑跳；表格分隔行到达后平滑展开 | 通过；streaming-markdown 单测与浏览器表格占位/正式表格证据 |
-| AC-05 | 保留 24px 钉底和用户上翻不拉回；离开底部显示“回到底部”；完成后 scrollTop 不跳动、无白屏闪烁 | 通过；Playwright 验证上翻按钮、点击回底与最终交接 |
-| AC-06 | 单元测试、TypeScript、生产构建、Playwright SSE 场景与治理检查按真实结果记录；PR 创建但不合并 | 通过：tsc、build、聚焦单测与 SSE 验收通过；全量单测 647 passed / 14 failed 为既有失败；PR #55 已创建且未合入 |
+| AC-05 | 跟随活跃光标而非纸面末端；用户上翻暂停跟随并显示「定位到正在撰写」，点击平滑滚回光标舒适区；完成后 scrollTop 不跳动、无白屏闪烁 | 通过；Playwright 验证自然跟随、上翻暂停、定位回光标与最终交接 |
+| AC-06 | 单元测试、TypeScript、生产构建、Playwright SSE 场景与治理检查按真实结果记录；PR 创建但不合并 | 通过：tsc、build、聚焦单测 27 项与 SSE 验收通过；全量单测 647 passed / 14 failed 为既有失败；PR #55 已创建且未合入 |
 
 ## 六份基线 impact 与同步表
 
@@ -69,6 +69,7 @@
 |---|---|---|---|
 | 2026-11-27 | frontend-ux-streaming-r1 / in-progress | 已基于 PR #54 合入后的 main 切出 `feat/iss-058-streaming-ux` 并登记任务；下一步实现流式渲染与验收 | 用户本轮指令 |
 | 2026-11-27 | frontend-ux-streaming-r1 / in-review | 四张任务卡完成实施；模拟 SSE、单元测试、tsc 与生产构建完成；全量单测既有 14 条失败如实记录；等待 QA/PD/PM，不标 done | 本地验证记录 |
+| 2026-11-27 | frontend-streaming-ux-r1 / in-review | Devin Review 四项修复：单列表格安全渲染与规则行抗震荡、阶段胶囊按补丁时序、滚动改为跟随活跃光标（autoFollow+定位到正在撰写）、文档口径对齐；验证复跑全绿 | Devin Review |
 
 ## 本地验收与后续合入发布
 

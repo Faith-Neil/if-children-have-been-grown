@@ -57,8 +57,11 @@ export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEd
   selectionRef.current = onSelection;
   const sheetRef = useRef<HTMLDivElement>(null);
   const [pageCount, setPageCount] = useState(1);
-  const [awayFromBottom, setAwayFromBottom] = useState(false);
-  const stickToBottom = useRef(true);
+  // 流式跟随的对象是活跃光标而不是整篇文档底部：多节标书写靠前章节时，写作位置在文档中部。
+  const [followPaused, setFollowPaused] = useState(false);
+  const autoFollow = useRef(true);
+  const expectedScrollTop = useRef<number | null>(null);
+  const followAnimation = useRef(0);
   const syncPageLayout = useCallback(() => {
     const sheet = sheetRef.current;
     const surface = (sheet?.querySelector('.paper-streaming-view') ?? sheet?.querySelector('.paper-surface')) as HTMLElement | null;
@@ -113,39 +116,100 @@ export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEd
     if (typeof requestAnimationFrame === 'function') requestAnimationFrame(restore);
   }, [editor, markdown, generating]);
 
-  // 只在用户仍贴近底部时跟随流式增长；用户主动上翻后绝不强行拉回。
+  // 流式开始默认跟随活跃光标；用户手动滚动离开生成区即暂停，点「定位到正在撰写」恢复。
   useEffect(() => {
-    const scroller = sheetRef.current?.closest('.editor-scroll');
-    if (!(scroller instanceof HTMLElement)) return;
-    const onScroll = () => {
-      const nearBottom = scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 24;
-      stickToBottom.current = nearBottom;
-      setAwayFromBottom(!nearBottom);
-    };
-    onScroll();
-    scroller.addEventListener('scroll', onScroll, { passive: true });
-    return () => scroller.removeEventListener('scroll', onScroll);
-  }, [editor]);
+    if (generating) {
+      autoFollow.current = true;
+      setFollowPaused(false);
+      expectedScrollTop.current = null;
+    }
+    return () => cancelAnimationFrame(followAnimation.current);
+  }, [generating]);
 
   useEffect(() => {
-    if (!generating) {
-      setAwayFromBottom(false);
-      return;
-    }
-    syncPageLayout();
-    if (!stickToBottom.current) return;
+    if (!generating) return;
     const scroller = sheetRef.current?.closest('.editor-scroll');
     if (!(scroller instanceof HTMLElement)) return;
-    const pin = () => { scroller.scrollTop = scroller.scrollHeight; };
+    const pause = () => {
+      if (!autoFollow.current) return;
+      autoFollow.current = false;
+      cancelAnimationFrame(followAnimation.current);
+      setFollowPaused(true);
+    };
+    const onWheel = (event: WheelEvent) => {
+      // 向下滚但已经到底时视口不会移动，不算离开生成区。
+      if (event.deltaY < 0 || scroller.scrollTop + scroller.clientHeight < scroller.scrollHeight - 2) pause();
+    };
+    const onScroll = () => {
+      // 程序化滚动总会落在预期位置；出现偏差说明是用户拖动滚动条或键盘滚动。
+      const expected = expectedScrollTop.current;
+      if (expected !== null && Math.abs(scroller.scrollTop - expected) > 2) pause();
+    };
+    scroller.addEventListener('wheel', onWheel, { passive: true });
+    scroller.addEventListener('touchmove', pause, { passive: true });
+    scroller.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      scroller.removeEventListener('wheel', onWheel);
+      scroller.removeEventListener('touchmove', pause);
+      scroller.removeEventListener('scroll', onScroll);
+    };
+  }, [generating, editor]);
+
+  // 每次文本生长时把活跃光标钳制在视口 65%~75% 舒适带内；增量小步即时滚动，视觉上自然平滑。
+  useEffect(() => {
+    if (!generating) return;
+    syncPageLayout();
+    if (!autoFollow.current) return;
+    const scroller = sheetRef.current?.closest('.editor-scroll');
+    if (!(scroller instanceof HTMLElement)) return;
+    const caret = sheetRef.current?.querySelector('.stream-cursor');
+    if (!(caret instanceof HTMLElement)) return;
+    const pin = () => {
+      // rAF 排队的回调可能晚于用户上翻暂停执行，必须重新确认跟随仍开启，否则会把视口拽回生成区。
+      if (!autoFollow.current) return;
+      const caretRect = caret.getBoundingClientRect();
+      const rect = scroller.getBoundingClientRect();
+      const bandTop = rect.top + scroller.clientHeight * 0.65;
+      const bandBottom = rect.top + scroller.clientHeight * 0.75;
+      let delta = 0;
+      if (caretRect.bottom > bandBottom) delta = caretRect.bottom - bandBottom;
+      else if (caretRect.top < bandTop) delta = caretRect.top - bandTop;
+      if (Math.abs(delta) > 1) scroller.scrollTop += delta;
+      expectedScrollTop.current = scroller.scrollTop;
+    };
     pin();
     if (typeof requestAnimationFrame === 'function') requestAnimationFrame(pin);
   }, [markdown, generating, syncPageLayout]);
 
-  const scrollBackToBottom = useCallback(() => {
+  const scrollToWriting = useCallback(() => {
     const scroller = sheetRef.current?.closest('.editor-scroll');
     if (!(scroller instanceof HTMLElement)) return;
-    stickToBottom.current = true;
-    scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' });
+    autoFollow.current = true;
+    setFollowPaused(false);
+    const caret = sheetRef.current?.querySelector('.stream-cursor');
+    if (!(caret instanceof HTMLElement)) return;
+    const rect = scroller.getBoundingClientRect();
+    const caretRect = caret.getBoundingClientRect();
+    const target = scroller.scrollTop + caretRect.top - (rect.top + scroller.clientHeight * 0.7);
+    cancelAnimationFrame(followAnimation.current);
+    const reduced = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduced || Math.abs(target - scroller.scrollTop) < 2) {
+      scroller.scrollTop = target;
+      expectedScrollTop.current = scroller.scrollTop;
+      return;
+    }
+    const start = scroller.scrollTop;
+    const distance = target - start;
+    const clock = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    const started = clock();
+    const step = () => {
+      if (!autoFollow.current) return;
+      const progress = Math.min(1, (clock() - started) / 260);
+      scroller.scrollTop = start + distance * (1 - Math.pow(1 - progress, 3));
+      expectedScrollTop.current = scroller.scrollTop;
+      if (progress < 1) followAnimation.current = requestAnimationFrame(step);
+    };
+    followAnimation.current = requestAnimationFrame(step);
   }, []);
 
   useEffect(() => {
@@ -232,8 +296,8 @@ export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEd
         {generating && <StreamingPaperView markdown={markdown} stage={streamStage} waitingForFirstText={waitingForFirstText} cursorEnding={streamFinishing} />}
         <span className="paper-page-indicator" data-testid="paper-page-indicator">共 {pageCount} 页</span>
       </div>
-      {generating && awayFromBottom && <div className="stream-scroll-dock">
-        <button type="button" className="stream-back-bottom" data-testid="stream-back-to-bottom" onClick={scrollBackToBottom}>回到底部</button>
+      {generating && followPaused && <div className="stream-scroll-dock">
+        <button type="button" className="stream-back-bottom" data-testid="stream-locate-writing" onClick={scrollToWriting}>定位到正在撰写</button>
       </div>}
     </div>
   );

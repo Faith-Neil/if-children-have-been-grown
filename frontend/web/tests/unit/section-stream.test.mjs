@@ -254,3 +254,24 @@ test('task patched stages are parsed, retained, and mapped to the active writing
   assert.equal(streamingStageLabel('deviate'), '正在核对偏离要求…');
   assert.equal(streamingStageLabel('write_section'), '正在撰写本节正文…');
 });
+
+test('concurrent sections show the freshest patched stage, not fanout order', async () => {
+  const { activeStreamStage } = await import('../../src/editor/section-stream.ts');
+  let state = applySectionEvent(emptyVolumeStream(), { event: 'sections.fanout', concurrency: 2, section_ids: ['t-a', 't-b'] });
+  state = applySectionEvent(state, { event: 'section.started', section_id: 't-a', title: '甲节' });
+  state = applySectionEvent(state, { event: 'section.started', section_id: 't-b', title: '乙节' });
+  // t-b 先汇报检索，t-a 随后汇报撰写。旧逻辑按扇出顺序倒查永远偏向 t-b（显示 retrieve），
+  // 正确行为是按事件到达序：t-a 的 write_section 才是最新进度。
+  state = applySectionEvent(state, { event: 'task.patched', task_id: 't-b', stage: 'retrieve' });
+  state = applySectionEvent(state, { event: 'task.patched', task_id: 't-a', stage: 'write_section' });
+  assert.equal(activeStreamStage(state), 'write_section');
+  // t-b 随后汇报偏离核对，最新事件再次刷新胶囊。
+  state = applySectionEvent(state, { event: 'task.patched', task_id: 't-b', stage: 'deviate' });
+  assert.equal(activeStreamStage(state), 'deviate');
+  // t-b 完成后，t-a 仍在写：取最近汇报的写作中节，是 t-a 的撰写而不是 t-b 的旧偏离。
+  state = applySectionEvent(state, { event: 'section.done', section_id: 't-b', text: '乙节正文' });
+  assert.equal(activeStreamStage(state), 'write_section');
+  // 两节都完成后没有写作节，兜底取最近一次汇报（t-b 的 deviate）而不是对象键序。
+  state = applySectionEvent(state, { event: 'section.done', section_id: 't-a', text: '甲节正文' });
+  assert.equal(activeStreamStage(state), 'deviate');
+});

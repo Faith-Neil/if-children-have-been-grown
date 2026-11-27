@@ -1,8 +1,8 @@
 // 为什么有这个文件：生成中的正文不能被 TipTap 高频整树重建。
 // 它解决什么问题：流式期间用同一套纸面样式只读渲染，完成后再静默交接回可编辑器。
 
-import React from 'react';
-import { parseStreamingInline, parseStreamingMarkdown, stableInlineChunks, type StreamBlock, type StreamInlineNode } from './streaming-markdown';
+import React, { useRef } from 'react';
+import { blockIndexAtLine, growthFrontierLine, parseStreamingInline, parseStreamingMarkdownTracked, stableInlineChunks, type StreamBlock, type StreamInlineNode } from './streaming-markdown';
 import { streamingStageLabel, type StreamStageName } from './section-stream';
 
 export type StreamingStage = StreamStageName;
@@ -52,14 +52,27 @@ function BlockView({ block, active, showCursor, cursorEnding }: { block: StreamB
 }
 
 export function StreamingPaperView({ markdown, stage, waitingForFirstText, cursorEnding = false }: { markdown: string; stage: StreamingStage; waitingForFirstText: boolean; cursorEnding?: boolean }) {
-  const blocks = parseStreamingMarkdown(markdown);
-  let activeIndex = -1;
+  const { blocks, blockLines } = parseStreamingMarkdownTracked(markdown);
+  // 活跃块跟随真实的文本增长位置而不是文档末尾：写靠前章节时呼吸光标不能落在全篇最后一个块。
+  const prevMarkdown = useRef<string | null>(null);
+  const grownBlock = useRef(-1);
+  const previous = prevMarkdown.current;
+  if (previous !== null && previous !== markdown) {
+    const line = growthFrontierLine(previous, markdown);
+    if (line !== null) {
+      const index = blockIndexAtLine(blockLines, line);
+      if (index >= 0) grownBlock.current = index;
+    }
+  }
+  prevMarkdown.current = markdown;
+  let fallbackIndex = -1;
   for (let index = blocks.length - 1; index >= 0; index -= 1) {
     if (blocks[index].type !== 'blank') {
-      activeIndex = index;
+      fallbackIndex = index;
       break;
     }
   }
+  const activeIndex = grownBlock.current >= 0 && grownBlock.current < blocks.length ? grownBlock.current : fallbackIndex;
   return <div className="paper-streaming-view paper-surface" data-testid="streaming-paper-view" aria-live="polite">
     {waitingForFirstText && <div className="stream-stage-capsule" data-testid="stream-stage-capsule">{streamingStageLabel(stage)}</div>}
     {blocks.map((block, index) => <React.Fragment key={block.id}><BlockView block={block} active={index === activeIndex && !waitingForFirstText} showCursor={!waitingForFirstText && index === activeIndex} cursorEnding={cursorEnding} /></React.Fragment>)}
