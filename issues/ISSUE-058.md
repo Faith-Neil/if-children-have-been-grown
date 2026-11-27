@@ -20,7 +20,7 @@
 | 发布 | 未发布 |
 | 交付说明 | [RENDER](../docs/delivery/FE-UX-STREAMING-RENDER.md)、[MARKDOWN](../docs/delivery/FE-UX-STREAMING-MARKDOWN.md)、[HANDOFF](../docs/delivery/FE-UX-STREAMING-HANDOFF.md)、[VERIFICATION](../docs/delivery/FE-UX-STREAMING-VERIFICATION.md) |
 | 代码 / 流程解释 | [RENDER](../docs/code/FE-UX-STREAMING-RENDER.md)、[MARKDOWN](../docs/code/FE-UX-STREAMING-MARKDOWN.md)、[HANDOFF](../docs/code/FE-UX-STREAMING-HANDOFF.md)、[VERIFICATION](../docs/code/FE-UX-STREAMING-VERIFICATION.md) |
-| 验证记录 | [FE-UX-STREAMING-VERIFICATION](../docs/delivery/FE-UX-STREAMING-VERIFICATION.md)；Playwright 模拟 SSE 2 passed（24.4s） |
+| 验证记录 | [FE-UX-STREAMING-VERIFICATION](../docs/delivery/FE-UX-STREAMING-VERIFICATION.md)；[验收留档](../docs/testing/FE-UX-STREAMING-VERIFICATION-2026-11-27.md)；Playwright 模拟 SSE 2 passed（24.4s） |
 
 ## 现象与证据
 

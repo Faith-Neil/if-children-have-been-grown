@@ -105,12 +105,10 @@ export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEd
     if (sameMarkdown(current, markdown)) return;
     const scroller = sheetRef.current?.closest('.editor-scroll');
     const top = scroller instanceof HTMLElement ? scroller.scrollTop : 0;
-    const pin = scroller instanceof HTMLElement
-      && scroller.scrollTop + scroller.clientHeight >= scroller.scrollHeight - 24;
     editor.commands.setContent(markdownToDoc(markdown), false);
     if (!(scroller instanceof HTMLElement)) return;
     const restore = () => {
-      scroller.scrollTop = pin ? scroller.scrollHeight : top;
+      scroller.scrollTop = top;
     };
     restore();
     if (typeof requestAnimationFrame === 'function') requestAnimationFrame(restore);
@@ -130,6 +128,9 @@ export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEd
     if (!generating) return;
     const scroller = sheetRef.current?.closest('.editor-scroll');
     if (!(scroller instanceof HTMLElement)) return;
+    // 会话开始且容器就绪即初始化预期滚动基准，不等写作光标出现；
+    // 否则等待首字期间用户拖动滚动条会被误判偏差之外的“无基线”情况，无法暂停跟随。
+    if (expectedScrollTop.current === null) expectedScrollTop.current = scroller.scrollTop;
     const pause = () => {
       if (!autoFollow.current) return;
       autoFollow.current = false;
@@ -137,8 +138,10 @@ export const PaperEditor = forwardRef<PaperEditorHandle, Props>(function PaperEd
       setFollowPaused(true);
     };
     const onWheel = (event: WheelEvent) => {
-      // 向下滚但已经到底时视口不会移动，不算离开生成区。
-      if (event.deltaY < 0 || scroller.scrollTop + scroller.clientHeight < scroller.scrollHeight - 2) pause();
+      // 只有滚轮方向能实际移动视口才暂停；页顶向上滚轮不动视口，不算离开生成区。
+      const canScrollUp = event.deltaY < 0 && scroller.scrollTop > 0;
+      const canScrollDown = event.deltaY > 0 && scroller.scrollTop + scroller.clientHeight < scroller.scrollHeight - 2;
+      if (canScrollUp || canScrollDown) pause();
     };
     const onScroll = () => {
       // 程序化滚动总会落在预期位置；出现偏差说明是用户拖动滚动条或键盘滚动。

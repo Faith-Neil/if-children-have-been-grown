@@ -119,9 +119,9 @@
 | 完成时交付 | `docs/delivery/FE-UX-STREAMING-HANDOFF.md` |
 | 代码解释 | `docs/code/FE-UX-STREAMING-HANDOFF.md` |
 
-范围：保留 24px 自动钉底与用户上翻不拉回；离开底部显示半透明“回到底部”；`volume.done` 且 reveal settled 后静默写入 TipTap 并恢复 scrollTop；取消/失败回滚过渡清晰。
+范围：保留 24px 自动光标跟随与用户上翻不拉回；离开底部显示半透明“定位到正在撰写”；`volume.done` 且 reveal settled 后静默写入 TipTap 并恢复 scrollTop；取消/失败回滚过渡清晰。
 
-验收：长文滚动不强行拉回；点击回到底部平滑回底；完成后无白屏闪烁、整页回弹或 scrollTop 跳动；取消/失败正文回滚且提示明确。
+验收：长文滚动不强行拉回；点击定位到正在撰写平滑回底；完成后无白屏闪烁、整页回弹或 scrollTop 跳动；取消/失败正文回滚且提示明确。
 
 <a id="fe-ux-streaming-verification"></a>
 

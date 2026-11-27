@@ -27,6 +27,7 @@
 | D-1092 | 2026-11-27 | [FE-UX-STREAMING-HANDOFF 代码说明](code/FE-UX-STREAMING-HANDOFF.md) | 代码 | frontend-ux-streaming-r1 | 当前 | ISSUE-058 / FE-UX-STREAMING-HANDOFF | 滚动与完成交接代码说明 |
 | D-1093 | 2026-11-27 | [FE-UX-STREAMING-VERIFICATION 交付](delivery/FE-UX-STREAMING-VERIFICATION.md) | 交付 | frontend-ux-streaming-r1 | in-review | ISSUE-058 / FE-UX-STREAMING-VERIFICATION | 流式测试验收交付记录 |
 | D-1094 | 2026-11-27 | [FE-UX-STREAMING-VERIFICATION 代码说明](code/FE-UX-STREAMING-VERIFICATION.md) | 代码 | frontend-ux-streaming-r1 | 当前 | ISSUE-058 / FE-UX-STREAMING-VERIFICATION | 流式测试验收代码说明 |
+| D-1095 | 2026-11-27 | [流式编辑体验验收留档](testing/FE-UX-STREAMING-VERIFICATION-2026-11-27.md) | 验证 | frontend-ux-streaming-r1 | 当前 | ISSUE-058 / FE-UX-STREAMING-* | 滚动跟随/单列表格/阶段时序修复后全量复跑口径 |
 | D-1070 | 2026-11-27 | [ISSUE-057：前端主链路体验修复、现代视觉与动效升级、多分辨率响应式精修](../issues/ISSUE-057.md) | Issue | frontend-ux-visual-responsive-r1 | closed | ISSUE-057 | 前端体验、视觉 Token、响应式与四视口巡检 |
 | D-1071 | 2026-11-27 | [FE-UX 任务卡](tasks/FE-UX.md) | 任务 | frontend-ux-streaming-r1 | in-review | ISSUE-057 / ISSUE-058 | FE-UX-MAINFLOW-COPY～FE-UX-PLAYWRIGHT-VIEWPORTS done；FE-UX-STREAMING-RENDER～FE-UX-STREAMING-VERIFICATION in-review |
 | D-1061 | 2026-11-27 | [ISSUE-056：双管理员权限隔离、后台模块精简与任务中心核实](../issues/ISSUE-056.md) | Issue | admin-rbac-cleanup-r1 | closed | ISSUE-056 | 双管理员权限隔离、后台模块精简与任务中心核实 |

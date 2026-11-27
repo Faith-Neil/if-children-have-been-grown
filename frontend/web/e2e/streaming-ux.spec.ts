@@ -94,6 +94,7 @@ test('simulated SSE renders stage capsule, safe markdown, smart scroll and final
   await expect(page.getByTestId('streaming-paper-view')).toBeVisible();
   await expect(page.getByTestId('stream-stage-capsule')).toContainText(/正在准备|正在检索|正在核对|正在撰写/);
   await expect(page.locator('.paper-wait')).toHaveCount(0);
+
   await expect(page.getByTestId('stream-cursor')).toBeVisible();
   // 滚动断言先行：滴显时长有限，趁正文仍在生长时完成跟随/暂停/定位验证。
   const scroller = page.locator('.editor-scroll');
@@ -109,6 +110,10 @@ test('simulated SSE renders stage capsule, safe markdown, smart scroll and final
   }), { timeout: 10_000 }).toBe(true);
   await scroller.evaluate(node => { node.scrollTop = 0; node.dispatchEvent(new Event('scroll', { bubbles: true })); });
   await expect(page.getByTestId('stream-locate-writing')).toBeVisible();
+  // 暂停后新内容继续到达：视口保持不动，不被拉回生成区。
+  const anchor = await page.getByTestId('streaming-paper-view').innerText();
+  await expect(page.getByTestId('streaming-paper-view')).not.toHaveText(anchor, { timeout: 15_000 });
+  expect(await scroller.evaluate(node => node.scrollTop)).toBe(0);
   await page.getByTestId('stream-locate-writing').click();
   // 点击后光标被平滑带回视口舒适区（约 65%~75% 高度处），而不是整篇文档最底端。
   await expect.poll(async () => page.locator('.stream-cursor').evaluate(node => {
@@ -117,14 +122,22 @@ test('simulated SSE renders stage capsule, safe markdown, smart scroll and final
     const caretRect = node.getBoundingClientRect();
     const rect = host.getBoundingClientRect();
     const ratio = (caretRect.top - rect.top) / host.clientHeight;
-    return ratio > 0.5 && ratio < 0.95;
+    const notAtEnd = host.scrollTop + host.clientHeight < host.scrollHeight - 2;
+    return ratio > 0.5 && ratio < 0.95 && notAtEnd;
   }), { timeout: 5_000 }).toBe(true);
 
   await expect(page.getByTestId('stream-table-placeholder')).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('.paper-streaming-view table')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId('streaming-paper-view')).toContainText('重点加粗承诺');
 
+  // 交接前后 scrollTop 连续：取样点至交接间滴显仍会产生正常位移，容忍一个段落高度内偏差；
+  // 真正的契约是不得跳回页顶或纸面底部。
+  const topBeforeHandoff = await scroller.evaluate(node => node.scrollTop);
   await expect(page.getByTestId('streaming-paper-view')).toHaveCount(0, { timeout: 35_000 });
+  const handoff = await scroller.evaluate(node => ({ top: node.scrollTop, max: node.scrollHeight - node.clientHeight }));
+  expect(Math.abs(handoff.top - topBeforeHandoff)).toBeLessThan(80);
+  expect(handoff.top).toBeGreaterThan(0);
+  expect(handoff.top).toBeLessThan(handoff.max);
   await expect(page.locator('.paper-editor-hidden')).toHaveCount(0);
   await expect(page.getByTestId('paper-editor')).toContainText('结尾正式落盘内容');
   await expect(page.getByTestId('paper-editor')).toContainText('巡检频率');
