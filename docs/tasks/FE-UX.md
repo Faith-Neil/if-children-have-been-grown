@@ -78,7 +78,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 4小时 |
 | 关联 Issue | [ISSUE-058](../../issues/ISSUE-058.md) |
 | 依赖 | ISSUE-057 已合入 main |
@@ -95,7 +95,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 3小时 |
 | 关联 Issue | [ISSUE-058](../../issues/ISSUE-058.md) |
 | 依赖 | FE-UX-STREAMING-RENDER |
@@ -112,7 +112,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 4小时 |
 | 关联 Issue | [ISSUE-058](../../issues/ISSUE-058.md) |
 | 依赖 | FE-UX-STREAMING-RENDER、FE-UX-STREAMING-MARKDOWN |
@@ -129,7 +129,7 @@
 
 | 字段 | 内容 |
 |---|---|
-| 状态 | in-review |
+| 状态 | done |
 | 估算 | 4小时 |
 | 关联 Issue | [ISSUE-058](../../issues/ISSUE-058.md) |
 | 依赖 | 前三张流式体验卡完成初版 |

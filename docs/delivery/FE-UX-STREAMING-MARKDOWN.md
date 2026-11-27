@@ -6,7 +6,7 @@
 | 任务ID | FE-UX-STREAMING-MARKDOWN |
 | 代码解释 | [代码说明](../code/FE-UX-STREAMING-MARKDOWN.md) |
 | 验收 | tsc -b --noEmit 通过；生产构建通过；流式聚焦单测 27 passed；Playwright 模拟 SSE 2 passed（24.4s）；前端全量单测 647 passed / 14 failed，失败为既有 app-orchestration/evidence-orchestration/company-settings/dict-config 陈旧契约，未冒充通过 |
-| 项目进度 | in-review。不得标 done，待 QA/PD/PM 验收 |
+| 项目进度 | done。用户验收 PR #55 后按指令收口，ISSUE-058 closed；未发布 |
 <!-- task-delivery:end -->
 
 ## 实际修改

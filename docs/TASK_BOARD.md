@@ -721,10 +721,10 @@
 | [FE-UX-VISUAL-TOKENS](tasks/FE-UX.md#fe-ux-visual-tokens) | 统一视觉 Token 与轻量动效 | done | 设计 token 现状盘点 | [ISSUE-057](../issues/ISSUE-057.md) | [交付](delivery/FE-UX-VISUAL-TOKENS.md) |
 | [FE-UX-RESPONSIVE-LAYOUT](tasks/FE-UX.md#fe-ux-responsive-layout) | 多分辨率布局错位重构 | done | FE-UX-VISUAL-TOKENS | [ISSUE-057](../issues/ISSUE-057.md) | [交付](delivery/FE-UX-RESPONSIVE-LAYOUT.md) |
 | [FE-UX-PLAYWRIGHT-VIEWPORTS](tasks/FE-UX.md#fe-ux-playwright-viewports) | 四视口 Playwright 巡检与截图自修 | done | 前三卡初版 | [ISSUE-057](../issues/ISSUE-057.md) | [交付](delivery/FE-UX-PLAYWRIGHT-VIEWPORTS.md) |
-| [FE-UX-STREAMING-RENDER](tasks/FE-UX.md#fe-ux-streaming-render) | 流式阶段胶囊与专属渲染画布 | in-review | ISSUE-057 已合入 | [ISSUE-058](../issues/ISSUE-058.md) | [交付](delivery/FE-UX-STREAMING-RENDER.md) |
-| [FE-UX-STREAMING-MARKDOWN](tasks/FE-UX.md#fe-ux-streaming-markdown) | 流式安全 Markdown 中间态 | in-review | FE-UX-STREAMING-RENDER | [ISSUE-058](../issues/ISSUE-058.md) | [交付](delivery/FE-UX-STREAMING-MARKDOWN.md) |
-| [FE-UX-STREAMING-HANDOFF](tasks/FE-UX.md#fe-ux-streaming-handoff) | 智能跟随滚动与完成无缝交接 | in-review | FE-UX-STREAMING-RENDER、FE-UX-STREAMING-MARKDOWN | [ISSUE-058](../issues/ISSUE-058.md) | [交付](delivery/FE-UX-STREAMING-HANDOFF.md) |
-| [FE-UX-STREAMING-VERIFICATION](tasks/FE-UX.md#fe-ux-streaming-verification) | 流式单元测试与 Playwright SSE 验收 | in-review | 前三张流式体验卡初版 | [ISSUE-058](../issues/ISSUE-058.md) | [交付](delivery/FE-UX-STREAMING-VERIFICATION.md) |
+| [FE-UX-STREAMING-RENDER](tasks/FE-UX.md#fe-ux-streaming-render) | 流式阶段胶囊与专属渲染画布 | done | ISSUE-057 已合入 | [ISSUE-058](../issues/ISSUE-058.md) | [交付](delivery/FE-UX-STREAMING-RENDER.md) |
+| [FE-UX-STREAMING-MARKDOWN](tasks/FE-UX.md#fe-ux-streaming-markdown) | 流式安全 Markdown 中间态 | done | FE-UX-STREAMING-RENDER | [ISSUE-058](../issues/ISSUE-058.md) | [交付](delivery/FE-UX-STREAMING-MARKDOWN.md) |
+| [FE-UX-STREAMING-HANDOFF](tasks/FE-UX.md#fe-ux-streaming-handoff) | 智能跟随滚动与完成无缝交接 | done | FE-UX-STREAMING-RENDER、FE-UX-STREAMING-MARKDOWN | [ISSUE-058](../issues/ISSUE-058.md) | [交付](delivery/FE-UX-STREAMING-HANDOFF.md) |
+| [FE-UX-STREAMING-VERIFICATION](tasks/FE-UX.md#fe-ux-streaming-verification) | 流式单元测试与 Playwright SSE 验收 | done | 前三张流式体验卡初版 | [ISSUE-058](../issues/ISSUE-058.md) | [交付](delivery/FE-UX-STREAMING-VERIFICATION.md) |
 <!-- task-board:end -->
 
 ## 每次推进的同步顺序
