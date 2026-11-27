@@ -744,8 +744,13 @@ class KnowledgeBaseService:
                         refreshed["meta_fields"] = self._overlay_submitted_bid_date(
                             client, file_dataset, entry, refreshed["meta_fields"])
                     if refreshed.get("status") == STATUS_SYNCED and entry.get("deferred_chunk_scrub"):
-                        self._scrub_synced_history_chunks(client, file_dataset, entry)
-                        refreshed["deferred_chunk_scrub"] = False
+                        if self._scrub_synced_history_chunks(client, file_dataset, entry):
+                            refreshed["deferred_chunk_scrub"] = False
+                        else:
+                            # 脱敏回写未完成的分块严禁进入检索（检索只认 synced）：保持 parsing 并如实写明，
+                            # 下次状态同步会重试清洗；清洗幂等，重试收敛。
+                            refreshed["status"] = STATUS_PARSING
+                            refreshed["message"] = "分块去实体化回写未完成，已暂停该文档检索，将在下次状态同步重试。"
                     file_updates[key] = refreshed
         if updates:
             self._record(company_id, updates, set(), dataset_id=dataset_id, error=index.get("last_error", ""))
@@ -868,26 +873,38 @@ class KnowledgeBaseService:
     # ---------- 检索 ----------
 
     @staticmethod
-    def _scrub_synced_history_chunks(client: Any, dataset_id: str, entry: dict) -> None:
-        """对二进制 PDF/DOC 历史标书解析出的分块执行去实体化回写，确保源头不留旧甲方与项目名。"""
+    def _scrub_synced_history_chunks(client: Any, dataset_id: str, entry: dict) -> bool:
+        """对二进制 PDF/DOC 历史标书解析出的分块执行去实体化回写，确保源头不留旧甲方与项目名。
+
+        返回 True 表示全部页分块都已核对/回写完成；任一环节失败返回 False，调用方不得清除
+        deferred_chunk_scrub 标记、不得放行检索，留待下次状态同步重试（清洗幂等，重试收敛）。
+        历史标书动辄数百块，必须翻页到底，严禁只洗第一页就声称完成。"""
         from icg.domain.kb_preprocess import desensitize_history_text
 
         doc_id = str(entry.get("document_id") or "")
         if not doc_id or not dataset_id:
-            return
+            return True
         user_meta = dict(entry.get("user_meta") or {})
         try:
-            listed = client.list_chunks(dataset_id, doc_id, page=1, page_size=100)
-            for chunk in listed.get("chunks") or []:
-                cid = str(chunk.get("id") or chunk.get("chunk_id") or "")
-                raw = str(chunk.get("content") or chunk.get("content_with_weight") or "")
-                if not cid or not raw:
-                    continue
-                cleaned, _ = desensitize_history_text(raw, user_meta)
-                if cleaned != raw:
-                    client.update_chunk(dataset_id, doc_id, cid, content=cleaned)
+            for page in range(1, 51):
+                listed = client.list_chunks(dataset_id, doc_id, page=page, page_size=100)
+                chunks = listed.get("chunks") or []
+                for chunk in chunks:
+                    cid = str(chunk.get("id") or chunk.get("chunk_id") or "")
+                    raw = str(chunk.get("content") or chunk.get("content_with_weight") or "")
+                    if not cid or not raw:
+                        continue
+                    cleaned, _ = desensitize_history_text(raw, user_meta)
+                    if cleaned != raw:
+                        client.update_chunk(dataset_id, doc_id, cid, content=cleaned)
+                total = int(listed.get("total") or 0)
+                if len(chunks) < 100 or (total and page * 100 >= total):
+                    return True
+            log.info("history chunk scrub hit page cap for %s", entry.get("key"))
+            return False
         except Exception as exc:
-            log.info("history chunk scrub skipped for %s: %s", entry.get("key"), type(exc).__name__)
+            log.info("history chunk scrub incomplete for %s: %s", entry.get("key"), type(exc).__name__)
+            return False
 
     def search(self, company_id: str, query: str, *, limit: int = 6, kinds: set[str] | None = None,
                user: Any = None, reference_date: Any = None,

@@ -252,16 +252,24 @@ def test_platform_admin_writes_system_config_and_company_falls_back(client):
     assert client_obj is not None
     assert client_obj._config.base_url == PLATFORM_URL
 
-    # 公司管理员配置自己的端点后，公司级优先
+    # PM 最终权限模型：公司管理员不再能写引擎配置（403）；公司级覆盖行只能由平台侧代管/种子直铺。
+    # 这里直接种子公司显式配置，验证公司级优先语义不变。
     company_admin = login(client, "alpha-company-admin")
-    own_read = client.get("/api/v1/ragflow-config", headers=company_admin)
-    own_revision = own_read.json()["revision"]
-    own = client.put(
-        "/api/v1/ragflow-config",
-        headers={**company_admin, "If-Match": str(own_revision)},
-        json={"base_url": COMPANY_URL, "api_key": "rf-alpha-own-secret"},
-    )
-    assert own.status_code == 200, own.text
+    refused = client.put("/api/v1/ragflow-config", headers={**company_admin, "If-Match": "1"},
+                         json={"base_url": COMPANY_URL, "api_key": "rf-alpha-own-secret"})
+    assert refused.status_code == 403, refused.text
+
+    from icg.domain.ragflow_config import RagflowCompanyConfig
+    from icg.infra.model_config_storage import encrypt_api_key, mask_api_key
+
+    def seed_company(state):
+        state.ragflow_configs["alpha"] = RagflowCompanyConfig(
+            company_id="alpha", base_url=COMPANY_URL,
+            encrypted_api_key=encrypt_api_key("rf-alpha-own-secret"),
+            api_key_masked=mask_api_key("rf-alpha-own-secret"),
+        )
+
+    client.app.state.service.repository.transaction(seed_company)
     client_obj2 = kb.client_for("alpha")
     assert client_obj2 is not None
     assert client_obj2._config.base_url == COMPANY_URL

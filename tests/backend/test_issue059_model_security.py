@@ -275,7 +275,7 @@ def test_gate_still_blocks_sensitive_when_nothing_compliant(secret_key):
 
 def test_in_use_config_key_rotation_end_to_end(client):
     """创建 → 项目绑定 + 任务路由引用 → PUT 新明文密钥：密文必须真的更新。"""
-    admin = login(client, "alpha-company-admin")
+    admin = login(client, "admin")
     lead = login(client, "alpha-manager")
     created = client.post(
         "/api/v1/model-configs",
@@ -319,7 +319,7 @@ def test_in_use_config_key_rotation_end_to_end(client):
 
 def test_rotation_with_masked_key_echo_is_noop_but_new_plaintext_rotates(client):
     """传回掩码不动密钥；全新明文必须轮换。"""
-    admin = login(client, "alpha-company-admin")
+    admin = login(client, "admin")
     created = client.post("/api/v1/model-configs", headers=admin,
                           json={"id": "cfg-mask", "api_key": "sk-aaa-unchanged-z99", "base_url": PRIVATE_URL})
     assert created.status_code == 200, created.text
@@ -380,15 +380,21 @@ def test_mysql_save_diff_detects_key_rotation(secret_key):
     assert conn2.calls == [], "配置未变化不得产生任何写入"
 
 
-def test_platform_admin_cannot_rotate_but_company_admin_can(client):
-    """轮换的执行人是公司管理员；平台账号因租户不匹配也动不了公司配置（404 不泄露）。"""
-    admin = login(client, "alpha-company-admin")
-    client.post("/api/v1/model-configs", headers=admin,
-                json={"id": "cfg-owner", "api_key": "sk-owner-key-0001", "base_url": PRIVATE_URL})
+def test_company_admin_cannot_rotate_only_platform_admin_can(client):
+    """PM 最终模型：密钥轮换严格仅限平台管理员；公司管理员轮换一律 403。"""
     platform = login(client, "admin")
-    res = client.put("/api/v1/model-configs/cfg-owner", headers={**platform, "If-Match": "1"},
-                     json={"api_key": "sk-hijack-9999"})
-    assert res.status_code == 404  # 平台账号 company=system 看不到 alpha 的配置
-    res_ok = client.put("/api/v1/model-configs/cfg-owner", headers={**admin, "If-Match": "1"},
-                        json={"api_key": "sk-owner-key-0002"})
-    assert res_ok.status_code == 200, res_ok.text
+    created = client.post("/api/v1/model-configs", headers=platform,
+                          json={"id": "cfg-rotate-guard", "base_url": PRIVATE_URL, "api_key": "sk-guard-key-0001"})
+    assert created.status_code == 200, created.text
+
+    company_admin = login(client, "alpha-company-admin")
+    refused = client.put("/api/v1/model-configs/cfg-rotate-guard", headers={**company_admin, "If-Match": "1"},
+                         json={"api_key": "sk-evil-takeover-0002"})
+    assert refused.status_code == 403, refused.text
+
+    rotated = client.put("/api/v1/model-configs/cfg-rotate-guard", headers={**platform, "If-Match": "1"},
+                         json={"api_key": "sk-rotated-key-0003"})
+    assert rotated.status_code == 200, rotated.text
+    assert rotated.json()["api_key_masked"] == "sk-***0003"
+
+

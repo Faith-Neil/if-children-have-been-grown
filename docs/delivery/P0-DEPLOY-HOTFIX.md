@@ -68,3 +68,10 @@ in-review；建议 PM 复核后标 done。ISSUE-059 四张止血卡全部实施�
 - 端口默认改为回环绑定后，既有直接访问宿主机 IP:8710 的局域网部署会断——这是有意为之的安全默认；确需直连须显式设置 `ICG_BIND_HOST`，README 已写明放开方式。
 - 健康检查断言 `persistent=true`：内存态容器会持续 unhealthy——这是止血语义（非持久化生产部署视为异常），编排重启策略会按此处理，运维须知悉。
 - 真实容器编排验证（`docker compose up` 后 healthy 状态、反代 HTTPS 端到端）留待目标机部署时执行，QA 签署时可按 README 步骤复核。
+
+
+## 第二轮补充（Devin Review 收口）
+
+- 健康探针加固：`/health` 在 `persistent=true` 时执行轻量 `SELECT 1` 真探活 MySQL，探活失败按 unhealthy 处理（compose 健康检查随 URL 非 200/断言失败自动判定 unhealthy）；单测覆盖探活失败路径。
+- 端口默认 `127.0.0.1` 绑定与 `/health` 探活判据已同步 `deploy/README.md` 第 3 节与 3.1 节；新增「2.1 RAGFlow 密钥轮换与实例切换操作顺序」：同实例轮换只改密钥不重建；跨实例切换必须显式新密钥（CWE-522 后端强制）并执行四库重建/迁移。
+- 限制如实保留：真实容器编排翻转与真实 MySQL 断电探活仍未在目标机执行，AC-11 维持部分验证。

@@ -27,28 +27,24 @@ def client(secret_key):
 
 
 def test_get_ragflow_config_default_isolation(client):
-    # Alpha 公司管理员登录
-    headers_alpha = login(client, "alpha-manager")
-    res_alpha = client.get("/api/v1/ragflow-config", headers=headers_alpha)
-    assert res_alpha.status_code == 200
-    data_alpha = res_alpha.json()
-    assert data_alpha["company_id"] == "alpha"
-    assert "api_key" not in data_alpha
-    assert data_alpha["has_api_key"] is False
-    assert data_alpha["is_enabled"] is True
-    assert data_alpha["revision"] == 1
+    # ISSUE-059 PM 最终权限模型：RAGFlow 引擎配置严格仅限平台管理员；公司成员一律 403。
+    for account in ("alpha-manager", "alpha-company-admin", "beta-editor"):
+        refused = client.get("/api/v1/ragflow-config", headers=login(client, account))
+        assert refused.status_code == 403, (account, refused.text)
 
-    # Beta 公司成员登录
-    headers_beta = login(client, "beta-editor")
-    res_beta = client.get("/api/v1/ragflow-config", headers=headers_beta)
-    assert res_beta.status_code == 200
-    data_beta = res_beta.json()
-    assert data_beta["company_id"] == "beta"
-    assert data_beta["revision"] == 1
+    # 平台管理员读取 system 租户配置：绝不暴露明文密钥
+    res_admin = client.get("/api/v1/ragflow-config", headers=login(client, "admin"))
+    assert res_admin.status_code == 200, res_admin.text
+    data = res_admin.json()
+    assert data["company_id"] == "system"
+    assert "api_key" not in data
+    assert data["has_api_key"] is False
+    assert data["is_enabled"] is True
+    assert data["revision"] == 1
 
 
 def test_update_ragflow_config_with_optimistic_lock_and_encryption(client):
-    headers = login(client, "alpha-company-admin")
+    headers = login(client, "admin")
 
     # 1. 未提供 If-Match 触发 428
     res_no_if_match = client.put(
@@ -103,7 +99,7 @@ def test_update_ragflow_config_with_optimistic_lock_and_encryption(client):
 
 
 def test_test_ragflow_connectivity(client, fake_ragflow):
-    headers = login(client, "alpha-company-admin")
+    headers = login(client, "admin")
 
     # 执行连通性测试，指向 FakeRagflow 服务地址
     res = client.post(

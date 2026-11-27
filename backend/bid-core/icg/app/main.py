@@ -162,8 +162,25 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
         require_password_changed(principal, request.method, request.url.path)
         return principal
 
-    @application.get("/health", response_model=HealthResponse, operation_id="getHealth")
-    def health():
+    def _probe_mysql(repository: Any) -> bool:
+        """对 MySQL 执行 SELECT 1 轻量探活。引擎创建时 connect_timeout=3s，探活走现有连接池，
+        不可达/认证失败/实例宕机都归一为 False，绝不让健康端点把异常抛成 500 冒充进程故障。"""
+        try:
+            engine = getattr(repository, "engine", None)
+        except Exception:
+            return False
+        if engine is None:
+            return False
+        try:
+            with engine.connect() as connection:
+                connection.exec_driver_sql("SELECT 1")
+            return True
+        except Exception:
+            return False
+
+    @application.get("/health", response_model=HealthResponse, operation_id="getHealth",
+                     responses={503: {"model": HealthResponse, "description": "持久化模式但 MySQL 当下不可达（healthy=false）"}})
+    def health(response: Response):
         from icg.domain.domain import _production_mode
         repository_mode = getattr(service.repository, "mode", "injected")
         process_model = "real" if getattr(service.model_provider, "is_real_model", False) else "mock"
@@ -176,13 +193,20 @@ def create_app(repository: Repository | None = None, model_provider: ModelProvid
                     effective_model = "company_real"
             except Exception:
                 pass
+        persistent = repository_mode == "mysql"
+        # persistent 只代表配置目标，不代表数据库当下可达：持久化模式必须真探活，
+        # 编排/compose 健康检查依赖本字段与非 200 状态码剔除故障实例。
+        healthy = _probe_mysql(service.repository) if persistent else True
+        if not healthy:
+            response.status_code = 503
         return {"status": "ok", "mode": "production" if _production_mode() else "development",
                 "repository": repository_mode,
                 "model": process_model,
                 "effective_model": effective_model,
-                "persistent": repository_mode == "mysql",
+                "persistent": persistent,
                 # 后台作业执行与知识库同步锁仍在进程内，部署时只能起一个应用进程。
-                "single_process": True}
+                "single_process": True,
+                "healthy": healthy}
 
     @application.get("/", response_class=FileResponse, operation_id="getIndex",
                      responses={**error_responses(404), 200: {"description": "本地操作页面",

@@ -64,10 +64,10 @@ def test_api_key_masking():
 
 
 def test_api_response_masks_keys_and_never_returns_plaintext(client, secret_key):
-    headers = login(client, "alpha-manager")
+    headers = login(client, "admin")
     res = client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={
             "id": "cfg-secure-1",
             "name": "安全内网模型",
@@ -104,7 +104,7 @@ def test_update_rules_omit_clear_and_mask(client, secret_key):
     headers = login(client, "alpha-manager")
     client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={
             "id": "cfg-update-rules",
             "name": "初始配置",
@@ -116,7 +116,7 @@ def test_update_rules_omit_clear_and_mask(client, secret_key):
     # 1. 省略 api_key 代表保留原密钥
     res1 = client.put(
         "/api/v1/model-configs/cfg-update-rules",
-        headers={**login(client, "alpha-company-admin"), "If-Match": "1"},
+        headers={**login(client, "admin"), "If-Match": "1"},
         json={"name": "改名但保留密钥"},
     )
     assert res1.status_code == 200
@@ -127,7 +127,7 @@ def test_update_rules_omit_clear_and_mask(client, secret_key):
     # 2. 传回刚才返回的掩码代表不修改
     res2 = client.put(
         "/api/v1/model-configs/cfg-update-rules",
-        headers={**login(client, "alpha-company-admin"), "If-Match": "2"},
+        headers={**login(client, "admin"), "If-Match": "2"},
         json={"name": "送回掩码", "api_key": "sk-***3456"},
     )
     assert res2.status_code == 200
@@ -138,7 +138,7 @@ def test_update_rules_omit_clear_and_mask(client, secret_key):
     # 3. 空字符串代表清除密钥
     res3 = client.put(
         "/api/v1/model-configs/cfg-update-rules",
-        headers={**login(client, "alpha-company-admin"), "If-Match": "3"},
+        headers={**login(client, "admin"), "If-Match": "3"},
         json={"api_key": ""},
     )
     assert res3.status_code == 200
@@ -149,7 +149,7 @@ def test_update_rules_omit_clear_and_mask(client, secret_key):
     # 4. 传入新明文代表更新
     res4 = client.put(
         "/api/v1/model-configs/cfg-update-rules",
-        headers={**login(client, "alpha-company-admin"), "If-Match": "4"},
+        headers={**login(client, "admin"), "If-Match": "4"},
         json={"api_key": "sk-brandnewkey888"},
     )
     assert res4.status_code == 200
@@ -162,14 +162,14 @@ def test_optimistic_locking_via_if_match_and_revision(client, secret_key):
     headers = login(client, "alpha-manager")
     client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={"id": "cfg-lock", "name": "并发锁测试"},
     )
 
     # 缺少 If-Match 请求头返回 428 IF_MATCH_REQUIRED
     res_no_match = client.put(
         "/api/v1/model-configs/cfg-lock",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={"name": "新名"},
     )
     assert res_no_match.status_code == 428
@@ -178,7 +178,7 @@ def test_optimistic_locking_via_if_match_and_revision(client, secret_key):
     # 版本不一致返回 409 REVISION_CONFLICT
     res_conflict = client.put(
         "/api/v1/model-configs/cfg-lock",
-        headers={**login(client, "alpha-company-admin"), "If-Match": "999"},
+        headers={**login(client, "admin"), "If-Match": "999"},
         json={"name": "新名"},
     )
     assert res_conflict.status_code == 409
@@ -188,7 +188,7 @@ def test_optimistic_locking_via_if_match_and_revision(client, secret_key):
     # 正确匹配 If-Match: 1 成功更新全部字段（含 stream_enabled 与 json_mode_enabled）
     res_ok = client.put(
         "/api/v1/model-configs/cfg-lock",
-        headers={**login(client, "alpha-company-admin"), "If-Match": "1"},
+        headers={**login(client, "admin"), "If-Match": "1"},
         json={
             "stream_enabled": False,
             "json_mode_enabled": True,
@@ -207,7 +207,7 @@ def test_optimistic_locking_via_if_match_and_revision(client, secret_key):
     # 再次使用旧版本 If-Match: 1 更新失败
     res_conflict2 = client.put(
         "/api/v1/model-configs/cfg-lock",
-        headers={**login(client, "alpha-company-admin"), "If-Match": "1"},
+        headers={**login(client, "admin"), "If-Match": "1"},
         json={"name": "再次更新"},
     )
     assert res_conflict2.status_code == 409
@@ -222,7 +222,7 @@ def test_secret_key_unavailable_503_has_no_retry_after(client, monkeypatch):
     # 1. 创建带 key 的配置，主密钥缺失触发 503
     res_create = client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={
             "id": "cfg-no-secret",
             "name": "缺密钥测试",
@@ -237,7 +237,7 @@ def test_secret_key_unavailable_503_has_no_retry_after(client, monkeypatch):
     # 2. 但创建不带 key 的配置可以成功
     res_create_nokey = client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={"id": "cfg-no-key", "name": "无密钥模型"},
     )
     assert res_create_nokey.status_code == 200
@@ -245,7 +245,7 @@ def test_secret_key_unavailable_503_has_no_retry_after(client, monkeypatch):
     # 3. 更新为有密钥触发 503 无 Retry-After
     res_update = client.put(
         "/api/v1/model-configs/cfg-no-key",
-        headers={**login(client, "alpha-company-admin"), "If-Match": "1"},
+        headers={**login(client, "admin"), "If-Match": "1"},
         json={"api_key": "sk-new"},
     )
     assert res_update.status_code == 503
@@ -259,10 +259,10 @@ def test_connectivity_api(client, secret_key, fake_openai_chat):
     # 1. demo 模型测试连通性
     client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={"id": "cfg-demo", "provider": "demo", "model": "demo-v1"},
     )
-    res_demo = client.post("/api/v1/model-configs/cfg-demo/test", headers=login(client, "alpha-company-admin"))
+    res_demo = client.post("/api/v1/model-configs/cfg-demo/test", headers=login(client, "admin"))
     assert res_demo.status_code == 200
     demo_data = res_demo.json()
     assert demo_data["ok"] is True
@@ -273,7 +273,7 @@ def test_connectivity_api(client, secret_key, fake_openai_chat):
     # 2. openai-compatible 连通性测试（打通 fake_openai_chat）
     client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={
             "id": "cfg-real-like",
             "provider": "openai-compatible",
@@ -282,7 +282,7 @@ def test_connectivity_api(client, secret_key, fake_openai_chat):
             "api_key": "sk-fake-chat-token",
         },
     )
-    res_real = client.post("/api/v1/model-configs/cfg-real-like/test", headers=login(client, "alpha-company-admin"))
+    res_real = client.post("/api/v1/model-configs/cfg-real-like/test", headers=login(client, "admin"))
     assert res_real.status_code == 200
     real_data = res_real.json()
     assert real_data["ok"] is True
@@ -293,7 +293,7 @@ def test_connectivity_api(client, secret_key, fake_openai_chat):
     # 3. 失败连通性（无法连接的端口）
     client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={
             "id": "cfg-dead",
             "provider": "openai-compatible",
@@ -301,7 +301,7 @@ def test_connectivity_api(client, secret_key, fake_openai_chat):
             "model": "unreachable",
         },
     )
-    res_dead = client.post("/api/v1/model-configs/cfg-dead/test", headers=login(client, "alpha-company-admin"))
+    res_dead = client.post("/api/v1/model-configs/cfg-dead/test", headers=login(client, "admin"))
     assert res_dead.status_code == 200
     dead_data = res_dead.json()
     assert dead_data["ok"] is False
@@ -314,13 +314,13 @@ def test_connectivity_fails_with_503_without_retry_after_when_secret_key_lost(cl
     headers = login(client, "alpha-manager")
     client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={"id": "cfg-with-key", "api_key": "sk-important-token"},
     )
 
     # 随后丢失主密钥
     monkeypatch.delenv("ICG_SECRET_KEY", raising=False)
-    test_res = client.post("/api/v1/model-configs/cfg-with-key/test", headers=login(client, "alpha-company-admin"))
+    test_res = client.post("/api/v1/model-configs/cfg-with-key/test", headers=login(client, "admin"))
     assert test_res.status_code == 503
     assert test_res.json()["code"] == "SECRET_KEY_UNAVAILABLE"
     assert "retry-after" not in test_res.headers
@@ -344,7 +344,7 @@ def test_sensitive_project_requires_local_model(client, secret_key):
     # 创建云端配置
     client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={
             "id": "cfg-cloud",
             "name": "云端公网模型",
@@ -365,7 +365,7 @@ def test_sensitive_project_requires_local_model(client, secret_key):
     # 创建本地但未允许敏感配置 -> 403
     client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={
             "id": "cfg-local-nosensitive",
             "name": "本地非敏感模型",
@@ -384,7 +384,7 @@ def test_sensitive_project_requires_local_model(client, secret_key):
     # 创建本地且允许敏感配置 -> 成功
     client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={
             "id": "cfg-local-sensitive",
             "name": "本地涉密合规模型",
@@ -424,36 +424,45 @@ def test_job_start_snapshots_stream_and_json_mode_enabled(client, secret_key):
 
 
 def test_company_multi_tenant_isolation(client, secret_key):
+    """PM 最终权限模型：配置管理读写严格仅限平台管理员；公司侧任何角色读写管理端点一律 403，
+    跨租户数据因 platform_admin 统一代管而在服务层不再按公司切分读写面。"""
     alpha_headers = login(client, "alpha-manager")
     beta_headers = login(client, "beta-editor")
-
-    # alpha 公司管理员创建专属配置
+    platform = login(client, "admin")
     created = client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
-        json={"id": "cfg-alpha-only", "name": "甲公司专属模型"},
+        headers=platform,
+        json={"id": "cfg-alpha-only", "name": "甲公司专用模型", "company_id": "alpha"},
     )
     assert created.status_code == 200, created.text
-    assert client.get("/api/v1/model-configs/cfg-alpha-only", headers=alpha_headers).status_code == 200
 
-    # beta 读取返回 404 NOT_FOUND
-    res_get = client.get("/api/v1/model-configs/cfg-alpha-only", headers=beta_headers)
-    assert res_get.status_code == 404
-    assert res_get.json()["code"] == "NOT_FOUND"
+    # 公司管理员/负责人/普通成员读写管理端点一律 403（含本公司配置）
+    for headers in (alpha_headers, beta_headers, login(client, "alpha-company-admin")):
+        assert client.get("/api/v1/model-configs/cfg-alpha-only", headers=headers).status_code == 403
+        refused = client.put(
+            "/api/v1/model-configs/cfg-alpha-only",
+            headers={**headers, "If-Match": "1"},
+            json={"name": "越权改名"},
+        )
+        assert refused.status_code == 403, refused.text
 
-    # beta 编写人不能修改任何模型配置（先按角色拒绝，不透露配置是否存在）
-    res_put = client.put(
-        "/api/v1/model-configs/cfg-alpha-only",
-        headers={**beta_headers, "If-Match": "1"},
-        json={"name": "非法改名"},
-    )
-    assert res_put.status_code == 403
-    assert client.get("/api/v1/model-configs/cfg-alpha-only", headers=alpha_headers).json()["name"] == "甲公司专属模型"
+    # 平台管理员可跨租户代管但不允许变更租户归属（CWE-639）
+    assert client.get("/api/v1/model-configs/cfg-alpha-only", headers=platform).status_code == 200
+    moved = client.put("/api/v1/model-configs/cfg-alpha-only", headers={**platform, "If-Match": "1"},
+                       json={"company_id": "beta"})
+    assert moved.status_code == 422, moved.text
+
+    def check(state):
+        assert state.model_configs["cfg-alpha-only"].company_id == "alpha"
+        assert state.model_configs["cfg-alpha-only"].name == "甲公司专用模型"
+
+    client.app.state.service.repository.transaction(check)
+
 
 
 def test_only_company_admin_manages_configs_and_only_lead_or_admin_binds_projects(client):
     """模型地址决定正文发往哪里：普通成员不能新建、修改、测试（测试会让服务端访问填写的地址），也不能改项目绑定。"""
-    admin = login(client, "alpha-company-admin")
+    admin = login(client, "admin")
     created = client.post("/api/v1/model-configs", headers=admin, json={"id": "cfg-guard", "name": "内网模型", "base_url": "http://10.0.0.8:8000"})
     assert created.status_code == 200, created.text
     for account in ("alpha-manager", "alpha-editor", "alpha-viewer", "alpha-auditor"):

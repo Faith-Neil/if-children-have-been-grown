@@ -40,7 +40,7 @@ export default function ProjectSettingsPage() {
     try {
       const [routes, configs] = await Promise.all([
         request<StructureRoutes>('/api/v1/task-model-routes', token),
-        request<{ items: ModelConfigItem[] }>('/api/v1/model-configs', token),
+        request<{ items: ModelConfigItem[] }>(`/api/v1/projects/${workspace.project.id}/model-options`, token),
       ]);
       setStructureRoutes(routes);
       setStructureConfigs(configs.items ?? []);

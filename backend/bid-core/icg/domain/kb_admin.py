@@ -419,9 +419,16 @@ class KbAdminService:
 
                 def move(idx: dict, key=key, doc_id=doc.id, upload_name=upload_name,
                          content_type=content_type, size=len(data), user_meta=user_meta) -> None:
-                    idx["files"][key] = {**idx["files"][key], "document_id": doc_id, "status": STATUS_PARSING,
-                                         "upload_name": upload_name, "content_type": content_type, "size": size,
-                                         "user_meta": user_meta}
+                    migrated = {**idx["files"][key], "document_id": doc_id, "status": STATUS_PARSING,
+                                "upload_name": upload_name, "content_type": content_type, "size": size,
+                                "user_meta": user_meta}
+                    if kind == "history":
+                        # 重建产生全新文档与全新分块：二进制原件字节本身从未脱敏（脱敏发生在解析后的分块层），
+                        # 旧条目里「deferred_chunk_scrub=False」只是上一世代的清洗结果，严禁随迁携带。
+                        # 必须重置为待清洗，确保新分块在进入检索前完整重跑去实体化；对已在字节层脱敏的
+                        # 原件重跑是幂等空操作，代价可忽略。
+                        migrated["deferred_chunk_scrub"] = True
+                    idx["files"][key] = migrated
                 self.kb._update_index(company, move)
                 migrated += 1
             client.delete_datasets([old["dataset_id"]])

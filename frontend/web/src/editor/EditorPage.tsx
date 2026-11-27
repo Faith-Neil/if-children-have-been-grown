@@ -294,7 +294,9 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
       if (start !== epoch.current) return;
       setChapter(data); sequence.current = data.draft?.sequence ?? 0;
       setEditFingerprint(loadedEditingFingerprint(data, workspace.input_fingerprint));
-      refreshEditFingerprint(start);
+      // 只有展示当前正式正文（无草稿或草稿基于旧版本而未被恢复进编辑器）时才后台刷新指纹；
+      // 恢复既有草稿时必须保留草稿原指纹——草稿是按旧来源写的，悄悄换成新指纹会跳过后端的来源核对门禁。
+      if (!data.draft || data.draft.base_revision !== data.revision) refreshEditFingerprint(start);
       if (streamLive.current) return;
       if (data.draft && data.draft.base_revision !== data.revision) {
         setContent(data.content); setNotice('存在基于旧版本的个人草稿。当前先展示新版本正文，旧草稿没有自动覆盖。');
@@ -547,8 +549,11 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   // 章节 revision 冲突由写入内核落入既有合并流程；成功落盘后自动保存随写入内核解除暂停。
   async function recoverFingerprintWrite() {
     const recovery = fingerprintRecovery;
-    if (!recovery || !chapter || fingerprintRecovering) return;
+    // busy 互斥：恢复期间 engaging 统一 busy 态，自动保存（shouldAutosave 检查 busy）与其他写按钮一并互斥，
+    // 防止恢复等待期间继续输入的内容被读回正文覆盖丢失。
+    if (!recovery || !chapter || fingerprintRecovering || busy) return;
     setFingerprintRecovering(true);
+    setBusy(true);
     try {
       const outcome = await recoverFingerprintedWrite({
         fetchFingerprint: async () => {
@@ -557,7 +562,10 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         },
         write: fingerprint => (recovery.target === 'commit' ? writeCommitWith(fingerprint) : writeDraftWith(fingerprint)),
       });
-      if ('fingerprint' in outcome && outcome.fingerprint) setEditFingerprint(outcome.fingerprint);
+      // 指纹采用顺序：写入成功后内核已读回「写入后」新指纹（提交本身会改变项目指纹），
+      // 严禁用拉取时的写入前指纹覆盖它；只有写入失败（内核未采纳任何值）时才采用拉取值，
+      // 它仍是当时服务端的真实项目指纹，比编辑器旧值新。
+      if (outcome.status === 'write-error' && outcome.fingerprint) setEditFingerprint(outcome.fingerprint);
       if (outcome.status === 'saved' || outcome.status === 'handed-off') {
         setFingerprintRecovery(null);
       } else {
@@ -565,6 +573,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         localError(outcome.error);
       }
     } finally {
+      setBusy(false);
       setFingerprintRecovering(false);
     }
   }

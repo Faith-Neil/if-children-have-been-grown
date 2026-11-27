@@ -407,6 +407,8 @@ class HealthResponse(ResponseBody):
     effective_model: str
     persistent: bool
     single_process: bool
+    healthy: bool = Field(description="持久化依赖当前是否真正可达。persistent=true 时对 MySQL 执行 SELECT 1 轻量探活，"
+                                      "探活失败为 false 且本端点返回 503；非持久化模式没有外部依赖，恒为 true。")
 
 
 class ErrorDetailResponse(ResponseBody):

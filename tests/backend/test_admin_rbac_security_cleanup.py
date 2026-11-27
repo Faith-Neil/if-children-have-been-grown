@@ -49,29 +49,22 @@ def test_audit_logs_real_api_and_tenant_isolation(client: TestClient):
 
 
 def test_company_admin_cannot_reach_platform_model_or_engine_config(client: TestClient):
-    # ISSUE-059 裁定：59f091e 在 API 层误加 require_platform_admin 一刀切，覆盖了 5c3ec77 的
-    # 既定安全设计（公司管理员管理本公司配置、项目负责人绑定），并导致在用模型无法轮换密钥、
-    # 项目负责人无法绑定。真正的安全边界是：普通成员 403、跨租户/平台 system 级配置不可触达。
-    # 本测试保留该边界；公司管理员管理本公司配置的能力由 test_model_config_glue.py、
-    # test_ragflow_config_api.py 与 test_issue059_model_config_rbac.py 固化。
-    member = login(client, "alpha-editor")
-    for method, path, payload in (
-        ("post", "/api/v1/model-configs", {"name": "越权模型", "base_url": "http://127.0.0.1:8000", "model": "qwen"}),
-        ("put", "/api/v1/ragflow-config", {"base_url": "http://127.0.0.1:9380"}),
-        ("post", "/api/v1/ragflow-config/test", {}),
-    ):
-        response = getattr(client, method)(path, headers=member, json=payload)
-        assert response.status_code == 403, (method, path, response.text)
-
-    # 公司管理员可管理本公司配置，但触不到其他公司/平台 system 级配置（租户隔离 404）。
-    company_admin = login(client, "alpha-company-admin")
-    own = client.get("/api/v1/model-configs", headers=company_admin)
-    assert own.status_code == 200, own.text
-    foreign = client.put("/api/v1/model-configs/cfg-does-not-belong-to-alpha", headers={**company_admin, "If-Match": '"1"'},
-                         json={"name": "越权改名"})
-    assert foreign.status_code in (403, 404), foreign.text
-    cross_bind = client.post("/api/v1/model-configs/cfg-does-not-belong-to-alpha/test", headers=company_admin)
-    assert cross_bind.status_code in (403, 404), cross_bind.text
+    # ISSUE-059 PM 最终权限模型：模型配置 CRUD/密钥轮换/连通性测试与 RAGFlow 引擎连接配置/测试
+    # 严格仅限 platform_admin；公司管理员与普通成员访问一律 403。
+    # 项目绑定独立授权（项目负责人/公司管理员可绑定已有合规模型）由 test_issue059_model_config_rbac.py 固化。
+    for account in ("alpha-company-admin", "alpha-editor"):
+        headers = login(client, account)
+        for method, path, payload in (
+            ("get", "/api/v1/model-configs", None),
+            ("post", "/api/v1/model-configs", {"name": "越权模型", "base_url": "http://127.0.0.1:8000", "model": "qwen"}),
+            ("put", "/api/v1/model-configs/cfg-any", {"name": "越权改名"}),
+            ("post", "/api/v1/model-configs/cfg-any/test", {}),
+            ("get", "/api/v1/ragflow-config", None),
+            ("put", "/api/v1/ragflow-config", {"base_url": "http://127.0.0.1:9380"}),
+            ("post", "/api/v1/ragflow-config/test", {}),
+        ):
+            response = getattr(client, method)(path, headers={**headers, "If-Match": '"1"'}, json=payload) if payload is not None else getattr(client, method)(path, headers=headers)
+            assert response.status_code == 403, (account, method, path, response.text)
 
 
 def test_cross_company_users_are_not_visible_to_company_admin(client: TestClient):

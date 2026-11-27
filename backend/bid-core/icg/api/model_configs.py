@@ -68,6 +68,12 @@ def include_model_config_routes(application, service: DemoService, current_user)
         """将模型配置绑定到指定项目。敏感项目尝试绑定非本地或未标记敏感可用的模型时，返回 403 SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL。"""
         return config_service.bind_project(user, project_id, body.model_config_id)
 
+    @router.get("/projects/{project_id}/model-options", response_model=ModelConfigListResponse,
+                operation_id="listProjectModelOptions")
+    def list_project_model_options(project_id: str, user: Principal = Depends(current_user)):
+        """项目负责人/公司管理员可用的只读绑定候选列表（绝不暴露明文密钥）；模型配置管理严格仅限平台管理员。"""
+        return config_service.list_bindable(user, project_id)
+
     @router.get("/projects/{project_id}/model-config", response_model=ModelConfigResponse,
                 operation_id="getProjectModelConfig")
     def get_project_model_config(project_id: str, response: Response, user: Principal = Depends(current_user)):

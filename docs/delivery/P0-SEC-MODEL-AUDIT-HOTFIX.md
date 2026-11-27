@@ -73,3 +73,13 @@ in-review；建议 PM 复核后标 done。ISSUE-059 四张止血卡（P0-SEC-MOD
 - 密钥轮换的根因在 API 层授权（组 3 (h) 修复），本卡测试固化的是轮换链路本身；两项修复合并后才构成完整可轮换能力。
 - 真实模型连通性未在本轮验证，QA 复测时如需真机证据须按 `ICG_RUN_REAL_MODEL_TESTS=1` 门控在内网执行。
 - 前端保存合并语义依赖后端 PATCH 合并行为保持不变；若后端改为整体替换语义须同步调整。
+
+
+## 第二轮补充（PM 最终权限模型裁定）
+
+PM 正式驳回第一轮对公司管理员放开模型/RAGFlow 配置写权限的调整。最终权限模型：
+
+- 模型配置 CRUD、密钥轮换（含存量在用模型）、连通性测试与 RAGFlow 引擎连接配置/测试：**严格仅限 platform_admin**，公司管理员与普通成员一律 403（`test_company_admin_cannot_reach_platform_model_or_engine_config` 恢复守护此边界）；
+- 项目模型绑定为独立授权：项目负责人与公司管理员可读只写候选列表 `GET /projects/{id}/model-options`（绝不暴露明文密钥）并绑定已有合规模型（公司或平台 system 池）；前端绑定链路已切换到该端点；
+- 纵深防御补齐：CWE-639 全局 ID 冲突拒绝 + MySQL 归属约束 UPDATE；CWE-522 RAGFlow 改地址必须显式新密钥或显式清空；CWE-862 create_dataset/sync_knowledge_base 强制 company_admin/platform_admin；CWE-918 端点 scheme/主机/userinfo 校验；
+- RAGFlow 部署默认值不再持久化进公司配置行，只在运行时回落层生效（含回归测试）。

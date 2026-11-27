@@ -73,3 +73,10 @@ in-review；建议 PM 复核后标 done。ISSUE-059 四张止血卡全部实施�
 - `require_platform_admin` 误加移除后，模型配置端点恢复公司管理员 CRUD + 项目负责人绑定；安全边界由改写后的 `test_admin_rbac_security_cleanup.py` 固化（普通成员写 403、跨租户 404），多租户强隔离未削弱。
 - 真实 RAGFlow 端到端重建未在本轮验证，QA 如需真机证据须在内网按门控执行；转换失败 422 语义已在 Fake RAGFlow 下固化。
 - `COMPANY_NAME_DUPLICATED` 冻结名单漏收为既有问题的顺带修复，无行为变化（错误码本身早已使用）。
+
+
+## 第二轮补充（Devin Review 收口）
+
+- Critical 6：重建历史标书生成新文档 ID 时重置脱敏/去实体化状态标记，确保 knowledge_base 在解析完成后对新分块完整重跑脱敏，杜绝敏感实体借重建绕过脱敏直接进入可检索状态；
+- RAGFlow 引擎配置权限按 PM 最终模型收回 platform_admin（详见 P0-SEC-MODEL-AUDIT-HOTFIX 第二轮补充）；
+- CWE-522/862/918 修复与回归测试见 docs/testing/iss-059-p0-hotfix-verification.md 验证登记。

@@ -48,6 +48,56 @@ def _tally_message(tally: dict, *, stage: str | None = None, title: str | None =
     return stage_progress_message(tally, stage=stage, title=title)
 
 
+class ProgressBarrier:
+    """写卷生产侧提交正文前的进度落库同步确认边界。
+
+    生成事件由生产线程发出、消费线程（_run）逐个落库。生产线程在 commit_volume 之前必须确认
+    消费侧已把 write_volume 期间发出的全部事件处理完毕（含最后一节的进度行同步）；
+    任何落库失败或消费侧丢失都视为未确认，正文不得提交。计数即可，因为消费严格按 FIFO 顺序：
+    第 k 个事件处理完意味着 1..k 的进度落库全部完成（或已失败）。"""
+
+    def __init__(self) -> None:
+        self._cond = threading.Condition()
+        self._emitted = 0
+        self._consumed = 0
+        self._failure: Exception | None = None
+        self._released = False
+
+    def emitted(self) -> None:
+        with self._cond:
+            self._emitted += 1
+
+    def consumed(self) -> None:
+        with self._cond:
+            self._consumed += 1
+            self._cond.notify_all()
+
+    def fail(self, error: Exception) -> None:
+        with self._cond:
+            if self._failure is None:
+                self._failure = error
+            self._cond.notify_all()
+
+    def release(self) -> None:
+        """消费侧无论因何结束都必须调用，保证生产侧不会空等。"""
+        with self._cond:
+            self._released = True
+            self._cond.notify_all()
+
+    def wait_caught_up(self) -> None:
+        """阻塞到消费侧处理完调用时已发出的全部事件；落库失败或消费侧丢失则抛出。"""
+        with self._cond:
+            target = self._emitted
+            while self._consumed < target and self._failure is None and not self._released:
+                self._cond.wait(timeout=0.5)
+            if self._failure is not None:
+                raise DomainError(500, "INTERNAL_ERROR", "生成进度未能写入任务存储，正文不予提交。",
+                                  {"reason": "job_persistence", "cause": str(self._failure)[:200]}) from self._failure
+            if self._consumed < target:
+                raise DomainError(500, "INTERNAL_ERROR", "生成进度确认通道已中断，正文不予提交。",
+                                  {"reason": "job_persistence", "cause": "consumer_released"})
+
+
 class TechnicalVolumeSessions:
     def __init__(self, workflow: Any, jobs: Any) -> None:
         self.workflow = workflow
@@ -217,26 +267,40 @@ class TechnicalVolumeSessions:
         tally = {"done": 0, "total": 0, "failed": 0}
         ended = False
         failure: Exception | None = None
+        barrier = ProgressBarrier()
         self._live_stage[job_id] = {}
         try:
             self._update(job_id, self._begin)
-            for event in self.workflow.iter_technical_stream(prepared, backlog.cancel):
-                backlog.push(event)
+            for event in self.workflow.iter_technical_stream(prepared, backlog.cancel, progress_barrier=barrier):
+                # 落库先导：先持久化进度/终态，成功后才向订阅者发布事件。
+                # 终态事件（volume.done 等）严禁在终态落库前到达订阅者，否则会出现
+                # 「任务已失败但客户端已收到完成」的状态分裂。
                 ended = self._track(job_id, tally, event) or ended
+                backlog.push(event)
+                barrier.consumed()
         except Exception as exc:
             # 进度/终态落库失败也属于生成失败：先停住写卷循环，再补一条失败事件。
             failure = exc
+            barrier.fail(exc)
             backlog.cancel.set()
         finally:  # 未预料的异常也如实记失败，不留在“进行中”
+            barrier.release()
             if not ended:
-                persistence = isinstance(failure, DomainError) and (failure.details or {}).get("reason") == "job_persistence"
-                message = str(failure) if persistence else "生成异常中断，本次不写入。"
-                backlog.push({"event": "volume.failed", "message": message})
+                current = self.repository.read().recoverable_jobs.get(job_id) or {}
+                if current.get("status") == "completed":
+                    # 终态事务已把 completed 写进条目态、但任务行同步失败：正文很可能已提交，
+                    # 严禁继续声称完成；如实改记失败并说明正文去向，且必须覆盖未落库的完成态。
+                    message = "正文已写入本卷，但完成状态未能写入任务存储；请核对编辑台正文，必要时重新生成。"
+                else:
+                    persistence = isinstance(failure, DomainError) and (failure.details or {}).get("reason") == "job_persistence"
+                    message = str(failure) if persistence else "生成异常中断，本次不写入。"
                 try:
-                    self._finish(job_id, "failed", message, tally, error="INTERNAL_ERROR")
+                    # 终态落库先导：失败终态先落库再发布 volume.failed；二次落库失败也不能阻断
+                    # 订阅者收到终结事件（生成确已失败是事实），但绝不能覆盖第一现场。
+                    self._finish(job_id, "failed", message, tally, error="INTERNAL_ERROR", force=True)
                 except Exception:
-                    # _finish 的二次落库异常绝不能覆盖第一现场；事务部分已先把终态写入条目态。
                     log.exception("failed to persist final failure state for technical volume job %s", job_id)
+                backlog.push({"event": "volume.failed", "message": message})
             backlog.close()
 
     def _begin(self, state, job: dict) -> None:
@@ -299,10 +363,13 @@ class TechnicalVolumeSessions:
         self._update(job_id, change)
 
     def _finish(self, job_id: str, status: str, message: str, tally: dict, error: str | None = None,
-                **result: Any) -> None:
+                force: bool = False, **result: Any) -> None:
         def change(state, job):
             job.update({key: value for key, value in result.items() if value is not None})
-            if job["status"] in TERMINAL:
+            # force 只用于落库失败后的纠偏：completed/failed 的内存终态若是未同步成功事务行的残影，
+            # 必须允许覆盖（否则任务永远声称完成）；cancelled 由用户取消路径独立落库，严禁覆盖。
+            overridable = force and job["status"] in {"completed", "failed"} and status == "failed"
+            if job["status"] in TERMINAL and not overridable:
                 if job["status"] == "cancelled" and status == "completed":
                     job["message"] = "停止请求到达前本次正文已写入。"
                 return
