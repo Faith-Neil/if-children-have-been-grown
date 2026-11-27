@@ -13,6 +13,10 @@
 
 [ISSUE-058](../issues/ISSUE-058.md) 已按用户验收收口：PR #55 已合入 main（03df316），四张 FE-UX-STREAMING 任务卡 done，Issue closed；未发布。前端全量单测 647 passed / 14 failed 为既有陈旧契约失败，已在 PR #55 如实记录，未冒充通过。
 
+## 招标条款清洗与强制模型目录（2026-11-28，当前焦点）
+
+[ISSUE-060](../issues/ISSUE-060.md) 已登记并开工，分支 `feat/iss-060-outline-llm-and-req-cleaning`：重庆中烟跨行业真标暴露两类 P0 写标质量缺陷——161 条解析要求混入残句和商务/资格/格式条款并诱发假「负偏离」；目录规划静默规则兜底且每章 9 条硬截断，72 条含核心高分评分项被倾倒进「其他服务承诺」。TV-M0-T31 为 in-progress，TV-M0-T32 为 ready，TV-M0-T33 为 planned；执行中最多标 in-review，不擅自标 done。真实 MySQL 端口为 3407，`.audit/` 真实客户材料严禁入库。
+
 ## P0 安全/导出/配置/部署止血（2026-11-27，当前焦点）
 
 [ISSUE-059](../issues/ISSUE-059.md) 已按用户（人类 PM）验收收口：PR #56 已合入 main（f18708c），四张 P0-HOTFIX 任务卡 done，Issue closed；未发布。范围覆盖平台模型安全红线与审计授权、保存导出阻断、平台配置知识库与部署安全默认。验证登记见 [iss-059-p0-hotfix-verification](testing/iss-059-p0-hotfix-verification.md)：开发自测与聚焦回归通过；真实 RAGFlow/真实模型/真实浏览器/真实容器编排未验证，QA/PD 独立签署未执行，按 PM 明确指示作为例外收口，局限不消除。
