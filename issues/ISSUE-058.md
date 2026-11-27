@@ -9,14 +9,14 @@
 | Issue ID | ISSUE-058 |
 | 类型 | change |
 | 优先级 | P0 |
-| 状态 | in-review |
+| 状态 | closed |
 | 登记日期 | 2026-11-27 |
 | 最后更新日期 | 2026-11-27 |
 | revision | frontend-ux-streaming-r1 |
 | 关联 Task | [FE-UX-STREAMING-RENDER](../docs/tasks/FE-UX.md#fe-ux-streaming-render)、[FE-UX-STREAMING-MARKDOWN](../docs/tasks/FE-UX.md#fe-ux-streaming-markdown)、[FE-UX-STREAMING-HANDOFF](../docs/tasks/FE-UX.md#fe-ux-streaming-handoff)、[FE-UX-STREAMING-VERIFICATION](../docs/tasks/FE-UX.md#fe-ux-streaming-verification) |
-| 关联 PR | [PR #55](https://github.com/Faith-Neil/if-children-have-been-grown/pull/55) 已创建，未合入 |
+| 关联 PR | [PR #55](https://github.com/Faith-Neil/if-children-have-been-grown/pull/55) 已合入 |
 | 本地验收 | 通过：tsc、生产构建、流式聚焦单测 27 passed、Playwright 模拟 SSE 2 passed（24.4s，含 Devin Review 四项修复后复跑）；全量前端单测 647 passed / 14 failed（既有失败如实记录） |
-| 合入 | 未合入 |
+| 合入 | 已合入 main：03df316 |
 | 发布 | 未发布 |
 | 交付说明 | [RENDER](../docs/delivery/FE-UX-STREAMING-RENDER.md)、[MARKDOWN](../docs/delivery/FE-UX-STREAMING-MARKDOWN.md)、[HANDOFF](../docs/delivery/FE-UX-STREAMING-HANDOFF.md)、[VERIFICATION](../docs/delivery/FE-UX-STREAMING-VERIFICATION.md) |
 | 代码 / 流程解释 | [RENDER](../docs/code/FE-UX-STREAMING-RENDER.md)、[MARKDOWN](../docs/code/FE-UX-STREAMING-MARKDOWN.md)、[HANDOFF](../docs/code/FE-UX-STREAMING-HANDOFF.md)、[VERIFICATION](../docs/code/FE-UX-STREAMING-VERIFICATION.md) |
@@ -36,10 +36,10 @@
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| [FE-UX-STREAMING-RENDER](../docs/tasks/FE-UX.md#fe-ux-streaming-render) | 拆遮罩、阶段胶囊、StreamingPaperView、渐显 chunk、呼吸光标 | `frontend/web/src/editor/`、`frontend/web/src/shared/styles.css` | 无遮罩盖字；稳定 key；reduced-motion 兼容 | in-review |
-| [FE-UX-STREAMING-MARKDOWN](../docs/tasks/FE-UX.md#fe-ux-streaming-markdown) | 流式安全 Markdown 中间态 | `frontend/web/src/editor/streaming-markdown.ts` | 未闭合标记不裸露；未成型表格占位平滑转正 | in-review |
-| [FE-UX-STREAMING-HANDOFF](../docs/tasks/FE-UX.md#fe-ux-streaming-handoff) | 智能跟随滚动、回到底部、完成/取消/失败无缝交接 | `EditorPage.tsx`、`PaperEditor.tsx` | 不强行拉回；交接无白屏/回弹/scrollTop 跳动 | in-review |
-| [FE-UX-STREAMING-VERIFICATION](../docs/tasks/FE-UX.md#fe-ux-streaming-verification) | 单元测试与 Playwright SSE 模拟验收 | `frontend/web/tests/unit/`、`frontend/web/e2e/` | 覆盖加粗、下划线、表格、长文滚动与完成收口 | in-review |
+| [FE-UX-STREAMING-RENDER](../docs/tasks/FE-UX.md#fe-ux-streaming-render) | 拆遮罩、阶段胶囊、StreamingPaperView、渐显 chunk、呼吸光标 | `frontend/web/src/editor/`、`frontend/web/src/shared/styles.css` | 无遮罩盖字；稳定 key；reduced-motion 兼容 | done |
+| [FE-UX-STREAMING-MARKDOWN](../docs/tasks/FE-UX.md#fe-ux-streaming-markdown) | 流式安全 Markdown 中间态 | `frontend/web/src/editor/streaming-markdown.ts` | 未闭合标记不裸露；未成型表格占位平滑转正 | done |
+| [FE-UX-STREAMING-HANDOFF](../docs/tasks/FE-UX.md#fe-ux-streaming-handoff) | 智能跟随滚动、回到底部、完成/取消/失败无缝交接 | `EditorPage.tsx`、`PaperEditor.tsx` | 不强行拉回；交接无白屏/回弹/scrollTop 跳动 | done |
+| [FE-UX-STREAMING-VERIFICATION](../docs/tasks/FE-UX.md#fe-ux-streaming-verification) | 单元测试与 Playwright SSE 模拟验收 | `frontend/web/tests/unit/`、`frontend/web/e2e/` | 覆盖加粗、下划线、表格、长文滚动与完成收口 | done |
 
 ## 验收条目
 
@@ -59,8 +59,8 @@
 | PRD | 无影响：不改变产品范围、角色或业务规则，只提升既有章节生成编辑体验 | `docs/PRD.md` | frontend-ux-streaming-r1 / ISSUE-058 / 2026-11-27 | 已核对 |
 | ROADMAP | 无影响：不改变里程碑顺序，属于当前主链路体验收口 | `docs/ROADMAP.md` | 同上 | 已核对 |
 | ARCHITECTURE | 有影响：编辑台流式渲染从 TipTap 即时重建改为流式专属画布 + 完成交接 | `docs/ARCHITECTURE.md` | 同上 | 已同步 |
-| TASK_BOARD | 有影响：新增四张 FE-UX-STREAMING 任务卡 | `docs/TASK_BOARD.md` | 同上 | 已同步 |
-| PROJECT_STATUS | 有影响：记录 ISSUE-058 开工状态 | `docs/PROJECT_STATUS.md` | 同上 | 已同步 |
+| TASK_BOARD | 有影响：四张 FE-UX-STREAMING 任务卡终态为 done | `docs/TASK_BOARD.md` | 同上 | 已同步 |
+| PROJECT_STATUS | 有影响：记录 ISSUE-058 closed 与 PR #55 合入 | `docs/PROJECT_STATUS.md` | 同上 | 已同步 |
 | DOCUMENT_INDEX | 有影响：新增 ISSUE-058 与后续交付/代码说明条目 | `docs/DOCUMENT_INDEX.md` | 同上 | 已同步 |
 
 ## 处理与复核记录
@@ -70,12 +70,13 @@
 | 2026-11-27 | frontend-ux-streaming-r1 / in-progress | 已基于 PR #54 合入后的 main 切出 `feat/iss-058-streaming-ux` 并登记任务；下一步实现流式渲染与验收 | 用户本轮指令 |
 | 2026-11-27 | frontend-ux-streaming-r1 / in-review | 四张任务卡完成实施；模拟 SSE、单元测试、tsc 与生产构建完成；全量单测既有 14 条失败如实记录；等待 QA/PD/PM，不标 done | 本地验证记录 |
 | 2026-11-27 | frontend-streaming-ux-r1 / in-review | Devin Review 四项修复：单列表格安全渲染与规则行抗震荡、阶段胶囊按补丁时序、滚动改为跟随活跃光标（autoFollow+定位到正在撰写）、文档口径对齐；验证复跑全绿 | Devin Review |
+| 2026-11-27 | frontend-ux-streaming-r1 / closed | PR #55 已合入 main（03df316）；用户（人类 PM）指示本轮收口，四张任务卡标 done，Issue 标 closed；未发布 | 用户验收与 PR #55 |
 
 ## 本地验收与后续合入发布
 
 - 本地验收结论与日期：2026-11-27 通过聚焦验收；完整前端单测仍有 14 条既有失败，不作为本 Issue 通过证据。
 - 验证方式、通过及失败项、未覆盖范围：tsc/build 通过；流式聚焦单测 21 passed；Playwright 模拟 SSE 2 passed；全量前端单测 647 passed / 14 failed（既有 app-orchestration/evidence-orchestration/company-settings/dict-config 契约失败）；未做真实模型/RAGFlow 验收。
 - 六份基线同步与互链复核：已执行。
-- PR 状态：[PR #55](https://github.com/Faith-Neil/if-children-have-been-grown/pull/55) 已创建，未合入。
-- 合入提交与日期：未合入。
+- PR 状态：[PR #55](https://github.com/Faith-Neil/if-children-have-been-grown/pull/55) 已合入。
+- 合入提交与日期：03df316，2026-11-27。
 - 发布版本与日期：未发布。

@@ -5,8 +5,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
+
+# OpenAPI 导出只组装静态契约，不连接数据库；显式标记内存仓储，避免把契约导出误判成生产启动。
+os.environ.setdefault("ICG_ALLOW_MEMORY", "1")
 
 # 确保在任何工作目录下均能载入 icg_demo
 PROJECT_ROOT = Path(__file__).resolve().parents[2]

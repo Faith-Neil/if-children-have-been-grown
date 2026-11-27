@@ -209,11 +209,27 @@ def test_orphan_running_parse_job_is_failed_so_restart_can_reparse(client, monke
     flow = _uploaded(client)
     runner = client.app.state.parse_job_runner
     monkeypatch.setattr(runner, "_pending_files", lambda project_id, payload: ["file-remote"])
+    original = runner._parse_once
+    entered = threading.Event()
+    release = threading.Event()
+    block_first = {"active": True}
+
+    def controlled_parse(principal, project_id, payload, job_id=None, on_outline_ready=None):
+        if block_first["active"]:
+            block_first["active"] = False
+            entered.set()
+            assert release.wait(timeout=10), "orphan parse was not released"
+            raise RuntimeError("synthetic orphan parse thread")
+        return original(principal, project_id, payload, job_id, on_outline_ready)
+
+    monkeypatch.setattr(runner, "_parse_once", controlled_parse)
     first = _start(flow).json()
+    assert entered.wait(timeout=10), "parse did not reach the background call"
     _wait(flow, first["id"], statuses=("running",))
     with runner._lock:
         runner._running.discard(first["id"])  # 模拟进程/线程丢失
     again = _start(flow)
+    release.set()
     assert again.status_code == 202, again.text
     body = again.json()
     assert body["id"] != first["id"]

@@ -51,17 +51,21 @@ def save_model_configs(
                     payload,
                 )
             else:
-                connection.execute(
+                # CWE-639 纵深：UPDATE 按 id+company_id 归属约束，杜绝覆写其他租户配置行
+                updated = connection.execute(
                     text(
                         "UPDATE demo_model_config SET name = :name, provider = :provider, base_url = :base_url, "
                         "model = :model, encrypted_api_key = :encrypted_api_key, api_key_masked = :api_key_masked, "
                         "is_local = :is_local, allow_sensitive = :allow_sensitive, stream_enabled = :stream_enabled, "
                         "json_mode_enabled = :json_mode_enabled, revision = :revision, "
                         "timeout_seconds = :timeout_seconds, max_tokens = :max_tokens, "
-                        "fallback_config_id = :fallback_config_id WHERE id = :id"
+                        "fallback_config_id = :fallback_config_id WHERE id = :id AND company_id = :company_id"
                     ),
                     payload,
                 )
+                if updated.rowcount != 1:
+                    from icg.domain.domain import DomainError
+                    raise DomainError(409, "VERSION_CONFLICT", "模型配置归属校验失败，请刷新后重试。")
         for pid, mid in after_bindings.items():
             if before_bindings.get(pid) != mid:
                 connection.execute(

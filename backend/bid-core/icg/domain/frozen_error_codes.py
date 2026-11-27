@@ -1,4 +1,4 @@
-# 为什么有这个文件：把当前 174 个业务错误码的名字冻结成一份名单。
+# 为什么有这个文件：把当前业务错误码的名字冻结成一份名单。
 # 它解决什么问题：只改总数、或只改 errors.py 再导出 OpenAPI，发现不了删一个旧码、加一个新码。
 
 FROZEN_ERROR_CODE_NAMES: tuple[str, ...] = (
@@ -56,6 +56,7 @@ FROZEN_ERROR_CODE_NAMES: tuple[str, ...] = (
     "FILE_NOT_PARSED",
     "FILE_SIZE_LIMIT",
     "FILE_TYPE_UNSUPPORTED",
+    "FILE_CONVERSION_FAILED",
     "FORBIDDEN",
     "GENERATION_CONTEXT_TOO_LARGE",
     "HANDOFF_REASON_REQUIRED",
@@ -121,6 +122,7 @@ FROZEN_ERROR_CODE_NAMES: tuple[str, ...] = (
     "PROJECT_LEAD_COMPANY_ROLE_REQUIRED",
     "PROJECT_LEAD_REQUIRED",
     "PROJECT_WRITER_REQUIRED",
+    "PUBLIC_MODEL_ENDPOINT_FORBIDDEN",
     "REASON_REQUIRED",
     "REBUILD_BLOCKED",
     "REFERENCE_REASON_REQUIRED",
@@ -197,6 +199,8 @@ FROZEN_ERROR_CODE_NAMES: tuple[str, ...] = (
     "FILE_ALREADY_PARSED",
     "INVALID_STATUS_TRANSITION",
     "PROJECT_CANCELLED",
+    # 平台开通公司显示名冲突；errors.py 已冻结为 409，本名单补齐遗漏。
+    "COMPANY_NAME_DUPLICATED",
 )
 
 FROZEN_NAMES = frozenset(FROZEN_ERROR_CODE_NAMES)

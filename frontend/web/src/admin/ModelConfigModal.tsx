@@ -80,7 +80,10 @@ export function ModelConfigModal({
     setLoading(true);
     setTestResult(null);
     try {
-      const res = await request<{ items: ModelConfigItem[] }>('/api/v1/model-configs', token);
+      const listPath = projectId
+        ? `/api/v1/projects/${encodeURIComponent(projectId)}/model-options`
+        : '/api/v1/model-configs';
+      const res = await request<{ items: ModelConfigItem[] }>(listPath, token);
       const items = res.items || [];
       setConfigs(items);
       if (items.length > 0 && !selectedId) {

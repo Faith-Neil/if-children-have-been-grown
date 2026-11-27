@@ -45,6 +45,7 @@ class RagflowCompanyConfig:
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
     is_enabled: bool = True
     revision: int = 1
+    api_key_cleared: bool = False
 
     @property
     def has_api_key(self) -> bool:
@@ -63,6 +64,84 @@ class RagflowCompanyConfig:
         }
 
 
+def deployment_default_config(company_id: str) -> RagflowCompanyConfig | None:
+    """部署级默认连接（环境变量）的运行时瞬态视图——绝不持久化进公司配置行。
+
+    只在公司与平台都未显式配置时作为最后回落层生效；平台/公司一旦写入显式配置立即盖过它。"""
+    env_base = os.environ.get("ICG_RAGFLOW_BASE_URL", "").strip().rstrip("/")
+    env_key = os.environ.get("ICG_RAGFLOW_API_KEY", "").strip()
+    if not env_key:
+        return None
+    encrypted_key = None
+    masked_key = None
+    try:
+        encrypted_key = encrypt_api_key(env_key)
+        masked_key = mask_api_key(env_key)
+    except Exception:
+        return None
+    return RagflowCompanyConfig(
+        company_id=company_id,
+        base_url=env_base or "http://127.0.0.1:9380",
+        encrypted_api_key=encrypted_key,
+        api_key_masked=masked_key,
+        dataset_ids=[f"dataset-{company_id}-01"],
+        timeout_seconds=DEFAULT_TIMEOUT_SECONDS,
+        is_enabled=True,
+        revision=1,
+    )
+
+
+def effective_ragflow_connection(state: DemoState, company_id: str) -> RagflowCompanyConfig | None:
+    """运行时生效的 RAGFlow 连接配置（ISSUE-059 平台级配置对下属公司生效）。
+
+    优先序：公司级有自己的配置时公司级优先；公司未完成配置（没有密钥，连不上）时回落
+    平台管理员写入的 system 配置（端点/密钥/超时/启用开关）。两条红线：
+    - 公司显式停用（is_enabled=False 只能来自管理员手动保存）不回落，尊重公司选择；
+    - 数据集列表永远保留公司自己的，绝不跨租户共用 dataset_ids（${company_id}:: 隔离不变）。
+    密钥不做字段级合并：密钥与端点配套，拼公司地址+平台密钥等于把平台密钥送去错误端点。
+    """
+    configs = getattr(state, "ragflow_configs", None) or {}
+    tenant = configs.get(company_id)
+    platform = configs.get("system")
+    if company_id == "system" and tenant is not None and (
+            not tenant.is_enabled or tenant.encrypted_api_key or tenant.api_key_cleared):
+        return tenant
+    if tenant is not None:
+        if not tenant.is_enabled:
+            return tenant
+        if tenant.encrypted_api_key:
+            return tenant
+        if tenant.api_key_cleared:
+            return tenant
+    # 平台显式停用是未独立配置租户的解析终态：严禁落入环境变量分支把已停用的旧实例重新启用。
+    # 公司已有独立可用配置时在上方优先返回，不把平台实例的停用误套到另一个实例上。
+    if platform is not None and (not platform.is_enabled or platform.api_key_cleared):
+        return platform if company_id == "system" else replace(platform, company_id=company_id,
+            dataset_ids=list(tenant.dataset_ids) if tenant is not None else [f"dataset-{company_id}-01"])
+    if platform is not None and platform.is_enabled and platform.encrypted_api_key:
+        dataset_ids = list(tenant.dataset_ids) if tenant is not None else [f"dataset-{company_id}-01"]
+        return replace(platform, company_id=company_id, dataset_ids=dataset_ids)
+    # 公司与平台都未显式配置时回落部署级环境变量默认（瞬态，不落盘）；显式配置一旦写入立即盖过它
+    deployed = deployment_default_config(company_id)
+    if deployed is not None:
+        if tenant is not None and tenant.dataset_ids:
+            deployed = replace(deployed, dataset_ids=list(tenant.dataset_ids))
+        persisted = platform if platform is not None else tenant
+        if persisted is not None:
+            deployed = replace(deployed, timeout_seconds=persisted.timeout_seconds)
+        return deployed
+    return tenant
+
+
+def _require_kb_writer(principal: Principal) -> None:
+    """知识库数据集创建/同步写操作：仅公司管理员或平台管理员（CWE-862），普通成员 403。"""
+    from icg.domain.auth_service import is_super_admin
+    from icg.domain.project_access import normalize_role
+    if is_super_admin(principal) or normalize_role(principal.user.role) in ("company_admin", "platform_admin"):
+        return
+    raise DomainError(403, "FORBIDDEN", "知识库写入只能由公司管理员或平台管理员执行。")
+
+
 class RagflowConfigService:
     """管理租户 RAGFlow 检索配置与连通性测试的领域服务。"""
 
@@ -76,45 +155,40 @@ class RagflowConfigService:
             state.ragflow_configs = {}
 
         if company_id not in state.ragflow_configs:
-            # 优先从环境变量加载默认值（若配置），否则使用合规默认值
-            env_base = os.environ.get("ICG_RAGFLOW_BASE_URL", "http://127.0.0.1:9380").strip().rstrip("/")
-            env_key = os.environ.get("ICG_RAGFLOW_API_KEY", "").strip()
-            encrypted_key = None
-            masked_key = None
-            if env_key:
-                try:
-                    encrypted_key = encrypt_api_key(env_key)
-                    masked_key = mask_api_key(env_key)
-                except Exception:
-                    pass
-
+            # 写路径实体化：继承当前实际生效的部署连接视图地址（环境变量/平台回落），
+            # 但绝不复制任何密钥——仅换密钥保存时地址保持真实生效值而非回环占位。
+            deployed = deployment_default_config(company_id)
             state.ragflow_configs[company_id] = RagflowCompanyConfig(
                 company_id=company_id,
-                base_url=env_base,
-                encrypted_api_key=encrypted_key,
-                api_key_masked=masked_key,
+                base_url=(deployed.base_url if deployed is not None else "http://127.0.0.1:9380"),
+                encrypted_api_key=None,
+                api_key_masked=None,
                 dataset_ids=[f"dataset-{company_id}-01"],
-                timeout_seconds=DEFAULT_TIMEOUT_SECONDS,
+                timeout_seconds=(deployed.timeout_seconds if deployed is not None else DEFAULT_TIMEOUT_SECONDS),
                 is_enabled=True,
                 revision=1,
             )
         return state.ragflow_configs[company_id]
 
     def _effective_connection_config(self, state: DemoState, company_id: str) -> RagflowCompanyConfig:
-        """运行时连接配置：平台管理员的 system 配置是引擎端点与密钥的全局真相源；
-        数据集列表仍保留在公司配置上，避免跨租户共用 dataset_ids。"""
-        tenant = self._ensure_company_config(state, company_id)
-        if company_id == "system":
+        """运行时连接配置（只读视图，绝不因读取而实体化公司行）：公司显式优先，平台/部署默认回落。"""
+        effective = effective_ragflow_connection(state, company_id)
+        if effective is not None:
+            return effective
+        tenant = state.ragflow_configs.get(company_id)
+        if tenant is not None:
             return tenant
-        platform = (getattr(state, "ragflow_configs", {}) or {}).get("system")
-        if platform is None:
-            return tenant
-        return replace(platform, company_id=company_id, dataset_ids=list(tenant.dataset_ids))
+        return RagflowCompanyConfig(company_id=company_id, dataset_ids=[f"dataset-{company_id}-01"])
 
     def _public_payload(self, state: DemoState, cfg: RagflowCompanyConfig, company_id: str) -> dict[str, Any]:
         """配置响应附占位检测与已部署真实 Dataset ID 建议，方便管理员回填替换 dataset-*-01 占位。"""
         from icg.domain.knowledge_base import read_index
         payload = cfg.to_public_dict()
+        if not cfg.encrypted_api_key and not cfg.api_key_cleared:
+            deployed = deployment_default_config(company_id)
+            if deployed is not None and deployed.base_url == cfg.base_url:
+                payload["has_api_key"] = True
+                payload["api_key_masked"] = deployed.api_key_masked
         payload["placeholder_dataset_ids"] = [d for d in cfg.dataset_ids if not _is_real_dataset_id(d)]
         suggested: list[str] = []
         try:
@@ -128,10 +202,14 @@ class RagflowConfigService:
         return payload
 
     def get(self, principal: Principal) -> dict[str, Any]:
+        from icg.domain.platform_security import require_platform_admin
+        require_platform_admin(principal)
         company_id = principal.user.company_id
 
         def operation(state: DemoState):
-            cfg = self._ensure_company_config(state, company_id)
+            # 读路径绝不落盘：无显式配置行时返回运行时生效视图（继承默认/平台回落）
+            row = state.ragflow_configs.get(company_id)
+            cfg = row if row is not None else self._effective_connection_config(state, company_id)
             return self._public_payload(state, cfg, company_id)
 
         return self.repository.transaction(operation)
@@ -142,16 +220,37 @@ class RagflowConfigService:
         updates: dict[str, Any],
         if_match: str | None,
     ) -> dict[str, Any]:
-        # 连接地址与密钥决定公司资料流向哪里（B5 数据不出内网），只允许公司管理员修改。
-        from icg.domain.kb_admin import require_kb_role
-        require_kb_role(principal, "connection")
+        # 连接地址与密钥决定公司资料流向哪里（B5 数据不出内网）：严格仅限平台管理员（ISSUE-059 PM 模型）。
+        from icg.domain.platform_security import require_platform_admin
+        require_platform_admin(principal)
         company_id = principal.user.company_id
 
         def operation(state: DemoState):
             cfg = self._ensure_company_config(state, company_id)
+            # 首次保存前，读取页展示的是部署环境密钥的掩码；该行本身还没有密钥。
+            # 前端原样回传这个掩码代表“沿用部署连接”，绝不能把掩码当成新明文加密覆盖。
+            deployed_before_save = deployment_default_config(company_id)
+            inherited_mask = (deployed_before_save.api_key_masked
+                              if deployed_before_save is not None and not cfg.encrypted_api_key
+                              and cfg.base_url == deployed_before_save.base_url else None)
 
             # 1. 乐观锁 If-Match 校验
             check_revision(cfg.revision, if_match)
+
+            # 1.5 base_url 变更检测（CWE-522）：改地址禁止沿用旧密钥/部署默认密钥，
+            # 必须显式传入新密钥（明文）或显式空串清除；掩码回传不算显式凭证。
+            from icg.infra.model_config_storage import validate_endpoint_url
+            url_changing = False
+            if "base_url" in updates and updates["base_url"] is not None:
+                candidate = validate_endpoint_url(updates["base_url"])
+                url_changing = bool(candidate) and candidate != cfg.base_url
+            if url_changing:
+                supplied = updates.get("api_key")
+                if supplied is None or supplied == cfg.api_key_masked:
+                    raise DomainError(
+                        422, "VALIDATION_ERROR",
+                        "变更 RAGFlow 地址时必须显式传入新实例的 API Key，或显式传空串清除旧密钥；禁止携带旧密钥指向新地址。",
+                        {"field": "api_key"})
 
             # 2. API Key 更新语义
             if "api_key" in updates and updates["api_key"] is not None:
@@ -160,17 +259,19 @@ class RagflowConfigService:
                     # 空字符串清除
                     cfg.encrypted_api_key = None
                     cfg.api_key_masked = None
-                elif key_input == cfg.api_key_masked:
-                    # 传回掩码代表保留
+                    cfg.api_key_cleared = True
+                elif key_input == cfg.api_key_masked or (inherited_mask is not None and key_input == inherited_mask):
+                    # 传回已存密钥或继承部署密钥的掩码都代表保留；首次保存不得把掩码覆写成密文
                     pass
                 else:
                     # 传入新明文，进行加密
                     cfg.encrypted_api_key = encrypt_api_key(key_input)
                     cfg.api_key_masked = mask_api_key(key_input)
+                    cfg.api_key_cleared = False
 
             # 3. 更新基础属性
             if "base_url" in updates and updates["base_url"] is not None:
-                clean_url = str(updates["base_url"]).strip().rstrip("/")
+                clean_url = validate_endpoint_url(updates["base_url"])
                 if clean_url:
                     cfg.base_url = clean_url
 
@@ -199,15 +300,20 @@ class RagflowConfigService:
         override_payload: dict[str, Any] | None = None,
         transport: httpx.BaseTransport | None = None,
     ) -> dict[str, Any]:
+        # 连通性测试会让服务端访问填写的地址：严格仅限平台管理员（与模型配置同一尺度）。
+        from icg.domain.platform_security import require_platform_admin
+        require_platform_admin(principal)
         company_id = principal.user.company_id
 
         def get_cfg(state: DemoState) -> RagflowCompanyConfig:
-            return self._ensure_company_config(state, company_id)
+            # 读路径不落盘：测试运行时生效连接（含平台/部署回落）
+            return self._effective_connection_config(state, company_id)
 
         cfg = self.repository.transaction(get_cfg)
 
         payload = override_payload or {}
-        base_url = (payload.get("base_url") or cfg.base_url).strip().rstrip("/")
+        from icg.infra.model_config_storage import validate_endpoint_url
+        base_url = validate_endpoint_url(payload.get("base_url") or cfg.base_url)
         timeout_seconds = float(payload.get("timeout_seconds") or cfg.timeout_seconds or DEFAULT_TIMEOUT_SECONDS)
 
         # 确定使用的 API Key
@@ -263,9 +369,10 @@ class RagflowConfigService:
             return self._effective_connection_config(state, company_id)
 
         cfg = self.repository.transaction(get_cfg)
-        plain_key = ""
-        if cfg.encrypted_api_key:
-            plain_key = decrypt_api_key(cfg.encrypted_api_key)
+        if not cfg.is_enabled or not cfg.encrypted_api_key:
+            raise DomainError(409, "KNOWLEDGE_BASE_NOT_CONFIGURED",
+                              "RAGFlow 知识库未启用或未配置 API Key，平台停用后不得继续使用继承的旧连接。")
+        plain_key = decrypt_api_key(cfg.encrypted_api_key)
 
         return RagflowRetrievalClient(
             base_url=cfg.base_url,
@@ -283,6 +390,7 @@ class RagflowConfigService:
         transport: httpx.BaseTransport | None = None,
     ) -> dict[str, Any]:
         """为当前企业租户创建专属隔离数据集，强制注入租户前缀强隔离命名空间。"""
+        _require_kb_writer(principal)
         company_id = principal.user.company_id
         client = self.get_client(principal, transport=transport)
         ds = client.create_dataset(name=name, company_id=company_id, parser_id=parser_id)
@@ -415,6 +523,7 @@ class RagflowConfigService:
         4. 查询解析状态并将 run 映射为统一 kb_sync_status；
         5. 同步回写片段存储记录并返回结构化同步回执。
         """
+        _require_kb_writer(principal)
         company_id = principal.user.company_id
         opts = payload or {}
         target_id = snippet_or_library_id or opts.get("snippet_id") or opts.get("id") or ""

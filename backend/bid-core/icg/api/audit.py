@@ -51,8 +51,13 @@ def include_audit_routes(application, service: DemoService, current_user) -> Non
         limit: Annotated[int, Query(ge=1, le=200)] = 100,
         user: Principal = Depends(current_user),
     ):
+        from icg.domain.project_access import ROLE_COMPANY_ADMIN, normalize_role
         platform = is_platform_admin(user)
         if not platform:
+            # CWE-862 越权修复（ISSUE-059）：审计日志含登录失败原因、锁定与敏感操作痕迹，
+            # 普通成员一律无权调阅；公司管理员仅限本公司，跨公司查询参数拒绝。
+            if normalize_role(user.user.role) != ROLE_COMPANY_ADMIN:
+                raise DomainError(403, "FORBIDDEN", "只有平台管理员或公司管理员可以调阅审计日志。")
             if company_id and company_id != user.user.company_id:
                 raise DomainError(403, "FORBIDDEN", "公司管理员只能查看本公司审计日志。")
             company_id = user.user.company_id

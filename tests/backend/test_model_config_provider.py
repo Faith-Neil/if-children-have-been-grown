@@ -133,11 +133,12 @@ def test_runtime_switch_project_bound_config(client, fake_openai_chat, secret_ke
     # 1. 创建指向 fake_openai_chat 的模型配置
     cfg_res = client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={
             "id": "cfg-alpha-bound",
             "name": "甲公司项目专属模型",
             "provider": "openai-compatible",
+            "company_id": "alpha",
             "base_url": fake_openai_chat.base_url,
             "model": "qwen2.5-32b-bound",
             "api_key": "sk-project-bound-key",
@@ -185,10 +186,11 @@ def test_runtime_switch_company_default_config(client, fake_openai_chat, secret_
     headers = login(client, "alpha-manager")
     created = client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={
             "name": "公司添加的模型",
             "provider": "openai-compatible",
+            "company_id": "alpha",
             "base_url": fake_openai_chat.base_url,
             "model": "qwen2.5-default-company",
             "api_key": "sk-company-default-key",
@@ -197,7 +199,7 @@ def test_runtime_switch_company_default_config(client, fake_openai_chat, secret_
         },
     )
     assert created.status_code == 200, created.text
-    listed = client.get("/api/v1/model-configs", headers=login(client, "alpha-company-admin"))
+    listed = client.get("/api/v1/model-configs", headers=login(client, "admin"))
     assert listed.status_code == 200
     assert all(item["name"] != "默认内网模型" for item in listed.json()["items"])
 
@@ -231,11 +233,12 @@ def test_recoverable_job_advances_with_model_snapshot(client, fake_openai_chat, 
     # 绑定特定配置
     client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={
             "id": "cfg-job-snapshot",
             "name": "生成任务模型",
             "provider": "openai-compatible",
+            "company_id": "alpha",
             "base_url": fake_openai_chat.base_url,
             "model": "qwen-job-model-v2",
             "api_key": "sk-job-key-999",
@@ -295,10 +298,11 @@ def test_recoverable_job_uses_snapshot_even_if_config_changes_later(client, fake
 
     client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={
             "id": "cfg-freeze-1",
             "provider": "openai-compatible",
+            "company_id": "alpha",
             "base_url": fake_openai_chat.base_url,
             "model": "original-freeze-model",
             "api_key": "sk-freeze-orig",
@@ -316,7 +320,7 @@ def test_recoverable_job_uses_snapshot_even_if_config_changes_later(client, fake
     # 随后修改配置为另一个模型
     client.put(
         "/api/v1/model-configs/cfg-freeze-1",
-        headers={**login(client, "alpha-company-admin"), "If-Match": "1"},
+        headers={**login(client, "admin"), "If-Match": "1"},
         json={"model": "modified-model-v2", "api_key": "sk-freeze-new"},
     )
 
@@ -336,11 +340,12 @@ def test_sensitive_project_blocks_cloud_model_with_403_ac04(client, fake_openai_
     # 1. 创建云端公网模型（is_local=False, allow_sensitive=False）
     client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={
             "id": "cfg-cloud-external",
             "name": "云端公网大模型",
             "provider": "openai-compatible",
+            "company_id": "alpha",
             "base_url": fake_openai_chat.base_url,
             "model": "gpt-4o-remote",
             "is_local": False,
@@ -395,11 +400,12 @@ def test_sensitive_project_allows_local_model(client, fake_openai_chat, secret_k
     headers = login(client, "alpha-manager")
     client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={
             "id": "cfg-local-compliant",
             "name": "合规本地内网模型",
             "provider": "openai-compatible",
+            "company_id": "alpha",
             "base_url": fake_openai_chat.base_url,
             "model": "qwen2.5-local-compliant",
             "is_local": True,
@@ -440,10 +446,11 @@ def test_model_call_failure_maps_to_502_model_unavailable(client, fake_openai_ch
 
     client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={
             "id": "cfg-fail-test",
             "provider": "openai-compatible",
+            "company_id": "alpha",
             "base_url": fake_openai_chat.base_url,
             "model": "error-model",
         },
@@ -490,10 +497,11 @@ def test_secret_key_unavailable_in_generation_raises_503_without_retry_after(cli
     headers = login(client, "alpha-manager")
     client.post(
         "/api/v1/model-configs",
-        headers=login(client, "alpha-company-admin"),
+        headers=login(client, "admin"),
         json={
             "id": "cfg-enc-key-1",
             "provider": "openai-compatible",
+            "company_id": "alpha",
             "base_url": "http://127.0.0.1:8000",
             "model": "qwen2.5-72b",
             "api_key": "sk-real-encrypted-key",

@@ -78,7 +78,8 @@ export function validateRagflowConfig(values: Partial<RagflowConfigData> & { dat
  */
 export function buildRagflowUpdatePayload(
   values: Record<string, unknown>,
-  currentConfig?: RagflowConfigData | null
+  currentConfig?: RagflowConfigData | null,
+  options?: { apiKeyTouched?: boolean }
 ): Record<string, unknown> {
   const datasetList = parseDatasetIds(values.dataset_ids);
 
@@ -89,7 +90,8 @@ export function buildRagflowUpdatePayload(
     is_enabled: Boolean(values.is_enabled),
   };
 
-  if (values.api_key !== undefined) {
+  const apiKeyTouched = options?.apiKeyTouched ?? values.api_key !== undefined;
+  if (apiKeyTouched && values.api_key !== undefined) {
     const rawKey = String(values.api_key);
     if (rawKey === '') {
       payload.api_key = ''; // 清除

@@ -120,9 +120,11 @@ export function buildModelUpdatePayload(
   return payload;
 }
 
-/** 谁能做什么：新建、修改、测试连接只限公司管理员和平台管理员（模型地址决定正文发往哪里）；
- * 项目绑定另允许项目负责人。后端同样核对，这里只决定显示哪些按钮。 */
-export function modelConfigAccess(role: string | null | undefined, canManageProject: boolean): { canManage: boolean; canBind: boolean } {
-  const canManage = role === 'company_admin' || role === 'platform_admin';
-  return { canManage, canBind: canManage || canManageProject };
+/** PM 最终权限模型：新建/修改/测试连接严格仅限平台管理员（canManageConfigs）；
+ * 项目绑定（canBindProjectModel）允许平台管理员、公司管理员与项目负责人。
+ * 后端同样核对，这里只决定显示哪些按钮——公司管理员打开项目弹窗只看候选与绑定。 */
+export function modelConfigAccess(role: string | null | undefined, canManageProject: boolean): { canManage: boolean; canBind: boolean; canManageConfigs: boolean; canBindProjectModel: boolean } {
+  const canManageConfigs = role === 'platform_admin';
+  const canBindProjectModel = canManageConfigs || role === 'company_admin' || canManageProject;
+  return { canManage: canManageConfigs, canBind: canBindProjectModel, canManageConfigs, canBindProjectModel };
 }

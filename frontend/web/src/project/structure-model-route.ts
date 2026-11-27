@@ -14,6 +14,7 @@ export type StructureRoutes = {
 
 type StructureModel = {
   id: string;
+  company_id?: string;
   name: string;
   model: string;
   base_url: string;
@@ -36,9 +37,10 @@ export function structureModelLabel(config: { name: string; model: string; base_
   return host ? `${config.name} (${config.model}) ${host}` : `${config.name} (${config.model})`;
 }
 
-export function structureModelOptions(configs: StructureModel[]) {
+export function structureModelOptions(configs: StructureModel[], options: { systemOnly?: boolean } = {}) {
   return configs
     .filter(item => item.provider !== 'demo' && item.is_local)
+    .filter(item => !options.systemOnly || item.company_id === 'system')
     .map(item => ({ value: item.id, label: structureModelLabel(item) }));
 }
 

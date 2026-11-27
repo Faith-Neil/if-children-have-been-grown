@@ -10,6 +10,17 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
+| D-1098 | 2026-11-28 | [P0-SEC-MODEL-AUDIT-HOTFIX 交付](delivery/P0-SEC-MODEL-AUDIT-HOTFIX.md) | 交付说明 | p0-security-export-deploy-hotfix-r1 | in-review | ISSUE-059 / P0-SEC-MODEL-AUDIT-HOTFIX | 平台模型安全红线、密钥轮换、公网备用模型丢弃边界与审计授权/策略保存止血交付记录 |
+| D-1099 | 2026-11-27 | [P0-EXPORT-STATE-HOTFIX 交付](delivery/P0-EXPORT-STATE-HOTFIX.md) | 交付说明 | p0-security-export-deploy-hotfix-r1 | in-review | ISSUE-059 / P0-EXPORT-STATE-HOTFIX | 检查过期误判、保存提交死锁恢复与进度写入一致性止血交付记录 |
+| D-1100 | 2026-11-28 | [P0-CONFIG-KB-HOTFIX 交付](delivery/P0-CONFIG-KB-HOTFIX.md) | 交付说明 | p0-security-export-deploy-hotfix-r1 | in-review | ISSUE-059 / P0-CONFIG-KB-HOTFIX | 平台配置生效、RAGFlow 密钥清除/继承/超时边界、项目负责人绑模型、知识库重建与种子账号止血交付记录 |
+| D-1101 | 2026-11-27 | [P0-DEPLOY-HOTFIX 交付](delivery/P0-DEPLOY-HOTFIX.md) | 交付说明 | p0-security-export-deploy-hotfix-r1 | in-review | ISSUE-059 / P0-DEPLOY-HOTFIX | 容器健康检查修复与端口回环安全默认固化交付记录 |
+| D-1102 | 2026-11-28 | [P0-SEC-MODEL-AUDIT-HOTFIX 代码说明](code/P0-SEC-MODEL-AUDIT-HOTFIX.md) | 代码说明 | p0-security-export-deploy-hotfix-r1 | 当前 | ISSUE-059 / P0-SEC-MODEL-AUDIT-HOTFIX | 涉密 URL 判定、公网主/备模型边界、审计授权与前端双态保存机制 |
+| D-1103 | 2026-11-27 | [P0-EXPORT-STATE-HOTFIX 代码说明](code/P0-EXPORT-STATE-HOTFIX.md) | 代码说明 | p0-security-export-deploy-hotfix-r1 | 当前 | ISSUE-059 / P0-EXPORT-STATE-HOTFIX | 热路径 JSON 精确匹配、指纹规范化与恢复状态机、进度写入失败传播 |
+| D-1104 | 2026-11-28 | [P0-CONFIG-KB-HOTFIX 代码说明](code/P0-CONFIG-KB-HOTFIX.md) | 代码说明 | p0-security-export-deploy-hotfix-r1 | 当前 | ISSUE-059 / P0-CONFIG-KB-HOTFIX | 平台回落生效链、RAGFlow 清除终态与继承掩码/超时合并、RBAC 恢复、重建转换顺序与种子账号只读填补 |
+| D-1105 | 2026-11-27 | [P0-DEPLOY-HOTFIX 代码说明](code/P0-DEPLOY-HOTFIX.md) | 代码说明 | p0-security-export-deploy-hotfix-r1 | 当前 | ISSUE-059 / P0-DEPLOY-HOTFIX | 健康检查判据链与端口回环绑定语义（配置变更口径） |
+| D-1106 | 2026-11-28 | [ISSUE-059 P0 止血验证登记](testing/iss-059-p0-hotfix-verification.md) | 验证 | p0-security-export-deploy-hotfix-r1 | 当前 | ISSUE-059 / P0-HOTFIX 四卡 | 开发自测口径与局限：11 月 28 日最终边界清零回归，真实 RAGFlow/模型/浏览器/容器编排未验证 |
+| D-1096 | 2026-11-28 | [ISSUE-059：P0 安全红线、保存导出阻断与配置部署止血](../issues/ISSUE-059.md) | Issue | p0-security-export-deploy-hotfix-r1 | in-review | ISSUE-059 | 4 组 12 项 P0 止血及复扫边界清零：平台模型安全红线与审计授权、保存导出阻断、平台配置知识库与部署 |
+| D-1097 | 2026-11-27 | [P0-HOTFIX 任务卡](tasks/P0-HOTFIX.md) | 任务 | p0-security-export-deploy-hotfix-r1 | in-review | ISSUE-059 | P0-SEC-MODEL-AUDIT-HOTFIX / P0-EXPORT-STATE-HOTFIX / P0-CONFIG-KB-HOTFIX / P0-DEPLOY-HOTFIX 四卡 in-review |
 | D-1072 | 2026-11-27 | [FE-UX-MAINFLOW-COPY 交付](delivery/FE-UX-MAINFLOW-COPY.md) | 交付 | frontend-ux-visual-responsive-r1 | done | ISSUE-057 / FE-UX-MAINFLOW-COPY | 前端体验视觉响应式交付记录 |
 | D-1082 | 2026-11-27 | [FE-UX-MAINFLOW-COPY 代码说明](code/FE-UX-MAINFLOW-COPY.md) | 代码 | frontend-ux-visual-responsive-r1 | 当前 | ISSUE-057 / FE-UX-MAINFLOW-COPY | 前端体验视觉响应式代码说明 |
 | D-1073 | 2026-11-27 | [FE-UX-VISUAL-TOKENS 交付](delivery/FE-UX-VISUAL-TOKENS.md) | 交付 | frontend-ux-visual-responsive-r1 | done | ISSUE-057 / FE-UX-VISUAL-TOKENS | 前端体验视觉响应式交付记录 |
@@ -18,18 +29,18 @@
 | D-1084 | 2026-11-27 | [FE-UX-RESPONSIVE-LAYOUT 代码说明](code/FE-UX-RESPONSIVE-LAYOUT.md) | 代码 | frontend-ux-visual-responsive-r1 | 当前 | ISSUE-057 / FE-UX-RESPONSIVE-LAYOUT | 前端体验视觉响应式代码说明 |
 | D-1075 | 2026-11-27 | [FE-UX-PLAYWRIGHT-VIEWPORTS 交付](delivery/FE-UX-PLAYWRIGHT-VIEWPORTS.md) | 交付 | frontend-ux-visual-responsive-r1 | done | ISSUE-057 / FE-UX-PLAYWRIGHT-VIEWPORTS | 前端体验视觉响应式交付记录 |
 | D-1085 | 2026-11-27 | [FE-UX-PLAYWRIGHT-VIEWPORTS 代码说明](code/FE-UX-PLAYWRIGHT-VIEWPORTS.md) | 代码 | frontend-ux-visual-responsive-r1 | 当前 | ISSUE-057 / FE-UX-PLAYWRIGHT-VIEWPORTS | 前端体验视觉响应式代码说明 |
-| D-1086 | 2026-11-27 | [ISSUE-058：编辑台 Gemini 风格柔和流式输出体验升级](../issues/ISSUE-058.md) | Issue | frontend-ux-streaming-r1 | in-review | ISSUE-058 | 流式阶段胶囊、专属渲染画布、安全 Markdown、滚动交接与 SSE 验收 |
-| D-1087 | 2026-11-27 | [FE-UX-STREAMING-RENDER 交付](delivery/FE-UX-STREAMING-RENDER.md) | 交付 | frontend-ux-streaming-r1 | in-review | ISSUE-058 / FE-UX-STREAMING-RENDER | 流式渲染画布交付记录 |
+| D-1086 | 2026-11-27 | [ISSUE-058：编辑台 Gemini 风格柔和流式输出体验升级](../issues/ISSUE-058.md) | Issue | frontend-ux-streaming-r1 | closed | ISSUE-058 | 流式阶段胶囊、专属渲染画布、安全 Markdown、滚动交接与 SSE 验收 |
+| D-1087 | 2026-11-27 | [FE-UX-STREAMING-RENDER 交付](delivery/FE-UX-STREAMING-RENDER.md) | 交付 | frontend-ux-streaming-r1 | done | ISSUE-058 / FE-UX-STREAMING-RENDER | 流式渲染画布交付记录 |
 | D-1088 | 2026-11-27 | [FE-UX-STREAMING-RENDER 代码说明](code/FE-UX-STREAMING-RENDER.md) | 代码 | frontend-ux-streaming-r1 | 当前 | ISSUE-058 / FE-UX-STREAMING-RENDER | 流式渲染画布代码说明 |
-| D-1089 | 2026-11-27 | [FE-UX-STREAMING-MARKDOWN 交付](delivery/FE-UX-STREAMING-MARKDOWN.md) | 交付 | frontend-ux-streaming-r1 | in-review | ISSUE-058 / FE-UX-STREAMING-MARKDOWN | 流式安全 Markdown 交付记录 |
+| D-1089 | 2026-11-27 | [FE-UX-STREAMING-MARKDOWN 交付](delivery/FE-UX-STREAMING-MARKDOWN.md) | 交付 | frontend-ux-streaming-r1 | done | ISSUE-058 / FE-UX-STREAMING-MARKDOWN | 流式安全 Markdown 交付记录 |
 | D-1090 | 2026-11-27 | [FE-UX-STREAMING-MARKDOWN 代码说明](code/FE-UX-STREAMING-MARKDOWN.md) | 代码 | frontend-ux-streaming-r1 | 当前 | ISSUE-058 / FE-UX-STREAMING-MARKDOWN | 流式安全 Markdown 代码说明 |
-| D-1091 | 2026-11-27 | [FE-UX-STREAMING-HANDOFF 交付](delivery/FE-UX-STREAMING-HANDOFF.md) | 交付 | frontend-ux-streaming-r1 | in-review | ISSUE-058 / FE-UX-STREAMING-HANDOFF | 滚动与完成交接交付记录 |
+| D-1091 | 2026-11-27 | [FE-UX-STREAMING-HANDOFF 交付](delivery/FE-UX-STREAMING-HANDOFF.md) | 交付 | frontend-ux-streaming-r1 | done | ISSUE-058 / FE-UX-STREAMING-HANDOFF | 滚动与完成交接交付记录 |
 | D-1092 | 2026-11-27 | [FE-UX-STREAMING-HANDOFF 代码说明](code/FE-UX-STREAMING-HANDOFF.md) | 代码 | frontend-ux-streaming-r1 | 当前 | ISSUE-058 / FE-UX-STREAMING-HANDOFF | 滚动与完成交接代码说明 |
-| D-1093 | 2026-11-27 | [FE-UX-STREAMING-VERIFICATION 交付](delivery/FE-UX-STREAMING-VERIFICATION.md) | 交付 | frontend-ux-streaming-r1 | in-review | ISSUE-058 / FE-UX-STREAMING-VERIFICATION | 流式测试验收交付记录 |
+| D-1093 | 2026-11-27 | [FE-UX-STREAMING-VERIFICATION 交付](delivery/FE-UX-STREAMING-VERIFICATION.md) | 交付 | frontend-ux-streaming-r1 | done | ISSUE-058 / FE-UX-STREAMING-VERIFICATION | 流式测试验收交付记录 |
 | D-1094 | 2026-11-27 | [FE-UX-STREAMING-VERIFICATION 代码说明](code/FE-UX-STREAMING-VERIFICATION.md) | 代码 | frontend-ux-streaming-r1 | 当前 | ISSUE-058 / FE-UX-STREAMING-VERIFICATION | 流式测试验收代码说明 |
 | D-1095 | 2026-11-27 | [流式编辑体验验收留档](testing/FE-UX-STREAMING-VERIFICATION-2026-11-27.md) | 验证 | frontend-ux-streaming-r1 | 当前 | ISSUE-058 / FE-UX-STREAMING-* | 滚动跟随/单列表格/阶段时序修复后全量复跑口径 |
 | D-1070 | 2026-11-27 | [ISSUE-057：前端主链路体验修复、现代视觉与动效升级、多分辨率响应式精修](../issues/ISSUE-057.md) | Issue | frontend-ux-visual-responsive-r1 | closed | ISSUE-057 | 前端体验、视觉 Token、响应式与四视口巡检 |
-| D-1071 | 2026-11-27 | [FE-UX 任务卡](tasks/FE-UX.md) | 任务 | frontend-ux-streaming-r1 | in-review | ISSUE-057 / ISSUE-058 | FE-UX-MAINFLOW-COPY～FE-UX-PLAYWRIGHT-VIEWPORTS done；FE-UX-STREAMING-RENDER～FE-UX-STREAMING-VERIFICATION in-review |
+| D-1071 | 2026-11-27 | [FE-UX 任务卡](tasks/FE-UX.md) | 任务 | frontend-ux-streaming-r1 | done | ISSUE-057 / ISSUE-058 | FE-UX-MAINFLOW-COPY～FE-UX-PLAYWRIGHT-VIEWPORTS done；FE-UX-STREAMING-RENDER～FE-UX-STREAMING-VERIFICATION done |
 | D-1061 | 2026-11-27 | [ISSUE-056：双管理员权限隔离、后台模块精简与任务中心核实](../issues/ISSUE-056.md) | Issue | admin-rbac-cleanup-r1 | closed | ISSUE-056 | 双管理员权限隔离、后台模块精简与任务中心核实 |
 | D-1062 | 2026-11-27 | [ADMIN-RBAC-PLATFORM-SPLIT 交付](delivery/ADMIN-RBAC-PLATFORM-SPLIT.md) | 交付说明 | admin-rbac-cleanup-r1 | done | ISSUE-056 / ADMIN-RBAC-PLATFORM-SPLIT | 平台安全策略、真实审计与后台分家进行中证据 |
 | D-1063 | 2026-11-27 | [ADMIN-RBAC-PLATFORM-SPLIT 代码说明](code/ADMIN-RBAC-PLATFORM-SPLIT.md) | 代码说明 | admin-rbac-cleanup-r1 | 当前 | ISSUE-056 / ADMIN-RBAC-PLATFORM-SPLIT | 安全策略与审计实现 |

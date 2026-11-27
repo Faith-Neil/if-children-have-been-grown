@@ -15,7 +15,6 @@ from icg.infra.model_config_storage import (
     ProjectModelConfigBindingResponse,
 )
 from icg.domain.workflow_schemas import v1_error_responses
-from icg.domain.platform_security import require_platform_admin
 
 
 def include_model_config_routes(application, service: DemoService, current_user) -> None:
@@ -26,13 +25,11 @@ def include_model_config_routes(application, service: DemoService, current_user)
     @router.get("/model-configs", response_model=ModelConfigListResponse, operation_id="listModelConfigs")
     def list_model_configs(user: Principal = Depends(current_user)):
         """列出当前公司的模型配置。响应中绝不暴露明文密钥，只返回 api_key_masked 与 has_api_key。"""
-        require_platform_admin(user)
         return config_service.list(user)
 
     @router.post("/model-configs", response_model=ModelConfigResponse, operation_id="createModelConfig")
     def create_model_config(body: ModelConfigCreateRequest, response: Response, user: Principal = Depends(current_user)):
         """新建模型配置。若提供 api_key，需环境变量 ICG_SECRET_KEY 可用以进行 Fernet 加密；若未配置则返回 503 SECRET_KEY_UNAVAILABLE。"""
-        require_platform_admin(user)
         result = config_service.create(user, body.model_dump(exclude_unset=True))
         response.headers["ETag"] = f'"{result["revision"]}"'
         return result
@@ -40,7 +37,6 @@ def include_model_config_routes(application, service: DemoService, current_user)
     @router.get("/model-configs/{id}", response_model=ModelConfigResponse, operation_id="getModelConfig")
     def get_model_config(id: str, response: Response, user: Principal = Depends(current_user)):
         """获取单个模型配置详情。响应头 ETag 为当前 revision。"""
-        require_platform_admin(user)
         result = config_service.get(user, id)
         response.headers["ETag"] = f'"{result["revision"]}"'
         return result
@@ -50,7 +46,6 @@ def include_model_config_routes(application, service: DemoService, current_user)
                             user: Principal = Depends(current_user),
                             if_match: str | None = Header(default=None)):
         """更新模型配置。需通过 If-Match 请求头核对 revision 进行乐观锁并发保护。省略 api_key 表示保留原密钥，空字符串表示清除，传回掩码表示不修改。若需要加密新密钥且 ICG_SECRET_KEY 未配置，返回 503 SECRET_KEY_UNAVAILABLE。"""
-        require_platform_admin(user)
         result = config_service.update(user, id, body.model_dump(exclude_unset=True), if_match)
         response.headers["ETag"] = f'"{result["revision"]}"'
         return result
@@ -58,14 +53,12 @@ def include_model_config_routes(application, service: DemoService, current_user)
     @router.post("/model-configs/{id}/test", response_model=ModelConfigTestResponse, operation_id="testModelConfig")
     def test_model_config(id: str, user: Principal = Depends(current_user)):
         """测试模型配置连通性。返回 ok、provider、model 与 duration_ms。若配置包含加密密钥且 ICG_SECRET_KEY 不可用，返回 503 SECRET_KEY_UNAVAILABLE 且无 Retry-After。"""
-        require_platform_admin(user)
         return config_service.test_connectivity(user, id)
 
     @router.post("/model-configs/test", response_model=ModelConfigTestResponse, include_in_schema=False)
     def test_model_config_direct(body: dict | None = None, user: Principal = Depends(current_user)):
         """兼容 /api/v1/model-configs/test 直接测试（不传 id 默认测试 default 配置）。"""
         config_id = (body or {}).get("model_config_id") or (body or {}).get("id") or "default"
-        require_platform_admin(user)
         return config_service.test_connectivity(user, config_id)
 
     @router.post("/projects/{project_id}/model-config", response_model=ProjectModelConfigBindingResponse,
@@ -73,14 +66,18 @@ def include_model_config_routes(application, service: DemoService, current_user)
     def bind_project_model_config(project_id: str, body: ProjectModelConfigBindingRequest,
                                   user: Principal = Depends(current_user)):
         """将模型配置绑定到指定项目。敏感项目尝试绑定非本地或未标记敏感可用的模型时，返回 403 SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL。"""
-        require_platform_admin(user)
         return config_service.bind_project(user, project_id, body.model_config_id)
+
+    @router.get("/projects/{project_id}/model-options", response_model=ModelConfigListResponse,
+                operation_id="listProjectModelOptions")
+    def list_project_model_options(project_id: str, user: Principal = Depends(current_user)):
+        """项目负责人/公司管理员可用的只读绑定候选列表（绝不暴露明文密钥）；模型配置管理严格仅限平台管理员。"""
+        return config_service.list_bindable(user, project_id)
 
     @router.get("/projects/{project_id}/model-config", response_model=ModelConfigResponse,
                 operation_id="getProjectModelConfig")
     def get_project_model_config(project_id: str, response: Response, user: Principal = Depends(current_user)):
         """获取项目绑定的模型配置（未单独绑定时返回公司默认配置）。"""
-        require_platform_admin(user)
         result = config_service.get_project_config(user, project_id)
         response.headers["ETag"] = f'"{result["revision"]}"'
         return result

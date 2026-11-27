@@ -19,9 +19,14 @@ services:
       ICG_RAGFLOW_API_KEY: ${ICG_RAGFLOW_API_KEY:?set ICG_RAGFLOW_API_KEY in deploy/.env}
       ICG_RAGFLOW_TIMEOUT_SECONDS: ${ICG_RAGFLOW_TIMEOUT_SECONDS:-30}
     ports:
-      - "8710:8710"
+      # 安全默认：只绑定回环地址，明文 HTTP 不暴露到任何网卡；
+      # 对外访问须经宿主机反向代理（Nginx/Caddy）以 HTTPS 终止后转发到 127.0.0.1:8710，
+      # 详见 deploy/README.md 第 3 节。确需局域网直连时再用 ICG_BIND_HOST 显式放开。
+      - "${ICG_BIND_HOST:-127.0.0.1}:8710:8710"
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8710/api/v1/health', timeout=5).read()\""]
+      # 健康端点是 /health（/api/v1 下没有健康路由）；persistent 为 true 才代表
+      # MySQL 生产持久化真正生效，避免把内存态误判为健康。
+      test: ["CMD-SHELL", "python -c \"import json,sys,urllib.request; d=json.load(urllib.request.urlopen('http://127.0.0.1:8710/health', timeout=5)); sys.exit(0 if d.get('status')=='ok' and d.get('persistent') else 1)\""]
       interval: 10s
       timeout: 6s
       retries: 12

@@ -627,8 +627,12 @@ class GenerationOrchestratorMixin:
 
         return self._write(principal, project_id, f"technical_task.dismiss_warnings:{task_id}", payload, expected, key, operation)
 
-    def iter_technical_stream(self, prepared: dict, cancel: Any = None):
-        """先推节级 delta，整次完成后才写入章节。cancel 置位或断开后不写入。"""
+    def iter_technical_stream(self, prepared: dict, cancel: Any = None, progress_barrier: Any = None):
+        """先推节级 delta，整次完成后才写入章节。cancel 置位或断开后不写入。
+
+        progress_barrier 是消费侧进度落库的同步确认边界：write_volume 期间事件经 inbox 异步消费，
+        最后一节的进度行可能尚未落库。commit_volume 提交正文前必须等待消费侧确认全部已发事件，
+        确认失败（进度落库失败/消费侧丢失）则正文不得提交，防止「正文已写但任务记录失败」的分裂。"""
         import queue
         import threading
 
@@ -651,6 +655,8 @@ class GenerationOrchestratorMixin:
         inbox: queue.Queue = queue.Queue()
 
         def on_event(event: dict) -> None:
+            if progress_barrier is not None:
+                progress_barrier.emitted()
             inbox.put(event)
 
         def work() -> None:
@@ -666,6 +672,18 @@ class GenerationOrchestratorMixin:
                     knowledge_base=getattr(self.demo, "knowledge_base", None),
                     on_event=on_event, cancel=cancel,
                 )
+                if cancel is not None and cancel.is_set():
+                    inbox.put({"event": "volume.cancelled", "chapter_id": result.get("chapter_id") or ""})
+                    return
+                if progress_barrier is not None:
+                    try:
+                        progress_barrier.wait_caught_up()
+                    except Exception as barrier_error:
+                        # 进度落库未经确认，正文严禁提交；消费侧已按失败终态收尾，这里只需不提交。
+                        inbox.put({"event": "volume.failed",
+                                   "message": getattr(barrier_error, "message", None) or "生成进度未能写入任务存储，正文不予提交。"})
+                        return
+                # 等待进度落库确认期间用户可能已取消：落盘正文前必须重检取消信号，不得越过取消覆盖正文
                 if cancel is not None and cancel.is_set():
                     inbox.put({"event": "volume.cancelled", "chapter_id": result.get("chapter_id") or ""})
                     return
@@ -687,6 +705,8 @@ class GenerationOrchestratorMixin:
                     return str(self.repository.read().projects[project_id].revision)
 
                 def commit_volume(expected: str) -> dict:
+                    if cancel is not None and cancel.is_set():
+                        raise DomainError(409, "GENERATION_CANCELLED", "生成已取消，正文不再提交。")
                     return self._write(
                         principal, project_id, "chapter.generate", payload, expected, prepared["key"],
                         lambda state, project, actual: self._apply_technical_volume(state, actual, principal, drafted),

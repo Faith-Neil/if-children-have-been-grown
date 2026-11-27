@@ -49,16 +49,22 @@ def test_audit_logs_real_api_and_tenant_isolation(client: TestClient):
 
 
 def test_company_admin_cannot_reach_platform_model_or_engine_config(client: TestClient):
-    company_admin = login(client, "alpha-company-admin")
-    for method, path, payload in (
-        ("get", "/api/v1/model-configs", None),
-        ("post", "/api/v1/model-configs", {"name": "越权模型", "base_url": "http://127.0.0.1:8000", "model": "qwen"}),
-        ("get", "/api/v1/ragflow-config", None),
-        ("put", "/api/v1/ragflow-config", {"base_url": "http://127.0.0.1:9380"}),
-        ("post", "/api/v1/ragflow-config/test", {}),
-    ):
-        response = getattr(client, method)(path, headers=company_admin, json=payload) if payload is not None else getattr(client, method)(path, headers=company_admin)
-        assert response.status_code == 403, (method, path, response.text)
+    # ISSUE-059 PM 最终权限模型：模型配置 CRUD/密钥轮换/连通性测试与 RAGFlow 引擎连接配置/测试
+    # 严格仅限 platform_admin；公司管理员与普通成员访问一律 403。
+    # 项目绑定独立授权（项目负责人/公司管理员可绑定已有合规模型）由 test_issue059_model_config_rbac.py 固化。
+    for account in ("alpha-company-admin", "alpha-editor"):
+        headers = login(client, account)
+        for method, path, payload in (
+            ("get", "/api/v1/model-configs", None),
+            ("post", "/api/v1/model-configs", {"name": "越权模型", "base_url": "http://127.0.0.1:8000", "model": "qwen"}),
+            ("put", "/api/v1/model-configs/cfg-any", {"name": "越权改名"}),
+            ("post", "/api/v1/model-configs/cfg-any/test", {}),
+            ("get", "/api/v1/ragflow-config", None),
+            ("put", "/api/v1/ragflow-config", {"base_url": "http://127.0.0.1:9380"}),
+            ("post", "/api/v1/ragflow-config/test", {}),
+        ):
+            response = getattr(client, method)(path, headers={**headers, "If-Match": '"1"'}, json=payload) if payload is not None else getattr(client, method)(path, headers=headers)
+            assert response.status_code == 403, (account, method, path, response.text)
 
 
 def test_cross_company_users_are_not_visible_to_company_admin(client: TestClient):

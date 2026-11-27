@@ -25,13 +25,59 @@ FLUSH PRIVILEGES;
    - 上传一份合成 `.doc` 后能转成 PDF 并完成解析；
    - 检索测试只召回本公司数据。
 
+## 2.1 RAGFlow 密钥轮换与实例切换操作顺序
+
+**同一 RAGFlow 实例轮换 API Key**（数据集与索引全部保留，无需重建）：
+
+1. 在 RAGFlow 服务端签发新 Key；
+2. 平台管理员在产品中更新 RAGFlow 连接配置：只改 `api_key`，`base_url` 保持不变——此时允许沿用既有配置语义，新密钥加密落盘；
+3. 用连通性测试验证新 Key 生效后，再在 RAGFlow 服务端吊销旧 Key。
+
+**切换到另一套 RAGFlow 实例**（`base_url` 变更，旧实例上的数据集、文档与解析索引在新实例上都不存在）：
+
+1. 先准备好新实例并按第 2 节完成 embedding/聊天模型配置；
+2. 平台管理员更新连接配置：`base_url` 变更时**必须显式传入新实例的 API Key**（或显式清空旧密钥），系统拒绝携带旧密钥指向新地址——防止把密钥泄露给错误的服务端；
+3. 切换后公司知识库必须执行**重建/迁移**：在知识库管控中对四库执行初始化与重建，历史标书与资料会按当前脱敏流水重新上传、转换与解析；重建完成前检索质量下降属预期，不要并行双写两个实例；
+4. 验证新实例检索只召回本公司 `${company_id}::` 命名空间数据后，再下线旧实例。
+
 ## 3. 应用服务器
 
 1. 安装 Docker 与 Docker Compose 插件。
 2. 拉取仓库，进入 `deploy/`：`cp .env.example .env`，填写 MySQL、RAGFlow 与首次管理员密码。
 3. 构建并启动：`docker compose --env-file .env up -d --build`。
 4. 容器启动命令会先执行 `python -m alembic -c alembic.ini upgrade head`，再以 `--workers 1` 启动 uvicorn。
-5. 健康检查：`curl http://127.0.0.1:8710/api/v1/health`；`persistent` 必须为 `true`。
+5. 健康检查：`curl http://127.0.0.1:8710/health`；`persistent` 必须为 `true`。注意健康端点是 `/health`，`/api/v1` 下没有健康路由；compose 健康检查会同时断言 `persistent`，内存态一律视为 unhealthy。
+
+## 3.1 端口暴露安全默认（反向代理 HTTPS）
+
+`docker-compose.yml` 默认把应用端口绑定在 `127.0.0.1:8710`：容器明文 HTTP 只监听回环地址，不暴露到任何网卡，登录接口与 Access Token 不会以明文形式出现在局域网/公网链路上。
+
+对外提供访问时，必须在宿主机用反向代理以 HTTPS 终止后转发到回环端口，推荐 Nginx 最小示例：
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name bid.example.internal;
+
+    ssl_certificate     /etc/nginx/certs/bid.example.internal.crt;
+    ssl_certificate_key /etc/nginx/certs/bid.example.internal.key;
+
+    location / {
+        proxy_pass http://127.0.0.1:8710;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_read_timeout 300s;
+        client_max_body_size 100m;
+    }
+}
+```
+
+要点：
+
+- 代理与应用同机，转发目标固定 `127.0.0.1:8710`，不要指向容器网桥地址；
+- 生成接口流式响应耗时较长，`proxy_read_timeout` 不小于 300s，上传招标文件需要放宽 `client_max_body_size`；
+- 严禁为了省事把 `ICG_BIND_HOST` 改为 `0.0.0.0` 直接对外暴露明文 HTTP；仅在内网调试且确无代理时，才可在 `.env` 显式设置 `ICG_BIND_HOST` 放开绑定，并在结束后立即收回；
+- MySQL 3306 与 RAGFlow 端口同样只允许内网服务器间互通，不暴露公网。
 
 ## 4. LibreOffice 转换探针
 

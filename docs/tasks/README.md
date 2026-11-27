@@ -11,5 +11,6 @@
 | [FE-M0.md](FE-M0.md) | 前端基线与基础工程、React-Router 与资料域组件 | ISSUE-007, ISSUE-038 |
 | [FE-M1.md](FE-M1.md) ~ [FE-M8.md](FE-M8.md) | 前端各业务阶段实施历史任务 | Phase 1 ~ 8 |
 | [OPS-M0.md](OPS-M0.md) | 工作区运维、内网部署草案与产品启动 | ISSUE-017、ISSUE-049 |
+| [P0-HOTFIX.md](P0-HOTFIX.md) | P0 安全红线、保存导出阻断、平台配置知识库与部署止血 | ISSUE-059 |
 | [REV-M0.md](REV-M0.md) | 接手审查、QA 签署与端到端冒烟验证 | ISSUE-013, REV-SMOKE-001 |
 | [FLOW.md](FLOW.md) | 三个登录角色和四段主路径 | ISSUE-048 |

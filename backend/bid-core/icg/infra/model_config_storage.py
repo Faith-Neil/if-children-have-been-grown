@@ -91,6 +91,7 @@ class ModelConfig:
     def to_public_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
+            "company_id": self.company_id,
             "name": self.name,
             "provider": self.provider,
             "base_url": self.base_url,
@@ -143,6 +144,20 @@ def fallback_problem(primary: ModelConfig, fallback: ModelConfig | None) -> str 
     return None
 
 
+def config_compliant_for_sensitive(config: ModelConfig) -> bool:
+    """涉密项目可用性核对（防御纵深）：本地 + 允许敏感 + 端点不是公网地址。
+
+    is_local 只是管理员填写的标志，可能填错；只要实际 URL 是公网端点，
+    涉密内容就绝不能发过去，与标志怎么填无关（ISSUE-059）。"""
+    if not config.is_local or not config.allow_sensitive:
+        return False
+    if config.provider != "demo":
+        from .openai_model import is_public_model_url
+        if is_public_model_url(config.base_url):
+            return False
+    return True
+
+
 def usable_fallback(state: Any, primary: ModelConfig, project_sensitive: bool) -> ModelConfig | None:
     """运行时取备用模型：再核对一次（备用模型可能事后被改成云端）；敏感项目只能用本地且允许敏感的备用。"""
     if not primary.fallback_config_id:
@@ -150,13 +165,13 @@ def usable_fallback(state: Any, primary: ModelConfig, project_sensitive: bool) -
     fallback = state.model_configs.get(primary.fallback_config_id)
     if fallback_problem(primary, fallback) is not None:
         return None
-    if project_sensitive and (not fallback.is_local or not fallback.allow_sensitive):
+    if project_sensitive and not config_compliant_for_sensitive(fallback):
         return None
     return fallback
 
 
 def validate_model_config_for_project(project_sensitive: bool, config: ModelConfig) -> None:
-    if project_sensitive and (not config.is_local or not config.allow_sensitive):
+    if project_sensitive and not config_compliant_for_sensitive(config):
         raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL", "敏感项目只能使用本地模型配置。")
 
 
@@ -233,6 +248,7 @@ def provider_from_model_snapshot(
 
 class ModelConfigResponse(ResponseBody):
     id: str
+    company_id: str
     name: str
     provider: str
     base_url: str
@@ -255,6 +271,7 @@ class ModelConfigListResponse(ResponseBody):
 
 class ModelConfigCreateRequest(RequestBody):
     id: str | None = Field(default=None, max_length=120)
+    company_id: str | None = Field(default=None, max_length=120, description="目标公司（仅平台管理员跨租户代管时显式指定，缺省为自身租户）")
     name: str = Field(default="默认模型配置", min_length=1, max_length=300)
     provider: str = Field(default="openai-compatible", min_length=1, max_length=100)
     base_url: str = Field(default="http://127.0.0.1:8000", min_length=1, max_length=500)
@@ -301,19 +318,61 @@ class ProjectModelConfigBindingResponse(ResponseBody):
     model_config_id: str
 
 
+def validate_endpoint_url(url: str, *, field: str = "base_url") -> str:
+    """SSRF 纵深防御：端点只允许 http/https 与合法主机，拒绝 userinfo 注入与空主机。"""
+    from urllib.parse import urlsplit
+    clean = str(url or "").strip().rstrip("/")
+    if not clean or len(clean) > 500 or any(ch.isspace() for ch in clean):
+        raise DomainError(422, "VALIDATION_ERROR", "端点地址为空、超长或含空白字符。", {"field": field})
+    try:
+        parts = urlsplit(clean)
+    except ValueError:
+        raise DomainError(422, "VALIDATION_ERROR", "端点地址不是合法 URL。", {"field": field}) from None
+    if parts.scheme not in ("http", "https"):
+        raise DomainError(422, "VALIDATION_ERROR", "端点只允许 http/https 协议。", {"field": field})
+    if not parts.hostname:
+        raise DomainError(422, "VALIDATION_ERROR", "端点缺少合法主机名。", {"field": field})
+    if parts.username is not None or parts.password is not None:
+        raise DomainError(422, "VALIDATION_ERROR", "端点不允许携带 userinfo 凭据。", {"field": field})
+    return clean
+
+
 def placeholder_default(config: ModelConfig) -> bool:
     """系统自动塞进公司的「默认内网模型」，不是管理员添加的配置。"""
     return (config.id == f"default-{config.company_id}" and config.name == "默认内网模型"
             and config.model == "qwen2.5-72b" and not config.encrypted_api_key)
 
 
+def is_public_endpoint_config(config: ModelConfig) -> bool:
+    """公网端点判定（与平台默认兜底同一套过滤）：只看实际 URL，不看 is_local 标志。"""
+    from .openai_model import is_public_model_url
+    return is_public_model_url(config.base_url)
+
+
+def bindable_pool_configs(state: Any, project_company_id: str) -> list[ModelConfig]:
+    """绑定候选池统一口径：目标项目所属公司 + 平台 system 池，
+    且绝不包含公网端点配置（CWE-200：绑定不得成为绕过滤的后门）。"""
+    return [
+        cfg for cfg in state.model_configs.values()
+        if cfg.company_id in (project_company_id, "system")
+        and not placeholder_default(cfg)
+        and not is_public_endpoint_config(cfg)
+    ]
+
+
 def saved_company_model(state: Any, company_id: str) -> ModelConfig | None:
-    """没有项目绑定、也没有任务对应表时，用管理员添加的模型。有本地模型时不用非本地的那一份。"""
+    """没有项目绑定、也没有任务对应表时，用管理员添加的模型。有本地模型时不用非本地的那一份。
+
+    平台 system 兜底对全公司生效、公司管理员未必知情，绝不回落到公网端点：
+    公网 URL 的平台配置不参与兜底（ISSUE-059 数据不出内网红线）。"""
     saved = [cfg for cfg in state.model_configs.values()
-             if cfg.company_id == company_id and cfg.provider != "demo" and not placeholder_default(cfg)]
+             if cfg.company_id == company_id and cfg.provider != "demo" and not placeholder_default(cfg)
+             and not is_public_endpoint_config(cfg)]
     if not saved and company_id != "system":
+        from .openai_model import is_public_model_url
         saved = [cfg for cfg in state.model_configs.values()
-                 if cfg.company_id == "system" and cfg.provider != "demo" and not placeholder_default(cfg)]
+                 if cfg.company_id == "system" and cfg.provider != "demo" and not placeholder_default(cfg)
+                 and not is_public_model_url(cfg.base_url)]
     if not saved:
         return None
     local = [cfg for cfg in saved if cfg.is_local]
@@ -332,27 +391,30 @@ class ModelConfigService:
         self.repository = demo_service.repository
 
     def list(self, principal: Principal) -> dict[str, Any]:
+        self._require_manager(principal)
         company_id = principal.user.company_id
 
         def operation(state: DemoState):
             for config_id, cfg in list(state.model_configs.items()):
                 if cfg.company_id == company_id and placeholder_default(cfg):
                     del state.model_configs[config_id]
+            # 只有平台管理员能走到这里（见 _require_manager）：列出全部租户配置供统一代管
             items = [
                 cfg.to_public_dict()
                 for cfg in state.model_configs.values()
-                if cfg.company_id == company_id
             ]
             return {"items": items}
 
         return self.repository.transaction(operation)
 
     def get(self, principal: Principal, config_id: str) -> dict[str, Any]:
+        self._require_manager(principal)
         company_id = principal.user.company_id
 
         def operation(state: DemoState):
             cfg = state.model_configs.get(config_id)
-            if cfg is None or cfg.company_id != company_id or placeholder_default(cfg):
+            # 只有平台管理员能走到这里（见 _require_manager）：跨租户代管可读任一租户配置
+            if cfg is None or placeholder_default(cfg):
                 raise DomainError(404, "NOT_FOUND", "未找到该模型配置。")
             return cfg.to_public_dict()
 
@@ -360,18 +422,22 @@ class ModelConfigService:
 
     @staticmethod
     def _require_manager(principal: Principal) -> None:
-        """新建、修改、测试连接只限本公司公司管理员（或平台超级管理员）。
+        """模型配置管理严格仅限平台管理员（ISSUE-059 PM 最终权限模型）。
 
-        模型地址决定标书正文发往哪里，测试连接会让服务端访问填写的地址；普通成员能改就能把正文外发或探测内网。"""
-        from icg.domain.auth_service import is_super_admin
-        from icg.domain.project_access import normalize_role
-        if is_super_admin(principal) or normalize_role(principal.user.role) in ("company_admin", "platform_admin"):
-            return
-        raise DomainError(403, "FORBIDDEN", "模型配置只能由本公司公司管理员（或平台管理员）新建、修改和测试。")
+        模型地址决定标书正文发往哪里，测试连接会让服务端访问填写的地址；
+        公司管理员与普通成员一律 403，杜绝租户侧把正文外发或探测内网。"""
+        from icg.domain.platform_security import require_platform_admin
+        try:
+            require_platform_admin(principal)
+        except DomainError:
+            raise DomainError(403, "FORBIDDEN", "模型配置只能由平台管理员新建、修改、轮换密钥和测试。") from None
 
     def create(self, principal: Principal, payload: dict[str, Any]) -> dict[str, Any]:
         self._require_manager(principal)
-        company_id = principal.user.company_id
+        # 平台管理员可跨租户代管：显式 company_id 指定目标公司，缺省为自身租户
+        company_id = str(payload.get("company_id") or principal.user.company_id).strip()
+        if not company_id or len(company_id) > 120 or any(ch.isspace() for ch in company_id):
+            raise DomainError(422, "VALIDATION_ERROR", "目标公司标识非法。", {"field": "company_id"})
         config_id = payload.get("id") or f"cfg-{int(self.service._now() * 1000)}"
         plain_key = payload.get("api_key")
 
@@ -383,14 +449,15 @@ class ModelConfigService:
             masked_key = mask_api_key(plain_key)
 
         def operation(state: DemoState):
-            if config_id in state.model_configs and state.model_configs[config_id].company_id == company_id:
+            # CWE-639：模型 ID 全局唯一，任何租户已占用都拒绝，杜绝覆写其他租户配置
+            if config_id in state.model_configs:
                 raise DomainError(409, "REVISION_CONFLICT", "该模型配置已存在。")
             cfg = ModelConfig(
                 id=config_id,
                 company_id=company_id,
                 name=payload.get("name", "默认模型配置"),
                 provider=payload.get("provider", "openai-compatible"),
-                base_url=payload.get("base_url", "http://127.0.0.1:8000"),
+                base_url=validate_endpoint_url(payload.get("base_url", "http://127.0.0.1:8000")),
                 model=payload.get("model", "qwen2.5-72b"),
                 encrypted_api_key=encrypted_key,
                 api_key_masked=masked_key,
@@ -418,7 +485,8 @@ class ModelConfigService:
 
         def operation(state: DemoState):
             cfg = state.model_configs.get(config_id)
-            if cfg is None or cfg.company_id != company_id:
+            # 只有平台管理员能走到这里（见 _require_manager），允许跨租户代管但严禁改归属
+            if cfg is None:
                 raise DomainError(404, "NOT_FOUND", "未找到该模型配置。")
 
             # 1. 乐观锁 If-Match 校验
@@ -440,13 +508,18 @@ class ModelConfigService:
                     cfg.api_key_masked = mask_api_key(key_input)
 
             # 3. 更新其他配置字段
+            if "company_id" in updates and updates["company_id"] not in (None, cfg.company_id):
+                raise DomainError(422, "VALIDATION_ERROR", "不允许变更模型配置的租户归属。", {"field": "company_id"})
             for field_name in (
                 "name", "provider", "base_url", "model", "is_local",
                 "allow_sensitive", "stream_enabled", "json_mode_enabled",
                 "timeout_seconds", "max_tokens",
             ):
                 if field_name in updates and updates[field_name] is not None:
-                    setattr(cfg, field_name, updates[field_name])
+                    value = updates[field_name]
+                    if field_name == "base_url":
+                        value = validate_endpoint_url(value)
+                    setattr(cfg, field_name, value)
             if "fallback_config_id" in updates and updates["fallback_config_id"] is not None:
                 cfg.fallback_config_id = updates["fallback_config_id"] or None
             if cfg.fallback_config_id:
@@ -455,7 +528,7 @@ class ModelConfigService:
                     raise DomainError(422, "VALIDATION_ERROR", problem, {"field": "fallback_config_id"})
             # 本配置是别的本地主模型的备用时，不能改成云端
             if not cfg.is_local and any(other.fallback_config_id == cfg.id and other.is_local
-                                        for other in state.model_configs.values() if other.company_id == company_id):
+                                        for other in state.model_configs.values() if other.company_id == cfg.company_id):
                 raise DomainError(422, "VALIDATION_ERROR", "这个配置是本地主模型的备用模型，不能改成非本地模型。",
                                   {"field": "is_local"})
 
@@ -472,7 +545,8 @@ class ModelConfigService:
 
         def get_cfg(state: DemoState) -> ModelConfig:
             cfg = state.model_configs.get(config_id)
-            if cfg is None or cfg.company_id != company_id:
+            # 只有平台管理员能走到这里（见 _require_manager），允许跨租户代管
+            if cfg is None:
                 raise DomainError(404, "NOT_FOUND", "未找到该模型配置。")
             return cfg
 
@@ -508,7 +582,7 @@ class ModelConfigService:
 
         try:
             from .openai_model import chat_completions_url
-            url = chat_completions_url(cfg.base_url)
+            url = chat_completions_url(validate_endpoint_url(cfg.base_url))
             headers = {"Content-Type": "application/json"}
             if plain_key:
                 headers["Authorization"] = f"Bearer {plain_key}"
@@ -559,9 +633,14 @@ class ModelConfigService:
                 project = self.service._project(state, principal, project_id)
                 if not lead(state, project_id, principal.user.id):
                     raise DomainError(403, "PROJECT_LEAD_REQUIRED", "只有项目负责人或公司管理员能为项目选择模型配置。")
+            # 候选池统一按「目标项目所属公司 + 平台 system」计算（平台超管代绑时不能用操作者自身租户）
+            pool_company = project.company_id
             cfg = state.model_configs.get(config_id)
-            if cfg is None or cfg.company_id != company_id:
+            if cfg is None or cfg.company_id not in (pool_company, "system"):
                 raise DomainError(404, "NOT_FOUND", "未找到该模型配置。")
+            # CWE-200：无论项目是否涉密，公网端点一律不得绑定——绑定不能成为绕过公网过滤的后门
+            if is_public_endpoint_config(cfg):
+                raise DomainError(422, "VALIDATION_ERROR", "公网端点模型不得绑定到项目：标书正文严禁发往公网。", {"field": "model_config_id"})
 
             # 策略门禁：敏感项目尝试绑定非本地或未标记敏感可用的模型
             validate_model_config_for_project(project.sensitive, cfg)
@@ -571,15 +650,38 @@ class ModelConfigService:
 
         return self.repository.transaction(operation)
 
+    def list_bindable(self, principal: Principal, project_id: str) -> dict[str, Any]:
+        """项目负责人/公司管理员绑模型时的只读可选列表（PM 独立授权；绝不暴露明文密钥）。"""
+        company_id = principal.user.company_id
+
+        def operation(state: DemoState):
+            from icg.domain.auth_service import is_super_admin
+            from icg.domain.project_access import lead, normalize_role
+            project = state.projects.get(project_id)
+            role = normalize_role(principal.user.role)
+            platform = is_super_admin(principal) or role == "platform_admin"
+            admin = (project is not None and not project.is_deleted
+                     and (platform or (project.company_id == company_id and role == "company_admin")))
+            if not admin:
+                project = self.service._project(state, principal, project_id)
+                if not lead(state, project_id, principal.user.id):
+                    raise DomainError(403, "PROJECT_LEAD_REQUIRED", "只有项目负责人或公司管理员能为项目选择模型配置。")
+            # 与 bind_project/运行时解析同一口径：按项目所属公司 + system 池，排除公网端点
+            items = [cfg.to_public_dict() for cfg in bindable_pool_configs(state, project.company_id)]
+            items.sort(key=lambda item: (0 if item["is_local"] else 1, item["id"]))
+            return {"items": items}
+
+        return self.repository.transaction(operation)
+
     def get_project_config(self, principal: Principal, project_id: str) -> dict[str, Any]:
         company_id = principal.user.company_id
 
         def operation(state: DemoState):
-            self.service._project(state, principal, project_id)
+            project = self.service._project(state, principal, project_id)
             config_id = state.project_model_configs.get(project_id)
             if config_id and config_id in state.model_configs:
                 return state.model_configs[config_id].to_public_dict()
-            chosen = saved_company_model(state, company_id)
+            chosen = saved_company_model(state, project.company_id)
             if chosen is None:
                 raise DomainError(404, "NOT_FOUND", "还没有可用的模型配置。请先添加模型。")
             return chosen.to_public_dict()
@@ -631,6 +733,12 @@ def include_model_config_routes(application, service: DemoService, current_user)
                                   user: Principal = Depends(current_user)):
         """将模型配置绑定到指定项目。敏感项目尝试绑定非本地或未标记敏感可用的模型时，返回 403 SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL。"""
         return config_service.bind_project(user, project_id, body.model_config_id)
+
+    @router.get("/projects/{project_id}/model-options", response_model=ModelConfigListResponse,
+                operation_id="listProjectModelOptionsLegacy", include_in_schema=False)
+    def list_project_model_options(project_id: str, user: Principal = Depends(current_user)):
+        """兼容路由：只读绑定候选列表。"""
+        return config_service.list_bindable(user, project_id)
 
     @router.get("/projects/{project_id}/model-config", response_model=ModelConfigResponse,
                 operation_id="getProjectModelConfig")
