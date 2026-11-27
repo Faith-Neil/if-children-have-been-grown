@@ -58,3 +58,9 @@
 - MySQL 标记补跑：11 passed（127.0.0.1:3407，隔离合成 schema `icg_regression_20261128`）；其中种子账号热路径 2 个与模型配置 round-trip 1 个也在真实 `icg` 库复跑 3 passed。
 - 回归口径修正：`test_model_config_provider.py` 的模型配置 setup 改用 platform_admin 并显式写入 alpha 租户，符合 PM 锁定权限；`test_parse_jobs.py` 孤儿任务用例阻断首个后台解析线程，消除版本竞争。两处均只改测试，不放松业务权限或门禁。
 - 契约与前端：`python backend/bid-core/export_openapi.py --check` 100% 一致；`pnpm --dir frontend/web lint`（`tsc -b --noEmit`）通过；前端聚焦 `structure-model-route` + `model-config-access` 3 passed。
+
+## 第六轮收尾清零（2026-11-28）
+
+- 平台显式清除 RAGFlow 密钥后，继承链与平台停用同为终态；存在部署环境密钥时，无公司配置行与仅有 incomplete 公司行的租户均不再回落部署密钥，公司独立密钥优先序不变。
+- 连续两次只改超时（90s → 120s）回归通过：未编辑密钥输入框时前端省略 `api_key` 字段，后端继承掩码响应保持一致，最终仍使用部署密钥且超时为 120s。
+- 后端聚焦 `round3/ragflow_fallback/model_security/security_depth` 47 passed，`test_ragflow_config_api.py` 3 passed；前端 `ragflow-config-modal` 单元测试 5 passed、相关前端聚焦合计 8 passed；`tsc -b --noEmit` 与 production build 通过；OpenAPI 100% 一致，治理检查通过。

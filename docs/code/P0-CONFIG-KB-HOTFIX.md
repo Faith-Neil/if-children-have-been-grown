@@ -59,3 +59,8 @@
 ## 第五轮补充（密钥清除态与超时合并）
 
 `RagflowCompanyConfig.api_key_cleared` 区分“继承部署密钥”与“显式清除”：显式空串清除后不再回落 `ICG_RAGFLOW_API_KEY`；未清除时沿用部署地址与密钥，并把平台或租户持久化记录里的 `timeout_seconds` 合并进最终连接，公司租户沿用部署连接时优先取平台 system 记录的超时。
+
+
+## 第六轮补充（清除终态与前端密钥触碰态）
+
+`platform.api_key_cleared` 与平台停用一样成为继承链终态；公司独立密钥仍在平台阻断前优先。`RagflowConfigModal` 以 `apiKeyTouched` 区分主动清空/修改与未编辑，未触碰时省略 `api_key`；后端 `_public_payload` 在非清除继承态返回部署密钥掩码，保持读写响应一致。

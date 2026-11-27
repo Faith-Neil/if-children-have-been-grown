@@ -115,7 +115,7 @@ def effective_ragflow_connection(state: DemoState, company_id: str) -> RagflowCo
             return tenant
     # 平台显式停用是未独立配置租户的解析终态：严禁落入环境变量分支把已停用的旧实例重新启用。
     # 公司已有独立可用配置时在上方优先返回，不把平台实例的停用误套到另一个实例上。
-    if platform is not None and not platform.is_enabled:
+    if platform is not None and (not platform.is_enabled or platform.api_key_cleared):
         return platform if company_id == "system" else replace(platform, company_id=company_id,
             dataset_ids=list(tenant.dataset_ids) if tenant is not None else [f"dataset-{company_id}-01"])
     if platform is not None and platform.is_enabled and platform.encrypted_api_key:
@@ -184,6 +184,11 @@ class RagflowConfigService:
         """配置响应附占位检测与已部署真实 Dataset ID 建议，方便管理员回填替换 dataset-*-01 占位。"""
         from icg.domain.knowledge_base import read_index
         payload = cfg.to_public_dict()
+        if not cfg.encrypted_api_key and not cfg.api_key_cleared:
+            deployed = deployment_default_config(company_id)
+            if deployed is not None and deployed.base_url == cfg.base_url:
+                payload["has_api_key"] = True
+                payload["api_key_masked"] = deployed.api_key_masked
         payload["placeholder_dataset_ids"] = [d for d in cfg.dataset_ids if not _is_real_dataset_id(d)]
         suggested: list[str] = []
         try:

@@ -219,6 +219,32 @@ def test_explicit_blank_ragflow_key_is_cleared_and_does_not_fall_back_to_env(cli
     assert effective is not None and effective.encrypted_api_key is None
     assert service.knowledge_base.client_for("system") is None
 
+    from icg.domain.ragflow_config import RagflowCompanyConfig
+
+    def seed_company_rows(s):
+        from icg.infra.model_config_storage import encrypt_api_key, mask_api_key
+
+        s.ragflow_configs["beta"] = RagflowCompanyConfig(
+            company_id="beta", dataset_ids=["dataset-beta-custom"])
+        s.ragflow_configs["gamma"] = RagflowCompanyConfig(
+            company_id="gamma",
+            encrypted_api_key=encrypt_api_key("rf-company-secret"),
+            api_key_masked=mask_api_key("rf-company-secret"),
+            dataset_ids=["dataset-gamma-custom"],
+        )
+
+    service.repository.transaction(seed_company_rows)
+    assert service.knowledge_base.client_for("alpha") is None
+    assert service.knowledge_base.client_for("beta") is None
+    from icg.domain.ragflow_config import effective_ragflow_connection
+    beta_effective = effective_ragflow_connection(service.repository.read(), "beta")
+    assert beta_effective is not None and beta_effective.dataset_ids == ["dataset-beta-custom"]
+    gamma_effective = effective_ragflow_connection(service.repository.read(), "gamma")
+    assert gamma_effective is not None and gamma_effective.dataset_ids == ["dataset-gamma-custom"]
+    gamma_client = service.knowledge_base.client_for("gamma")
+    assert gamma_client is not None
+    assert gamma_client._config.api_key == "rf-company-secret"
+
 
 def test_inherited_ragflow_key_uses_saved_timeout_when_only_timeout_changes(client, monkeypatch):
     """省略密钥仅改超时：继续继承部署密钥，并把持久化超时合并到最终连接。"""
@@ -242,3 +268,27 @@ def test_inherited_ragflow_key_uses_saved_timeout_when_only_timeout_changes(clie
     assert inherited_company_client is not None
     assert inherited_company_client._config.timeout_seconds == 90
     assert inherited_company_client._config.api_key == "rf-env-secret-1234"
+
+def test_timeout_only_saves_twice_keep_inherited_key_and_apply_latest_timeout(client, monkeypatch):
+    monkeypatch.setenv("ICG_RAGFLOW_BASE_URL", "http://ragflow.internal:9380")
+    monkeypatch.setenv("ICG_RAGFLOW_API_KEY", "rf-env-secret-1234")
+    platform = login(client, "admin")
+    read = client.get("/api/v1/ragflow-config", headers=platform)
+    inherited_mask = read.json()["api_key_masked"]
+
+    first = client.put("/api/v1/ragflow-config", headers={**platform, "If-Match": str(read.json()["revision"])},
+                       json={"timeout_seconds": 90})
+    assert first.status_code == 200, first.text
+    assert first.json()["api_key_masked"] == inherited_mask
+    second = client.put("/api/v1/ragflow-config", headers={**platform, "If-Match": str(first.json()["revision"])},
+                        json={"timeout_seconds": 120})
+    assert second.status_code == 200, second.text
+    assert second.json()["api_key_masked"] == inherited_mask
+
+    service = client.app.state.service
+    row = service.repository.read().ragflow_configs["system"]
+    assert row.encrypted_api_key is None and row.api_key_cleared is False
+    client_obj = service.knowledge_base.client_for("system")
+    assert client_obj is not None
+    assert client_obj._config.api_key == "rf-env-secret-1234"
+    assert client_obj._config.timeout_seconds == 120

@@ -83,3 +83,30 @@ test('buildRagflowUpdatePayload: 构造规范载荷与密钥掩码保留', () =>
   assert.equal(payload.timeout_seconds, 45);
   assert.equal(payload.api_key, 'rag***-xyz');
 });
+
+test('buildRagflowUpdatePayload: 未编辑密钥输入框时省略 api_key，主动清空才传空串', () => {
+  const inherited = {
+    company_id: 'system',
+    base_url: 'http://ragflow.internal:9380',
+    has_api_key: true,
+    api_key_masked: null,
+    dataset_ids: ['dataset-system-01'],
+    timeout_seconds: 90,
+    is_enabled: true,
+    revision: 2,
+  };
+  const values = {
+    base_url: 'http://ragflow.internal:9380',
+    dataset_ids: 'dataset-system-01',
+    timeout_seconds: 120,
+    is_enabled: true,
+    api_key: '',
+  };
+
+  const untouched = buildRagflowUpdatePayload(values, inherited, { apiKeyTouched: false });
+  assert.equal(Object.prototype.hasOwnProperty.call(untouched, 'api_key'), false);
+  assert.equal(untouched.timeout_seconds, 120);
+
+  const cleared = buildRagflowUpdatePayload(values, inherited, { apiKeyTouched: true });
+  assert.equal(cleared.api_key, '');
+});

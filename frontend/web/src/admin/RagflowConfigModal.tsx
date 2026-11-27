@@ -52,6 +52,7 @@ export function RagflowConfigModal({
 
   // 保存状态
   const [saving, setSaving] = useState(false);
+  const [apiKeyTouched, setApiKeyTouched] = useState(false);
 
   // 加载租户 RAGFlow 配置
   const fetchConfig = async () => {
@@ -61,6 +62,7 @@ export function RagflowConfigModal({
     try {
       const data = await request<RagflowConfigData>('/api/v1/ragflow-config', token);
       setConfig(data);
+      setApiKeyTouched(false);
       form.setFieldsValue({
         base_url: data.base_url,
         api_key: data.api_key_masked || '',
@@ -91,8 +93,8 @@ export function RagflowConfigModal({
         base_url: values.base_url,
         timeout_seconds: values.timeout_seconds,
       };
-      if (values.api_key && values.api_key !== config?.api_key_masked) {
-        payload.api_key = values.api_key;
+      if (apiKeyTouched) {
+        payload.api_key = values.api_key ?? '';
       }
       const res = await request<{
         ok: boolean;
@@ -124,22 +126,7 @@ export function RagflowConfigModal({
       const values = await form.validateFields();
       setSaving(true);
 
-      const datasetList = String(values.dataset_ids || '')
-        .split(/[,，\n]/)
-        .map(d => d.trim())
-        .filter(Boolean);
-
-      const payload: Record<string, unknown> = {
-        base_url: values.base_url,
-        dataset_ids: datasetList,
-        timeout_seconds: Number(values.timeout_seconds),
-        is_enabled: Boolean(values.is_enabled),
-      };
-
-      // 掩码原样回传代表“不修改密钥”；首次保存尤其不能把它当成新明文上行。
-      if (values.api_key !== undefined && values.api_key !== config?.api_key_masked) {
-        payload.api_key = values.api_key;
-      }
+      const payload = buildRagflowUpdatePayload(values, config, { apiKeyTouched });
 
       const updated = await request<RagflowConfigData>(
         '/api/v1/ragflow-config',
@@ -151,6 +138,7 @@ export function RagflowConfigModal({
 
       message.success('RAGFlow 知识库配置已保存');
       setConfig(updated);
+      setApiKeyTouched(false);
       setTestResult(null);
       form.setFieldsValue({
         base_url: updated.base_url,
@@ -299,11 +287,12 @@ export function RagflowConfigModal({
             <Form.Item
               name="api_key"
               label="RAGFlow API Key"
-              tooltip="已采用 Fernet 对称加密保护。留空保持原密钥不变，输入新密钥将自动覆盖。"
+              tooltip="已采用 Fernet 对称加密保护。不编辑则保持原密钥或部署继承不变；主动清空表示清除，输入新密钥将自动覆盖。"
             >
               <Input.Password
                 prefix={<KeyOutlined style={{ color: '#8c8c8c' }} />}
                 placeholder="ragflow-..."
+                onChange={() => setApiKeyTouched(true)}
               />
             </Form.Item>
 
