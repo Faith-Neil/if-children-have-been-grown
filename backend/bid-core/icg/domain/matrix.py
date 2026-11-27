@@ -166,6 +166,12 @@ class MatrixMixin(SystemChapterMixin, ParseReviewMixin, ProposedStaffMixin, Expo
             "deviation_reason": row.get("deviation_reason") or "", "chapter_id": row.get("chapter_id"),
             "assignee_id": row.get("assignee_id"), "assignee_name": names.get(row.get("assignee_id")),
             "status": row.get("status"), "out_of_scope": bool(row.get("out_of_scope")),
+            # ISSUE-060 清洗分流标记：前端「非技术/资格格式条款（已过滤）」审查区与矩阵分层展示的契约字段。
+            "requirement_scope": str(row.get("requirement_scope") or ""),
+            "non_tech_category": str(row.get("non_tech_category") or ""),
+            "clause_fragment": bool(row.get("clause_fragment")),
+            "fragment_reason": str(row.get("fragment_reason") or ""),
+            "fragment_completed": bool(row.get("fragment_completed")),
             "evidence": evidence, "risk_flags": flags, "risk_labels": [RISK_LABELS[f] for f in flags],
         }
 
@@ -179,6 +185,7 @@ class MatrixMixin(SystemChapterMixin, ParseReviewMixin, ProposedStaffMixin, Expo
         rows = [r for r in workflow.get("requirements", {}).values() if volume == "all" or r.get("volume") == volume]
         items = [self._matrix_item(state, project, workflow, r, active, names) for r in rows]
         live = [i for i in items if i["status"] != "rejected"]
+        filtered = [i for i in live if i["requirement_scope"] in ("non_technical", "fragment_filtered")]
         stats = {
             "total": len(live), "confirmed": sum(1 for i in live if i["status"] == "confirmed"),
             "critical_unconfirmed": sum(1 for i in live if i["critical"] and i["status"] != "confirmed"),
@@ -187,9 +194,14 @@ class MatrixMixin(SystemChapterMixin, ParseReviewMixin, ProposedStaffMixin, Expo
             "placeholder": sum(1 for i in live if "placeholder" in i["risk_flags"]),
             "routing_pending": sum(1 for i in live if "routing_pending" in i["risk_flags"]),
             "out_of_scope": sum(1 for i in items if i["out_of_scope"]),
+            # ISSUE-060：清洗分流过滤条数上浮，便于审查区展示与覆盖率口径解释。
+            "scope_filtered": len(filtered),
         }
-        responded = sum(1 for i in live if i["response"].strip() or i["response_type"] == "not_applicable")
-        stats["coverage"] = round(responded * 100 / len(live)) if live else 0
+        # 覆盖率口径：被分流的非技术/残句条款本来就不参加响应，不计入分母，
+        # 否则技术册项目覆盖率永远被它们拖低、误导为填写 incomplete。
+        countable = [i for i in live if i["requirement_scope"] not in ("non_technical", "fragment_filtered")]
+        responded = sum(1 for i in countable if i["response"].strip() or i["response_type"] == "not_applicable")
+        stats["coverage"] = round(responded * 100 / len(countable)) if countable else (100 if live else 0)
         return {"revision": project.revision, "project_id": project_id, "volume": volume, "volumes": list(active),
                 "stats": stats, "items": items}
 

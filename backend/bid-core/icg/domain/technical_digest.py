@@ -9,13 +9,24 @@ NON_SERVICE_SECTION_KINDS = frozenset({"business", "qualification"})
 
 def _rows(workflow: dict) -> list[dict]:
     """可进技术卷三张清单的条款。商务/资格/格式包装条款只留在商务卷或风险提示，
-    不得作为技术目录必须挂载的 T/S 输入。"""
+    不得作为技术目录必须挂载的 T/S 输入。清洗分流（ISSUE-060）落盘的
+    non_technical / fragment_filtered 同样拦截，审计原因可区分。"""
     from icg.domain.technical_constraint_context import row_is_non_tech
+    from icg.domain.technical_clause_cleaning import SCOPE_FRAGMENT, SCOPE_NON_TECHNICAL
 
     rows = []
     intercepted = []
     for row in (workflow.get("requirements") or {}).values():
         if not row.get("technical_clause") or row.get("status") == "rejected" or row.get("section_kind") in NON_SERVICE_SECTION_KINDS:
+            continue
+        scope = str(row.get("requirement_scope") or "")
+        if scope in (SCOPE_NON_TECHNICAL, SCOPE_FRAGMENT):
+            intercepted.append({
+                "requirement_id": row.get("id"),
+                "text": str(row.get("extracted_summary") or row.get("text") or "")[:120],
+                "reason": "fragment" if scope == SCOPE_FRAGMENT else "non_technical",
+                "category": str(row.get("non_tech_category") or ""),
+            })
             continue
         if row_is_non_tech(row):
             intercepted.append({
@@ -128,6 +139,10 @@ def is_score_table_row(row: dict) -> bool:
 
 def build_digest(workflow: dict) -> dict[str, Any]:
     """三张清单。编号按出现顺序：T-01、S-01（得分要点 S-01-1）、R-01；要求行回写 digest_id。"""
+    from icg.domain.technical_clause_cleaning import clean_technical_requirements
+
+    # 清洗分流幂等重跑：残句补全/过滤与非技术标记在进清单前落定（ISSUE-060）。
+    clean_technical_requirements(workflow)
     tech: list[dict] = []
     groups: dict[str, dict] = {}
     for row in _rows(workflow):

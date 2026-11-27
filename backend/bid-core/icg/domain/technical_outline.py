@@ -167,6 +167,14 @@ def _fill_technical_outline(state: Any, project_id: str, workflow: dict) -> None
     from icg.domain.technical_digest_outline import plan_technical_outline
     plan = plan_technical_outline(workflow, model=workflow.get("tree_model"))
     headings = plan["headings"]
+    if not headings:
+        # 模型两阶段规划明确失败：绝不以空骨架覆盖已有目录草稿/正文，失败原因已落在 workflow 上。
+        outline = workflow.get("technical_outline")
+        if isinstance(outline, dict):
+            outline["outline_source"] = workflow.get("outline_source") or outline.get("outline_source") or ""
+            outline["tree_model_failed"] = bool(workflow.get("tree_model_failed"))
+            outline["outline_reason"] = workflow.get("outline_reason") or ""
+        return
     text = render(headings)
     chapter = _chapter(state, project_id, title)
     previous = (workflow.get("technical_outline") or {}).get("text") or ""
@@ -207,6 +215,7 @@ def _leaf_titles(content: str) -> set[str]:
 
 def _mountable_clauses(workflow: dict) -> list[dict]:
     from icg.domain.technical_constraint_context import is_business_clause
+    from icg.domain.technical_clause_cleaning import row_excluded_from_technical
     return [
         row for row in _clauses(workflow)
         if row.get("clause_role") != "rejection_constraint"
@@ -214,6 +223,7 @@ def _mountable_clauses(workflow: dict) -> list[dict]:
         and row.get("requirement_type") not in ("qualification", "rejection_item")
         and not is_business_clause(row)
         and not row.get("clause_fragment")
+        and not row_excluded_from_technical(row)
     ]
 
 

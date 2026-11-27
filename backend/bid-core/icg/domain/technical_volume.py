@@ -1533,6 +1533,7 @@ def _deviation_entries(sample: dict, workflow: dict) -> list[tuple[dict, dict, s
     emitted_clauses: set[str] = set()
     entries: list[tuple[dict, dict, str]] = []
     from icg.domain.technical_constraint_context import row_is_non_tech
+    from icg.domain.technical_clause_cleaning import row_excluded_from_technical
     for heading in _leaves(outline):
         requirement_ids = list(heading.get("requirement_ids") or [])
         if not requirement_ids and heading.get("requirement_id"):
@@ -1542,7 +1543,7 @@ def _deviation_entries(sample: dict, workflow: dict) -> list[tuple[dict, dict, s
             if row is None or row.get("status") == "rejected" or str(rid) in emitted:
                 continue
             clause_text = complete_clause_text(row)
-            if sample.get("scope") == "technical" and row_is_non_tech(row):
+            if sample.get("scope") == "technical" and (row_is_non_tech(row) or row_excluded_from_technical(row)):
                 continue
             if sample.get("scope") == "technical" and _is_deviation_ineligible(row, clause_text):
                 continue

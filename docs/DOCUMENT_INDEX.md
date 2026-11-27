@@ -10,7 +10,14 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
-| D-1107 | 2026-11-28 | [ISSUE-060：招标条款清洗分流与强制模型规划目录](../issues/ISSUE-060.md) | Issue | outline-llm-req-cleaning-r1 | in-progress | ISSUE-060 / TV-M0-T31～T33 | 重庆中烟真标残句与非技术条款清洗分流、假负偏离加固、强制模型两阶段目录规划与真实 MySQL 验证 |
+| D-1107 | 2026-11-28 | [ISSUE-060：招标条款清洗分流与强制模型规划目录](../issues/ISSUE-060.md) | Issue | outline-llm-req-cleaning-r1 | in-review | ISSUE-060 / TV-M0-T31～T33 | 重庆中烟真标残句与非技术条款清洗分流、假负偏离加固、强制模型两阶段目录规划与真实 MySQL 验证 |
+| D-1108 | 2026-11-28 | [TV-M0-T31 交付](delivery/TV-M0-T31.md) | 交付说明 | outline-llm-req-cleaning-r1 | in-review | ISSUE-060 / TV-M0-T31 | 招标条款残句清洗、技术/非技术分流与假负偏离加固交付记录 |
+| D-1109 | 2026-11-28 | [TV-M0-T31 代码说明](code/TV-M0-T31.md) | 代码说明 | outline-llm-req-cleaning-r1 | 当前 | ISSUE-060 / TV-M0-T31 | 条款清洗、分流与系统假判断清理实现说明 |
+| D-1110 | 2026-11-28 | [TV-M0-T32 交付](delivery/TV-M0-T32.md) | 交付说明 | outline-llm-req-cleaning-r1 | in-review | ISSUE-060 / TV-M0-T32 | 强制模型两阶段目录规划、失败上浮与全量均衡挂载交付记录 |
+| D-1111 | 2026-11-28 | [TV-M0-T32 代码说明](code/TV-M0-T32.md) | 代码说明 | outline-llm-req-cleaning-r1 | 当前 | ISSUE-060 / TV-M0-T32 | 两阶段目录、JSON 截断修复、评分加权仲裁与前端重跑入口说明 |
+| D-1112 | 2026-11-28 | [TV-M0-T33 交付](delivery/TV-M0-T33.md) | 交付说明 | outline-llm-req-cleaning-r1 | in-review | ISSUE-060 / TV-M0-T33 | 重庆中烟真实 MySQL 与内网模型实证、回归留档交付记录 |
+| D-1113 | 2026-11-28 | [TV-M0-T33 代码说明](code/TV-M0-T33.md) | 代码说明 | outline-llm-req-cleaning-r1 | 当前 | ISSUE-060 / TV-M0-T33 | 验证卡无独立业务代码的边界说明 |
+| D-1114 | 2026-11-28 | [ISSUE-060 重庆中烟真实环境验证](testing/2026-11-28-iss060-cq-real-validation.md) | 验证记录 | outline-llm-req-cleaning-r1 | 当前 | ISSUE-060 / TV-M0-T33 | 真实 MySQL 3407、内网 qwen3:30b 目录实证、清洗统计与局限 |
 | D-1098 | 2026-11-28 | [P0-SEC-MODEL-AUDIT-HOTFIX 交付](delivery/P0-SEC-MODEL-AUDIT-HOTFIX.md) | 交付说明 | p0-security-export-deploy-hotfix-r1 | done | ISSUE-059 / P0-SEC-MODEL-AUDIT-HOTFIX | 平台模型安全红线、密钥轮换、公网备用模型丢弃边界与审计授权/策略保存止血交付记录 |
 | D-1099 | 2026-11-27 | [P0-EXPORT-STATE-HOTFIX 交付](delivery/P0-EXPORT-STATE-HOTFIX.md) | 交付说明 | p0-security-export-deploy-hotfix-r1 | done | ISSUE-059 / P0-EXPORT-STATE-HOTFIX | 检查过期误判、保存提交死锁恢复与进度写入一致性止血交付记录 |
 | D-1100 | 2026-11-28 | [P0-CONFIG-KB-HOTFIX 交付](delivery/P0-CONFIG-KB-HOTFIX.md) | 交付说明 | p0-security-export-deploy-hotfix-r1 | done | ISSUE-059 / P0-CONFIG-KB-HOTFIX | 平台配置生效、RAGFlow 密钥清除/继承/超时边界、项目负责人绑模型、知识库重建与种子账号止血交付记录 |

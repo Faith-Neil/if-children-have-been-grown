@@ -9,18 +9,18 @@
 | Issue ID | ISSUE-060 |
 | 类型 | bug |
 | 优先级 | P0 |
-| 状态 | in-progress |
+| 状态 | in-review |
 | 登记日期 | 2026-11-28 |
 | 最后更新日期 | 2026-11-28 |
 | revision | outline-llm-req-cleaning-r1 |
 | 关联 Task | [TV-M0-T31](../docs/tasks/TV-M0.md#tv-m0-t31)、[TV-M0-T32](../docs/tasks/TV-M0.md#tv-m0-t32)、[TV-M0-T33](../docs/tasks/TV-M0.md#tv-m0-t33) |
 | 关联 PR | 未创建 |
-| 本地验收 | 未执行 |
+| 本地验收 | 已执行，详见 `docs/testing/2026-11-28-iss060-cq-real-validation.md` |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
-| 交付说明 | 待补：`docs/delivery/TV-M0-T31.md`、`docs/delivery/TV-M0-T32.md`、`docs/delivery/TV-M0-T33.md` |
-| 代码 / 流程解释 | 待补：`docs/code/TV-M0-T31.md`、`docs/code/TV-M0-T32.md`；TV-M0-T33 以验证留档为主，如有代码变化另补 |
-| 验证记录 | 待补：`docs/testing/` 下本次重庆中烟真实 MySQL 验证登记 |
+| 交付说明 | `docs/delivery/TV-M0-T31.md`、`docs/delivery/TV-M0-T32.md`、`docs/delivery/TV-M0-T33.md` |
+| 代码 / 流程解释 | `docs/code/TV-M0-T31.md`、`docs/code/TV-M0-T32.md`、`docs/code/TV-M0-T33.md` |
+| 验证记录 | `docs/testing/2026-11-28-iss060-cq-real-validation.md` |
 
 ## 现象与证据
 
@@ -50,17 +50,17 @@
 
 | 编号 | 可检查的完成条件 | 结果与证据 |
 |---|---|---|
-| AC-01 | 对长度过短、悬空标点/冒号/未闭合括号结尾、无实质要求动作或纯标题序号的碎片，优先回溯原文完整句补全；仍不能构成有效独立要求的残句被丢弃且不进入技术要求列表 | 未执行 |
-| AC-02 | 资格审查、保证金/限价/付款、投标文件装订/签署/密封/修改格式等纯商务与形式条款被标记为 `non_technical`，进入「非技术/资格格式条款（已过滤）」查阅区 | 未执行 |
-| AC-03 | `non_technical` 条款不参与技术目录挂载、不进入技术偏离表、不得触发技术方案负偏离；仅在存在真实技术能力缺口时才标负偏离 | 未执行 |
-| AC-04 | 残句补全/丢弃、商务/资格/格式分流、假负偏离防护有自动化单元测试 | 未执行 |
-| AC-05 | 真实模型环境下技术目录必须由大模型生成；允许 JSON 修复与最多 2 次自动重试；失败后明确上浮错误，前端提供「重新生成目录」按钮，严禁静默塞入通用 11 章规则目录 | 未执行 |
-| AC-06 | `technical_digest_outline.py` 目录失败/超时记录能正确识别真实适配器超时；有失败注入测试 | 未执行 |
-| AC-07 | 两阶段规划：先生成贴合项目语境的章节骨架，再将清洗后的全部有效技术要求与评分点按语义全量均衡挂载；移除每章最多 9 条与其余倾倒兜底章的硬编码截断，高分评分点落入核心技术章节 | 未执行 |
-| AC-08 | 模型失败不静默降级、适配器超时记录、取消 9 条上限后的全量均衡挂载有自动化单元测试 | 未执行 |
-| AC-09 | 使用本地真实 MySQL（端口 3407）与重庆中烟项目/招标文件实跑一轮清洗与目录规划；PR 描述贴出清洗前 161 条 vs 清洗后有效技术要求数、残句/非技术过滤样本、真实模型目录结构与各章挂载分布 | 未执行 |
-| AC-10 | 后端聚焦回归、`python backend/bid-core/export_openapi.py --check`、前端 `pnpm --dir frontend/web exec tsc -b --noEmit`、`pnpm --dir frontend/web build`、`node scripts/check-project-governance.cjs` 按真实结果通过或如实记录失败 | 未执行 |
-| AC-11 | 验证方式与局限登记到 `docs/testing/`；不伪造真实模型/RAGFlow 结果，不把 Mock 绿灯冒充真机验收 | 未执行 |
+| AC-01 | 对长度过短、悬空标点/冒号/未闭合括号结尾、无实质要求动作或纯标题序号的碎片，优先回溯原文完整句补全；仍不能构成有效独立要求的残句被丢弃且不进入技术要求列表 | 残句补全/过滤已实现并有真实样本 |
+| AC-02 | 资格审查、保证金/限价/付款、投标文件装订/签署/密封/修改格式等纯商务与形式条款被标记为 `non_technical`，进入「非技术/资格格式条款（已过滤）」查阅区 | 商务/资格/格式条款已分流 |
+| AC-03 | `non_technical` 条款不参与技术目录挂载、不进入技术偏离表、不得触发技术方案负偏离；仅在存在真实技术能力缺口时才标负偏离 | 分流行退出技术挂载/偏离，系统假判断清理 |
+| AC-04 | 残句补全/丢弃、商务/资格/格式分流、假负偏离防护有自动化单元测试 | 聚焦测试通过 |
+| AC-05 | 真实模型环境下技术目录必须由大模型生成；允许 JSON 修复与最多 2 次自动重试；失败后明确上浮错误，前端提供「重新生成目录」按钮，严禁静默塞入通用 11 章规则目录 | 失败上浮与前端重跑入口实现 |
+| AC-06 | `technical_digest_outline.py` 目录失败/超时记录能正确识别真实适配器超时；有失败注入测试 | 超时识别有失败注入测试 |
+| AC-07 | 两阶段规划：先生成贴合项目语境的章节骨架，再将清洗后的全部有效技术要求与评分点按语义全量均衡挂载；移除每章最多 9 条与其余倾倒兜底章的硬编码截断，高分评分点落入核心技术章节 | 真实模型两阶段目录实证完成，无 9 条截断/兜底倾倒 |
+| AC-08 | 模型失败不静默降级、适配器超时记录、取消 9 条上限后的全量均衡挂载有自动化单元测试 | 模型失败/截断修复/均衡挂载测试通过 |
+| AC-09 | 使用本地真实 MySQL（端口 3407）与重庆中烟项目/招标文件实跑一轮清洗与目录规划；PR 描述贴出清洗前 161 条 vs 清洗后有效技术要求数、残句/非技术过滤样本、真实模型目录结构与各章挂载分布 | 重庆中烟真机实证完成并留档 |
+| AC-10 | 后端聚焦回归、`python backend/bid-core/export_openapi.py --check`、前端 `pnpm --dir frontend/web exec tsc -b --noEmit`、`pnpm --dir frontend/web build`、`node scripts/check-project-governance.cjs` 按真实结果通过或如实记录失败 | 后端/OpenAPI/前端类型与构建通过；治理检查收尾执行 |
+| AC-11 | 验证方式与局限登记到 `docs/testing/`；不伪造真实模型/RAGFlow 结果，不把 Mock 绿灯冒充真机验收 | 验证方式与局限已登记 |
 
 ## 六份基线 impact 与同步表
 
@@ -68,7 +68,7 @@
 |---|---|---|---|---|
 | PRD | 无影响：本 Issue 修复既有主链路质量缺陷，不扩大产品范围或改变业务规则 | `docs/PRD.md` | outline-llm-req-cleaning-r1 / ISSUE-060 / 2026-11-28 | 已核对 |
 | ROADMAP | 无影响：不改变里程碑顺序，属于当前技术卷主路径质量阻断修复 | `docs/ROADMAP.md` | 同上 | 已核对 |
-| ARCHITECTURE | 有影响：解析后处理、条款分类、目录规划失败语义与评分点挂载约束变化 | `docs/ARCHITECTURE.md` | 同上 | 待处理 |
+| ARCHITECTURE | 有影响：解析后处理、条款分类、目录规划失败语义与评分点挂载约束变化 | `docs/ARCHITECTURE.md` | 同上 | 已同步 |
 | TASK_BOARD | 有影响：新增 TV-M0-T31～T33 | `docs/TASK_BOARD.md` | 同上 | 已登记 |
 | PROJECT_STATUS | 有影响：记录 ISSUE-060 开工状态 | `docs/PROJECT_STATUS.md` | 同上 | 已登记 |
 | DOCUMENT_INDEX | 有影响：登记本 Issue 并更新 TV-M0 任务卡索引 | `docs/DOCUMENT_INDEX.md` | 同上 | 已登记 |

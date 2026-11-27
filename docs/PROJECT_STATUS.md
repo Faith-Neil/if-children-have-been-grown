@@ -15,7 +15,7 @@
 
 ## 招标条款清洗与强制模型目录（2026-11-28，当前焦点）
 
-[ISSUE-060](../issues/ISSUE-060.md) 已登记并开工，分支 `feat/iss-060-outline-llm-and-req-cleaning`：重庆中烟跨行业真标暴露两类 P0 写标质量缺陷——161 条解析要求混入残句和商务/资格/格式条款并诱发假「负偏离」；目录规划静默规则兜底且每章 9 条硬截断，72 条含核心高分评分项被倾倒进「其他服务承诺」。TV-M0-T31 为 in-progress，TV-M0-T32 为 ready，TV-M0-T33 为 planned；执行中最多标 in-review，不擅自标 done。真实 MySQL 端口为 3407，`.audit/` 真实客户材料严禁入库。
+[ISSUE-060](../issues/ISSUE-060.md) 已在分支 `feat/iss-060-outline-llm-and-req-cleaning` 完成开发自验并推进至 in-review：TV-M0-T31～T33 均为 in-review，未标 done。重庆中烟实证为 161 条输入 → 115 technical / 29 non_technical / 17 fragment_filtered / 35 completed；真实 `qwen3:30b-a3b-instruct-2507-q4_K_M` 生成模型目录，114/114 digest 编号挂载，无 9 条截断、无「其他服务承诺」兜底。确定性 validation 仍如实暴露行级覆盖/标题启发式警告，验证局限见 [ISSUE-060 重庆中烟真实环境验证](testing/2026-11-28-iss060-cq-real-validation.md)。真实 MySQL 端口 3407 只读实证，`.audit/` 真实客户材料未入库。
 
 ## P0 安全/导出/配置/部署止血（2026-11-27，当前焦点）
 
