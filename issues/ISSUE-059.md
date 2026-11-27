@@ -89,7 +89,7 @@
 |---|---|---|---|---|
 | PRD | 无影响：止血修复不改变产品范围、角色或业务规则，只恢复既有规则的正确执行 | `docs/PRD.md` | p0-security-export-deploy-hotfix-r1 / ISSUE-059 / 2026-11-27 | 已核对 |
 | ROADMAP | 无影响：不改变里程碑顺序，属于当前主链路阻断止血 | `docs/ROADMAP.md` | 同上 | 已核对 |
-| ARCHITECTURE | 有影响：模型兜底安全边界、审计授权边界、部署端口绑定与健康检查约束变化 | `docs/ARCHITECTURE.md` | 同上 | 待处理 |
+| ARCHITECTURE | 有影响：模型兜底安全边界、审计授权边界、部署端口绑定与健康检查约束变化 | `docs/ARCHITECTURE.md` | 同上 | 已对齐 |
 | TASK_BOARD | 有影响：新增四张 P0 止血任务卡 | `docs/TASK_BOARD.md` | 同上 | 已登记，持续同步 |
 | PROJECT_STATUS | 有影响：记录本轮 P0 止血开工状态 | `docs/PROJECT_STATUS.md` | 同上 | 已登记，持续同步 |
 | DOCUMENT_INDEX | 有影响：新增 Issue、任务卡模块与后续交付/代码说明条目 | `docs/DOCUMENT_INDEX.md` | 同上 | 已登记，持续同步 |
@@ -102,6 +102,7 @@
 | 2026-11-27 | p0-security-export-deploy-hotfix-r1 / in-review | 四组修复实施进行中，Issue 登记提交复核；四张任务卡保持 in-progress，严禁标 done；待实施完成后补交付、验证并等待 QA/PD/PM | 治理登记 |
 | 2026-11-27 | p0-security-export-deploy-hotfix-r1 / in-review | 四组 12 项修复实施完成，四张任务卡与看板原子同步为 in-review；交付、代码说明与验证登记已留档（4 安全测试 39 passed、hotfix+kb_admin 23 passed 2 skipped、真实 MySQL 2 passed、reference_flow 21 passed、前端 21 例全绿、OpenAPI 100% 一致）；AC-01～AC-10、AC-12 已验证（开发自测），AC-11 部分验证（静态通过、真实容器未执行）；局限如实登记：真实 RAGFlow/真实模型门控未验证、知识库为 Fake、前端 jsdom 单元级；建议 PM 在 QA 签署 + PD 产品验收后复核标 done，不标 done/closed | [验证登记](../docs/testing/iss-059-p0-hotfix-verification.md)；四份交付见 `docs/delivery/` |
 | 2026-11-27 | p0-security-export-deploy-hotfix-r1 / in-review | 最后一轮 Devin Review 复扫收敛完成：`PUBLIC_MODEL_ENDPOINT_FORBIDDEN` 403 冻结与对话助手 HTTP 回归、公网显式绑定/路由 fail-closed、RAGFlow 停用写入阻断、首次保存掩码保护、任务路由 system 池保存/运行一致、平台管理员路由候选收口；聚焦后端 43 passed、前端聚焦 3 passed、`tsc` 通过、OpenAPI 100% 一致。仍不标 done/closed，待 QA/PD/PM | [验证登记](../docs/testing/iss-059-p0-hotfix-verification.md) 第四轮补充 |
+| 2026-11-28 | p0-security-export-deploy-hotfix-r1 / in-review | 最后 5 项复扫清零：公网备用模型直接丢弃、不再误阻断健康内网主模型；RAGFlow 密钥显式清除/部署继承分离，保存超时合并进最终连接；Issue 看板与架构说明修正。后端聚焦 252 passed、12 skipped、0 failed，11 个 MySQL 标记用例在 3407 隔离合成库补跑通过；契约、前端聚焦与类型检查通过。`test_model_config_provider` 仅按 platform_admin 权限口径修正测试 setup，`test_parse_jobs` 仅消除孤儿任务测试竞态，不放宽业务边界。仍不标 done/closed，待 QA/PD/PM | [验证登记](../docs/testing/iss-059-p0-hotfix-verification.md) 第五轮补充 |
 
 ## 本地验收与后续合入发布
 

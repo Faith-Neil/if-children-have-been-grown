@@ -45,6 +45,7 @@ class RagflowCompanyConfig:
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
     is_enabled: bool = True
     revision: int = 1
+    api_key_cleared: bool = False
 
     @property
     def has_api_key(self) -> bool:
@@ -102,12 +103,15 @@ def effective_ragflow_connection(state: DemoState, company_id: str) -> RagflowCo
     configs = getattr(state, "ragflow_configs", None) or {}
     tenant = configs.get(company_id)
     platform = configs.get("system")
-    if company_id == "system" and tenant is not None and (not tenant.is_enabled or tenant.encrypted_api_key):
+    if company_id == "system" and tenant is not None and (
+            not tenant.is_enabled or tenant.encrypted_api_key or tenant.api_key_cleared):
         return tenant
     if tenant is not None:
         if not tenant.is_enabled:
             return tenant
         if tenant.encrypted_api_key:
+            return tenant
+        if tenant.api_key_cleared:
             return tenant
     # 平台显式停用是未独立配置租户的解析终态：严禁落入环境变量分支把已停用的旧实例重新启用。
     # 公司已有独立可用配置时在上方优先返回，不把平台实例的停用误套到另一个实例上。
@@ -122,6 +126,9 @@ def effective_ragflow_connection(state: DemoState, company_id: str) -> RagflowCo
     if deployed is not None:
         if tenant is not None and tenant.dataset_ids:
             deployed = replace(deployed, dataset_ids=list(tenant.dataset_ids))
+        persisted = platform if platform is not None else tenant
+        if persisted is not None:
+            deployed = replace(deployed, timeout_seconds=persisted.timeout_seconds)
         return deployed
     return tenant
 
@@ -247,6 +254,7 @@ class RagflowConfigService:
                     # 空字符串清除
                     cfg.encrypted_api_key = None
                     cfg.api_key_masked = None
+                    cfg.api_key_cleared = True
                 elif key_input == cfg.api_key_masked or (inherited_mask is not None and key_input == inherited_mask):
                     # 传回已存密钥或继承部署密钥的掩码都代表保留；首次保存不得把掩码覆写成密文
                     pass
@@ -254,6 +262,7 @@ class RagflowConfigService:
                     # 传入新明文，进行加密
                     cfg.encrypted_api_key = encrypt_api_key(key_input)
                     cfg.api_key_masked = mask_api_key(key_input)
+                    cfg.api_key_cleared = False
 
             # 3. 更新基础属性
             if "base_url" in updates and updates["base_url"] is not None:

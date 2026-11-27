@@ -402,3 +402,35 @@ def test_company_admin_cannot_rotate_only_platform_admin_can(client):
     assert rotated.json()["api_key_masked"] == "sk-***0003"
 
 
+def test_public_fallback_is_dropped_without_blocking_healthy_private_primary(secret_key):
+    """公网备用不作为错误阻断主模型：直接丢弃，健康内网主模型正常调用，且绝不请求公网备用。"""
+    import httpx
+    service = _service()
+    calls = []
+
+    def handler(request):
+        calls.append(str(request.url))
+        return httpx.Response(200, json={"choices": [{"message": {"role": "assistant", "content": "合成主模型回答"}}]})
+
+    service.model_transport = httpx.MockTransport(handler)
+
+    def op(s):
+        s.model_configs["cfg-private-primary"] = _config(
+            "cfg-private-primary", "alpha", base_url=PRIVATE_URL, is_local=True, allow_sensitive=True)
+        s.model_configs["cfg-public-backup"] = _config(
+            "cfg-public-backup", "alpha", base_url=PUBLIC_URL, is_local=True, allow_sensitive=True)
+        s.model_configs["cfg-private-primary"].fallback_config_id = "cfg-public-backup"
+        s.projects["open-proj"] = Project(id="open-proj", name="合成普通项目", company_id="alpha", sensitive=False)
+        s.project_model_configs["open-proj"] = "cfg-private-primary"
+
+    service.repository.transaction(op)
+    from icg.infra.model_config_storage import usable_fallback
+    state = service.repository.read()
+    assert usable_fallback(state, state.model_configs["cfg-private-primary"], False).id == "cfg-public-backup"
+    provider = _resolve(service, "open-proj")
+    from icg.infra.model_fallback import WithFallback
+    assert not isinstance(provider, WithFallback)
+    assert provider.suggest("sys", "user") == "合成主模型回答"
+    assert calls, "健康内网主模型必须被调用"
+    assert any("192.168.10.50" in url for url in calls)
+    assert not any("public-cloud-provider" in url for url in calls)

@@ -578,5 +578,5 @@ ISSUE-034 / REV-M0-T27修复八项已有约束的缺陷：迟到错误核对来�
 ## 2026-11-27 ISSUE-059 第四轮安全边界对齐
 
 - 模型配置 CRUD、密钥轮换与连通性测试严格仅限 platform_admin；项目模型绑定允许 platform_admin、company_admin 与项目负责人，只选择合规本地模型且不暴露 API Key；目录/抽取/偏离任务路由允许 platform_admin 写 system 全局路由、company_admin 写本公司路由。
-- 公网模型端点采用 fail-closed：显式项目绑定或任务路由命中公网配置时抛出 403 `PUBLIC_MODEL_ENDPOINT_FORBIDDEN`；只有未指定具体模型、自动扫描默认池时才跳过公网项。
+- 公网模型端点采用 fail-closed：显式项目绑定或任务路由命中的主模型为公网配置时抛出 403 `PUBLIC_MODEL_ENDPOINT_FORBIDDEN`；不合规的公网备用模型会被直接丢弃、绝不请求，只有未指定具体模型、自动扫描默认池时才跳过公网项。
 - RAGFlow 平台显式停用是未独立配置租户的终态，继承连接不得再用于数据集创建/同步；公司独立配置优先，首次保存继承密钥掩码不代表新明文密钥。

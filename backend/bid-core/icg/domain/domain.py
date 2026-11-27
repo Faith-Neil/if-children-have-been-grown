@@ -500,8 +500,7 @@ class DemoService:
             if route_backup is not None and (not sensitive or config_compliant_for_sensitive(route_backup)):
                 backup = route_backup  # 任务表里填的备用优先于模型配置自带的
             if backup is not None and is_public_endpoint_config(backup):
-                raise DomainError(403, "PUBLIC_MODEL_ENDPOINT_FORBIDDEN",
-                                  "备用模型端点位于公网：标书正文严禁发往公网，请联系平台管理员改用内网模型。")
+                backup = None
             if backup is not None and getattr(provider, "is_real_model", False) and provider is not self.model_provider:
                 # 备用模型（PRD §6.5 规则 2、3）：所有任务的 suggest() 在主模型健康类失败时改用备用（APP-M2-T040）
                 from icg.infra.model_fallback import WithFallback

@@ -199,3 +199,46 @@ def test_assistant_public_model_rejection_is_403_not_500(client):
     assert result.status_code == 403, result.text
     assert result.json()["code"] == "PUBLIC_MODEL_ENDPOINT_FORBIDDEN"
     assert "内网模型" in result.json()["message"]
+
+
+def test_explicit_blank_ragflow_key_is_cleared_and_does_not_fall_back_to_env(client, monkeypatch):
+    """显式 api_key="" 是清除态：不得重新继承 ICG_RAGFLOW_API_KEY。"""
+    monkeypatch.setenv("ICG_RAGFLOW_BASE_URL", "http://ragflow.internal:9380")
+    monkeypatch.setenv("ICG_RAGFLOW_API_KEY", "rf-env-secret-1234")
+    platform = login(client, "admin")
+    read = client.get("/api/v1/ragflow-config", headers=platform)
+    saved = client.put("/api/v1/ragflow-config", headers={**platform, "If-Match": str(read.json()["revision"])},
+                       json={"api_key": "", "timeout_seconds": 90})
+    assert saved.status_code == 200, saved.text
+    service = client.app.state.service
+    state = service.repository.read()
+    row = state.ragflow_configs["system"]
+    assert row.encrypted_api_key is None and row.api_key_cleared is True
+    from icg.domain.ragflow_config import effective_ragflow_connection
+    effective = effective_ragflow_connection(state, "system")
+    assert effective is not None and effective.encrypted_api_key is None
+    assert service.knowledge_base.client_for("system") is None
+
+
+def test_inherited_ragflow_key_uses_saved_timeout_when_only_timeout_changes(client, monkeypatch):
+    """省略密钥仅改超时：继续继承部署密钥，并把持久化超时合并到最终连接。"""
+    monkeypatch.setenv("ICG_RAGFLOW_BASE_URL", "http://ragflow.internal:9380")
+    monkeypatch.setenv("ICG_RAGFLOW_API_KEY", "rf-env-secret-1234")
+    platform = login(client, "admin")
+    read = client.get("/api/v1/ragflow-config", headers=platform)
+    saved = client.put("/api/v1/ragflow-config", headers={**platform, "If-Match": str(read.json()["revision"])},
+                       json={"timeout_seconds": 90})
+    assert saved.status_code == 200, saved.text
+    service = client.app.state.service
+    state = service.repository.read()
+    row = state.ragflow_configs["system"]
+    assert row.encrypted_api_key is None and row.api_key_cleared is False
+    client_obj = service.knowledge_base.client_for("system")
+    assert client_obj is not None
+    assert client_obj._config.base_url == "http://ragflow.internal:9380"
+    assert client_obj._config.timeout_seconds == 90
+    assert client_obj._config.api_key == "rf-env-secret-1234"
+    inherited_company_client = service.knowledge_base.client_for("alpha")
+    assert inherited_company_client is not None
+    assert inherited_company_client._config.timeout_seconds == 90
+    assert inherited_company_client._config.api_key == "rf-env-secret-1234"

@@ -49,3 +49,8 @@
 ## 第四轮补充（公网模型 fail-closed）
 
 `domain.py` 在生效主模型与备用模型两处统一检查 `is_public_endpoint_config`；显式绑定/路由命中的公网配置抛出 `PUBLIC_MODEL_ENDPOINT_FORBIDDEN`（403），不交给默认池偷偷回落。`saved_company_model` 仍只在“未指定具体模型、自动扫描默认池”时跳过公网项。`errors.py`、`frozen_error_codes.py` 与 `spec/openapi/demo-v1.json` 已同步冻结。
+
+
+## 第五轮补充（公网备用模型）
+
+公网备用模型不再阻断健康内网主模型：运行时直接丢弃不合规备用，只有显式主模型命中公网端点才返回 403；因此主模型健康时正常生成，主模型失败也不会回落公网。

@@ -54,3 +54,8 @@
 ## 第四轮补充（RAGFlow 生命周期与任务路由口径）
 
 `effective_ragflow_connection` 先尊重公司独立可用配置；公司没有独立密钥时，平台显式停用成为终态，不回落环境变量复活旧实例。`RagflowConfigService.get_client` 对停用或无密钥连接统一抛 `KNOWLEDGE_BASE_NOT_CONFIGURED`，所以数据集创建/同步不能绕过停用状态。首次保存继承掩码只代表沿用部署密钥，不写入密文。`task_model_routes.resolve` 与保存校验共用“公司路由可指本公司或 system 池；system 路由只指 system 池”的归属规则。
+
+
+## 第五轮补充（密钥清除态与超时合并）
+
+`RagflowCompanyConfig.api_key_cleared` 区分“继承部署密钥”与“显式清除”：显式空串清除后不再回落 `ICG_RAGFLOW_API_KEY`；未清除时沿用部署地址与密钥，并把平台或租户持久化记录里的 `timeout_seconds` 合并进最终连接，公司租户沿用部署连接时优先取平台 system 记录的超时。

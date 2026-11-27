@@ -4,8 +4,8 @@
 
 # ISSUE-059 P0 止血修复验证登记（2026-11-27）
 
-- 分支 `feat/iss-059-p0-security-export-deploy-hotfix`；[ISSUE-059](../../issues/ISSUE-059.md)；PR 未创建
-- 环境：Windows 本机 + Git Bash，Python 3.13，Node 24，pnpm；本机真实 MySQL 可达（端口 3407 复现用例）；无内网真实 RAGFlow 与真实模型
+- 分支 `feat/iss-059-p0-security-export-deploy-hotfix`；[ISSUE-059](../../issues/ISSUE-059.md)；[PR #56](https://github.com/Faith-Neil/if-children-have-been-grown/pull/56) OPEN，未合入
+- 环境：Windows 本机 + Git Bash，Python 3.12.9，Node 24，pnpm；本机真实 MySQL 可达（端口 3407 复现用例）；无内网真实 RAGFlow 与真实模型
 - 性质：各实施 subagent 开发自测汇总，不是 QA 签署；QA 独立复测、PD 产品验收与 PM 确认尚未执行
 
 ## 结果
@@ -49,3 +49,12 @@
 - 前端聚焦：`node --test tests/unit/structure-model-route.test.mjs tests/unit/model-config-access.test.mjs`，3 passed；`pnpm --dir frontend/web lint`（`tsc -b --noEmit`）通过。
 - 契约：`python backend/bid-core/export_openapi.py --check` 100% 一致；`PUBLIC_MODEL_ENDPOINT_FORBIDDEN` 已冻结进错误表、冻结名单与 OpenAPI。
 - 说明：前端全量测试的既有陈旧失败（公司设置/编排等）与本轮无关，未冒充通过；真实 RAGFlow/真实模型/真实浏览器仍未执行。
+
+
+## 第五轮边界清零（2026-11-28）
+
+- 新增公网备用模型回归：健康内网主模型正常调用，不合规公网备用在 provider 组装前被丢弃且零请求；新增 RAGFlow 显式清除/继承超时两项回归，公司租户沿用部署连接时也继承平台持久化超时；`test_issue059_model_security.py` + `test_issue059_round3_review.py` 27 passed。
+- 完整后端聚焦回归：29 个文件 / 264 tests，`252 passed, 12 skipped, 0 failed`（4 分 41 秒）；skip 中 11 个为 mysql 标记、1 个为真实模型门控。
+- MySQL 标记补跑：11 passed（127.0.0.1:3407，隔离合成 schema `icg_regression_20261128`）；其中种子账号热路径 2 个与模型配置 round-trip 1 个也在真实 `icg` 库复跑 3 passed。
+- 回归口径修正：`test_model_config_provider.py` 的模型配置 setup 改用 platform_admin 并显式写入 alpha 租户，符合 PM 锁定权限；`test_parse_jobs.py` 孤儿任务用例阻断首个后台解析线程，消除版本竞争。两处均只改测试，不放松业务权限或门禁。
+- 契约与前端：`python backend/bid-core/export_openapi.py --check` 100% 一致；`pnpm --dir frontend/web lint`（`tsc -b --noEmit`）通过；前端聚焦 `structure-model-route` + `model-config-access` 3 passed。
