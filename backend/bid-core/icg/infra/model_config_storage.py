@@ -143,6 +143,20 @@ def fallback_problem(primary: ModelConfig, fallback: ModelConfig | None) -> str 
     return None
 
 
+def config_compliant_for_sensitive(config: ModelConfig) -> bool:
+    """涉密项目可用性核对（防御纵深）：本地 + 允许敏感 + 端点不是公网地址。
+
+    is_local 只是管理员填写的标志，可能填错；只要实际 URL 是公网端点，
+    涉密内容就绝不能发过去，与标志怎么填无关（ISSUE-059）。"""
+    if not config.is_local or not config.allow_sensitive:
+        return False
+    if config.provider != "demo":
+        from .openai_model import is_public_model_url
+        if is_public_model_url(config.base_url):
+            return False
+    return True
+
+
 def usable_fallback(state: Any, primary: ModelConfig, project_sensitive: bool) -> ModelConfig | None:
     """运行时取备用模型：再核对一次（备用模型可能事后被改成云端）；敏感项目只能用本地且允许敏感的备用。"""
     if not primary.fallback_config_id:
@@ -150,13 +164,13 @@ def usable_fallback(state: Any, primary: ModelConfig, project_sensitive: bool) -
     fallback = state.model_configs.get(primary.fallback_config_id)
     if fallback_problem(primary, fallback) is not None:
         return None
-    if project_sensitive and (not fallback.is_local or not fallback.allow_sensitive):
+    if project_sensitive and not config_compliant_for_sensitive(fallback):
         return None
     return fallback
 
 
 def validate_model_config_for_project(project_sensitive: bool, config: ModelConfig) -> None:
-    if project_sensitive and (not config.is_local or not config.allow_sensitive):
+    if project_sensitive and not config_compliant_for_sensitive(config):
         raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL", "敏感项目只能使用本地模型配置。")
 
 
@@ -308,12 +322,17 @@ def placeholder_default(config: ModelConfig) -> bool:
 
 
 def saved_company_model(state: Any, company_id: str) -> ModelConfig | None:
-    """没有项目绑定、也没有任务对应表时，用管理员添加的模型。有本地模型时不用非本地的那一份。"""
+    """没有项目绑定、也没有任务对应表时，用管理员添加的模型。有本地模型时不用非本地的那一份。
+
+    平台 system 兜底对全公司生效、公司管理员未必知情，绝不回落到公网端点：
+    公网 URL 的平台配置不参与兜底（ISSUE-059 数据不出内网红线）。"""
     saved = [cfg for cfg in state.model_configs.values()
              if cfg.company_id == company_id and cfg.provider != "demo" and not placeholder_default(cfg)]
     if not saved and company_id != "system":
+        from .openai_model import is_public_model_url
         saved = [cfg for cfg in state.model_configs.values()
-                 if cfg.company_id == "system" and cfg.provider != "demo" and not placeholder_default(cfg)]
+                 if cfg.company_id == "system" and cfg.provider != "demo" and not placeholder_default(cfg)
+                 and not is_public_model_url(cfg.base_url)]
     if not saved:
         return None
     local = [cfg for cfg in saved if cfg.is_local]

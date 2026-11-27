@@ -63,6 +63,31 @@ class RagflowCompanyConfig:
         }
 
 
+def effective_ragflow_connection(state: DemoState, company_id: str) -> RagflowCompanyConfig | None:
+    """运行时生效的 RAGFlow 连接配置（ISSUE-059 平台级配置对下属公司生效）。
+
+    优先序：公司级有自己的配置时公司级优先；公司未完成配置（没有密钥，连不上）时回落
+    平台管理员写入的 system 配置（端点/密钥/超时/启用开关）。两条红线：
+    - 公司显式停用（is_enabled=False 只能来自管理员手动保存）不回落，尊重公司选择；
+    - 数据集列表永远保留公司自己的，绝不跨租户共用 dataset_ids（${company_id}:: 隔离不变）。
+    密钥不做字段级合并：密钥与端点配套，拼公司地址+平台密钥等于把平台密钥送去错误端点。
+    """
+    configs = getattr(state, "ragflow_configs", None) or {}
+    tenant = configs.get(company_id)
+    if company_id == "system":
+        return tenant
+    platform = configs.get("system")
+    if tenant is not None:
+        if not tenant.is_enabled:
+            return tenant
+        if tenant.encrypted_api_key:
+            return tenant
+    if platform is not None and platform.is_enabled and platform.encrypted_api_key:
+        dataset_ids = list(tenant.dataset_ids) if tenant is not None else [f"dataset-{company_id}-01"]
+        return replace(platform, company_id=company_id, dataset_ids=dataset_ids)
+    return tenant
+
+
 class RagflowConfigService:
     """管理租户 RAGFlow 检索配置与连通性测试的领域服务。"""
 
@@ -101,15 +126,10 @@ class RagflowConfigService:
         return state.ragflow_configs[company_id]
 
     def _effective_connection_config(self, state: DemoState, company_id: str) -> RagflowCompanyConfig:
-        """运行时连接配置：平台管理员的 system 配置是引擎端点与密钥的全局真相源；
-        数据集列表仍保留在公司配置上，避免跨租户共用 dataset_ids。"""
+        """运行时连接配置：公司级优先，平台 system 兜底（见 effective_ragflow_connection）。"""
         tenant = self._ensure_company_config(state, company_id)
-        if company_id == "system":
-            return tenant
-        platform = (getattr(state, "ragflow_configs", {}) or {}).get("system")
-        if platform is None:
-            return tenant
-        return replace(platform, company_id=company_id, dataset_ids=list(tenant.dataset_ids))
+        effective = effective_ragflow_connection(state, company_id)
+        return effective if effective is not None else tenant
 
     def _public_payload(self, state: DemoState, cfg: RagflowCompanyConfig, company_id: str) -> dict[str, Any]:
         """配置响应附占位检测与已部署真实 Dataset ID 建议，方便管理员回填替换 dataset-*-01 占位。"""
@@ -199,6 +219,9 @@ class RagflowConfigService:
         override_payload: dict[str, Any] | None = None,
         transport: httpx.BaseTransport | None = None,
     ) -> dict[str, Any]:
+        # 连通性测试会让服务端访问填写的地址；普通成员能测就能探测内网（与模型配置同一尺度）。
+        from icg.domain.kb_admin import require_kb_role
+        require_kb_role(principal, "connection")
         company_id = principal.user.company_id
 
         def get_cfg(state: DemoState) -> RagflowCompanyConfig:

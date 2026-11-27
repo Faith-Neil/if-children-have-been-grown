@@ -7,17 +7,19 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from typing import Any, Iterator
 
-from .domain import iso_time, new_id
+from .domain import DomainError, iso_time, new_id
 from .parse_jobs import _mirror
 
 KIND = "technical_volume"
 TERMINAL = {"completed", "failed", "cancelled"}
 INTERRUPTED = "生成会话已中断（服务重启或线程丢失），本次没有写入；请重新开始生成。"
 KEEPALIVE_SECONDS = 10.0
+log = logging.getLogger(__name__)
 
 
 class _Backlog:
@@ -89,14 +91,23 @@ class TechnicalVolumeSessions:
             job_id, fresh = self.repository.transaction(operation)
             if not fresh:
                 return job_id
-            if getattr(self.repository, "mode", "") != "memory" and hasattr(self.repository, "save_job"):
+            if hasattr(self.repository, "save_job"):
                 created = self.repository.read().recoverable_jobs.get(job_id) or {}
-                self.repository.save_job({
-                    "id": job_id, "job_type": KIND, "project_id": project_id,
-                    "status": created.get("status", "queued"), "progress": int(created.get("progress") or 0),
-                    "step_name": created.get("message"), "created_by": principal.user.id,
-                    "created_at": created.get("created_at"), "recoverable": True,
-                })
+                try:
+                    self.repository.save_job({
+                        "id": job_id, "job_type": KIND, "project_id": project_id,
+                        "status": created.get("status", "queued"), "progress": int(created.get("progress") or 0),
+                        "step_name": created.get("message"), "created_by": principal.user.id,
+                        "created_at": created.get("created_at"), "recoverable": True,
+                    })
+                except Exception as exc:
+                    # 生成线程尚未开始，但条目态里已登记 queued；把它落成失败，避免留下永远“进行中”的孤儿。
+                    try:
+                        self._finish(job_id, "failed", "生成任务行写入失败，未开始生成。", {"done": 0, "total": 0, "failed": 0},
+                                     error="INTERNAL_ERROR")
+                    except Exception:
+                        log.exception("failed to mark technical volume job %s failed after initial save failure", job_id)
+                    raise self._job_persistence_error(type(exc).__name__) from exc
             backlog = _Backlog(job_id)
             superseded = self._latest.get(project_id)
             if superseded:
@@ -107,17 +118,29 @@ class TechnicalVolumeSessions:
                          name="technical-volume").start()
         return job_id
 
-    def _sync_job_row(self, job_id: str) -> None:
-        if getattr(self.repository, "mode", "") == "memory" or not hasattr(self.repository, "update_job_progress"):
+    def _sync_job_row(self, job_id: str, *, missing_ok: bool = False) -> None:
+        if not hasattr(self.repository, "update_job_progress"):
             return
         job = self.repository.read().recoverable_jobs.get(job_id) or {}
         if not job:
-            return
-        self.repository.update_job_progress(
-            job_id, int(job.get("progress") or 0), status=job.get("status"),
-            step_name=job.get("message"), error_json=job.get("error"),
-            result_json={"sections": job.get("sections")} if job.get("sections") else None,
-        )
+            if missing_ok:
+                return
+            raise self._job_persistence_error("任务在内存条目态缺失。")
+        try:
+            updated = self.repository.update_job_progress(
+                job_id, int(job.get("progress") or 0), status=job.get("status"),
+                step_name=job.get("message"), error_json=job.get("error"),
+                result_json={"sections": job.get("sections")} if job.get("sections") else None,
+            )
+        except Exception as exc:
+            raise self._job_persistence_error(type(exc).__name__) from exc
+        if updated is False:
+            raise self._job_persistence_error("任务行不存在或未完成更新。")
+
+    @staticmethod
+    def _job_persistence_error(cause: str) -> DomainError:
+        return DomainError(500, "INTERNAL_ERROR", "生成进度未能写入任务存储，已停止生成。",
+                           {"reason": "job_persistence", "cause": cause})
 
     def cancel(self, job_id: str) -> None:
         """cancelJob 已把任务记为取消；这里让模型停下，本次不写入。"""
@@ -175,7 +198,7 @@ class TechnicalVolumeSessions:
             return dict(job)
 
         job = self.repository.transaction(operation)
-        self._sync_job_row(job_id)
+        self._sync_job_row(job_id, missing_ok=job is None)
         events: list[dict] = [{"event": "session.started", "job_id": job_id}, {"event": "session.live"}]
         if job is None:
             return events
@@ -193,16 +216,27 @@ class TechnicalVolumeSessions:
     def _run(self, job_id: str, prepared: dict, backlog: _Backlog) -> None:
         tally = {"done": 0, "total": 0, "failed": 0}
         ended = False
+        failure: Exception | None = None
         self._live_stage[job_id] = {}
-        self._update(job_id, self._begin)
         try:
+            self._update(job_id, self._begin)
             for event in self.workflow.iter_technical_stream(prepared, backlog.cancel):
                 backlog.push(event)
                 ended = self._track(job_id, tally, event) or ended
+        except Exception as exc:
+            # 进度/终态落库失败也属于生成失败：先停住写卷循环，再补一条失败事件。
+            failure = exc
+            backlog.cancel.set()
         finally:  # 未预料的异常也如实记失败，不留在“进行中”
             if not ended:
-                backlog.push({"event": "volume.failed", "message": "生成异常中断，本次不写入。"})
-                self._finish(job_id, "failed", "生成异常中断，本次不写入。", tally, error="INTERNAL_ERROR")
+                persistence = isinstance(failure, DomainError) and (failure.details or {}).get("reason") == "job_persistence"
+                message = str(failure) if persistence else "生成异常中断，本次不写入。"
+                backlog.push({"event": "volume.failed", "message": message})
+                try:
+                    self._finish(job_id, "failed", message, tally, error="INTERNAL_ERROR")
+                except Exception:
+                    # _finish 的二次落库异常绝不能覆盖第一现场；事务部分已先把终态写入条目态。
+                    log.exception("failed to persist final failure state for technical volume job %s", job_id)
             backlog.close()
 
     def _begin(self, state, job: dict) -> None:

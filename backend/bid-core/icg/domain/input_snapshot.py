@@ -20,7 +20,7 @@ def project_input_fingerprint(state: DemoState, project_id: str) -> str:
     project.pop("status", None)  # 列表状态缓存由工作流推导，不作为额外输入源参与指纹。
     positions = {identity: index for index, identity in enumerate(workflow.get("chapter_order", []))}
     chapters = sorted((c for c in state.chapters.values() if c.project_id == project_id),
-                      key=lambda chapter: positions.get(chapter.id, len(positions)))
+                      key=lambda chapter: (positions.get(chapter.id, len(positions)), chapter.id))
     payload = {
         "project": project,
         "team": state.project_teams.get(project_id, {}),
@@ -37,10 +37,13 @@ def project_input_fingerprint(state: DemoState, project_id: str) -> str:
         "writing_plan": workflow.get("writing_plan", {}),
         "chapters": [{"id": c.id, "title": c.title, "volume": c.volume,
                       "revision": c.revision, "content": c.content} for c in chapters],
-        "library": [item for item in state.library.values() if item["company_id"] == project["company_id"]],
+        # library/sla_templates 在条目层按 key 存储；dict 插入序取决于进程内创建顺序，
+        # 热路径按主键序重读。指纹表达的是“集合内容”，必须先按 id 规范化，否则同一输入会跨进程误判过期。
+        "library": sorted((item for item in state.library.values() if item["company_id"] == project["company_id"]),
+                          key=lambda item: str(item.get("id") or "")),
         "sla": workflow.get("sla"),
-        "sla_templates": [item for item in state.sla_templates.values()
-                          if item["company_id"] == project["company_id"]],
+        "sla_templates": sorted((item for item in state.sla_templates.values()
+                                 if item["company_id"] == project["company_id"]), key=lambda item: str(item.get("id") or "")),
     }
     if workflow.get("proposed_staff"):
         # 拟派人员（R33）：换人后旧检查、旧导出过期。为空时不写入，保持既有指纹不变。

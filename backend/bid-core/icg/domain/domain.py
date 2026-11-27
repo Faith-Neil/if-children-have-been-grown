@@ -450,45 +450,59 @@ class DemoService:
             snippet_store=snippet_store,
         )
 
-    def resolve_model_provider(self, state: DemoState, project_id: str, task: str | None = None) -> ModelProvider:
-        """章节长文：项目绑定优先，再看任务表。目录抽取与偏离：任务表 technical_structure 优先于项目绑定。"""
+    @staticmethod
+    def _effective_model_config(state: DemoState, project: Project | None, project_id: str,
+                                task: str | None) -> tuple[Any, Any]:
+        """选出实际生效的模型配置（不做合规校验）：（首选配置，任务表备用或 None）。
+
+        优先级：目录抽取与偏离（technical_structure）任务表优先于项目绑定；其余任务项目绑定优先，
+        再看任务表，然后公司默认（含平台 system 兜底）；都没有时由调用方回落进程级提供方。"""
         bound_id = state.project_model_configs.get(project_id)
-        cfg = None
-        route_backup = None
-        project = state.projects.get(project_id)
-        if project is not None and task == "technical_structure":
+        binding = state.model_configs.get(bound_id) if bound_id else None
+        routed = None
+        if project is not None and task:
             from .task_model_routes import resolve as resolve_route
             routed = resolve_route(state, project.company_id, task)
-            if routed is not None:
-                cfg, route_backup = routed
-                if project.sensitive and (not cfg.is_local or not cfg.allow_sensitive):
-                    raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
-                                      "敏感项目只能使用本地模型：任务与模型对应表里该任务的首选模型不是允许处理敏感数据的本地模型。")
-        if cfg is None and bound_id and bound_id in state.model_configs:
-            cfg = state.model_configs[bound_id]
-        elif cfg is None and project is not None and task:
-            from .task_model_routes import resolve as resolve_route
-            routed = resolve_route(state, project.company_id, task)
-            if routed is not None:
-                cfg, route_backup = routed
-                if project.sensitive and (not cfg.is_local or not cfg.allow_sensitive):
-                    raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
-                                      "敏感项目只能使用本地模型：任务与模型对应表里该任务的首选模型不是允许处理敏感数据的本地模型。")
+        cfg, route_backup = None, None
+        if task == "technical_structure" and routed is not None:
+            cfg, route_backup = routed
+        if cfg is None and binding is not None:
+            cfg = binding
+        elif cfg is None and routed is not None:
+            cfg, route_backup = routed
         if cfg is None and project is not None:
             from icg.infra.model_config_storage import saved_company_model
             cfg = saved_company_model(state, project.company_id)
+        return cfg, route_backup
+
+    def resolve_model_provider(self, state: DemoState, project_id: str, task: str | None = None) -> ModelProvider:
+        """章节长文：项目绑定优先，再看任务表。目录抽取与偏离：任务表 technical_structure 优先于项目绑定。
+
+        涉密项目红线（ISSUE-059）：无论配置从哪个分支生效（绑定/任务表/公司兜底/进程兜底），
+        命中非本地、未允许敏感或端点指向公网的配置一律拒绝；不能只在任务表分支校验。"""
+        project = state.projects.get(project_id)
+        sensitive = bool(project and project.sensitive)
+        cfg, route_backup = self._effective_model_config(state, project, project_id, task)
         if cfg is not None:
-            from icg.infra.model_config_storage import provider_from_model_config, usable_fallback
+            from icg.infra.model_config_storage import (
+                config_compliant_for_sensitive, provider_from_model_config, usable_fallback,
+            )
+            if sensitive and not config_compliant_for_sensitive(cfg):
+                raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
+                                  "敏感项目只能使用本地模型：实际生效的模型配置不是允许处理敏感数据的本地内网模型，或端点指向公网。")
             provider = provider_from_model_config(cfg, transport=self.model_transport, default_provider=self.model_provider)
-            backup = usable_fallback(state, cfg, bool(project and project.sensitive))
-            if route_backup is not None and (not (project and project.sensitive)
-                                             or (route_backup.is_local and route_backup.allow_sensitive)):
+            backup = usable_fallback(state, cfg, sensitive)
+            if route_backup is not None and (not sensitive or config_compliant_for_sensitive(route_backup)):
                 backup = route_backup  # 任务表里填的备用优先于模型配置自带的
             if backup is not None and getattr(provider, "is_real_model", False) and provider is not self.model_provider:
                 # 备用模型（PRD §6.5 规则 2、3）：所有任务的 suggest() 在主模型健康类失败时改用备用（APP-M2-T040）
                 from icg.infra.model_fallback import WithFallback
                 return WithFallback(provider, provider_from_model_config(backup, transport=self.model_transport))
             return provider
+        # 进程兜底也是生效路径之一：涉密项目进程兜底是非本地真实模型时绝不能把正文发出去。
+        if (sensitive and getattr(self.model_provider, "is_real_model", None) is not False
+                and not getattr(self.model_provider, "is_local", False)):
+            raise DomainError(409, "LOCAL_MODEL_REQUIRED", "敏感项目只能使用本地模型适配器。")
         return self.model_provider
 
     def resolve_provider_from_snapshot(self, snapshot: dict) -> ModelProvider:
@@ -700,26 +714,53 @@ class DemoService:
         return chapter
 
     def require_allowed_model(self, project: Project, state: DemoState | None = None) -> None:
-        cfg = None
-        if state is not None:
-            bound_id = state.project_model_configs.get(project.id)
-            if bound_id and bound_id in state.model_configs:
-                cfg = state.model_configs[bound_id]
-            else:
-                from icg.infra.model_config_storage import saved_company_model
-                cfg = saved_company_model(state, project.company_id)
+        """生成前门禁：校验「实际将生效的模型配置」，而不是进程级默认提供方（ISSUE-059）。
 
-        if cfg is not None:
-            if project.sensitive and (not cfg.is_local or not cfg.allow_sensitive):
-                raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL", "敏感项目只能使用本地模型配置。")
-            if cfg.encrypted_api_key:
-                from icg.infra.model_config_storage import get_master_key
+        与 resolve_model_provider 同一优先级：项目绑定在调用方任务（章节生成/对话助手）里总是先生效；
+        无绑定时任务与模型对应表可能已提供合规本地模型，不得因进程兜底非本地而误挡；
+        最终兜底仍由 resolve_model_provider 逐分支强制，门禁只提前暴露，不放松安全。"""
+        if state is None:
+            if (project.sensitive and getattr(self.model_provider, "is_real_model", None) is not False
+                    and not getattr(self.model_provider, "is_local", False)):
+                raise DomainError(409, "LOCAL_MODEL_REQUIRED", "敏感项目只能使用本地模型适配器。")
+            return
+
+        from icg.infra.model_config_storage import config_compliant_for_sensitive, saved_company_model, get_master_key
+
+        def preflight_key(cfg) -> None:
+            if cfg is not None and cfg.encrypted_api_key:
                 try:
                     get_master_key()
                 except DomainError:
                     raise DomainError(503, "SECRET_KEY_UNAVAILABLE", "主密钥不可用。")
+
+        # 1. 项目绑定在本门禁的调用方任务里优先生效，严格镜像解析结果。
+        bound_id = state.project_model_configs.get(project.id)
+        bound = state.model_configs.get(bound_id) if bound_id else None
+        if bound is not None:
+            if project.sensitive and not config_compliant_for_sensitive(bound):
+                raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL", "敏感项目只能使用本地模型配置。")
+            preflight_key(bound)
             return
 
+        # 2. 无绑定：任务与模型对应表可能给调用方任务提供合规本地模型；有一条合规即不误挡。
+        if project.sensitive:
+            from .task_model_routes import TASKS, resolve as resolve_route
+            for route_task in TASKS:
+                routed = resolve_route(state, project.company_id, route_task)
+                if routed is not None and config_compliant_for_sensitive(routed[0]):
+                    preflight_key(routed[0])
+                    return
+
+        # 3. 公司默认（含平台 system 兜底，兜底已排除公网端点）。
+        cfg = saved_company_model(state, project.company_id)
+        if cfg is not None:
+            if project.sensitive and not config_compliant_for_sensitive(cfg):
+                raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL", "敏感项目只能使用本地模型配置。")
+            preflight_key(cfg)
+            return
+
+        # 4. 没有任何配置：进程兜底。涉密项目进程兜底是非本地真实模型时拒绝。
         if (project.sensitive and getattr(self.model_provider, "is_real_model", None) is not False
                 and not getattr(self.model_provider, "is_local", False)):
             raise DomainError(409, "LOCAL_MODEL_REQUIRED", "敏感项目只能使用本地模型适配器。")

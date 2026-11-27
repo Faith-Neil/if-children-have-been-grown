@@ -41,6 +41,47 @@ UPLOAD_SUFFIXES = {
 CERT_FIELD_TO_LIBRARY = {"cert_name": "name", "valid_to": "valid_until"}
 
 
+def _prepare_word_pdf(filename: str, data: bytes) -> tuple[str, bytes] | str | None:
+    """调用 Word→PDF 转换器，并把转换器异常/非 PDF 输出统一落成 422 语义。"""
+    from icg.domain.office_pdf import CONVERT_FAILED, prepare_for_deepdoc
+    try:
+        prepared = prepare_for_deepdoc(filename, data)
+    except Exception as exc:
+        raise DomainError(422, "FILE_CONVERSION_FAILED", CONVERT_FAILED) from exc
+    if isinstance(prepared, tuple) and not prepared[1].startswith(b"%PDF-"):
+        raise DomainError(422, "FILE_CONVERSION_FAILED", "Word 转换结果不是有效 PDF，已停止上传。")
+    return prepared
+
+
+def _migration_upload(entry: dict[str, Any], data: bytes) -> tuple[str, str, bytes]:
+    """重建时恢复真正传给 RAGFlow 的文件名/类型；存量 Word 原件先补转换。
+
+    上传索引里的 ``name`` 是用户原件名（可能是 .doc/.docx），而入库字节可能早已转成 PDF。
+    若仍按原件名上传，RAGFlow 会把 PDF 字节当 Word 走错误解析路径。
+    """
+    original = str((entry.get("user_meta") or {}).get("original_filename") or entry.get("name") or "document")
+    stored = str(entry.get("upload_name") or entry.get("name") or original)
+    content_type = str(entry.get("content_type") or "")
+    if data.startswith(b"%PDF-"):
+        if PurePosixPath(stored).suffix.lower() == ".pdf":
+            return stored, "application/pdf", data
+        stem = PurePosixPath(original).stem or "document"
+        return f"{stem}.pdf", "application/pdf", data
+
+    # 存量行可能记录着转换后的 .pdf 名，但旧数据集里实际仍是 Word 字节；按原件扩展名识别并补转换。
+    suffix = PurePosixPath(original).suffix.lower() or PurePosixPath(stored).suffix.lower()
+    if suffix in {".doc", ".docx"}:
+        from icg.domain.office_pdf import office_magic
+        if office_magic(suffix, data):
+            prepared = _prepare_word_pdf(original, data)
+            if isinstance(prepared, str):
+                raise DomainError(422, "FILE_CONVERSION_FAILED", prepared)
+            if prepared is not None:
+                upload_name, converted = prepared
+                return upload_name, "application/pdf", converted
+    return stored, content_type, data
+
+
 def _role(principal: Principal) -> str:
     from .project_access import normalize_role
     return normalize_role(getattr(principal.user, "role", "") or "")
@@ -342,11 +383,14 @@ class KbAdminService:
         migrated, failed = 0, []
         files = {k: e for k, e in index.get("files", {}).items() if e.get("dataset_kind") == kind}
         blobs: dict[str, bytes] = {}
-        for key, entry in files.items():  # 先把原件全部取回，确认可迁移再动数据集
+        uploads: dict[str, tuple[str, str, bytes]] = {}
+        for key, entry in files.items():  # 先把原件全部取回并完成转换校验，确认可迁移再动数据集
             try:
                 blobs[key] = client.download_document(old["dataset_id"], entry["document_id"])
             except Exception:
                 failed.append(entry.get("name", key))
+                continue
+            uploads[key] = _migration_upload(entry, blobs[key])
         if failed:
             raise DomainError(409, "REBUILD_BLOCKED", "以下原件无法从旧数据集取回，已停止重建：" + "、".join(failed[:10]))
 
@@ -361,13 +405,23 @@ class KbAdminService:
             if kind == "library":
                 self.kb.sync_company(company)
             for key, entry in files.items():
-                doc = client.upload_file(new["dataset_id"], entry["name"], blobs[key], entry.get("content_type", ""))
-                if entry.get("meta_fields") or entry.get("user_meta"):
-                    client.update_document(new["dataset_id"], doc.id, meta_fields=entry.get("user_meta") or {})
+                upload_name, content_type, data = uploads[key]
+                user_meta = dict(entry.get("user_meta") or {})
+                original = str(user_meta.get("original_filename") or entry.get("name") or "")
+                if (content_type == "application/pdf" and PurePosixPath(original).suffix.lower() in {".doc", ".docx"}
+                        and PurePosixPath(upload_name).suffix.lower() == ".pdf"):
+                    user_meta.setdefault("original_filename", original)
+                    user_meta.setdefault("converted_from", PurePosixPath(original).suffix.lower().lstrip("."))
+                doc = client.upload_file(new["dataset_id"], upload_name, data, content_type)
+                if entry.get("meta_fields") or user_meta:
+                    client.update_document(new["dataset_id"], doc.id, meta_fields=user_meta)
                 client.trigger_parse(new["dataset_id"], [doc.id])
 
-                def move(idx: dict, key=key, doc_id=doc.id) -> None:
-                    idx["files"][key] = {**idx["files"][key], "document_id": doc_id, "status": STATUS_PARSING}
+                def move(idx: dict, key=key, doc_id=doc.id, upload_name=upload_name,
+                         content_type=content_type, size=len(data), user_meta=user_meta) -> None:
+                    idx["files"][key] = {**idx["files"][key], "document_id": doc_id, "status": STATUS_PARSING,
+                                         "upload_name": upload_name, "content_type": content_type, "size": size,
+                                         "user_meta": user_meta}
                 self.kb._update_index(company, move)
                 migrated += 1
             client.delete_datasets([old["dataset_id"]])
@@ -490,8 +544,7 @@ class KbAdminService:
 
         # 真实 .doc/.docx 先经 LibreOffice/本机 Word 转 PDF，再交给 RAGFlow DeepDOC；
         # 否则 Word 只能抽出文字流，丢失页码与版面位置。历史标书已在上方完成去实体化预处理。
-        from icg.domain.office_pdf import prepare_for_deepdoc
-        prepared = prepare_for_deepdoc(upload_name, data)
+        prepared = _prepare_word_pdf(upload_name, data)
         if isinstance(prepared, str):
             raise DomainError(422, "FILE_CONVERSION_FAILED", prepared)
         if prepared is not None:
@@ -521,7 +574,8 @@ class KbAdminService:
             raise self._wrap(exc, "上传原件") from None
         now = iso_time(self.demo._now())
         entry = {"key": f"{SOURCE_FILE}:{file_id}", "source_type": SOURCE_FILE, "source_id": file_id,
-                 "dataset_kind": kind, "company_id": company, "name": filename, "item_type": kind, "revision": 1,
+                 "dataset_kind": kind, "company_id": company, "name": filename, "upload_name": upload_name,
+                 "item_type": kind, "revision": 1,
                  "document_id": doc.id, "status": STATUS_PARSING, "message": "", "chunk_count": 0,
                  "content_type": content_type, "size": len(data), "enabled": True,
                  "deferred_chunk_scrub": deferred_scrub,

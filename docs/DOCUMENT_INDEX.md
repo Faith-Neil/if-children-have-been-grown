@@ -10,6 +10,17 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
+| D-1098 | 2026-11-27 | [P0-SEC-MODEL-AUDIT-HOTFIX 交付](delivery/P0-SEC-MODEL-AUDIT-HOTFIX.md) | 交付说明 | p0-security-export-deploy-hotfix-r1 | in-review | ISSUE-059 / P0-SEC-MODEL-AUDIT-HOTFIX | 平台模型安全红线、密钥轮换与审计授权/策略保存止血交付记录 |
+| D-1099 | 2026-11-27 | [P0-EXPORT-STATE-HOTFIX 交付](delivery/P0-EXPORT-STATE-HOTFIX.md) | 交付说明 | p0-security-export-deploy-hotfix-r1 | in-review | ISSUE-059 / P0-EXPORT-STATE-HOTFIX | 检查过期误判、保存提交死锁恢复与进度写入一致性止血交付记录 |
+| D-1100 | 2026-11-27 | [P0-CONFIG-KB-HOTFIX 交付](delivery/P0-CONFIG-KB-HOTFIX.md) | 交付说明 | p0-security-export-deploy-hotfix-r1 | in-review | ISSUE-059 / P0-CONFIG-KB-HOTFIX | 平台配置生效、项目负责人绑模型、知识库重建与种子账号止血交付记录 |
+| D-1101 | 2026-11-27 | [P0-DEPLOY-HOTFIX 交付](delivery/P0-DEPLOY-HOTFIX.md) | 交付说明 | p0-security-export-deploy-hotfix-r1 | in-review | ISSUE-059 / P0-DEPLOY-HOTFIX | 容器健康检查修复与端口回环安全默认固化交付记录 |
+| D-1102 | 2026-11-27 | [P0-SEC-MODEL-AUDIT-HOTFIX 代码说明](code/P0-SEC-MODEL-AUDIT-HOTFIX.md) | 代码说明 | p0-security-export-deploy-hotfix-r1 | 当前 | ISSUE-059 / P0-SEC-MODEL-AUDIT-HOTFIX | 涉密 URL 判定、审计授权与前端双态保存机制 |
+| D-1103 | 2026-11-27 | [P0-EXPORT-STATE-HOTFIX 代码说明](code/P0-EXPORT-STATE-HOTFIX.md) | 代码说明 | p0-security-export-deploy-hotfix-r1 | 当前 | ISSUE-059 / P0-EXPORT-STATE-HOTFIX | 热路径 JSON 精确匹配、指纹规范化与恢复状态机、进度写入失败传播 |
+| D-1104 | 2026-11-27 | [P0-CONFIG-KB-HOTFIX 代码说明](code/P0-CONFIG-KB-HOTFIX.md) | 代码说明 | p0-security-export-deploy-hotfix-r1 | 当前 | ISSUE-059 / P0-CONFIG-KB-HOTFIX | 平台回落生效链、RBAC 恢复、重建转换顺序与种子账号只读填补 |
+| D-1105 | 2026-11-27 | [P0-DEPLOY-HOTFIX 代码说明](code/P0-DEPLOY-HOTFIX.md) | 代码说明 | p0-security-export-deploy-hotfix-r1 | 当前 | ISSUE-059 / P0-DEPLOY-HOTFIX | 健康检查判据链与端口回环绑定语义（配置变更口径） |
+| D-1106 | 2026-11-27 | [ISSUE-059 P0 止血验证登记](testing/iss-059-p0-hotfix-verification.md) | 验证 | p0-security-export-deploy-hotfix-r1 | 当前 | ISSUE-059 / P0-HOTFIX 四卡 | 开发自测口径与局限：真实 RAGFlow/模型/浏览器/容器编排未验证 |
+| D-1096 | 2026-11-27 | [ISSUE-059：P0 安全红线、保存导出阻断与配置部署止血](../issues/ISSUE-059.md) | Issue | p0-security-export-deploy-hotfix-r1 | in-review | ISSUE-059 | 4 组 12 项 P0 止血：平台模型安全红线与审计授权、保存导出阻断、平台配置知识库与部署 |
+| D-1097 | 2026-11-27 | [P0-HOTFIX 任务卡](tasks/P0-HOTFIX.md) | 任务 | p0-security-export-deploy-hotfix-r1 | in-review | ISSUE-059 | P0-SEC-MODEL-AUDIT-HOTFIX / P0-EXPORT-STATE-HOTFIX / P0-CONFIG-KB-HOTFIX / P0-DEPLOY-HOTFIX 四卡 in-review |
 | D-1072 | 2026-11-27 | [FE-UX-MAINFLOW-COPY 交付](delivery/FE-UX-MAINFLOW-COPY.md) | 交付 | frontend-ux-visual-responsive-r1 | done | ISSUE-057 / FE-UX-MAINFLOW-COPY | 前端体验视觉响应式交付记录 |
 | D-1082 | 2026-11-27 | [FE-UX-MAINFLOW-COPY 代码说明](code/FE-UX-MAINFLOW-COPY.md) | 代码 | frontend-ux-visual-responsive-r1 | 当前 | ISSUE-057 / FE-UX-MAINFLOW-COPY | 前端体验视觉响应式代码说明 |
 | D-1073 | 2026-11-27 | [FE-UX-VISUAL-TOKENS 交付](delivery/FE-UX-VISUAL-TOKENS.md) | 交付 | frontend-ux-visual-responsive-r1 | done | ISSUE-057 / FE-UX-VISUAL-TOKENS | 前端体验视觉响应式交付记录 |

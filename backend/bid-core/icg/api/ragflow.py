@@ -11,7 +11,6 @@ from icg.domain.domain import DemoService, Principal
 from icg.domain.schemas import RequestBody, ResponseBody
 from icg.domain.workflow_schemas import v1_error_responses
 from icg.domain.ragflow_config import RagflowConfigService
-from icg.domain.platform_security import require_platform_admin
 
 
 class RagflowConfigResponse(ResponseBody):
@@ -55,7 +54,6 @@ def include_ragflow_routes(application, service: DemoService, current_user) -> N
     @router.get("/ragflow-config", response_model=RagflowConfigResponse, operation_id="getRagflowConfig")
     def get_ragflow_config(user: Principal = Depends(current_user)):
         """获取当前企业租户的 RAGFlow 知识库检索配置。响应绝不输出明文 API Key。"""
-        require_platform_admin(user)
         return config_service.get(user)
 
     @router.put("/ragflow-config", response_model=RagflowConfigResponse, operation_id="updateRagflowConfig")
@@ -66,7 +64,6 @@ def include_ragflow_routes(application, service: DemoService, current_user) -> N
         if_match: Annotated[str | None, Header(alias="If-Match")] = None,
     ):
         """更新当前企业租户的 RAGFlow 配置。强制校验 If-Match 版本号，新密钥使用 Fernet 对称加密保护。"""
-        require_platform_admin(user)
         result = config_service.update(user, body.model_dump(exclude_unset=True), if_match)
         response.headers["ETag"] = f'"{result["revision"]}"'
         return result
@@ -78,13 +75,11 @@ def include_ragflow_routes(application, service: DemoService, current_user) -> N
     ):
         """测试 RAGFlow 知识库服务的网络连通性与健康状态。"""
         payload = body.model_dump(exclude_unset=True) if body else {}
-        require_platform_admin(user)
         return config_service.test_connectivity(user, payload)
 
     @router.get("/ragflow/config", response_model=RagflowConfigResponse, include_in_schema=False)
     def get_ragflow_config_alias(user: Principal = Depends(current_user)):
         """兼容 /api/v1/ragflow/config 路径别名。"""
-        require_platform_admin(user)
         return config_service.get(user)
 
     @router.put("/ragflow/config", response_model=RagflowConfigResponse, include_in_schema=False)
@@ -95,7 +90,6 @@ def include_ragflow_routes(application, service: DemoService, current_user) -> N
         if_match: Annotated[str | None, Header(alias="If-Match")] = None,
     ):
         """兼容 /api/v1/ragflow/config 路径别名。"""
-        require_platform_admin(user)
         result = config_service.update(user, body.model_dump(exclude_unset=True), if_match)
         response.headers["ETag"] = f'"{result["revision"]}"'
         return result
@@ -107,13 +101,11 @@ def include_ragflow_routes(application, service: DemoService, current_user) -> N
     ):
         """兼容 /api/v1/ragflow/config/test 路径别名。"""
         payload = body.model_dump(exclude_unset=True) if body else {}
-        require_platform_admin(user)
         return config_service.test_connectivity(user, payload)
 
     @router.get("/ragflow/datasets", include_in_schema=False)
     def list_ragflow_datasets(user: Principal = Depends(current_user)):
         """列出当前租户绑定的 RAGFlow 数据集。"""
-        require_platform_admin(user)
         return {"items": config_service.list_datasets(user)}
 
     @router.post("/ragflow/datasets", include_in_schema=False)
@@ -121,13 +113,11 @@ def include_ragflow_routes(application, service: DemoService, current_user) -> N
         """为当前租户创建专属前缀隔离的 RAGFlow 数据集。"""
         name = str(body.get("name") or "knowledge-base")
         parser_id = str(body.get("parser_id") or "general")
-        require_platform_admin(user)
         return config_service.create_dataset(user, name, parser_id=parser_id)
 
     @router.get("/ragflow/datasets/{dataset_id}", include_in_schema=False)
     def get_ragflow_dataset(dataset_id: str, user: Principal = Depends(current_user)):
         """获取指定数据集详情，严格核实租户所有权。"""
-        require_platform_admin(user)
         return config_service.get_dataset(user, dataset_id)
 
     @router.post("/ragflow/sync", include_in_schema=False)
@@ -135,7 +125,6 @@ def include_ragflow_routes(application, service: DemoService, current_user) -> N
         """将已发布方案片段或知识库内容同步至 RAGFlow 知识库中。"""
         payload = body or {}
         snippet_id = payload.get("snippet_id") or payload.get("id")
-        require_platform_admin(user)
         return config_service.sync_knowledge_base(user, snippet_id, payload)
 
     application.include_router(router)

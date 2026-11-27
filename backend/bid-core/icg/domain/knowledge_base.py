@@ -442,8 +442,10 @@ class KnowledgeBaseService:
     def _configured_client(state: DemoState, company_id: str) -> Any:
         from icg.infra.model_config_storage import decrypt_api_key
         from icg.infra.ragflow_client import RagflowRetrievalClient
+        from icg.domain.ragflow_config import effective_ragflow_connection
 
-        cfg = (getattr(state, "ragflow_configs", None) or {}).get(company_id)
+        # 生效配置 = 公司级优先、平台 system 兜底（ISSUE-059）；数据集仍按公司 ${company_id}:: 隔离。
+        cfg = effective_ragflow_connection(state, company_id)
         if cfg is not None:
             if not cfg.is_enabled or not cfg.encrypted_api_key:
                 return None

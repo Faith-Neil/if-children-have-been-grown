@@ -20,6 +20,7 @@ import { useProject, volumeName } from '../app/context.tsx';
 import type { Candidate, Chapter, Volume, Workspace, WritingInputPreview } from '../shared/types.ts';
 import { candidateProblem } from './writing-input.ts';
 import { acquiredEditingFingerprint, editingContentWrite, loadedEditingFingerprint } from './editing-source.ts';
+import { isInputFingerprintError, recoverFingerprintedWrite, type FingerprintRecoveryState } from './fingerprint-recovery.ts';
 import { chapterCan, projectCan } from '../project/project-team.ts';
 import { parseHonesty } from '../project/parse-honesty.ts';
 import { AiTag } from '../library/BusinessTags.tsx';
@@ -106,6 +107,8 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   const [rewriteSelection, setRewriteSelection] = useState<RewriteSelection | null>(null);
   const [timings, setTimings] = useState<EditorTimings>(() => editorTimings(null));
   const [autosavePaused, setAutosavePaused] = useState(false);
+  const [fingerprintRecovery, setFingerprintRecovery] = useState<FingerprintRecoveryState | null>(null);
+  const [fingerprintRecovering, setFingerprintRecovering] = useState(false);
   const [variables, setVariables] = useState<VariableNode[]>([]);
   const [cursorKey, setCursorKey] = useState<string | null>(null);
   const paperRef = useRef<PaperEditorHandle>(null);
@@ -269,12 +272,21 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     streamAbort.current?.abort();
   }, []);
 
+  // 后台刷新编辑器持有的项目指纹（ISSUE-059）：切换章节后内容即服务端现状，
+  // 采用最新指纹避免「上次读取以来项目已变化」造成的必败写入；拉取失败保留现有值，保存被拒时仍有恢复入口。
+  function refreshEditFingerprint(startEpoch: number) {
+    request<Workspace>(`/api/v1/projects/${workspace.project.id}/workspace`, token)
+      .then(current => { if (startEpoch === epoch.current) setEditFingerprint(current.input_fingerprint ?? null); })
+      .catch(() => undefined);
+  }
+
   useEffect(() => {
     const start = ++epoch.current;
     const keepLive = streamLive.current;
     if (!keepLive) {
       setChapter(null); setContent(''); setEditFingerprint(null); selection.current = null; setRewriteSelection(null);
       lock.clearLease(); ops.resetChapterStates(); setSavedAt(''); setNotice(''); onDirtyChange(false); setAutosavePaused(false);
+      setFingerprintRecovery(null);
     }
     if (!chapterId) return;
     if (!keepLive) setLoading(true);
@@ -282,6 +294,7 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
       if (start !== epoch.current) return;
       setChapter(data); sequence.current = data.draft?.sequence ?? 0;
       setEditFingerprint(loadedEditingFingerprint(data, workspace.input_fingerprint));
+      refreshEditFingerprint(start);
       if (streamLive.current) return;
       if (data.draft && data.draft.base_revision !== data.revision) {
         setContent(data.content); setNotice('存在基于旧版本的个人草稿。当前先展示新版本正文，旧草稿没有自动覆盖。');
@@ -328,8 +341,11 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
 
   function localError(error: unknown) {
     report(error);
-    if (error instanceof ApiError && ['INPUT_FINGERPRINT_REQUIRED', 'INPUT_FINGERPRINT_STALE'].includes(error.code)) {
-      setNotice('这次没有写入。页面上的文字还在，请再保存一次。');
+    if (isInputFingerprintError(error)) {
+      // 来源指纹缺失/过期不是「再保存一次」能自愈的：项目级指纹涵盖全项目章节正文与版本，
+      // 任何章节生成或提交都会使其变化，持旧指纹重复写入只会被反复拒绝形成死锁（ISSUE-059 组2e）。
+      // 改为显式恢复入口：用户点击后拉取最新来源指纹并原样重试；当前文字始终留在页面。
+      setFingerprintRecovery(prev => prev ?? { target: 'draft', message: error instanceof Error ? error.message : '' });
       void reload().catch(report); return;
     }
     if (error instanceof ApiError && error.code === 'FACT_SOURCE_CHANGE_REQUIRED') { setSourceAdvice(true); setNotice(error.message); return; }
@@ -409,30 +425,37 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     });
   }
 
+  // 草稿写入内核：指纹由调用方显式给出（常规保存用编辑器持有值，恢复重试用刚拉取的最新值）。
+  // 返回 true 表示真正落盘；false 表示章节已切换、序号冲突已自愈或版本冲突已转交既有合并流程。
+  async function writeDraftWith(fingerprint: string | null): Promise<boolean> {
+    if (!chapter || !canEdit) return false;
+    const active = lease ?? await lock.acquireLock(null);
+    const start = epoch.current;
+    try {
+      const value = await request<NonNullable<Chapter['draft']>>(`/api/chapters/${chapterId}/draft`, token, 'PUT', {
+        lease_token: active.lease_token, base_revision: chapter.revision, sequence: ++sequence.current, ...editingContentWrite(content, fingerprint),
+      });
+      if (start !== epoch.current) return false;
+      setChapter({ ...chapter, draft: value }); setEditFingerprint(value.input_fingerprint ?? null);
+      setSavedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false })); setAutosavePaused(false);
+      setFingerprintRecovery(null);
+      setNotice('草稿已保存，尚未进入正式正文和导出。');
+      return true;
+    } catch (error) {
+      if (start !== epoch.current) return false;
+      if (error instanceof ApiError && error.code === 'DRAFT_SEQUENCE_CONFLICT') {
+        const latest = await request<Chapter>(`/api/chapters/${chapterId}`, token).catch(() => null);
+        if (latest?.draft && start === epoch.current) sequence.current = latest.draft.sequence;
+        return false;
+      }
+      if (isRevisionConflict(error) && (await handleRevisionConflict(error, 'draft'))) return false;
+      throw error;
+    }
+  }
+
   async function saveDraft() {
     if (!chapter || !canEdit) return;
-    await run(async () => {
-      const active = lease ?? await lock.acquireLock(null);
-      const start = epoch.current;
-      try {
-        const value = await request<NonNullable<Chapter['draft']>>(`/api/chapters/${chapterId}/draft`, token, 'PUT', {
-          lease_token: active.lease_token, base_revision: chapter.revision, sequence: ++sequence.current, ...editingContentWrite(content, editFingerprint ?? workspace.input_fingerprint),
-        });
-        if (start !== epoch.current) return;
-        setChapter({ ...chapter, draft: value }); setEditFingerprint(value.input_fingerprint ?? null);
-        setSavedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false })); setAutosavePaused(false);
-        setNotice('草稿已保存，尚未进入正式正文和导出。');
-      } catch (error) {
-        if (start !== epoch.current) return;
-        if (error instanceof ApiError && error.code === 'DRAFT_SEQUENCE_CONFLICT') {
-          const latest = await request<Chapter>(`/api/chapters/${chapterId}`, token).catch(() => null);
-          if (latest?.draft && start === epoch.current) sequence.current = latest.draft.sequence;
-          return;
-        }
-        if (isRevisionConflict(error) && (await handleRevisionConflict(error, 'draft'))) return;
-        throw error;
-      }
-    });
+    await run(async () => { await writeDraftWith(editFingerprint ?? workspace.input_fingerprint); });
   }
 
   // 自动保存（APP-M2-T172）：停止输入 2 秒后、以及每隔公司设置的间隔，把手改保存为本人草稿；不提交为版本、不进入导出。
@@ -483,27 +506,67 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     return () => window.clearInterval(timer);
   }, [held, autosavePaused, timings.autosaveMs]);
 
+  // 提交写入内核：指纹由调用方显式给出；提交成功后用重读的 workspace 采用最新项目指纹。
+  async function writeCommitWith(fingerprint: string | null): Promise<boolean> {
+    if (!chapter || !canEdit) return false;
+    const active = lease ?? await lock.acquireLock(null);
+    const start = epoch.current;
+    try {
+      const committed = await request<{ paste_detected?: PastedParagraph[] | null }>(`/api/chapters/${chapterId}/versions`, token, 'POST', {
+        lease_token: active.lease_token, base_revision: chapter.revision, ...editingContentWrite(content, fingerprint), idempotency_key: newIdempotencyKey(),
+      });
+      const updated = await request<Chapter>(`/api/chapters/${chapterId}`, token);
+      const current = await request<Workspace>(`/api/v1/projects/${workspace.project.id}/workspace`, token);
+      if (start !== epoch.current) return false;
+      setChapter(updated); setContent(updated.content); setEditFingerprint(current.input_fingerprint); ops.setSuggestion(null);
+      sequence.current = updated.draft?.sequence ?? sequence.current; setSavedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false }));
+      setNotice(`已提交正文 v${updated.revision}；之前的检查和导出会失效，需要重新运行。${pasteNotice(committed.paste_detected)}`); setAutosavePaused(false);
+      setFingerprintRecovery(null);
+      await reload();
+      return true;
+    } catch (error) {
+      if (isRevisionConflict(error) && (await handleRevisionConflict(error, 'commit'))) return false;
+      throw error;
+    }
+  }
+
   async function commit() {
     if (!chapter || !canEdit) return;
     await run(async () => {
-      const active = lease ?? await lock.acquireLock(null);
-      const start = epoch.current;
       try {
-        const committed = await request<{ paste_detected?: PastedParagraph[] | null }>(`/api/chapters/${chapterId}/versions`, token, 'POST', {
-          lease_token: active.lease_token, base_revision: chapter.revision, ...editingContentWrite(content, editFingerprint ?? workspace.input_fingerprint), idempotency_key: newIdempotencyKey(),
-        });
-        const updated = await request<Chapter>(`/api/chapters/${chapterId}`, token);
-        const current = await request<Workspace>(`/api/v1/projects/${workspace.project.id}/workspace`, token);
-        if (start !== epoch.current) return;
-        setChapter(updated); setContent(updated.content); setEditFingerprint(current.input_fingerprint); ops.setSuggestion(null);
-        sequence.current = updated.draft?.sequence ?? sequence.current; setSavedAt(new Date().toLocaleTimeString('zh-CN', { hour12: false }));
-        setNotice(`已提交正文 v${updated.revision}；之前的检查和导出会失效，需要重新运行。${pasteNotice(committed.paste_detected)}`); setAutosavePaused(false);
-        await reload();
+        await writeCommitWith(editFingerprint ?? workspace.input_fingerprint);
       } catch (error) {
-        if (isRevisionConflict(error) && (await handleRevisionConflict(error, 'commit'))) return;
+        // 提交被拒于来源指纹时，恢复重试仍按提交办理（而非降级为草稿），与用户的操作意图一致。
+        if (isInputFingerprintError(error)) setFingerprintRecovery({ target: 'commit', message: error instanceof Error ? error.message : '' });
         throw error;
       }
     });
+  }
+
+  // 来源指纹恢复入口（ISSUE-059 组2e）：拉取最新项目指纹，保留当前编辑器文字原样重试写入。
+  // 章节 revision 冲突由写入内核落入既有合并流程；成功落盘后自动保存随写入内核解除暂停。
+  async function recoverFingerprintWrite() {
+    const recovery = fingerprintRecovery;
+    if (!recovery || !chapter || fingerprintRecovering) return;
+    setFingerprintRecovering(true);
+    try {
+      const outcome = await recoverFingerprintedWrite({
+        fetchFingerprint: async () => {
+          const current = await request<Workspace>(`/api/v1/projects/${workspace.project.id}/workspace`, token);
+          return current.input_fingerprint ?? null;
+        },
+        write: fingerprint => (recovery.target === 'commit' ? writeCommitWith(fingerprint) : writeDraftWith(fingerprint)),
+      });
+      if ('fingerprint' in outcome && outcome.fingerprint) setEditFingerprint(outcome.fingerprint);
+      if (outcome.status === 'saved' || outcome.status === 'handed-off') {
+        setFingerprintRecovery(null);
+      } else {
+        // 拉取失败或重试再次被拒（含来源恰好又变化）：统一错误提示，恢复入口保留可再点。
+        localError(outcome.error);
+      }
+    } finally {
+      setFingerprintRecovering(false);
+    }
   }
 
   async function rollbackTo(target: number) {
@@ -562,8 +625,10 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
     const updated = await request<Chapter>(`/api/chapters/${chapterId}`, token);
     setChapter(updated);
     setContent(updated.content);
-    setEditFingerprint(loadedEditingFingerprint(updated, workspace.input_fingerprint));
     sequence.current = updated.draft?.sequence ?? sequence.current;
+    // 目录写入本身会改变项目指纹：采用重读后最新值，不用闭包里的旧指纹（同 ISSUE-059）。
+    const fresh = await reload().catch(() => undefined);
+    setEditFingerprint(fresh?.input_fingerprint ?? workspace.input_fingerprint);
   }
 
   async function saveDirectory(payload: {
@@ -724,10 +789,12 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
         if (streamRun.current !== runId) return;
         setChapter(updated);
         setContent(updated.content);
-        setEditFingerprint(loadedEditingFingerprint(updated, workspace.input_fingerprint));
         sequence.current = updated.draft?.sequence ?? sequence.current;
-        await reload().catch(() => undefined);
+        // 流式生成已写入正文，项目指纹必然已变化：必须采用重读后最新 workspace 的指纹，
+        // 不能用闭包里生成前的旧指纹，否则编辑器从生成完成那一刻起就持有必败指纹（ISSUE-059 死锁源头之一）。
+        const fresh = await reload().catch(() => undefined);
         if (streamRun.current !== runId) return;
+        setEditFingerprint(fresh?.input_fingerprint ?? workspace.input_fingerprint);
         const missed = outcome.failed.length > 0 ? `有 ${outcome.failed.length} 节需要补写。` : '';
         setNotice(outcome.replay ? '这次生成已经完成，没有重复写入。' : `正文已写入。${missed}`.trim());
         setStreamFailed(false);
@@ -955,6 +1022,22 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
 
         <div className="editor-scroll">
           {sourceAdvice && <Alert className="editor-notice" type="warning" showIcon message="取值由数据源决定，助手不能代改" action={<Space><Button size="small" onClick={() => navigate('analyze')}>回到分析</Button><Button size="small" onClick={() => navigate('analyze')}>回到分析里的承诺</Button></Space>} closable onClose={() => setSourceAdvice(false)} />}
+          {fingerprintRecovery && (
+            <Alert
+              className="editor-notice"
+              type="warning"
+              showIcon
+              data-testid="fingerprint-recovery-alert"
+              message={fingerprintRecovery.message || '项目条款、事实、证据或正文已变化，本次没有写入；当前文字仍在页面。'}
+              action={
+                <Button size="small" type="primary" loading={fingerprintRecovering} onClick={() => void recoverFingerprintWrite()} data-testid="fingerprint-recovery-btn">
+                  刷新最新来源并保留当前草稿重试
+                </Button>
+              }
+              closable
+              onClose={() => setFingerprintRecovery(null)}
+            />
+          )}
           {notice && <Alert className="editor-notice" showIcon type={notice.includes('变化') || notice.includes('失败') || notice.includes('失效') ? 'warning' : 'info'} message={notice} closable onClose={() => setNotice('')} />}
 
           {loading && !chapter ? (

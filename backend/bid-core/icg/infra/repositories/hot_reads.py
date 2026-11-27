@@ -80,10 +80,28 @@ def apply_entries(connection: Any, state: DemoState, scope: str, entry_ids: list
             _apply(state, scope, entry_id, loads(body))
 
 
-def apply_entries_matching(connection: Any, state: DemoState, scope: str, pattern: str) -> None:
-    rows = connection.execute(text(
-        "SELECT entry_id, body FROM demo_state_entry WHERE scope = :scope AND body LIKE :pattern"
-    ), {"scope": scope, "pattern": pattern}).all()
+
+def apply_entries_by_json_field(connection: Any, state: DemoState, scope: str, field: str, value: str) -> None:
+    """按条目 JSON 顶层字段精确过滤，只把匹配的行反序列化进热状态。
+
+    不能用 LIKE 依赖紧凑 JSON 字符串：历史行的冒号后空格、键序或 Unicode 转义差异都不是业务差异。
+    MySQL 在 SQL 层取顶层键，仍只加载本公司条目；非 MySQL 的单元测试替身按同一语义过滤。
+    """
+    dialect = getattr(getattr(connection, "dialect", None), "name", "")
+    if dialect == "mysql" and field.isidentifier():
+        rows = connection.execute(text(
+            f"SELECT entry_id, body FROM demo_state_entry WHERE scope = :scope "
+            f"AND JSON_UNQUOTE(JSON_EXTRACT(body, '$.{field}')) COLLATE utf8mb4_bin = :value ORDER BY entry_id"
+        ), {"scope": scope, "value": value}).all()
+    else:
+        candidates = connection.execute(text(
+            "SELECT entry_id, body FROM demo_state_entry WHERE scope = :scope ORDER BY entry_id"
+        ), {"scope": scope}).all()
+        rows = []
+        for entry_id, body in candidates:
+            decoded = loads(body)
+            if isinstance(decoded, dict) and decoded.get(field) == value:
+                rows.append((entry_id, body))
     for entry_id, body in rows:
         _apply(state, scope, entry_id, loads(body))
 
@@ -98,6 +116,26 @@ def apply_accounts(connection: Any, state: DemoState) -> None:
     rows = connection.execute(text("SELECT entry_id, body FROM demo_state_entry WHERE scope = 'account'")).all()
     for entry_id, body in rows:
         _apply(state, "account", entry_id, loads(body))
+
+
+def apply_development_seed_accounts(repository: Any, state: DemoState) -> None:
+    """非生产 MySQL 开发库补齐内存种子账号；只填空缺，绝不覆盖条目表里的真实账号。
+
+    种子账号从未写入 demo_state_entry，但登录会话写在 user_session 表。生产模式
+    MysqlConnectionRepository 的内存态为空，因此这里自然不会把合成账号带进生产。
+    """
+    seeded = getattr(repository, "_development_seed_accounts", None)
+    if seeded is None:
+        memory = getattr(repository, "_memory", None)
+        if memory is None:
+            return
+        try:
+            seeded = memory.read().accounts
+        except Exception:
+            return
+    for account_id, account in seeded.items():
+        if account_id not in state.accounts and getattr(account, "_DEMO_ONLY", False):
+            state.accounts[account_id] = account
 
 
 def project_column_names(repository: Any, connection: Any) -> set[str]:
@@ -208,6 +246,7 @@ def read_auth_state(repository: Any, token: str) -> DemoState:
         apply_entry(connection, state, "service_store", "companies")
         apply_entry(connection, state, "service_store", "platform_security")
         apply_entry(connection, state, "service_store", "session_times")
+    apply_development_seed_accounts(repository, state)
     return state
 
 
@@ -221,6 +260,7 @@ def read_session_state(repository: Any, principal: Any, project_id: str | None =
         load_projects(connection, repository, state)
         if project_id:
             load_project_chapters(connection, state, project_id, include_content=False, include_versions=False)
+    apply_development_seed_accounts(repository, state)
     return state
 
 
@@ -232,6 +272,7 @@ def read_project_brief_state(repository: Any, project_id: str, principal: Any) -
         apply_accounts(connection, state)
         apply_service_stores(connection, state)
         load_projects(connection, repository, state, project_id=project_id)
+    apply_development_seed_accounts(repository, state)
     return state
 
 
@@ -250,21 +291,17 @@ def read_project_state(repository: Any, project_id: str, principal: Any) -> Demo
             str(item) for row in (workflow.get("requirements") or {}).values()
             for item in (row.get("evidence_ids") or []) if item
         })
-        company_pattern = f'%"company_id":"{state.projects[project_id].company_id}"%' if project_id in state.projects else "__missing__"
+        company_id = state.projects[project_id].company_id if project_id in state.projects else "__missing__"
         # 输入指纹历来包含本公司全部资料与 SLA 模板； scoped read 必须保持同一真相源，不能把旧检查/导出误判过期。
-        apply_entries_matching(connection, state, "library", company_pattern)
-        apply_entries_matching(connection, state, "sla_template", company_pattern)
+        apply_entries_by_json_field(connection, state, "library", "company_id", company_id)
+        apply_entries_by_json_field(connection, state, "sla_template", "company_id", company_id)
         # 兼容历史条目缺 company_id 或证据被显式挂载但公司字段异常的情况。
         apply_entries(connection, state, "library", evidence_ids)
         template_id = ((workflow.get("sla") or {}).get("template_id") or "")
         if template_id:
             apply_entry(connection, state, "sla_template", template_id)
-        job_pattern = f'%"project_id":"{project_id}"%'
-        rows = connection.execute(text(
-            "SELECT entry_id, body FROM demo_state_entry WHERE scope = 'job' AND body LIKE :pattern"
-        ), {"pattern": job_pattern}).all()
-        for entry_id, body in rows:
-            _apply(state, "job", entry_id, loads(body))
+        apply_entries_by_json_field(connection, state, "job", "project_id", project_id)
+    apply_development_seed_accounts(repository, state)
     return state
 
 

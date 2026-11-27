@@ -13,6 +13,10 @@
 
 [ISSUE-058](../issues/ISSUE-058.md) 已按用户验收收口：PR #55 已合入 main（03df316），四张 FE-UX-STREAMING 任务卡 done，Issue closed；未发布。前端全量单测 647 passed / 14 failed 为既有陈旧契约失败，已在 PR #55 如实记录，未冒充通过。
 
+## P0 安全/导出/配置/部署止血（2026-11-27，当前焦点）
+
+[ISSUE-059](../issues/ISSUE-059.md) 已登记，分支 `feat/iss-059-p0-security-export-deploy-hotfix`：4 组 12 项 P0 止血——组 1 安全红线与策略覆盖（平台模型兜底公网外泄封堵、在用公司模型密钥轮换、本地模型误挡修复；审计日志普通成员 403；平台安全策略保存不覆盖已存项）；组 2 保存导出阻断（有效检查被热路径误判过期、重庆中烟保存/提交死锁与草稿保留恢复按钮、进度写入失败不静默）；组 3 平台配置与知识库（平台级 RAGFlow 配置对下属公司生效、恢复项目负责人绑定模型、重建知识库已转换 Word 可解析与 422 转换失败、本机种子账号登录持久）；组 4 部署（容器健康检查修复、端口默认 127.0.0.1 与反代 HTTPS 安全默认固化）。四张任务卡 [P0-SEC-MODEL-AUDIT-HOTFIX](tasks/P0-HOTFIX.md#p0-sec-model-audit-hotfix)、[P0-EXPORT-STATE-HOTFIX](tasks/P0-HOTFIX.md#p0-export-state-hotfix)、[P0-CONFIG-KB-HOTFIX](tasks/P0-HOTFIX.md#p0-config-kb-hotfix)、[P0-DEPLOY-HOTFIX](tasks/P0-HOTFIX.md#p0-deploy-hotfix) 均为 in-review（2026-11-27 实施完成），Issue 为 in-review；交付与代码说明已留档，验证登记见 [iss-059-p0-hotfix-verification](testing/iss-059-p0-hotfix-verification.md)（4 安全测试 39 passed、hotfix+kb_admin 23 passed 2 skipped、真实 MySQL 复现 2 passed、reference_flow 21 passed、前端 21 例全绿、OpenAPI 100% 一致；真实 RAGFlow/真实模型/真实浏览器/真实容器编排未验证，如实登记）。建议 PM 在 QA 签署 + PD 产品验收后复核标 done；不标 done，不创建 PR。
+
 ## 全站性能根治、隔离与部署底座（2026-11-26）
 
 [ISSUE-055](../issues/ISSUE-055.md) 已登记并开工：BE-PERF-HOTPATH-MYSQL、BE-PROJECT-LIST-PAGING、AI-TENDER-ISOLATION-DOC、OPS-M0-T04 均为 in-review。本轮必须先采集真实 MySQL 改前基线，再实施会话/仓储/索引、项目列表分页排序、招标检索隔离、四库 `.doc` 转换与三机部署底座；不引入 Redis，不合并 PR，不标 done。
