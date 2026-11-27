@@ -102,17 +102,18 @@ def effective_ragflow_connection(state: DemoState, company_id: str) -> RagflowCo
     configs = getattr(state, "ragflow_configs", None) or {}
     tenant = configs.get(company_id)
     platform = configs.get("system")
-    # 平台显式停用是解析终态：严禁落入环境变量分支把已停用的旧实例重新启用
-    if platform is not None and not platform.is_enabled:
-        return platform if company_id == "system" else replace(platform, company_id=company_id,
-            dataset_ids=list(tenant.dataset_ids) if tenant is not None else [f"dataset-{company_id}-01"])
-    if company_id == "system" and tenant is not None:
+    if company_id == "system" and tenant is not None and (not tenant.is_enabled or tenant.encrypted_api_key):
         return tenant
     if tenant is not None:
         if not tenant.is_enabled:
             return tenant
         if tenant.encrypted_api_key:
             return tenant
+    # 平台显式停用是未独立配置租户的解析终态：严禁落入环境变量分支把已停用的旧实例重新启用。
+    # 公司已有独立可用配置时在上方优先返回，不把平台实例的停用误套到另一个实例上。
+    if platform is not None and not platform.is_enabled:
+        return platform if company_id == "system" else replace(platform, company_id=company_id,
+            dataset_ids=list(tenant.dataset_ids) if tenant is not None else [f"dataset-{company_id}-01"])
     if platform is not None and platform.is_enabled and platform.encrypted_api_key:
         dataset_ids = list(tenant.dataset_ids) if tenant is not None else [f"dataset-{company_id}-01"]
         return replace(platform, company_id=company_id, dataset_ids=dataset_ids)
@@ -214,6 +215,12 @@ class RagflowConfigService:
 
         def operation(state: DemoState):
             cfg = self._ensure_company_config(state, company_id)
+            # 首次保存前，读取页展示的是部署环境密钥的掩码；该行本身还没有密钥。
+            # 前端原样回传这个掩码代表“沿用部署连接”，绝不能把掩码当成新明文加密覆盖。
+            deployed_before_save = deployment_default_config(company_id)
+            inherited_mask = (deployed_before_save.api_key_masked
+                              if deployed_before_save is not None and not cfg.encrypted_api_key
+                              and cfg.base_url == deployed_before_save.base_url else None)
 
             # 1. 乐观锁 If-Match 校验
             check_revision(cfg.revision, if_match)
@@ -240,8 +247,8 @@ class RagflowConfigService:
                     # 空字符串清除
                     cfg.encrypted_api_key = None
                     cfg.api_key_masked = None
-                elif key_input == cfg.api_key_masked:
-                    # 传回掩码代表保留
+                elif key_input == cfg.api_key_masked or (inherited_mask is not None and key_input == inherited_mask):
+                    # 传回已存密钥或继承部署密钥的掩码都代表保留；首次保存不得把掩码覆写成密文
                     pass
                 else:
                     # 传入新明文，进行加密
@@ -348,9 +355,10 @@ class RagflowConfigService:
             return self._effective_connection_config(state, company_id)
 
         cfg = self.repository.transaction(get_cfg)
-        plain_key = ""
-        if cfg.encrypted_api_key:
-            plain_key = decrypt_api_key(cfg.encrypted_api_key)
+        if not cfg.is_enabled or not cfg.encrypted_api_key:
+            raise DomainError(409, "KNOWLEDGE_BASE_NOT_CONFIGURED",
+                              "RAGFlow 知识库未启用或未配置 API Key，平台停用后不得继续使用继承的旧连接。")
+        plain_key = decrypt_api_key(cfg.encrypted_api_key)
 
         return RagflowRetrievalClient(
             base_url=cfg.base_url,

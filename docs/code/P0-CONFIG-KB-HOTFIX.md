@@ -49,3 +49,8 @@
 ## 第三轮补充（PM 最终权限模型统一口径）
 
 模型与 RAGFlow 连接配置管理（新建/修改/密钥轮换/连通性测试）**严格仅限 `platform_admin`**；公司管理员与普通成员一律 403。项目绑定与任务路由为独立授权：可选本公司或平台 system 池的合规本地非模拟模型，公网端点在候选/绑定/路由/运行时四处同一口径拦截。
+
+
+## 第四轮补充（RAGFlow 生命周期与任务路由口径）
+
+`effective_ragflow_connection` 先尊重公司独立可用配置；公司没有独立密钥时，平台显式停用成为终态，不回落环境变量复活旧实例。`RagflowConfigService.get_client` 对停用或无密钥连接统一抛 `KNOWLEDGE_BASE_NOT_CONFIGURED`，所以数据集创建/同步不能绕过停用状态。首次保存继承掩码只代表沿用部署密钥，不写入密文。`task_model_routes.resolve` 与保存校验共用“公司路由可指本公司或 system 池；system 路由只指 system 池”的归属规则。

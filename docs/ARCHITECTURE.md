@@ -573,3 +573,10 @@ ISSUE-034 / REV-M0-T27修复八项已有约束的缺陷：迟到错误核对来�
 
 - 应用容器端口默认绑定 `127.0.0.1:8710`（`deploy/docker-compose.yml` 的 `${ICG_BIND_HOST:-127.0.0.1}`），明文 HTTP 不暴露网卡；对外访问须经宿主机反向代理 HTTPS 终止后转发回环端口，严禁 `0.0.0.0` 明文直暴。
 - `/health` 健康判据：`persistent=true` 时执行轻量 MySQL `SELECT 1` 探活，探活失败即 unhealthy；compose 健康检查随非 200/断言失败判定 unhealthy。
+
+
+## 2026-11-27 ISSUE-059 第四轮安全边界对齐
+
+- 模型配置 CRUD、密钥轮换与连通性测试严格仅限 platform_admin；项目模型绑定允许 platform_admin、company_admin 与项目负责人，只选择合规本地模型且不暴露 API Key；目录/抽取/偏离任务路由允许 platform_admin 写 system 全局路由、company_admin 写本公司路由。
+- 公网模型端点采用 fail-closed：显式项目绑定或任务路由命中公网配置时抛出 403 `PUBLIC_MODEL_ENDPOINT_FORBIDDEN`；只有未指定具体模型、自动扫描默认池时才跳过公网项。
+- RAGFlow 平台显式停用是未独立配置租户的终态，继承连接不得再用于数据集创建/同步；公司独立配置优先，首次保存继承密钥掩码不代表新明文密钥。

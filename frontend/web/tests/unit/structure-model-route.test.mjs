@@ -13,6 +13,10 @@ test('目录模型选项带上主机，保存只改目录任务', () => {
     { id: 'nine', name: '目录九号', model: 'qwen3.5:9b', provider: 'openai', is_local: true, base_url: 'http://192.168.0.246:11434/v1' },
   ]);
   assert.deepEqual(options.map(item => item.value), ['local-b', 'nine']);
+  assert.deepEqual(structureModelOptions([
+    { id: 'alpha-own', company_id: 'alpha', name: 'alpha-own', model: 'qwen', provider: 'openai', is_local: true, base_url: 'http://alpha.local/v1' },
+    { id: 'sys-own', company_id: 'system', name: 'sys-own', model: 'qwen', provider: 'openai', is_local: true, base_url: 'http://sys.local/v1' },
+  ], { systemOnly: true }).map(item => item.value), ['sys-own']);
   assert.match(options[0].label, /local-b/);
   assert.match(options[0].label, /local-b\.local/);
   assert.match(options[1].label, /qwen3\.5:9b/);

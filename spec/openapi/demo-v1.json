@@ -54583,6 +54583,10 @@
             "type": "string",
             "title": "Id"
           },
+          "company_id": {
+            "type": "string",
+            "title": "Company Id"
+          },
           "name": {
             "type": "string",
             "title": "Name"
@@ -54663,6 +54667,7 @@
         "type": "object",
         "required": [
           "id",
+          "company_id",
           "name",
           "provider",
           "base_url",
@@ -64381,6 +64386,7 @@
               "PROJECT_LEAD_COMPANY_ROLE_REQUIRED",
               "PROJECT_LEAD_REQUIRED",
               "PROJECT_WRITER_REQUIRED",
+              "PUBLIC_MODEL_ENDPOINT_FORBIDDEN",
               "REASON_REQUIRED",
               "REBUILD_BLOCKED",
               "REFERENCE_REASON_REQUIRED",
@@ -66685,6 +66691,7 @@
           "PROJECT_CREATE_FORBIDDEN",
           "PROJECT_LEAD_REQUIRED",
           "PROJECT_WRITER_REQUIRED",
+          "PUBLIC_MODEL_ENDPOINT_FORBIDDEN",
           "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
           "SESSION_ROLE_UNSUPPORTED",
           "SESSION_SCOPE_UNSUPPORTED",

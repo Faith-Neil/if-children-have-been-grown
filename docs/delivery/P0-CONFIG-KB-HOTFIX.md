@@ -80,3 +80,10 @@ in-review；建议 PM 复核后标 done。ISSUE-059 四张止血卡全部实施�
 - Critical 6：重建历史标书生成新文档 ID 时重置脱敏/去实体化状态标记，确保 knowledge_base 在解析完成后对新分块完整重跑脱敏，杜绝敏感实体借重建绕过脱敏直接进入可检索状态；
 - RAGFlow 引擎配置权限按 PM 最终模型收回 platform_admin（详见 P0-SEC-MODEL-AUDIT-HOTFIX 第二轮补充）；
 - CWE-522/862/918 修复与回归测试见 docs/testing/iss-059-p0-hotfix-verification.md 验证登记。
+
+
+## 第四轮补充（Devin Review 复扫收敛）
+
+- RAGFlow 平台显式停用后，未独立配置的公司继承连接会被 `KNOWLEDGE_BASE_NOT_CONFIGURED` 阻断，不能再拿平台密钥创建数据集；独立公司配置不被平台实例停用误伤。
+- 首次保存只改超时等字段时，部署环境密钥掩码按“保留继承密钥”处理，不再把掩码加密成新密钥；前端也不再上行未修改的掩码。
+- 公司任务路由保存与运行时统一允许本公司或 system 池合规模型；平台管理员写 system 全局路由时，前端只列 system 池，避免选到无法保存的公司专属模型。

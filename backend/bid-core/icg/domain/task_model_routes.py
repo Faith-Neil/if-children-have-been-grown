@@ -71,7 +71,11 @@ def resolve(state: DemoState, company_id: str, task: str | None) -> tuple[Any, A
     for scope in (company_id, "system"):
         route = routes(state, scope).get(task) or {}
         primary = state.model_configs.get(route.get("primary_config_id") or "")
-        if primary is None or primary.company_id != scope:
+        # 与保存校验 problems() 同一口径：公司路由可显式指向本公司或平台 system 池模型；
+        # system 全局路由只接受 system 池模型。 explicit 指向即使不合规也返回给运行时 fail-closed，
+        # 不得在这里静默跳过并回落到别的模型。
+        allowed_owners = ("system",) if scope == "system" else (scope, "system")
+        if primary is None or primary.company_id not in allowed_owners:
             continue
         fallback = state.model_configs.get(route.get("fallback_config_id") or "")
         if fallback is not None and problems(state, scope, task, primary.id, fallback.id):

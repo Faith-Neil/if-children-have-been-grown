@@ -83,3 +83,10 @@ PM 正式驳回第一轮对公司管理员放开模型/RAGFlow 配置写权限�
 - 项目模型绑定为独立授权：项目负责人与公司管理员可读只写候选列表 `GET /projects/{id}/model-options`（绝不暴露明文密钥）并绑定已有合规模型（公司或平台 system 池）；前端绑定链路已切换到该端点；
 - 纵深防御补齐：CWE-639 全局 ID 冲突拒绝 + MySQL 归属约束 UPDATE；CWE-522 RAGFlow 改地址必须显式新密钥或显式清空；CWE-862 create_dataset/sync_knowledge_base 强制 company_admin/platform_admin；CWE-918 端点 scheme/主机/userinfo 校验；
 - RAGFlow 部署默认值不再持久化进公司配置行，只在运行时回落层生效（含回归测试）。
+
+
+## 第四轮补充（Devin Review 复扫收敛）
+
+- 登记 `PUBLIC_MODEL_ENDPOINT_FORBIDDEN=403` 并同步冻结名单/OpenAPI；显式项目绑定或任务路由指向公网模型时不再静默回落，运行时统一 fail-closed，自动扫描默认池时才跳过公网项。
+- 对话助手 HTTP 路由新增回归：显式公网绑定返回 403 与“改用内网模型”提示，不再因未登记错误码变成 500。
+- 项目模型读取的默认公司范围修正为目标项目所属公司；模型选项仍只返回掩码，不返回 API Key。

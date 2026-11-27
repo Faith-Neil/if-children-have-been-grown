@@ -136,7 +136,8 @@ export function RagflowConfigModal({
         is_enabled: Boolean(values.is_enabled),
       };
 
-      if (values.api_key !== undefined) {
+      // 掩码原样回传代表“不修改密钥”；首次保存尤其不能把它当成新明文上行。
+      if (values.api_key !== undefined && values.api_key !== config?.api_key_masked) {
         payload.api_key = values.api_key;
       }
 

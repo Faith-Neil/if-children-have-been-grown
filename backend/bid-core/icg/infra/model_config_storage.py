@@ -91,6 +91,7 @@ class ModelConfig:
     def to_public_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
+            "company_id": self.company_id,
             "name": self.name,
             "provider": self.provider,
             "base_url": self.base_url,
@@ -247,6 +248,7 @@ def provider_from_model_snapshot(
 
 class ModelConfigResponse(ResponseBody):
     id: str
+    company_id: str
     name: str
     provider: str
     base_url: str
@@ -675,11 +677,11 @@ class ModelConfigService:
         company_id = principal.user.company_id
 
         def operation(state: DemoState):
-            self.service._project(state, principal, project_id)
+            project = self.service._project(state, principal, project_id)
             config_id = state.project_model_configs.get(project_id)
             if config_id and config_id in state.model_configs:
                 return state.model_configs[config_id].to_public_dict()
-            chosen = saved_company_model(state, company_id)
+            chosen = saved_company_model(state, project.company_id)
             if chosen is None:
                 raise DomainError(404, "NOT_FOUND", "还没有可用的模型配置。请先添加模型。")
             return chosen.to_public_dict()

@@ -41,3 +41,11 @@
 
 - 交付：[P0-SEC-MODEL-AUDIT-HOTFIX](../delivery/P0-SEC-MODEL-AUDIT-HOTFIX.md)、[P0-EXPORT-STATE-HOTFIX](../delivery/P0-EXPORT-STATE-HOTFIX.md)、[P0-CONFIG-KB-HOTFIX](../delivery/P0-CONFIG-KB-HOTFIX.md)、[P0-DEPLOY-HOTFIX](../delivery/P0-DEPLOY-HOTFIX.md)
 - 任务卡：[P0-HOTFIX](../tasks/P0-HOTFIX.md)；Issue：[ISSUE-059](../../issues/ISSUE-059.md)
+
+
+## 第四轮复扫收敛（2026-11-27）
+
+- 后端聚焦：`tests/backend/test_issue059_round3_review.py` + `test_issue059_model_security.py` + `test_issue059_ragflow_fallback.py` + `test_issue059_security_depth.py`，43 passed。覆盖 `PUBLIC_MODEL_ENDPOINT_FORBIDDEN` 403、公网显式绑定 fail-closed、任务路由 system 池保存/运行一致、RAGFlow 停用阻断继承写入、首次保存掩码不覆写。
+- 前端聚焦：`node --test tests/unit/structure-model-route.test.mjs tests/unit/model-config-access.test.mjs`，3 passed；`pnpm --dir frontend/web lint`（`tsc -b --noEmit`）通过。
+- 契约：`python backend/bid-core/export_openapi.py --check` 100% 一致；`PUBLIC_MODEL_ENDPOINT_FORBIDDEN` 已冻结进错误表、冻结名单与 OpenAPI。
+- 说明：前端全量测试的既有陈旧失败（公司设置/编排等）与本轮无关，未冒充通过；真实 RAGFlow/真实模型/真实浏览器仍未执行。

@@ -44,3 +44,8 @@
 - `tests/backend/test_issue059_model_security.py` 15 passed；`tests/backend/test_issue059_audit_rbac.py` 6 passed；`frontend/web/tests/unit/platform-security-settings.test.mjs` 7 例全绿。
 - 验证登记见 [iss-059-p0-hotfix-verification](../testing/iss-059-p0-hotfix-verification.md)。
 - 限制：真实模型端点连通性未验证（`ICG_RUN_REAL_MODEL_TESTS=1` 门控）；URL 判定依赖运维正确配置内网地址；前端测试为 jsdom 单元级，未做真实浏览器联调。解释只对应当前实现。
+
+
+## 第四轮补充（公网模型 fail-closed）
+
+`domain.py` 在生效主模型与备用模型两处统一检查 `is_public_endpoint_config`；显式绑定/路由命中的公网配置抛出 `PUBLIC_MODEL_ENDPOINT_FORBIDDEN`（403），不交给默认池偷偷回落。`saved_company_model` 仍只在“未指定具体模型、自动扫描默认池”时跳过公网项。`errors.py`、`frozen_error_codes.py` 与 `spec/openapi/demo-v1.json` 已同步冻结。

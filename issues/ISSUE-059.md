@@ -14,7 +14,7 @@
 | 最后更新日期 | 2026-11-27 |
 | revision | p0-security-export-deploy-hotfix-r1 |
 | 关联 Task | [P0-SEC-MODEL-AUDIT-HOTFIX](../docs/tasks/P0-HOTFIX.md#p0-sec-model-audit-hotfix)、[P0-EXPORT-STATE-HOTFIX](../docs/tasks/P0-HOTFIX.md#p0-export-state-hotfix)、[P0-CONFIG-KB-HOTFIX](../docs/tasks/P0-HOTFIX.md#p0-config-kb-hotfix)、[P0-DEPLOY-HOTFIX](../docs/tasks/P0-HOTFIX.md#p0-deploy-hotfix) |
-| 关联 PR | 未创建 |
+| 关联 PR | [PR #56](https://github.com/Faith-Neil/if-children-have-been-grown/pull/56)（OPEN，未合入） |
 | 本地验收 | 开发自测已完成（2026-11-27）：4 个安全新测试文件 39 passed、`test_iss059_backend_hotfix` + `test_kb_admin` 23 passed 2 skipped、generation_session 组合 17 passed 2 skipped、真实 MySQL 复现 2 passed、reference_flow 21 passed、前端 fingerprint-recovery 14 例 + platform-security 7 例全绿、`export_openapi.py --check` 100% 一致；QA 签署 / PD 验收 / PM 确认未执行 |
 | 合入 | 未合入 |
 | 发布 | 未发布 |
@@ -101,12 +101,13 @@
 | 2026-11-27 | p0-security-export-deploy-hotfix-r1 / in-progress | 已按用户要求切出 `feat/iss-059-p0-security-export-deploy-hotfix` 并登记 Issue 与四张任务卡；组 4 部署修复已在工作区开工 | 用户本轮指令 |
 | 2026-11-27 | p0-security-export-deploy-hotfix-r1 / in-review | 四组修复实施进行中，Issue 登记提交复核；四张任务卡保持 in-progress，严禁标 done；待实施完成后补交付、验证并等待 QA/PD/PM | 治理登记 |
 | 2026-11-27 | p0-security-export-deploy-hotfix-r1 / in-review | 四组 12 项修复实施完成，四张任务卡与看板原子同步为 in-review；交付、代码说明与验证登记已留档（4 安全测试 39 passed、hotfix+kb_admin 23 passed 2 skipped、真实 MySQL 2 passed、reference_flow 21 passed、前端 21 例全绿、OpenAPI 100% 一致）；AC-01～AC-10、AC-12 已验证（开发自测），AC-11 部分验证（静态通过、真实容器未执行）；局限如实登记：真实 RAGFlow/真实模型门控未验证、知识库为 Fake、前端 jsdom 单元级；建议 PM 在 QA 签署 + PD 产品验收后复核标 done，不标 done/closed | [验证登记](../docs/testing/iss-059-p0-hotfix-verification.md)；四份交付见 `docs/delivery/` |
+| 2026-11-27 | p0-security-export-deploy-hotfix-r1 / in-review | 最后一轮 Devin Review 复扫收敛完成：`PUBLIC_MODEL_ENDPOINT_FORBIDDEN` 403 冻结与对话助手 HTTP 回归、公网显式绑定/路由 fail-closed、RAGFlow 停用写入阻断、首次保存掩码保护、任务路由 system 池保存/运行一致、平台管理员路由候选收口；聚焦后端 43 passed、前端聚焦 3 passed、`tsc` 通过、OpenAPI 100% 一致。仍不标 done/closed，待 QA/PD/PM | [验证登记](../docs/testing/iss-059-p0-hotfix-verification.md) 第四轮补充 |
 
 ## 本地验收与后续合入发布
 
 - 本地验收结论与日期：2026-11-27 开发自测完成，四张任务卡 in-review；QA 独立签署、PD 产品验收与人类 PM 确认尚未执行。
 - 验证方式、通过及失败项、未覆盖范围：见 [iss-059-p0-hotfix-verification](../docs/testing/iss-059-p0-hotfix-verification.md)；无失败项，skipped 均为真实服务门控跳过；未覆盖真实 RAGFlow/真实模型/真实浏览器/真实容器编排。
 - 六份基线同步与互链复核：PRD/ROADMAP 无影响（止血修复不改产品范围与里程碑）；ARCHITECTURE 有影响（模型兜底安全边界、审计授权边界、部署端口绑定与健康检查约束），正文对齐待处理；TASK_BOARD/PROJECT_STATUS/DOCUMENT_INDEX 已同步。
-- PR 状态：未创建。
+- PR 状态：[PR #56](https://github.com/Faith-Neil/if-children-have-been-grown/pull/56) OPEN，未合入。
 - 合入提交与日期：未合入。
 - 发布版本与日期：未发布。

@@ -120,3 +120,82 @@ def test_disabled_platform_config_is_terminal_and_never_revives_env(client, monk
     service.repository.transaction(seed)
     kb = service.knowledge_base
     assert kb.client_for("alpha") is None or not kb.enabled("alpha")
+
+
+def test_task_route_runtime_uses_system_pool_saved_by_company_admin(client):
+    """保存与运行时同一归属口径：公司路由显式选择 system 池后不得静默回落。"""
+    platform = login(client, "admin")
+    assert _mkcfg(client, platform, "cfg-sys-runtime", PRIVATE_URL, is_local=True, allow_sensitive=True).status_code == 200
+    company_admin = login(client, "alpha-company-admin")
+    routes = client.get("/api/v1/task-model-routes", headers=company_admin)
+    rev = routes.json().get("revision", 0)
+    saved = client.put("/api/v1/task-model-routes", headers={**company_admin, "If-Match": str(rev)},
+                       json={"routes": [{"task": "technical_structure", "primary_config_id": "cfg-sys-runtime"}]})
+    assert saved.status_code == 200, saved.text
+    service = client.app.state.service
+    state = service.repository.read()
+    provider = service.resolve_model_provider(state, "alpha-project", "technical_structure")
+    assert getattr(provider, "is_real_model", False) is True
+    assert getattr(provider, "_config").base_url == PRIVATE_URL
+
+
+def test_first_ragflow_save_with_inherited_mask_does_not_encrypt_mask(client, monkeypatch):
+    """首次保存沿用部署密钥掩码时不得把掩码覆写成新密钥。"""
+    monkeypatch.setenv("ICG_RAGFLOW_BASE_URL", "http://ragflow.internal:9380")
+    monkeypatch.setenv("ICG_RAGFLOW_API_KEY", "rf-env-secret-1234")
+    platform = login(client, "admin")
+    read = client.get("/api/v1/ragflow-config", headers=platform)
+    assert read.status_code == 200, read.text
+    masked = read.json()["api_key_masked"]
+    saved = client.put("/api/v1/ragflow-config", headers={**platform, "If-Match": str(read.json()["revision"])},
+                       json={"api_key": masked, "timeout_seconds": 33})
+    assert saved.status_code == 200, saved.text
+
+    def check(state):
+        row = state.ragflow_configs.get("system")
+        assert row is not None
+        assert row.encrypted_api_key is None, "环境密钥掩码不得被加密保存成新密钥"
+        assert row.api_key_masked is None
+
+    client.app.state.service.repository.transaction(check)
+    effective = client.app.state.service.knowledge_base.client_for("system")
+    assert effective is not None and effective._config.base_url == "http://ragflow.internal:9380"
+
+
+def test_disabled_platform_ragflow_blocks_inherited_dataset_write(client):
+    """CWE-863：平台停用后，继承平台连接的公司不得再用平台密钥创建数据集。"""
+    service = client.app.state.service
+    from icg.domain.ragflow_config import RagflowCompanyConfig
+    from icg.infra.model_config_storage import encrypt_api_key, mask_api_key
+
+    def seed(state):
+        state.ragflow_configs["system"] = RagflowCompanyConfig(
+            company_id="system", base_url="http://ragflow.internal:9380",
+            encrypted_api_key=encrypt_api_key("rf-platform-secret"),
+            api_key_masked=mask_api_key("rf-platform-secret"), is_enabled=False)
+
+    service.repository.transaction(seed)
+    company_admin = login(client, "alpha-company-admin")
+    result = client.post("/api/v1/ragflow/datasets", headers=company_admin, json={"name": "blocked"})
+    assert result.status_code == 409, result.text
+    assert result.json()["code"] == "KNOWLEDGE_BASE_NOT_CONFIGURED"
+
+
+def test_assistant_public_model_rejection_is_403_not_500(client):
+    """显式绑定公网模型时，对话助手 HTTP 路由返回冻结的 403 业务错误。"""
+    service = client.app.state.service
+    from icg.infra.model_config_storage import ModelConfig
+
+    def seed(state):
+        state.model_configs["cfg-assistant-public"] = ModelConfig(
+            id="cfg-assistant-public", company_id="alpha", name="公网模型", provider="openai-compatible",
+            base_url=PUBLIC_URL, model="public-model", is_local=False, allow_sensitive=False)
+        state.project_model_configs["alpha-project"] = "cfg-assistant-public"
+
+    service.repository.transaction(seed)
+    writer = login(client, "alpha-editor")
+    result = client.post("/api/v1/projects/alpha-project/chapters/alpha-tech/assistant-questions/stream",
+                         headers=writer, json={"question": "这一章还需要补什么？", "knowledge_base_enabled": False})
+    assert result.status_code == 403, result.text
+    assert result.json()["code"] == "PUBLIC_MODEL_ENDPOINT_FORBIDDEN"
+    assert "内网模型" in result.json()["message"]

@@ -5,13 +5,13 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { modelConfigAccess } from '../../src/admin/model-config-core.ts';
 
-test('only company and platform admins manage model configs; project leads may also bind', () => {
-  assert.deepEqual(modelConfigAccess('company_admin', false), { canManage: true, canBind: true });
-  assert.deepEqual(modelConfigAccess('platform_admin', false), { canManage: true, canBind: true });
-  assert.deepEqual(modelConfigAccess('manager', true), { canManage: false, canBind: true });
-  assert.deepEqual(modelConfigAccess('manager', false), { canManage: false, canBind: false });
-  assert.deepEqual(modelConfigAccess('editor', false), { canManage: false, canBind: false });
-  assert.deepEqual(modelConfigAccess(undefined, false), { canManage: false, canBind: false });
+test('only platform admins manage model configs; company admins and project leads may bind', () => {
+  assert.deepEqual(modelConfigAccess('company_admin', false), { canManage: false, canBind: true, canManageConfigs: false, canBindProjectModel: true });
+  assert.deepEqual(modelConfigAccess('platform_admin', false), { canManage: true, canBind: true, canManageConfigs: true, canBindProjectModel: true });
+  assert.deepEqual(modelConfigAccess('manager', true), { canManage: false, canBind: true, canManageConfigs: false, canBindProjectModel: true });
+  assert.deepEqual(modelConfigAccess('manager', false), { canManage: false, canBind: false, canManageConfigs: false, canBindProjectModel: false });
+  assert.deepEqual(modelConfigAccess('editor', false), { canManage: false, canBind: false, canManageConfigs: false, canBindProjectModel: false });
+  assert.deepEqual(modelConfigAccess(undefined, false), { canManage: false, canBind: false, canManageConfigs: false, canBindProjectModel: false });
 });
 
 test('the modal hides write actions unless allowed and defaults to read-only', () => {

@@ -44,6 +44,8 @@ def _frozen_status() -> dict[str, int]:
         "CROSS_REVIEWER_REQUIRED",
         # 口令登录：须先改密的会话、所属公司已停用 (APP-M2-T260 / PRD v1.8 §5.12.1)
         "PASSWORD_CHANGE_REQUIRED", "COMPANY_DISABLED",
+        # 公网模型端点无论项目是否涉密都不得用于标书生成 (ISSUE-059 / B5-B6)
+        "PUBLIC_MODEL_ENDPOINT_FORBIDDEN",
     ))
     _bind(table, 404, ("NOT_FOUND",))
     _bind(table, 409, (

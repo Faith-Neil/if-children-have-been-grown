@@ -63,7 +63,8 @@ export default function ProjectSettingsPage() {
   const readOnly = workspace.project_status?.read_only === true;  // 项目取消后只读（PRD 5.1.3）
   const leadCan = projectCan(workspace, 'manage_project');
   const canManageProject = leadCan && !readOnly;
-  const canChooseStructure = modelConfigAccess(user?.role, canManageProject).canManage && !readOnly;
+  // 任务路由权限独立于模型配置 CRUD：company_admin 写本公司路由，platform_admin 写 system 全局路由。
+  const canChooseStructure = (user?.role === 'company_admin' || user?.role === 'platform_admin') && !readOnly;
   const structurePrimary = structureRoutes?.tasks.find(row => row.task === 'technical_structure')?.primary_config_id ?? undefined;
   async function saveStructureModel(configId: string | null) {
     if (!canChooseStructure || !structureRoutes || structureSaving) return;
@@ -156,7 +157,7 @@ export default function ProjectSettingsPage() {
               disabled={!canChooseStructure || !structureRoutes || structureSaving}
               loading={structureSaving}
               value={structurePrimary}
-              options={structureModelOptions(structureConfigs)}
+              options={structureModelOptions(structureConfigs, { systemOnly: user?.role === 'platform_admin' })}
               onChange={value => { void saveStructureModel(value ?? null); }}
               allowClear
             />
