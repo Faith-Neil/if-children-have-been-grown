@@ -133,7 +133,9 @@ def test_platform_disabled_or_keyless_means_no_fallback(secret_key):
     tenant = RagflowCompanyConfig(company_id="alpha")
     state = service.repository.read()
     state.ragflow_configs["alpha"] = tenant
-    assert effective_ragflow_connection(state, "alpha") is tenant
+    # PM 第三轮裁定：平台显式停用是解析终态——公司侧同样停用，严禁落入环境变量分支复活旧实例
+    effective = effective_ragflow_connection(state, "alpha")
+    assert effective is not None and effective.is_enabled is False
 
 
 def test_platform_config_itself_returned_for_system(secret_key):

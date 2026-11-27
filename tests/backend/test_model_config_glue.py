@@ -131,7 +131,7 @@ def test_sensitive_project_model_binding_gate_and_rfc7807(client):
             "id": "cfg-cloud-external",
             "name": "云端公网推理服务",
             "provider": "openai-compatible",
-            "base_url": "https://api.external-cloud.com/v1",
+            "base_url": "http://192.168.1.51:8000",
             "model": "cloud-gpt",
             "is_local": False,
             "allow_sensitive": False,
