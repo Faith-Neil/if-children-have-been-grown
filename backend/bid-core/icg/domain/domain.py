@@ -490,6 +490,11 @@ class DemoService:
             if sensitive and not config_compliant_for_sensitive(cfg):
                 raise DomainError(403, "SENSITIVE_PROJECT_REQUIRES_LOCAL_MODEL",
                                   "敏感项目只能使用本地模型：实际生效的模型配置不是允许处理敏感数据的本地内网模型，或端点指向公网。")
+            # CWE-200：与平台默认兜底同一套过滤——无论项目是否涉密，公网端点一律不得用于生成
+            from icg.infra.model_config_storage import is_public_endpoint_config
+            if is_public_endpoint_config(cfg):
+                raise DomainError(403, "PUBLIC_MODEL_ENDPOINT_FORBIDDEN",
+                                  "实际生效的模型端点位于公网：标书正文严禁发往公网，请联系平台管理员改用内网模型。")
             provider = provider_from_model_config(cfg, transport=self.model_transport, default_provider=self.model_provider)
             backup = usable_fallback(state, cfg, sensitive)
             if route_backup is not None and (not sensitive or config_compliant_for_sensitive(route_backup)):

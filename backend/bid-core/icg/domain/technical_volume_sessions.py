@@ -286,7 +286,11 @@ class TechnicalVolumeSessions:
         finally:  # 未预料的异常也如实记失败，不留在“进行中”
             barrier.release()
             if not ended:
-                current = self.repository.read().recoverable_jobs.get(job_id) or {}
+                # 断库防护：收尾读库失败不得阻断失败事件发布与流关闭；读不到就按未知正文去向如实失败
+                try:
+                    current = self.repository.read().recoverable_jobs.get(job_id) or {}
+                except Exception:
+                    current = {}
                 if current.get("status") == "completed":
                     # 终态事务已把 completed 写进条目态、但任务行同步失败：正文很可能已提交，
                     # 严禁继续声称完成；如实改记失败并说明正文去向，且必须覆盖未落库的完成态。

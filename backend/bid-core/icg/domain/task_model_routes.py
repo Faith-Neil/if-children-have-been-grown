@@ -33,10 +33,16 @@ def problems(state: DemoState, company_id: str, task: str, primary_id: str | Non
     primary = state.model_configs.get(primary_id) if primary_id else None
     fallback = state.model_configs.get(fallback_id) if fallback_id else None
     for label, ident, cfg in (("首选", primary_id, primary), ("备用", fallback_id, fallback)):
-        if ident and (cfg is None or cfg.company_id != company_id):
+        # PM 裁定：模型收口平台托管后，允许选本公司或平台 system 池合规模型；
+        # 与绑定/运行时同一口径，公网端点一律不可用
+        if ident and (cfg is None or cfg.company_id not in (company_id, "system")):
             found.append(f"{name}：{label}模型不存在或不属于本公司")
         elif cfg is not None and cfg.provider == "demo":
             found.append(f"{name}：{label}模型必须是真实模型")
+        elif cfg is not None:
+            from icg.infra.model_config_storage import is_public_endpoint_config
+            if is_public_endpoint_config(cfg):
+                found.append(f"{name}：{label}模型端点位于公网，严禁使用")
     if fallback_id and not primary_id:
         found.append(f"{name}：先选首选模型，再选备用模型")
     if primary_id and fallback_id and primary_id == fallback_id:

@@ -101,9 +101,13 @@ def effective_ragflow_connection(state: DemoState, company_id: str) -> RagflowCo
     """
     configs = getattr(state, "ragflow_configs", None) or {}
     tenant = configs.get(company_id)
-    if company_id == "system":
-        return tenant
     platform = configs.get("system")
+    # 平台显式停用是解析终态：严禁落入环境变量分支把已停用的旧实例重新启用
+    if platform is not None and not platform.is_enabled:
+        return platform if company_id == "system" else replace(platform, company_id=company_id,
+            dataset_ids=list(tenant.dataset_ids) if tenant is not None else [f"dataset-{company_id}-01"])
+    if company_id == "system" and tenant is not None:
+        return tenant
     if tenant is not None:
         if not tenant.is_enabled:
             return tenant
@@ -143,16 +147,16 @@ class RagflowConfigService:
             state.ragflow_configs = {}
 
         if company_id not in state.ragflow_configs:
-            # 写路径实体化：只用静态占位默认，绝不复制环境变量部署密钥/地址——
-            # 部署默认只属于运行时回落层（deployment_default_config），
-            # 否则平台配置更新后公司行会把旧部署值写死（ISSUE-059 评审实锤）。
+            # 写路径实体化：继承当前实际生效的部署连接视图地址（环境变量/平台回落），
+            # 但绝不复制任何密钥——仅换密钥保存时地址保持真实生效值而非回环占位。
+            deployed = deployment_default_config(company_id)
             state.ragflow_configs[company_id] = RagflowCompanyConfig(
                 company_id=company_id,
-                base_url="http://127.0.0.1:9380",
+                base_url=(deployed.base_url if deployed is not None else "http://127.0.0.1:9380"),
                 encrypted_api_key=None,
                 api_key_masked=None,
                 dataset_ids=[f"dataset-{company_id}-01"],
-                timeout_seconds=DEFAULT_TIMEOUT_SECONDS,
+                timeout_seconds=(deployed.timeout_seconds if deployed is not None else DEFAULT_TIMEOUT_SECONDS),
                 is_enabled=True,
                 revision=1,
             )

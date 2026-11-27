@@ -44,3 +44,8 @@
 - `tests/backend/test_issue059_ragflow_fallback.py` 11 passed；`tests/backend/test_issue059_model_config_rbac.py` 7 passed；`tests/backend/test_admin_rbac_security_cleanup.py` 8 passed；`tests/backend/test_iss059_backend_hotfix.py` + `test_kb_admin` 23 passed 2 skipped；真实 MySQL 标记用例 2 passed（种子账号登录后可建项目、读 workspace，3407 复现）；`tests/backend/test_reference_flow.py` 21 passed。
 - 验证登记见 [iss-059-p0-hotfix-verification](../testing/iss-059-p0-hotfix-verification.md)。
 - 限制：真实 RAGFlow 连通性未验证（`ICG_RUN_REAL_RAGFLOW_TESTS=1` 门控）；知识库测试为进程内 Fake RAGFlow；skipped 用例为真实服务门控跳过。解释只对应当前实现。
+
+
+## 第三轮补充（PM 最终权限模型统一口径）
+
+模型与 RAGFlow 连接配置管理（新建/修改/密钥轮换/连通性测试）**严格仅限 `platform_admin`**；公司管理员与普通成员一律 403。项目绑定与任务路由为独立授权：可选本公司或平台 system 池的合规本地非模拟模型，公网端点在候选/绑定/路由/运行时四处同一口径拦截。

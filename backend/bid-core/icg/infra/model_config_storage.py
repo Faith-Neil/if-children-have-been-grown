@@ -341,13 +341,31 @@ def placeholder_default(config: ModelConfig) -> bool:
             and config.model == "qwen2.5-72b" and not config.encrypted_api_key)
 
 
+def is_public_endpoint_config(config: ModelConfig) -> bool:
+    """公网端点判定（与平台默认兜底同一套过滤）：只看实际 URL，不看 is_local 标志。"""
+    from .openai_model import is_public_model_url
+    return is_public_model_url(config.base_url)
+
+
+def bindable_pool_configs(state: Any, project_company_id: str) -> list[ModelConfig]:
+    """绑定候选池统一口径：目标项目所属公司 + 平台 system 池，
+    且绝不包含公网端点配置（CWE-200：绑定不得成为绕过滤的后门）。"""
+    return [
+        cfg for cfg in state.model_configs.values()
+        if cfg.company_id in (project_company_id, "system")
+        and not placeholder_default(cfg)
+        and not is_public_endpoint_config(cfg)
+    ]
+
+
 def saved_company_model(state: Any, company_id: str) -> ModelConfig | None:
     """没有项目绑定、也没有任务对应表时，用管理员添加的模型。有本地模型时不用非本地的那一份。
 
     平台 system 兜底对全公司生效、公司管理员未必知情，绝不回落到公网端点：
     公网 URL 的平台配置不参与兜底（ISSUE-059 数据不出内网红线）。"""
     saved = [cfg for cfg in state.model_configs.values()
-             if cfg.company_id == company_id and cfg.provider != "demo" and not placeholder_default(cfg)]
+             if cfg.company_id == company_id and cfg.provider != "demo" and not placeholder_default(cfg)
+             and not is_public_endpoint_config(cfg)]
     if not saved and company_id != "system":
         from .openai_model import is_public_model_url
         saved = [cfg for cfg in state.model_configs.values()
@@ -613,10 +631,14 @@ class ModelConfigService:
                 project = self.service._project(state, principal, project_id)
                 if not lead(state, project_id, principal.user.id):
                     raise DomainError(403, "PROJECT_LEAD_REQUIRED", "只有项目负责人或公司管理员能为项目选择模型配置。")
+            # 候选池统一按「目标项目所属公司 + 平台 system」计算（平台超管代绑时不能用操作者自身租户）
+            pool_company = project.company_id
             cfg = state.model_configs.get(config_id)
-            # 可绑定池：本公司配置 + 平台 system 合规配置（平台管理员代管的统一合规模型）
-            if cfg is None or cfg.company_id not in (company_id, "system"):
+            if cfg is None or cfg.company_id not in (pool_company, "system"):
                 raise DomainError(404, "NOT_FOUND", "未找到该模型配置。")
+            # CWE-200：无论项目是否涉密，公网端点一律不得绑定——绑定不能成为绕过公网过滤的后门
+            if is_public_endpoint_config(cfg):
+                raise DomainError(422, "VALIDATION_ERROR", "公网端点模型不得绑定到项目：标书正文严禁发往公网。", {"field": "model_config_id"})
 
             # 策略门禁：敏感项目尝试绑定非本地或未标记敏感可用的模型
             validate_model_config_for_project(project.sensitive, cfg)
@@ -642,11 +664,8 @@ class ModelConfigService:
                 project = self.service._project(state, principal, project_id)
                 if not lead(state, project_id, principal.user.id):
                     raise DomainError(403, "PROJECT_LEAD_REQUIRED", "只有项目负责人或公司管理员能为项目选择模型配置。")
-            items = [
-                cfg.to_public_dict()
-                for cfg in state.model_configs.values()
-                if cfg.company_id in (company_id, "system") and not placeholder_default(cfg)
-            ]
+            # 与 bind_project/运行时解析同一口径：按项目所属公司 + system 池，排除公网端点
+            items = [cfg.to_public_dict() for cfg in bindable_pool_configs(state, project.company_id)]
             items.sort(key=lambda item: (0 if item["is_local"] else 1, item["id"]))
             return {"items": items}
 

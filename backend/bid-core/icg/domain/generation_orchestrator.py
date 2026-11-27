@@ -683,6 +683,10 @@ class GenerationOrchestratorMixin:
                         inbox.put({"event": "volume.failed",
                                    "message": getattr(barrier_error, "message", None) or "生成进度未能写入任务存储，正文不予提交。"})
                         return
+                # 等待进度落库确认期间用户可能已取消：落盘正文前必须重检取消信号，不得越过取消覆盖正文
+                if cancel is not None and cancel.is_set():
+                    inbox.put({"event": "volume.cancelled", "chapter_id": result.get("chapter_id") or ""})
+                    return
                 drafted_chapter = snapshot.chapters[result["chapter_id"]]
                 drafted = {
                     "result": result,
@@ -701,6 +705,8 @@ class GenerationOrchestratorMixin:
                     return str(self.repository.read().projects[project_id].revision)
 
                 def commit_volume(expected: str) -> dict:
+                    if cancel is not None and cancel.is_set():
+                        raise DomainError(409, "GENERATION_CANCELLED", "生成已取消，正文不再提交。")
                     return self._write(
                         principal, project_id, "chapter.generate", payload, expected, prepared["key"],
                         lambda state, project, actual: self._apply_technical_volume(state, actual, principal, drafted),
