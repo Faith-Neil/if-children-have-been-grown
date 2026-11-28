@@ -329,7 +329,7 @@ export function CoverageView() {
                   <div key={row.requirement_id} style={{ padding: '4px 0' }} data-testid={`filtered-clause-${row.requirement_id}`}>
                     <Tag color={row.requirement_scope === 'non_technical' ? 'gold' : 'default'}>{filteredClauseLabel(row)}</Tag>
                     <span>{row.text}</span>
-                    {row.source_page != null && <span className="muted"> p.{row.source_page}</span>}
+                    <span className="muted"> {row.source_filename || '招标文件'}{row.source_page != null ? ` p.${row.source_page}` : ''}</span>
                   </div>
                 ))}
               </div>

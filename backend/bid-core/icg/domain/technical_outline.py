@@ -602,6 +602,7 @@ def workspace_fields(state: Any, project_id: str, workflow: dict) -> dict[str, A
         if scope not in ("non_technical", "fragment_filtered"):
             continue
         source = row.get("source") or {}
+        source_file = (workflow.get("files") or {}).get(source.get("file_id")) or {}
         filtered_clause_rows.append({
             "requirement_id": str(row.get("id") or ""),
             "text": str(row.get("extracted_summary") or row.get("text") or ""),
@@ -609,7 +610,8 @@ def workspace_fields(state: Any, project_id: str, workflow: dict) -> dict[str, A
             "non_tech_category": str(row.get("non_tech_category") or ""),
             "fragment_reason": str(row.get("fragment_reason") or ""),
             "source_page": source.get("page"),
-            "source_filename": source.get("filename") or source.get("file_name"),
+            "source_filename": source.get("filename") or source.get("file_name")
+                               or source_file.get("filename") or source_file.get("name"),
         })
     return {
         "plan_confirmed": confirmed,

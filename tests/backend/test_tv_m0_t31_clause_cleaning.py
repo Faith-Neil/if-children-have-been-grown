@@ -278,3 +278,28 @@ def test_deviation_clause_prefers_completed_clean_text_over_short_quote():
         "source": {"quote": "6.2 乙方须在故障发生后0.5小时内到场"},
     }
     assert complete_clause_text(row) == "乙方须在故障发生后0.5小时内到场，2小时内恢复服务。"
+
+
+def test_number_boundary_treats_sentence_period_as_punctuation_not_decimal():
+    from icg.domain.technical_clause_cleaning import _number_preserved
+
+    assert _number_preserved("1.2", "TLS 1.2.")
+    assert not _number_preserved("1.2", "TLS 1.20")
+    assert not _number_preserved("1.2", "TLS 11.2")
+
+
+def test_temporal_context_does_not_undo_qualification_split():
+    from icg.domain.technical_clause_cleaning import non_tech_category
+
+    assert non_tech_category("系统实施前，投标人须提供银行资信证明") == "qualification"
+    assert non_tech_category("项目验收前提供银行资信证明，并完成数据库备份演练") == ""
+
+
+def test_r09_uses_effective_non_tech_scope_even_for_legacy_rows_without_scope_field():
+    from icg.domain.compliance_rules import ComplianceRulesEngine
+
+    payment = _row("pay", "服务期内每季度支付一次进度款")
+    payment.update(response="", clause_cleaned=True)
+    result = ComplianceRulesEngine.check_r09(None, None, {"requirements": {"pay": payment}})
+    assert result.passed is True
+    assert result.issues == []

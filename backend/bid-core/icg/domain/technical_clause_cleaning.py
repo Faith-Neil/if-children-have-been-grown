@@ -50,8 +50,17 @@ _TECHNICAL_OBLIGATION = re.compile(
 )
 
 
+# 「系统实施前 / 项目验收前 / 合同履行期间」只是时间背景，不是独立技术义务；
+# 先剥离这类状语再识别技术词，避免资格证明被「实施/验收」单字撤销分流。
+_TEMPORAL_CONTEXT = re.compile(
+    r"(?:[一-鿿]{0,8}?(?:系统|项目|合同|工程|服务|运维))?"
+    r"(?:实施|验收|履行|交付|建设|运行)(?:前|期间|过程中|阶段|后期)"
+)
+
+
 def _has_technical_obligation(text: str) -> bool:
-    return bool(_TECHNICAL_OBLIGATION.search(str(text or "")))
+    blob = _TEMPORAL_CONTEXT.sub("", str(text or ""))
+    return bool(_TECHNICAL_OBLIGATION.search(blob))
 
 
 # ---------------------------------------------------------------- 残句结构信号
@@ -182,10 +191,16 @@ def row_non_tech_category(row: dict) -> str:
 
 
 def row_excluded_from_technical(row: dict) -> bool:
-    """落盘后的硬过滤：非技术或残句过滤条款不得参与技术目录挂载、偏离表与负偏离判定。"""
+    """落盘后的硬过滤：非技术或残句过滤条款不得参与技术目录挂载、偏离表与负偏离判定。
+
+    存量项目可能已有旧版 `clause_cleaned` 标记但缺 `requirement_scope`；因此这里消费
+    与技术清单一致的行级生效判定，而不是只看新字段是否存在。
+    """
     if str(row.get("requirement_scope") or "") in EXCLUDED_SCOPES:
         return True
-    return bool(row.get("clause_fragment"))
+    if row.get("clause_fragment"):
+        return True
+    return bool(row_non_tech_category(row))
 
 
 # ---------------------------------------------------------------- 残句补全
@@ -213,7 +228,8 @@ def _number_tokens(text: str) -> list[str]:
 
 
 def _number_preserved(number: str, text: str) -> bool:
-    return bool(re.search(r"(?<![\d.])" + re.escape(number) + r"(?![\d.])", str(text or "")))
+    # 只有数字之间的点才是小数点；句末英文句号不得让 `TLS 1.2.` 误判缺数字。
+    return bool(re.search(r"(?<!\d)(?<!\d\.)" + re.escape(number) + r"(?!\d|\.\d)", str(text or "")))
 
 
 def _anchor_integrity(candidate: str, fragment: str) -> bool:

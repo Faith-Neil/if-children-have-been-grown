@@ -594,7 +594,7 @@ class TenderOrchestratorMixin:
                     continue
                 if row.get("manually_edited") and not source_row.get("manually_edited"):
                     continue  # 锁外间隙人工接管了该行：以人工为准，不回写。
-                for key in ("digest_id", "text", "extracted_summary", "requirement_scope",
+                for key in ("digest_id", "text", "extracted_summary", "source_fragment", "requirement_scope",
                             "non_tech_category", "clause_fragment", "fragment_completed",
                             "fragment_reason", "clause_cleaned"):
                     if key in source_row:

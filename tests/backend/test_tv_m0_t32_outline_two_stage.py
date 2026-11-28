@@ -195,3 +195,50 @@ def test_end_to_end_empty_leaf_is_not_written_as_generation_task():
     assert "空章节" not in titles
     assert len(plan["tasks"]) == 1
     assert all(task["requirement_ids"] for task in plan["tasks"])
+
+
+def test_missing_ref_merge_uses_alternative_positions_under_leaf_capacity():
+    from icg.domain.technical_digest_outline import _merge_missing_mounts
+
+    expected = [f"T-{index:02d}" for index in range(1, 7)]
+    weights = {ref: 1.0 for ref in expected}
+    base = {"1.1": ["T-01", "T-02"]}
+    # 三组候选都提供模型位置；若只取第一个位置，T-03/T-04 都会挤进 1.1 并超过容量 3。
+    candidates = [
+        base,
+        {"1.1": ["T-01", "T-02", "T-03", "T-04"]},
+        {"1.1": ["T-01", "T-02", "T-03", "T-04"], "1.2": ["T-04"], "1.3": ["T-03"]},
+    ]
+    merged = _merge_missing_mounts(base, candidates, expected, weights, max_leaf_count=3)
+    mounted = sorted({ref for refs in merged.values() for ref in refs})
+    assert mounted == expected[:4]
+    assert max(len(refs) for refs in merged.values()) <= 3
+    assert any(ref in merged.get("1.2", []) or ref in merged.get("1.3", []) for ref in ("T-03", "T-04"))
+
+
+def test_unmergeable_missing_refs_keep_valid_base_instead_of_failing():
+    from icg.domain.technical_digest_outline import _merge_missing_mounts, _select_merged_mounts
+
+    expected = [f"T-{index:02d}" for index in range(1, 9)]
+    weights = {ref: 1.0 for ref in expected}
+    base = {"1.1": ["T-01", "T-02", "T-03", "T-04"], "1.2": ["T-05", "T-06"]}
+    candidates = [
+        base,
+        {"1.1": ["T-01", "T-02", "T-03", "T-04", "T-07"], "1.2": ["T-05", "T-06"]},
+        {"1.1": ["T-01", "T-02", "T-03", "T-04", "T-08"], "1.2": ["T-05", "T-06"]},
+    ]
+    merged = _merge_missing_mounts(base, candidates, expected, weights, max_leaf_count=4)
+    assert merged == base  # T-07/T-08 留在未挂载池，不把 1.1 推到 5 条
+    selected = _select_merged_mounts(candidates, expected, weights, leaf_count=3)
+    assert selected == base  # 合格的基底候选保守保留，不直接判生成失败
+    assert max(len(refs) for refs in selected.values()) <= 4
+    assert len({ref for refs in selected.values() for ref in refs}) == 6
+
+
+def test_time_specification_prefix_is_not_stripped_as_outline_number():
+    from icg.domain.technical_digest_outline import _clean_title
+
+    assert _clean_title("7×24小时响应机制") == "7×24小时响应机制"
+    assert _clean_title("7x24小时响应机制") == "7x24小时响应机制"
+    assert _clean_title("5×8小时现场服务") == "5×8小时现场服务"
+    assert _clean_title("1.2 运维响应机制") == "运维响应机制"

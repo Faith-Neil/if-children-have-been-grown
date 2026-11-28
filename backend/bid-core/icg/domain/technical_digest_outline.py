@@ -225,7 +225,7 @@ def repair_json_payload(raw: str) -> dict:
 def _clean_title(raw: Any) -> str:
     from icg.domain.technical_response_plan import short_chapter_title
 
-    text = re.sub(r"^(?:\d+(?:\.\d+)*|[一二三四五六七八九十]+[、.．])\s*", "", str(raw or "").strip())
+    text = re.sub(r"^(?:\d+(?:\.\d+)*(?![×xX])|[一二三四五六七八九十]+[、.．])\s*", "", str(raw or "").strip())
     text = re.sub(r"^第[\d一二三四五六七八九十百]+[章节篇][、.．\s]*", "", text).strip()
     return short_chapter_title(text) if len(text) > TITLE_LIMIT else text
 
@@ -367,18 +367,77 @@ def _mount_quality(mounts: dict[str, list[str]], weights: dict[str, float]) -> t
 
 def _merge_missing_mounts(
     best: dict[str, list[str]], candidates: list[dict[str, list[str]]], expected: list[str],
+    weights: dict[str, float] | None = None, max_leaf_count: int | None = None,
 ) -> dict[str, list[str]]:
-    """多次模型输出都是候选证据；重试耗尽后，把最佳候选漏挂、但其他候选已挂上的编号
-    按模型给出的叶子位置补入。只补缺失编号，不覆盖最佳候选已有位置，不用规则猜章节。"""
+    """多次模型输出都是候选证据；缺项保留其在各候选中的所有有效叶子位置。
+
+    合并不是“见第一个位置就填”：有容量约束时用小型回溯搜索选择不超限的位置。
+    若某缺项在当前容量下无法安全补齐，它留在未挂载池；绝不为了形式全覆盖把单叶
+    推回集中倾倒，也不因此否定本身合格的基底候选。
+    """
     merged = {node: list(refs) for node, refs in best.items()}
     mounted = {ref for refs in merged.values() for ref in refs}
+    missing = [ref for ref in expected if ref not in mounted]
+    if not missing:
+        return merged
+
+    positions: dict[str, list[str]] = {}
     for candidate in candidates:
         for node, refs in candidate.items():
             for ref in refs:
-                if ref in expected and ref not in mounted:
-                    merged.setdefault(node, []).append(ref)
-                    mounted.add(ref)
-    return merged
+                if ref in expected and ref in missing and node not in positions.setdefault(ref, []):
+                    positions[ref].append(node)
+    # 无容量约束时按候选质量顺序补齐，兼容旧调用；这仍保留所有位置的去重语义。
+    if max_leaf_count is None:
+        for ref in missing:
+            node = (positions.get(ref) or [None])[0]
+            if node:
+                merged.setdefault(node, []).append(ref)
+        return merged
+
+    weights = weights or {ref: 1.0 for ref in expected}
+    searchable = [ref for ref in missing if positions.get(ref)]
+    # 位置最少的缺项先搜索，尽早暴露容量冲突；同位次保持 expected 顺序保证确定性。
+    searchable.sort(key=lambda ref: (len(positions[ref]), expected.index(ref)))
+    counts = {node: len(refs) for node, refs in merged.items()}
+    best_merged: dict[str, list[str]] | None = None
+    best_key: tuple[float, int] = (-1.0, -1)
+    budget = 100000
+
+    def consider() -> None:
+        nonlocal best_merged, best_key
+        quality, count = _mount_quality(merged, weights)
+        if (quality, count) > best_key:
+            best_key = (quality, count)
+            best_merged = {node: list(refs) for node, refs in merged.items()}
+
+    def search(index: int) -> bool:
+        """返回是否还应继续；budget 耗尽时保留当前最优并停止。"""
+        nonlocal budget
+        if budget <= 0:
+            return False
+        budget -= 1
+        if index >= len(searchable):
+            consider()
+            return True
+        ref = searchable[index]
+        # 优先尝试当前挂载数少、且在候选中出现更早的位置；同分时保持确定性。
+        choices = sorted(positions[ref], key=lambda node: (counts.get(node, 0), positions[ref].index(node)))
+        for node in choices:
+            if counts.get(node, 0) >= max_leaf_count:
+                continue
+            merged.setdefault(node, []).append(ref)
+            counts[node] = counts.get(node, 0) + 1
+            continuing = search(index + 1)
+            merged[node].pop()
+            counts[node] -= 1
+            if not continuing:
+                return False
+        # 合规容量放不下时允许该缺项留在未挂载池；这比整体失败或超限倾倒更安全。
+        return search(index + 1)
+
+    search(0)
+    return best_merged if best_merged is not None else merged
 
 
 def prune_empty_skeleton(
@@ -430,8 +489,9 @@ def _select_merged_mounts(
     best: dict[str, list[str]] | None = None
     best_key: tuple[float, int] = (-1.0, -1)
     enforce_share = leaf_count >= 3
+    max_leaf_count = max(1, int(len(expected) * MAX_LEAF_SHARE)) if enforce_share else None
     for base in ordered:
-        merged = _merge_missing_mounts(base, ordered, expected)
+        merged = _merge_missing_mounts(base, ordered, expected, weights, max_leaf_count)
         if enforce_share and _max_leaf_share(merged, len(expected)) > MAX_LEAF_SHARE:
             continue
         quality, count = _mount_quality(merged, weights)

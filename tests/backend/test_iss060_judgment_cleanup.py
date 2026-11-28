@@ -157,7 +157,9 @@ def _seed_legacy_project(client):
             "r3": _row("r3", "备份恢复演练每季度一次"),
             "r4": _fake_negative(_row("r4", "投标报价不得高于最高限价")),
             "r5": _fake_negative(_row("r5", "| 采用数据库", quote="无锚点")),
+            "r7": _fake_negative(_row("r7", "服务期内每季度支付一次进度款")),
         }
+        workflow["files"] = {"f1": {"id": "f1", "filename": "招标文件-技术部分.pdf", "sha256": "seed", "file_role": "tender", "pages": [], "size": 1, "media_type": "application/pdf", "status": "parsed", "page_count": 0, "pagination": "none", "warnings": [], "download_url": "/api/v1/files/f1"}}
         workflow["technical_sidecars"] = {"rejection_lines": [], "format_lines": []}
 
     service.repository.transaction(change)
@@ -199,6 +201,12 @@ def test_outline_rebuild_writes_back_cleaning_and_clears_fake_negative(client): 
     # 碎片行过滤落盘
     assert rows["r5"]["requirement_scope"] == "fragment_filtered"
     assert rows["r5"]["deviation_type"] is None
+    # 存量付款条款重跑分流并清空旧响应后，R09 不得再把它当技术服务期缺口阻断。
+    assert rows["r7"]["requirement_scope"] == "non_technical"
+    assert rows["r7"]["response"] == "" and rows["r7"]["deviation_type"] is None
+    from icg.domain.compliance_rules import ComplianceRulesEngine
+    r09 = ComplianceRulesEngine.check_r09(None, None, workflow)
+    assert not any(issue.get("requirement_id") == "r7" for issue in r09.issues)
     # 技术行拿到清单编号并挂进目录
     assert rows["r1"].get("digest_id") == "T-01"
     assert workflow.get("response_tasks")
@@ -243,6 +251,7 @@ def test_outline_rebuild_recleans_fragment_when_files_are_now_in_snapshot(client
     assert row["requirement_scope"] == "technical"
     assert "茶园安得仓库" in row["text"]
     assert row.get("digest_id") == "T-04"
+    assert row.get("source_fragment") == "运维服务地点："
 
 
 def test_workspace_exposes_filtered_clause_readonly_rows(client):  # noqa: F811
@@ -257,3 +266,4 @@ def test_workspace_exposes_filtered_clause_readonly_rows(client):  # noqa: F811
     assert rows["r4"]["non_tech_category"] in {"pricing", "business_or_packaging", "qualification"}
     assert rows["r5"]["requirement_scope"] == "fragment_filtered"
     assert rows["r5"]["fragment_reason"]
+    assert rows["r4"]["source_filename"] == "招标文件-技术部分.pdf"
