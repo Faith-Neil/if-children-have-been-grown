@@ -101,14 +101,50 @@ _BUSINESS_MARKERS = (
     "最不利原则",
     "投标文件内容",
     "投标文件原件",
+    # ISSUE-060：限价/付款/账户/清算破产与资格程序——纯商务与资格条款，不属于技术方案。
+    # 注意保持保守限定（付款方式/支付比例等复合词），裸词「付款/支付/清算」会误伤
+    # 支付接口、数据清算等真实技术条款。
+    "最高限价",
+    "限价",
+    "付款期限",
+    "付款比例",
+    "支付比例",
+    "预付款",
+    "进度款",
+    "基本账户",
+    "进入清算",
+    "清算或破产",
+    "破产清算",
+    "宣告破产",
+    "资格审查",
 )
+
+# 投标/响应文件本身的做法要求（格式、编写、装订、签署、密封、修改、份数……）是形式条款；
+# 单个词太宽（「修改」「格式」可能出现在技术条款里），必须和「投标文件/响应文件」同时命中才拦。
+_BID_DOC_WORDS = ("投标文件", "响应文件", "投标函")
+_BID_DOC_FORMAT_WORDS = (
+    "格式", "编写", "编制", "装订", "签署", "签字", "盖章", "密封", "修改", "澄清",
+    "份数", "正本", "副本", "打印", "书写", "涂改", "递交", "送达", "组成",
+)
+
+
+def is_bid_document_format(text: str) -> bool:
+    """「投标文件应按第六章格式编写」「投标文件修改需书面通知」这类形式条款。"""
+    blob = str(text or "")
+    if not blob:
+        return False
+    if not any(word in blob for word in _BID_DOC_WORDS):
+        return False
+    return any(word in blob for word in _BID_DOC_FORMAT_WORDS)
 
 
 def is_business_clause_text(text: str) -> bool:
     blob = str(text or "")
     if not blob:
         return False
-    return any(marker in blob for marker in _BUSINESS_MARKERS)
+    if any(marker in blob for marker in _BUSINESS_MARKERS):
+        return True
+    return is_bid_document_format(blob)
 
 
 def is_business_clause(item: dict) -> bool:

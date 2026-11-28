@@ -9,14 +9,14 @@
 | Issue ID | ISSUE-059 |
 | 类型 | bug |
 | 优先级 | P0 |
-| 状态 | in-review |
+| 状态 | closed |
 | 登记日期 | 2026-11-27 |
-| 最后更新日期 | 2026-11-27 |
+| 最后更新日期 | 2026-11-28 |
 | revision | p0-security-export-deploy-hotfix-r1 |
 | 关联 Task | [P0-SEC-MODEL-AUDIT-HOTFIX](../docs/tasks/P0-HOTFIX.md#p0-sec-model-audit-hotfix)、[P0-EXPORT-STATE-HOTFIX](../docs/tasks/P0-HOTFIX.md#p0-export-state-hotfix)、[P0-CONFIG-KB-HOTFIX](../docs/tasks/P0-HOTFIX.md#p0-config-kb-hotfix)、[P0-DEPLOY-HOTFIX](../docs/tasks/P0-HOTFIX.md#p0-deploy-hotfix) |
-| 关联 PR | [PR #56](https://github.com/Faith-Neil/if-children-have-been-grown/pull/56)（OPEN，未合入） |
-| 本地验收 | 开发自测已完成（2026-11-27）：4 个安全新测试文件 39 passed、`test_iss059_backend_hotfix` + `test_kb_admin` 23 passed 2 skipped、generation_session 组合 17 passed 2 skipped、真实 MySQL 复现 2 passed、reference_flow 21 passed、前端 fingerprint-recovery 14 例 + platform-security 7 例全绿、`export_openapi.py --check` 100% 一致；QA 签署 / PD 验收 / PM 确认未执行 |
-| 合入 | 未合入 |
+| 关联 PR | [PR #56](https://github.com/Faith-Neil/if-children-have-been-grown/pull/56) 已合入 main（f18708c） |
+| 本地验收 | 开发自测已完成（2026-11-27）：4 个安全新测试文件 39 passed、`test_iss059_backend_hotfix` + `test_kb_admin` 23 passed 2 skipped、generation_session 组合 17 passed 2 skipped、真实 MySQL 复现 2 passed、reference_flow 21 passed、前端 fingerprint-recovery 14 例 + platform-security 7 例全绿、`export_openapi.py --check` 100% 一致；QA/PD 独立签署未执行；用户（人类 PM）已按 PR #56 合入指示收口 |
+| 合入 | 已合入 main：f18708c |
 | 发布 | 未发布 |
 | 交付说明 | [P0-SEC-MODEL-AUDIT-HOTFIX](../docs/delivery/P0-SEC-MODEL-AUDIT-HOTFIX.md)、[P0-EXPORT-STATE-HOTFIX](../docs/delivery/P0-EXPORT-STATE-HOTFIX.md)、[P0-CONFIG-KB-HOTFIX](../docs/delivery/P0-CONFIG-KB-HOTFIX.md)、[P0-DEPLOY-HOTFIX](../docs/delivery/P0-DEPLOY-HOTFIX.md) |
 | 代码 / 流程解释 | [P0-SEC-MODEL-AUDIT-HOTFIX](../docs/code/P0-SEC-MODEL-AUDIT-HOTFIX.md)、[P0-EXPORT-STATE-HOTFIX](../docs/code/P0-EXPORT-STATE-HOTFIX.md)、[P0-CONFIG-KB-HOTFIX](../docs/code/P0-CONFIG-KB-HOTFIX.md)、[P0-DEPLOY-HOTFIX](../docs/code/P0-DEPLOY-HOTFIX.md) |
@@ -61,10 +61,10 @@
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| [P0-SEC-MODEL-AUDIT-HOTFIX](../docs/tasks/P0-HOTFIX.md#p0-sec-model-audit-hotfix) | 组 1（a/b/c）：平台模型兜底不外泄、在用公司模型可轮换密钥、本地模型不误挡；审计日志授权 403；安全策略保存不覆盖 | `icg/infra/model_config_storage.py`、`icg/api/audit.py`、`frontend/web/src/admin/PlatformSecurityPage.tsx` | AC-01～AC-03 | in-review |
-| [P0-EXPORT-STATE-HOTFIX](../docs/tasks/P0-HOTFIX.md#p0-export-state-hotfix) | 组 2（d/e/f）：热路径指纹误判过期、重庆中烟死锁与恢复按钮、进度写入失败不静默 | `icg/infra/repositories/hot_reads.py`、`icg/domain/technical_volume_sessions.py`、前端编辑台 | AC-04～AC-06 | in-review |
-| [P0-CONFIG-KB-HOTFIX](../docs/tasks/P0-HOTFIX.md#p0-config-kb-hotfix) | 组 3（g/h/i/j）：平台 RAGFlow 配置生效、项目负责人绑定模型、知识库重建可解析与 422、种子账号登录持久 | `icg/api/ragflow.py`、`icg/api/model_configs.py`、`icg/domain/kb_admin.py`、`icg/infra/repositories/hot_reads.py` | AC-07～AC-10 | in-review |
-| [P0-DEPLOY-HOTFIX](../docs/tasks/P0-HOTFIX.md#p0-deploy-hotfix) | 组 4（k/l）：容器健康检查修复、端口回环默认与反代 HTTPS 文档固化 | `deploy/docker-compose.yml`、`deploy/README.md` | AC-11～AC-12 | in-review |
+| [P0-SEC-MODEL-AUDIT-HOTFIX](../docs/tasks/P0-HOTFIX.md#p0-sec-model-audit-hotfix) | 组 1（a/b/c）：平台模型兜底不外泄、在用公司模型可轮换密钥、本地模型不误挡；审计日志授权 403；安全策略保存不覆盖 | `icg/infra/model_config_storage.py`、`icg/api/audit.py`、`frontend/web/src/admin/PlatformSecurityPage.tsx` | AC-01～AC-03 | done |
+| [P0-EXPORT-STATE-HOTFIX](../docs/tasks/P0-HOTFIX.md#p0-export-state-hotfix) | 组 2（d/e/f）：热路径指纹误判过期、重庆中烟死锁与恢复按钮、进度写入失败不静默 | `icg/infra/repositories/hot_reads.py`、`icg/domain/technical_volume_sessions.py`、前端编辑台 | AC-04～AC-06 | done |
+| [P0-CONFIG-KB-HOTFIX](../docs/tasks/P0-HOTFIX.md#p0-config-kb-hotfix) | 组 3（g/h/i/j）：平台 RAGFlow 配置生效、项目负责人绑定模型、知识库重建可解析与 422、种子账号登录持久 | `icg/api/ragflow.py`、`icg/api/model_configs.py`、`icg/domain/kb_admin.py`、`icg/infra/repositories/hot_reads.py` | AC-07～AC-10 | done |
+| [P0-DEPLOY-HOTFIX](../docs/tasks/P0-HOTFIX.md#p0-deploy-hotfix) | 组 4（k/l）：容器健康检查修复、端口回环默认与反代 HTTPS 文档固化 | `deploy/docker-compose.yml`、`deploy/README.md` | AC-11～AC-12 | done |
 
 ## 验收条目
 
@@ -104,12 +104,14 @@
 | 2026-11-27 | p0-security-export-deploy-hotfix-r1 / in-review | 最后一轮 Devin Review 复扫收敛完成：`PUBLIC_MODEL_ENDPOINT_FORBIDDEN` 403 冻结与对话助手 HTTP 回归、公网显式绑定/路由 fail-closed、RAGFlow 停用写入阻断、首次保存掩码保护、任务路由 system 池保存/运行一致、平台管理员路由候选收口；聚焦后端 43 passed、前端聚焦 3 passed、`tsc` 通过、OpenAPI 100% 一致。仍不标 done/closed，待 QA/PD/PM | [验证登记](../docs/testing/iss-059-p0-hotfix-verification.md) 第四轮补充 |
 | 2026-11-28 | p0-security-export-deploy-hotfix-r1 / in-review | 最后 5 项复扫清零：公网备用模型直接丢弃、不再误阻断健康内网主模型；RAGFlow 密钥显式清除/部署继承分离，保存超时合并进最终连接；Issue 看板与架构说明修正。后端聚焦 252 passed、12 skipped、0 failed，11 个 MySQL 标记用例在 3407 隔离合成库补跑通过；契约、前端聚焦与类型检查通过。`test_model_config_provider` 仅按 platform_admin 权限口径修正测试 setup，`test_parse_jobs` 仅消除孤儿任务测试竞态，不放宽业务边界。仍不标 done/closed，待 QA/PD/PM | [验证登记](../docs/testing/iss-059-p0-hotfix-verification.md) 第五轮补充 |
 | 2026-11-28 | p0-security-export-deploy-hotfix-r1 / in-review | 最后 3 项收尾清零：平台清除 RAGFlow 密钥成为公司继承链终态；前端以密钥触碰态避免连续只改超时误清部署继承密钥，后端继承掩码响应一致；文档索引同步 11 月 28 日验证摘要。后端聚焦 47 passed、`test_ragflow_config_api.py` 3 passed、前端相关测试 8 passed、`tsc` 与 production build 通过，契约与治理检查通过。仍不标 done/closed，待 QA/PD/PM | [验证登记](../docs/testing/iss-059-p0-hotfix-verification.md) 第六轮补充 |
+| 2026-11-28 | p0-security-export-deploy-hotfix-r1 / closed | PR #56 已合入 main（f18708c）；用户（人类 PM）指示本轮收口，四张任务卡标 done，Issue 标 closed；未发布。QA/PD 独立签署未执行，按 PM 明确指示作为例外收口；真实 RAGFlow/真实模型/真实浏览器/真实容器编排未验证局限保留 | 用户本轮指令与 PR #56 合并结果 |
+
 
 ## 本地验收与后续合入发布
 
-- 本地验收结论与日期：2026-11-27 开发自测完成，四张任务卡 in-review；QA 独立签署、PD 产品验收与人类 PM 确认尚未执行。
+- 本地验收结论与日期：2026-11-27 开发自测完成；2026-11-28 用户（人类 PM）依据 PR #56 合入结果指示收口，四张任务卡 done、Issue closed。QA/PD 独立签署未执行，按 PM 明确指示作为例外收口。
 - 验证方式、通过及失败项、未覆盖范围：见 [iss-059-p0-hotfix-verification](../docs/testing/iss-059-p0-hotfix-verification.md)；无失败项，skipped 均为真实服务门控跳过；未覆盖真实 RAGFlow/真实模型/真实浏览器/真实容器编排。
 - 六份基线同步与互链复核：PRD/ROADMAP 无影响（止血修复不改产品范围与里程碑）；ARCHITECTURE 有影响（模型兜底安全边界、审计授权边界、部署端口绑定与健康检查约束），正文对齐待处理；TASK_BOARD/PROJECT_STATUS/DOCUMENT_INDEX 已同步。
-- PR 状态：[PR #56](https://github.com/Faith-Neil/if-children-have-been-grown/pull/56) OPEN，未合入。
-- 合入提交与日期：未合入。
+- PR 状态：[PR #56](https://github.com/Faith-Neil/if-children-have-been-grown/pull/56) 已合入。
+- 合入提交与日期：f18708c，2026-11-28（UTC+8 收口登记）。
 - 发布版本与日期：未发布。

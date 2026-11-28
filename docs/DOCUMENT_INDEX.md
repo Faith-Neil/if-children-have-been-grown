@@ -10,17 +10,25 @@
 
 | 编号 | 更新日期 | 文档 | 层级/模块 | 版本 | 状态 | 关联 Issue/任务 | 说明 |
 |---|---|---|---|---|---|---|---|
-| D-1098 | 2026-11-28 | [P0-SEC-MODEL-AUDIT-HOTFIX 交付](delivery/P0-SEC-MODEL-AUDIT-HOTFIX.md) | 交付说明 | p0-security-export-deploy-hotfix-r1 | in-review | ISSUE-059 / P0-SEC-MODEL-AUDIT-HOTFIX | 平台模型安全红线、密钥轮换、公网备用模型丢弃边界与审计授权/策略保存止血交付记录 |
-| D-1099 | 2026-11-27 | [P0-EXPORT-STATE-HOTFIX 交付](delivery/P0-EXPORT-STATE-HOTFIX.md) | 交付说明 | p0-security-export-deploy-hotfix-r1 | in-review | ISSUE-059 / P0-EXPORT-STATE-HOTFIX | 检查过期误判、保存提交死锁恢复与进度写入一致性止血交付记录 |
-| D-1100 | 2026-11-28 | [P0-CONFIG-KB-HOTFIX 交付](delivery/P0-CONFIG-KB-HOTFIX.md) | 交付说明 | p0-security-export-deploy-hotfix-r1 | in-review | ISSUE-059 / P0-CONFIG-KB-HOTFIX | 平台配置生效、RAGFlow 密钥清除/继承/超时边界、项目负责人绑模型、知识库重建与种子账号止血交付记录 |
-| D-1101 | 2026-11-27 | [P0-DEPLOY-HOTFIX 交付](delivery/P0-DEPLOY-HOTFIX.md) | 交付说明 | p0-security-export-deploy-hotfix-r1 | in-review | ISSUE-059 / P0-DEPLOY-HOTFIX | 容器健康检查修复与端口回环安全默认固化交付记录 |
+| D-1107 | 2026-11-28 | [ISSUE-060：招标条款清洗分流与强制模型规划目录](../issues/ISSUE-060.md) | Issue | outline-llm-req-cleaning-r1 | in-review | ISSUE-060 / TV-M0-T31～T33 | 重庆中烟真标残句与非技术条款清洗分流、假负偏离加固、强制模型两阶段目录规划与真实 MySQL 验证 |
+| D-1108 | 2026-11-28 | [TV-M0-T31 交付](delivery/TV-M0-T31.md) | 交付说明 | outline-llm-req-cleaning-r1 | in-review | ISSUE-060 / TV-M0-T31 | 招标条款残句清洗、技术/非技术分流与假负偏离加固交付记录 |
+| D-1109 | 2026-11-28 | [TV-M0-T31 代码说明](code/TV-M0-T31.md) | 代码说明 | outline-llm-req-cleaning-r1 | 当前 | ISSUE-060 / TV-M0-T31 | 条款清洗、分流与系统假判断清理实现说明 |
+| D-1110 | 2026-11-28 | [TV-M0-T32 交付](delivery/TV-M0-T32.md) | 交付说明 | outline-llm-req-cleaning-r1 | in-review | ISSUE-060 / TV-M0-T32 | 强制模型两阶段目录规划、失败上浮与全量均衡挂载交付记录 |
+| D-1111 | 2026-11-28 | [TV-M0-T32 代码说明](code/TV-M0-T32.md) | 代码说明 | outline-llm-req-cleaning-r1 | 当前 | ISSUE-060 / TV-M0-T32 | 两阶段目录、JSON 截断修复、评分加权仲裁与前端重跑入口说明 |
+| D-1112 | 2026-11-28 | [TV-M0-T33 交付](delivery/TV-M0-T33.md) | 交付说明 | outline-llm-req-cleaning-r1 | in-review | ISSUE-060 / TV-M0-T33 | 重庆中烟真实 MySQL 与内网模型实证、回归留档交付记录 |
+| D-1113 | 2026-11-28 | [TV-M0-T33 代码说明](code/TV-M0-T33.md) | 代码说明 | outline-llm-req-cleaning-r1 | 当前 | ISSUE-060 / TV-M0-T33 | 验证卡无独立业务代码的边界说明 |
+| D-1114 | 2026-11-28 | [ISSUE-060 重庆中烟真实环境验证](testing/2026-11-28-iss060-cq-real-validation.md) | 验证记录 | outline-llm-req-cleaning-r1 | 当前 | ISSUE-060 / TV-M0-T33 | 真实 MySQL 3407、内网 qwen3:30b 目录实证、清洗统计与局限 |
+| D-1098 | 2026-11-28 | [P0-SEC-MODEL-AUDIT-HOTFIX 交付](delivery/P0-SEC-MODEL-AUDIT-HOTFIX.md) | 交付说明 | p0-security-export-deploy-hotfix-r1 | done | ISSUE-059 / P0-SEC-MODEL-AUDIT-HOTFIX | 平台模型安全红线、密钥轮换、公网备用模型丢弃边界与审计授权/策略保存止血交付记录 |
+| D-1099 | 2026-11-27 | [P0-EXPORT-STATE-HOTFIX 交付](delivery/P0-EXPORT-STATE-HOTFIX.md) | 交付说明 | p0-security-export-deploy-hotfix-r1 | done | ISSUE-059 / P0-EXPORT-STATE-HOTFIX | 检查过期误判、保存提交死锁恢复与进度写入一致性止血交付记录 |
+| D-1100 | 2026-11-28 | [P0-CONFIG-KB-HOTFIX 交付](delivery/P0-CONFIG-KB-HOTFIX.md) | 交付说明 | p0-security-export-deploy-hotfix-r1 | done | ISSUE-059 / P0-CONFIG-KB-HOTFIX | 平台配置生效、RAGFlow 密钥清除/继承/超时边界、项目负责人绑模型、知识库重建与种子账号止血交付记录 |
+| D-1101 | 2026-11-27 | [P0-DEPLOY-HOTFIX 交付](delivery/P0-DEPLOY-HOTFIX.md) | 交付说明 | p0-security-export-deploy-hotfix-r1 | done | ISSUE-059 / P0-DEPLOY-HOTFIX | 容器健康检查修复与端口回环安全默认固化交付记录 |
 | D-1102 | 2026-11-28 | [P0-SEC-MODEL-AUDIT-HOTFIX 代码说明](code/P0-SEC-MODEL-AUDIT-HOTFIX.md) | 代码说明 | p0-security-export-deploy-hotfix-r1 | 当前 | ISSUE-059 / P0-SEC-MODEL-AUDIT-HOTFIX | 涉密 URL 判定、公网主/备模型边界、审计授权与前端双态保存机制 |
 | D-1103 | 2026-11-27 | [P0-EXPORT-STATE-HOTFIX 代码说明](code/P0-EXPORT-STATE-HOTFIX.md) | 代码说明 | p0-security-export-deploy-hotfix-r1 | 当前 | ISSUE-059 / P0-EXPORT-STATE-HOTFIX | 热路径 JSON 精确匹配、指纹规范化与恢复状态机、进度写入失败传播 |
 | D-1104 | 2026-11-28 | [P0-CONFIG-KB-HOTFIX 代码说明](code/P0-CONFIG-KB-HOTFIX.md) | 代码说明 | p0-security-export-deploy-hotfix-r1 | 当前 | ISSUE-059 / P0-CONFIG-KB-HOTFIX | 平台回落生效链、RAGFlow 清除终态与继承掩码/超时合并、RBAC 恢复、重建转换顺序与种子账号只读填补 |
 | D-1105 | 2026-11-27 | [P0-DEPLOY-HOTFIX 代码说明](code/P0-DEPLOY-HOTFIX.md) | 代码说明 | p0-security-export-deploy-hotfix-r1 | 当前 | ISSUE-059 / P0-DEPLOY-HOTFIX | 健康检查判据链与端口回环绑定语义（配置变更口径） |
 | D-1106 | 2026-11-28 | [ISSUE-059 P0 止血验证登记](testing/iss-059-p0-hotfix-verification.md) | 验证 | p0-security-export-deploy-hotfix-r1 | 当前 | ISSUE-059 / P0-HOTFIX 四卡 | 开发自测口径与局限：11 月 28 日最终边界清零回归，真实 RAGFlow/模型/浏览器/容器编排未验证 |
-| D-1096 | 2026-11-28 | [ISSUE-059：P0 安全红线、保存导出阻断与配置部署止血](../issues/ISSUE-059.md) | Issue | p0-security-export-deploy-hotfix-r1 | in-review | ISSUE-059 | 4 组 12 项 P0 止血及复扫边界清零：平台模型安全红线与审计授权、保存导出阻断、平台配置知识库与部署 |
-| D-1097 | 2026-11-27 | [P0-HOTFIX 任务卡](tasks/P0-HOTFIX.md) | 任务 | p0-security-export-deploy-hotfix-r1 | in-review | ISSUE-059 | P0-SEC-MODEL-AUDIT-HOTFIX / P0-EXPORT-STATE-HOTFIX / P0-CONFIG-KB-HOTFIX / P0-DEPLOY-HOTFIX 四卡 in-review |
+| D-1096 | 2026-11-28 | [ISSUE-059：P0 安全红线、保存导出阻断与配置部署止血](../issues/ISSUE-059.md) | Issue | p0-security-export-deploy-hotfix-r1 | closed | ISSUE-059 | 4 组 12 项 P0 止血及复扫边界清零：平台模型安全红线与审计授权、保存导出阻断、平台配置知识库与部署 |
+| D-1097 | 2026-11-27 | [P0-HOTFIX 任务卡](tasks/P0-HOTFIX.md) | 任务 | p0-security-export-deploy-hotfix-r1 | done | ISSUE-059 | P0-SEC-MODEL-AUDIT-HOTFIX / P0-EXPORT-STATE-HOTFIX / P0-CONFIG-KB-HOTFIX / P0-DEPLOY-HOTFIX 四卡 in-review |
 | D-1072 | 2026-11-27 | [FE-UX-MAINFLOW-COPY 交付](delivery/FE-UX-MAINFLOW-COPY.md) | 交付 | frontend-ux-visual-responsive-r1 | done | ISSUE-057 / FE-UX-MAINFLOW-COPY | 前端体验视觉响应式交付记录 |
 | D-1082 | 2026-11-27 | [FE-UX-MAINFLOW-COPY 代码说明](code/FE-UX-MAINFLOW-COPY.md) | 代码 | frontend-ux-visual-responsive-r1 | 当前 | ISSUE-057 / FE-UX-MAINFLOW-COPY | 前端体验视觉响应式代码说明 |
 | D-1073 | 2026-11-27 | [FE-UX-VISUAL-TOKENS 交付](delivery/FE-UX-VISUAL-TOKENS.md) | 交付 | frontend-ux-visual-responsive-r1 | done | ISSUE-057 / FE-UX-VISUAL-TOKENS | 前端体验视觉响应式交付记录 |
@@ -1069,7 +1077,7 @@
 | D-943 | 2026-11-03 | [技术标响应教程](reference/writing/02-技术标响应教程.md) | 编写方法 | writing-method-1 | 原文 | 技术分册 MVP | 三级标题八股、偏离和检查 |
 | D-944 | 2026-11-03 | [技术分册 MVP](decisions/2026-11-03-technical-volume-mvp.md) | 决策 | tech-volume-mvp-1 | 生效 | ISSUE-047 | 2026-11-03 确认的技术分册路径；代码未改 |
 | D-945 | 2026-11-03 | [ISSUE-047：技术分册 MVP](../issues/ISSUE-047.md) | Issue | tech-volume-mvp-1 | in-progress | ISSUE-047 | 决定已确认；T01 in-review，T02～T07 planned |
-| D-946 | 2026-11-03 | [TV-M0 任务卡](tasks/TV-M0.md) | 任务 | tv-m0-1 | 当前 | ISSUE-047 | T01～T07 |
+| D-946 | 2026-11-28 | [TV-M0 任务卡](tasks/TV-M0.md) | 任务 | outline-llm-req-cleaning-r1 | 当前 | ISSUE-047 / ISSUE-053 / ISSUE-054 / ISSUE-060 | T01～T33；新增 TV-M0-T31～T33 |
 | D-947 | 2026-11-03 | [TV-M0-T01 交付](delivery/TV-M0-T01.md) | 任务交付 | tv-m0-1 | in-review | ISSUE-047 / TV-M0-T01 | 侧栏与新建项目入口 |
 | D-948 | 2026-11-03 | [TV-M0-T01 代码说明](code/TV-M0-T01.md) | 代码说明 | tv-m0-1 | 当前 | ISSUE-047 / TV-M0-T01 | 导航与创建请求 |
 | D-949 | 2026-11-03 | [TV-M0-T02 交付](delivery/TV-M0-T02.md) | 任务交付 | tv-m0-1 | in-review | ISSUE-047 / TV-M0-T02 | 历史标书上传 |

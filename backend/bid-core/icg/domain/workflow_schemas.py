@@ -1112,6 +1112,16 @@ class TechnicalQuality(ResponseBody):
     warning: str = Field(default="", description="未达标可见警告；不恢复矩阵闸门，允许内部稿导出")
 
 
+class FilteredClauseRow(ResponseBody):
+    requirement_id: str
+    text: str
+    requirement_scope: Literal["non_technical", "fragment_filtered"]
+    non_tech_category: str = ""
+    fragment_reason: str = ""
+    source_page: int | None = None
+    source_filename: str | None = None
+
+
 class Workspace(ResponseBody):
     revision: int
     input_fingerprint: str
@@ -1144,6 +1154,7 @@ class Workspace(ResponseBody):
     technical_quality: TechnicalQuality | None = Field(default=None, description="质量八条抽检结果")
     response_tasks: list[ResponseTask] = Field(default_factory=list, description="响应任务（要求→章节映射）")
     coverage_rows: list[CoverageRow] = Field(default_factory=list, description="覆盖视图五行数据源")
+    filtered_clause_rows: list[FilteredClauseRow] = Field(default_factory=list, description="已过滤的非技术/残句条款只读查阅区")
     tender_digest: dict[str, Any] | None = Field(default=None, description="三张清单：tech、scoring、rejection，带编号与原文页码")
     plan_validation: dict[str, Any] | None = Field(default=None, description="生成计划确定性校验结果")
     technical_rag_audit: list[TechnicalRagAuditRow] = Field(default_factory=list, description="分节检索审计")

@@ -298,8 +298,25 @@ def _wait_project(client, headers, job_id, timeout=30):
     raise AssertionError(f"job {job_id} did not finish: {job}")
 
 
+def _skeleton_json(user: str, title: str = "运维保障与巡检") -> str:
+    """两阶段契约阶段一（ISSUE-060）：章节骨架。单个一级章即叶子，编号 deterministic 为 1。"""
+    import json as _json
+    return _json.dumps({"nodes": [{"level": 1, "title": title}]}, ensure_ascii=False)
+
+
+def _mounts_json(user: str) -> str:
+    """两阶段契约阶段二：把提示里的全部 T/S 编号挂到叶子 1；refs 必须真实来自提示。"""
+    import json as _json
+    import re as _re
+    refs = []
+    for ref in _re.findall(r"[TS]-\d+(?:-\d+)?", user or ""):
+        if ref not in refs:
+            refs.append(ref)
+    return _json.dumps({"mounts": [{"node": "1", "refs": refs or ["T-01"]}]}, ensure_ascii=False)
+
+
 def _outline_tree_json(user: str, title: str = "运维保障与巡检") -> str:
-    """按当前三张清单目录契约构造合成模型返回；refs 必须真实来自提示。"""
+    """兼容旧单次拟目录契约的合成返回；新两阶段流程用 _skeleton_json/_mounts_json。"""
     import json as _json
     import re as _re
     refs = []
@@ -309,6 +326,23 @@ def _outline_tree_json(user: str, title: str = "运维保障与巡检") -> str:
     return _json.dumps({"nodes": [{"level": 1, "title": title, "points": [
         {"text": "数据库巡检", "refs": refs or ["T-01"]}
     ]}]}, ensure_ascii=False)
+
+
+def _is_tree_prompt(system: str) -> bool:
+    return (
+        "设计章节目录骨架" in system      # 两阶段阶段一（ISSUE-060）
+        or "挂载响应要点" in system       # 两阶段阶段二
+        or "编排技术服务方案目录" in system  # 旧单次契约（遗留路径）
+        or "你在为技术服务方案拟目录" in system
+    )
+
+
+def _tree_reply(system: str, user: str, title: str = "运维保障与巡检") -> str:
+    if "设计章节目录骨架" in system:
+        return _skeleton_json(user, title=title)
+    if "挂载响应要点" in system:
+        return _mounts_json(user)
+    return _outline_tree_json(user, title=title)
 
 
 class _StageModel:
@@ -326,8 +360,8 @@ class _StageModel:
             if job.get("type") == "parse" and job.get("status") == "running":
                 self.messages.append(job.get("message") or "")
         system = system or ""
-        if "编排技术服务方案目录" in system or "你在为技术服务方案拟目录" in system:
-            return _outline_tree_json(user)
+        if _is_tree_prompt(system):
+            return _tree_reply(system, user)
         if "response_mount" in system:
             return '{"items":[{"role":"response_mount","text":"数据库巡检","quote":"数据库巡检","kind":"scoring"}]}'
         return "按招标要求写巡检步骤。"
@@ -341,7 +375,7 @@ class _TimeoutModel:
     def suggest(self, system, user):
         from icg.infra.openai_model import RetryableModelError
         system = system or ""
-        if "你在读一份招标文件" in system or "编排技术服务方案目录" in system or "你在为技术服务方案拟目录" in system or "response_mount" in system:
+        if "你在读一份招标文件" in system or _is_tree_prompt(system) or "response_mount" in system:
             raise RetryableModelError("timeout")
         return "按招标要求写巡检步骤。"
 
@@ -409,7 +443,8 @@ def test_extract_mass_timeout_completes_degraded_not_clean(client, monkeypatch):
     assert state["extract_degraded"] is True
     assert state["extract_timeout_count"] >= 1
     if state.get("technical_outline"):
-        assert state["technical_outline"]["outline_source"] == "rule_fallback"
+        # 模型超时失败不再写 rule_fallback 兜底树：可见目录保持规则草稿，失败状态独立上浮。
+        assert state["technical_outline"]["outline_source"] in ("rule", "rule_fallback")
         assert state["tree_model_failed"] is True
 
 
@@ -425,7 +460,7 @@ class _TreeModel(_StageModel):
         self.gate.set()
 
     def suggest(self, system, user):
-        if "编排技术服务方案目录" not in (system or "") and "你在为技术服务方案拟目录" not in (system or ""):
+        if not _is_tree_prompt(system or ""):
             return super().suggest(system, user)
         self.tree_calls += 1
         self.entered.set()
@@ -433,7 +468,7 @@ class _TreeModel(_StageModel):
         if isinstance(self.tree, Exception):
             raise self.tree
         if self.tree is SINGLE_QUOTED_TREE:
-            return _outline_tree_json(user, title="数据库巡检服务")
+            return _tree_reply(system or "", user, title="数据库巡检服务")
         return self.tree
 
 
@@ -465,7 +500,8 @@ def test_usable_model_schedules_tree_and_rule_draft_is_labelled_while_it_runs(cl
     finally:
         model.gate.set()
         watcher.join(timeout=30)
-    assert model.tree_calls == 1
+    # ISSUE-060 两阶段契约：阶段一骨架 + 阶段二挂载，恰好两次 TREE 调用。
+    assert model.tree_calls == 2
     assert seen["outline_source"] != "model"
     assert "正在编排" in seen["outline_reason"]
     assert "正在编排" in seen["technical_outline"]["outline_reason"]
@@ -476,7 +512,9 @@ def test_usable_model_schedules_tree_and_rule_draft_is_labelled_while_it_runs(cl
     assert "数据库巡检服务" in [item["title"] for item in state["technical_outline"]["headings"]]
 
 
-def test_tree_timeout_falls_back_to_rule_with_a_reason(client, monkeypatch):
+def test_tree_timeout_keeps_rule_draft_with_explicit_failure(client, monkeypatch):
+    """真实适配器超时（ISSUE-060）：绝不静默写通用规则目录冒充成功——可见目录保持解析期规则草稿，
+    tree_model_failed/原因/错误链上浮，前端凭此给「重新生成目录」入口。"""
     from icg.infra.openai_model import RetryableModelError
 
     _technical_job.monkeypatch = monkeypatch
@@ -484,10 +522,19 @@ def test_tree_timeout_falls_back_to_rule_with_a_reason(client, monkeypatch):
     job, state = _technical_job(client, model)
     assert model.tree_calls >= 1
     assert job["status"] == "completed" and job["error"]["code"] == "TREE_MODEL_FAILED", job
-    assert state["outline_source"] == "rule_fallback"
+    # 可见目录仍是解析期规则草稿（rule），失败状态独立成字段，不伪装成可用模型目录。
+    assert state["outline_source"] == "rule"
     assert state["tree_model_failed"] is True
     assert "超时" in state["outline_reason"]
+    assert "重新生成目录" in state["outline_reason"]
     assert "超时" in state["technical_outline"]["outline_reason"]
+    # 真实适配器 RetryableModelError('timeout') 必须被识别为超时并落错误链（持久化在 workflow JSON）。
+    workflow = client.app.state.service.repository.read().workflows[
+        state.get("project", {}).get("id") or next(iter(client.app.state.service.repository.read().workflows))]
+    assert workflow["outline_model_error"]["timeout"] is True
+    assert workflow["outline_model_error"]["stage"] == "skeleton"
+    # 规则草稿目录仍然可见可用（未被清空、未被通用模板覆盖）。
+    assert state["technical_outline"]["headings"]
 
 
 def test_health_exposes_effective_model(client):

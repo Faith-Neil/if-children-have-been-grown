@@ -92,6 +92,9 @@ class ComplianceRuleResult:
         return asdict(self)
 
 
+_SERVICE_PERIOD_WORDS = ("服务期", "工期", "交货期", "服务期限", "交付时限", "运维周期", "实施周期", "完成时限")
+
+
 def _project_rule_override(workflow: dict, key: str):
     """读取已保存的项目规则覆盖。没有这项时返回 None，检查沿用代码里的原判定。"""
     entry = (workflow.get("rule_overrides") or {}).get(key)
@@ -951,11 +954,16 @@ class ComplianceRulesEngine:
                 break
             if volume != "all" and req.get("volume") != volume:
                 continue
+            from icg.domain.technical_clause_cleaning import row_excluded_from_technical
 
             text = str(req.get("text", "") or "")
-            is_service_period = any(
-                w in text for w in ("服务期", "工期", "交货期", "服务期限", "交付时限", "运维周期", "实施周期", "完成时限")
-            )
+            if row_excluded_from_technical(req):
+                # 单一事实来源：清洗排除的行（残句/非技术）矩阵不生成响应且禁止手写，
+                # R09 必须无条件同步跳过，严禁例外回查造成「无人可答却被要求响应」的定稿死锁。
+                # 含独立服务期时长承诺的混合条款在清洗分流阶段已保留为 technical，自然会走到这里。
+                continue
+
+            is_service_period = any(w in text for w in _SERVICE_PERIOD_WORDS)
             if not is_service_period:
                 continue
 

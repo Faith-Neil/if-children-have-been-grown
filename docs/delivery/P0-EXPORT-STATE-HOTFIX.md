@@ -4,7 +4,7 @@
 
 | 项 | 内容 |
 |---|---|
-| 状态 | in-review；建议 PM 复核后标 done |
+| 状态 | done；用户（人类 PM）已按 PR #56 合入指示收口 |
 | Issue | [ISSUE-059](../../issues/ISSUE-059.md) |
 | 任务卡 | [P0-HOTFIX](../tasks/P0-HOTFIX.md#p0-export-state-hotfix) |
 | 代码说明 | [P0-EXPORT-STATE-HOTFIX](../code/P0-EXPORT-STATE-HOTFIX.md) |
@@ -16,15 +16,15 @@
 | 任务ID | P0-EXPORT-STATE-HOTFIX |
 | 代码解释 | [代码说明](../code/P0-EXPORT-STATE-HOTFIX.md) |
 | 验收 | 前端 `frontend/web/tests/unit/fingerprint-recovery.test.mjs` 14 例全绿；后端 `tests/backend/test_iss059_backend_hotfix.py` 含真实 MySQL 标记用例（全量态 vs 热路径指纹一致 2 passed）、generation_session 组合 17 passed 2 skipped；`RULES_INCOMPLETE` / `CHECK_BLOCKER_EXISTS` 门禁语义未削弱。 |
-| 项目进度 | in-review；建议 PM 复核后标 done。ISSUE-059 四张止血卡全部实施完成进入 in-review，等待 QA 签署 + PD 产品验收 + 人类 PM 确认；未创建 PR，未合入，未发布。 |
+| 项目进度 | done。2026-11-28 用户（人类 PM）确认 PR #56 已合入 main（f18708c）并指示 ISSUE-059 收口：本卡标 done，Issue 标 closed；未发布。QA/PD 独立签署未执行，按 PM 明确指示作为例外收口；真实服务/容器等未验证局限仍以验证登记为准。 |
 <!-- task-delivery:end -->
 
 ## 关联与状态
 
 - 日期、里程碑、Issue、任务卡：2026-11-27；P0 止血（无里程碑变更）；[ISSUE-059](../../issues/ISSUE-059.md)；[P0-HOTFIX 任务卡](../tasks/P0-HOTFIX.md#p0-export-state-hotfix)。
-- 分支、提交、PR：分支 `feat/iss-059-p0-security-export-deploy-hotfix`；PR 未创建。
+- 分支、提交、PR：分支 `feat/iss-059-p0-security-export-deploy-hotfix`；PR #56 已合入 main（f18708c）。
 - 本地验收状态：聚焦单测与真实 MySQL 标记用例通过（见验收结果）；真实浏览器联调未执行。
-- 合入 / 发布状态：未合入、未发布。
+- 合入 / 发布状态：已合入 main（f18708c）、未发布。
 
 ## 完成内容与变更文件
 
@@ -51,7 +51,7 @@
 
 ## 项目进度
 
-in-review；建议 PM 复核后标 done。ISSUE-059 四张止血卡全部实施完成并进入 in-review；下一步为 QA 独立签署、PD 产品验收与人类 PM 确认。本卡不标 done。
+done。2026-11-28 用户（人类 PM）确认 PR #56 已合入 main（f18708c）并指示 ISSUE-059 收口：本卡标 done，Issue 标 closed；未发布。QA/PD 独立签署未执行，按 PM 明确指示作为例外收口；真实服务/容器等未验证局限仍以验证登记为准。
 
 ## 文档与 Issue 同步
 
@@ -61,7 +61,7 @@ in-review；建议 PM 复核后标 done。ISSUE-059 四张止血卡全部实施�
 | ROADMAP | 无影响：不改变里程碑顺序，属当前主链路阻断止血 |
 | ARCHITECTURE | 无新增架构变更：热路径仍为 MySQL 作用域读取（ISSUE-055 既定方向），指纹机制与导出门禁结构未变；架构正文对齐由后续统一处理 |
 | Issue 看板/详情 | 已同步：ISSUE-059 验收条目 AC-04～AC-06 更新为实证，处理记录追加一行 |
-| TASK_BOARD / PROJECT_STATUS | 已同步：看板本卡 in-review 并链接本交付；PROJECT_STATUS P0 段落同步四卡 in-review |
+| TASK_BOARD / PROJECT_STATUS | 已同步：看板本卡 done 并链接本交付；PROJECT_STATUS P0 段落同步四卡 done |
 | DOCUMENT_INDEX | 已登记：本交付与代码说明条目（D-1099 / D-1103） |
 
 ## 风险与后续
@@ -79,3 +79,7 @@ in-review；建议 PM 复核后标 done。ISSUE-059 四张止血卡全部实施�
 - 恢复成功后只保留写入内核读回的写入后新指纹，外层不再用写入前指纹覆盖——紧接着的下一次保存直接成功；
 - 新增可执行行为级交互测试 `fingerprint-recovery-interaction.test.mjs`（4 例全绿）：覆盖 PM 要求的两个场景「409→恢复→继续编辑→再保存直接成功」「重开旧草稿保留旧指纹」；浏览器级 Playwright 端到端仍列为后续跟进。
 - 技术卷：commit_volume 落盘前建立进度落库同步确认边界，终态落库一致后才发布 volume.done/failed（BE-STATE 实现，详见 test_iss059_review_hotfix.py）。
+
+## 收口记录（2026-11-28）
+
+PR #56 已合入 main（f18708c）。用户（人类 PM）明确指示 ISSUE-059 收口，本卡状态同步为 done；未发布。QA/PD 独立签署未执行，按 PM 明确指示作为例外收口；本文与验证登记中列明的真实 RAGFlow/真实模型/真实浏览器/真实容器编排未验证局限继续保留，不因收口而消除。

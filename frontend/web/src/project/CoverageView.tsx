@@ -14,6 +14,7 @@ import {
   type CoveragePatches,
 } from './coverage-live.ts';
 import { parseHonesty } from './parse-honesty.ts';
+import { filteredClauseLabel, filteredClauseRows } from './filtered-clauses.ts';
 
 const RISK_LABEL: Record<string, string> = {
   critical: '废标风险',
@@ -125,6 +126,7 @@ export function CoverageView() {
     () => patchRows((workspace.coverage_rows ?? []) as CoverageRow[], patches),
     [workspace.coverage_rows, patches],
   );
+  const filteredRows = useMemo(() => filteredClauseRows(workspace.filtered_clause_rows), [workspace.filtered_clause_rows]);
   const rows = useMemo(() => {
     const q = search.trim();
     if (!q) return allRows;
@@ -313,6 +315,28 @@ export function CoverageView() {
           ]}
         />
       </Card>
+      {filteredRows.length > 0 && (
+        <Collapse
+          size="small"
+          style={{ marginTop: 8 }}
+          data-testid="filtered-clause-panel"
+          items={[{
+            key: 'filtered-clauses',
+            label: `已过滤的非技术与残句条款（${filteredRows.length} 条）`,
+            children: (
+              <div data-testid="filtered-clause-list">
+                {filteredRows.map(row => (
+                  <div key={row.requirement_id} style={{ padding: '4px 0' }} data-testid={`filtered-clause-${row.requirement_id}`}>
+                    <Tag color={row.requirement_scope === 'non_technical' ? 'gold' : 'default'}>{filteredClauseLabel(row)}</Tag>
+                    <span>{row.text}</span>
+                    <span className="muted"> {row.source_filename || '招标文件'}{row.source_page != null ? ` p.${row.source_page}` : ''}</span>
+                  </div>
+                ))}
+              </div>
+            ),
+          }]}
+        />
+      )}
     </div>
   );
 }

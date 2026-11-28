@@ -12,5 +12,6 @@
 | [FE-M1.md](FE-M1.md) ~ [FE-M8.md](FE-M8.md) | 前端各业务阶段实施历史任务 | Phase 1 ~ 8 |
 | [OPS-M0.md](OPS-M0.md) | 工作区运维、内网部署草案与产品启动 | ISSUE-017、ISSUE-049 |
 | [P0-HOTFIX.md](P0-HOTFIX.md) | P0 安全红线、保存导出阻断、平台配置知识库与部署止血 | ISSUE-059 |
+| [TV-M0.md](TV-M0.md) | 技术分册 MVP、条款清洗分流与目录规划质量 | ISSUE-047、ISSUE-053、ISSUE-054、ISSUE-060 |
 | [REV-M0.md](REV-M0.md) | 接手审查、QA 签署与端到端冒烟验证 | ISSUE-013, REV-SMOKE-001 |
 | [FLOW.md](FLOW.md) | 三个登录角色和四段主路径 | ISSUE-048 |

@@ -4,7 +4,7 @@
 
 | 项 | 内容 |
 |---|---|
-| 状态 | in-review；建议 PM 复核后标 done |
+| 状态 | done；用户（人类 PM）已按 PR #56 合入指示收口 |
 | Issue | [ISSUE-059](../../issues/ISSUE-059.md) |
 | 任务卡 | [P0-HOTFIX](../tasks/P0-HOTFIX.md#p0-deploy-hotfix) |
 | 代码说明 | [P0-DEPLOY-HOTFIX](../code/P0-DEPLOY-HOTFIX.md) |
@@ -16,15 +16,15 @@
 | 任务ID | P0-DEPLOY-HOTFIX |
 | 代码解释 | [代码说明](../code/P0-DEPLOY-HOTFIX.md)（compose/README 配置变更说明；无应用代码逻辑变化，按配置变更口径撰写） |
 | 验收 | 健康检查 python 单行探针经编译验证通过、compose YAML 经解析验证通过；`/health` 端点真实存在且 `persistent=true` 判据与应用启动入口一致；`reference_flow` 21 passed 无回归。未在真实容器环境执行 docker compose up（本机非部署目标机）。 |
-| 项目进度 | in-review；建议 PM 复核后标 done。ISSUE-059 四张止血卡全部实施完成进入 in-review，等待 QA 签署 + PD 产品验收 + 人类 PM 确认；未创建 PR，未合入，未发布。 |
+| 项目进度 | done。2026-11-28 用户（人类 PM）确认 PR #56 已合入 main（f18708c）并指示 ISSUE-059 收口：本卡标 done，Issue 标 closed；未发布。QA/PD 独立签署未执行，按 PM 明确指示作为例外收口；真实服务/容器等未验证局限仍以验证登记为准。 |
 <!-- task-delivery:end -->
 
 ## 关联与状态
 
 - 日期、里程碑、Issue、任务卡：2026-11-27；P0 止血（无里程碑变更）；[ISSUE-059](../../issues/ISSUE-059.md)；[P0-HOTFIX 任务卡](../tasks/P0-HOTFIX.md#p0-deploy-hotfix)。
-- 分支、提交、PR：分支 `feat/iss-059-p0-security-export-deploy-hotfix`；PR 未创建。
+- 分支、提交、PR：分支 `feat/iss-059-p0-security-export-deploy-hotfix`；PR #56 已合入 main（f18708c）。
 - 本地验收状态：静态验证通过（见验收结果）；真实容器编排未在本机执行。
-- 合入 / 发布状态：未合入、未发布。
+- 合入 / 发布状态：已合入 main（f18708c）、未发布。
 
 ## 完成内容与变更文件
 
@@ -50,7 +50,7 @@
 
 ## 项目进度
 
-in-review；建议 PM 复核后标 done。ISSUE-059 四张止血卡全部实施完成并进入 in-review；下一步为 QA 独立签署、PD 产品验收与人类 PM 确认。本卡不标 done。
+done。2026-11-28 用户（人类 PM）确认 PR #56 已合入 main（f18708c）并指示 ISSUE-059 收口：本卡标 done，Issue 标 closed；未发布。QA/PD 独立签署未执行，按 PM 明确指示作为例外收口；真实服务/容器等未验证局限仍以验证登记为准。
 
 ## 文档与 Issue 同步
 
@@ -60,7 +60,7 @@ in-review；建议 PM 复核后标 done。ISSUE-059 四张止血卡全部实施�
 | ROADMAP | 无影响：不改变里程碑顺序，属当前主链路阻断止血 |
 | ARCHITECTURE | 有影响：部署端口绑定（默认回环 + 反代 HTTPS）与健康检查判据（`/health` + `persistent=true`）为部署约束变化；ISSUE-059 六份基线同步表已登记「待处理」，由后续架构对齐任务或 PM 复核时落实正文 |
 | Issue 看板/详情 | 已同步：ISSUE-059 验收条目 AC-11～AC-12 更新为实证，处理记录追加一行 |
-| TASK_BOARD / PROJECT_STATUS | 已同步：看板本卡 in-review 并链接本交付；PROJECT_STATUS P0 段落同步四卡 in-review |
+| TASK_BOARD / PROJECT_STATUS | 已同步：看板本卡 done 并链接本交付；PROJECT_STATUS P0 段落同步四卡 done |
 | DOCUMENT_INDEX | 已登记：本交付与代码说明条目（D-1101 / D-1105） |
 
 ## 风险与后续
@@ -75,3 +75,7 @@ in-review；建议 PM 复核后标 done。ISSUE-059 四张止血卡全部实施�
 - 健康探针加固：`/health` 在 `persistent=true` 时执行轻量 `SELECT 1` 真探活 MySQL，探活失败按 unhealthy 处理（compose 健康检查随 URL 非 200/断言失败自动判定 unhealthy）；单测覆盖探活失败路径。
 - 端口默认 `127.0.0.1` 绑定与 `/health` 探活判据已同步 `deploy/README.md` 第 3 节与 3.1 节；新增「2.1 RAGFlow 密钥轮换与实例切换操作顺序」：同实例轮换只改密钥不重建；跨实例切换必须显式新密钥（CWE-522 后端强制）并执行四库重建/迁移。
 - 限制如实保留：真实容器编排翻转与真实 MySQL 断电探活仍未在目标机执行，AC-11 维持部分验证。
+
+## 收口记录（2026-11-28）
+
+PR #56 已合入 main（f18708c）。用户（人类 PM）明确指示 ISSUE-059 收口，本卡状态同步为 done；未发布。QA/PD 独立签署未执行，按 PM 明确指示作为例外收口；本文与验证登记中列明的真实 RAGFlow/真实模型/真实浏览器/真实容器编排未验证局限继续保留，不因收口而消除。

@@ -227,11 +227,13 @@ def arrange_from_tasks(tasks: list[dict], workflow: dict | None = None, model=No
 
 def validate_plan(requirements: list[dict], tasks: list[dict], headings: list[dict]) -> dict[str, Any]:
     """确定性计划校验；不通过则 callers 可回退重建任务。"""
+    from icg.domain.technical_clause_cleaning import row_excluded_from_technical
     req_ids = {
         row["id"] for row in requirements
         if row.get("technical_clause")
         and row.get("status") != "rejected"
         and row.get("section_kind") not in NON_SERVICE_SECTION_KINDS
+        and not row_excluded_from_technical(row)
     }
     mapped = {
         rid
@@ -284,12 +286,16 @@ def validate_plan(requirements: list[dict], tasks: list[dict], headings: list[di
 def apply_response_plan(workflow: dict, model=None) -> dict[str, Any]:
     """从当前技术条款建任务与主题目录；写回 workflow。"""
     from icg.domain.technical_constraint_context import is_business_clause
+    from icg.domain.technical_clause_cleaning import row_excluded_from_technical
     rows = []
     for row in (workflow.get("requirements") or {}).values():
         if not row.get("technical_clause") or row.get("status") == "rejected":
             continue
         if is_business_clause(row):
             row["clause_volume"] = "business"
+            continue
+        if row_excluded_from_technical(row):
+            # 非技术/残句过滤条款不进规则目录的任务与挂载（ISSUE-060）。
             continue
         rows.append(enrich_requirement(row))
     tree_model = model or workflow.get("tree_model")

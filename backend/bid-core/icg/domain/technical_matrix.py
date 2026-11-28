@@ -146,12 +146,28 @@ def _pick_history_quote(chunks: list[dict], clause: str) -> tuple[str, str] | No
     return filename, quote
 
 
+def _excluded_from_deviation(row: dict) -> bool:
+    """非技术/残句过滤条款绝不参与偏离判定：它们不构成真实技术能力缺口（ISSUE-060）。
+
+    row_is_non_tech 的文本兜底只适用于技术流水线行（technical_clause）：双册项目的商务/资格行
+    本来就不带该标记，它们是响应矩阵的合法对象，必须照常检索填写，否则会误伤矩阵覆盖率。
+    """
+    from icg.domain.technical_clause_cleaning import row_excluded_from_technical
+    from icg.domain.technical_constraint_context import row_is_non_tech
+
+    if row_excluded_from_technical(row):
+        return True
+    return bool(row.get("technical_clause")) and row_is_non_tech(row)
+
+
 def deviate_section_rows(req_rows: list[dict], chunks: list[dict], model: Any) -> dict[str, str]:
     """本节偏离判定。已有 response_type 的行保留；否则对历史命中判偏离。调用方必须接着进入 write_section。"""
     response_types: dict[str, str] = {}
     for row in req_rows:
         rid = str(row.get("id") or "")
         if not rid:
+            continue
+        if _excluded_from_deviation(row):
             continue
         if row.get("response_type"):
             response_types[rid] = str(row["response_type"])
@@ -255,6 +271,9 @@ def fill_technical_responses(state: Any, workflow: dict, *, model: Any = None, s
             pending: list[tuple[dict, str, list[dict], dict | None]] = []
             for row in group:
                 if row.get("response_type"):
+                    continue
+                if _excluded_from_deviation(row):
+                    # 非技术/残句条款不检索、不判偏离，绝不可写成负偏离（ISSUE-060 假负偏离加固）。
                     continue
                 clause = row.get("text") or ""
                 try:

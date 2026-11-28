@@ -167,6 +167,14 @@ def _fill_technical_outline(state: Any, project_id: str, workflow: dict) -> None
     from icg.domain.technical_digest_outline import plan_technical_outline
     plan = plan_technical_outline(workflow, model=workflow.get("tree_model"))
     headings = plan["headings"]
+    if not headings:
+        # 模型两阶段规划明确失败：绝不以空骨架覆盖已有目录草稿/正文，失败原因已落在 workflow 上。
+        outline = workflow.get("technical_outline")
+        if isinstance(outline, dict):
+            outline["outline_source"] = workflow.get("outline_source") or outline.get("outline_source") or ""
+            outline["tree_model_failed"] = bool(workflow.get("tree_model_failed"))
+            outline["outline_reason"] = workflow.get("outline_reason") or ""
+        return
     text = render(headings)
     chapter = _chapter(state, project_id, title)
     previous = (workflow.get("technical_outline") or {}).get("text") or ""
@@ -207,6 +215,7 @@ def _leaf_titles(content: str) -> set[str]:
 
 def _mountable_clauses(workflow: dict) -> list[dict]:
     from icg.domain.technical_constraint_context import is_business_clause
+    from icg.domain.technical_clause_cleaning import row_excluded_from_technical
     return [
         row for row in _clauses(workflow)
         if row.get("clause_role") != "rejection_constraint"
@@ -214,6 +223,7 @@ def _mountable_clauses(workflow: dict) -> list[dict]:
         and row.get("requirement_type") not in ("qualification", "rejection_item")
         and not is_business_clause(row)
         and not row.get("clause_fragment")
+        and not row_excluded_from_technical(row)
     ]
 
 
@@ -586,6 +596,23 @@ def workspace_fields(state: Any, project_id: str, workflow: dict) -> dict[str, A
             if title and title not in review:
                 review.append(title)
     from icg.domain.technical_response_plan import coverage_rows
+    filtered_clause_rows = []
+    for row in (workflow.get("requirements") or {}).values():
+        scope = str(row.get("requirement_scope") or "")
+        if scope not in ("non_technical", "fragment_filtered"):
+            continue
+        source = row.get("source") or {}
+        source_file = (workflow.get("files") or {}).get(source.get("file_id")) or {}
+        filtered_clause_rows.append({
+            "requirement_id": str(row.get("id") or ""),
+            "text": str(row.get("extracted_summary") or row.get("text") or ""),
+            "requirement_scope": scope,
+            "non_tech_category": str(row.get("non_tech_category") or ""),
+            "fragment_reason": str(row.get("fragment_reason") or ""),
+            "source_page": source.get("page"),
+            "source_filename": source.get("filename") or source.get("file_name")
+                               or source_file.get("filename") or source_file.get("name"),
+        })
     return {
         "plan_confirmed": confirmed,
         "technical_outline": outline,
@@ -596,6 +623,7 @@ def workspace_fields(state: Any, project_id: str, workflow: dict) -> dict[str, A
         "technical_quality": quality,
         "response_tasks": list((workflow.get("response_tasks") or {}).values()) if stored else [],
         "coverage_rows": coverage_rows(workflow, outline, content) if stored else [],
+        "filtered_clause_rows": filtered_clause_rows,
         "tender_digest": workflow.get("tender_digest"),
         "plan_validation": (stored or {}).get("plan_validation") or workflow.get("plan_validation"),
         "technical_rag_audit": public_rag_audit(workflow),

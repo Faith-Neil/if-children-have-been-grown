@@ -420,6 +420,10 @@ class TenderOrchestratorMixin:
             # 抽取后处理（PRD §5.2.4）：补遗覆盖原文 → 去重合并 → 结构化字段冲突；已有人工决定保持不变
             from icg.domain.parse_decisions import after_extraction, blocking_conflicts
             post = after_extraction(actual, new_requirements, new_facts, now)
+            # 招标条款清洗分流（ISSUE-060）：残句补全/过滤、技术/非技术标记落盘，
+            # 在目录编排与矩阵检索前生效，碎片与商务/资格/格式条款不进技术挂载与偏离判定。
+            from icg.domain.technical_clause_cleaning import clean_technical_requirements
+            clean_technical_requirements(actual)
             if pending and not parsed:
                 job = self._job(state, project_id, "parse",
                                 f"{len(pending)} 份文件正在由 RAGFlow 识别版面与文字，稍后再次点击“开始解析”取回结果。")
@@ -549,6 +553,8 @@ class TenderOrchestratorMixin:
             return
         draft = {
             "requirements": dict(workflow.get("requirements") or {}),
+            # 残句补全必须能看到招标原文页；否则重跑存量目录时只能凭碎片猜，甚至把可补全条款永久过滤。
+            "files": dict(workflow.get("files") or {}),
             "technical_sidecars": dict(workflow.get("technical_sidecars") or {}),
             "response_tasks": {key: dict(value) for key, value in (workflow.get("response_tasks") or {}).items()},
             "technical_facts": dict(workflow.get("technical_facts") or {}),
@@ -572,25 +578,50 @@ class TenderOrchestratorMixin:
 
         def write_outline(state, project, actual):
             from icg.domain.technical_outline import _chapter
-            actual["outline_source"] = source or actual.get("outline_source") or "rule"
+            from icg.domain.technical_clause_cleaning import clear_stale_judgment_fields
             actual["tree_model_failed"] = failed
             # 覆盖解析时写下的「正在编排」草稿说明。
             actual["outline_reason"] = reason
+            # 清洗分流回写（ISSUE-060）：目录编排在锁外跑，清洗发生在草稿副本上；
+            # 残句补全文本/范围标记/碎片原因必须写回真实工作流，否则存量项目重跑目录后
+            # 矩阵与偏离表仍面对未清洗的旧行。成功/失败两条路径都回写：清洗与目录成败无关。
+            # 注意只回写清洗自有字段；矩阵响应字段不回拷草稿，改用 clear_stale_judgment_fields
+            # 在真实行上按新 scope 就地清理，避免覆盖用户在锁外间隙里的人工编辑。
+            draft_rows = draft.get("requirements") or {}
+            for rid, row in (actual.get("requirements") or {}).items():
+                source_row = draft_rows.get(rid)
+                if not isinstance(source_row, dict) or not source_row.get("clause_cleaned"):
+                    continue
+                if row.get("manually_edited") and not source_row.get("manually_edited"):
+                    continue  # 锁外间隙人工接管了该行：以人工为准，不回写。
+                for key in ("digest_id", "text", "extracted_summary", "source_fragment", "requirement_scope",
+                            "non_tech_category", "clause_fragment", "fragment_completed",
+                            "fragment_reason", "clause_cleaned"):
+                    if key in source_row:
+                        row[key] = source_row[key]
+                if "digest_id" not in source_row:
+                    row.pop("digest_id", None)  # 本轮未进清单（被拦截/排除）的行不得残留旧编号。
+                clear_stale_judgment_fields(row)
             if not headings:
+                # 模型规划明确失败：不覆盖可见目录（旧模型目录/规则草稿原样保留），
+                # outline_source 维持可见目录的真相，失败原因上浮供前端「重新生成目录」。
                 outline = actual.get("technical_outline")
+                kept = ((outline or {}).get("outline_source") if isinstance(outline, dict) else "") \
+                    or actual.get("outline_source") or source or "rule_fallback"
+                actual["outline_source"] = kept
                 if isinstance(outline, dict):
-                    outline["outline_source"] = actual["outline_source"]
+                    outline["outline_source"] = kept
                     outline["tree_model_failed"] = failed
                     outline["outline_reason"] = reason
+                if draft.get("outline_model_error"):
+                    actual["outline_model_error"] = draft["outline_model_error"]
                 return {"ok": True}
+            actual["outline_source"] = source or actual.get("outline_source") or "rule"
+            actual.pop("outline_model_error", None)  # 规划成功即清掉上一次失败的错误记录。
             actual["response_tasks"] = {task["task_id"]: task for task in tasks}
             actual["plan_validation"] = plan.get("validation")
             if draft.get("tender_digest"):
                 actual["tender_digest"] = draft["tender_digest"]
-                draft_rows = draft.get("requirements") or {}
-                for rid, row in (actual.get("requirements") or {}).items():
-                    if (draft_rows.get(rid) or {}).get("digest_id"):
-                        row["digest_id"] = draft_rows[rid]["digest_id"]
             chapter = _chapter(state, project_id, title)
             previous = (actual.get("technical_outline") or {}).get("text") or ""
             current = chapter.content or ""
@@ -621,7 +652,8 @@ class TenderOrchestratorMixin:
         """用当前三张清单重跑真实本地模型目录编排。
 
         供解析后人工重触发/终审修复使用：不重抽招标条款、不清空正文；
-        正文按章节号/标题由后续生成流程单向迁移，失败时明确返回 rule_fallback。
+        正文按章节号/标题由后续生成流程单向迁移。失败时绝不写入通用规则目录冒充成功：
+        可见目录保持原样，tree_model_failed/outline_reason/outline_model_error 上浮供前端重试。
         """
         from icg.domain.technical_model_extract import usable_local_model
         state = self.repository.read()

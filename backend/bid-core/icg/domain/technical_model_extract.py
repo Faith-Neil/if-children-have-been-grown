@@ -317,8 +317,25 @@ def resolve_chunk_id(workflow: dict | None, file_id: str, pages: list[str], page
     return f"{file_id}:{page}:0" if file_id else f":{page}:0"
 
 
+def error_is_timeout(exc: BaseException | None) -> bool:
+    """真实适配器超时识别：httpx.TimeoutException/TimeoutError/asyncio.TimeoutError
+    以及被 ModelCallError 包装的 RetryableModelError('timeout') cause 链（ISSUE-060）。"""
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        name = type(current).__name__.lower()
+        if "timeout" in name or "timedout" in name:
+            return True
+        message = str(current).lower()
+        if "timeout" in message or "timed out" in message:
+            return True
+        current = current.__cause__ or (None if current.__suppress_context__ else current.__context__)
+    return False
+
+
 def _is_timeout(exc: BaseException) -> bool:
-    return "timeout" in f"{type(exc).__name__} {exc}".lower()
+    return error_is_timeout(exc)
 
 
 def extract_with_model(pages: list[str], model: Any, on_chunk=None) -> dict[str, Any]:

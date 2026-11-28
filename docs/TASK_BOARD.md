@@ -725,10 +725,13 @@
 | [FE-UX-STREAMING-MARKDOWN](tasks/FE-UX.md#fe-ux-streaming-markdown) | 流式安全 Markdown 中间态 | done | FE-UX-STREAMING-RENDER | [ISSUE-058](../issues/ISSUE-058.md) | [交付](delivery/FE-UX-STREAMING-MARKDOWN.md) |
 | [FE-UX-STREAMING-HANDOFF](tasks/FE-UX.md#fe-ux-streaming-handoff) | 智能跟随滚动与完成无缝交接 | done | FE-UX-STREAMING-RENDER、FE-UX-STREAMING-MARKDOWN | [ISSUE-058](../issues/ISSUE-058.md) | [交付](delivery/FE-UX-STREAMING-HANDOFF.md) |
 | [FE-UX-STREAMING-VERIFICATION](tasks/FE-UX.md#fe-ux-streaming-verification) | 流式单元测试与 Playwright SSE 验收 | done | 前三张流式体验卡初版 | [ISSUE-058](../issues/ISSUE-058.md) | [交付](delivery/FE-UX-STREAMING-VERIFICATION.md) |
-| [P0-SEC-MODEL-AUDIT-HOTFIX](tasks/P0-HOTFIX.md#p0-sec-model-audit-hotfix) | 平台模型安全红线、密钥轮换与审计授权/策略保存止血 | in-review | — | [ISSUE-059](../issues/ISSUE-059.md) | [交付](delivery/P0-SEC-MODEL-AUDIT-HOTFIX.md) |
-| [P0-EXPORT-STATE-HOTFIX](tasks/P0-HOTFIX.md#p0-export-state-hotfix) | 检查过期误判、保存提交死锁恢复与进度写入一致性止血 | in-review | — | [ISSUE-059](../issues/ISSUE-059.md) | [交付](delivery/P0-EXPORT-STATE-HOTFIX.md) |
-| [P0-CONFIG-KB-HOTFIX](tasks/P0-HOTFIX.md#p0-config-kb-hotfix) | 平台配置生效、项目负责人绑模型、知识库重建与种子账号止血 | in-review | — | [ISSUE-059](../issues/ISSUE-059.md) | [交付](delivery/P0-CONFIG-KB-HOTFIX.md) |
-| [P0-DEPLOY-HOTFIX](tasks/P0-HOTFIX.md#p0-deploy-hotfix) | 容器健康检查修复与端口回环安全默认固化 | in-review | — | [ISSUE-059](../issues/ISSUE-059.md) | [交付](delivery/P0-DEPLOY-HOTFIX.md) |
+| [P0-SEC-MODEL-AUDIT-HOTFIX](tasks/P0-HOTFIX.md#p0-sec-model-audit-hotfix) | 平台模型安全红线、密钥轮换与审计授权/策略保存止血 | done | — | [ISSUE-059](../issues/ISSUE-059.md) | [交付](delivery/P0-SEC-MODEL-AUDIT-HOTFIX.md) |
+| [P0-EXPORT-STATE-HOTFIX](tasks/P0-HOTFIX.md#p0-export-state-hotfix) | 检查过期误判、保存提交死锁恢复与进度写入一致性止血 | done | — | [ISSUE-059](../issues/ISSUE-059.md) | [交付](delivery/P0-EXPORT-STATE-HOTFIX.md) |
+| [P0-CONFIG-KB-HOTFIX](tasks/P0-HOTFIX.md#p0-config-kb-hotfix) | 平台配置生效、项目负责人绑模型、知识库重建与种子账号止血 | done | — | [ISSUE-059](../issues/ISSUE-059.md) | [交付](delivery/P0-CONFIG-KB-HOTFIX.md) |
+| [P0-DEPLOY-HOTFIX](tasks/P0-HOTFIX.md#p0-deploy-hotfix) | 容器健康检查修复与端口回环安全默认固化 | done | — | [ISSUE-059](../issues/ISSUE-059.md) | [交付](delivery/P0-DEPLOY-HOTFIX.md) |
+| [TV-M0-T31](tasks/TV-M0.md#tv-m0-t31) | 招标条款残句清洗、技术/非技术分流与假负偏离加固 | in-review | — | [ISSUE-060](../issues/ISSUE-060.md) | [交付](delivery/TV-M0-T31.md) |
+| [TV-M0-T32](tasks/TV-M0.md#tv-m0-t32) | 强制模型两阶段目录规划、失败上浮与全量均衡挂载 | in-review | [TV-M0-T31](tasks/TV-M0.md#tv-m0-t31) | [ISSUE-060](../issues/ISSUE-060.md) | [交付](delivery/TV-M0-T32.md) |
+| [TV-M0-T33](tasks/TV-M0.md#tv-m0-t33) | 重庆中烟真实 MySQL 验证、前后对比实证与回归留档 | in-review | [TV-M0-T31](tasks/TV-M0.md#tv-m0-t31)、[TV-M0-T32](tasks/TV-M0.md#tv-m0-t32) | [ISSUE-060](../issues/ISSUE-060.md) | [交付](delivery/TV-M0-T33.md) |
 <!-- task-board:end -->
 
 ## 每次推进的同步顺序

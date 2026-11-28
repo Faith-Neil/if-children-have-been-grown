@@ -23,6 +23,8 @@ import { acquiredEditingFingerprint, editingContentWrite, loadedEditingFingerpri
 import { isInputFingerprintError, recoverFingerprintedWrite, type FingerprintRecoveryState } from './fingerprint-recovery.ts';
 import { chapterCan, projectCan } from '../project/project-team.ts';
 import { parseHonesty } from '../project/parse-honesty.ts';
+import { outlineFailureState } from '../project/outline-rebuild-core.ts';
+import { OutlineRebuildNotice } from '../project/OutlineRebuildNotice.tsx';
 import { AiTag } from '../library/BusinessTags.tsx';
 import { ReadonlyBanner } from '../status/StatusViews';
 import { useDataPermission } from '../shell/useDataPermission';
@@ -626,7 +628,9 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
   }
 
   const technicalOutline = workspace.technical_outline ?? null;
-  const honesty = parseHonesty(workspace);
+  // 目录模型失败时由专用告警（含「重新生成目录」）承担失败原因，parse-honesty 不再重复同一句话。
+  const outlineFailure = outlineFailureState(workspace);
+  const honesty = parseHonesty(workspace, { includeOutline: !outlineFailure.failed });
   const outlineChapter = technicalOutline ? workspace.chapters.find(item => item.id === technicalOutline.chapter_id) : undefined;
 
   async function refreshOutlineChapter() {
@@ -911,6 +915,13 @@ export default function EditorPage({ onDirtyChange, initialChapterId }: { onDirt
 
       {/* 2. 中间正文编辑区 */}
       <section className="editor-center" data-testid="editor-center-section">
+        <OutlineRebuildNotice
+          disabled={streaming}
+          onRebuilt={() => {
+            setNotice('模型目录已重新生成，请逐条核对后再确认。');
+            void refreshOutlineChapter().catch(() => undefined);
+          }}
+        />
         {honesty.degraded && (
           <Alert
             className="editor-notice"

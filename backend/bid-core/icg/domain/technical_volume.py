@@ -1207,7 +1207,10 @@ def _fragmentary_clause(text: str) -> bool:
 
 def complete_clause_text(row: dict) -> str:
     """偏离表条款列的完整句修复：模型抽取有时只保留半句/词片，优先回溯 source.quote
-    中与该片段最匹配的完整句子；取不到原文时不编造，保留原片段。"""
+    中与该片段最匹配的完整句子；取不到原文时不编造，保留原片段。
+    已通过招标原文校验的清洗补全（fragment_completed）是更高置信度事实，直接使用。"""
+    if row.get("fragment_completed") and str(row.get("text") or "").strip():
+        return _plain_text(row.get("text"))[:200]
     text = _plain_text(row.get("extracted_summary") or row.get("text") or "")
     quote = _plain_text((row.get("source") or {}).get("quote") or "")
     if not quote:
@@ -1533,6 +1536,7 @@ def _deviation_entries(sample: dict, workflow: dict) -> list[tuple[dict, dict, s
     emitted_clauses: set[str] = set()
     entries: list[tuple[dict, dict, str]] = []
     from icg.domain.technical_constraint_context import row_is_non_tech
+    from icg.domain.technical_clause_cleaning import row_excluded_from_technical
     for heading in _leaves(outline):
         requirement_ids = list(heading.get("requirement_ids") or [])
         if not requirement_ids and heading.get("requirement_id"):
@@ -1542,7 +1546,7 @@ def _deviation_entries(sample: dict, workflow: dict) -> list[tuple[dict, dict, s
             if row is None or row.get("status") == "rejected" or str(rid) in emitted:
                 continue
             clause_text = complete_clause_text(row)
-            if sample.get("scope") == "technical" and row_is_non_tech(row):
+            if sample.get("scope") == "technical" and (row_is_non_tech(row) or row_excluded_from_technical(row)):
                 continue
             if sample.get("scope") == "technical" and _is_deviation_ineligible(row, clause_text):
                 continue

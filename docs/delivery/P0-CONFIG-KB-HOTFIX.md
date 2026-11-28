@@ -4,7 +4,7 @@
 
 | 项 | 内容 |
 |---|---|
-| 状态 | in-review；建议 PM 复核后标 done |
+| 状态 | done；用户（人类 PM）已按 PR #56 合入指示收口 |
 | Issue | [ISSUE-059](../../issues/ISSUE-059.md) |
 | 任务卡 | [P0-HOTFIX](../tasks/P0-HOTFIX.md#p0-config-kb-hotfix) |
 | 代码说明 | [P0-CONFIG-KB-HOTFIX](../code/P0-CONFIG-KB-HOTFIX.md) |
@@ -16,15 +16,15 @@
 | 任务ID | P0-CONFIG-KB-HOTFIX |
 | 代码解释 | [代码说明](../code/P0-CONFIG-KB-HOTFIX.md) |
 | 验收 | `tests/backend/test_issue059_ragflow_fallback.py` 11 passed、`tests/backend/test_issue059_model_config_rbac.py` 7 passed、`tests/backend/test_admin_rbac_security_cleanup.py` 8 passed、`tests/backend/test_iss059_backend_hotfix.py` + `test_kb_admin` 23 passed 2 skipped（含真实 MySQL 3407 复现用例 2 passed）、`reference_flow` 21 passed；`export_openapi.py --check` 100% 一致。 |
-| 项目进度 | in-review；建议 PM 复核后标 done。ISSUE-059 四张止血卡全部实施完成进入 in-review，等待 QA 签署 + PD 产品验收 + 人类 PM 确认；未创建 PR，未合入，未发布。 |
+| 项目进度 | done。2026-11-28 用户（人类 PM）确认 PR #56 已合入 main（f18708c）并指示 ISSUE-059 收口：本卡标 done，Issue 标 closed；未发布。QA/PD 独立签署未执行，按 PM 明确指示作为例外收口；真实服务/容器等未验证局限仍以验证登记为准。 |
 <!-- task-delivery:end -->
 
 ## 关联与状态
 
 - 日期、里程碑、Issue、任务卡：2026-11-27；P0 止血（无里程碑变更）；[ISSUE-059](../../issues/ISSUE-059.md)；[P0-HOTFIX 任务卡](../tasks/P0-HOTFIX.md#p0-config-kb-hotfix)。
-- 分支、提交、PR：分支 `feat/iss-059-p0-security-export-deploy-hotfix`；PR 未创建。
+- 分支、提交、PR：分支 `feat/iss-059-p0-security-export-deploy-hotfix`；PR #56 已合入 main（f18708c）。
 - 本地验收状态：聚焦单测与真实 MySQL 复现用例通过（见验收结果）；真实 RAGFlow 连通性未在本轮验证。
-- 合入 / 发布状态：未合入、未发布。
+- 合入 / 发布状态：已合入 main（f18708c）、未发布。
 
 ## 完成内容与变更文件
 
@@ -54,7 +54,7 @@
 
 ## 项目进度
 
-in-review；建议 PM 复核后标 done。ISSUE-059 四张止血卡全部实施完成并进入 in-review；下一步为 QA 独立签署、PD 产品验收与人类 PM 确认。本卡不标 done。
+done。2026-11-28 用户（人类 PM）确认 PR #56 已合入 main（f18708c）并指示 ISSUE-059 收口：本卡标 done，Issue 标 closed；未发布。QA/PD 独立签署未执行，按 PM 明确指示作为例外收口；真实服务/容器等未验证局限仍以验证登记为准。
 
 ## 文档与 Issue 同步
 
@@ -64,7 +64,7 @@ in-review；建议 PM 复核后标 done。ISSUE-059 四张止血卡全部实施�
 | ROADMAP | 无影响：不改变里程碑顺序，属当前主链路阻断止血 |
 | ARCHITECTURE | 无新增架构变更：配置生效链（公司级优先、平台 system 兜底）为既定设计的恢复与补全；错误码冻结名单为既有机制的修正 |
 | Issue 看板/详情 | 已同步：ISSUE-059 验收条目 AC-07～AC-10 更新为实证，处理记录追加一行 |
-| TASK_BOARD / PROJECT_STATUS | 已同步：看板本卡 in-review 并链接本交付；PROJECT_STATUS P0 段落同步四卡 in-review |
+| TASK_BOARD / PROJECT_STATUS | 已同步：看板本卡 done 并链接本交付；PROJECT_STATUS P0 段落同步四卡 done |
 | DOCUMENT_INDEX | 已登记：本交付与代码说明条目（D-1100 / D-1104） |
 
 ## 风险与后续
@@ -97,3 +97,7 @@ RAGFlow 密钥现在区分继承与显式清除；显式清除后不复活环境
 ## 第六轮补充
 
 平台清除 RAGFlow 密钥后，公司租户不得再借部署环境密钥复活连接；未编辑密钥输入框时前端不再上行 `api_key`，连续只改超时不会误清继承密钥，后端在继承态继续返回一致的部署密钥掩码。
+
+## 收口记录（2026-11-28）
+
+PR #56 已合入 main（f18708c）。用户（人类 PM）明确指示 ISSUE-059 收口，本卡状态同步为 done；未发布。QA/PD 独立签署未执行，按 PM 明确指示作为例外收口；本文与验证登记中列明的真实 RAGFlow/真实模型/真实浏览器/真实容器编排未验证局限继续保留，不因收口而消除。

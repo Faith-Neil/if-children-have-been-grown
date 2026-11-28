@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 
 from icg.domain.technical_digest import build_digest, rejection_lines
-from icg.domain.technical_digest_outline import FALLBACK_TITLE, plan_technical_outline
+from icg.domain.technical_digest_outline import plan_technical_outline
 from icg.domain.technical_model_extract import extract_with_model
 
 
@@ -66,32 +66,39 @@ def test_digest_numbers_three_lists():
 
 
 def test_model_outline_mounts_points_and_patches_missing():
-    reply = json.dumps({"nodes": [
+    skeleton = json.dumps({"nodes": [
         {"level": 1, "title": "运维服务方案"},
-        {"level": 2, "title": "日常巡检", "points": [{"text": "月度巡检出报告", "refs": ["T-01"]}]},
-        {"level": 2, "title": "应急保障", "points": [{"text": "应急预案", "refs": ["S-01-1"]}]},
-        {"level": 2, "title": "空节"},
+        {"level": 2, "title": "日常巡检"},
+        {"level": 2, "title": "应急保障"},
+    ]}, ensure_ascii=False)
+    # 阶段二漏挂 S-01-2（备份恢复演练）——只进未挂载池，不倒「其他服务承诺」
+    mounts = json.dumps({"mounts": [
+        {"node": "1.1", "refs": ["T-01"]},
+        {"node": "1.2", "refs": ["S-01-1"]},
     ]}, ensure_ascii=False)
     workflow = _workflow()
-    model = FakeModel([reply])
+    model = FakeModel([skeleton, mounts])
     plan = plan_technical_outline(workflow, model)
     assert workflow["outline_source"] == "model"
-    assert "R-01" in model.calls[0][1] and "S-01-2" in model.calls[0][1]
+    assert "S-01-2" in model.calls[1][1]  # 阶段二输入包含全部清单编号
     titles = [(item["number"], item["title"]) for item in plan["headings"]]
-    assert titles == [("1", "运维服务方案"), ("1.1", "日常巡检"), ("1.2", "应急保障"), ("2", FALLBACK_TITLE)]
+    assert titles == [("1", "运维服务方案"), ("1.1", "日常巡检"), ("1.2", "应急保障")]
+    assert "其他服务承诺" not in [item["title"] for item in plan["headings"]]
     leaf = plan["headings"][1]
-    assert leaf["requirement_ids"] == ["r1"] and leaf["points"][0]["text"] == "月度巡检出报告"
-    assert plan["headings"][3]["requirement_ids"] == ["r3"]
-    assert plan["validation"]["patched_requirement_ids"] == ["r3"]
+    assert leaf["requirement_ids"] == ["r1"]
+    # 要点文本确定性取自清单原文（不编造）
+    assert leaf["points"][0]["text"].startswith("每月巡检数据库")
+    assert plan["validation"]["unmounted_digest_refs"] == ["S-01-2"]
     task = workflow["response_tasks"][leaf["task_id"]]
-    assert task["response_points"] == ["月度巡检出报告"] and task["outline_number"] == "1.1"
+    assert task["outline_number"] == "1.1"
 
 
-def test_model_outline_failure_falls_back_to_rule():
+def test_model_outline_failure_does_not_silently_fall_back():
     workflow = _workflow()
-    plan = plan_technical_outline(workflow, FakeModel([TimeoutError(), "not json"]))
-    assert workflow["outline_source"] == "rule_fallback" and workflow["tree_model_failed"] is True
-    assert plan["headings"]
+    plan = plan_technical_outline(workflow, FakeModel([TimeoutError(), TimeoutError(), TimeoutError()]))
+    assert workflow["tree_model_failed"] is True
+    assert plan["headings"] == []  # 绝不静默塞通用规则目录冒充成功
+    assert "超时" in workflow["outline_reason"] or "timeout" in workflow["outline_reason"].lower()
 
 
 def test_section_prompt_carries_scoring_and_rejection_list():
@@ -119,20 +126,22 @@ def test_extract_merges_scoring_meta_into_duplicate_requirement():
     assert (payload["requirement_count"], payload["scoring_count"]) == (0, 1)
 
 
-def test_malformed_outline_reply_falls_back_without_raising():
+def test_malformed_outline_reply_fails_explicitly_without_raising():
     workflow = _workflow()
-    model = FakeModel(['{"nodes": 1}', json.dumps({"nodes": [{"level": 1, "title": "巡检", "points": [{"text": "巡检", "refs": 5}]}]})])
+    model = FakeModel(['{"nodes": 1}', 'garbage', 'still garbage'])
     plan = plan_technical_outline(workflow, model)
-    assert workflow["outline_source"] == "rule_fallback" and plan["headings"]
+    assert workflow["tree_model_failed"] is True and plan["headings"] == []
+    assert "无法解析" in workflow["outline_reason"] or "不完整" in workflow["outline_reason"]
 
 
-def test_rule_fallback_does_not_call_tree_model_again():
+def test_failed_model_retries_then_stops_calling():
     workflow = _workflow()
-    model = FakeModel([RuntimeError("boom"), RuntimeError("boom")])
+    model = FakeModel([RuntimeError("boom")] * 3)
     workflow["tree_model"] = model
     plan_technical_outline(workflow)
-    assert len(model.calls) == 2 and workflow["tree_model"] is model
-    assert workflow["outline_source"] == "rule_fallback"
+    assert len(model.calls) == 3  # 骨架阶段 1 首调 + 2 重试
+    assert workflow["tree_model_failed"] is True
+    assert workflow["outline_model_error"]["stage"] == "skeleton"
 
 
 def test_rejection_lines_keep_every_condition():
