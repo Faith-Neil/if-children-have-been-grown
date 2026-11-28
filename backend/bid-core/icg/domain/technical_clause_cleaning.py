@@ -53,11 +53,31 @@ _TECHNICAL_OBLIGATION = re.compile(
 # 「系统实施前 / 项目验收前 / 合同履行期间」只是时间背景，不是独立技术义务；
 # 先剥离这类状语再识别技术词，避免资格证明被「实施/验收」单字撤销分流。
 _TEMPORAL_CONTEXT = re.compile(
-    # 明确边界的纯时间状语才屏蔽：要么是「在/于……前/期间」，
-    # 要么是句首/分句首且以标点收束的「系统实施前，」。
-    r"(?:^|(?<=[，,；;。]))\s*(?:在|于)[^，,。；;]{0,16}?(?:实施|验收|履行|交付|建设|运行)(?:前|期间|过程中|阶段|后期)"
-    r"|(?:^|(?<=[，,；;。]))\s*[^，,。；;]{0,12}?(?:实施|验收|履行|交付|建设|运行)(?:前|期间|过程中|后期)(?=\s*[，,：:])"
+    # 只识别明确有界的短时间状语：可选「在/于」+ 可选项目主体 + 动作 + 时间词。
+    # 不允许跨前文动作或并列连词的任意字符前缀，也不匹配「实施阶段」这类名词宾语；
+    # 后面有无逗号均可生效（「系统实施前投标人须……」与「系统实施前，……」同效）。
+    r"(?:在|于)?本?(?:系统|项目|合同|服务)?(?:实施|交付|验收|上线|签订|履行)(?:前|之前|后|之后|期间)"
 )
+
+
+# 时长实际限定服务期/运维期/质保期/工期的绑定模式。付款频率（每三个月支付一次）
+# 不构成服务期承诺：时长没有绑定服务期词汇，分流仍以付款条款处理。
+_DURATION_NUM = r"(?:\d+(?:\.\d+)?|[一二三四五六七八九十]+)\s*(?:个)?(?:年|个月|月|天|日|日历天)"
+_SERVICE_PERIOD_WORD = r"(?:服务期限|服务期|运维期|质保期|保修期|工期|交货期|运维周期|实施周期)"
+_SERVICE_DURATION_BIND = re.compile(
+    rf"(?:{_SERVICE_PERIOD_WORD}\s*(?:[:：为]|不少于|不低于|为期)?\s*{_DURATION_NUM})"
+    rf"|(?:不少于|不低于|为期)\s*{_DURATION_NUM}\s*的?{_SERVICE_PERIOD_WORD}"
+    rf"|(?:{_DURATION_NUM})\s*的{_SERVICE_PERIOD_WORD}"
+)
+
+
+def _has_independent_service_duration(text: str) -> bool:
+    """条款中的时长是否实际限定服务期/运维期/质保期/工期。
+
+    「提供不少于三年的服务期，进度款按季度支付」→ True（保留技术侧，矩阵响应、R09 核验）；
+    「服务期内每三个月支付一次进度款」→ False（仅付款频率，分流非技术）。
+    """
+    return bool(_SERVICE_DURATION_BIND.search(str(text or "")))
 
 
 def _has_technical_obligation(text: str) -> bool:
@@ -173,6 +193,10 @@ def non_tech_category(text: str) -> str:
         return ""
     for pattern, category in _NON_TECH_RULES:
         if pattern.search(blob):
+            if _has_independent_service_duration(blob):
+                # 时长实际限定服务期/工期：这是真实服务承诺，保留技术侧，
+                # 让矩阵正常生成响应、R09 正常核验服务期承诺与负偏离（单一事实来源）。
+                return ""
             if _has_technical_obligation(blob) and category in {"qualification", "business_or_packaging"}:
                 return ""
             return category
@@ -184,6 +208,10 @@ def non_tech_category(text: str) -> str:
 def row_non_tech_category(row: dict) -> str:
     """行级非技术判定：先复用 row_is_non_tech 既有标记，再跑分流规则。"""
     blob = f"{row.get('text') or ''} {row.get('extracted_summary') or ''}"
+    if _has_independent_service_duration(blob):
+        # 服务期/工期时长承诺优先于一切非技术标记（含存量 row_is_non_tech 付款关键词），
+        # 保证清洗、矩阵响应与 R09 消费同一份生效范围判定。
+        return ""
     category = non_tech_category(blob)
     if category:
         return category

@@ -238,7 +238,9 @@ def test_unmergeable_missing_refs_keep_valid_base_instead_of_failing():
 def test_time_specification_prefix_is_not_stripped_as_outline_number():
     from icg.domain.technical_digest_outline import _clean_title
 
+    assert _clean_title("2×GPU加速卡配置") == "2×GPU加速卡配置"
     assert _clean_title("12×5小时运维服务") == "12×5小时运维服务"
+    assert _clean_title("1.2倍速处理能力") == "1.2倍速处理能力"  # 量值非编号不剥离
     assert _clean_title("7×24小时响应机制") == "7×24小时响应机制"
     assert _clean_title("7x24小时响应机制") == "7x24小时响应机制"
     assert _clean_title("5×8小时现场服务") == "5×8小时现场服务"
@@ -283,4 +285,40 @@ def test_concentration_is_tiebreaker_only_for_equal_coverage():
     fuller = {"1.1": ["T-01", "T-02", "T-03"]}
     emptier = {"1.1": ["T-01"], "1.2": ["T-02"]}
     assert _mount_quality(fuller, weights) > _mount_quality(emptier, weights)
+
+def test_stage_mount_merge_entry_not_blocked_by_single_best_coverage_gate():
+    """重试入口回归：候选 A 挂 6 条普通条款、候选 B 只挂 1 条 60 分高权评分点。
+    旧前置门禁按单次最高挂载数（B 仅 1 条 < 60%）拒绝合并直接失败；
+    现在只要存在有效候选就统一合并仲裁，产出 7/10 合格目录。"""
+    from icg.domain.technical_digest_outline import _stage_mount
+    from icg.domain.technical_digest import digest_index
+
+    digest = {
+        "tech": [
+            {"id": f"T-0{index}", "requirement_id": f"r{index}", "text": f"技术服务要求{index}"}
+            for index in range(1, 10)
+        ],
+        "scoring": [{
+            "id": "S-01", "item": "运维服务方案", "score": 60,
+            "points": [{"id": "S-01-1", "requirement_id": "r10", "text": "整体方案"}],
+        }],
+    }
+    skeleton = [
+        {"level": 1, "title": "服务方案", "number": "1", "leaf": False},
+        {"level": 2, "title": "巡检", "number": "1.1", "leaf": True},
+        {"level": 2, "title": "备份", "number": "1.2", "leaf": True},
+        {"level": 2, "title": "监控", "number": "1.3", "leaf": True},
+    ]
+    candidate_a = json.dumps({"mounts": [
+        {"node": "1.1", "refs": ["T-01", "T-02", "T-03"]},
+        {"node": "1.2", "refs": ["T-04", "T-05", "T-06"]},
+    ]}, ensure_ascii=False)
+    candidate_b = json.dumps({"mounts": [{"node": "1.3", "refs": ["S-01-1"]}]}, ensure_ascii=False)
+    model = FakeModel([candidate_a, candidate_b, candidate_b])
+    mounts, failure = _stage_mount(_workflow(1), digest, model, skeleton, digest_index(digest))
+    assert failure is None  # 旧门禁下这里直接判失败
+    covered = {ref for refs in mounts.values() for ref in refs}
+    assert len(covered) == 7  # 6 普通条款 + 1 高权评分点合并生效
+    assert "S-01-1" in covered
+    assert len(covered) >= 10 * 0.6
 

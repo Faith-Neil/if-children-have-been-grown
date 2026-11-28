@@ -307,32 +307,56 @@ def test_r09_uses_effective_non_tech_scope_even_for_legacy_rows_without_scope_fi
 def test_temporal_context_only_strips_bounded_time_adverbials():
     from icg.domain.technical_clause_cleaning import non_tech_category
 
-    # 纯时间背景（句首/分句首且标点收束，或「在/于……前/期间」）：资格分流保留
+    # 1. 时间状语不得跨过前文动作或并列连词吞掉技术义务
+    assert non_tech_category("完成数据库备份并于交付前，提交银行资信证明") == ""
+    # 2. 「实施阶段」作名词宾语不匹配，同句独立技术动作保留技术侧
+    assert non_tech_category("投标人须提交银行资信证明，并完成数据库系统实施阶段的全部工作") == ""
+    # 3/4. 有界短时间状语有无逗号均生效，资格分流稳定
+    assert non_tech_category("系统实施前投标人须提供银行资信证明") == "qualification"
     assert non_tech_category("系统实施前，投标人须提供银行资信证明") == "qualification"
     assert non_tech_category("在系统实施前，投标人须提供银行资信证明") == "qualification"
     assert non_tech_category("在合同履行期间，投标人须按要求提供银行资信证明") == "qualification"
-    # 「实施阶段」作名词短语/宾语时不得吞掉：同句独立技术动作必须保住技术侧
-    assert non_tech_category("提交银行资信证明，并完成数据库系统实施阶段的全部工作") == ""
     assert non_tech_category("项目验收前提供银行资信证明，并完成数据库备份演练") == ""
 
 
-def test_r09_mixed_service_period_payment_clause_is_still_checked():
+def test_ssot_cleaning_matrix_r09_alignment():
+    """单一事实来源端到端对照：清洗 scope ⇔ 矩阵排除 ⇔ R09 跳过完全一致。"""
     from icg.domain.compliance_rules import ComplianceRulesEngine
+    from icg.domain.technical_clause_cleaning import clean_requirement_row, row_excluded_from_technical
 
-    mixed = _row("mix", "提供不少于三年的服务期，进度款按季度支付")
-    mixed.update(requirement_scope="non_technical", non_tech_category="payment", response="", volume="business")
-    result = ComplianceRulesEngine.check_r09(None, None, {"requirements": {"mix": mixed}}, volume="business")
-    assert [issue["code"] for issue in result.issues] == ["SERVICE_PERIOD_COMMITMENT_MISSING"]
-    assert result.issues[0]["requirement_id"] == "mix"
+    def clean(text, **extra):
+        row = _row("x", text, quote=text[:12])
+        row.update(extra)
+        patch = clean_requirement_row(row, "完全不同的页面内容，没有任何匹配锚点。")
+        row.update(patch)
+        return row
 
-    negative = dict(mixed, response="只能提供两年服务期", deviation_type="negative")
-    result = ComplianceRulesEngine.check_r09(None, None, {"requirements": {"mix": negative}}, volume="business")
-    assert [issue["code"] for issue in result.issues] == ["SERVICE_PERIOD_NEGATIVE_DEVIATION"]
-
-    pure = _row("pay", "服务期内每季度支付一次进度款")
-    pure.update(requirement_scope="non_technical", non_tech_category="payment", response="", volume="business")
-    result = ComplianceRulesEngine.check_r09(None, None, {"requirements": {"pay": pure}}, volume="business")
+    # ①「服务期内，」残句：清洗过滤 → 矩阵排除 → R09 不阻断（无死锁）
+    frag = clean("服务期内，")
+    assert frag["requirement_scope"] == "fragment_filtered"
+    assert row_excluded_from_technical(frag) is True
+    result = ComplianceRulesEngine.check_r09(None, None, {"requirements": {"x": frag}})
     assert result.issues == []
+
+    # ② 仅付款频率：分流 non_technical → 矩阵与 R09 均跳过
+    freq = clean("服务期内每三个月支付一次进度款")
+    assert freq["requirement_scope"] == "non_technical"
+    assert row_excluded_from_technical(freq) is True
+    result = ComplianceRulesEngine.check_r09(None, None, {"requirements": {"x": freq}})
+    assert result.issues == []
+
+    # ③ 独立服务期时长 + 付款混合：保留技术侧 → 矩阵生成响应 → R09 正常核验（双卷与纯技术册）
+    mixed = clean("提供不少于三年的服务期，进度款按季度支付", response="", volume="business")
+    assert mixed["requirement_scope"] == "technical"
+    assert row_excluded_from_technical(mixed) is False
+    result = ComplianceRulesEngine.check_r09(None, None, {"requirements": {"x": mixed}}, volume="business")
+    assert [issue["code"] for issue in result.issues] == ["SERVICE_PERIOD_COMMITMENT_MISSING"]
+    tech = dict(mixed, volume="technical")
+    result = ComplianceRulesEngine.check_r09(None, None, {"requirements": {"x": tech}}, volume="technical")
+    assert [issue["code"] for issue in result.issues] == ["SERVICE_PERIOD_COMMITMENT_MISSING"]
+    negative = dict(mixed, response="只能提供两年服务期", deviation_type="negative")
+    result = ComplianceRulesEngine.check_r09(None, None, {"requirements": {"x": negative}}, volume="business")
+    assert [issue["code"] for issue in result.issues] == ["SERVICE_PERIOD_NEGATIVE_DEVIATION"]
 
 
 def test_leading_dot_decimal_is_single_token_and_conflicting_completion_not_persisted():
@@ -346,14 +370,23 @@ def test_leading_dot_decimal_is_single_token_and_conflicting_completion_not_pers
     assert _number_preserved("1.2", "TLS 1.2.") is True
     assert _number_preserved("1.2", "TLS 1.20") is False
 
-    # 入口级：锚点 `.5` 与原文 `5` 数值冲突时，补全结果绝不落盘
-    page = "乙方须在故障发生后5小时内到场，2小时内恢复服务。"
-    fragment = "乙方须在故障发生后.5小时内到场"
-    row = _row("r1", fragment, quote=fragment)
-    workflow = _workflow([row], page)
+    # 入口级对照实验（非真空：删掉数字核验后冲突组会补全成功，测试必然失败）：
+    fragment = ") ，乙方须在故障发生后.5小时内"
+    control_page = "乙方须在故障发生后.5小时内到场，2小时内恢复服务。"
+    conflict_page = "乙方须在故障发生后5小时内到场，2小时内恢复服务。"
+
+    control = _row("r1", fragment, quote="乙方须在故障发生后.5小时内")
+    workflow = _workflow([control], control_page)
     clean_technical_requirements(workflow)
     item = workflow["requirements"]["r1"]
+    assert item.get("fragment_completed") is True  # 对照组：原文确为 .5，补全正常落盘
+    assert ".5小时内到场" in item["text"] and "2小时内恢复服务" in item["text"]
+
+    conflict = _row("r1", fragment, quote="乙方须在故障发生后.5小时内")
+    workflow = _workflow([conflict], conflict_page)
+    clean_technical_requirements(workflow)
+    item = workflow["requirements"]["r1"]
+    # 冲突组：锚点 .5 与原文 5 数值冲突，补全必须被拒绝、绝不落盘
     assert not item.get("fragment_completed")
     assert item["text"] == fragment
     assert "2小时内恢复服务" not in item["text"]
-

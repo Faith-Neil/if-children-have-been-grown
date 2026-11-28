@@ -226,9 +226,11 @@ def _clean_title(raw: Any) -> str:
     from icg.domain.technical_response_plan import short_chapter_title
 
     text = str(raw or "").strip()
-    if not re.match(r"^\d+\s*[×xX*]\s*\d+", text):
-        # 服务时段前缀（7×24/12×5/5x8）不是章节编号；先整体识别，避免 `\d+` 回溯吃掉十位。
-        text = re.sub(r"^(?:\d+(?:\.\d+)*|[一二三四五六七八九十]+[、.．])\s*", "", text)
+    if not re.match(r"^\d+\s*[×xX*]", text):
+        # 服务时段/规格前缀（7×24/12×5/2×GPU）不是章节编号，整体豁免；
+        # 编号仅在紧跟合法章节分隔符（空白/、/.)）时剥离，避免误裁「1.2倍速」类量值。
+        text = re.sub(r"^\d+(?:\.\d+)*(?!\.\d)(?=[\s、.．])\s*", "", text)
+        text = re.sub(r"^[一二三四五六七八九十]+[、.．]\s*", "", text)
     text = re.sub(r"^第[\d一二三四五六七八九十百]+[章节篇][、.．\s]*", "", text).strip()
     return short_chapter_title(text) if len(text) > TITLE_LIMIT else text
 
@@ -646,9 +648,6 @@ def _stage_mount(
     feedback = ""
     last_error: dict[str, Any] | None = None
     invalid = False
-    best: dict[str, list[str]] = {}
-    best_mounted = -1
-    best_key: tuple[float, int, float] | None = None
     candidates: list[dict[str, list[str]]] = []
     weights = _ref_weights(digest)
     for attempt in range(1, MAX_ATTEMPTS + 1):
@@ -669,11 +668,7 @@ def _stage_mount(
         missing = [ref for ref in expected if ref not in mounted]
         leaf_count = sum(1 for node in skeleton if node.get("leaf"))
         max_share = max((len(refs) for refs in mounts.values()), default=0) / max(1, len(expected))
-        key = _mount_quality(mounts, weights)
         candidates.append(mounts)
-        if best_key is None or key > best_key:
-            best, best_key = mounts, key
-            best_mounted = key[1]
         problems_text = "；".join(
             item for item in [
                 f"未挂载编号 {len(missing)} 个：{'、'.join(missing[:30])}，必须全部挂到叶子节点" if missing else "",
@@ -687,9 +682,10 @@ def _stage_mount(
         invalid = True
         last_error = None
         feedback = "上一次挂载有问题：" + problems_text + "。请重新输出完整 mounts。"
-    if best and best_mounted >= len(expected) * MIN_MOUNT_RATIO:
-        # 重试耗尽仍少量漏挂：在同一骨架的多次模型输出之间补缺失编号；
-        # 合并后的集中度必须重新过门槛，残余漏挂进未挂载池而非兜底章。
+    if candidates:
+        # 重试耗尽仍少量漏挂：只要存在有效候选，统一交合并仲裁。
+        # 不再用单次最高挂载数作前置门禁——单次高权低覆盖候选不应阻断合并；
+        # 最低覆盖率与单节上限由 _select_merged_mounts 作为双硬约束统一执行。
         leaf_count = sum(1 for node in skeleton if node.get("leaf"))
         merged = _select_merged_mounts(candidates, expected, weights, leaf_count)
         if merged is not None:
