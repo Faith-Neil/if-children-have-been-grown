@@ -238,7 +238,49 @@ def test_unmergeable_missing_refs_keep_valid_base_instead_of_failing():
 def test_time_specification_prefix_is_not_stripped_as_outline_number():
     from icg.domain.technical_digest_outline import _clean_title
 
+    assert _clean_title("12×5小时运维服务") == "12×5小时运维服务"
     assert _clean_title("7×24小时响应机制") == "7×24小时响应机制"
     assert _clean_title("7x24小时响应机制") == "7x24小时响应机制"
     assert _clean_title("5×8小时现场服务") == "5×8小时现场服务"
     assert _clean_title("1.2 运维响应机制") == "运维响应机制"
+
+def test_merge_fill_within_capacity_is_not_skipped_for_concentration():
+    from icg.domain.technical_digest_outline import _merge_missing_mounts
+
+    # 旧罚分制下：把 T-03 补进 1.1（容量 2 内）会使集中度罚分超过覆盖收益，
+    # 导致“有空位却主动放弃补齐”。字典序下覆盖优先，必须在容量内补齐。
+    expected = ["T-01", "T-02", "T-03"]
+    weights = {ref: 1.0 for ref in expected}
+    base = {"1.1": ["T-01"], "1.2": ["T-02"]}
+    candidates = [base, {"1.1": ["T-01", "T-03"], "1.2": ["T-02"]}]
+    merged = _merge_missing_mounts(base, candidates, expected, weights, max_leaf_count=2)
+    assert merged["1.1"] == ["T-01", "T-03"]
+    assert len({ref for refs in merged.values() for ref in refs}) == 3
+
+
+def test_merge_selection_never_returns_below_min_coverage_or_over_cap():
+    from icg.domain.technical_digest_outline import _select_merged_mounts
+
+    # 超限基底（100% 覆盖但全部倒进 1.1）被淘汰后，剩余合格基底在容量内
+    # 最多补到 3/6 = 50% < 60% 地板：必须显式失败（None），不得返回低覆盖目录。
+    expected = [f"T-0{index}" for index in range(1, 7)]
+    weights = {ref: 1.0 for ref in expected}
+    concentrated = {"1.1": list(expected)}
+    thin_base = {"1.1": ["T-01", "T-02", "T-03"]}
+    selected = _select_merged_mounts([concentrated, thin_base], expected, weights, leaf_count=3)
+    assert selected is None
+
+
+def test_concentration_is_tiebreaker_only_for_equal_coverage():
+    from icg.domain.technical_digest_outline import _mount_quality
+
+    weights = {ref: 1.0 for ref in ["T-01", "T-02", "T-03"]}
+    balanced = {"1.1": ["T-01"], "1.2": ["T-02"], "1.3": ["T-03"]}
+    dumped = {"1.1": ["T-01", "T-02", "T-03"]}
+    # 同等覆盖（权重、数量一致）时，均衡候选凭集中度平局决胜胜出
+    assert _mount_quality(balanced, weights) > _mount_quality(dumped, weights)
+    # 覆盖更广的候选即使更集中，也不得因集中度输掉（覆盖优先）
+    fuller = {"1.1": ["T-01", "T-02", "T-03"]}
+    emptier = {"1.1": ["T-01"], "1.2": ["T-02"]}
+    assert _mount_quality(fuller, weights) > _mount_quality(emptier, weights)
+

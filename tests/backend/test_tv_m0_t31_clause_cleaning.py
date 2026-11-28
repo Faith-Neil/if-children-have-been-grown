@@ -303,3 +303,57 @@ def test_r09_uses_effective_non_tech_scope_even_for_legacy_rows_without_scope_fi
     result = ComplianceRulesEngine.check_r09(None, None, {"requirements": {"pay": payment}})
     assert result.passed is True
     assert result.issues == []
+
+def test_temporal_context_only_strips_bounded_time_adverbials():
+    from icg.domain.technical_clause_cleaning import non_tech_category
+
+    # 纯时间背景（句首/分句首且标点收束，或「在/于……前/期间」）：资格分流保留
+    assert non_tech_category("系统实施前，投标人须提供银行资信证明") == "qualification"
+    assert non_tech_category("在系统实施前，投标人须提供银行资信证明") == "qualification"
+    assert non_tech_category("在合同履行期间，投标人须按要求提供银行资信证明") == "qualification"
+    # 「实施阶段」作名词短语/宾语时不得吞掉：同句独立技术动作必须保住技术侧
+    assert non_tech_category("提交银行资信证明，并完成数据库系统实施阶段的全部工作") == ""
+    assert non_tech_category("项目验收前提供银行资信证明，并完成数据库备份演练") == ""
+
+
+def test_r09_mixed_service_period_payment_clause_is_still_checked():
+    from icg.domain.compliance_rules import ComplianceRulesEngine
+
+    mixed = _row("mix", "提供不少于三年的服务期，进度款按季度支付")
+    mixed.update(requirement_scope="non_technical", non_tech_category="payment", response="", volume="business")
+    result = ComplianceRulesEngine.check_r09(None, None, {"requirements": {"mix": mixed}}, volume="business")
+    assert [issue["code"] for issue in result.issues] == ["SERVICE_PERIOD_COMMITMENT_MISSING"]
+    assert result.issues[0]["requirement_id"] == "mix"
+
+    negative = dict(mixed, response="只能提供两年服务期", deviation_type="negative")
+    result = ComplianceRulesEngine.check_r09(None, None, {"requirements": {"mix": negative}}, volume="business")
+    assert [issue["code"] for issue in result.issues] == ["SERVICE_PERIOD_NEGATIVE_DEVIATION"]
+
+    pure = _row("pay", "服务期内每季度支付一次进度款")
+    pure.update(requirement_scope="non_technical", non_tech_category="payment", response="", volume="business")
+    result = ComplianceRulesEngine.check_r09(None, None, {"requirements": {"pay": pure}}, volume="business")
+    assert result.issues == []
+
+
+def test_leading_dot_decimal_is_single_token_and_conflicting_completion_not_persisted():
+    from icg.domain.technical_clause_cleaning import _number_tokens, _number_preserved
+
+    assert _number_tokens(".5小时内") == [".5"]
+    assert _number_tokens("0.5小时内") == ["0.5"]
+    assert _number_preserved(".5", "乙方须.5小时内到场") is True
+    assert _number_preserved(".5", "乙方须5小时内到场") is False
+    # 句末句号与版本边界回归保持：1.2. 可配 1.2，1.20 不可配 1.2
+    assert _number_preserved("1.2", "TLS 1.2.") is True
+    assert _number_preserved("1.2", "TLS 1.20") is False
+
+    # 入口级：锚点 `.5` 与原文 `5` 数值冲突时，补全结果绝不落盘
+    page = "乙方须在故障发生后5小时内到场，2小时内恢复服务。"
+    fragment = "乙方须在故障发生后.5小时内到场"
+    row = _row("r1", fragment, quote=fragment)
+    workflow = _workflow([row], page)
+    clean_technical_requirements(workflow)
+    item = workflow["requirements"]["r1"]
+    assert not item.get("fragment_completed")
+    assert item["text"] == fragment
+    assert "2小时内恢复服务" not in item["text"]
+

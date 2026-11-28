@@ -225,7 +225,10 @@ def repair_json_payload(raw: str) -> dict:
 def _clean_title(raw: Any) -> str:
     from icg.domain.technical_response_plan import short_chapter_title
 
-    text = re.sub(r"^(?:\d+(?:\.\d+)*(?![×xX])|[一二三四五六七八九十]+[、.．])\s*", "", str(raw or "").strip())
+    text = str(raw or "").strip()
+    if not re.match(r"^\d+\s*[×xX*]\s*\d+", text):
+        # 服务时段前缀（7×24/12×5/5x8）不是章节编号；先整体识别，避免 `\d+` 回溯吃掉十位。
+        text = re.sub(r"^(?:\d+(?:\.\d+)*|[一二三四五六七八九十]+[、.．])\s*", "", text)
     text = re.sub(r"^第[\d一二三四五六七八九十百]+[章节篇][、.．\s]*", "", text).strip()
     return short_chapter_title(text) if len(text) > TITLE_LIMIT else text
 
@@ -355,14 +358,16 @@ def _mount_score(mounts: dict[str, list[str]], weights: dict[str, float]) -> tup
     return sum(weights.get(ref, 1.0) for ref in refs), len(refs)
 
 
-def _mount_quality(mounts: dict[str, list[str]], weights: dict[str, float]) -> tuple[float, int]:
-    """候选质量：覆盖评分权重优先，但重罚把高分评分点和技术条款集中倒进同一叶子的输出。
-    否则模型只要把大多数编号堆进一个宽泛章节就能获得高覆盖分，违背全量均衡挂载目标。"""
+def _mount_quality(mounts: dict[str, list[str]], weights: dict[str, float]) -> tuple[float, int, float]:
+    """字典序质量键：先最大化已覆盖要求权重，再最大化挂载数量；
+    集中度（取负）只作为同等覆盖下的平局决胜项。
+
+    不能把集中度做成减法罚分：罚分会让合并搜索在容量内“有空位却主动放弃补齐”，
+    把本可自动挂载的要求丢进人工补挂池。集中倾倒由单节容量硬约束拦截，不靠罚分。"""
     total, count = _mount_score(mounts, weights)
     leaf_weights = [sum(weights.get(ref, 1.0) for ref in refs) for refs in mounts.values()]
     concentration = max(leaf_weights, default=0.0)
-    empty_penalty = 0.0
-    return total - concentration * 1.5 - empty_penalty, count
+    return total, count, -concentration
 
 
 def _merge_missing_mounts(
@@ -401,14 +406,14 @@ def _merge_missing_mounts(
     searchable.sort(key=lambda ref: (len(positions[ref]), expected.index(ref)))
     counts = {node: len(refs) for node, refs in merged.items()}
     best_merged: dict[str, list[str]] | None = None
-    best_key: tuple[float, int] = (-1.0, -1)
+    best_key: tuple[float, int, float] | None = None
     budget = 100000
 
     def consider() -> None:
         nonlocal best_merged, best_key
-        quality, count = _mount_quality(merged, weights)
-        if (quality, count) > best_key:
-            best_key = (quality, count)
+        key = _mount_quality(merged, weights)
+        if best_key is None or key > best_key:
+            best_key = key
             best_merged = {node: list(refs) for node, refs in merged.items()}
 
     def search(index: int) -> bool:
@@ -487,16 +492,20 @@ def _select_merged_mounts(
     合并会把某叶推回倾倒状态时，宁可换平衡候选或显式失败，也不产出失真目录。"""
     ordered = sorted(candidates, key=lambda item: _mount_quality(item, weights), reverse=True)
     best: dict[str, list[str]] | None = None
-    best_key: tuple[float, int] = (-1.0, -1)
+    best_key: tuple[float, int, float] | None = None
     enforce_share = leaf_count >= 3
     max_leaf_count = max(1, int(len(expected) * MAX_LEAF_SHARE)) if enforce_share else None
+    min_mounted = len(expected) * MIN_MOUNT_RATIO
     for base in ordered:
         merged = _merge_missing_mounts(base, ordered, expected, weights, max_leaf_count)
         if enforce_share and _max_leaf_share(merged, len(expected)) > MAX_LEAF_SHARE:
             continue
-        quality, count = _mount_quality(merged, weights)
-        if (quality, count) > best_key:
-            best, best_key = merged, (quality, count)
+        key = _mount_quality(merged, weights)
+        if key[1] < min_mounted:
+            # 覆盖率硬门槛：淘汰超限基底后，宁可显式失败也绝不返回低覆盖目录。
+            continue
+        if best_key is None or key > best_key:
+            best, best_key = merged, key
     return best
 
 
@@ -639,7 +648,7 @@ def _stage_mount(
     invalid = False
     best: dict[str, list[str]] = {}
     best_mounted = -1
-    best_weighted = -1.0
+    best_key: tuple[float, int, float] | None = None
     candidates: list[dict[str, list[str]]] = []
     weights = _ref_weights(digest)
     for attempt in range(1, MAX_ATTEMPTS + 1):
@@ -660,10 +669,11 @@ def _stage_mount(
         missing = [ref for ref in expected if ref not in mounted]
         leaf_count = sum(1 for node in skeleton if node.get("leaf"))
         max_share = max((len(refs) for refs in mounts.values()), default=0) / max(1, len(expected))
-        weighted, mounted_count = _mount_quality(mounts, weights)
+        key = _mount_quality(mounts, weights)
         candidates.append(mounts)
-        if (weighted, mounted_count) > (best_weighted, best_mounted):
-            best, best_mounted, best_weighted = mounts, mounted_count, weighted
+        if best_key is None or key > best_key:
+            best, best_key = mounts, key
+            best_mounted = key[1]
         problems_text = "；".join(
             item for item in [
                 f"未挂载编号 {len(missing)} 个：{'、'.join(missing[:30])}，必须全部挂到叶子节点" if missing else "",

@@ -92,6 +92,35 @@ class ComplianceRuleResult:
         return asdict(self)
 
 
+_SERVICE_PERIOD_WORDS = ("服务期", "工期", "交货期", "服务期限", "交付时限", "运维周期", "实施周期", "完成时限")
+_PAYMENT_TIMING_WORDS = ("支付", "付款", "进度款", "预付款", "结算", "发票")
+_SERVICE_DURATION = re.compile(
+    r"(?:不少于|不低于|不少于|为期|期限|服务期|工期|交货期)?\s*"
+    r"(?:\d+|\d+\.\d+|[一二三四五六七八九十]+)\s*(?:个)?(?:年|月|个月|天|日|日历天)"
+)
+
+
+def _split_service_period_segments(text: str) -> list[str]:
+    """按分句检查服务期。付款时点常借「服务期内」作状语，不能整行覆盖真实服务时长。"""
+    return [part.strip() for part in re.split(r"[。；;！!？?\n，,]", str(text or "")) if part.strip()]
+
+
+def _has_independent_service_period(text: str) -> bool:
+    """是否存在独立规定服务时长/工期的分句。
+
+    `服务期内每季度支付进度款` 只是付款时点，排除；
+    `提供不少于三年的服务期，进度款按季度支付` 的前半句仍是服务期义务，保留核验。
+    """
+    for segment in _split_service_period_segments(text):
+        if not any(word in segment for word in _SERVICE_PERIOD_WORDS):
+            continue
+        payment_timing = any(word in segment for word in _PAYMENT_TIMING_WORDS)
+        if payment_timing and not _SERVICE_DURATION.search(segment):
+            continue
+        return True
+    return False
+
+
 def _project_rule_override(workflow: dict, key: str):
     """读取已保存的项目规则覆盖。没有这项时返回 None，检查沿用代码里的原判定。"""
     entry = (workflow.get("rule_overrides") or {}).get(key)
@@ -952,15 +981,14 @@ class ComplianceRulesEngine:
             if volume != "all" and req.get("volume") != volume:
                 continue
             from icg.domain.technical_clause_cleaning import row_excluded_from_technical
-            if row_excluded_from_technical(req):
-                # 已分流付款/资格/格式条款不消费技术响应，也不触发技术服务期核验；
-                # 例如「服务期内每季度支付一次进度款」是付款安排，不是服务期能力承诺。
-                continue
 
             text = str(req.get("text", "") or "")
-            is_service_period = any(
-                w in text for w in ("服务期", "工期", "交货期", "服务期限", "交付时限", "运维周期", "实施周期", "完成时限")
-            )
+            if row_excluded_from_technical(req) and not _has_independent_service_period(text):
+                # 已分流付款/资格/格式条款不消费技术响应，也不触发技术服务期核验；
+                # 但同一行若另有独立服务时长分句，仍按商务/技术双卷适用规则保留核验。
+                continue
+
+            is_service_period = any(w in text for w in _SERVICE_PERIOD_WORDS)
             if not is_service_period:
                 continue
 
