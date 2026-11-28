@@ -221,3 +221,60 @@ def test_fragment_completion_stops_at_missing_closing_parenthesis():
     assert "驻点值班人员提供现场值守服务" in completed
     assert "未要求驻场的标段不含本条）" in completed
     assert "乙方应及时对故障进行解决" not in completed
+
+
+def test_decimal_time_limit_is_not_stripped_as_clause_number():
+    from icg.domain.technical_clause_cleaning import complete_fragment_text
+
+    source = "6.2 乙方须在故障发生后0.5小时内到场，2小时内恢复服务。"
+    fragment = "乙方须在故障发生后0.5小时内到场"
+    completed = complete_fragment_text(fragment, "", source)
+    assert "0.5小时内到场" in completed
+    assert "2小时内恢复服务" in completed
+    assert completed.startswith("乙方须在故障发生后")
+
+
+def test_non_tech_rules_do_not_hit_payment_clearing_interface_or_sla_contract_clause():
+    from icg.domain.technical_clause_cleaning import non_tech_category
+
+    assert non_tech_category("跨行支付清算接口应支持秒级交易确认与异常告警") == ""
+    assert non_tech_category("合同履行过程中，乙方须在故障发生后0.5小时内到场并恢复服务") == ""
+    assert non_tech_category("投标人进入清算或破产程序") == "qualification"
+    assert non_tech_category("合同履行过程中，双方按季度结算付款") == "business_or_packaging"
+
+
+def test_short_scoring_point_with_valid_metadata_is_not_filtered():
+    row = _row("s1", "项目组织", kind="scoring", quote="3 | 项目组织 | 15 | 100")
+    row.update(score_item="运维响应能力", score=15)
+    workflow = _workflow([row])
+    clean_technical_requirements(workflow)
+    assert row["requirement_scope"] == "technical"
+    from icg.domain.technical_digest import build_digest
+    digest = build_digest(workflow)
+    points = [point for group in digest["scoring"] for point in group["points"]]
+    assert any(point["text"] == "项目组织" for point in points)
+
+
+def test_r09_skips_non_technical_payment_but_keeps_real_service_period_check():
+    from icg.domain.compliance_rules import ComplianceRulesEngine
+
+    payment = _row("pay", "服务期内每季度支付一次进度款")
+    payment.update(requirement_scope="non_technical", non_tech_category="payment")
+    service = _row("svc", "服务期限：三年")
+    service.update(response="", volume="technical")
+    result = ComplianceRulesEngine.check_r09(None, None, {"requirements": {"pay": payment, "svc": service}})
+    codes = [issue["code"] for issue in result.issues]
+    assert codes == ["SERVICE_PERIOD_COMMITMENT_MISSING"]
+    assert result.issues[0]["requirement_id"] == "svc"
+
+
+def test_deviation_clause_prefers_completed_clean_text_over_short_quote():
+    from icg.domain.technical_volume import complete_clause_text
+
+    row = {
+        "text": "乙方须在故障发生后0.5小时内到场，2小时内恢复服务。",
+        "extracted_summary": "0.5小时内到场",
+        "fragment_completed": True,
+        "source": {"quote": "6.2 乙方须在故障发生后0.5小时内到场"},
+    }
+    assert complete_clause_text(row) == "乙方须在故障发生后0.5小时内到场，2小时内恢复服务。"

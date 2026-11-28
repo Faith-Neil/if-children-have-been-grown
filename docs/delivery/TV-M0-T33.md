@@ -15,7 +15,7 @@
 |---|---|
 | 任务ID | TV-M0-T33 |
 | 代码解释 | [代码说明](../code/TV-M0-T33.md)（本卡无独立业务代码） |
-| 验收 | 本地 MySQL 3407 实连；内网 `qwen3:30b-a3b-instruct-2507-q4_K_M` 实跑；161 条覆盖视图清洗后 115 technical / 29 non_technical / 17 fragment_filtered / 35 completed；模型目录 `source=model`、114/114 digest 编号挂载、无 9 条截断、无「其他服务承诺」。 |
+| 验收 | 本地 MySQL 3407 实连；内网 `qwen3:30b-a3b-instruct-2507-q4_K_M` 实跑；161 条覆盖视图清洗后 115 technical / 28 non_technical / 18 fragment_filtered / 35 completed；模型目录 `source=model`、113/114 digest 编号挂载、空叶子 0、最大叶子 11 条（9.65%）、无 9 条截断、无「其他服务承诺」。 |
 | 项目进度 | in-review。真机实证与回归留档完成；QA/PD 独立签署未执行，建议 PM 标 done 前复核 PR 与实证限制。 |
 <!-- task-delivery:end -->
 

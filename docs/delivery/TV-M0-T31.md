@@ -15,7 +15,7 @@
 |---|---|
 | 任务ID | TV-M0-T31 |
 | 代码解释 | [代码说明](../code/TV-M0-T31.md) |
-| 验收 | 聚焦后端 28 passed；重庆中烟 161 条覆盖视图实证：115 条 technical、30 条 non_technical、16 条 fragment_filtered、36 条残句回溯补全；原第 1 章残句/格式类假负偏离条款已全部过滤或分流，剩余 technical 行是真实服务/架构/地点类条款。 |
+| 验收 | PR #57 Review 修复轮聚焦后端 32 passed；重庆中烟 161 条覆盖视图实证：115 条 technical、28 条 non_technical、18 条 fragment_filtered、35 条残句回溯补全；原第 1 章残句/格式类假负偏离条款已全部过滤或分流，剩余 technical 行是真实服务/架构/地点类条款。 |
 | 项目进度 | in-review。实现与真实数据验证完成；QA/PD 独立签署未执行，建议 PM 标 done 前复核 PR 与实证样本。 |
 <!-- task-delivery:end -->
 

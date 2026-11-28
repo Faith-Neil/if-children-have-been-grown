@@ -51258,6 +51258,66 @@
         ],
         "title": "FileUpload"
       },
+      "FilteredClauseRow": {
+        "properties": {
+          "requirement_id": {
+            "type": "string",
+            "title": "Requirement Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "requirement_scope": {
+            "type": "string",
+            "enum": [
+              "non_technical",
+              "fragment_filtered"
+            ],
+            "title": "Requirement Scope"
+          },
+          "non_tech_category": {
+            "type": "string",
+            "title": "Non Tech Category",
+            "default": ""
+          },
+          "fragment_reason": {
+            "type": "string",
+            "title": "Fragment Reason",
+            "default": ""
+          },
+          "source_page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Page"
+          },
+          "source_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Filename"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "requirement_id",
+          "text",
+          "requirement_scope"
+        ],
+        "title": "FilteredClauseRow"
+      },
       "FullValueInfo": {
         "properties": {
           "categories": {
@@ -65838,6 +65898,14 @@
             "type": "array",
             "title": "Coverage Rows",
             "description": "覆盖视图五行数据源"
+          },
+          "filtered_clause_rows": {
+            "items": {
+              "$ref": "#/components/schemas/FilteredClauseRow"
+            },
+            "type": "array",
+            "title": "Filtered Clause Rows",
+            "description": "已过滤的非技术/残句条款只读查阅区"
           },
           "tender_digest": {
             "anyOf": [

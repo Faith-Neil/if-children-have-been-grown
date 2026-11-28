@@ -15,7 +15,7 @@
 |---|---|
 | 任务ID | TV-M0-T32 |
 | 代码解释 | [代码说明](../code/TV-M0-T32.md) |
-| 验收 | 后端大纲聚焦 50 passed；前端目录重跑/parse-honesty 聚焦 29 passed；OpenAPI 100% 一致；前端 tsc 与 production build 通过；真实 `qwen3:30b-a3b-instruct-2507-q4_K_M` 生成 8 章 28 个标题、20 个叶子，`outline_source=model`，无「其他服务承诺」。 |
+| 验收 | Review 修复轮后端大纲聚焦回归通过；OpenAPI 100% 一致；前端 tsc 与 production build 通过；真实 `qwen3:30b-a3b-instruct-2507-q4_K_M` 生成 33 个标题、23 个非空叶子，`outline_source=model`，空叶子 0，最大叶子 11 条（9.65%），无「其他服务承诺」。 |
 | 项目进度 | in-review。实现与真实模型验证完成；QA/PD 独立签署未执行，建议 PM 标 done 前复核 PR 与实证样本。 |
 <!-- task-delivery:end -->
 

@@ -16,6 +16,8 @@ def _row(rid, text, kind="spec", **extra):
     row = {
         "id": rid, "text": text, "technical_clause": True, "status": "pending",
         "section_kind": kind, "source": {"page": 1, "quote": text, "file_id": "f1"},
+        "category": "技术要求", "volume": "technical", "response": "", "reason": "",
+        "evidence_ids": [], "references": [], "reference_status": "none",
     }
     row.update(extra)
     return row
@@ -146,7 +148,8 @@ def _seed_legacy_project(client):
 
     def change(state):
         workflow = state.workflows.setdefault(project_id, {
-            "requirements": {}, "facts": {}, "conflicts": {}, "files": {}, "chapter_order": [],
+            "requirements": {}, "facts": {}, "conflicts": {}, "files": {}, "chapter_order": [], "candidates": {},
+            "exports": {}, "jobs": {}, "checks": {}, "parse_confirmed": True, "plan_confirmed": False,
         })
         workflow["requirements"] = {
             "r1": _row("r1", "每月巡检数据库并出具报告"),
@@ -218,3 +221,39 @@ def test_outline_rebuild_failure_still_writes_back_cleaning(client):  # noqa: F8
     assert rows["r5"]["requirement_scope"] == "fragment_filtered"
     # 失败绝不写成模型目录
     assert workflow.get("outline_source") != "model"
+
+
+def test_outline_rebuild_recleans_fragment_when_files_are_now_in_snapshot(client):  # noqa: F811
+    project_id, principal, service = _seed_legacy_project(client)
+    page = "运维服务地点：五标段：重庆中烟公司所属卷烟厂和茶园安得仓库。"
+
+    def seed_fragment_file(state):
+        workflow = state.workflows[project_id]
+        workflow["files"] = {"f1": {"pages": [page]}}
+        workflow["requirements"]["r6"] = _row(
+            "r6", "运维服务地点：", clause_cleaned=True, clause_fragment=True,
+            fragment_completed=False, fragment_reason="trailing_dangling_punct", requirement_scope="fragment_filtered",
+        )
+
+    service.repository.transaction(seed_fragment_file)
+    model = FakeModel([_skeleton(), _mounts("T-01", "T-02", "T-03", "T-04")])
+    service._refresh_technical_outline_unlocked(principal, project_id, model)
+    row = _read_workflow(service, project_id)["requirements"]["r6"]
+    assert row["fragment_completed"] is True
+    assert row["requirement_scope"] == "technical"
+    assert "茶园安得仓库" in row["text"]
+    assert row.get("digest_id") == "T-04"
+
+
+def test_workspace_exposes_filtered_clause_readonly_rows(client):  # noqa: F811
+    project_id, principal, service = _seed_legacy_project(client)
+    model = FakeModel([_skeleton(), _mounts("T-01", "T-02", "T-03")])
+    service._refresh_technical_outline_unlocked(principal, project_id, model)
+    headers = login(client, "alpha-manager")
+    resp = client.get(f"/api/v1/projects/{project_id}/workspace", headers=headers)
+    assert resp.status_code == 200, resp.text
+    rows = {row["requirement_id"]: row for row in resp.json().get("filtered_clause_rows") or []}
+    assert rows["r4"]["requirement_scope"] == "non_technical"
+    assert rows["r4"]["non_tech_category"] in {"pricing", "business_or_packaging", "qualification"}
+    assert rows["r5"]["requirement_scope"] == "fragment_filtered"
+    assert rows["r5"]["fragment_reason"]

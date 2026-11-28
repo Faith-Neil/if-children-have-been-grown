@@ -247,25 +247,49 @@ def _normalize_skeleton(raw_nodes: Any) -> list[dict]:
         out.append({"level": level, "title": title})
     if len(out) < 1:
         return []
+    return _number_skeleton(out)
+
+
+def _number_skeleton(nodes: list[dict]) -> list[dict]:
+    """按阅读顺序重排 1～4 级编号并重算 leaf；裁剪空节点后必须复用同一逻辑。"""
+    out = [dict(node) for node in nodes]
     counters = [0, 0, 0, 0]
     for position, node in enumerate(out):
-        level = node["level"]
+        level = int(node["level"])
         counters[level - 1] += 1
         for deeper in range(level, 4):
             counters[deeper] = 0
         node["number"] = ".".join(str(value) for value in counters[:level])
-        node["leaf"] = position + 1 >= len(out) or out[position + 1]["level"] <= level
+        node["leaf"] = position + 1 >= len(out) or int(out[position + 1]["level"]) <= level
     return out
 
 
 # ---------------------------------------------------------------- 挂载校验
 def _expand_refs(refs: Any, index: dict[str, list[str]]) -> list[str]:
+    """模型可用组号或点号作答；去重/覆盖率之前统一把组号展开为点号。"""
     found: list[str] = []
+
+    def add(key: str) -> None:
+        if key in index and key not in found:
+            found.append(key)
+
     raw_refs = refs if isinstance(refs, list) else [refs] if refs else []
     for ref in raw_refs:
         key = re.sub(r"\s", "", str(ref).upper())
-        if key in index and key not in found:
-            found.append(key)
+        if key not in index:
+            continue
+        point_keys: list[str] = []
+        if re.fullmatch(r"S-\d+", key):
+            prefix = key + "-"
+            point_keys = sorted(
+                (candidate for candidate in index if candidate.startswith(prefix) and candidate[len(prefix):].isdigit()),
+                key=lambda candidate: int(candidate[len(prefix):]),
+            )
+        if point_keys:
+            for point_key in point_keys:
+                add(point_key)
+        else:
+            add(key)
     return found
 
 
@@ -355,6 +379,65 @@ def _merge_missing_mounts(
                     merged.setdefault(node, []).append(ref)
                     mounted.add(ref)
     return merged
+
+
+def prune_empty_skeleton(
+    skeleton: list[dict], mounts: dict[str, list[str]],
+) -> tuple[list[dict], dict[str, list[str]]]:
+    """裁掉无挂载空叶子及因此变空的父节点，并同步重编号与 mounts 键。
+    空叶子不进入可生成目录，避免整卷生成写入「待补」占位正文。"""
+    keep: set[int] = set()
+    for index, node in enumerate(skeleton):
+        if not node.get("leaf") or not mounts.get(node.get("number")):
+            continue
+        keep.add(index)
+        floor = int(node.get("level") or 1)
+        for parent in range(index - 1, -1, -1):
+            level = int(skeleton[parent].get("level") or 1)
+            if level < floor:
+                keep.add(parent)
+                floor = level
+                if floor == 1:
+                    break
+    ordered = sorted(keep)
+    if not ordered:
+        return [], {}
+    renumbered = _number_skeleton([
+        {"level": skeleton[index]["level"], "title": skeleton[index]["title"]}
+        for index in ordered
+    ])
+    number_map: dict[str, str] = {}
+    for position, index in enumerate(ordered):
+        number_map[str(skeleton[index].get("number") or "")] = renumbered[position]["number"]
+    remapped: dict[str, list[str]] = {}
+    for node, refs in mounts.items():
+        new_node = number_map.get(node)
+        if new_node and refs:
+            remapped[new_node] = list(refs)
+    return renumbered, remapped
+
+
+def _max_leaf_share(mounts: dict[str, list[str]], expected_count: int) -> float:
+    return max((len(refs) for refs in mounts.values()), default=0) / max(1, expected_count)
+
+
+def _select_merged_mounts(
+    candidates: list[dict[str, list[str]]], expected: list[str], weights: dict[str, float], leaf_count: int,
+) -> dict[str, list[str]] | None:
+    """重试耗尽后在多次模型输出间仲裁。合并只在集中度门槛内接受；
+    合并会把某叶推回倾倒状态时，宁可换平衡候选或显式失败，也不产出失真目录。"""
+    ordered = sorted(candidates, key=lambda item: _mount_quality(item, weights), reverse=True)
+    best: dict[str, list[str]] | None = None
+    best_key: tuple[float, int] = (-1.0, -1)
+    enforce_share = leaf_count >= 3
+    for base in ordered:
+        merged = _merge_missing_mounts(base, ordered, expected)
+        if enforce_share and _max_leaf_share(merged, len(expected)) > MAX_LEAF_SHARE:
+            continue
+        quality, count = _mount_quality(merged, weights)
+        if (quality, count) > best_key:
+            best, best_key = merged, (quality, count)
+    return best
 
 
 def _digest_text(digest: dict, ref: str) -> str:
@@ -535,10 +618,13 @@ def _stage_mount(
         last_error = None
         feedback = "上一次挂载有问题：" + problems_text + "。请重新输出完整 mounts。"
     if best and best_mounted >= len(expected) * MIN_MOUNT_RATIO:
-        # 重试耗尽仍少量漏挂：先在同一骨架的多次模型输出之间做缺失编号补齐；
-        # 残余进未挂载池（validation 记录），不倒兜底章。
-        ordered = sorted(candidates, key=lambda item: _mount_quality(item, weights), reverse=True)
-        return _merge_missing_mounts(best, ordered, expected), None
+        # 重试耗尽仍少量漏挂：在同一骨架的多次模型输出之间补缺失编号；
+        # 合并后的集中度必须重新过门槛，残余漏挂进未挂载池而非兜底章。
+        leaf_count = sum(1 for node in skeleton if node.get("leaf"))
+        merged = _select_merged_mounts(candidates, expected, weights, leaf_count)
+        if merged is not None:
+            return merged, None
+        invalid = True
     return {}, _failure_record("mount", MAX_ATTEMPTS, last_error, invalid)
 
 
@@ -553,6 +639,10 @@ def outline_two_stage(workflow: dict, digest: dict, model: Any) -> dict[str, Any
     mounts, failure = _stage_mount(workflow, digest, model, skeleton, index)
     if failure is not None:
         workflow["_outline_model_error"] = failure
+        return None
+    skeleton, mounts = prune_empty_skeleton(skeleton, mounts)
+    if not skeleton:
+        workflow["_outline_model_error"] = _failure_record("mount", MAX_ATTEMPTS, None, True)
         return None
     return build_from_mounts(workflow, digest, skeleton, mounts)
 

@@ -23,7 +23,7 @@ EXCLUDED_SCOPES = frozenset({SCOPE_NON_TECHNICAL, SCOPE_FRAGMENT})
 _NON_TECH_RULES: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"最高限价|限价不得|低于成本价|投标报价|报价一览|报价不得|合同总金额|年度服务费|服务费为|支付方式"), "pricing"),
     (re.compile(r"基本账户|基本存款账户|账户证明|开户许可证|银行资信"), "qualification"),
-    (re.compile(r"清算|破产|重整|失信被执行|信用中国|经营异常|黑名单"), "qualification"),
+    (re.compile(r"(?:投标人|供应商|服务商|承包商).{0,16}(?:清算|破产|重整)|(?:进入|处于|被宣告|申请).{0,4}(?:清算|破产|重整)|失信被执行|信用中国|经营异常|黑名单"), "qualification"),
     (re.compile(r"资格审查|资格条件|资质要求|营业执照|社保缴纳|纳税证明|审计报告|财务报告"), "qualification"),
     (re.compile(r"保证金|履约担保|履约金"), "deposit"),
     (re.compile(r"付款方式|付款条件|支付比例|预付款|进度款|发票开具|税率"), "payment"),
@@ -32,15 +32,27 @@ _NON_TECH_RULES: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"正本.{0,6}副本|电子版.{0,6}纸质|书面形式.{0,8}通知|修改.{0,6}书面通知"), "format"),
     (re.compile(r"投标有效期|开标时间|开标地点|投标截止|递交方式|送达方式"), "procedure"),
     # 资格/合规门槛：不是技术方案要展开响应的服务能力，进非技术查阅区。
-    (re.compile(r"独立法人资格|独立承担民事责任|专业技术能力|专业资质|从业资格"), "qualification"),
+    (re.compile(r"独立法人资格|独立承担民事责任|(?:投标人|供应商|服务商).{0,10}(?:专业技术能力|专业资质|从业资格)"), "qualification"),
     (re.compile(r"利害关系|控股关系|重大质量或安全事故|重大违法违规|违法、?违纪|不良纪录|不良记录"), "qualification"),
     (re.compile(r"烟草行业不良行为名单|责令停业|招标代理|相关咨询方|标底编制|取消投标资格|暂停投标资格"), "qualification"),
     # 投标程序与文件组成/备选方案：属于投标形式约束，不进入技术方案目录。
     (re.compile(r"备选技术方案|备选方案|实质性内容响应|投标文件需包含|投标文件须包含"), "format"),
     (re.compile(r"产品质量安全指标检测报告|第三方质量检测机构检测|标的物出现质量问题"), "business_or_packaging"),
-    (re.compile(r"签署本合同|甲方的权利义务|乙方的权利义务|合同履行过程中"), "business_or_packaging"),
+    (re.compile(r"签署本合同|甲方的权利义务|乙方的权利义务"), "business_or_packaging"),
     (re.compile(r"不得挂靠|挂靠其他单位|受让或租用"), "business_or_packaging"),
 ]
+
+# 技术义务/SLA 语境。它们出现在混合句中时，不能因「合同履行过程中」等合同模板前缀
+# 或单个行业词把真实技术能力要求整体误分流；混合句宁可留给技术侧人工响应，也不静默丢弃。
+_TECHNICAL_OBLIGATION = re.compile(
+    r"SLA|响应时间|响应速度|\d+(?:\.\d+)?\s*(?:小时|分钟|天|日|周|月)|到场|恢复服务|故障|巡检|"
+    r"备份|容灾|接口|数据库|中间件|系统性能|可用性|运维|实施|迁移|割接|监控|告警|安全加固|验收测试"
+)
+
+
+def _has_technical_obligation(text: str) -> bool:
+    return bool(_TECHNICAL_OBLIGATION.search(str(text or "")))
+
 
 # ---------------------------------------------------------------- 残句结构信号
 _LEADING_BROKEN = re.compile(r"^[)）\]】〉》」』，,、;；:：|]+")
@@ -144,13 +156,17 @@ def source_truncation_signals(fragment: str, page_text: str) -> list[str]:
 
 
 def non_tech_category(text: str) -> str:
-    """命中非技术条款规则时返回类目（qualification/pricing/payment/format/deposit/procedure），否则空串。"""
+    """命中非技术条款规则时返回类目；含明确技术义务/SLA 的混合句不被合同模板前缀误伤。"""
     blob = str(text or "")
     if not blob.strip():
         return ""
     for pattern, category in _NON_TECH_RULES:
         if pattern.search(blob):
+            if _has_technical_obligation(blob) and category in {"qualification", "business_or_packaging"}:
+                return ""
             return category
+    if "合同履行过程中" in blob and not _has_technical_obligation(blob):
+        return "business_or_packaging"
     return ""
 
 
@@ -190,6 +206,38 @@ def _sentence_spans(text: str) -> list[str]:
         if tail:
             spans.append(tail)
     return spans
+
+
+def _number_tokens(text: str) -> list[str]:
+    return re.findall(r"\d+(?:\.\d+)?", str(text or ""))
+
+
+def _number_preserved(number: str, text: str) -> bool:
+    return bool(re.search(r"(?<![\d.])" + re.escape(number) + r"(?![\d.])", str(text or "")))
+
+
+def _anchor_integrity(candidate: str, fragment: str) -> bool:
+    """最终裁剪后的补全句仍要保留原始锚点与锚点内全部数值。
+
+    允许“抽取丢失数字”的模糊补全（锚点本身没有该数字），但锚点里已经出现的
+    `0.5`、`2` 等时限/数量一个都不能在编号裁剪中丢失。
+    """
+    needle = _match_needle(fragment)
+    if not needle:
+        return True
+    compact = _compact(candidate)
+    if needle not in compact:
+        alpha = re.sub(r"[\d.]+", "", needle)
+        if len(alpha) < 4 or alpha not in re.sub(r"[\d.]+", "", compact):
+            return False
+    return all(_number_preserved(number, compact) for number in _number_tokens(needle))
+
+
+def _finalize_completion(candidate: str, fragment: str) -> str:
+    cleaned = str(candidate or "").strip()
+    if not _valid_completion(cleaned, fragment) or not _anchor_integrity(cleaned, fragment):
+        return ""
+    return cleaned
 
 
 def _valid_completion(candidate: str, fragment: str) -> bool:
@@ -237,7 +285,8 @@ def _best_span(fragment: str, source_text: str, *, min_needle: int = 2) -> str:
         if len(hits) != 1:
             return ""
         cleaned = _clean_completion_prefix(hits[0].strip()) or hits[0].strip()
-        return "" if _compact(cleaned) == _compact(fragment) else cleaned
+        cleaned = _finalize_completion(cleaned, fragment)
+        return "" if not cleaned or _compact(cleaned) == _compact(fragment) else cleaned
     best = ""
     spans = _sentence_spans(source_text)
     lines = str(source_text or "").splitlines()
@@ -247,7 +296,8 @@ def _best_span(fragment: str, source_text: str, *, min_needle: int = 2) -> str:
                 best = span.strip()
     if best:
         cleaned = _clean_completion_prefix(best) or best
-        return "" if _compact(cleaned) == _compact(fragment) else cleaned
+        cleaned = _finalize_completion(cleaned, fragment)
+        return "" if not cleaned or _compact(cleaned) == _compact(fragment) else cleaned
     # 跨行拼接：残句常因换行/分页被截断（针本身可能跨行断开），
     # 按最小窗口扫描至多 4 行拼接，要求合并后包含完整针且通过完整性校验。
     # 序号标题（「第一条 服务内容与范围」类）本身就是完整一行，不是被截断的句子；
@@ -268,8 +318,8 @@ def _best_span(fragment: str, source_text: str, *, min_needle: int = 2) -> str:
                 # 抽取丢失数字/小数点的残句：去数字后按字母针匹配（如 ¥5000元 ↔ ¥元）。
                 hit = alpha in re.sub(r"[\d.]+", "", compacted)
             if hit and _valid_completion(merged, fragment):
-                cleaned = _clean_completion_prefix(merged[:200])
-                if _compact(cleaned) != _compact(fragment):
+                cleaned = _finalize_completion(_clean_completion_prefix(merged[:200]), fragment)
+                if cleaned and _compact(cleaned) != _compact(fragment):
                     return cleaned
     return ""
 
@@ -329,19 +379,33 @@ def _completion_by_anchor(fragment: str, source_text: str) -> str:
             end = tail_start + end_match.end() if end_match else min(len(source), tail_start + 90)
         candidate = source[start:end]
         cleaned = _clean_completion_prefix(candidate).strip()
-        cleaned = re.sub(
-            r"^[^\d\s。；;]{2,24}?(?=招标人不得|招标人应|投标人不得|投标人应|乙方|甲方|服务方|我方)",
-            "",
-            cleaned,
-        ).strip()
-        # 条款编号剥离后仍可能带上一级章名（如「第六条乙方服务承诺」），裁到最后一个条款号之后。
-        trailing_marker = list(re.finditer(r"\d+\.\d+(?:\.\d+)*", cleaned))
-        if trailing_marker and trailing_marker[-1].end() < len(cleaned):
-            tail = cleaned[trailing_marker[-1].end():].strip()
+        actor = re.search(r"招标人不得|招标人应|投标人不得|投标人应|乙方|甲方|服务方|我方", cleaned)
+        if actor and actor.start() > 0:
+            prefix = cleaned[:actor.start()]
+            # 只剥明确的章名/标题残渣；句首本来就是责任主体时绝不继续向后找「甲方」，
+            # 否则会把「乙方须保证遵守」误裁掉并破坏锚点完整性。
+            if len(prefix) <= 24 and re.search(r"第|条|章|服务承诺|服务范围|权利|义务|纪律要求", prefix):
+                cleaned = cleaned[actor.start():].strip()
+        # 条款编号剥离后仍可能带上一级章名（如「第六条乙方服务承诺6.4」），只裁
+        # 句首附近、确实处在编号边界的条款号；`0.5小时` 这类正文小数绝不是编号。
+        trailing_marker = list(re.finditer(r"\d+\.\d+(?:\.\d+)*", cleaned[:24]))
+        clause_markers = []
+        for marker in trailing_marker:
+            token = marker.group(0)
+            previous = cleaned[marker.start() - 1] if marker.start() else ""
+            following = cleaned[marker.end():marker.end() + 2]
+            numeric_quantity = token.startswith("0.") or previous in "后内约共达超少高低长宽深近仅" or following.startswith(("小时", "分钟", "天", "日", "月", "年", "%", "％"))
+            prefix = cleaned[:marker.start()]
+            heading_like = not _SENTENCE_END.search(prefix) and any("一" <= char <= "鿿" for char in prefix)
+            if not numeric_quantity and marker.start() <= 16 and heading_like:
+                clause_markers.append(marker)
+        if clause_markers and clause_markers[-1].end() < len(cleaned):
+            tail = cleaned[clause_markers[-1].end():].strip()
             if tail:
                 cleaned = tail
-        if _valid_completion(cleaned, fragment) and _compact(cleaned) != _compact(fragment):
-            candidates.append(cleaned)
+        finalized = _finalize_completion(cleaned, fragment)
+        if finalized and _compact(finalized) != _compact(fragment):
+            candidates.append(finalized)
     if not candidates:
         return ""
     return sorted(candidates, key=lambda item: (not bool(_SENTENCE_END.search(item[-2:])), len(item)))[0]
@@ -437,6 +501,34 @@ def _heading_has_inline_content(fragment: str, page_text: str) -> bool:
     return False
 
 
+_SCORING_POINT_HARD_SIGNALS = frozenset({
+    "empty", "leading_broken_punct", "trailing_dangling_punct", "trailing_incomplete_word",
+    "unbalanced_brackets", "table_noise", "no_cjk_content",
+})
+
+
+def _valid_scoring_point_row(row: dict) -> bool:
+    """评分表有效得分要点：来源页/引文与 score_item+score 元数据齐备。
+    这类要点常是「项目组织」等名词短语；短和无动词不是残句证据。"""
+    if row.get("section_kind") != "scoring":
+        return False
+    if not str(row.get("score_item") or "").strip() or not isinstance(row.get("score"), (int, float)):
+        return False
+    source = row.get("source") or {}
+    return bool(str(source.get("quote") or "").strip() or source.get("page"))
+
+
+def _scoring_point_signals(row: dict, text: str) -> list[str]:
+    if not _valid_scoring_point_row(row):
+        return []
+    return [signal for signal in fragment_signals(text) if signal in _SCORING_POINT_HARD_SIGNALS]
+
+
+def _fragment_basis(row: dict) -> str:
+    """重洗时优先用首次抽取的原始碎片；已补全 text 不再作为锚点继续二次扩张。"""
+    return str(row.get("source_fragment") or row.get("raw_export_text") or row.get("text") or "").strip()
+
+
 def clean_requirement_row(row: dict, page_text: str = "") -> dict[str, Any]:
     """单条技术条款清洗。幂等；不改动人工已改/已确认条款的正文，只做范围标记。
 
@@ -451,6 +543,10 @@ def clean_requirement_row(row: dict, page_text: str = "") -> dict[str, Any]:
     for signal in source_signals:
         if signal not in signals:
             signals.append(signal)
+    if _valid_scoring_point_row(row):
+        # 评分点采用独立完整性判定：名词短语（如「项目组织」）是合法得分要点，
+        # 只有断 punctuation/括号/表格噪声等硬碎片信号才允许进入补全或过滤。
+        signals = [signal for signal in signals if signal in _SCORING_POINT_HARD_SIGNALS]
     if category and not signals:
         patch["requirement_scope"] = SCOPE_NON_TECHNICAL
         patch["non_tech_category"] = category
@@ -475,6 +571,7 @@ def clean_requirement_row(row: dict, page_text: str = "") -> dict[str, Any]:
     completed = "" if heading_only else complete_fragment_text(text, quote, page_text)
     if completed:
         completed_category = non_tech_category(completed) or category
+        patch["source_fragment"] = text
         patch["text"] = completed
         summary = str(row.get("extracted_summary") or "").strip()
         if not summary or summary == text:
@@ -517,7 +614,20 @@ def clean_technical_requirements(workflow: dict) -> dict[str, Any]:
             continue
         if row.get("clause_cleaned") and not row.get("manually_edited"):
             # 已清洗行也要补做系统判断清理：覆盖旧版本清洗（无清理逻辑）留下的假负偏离。
-            clear_stale_judgment_fields(row)
+            # 但早期目录重跑快照漏带 files 原文页时，碎片可能在“无原文可补”的环境下被永久过滤；
+            # 现在若能取到原文页，允许用首次碎片重新清洗一次。无法补全仍保持过滤，绝不编造。
+            page_text = _page_text_for(workflow, row)
+            if row.get("clause_fragment") and not row.get("fragment_completed") and page_text:
+                basis = _fragment_basis(row)
+                probe = dict(row)
+                probe["text"] = basis
+                patch = clean_requirement_row(probe, page_text)
+                if patch.get("fragment_completed") or patch.get("requirement_scope") != row.get("requirement_scope"):
+                    row.update(patch)
+                    clear_stale_judgment_fields(row)
+                    audit["checked"] += 1
+            else:
+                clear_stale_judgment_fields(row)
             _collect_audit(audit, row)
             continue
         page_text = _page_text_for(workflow, row)

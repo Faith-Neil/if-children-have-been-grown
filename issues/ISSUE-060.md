@@ -42,9 +42,9 @@
 
 | Task ID | 输入与目标 | 涉及路径 | 验收 | 当前状态 |
 |---|---|---|---|---|
-| [TV-M0-T31](../docs/tasks/TV-M0.md#tv-m0-t31) | 招标条款残句清洗、技术/非技术分流与假负偏离加固 | `backend/bid-core/icg/domain/`、`backend/bid-core/icg/app/` 或既有解析编排、相关后端测试 | AC-01～AC-04 | in-progress |
-| [TV-M0-T32](../docs/tasks/TV-M0.md#tv-m0-t32) | 强制模型两阶段目录规划、失败上浮/重试入口、取消每章 9 条硬上限 | `technical_outline.py`、`technical_digest_outline.py`、相关编排、前端目录页 | AC-05～AC-08 | ready |
-| [TV-M0-T33](../docs/tasks/TV-M0.md#tv-m0-t33) | 重庆中烟真实 MySQL 3407 定向验证、前后对比实证与回归留档 | 本地 MySQL、重庆中烟项目、`docs/testing/`、回归命令 | AC-09～AC-11 | planned |
+| [TV-M0-T31](../docs/tasks/TV-M0.md#tv-m0-t31) | 招标条款残句清洗、技术/非技术分流与假负偏离加固 | `backend/bid-core/icg/domain/`、`backend/bid-core/icg/app/` 或既有解析编排、相关后端测试 | AC-01～AC-04 | in-review |
+| [TV-M0-T32](../docs/tasks/TV-M0.md#tv-m0-t32) | 强制模型两阶段目录规划、失败上浮/重试入口、取消每章 9 条硬上限 | `technical_outline.py`、`technical_digest_outline.py`、相关编排、前端目录页 | AC-05～AC-08 | in-review |
+| [TV-M0-T33](../docs/tasks/TV-M0.md#tv-m0-t33) | 重庆中烟真实 MySQL 3407 定向验证、前后对比实证与回归留档 | 本地 MySQL、重庆中烟项目、`docs/testing/`、回归命令 | AC-09～AC-11 | in-review |
 
 ## 验收条目
 
@@ -77,13 +77,13 @@
 
 | 日期 | revision / 状态 | 完成事实、问题与下一步 | 证据 / 复核人 |
 |---|---|---|---|
-| 2026-11-28 | outline-llm-req-cleaning-r1 / in-progress | 已基于 PR #56 合入后的 main 切出 `feat/iss-060-outline-llm-and-req-cleaning`，并完成 ISSUE-059 收口前置提交；本 Issue 与 TV-M0-T31～T33 登记，T31 开工，T32 ready，T33 planned | 用户本轮指令 |
+| 2026-11-28 | outline-llm-req-cleaning-r1 / in-progress | 已基于 PR #56 合入后的 main 切出 `feat/iss-060-outline-llm-and-req-cleaning`，并完成 ISSUE-059 收口前置提交；T31～T33 均已推进到 in-review，PR #57 已创建，Review 修复轮正在复核 | 用户本轮指令 |
 
 ## 本地验收与后续合入发布
 
 - 本地验收结论与日期：待执行。
 - 验证方式、通过及失败项、未覆盖范围：待填写。
 - 六份基线同步与互链复核：待执行。
-- PR 状态：未创建。
+- PR 状态：PR #57 已创建，Review 修复轮更新中，未合并。
 - 合入提交与日期：未合入。
 - 发布版本与日期：未发布。

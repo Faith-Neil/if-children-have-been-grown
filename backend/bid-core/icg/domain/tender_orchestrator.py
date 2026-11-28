@@ -553,6 +553,8 @@ class TenderOrchestratorMixin:
             return
         draft = {
             "requirements": dict(workflow.get("requirements") or {}),
+            # 残句补全必须能看到招标原文页；否则重跑存量目录时只能凭碎片猜，甚至把可补全条款永久过滤。
+            "files": dict(workflow.get("files") or {}),
             "technical_sidecars": dict(workflow.get("technical_sidecars") or {}),
             "response_tasks": {key: dict(value) for key, value in (workflow.get("response_tasks") or {}).items()},
             "technical_facts": dict(workflow.get("technical_facts") or {}),

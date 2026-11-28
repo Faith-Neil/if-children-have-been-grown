@@ -150,3 +150,48 @@ def test_mount_quality_penalizes_concentrated_high_score_dump():
     concentrated = {"1.1": ["T-01", "T-02", "S-60"]}
     balanced = {"1.1": ["T-01"], "1.2": ["T-02", "S-60"]}
     assert _mount_quality(balanced, weights) > _mount_quality(concentrated, weights)
+
+
+def test_scoring_group_ref_expands_to_point_refs_before_dedup():
+    from icg.domain.technical_digest_outline import _expand_refs
+
+    index = {"S-01": ["r1", "r2"], "S-01-1": ["r1"], "S-01-2": ["r2"], "T-01": ["r3"]}
+    assert _expand_refs(["S-01", "T-01"], index) == ["S-01-1", "S-01-2", "T-01"]
+
+
+def test_empty_leaves_and_empty_parents_are_pruned_and_renumbered():
+    from icg.domain.technical_digest_outline import prune_empty_skeleton
+
+    skeleton = [
+        {"level": 1, "title": "运维", "number": "1", "leaf": False},
+        {"level": 2, "title": "巡检", "number": "1.1", "leaf": True},
+        {"level": 2, "title": "空节", "number": "1.2", "leaf": True},
+        {"level": 1, "title": "空章", "number": "2", "leaf": True},
+    ]
+    pruned, remapped = prune_empty_skeleton(skeleton, {"1.1": ["T-01"], "1.2": []})
+    assert [(node["number"], node["title"], node["leaf"]) for node in pruned] == [("1", "运维", False), ("1.1", "巡检", True)]
+    assert remapped == {"1.1": ["T-01"]}
+
+
+def test_merged_mounts_reject_concentration_and_choose_balanced_candidate():
+    from icg.domain.technical_digest_outline import _select_merged_mounts
+
+    expected = ["T-01", "T-02", "T-03", "T-04"]
+    weights = {ref: 1.0 for ref in expected}
+    concentrated = {"1.1": ["T-01", "T-02", "T-03"]}
+    balanced = {"1.2": ["T-01", "T-02"], "1.3": ["T-03"]}
+    merged = _select_merged_mounts([concentrated, balanced], expected, weights, leaf_count=3)
+    assert merged == {"1.2": ["T-01", "T-02"], "1.3": ["T-03"]}
+
+
+def test_end_to_end_empty_leaf_is_not_written_as_generation_task():
+    skeleton = json.dumps({"nodes": [
+        {"level": 1, "title": "运维服务"}, {"level": 2, "title": "巡检"}, {"level": 2, "title": "空章节"}
+    ]}, ensure_ascii=False)
+    mounts = json.dumps({"mounts": [{"node": "1.1", "refs": ["T-01", "T-02", "T-03"]}]}, ensure_ascii=False)
+    workflow = _workflow()
+    plan = plan_technical_outline(workflow, FakeModel([skeleton, mounts]))
+    titles = [node["title"] for node in plan["headings"]]
+    assert "空章节" not in titles
+    assert len(plan["tasks"]) == 1
+    assert all(task["requirement_ids"] for task in plan["tasks"])

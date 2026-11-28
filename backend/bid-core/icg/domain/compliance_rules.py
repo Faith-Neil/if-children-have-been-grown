@@ -951,6 +951,11 @@ class ComplianceRulesEngine:
                 break
             if volume != "all" and req.get("volume") != volume:
                 continue
+            from icg.domain.technical_clause_cleaning import row_excluded_from_technical
+            if row_excluded_from_technical(req):
+                # 已分流付款/资格/格式条款不消费技术响应，也不触发技术服务期核验；
+                # 例如「服务期内每季度支付一次进度款」是付款安排，不是服务期能力承诺。
+                continue
 
             text = str(req.get("text", "") or "")
             is_service_period = any(

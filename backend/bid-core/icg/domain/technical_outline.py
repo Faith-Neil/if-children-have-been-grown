@@ -596,6 +596,21 @@ def workspace_fields(state: Any, project_id: str, workflow: dict) -> dict[str, A
             if title and title not in review:
                 review.append(title)
     from icg.domain.technical_response_plan import coverage_rows
+    filtered_clause_rows = []
+    for row in (workflow.get("requirements") or {}).values():
+        scope = str(row.get("requirement_scope") or "")
+        if scope not in ("non_technical", "fragment_filtered"):
+            continue
+        source = row.get("source") or {}
+        filtered_clause_rows.append({
+            "requirement_id": str(row.get("id") or ""),
+            "text": str(row.get("extracted_summary") or row.get("text") or ""),
+            "requirement_scope": scope,
+            "non_tech_category": str(row.get("non_tech_category") or ""),
+            "fragment_reason": str(row.get("fragment_reason") or ""),
+            "source_page": source.get("page"),
+            "source_filename": source.get("filename") or source.get("file_name"),
+        })
     return {
         "plan_confirmed": confirmed,
         "technical_outline": outline,
@@ -606,6 +621,7 @@ def workspace_fields(state: Any, project_id: str, workflow: dict) -> dict[str, A
         "technical_quality": quality,
         "response_tasks": list((workflow.get("response_tasks") or {}).values()) if stored else [],
         "coverage_rows": coverage_rows(workflow, outline, content) if stored else [],
+        "filtered_clause_rows": filtered_clause_rows,
         "tender_digest": workflow.get("tender_digest"),
         "plan_validation": (stored or {}).get("plan_validation") or workflow.get("plan_validation"),
         "technical_rag_audit": public_rag_audit(workflow),
